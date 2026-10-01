@@ -4,17 +4,25 @@ import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote
 import { persistSubmissionFailure } from '@api/helpers/utils/credits/persist-submission-failure.util';
 import type { ByokService } from '@api/services/byok/byok.service';
 import type { CrunClient } from '@api/services/integrations/crun/crun-client.service';
+import type { CrunPreparedTask } from '@api/services/integrations/crun/crun-task.schema';
 import { CrunTaskService } from '@api/services/integrations/crun/crun-task.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivitySource, IngredientStatus } from '@genfeedai/contracts';
 import { quoteModelBillablePricing } from '@genfeedai/pricing';
-import { PrismaClient } from '@genfeedai/prisma';
+import { PrismaClient, toPrismaJson } from '@genfeedai/prisma';
 import type { ConfigService } from '@libs/config/config.service';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
+import { z } from 'zod';
 
 vi.unmock('@genfeedai/prisma');
 vi.unmock('@prisma/adapter-pg');
+
+function jsonObject(
+  value: unknown,
+): import('@genfeedai/prisma').Prisma.InputJsonObject {
+  return z.record(z.string(), z.json()).parse(toPrismaJson(value));
+}
 
 describe('Crun durable PostgreSQL submission and leases', () => {
   const schema = `crun_${randomUUID().replaceAll('-', '')}`;
@@ -148,7 +156,7 @@ describe('Crun durable PostgreSQL submission and leases', () => {
         outputIndex: 0,
         inputHash: 'b'.repeat(64),
         inputMetadata: { referenceCount: 0, intentHash: 'd'.repeat(64) },
-        quoteSnapshot: quote,
+        quoteSnapshot: jsonObject(quote),
         fundingBinding: { kind: 'reservation' },
         credentialSource: 'hosted',
         credentialFingerprint: fingerprint,
@@ -232,24 +240,27 @@ describe('Crun durable PostgreSQL submission and leases', () => {
   it('prepares every funded output atomically and rolls back a foreign binding before dispatch', async () => {
     const quoteId = randomUUID();
     const quote = frozenQuote(4);
-    const outputs = Array.from({ length: 4 }, (_, outputIndex) => ({
-      organizationId: 'fixture-org',
-      userId: 'fixture-user',
-      ingredientId: randomUUID(),
-      reservationId: 'funded-group',
-      modelKey: 'crun/google/nano-banana-pro',
-      endpoint: 'google/nano-banana-pro',
-      contractVersion: 'contract-v1',
-      quoteId,
-      outputIndex,
-      inputHash: 'b'.repeat(64),
-      inputMetadata: { referenceCount: 0, intentHash: 'd'.repeat(64) },
-      quoteSnapshot: quote,
-      fundingBinding: { kind: 'reservation' as const },
-      credentialSource: 'hosted' as const,
-      credentialId: null,
-      credentialFingerprint: fingerprint,
-    }));
+    const outputs: CrunPreparedTask[] = Array.from(
+      { length: 4 },
+      (_, outputIndex) => ({
+        organizationId: 'fixture-org',
+        userId: 'fixture-user',
+        ingredientId: randomUUID(),
+        reservationId: 'funded-group',
+        modelKey: 'crun/google/nano-banana-pro',
+        endpoint: 'google/nano-banana-pro',
+        contractVersion: 'contract-v1',
+        quoteId,
+        outputIndex,
+        inputHash: 'b'.repeat(64),
+        inputMetadata: { referenceCount: 0, intentHash: 'd'.repeat(64) },
+        quoteSnapshot: jsonObject(quote),
+        fundingBinding: { kind: 'reservation' as const },
+        credentialSource: 'hosted' as const,
+        credentialId: null,
+        credentialFingerprint: fingerprint,
+      }),
+    );
     for (const input of outputs)
       await pool.query(
         `INSERT INTO "${schema}"."ingredients" ("id","organizationId","userId","generationBilling") VALUES ($1, $2, 'fixture-user', $3)`,
@@ -329,81 +340,6 @@ describe('Crun durable PostgreSQL submission and leases', () => {
       row({ providerTaskId: first.providerTaskId }),
     ).rejects.toMatchObject({ code: 'P2002' });
   });
-});
-
-describe('Crun shared Redis admission with two process-equivalent clients', () => {
-  let first: import('ioredis').default;
-  let second: import('ioredis').default;
-  let serviceA: import('@api/services/cache/cache.service').CacheService;
-  let serviceB: import('@api/services/cache/cache.service').CacheService;
-  const fingerprint = createHash('sha256').update(randomUUID()).digest('hex');
-  const key = `crun:requests:${fingerprint}`;
-  beforeAll(async () => {
-    const url = process.env.CRUN_TEST_REDIS_URL;
-    if (
-      !url ||
-      !['localhost', '127.0.0.1', '[::1]'].includes(new URL(url).hostname)
-    )
-      throw new Error('Dedicated loopback Redis fixture required');
-    const { default: Redis } =
-      await vi.importActual<typeof import('ioredis')>('ioredis');
-    first = new Redis(url, {
-      enableOfflineQueue: false,
-      maxRetriesPerRequest: 0,
-      lazyConnect: true,
-    });
-    second = new Redis(url, {
-      enableOfflineQueue: false,
-      maxRetriesPerRequest: 0,
-      lazyConnect: true,
-    });
-    await Promise.all([first.connect(), second.connect()]);
-    const { CacheService } = await import('@api/services/cache/cache.service');
-    const make = (client: import('ioredis').default) =>
-      new CacheService(
-        {
-          instance: client,
-          isReady: true,
-        } as unknown as import('@api/services/cache/cache-client.service').CacheClientService,
-        {} as import('@api/services/cache/cache-tags.service').CacheTagsService,
-        {
-          warn: vi.fn(),
-        } as unknown as import('@libs/logger/logger.service').LoggerService,
-      );
-    serviceA = make(first);
-    serviceB = make(second);
-  });
-  afterAll(async () => {
-    if (first?.status === 'ready') await first.del(key);
-    first?.disconnect();
-    second?.disconnect();
-  });
-  it('atomic gate admits exactly 20 across concurrent clients, isolates keys and expires old slots', async () => {
-    const results = await Promise.all(
-      Array.from({ length: 80 }, (_, index) =>
-        (index % 2 ? serviceA : serviceB).claimCrunRequestSlot(fingerprint),
-      ),
-    );
-    expect(results.filter((result) => result?.isAdmitted)).toHaveLength(20);
-    expect(
-      results.filter((result) => result && !result.isAdmitted),
-    ).toHaveLength(60);
-    expect(await first.zcard(key)).toBe(20);
-    expect(await first.ttl(key)).toBeGreaterThan(0);
-    const other = createHash('sha256').update(randomUUID()).digest('hex');
-    expect((await serviceB.claimCrunRequestSlot(other))?.isAdmitted).toBe(true);
-    await first.del(`crun:requests:${other}`);
-    const [seconds, micros] = await first.time();
-    const now = Number(seconds) * 1000 + Math.floor(Number(micros) / 1000);
-    const members = await first.zrange(key, 0, -1);
-    await Promise.all(
-      members.map((member) => first.zadd(key, now - 10001, member)),
-    );
-    expect((await serviceA.claimCrunRequestSlot(fingerprint))?.isAdmitted).toBe(
-      true,
-    );
-    expect(await first.zcard(key)).toBe(1);
-  });
   async function byokRow() {
     const receipt = {
       kind: 'byok' as const,
@@ -429,7 +365,7 @@ describe('Crun shared Redis admission with two process-equivalent clients', () =
     const prepared = await row({
       reservationId: null,
       credentialSource: 'byok',
-      quoteSnapshot: snapshot,
+      quoteSnapshot: jsonObject(snapshot),
       fundingBinding: { kind: 'byok', receipt: immutable },
     });
     await pool.query(
@@ -597,5 +533,80 @@ describe('Crun shared Redis admission with two process-equivalent clients', () =
     expect(
       next.filter((item) => due.some((candidate) => candidate.id === item.id)),
     ).toHaveLength(1);
+  });
+});
+
+describe('Crun shared Redis admission with two process-equivalent clients', () => {
+  let first: import('ioredis').default;
+  let second: import('ioredis').default;
+  let serviceA: import('@api/services/cache/cache.service').CacheService;
+  let serviceB: import('@api/services/cache/cache.service').CacheService;
+  const fingerprint = createHash('sha256').update(randomUUID()).digest('hex');
+  const key = `crun:requests:${fingerprint}`;
+  beforeAll(async () => {
+    const url = process.env.CRUN_TEST_REDIS_URL;
+    if (
+      !url ||
+      !['localhost', '127.0.0.1', '[::1]'].includes(new URL(url).hostname)
+    )
+      throw new Error('Dedicated loopback Redis fixture required');
+    const { default: Redis } =
+      await vi.importActual<typeof import('ioredis')>('ioredis');
+    first = new Redis(url, {
+      enableOfflineQueue: false,
+      maxRetriesPerRequest: 0,
+      lazyConnect: true,
+    });
+    second = new Redis(url, {
+      enableOfflineQueue: false,
+      maxRetriesPerRequest: 0,
+      lazyConnect: true,
+    });
+    await Promise.all([first.connect(), second.connect()]);
+    const { CacheService } = await import('@api/services/cache/cache.service');
+    const make = (client: import('ioredis').default) =>
+      new CacheService(
+        {
+          instance: client,
+          isReady: true,
+        } as unknown as import('@api/services/cache/cache-client.service').CacheClientService,
+        {} as import('@api/services/cache/cache-tags.service').CacheTagsService,
+        {
+          warn: vi.fn(),
+        } as unknown as import('@libs/logger/logger.service').LoggerService,
+      );
+    serviceA = make(first);
+    serviceB = make(second);
+  });
+  afterAll(async () => {
+    if (first?.status === 'ready') await first.del(key);
+    first?.disconnect();
+    second?.disconnect();
+  });
+  it('atomic gate admits exactly 20 across concurrent clients, isolates keys and expires old slots', async () => {
+    const results = await Promise.all(
+      Array.from({ length: 80 }, (_, index) =>
+        (index % 2 ? serviceA : serviceB).claimCrunRequestSlot(fingerprint),
+      ),
+    );
+    expect(results.filter((result) => result?.isAdmitted)).toHaveLength(20);
+    expect(
+      results.filter((result) => result && !result.isAdmitted),
+    ).toHaveLength(60);
+    expect(await first.zcard(key)).toBe(20);
+    expect(await first.ttl(key)).toBeGreaterThan(0);
+    const other = createHash('sha256').update(randomUUID()).digest('hex');
+    expect((await serviceB.claimCrunRequestSlot(other))?.isAdmitted).toBe(true);
+    await first.del(`crun:requests:${other}`);
+    const [seconds, micros] = await first.time();
+    const now = Number(seconds) * 1000 + Math.floor(Number(micros) / 1000);
+    const members = await first.zrange(key, 0, -1);
+    await Promise.all(
+      members.map((member) => first.zadd(key, now - 10001, member)),
+    );
+    expect((await serviceA.claimCrunRequestSlot(fingerprint))?.isAdmitted).toBe(
+      true,
+    );
+    expect(await first.zcard(key)).toBe(1);
   });
 });

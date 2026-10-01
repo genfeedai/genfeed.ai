@@ -23,6 +23,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivitySource,
   CreditReservationStatus,
+  CreditTransactionCategory,
   IngredientStatus,
 } from '@genfeedai/contracts';
 import {
@@ -479,7 +480,7 @@ export class GenerationBillingService {
         idempotencyKey: `byok:${organizationId}:${idempotencyKey}`,
         ...(receipt.submissionIntentProvider === 'crun'
           ? {
-              category: 'BYOK_USAGE',
+              category: CreditTransactionCategory.BYOK_USAGE,
               actorUserId: receipt.userId,
               amount: receipt.amount,
               source: receipt.source,
@@ -511,7 +512,7 @@ export class GenerationBillingService {
               organizationId,
               isDeleted: false,
               idempotencyKey: `byok:${organizationId}:${idempotencyKey}`,
-              category: 'BYOK_USAGE',
+              category: CreditTransactionCategory.BYOK_USAGE,
               actorUserId: frozen.userId,
               amount: frozen.amount,
               source: frozen.source,
@@ -577,7 +578,12 @@ export class GenerationBillingService {
       amount: receipt.amount,
       description: receipt.description,
       idempotencyKey,
-      metadata: { assetId: ingredientId },
+      metadata: {
+        assetId: ingredientId,
+        ...(receipt.submissionIntentProvider === 'crun'
+          ? { submissionIntentProvider: 'crun' }
+          : {}),
+      },
       organizationId,
       source: receipt.source,
       type: 'record-byok-usage',

@@ -3,7 +3,8 @@ import type { CrunTaskStatusResponse } from '@api/services/integrations/crun/cru
 import { CrunTaskFinalizationService } from '@api/services/integrations/crun/crun-task-finalization.service';
 import { ActivitySource, IngredientStatus } from '@genfeedai/contracts';
 import { quoteModelBillablePricing } from '@genfeedai/pricing';
-import type { CrunGenerationTask } from '@genfeedai/prisma';
+import type { CrunGenerationTask, Prisma } from '@genfeedai/prisma';
+import { z } from 'zod';
 
 function fixture() {
   const priced = quoteModelBillablePricing(
@@ -93,7 +94,9 @@ function fixture() {
           ? row
           : null,
       ),
-      findFirstOrThrow: vi.fn(async () => row),
+      findFirstOrThrow: vi.fn(
+        async (_args: Prisma.CrunGenerationTaskFindFirstOrThrowArgs) => row,
+      ),
       updateMany: vi.fn(async ({ where, data }) => {
         if (
           where.version !== row.version ||
@@ -259,6 +262,7 @@ describe('Crun authenticated finalization phases', () => {
     f.row.nextAccountingAttemptAt = new Date();
     f.row.version++;
     f.hold.status = 'SETTLED';
+    f.hold.settledAmount = f.hold.amount;
     await f.service.finalize({ ...f.row }, f.info);
     expect(f.row.state).toBe('finalized');
   });
@@ -310,12 +314,12 @@ describe('Crun authenticated finalization phases', () => {
   });
   it('free hosted output still records actual provider expense with no credit job', async () => {
     const f = fixture();
-    f.row.quoteSnapshot = {
+    f.row.quoteSnapshot = z.json().parse({
       ...f.snapshot,
       credits: 0,
       allocatedCredits: [0],
       pricingProfile: { ...f.snapshot.pricingProfile, isFree: true, cost: 0 },
-    };
+    });
     f.row.fundingBinding = { kind: 'free' };
     f.row.reservationId = null;
     await f.service.finalize({ ...f.row }, f.info);
@@ -336,7 +340,7 @@ describe('Crun authenticated finalization phases', () => {
     f.row.credentialSource = 'byok';
     f.row.reservationId = null;
     f.row.fundingBinding = { kind: 'byok', receipt };
-    f.row.quoteSnapshot = {
+    f.row.quoteSnapshot = z.json().parse({
       ...f.snapshot,
       providerQuote: {
         ...f.snapshot.providerQuote,
@@ -345,7 +349,7 @@ describe('Crun authenticated finalization phases', () => {
         creditsPerUsd: null,
         acquisitionRateVersion: null,
       },
-    };
+    });
     f.ingredient.generationBilling = {
       ...receipt,
       kind: 'byok',

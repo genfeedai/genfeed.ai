@@ -1005,6 +1005,7 @@ describe('CreditReservationService', () => {
           reservationId: 'res_1',
           actorUserId: 'user_1',
           actualAmount: 3,
+          description: 'Fixture settlement',
         }),
       ).rejects.toThrow('Crun settlement proof is incomplete');
       expect(prisma.creditReservation.updateMany).not.toHaveBeenCalled();

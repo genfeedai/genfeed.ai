@@ -124,11 +124,13 @@ describe('AvatarVideoGenerationService', () => {
     );
 
     const billingTransaction = {
+      crunGenerationTask: { findFirst: vi.fn().mockResolvedValue(null) },
       $queryRaw: vi.fn(),
       creditReservation: { findFirst: vi.fn().mockResolvedValue(null) },
       ingredient: { findFirst: vi.fn().mockResolvedValue(null) },
     };
     const billingPrisma = {
+      crunGenerationTask: { findFirst: vi.fn().mockResolvedValue(null) },
       $transaction: async (
         operation: (tx: typeof billingTransaction) => Promise<void>,
       ) => operation(billingTransaction),

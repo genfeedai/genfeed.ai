@@ -1,4 +1,4 @@
-import { CrunReconcileService } from '@/services/crun-reconcile.service';
+import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
 
 const row = {
   id: 'task',

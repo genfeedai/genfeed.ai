@@ -654,6 +654,8 @@ describe('Crun image quote through durable owned output and accounting', () => {
         intent as never,
         request as never,
       );
+      if (!quoted.data || Array.isArray(quoted.data))
+        throw new Error('Quote must return one JSON API resource');
       const attributes = quoted.data.attributes as {
         isAvailable: boolean;
         reasonCode: string | null;
@@ -685,6 +687,8 @@ describe('Crun image quote through durable owned output and accounting', () => {
         { ...intent, crunQuoteId: attributes.quoteId } as never,
         request as never,
       );
+      if (!generated.data || Array.isArray(generated.data))
+        throw new Error('Generation must return one JSON API resource');
       const ids = (
         generated.data.attributes as { pendingIngredientIds: string[] }
       ).pendingIngredientIds;
@@ -725,6 +729,7 @@ describe('Crun image quote through durable owned output and accounting', () => {
         expect(hold.metadata).toMatchObject({ dispatchClosed: true });
         await expect(
           reservation.settle({
+            description: 'Fixture settlement',
             organizationId: org,
             reservationId: hold.id,
             actorUserId: user.userId,
@@ -890,7 +895,10 @@ describe('Crun image quote through durable owned output and accounting', () => {
       );
       expect(
         await prisma.creditTransaction.count({
-          where: { organizationId: org, category: 'DEDUCT' },
+          where: {
+            organizationId: org,
+            category: CreditTransactionCategory.DEDUCT,
+          },
         }),
       ).toBe(
         funding === 'hosted' &&
@@ -901,7 +909,10 @@ describe('Crun image quote through durable owned output and accounting', () => {
       );
       expect(
         await prisma.creditTransaction.count({
-          where: { organizationId: org, category: 'BYOK_USAGE' },
+          where: {
+            organizationId: org,
+            category: CreditTransactionCategory.BYOK_USAGE,
+          },
         }),
       ).toBe(funding === 'byok' ? outputs : 0);
       const expenses = await prisma.mediaVendorCost.findMany({

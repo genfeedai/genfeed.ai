@@ -101,6 +101,7 @@ export class CrunImageGenerationProviderAdapter
         undefined
     )
       throw new BadRequestException({ code: 'CRUN_BILLING_UNSUPPORTED' });
+    const raw = this.intentFromDto(dto);
     if (
       request.generationOriginalPrompt !== undefined &&
       request.generationOriginalPrompt !== dto.text.trim()
@@ -112,7 +113,7 @@ export class CrunImageGenerationProviderAdapter
           id: dto.promptId,
           organizationId: user.organizationId,
           userId: user.userId,
-          brandId: dto.brandId ?? dto.brand ?? user.brandId,
+          brandId: typeof raw.brandId === 'string' ? raw.brandId : user.brandId,
           isDeleted: false,
         },
         select: { original: true, enhanced: true },
@@ -124,7 +125,6 @@ export class CrunImageGenerationProviderAdapter
       )
         throw new BadRequestException({ code: 'CRUN_ENHANCEMENT_REQUIRED' });
     }
-    const raw = this.intentFromDto(dto);
     if (!raw.crunControls) {
       const model = await this.prisma.model.findFirst({
         where: {

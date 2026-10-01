@@ -235,7 +235,7 @@ describe('Crun deterministic image preparation', () => {
   it('canonical launch defaults and empty knowledge normalize to the same intent as explicit controls', () => {
     const f = fixture();
     const raw = {
-      model: f.model.key,
+      model: f.raw.model,
       text: ' Bird ',
       crunControls: { contractVersion: f.contract.version },
     };

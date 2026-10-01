@@ -130,6 +130,7 @@ describe('async generation settlement', () => {
       }),
     };
     const prisma = {
+      crunGenerationTask: { findFirst: vi.fn().mockResolvedValue(null) },
       creditReservation: {
         findMany: vi.fn(async () =>
           [...holds.values()]

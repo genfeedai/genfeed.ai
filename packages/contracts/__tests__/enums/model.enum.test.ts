@@ -288,8 +288,8 @@ describe('model.enum', () => {
   });
 
   describe('ModelProvider', () => {
-    it('should have 7 members', () => {
-      expect(Object.values(ModelProvider)).toHaveLength(7);
+    it('should have 8 members', () => {
+      expect(Object.values(ModelProvider)).toHaveLength(8);
     });
 
     it('should have correct values', () => {
@@ -300,6 +300,7 @@ describe('model.enum', () => {
       expect(ModelProvider.MUREKA).toBe('mureka');
       expect(ModelProvider.HEYGEN).toBe('heygen');
       expect(ModelProvider.HIGGSFIELD).toBe('higgsfield');
+      expect(ModelProvider.CRUN).toBe('crun');
     });
   });
 

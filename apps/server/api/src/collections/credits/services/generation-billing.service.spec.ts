@@ -3,14 +3,17 @@ import {
   type GenerationBillingRequest,
   GenerationBillingService,
 } from '@api/collections/credits/services/generation-billing.service';
+import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import type { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivitySource,
   CreditReservationStatus,
+  CreditTransactionCategory,
   IngredientStatus,
 } from '@genfeedai/contracts';
 import type { ICreditReservation } from '@genfeedai/contracts/interfaces/billing';
+import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 const NOW = new Date('2026-09-29T12:00:00Z');
@@ -680,5 +683,90 @@ describe('GenerationBillingService', () => {
     });
     expect(prisma.ingredient.updateMany).not.toHaveBeenCalled();
     expect(credits.releaseReservation).not.toHaveBeenCalled();
+  });
+  it('queues the server-only Crun marker and acknowledges only canonical usage category', async () => {
+    const usage = {
+      kind: 'byok',
+      state: 'pending',
+      amount: 4,
+      description: 'Image generation',
+      source: ActivitySource.IMAGE_GENERATION,
+      userId: 'user_1',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      submissionIntentProvider: 'crun',
+    };
+    const { kind: _kind, state: _state, ...immutable } = usage;
+    const priced = quoteModelBillablePricing(
+      billableProfile({
+        key: 'crun/google/nano-banana-pro',
+        provider: 'crun',
+        cost: 4,
+      }),
+      {
+        modelKey: 'crun/google/nano-banana-pro',
+        provider: 'crun',
+        outputs: 1,
+        requests: 1,
+      },
+      1,
+      NOW.toISOString(),
+    );
+    if (priced.status !== 'priced') throw new Error('Invalid fixture quote');
+    const task = {
+      credentialSource: 'byok',
+      fundingBinding: { kind: 'byok', receipt: immutable },
+      state: 'provider-success',
+      terminalReceipt: { status: 'success', credits: '8' },
+      vendorCostRecordedAt: new Date(),
+      mediaPersistedAt: new Date(),
+      quoteSnapshot: {
+        ...priced.snapshot,
+        providerQuote: {
+          provider: 'crun',
+          estimated: false,
+          providerCreditsPerTask: '8',
+          quoteHash: 'a'.repeat(64),
+          inputHash: 'b'.repeat(64),
+          contractVersion: 'v1',
+          creditsPerUsd: null,
+          acquisitionRateVersion: null,
+          credentialSource: 'byok',
+          credentialId: null,
+          credentialFingerprint: 'c'.repeat(64),
+        },
+      },
+    };
+    prisma.crunGenerationTask.findFirst.mockResolvedValue(task);
+    prisma.ingredient.findFirst.mockResolvedValue({
+      id: 'ing_1',
+      status: IngredientStatus.GENERATED,
+      generationBilling: usage,
+    });
+    credits.findReservationForWorkload.mockResolvedValue(null);
+    await service.settleOutput('ing_1', 'org_1');
+    expect(queue.queueByokUsage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: { assetId: 'ing_1', submissionIntentProvider: 'crun' },
+      }),
+    );
+    prisma.creditTransaction.findFirst.mockResolvedValue({ id: 'usage' });
+    await service.settleOutput('ing_1', 'org_1');
+    expect(prisma.creditTransaction.findFirst).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          category: CreditTransactionCategory.BYOK_USAGE,
+          actorUserId: 'user_1',
+          amount: 4,
+          metadata: { path: ['assetId'], equals: 'ing_1' },
+        }),
+      }),
+    );
+    expect(prisma.ingredient.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          generationBilling: expect.objectContaining({ state: 'recorded' }),
+        },
+      }),
+    );
   });
 });
