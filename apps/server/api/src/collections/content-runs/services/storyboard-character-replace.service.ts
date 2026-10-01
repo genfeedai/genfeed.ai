@@ -35,7 +35,8 @@ function parseInput<T>(schema: ZodType<T>, value: unknown): T {
 
 function sourceVideoAssetId(config: StoryboardRunConfig): string | undefined {
   const snapshot = config.sourceSnapshot;
-  if (snapshot.selector.kind === 'uploaded_video') return snapshot.assetId;
+  if (snapshot.selector.kind === 'uploaded_video')
+    return snapshot.selector.assetId;
   if (
     'media' in snapshot &&
     snapshot.media?.status === 'saved' &&
