@@ -86,7 +86,7 @@ function AppRailItem({
           onMouseEnter={intent.onMouseEnter}
           onMouseLeave={intent.onMouseLeave}
           className={cn(
-            'relative inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition-[background-color,color] duration-150',
+            'relative inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color] duration-150',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-100',
             // Codex-style selection: a filled tile two steps above the rail,
             // hover one step. The icon is the only foreground either way.
@@ -96,7 +96,7 @@ function AppRailItem({
             isLocked && 'opacity-60',
           )}
         >
-          <Icon aria-hidden="true" className="size-[1.125rem]" />
+          <Icon aria-hidden="true" className="size-4" />
           {isLocked ? (
             <span className="absolute -right-0.5 -top-0.5 inline-flex size-4 items-center justify-center rounded-full bg-gray-100 text-foreground/70 shadow-border">
               <Lock aria-hidden="true" className="size-2.5" />
@@ -247,12 +247,12 @@ function AppRailMore({
         data-active="false"
         data-testid="app-rail-more"
         className={cn(
-          'relative inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-foreground/50 transition-[background-color,color] duration-150',
+          'relative inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-foreground/50 transition-[background-color,color] duration-150',
           'hover:bg-foreground/[0.06] hover:text-foreground data-[state=open]:bg-foreground/[0.06] data-[state=open]:text-foreground',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-100',
         )}
       >
-        <Ellipsis aria-hidden="true" className="size-[1.125rem]" />
+        <Ellipsis aria-hidden="true" className="size-4" />
         {overflowCount > 0 ? (
           <span
             aria-hidden="true"
@@ -408,7 +408,7 @@ export function AppRail({
     <TooltipProvider delayDuration={300} skipDelayDuration={200}>
       <nav
         aria-label={t('apps')}
-        className="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto px-2 pb-2 pt-1.5"
+        className="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto px-1 pb-1 pt-1"
         data-testid="app-rail"
       >
         {header ? (

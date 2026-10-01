@@ -165,7 +165,7 @@ describe('AgentDock', () => {
     opener.remove();
   });
 
-  it('returns keyboard focus to the page promptbar after the overlay closes', () => {
+  it('returns keyboard focus to the page bubble after the overlay closes', () => {
     const dock = buildDock({ isOpen: false });
     const view = render(
       <AgentDock
@@ -179,7 +179,7 @@ describe('AgentDock', () => {
         </div>
       </AgentDock>,
     );
-    const launcher = screen.getByTestId('agent-page-promptbar');
+    const launcher = screen.getByTestId('agent-conversation-bubble');
     launcher.focus();
     fireEvent.click(launcher);
     expect(dock.open).toHaveBeenCalledTimes(1);
@@ -210,7 +210,7 @@ describe('AgentDock', () => {
     );
 
     expect(document.activeElement).toBe(
-      screen.getByTestId('agent-page-promptbar'),
+      screen.getByTestId('agent-conversation-bubble'),
     );
   });
 

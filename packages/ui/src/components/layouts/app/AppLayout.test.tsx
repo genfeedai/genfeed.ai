@@ -250,7 +250,8 @@ describe('AppLayout', () => {
       screen.getAllByTestId('rail-component')[0],
     );
     expect(screen.getByTestId('app-content-shell').parentElement).toHaveStyle({
-      '--desktop-rail-width': '52px',
+      '--desktop-rail-width': '40px',
+      '--shell-topbar-height': '40px',
     });
     // Desktop: the topbar sits on the chrome plane, outside the page.
     expect(screen.getByTestId('app-topbar-shell')).toHaveClass(

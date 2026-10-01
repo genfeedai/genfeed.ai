@@ -95,7 +95,7 @@ export default function AppLayout({
         <div
           ref={layoutRootRef}
           className={cn(
-            'overflow-x-hidden [--shell-topbar-height:2.5rem]',
+            'overflow-x-hidden',
             hasChrome
               ? cn(
                   'bg-gray-100 [--shell-edge:0px] [--shell-inset:0px] md:[--shell-inset:0.5rem]',
