@@ -273,7 +273,6 @@ describe('compareBrandRgbaRegion malformed inputs', () => {
 
   it('rejects non-Uint8Array expected input', () => {
     expectInvalid(() =>
-      // @ts-expect-error Intentional malformed runtime byte input.
       compareBrandRgbaRegion(
         new Uint8Array(4),
         1,
@@ -282,6 +281,7 @@ describe('compareBrandRgbaRegion malformed inputs', () => {
         0,
         1,
         1,
+        // @ts-expect-error Intentional malformed runtime byte input.
         new Uint8ClampedArray(4),
       ),
     );
