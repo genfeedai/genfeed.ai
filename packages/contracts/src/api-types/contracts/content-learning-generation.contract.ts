@@ -340,5 +340,13 @@ export const learningScopeViewSchema: z.ZodType<LearningScopeView> =
     activePolicyId: learningContractIdSchema.nullable(),
     pinnedPolicyId: learningContractIdSchema.nullable(),
     lastValidRewardAt: z.iso.datetime().nullable(),
-    unavailableReasons: z.array(learningContractIdSchema).max(128),
+    unavailableReasons: z
+      .array(
+        z
+          .string()
+          .min(1)
+          .max(96)
+          .regex(/^[a-z][a-z0-9_.:-]*$/),
+      )
+      .max(128),
   });
