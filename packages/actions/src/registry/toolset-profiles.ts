@@ -7,9 +7,9 @@ import type { ToolsetName } from './toolset-names';
  *
  * `default` is what the bare MCP URL loads. The intended set is core,
  * scheduler, content, generation, analytics, brand, and onboarding, but
- * those seven are 58 MCP tools and the bare URL is capped at
+ * those seven are 66 MCP tools and the bare URL is capped at
  * {@link BARE_MCP_URL_TOOL_CAP}. core + scheduler + content is 31, and
- * adding any of the remaining four (generation 12, analytics 7, brand 5,
+ * adding any of the remaining four (generation 19, analytics 7, brand 6,
  * onboarding 3) crosses the cap, so they stay off `default`. `?profile=full`
  * and an explicit `?toolsets=` still reach them.
  */

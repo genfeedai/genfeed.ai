@@ -51,6 +51,7 @@ describe('ToolRegistryService.classify', () => {
     ['get_generation_settings', 'agent-executor'],
     ['set_generation_settings', 'agent-executor'],
     ['get_video_status', 'legacy'],
+    ['merge_videos', 'legacy'],
     ['list_meta_campaigns', 'meta-ads'],
     ['get_google_ads_campaign_metrics', 'google-ads'],
     ['list_tiktok_campaigns', 'tiktok-ads'],

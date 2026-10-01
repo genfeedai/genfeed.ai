@@ -43,6 +43,7 @@ import {
   approvalPendingToolResult,
   toMcpToolErrorResult,
 } from '@mcp/tools/mcp-tool-error';
+import { toMergeVideosParams } from '@mcp/tools/merge-videos';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
 import { handleRemixTool, REMIX_TOOL_NAMES } from '@mcp/tools/remix.tool';
 import {
@@ -104,6 +105,7 @@ const WORKFLOW_CONTROL_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
 const LEGACY_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'get_video_status',
   'list_videos',
+  'merge_videos',
   'get_video_analytics',
   'create_article',
   'search_articles',
@@ -638,6 +640,20 @@ export class ToolRegistryService implements OnModuleInit {
           content: [
             {
               text: formatListResult(videos, 'videos'),
+              type: 'text',
+            },
+          ],
+        };
+      }
+
+      case 'merge_videos': {
+        const params = toMergeVideosParams(args ?? {});
+        const merged = await this.clientService.mergeVideos(params);
+        return {
+          structuredContent: { data: merged },
+          content: [
+            {
+              text: `Video merge started.\n\nVideo ID: ${merged.id}\nStatus: ${merged.status}`,
               type: 'text',
             },
           ],

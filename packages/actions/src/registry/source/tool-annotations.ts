@@ -59,6 +59,7 @@ const NON_DESTRUCTIVE_WRITE_NAMES: ReadonlySet<string> = new Set([
   'import_source_post',
   'create_remix_concept',
   'complete_media_upload',
+  'merge_videos',
   'request_media_upload',
   'create_post',
 ]);

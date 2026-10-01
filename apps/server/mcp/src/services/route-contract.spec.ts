@@ -67,6 +67,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/videos/controllers/videos.controller.ts',
     prefix: 'videos',
   },
+  videosMerge: {
+    file: 'collections/videos/controllers/relationships/videos-merge.controller.ts',
+    prefix: 'videos',
+  },
   images: {
     file: 'collections/images/controllers/images.controller.ts',
     prefix: 'images',
@@ -373,6 +377,12 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     tools: ['get_video_status'],
   },
   { method: 'Get', sub: '', controller: 'videos', tools: ['list_videos'] },
+  {
+    method: 'Post',
+    sub: 'merge',
+    controller: 'videosMerge',
+    tools: ['merge_videos'],
+  },
   { method: 'Get', sub: '', controller: 'images', tools: ['list_images'] },
   { method: 'Get', sub: '', controller: 'avatars', tools: ['list_avatars'] },
   { method: 'Get', sub: '', controller: 'musics', tools: ['list_music'] },
