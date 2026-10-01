@@ -1,6 +1,7 @@
 import { KnowledgeSelectionDto } from '@api/collections/contexts/dto/knowledge-selection.dto';
 import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata.dto';
+import { CrunVideoQuoteControlsDto } from '@api/collections/videos/dto/create-crun-video-quote.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   IngredientCategory,
@@ -24,6 +25,7 @@ import {
   Max,
   MaxLength,
   Min,
+  MinLength,
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
@@ -139,6 +141,16 @@ export class CreateMergedVideoDto {
 }
 
 export class CreateVideoDto extends CreateIngredientDto {
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(256)
+  readonly crunQuoteId?: string;
+  @ValidateIf((_object, value) => value !== undefined)
+  @ValidateNested()
+  @Type(() => CrunVideoQuoteControlsDto)
+  readonly crunControls?: CrunVideoQuoteControlsDto;
+
   @ValidateIf((_object, value: unknown) => value !== undefined)
   @IsArray()
   @ArrayMaxSize(8)

@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import { CrunVideoGenerationService } from '@api/collections/videos/services/crun-video-generation.service';
 import { VideoGenerationCompletionService } from '@api/collections/videos/services/video-generation-completion.service';
 import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
 import { VideoGenerationExecutionService } from '@api/collections/videos/services/video-generation-execution.service';
@@ -16,7 +17,7 @@ import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { GenerationBriefReference } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { VideoSerializer } from '@genfeedai/serializers';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 const VIDEO_POPULATE = [
   PopulatePatterns.promptFull,
@@ -39,6 +40,7 @@ export class VideoGenerationService {
     private readonly executionService: VideoGenerationExecutionService,
     private readonly preparationService: VideoGenerationPreparationService,
     private readonly videosService: VideosService,
+    private readonly crun: CrunVideoGenerationService,
   ) {}
 
   async generateVideo(
@@ -50,6 +52,16 @@ export class VideoGenerationService {
     onCreditsPrepared?: () => Promise<void>,
     runReferences?: readonly GenerationBriefReference[],
   ): Promise<JsonApiSingleResponse> {
+    if (createVideoDto.model?.startsWith('crun/')) {
+      if (
+        onPlaceholderCreated ||
+        placeholderScope ||
+        onCreditsPrepared ||
+        runReferences
+      )
+        throw new BadRequestException({ code: 'CRUN_INVALID_INPUT' });
+      return this.crun.generate(user, createVideoDto, request);
+    }
     const resolved = await this.preparationService.resolve(
       user,
       createVideoDto,
