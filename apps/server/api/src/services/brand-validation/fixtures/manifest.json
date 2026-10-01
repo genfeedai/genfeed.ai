@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "corpusVersion": "brand-validation-fixtures-v1",
+  "synthetic": true,
+  "generator": {
+    "file": "generate-fixtures.mjs",
+    "sha256": "sha256:b7bbeabc5c0f78b35ab3b8c7fe5dfd10786b0fa473fdbf8c3708590de74d73e7",
+    "version": 1
+  },
+  "toolchain": {
+    "node": "v26.10.0",
+    "sharp": "0.35.5",
+    "vips": "8.18.7",
+    "ffmpeg": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+    "ffprobe": "ffprobe version 9.0.2 Copyright (c) 2007-2026 the FFmpeg developers"
+  },
+  "usage": {
+    "productionEvidence": false,
+    "providerQualification": false,
+    "fontCompliance": false
+  },
+  "artifacts": [
+    {
+      "file": "approved-text.json",
+      "mediaType": "application/json",
+      "sha256": "sha256:5d344a6111ae9da6fa17efb6b345051cc9d50eca9390a7f4d9f5d69dfd52a787",
+      "byteLength": 2849,
+      "purpose": "literal-and-claim-negative-corpus"
+    },
+    {
+      "file": "approved.png",
+      "mediaType": "image/png",
+      "sha256": "sha256:2284c955282a67de3219dc45ca60f9a59569668b91da9fd6f3980ee4b0d59bda",
+      "byteLength": 773,
+      "purpose": "reference-composition",
+      "width": 256,
+      "height": 256
+    },
+    {
+      "file": "logo.png",
+      "mediaType": "image/png",
+      "sha256": "sha256:4bc6122aef5a6b5a9c55006accfa12cbaa43467c4de896c8a31b9ba9e26a81bb",
+      "byteLength": 137,
+      "purpose": "logo-reference",
+      "width": 32,
+      "height": 32
+    },
+    {
+      "file": "product.png",
+      "mediaType": "image/png",
+      "sha256": "sha256:fa47ead41c4a34a26e447d6eef86a716247f4354a6eb75bcf6a60a0b4f99ad63",
+      "byteLength": 139,
+      "purpose": "product-reference",
+      "width": 32,
+      "height": 32
+    },
+    {
+      "file": "sample.mp4",
+      "mediaType": "video/mp4",
+      "sha256": "sha256:1e16b405d35d33128469e2a5bdebb5df1feb6ef2061a4a6de8511a90212d8e51",
+      "byteLength": 2231,
+      "purpose": "unsupported-video-coverage",
+      "width": 256,
+      "height": 256,
+      "codec": "h264",
+      "pixelFormat": "yuv420p",
+      "fps": 24,
+      "frames": 24,
+      "durationSeconds": 1
+    },
+    {
+      "file": "wrong-logo.png",
+      "mediaType": "image/png",
+      "sha256": "sha256:6d8500fbc464f1326fa65a0b103aeda7eb5757afb61920fced7dadb6e7fe16dc",
+      "byteLength": 775,
+      "purpose": "one-pixel-logo-mutation",
+      "width": 256,
+      "height": 256
+    },
+    {
+      "file": "wrong-palette.png",
+      "mediaType": "image/png",
+      "sha256": "sha256:12578ae151a55920b5580cba5fec7a5700ca20d05ed1c79eae52882ab974646d",
+      "byteLength": 778,
+      "purpose": "one-pixel-palette-mutation",
+      "width": 256,
+      "height": 256
+    }
+  ]
+}
