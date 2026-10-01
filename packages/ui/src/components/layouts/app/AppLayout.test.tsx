@@ -307,7 +307,6 @@ describe('AppLayout', () => {
     expect(panel).toHaveClass(
       'bg-background',
       'md:mb-[var(--shell-inset)]',
-      'md:ml-[var(--shell-inset)]',
       'xl:mr-[calc(var(--shell-inset)+var(--workspace-inspector-width,0px))]',
       'md:flex-row',
       'md:overflow-hidden',
@@ -315,6 +314,7 @@ describe('AppLayout', () => {
       'md:border',
       'md:border-border',
     );
+    expect(panel).not.toHaveClass('md:ml-[var(--shell-inset)]');
     expect(panel).toContainElement(sidebar);
     expect(sidebar).toHaveClass('relative', 'bg-gray-100', 'border-r');
     expect(sidebar).not.toHaveClass('fixed');

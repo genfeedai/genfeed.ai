@@ -239,14 +239,10 @@ export default function AppLayout({
               data-testid="app-content-panel"
               className={cn(
                 'flex flex-1 flex-col bg-background',
-                // Menu and page, one block. Inset on every side so the radius
-                // reads against the rail plane. The inspector squares the
-                // right corners and finishes the outer radius.
+                // Menu and page share one block directly beside the rail and
+                // below the topbar. The inspector finishes the right corners.
                 hasChrome &&
-                  // No top margin: the chips sit in the middle of the topbar, so
-                  // an extra inset under the bar made the gap below them twice
-                  // the gap above. Left, right, and bottom stay inset.
-                  'md:mb-[var(--shell-inset)] md:ml-[var(--shell-inset)] md:mr-[var(--shell-inset)] md:min-h-0 md:flex-row md:overflow-hidden md:rounded-lg md:border md:border-border xl:mr-[calc(var(--shell-inset)+var(--workspace-inspector-width,0px))] xl:[[data-inspector-open=true]_&]:rounded-r-none',
+                  'md:mb-[var(--shell-inset)] md:mr-[var(--shell-inset)] md:min-h-0 md:flex-row md:overflow-hidden md:rounded-lg md:border md:border-border xl:mr-[calc(var(--shell-inset)+var(--workspace-inspector-width,0px))] xl:[[data-inspector-open=true]_&]:rounded-r-none',
               )}
             >
               {hasChrome ? desktopSidebar : null}

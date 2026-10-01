@@ -375,8 +375,13 @@ describe('AppRail', () => {
     ).toMatch(/lucide-calendar/);
     const analytics = screen.getByRole('link', { name: 'Analytics' });
     const more = screen.getByRole('button', { name: 'More' });
+    const separator = screen.getByTestId('app-rail-pins-separator');
     expect(
       analytics.compareDocumentPosition(more) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      more.compareDocumentPosition(separator) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     openMoreMenu();
@@ -569,7 +574,9 @@ describe('AppRail', () => {
     expect(
       screen.queryByRole('button', { name: 'More' }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByTestId('app-rail-divider')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('app-rail-pins-separator'),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Analytics' })).toBeInTheDocument();
   });
 
@@ -1186,13 +1193,13 @@ describe('AppRail', () => {
       );
     });
 
-    it('pins a More app onto the rail ahead of More', () => {
+    it('places pinned apps below More and its divider in pin order', () => {
       const onTogglePin = vi.fn();
       render(
         <AppRail
           orgSlug="acme"
           onTogglePin={onTogglePin}
-          pinnedAppIds={['studio']}
+          pinnedAppIds={['studio', 'messages']}
         />,
       );
 
@@ -1200,8 +1207,13 @@ describe('AppRail', () => {
       const separator = screen.getByTestId('app-rail-pins-separator');
       const studio = screen.getByRole('link', { name: 'Studio' });
       const more = screen.getByRole('button', { name: 'More' });
+      const messages = screen.getByRole('link', { name: 'Messages' });
       expect(
-        analytics.compareDocumentPosition(separator) &
+        analytics.compareDocumentPosition(more) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        more.compareDocumentPosition(separator) &
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
       expect(
@@ -1209,11 +1221,8 @@ describe('AppRail', () => {
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
       expect(
-        analytics.compareDocumentPosition(studio) &
+        studio.compareDocumentPosition(messages) &
           Node.DOCUMENT_POSITION_FOLLOWING,
-      ).toBeTruthy();
-      expect(
-        studio.compareDocumentPosition(more) & Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
       openMoreMenu();
       fireEvent.click(screen.getByRole('button', { name: 'Unpin Studio' }));
