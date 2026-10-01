@@ -1,3 +1,4 @@
+import { ContentLearningArm } from '@genfeedai/contracts/enums';
 import type {
   BrandArtifactValidationReportV1,
   BrandedGenerationInputV1,
@@ -462,4 +463,68 @@ describe('frozen typed hash projections', () => {
       hashBrandedGenerationOperationV1('cancel', {}),
     );
   });
+});
+it('resolution retains immutable selected arm and explicit application state', () => {
+  const v = resolution();
+  v.learning.privateAccount.mode = 'unavailable';
+  const original = hashBrandedGenerationResolutionV1(v);
+  if (!v.learning.privateAccount.application)
+    throw new Error('Missing application fixture');
+  v.learning.privateAccount.application.status = 'suppressed';
+  expect(hashBrandedGenerationResolutionV1(v)).not.toBe(original);
+  v.learning.privateAccount.armId = ContentLearningArm.QUESTION_EXAMPLE;
+  expect(hashBrandedGenerationResolutionV1(v)).not.toBe(
+    hashBrandedGenerationResolutionV1({
+      ...v,
+      learning: {
+        ...v.learning,
+        privateAccount: { ...v.learning.privateAccount, armId: undefined },
+      },
+    }),
+  );
+});
+it('report hashes actual quality/method/result changes without interpreting quality', () => {
+  const v = report();
+  const original = hashBrandArtifactValidationReportV1(v);
+  expect(
+    hashBrandArtifactValidationReportV1({
+      ...v,
+      quality: {
+        score: 0.9,
+        confidence: null,
+        evaluatorId: 'quality',
+        evaluatorVersion: 1,
+        calibrationStatus: 'unverified',
+      },
+    }),
+  ).not.toBe(original);
+  expect(
+    hashBrandArtifactValidationReportV1({
+      ...v,
+      checks: [{ ...v.checks[0], method: 'human_review' }],
+    }),
+  ).not.toBe(original);
+  expect(
+    hashBrandArtifactValidationReportV1({
+      ...v,
+      checks: [{ ...v.checks[0], result: 'fail' }],
+    }),
+  ).not.toBe(original);
+});
+it('identity preserves canonical rule list order and source values', () => {
+  const v = snapshot();
+  v.generationRules.evidence = [
+    { id: 'one', sourceType: 'manual', label: 'First' },
+    { id: 'two', sourceType: 'manual', label: 'Second' },
+  ];
+  const original = hashBrandIdentitySnapshotV1(v);
+  expect(
+    hashBrandIdentitySnapshotV1({
+      ...v,
+      generationRules: {
+        ...v.generationRules,
+        evidence: [...v.generationRules.evidence].reverse(),
+      },
+    }),
+  ).not.toBe(original);
 });
