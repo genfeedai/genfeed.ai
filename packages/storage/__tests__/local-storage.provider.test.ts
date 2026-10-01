@@ -184,7 +184,15 @@ describe('LocalStorageProvider', () => {
             if (change === 'grow')
               await fs.appendFile(filename, Buffer.from([4]));
             else if (change === 'truncate') await fs.truncate(filename, 1);
-            else await fs.writeFile(filename, Buffer.from([3, 2, 1]));
+            else {
+              const beforeStat = await fs.stat(filename);
+              await fs.writeFile(filename, Buffer.from([3, 2, 1]));
+              await fs.utimes(
+                filename,
+                beforeStat.atime,
+                new Date(beforeStat.mtimeMs + 2000),
+              );
+            }
             await beforeClose?.();
           });
         });

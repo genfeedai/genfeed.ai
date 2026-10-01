@@ -18,6 +18,7 @@ import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { receiptReadUnavailable } from './receipt-read-error.util';
 
 function selection(query: ReturnType<typeof useSearchParams>) {
   const ids = query.getAll('receiptId'),
@@ -65,36 +66,41 @@ function useReceiptList(organizationId: string, brandId: string) {
         identity,
         loading: true,
         error: false,
-        ...(cursor ? {} : { items: [], cursor: null }),
+        ...(cursor !== undefined && old.identity === identity
+          ? {}
+          : { items: [], cursor: null }),
       }));
       try {
         const service = await getService();
         if (controller.signal.aborted) return;
         const page = await service.list(
           brandId,
-          { limit: 10, ...(cursor ? { cursor } : {}) },
+          { limit: 10, ...(cursor !== undefined ? { cursor } : {}) },
           controller.signal,
         );
         if (!controller.signal.aborted && current.current === identity)
           setState((old) => ({
             identity,
             items:
-              cursor && old.identity === identity
+              cursor !== undefined && old.identity === identity
                 ? [...old.items, ...page.items]
                 : page.items,
             cursor: page.nextCursor,
             loading: false,
             error: false,
           }));
-      } catch {
+      } catch (error) {
         if (!controller.signal.aborted && current.current === identity)
-          setState({
+          setState((old) => ({
             identity,
-            items: [],
-            cursor: null,
+            ...(cursor !== undefined &&
+            old.identity === identity &&
+            !receiptReadUnavailable(error)
+              ? { items: old.items, cursor: old.cursor }
+              : { items: [], cursor: null }),
             loading: false,
             error: true,
-          });
+          }));
       }
     },
     [identity, getService, brandId],
@@ -161,6 +167,9 @@ function useReceiptHistory({
     request.current = controller;
     setState((old) => ({
       ...old,
+      ...(afterRevision !== undefined && old.identity === identity
+        ? {}
+        : { items: [], cursor: null }),
       identity,
       open: true,
       loading: true,
@@ -182,24 +191,27 @@ function useReceiptHistory({
         setState((old) => ({
           identity,
           items:
-            afterRevision === undefined
-              ? page.items
-              : [...old.items, ...page.items],
+            afterRevision !== undefined && old.identity === identity
+              ? [...old.items, ...page.items]
+              : page.items,
           cursor: page.nextAfterRevision,
           open: true,
           loading: false,
           error: false,
         }));
-    } catch {
+    } catch (error) {
       if (!controller.signal.aborted && current.current === identity)
-        setState({
+        setState((old) => ({
           identity,
-          items: [],
-          cursor: null,
+          ...(afterRevision !== undefined &&
+          old.identity === identity &&
+          !receiptReadUnavailable(error)
+            ? { items: old.items, cursor: old.cursor }
+            : { items: [], cursor: null }),
           open: true,
           loading: false,
           error: true,
-        });
+        }));
     }
   };
   const visible = state.identity === identity ? state : null;

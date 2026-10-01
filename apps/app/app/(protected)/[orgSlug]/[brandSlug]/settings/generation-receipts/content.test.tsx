@@ -62,7 +62,13 @@ import {
   resourceDocument,
 } from '@services/__mocks__/http.mock';
 import { BrandedGenerationReceiptsService } from '@services/ai/branded-generation-receipts.service';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -391,4 +397,317 @@ describe('mounted saved receipt customer read flow', () => {
       ).toBeNull(),
     );
   });
+  function paginated(kind: 'list' | 'history', firstRevision = 1) {
+    const fallback = http.get.getMockImplementation();
+    http.get.mockImplementation(
+      async (
+        path: string,
+        options: { params?: { cursor?: string; afterRevision?: number } },
+      ) => {
+        const target =
+          kind === 'history'
+            ? path.endsWith('/history')
+            : path.endsWith('/generation-receipts');
+        if (!target) return fallback?.(path, options);
+        const continuation =
+          kind === 'history'
+            ? options.params?.afterRevision !== undefined
+            : options.params?.cursor !== undefined;
+        const revision = continuation ? firstRevision + 1 : firstRevision;
+        const value = { ...metadata(), brandId: path.split('/')[0] };
+        const historyReceiptId = path.split('/')[2];
+        const items =
+          kind === 'history'
+            ? [
+                {
+                  ...value,
+                  id: `${historyReceiptId}:${revision}`,
+                  receiptId: historyReceiptId,
+                  revision,
+                },
+              ]
+            : [{ ...value, id: continuation ? 'second' : 'receipt' }];
+        return axiosResponse({
+          ...collectionDocument(items, {
+            type:
+              kind === 'history'
+                ? 'branded-generation-receipt-revision'
+                : 'branded-generation-receipt',
+          }),
+          links: {
+            cursor: {
+              hasMore: !continuation,
+              limit: 10,
+              nextCursor: continuation
+                ? null
+                : kind === 'history'
+                  ? String(firstRevision)
+                  : 'next',
+            },
+          },
+        });
+      },
+    );
+  }
+  async function mountedPage(kind: 'list' | 'history', firstRevision = 1) {
+    paginated(kind, firstRevision);
+    if (kind === 'history')
+      mocks.query = new URLSearchParams('receiptId=receipt&revision=1');
+    const view = render(<GenerationReceiptsContent />);
+    await screen.findByRole('link', { name: /receipt · created/ });
+    if (kind === 'history') {
+      await screen.findByRole('button', {
+        name: 'Show saved prompt · original',
+      });
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Show revision history' }),
+      );
+      await screen.findByRole('link', {
+        name: new RegExp(`Receipt revision ${firstRevision} ·`),
+      });
+    }
+    return view;
+  }
+  it.each([
+    { kind: 'list' as const, firstRevision: 1 },
+    { kind: 'history' as const, firstRevision: 1 },
+    { kind: 'history' as const, firstRevision: 0 },
+  ])(
+    'retains $kind page after continuation failure and retries its identical cursor (revision $firstRevision)',
+    async ({ kind, firstRevision }) => {
+      await mountedPage(kind, firstRevision);
+      const initialName =
+        kind === 'history'
+          ? new RegExp(`Receipt revision ${firstRevision} ·`)
+          : /receipt · created/;
+      http.get.mockRejectedValueOnce({
+        isAxiosError: true,
+        response: { status: 500 },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
+      await screen.findByText(
+        'Could not load saved generation details. Try again.',
+      );
+      expect(screen.getByRole('link', { name: initialName })).toBeVisible();
+      fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
+      const secondName =
+        kind === 'history'
+          ? new RegExp(`Receipt revision ${firstRevision + 1} ·`)
+          : /second · created/;
+      await screen.findByRole('link', { name: secondName });
+      expect(screen.getAllByRole('link', { name: initialName })).toHaveLength(
+        1,
+      );
+      expect(screen.getAllByRole('link', { name: secondName })).toHaveLength(1);
+      const path =
+        kind === 'history'
+          ? 'brand/generation-receipts/receipt/history'
+          : 'brand/generation-receipts';
+      const params =
+        kind === 'history'
+          ? { limit: 10, afterRevision: firstRevision }
+          : { limit: 10, cursor: 'next' };
+      const continuations = http.get.mock.calls.filter(
+        ([url, options]) =>
+          url === path &&
+          (kind === 'history'
+            ? options.params?.afterRevision !== undefined
+            : options.params?.cursor !== undefined),
+      );
+      expect(continuations).toHaveLength(2);
+      for (const call of continuations)
+        expect(call).toEqual([
+          path,
+          { params, signal: expect.any(AbortSignal) },
+        ]);
+      if (kind === 'history') {
+        expect(mocks.query.get('revision')).toBe('1');
+        expect(http.get).toHaveBeenCalledWith(
+          'brand/generation-receipts/receipt/revisions/1',
+          { signal: expect.any(AbortSignal) },
+        );
+      }
+      expect(
+        http.get.mock.calls.some(([url]) => url.includes('/prompts/')),
+      ).toBe(false);
+    },
+  );
+  it.each(['list', 'history'] as const)(
+    'preserves %s continuation metadata after unknown network failure',
+    async (kind) => {
+      await mountedPage(kind);
+      http.get.mockRejectedValueOnce(new Error('network offline'));
+      fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
+      await screen.findByText(
+        'Could not load saved generation details. Try again.',
+      );
+      expect(
+        screen.getByRole('link', {
+          name:
+            kind === 'history' ? /Receipt revision 1 ·/ : /receipt · created/,
+        }),
+      ).toBeVisible();
+      expect(screen.getByRole('button', { name: 'Load more' })).toBeEnabled();
+      expect(
+        http.get.mock.calls.some(([url]) => url.includes('/prompts/')),
+      ).toBe(false);
+    },
+  );
+  it.each([
+    { status: 401 },
+    { status: 403 },
+    { status: 404 },
+    { statusCode: 403 },
+    { isAuthError: true },
+    { isAxiosError: true, response: { status: 404 } },
+    { response: { data: { errors: [{ status: 403 }] } } },
+  ])(
+    'clears list and history rows and cursors for unavailable continuation %#',
+    async (error) => {
+      const list = await mountedPage('list');
+      http.get.mockRejectedValueOnce(error);
+      fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
+      await screen.findByText(
+        'Could not load saved generation details. Try again.',
+      );
+      expect(
+        screen.queryByRole('link', { name: /receipt · created/ }),
+      ).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Load more' })).toBeNull();
+      list.unmount();
+      respond();
+      await mountedPage('history', 0);
+      http.get.mockRejectedValueOnce(error);
+      fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
+      await screen.findByText(
+        'Could not load saved generation details. Try again.',
+      );
+      expect(
+        screen.queryByRole('link', { name: /Receipt revision 0 ·/ }),
+      ).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Load more' })).toBeNull();
+      expect(
+        http.get.mock.calls.some(([url]) => url.includes('/prompts/')),
+      ).toBe(false);
+    },
+  );
+  it('clears successful history when a fresh first page fails', async () => {
+    await mountedPage('history');
+    http.get.mockRejectedValueOnce(new Error('first page failed'));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Show revision history' }),
+    );
+    await screen.findByText(
+      'Could not load saved generation details. Try again.',
+    );
+    expect(
+      screen.queryByRole('link', { name: /Receipt revision 1 ·/ }),
+    ).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Load more' })).toBeNull();
+  });
+  it.each([
+    { kind: 'list' as const, scope: 'org' },
+    { kind: 'list' as const, scope: 'brand' },
+    { kind: 'list' as const, scope: 'service' },
+    { kind: 'history' as const, scope: 'org' },
+    { kind: 'history' as const, scope: 'brand' },
+    { kind: 'history' as const, scope: 'service' },
+    { kind: 'history' as const, scope: 'receipt' },
+  ])(
+    'ignores pending $kind failure after $scope identity changes',
+    async ({ kind, scope }) => {
+      const view = await mountedPage(kind, 0);
+      let reject!: (error: unknown) => void;
+      http.get.mockReturnValueOnce(
+        new Promise((_resolve, fail) => {
+          reject = fail;
+        }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
+      await waitFor(() =>
+        expect(
+          screen.getByRole('button', { name: 'Load more' }),
+        ).toBeDisabled(),
+      );
+      if (scope === 'org') mocks.org = 'other-org';
+      if (scope === 'brand') mocks.brand = { id: 'other', slug: 'moonrise' };
+      if (scope === 'receipt')
+        mocks.query = new URLSearchParams('receiptId=other&revision=1');
+      if (scope === 'service') {
+        const service = new BrandedGenerationReceiptsService('replacement');
+        http = installMockHttp(service);
+        mocks.getService = vi.fn().mockResolvedValue(service);
+      }
+      respond();
+      if (kind === 'list') {
+        http.get.mockResolvedValueOnce(
+          axiosResponse({
+            ...collectionDocument(
+              [{ ...metadata(), brandId: mocks.brand.id, id: 'new-scope' }],
+              { type: 'branded-generation-receipt' },
+            ),
+            links: {
+              cursor: { hasMore: true, limit: 10, nextCursor: 'new-cursor' },
+            },
+          }),
+        );
+      } else paginated('history', 3);
+      // The next scope has its own successful page and cursor; the pending request cannot clear either.
+      view.rerender(<GenerationReceiptsContent />);
+      if (kind === 'list') {
+        await screen.findByRole('link', { name: /new-scope · created/ });
+        expect(
+          screen.queryByRole('link', { name: /receipt · created/ }),
+        ).toBeNull();
+      } else {
+        expect(
+          screen.queryByRole('link', { name: /Receipt revision 0 ·/ }),
+        ).toBeNull();
+        fireEvent.click(
+          screen.getByRole('button', { name: 'Show revision history' }),
+        );
+        await screen.findByRole('link', { name: /Receipt revision 3 ·/ });
+      }
+      await act(async () => {
+        reject({ isAuthError: true });
+      });
+      await waitFor(() => {
+        expect(
+          screen.queryByText(
+            'Could not load saved generation details. Try again.',
+          ),
+        ).toBeNull();
+        expect(screen.getByRole('button', { name: 'Load more' })).toBeEnabled();
+        if (kind === 'history') {
+          expect(
+            screen.queryByRole('link', { name: /Receipt revision 0 ·/ }),
+          ).toBeNull();
+          expect(
+            screen.getByRole('link', { name: /Receipt revision 3 ·/ }),
+          ).toBeVisible();
+        } else
+          expect(
+            screen.getByRole('link', { name: /new-scope · created/ }),
+          ).toBeVisible();
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
+      await waitFor(() =>
+        expect(http.get).toHaveBeenCalledWith(
+          kind === 'history'
+            ? `${mocks.brand.id}/generation-receipts/${mocks.query.get('receiptId')}/history`
+            : `${mocks.brand.id}/generation-receipts`,
+          {
+            params:
+              kind === 'history'
+                ? { limit: 10, afterRevision: 3 }
+                : { limit: 10, cursor: 'new-cursor' },
+            signal: expect.any(AbortSignal),
+          },
+        ),
+      );
+      expect(
+        http.get.mock.calls.some(([url]) => url.includes('/prompts/')),
+      ).toBe(false);
+    },
+  );
 });
