@@ -37,6 +37,7 @@ import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolu
 import StudioGenerateComposer from '@pages/studio/generate/components/StudioGenerateComposer';
 import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const walletMocks = vi.hoisted(() => ({
