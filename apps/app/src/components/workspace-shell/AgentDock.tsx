@@ -50,6 +50,7 @@ type BubbleMorph = 'closed' | 'from' | 'open';
 function prefersReducedMotion(): boolean {
   return (
     typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches
   );
 }
@@ -562,6 +563,7 @@ export default function AgentDock({
       {closedLauncher}
       <section
         aria-label={translate('label')}
+        aria-hidden={isBubbleChrome && !isOpen}
         className={cn(
           'flex flex-col bg-background',
           isBubbleChrome

@@ -3,7 +3,14 @@ import {
   AGENT_DOCK_MIN_HEIGHT,
 } from '@contexts/ui/agent-dock-context';
 import type { AgentDockContextValue } from '@genfeedai/props/ui/agent-dock.props';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { useEffect, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import AgentDock from './AgentDock';
@@ -165,7 +172,7 @@ describe('AgentDock', () => {
     opener.remove();
   });
 
-  it('returns keyboard focus to the page bubble after the overlay closes', () => {
+  it('returns keyboard focus to the page bubble after the overlay closes', async () => {
     const dock = buildDock({ isOpen: false });
     const view = render(
       <AgentDock
@@ -196,6 +203,7 @@ describe('AgentDock', () => {
         </div>
       </AgentDock>,
     );
+    screen.getByText('composer').focus();
     view.rerender(
       <AgentDock
         chrome="bubble"
@@ -209,12 +217,14 @@ describe('AgentDock', () => {
       </AgentDock>,
     );
 
-    expect(document.activeElement).toBe(
-      screen.getByTestId('agent-conversation-bubble'),
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByTestId('agent-conversation-bubble'),
+      ),
     );
   });
 
-  it('returns keyboard focus to the conversation bubble after the overlay closes', () => {
+  it('returns keyboard focus to the conversation bubble after the overlay closes', async () => {
     const dock = buildDock({ isOpen: false });
     const view = render(
       <AgentDock
@@ -247,6 +257,7 @@ describe('AgentDock', () => {
         </div>
       </AgentDock>,
     );
+    screen.getByText('composer').focus();
     view.rerender(
       <AgentDock
         chrome="bubble"
@@ -261,8 +272,10 @@ describe('AgentDock', () => {
       </AgentDock>,
     );
 
-    expect(document.activeElement).toBe(
-      screen.getByTestId('agent-conversation-bubble'),
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByTestId('agent-conversation-bubble'),
+      ),
     );
   });
 
@@ -350,7 +363,7 @@ describe('AgentDock', () => {
     opener.remove();
   });
 
-  it('switches threads and starts a new one from the header menu', () => {
+  it('switches threads and starts a new one from the header menu', async () => {
     const onNewThread = vi.fn();
     const onSelectThread = vi.fn();
     render(
@@ -370,13 +383,23 @@ describe('AgentDock', () => {
       </AgentDock>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Spring launch plan' }));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'New thread' }));
+    fireEvent.keyDown(
+      screen.getByRole('button', { name: 'Spring launch plan' }),
+      { key: 'Enter' },
+    );
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'New thread' }),
+    );
     expect(onNewThread).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Spring launch plan' }));
+    fireEvent.keyDown(
+      screen.getByRole('button', { name: 'Spring launch plan' }),
+      { key: 'Enter' },
+    );
     fireEvent.click(
-      screen.getByRole('menuitem', { name: 'Make three stronger variations' }),
+      await screen.findByRole('menuitem', {
+        name: 'Make three stronger variations',
+      }),
     );
     expect(onSelectThread).toHaveBeenCalledWith('thread-2');
   });
@@ -404,13 +427,15 @@ describe('AgentDock', () => {
 
     expect(screen.getByTestId('agent-conversation-bubble')).toBeVisible();
     expect(screen.queryByTestId('agent-page-promptbar')).toBeNull();
-    const shortcut = screen.getByRole('button', {
-      name: 'Summarize. Summarize this page',
-    });
+    const shortcut = screen.getByTestId('agent-conversation-radial');
+    expect(shortcut).toHaveAttribute('tabindex', '-1');
+    expect(shortcut.parentElement).toHaveAttribute('inert');
     expect(shortcut.parentElement).toHaveClass('opacity-0');
     expect(shortcut.parentElement).toHaveClass('pointer-events-none');
     fireEvent.pointerEnter(screen.getByTestId('agent-conversation-bubble'));
     expect(shortcut.parentElement).toHaveClass('opacity-100');
+    expect(shortcut).toHaveAttribute('tabindex', '0');
+    expect(shortcut.parentElement).not.toHaveAttribute('inert');
     expect(shortcut.parentElement).not.toHaveClass('pointer-events-none');
     expect(shortcut).toHaveTextContent('Summarize');
     fireEvent.click(shortcut);

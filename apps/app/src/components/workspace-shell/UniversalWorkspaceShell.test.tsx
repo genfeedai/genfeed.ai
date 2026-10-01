@@ -1408,7 +1408,7 @@ describe('UniversalWorkspaceShell', () => {
       const region = screen.getByRole('region', { name: 'Agent' });
       expect(region).toHaveAttribute('data-chrome', 'bubble');
       expect(within(region).getByTestId('dock-conversation')).toBeVisible();
-      expect(screen.queryByTestId('agent-conversation-bubble')).toBeNull();
+      expect(screen.getByTestId('agent-conversation-bubble')).not.toBeVisible();
       expect(
         screen.getByTestId('agent-dock-composer-slot').closest('section'),
       ).toBe(region);
@@ -1419,7 +1419,9 @@ describe('UniversalWorkspaceShell', () => {
       // Closing keeps the conversation mounted so drafts and runs survive.
       act(() => dock?.close());
       expect(screen.queryByRole('region', { name: 'Agent' })).toBeNull();
-      expect(screen.getByTestId('agent-conversation-bubble')).toBeVisible();
+      await waitFor(() =>
+        expect(screen.getByTestId('agent-conversation-bubble')).toBeVisible(),
+      );
       expect(screen.getByTestId('dock-conversation')).toBeInTheDocument();
     });
 
