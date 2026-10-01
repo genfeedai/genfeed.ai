@@ -300,36 +300,21 @@ describe('MenuShared', () => {
     ).toBeTruthy();
   });
 
-  it('puts a plain collapse toggle at the trailing edge of the header, after the switcher', () => {
-    const onToggleCollapse = vi.fn();
-
+  it('leaves sidebar collapse to the rail mark', () => {
     render(
       <MenuShared
         config={config}
-        onToggleCollapse={onToggleCollapse}
+        onToggleCollapse={vi.fn()}
         headerSlot={<div data-testid="brand-switcher">Acme</div>}
       />,
     );
 
-    const headerShell = screen.getByTestId('sidebar-header-shell');
-    const collapseToggle = screen.getByRole('button', {
-      name: 'Collapse sidebar',
-    });
-
-    expect(headerShell).toContainElement(collapseToggle);
-    // Codex-style: no logo in the header (the org lives on the app rail).
-    expect(collapseToggle.querySelector('img')).toBeNull();
-    expect(collapseToggle.querySelector('svg')).toBeInTheDocument();
-    expect(headerShell.lastElementChild).toBe(collapseToggle);
     expect(
-      screen
-        .getByTestId('brand-switcher')
-        .compareDocumentPosition(collapseToggle) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-
-    fireEvent.click(collapseToggle);
-    expect(onToggleCollapse).toHaveBeenCalledTimes(1);
+      screen.queryByRole('button', { name: 'Collapse sidebar' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('sidebar-header-shell')).toContainElement(
+      screen.getByTestId('brand-switcher'),
+    );
   });
 
   it('omits the org switcher slot when not provided', () => {

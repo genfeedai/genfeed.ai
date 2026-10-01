@@ -24,6 +24,24 @@ describe('SelectionToolbar', () => {
     expect(screen.queryByRole('button')).toBeNull();
     expect(screen.getByRole('status')).toBeEmptyDOMElement();
   });
+  it('joins a pinned sub-topbar instead of floating over the list', () => {
+    render(
+      <SelectionToolbar
+        count={2}
+        label="2 selected"
+        onClear={() => {}}
+        placement="subtopbar"
+      >
+        <span>Merge</span>
+      </SelectionToolbar>,
+    );
+
+    const group = screen.getByRole('group', { name: 'Selection actions' });
+    expect(group.className).toContain('border-b');
+    expect(group.className).not.toContain('sticky');
+    expect(group.className).not.toContain('rounded-card');
+  });
+
   it('keeps the live count mounted through the first selection', () => {
     const { rerender } = render(
       <SelectionToolbar count={0} label="0 selected" onClear={() => {}}>

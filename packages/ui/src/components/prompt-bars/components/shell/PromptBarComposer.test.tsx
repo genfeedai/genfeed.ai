@@ -17,9 +17,7 @@ describe('PromptBarComposer', () => {
       'border-border-strong/70',
       'backdrop-blur-xl',
     );
-    // Every composer is bordered glass; the old drop shadow was Studio-only
-    // once Agent started overriding it locally.
-    expect(screen.getByTestId('prompt-bar-composer')).not.toHaveClass(
+    expect(screen.getByTestId('prompt-bar-composer')).toHaveClass(
       'shadow-composer',
     );
     expect(screen.getByText('References')).toBeInTheDocument();

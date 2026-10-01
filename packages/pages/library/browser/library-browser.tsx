@@ -62,6 +62,7 @@ export default function LibraryBrowser({
   });
 
   const [headerMeta, setHeaderMeta] = useState<ReactNode>();
+  const [selectionSlot, setSelectionSlot] = useState<HTMLElement | null>(null);
 
   const destination = useMemo(() => {
     const adaptDescription = (description: string) =>
@@ -106,8 +107,13 @@ export default function LibraryBrowser({
   // Stable identities — an inline object here re-renders (and remounts) the
   // whole list on every parent pass.
   const headerContextValue = useMemo(
-    () => ({ headerMeta, setHeaderMeta }),
-    [headerMeta],
+    () => ({
+      headerMeta,
+      hostsSelectionActions: true,
+      selectionSlot,
+      setHeaderMeta,
+    }),
+    [headerMeta, selectionSlot],
   );
 
   return (
@@ -116,10 +122,11 @@ export default function LibraryBrowser({
         <Container
           description={description}
           icon={Library}
+          isTopbarPinned
           label={destination.label}
           leading={
             <FormSearchbar
-              className="w-64"
+              isCollapsible
               onSearch={handleSearchChange}
               placeholder={
                 scope === PageScope.ORGANIZATION
@@ -143,6 +150,13 @@ export default function LibraryBrowser({
               sort={sort}
               sortOptions={[...LIBRARY_SORT_OPTIONS]}
               viewMode={viewMode}
+            />
+          }
+          topbarFooter={
+            <div
+              className="empty:hidden"
+              data-testid="library-selection-slot"
+              ref={setSelectionSlot}
             />
           }
         >

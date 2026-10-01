@@ -308,7 +308,7 @@ describe('OrganizationSwitcher', () => {
     ]);
   });
 
-  it('renders the organization as a keyboard-operable rail tile', async () => {
+  it('renders the organization as a keyboard-operable h-8 chip', async () => {
     renderSwitcher();
 
     const trigger = await screen.findByRole('button', {
@@ -318,8 +318,9 @@ describe('OrganizationSwitcher', () => {
     // A native button: Enter and Space open the menu without extra handlers.
     expect(trigger.tagName).toBe('BUTTON');
     expect(trigger).toHaveAttribute('type', 'button');
-    expect(trigger).toHaveTextContent('A');
-    expect(trigger).toHaveClass('size-9', 'rounded-lg');
+    expect(trigger).toHaveTextContent('Acme Org');
+    expect(trigger).toHaveClass('h-8', 'max-w-52');
+    expect(trigger).not.toHaveClass('size-9');
     expect(trigger).toHaveAttribute('title', 'Acme Org');
   });
 

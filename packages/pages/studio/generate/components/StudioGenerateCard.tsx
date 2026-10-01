@@ -19,6 +19,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
 import { logger } from '@services/core/logger.service';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
+import { Skeleton } from '@ui/display/skeleton/skeleton';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import AssetHoverDetails from '@ui/ingredients/asset-hover-details';
 import {
@@ -430,18 +431,25 @@ export default function StudioGenerateCard({
         style={isListView ? undefined : { aspectRatio: `${width} / ${height}` }}
       >
         {isPending ? (
-          <GenerationStatus
-            assetLabel={label.toLowerCase()}
-            status={job.phase ?? 'generating'}
-            startedAt={job.createdAt || undefined}
-            detail={job.error}
-            isCancelling={isCancelling}
-            onCancel={
-              job.ingredientId && assetActions.onCancelGeneration
-                ? () => void cancelGeneration()
-                : undefined
-            }
-          />
+          <>
+            <Skeleton
+              className="absolute inset-0 size-full rounded-card"
+              variant="rounded"
+            />
+            <GenerationStatus
+              assetLabel={label.toLowerCase()}
+              className="relative z-10"
+              detail={job.error}
+              isCancelling={isCancelling}
+              onCancel={
+                job.ingredientId && assetActions.onCancelGeneration
+                  ? () => void cancelGeneration()
+                  : undefined
+              }
+              startedAt={job.createdAt || undefined}
+              status={job.phase ?? 'generating'}
+            />
+          </>
         ) : null}
 
         {isFailed && job.phase === 'cancelled' ? (

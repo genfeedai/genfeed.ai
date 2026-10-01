@@ -169,7 +169,7 @@ export default function EntityOverlayShell({
   const contentClassName = useMemo(
     () =>
       cn(
-        'flex h-full flex-col gap-0 overflow-hidden border-l border-white/8 p-0',
+        'flex h-full flex-col gap-0 overflow-hidden border-l border-border p-0',
         SURFACE_CLASS_NAMES[surface],
         WIDTH_CLASS_NAMES[width],
         className,
@@ -185,7 +185,7 @@ export default function EntityOverlayShell({
         aria-describedby={description ? `${id}-description` : undefined}
       >
         {(title || description || badges || actions) && (
-          <div className="sticky top-0 z-10 border-b border-white/8 bg-background/92 px-6 pb-5 pt-6 backdrop-blur">
+          <div className="sticky top-0 z-10 border-b border-border bg-background/92 px-6 pb-5 pt-6 backdrop-blur">
             <div className="flex items-start justify-between gap-4 pr-8">
               <SheetHeader className="space-y-3 text-left">
                 {badges ? (
@@ -244,7 +244,7 @@ export default function EntityOverlayShell({
         </div>
 
         {footer ? (
-          <div className="border-t border-white/8 bg-background/94 px-6 py-4 backdrop-blur">
+          <div className="border-t border-border bg-background/94 px-6 py-4 backdrop-blur">
             {footer}
           </div>
         ) : null}

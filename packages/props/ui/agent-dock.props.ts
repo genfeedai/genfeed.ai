@@ -46,10 +46,21 @@ export interface AgentDockPersistedState {
   readonly isOpen: boolean;
 }
 
+/** One row in the dock's thread menu. */
+export interface AgentDockThreadOption {
+  readonly id: string;
+  readonly title: string;
+}
+
 export interface AgentDockHeaderProps {
+  readonly activeThreadId?: string | null;
+  readonly isThreadListLoading?: boolean;
   readonly onClose: () => void;
+  readonly onNewThread?: () => void;
   readonly onOpenFullPage: () => void;
+  readonly onSelectThread?: (threadId: string) => void;
   readonly threadTitle?: string | null;
+  readonly threads?: readonly AgentDockThreadOption[];
   readonly title: ReactNode;
 }
 
@@ -65,6 +76,8 @@ export interface AgentDockProviderProps {
 export type AgentDockChrome = 'split' | 'bubble';
 
 export interface AgentDockSuggestedAction {
+  readonly description?: string;
+  readonly icon?: ReactNode;
   readonly id?: string;
   readonly label: string;
   readonly prompt: string;
@@ -75,7 +88,7 @@ export interface AgentDockProps {
   readonly children: ReactNode;
   /**
    * `split` is the bottom panel. `bubble` hides that panel and presents a
-   * compact page promptbar or chat bubble that opens a floating overlay.
+   * chat bubble (with radial page shortcuts) that opens a floating overlay.
    * Defaults to `split` so existing dock tests keep their original chrome.
    */
   readonly chrome?: AgentDockChrome;
@@ -83,18 +96,23 @@ export interface AgentDockProps {
   readonly composerSlotRef?: (element: HTMLElement | null) => void;
   readonly dock: AgentDockContextValue;
   /**
-   * Studio/edit surfaces already own a major prompt bar. Bubble chrome then
-   * uses a FAB instead of a second compact page promptbar.
+   * Studio/edit surfaces already own a major prompt bar, so the closed bubble
+   * stays a single control there. Other pages fan their shortcuts off it.
    */
   readonly hasMajorPromptBar?: boolean;
   /** Below `xl` the dock renders as a bottom sheet. */
   readonly isCompact: boolean;
+  readonly onNewThread?: () => void;
   readonly onOpenFullPage: () => void;
-  /** Seeds the overlay composer from a compact-bar chip, then opens it. */
+  /** Opens a saved thread inside the dock without leaving the page. */
+  readonly onSelectThread?: (threadId: string) => void;
+  /** Seeds the overlay composer from a radial shortcut, then opens it. */
   readonly onSelectSuggestedAction?: (prompt: string) => void;
-  readonly pagePlaceholder?: string;
   /** Organization and brand scope for the conversation, plus page context chips. */
   readonly scopeControls?: ReactNode;
   readonly suggestedActions?: readonly AgentDockSuggestedAction[];
+  readonly activeThreadId?: string | null;
+  readonly isThreadListLoading?: boolean;
   readonly threadTitle?: string | null;
+  readonly threads?: readonly AgentDockThreadOption[];
 }

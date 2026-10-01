@@ -6,7 +6,6 @@ import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-d
 import type { AccountsTableProps } from '@props/pages/brand-integrations.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import AppTable from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
 import { Link2, Plus } from 'lucide-react';
@@ -41,9 +40,8 @@ function buildHealthByCredentialId(
  * One row per account, all platforms, on the shared settings table (same
  * frame as Knowledge, Skills and Characters). The page header owns the
  * Connect account trigger; the empty state repeats it so an empty brand
- * still has an in-content call to action. The Platform column drops below
- * `md` — the account avatar already carries the platform glyph — so the
- * table fits a phone without a horizontal scroll.
+ * still has an in-content call to action. The account avatar owns the
+ * platform glyph across all viewport sizes.
  */
 export default function AccountsTable({
   accountHealth,
@@ -71,14 +69,6 @@ export default function AccountsTable({
         header: translate('accountsTableAccount'),
         key: 'account',
         render: (connection) => <AccountCell connection={connection} />,
-      },
-      {
-        className: 'hidden md:table-cell',
-        header: translate('accountsTablePlatform'),
-        key: 'platform',
-        render: (connection) => (
-          <PlatformBadge platform={connection.platform} />
-        ),
       },
       {
         header: translate('accountsTableStatus'),

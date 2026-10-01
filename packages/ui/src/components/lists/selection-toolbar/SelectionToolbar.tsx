@@ -11,14 +11,19 @@ export default function SelectionToolbar({
   onClear,
   clearLabel = 'Clear selection',
   children,
+  placement = 'overlay',
 }: SelectionToolbarProps) {
+  const isSubtopbar = placement === 'subtopbar';
+
   return (
     <div
       role="group"
       aria-label={count > 0 ? 'Selection actions' : undefined}
       className={
         count > 0
-          ? 'sticky top-4 z-10 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-card bg-card px-4 py-3 shadow-border'
+          ? isSubtopbar
+            ? 'flex min-h-12 flex-wrap items-center justify-between gap-3 border-b border-border bg-background px-4 py-1.5 sm:px-6'
+            : 'sticky top-4 z-10 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-card bg-card px-4 py-3 shadow-border'
           : 'sr-only'
       }
     >
