@@ -1,5 +1,8 @@
 import { LearningAccountService } from '@api/collections/content-learning/services/learning-account.service';
-import { hasInsufficientBaselineLineage } from '@api/collections/content-learning/services/learning-baseline-lineage.helper';
+import {
+  hasInsufficientBaselineLineage,
+  readReplayBaseline,
+} from '@api/collections/content-learning/services/learning-baseline-lineage.helper';
 import { LearningCheckpointService } from '@api/collections/content-learning/services/learning-checkpoint.service';
 import {
   LearningDependencyService,
@@ -153,12 +156,21 @@ export class LearningDecisionService {
       credentialId,
       input.brandId,
     );
-    const account = await this.accounts.read(
-      input.organizationId,
-      credentialId,
-    );
-    if (account.mode !== 'live')
-      return this.fallback(account.mode, account.mode as ContentLearningMode);
+    const account = await this.prisma.contentLearningAccount.findFirst({
+      where: {
+        organizationId: input.organizationId,
+        brandId: input.brandId,
+        credentialId,
+        isDeleted: false,
+      },
+    });
+    const mode = account
+      ? Object.values(ContentLearningMode).find(
+          (value) => value === account.mode,
+        )
+      : ContentLearningMode.SHADOW;
+    if (!mode) return this.fallback('account_state_unavailable');
+    if (mode !== ContentLearningMode.LIVE) return this.fallback(mode, mode);
     if (!input.harnessEnabled || !input.compatible)
       return this.fallback(
         !input.harnessEnabled ? 'harness_off' : 'incompatible_intent',
@@ -168,11 +180,11 @@ export class LearningDecisionService {
       receipt: {
         mode: ContentLearningMode.LIVE,
         credentialId,
-        accountRevision: account.revision,
-        epoch: account.epoch,
+        accountRevision: account?.revision ?? 0,
+        epoch: account?.epoch ?? 0,
         configVersion: 'rl-reward-v1-experimental',
         synthetic: false,
-        reason: account.failureReason ?? 'experiment_assignment_unavailable',
+        reason: account?.failureReason ?? 'experiment_assignment_unavailable',
       },
       contribution: {},
     };
@@ -295,34 +307,13 @@ export class LearningDecisionService {
       fromPrismaCredentialPlatform(credential.platform) !== descriptor.platform
     )
       return suppressed('invalid_lineage');
-    const baseline = decision.baselineId
-      ? await tx.contentLearningBaseline.findFirst({
-          where: {
-            id: decision.baselineId,
-            organizationId: input.organizationId,
-            brandId: input.brandId,
-            credentialId: decision.credentialId,
-            scopeKey: decision.scopeKey,
-            descriptorHash: decision.descriptorHash,
-            isDeleted: false,
-          },
-        })
-      : null;
-    if (
-      !baseline ||
-      baseline.organizationId !== decision.organizationId ||
-      baseline.brandId !== decision.brandId ||
-      baseline.credentialId !== decision.credentialId ||
-      baseline.scopeKey !== decision.scopeKey ||
-      baseline.descriptorHash !== decision.descriptorHash ||
-      baseline.isDeleted ||
-      !validLearningDescriptor(baseline.cellDescriptor) ||
-      learningHash(learningDescriptorTuple(baseline.cellDescriptor)) !==
-        decision.descriptorHash ||
-      baseline.configVersion !== decision.configVersion ||
-      !['valid', 'insufficient_baseline'].includes(baseline.validity)
-    )
-      return suppressed('invalid_lineage');
+    const baseline = await readReplayBaseline(
+      tx,
+      input.organizationId,
+      input.brandId,
+      decision,
+    );
+    if (!baseline) return suppressed('invalid_lineage');
     const receipt = this.receipt(decision),
       qT = receipt.treatmentProbabilities,
       qC = receipt.controlProbabilities,
@@ -610,6 +601,39 @@ export class LearningDecisionService {
     }
     return { descriptor, scope, baseline };
   }
+  private async linkBaselineDecisionSources(
+    tx: Prisma.TransactionClient,
+    decision: ContentLearningDecision,
+    account: ContentLearningAccount,
+    credentialId: string,
+    organizationId: string,
+    brandId: string,
+    baselineId: string,
+  ) {
+    const derived = await this.dependencies.resolve(
+      'decision',
+      decision.id,
+      organizationId,
+      tx,
+    );
+    for (const [kind, id] of [
+      ['account', account.id],
+      ['credential', credentialId],
+      ['brand', brandId],
+      ['baseline', baselineId],
+      ['config', account.activeConfigVersion],
+    ] as const)
+      await this.dependencies.link(
+        tx,
+        await this.dependencies.resolve(
+          kind,
+          id,
+          kind === 'config' ? null : organizationId,
+          tx,
+        ),
+        derived,
+      );
+  }
   async resolveForGeneration(
     input: LearningGenerationInput,
   ): Promise<LearningResolution> {
@@ -626,12 +650,8 @@ export class LearningDecisionService {
       throw new BadRequestException('Invalid learning request identity');
     return this.prisma.$transaction(async (tx) => {
       await learningFence(tx, 'shared');
-      const objective = context.objective ?? 'awareness';
-      const destinationKey = learningHash([
-        credentialId,
-        input.format,
-        objective,
-      ]);
+      const objective = context.objective ?? 'awareness',
+        destinationKey = learningHash([credentialId, input.format, objective]);
       const payloadHash = learningHash([
         input.originalPrompt,
         input.harnessEnabled,
@@ -816,29 +836,15 @@ export class LearningDecisionService {
           censorshipReason: reason,
         },
       });
-      const derived = await this.dependencies.resolve(
-        'decision',
-        decision.id,
-        input.organizationId,
+      await this.linkBaselineDecisionSources(
         tx,
+        decision,
+        account,
+        credential.id,
+        input.organizationId,
+        input.brandId,
+        baseline.id,
       );
-      for (const [kind, id] of [
-        ['account', account.id],
-        ['credential', credential.id],
-        ['brand', input.brandId],
-        ['baseline', baseline.id],
-        ['config', account.activeConfigVersion],
-      ] as const)
-        await this.dependencies.link(
-          tx,
-          await this.dependencies.resolve(
-            kind,
-            id,
-            kind === 'config' ? null : input.organizationId,
-            tx,
-          ),
-          derived,
-        );
       return { receipt: this.receipt(decision), contribution: {} };
     });
   }

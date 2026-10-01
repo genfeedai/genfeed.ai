@@ -17,7 +17,13 @@ describe('honest read-only preview', () => {
       read: vi.fn().mockResolvedValue({ mode: 'live', revision: 0, epoch: 0 }),
     };
     const service = new LearningDecisionService(
-      {} as PrismaService,
+      {
+        contentLearningAccount: {
+          findFirst: vi
+            .fn()
+            .mockResolvedValue({ mode: 'live', revision: 0, epoch: 0 }),
+        },
+      } as unknown as PrismaService,
       accounts as unknown as LearningAccountService,
       {} as LearningCheckpointService,
       {} as LearningPolicyService,
@@ -39,6 +45,150 @@ describe('honest read-only preview', () => {
     });
     expect(result.contribution).toEqual({});
     expect(result.receipt.reason).toBe('experiment_assignment_unavailable');
+    expect(accounts.read).not.toHaveBeenCalled();
+  });
+});
+
+describe('lightweight scoped preview isolation', () => {
+  it.each(['shadow', 'paused', 'disabled', 'live', 'malformed', null])(
+    'keeps %s preview empty and avoids enriched reads',
+    async (mode) => {
+      const accounts = {
+        credential: vi.fn().mockResolvedValue({ id: 'credential' }),
+        read: vi.fn(),
+        ensure: vi.fn(),
+      };
+      const prisma = {
+        contentLearningAccount: {
+          findFirst: vi
+            .fn()
+            .mockResolvedValue(
+              mode === null
+                ? null
+                : { mode, revision: 7, epoch: 2, failureReason: null },
+            ),
+        },
+        $transaction: vi.fn(),
+      };
+      const checkpoints = { freeze: vi.fn() },
+        policies = { current: vi.fn() },
+        scopes = { read: vi.fn(), ensure: vi.fn() };
+      const service = new LearningDecisionService(
+        prisma as unknown as PrismaService,
+        accounts as unknown as LearningAccountService,
+        checkpoints as unknown as LearningCheckpointService,
+        policies as unknown as LearningPolicyService,
+        scopes as unknown as LearningScopeStateService,
+        {} as LearningDependencyService,
+      );
+      const result = await service.previewForContext({
+        organizationId: 'org',
+        brandId: 'brand',
+        format: 'text',
+        context: {
+          credentialId: 'credential',
+          requestKey: 'preview',
+          candidateIndex: 0,
+        },
+        harnessEnabled: true,
+        compatible: true,
+        originalPrompt: 'test',
+      });
+      expect(result.contribution).toEqual({});
+      expect(result.receipt.reason).toBe(
+        mode === 'live'
+          ? 'experiment_assignment_unavailable'
+          : mode === 'malformed'
+            ? 'account_state_unavailable'
+            : (mode ?? 'shadow'),
+      );
+      expect(prisma.contentLearningAccount.findFirst).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org',
+          brandId: 'brand',
+          credentialId: 'credential',
+          isDeleted: false,
+        },
+      });
+      expect(accounts.read).not.toHaveBeenCalled();
+      expect(accounts.ensure).not.toHaveBeenCalled();
+      expect(checkpoints.freeze).not.toHaveBeenCalled();
+      expect(policies.current).not.toHaveBeenCalled();
+      expect(scopes.read).not.toHaveBeenCalled();
+      expect(scopes.ensure).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    },
+  );
+  it.each([
+    { harnessEnabled: false, compatible: true, reason: 'harness_off' },
+    { harnessEnabled: true, compatible: false, reason: 'incompatible_intent' },
+    { harnessEnabled: true, compatible: true, reason: 'invalid_evidence' },
+  ])(
+    'preserves preview failure precedence $reason',
+    async ({ harnessEnabled, compatible, reason }) => {
+      const accounts = { credential: vi.fn(), read: vi.fn() },
+        prisma = {
+          contentLearningAccount: {
+            findFirst: vi.fn().mockResolvedValue({
+              mode: 'live',
+              revision: 3,
+              epoch: 1,
+              failureReason: 'invalid_evidence',
+            }),
+          },
+        };
+      const service = new LearningDecisionService(
+        prisma as unknown as PrismaService,
+        accounts as unknown as LearningAccountService,
+        {} as LearningCheckpointService,
+        {} as LearningPolicyService,
+        {} as LearningScopeStateService,
+        {} as LearningDependencyService,
+      );
+      const result = await service.previewForContext({
+        organizationId: 'org',
+        brandId: 'brand',
+        format: 'text',
+        context: {
+          credentialId: 'credential',
+          requestKey: 'request',
+          candidateIndex: 0,
+        },
+        harnessEnabled,
+        compatible,
+        originalPrompt: 'test',
+      });
+      expect(result.receipt.reason).toBe(reason);
+      expect(result.contribution).toEqual({});
+      expect(accounts.read).not.toHaveBeenCalled();
+    },
+  );
+  it('keeps accountless preview unavailable without scoped source lookup', async () => {
+    const accounts = { credential: vi.fn() },
+      prisma = { contentLearningAccount: { findFirst: vi.fn() } };
+    const service = new LearningDecisionService(
+      prisma as unknown as PrismaService,
+      accounts as unknown as LearningAccountService,
+      {} as LearningCheckpointService,
+      {} as LearningPolicyService,
+      {} as LearningScopeStateService,
+      {} as LearningDependencyService,
+    );
+    expect(
+      await service.previewForContext({
+        organizationId: 'org',
+        brandId: 'brand',
+        format: 'text',
+        harnessEnabled: true,
+        compatible: true,
+        originalPrompt: 'test',
+      }),
+    ).toMatchObject({
+      receipt: { mode: 'no_destination', reason: 'no_destination' },
+      contribution: {},
+    });
+    expect(accounts.credential).not.toHaveBeenCalled();
+    expect(prisma.contentLearningAccount.findFirst).not.toHaveBeenCalled();
   });
 });
 

@@ -278,6 +278,110 @@ export class LearningPolicyService {
       )
         throw new ConflictException('Policy evidence changed');
   }
+  private async persistAndActivatePolicy(
+    tx: Prisma.TransactionClient,
+    organizationId: string,
+    credentialId: string,
+    account: ContentLearningAccount,
+    scope: ContentLearningScopeState,
+    state: LearningPolicyState,
+    evidence: ReadonlyArray<
+      Pick<ContentLearningReward, 'id' | 'version' | 'decisionId' | 'createdAt'>
+    >,
+    coefficients: Record<string, ReturnType<typeof solveLearningRidge>>,
+    manifest: string,
+    lastValidRewardAt: Date,
+  ) {
+    const scopeKey = scope.scopeKey;
+    let policy = await tx.contentLearningPolicyVersion.findFirst({
+      where: {
+        organizationId,
+        brandId: account.brandId,
+        credentialId,
+        scopeKey,
+        epoch: account.epoch,
+        descriptorHash: scope.descriptorHash,
+        evidenceManifestHash: manifest,
+        isDeleted: false,
+        synthetic: false,
+        state: { in: ['shadow', 'active', 'retired'] },
+      },
+    });
+    if (
+      policy &&
+      (!validLearningDescriptor(policy.cellDescriptor) ||
+        learningHash(learningDescriptorTuple(policy.cellDescriptor)) !==
+          scope.descriptorHash ||
+        !parseLearningPolicy(policy.armState) ||
+        !(await this.dependencies.valid(
+          'policy',
+          policy.id,
+          tx,
+          organizationId,
+        )))
+    )
+      throw new ConflictException('Identical policy source invalid');
+    if (!policy) {
+      const prior = await tx.contentLearningPolicyVersion.findFirst({
+        where: {
+          organizationId,
+          credentialId,
+          scopeKey,
+          epoch: account.epoch,
+          isDeleted: false,
+        },
+        orderBy: { version: 'desc' },
+      });
+      policy = await tx.contentLearningPolicyVersion.create({
+        data: {
+          organizationId,
+          brandId: account.brandId,
+          credentialId,
+          scopeKey,
+          epoch: account.epoch,
+          cellDescriptor: toPrismaJson(scope.cellDescriptor),
+          descriptorHash: scope.descriptorHash,
+          version: (prior?.version ?? 0) + 1,
+          parentId: prior?.id,
+          configVersion: account.activeConfigVersion,
+          featureSchema: 'numeric-nine-v1',
+          armState: toPrismaJson(state),
+          coefficients: toPrismaJson(coefficients),
+          evidenceManifestHash: manifest,
+          evidenceIds: evidence.map((reward) => reward.id),
+          state: 'shadow',
+        },
+      });
+      for (const reward of evidence)
+        await this.dependencies.link(
+          tx,
+          await this.dependencies.resolve(
+            'reward',
+            reward.id,
+            organizationId,
+            tx,
+          ),
+          await this.dependencies.resolve(
+            'policy',
+            policy.id,
+            organizationId,
+            tx,
+          ),
+        );
+    }
+    const activated = await this.scopes.activate(tx, {
+      organizationId,
+      credentialId,
+      scopeKey,
+      epoch: account.epoch,
+      accountRevision: account.revision,
+      evidenceRevision: account.evidenceRevision,
+      scopeRevision: scope.revision,
+      policyId: policy.id,
+      lastValidRewardAt,
+    });
+    return activated ? { ...policy, state: 'active' } : policy;
+  }
   async rebuild(
     organizationId: string,
     credentialId: string,
@@ -326,7 +430,10 @@ export class LearningPolicyService {
         decisions,
       );
       if (!evidence.length) return null;
-      const coefficients = Object.fromEntries(
+      const coefficients: Record<
+        string,
+        ReturnType<typeof solveLearningRidge>
+      > = Object.fromEntries(
         LEARNING_ARMS.map((arm) => [arm, solveLearningRidge(state[arm])]),
       );
       const manifest = learningHash([
@@ -363,94 +470,18 @@ export class LearningPolicyService {
       )
         throw new ConflictException('Learning scope changed during rebuild');
       await this.assertEvidenceCurrent(tx, organizationId, evidence);
-      let policy = await tx.contentLearningPolicyVersion.findFirst({
-        where: {
-          organizationId,
-          brandId: account.brandId,
-          credentialId,
-          scopeKey,
-          epoch: account.epoch,
-          descriptorHash: scope.descriptorHash,
-          evidenceManifestHash: manifest,
-          isDeleted: false,
-          synthetic: false,
-          state: { in: ['shadow', 'active', 'retired'] },
-        },
-      });
-      if (
-        policy &&
-        (!validLearningDescriptor(policy.cellDescriptor) ||
-          learningHash(learningDescriptorTuple(policy.cellDescriptor)) !==
-            scope.descriptorHash ||
-          !parseLearningPolicy(policy.armState) ||
-          !(await this.dependencies.valid(
-            'policy',
-            policy.id,
-            tx,
-            organizationId,
-          )))
-      )
-        throw new ConflictException('Identical policy source invalid');
-      if (!policy) {
-        const prior = await tx.contentLearningPolicyVersion.findFirst({
-          where: {
-            organizationId,
-            credentialId,
-            scopeKey,
-            epoch: account.epoch,
-            isDeleted: false,
-          },
-          orderBy: { version: 'desc' },
-        });
-        policy = await tx.contentLearningPolicyVersion.create({
-          data: {
-            organizationId,
-            brandId: account.brandId,
-            credentialId,
-            scopeKey,
-            epoch: account.epoch,
-            cellDescriptor: toPrismaJson(scope.cellDescriptor),
-            descriptorHash: scope.descriptorHash,
-            version: (prior?.version ?? 0) + 1,
-            parentId: prior?.id,
-            configVersion: account.activeConfigVersion,
-            featureSchema: 'numeric-nine-v1',
-            armState: toPrismaJson(state),
-            coefficients: toPrismaJson(coefficients),
-            evidenceManifestHash: manifest,
-            evidenceIds: evidence.map((reward) => reward.id),
-            state: 'shadow',
-          },
-        });
-        for (const reward of evidence)
-          await this.dependencies.link(
-            tx,
-            await this.dependencies.resolve(
-              'reward',
-              reward.id,
-              organizationId,
-              tx,
-            ),
-            await this.dependencies.resolve(
-              'policy',
-              policy.id,
-              organizationId,
-              tx,
-            ),
-          );
-      }
-      const activated = await this.scopes.activate(tx, {
+      return this.persistAndActivatePolicy(
+        tx,
         organizationId,
         credentialId,
-        scopeKey,
-        epoch: account.epoch,
-        accountRevision: account.revision,
-        evidenceRevision: account.evidenceRevision,
-        scopeRevision: scope.revision,
-        policyId: policy.id,
+        account,
+        scope,
+        state,
+        evidence,
+        coefficients,
+        manifest,
         lastValidRewardAt,
-      });
-      return activated ? { ...policy, state: 'active' } : policy;
+      );
     });
   }
 }

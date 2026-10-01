@@ -1,4 +1,4 @@
-import { parseLearningMeasurement } from '@api/collections/content-learning/services/learning-checkpoint.service';
+import { parseLearningMeasurement } from '@api/collections/content-learning/services/learning-baseline-selection';
 import type { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import {
@@ -38,6 +38,7 @@ export async function hasInsufficientBaselineLineage(
     baseline.cutoff.getTime() > Date.now()
   )
     return false;
+  const samples = baseline.samples;
   const descriptor = decision.cellDescriptor;
   if (!validLearningDescriptor(descriptor)) return false;
   const expectedFingerprint = learningHash([
@@ -68,6 +69,7 @@ export async function hasInsufficientBaselineLineage(
       decision,
       baseline,
       checkpointEdges,
+      samples,
     ))
   )
     return false;
@@ -86,6 +88,7 @@ async function validBaselineContributors(
   decision: ContentLearningDecision,
   baseline: ContentLearningBaseline,
   checkpointEdges: ContentLearningDependency[],
+  samples: Prisma.JsonArray,
 ): Promise<boolean> {
   const descriptor = decision.cellDescriptor;
   if (!validLearningDescriptor(descriptor)) return false;
@@ -93,7 +96,7 @@ async function validBaselineContributors(
   for (let index = 0; index < baseline.count; index++) {
     const id = baseline.contributorCheckpointIds[index],
       revision = baseline.contributorRevisions[index],
-      sample = parseLearningMeasurement(baseline.samples[index]);
+      sample = parseLearningMeasurement(samples[index]);
     if (
       !Number.isInteger(revision) ||
       revision < 0 ||
@@ -245,4 +248,41 @@ async function validDecisionDependencies(
     if (ref.version !== edge.sourceVersion) return false;
   }
   return true;
+}
+
+export async function readReplayBaseline(
+  tx: Prisma.TransactionClient,
+  organizationId: string,
+  brandId: string,
+  decision: ContentLearningDecision,
+) {
+  const baseline = decision.baselineId
+    ? await tx.contentLearningBaseline.findFirst({
+        where: {
+          id: decision.baselineId,
+          organizationId: organizationId,
+          brandId: brandId,
+          credentialId: decision.credentialId,
+          scopeKey: decision.scopeKey,
+          descriptorHash: decision.descriptorHash,
+          isDeleted: false,
+        },
+      })
+    : null;
+  if (
+    !baseline ||
+    baseline.organizationId !== decision.organizationId ||
+    baseline.brandId !== decision.brandId ||
+    baseline.credentialId !== decision.credentialId ||
+    baseline.scopeKey !== decision.scopeKey ||
+    baseline.descriptorHash !== decision.descriptorHash ||
+    baseline.isDeleted ||
+    !validLearningDescriptor(baseline.cellDescriptor) ||
+    learningHash(learningDescriptorTuple(baseline.cellDescriptor)) !==
+      decision.descriptorHash ||
+    baseline.configVersion !== decision.configVersion ||
+    !['valid', 'insufficient_baseline'].includes(baseline.validity)
+  )
+    return null;
+  return baseline;
 }

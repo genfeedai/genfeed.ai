@@ -1,4 +1,5 @@
 import type { LearningAccountService } from '@api/collections/content-learning/services/learning-account.service';
+import { selectLearningBaseline } from '@api/collections/content-learning/services/learning-baseline-selection';
 import {
   LearningCheckpointService,
   learningCheckpointCollection,
@@ -6,7 +7,10 @@ import {
   parseLearningMeasurement,
 } from '@api/collections/content-learning/services/learning-checkpoint.service';
 import type { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
-import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
+import {
+  learningHash,
+  learningScopeKey,
+} from '@api/collections/content-learning/services/learning-operation.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { captureLearningMetrics } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import {
@@ -536,6 +540,138 @@ describe('exact descriptor frozen baseline', () => {
       watchDescriptor,
     );
     expect(result.count).toBe(0);
+  });
+  it.each([0, 19, 20, 50])(
+    'keeps selector/freeze immutable parity at %s samples without selector writes',
+    async (count) => {
+      const rows = Array.from({ length: count }, (_, index) => sample(index)),
+        f = frozenFixture(rows),
+        cutoff = new Date('2026-10-01');
+      const selected = await selectLearningBaseline(
+        f.prisma as unknown as import('@genfeedai/prisma').Prisma.TransactionClient,
+        scope,
+        cutoff,
+        descriptor,
+        f.dependencies,
+      );
+      expect(selected.selected.map((row) => row.id)).toEqual(
+        rows.map((row) => row.id),
+      );
+      expect(selected.samples).toHaveLength(count);
+      expect(selected.samples.every((row) => row.weightedActions === 0)).toBe(
+        true,
+      );
+      expect(f.baseline.upsert).not.toHaveBeenCalled();
+      expect(f.dependencies.resolve).not.toHaveBeenCalled();
+      expect(f.dependencies.link).not.toHaveBeenCalled();
+      expect(f.prisma.$transaction).not.toHaveBeenCalled();
+      expect(f.prisma.$queryRaw).not.toHaveBeenCalled();
+      const frozen = await f.service.freeze(
+        scope,
+        cutoff,
+        descriptor,
+        f.prisma as unknown as import('@genfeedai/prisma').Prisma.TransactionClient,
+      );
+      expect(frozen).toMatchObject({
+        fingerprint: learningHash([
+          learningScopeKey(scope),
+          profileId,
+          cutoff.toISOString(),
+          rows.map((row) => [row.id, row.revision]),
+        ]),
+        count,
+        contributorCheckpointIds: rows.map((row) => row.id),
+        contributorRevisions: rows.map((row) => row.revision),
+        samples: selected.samples,
+        validity: count >= 20 ? 'valid' : 'insufficient_baseline',
+        medianExposure: count ? 1000 : 0,
+      });
+    },
+  );
+  it('retains exact tied keyset page-two ordering and rejects wrong objective/profile evidence', async () => {
+    const rows = Array.from({ length: 100 }, (_, index) =>
+        checkpoint({ id: `unmatched-${String(index).padStart(3, '0')}` }),
+      ),
+      matching = Array.from({ length: 20 }, (_, index) => sample(index)),
+      f = frozenFixture([...rows, ...matching]);
+    f.prisma.contentLearningCheckpoint.findMany
+      .mockResolvedValueOnce(rows)
+      .mockResolvedValueOnce(matching);
+    const result = await selectLearningBaseline(
+      f.prisma as unknown as import('@genfeedai/prisma').Prisma.TransactionClient,
+      scope,
+      new Date('2026-10-01'),
+      descriptor,
+      f.dependencies,
+    );
+    expect(result.selected).toEqual(matching);
+    expect(f.prisma.contentLearningCheckpoint.findMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: [
+            { receivedAt: { lt: rows[99].receivedAt } },
+            { receivedAt: rows[99].receivedAt, id: { gt: rows[99].id } },
+          ],
+        }),
+        orderBy: [{ receivedAt: 'desc' }, { id: 'asc' }],
+        take: 100,
+      }),
+    );
+    const wrongDescriptor = learningRegisteredProfiles(
+      'twitter',
+      'text',
+      'awareness',
+    )[0].descriptor;
+    const wrong = sample(0);
+    wrong.measurement = {
+      profiles: [
+        {
+          profileId,
+          descriptor: { ...wrongDescriptor },
+          measurement: { exposure: 1000, weightedActions: 0 },
+        },
+      ],
+    };
+    f.prisma.contentLearningCheckpoint.findMany.mockResolvedValue([wrong]);
+    expect(
+      (
+        await selectLearningBaseline(
+          f.prisma as unknown as import('@genfeedai/prisma').Prisma.TransactionClient,
+          scope,
+          new Date('2026-10-01'),
+          descriptor,
+          f.dependencies,
+        )
+      ).samples,
+    ).toEqual([]);
+  });
+  it('never counts source-invalid rows or hides a deleted/revised contributor at final recheck', async () => {
+    const f = frozenFixture([sample(0)]);
+    f.dependencies.valid.mockResolvedValue(false);
+    expect(
+      (
+        await selectLearningBaseline(
+          f.prisma as unknown as import('@genfeedai/prisma').Prisma.TransactionClient,
+          scope,
+          new Date('2026-10-01'),
+          descriptor,
+          f.dependencies,
+        )
+      ).samples,
+    ).toEqual([]);
+    f.dependencies.valid.mockResolvedValue(true);
+    f.prisma.contentLearningCheckpoint.findFirst.mockResolvedValue(null);
+    await expect(
+      selectLearningBaseline(
+        f.prisma as unknown as import('@genfeedai/prisma').Prisma.TransactionClient,
+        scope,
+        new Date('2026-10-01'),
+        descriptor,
+        f.dependencies,
+      ),
+    ).rejects.toThrow('Baseline contributor changed');
+    expect(f.baseline.upsert).not.toHaveBeenCalled();
   });
   it('rejects a contributor superseded before final lineage validation', async () => {
     const f = frozenFixture([sample(0)]);
