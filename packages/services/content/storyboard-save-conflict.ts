@@ -1,4 +1,4 @@
-import type { IHttpErrorPresentationContext } from '@genfeedai/contracts/interfaces';
+import type { IHttpErrorPresentationContext } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 
 export function isExpectedStoryboardSaveConflict(

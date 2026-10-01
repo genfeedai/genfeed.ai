@@ -1,10 +1,11 @@
-import type {
-  StoryboardAcceptedLineFunding,
-  StoryboardExecutionBinding,
-  StoryboardLineEvidence,
-} from '@api/collections/content-runs/services/storyboard-operation-manifest.schema';
+import type { BrandRemixScenePipeline } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import type { StoryboardRunQuote } from '@genfeedai/contracts/api-types/contracts/storyboard-run-quote.contract';
 import type { Prisma } from '@genfeedai/prisma';
+
+export type StoryboardAcceptedLineFunding =
+  BrandRemixScenePipeline['receipts'][number];
+export type StoryboardExecutionBinding = object;
+export type StoryboardLineEvidence = object;
 
 export type StoryboardReadonly<T> = T extends readonly (infer TValue)[]
   ? readonly StoryboardReadonly<TValue>[]

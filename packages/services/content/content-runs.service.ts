@@ -42,16 +42,14 @@ import {
   type StoryboardRunSummary,
   storyboardRunSummarySchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run-summary.contract';
-import type {
-  ContentRunBrief,
-  IHttpRequestOptions,
-} from '@genfeedai/contracts/interfaces';
+import type { ContentRunBrief } from '@genfeedai/contracts/interfaces';
 import type {
   ContentRunAnalyticsSummary,
   ContentRunPublishContext,
   ContentRunRecommendation,
   ContentRunVariant,
 } from '@genfeedai/contracts/interfaces/content/content-run.interface';
+import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import {
   deserializeLegacyStoryboardRunDocument,
   deserializeStoryboardRunDocument,
