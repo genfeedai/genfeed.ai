@@ -76,6 +76,7 @@ vi.mock('next/navigation', () => ({
 describe('GenerationsPage shell-first loading', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.findAdminGenerationReviews.mockResolvedValue([]);
   });
 
   it('renders the surface chrome immediately while generations are loading', async () => {

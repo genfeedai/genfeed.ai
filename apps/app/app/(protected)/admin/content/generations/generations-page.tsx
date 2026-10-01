@@ -99,7 +99,7 @@ function GenerationsPageContent() {
           return;
         }
 
-        setGenerations(fetched);
+        setGenerations(Array.isArray(fetched) ? fetched : []);
       } catch (error) {
         if (signal.aborted) {
           return;
