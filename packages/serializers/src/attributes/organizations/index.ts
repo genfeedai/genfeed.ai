@@ -8,3 +8,4 @@ export * from '@serializers/attributes/organizations/member.attributes';
 export * from '@serializers/attributes/organizations/organization.attributes';
 export * from '@serializers/attributes/organizations/organization-settings.attributes';
 export * from '@serializers/attributes/organizations/profile.attributes';
+export * from './brand-onboarding-scan.attributes';

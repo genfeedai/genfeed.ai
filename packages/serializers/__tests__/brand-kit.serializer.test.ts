@@ -5,6 +5,7 @@ import {
   BrandOsDraftHandoffSerializer,
   BrandOsPreviewSerializer,
 } from '@serializers/server/organizations/brand-kit.serializer';
+import { BrandOsRevisionSerializer } from '@serializers/server/organizations/brand-os-revision.serializer';
 import { describe, expect, it } from 'vitest';
 
 describe('Brand Kit JSON:API contract', () => {
@@ -25,6 +26,22 @@ describe('Brand Kit JSON:API contract', () => {
     sourceType: 'manual',
     status: 'missing',
   } as const;
+
+  it('retains optional generation rules through kit and revision serialization', () => {
+    const generationRules = {
+      schemaVersion: '1',
+      typography: { fontFamily: 'Custom Approved Family' },
+      forbiddenPhrases: ['generic'],
+    };
+    const content = { ...previewDraft, generationRules };
+    expect(
+      BrandKitSerializer.serialize(content).data.attributes.generationRules,
+    ).toEqual(generationRules);
+    expect(
+      BrandOsRevisionSerializer.serialize({ id: 'revision-1', content }).data
+        .attributes.content,
+    ).toEqual(content);
+  });
 
   it('serializes the anonymous handoff without leaking storage or tenant metadata', () => {
     const output = BrandOsPreviewSerializer.serialize({

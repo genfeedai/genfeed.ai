@@ -12,3 +12,4 @@ export * from '@serializers/server/organizations/member-invitation.serializer';
 export * from '@serializers/server/organizations/organization.serializer';
 export * from '@serializers/server/organizations/organization-settings.serializer';
 export * from '@serializers/server/organizations/profile.serializer';
+export * from './brand-onboarding-scan.serializer';

@@ -4,11 +4,13 @@ import type {
   IBrandKitDraft,
   IBrandKitDraftField,
   IBrandKitFieldOwner,
+  IBrandOsRevision,
 } from '@genfeedai/contracts/interfaces';
 
 export interface BrandOsSettingsCardProps {
   brandId: string;
   refreshKey?: number;
+  onRevisionSaved?: (revision: IBrandOsRevision) => void;
   onRefreshBrand: () => Promise<void>;
 }
 
