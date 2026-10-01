@@ -7,6 +7,7 @@ import {
   CORE_CONTENT_HARNESS_PACK,
   type ContentHarnessActivationReport,
   type ContentHarnessBrief,
+  type ContentHarnessContribution,
   type ContentHarnessInput,
   type ContentHarnessPack,
   type ContentHarnessPackActivation,
@@ -124,6 +125,32 @@ export class ContentHarnessService implements OnModuleInit {
   async composeBrief(input: ContentHarnessInput): Promise<ContentHarnessBrief> {
     const registry = await this.getRegistry();
     return await composeContentHarnessBrief(registry, input);
+  }
+
+  async composeBriefLayers(
+    input: ContentHarnessInput,
+  ): Promise<
+    ReadonlyArray<
+      readonly [
+        Pick<ContentHarnessPack, 'id' | 'version'>,
+        ContentHarnessContribution,
+      ]
+    >
+  > {
+    const registry = await this.getRegistry();
+    const packs = registry.list();
+    const layers: Array<
+      readonly [
+        Pick<ContentHarnessPack, 'id' | 'version'>,
+        ContentHarnessContribution,
+      ]
+    > = [];
+    for (const pack of packs) {
+      const metadata = { id: pack.id, version: pack.version };
+      const contribution = pack.contribute ? await pack.contribute(input) : {};
+      layers.push([metadata, contribution]);
+    }
+    return layers;
   }
 
   async listLoadedPackVersions(): Promise<

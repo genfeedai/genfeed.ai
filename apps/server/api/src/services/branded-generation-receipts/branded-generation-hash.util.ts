@@ -6,12 +6,14 @@ import {
   brandedGenerationResolutionV1Schema,
   brandGenerationArtifactPartV1Schema,
   brandGenerationArtifactV1Schema,
+  brandGenerationRulesV1Schema,
 } from '@genfeedai/contracts/api-types/contracts';
 import type {
   BrandArtifactValidationReportV1,
   BrandedGenerationInputV1,
   BrandedGenerationResolutionV1,
   BrandGenerationArtifactV1,
+  BrandGenerationRulesV1,
   BrandIdentitySnapshotV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 export type BrandedGenerationJsonV1 =
@@ -27,7 +29,8 @@ export type BrandedGenerationHashDomainV1 =
   | 'generation-resolution-v1'
   | 'generation-artifact-v1'
   | 'receipt-operation-v1'
-  | 'brand-validation-report-v1';
+  | 'brand-validation-report-v1'
+  | 'brand-generation-rules-review-v1';
 export interface BrandGenerationArtifactManifestInputV1 {
   mediaKind: BrandGenerationArtifactV1['mediaKind'];
   textHash: string | null;
@@ -40,6 +43,7 @@ const domains: readonly BrandedGenerationHashDomainV1[] = [
   'generation-artifact-v1',
   'receipt-operation-v1',
   'brand-validation-report-v1',
+  'brand-generation-rules-review-v1',
 ];
 const operations: readonly BrandedGenerationOperationKindV1[] = [
   'resolve',
@@ -172,6 +176,18 @@ function projection(value: unknown): BrandedGenerationJsonV1 {
     return output;
   }
   return copy(value);
+}
+export function hashBrandGenerationRulesReviewV1(
+  rules: BrandGenerationRulesV1,
+): string {
+  // Validate descriptors before the canonical schema reads fields. Keep optional
+  // undefined keys until schema validation so unknown fields cannot disappear.
+  serialize(rules, 0, new Set(), true);
+  const parsed = brandGenerationRulesV1Schema.parse(rules);
+  return hashBrandedGenerationJsonV1(
+    'brand-generation-rules-review-v1',
+    projection(parsed),
+  );
 }
 export function hashBrandIdentitySnapshotV1(
   snapshot: Omit<BrandIdentitySnapshotV1, 'contentHash'>,
