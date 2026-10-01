@@ -1056,7 +1056,11 @@ describe('ensure transaction ownership and source-scoped revocation', () => {
     });
     expect(f.tx.contentLearningAccount.upsert).toHaveBeenCalledTimes(1);
   });
-  it.each(['credential', 'brand'])(
+  const missingAccountSources: Array<'credential' | 'brand'> = [
+    'credential',
+    'brand',
+  ];
+  it.each(missingAccountSources)(
     'retains scoped missing/foreign/deleted %s rejection before account creation',
     async (kind) => {
       const f = fixture();
@@ -1130,10 +1134,10 @@ describe('ensure transaction ownership and source-scoped revocation', () => {
       if (kind === 'account')
         f.tx.contentLearningAccount.findFirst.mockResolvedValue(null);
       if (kind === 'epoch') f.account.epoch = 2;
-      const descriptor =
-        kind === 'descriptor'
-          ? { ...f.descriptor, configVersion: 'invalid' }
-          : f.descriptor;
+      const descriptor: LearningCellDescriptor =
+        kind === 'descriptor' ? { ...f.descriptor } : f.descriptor;
+      if (kind === 'descriptor')
+        Object.assign(descriptor, { configVersion: 'invalid' });
       await expect(
         f.scopes.ensure(undefined, scope, descriptor, 1),
       ).rejects.toThrow(
