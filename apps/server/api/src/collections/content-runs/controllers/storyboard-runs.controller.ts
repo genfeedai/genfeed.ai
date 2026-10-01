@@ -99,6 +99,23 @@ export class StoryboardRunsController {
     );
   }
 
+  @Get(':runId/shots/:shotId/character-replacements/:operationId')
+  characterReplacementStatus(
+    @Param('brandId') brandId: string,
+    @Param('runId') runId: string,
+    @Param('shotId') shotId: string,
+    @Param('operationId') operationId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.characters.getStatus(
+      user.organizationId,
+      brandId,
+      runId,
+      shotId,
+      operationId,
+    );
+  }
+
   @Get(':runId/capabilities')
   async getCapabilities(
     @Param('brandId') brandId: string,

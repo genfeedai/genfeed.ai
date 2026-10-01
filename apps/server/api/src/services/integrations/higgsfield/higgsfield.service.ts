@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   SERVER_TOKENS,
   type ServerByokResolver,
@@ -40,6 +40,7 @@ import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 interface HiggsFieldRequestOptions {
+  expectedCredentialFingerprint?: string;
   idempotencyKey?: string;
   onProviderSubmissionStarted?: () => void;
   organizationId?: string;
@@ -124,6 +125,37 @@ export class HiggsFieldService {
     return { apiKey: this.apiKey, apiSecret: this.apiSecret };
   }
 
+  private credentialFingerprint(credentials: HiggsFieldCredentials): string {
+    return createHash('sha256')
+      .update(
+        JSON.stringify({ endpoint: this.endpoint, apiKey: credentials.apiKey }),
+      )
+      .digest('hex');
+  }
+  async getCredentialFingerprint(organizationId: string): Promise<string> {
+    return this.credentialFingerprint(
+      await this.resolveCredentials(organizationId),
+    );
+  }
+  private assertCredentialBinding(
+    credentials: HiggsFieldCredentials,
+    expected?: string,
+  ): void {
+    if (expected && expected !== this.credentialFingerprint(credentials))
+      throw new BadRequestException(
+        'CHARACTER_REPLACEMENT_CREDENTIALS_CHANGED',
+      );
+  }
+  async getBoundRequestStatus(
+    requestId: string,
+    organizationId: string,
+    expected: string,
+  ): Promise<HiggsFieldResponse> {
+    const credentials = await this.resolveCredentials(organizationId);
+    this.assertCredentialBinding(credentials, expected);
+    return this.getRequestStatus(requestId, credentials, true);
+  }
+
   /** Higgsfield authenticates with a key id and secret pair on one header. */
   private getHeaders(
     credentials: HiggsFieldCredentials,
@@ -168,6 +200,10 @@ export class HiggsFieldService {
   ): Promise<HiggsFieldResponse> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const credentials = await this.resolveCredentials(options.organizationId);
+    this.assertCredentialBinding(
+      credentials,
+      options.expectedCredentialFingerprint,
+    );
 
     try {
       const submitUrl = this.buildSubmitUrl(endpointId, options.webhook);
@@ -187,7 +223,9 @@ export class HiggsFieldService {
     } catch (error: unknown) {
       const mapped = toHiggsFieldProviderError(error);
       this.loggerService.error(`${caller} failed to submit ${endpointId}`, {
-        message: mapped.message,
+        ...(options.expectedCredentialFingerprint
+          ? { statusCode: readHttpStatusCode(error) }
+          : { message: mapped.message }),
       });
       throw mapped;
     }
@@ -201,6 +239,7 @@ export class HiggsFieldService {
   async getRequestStatus(
     requestId: string,
     credentials: HiggsFieldCredentials,
+    safeErrorLogging = false,
   ): Promise<HiggsFieldResponse> {
     try {
       const response = await firstValueFrom(
@@ -221,7 +260,7 @@ export class HiggsFieldService {
       const mapped = toHiggsFieldProviderError(error);
       this.loggerService.warn(
         `${this.constructorName} status poll for ${requestId} retried`,
-        { message: mapped.message },
+        safeErrorLogging ? { statusCode } : { message: mapped.message },
       );
       return { request_id: requestId, status: 'queued' };
     }
@@ -382,28 +421,42 @@ export class HiggsFieldService {
    * 30s by Higgsfield. One to eight character stills ride `image_urls`.
    */
   async generateMotionTransfer(params: {
+    idempotencyKey?: string;
+    expectedCredentialFingerprint?: string;
     imageUrls: readonly string[];
     onProviderSubmissionStarted?: () => void;
     organizationId?: string;
     prompt?: string;
     resolution?: string;
     videoUrl: string;
-  }): Promise<{ requestId: string; videoUrl?: string }> {
-    const videoUrl = params.videoUrl.trim();
+  }): Promise<{
+    requestId: string;
+    videoUrl?: string;
+    status: HiggsFieldResponse['status'];
+  }> {
+    const videoUrl = params.idempotencyKey
+      ? params.videoUrl
+      : params.videoUrl.trim();
     if (!videoUrl.startsWith('https://')) {
       throw new BadRequestException(
         'Higgsfield Genjutsu requires an https source video URL.',
       );
     }
 
-    const imageUrls = [
-      ...new Set(
-        params.imageUrls
-          .map((url) => url.trim())
-          .filter((url) => url.startsWith('https://')),
-      ),
-    ];
-    if (imageUrls.length < 1 || imageUrls.length > 8) {
+    const imageUrls = params.idempotencyKey
+      ? [...params.imageUrls]
+      : [
+          ...new Set(
+            params.imageUrls
+              .map((url) => url.trim())
+              .filter((url) => url.startsWith('https://')),
+          ),
+        ];
+    if (
+      imageUrls.length < 1 ||
+      imageUrls.length > 8 ||
+      imageUrls.some((url) => !url.startsWith('https://'))
+    ) {
       throw new BadRequestException(
         'Higgsfield Genjutsu requires 1 to 8 https character image URLs.',
       );
@@ -420,12 +473,14 @@ export class HiggsFieldService {
     };
 
     const submitted = await this.submit(MODEL_KEYS.HIGGSFIELD_GENJUTSU, input, {
-      idempotencyKey: randomUUID(),
+      idempotencyKey: params.idempotencyKey ?? randomUUID(),
+      expectedCredentialFingerprint: params.expectedCredentialFingerprint,
       onProviderSubmissionStarted: params.onProviderSubmissionStarted,
       organizationId: params.organizationId,
     });
 
     return {
+      status: submitted.status,
       requestId: submitted.request_id,
       videoUrl: submitted.video?.url,
     };
