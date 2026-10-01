@@ -1270,11 +1270,11 @@ describe('explicit owner rule media applicability', () => {
     expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
   });
   it.each([
-    [],
-    ['image', 'image'],
-    ['audio'],
-    ['text', 'image', 'video', 'image'],
-  ])('rejects invalid applicability %j', (scope) => {
+    { scope: [] },
+    { scope: ['image', 'image'] },
+    { scope: ['audio'] },
+    { scope: ['text', 'image', 'video', 'image'] },
+  ])('rejects invalid applicability %j', ({ scope }) => {
     const v = excludedReceipt();
     expect(
       brandGenerationRulesV1Schema.safeParse({

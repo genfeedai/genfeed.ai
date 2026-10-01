@@ -25,6 +25,7 @@ import {
   canTransitionBrandedGenerationStateV1,
 } from '@api/services/branded-generation-receipts/branded-generation-state.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   brandedGenerationInputV1Schema,
   brandedGenerationReceiptV1Schema,
@@ -215,6 +216,7 @@ export class BrandedGenerationReceiptsService {
           brandId: actor.brandId,
           requestKey: input.requestKey,
           candidateIndex: input.candidateIndex,
+          OR: [{ isDeleted: false }, { isDeleted: true }],
         },
       });
       if (existing) {
@@ -380,10 +382,8 @@ export class BrandedGenerationReceiptsService {
     return this.transaction(async (tx) => {
       await this.access.assertBrand(actor, tx);
       const rows = await tx.brandedGenerationReceipt.findMany({
-        where: {
-          organizationId: actor.organizationId,
+        where: scopedWhere(actor.organizationId, {
           brandId: actor.brandId,
-          isDeleted: false,
           ...(cursor
             ? {
                 OR: [
@@ -395,7 +395,7 @@ export class BrandedGenerationReceiptsService {
                 ],
               }
             : {}),
-        },
+        }),
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: query.limit + 1,
       });
@@ -504,20 +504,31 @@ export class BrandedGenerationReceiptsService {
           id,
           organizationId: actor.organizationId,
           brandId: actor.brandId,
+          OR: [{ isDeleted: false }, { isDeleted: true }],
         },
       });
       if (!row) throw new NotFoundException({ message: 'receipt_not_found' });
       const current = this.parse(row.projection);
       this.creator(actor, current, permission.isOwnerOrAdmin);
-      const prior = await tx.brandedGenerationReceiptEvent.findFirst({
-        where: {
-          receiptId: id,
-          organizationId: actor.organizationId,
-          brandId: actor.brandId,
-          operationKey: mutation.operationKey,
-          ...(!row.isDeleted ? { isDeleted: false } : {}),
-        },
-      });
+      const prior = row.isDeleted
+        ? await tx.brandedGenerationReceiptEvent.findFirst({
+            where: {
+              receiptId: id,
+              organizationId: actor.organizationId,
+              brandId: actor.brandId,
+              operationKey: mutation.operationKey,
+              OR: [{ isDeleted: false }, { isDeleted: true }],
+            },
+          })
+        : await tx.brandedGenerationReceiptEvent.findFirst({
+            where: {
+              receiptId: id,
+              organizationId: actor.organizationId,
+              brandId: actor.brandId,
+              operationKey: mutation.operationKey,
+              isDeleted: false,
+            },
+          });
       if (
         row.isDeleted &&
         !(

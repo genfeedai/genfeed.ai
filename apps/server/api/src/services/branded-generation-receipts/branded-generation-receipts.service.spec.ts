@@ -149,6 +149,9 @@ describe('real storage slice orchestration with typed transaction delegates', ()
   it('creates original snapshot/event atomically with zero provider attempts and preserved lineage', async () => {
     const f = fixture();
     const result = await f.service.create(input());
+    const expectedProjection: unknown = JSON.parse(
+      JSON.stringify(result.receipt),
+    );
     expect(result.replayed).toBe(false);
     expect(result.receipt).toMatchObject({
       state: 'created',
@@ -168,8 +171,12 @@ describe('real storage slice orchestration with typed transaction delegates', ()
     ).toMatchObject({
       operationKey: 'create',
       revision: 0,
-      projection: result.receipt,
+      projection: expectedProjection,
     });
+    expect(
+      f.tx.brandedGenerationReceiptEvent.create.mock.calls[0][0].data
+        .projection,
+    ).toEqual(expectedProjection);
     expect(f.prompts.persist).toHaveBeenCalledWith(
       expect.anything(),
       actor,
@@ -194,6 +201,15 @@ describe('real storage slice orchestration with typed transaction delegates', ()
     });
     expect(f.tx.brandedGenerationReceipt.create).not.toHaveBeenCalled();
     expect(f.prompts.persist).not.toHaveBeenCalled();
+    expect(
+      f.tx.brandedGenerationReceipt.findFirst.mock.calls.at(-1)?.[0].where,
+    ).toEqual({
+      organizationId: 'org',
+      brandId: 'brand',
+      requestKey: 'request',
+      candidateIndex: 0,
+      OR: [{ isDeleted: false }, { isDeleted: true }],
+    });
     await expect(
       f.service.create({ ...input(), parentRequestId: 'other' }),
     ).rejects.toThrow('request_payload_conflict');
@@ -205,6 +221,9 @@ describe('real storage slice orchestration with typed transaction delegates', ()
       isDeleted: true,
     });
     await expect(f.service.create(input())).rejects.toThrow('receipt_deleted');
+    expect(f.tx.brandedGenerationReceipt.create).not.toHaveBeenCalled();
+    expect(f.tx.brandedGenerationReceiptEvent.create).not.toHaveBeenCalled();
+    expect(f.prompts.persist).not.toHaveBeenCalled();
   });
   it('records null-identity typed failure without a compiled hash or consumed attempt', async () => {
     const f = fixture();
@@ -295,6 +314,18 @@ describe('real storage slice orchestration with typed transaction delegates', ()
       operationKey: 'delete',
       expectedRevision: 0,
     });
+    expect(f.tx.brandedGenerationReceiptEvent.findFirst).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(
+      f.tx.brandedGenerationReceiptEvent.findFirst.mock.calls[0][0].where,
+    ).toEqual({
+      receiptId: current.id,
+      organizationId: 'org',
+      brandId: 'brand',
+      operationKey: 'delete',
+      isDeleted: false,
+    });
     expect(deleted.receipt.isDeleted).toBe(true);
     expect(deleted.receipt.budget).toEqual(current.budget);
     expect(f.prompts.purge).toHaveBeenCalledWith(
@@ -310,12 +341,62 @@ describe('real storage slice orchestration with typed transaction delegates', ()
       isDeleted: true,
     });
     f.tx.brandedGenerationReceiptEvent.findFirst.mockResolvedValue(event);
+    f.tx.brandedGenerationReceiptEvent.findFirst.mockClear();
     expect(
       await f.service.softDelete(actor, current.id, {
         operationKey: 'delete',
         expectedRevision: 0,
       }),
     ).toEqual({ receipt: deleted.receipt, replayed: true });
+    expect(
+      f.tx.brandedGenerationReceipt.findFirst.mock.calls.at(-1)?.[0].where,
+    ).toEqual({
+      id: current.id,
+      organizationId: 'org',
+      brandId: 'brand',
+      OR: [{ isDeleted: false }, { isDeleted: true }],
+    });
+    expect(f.tx.brandedGenerationReceiptEvent.findFirst).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(
+      f.tx.brandedGenerationReceiptEvent.findFirst.mock.calls[0][0].where,
+    ).toEqual({
+      receiptId: current.id,
+      organizationId: 'org',
+      brandId: 'brand',
+      operationKey: 'delete',
+      OR: [{ isDeleted: false }, { isDeleted: true }],
+    });
+    f.tx.brandedGenerationReceiptEvent.findFirst.mockClear();
+    f.tx.brandedGenerationReceiptEvent.findFirst.mockResolvedValueOnce(null);
+    await expect(
+      f.service.softDelete(actor, current.id, {
+        operationKey: 'different',
+        expectedRevision: 0,
+      }),
+    ).rejects.toThrow('receipt_deleted');
+    expect(f.tx.brandedGenerationReceiptEvent.findFirst).toHaveBeenCalledTimes(
+      1,
+    );
+    f.tx.brandedGenerationReceiptEvent.findFirst.mockClear();
+    await expect(
+      f.service.softDelete({ ...actor, actorId: 'other' }, current.id, {
+        operationKey: 'delete',
+        expectedRevision: 0,
+      }),
+    ).rejects.toThrow('receipt_access_denied');
+    expect(f.tx.brandedGenerationReceiptEvent.findFirst).not.toHaveBeenCalled();
+    vi.mocked(f.access.assertBrand).mockResolvedValue({ isOwnerOrAdmin: true });
+    await expect(
+      f.service.softDelete({ ...actor, actorId: 'admin' }, current.id, {
+        operationKey: 'delete',
+        expectedRevision: 0,
+      }),
+    ).rejects.toThrow('receipt_deleted');
+    expect(f.tx.brandedGenerationReceiptEvent.findFirst).toHaveBeenCalledTimes(
+      1,
+    );
     await expect(
       f.service.cancel(actor, current.id, {
         operationKey: 'delete',
@@ -326,12 +407,14 @@ describe('real storage slice orchestration with typed transaction delegates', ()
   it('reauthorizes creator/admin operations and prompt access on every call', async () => {
     const f = fixture();
     const current = await saved(f);
+    f.tx.brandedGenerationReceiptEvent.findFirst.mockClear();
     await expect(
       f.service.cancel({ ...actor, actorId: 'other' }, current.id, {
         operationKey: 'cancel',
         expectedRevision: 0,
       }),
     ).rejects.toThrow('receipt_access_denied');
+    expect(f.tx.brandedGenerationReceiptEvent.findFirst).not.toHaveBeenCalled();
     await expect(
       f.service.readPrompt(
         { ...actor, actorId: 'other' },
@@ -357,6 +440,11 @@ describe('real storage slice orchestration with typed transaction delegates', ()
       { projection: current },
     ]);
     const page = await f.service.list(actor, { limit: 1 });
+    expect(f.tx.brandedGenerationReceipt.findMany.mock.calls[0][0]).toEqual({
+      where: { organizationId: 'org', brandId: 'brand', isDeleted: false },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 2,
+    });
     expect(page.items).toHaveLength(1);
     expect(page.nextCursor).not.toBeNull();
     await f.service.list(actor, {
@@ -364,11 +452,19 @@ describe('real storage slice orchestration with typed transaction delegates', ()
       cursor: page.nextCursor ?? undefined,
     });
     expect(
-      f.tx.brandedGenerationReceipt.findMany.mock.calls.at(-1)?.[0].where,
-    ).toMatchObject({
-      organizationId: 'org',
-      brandId: 'brand',
-      isDeleted: false,
+      f.tx.brandedGenerationReceipt.findMany.mock.calls.at(-1)?.[0],
+    ).toEqual({
+      where: {
+        organizationId: 'org',
+        brandId: 'brand',
+        isDeleted: false,
+        OR: [
+          { createdAt: { lt: new Date(current.createdAt) } },
+          { createdAt: new Date(current.createdAt), id: { lt: current.id } },
+        ],
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 2,
     });
     f.tx.brandedGenerationReceiptEvent.findMany.mockResolvedValue([
       { projection: current },
