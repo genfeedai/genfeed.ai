@@ -3,6 +3,8 @@ import {
   projectPostArtifactMaterial,
   readArtifactRecord,
 } from '@api/agent-artifacts/agent-artifact-material.util';
+import { LearningCheckpointService } from '@api/collections/content-learning/services/learning-checkpoint.service';
+import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import {
   learningPublicationDependencyRefsV1,
@@ -32,6 +34,10 @@ import {
   learningPublicationPinSelect,
   learningPublicationPostSelect,
 } from '@api/collections/content-learning/services/learning-publication-source.types';
+import { OutliersService } from '@api/collections/outliers/services/outliers.service';
+import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   fromPrismaCredentialPlatform,
@@ -47,6 +53,7 @@ import {
   type ContentLearningDependency,
   type Prisma,
 } from '@genfeedai/prisma';
+import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
@@ -1904,5 +1911,162 @@ describe('current physical checkpoint and bounded source closure', () => {
       ),
     ).rejects.toBe(graphError);
     expect(graph.blocked).not.toHaveBeenCalled();
+  });
+});
+
+describe('C1 real dependency publication consumers', () => {
+  it('resolves exact Post, approval and finalization versions from the current same-client publication proof', async () => {
+    const f = await fixture();
+    const service = new LearningDependencyService(f.tx);
+    for (const [kind, id, version] of [
+      ['post', f.post.id, f.resolved.postSourceVersion],
+      ['publish_approval', f.approval.id, f.resolved.approvalVersion],
+      [
+        'post_publish_finalization',
+        f.finalization.id,
+        f.resolved.finalizationVersion,
+      ],
+    ] as const) {
+      expect(await service.resolve(kind, id, 'org', f.tx)).toEqual({
+        kind,
+        id,
+        organizationId: 'org',
+        version,
+      });
+    }
+    expect(f.blocked).not.toHaveBeenCalled();
+  });
+  it('preserves current versions across bookkeeping but rejects changed physical content and weak legacy versions', async () => {
+    const f = await fixture();
+    const service = new LearningDependencyService(f.tx);
+    f.post.label = 'maintenance';
+    f.post.scheduledDate = new Date('2026-12-01');
+    expect((await service.resolve('post', 'post', 'org', f.tx)).version).toBe(
+      f.resolved.postSourceVersion,
+    );
+    Object.assign(f.finalization, {
+      completedAt: new Date(),
+      source: 'maintenance',
+    });
+    expect(
+      (
+        await service.resolve(
+          'post_publish_finalization',
+          'finalization',
+          'org',
+          f.tx,
+        )
+      ).version,
+    ).toBe(f.resolved.finalizationVersion);
+    f.post.description += ' changed';
+    await expect(service.resolve('post', 'post', 'org', f.tx)).rejects.toThrow(
+      'Pinned dependency identity unavailable',
+    );
+    expect(f.blocked).not.toHaveBeenCalled();
+  });
+  it.each([
+    'approved',
+    'executing',
+    'revoked',
+    'disconnected',
+    'inactive',
+    'deleted-org',
+    'legacy',
+  ])(
+    'fails closed for %s source authority without writes',
+    async (mutation) => {
+      const f = await fixture();
+      const service = new LearningDependencyService(f.tx);
+      if (mutation === 'approved')
+        f.approval.status = PublishApprovalStatus.APPROVED;
+      if (mutation === 'executing')
+        f.approval.status = PublishApprovalStatus.EXECUTING;
+      if (mutation === 'revoked') f.approval.invalidatedAt = new Date();
+      if (mutation === 'disconnected') f.credential.isConnected = false;
+      if (mutation === 'inactive') f.brand.isActive = false;
+      if (mutation === 'deleted-org') f.organization.isDeleted = true;
+      if (mutation === 'legacy') f.finalization.result = { success: true };
+      for (const [kind, id] of [
+        ['post', 'post'],
+        ['publish_approval', 'approval'],
+        ['post_publish_finalization', 'finalization'],
+      ] as const)
+        await expect(service.resolve(kind, id, 'org', f.tx)).rejects.toThrow(
+          'Pinned dependency identity unavailable',
+        );
+      expect(f.blocked).not.toHaveBeenCalled();
+    },
+  );
+  it('requires live current parents for private brand and connected credential leaves', async () => {
+    const f = await fixture();
+    const service = new LearningDependencyService(f.tx);
+    expect((await service.resolve('brand', 'brand', 'org', f.tx)).version).toBe(
+      'brand',
+    );
+    expect(
+      (await service.resolve('credential', 'credential', 'org', f.tx)).version,
+    ).toBe('credential');
+    f.brand.isActive = false;
+    await expect(
+      service.resolve('brand', 'brand', 'org', f.tx),
+    ).rejects.toThrow();
+    await expect(
+      service.resolve('credential', 'credential', 'org', f.tx),
+    ).rejects.toThrow();
+  });
+});
+
+describe('C3 actual analytics preparation with real current publication proof', () => {
+  it('returns only exact six-field authority and propagates source database failure', async () => {
+    const f = await fixture();
+    const module = await Test.createTestingModule({
+      providers: [
+        { provide: PostsService, useValue: {} },
+        { provide: OutliersService, useValue: {} },
+        { provide: LoggerService, useValue: {} },
+        { provide: LearningCheckpointService, useValue: {} },
+        { provide: WorkflowExecutionQueueService, useValue: {} },
+      ],
+    }).compile();
+    const service = new PostAnalyticsService(
+      f.tx,
+      module.get<LoggerService>(LoggerService),
+      module.get<PostsService>(PostsService),
+      module.get<OutliersService>(OutliersService),
+      module.get<LearningCheckpointService>(LearningCheckpointService),
+      module.get<WorkflowExecutionQueueService>(WorkflowExecutionQueueService),
+    );
+    const input = {
+      organizationId: 'org',
+      brandId: 'brand',
+      credentialId: 'credential',
+      postId: 'post',
+      platform: Platform.TWITTER,
+      externalId: 'external',
+    };
+    expect(await service.prepareLearningObservation(input)).toEqual(f.resolved);
+    for (const key of [
+      'organizationId',
+      'brandId',
+      'credentialId',
+      'postId',
+      'externalId',
+    ] as const)
+      expect(
+        await service.prepareLearningObservation({ ...input, [key]: 'other' }),
+      ).toBeNull();
+    expect(
+      await service.prepareLearningObservation({
+        ...input,
+        platform: Platform.FACEBOOK,
+      }),
+    ).toBeNull();
+    f.post.category = PostCategory.IMAGE;
+    expect(await service.prepareLearningObservation(input)).toBeNull();
+    f.post.category = PostCategory.TEXT;
+    const error = new Error('source database');
+    f.delegates.post.findFirst.mockRejectedValueOnce(error);
+    await expect(service.prepareLearningObservation(input)).rejects.toBe(error);
+    expect(f.blocked).not.toHaveBeenCalled();
   });
 });

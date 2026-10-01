@@ -82,12 +82,22 @@ export class AnalyticsProviderCollectionService {
           { status: 401 },
         );
       }
+      const publicationSource =
+        await this.postAnalyticsService.prepareLearningObservation({
+          organizationId: post.organizationId,
+          brandId: post.brandId,
+          credentialId: resolution.credentialId,
+          postId: post.id,
+          platform: CredentialPlatform.FACEBOOK,
+          externalId: post.externalId,
+        });
       const sourceAttemptId = randomUUID(),
         requestStartedAt = new Date();
       const analytics = await this.facebookService.getPostAnalytics(
         post.externalId,
         EncryptionUtil.decrypt(credential.accessToken),
       );
+      const receivedAt = new Date();
       await this.postAnalyticsService.processFacebookAnalytics(
         post.id,
         {
@@ -104,7 +114,8 @@ export class AnalyticsProviderCollectionService {
           learningObservation: {
             sourceAttemptId,
             requestStartedAt,
-            receivedAt: new Date(),
+            receivedAt,
+            ...(publicationSource ? { publicationSource } : {}),
           },
           organizationId: post.organizationId,
           brandId: post.brandId,
@@ -151,6 +162,15 @@ export class AnalyticsProviderCollectionService {
         );
       }
 
+      const publicationSource =
+        await this.postAnalyticsService.prepareLearningObservation({
+          organizationId: post.organizationId,
+          brandId: post.brandId,
+          credentialId: resolution.credentialId,
+          postId: post.id,
+          platform: CredentialPlatform.THREADS,
+          externalId: post.externalId,
+        });
       const sourceAttemptId = randomUUID(),
         requestStartedAt = new Date();
       const analytics = await this.threadsService.getThreadInsights(
@@ -159,6 +179,7 @@ export class AnalyticsProviderCollectionService {
         post.externalId,
         resolution.credentialId,
       );
+      const receivedAt = new Date();
       await this.postAnalyticsService.processThreadsAnalytics(
         post.id,
         analytics,
@@ -166,7 +187,8 @@ export class AnalyticsProviderCollectionService {
           learningObservation: {
             sourceAttemptId,
             requestStartedAt,
-            receivedAt: new Date(),
+            receivedAt,
+            ...(publicationSource ? { publicationSource } : {}),
           },
           organizationId: post.organizationId,
           brandId: post.brandId,

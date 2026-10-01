@@ -1,4 +1,12 @@
+import { isDeepStrictEqual } from 'node:util';
 import { selectLearningBaseline } from '@api/collections/content-learning/services/learning-baseline-selection';
+import {
+  learningPublicationDependencyRefsV1,
+  parseLearningPublicationSourceV1,
+  resolveLearningPublicationSourceV1,
+  validLearningCheckpointPublicationV1,
+} from '@api/collections/content-learning/services/learning-publication-source.helper';
+import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interfaces/analytics/outlier-persistence.interface';
 
 export { parseLearningMeasurement } from '@api/collections/content-learning/services/learning-baseline-selection';
 
@@ -15,6 +23,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   LearningCellDescriptor,
   LearningCollectionReceiptV1,
+  LearningDependencyRefV1,
   LearningMetrics,
   LearningScope,
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
@@ -34,7 +43,11 @@ import {
   type Prisma,
   toPrismaJson,
 } from '@genfeedai/prisma';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 interface LearningCheckpointProfile {
   profileId: string;
@@ -367,17 +380,8 @@ export class LearningCheckpointService {
       Awaited<ReturnType<LearningCheckpointService['prepareCapture']>>
     >,
     currentAccount: ContentLearningAccount,
+    currentSource: LearningPublicationSourceV1,
   ) {
-    const {
-      credential,
-      platform,
-      capability,
-      measurement,
-      providerAsOf,
-      collection,
-      validity,
-      fingerprint,
-    } = prepared;
     if (!input.supersedesId) {
       const fulfilled = await this.fulfilledWindow(
         input.organizationId,
@@ -387,16 +391,16 @@ export class LearningCheckpointService {
         input.windowId ?? '48h-v1',
         tx,
       );
-      if (fulfilled) return fulfilled;
+      if (fulfilled) return this.replayCapture(tx, fulfilled);
     }
     const existing = await tx.contentLearningCheckpoint.findFirst({
       where: {
         organizationId: input.organizationId,
-        sourceFingerprint: fingerprint,
+        sourceFingerprint: prepared.fingerprint,
         isDeleted: false,
       },
     });
-    if (existing) return existing;
+    if (existing) return this.replayCapture(tx, existing);
     const original = input.supersedesId
       ? await tx.contentLearningCheckpoint.findFirst({
           where: {
@@ -412,12 +416,72 @@ export class LearningCheckpointService {
       input.supersedesId &&
       (!original ||
         original.windowId !== (input.windowId ?? '48h-v1') ||
+        original.publishedAt.getTime() !== input.publishedAt.getTime() ||
         original.requestStartedAt.getTime() !==
           input.requestStartedAt.getTime())
     )
       throw new BadRequestException(
         'Correction must identify the same observation window',
       );
+    const checkpoint = await this.createCheckpoint(
+      tx,
+      input,
+      prepared,
+      original,
+    );
+    const derived: LearningDependencyRefV1 = {
+      kind: 'checkpoint',
+      id: checkpoint.id,
+      organizationId: input.organizationId,
+      version: String(checkpoint.revision),
+    };
+    for (const source of learningPublicationDependencyRefsV1(currentSource)) {
+      const edge = await this.dependencies.link(tx, source, derived);
+      if (
+        edge.isDeleted ||
+        !edge.valid ||
+        edge.sourceKind !== source.kind ||
+        edge.sourceId !== source.id ||
+        edge.sourceOrganizationId !== source.organizationId ||
+        edge.sourceVersion !== source.version ||
+        edge.derivedKind !== derived.kind ||
+        edge.derivedId !== derived.id ||
+        edge.derivedOrganizationId !== derived.organizationId
+      )
+        throw new ConflictException('Learning publication dependency conflict');
+    }
+    await this.supersedeCapture(tx, input, original, currentAccount);
+    return checkpoint;
+  }
+  private async replayCapture(
+    tx: Prisma.TransactionClient,
+    existing: ContentLearningCheckpoint,
+  ) {
+    const collection = learningCheckpointCollection(existing);
+    if (!collection) return null;
+    if (collection.outcome !== 'observed') return existing;
+    return (await validLearningCheckpointPublicationV1(tx, existing))
+      ? existing
+      : null;
+  }
+  private async createCheckpoint(
+    tx: Prisma.TransactionClient,
+    input: Parameters<LearningCheckpointService['capture']>[0],
+    prepared: NonNullable<
+      Awaited<ReturnType<LearningCheckpointService['prepareCapture']>>
+    >,
+    original: ContentLearningCheckpoint | null,
+  ) {
+    const {
+      credential,
+      platform,
+      capability,
+      measurement,
+      providerAsOf,
+      collection,
+      validity,
+      fingerprint,
+    } = prepared;
     const latest = await tx.contentLearningCheckpoint.findFirst({
       where: {
         organizationId: input.organizationId,
@@ -428,7 +492,7 @@ export class LearningCheckpointService {
       },
       orderBy: { revision: 'desc' },
     });
-    const checkpoint = await tx.contentLearningCheckpoint.create({
+    return await tx.contentLearningCheckpoint.create({
       data: {
         organizationId: input.organizationId,
         brandId: credential.brandId,
@@ -469,6 +533,13 @@ export class LearningCheckpointService {
         validity,
       },
     });
+  }
+  private async supersedeCapture(
+    tx: Prisma.TransactionClient,
+    input: Parameters<LearningCheckpointService['capture']>[0],
+    original: ContentLearningCheckpoint | null,
+    currentAccount: ContentLearningAccount,
+  ) {
     if (original) {
       await tx.contentLearningCheckpoint.updateMany({
         where: {
@@ -493,9 +564,9 @@ export class LearningCheckpointService {
       },
       data: { evidenceRevision: { increment: 1 } },
     });
-    return checkpoint;
   }
   async capture(input: {
+    publicationSource: LearningPublicationSourceV1;
     organizationId: string;
     postId: string;
     credentialId: string;
@@ -509,6 +580,18 @@ export class LearningCheckpointService {
     windowId?: string;
     supersedesId?: string;
   }) {
+    const source = parseLearningPublicationSourceV1(input.publicationSource);
+    if (
+      !source ||
+      source.organizationId !== input.organizationId ||
+      source.postId !== input.postId ||
+      source.credentialId !== input.credentialId ||
+      input.format !== 'text' ||
+      !(input.publishedAt instanceof Date) ||
+      !Number.isFinite(input.publishedAt.getTime()) ||
+      source.publishedAt !== input.publishedAt.toISOString()
+    )
+      return null;
     const prepared = await this.prepareCapture(input);
     if (!prepared) return null;
     return this.prisma.$transaction(async (tx) => {
@@ -520,7 +603,24 @@ export class LearningCheckpointService {
         prepared.credential.brandId,
       );
       if (!currentAccount) return null;
-      return this.persistCapture(tx, input, prepared, currentAccount);
+      const currentSource = await resolveLearningPublicationSourceV1(
+        tx,
+        input.organizationId,
+        input.postId,
+      );
+      if (
+        !currentSource ||
+        !isDeepStrictEqual(source, currentSource) ||
+        currentSource.brandId !== prepared.credential.brandId
+      )
+        return null;
+      return this.persistCapture(
+        tx,
+        input,
+        prepared,
+        currentAccount,
+        currentSource,
+      );
     });
   }
   async freeze(

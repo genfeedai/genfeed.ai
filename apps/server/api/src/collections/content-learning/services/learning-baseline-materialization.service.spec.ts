@@ -1227,12 +1227,45 @@ describe('immutable materializer with real selector/publication proof and explic
       expect(f.boundary.valid).not.toHaveBeenCalled();
     }
   });
-  it('T2 real Dependency composition explicitly fails closed on legacy pinned Post versions', async () => {
+  it('C5 real Dependency and publication resolution materialize a genuine factual checkpoint with null attempt attribution', async () => {
     const f = await fixture(1, true);
     const row = await f.service.materialize(f.scope, f.cell, cutoff);
-    expect(row?.count).toBe(0);
-    expect(f.boundary.valid).toHaveBeenCalled();
+    expect(row?.count).toBe(1);
+    expect(row?.contributorCheckpointIds).toEqual([
+      f.publications[0].checkpoint.id,
+    ]);
+    expect(row?.contributorRevisions).toEqual([
+      f.publications[0].checkpoint.revision,
+    ]);
+    expect(row?.samples).toEqual(f.projection().samples);
+    expect(f.publications[0].edges).toHaveLength(8);
     expect(f.publications[0].post.learningAttemptId).toBeNull();
+    expect(f.boundary.valid).toHaveBeenCalled();
+    expect(
+      f.baselineEdges.filter(
+        (edge) =>
+          edge.derivedKind === 'baseline' && edge.sourceKind === 'checkpoint',
+      ),
+    ).toHaveLength(1);
+  });
+  it('C5 real Dependency rejects raw Post-ID legacy evidence without edge repair', async () => {
+    const f = await fixture(1, true);
+    const edge = f.publications[0].edges.find(
+      (item) => item.sourceKind === 'post',
+    );
+    if (!edge) throw new Error('Missing Post source edge');
+    edge.sourceVersion = f.publications[0].post.id;
+    const before = structuredClone(f.publications[0].edges);
+    const row = await f.service.materialize(f.scope, f.cell, cutoff);
+    expect(row?.count).toBe(0);
+    expect(row?.contributorCheckpointIds).toEqual([]);
+    expect(f.publications[0].edges).toEqual(before);
+    expect(
+      f.baselineEdges.filter(
+        (item) =>
+          item.derivedKind === 'baseline' && item.sourceKind === 'checkpoint',
+      ),
+    ).toEqual([]);
   });
   it('T2 retention descriptor with missing watch is excluded by the unchanged real selector', async () => {
     const f = await fixture(1);

@@ -21,12 +21,19 @@ import type {
   AnalyticsPersistenceContext,
   ServerAnalyticsCollectionState,
 } from '@genfeedai/contracts/interfaces';
+import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interfaces/analytics/outlier-persistence.interface';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   classifyAnalyticsCollectionError,
   delayedAnalyticsCollectionFailure,
 } from '../analytics-collection-state';
 
+type YouTubeBatchOutcome = {
+  readyTargets: AnalyticsCollectionAttemptRef[];
+  delayedTargets: AnalyticsCollectionAttemptRef[];
+  failedTargets: AnalyticsCollectionAttemptRef[];
+  firstProcessingError: unknown;
+};
 @Injectable()
 export class AnalyticsYouTubeCollectionService {
   constructor(
@@ -63,6 +70,22 @@ export class AnalyticsYouTubeCollectionService {
 
       const videoIds = posts.map((post) => post.externalId);
       const resolution = await this.resolveCollectionCredential(data);
+      const observations = new Map<
+        string,
+        LearningPublicationSourceV1 | null
+      >();
+      for (const post of posts)
+        observations.set(
+          post.id,
+          await this.postAnalyticsService.prepareLearningObservation({
+            organizationId: post.organizationId,
+            brandId: post.brandId,
+            credentialId: resolution.credentialId,
+            postId: post.id,
+            platform: CredentialPlatform.YOUTUBE,
+            externalId: post.externalId,
+          }),
+        );
       const sourceAttemptId = randomUUID(),
         requestStartedAt = new Date();
       const analyticsMap = await this.youtubeService.getMediaAnalyticsBatch(
@@ -73,62 +96,21 @@ export class AnalyticsYouTubeCollectionService {
       );
 
       const receivedAt = new Date();
-      const readyTargets: AnalyticsCollectionAttemptRef[] = [];
-      const delayedTargets: AnalyticsCollectionAttemptRef[] = [];
-      const failedTargets: AnalyticsCollectionAttemptRef[] = [];
-      let firstProcessingError: unknown;
-
-      for (const post of posts) {
-        const analytics = analyticsMap.get(post.externalId);
-        const target: AnalyticsCollectionAttemptRef = {
-          attemptKey: data.attemptKey,
-          brandId: post.brandId,
-          id: post.id,
-          organizationId: post.organizationId,
-          platform: CredentialPlatform.YOUTUBE,
-        };
-
-        if (!analytics) {
-          this.logger.warn(
-            `No analytics found for video ${post.externalId} (post ${post.id})`,
-          );
-          delayedTargets.push(target);
-          settledPostIds.add(post.id);
-          continue;
-        }
-
-        // Per-post isolation. Persistence runs inside the loop while the
-        // batch outcome is only written after it, so an unguarded throw on
-        // post N escaped to the outer catch and marked posts 1..N-1 FAILED
-        // even though their analytics had already been written — the retry
-        // then re-processed rows that had succeeded.
-        try {
-          await this.postAnalyticsService.processYouTubeAnalytics(
-            post.id,
-            analytics,
-            {
-              learningObservation: {
-                sourceAttemptId,
-                requestStartedAt,
-                receivedAt,
-              },
-              organizationId: post.organizationId,
-              brandId: post.brandId,
-              credentialId: resolution.credentialId,
-            },
-          );
-          readyTargets.push(target);
-        } catch (error: unknown) {
-          firstProcessingError ??= error;
-          this.logger.error(
-            `Failed to process YouTube analytics for post ${post.id}`,
-            error,
-          );
-          failedTargets.push(target);
-        }
-        settledPostIds.add(post.id);
-      }
-
+      const {
+        readyTargets,
+        delayedTargets,
+        failedTargets,
+        firstProcessingError,
+      } = await this.persistYouTubeBatch(
+        data,
+        analyticsMap,
+        observations,
+        resolution.credentialId,
+        sourceAttemptId,
+        requestStartedAt,
+        receivedAt,
+        settledPostIds,
+      );
       await this.analyticsCollectionState.markReadyBatch(readyTargets);
       if (delayedTargets.length > 0) {
         await this.analyticsCollectionState.markFailedBatch(
@@ -185,6 +167,85 @@ export class AnalyticsYouTubeCollectionService {
     }
   }
 
+  private async persistYouTubeBatch(
+    data: YouTubeAnalyticsCollectionInput,
+    analyticsMap: Awaited<
+      ReturnType<ServerYouTubeAnalytics['getMediaAnalyticsBatch']>
+    >,
+    observations: Map<string, LearningPublicationSourceV1 | null>,
+    credentialId: string,
+    sourceAttemptId: string,
+    requestStartedAt: Date,
+    receivedAt: Date,
+    settledPostIds: Set<string>,
+  ): Promise<YouTubeBatchOutcome> {
+    const { posts } = data;
+    const readyTargets: AnalyticsCollectionAttemptRef[] = [];
+    const delayedTargets: AnalyticsCollectionAttemptRef[] = [];
+    const failedTargets: AnalyticsCollectionAttemptRef[] = [];
+    let firstProcessingError: unknown;
+
+    for (const post of posts) {
+      const analytics = analyticsMap.get(post.externalId);
+      const target: AnalyticsCollectionAttemptRef = {
+        attemptKey: data.attemptKey,
+        brandId: post.brandId,
+        id: post.id,
+        organizationId: post.organizationId,
+        platform: CredentialPlatform.YOUTUBE,
+      };
+
+      if (!analytics) {
+        this.logger.warn(
+          `No analytics found for video ${post.externalId} (post ${post.id})`,
+        );
+        delayedTargets.push(target);
+        settledPostIds.add(post.id);
+        continue;
+      }
+
+      // Per-post isolation. Persistence runs inside the loop while the
+      // batch outcome is only written after it, so an unguarded throw on
+      // post N escaped to the outer catch and marked posts 1..N-1 FAILED
+      // even though their analytics had already been written — the retry
+      // then re-processed rows that had succeeded.
+      try {
+        await this.postAnalyticsService.processYouTubeAnalytics(
+          post.id,
+          analytics,
+          {
+            learningObservation: {
+              sourceAttemptId,
+              requestStartedAt,
+              receivedAt,
+              ...(observations.get(post.id)
+                ? { publicationSource: observations.get(post.id) ?? undefined }
+                : {}),
+            },
+            organizationId: post.organizationId,
+            brandId: post.brandId,
+            credentialId: credentialId,
+          },
+        );
+        readyTargets.push(target);
+      } catch (error: unknown) {
+        firstProcessingError ??= error;
+        this.logger.error(
+          `Failed to process YouTube analytics for post ${post.id}`,
+          error,
+        );
+        failedTargets.push(target);
+      }
+      settledPostIds.add(post.id);
+    }
+
+    return {
+      readyTargets,
+      delayedTargets,
+      failedTargets,
+      firstProcessingError,
+    };
+  }
   private async resolveCollectionCredential(
     data: YouTubeAnalyticsCollectionInput,
   ) {

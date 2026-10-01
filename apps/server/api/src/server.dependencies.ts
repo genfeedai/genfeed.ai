@@ -1,6 +1,7 @@
 import type { ByokProvider } from '@genfeedai/contracts';
 import type { AnalyticsPersistenceContext } from '@genfeedai/contracts/interfaces';
 import type { LearningMetrics } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
+import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interfaces/analytics/outlier-persistence.interface';
 import type { Prisma, PrismaClient } from '@genfeedai/prisma';
 
 export type { ServerCredentialStore } from './collections/credentials/credentials.port';
@@ -120,6 +121,17 @@ export interface ServerSocialAnalytics {
 }
 
 export interface ServerPostAnalytics {
+  prepareLearningObservation(
+    input: Pick<
+      LearningPublicationSourceV1,
+      | 'organizationId'
+      | 'brandId'
+      | 'credentialId'
+      | 'postId'
+      | 'platform'
+      | 'externalId'
+    >,
+  ): Promise<LearningPublicationSourceV1 | null>;
   processInstagramAnalytics(
     postId: string,
     analytics: unknown,
