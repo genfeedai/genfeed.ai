@@ -8,6 +8,13 @@ import { BrandedGenerationReceiptSerializer } from '@serializers/server/content/
 import { describe, expect, it } from 'vitest';
 
 const hash = `sha256:${'a'.repeat(64)}`;
+const optionalLineageKeys = [
+  'platform',
+  'parentRequestId',
+  'runId',
+  'workflowExecutionId',
+  'generationId',
+] as const;
 const time = '2026-10-01T00:00:00.000Z';
 function receipt(): BrandedGenerationReceiptV1 {
   return {
@@ -111,12 +118,72 @@ describe('validated public branded receipt serializer', () => {
     expect(output.data.id).toBe(v.id);
     expect(output.data.type).toBe('branded-generation-receipt');
     expect(Object.keys(output.data.attributes).sort()).toEqual(
-      [...brandedGenerationReceiptAttributes].sort(),
+      brandedGenerationReceiptAttributes
+        .filter(
+          (key) => !optionalLineageKeys.some((optional) => optional === key),
+        )
+        .sort(),
     );
+    for (const key of optionalLineageKeys)
+      expect(output.data.attributes).not.toHaveProperty(key);
     expect(JSON.stringify(output)).not.toContain('PRIVATE_');
     expect(output.data.attributes).not.toHaveProperty('id');
     expect(output.data.attributes).not.toHaveProperty('actorId');
     expect(output.data.attributes).not.toHaveProperty('requestKey');
+  });
+  it('preserves supplied optional lineage and omission in a mixed collection without mutating input', () => {
+    const absent = receipt();
+    const present: BrandedGenerationReceiptV1 = {
+      ...receipt(),
+      id: 'present',
+      platform: 'instagram',
+      parentRequestId: 'parent',
+      runId: 'run',
+      workflowExecutionId: 'workflow',
+      generationId: 'generation',
+    };
+    const before = structuredClone(present);
+    const output = BrandedGenerationReceiptSerializer.serialize(present);
+    expect(output.data.id).toBe('present');
+    expect(output.data.type).toBe('branded-generation-receipt');
+    expect(Object.keys(output.data.attributes).sort()).toEqual(
+      [...brandedGenerationReceiptAttributes].sort(),
+    );
+    for (const key of optionalLineageKeys)
+      expect(output.data.attributes[key]).toBe(present[key]);
+    for (const key of ['id', 'actorId', 'requestKey'])
+      expect(output.data.attributes).not.toHaveProperty(key);
+    expect(JSON.stringify(output)).not.toContain('PRIVATE_');
+    expect(present).toEqual(before);
+    const input = [absent, present];
+    const collectionBefore = structuredClone(input);
+    const collection = BrandedGenerationReceiptSerializer.serialize(input);
+    expect(collection.data).toHaveLength(2);
+    expect(collection.data.map((item: { id: string }) => item.id)).toEqual([
+      absent.id,
+      present.id,
+    ]);
+    for (const key of optionalLineageKeys) {
+      expect(collection.data[0].attributes).not.toHaveProperty(key);
+      expect(collection.data[1].attributes[key]).toBe(present[key]);
+    }
+    expect(Object.keys(collection.data[0].attributes).sort()).toEqual(
+      brandedGenerationReceiptAttributes
+        .filter(
+          (key) => !optionalLineageKeys.some((optional) => optional === key),
+        )
+        .sort(),
+    );
+    expect(Object.keys(collection.data[1].attributes).sort()).toEqual(
+      [...brandedGenerationReceiptAttributes].sort(),
+    );
+    for (const resource of collection.data) {
+      expect(resource.type).toBe('branded-generation-receipt');
+      for (const key of ['id', 'actorId', 'requestKey'])
+        expect(resource.attributes).not.toHaveProperty(key);
+    }
+    expect(JSON.stringify(collection)).not.toContain('PRIVATE_');
+    expect(input).toEqual(collectionBefore);
   });
   it('serializes collection and null while retaining built serializer opts', () => {
     const opts = Reflect.get(BrandedGenerationReceiptSerializer, 'opts');
