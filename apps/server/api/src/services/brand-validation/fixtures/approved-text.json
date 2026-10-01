@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "synthetic": true,
+  "brandId": "fixture-brand-a",
+  "sourceId": "fixture-approved-copy-v1",
+  "mandatoryLiteral": "Example Co",
+  "forbiddenLiteral": "Guaranteed returns",
+  "cases": [
+    {
+      "id": "literal-baseline",
+      "text": "Example Co offers a plan for USD 29 per month.",
+      "sourceText": "Example Co offers a plan for USD 29 per month.",
+      "mutation": "none",
+      "expectedMandatoryPresent": true,
+      "expectedForbiddenPresent": false,
+      "fullFactualCoverage": "unverified"
+    },
+    {
+      "id": "fabricated-price",
+      "text": "Example Co offers a plan for USD 99 per month.",
+      "sourceText": "Example Co offers a plan for USD 29 per month.",
+      "mutation": "price",
+      "expectedMandatoryPresent": true,
+      "expectedForbiddenPresent": false,
+      "fullFactualCoverage": "unverified"
+    },
+    {
+      "id": "changed-period",
+      "text": "Example Co offers a plan for USD 29 per year.",
+      "sourceText": "Example Co offers a plan for USD 29 per month.",
+      "mutation": "period",
+      "expectedMandatoryPresent": true,
+      "expectedForbiddenPresent": false,
+      "fullFactualCoverage": "unverified"
+    },
+    {
+      "id": "fabricated-testimonial",
+      "text": "A. Example said: \"Example Co saved us 100 hours.\"",
+      "sourceText": "A. Example said: \"Example Co setup took 10 minutes.\"",
+      "mutation": "testimonial",
+      "expectedMandatoryPresent": true,
+      "expectedForbiddenPresent": false,
+      "fullFactualCoverage": "unverified"
+    },
+    {
+      "id": "fabricated-metric",
+      "text": "Example Co processed 1000 jobs in September 2026.",
+      "sourceText": "Example Co processed 100 jobs in September 2026.",
+      "mutation": "metric",
+      "expectedMandatoryPresent": true,
+      "expectedForbiddenPresent": false,
+      "fullFactualCoverage": "unverified"
+    },
+    {
+      "id": "extra-prose",
+      "text": "Example Co offers a plan for USD 29 per month. Guaranteed returns.",
+      "sourceText": "Example Co offers a plan for USD 29 per month.",
+      "mutation": "unsupported_extra_claim",
+      "expectedMandatoryPresent": true,
+      "expectedForbiddenPresent": true,
+      "fullFactualCoverage": "unverified"
+    },
+    {
+      "id": "missing-mandatory",
+      "text": "A plan is available.",
+      "sourceText": "Example Co offers a plan for USD 29 per month.",
+      "mutation": "missing_mandatory",
+      "expectedMandatoryPresent": false,
+      "expectedForbiddenPresent": false,
+      "fullFactualCoverage": "unverified"
+    },
+    {
+      "id": "unicode-crlf",
+      "text": "Example Co\r\nCafé.",
+      "sourceText": "Example Co\nCafé.",
+      "mutation": "normalization",
+      "expectedMandatoryPresent": true,
+      "expectedForbiddenPresent": false,
+      "fullFactualCoverage": "unverified"
+    }
+  ]
+}
