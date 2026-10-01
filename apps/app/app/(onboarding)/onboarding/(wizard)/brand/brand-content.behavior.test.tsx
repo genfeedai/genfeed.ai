@@ -393,9 +393,7 @@ describe('membership-scoped saved guide wizard', () => {
       'https://suggested.example',
     );
     assertNoAutomaticWrites();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Continue', exact: true }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await waitFor(() =>
       expect(mocks.push).toHaveBeenCalledExactlyOnceWith(
         '/onboarding/positioning',
@@ -534,9 +532,7 @@ describe('membership-scoped saved guide wizard', () => {
     expect(mocks.listBrandOsRevisions).not.toHaveBeenCalled();
     expect(mocks.startBrandOsScan).not.toHaveBeenCalled();
     if (state !== 'unresolved')
-      expect(
-        screen.getByRole('button', { name: 'Continue', exact: true }),
-      ).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
   });
   it.each([
     'empty',
@@ -621,7 +617,7 @@ describe('membership-scoped saved guide wizard', () => {
       fireEvent.change(screen.getByLabelText('Description'), {
         target: { value: 'Unsaved' },
       });
-      fireEvent.click(screen.getByRole('button', { name, exact: true }));
+      fireEvent.click(screen.getByRole('button', { name }));
       expect(confirm).toHaveBeenCalledTimes(1);
       expect(mocks.getToken).not.toHaveBeenCalled();
       expect(mocks.updateOnboarding).not.toHaveBeenCalled();
@@ -637,7 +633,6 @@ describe('membership-scoped saved guide wizard', () => {
     });
     const button = screen.getByRole('button', {
       name: 'Continue',
-      exact: true,
     });
     fireEvent.click(button);
     fireEvent.click(button);
@@ -658,9 +653,7 @@ describe('membership-scoped saved guide wizard', () => {
         mocks.updateOnboarding.mockReturnValueOnce(gate.promise);
       if (stage === 'refetch')
         mocks.refetchUser.mockReturnValueOnce(gate.promise);
-      fireEvent.click(
-        screen.getByRole('button', { name: 'Continue', exact: true }),
-      );
+      fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
       await waitFor(() =>
         expect(
           stage === 'auth'
@@ -690,9 +683,7 @@ describe('membership-scoped saved guide wizard', () => {
     const gate = deferred<void>();
     const view = await show();
     mocks.updateOnboarding.mockReturnValueOnce(gate.promise);
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Continue', exact: true }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await waitFor(() =>
       expect(mocks.updateOnboarding).toHaveBeenCalledTimes(1),
     );
