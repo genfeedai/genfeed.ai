@@ -35,6 +35,7 @@ describe('generation harness catalog', () => {
     (surface) => {
       const tools = getToolsForSurface(surface);
       for (const name of [
+        'get_generation_cost',
         'get_generation_settings',
         'set_generation_settings',
       ]) {
@@ -48,6 +49,10 @@ describe('generation harness catalog', () => {
     expect(getToolByName('set_generation_settings')?.mutationPolicy).toBe(
       'direct',
     );
+    expect(
+      getToolByName('get_generation_cost')?.mutationPolicy,
+    ).toBeUndefined();
+    expect(getToolByName('get_generation_cost')?.toolset).toBe('generation');
     expect(
       getToolByName('get_generation_settings')?.mutationPolicy,
     ).toBeUndefined();

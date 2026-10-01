@@ -39,6 +39,8 @@
       "@genfeedai/contracts/*": ["../../packages/contracts/dist/*"],
       "@genfeedai/harness": ["../../packages/harness/dist/index.d.ts"],
       "@genfeedai/harness/*": ["../../packages/harness/dist/*"],
+      "@genfeedai/helpers": ["../../packages/helpers/src/index.ts"],
+      "@genfeedai/helpers/*": ["../../packages/helpers/src/*"],
       "@genfeedai/integrations": [
         "../../packages/integrations/dist/index.d.ts"
       ],
@@ -74,6 +76,7 @@
       "@libs/*": ["../../packages/libs/dist/*", "../../packages/libs/*"],
       "@mcp/*": ["./mcp/src/*"],
       "@notifications/*": ["./notifications/src/*"],
+      "@pages/*": ["../../packages/pages/*"],
       "@serializers/*": ["../../packages/serializers/dist/*"],
       "@slack/*": ["./slack/src/*"],
       "@telegram/*": ["./telegram/src/*"],

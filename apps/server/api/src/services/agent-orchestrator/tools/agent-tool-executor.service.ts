@@ -23,6 +23,7 @@ import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator
 import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
+import { AgentGenerationCostToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-cost-tool-handler.service';
 import { AgentGenerationSettingsToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-settings-tool-handler.service';
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
 import { AgentKnowledgeToolHandler } from '@api/services/agent-orchestrator/tools/agent-knowledge-tool-handler.service';
@@ -185,6 +186,7 @@ export interface ToolExecutionContext {
 }
 
 const BRANDLESS_AGENT_TOOLS = new Set<CuratedActionName>([
+  'get_generation_cost',
   'get_generation_settings',
   'set_generation_settings',
   'analyze_performance',
@@ -243,6 +245,9 @@ export class AgentToolExecutorService implements OnModuleInit {
 
   @Inject(AgentWorkObjectService)
   private readonly workObjects!: AgentWorkObjectService;
+
+  @Inject(AgentGenerationCostToolHandler)
+  private readonly generationCostHandler!: AgentGenerationCostToolHandler;
 
   @Inject(AgentGenerationSettingsToolHandler)
   private readonly generationSettingsHandler!: AgentGenerationSettingsToolHandler;
@@ -638,6 +643,9 @@ export class AgentToolExecutorService implements OnModuleInit {
 
       case 'get_credits_balance':
         return this.workspaceHandler.getCreditsBalance(ctx);
+
+      case 'get_generation_cost':
+        return this.generationCostHandler.execute(params, ctx);
 
       case 'list_brands':
         return this.workspaceHandler.listBrands(ctx);

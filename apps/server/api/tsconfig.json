@@ -60,6 +60,7 @@
       "@genfeedai/helpers": ["../../../packages/helpers/src/index.ts"],
       "@genfeedai/helpers/*": ["../../../packages/helpers/src/*"],
       "@helpers/*": ["../../../packages/helpers/src/*"],
+      "@pages/*": ["../../../packages/pages/*"],
       "@libs/*": ["../../../packages/libs/*"],
       "@serializers/*": ["../../../packages/serializers/src/*"]
     },
