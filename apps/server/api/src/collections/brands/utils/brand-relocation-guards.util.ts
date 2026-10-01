@@ -3,6 +3,29 @@ import { LiveSessionStatus, VisualCodeStatus } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { ConflictException } from '@nestjs/common';
 
+/** Saved generation history, including tombstones, retains its original tenant. */
+export async function assertNoBrandedGenerationReceiptHistory(
+  client: Prisma.TransactionClient,
+  brandId: string,
+  organizationId: string,
+): Promise<void> {
+  // tenant-scope-ignore: organization and brand are pinned; deleted receipts preserve immutable ownership history.
+  const receipt = await client.brandedGenerationReceipt.findFirst({
+    where: { organizationId, brandId },
+    select: { id: true },
+  });
+  // tenant-scope-ignore: organization and brand are pinned; deleted receipt events preserve immutable ownership history.
+  const event = await client.brandedGenerationReceiptEvent.findFirst({
+    where: { organizationId, brandId },
+    select: { id: true },
+  });
+  if (receipt || event) {
+    throw new ConflictException(
+      'Cannot move a brand with saved generation history. Receipts and receipt events, including deleted records, must remain in their original organization.',
+    );
+  }
+}
+
 /**
  * Knowledge sources and spaces, including deleted ones, keep immutable
  * ownership history and must stay in their original organization.

@@ -575,6 +575,8 @@ enum SocialWarmupSignalSource {
 // ═══════════════════════════════════════════════════════════════
 
 model User {
+  brandedGenerationReceipts BrandedGenerationReceipt[] @relation("branded_generation_receipt_actor")
+  brandedGenerationReceiptEvents BrandedGenerationReceiptEvent[] @relation("branded_generation_receipt_event_actor")
 contentLearningExperiments ContentLearningExperiment[]
 
 contentLearningConsents ContentLearningConsent[]
@@ -751,6 +753,7 @@ contentLearningOperations ContentLearningOperation[]
 }
 
 model Organization {
+  brandedGenerationReceipts BrandedGenerationReceipt[]
 contentLearningScopeStates ContentLearningScopeState[]
 contentLearningExperiments ContentLearningExperiment[]
 contentLearningEnrollments ContentLearningEnrollment[]
@@ -999,6 +1002,7 @@ model McpApproval {
 }
 
 model Brand {
+  brandedGenerationReceipts BrandedGenerationReceipt[] @relation("branded_generation_receipt_brand")
 contentLearningScopeStates ContentLearningScopeState[]
 contentLearningExperiments ContentLearningExperiment[]
 contentLearningEnrollments ContentLearningEnrollment[]
@@ -6885,6 +6889,13 @@ model GenerationPromptSnapshot {
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, userId, isDeleted])
   @@map("generation_prompt_snapshots")
+  brandedGenerationReceiptId String?
+  brandedGenerationReceiptRevision Int?
+  brandedGenerationReceiptStage String?
+  brandedGenerationReceipt BrandedGenerationReceipt? @relation(fields: [brandedGenerationReceiptId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Restrict, map: "generation_prompt_snapshots_receipt_fkey")
+  @@index([brandedGenerationReceiptId, isDeleted], map: "generation_prompt_snapshots_receipt_idx")
+  @@unique([brandedGenerationReceiptId, brandedGenerationReceiptRevision, brandedGenerationReceiptStage], map: "generation_prompt_snapshots_receipt_revision_stage_key")
+
 }
 
 /// Duplicate-slug and capture findings recorded when a uniqueness index cannot be enforced yet.
@@ -8783,4 +8794,52 @@ model ContentLearningScopeState {
  @@index([organizationId, brandId, credentialId, isDeleted])
  @@index([organizationId, scopeKey, epoch, isDeleted])
  @@map("content_learning_scope_states")
+}
+
+model BrandedGenerationReceipt {
+  id String @id @default(cuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  brandId String
+  brand Brand @relation("branded_generation_receipt_brand", fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Restrict)
+  actorId String
+  actor User @relation("branded_generation_receipt_actor", fields: [actorId], references: [id], onDelete: Restrict)
+  requestKey String
+  candidateIndex Int
+  requestHash String
+  revision Int @default(0)
+  state String
+  mode String
+  surface String
+  providerAttemptRef String? @unique
+  projection Json
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  events BrandedGenerationReceiptEvent[]
+  promptSnapshots GenerationPromptSnapshot[]
+  @@unique([id, organizationId, brandId])
+  @@unique([organizationId, brandId, requestKey, candidateIndex], map: "branded_generation_receipts_request_key")
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc), id(sort: Desc)], map: "branded_generation_receipts_scope_idx")
+  @@map("branded_generation_receipts")
+}
+model BrandedGenerationReceiptEvent {
+  id String @id @default(cuid())
+  receiptId String
+  organizationId String
+  brandId String
+  receipt BrandedGenerationReceipt @relation(fields: [receiptId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Restrict, map: "branded_generation_receipt_events_receipt_scope_fkey")
+  actorId String
+  actor User @relation("branded_generation_receipt_event_actor", fields: [actorId], references: [id], onDelete: Restrict)
+  operationKey String
+  operationHash String
+  revision Int
+  type String
+  projection Json
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  @@unique([receiptId, revision])
+  @@unique([receiptId, operationKey])
+  @@index([organizationId, brandId, receiptId, revision], map: "branded_generation_receipt_events_scope_idx")
+  @@map("branded_generation_receipt_events")
 }

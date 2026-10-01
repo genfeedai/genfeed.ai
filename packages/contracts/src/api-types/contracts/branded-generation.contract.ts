@@ -89,6 +89,16 @@ export const brandRuleEvidenceV1Schema = z.strictObject({
   contentHash: hash.optional(),
   confidence: z.number().min(0).max(1).optional(),
 });
+export const brandGenerationMediaKindV1Schema = z.enum([
+  'text',
+  'image',
+  'video',
+]);
+const applicableMediaKinds = z
+  .array(brandGenerationMediaKindV1Schema)
+  .min(1)
+  .max(3)
+  .refine((v) => new Set(v).size === v.length, 'Duplicate media kinds');
 export const brandFactRuleV1Schema = z
   .strictObject({
     id,
@@ -101,6 +111,7 @@ export const brandFactRuleV1Schema = z
     attributedTo: label.optional(),
     evidenceIds: refs,
     required: z.boolean(),
+    appliesToMediaKinds: applicableMediaKinds.optional(),
     match: z.enum(['literal', 'semantic']),
   })
   .superRefine((v, ctx) => {
@@ -114,6 +125,7 @@ export const brandPaletteRuleV1Schema = z.strictObject({
   color: z.string().regex(/^#[0-9A-F]{6}(?:[0-9A-F]{2})?$/),
   usage: label,
   required: z.boolean(),
+  appliesToMediaKinds: applicableMediaKinds.optional(),
   evidenceIds: refs,
 });
 export const brandTypographyRuleV1Schema = z
@@ -132,6 +144,7 @@ export const brandTypographyRuleV1Schema = z
       'unknown',
     ]),
     required: z.boolean(),
+    appliesToMediaKinds: applicableMediaKinds.optional(),
     evidenceIds: refs,
   })
   .superRefine((v, ctx) => {
@@ -145,6 +158,7 @@ export const brandTextRuleV1Schema = z.strictObject({
   text,
   match: z.enum(['literal', 'semantic']),
   required: z.boolean(),
+  appliesToMediaKinds: applicableMediaKinds.optional(),
   evidenceIds: refs,
 });
 export const brandExampleRuleV1Schema = z.strictObject({
@@ -160,6 +174,7 @@ export const brandAssetReferenceV1Schema = z.strictObject({
   contentHash: hash.optional(),
   mimeType: label.optional(),
   required: z.boolean(),
+  appliesToMediaKinds: applicableMediaKinds.optional(),
   evidenceIds: refs,
 });
 export const brandGenerationRulesV1Schema = bounded(
@@ -338,6 +353,10 @@ export const brandedGenerationInputV1Schema = z
     )
       issue(ctx, 'Draft revision required only for provisional mode');
   });
+export const brandGenerationLayerVersionV1Schema = z.union([
+  version,
+  id.refine((value) => value.trim().length > 0, 'Version must not be blank'),
+]);
 export const brandGenerationLayerReceiptV1Schema = z
   .strictObject({
     kind: z.enum([
@@ -353,7 +372,7 @@ export const brandGenerationLayerReceiptV1Schema = z
       'account_policy',
     ]),
     id: id.optional(),
-    version: version.optional(),
+    version: brandGenerationLayerVersionV1Schema.optional(),
     contentHash: hash.optional(),
     status: z.enum([
       'applied',
@@ -584,7 +603,7 @@ export const brandGenerationArtifactV1Schema = z.strictObject({
   id,
   version: id,
   contentHash: hash,
-  mediaKind: z.enum(['text', 'image', 'video']),
+  mediaKind: brandGenerationMediaKindV1Schema,
   parts: keyed(brandGenerationArtifactPartV1Schema, 256),
 });
 export const brandArtifactValidationCheckV1Schema = z
@@ -893,11 +912,32 @@ export const brandedGenerationReceiptV1Schema = bounded(
                     : 'asset_reference',
           })),
         ];
+        const applicable = (rule: (typeof mapped)[number]['rule']) =>
+          rule.appliesToMediaKinds === undefined ||
+          (v.artifact !== null &&
+            rule.appliesToMediaKinds.includes(v.artifact.mediaKind));
         for (const check of v.validation.checks) {
           const origin = mapped.find((row) => row.rule.id === check.ruleId);
           if (!origin) continue;
           if (check.category !== origin.category)
             issue(ctx, 'Check category must match canonical rule origin');
+          if (!v.artifact) {
+            issue(ctx, 'Validation must bind immutable snapshot/artifact');
+            continue;
+          }
+          if (!applicable(origin.rule)) {
+            if (
+              check.result !== 'not_applicable' ||
+              check.method !== 'capability' ||
+              check.reasonCode !== 'rule_media_not_applicable' ||
+              check.severity !== (origin.rule.required ? 'hard' : 'soft')
+            )
+              issue(
+                ctx,
+                'Excluded rule requires canonical media applicability check',
+              );
+            continue;
+          }
           if (
             check.severity === 'hard' &&
             check.result === 'pass' &&
@@ -932,7 +972,7 @@ export const brandedGenerationReceiptV1Schema = bounded(
             ['unknown', 'unsupported'].includes(check.result),
         );
         const pass = mapped
-          .filter((row) => row.rule.required)
+          .filter((row) => row.rule.required && applicable(row.rule))
           .every((row) =>
             v.validation?.checks.some(
               (check) =>
@@ -990,6 +1030,9 @@ export type BrandGenerationDiagnostic = z.infer<
   typeof brandGenerationDiagnosticSchema
 >;
 export type BrandRuleEvidenceV1 = z.infer<typeof brandRuleEvidenceV1Schema>;
+export type BrandGenerationMediaKindV1 = z.infer<
+  typeof brandGenerationMediaKindV1Schema
+>;
 export type BrandFactRuleV1 = z.infer<typeof brandFactRuleV1Schema>;
 export type BrandPaletteRuleV1 = z.infer<typeof brandPaletteRuleV1Schema>;
 export type BrandTypographyRuleV1 = z.infer<typeof brandTypographyRuleV1Schema>;
@@ -1004,6 +1047,9 @@ export type BrandIdentitySnapshotV1 = z.infer<
 >;
 export type BrandedGenerationInputV1 = z.infer<
   typeof brandedGenerationInputV1Schema
+>;
+export type BrandGenerationLayerVersionV1 = z.infer<
+  typeof brandGenerationLayerVersionV1Schema
 >;
 export type BrandGenerationLayerReceiptV1 = z.infer<
   typeof brandGenerationLayerReceiptV1Schema
