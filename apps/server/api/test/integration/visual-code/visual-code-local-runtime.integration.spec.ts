@@ -366,6 +366,8 @@ async function media(
           width?: number;
           height?: number;
           avg_frame_rate?: string;
+          duration?: string;
+          nb_frames?: string;
         }[];
         format: { duration: string };
       };
@@ -384,9 +386,13 @@ async function media(
         avg_frame_rate: '30/1',
       });
       expect(audio[0]?.codec_name).toBe('aac');
-      expect(Math.abs(Number(probe.format.duration) - 1)).toBeLessThanOrEqual(
-        1 / 30,
-      );
+      expect(typeof video[0]?.duration).toBe('string');
+      const videoDuration = Number(video[0]?.duration);
+      expect(Number.isFinite(videoDuration)).toBe(true);
+      expect(
+        Math.abs(videoDuration - SETTINGS.durationFrames / SETTINGS.fps),
+      ).toBeLessThanOrEqual(1 / SETTINGS.fps + 0.001);
+      expect(Number(video[0]?.nb_frames)).toBe(SETTINGS.durationFrames);
     } else {
       const { data, info } = await sharp(bytes)
         .removeAlpha()
