@@ -1,4 +1,5 @@
 import type { ReferenceImageCategory } from '../..';
+import type { BrandGenerationRulesV1 } from '../content/branded-generation.interface';
 import type { IBrandAgentStrategy, IBrandAgentVoice } from './brand.interface';
 
 export type BrandKitDraftStatus =
@@ -202,6 +203,7 @@ export interface IBrandKitResource {
 }
 
 export interface IBrandKitDraft extends IBrandKitResource {
+  generationRules?: BrandGenerationRulesV1;
   organizationId?: string;
   status: BrandKitDraftStatus;
   sourceType: BrandKitSourceType;
