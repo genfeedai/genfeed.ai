@@ -1,9 +1,11 @@
 import {
-  assertLearningDatasetCandidateCount,
-  LearningDatasetGraph,
   LearningDatasetService,
   validateLearningRows,
 } from '@api/collections/content-learning/services/learning-dataset.service';
+import {
+  assertLearningDatasetCandidateCount,
+  LearningDatasetGraph,
+} from '@api/collections/content-learning/services/learning-dataset-graph.service';
 import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { describe, expect, it, vi } from 'vitest';

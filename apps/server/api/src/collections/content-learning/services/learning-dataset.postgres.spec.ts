@@ -1,11 +1,9 @@
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statfsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import {
-  LearningDatasetGraph,
-  LearningDatasetService,
-} from '@api/collections/content-learning/services/learning-dataset.service';
+import { LearningDatasetService } from '@api/collections/content-learning/services/learning-dataset.service';
+import { LearningDatasetGraph } from '@api/collections/content-learning/services/learning-dataset-graph.service';
 import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { assertIsolatedDatabaseUrl } from '@api-test/../scripts/assert-isolated-db-url';
@@ -352,7 +350,16 @@ describe.skipIf(!explicitUrl)(
       await prisma.contentLearningDatasetEntry.deleteMany();
       await prisma.contentLearningDataset.deleteMany();
     }
+    function assertBenchmarkDiskSpace() {
+      if (!benchmark) return;
+      const { bavail, bsize } = statfsSync(process.cwd());
+      if (bavail * bsize < 10 * 1024 ** 3)
+        throw new Error(
+          'Dataset benchmark stopped: fewer than 10 GiB of free disk space',
+        );
+    }
     async function seed(size: number) {
+      assertBenchmarkDiskSpace();
       await clearOutputs();
       for (const table of [
         'content_learning_dependencys',
@@ -404,6 +411,7 @@ describe.skipIf(!explicitUrl)(
       kind: 'owned' | 'consented' | 'mixed',
       run: number,
     ) {
+      assertBenchmarkDiskSpace();
       const rows =
         kind === 'owned'
           ? Array.from({ length: size }, (_, i) => numericRow(i))
@@ -411,7 +419,10 @@ describe.skipIf(!explicitUrl)(
             ? [numericRow(0)]
             : undefined;
       clearGraphSpyHistory();
-      graphObservations = new WeakMap();
+      graphObservations = new WeakMap<
+        LearningDatasetGraph,
+        { nodes: number; edges: number }
+      >();
       graphNodesMaxPass = 0;
       graphEdgesMaxPass = 0;
       graphNodesAcrossPasses = 0;
@@ -428,9 +439,9 @@ describe.skipIf(!explicitUrl)(
         rows,
         sourceAccounts: kind === 'owned' ? undefined : sources,
       });
-      clearGraphSpyHistory();
       const elapsed = performance.now() - started,
         queries = statements.length;
+      clearGraphSpyHistory();
       const counts = dataset.counts as { total: number };
       console.log(
         JSON.stringify({
@@ -500,6 +511,7 @@ describe.skipIf(!explicitUrl)(
         }),
       ).toBe(kind === 'owned' ? 0 : size + 10);
       await clearOutputs();
+      assertBenchmarkDiskSpace();
     }
     it.skipIf(!benchmark)(
       'measures 1k/10k/100k owned and consented three times after warmup plus mixed',
