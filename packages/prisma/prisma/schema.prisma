@@ -8362,6 +8362,9 @@ scopeKey String
 cellDescriptor Json?
 descriptorHash String?
 cutoff DateTime
+snapshotEvidenceRevision Int?
+snapshotEpoch Int?
+expiresAt DateTime?
 configVersion String
 contributorCheckpointIds String[]
 contributorRevisions Int[]
@@ -8370,6 +8373,7 @@ medianExposure Float
 samples Json
 validity String
 @@index([scopeKey, cutoff])
+@@index([organizationId, credentialId, scopeKey, snapshotEpoch, snapshotEvidenceRevision, cutoff(sort: Desc), id(sort: Desc)], map: "learning_baseline_materialization_lookup_idx")
 @@map("content_learning_baselines")
 rewards ContentLearningReward[]
 decisions ContentLearningDecision[]
