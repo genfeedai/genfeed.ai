@@ -12,6 +12,7 @@ import {
   lstat,
   mkdir,
   mkdtemp,
+  readdir,
   readFile,
   realpath,
   rm,
@@ -182,20 +183,33 @@ test('rejects arbitrary runner commands, arguments and nonexact SHAs', () => {
     assert.throws(() => parseArguments(args));
 });
 
+function postgresFixtureUrl(mutate = () => {}) {
+  const url = new URL('postgresql://127.0.0.1:5432/owned_test');
+  url.username = 'genfeed';
+  url.password = 'genfeed_local';
+  mutate(url);
+  return url.href;
+}
 test('requires loopback dedicated PostgreSQL and explicit Redis DB without host overrides', () => {
-  validateUrl(
-    'postgresql://genfeed:genfeed_local@127.0.0.1:5432/owned_test',
-    'postgres',
-    'owned_test',
-  );
+  validateUrl(postgresFixtureUrl(), 'postgres', 'owned_test');
   validateUrl('redis://localhost:6379/11', 'redis');
-  for (const value of [
-    'postgresql://genfeed:genfeed_local@prod:5432/owned_test',
-    'postgresql://genfeed:genfeed_local@localhost/owned_test',
-    'postgresql://genfeed:genfeed_local@localhost:5432/production',
-    'postgresql://genfeed:genfeed_local@localhost:5432/owned_test?HOSTADDR=prod',
+  for (const mutate of [
+    (url) => {
+      url.hostname = 'prod';
+    },
+    (url) => {
+      url.port = '';
+    },
+    (url) => {
+      url.pathname = '/production';
+    },
+    (url) => {
+      url.searchParams.set('HOSTADDR', 'prod');
+    },
   ])
-    assert.throws(() => validateUrl(value, 'postgres', 'owned_test'));
+    assert.throws(() =>
+      validateUrl(postgresFixtureUrl(mutate), 'postgres', 'owned_test'),
+    );
   for (const value of [
     'redis://localhost:6379',
     'redis://localhost:6379/foo',
@@ -845,4 +859,178 @@ test('successful buffered child output is completely flushed before cleanup', as
   assert.equal(result.streamError, null);
   assert.equal(result.cleanupError, null);
   assert.equal(cleaned, true);
+});
+
+const CLI_PATH = new URL('./runtime-acceptance.mjs', import.meta.url);
+function actualCli(command, options, env = {}) {
+  const args = [
+    command,
+    '--repo',
+    options.repo,
+    '--state',
+    options.state,
+    '--candidate-sha',
+    options['candidate-sha'],
+    '--control-sha',
+    options['control-sha'],
+  ];
+  if (command === 'preflight') args.push('--group', options.group);
+  return spawnSync(process.execPath, [CLI_PATH.pathname, ...args], {
+    cwd: options.repo,
+    env: { ...process.env, ...env },
+    encoding: 'utf8',
+    timeout: 10000,
+    maxBuffer: 128 * 1024,
+  });
+}
+function assertUnqualifiedCli(result) {
+  assert.ifError(result.error);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /runtime-acceptance UNQUALIFIED_RUNTIME_GROUP/);
+  assert.doesNotMatch(result.stdout, /prepared|passed|result=passed/);
+}
+async function snapshotState(root) {
+  const files = {};
+  const visit = async (directory, relative = '') => {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const name = relative ? `${relative}/${entry.name}` : entry.name;
+      if (entry.isDirectory())
+        await visit(path.join(directory, entry.name), name);
+      else
+        files[name] = (
+          await readFile(path.join(directory, entry.name))
+        ).toString('base64');
+    }
+  };
+  await visit(root);
+  return files;
+}
+for (const group of ['final', 'visual-isolation', 'visual-connected'])
+  test(`actual CLI rejects unqualified ${group} preflight and direct command before side effects`, async (t) => {
+    const { options, env } = await preflightFixture(t);
+    const output = path.join(options.repo, 'cli.output');
+    const marker = path.join(options.repo, 'child-command.marker');
+    const testEnv = {
+      ...env,
+      GITHUB_OUTPUT: output,
+      RUNTIME_ACCEPTANCE_QUALIFIED_GROUPS: group,
+      CHILD_COMMAND_MARKER: marker,
+    };
+    assertUnqualifiedCli(
+      actualCli('preflight', { ...options, group }, testEnv),
+    );
+    assertUnqualifiedCli(actualCli(group, options, testEnv));
+    await assert.rejects(lstat(options.state));
+    await assert.rejects(lstat(output));
+    await assert.rejects(lstat(marker));
+  });
+for (const group of ['final', 'visual-isolation', 'visual-connected'])
+  for (const phase of ['prepared', 'finished', 'sealed'])
+    test(`actual CLI rejects forged ${group} ${phase} identity without mutation`, async (t) => {
+      const { value, options, env } = await stateFixture(t);
+      Object.assign(value, {
+        group,
+        phase,
+        ...validateTiming(group, Date.now()),
+      });
+      await writeFile(
+        path.join(value.state, 'identity.json'),
+        JSON.stringify(value),
+        { mode: 0o600 },
+      );
+      const before = await snapshotState(value.state);
+      assertUnqualifiedCli(actualCli('seal', options, env));
+      assertUnqualifiedCli(actualCli('dataset-diagnostic', options, env));
+      assert.deepEqual(await snapshotState(value.state), before);
+    });
+for (const relative of [
+  'outcome.json',
+  'receipt.json',
+  'public/receipt.json',
+  'public/evidence.encrypted.json',
+])
+  test(`actual dataset seal rejects a future-group ${relative} rather than implying acceptance`, async (t) => {
+    const { value, options, env } = await stateFixture(t);
+    value.phase =
+      relative === 'public/evidence.encrypted.json' ? 'sealed' : 'prepared';
+    await writeFile(
+      path.join(value.state, 'identity.json'),
+      JSON.stringify(value),
+      { mode: 0o600 },
+    );
+    const file = path.join(value.state, relative);
+    await mkdir(path.dirname(file), { recursive: true, mode: 0o700 });
+    await writeFile(
+      file,
+      JSON.stringify({
+        version: 1,
+        candidateSHA: value.candidateSHA,
+        controlSHA: value.controlSHA,
+        fingerprint: value.fingerprint,
+        group: 'final',
+        status: 'passed',
+      }),
+      { mode: 0o600 },
+    );
+    const before = await snapshotState(value.state);
+    assertUnqualifiedCli(actualCli('seal', options, env));
+    assert.deepEqual(await snapshotState(value.state), before);
+  });
+test('actual dataset preflight remains qualified and preparation-only seal retains failure', async (t) => {
+  const { options, env } = await preflightFixture(t);
+  const output = path.join(options.repo, 'cli.output');
+  const testEnv = { ...env, GITHUB_OUTPUT: output };
+  const prepared = actualCli('preflight', options, testEnv);
+  assert.ifError(prepared.error);
+  assert.equal(prepared.status, 0, prepared.stderr);
+  assert.match(await readFile(output, 'utf8'), /prepared=true/);
+  const sealed = actualCli('seal', options, testEnv);
+  assert.ifError(sealed.error);
+  assert.equal(sealed.status, 1);
+  assert.match(sealed.stdout, /runtime-acceptance failed/);
+  assert.doesNotMatch(sealed.stderr, /UNQUALIFIED_RUNTIME_GROUP/);
+  const receipt = JSON.parse(
+    await readFile(path.join(options.state, 'public/receipt.json'), 'utf8'),
+  );
+  assert.equal(receipt.group, 'dataset-diagnostic');
+  assert.equal(receipt.status, 'failed');
+  assert.doesNotMatch(await readFile(output, 'utf8'), /result=passed/);
+  assert.equal(
+    decrypt(
+      JSON.parse(
+        await readFile(
+          path.join(options.state, 'public/evidence.encrypted.json'),
+          'utf8',
+        ),
+      ),
+    ).outcome.status,
+    'failed',
+  );
+});
+
+test('actual dataset seal rejects qualified documents with a mismatched identity tuple', async (t) => {
+  for (const field of ['candidateSHA', 'controlSHA', 'fingerprint']) {
+    const { value, options, env } = await stateFixture(t);
+    const document = {
+      version: 1,
+      group: 'dataset-diagnostic',
+      candidateSHA: value.candidateSHA,
+      controlSHA: value.controlSHA,
+      fingerprint: value.fingerprint,
+      status: 'failed',
+    };
+    document[field] = field === 'fingerprint' ? 'e'.repeat(64) : 'e'.repeat(40);
+    await writeFile(
+      path.join(value.state, 'outcome.json'),
+      JSON.stringify(document),
+      { mode: 0o600 },
+    );
+    const before = await snapshotState(value.state);
+    const result = actualCli('seal', options, env);
+    assert.ifError(result.error);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /QUALIFIED_RECEIPT_IDENTITY_MISMATCH/);
+    assert.doesNotMatch(result.stdout, /passed/);
+    assert.deepEqual(await snapshotState(value.state), before);
+  }
 });

@@ -904,7 +904,11 @@ function serviceId(value) {
   return value;
 }
 function databaseUrl(name) {
-  return `postgresql://genfeed:genfeed_local@127.0.0.1:5432/${name}`;
+  const url = new URL('postgresql://127.0.0.1:5432');
+  url.username = 'genfeed';
+  url.password = 'genfeed_local';
+  url.pathname = `/${name}`;
+  return url.href;
 }
 async function persistIdentity(identity) {
   await atomicJson(path.join(identity.state, 'identity.json'), identity);
@@ -2107,9 +2111,51 @@ export async function sealState(identity, env) {
   if (receipt) await rm(path.join(identity.state, 'receipt.json'));
   return publicReceipt;
 }
+const QUALIFIED_CLI_GROUPS = new Set(['dataset-diagnostic']);
+function requireQualifiedGroup(group) {
+  requireThat(QUALIFIED_CLI_GROUPS.has(group), 'UNQUALIFIED_RUNTIME_GROUP');
+}
+async function checkQualifiedSealDocuments(identity) {
+  for (const relative of [
+    'outcome.json',
+    'receipt.json',
+    'public/receipt.json',
+    ...(identity.phase === 'sealed' ? ['public/evidence.encrypted.json'] : []),
+  ]) {
+    let bytes;
+    try {
+      bytes = await safeFile(
+        identity.state,
+        relative,
+        relative.endsWith('evidence.encrypted.json')
+          ? ENVELOPE_LIMIT
+          : RAW_LIMIT,
+      );
+    } catch (error) {
+      if (error.code === 'ENOENT') continue;
+      throw error;
+    }
+    let document;
+    try {
+      document = JSON.parse(bytes);
+    } catch {
+      throw new AcceptanceError('INVALID_QUALIFIED_RECEIPT');
+    }
+    requireQualifiedGroup(document?.group);
+    requireThat(
+      document.version === 1 &&
+        document.candidateSHA === identity.candidateSHA &&
+        document.controlSHA === identity.controlSHA &&
+        document.fingerprint === identity.fingerprint,
+      'QUALIFIED_RECEIPT_IDENTITY_MISMATCH',
+    );
+  }
+}
 export async function runCli(argv = process.argv.slice(2), env = process.env) {
   try {
     const options = parseArguments(argv);
+    if (options.command === 'preflight') requireQualifiedGroup(options.group);
+    else if (options.command !== 'seal') requireQualifiedGroup(options.command);
     if (options.command === 'preflight') {
       await createState(options, env);
       if (env.GITHUB_OUTPUT) {
@@ -2124,6 +2170,10 @@ export async function runCli(argv = process.argv.slice(2), env = process.env) {
       return 0;
     }
     const identity = await loadState(options, env);
+    requireQualifiedGroup(identity.group);
+    if (options.command === 'seal') {
+      await checkQualifiedSealDocuments(identity);
+    }
     if (options.command === 'seal') {
       const receipt = await sealState(identity, env);
       process.stdout.write(
