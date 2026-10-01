@@ -1,4 +1,5 @@
 import {
+  assertLearningDatasetCandidateCount,
   LearningDatasetGraph,
   LearningDatasetService,
   validateLearningRows,
@@ -6,6 +7,11 @@ import {
 import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('node:crypto', async (original) => ({
+  ...(await original<typeof import('node:crypto')>()),
+  randomBytes: vi.fn((size: number) => Buffer.alloc(size, 1)),
+}));
 
 vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
   PrismaService: class {},
@@ -191,7 +197,7 @@ describe('consented source account identities', () => {
 
 describe('bounded dataset graph validation', () => {
   function graph(
-    edges: unknown[],
+    edges: Array<{ derivedKind: string }>,
     limits?: { nodes: number; edges: number; levels: number },
   ) {
     const tx = {
@@ -394,5 +400,234 @@ describe('dataset pin parity with the shared resolver', () => {
         0,
       );
     }
+  });
+});
+
+describe('dataset envelope and immutable split parity', () => {
+  const input = {
+    organizationId: 'org',
+    actorId: 'actor',
+    requestId: 'req',
+    rightsStatement: 'owned rights',
+    profile: 'awareness',
+    cell: 'cell',
+    cutoff: '2026-09-29T00:00:00.000Z',
+  };
+  function fixture() {
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      contentLearningOperation: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockResolvedValue({}),
+      },
+      contentLearningDataset: {
+        create: vi
+          .fn()
+          .mockImplementation(({ data }) =>
+            Promise.resolve({ id: 'dataset', ...data }),
+          ),
+      },
+      contentLearningDatasetEntry: {
+        createMany: vi.fn().mockResolvedValue({ count: 0 }),
+      },
+    };
+    const service = new LearningDatasetService(
+      {
+        $transaction: vi.fn().mockImplementation((callback) => callback(tx)),
+      } as unknown as PrismaService,
+      {} as LearningDependencyService,
+    );
+    return { tx, service };
+  }
+  it('rejects row/source overflow before any snapshot writes', async () => {
+    expect(() => assertLearningDatasetCandidateCount(11, 10)).toThrow(
+      'selection too large',
+    );
+    expect(() => assertLearningDatasetCandidateCount(10, 10)).not.toThrow();
+    expect(() => validateLearningRows(new Array(100001), cutoff)).toThrow(
+      '100,000',
+    );
+    const f = fixture();
+    await expect(
+      f.service.create({
+        ...input,
+        sourceAccounts: Array.from({ length: 101 }, (_, i) => ({
+          organizationId: 'org',
+          accountId: `a${i}`,
+        })),
+      }),
+    ).rejects.toThrow('100 source accounts');
+    expect(f.tx.contentLearningDataset.create).not.toHaveBeenCalled();
+  });
+  it('rejects owned duplicate fingerprints and invalid numeric chronology', async () => {
+    const f = fixture();
+    await expect(
+      f.service.create({ ...input, rows: [row, row] }),
+    ).rejects.toThrow('Duplicate source fingerprint');
+    for (const invalid of [
+      { ...row, reward: NaN },
+      { ...row, features: [NaN, 0, 1, 0, 1, 0, 1, 0, 1] },
+      { ...row, decisionAt: 'invalid' },
+      { ...row, decisionAt: '2026-09-04' },
+      {
+        ...row,
+        probabilities: {
+          'baseline-v1': 0,
+          'question-example-v1': 1,
+          'proof-steps-v1': 0,
+        },
+      },
+    ])
+      expect(() => validateLearningRows([invalid], cutoff)).toThrow();
+  });
+  it('preserves old temporal/account split algorithm and exact manifest for a fixed salt', async () => {
+    const { createHmac, randomBytes } = await import('node:crypto');
+    const { learningHash } = await import(
+      '@api/collections/content-learning/services/learning-operation.service'
+    );
+    const salt = Buffer.alloc(32, 7);
+    vi.mocked(randomBytes).mockReturnValueOnce(salt as never);
+    const raw = [8, 11, 17, 23, 32].flatMap((length, account) =>
+      Array.from({ length }, (_, i) => ({
+        ...row,
+        synthetic: false,
+        sourceFingerprint: `account-${account}-row-${i}`,
+        accountGroup: `account-${account}`,
+        decisionAt: new Date(
+          Date.parse(row.decisionAt) + i * 1000,
+        ).toISOString(),
+      })),
+    );
+    const sorted = raw
+      .map((value) => ({
+        ...value,
+        accountGroup: createHmac('sha256', salt.toString('hex'))
+          .update(value.accountGroup)
+          .digest('hex'),
+      }))
+      .sort(
+        (a, b) =>
+          a.accountGroup.localeCompare(b.accountGroup) ||
+          a.decisionAt.localeCompare(b.decisionAt) ||
+          a.sourceFingerprint.localeCompare(b.sourceFingerprint),
+      );
+    const groups = [...new Set(sorted.map((value) => value.accountGroup))].sort(
+      (a, b) => learningHash(a).localeCompare(learningHash(b)),
+    );
+    const holdout = new Set(
+      groups.slice(0, Math.max(1, Math.ceil(groups.length * 0.2))),
+    );
+    const temporal = new Set<string>();
+    for (const account of groups.filter((id) => !holdout.has(id))) {
+      const oldRows = sorted.filter((value) => value.accountGroup === account);
+      for (const value of oldRows.slice(Math.floor(oldRows.length * 0.8)))
+        temporal.add(value.sourceFingerprint);
+    }
+    const split = (value: (typeof sorted)[number]) =>
+      holdout.has(value.accountGroup)
+        ? 'account_holdout'
+        : temporal.has(value.sourceFingerprint)
+          ? 'temporal_holdout'
+          : 'training';
+    const f = fixture(),
+      dataset = await f.service.create({ ...input, rows: raw });
+    expect(dataset.manifestHash).toBe(
+      learningHash([
+        input.cell,
+        input.profile,
+        new Date(input.cutoff).toISOString(),
+        sorted.map((value) => [value, split(value)]),
+      ]),
+    );
+    const entries =
+      f.tx.contentLearningDatasetEntry.createMany.mock.calls.flatMap(
+        ([args]) => args.data,
+      );
+    expect(
+      entries.map((value) => ({
+        fingerprint: value.sourceFingerprint,
+        group: value.accountGroup,
+        split: value.split,
+      })),
+    ).toEqual(
+      sorted.map((value) => ({
+        fingerprint: value.sourceFingerprint,
+        group: value.accountGroup,
+        split: split(value),
+      })),
+    );
+    const training = sorted.filter(
+      (value) => split(value) === 'training',
+    ).length;
+    expect(dataset.counts).toEqual({
+      training,
+      temporalHoldout: temporal.size,
+      accountHoldout: sorted.filter(
+        (value) => split(value) === 'account_holdout',
+      ).length,
+      total: raw.length,
+    });
+    expect(dataset.status).toBe(
+      training < 30 ? 'insufficient_data' : 'validated',
+    );
+    expect(dataset.origin).toBe('owned');
+    expect(dataset.synthetic).toBe(false);
+  });
+  it('detects excessive depth hidden behind an earlier cached graph page', async () => {
+    const edges = [
+      {
+        derivedId: 'r0',
+        derivedKind: 'reward',
+        sourceKind: 'config',
+        sourceId: 'numeric-nine-v1',
+        sourceVersion: 'numeric-nine-v1',
+        sourceOrganizationId: null,
+        valid: true,
+      },
+      {
+        derivedId: 'r1',
+        derivedKind: 'reward',
+        sourceKind: 'reward',
+        sourceId: 'r0',
+        sourceVersion: '1',
+        sourceOrganizationId: 'org',
+        valid: true,
+      },
+    ];
+    const tx = {
+      contentLearningReward: {
+        findMany: vi
+          .fn()
+          .mockImplementation(({ where }) =>
+            Promise.resolve(
+              where.id.in.map((id: string) => ({ id, version: 1 })),
+            ),
+          ),
+      },
+      contentLearningDependency: {
+        findMany: vi
+          .fn()
+          .mockImplementation(({ where }) =>
+            Promise.resolve(
+              edges.filter(
+                (edge) =>
+                  edge.derivedKind === where.derivedKind &&
+                  where.derivedId.in.includes(edge.derivedId),
+              ),
+            ),
+          ),
+      },
+    };
+    const graph = new LearningDatasetGraph(tx as never, {
+      nodes: 10,
+      edges: 10,
+      levels: 2,
+    });
+    const first = { kind: 'reward' as const, id: 'r0', organizationId: 'org' },
+      second = { ...first, id: 'r1' };
+    await graph.load([first]);
+    expect(graph.valid(first)).toBe(true);
+    await graph.load([second]);
+    expect(() => graph.valid(second)).toThrow('selection too large');
   });
 });

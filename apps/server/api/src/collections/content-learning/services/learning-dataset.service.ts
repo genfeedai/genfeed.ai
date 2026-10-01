@@ -28,6 +28,12 @@ import {
 const DATASET_BATCH_SIZE = 1000;
 const DATASET_MAX_ROWS = 100000;
 const DATASET_MAX_CANDIDATES = 1000000;
+export function assertLearningDatasetCandidateCount(
+  count: number,
+  maximum = DATASET_MAX_CANDIDATES,
+) {
+  if (count > maximum) selectionTooLarge();
+}
 const GRAPH_LIMITS = { nodes: 1000000, edges: 2000000, levels: 128 };
 function* batches<T>(values: readonly T[], size = DATASET_BATCH_SIZE) {
   for (let index = 0; index < values.length; index += size)
@@ -896,7 +902,7 @@ export class LearningDatasetService {
         if (!rewards.length) break;
         cursor = rewards[rewards.length - 1].id;
         examined += rewards.length;
-        if (examined > DATASET_MAX_CANDIDATES) selectionTooLarge();
+        assertLearningDatasetCandidateCount(examined);
         const decisionIds = [
           ...new Set(rewards.map((reward) => reward.decisionId)),
         ];

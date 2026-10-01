@@ -1,14 +1,12 @@
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { LearningDatasetService } from '@api/collections/content-learning/services/learning-dataset.service';
-import {
-  LearningDependencyService,
-  learningFence,
-} from '@api/collections/content-learning/services/learning-dependency.service';
+import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { assertIsolatedDatabaseUrl } from '@api-test/../scripts/assert-isolated-db-url';
-import { CredentialPlatform, PrismaClient } from '@genfeedai/prisma';
+import { CredentialPlatform, Prisma, PrismaClient } from '@genfeedai/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -67,6 +65,9 @@ describe.skipIf(!explicitUrl)(
   () => {
     let pool: Pool, prisma: PrismaClient, service: LearningDatasetService;
     let statements: string[] = [];
+    let transactionElapsedMs = 0;
+    let beforeDecisionLock: (() => Promise<void>) | undefined;
+    let afterDatasetCreate: (() => Promise<void>) | undefined;
     const schema = `dataset_5781_${process.pid}_${Date.now()}`;
     const input = {
       organizationId: 'org-0',
@@ -139,13 +140,74 @@ describe.skipIf(!explicitUrl)(
         )
           await pool.query(clean.replaceAll('"public".', `"${schema}".`));
       }
+      const checks = readFileSync(
+        new URL(
+          '../../../../../../../packages/prisma/prisma/migrations/20260930180000_content_learning/migration.sql',
+          import.meta.url,
+        ),
+        'utf8',
+      );
+      for (const statement of checks.split(';')) {
+        const clean = statement.replace(/^\s*--[^\n]*\n/gm, '').trim();
+        const check = clean.match(
+          /^ALTER TABLE "([^".]+)".*ADD CONSTRAINT.*CHECK/s,
+        );
+        if (check && tables.has(check[1])) await pool.query(clean);
+      }
       prisma = new PrismaClient({
         adapter: new PrismaPg(pool, { schema }),
         log: [{ emit: 'event', level: 'query' }],
       });
       prisma.$on('query', (event) => statements.push(event.query));
+      const instrumented = {
+        $transaction: async (
+          callback: (tx: Prisma.TransactionClient) => Promise<unknown>,
+          options: { maxWait: number; timeout: number },
+        ) => {
+          const started = performance.now();
+          try {
+            return await prisma.$transaction(async (tx) => {
+              const proxy = new Proxy(tx, {
+                get(target, property) {
+                  if (property === '$queryRaw')
+                    return async (
+                      query: TemplateStringsArray | Prisma.Sql,
+                      ...values: unknown[]
+                    ) => {
+                      if (
+                        'sql' in query &&
+                        query.sql.includes('FOR UPDATE') &&
+                        beforeDecisionLock
+                      )
+                        await beforeDecisionLock();
+                      return target.$queryRaw(query, ...values);
+                    };
+                  if (property === 'contentLearningDataset')
+                    return new Proxy(target.contentLearningDataset, {
+                      get(delegate, method) {
+                        if (method === 'create')
+                          return async (
+                            args: Prisma.ContentLearningDatasetCreateArgs,
+                          ) => {
+                            const result = await delegate.create(args);
+                            if (afterDatasetCreate) await afterDatasetCreate();
+                            return result;
+                          };
+                        return Reflect.get(delegate, method);
+                      },
+                    });
+                  return Reflect.get(target, property);
+                },
+              });
+              return callback(proxy);
+            }, options);
+          } finally {
+            transactionElapsedMs = performance.now() - started;
+          }
+        },
+      };
       service = new LearningDatasetService(
-        prisma as unknown as PrismaService,
+        instrumented as unknown as PrismaService,
         new LearningDependencyService(prisma as unknown as PrismaService),
       );
       await prisma.user.create({
@@ -229,7 +291,7 @@ describe.skipIf(!explicitUrl)(
       ])
         await pool.query(`DELETE FROM "${table}"`);
       await pool.query(
-        `INSERT INTO posts (id,"userId","organizationId","brandId","credentialId","updatedAt") SELECT 'post-'||i,'actor','org-'||(i%10%2),'brand-'||(i%10%2),'credential-'||(i%10),NOW() FROM generate_series(0,$1::int-1) i`,
+        `INSERT INTO posts (id,description,"userId","organizationId","brandId","credentialId","updatedAt") SELECT 'post-'||i,'fixture','actor','org-'||(i%10%2),'brand-'||(i%10%2),'credential-'||(i%10),NOW() FROM generate_series(0,$1::int-1) i`,
         [size],
       );
       await pool.query(
@@ -289,13 +351,13 @@ describe.skipIf(!explicitUrl)(
       console.log(
         JSON.stringify({
           datasetBenchmark: true,
-          hostHome: process.env.HOME,
+
           size,
           kind,
           run,
           queries,
           elapsedMs: elapsed,
-          transactionElapsedMs: elapsed,
+          transactionElapsedMs,
           selectedRows: counts.total,
           sourceAccounts: kind === 'owned' ? 0 : 10,
           graphNodes: kind === 'owned' ? 0 : 4 * size + 21,
@@ -308,6 +370,9 @@ describe.skipIf(!explicitUrl)(
         kind === 'owned' ? 8 + Math.ceil(size / 1000) : 6000,
       );
       expect(elapsed).toBeLessThanOrEqual(kind === 'owned' ? 30000 : 60000);
+      expect(transactionElapsedMs).toBeLessThanOrEqual(
+        kind === 'owned' ? 30000 : 60000,
+      );
       const entries = await prisma.contentLearningDatasetEntry.findMany({
         where: { datasetId: dataset.id },
         take: 1,
@@ -377,95 +442,253 @@ describe.skipIf(!explicitUrl)(
         await clearOutputs();
       }
     }, 120000);
-    it('decision FOR UPDATE conflicts with reward FK key-share and consent fence waits then invalidates', async () => {
+    it('rejects source/consent identity changes and owned/consented fingerprint collisions', async () => {
+      for (const change of [
+        `UPDATE content_learning_accounts SET "sharingConsentVersion"=2 WHERE id='account-0'`,
+        `UPDATE content_learning_consents SET "revokedAt"=NOW() WHERE id='consent-0'`,
+        `UPDATE content_learning_consents SET granted=false WHERE id='consent-0'`,
+        `UPDATE content_learning_consents SET "isDeleted"=true WHERE id='consent-0'`,
+      ]) {
+        await seed(1000);
+        await pool.query(change);
+        await expect(
+          service.create({
+            ...input,
+            requestId: randomUUID(),
+            sourceAccounts: sources,
+          }),
+        ).rejects.toThrow();
+        expect(await prisma.contentLearningDataset.count()).toBe(0);
+        await pool.query(
+          `UPDATE content_learning_accounts SET "sharingConsentVersion"=1`,
+        );
+        await pool.query(
+          `UPDATE content_learning_consents SET "revokedAt"=NULL, granted=true,"isDeleted"=false`,
+        );
+      }
       await seed(1000);
-      const client = await pool.connect();
-      await client.query('BEGIN');
-      await client.query(
-        `SELECT id FROM content_learning_decisions WHERE id='decision-0' FOR UPDATE`,
-      );
-      const entered = deferred();
-      const pending = prisma.$transaction(async (tx) => {
-        entered.resolve();
-        await tx.contentLearningReward.create({
-          data: {
-            id: 'newer',
-            organizationId: 'org-0',
-            brandId: 'brand-0',
-            credentialId: 'credential-0',
-            decisionId: 'decision-0',
-            checkpointId: 'checkpoint-0',
-            baselineId: 'baseline-0',
-            version: 2,
-            rawComponents: {},
-            boundedComponents: {},
-            confidence: {},
-            status: 'invalid_source',
-            reasons: [],
-            sourceFingerprint: 'newer',
-          },
+      await expect(
+        service.create({
+          ...input,
+          requestId: randomUUID(),
+          rows: [
+            { ...numericRow(0), sourceFingerprint: 'reward-fingerprint-0' },
+          ],
+          sourceAccounts: sources,
+        }),
+      ).rejects.toThrow('Duplicate source fingerprint');
+      expect(await prisma.contentLearningOperation.count()).toBe(0);
+    }, 120000);
+    it('excludes deleted, synthetic, wrong-account, pre-consent and invalid-pinned observations', async () => {
+      for (const change of [
+        `UPDATE content_learning_decisions SET "isDeleted"=true WHERE id='decision-0'`,
+        `UPDATE content_learning_rewards SET "isDeleted"=true WHERE id='reward-0000000'`,
+        `UPDATE content_learning_decisions SET synthetic=true WHERE id='decision-0'`,
+        `UPDATE content_learning_decisions SET state='pending' WHERE id='decision-0'`,
+        `UPDATE content_learning_decisions SET "credentialId"='credential-2' WHERE id='decision-0'`,
+        `UPDATE content_learning_decisions SET "createdAt"=TIMESTAMP '2026-07-01' WHERE id='decision-0'`,
+        `UPDATE content_learning_checkpoints SET revision=1 WHERE id='checkpoint-0'`,
+        `UPDATE posts SET "isDeleted"=true WHERE id='post-0'`,
+        `UPDATE content_learning_dependencys SET valid=false WHERE id='edge-0-checkpoint'`,
+      ]) {
+        await seed(1000);
+        await pool.query(change);
+        const dataset = await service.create({
+          ...input,
+          requestId: randomUUID(),
+          sourceAccounts: sources,
         });
-      });
-      await entered.promise;
-      await expect
-        .poll(async () =>
-          Number(
-            (
-              await pool.query(
-                `SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND query LIKE '%content_learning_rewards%'`,
-              )
-            ).rows[0].count,
-          ),
-        )
-        .toBeGreaterThan(0);
-      await client.query('COMMIT');
-      client.release();
-      await pending;
-      const dataset = await service.create({
+        expect((dataset.counts as { total: number }).total).toBe(999);
+      }
+    }, 120000);
+    const replacementData = {
+      id: 'newer',
+      organizationId: 'org-0',
+      brandId: 'brand-0',
+      credentialId: 'credential-0',
+      decisionId: 'decision-0',
+      checkpointId: 'checkpoint-0',
+      baselineId: 'baseline-0',
+      version: 2,
+      rawComponents: {},
+      boundedComponents: {},
+      confidence: {},
+      status: 'invalid_source',
+      reasons: [],
+      sourceFingerprint: 'newer',
+    };
+    it('aborts a complete snapshot when a newer reward commits before final locks', async () => {
+      await seed(1000);
+      const held = deferred(),
+        release = deferred();
+      let once = false;
+      beforeDecisionLock = async () => {
+        if (!once) {
+          once = true;
+          held.resolve();
+          await release.promise;
+        }
+      };
+      const request = {
+        ...input,
+        requestId: randomUUID(),
+        sourceAccounts: sources,
+      };
+      const snapshot = service.create(request);
+      try {
+        await held.promise;
+        await prisma.contentLearningReward.create({ data: replacementData });
+        release.resolve();
+        await expect(snapshot).rejects.toThrow('Source invalidated');
+        expect(await prisma.contentLearningDataset.count()).toBe(0);
+        expect(await prisma.contentLearningDatasetEntry.count()).toBe(0);
+        expect(await prisma.contentLearningOperation.count()).toBe(0);
+        expect(
+          await prisma.contentLearningDependency.count({
+            where: { derivedKind: 'dataset' },
+          }),
+        ).toBe(0);
+      } finally {
+        beforeDecisionLock = undefined;
+        release.resolve();
+        await snapshot.catch(() => undefined);
+      }
+    }, 120000);
+    it('blocks a newer reward behind actual service locks then invalidates the committed dataset and preserves retry', async () => {
+      await seed(1000);
+      const held = deferred(),
+        release = deferred();
+      afterDatasetCreate = async () => {
+        held.resolve();
+        await release.promise;
+      };
+      const request = {
+        ...input,
+        requestId: randomUUID(),
+        sourceAccounts: sources,
+      };
+      const snapshot = service.create(request);
+      let replacement: Promise<unknown> | undefined;
+      try {
+        await held.promise;
+        replacement = prisma.$transaction(async (tx) => {
+          await tx.contentLearningReward.create({ data: replacementData });
+          await new LearningDependencyService(
+            prisma as unknown as PrismaService,
+          ).invalidate('reward', 'reward-0000000', tx, 'org-0');
+        });
+        await expect
+          .poll(async () =>
+            Number(
+              (
+                await pool.query(
+                  `SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND query LIKE '%content_learning_rewards%'`,
+                )
+              ).rows[0].count,
+            ),
+          )
+          .toBeGreaterThan(0);
+        release.resolve();
+        const dataset = await snapshot;
+        await replacement;
+        afterDatasetCreate = undefined;
+        const retry = await service.create(request);
+        expect(retry.id).toBe(dataset.id);
+        expect(retry.manifestHash).toBe(dataset.manifestHash);
+        expect(retry.status).toBe('invalidated');
+      } finally {
+        afterDatasetCreate = undefined;
+        release.resolve();
+        await snapshot.catch(() => undefined);
+        await replacement?.catch(() => undefined);
+      }
+    }, 120000);
+    it('exclusive consent revocation waits for an actual snapshot then follows the deduplicated edge', async () => {
+      await seed(1000);
+      const held = deferred(),
+        release = deferred();
+      afterDatasetCreate = async () => {
+        held.resolve();
+        await release.promise;
+      };
+      const snapshot = service.create({
         ...input,
         requestId: randomUUID(),
         sourceAccounts: sources,
       });
-      expect((dataset.counts as { total: number }).total).toBe(999);
-      const held = deferred(),
-        release = deferred();
-      const snapshotFence = prisma.$transaction(async (tx) => {
-        await learningFence(tx, 'shared');
-        held.resolve();
-        await release.promise;
-      });
-      await held.promise;
-      const revocation = prisma.$transaction(async (tx) => {
-        await learningFence(tx, 'exclusive');
-        await tx.contentLearningConsent.update({
-          where: { id: 'consent-0' },
-          data: { revokedAt: new Date() },
+      let revoke: Promise<unknown> | undefined;
+      try {
+        await held.promise;
+        revoke = prisma.$transaction(async (tx) => {
+          await tx.$queryRaw`SELECT pg_advisory_xact_lock(5728,1)::text`;
+          await tx.contentLearningConsent.update({
+            where: { id: 'consent-0' },
+            data: { revokedAt: new Date() },
+          });
+          await new LearningDependencyService(
+            prisma as unknown as PrismaService,
+          ).invalidate('consent', 'consent-0', tx, 'org-0');
         });
-        await new LearningDependencyService(
-          prisma as unknown as PrismaService,
-        ).invalidate('consent', 'consent-0', tx, 'org-0');
+        await expect
+          .poll(async () =>
+            Number(
+              (
+                await pool.query(
+                  `SELECT count(*) FROM pg_locks WHERE locktype='advisory' AND NOT granted`,
+                )
+              ).rows[0].count,
+            ),
+          )
+          .toBeGreaterThan(0);
+        release.resolve();
+        const dataset = await snapshot;
+        await revoke;
+        expect(
+          (
+            await prisma.contentLearningDataset.findUniqueOrThrow({
+              where: { id: dataset.id },
+            })
+          ).status,
+        ).toBe('invalidated');
+      } finally {
+        afterDatasetCreate = undefined;
+        release.resolve();
+        await snapshot.catch(() => undefined);
+        await revoke?.catch(() => undefined);
+        await prisma.contentLearningConsent.update({
+          where: { id: 'consent-0' },
+          data: { revokedAt: null },
+        });
+      }
+    }, 120000);
+    it('pages past ineligible candidates and excludes latest invalid or post-cutoff versions', async () => {
+      await seed(12000);
+      await prisma.contentLearningReward.updateMany({
+        where: { credentialId: 'credential-0', id: { lte: 'reward-0009999' } },
+        data: { composite: null },
       });
-      await expect
-        .poll(async () =>
-          Number(
-            (
-              await pool.query(
-                `SELECT count(*) FROM pg_locks WHERE locktype='advisory' AND NOT granted`,
-              )
-            ).rows[0].count,
-          ),
-        )
-        .toBeGreaterThan(0);
-      release.resolve();
-      await snapshotFence;
-      await revocation;
-      expect(
-        (
-          await prisma.contentLearningDataset.findUniqueOrThrow({
-            where: { id: dataset.id },
-          })
-        ).status,
-      ).toBe('invalidated');
+      const result = await service.create({
+        ...input,
+        requestId: randomUUID(),
+        sourceAccounts: [sources[0]],
+      });
+      expect((result.counts as { total: number }).total).toBe(200);
+      await clearOutputs();
+      await seed(1000);
+      await prisma.contentLearningReward.create({
+        data: {
+          ...replacementData,
+          createdAt: new Date('2026-10-01'),
+          status: 'valid',
+          composite: 0.5,
+        },
+      });
+      const latest = await service.create({
+        ...input,
+        requestId: randomUUID(),
+        sourceAccounts: sources,
+      });
+      expect((latest.counts as { total: number }).total).toBe(999);
     }, 120000);
   },
 );
