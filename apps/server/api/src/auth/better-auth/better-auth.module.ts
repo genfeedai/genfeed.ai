@@ -110,12 +110,9 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
           ),
           BETTER_AUTH_IP_HEADERS: config.get('BETTER_AUTH_IP_HEADERS'),
           BETTER_AUTH_SECRET: config.get('BETTER_AUTH_SECRET'),
-          BETTER_AUTH_TRUSTED_ORIGINS: [
-            config.get('BETTER_AUTH_TRUSTED_ORIGINS'),
-            config.get('MARKETPLACE_AUTH_ORIGIN'),
-          ]
-            .filter(Boolean)
-            .join(','),
+          BETTER_AUTH_TRUSTED_ORIGINS: config.get(
+            'BETTER_AUTH_TRUSTED_ORIGINS',
+          ),
           BETTER_AUTH_URL: config.get('BETTER_AUTH_URL'),
           GENFEEDAI_APP_URL: config.get('GENFEEDAI_APP_URL'),
           GITHUB_CLIENT_ID: config.get('GITHUB_CLIENT_ID'),
