@@ -72,17 +72,27 @@ export class ActivitiesService extends BaseService<
       },
     );
     if (!candidates.length) return activities;
-    // One batch, with each asset bound to the organization of its activity.
-    const ingredients = await this.prisma.ingredient.findMany({
-      include: { metadata: true },
-      where: {
-        isDeleted: false,
-        OR: candidates.map((activity) => ({
-          id: activity.entityId,
-          organizationId: activity.organizationId,
+    const idsByOrganization = new Map<string | null, Set<string>>();
+    for (const activity of candidates) {
+      const organizationId = activity.organizationId ?? null;
+      const ids = idsByOrganization.get(organizationId) ?? new Set<string>();
+      ids.add(activity.entityId);
+      idsByOrganization.set(organizationId, ids);
+    }
+    const ingredients = [];
+    // One batch per organization, including the self-hosted null scope.
+    for (const [organizationId, ids] of idsByOrganization) {
+      ingredients.push(
+        ...(await this.prisma.ingredient.findMany({
+          include: { metadata: true },
+          where: {
+            organizationId,
+            isDeleted: false,
+            id: { in: [...ids] },
+          },
         })),
-      },
-    });
+      );
+    }
     const byId = new Map(
       ingredients.map((ingredient) => [ingredient.id, ingredient]),
     );
@@ -90,7 +100,8 @@ export class ActivitiesService extends BaseService<
       const ingredient = activity.entityId
         ? byId.get(activity.entityId)
         : undefined;
-      return ingredient && ingredient.organizationId === activity.organizationId
+      return ingredient &&
+        ingredient.organizationId === (activity.organizationId ?? null)
         ? hydrateGenerationActivity(activity, ingredient)
         : activity;
     });

@@ -3,6 +3,8 @@ import {
   ActionOrigin,
   ActivityKey,
   ActivitySource,
+  IngredientCategory,
+  IngredientStatus,
 } from '@genfeedai/contracts';
 
 describe('ActivitiesService action origin', () => {
@@ -266,10 +268,82 @@ describe('ActivitiesService batched writes', () => {
 });
 
 describe('ActivitiesService generation hydration', () => {
-  it('batches scoped ingredients and refuses an ingredient from another organization', async () => {
-    const findMany = vi
-      .fn()
-      .mockResolvedValue([{ id: 'asset-1', organizationId: 'foreign-org' }]);
+  it.each([
+    ['org-1', 'foreign-org'],
+    [null, 'foreign-org'],
+    ['org-1', null],
+  ])(
+    'refuses a mismatched ingredient for organization %s',
+    async (organizationId, foreignOrganizationId) => {
+      const findMany = vi
+        .fn()
+        .mockResolvedValue([
+          { id: 'asset-1', organizationId: foreignOrganizationId },
+        ]);
+      const service = new ActivitiesService(
+        { ingredient: { findMany } } as never,
+        { debug: vi.fn(), error: vi.fn() } as never,
+      );
+      const row = {
+        id: 'activity-1',
+        entityId: 'asset-1',
+        key: ActivityKey.IMAGE_PROCESSING,
+        organizationId,
+      } as Parameters<typeof service.hydrateGenerationActivities>[0][number];
+      expect(await service.hydrateGenerationActivities([row])).toEqual([row]);
+      expect(findMany).toHaveBeenCalledWith({
+        include: { metadata: true },
+        where: {
+          isDeleted: false,
+          organizationId,
+          id: { in: ['asset-1'] },
+        },
+      });
+    },
+  );
+
+  it('deduplicates assets in one batch per exact organization, including null scope', async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+    const service = new ActivitiesService(
+      { ingredient: { findMany } } as never,
+      { debug: vi.fn(), error: vi.fn() } as never,
+    );
+    const rows = [
+      { entityId: 'asset-1', organizationId: 'org-1' },
+      { entityId: 'asset-1', organizationId: 'org-1' },
+      { entityId: 'asset-2', organizationId: 'org-1' },
+      { entityId: 'asset-3', organizationId: 'org-2' },
+      { entityId: 'asset-4', organizationId: null },
+    ].map((scope, index) => ({
+      ...scope,
+      id: `activity-${index}`,
+      key: ActivityKey.IMAGE_PROCESSING,
+    })) as Parameters<typeof service.hydrateGenerationActivities>[0];
+
+    expect(await service.hydrateGenerationActivities(rows)).toEqual(rows);
+    expect(findMany).toHaveBeenCalledTimes(3);
+    for (const [index, organizationId, ids] of [
+      [1, 'org-1', ['asset-1', 'asset-2']],
+      [2, 'org-2', ['asset-3']],
+      [3, null, ['asset-4']],
+    ] as const) {
+      expect(findMany).toHaveBeenNthCalledWith(index, {
+        include: { metadata: true },
+        where: { organizationId, isDeleted: false, id: { in: ids } },
+      });
+    }
+  });
+
+  it('hydrates legacy self-hosted rows only from a null-organization ingredient', async () => {
+    const ingredient = {
+      id: 'asset-1',
+      category: IngredientCategory.IMAGE,
+      organizationId: null,
+      status: IngredientStatus.GENERATED,
+      metadata: null,
+      updatedAt: new Date('2026-10-01T10:00:01Z'),
+    };
+    const findMany = vi.fn().mockResolvedValue([ingredient]);
     const service = new ActivitiesService(
       { ingredient: { findMany } } as never,
       { debug: vi.fn(), error: vi.fn() } as never,
@@ -278,14 +352,21 @@ describe('ActivitiesService generation hydration', () => {
       id: 'activity-1',
       entityId: 'asset-1',
       key: ActivityKey.IMAGE_PROCESSING,
-      organizationId: 'org-1',
+      createdAt: new Date('2026-10-01T10:00:00Z'),
+      updatedAt: new Date('2026-10-01T10:00:00Z'),
     } as Parameters<typeof service.hydrateGenerationActivities>[0][number];
-    expect(await service.hydrateGenerationActivities([row])).toEqual([row]);
+
+    const [result] = await service.hydrateGenerationActivities([row]);
+    expect(result).toMatchObject({
+      key: ActivityKey.IMAGE_GENERATED,
+      ingredient,
+    });
     expect(findMany).toHaveBeenCalledWith({
       include: { metadata: true },
       where: {
+        organizationId: null,
         isDeleted: false,
-        OR: [{ id: 'asset-1', organizationId: 'org-1' }],
+        id: { in: ['asset-1'] },
       },
     });
   });

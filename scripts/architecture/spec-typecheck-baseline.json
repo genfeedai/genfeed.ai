@@ -7202,22 +7202,6 @@
       "workspace": "pages"
     },
     {
-      "code": 2741,
-      "count": 5,
-      "file": "packages/pages/ingredients/list/ingredients-list.test.tsx",
-      "fingerprint": "16b97c20b9cddd34e65c",
-      "message": "Property 'type' is missing in type '{}' but required in type 'IngredientsListProps'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "packages/pages/ingredients/list/ingredients-list.test.tsx",
-      "fingerprint": "5bca9ffee7aeed1d5227",
-      "message": "Property 'type' is missing in type '{ folderNavigation: \"shell\"; }' but required in type 'IngredientsListProps'.",
-      "workspace": "pages"
-    },
-    {
       "code": 5097,
       "count": 1,
       "file": "packages/pages/members/invite/ModalMember.test.tsx",
@@ -9039,14 +9023,6 @@
       "file": "packages/ui/src/components/ingredients/list/selection-actions-bar/SelectionActionsBar.test.tsx",
       "fingerprint": "baa2bb4176e254b59913",
       "message": "Property 'onBulkDelete' is missing in type '{ count: number; onClear: Mock<Procedure>; }' but required in type 'SelectionActionsBarProps'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2741,
-      "count": 3,
-      "file": "packages/ui/src/components/ingredients/tabs/prompts/IngredientTabsPrompts.test.tsx",
-      "fingerprint": "531a40245b6f7de4ecea",
-      "message": "Property 'ingredient' is missing in type '{}' but required in type 'IngredientTabsPromptsProps'.",
       "workspace": "ui"
     },
     {

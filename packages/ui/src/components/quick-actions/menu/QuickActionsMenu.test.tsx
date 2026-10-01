@@ -143,13 +143,12 @@ describe('QuickActionsMenu', () => {
     });
     await waitFor(() =>
       expect(
-        screen.getByRole('menuitem', { name: 'Reframe', exact: true }),
+        screen.getByRole('menuitem', { name: /^Reframe$/ }),
       ).toBeInTheDocument(),
     );
-    fireEvent.keyDown(
-      screen.getByRole('menuitem', { name: 'Reframe', exact: true }),
-      { key: 'ArrowRight' },
-    );
+    fireEvent.keyDown(screen.getByRole('menuitem', { name: /^Reframe$/ }), {
+      key: 'ArrowRight',
+    });
     await waitFor(() =>
       expect(screen.getByText('Reframe to Portrait')).toBeInTheDocument(),
     );

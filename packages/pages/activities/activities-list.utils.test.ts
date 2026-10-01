@@ -233,8 +233,9 @@ describe('activity output and timing', () => {
         completedAt: '2026-09-08T18:52:19Z',
       }),
     } as IActivity;
-    expect(getActivityLifecycleText(activity)).toContain('Started ');
-    expect(getActivityLifecycleText(activity)).toContain(' · Finished ');
+    expect(getActivityLifecycleText(activity)).toBe(
+      'Started 9/8/2026, 6:52:06 PM UTC · Finished 9/8/2026, 6:52:19 PM UTC',
+    );
     expect(
       getActivityLifecycleText({
         ...activity,

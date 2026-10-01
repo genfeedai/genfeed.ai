@@ -56,6 +56,7 @@ export default function AgentConversationBubble({
   const actions = suggestedActions.slice(0, RADIAL_LIMIT);
   const [areShortcutsVisible, setAreShortcutsVisible] = useState(false);
   const hideTimerRef = useRef<number | null>(null);
+  const bubbleRef = useRef<HTMLDivElement>(null);
 
   const showShortcuts = () => {
     if (hideTimerRef.current !== null) {
@@ -71,7 +72,9 @@ export default function AgentConversationBubble({
     }
     hideTimerRef.current = window.setTimeout(() => {
       hideTimerRef.current = null;
-      setAreShortcutsVisible(false);
+      if (!bubbleRef.current?.contains(document.activeElement)) {
+        setAreShortcutsVisible(false);
+      }
     }, SHORTCUT_HIDE_MS);
   };
 
@@ -86,6 +89,13 @@ export default function AgentConversationBubble({
 
   return (
     <div
+      ref={bubbleRef}
+      onFocus={showShortcuts}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          hideShortcuts();
+        }
+      }}
       aria-hidden={isDismissed}
       inert={isDismissed}
       className={`pointer-events-none absolute bottom-5 right-5 z-30 transition-opacity duration-150 motion-reduce:transition-none ${
@@ -149,8 +159,6 @@ export default function AgentConversationBubble({
           data-testid="agent-conversation-bubble"
           icon={<MessageCircle className="size-5" />}
           onClick={onOpen}
-          onFocus={showShortcuts}
-          onBlur={hideShortcuts}
           onPointerEnter={showShortcuts}
           onPointerLeave={hideShortcuts}
           tabIndex={isDismissed ? -1 : 0}

@@ -120,13 +120,16 @@ describe('IngredientDetailImage', () => {
     expect(screen.getByTestId('ingredient-quick-actions')).toBeInTheDocument();
   });
 
-  it('should apply correct styles and classes', () => {
+  it('renders the detail workspace without the redundant section label', () => {
     render(
       <IngredientDetailImage
         image={image}
         childIngredients={childIngredients}
       />,
     );
-    expect(screen.getByText('Asset Workspace')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Refine image details' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Asset Workspace')).not.toBeInTheDocument();
   });
 });
