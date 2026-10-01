@@ -221,6 +221,23 @@ export class ImageGenerationService {
     );
     if (accepted) return accepted;
 
+    const referenceIds = (createImageDto.references ?? []).map(String);
+
+    const referenceImageUrls =
+      editing?.sourceUrls ??
+      (isFlux3ImageModel(model)
+        ? await this.admissionService.resolveFlux3References(
+            user.organizationId,
+            brand.id,
+            referenceIds,
+          )
+        : await this.admissionService.resolveReferenceImageUrls(
+            user.organizationId,
+            referenceIds,
+          ));
+
+    const referenceImageUrl: string | null = referenceImageUrls[0] || null;
+
     const generationHarness: GenerationHarnessReceipt = editing
       ? {
           originalPrompt: promptOriginalText,
@@ -258,23 +275,6 @@ export class ImageGenerationService {
       outputs,
       rawOutputs: createImageDto.outputs,
     });
-
-    const referenceIds = (createImageDto.references ?? []).map(String);
-
-    const referenceImageUrls =
-      editing?.sourceUrls ??
-      (isFlux3ImageModel(model)
-        ? await this.admissionService.resolveFlux3References(
-            user.organizationId,
-            brand.id,
-            referenceIds,
-          )
-        : await this.admissionService.resolveReferenceImageUrls(
-            user.organizationId,
-            referenceIds,
-          ));
-
-    const referenceImageUrl: string | null = referenceImageUrls[0] || null;
 
     const briefBrandContext = await this.resolveBriefBrandContext({
       brandPromptBranding,

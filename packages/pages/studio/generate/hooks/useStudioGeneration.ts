@@ -756,7 +756,6 @@ export function useStudioGeneration({
               },
               videoPromptData,
             );
-            if (flux) payload.aspectRatio = settings.aspectRatio;
             const data = (await service.post(payload)) as GenerationResponse;
             trackPendingIds(resolvePendingIds(data), pendingContext);
             isAccepted = true;

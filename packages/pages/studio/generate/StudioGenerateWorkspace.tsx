@@ -996,7 +996,6 @@ export default function StudioGenerateWorkspace(): ReactElement {
               getAttachmentRole(attachment) === 'videoReference',
           ).length;
         const maxVideoReferences = getModelMaxVideoReferences(
-          editSourceLimit,
           settings.modelKey,
         );
         if (selectedVideoReferences >= maxVideoReferences) {
@@ -1127,7 +1126,6 @@ export default function StudioGenerateWorkspace(): ReactElement {
               getAttachmentRole(attachment) === 'videoReference',
           ).length;
         const maxVideoReferences = getModelMaxVideoReferences(
-          editSourceLimit,
           settings.modelKey,
         );
         const remaining = Math.max(

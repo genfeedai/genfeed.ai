@@ -1642,3 +1642,107 @@ describe('editing retry output lineage', () => {
     );
   });
 });
+
+describe('FLUX.3 editing default and exact alias dispatch', () => {
+  it('resolves the editing model before admission and dispatches one URI output to the real endpoint', async () => {
+    const {
+      service,
+      routerService,
+      imagesService,
+      modelRegistrationService,
+      replicateService,
+      sharedService,
+      enhancementService,
+      promptBuilderService,
+    } = createService();
+    const model = MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT;
+    const endpoint = MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE;
+    const sourceId = testId('fluxsource');
+    routerService.resolveModelKey.mockResolvedValue({
+      key: model,
+      source: 'registry-default',
+    });
+    modelRegistrationService.validateModelForOrg.mockResolvedValue({
+      endpoint,
+      provider: ModelProvider.REPLICATE,
+      category: ModelCategory.IMAGE_EDIT,
+    });
+    imagesService.findOne.mockImplementation(async (query: { id?: string }) =>
+      query.id === sourceId
+        ? {
+            id: sourceId,
+            status: IngredientStatus.GENERATED,
+            s3Key: 'images/source.png',
+            metadata: { width: 1024, height: 768, extension: 'png' },
+          }
+        : null,
+    );
+    replicateService.getPrediction.mockResolvedValue({
+      status: 'succeeded',
+      output: 'https://replicate/flux-output.jpg',
+    } as never);
+    await service.editImage(
+      buildUser(),
+      sourceId,
+      {
+        prompt: 'Change only the sign',
+        brandId: RESOLVED_BRAND,
+        resolution: '1.5k',
+        aspectRatio: 'auto',
+      },
+      buildRequest(),
+    );
+    await vi.waitFor(() =>
+      expect(replicateService.generateTextToImage).toHaveBeenCalledTimes(1),
+    );
+    expect(replicateService.generateTextToImage).toHaveBeenCalledWith(
+      endpoint,
+      {
+        prompt: 'Change only the sign',
+        images: [expect.stringContaining(sourceId)],
+        resolution: '1.5k',
+        aspect_ratio: 'auto',
+        grounding: false,
+        output_format: 'jpg',
+        output_quality: 80,
+      },
+      undefined,
+      expect.any(Function),
+    );
+    expect(sharedService.createMediaDocuments).toHaveBeenCalledTimes(1);
+    expect(sharedService.createMediaDocuments.mock.calls[0][1]).toMatchObject({
+      parentId: sourceId,
+      sourceIds: [sourceId],
+      model,
+      providerData: {
+        imageEdit: {
+          model,
+          sourceIds: [sourceId],
+          resolution: '1.5k',
+          aspectRatio: 'auto',
+          grounding: false,
+          outputs: 1,
+        },
+      },
+    });
+    expect(enhancementService.enhance).not.toHaveBeenCalled();
+    expect(promptBuilderService.buildPrompt).not.toHaveBeenCalled();
+  });
+  it('rejects a multi-output FLUX generation before placeholders or prompt enhancement', async () => {
+    const { service, sharedService, enhancementService, replicateService } =
+      createService();
+    await expect(
+      service.generateImage(
+        buildUser(),
+        baseDto({
+          model: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
+          outputs: 2,
+        }),
+        buildRequest(),
+      ),
+    ).rejects.toThrow('FLUX.3');
+    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    expect(enhancementService.enhance).not.toHaveBeenCalled();
+    expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
+  });
+});
