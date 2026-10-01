@@ -4,6 +4,11 @@ import { AgentAutopilotWorkflowService } from '@api/collections/workflows/servic
 import { BatchGenerationCreationService } from '@api/services/batch-generation/batch-generation-creation.service';
 import { BatchGenerationProcessingService } from '@api/services/batch-generation/batch-generation-processing.service';
 import {
+  ProactiveAgentRuntimeFixture,
+  readRuntimeBrief,
+  runtimeRecord,
+} from '@api-test/fixtures/proactive-agent-runtime.fixture';
+import {
   AgentPublishDecision,
   TargetExecutionState,
 } from '@genfeedai/contracts';
@@ -14,11 +19,6 @@ import { PlatformSchedulesProcessor } from '@workers/scheduling/platform-schedul
 import { PlatformWorkflowSchedulesService } from '@workers/scheduling/platform-workflow-schedules.service';
 import type { Job } from 'bullmq';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  ProactiveAgentRuntimeFixture,
-  readRuntimeBrief,
-  runtimeRecord,
-} from './proactive-agent-runtime.fixture';
 
 type Row = Record<string, unknown>;
 

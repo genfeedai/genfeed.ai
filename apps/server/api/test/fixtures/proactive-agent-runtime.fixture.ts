@@ -51,6 +51,7 @@ import { BatchReviewLockService } from '@api/services/batch-generation/batch-rev
 import { CacheService } from '@api/services/cache/cache.service';
 import {
   AgentAutonomyMode,
+  AgentType,
   TargetExecutionState,
   WorkflowExecutionTrigger,
   WorkflowStatus,
@@ -549,7 +550,12 @@ export class ProactiveAgentRuntimeFixture {
         await this.prisma.post.updateMany({
           where: {
             id: {
-              in: items.flatMap((item) => (item.postId ? [item.postId] : [])),
+              in: items.flatMap((item) => {
+                const postId = runtimeRecord(item.data).postId;
+                return typeof postId === 'string' && postId.length > 0
+                  ? [postId]
+                  : [];
+              }),
             },
             organizationId: action.context.organizationId,
             isDeleted: false,
@@ -682,7 +688,7 @@ export class ProactiveAgentRuntimeFixture {
         userId: this.userId,
         brandId: this.brandId,
         label: 'Craft agent',
-        agentType: 'social',
+        agentType: AgentType.LINKEDIN_CONTENT,
         platforms: ['linkedin'],
         topics: ['craft'],
         voice: 'precise',
@@ -737,7 +743,7 @@ export class ProactiveAgentRuntimeFixture {
         brandId,
         userId: this.userId,
         label: 'Paused installation agent',
-        agentType: 'social',
+        agentType: AgentType.LINKEDIN_CONTENT,
         platforms: ['linkedin'],
         topics: ['foreign'],
         autonomyMode: AgentAutonomyMode.SUPERVISED,
