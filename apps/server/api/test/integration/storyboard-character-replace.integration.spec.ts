@@ -371,6 +371,7 @@ describe('durable character replacement with real PostgreSQL, BullMQ and isolate
     const pending = replace(a, run);
     await vi.waitFor(() => expect(held).toBeDefined());
     const { config } = await b.store.read(organizationId, brandId, run);
+    if (config.origin !== 'native') throw new Error('Expected native fixture');
     if (!config.plan) throw new Error('Missing plan');
     await b.store.save(organizationId, brandId, run, config, {
       ...config,
@@ -602,6 +603,8 @@ describe('durable character replacement with real PostgreSQL, BullMQ and isolate
             });
           else {
             const { config } = await b.store.read(organizationId, brandId, run);
+            if (config.origin !== 'native')
+              throw new Error('Expected native fixture');
             if (!config.plan) throw new Error('Missing plan');
             await b.store.save(
               organizationId,
@@ -824,7 +827,12 @@ describe('durable character replacement with real PostgreSQL, BullMQ and isolate
       before = accepted;
     const queueName = `${prefix}-${randomUUID()}`;
     const queue = new Queue(queueName, { connection: redisConnection });
-    let worker = new Worker(
+    type ReplacementWorkerResult =
+      | Awaited<ReturnType<typeof replace>>
+      | {
+          ambiguous: boolean;
+        };
+    let worker = new Worker<Record<string, never>, ReplacementWorkerResult>(
       queueName,
       async () => {
         try {
@@ -848,10 +856,11 @@ describe('durable character replacement with real PostgreSQL, BullMQ and isolate
       await expire(a, run);
       mode = 'normal';
       const restarted = client(second);
-      worker = new Worker(queueName, async () => replace(restarted, run), {
-        connection: redisConnection,
-        concurrency: 2,
-      });
+      worker = new Worker<Record<string, never>, ReplacementWorkerResult>(
+        queueName,
+        async () => replace(restarted, run),
+        { connection: redisConnection, concurrency: 2 },
+      );
       await queue.add('replace', {}, { jobId: 'restart-redelivery' });
       await vi.waitFor(async () =>
         expect(await queue.getCompletedCount()).toBe(2),

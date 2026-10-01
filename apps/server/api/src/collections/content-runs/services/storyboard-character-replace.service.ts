@@ -19,6 +19,7 @@ import { HIGGSFIELD_GENJUTSU_DEFAULT_RESOLUTION } from '@api/services/integratio
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { IngredientStatus } from '@genfeedai/contracts';
 import {
   replaceStoryboardCharacterSchema,
   STORYBOARD_CHARACTER_REPLACE_MODEL_KEY,
@@ -93,7 +94,13 @@ export class StoryboardCharacterReplaceService {
         id: { in: [...ids] },
         category,
         scope: 'USER',
-        status: { in: ['UPLOADED', 'GENERATED', 'VALIDATED'] },
+        status: {
+          in: [
+            IngredientStatus.UPLOADED,
+            IngredientStatus.GENERATED,
+            IngredientStatus.VALIDATED,
+          ],
+        },
       }),
     });
     return ids.map((id) => {
