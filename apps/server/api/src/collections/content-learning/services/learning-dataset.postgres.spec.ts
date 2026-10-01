@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { readFileSync, statfsSync } from 'node:fs';
+import { PerformanceObserver } from 'node:perf_hooks';
 import { fileURLToPath } from 'node:url';
 import { LearningDatasetService } from '@api/collections/content-learning/services/learning-dataset.service';
 import { LearningDatasetGraph } from '@api/collections/content-learning/services/learning-dataset-graph.service';
@@ -20,6 +21,44 @@ vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
 
 const explicitUrl = process.env.LEARNING_DATASET_TEST_DATABASE_URL;
 const benchmark = process.env.LEARNING_DATASET_BENCHMARK === '1';
+const diagnostic = process.env.LEARNING_DATASET_PROFILE === '1';
+type TimingMetric = {
+  calls: number;
+  wallMs: number;
+  cpuUserMicros: number;
+  cpuSystemMicros: number;
+};
+type QueryMetric = {
+  count: number;
+  durationMs: number;
+  maxDurationMs: number;
+  samples: string[];
+};
+const memoryBoundary = () => {
+  const { heapUsed, heapTotal, external, arrayBuffers, rss } =
+    process.memoryUsage();
+  return { heapUsed, heapTotal, external, arrayBuffers, rss };
+};
+function queryCategory(query: string) {
+  if (/^(BEGIN|COMMIT|ROLLBACK)/.test(query)) return 'transaction';
+  if (query.includes('FOR UPDATE')) return 'decision-lock';
+  if (query.includes('pg_advisory')) return 'fence';
+  if (query.includes('content_learning_dataset_entries')) return 'entries';
+  if (query.includes('content_learning_dependencys'))
+    return query.startsWith('INSERT') ? 'dependency-write' : 'graph-edges';
+  if (query.includes('content_learning_rewards'))
+    return query.includes('GROUP BY')
+      ? 'latest-rewards'
+      : query.includes('ORDER BY')
+        ? 'candidate-rewards'
+        : 'reward-pins';
+  if (query.includes('content_learning_decisions')) return 'decisions';
+  if (query.includes('content_learning_accounts')) return 'accounts';
+  if (query.includes('content_learning_consents')) return 'consents';
+  if (query.includes('content_learning_datasets')) return 'dataset';
+  if (query.includes('content_learning_operations')) return 'operation';
+  return 'other-pins';
+}
 const cutoff = '2026-09-29T00:00:00.000Z';
 const numericRow = (index: number) => ({
   sourceFingerprint: `owned-${index}`,
@@ -67,7 +106,23 @@ describe.skipIf(!explicitUrl)(
     let pool: Pool,
       prisma: PrismaClient<'query'>,
       service: LearningDatasetService;
-    let statements: string[] = [];
+    let queryCount = 0;
+    let secondaryGraphBatches = 0;
+    let queryObserverOverheadMs = 0;
+    let phaseInstrumentationOverheadMs = 0;
+    let graphInstrumentationOverheadMs = 0;
+    let gcObserverOverheadMs = 0;
+    let queryMetrics = new Map<string, QueryMetric>();
+    let phaseMetrics = new Map<string, TimingMetric>();
+    let phaseBoundaries: {
+      phase: string;
+      boundary: string;
+      memory: ReturnType<typeof memoryBoundary>;
+    }[] = [];
+    let nestedGraphMetrics = new Map<string, TimingMetric>();
+    let profileActive = false;
+    let gcCount = 0,
+      gcDurationMs = 0;
     let maxBindParameters = 0;
     let graphNodesMaxPass = 0,
       graphEdgesMaxPass = 0,
@@ -77,8 +132,6 @@ describe.skipIf(!explicitUrl)(
       LearningDatasetGraph,
       { nodes: number; edges: number }
     >();
-    let clearGraphSpyHistory: () => void = () => {};
-    let restoreGraphSpies: () => void = () => {};
     let transactionElapsedMs = 0;
     let graphBatches = 0,
       candidatePages = 0,
@@ -99,6 +152,148 @@ describe.skipIf(!explicitUrl)(
       organizationId: `org-${i % 2}`,
       accountId: `account-${i}`,
     }));
+    function recordTiming(
+      metrics: Map<string, TimingMetric>,
+      name: string,
+      wallMs: number,
+      cpu: ReturnType<typeof process.cpuUsage>,
+    ) {
+      const metric = metrics.get(name) ?? {
+        calls: 0,
+        wallMs: 0,
+        cpuUserMicros: 0,
+        cpuSystemMicros: 0,
+      };
+      metric.calls++;
+      metric.wallMs += wallMs;
+      metric.cpuUserMicros += cpu.user;
+      metric.cpuSystemMicros += cpu.system;
+      metrics.set(name, metric);
+    }
+    function instrumentGraph() {
+      const prototype = LearningDatasetGraph.prototype;
+      const pins = prototype.pins,
+        load = prototype.load;
+      prototype.pins = async function (...args) {
+        const overheadStarted = performance.now();
+        graphBatches++;
+        const cpu = process.cpuUsage(),
+          started = performance.now();
+        graphInstrumentationOverheadMs += started - overheadStarted;
+        try {
+          return await Reflect.apply(pins, this, args);
+        } finally {
+          const overheadStarted = performance.now();
+          if (profileActive)
+            recordTiming(
+              nestedGraphMetrics,
+              'pins',
+              overheadStarted - started,
+              process.cpuUsage(cpu),
+            );
+          graphInstrumentationOverheadMs += performance.now() - overheadStarted;
+        }
+      };
+      prototype.load = async function (...args) {
+        const overheadStarted = performance.now();
+        const cpu = process.cpuUsage(),
+          started = performance.now();
+        graphInstrumentationOverheadMs += started - overheadStarted;
+        try {
+          await Reflect.apply(load, this, args);
+        } finally {
+          const overheadStarted = performance.now();
+          if (profileActive)
+            recordTiming(
+              nestedGraphMetrics,
+              'load',
+              overheadStarted - started,
+              process.cpuUsage(cpu),
+            );
+          const current = this.metrics,
+            previous = graphObservations.get(this) ?? { nodes: 0, edges: 0 };
+          graphNodesAcrossPasses += current.nodes - previous.nodes;
+          graphEdgesAcrossPasses += current.edges - previous.edges;
+          graphNodesMaxPass = Math.max(graphNodesMaxPass, current.nodes);
+          graphEdgesMaxPass = Math.max(graphEdgesMaxPass, current.edges);
+          graphObservations.set(this, current);
+          graphInstrumentationOverheadMs += performance.now() - overheadStarted;
+        }
+      };
+      return () => {
+        prototype.pins = pins;
+        prototype.load = load;
+      };
+    }
+    function instrumentPhases() {
+      const prototype = LearningDatasetService.prototype;
+      const restored: { name: string; descriptor: PropertyDescriptor }[] = [];
+      for (const name of [
+        'extractSources',
+        'prepareManifest',
+        'lockSelectedDecisions',
+        'revalidateSources',
+        'persistEntries',
+        'persistDependencies',
+      ]) {
+        const descriptor = Object.getOwnPropertyDescriptor(prototype, name);
+        if (!descriptor?.configurable || !descriptor.writable)
+          throw new Error(`Cannot profile phase ${name}`);
+        const original: unknown = descriptor.value;
+        if (typeof original !== 'function')
+          throw new Error(`Phase ${name} is not callable`);
+        restored.push({ name, descriptor });
+      }
+      for (const { name, descriptor } of restored) {
+        const original: unknown = descriptor.value;
+        if (typeof original !== 'function')
+          throw new Error(`Validated phase ${name} is not callable`);
+        Object.defineProperty(prototype, name, {
+          ...descriptor,
+          value: function (this: unknown, ...args: unknown[]) {
+            const overheadStarted = performance.now();
+            phaseBoundaries.push({
+              phase: name,
+              boundary: 'start',
+              memory: memoryBoundary(),
+            });
+            const cpu = process.cpuUsage(),
+              started = performance.now();
+            phaseInstrumentationOverheadMs += started - overheadStarted;
+            const finish = () => {
+              const overheadStarted = performance.now();
+              recordTiming(
+                phaseMetrics,
+                name,
+                overheadStarted - started,
+                process.cpuUsage(cpu),
+              );
+              phaseBoundaries.push({
+                phase: name,
+                boundary: 'end',
+                memory: memoryBoundary(),
+              });
+              phaseInstrumentationOverheadMs +=
+                performance.now() - overheadStarted;
+            };
+            let result: unknown;
+            try {
+              result = Reflect.apply(original, this, args);
+            } catch (error) {
+              finish();
+              throw error;
+            }
+            if (result instanceof Promise) return result.finally(finish);
+            finish();
+            return result;
+          },
+        });
+      }
+      return () => {
+        for (const { name, descriptor } of restored)
+          Object.defineProperty(prototype, name, descriptor);
+      };
+    }
     beforeAll(async () => {
       const url = assertIsolatedDatabaseUrl(explicitUrl);
       pool = new Pool({
@@ -181,7 +376,8 @@ describe.skipIf(!explicitUrl)(
         log: [{ emit: 'event', level: 'query' }],
       });
       prisma.$on('query', (event) => {
-        statements.push(event.query);
+        const observedAt = performance.now();
+        queryCount++;
         const parameters: unknown = JSON.parse(event.params);
         if (!Array.isArray(parameters))
           throw new Error('Prisma query parameters must be a JSON array');
@@ -192,41 +388,31 @@ describe.skipIf(!explicitUrl)(
           event.query.includes('LIMIT')
         )
           candidatePages++;
+        if (
+          event.query.includes('content_learning_accounts') &&
+          event.query.includes(' IN (')
+        )
+          secondaryGraphBatches++;
+        if (profileActive) {
+          const category = queryCategory(event.query);
+          const aggregate = queryMetrics.get(category) ?? {
+            count: 0,
+            durationMs: 0,
+            maxDurationMs: 0,
+            samples: [],
+          };
+          aggregate.count++;
+          aggregate.durationMs += event.duration;
+          aggregate.maxDurationMs = Math.max(
+            aggregate.maxDurationMs,
+            event.duration,
+          );
+          if (aggregate.samples.length < 2)
+            aggregate.samples.push(event.query.slice(0, 240));
+          queryMetrics.set(category, aggregate);
+        }
+        queryObserverOverheadMs += performance.now() - observedAt;
       });
-      const pinResolver = LearningDatasetGraph.prototype.pins;
-      const pinSpy = vi
-        .spyOn(LearningDatasetGraph.prototype, 'pins')
-        .mockImplementation(function (
-          this: LearningDatasetGraph,
-          ...args: Parameters<LearningDatasetGraph['pins']>
-        ) {
-          graphBatches++;
-          return pinResolver.apply(this, args);
-        });
-      const graphLoader = LearningDatasetGraph.prototype.load;
-      const loadSpy = vi
-        .spyOn(LearningDatasetGraph.prototype, 'load')
-        .mockImplementation(async function (
-          this: LearningDatasetGraph,
-          ...args: Parameters<LearningDatasetGraph['load']>
-        ) {
-          await graphLoader.apply(this, args);
-          const current = this.metrics,
-            previous = graphObservations.get(this) ?? { nodes: 0, edges: 0 };
-          graphNodesAcrossPasses += current.nodes - previous.nodes;
-          graphEdgesAcrossPasses += current.edges - previous.edges;
-          graphNodesMaxPass = Math.max(graphNodesMaxPass, current.nodes);
-          graphEdgesMaxPass = Math.max(graphEdgesMaxPass, current.edges);
-          graphObservations.set(this, current);
-        });
-      clearGraphSpyHistory = () => {
-        pinSpy.mockClear();
-        loadSpy.mockClear();
-      };
-      restoreGraphSpies = () => {
-        pinSpy.mockRestore();
-        loadSpy.mockRestore();
-      };
       const instrumented = {
         $transaction: async (
           callback: (tx: Prisma.TransactionClient) => Promise<unknown>,
@@ -335,7 +521,6 @@ describe.skipIf(!explicitUrl)(
       }
     }, 120000);
     afterAll(async () => {
-      restoreGraphSpies();
       await prisma?.$disconnect();
       if (pool) {
         await pool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
@@ -351,7 +536,7 @@ describe.skipIf(!explicitUrl)(
       await prisma.contentLearningDataset.deleteMany();
     }
     function assertBenchmarkDiskSpace() {
-      if (!benchmark) return;
+      if (!benchmark && !diagnostic) return;
       const { bavail, bsize } = statfsSync(process.cwd());
       if (bavail * bsize < 10 * 1024 ** 3)
         throw new Error(
@@ -410,6 +595,7 @@ describe.skipIf(!explicitUrl)(
       size: number,
       kind: 'owned' | 'consented' | 'mixed',
       run: number,
+      profile = false,
     ) {
       assertBenchmarkDiskSpace();
       const rows =
@@ -418,7 +604,6 @@ describe.skipIf(!explicitUrl)(
           : kind === 'mixed'
             ? [numericRow(0)]
             : undefined;
-      clearGraphSpyHistory();
       graphObservations = new WeakMap<
         LearningDatasetGraph,
         { nodes: number; edges: number }
@@ -428,24 +613,115 @@ describe.skipIf(!explicitUrl)(
       graphNodesAcrossPasses = 0;
       graphEdgesAcrossPasses = 0;
       maxBindParameters = 0;
-      statements = [];
+      queryCount = 0;
+      secondaryGraphBatches = 0;
+      queryObserverOverheadMs = 0;
+      phaseInstrumentationOverheadMs = 0;
+      graphInstrumentationOverheadMs = 0;
+      gcObserverOverheadMs = 0;
+      queryMetrics = new Map();
+      phaseMetrics = new Map();
+      nestedGraphMetrics = new Map();
+      phaseBoundaries = [];
+      gcCount = 0;
+      gcDurationMs = 0;
+      profileActive = profile;
       graphBatches = 0;
       candidatePages = 0;
       decisionLockBatches = 0;
-      const started = performance.now();
-      const dataset = await service.create({
-        ...input,
-        requestId: randomUUID(),
-        rows,
-        sourceAccounts: kind === 'owned' ? undefined : sources,
+      const graphSetupStarted = performance.now();
+      const restoreGraph = instrumentGraph();
+      graphInstrumentationOverheadMs += performance.now() - graphSetupStarted;
+      let restorePhases: () => void = () => {};
+      const observer = new PerformanceObserver((list) => {
+        const overheadStarted = performance.now();
+        for (const entry of list.getEntries()) {
+          gcCount++;
+          gcDurationMs += entry.duration;
+        }
+        gcObserverOverheadMs += performance.now() - overheadStarted;
       });
-      const elapsed = performance.now() - started,
-        queries = statements.length;
-      clearGraphSpyHistory();
+      const memoryBefore = memoryBoundary();
+      const cpuBefore = process.cpuUsage();
+      const started = performance.now();
+      let dataset: Awaited<ReturnType<LearningDatasetService['create']>>;
+      let elapsed = 0;
+      let cpu = process.cpuUsage(cpuBefore);
+      try {
+        const overheadStarted = performance.now();
+        restorePhases = profile ? instrumentPhases() : () => {};
+        phaseInstrumentationOverheadMs += performance.now() - overheadStarted;
+        const gcStarted = performance.now();
+        if (profile) observer.observe({ entryTypes: ['gc'] });
+        gcObserverOverheadMs += performance.now() - gcStarted;
+        dataset = await service.create({
+          ...input,
+          requestId: randomUUID(),
+          rows,
+          sourceAccounts: kind === 'owned' ? undefined : sources,
+        });
+        elapsed = performance.now() - started;
+        cpu = process.cpuUsage(cpuBefore);
+      } finally {
+        let overheadStarted = performance.now();
+        restoreGraph();
+        graphInstrumentationOverheadMs += performance.now() - overheadStarted;
+        overheadStarted = performance.now();
+        restorePhases();
+        phaseInstrumentationOverheadMs += performance.now() - overheadStarted;
+        overheadStarted = performance.now();
+        for (const entry of observer.takeRecords()) {
+          gcCount++;
+          gcDurationMs += entry.duration;
+        }
+        observer.disconnect();
+        gcObserverOverheadMs += performance.now() - overheadStarted;
+        profileActive = false;
+      }
+      const queries = queryCount;
       const counts = dataset.counts as { total: number };
+      const phaseWallMs = [...phaseMetrics.values()].reduce(
+        (total, phase) => total + phase.wallMs,
+        0,
+      );
       console.log(
         JSON.stringify({
-          datasetBenchmark: true,
+          datasetBenchmark: !profile,
+          samplePurpose: profile
+            ? 'diagnostic-only-not-matrix-acceptance'
+            : run === 0
+              ? 'matrix-warmup'
+              : 'matrix-measurement',
+          ...(profile
+            ? {
+                datasetDiagnostic: true,
+                cpu,
+                memoryBefore,
+                memoryAfter: memoryBoundary(),
+                phases: Object.fromEntries(phaseMetrics),
+                phaseWallMs,
+                remainingWallMs: elapsed - phaseWallMs,
+                timingAccounting:
+                  'Service phases are sequential; graph and SQL timings are nested diagnostics and are not added to phase totals.',
+                phaseBoundaries,
+                nestedGraph: Object.fromEntries(nestedGraphMetrics),
+                gc: { count: gcCount, durationMs: gcDurationMs },
+                sql: Object.fromEntries(queryMetrics),
+                observerOverheadMs:
+                  queryObserverOverheadMs +
+                  phaseInstrumentationOverheadMs +
+                  graphInstrumentationOverheadMs +
+                  gcObserverOverheadMs,
+                overheadComponents: {
+                  queryObserverOverheadMs,
+                  phaseInstrumentationOverheadMs,
+                  graphInstrumentationOverheadMs,
+                  gcObserverOverheadMs,
+                },
+                overheadAccounting:
+                  'Bookkeeping overhead is reported separately and never subtracted from acceptance elapsed; memory snapshots are boundaries, not peaks; process rss is distinct from runner group rss.',
+              }
+            : {}),
 
           size,
           kind,
@@ -464,6 +740,7 @@ describe.skipIf(!explicitUrl)(
           graphBatches,
           candidatePages,
           decisionLockBatches,
+          secondaryGraphBatches,
           entryBatches: Math.ceil(counts.total / 1000),
           edgeBatches: kind === 'owned' ? 0 : Math.ceil((size + 10) / 1000),
         }),
@@ -472,11 +749,6 @@ describe.skipIf(!explicitUrl)(
       expect(maxBindParameters).toBeLessThanOrEqual(32767);
       expect(graphNodesMaxPass).toBe(kind === 'owned' ? 0 : 4 * size + 21);
       expect(graphEdgesMaxPass).toBe(kind === 'owned' ? 0 : 6 * size + 200);
-      const secondaryGraphBatches = statements.filter(
-        (query) =>
-          query.includes('content_learning_accounts') &&
-          query.includes(' IN ('),
-      ).length;
       const queryBound =
         kind === 'owned'
           ? 8 + Math.ceil(size / 1000)
@@ -521,6 +793,16 @@ describe.skipIf(!explicitUrl)(
           for (const kind of ['owned', 'consented'] as const)
             for (let run = 0; run < 4; run++) await measure(size, kind, run);
           if (size === 10000) await measure(size, 'mixed', 1);
+        }
+      },
+      1200000,
+    );
+    it.skipIf(!diagnostic)(
+      'profiles one 10k and one 100k consented snapshot without replacing acceptance matrix',
+      async () => {
+        for (const size of [10000, 100000]) {
+          await seed(size);
+          await measure(size, 'consented', 1, true);
         }
       },
       1200000,
