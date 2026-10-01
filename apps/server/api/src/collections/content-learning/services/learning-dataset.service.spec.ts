@@ -631,3 +631,142 @@ describe('dataset envelope and immutable split parity', () => {
     expect(() => graph.valid(second)).toThrow('selection too large');
   });
 });
+
+describe('candidate eligibility paging', () => {
+  it('finds a later eligible row beyond 100001 early ineligible rewards', async () => {
+    const eligible = {
+      id: 'reward-0100001',
+      organizationId: 'org',
+      credentialId: 'credential',
+      decisionId: 'decision',
+      version: 1,
+      composite: 0.5,
+      sourceFingerprint: 'later-fingerprint',
+      createdAt: new Date('2026-09-03'),
+      checkpointId: 'checkpoint',
+      baselineId: 'baseline',
+      status: 'valid',
+    };
+    const decision = {
+      id: 'decision',
+      payloadHash: 'payload',
+      createdAt: new Date('2026-09-01'),
+      contextVector: row.features,
+      selectedArmId: row.armId,
+      probabilities: row.probabilities,
+    };
+    const rewardRead = vi.fn().mockImplementation(({ where, take }) => {
+      if (where.id?.in) return Promise.resolve([eligible]);
+      const start = where.id?.gt ? Number(where.id.gt.slice(7)) + 1 : 0;
+      return Promise.resolve(
+        Array.from(
+          { length: Math.max(0, Math.min(take, 100002 - start)) },
+          (_, offset) => {
+            const index = start + offset;
+            return {
+              ...eligible,
+              id: `reward-${String(index).padStart(7, '0')}`,
+              composite: index === 100001 ? 0.5 : null,
+            };
+          },
+        ),
+      );
+    });
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([{ id: 'decision' }]),
+      contentLearningOperation: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockResolvedValue({}),
+      },
+      contentLearningAccount: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'account',
+          organizationId: 'org',
+          credentialId: 'credential',
+          sharingConsentVersion: 1,
+        }),
+        findMany: vi
+          .fn()
+          .mockResolvedValue([{ id: 'account', sharingConsentVersion: 1 }]),
+      },
+      contentLearningConsent: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'consent',
+          organizationId: 'org',
+          accountId: 'account',
+          version: 1,
+          grantedAt: new Date('2026-08-01'),
+        }),
+        findMany: vi
+          .fn()
+          .mockResolvedValue([
+            { id: 'consent', accountId: 'account', version: 1 },
+          ]),
+      },
+      contentLearningReward: {
+        findMany: rewardRead,
+        groupBy: vi
+          .fn()
+          .mockResolvedValue([
+            { decisionId: 'decision', _max: { version: 1 } },
+          ]),
+      },
+      contentLearningDecision: {
+        findMany: vi.fn().mockResolvedValue([decision]),
+      },
+      contentLearningDependency: {
+        findMany: vi.fn().mockImplementation(({ where }) =>
+          Promise.resolve(
+            where.derivedKind === 'reward'
+              ? [
+                  {
+                    derivedId: eligible.id,
+                    sourceKind: 'config',
+                    sourceId: 'numeric-nine-v1',
+                    sourceVersion: 'numeric-nine-v1',
+                    sourceOrganizationId: null,
+                    valid: true,
+                  },
+                ]
+              : [],
+          ),
+        ),
+        createMany: vi.fn().mockResolvedValue({ count: 2 }),
+      },
+      contentLearningDataset: {
+        create: vi
+          .fn()
+          .mockImplementation(({ data }) =>
+            Promise.resolve({ id: 'dataset', ...data }),
+          ),
+      },
+      contentLearningDatasetEntry: {
+        createMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+    };
+    const service = new LearningDatasetService(
+      {
+        $transaction: vi.fn().mockImplementation((callback) => callback(tx)),
+      } as unknown as PrismaService,
+      {} as LearningDependencyService,
+    );
+    const result = await service.create({
+      organizationId: 'org',
+      actorId: 'actor',
+      requestId: 'later',
+      rightsStatement: 'owned',
+      profile: 'awareness',
+      cell: 'cell',
+      cutoff: '2026-09-29',
+      sourceAccounts: [{ organizationId: 'org', accountId: 'account' }],
+    });
+    expect(result.counts).toMatchObject({ total: 1 });
+    expect(
+      tx.contentLearningDatasetEntry.createMany.mock.calls[0][0].data[0]
+        .sourceFingerprint,
+    ).toBe('later-fingerprint');
+    expect(rewardRead.mock.calls.filter(([args]) => args.take)).toHaveLength(
+      102,
+    );
+  });
+});

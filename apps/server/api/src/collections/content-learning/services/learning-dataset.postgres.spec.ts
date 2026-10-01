@@ -2,7 +2,10 @@ import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { LearningDatasetService } from '@api/collections/content-learning/services/learning-dataset.service';
+import {
+  LearningDatasetGraph,
+  LearningDatasetService,
+} from '@api/collections/content-learning/services/learning-dataset.service';
 import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { assertIsolatedDatabaseUrl } from '@api-test/../scripts/assert-isolated-db-url';
@@ -63,9 +66,17 @@ function deferred() {
 describe.skipIf(!explicitUrl)(
   'dataset atomic scalability on isolated PostgreSQL',
   () => {
-    let pool: Pool, prisma: PrismaClient, service: LearningDatasetService;
+    let pool: Pool,
+      prisma: PrismaClient<{
+        adapter: PrismaPg;
+        log: [{ emit: 'event'; level: 'query' }];
+      }>,
+      service: LearningDatasetService;
     let statements: string[] = [];
     let transactionElapsedMs = 0;
+    let graphBatches = 0,
+      candidatePages = 0,
+      decisionLockBatches = 0;
     let beforeDecisionLock: (() => Promise<void>) | undefined;
     let afterDatasetCreate: (() => Promise<void>) | undefined;
     const schema = `dataset_5781_${process.pid}_${Date.now()}`;
@@ -158,7 +169,25 @@ describe.skipIf(!explicitUrl)(
         adapter: new PrismaPg(pool, { schema }),
         log: [{ emit: 'event', level: 'query' }],
       });
-      prisma.$on('query', (event) => statements.push(event.query));
+      prisma.$on('query', (event) => {
+        statements.push(event.query);
+        if (
+          event.query.includes('content_learning_rewards') &&
+          event.query.includes('ORDER BY') &&
+          event.query.includes('LIMIT')
+        )
+          candidatePages++;
+      });
+      const pinResolver = LearningDatasetGraph.prototype.pins;
+      vi.spyOn(LearningDatasetGraph.prototype, 'pins').mockImplementation(
+        function (
+          this: LearningDatasetGraph,
+          ...args: Parameters<LearningDatasetGraph['pins']>
+        ) {
+          graphBatches++;
+          return pinResolver.apply(this, args);
+        },
+      );
       const instrumented = {
         $transaction: async (
           callback: (tx: Prisma.TransactionClient) => Promise<unknown>,
@@ -174,6 +203,8 @@ describe.skipIf(!explicitUrl)(
                       query: TemplateStringsArray | Prisma.Sql,
                       ...values: unknown[]
                     ) => {
+                      if ('sql' in query && query.sql.includes('FOR UPDATE'))
+                        decisionLockBatches++;
                       if (
                         'sql' in query &&
                         query.sql.includes('FOR UPDATE') &&
@@ -338,6 +369,9 @@ describe.skipIf(!explicitUrl)(
             ? [numericRow(0)]
             : undefined;
       statements = [];
+      graphBatches = 0;
+      candidatePages = 0;
+      decisionLockBatches = 0;
       const started = performance.now();
       const dataset = await service.create({
         ...input,
@@ -363,9 +397,30 @@ describe.skipIf(!explicitUrl)(
           graphNodes: kind === 'owned' ? 0 : 4 * size + 21,
           graphEdges: kind === 'owned' ? 0 : 6 * size + 200,
           batchSize: 1000,
+          graphBatches,
+          candidatePages,
+          decisionLockBatches,
+          entryBatches: Math.ceil(counts.total / 1000),
+          edgeBatches: kind === 'owned' ? 0 : Math.ceil((size + 10) / 1000),
         }),
       );
       expect(counts.total).toBe(size + (kind === 'mixed' ? 1 : 0));
+      const secondaryGraphBatches = statements.filter(
+        (query) =>
+          query.includes('content_learning_accounts') &&
+          query.includes(' IN ('),
+      ).length;
+      const queryBound =
+        kind === 'owned'
+          ? 8 + Math.ceil(size / 1000)
+          : 12 +
+            4 * 10 +
+            3 * candidatePages +
+            3 * (graphBatches + secondaryGraphBatches) +
+            3 * decisionLockBatches +
+            Math.ceil(counts.total / 1000) +
+            Math.ceil((size + 10) / 1000);
+      expect(queries).toBeLessThanOrEqual(queryBound);
       expect(queries).toBeLessThanOrEqual(
         kind === 'owned' ? 8 + Math.ceil(size / 1000) : 6000,
       );
@@ -498,7 +553,12 @@ describe.skipIf(!explicitUrl)(
           requestId: randomUUID(),
           sourceAccounts: sources,
         });
-        expect((dataset.counts as { total: number }).total).toBe(999);
+        expect((dataset.counts as { total: number }).total).toBe(
+          change.includes('content_learning_checkpoints') ||
+            change.startsWith('UPDATE posts')
+            ? 900
+            : 999,
+        );
       }
     }, 120000);
     const replacementData = {
@@ -536,7 +596,12 @@ describe.skipIf(!explicitUrl)(
       };
       const snapshot = service.create(request);
       try {
-        await held.promise;
+        await Promise.race([
+          held.promise,
+          snapshot.then(() => {
+            throw new Error('Snapshot finished before barrier');
+          }),
+        ]);
         await prisma.contentLearningReward.create({ data: replacementData });
         release.resolve();
         await expect(snapshot).rejects.toThrow('Source invalidated');
@@ -570,7 +635,12 @@ describe.skipIf(!explicitUrl)(
       const snapshot = service.create(request);
       let replacement: Promise<unknown> | undefined;
       try {
-        await held.promise;
+        await Promise.race([
+          held.promise,
+          snapshot.then(() => {
+            throw new Error('Snapshot finished before barrier');
+          }),
+        ]);
         replacement = prisma.$transaction(async (tx) => {
           await tx.contentLearningReward.create({ data: replacementData });
           await new LearningDependencyService(
@@ -618,7 +688,12 @@ describe.skipIf(!explicitUrl)(
       });
       let revoke: Promise<unknown> | undefined;
       try {
-        await held.promise;
+        await Promise.race([
+          held.promise,
+          snapshot.then(() => {
+            throw new Error('Snapshot finished before barrier');
+          }),
+        ]);
         revoke = prisma.$transaction(async (tx) => {
           await tx.$queryRaw`SELECT pg_advisory_xact_lock(5728,1)::text`;
           await tx.contentLearningConsent.update({
