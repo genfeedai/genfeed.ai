@@ -389,8 +389,8 @@ export function compileRemainingVideoGenerationBrief(
   const evidence = remainingVideoCompileEvidenceSchema.parse({
     appliedFields: [
       'intent.objective',
-      'output.aspectRatio',
-      'output.durationSeconds',
+      ...(aspectRatio ? ['output.aspectRatio'] : []),
+      ...(duration !== undefined ? ['output.durationSeconds'] : []),
       ...(brief.intent.subjects.length > 0 ? ['intent.subjects'] : []),
       ...(brief.intent.scene ? ['intent.scene'] : []),
       ...(brief.intent.composition ? ['intent.composition'] : []),
@@ -418,8 +418,8 @@ export function compileRemainingVideoGenerationBrief(
     modelKey,
     omittedSignals: omitted,
     output: {
-      aspectRatio,
-      durationSeconds: duration,
+      ...(aspectRatio ? { aspectRatio } : {}),
+      ...(duration !== undefined ? { durationSeconds: duration } : {}),
       hasSeed,
       ...(resolution ? { resolution } : {}),
     },

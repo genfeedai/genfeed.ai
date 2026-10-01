@@ -5,6 +5,7 @@ import {
   buildVideoGenerationBriefExemptionSource,
   minimaxH3CompileEvidenceSchema,
   prunaaiPVideoCompileEvidenceSchema,
+  remainingVideoCompileEvidenceSchema,
   videoGenerationBriefExemptionEvidenceSchema,
   videoGenerationBriefPersistedEvidenceSchema,
   videoGenerationBriefSupportSchema,
@@ -105,6 +106,27 @@ describe('video generation brief compiler contract', () => {
     expect(buildMinimaxH3GenerationSource()).toBe(
       `generation-brief:v1:${MINIMAX_H3_CAPABILITY_PROFILE_ID}@${MINIMAX_H3_CAPABILITY_PROFILE_VERSION}:minimax-h3-compiler@2`,
     );
+  });
+
+  test('remaining-video compile evidence can omit unsupported output controls', () => {
+    const evidence = remainingVideoCompileEvidenceSchema.parse({
+      appliedFields: ['intent.objective', 'output.resolution'],
+      briefVersion: 1,
+      compilerId: 'remaining-video-compiler',
+      compilerVersion: 1,
+      fidelityMode: 'guided',
+      mediaKind: 'video',
+      modelKey: 'higgsfield/genjutsu/motion-transfer/v1.0',
+      omittedSignals: [],
+      output: { hasSeed: false, resolution: '720p' },
+      profileId: 'remaining-video-genjutsu',
+      profileVersion: 1,
+      referenceAssetIds: ['clip-1'],
+      status: 'compiled',
+    });
+
+    expect(evidence.output.aspectRatio).toBeUndefined();
+    expect(evidence.output.durationSeconds).toBeUndefined();
   });
 
   test('exemption evidence never claims compiler or profile identity', () => {

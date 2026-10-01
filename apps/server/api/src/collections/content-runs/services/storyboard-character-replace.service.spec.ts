@@ -51,6 +51,7 @@ function serviceWith(config: object = uploadedConfig) {
     findMany,
     generateMotionTransfer,
     libraryAsset,
+    read,
     revalidate,
     save,
     service,

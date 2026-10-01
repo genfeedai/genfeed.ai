@@ -820,6 +820,14 @@ describe('compileRemainingVideoGenerationBrief', () => {
       reference_video: 'clip-1',
       resolution: '720p',
     });
+    expect(result.evidence.output).toEqual({
+      hasSeed: false,
+      resolution: '720p',
+    });
+    expect(result.evidence.appliedFields).not.toContain('output.aspectRatio');
+    expect(result.evidence.appliedFields).not.toContain(
+      'output.durationSeconds',
+    );
   });
 
   it('rejects a requested Genjutsu aspect ratio or duration instead of dropping it', () => {
