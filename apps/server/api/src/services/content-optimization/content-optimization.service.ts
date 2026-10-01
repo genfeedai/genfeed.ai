@@ -1,3 +1,16 @@
+import {
+  buildStructuredResponseFormat,
+  runStructuredCompletion,
+  toStructuredJsonSchema,
+} from '@api/services/integrations/llm/structured-output.util';
+import {
+  PROMPT_OPTIMIZATION_SCHEMA_NAME,
+  type PromptOptimizationResult,
+  promptOptimizationSchema,
+} from '@genfeedai/contracts/api-types/contracts';
+
+export type { PromptOptimizationResult } from '@genfeedai/contracts/api-types/contracts';
+
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import {
   type OptimizationCycleResult,
@@ -33,13 +46,6 @@ export interface AnalyzePerformanceOptions {
   startDate?: Date | string;
   endDate?: Date | string;
   topN?: number;
-}
-
-export interface PromptOptimizationResult {
-  optimizedPrompt: string;
-  reasoning: string;
-  suggestions: string[];
-  confidenceScore: number;
 }
 
 export interface ContentRecommendation {
@@ -660,23 +666,36 @@ export class ContentOptimizationService implements OnModuleInit {
       worstPerformers,
       this.requiredString(performance.performanceContext, 'performanceContext'),
     );
-    const response = await this.openAiLlmService.chatCompletion({
-      max_tokens: 1500,
-      messages: [
-        { content: systemPrompt, role: 'system' },
-        {
-          content: `Optimize this content prompt for better engagement:\n\n"${originalPrompt}"\n\nReturn JSON with keys: optimizedPrompt, reasoning, suggestions (array of strings), confidenceScore (0-1).`,
-          role: 'user',
-        },
-      ],
-      model: LLM_DEFAULTS.fastText,
-      temperature: 0.7,
+    const messages = [
+      { content: systemPrompt, role: 'system' as const },
+      {
+        content: `Optimize this content prompt for better engagement:\n\n"${originalPrompt}". Explain the reasoning, actionable suggestions, and confidence from 0 to 1.`,
+        role: 'user' as const,
+      },
+    ];
+    return runStructuredCompletion({
+      schema: promptOptimizationSchema,
+      schemaName: PROMPT_OPTIMIZATION_SCHEMA_NAME,
+      attempt: async (repair) => {
+        const response = await this.openAiLlmService.chatCompletion({
+          max_tokens: 1500,
+          messages: repair
+            ? [
+                ...messages,
+                { role: 'assistant', content: repair.previousRaw },
+                { role: 'user', content: repair.instruction },
+              ]
+            : messages,
+          model: LLM_DEFAULTS.fastText,
+          temperature: 0.7,
+          response_format: buildStructuredResponseFormat(
+            PROMPT_OPTIMIZATION_SCHEMA_NAME,
+            toStructuredJsonSchema(promptOptimizationSchema),
+          ),
+        });
+        return response.choices?.[0]?.message?.content ?? '';
+      },
     });
-    const content = response.choices?.[0]?.message?.content;
-    if (!content) {
-      throw new Error('Prompt optimization action returned no content');
-    }
-    return this.parseOptimizationResponse(content);
   }
 
   private async deriveRecommendationsAction(
@@ -1027,44 +1046,12 @@ Top performing content:
 ${topExamples || 'No data yet.'}
 ${antiPatternSection}
 Your job: take the user's content prompt and optimize it based on what has worked historically.
-Return ONLY valid JSON.`;
+Use the performance context to explain and improve the prompt.`;
   }
 
   private formatPerformerLabel(item: PerformanceContentItem): string {
     const rawLabel = item.title || item.description || item.postId;
     return SecurityUtil.sanitizePromptInput(rawLabel, 140);
-  }
-
-  private parseOptimizationResponse(content: string): PromptOptimizationResult {
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Prompt optimization action returned no JSON object');
-    }
-    const parsed = this.readRecord(JSON.parse(jsonMatch[0]), 'LLM response');
-    if (
-      typeof parsed.confidenceScore !== 'number' ||
-      !Number.isFinite(parsed.confidenceScore) ||
-      parsed.confidenceScore < 0 ||
-      parsed.confidenceScore > 1
-    ) {
-      throw new Error(
-        'Prompt optimization action requires confidenceScore from 0 to 1',
-      );
-    }
-    if (!Array.isArray(parsed.suggestions)) {
-      throw new Error('Prompt optimization action requires suggestions');
-    }
-    return {
-      confidenceScore: parsed.confidenceScore,
-      optimizedPrompt: this.requiredString(
-        parsed.optimizedPrompt,
-        'optimizedPrompt',
-      ),
-      reasoning: this.requiredString(parsed.reasoning, 'reasoning'),
-      suggestions: parsed.suggestions.map((suggestion, index) =>
-        this.requiredString(suggestion, `suggestions[${index}]`),
-      ),
-    };
   }
 
   private derivePipelineConfigs(
