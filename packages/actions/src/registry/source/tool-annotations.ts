@@ -62,6 +62,7 @@ const NON_DESTRUCTIVE_WRITE_NAMES: ReadonlySet<string> = new Set([
   'merge_videos',
   'request_media_upload',
   'create_post',
+  'open_in_editor',
 ]);
 
 const PUBLISHING_TOOL_NAMES: ReadonlySet<string> = new Set(

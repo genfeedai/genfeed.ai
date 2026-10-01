@@ -26,6 +26,10 @@ import {
   type ListClipProjectsParams,
 } from '@mcp/services/client/clips.client';
 import { ContentClient } from '@mcp/services/client/content.client';
+import {
+  EditorClient,
+  type OpenInEditorParams,
+} from '@mcp/services/client/editor.client';
 import { LinkedInClient } from '@mcp/services/client/linkedin.client';
 import type { LinkedInConnectionStatus } from '@mcp/services/client/linkedin.client.types';
 import { MediaClient } from '@mcp/services/client/media.client';
@@ -134,6 +138,7 @@ export class ClientService {
   private readonly analytics: AnalyticsClient;
   private readonly content: ContentClient;
   private readonly clips: ClipsClient;
+  private readonly editor: EditorClient;
   private readonly scheduler: SchedulerClient;
   private readonly remix: RemixClient;
   private readonly workflows: WorkflowClient;
@@ -156,6 +161,7 @@ export class ClientService {
     this.analytics = new AnalyticsClient(this.base);
     this.content = new ContentClient(this.base);
     this.clips = new ClipsClient(this.base);
+    this.editor = new EditorClient(this.base);
     this.scheduler = new SchedulerClient(this.base);
     this.remix = new RemixClient(this.base);
     this.workflows = new WorkflowClient(this.base);
@@ -366,6 +372,10 @@ export class ClientService {
     params: ListClipProjectsParams = {},
   ): Promise<Array<Record<string, unknown>>> {
     return this.clips.listClipProjects(params);
+  }
+
+  openInEditor(params: OpenInEditorParams): Promise<Record<string, unknown>> {
+    return this.editor.openInEditor(params);
   }
 
   importSourcePost(input: RemixToolInput<'import_source_post'>) {

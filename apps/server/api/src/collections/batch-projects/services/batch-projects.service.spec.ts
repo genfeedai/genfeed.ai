@@ -799,6 +799,31 @@ describe('BatchProjectsService', () => {
       },
     );
 
+    it.each(['quote', 'start', 'retry'] as const)(
+      'lets a superadmin %s an idea project while batch_ideas is off',
+      async (operation) => {
+        platformSettingsService.getFeatureSettings.mockResolvedValue({
+          flags: { batch_ideas: false },
+        });
+        useProject(makeProject({ kind: BatchProjectKind.IDEAS }), [makeItem()]);
+        prisma.batchProjectItem.findFirst.mockResolvedValue(
+          makeItem({ status: BatchProjectItemStatus.FAILED }),
+        );
+        const admin = { ...scope, isSuperAdmin: true };
+        if (operation === 'quote') {
+          await service.quote('project-1', {}, admin);
+        } else if (operation === 'start') {
+          await service.start('project-1', admin, 'quote-1');
+        } else {
+          await service.retryItem('project-1', 'item-1', admin, 'quote-1');
+        }
+        expect(ideaGeneration[operation]).toHaveBeenCalled();
+        expect(
+          platformSettingsService.getFeatureSettings,
+        ).not.toHaveBeenCalled();
+      },
+    );
+
     it('starts an idea batch through its accepted quote', async () => {
       useProject(makeProject({ kind: BatchProjectKind.IDEAS }), [makeItem()]);
 

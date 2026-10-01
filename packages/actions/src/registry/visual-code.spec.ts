@@ -8,6 +8,8 @@ import {
   VISUAL_CODE_INPUT_SCHEMAS,
 } from './contracts/visual-code-action-contracts';
 import { getToolByName, getToolsForSurface } from './tool-registry';
+import { DEFAULT_MCP_PROFILE_TOOLSETS } from './toolset-profiles';
+import { getToolsForToolsets } from './toolsets';
 
 describe('visual-code canonical actions', () => {
   it.each(['constructor', 'toString', '__proto__', 'unknown'])(
@@ -47,7 +49,7 @@ describe('visual-code canonical actions', () => {
       additionalProperties: false,
     });
   });
-  it('exposes all valid aliases on agent and workflow without extending MCP', () => {
+  it('exposes all valid aliases on agent, workflow, and the generation MCP toolset', () => {
     for (const [alias, operation] of Object.entries(
       VISUAL_CODE_ACTION_ALIASES,
     )) {
@@ -56,11 +58,24 @@ describe('visual-code canonical actions', () => {
       expect(tool).toMatchObject({
         creditCost: 0,
         toolset: 'generation',
-        surfaces: { agent: true, mcp: false },
+        surfaces: { agent: true, mcp: true },
       });
       expect(
         getToolsForSurface('agent').some((item) => item.name === alias),
       ).toBe(true);
+      expect(
+        getToolsForSurface('mcp').some((item) => item.name === alias),
+      ).toBe(true);
+      expect(
+        getToolsForToolsets('mcp', ['core']).some(
+          (item) => item.name === alias,
+        ),
+      ).toBe(false);
+      expect(
+        getToolsForToolsets('mcp', DEFAULT_MCP_PROFILE_TOOLSETS).some(
+          (item) => item.name === alias,
+        ),
+      ).toBe(false);
       expect(getActionDefinition(alias)?.visibility).toBe('workflow');
       expect(
         getActionDefinition(`visual-code.${operation}`)?.inputSchema,

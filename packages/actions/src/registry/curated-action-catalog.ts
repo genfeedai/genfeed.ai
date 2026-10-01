@@ -55,7 +55,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'batch_approve_reject', surfaces: ['agent'], toolset: 'content' },
   {
     name: 'cancel_visual_code_project',
-    surfaces: ['agent', 'workflow'],
+    surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'generation',
   },
   {
@@ -171,7 +171,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'export_skill', surfaces: ['mcp'], toolset: 'skills-pro' },
   {
     name: 'export_visual_code_project',
-    surfaces: ['agent', 'workflow'],
+    surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'generation',
   },
   { name: 'fetch_x_post', surfaces: ['agent', 'mcp'], toolset: 'content' },
@@ -197,7 +197,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'generate_video', surfaces: ['agent', 'mcp'], toolset: 'generation' },
   {
     name: 'generate_visual_code',
-    surfaces: ['agent', 'workflow'],
+    surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'generation',
   },
   { name: 'generate_voice', surfaces: ['agent', 'mcp'], toolset: 'generation' },
@@ -299,12 +299,12 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'get_video_status', surfaces: ['mcp'], toolset: 'generation' },
   {
     name: 'get_visual_code_catalog',
-    surfaces: ['agent', 'workflow'],
+    surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'generation',
   },
   {
     name: 'get_visual_code_project',
-    surfaces: ['agent', 'workflow'],
+    surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'generation',
   },
   { name: 'get_workflow_inputs', surfaces: ['agent'], toolset: 'workflows' },
@@ -425,6 +425,7 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'social-inbox',
   },
   { name: 'merge_videos', surfaces: ['mcp'], toolset: 'generation' },
+  { name: 'open_in_editor', surfaces: ['mcp'], toolset: 'clips' },
   { name: 'open_studio_handoff', surfaces: ['agent'], toolset: 'ui' },
   { name: 'pause_outreach_sequence', surfaces: ['agent'], toolset: 'outreach' },
   {
@@ -444,7 +445,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'quote_remix_generation', surfaces: ['mcp'], toolset: 'generation' },
   {
     name: 'quote_visual_code_generation',
-    surfaces: ['agent', 'workflow'],
+    surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'generation',
   },
   { name: 'rate_content', surfaces: ['agent'], toolset: 'content' },
@@ -476,12 +477,12 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     name: 'retry_visual_code_project',
-    surfaces: ['agent', 'workflow'],
+    surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'generation',
   },
   {
     name: 'revise_visual_code_project',
-    surfaces: ['agent', 'workflow'],
+    surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'generation',
   },
   { name: 'rollback_skill', surfaces: ['mcp'], toolset: 'skills-pro' },

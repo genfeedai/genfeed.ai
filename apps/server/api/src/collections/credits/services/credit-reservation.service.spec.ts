@@ -791,6 +791,52 @@ describe('CreditReservationService', () => {
       expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
     });
 
+    it('retires float dust within tolerance onto the output hold', async () => {
+      const dust = 1e-12;
+      const poolAmount = 3 + dust;
+      prisma.creditReservation.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(pool({ amount: poolAmount }));
+      prisma.creditReservation.create.mockImplementation(
+        async ({ data }: { data: Record<string, unknown> }) =>
+          pool({ ...data, id: 'hold_1', metadata: data.metadata }),
+      );
+
+      const hold = await service.bindOutput(bindInput);
+
+      expect(prisma.creditReservation.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { amount: 0, status: CreditReservationStatus.RELEASED },
+        }),
+      );
+      expect(prisma.creditReservation.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ amount: poolAmount }),
+      });
+      expect(hold.amount).toBe(poolAmount);
+      expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
+    });
+
+    it('keeps a remainder above the bind tolerance reserved on the pool', async () => {
+      const remainder = 1e-5;
+      const poolAmount = 3 + remainder;
+      prisma.creditReservation.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(pool({ amount: poolAmount }));
+      prisma.creditReservation.create.mockImplementation(
+        async ({ data }: { data: Record<string, unknown> }) =>
+          pool({ ...data, id: 'hold_1', metadata: data.metadata }),
+      );
+
+      await service.bindOutput(bindInput);
+
+      expect(prisma.creditReservation.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { amount: poolAmount - 3 } }),
+      );
+      expect(prisma.creditReservation.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ amount: 3 }),
+      });
+    });
+
     it('retires the pool when its last share is bound', async () => {
       prisma.creditReservation.findFirst
         .mockResolvedValueOnce(null)

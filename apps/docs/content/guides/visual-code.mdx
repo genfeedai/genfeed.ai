@@ -38,7 +38,7 @@ A route, entitlement, BYOK or pricing change stops the next paid stage and requi
 
 Authenticated API endpoints under `/visual-projects` expose catalog, quote, project creation/listing, history, revisions, exports, cancellation, retries and source download. Mutations require `requestId`; revisions, exports and retries also require `expectedRevision`. Replaying the same identity and payload returns the same revision; changed payloads conflict.
 
-Workflow actions are `visual-code.catalog`, `.quote`, `.generate`, `.status`, `.revise`, `.export`, `.cancel` and `.retry`. Agent aliases are `get_visual_code_catalog`, `quote_visual_code_generation`, `generate_visual_code`, `get_visual_code_project`, `revise_visual_code_project`, `export_visual_code_project`, `cancel_visual_code_project` and `retry_visual_code_project`. They use the same authorization, schemas, quotes and revision ledger. Paid mutations require approval; generic tool execution adds no second media fee.
+Workflow actions are `visual-code.catalog`, `.quote`, `.generate`, `.status`, `.revise`, `.export`, `.cancel` and `.retry`. Agent and MCP aliases are `get_visual_code_catalog`, `quote_visual_code_generation`, `generate_visual_code`, `get_visual_code_project`, `revise_visual_code_project`, `export_visual_code_project`, `cancel_visual_code_project` and `retry_visual_code_project`. MCP serves them from the existing `generation` toolset (`?toolsets=generation` or `?profile=full`), not the bare URL. They use the same authorization, schemas, quotes and revision ledger. Paid mutations require approval; generic tool execution adds no second media fee.
 
 ### Retrying a request that did not receive a response
 

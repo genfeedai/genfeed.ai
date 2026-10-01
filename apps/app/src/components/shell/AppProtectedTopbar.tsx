@@ -7,6 +7,7 @@ import {
 import { useContextSidebar } from '@contexts/ui/context-sidebar-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_DISPLAY_LABELS } from '@genfeedai/contracts/constants';
+import { cn } from '@genfeedai/helpers';
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import SidebarLogoToggleButton from '@ui/menus/sidebar-logo-toggle/SidebarLogoToggleButton';
 import { Button } from '@ui/primitives/button';
@@ -23,7 +24,7 @@ import {
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense } from 'react';
+import { type ReactNode, Suspense, useId } from 'react';
 
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
 import GenerationToasts from '@/components/shell/GenerationToasts';
@@ -50,6 +51,57 @@ type AppProtectedTopbarChrome = 'app' | 'admin';
 type AppProtectedTopbarProps = TopbarProps & {
   chrome?: AppProtectedTopbarChrome;
 };
+
+type UnavailableToggleFrameProps = {
+  children: ReactNode;
+  className?: string;
+  isUnavailable: boolean;
+  reason: string;
+};
+
+// A disabled button is not in the tab order and does not receive pointer
+// events, so the reason has to live on a focusable wrapper. The button stays
+// natively disabled; Enter/Space on the wrapper do not activate it.
+function UnavailableToggleFrame({
+  children,
+  className,
+  isUnavailable,
+  reason,
+}: UnavailableToggleFrameProps) {
+  const reasonId = useId();
+
+  if (!isUnavailable) {
+    return <span className={className}>{children}</span>;
+  }
+
+  return (
+    <SimpleTooltip label={reason} position="bottom">
+      <span
+        aria-describedby={reasonId}
+        aria-label={reason}
+        className={cn(
+          'rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          className,
+        )}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+          }
+        }}
+        role="group"
+        // The disabled button cannot take focus. This group is the tab stop
+        // that exposes the reason; removing tabIndex hides it from the keyboard.
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: disabled control's reason needs a focusable wrapper
+        tabIndex={0}
+      >
+        {children}
+        <span className="sr-only" id={reasonId}>
+          {reason}
+        </span>
+      </span>
+    </SimpleTooltip>
+  );
+}
 
 function AppProtectedTopbarContent({
   chrome = 'app',
@@ -147,146 +199,121 @@ function AppProtectedTopbarContent({
 
           {!isAdminChrome ? <CloudSyncIndicator /> : null}
 
-          {/* The panel toggles are the last controls in the bar, always
-              rendered: the dock's and the inspector's only openers live here,
-              and keeping them in place (disabled when the route has nothing
-              to show) means they never shift or vanish between routes. At
-              `xl` and up the inspector toggle collapses/expands the rail;
-              below `xl` the rail is display:none, so the same slot swaps to a
-              variant that opens the inspector drawer instead. */}
+          {/* Inspector toggles stay in this slot and disable when nothing is
+              selected. At `xl` and up the rail toggle collapses the inspector;
+              below `xl` that variant is display:none and the drawer toggle
+              takes the slot. The agent-dock toggle uses the same unavailable
+              frame, but page-bubble chrome leaves it unmounted. */}
           {agentDock && AGENT_DOCK_CHROME_VISIBLE ? (
-            <SimpleTooltip
-              label={translateAgentDock('unavailable')}
-              isDisabled={agentDock.isAvailable}
+            <UnavailableToggleFrame
+              className="inline-flex"
+              isUnavailable={!agentDock.isAvailable}
+              reason={translateAgentDock('unavailable')}
             >
-              <span
-                role="group"
-                tabIndex={agentDock.isAvailable ? undefined : 0}
-                aria-label={
+              <Button
+                aria-controls="workspace-agent-dock"
+                aria-expanded={agentDock.isAvailable && agentDock.isOpen}
+                aria-keyshortcuts="Meta+J Control+J"
+                type="button"
+                variant={ButtonVariant.GHOST}
+                size={ButtonSize.ICON}
+                className="size-8"
+                data-active={
+                  agentDock.isAvailable && agentDock.isOpen ? 'true' : 'false'
+                }
+                data-testid="topbar-agent-dock-toggle"
+                isDisabled={!agentDock.isAvailable}
+                withWrapper={false}
+                ariaLabel={
                   !agentDock.isAvailable
                     ? translateAgentDock('unavailable')
-                    : undefined
+                    : agentDock.isOpen
+                      ? translateAgentDock('close')
+                      : translateAgentDock('open')
                 }
-                className="inline-flex"
+                onClick={agentDock.toggle}
               >
-                <Button
-                  aria-controls="workspace-agent-dock"
-                  aria-expanded={agentDock.isAvailable && agentDock.isOpen}
-                  aria-keyshortcuts="Meta+J Control+J"
-                  type="button"
-                  variant={ButtonVariant.GHOST}
-                  size={ButtonSize.ICON}
-                  className="size-8"
-                  data-active={
-                    agentDock.isAvailable && agentDock.isOpen ? 'true' : 'false'
-                  }
-                  data-testid="topbar-agent-dock-toggle"
-                  isDisabled={!agentDock.isAvailable}
-                  ariaLabel={
-                    !agentDock.isAvailable
-                      ? translateAgentDock('unavailable')
-                      : agentDock.isOpen
-                        ? translateAgentDock('close')
-                        : translateAgentDock('open')
-                  }
-                  onClick={agentDock.toggle}
-                >
-                  {agentDock.isAvailable && agentDock.isOpen ? (
-                    <PanelBottomClose className="size-4" />
-                  ) : (
-                    <PanelBottomOpen className="size-4" />
-                  )}
-                </Button>
-              </span>
-            </SimpleTooltip>
+                {agentDock.isAvailable && agentDock.isOpen ? (
+                  <PanelBottomClose className="size-4" />
+                ) : (
+                  <PanelBottomOpen className="size-4" />
+                )}
+              </Button>
+            </UnavailableToggleFrame>
           ) : null}
           {rightPanel ? (
             <>
-              <SimpleTooltip
-                label={rightPanel.labels.empty}
-                isDisabled={!rightPanel.isDisabled}
+              <UnavailableToggleFrame
+                className="hidden xl:inline-flex"
+                isUnavailable={rightPanel.isDisabled}
+                reason={rightPanel.labels.empty}
               >
-                <span
-                  role="group"
-                  tabIndex={rightPanel.isDisabled ? 0 : undefined}
-                  aria-label={
-                    rightPanel.isDisabled ? rightPanel.labels.empty : undefined
+                <Button
+                  aria-controls="workspace-context-inspector"
+                  aria-expanded={!rightPanel.isDisabled && rightPanel.isOpen}
+                  type="button"
+                  variant={ButtonVariant.GHOST}
+                  size={ButtonSize.ICON}
+                  className="hidden size-8 xl:inline-flex"
+                  data-active={
+                    !rightPanel.isDisabled && rightPanel.isOpen
+                      ? 'true'
+                      : 'false'
                   }
-                  className="hidden xl:inline-flex"
+                  data-testid="topbar-inspector-toggle"
+                  isDisabled={rightPanel.isDisabled}
+                  withWrapper={false}
+                  ariaLabel={
+                    rightPanel.isDisabled
+                      ? rightPanel.labels.empty
+                      : rightPanel.isOpen
+                        ? rightPanel.labels.collapse
+                        : rightPanel.labels.expand
+                  }
+                  onClick={rightPanel.toggle}
                 >
-                  <Button
-                    aria-controls="workspace-context-inspector"
-                    aria-expanded={!rightPanel.isDisabled && rightPanel.isOpen}
-                    type="button"
-                    variant={ButtonVariant.GHOST}
-                    size={ButtonSize.ICON}
-                    className="hidden size-8 xl:inline-flex"
-                    data-active={
-                      !rightPanel.isDisabled && rightPanel.isOpen
-                        ? 'true'
-                        : 'false'
-                    }
-                    data-testid="topbar-inspector-toggle"
-                    isDisabled={rightPanel.isDisabled}
-                    ariaLabel={
-                      rightPanel.isDisabled
-                        ? rightPanel.labels.empty
-                        : rightPanel.isOpen
-                          ? rightPanel.labels.collapse
-                          : rightPanel.labels.expand
-                    }
-                    onClick={rightPanel.toggle}
-                  >
-                    {rightPanel.isOpen ? (
-                      <PanelRightClose className="size-4" />
-                    ) : (
-                      <PanelRightOpen className="size-4" />
-                    )}
-                  </Button>
-                </span>
-              </SimpleTooltip>
-              <SimpleTooltip
-                label={rightPanel.labels.empty}
-                isDisabled={!rightPanel.isDisabled}
+                  {rightPanel.isOpen ? (
+                    <PanelRightClose className="size-4" />
+                  ) : (
+                    <PanelRightOpen className="size-4" />
+                  )}
+                </Button>
+              </UnavailableToggleFrame>
+              <UnavailableToggleFrame
+                className="inline-flex xl:hidden"
+                isUnavailable={rightPanel.isDisabled}
+                reason={rightPanel.labels.empty}
               >
-                <span
-                  role="group"
-                  tabIndex={rightPanel.isDisabled ? 0 : undefined}
-                  aria-label={
-                    rightPanel.isDisabled ? rightPanel.labels.empty : undefined
+                <Button
+                  aria-controls="workspace-context-inspector-drawer"
+                  aria-expanded={
+                    !rightPanel.isDisabled && rightPanel.isMobileOpen
                   }
-                  className="inline-flex xl:hidden"
+                  type="button"
+                  variant={ButtonVariant.GHOST}
+                  size={ButtonSize.ICON}
+                  className="inline-flex size-8 xl:hidden"
+                  data-testid="topbar-inspector-drawer-toggle"
+                  isDisabled={rightPanel.isDisabled}
+                  withWrapper={false}
+                  ariaLabel={
+                    rightPanel.isDisabled
+                      ? rightPanel.labels.empty
+                      : rightPanel.isMobileOpen
+                        ? rightPanel.labels.close
+                        : rightPanel.labels.open
+                  }
+                  onClick={() =>
+                    rightPanel.setIsMobileOpen(!rightPanel.isMobileOpen)
+                  }
                 >
-                  <Button
-                    aria-controls="workspace-context-inspector-drawer"
-                    aria-expanded={
-                      !rightPanel.isDisabled && rightPanel.isMobileOpen
-                    }
-                    type="button"
-                    variant={ButtonVariant.GHOST}
-                    size={ButtonSize.ICON}
-                    className="inline-flex size-8 xl:hidden"
-                    data-testid="topbar-inspector-drawer-toggle"
-                    isDisabled={rightPanel.isDisabled}
-                    ariaLabel={
-                      rightPanel.isDisabled
-                        ? rightPanel.labels.empty
-                        : rightPanel.isMobileOpen
-                          ? rightPanel.labels.close
-                          : rightPanel.labels.open
-                    }
-                    onClick={() =>
-                      rightPanel.setIsMobileOpen(!rightPanel.isMobileOpen)
-                    }
-                  >
-                    {rightPanel.isMobileOpen ? (
-                      <PanelRightClose className="size-4" />
-                    ) : (
-                      <PanelRightOpen className="size-4" />
-                    )}
-                  </Button>
-                </span>
-              </SimpleTooltip>
+                  {rightPanel.isMobileOpen ? (
+                    <PanelRightClose className="size-4" />
+                  ) : (
+                    <PanelRightOpen className="size-4" />
+                  )}
+                </Button>
+              </UnavailableToggleFrame>
             </>
           ) : null}
         </div>

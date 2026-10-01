@@ -38,6 +38,7 @@ import {
   CLIP_PROJECTS_TOOL_NAMES,
   handleClipProjectsTool,
 } from '@mcp/tools/clip-projects.tool';
+import { EDITOR_TOOL_NAMES, handleEditorTool } from '@mcp/tools/editor.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import {
   approvalPendingToolResult,
@@ -179,6 +180,7 @@ type ExecutorKind =
   | 'account-management'
   | 'social-messages'
   | 'clip-projects'
+  | 'editor'
   | 'storyboard-capabilities'
   | 'remix'
   | 'scheduler'
@@ -396,6 +398,7 @@ export class ToolRegistryService implements OnModuleInit {
     if (ACCOUNT_MANAGEMENT_TOOL_NAMES.has(name)) return 'account-management';
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
     if (CLIP_PROJECTS_TOOL_NAMES.has(name)) return 'clip-projects';
+    if (EDITOR_TOOL_NAMES.has(name)) return 'editor';
     if (name === 'storyboard_run_capabilities')
       return 'storyboard-capabilities';
     if (REMIX_TOOL_NAMES.has(name)) return 'remix';
@@ -461,6 +464,8 @@ export class ToolRegistryService implements OnModuleInit {
         return handleSocialMessagesTool(this.clientService, name, args);
       case 'clip-projects':
         return handleClipProjectsTool(this.clientService, name, args);
+      case 'editor':
+        return handleEditorTool(this.clientService, name, args);
       case 'storyboard-capabilities':
         return handleStoryboardTool(this.clientService, name, args);
       case 'remix':

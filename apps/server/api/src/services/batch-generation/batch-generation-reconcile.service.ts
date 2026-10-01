@@ -266,8 +266,13 @@ export class BatchGenerationReconcileService {
     }
 
     // Settle or release output holds whose generation already ended before the
-    // generic expiry sweep sees them.
-    await this.generationBilling.reconcile();
+    // generic expiry sweep sees them. A failed generation query must not skip
+    // expiry of unrelated reservations.
+    try {
+      await this.generationBilling.reconcile();
+    } catch (error: unknown) {
+      this.logger.error('Generation hold reconciliation failed', error);
+    }
     await this.reservationService.expireDue();
   }
 
