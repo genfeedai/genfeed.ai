@@ -8,6 +8,7 @@ import { BrandedGenerationPromptStoreService } from '@api/services/branded-gener
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
 import type { BrandedGenerationCompilerRecipeV1 } from '@api/services/branded-generation-receipts/branded-generation-recompile.types';
 import { encodeBrandedGenerationCompilerRecipeV1 } from '@api/services/branded-generation-receipts/branded-generation-recompile-codec.util';
+import { brandedGenerationInputV1Schema } from '@genfeedai/contracts/api-types/contracts';
 import type {
   BrandedGenerationInputV1,
   BrandedGenerationReceiptV1,
@@ -498,19 +499,19 @@ describe('bounded compiled recipe retention and compatibility', () => {
   });
   it('roundtrips maximum text and large bounded input and recipe without public disclosure', async () => {
     const f = compiledFixture();
-    const input = {
+    const input: BrandedGenerationInputV1 = {
       ...f.input,
-      generationParameters: { payload: 'x'.repeat(900000) },
+      originalPrompt: 'p'.repeat(65536),
+      generationParameters: { payload: 'x'.repeat(16000) },
+      knowledgeSourceIds: Array.from({ length: 256 }, (_, index) =>
+        `source-${index}-`.padEnd(256, 's'),
+      ),
+      knowledgeSpaceIds: Array.from({ length: 256 }, (_, index) =>
+        `space-${index}-`.padEnd(256, 'k'),
+      ),
     };
-    const recipe: BrandedGenerationCompilerRecipeV1 = [
-      'snapshot-brief-v1',
-      [],
-      [],
-      [],
-      baseline(),
-      {},
-    ];
-    recipe[2] = [
+    expect(brandedGenerationInputV1Schema.parse(input)).toEqual(input);
+    const stages: BrandedGenerationCompilerRecipeV1[2] = [
       [
         {
           kind: 'pack',
@@ -529,10 +530,21 @@ describe('bounded compiled recipe retention and compatibility', () => {
         Array.from({ length: 16 }, () => []),
       ],
     ];
+    const recipe: BrandedGenerationCompilerRecipeV1 = [
+      'snapshot-brief-v1',
+      [],
+      stages,
+      [],
+      baseline(),
+      {},
+    ];
     const text = '\0'.repeat(65536);
     const prepared = f.store.prepareCompiled(text, input, recipe);
     if (!prepared.record) throw new Error('Missing maximum fixture');
     f.saved.requestHash = hashBrandedGenerationRequestV1(input);
+    f.saved.prompts.original.contentHash = hashBrandedGenerationTextV1(
+      input.originalPrompt,
+    );
     f.saved.prompts.compiled = prepared.reference;
     f.mock.generationPromptSnapshot.findFirst.mockResolvedValue(
       prepared.record,
@@ -693,6 +705,46 @@ describe('bounded compiled recipe retention and compatibility', () => {
       reasonCode: 'prompt_integrity_failed',
     });
   });
+  it.each([128, 129])(
+    'isolates future diagnostic count boundary %s',
+    async (count) => {
+      const f = compiledFixture();
+      const recipe = JSON.parse(
+        encodeBrandedGenerationCompilerRecipeV1(f.recipe),
+      );
+      recipe[0] = 'snapshot-brief-v2';
+      recipe[3] = Array.from({ length: count }, () => ({
+        code: 'diagnostic',
+        severity: 'warning',
+        message: 'Future recipe diagnostic',
+        evidenceIds: [],
+      }));
+      const value = {
+        schemaVersion: 1,
+        text: ' exact compiled 😀 ',
+        retainedInput: f.input,
+        compilerRecipe: recipe,
+        compilerRecipeHash: hashBrandedGenerationOperationV1('recompose', {
+          compilerRecipe: recipe,
+        }),
+      };
+      f.mock.generationPromptSnapshot.findFirst.mockResolvedValue({
+        ...f.prepared.record,
+        ciphertext: EncryptionUtil.encrypt(JSON.stringify(value)),
+      });
+      expect(await f.store.readCompiled(f.tx, actor, f.saved)).toEqual({
+        status: 'unavailable',
+        reasonCode:
+          count === 128
+            ? 'compiler_recipe_unavailable'
+            : 'prompt_integrity_failed',
+      });
+      expect(await f.store.read(f.tx, actor, f.saved, 'compiled')).toEqual({
+        status: 'unavailable',
+        reasonCode: 'prompt_integrity_failed',
+      });
+    },
+  );
   it.each([
     'extra_slot',
     'unavailable_content',
@@ -735,6 +787,7 @@ describe('bounded compiled recipe retention and compatibility', () => {
       recipe[3] = Array.from({ length: 129 }, () => ({
         code: 'diagnostic',
         severity: 'warning',
+        message: 'Future recipe diagnostic',
         evidenceIds: [],
       }));
     if (kind === 'wrong_lineage') input.runId = 'different';

@@ -1,18 +1,23 @@
 import {
   canonicalizeBrandedGenerationJsonV1,
+  hashBrandedGenerationOperationV1,
+  hashBrandedGenerationRequestV1,
   hashBrandedGenerationResolutionV1,
   hashBrandedGenerationTextV1,
 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { BrandedGenerationPromptStoreService } from '@api/services/branded-generation-receipts/branded-generation-prompt-store.service';
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
 import { BrandedGenerationReceiptsService } from '@api/services/branded-generation-receipts/branded-generation-receipts.service';
+import type { BrandedGenerationCompilerRecipeV1 } from '@api/services/branded-generation-receipts/branded-generation-recompile.types';
+import { encodeBrandedGenerationCompilerRecipeV1 } from '@api/services/branded-generation-receipts/branded-generation-recompile-codec.util';
+import { compileSnapshotBriefResolution } from '@api/services/harness/branded-generation-compiler';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   BrandedGenerationInputV1,
   BrandedGenerationResolutionV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import type { Prisma } from '@genfeedai/prisma';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
@@ -53,6 +58,7 @@ function fixture() {
     },
     record: {
       id: `prompt-${hashBrandedGenerationTextV1(text)}`,
+      format: 'genfeed.branded-generation-prompt.v1',
       ciphertext: `${'a'.repeat(32)}:aa:${'b'.repeat(32)}`,
       contentHash: hashBrandedGenerationTextV1(text),
     },
@@ -766,4 +772,363 @@ it('rejects noncanonical cursor JSON and controlled IDs before queries', async (
     ).rejects.toThrow('receipt_cursor_invalid');
   }
   expect(f.prisma.$transaction).not.toHaveBeenCalled();
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+function compiledRecipe(): BrandedGenerationCompilerRecipeV1 {
+  return ['snapshot-brief-v1', [], [], [], blockedResolution().learning, {}];
+}
+function compiledResolution(
+  value: BrandedGenerationInputV1,
+  recipe: BrandedGenerationCompilerRecipeV1,
+) {
+  return compileSnapshotBriefResolution(
+    value,
+    null,
+    recipe[4],
+    recipe[5],
+    recipe[1],
+    recipe[2],
+    recipe[3],
+  );
+}
+describe('compiled resolution reproduction and immutable operation ownership', () => {
+  it('uses the exact old operation body and exact additive new body without private projection data', async () => {
+    vi.stubEnv('TOKEN_ENCRYPTION_KEY', 'retention-unit-secret');
+    const f = fixture();
+    const current = await saved(f);
+    const value = input();
+    const recipe = compiledRecipe();
+    const resolution = compiledResolution(value, recipe);
+    f.tx.brandedGenerationReceiptEvent.create.mockClear();
+    const result = await f.service.recordCompiledResolution(
+      actor,
+      current.id,
+      { operationKey: 'compiled', expectedRevision: 0 },
+      resolution,
+      value,
+      recipe,
+      'enhanced',
+    );
+    const event =
+      f.tx.brandedGenerationReceiptEvent.create.mock.calls[0][0].data;
+    expect(event.operationHash).toBe(
+      hashBrandedGenerationOperationV1('resolve', {
+        resolutionHash: hashBrandedGenerationResolutionV1(resolution),
+        enhancedPromptHash: hashBrandedGenerationTextV1('enhanced'),
+        compilerRecipeHash: hashBrandedGenerationOperationV1('recompose', {
+          compilerRecipe: JSON.parse(
+            encodeBrandedGenerationCompilerRecipeV1(recipe),
+          ),
+        }),
+        retainedInputHash: hashBrandedGenerationOperationV1('recompose', {
+          retainedInput: JSON.parse(JSON.stringify(value)),
+        }),
+      }),
+    );
+    expect(result.receipt.state).toBe('resolved');
+    expect(result.receipt.budget.generationAttemptsUsed).toBe(0);
+    for (const projection of [result.receipt, event.projection]) {
+      expect(projection).not.toHaveProperty('retainedInput');
+      expect(projection).not.toHaveProperty('compilerRecipe');
+      expect(JSON.stringify(projection)).not.toContain('Exact 😀');
+    }
+    const old = fixture();
+    const prior = await saved(old);
+    old.tx.brandedGenerationReceiptEvent.create.mockClear();
+    await old.service.recordResolution(
+      actor,
+      prior.id,
+      { operationKey: 'old', expectedRevision: 0 },
+      resolution,
+      'enhanced',
+    );
+    expect(
+      old.tx.brandedGenerationReceiptEvent.create.mock.calls[0][0].data
+        .operationHash,
+    ).toBe(
+      hashBrandedGenerationOperationV1('resolve', {
+        resolutionHash: hashBrandedGenerationResolutionV1(resolution),
+        enhancedPromptHash: hashBrandedGenerationTextV1('enhanced'),
+      }),
+    );
+  });
+  it('replays the same key but rejects changed hidden recipe bytes even with identical compiled output', async () => {
+    vi.stubEnv('TOKEN_ENCRYPTION_KEY', 'retention-unit-secret');
+    const f = fixture();
+    const current = await saved(f);
+    const value = input();
+    const recipe = compiledRecipe();
+    const resolution = compiledResolution(value, recipe);
+    const mutation = { operationKey: 'compiled', expectedRevision: 0 };
+    const result = await f.service.recordCompiledResolution(
+      actor,
+      current.id,
+      mutation,
+      resolution,
+      value,
+      recipe,
+    );
+    const event =
+      f.tx.brandedGenerationReceiptEvent.create.mock.calls.at(-1)?.[0].data;
+    if (!event) throw new Error('Missing event');
+    f.tx.brandedGenerationReceiptEvent.findFirst.mockResolvedValue(event);
+    vi.mocked(f.prompts.persist).mockClear();
+    f.tx.brandedGenerationReceipt.update.mockClear();
+    expect(
+      await f.service.recordCompiledResolution(
+        actor,
+        current.id,
+        mutation,
+        resolution,
+        value,
+        recipe,
+      ),
+    ).toEqual({ receipt: result.receipt, replayed: true });
+    const hiddenStages: BrandedGenerationCompilerRecipeV1[2] = [
+      [
+        {
+          kind: 'pack',
+          id: 'unused-pack',
+          version: 'v1',
+          status: 'not_applicable',
+          evidenceIds: [],
+          omittedIds: [],
+        },
+        [
+          {
+            header: 'hidden',
+            content: 'unused bytes',
+            untrusted: false,
+            isAtomic: true,
+          },
+        ],
+        [[]],
+      ],
+    ];
+    const changed: BrandedGenerationCompilerRecipeV1 = [
+      recipe[0],
+      recipe[1],
+      hiddenStages,
+      recipe[3],
+      recipe[4],
+      recipe[5],
+    ];
+    expect(compiledResolution(value, changed)).toEqual(resolution);
+    await expect(
+      f.service.recordCompiledResolution(
+        actor,
+        current.id,
+        mutation,
+        resolution,
+        value,
+        changed,
+      ),
+    ).rejects.toThrow('request_payload_conflict');
+    expect(f.prompts.persist).not.toHaveBeenCalled();
+    expect(f.tx.brandedGenerationReceipt.update).not.toHaveBeenCalled();
+  });
+  it('binds full retained input ordering even when request hashing treats knowledge IDs as a set', async () => {
+    vi.stubEnv('TOKEN_ENCRYPTION_KEY', 'retention-unit-secret');
+    const f = fixture();
+    const value = { ...input(), knowledgeSourceIds: ['source-a', 'source-b'] };
+    const current = (await f.service.create(value)).receipt;
+    f.tx.brandedGenerationReceipt.findFirst.mockResolvedValue({
+      projection: current,
+      isDeleted: false,
+    });
+    const recipe = compiledRecipe();
+    const resolution = compiledResolution(value, recipe);
+    const mutation = { operationKey: 'compiled-order', expectedRevision: 0 };
+    await f.service.recordCompiledResolution(
+      actor,
+      current.id,
+      mutation,
+      resolution,
+      value,
+      recipe,
+    );
+    const event =
+      f.tx.brandedGenerationReceiptEvent.create.mock.calls.at(-1)?.[0].data;
+    if (!event) throw new Error('Missing ordered event');
+    f.tx.brandedGenerationReceiptEvent.findFirst.mockResolvedValue(event);
+    const reordered = {
+      ...value,
+      knowledgeSourceIds: ['source-b', 'source-a'],
+    };
+    expect(hashBrandedGenerationRequestV1(reordered)).toBe(current.requestHash);
+    expect(compiledResolution(reordered, recipe)).toEqual(resolution);
+    vi.mocked(f.prompts.persist).mockClear();
+    await expect(
+      f.service.recordCompiledResolution(
+        actor,
+        current.id,
+        mutation,
+        resolution,
+        reordered,
+        recipe,
+      ),
+    ).rejects.toThrow('request_payload_conflict');
+    expect(f.prompts.persist).not.toHaveBeenCalled();
+  });
+  it.each([
+    'actorId',
+    'organizationId',
+    'brandId',
+    'requestKey',
+    'candidateIndex',
+    'parentRequestId',
+    'runId',
+    'workflowExecutionId',
+    'generationId',
+  ] as const)('rejects retained %s binding before writes', async (field) => {
+    vi.stubEnv('TOKEN_ENCRYPTION_KEY', 'retention-unit-secret');
+    const f = fixture();
+    const current = await saved(f);
+    const value = input();
+    const changed = {
+      ...value,
+      [field]: field === 'candidateIndex' ? 1 : 'other',
+    };
+    const recipe = compiledRecipe();
+    const resolution = compiledResolution(changed, recipe);
+    vi.mocked(f.prompts.persist).mockClear();
+    f.tx.brandedGenerationReceipt.update.mockClear();
+    f.tx.brandedGenerationReceiptEvent.create.mockClear();
+    await expect(
+      f.service.recordCompiledResolution(
+        actor,
+        current.id,
+        { operationKey: 'compiled', expectedRevision: 0 },
+        resolution,
+        changed,
+        recipe,
+      ),
+    ).rejects.toThrow('request_payload_conflict');
+    expect(f.prompts.persist).not.toHaveBeenCalled();
+    expect(f.tx.brandedGenerationReceipt.update).not.toHaveBeenCalled();
+    expect(f.tx.brandedGenerationReceiptEvent.create).not.toHaveBeenCalled();
+  });
+  it('preserves original actor on admin persistence and rejects mismatched reproduction outside transaction', async () => {
+    vi.stubEnv('TOKEN_ENCRYPTION_KEY', 'retention-unit-secret');
+    const f = fixture();
+    const current = await saved(f);
+    const value = input();
+    const recipe = compiledRecipe();
+    const resolution = compiledResolution(value, recipe);
+    vi.mocked(f.access.assertBrand).mockResolvedValue({ isOwnerOrAdmin: true });
+    vi.mocked(f.prompts.persist).mockClear();
+    await f.service.recordCompiledResolution(
+      { ...actor, actorId: 'admin' },
+      current.id,
+      { operationKey: 'compiled', expectedRevision: 0 },
+      resolution,
+      value,
+      recipe,
+    );
+    expect(f.prompts.persist).toHaveBeenCalledWith(
+      expect.anything(),
+      actor,
+      current.id,
+      1,
+      'compiled',
+      expect.objectContaining({
+        record: expect.objectContaining({
+          format: 'genfeed.branded-generation-compiled.v1',
+        }),
+      }),
+    );
+    f.prisma.$transaction.mockClear();
+    if (resolution.status !== 'resolved')
+      throw new Error('Expected actual compiled fixture');
+    await expect(
+      f.service.recordCompiledResolution(
+        actor,
+        current.id,
+        { operationKey: 'bad', expectedRevision: 0 },
+        { ...resolution, compiledPrompt: `${resolution.compiledPrompt}bad` },
+        value,
+        recipe,
+      ),
+    ).rejects.toThrow('compiler_recipe_mismatch');
+    expect(f.prisma.$transaction).not.toHaveBeenCalled();
+  });
+  it('rejects retained accessors before encryption and rejects blocked values', async () => {
+    const f = fixture();
+    const current = await saved(f);
+    const value = input();
+    const recipe = compiledRecipe();
+    const resolution = compiledResolution(value, recipe);
+    vi.stubEnv('TOKEN_ENCRYPTION_KEY', '');
+    const getter = vi.fn(() => 'model');
+    Object.defineProperty(value, 'model', { enumerable: true, get: getter });
+    f.prisma.$transaction.mockClear();
+    await expect(
+      f.service.recordCompiledResolution(
+        actor,
+        current.id,
+        { operationKey: 'bad', expectedRevision: 0 },
+        resolution,
+        value,
+        recipe,
+      ),
+    ).rejects.toThrow('compiler_recipe_invalid');
+    expect(getter).not.toHaveBeenCalled();
+    expect(f.prisma.$transaction).not.toHaveBeenCalled();
+    await expect(
+      f.service.recordCompiledResolution(
+        actor,
+        current.id,
+        { operationKey: 'blocked', expectedRevision: 0 },
+        blockedResolution(),
+        input(),
+        recipe,
+      ),
+    ).rejects.toThrow('compiler_recipe_invalid');
+  });
+  it('retains a bounded omission diagnostic with exact hashes and no attempt on crypto failure', async () => {
+    const f = fixture();
+    const current = await saved(f);
+    const value = input();
+    const recipe = compiledRecipe();
+    const diagnostics: BrandedGenerationCompilerRecipeV1[3] = Array.from(
+      { length: 128 },
+      (_, index) => ({
+        code: `diagnostic_${index}`,
+        severity: 'warning',
+        message: `Diagnostic ${index}`,
+        evidenceIds: [],
+      }),
+    );
+    const boundedRecipe: BrandedGenerationCompilerRecipeV1 = [
+      recipe[0],
+      recipe[1],
+      recipe[2],
+      diagnostics,
+      recipe[4],
+      recipe[5],
+    ];
+    const resolution = compiledResolution(value, boundedRecipe);
+    vi.stubEnv('TOKEN_ENCRYPTION_KEY', '');
+    const result = await f.service.recordCompiledResolution(
+      actor,
+      current.id,
+      { operationKey: 'compiled', expectedRevision: 0 },
+      resolution,
+      value,
+      boundedRecipe,
+    );
+    expect(result.receipt.state).toBe('blocked');
+    expect(result.receipt.diagnostics).toHaveLength(128);
+    expect(result.receipt.diagnostics.at(-1)?.message).toContain(
+      'diagnostic_127 (warning)',
+    );
+    expect(result.receipt.resolutionHash).toBe(
+      hashBrandedGenerationResolutionV1(resolution),
+    );
+    expect(result.receipt.budget).toEqual(current.budget);
+    expect(result.receipt.costs).toEqual([]);
+  });
 });
