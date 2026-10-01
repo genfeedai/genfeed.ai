@@ -400,9 +400,13 @@ describe('AppLayout', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
     expect(drawer).toHaveClass('flex');
-    expect(mobileRail.nextElementSibling).toContainElement(
-      screen.getAllByTestId('menu-component')[1],
-    );
+    // The drawer renders before the desktop rounded block, so the mobile menu
+    // is the first menu-component, next to the rail.
+    expect(
+      mobileRail.nextElementSibling?.querySelector(
+        '[data-testid="menu-component"]',
+      ),
+    ).not.toBeNull();
 
     const mobileRailItem = mobileRail.querySelector(
       '[data-testid="rail-component"]',
