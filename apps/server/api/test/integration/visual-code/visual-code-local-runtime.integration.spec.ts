@@ -17,6 +17,7 @@ import {
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
 import { VISUAL_CODE_RENDERER_VERSION } from '@genfeedai/contracts/constants';
+import type { IVisualCodeSettings } from '@genfeedai/contracts/interfaces';
 import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/contracts/queue';
 import type { VisualRevision } from '@genfeedai/prisma';
 import { HttpException } from '@nestjs/common';
@@ -39,7 +40,12 @@ import {
 const exec = promisify(execFile);
 const hash = (bytes: Buffer | string) =>
   createHash('sha256').update(bytes).digest('hex');
-const SETTINGS = { width: 640, height: 360, fps: 30, durationFrames: 30 };
+const SETTINGS: IVisualCodeSettings = {
+  width: 640,
+  height: 360,
+  fps: 30,
+  durationFrames: 30,
+};
 const OUTPUTS = [
   { format: 'mp4' as const },
   { format: 'png' as const, frame: 0 },
@@ -166,10 +172,11 @@ async function create(
   f: VisualCodeAcceptanceFixture,
   actor: VisualCodeAcceptanceActor,
 ) {
-  const parameters = input(actor);
-  parameters.maximumCredits = await quote(f, actor, 'create', {
-    ...parameters,
-  });
+  const quoteInput = input(actor);
+  const parameters: CreateVisualProjectDto = {
+    ...quoteInput,
+    maximumCredits: await quote(f, actor, 'create', { ...quoteInput }),
+  };
   const response = responseSchema.parse(
     await f.controller.create(f.request(actor.user), actor.user, parameters),
   );
@@ -291,8 +298,8 @@ async function libraryIds(
     .parse(
       await f.library.findAll(
         f.request(actor.user, '/ingredients'),
-        actor.user,
         query,
+        actor.user,
       ),
     )
     .data.map((row) => row.id);
@@ -1293,10 +1300,11 @@ describe.skipIf(!enabled)(
       const f = await setup('hybrid-success');
       const actor = await seedVisualCodeAcceptanceActor(f);
       const other = await seedVisualCodeAcceptanceActor(f);
-      const parameters = input(actor);
-      parameters.maximumCredits = await quote(f, actor, 'create', {
-        ...parameters,
-      });
+      const quoteInput = input(actor);
+      const parameters: CreateVisualProjectDto = {
+        ...quoteInput,
+        maximumCredits: await quote(f, actor, 'create', { ...quoteInput }),
+      };
       f.resetExternalCalls();
       const before = await snapshot(f, actor);
       await expect(
