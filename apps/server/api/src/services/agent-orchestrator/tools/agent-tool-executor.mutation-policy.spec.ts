@@ -171,6 +171,107 @@ describe('AgentToolExecutorService mutation policy', () => {
     ...overrides,
   });
 
+  it('discards an injected draft constraint before authorization and dispatch without mutating the caller', async () => {
+    const authorize = vi
+      .spyOn(mutationAuthorizationService, 'authorize')
+      .mockResolvedValue({ kind: 'execute' });
+    publishHandler.createPost.mockResolvedValue({
+      success: true,
+      creditsUsed: 0,
+    });
+    const caller = context({ proactiveTextDraftOnly: true });
+    expect(
+      (await service.executeTool('create_post', { content: 'Draft' }, caller))
+        .success,
+    ).toBe(true);
+    expect(authorize.mock.calls[0][2]).not.toHaveProperty(
+      'proactiveTextDraftOnly',
+    );
+    expect(publishHandler.createPost.mock.calls[0][1]).not.toHaveProperty(
+      'proactiveTextDraftOnly',
+    );
+    expect(caller.proactiveTextDraftOnly).toBe(true);
+    authorize.mockRestore();
+  });
+
+  it('transports only the newly issued draft-only decision through the existing workflow dispatch', async () => {
+    const authorize = vi
+      .spyOn(mutationAuthorizationService, 'authorize')
+      .mockResolvedValue({
+        kind: 'execute',
+        constraint: 'proactive-text-draft-only',
+      });
+    publishHandler.createPost.mockResolvedValue({
+      success: true,
+      creditsUsed: 0,
+    });
+    const caller = context({
+      isProactive: true,
+      runId: 'outer-run',
+      strategyId: 'strategy',
+    });
+    const params = { content: 'Draft', platforms: ['linkedin'] };
+    expect(
+      (await service.executeTool('create_post', params, caller)).success,
+    ).toBe(true);
+    expect(authorize.mock.calls[0][2]).not.toHaveProperty(
+      'proactiveTextDraftOnly',
+    );
+    expect(publishHandler.createPost).toHaveBeenCalledWith(
+      params,
+      expect.objectContaining({
+        proactiveTextDraftOnly: true,
+        runId: 'outer-run',
+      }),
+    );
+    expect(caller).not.toHaveProperty('proactiveTextDraftOnly');
+    expect(params).not.toHaveProperty('confirmed');
+    expect(mcpApprovals.createPending).not.toHaveBeenCalled();
+    authorize.mockRestore();
+  });
+
+  it('fails closed when a draft constraint is returned for a different tool', async () => {
+    const authorize = vi
+      .spyOn(mutationAuthorizationService, 'authorize')
+      .mockResolvedValue({
+        kind: 'execute',
+        constraint: 'proactive-text-draft-only',
+      });
+    const result = await service.executeTool(
+      'get_credits_balance',
+      {},
+      context(),
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
+      'Draft-only authorization is limited to create_post',
+    );
+    expect(workspaceHandler.getCreditsBalance).not.toHaveBeenCalled();
+    authorize.mockRestore();
+  });
+
+  it('never dispatches after the mocked authorizer returns a failed decision', async () => {
+    const authorize = vi
+      .spyOn(mutationAuthorizationService, 'authorize')
+      .mockResolvedValue({
+        kind: 'return',
+        result: { success: false, creditsUsed: 0, error: 'Untrusted run' },
+      });
+    const result = await service.executeTool(
+      'create_post',
+      { content: 'Draft' },
+      context({ proactiveTextDraftOnly: true }),
+    );
+    expect(result).toEqual({
+      success: false,
+      creditsUsed: 0,
+      error: 'Untrusted run',
+    });
+    expect(publishHandler.createPost).not.toHaveBeenCalled();
+    expect(mcpApprovals.createPending).not.toHaveBeenCalled();
+    authorize.mockRestore();
+  });
+
   it('rejects approval-required tools on a host with no approval mechanism', async () => {
     const result = await service.executeTool(
       'create_post',
