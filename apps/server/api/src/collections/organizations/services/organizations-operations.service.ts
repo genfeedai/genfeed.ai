@@ -190,6 +190,7 @@ export class OrganizationsOperationsService {
     });
     await this.billingAccountsService.ensureForOrganization({
       billingAccountId: input.billingAccountId,
+      isSeparateAccount: getIsSuperAdmin(user),
       label,
       organizationId,
       planTier: settings?.subscriptionTier ?? null,
