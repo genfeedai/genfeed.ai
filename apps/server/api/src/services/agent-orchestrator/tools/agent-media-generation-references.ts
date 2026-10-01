@@ -127,5 +127,14 @@ export async function resolveGenerationReferences(params: {
     merged.push(id);
   }
 
+  if (flux && merged.length > 10)
+    return {
+      error: {
+        success: false,
+        creditsUsed: 0,
+        error: 'FLUX.3 accepts at most ten combined source images.',
+      },
+      references: [],
+    };
   return { references: capMediaReferences(merged, params.modelKey) };
 }

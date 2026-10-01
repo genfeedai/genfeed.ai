@@ -2713,4 +2713,61 @@ describe('GenerationActionCard', () => {
       screen.queryByRole('button', { name: 'Reuse generation settings' }),
     ).not.toBeInTheDocument();
   });
+  it('retains FLUX native resolution through the quote and generation request', async () => {
+    const model = createModel({
+      key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
+      label: 'FLUX.3',
+      maxOutputs: 1,
+      aspectRatios: ['auto', '1:1'],
+      defaultAspectRatio: 'auto',
+    });
+    const estimateGenerationCredits = vi.fn().mockResolvedValue({
+      credits: 12,
+      isAvailable: true,
+      modelKey: model.key,
+    });
+    const generateIngredient = vi.fn().mockResolvedValue({
+      id: 'flux-output',
+      url: 'https://cdn.test/flux.jpg',
+    });
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          id: 'flux-native-resolution',
+          type: 'generation_action_card',
+          title: 'Image',
+          generationType: 'image',
+          generationParams: {
+            prompt: 'A landscape',
+            model: model.key,
+            resolution: '1.5k',
+            aspectRatio: 'auto',
+          },
+        }}
+        apiService={createApiServiceMock({
+          models: [model],
+          estimateGenerationCredits,
+          generateIngredient,
+        })}
+      />,
+    );
+    await waitFor(() =>
+      expect(estimateGenerationCredits).toHaveBeenCalledWith(
+        expect.objectContaining({
+          modelKey: model.key,
+          resolution: '1.5k',
+          outputs: 1,
+        }),
+        expect.anything(),
+      ),
+    );
+    await clickGenerate('image');
+    await waitFor(() => expect(generateIngredient).toHaveBeenCalled());
+    expect(generateIngredient.mock.calls[0][1]).toMatchObject({
+      model: model.key,
+      resolution: '1.5k',
+      aspectRatio: 'auto',
+      outputs: 1,
+    });
+  });
 });

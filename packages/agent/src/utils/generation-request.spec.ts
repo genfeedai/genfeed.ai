@@ -102,3 +102,29 @@ describe('generation-request', () => {
     );
   });
 });
+
+it('preserves native FLUX resolution and auto aspect ratio without sending image fields to videos', () => {
+  const body = buildAgentGenerationRequestBody({
+    modelKey: 'black-forest-labs/flux-3-image',
+    promptId: 'prompt',
+    promptText: 'A landscape',
+    aspectRatio: 'auto',
+    resolution: '1.5k',
+    outputs: 1,
+  });
+  expect(body).toMatchObject({
+    model: 'black-forest-labs/flux-3-image',
+    resolution: '1.5k',
+    aspectRatio: 'auto',
+    outputs: 1,
+  });
+  expect(body).not.toHaveProperty('quality');
+  expect(
+    buildAgentGenerationRequestBody({
+      modelKey: 'video/model',
+      promptId: 'prompt',
+      promptText: 'Video',
+      aspectRatio: '16:9',
+    }),
+  ).not.toHaveProperty('aspectRatio');
+});

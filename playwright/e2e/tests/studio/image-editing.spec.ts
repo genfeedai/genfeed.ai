@@ -201,8 +201,12 @@ for (const { model, editing } of [
         .getByRole('button', { name: 'Generation setup', exact: true })
         .click();
       await page
-        .getByRole('button', { name: 'Edit Model', exact: true })
+        .getByRole('button', { name: 'Edit Type', exact: true })
         .click();
+      await page
+        .getByRole('combobox', { name: 'Generation type', exact: true })
+        .click();
+      await page.getByRole('option', { name: 'Image', exact: true }).click();
       await page
         .getByRole('option')
         .filter({ hasText: 'FLUX.3' })
