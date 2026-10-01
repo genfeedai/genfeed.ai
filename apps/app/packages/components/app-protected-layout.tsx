@@ -57,6 +57,7 @@ import {
   truncateBreadcrumbLabel,
 } from './app-protected-layout.breadcrumb';
 import AssetGateGuard from './asset-gate-guard';
+import GlobalTaskComposer from './GlobalTaskComposer';
 import ImpersonationBanner from './impersonation-banner';
 import { useSettingsCommandsRegistration } from './settings-search/use-settings-commands-registration';
 import { usePageHelp } from './use-page-help';
@@ -327,8 +328,6 @@ function AppLayoutWithDynamicMenu({
         isStudioRoute={isStudioRoute}
         isAutomationRoute={isAutomationRoute}
         settingsScope={settingsScope}
-        orgSlug={orgSlug}
-        brandSlug={brandSlug}
         adminMenuItems={adminMenuItems}
         analyticsMenuItems={analyticsMenuItems}
         libraryMenuItems={libraryMenuItems}
@@ -362,8 +361,6 @@ function AppLayoutWithDynamicMenu({
     isSettingsRoute,
     isStudioRoute,
     isAutomationRoute,
-    brandSlug,
-    orgSlug,
     libraryMenuItems,
     menuItems,
     messagesMenuItems,
@@ -593,6 +590,7 @@ function AppLayoutWithDynamicMenu({
         <CommandPaletteInitializer />
         <SettingsCommandsBridge currentApp={currentApp} />
         {guardedMainLayout}
+        <GlobalTaskComposer />
         <LazyCommandPalette />
       </CommandPaletteProvider>
     </>

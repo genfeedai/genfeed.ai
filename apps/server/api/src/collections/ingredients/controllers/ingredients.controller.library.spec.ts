@@ -8,6 +8,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
 import type { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
 import {
   IngredientCategory,
   IngredientStatus,
@@ -99,6 +100,27 @@ describe('IngredientsController — Library axes', () => {
           IngredientsController.prototype.getSummary,
         ),
       ).toBe(RequestMethod.GET);
+    });
+
+    it('exposes generation reviews on a superadmin path', () => {
+      expect(
+        Reflect.getMetadata(
+          PATH_METADATA,
+          IngredientsController.prototype.listAdminGenerationReviews,
+        ),
+      ).toBe('admin/generation-reviews');
+      expect(
+        Reflect.getMetadata(
+          METHOD_METADATA,
+          IngredientsController.prototype.listAdminGenerationReviews,
+        ),
+      ).toBe(RequestMethod.GET);
+      expect(
+        Reflect.getMetadata(
+          ROLES_KEY,
+          IngredientsController.prototype.listAdminGenerationReviews,
+        ),
+      ).toEqual(['superadmin']);
     });
   });
 
@@ -365,6 +387,32 @@ describe('IngredientsController — Library axes', () => {
         data: {
           docs: [expect.objectContaining({ cdnUrl: null, id: 'image-empty' })],
         },
+      });
+    });
+  });
+
+  describe('listAdminGenerationReviews', () => {
+    it('reads generated and failed images across organizations', async () => {
+      await controller.listAdminGenerationReviews(mockRequest, {
+        page: 1,
+      } as never);
+
+      const [aggregate] = ingredientsService.findAll.mock.calls[0];
+      const where = (aggregate as { where: Record<string, unknown> }).where;
+      expect(where.organizationId).toBeUndefined();
+      expect(where.AND).toBeUndefined();
+      expect(where.category).toBe(IngredientCategory.IMAGE);
+      expect(where.isDeleted).toBe(false);
+      expect(where.status).toEqual({
+        in: [IngredientStatus.FAILED, IngredientStatus.GENERATED],
+      });
+      expect(
+        (aggregate as { include: Record<string, boolean> }).include,
+      ).toEqual({
+        metadata: true,
+        organization: true,
+        prompt: true,
+        user: true,
       });
     });
   });

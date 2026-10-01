@@ -62,4 +62,16 @@ describe('ContentMentionsController', () => {
       'Bad Request',
     );
   });
+
+  it('rejects a repeated brandId before querying', async () => {
+    const listContentMentions = vi.fn().mockResolvedValue([]);
+    const controller = new ContentMentionsController({
+      listContentMentions,
+    } as never);
+
+    await expect(
+      controller.getMentions(makeUser(), ['brand-1', 'brand-2'] as never),
+    ).rejects.toThrow('Bad Request');
+    expect(listContentMentions).not.toHaveBeenCalled();
+  });
 });

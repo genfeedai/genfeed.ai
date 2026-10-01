@@ -161,6 +161,22 @@ function harness(initial: BrandOsRevision[] = [], legacyAgentConfig?: unknown) {
 }
 
 describe('BrandOsRevisionsService', () => {
+  it('uses a supplied caller transaction without nesting and leaves commit/rollback to its caller', async () => {
+    const { service, prisma, rows, tx } = harness();
+    const created = await service.create(
+      ORG,
+      BRAND,
+      draft(),
+      tx as unknown as Prisma.TransactionClient,
+    );
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(created.status).toBe('DRAFT');
+    expect(created.version).toBe(1);
+    expect(rows).toHaveLength(1);
+    expect(tx.$queryRaw).toHaveBeenCalledOnce();
+    expect(tx.brand.update).toHaveBeenCalledOnce();
+  });
+
   it('initializes existing brands once and returns history newest first', async () => {
     const { service, rows, tx } = harness();
     await service.list(ORG, BRAND);

@@ -38,10 +38,9 @@ export class VisualProjectAuthorizationService {
       member.role.key === MemberRole.OWNER ||
       member.role.key === MemberRole.ADMIN;
     if (
-      (!isAdmin &&
-        member.brands.length &&
-        !member.brands.some((assigned) => assigned.id === brandId)) ||
-      (user.brandId && user.brandId !== brandId)
+      !isAdmin &&
+      member.brands.length &&
+      !member.brands.some((assigned) => assigned.id === brandId)
     )
       throw new ForbiddenException(
         'This brand is not available to the current actor.',

@@ -192,6 +192,116 @@ describe('BrandRelocationService', () => {
   });
 
   it.each([
+    ['brandedGenerationReceipt', false],
+    ['brandedGenerationReceipt', true],
+    ['brandedGenerationReceiptEvent', false],
+    ['brandedGenerationReceiptEvent', true],
+  ] as const)(
+    'refuses authorized preview and execution with %s history (deleted=%s)',
+    async (delegate, isDeleted) => {
+      primeBrand();
+      getDelegate(delegate).findFirst.mockResolvedValue({
+        id: 'saved-history',
+        isDeleted,
+      });
+      const actor = { isSuperAdmin: true, userId: USER_ID };
+      const conflict =
+        'Cannot move a brand with saved generation history. Receipts and receipt events, including deleted records, must remain in their original organization.';
+      await expect(
+        service.previewRelocation(BRAND_ID, DEST_ORG, actor),
+      ).rejects.toThrow(conflict);
+      await expect(
+        service.relocateToOrganization(
+          BRAND_ID,
+          { organizationId: DEST_ORG },
+          actor,
+        ),
+      ).rejects.toThrow(conflict);
+      for (const model of [
+        'brandedGenerationReceipt',
+        'brandedGenerationReceiptEvent',
+      ]) {
+        expect(getDelegate(model).findFirst).toHaveBeenCalledWith({
+          where: { organizationId: SOURCE_ORG, brandId: BRAND_ID },
+          select: { id: true },
+        });
+        expect(getDelegate(model).updateMany).not.toHaveBeenCalled();
+      }
+      expect(transactionSpy).toHaveBeenCalledWith(expect.any(Function), {
+        isolationLevel: 'Serializable',
+      });
+      expect(getDelegate('brand').updateMany).not.toHaveBeenCalled();
+      expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rechecks history inside execution after a successful preview', async () => {
+    primeBrand();
+    const actor = { isSuperAdmin: true, userId: USER_ID };
+    await expect(
+      service.previewRelocation(BRAND_ID, DEST_ORG, actor),
+    ).resolves.toBeDefined();
+    transactionSpy.mockImplementation(
+      async (fn: (tx: unknown) => Promise<unknown>) => {
+        getDelegate('brandedGenerationReceipt').findFirst.mockResolvedValue({
+          id: 'inserted-after-preview',
+        });
+        return fn(prismaProxy);
+      },
+    );
+    await expect(
+      service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        actor,
+      ),
+    ).rejects.toThrow(/saved generation history/);
+    expect(
+      getDelegate('brandedGenerationReceipt').findFirst,
+    ).toHaveBeenCalledTimes(2);
+    expect(getDelegate('brand').updateMany).not.toHaveBeenCalled();
+    expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
+  });
+
+  it('does not inspect generation history before preview authorization', async () => {
+    primeBrand();
+    getDelegate('member').findFirst.mockResolvedValue(null);
+    await expect(
+      service.previewRelocation(BRAND_ID, DEST_ORG, {
+        isSuperAdmin: false,
+        userId: USER_ID,
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(
+      getDelegate('brandedGenerationReceipt').findFirst,
+    ).not.toHaveBeenCalled();
+    expect(
+      getDelegate('brandedGenerationReceiptEvent').findFirst,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('permits same-organization preview even when saved history exists', async () => {
+    primeBrand();
+    for (const model of [
+      'brandedGenerationReceipt',
+      'brandedGenerationReceiptEvent',
+    ])
+      getDelegate(model).findFirst.mockResolvedValue({ id: 'saved-history' });
+    await expect(
+      service.previewRelocation(BRAND_ID, SOURCE_ORG, {
+        isSuperAdmin: true,
+        userId: USER_ID,
+      }),
+    ).resolves.toBeDefined();
+    expect(
+      getDelegate('brandedGenerationReceipt').findFirst,
+    ).not.toHaveBeenCalled();
+    expect(
+      getDelegate('brandedGenerationReceiptEvent').findFirst,
+    ).not.toHaveBeenCalled();
+  });
+
+  it.each([
     ['knowledgeSource', false],
     ['knowledgeSource', true],
     ['knowledgeSpace', false],
@@ -305,6 +415,12 @@ describe('BrandRelocationService', () => {
   });
 
   it('does not relocate (or open a transaction) when the org is unchanged', async () => {
+    getDelegate('brandedGenerationReceipt').findFirst.mockResolvedValue({
+      id: 'saved-receipt',
+    });
+    getDelegate('brandedGenerationReceiptEvent').findFirst.mockResolvedValue({
+      id: 'saved-event',
+    });
     getDelegate('brand').findFirst.mockResolvedValue({
       id: BRAND_ID,
       isDeleted: false,
@@ -318,6 +434,12 @@ describe('BrandRelocationService', () => {
     );
 
     expect(transactionSpy).not.toHaveBeenCalled();
+    expect(
+      getDelegate('brandedGenerationReceipt').findFirst,
+    ).not.toHaveBeenCalled();
+    expect(
+      getDelegate('brandedGenerationReceiptEvent').findFirst,
+    ).not.toHaveBeenCalled();
     expect(getDelegate('knowledgeSource').findFirst).not.toHaveBeenCalled();
     expect(getDelegate('knowledgeSpace').findFirst).not.toHaveBeenCalled();
     expect(getDelegate('agentPublishAudit').findFirst).not.toHaveBeenCalled();
@@ -507,6 +629,8 @@ describe('BrandRelocationService', () => {
     for (const delegate of [
       'agentPublishAudit',
       'agentUntrustedContentAudit',
+      'brandedGenerationReceipt',
+      'brandedGenerationReceiptEvent',
     ]) {
       expect(getDelegate(delegate).updateMany).not.toHaveBeenCalled();
       expect(getDelegate(delegate).count).not.toHaveBeenCalled();

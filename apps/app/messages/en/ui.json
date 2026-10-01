@@ -94,7 +94,13 @@
       "portrait": "Portrait",
       "square": "Square"
     },
-    "resizeTo": "Resize to {format}"
+    "resizeTo": "Resize to {format}",
+    "more": "More",
+    "groups": {
+      "reframe": "Reframe",
+      "convert": "Convert",
+      "prompt": "Prompt"
+    }
   },
   "watermarkDownload": {
     "options": "Download options",

@@ -77,6 +77,33 @@ describe('OrganizationSettingsService system workflow bootstrap', () => {
   });
 });
 
+describe('OrganizationSettings Fastlane column compatibility', () => {
+  it('does not select the retired isFastlaneEnabled column', () => {
+    const schema = readFileSync(
+      resolve(
+        __dirname,
+        '../../../../../../../packages/prisma/prisma/schema.prisma',
+      ),
+      'utf8',
+    );
+    const start = schema.indexOf('model OrganizationSetting ');
+    const rest = schema.slice(start);
+    const end = rest.indexOf('\nmodel ', 1);
+    const model = rest.slice(0, end === -1 ? undefined : end);
+    expect(model).toContain('model OrganizationSetting');
+    expect(model).not.toContain('isFastlaneEnabled');
+    expect(
+      readFileSync(
+        resolve(
+          __dirname,
+          '../../../../../../../packages/prisma/prisma/migrations/20260929120000_drop_retired_fastlane_setting/migration.sql',
+        ),
+        'utf8',
+      ),
+    ).toContain('DROP COLUMN IF EXISTS "isFastlaneEnabled"');
+  });
+});
+
 describe('OrganizationSettingsService.ensureEnabledModelIds', () => {
   it('seeds the allowlist when it is empty', async () => {
     const service = makeService();

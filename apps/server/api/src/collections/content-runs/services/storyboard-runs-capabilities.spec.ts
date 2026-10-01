@@ -69,6 +69,7 @@ function setup() {
     source as never,
     store as never,
     capabilities as never,
+    { warn: vi.fn() } as never,
   );
   return { service, store, config, capabilities, capability, source };
 }
@@ -114,6 +115,11 @@ describe('Storyboard capabilities at the durable edit boundary', () => {
       ...structuredClone(config.plan),
       videoModelKey: 'custom/video',
       runtimeBudgetSeconds: 7,
+      // Input fits the budget; snapping each shot to four seconds exceeds it.
+      shots: config.plan.shots.map((shot) => ({
+        ...shot,
+        durationSeconds: 3.5,
+      })),
     };
     await expect(
       service.updatePlan('org-1', 'brand-1', 'run-1', {

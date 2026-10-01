@@ -128,6 +128,9 @@ export function useEvaluationReadScopeKey(): string | null {
       unsubscribe?.();
     };
   }, [desktop]);
+  // EnvironmentService.apiEndpoint is a getter; desktop server switches can
+  // change it without remounting. Keep it in the memo identity.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: live endpoint getter
   return useMemo(
     () =>
       userId && organizationId && brandId && serverIdentity
@@ -139,6 +142,6 @@ export function useEvaluationReadScopeKey(): string | null {
             brandId,
           )
         : null,
-    [serverIdentity, userId, organizationId, brandId],
+    [apiEndpoint, serverIdentity, userId, organizationId, brandId],
   );
 }

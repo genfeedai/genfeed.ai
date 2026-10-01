@@ -65,13 +65,15 @@ describe('Studio history recovery with the real bounded loader', () => {
     mocks.findAllPage.mockImplementation(() => {
       calls += 1;
       if (calls === 1) return Promise.reject(new Error('offline'));
-      if (calls === 2) return retry.promise;
-      return Promise.resolve(page(calls === 3 ? ['restored'] : []));
+      if (calls === ALL_CATEGORY_COUNT + 1) return retry.promise;
+      return Promise.resolve(page());
     });
     const { result } = renderHook(() => useStudioGenerateGallery(scope));
     await waitFor(() => expect(result.current.galleryError).toBe('load'));
     act(() => result.current.refresh());
-    await waitFor(() => expect(mocks.findAllPage).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(mocks.findAllPage).toHaveBeenCalledTimes(ALL_CATEGORY_COUNT * 2),
+    );
     expect(result.current.galleryError).toBe('load');
     expect(result.current.isLoadingGallery).toBe(true);
     await act(async () => retry.resolve(page(['restored'])));
@@ -162,17 +164,22 @@ describe('Studio history recovery with the real bounded loader', () => {
   it('aborts scope changes and ignores late success and failure', async () => {
     const first = deferred<ReturnType<typeof page>>();
     const second = deferred<ReturnType<typeof page>>();
-    mocks.findAllPage
-      .mockReturnValueOnce(first.promise)
-      .mockReturnValueOnce(second.promise)
-      .mockResolvedValue(page(['c']));
+    mocks.findAllPage.mockImplementation((query: { brandId: string }) => {
+      if (query.brandId === 'brand-a') return first.promise;
+      if (query.brandId === 'brand-b') return second.promise;
+      return Promise.resolve(page(['c']));
+    });
     const { result, rerender } = renderHook(useStudioGenerateGallery, {
       initialProps: scope,
     });
-    await waitFor(() => expect(mocks.findAllPage).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(mocks.findAllPage).toHaveBeenCalledTimes(ALL_CATEGORY_COUNT),
+    );
     const firstSignal = mocks.findAllPage.mock.calls[0][1] as AbortSignal;
     rerender({ ...scope, brandId: 'brand-b' });
-    await waitFor(() => expect(mocks.findAllPage).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(mocks.findAllPage).toHaveBeenCalledTimes(ALL_CATEGORY_COUNT * 2),
+    );
     expect(firstSignal.aborted).toBe(true);
     rerender({ ...scope, brandId: 'brand-c' });
     await waitFor(() =>
@@ -189,22 +196,29 @@ describe('Studio history recovery with the real bounded loader', () => {
   it('aborts replacement and unmount without logging transport aborts', async () => {
     const first = deferred<ReturnType<typeof page>>();
     const second = deferred<ReturnType<typeof page>>();
-    mocks.findAllPage
-      .mockReturnValueOnce(first.promise)
-      .mockReturnValueOnce(second.promise);
+    let calls = 0;
+    mocks.findAllPage.mockImplementation(() => {
+      calls += 1;
+      return calls <= ALL_CATEGORY_COUNT ? first.promise : second.promise;
+    });
     const { result, unmount } = renderHook(() =>
       useStudioGenerateGallery(scope),
     );
-    await waitFor(() => expect(mocks.findAllPage).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(mocks.findAllPage).toHaveBeenCalledTimes(ALL_CATEGORY_COUNT),
+    );
     act(() => result.current.refresh());
     expect((mocks.findAllPage.mock.calls[0][1] as AbortSignal).aborted).toBe(
       true,
     );
-    await waitFor(() => expect(mocks.findAllPage).toHaveBeenCalledTimes(2));
-    unmount();
-    expect((mocks.findAllPage.mock.calls[1][1] as AbortSignal).aborted).toBe(
-      true,
+    await waitFor(() =>
+      expect(mocks.findAllPage).toHaveBeenCalledTimes(ALL_CATEGORY_COUNT * 2),
     );
+    unmount();
+    expect(
+      (mocks.findAllPage.mock.calls[ALL_CATEGORY_COUNT][1] as AbortSignal)
+        .aborted,
+    ).toBe(true);
     await act(async () => {
       first.reject(new Error('aborted'));
       second.resolve(page(['late']));

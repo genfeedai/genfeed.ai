@@ -8,8 +8,10 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
@@ -27,6 +29,7 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { scopedWhere } from '@api/index';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type {
   ILibrarySummary,
   JsonApiSingleResponse,
@@ -35,6 +38,7 @@ import type { Prisma } from '@genfeedai/prisma';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { resolveIngredientMediaUrl } from '@libs/media/media-url.util';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
   Body,
@@ -241,6 +245,56 @@ export class IngredientsController {
     return serializeCollection(request, IngredientSerializer, {
       docs: renderableIngredients,
     });
+  }
+
+  /**
+   * Superadmin-only cross-tenant generation ledger. Library `findAll` stays
+   * organization-scoped; this path is the one place operators can inspect
+   * another tenant's original, enhanced, and compiled prompts next to the
+   * result image (#5763).
+   */
+  @Get('admin/generation-reviews')
+  @RolesDecorator('superadmin')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @ApiOperation({
+    summary:
+      'List generated images with original, enhanced, and compiled prompts',
+  })
+  @ApiResponse({ description: 'Generation reviews returned', status: 200 })
+  async listAdminGenerationReviews(
+    @Req() request: Request,
+    @Query() query: BaseQueryDto,
+  ) {
+    const options = {
+      customLabels,
+      ...QueryDefaultsUtil.getPaginationDefaults(query),
+    };
+
+    const data = await crossOrgUnsafe(
+      async () =>
+        // tenant-scope-ignore: superadmin generation review (#5763) is a read-only cross-tenant ledger of original/enhanced/compiled prompts plus result images; Library findAll stays organization-scoped
+        await this.ingredientsService.findAll(
+          {
+            include: {
+              metadata: true,
+              organization: true,
+              prompt: true,
+              user: true,
+            },
+            orderBy: handleQuerySort(query.sort),
+            where: {
+              category: IngredientCategory.IMAGE,
+              isDeleted: false,
+              status: {
+                in: [IngredientStatus.FAILED, IngredientStatus.GENERATED],
+              },
+            },
+          },
+          options,
+        ),
+    );
+
+    return serializeCollection(request, IngredientSerializer, data);
   }
 
   @Patch(':ingredientId')

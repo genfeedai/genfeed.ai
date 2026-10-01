@@ -63,7 +63,20 @@ export interface LearningGenerationContext {
   workflowExecutionId?: string;
   generationId?: string;
 }
+export interface LearningGenerationApplicationV1 {
+  status: 'applied' | 'baseline' | 'shadow' | 'suppressed' | 'unavailable';
+  reasonCodes: string[];
+  appliedArmId?: ContentLearningArm;
+  privatePolicyApplied: boolean;
+  sharedReleaseApplied: boolean;
+  revalidatedAt: string;
+}
 export interface LearningGenerationReceipt {
+  application?: LearningGenerationApplicationV1;
+  opportunityId?: string;
+  experimentId?: string;
+  sharedPolicyId?: string;
+  brandPreferenceRevision?: number;
   decisionId?: string;
   credentialId?: string;
   reason?: string;
@@ -121,7 +134,28 @@ export interface LearningScope {
   objective: LearningObjective;
   rewardProfileId: string;
 }
+export interface LearningBrandReceivingView {
+  id: string;
+  brandId: string;
+  revision: number;
+  preference: 'automatic' | 'disabled' | 'pinned';
+  pinnedReleaseId: string | null;
+}
+export interface LearningScopeView {
+  scopeKey: string;
+  epoch: number;
+  revision: number;
+  descriptor: LearningCellDescriptor;
+  descriptorHash: string;
+  baselineCount: number;
+  activePolicyId: string | null;
+  pinnedPolicyId: string | null;
+  lastValidRewardAt: string | null;
+  unavailableReasons: string[];
+}
 export interface LearningAccountView {
+  scopes?: LearningScopeView[];
+  latestDecision?: LearningGenerationReceipt;
   id: string;
   organizationId: string;
   brandId: string;
@@ -149,6 +183,7 @@ export interface LearningOperationView {
 }
 
 export interface LearningControlInput {
+  experimentId?: string;
   action:
     | 'live'
     | 'pause'
@@ -682,4 +717,35 @@ export function learningRunTerminalResult(
   )
     return null;
   return validLearningRunTerminalResult(result) ? result : null;
+}
+
+export interface LearningExperimentCreateInput {
+  kind: 'private_pilot' | 'shared_stage';
+  cellKey: string;
+  candidateId: string;
+  controlId: string;
+  startAt: string;
+  endAt: string;
+  approvedArmIds: string[];
+  requestId: string;
+}
+export interface LearningExperimentEnrollInput {
+  experimentId: string;
+  credentialId: string;
+  noticeVersion: string;
+  expectedRevision: number;
+  requestId: string;
+}
+export interface LearningExperimentCancelInput {
+  expectedRevision: number;
+  reason: string;
+  requestId: string;
+}
+export interface LearningReleaseControlInput {
+  action: 'canary' | 'limited' | 'stable' | 'pause' | 'rollback';
+  expectedRevision: number;
+  requestId: string;
+  reason: string;
+  experimentId?: string;
+  reportId?: string;
 }

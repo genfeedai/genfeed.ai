@@ -16,6 +16,7 @@ export interface UpdateGenerationHarnessSettings {
 }
 
 export interface GenerationHarnessReceipt {
+  brandedGenerationReceiptId?: string;
   learningReceipt?: LearningGenerationReceipt;
   composedPrompt?: string;
   originalPrompt: string;

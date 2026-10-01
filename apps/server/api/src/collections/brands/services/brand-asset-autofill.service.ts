@@ -1,3 +1,4 @@
+import { BRAND_KIT_RESOLVED_REFERENCE_LIMIT } from '@api/collections/brands/constants/brand-kit-assets.constant';
 import type {
   BrandAssetAutofillCandidate,
   BrandAssetAutofillScope,
@@ -93,6 +94,71 @@ export class BrandAssetAutofillService {
         ),
       ],
     });
+    await this.importWebsiteReferences(scope, scrapedData);
+  }
+
+  /**
+   * Page images become brand-kit `reference` assets so first-run generation
+   * can pass them as `image_input`. Logo and banner slots stay independent.
+   */
+  private async importWebsiteReferences(
+    scope: BrandAssetAutofillScope,
+    scrapedData: IScrapedBrandData,
+  ): Promise<void> {
+    const candidates = this.toWebsiteReferenceCandidates(scrapedData);
+    if (candidates.length === 0) {
+      return;
+    }
+
+    try {
+      await this.brandsService.importBrandKitAssets(
+        scope.brandId,
+        scope.organizationId,
+        scope.userId,
+        {
+          assets: candidates.map(
+            (candidate, index): IBrandKitAssetImportCandidate => ({
+              candidateId: `autofill:reference:${index}`,
+              label: candidate.label,
+              mimeType: candidate.mimeType,
+              replaceExisting: false,
+              role: 'reference',
+              sourceType: candidate.sourceType,
+              sourceUrl: candidate.url,
+            }),
+          ),
+        },
+      );
+    } catch (error: unknown) {
+      this.loggerService.warn('Brand reference autofill failed', {
+        brandId: scope.brandId,
+        context: this.context,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  private toWebsiteReferenceCandidates(
+    scrapedData: IScrapedBrandData,
+  ): BrandAssetAutofillCandidate[] {
+    const pageImages = (scrapedData.referenceImageUrls ?? []).map((url) => ({
+      url,
+    }));
+
+    return this.dedupe([
+      ...this.toCandidates(
+        [{ mimeType: scrapedData.ogImageType, url: scrapedData.ogImage }],
+        'Website social card',
+        'website',
+        scrapedData.sourceUrl,
+      ),
+      ...this.toCandidates(
+        pageImages,
+        'Website image',
+        'website',
+        scrapedData.sourceUrl,
+      ),
+    ]).slice(0, BRAND_KIT_RESOLVED_REFERENCE_LIMIT);
   }
 
   private async fillEmptySlots(

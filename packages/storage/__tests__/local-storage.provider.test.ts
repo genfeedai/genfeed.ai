@@ -1,9 +1,10 @@
-import { existsSync } from 'node:fs';
+import { existsSync, ReadStream } from 'node:fs';
 import * as fs from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import * as boundedRead from '../src/bounded-storage-read';
 import { LocalStorageProvider } from '../src/local-storage.provider';
 
 describe('LocalStorageProvider', () => {
@@ -130,5 +131,110 @@ describe('LocalStorageProvider', () => {
       expect(await provider.exists('media/a.png')).toBe(false);
       expect(existsSync(path.join(baseDir, 'media/a.png'))).toBe(false);
     });
+  });
+  describe('native bounded reads', () => {
+    afterEach(() => vi.restoreAllMocks());
+    it('returns exact stored bytes and rejects oversized metadata', async () => {
+      await provider.upload(Buffer.from([0, 1, 255]), 'bytes.bin');
+      expect(
+        await provider.readBytes('bytes.bin', { maxBytes: 3, timeoutMs: 1000 }),
+      ).toEqual(Buffer.from([0, 1, 255]));
+      await expect(
+        provider.readBytes('bytes.bin', { maxBytes: 2, timeoutMs: 1000 }),
+      ).rejects.toThrow('storage_read_limit_exceeded');
+    });
+    it.each(['../escape', '/absolute', 'https://private.invalid/key'])(
+      'rejects unsafe key %s',
+      async (key) => {
+        await expect(
+          provider.readBytes(key, { maxBytes: 1, timeoutMs: 1000 }),
+        ).rejects.toThrow('storage_read_invalid_key');
+      },
+    );
+    it('rejects symlinks and already-aborted reads without opening a payload stream', async () => {
+      await fs.writeFile(path.join(scratchDir, 'outside'), Buffer.from([1]));
+      await fs.symlink(
+        path.join(scratchDir, 'outside'),
+        path.join(baseDir, 'link'),
+      );
+      await expect(
+        provider.readBytes('link', { maxBytes: 1, timeoutMs: 1000 }),
+      ).rejects.toThrow('storage_read_invalid_key');
+      const signal = new AbortController();
+      signal.abort();
+      await expect(
+        provider.readBytes('missing', {
+          maxBytes: 1,
+          timeoutMs: 1000,
+          signal: signal.signal,
+        }),
+      ).rejects.toThrow('storage_read_aborted');
+    });
+    it.each(['grow', 'truncate', 'rewrite'] as const)(
+      'rejects source %s after actual payload collection',
+      async (change) => {
+        await provider.upload(Buffer.from([1, 2, 3]), 'changing');
+        const collect = boundedRead.collectBoundedStorageBytes;
+        vi.spyOn(
+          boundedRead,
+          'collectBoundedStorageBytes',
+        ).mockImplementationOnce(async (body, size, context, beforeClose) => {
+          return collect(body, size, context, async () => {
+            const filename = path.join(baseDir, 'changing');
+            if (change === 'grow')
+              await fs.appendFile(filename, Buffer.from([4]));
+            else if (change === 'truncate') await fs.truncate(filename, 1);
+            else await fs.writeFile(filename, Buffer.from([3, 2, 1]));
+            await beforeClose?.();
+          });
+        });
+        await expect(
+          provider.readBytes('changing', { maxBytes: 3, timeoutMs: 1000 }),
+        ).rejects.toThrow('storage_read_changed');
+      },
+    );
+    it('accepts exact 20MiB and closes resources so the file can be removed', async () => {
+      await provider.upload(
+        Buffer.alloc(boundedRead.STORAGE_READ_MAX_BYTES, 7),
+        'boundary',
+      );
+      const result = await provider.readBytes('boundary', {
+        maxBytes: boundedRead.STORAGE_READ_MAX_BYTES,
+        timeoutMs: 30000,
+      });
+      expect(result.length).toBe(boundedRead.STORAGE_READ_MAX_BYTES);
+      expect(result.at(-1)).toBe(7);
+      await fs.unlink(path.join(baseDir, 'boundary'));
+    });
+  });
+  it('checks stability on the open native descriptor and closes before returning, including empty files', async () => {
+    for (const bytes of [Buffer.alloc(0), Buffer.from([1])]) {
+      await provider.upload(bytes, 'lifecycle');
+      let opened: ReadStream | undefined;
+      let checked = false;
+      const collect = boundedRead.collectBoundedStorageBytes;
+      vi.spyOn(
+        boundedRead,
+        'collectBoundedStorageBytes',
+      ).mockImplementationOnce(async (body, size, context, beforeClose) => {
+        if (!(body instanceof ReadStream))
+          throw new Error('Expected actual file stream');
+        opened = body;
+        return collect(body, size, context, async () => {
+          expect(body.destroyed).toBe(false);
+          expect(Reflect.get(body, 'fd')).toBeTypeOf('number');
+          await beforeClose?.();
+          checked = true;
+        });
+      });
+      expect(
+        await provider.readBytes('lifecycle', { maxBytes: 1, timeoutMs: 1000 }),
+      ).toEqual(bytes);
+      expect(checked).toBe(true);
+      expect(opened?.closed).toBe(true);
+      if (!opened) throw new Error('Missing actual stream');
+      expect(Reflect.get(opened, 'fd')).toBeNull();
+      vi.restoreAllMocks();
+    }
   });
 });

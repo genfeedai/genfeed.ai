@@ -16,6 +16,7 @@ const runtime = vi.hoisted(() => ({
   change: vi.fn(),
   organizationId: 'org',
   brandId: 'brand',
+  apiEndpoint: 'https://test.api',
 }));
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
@@ -30,7 +31,7 @@ vi.mock('@genfeedai/config/deployment', () => ({
   isDesktopClient: () => runtime.desktop,
 }));
 vi.mock('@services/core/environment.service', () => ({
-  EnvironmentService: { apiEndpoint: 'https://test.api' },
+  EnvironmentService: runtime,
 }));
 vi.mock('@services/core/logger.service', () => ({
   logger: { error: vi.fn() },
@@ -46,6 +47,7 @@ describe('Persisted evaluation scoped video cache', () => {
     runtime.desktop = false;
     runtime.organizationId = 'org';
     runtime.brandId = 'brand';
+    runtime.apiEndpoint = 'https://test.api';
   });
   afterEach(() => {
     vi.restoreAllMocks();
@@ -178,6 +180,35 @@ describe('Persisted evaluation scoped video cache', () => {
         'user',
         'other-org',
         'other-brand',
+      ),
+    );
+    expect(evaluationVideoCache.get(result.current ?? 'missing')).toBeNull();
+  });
+  it('recomputes scope when only the API endpoint changes', async () => {
+    const { result, rerender } = renderHook(useEvaluationReadScopeKey);
+    await waitFor(() =>
+      expect(result.current).toBe(
+        evaluationReadScopeKey(
+          'https://test.api',
+          'web',
+          'user',
+          'org',
+          'brand',
+        ),
+      ),
+    );
+    const previous = result.current;
+    if (!previous) throw new Error('Expected ready scope');
+    evaluationVideoCache.set(previous, []);
+    runtime.apiEndpoint = 'https://other.api';
+    rerender();
+    expect(result.current).toBe(
+      evaluationReadScopeKey(
+        'https://other.api',
+        'web',
+        'user',
+        'org',
+        'brand',
       ),
     );
     expect(evaluationVideoCache.get(result.current ?? 'missing')).toBeNull();

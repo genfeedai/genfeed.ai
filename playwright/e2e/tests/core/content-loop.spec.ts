@@ -65,7 +65,10 @@ test.describe('Core Content Loop', () => {
     await expect(breadcrumb).toContainText('Workspace');
     await expect(breadcrumb).toContainText('Overview');
 
-    const sidebar = authenticatedPage.getByTestId('sidebar-shell').first();
+    const sidebar = authenticatedPage
+      .getByTestId('desktop-sidebar-rail')
+      .getByTestId('sidebar-shell');
+    await expect(sidebar).toBeVisible();
     await expect(sidebar).toHaveAttribute(
       'data-shell-current-app',
       'workspace',
@@ -102,16 +105,13 @@ test.describe('Core Content Loop', () => {
       .click();
     await expect(authenticatedPage).toHaveURL(/\/studio\/storyboard\/new$/);
     await expect(
-      authenticatedPage.getByRole('link', { name: 'Pick a source' }),
+      authenticatedPage.getByRole('link', { name: 'Browse Discovery' }),
     ).toHaveAttribute('href', /\/discovery\/overview$/);
     await expect(
-      authenticatedPage.getByRole('button', { name: /Frame sequence/i }),
+      authenticatedPage.getByRole('button', { name: 'From a brief' }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('button', { name: /Scenes/i }),
-    ).toBeVisible();
-    await expect(
-      authenticatedPage.getByRole('button', { name: /Merge videos/i }),
+      authenticatedPage.getByRole('button', { name: 'Remix a video' }),
     ).toBeVisible();
   });
 

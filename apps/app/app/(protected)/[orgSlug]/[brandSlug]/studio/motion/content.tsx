@@ -98,10 +98,11 @@ function MotionWorkspace() {
     current && !['completed', 'failed', 'cancelled'].includes(current.status),
   );
   const catalog = api.catalog.data;
-  const selectedModel = catalog?.models.find(
+  const catalogModels = catalog?.models ?? [];
+  const selectedModel = catalogModels.find(
     (item) =>
       item.key ===
-      (modelKey === 'default' ? catalog.defaultModelKey : modelKey),
+      (modelKey === 'default' ? catalog?.defaultModelKey : modelKey),
   );
   function invalidateQuote() {
     quoteEpoch.current++;
@@ -335,13 +336,18 @@ function MotionWorkspace() {
                       version: revision.rendererVersion,
                     })}
                   </p>
-                  {Array.from(new Set(revision.diagnostics)).map((message) => (
-                    <p key={message} className="text-sm text-muted-foreground">
-                      {message}
-                    </p>
-                  ))}
+                  {Array.from(new Set(revision.diagnostics ?? [])).map(
+                    (message) => (
+                      <p
+                        key={message}
+                        className="text-sm text-muted-foreground"
+                      >
+                        {message}
+                      </p>
+                    ),
+                  )}
                   <div className="grid gap-3 sm:grid-cols-3">
-                    {revision.previews.map((media, index) => (
+                    {(revision.previews ?? []).map((media, index) => (
                       <Image
                         key={media.url}
                         unoptimized
@@ -564,7 +570,7 @@ function MotionWorkspace() {
                       <SelectItem value="default">
                         {t('organizationDefault')}
                       </SelectItem>
-                      {catalog?.models.map((model) => (
+                      {catalogModels.map((model) => (
                         <SelectItem
                           key={model.key}
                           value={model.key}
@@ -623,29 +629,26 @@ function MotionWorkspace() {
                         ),
                       )
                       .map((item) => (
-                        <label
+                        <Checkbox
                           key={item.id}
-                          className="flex items-center gap-2 text-sm"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={assetIds.includes(item.id)}
-                            disabled={
-                              !assetIds.includes(item.id) &&
-                              assetIds.length >= 12
-                            }
-                            onChange={(event) =>
-                              setAssetIds((prior) =>
-                                event.target.checked
-                                  ? [...prior, item.id]
-                                  : prior.filter((id) => id !== item.id),
-                              )
-                            }
-                          />
-                          {typeof item.metadata === 'object'
-                            ? (item.metadata?.label ?? item.id)
-                            : item.id}
-                        </label>
+                          checked={assetIds.includes(item.id)}
+                          disabled={
+                            !assetIds.includes(item.id) && assetIds.length >= 12
+                          }
+                          label={
+                            typeof item.metadata === 'object'
+                              ? (item.metadata?.label ?? item.id)
+                              : item.id
+                          }
+                          onCheckedChange={(checked) => {
+                            setAssetIds((prior) =>
+                              checked === true
+                                ? [...prior, item.id]
+                                : prior.filter((id) => id !== item.id),
+                            );
+                            invalidateQuote();
+                          }}
+                        />
                       ))}
                   </div>
                 </fieldset>
@@ -756,7 +759,7 @@ function MotionWorkspace() {
               <p className="text-sm text-muted-foreground">
                 {t('billingHint')}
               </p>
-              {catalog?.models.find(
+              {catalogModels.find(
                 (model) => model.key === review.quote.modelKey,
               )?.inspectionCapability === 'unknown' && (
                 <p className="text-sm">{t('unverifiedVision')}</p>

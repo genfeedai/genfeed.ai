@@ -99,6 +99,15 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = withAdminCollapsibleGroups([
   {
     group: 'Content',
     hrefScope: 'global',
+    href: APP_ROUTES.ADMIN.CONTENT.GENERATIONS,
+    label: 'Generations',
+    matchPaths: [APP_ROUTES.ADMIN.CONTENT.GENERATIONS],
+    outline: Image,
+    solid: Image,
+  },
+  {
+    group: 'Content',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.CONTENT.INGREDIENTS_VIDEOS,
     label: 'Ingredients',
     matchPaths: [APP_ROUTES.ADMIN.CONTENT.INGREDIENTS],

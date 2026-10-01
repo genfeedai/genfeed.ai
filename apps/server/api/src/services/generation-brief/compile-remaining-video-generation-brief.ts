@@ -284,11 +284,30 @@ export function compileRemainingVideoGenerationBrief(
     );
   }
 
-  const aspectRatio = normalizeAspectRatioForModel(
-    modelKey,
-    brief.output.aspectRatio ?? profile.defaultAspectRatio,
-  );
-  const duration = resolveDuration(brief, profile);
+  if (brief.output.aspectRatio && !profile.aspectRatio.supported) {
+    throw new GenerationBriefCompileError(
+      `${spec.modelLabel} does not support aspect ratio.`,
+      'invalid_brief',
+    );
+  }
+  if (
+    brief.output.durationSeconds !== undefined &&
+    !profile.duration.supported
+  ) {
+    throw new GenerationBriefCompileError(
+      `${spec.modelLabel} does not support duration.`,
+      'invalid_brief',
+    );
+  }
+  const aspectRatio = profile.aspectRatio.supported
+    ? normalizeAspectRatioForModel(
+        modelKey,
+        brief.output.aspectRatio ?? profile.defaultAspectRatio,
+      )
+    : undefined;
+  const duration = profile.duration.supported
+    ? resolveDuration(brief, profile)
+    : undefined;
   const hasSeed = seed !== undefined && profile.seed.supported;
   const resolutionOptions = getVideoResolutionsByModel(modelKey);
   const requestedResolution = brief.output.resolution;
@@ -329,7 +348,7 @@ export function compileRemainingVideoGenerationBrief(
       ...(spec.extraDefaults ?? {}),
     };
 
-  if (spec.aspectRatioField) {
+  if (spec.aspectRatioField && aspectRatio) {
     dispatchPayload[spec.aspectRatioField] =
       modelKey === MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5 &&
       firstFrameAssetId &&
@@ -337,7 +356,7 @@ export function compileRemainingVideoGenerationBrief(
         ? 'adaptive'
         : aspectRatio;
   }
-  if (spec.durationField) {
+  if (spec.durationField && duration !== undefined) {
     dispatchPayload[spec.durationField] = duration;
   }
   if (spec.negativePromptField && negativeParts.length > 0) {
@@ -370,8 +389,8 @@ export function compileRemainingVideoGenerationBrief(
   const evidence = remainingVideoCompileEvidenceSchema.parse({
     appliedFields: [
       'intent.objective',
-      'output.aspectRatio',
-      'output.durationSeconds',
+      ...(aspectRatio ? ['output.aspectRatio'] : []),
+      ...(duration !== undefined ? ['output.durationSeconds'] : []),
       ...(brief.intent.subjects.length > 0 ? ['intent.subjects'] : []),
       ...(brief.intent.scene ? ['intent.scene'] : []),
       ...(brief.intent.composition ? ['intent.composition'] : []),
@@ -399,8 +418,8 @@ export function compileRemainingVideoGenerationBrief(
     modelKey,
     omittedSignals: omitted,
     output: {
-      aspectRatio,
-      durationSeconds: duration,
+      ...(aspectRatio ? { aspectRatio } : {}),
+      ...(duration !== undefined ? { durationSeconds: duration } : {}),
       hasSeed,
       ...(resolution ? { resolution } : {}),
     },

@@ -3,6 +3,11 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
+  collectFirstRunReferenceIds,
+  resolveFirstRunImageRouting,
+} from '@api/helpers/utils/first-run-image-generation/first-run-image-generation.util';
+import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-assembly/brand-context-budget.util';
+import {
   AGENT_GENERATION_GATEWAY,
   type IAgentGenerationGateway,
 } from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
@@ -11,11 +16,11 @@ import {
   readUsableCdnAssetUrl,
   toMediaResponseRecord,
 } from '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import {
   Platform,
   PostVisibility,
-  RouterPriority,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import {
@@ -58,7 +63,7 @@ export function clampOnboardingTweet(value: string): string | null {
 }
 
 /**
- * Drafts one tweet and one cost-priority ad in parallel for the domain
+ * Drafts one tweet and one first-run ad in parallel for the domain
  * loading onboarding step. Either asset can fail without failing the other.
  *
  * Runs off the `ONBOARDING_STARTER_ASSETS_QUEUE` (see
@@ -78,6 +83,7 @@ export class OnboardingStarterAssetsService {
     private readonly configService: ConfigService,
     @Inject(AGENT_GENERATION_GATEWAY)
     private readonly generationGateway: IAgentGenerationGateway,
+    private readonly harnessGenerationService: HarnessGenerationService,
   ) {}
 
   /**
@@ -139,11 +145,9 @@ export class OnboardingStarterAssetsService {
     const websiteUrl = input.websiteUrl?.trim() ?? '';
     const [tweetResult, adResult] = await Promise.allSettled([
       this.writeTweet({
-        brandName,
-        description,
+        brandId,
         organizationId,
         userId,
-        websiteUrl,
       }),
       this.writeAd({
         brandId,
@@ -168,6 +172,10 @@ export class OnboardingStarterAssetsService {
       });
     }
 
+    if (tweet === null && !ad?.url) {
+      throw new Error('No onboarding draft could be generated. Please retry.');
+    }
+
     const postId =
       tweet || ad?.id
         ? await this.saveDraft({
@@ -188,12 +196,29 @@ export class OnboardingStarterAssetsService {
   }
 
   private async writeTweet(input: {
-    brandName: string;
-    description: string;
+    brandId: string;
     organizationId: string;
     userId: string;
-    websiteUrl: string;
   }): Promise<string | null> {
+    const brief = await this.harnessGenerationService.resolveBrief({
+      brandId: input.brandId,
+      contentType: 'post',
+      includeContentMemory: false,
+      objective: 'engagement',
+      organizationId: input.organizationId,
+      platform: 'twitter',
+      topic: 'Introduce the brand and its offering in one standalone tweet.',
+    });
+    const brandContext = this.harnessGenerationService.formatBrief(brief);
+    if (
+      !brief ||
+      !brandContext?.trim() ||
+      brandContext.length > BRAND_CONTEXT_CHARACTER_BUDGET
+    ) {
+      throw new Error(
+        'Brand context is unavailable for this draft. Please retry.',
+      );
+    }
     const response = await this.llmDispatcherService.chatCompletion(
       {
         max_tokens: 180,
@@ -204,13 +229,7 @@ export class OnboardingStarterAssetsService {
             role: 'system',
           },
           {
-            content: [
-              `Brand: ${input.brandName}.`,
-              input.websiteUrl ? `Website: ${input.websiteUrl}.` : '',
-              input.description ? `Context: ${input.description}.` : '',
-            ]
-              .filter(Boolean)
-              .join('\n'),
+            content: brandContext,
             role: 'user',
           },
         ],
@@ -234,10 +253,18 @@ export class OnboardingStarterAssetsService {
     const dimensions = resolveAgentGenerationDimensions(
       DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
     );
+    const routing = resolveFirstRunImageRouting();
+    const references = await this.readBrandVisualReferenceIds(
+      input.brandId,
+      input.organizationId,
+    );
     const prompt = [
       `Create one square ad image for ${input.brandName}.`,
       input.websiteUrl ? `Website: ${input.websiteUrl}.` : '',
       input.description ? `Context: ${input.description}.` : '',
+      references.length > 0
+        ? 'Use the attached brand reference images as visual ground truth for the offering. Do not invent a different product.'
+        : '',
       'Show the offering with a clear focal point and intentional composition.',
       'No text, logos, watermarks, or stock-photo cliches.',
     ]
@@ -246,13 +273,13 @@ export class OnboardingStarterAssetsService {
     const response = toMediaResponseRecord(
       await this.generationGateway.generateImage({
         body: {
-          autoSelectModel: true,
+          ...routing,
           height: dimensions.height,
-          prioritize: RouterPriority.COST,
           prompt,
           text: prompt,
           waitForCompletion: true,
           width: dimensions.width,
+          ...(references.length > 0 ? { references } : {}),
         },
         creditsAttribution: { description: 'Onboarding starter ad' },
         originalPrompt: prompt,
@@ -299,6 +326,28 @@ export class OnboardingStarterAssetsService {
         error,
       });
       return null;
+    }
+  }
+
+  private async readBrandVisualReferenceIds(
+    brandId: string,
+    organizationId: string,
+  ): Promise<string[]> {
+    try {
+      const kit = await this.brandsService.resolveBrandKitAssets(
+        brandId,
+        organizationId,
+      );
+      return collectFirstRunReferenceIds(kit);
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        'Onboarding starter ad skipped brand references',
+        {
+          brandId,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
+      return [];
     }
   }
 

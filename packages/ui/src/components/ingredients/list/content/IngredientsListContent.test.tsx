@@ -688,6 +688,26 @@ describe('IngredientsListContent inspector handoff', () => {
     expect(onOpenLightbox).not.toHaveBeenCalled();
   });
 
+  it('deselects a brand asset when its tile is clicked again', () => {
+    const onSelectionChange = vi.fn();
+    const { onOpenLightbox } = renderContent({
+      filteredIngredients: [videoIngredient, baseIngredient],
+      onSelectionChange,
+      scope: PageScope.BRAND,
+      selectedIngredientIds: [videoIngredient.id, baseIngredient.id],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'grid',
+    });
+
+    fireEvent.click(screen.getByTestId('media-grid-item'));
+
+    expect(onSelectionChange).toHaveBeenCalledExactlyOnceWith([
+      baseIngredient.id,
+    ]);
+    expect(onOpenLightbox).not.toHaveBeenCalled();
+  });
+
   it('opens the lightbox for the inspected asset when the sidebar asks', () => {
     const { onOpenLightbox, rerenderContent } = renderContent({
       filteredIngredients: [videoIngredient],

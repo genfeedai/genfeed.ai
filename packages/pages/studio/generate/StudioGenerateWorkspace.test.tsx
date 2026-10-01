@@ -802,9 +802,20 @@ describe('StudioGenerateWorkspace', () => {
     render(<StudioGenerateWorkspace />);
 
     const topbar = screen.getByTestId('section-topbar');
-    expect(topbar).toContainElement(
-      screen.getByPlaceholderText('Search generations'),
+    const leading = screen.getByTestId('section-topbar-leading');
+    expect(leading).toContainElement(
+      screen.getByTestId('collapsible-search-trigger'),
     );
+    fireEvent.click(screen.getByTestId('collapsible-search-trigger'));
+    expect(topbar).toContainElement(
+      screen.getByPlaceholderText('searchPlaceholder'),
+    );
+    expect(
+      screen.getByRole('combobox', { name: 'filters.type' }),
+    ).toHaveTextContent('filters.allTypes');
+    expect(
+      screen.getByRole('combobox', { name: 'filters.sort' }),
+    ).toHaveTextContent('filters.newest');
     expect(screen.queryByTestId('section-topbar-tabs')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'All' })).toBeNull();
     expect(mocks.gallery).toHaveBeenCalledWith({
@@ -812,7 +823,7 @@ describe('StudioGenerateWorkspace', () => {
       filter: 'all',
     });
     expect(screen.getByTestId('studio-results')).not.toContainElement(
-      screen.getByPlaceholderText('Search generations'),
+      screen.getByPlaceholderText('searchPlaceholder'),
     );
   });
 
@@ -834,9 +845,8 @@ describe('StudioGenerateWorkspace', () => {
     expect(container).toHaveAttribute('data-layout-mode', 'surface-fixed');
     expect(container).toHaveAttribute('data-max-width', '4xl');
     expect(container).not.toHaveClass('bg-background');
-    expect(container).toContainElement(
-      document.querySelector('[data-composer-top-fade]'),
-    );
+    expect(container).toHaveStyle({ zIndex: '40' });
+    expect(container?.querySelector('[data-composer-top-fade]')).toBeNull();
   });
 
   it('represents handoff selections as removable tokens and invalidates the harness override on scope change', async () => {

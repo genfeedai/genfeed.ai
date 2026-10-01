@@ -142,16 +142,14 @@ describe('AgentChatInput', () => {
     expect(shell).not.toHaveClass('opacity-50');
   });
 
-  it('keeps the agent glass surface without an outer shadow', () => {
+  it('uses the shared composer glass and elevation', () => {
     render(<AgentChatInput onSend={vi.fn()} />);
 
     const shell = screen.getByTestId('agent-chat-input-shell');
 
     expect(shell).toHaveClass('bg-background/70', 'backdrop-blur-xl');
     expect(shell).toHaveClass('border', 'border-border-strong/70');
-    // The border and the absent shadow now come from the shared composer
-    // surface, so Agent no longer needs a local `!shadow-none` override.
-    expect(shell).not.toHaveClass('shadow-composer');
+    expect(shell).toHaveClass('shadow-composer');
   });
 
   it('renders the agent mode dropdown in the leading toolbar slot', () => {

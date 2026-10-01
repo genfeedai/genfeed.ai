@@ -24,9 +24,10 @@ vi.mock('@hooks/ui/use-storyboard-entry/use-storyboard-entry', () => ({
   }),
 }));
 
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
-}));
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('@genfeedai/config/deployment', () => ({
   isSelfHostedDeployment: mocks.isSelfHostedDeployment,

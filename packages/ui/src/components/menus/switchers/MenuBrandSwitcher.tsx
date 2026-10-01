@@ -31,6 +31,7 @@ export default function MenuBrandSwitcher({
   brands,
   brandId,
   clearSelectionAction,
+  compactOnMobile = false,
   isUpdatingBrand: externalIsUpdating,
   onBrandChange,
   variant = 'avatar',
@@ -139,6 +140,7 @@ export default function MenuBrandSwitcher({
         shouldShowClearSelection
           ? SWITCHER_COMPOSITE_TRIGGER_CLASSNAME
           : SWITCHER_TRIGGER_CLASSNAME,
+        compactOnMobile && 'gap-0 px-1 md:gap-2 md:px-2.5',
         isUpdating && 'cursor-not-allowed opacity-50',
         !shouldShowClearSelection && isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,
       )}
@@ -146,10 +148,20 @@ export default function MenuBrandSwitcher({
       title={selectedBrandLabel}
     >
       {brandAvatar}
-      <span className={SWITCHER_LABEL_CLASSNAME}>
+      <span
+        className={cn(
+          SWITCHER_LABEL_CLASSNAME,
+          compactOnMobile && 'hidden md:inline',
+        )}
+      >
         {isUpdating ? 'Switching…' : selectedBrandLabel}
       </span>
-      <ChevronsUpDown className={SWITCHER_CHEVRON_CLASSNAME} />
+      <ChevronsUpDown
+        className={cn(
+          SWITCHER_CHEVRON_CLASSNAME,
+          compactOnMobile && 'hidden md:block',
+        )}
+      />
     </Button>
   );
 

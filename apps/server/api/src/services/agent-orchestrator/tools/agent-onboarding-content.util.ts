@@ -113,12 +113,10 @@ export async function createOnboardingBrandDraft(
             brandId,
             platform: ContentIntelligencePlatform.TWITTER,
             topic:
-              `Introduce ${brandName} with a useful, specific post grounded in its offering. ${description}`.slice(
-                0,
-                2000,
-              ),
+              'Introduce the brand with a useful, specific post grounded in its saved offering.',
             variationsCount: 1,
           },
+          true,
         );
       tweet = generated[0]?.content?.trim();
       if (!tweet) throw new Error('The text generator returned no draft.');

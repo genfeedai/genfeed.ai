@@ -231,11 +231,27 @@ describe('AppLayout', () => {
     );
     expect(appRail).not.toHaveClass('border-r', 'bg-foreground/[0.04]');
     expect(appRail).toHaveStyle({ top: 'var(--desktop-titlebar-height)' });
+    expect(appRail).not.toHaveClass('pt-[var(--shell-topbar-height)]');
+    const mark = screen.getByTestId('app-rail-mark');
+    const collapse = screen.getByRole('button', { name: 'Collapse sidebar' });
+    expect(mark).toContainElement(collapse);
+    expect(collapse.querySelector('img')?.getAttribute('src')).toContain(
+      'logo.svg',
+    );
+    expect(appRail).toContainElement(mark);
+    expect(screen.getByTestId('app-topbar-shell')).not.toContainElement(
+      collapse,
+    );
+    expect(
+      mark.compareDocumentPosition(screen.getAllByTestId('rail-component')[0]) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(appRail).toContainElement(
       screen.getAllByTestId('rail-component')[0],
     );
     expect(screen.getByTestId('app-content-shell').parentElement).toHaveStyle({
-      '--desktop-rail-width': '52px',
+      '--desktop-rail-width': '40px',
+      '--shell-topbar-height': '40px',
     });
     // Desktop: the topbar sits on the chrome plane, outside the page.
     expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
@@ -270,16 +286,19 @@ describe('AppLayout', () => {
       '[--shell-inset:0px]',
       '[--shell-edge:0px]',
       'md:[--shell-inset:0.5rem]',
-      '[--shell-topbar-offset:3rem]',
+      '[--shell-topbar-offset:var(--shell-topbar-height)]',
     );
     expect(layoutRoot).not.toHaveClass('md:[--shell-edge:1px]');
-    // Shell starts after the rail. The inspector's width is reserved on the right.
+    // Shell starts after the rail. Inspector width is reserved on the panel,
+    // not the shell, so the topbar icons stay put.
     expect(contentShell).toHaveClass(
       'md:pl-[var(--desktop-rail-width)]',
       'md:pt-[var(--desktop-titlebar-height)]',
-      'xl:pr-[var(--workspace-inspector-width,0px)]',
       'md:h-dvh',
       'md:overflow-hidden',
+    );
+    expect(contentShell).not.toHaveClass(
+      'xl:pr-[var(--workspace-inspector-width,0px)]',
     );
     expect(contentShell).not.toHaveClass(
       'md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))]',
@@ -287,13 +306,15 @@ describe('AppLayout', () => {
     // Menu and page share the rounded block. The topbar stays outside it.
     expect(panel).toHaveClass(
       'bg-background',
-      'md:m-[var(--shell-inset)]',
+      'md:mb-[var(--shell-inset)]',
+      'xl:mr-[calc(var(--shell-inset)+var(--workspace-inspector-width,0px))]',
       'md:flex-row',
       'md:overflow-hidden',
       'md:rounded-lg',
       'md:border',
       'md:border-border',
     );
+    expect(panel).not.toHaveClass('md:ml-[var(--shell-inset)]');
     expect(panel).toContainElement(sidebar);
     expect(sidebar).toHaveClass('relative', 'bg-gray-100', 'border-r');
     expect(sidebar).not.toHaveClass('fixed');
@@ -308,7 +329,7 @@ describe('AppLayout', () => {
     expect(mainContent).toHaveClass(
       'md:overflow-y-auto',
       'md:pt-0',
-      'pt-[calc(var(--desktop-titlebar-height)+3rem)]',
+      'pt-[calc(var(--desktop-titlebar-height)+var(--shell-topbar-height))]',
     );
     expect(mainContent).toHaveAttribute('data-scroll-container', 'shell');
   });
@@ -360,8 +381,10 @@ describe('AppLayout', () => {
     expect(screen.getByTestId('desktop-sidebar-rail')).not.toHaveClass(
       'border-r',
     );
-    expect(screen.getByTestId('desktop-app-rail')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Expand sidebar' })).toHaveStyle({
+    const appRail = screen.getByTestId('desktop-app-rail');
+    const expand = screen.getByRole('button', { name: 'Expand sidebar' });
+    expect(appRail).toContainElement(expand);
+    expect(expand).not.toHaveStyle({
       left: 'calc(var(--desktop-rail-width, 0px) + 0.75rem)',
     });
   });
@@ -394,8 +417,8 @@ describe('AppLayout', () => {
     const mobileRail = screen.getByTestId('mobile-app-rail');
     const drawer = mobileRail.parentElement?.parentElement;
 
-    // Clears the 48px fixed topbar that overlaps the top of the drawer.
-    expect(mobileRail).toHaveClass('pt-12');
+    // Clears the 40px fixed topbar that overlaps the top of the drawer.
+    expect(mobileRail).toHaveClass('pt-[var(--shell-topbar-height)]');
     expect(drawer).toHaveClass('hidden');
 
     fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));

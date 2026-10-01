@@ -27,11 +27,11 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // BillingAccountMember role on the account, not by any organizationId.
     {
       file: 'apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts',
-      line: 489,
+      line: 494,
     },
     {
       file: 'apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts',
-      line: 891,
+      line: 896,
     },
     // #5511: admin-pinned Featured workflows are platform-curated and read by
     // every organization. The read is limited to the pinned ids, non-deleted
@@ -40,5 +40,12 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     {
       file: 'apps/server/api/src/collections/workflows/services/featured-workflows.service.ts',
       line: 214,
+    },
+    // #5763: superadmin generation review is a read-only cross-tenant ledger
+    // of original/enhanced/compiled prompts plus result images. Library
+    // findAll, delete, and merge stay organization-scoped.
+    {
+      file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
+      line: 273,
     },
   ];

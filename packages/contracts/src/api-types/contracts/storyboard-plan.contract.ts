@@ -129,7 +129,7 @@ export const storyboardImportedPlanSchema =
 export const updateStoryboardPlanSchema = z
   .object({
     expectedRevision: z.number().int().positive(),
-    plan: storyboardImportedPlanDraftSchema,
+    plan: storyboardImportedPlanSchema,
     capabilityVersion: z
       .string()
       .regex(/^[a-f0-9]{64}$/)

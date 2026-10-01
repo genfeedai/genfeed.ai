@@ -41,7 +41,7 @@ export function WorkspaceContextSidebarRail({
             className="truncate text-sm font-medium text-foreground"
             data-testid="context-sidebar-title"
           >
-            {selection?.title}
+            {selection?.title ?? translate('empty')}
           </p>
           {selection?.subtitle ? (
             <p className="truncate text-xs text-muted-foreground">

@@ -17,6 +17,7 @@ import {
   VisualProjectSerializer,
 } from '@genfeedai/serializers';
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -41,11 +42,14 @@ export class VisualProjectsController {
   @Get('catalog') async catalog(
     @Req() req: Request,
     @CurrentUser() user: AuthenticatedUser,
-    @Query('brandId') brandId: string,
+    @Query('brandId') brandId?: unknown,
   ) {
     return serializeSingle(req, VisualCodeCatalogSerializer, {
       id: 'visual-code',
-      ...(await this.projects.catalog(user, brandId)),
+      ...(await this.projects.catalog(
+        user,
+        resolveVisualProjectBrandId(brandId, user.brandId),
+      )),
     });
   }
   @Post('quote') async quote(
@@ -61,7 +65,7 @@ export class VisualProjectsController {
   @Get('projects') async list(
     @Req() req: Request,
     @CurrentUser() user: AuthenticatedUser,
-    @Query('brandId') brandId: string,
+    @Query('brandId') brandId?: unknown,
     @Query('limit') limit?: string,
     @Query('cursor') cursor?: string,
   ) {
@@ -70,7 +74,7 @@ export class VisualProjectsController {
       VisualProjectSerializer,
       await this.projects.list(
         user,
-        brandId,
+        resolveVisualProjectBrandId(brandId, user.brandId),
         limit === undefined ? 20 : Number(limit),
         cursor,
       ),
@@ -169,4 +173,24 @@ export class VisualProjectsController {
     res.setHeader('Cache-Control', 'no-store');
     res.send(source);
   }
+}
+
+function resolveVisualProjectBrandId(value: unknown, fallback: string): string {
+  if (Array.isArray(value)) {
+    throw new BadRequestException({
+      detail: 'brandId must be a single string',
+      title: 'Bad Request',
+    });
+  }
+  if (typeof value === 'string' && value.length > 0) return value;
+  if (
+    (value === undefined || value === '') &&
+    typeof fallback === 'string' &&
+    fallback.length > 0
+  )
+    return fallback;
+  throw new BadRequestException({
+    detail: 'brandId is required',
+    title: 'Bad Request',
+  });
 }

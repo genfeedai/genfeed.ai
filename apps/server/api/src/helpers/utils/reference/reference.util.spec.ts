@@ -193,6 +193,63 @@ describe('buildReferenceImageUrl', () => {
     });
   });
 
+  it('falls back to a logo URL when the reference asset is missing', async () => {
+    const { ingredientsService, assetsService, configService, loggerService } =
+      createMocks();
+
+    (ingredientsService.findOne as vi.Mock).mockResolvedValue(null);
+    (assetsService.findOne as vi.Mock)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: referenceId });
+
+    const url = await buildReferenceImageUrl(
+      withOrganization(
+        { assetsService, configService, ingredientsService, loggerService },
+        { referenceId },
+      ),
+    );
+
+    expect(url).toBe(`${BASE_URL}/logos/${referenceId}`);
+    expect(assetsService.findOne).toHaveBeenNthCalledWith(1, {
+      category: AssetCategory.REFERENCE,
+      id: referenceId,
+      isDeleted: false,
+      organizationId: ORGANIZATION_ID,
+    });
+    expect(assetsService.findOne).toHaveBeenNthCalledWith(2, {
+      category: AssetCategory.LOGO,
+      id: referenceId,
+      isDeleted: false,
+      organizationId: ORGANIZATION_ID,
+    });
+  });
+
+  it('falls back to a banner URL after logo and reference miss', async () => {
+    const { ingredientsService, assetsService, configService, loggerService } =
+      createMocks();
+
+    (ingredientsService.findOne as vi.Mock).mockResolvedValue(null);
+    (assetsService.findOne as vi.Mock)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: referenceId });
+
+    const url = await buildReferenceImageUrl(
+      withOrganization(
+        { assetsService, configService, ingredientsService, loggerService },
+        { referenceId },
+      ),
+    );
+
+    expect(url).toBe(`${BASE_URL}/banners/${referenceId}`);
+    expect(assetsService.findOne).toHaveBeenNthCalledWith(3, {
+      category: AssetCategory.BANNER,
+      id: referenceId,
+      isDeleted: false,
+      organizationId: ORGANIZATION_ID,
+    });
+  });
+
   it('logs a warning and returns null when reference is not found', async () => {
     const { ingredientsService, assetsService, configService, loggerService } =
       createMocks();

@@ -22,6 +22,7 @@ import {
   MusicSerializer,
   VideoSerializer,
 } from '@genfeedai/serializers';
+import { PagesService } from '@services/content/pages.service';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -121,6 +122,29 @@ export class IngredientsService<
     } else {
       IngredientsService.instances.clear();
     }
+  }
+
+  public async findAdminGenerationReviews(
+    query: Record<string, unknown> = {},
+    signal?: AbortSignal,
+  ): Promise<T[]> {
+    return this.executeWithErrorHandling(
+      `GET ${this.baseURL}/admin/generation-reviews`,
+      this.instance
+        .get<JsonApiResponseDocument>('admin/generation-reviews', {
+          params: query,
+          signal,
+        })
+        .then(async (response) => {
+          const page = await this.mapPage(response.data);
+          if ((query as { page?: number }).page) {
+            PagesService.setCurrentPage(page.page);
+            PagesService.setTotalPages(page.totalPages);
+            PagesService.setTotalDocs(page.total);
+          }
+          return page.items;
+        }),
+    );
   }
 
   public async post(...args: unknown[]): Promise<T> {

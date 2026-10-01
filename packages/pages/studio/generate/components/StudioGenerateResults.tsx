@@ -6,9 +6,37 @@ import StudioGenerateCard from '@pages/studio/generate/components/StudioGenerate
 import type { StudioGenerateJob } from '@pages/studio/generate/types';
 import { groupStudioGenerateJobsByRun } from '@pages/studio/generate/utils/studio-generate-recipe';
 import Masonry from '@ui/display/masonry/Masonry';
-import Spinner from '@ui/primitives/spinner';
+import { Skeleton } from '@ui/display/skeleton/skeleton';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, type ReactNode, useMemo } from 'react';
+
+const RESULTS_SKELETON_SLOTS = [
+  'a',
+  'b',
+  'c',
+  'd',
+  'e',
+  'f',
+  'g',
+  'h',
+] as const;
+
+function ResultsSkeleton(): ReactElement {
+  return (
+    <div
+      className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4"
+      data-testid="studio-results-skeleton"
+    >
+      {RESULTS_SKELETON_SLOTS.map((slot) => (
+        <Skeleton
+          className="aspect-[4/5] w-full rounded-card"
+          key={slot}
+          variant="rounded"
+        />
+      ))}
+    </div>
+  );
+}
 
 function ResultsSheet({
   children,
@@ -87,20 +115,16 @@ export default function StudioGenerateResults({
       data-testid="studio-generate-results"
     >
       {jobs.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border py-16 text-center">
-          {isLoading ? (
-            <Spinner className="size-5 text-muted-foreground" />
-          ) : (
-            <>
-              <p className="text-sm text-foreground">
-                {translate('emptyTitle')}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {translate('emptyDescription')}
-              </p>
-            </>
-          )}
-        </div>
+        isLoading ? (
+          <ResultsSkeleton />
+        ) : (
+          <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border py-16 text-center">
+            <p className="text-sm text-foreground">{translate('emptyTitle')}</p>
+            <p className="text-xs text-muted-foreground">
+              {translate('emptyDescription')}
+            </p>
+          </div>
+        )
       ) : view === ViewType.GRID ? (
         <>
           {runs

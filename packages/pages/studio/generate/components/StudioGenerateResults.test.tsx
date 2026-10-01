@@ -44,6 +44,22 @@ const assetActions = {
 } satisfies StudioGenerateAssetActions;
 
 describe('StudioGenerateResults', () => {
+  it('uses the library skeleton while the gallery is still loading', () => {
+    render(
+      <StudioGenerateResults
+        assetActions={assetActions}
+        isLoading
+        jobs={[]}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+
+    expect(screen.getByTestId('studio-results-skeleton')).toBeInTheDocument();
+    expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
+  });
+
   it('uses the shared masonry gallery for generated assets', () => {
     render(
       <StudioGenerateResults

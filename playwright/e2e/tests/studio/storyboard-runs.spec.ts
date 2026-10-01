@@ -196,7 +196,13 @@ test.describe('Storyboard runs', () => {
     await page.getByRole('link', { name: 'New storyboard' }).click();
     await expect(page).toHaveURL(/\/studio\/storyboard\/new$/);
     await expect(
-      page.getByRole('link', { name: 'Pick a source' }),
+      page.getByRole('link', { name: 'Browse Discovery' }),
     ).toHaveAttribute('href', /\/discovery\/overview$/);
+    await expect(
+      page.getByRole('button', { name: 'From a brief' }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Remix a video' }),
+    ).toBeVisible();
   });
 });

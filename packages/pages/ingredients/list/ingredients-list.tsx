@@ -29,6 +29,7 @@ import { LazyModalImageToVideo } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
 import { format } from 'date-fns';
 import { useCallback, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 
 /**
  * Categories the merge action actually supports. Kept local to this file
@@ -67,7 +68,11 @@ export default function IngredientsList({
   scope = PageScope.BRAND,
 }: IngredientsListProps) {
   const { activeTypeLabel, ingredientType, viewMode } = useIngredientsContext();
-  const { setHeaderMeta } = useIngredientsHeaderContext();
+  const {
+    hostsSelectionActions = false,
+    selectionSlot = null,
+    setHeaderMeta,
+  } = useIngredientsHeaderContext();
   const { selectedBrand } = useBrand();
   const type = ingredientType || typeProp;
 
@@ -229,23 +234,33 @@ export default function IngredientsList({
     };
   }, [filteredIngredients.length, setHeaderMeta, type]);
 
+  const selectionHeader = (
+    <IngredientsListHeader
+      selectedCount={selectedIngredientIds.length}
+      canMerge={canMerge}
+      canPublishCampaign={canPublishCampaign}
+      isMerging={isMerging}
+      onClearSelection={handleClearSelection}
+      onBulkDelete={handleBulkDelete}
+      onDownload={handleBulkDownload}
+      onMerge={handleMerge}
+      onPublishCampaign={() => {
+        if (canPublishCampaign) {
+          openPostBatchModal(selectedIngredients);
+        }
+      }}
+      placement={hostsSelectionActions ? 'subtopbar' : 'overlay'}
+    />
+  );
+  const selectionChrome = hostsSelectionActions
+    ? selectionSlot && selectedIngredientIds.length > 0
+      ? createPortal(selectionHeader, selectionSlot)
+      : null
+    : selectionHeader;
+
   return (
     <>
-      <IngredientsListHeader
-        selectedCount={selectedIngredientIds.length}
-        canMerge={canMerge}
-        canPublishCampaign={canPublishCampaign}
-        isMerging={isMerging}
-        onClearSelection={handleClearSelection}
-        onBulkDelete={handleBulkDelete}
-        onDownload={handleBulkDownload}
-        onMerge={handleMerge}
-        onPublishCampaign={() => {
-          if (canPublishCampaign) {
-            openPostBatchModal(selectedIngredients);
-          }
-        }}
-      />
+      {selectionChrome}
 
       {isUsingCache && (
         <Alert type={AlertCategory.WARNING}>

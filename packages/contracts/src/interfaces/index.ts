@@ -123,6 +123,7 @@ export * from './content/agent-mention.interface';
 export * from './content/article.interface';
 export * from './content/article-extended.interface';
 export * from './content/avatar-video-provider.interface';
+export type * from './content/branded-generation.interface';
 export * from './content/campaign.interface';
 export * from './content/campaign-comparison.interface';
 export * from './content/campaign-lifecycle.interface';

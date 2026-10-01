@@ -21,6 +21,8 @@ let capturedOnSelect: ((id: string) => void) | undefined;
 let capturedIsLoading: boolean | undefined;
 let capturedEmptyMessage: string | undefined;
 let mockIsSubscriptionActive = true;
+let mockIsSuperAdmin = false;
+let mockIsAccessLoading = false;
 let mockSubscriptionTier: string | null = 'scale';
 
 vi.mock('next/navigation', () => ({
@@ -47,6 +49,16 @@ vi.mock(
       organizations: mockOrganizations,
       status: mockOrganizationStatus,
       switchOrganization: mockSwitchOrganization,
+    }),
+  }),
+);
+
+vi.mock(
+  '@genfeedai/contexts/providers/access-state/access-state.provider',
+  () => ({
+    useAccessState: () => ({
+      isLoading: mockIsAccessLoading,
+      isSuperAdmin: mockIsSuperAdmin,
     }),
   }),
 );
@@ -133,6 +145,8 @@ describe('OrganizationSwitcher', () => {
     capturedEmptyMessage = undefined;
     capturedOnSelect = undefined;
     mockIsSubscriptionActive = true;
+    mockIsSuperAdmin = false;
+    mockIsAccessLoading = false;
     mockSubscriptionTier = 'scale';
     mockOrganizationStatus = 'matched';
     mockParams = { orgSlug: 'acme-org' };
@@ -214,6 +228,47 @@ describe('OrganizationSwitcher', () => {
     expect(capturedFooterActions).toEqual([]);
   });
 
+  it.each(['free', 'pro', null])(
+    'allows an unsubscribed platform superadmin to create beyond the %s plan limit',
+    (tier) => {
+      mockIsSuperAdmin = true;
+      mockIsSubscriptionActive = false;
+      mockSubscriptionTier = tier;
+
+      renderSwitcher();
+
+      expect(capturedFooterActions.map((action) => action.label)).toEqual([
+        'New Organization',
+      ]);
+    },
+  );
+
+  it('allows a subscribed platform superadmin to create beyond the plan limit', () => {
+    mockIsSuperAdmin = true;
+    mockSubscriptionTier = 'pro';
+
+    renderSwitcher();
+
+    expect(capturedFooterActions.map((action) => action.label)).toEqual([
+      'New Organization',
+    ]);
+  });
+
+  it.each(['access', 'organizations'])(
+    'hides creation for a platform superadmin while %s are loading',
+    (loading) => {
+      mockIsSuperAdmin = true;
+      mockIsSubscriptionActive = false;
+      mockIsAccessLoading = loading === 'access';
+      mockOrganizationStatus =
+        loading === 'organizations' ? 'loading' : 'matched';
+
+      renderSwitcher();
+
+      expect(capturedFooterActions).toEqual([]);
+    },
+  );
+
   it('allows organization creation when a capped plan only belongs to another org', async () => {
     mockSubscriptionTier = 'pro';
     mockOrganizations = [
@@ -253,7 +308,7 @@ describe('OrganizationSwitcher', () => {
     ]);
   });
 
-  it('renders the organization as a keyboard-operable rail tile', async () => {
+  it('renders the organization as a keyboard-operable h-8 chip', async () => {
     renderSwitcher();
 
     const trigger = await screen.findByRole('button', {
@@ -263,8 +318,9 @@ describe('OrganizationSwitcher', () => {
     // A native button: Enter and Space open the menu without extra handlers.
     expect(trigger.tagName).toBe('BUTTON');
     expect(trigger).toHaveAttribute('type', 'button');
-    expect(trigger).toHaveTextContent('A');
-    expect(trigger).toHaveClass('size-9', 'rounded-lg');
+    expect(trigger).toHaveTextContent('Acme Org');
+    expect(trigger).toHaveClass('h-8', 'max-w-52');
+    expect(trigger).not.toHaveClass('size-9');
     expect(trigger).toHaveAttribute('title', 'Acme Org');
   });
 

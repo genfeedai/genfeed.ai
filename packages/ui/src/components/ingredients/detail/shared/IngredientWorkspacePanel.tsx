@@ -20,12 +20,9 @@ export default function IngredientWorkspacePanel({
   children,
 }: IngredientWorkspacePanelProps) {
   return (
-    <div className="rounded-3xl bg-secondary p-5 shadow-border md:p-6">
+    <section className="min-w-0">
       <div className="space-y-5">
         <div className="space-y-1">
-          <p className="text-2xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Asset Workspace
-          </p>
           <h2 className="text-sm font-semibold tracking-tight text-foreground">
             {title}
           </h2>
@@ -35,12 +32,13 @@ export default function IngredientWorkspacePanel({
           activeTab={activeTab}
           contentClassName="mt-5 space-y-5"
           fullWidth={false}
+          listClassName="mr-auto ml-0 max-w-full overflow-x-auto"
           onTabChange={onTabChange}
           tabs={tabs}
         >
           {children}
         </Tabs>
       </div>
-    </div>
+    </section>
   );
 }
