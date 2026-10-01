@@ -820,50 +820,45 @@ export class LearningAccountService {
       requestId: string;
     },
   ) {
-    await this.operations.assertMember(actor, true);
-    const brand = await this.prisma.brand.findFirst({
-      where: {
-        id: brandId,
-        organizationId: actor.organizationId,
-        isDeleted: false,
-      },
-    });
-    if (!brand) throw new NotFoundException('Brand not found');
-    if (body.preference === 'pinned') {
-      if (!body.releaseId?.trim())
-        throw new BadRequestException('Pinned receiving requires releaseId');
-      const release = await this.prisma.contentLearningRelease.findFirst({
+    return this.prisma.$transaction(async (tx) => {
+      await learningFence(tx, 'exclusive');
+      await this.operations.assertMember(actor, true, false, tx);
+      const brand = await tx.brand.findFirst({
         where: {
-          id: body.releaseId,
-          synthetic: false,
-          stage: { in: ['canary', 'limited', 'stable'] },
+          id: brandId,
+          organizationId: actor.organizationId,
           isDeleted: false,
         },
       });
-      if (
-        !release ||
-        !(await this.dependencies.valid(
-          'release',
-          release.id,
-          this.prisma,
-          null,
-        ))
-      )
-        throw new ConflictException('Valid pinned release required');
-    }
-    const scope = learningHash([
-        actor.organizationId,
-        brandId,
-        'brand-receiving',
-      ]),
-      payloadHash = learningHash([
-        'brand-receiving',
-        actor.organizationId,
-        brandId,
-        body,
-      ]);
-    return this.prisma.$transaction(async (tx) => {
-      await learningFence(tx, 'exclusive');
+      if (!brand) throw new NotFoundException('Brand not found');
+      if (body.preference === 'pinned') {
+        if (!body.releaseId?.trim())
+          throw new BadRequestException('Pinned receiving requires releaseId');
+        const release = await tx.contentLearningRelease.findFirst({
+          where: {
+            id: body.releaseId,
+            synthetic: false,
+            stage: { in: ['canary', 'limited', 'stable'] },
+            isDeleted: false,
+          },
+        });
+        if (
+          !release ||
+          !(await this.dependencies.valid('release', release.id, tx, null))
+        )
+          throw new ConflictException('Valid pinned release required');
+      }
+      const scope = learningHash([
+          actor.organizationId,
+          brandId,
+          'brand-receiving',
+        ]),
+        payloadHash = learningHash([
+          'brand-receiving',
+          actor.organizationId,
+          brandId,
+          body,
+        ]);
       // tenant-scope-ignore: unique-key upsert; organizationId is part of the key
       await tx.contentLearningBrandPreference.upsert({
         where: {

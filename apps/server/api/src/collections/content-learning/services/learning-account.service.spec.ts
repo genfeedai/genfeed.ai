@@ -1,6 +1,7 @@
 import { LearningAccountService } from '@api/collections/content-learning/services/learning-account.service';
 import type { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
 import {
+  type LearningActor,
   LearningOperationService,
   learningHash,
 } from '@api/collections/content-learning/services/learning-operation.service';
@@ -11,7 +12,7 @@ import {
   learningDescriptorTuple,
   learningRegisteredProfiles,
 } from '@genfeedai/harness';
-import type { Prisma } from '@genfeedai/prisma';
+import type { ContentLearningOperation, Prisma } from '@genfeedai/prisma';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
@@ -1201,6 +1202,437 @@ describe('ensure transaction ownership and source-scoped revocation', () => {
       expect(sql[2]).toContain('content_learning_accounts');
       expect(f.tx.$transaction).not.toHaveBeenCalled();
       expect(f.tx.contentLearningConsent.create).toHaveBeenCalledTimes(1);
+    },
+  );
+});
+
+function brandReceivingFixture() {
+  const actor: LearningActor = { organizationId: 'org', actorId: 'user' };
+  const body: Parameters<LearningAccountService['brandReceiving']>[2] = {
+    preference: 'automatic',
+    expectedRevision: 3,
+    requestId: 'brand-request',
+  };
+  const member = { role: { key: 'owner' } },
+    brand = { id: 'brand' },
+    release = { id: 'release' };
+  const preference = {
+    id: 'preference',
+    organizationId: 'org',
+    brandId: 'brand',
+    revision: 3,
+    preference: 'pinned',
+    pinnedReleaseId: 'prior-pin' as string | null,
+  };
+  let prior: Pick<ContentLearningOperation, 'id' | 'payloadHash'> | null = null;
+  const tx = {
+    $queryRaw: vi.fn().mockResolvedValue([]),
+    member: {
+      findFirst: vi.fn().mockImplementation((): typeof member | null => member),
+    },
+    brand: {
+      findFirst: vi.fn().mockImplementation((): typeof brand | null => brand),
+    },
+    contentLearningRelease: {
+      findFirst: vi
+        .fn()
+        .mockImplementation((): typeof release | null => release),
+    },
+    contentLearningBrandPreference: {
+      upsert: vi.fn().mockResolvedValue(preference),
+      findFirst: vi.fn().mockImplementation((): typeof preference | null => ({
+        ...preference,
+      })),
+      updateMany: vi
+        .fn()
+        .mockImplementation(
+          ({ data }: Prisma.ContentLearningBrandPreferenceUpdateManyArgs) => {
+            if (typeof data.preference === 'string')
+              preference.preference = data.preference;
+            if (
+              data.pinnedReleaseId === null ||
+              typeof data.pinnedReleaseId === 'string'
+            )
+              preference.pinnedReleaseId = data.pinnedReleaseId;
+            preference.revision++;
+            return { count: 1 };
+          },
+        ),
+    },
+    contentLearningOperation: {
+      findFirst: vi.fn().mockImplementation(() => prior),
+      create: vi
+        .fn()
+        .mockImplementation(
+          ({
+            data,
+          }: {
+            data: Prisma.ContentLearningOperationUncheckedCreateInput;
+          }) => ({ id: 'operation', ...data }),
+        ),
+    },
+  };
+  const root = {
+    $transaction: vi
+      .fn()
+      .mockImplementation((apply: (client: typeof tx) => Promise<unknown>) =>
+        apply(tx),
+      ),
+    member: {
+      findFirst: vi.fn().mockResolvedValue({ role: { key: 'owner' } }),
+    },
+    brand: { findFirst: vi.fn() },
+    contentLearningRelease: { findFirst: vi.fn() },
+    contentLearningBrandPreference: {
+      findFirst: vi.fn(),
+      upsert: vi.fn(),
+      updateMany: vi.fn(),
+    },
+    contentLearningOperation: { findFirst: vi.fn(), create: vi.fn() },
+  };
+  const dependencies = { valid: vi.fn().mockResolvedValue(true) };
+  const operations = new LearningOperationService(
+    root as unknown as PrismaService,
+  );
+  const service = new LearningAccountService(
+    root as unknown as PrismaService,
+    operations,
+    dependencies as unknown as LearningDependencyService,
+    {} as LearningScopeStateService,
+    {} as LearningPolicyService,
+  );
+  const modelCalls = [
+    tx.member.findFirst,
+    tx.brand.findFirst,
+    tx.contentLearningRelease.findFirst,
+    tx.contentLearningBrandPreference.upsert,
+    tx.contentLearningBrandPreference.findFirst,
+    tx.contentLearningBrandPreference.updateMany,
+    tx.contentLearningOperation.findFirst,
+    tx.contentLearningOperation.create,
+  ];
+  function assertEntry() {
+    expect(root.$transaction).toHaveBeenCalledTimes(1);
+    expect(tx.$queryRaw.mock.calls[0][0].join('')).toContain(
+      'pg_advisory_xact_lock(5728, 1)',
+    );
+    expect(tx.$queryRaw.mock.calls[0][0].join('')).not.toContain('lock_shared');
+    for (const mock of [...modelCalls, dependencies.valid])
+      if (mock.mock.invocationCallOrder.length)
+        expect(tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+          mock.mock.invocationCallOrder[0],
+        );
+    for (const mock of [
+      root.member.findFirst,
+      root.brand.findFirst,
+      root.contentLearningRelease.findFirst,
+      root.contentLearningBrandPreference.findFirst,
+      root.contentLearningBrandPreference.upsert,
+      root.contentLearningBrandPreference.updateMany,
+      root.contentLearningOperation.findFirst,
+      root.contentLearningOperation.create,
+    ])
+      expect(mock).not.toHaveBeenCalled();
+  }
+  const invoke = () => service.brandReceiving(actor, 'brand', body);
+  const scopeHash = () => learningHash(['org', 'brand', 'brand-receiving']);
+  const payloadHash = () =>
+    learningHash(['brand-receiving', 'org', 'brand', body]);
+  return {
+    actor,
+    body,
+    member,
+    brand,
+    release,
+    preference,
+    root,
+    tx,
+    dependencies,
+    service,
+    invoke,
+    scopeHash,
+    payloadHash,
+    assertEntry,
+    modelCalls,
+    setPrior(row: NonNullable<typeof prior>) {
+      prior = row;
+    },
+  };
+}
+describe('brand receiving validation and mutation share exclusive entry', () => {
+  it.each(['automatic', 'disabled'])(
+    'writes %s through real membership validation on the same fenced client',
+    async (preference) => {
+      const f = brandReceivingFixture();
+      f.body.preference = preference;
+      const result = await f.invoke();
+      expect(result).toMatchObject({
+        type: 'brand-receiving',
+        beforeRevision: 3,
+        afterRevision: 4,
+        scope: f.scopeHash(),
+        payloadHash: f.payloadHash(),
+        resultReferences: { brandId: 'brand', preference },
+      });
+      expect(f.tx.member.findFirst).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org',
+          userId: 'user',
+          isDeleted: false,
+          isActive: true,
+        },
+        include: { role: true },
+      });
+      expect(f.tx.brand.findFirst).toHaveBeenCalledWith({
+        where: { id: 'brand', organizationId: 'org', isDeleted: false },
+      });
+      expect(f.tx.member.findFirst.mock.invocationCallOrder[0]).toBeLessThan(
+        f.tx.brand.findFirst.mock.invocationCallOrder[0],
+      );
+      expect(f.tx.contentLearningRelease.findFirst).not.toHaveBeenCalled();
+      expect(f.dependencies.valid).not.toHaveBeenCalled();
+      expect(f.tx.contentLearningBrandPreference.upsert).toHaveBeenCalledWith({
+        where: {
+          organizationId_brandId: { organizationId: 'org', brandId: 'brand' },
+        },
+        create: { organizationId: 'org', brandId: 'brand' },
+        update: {},
+      });
+      expect(f.tx.contentLearningOperation.findFirst).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org',
+          actorId: 'user',
+          scope: f.scopeHash(),
+          requestId: 'brand-request',
+          isDeleted: false,
+        },
+      });
+      expect(
+        f.tx.contentLearningBrandPreference.updateMany,
+      ).toHaveBeenCalledWith({
+        where: {
+          id: 'preference',
+          organizationId: 'org',
+          isDeleted: false,
+          revision: 3,
+        },
+        data: { preference, pinnedReleaseId: null, revision: { increment: 1 } },
+      });
+      expect(f.preference).toMatchObject({
+        revision: 4,
+        preference,
+        pinnedReleaseId: null,
+      });
+      expect(f.tx.contentLearningOperation.create).toHaveBeenCalledWith({
+        data: {
+          organizationId: 'org',
+          brandId: 'brand',
+          actorId: 'user',
+          scope: f.scopeHash(),
+          requestId: 'brand-request',
+          payloadHash: f.payloadHash(),
+          type: 'brand-receiving',
+          beforeRevision: 3,
+          afterRevision: 4,
+          status: 'completed',
+          resultReferences: { brandId: 'brand', preference },
+        },
+      });
+      expect(
+        f.tx.contentLearningBrandPreference.upsert.mock.invocationCallOrder[0],
+      ).toBeLessThan(f.tx.$queryRaw.mock.invocationCallOrder[1]);
+      expect(f.tx.$queryRaw.mock.invocationCallOrder[1]).toBeLessThan(
+        f.tx.contentLearningOperation.findFirst.mock.invocationCallOrder[0],
+      );
+      expect(
+        f.tx.contentLearningBrandPreference.updateMany.mock
+          .invocationCallOrder[0],
+      ).toBeLessThan(
+        f.tx.contentLearningOperation.create.mock.invocationCallOrder[0],
+      );
+
+      expect(
+        f.tx.contentLearningBrandPreference.updateMany,
+      ).toHaveBeenCalledTimes(1);
+      expect(f.tx.$queryRaw).toHaveBeenCalledTimes(2);
+      expect(f.tx.$queryRaw.mock.calls[1][0].join('')).toContain(
+        'FROM content_learning_brand_preferences',
+      );
+      expect(f.tx.$queryRaw.mock.calls[1].slice(1)).toEqual(['org', 'brand']);
+      f.assertEntry();
+    },
+  );
+  it.each(['owner', 'admin'])(
+    'keeps valid pinned %s authorization and the exact untrimmed release identity',
+    async (role) => {
+      const f = brandReceivingFixture();
+      f.member.role.key = role;
+      f.body.preference = 'pinned';
+      f.body.releaseId = '  release  ';
+      f.release.id = f.body.releaseId;
+      const result = await f.invoke();
+      expect(result).toMatchObject({
+        scope: f.scopeHash(),
+        payloadHash: f.payloadHash(),
+      });
+      expect(f.tx.contentLearningRelease.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: '  release  ',
+          synthetic: false,
+          stage: { in: ['canary', 'limited', 'stable'] },
+          isDeleted: false,
+        },
+      });
+      expect(f.dependencies.valid).toHaveBeenCalledWith(
+        'release',
+        '  release  ',
+        f.tx,
+        null,
+      );
+      expect(
+        f.tx.contentLearningRelease.findFirst.mock.invocationCallOrder[0],
+      ).toBeLessThan(f.dependencies.valid.mock.invocationCallOrder[0]);
+      expect(f.dependencies.valid.mock.invocationCallOrder[0]).toBeLessThan(
+        f.tx.contentLearningBrandPreference.upsert.mock.invocationCallOrder[0],
+      );
+      expect(f.preference.pinnedReleaseId).toBe('  release  ');
+      expect(f.tx.$queryRaw).toHaveBeenCalledTimes(2);
+      f.assertEntry();
+    },
+  );
+  it.each(['missing-member', 'member-role', 'missing-brand'])(
+    'rejects real same-client %s despite a root owner before preference work',
+    async (kind) => {
+      const f = brandReceivingFixture();
+      f.body.preference = 'pinned';
+      if (kind === 'missing-member')
+        f.tx.member.findFirst.mockResolvedValue(null);
+      if (kind === 'member-role') f.member.role.key = 'member';
+      if (kind === 'missing-brand')
+        f.tx.brand.findFirst.mockResolvedValue(null);
+      await expect(f.invoke()).rejects.toThrow(
+        kind === 'missing-brand'
+          ? 'Brand not found'
+          : 'Real organization membership and the required role are required',
+      );
+      if (kind !== 'missing-brand')
+        expect(f.tx.brand.findFirst).not.toHaveBeenCalled();
+      expect(f.tx.contentLearningRelease.findFirst).not.toHaveBeenCalled();
+      expect(f.tx.contentLearningBrandPreference.upsert).not.toHaveBeenCalled();
+      f.assertEntry();
+    },
+  );
+  it.each([
+    'blank',
+    'missing-id',
+    'missing-release',
+    'invalid-release',
+    'revoked-before-replay',
+  ])(
+    'preserves pinned %s validation before idempotent replay/upsert',
+    async (kind) => {
+      const f = brandReceivingFixture();
+      f.body.preference = 'pinned';
+      f.body.releaseId =
+        kind === 'blank' ? '  ' : kind === 'missing-id' ? undefined : 'release';
+      if (kind === 'missing-release' || kind === 'revoked-before-replay')
+        f.tx.contentLearningRelease.findFirst.mockResolvedValue(null);
+      if (kind === 'invalid-release')
+        f.dependencies.valid.mockResolvedValue(false);
+      if (kind === 'revoked-before-replay')
+        f.setPrior({ id: 'previous', payloadHash: f.payloadHash() });
+      await expect(f.invoke()).rejects.toThrow(
+        kind === 'blank' || kind === 'missing-id'
+          ? 'Pinned receiving requires releaseId'
+          : 'Valid pinned release required',
+      );
+      if (kind === 'blank' || kind === 'missing-id')
+        expect(f.tx.contentLearningRelease.findFirst).not.toHaveBeenCalled();
+      if (kind !== 'invalid-release')
+        expect(f.dependencies.valid).not.toHaveBeenCalled();
+      expect(f.tx.contentLearningBrandPreference.upsert).not.toHaveBeenCalled();
+      expect(f.tx.contentLearningOperation.findFirst).not.toHaveBeenCalled();
+      f.assertEntry();
+    },
+  );
+  it.each(['same', 'changed'])(
+    'retains %s request-key replay after validation and idempotent upsert/lock',
+    async (kind) => {
+      const f = brandReceivingFixture();
+      f.body.preference = 'pinned';
+      f.body.releaseId = 'release';
+      const prior = { id: 'previous', payloadHash: f.payloadHash() };
+      f.setPrior(prior);
+      if (kind === 'changed') f.body.expectedRevision = 5;
+      const result = f.invoke();
+      if (kind === 'same') expect(await result).toBe(prior);
+      else await expect(result).rejects.toThrow('Request key conflict');
+      expect(f.tx.contentLearningRelease.findFirst).toHaveBeenCalledTimes(1);
+      expect(f.dependencies.valid).toHaveBeenCalledTimes(1);
+      expect(f.tx.contentLearningBrandPreference.upsert).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(f.tx.$queryRaw).toHaveBeenCalledTimes(2);
+      expect(
+        f.tx.contentLearningBrandPreference.findFirst,
+      ).not.toHaveBeenCalled();
+      expect(
+        f.tx.contentLearningBrandPreference.updateMany,
+      ).not.toHaveBeenCalled();
+      expect(f.tx.contentLearningOperation.create).not.toHaveBeenCalled();
+      f.assertEntry();
+    },
+  );
+  it.each(['stale', 'missing'])(
+    'preserves preference %s revision conflict response after upsert/lock',
+    async (kind) => {
+      const f = brandReceivingFixture();
+      if (kind === 'stale') f.body.expectedRevision = 2;
+      else
+        f.tx.contentLearningBrandPreference.findFirst.mockResolvedValue(null);
+      await expect(f.invoke()).rejects.toMatchObject({
+        response: { currentRevision: kind === 'missing' ? 0 : 3 },
+      });
+      expect(f.tx.contentLearningBrandPreference.upsert).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(f.tx.$queryRaw).toHaveBeenCalledTimes(2);
+      expect(
+        f.tx.contentLearningBrandPreference.updateMany,
+      ).not.toHaveBeenCalled();
+      expect(f.tx.contentLearningOperation.create).not.toHaveBeenCalled();
+      f.assertEntry();
+    },
+  );
+  it.each(['fence', 'validity', 'update', 'create'])(
+    'propagates %s failure without fallback or partial-success result',
+    async (kind) => {
+      const f = brandReceivingFixture(),
+        failure = new Error('brand receiving failure');
+      if (kind === 'fence') f.tx.$queryRaw.mockRejectedValueOnce(failure);
+      if (kind === 'validity') {
+        f.body.preference = 'pinned';
+        f.body.releaseId = 'release';
+        f.dependencies.valid.mockRejectedValue(failure);
+      }
+      if (kind === 'update')
+        f.tx.contentLearningBrandPreference.updateMany.mockRejectedValue(
+          failure,
+        );
+      if (kind === 'create')
+        f.tx.contentLearningOperation.create.mockRejectedValue(failure);
+      await expect(f.invoke()).rejects.toBe(failure);
+      if (kind === 'fence') {
+        for (const mock of f.modelCalls) expect(mock).not.toHaveBeenCalled();
+        expect(f.dependencies.valid).not.toHaveBeenCalled();
+      }
+      if (kind === 'fence' || kind === 'validity')
+        expect(
+          f.tx.contentLearningBrandPreference.upsert,
+        ).not.toHaveBeenCalled();
+      if (kind !== 'create')
+        expect(f.tx.contentLearningOperation.create).not.toHaveBeenCalled();
+      f.assertEntry();
     },
   );
 });
