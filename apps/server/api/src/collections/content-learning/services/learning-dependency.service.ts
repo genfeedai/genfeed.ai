@@ -474,6 +474,27 @@ export class LearningDependencyService {
           where: { id: edge.id, isDeleted: false },
           data: { valid: false, invalidatedAt: new Date() },
         });
+        if (
+          edge.derivedKind === 'baseline' &&
+          typeof edge.derivedOrganizationId === 'string' &&
+          edge.derivedOrganizationId.trim() &&
+          (isLearningGlobalDependencyKind(sourceKind)
+            ? organizationId === null
+            : typeof organizationId === 'string' &&
+              organizationId.trim() &&
+              organizationId === edge.derivedOrganizationId) &&
+          (current.organizationId === edge.derivedOrganizationId ||
+            (isLearningGlobalDependencyKind(current.kind) &&
+              current.organizationId === null))
+        )
+          await tx.contentLearningBaseline.updateMany({
+            where: {
+              id: edge.derivedId,
+              organizationId: edge.derivedOrganizationId,
+              isDeleted: false,
+            },
+            data: { validity: 'invalid_source' },
+          });
         if (edge.derivedKind === 'reward' && edge.derivedOrganizationId)
           await tx.contentLearningReward.updateMany({
             where: {
