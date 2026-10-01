@@ -8,6 +8,7 @@ import {
   createStudioGenerateDraftOutbox,
   type StudioGenerateDraftOutbox,
 } from '@pages/studio/generate/utils/studio-generate-draft-outbox';
+import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
 import {
   act,
   fireEvent,
@@ -15,6 +16,10 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
+import {
+  getGenerationSetup,
+  useGenerationSetupStore,
+} from '@ui/dropdowns/generation-setup/generation-setup.store';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import {
   type ReactNode,
@@ -538,7 +543,51 @@ describe('StudioGenerateWorkspace', () => {
     });
     rerender(<StudioGenerateWorkspace />);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    expect(screen.getByTestId('studio-results')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('studio-generate-starter-ideas'),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('studio-results')).not.toBeInTheDocument();
+  });
+
+  it('applies a starter idea as a document seed and user-owned setup', () => {
+    useGenerationSetupStore.setState({
+      reasonsByScope: {},
+      setupByScope: {},
+    });
+    render(<StudioGenerateWorkspace />);
+
+    expect(
+      screen.getByTestId('studio-generate-starter-ideas'),
+    ).toBeInTheDocument();
+    const [productPhoto] = screen.getAllByRole('button', { name: 'apply' });
+    expect(productPhoto).toBeDefined();
+    if (!productPhoto) {
+      return;
+    }
+    fireEvent.click(productPhoto);
+
+    expect(mocks.setType).toHaveBeenCalledWith('image');
+    const composerProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+      documentSeed?: { content: { type: string }; id: string } | null;
+      prompt: string;
+    };
+    expect(composerProps.prompt).toBe('');
+    expect(composerProps.documentSeed?.content.type).toBe('doc');
+    expect(composerProps.documentSeed?.id.startsWith('productPhoto:')).toBe(
+      true,
+    );
+    const setup = getGenerationSetup(
+      'studio:image',
+      getDefaultGenerationSetupValues('image'),
+    );
+    expect(setup.values.promptTemplate).toBe('product-photo');
+    expect(setup.values.aspectRatio).toBe('1:1');
+    expect(setup.sources.promptTemplate).toBe('user');
+    expect(setup.sources.aspectRatio).toBe('user');
+    useGenerationSetupStore.setState({
+      reasonsByScope: {},
+      setupByScope: {},
+    });
   });
 
   it('retains live or saved rows under a refresh warning', () => {
@@ -565,6 +614,19 @@ describe('StudioGenerateWorkspace', () => {
   });
 
   it('removes gallery tabs without hiding history from other asset types', () => {
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [
+        {
+          createdAt: 1,
+          id: 'video-history',
+          prompt: 'Older video',
+          status: 'GENERATED',
+          type: 'video',
+        },
+      ],
+    });
     render(<StudioGenerateWorkspace />);
 
     const topbar = screen.getByTestId('section-topbar');
@@ -892,6 +954,19 @@ describe('StudioGenerateWorkspace', () => {
   });
 
   it('defaults to the masonry grid and toggles the results into a list', () => {
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [
+        {
+          createdAt: 1,
+          id: 'grid-1',
+          prompt: 'A still',
+          status: 'GENERATED',
+          type: 'image',
+        },
+      ],
+    });
     render(<StudioGenerateWorkspace />);
 
     expect(screen.getByTestId('studio-results').parentElement).toHaveClass(

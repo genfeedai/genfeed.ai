@@ -35,8 +35,12 @@ import type {
   StudioGenerateReferenceRole,
 } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import type { BrandKnowledgeSelection } from '@genfeedai/props/content/knowledge-library.props';
+import type { PromptEditorDocumentSeed } from '@genfeedai/props/prompt-bars/prompt-editor.props';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
-import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio-generate.props';
+import type {
+  StudioGenerateComposerProps,
+  StudioGenerateStarterSelection,
+} from '@genfeedai/props/studio/studio-generate.props';
 import type { AttachmentItem } from '@genfeedai/props/ui/attachments.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
@@ -47,6 +51,7 @@ import KnowledgeReferenceSection, {
 import StudioGenerateComposer from '@pages/studio/generate/components/StudioGenerateComposer';
 import StudioGenerateInspector from '@pages/studio/generate/components/StudioGenerateInspector';
 import StudioGenerateResults from '@pages/studio/generate/components/StudioGenerateResults';
+import StudioGenerateStarterIdeas from '@pages/studio/generate/components/StudioGenerateStarterIdeas';
 import { useStudioGenerateAssetActions } from '@pages/studio/generate/hooks/useStudioGenerateAssetActions';
 import { useStudioGenerateDraft } from '@pages/studio/generate/hooks/useStudioGenerateDraft';
 import { useStudioGenerateGallery } from '@pages/studio/generate/hooks/useStudioGenerateGallery';
@@ -73,11 +78,17 @@ import {
   recipeFromRepromptData,
   settingsPatchFromRecipe,
 } from '@pages/studio/generate/utils/studio-generate-recipe';
+import { pickStarterCharacter } from '@pages/studio/generate/utils/studio-generate-starter-ideas';
 import { sanitizeStudioGenerateState } from '@pages/studio/generate/utils/studio-generate-storage';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
+import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import type { JSONContent } from '@tiptap/core';
+import {
+  buildStudioGenerationSetupScope,
+  setGenerationSetupField,
+} from '@ui/dropdowns/generation-setup/generation-setup.store';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
@@ -168,6 +179,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
   const agentApiService = useAgentApiService();
   const {
     extraExtensions: characterMentionExtensions,
+    mentions: characterMentions,
     resolveSubmit: resolveCharacterMentions,
   } = useStudioCharacterMentions(agentApiService);
   // Studio's `/` palette: navigation-free, so it carries only the skills the
@@ -204,6 +216,8 @@ export default function StudioGenerateWorkspace(): ReactElement {
   } = useStudioGenerateSettings();
 
   const [prompt, setPrompt] = useState('');
+  const [documentSeed, setDocumentSeed] =
+    useState<PromptEditorDocumentSeed | null>(null);
   const {
     cancelEnhance,
     enhancePrompt,
@@ -610,14 +624,23 @@ export default function StudioGenerateWorkspace(): ReactElement {
     rehydratePending(storedJobs);
   }, [rehydratePending, storedJobs]);
 
+  const galleryJobs = useMemo(
+    () => mergeStudioGenerateJobs(jobs, storedJobs),
+    [jobs, storedJobs],
+  );
   const visibleJobs = useMemo(
     () =>
-      filterStudioGenerateJobs(mergeStudioGenerateJobs(jobs, storedJobs), {
+      filterStudioGenerateJobs(galleryJobs, {
         search,
         type: 'all',
       }),
-    [jobs, search, storedJobs],
+    [galleryJobs, search],
   );
+  const showStarterIdeas =
+    !galleryError &&
+    !isLoadingGallery &&
+    galleryJobs.length === 0 &&
+    prompt.trim().length === 0;
   const selectedJob = useMemo(
     () => visibleJobs.find((job) => job.id === selectedJobId) ?? null,
     [selectedJobId, visibleJobs],
@@ -710,6 +733,45 @@ export default function StudioGenerateWorkspace(): ReactElement {
     rejectUnsupportedSkillSelection,
     resolvePromptCommands,
   ]);
+
+  const handleStarterIdea = useCallback(
+    (selection: StudioGenerateStarterSelection) => {
+      // The editor reports getText() after the seed lands. Setting the prompt
+      // here would sync a plain string over the character chip.
+      const scope = buildStudioGenerationSetupScope(selection.type);
+      const defaults = getDefaultGenerationSetupValues(selection.type);
+      if (selection.promptTemplate) {
+        setGenerationSetupField(
+          scope,
+          'promptTemplate',
+          selection.promptTemplate,
+          defaults,
+        );
+      }
+      if (selection.aspectRatio) {
+        setGenerationSetupField(
+          scope,
+          'aspectRatio',
+          selection.aspectRatio,
+          defaults,
+        );
+      }
+      if (selection.instrumental !== undefined) {
+        setGenerationSetupField(
+          scope,
+          'instrumental',
+          selection.instrumental,
+          defaults,
+        );
+      }
+      setType(selection.type);
+      setDocumentSeed({
+        content: selection.content,
+        id: selection.seedId,
+      });
+    },
+    [setType],
+  );
 
   const handleSubmit = useCallback(() => {
     if (isUploading || isListening || isTranscribing) {
@@ -1330,7 +1392,13 @@ export default function StudioGenerateWorkspace(): ReactElement {
                   {translate('history.retrying')}
                 </p>
               ) : null}
-              {!galleryError || visibleJobs.length > 0 ? (
+              {showStarterIdeas ? (
+                <StudioGenerateStarterIdeas
+                  character={pickStarterCharacter(characterMentions)}
+                  isDisabled={isGenerating}
+                  onSelect={handleStarterIdea}
+                />
+              ) : !galleryError || visibleJobs.length > 0 ? (
                 <StudioGenerateResults
                   assetActions={{
                     ...assetActions,
@@ -1400,6 +1468,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
                 ))}
               <StudioGenerateComposer
                 attachedAssets={attachedAssets}
+                documentSeed={documentSeed}
                 extraExtensions={extraExtensions}
                 isDragActive={capabilities.hasReferences && dragState.isActive}
                 isEnhancingPrompt={isEnhancingPrompt}

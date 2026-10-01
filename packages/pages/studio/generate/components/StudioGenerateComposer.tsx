@@ -73,6 +73,7 @@ const RECOMMENDATION_DEBOUNCE_MS = 400;
  */
 export default function StudioGenerateComposer({
   attachedAssets,
+  documentSeed,
   extraExtensions,
   isDragActive = false,
   isEnhancingPrompt = false,
@@ -300,6 +301,7 @@ export default function StudioGenerateComposer({
       <PromptEditor
         ariaLabel={translate('prompt')}
         className="min-h-9 w-full"
+        documentSeed={documentSeed}
         extraExtensions={extraExtensions}
         isDisabled={isGenerating}
         onDocumentChange={onPromptDocumentChange}

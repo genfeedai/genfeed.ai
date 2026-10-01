@@ -7,6 +7,7 @@ import type {
   StudioGenerateType,
   StudioGenerationCostEstimate,
 } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
+import type { PromptEditorDocumentSeed } from '@genfeedai/props/prompt-bars/prompt-editor.props';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import type { AnyExtension, JSONContent } from '@tiptap/core';
 
@@ -22,6 +23,7 @@ export interface StudioIdentityFieldsProps {
 
 export interface StudioGenerateComposerProps {
   attachedAssets: PromptBarAttachedAsset[];
+  documentSeed?: PromptEditorDocumentSeed | null;
   extraExtensions?: readonly AnyExtension[];
   isDragActive?: boolean;
   isEnhancingPrompt?: boolean;
@@ -74,6 +76,57 @@ export interface StudioGenerateAssetActions {
   onSeeDetails: (ingredient: IIngredient) => void;
   onToggleFavorite: (ingredient: IIngredient) => void | Promise<void>;
   onUseAsVideoReference: (ingredient: IIngredient) => void;
+}
+
+/**
+ * A first-run idea for one kind of Studio output. Copy lives in next-intl
+ * under `pages.studioGenerate.starterIdeas.<id>`.
+ */
+export interface StudioGenerateStarterIdea {
+  aspectRatio?: string;
+  /** Template used when the brand has a character to tag. */
+  characterPromptTemplate?: string;
+  id:
+    | 'avatarIntro'
+    | 'cinematicVideo'
+    | 'productAd'
+    | 'productPhoto'
+    | 'soundtrack'
+    | 'voiceover';
+  instrumental?: boolean;
+  promptTemplate?: string;
+  type: StudioGenerateType;
+  /** Image and video ideas can insert a real `@character` chip. */
+  usesCharacter: boolean;
+}
+
+/** What a starter card applies: rich prompt plus the setup that idea is known for. */
+export interface StudioGenerateStarterSelection {
+  aspectRatio?: string;
+  content: JSONContent;
+  instrumental?: boolean;
+  promptTemplate?: string;
+  seedId: string;
+  type: StudioGenerateType;
+}
+
+/** The `@` chip a starter idea can insert. Matches `characterMention` attrs. */
+export interface StudioGenerateStarterCharacter {
+  handle: string;
+  id: string;
+  label: string;
+}
+
+/** A brand character the starter row may tag. Prefer one with a reference image. */
+export interface StudioGenerateStarterCharacterCandidate
+  extends StudioGenerateStarterCharacter {
+  hasReferenceImage?: boolean;
+}
+
+export interface StudioGenerateStarterIdeasProps {
+  character?: StudioGenerateStarterCharacter;
+  isDisabled?: boolean;
+  onSelect: (selection: StudioGenerateStarterSelection) => void;
 }
 
 export interface StudioGenerateResultsProps {

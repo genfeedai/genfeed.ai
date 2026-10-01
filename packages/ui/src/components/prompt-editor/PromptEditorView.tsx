@@ -12,6 +12,7 @@ import { useCallback, useEffect, useRef } from 'react';
 function PromptEditorView({
   ariaLabel = 'Prompt',
   className,
+  documentSeed,
   editor: injectedEditor,
   editorClassName,
   extraExtensions,
@@ -38,6 +39,7 @@ function PromptEditorView({
   }, [onDocumentChange, onSubmit, onValueChange, placeholder]);
 
   const handlePaste = useRef(createPromptEditorPasteHandler()).current;
+  const appliedSeedIdRef = useRef<string | null>(null);
 
   const ownedEditor = useEditor({
     content: initialContent ?? value ?? '',
@@ -48,6 +50,7 @@ function PromptEditorView({
         'aria-multiline': 'true',
         class: cn(
           'prose prose-sm dark:prose-invert max-w-none flex-1 bg-transparent py-1.5 text-sm text-foreground focus:outline-none',
+          '[&_.mention]:rounded-md [&_.mention]:bg-primary/15 [&_.mention]:px-1 [&_.mention]:py-0.5 [&_.mention]:font-medium',
           editorClassName,
         ),
         role: 'textbox',
@@ -115,6 +118,22 @@ function PromptEditorView({
     }
     syncExternalValue(value);
   }, [syncExternalValue, value]);
+
+  useEffect(() => {
+    if (!editor || injectedEditor || !documentSeed) {
+      return;
+    }
+    if (appliedSeedIdRef.current === documentSeed.id) {
+      return;
+    }
+    appliedSeedIdRef.current = documentSeed.id;
+    isApplyingExternalRef.current = true;
+    editor.commands.setContent(documentSeed.content, { emitUpdate: false });
+    editor.commands.focus('end');
+    isApplyingExternalRef.current = false;
+    onValueChangeRef.current?.(editor.getText());
+    onDocumentChangeRef.current?.(editor.getJSON());
+  }, [documentSeed, editor, injectedEditor]);
 
   return (
     <EditorContent
