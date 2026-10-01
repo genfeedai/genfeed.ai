@@ -13,5 +13,7 @@ export interface FormSearchbarProps {
   inputRef?: RefObject<HTMLInputElement | null>;
   onClick?: (e: MouseEvent<HTMLInputElement>) => void;
   onKeyDown?: (e: KeyboardEvent<HTMLInputElement>) => void;
+  /** Rest as an icon. Expand on click; collapse on blur when the field is empty. */
+  isCollapsible?: boolean;
   size?: 'xs' | 'sm' | 'md' | 'lg';
 }

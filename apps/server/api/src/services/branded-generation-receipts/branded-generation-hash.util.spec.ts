@@ -9,17 +9,20 @@ import {
   hashBrandedGenerationRequestV1,
   hashBrandedGenerationResolutionV1,
   hashBrandedGenerationTextV1,
+  hashBrandGenerationRulesReviewV1,
   hashBrandIdentitySnapshotV1,
 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import type { BrandedGenerationOperationKindV1 } from '@api/services/branded-generation-receipts/branded-generation-state.util';
+import { brandIdentitySnapshotV1Schema } from '@genfeedai/contracts/api-types/contracts';
 import { ContentLearningArm } from '@genfeedai/contracts/enums';
 import type {
   BrandArtifactValidationReportV1,
   BrandedGenerationInputV1,
   BrandedGenerationResolutionV1,
+  BrandGenerationRulesV1,
   BrandIdentitySnapshotV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 const hash = `sha256:${'a'.repeat(64)}`;
 const time = '2026-10-01T00:00:00.000Z';
@@ -467,7 +470,11 @@ describe('frozen typed hash projections', () => {
     ).not.toBe(hashBrandArtifactValidationReportV1(v));
   });
   it('operation rejects top-level keys while preserving nested command names', () => {
-    for (const body of [{ expectedRevision: 0 }, { operationKey: 'key' }])
+    const invalidBodies: readonly BrandedGenerationJsonV1[] = [
+      { expectedRevision: 0 },
+      { operationKey: 'key' },
+    ];
+    for (const body of invalidBodies)
       expect(() => hashBrandedGenerationOperationV1('resolve', body)).toThrow(
         'Invalid branded generation JSON',
       );
@@ -576,4 +583,452 @@ it('identity hashes explicit approved applicability and preserves list order and
   ).toBe(scoped);
   v.generationRules.typography[0].appliesToMediaKinds = ['video', 'image'];
   expect(hashBrandIdentitySnapshotV1(v)).not.toBe(scoped);
+});
+
+function reviewRules(): BrandGenerationRulesV1 {
+  return {
+    schemaVersion: 1,
+    evidence: [
+      {
+        id: 'evidence-a',
+        sourceType: 'manual',
+        label: 'Owner',
+        excerpt: 'Exact source',
+        contentHash: hash,
+      },
+      { id: 'evidence-b', sourceType: 'manual', label: 'Owner B' },
+    ],
+    facts: [
+      {
+        id: 'fact',
+        kind: 'statement',
+        subject: 'Product',
+        predicate: 'name',
+        value: 'Acme',
+        required: true,
+        match: 'literal',
+        evidenceIds: ['evidence-a'],
+      },
+    ],
+    palette: [
+      {
+        id: 'palette',
+        color: '#112233',
+        usage: 'Primary',
+        required: true,
+        evidenceIds: ['evidence-a'],
+      },
+    ],
+    typography: [
+      {
+        id: 'typography',
+        role: 'heading',
+        family: 'Sans',
+        weight: 400,
+        style: 'normal',
+        availability: 'verified_runtime',
+        runtimeFontId: 'runtime-font',
+        required: true,
+        evidenceIds: ['evidence-a'],
+      },
+    ],
+    mandatory: [
+      {
+        id: 'mandatory',
+        text: 'Complete mandatory wording',
+        match: 'literal',
+        required: true,
+        evidenceIds: ['evidence-a'],
+      },
+    ],
+    avoid: [
+      {
+        id: 'avoid',
+        text: 'Avoid this',
+        match: 'literal',
+        required: true,
+        evidenceIds: ['evidence-a'],
+      },
+    ],
+    examples: [
+      {
+        id: 'example',
+        polarity: 'positive',
+        text: 'Example wording',
+        evidenceIds: ['evidence-a'],
+      },
+    ],
+    approvedLiterals: [
+      {
+        id: 'literal:fact',
+        kind: 'fact',
+        factRuleId: 'fact',
+        text: 'Acme',
+        evidenceIds: ['evidence-a'],
+      },
+      {
+        id: 'literal:copy',
+        kind: 'approved_copy',
+        text: ' Exact approved Café 😀\r\n ',
+        evidenceIds: ['evidence-b'],
+      },
+    ],
+    assets: [
+      {
+        id: 'asset',
+        assetId: 'asset-record',
+        role: 'logo',
+        contentHash: hash,
+        mimeType: 'image/png',
+        required: true,
+        evidenceIds: ['evidence-a'],
+        textCoverage: {
+          kind: 'approved_literals',
+          literalIds: ['literal:fact', 'literal:copy'],
+          evidenceIds: ['evidence-a', 'evidence-b'],
+        },
+      },
+    ],
+  };
+}
+function reviewedLiterals(
+  rules: BrandGenerationRulesV1,
+): NonNullable<BrandGenerationRulesV1['approvedLiterals']> {
+  if (!rules.approvedLiterals)
+    throw new Error('Missing reviewed wording fixture');
+  return rules.approvedLiterals;
+}
+function reviewedCoverage(
+  rules: BrandGenerationRulesV1,
+): NonNullable<BrandGenerationRulesV1['assets'][number]['textCoverage']> {
+  const coverage = rules.assets[0].textCoverage;
+  if (!coverage) throw new Error('Missing asset inventory fixture');
+  return coverage;
+}
+describe('whole owner-authored generation rules review domain', () => {
+  it('hashes the complete validated catalogue under its distinct domain without changing snapshot hashing', () => {
+    const rules = reviewRules();
+    const encoded = canonicalizeBrandedGenerationJsonV1(
+      rules as unknown as BrandedGenerationJsonV1,
+    );
+    expect(hashBrandGenerationRulesReviewV1(rules)).toBe(
+      hashBrandedGenerationTextV1(
+        `brand-generation-rules-review-v1\n${encoded}`,
+      ),
+    );
+    expect(hashBrandGenerationRulesReviewV1(rules)).toBe(
+      hashBrandedGenerationJsonV1(
+        'brand-generation-rules-review-v1',
+        rules as unknown as BrandedGenerationJsonV1,
+      ),
+    );
+    expect(hashBrandGenerationRulesReviewV1(rules)).not.toBe(
+      hashBrandedGenerationJsonV1(
+        'brand-identity-v1',
+        rules as unknown as BrandedGenerationJsonV1,
+      ),
+    );
+    const identity = { ...snapshot(), generationRules: rules };
+    const first = hashBrandIdentitySnapshotV1(identity);
+    const changed = structuredClone(rules);
+    reviewedLiterals(changed)[1].text += 'changed';
+    expect(
+      hashBrandIdentitySnapshotV1({ ...identity, generationRules: changed }),
+    ).not.toBe(first);
+    const coverage = structuredClone(rules);
+    coverage.assets[0].textCoverage = {
+      kind: 'none',
+      literalIds: [],
+      evidenceIds: ['evidence-a'],
+    };
+    expect(
+      hashBrandIdentitySnapshotV1({ ...identity, generationRules: coverage }),
+    ).not.toBe(first);
+  });
+  it('is field-order stable while preserving exact strings and every list order', () => {
+    const rules = reviewRules();
+    const reversedFields = Object.fromEntries(
+      Object.entries(rules).reverse(),
+    ) as unknown as BrandGenerationRulesV1;
+    expect(hashBrandGenerationRulesReviewV1(reversedFields)).toBe(
+      hashBrandGenerationRulesReviewV1(rules),
+    );
+    const nested = structuredClone(rules);
+    nested.assets[0] = Object.fromEntries(
+      Object.entries(nested.assets[0]).reverse(),
+    ) as unknown as BrandGenerationRulesV1['assets'][number];
+    expect(hashBrandGenerationRulesReviewV1(nested)).toBe(
+      hashBrandGenerationRulesReviewV1(rules),
+    );
+    for (const field of ['evidence', 'approvedLiterals'] as const) {
+      const changed = structuredClone(rules);
+      const entries = changed[field];
+      if (!entries) throw new Error('Missing ordered rule fixture');
+      entries.reverse();
+      expect(hashBrandGenerationRulesReviewV1(changed)).not.toBe(
+        hashBrandGenerationRulesReviewV1(rules),
+      );
+    }
+    const inventory = structuredClone(rules);
+    reviewedCoverage(inventory).literalIds.reverse();
+    expect(hashBrandGenerationRulesReviewV1(inventory)).not.toBe(
+      hashBrandGenerationRulesReviewV1(rules),
+    );
+    const evidenceOrder = structuredClone(rules);
+    reviewedCoverage(evidenceOrder).evidenceIds.reverse();
+    expect(hashBrandGenerationRulesReviewV1(evidenceOrder)).not.toBe(
+      hashBrandGenerationRulesReviewV1(rules),
+    );
+  });
+  it.each([
+    [
+      'fact value',
+      (rules: BrandGenerationRulesV1) => {
+        rules.facts[0].value = 'New name';
+      },
+    ],
+    [
+      'fact requiredness',
+      (rules: BrandGenerationRulesV1) => {
+        rules.facts[0].required = false;
+      },
+    ],
+    [
+      'fact match',
+      (rules: BrandGenerationRulesV1) => {
+        rules.facts[0].match = 'semantic';
+      },
+    ],
+    [
+      'applicability',
+      (rules: BrandGenerationRulesV1) => {
+        rules.facts[0].appliesToMediaKinds = ['image'];
+      },
+    ],
+    [
+      'palette',
+      (rules: BrandGenerationRulesV1) => {
+        rules.palette[0].color = '#445566';
+      },
+    ],
+    [
+      'typography',
+      (rules: BrandGenerationRulesV1) => {
+        rules.typography[0].weight = 700;
+      },
+    ],
+    [
+      'mandatory',
+      (rules: BrandGenerationRulesV1) => {
+        rules.mandatory[0].text += ' changed';
+      },
+    ],
+    [
+      'avoid',
+      (rules: BrandGenerationRulesV1) => {
+        rules.avoid[0].text += ' changed';
+      },
+    ],
+    [
+      'example',
+      (rules: BrandGenerationRulesV1) => {
+        rules.examples[0].text += ' changed';
+      },
+    ],
+    [
+      'evidence content',
+      (rules: BrandGenerationRulesV1) => {
+        rules.evidence[0].excerpt += ' changed';
+      },
+    ],
+    [
+      'evidence hash',
+      (rules: BrandGenerationRulesV1) => {
+        rules.evidence[0].contentHash = `sha256:${'b'.repeat(64)}`;
+      },
+    ],
+    [
+      'literal text',
+      (rules: BrandGenerationRulesV1) => {
+        reviewedLiterals(rules)[1].text += ' changed';
+      },
+    ],
+    [
+      'literal evidence',
+      (rules: BrandGenerationRulesV1) => {
+        reviewedLiterals(rules)[1].evidenceIds = ['evidence-a'];
+      },
+    ],
+    [
+      'literal fact link',
+      (rules: BrandGenerationRulesV1) => {
+        rules.facts.push({ ...rules.facts[0], id: 'second-fact' });
+        const literal = reviewedLiterals(rules)[0];
+        if (literal.kind !== 'fact') throw new Error('Expected fact literal');
+        literal.factRuleId = 'second-fact';
+      },
+    ],
+    [
+      'asset identity',
+      (rules: BrandGenerationRulesV1) => {
+        rules.assets[0].assetId = 'another-asset';
+      },
+    ],
+    [
+      'asset hash',
+      (rules: BrandGenerationRulesV1) => {
+        rules.assets[0].contentHash = `sha256:${'b'.repeat(64)}`;
+      },
+    ],
+    [
+      'asset MIME',
+      (rules: BrandGenerationRulesV1) => {
+        rules.assets[0].mimeType = 'image/jpeg';
+      },
+    ],
+    [
+      'asset inventory',
+      (rules: BrandGenerationRulesV1) => {
+        reviewedCoverage(rules).literalIds = ['literal:fact'];
+      },
+    ],
+    [
+      'asset review evidence',
+      (rules: BrandGenerationRulesV1) => {
+        reviewedCoverage(rules).evidenceIds = ['evidence-b'];
+      },
+    ],
+  ] as const)(
+    'changes digest for %s independently of the literal-only catalogue',
+    (_name, change) => {
+      const rules = reviewRules();
+      const changed = structuredClone(rules);
+      change(changed);
+      expect(hashBrandGenerationRulesReviewV1(changed)).not.toBe(
+        hashBrandGenerationRulesReviewV1(rules),
+      );
+      expect(rules).toEqual(reviewRules());
+    },
+  );
+  it('omits only validated optional undefined and keeps absent legacy fields absent', () => {
+    const rules = reviewRules();
+    const changed = structuredClone(rules);
+    changed.facts[0].qualifier = undefined;
+    changed.evidence[0].sourceId = undefined;
+    expect(hashBrandGenerationRulesReviewV1(changed)).toBe(
+      hashBrandGenerationRulesReviewV1(rules),
+    );
+    const legacy = snapshot().generationRules;
+    expect(
+      hashBrandGenerationRulesReviewV1({
+        ...legacy,
+        approvedLiterals: undefined,
+      }),
+    ).toBe(hashBrandGenerationRulesReviewV1(legacy));
+    expect(() =>
+      hashBrandGenerationRulesReviewV1({
+        ...legacy,
+        unknown: undefined,
+      } as unknown as BrandGenerationRulesV1),
+    ).toThrow();
+    const bad = {
+      ...rules,
+      facts: [undefined],
+    } as unknown as BrandGenerationRulesV1;
+    expect(() => hashBrandGenerationRulesReviewV1(bad)).toThrow();
+  });
+  it('rejects accessors and malformed strict data before invoking getters or coercion', () => {
+    const getter = vi.fn(() => reviewRules().approvedLiterals);
+    const coercion = vi.fn();
+    const hostile = Object.defineProperty(reviewRules(), 'approvedLiterals', {
+      enumerable: true,
+      get: getter,
+    });
+    expect(() => hashBrandGenerationRulesReviewV1(hostile)).toThrow(
+      'Invalid branded generation JSON',
+    );
+    expect(getter).not.toHaveBeenCalled();
+    const nested = reviewRules();
+    Object.defineProperty(nested.assets[0], 'textCoverage', {
+      enumerable: true,
+      get: getter,
+    });
+    expect(() => hashBrandGenerationRulesReviewV1(nested)).toThrow(
+      'Invalid branded generation JSON',
+    );
+    expect(getter).not.toHaveBeenCalled();
+    for (const malformed of [
+      {
+        ...reviewRules(),
+        approvedLiterals: [
+          {
+            id: 'not-prefixed',
+            kind: 'approved_copy',
+            text: 'text',
+            evidenceIds: ['evidence-a'],
+          },
+        ],
+      },
+      { ...reviewRules(), schemaVersion: 2 },
+      { ...reviewRules(), unknown: 'value' },
+      {
+        ...reviewRules(),
+        evidence: [
+          {
+            id: 'evidence-a',
+            sourceType: 'manual',
+            label: { toString: coercion },
+          },
+        ],
+      },
+    ])
+      expect(() =>
+        hashBrandGenerationRulesReviewV1(
+          malformed as unknown as BrandGenerationRulesV1,
+        ),
+      ).toThrow();
+    expect(coercion).not.toHaveBeenCalled();
+  });
+});
+
+describe('canonical saved voice guideline identity hashing', () => {
+  it('retains omitted legacy identity hash and distinguishes present empty or changed guidance', () => {
+    const legacy = snapshot();
+    const original = hashBrandIdentitySnapshotV1(legacy);
+    const parsed = brandIdentitySnapshotV1Schema.parse({
+      ...legacy,
+      contentHash: original,
+    });
+    expect(parsed.voice).not.toHaveProperty('guidelines');
+    expect(hashBrandIdentitySnapshotV1(parsed)).toBe(original);
+    const empty = { ...legacy, voice: { ...legacy.voice, guidelines: '' } };
+    const exact = {
+      ...legacy,
+      voice: { ...legacy.voice, guidelines: '  Café 😀\r\n exact\t ' },
+    };
+    expect(hashBrandIdentitySnapshotV1(empty)).not.toBe(original);
+    const digest = hashBrandIdentitySnapshotV1(exact);
+    expect(digest).not.toBe(original);
+    expect(digest).not.toBe(hashBrandIdentitySnapshotV1(empty));
+    expect(
+      hashBrandIdentitySnapshotV1({
+        ...exact,
+        voice: { ...exact.voice, guidelines: '  Café 😀\r\n changed\t ' },
+      }),
+    ).not.toBe(digest);
+    expect(
+      hashBrandIdentitySnapshotV1({
+        ...exact,
+        resolvedAt: '2027-01-01T00:00:00.000Z',
+        voice: {
+          guidelines: exact.voice.guidelines,
+          avoid: exact.voice.avoid,
+          messagingPillars: exact.voice.messagingPillars,
+          values: exact.voice.values,
+          audience: exact.voice.audience,
+        },
+      }),
+    ).toBe(digest);
+    expect(exact.voice.guidelines).toBe('  Café 😀\r\n exact\t ');
+  });
 });

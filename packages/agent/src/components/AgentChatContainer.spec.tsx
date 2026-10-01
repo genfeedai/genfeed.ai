@@ -1299,7 +1299,7 @@ describe('AgentChatContainer', () => {
       '[data-layout-mode="inflow"][data-max-width="full"]',
     );
     expect(portaled).not.toBeNull();
-    expect(portaled?.getAttribute('data-show-top-fade')).toBe('true');
+    expect(portaled?.getAttribute('data-show-top-fade')).toBe('false');
     expect(screen.getByTestId('chat-input')).toHaveAttribute(
       'data-density',
       'dock',
@@ -1586,6 +1586,32 @@ describe('AgentChatContainer', () => {
     rerender(<AgentChatContainer apiService={apiService as never} />);
 
     expect(pinConversationScrollToBottomMock).toHaveBeenCalled();
+  });
+
+  it('keeps the same composer mounted while scrolling a settled thread', () => {
+    const apiService = createApiService();
+    storeState.pendingInputRequest = null;
+    storeState.messages = [buildAssistantMessage()];
+    const view = render(
+      <AgentChatContainer apiService={apiService as never} />,
+    );
+    const composer = screen.getByTestId('chat-input');
+    const scrollContainer = view.container.querySelector('.overflow-y-auto');
+    if (!(scrollContainer instanceof HTMLDivElement)) {
+      throw new Error('Conversation scroll container not found');
+    }
+    Object.defineProperties(scrollContainer, {
+      clientHeight: { configurable: true, value: 500 },
+      scrollHeight: { configurable: true, value: 1_000 },
+    });
+    scrollContainer.scrollTop = 100;
+    fireEvent.scroll(scrollContainer);
+    expect(screen.getByTestId('chat-input')).toBe(composer);
+    expect(screen.getByLabelText('Composer paste')).toBeInTheDocument();
+
+    scrollContainer.scrollTop = 500;
+    fireEvent.scroll(scrollContainer);
+    expect(screen.getByTestId('chat-input')).toBe(composer);
   });
 
   it('loads older messages near the top and preserves the visible scroll anchor', async () => {

@@ -32,6 +32,11 @@ export interface ISetting extends IBaseEntity {
    * organization and pruned of deleted workflows when read.
    */
   favoriteWorkflowIds?: string[];
+  /**
+   * App ids pinned out of the rail More menu, in pin order. Only
+   * studio, automation, messages and discovery are accepted.
+   */
+  pinnedAppIds?: string[];
   isAgentAssetsPanelOpen?: boolean;
   generationPriority?: GenerationPriority;
   dashboardPreferences?: DashboardPreferences;

@@ -6,7 +6,9 @@
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
+import { BrandFontAssetsController } from '@api/collections/brands/controllers/brand-font-assets.controller';
 import { BrandOsRevisionsController } from '@api/collections/brands/controllers/brand-os-revisions.controller';
+import { BrandOsScanController } from '@api/collections/brands/controllers/brand-os-scan.controller';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
 import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
 import { BrandsSetupController } from '@api/collections/brands/controllers/brands-setup.controller';
@@ -38,6 +40,8 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [
     BrandOsRevisionsController,
+    BrandOsScanController,
+    BrandFontAssetsController,
     BrandsAgentConfigController,
     BrandsSetupController,
     BrandsController,

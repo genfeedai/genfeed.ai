@@ -121,6 +121,8 @@ export default function AppTable<T>({
   onRowClick,
   renderExpandedRow,
   hideHeader = false,
+  isHeaderPinned = false,
+  getGroupHeading,
   sortKey,
   sortDirection = 'asc',
   onSortChange,
@@ -297,7 +299,8 @@ export default function AppTable<T>({
       <TableSectionHeading label={label} description={description} />
       <div
         className={cn(
-          'relative overflow-hidden bg-card',
+          'relative bg-card',
+          isHeaderPinned ? 'overflow-clip' : 'overflow-hidden',
           framed
             ? 'rounded-card border border-border'
             : 'rounded-none border-0 shadow-none',
@@ -311,16 +314,24 @@ export default function AppTable<T>({
             resetErrorBoundary={error.onRetry}
           />
         ) : null}
-        <div className="overflow-x-auto">
+        <div className={isHeaderPinned ? undefined : 'overflow-x-auto'}>
           <table
             aria-label={ariaLabel}
             className="w-full caption-bottom border-collapse"
           >
             <thead
               className={cn(
-                'sticky top-0 z-10 border-b border-border bg-background-secondary/60',
+                'sticky border-b border-border',
+                isHeaderPinned
+                  ? 'z-20 bg-background'
+                  : 'top-0 z-10 bg-background-secondary/60',
                 hideHeader && 'sr-only',
               )}
+              style={
+                isHeaderPinned
+                  ? { top: 'var(--pinned-topbar-height, 0px)' }
+                  : undefined
+              }
             >
               <tr className="transition-colors">
                 {selectable && (
@@ -415,9 +426,28 @@ export default function AppTable<T>({
                 const rowLink = getRowLink?.(item);
                 const rowKey = getRowKey ? getRowKey(item, index) : index;
                 const expandedContent = renderExpandedRow?.(item);
+                const groupHeading = getGroupHeading?.(item) ?? null;
+                const previousGroupHeading =
+                  index > 0
+                    ? (getGroupHeading?.(items[index - 1]) ?? null)
+                    : null;
+                const showsGroupHeading =
+                  groupHeading !== null &&
+                  groupHeading.key !== previousGroupHeading?.key;
+                const columnCount =
+                  columns.length +
+                  (selectable ? 1 : 0) +
+                  (actions.length > 0 ? 1 : 0);
 
                 return (
                   <Fragment key={rowKey}>
+                    {showsGroupHeading && groupHeading ? (
+                      <tr>
+                        <td className="p-0" colSpan={columnCount}>
+                          {groupHeading.content}
+                        </td>
+                      </tr>
+                    ) : null}
                     <tr
                       className={cn(
                         'group transition-colors duration-200 odd:bg-background-secondary/50 hover:bg-accent/60',

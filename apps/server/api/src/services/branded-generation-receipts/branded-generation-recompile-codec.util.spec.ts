@@ -276,35 +276,37 @@ describe('lossless strict compiler recipe codec', () => {
         ),
       ).toThrow('compiler_recipe_invalid');
   });
-  it.each([
-    ['snapshot-brief-v2', [], [], [], baseline(), {}],
-    ['snapshot-brief-v1', [stage('pack')], [], [], baseline(), {}],
+  it.each(
     [
-      'snapshot-brief-v1',
-      [stage('skill'), stage('skill')],
-      [],
-      [],
-      baseline(),
-      {},
-    ],
-    [
-      'snapshot-brief-v1',
-      [],
-      [],
-      [],
-      baseline(),
-      { styleDirectives: ['arbitrary tactic'] },
-    ],
-    [
-      'snapshot-brief-v1',
-      [],
-      [],
-      [],
-      baseline(),
-      { sources: [{ id: 'source' }] },
-    ],
-    ['snapshot-brief-v1', [], [], [], baseline(), { unexpected: [] }],
-  ])('rejects strict shape, identity and catalogue mismatch', (value) => {
+      ['snapshot-brief-v2', [], [], [], baseline(), {}],
+      ['snapshot-brief-v1', [stage('pack')], [], [], baseline(), {}],
+      [
+        'snapshot-brief-v1',
+        [stage('skill'), stage('skill')],
+        [],
+        [],
+        baseline(),
+        {},
+      ],
+      [
+        'snapshot-brief-v1',
+        [],
+        [],
+        [],
+        baseline(),
+        { styleDirectives: ['arbitrary tactic'] },
+      ],
+      [
+        'snapshot-brief-v1',
+        [],
+        [],
+        [],
+        baseline(),
+        { sources: [{ id: 'source' }] },
+      ],
+      ['snapshot-brief-v1', [], [], [], baseline(), { unexpected: [] }],
+    ].map((value) => ({ value })),
+  )('rejects strict shape, identity and catalogue mismatch', ({ value }) => {
     expect(() => parseBrandedGenerationCompilerRecipeV1(value)).toThrow(
       'compiler_recipe_invalid',
     );

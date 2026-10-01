@@ -9,6 +9,7 @@ export interface IBrandOsRevision {
   exportSchemaVersion: string;
   status: `${BrandOsRevisionStatus}`;
   content: IBrandKitDraft;
+  generationRulesReviewHash?: string;
   approvedById: string | null;
   approvedAt: string | null;
   createdAt: string;
@@ -22,4 +23,5 @@ export interface IBrandOsRevisionUpdateRequest {
 
 export interface IBrandOsRevisionApproveRequest {
   updatedAt: string;
+  reviewedGenerationRulesHash?: string;
 }

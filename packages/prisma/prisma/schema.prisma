@@ -239,6 +239,7 @@ enum AssetCategory {
   LOGO
   BANNER
   REFERENCE
+  FONT
 }
 
 enum ReferenceImageCategory {
@@ -1675,6 +1676,9 @@ model Setting {
   // #5510 per-user favorite workflows; ids are validated against the
   // caller's organization on write and pruned of deleted workflows on read.
   favoriteWorkflowIds              String[]                   @default([])
+  // Apps promoted out of the rail More menu, in pin order. Only the
+  // pinnable app ids (studio, automation, messages, discovery) are valid.
+  pinnedAppIds                     String[]                   @default([])
   isAgentAssetsPanelOpen          Boolean                    @default(false)
   generationPriority               GenerationPriority         @default(QUALITY)
   // #4672 saved default agent mode ('auto' | 'manual' | 'plan') applied to
@@ -8361,6 +8365,9 @@ scopeKey String
 cellDescriptor Json?
 descriptorHash String?
 cutoff DateTime
+snapshotEvidenceRevision Int?
+snapshotEpoch Int?
+expiresAt DateTime?
 configVersion String
 contributorCheckpointIds String[]
 contributorRevisions Int[]
@@ -8369,6 +8376,7 @@ medianExposure Float
 samples Json
 validity String
 @@index([scopeKey, cutoff])
+@@index([organizationId, credentialId, scopeKey, snapshotEpoch, snapshotEvidenceRevision, cutoff(sort: Desc), id(sort: Desc)], map: "learning_baseline_materialization_lookup_idx")
 @@map("content_learning_baselines")
 rewards ContentLearningReward[]
 decisions ContentLearningDecision[]

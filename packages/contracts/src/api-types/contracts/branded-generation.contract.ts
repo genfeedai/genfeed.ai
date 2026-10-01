@@ -167,16 +167,74 @@ export const brandExampleRuleV1Schema = z.strictObject({
   text,
   evidenceIds: refs,
 });
-export const brandAssetReferenceV1Schema = z.strictObject({
-  id,
-  assetId: id,
-  role: z.enum(['logo', 'banner', 'product', 'style', 'font']),
-  contentHash: hash.optional(),
-  mimeType: label.optional(),
-  required: z.boolean(),
-  appliesToMediaKinds: applicableMediaKinds.optional(),
-  evidenceIds: refs,
-});
+const literalId = id.refine(
+  (value) => value.startsWith('literal:') && value.length > 'literal:'.length,
+  'Literal ID requires literal: prefix and nonempty suffix',
+);
+const literalText = z
+  .string()
+  .min(1)
+  .max(4000)
+  .refine(
+    (value) => value.length <= 4000,
+    'Wording must not exceed 4000 UTF-16 code units',
+  )
+  .refine(
+    (value) =>
+      /\S/.test(value) &&
+      Array.from(value).every((char) => {
+        const point = char.codePointAt(0) ?? 0;
+        return (
+          [9, 10, 13].includes(point) ||
+          (point > 31 && (point < 127 || point > 159))
+        );
+      }),
+    'Wording must contain nonwhitespace and no forbidden controls',
+  );
+const literalCommon = { id: literalId, text: literalText, evidenceIds: refs };
+export const brandApprovedLiteralV1Schema = z.discriminatedUnion('kind', [
+  z.strictObject({ ...literalCommon, kind: z.literal('fact'), factRuleId: id }),
+  z.strictObject({ ...literalCommon, kind: z.literal('approved_copy') }),
+]);
+export const brandAssetTextCoverageV1Schema = z
+  .strictObject({
+    kind: z.enum(['none', 'approved_literals']),
+    literalIds: z
+      .array(literalId)
+      .max(128)
+      .refine(
+        (values) => new Set(values).size === values.length,
+        'Duplicate literal IDs',
+      ),
+    evidenceIds: refs,
+  })
+  .superRefine((value, ctx) => {
+    if (
+      value.kind === 'none'
+        ? value.literalIds.length !== 0
+        : value.literalIds.length === 0
+    )
+      issue(ctx, 'Text coverage kind must match literal inventory');
+  });
+export const brandAssetReferenceV1Schema = z
+  .strictObject({
+    id,
+    assetId: id,
+    role: z.enum(['logo', 'banner', 'product', 'style', 'font']),
+    contentHash: hash.optional(),
+    mimeType: label.optional(),
+    required: z.boolean(),
+    appliesToMediaKinds: applicableMediaKinds.optional(),
+    evidenceIds: refs,
+    textCoverage: brandAssetTextCoverageV1Schema.optional(),
+  })
+  .superRefine((asset, ctx) => {
+    if (asset.textCoverage && (asset.role === 'font' || !asset.contentHash))
+      issue(
+        ctx,
+        'Asset text coverage requires a nonfont asset with content hash',
+      );
+  });
 export const brandGenerationRulesV1Schema = bounded(
   z
     .strictObject({
@@ -189,6 +247,7 @@ export const brandGenerationRulesV1Schema = bounded(
       avoid: keyed(brandTextRuleV1Schema, 64),
       examples: keyed(brandExampleRuleV1Schema, 32),
       assets: keyed(brandAssetReferenceV1Schema, 64),
+      approvedLiterals: keyed(brandApprovedLiteralV1Schema, 128).optional(),
     })
     .superRefine((v, ctx) => {
       const allRules = [
@@ -211,9 +270,34 @@ export const brandGenerationRulesV1Schema = bounded(
         ...v.avoid,
         ...v.examples,
         ...v.assets,
+        ...(v.approvedLiterals ?? []),
       ])
         for (const ref of row.evidenceIds)
           if (!evidence.has(ref)) issue(ctx, `Unresolved evidence: ${ref}`);
+      const literalIds = new Set(
+        (v.approvedLiterals ?? []).map((literal) => literal.id),
+      );
+      const otherIds = new Set([
+        ...allRules.map((rule) => rule.id),
+        ...evidence,
+      ]);
+      for (const literal of v.approvedLiterals ?? []) {
+        if (otherIds.has(literal.id))
+          issue(ctx, 'Literal IDs must not collide with rule or evidence IDs');
+        if (literal.kind !== 'fact') continue;
+        const fact = v.facts.find((row) => row.id === literal.factRuleId);
+        if (!fact) issue(ctx, 'Unresolved literal fact');
+        else if (
+          fact.evidenceIds.some((ref) => !literal.evidenceIds.includes(ref))
+        )
+          issue(ctx, 'Literal must retain all linked fact evidence');
+      }
+      for (const asset of v.assets) {
+        for (const ref of asset.textCoverage?.literalIds ?? [])
+          if (!literalIds.has(ref)) issue(ctx, 'Unresolved asset text literal');
+        for (const ref of asset.textCoverage?.evidenceIds ?? [])
+          if (!evidence.has(ref)) issue(ctx, 'Unresolved asset text evidence');
+      }
       for (const font of v.typography)
         if (
           font.fontAssetReferenceId &&
@@ -250,6 +334,7 @@ export const brandIdentitySnapshotV1Schema = bounded(
         messagingPillars: z.array(text).max(128),
         avoid: z.array(text).max(64),
         sample: text.optional(),
+        guidelines: text.optional(),
       }),
       generationRules: brandGenerationRulesV1Schema,
       diagnostics,
@@ -1038,6 +1123,12 @@ export type BrandPaletteRuleV1 = z.infer<typeof brandPaletteRuleV1Schema>;
 export type BrandTypographyRuleV1 = z.infer<typeof brandTypographyRuleV1Schema>;
 export type BrandTextRuleV1 = z.infer<typeof brandTextRuleV1Schema>;
 export type BrandExampleRuleV1 = z.infer<typeof brandExampleRuleV1Schema>;
+export type BrandApprovedLiteralV1 = z.infer<
+  typeof brandApprovedLiteralV1Schema
+>;
+export type BrandAssetTextCoverageV1 = z.infer<
+  typeof brandAssetTextCoverageV1Schema
+>;
 export type BrandAssetReferenceV1 = z.infer<typeof brandAssetReferenceV1Schema>;
 export type BrandGenerationRulesV1 = z.infer<
   typeof brandGenerationRulesV1Schema

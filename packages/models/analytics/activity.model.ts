@@ -5,15 +5,23 @@ import {
   getActivityMessageDescriptor,
   getCreditActivityMessageDescriptor,
 } from '@genfeedai/contracts';
-import type { IActivity } from '@genfeedai/contracts/interfaces';
+import type {
+  IActivityPopulated,
+  IIngredient,
+} from '@genfeedai/contracts/interfaces';
 import { User } from '@models/auth/user.model';
+import { Ingredient } from '@models/content/ingredient.model';
 
 export class Activity extends BaseActivity {
-  constructor(partial: Partial<IActivity>) {
+  declare public ingredient?: IIngredient;
+  constructor(partial: Partial<IActivityPopulated>) {
     super(partial);
 
     if (partial?.user && typeof partial.user === 'object') {
       this.user = new User(partial.user);
+    }
+    if (partial?.ingredient && typeof partial.ingredient === 'object') {
+      this.ingredient = new Ingredient(partial.ingredient);
     }
   }
 

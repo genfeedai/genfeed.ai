@@ -54,12 +54,6 @@
     "symbol": "LearningCheckpointService.capture"
   },
   {
-    "actual": 273,
-    "file": "apps/server/api/src/collections/content-learning/services/learning-dataset.service.ts",
-    "metric": "method-lines",
-    "symbol": "LearningDatasetService.buildSnapshot"
-  },
-  {
     "actual": 214,
     "file": "apps/server/api/src/collections/content-learning/services/learning-decision.service.ts",
     "metric": "method-lines",

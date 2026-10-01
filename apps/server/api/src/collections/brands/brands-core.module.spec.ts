@@ -25,9 +25,20 @@ describe('BrandsCoreModule DI leaf', () => {
 
   it('owns and exports the Brand OS preview and revision boundaries', () => {
     expect(coreSource).toContain('BrandOsPreviewService');
+    expect(coreSource).toMatch(/exports:\s*\[[\s\S]*BrandOsScanService/);
+    expect(coreSource).toMatch(/providers:\s*\[[\s\S]*BrandOsScanService/);
+    expect(coreSource).toContain('BrandScraperModule');
     expect(coreSource).toMatch(/exports:\s*\[[\s\S]*BrandOsRevisionsService/);
     expect(coreSource).toMatch(/providers:\s*\[[\s\S]*BrandOsRevisionsService/);
     expect(coreSource).toMatch(/exports:\s*\[[\s\S]*BrandOsPreviewService/);
     expect(coreSource).toMatch(/providers:\s*\[[\s\S]*BrandOsPreviewService/);
+  });
+});
+
+describe('Font service DI registration', () => {
+  it('provides and exports the font boundary once', () => {
+    expect(coreSource.match(/ {4}BrandFontAssetsService,/g)).toHaveLength(2);
+    expect(coreSource).toMatch(/exports:\s*\[[\s\S]*BrandFontAssetsService/);
+    expect(coreSource).toMatch(/providers:\s*\[[\s\S]*BrandFontAssetsService/);
   });
 });

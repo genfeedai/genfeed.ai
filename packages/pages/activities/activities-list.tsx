@@ -6,7 +6,7 @@ import {
   ButtonVariant,
   formatActivityMessage,
   getCreditActivityChangeDescriptor,
-  IngredientCategory,
+  type IngredientCategory,
 } from '@genfeedai/contracts';
 import type { IActivity, IIngredient } from '@genfeedai/contracts/interfaces';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
@@ -14,7 +14,6 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ActivitiesListProps } from '@props/content/activities.props';
 import type { TableAction, TableRowLink } from '@props/ui/display/table.props';
 import { useIngredientOverlay } from '@providers/global-modals/global-modals.provider';
-import { EnvironmentService } from '@services/core/environment.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
@@ -30,6 +29,8 @@ import {
   getActivityDescription,
   getActivityDestinationPath,
   getActivityDetailText,
+  getActivityIngredientPreviewUrl,
+  getActivityLifecycleText,
   getBackgroundTaskStatus,
   getGenerationCreditAmount,
   getResultTypeFromActivityKey,
@@ -66,34 +67,7 @@ export default function ActivitiesList({
   const [isMarkingRead, setIsMarkingRead] = useState(false);
 
   // Helper to get preview URL from populated ingredient
-  const getPreviewUrl = useCallback(
-    (
-      ingredient: Record<string, unknown>,
-      category: IngredientCategory,
-    ): string | undefined => {
-      if (!ingredient) {
-        return undefined;
-      }
-
-      if (category === IngredientCategory.VIDEO) {
-        if (ingredient.thumbnailUrl) {
-          return ingredient.thumbnailUrl as string;
-        }
-        if (ingredient.id) {
-          return `${EnvironmentService.cdnUrl}/ingredients/thumbnails/${ingredient.id}`;
-        }
-      } else if (category === IngredientCategory.IMAGE) {
-        if (ingredient.ingredientUrl) {
-          return ingredient.ingredientUrl as string;
-        } else if (ingredient.thumbnailUrl) {
-          return ingredient.thumbnailUrl as string;
-        }
-      }
-
-      return undefined;
-    },
-    [],
-  );
+  const getPreviewUrl = getActivityIngredientPreviewUrl;
 
   const handleViewIngredient = useCallback(
     (ingredient: unknown) => {
@@ -140,7 +114,10 @@ export default function ActivitiesList({
         key: 'label',
         render: (a: IActivity) =>
           getActivityDescription(a, activityMessageFormatter),
-        subtext: (a: IActivity) => getActivityDetailText(a),
+        subtext: (a: IActivity) =>
+          [getActivityLifecycleText(a), getActivityDetailText(a)]
+            .filter(Boolean)
+            .join(' · '),
       },
       {
         header: 'Status',
@@ -215,7 +192,7 @@ export default function ActivitiesList({
         },
       },
     ],
-    [activityMessageFormatter, getPreviewUrl, handleViewIngredient, href],
+    [activityMessageFormatter, handleViewIngredient, href],
   );
 
   const actions: TableAction<IActivity>[] = useMemo(
