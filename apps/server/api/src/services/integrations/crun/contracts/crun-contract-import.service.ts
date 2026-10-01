@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import {
-  CRUN_IMAGE_MANIFEST,
-  CRUN_PRICING_SNAPSHOT,
+  CRUN_MODEL_MANIFEST,
   type CrunManifestEntry,
+  getCrunPricingSnapshot,
 } from '@api/services/integrations/crun/contracts/crun-manifest';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
@@ -189,7 +189,7 @@ function field(value: unknown, isRequired: boolean): CrunInputField {
 export function buildCrunContract(
   entry: CrunManifestEntry,
   raw: unknown = entry.openapi,
-  pricing: unknown = CRUN_PRICING_SNAPSHOT,
+  pricing: unknown = getCrunPricingSnapshot(entry),
 ): CrunModelInputContract {
   const openapi = record(raw);
   const path = record(record(openapi.paths)['/api/v1/client/job/CreateTask']);
@@ -226,13 +226,24 @@ export function buildCrunContract(
   if (
     Object.keys(fields).some(
       (key) =>
-        ![
-          'prompt',
-          'resolution',
-          'aspect_ratio',
-          'output_format',
-          'img_urls',
-        ].includes(key),
+        !(
+          entry.mediaKind === 'video'
+            ? [
+                'prompt',
+                'duration',
+                'aspect_ratio',
+                ...(entry.endpoint === 'kling/v2-5-turbo-pro'
+                  ? ['img_urls', 'negative_prompt', 'cfg_scale']
+                  : ['resolution', 'translate_prompt']),
+              ]
+            : [
+                'prompt',
+                'resolution',
+                'aspect_ratio',
+                'output_format',
+                'img_urls',
+              ]
+        ).includes(key),
     )
   )
     throw new Error('CRUN_SCHEMA_UNSUPPORTED_FIELD');
@@ -241,8 +252,19 @@ export function buildCrunContract(
     fields,
     isAutoAspectReferenceRequired:
       entry.overrides.isAutoAspectReferenceRequired,
-    mediaKind: 'image',
-    referenceRoles: { img_urls: 'image' },
+    mediaKind: entry.mediaKind,
+    referenceRoles:
+      entry.mediaKind === 'video' && entry.videoRules.referenceMode === 'none'
+        ? {}
+        : { img_urls: 'image' },
+    ...(entry.mediaKind === 'video'
+      ? {
+          videoRules: {
+            ...entry.videoRules,
+            availableDurations: [...entry.videoRules.availableDurations],
+          },
+        }
+      : {}),
     serverOverrides: { ...entry.overrides.serverOverrides },
     version: '',
   };
@@ -286,7 +308,7 @@ export class CrunContractImportService {
             endpoint: entry.endpoint,
             openapi: raw,
             overrides: entry.overrides,
-            pricing: CRUN_PRICING_SNAPSHOT,
+            pricing: getCrunPricingSnapshot(entry),
           }),
         )
         .digest('hex');
@@ -297,7 +319,10 @@ export class CrunContractImportService {
     await this.prisma.$transaction(async (transaction) => {
       const model = await transaction.model.upsert({
         create: {
-          category: ModelCategory.IMAGE,
+          category:
+            entry.mediaKind === 'video'
+              ? ModelCategory.VIDEO
+              : ModelCategory.IMAGE,
           endpoint: entry.endpoint,
           isActive: false,
           isDefault: false,
@@ -328,12 +353,12 @@ export class CrunContractImportService {
           mappingStatus,
           modelId: model.id,
           openapi: toPrismaJson(raw),
-          outputSchema: { type: 'image', maxOutputs: 1 },
-          pricing: toPrismaJson(CRUN_PRICING_SNAPSHOT),
+          outputSchema: { type: entry.mediaKind, maxOutputs: 1 },
+          pricing: toPrismaJson(getCrunPricingSnapshot(entry)),
           pricingType: 'per-request',
           provider: ModelProvider.CRUN,
           reviewStatus: contract ? 'pending' : 'quarantined',
-          schemaFamily: contract ? 'crun-image-v1' : null,
+          schemaFamily: contract ? entry.schemaFamily : null,
           unsupportedReason,
           version,
         },
@@ -367,7 +392,7 @@ export class CrunContractImportService {
   }
 
   async synchronize(now = new Date()) {
-    for (const entry of CRUN_IMAGE_MANIFEST) {
+    for (const entry of CRUN_MODEL_MANIFEST) {
       try {
         const response = await fetch(entry.schemaUrl, {
           signal: AbortSignal.timeout(15000),

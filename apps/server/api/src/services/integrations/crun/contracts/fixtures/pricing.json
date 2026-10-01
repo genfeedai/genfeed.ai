@@ -28,6 +28,44 @@
       "endpoint": "bytedance/seedream-4-5",
       "when": {},
       "providerCredits": "6"
+    },
+    {
+      "endpoint": "kling/v2-5-turbo-pro",
+      "when": {
+        "duration": 5
+      },
+      "providerCredits": "42"
+    },
+    {
+      "endpoint": "kling/v2-5-turbo-pro",
+      "when": {
+        "duration": 10
+      },
+      "providerCredits": "84"
+    },
+    {
+      "endpoint": "google/veo3-1-fast-t2v",
+      "when": {
+        "duration": 8,
+        "resolution": "720p"
+      },
+      "providerCredits": "30"
+    },
+    {
+      "endpoint": "google/veo3-1-fast-t2v",
+      "when": {
+        "duration": 8,
+        "resolution": "1080p"
+      },
+      "providerCredits": "37.5"
+    },
+    {
+      "endpoint": "google/veo3-1-fast-t2v",
+      "when": {
+        "duration": 8,
+        "resolution": "4k"
+      },
+      "providerCredits": "90"
     }
   ]
 }

@@ -269,6 +269,8 @@
       "includes": [
         "apps/server/api/src/services/integrations/crun/contracts/fixtures/nano-banana-pro.openapi.json",
         "apps/server/api/src/services/integrations/crun/contracts/fixtures/seedream-4-5.openapi.json",
+        "apps/server/api/src/services/integrations/crun/contracts/fixtures/kling-v2-5-turbo-pro.openapi.json",
+        "apps/server/api/src/services/integrations/crun/contracts/fixtures/veo3-1-fast-t2v.openapi.json",
         "apps/server/api/src/services/integrations/crun/contracts/fixtures/task-info.openapi.json",
         "apps/server/api/src/services/integrations/crun/contracts/fixtures/estimate-credits.openapi.json"
       ],

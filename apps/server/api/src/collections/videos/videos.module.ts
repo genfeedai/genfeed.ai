@@ -20,12 +20,15 @@ import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { VideosCaptionsController } from '@api/collections/videos/controllers/captions/videos-captions.controller';
+import { CrunVideoQuoteController } from '@api/collections/videos/controllers/crun-video-quote.controller';
 import { VideosLiveSessionsController } from '@api/collections/videos/controllers/live-sessions/videos-live-sessions.controller';
 import { VideosProvenanceController } from '@api/collections/videos/controllers/provenance/videos-provenance.controller';
 import { VideosMergeController } from '@api/collections/videos/controllers/relationships/videos-merge.controller';
 import { VideosRelationshipsController } from '@api/collections/videos/controllers/relationships/videos-relationships.controller';
 import { VideosUploadController } from '@api/collections/videos/controllers/upload/videos-upload.controller';
 import { VideosController } from '@api/collections/videos/controllers/videos.controller';
+import { CrunVideoInputService } from '@api/collections/videos/services/crun-video-input.service';
+import { CrunVideoPreviewQuoteService } from '@api/collections/videos/services/crun-video-preview-quote.service';
 import { LiveSessionCreditsService } from '@api/collections/videos/services/live-session-credits.service';
 import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
 import { HeyGenVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/heygen-video-generation-provider.adapter';
@@ -51,6 +54,7 @@ import { ByokModule } from '@api/services/byok/byok.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { MediaPromptEnhancementModule } from '@api/services/harness/media-prompt-enhancement.module';
+import { CrunCoreModule } from '@api/services/integrations/crun/crun-core.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
 import { FalModule } from '@api/services/integrations/fal/fal.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
@@ -70,6 +74,7 @@ import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
+    CrunVideoQuoteController,
     VideosCaptionsController,
     VideosProvenanceController,
     // Core controllers only - transformations and generation in sub-modules
@@ -87,6 +92,7 @@ import { Module } from '@nestjs/common';
     VideosCoreModule,
   ],
   imports: [
+    CrunCoreModule,
     EvaluationReadModule,
     MediaPromptEnhancementModule,
     VideosCoreModule,
@@ -126,6 +132,8 @@ import { Module } from '@nestjs/common';
     WhisperModule,
   ],
   providers: [
+    CrunVideoInputService,
+    CrunVideoPreviewQuoteService,
     CreditsGuard,
     CreditsInterceptor,
     FalVideoGenerationProviderAdapter,

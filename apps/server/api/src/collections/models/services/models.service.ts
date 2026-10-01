@@ -6,7 +6,7 @@ import { isFalSchemaFamilyCompatible } from '@api/collections/models/utils/model
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { buildCrunContract } from '@api/services/integrations/crun/contracts/crun-contract-import.service';
-import { CRUN_IMAGE_MANIFEST } from '@api/services/integrations/crun/contracts/crun-manifest';
+import { CRUN_MODEL_MANIFEST } from '@api/services/integrations/crun/contracts/crun-manifest';
 import { isReplicateSchemaFamilyCompatible } from '@api/services/integrations/replicate/services/replicate-contract';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
@@ -207,9 +207,25 @@ export class ModelsService extends BaseService<
       contract.version !== document.reviewedProviderContractVersion ||
       !this.isModelRecord(contract.fields) ||
       typeof contract.endpoint !== 'string' ||
-      contract.mediaKind !== 'image'
+      !['image', 'video'].includes(String(contract.mediaKind)) ||
+      (contract.mediaKind === 'video' &&
+        !this.isModelRecord(contract.videoRules))
     )
       return undefined;
+    if (contract.mediaKind === 'video') {
+      const rules = contract.videoRules;
+      const kling = contract.endpoint === 'kling/v2-5-turbo-pro';
+      const veo = contract.endpoint === 'google/veo3-1-fast-t2v';
+      if (
+        !this.isModelRecord(rules) ||
+        (!kling && !veo) ||
+        rules.referenceMode !== (kling ? 'start-end' : 'none') ||
+        rules.omitAspectRatioWithReferences !== kling ||
+        JSON.stringify(rules.availableDurations) !==
+          JSON.stringify(kling ? [5, 10] : [8])
+      )
+        return undefined;
+    }
     return projectCrunInputControls(
       contract as unknown as CrunModelInputContract,
     );
@@ -917,18 +933,21 @@ export class ModelsService extends BaseService<
 
     let crunContract: CrunModelInputContract | undefined;
     if (pendingContract && existing.provider === ModelProvider.CRUN) {
-      const entry = CRUN_IMAGE_MANIFEST.find(
+      const entry = CRUN_MODEL_MANIFEST.find(
         (candidate) =>
           candidate.endpoint === existing.endpoint &&
           candidate.key === existing.key,
       );
       if (
         !entry ||
-        pendingContract.schemaFamily !== 'crun-image-v1' ||
-        (updateDto.category ?? existing.category) !== ModelCategory.IMAGE
+        pendingContract.schemaFamily !== entry.schemaFamily ||
+        (updateDto.category ?? existing.category) !==
+          (entry.mediaKind === 'video'
+            ? ModelCategory.VIDEO
+            : ModelCategory.IMAGE)
       )
         throw new BadRequestException(
-          'The pending Crun contract does not match the exact image route',
+          'The pending Crun contract does not match the exact media route',
         );
       try {
         crunContract = buildCrunContract(

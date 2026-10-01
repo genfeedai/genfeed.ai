@@ -1,0 +1,245 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Google Veo 3.1 Fast API",
+    "description": "crun.ai Google Veo 3.1 Fast API Documentation",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Technical Support",
+      "email": "support@crun.ai"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.crun.ai",
+      "description": "API Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "All APIs require authentication via API Key.\n\nGet API Key:\n1. Visit [API Key Management Page](https://crun.ai/user-api-key) to get your API Key\n\nUsage:\nAdd to request header:\n\nx-api-key: YOUR_API_KEY\n\nNote:\n- Keep your API Key secure and do not share it with others\n- If you suspect your API Key has been compromised, reset it immediately in the management page"
+      }
+    },
+    "schemas": {
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "enum": [
+              200,
+              401,
+              402,
+              404,
+              422,
+              429,
+              455,
+              500,
+              501,
+              505
+            ],
+            "description": "Response status code\n\n- **200**: Success - Request has been processed successfully\n- **401**: Unauthorized - Authentication credentials are missing or invalid\n- **402**: Insufficient Credits - Account does not have enough credits to perform the operation\n- **404**: Not Found - The requested resource or endpoint does not exist\n- **422**: Validation Error - The request parameters failed validation checks\n- **429**: Rate Limited - Request limit has been exceeded for this resource\n- **455**: Service Unavailable - System is currently undergoing maintenance\n- **500**: Server Error - An unexpected error occurred while processing the request\n- **501**: Generation Failed - Content generation task failed\n- **505**: Feature Disabled - The requested feature is currently disabled"
+          },
+          "message": {
+            "type": "string",
+            "description": "Response message, error description when failed",
+            "example": "success"
+          }
+        }
+      }
+    },
+    "responses": {
+      "Error": {
+        "description": "Server Error"
+      }
+    }
+  },
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "paths": {
+    "/api/v1/client/job/CreateTask": {
+      "post": {
+        "operationId": "google/veo3-1-fast-t2v",
+        "summary": "Generate video using google veo3.1 fast",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "model",
+                  "input"
+                ],
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "enum": [
+                      "google/veo3-1-fast-t2v"
+                    ],
+                    "description": "The model name to use for generation. Required field.\n\n- Must be `google/veo3-1-fast-t2v` for this endpoint"
+                  },
+                  "callback_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Optional. Callback URL for receiving task completion notifications.\n\n- System will POST task status and results to this URL when generation completes\n- Callback payloads structure is consistent with the `data` object returned by the task status query\n- Your callback endpoint should accept POST requests with JSON payload containing results\n- It returns an HTTP 200 status code upon successful receipt",
+                    "example": "https://your-domain.com/api/callback"
+                  },
+                  "input": {
+                    "type": "object",
+                    "description": "Input parameters for the text-to-video generation task",
+                    "properties": {
+                      "prompt": {
+                        "type": "string",
+                        "description": "Text prompt describing the video content",
+                        "minLength": 1,
+                        "maxLength": 5000,
+                        "example": "A cinematic aerial shot of a futuristic city at sunset, with flying vehicles and glowing skyscrapers."
+                      },
+                      "duration": {
+                        "type": "integer",
+                        "description": "Video duration in seconds. This model supports 4, 6, or 8 seconds.",
+                        "enum": [
+                          4,
+                          6,
+                          8
+                        ],
+                        "default": 8,
+                        "example": 8
+                      },
+                      "resolution": {
+                        "type": "string",
+                        "description": "Output video resolution. Higher resolutions may increase generation latency and credit usage.",
+                        "enum": [
+                          "720p",
+                          "1080p",
+                          "4k"
+                        ],
+                        "default": "720p",
+                        "example": "720p"
+                      },
+                      "translate_prompt": {
+                        "type": "boolean",
+                        "description": "Whether to automatically translate the prompt into the model's preferred language",
+                        "default": true,
+                        "example": true
+                      },
+                      "aspect_ratio": {
+                        "type": "string",
+                        "description": "Aspect ratio of the output video",
+                        "enum": [
+                          "16:9",
+                          "9:16"
+                        ],
+                        "default": "16:9",
+                        "example": "16:9"
+                      }
+                    },
+                    "required": [
+                      "prompt"
+                    ]
+                  }
+                }
+              },
+              "example": {
+                "model": "google/veo3-1-fast-t2v",
+                "callback_url": "https://your-domain.com/api/callback",
+                "input": {
+                  "prompt": "A cinematic aerial shot of a futuristic city at sunset, with flying vehicles and glowing skyscrapers.",
+                  "duration": 8,
+                  "resolution": "720p",
+                  "translate_prompt": true,
+                  "aspect_ratio": "16:9"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Request successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "task_id": {
+                              "type": "string",
+                              "description": "Task ID, can be used with Get Task Details endpoint to query task status",
+                              "example": "task_nano-banana-pro_1765166238715"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 200,
+                  "message": "success",
+                  "data": {
+                    "task_id": "task_12345678"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "errors": {
+                          "type": "array",
+                          "description": "Detailed validation error messages",
+                          "items": {
+                            "type": "string"
+                          },
+                          "example": [
+                            "Value error, Invalid input for model google/veo3-1-fast-t2v: duration: Input should be 4, 6 or 8"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 422,
+                  "message": "Missing Params or Type Error",
+                  "errors": [
+                    "Value error, Invalid input for model google/veo3-1-fast-t2v: duration: Input should be 4, 6 or 8"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    }
+  }
+}
