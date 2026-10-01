@@ -33,6 +33,7 @@ describe('ADMIN_MENU_ITEMS', () => {
     expect(hrefs).toContain('/admin/administration/subscriptions');
     expect(hrefs).toContain('/admin/administration/system-emails');
     expect(hrefs).toContain('/admin/overview/analytics/all');
+    expect(hrefs).toContain('/admin/content/generations');
   });
 
   it('keeps management destinations directly visible in the admin sidebar', () => {

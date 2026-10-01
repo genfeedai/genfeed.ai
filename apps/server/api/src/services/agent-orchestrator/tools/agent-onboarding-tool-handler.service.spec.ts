@@ -5,6 +5,7 @@ import {
   RouterPriority,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { LOWEST_COST_IMAGE_MODEL_KEY } from '@genfeedai/contracts/constants';
 import type { AgentUiAction } from '@genfeedai/contracts/interfaces';
 import {
   ONBOARDING_JOURNEY_MISSIONS,
@@ -65,6 +66,7 @@ function createHandler(options?: {
     create: vi.fn(),
     findCreateByIdentityConfirmationSource: vi.fn().mockResolvedValue(null),
     findOne: vi.fn().mockResolvedValue(options?.brand ?? null),
+    resolveBrandKitAssets: vi.fn().mockResolvedValue({ references: [] }),
   };
   const credentialsService = {
     findOne: vi.fn().mockResolvedValue(options?.credential ?? null),
@@ -503,6 +505,8 @@ describe('Agent onboarding first draft', () => {
     expect(generationGateway.generateImage).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({
         body: expect.objectContaining({
+          autoSelectModel: false,
+          model: LOWEST_COST_IMAGE_MODEL_KEY,
           prioritize: RouterPriority.COST,
           prompt: expect.stringContaining('Generated tweet'),
         }),
@@ -653,7 +657,11 @@ describe('Agent onboarding first draft', () => {
     ).not.toHaveBeenCalled();
     expect(generationGateway.generateImage).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({
-        body: expect.objectContaining({ prioritize: RouterPriority.COST }),
+        body: expect.objectContaining({
+          autoSelectModel: false,
+          model: LOWEST_COST_IMAGE_MODEL_KEY,
+          prioritize: RouterPriority.COST,
+        }),
       }),
     );
     expect(result.data).toMatchObject({
@@ -661,6 +669,37 @@ describe('Agent onboarding first draft', () => {
       tweets: ['Keep this approved text'],
       images: ['https://cdn.example.com/retry.png'],
     });
+  });
+
+  it('passes brand-kit visuals as onboarding image references', async () => {
+    vi.stubEnv('GENFEED_CLOUD', '1');
+    const { brandsService, handler, generationGateway } = createHandler({
+      brand: { id: 'brand-1', label: 'Acme' },
+    });
+    brandsService.resolveBrandKitAssets.mockResolvedValueOnce({
+      logo: { id: 'logo-1', role: 'logo', url: 'https://cdn/l' },
+      references: [{ id: 'ref-1', role: 'reference', url: 'https://cdn/r' }],
+    });
+    generationGateway.generateImage.mockResolvedValue({
+      data: {
+        id: undefined,
+        attributes: { url: 'https://cdn.example.com/first-post.png' },
+      },
+    } as never);
+
+    await handler.generateOnboardingContent({ brandId: 'brand-1' }, CONTEXT);
+
+    expect(brandsService.resolveBrandKitAssets.mock.contexts[0]).toBe(
+      brandsService,
+    );
+    expect(generationGateway.generateImage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.objectContaining({
+          autoSelectModel: false,
+          references: ['ref-1', 'logo-1'],
+        }),
+      }),
+    );
   });
 
   it('explains insufficient image credits without discarding the tweet', async () => {

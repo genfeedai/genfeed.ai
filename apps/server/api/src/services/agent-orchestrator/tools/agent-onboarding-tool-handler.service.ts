@@ -8,6 +8,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { buildFirstRunOnboardingImageBody } from '@api/helpers/utils/first-run-image-generation/first-run-image-generation.util';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import {
   AGENT_GENERATION_GATEWAY,
@@ -38,7 +39,6 @@ import {
 } from '@genfeedai/config';
 import {
   ByokProvider,
-  RouterPriority,
   Status,
   TargetExecutionState,
 } from '@genfeedai/contracts';
@@ -49,6 +49,7 @@ import {
 import type {
   AgentToolResult,
   AgentUiAction,
+  IBrandKitResolvedAssets,
 } from '@genfeedai/contracts/interfaces';
 import {
   type IOnboardingJourneyMissionState,
@@ -94,6 +95,10 @@ interface AgentBrandsServiceLike {
     userId: string,
     sourceActionId: string,
   ) => Promise<Record<string, unknown> | null>;
+  resolveBrandKitAssets?: (
+    brandId: string,
+    organizationId: string,
+  ) => Promise<IBrandKitResolvedAssets>;
   updateIdentityForOrganization: (
     id: string,
     organizationId: string,
@@ -902,6 +907,7 @@ export class AgentOnboardingToolHandler {
       success: true,
     };
   }
+
   private async generateOnboardingImage(
     prompt: string,
     ctx: ToolExecutionContext,
@@ -921,17 +927,23 @@ export class AgentOnboardingToolHandler {
     const dimensions = resolveAgentGenerationDimensions(
       DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
     );
-    const body: Record<string, unknown> = {
-      autoSelectModel: true,
+    const body = await buildFirstRunOnboardingImageBody({
+      brandId: ctx.brandId,
       height: dimensions.height,
-      prioritize: RouterPriority.COST,
+      onReferenceError: (error) =>
+        this.loggerService.warn('Onboarding image skipped brand references', {
+          brandId: ctx.brandId,
+          error: error instanceof Error ? error.message : String(error),
+        }),
+      organizationId: ctx.organizationId,
       prompt,
-      text: prompt,
-      waitForCompletion: true,
+      resolveBrandKitAssets: this.brandsService.resolveBrandKitAssets?.bind(
+        this.brandsService,
+      ),
+      runId: ctx.runId,
+      strategyId: ctx.strategyId,
       width: dimensions.width,
-      ...(ctx.runId ? { workflowExecutionId: ctx.runId } : {}),
-      ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
-    };
+    });
 
     try {
       const response = toMediaResponseRecord(

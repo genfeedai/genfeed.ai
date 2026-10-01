@@ -6,6 +6,8 @@ import {
 } from '@api/endpoints/onboarding/services/onboarding-starter-assets.service';
 import type { IAgentGenerationGateway } from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
 import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { RouterPriority } from '@genfeedai/contracts';
+import { LOWEST_COST_IMAGE_MODEL_KEY } from '@genfeedai/contracts/constants';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -37,7 +39,10 @@ describe('clampOnboardingTweet', () => {
 
 describe('OnboardingStarterAssetsService', () => {
   let brandsService: vi.Mocked<
-    Pick<BrandsService, 'findOne' | 'updateAgentConfig'>
+    Pick<
+      BrandsService,
+      'findOne' | 'resolveBrandKitAssets' | 'updateAgentConfig'
+    >
   >;
   let postsService: vi.Mocked<Pick<PostsService, 'create'>>;
   let llmDispatcherService: vi.Mocked<
@@ -65,6 +70,7 @@ describe('OnboardingStarterAssetsService', () => {
         id: 'brand-1',
         label: 'Acme',
       } as never),
+      resolveBrandKitAssets: vi.fn().mockResolvedValue({ references: [] }),
       updateAgentConfig: vi.fn().mockResolvedValue(undefined),
     };
     postsService = {
@@ -107,6 +113,50 @@ describe('OnboardingStarterAssetsService', () => {
         organizationId: 'org-1',
       }),
     );
+    const generateImageCall = generationGateway.generateImage.mock.calls[0][0];
+    expect(generateImageCall).toEqual(
+      expect.objectContaining({
+        body: expect.objectContaining({
+          autoSelectModel: false,
+          model: LOWEST_COST_IMAGE_MODEL_KEY,
+          prioritize: RouterPriority.COST,
+        }),
+      }),
+    );
+    expect(generateImageCall.body).not.toHaveProperty('references');
+  });
+
+  it('passes brand-kit visuals as image references', async () => {
+    brandsService.resolveBrandKitAssets.mockResolvedValueOnce({
+      banner: { id: 'banner-1', role: 'banner', url: 'https://cdn/b' },
+      logo: { id: 'logo-1', role: 'logo', url: 'https://cdn/l' },
+      references: [{ id: 'ref-1', role: 'reference', url: 'https://cdn/r' }],
+    } as never);
+
+    await service.generate(input);
+
+    expect(generationGateway.generateImage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.objectContaining({
+          autoSelectModel: false,
+          references: ['ref-1', 'logo-1', 'banner-1'],
+        }),
+      }),
+    );
+  });
+
+  it('still generates the ad when brand-kit lookup fails', async () => {
+    brandsService.resolveBrandKitAssets.mockRejectedValueOnce(
+      new Error('kit unavailable'),
+    );
+
+    const result = await service.generate(input);
+
+    expect(result.adImageUrl).toBe('https://cdn.genfeed.ai/ad.png');
+    expect(loggerService.warn).toHaveBeenCalled();
+    expect(
+      generationGateway.generateImage.mock.calls[0][0].body,
+    ).not.toHaveProperty('references');
   });
 
   it('throws when the brand does not belong to the organization', async () => {

@@ -57,15 +57,23 @@ export async function buildReferenceImageUrl(params: {
       }`;
     }
 
-    const asset = await assetsService.findOne({
-      category: AssetCategory.REFERENCE,
-      id: referenceId,
-      isDeleted: false,
-      organizationId,
-    });
+    const brandVisualCategories = [
+      { category: AssetCategory.REFERENCE, path: 'references' },
+      { category: AssetCategory.LOGO, path: 'logos' },
+      { category: AssetCategory.BANNER, path: 'banners' },
+    ] as const;
 
-    if (asset?.id) {
-      return `${configService.cdnUrl}/references/${asset.id}`;
+    for (const { category, path } of brandVisualCategories) {
+      const asset = await assetsService.findOne({
+        category,
+        id: referenceId,
+        isDeleted: false,
+        organizationId,
+      });
+
+      if (asset?.id) {
+        return `${configService.cdnUrl}/${path}/${asset.id}`;
+      }
     }
 
     loggerService?.warn('Reference not found or invalid', {

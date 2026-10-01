@@ -41,4 +41,11 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
       file: 'apps/server/api/src/collections/workflows/services/featured-workflows.service.ts',
       line: 214,
     },
+    // #5763: superadmin generation review is a read-only cross-tenant ledger
+    // of original/enhanced/compiled prompts plus result images. Library
+    // findAll, delete, and merge stay organization-scoped.
+    {
+      file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
+      line: 273,
+    },
   ];
