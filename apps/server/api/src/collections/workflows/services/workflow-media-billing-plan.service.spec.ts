@@ -1,6 +1,5 @@
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import type { ModelsService } from '@api/collections/models/services/models.service';
-import { findReviewedReplicateOutputContract } from '@api/collections/models/utils/model-reviewed-replicate-output-contract.util';
 import type { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import {
   type WorkflowMediaAllocationInput,
@@ -136,29 +135,15 @@ function fixture(byok = false) {
       },
     ],
   });
-  const reader = vi.fn(
-    (
-      modelKey: string,
-      input: Record<string, unknown>,
-      organizationId?: string,
-    ) =>
-      findReviewedReplicateOutputContract(
-        { model: { findFirst } } as unknown as PrismaService,
-        modelKey,
-        input,
-        organizationId,
-      ),
-  );
   const service = new WorkflowMediaBillingPlanService(
     preparation,
     route,
-    { findReviewedReplicateOutputContract: reader } as unknown as ModelsService,
+    { model: { findFirst } } as unknown as PrismaService,
     quoteService,
   );
   return {
     service,
     preparation,
-    reader,
     findFirst,
     lookupApiKeyWithIdentity,
     quoteSnapshotByKey,
@@ -189,7 +174,7 @@ describe('server-owned single-operation workflow media billing compiler', () => 
     });
     f.setProfile(billableProfile({ key, cost: 999 }));
     f.quoteSnapshotByKey.mockClear();
-    f.reader.mockClear();
+    f.findFirst.mockClear();
     f.findBillablePricingProfile.mockClear();
     f.lookupApiKeyWithIdentity.mockClear();
     const validated = await f.service.validateDispatch(
@@ -201,7 +186,7 @@ describe('server-owned single-operation workflow media billing compiler', () => 
     );
     expect(validated.credential).toBeUndefined();
     expect(f.quoteSnapshotByKey).not.toHaveBeenCalled();
-    expect(f.reader).not.toHaveBeenCalled();
+    expect(f.findFirst).not.toHaveBeenCalled();
     expect(f.findBillablePricingProfile).not.toHaveBeenCalled();
     expect(f.lookupApiKeyWithIdentity).not.toHaveBeenCalled();
   });
@@ -278,7 +263,7 @@ describe('server-owned single-operation workflow media billing compiler', () => 
         inputs: new Map([['videoReference', 'https://public.test/source.mp4']]),
       };
       await expect(f.service.prepareAllocation(video)).rejects.toThrow(failure);
-      expect(f.reader).not.toHaveBeenCalled();
+      expect(f.findFirst).not.toHaveBeenCalled();
       expect(f.lookupApiKeyWithIdentity).not.toHaveBeenCalled();
       expect(f.quoteSnapshotByKey).not.toHaveBeenCalled();
     },
@@ -393,11 +378,11 @@ describe('server-owned single-operation workflow media billing compiler', () => 
       const prepare = vi.spyOn(f.preparation, 'prepareNode');
       prepare.mockClear();
       f.lookupApiKeyWithIdentity.mockClear();
-      f.reader.mockClear();
+      f.findFirst.mockClear();
       await expect(f.service.validateDispatch(input)).rejects.toThrow(failure);
       expect(prepare).not.toHaveBeenCalled();
       expect(f.lookupApiKeyWithIdentity).not.toHaveBeenCalled();
-      expect(f.reader).not.toHaveBeenCalled();
+      expect(f.findFirst).not.toHaveBeenCalled();
     },
   );
   it('rejects an internally valid foreign funding plan even when its BYOK credential identity is the same', async () => {

@@ -25,7 +25,11 @@ function fixture(byok = false, free = false): StoryboardPreparedMedia {
   const dispatch = structuredClone(allocation.dispatch);
   const input = { prompt: 'A lighthouse', width: 512, height: 512 };
   const projection = projectWorkflowMediaProviderInput(input);
-  const profile = { ...allocation.quote.pricingProfile, isFree: free };
+  const profile = {
+    ...allocation.quote.pricingProfile,
+    isFree: free,
+    ...(free ? { cost: 0, providerCostUsd: 0 } : {}),
+  };
   const quote = quoteModelBillablePricing(
     profile,
     normalizeModelProviderQuoteRequest(profile, dispatch.modelKey, {

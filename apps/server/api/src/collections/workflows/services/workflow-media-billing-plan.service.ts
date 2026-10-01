@@ -1,6 +1,6 @@
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
 import type { ReviewedReplicateOutputContract } from '@api/collections/models/utils/model-provider-output-contract.interface';
+import { findReviewedReplicateOutputContract } from '@api/collections/models/utils/model-reviewed-replicate-output-contract.util';
 import { WorkflowMediaCredentialRouteService } from '@api/collections/workflows/services/workflow-media-credential-route.service';
 import type { WorkflowMediaProviderPlan } from '@api/collections/workflows/services/workflow-media-provider-plan.interface';
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
@@ -20,6 +20,7 @@ import {
   projectWorkflowMediaProviderInput,
 } from '@api/helpers/utils/credits/workflow-media-dispatch-input.util';
 import type { ResolvedByokCredential } from '@api/services/byok/byok-credential-identity.interface';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ByokProvider } from '@genfeedai/contracts';
 import type {
   WorkflowExecutionGenerationBilling,
@@ -101,7 +102,7 @@ export class WorkflowMediaBillingPlanService {
   constructor(
     private readonly preparation: WorkflowMediaProviderPlanService,
     private readonly credentials: WorkflowMediaCredentialRouteService,
-    private readonly models: ModelsService,
+    private readonly prisma: PrismaService,
     private readonly quotes: ModelCreditQuoteService,
   ) {}
 
@@ -119,7 +120,8 @@ export class WorkflowMediaBillingPlanService {
     )
       unavailable('Workflow generation brief contract is unresolved');
     const projection = projectWorkflowMediaProviderInput(prepared.input);
-    const output = await this.models.findReviewedReplicateOutputContract(
+    const output = await findReviewedReplicateOutputContract(
+      this.prisma,
       prepared.model,
       prepared.input,
       args.context.organizationId,

@@ -2,9 +2,7 @@ import { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
 import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { findModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
-import { findReviewedReplicateOutputContract } from '@api/collections/models/utils/model-reviewed-replicate-output-contract.util';
 import { isFalSchemaFamilyCompatible } from '@api/collections/models/utils/model-schema-family.util';
-import { findReviewedOpenRouterTextContract } from '@api/collections/models/utils/openrouter-text-contract.util';
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { isReplicateSchemaFamilyCompatible } from '@api/services/integrations/replicate/services/replicate-contract';
@@ -447,31 +445,6 @@ export class ModelsService extends BaseService<
     organizationId?: string,
   ): Promise<ModelBillablePricingProfile | null> {
     return findModelBillablePricingProfile(this.prisma, key, organizationId);
-  }
-
-  /** Internal provider output admission proof; no raw contract data enters serializers. */
-  findReviewedOpenRouterTextContract(
-    modelKey: string,
-    organizationId?: string,
-  ) {
-    return findReviewedOpenRouterTextContract(
-      this.prisma,
-      modelKey,
-      organizationId,
-    );
-  }
-
-  findReviewedReplicateOutputContract(
-    key: string,
-    providerInput: Readonly<Record<string, unknown>>,
-    organizationId?: string,
-  ) {
-    return findReviewedReplicateOutputContract(
-      this.prisma,
-      key,
-      providerInput,
-      organizationId,
-    );
   }
 
   override async findOne(

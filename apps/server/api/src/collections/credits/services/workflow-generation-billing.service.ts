@@ -200,19 +200,23 @@ export class WorkflowGenerationBillingService {
         where: { id: executionId, organizationId, isDeleted: false },
         select: { status: true },
       });
-      const expiredOrRetired =
+      if (
         !execution ||
         (execution.status !== WorkflowExecutionStatus.PENDING &&
-          execution.status !== WorkflowExecutionStatus.RUNNING) ||
-        new Date(current.expiresAt) <= new Date();
+          execution.status !== WorkflowExecutionStatus.RUNNING)
+      )
+        throw new BusinessLogicException(
+          'Workflow funding execution identity is unavailable',
+        );
       const attached = {
         ...current,
         state: 'funded' as const,
         reservationId: reservation?.id ?? null,
       };
-      const updated = expiredOrRetired
-        ? closeWorkflowDispatch(attached)
-        : attached;
+      const updated =
+        new Date(current.expiresAt) <= new Date()
+          ? closeWorkflowDispatch(attached)
+          : attached;
       await this.persist(tx, updated);
       return updated;
     }).catch(async (error: unknown) => {

@@ -95,7 +95,7 @@ export function workflowFundingFixture(
     manifestHash: quoteSnapshotHash(manifest),
     holdAmount: '6',
     reservationId: `hold-${executionId}`,
-    expiresAt: '2026-10-01T00:00:00.000Z',
+    expiresAt: '2099-01-01T00:00:00.000Z',
     dispatchClosed: false,
     operations: allocations.map((allocation) => ({
       operationId: allocation.operationId,

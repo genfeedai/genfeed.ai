@@ -375,6 +375,7 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
           ],
         },
       }),
+      // tenant-scope-ignore: platform sweep discovers expired executions across tenants; each row carries organizationId for the per-scope cleanup job
       this.prisma.workflowExecution.findMany({
         orderBy: { completedAt: 'asc' },
         select: { id: true, organizationId: true, userId: true },
