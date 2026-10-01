@@ -547,14 +547,14 @@ describe('AppRail', () => {
     expect(onNavigate).toHaveBeenCalledTimes(1);
   });
 
-  it('renders Library with the stacked-assets icon, not a briefcase', () => {
+  it('renders Library with the images icon', () => {
     render(<AppRail orgSlug="acme" />);
 
     const libraryLink = screen.getByRole('link', { name: 'Library' });
     const icon = libraryLink.querySelector('svg');
 
     expect(icon).not.toBeNull();
-    expect(icon?.classList.toString()).toMatch(/lucide-layers/);
+    expect(icon?.classList.toString()).toMatch(/lucide-images/);
     expect(icon?.classList.toString()).not.toMatch(/lucide-briefcase/);
   });
 
