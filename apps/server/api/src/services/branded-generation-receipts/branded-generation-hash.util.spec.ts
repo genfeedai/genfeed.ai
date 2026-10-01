@@ -13,6 +13,7 @@ import {
   hashBrandIdentitySnapshotV1,
 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import type { BrandedGenerationOperationKindV1 } from '@api/services/branded-generation-receipts/branded-generation-state.util';
+import { brandIdentitySnapshotV1Schema } from '@genfeedai/contracts/api-types/contracts';
 import { ContentLearningArm } from '@genfeedai/contracts/enums';
 import type {
   BrandArtifactValidationReportV1,
@@ -987,5 +988,47 @@ describe('whole owner-authored generation rules review domain', () => {
         ),
       ).toThrow();
     expect(coercion).not.toHaveBeenCalled();
+  });
+});
+
+describe('canonical saved voice guideline identity hashing', () => {
+  it('retains omitted legacy identity hash and distinguishes present empty or changed guidance', () => {
+    const legacy = snapshot();
+    const original = hashBrandIdentitySnapshotV1(legacy);
+    const parsed = brandIdentitySnapshotV1Schema.parse({
+      ...legacy,
+      contentHash: original,
+    });
+    expect(parsed.voice).not.toHaveProperty('guidelines');
+    expect(hashBrandIdentitySnapshotV1(parsed)).toBe(original);
+    const empty = { ...legacy, voice: { ...legacy.voice, guidelines: '' } };
+    const exact = {
+      ...legacy,
+      voice: { ...legacy.voice, guidelines: '  Café 😀\r\n exact\t ' },
+    };
+    expect(hashBrandIdentitySnapshotV1(empty)).not.toBe(original);
+    const digest = hashBrandIdentitySnapshotV1(exact);
+    expect(digest).not.toBe(original);
+    expect(digest).not.toBe(hashBrandIdentitySnapshotV1(empty));
+    expect(
+      hashBrandIdentitySnapshotV1({
+        ...exact,
+        voice: { ...exact.voice, guidelines: '  Café 😀\r\n changed\t ' },
+      }),
+    ).not.toBe(digest);
+    expect(
+      hashBrandIdentitySnapshotV1({
+        ...exact,
+        resolvedAt: '2027-01-01T00:00:00.000Z',
+        voice: {
+          guidelines: exact.voice.guidelines,
+          avoid: exact.voice.avoid,
+          messagingPillars: exact.voice.messagingPillars,
+          values: exact.voice.values,
+          audience: exact.voice.audience,
+        },
+      }),
+    ).toBe(digest);
+    expect(exact.voice.guidelines).toBe('  Café 😀\r\n exact\t ');
   });
 });

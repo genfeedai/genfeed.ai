@@ -1712,3 +1712,37 @@ describe('approved literal and asset text catalogue', () => {
     expect(brandGenerationRulesV1Schema.safeParse(value).success).toBe(false);
   });
 });
+
+describe('canonical saved voice guidelines', () => {
+  it('preserves the legacy omitted voice shape', () => {
+    const legacy = snapshot();
+    const parsed = brandIdentitySnapshotV1Schema.parse(legacy);
+    expect(parsed.voice).toEqual(legacy.voice);
+    expect(parsed.voice).not.toHaveProperty('guidelines');
+  });
+  it.each(['', '  Café 😀\r\n exact\t ', 'a'.repeat(16000), '😀'.repeat(8000)])(
+    'retains exact bounded guidelines %j',
+    (guidelines) => {
+      const value = snapshot();
+      value.voice.guidelines = guidelines;
+      const before = structuredClone(value);
+      const parsed = brandIdentitySnapshotV1Schema.parse(value);
+      expect(parsed.voice.guidelines).toBe(guidelines);
+      expect(value).toEqual(before);
+    },
+  );
+  it.each([
+    { guidelines: null },
+    { guidelines: 1 },
+    { guidelines: {} },
+    { guidelines: 'a'.repeat(16001) },
+  ])('rejects malformed or oversized guidelines %j', ({ guidelines }) => {
+    const value = snapshot();
+    expect(
+      brandIdentitySnapshotV1Schema.safeParse({
+        ...value,
+        voice: { ...value.voice, guidelines },
+      }).success,
+    ).toBe(false);
+  });
+});

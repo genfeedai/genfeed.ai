@@ -330,6 +330,7 @@ export const brandIdentitySnapshotV1Schema = bounded(
         messagingPillars: z.array(text).max(128),
         avoid: z.array(text).max(64),
         sample: text.optional(),
+        guidelines: text.optional(),
       }),
       generationRules: brandGenerationRulesV1Schema,
       diagnostics,
