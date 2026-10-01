@@ -4,7 +4,10 @@ import {
   buildCrunContract,
   CrunContractImportService,
 } from '@api/services/integrations/crun/contracts/crun-contract-import.service';
-import { CRUN_IMAGE_MANIFEST } from '@api/services/integrations/crun/contracts/crun-manifest';
+import {
+  CRUN_IMAGE_MANIFEST,
+  CRUN_RESPONSE_CAPTURES,
+} from '@api/services/integrations/crun/contracts/crun-manifest';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { normalizeCrunInput } from '@genfeedai/helpers';
 
