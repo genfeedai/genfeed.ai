@@ -12,6 +12,8 @@ import type {
   IBrandKitAssetImportResponse,
   IBrandKitDraft,
   IBrandKitManualInput,
+  IBrandOnboardingScan,
+  IBrandOnboardingScanRequest,
   IBrandOsDraftHandoff,
   IBrandOsExportState,
   IBrandOsPreviewClaimRequest,
@@ -385,6 +387,32 @@ export class BrandsService extends BaseService<Brand> {
     return await this.instance
       .get<JsonApiResponseDocument>(`/${id}/brand-kit/brand-os`)
       .then((res) => deserializeResource<IBrandOsDraftHandoff>(res.data));
+  }
+
+  public async startBrandOsScan(
+    brandId: string,
+    data: IBrandOnboardingScanRequest,
+    signal?: AbortSignal,
+  ): Promise<IBrandOnboardingScan> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/${brandId}/brand-os/scan`,
+      data,
+      { signal },
+    );
+    return deserializeResource<IBrandOnboardingScan>(response.data);
+  }
+
+  public async getBrandOsScan(
+    brandId: string,
+    signal?: AbortSignal,
+  ): Promise<IBrandOnboardingScan | null> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      `/${brandId}/brand-os/scan`,
+      { signal },
+    );
+    return response.data.data === null
+      ? null
+      : deserializeResource<IBrandOnboardingScan>(response.data);
   }
 
   public async listBrandOsRevisions(
