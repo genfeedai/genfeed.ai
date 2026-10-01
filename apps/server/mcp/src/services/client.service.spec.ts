@@ -179,6 +179,18 @@ describe('ClientService (MCP)', () => {
   });
 
   describe('mergeVideos', () => {
+    it.each([undefined, {}, { id: '' }, { id: '  ' }, { id: 123 }])(
+      'refuses to report a merge without a usable output id: %j',
+      async (resource) => {
+        (mockAxiosInstance.post as Mock).mockResolvedValue({
+          data: { data: resource },
+        });
+        await expect(
+          service.mergeVideos({ ids: ['clip-1', 'clip-2'] }),
+        ).rejects.toThrow('Failed to merge videos');
+      },
+    );
+
     it('posts a flat merge body and reads the JSON:API ingredient', async () => {
       (mockAxiosInstance.post as Mock).mockResolvedValue({
         data: {
