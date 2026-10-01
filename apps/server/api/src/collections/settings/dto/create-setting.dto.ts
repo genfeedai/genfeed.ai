@@ -8,6 +8,7 @@ import {
 import {
   DEFAULT_LOCALE,
   DEFAULT_THEME,
+  PINNABLE_APP_IDS,
   SUPPORTED_LOCALES,
   THEME_PREFERENCES,
   type ThemePreference,
@@ -222,6 +223,23 @@ export class CreateSettingDto {
     type: [String],
   })
   readonly favoriteWorkflowIds?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(PINNABLE_APP_IDS.length)
+  @ArrayUnique()
+  @IsIn(PINNABLE_APP_IDS, { each: true })
+  @ApiProperty({
+    default: [],
+    description:
+      'App ids pinned onto the rail from More, in pin order. Only studio, automation, messages and discovery are accepted.',
+    enum: PINNABLE_APP_IDS,
+    isArray: true,
+    maxItems: PINNABLE_APP_IDS.length,
+    required: false,
+    type: [String],
+  })
+  readonly pinnedAppIds?: string[];
 
   @IsBoolean()
   @IsOptional()

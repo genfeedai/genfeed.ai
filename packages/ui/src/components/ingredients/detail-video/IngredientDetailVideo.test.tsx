@@ -187,13 +187,16 @@ describe('IngredientDetailVideo', () => {
     expect(makeClips).toHaveFocus();
   });
 
-  it('should apply correct styles and classes', () => {
+  it('renders the detail workspace without the redundant section label', () => {
     render(
       <IngredientDetailVideo
         video={video}
         childIngredients={childIngredients}
       />,
     );
-    expect(screen.getByText('Asset Workspace')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Review video details' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Asset Workspace')).not.toBeInTheDocument();
   });
 });

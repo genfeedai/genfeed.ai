@@ -52,6 +52,31 @@ describe('MediaLightbox', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows the asset full size without its prompt caption', async () => {
+    render(
+      <MediaLightbox
+        items={[
+          {
+            ...image,
+            promptText:
+              'Generate a cheap five-second video of the same blue ceramic cup',
+          },
+        ]}
+        open
+        startIndex={0}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(
+      await screen.findByRole('dialog', { name: 'Lightbox' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Generate a cheap five-second video/),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/brand harness/)).not.toBeInTheDocument();
+  });
+
   it('does not mount a closed viewer', () => {
     render(
       <MediaLightbox

@@ -194,15 +194,6 @@ export default function IngredientTabsInfo({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl bg-background-tertiary p-4 shadow-border">
-        <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          Core Metadata
-        </p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Update the label and description shown across your workspace.
-        </p>
-      </div>
-
       <div className="space-y-4">
         <FormControl label="Label">
           <Input<MetadataFieldValues>
@@ -231,7 +222,7 @@ export default function IngredientTabsInfo({
       </div>
 
       {isImageLike && onUpdate ? (
-        <div className="rounded-2xl bg-background-tertiary p-4 shadow-border">
+        <div className="border-t border-border pt-5">
           <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             Avatar Actions
           </p>

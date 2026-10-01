@@ -137,7 +137,10 @@ function PromptEditorView({
 
   return (
     <EditorContent
-      className={cn('min-w-0 flex-1', className)}
+      className={cn(
+        'min-w-0 flex-1 [&_.ProseMirror]:min-h-9 [&_.ProseMirror]:max-h-28 [&_.ProseMirror]:overflow-y-auto',
+        className,
+      )}
       data-testid={testId}
       editor={editor}
     />

@@ -1,4 +1,7 @@
-import { SocialSourcePlatform } from '@genfeedai/contracts';
+import {
+  formatPlatformLabel,
+  SocialSourcePlatform,
+} from '@genfeedai/contracts';
 import { getCurrentSocialWarmupBlueprint } from '@genfeedai/contracts/api-types/contracts/social-warmup-blueprint.contract';
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
@@ -47,12 +50,14 @@ export function hasWarmupBlueprint(
 export function getConnectionLabel(
   connection: BrandDetailSocialConnection,
 ): string {
-  return (
+  const label =
     connection.name ||
     connection.label ||
     connection.handle ||
-    connection.platform
-  );
+    connection.platform;
+  return label === connection.platform
+    ? (formatPlatformLabel(connection.platform) ?? label)
+    : label;
 }
 
 export function getConnectionInitials(

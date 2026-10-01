@@ -51,7 +51,7 @@ export function useAppRailNavigation({
       isDesktop,
       (index) => {
         const item = getItems().filter(
-          (candidate) => candidate.app.group !== 'admin',
+          (candidate) => candidate.app.group === 'daily',
         )[index];
         if (!item) return false;
         return navigateToApp(item.app.id, 'shortcut');

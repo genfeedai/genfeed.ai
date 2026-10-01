@@ -281,7 +281,7 @@ describe('ActivitiesList', () => {
       />,
     );
 
-    expect(screen.getByText('Provider timed out')).toBeInTheDocument();
+    expect(screen.getByText(/Provider timed out/)).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /open failed to generate/i }),
     ).toHaveAttribute(

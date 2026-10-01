@@ -50,9 +50,8 @@ describe('IngredientTabsInfo', () => {
       <IngredientTabsInfo ingredient={ingredient} />,
     );
 
-    expect(screen.getByText('Core Metadata')).toHaveClass(
-      'text-muted-foreground',
-    );
+    expect(screen.queryByText('Core Metadata')).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Label' })).toBeInTheDocument();
     expect(screen.getByDisplayValue('Test Ingredient')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Description')).toBeInTheDocument();
     expect(container.innerHTML).not.toMatch(

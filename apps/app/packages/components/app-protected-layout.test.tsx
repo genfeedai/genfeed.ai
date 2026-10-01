@@ -316,6 +316,8 @@ vi.mock('@services/core/logger.service', () => ({
 }));
 
 vi.mock('@/lib/workspace/task-composer-events', () => ({
+  OPEN_TASK_COMPOSER_EVENT: 'workspace:open-task-composer',
+  consumeOpenTaskComposerRequest: () => false,
   dispatchOpenTaskComposer: dispatchOpenTaskComposerSpy,
 }));
 
@@ -613,11 +615,10 @@ describe('AppProtectedLayout', () => {
     );
 
     expect(screen.getByText('Protected content')).toBeInTheDocument();
-    // Brand switcher is the sidebar header (Codex "Codex ▾" slot); the org
-    // avatar lives on the app rail, which the mocked AppLayout does not mount.
-    expect(screen.getByTestId('app-sidebar-header-slot')).toContainElement(
-      screen.getByTestId('sidebar-brand-switcher'),
-    );
+    // Brand and organization switchers live in the topbar. This mock does
+    // not mount that bar.
+    expect(screen.queryByTestId('app-sidebar-header-slot')).toBeNull();
+    expect(screen.queryByTestId('sidebar-brand-switcher')).toBeNull();
     expect(
       screen.queryByTestId('organization-switcher'),
     ).not.toBeInTheDocument();
@@ -630,7 +631,6 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({
         collapsedSidebarWidth: 0,
         currentApp: 'workspace',
-        headerSlot: expect.anything(),
         renderTopSlot: expect.any(Function),
         sectionLabel: 'Workspace',
         showPrimaryItems: true,
@@ -658,7 +658,7 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('keeps the header brand switcher in SaaS mode', () => {
+  it('keeps the brand switcher out of the sidebar in SaaS mode', () => {
     process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
 
     render(
@@ -667,9 +667,9 @@ describe('AppProtectedLayout', () => {
       </AppProtectedLayout>,
     );
 
-    expect(screen.getByTestId('sidebar-brand-switcher')).toBeInTheDocument();
+    expect(screen.queryByTestId('sidebar-brand-switcher')).toBeNull();
     expect(appSidebarSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ headerSlot: expect.anything() }),
+      expect.not.objectContaining({ headerSlot: expect.anything() }),
     );
   });
 
@@ -756,9 +756,12 @@ describe('AppProtectedLayout', () => {
       </AppProtectedLayout>,
     );
 
-    expect(
-      screen.getByRole('button', { name: 'New Task' }),
-    ).toBeInTheDocument();
+    mockRouter.push.mockClear();
+    dispatchOpenTaskComposerSpy.mockClear();
+    const newTask = screen.getByRole('button', { name: 'New Task' });
+    fireEvent.click(newTask);
+    expect(dispatchOpenTaskComposerSpy).toHaveBeenCalledTimes(1);
+    expect(mockRouter.push).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Search' })).toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: /New Thread/ }),
