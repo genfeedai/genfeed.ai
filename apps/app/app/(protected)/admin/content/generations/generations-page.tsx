@@ -1,5 +1,6 @@
 'use client';
 
+import { GenerationReviewsContext } from '@contexts/content/generation-reviews-context';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -16,7 +17,14 @@ import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Suspense,
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 const GENERATION_SKELETON_KEYS = [
   'generation-skeleton-1',
@@ -79,10 +87,15 @@ function GenerationsPageContent() {
 
   const [generations, setGenerations] = useState<Ingredient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [retryVersion, setRetryVersion] = useState(0);
+  const { refreshVersion, setIsRefreshing } = use(GenerationReviewsContext);
 
   const loadGenerations = useCallback(
     async (signal: AbortSignal) => {
       setIsLoading(true);
+      setHasError(false);
+      setIsRefreshing(true);
 
       try {
         const service = await getIngredientsService();
@@ -105,21 +118,32 @@ function GenerationsPageContent() {
           return;
         }
         logger.error('Failed to load generation reviews', error);
+        setGenerations([]);
+        setHasError(true);
         notificationsService.error(t('loadError'));
       } finally {
         if (!signal.aborted) {
           setIsLoading(false);
+          setIsRefreshing(false);
         }
       }
     },
-    [getIngredientsService, notificationsService, currentPage, t],
+    [
+      getIngredientsService,
+      notificationsService,
+      currentPage,
+      t,
+      setIsRefreshing,
+    ],
   );
 
+  // Refresh and retry rerun the current page request and abort stale requests.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: explicit reload triggers
   useEffect(() => {
     const controller = new AbortController();
     void loadGenerations(controller.signal);
     return () => controller.abort();
-  }, [loadGenerations]);
+  }, [loadGenerations, refreshVersion, retryVersion]);
 
   return (
     <WorkspaceSurface
@@ -132,6 +156,16 @@ function GenerationsPageContent() {
           GENERATION_SKELETON_KEYS.map((key) => (
             <SkeletonCard key={key} showImage />
           ))
+        ) : hasError ? (
+          <div role="alert">
+            <CardEmptyContent
+              label={t('loadError')}
+              action={{
+                label: t('retry'),
+                onClick: () => setRetryVersion((version) => version + 1),
+              }}
+            />
+          </div>
         ) : generations.length === 0 ? (
           <CardEmptyContent label={t('empty')} />
         ) : (

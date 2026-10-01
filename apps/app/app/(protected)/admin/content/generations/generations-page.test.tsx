@@ -1,7 +1,36 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import type { ImgHTMLAttributes } from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { ImgHTMLAttributes, PropsWithChildren, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import GenerationsPage from './generations-page';
+import GenerationsLayout from './layout';
+
+vi.mock('@ui/layout/container/Container', () => ({
+  default: ({ children, right }: PropsWithChildren<{ right?: ReactNode }>) => (
+    <div>
+      {right}
+      {children}
+    </div>
+  ),
+}));
+
+vi.mock('@components/buttons/refresh/button-refresh/ButtonRefresh', () => ({
+  default: ({
+    onClick,
+    isRefreshing,
+  }: {
+    onClick: () => void;
+    isRefreshing: boolean;
+  }) => (
+    <button
+      onClick={onClick}
+      type="button"
+      aria-label="Refresh"
+      data-loading={isRefreshing}
+    >
+      Refresh
+    </button>
+  ),
+}));
 
 vi.mock('next/image', () => ({
   default: ({
@@ -26,6 +55,7 @@ const mocks = vi.hoisted(() => {
     findAdminGenerationReviews,
     getService: vi.fn(async () => ({ findAdminGenerationReviews })),
     loggerError: vi.fn(),
+    searchParams: new URLSearchParams(),
   };
 });
 
@@ -38,11 +68,11 @@ vi.mock('next-intl', () => {
     noImage: 'No image',
     original: 'Original',
     resultAlt: 'Generated result',
+    retry: 'Try again',
     title: 'Generation reviews',
   };
-  return {
-    useTranslations: () => (key: string) => copy[key] ?? key,
-  };
+  const translate = (key: string) => copy[key] ?? key;
+  return { useTranslations: () => translate };
 });
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -70,13 +100,14 @@ vi.mock('@services/core/notifications.service', () => ({
 vi.mock('next/navigation', () => ({
   usePathname: () => '/admin/content/generations',
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mocks.searchParams,
 }));
 
 describe('GenerationsPage shell-first loading', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.findAdminGenerationReviews.mockResolvedValue([]);
+    mocks.searchParams = new URLSearchParams();
   });
 
   it('renders the surface chrome immediately while generations are loading', async () => {
@@ -122,5 +153,61 @@ describe('GenerationsPage shell-first loading', () => {
         screen.getByRole('img', { name: 'original prompt' }),
       ).toBeVisible();
     });
+  });
+
+  it('refreshes the client request and keeps the indicator pending until completion', async () => {
+    render(
+      <GenerationsLayout>
+        <GenerationsPage />
+      </GenerationsLayout>,
+    );
+    await screen.findByText('No generations found');
+    let finish: (value: unknown[]) => void = () => {};
+    mocks.findAdminGenerationReviews.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    await waitFor(() =>
+      expect(mocks.findAdminGenerationReviews).toHaveBeenCalledTimes(2),
+    );
+    expect(screen.getByRole('button', { name: 'Refresh' })).toHaveAttribute(
+      'data-loading',
+      'true',
+    );
+    finish([{ id: 'fresh', generationPrompt: 'Fresh generation' }]);
+    expect(await screen.findByText('Fresh generation')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Refresh' })).toHaveAttribute(
+      'data-loading',
+      'false',
+    );
+  });
+
+  it('hides stale page rows on failure and retries the current page', async () => {
+    mocks.findAdminGenerationReviews.mockResolvedValueOnce([
+      { id: 'old', generationPrompt: 'Old generation' },
+    ]);
+    const view = render(<GenerationsPage />);
+    await screen.findByText('Old generation');
+    mocks.findAdminGenerationReviews.mockRejectedValueOnce(
+      new Error('Request failed'),
+    );
+    mocks.searchParams = new URLSearchParams('page=2');
+    view.rerender(<GenerationsPage />);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Failed to load generation reviews',
+    );
+    expect(screen.queryByText('Old generation')).not.toBeInTheDocument();
+    expect(screen.queryByText('No generations found')).not.toBeInTheDocument();
+    mocks.findAdminGenerationReviews.mockResolvedValueOnce([
+      { id: 'retry', generationPrompt: 'Retried generation' },
+    ]);
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByText('Retried generation')).toBeVisible();
+    expect(mocks.findAdminGenerationReviews).toHaveBeenLastCalledWith(
+      expect.objectContaining({ page: 2 }),
+      expect.any(AbortSignal),
+    );
   });
 });
