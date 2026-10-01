@@ -16,6 +16,7 @@ import type {
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
+import { resolveStudioGenerationCost } from '@genfeedai/pricing';
 import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio-generate.props';
 import { canSubmitStudioGeneration } from '@genfeedai/services/core/desktop-runtime.service';
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
@@ -31,7 +32,6 @@ import {
   listStudioGenerateTypeConfigs,
   resolveStudioGenerateCapabilities,
 } from '@pages/studio/generate/utils/studio-generate-types';
-import { resolveStudioGenerationCost } from '@pages/studio/generate/utils/studio-generation-cost';
 import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
 import GenerationHarnessSettingsPopover from '@ui/dropdowns/generation-setup/GenerationHarnessSettingsPopover';
 import GenerationSetupPopover from '@ui/dropdowns/generation-setup/GenerationSetupPopover';

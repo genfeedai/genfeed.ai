@@ -10,11 +10,11 @@ import {
 } from '@genfeedai/contracts';
 import type { AgentToolResult, IModel } from '@genfeedai/contracts/interfaces';
 import type { StudioGenerationCostEstimate } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
-import { Injectable } from '@nestjs/common';
 import {
   buildStudioGenerationCostSettings,
   resolveStudioGenerationCost,
-} from '@pages/studio/generate/utils/studio-generation-cost';
+} from '@genfeedai/pricing';
+import { Injectable } from '@nestjs/common';
 
 const UNAVAILABLE_ESTIMATE: StudioGenerationCostEstimate = {
   credits: null,

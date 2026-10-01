@@ -10,8 +10,10 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import {
+  buildStudioGenerationCostSettings,
   calculateImageGenerationCredits,
   calculateVideoGenerationCredits,
+  resolveStudioGenerationCost,
 } from '@genfeedai/pricing';
 import {
   buildBaseGenerationPayload,
@@ -22,10 +24,6 @@ import {
   buildStudioPromptData,
   getDefaultStudioGenerateSettings,
 } from '@pages/studio/generate/utils/studio-generate-settings';
-import {
-  buildStudioGenerationCostSettings,
-  resolveStudioGenerationCost,
-} from '@pages/studio/generate/utils/studio-generation-cost';
 import { describe, expect, it } from 'vitest';
 
 function catalogModel(overrides: Partial<IModel> = {}): IModel {

@@ -982,6 +982,7 @@
         "@genfeedai/config": "workspace:*",
         "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
+        "@genfeedai/pricing": "workspace:*",
         "@tanstack/react-query": "5.104.0",
         "@tiptap/core": "3.31.3",
         "lucide-react": "1.49.0",
@@ -1001,9 +1002,10 @@
     },
     "packages/pricing": {
       "name": "@genfeedai/pricing",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@genfeedai/contracts": "workspace:*",
+        "@genfeedai/helpers": "workspace:*",
       },
       "devDependencies": {
         "@types/node": "24.13.3",

@@ -14,7 +14,7 @@ import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
   buildStudioGenerationCostSettings,
   resolveStudioGenerationCost,
-} from '@pages/studio/generate/utils/studio-generation-cost';
+} from '@genfeedai/pricing';
 import { describe, expect, it, vi } from 'vitest';
 
 const ctx = {
