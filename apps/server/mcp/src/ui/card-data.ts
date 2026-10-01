@@ -26,6 +26,7 @@ const TOOL_KINDS: Readonly<Record<string, McpCardKind>> = {
   list_music: 'audio',
   list_posts: 'post',
   list_videos: 'video',
+  merge_videos: 'video',
   search_articles: 'article',
 };
 

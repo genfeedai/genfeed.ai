@@ -12,6 +12,7 @@ import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 const LEGACY_NAMES = [
   'get_video_status',
   'list_videos',
+  'merge_videos',
   'get_video_analytics',
   'create_article',
   'search_articles',
@@ -150,6 +151,10 @@ function build() {
     listAvatars: vi.fn().mockResolvedValue([{ id: 'avatar-1' }]),
     listImages: vi.fn().mockResolvedValue([{ id: 'image-1' }]),
     listMusic: vi.fn().mockResolvedValue([{ id: 'track-1' }]),
+    mergeVideos: vi.fn().mockResolvedValue({
+      id: 'merged-1',
+      status: 'PROCESSING',
+    }),
     listWorkflowTemplates: vi.fn().mockResolvedValue([
       {
         category: 'content',
@@ -396,6 +401,40 @@ describe('handleLegacyTool — media libraries', () => {
 
     expect(client.listMusic).toHaveBeenCalledWith({ limit: 3 });
     expect(result.content[0].text).toContain('Found 1 music tracks');
+  });
+
+  it('starts a merge and forwards supported options', async () => {
+    const { client, registry } = build();
+
+    const result = await callTool(registry, 'merge_videos', {
+      ids: ['clip-1', 'clip-2'],
+      isResizeEnabled: true,
+      transition: 'fade',
+    });
+
+    expect(client.mergeVideos).toHaveBeenCalledWith({
+      ids: ['clip-1', 'clip-2'],
+      isResizeEnabled: true,
+      transition: 'fade',
+    });
+    expect(result.isError).toBeUndefined();
+    expect(result.content[0].text).toContain('merged-1');
+    expect(result.content[0].text).toContain('PROCESSING');
+  });
+
+  it('rejects zoom instead of starting a merge without it', async () => {
+    const { client, registry } = build();
+
+    const result = await callTool(registry, 'merge_videos', {
+      ids: ['clip-1', 'clip-2'],
+      zoomEaseCurve: 'easyinoutcubic',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain(
+      'Zoom effects are not supported when merging videos',
+    );
+    expect(client.mergeVideos).not.toHaveBeenCalled();
   });
 
   it('reports an empty music library', async () => {

@@ -93,6 +93,8 @@ import type {
   SkillsProInstallation,
 } from '@mcp/shared/interfaces/skills-pro.interface';
 import type {
+  MergeVideosParams,
+  MergeVideosResult,
   VideoCreationParams,
   VideoResponse,
   VideoStatus,
@@ -273,6 +275,10 @@ export class ClientService {
 
   listVideos(limit: number = 10, offset: number = 0): Promise<VideoResponse[]> {
     return this.media.listVideos(limit, offset);
+  }
+
+  mergeVideos(params: MergeVideosParams): Promise<MergeVideosResult> {
+    return this.media.mergeVideos(params);
   }
 
   createImage(params: ImageCreationParams): Promise<ImageResponse> {
