@@ -52,6 +52,7 @@ test('Library image entry submits a raw editing instruction and saves a reusable
             parentId: sourceId,
             imageEdit: recipe,
             generationPrompt: 'Change only the sign to OPEN',
+            prompt: { original: 'Change only the sign to OPEN' },
           }
         : {}),
     },
