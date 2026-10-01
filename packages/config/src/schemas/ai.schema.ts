@@ -10,6 +10,13 @@ import { conditionalRequired } from '../helpers';
  * `bun run check:env-product-flags` fails CI if a new one appears here.
  */
 export const generalAiSchema = {
+  // Deployment transport admission only; reviewed registry rows govern product availability.
+  CRUN_ENABLED: Joi.string().valid('true', 'false').default('false'),
+  CRUN_API_KEY: Joi.string().optional().allow(''),
+  CRUN_CREDITS_PER_USD: Joi.string()
+    .pattern(/^(?:0*[1-9]\d*(?:\.\d+)?|0*\.\d*[1-9]\d*)$/)
+    .optional(),
+  CRUN_RATE_VERSION: Joi.string().trim().min(1).optional(),
   VISUAL_CODE_RENDERER_ENABLED: Joi.string()
     .valid('true', 'false')
     .default('false'),

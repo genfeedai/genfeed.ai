@@ -1,3 +1,4 @@
+import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
 import type {
   CostTier,
   ModelCategory,
@@ -24,6 +25,7 @@ export interface IModel extends IBaseEntity {
   categoryBadgeClass?: string;
   providerBadgeClass?: string;
   capabilities?: string[];
+  inputControls?: CrunInputControls;
   costTier?: CostTier;
   recommendedFor?: string[];
   speedTier?: SpeedTier;

@@ -1,6 +1,7 @@
 export enum ModelProvider {
   REPLICATE = 'replicate',
   FAL = 'fal',
+  CRUN = 'crun',
   OPENROUTER = 'openrouter',
   GENFEED_AI = 'genfeed-ai',
   /** Direct integration (no fal/Replicate intermediary) — e.g. Mureka V9. */
