@@ -65,6 +65,38 @@ function buildImageCapability(model: IModel): ImageModelCapability {
 }
 
 function buildVideoCapability(model: IModel): VideoModelCapability {
+  const controls = model.provider === 'crun' ? model.inputControls : undefined;
+  if (controls?.mediaKind === 'video') {
+    const frames = controls.videoRules?.referenceMode === 'start-end';
+    return {
+      category: ModelCategory.VIDEO,
+      maxOutputs: controls.maxOutputs,
+      isBatchSupported: false,
+      maxReferences: frames ? 1 : 0,
+      hasEndFrame: frames,
+      hasInterpolation: frames,
+      hasSpeech: false,
+      hasAudioToggle: false,
+      requiresFirstFrame: false,
+      hasVideoReferences: false,
+      maxVideoReferences: 0,
+      hasNativeExtend: false,
+      hasDurationEditing: true,
+      hasResolutionOptions: !!controls.fields.resolution,
+      aspectRatios: controls.fields.aspect_ratio?.enum?.filter(
+        (value): value is string => typeof value === 'string',
+      ),
+      defaultAspectRatio:
+        typeof controls.fields.aspect_ratio?.default === 'string'
+          ? controls.fields.aspect_ratio.default
+          : undefined,
+      durations: [...(controls.videoRules?.availableDurations ?? [])],
+      defaultDuration:
+        typeof controls.fields.duration?.default === 'number'
+          ? controls.fields.duration.default
+          : undefined,
+    };
+  }
   return {
     ...buildBaseFields(model),
     category: ModelCategory.VIDEO,

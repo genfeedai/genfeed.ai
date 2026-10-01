@@ -1,4 +1,5 @@
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import type { PromptBarProps } from '@genfeedai/props/studio/prompt-bar.props';
 import { render, screen } from '@testing-library/react';
 import ModalImageToVideo from '@ui/modals/ingredients/image-to-video/ModalImageToVideo';
 import type { PropsWithChildren } from 'react';
@@ -10,8 +11,13 @@ vi.mock('@ui/modals/modal/Modal', () => ({
   ),
 }));
 
+let capturedPromptBar: PromptBarProps | undefined;
+vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
 vi.mock('@ui/prompt-bars/base/PromptBar', () => ({
-  default: () => <div data-testid="prompt-bar" />,
+  default: (props: PromptBarProps) => {
+    capturedPromptBar = props;
+    return <div data-testid="prompt-bar" />;
+  },
 }));
 
 describe('ModalImageToVideo', () => {
@@ -30,6 +36,23 @@ describe('ModalImageToVideo', () => {
     presets: [],
     promptData: { isValid: true },
   };
+
+  it('passes the real optional video binding and visibly blocks Veo conversion', () => {
+    const binding = {
+      prepareRequest: () => null,
+      submit: vi.fn().mockResolvedValue(undefined),
+    };
+    render(
+      <ModalImageToVideo
+        {...baseProps}
+        imageToVideoCrunBinding={binding}
+        promptData={{ isValid: true, models: ['crun/google/veo3-1-fast-t2v'] }}
+      />,
+    );
+    expect(capturedPromptBar?.crunVideoBinding).toBe(binding);
+    expect(capturedPromptBar?.isGenerateDisabled).toBe(true);
+    expect(screen.getByRole('alert')).toHaveTextContent('textOnlyMode');
+  });
 
   it('should render without crashing', () => {
     const { container } = render(<ModalImageToVideo {...baseProps} />);

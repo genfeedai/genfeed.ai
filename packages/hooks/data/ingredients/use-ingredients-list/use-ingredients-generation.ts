@@ -1,16 +1,21 @@
 'use client';
 
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   IngredientFormat,
   IngredientStatus,
   ModalEnum,
 } from '@genfeedai/contracts';
 import type {
+  CrunVideoQuoteRequest,
   IIngredient,
   ImageToVideoGenerationPayload,
   ITag,
 } from '@genfeedai/contracts/interfaces';
+import { normalizeCrunVideoDraft } from '@genfeedai/helpers/crun-video-input.helper';
+import { serializeCrunQuoteIntent } from '@genfeedai/hooks/prompt-bar/use-crun-generation-quote/use-crun-generation-quote';
+import type { CrunVideoPromptBinding } from '@genfeedai/props/studio/prompt-bar.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { VideosService } from '@genfeedai/services/ingredients/videos.service';
@@ -18,7 +23,7 @@ import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { isIngredientFormat } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-filters';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 interface UseIngredientsGenerationProps {
   notificationsService: NotificationsService;
@@ -32,6 +37,7 @@ export function useIngredientsGeneration({
   notificationsService,
   findAllIngredientsByCategory,
 }: UseIngredientsGenerationProps) {
+  const { brandId } = useBrand();
   const {
     videoModels,
     presets,
@@ -55,6 +61,141 @@ export function useIngredientsGeneration({
   >({ isValid: false, text: '' });
   const [isImageToVideoGenerating, setIsImageToVideoGenerating] =
     useState(false);
+
+  const preparedCrunRequestRef = useRef<CrunVideoQuoteRequest | null>(null);
+  const imageToVideoCrunBinding = useMemo<CrunVideoPromptBinding>(() => {
+    preparedCrunRequestRef.current = null;
+    return {
+      prepareRequest(data): CrunVideoQuoteRequest | null {
+        preparedCrunRequestRef.current = null;
+        const model =
+          data.models.length === 1
+            ? videoModels.find((item) => item.key === data.models[0])
+            : undefined;
+        const controls = model?.inputControls;
+        const sourceId = imageToVideoTarget?.id;
+        const residual = data.crunControls;
+        if (
+          !sourceId ||
+          !brandId ||
+          model?.provider !== 'crun' ||
+          model.key !== 'crun/kling/v2-5-turbo-pro' ||
+          controls?.mediaKind !== 'video' ||
+          !residual ||
+          data.references?.length !== 1 ||
+          data.references[0] !== sourceId ||
+          data.videoReferences?.length ||
+          !Number.isInteger(data.outputs ?? 1) ||
+          (data.outputs ?? 1) < 1 ||
+          (data.outputs ?? 1) > controls.maxOutputs
+        )
+          return null;
+        const normalized = normalizeCrunVideoDraft(controls, {
+          modelKey: residual.modelKey,
+          contractVersion: residual.contractVersion,
+          prompt: data.text,
+          duration: data.duration,
+          aspectRatio: residual.aspectRatio,
+          resolution: data.resolution || undefined,
+          negativePrompt: residual.negativePrompt,
+          guidanceScale: residual.guidanceScale,
+          translatePrompt: residual.translatePrompt,
+          startFrameId: sourceId,
+          endFrameId: data.endFrame || undefined,
+        });
+        if (!normalized.isValid) return null;
+        const input = normalized.input;
+        if (input.duration !== 5 && input.duration !== 10) return null;
+        const request: CrunVideoQuoteRequest = {
+          model: model.key,
+          text: data.text.trim(),
+          brandId,
+          outputs: data.outputs ?? 1,
+          references: [sourceId],
+          parentId: sourceId,
+          ...(data.endFrame ? { endFrame: data.endFrame } : {}),
+          crunControls: {
+            contractVersion: controls.version,
+            duration: input.duration,
+            ...(typeof input.aspect_ratio === 'string'
+              ? { aspectRatio: input.aspect_ratio }
+              : {}),
+            ...(typeof input.negative_prompt === 'string'
+              ? { negativePrompt: input.negative_prompt }
+              : {}),
+            ...(typeof input.cfg_scale === 'number'
+              ? { guidanceScale: input.cfg_scale }
+              : {}),
+          },
+          blacklist: data.blacklist,
+          brandingMode:
+            data.brandingMode ??
+            (data.isBrandingEnabled === false ? 'off' : 'brand'),
+          isBrandingEnabled:
+            data.brandingMode === 'off'
+              ? false
+              : data.isBrandingEnabled !== false,
+          ...(data.folder ? { folderId: data.folder } : {}),
+          ...(data.prompt_template
+            ? { promptTemplate: data.prompt_template, useTemplate: true }
+            : {}),
+          ...Object.fromEntries(
+            [
+              'camera',
+              'style',
+              'scene',
+              'lighting',
+              'mood',
+              'lens',
+              'fontFamily',
+            ].flatMap((key) => {
+              const value = data[key as keyof PromptTextareaSchema];
+              return typeof value === 'string' && value.trim()
+                ? [[key, value.trim()]]
+                : [];
+            }),
+          ),
+        };
+        preparedCrunRequestRef.current = request;
+        return request;
+      },
+      async submit(request) {
+        if (
+          !imageToVideoTarget ||
+          request.parentId !== imageToVideoTarget.id ||
+          request.references?.length !== 1 ||
+          request.references[0] !== imageToVideoTarget.id ||
+          request.brandId !== brandId ||
+          request.model !== 'crun/kling/v2-5-turbo-pro'
+        )
+          throw new Error('Video conversion changed. Request a new quote.');
+        setIsImageToVideoGenerating(true);
+        try {
+          const service = await getVideosService();
+          const { crunQuoteId: _quoteId, ...intent } = request;
+          if (
+            serializeCrunQuoteIntent(preparedCrunRequestRef.current) !==
+            serializeCrunQuoteIntent(intent)
+          )
+            throw new Error('Video conversion changed. Request a new quote.');
+          await service.post(request);
+          setImageToVideoTarget(null);
+          setImageToVideoPromptData({ isValid: false, text: '' });
+          notificationsService.success('Video generation started');
+          await findAllIngredientsByCategory(true);
+        } finally {
+          setIsImageToVideoGenerating(false);
+        }
+      },
+    };
+  }, [
+    brandId,
+    imageToVideoTarget,
+    videoModels,
+    getVideosService,
+    notificationsService,
+    findAllIngredientsByCategory,
+  ]);
 
   const handleConvertToVideo = useCallback(
     (ingredient: IIngredient) => {
@@ -149,6 +290,18 @@ export function useIngredientsGeneration({
         );
       }
 
+      if (
+        modelKeys.some(
+          (key) =>
+            key.startsWith('crun/') ||
+            videoModels.find((model) => model.key === key)?.provider === 'crun',
+        )
+      ) {
+        notificationsService.error(
+          'Use the current video quote to start this conversion',
+        );
+        return;
+      }
       setIsImageToVideoGenerating(true);
 
       try {
@@ -264,6 +417,7 @@ export function useIngredientsGeneration({
     handleImageToVideoPromptChange,
     handleImageToVideoSubmit,
     imageToVideoPromptData,
+    imageToVideoCrunBinding,
     imageToVideoTarget,
     isImageToVideoGenerating,
     moods,

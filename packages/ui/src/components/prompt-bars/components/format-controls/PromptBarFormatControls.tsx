@@ -34,7 +34,7 @@ const PromptBarFormatControls = memo(function PromptBarFormatControls({
     selected.length === 1 && selected[0]?.provider === 'crun'
       ? selected[0].inputControls
       : undefined;
-  if (!currentConfig.buttons?.format) {
+  if (controls?.mediaKind === 'video' || !currentConfig.buttons?.format) {
     return null;
   }
 

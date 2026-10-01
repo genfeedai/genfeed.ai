@@ -1,5 +1,6 @@
 'use client';
 
+import { PromptBarInternalContext } from '@genfeedai/contexts/ui/prompt-bar-internal-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
@@ -13,7 +14,7 @@ import {
 import { Input } from '@ui/primitives/input';
 import { Link, Paperclip, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type ChangeEvent, type ReactElement, useRef } from 'react';
+import { type ChangeEvent, type ReactElement, useContext, useRef } from 'react';
 
 export interface PromptBarReferenceControlsProps {
   accept?: string;
@@ -36,9 +37,23 @@ export default function PromptBarReferenceControls({
   label,
   onAddFiles,
   onOpenLibrary,
-}: PromptBarReferenceControlsProps): ReactElement {
+}: PromptBarReferenceControlsProps): ReactElement | null {
   const translate = useTranslations('agent.composerToolbar');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const context = useContext(PromptBarInternalContext);
+  const selectedModels =
+    context?.models.filter((model) =>
+      context.normalizedWatchedModels.includes(model.key),
+    ) ?? [];
+  const controls =
+    selectedModels.length === 1 && selectedModels[0]?.provider === 'crun'
+      ? selectedModels[0].inputControls
+      : undefined;
+  if (
+    controls?.mediaKind === 'video' &&
+    controls.videoRules?.referenceMode === 'none'
+  )
+    return null;
   const controlSize = density === 'compact' ? 'size-8' : 'size-9';
   const isMenuDisabled =
     (onAddFiles ? isAttachmentDisabled : true) && isLibraryDisabled;

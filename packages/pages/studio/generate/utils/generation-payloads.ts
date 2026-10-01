@@ -7,7 +7,10 @@ import {
 } from '@genfeedai/contracts';
 import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
 import type { IIngredient, IModel } from '@genfeedai/contracts/interfaces';
-import type { CrunImageQuoteRequest } from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
+import type {
+  CrunImageQuoteRequest,
+  CrunVideoQuoteRequest,
+} from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
 import type {
   AvatarGenerationPayload,
   BaseGenerationPayload,
@@ -17,8 +20,12 @@ import type {
 } from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
 import type { StudioGenerateSettings } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import { normalizeCrunInput } from '@genfeedai/helpers/crun-input-contract.helper';
+import { normalizeCrunVideoDraft } from '@genfeedai/helpers/crun-video-input.helper';
 import { isImageQualitySupported } from '@genfeedai/helpers/media/image-quality/image-quality.helper';
-import type { BuildStudioCrunQuoteRequestProps } from '@genfeedai/props/studio/studio-generate.props';
+import type {
+  BuildStudioCrunQuoteRequestProps,
+  BuildStudioCrunVideoQuoteRequestProps,
+} from '@genfeedai/props/studio/studio-generate.props';
 
 /**
  * Also read by `useStudioGenerationSetupLookOptions` to build the Look tab's
@@ -254,7 +261,13 @@ export function buildStudioCrunQuoteRequest({
   harness = false,
 }: BuildStudioCrunQuoteRequestProps): CrunImageQuoteRequest | null {
   const controls = model?.provider === 'crun' ? model.inputControls : undefined;
-  if (!model || !controls || !settings.crunControls) return null;
+  if (
+    !model ||
+    !controls ||
+    controls.mediaKind !== 'image' ||
+    !settings.crunControls
+  )
+    return null;
   if (
     !controls ||
     settings.crunControls?.modelKey !== model?.key ||
@@ -308,6 +321,127 @@ export function buildStudioCrunQuoteRequest({
       aspectRatio: settings.aspectRatio,
       resolution,
       ...(outputFormat ? { outputFormat } : {}),
+    },
+    brandingMode: settings.brandingMode,
+    isBrandingEnabled: settings.brandingMode === 'brand',
+    blacklist: settings.blacklist,
+    useTemplate: true,
+    harness,
+    ...(settings.folder ? { folderId: settings.folder } : {}),
+    ...(promptId ? { promptId } : {}),
+    ...(settings.promptTemplate
+      ? {
+          promptTemplate:
+            PRESET_TO_TEMPLATE_MAP[settings.promptTemplate] ??
+            settings.promptTemplate,
+        }
+      : {}),
+    ...Object.fromEntries(
+      ['camera', 'style', 'scene', 'lighting', 'mood', 'lens'].flatMap(
+        (field) => {
+          const value = settings[field as keyof StudioGenerateSettings];
+          return typeof value === 'string' && value.trim()
+            ? [[field, value.trim()]]
+            : [];
+        },
+      ),
+    ),
+    ...(requestedSkillSlugs?.length ? { requestedSkillSlugs } : {}),
+    ...(knowledge ? { knowledge } : {}),
+  };
+}
+
+export function buildStudioCrunVideoQuoteRequest({
+  model,
+  settings,
+  promptText,
+  references,
+  endFrameId,
+  parentId,
+  brandId,
+  promptId,
+  requestedSkillSlugs,
+  knowledge,
+  harness = false,
+}: BuildStudioCrunVideoQuoteRequestProps): CrunVideoQuoteRequest | null {
+  const controls = model?.provider === 'crun' ? model.inputControls : undefined;
+  const residual = settings.crunControls;
+  if (
+    !model ||
+    !controls ||
+    controls.mediaKind !== 'video' ||
+    !residual ||
+    references.length > 1 ||
+    !Number.isInteger(settings.outputs) ||
+    settings.outputs < 1 ||
+    settings.outputs > controls.maxOutputs ||
+    (parentId && parentId !== references[0])
+  )
+    return null;
+  if (
+    model.key !== 'crun/kling/v2-5-turbo-pro' &&
+    model.key !== 'crun/google/veo3-1-fast-t2v'
+  )
+    return null;
+  const normalized = normalizeCrunVideoDraft(controls, {
+    modelKey: residual.modelKey,
+    contractVersion: residual.contractVersion,
+    prompt: promptText,
+    duration: settings.duration,
+    aspectRatio: settings.aspectRatio || undefined,
+    resolution: settings.resolution || undefined,
+    negativePrompt: residual.negativePrompt,
+    guidanceScale: residual.guidanceScale,
+    translatePrompt: residual.translatePrompt,
+    startFrameId: references[0],
+    endFrameId,
+  });
+  if (!normalized.isValid) return null;
+  const {
+    duration,
+    resolution,
+    aspect_ratio,
+    negative_prompt,
+    cfg_scale,
+    translate_prompt,
+  } = normalized.input;
+  if (
+    duration !== 5 &&
+    duration !== 10 &&
+    duration !== 4 &&
+    duration !== 6 &&
+    duration !== 8
+  )
+    return null;
+  if (
+    resolution !== undefined &&
+    resolution !== '720p' &&
+    resolution !== '1080p' &&
+    resolution !== '4k'
+  )
+    return null;
+  return {
+    model: model.key,
+    text: promptText.trim(),
+    brandId,
+    outputs: settings.outputs,
+    references,
+    ...(endFrameId ? { endFrame: endFrameId } : {}),
+    ...(parentId ? { parentId } : {}),
+    crunControls: {
+      contractVersion: controls.version,
+      duration,
+      ...(typeof aspect_ratio === 'string'
+        ? { aspectRatio: aspect_ratio }
+        : {}),
+      ...(resolution ? { resolution } : {}),
+      ...(typeof negative_prompt === 'string'
+        ? { negativePrompt: negative_prompt }
+        : {}),
+      ...(typeof cfg_scale === 'number' ? { guidanceScale: cfg_scale } : {}),
+      ...(typeof translate_prompt === 'boolean'
+        ? { translatePrompt: translate_prompt }
+        : {}),
     },
     brandingMode: settings.brandingMode,
     isBrandingEnabled: settings.brandingMode === 'brand',

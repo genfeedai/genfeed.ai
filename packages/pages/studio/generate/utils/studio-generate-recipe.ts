@@ -1,6 +1,7 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { IngredientStatus } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import type { StudioCrunControls } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import type {
   StudioGenerateJob,
   StudioGenerateRecipe,
@@ -11,6 +12,115 @@ import type {
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { STUDIO_ASPECT_RATIOS } from './studio-generate-settings';
 import { getStudioGenerateTypeConfig } from './studio-generate-types';
+
+/** Stored-shape validation only; live model/version validation belongs to restore and quote. */
+export function readStudioCrunRecipeControls(
+  value: unknown,
+  type: StudioGenerateType,
+  modelKey: unknown,
+): StudioCrunControls | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    return undefined;
+  const input = value as Record<string, unknown>;
+  if (
+    input.modelKey !== modelKey ||
+    typeof modelKey !== 'string' ||
+    typeof input.contractVersion !== 'string' ||
+    !input.contractVersion.trim() ||
+    input.contractVersion.length > 128
+  )
+    return undefined;
+  const nano = modelKey === 'crun/google/nano-banana-pro';
+  const seedream = modelKey === 'crun/bytedance/seedream-4-5';
+  const kling = modelKey === 'crun/kling/v2-5-turbo-pro';
+  const veo = modelKey === 'crun/google/veo3-1-fast-t2v';
+  if (
+    !(
+      (type === 'image' && (nano || seedream)) ||
+      (type === 'video' && (kling || veo))
+    )
+  )
+    return undefined;
+  const allowed = [
+    'modelKey',
+    'contractVersion',
+    'aspectRatio',
+    ...(nano ? ['outputFormat'] : []),
+    ...(kling ? ['negativePrompt', 'guidanceScale'] : []),
+    ...(veo ? ['translatePrompt'] : []),
+  ];
+  if (Object.keys(input).some((key) => !allowed.includes(key)))
+    return undefined;
+  const ratios = kling
+    ? ['1:1', '16:9', '9:16']
+    : veo
+      ? ['16:9', '9:16']
+      : nano
+        ? [
+            'auto',
+            '1:1',
+            '2:3',
+            '3:2',
+            '3:4',
+            '4:3',
+            '4:5',
+            '5:4',
+            '9:16',
+            '16:9',
+            '21:9',
+          ]
+        : ['1:1', '2:3', '3:2', '3:4', '4:3', '9:16', '16:9', '21:9'];
+  if (
+    input.aspectRatio !== undefined &&
+    (typeof input.aspectRatio !== 'string' ||
+      !ratios.includes(input.aspectRatio))
+  )
+    return undefined;
+  if (
+    input.outputFormat !== undefined &&
+    input.outputFormat !== 'png' &&
+    input.outputFormat !== 'jpg'
+  )
+    return undefined;
+  if (
+    input.negativePrompt !== undefined &&
+    (typeof input.negativePrompt !== 'string' ||
+      input.negativePrompt.length > 2000)
+  )
+    return undefined;
+  if (
+    input.guidanceScale !== undefined &&
+    (typeof input.guidanceScale !== 'number' ||
+      !Number.isFinite(input.guidanceScale) ||
+      input.guidanceScale < 0 ||
+      input.guidanceScale > 1)
+  )
+    return undefined;
+  if (
+    input.translatePrompt !== undefined &&
+    typeof input.translatePrompt !== 'boolean'
+  )
+    return undefined;
+  return {
+    modelKey,
+    contractVersion: input.contractVersion,
+    ...(typeof input.aspectRatio === 'string'
+      ? { aspectRatio: input.aspectRatio }
+      : {}),
+    ...(typeof input.outputFormat === 'string'
+      ? { outputFormat: input.outputFormat }
+      : {}),
+    ...(typeof input.negativePrompt === 'string'
+      ? { negativePrompt: input.negativePrompt }
+      : {}),
+    ...(typeof input.guidanceScale === 'number'
+      ? { guidanceScale: input.guidanceScale }
+      : {}),
+    ...(typeof input.translatePrompt === 'boolean'
+      ? { translatePrompt: input.translatePrompt }
+      : {}),
+  };
+}
 
 const RECIPE_FIELD_LABELS = [
   ['brandingMode', 'Brand enrichment'],
@@ -154,6 +264,11 @@ export function recipeFromPromptData(
   settings: StudioGenerateSettings,
 ): StudioGenerateRecipe {
   return {
+    ...(settings.crunControls &&
+    settings.crunControls.modelKey === settings.modelKey &&
+    (type === 'image' || type === 'video')
+      ? { crunControls: { ...settings.crunControls } }
+      : {}),
     aspectRatio: settings.aspectRatio,
     blacklist: promptData.blacklist ?? [],
     brandingMode: resolveRecipeBrandingMode(type, promptData.isBrandingEnabled),
@@ -380,6 +495,16 @@ export function settingsPatchFromRecipe(
   const modelKey = optionalText(recipe.modelKey);
 
   return {
+    ...(modelKey?.startsWith('crun/') &&
+    (recipe.type === 'image' || recipe.type === 'video')
+      ? {
+          crunControls: readStudioCrunRecipeControls(
+            recipe.crunControls,
+            recipe.type,
+            modelKey,
+          ),
+        }
+      : {}),
     ...(recipe.aspectRatio ? { aspectRatio: recipe.aspectRatio } : {}),
     blacklist: recipe.blacklist,
     // Unknown (undefined) means the source never recorded the applied brand

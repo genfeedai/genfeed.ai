@@ -91,8 +91,14 @@ export default function StudioGenerationSummary({
         : crunQuote?.status === 'pending'
           ? translate('crun.quoteLoading')
           : crunQuote?.reasonCode
-            ? translate(`crun.reasons.${crunQuote.reasonCode}`)
-            : translate('crun.quoteUnavailable')
+            ? translate(
+                `crun.${type === 'video' ? 'videoReasons' : 'reasons'}.${crunQuote.reasonCode}`,
+              )
+            : translate(
+                type === 'video'
+                  ? 'crun.videoQuoteUnavailable'
+                  : 'crun.quoteUnavailable',
+              )
       : !canSubmitStudioGeneration(runtime)
         ? translate(
             runtime.status === 'loading' || runtime.status === 'switching'

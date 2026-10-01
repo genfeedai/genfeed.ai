@@ -152,6 +152,9 @@ export interface StudioGenerateTypeConfig {
  * Video → Image restores the operator's last setup.
  */
 export interface StudioCrunControls {
+  negativePrompt?: string;
+  guidanceScale?: number;
+  translatePrompt?: boolean;
   modelKey: string;
   contractVersion: string;
   outputFormat?: string;
@@ -194,6 +197,8 @@ export interface StudioGenerateSettings {
  * the operator sees and edits the enriched request, not the raw composer box.
  */
 export interface StudioGenerateRecipe {
+  crunControls?: StudioCrunControls;
+  endFrameId?: string;
   aspectRatio?: string;
   blacklist: string[];
   /**

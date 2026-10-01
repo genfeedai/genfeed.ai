@@ -52,9 +52,11 @@ import {
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { useModelFavorites } from '@ui/dropdowns/model-selector/useModelFavorites';
 import { Button } from '@ui/primitives/button';
+import { Label } from '@ui/primitives/label';
 import Spinner from '@ui/primitives/spinner';
 import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
 import PromptBarCrunControls from '@ui/prompt-bars/components/crun-controls/PromptBarCrunControls';
+import PromptBarCrunVideoControls from '@ui/prompt-bars/components/crun-controls/PromptBarCrunVideoControls';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
 import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarVoiceControl';
@@ -79,7 +81,10 @@ const RECOMMENDATION_DEBOUNCE_MS = 400;
 export default function StudioGenerateComposer({
   attachedAssets,
   crunQuote,
+  isCrunRestoreBlocked = false,
   crunReferenceCount,
+  crunStartFrameId,
+  crunEndFrameId,
   documentSeed,
   extraExtensions,
   isDragActive = false,
@@ -158,6 +163,7 @@ export default function StudioGenerateComposer({
   const isFirstFrameMissing =
     type === 'video' &&
     !isAutoMode &&
+    inputControls?.mediaKind !== 'video' &&
     requiresFirstFrame(settings.modelKey) &&
     !attachedAssets.some((asset) => asset.role === 'startFrame');
   const isReferenceCombinationInvalid =
@@ -176,6 +182,7 @@ export default function StudioGenerateComposer({
   // stale list, so the send button waits for the type's models to land.
   const isAwaitingModels = capabilities.hasModelSelection && isLoadingModels;
   const isSubmitBlocked =
+    isCrunRestoreBlocked ||
     (selectedModel?.provider === 'crun' && !crunQuote?.getCurrentQuote()) ||
     isRuntimeBlocked ||
     isGenerating ||
@@ -219,9 +226,13 @@ export default function StudioGenerateComposer({
   const lookOptions = inputControls
     ? {
         ...incumbentLookOptions,
-        resolution: crunFieldOptions(inputControls, 'resolution').map(
-          (key) => ({ key, label: key }),
-        ),
+        resolution:
+          inputControls.mediaKind === 'video'
+            ? []
+            : crunFieldOptions(inputControls, 'resolution').map((key) => ({
+                key,
+                label: key,
+              })),
       }
     : incumbentLookOptions;
   const typeOptions = listStudioGenerateTypeConfigs().map((config) => ({
@@ -369,7 +380,7 @@ export default function StudioGenerateComposer({
       ) : null}
       <div className="mt-0.5 flex min-h-9 min-w-0 flex-wrap items-center justify-between gap-2 pt-1">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5">
-          {inputControls ? (
+          {inputControls?.mediaKind === 'image' ? (
             <PromptBarCrunControls
               controls={inputControls}
               value={settings.crunControls?.outputFormat}
@@ -384,6 +395,90 @@ export default function StudioGenerateComposer({
                 })
               }
             />
+          ) : null}
+          {inputControls?.mediaKind === 'video' && settings.crunControls ? (
+            <>
+              {(crunReferenceCount ?? 0) >
+                (inputControls.videoRules?.referenceMode === 'start-end'
+                  ? 1
+                  : 0) && (
+                <Label role="alert">
+                  {translate('crun.videoReferencesUnsupported')}
+                </Label>
+              )}
+              <PromptBarCrunVideoControls
+                controls={inputControls}
+                value={{
+                  modelKey: settings.crunControls.modelKey,
+                  contractVersion: settings.crunControls.contractVersion,
+                  prompt,
+                  duration: settings.duration,
+                  aspectRatio: settings.aspectRatio || undefined,
+                  resolution: settings.resolution || undefined,
+                  negativePrompt: settings.crunControls.negativePrompt,
+                  guidanceScale: settings.crunControls.guidanceScale,
+                  translatePrompt: settings.crunControls.translatePrompt,
+                  startFrameId: crunStartFrameId,
+                  endFrameId: crunEndFrameId,
+                }}
+                isDisabled={isGenerating || isUploading || isEnhancingPrompt}
+                labels={{
+                  duration: translate('crun.duration'),
+                  aspectRatio: translate('crun.aspectRatio'),
+                  resolution: translate('crun.resolution'),
+                  negativePrompt: translate('crun.negativePrompt'),
+                  guidanceScale: translate('crun.guidanceScale'),
+                  translatePrompt: translate('crun.translatePrompt'),
+                  pricingReviewRequired: translate(
+                    'crun.pricingReviewRequired',
+                  ),
+                  aspectFromFrames: translate('crun.aspectFromFrames'),
+                  invalidContract: translate('crun.invalidContract'),
+                  errorMessages: {
+                    required: translate('crun.fieldRequired'),
+                    unknown: translate('crun.fieldUnknown'),
+                    type: translate('crun.fieldType'),
+                    enum: translate('crun.fieldEnum'),
+                    bounds: translate('crun.fieldBounds'),
+                    uri: translate('crun.fieldUri'),
+                    reference_required: translate(
+                      'crun.fieldReferenceRequired',
+                    ),
+                    pricing_unavailable: translate(
+                      'crun.pricingReviewRequired',
+                    ),
+                    contract_mismatch: translate('crun.invalidContract'),
+                  },
+                }}
+                onChange={(patch) =>
+                  onSettingsChange({
+                    ...(Object.hasOwn(patch, 'duration')
+                      ? { duration: patch.duration }
+                      : {}),
+                    ...(Object.hasOwn(patch, 'aspectRatio')
+                      ? { aspectRatio: patch.aspectRatio ?? '' }
+                      : {}),
+                    ...(Object.hasOwn(patch, 'resolution')
+                      ? { resolution: patch.resolution ?? '' }
+                      : {}),
+                    crunControls: {
+                      ...settings.crunControls,
+                      modelKey: settings.modelKey,
+                      contractVersion: inputControls.version,
+                      ...(Object.hasOwn(patch, 'negativePrompt')
+                        ? { negativePrompt: patch.negativePrompt }
+                        : {}),
+                      ...(Object.hasOwn(patch, 'guidanceScale')
+                        ? { guidanceScale: patch.guidanceScale }
+                        : {}),
+                      ...(Object.hasOwn(patch, 'translatePrompt')
+                        ? { translatePrompt: patch.translatePrompt }
+                        : {}),
+                    },
+                  })
+                }
+              />
+            </>
           ) : null}
           <GenerationSetupPopover
             inputControls={inputControls}
@@ -439,7 +534,9 @@ export default function StudioGenerateComposer({
             />
           ) : null}
 
-          {type === 'video' ? (
+          {type === 'video' &&
+          (inputControls?.mediaKind !== 'video' ||
+            inputControls.videoRules?.referenceMode === 'start-end') ? (
             <>
               <PromptBarReferenceControls
                 accept="image/*"
@@ -449,7 +546,10 @@ export default function StudioGenerateComposer({
                 onAddFiles={(files) => onAddFiles(files, 'startFrame')}
                 onOpenLibrary={() => onOpenLibrary('startFrame')}
               />
-              {!isAutoMode && hasEndFrame(settings.modelKey) ? (
+              {!isAutoMode &&
+              (inputControls?.mediaKind === 'video'
+                ? inputControls.videoRules?.referenceMode === 'start-end'
+                : hasEndFrame(settings.modelKey)) ? (
                 <PromptBarReferenceControls
                   accept="image/*"
                   isAttachmentDisabled={isGenerating || isUploading}
@@ -459,7 +559,9 @@ export default function StudioGenerateComposer({
                   onOpenLibrary={() => onOpenLibrary('endFrame')}
                 />
               ) : null}
-              {!isAutoMode && hasVideoReferences(settings.modelKey) ? (
+              {!isAutoMode &&
+              inputControls?.mediaKind !== 'video' &&
+              hasVideoReferences(settings.modelKey) ? (
                 <PromptBarReferenceControls
                   accept="video/*"
                   isAttachmentDisabled={isGenerating || isUploading}

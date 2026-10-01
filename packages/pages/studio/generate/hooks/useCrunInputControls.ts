@@ -3,6 +3,7 @@
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
 import type { StudioGenerateSettings } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
+import { createCrunVideoDraft } from '@genfeedai/helpers/crun-video-input.helper';
 import { useEffect, useMemo } from 'react';
 
 export function crunFieldOptions(
@@ -23,6 +24,39 @@ export function normalizeCrunSettings(
 ): Partial<StudioGenerateSettings> {
   if (!controls)
     return settings.crunControls ? { crunControls: undefined } : {};
+  if (controls.mediaKind === 'video') {
+    const draft = createCrunVideoDraft(controls, '');
+    if (!draft) return settings.crunControls ? { crunControls: undefined } : {};
+    const identityChanged =
+      settings.crunControls?.modelKey !== settings.modelKey ||
+      settings.crunControls?.contractVersion !== controls.version;
+    const patch: Partial<StudioGenerateSettings> = {};
+    if (identityChanged) {
+      patch.crunControls = {
+        modelKey: settings.modelKey,
+        contractVersion: controls.version,
+        ...(draft.guidanceScale !== undefined
+          ? { guidanceScale: draft.guidanceScale }
+          : {}),
+        ...(draft.translatePrompt !== undefined
+          ? { translatePrompt: draft.translatePrompt }
+          : {}),
+      };
+      patch.duration = draft.duration;
+      patch.aspectRatio = draft.aspectRatio ?? '';
+      patch.resolution = draft.resolution ?? '';
+    }
+    if (
+      !Number.isInteger(settings.outputs) ||
+      settings.outputs < 1 ||
+      settings.outputs > controls.maxOutputs
+    )
+      patch.outputs = Math.min(
+        controls.maxOutputs,
+        Math.max(1, Math.floor(settings.outputs) || 1),
+      );
+    return patch;
+  }
   const ratios = crunFieldOptions(controls, 'aspect_ratio').filter(
     (ratio) =>
       ratio !== 'auto' ||

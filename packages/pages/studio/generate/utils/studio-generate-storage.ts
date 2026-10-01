@@ -136,6 +136,7 @@ export function sanitizeStudioGenerateSettings(
     typeof modelKey === 'string' && modelKey.trim()
       ? modelKey
       : defaults.modelKey;
+  const isCrunVideo = type === 'video' && resolvedModelKey.startsWith('crun/');
   const durations = getStudioDurations(type, resolvedModelKey);
   const allowedResolutions = getStudioResolutions(type, resolvedModelKey).map(
     (option) => option.value,
@@ -144,7 +145,7 @@ export function sanitizeStudioGenerateSettings(
   return {
     ...defaults,
     crunControls:
-      type === 'image' &&
+      (type === 'image' || type === 'video') &&
       isRecord(value.crunControls) &&
       value.crunControls.modelKey === resolvedModelKey &&
       typeof value.crunControls.contractVersion === 'string' &&
@@ -156,6 +157,17 @@ export function sanitizeStudioGenerateSettings(
             ...(typeof value.crunControls.aspectRatio === 'string' &&
             /^(auto|\d{1,2}:\d{1,2})$/.test(value.crunControls.aspectRatio)
               ? { aspectRatio: value.crunControls.aspectRatio }
+              : {}),
+            ...(type === 'video' &&
+            typeof value.crunControls.guidanceScale === 'number' &&
+            Number.isFinite(value.crunControls.guidanceScale) &&
+            value.crunControls.guidanceScale >= 0 &&
+            value.crunControls.guidanceScale <= 1
+              ? { guidanceScale: value.crunControls.guidanceScale }
+              : {}),
+            ...(type === 'video' &&
+            typeof value.crunControls.translatePrompt === 'boolean'
+              ? { translatePrompt: value.crunControls.translatePrompt }
               : {}),
             ...(typeof value.crunControls.outputFormat === 'string' &&
             ['png', 'jpg'].includes(value.crunControls.outputFormat)
@@ -173,7 +185,11 @@ export function sanitizeStudioGenerateSettings(
     brandingMode: brandingMode === 'off' ? 'off' : 'brand',
     camera: pickFreeText(camera),
     cameraMovement: pickFreeText(cameraMovement),
-    duration: pickNumber(duration, durations, defaults.duration),
+    duration: isCrunVideo
+      ? typeof duration === 'number' && Number.isFinite(duration)
+        ? duration
+        : undefined
+      : pickNumber(duration, durations, defaults.duration),
     folder: pickFreeText(folder),
     isAudioEnabled: isAudioEnabled === true,
     lens: pickFreeText(lens),
@@ -183,7 +199,9 @@ export function sanitizeStudioGenerateSettings(
     outputs: pickOutputs(outputs, defaults.outputs),
     prioritize: isRouterPriority(prioritize) ? prioritize : defaults.prioritize,
     promptTemplate: pickFreeText(promptTemplate),
-    resolution: pickString(resolution, allowedResolutions, defaults.resolution),
+    resolution: isCrunVideo
+      ? (pickFreeText(resolution) ?? '')
+      : pickString(resolution, allowedResolutions, defaults.resolution),
     scene: pickFreeText(scene),
     // `speech` is per-submission copy, never restored from a previous session.
     speech: undefined,
@@ -247,9 +265,19 @@ export function writeStudioGenerateState(
   }
 
   try {
+    const settingsByType = { ...state.settingsByType };
+    for (const type of STUDIO_GENERATE_TYPES) {
+      settingsByType[type] = {
+        ...state.settingsByType[type],
+        crunControls: sanitizeStudioGenerateSettings(
+          type,
+          state.settingsByType[type],
+        ).crunControls,
+      };
+    }
     window.localStorage.setItem(
       STUDIO_GENERATE_STORAGE_KEY,
-      JSON.stringify(state),
+      JSON.stringify({ ...state, settingsByType }),
     );
   } catch {
     // Persistence is a convenience — a full or blocked store must not break

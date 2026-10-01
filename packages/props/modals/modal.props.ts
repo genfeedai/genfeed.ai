@@ -46,6 +46,7 @@ import type { AccountMediaReference } from '@genfeedai/contracts/interfaces/comp
 import type { Training } from '@genfeedai/models/ai/training.model';
 import type { ElementBlacklist } from '@genfeedai/models/elements/blacklist.model';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
+import type { CrunVideoPromptBinding } from '@genfeedai/props/studio/prompt-bar.props';
 import type { ContentProps } from '@props/layout/content.props';
 import type { GallerySelectItem } from '@props/modals/modal-gallery.props';
 import type React from 'react';
@@ -491,6 +492,7 @@ export interface ModalUploadProps extends ModalVisibilityProps {
 }
 
 export interface ModalImageToVideoProps {
+  imageToVideoCrunBinding?: CrunVideoPromptBinding;
   image: IIngredient | null;
   models: IModel[];
   presets: IPreset[];

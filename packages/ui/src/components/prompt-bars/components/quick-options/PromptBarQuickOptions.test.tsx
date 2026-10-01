@@ -137,3 +137,37 @@ describe('reviewed Crun quick resolution options', () => {
     expect(screen.queryByText('1080p')).not.toBeInTheDocument();
   });
 });
+
+describe('Crun video sole scalar ownership', () => {
+  it('does not show duplicate resolution or generic audio even with stale caller flags', () => {
+    const key = 'crun/google/veo3-1-fast-t2v';
+    const context = {
+      models: [
+        {
+          key,
+          provider: 'crun',
+          inputControls: {
+            mediaKind: 'video',
+            videoRules: { referenceMode: 'none' },
+            fields: { resolution: { enum: ['720p', '1080p', '4k'] } },
+          },
+        },
+      ],
+    } as unknown as PromptBarInternalContextValue;
+    render(
+      <PromptBarInternalContext.Provider value={context}>
+        <PromptBarQuickOptions
+          {...makeProps({
+            normalizedWatchedModels: [key],
+            hasAnyResolutionOptionsValue: true,
+            hasAudioToggleValue: true,
+            form: makeForm({ resolution: '720p' }),
+          })}
+        />
+      </PromptBarInternalContext.Provider>,
+    );
+    expect(screen.queryByText('Resolution')).not.toBeInTheDocument();
+    expect(screen.queryByText('Audio')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('reference-button')).not.toBeInTheDocument();
+  });
+});

@@ -3,8 +3,10 @@ import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-sele
 import { describe, expect, it } from 'vitest';
 import {
   getDefaultStudioGenerateState,
+  STUDIO_GENERATE_STORAGE_KEY,
   sanitizeStudioGenerateSettings,
   sanitizeStudioGenerateState,
+  writeStudioGenerateState,
 } from './studio-generate-storage';
 
 describe('getDefaultStudioGenerateState', () => {
@@ -174,4 +176,49 @@ describe('sanitizeStudioGenerateState', () => {
     expect(sanitizeStudioGenerateState({ type: 'gif' }).type).toBe('image');
     expect(sanitizeStudioGenerateState(undefined).type).toBe('image');
   });
+});
+
+describe('Crun video generic storage boundary', () => {
+  it('retains typed draft settings but never negative copy, references, quote or secret URL', () => {
+    const settings = sanitizeStudioGenerateSettings('video', {
+      modelKey: 'crun/google/veo3-1-fast-t2v',
+      duration: 8,
+      resolution: '4k',
+      crunControls: {
+        modelKey: 'crun/google/veo3-1-fast-t2v',
+        contractVersion: 'reviewed-video-v1',
+        translatePrompt: false,
+        guidanceScale: 0,
+        negativePrompt: 'secret copy',
+        quoteId: 'secret quote',
+        references: ['secret signed URL'],
+      },
+    });
+    expect(settings).toMatchObject({
+      duration: 8,
+      resolution: '4k',
+      crunControls: { translatePrompt: false, guidanceScale: 0 },
+    });
+    expect(settings.crunControls).not.toHaveProperty('negativePrompt');
+    expect(settings.crunControls).not.toHaveProperty('quoteId');
+    expect(settings.crunControls).not.toHaveProperty('references');
+  });
+});
+
+it('does not write negative prompt text to generic local settings storage', () => {
+  const state = getDefaultStudioGenerateState();
+  state.settingsByType.video.crunControls = {
+    modelKey: 'crun/kling/v2-5-turbo-pro',
+    contractVersion: 'video-v1',
+    negativePrompt: 'private negative copy',
+    guidanceScale: 0,
+  };
+  state.settingsByType.video.modelKey = 'crun/kling/v2-5-turbo-pro';
+  writeStudioGenerateState(state);
+  const stored = window.localStorage.getItem(STUDIO_GENERATE_STORAGE_KEY);
+  expect(stored).not.toContain('private negative copy');
+  expect(stored).toContain('"guidanceScale":0');
+  expect(state.settingsByType.video.crunControls.negativePrompt).toBe(
+    'private negative copy',
+  );
 });

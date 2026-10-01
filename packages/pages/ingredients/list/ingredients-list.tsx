@@ -123,6 +123,7 @@ export default function IngredientsList({
     setIngredients,
     handleConvertToVideo,
     imageToVideoTarget,
+    imageToVideoCrunBinding,
     imageToVideoPromptData,
     isImageToVideoGenerating,
     handleImageToVideoPromptChange,
@@ -358,6 +359,7 @@ export default function IngredientsList({
         handleImageToVideoSubmit && (
           <LazyModalImageToVideo
             image={imageToVideoTarget ?? null}
+            imageToVideoCrunBinding={imageToVideoCrunBinding}
             models={videoModels || []}
             presets={presets || []}
             moods={moods}

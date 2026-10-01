@@ -8,6 +8,7 @@ import type {
 import type {
   CrunGenerationQuoteResponse,
   CrunImageQuoteRequest,
+  CrunVideoQuoteRequest,
 } from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
 import type {
   GenerationResponse,
@@ -82,6 +83,7 @@ export interface UseStudioGenerationReturn {
 
 export interface StudioGenerationOptions {
   crunRequest?: CrunImageQuoteRequest;
+  crunVideoRequest?: CrunVideoQuoteRequest;
   getCurrentCrunQuote?: () => Extract<
     CrunGenerationQuoteResponse,
     { isAvailable: true }
@@ -591,7 +593,9 @@ export function useStudioGeneration({
       if (
         modelKey.startsWith('crun/') &&
         (!initialCrunQuote ||
-          !options?.crunRequest ||
+          !(type === 'video'
+            ? options?.crunVideoRequest
+            : options?.crunRequest) ||
           consumedCrunQuoteRef.current === initialCrunQuote.quoteId)
       )
         return false;
@@ -600,6 +604,46 @@ export function useStudioGeneration({
         : {};
       const runId = crypto.randomUUID();
       const recipe = recipeFromPromptData(promptData, type, settings);
+      const capturedCrunRequest =
+        type === 'video' ? options?.crunVideoRequest : options?.crunRequest;
+      if (modelKey.startsWith('crun/') && capturedCrunRequest) {
+        const controls = capturedCrunRequest.crunControls;
+        recipe.modelKey = capturedCrunRequest.model;
+        recipe.text = capturedCrunRequest.text;
+        recipe.outputs = capturedCrunRequest.outputs;
+        recipe.references = [...(capturedCrunRequest.references ?? [])];
+        recipe.aspectRatio = controls.aspectRatio;
+        recipe.resolution = controls.resolution;
+        recipe.duration =
+          'duration' in controls ? controls.duration : undefined;
+        recipe.endFrameId =
+          'endFrame' in capturedCrunRequest
+            ? capturedCrunRequest.endFrame
+            : undefined;
+        if (type === 'video') recipe.isAudioEnabled = false;
+        recipe.crunControls = {
+          modelKey: capturedCrunRequest.model,
+          contractVersion: controls.contractVersion,
+          ...(controls.aspectRatio !== undefined
+            ? { aspectRatio: controls.aspectRatio }
+            : {}),
+          ...('outputFormat' in controls && controls.outputFormat !== undefined
+            ? { outputFormat: controls.outputFormat }
+            : {}),
+          ...('negativePrompt' in controls &&
+          controls.negativePrompt !== undefined
+            ? { negativePrompt: controls.negativePrompt }
+            : {}),
+          ...('guidanceScale' in controls &&
+          controls.guidanceScale !== undefined
+            ? { guidanceScale: controls.guidanceScale }
+            : {}),
+          ...('translatePrompt' in controls &&
+          controls.translatePrompt !== undefined
+            ? { translatePrompt: controls.translatePrompt }
+            : {}),
+        };
+      }
       const pendingContext = {
         ...jobDimensions,
         modelKey,
@@ -683,6 +727,29 @@ export function useStudioGeneration({
 
           case 'video': {
             const service = await getVideosService();
+            if (modelKey.startsWith('crun/')) {
+              const request = options?.crunVideoRequest;
+              const quote = options?.getCurrentCrunQuote?.();
+              if (
+                !request ||
+                !quote ||
+                quote.quoteId !== initialCrunQuote?.quoteId ||
+                request.model !== modelKey ||
+                request.text !== promptText.trim() ||
+                quote.modelKey !== modelKey ||
+                quote.contractVersion !== request.crunControls.contractVersion
+              )
+                throw new Error('CRUN_QUOTE_STALE');
+              consumedCrunQuoteRef.current = quote.quoteId;
+              const data = (await service.post({
+                ...request,
+                crunQuoteId: quote.quoteId,
+              })) as GenerationResponse;
+              trackPendingIds(resolvePendingIds(data), pendingContext);
+              isAccepted = true;
+              break;
+            }
+
             const videoPromptData = {
               ...promptData,
               endFrame: references.endFrameId,
