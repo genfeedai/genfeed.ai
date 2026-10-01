@@ -114,7 +114,10 @@ function setup(dailyCreditBudget = 20) {
         },
       })),
     },
-    workflowExecution: { findFirst: vi.fn(async () => null) },
+    workflowExecution: {
+      findFirst: vi.fn(async () => null),
+      findMany: vi.fn(async () => []),
+    },
     post: {
       create: vi.fn(async ({ data }: RowWrite) => {
         const row = {

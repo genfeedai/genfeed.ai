@@ -94,6 +94,7 @@ describe('proactive organization to strategy run and attributed draft integratio
         }),
       },
       workflowExecution: {
+        findMany: vi.fn(async () => []),
         findFirst: vi.fn(async ({ where }: { where: Row }) => {
           const resultFilter = where.result as
             | { path?: string[]; equals?: unknown }
@@ -730,23 +731,103 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
         },
       }),
     ).toBe(1);
-    const frozen = execution.result;
+    const frozen = runtimeRecord(execution.result);
+    const advanced = await fixture.prisma.agentStrategy.findUniqueOrThrow({
+      where: { id: agent.id },
+    });
+    const nextRunAt = runtimeRecord(advanced.config).nextRunAt;
+    expect(new Date(String(nextRunAt)).getTime()).toBeGreaterThan(Date.now());
     const queued = await fixture
       .getQueue(PLATFORM_SYSTEM_WORKFLOW_QUEUE)
       .getJob(`system-workflow-${execution.id}`);
     if (!queued) throw new Error('Missing actual pending transport job');
     await queued.remove();
-    await fixture.makeDue(agent.id, slot);
-    expect(
-      await fixture.dispatch(agent.id, fixture.restartDispatcher()),
-    ).toMatchObject({ executionId: execution.id });
-    expect(
-      await fixture.prisma.workflowExecution.findUnique({
-        where: { id: execution.id },
-      }),
-    ).toMatchObject({ result: frozen });
+    await fixture.prisma.agentStrategy.update({
+      where: {
+        id: agent.id,
+        organizationId: fixture.organizationId,
+        isDeleted: false,
+      },
+      data: {
+        config: toPrismaJson({
+          ...runtimeRecord(advanced.config),
+          topics: ['Changed after acceptance'],
+        }),
+      },
+    });
+    fixture.restartDispatcher();
     fixture.startWorkers();
+    await fixture.schedules.sweep('proactive-agent-strategies', Date.now());
+    const recoverySweep =
+      await fixture.prisma.workflowExecution.findFirstOrThrow({
+        where: {
+          organizationId: fixture.organizationId,
+          isDeleted: false,
+          idempotencyKey: { startsWith: 'platform:' },
+        },
+      });
+    await fixture.waitForExecution(recoverySweep.id);
+    const recoveredJob = await fixture
+      .getQueue(PLATFORM_SYSTEM_WORKFLOW_QUEUE)
+      .getJob(`system-workflow-${execution.id}`);
+    if (!recoveredJob?.data.systemRun)
+      throw new Error('Restart sweep did not restore lost pending transport');
+    expect(recoveredJob.data.systemRun.input).toMatchObject({
+      idempotencyKey: execution.idempotencyKey,
+      userId: execution.userId,
+      inputValues: frozen.inputValues,
+      metadata: frozen.metadata,
+    });
+    expect(recoveredJob.data.systemRun.input.inputValues).toEqual(
+      frozen.inputValues,
+    );
+    expect(recoveredJob.data.systemRun.input.metadata).toEqual(frozen.metadata);
     await fixture.waitForExecution(execution.id);
+    const recoveredExecution =
+      await fixture.prisma.workflowExecution.findUniqueOrThrow({
+        where: { id: execution.id },
+      });
+    expect(recoveredExecution).toMatchObject({
+      idempotencyKey: execution.idempotencyKey,
+      userId: execution.userId,
+    });
+    expect(runtimeRecord(recoveredExecution.result).inputValues).toEqual(
+      frozen.inputValues,
+    );
+    expect(runtimeRecord(recoveredExecution.result).metadata).toEqual(
+      frozen.metadata,
+    );
+    expect(
+      runtimeRecord(
+        (
+          await fixture.prisma.agentStrategy.findUniqueOrThrow({
+            where: { id: agent.id },
+          })
+        ).config,
+      ).nextRunAt,
+    ).toBe(nextRunAt);
+    expect(fixture.generated.mock.calls[0][0]).toMatchObject({
+      topic: 'craft',
+    });
+    expect(
+      await fixture.prisma.workflowExecution.count({
+        where: {
+          organizationId: fixture.organizationId,
+          isDeleted: false,
+          idempotencyKey: { startsWith: 'proactive:' },
+        },
+      }),
+    ).toBe(1);
+    expect(
+      await fixture.prisma.agentStrategyReport.count({
+        where: {
+          strategyId: agent.id,
+          organizationId: fixture.organizationId,
+          isDeleted: false,
+        },
+      }),
+    ).toBe(1);
+    expect(fixture.published).not.toHaveBeenCalled();
     expect(fixture.generated).toHaveBeenCalledTimes(1);
     expect(
       await fixture.prisma.creditTransaction.count({

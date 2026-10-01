@@ -198,7 +198,10 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
       $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
         fn(prisma),
       ),
-      workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) },
+      workflowExecution: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([]),
+      },
       brand: {
         findFirst: vi.fn().mockResolvedValue({
           agentConfig: {
@@ -294,9 +297,9 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
     });
     expect(dispatch.metadata.performanceSnapshot).toEqual(snapshot);
   });
-  it.each([['linkedin'], []])(
-    'uses canonical column platforms %j over legacy config and brand defaults',
-    async (platforms) => {
+  it.each([{ platforms: ['linkedin'] }, { platforms: [] }])(
+    'uses canonical column platforms $platforms over legacy config and brand defaults',
+    async ({ platforms }) => {
       const { service, prisma, runner, row } = setup({
         dailyCreditBudget: 20,
         platforms: ['instagram'],
@@ -395,6 +398,7 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
     const { service, runner, prisma, row } = setup({ dailyCreditBudget: 20 });
     prisma.workflowExecution.findFirst
       .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
       .mockResolvedValue({ id: 'current-run' } as never);
     runner.enqueueWorkflow.mockRejectedValue(new Error('acknowledgement lost'));
     await service.dispatchProactiveStrategy({ item: row });
@@ -455,6 +459,7 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
     };
     prisma.workflowExecution.findFirst.mockResolvedValue({
       id: 'durable-run',
+      idempotencyKey: `proactive:${'b'.repeat(64)}`,
       status: 'PENDING',
       userId: row.userId,
       result: { inputValues, metadata },
@@ -471,6 +476,93 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
     expect(performance.getPerformanceSnapshot).not.toHaveBeenCalled();
     expect(prisma.agentThread.create).not.toHaveBeenCalled();
   });
+  it('recovers accepted pending work after cadence advances without rewriting config or rebuilding its brief', async () => {
+    const { service, runner, prisma, row, performance, credits, settings } =
+      setup({
+        dailyCreditBudget: 0,
+        nextRunAt: '2099-01-01T00:00:00.000Z',
+        topics: ['Changed after acceptance'],
+      });
+    const idempotencyKey = `proactive:${'a'.repeat(64)}`;
+    const inputValues = {
+      request: {
+        content: 'Original accepted brief',
+        threadId: 'accepted-thread',
+      },
+    };
+    const metadata = {
+      source: 'proactive',
+      strategyId: row.id,
+      original: 'handoff',
+      dispatchId: idempotencyKey,
+    };
+    prisma.workflowExecution.findFirst.mockResolvedValue({
+      id: 'accepted',
+      status: 'PENDING',
+      idempotencyKey,
+      userId: 'original-user',
+      result: { inputValues, metadata },
+    } as never);
+    expect(
+      await service.dispatchProactiveStrategy(
+        { item: row },
+        { workflowExecutionId: 'new-parent' },
+      ),
+    ).toEqual({ status: 'enqueued', executionId: 'accepted' });
+    expect(prisma.workflowExecution.findFirst).toHaveBeenCalledExactlyOnceWith({
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      where: {
+        organizationId: 'org',
+        isDeleted: false,
+        status: 'PENDING',
+        idempotencyKey: { startsWith: 'proactive:' },
+        result: { path: ['metadata', 'source'], equals: 'proactive' },
+        OR: [{ result: { path: ['metadata', 'strategyId'], equals: row.id } }],
+      },
+    });
+    expect(runner.enqueueWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        idempotencyKey,
+        inputValues,
+        metadata,
+        userId: 'original-user',
+      }),
+      expect.anything(),
+    );
+    expect(prisma.agentStrategy.update).not.toHaveBeenCalled();
+    expect(performance.getPerformanceSnapshot).not.toHaveBeenCalled();
+    expect(credits.getOrganizationCreditsBalance).not.toHaveBeenCalled();
+    expect(settings.findOne).not.toHaveBeenCalled();
+    expect(prisma.agentThread.findFirst).not.toHaveBeenCalled();
+    expect(prisma.agentThread.create).not.toHaveBeenCalled();
+  });
+
+  it.each([{ consecutiveFailures: 5 }, { requiresManualReactivation: true }])(
+    'preserves the manual/failure opt-out before pending recovery: %j',
+    async (gate) => {
+      const { service, runner, prisma, row } = setup({
+        dailyCreditBudget: 20,
+        ...gate,
+      });
+      expect(await service.dispatchProactiveStrategy({ item: row })).toEqual({
+        status: 'skipped',
+      });
+      expect(prisma.workflowExecution.findFirst).not.toHaveBeenCalled();
+      expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+    },
+  );
+
+  it('keeps initial-slot identity stable when legacy cadence is missing', async () => {
+    const { service, runner, row } = setup({ dailyCreditBudget: 20 });
+    await service.dispatchProactiveStrategy({ item: row });
+    await service.dispatchProactiveStrategy({ item: row });
+    const calls = runner.enqueueWorkflow.mock.calls.map(([input]) => input);
+    expect(calls).toHaveLength(2);
+    expect(calls[0].idempotencyKey).toMatch(/^proactive:[a-f0-9]{64}$/);
+    expect(calls[1].idempotencyKey).toBe(calls[0].idempotencyKey);
+    expect(calls[0].metadata.dispatchId).toBe(calls[0].idempotencyKey);
+  });
+
   it('dispatches legacy missing weekly budget using daily times five', async () => {
     const { service, runner, row } = setup({ dailyCreditBudget: 10 });
     expect(
@@ -572,7 +664,10 @@ describe('AgentAutopilotWorkflowService.discoverProactiveStrategies', () => {
       .fn()
       .mockResolvedValueOnce(pageOne)
       .mockResolvedValueOnce(pageTwo);
-    const prisma = { agentStrategy: { findMany } };
+    const prisma = {
+      agentStrategy: { findMany },
+      workflowExecution: { findMany: vi.fn().mockResolvedValue([]) },
+    };
     const service = new AgentAutopilotWorkflowService(
       prisma as never,
       {} as never,
@@ -606,7 +701,10 @@ describe('AgentAutopilotWorkflowService.discoverProactiveStrategies', () => {
       buildStrategyRow(`strategy-${String(index).padStart(3, '0')}`),
     );
     const findMany = vi.fn().mockResolvedValueOnce(dueRows);
-    const prisma = { agentStrategy: { findMany } };
+    const prisma = {
+      agentStrategy: { findMany },
+      workflowExecution: { findMany: vi.fn().mockResolvedValue([]) },
+    };
     const service = new AgentAutopilotWorkflowService(
       prisma as never,
       {} as never,

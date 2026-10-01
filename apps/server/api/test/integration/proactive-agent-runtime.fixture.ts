@@ -139,7 +139,7 @@ export class ProactiveAgentRuntimeFixture {
   readonly policy: AutonomousPublishPolicyService;
   readonly creation: BatchGenerationCreationService;
   readonly processing: BatchGenerationProcessingService;
-  readonly autopilot: AgentAutopilotWorkflowService;
+  autopilot: AgentAutopilotWorkflowService;
   readonly credits = { getOrganizationCreditsBalance: async () => 1000 };
   readonly schedules: PlatformWorkflowSchedulesService;
   readonly cache: CacheService;
@@ -681,7 +681,7 @@ export class ProactiveAgentRuntimeFixture {
   }
 
   restartDispatcher() {
-    return new AgentAutopilotWorkflowService(
+    this.autopilot = new AgentAutopilotWorkflowService(
       this.prisma as never,
       this.performance,
       this.runner,
@@ -691,6 +691,7 @@ export class ProactiveAgentRuntimeFixture {
       this.cache,
       this.logger as never,
     );
+    return this.autopilot;
   }
 
   async seedLearningScopeControls(strategyId: string, otherStrategyId: string) {
