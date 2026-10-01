@@ -1,5 +1,11 @@
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -7,6 +13,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 const checker = path.join(import.meta.dirname, 'check-import-cycles.ts');
 const fixtures: string[] = [];
+// Frozen from the legacy CLI contract; keep the comparison independent of the worker.
+const LEGACY_EXCLUDE_REGEX = String.raw`(^|/)(node_modules|dist|coverage|public|docs|e2e|__tests__|__mocks__|\.next|generated)(/|$)|\.(spec|test)\.[jt]sx?$|\.d\.ts$`;
 
 function fixture(
   files: Record<string, string>,
@@ -73,6 +81,13 @@ describe('import-cycle scanner', () => {
   });
 
   it('keeps spec, declaration and generated nodes out of final cycles', () => {
+    const exclusions = Array.from(
+      readFileSync(checker, 'utf8').matchAll(
+        /const EXCLUDE_REGEX = String\.raw`([^`]+)`;/g,
+      ),
+      (match) => match[1],
+    );
+    expect(exclusions).toEqual([LEGACY_EXCLUDE_REGEX]);
     const root = fixture({
       'packages/example/src/main.ts':
         "import './generated/a'; export const main = 1;",
@@ -121,15 +136,21 @@ describe('import-cycle scanner', () => {
         {
           'packages/entry/src/main.ts': `import './${bridge.replace(/\.ts$/, '')}';`,
           [`packages/entry/src/${bridge}`]: "import '@genfeedai/remote';",
-          'packages/remote/src/a.ts': "import './b';",
+          'packages/entry/src/a.spec.ts': "import './b.spec';",
+          'packages/entry/src/b.spec.ts': "import './a.spec';",
+          'packages/remote/src/a.ts': "import '@genfeedai/remote/b';",
           'packages/remote/src/b.ts': "import './a';",
         },
-        { '@genfeedai/remote': ['packages/remote/src/a.ts'] },
+        {
+          '@genfeedai/remote': ['packages/remote/src/a.ts'],
+          '@genfeedai/remote/*': ['packages/remote/src/*'],
+        },
       );
       const result = scan(root, ['--files', 'packages/entry/src/main.ts']);
       expect(result.error).toBeUndefined();
       expect(result.status).toBe(1);
       const report = JSON.parse(result.stdout);
+      expect(report.scannedWorkspaces).toEqual(['packages/entry']);
       expect(report.newCycles).toEqual([
         {
           files: ['packages/remote/src/a.ts', 'packages/remote/src/b.ts'],
@@ -155,7 +176,7 @@ describe('import-cycle scanner', () => {
           '--ts-config',
           path.join(root, 'tsconfig.json'),
           '--exclude',
-          String.raw`(^|/)(node_modules|dist|coverage|public|docs|e2e|__tests__|__mocks__|\.next|generated)(/|$)|\.(spec|test)\.[jt]sx?$|\.d\.ts$`,
+          LEGACY_EXCLUDE_REGEX,
           path.join(root, 'packages/entry/src'),
         ],
         { cwd: root, encoding: 'utf8', timeout: 15_000 },

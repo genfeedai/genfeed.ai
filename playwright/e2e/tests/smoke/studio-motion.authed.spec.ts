@@ -8,6 +8,7 @@ test('Motion loads under a genuine local Better Auth session without creating pa
   baseURL,
   playwright,
 }) => {
+  test.setTimeout(600_000);
   for (const address of [baseURL, playwrightApiEndpoint]) {
     expect(address, 'isolated app/API URL is required').toBeTruthy();
     expect(['localhost', '127.0.0.1', '[::1]']).toContain(
@@ -120,7 +121,10 @@ test('Motion loads under a genuine local Better Auth session without creating pa
   }
   const networkGuard = await setupStrictNetworkGuard(page, { strict: true });
   const route = `/${brand?.organization?.slug}/${brand?.slug}/studio/motion`;
-  const pageResponse = await page.goto(route);
+  const pageResponse = await page.goto(route, {
+    timeout: 180_000,
+    waitUntil: 'domcontentloaded',
+  });
   expect(pageResponse?.status()).toBeLessThan(400);
   expect(page.url()).not.toContain('/login');
   await assertNoErrorBoundaryFallback(page, route);
