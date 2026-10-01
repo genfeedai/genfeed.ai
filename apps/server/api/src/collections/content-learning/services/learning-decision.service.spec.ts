@@ -5,6 +5,7 @@ import type { LearningDependencyService } from '@api/collections/content-learnin
 import type { LearningPolicyService } from '@api/collections/content-learning/services/learning-policy.service';
 import type { LearningScopeStateService } from '@api/collections/content-learning/services/learning-scope-state.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { ContentLearningDecision, Prisma } from '@genfeedai/prisma';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
@@ -200,7 +201,6 @@ import {
   learningDescriptorTuple,
   learningRegisteredProfiles,
 } from '@genfeedai/harness';
-import type { ContentLearningDecision } from '@genfeedai/prisma';
 
 function decisionFixture(count = 20) {
   const descriptor = learningRegisteredProfiles(
@@ -670,5 +670,359 @@ describe('structurally proven insufficient baseline observation retry', () => {
     expect((await f.service.resolveForGeneration(f.input)).receipt.reason).toBe(
       'invalid_lineage',
     );
+  });
+});
+
+function bindingFixture() {
+  const payload: Parameters<LearningDecisionService['bindArtifact']>[2] = {
+    text: 'First line\r\nSecond line',
+    ingredients: [{ id: 'ingredient', version: '2' }],
+    credentialId: 'credential',
+    format: 'text',
+    objective: 'awareness',
+  };
+  const hash = learningHash({ ...payload, text: 'First line\nSecond line' });
+  const decision = {
+    id: 'decision',
+    organizationId: 'org',
+    credentialId: 'credential',
+    finalArtifactHash: null as string | null,
+    state: 'selected',
+    epoch: 2,
+    accountRevision: 4,
+    censorshipReason: null as string | null,
+  };
+  const post = {
+    id: 'post',
+    organizationId: 'org',
+    credentialId: 'credential',
+    learningDecisionId: null as string | null,
+  };
+  const account = { epoch: 2, revision: 4 };
+  const tx = {
+    $queryRaw: vi.fn().mockResolvedValue([]),
+    contentLearningDecision: {
+      findFirst: vi
+        .fn()
+        .mockImplementation(
+          ({
+            where,
+          }: {
+            where: Prisma.ContentLearningDecisionWhereInput;
+          }): typeof decision | null =>
+            where.id === decision.id &&
+            where.organizationId === decision.organizationId &&
+            where.credentialId === decision.credentialId
+              ? decision
+              : null,
+        ),
+      updateMany: vi
+        .fn()
+        .mockImplementation(
+          ({ where, data }: Prisma.ContentLearningDecisionUpdateManyArgs) => {
+            if (
+              where?.finalArtifactHash === null &&
+              decision.finalArtifactHash !== null
+            )
+              return { count: 0 };
+            Object.assign(decision, data);
+            return { count: 1 };
+          },
+        ),
+    },
+    post: {
+      findFirst: vi
+        .fn()
+        .mockImplementation(
+          ({ where }: { where: Prisma.PostWhereInput }): typeof post | null =>
+            where.id === post.id ? post : null,
+        ),
+      updateMany: vi
+        .fn()
+        .mockImplementation(({ data }: Prisma.PostUpdateManyArgs) => {
+          Object.assign(post, data);
+          return { count: 1 };
+        }),
+    },
+    contentLearningAccount: {
+      findFirst: vi
+        .fn()
+        .mockImplementation((): typeof account | null => account),
+    },
+  };
+  const root = {
+    $transaction: vi
+      .fn()
+      .mockImplementation((apply: (client: typeof tx) => Promise<unknown>) =>
+        apply(tx),
+      ),
+  };
+  const dependencies = {
+    valid: vi.fn(),
+    resolve: vi.fn(),
+    link: vi.fn(),
+    invalidate: vi.fn(),
+  };
+  const service = new LearningDecisionService(
+    root as unknown as PrismaService,
+    {} as LearningAccountService,
+    {} as LearningCheckpointService,
+    {} as LearningPolicyService,
+    {} as LearningScopeStateService,
+    dependencies as unknown as LearningDependencyService,
+  );
+  const modelCalls = [
+    tx.contentLearningDecision.findFirst,
+    tx.contentLearningDecision.updateMany,
+    tx.post.findFirst,
+    tx.post.updateMany,
+    tx.contentLearningAccount.findFirst,
+  ];
+  function assertSharedEntry() {
+    expect(root.$transaction).toHaveBeenCalledTimes(1);
+    const sql = tx.$queryRaw.mock.calls[0][0].join('');
+    expect(sql).toContain('pg_advisory_xact_lock_shared(5728, 1)');
+    expect(sql).not.toContain('pg_advisory_xact_lock(');
+    for (const mock of modelCalls)
+      if (mock.mock.invocationCallOrder.length)
+        expect(tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+          mock.mock.invocationCallOrder[0],
+        );
+    for (const mock of Object.values(dependencies))
+      expect(mock).not.toHaveBeenCalled();
+  }
+  return {
+    service,
+    root,
+    tx,
+    dependencies,
+    decision,
+    post,
+    account,
+    payload,
+    hash,
+    modelCalls,
+    assertSharedEntry,
+  };
+}
+describe('shared-fenced immutable artifact and publication binding', () => {
+  it('binds canonical artifact after shared entry and the exact decision lock on the supplied callback client', async () => {
+    const f = bindingFixture();
+    expect(await f.service.bindArtifact('org', 'decision', f.payload)).toBe(
+      f.hash,
+    );
+    expect(f.tx.$queryRaw).toHaveBeenCalledTimes(2);
+    const calls = f.tx.$queryRaw.mock.calls;
+    expect(calls[1][0].join('')).toContain('FROM content_learning_decisions');
+    expect(calls[1][0].join('')).toContain('ORDER BY id FOR UPDATE');
+    expect(calls[1].slice(1)).toEqual(['decision', 'org']);
+    expect(f.tx.$queryRaw.mock.invocationCallOrder[1]).toBeLessThan(
+      f.tx.contentLearningDecision.findFirst.mock.invocationCallOrder[0],
+    );
+    expect(f.tx.contentLearningDecision.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'decision',
+        organizationId: 'org',
+        credentialId: 'credential',
+        isDeleted: false,
+      },
+    });
+    expect(f.tx.contentLearningDecision.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'decision',
+        organizationId: 'org',
+        isDeleted: false,
+        finalArtifactHash: null,
+      },
+      data: { finalArtifactHash: f.hash, state: 'generated' },
+    });
+    expect(f.decision.state).toBe('generated');
+    expect(f.tx.post.findFirst).not.toHaveBeenCalled();
+    expect(f.tx.contentLearningAccount.findFirst).not.toHaveBeenCalled();
+    f.assertSharedEntry();
+  });
+  it('binds valid publication after shared entry, decision and Post locks with unchanged scoped predicates', async () => {
+    const f = bindingFixture();
+    f.decision.finalArtifactHash = f.hash;
+    expect(
+      await f.service.bindPublication('org', 'decision', 'post', f.payload),
+    ).toEqual({ valid: true });
+    const sql = f.tx.$queryRaw.mock.calls.map(([parts]) => parts.join(''));
+    expect(sql).toHaveLength(3);
+    expect(sql[1]).toContain('FROM content_learning_decisions');
+    expect(sql[2]).toContain('FROM posts');
+    expect(sql.join('')).not.toContain('content_learning_accounts');
+    expect(f.tx.$queryRaw.mock.calls[2].slice(1)).toEqual(['post', 'org']);
+    expect(f.tx.$queryRaw.mock.invocationCallOrder[2]).toBeLessThan(
+      f.tx.contentLearningDecision.findFirst.mock.invocationCallOrder[0],
+    );
+    expect(f.tx.contentLearningDecision.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'decision',
+        organizationId: 'org',
+        credentialId: 'credential',
+        isDeleted: false,
+      },
+    });
+    expect(f.tx.contentLearningAccount.findFirst).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org',
+        credentialId: 'credential',
+        isDeleted: false,
+      },
+    });
+    expect(f.tx.post.findFirst).toHaveBeenNthCalledWith(1, {
+      where: {
+        id: 'post',
+        organizationId: 'org',
+        credentialId: 'credential',
+        isDeleted: false,
+      },
+    });
+    expect(f.tx.post.findFirst).toHaveBeenNthCalledWith(2, {
+      where: {
+        organizationId: 'org',
+        learningDecisionId: 'decision',
+        id: { not: 'post' },
+        isDeleted: false,
+      },
+    });
+    expect(f.tx.post.updateMany).toHaveBeenCalledWith({
+      where: { id: 'post', organizationId: 'org', isDeleted: false },
+      data: { learningDecisionId: 'decision' },
+    });
+    expect(f.tx.contentLearningDecision.updateMany).toHaveBeenCalledWith({
+      where: { id: 'decision', organizationId: 'org', isDeleted: false },
+      data: { state: 'published' },
+    });
+    f.assertSharedEntry();
+  });
+  it.each(['artifact', 'publication'])(
+    'propagates %s fence failure before every row lock/read/write',
+    async (kind) => {
+      const f = bindingFixture(),
+        failure = new Error('shared fence failed');
+      f.tx.$queryRaw.mockRejectedValueOnce(failure);
+      const result =
+        kind === 'artifact'
+          ? f.service.bindArtifact('org', 'decision', f.payload)
+          : f.service.bindPublication('org', 'decision', 'post', f.payload);
+      await expect(result).rejects.toBe(failure);
+      expect(f.tx.$queryRaw).toHaveBeenCalledTimes(1);
+      for (const mock of f.modelCalls) expect(mock).not.toHaveBeenCalled();
+      f.assertSharedEntry();
+    },
+  );
+  it.each([
+    'missing-destination',
+    'mismatched-destination',
+    'different-artifact',
+    'same-artifact',
+  ])('preserves immutable artifact behavior for %s', async (kind) => {
+    const f = bindingFixture();
+    if (kind === 'missing-destination')
+      f.tx.contentLearningDecision.findFirst.mockResolvedValue(null);
+    else if (kind === 'mismatched-destination')
+      f.payload.credentialId = 'foreign-credential';
+    else
+      f.decision.finalArtifactHash =
+        kind === 'same-artifact' ? f.hash : 'saved-other-hash';
+    const result = f.service.bindArtifact('org', 'decision', f.payload);
+    if (kind === 'same-artifact') {
+      expect(await result).toBe(f.hash);
+      expect(f.tx.contentLearningDecision.updateMany).toHaveBeenCalledTimes(1);
+      expect(
+        f.tx.contentLearningDecision.updateMany.mock.results[0].value,
+      ).toEqual({ count: 0 });
+      expect(f.decision.state).toBe('selected');
+    } else {
+      await expect(result).rejects.toThrow(
+        kind === 'missing-destination' || kind === 'mismatched-destination'
+          ? 'Decision destination mismatch'
+          : 'Decision already bound to another artifact',
+      );
+      expect(f.tx.contentLearningDecision.updateMany).not.toHaveBeenCalled();
+    }
+    f.assertSharedEntry();
+  });
+  it.each([
+    'same-post',
+    'duplicate-post',
+    'other-decision',
+    'changed-bound-hash',
+  ])(
+    'preserves publication replay/conflict precedence for %s',
+    async (kind) => {
+      const f = bindingFixture();
+      f.decision.finalArtifactHash = f.hash;
+      if (kind === 'duplicate-post')
+        f.tx.post.findFirst
+          .mockResolvedValueOnce(f.post)
+          .mockResolvedValueOnce({ ...f.post, id: 'other-post' });
+      else
+        f.post.learningDecisionId =
+          kind === 'other-decision' ? 'other-decision' : 'decision';
+      if (kind === 'changed-bound-hash')
+        f.decision.finalArtifactHash = 'changed-hash';
+      const result = f.service.bindPublication(
+        'org',
+        'decision',
+        'post',
+        f.payload,
+      );
+      if (kind === 'same-post') {
+        expect(await result).toEqual({ valid: true });
+        expect(f.tx.post.updateMany).toHaveBeenCalledTimes(1);
+        expect(f.tx.contentLearningDecision.updateMany).toHaveBeenCalledWith(
+          expect.objectContaining({ data: { state: 'published' } }),
+        );
+      } else {
+        await expect(result).rejects.toThrow(
+          kind === 'changed-bound-hash'
+            ? 'Published artifact binding differs'
+            : 'Publication already has immutable decision binding',
+        );
+        expect(f.tx.post.updateMany).not.toHaveBeenCalled();
+        expect(f.tx.contentLearningDecision.updateMany).not.toHaveBeenCalled();
+      }
+      f.assertSharedEntry();
+    },
+  );
+  it.each([
+    'missing-post',
+    'missing-decision',
+    'edited',
+    'missing-account',
+    'epoch',
+    'revision',
+  ])('preserves censorship reason and no Post write for %s', async (kind) => {
+    const f = bindingFixture();
+    f.decision.finalArtifactHash = f.hash;
+    if (kind === 'missing-post') f.tx.post.findFirst.mockResolvedValue(null);
+    if (kind === 'missing-decision')
+      f.tx.contentLearningDecision.findFirst.mockResolvedValue(null);
+    if (kind === 'edited') f.decision.finalArtifactHash = 'edited-hash';
+    if (kind === 'missing-account')
+      f.tx.contentLearningAccount.findFirst.mockResolvedValue(null);
+    if (kind === 'epoch') f.account.epoch++;
+    if (kind === 'revision') f.account.revision++;
+    const reason =
+      kind === 'missing-post' || kind === 'missing-decision'
+        ? 'lineage_conflict'
+        : kind === 'edited'
+          ? 'edited_artifact'
+          : 'invalidated_after_dispatch';
+    expect(
+      await f.service.bindPublication('org', 'decision', 'post', f.payload),
+    ).toEqual({ valid: false, reason });
+    expect(f.tx.post.updateMany).not.toHaveBeenCalled();
+    if (kind === 'missing-decision')
+      expect(f.tx.contentLearningDecision.updateMany).not.toHaveBeenCalled();
+    else
+      expect(f.tx.contentLearningDecision.updateMany).toHaveBeenCalledWith({
+        where: { id: 'decision', organizationId: 'org', isDeleted: false },
+        data: { state: 'censored', censorshipReason: reason },
+      });
+    f.assertSharedEntry();
   });
 });
