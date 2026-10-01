@@ -1,15 +1,15 @@
+import {
+  type BrandedGenerationOperationKindV1,
+  type BrandedGenerationStateV1,
+  canTransitionBrandedGenerationStateV1,
+  classifyBrandedGenerationReadinessV1,
+} from '@api/services/branded-generation-receipts/branded-generation-state.util';
 import type {
   BrandArtifactValidationReportV1,
   BrandedGenerationReceiptV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import { describe, expect, it } from 'vitest';
 import { ZodError } from 'zod';
-import {
-  type BrandedGenerationOperationKindV1,
-  type BrandedGenerationStateV1,
-  canTransitionBrandedGenerationStateV1,
-  classifyBrandedGenerationReadinessV1,
-} from './branded-generation-state.util';
 
 const hash = `sha256:${'a'.repeat(64)}`;
 const time = '2026-10-01T00:00:00.000Z';

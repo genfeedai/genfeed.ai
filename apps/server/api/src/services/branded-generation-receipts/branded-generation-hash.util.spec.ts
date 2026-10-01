@@ -1,11 +1,3 @@
-import { ContentLearningArm } from '@genfeedai/contracts/enums';
-import type {
-  BrandArtifactValidationReportV1,
-  BrandedGenerationInputV1,
-  BrandedGenerationResolutionV1,
-  BrandIdentitySnapshotV1,
-} from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
-import { describe, expect, it } from 'vitest';
 import {
   type BrandedGenerationHashDomainV1,
   type BrandedGenerationJsonV1,
@@ -18,8 +10,16 @@ import {
   hashBrandedGenerationResolutionV1,
   hashBrandedGenerationTextV1,
   hashBrandIdentitySnapshotV1,
-} from './branded-generation-hash.util';
-import type { BrandedGenerationOperationKindV1 } from './branded-generation-state.util';
+} from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+import type { BrandedGenerationOperationKindV1 } from '@api/services/branded-generation-receipts/branded-generation-state.util';
+import { ContentLearningArm } from '@genfeedai/contracts/enums';
+import type {
+  BrandArtifactValidationReportV1,
+  BrandedGenerationInputV1,
+  BrandedGenerationResolutionV1,
+  BrandIdentitySnapshotV1,
+} from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+import { describe, expect, it } from 'vitest';
 
 const hash = `sha256:${'a'.repeat(64)}`;
 const time = '2026-10-01T00:00:00.000Z';
@@ -424,6 +424,23 @@ describe('frozen typed hash projections', () => {
         parts,
       }),
     ).toMatch(/^sha256:/);
+  });
+  it('rejects malformed textHash without coercing it', () => {
+    let coercions = 0;
+    const textHash = {
+      toString() {
+        coercions += 1;
+        throw new Error('textHash must not be coerced');
+      },
+    };
+    expect(() =>
+      hashBrandedGenerationArtifactManifestV1({
+        mediaKind: 'text',
+        textHash: textHash as unknown as string,
+        parts: [],
+      }),
+    ).toThrow(new TypeError('Invalid branded generation JSON'));
+    expect(coercions).toBe(0);
   });
   it('report excludes id/clock/message but retains structural diagnostics, quality and checks', () => {
     const v = report();
