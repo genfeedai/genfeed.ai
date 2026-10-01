@@ -239,6 +239,7 @@ enum AssetCategory {
   LOGO
   BANNER
   REFERENCE
+  FONT
 }
 
 enum ReferenceImageCategory {
