@@ -360,59 +360,119 @@ describe('BillingAccountsService', () => {
     });
   });
 
-  it('creates an unprovisioned account when an organization has none', async () => {
-    // Calls 1-2 (ensureForOrganization's own check, then
-    // tx.organization.findFirst inside linkOrganization) precede the link;
-    // the fallback (call 3+) is resolveBillingAccountAccess (#5217) reading
-    // the organization after tx.organization.update makes the link live.
-    prisma.organization.findFirst
-      .mockResolvedValueOnce({
-        billingAccountId: null,
-        id: 'org_1',
+  it.each([
+    ['without an existing account', false],
+    ['separately from a full existing account', true],
+  ])(
+    'creates an unprovisioned account %s',
+    async (_case, isSeparateAccount) => {
+      // Calls 1-2 (ensureForOrganization's own check, then
+      // tx.organization.findFirst inside linkOrganization) precede the link;
+      // the fallback (call 3+) is resolveBillingAccountAccess (#5217) reading
+      // the organization after tx.organization.update makes the link live.
+      prisma.organization.findFirst
+        .mockResolvedValueOnce({
+          billingAccountId: null,
+          id: 'org_1',
+          label: 'Acme',
+        })
+        .mockResolvedValueOnce({
+          billingAccountId: null,
+          id: 'org_1',
+          label: 'Acme',
+        })
+        .mockResolvedValue({
+          billingAccountId: 'ba_new',
+          id: 'org_1',
+          label: 'Acme',
+        });
+      prisma.billingAccountMember.findMany.mockResolvedValue(
+        isSeparateAccount
+          ? [
+              {
+                billingAccount: {
+                  id: 'ba_existing',
+                  isDeleted: false,
+                  planTier: 'free',
+                },
+              },
+            ]
+          : [],
+      );
+      prisma.billingAccount.create.mockResolvedValue({
+        id: 'ba_new',
         label: 'Acme',
-      })
-      .mockResolvedValueOnce({
-        billingAccountId: null,
-        id: 'org_1',
-        label: 'Acme',
-      })
-      .mockResolvedValue({
-        billingAccountId: 'ba_new',
-        id: 'org_1',
-        label: 'Acme',
+        status: BillingAccountStatus.UNPROVISIONED,
       });
-    prisma.billingAccountMember.findMany.mockResolvedValue([]);
-    prisma.billingAccount.create.mockResolvedValue({
-      id: 'ba_new',
-      label: 'Acme',
-      status: BillingAccountStatus.UNPROVISIONED,
-    });
-    prisma.billingAccount.findFirst.mockResolvedValue({
-      id: 'ba_new',
-      isDeleted: false,
-      planTier: null,
-    });
-    prisma.billingAccountMember.findFirst.mockResolvedValue({
-      role: BillingAccountMemberRole.OWNER,
-    });
-    prisma.billingAccountOrganization.findFirst.mockResolvedValue(null);
-    prisma.billingAccountOrganization.count.mockResolvedValue(0);
-    prisma.creditBalance.findFirst.mockResolvedValue(null);
+      prisma.billingAccount.findFirst.mockResolvedValue({
+        id: 'ba_new',
+        isDeleted: false,
+        planTier: null,
+      });
+      prisma.billingAccountMember.findFirst.mockResolvedValue({
+        role: BillingAccountMemberRole.OWNER,
+      });
+      prisma.billingAccountOrganization.findFirst.mockResolvedValue(null);
+      prisma.billingAccountOrganization.count.mockImplementation(
+        async ({ where }) => (where.billingAccountId === 'ba_existing' ? 1 : 0),
+      );
+      prisma.creditBalance.findFirst.mockResolvedValue(null);
 
-    const account = await service.ensureForOrganization({
-      organizationId: 'org_1',
-      userId: 'user_1',
-    });
-
-    expect(account.id).toBe('ba_new');
-    expect(prisma.billingAccountMember.create).toHaveBeenCalled();
-    expect(prisma.billingAccountOrganization.create).toHaveBeenCalledWith({
-      data: {
-        billingAccountId: 'ba_new',
+      const account = await service.ensureForOrganization({
+        isSeparateAccount,
         organizationId: 'org_1',
-        status: BillingAccountOrganizationStatus.LINKED,
-      },
+        planTier: 'free',
+        userId: 'user_1',
+      });
+
+      expect(account.id).toBe('ba_new');
+      expect(prisma.billingAccount.create).toHaveBeenCalledWith({
+        data: {
+          label: 'Acme',
+          planTier: 'free',
+          status: BillingAccountStatus.UNPROVISIONED,
+        },
+      });
+      if (isSeparateAccount) {
+        expect(prisma.billingAccountMember.findMany).not.toHaveBeenCalled();
+      }
+      expect(prisma.billingAccountMember.create).toHaveBeenCalled();
+      expect(prisma.billingAccountOrganization.create).toHaveBeenCalledWith({
+        data: {
+          billingAccountId: 'ba_new',
+          organizationId: 'org_1',
+          status: BillingAccountOrganizationStatus.LINKED,
+        },
+      });
+    },
+  );
+
+  it('keeps the owned-account organization limit for ordinary provisioning', async () => {
+    prisma.organization.findFirst.mockResolvedValue({
+      billingAccountId: null,
+      id: 'org_2',
+      label: 'Second Org',
     });
+    prisma.billingAccountMember.findMany.mockResolvedValue([
+      {
+        billingAccount: {
+          id: 'ba_existing',
+          isDeleted: false,
+          planTier: 'free',
+        },
+      },
+    ]);
+    prisma.billingAccountOrganization.count.mockResolvedValue(1);
+
+    await expect(
+      service.ensureForOrganization({
+        organizationId: 'org_2',
+        userId: 'user_1',
+      }),
+    ).rejects.toBeInstanceOf(PlanLimitExceededException);
+
+    expect(prisma.billingAccount.create).not.toHaveBeenCalled();
+    expect(prisma.billingAccountOrganization.create).not.toHaveBeenCalled();
   });
 
   describe('getSnapshot (#5374)', () => {
