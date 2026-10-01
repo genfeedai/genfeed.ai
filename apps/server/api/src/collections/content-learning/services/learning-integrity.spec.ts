@@ -1,6 +1,7 @@
 import type { CredentialDocument } from '@api/collections/credentials/credential.types';
 import { InstagramAnalyticsService } from '@api/services/integrations/instagram/services/instagram-analytics.service';
 import { TiktokAnalyticsService } from '@api/services/integrations/tiktok/services/tiktok-analytics.service';
+import type { InstagramCredentialResponse } from '@genfeedai/contracts/interfaces/integrations/instagram.interface';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import type { HttpService } from '@nestjs/axios';
@@ -14,6 +15,9 @@ describe('real resource structure precedes provider observation authority', () =
     async (platform) => {
       vi.spyOn(EncryptionUtil, 'decrypt').mockReturnValue('token');
       const credential = { accessToken: 'encrypted' } as CredentialDocument;
+      const instagramCredential = {
+        accessToken: 'encrypted',
+      } as InstagramCredentialResponse;
       const http = { get: vi.fn() },
         logger = { error: vi.fn(), log: vi.fn() };
       const service =
@@ -23,7 +27,7 @@ describe('real resource structure precedes provider observation authority', () =
               logger as unknown as LoggerService,
               'https://provider.invalid',
               'v1',
-              async () => credential,
+              async () => instagramCredential,
             )
           : new TiktokAnalyticsService(
               http as unknown as HttpService,

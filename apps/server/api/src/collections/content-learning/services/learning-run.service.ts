@@ -58,6 +58,9 @@ export function parseLearningRunDispatch(
 ): LearningRunDispatchReceiptV1 | null {
   return validLearningRunDispatchReceipt(value) ? value : null;
 }
+function storedJson(value: unknown): Prisma.JsonValue {
+  return JSON.parse(JSON.stringify(value ?? null)) as Prisma.JsonValue;
+}
 function scopedRunDispatch(
   claim: LearningRunClaim,
 ): LearningRunDispatchInput | null {
@@ -434,7 +437,7 @@ export class LearningRunService {
             ...operation,
             status,
             error: 'run_lease_expired',
-            resultReferences: toPrismaJson({
+            resultReferences: storedJson({
               ...receipt,
               nextAttemptAt: nextAttemptAt?.toISOString() ?? null,
             }),
@@ -480,7 +483,7 @@ export class LearningRunService {
         operation: {
           ...operation,
           status: 'pending',
-          resultReferences: toPrismaJson(receipt),
+          resultReferences: storedJson(receipt),
         },
         dispatchable:
           receipt.attemptCount < 3 &&
