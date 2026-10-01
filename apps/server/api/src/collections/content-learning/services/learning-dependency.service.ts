@@ -28,6 +28,119 @@ function scoped(
     ? { organizationId }
     : null;
 }
+export async function invalidateLearningDependencySource(
+  tx: Prisma.TransactionClient,
+  sourceKind: string,
+  sourceId: string,
+  organizationId?: string | null,
+): Promise<number> {
+  if (!validLearningDependencyKind(sourceKind)) return 0;
+  const queue = [{ kind: sourceKind, id: sourceId, organizationId }],
+    visited = new Set<string>();
+  while (queue.length) {
+    const current = queue.shift();
+    if (!current) break;
+    const key = JSON.stringify(current);
+    if (visited.has(key)) continue;
+    visited.add(key);
+    const edges = await tx.contentLearningDependency.findMany({
+      where: {
+        sourceKind: current.kind,
+        sourceId: current.id,
+        ...(current.organizationId !== undefined
+          ? { sourceOrganizationId: current.organizationId }
+          : {}),
+        isDeleted: false,
+      },
+      orderBy: { id: 'asc' },
+    });
+    for (const edge of edges) {
+      await tx.contentLearningDependency.updateMany({
+        where: { id: edge.id, isDeleted: false },
+        data: { valid: false, invalidatedAt: new Date() },
+      });
+      if (
+        edge.derivedKind === 'baseline' &&
+        typeof edge.derivedOrganizationId === 'string' &&
+        edge.derivedOrganizationId.trim() &&
+        (isLearningGlobalDependencyKind(sourceKind)
+          ? organizationId === null
+          : typeof organizationId === 'string' &&
+            organizationId.trim() &&
+            organizationId === edge.derivedOrganizationId) &&
+        (current.organizationId === edge.derivedOrganizationId ||
+          (isLearningGlobalDependencyKind(current.kind) &&
+            current.organizationId === null))
+      )
+        await tx.contentLearningBaseline.updateMany({
+          where: {
+            id: edge.derivedId,
+            organizationId: edge.derivedOrganizationId,
+            isDeleted: false,
+          },
+          data: { validity: 'invalid_source' },
+        });
+      if (edge.derivedKind === 'reward' && edge.derivedOrganizationId)
+        await tx.contentLearningReward.updateMany({
+          where: {
+            id: edge.derivedId,
+            organizationId: edge.derivedOrganizationId,
+            isDeleted: false,
+          },
+          data: {
+            status:
+              sourceKind === 'checkpoint'
+                ? 'invalid_baseline'
+                : 'invalid_source',
+          },
+        });
+      if (edge.derivedKind === 'policy' && edge.derivedOrganizationId)
+        await tx.contentLearningPolicyVersion.updateMany({
+          where: {
+            id: edge.derivedId,
+            organizationId: edge.derivedOrganizationId,
+            isDeleted: false,
+          },
+          data: { state: 'invalid' },
+        });
+      if (edge.derivedKind === 'dataset')
+        await tx.contentLearningDataset.updateMany({
+          where: { id: edge.derivedId, isDeleted: false },
+          data: {
+            status: 'invalidated',
+            invalidationRevision: { increment: 1 },
+          },
+        });
+      if (edge.derivedKind === 'run')
+        await tx.contentLearningRun.updateMany({
+          where: { id: edge.derivedId, isDeleted: false },
+          data: { status: 'invalidated' },
+        });
+      if (edge.derivedKind === 'shared-policy')
+        await tx.contentLearningSharedPolicy.updateMany({
+          where: { id: edge.derivedId, isDeleted: false },
+          data: { validity: 'invalid' },
+        });
+      if (edge.derivedKind === 'release')
+        await tx.contentLearningRelease.updateMany({
+          where: { id: edge.derivedId, isDeleted: false },
+          data: {
+            stage: 'invalid',
+            revision: { increment: 1 },
+            invalidationRevision: { increment: 1 },
+            activeCells: [],
+          },
+        });
+      if (!validLearningDependencyKind(edge.derivedKind)) continue;
+      queue.push({
+        kind: edge.derivedKind,
+        id: edge.derivedId,
+        organizationId: edge.derivedOrganizationId,
+      });
+    }
+  }
+  return visited.size;
+}
 @Injectable()
 export class LearningDependencyService {
   constructor(private readonly prisma: PrismaService) {}
@@ -448,112 +561,12 @@ export class LearningDependencyService {
     sourceId: string,
     tx: Prisma.TransactionClient = this.prisma,
     organizationId?: string | null,
-  ) {
-    if (!validLearningDependencyKind(sourceKind)) return 0;
-    const queue = [{ kind: sourceKind, id: sourceId, organizationId }],
-      visited = new Set<string>();
-    while (queue.length) {
-      const current = queue.shift();
-      if (!current) break;
-      const key = JSON.stringify(current);
-      if (visited.has(key)) continue;
-      visited.add(key);
-      const edges = await tx.contentLearningDependency.findMany({
-        where: {
-          sourceKind: current.kind,
-          sourceId: current.id,
-          ...(current.organizationId !== undefined
-            ? { sourceOrganizationId: current.organizationId }
-            : {}),
-          isDeleted: false,
-        },
-        orderBy: { id: 'asc' },
-      });
-      for (const edge of edges) {
-        await tx.contentLearningDependency.updateMany({
-          where: { id: edge.id, isDeleted: false },
-          data: { valid: false, invalidatedAt: new Date() },
-        });
-        if (
-          edge.derivedKind === 'baseline' &&
-          typeof edge.derivedOrganizationId === 'string' &&
-          edge.derivedOrganizationId.trim() &&
-          (isLearningGlobalDependencyKind(sourceKind)
-            ? organizationId === null
-            : typeof organizationId === 'string' &&
-              organizationId.trim() &&
-              organizationId === edge.derivedOrganizationId) &&
-          (current.organizationId === edge.derivedOrganizationId ||
-            (isLearningGlobalDependencyKind(current.kind) &&
-              current.organizationId === null))
-        )
-          await tx.contentLearningBaseline.updateMany({
-            where: {
-              id: edge.derivedId,
-              organizationId: edge.derivedOrganizationId,
-              isDeleted: false,
-            },
-            data: { validity: 'invalid_source' },
-          });
-        if (edge.derivedKind === 'reward' && edge.derivedOrganizationId)
-          await tx.contentLearningReward.updateMany({
-            where: {
-              id: edge.derivedId,
-              organizationId: edge.derivedOrganizationId,
-              isDeleted: false,
-            },
-            data: {
-              status:
-                sourceKind === 'checkpoint'
-                  ? 'invalid_baseline'
-                  : 'invalid_source',
-            },
-          });
-        if (edge.derivedKind === 'policy' && edge.derivedOrganizationId)
-          await tx.contentLearningPolicyVersion.updateMany({
-            where: {
-              id: edge.derivedId,
-              organizationId: edge.derivedOrganizationId,
-              isDeleted: false,
-            },
-            data: { state: 'invalid' },
-          });
-        if (edge.derivedKind === 'dataset')
-          await tx.contentLearningDataset.updateMany({
-            where: { id: edge.derivedId, isDeleted: false },
-            data: {
-              status: 'invalidated',
-              invalidationRevision: { increment: 1 },
-            },
-          });
-        if (edge.derivedKind === 'run')
-          await tx.contentLearningRun.updateMany({
-            where: { id: edge.derivedId, isDeleted: false },
-            data: { status: 'invalidated' },
-          });
-        if (edge.derivedKind === 'shared-policy')
-          await tx.contentLearningSharedPolicy.updateMany({
-            where: { id: edge.derivedId, isDeleted: false },
-            data: { validity: 'invalid' },
-          });
-        if (edge.derivedKind === 'release')
-          await tx.contentLearningRelease.updateMany({
-            where: { id: edge.derivedId, isDeleted: false },
-            data: {
-              stage: 'invalid',
-              revision: { increment: 1 },
-              invalidationRevision: { increment: 1 },
-              activeCells: [],
-            },
-          });
-        if (!validLearningDependencyKind(edge.derivedKind)) continue;
-        queue.push({
-          kind: edge.derivedKind,
-          id: edge.derivedId,
-          organizationId: edge.derivedOrganizationId,
-        });
-      }
-    }
-    return visited.size;
+  ): Promise<number> {
+    return invalidateLearningDependencySource(
+      tx,
+      sourceKind,
+      sourceId,
+      organizationId,
+    );
   }
 }
