@@ -102,9 +102,7 @@ const WORKFLOW_CONTROL_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
 ]);
 
 /**
- * Names handled by the hand-written `handleLegacyTool` switch. This set is the
- * classification source of truth for that branch; the switch must handle exactly
- * these names (asserted by the drift guard + `tool-registry.dispatch.spec`).
+ * Names handled by `handleLegacyTool`. Drift guard asserts the switch matches.
  */
 const LEGACY_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'get_video_status',
@@ -387,7 +385,6 @@ export class ToolRegistryService implements OnModuleInit {
     }
   }
 
-  /** Classify a tool name to its executor. Precedence matches the historical chain. */
   static classify(name: string): ExecutorKind {
     if (TOOL_DISCOVERY_TOOL_NAMES.has(name)) return 'tool-discovery';
     if (AGENT_CHAT_TOOL_NAMES.has(name)) return 'agent-chat';
