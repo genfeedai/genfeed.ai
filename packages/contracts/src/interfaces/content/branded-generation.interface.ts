@@ -7,9 +7,11 @@ import type {
 } from '../../api-types/contracts/branded-generation.contract';
 
 export type {
+  BrandApprovedLiteralV1,
   BrandArtifactValidationCheckV1,
   BrandArtifactValidationReportV1,
   BrandAssetReferenceV1,
+  BrandAssetTextCoverageV1,
   BrandExampleRuleV1,
   BrandedGenerationInputV1,
   BrandedGenerationReceiptV1,
