@@ -7,6 +7,7 @@ import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit
 import { BrandLifecycleService } from '@api/collections/brands/services/brand-lifecycle.service';
 import { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
 import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
+import { BrandOsScanService } from '@api/collections/brands/services/brand-os-scan.service';
 import { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
 import { BrandVoiceCorpusService } from '@api/collections/brands/services/brand-voice-corpus.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
@@ -34,6 +35,7 @@ import { Module } from '@nestjs/common';
     BrandDataMapper,
     BrandOsPreviewService,
     BrandOsRevisionsService,
+    BrandOsScanService,
   ],
   imports: [
     CommonModule,
@@ -53,6 +55,7 @@ import { Module } from '@nestjs/common';
     BrandLifecycleService,
     BrandOsPreviewService,
     BrandOsRevisionsService,
+    BrandOsScanService,
     BrandRelocationService,
     BrandDataMapper,
     BrandVoiceCorpusService,

@@ -25,6 +25,9 @@ describe('BrandsCoreModule DI leaf', () => {
 
   it('owns and exports the Brand OS preview and revision boundaries', () => {
     expect(coreSource).toContain('BrandOsPreviewService');
+    expect(coreSource).toMatch(/exports:\s*\[[\s\S]*BrandOsScanService/);
+    expect(coreSource).toMatch(/providers:\s*\[[\s\S]*BrandOsScanService/);
+    expect(coreSource).toContain('BrandScraperModule');
     expect(coreSource).toMatch(/exports:\s*\[[\s\S]*BrandOsRevisionsService/);
     expect(coreSource).toMatch(/providers:\s*\[[\s\S]*BrandOsRevisionsService/);
     expect(coreSource).toMatch(/exports:\s*\[[\s\S]*BrandOsPreviewService/);
