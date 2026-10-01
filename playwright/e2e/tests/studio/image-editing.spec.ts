@@ -19,7 +19,7 @@ const pixel = Buffer.from(
 
 test('Library image entry submits a raw editing instruction and saves a reusable edit result', async ({
   authenticatedPage: page,
-}) => {
+}, testInfo) => {
   test.setTimeout(120_000);
   await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
   let edited = false;
