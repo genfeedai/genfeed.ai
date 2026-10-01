@@ -3,10 +3,12 @@ import {
   ApproveStoryboardPlanDto,
   CreateStoryboardRunDto,
   ListStoryboardRunsDto,
+  ReplaceStoryboardCharacterDto,
   ResetStoryboardPlanDto,
   UpdateStoryboardPlanDto,
   UpdateStoryboardSourceDto,
 } from '@api/collections/content-runs/dto/storyboard-run.dto';
+import { StoryboardCharacterReplaceService } from '@api/collections/content-runs/services/storyboard-character-replace.service';
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
@@ -37,6 +39,7 @@ export class StoryboardRunsController {
   constructor(
     private readonly runs: StoryboardRunsService,
     private readonly capabilities: StoryboardRunCapabilitiesService,
+    private readonly characters: StoryboardCharacterReplaceService,
   ) {}
 
   @Post()
@@ -76,6 +79,23 @@ export class StoryboardRunsController {
       request,
       StoryboardRunSerializer,
       await this.runs.get(user.organizationId, brandId, runId),
+    );
+  }
+
+  @Post(':runId/shots/:shotId/character-replacement')
+  async replaceCharacter(
+    @Param('brandId') brandId: string,
+    @Param('runId') runId: string,
+    @Param('shotId') shotId: string,
+    @CurrentUser() user: User,
+    @Body() body: ReplaceStoryboardCharacterDto,
+  ) {
+    return this.characters.replace(
+      user.organizationId,
+      brandId,
+      runId,
+      shotId,
+      body,
     );
   }
 

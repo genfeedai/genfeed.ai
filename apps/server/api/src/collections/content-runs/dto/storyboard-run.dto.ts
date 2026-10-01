@@ -8,6 +8,9 @@ import type { StoryboardSourceSelector } from '@genfeedai/contracts/api-types/co
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
   IsIn,
   IsInt,
   IsObject,
@@ -15,6 +18,7 @@ import {
   IsString,
   IsUUID,
   Max,
+  MaxLength,
   Min,
 } from 'class-validator';
 
@@ -99,4 +103,19 @@ export class ResumeStoryboardRunDto extends ControlStoryboardRunDto {
   @ApiProperty()
   @IsString()
   operationId!: string;
+}
+
+export class ReplaceStoryboardCharacterDto {
+  @ApiProperty({ maxItems: 8, minItems: 1, type: [String] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(8)
+  @IsString({ each: true })
+  imageAssetIds!: string[];
+
+  @ApiProperty({ maxLength: 1000, required: false })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  prompt?: string;
 }
