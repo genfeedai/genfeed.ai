@@ -337,3 +337,23 @@ describe('ScheduledPostWorkflowService', () => {
     );
   });
 });
+
+describe('immutable outbox selection', () => {
+  it('treats an already-completed outbox as present without legacy side effects', async () => {
+    const h = createHarness();
+    h.prisma.postPublishFinalization.findUnique.mockResolvedValue({
+      id: 'final-1',
+      completedAt: new Date(),
+    });
+    await finalize(h.registeredActions, TargetExecutionState.PUBLISHED);
+    expect(h.publishApprovalsService.completeExecution).toHaveBeenCalledOnce();
+    expect(h.prisma.postPublishFinalization.findUnique).toHaveBeenCalledWith({
+      where: {
+        organizationId_postId: { organizationId: 'org-1', postId: 'post-1' },
+      },
+      select: { id: true },
+    });
+    expect(h.activitiesService.record).not.toHaveBeenCalled();
+    expect(h.repeatScheduler.scheduleNextRepeat).not.toHaveBeenCalled();
+  });
+});

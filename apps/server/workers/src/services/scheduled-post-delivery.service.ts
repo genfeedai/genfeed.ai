@@ -7,6 +7,7 @@ import {
   SCHEDULED_POST_ACTION_IDS,
   type ScheduledPostWorkflowInput,
 } from '@api/collections/posts/services/scheduled-post-workflow-definition';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import {
   type CredentialDocument,
@@ -29,6 +30,7 @@ import {
   CredentialPlatform,
   fromPrismaCredentialPlatform,
   Platform,
+  PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import {
@@ -63,6 +65,8 @@ import {
   toValidationMedia,
 } from '@workers/services/scheduled-post-media-gate.util';
 import {
+  queueLearningPublicationRefreshV1,
+  type SchedulerPublishFinalizationInput,
   SchedulerPublishStateService,
   type SchedulerPublishTargetUpdate,
   type SchedulerPublishTransitionGuard,
@@ -111,6 +115,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     private readonly publishingReadinessService: CredentialPublishingReadinessService,
     private readonly prisma: PrismaService,
     private readonly mediaReadinessService: MediaReadinessService,
+    private readonly workflowQueue: WorkflowExecutionQueueService,
   ) {}
 
   onModuleInit(): void {
@@ -650,6 +655,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         executionState: TargetExecutionState.PUBLISHED,
         externalId: result.externalId,
         externalShortcode: result.externalShortcode ?? null,
+        visibility: resolvePostVisibility(post.visibility),
         ...(!isProviderDraft
           ? { publicationDate: publishedAt, publishedAt }
           : {}),
@@ -658,6 +664,15 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       },
       undefined,
       transitionGuard,
+      !isProviderDraft &&
+        result.externalId?.trim() &&
+        resolvePostVisibility(post.visibility) === PostVisibility.PUBLIC &&
+        result.executionState === TargetExecutionState.PUBLISHED
+        ? {
+            result: { ...result },
+            source: 'ScheduledPostDeliveryService.persistProviderSuccess',
+          }
+        : undefined,
     );
     if (!persisted) {
       return result;
@@ -818,14 +833,28 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     update: SchedulerPublishTargetUpdate,
     reason?: string,
     guard?: SchedulerPublishTransitionGuard,
+    finalization?: SchedulerPublishFinalizationInput,
   ): Promise<boolean> {
-    const handled = await this.schedulerPublishStateService.transitionPost(
-      post,
-      update,
-      reason,
-      guard,
-    );
+    const handled = finalization
+      ? await this.schedulerPublishStateService.transitionPost(
+          post,
+          update,
+          reason,
+          guard,
+          finalization,
+        )
+      : await this.schedulerPublishStateService.transitionPost(
+          post,
+          update,
+          reason,
+          guard,
+        );
     if (handled) {
+      await queueLearningPublicationRefreshV1(this.workflowQueue, this.logger, {
+        organizationId: readPostString(post, ['organizationId']) ?? '',
+        credentialId: readPostString(post, ['credentialId']) ?? null,
+      });
+
       return true;
     }
 
