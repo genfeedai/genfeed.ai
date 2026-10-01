@@ -151,19 +151,17 @@ There are two hosted SaaS lanes:
 
 - **`monorepo` (default).** `Release` and the standalone `Deploy hosted SaaS`
   workflow run entirely in this public repository: GHCR→ECR, migrate,
-  boot-smoke, ECS roll, Vercel, smoke. Dispatch `Deploy hosted SaaS` from
-  `master` with an exact 40-character SHA to ship without cutting a GitHub
-  release.
+  boot-smoke, ECS roll, Vercel, smoke. Production deployment requires explicit
+  approval of the exact reviewed SHA through the cut-release process. The
+  standalone deploy workflow is not the normal release entry point.
 - **`operations`.** Choose `saas_lane=operations` on `Release` only when
   deploy logs must stay private. That lane still dispatches console and
   consumes paid private Actions minutes.
 
 Both lanes require the pinned SHA to remain reachable from public `master`.
-When a `marketplace_source_sha` is handed off, it must be an exact
-lowercase 40-character SHA reachable from `marketplace.genfeed.ai` `master`
-or the workflow fails before deploy. An empty pin skips marketplace lookup
-and dispatches `marketplace_source_sha` as empty; the public monorepo lane
-never clones that private repo. Hosted SaaS reusable-workflow
+Marketplace releases run independently in its own repository. Neither Genfeed
+release lane accepts a Marketplace source pin or checks out its private source.
+Hosted SaaS reusable-workflow
 calls map only the declared deploy secrets (`VERCEL_TOKEN`,
 `NEXT_PUBLIC_POSTHOG_KEY`, optional `TURBO_TOKEN`) and never inherit the
 full secret set.

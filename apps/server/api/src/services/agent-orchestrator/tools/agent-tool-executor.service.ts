@@ -23,6 +23,7 @@ import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator
 import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
+import { AgentGenerationCostToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-cost-tool-handler.service';
 import { AgentGenerationSettingsToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-settings-tool-handler.service';
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
 import { AgentKnowledgeToolHandler } from '@api/services/agent-orchestrator/tools/agent-knowledge-tool-handler.service';
@@ -38,6 +39,7 @@ import { AgentReviewToolHandler } from '@api/services/agent-orchestrator/tools/a
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentSpawnToolHandler } from '@api/services/agent-orchestrator/tools/agent-spawn-tool-handler.service';
 import { AgentToolCatalogHandler } from '@api/services/agent-orchestrator/tools/agent-tool-catalog-handler.service';
+import { dispatchRegisteredAgentTool } from '@api/services/agent-orchestrator/tools/agent-tool-dispatch.routes';
 import { AgentToolMutationAuthorizationService } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-authorization.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import {
@@ -185,6 +187,7 @@ export interface ToolExecutionContext {
 }
 
 const BRANDLESS_AGENT_TOOLS = new Set<CuratedActionName>([
+  'get_generation_cost',
   'get_generation_settings',
   'set_generation_settings',
   'analyze_performance',
@@ -243,6 +246,9 @@ export class AgentToolExecutorService implements OnModuleInit {
 
   @Inject(AgentWorkObjectService)
   private readonly workObjects!: AgentWorkObjectService;
+
+  @Inject(AgentGenerationCostToolHandler)
+  private readonly generationCostHandler!: AgentGenerationCostToolHandler;
 
   @Inject(AgentGenerationSettingsToolHandler)
   private readonly generationSettingsHandler!: AgentGenerationSettingsToolHandler;
@@ -598,10 +604,27 @@ export class AgentToolExecutorService implements OnModuleInit {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    if (toolName === 'get_generation_cost') {
+      return this.dispatchGenerationCost(toolName, params, ctx);
+    }
     return Object.hasOwn(VISUAL_CODE_ACTION_ALIASES, toolName)
       ? this.dispatchVisualCode(toolName, params, ctx)
       : this.dispatch(toolName, params, ctx);
   }
+
+  private dispatchGenerationCost(
+    toolName: CuratedActionName,
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    switch (toolName) {
+      case 'get_generation_cost':
+        return this.generationCostHandler.execute(params, ctx);
+      default:
+        throw new Error(`Unknown tool: ${toolName}`);
+    }
+  }
+
   private async dispatchVisualCode(
     toolName: CuratedActionName,
     params: Record<string, unknown>,
@@ -628,328 +651,36 @@ export class AgentToolExecutorService implements OnModuleInit {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    switch (toolName) {
-      case 'list_genfeed_tools':
-        return this.catalogHandler.listGenfeedTools(params);
-
-      case 'list_agent_conversations':
-      case 'transfer_agent_conversation':
-        return this.dispatchConversationTransfer(toolName, params, ctx);
-
-      case 'get_credits_balance':
-        return this.workspaceHandler.getCreditsBalance(ctx);
-
-      case 'list_brands':
-        return this.workspaceHandler.listBrands(ctx);
-
-      case 'list_characters':
-        return this.workspaceHandler.listCharacters(params, ctx);
-
-      case 'get_current_brand':
-        return this.workspaceHandler.getCurrentBrand(ctx);
-
-      case 'list_posts':
-        return this.workspaceHandler.listPosts(params, ctx);
-
-      case 'get_post':
-        return this.workspaceHandler.getPost(params, ctx);
-
-      case 'request_media_upload':
-        return this.workspaceHandler.requestMediaUpload(params, ctx);
-
-      case 'complete_media_upload':
-        return this.workspaceHandler.completeMediaUpload(params, ctx);
-
-      case 'create_post':
-        return this.publishHandler.createPost(params, ctx);
-
-      case 'schedule_post':
-        return this.publishHandler.schedulePost(params, ctx);
-
-      case 'repurpose_post':
-        return this.publishHandler.repurposePost(params, ctx);
-
-      case 'install_official_workflow':
-        return this.workflowHandler.installOfficialWorkflow(params, ctx);
-
-      case 'list_system_workflow_catalog':
-        return this.workflowHandler.listSystemWorkflowCatalog(params, ctx);
-
-      case 'install_system_workflow':
-        return this.workflowHandler.installSystemWorkflow(params, ctx);
-
-      case 'list_workflows':
-        return this.workflowHandler.listWorkflows(params, ctx);
-
-      case 'inspect_workflow':
-        return this.workflowHandler.inspectWorkflow(params, ctx);
-
-      case 'duplicate_workflow':
-        return this.workflowHandler.duplicateWorkflow(params, ctx);
-
-      case 'create_workflow':
-        return this.workflowHandler.createWorkflow(params, ctx);
-
-      case 'create_livestream_bot':
-        return this.livestreamHandler.createLivestreamBot(params, ctx);
-
-      case 'manage_livestream_bot':
-        return this.livestreamHandler.manageLivestreamBot(params, ctx);
-
-      case 'execute_workflow':
-        return this.workflowHandler.executeWorkflow(params, ctx);
-
-      case 'set_workflow_schedule':
-        return this.workflowHandler.setWorkflowSchedule(params, ctx);
-
-      case 'list_workflow_runs':
-        return this.workflowHandler.listWorkflowRuns(params, ctx);
-
-      case 'get_workflow_run':
-        return this.workflowHandler.getWorkflowRun(params, ctx);
-
-      case 'get_workflow_inputs':
-        return this.workflowHandler.getWorkflowInputs(params, ctx);
-      case 'get_analytics':
-        return this.analyticsHandler.getAnalytics(params, ctx);
-      case 'list_outlier_posts':
-        return this.analyticsHandler.listOutlierPosts(params, ctx);
-      case 'get_connection_status':
-        return this.connectionHandler.getConnectionStatus(params, ctx);
-      case 'initiate_oauth_connect':
-        return this.connectionHandler.initiateOAuthConnect(params, ctx);
-
-      case 'get_trends':
-        return this.trendsHandler.getTrends(params, ctx);
-
-      case 'list_ads_research':
-        return this.adsResearchHandler.listAdsResearch(params, ctx);
-
-      case 'get_ad_research_detail':
-        return this.adsResearchHandler.getAdResearchDetail(params, ctx);
-
-      case 'create_ad_remix_workflow':
-        return this.adsResearchHandler.createAdRemixWorkflow(params, ctx);
-
-      case 'generate_ad_pack':
-        return this.adsResearchHandler.generateAdPack(params, ctx);
-
-      case 'prepare_ad_launch_review':
-        return this.adsResearchHandler.prepareAdLaunchReview(params, ctx);
-
-      case 'ai_action':
-        return this.mediaGenerationHandler.aiAction(params, ctx);
-
-      case 'generate_content':
-        return this.mediaGenerationHandler.generateContent(params, ctx);
-
-      case 'generate_image':
-        return this.mediaGenerationHandler.generateImage(params, ctx);
-
-      case 'reframe_image':
-        return this.mediaGenerationHandler.reframeImage(params, ctx);
-
-      case 'upscale_image':
-        return this.mediaGenerationHandler.upscaleImage(params, ctx);
-
-      case 'generate_video':
-        return this.mediaGenerationHandler.generateVideo(params, ctx);
-
-      case 'generate_music':
-        return this.mediaGenerationHandler.generateMusic(params, ctx);
-
-      case 'generate_voice':
-        return this.mediaGenerationHandler.generateVoice(params, ctx);
-
-      case 'open_studio_handoff':
-        return this.workspaceHandler.openStudioHandoff(params);
-
-      case 'generate_content_batch':
-        return this.mediaGenerationHandler.generateContentBatch(params, ctx);
-
-      case 'resolve_handle':
-        return this.connectionHandler.resolveHandle(params, ctx);
-
-      case 'list_review_queue':
-        return this.reviewHandler.listReviewQueue(params, ctx);
-
-      case 'batch_approve_reject':
-        return this.reviewHandler.batchApproveReject(params, ctx);
-
-      case 'create_outreach_sequence':
-        return this.campaignHandler.createCampaign(params, ctx);
-
-      case 'start_outreach_sequence':
-        return this.campaignHandler.startCampaign(params, ctx);
-
-      case 'pause_outreach_sequence':
-        return this.campaignHandler.pauseCampaign(params, ctx);
-
-      case 'complete_outreach_sequence':
-        return this.campaignHandler.completeCampaign(params, ctx);
-
-      case 'get_outreach_sequence_analytics':
-        return this.campaignHandler.getCampaignAnalytics(params, ctx);
-
-      case 'create_brand':
-        return this.onboardingHandler.createBrand(params, ctx);
-
-      case 'rename_brand':
-        return this.onboardingHandler.renameBrand(params, ctx);
-
-      case 'check_onboarding_status':
-        return this.onboardingHandler.checkOnboardingStatus(ctx);
-
-      case 'complete_onboarding':
-        return this.onboardingHandler.completeOnboarding(ctx);
-
-      case 'connect_social_account':
-        return this.connectionHandler.connectSocialAccount(params, ctx);
-
-      case 'generate_onboarding_content':
-        return this.onboardingHandler.generateOnboardingContent(params, ctx);
-
-      case 'present_payment_options':
-        return this.onboardingHandler.presentPaymentOptions(ctx);
-
-      case 'generate_monthly_content':
-        return this.brandContentHandler.generateMonthlyContent(params, ctx);
-
-      case 'draft_brand_voice_profile':
-        return this.brandContentHandler.draftBrandVoiceProfile(params, ctx);
-
-      case 'save_brand_voice_profile':
-        return this.brandContentHandler.saveBrandVoiceProfile(params, ctx);
-
-      case 'discover_engagements':
-        return this.proactiveHandler.discoverEngagements(params, ctx);
-
-      case 'draft_engagement_reply':
-        return this.proactiveHandler.draftEngagementReply(params, ctx);
-
-      case 'get_approval_summary':
-        return this.proactiveHandler.getApprovalSummary(ctx);
-
-      case 'analyze_performance':
-        return this.proactiveHandler.analyzePerformance(params, ctx);
-
-      case 'get_content_calendar':
-        return this.proactiveHandler.getContentCalendar(params, ctx);
-
-      case 'update_strategy_state':
-        return this.proactiveHandler.updateStrategyState(params, ctx);
-
-      case 'generate_as_identity':
-        return this.mediaGenerationHandler.generateAsIdentity(params, ctx);
-
-      case 'render_dashboard':
-        return this.dashboardHandler.renderDashboard(params, ctx);
-
-      case 'save_dashboard_layout':
-        return this.dashboardHandler.saveDashboardLayout(params, ctx);
-
-      case 'get_dashboard_layout':
-        return this.dashboardHandler.getDashboardLayout(params, ctx);
-
-      case 'prepare_generation':
-        return this.prepareHandler.prepareGeneration(params, ctx);
-
-      case 'prepare_workflow_trigger':
-        return this.prepareHandler.prepareWorkflowTrigger(params, ctx);
-
-      case 'prepare_voice_clone':
-        return this.prepareHandler.prepareVoiceClone(ctx, params);
-
-      case 'prepare_clip_workflow_run':
-        return this.prepareHandler.prepareClipWorkflowRun(params, ctx);
-
-      case 'suggest_ingredient_alternatives':
-        return this.qualityHandler.suggestIngredientAlternatives(params);
-
-      case 'suggest_next_steps':
-        return this.prepareHandler.suggestNextSteps(params);
-
-      case 'spawn_content_agent':
-        return this.spawnHandler.spawnContentAgent(params, ctx);
-
-      case 'select_ingredient':
-        return this.qualityHandler.selectIngredient(params, ctx);
-
-      case 'request_asset':
-        return this.spawnHandler.requestAsset(params, ctx);
-
-      case 'rate_content':
-        return this.qualityHandler.rateContent(params, ctx);
-
-      case 'score_seo':
-        return this.qualityHandler.scoreSeo(params, ctx);
-
-      case 'rate_ingredient':
-        return this.qualityHandler.rateIngredient(params, ctx);
-
-      case 'get_top_ingredients':
-        return this.qualityHandler.getTopIngredients(params, ctx);
-
-      case 'replicate_top_ingredient':
-        return this.qualityHandler.replicateTopIngredient(params, ctx);
-
-      case 'capture_memory':
-        return this.memoryGoalsHandler.captureMemory(params, ctx);
-
-      case 'search_knowledge':
-      case 'list_knowledge_sources':
-      case 'read_knowledge_source':
-      case 'capture_knowledge':
-      case 'assign_knowledge_purpose':
-      case 'archive_knowledge_source':
-      case 'retry_knowledge_ingestion':
-        return this.knowledgeHandler.execute(toolName, params, ctx);
-
-      case 'create_goal':
-        return this.memoryGoalsHandler.createGoal(params, ctx);
-
-      case 'check_goal_progress':
-        return this.memoryGoalsHandler.checkGoalProgress(params, ctx);
-
-      case 'update_goal':
-        return this.memoryGoalsHandler.updateGoal(params, ctx);
-
-      case 'start_brand_interview':
-      case 'submit_brand_interview_answer':
-      case 'skip_brand_interview_question':
-      case 'get_brand_completeness':
-        return this.brandInterviewHandler.execute(toolName, params, ctx);
-
-      case 'get_brand_context':
-        return this.brandContextHandler.execute(toolName, params, ctx);
-
-      default:
-        return {
-          creditsUsed: 0,
-          error: `Unknown tool: ${toolName as string}`,
-          success: false,
-        };
-    }
-  }
-
-  private dispatchConversationTransfer(
-    toolName: CuratedActionName,
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    if (!this.transferHandler) {
-      return Promise.resolve(this.unavailableTransferTool());
-    }
-    return toolName === 'list_agent_conversations'
-      ? this.transferHandler.listConversations(params, ctx)
-      : this.transferHandler.transfer(params, ctx);
-  }
-
-  private unavailableTransferTool(): AgentToolResult {
-    return {
-      creditsUsed: 0,
-      error: 'Conversation transfer tools are unavailable.',
-      success: false,
-    };
+    return dispatchRegisteredAgentTool(
+      {
+        adsResearchHandler: this.adsResearchHandler,
+        analyticsHandler: this.analyticsHandler,
+        brandContentHandler: this.brandContentHandler,
+        brandContextHandler: this.brandContextHandler,
+        brandInterviewHandler: this.brandInterviewHandler,
+        campaignHandler: this.campaignHandler,
+        catalogHandler: this.catalogHandler,
+        connectionHandler: this.connectionHandler,
+        dashboardHandler: this.dashboardHandler,
+        knowledgeHandler: this.knowledgeHandler,
+        livestreamHandler: this.livestreamHandler,
+        mediaGenerationHandler: this.mediaGenerationHandler,
+        memoryGoalsHandler: this.memoryGoalsHandler,
+        onboardingHandler: this.onboardingHandler,
+        prepareHandler: this.prepareHandler,
+        proactiveHandler: this.proactiveHandler,
+        publishHandler: this.publishHandler,
+        qualityHandler: this.qualityHandler,
+        reviewHandler: this.reviewHandler,
+        spawnHandler: this.spawnHandler,
+        transferHandler: this.transferHandler,
+        trendsHandler: this.trendsHandler,
+        workflowHandler: this.workflowHandler,
+        workspaceHandler: this.workspaceHandler,
+      },
+      toolName,
+      params,
+      ctx,
+    );
   }
 }

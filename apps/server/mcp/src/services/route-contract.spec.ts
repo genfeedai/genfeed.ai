@@ -212,6 +212,18 @@ interface ContractRoute {
  */
 const ROUTE_CONTRACT: ContractRoute[] = [
   {
+    method: 'Post',
+    sub: '',
+    controller: 'storyboardRuns',
+    tools: ['create_storyboard_remix'],
+  },
+  {
+    method: 'Post',
+    sub: ':runId/shots/:shotId/character-replacement',
+    controller: 'storyboardRuns',
+    tools: ['replace_storyboard_character'],
+  },
+  {
     method: 'Get',
     sub: ':runId/capabilities',
     controller: 'storyboardRuns',
@@ -339,7 +351,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   },
 
   // ── Agent executor (shared route for all CuratedActionName tools) ──
-  // `get_content_analytics` is a legacy-switch tool, not an `CuratedActionName`, but
+  // `get_content_analytics` is a catalog REST tool, not an `CuratedActionName`, but
   // its article/image branch proxies to the agent executor — so it is named here
   // explicitly rather than being covered by the blanket agent-executor entry.
   {
@@ -464,7 +476,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     tools: ['get_job_status'],
   },
 
-  // ── Workflows (control + legacy) ──
+  // ── Workflows (control + status) ──
   {
     method: 'Get',
     sub: ':workflowId',

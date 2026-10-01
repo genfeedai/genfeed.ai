@@ -35,7 +35,6 @@ const publicDeployVercel = readFileSync(
 );
 
 const FRONTEND_SECRETS = [
-  'MARKETPLACE_DEPLOY_TOKEN',
   'VERCEL_TOKEN',
   'NEXT_PUBLIC_POSTHOG_KEY',
   'SENTRY_AUTH_TOKEN',
@@ -189,7 +188,7 @@ test('public deploy workflow runs the in-repo engine and never calls console', (
   );
 });
 
-test('validates both repositories against master before deployment', () => {
+test('validates Genfeed against master without private Marketplace access', () => {
   const dispatchScript = readFileSync(
     fileURLToPath(new URL('./dispatch-hosted-saas.mjs', import.meta.url)),
     'utf8',
@@ -204,22 +203,11 @@ test('validates both repositories against master before deployment', () => {
     publicDeployWorkflow,
     /git -C public-source merge-base --is-ancestor "\$\{SOURCE_SHA\}" origin\/master/,
   );
-  assert.match(
+  assert.doesNotMatch(
     publicDeployWorkflow,
-    /git -C marketplace-source merge-base --is-ancestor/,
+    /marketplace-source|MARKETPLACE_DEPLOY_TOKEN/,
   );
-  assert.match(
-    publicDeployWorkflow,
-    /https:\/\/github\.com\/genfeedai\/marketplace\.genfeed\.ai\.git/,
-  );
-  assert.match(
-    dispatchScript,
-    /compare\/\$\{marketplaceSourceSha\}\.\.\.master/,
-  );
-  assert.match(
-    dispatchScript,
-    /not reachable from \$\{marketplaceRepository\} master/,
-  );
+  assert.doesNotMatch(dispatchScript, /marketplace/i);
   assert.match(dispatchScript, /\/\^\[0-9a-f\]\{40\}\$\//);
 });
 

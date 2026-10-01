@@ -142,6 +142,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['mcp'],
     toolset: 'social-inbox',
   },
+  { name: 'create_storyboard_remix', surfaces: ['mcp'], toolset: 'generation' },
   { name: 'create_workflow', surfaces: ['agent', 'mcp'], toolset: 'workflows' },
   { name: 'describe_tool', surfaces: ['mcp'], toolset: 'core' },
   { name: 'discover_engagements', surfaces: ['agent'], toolset: 'engagement' },
@@ -235,6 +236,11 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'get_credits_balance', surfaces: ['agent', 'mcp'], toolset: 'core' },
   { name: 'get_current_brand', surfaces: ['agent'], toolset: 'brand' },
   { name: 'get_dashboard_layout', surfaces: ['agent'], toolset: 'ui' },
+  {
+    name: 'get_generation_cost',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'generation',
+  },
   {
     name: 'get_generation_settings',
     surfaces: ['agent', 'mcp'],
@@ -459,6 +465,11 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'reject_social_draft', surfaces: ['mcp'], toolset: 'social-inbox' },
   { name: 'rename_brand', surfaces: ['agent'], toolset: 'onboarding' },
   { name: 'render_dashboard', surfaces: ['agent'], toolset: 'ui' },
+  {
+    name: 'replace_storyboard_character',
+    surfaces: ['mcp'],
+    toolset: 'generation',
+  },
   { name: 'replicate_top_ingredient', surfaces: ['agent'], toolset: 'ui' },
   { name: 'repurpose_post', surfaces: ['agent', 'mcp'], toolset: 'content' },
   { name: 'request_asset', surfaces: ['agent'], toolset: 'agent-chat' },

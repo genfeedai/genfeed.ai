@@ -41,21 +41,26 @@ export function resolveStudioGalleryCategories(
   ];
 }
 
+const GALLERY_HANDLED_STATUSES = [408, 429, 500, 502, 503, 504] as const;
+
 /**
- * Brand-scoped, newest-first query for the unified ingredients collection.
- * That endpoint hydrates metadata and prompt relations, unlike the reduced
- * category list endpoints. `brandId` is omitted until the selected brand is
- * resolved, and the hook does not issue that widened request.
+ * Brand-scoped, newest-first query for one output category.
+ * The All filter must not multiply 24 by the category count: that request
+ * asked for 120 rows and the API rejects limits above 100. Pass one category
+ * so every request stays at {@link STUDIO_GALLERY_PAGE_SIZE}.
  */
 export function buildStudioGalleryQuery(
   brandId: string,
   filter: StudioGenerateFilter,
   limit: number = STUDIO_GALLERY_PAGE_SIZE,
+  category?: IngredientCategory,
 ): Record<string, unknown> {
-  const categories = resolveStudioGalleryCategories(filter);
+  const categories = category
+    ? [category]
+    : resolveStudioGalleryCategories(filter);
   const query: Record<string, unknown> = {
     categories,
-    limit: Math.min(MAX_PAGE_SIZE, limit * categories.length),
+    limit: Math.min(MAX_PAGE_SIZE, limit),
     sort: 'createdAt: -1',
   };
 
@@ -66,7 +71,10 @@ export function buildStudioGalleryQuery(
   return query;
 }
 
-/** Keep the recent-result capacity while respecting the API page boundary. */
+/**
+ * One page of 24 ingredients per output category. All is five requests, not
+ * one request whose limit is 24 times the category count.
+ */
 export async function loadStudioGalleryIngredients(
   service: Pick<IngredientsService, 'findAllPage'>,
   brandId: string,
@@ -74,21 +82,24 @@ export async function loadStudioGalleryIngredients(
   signal: AbortSignal,
 ): Promise<Ingredient[]> {
   if (!brandId) return [];
-  const capacity =
-    STUDIO_GALLERY_PAGE_SIZE * resolveStudioGalleryCategories(filter).length;
-  const query = buildStudioGalleryQuery(brandId, filter);
+  const categories = resolveStudioGalleryCategories(filter);
   const collected = new Map<string, Ingredient>();
-  let page = 1;
-  let totalPages = 1;
-  do {
+  for (const category of categories) {
     signal.throwIfAborted();
-    const result = await service.findAllPage({ ...query, page }, signal, {
-      handledErrorStatuses: [408, 429, 500, 502, 503, 504],
+    const query = buildStudioGalleryQuery(
+      brandId,
+      filter,
+      STUDIO_GALLERY_PAGE_SIZE,
+      category,
+    );
+    const result = await service.findAllPage({ ...query, page: 1 }, signal, {
+      handledErrorStatuses: [...GALLERY_HANDLED_STATUSES],
     });
-    for (const ingredient of result.items)
+    for (const ingredient of result.items.slice(0, STUDIO_GALLERY_PAGE_SIZE))
       collected.set(ingredient.id, ingredient);
-    totalPages = result.totalPages;
-    page += 1;
-  } while (collected.size < capacity && page <= totalPages);
-  return [...collected.values()].slice(0, capacity);
+  }
+  return [...collected.values()].slice(
+    0,
+    STUDIO_GALLERY_PAGE_SIZE * categories.length,
+  );
 }

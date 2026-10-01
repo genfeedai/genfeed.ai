@@ -376,7 +376,7 @@ describe('ToolRegistryService', () => {
     ).toContain('generate_video');
   });
 
-  it('handleToolCall get_video_status returns status info via legacy handler', async () => {
+  it('handleToolCall get_video_status returns status info via generation handler', async () => {
     const result = await service.handleToolCall({
       arguments: { videoId: 'vid-1' },
       name: 'get_video_status',
@@ -487,7 +487,7 @@ describe('ToolRegistryService', () => {
     ).toContain('contentId and contentType required');
   });
 
-  it('handleToolCall list_videos returns video list via legacy handler', async () => {
+  it('handleToolCall list_videos returns video list via generation handler', async () => {
     const result = await service.handleToolCall({
       arguments: { limit: 5 },
       name: 'list_videos',

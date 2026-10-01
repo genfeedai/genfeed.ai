@@ -10,6 +10,7 @@ import type {
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { BrandRemixRunSummary } from '@genfeedai/contracts/api-types/contracts/brand-remix-run-summary.contract';
 import type { QuoteBrandRemixScenes } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
+import type { StoryboardCharacterReplacement } from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
 import type { StoryboardRunSummary } from '@genfeedai/contracts/api-types/contracts/storyboard-run-summary.contract';
@@ -190,6 +191,14 @@ export type StoryboardEditablePlan = NonNullable<
 
 export interface StoryboardPlanEditorHandle {
   flush: () => Promise<StoryboardSaveSnapshot<StoryboardEditablePlan>>;
+}
+
+export interface StoryboardCharacterReplaceProps {
+  readonly brandId: string;
+  readonly runId: string;
+  readonly shotId: string;
+  readonly isDisabled?: boolean;
+  readonly saved?: StoryboardCharacterReplacement;
 }
 
 export interface StoryboardPlanEditorProps {

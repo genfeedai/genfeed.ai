@@ -275,8 +275,19 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../../../packages/harness/src'),
       },
       {
+        find: /^@genfeedai\/helpers\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/helpers/src/$1',
+        ),
+      },
+      {
         find: '@genfeedai/helpers',
         replacement: path.resolve(serviceDir, '../../../packages/helpers/src'),
+      },
+      {
+        find: /^@pages\/(.*)$/,
+        replacement: path.resolve(serviceDir, '../../../packages/pages/$1'),
       },
       {
         find: '@genfeedai/utils',

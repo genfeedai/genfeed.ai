@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const EXECUTOR_PATH = resolve(HERE, 'agent-tool-executor.service.ts');
+const DISPATCH_ROUTES_PATH = resolve(HERE, 'agent-tool-dispatch.routes.ts');
 const WORK_OBJECT_HANDLER_PATH = resolve(HERE, 'agent-work-object.service.ts');
 const INSTAGRAM_HANDLER_PATH = resolve(
   HERE,
@@ -21,11 +22,12 @@ const X_ACTIONS_HANDLER_PATH = resolve(
   HERE,
   'agent-x-actions-tool-handler.service.ts',
 );
+const GENERATION_SETTINGS_HANDLER_PATH = resolve(
+  HERE,
+  'agent-generation-settings-tool-handler.service.ts',
+);
 
-function collectRouteCaseMembers(
-  filePath: string,
-  methodName: string,
-): Set<string> {
+function collectToolNameCaseMembers(filePath: string): Set<string> {
   const sourceFile = ts.createSourceFile(
     filePath,
     readFileSync(filePath, 'utf8'),
@@ -35,27 +37,21 @@ function collectRouteCaseMembers(
   );
   const members = new Set<string>();
 
-  const collectCases = (node: ts.Node): void => {
+  const visit = (node: ts.Node): void => {
     if (ts.isCaseClause(node) && ts.isStringLiteral(node.expression)) {
-      members.add(node.expression.text);
+      const statement = node.parent.parent;
+      if (
+        ts.isSwitchStatement(statement) &&
+        ts.isIdentifier(statement.expression) &&
+        statement.expression.text === 'toolName'
+      ) {
+        members.add(node.expression.text);
+      }
     }
-    ts.forEachChild(node, collectCases);
+    ts.forEachChild(node, visit);
   };
 
-  const findDispatch = (node: ts.Node): void => {
-    if (
-      ts.isMethodDeclaration(node) &&
-      ts.isIdentifier(node.name) &&
-      node.name.text === methodName &&
-      node.body
-    ) {
-      collectCases(node.body);
-      return;
-    }
-    ts.forEachChild(node, findDispatch);
-  };
-
-  findDispatch(sourceFile);
+  visit(sourceFile);
   return members;
 }
 
@@ -71,15 +67,12 @@ describe('curated Agent action catalog', () => {
 
   it('maps every Agent action to a concrete execution route', () => {
     const memberNames = new Set([
-      ...collectRouteCaseMembers(EXECUTOR_PATH, 'dispatch'),
-      ...collectRouteCaseMembers(EXECUTOR_PATH, 'dispatchVisualCode'),
-      ...collectRouteCaseMembers(WORK_OBJECT_HANDLER_PATH, 'execute'),
-      ...collectRouteCaseMembers(INSTAGRAM_HANDLER_PATH, 'execute'),
-      ...collectRouteCaseMembers(X_ACTIONS_HANDLER_PATH, 'execute'),
-      ...collectRouteCaseMembers(
-        resolve(HERE, 'agent-generation-settings-tool-handler.service.ts'),
-        'execute',
-      ),
+      ...collectToolNameCaseMembers(EXECUTOR_PATH),
+      ...collectToolNameCaseMembers(DISPATCH_ROUTES_PATH),
+      ...collectToolNameCaseMembers(WORK_OBJECT_HANDLER_PATH),
+      ...collectToolNameCaseMembers(INSTAGRAM_HANDLER_PATH),
+      ...collectToolNameCaseMembers(X_ACTIONS_HANDLER_PATH),
+      ...collectToolNameCaseMembers(GENERATION_SETTINGS_HANDLER_PATH),
     ]);
     const executorNames = memberNames;
     const missing = getToolsForSurface('agent')

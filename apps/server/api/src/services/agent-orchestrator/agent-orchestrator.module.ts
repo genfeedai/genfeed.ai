@@ -24,6 +24,7 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { McpApprovalsModule } from '@api/collections/mcp-approvals/mcp-approvals.module';
 import { MembersModule } from '@api/collections/members/members.module';
 import { MembersService } from '@api/collections/members/services/members.service';
+import { ModelsModule } from '@api/collections/models/models.module';
 import { NewslettersModule } from '@api/collections/newsletters/newsletters.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
@@ -93,6 +94,7 @@ import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools
 import { AgentConnectionRequestService } from '@api/services/agent-orchestrator/tools/agent-connection-request.service';
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
+import { AgentGenerationCostToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-cost-tool-handler.service';
 import { AgentGenerationScopeService } from '@api/services/agent-orchestrator/tools/agent-generation-scope.service';
 import { AgentGenerationSettingsToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-settings-tool-handler.service';
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
@@ -188,6 +190,7 @@ import { Module } from '@nestjs/common';
     BrandsCoreModule,
     BotsModule,
     MembersModule,
+    ModelsModule,
     OutreachCampaignsModule,
     ConfigModule,
     ContentIntelligenceModule,
@@ -229,6 +232,7 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     AgentBrandContextSnapshotService,
+    AgentGenerationCostToolHandler,
     AgentGenerationSettingsToolHandler,
     AgentCompletionCardBuilderService,
     AgentAdsResearchToolHandler,
