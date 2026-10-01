@@ -15,6 +15,8 @@
     "./brand-validation.service.spec.ts",
     "./brand-validation.corpus.spec.ts",
     "./brand-validation-artifact.util.ts",
-    "./brand-validation-artifact.util.spec.ts"
+    "./brand-validation-artifact.util.spec.ts",
+    "./brand-validation-literal-matcher.util.ts",
+    "./brand-validation-literal-matcher.util.spec.ts"
   ]
 }
