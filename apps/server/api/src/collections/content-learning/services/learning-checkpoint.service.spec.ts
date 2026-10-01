@@ -10,6 +10,7 @@ import { learningHash } from '@api/collections/content-learning/services/learnin
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { captureLearningMetrics } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import {
+  type LearningMeasurement,
   learningDescriptorTuple,
   learningRegisteredProfiles,
 } from '@genfeedai/harness';
@@ -374,7 +375,7 @@ describe('exact descriptor frozen baseline', () => {
   }
   function sample(
     index: number,
-    measurement: unknown = { exposure: 1000, weightedActions: 0 },
+    measurement: LearningMeasurement = { exposure: 1000, weightedActions: 0 },
   ) {
     return checkpoint({
       id: `checkpoint-${index}`,
@@ -383,8 +384,14 @@ describe('exact descriptor frozen baseline', () => {
       measurement: {
         profile: 'engagement',
         measurement: { exposure: 9999, weightedActions: 999 },
-        profiles: [{ profileId, descriptor, measurement }],
-      } as ContentLearningCheckpoint['measurement'],
+        profiles: [
+          {
+            profileId,
+            descriptor: { ...descriptor },
+            measurement: { ...measurement },
+          },
+        ],
+      },
     });
   }
   it.each([
@@ -430,7 +437,7 @@ describe('exact descriptor frozen baseline', () => {
       profiles: [
         {
           profileId: 'other',
-          descriptor,
+          descriptor: { ...descriptor },
           measurement: { exposure: 1000, weightedActions: 1 },
         },
       ],
@@ -510,7 +517,7 @@ describe('exact descriptor frozen baseline', () => {
         profiles: [
           {
             profileId: watchHash,
-            descriptor: watchDescriptor,
+            descriptor: { ...watchDescriptor },
             measurement: { exposure: 1000, weightedActions: 0 },
           },
         ],

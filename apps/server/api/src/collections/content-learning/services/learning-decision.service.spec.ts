@@ -137,6 +137,14 @@ function decisionFixture(count = 20) {
     $queryRaw: vi.fn().mockResolvedValue([]),
     $transaction: vi.fn(),
     contentLearningAccount: { findFirst: vi.fn().mockResolvedValue(account) },
+    credential: {
+      findFirst: vi.fn().mockResolvedValue({
+        id: 'credential',
+        brandId: 'brand',
+        platform: 'TWITTER',
+      }),
+    },
+    brand: { findFirst: vi.fn().mockResolvedValue({ id: 'brand' }) },
     accountAnalyticsSnapshot: { findFirst: vi.fn().mockResolvedValue(null) },
     contentLearningDecision: {
       findFirst: vi.fn().mockImplementation(() => recorded),
@@ -298,6 +306,38 @@ describe('baseline-only generation and immutable retry', () => {
     expect(f.checkpoints.freeze).not.toHaveBeenCalled();
     expect(f.tx.contentLearningDecision.create).not.toHaveBeenCalled();
   });
+  it.each(['credential', 'brand', 'account'])(
+    'preserves retry after current %s deletion without authorization recreation',
+    async (source) => {
+      const f = decisionFixture();
+      const original = await f.service.resolveForGeneration(f.input);
+      f.accounts.ensure.mockClear();
+      f.accounts.credential.mockClear();
+      f.tx.contentLearningDecision.create.mockClear();
+      if (source === 'credential')
+        f.tx.credential.findFirst.mockResolvedValue(null);
+      if (source === 'brand') f.tx.brand.findFirst.mockResolvedValue(null);
+      if (source === 'account')
+        f.tx.contentLearningAccount.findFirst.mockResolvedValue(null);
+      const result = await f.service.resolveForGeneration(f.input);
+      expect(result.receipt).toMatchObject({
+        decisionId: original.receipt.decisionId,
+        armId: original.receipt.armId,
+        selectedProbability: original.receipt.selectedProbability,
+        reason: 'invalid_lineage',
+      });
+      expect(result.contribution).toEqual({});
+      expect(f.accounts.ensure).not.toHaveBeenCalled();
+      expect(f.accounts.credential).not.toHaveBeenCalled();
+      expect(f.tx.contentLearningDecision.create).not.toHaveBeenCalled();
+      await expect(
+        f.service.resolveForGeneration({
+          ...f.input,
+          originalPrompt: 'changed',
+        }),
+      ).rejects.toThrow('payload conflict');
+    },
+  );
   it('returns unsupported cell without fake baseline or policy', async () => {
     const f = decisionFixture();
     f.accounts.credential.mockResolvedValue({

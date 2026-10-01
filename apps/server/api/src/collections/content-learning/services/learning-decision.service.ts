@@ -381,7 +381,7 @@ export class LearningDecisionService {
     tx: Prisma.TransactionClient,
     input: LearningGenerationInput,
     decision: ContentLearningDecision,
-    account: ContentLearningAccount,
+    account: ContentLearningAccount | null,
     destinationKey: string,
     payloadHash: string,
   ): Promise<LearningResolution> {
@@ -391,6 +391,7 @@ export class LearningDecisionService {
       receipt: { ...this.receipt(decision), reason },
       contribution: {},
     });
+    if (!account) return suppressed('invalid_lineage');
     if (['disabled', 'shadow', 'paused'].includes(account.mode))
       return suppressed(account.mode);
     if (
@@ -449,13 +450,24 @@ export class LearningDecisionService {
       !LEARNING_ARMS.includes(decision.selectedArmId as LearningArmId)
     )
       return suppressed('invalid_lineage');
-    const credential = await this.accounts.credential(
-      input.organizationId,
-      decision.credentialId,
-      input.brandId,
-      tx,
-    );
+    const credential = await tx.credential.findFirst({
+      where: {
+        id: decision.credentialId,
+        organizationId: input.organizationId,
+        brandId: input.brandId,
+        isDeleted: false,
+      },
+    });
+    const brand = await tx.brand.findFirst({
+      where: {
+        id: input.brandId,
+        organizationId: input.organizationId,
+        isDeleted: false,
+      },
+    });
     if (
+      !credential ||
+      !brand ||
       fromPrismaCredentialPlatform(credential.platform) !== descriptor.platform
     )
       return suppressed('invalid_lineage');
@@ -701,21 +713,9 @@ export class LearningDecisionService {
       throw new BadRequestException('Invalid learning request identity');
     return this.prisma.$transaction(async (tx) => {
       await learningFence(tx, 'shared');
-      const credential = await this.accounts.credential(
-        input.organizationId,
-        credentialId,
-        input.brandId,
-        tx,
-      );
-      const account = await this.accounts.ensure(
-        input.organizationId,
-        credentialId,
-        tx,
-      );
-      const objective = context.objective ?? 'awareness',
-        platform = fromPrismaCredentialPlatform(credential.platform) ?? '';
+      const objective = context.objective ?? 'awareness';
       const destinationKey = learningHash([
-        credential.id,
+        credentialId,
         input.format,
         objective,
       ]);
@@ -736,15 +736,36 @@ export class LearningDecisionService {
       const existing = await tx.contentLearningDecision.findFirst({
         where: identity,
       });
-      if (existing)
+      if (existing) {
+        const currentAccount = await tx.contentLearningAccount.findFirst({
+          where: {
+            organizationId: input.organizationId,
+            brandId: input.brandId,
+            credentialId,
+            isDeleted: false,
+          },
+        });
         return this.replay(
           tx,
           input,
           existing,
-          account,
+          currentAccount,
           destinationKey,
           payloadHash,
         );
+      }
+      const credential = await this.accounts.credential(
+        input.organizationId,
+        credentialId,
+        input.brandId,
+        tx,
+      );
+      const account = await this.accounts.ensure(
+        input.organizationId,
+        credentialId,
+        tx,
+      );
+      const platform = fromPrismaCredentialPlatform(credential.platform) ?? '';
       if (account.mode === 'disabled')
         return this.fallback(
           'disabled',
