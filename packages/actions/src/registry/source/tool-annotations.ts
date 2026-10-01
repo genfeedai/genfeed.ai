@@ -26,6 +26,7 @@ const GENERATION_OPEN_WORLD_NAMES: ReadonlySet<string> = new Set([
   'start_remix_generation',
   'control_remix_generation',
   'reframe_image',
+  'replace_storyboard_character',
   'upscale_image',
 ]);
 
@@ -58,6 +59,7 @@ const NON_DESTRUCTIVE_WRITE_NAMES: ReadonlySet<string> = new Set([
   'cancel_visual_code_project',
   'import_source_post',
   'create_remix_concept',
+  'create_storyboard_remix',
   'complete_media_upload',
   'merge_videos',
   'request_media_upload',

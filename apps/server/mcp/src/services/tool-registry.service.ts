@@ -59,7 +59,10 @@ import {
   handleSocialMessagesTool,
   SOCIAL_MESSAGES_TOOL_NAMES,
 } from '@mcp/tools/social-messages.tool';
-import { handleStoryboardTool } from '@mcp/tools/storyboard.tool';
+import {
+  handleStoryboardTool,
+  STORYBOARD_TOOL_NAMES,
+} from '@mcp/tools/storyboard.tool';
 import { handleTikTokAdsTool } from '@mcp/tools/tiktok-ads.tool';
 import {
   handleToolDiscoveryTool,
@@ -99,9 +102,7 @@ const WORKFLOW_CONTROL_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
 ]);
 
 /**
- * Names handled by the hand-written `handleLegacyTool` switch. This set is the
- * classification source of truth for that branch; the switch must handle exactly
- * these names (asserted by the drift guard + `tool-registry.dispatch.spec`).
+ * Names handled by `handleLegacyTool`. Drift guard asserts the switch matches.
  */
 const LEGACY_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'get_video_status',
@@ -384,7 +385,6 @@ export class ToolRegistryService implements OnModuleInit {
     }
   }
 
-  /** Classify a tool name to its executor. Precedence matches the historical chain. */
   static classify(name: string): ExecutorKind {
     if (TOOL_DISCOVERY_TOOL_NAMES.has(name)) return 'tool-discovery';
     if (AGENT_CHAT_TOOL_NAMES.has(name)) return 'agent-chat';
@@ -399,8 +399,7 @@ export class ToolRegistryService implements OnModuleInit {
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
     if (CLIP_PROJECTS_TOOL_NAMES.has(name)) return 'clip-projects';
     if (EDITOR_TOOL_NAMES.has(name)) return 'editor';
-    if (name === 'storyboard_run_capabilities')
-      return 'storyboard-capabilities';
+    if (STORYBOARD_TOOL_NAMES.has(name)) return 'storyboard-capabilities';
     if (REMIX_TOOL_NAMES.has(name)) return 'remix';
     if (SCHEDULER_TOOL_NAMES.has(name)) return 'scheduler';
     if (SKILLS_PRO_TOOL_NAMES.has(name)) return 'skills-pro';

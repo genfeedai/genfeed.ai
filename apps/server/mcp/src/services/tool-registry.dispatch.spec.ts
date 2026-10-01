@@ -89,6 +89,8 @@ describe('ToolRegistryService.classify', () => {
     ['get_remix_run', 'remix'],
     ['open_in_editor', 'editor'],
     ['storyboard_run_capabilities', 'storyboard-capabilities'],
+    ['create_storyboard_remix', 'storyboard-capabilities'],
+    ['replace_storyboard_character', 'storyboard-capabilities'],
     ['update_remix_concept', 'remix'],
     ['attach_remix_analysis_source', 'remix'],
     ['quote_remix_generation', 'remix'],

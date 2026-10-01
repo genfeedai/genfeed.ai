@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { brandRemixScenePipelineSchema } from './brand-remix-scene.contract';
+import { storyboardCharacterReplacementSchema } from './storyboard-character-replace.contract';
 import {
   storyboardImportedPresentationSchema,
   storyboardMigrationMetadataSchema,
@@ -54,6 +55,10 @@ export const storyboardNativeRunConfigSchema = z
     generatedPlan: storyboardPlanSchema.optional(),
     quote: storyboardRunQuoteSchema.optional(),
     scenePipeline: brandRemixScenePipelineSchema.optional(),
+    characterReplacements: z
+      .array(storyboardCharacterReplacementSchema)
+      .max(12)
+      .optional(),
     error: z.string().max(1_000).optional(),
   })
   .strict();
