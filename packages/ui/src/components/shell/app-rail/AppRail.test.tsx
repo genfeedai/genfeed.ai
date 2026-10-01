@@ -89,9 +89,10 @@ vi.mock('@ui/primitives/separator', () => ({
   ),
 }));
 
-// Mock the route builders — avoids pulling the full @genfeedai/contracts/constants
-// barrel. Mirrors packages/contracts/src/constants/routes.constant.ts.
-vi.mock('@genfeedai/contracts/constants', () => {
+// Keep shared constants available to primitives while controlling rail routes.
+vi.mock('@genfeedai/contracts/constants', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@genfeedai/contracts/constants')>();
   const normalize = (routePath: string) =>
     routePath.length === 0 || routePath === '/'
       ? ''
@@ -99,6 +100,7 @@ vi.mock('@genfeedai/contracts/constants', () => {
         ? routePath
         : `/${routePath}`;
   return {
+    ...actual,
     APP_DISPLAY_LABELS: {
       admin: 'Admin',
       agent: 'Agent',
