@@ -382,12 +382,7 @@ export class ToolRegistryService implements OnModuleInit {
     }
   }
 
-  /**
-   * Classify a tool name to the executor that will run it, WITHOUT executing.
-   * Single source of truth for dispatch — used by {@link executeTool} and by the
-   * boot-time drift guard. Precedence is identical to the historical if/switch
-   * chain, so routing is behaviour-preserving.
-   */
+  /** Classify a tool name to its executor. Precedence matches the historical chain. */
   static classify(name: string): ExecutorKind {
     if (TOOL_DISCOVERY_TOOL_NAMES.has(name)) return 'tool-discovery';
     if (AGENT_CHAT_TOOL_NAMES.has(name)) return 'agent-chat';
