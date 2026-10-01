@@ -73,6 +73,9 @@ describe('byok-provider-map.util', () => {
     it.each([
       ['higgsfield-ai/soul/v2/standard', ByokProvider.HIGGSFIELD],
       ['higgsfield-ai/dop/turbo', ByokProvider.HIGGSFIELD],
+      ['higgsfield/genjutsu/motion-transfer/v1.0', ByokProvider.HIGGSFIELD],
+      ['heygen/avatar', ByokProvider.HEYGEN],
+      ['heygen/heygen-video-1', ByokProvider.HEYGEN],
     ])(
       'prefers the model-key provider for %s over a Replicate catalog fallback',
       (modelKey, expectedProvider) => {

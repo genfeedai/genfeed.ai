@@ -986,6 +986,26 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 1,
       maxReferences: 1,
     },
+    /**
+     * HeyGen Video (`heygen-video-1`) on the HeyGen v3 models API.
+     * Duration is 5–15s. Image-to-video uses one still; extra stills or
+     * clips switch the request to reference-to-video.
+     */
+    [MODEL_KEYS.HEYGEN_VIDEO]: {
+      aspectRatios: ASPECT_RATIOS.HEYGEN_VIDEO,
+      category: ModelCategory.VIDEO,
+      defaultAspectRatio: '16:9',
+      defaultDuration: 5,
+      durations: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      hasDurationEditing: true,
+      hasResolutionOptions: true,
+      hasSpeech: true,
+      hasVideoReferences: true,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 9,
+      maxVideoReferences: 3,
+    },
 
     [MODEL_KEYS.REPLICATE_OPENAI_SORA_2]: {
       aspectRatios: ASPECT_RATIOS.SORA,
@@ -1075,6 +1095,22 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       isBatchSupported: false,
       maxOutputs: 1,
       maxReferences: 1,
+      requiresFirstFrame: true,
+    },
+    /**
+     * Genjutsu motion transfer. Length and frame follow the source video.
+     * One to eight character stills replace the person in that clip.
+     */
+    [MODEL_KEYS.HIGGSFIELD_GENJUTSU]: {
+      category: ModelCategory.VIDEO,
+      hasDurationEditing: false,
+      hasResolutionOptions: true,
+      hasSpeech: false,
+      hasVideoReferences: true,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 8,
+      maxVideoReferences: 1,
       requiresFirstFrame: true,
     },
     /** Soul 2: documented aspect_ratio + resolution, batch 1 or 4, no image ref. */

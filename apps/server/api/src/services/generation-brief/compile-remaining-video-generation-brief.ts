@@ -167,10 +167,13 @@ export function compileRemainingVideoGenerationBrief(
     );
   }
 
-  const imageReferenceCount =
-    modelKey === MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH
-      ? Number(firstFrameAssetId !== undefined) + extraReferenceAssetIds.length
-      : extraReferenceAssetIds.length;
+  const countsFirstFrame =
+    modelKey === MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH ||
+    modelKey === MODEL_KEYS.HEYGEN_VIDEO ||
+    modelKey === MODEL_KEYS.HIGGSFIELD_GENJUTSU;
+  const imageReferenceCount = countsFirstFrame
+    ? Number(firstFrameAssetId !== undefined) + extraReferenceAssetIds.length
+    : extraReferenceAssetIds.length;
   const maxImageReferences =
     modelKey === MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO &&
     videoReferenceAssetIds.length > 0
@@ -195,6 +198,16 @@ export function compileRemainingVideoGenerationBrief(
   if (requiresFirstFrame(family, profile) && !firstFrameAssetId) {
     throw new GenerationBriefCompileError(
       `${spec.modelLabel} requires a first-frame reference image.`,
+      'unsupported_required_signal',
+    );
+  }
+
+  if (
+    modelKey === MODEL_KEYS.HIGGSFIELD_GENJUTSU &&
+    videoReferenceAssetIds.length === 0
+  ) {
+    throw new GenerationBriefCompileError(
+      'Higgsfield Genjutsu requires a source video and at least one character image.',
       'unsupported_required_signal',
     );
   }

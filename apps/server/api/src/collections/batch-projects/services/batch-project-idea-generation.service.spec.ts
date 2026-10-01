@@ -78,12 +78,14 @@ describe('BatchProjectIdeaGenerationService', () => {
   };
   const dispatcher = { enqueue: vi.fn(), failItem: vi.fn() };
   const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+  const platformSettingsService = { getFeatureSettings: vi.fn() };
   const service = new BatchProjectIdeaGenerationService(
     prisma as never,
     logger as never,
     quotes as never,
     credits as never,
     dispatcher as never,
+    platformSettingsService as never,
   );
   const pending = [item('item-1'), item('item-2')];
 
@@ -93,6 +95,90 @@ describe('BatchProjectIdeaGenerationService', () => {
     prisma.batchProjectItem.updateMany.mockResolvedValue({ count: 1 });
     credits.checkOrganizationCreditsAvailable.mockResolvedValue(true);
     credits.getOrganizationCreditsBalance.mockResolvedValue(2);
+    platformSettingsService.getFeatureSettings.mockResolvedValue({
+      flags: { batch_ideas: true },
+    });
+  });
+
+  describe('batch_ideas flag', () => {
+    const failed = item('item-1', {
+      retryCount: 1,
+      status: BatchProjectItemStatus.FAILED,
+    });
+    const retryLine = line('item-1', {
+      attempt: 2,
+      key: 'batch-project-item:item-1:dispatch:2',
+    });
+
+    beforeEach(() => {
+      platformSettingsService.getFeatureSettings.mockResolvedValue({
+        flags: { batch_ideas: false },
+      });
+    });
+
+    it('rejects a quote before pricing', async () => {
+      await expect(
+        service.quote(
+          { ...project(), items: pending } as never,
+          undefined,
+          scope,
+        ),
+      ).rejects.toThrow('Idea batches are not enabled');
+      expect(quotes.build).not.toHaveBeenCalled();
+      expect(prisma.batchProject.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('rejects start before a credit check or enqueue', async () => {
+      await expect(
+        service.start(project() as never, pending as never, 'quote-1', scope),
+      ).rejects.toThrow('Idea batches are not enabled');
+      expect(credits.checkOrganizationCreditsAvailable).not.toHaveBeenCalled();
+      expect(prisma.batchProject.updateMany).not.toHaveBeenCalled();
+      expect(dispatcher.enqueue).not.toHaveBeenCalled();
+    });
+
+    it('rejects a retry before a credit check or enqueue', async () => {
+      await expect(
+        service.retry(
+          project({ quote: quote([retryLine], { total: 4 }) }) as never,
+          failed as never,
+          'quote-1',
+          scope,
+        ),
+      ).rejects.toThrow('Idea batches are not enabled');
+      expect(credits.checkOrganizationCreditsAvailable).not.toHaveBeenCalled();
+      expect(prisma.batchProjectItem.updateMany).not.toHaveBeenCalled();
+      expect(dispatcher.enqueue).not.toHaveBeenCalled();
+    });
+
+    it('lets a superadmin quote, start, and retry while the flag is off', async () => {
+      const admin = { ...scope, isSuperAdmin: true };
+      quotes.build.mockResolvedValue({ id: 'quote-new' });
+
+      await service.quote(
+        { ...project(), items: pending } as never,
+        undefined,
+        admin,
+      );
+      await service.start(
+        project({
+          quote: quote([line('item-1'), line('item-2')], { total: 8 }),
+        }) as never,
+        pending as never,
+        'quote-1',
+        admin,
+      );
+      await service.retry(
+        project({ quote: quote([retryLine], { total: 4 }) }) as never,
+        failed as never,
+        'quote-1',
+        admin,
+      );
+
+      expect(quotes.build).toHaveBeenCalled();
+      expect(dispatcher.enqueue).toHaveBeenCalled();
+      expect(platformSettingsService.getFeatureSettings).not.toHaveBeenCalled();
+    });
   });
 
   describe('start', () => {

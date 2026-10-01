@@ -7,6 +7,7 @@ import { MCP_CAMPAIGN_TOOLS } from './campaign.tools';
 import { MCP_CLIP_TOOLS } from './clips.tools';
 import { MCP_CONTENT_TOOLS } from './content.tools';
 import { MCP_DISCOVERY_TOOLS } from './discovery.tools';
+import { MCP_EDITOR_TOOLS } from './editor.tools';
 import { MCP_GENERATION_TOOLS } from './generation.tools';
 import { MCP_OTHER_TOOLS } from './other.tools';
 import { MCP_REMIX_TOOLS } from './remix.tools';
@@ -29,6 +30,7 @@ export const MCP_ONLY_TOOLS: SourceTool[] = [
   ...MCP_ADS_TOOLS,
   ...MCP_CAMPAIGN_TOOLS,
   ...MCP_CLIP_TOOLS,
+  ...MCP_EDITOR_TOOLS,
   ...MCP_SCHEDULER_TOOLS,
   ...MCP_REMIX_TOOLS,
   ...MCP_STORYBOARD_CAPABILITY_TOOLS,

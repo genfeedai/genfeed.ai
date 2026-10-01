@@ -4,6 +4,8 @@ import {
   GROK_IMAGINE_VIDEO_COMPILER_ID,
   H3_MAX_VIDEO_COMPILER_ID,
   HAILUO_VIDEO_COMPILER_ID,
+  HEYGEN_VIDEO_COMPILER_ID,
+  HIGGSFIELD_GENJUTSU_VIDEO_COMPILER_ID,
   KLING_VIDEO_COMPILER_ID,
   LUMA_VIDEO_COMPILER_ID,
   PIXVERSE_VIDEO_COMPILER_ID,
@@ -37,7 +39,10 @@ export interface RemainingVideoFamilyDispatchSpec {
   negativePromptField?: 'negative_prompt';
   extraReferenceField?: 'image_urls' | 'reference_images';
   resolutionField?: 'mode' | 'resolution';
-  videoReferenceField?: 'reference_video' | 'reference_videos';
+  videoReferenceField?:
+    | 'reference_video'
+    | 'reference_video_urls'
+    | 'reference_videos';
 }
 
 export interface RemainingVideoGenerationBriefFamily {
@@ -56,6 +61,7 @@ function profile(
     audioSupported?: boolean;
     defaultAspectRatio?: string;
     defaultSeconds?: number;
+    maxCharacters?: number;
     maxReferences?: number;
     maxVideoReferences?: number;
     maxSeconds?: number;
@@ -73,6 +79,7 @@ function profile(
     defaultSeconds: extras?.defaultSeconds,
     defaultResolution: getDefaultVideoResolution(modelKey),
     id,
+    maxCharacters: extras?.maxCharacters,
     maxReferences: extras?.maxReferences ?? 1,
     maxVideoReferences: extras?.maxVideoReferences,
     maxSeconds: extras?.maxSeconds,
@@ -599,6 +606,59 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
         durationField: 'duration',
         firstFrameField: 'image',
         modelLabel: 'Stable Video',
+      },
+    },
+    {
+      compilerId: HEYGEN_VIDEO_COMPILER_ID,
+      compilerVersion: REMAINING_VIDEO_COMPILER_VERSION,
+      profiles: [
+        profile('heygen-video-capability', MODEL_KEYS.HEYGEN_VIDEO, {
+          aspectRatios: ASPECT_RATIOS.HEYGEN_VIDEO,
+          audioSupported: true,
+          defaultAspectRatio: '16:9',
+          defaultSeconds: 5,
+          maxCharacters: 5_000,
+          maxReferences: 9,
+          maxSeconds: 15,
+          maxVideoReferences: 3,
+          minSeconds: 5,
+          nativeFields: ['image', 'reference_images', 'reference_video_urls'],
+          seedSupported: true,
+        }),
+      ],
+      spec: {
+        aspectRatioField: 'aspect_ratio',
+        durationField: 'duration',
+        extraReferenceField: 'reference_images',
+        firstFrameField: 'image',
+        modelLabel: 'HeyGen Video',
+        resolutionField: 'resolution',
+        videoReferenceField: 'reference_video_urls',
+      },
+    },
+    {
+      compilerId: HIGGSFIELD_GENJUTSU_VIDEO_COMPILER_ID,
+      compilerVersion: REMAINING_VIDEO_COMPILER_VERSION,
+      profiles: [
+        profile(
+          'higgsfield-genjutsu-capability',
+          MODEL_KEYS.HIGGSFIELD_GENJUTSU,
+          {
+            maxReferences: 8,
+            maxVideoReferences: 1,
+            nativeFields: ['image_url', 'image_urls', 'reference_video'],
+            requireImageToVideo: true,
+            seedSupported: false,
+          },
+        ),
+      ],
+      requireFirstFrame: true,
+      spec: {
+        extraReferenceField: 'image_urls',
+        firstFrameField: 'image_url',
+        modelLabel: 'Higgsfield Genjutsu',
+        resolutionField: 'resolution',
+        videoReferenceField: 'reference_video',
       },
     },
   ];

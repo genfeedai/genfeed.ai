@@ -38,6 +38,11 @@ describe('BatchGenerationReconcileService', () => {
   };
   let reservationService: CreditReservationServiceMock;
   let generationBilling: { reconcile: ReturnType<typeof vi.fn> };
+  let logger: {
+    error: ReturnType<typeof vi.fn>;
+    log: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+  };
 
   const pendingItem = {
     format: ContentFormat.IMAGE,
@@ -75,6 +80,7 @@ describe('BatchGenerationReconcileService', () => {
     };
     reservationService = { expireDue: vi.fn().mockResolvedValue(0) };
     generationBilling = { reconcile: vi.fn().mockResolvedValue(0) };
+    logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -95,7 +101,7 @@ describe('BatchGenerationReconcileService', () => {
         },
         {
           provide: LoggerService,
-          useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
+          useValue: logger,
         },
         {
           provide: BatchGenerationCreditsService,
@@ -347,5 +353,18 @@ describe('BatchGenerationReconcileService', () => {
     await service.reconcileSettlementShortfalls();
 
     expect(order).toEqual(['generation', 'expiry']);
+  });
+
+  it('expires unrelated reservations when generation reconciliation fails', async () => {
+    const failure = new Error('generation reconcile query failed');
+    generationBilling.reconcile.mockRejectedValue(failure);
+
+    await service.reconcileSettlementShortfalls();
+
+    expect(reservationService.expireDue).toHaveBeenCalledOnce();
+    expect(logger.error).toHaveBeenCalledWith(
+      'Generation hold reconciliation failed',
+      failure,
+    );
   });
 });

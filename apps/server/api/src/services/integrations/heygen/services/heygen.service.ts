@@ -1,12 +1,27 @@
+import { randomUUID } from 'node:crypto';
 import process from 'node:process';
 import { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
+import {
+  buildHeyGenVideoCreateBody,
+  HEYGEN_API_ORIGIN,
+  HEYGEN_VIDEO_CREATE_PATH,
+  HEYGEN_VIDEO_POLL_INTERVAL_MS,
+  HEYGEN_VIDEO_POLL_TIMEOUT_MS,
+  type HeyGenVideoCreateBody,
+  heyGenVideoStatusUrl,
+  isHeyGenVideoTerminal,
+  readHeyGenVideoId,
+  readHeyGenVideoStatus,
+} from '@api/services/integrations/heygen/helpers/heygen-video';
+import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
+import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { ApiKeyCategory } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { isAxiosError } from 'axios';
 import { firstValueFrom } from 'rxjs';
 
@@ -22,6 +37,7 @@ export class HeyGenService {
     private readonly loggerService: LoggerService,
     private readonly httpService: HttpService,
     private readonly apiKeyHelperService: ApiKeyHelperService,
+    private readonly pollUntilService: PollUntilService,
   ) {}
 
   private getApiKey(): string {
@@ -354,6 +370,147 @@ export class HeyGenService {
     } catch (error: unknown) {
       this.loggerService.error(`${url} error`, error);
       throw error;
+    }
+  }
+
+  /**
+   * HeyGen Video (`heygen-video-1`) on `POST /v3/models/videos`.
+   * Polls until the signed `video_url` is ready. Prompt enhancement stays
+   * off so the compiled brief is not rewritten.
+   */
+  public async generateModelVideo(params: {
+    apiKeyOverride?: string;
+    aspectRatio?: string;
+    duration?: number;
+    imageUrls?: readonly string[];
+    onProviderSubmissionStarted?: () => void;
+    prompt: string;
+    resolution?: string;
+    seed?: number;
+    videoUrls?: readonly string[];
+  }): Promise<{ videoUrl: string }> {
+    const apiKey = this.resolveApiKey(params.apiKeyOverride);
+    const body = this.buildModelVideoBody(params);
+    const videoId = await this.submitModelVideo(
+      apiKey,
+      body,
+      params.onProviderSubmissionStarted,
+    );
+    return this.waitForModelVideo(videoId, apiKey);
+  }
+
+  private buildModelVideoBody(params: {
+    aspectRatio?: string;
+    duration?: number;
+    imageUrls?: readonly string[];
+    prompt: string;
+    resolution?: string;
+    seed?: number;
+    videoUrls?: readonly string[];
+  }): HeyGenVideoCreateBody {
+    try {
+      return buildHeyGenVideoCreateBody({
+        aspectRatio: params.aspectRatio,
+        duration: params.duration,
+        imageUrls: params.imageUrls ?? [],
+        prompt: params.prompt,
+        resolution: params.resolution,
+        seed: params.seed,
+        videoUrls: params.videoUrls ?? [],
+      });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Invalid HeyGen Video request.';
+      throw new BadRequestException(message);
+    }
+  }
+
+  private async submitModelVideo(
+    apiKey: string,
+    body: HeyGenVideoCreateBody,
+    onProviderSubmissionStarted?: () => void,
+  ): Promise<string> {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    try {
+      onProviderSubmissionStarted?.();
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${HEYGEN_API_ORIGIN}${HEYGEN_VIDEO_CREATE_PATH}`,
+          body,
+          {
+            headers: {
+              ...this.getHeaders(apiKey),
+              'Idempotency-Key': randomUUID(),
+            },
+          },
+        ),
+      );
+      const videoId = readHeyGenVideoId(response.data);
+      if (!videoId) {
+        throw new Error('HeyGen Video submission returned no video id.');
+      }
+      this.loggerService.log(`${caller} submitted ${videoId}`);
+      return videoId;
+    } catch (error: unknown) {
+      if (isAxiosError(error) && error.response?.status === 402) {
+        throw new HeyGenSubmissionRejectedError();
+      }
+      if (error instanceof HeyGenSubmissionRejectedError) {
+        throw error;
+      }
+      this.loggerService.error(`${caller} error`, error);
+      throw error;
+    }
+  }
+
+  private async waitForModelVideo(
+    videoId: string,
+    apiKey: string,
+  ): Promise<{ videoUrl: string }> {
+    try {
+      const { value } = await this.pollUntilService.poll(
+        () => this.readModelVideo(videoId, apiKey),
+        (status) => isHeyGenVideoTerminal(status.status),
+        {
+          intervalMs: HEYGEN_VIDEO_POLL_INTERVAL_MS,
+          timeoutMs: HEYGEN_VIDEO_POLL_TIMEOUT_MS,
+        },
+      );
+      if (value.status === 'completed' && value.videoUrl) {
+        return { videoUrl: value.videoUrl };
+      }
+      throw new Error(
+        value.failureMessage ||
+          `HeyGen Video ${videoId} ended as ${value.status}.`,
+      );
+    } catch (error: unknown) {
+      if (error instanceof PollTimeoutException) {
+        throw new Error(
+          `HeyGen Video ${videoId} timed out after ${error.timeoutMs}ms.`,
+        );
+      }
+      throw error;
+    }
+  }
+
+  private async readModelVideo(videoId: string, apiKey: string) {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(heyGenVideoStatusUrl(videoId), {
+          headers: this.getHeaders(apiKey),
+        }),
+      );
+      return readHeyGenVideoStatus(response.data);
+    } catch (error: unknown) {
+      const statusCode = isAxiosError(error)
+        ? error.response?.status
+        : undefined;
+      if (statusCode !== undefined && statusCode < 500) {
+        throw error;
+      }
+      return { status: 'pending' };
     }
   }
 }

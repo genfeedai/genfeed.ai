@@ -184,6 +184,23 @@ export const videoModelResolutions: VideoModelResolution[] = [
       { label: '720p', value: '720p' },
     ],
   },
+  {
+    default: '768p',
+    model: MODEL_KEYS.HEYGEN_VIDEO,
+    resolutions: [
+      { label: '480p', value: '480p' },
+      { label: '768p', value: '768p' },
+    ],
+  },
+  {
+    default: '720p',
+    model: MODEL_KEYS.HIGGSFIELD_GENJUTSU,
+    resolutions: [
+      { label: '480p', value: '480p' },
+      { label: '720p', value: '720p' },
+      { label: '1080p', value: '1080p' },
+    ],
+  },
 ];
 
 function findModelConfig(model: string): VideoModelResolution | undefined {

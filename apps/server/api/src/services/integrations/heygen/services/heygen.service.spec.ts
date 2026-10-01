@@ -1,5 +1,6 @@
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -42,6 +43,16 @@ describe('HeyGenService', () => {
         { provide: LoggerService, useValue: loggerMock },
         { provide: ApiKeyHelperService, useValue: apiKeyHelperMock },
         { provide: HttpService, useValue: httpServiceMock },
+        {
+          provide: PollUntilService,
+          useValue: {
+            poll: vi.fn(async (read: () => Promise<unknown>) => ({
+              attempts: 1,
+              elapsedMs: 1,
+              value: await read(),
+            })),
+          },
+        },
       ],
     }).compile();
 
@@ -90,5 +101,58 @@ describe('HeyGenService', () => {
       { avatarId: 'avatar_0', index: 0, name: 'n', preview: 'p' },
     ]);
     expect(httpServiceMock.get).toHaveBeenCalled();
+  });
+
+  it('creates HeyGen Video on v3 and returns the completed video URL', async () => {
+    httpServiceMock.post.mockReturnValueOnce(
+      of({
+        data: { data: { status: 'pending', video_id: 'vid_1' } },
+        status: 202,
+      }),
+    );
+    httpServiceMock.get.mockReturnValueOnce(
+      of({
+        data: {
+          data: {
+            status: 'completed',
+            video_url: 'https://files.heygen.ai/vid_1.mp4',
+          },
+        },
+        status: 200,
+      }),
+    );
+
+    await expect(
+      service.generateModelVideo({
+        duration: 8,
+        imageUrls: ['https://cdn.test/face.png'],
+        prompt: 'a presenter walks toward camera',
+        resolution: '768p',
+      }),
+    ).resolves.toEqual({
+      videoUrl: 'https://files.heygen.ai/vid_1.mp4',
+    });
+
+    expect(httpServiceMock.post).toHaveBeenCalledWith(
+      'https://api.heygen.com/v3/models/videos',
+      expect.objectContaining({
+        duration: 8,
+        image: { type: 'url', url: 'https://cdn.test/face.png' },
+        mode: 'image_to_video',
+        model: 'heygen-video-1',
+        prompt_enhancement: 'disabled',
+        resolution: '768p',
+      }),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'Idempotency-Key': expect.any(String),
+          'X-Api-Key': 'test-api-key',
+        }),
+      }),
+    );
+    expect(httpServiceMock.get).toHaveBeenCalledWith(
+      'https://api.heygen.com/v3/models/videos/vid_1',
+      expect.any(Object),
+    );
   });
 });

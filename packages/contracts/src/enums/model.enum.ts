@@ -7,6 +7,8 @@ export enum ModelProvider {
   MUREKA = 'mureka',
   /** Direct integration — HeyGen photo-avatar video (`heygen/avatar`). */
   HEYGEN = 'heygen',
+  /** Direct integration — Higgsfield Soul, DoP, and Genjutsu. */
+  HIGGSFIELD = 'higgsfield',
 }
 
 /**

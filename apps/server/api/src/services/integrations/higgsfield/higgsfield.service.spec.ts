@@ -354,6 +354,53 @@ describe('HiggsFieldService', () => {
     });
   });
 
+  describe('generateMotionTransfer', () => {
+    it('posts Genjutsu with the source clip, character stills, and an idempotency key', async () => {
+      mockHttpService.post.mockReturnValue(
+        of({ data: { request_id: 'req-gen', status: 'queued' }, status: 200 }),
+      );
+
+      const result = await service.generateMotionTransfer({
+        imageUrls: [
+          'https://cdn.test/face.png',
+          ' https://cdn.test/face.png ',
+          'http://cdn.test/insecure.png',
+        ],
+        prompt: 'keep the walk',
+        resolution: '1080p',
+        videoUrl: 'https://cdn.test/walk.mp4',
+      });
+
+      expect(result.requestId).toBe('req-gen');
+      expect(mockHttpService.post).toHaveBeenCalledWith(
+        `${PLATFORM}/${MODEL_KEYS.HIGGSFIELD_GENJUTSU}`,
+        {
+          image_urls: ['https://cdn.test/face.png'],
+          prompt: 'keep the walk',
+          resolution: '1080p',
+          video_url: 'https://cdn.test/walk.mp4',
+        },
+        {
+          headers: expect.objectContaining({
+            Authorization: 'Key test-key:test-secret',
+            'Content-Type': 'application/json',
+            'Idempotency-Key': expect.any(String),
+          }),
+        },
+      );
+    });
+
+    it('rejects a clip that is not https before calling Higgsfield', async () => {
+      await expect(
+        service.generateMotionTransfer({
+          imageUrls: ['https://cdn.test/face.png'],
+          videoUrl: 'http://cdn.test/walk.mp4',
+        }),
+      ).rejects.toThrow('https source video URL');
+      expect(mockHttpService.post).not.toHaveBeenCalled();
+    });
+  });
+
   describe('waitForVideoCompletion', () => {
     it('resolves the video URL from a completed envelope', async () => {
       mockPollUntilService.poll.mockResolvedValue({

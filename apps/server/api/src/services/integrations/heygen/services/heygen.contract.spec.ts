@@ -1,6 +1,7 @@
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -43,6 +44,7 @@ describe('HeyGenService (contract)', () => {
         { provide: LoggerService, useValue: logger },
         { provide: ApiKeyHelperService, useValue: apiKeyHelperMock },
         { provide: HttpService, useValue: httpService },
+        { provide: PollUntilService, useValue: { poll: vi.fn() } },
       ],
     }).compile();
 

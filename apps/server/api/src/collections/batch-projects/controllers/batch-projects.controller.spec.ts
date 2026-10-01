@@ -62,6 +62,50 @@ describe('BatchProjectsController publishing scopes', () => {
     ).toEqual([ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_CREATE]);
   });
 
+  it('passes the superadmin exception into idea quote, start, and retry', async () => {
+    const batch = {
+      quote: vi.fn().mockResolvedValue({ id: 'quote-1' }),
+      retryItem: vi.fn().mockResolvedValue({ id: 'project-1' }),
+      start: vi.fn().mockResolvedValue({ id: 'project-1' }),
+    };
+    const ideaController = new BatchProjectsController(
+      batch as never,
+      service as never,
+    );
+    const request = { context: { isSuperAdmin: true } } as Request;
+    const user = {
+      id: 'user-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    } as AuthenticatedUser;
+    const adminScope = {
+      isSuperAdmin: true,
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+
+    await ideaController.quote(request, user, 'project-1', {});
+    await ideaController.start(request, user, 'project-1', {
+      quoteId: 'quote-1',
+    });
+    await ideaController.retryItem(request, user, 'project-1', 'item-1', {
+      quoteId: 'quote-1',
+    });
+
+    expect(batch.quote).toHaveBeenCalledWith('project-1', {}, adminScope);
+    expect(batch.start).toHaveBeenCalledWith(
+      'project-1',
+      adminScope,
+      'quote-1',
+    );
+    expect(batch.retryItem).toHaveBeenCalledWith(
+      'project-1',
+      'item-1',
+      adminScope,
+      'quote-1',
+    );
+  });
+
   it('leaves reads to membership alone', () => {
     for (const method of ['findAll', 'findOne'] as const) {
       expect(
