@@ -91,6 +91,9 @@ export class LearningDatasetGraph {
   private readonly validity = new Map<string, boolean>();
   private readonly heights = new Map<string, number>();
   readonly rewardFacts = new Map<string, DatasetReward>();
+  get metrics() {
+    return { nodes: this.nodes.size, edges: this.edgeCount };
+  }
   constructor(
     private readonly tx: Prisma.TransactionClient,
     private readonly limits = GRAPH_LIMITS,

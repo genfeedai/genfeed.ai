@@ -70,6 +70,17 @@ describe.skipIf(!explicitUrl)(
       prisma: PrismaClient<'query'>,
       service: LearningDatasetService;
     let statements: string[] = [];
+    let maxBindParameters = 0;
+    let graphNodesMaxPass = 0,
+      graphEdgesMaxPass = 0,
+      graphNodesAcrossPasses = 0,
+      graphEdgesAcrossPasses = 0;
+    let graphObservations = new WeakMap<
+      LearningDatasetGraph,
+      { nodes: number; edges: number }
+    >();
+    let clearGraphSpyHistory: () => void = () => {};
+    let restoreGraphSpies: () => void = () => {};
     let transactionElapsedMs = 0;
     let graphBatches = 0,
       candidatePages = 0,
@@ -148,19 +159,24 @@ describe.skipIf(!explicitUrl)(
         )
           await pool.query(clean.replaceAll('"public".', `"${schema}".`));
       }
-      const checks = readFileSync(
-        new URL(
-          '../../../../../../../packages/prisma/prisma/migrations/20260930180000_content_learning/migration.sql',
-          import.meta.url,
-        ),
-        'utf8',
-      );
-      for (const statement of checks.split(';')) {
-        const clean = statement.replace(/^\s*--[^\n]*\n/gm, '').trim();
-        const check = clean.match(
-          /^ALTER TABLE "([^".]+)".*ADD CONSTRAINT.*CHECK/s,
+      for (const migration of [
+        '20260930180000_content_learning',
+        '20260930223000_content_learning_scope_guards',
+      ]) {
+        const checks = readFileSync(
+          new URL(
+            `../../../../../../../packages/prisma/prisma/migrations/${migration}/migration.sql`,
+            import.meta.url,
+          ),
+          'utf8',
         );
-        if (check && tables.has(check[1])) await pool.query(clean);
+        for (const statement of checks.split(';')) {
+          const clean = statement.replace(/^\s*--[^\n]*\n/gm, '').trim();
+          const check = clean.match(
+            /^ALTER TABLE "([^".]+)".*ADD CONSTRAINT.*CHECK/s,
+          );
+          if (check && tables.has(check[1])) await pool.query(clean);
+        }
       }
       prisma = new PrismaClient({
         adapter: new PrismaPg(pool, { schema }),
@@ -168,6 +184,10 @@ describe.skipIf(!explicitUrl)(
       });
       prisma.$on('query', (event) => {
         statements.push(event.query);
+        const parameters: unknown = JSON.parse(event.params);
+        if (!Array.isArray(parameters))
+          throw new Error('Prisma query parameters must be a JSON array');
+        maxBindParameters = Math.max(maxBindParameters, parameters.length);
         if (
           event.query.includes('content_learning_rewards') &&
           event.query.includes('ORDER BY') &&
@@ -176,15 +196,39 @@ describe.skipIf(!explicitUrl)(
           candidatePages++;
       });
       const pinResolver = LearningDatasetGraph.prototype.pins;
-      vi.spyOn(LearningDatasetGraph.prototype, 'pins').mockImplementation(
-        function (
+      const pinSpy = vi
+        .spyOn(LearningDatasetGraph.prototype, 'pins')
+        .mockImplementation(function (
           this: LearningDatasetGraph,
           ...args: Parameters<LearningDatasetGraph['pins']>
         ) {
           graphBatches++;
           return pinResolver.apply(this, args);
-        },
-      );
+        });
+      const graphLoader = LearningDatasetGraph.prototype.load;
+      const loadSpy = vi
+        .spyOn(LearningDatasetGraph.prototype, 'load')
+        .mockImplementation(async function (
+          this: LearningDatasetGraph,
+          ...args: Parameters<LearningDatasetGraph['load']>
+        ) {
+          await graphLoader.apply(this, args);
+          const current = this.metrics,
+            previous = graphObservations.get(this) ?? { nodes: 0, edges: 0 };
+          graphNodesAcrossPasses += current.nodes - previous.nodes;
+          graphEdgesAcrossPasses += current.edges - previous.edges;
+          graphNodesMaxPass = Math.max(graphNodesMaxPass, current.nodes);
+          graphEdgesMaxPass = Math.max(graphEdgesMaxPass, current.edges);
+          graphObservations.set(this, current);
+        });
+      clearGraphSpyHistory = () => {
+        pinSpy.mockClear();
+        loadSpy.mockClear();
+      };
+      restoreGraphSpies = () => {
+        pinSpy.mockRestore();
+        loadSpy.mockRestore();
+      };
       const instrumented = {
         $transaction: async (
           callback: (tx: Prisma.TransactionClient) => Promise<unknown>,
@@ -293,6 +337,7 @@ describe.skipIf(!explicitUrl)(
       }
     }, 120000);
     afterAll(async () => {
+      restoreGraphSpies();
       await prisma?.$disconnect();
       if (pool) {
         await pool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
@@ -365,6 +410,13 @@ describe.skipIf(!explicitUrl)(
           : kind === 'mixed'
             ? [numericRow(0)]
             : undefined;
+      clearGraphSpyHistory();
+      graphObservations = new WeakMap();
+      graphNodesMaxPass = 0;
+      graphEdgesMaxPass = 0;
+      graphNodesAcrossPasses = 0;
+      graphEdgesAcrossPasses = 0;
+      maxBindParameters = 0;
       statements = [];
       graphBatches = 0;
       candidatePages = 0;
@@ -376,6 +428,7 @@ describe.skipIf(!explicitUrl)(
         rows,
         sourceAccounts: kind === 'owned' ? undefined : sources,
       });
+      clearGraphSpyHistory();
       const elapsed = performance.now() - started,
         queries = statements.length;
       const counts = dataset.counts as { total: number };
@@ -391,8 +444,11 @@ describe.skipIf(!explicitUrl)(
           transactionElapsedMs,
           selectedRows: counts.total,
           sourceAccounts: kind === 'owned' ? 0 : 10,
-          graphNodes: kind === 'owned' ? 0 : 4 * size + 21,
-          graphEdges: kind === 'owned' ? 0 : 6 * size + 200,
+          graphNodesMaxPass,
+          graphEdgesMaxPass,
+          graphNodesAcrossPasses,
+          graphEdgesAcrossPasses,
+          maxBindParameters,
           batchSize: 1000,
           graphBatches,
           candidatePages,
@@ -402,6 +458,9 @@ describe.skipIf(!explicitUrl)(
         }),
       );
       expect(counts.total).toBe(size + (kind === 'mixed' ? 1 : 0));
+      expect(maxBindParameters).toBeLessThanOrEqual(32767);
+      expect(graphNodesMaxPass).toBe(kind === 'owned' ? 0 : 4 * size + 21);
+      expect(graphEdgesMaxPass).toBe(kind === 'owned' ? 0 : 6 * size + 200);
       const secondaryGraphBatches = statements.filter(
         (query) =>
           query.includes('content_learning_accounts') &&
