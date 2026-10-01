@@ -10,6 +10,7 @@ import {
   assertNoKnowledgeHistory,
   assertNoOpenLiveSessions,
   assertNoOpenVisualProjects,
+  assertNoBrandedGenerationReceiptHistory as assertNoReceiptHistory,
   assertNoSecurityAuditHistory,
 } from '@api/collections/brands/utils/brand-relocation-guards.util';
 import {
@@ -242,6 +243,7 @@ export class BrandRelocationService {
       try {
         reconcileResult = await this.prisma.$transaction(
           async (tx) => {
+            await assertNoReceiptHistory(tx, brandId, sourceOrgId);
             await assertNoKnowledgeHistory(tx, brandId, sourceOrgId);
             await assertNoSecurityAuditHistory(tx, brandId, sourceOrgId);
             await assertNoOpenLiveSessions(tx, brandId, sourceOrgId);
@@ -340,6 +342,7 @@ export class BrandRelocationService {
     await this.assertCanRelocate(actingUser, sourceOrgId, destOrgId);
 
     if (sourceOrgId !== destOrgId) {
+      await assertNoReceiptHistory(this.prisma, brandId, sourceOrgId);
       await assertNoKnowledgeHistory(this.prisma, brandId, sourceOrgId);
       await assertNoSecurityAuditHistory(this.prisma, brandId, sourceOrgId);
       await assertNoOpenLiveSessions(this.prisma, brandId, sourceOrgId);
