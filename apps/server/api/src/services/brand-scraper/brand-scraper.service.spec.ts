@@ -392,6 +392,34 @@ describe('BrandScraperService', () => {
       expect(vi.getTimerCount()).toBe(0);
       vi.useRealTimers();
     });
+    it('sanitizes website wrapper logging without changing caller projections', async () => {
+      fetchMock.mockImplementation(() =>
+        Promise.resolve(makeResponse(makeHtml())),
+      );
+      const analyzed = await service.scrapeAndAnalyze(
+        'https://acme.com?token=wrapper-secret',
+      );
+      const merged = await service.scrapeAllSources({
+        websiteUrl: 'https://acme.com?api_key=wrapper-secret',
+      });
+      expect(analyzed.companyName).toBe('Acme Corp');
+      expect(merged.companyName).toBe('Acme Corp');
+      expect(JSON.stringify(mockLogger.log.mock.calls)).not.toContain(
+        'wrapper-secret',
+      );
+      fetchMock.mockRejectedValue(
+        new Error('https://acme.com?token=wrapper-secret'),
+      );
+      await expect(
+        service.scrapeAndAnalyze('https://acme.com?token=wrapper-secret'),
+      ).rejects.toThrow();
+      await service.scrapeAllSources({
+        websiteUrl: 'https://acme.com?token=wrapper-secret',
+      });
+      expect(JSON.stringify(mockLogger.error.mock.calls)).not.toContain(
+        'wrapper-secret',
+      );
+    });
     it('reports successful meta fallback and never logs credential-bearing website URLs', async () => {
       fetchMock
         .mockRejectedValueOnce(new Error('network'))

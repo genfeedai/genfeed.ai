@@ -190,7 +190,11 @@ export class BrandScraperService {
    */
   async scrapeAndAnalyze(url: string): Promise<IExtractedBrandData> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(`${caller} starting`, { url });
+    this.loggerService.log(`${caller} starting`, {
+      url: this.brandWebsiteParser.sanitizeProvenanceUrl(
+        this.normalizeUrl(url),
+      ),
+    });
 
     try {
       const scrapedData = await this.scrapeWebsite(url);
@@ -200,7 +204,10 @@ export class BrandScraperService {
         brandVoice: undefined,
       };
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      this.loggerService.error(
+        `${caller} failed`,
+        error instanceof Error ? error.name : 'Website scrape failed',
+      );
       throw error;
     }
   }
@@ -381,7 +388,16 @@ export class BrandScraperService {
     sources: BrandScrapeSources,
   ): Promise<MergedBrandAnalysis> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(`${caller} starting`, { sources });
+    this.loggerService.log(`${caller} starting`, {
+      sources: {
+        ...sources,
+        websiteUrl: sources.websiteUrl
+          ? this.brandWebsiteParser.sanitizeProvenanceUrl(
+              this.normalizeUrl(sources.websiteUrl),
+            )
+          : undefined,
+      },
+    });
 
     const results = await Promise.allSettled([
       sources.websiteUrl
@@ -412,7 +428,7 @@ export class BrandScraperService {
         const sourceNames = ['website', 'linkedin', 'x'];
         this.loggerService.error(
           `${caller} ${sourceNames[i]} scraping failed`,
-          result.reason,
+          i === 0 ? 'Website scrape failed' : result.reason,
         );
       }
     }
