@@ -38,6 +38,15 @@ const resultSchema = z.strictObject({
     .max(8),
   diagnostics: z.array(z.string()).max(8),
 });
+
+/**
+ * ConfigService values are `string | number | boolean | undefined`.
+ * Truthiness leaves numbers and `true`, which `new URL` cannot accept.
+ */
+function isNonEmptyConfigString(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0;
+}
+
 @Injectable()
 export class VisualProjectRendererClientService {
   constructor(private readonly config: ConfigService) {}
@@ -47,12 +56,12 @@ export class VisualProjectRendererClientService {
     const rate = Number(
       this.config.get('VISUAL_CODE_RENDER_CREDITS_PER_SECOND'),
     );
+    if (!isNonEmptyConfigString(endpoint))
+      throw new ServiceUnavailableException('visual_code_renderer_unavailable');
+    if (!isNonEmptyConfigString(token))
+      throw new ServiceUnavailableException('visual_code_renderer_unavailable');
     if (
       this.config.get('VISUAL_CODE_RENDERER_ENABLED') !== 'true' ||
-      typeof endpoint !== 'string' ||
-      !endpoint ||
-      typeof token !== 'string' ||
-      !token ||
       !Number.isFinite(rate) ||
       rate < 0
     )
