@@ -43,6 +43,25 @@ function focusComposer(container: HTMLElement | null): void {
     ?.focus({ preventScroll: true });
 }
 
+function isPersistedReturnFocus(
+  element: Element | null,
+): element is HTMLElement {
+  return (
+    element instanceof HTMLElement &&
+    element.isConnected &&
+    element !== document.body &&
+    element !== document.documentElement
+  );
+}
+
+function resolveLauncherControl(host: HTMLElement | null): HTMLElement | null {
+  if (!host?.isConnected) {
+    return null;
+  }
+
+  return host.querySelector('button') ?? host;
+}
+
 function AgentDockHeader({
   onClose,
   onOpenFullPage,
@@ -153,7 +172,7 @@ export default function AgentDock({
   const translate = useTranslations('common.agentDock');
   const [region, setRegion] = useState<HTMLElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
-  const launcherNodeRef = useRef<HTMLElement | null>(null);
+  const launcherHostRef = useRef<HTMLElement | null>(null);
   const shouldReturnToLauncherRef = useRef(false);
   const [bodyNode] = useState<HTMLElement | null>(() => {
     if (typeof document === 'undefined') {
@@ -176,7 +195,7 @@ export default function AgentDock({
   const { close, height, isOpen, open, setHeight } = dock;
   const isBubbleChrome = chrome === 'bubble';
   const bindLauncher = useCallback((node: HTMLDivElement | null) => {
-    launcherNodeRef.current = node?.querySelector('button') ?? null;
+    launcherHostRef.current = node;
   }, []);
   const handleLauncherOpen = useCallback(() => {
     shouldReturnToLauncherRef.current = true;
@@ -200,6 +219,8 @@ export default function AgentDock({
 
   // Opening moves focus into the composer and remembers where it came from;
   // any close (header, Esc, ⌘J, topbar) hands focus back if it was inside.
+  // The bubble/promptbar unmounts while the overlay is open, so the opener
+  // becomes document.body — restore to the remounted launcher instead.
   useEffect(() => {
     if (!isOpen) {
       const returnFocus = returnFocusRef.current;
@@ -209,21 +230,21 @@ export default function AgentDock({
         !activeElement ||
         activeElement === document.body ||
         isInsideDock(activeElement);
-      const target = shouldRestore
-        ? returnFocus?.isConnected
-          ? returnFocus
-          : shouldReturnToLauncherRef.current
-            ? launcherNodeRef.current
-            : null
+      const launcher = shouldReturnToLauncherRef.current
+        ? resolveLauncherControl(launcherHostRef.current)
         : null;
       shouldReturnToLauncherRef.current = false;
+      const target = shouldRestore
+        ? (launcher ??
+          (isPersistedReturnFocus(returnFocus) ? returnFocus : null))
+        : null;
       target?.focus({ preventScroll: true });
       return;
     }
 
     const activeElement = document.activeElement;
     returnFocusRef.current =
-      activeElement instanceof HTMLElement && !isInsideDock(activeElement)
+      isPersistedReturnFocus(activeElement) && !isInsideDock(activeElement)
         ? activeElement
         : null;
     const frame = window.requestAnimationFrame(() => {
