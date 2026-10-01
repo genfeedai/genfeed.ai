@@ -433,7 +433,7 @@ export default function StudioGenerateInspector({
       onEdit ? (
         <Button
           className="w-full"
-          label="Edit image"
+          label={translate('editImage.label')}
           onClick={() => onEdit(job)}
           size={ButtonSize.SM}
           variant={ButtonVariant.SECONDARY}

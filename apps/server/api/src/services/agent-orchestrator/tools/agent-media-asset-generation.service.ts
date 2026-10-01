@@ -8,6 +8,10 @@ import {
 } from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
 import { AgentGenerationScopeService } from '@api/services/agent-orchestrator/tools/agent-generation-scope.service';
 import {
+  buildImageGenerationResult,
+  buildMediaAssetData,
+} from '@api/services/agent-orchestrator/tools/agent-image-generation-result';
+import {
   readMediaReferenceStrings,
   resolveGenerationReferences,
 } from '@api/services/agent-orchestrator/tools/agent-media-generation-references';
@@ -246,7 +250,7 @@ export class AgentMediaAssetGenerationService {
     const onboardingNextActions = cdnUrl
       ? (await this.onboardingHandler.checkOnboardingStatus(ctx)).nextActions
       : undefined;
-    const result = this.buildImageGenerationResult(
+    const result = buildImageGenerationResult(
       id,
       cdnUrl,
       promptPreview,
@@ -322,41 +326,6 @@ export class AgentMediaAssetGenerationService {
     return body;
   }
 
-  private buildImageGenerationResult(
-    id: string,
-    cdnUrl: string | undefined,
-    promptPreview: string,
-    onboardingNextActions: AgentToolResult['nextActions'],
-  ): AgentToolResult {
-    const status = cdnUrl ? Status.GENERATED : Status.PROCESSING;
-
-    return {
-      creditsUsed: 0,
-      data: buildMediaAssetData(id, status, cdnUrl),
-      isBillingDelegated: true,
-      nextActions: [
-        {
-          ctas: [
-            {
-              href: createLibraryAssetRoute(IngredientCategory.IMAGE, id),
-              label: 'View in Library',
-            },
-          ],
-          assetId: id,
-          assetKind: 'image',
-          description: `Image ${cdnUrl ? 'generated' : 'is generating'} from: "${promptPreview}"`,
-          id: `image-gen-${id}`,
-          images: cdnUrl ? [cdnUrl] : [],
-          status: cdnUrl ? 'completed' : 'processing',
-          title: cdnUrl ? 'Image generated' : 'Image generating',
-          type: 'content_preview_card',
-        },
-        ...(onboardingNextActions ?? []),
-      ],
-      success: true,
-    };
-  }
-
   async editImage(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
@@ -419,7 +388,7 @@ export class AgentMediaAssetGenerationService {
           creditsUsed: 0,
           error: 'Image editing did not produce a usable image.',
         };
-      const result = this.buildImageGenerationResult(
+      const result = buildImageGenerationResult(
         id,
         url,
         params.prompt.substring(0, 80),
@@ -1010,14 +979,6 @@ export class AgentMediaAssetGenerationService {
         ),
       );
   }
-}
-
-function buildMediaAssetData(
-  id: string,
-  status: Status,
-  url?: string,
-): Record<string, unknown> {
-  return url ? { id, status, url } : { id, status };
 }
 
 function mediaAssetLibraryCategory(

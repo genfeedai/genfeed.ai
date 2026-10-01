@@ -31,8 +31,16 @@ vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
 }));
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
-  return { useTranslations: translateFromCatalog };
+  const { createTranslateFromCatalog } = await import(
+    '@ui/tests/next-intl.stub'
+  );
+  const { default: ui } = await import(
+    '../../../../../../apps/app/messages/en/ui.json'
+  );
+  const { default: common } = await import(
+    '../../../../../../apps/app/messages/en/common.json'
+  );
+  return { useTranslations: createTranslateFromCatalog({ ui, common }) };
 });
 
 vi.mock('@genfeedai/config/deployment', () => ({

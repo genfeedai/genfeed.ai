@@ -402,7 +402,7 @@ export default function StudioGenerateComposer({
           isDragActive
             ? 'drop it here?'
             : type === 'image-edit'
-              ? 'Describe the change to your source image…'
+              ? translate('editImage.promptPlaceholder')
               : capabilities.hasSpeech
                 ? SCRIPT_PLACEHOLDER
                 : PROMPT_PLACEHOLDER
@@ -418,7 +418,10 @@ export default function StudioGenerateComposer({
             disabled={isGenerating}
             onValueChange={(resolution) => onSettingsChange({ resolution })}
           >
-            <SelectTrigger aria-label="FLUX resolution" className="w-40">
+            <SelectTrigger
+              aria-label={translate('editImage.fluxResolution')}
+              className="w-40"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -434,7 +437,10 @@ export default function StudioGenerateComposer({
             disabled={isGenerating}
             onValueChange={(aspectRatio) => onSettingsChange({ aspectRatio })}
           >
-            <SelectTrigger aria-label="FLUX aspect ratio" className="w-52">
+            <SelectTrigger
+              aria-label={translate('editImage.fluxAspectRatio')}
+              className="w-52"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -442,8 +448,8 @@ export default function StudioGenerateComposer({
                 <SelectItem key={value} value={value}>
                   {value === 'auto'
                     ? type === 'image-edit'
-                      ? 'Match source aspect ratio'
-                      : 'Auto aspect ratio'
+                      ? translate('editImage.matchSourceAspectRatio')
+                      : translate('editImage.autoAspectRatio')
                     : value}
                 </SelectItem>
               ))}
@@ -451,7 +457,7 @@ export default function StudioGenerateComposer({
           </Select>
           {droppedEditingControls ? (
             <p role="status" className="text-xs text-muted-foreground">
-              Mask and seed settings were removed for FLUX.3.
+              {translate('editImage.removedFluxControls')}
             </p>
           ) : null}
         </div>
@@ -470,8 +476,13 @@ export default function StudioGenerateComposer({
                 onSettingsChange({ editPrimaryId })
               }
             >
-              <SelectTrigger aria-label="Image editing target" className="w-44">
-                <SelectValue placeholder="Target image" />
+              <SelectTrigger
+                aria-label={translate('editImage.targetAria')}
+                className="w-44"
+              >
+                <SelectValue
+                  placeholder={translate('editImage.targetPlaceholder')}
+                />
               </SelectTrigger>
               <SelectContent>
                 {editSources.map((asset, index) => (
@@ -479,7 +490,13 @@ export default function StudioGenerateComposer({
                     key={asset.id}
                     value={asset.ingredientId ?? asset.id}
                   >
-                    Target: {asset.name || `Source ${index + 1}`}
+                    {translate('editImage.target', {
+                      name:
+                        asset.name ||
+                        translate('editImage.sourceFallback', {
+                          index: index + 1,
+                        }),
+                    })}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -496,7 +513,7 @@ export default function StudioGenerateComposer({
                 }}
               >
                 <SelectTrigger
-                  aria-label="Editing output size"
+                  aria-label={translate('editImage.outputSize')}
                   className="w-40"
                 >
                   <SelectValue />
@@ -504,19 +521,21 @@ export default function StudioGenerateComposer({
                 <SelectContent>
                   {IMAGE_EDIT_SIZES.map((size) => (
                     <SelectItem key={size} value={size}>
-                      {size === 'source' ? 'Source dimensions' : size}
+                      {size === 'source'
+                        ? translate('editImage.sourceDimensions')
+                        : size}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <Input
-                aria-label="Editing seed"
+                aria-label={translate('editImage.seedAria')}
                 className="w-36"
                 type="number"
                 min={0}
                 max={2147483647}
                 step={1}
-                placeholder="Seed (optional)"
+                placeholder={translate('editImage.seedPlaceholder')}
                 value={settings.editSeed ?? ''}
                 isDisabled={isGenerating}
                 onChange={(event) =>
@@ -531,19 +550,21 @@ export default function StudioGenerateComposer({
             </>
           ) : null}
           <p className="text-xs text-muted-foreground">
-            First source is the target. {editSources.length}/{editSourceLimit}{' '}
-            sources.
+            {translate('editImage.firstSource', {
+              count: editSources.length,
+              limit: editSourceLimit,
+            })}
             {isFlux
-              ? ' One output. No mask or seed.'
-              : ' Medium quality. Masks: black changes, white stays.'}
+              ? translate('editImage.fluxSemantics')
+              : translate('editImage.maskSemantics')}
           </p>
           {isEditSourceMissing || isEditingModelUnavailable ? (
             <p role="status" className="text-xs text-destructive">
               {isEditSourceMissing
                 ? editSources.length > editSourceLimit
-                  ? `Remove sources to meet the ${editSourceLimit}-image limit.`
-                  : 'Choose a source image to edit.'
-                : 'An available editing default or selected model is required.'}
+                  ? translate('editImage.overLimit', { limit: editSourceLimit })
+                  : translate('editImage.chooseSource')
+                : translate('editImage.modelUnavailable')}
             </p>
           ) : null}
         </div>
@@ -628,7 +649,7 @@ export default function StudioGenerateComposer({
             <>
               <PromptBarReferenceControls
                 accept="image/*"
-                label="Source images"
+                label={translate('editImage.sourceImages')}
                 isAttachmentDisabled={
                   isGenerating ||
                   isUploading ||
@@ -643,7 +664,7 @@ export default function StudioGenerateComposer({
               {!isFlux ? (
                 <PromptBarReferenceControls
                   accept="image/*"
-                  label="Mask (optional)"
+                  label={translate('editImage.maskOptional')}
                   isAttachmentDisabled={isGenerating || isUploading}
                   isLibraryDisabled={isGenerating}
                   onAddFiles={(files) => onAddFiles(files, 'editMask')}

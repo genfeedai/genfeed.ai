@@ -17,6 +17,24 @@ describe('image editing provider evidence seed', () => {
       modelProviderContract: { upsert: vi.fn() },
     };
     await seedImageEditingContract(prisma as never, 'model-edit');
+    expect(prisma.model.findUnique).toHaveBeenCalledWith({
+      where: { id: 'model-edit', organizationId: null, isDeleted: false },
+      select: {
+        reviewedProviderContractVersion: true,
+        pendingProviderContractVersion: true,
+      },
+    });
+    expect(prisma.model.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'model-edit',
+          organizationId: null,
+          isDeleted: false,
+          reviewedProviderContractVersion: null,
+          pendingProviderContractVersion: null,
+        },
+      }),
+    );
     const contract =
       prisma.modelProviderContract.upsert.mock.calls[0][0].create;
     const update = prisma.model.updateMany.mock.calls[0][0].data;
@@ -81,6 +99,25 @@ describe('image editing provider evidence seed', () => {
       modelProviderContract: { upsert: vi.fn() },
     };
     await seedImageEditingContract(prisma as never, 'model-edit');
+    expect(prisma.modelProviderContract.upsert).not.toHaveBeenCalled();
+    expect(prisma.model.updateMany).not.toHaveBeenCalled();
+  });
+  it('does not seed or write when the scoped global model is absent', async () => {
+    const prisma = {
+      model: {
+        findUnique: vi.fn().mockResolvedValue(null),
+        updateMany: vi.fn(),
+      },
+      modelProviderContract: { upsert: vi.fn() },
+    };
+    await seedImageEditingContract(prisma as never, 'missing');
+    expect(prisma.model.findUnique).toHaveBeenCalledWith({
+      where: { id: 'missing', organizationId: null, isDeleted: false },
+      select: {
+        reviewedProviderContractVersion: true,
+        pendingProviderContractVersion: true,
+      },
+    });
     expect(prisma.modelProviderContract.upsert).not.toHaveBeenCalled();
     expect(prisma.model.updateMany).not.toHaveBeenCalled();
   });

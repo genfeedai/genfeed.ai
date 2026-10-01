@@ -242,6 +242,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   ],
   'image:Ingredient': [
     'agentWorkObject',
+    'imageEdit',
     'blacklist',
     'blacklists',
     'camera',
@@ -282,6 +283,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   ],
   'ingredient:Ingredient': [
     'agentWorkObject',
+    'imageEdit',
     'blacklists',
     'camera',
     // Computed on read from s3Key by the Prisma result extension.
@@ -417,6 +419,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'trend:Trend': ['growthRate', 'mentions', 'metadata'],
   'voice:Ingredient': [
     'agentWorkObject',
+    'imageEdit',
     'accent',
     'blacklists',
     'camera',
@@ -589,6 +592,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'api-key:ApiKey': [],
   'avatar:Ingredient': [
     'agentWorkObject',
+    'imageEdit',
     'age',
     'blacklists',
     'camera',
@@ -640,6 +644,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'social-message:SocialMessage': [],
   'video:Ingredient': [
     'agentWorkObject',
+    'imageEdit',
     'bitrate',
     'blacklist',
     'blacklists',

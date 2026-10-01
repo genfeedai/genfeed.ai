@@ -1,4 +1,14 @@
 import {
+  IMAGE_EDIT_SIZES,
+  type ImageEditSize,
+} from './image-edit-sizes.constant';
+
+export {
+  IMAGE_EDIT_SIZES,
+  type ImageEditSize,
+} from './image-edit-sizes.constant';
+
+import {
   FLUX_3_EDIT_CONTRACT_VERSION,
   isFlux3AspectRatio,
   isFlux3Resolution,
@@ -10,17 +20,6 @@ export const IMAGE_EDIT_MODEL_KEYS: readonly string[] = [
   MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
   MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
 ];
-export const IMAGE_EDIT_SIZES = [
-  'source',
-  '1024x1024',
-  '1280x896',
-  '896x1280',
-  '1344x768',
-  '768x1344',
-  '1536x640',
-  '640x1536',
-] as const;
-export type ImageEditSize = (typeof IMAGE_EDIT_SIZES)[number];
 export const IMAGE_EDIT_MAX_SOURCES = 5;
 export const IMAGE_EDIT_MAX_OUTPUTS = 8;
 export const IMAGE_EDIT_QUALITY = 'medium';

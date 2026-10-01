@@ -975,6 +975,31 @@
     "title": "This project is read-only"
   },
   "studioGenerate": {
+    "editImage": {
+      "fluxResolution": "FLUX resolution",
+      "fluxAspectRatio": "FLUX aspect ratio",
+      "matchSourceAspectRatio": "Match source aspect ratio",
+      "autoAspectRatio": "Auto aspect ratio",
+      "removedFluxControls": "Mask and seed settings were removed for FLUX.3.",
+      "targetAria": "Image editing target",
+      "targetPlaceholder": "Target image",
+      "outputSize": "Editing output size",
+      "sourceDimensions": "Source dimensions",
+      "seedAria": "Editing seed",
+      "seedPlaceholder": "Seed (optional)",
+      "chooseSource": "Choose a source image to edit.",
+      "modelUnavailable": "An available editing default or selected model is required.",
+      "promptPlaceholder": "Describe the change to your source image\u2026",
+      "sourceImages": "Source images",
+      "maskOptional": "Mask (optional)",
+      "target": "Target: {name}",
+      "sourceFallback": "Source {index}",
+      "firstSource": "First source is the target. {count}/{limit} sources.",
+      "fluxSemantics": " One output. No mask or seed.",
+      "maskSemantics": " Medium quality. Masks: black changes, white stays.",
+      "overLimit": "Remove sources to meet the {limit}-image limit.",
+      "label": "Edit image"
+    },
     "description": "One prompt bar for every asset type, enriched with your brand.",
     "draft": {
       "referencesDropped": "{count, plural, one {A reference} other {# references}} in your draft {count, plural, one {is} other {are}} no longer available and {count, plural, one {was} other {were}} removed.",

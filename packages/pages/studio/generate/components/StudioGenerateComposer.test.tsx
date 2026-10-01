@@ -1020,6 +1020,15 @@ describe('FLUX.3 composer controls', () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByText('Mask (optional)')).not.toBeInTheDocument();
     expect(screen.getByText('Estimated 12 credits')).toBeVisible();
+    expect(
+      screen.getByRole('combobox', { name: 'Image editing target' }),
+    ).toBeVisible();
+    expect(
+      screen.getByText(
+        'First source is the target. 10/10 sources. One output. No mask or seed.',
+      ),
+    ).toBeVisible();
+    expect(screen.getByText('Source images')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
     expect(generationSetupPopoverMocks.props.capabilities).toMatchObject({
       hasOutputs: false,

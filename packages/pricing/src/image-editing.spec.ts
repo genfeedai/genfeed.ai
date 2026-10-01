@@ -121,7 +121,7 @@ describe('FLUX.3 truthful Studio estimates', () => {
           resolveStudioGenerationCost({
             type,
             settings,
-            model: { ...model, reviewedProviderContractVersion: null },
+            model: { ...model, reviewedProviderContractVersion: undefined },
             isLoadingModels: false,
           }).status,
         ).toBe('unavailable');

@@ -355,9 +355,9 @@ function IngredientQuickActionsContent(
       ? [
           {
             id: 'edit-image',
-            label: 'Edit image',
+            label: translate('editImage'),
             icon: <Pencil className="size-4" />,
-            tooltip: 'Change this image with an instruction',
+            tooltip: translate('editImageDescription'),
             onClick: () => {
               closeModal(ModalEnum.INGREDIENT);
               push(

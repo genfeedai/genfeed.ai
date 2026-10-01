@@ -159,6 +159,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp'],
     toolset: 'workflows',
   },
+  { name: 'edit_image', surfaces: ['agent', 'mcp'], toolset: 'generation' },
   {
     name: 'enhance_prompt',
     surfaces: ['agent', 'mcp'],
@@ -186,7 +187,6 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp'],
     toolset: 'content',
   },
-  { name: 'edit_image', surfaces: ['agent', 'mcp'], toolset: 'generation' },
   { name: 'generate_image', surfaces: ['agent', 'mcp'], toolset: 'generation' },
   { name: 'generate_linkedin_content', surfaces: ['mcp'], toolset: 'content' },
   { name: 'generate_monthly_content', surfaces: ['agent'], toolset: 'content' },

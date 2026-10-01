@@ -1,4 +1,4 @@
-import type { ImageEditSize } from '../../constants/image-edit-models.constant';
+import type { ImageEditSize } from '../../constants/image-edit-sizes.constant';
 
 /** Persisted recipe contains owned asset IDs, never provider URLs or credentials. */
 export interface ImageEditingRecipe {

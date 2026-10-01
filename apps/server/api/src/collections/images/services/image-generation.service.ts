@@ -1,24 +1,31 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { EditImageDto } from '@api/collections/images/dto/edit-image.dto';
 import type {
   ImageEditingContext,
   ImageGenerationCompletionPlan,
   ImageGenerationContext,
+  ImageGenerationPreparedInputs,
   ImageGenerationResolvedBrand,
-  ImageGenerationResolvedPrompt,
-  ImageGenerationSavedIngredient,
-  ImageGenerationSavedMetadata,
 } from '@api/collections/images/services/image-generation.types';
 import { ImageGenerationAdmissionService } from '@api/collections/images/services/image-generation-admission.service';
+import {
+  type ImageGenerationPersistenceParams,
+  type ImageGenerationPersistenceResult,
+  persistImageDocuments,
+} from '@api/collections/images/services/image-generation-persistence.util';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
+import {
+  type ImageGenerationSettingsParams,
+  type ImageGenerationSettingsResult,
+  prepareImageGenerationSettings,
+} from '@api/collections/images/services/image-generation-settings.util';
 import { ImagesService } from '@api/collections/images/services/images.service';
+import { resolveImageGenerationModel } from '@api/collections/images/services/resolve-image-generation-model.util';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import type {
@@ -30,42 +37,27 @@ import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generati
 import { createRequestAbortSignal } from '@api/helpers/utils/request/request-abort-signal.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   GenerationBriefCompileError,
-  resolveGenerationBriefBrandContext,
-  resolveIsGenerationBriefBrandVoiceOn,
   runImageGenerationBrief,
-  toRedactedGenerationBriefProviderData,
 } from '@api/services/generation-brief';
-import type { ImageGenerationBriefDispatch } from '@api/services/generation-brief/image-generation-brief-registry';
 import { rawPromptBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
 import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
-import { buildFlux3ImageInput } from '@api/services/prompt-builder/builders/replicate/flux-3-image.builder';
-import { buildIdeogramImageEditInput } from '@api/services/prompt-builder/builders/replicate/ideogram-image-edit.builder';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import {
-  IngredientCategory,
-  MetadataExtension,
-  ModelCategory,
-  PromptCategory,
-  PromptStatus,
-} from '@genfeedai/contracts';
+import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
 import type {
   ImageGenerationBrief,
   ImageGenerationBriefReference,
 } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
-import type { GenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import { buildGenerationBriefExemptionSource } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import {
   isFlux3ImageModel,
   isImageEditModel,
-  MODEL_OUTPUT_CAPABILITIES,
   readImageEditingRecipe,
 } from '@genfeedai/contracts/constants';
 import type {
@@ -207,9 +199,6 @@ export class ImageGenerationService {
       request,
       editing ? ModelCategory.IMAGE_EDIT : ModelCategory.IMAGE,
     );
-    if (editing) editing.recipe.model = model;
-    if (isFlux3ImageModel(model))
-      this.admissionService.assertFlux3Controls(createImageDto);
 
     const accepted = await this.reuseAcceptedGeneration(
       user,
@@ -221,66 +210,34 @@ export class ImageGenerationService {
     );
     if (accepted) return accepted;
 
-    const referenceIds = (createImageDto.references ?? []).map(String);
-
-    const referenceImageUrls =
-      editing?.sourceUrls ??
-      (isFlux3ImageModel(model)
-        ? await this.admissionService.resolveFlux3References(
-            user.organizationId,
-            brand.id,
-            referenceIds,
-          )
-        : await this.admissionService.resolveReferenceImageUrls(
-            user.organizationId,
-            referenceIds,
-          ));
-
-    const referenceImageUrl: string | null = referenceImageUrls[0] || null;
-
-    const generationHarness: GenerationHarnessReceipt = editing
-      ? {
-          originalPrompt: promptOriginalText,
-          enhancedPrompt: promptOriginalText,
-          status: 'skipped',
-          source: 'request',
-          brandId: brand.id,
-          appliedPacks: [],
-        }
-      : await this.enhanceGenerationPrompt(
-          user,
-          createImageDto,
-          request,
-          brand.id,
-          model,
-          promptOriginalText,
-        );
-
-    const brandPromptBranding = buildPromptBrandingFromBrand(brand);
-    const promptBuilderBrand = {
-      description: brand.description ?? undefined,
-      label: brand.label ?? 'Brand',
-      primaryColor: brand.primaryColor ?? undefined,
-      secondaryColor: brand.secondaryColor ?? undefined,
-      text: brand.text ?? undefined,
-    };
-
-    const width = createImageDto.width || 1920;
-    const height = createImageDto.height || 1080;
-    const style = createImageDto.style;
-    const outputs = Number(createImageDto.outputs) || 1;
-
-    this.loggerService.debug('Image generation request received', {
+    const {
+      referenceIds,
+      referenceImageUrls,
+      referenceImageUrl,
+      generationHarness,
+    } = await this.prepareImageGenerationInputs(
+      user,
+      createImageDto,
+      request,
+      brand.id,
       model,
-      outputs,
-      rawOutputs: createImageDto.outputs,
-    });
+      promptOriginalText,
+      editing,
+    );
 
-    const briefBrandContext = await this.resolveBriefBrandContext({
+    const {
       brandPromptBranding,
+      promptBuilderBrand,
+      width,
+      height,
+      style,
+      outputs,
+      briefBrandContext,
+    } = await this.prepareImageGenerationSettings({
+      brand,
       createImageDto,
       organizationId: user.organizationId,
-      promptBuilderBrand,
+      model,
     });
 
     const compiledBrief = editing
@@ -376,6 +333,9 @@ export class ImageGenerationService {
     onCreditsPrepared?: () => Promise<void>,
     editing?: ImageEditingContext,
   ): Promise<JsonApiSingleResponse | null> {
+    if (editing) editing.recipe.model = model;
+    if (isFlux3ImageModel(model))
+      this.admissionService.assertFlux3Controls(createImageDto);
     const accepted = await this.admissionService.findReusableIngredient(
       createImageDto.sourceActionId,
       user.organizationId,
@@ -582,7 +542,12 @@ export class ImageGenerationService {
       },
     );
 
-    const model = await this.resolveImageModel(
+    const model = await resolveImageGenerationModel(
+      {
+        routerService: this.routerService,
+        loggerService: this.loggerService,
+        constructorName: this.constructorName,
+      },
       createImageDto,
       promptOriginalText,
       brand,
@@ -680,51 +645,6 @@ export class ImageGenerationService {
   }
 
   /**
-   * Brand voice must reach every model, including brief-compiled ones — see
-   * `resolveGenerationBriefBrandContext`. Gated solely on the Brand voice
-   * setting, never on the fidelity mode `avoid` terms can also force. A
-   * template-lookup failure (e.g. a database error) must never fail the
-   * whole generation (#4676) — proceed without brand context instead.
-   */
-  private async resolveBriefBrandContext(params: {
-    brandPromptBranding: ReturnType<typeof buildPromptBrandingFromBrand>;
-    createImageDto: CreateImageDto;
-    organizationId: string;
-    promptBuilderBrand: ImageGenerationContext['promptBuilderBrand'];
-  }): Promise<string | undefined> {
-    const {
-      brandPromptBranding,
-      createImageDto,
-      organizationId,
-      promptBuilderBrand,
-    } = params;
-
-    if (
-      !resolveIsGenerationBriefBrandVoiceOn({
-        brandingMode: createImageDto.brandingMode,
-        isBrandingEnabled: createImageDto.isBrandingEnabled,
-      })
-    ) {
-      return undefined;
-    }
-
-    try {
-      return await resolveGenerationBriefBrandContext({
-        brand: promptBuilderBrand,
-        branding: brandPromptBranding,
-        organizationId,
-        templatesService: this.templatesService,
-      });
-    } catch (error: unknown) {
-      this.loggerService.error(
-        'Failed to resolve brand context for the generation brief; proceeding without it',
-        { error, organizationId },
-      );
-      return undefined;
-    }
-  }
-
-  /**
    * Compile a generation brief through the registered compiler for the
    * requested model family, or record an explicit exemption for every model
    * that has not been onboarded to model-aware compilation.
@@ -812,285 +732,76 @@ export class ImageGenerationService {
     }
   }
 
-  private async resolveGenerationPrompt(
+  private prepareImageGenerationSettings(
+    params: ImageGenerationSettingsParams,
+  ): Promise<ImageGenerationSettingsResult> {
+    return prepareImageGenerationSettings(params, {
+      templatesService: this.templatesService,
+      loggerService: this.loggerService,
+    });
+  }
+
+  private persistImageDocuments(
+    params: ImageGenerationPersistenceParams,
+  ): Promise<ImageGenerationPersistenceResult> {
+    return persistImageDocuments(params, {
+      promptsService: this.promptsService,
+      promptBuilderService: this.promptBuilderService,
+      sharedService: this.sharedService,
+      imagesService: this.imagesService,
+    });
+  }
+
+  private async prepareImageGenerationInputs(
     user: User,
     createImageDto: CreateImageDto,
+    request: Request,
+    brandId: string,
     model: string,
     promptOriginalText: string,
-  ): Promise<ImageGenerationResolvedPrompt> {
-    const submittedPromptId = isEntityId(createImageDto.promptId)
-      ? createImageDto.promptId
-      : undefined;
-    const submittedPrompt = submittedPromptId
-      ? await this.promptsService.findOne({
-          id: submittedPromptId,
-          isDeleted: false,
-          organizationId: user.organizationId,
-          userId: user.userId ?? user.id,
-        })
-      : null;
-    const isReviewedPrompt =
-      submittedPrompt?.status === PromptStatus.GENERATED &&
-      !submittedPrompt.isSkipEnhancement &&
-      submittedPrompt.enhanced === promptOriginalText;
-    return isReviewedPrompt
-      ? submittedPrompt
-      : submittedPrompt
-        ? await this.promptsService.patch(submittedPrompt.id, {
-            model,
-            status: PromptStatus.PROCESSING,
-          })
-        : await this.promptsService.create(
-            new PromptEntity({
-              brandId: isEntityId(createImageDto.brandId)
-                ? createImageDto.brandId
-                : user.brandId,
-              category: PromptCategory.MODELS_PROMPT_IMAGE,
-              model,
-              organizationId: user.organizationId,
-              original: promptOriginalText,
-              status: PromptStatus.PROCESSING,
-              userId: user.userId ?? user.id,
-            }),
-          );
-  }
+    editing?: ImageEditingContext,
+  ): Promise<ImageGenerationPreparedInputs> {
+    const referenceIds = (createImageDto.references ?? []).map(String);
 
-  /**
-   * Create the prompt document, run the template-tracking prompt build, persist
-   * the placeholder ingredient/metadata pair, and link the prompt. Returns the
-   * documents the generation flow operates on.
-   */
-  private async persistImageDocuments(params: {
-    editing?: ImageEditingContext;
-    brand: ImageGenerationResolvedBrand;
-    brandPromptBranding: ReturnType<typeof buildPromptBrandingFromBrand>;
-    briefEvidence?: GenerationBriefPersistedEvidence;
-    compiledDispatch?: ImageGenerationBriefDispatch;
-    createImageDto: CreateImageDto;
-    generationSource: string;
-    generationHarness: GenerationHarnessReceipt;
-    height: number;
-    model: string;
-    modelInputSchema?: Record<string, unknown>;
-    promptBuilderBrand: ImageGenerationContext['promptBuilderBrand'];
-    promptOriginalText: string;
-    referenceIds: string[];
-    referenceImageUrls: string[];
-    placeholderScope?: GenerationPlaceholderScope;
-    style?: string;
-    user: User;
-    width: number;
-  }): Promise<{
-    ingredientData: ImageGenerationSavedIngredient;
-    metadataData: ImageGenerationSavedMetadata;
-    promptData: ImageGenerationResolvedPrompt;
-    providerInput?: Record<string, unknown>;
-  }> {
-    const {
-      brand,
-      brandPromptBranding,
-      briefEvidence,
-      compiledDispatch,
-      createImageDto,
-      generationSource,
-      generationHarness,
-      height,
-      model,
-      modelInputSchema,
-      promptBuilderBrand,
-      promptOriginalText,
-      user,
+    const referenceImageUrls =
+      editing?.sourceUrls ??
+      (isFlux3ImageModel(model)
+        ? await this.admissionService.resolveFlux3References(
+            user.organizationId,
+            brandId,
+            referenceIds,
+          )
+        : await this.admissionService.resolveReferenceImageUrls(
+            user.organizationId,
+            referenceIds,
+          ));
+
+    const referenceImageUrl: string | null = referenceImageUrls[0] || null;
+
+    const generationHarness: GenerationHarnessReceipt = editing
+      ? {
+          originalPrompt: promptOriginalText,
+          enhancedPrompt: promptOriginalText,
+          status: 'skipped',
+          source: 'request',
+          brandId: brandId,
+          appliedPacks: [],
+        }
+      : await this.enhanceGenerationPrompt(
+          user,
+          createImageDto,
+          request,
+          brandId,
+          model,
+          promptOriginalText,
+        );
+
+    return {
       referenceIds,
       referenceImageUrls,
-      placeholderScope,
-      style,
-      width,
-    } = params;
-    const editing = params.editing;
-
-    const promptData = await this.resolveGenerationPrompt(
-      user,
-      createImageDto,
-      model,
-      promptOriginalText,
-    );
-
-    let providerInput: Record<string, unknown> | undefined =
-      editing && isFlux3ImageModel(model)
-        ? buildFlux3ImageInput(
-            generationHarness.enhancedPrompt,
-            referenceImageUrls,
-            createImageDto.resolution ?? '1k',
-            createImageDto.aspectRatio ?? 'auto',
-          )
-        : editing
-          ? buildIdeogramImageEditInput(
-              generationHarness.enhancedPrompt,
-              editing,
-              createImageDto.outputs ?? 1,
-              createImageDto.seed,
-            )
-          : undefined;
-    let imageTemplateUsed: string | undefined;
-    let imageTemplateVersion: number | undefined;
-    if (!compiledDispatch && !editing) {
-      const builtPrompt = await this.promptBuilderService.buildPrompt(
-        model,
-        {
-          blacklist: createImageDto.blacklist,
-          brand: promptBuilderBrand,
-          branding: brandPromptBranding,
-          brandingMode: createImageDto.brandingMode,
-          camera: createImageDto.camera,
-          fontFamily: createImageDto.fontFamily,
-          height,
-          isBrandingEnabled: createImageDto.isBrandingEnabled,
-          lens: createImageDto.lens,
-          lighting: createImageDto.lighting,
-          modelInputSchema,
-          resolution: createImageDto.resolution,
-          aspectRatio: createImageDto.aspectRatio,
-          modelCategory: ModelCategory.IMAGE,
-          mood: createImageDto.mood,
-          outputs: MODEL_OUTPUT_CAPABILITIES[model]?.isBatchSupported
-            ? Number(createImageDto.outputs) || 1
-            : 1,
-          prompt: generationHarness.enhancedPrompt,
-          promptTemplate: createImageDto.promptTemplate,
-          references: referenceImageUrls,
-          scene: createImageDto.scene,
-          seed: createImageDto.seed,
-          style: style || createImageDto.style || 'realistic',
-          tags: createImageDto.tags?.map((tag) => tag.toString()) || [],
-          useTemplate: createImageDto.useTemplate,
-          width,
-        },
-        user.organizationId,
-      );
-      providerInput = builtPrompt.input;
-      imageTemplateUsed = builtPrompt.templateUsed;
-      imageTemplateVersion = builtPrompt.templateVersion;
-    }
-
-    const compiledPrompt = compiledDispatch?.prompt ?? providerInput?.prompt;
-    if (
-      generationHarness.status === 'applied' &&
-      typeof compiledPrompt === 'string'
-    ) {
-      generationHarness.enhancedPrompt = compiledPrompt;
-    }
-    if (providerInput) providerInput.prompt = generationHarness.enhancedPrompt;
-
-    const { metadataData, ingredientData } =
-      await this.sharedService.createMediaDocuments(user, {
-        brandId: brand.id,
-        category: IngredientCategory.IMAGE,
-        extension: MetadataExtension.JPEG,
-        generationPrompt: generationHarness.enhancedPrompt,
-        generationHarness,
-        generationSeed: createImageDto.seed,
-        generationSource,
-        groupId: placeholderScope?.groupId,
-        groupIndex: placeholderScope?.groupIndex,
-        height,
-        isDefault: createImageDto.isDefault,
-        model,
-        negativePrompt: createImageDto.negativePrompt,
-        organizationId: user.organizationId,
-        parentId: isEntityId(createImageDto.parentId)
-          ? createImageDto.parentId
-          : undefined,
-        promptId: promptData.id,
-        promptTemplate: imageTemplateUsed,
-        providerData: editing
-          ? { imageEdit: { ...editing.recipe } }
-          : briefEvidence
-            ? toRedactedGenerationBriefProviderData(briefEvidence)
-            : {},
-        scope: createImageDto.scope,
-        sourceActionId: createImageDto.sourceActionId,
-        sourceIds: referenceIds,
-        style,
-        tagIds: createImageDto.tags,
-        templateVersion: imageTemplateVersion,
-        width,
-      });
-
-    await this.imagesService.patch(ingredientData.id, {
-      promptId: promptData.id,
-    });
-
-    return { ingredientData, metadataData, promptData, providerInput };
-  }
-
-  /**
-   * Resolve the model for an image-generation request.
-   * Precedence: auto-select > user-provided > brand default > org default >
-   * system default.
-   */
-  private async resolveImageModel(
-    createImageDto: CreateImageDto,
-    promptOriginalText: string,
-    brand: ImageGenerationResolvedBrand,
-    organizationSettings: { defaultImageModel?: unknown } | null,
-    organizationId?: string,
-    modelCategory: ModelCategory = ModelCategory.IMAGE,
-  ): Promise<string> {
-    if (modelCategory === ModelCategory.IMAGE_EDIT) {
-      if (createImageDto.model) return createImageDto.model;
-      const resolution = await this.routerService.resolveModelKey({
-        category: ModelCategory.IMAGE_EDIT,
-        organizationId,
-      });
-      return resolution.key;
-    }
-    if (createImageDto.autoSelectModel) {
-      // Auto model routing - let RouterService pick the best model
-      const recommendation = await this.routerService.selectModel({
-        category: ModelCategory.IMAGE,
-        dimensions: {
-          height: createImageDto.height,
-          width: createImageDto.width,
-        },
-        organizationId,
-        outputs: createImageDto.outputs,
-        prioritize: createImageDto.prioritize || 'balanced',
-        prompt: promptOriginalText,
-      });
-
-      this.loggerService.log('Auto model routing selected', {
-        promptPreview: promptOriginalText.substring(0, 100),
-        reason: recommendation.reason,
-        selectedModel: recommendation.selectedModel,
-        service: this.constructorName,
-      });
-
-      return recommendation.selectedModel as string;
-    }
-
-    // Manual selection runs through the one registry policy (#2422 Phase C):
-    // each candidate is honoured only if the registry carries it as an active,
-    // non-legacy row, so a request naming a retired key — or a brand still
-    // pointing at one — falls through to the registry default instead of being
-    // waved past a hard-coded MODEL_KEYS allowlist.
-    const resolution = await this.routerService.resolveModelKey({
-      candidates: [
-        createImageDto.model as string | undefined,
-        brand.defaultImageModel as string | undefined,
-        organizationSettings?.defaultImageModel as string | undefined,
-      ],
-      category: ModelCategory.IMAGE,
-      organizationId,
-    });
-
-    if (resolution.source === 'fallback-constant') {
-      this.loggerService.error('Image model resolved from constant fallback', {
-        model: resolution.key,
-        service: this.constructorName,
-      });
-    }
-
-    return resolution.key;
+      referenceImageUrl,
+      generationHarness,
+    };
   }
 
   /**

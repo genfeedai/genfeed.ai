@@ -16,7 +16,7 @@ export async function seedFlux3ImageContract(
   modelKey: string,
 ): Promise<void> {
   const model = await prisma.model.findUnique({
-    where: { id: modelId },
+    where: { id: modelId, organizationId: null, isDeleted: false },
     select: {
       reviewedProviderContractVersion: true,
       pendingProviderContractVersion: true,
@@ -85,6 +85,8 @@ export async function seedFlux3ImageContract(
   await prisma.model.updateMany({
     where: {
       id: modelId,
+      organizationId: null,
+      isDeleted: false,
       reviewedProviderContractVersion: null,
       pendingProviderContractVersion: null,
     },

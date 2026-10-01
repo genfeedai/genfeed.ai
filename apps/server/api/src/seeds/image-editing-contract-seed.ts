@@ -13,7 +13,7 @@ export async function seedImageEditingContract(
   modelId: string,
 ): Promise<void> {
   const model = await prisma.model.findUnique({
-    where: { id: modelId },
+    where: { id: modelId, organizationId: null, isDeleted: false },
     select: {
       reviewedProviderContractVersion: true,
       pendingProviderContractVersion: true,
@@ -78,6 +78,8 @@ export async function seedImageEditingContract(
   await prisma.model.updateMany({
     where: {
       id: modelId,
+      organizationId: null,
+      isDeleted: false,
       reviewedProviderContractVersion: null,
       pendingProviderContractVersion: null,
     },

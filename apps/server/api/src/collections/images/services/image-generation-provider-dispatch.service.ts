@@ -23,7 +23,7 @@ import {
 } from '@api/collections/images/services/image-generation-output.util';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
-import { persistImageProviderOutput } from '@api/collections/images/services/persist-image-provider-output.util';
+import { prepareImageGenerationProvider } from '@api/collections/images/services/prepare-image-generation-provider.util';
 import { isGenerationCancelledError } from '@api/collections/ingredients/errors/generation-cancelled.error';
 import { ProviderGenerationFailedError } from '@api/collections/ingredients/errors/provider-generation-failed.error';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
@@ -127,78 +127,19 @@ export class ImageGenerationProviderDispatchService {
     const byokApiKeyOverride = (
       context.request as unknown as DeferredCreditsRequest | undefined
     )?.creditsConfig?.byokApiKeyOverride;
-    const provider = await this.providerRegistry.prepare({
-      abortSignal: context.abortSignal,
-      apiKeyOverride: byokApiKeyOverride,
-      brandPromptBranding: context.brandPromptBranding,
-      compiledDispatch: context.compiledDispatch,
-      createImageDto: context.createImageDto,
-      height: context.height,
-      model: context.model,
-      modelEndpoint: context.modelEndpoint,
-      modelInputSchema: context.modelInputSchema,
-      modelProvider: context.modelProvider,
-      modelSchemaFamily: context.modelSchemaFamily,
-      onProviderSubmissionStarted: () => {
-        const documents = this.batchDocuments.get(context);
-        const target = this.activeDocument.get(context);
-        this.beginSubmission(
-          context,
-          documents
-            ? documents.map(({ ingredientData }) => ingredientData.id)
-            : [target?.ingredientData.id ?? context.ingredientData.id],
-        );
+    const provider = await prepareImageGenerationProvider(
+      context,
+      {
+        providerRegistry: this.providerRegistry,
+        metadataService: this.metadataService,
+        getBatchDocuments: (current) => this.batchDocuments.get(current),
+        getActiveDocument: (current) => this.activeDocument.get(current),
+        beginSubmission: (current, ids) => this.beginSubmission(current, ids),
+        patchExternalId: (metadataId, result, current, ingredientId) =>
+          this.patchExternalId(metadataId, result, current, ingredientId),
       },
-      onProviderOutput: async (output) => {
-        const target = this.activeDocument.get(context) ?? {
-          metadataData: context.metadataData,
-        };
-        await persistImageProviderOutput(
-          this.metadataService,
-          target.metadataData.id,
-          output,
-          this.batchDocuments.get(context)?.length ?? 1,
-        );
-      },
-      onExternalJobCreated: async (externalId) => {
-        const documents = this.batchDocuments.get(context);
-        if (documents) {
-          await Promise.all(
-            documents.map(({ ingredientData, metadataData }, index) =>
-              this.patchExternalId(
-                metadataData.id,
-                { kind: 'external-id', externalId: `${externalId}_${index}` },
-                context,
-                ingredientData.id,
-              ),
-            ),
-          );
-        } else {
-          const target = this.activeDocument.get(context) ?? {
-            ingredientData: context.ingredientData,
-            metadataData: context.metadataData,
-          };
-          await this.patchExternalId(
-            target.metadataData.id,
-            { kind: 'external-id', externalId },
-            context,
-            target.ingredientData.id,
-          );
-        }
-      },
-      organizationId: context.user.organizationId,
-      outputs: context.outputs,
-      prompt:
-        context.generationHarness?.enhancedPrompt ??
-        context.promptData.original,
-      providerInput: context.providerInput,
-      promptBuilderBrand: context.promptBuilderBrand,
-      promptId: context.promptData.id,
-      referenceImageUrl: context.referenceImageUrl,
-      referenceImageUrls: context.referenceImageUrls,
-      style: context.style,
-      width: context.width,
-    });
+      byokApiKeyOverride,
+    );
 
     if (!provider || provider.completionKind === 'none') {
       return null;

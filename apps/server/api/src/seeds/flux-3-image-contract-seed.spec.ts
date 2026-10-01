@@ -29,6 +29,24 @@ describe('FLUX.3 dated provider evidence', () => {
   ])('seeds authoritative pricing for every resolution on %s', async (key) => {
     const prisma = mockPrisma();
     await seedFlux3ImageContract(prisma as never, 'model-flux', key);
+    expect(prisma.model.findUnique).toHaveBeenCalledWith({
+      where: { id: 'model-flux', organizationId: null, isDeleted: false },
+      select: {
+        reviewedProviderContractVersion: true,
+        pendingProviderContractVersion: true,
+      },
+    });
+    expect(prisma.model.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'model-flux',
+          organizationId: null,
+          isDeleted: false,
+          reviewedProviderContractVersion: null,
+          pendingProviderContractVersion: null,
+        },
+      }),
+    );
     const contract =
       prisma.modelProviderContract.upsert.mock.calls[0][0].create;
     const update = prisma.model.updateMany.mock.calls[0][0].data;
@@ -125,4 +143,27 @@ describe('FLUX.3 dated provider evidence', () => {
       expect(prisma.model.updateMany).not.toHaveBeenCalled();
     },
   );
+  it('does not seed or write when the scoped global model is absent', async () => {
+    const prisma = {
+      model: {
+        findUnique: vi.fn().mockResolvedValue(null),
+        updateMany: vi.fn(),
+      },
+      modelProviderContract: { upsert: vi.fn() },
+    };
+    await seedFlux3ImageContract(
+      prisma as never,
+      'missing',
+      MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
+    );
+    expect(prisma.model.findUnique).toHaveBeenCalledWith({
+      where: { id: 'missing', organizationId: null, isDeleted: false },
+      select: {
+        reviewedProviderContractVersion: true,
+        pendingProviderContractVersion: true,
+      },
+    });
+    expect(prisma.modelProviderContract.upsert).not.toHaveBeenCalled();
+    expect(prisma.model.updateMany).not.toHaveBeenCalled();
+  });
 });

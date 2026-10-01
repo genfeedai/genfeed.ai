@@ -168,3 +168,10 @@ export interface ImageGenerationProviderAdapter {
     request: ImageGenerationProviderRequest,
   ): Promise<PreparedImageGenerationProvider>;
 }
+
+export interface ImageGenerationPreparedInputs {
+  referenceIds: string[];
+  referenceImageUrls: string[];
+  referenceImageUrl: string | null;
+  generationHarness: GenerationHarnessReceipt;
+}
