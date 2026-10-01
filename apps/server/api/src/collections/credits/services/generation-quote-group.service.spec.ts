@@ -29,7 +29,7 @@ function fixture(
     actorUserId: 'user-1',
     status: CreditReservationStatus.RESERVED,
     source: ActivitySource.IMAGE_GENERATION,
-    expiresAt: new Date('2026-10-01'),
+    expiresAt: new Date('2027-01-01'),
     metadata: {
       modelQuote: quoted.snapshot,
       boundOutputIds: ['image-0', 'image-1', 'image-2'],
