@@ -34,3 +34,11 @@ describe('BrandsCoreModule DI leaf', () => {
     expect(coreSource).toMatch(/providers:\s*\[[\s\S]*BrandOsPreviewService/);
   });
 });
+
+describe('Font service DI registration', () => {
+  it('provides and exports the font boundary once', () => {
+    expect(coreSource.match(/ {4}BrandFontAssetsService,/g)).toHaveLength(2);
+    expect(coreSource).toMatch(/exports:\s*\[[\s\S]*BrandFontAssetsService/);
+    expect(coreSource).toMatch(/providers:\s*\[[\s\S]*BrandFontAssetsService/);
+  });
+});

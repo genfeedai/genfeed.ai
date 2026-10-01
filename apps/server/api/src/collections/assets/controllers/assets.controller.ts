@@ -32,6 +32,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { AssetSerializer } from '@genfeedai/serializers';
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -169,6 +170,12 @@ export class AssetsController {
       return returnNotFound(this.constructorName, assetId);
     }
 
+    if (
+      existingAsset.category === AssetCategory.FONT ||
+      updateAssetDto.category === AssetCategory.FONT
+    )
+      throw new BadRequestException('font_asset_dedicated_route_required');
+
     // Validate and sanitize update data
     const sanitizedUpdate: MutableAssetUpdate = {};
 
@@ -277,6 +284,9 @@ export class AssetsController {
     if (!existingAsset) {
       return returnNotFound(this.constructorName, assetId);
     }
+
+    if (existingAsset.category === AssetCategory.FONT)
+      throw new BadRequestException('font_asset_dedicated_route_required');
 
     const deletedAsset = await this.assetsService.remove(validatedId);
 

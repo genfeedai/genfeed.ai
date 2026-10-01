@@ -92,6 +92,28 @@ describe('AssetsController', () => {
     vi.clearAllMocks();
   });
 
+  it('rejects existing FONT patch/delete and requested FONT before mutations', async () => {
+    mockAssetsService.findOne.mockResolvedValue({
+      ...mockAsset,
+      category: AssetCategory.FONT,
+    });
+    await expect(
+      controller.update(mockRequest, mockAssetId, mockUser, {}),
+    ).rejects.toThrow('font_asset_dedicated_route_required');
+    await expect(
+      controller.remove(mockRequest, mockAssetId, mockUser),
+    ).rejects.toThrow('font_asset_dedicated_route_required');
+    mockAssetsService.findOne.mockResolvedValue(mockAsset);
+    await expect(
+      controller.update(mockRequest, mockAssetId, mockUser, {
+        category: AssetCategory.FONT,
+      }),
+    ).rejects.toThrow('font_asset_dedicated_route_required');
+    expect(mockAssetsService.patchAll).not.toHaveBeenCalled();
+    expect(mockAssetsService.patch).not.toHaveBeenCalled();
+    expect(mockAssetsService.remove).not.toHaveBeenCalled();
+    expect(mockCacheService.invalidateByTags).not.toHaveBeenCalled();
+  });
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
