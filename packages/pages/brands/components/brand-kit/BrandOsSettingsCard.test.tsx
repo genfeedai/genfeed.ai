@@ -290,7 +290,7 @@ describe('Brand OS revision settings', () => {
     expect(mocks.publishBrandOsDesign).not.toHaveBeenCalled();
     expect(
       await screen.findByText(
-        /Generation now uses this Brand OS identity; legacy voice values outside it no longer apply/,
+        /New supported brand generation can use this version/,
       ),
     ).toBeInTheDocument();
   });

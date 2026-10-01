@@ -197,6 +197,50 @@ describe('OrganizationsOperationsService', () => {
   });
 
   describe('createOrganization', () => {
+    it('provisions an unsubscribed platform superadmin beyond the free organization limit', async () => {
+      organizationsService.count.mockResolvedValue(SINGLE_ORGANIZATION_LIMIT);
+
+      await expect(
+        service.createOrganization(
+          { label: 'Second Org' },
+          {
+            ...user,
+            isSuperAdmin: true,
+            stripeSubscriptionStatus: '',
+            subscriptionTier: SubscriptionTier.FREE,
+          },
+        ),
+      ).resolves.toEqual({
+        brand: { id: 'brand_new', label: 'New Org' },
+        organization: { id: 'org_new', label: 'New Org' },
+      });
+      expect(organizationsService.count).not.toHaveBeenCalled();
+      expect(organizationsService.create).toHaveBeenCalledWith({
+        isSelected: false,
+        label: 'Second Org',
+        slug: 'new-org',
+        userId: 'user_1',
+      });
+      expect(membersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organizationId: 'org_new',
+          roleId: 'role_admin',
+          userId: 'user_1',
+        }),
+      );
+      expect(billingAccountsService.ensureForOrganization).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isSeparateAccount: true,
+          organizationId: 'org_new',
+          planTier: SubscriptionTier.FREE,
+          userId: 'user_1',
+        }),
+      );
+      expect(userAccessCacheService.invalidateAll).toHaveBeenCalledWith(
+        'user_1',
+      );
+    });
+
     it('enforces the cloud plan organization limit', async () => {
       organizationsService.count.mockResolvedValue(SINGLE_ORGANIZATION_LIMIT);
 
@@ -274,6 +318,9 @@ describe('OrganizationsOperationsService', () => {
       expect(usersService.patch).toHaveBeenCalledWith('user_1', {
         lastUsedOrganizationId: 'org_new',
       });
+      expect(billingAccountsService.ensureForOrganization).toHaveBeenCalledWith(
+        expect.objectContaining({ isSeparateAccount: false }),
+      );
       expect(userAccessCacheService.invalidateAll).toHaveBeenCalledWith(
         'user_1',
       );

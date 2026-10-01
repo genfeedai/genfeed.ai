@@ -29,9 +29,8 @@ type AppProtectedBrandSwitcherProps = {
 };
 
 /**
- * Sidebar-header brand switcher (the Codex "Codex ▾" / Slack workspace-name
- * slot). The organization lives on the app rail; the topbar carries only the
- * page identity and actions.
+ * Topbar brand switcher. The organization lives on the app rail; the
+ * breadcrumb sits to the right of this control.
  */
 export default function AppProtectedBrandSwitcher({
   brandSlug,
@@ -123,6 +122,7 @@ export default function AppProtectedBrandSwitcher({
   return (
     <MenuBrandSwitcher
       variant="labeled"
+      compactOnMobile
       brands={brands}
       brandId={visibleBrandId}
       onBrandChange={handleBrandChange}

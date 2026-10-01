@@ -6,6 +6,7 @@ export const brandKitAttributes = createEntityAttributes([
   'status',
   'sourceType',
   'fields',
+  'generationRules',
   'assetCandidates',
   'evidence',
   'diagnostics',

@@ -1,5 +1,6 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   AppRailNavigationItem,
   AppRailNavigationVia,
@@ -8,10 +9,17 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type {
+  AppRailBadge,
   AppRailItemProps,
   AppRailProps,
 } from '@genfeedai/props/ui/app-rail.props';
 import { useNavigationIntentPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
+import { Button } from '@ui/primitives/button';
+import {
+  Popover,
+  PopoverPanelContent,
+  PopoverTrigger,
+} from '@ui/primitives/popover';
 import { Separator } from '@ui/primitives/separator';
 import {
   Tooltip,
@@ -19,7 +27,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@ui/primitives/tooltip';
-import { Lock } from 'lucide-react';
+import { Ellipsis, Lock, Pin } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -78,7 +86,7 @@ function AppRailItem({
           onMouseEnter={intent.onMouseEnter}
           onMouseLeave={intent.onMouseLeave}
           className={cn(
-            'relative inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition-[background-color,color] duration-150',
+            'relative inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color] duration-150',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-100',
             // Codex-style selection: a filled tile two steps above the rail,
             // hover one step. The icon is the only foreground either way.
@@ -88,7 +96,7 @@ function AppRailItem({
             isLocked && 'opacity-60',
           )}
         >
-          <Icon aria-hidden="true" className="size-[1.125rem]" />
+          <Icon aria-hidden="true" className="size-4" />
           {isLocked ? (
             <span className="absolute -right-0.5 -top-0.5 inline-flex size-4 items-center justify-center rounded-full bg-gray-100 text-foreground/70 shadow-border">
               <Lock aria-hidden="true" className="size-2.5" />
@@ -129,6 +137,157 @@ function AppRailItem({
   );
 }
 
+function AppRailMoreRow({
+  badge,
+  isActive,
+  isPinned,
+  item,
+  onNavigateStart,
+  onTogglePin,
+}: {
+  badge?: AppRailBadge;
+  isActive: boolean;
+  isPinned: boolean;
+  item: AppRailNavigationItem;
+  onNavigateStart: () => void;
+  onTogglePin?: (appId: string) => void;
+}) {
+  const t = useTranslations('common.appRail');
+  const Icon = item.app.icon;
+  const intent = useNavigationIntentPrefetch(item.href);
+  const hasBadge = !item.isLocked && badge !== undefined && badge.count > 0;
+  const accessibleLabel = item.isLocked
+    ? t('locked', { app: item.label })
+    : hasBadge
+      ? `${item.label}, ${badge.label}`
+      : item.label;
+
+  return (
+    <div className="flex items-center gap-0.5">
+      <Link
+        href={item.href}
+        prefetch={false}
+        aria-current={isActive ? 'page' : undefined}
+        aria-label={accessibleLabel}
+        data-testid={`app-rail-more-item-${item.app.id}`}
+        onBlur={intent.onBlur}
+        onClick={onNavigateStart}
+        onFocus={intent.onFocus}
+        onMouseEnter={intent.onMouseEnter}
+        onMouseLeave={intent.onMouseLeave}
+        className={cn(
+          'flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-[13px] transition-colors',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+          item.isLocked && 'opacity-60',
+        )}
+      >
+        <Icon aria-hidden="true" className="size-4 shrink-0" />
+        <span className="truncate">{item.label}</span>
+        {item.isLocked ? (
+          <Lock
+            aria-hidden="true"
+            className="ml-auto size-3 text-foreground/70"
+          />
+        ) : hasBadge ? (
+          <span
+            aria-hidden="true"
+            data-testid={`app-rail-badge-${item.app.id}`}
+            className="ml-auto rounded-full bg-info px-1 text-2xs tabular-nums text-info-foreground"
+          >
+            {badge.count > 99 ? '99+' : badge.count}
+          </span>
+        ) : null}
+      </Link>
+      {onTogglePin ? (
+        <Button
+          ariaLabel={t(isPinned ? 'unpin' : 'pin', { app: item.label })}
+          className="size-7 shrink-0 text-foreground/50 hover:text-foreground"
+          onClick={() => onTogglePin(item.app.id)}
+          size={ButtonSize.ICON}
+          textTransform="none"
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+        >
+          <Pin
+            aria-hidden="true"
+            className={cn('size-3.5', isPinned && 'fill-current')}
+          />
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+function AppRailMore({
+  activeAppId,
+  badges,
+  items,
+  onNavigateStart,
+  onTogglePin,
+  pinnedAppIds,
+}: {
+  activeAppId?: string;
+  badges?: AppRailProps['badges'];
+  items: readonly AppRailNavigationItem[];
+  onNavigateStart: (item: AppRailNavigationItem) => void;
+  onTogglePin?: (appId: string) => void;
+  pinnedAppIds: readonly string[];
+}) {
+  const t = useTranslations('common.appRail');
+  const overflowCount = items.reduce((sum, item) => {
+    if (pinnedAppIds.includes(item.app.id)) return sum;
+    const badge = badges?.[item.app.id];
+    return sum + (!item.isLocked && badge && badge.count > 0 ? badge.count : 0);
+  }, 0);
+
+  return (
+    <Popover>
+      <PopoverTrigger
+        aria-label={t('more')}
+        data-active="false"
+        data-testid="app-rail-more"
+        className={cn(
+          'relative inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-foreground/50 transition-[background-color,color] duration-150',
+          'hover:bg-foreground/[0.06] hover:text-foreground data-[state=open]:bg-foreground/[0.06] data-[state=open]:text-foreground',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-100',
+        )}
+      >
+        <Ellipsis aria-hidden="true" className="size-4" />
+        {overflowCount > 0 ? (
+          <span
+            aria-hidden="true"
+            data-testid="app-rail-more-badge"
+            className="absolute -right-1 -top-1 rounded-full bg-info px-1 text-2xs tabular-nums text-info-foreground"
+          >
+            {overflowCount > 99 ? '99+' : overflowCount}
+          </span>
+        ) : null}
+      </PopoverTrigger>
+      <PopoverPanelContent
+        align="end"
+        className="w-auto min-w-44 p-1"
+        data-testid="app-rail-more-menu"
+        side="right"
+        sideOffset={10}
+      >
+        <div className="flex flex-col" role="group" aria-label={t('more')}>
+          {items.map((item) => (
+            <AppRailMoreRow
+              key={item.app.id}
+              badge={badges?.[item.app.id]}
+              isActive={item.app.id === activeAppId}
+              isPinned={pinnedAppIds.includes(item.app.id)}
+              item={item}
+              onNavigateStart={() => onNavigateStart(item)}
+              onTogglePin={onTogglePin}
+            />
+          ))}
+        </div>
+      </PopoverPanelContent>
+    </Popover>
+  );
+}
+
 export function AppRail({
   badges,
   brandAwareSlug,
@@ -139,7 +298,9 @@ export function AppRail({
   isAssetGateLocked = false,
   onNavigate,
   onNavigationEvent,
+  onTogglePin,
   orgSlug,
+  pinnedAppIds = [],
   preservedSearch,
   resolveNavigation,
   showAdmin = false,
@@ -164,51 +325,47 @@ export function AppRail({
     [...APP_RAIL_REGISTRY, ADMIN_RAIL_APP],
     currentPath,
   );
-  const items = useMemo<AppRailNavigationItem[]>(
-    () =>
-      apps.map((app, index) => {
-        const href = resolveAppRailHref(app, apps, {
-          orgSlug,
-          brandSlug,
-          brandAwareSlug,
-          preservedSearch,
-          isAssetGateLocked,
-        });
-        const navigation = resolveNavigation?.(href) ?? { href };
-        return {
-          app,
-          ...navigation,
-          label: t(app.label),
-          description: t(app.description),
-          isLocked: isAppRailItemLocked(app, isAssetGateLocked),
-          shortcut:
-            app.group === 'admin'
-              ? undefined
-              : getAppRailShortcut(index, isDesktop),
-        };
-      }),
-    [
-      apps,
-      orgSlug,
-      brandSlug,
-      brandAwareSlug,
-      preservedSearch,
-      isAssetGateLocked,
-      resolveNavigation,
-      t,
-      isDesktop,
-    ],
-  );
-  const groups = useMemo(() => {
-    const grouped = new Map<string, AppRailNavigationItem[]>();
-    for (const item of items) {
-      if (item.app.group === 'admin') continue;
-      const group = grouped.get(item.app.group) ?? [];
-      group.push(item);
-      grouped.set(item.app.group, group);
-    }
-    return [...grouped.values()];
-  }, [items]);
+  const items = useMemo<AppRailNavigationItem[]>(() => {
+    let dailyIndex = 0;
+    return apps.map((app) => {
+      const href = resolveAppRailHref(app, apps, {
+        orgSlug,
+        brandSlug,
+        brandAwareSlug,
+        preservedSearch,
+        isAssetGateLocked,
+      });
+      const navigation = resolveNavigation?.(href) ?? { href };
+      const shortcutIndex = app.group === 'daily' ? dailyIndex++ : undefined;
+      return {
+        app,
+        ...navigation,
+        label: t(app.label),
+        description: t(app.description),
+        isLocked: isAppRailItemLocked(app, isAssetGateLocked),
+        shortcut:
+          shortcutIndex === undefined
+            ? undefined
+            : getAppRailShortcut(shortcutIndex, isDesktop),
+      };
+    });
+  }, [
+    apps,
+    orgSlug,
+    brandSlug,
+    brandAwareSlug,
+    preservedSearch,
+    isAssetGateLocked,
+    resolveNavigation,
+    t,
+    isDesktop,
+  ]);
+  const dailyItems = items.filter((item) => item.app.group === 'daily');
+  const overflowItems = items.filter((item) => item.app.group === 'more');
+  const pinnedItems = pinnedAppIds.flatMap((appId) => {
+    const item = overflowItems.find((candidate) => candidate.app.id === appId);
+    return item ? [item] : [];
+  });
   const handleNavigate = useCallback(
     (item: AppRailNavigationItem, via: AppRailNavigationVia) => {
       onNavigationEvent?.({
@@ -251,7 +408,7 @@ export function AppRail({
     <TooltipProvider delayDuration={300} skipDelayDuration={200}>
       <nav
         aria-label={t('apps')}
-        className="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto px-2 pb-2 pt-1.5"
+        className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto p-1 [scrollbar-width:none]! [&::-webkit-scrollbar]:hidden"
         data-testid="app-rail"
       >
         {header ? (
@@ -263,17 +420,26 @@ export function AppRail({
             <Separator className="mt-1 w-5" />
           </div>
         ) : null}
-        {groups.map((group, index) => (
-          <div
-            key={group[0]?.app.group ?? index}
-            className="flex flex-col items-center gap-1"
-          >
-            {index > 0 ? (
-              <Separator className="mb-1 w-5" data-testid="app-rail-divider" />
-            ) : null}
-            {group.map(renderItem)}
-          </div>
-        ))}
+        <div className="flex flex-col items-center gap-1">
+          {dailyItems.map(renderItem)}
+          {overflowItems.length > 0 ? (
+            <AppRailMore
+              activeAppId={activeAppId}
+              badges={badges}
+              items={overflowItems}
+              onNavigateStart={(item) => handleNavigate(item, 'click')}
+              onTogglePin={onTogglePin}
+              pinnedAppIds={pinnedAppIds}
+            />
+          ) : null}
+          {overflowItems.length > 0 ? (
+            <Separator
+              className="my-1 w-5"
+              data-testid="app-rail-pins-separator"
+            />
+          ) : null}
+          {pinnedItems.map(renderItem)}
+        </div>
         {admin || footer ? (
           <div
             className="mt-auto flex flex-col items-center gap-1 pt-2"

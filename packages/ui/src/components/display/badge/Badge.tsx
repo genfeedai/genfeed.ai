@@ -252,6 +252,7 @@ export default function Badge({
       >['variant'],
     }),
     statusConfig?.canonicalStatus && statusBadge[statusConfig.canonicalStatus],
+    status && 'uppercase tracking-wide',
     className,
     backgroundColor && `bg-${backgroundColor}`,
     textColor && `text-${textColor}`,

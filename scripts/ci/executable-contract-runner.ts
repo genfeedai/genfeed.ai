@@ -12,6 +12,14 @@ export function formatContractFailure(
 ): string {
   const commandLabel = command.join(' ');
 
+  if (
+    result.error &&
+    'code' in result.error &&
+    result.error.code === 'ETIMEDOUT'
+  ) {
+    return `${commandLabel} timed out (${result.signal ?? 'no signal'}) after ${String(CONTRACT_CHILD_TIMEOUT_MS)}ms\n${result.stdout ?? ''}${result.stderr ?? ''}`;
+  }
+
   if (result.error) {
     return `${commandLabel} failed to start: ${result.error.message}`;
   }
