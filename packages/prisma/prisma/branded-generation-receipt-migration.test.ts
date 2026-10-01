@@ -179,7 +179,7 @@ databaseSuite('branded receipt constraints on isolated PostgreSQL', () => {
       await client.query('BEGIN');
       await expect(insertReceipt(client)).rejects.toThrow();
     }));
-  it('rejects forged projection scope and event scope', async () =>
+  it('rejects forged aggregate projection scope with no persisted row', async () =>
     withSchema(async (client) => {
       await client.query('BEGIN');
       await expect(
@@ -188,5 +188,77 @@ databaseSuite('branded receipt constraints on isolated PostgreSQL', () => {
           [hash, { ...projection(), brandId: 'foreign' }, clock],
         ),
       ).rejects.toThrow();
+      await client.query('ROLLBACK');
+      expect(
+        (await client.query('SELECT * FROM branded_generation_receipts'))
+          .rowCount,
+      ).toBe(0);
+    }));
+  it.each(['organizationId', 'brandId'] as const)(
+    'rejects foreign event %s and preserves receipt/event history',
+    async (field) =>
+      withSchema(async (client) => {
+        await create(client);
+        const before = (
+          await client.query(
+            'SELECT projection FROM branded_generation_receipts',
+          )
+        ).rows;
+        await client.query('BEGIN');
+        await expect(
+          client.query(
+            `INSERT INTO branded_generation_receipt_events(id,"receiptId","organizationId","brandId","actorId","operationKey","operationHash",revision,type,projection) VALUES('attack','receipt',$1,$2,'user','attack',$3,1,'delete',$4)`,
+            [
+              field === 'organizationId' ? 'foreign' : 'org',
+              field === 'brandId' ? 'foreign' : 'brand',
+              hash,
+              projection(1),
+            ],
+          ),
+        ).rejects.toThrow();
+        await client.query('ROLLBACK');
+        expect(
+          (
+            await client.query(
+              'SELECT projection FROM branded_generation_receipts',
+            )
+          ).rows,
+        ).toEqual(before);
+        expect(
+          (
+            await client.query(
+              'SELECT * FROM branded_generation_receipt_events',
+            )
+          ).rowCount,
+        ).toBe(1);
+      }),
+  );
+  it('rejects event projection mismatch after a valid aggregate mutation and rolls both back', async () =>
+    withSchema(async (client) => {
+      await create(client);
+      const before = (
+        await client.query('SELECT projection FROM branded_generation_receipts')
+      ).rows;
+      await client.query('BEGIN');
+      await client.query(
+        'UPDATE branded_generation_receipts SET revision=1,projection=$1',
+        [projection(1)],
+      );
+      await client.query(
+        `INSERT INTO branded_generation_receipt_events(id,"receiptId","organizationId","brandId","actorId","operationKey","operationHash",revision,type,projection) VALUES('attack','receipt','org','brand','user','attack',$1,1,'cancel',$2)`,
+        [hash, { ...projection(1), state: 'cancelled' }],
+      );
+      await expect(client.query('COMMIT')).rejects.toThrow();
+      expect(
+        (
+          await client.query(
+            'SELECT projection FROM branded_generation_receipts',
+          )
+        ).rows,
+      ).toEqual(before);
+      expect(
+        (await client.query('SELECT * FROM branded_generation_receipt_events'))
+          .rowCount,
+      ).toBe(1);
     }));
 });
