@@ -118,10 +118,19 @@ describe('genuine immutable synthetic corpus through the conservative core', () 
     'missing-mandatory',
     'unicode-crlf',
   ])('validates actual UTF-8 for %s without factual PASS', async (id) => {
-    const corpus = JSON.parse(
+    const corpus: unknown = JSON.parse(
       (await fixture('approved-text.json')).toString('utf8'),
     );
-    const row =
+    if (
+      !corpus ||
+      typeof corpus !== 'object' ||
+      !Object.hasOwn(corpus, 'cases') ||
+      !('cases' in corpus) ||
+      !Array.isArray(corpus.cases)
+    ) {
+      throw new Error('Invalid synthetic text fixture container');
+    }
+    const row: unknown =
       corpus.cases[
         [
           'literal-baseline',
@@ -135,6 +144,24 @@ describe('genuine immutable synthetic corpus through the conservative core', () 
         ].indexOf(id)
       ];
     expect(row).toBeDefined();
+    if (
+      !row ||
+      typeof row !== 'object' ||
+      !Object.hasOwn(row, 'id') ||
+      !('id' in row) ||
+      row.id !== id ||
+      !Object.hasOwn(row, 'text') ||
+      !('text' in row) ||
+      typeof row.text !== 'string' ||
+      !Object.hasOwn(row, 'expectedMandatoryPresent') ||
+      !('expectedMandatoryPresent' in row) ||
+      typeof row.expectedMandatoryPresent !== 'boolean' ||
+      !Object.hasOwn(row, 'expectedForbiddenPresent') ||
+      !('expectedForbiddenPresent' in row) ||
+      typeof row.expectedForbiddenPresent !== 'boolean'
+    ) {
+      throw new Error('Invalid or reordered synthetic text fixture case');
+    }
     const bytes = Buffer.from(row.text, 'utf8');
     const value = artifactInput(bytes, [], [], 'text');
     const report = await service.validateBrandArtifact(value);
