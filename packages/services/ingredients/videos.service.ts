@@ -6,6 +6,11 @@ import type {
   IVideoMergeSettings,
 } from '@genfeedai/contracts/interfaces';
 import type {
+  CrunGenerationQuoteResponse,
+  CrunVideoGenerationRequest,
+  CrunVideoQuoteRequest,
+} from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
+import type {
   IVideoEditParams,
   IVideoExtendParams,
   IVideoMergeParams,
@@ -26,24 +31,37 @@ import {
 import { IngredientsService } from '@services/content/ingredients.service';
 import type { JsonApiResponseDocument } from '@services/core/base.service';
 
-export class VideosService extends IngredientsService<Video> {
-  private static videoInstances = new Map<string, VideosService>();
+import { parseCrunQuoteResponse } from '@services/core/crun-quote-response';
+import { EnvironmentService } from '@services/core/environment.service';
+import {
+  buildInstanceKey,
+  ServiceInstanceManager,
+} from '@services/core/service-instance-manager';
 
+const videoInstances = new ServiceInstanceManager<VideosService>();
+
+export class VideosService extends IngredientsService<Video> {
   constructor(token: string) {
     super('videos', token);
   }
 
   static getInstance(token: string): VideosService {
-    if (!VideosService.videoInstances.has(token)) {
-      VideosService.videoInstances.set(token, new VideosService(token));
-    }
-
-    const instance = VideosService.videoInstances.get(token);
-    if (!instance) {
-      throw new Error('Videos service instance was not initialized');
-    }
-
+    const key = buildInstanceKey([token, EnvironmentService.apiEndpoint]);
+    const cached = videoInstances.get(VideosService, key);
+    if (cached) return cached;
+    const instance = new VideosService(token);
+    videoInstances.set(VideosService, key, instance);
     return instance;
+  }
+
+  public async quoteCrun(
+    body: CrunVideoQuoteRequest,
+    signal?: AbortSignal,
+  ): Promise<CrunGenerationQuoteResponse> {
+    const response = await this.instance.post<unknown>('/crun-quote', body, {
+      signal,
+    });
+    return parseCrunQuoteResponse(response.data, body);
   }
 
   /**
@@ -54,7 +72,8 @@ export class VideosService extends IngredientsService<Video> {
   public async post(
     body:
       | (Partial<IVideo> & { useTemplate?: boolean })
-      | VideoGenerationPayload,
+      | VideoGenerationPayload
+      | CrunVideoGenerationRequest,
     signal?: AbortSignal,
   ) {
     const data = VideoGenerationSerializer.serialize(body);

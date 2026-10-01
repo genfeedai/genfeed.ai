@@ -1,5 +1,8 @@
 import type { IngredientFormat, RouterPriority } from '../..';
-import type { CrunImageQuoteControls } from '../billing/crun-generation-quote.interface';
+import type {
+  CrunImageQuoteControls,
+  CrunVideoQuoteControls,
+} from '../billing/crun-generation-quote.interface';
 import type { IIngredient } from '../index';
 import type { KnowledgeSelection } from '../knowledge-base/knowledge-retrieval.interface';
 
@@ -32,6 +35,8 @@ export interface BaseGenerationPayload {
 }
 
 export interface VideoGenerationPayload extends BaseGenerationPayload {
+  crunQuoteId?: string;
+  crunControls?: CrunVideoQuoteControls;
   format: IngredientFormat;
   fontFamily?: string;
   sounds: string[];

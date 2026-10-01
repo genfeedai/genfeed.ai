@@ -2,7 +2,9 @@ import type { IDesktopBootstrap } from '@genfeedai/contracts/desktop';
 import type {
   CrunGenerationQuoteResponse,
   CrunImageQuoteRequest,
+  CrunVideoQuoteRequest,
 } from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
+import type { UseCrunGenerationQuoteOptions } from '@genfeedai/props/studio/prompt-bar.props';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useCrunGenerationQuote } from './use-crun-generation-quote';
@@ -20,7 +22,12 @@ const state = vi.hoisted(() => ({
   },
   brand: { isReady: true, organizationId: 'org-1', brandId: 'brand-1' },
   quote: vi.fn(),
-  calls: [] as { endpoint: string; request: unknown }[],
+  videoQuote: vi.fn(),
+  calls: [] as {
+    endpoint: string;
+    request: unknown;
+    mediaKind: 'image' | 'video';
+  }[],
   bootstrapListener: null as ((bootstrap: unknown) => void) | null,
   bootstrap: vi.fn(),
 }));
@@ -46,8 +53,22 @@ vi.mock('@services/ingredients/images.service', () => ({
       const endpoint = state.endpoint;
       return {
         quoteCrun: (request: unknown, signal: AbortSignal) => {
-          state.calls.push({ endpoint, request });
+          state.calls.push({ endpoint, request, mediaKind: 'image' });
           return state.quote(request, signal);
+        },
+      };
+    },
+  },
+}));
+
+vi.mock('@services/ingredients/videos.service', () => ({
+  VideosService: {
+    getInstance: () => {
+      const endpoint = state.endpoint;
+      return {
+        quoteCrun: (request: unknown, signal: AbortSignal) => {
+          state.calls.push({ endpoint, request, mediaKind: 'video' });
+          return state.videoQuote(request, signal);
         },
       };
     },
@@ -101,6 +122,13 @@ beforeEach(() => {
   state.brand = { isReady: true, organizationId: 'org-1', brandId: 'brand-1' };
   state.calls = [];
   state.quote.mockReset().mockImplementation(async () => available());
+  state.videoQuote
+    .mockReset()
+    .mockImplementation(async (request: CrunVideoQuoteRequest) => ({
+      ...available(),
+      modelKey: request.model,
+      contractVersion: request.crunControls.contractVersion,
+    }));
   state.bootstrapListener = null;
 });
 afterEach(() => {
@@ -291,5 +319,257 @@ describe('scoped Crun quote lifecycle', () => {
     await debounce();
     expect(state.calls).toHaveLength(0);
     expect(result.current.status).toBe('idle');
+  });
+});
+
+const videoRequest: CrunVideoQuoteRequest = {
+  model: 'crun/kling/v2-5-turbo-pro',
+  text: request.text,
+  brandId: 'brand-1',
+  references: ['start-1'],
+  endFrame: 'end-1',
+  outputs: 4,
+  crunControls: {
+    contractVersion: 'video-reviewed',
+    duration: 10,
+    guidanceScale: 0,
+  },
+};
+describe('media-discriminated scoped Crun quotes', () => {
+  it('invalidates current image quote synchronously before video transport starts', async () => {
+    const { result, rerender } = renderHook(
+      ({ options }) => useCrunGenerationQuote(options),
+      {
+        initialProps: {
+          options: { request, isActive: true } as UseCrunGenerationQuoteOptions,
+        },
+      },
+    );
+    await debounce();
+    expect(result.current.getCurrentQuote()?.modelKey).toBe(request.model);
+    rerender({
+      options: { mediaKind: 'video', request: videoRequest, isActive: true },
+    });
+    expect(result.current.getCurrentQuote()).toBeNull();
+    expect(result.current.status).toBe('pending');
+    await debounce();
+    expect(state.calls.map((call) => call.mediaKind)).toEqual([
+      'image',
+      'video',
+    ]);
+    expect(result.current.getCurrentQuote()?.modelKey).toBe(videoRequest.model);
+    expect(state.videoQuote.mock.calls[0]?.[0]).toEqual(videoRequest);
+  });
+  it('aborts an old-media request and ignores its late completion', async () => {
+    let resolveOld: ((quote: CrunGenerationQuoteResponse) => void) | undefined;
+    state.quote.mockImplementationOnce(
+      () =>
+        new Promise<CrunGenerationQuoteResponse>((resolve) => {
+          resolveOld = resolve;
+        }),
+    );
+    const { result, rerender } = renderHook(
+      ({ options }) => useCrunGenerationQuote(options),
+      {
+        initialProps: {
+          options: { request, isActive: true } as UseCrunGenerationQuoteOptions,
+        },
+      },
+    );
+    await debounce();
+    rerender({
+      options: { mediaKind: 'video', request: videoRequest, isActive: true },
+    });
+    expect(state.quote.mock.calls[0]?.[1]).toHaveProperty('aborted', true);
+    await debounce();
+    await act(async () => {
+      resolveOld?.(available());
+    });
+    expect(result.current.getCurrentQuote()?.modelKey).toBe(videoRequest.model);
+  });
+  it('checks category after delayed token resolution before HTTP', async () => {
+    let resolveToken: ((token: string) => void) | undefined;
+    state.auth.getToken = vi.fn(
+      () =>
+        new Promise<string>((resolve) => {
+          resolveToken = resolve;
+        }),
+    );
+    const { rerender } = renderHook(
+      ({ options }) => useCrunGenerationQuote(options),
+      {
+        initialProps: {
+          options: { request, isActive: true } as UseCrunGenerationQuoteOptions,
+        },
+      },
+    );
+    await debounce();
+    rerender({
+      options: { mediaKind: 'video', request: videoRequest, isActive: true },
+    });
+    await act(async () => {
+      resolveToken?.('token');
+    });
+    expect(state.calls).toHaveLength(0);
+  });
+  it.each(['frames', 'duration', 'version', 'brand', 'endpoint'])(
+    'invalidates video scope when %s changes',
+    async (change) => {
+      let current = videoRequest;
+      const { result, rerender } = renderHook(() =>
+        useCrunGenerationQuote({
+          mediaKind: 'video',
+          request: current,
+          isActive: true,
+        }),
+      );
+      await debounce();
+      if (change === 'frames') current = { ...current, endFrame: 'end-2' };
+      if (change === 'duration')
+        current = {
+          ...current,
+          crunControls: { ...current.crunControls, duration: 5 },
+        };
+      if (change === 'version')
+        current = {
+          ...current,
+          crunControls: {
+            ...current.crunControls,
+            contractVersion: 'new-video',
+          },
+        };
+      if (change === 'brand')
+        state.brand = { ...state.brand, brandId: 'brand-2' };
+      if (change === 'endpoint') state.endpoint = 'https://two.example/api/';
+      rerender();
+      expect(result.current.getCurrentQuote()).toBeNull();
+      await debounce();
+      expect(state.videoQuote).toHaveBeenCalledTimes(2);
+      expect(state.quote).not.toHaveBeenCalled();
+    },
+  );
+  it('keeps video group credits direct and rejects expired admission', async () => {
+    state.videoQuote.mockResolvedValueOnce({
+      ...available(),
+      modelKey: videoRequest.model,
+      contractVersion: videoRequest.crunControls.contractVersion,
+      credits: 11,
+    });
+    const { result } = renderHook(() =>
+      useCrunGenerationQuote({
+        mediaKind: 'video',
+        request: videoRequest,
+        isActive: true,
+      }),
+    );
+    await debounce();
+    expect(result.current.getCurrentQuote()?.credits).toBe(11);
+    vi.setSystemTime(new Date('2026-10-01T12:01:01.000Z'));
+    expect(result.current.getCurrentQuote()).toBeNull();
+  });
+  it('leaves video inactive/null requests unavailable without falling back to images', async () => {
+    const { result } = renderHook(() =>
+      useCrunGenerationQuote({
+        mediaKind: 'video',
+        request: null,
+        isActive: true,
+      }),
+    );
+    await debounce();
+    expect(result.current.status).toBe('idle');
+    expect(state.calls).toHaveLength(0);
+  });
+});
+
+describe('video quote modes and return-to-image isolation', () => {
+  it.each(['credits', 'byok'] as const)(
+    'retains genuine zero %s separately from unavailable',
+    async (billingMode) => {
+      state.videoQuote.mockResolvedValueOnce({
+        ...available(),
+        modelKey: videoRequest.model,
+        contractVersion: videoRequest.crunControls.contractVersion,
+        credits: 0,
+        billingMode,
+      });
+      const { result, rerender } = renderHook(
+        ({ active }) =>
+          useCrunGenerationQuote({
+            mediaKind: 'video',
+            request: videoRequest,
+            isActive: active,
+          }),
+        { initialProps: { active: true } },
+      );
+      await debounce();
+      expect(result.current.getCurrentQuote()).toMatchObject({
+        credits: 0,
+        billingMode,
+      });
+      rerender({ active: false });
+      expect(result.current.getCurrentQuote()).toBeNull();
+      expect(result.current.quote).toBeNull();
+    },
+  );
+  it('never substitutes a numeric price for unavailable video', async () => {
+    state.videoQuote.mockResolvedValueOnce({
+      isAvailable: false,
+      modelKey: videoRequest.model,
+      quoteId: null,
+      expiresAt: null,
+      contractVersion: null,
+      credits: null,
+      billingMode: null,
+      reasonCode: 'PRICING_UNAVAILABLE',
+    });
+    const { result } = renderHook(() =>
+      useCrunGenerationQuote({
+        mediaKind: 'video',
+        request: videoRequest,
+        isActive: true,
+      }),
+    );
+    await debounce();
+    expect(result.current.status).toBe('unavailable');
+    expect(result.current.quote?.credits).toBeNull();
+    expect(result.current.getCurrentQuote()).toBeNull();
+  });
+  it('switches back to the image service and rejects a late video response', async () => {
+    let resolveVideo:
+      | ((quote: CrunGenerationQuoteResponse) => void)
+      | undefined;
+    state.videoQuote.mockImplementationOnce(
+      () =>
+        new Promise<CrunGenerationQuoteResponse>((resolve) => {
+          resolveVideo = resolve;
+        }),
+    );
+    const { result, rerender } = renderHook(
+      ({ options }) => useCrunGenerationQuote(options),
+      {
+        initialProps: {
+          options: {
+            mediaKind: 'video',
+            request: videoRequest,
+            isActive: true,
+          } as UseCrunGenerationQuoteOptions,
+        },
+      },
+    );
+    await debounce();
+    rerender({ options: { request, isActive: true } });
+    await debounce();
+    await act(async () => {
+      resolveVideo?.({
+        ...available(),
+        modelKey: videoRequest.model,
+        contractVersion: videoRequest.crunControls.contractVersion,
+      });
+    });
+    expect(state.calls.map((call) => call.mediaKind)).toEqual([
+      'video',
+      'image',
+    ]);
+    expect(result.current.getCurrentQuote()?.modelKey).toBe(request.model);
   });
 });
