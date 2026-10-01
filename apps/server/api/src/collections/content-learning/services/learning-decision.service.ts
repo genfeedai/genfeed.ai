@@ -691,6 +691,7 @@ export class LearningDecisionService {
     const context = input.context;
     if (!context?.credentialId)
       return this.fallback('no_destination', 'no_destination');
+    const credentialId = context.credentialId;
     if (
       !context.requestKey ||
       context.requestKey.length > 256 ||
@@ -702,13 +703,13 @@ export class LearningDecisionService {
       await learningFence(tx, 'shared');
       const credential = await this.accounts.credential(
         input.organizationId,
-        context.credentialId,
+        credentialId,
         input.brandId,
         tx,
       );
       const account = await this.accounts.ensure(
         input.organizationId,
-        context.credentialId,
+        credentialId,
         tx,
       );
       const objective = context.objective ?? 'awareness',
