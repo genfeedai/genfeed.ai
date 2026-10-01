@@ -26,7 +26,12 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
-import { getActivityDescription } from '@pages/activities/activities-list.utils';
+import {
+  getActivityDescription,
+  getActivityDestinationPath,
+  getActivityLifecycleText,
+} from '@pages/activities/activities-list.utils';
+import ActivityThumbnailCell from '@pages/activities/components/ActivityThumbnailCell';
 import {
   badgeVariantForTone,
   releaseStatusBadge,
@@ -723,7 +728,15 @@ function CredentialHealthSurface({
   );
 }
 
-function ActivitySurface({ activityHref }: { activityHref: string }) {
+function ActivitySurface({
+  activityHref,
+  orgSlug,
+  brandSlug,
+}: {
+  activityHref: string;
+  orgSlug: string;
+  brandSlug?: string;
+}) {
   const translate = useTranslations('common');
   const activityMessageFormatter = useActivityMessageFormatter();
   const { filteredActivities, isError, isLoading, refresh } = useActivities({
@@ -753,11 +766,29 @@ function ActivitySurface({ activityHref }: { activityHref: string }) {
         <div>
           {recentActivities.map((activity: IActivity) => {
             const badge = getActivityBadge(activity);
+            const assetPath = getActivityDestinationPath(activity);
+            const assetHref = assetPath
+              ? brandSlug
+                ? createBrandAppRoute(orgSlug, brandSlug, assetPath)
+                : createOrganizationAppRoute(orgSlug, assetPath)
+              : undefined;
+            const lifecycle = getActivityLifecycleText(activity);
             return (
               <ListRow
                 data-testid="operational-home-activity-row"
                 density="compact"
                 key={activity.id}
+                leading={
+                  assetHref ? (
+                    <Link
+                      href={assetHref}
+                      aria-label={`Open ${getActivityDescription(activity, activityMessageFormatter)}`}
+                    >
+                      <ActivityThumbnailCell activity={activity} />
+                    </Link>
+                  ) : undefined
+                }
+                description={lifecycle}
                 meta={
                   <ClientFormattedDate
                     fallback="Time unavailable"
@@ -765,10 +796,18 @@ function ActivitySurface({ activityHref }: { activityHref: string }) {
                     value={activity.createdAt}
                   />
                 }
-                title={getActivityDescription(
-                  activity,
-                  activityMessageFormatter,
-                )}
+                title={
+                  assetHref ? (
+                    <Link href={assetHref}>
+                      {getActivityDescription(
+                        activity,
+                        activityMessageFormatter,
+                      )}
+                    </Link>
+                  ) : (
+                    getActivityDescription(activity, activityMessageFormatter)
+                  )
+                }
                 trailing={<Badge variant={badge.variant}>{badge.label}</Badge>}
               />
             );
@@ -911,7 +950,11 @@ export default function OperationalHomeSections({
         />
       </div>
 
-      <ActivitySurface activityHref={activityHref} />
+      <ActivitySurface
+        activityHref={activityHref}
+        orgSlug={orgSlug}
+        brandSlug={brandSlug}
+      />
     </div>
   );
 }

@@ -6,10 +6,14 @@ import {
   buildActivityMutation,
   normalizeActivityDocument,
 } from '@api/collections/activities/utils/activity-document.util';
+import { hydrateGenerationActivity } from '@api/collections/activities/utils/generation-activity.util';
 import { normalizeActionOrigin, withActionOriginMetadata } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { ActivityKey, parseActivityKey } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
+import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -40,6 +44,90 @@ export class ActivitiesService extends BaseService<
     return normalizeActivityDocument(
       super.normalizeDocument(document) as ActivityDocument,
     );
+  }
+
+  override async findAll(
+    input: unknown,
+    options: AggregationOptions,
+    enableCache = true,
+  ): Promise<AggregatePaginateResult<ActivityDocument>> {
+    const result = await super.findAll(input, options, enableCache);
+    return {
+      ...result,
+      docs: await this.hydrateGenerationActivities(result.docs),
+    };
+  }
+
+  async hydrateGenerationActivities(
+    activities: ActivityDocument[],
+  ): Promise<ActivityDocument[]> {
+    const candidates = activities.filter(
+      (activity): activity is ActivityDocument & { entityId: string } => {
+        const { subject, operation } = parseActivityKey(activity.key ?? '');
+        return (
+          Boolean(activity.entityId) &&
+          ['image', 'video', 'music', 'voice'].includes(subject) &&
+          ['generate', 'upscale', 'reframe'].includes(operation)
+        );
+      },
+    );
+    if (!candidates.length) return activities;
+    // One batch, with each asset bound to the organization of its activity.
+    const ingredients = await this.prisma.ingredient.findMany({
+      include: { metadata: true },
+      where: {
+        isDeleted: false,
+        OR: candidates.map((activity) => ({
+          id: activity.entityId,
+          organizationId: activity.organizationId,
+        })),
+      },
+    });
+    const byId = new Map(
+      ingredients.map((ingredient) => [ingredient.id, ingredient]),
+    );
+    return activities.map((activity) => {
+      const ingredient = activity.entityId
+        ? byId.get(activity.entityId)
+        : undefined;
+      return ingredient && ingredient.organizationId === activity.organizationId
+        ? hydrateGenerationActivity(activity, ingredient)
+        : activity;
+    });
+  }
+
+  findGenerationActivity(
+    keys: string[],
+    ingredientId: string,
+    userId: string,
+    organizationId?: string,
+  ): Promise<ActivityDocument | null> {
+    const operation = parseActivityKey(keys[0] ?? '');
+    const lifecycleKeys = Object.values(ActivityKey).filter((key) => {
+      const parsed = parseActivityKey(key);
+      return (
+        parsed.subject === operation.subject &&
+        parsed.operation === operation.operation
+      );
+    });
+    return super.findOne({
+      action: { in: [...new Set([...keys, ...lifecycleKeys])] },
+      OR: [
+        { entityId: ingredientId },
+        { entityId: null, data: { path: ['value'], equals: ingredientId } },
+        {
+          entityId: null,
+          data: {
+            path: ['value'],
+            string_contains: `"ingredientId":"${ingredientId}"`,
+          },
+        },
+      ],
+      entityModel: 'Ingredient',
+      isDeleted: false,
+      organizationId: organizationId ?? null,
+      userId,
+    });
   }
 
   findByActionValue(

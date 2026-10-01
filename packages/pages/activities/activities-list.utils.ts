@@ -213,6 +213,71 @@ export function getActivityMediaPreviewUrl(
   return undefined;
 }
 
+export function getActivityIngredientPreviewUrl(
+  ingredient: Record<string, unknown>,
+  category: IngredientCategory,
+): string | undefined {
+  if (
+    category === IngredientCategory.VIDEO &&
+    typeof ingredient.id === 'string'
+  ) {
+    const thumbnail = ingredient.thumbnailUrl;
+    return typeof thumbnail === 'string' &&
+      !thumbnail.includes('/placeholders/')
+      ? thumbnail
+      : `${EnvironmentService.ingredientsEndpoint}/thumbnails/${ingredient.id}`;
+  }
+  if (category === IngredientCategory.IMAGE) {
+    return typeof ingredient.ingredientUrl === 'string'
+      ? ingredient.ingredientUrl
+      : typeof ingredient.id === 'string'
+        ? `${EnvironmentService.ingredientsEndpoint}/images/${ingredient.id}`
+        : undefined;
+  }
+  return undefined;
+}
+
+export function getActivityVideoUrl(activity: IActivity): string | undefined {
+  if (
+    getResultTypeFromActivityKey(activity.key) !== IngredientCategory.VIDEO ||
+    getBackgroundTaskStatus(activity.key) !== 'completed'
+  )
+    return undefined;
+  const ingredient = (activity as IActivityPopulated).ingredient;
+  if (
+    ingredient?.ingredientUrl &&
+    !ingredient.ingredientUrl.includes('/placeholders/')
+  )
+    return ingredient.ingredientUrl;
+  const id = getActivityAssetId(activity);
+  return id
+    ? `${EnvironmentService.ingredientsEndpoint}/videos/${id}`
+    : undefined;
+}
+
+/** A generation is one row with both lifecycle timestamps and its output. */
+export function getActivityLifecycleText(
+  activity: IActivity,
+): string | undefined {
+  const { subject, operation } = parseActivityKey(activity.key);
+  if (
+    !['image', 'video', 'music', 'voice'].includes(subject) ||
+    operation !== 'generate'
+  )
+    return undefined;
+  const value = parseActivityValue(activity.value);
+  const start =
+    typeof value?.startedAt === 'string' ? value.startedAt : activity.createdAt;
+  const finish =
+    typeof value?.completedAt === 'string' ? value.completedAt : undefined;
+  const parts: string[] = [];
+  if (start && Number.isFinite(new Date(start).getTime()))
+    parts.push(`Started ${new Date(start).toLocaleString()}`);
+  if (finish && Number.isFinite(new Date(finish).getTime()))
+    parts.push(`Finished ${new Date(finish).toLocaleString()}`);
+  return parts.length ? parts.join(' · ') : undefined;
+}
+
 /** Credits a generation was charged, stamped on its activity when it settled. */
 export function getGenerationCreditAmount(
   activity: Pick<IActivity, 'key' | 'value'>,

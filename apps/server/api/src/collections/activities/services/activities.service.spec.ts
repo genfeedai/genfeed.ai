@@ -264,3 +264,59 @@ describe('ActivitiesService batched writes', () => {
     });
   });
 });
+
+describe('ActivitiesService generation hydration', () => {
+  it('batches scoped ingredients and refuses an ingredient from another organization', async () => {
+    const findMany = vi
+      .fn()
+      .mockResolvedValue([{ id: 'asset-1', organizationId: 'foreign-org' }]);
+    const service = new ActivitiesService(
+      { ingredient: { findMany } } as never,
+      { debug: vi.fn(), error: vi.fn() } as never,
+    );
+    const row = {
+      id: 'activity-1',
+      entityId: 'asset-1',
+      key: ActivityKey.IMAGE_PROCESSING,
+      organizationId: 'org-1',
+    } as Parameters<typeof service.hydrateGenerationActivities>[0][number];
+    expect(await service.hydrateGenerationActivities([row])).toEqual([row]);
+    expect(findMany).toHaveBeenCalledWith({
+      include: { metadata: true },
+      where: {
+        isDeleted: false,
+        OR: [{ id: 'asset-1', organizationId: 'org-1' }],
+      },
+    });
+  });
+  it('matches processing and terminal callbacks by exact ingredient and tenant', async () => {
+    const findFirst = vi.fn().mockResolvedValue(null);
+    const service = new ActivitiesService(
+      { activity: { findFirst } } as never,
+      { debug: vi.fn(), error: vi.fn() } as never,
+    );
+    await service.findGenerationActivity(
+      [ActivityKey.IMAGE_PROCESSING, ActivityKey.IMAGE_GENERATED],
+      'asset-1',
+      'user-1',
+      'org-1',
+    );
+    expect(findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organizationId: 'org-1',
+          userId: 'user-1',
+          isDeleted: false,
+          action: {
+            in: expect.arrayContaining([
+              ActivityKey.IMAGE_PROCESSING,
+              ActivityKey.IMAGE_GENERATED,
+              ActivityKey.IMAGE_FAILED,
+            ]),
+          },
+          OR: expect.arrayContaining([{ entityId: 'asset-1' }]),
+        }),
+      }),
+    );
+  });
+});

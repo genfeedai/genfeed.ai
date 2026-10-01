@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 describe('ActivityUpdateService', () => {
   let service: ActivityUpdateService;
   let activitiesService: {
-    findByActionValue: ReturnType<typeof vi.fn>;
+    findGenerationActivity: ReturnType<typeof vi.fn>;
     record: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
   };
@@ -22,7 +22,7 @@ describe('ActivityUpdateService', () => {
   beforeEach(async () => {
     activitiesService = {
       record: vi.fn().mockResolvedValue({ id: mockObjectId }),
-      findByActionValue: vi.fn(),
+      findGenerationActivity: vi.fn(),
       update: vi.fn().mockResolvedValue({ id: mockObjectId }),
     };
     websocketService = {
@@ -56,7 +56,9 @@ describe('ActivityUpdateService', () => {
         id: mockObjectId,
         value: JSON.stringify({ ingredientId: 'old', type: 'generation' }),
       };
-      activitiesService.findByActionValue.mockResolvedValue(existingActivity);
+      activitiesService.findGenerationActivity.mockResolvedValue(
+        existingActivity,
+      );
 
       await service.updateSuccessActivity(baseParams);
 
@@ -68,8 +70,48 @@ describe('ActivityUpdateService', () => {
       );
     });
 
+    it('reuses a finished row on repeated completion callbacks and preserves its timing', async () => {
+      const value = {
+        startedAt: '2026-09-08T18:52:06Z',
+        completedAt: '2026-09-08T18:52:19Z',
+        ingredientId: mockObjectId,
+      };
+      activitiesService.findGenerationActivity.mockResolvedValue({
+        id: mockObjectId,
+        key: ActivityKey.VIDEO_GENERATED,
+        value: JSON.stringify(value),
+      });
+      await service.updateSuccessActivity(baseParams);
+      await service.updateSuccessActivity(baseParams);
+      expect(activitiesService.record).not.toHaveBeenCalled();
+      expect(activitiesService.findGenerationActivity).toHaveBeenCalledWith(
+        [ActivityKey.VIDEO_PROCESSING, ActivityKey.VIDEO_GENERATED],
+        mockObjectId,
+        mockObjectId,
+        mockObjectId,
+      );
+      const mutation = activitiesService.update.mock.calls[0][1];
+      expect(JSON.parse(mutation.value)).toMatchObject(value);
+    });
+
+    it('finishes a recovered generation on the failed row instead of creating another activity', async () => {
+      activitiesService.findGenerationActivity.mockResolvedValue({
+        id: mockObjectId,
+        key: ActivityKey.VIDEO_FAILED,
+        value: JSON.stringify({
+          startedAt: '2026-09-08T18:52:06Z',
+          completedAt: '2026-09-08T18:52:19Z',
+        }),
+      });
+      await service.updateSuccessActivity(baseParams);
+      expect(activitiesService.record).not.toHaveBeenCalled();
+      const value = JSON.parse(activitiesService.update.mock.calls[0][1].value);
+      expect(value.startedAt).toBe('2026-09-08T18:52:06Z');
+      expect(value.completedAt).not.toBe('2026-09-08T18:52:19Z');
+    });
+
     it('should create new activity when no existing found', async () => {
-      activitiesService.findByActionValue.mockResolvedValue(null);
+      activitiesService.findGenerationActivity.mockResolvedValue(null);
 
       await service.updateSuccessActivity(baseParams);
 
@@ -77,7 +119,7 @@ describe('ActivityUpdateService', () => {
     });
 
     it('should publish background task update when userId available', async () => {
-      activitiesService.findByActionValue.mockResolvedValue(null);
+      activitiesService.findGenerationActivity.mockResolvedValue(null);
 
       await service.updateSuccessActivity(baseParams);
 
@@ -91,7 +133,7 @@ describe('ActivityUpdateService', () => {
     });
 
     it('should handle reframe transformation', async () => {
-      activitiesService.findByActionValue.mockResolvedValue(null);
+      activitiesService.findGenerationActivity.mockResolvedValue(null);
 
       await service.updateSuccessActivity({
         ...baseParams,
@@ -106,7 +148,7 @@ describe('ActivityUpdateService', () => {
     });
 
     it('should handle upscale transformation', async () => {
-      activitiesService.findByActionValue.mockResolvedValue(null);
+      activitiesService.findGenerationActivity.mockResolvedValue(null);
 
       await service.updateSuccessActivity({
         ...baseParams,
@@ -121,7 +163,7 @@ describe('ActivityUpdateService', () => {
     });
 
     it('should handle image category', async () => {
-      activitiesService.findByActionValue.mockResolvedValue(null);
+      activitiesService.findGenerationActivity.mockResolvedValue(null);
 
       await service.updateSuccessActivity({
         ...baseParams,
@@ -136,7 +178,7 @@ describe('ActivityUpdateService', () => {
     });
 
     it('should handle music category', async () => {
-      activitiesService.findByActionValue.mockResolvedValue(null);
+      activitiesService.findGenerationActivity.mockResolvedValue(null);
 
       await service.updateSuccessActivity({
         ...baseParams,
@@ -156,12 +198,12 @@ describe('ActivityUpdateService', () => {
         category: 'unsupported',
       });
 
-      expect(activitiesService.findByActionValue).not.toHaveBeenCalled();
+      expect(activitiesService.findGenerationActivity).not.toHaveBeenCalled();
       expect(activitiesService.record).not.toHaveBeenCalled();
     });
 
     it('should not publish websocket when userId is missing', async () => {
-      activitiesService.findByActionValue.mockResolvedValue(null);
+      activitiesService.findGenerationActivity.mockResolvedValue(null);
 
       await service.updateSuccessActivity({
         ...baseParams,
@@ -191,7 +233,9 @@ describe('ActivityUpdateService', () => {
         id: mockObjectId,
         value: JSON.stringify({ ingredientId: 'old' }),
       };
-      activitiesService.findByActionValue.mockResolvedValue(existingActivity);
+      activitiesService.findGenerationActivity.mockResolvedValue(
+        existingActivity,
+      );
 
       await service.updateFailureActivity(baseParams);
 
@@ -204,7 +248,7 @@ describe('ActivityUpdateService', () => {
     });
 
     it('should create new failure activity when no existing found', async () => {
-      activitiesService.findByActionValue.mockResolvedValue(null);
+      activitiesService.findGenerationActivity.mockResolvedValue(null);
 
       await service.updateFailureActivity(baseParams);
 
@@ -216,7 +260,7 @@ describe('ActivityUpdateService', () => {
     });
 
     it('should publish failure event', async () => {
-      activitiesService.findByActionValue.mockResolvedValue(null);
+      activitiesService.findGenerationActivity.mockResolvedValue(null);
 
       await service.updateFailureActivity(baseParams);
 
@@ -229,7 +273,7 @@ describe('ActivityUpdateService', () => {
     });
 
     it('should handle image failure', async () => {
-      activitiesService.findByActionValue.mockResolvedValue(null);
+      activitiesService.findGenerationActivity.mockResolvedValue(null);
 
       await service.updateFailureActivity({
         ...baseParams,
@@ -244,7 +288,7 @@ describe('ActivityUpdateService', () => {
     });
 
     it('should use default error message', async () => {
-      activitiesService.findByActionValue.mockResolvedValue(null);
+      activitiesService.findGenerationActivity.mockResolvedValue(null);
 
       await service.updateFailureActivity({
         ...baseParams,
