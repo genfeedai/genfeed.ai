@@ -33,6 +33,46 @@ beforeAll(() => {
 });
 
 describe('PromptEditorView', () => {
+  it('replaces the document when a starter seed arrives', async () => {
+    const onValueChange = vi.fn();
+    const onDocumentChange = vi.fn();
+    const { rerender } = render(
+      <PromptEditorView
+        onDocumentChange={onDocumentChange}
+        onValueChange={onValueChange}
+        value=""
+      />,
+    );
+    await screen.findByRole('textbox', { name: 'Prompt' });
+
+    rerender(
+      <PromptEditorView
+        documentSeed={{
+          content: {
+            content: [
+              {
+                content: [{ text: 'Product photo', type: 'text' }],
+                type: 'paragraph',
+              },
+            ],
+            type: 'doc',
+          },
+          id: 'product-photo',
+        }}
+        onDocumentChange={onDocumentChange}
+        onValueChange={onValueChange}
+        value=""
+      />,
+    );
+
+    await waitFor(() => {
+      expect(onValueChange).toHaveBeenCalledWith('Product photo');
+    });
+    expect(onDocumentChange).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'doc' }),
+    );
+  });
+
   it('serializes typed content to plain text', async () => {
     const onValueChange = vi.fn();
 

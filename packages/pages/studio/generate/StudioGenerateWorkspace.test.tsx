@@ -8,6 +8,7 @@ import {
   createStudioGenerateDraftOutbox,
   type StudioGenerateDraftOutbox,
 } from '@pages/studio/generate/utils/studio-generate-draft-outbox';
+import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
 import {
   act,
   fireEvent,
@@ -15,6 +16,10 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
+import {
+  getGenerationSetup,
+  useGenerationSetupStore,
+} from '@ui/dropdowns/generation-setup/generation-setup.store';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import {
   type ReactNode,
@@ -75,6 +80,9 @@ const mocks = vi.hoisted(() => ({
   saveDraft: vi.fn(),
   applyTypeSettings: vi.fn(),
   brandId: { value: 'brand-1' },
+  selectedBrand: {
+    value: undefined as { references?: readonly unknown[] } | undefined,
+  },
   organizationId: { value: 'org-1' },
   authIdentity: { value: 'identity-1' },
   getToken: vi.fn().mockResolvedValue('test-token'),
@@ -174,6 +182,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: mocks.brandId.value,
     organizationId: mocks.organizationId.value,
+    selectedBrand: mocks.selectedBrand.value,
   }),
 }));
 
@@ -419,6 +428,7 @@ describe('StudioGenerateWorkspace', () => {
     mocks.enhancedPromptId.value = undefined;
     mocks.isHydrated.value = true;
     mocks.brandId.value = 'brand-1';
+    mocks.selectedBrand.value = undefined;
     mocks.organizationId.value = 'org-1';
     mocks.authIdentity.value = 'identity-1';
     mocks.getToken.mockResolvedValue('test-token');
@@ -538,7 +548,119 @@ describe('StudioGenerateWorkspace', () => {
     });
     rerender(<StudioGenerateWorkspace />);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    expect(screen.getByTestId('studio-results')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('studio-generate-starter-ideas'),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('studio-results')).not.toBeInTheDocument();
+  });
+
+  it('applies a starter idea as a document seed and user-owned setup', () => {
+    useGenerationSetupStore.setState({
+      reasonsByScope: {},
+      setupByScope: {},
+    });
+    render(<StudioGenerateWorkspace />);
+
+    expect(
+      screen.getByTestId('studio-generate-starter-ideas'),
+    ).toBeInTheDocument();
+    const [productPhoto] = screen.getAllByRole('button', { name: 'apply' });
+    expect(productPhoto).toBeDefined();
+    if (!productPhoto) {
+      return;
+    }
+    fireEvent.click(productPhoto);
+
+    expect(mocks.setType).toHaveBeenCalledWith('image');
+    const composerProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+      documentSeed?: { content: { type: string }; id: string } | null;
+      prompt: string;
+    };
+    expect(composerProps.prompt).toBe('');
+    expect(composerProps.documentSeed?.content.type).toBe('doc');
+    expect(composerProps.documentSeed?.id.startsWith('productPhoto:')).toBe(
+      true,
+    );
+    const setup = getGenerationSetup(
+      'studio:image',
+      getDefaultGenerationSetupValues('image'),
+    );
+    expect(setup.values.promptTemplate).toBe('product-photo');
+    expect(setup.values.aspectRatio).toBe('1:1');
+    expect(setup.sources.promptTemplate).toBe('user');
+    expect(setup.sources.aspectRatio).toBe('user');
+    useGenerationSetupStore.setState({
+      reasonsByScope: {},
+      setupByScope: {},
+    });
+  });
+
+  it('attaches the brand product still and opens the library when the kit has none', () => {
+    mocks.selectedBrand.value = {
+      references: [
+        {
+          cdnUrl: 'https://cdn.example/face.png',
+          displayName: 'Anna',
+          id: 'face-1',
+          referenceCategory: 'FACE',
+        },
+        {
+          cdnUrl: 'https://cdn.example/bottle.png',
+          displayName: 'Bottle',
+          id: 'bottle-1',
+          referenceCategory: 'PRODUCT',
+        },
+      ],
+    };
+    const { rerender } = render(<StudioGenerateWorkspace />);
+    const productButtons = screen.getAllByRole('button', { name: 'apply' });
+    const productPhoto = productButtons[0];
+    const productAd = productButtons[1];
+    expect(productPhoto).toBeDefined();
+    expect(productAd).toBeDefined();
+    if (!productPhoto || !productAd) {
+      return;
+    }
+
+    fireEvent.click(productPhoto);
+    expect(mocks.composer.mock.calls.at(-1)?.[0].attachedAssets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'bottle-1',
+          name: 'Bottle',
+          previewUrl: 'https://cdn.example/bottle.png',
+          role: 'reference',
+          source: 'library',
+        }),
+      ]),
+    );
+    expect(
+      screen.queryByText('Reference library content'),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(productAd);
+    expect(mocks.setType).toHaveBeenCalledWith('video');
+    expect(mocks.composer.mock.calls.at(-1)?.[0].attachedAssets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'bottle-1',
+          role: 'startFrame',
+          source: 'library',
+        }),
+      ]),
+    );
+
+    mocks.selectedBrand.value = undefined;
+    rerender(<StudioGenerateWorkspace />);
+    const [photoWithoutProduct] = screen.getAllByRole('button', {
+      name: 'apply',
+    });
+    expect(photoWithoutProduct).toBeDefined();
+    if (!photoWithoutProduct) {
+      return;
+    }
+    fireEvent.click(photoWithoutProduct);
+    expect(screen.getByText('Reference library content')).toBeInTheDocument();
   });
 
   it('retains live or saved rows under a refresh warning', () => {
@@ -565,6 +687,19 @@ describe('StudioGenerateWorkspace', () => {
   });
 
   it('removes gallery tabs without hiding history from other asset types', () => {
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [
+        {
+          createdAt: 1,
+          id: 'video-history',
+          prompt: 'Older video',
+          status: 'GENERATED',
+          type: 'video',
+        },
+      ],
+    });
     render(<StudioGenerateWorkspace />);
 
     const topbar = screen.getByTestId('section-topbar');
@@ -892,6 +1027,19 @@ describe('StudioGenerateWorkspace', () => {
   });
 
   it('defaults to the masonry grid and toggles the results into a list', () => {
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [
+        {
+          createdAt: 1,
+          id: 'grid-1',
+          prompt: 'A still',
+          status: 'GENERATED',
+          type: 'image',
+        },
+      ],
+    });
     render(<StudioGenerateWorkspace />);
 
     expect(screen.getByTestId('studio-results').parentElement).toHaveClass(

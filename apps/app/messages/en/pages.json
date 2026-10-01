@@ -986,6 +986,51 @@
     "endFrame": "End Frame",
     "emptyDescription": "Write a prompt below and everything you generate lands here.",
     "emptyTitle": "Nothing here yet",
+    "starterIdeas": {
+      "apply": "Use {label}",
+      "avatarIntro": {
+        "detail": "Avatar",
+        "label": "Avatar intro",
+        "lead": "Hi, welcome. Here is the one thing this product does for you."
+      },
+      "cinematicVideo": {
+        "characterLead": "Cinematic shot of ",
+        "characterTail": ", slow camera move, natural light.",
+        "detail": "Video · 16:9",
+        "label": "Cinematic video",
+        "lead": "Cinematic brand film. Slow camera move, one subject, natural light."
+      },
+      "description": "Pick one to fill the prompt. Edit it, then generate.",
+      "needsProduct": "Add a product image",
+      "productAd": {
+        "characterLead": "Short product ad featuring ",
+        "characterTail": ". Open on the product, say one benefit, end on the brand.",
+        "detail": "Video · 9:16",
+        "label": "Product ad",
+        "lead": "Short product ad. Open on the product, say one benefit, end on the brand."
+      },
+      "productName": "Product",
+      "productPhoto": {
+        "characterLead": "Lifestyle photo of ",
+        "characterTail": " with the product, clean studio light, sharp detail.",
+        "detail": "Image · square",
+        "label": "Product photo",
+        "lead": "Product photo on a clean studio background, soft shadow, sharp detail."
+      },
+      "soundtrack": {
+        "detail": "Music",
+        "label": "Soundtrack",
+        "lead": "Warm background track for a product video, soft drums, no vocals."
+      },
+      "tagsCharacter": "Tags {name}",
+      "title": "Start with an idea",
+      "usesProduct": "Uses {name}",
+      "voiceover": {
+        "detail": "Voice",
+        "label": "Voiceover",
+        "lead": "Meet the product. One line on the problem, one line on the result."
+      }
+    },
     "cancelEnhancingPrompt": "Cancel enhancing prompt",
     "enhancePrompt": "Enhance prompt",
     "estimatedCredits": "Estimated {credits} credits",
