@@ -10,7 +10,7 @@ import {
   BusinessLogicException,
   UnsettleableReservationException,
 } from '@api/exceptions/business-logic.exception';
-import { crunReceiptAllowsDisposition } from '@api/helpers/utils/credits/generation-quote-group.schema';
+import { crunReservationCompletion } from '@api/helpers/utils/credits/generation-quote-group.schema';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { scopedWhere } from '@api/index';
@@ -296,6 +296,40 @@ export class CreditReservationService {
         );
       }
 
+      const tasks = await tx.crunGenerationTask.findMany({
+        where: {
+          reservationId: reservation.id,
+          organizationId: reservation.organizationId,
+          isDeleted: false,
+        },
+      });
+      const ingredients = tasks.length
+        ? await tx.ingredient.findMany({
+            where: {
+              id: { in: tasks.map((task) => task.ingredientId) },
+              organizationId: reservation.organizationId,
+              isDeleted: false,
+            },
+            select: { id: true, s3Key: true },
+          })
+        : [];
+      const completion = crunReservationCompletion(
+        reservation,
+        tasks,
+        ingredients,
+      );
+      if (completion === null || completion === 0)
+        throw new BusinessLogicException(
+          'Crun settlement proof is incomplete',
+          {},
+          'CRUN_SETTLEMENT_NOT_READY',
+        );
+      if (completion !== undefined && completion !== input.actualAmount)
+        throw new BusinessLogicException(
+          'Settlement amount does not match frozen completion',
+          {},
+          'SETTLEMENT_AMOUNT_MISMATCH',
+        );
       const claimed = await tx.creditReservation.updateMany({
         data: {
           settledAmount: input.actualAmount,
@@ -397,7 +431,22 @@ export class CreditReservationService {
           isDeleted: false,
         },
       });
-      if (tasks.some((task) => !crunReceiptAllowsDisposition(task, 'release')))
+      const ingredients = tasks.length
+        ? await tx.ingredient.findMany({
+            where: {
+              id: { in: tasks.map((task) => task.ingredientId) },
+              organizationId: reservation.organizationId,
+              isDeleted: false,
+            },
+            select: { id: true, s3Key: true },
+          })
+        : [];
+      const completion = crunReservationCompletion(
+        reservation,
+        tasks,
+        ingredients,
+      );
+      if (completion === null || (completion !== undefined && completion !== 0))
         return this.walletSnapshot(reservation, tx);
 
       const nextStatus =

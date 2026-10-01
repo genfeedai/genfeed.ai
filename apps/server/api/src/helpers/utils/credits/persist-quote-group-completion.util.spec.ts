@@ -31,7 +31,10 @@ function fixture() {
     },
   };
   const tx = {
-    ingredient: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+    ingredient: {
+      findFirst: vi.fn().mockResolvedValue({ generationBilling: receipt }),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
     creditReservation: {
       findFirst: vi.fn().mockResolvedValue(hold),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
@@ -43,6 +46,7 @@ function fixture() {
     },
     $transaction: vi.fn(async (run) => run(tx)),
   };
+  tx.ingredient.findFirst = prisma.ingredient.findFirst;
   return { prisma, tx, hold, receipt };
 }
 const where = {
@@ -101,7 +105,7 @@ describe('persistQuoteGroupDisposition', () => {
         status: IngredientStatus.FAILED,
       }),
     ).resolves.toBeNull();
-    expect(state.prisma.$transaction).not.toHaveBeenCalled();
+    expect(state.tx.ingredient.updateMany).not.toHaveBeenCalled();
   });
   it('atomically saves a confirmed provider-negative disposition with the FAILED CAS', async () => {
     const state = fixture();
@@ -138,7 +142,7 @@ describe('persistQuoteGroupDisposition', () => {
     await expect(
       persistQuoteGroupDisposition(state.prisma as never, where, data),
     ).resolves.toBeNull();
-    expect(state.prisma.$transaction).not.toHaveBeenCalled();
+    expect(state.tx.ingredient.updateMany).not.toHaveBeenCalled();
   });
   it('does not manufacture evidence when the terminal transition loses its CAS', async () => {
     const state = fixture();

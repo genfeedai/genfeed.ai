@@ -8807,6 +8807,8 @@ model CrunGenerationTask {
   submittedAt           DateTime?
   deadlineAt            DateTime?
   nextPollAt            DateTime?
+  nextMediaAttemptAt    DateTime?
+  nextAccountingAttemptAt DateTime?
   pollCount             Int      @default(0)
   leaseUntil            DateTime?
   version               Int      @default(0)

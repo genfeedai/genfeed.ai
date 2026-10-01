@@ -17,6 +17,8 @@ describe('Crun task additive migration', () => {
     expect(migration).toContain('("credentialFingerprint", "providerTaskId")');
     expect(migration).toContain('"quoteSnapshot" JSONB NOT NULL');
     expect(migration).toContain('"terminalReceipt" JSONB');
+    expect(migration).toContain('"nextMediaAttemptAt" TIMESTAMP(3)');
+    expect(migration).toContain('"nextAccountingAttemptAt" TIMESTAMP(3)');
     expect(migration).not.toMatch(/"(?:apiKey|prompt|inputUrls)"/);
   });
 });

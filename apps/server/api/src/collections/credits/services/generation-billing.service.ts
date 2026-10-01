@@ -1,11 +1,17 @@
 import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import type { ReservationCreditsConfig } from '@api/helpers/utils/credits/generation-credit-reservation.util';
-import { crunReceiptAllowsDisposition } from '@api/helpers/utils/credits/generation-quote-group.schema';
+import {
+  crunFailureKind,
+  crunReceiptAllowsDisposition,
+  generationQuoteGroupReceiptSchema,
+} from '@api/helpers/utils/credits/generation-quote-group.schema';
 import { generationUsageReceiptSchema as usageReceiptSchema } from '@api/helpers/utils/credits/generation-submission-evidence.schema';
+import { modelBillableQuoteSnapshotSchema } from '@api/helpers/utils/credits/model-billable-quote.schema';
 import {
   generationSubmissionIntentSchema,
   persistSubmissionFailure,
@@ -271,6 +277,7 @@ export class GenerationBillingService {
     ingredientId: string,
     organizationId: string,
   ): Promise<void> {
+    if (await this.recordCrunFailure(ingredientId, organizationId)) return;
     if (
       !(await this.crunDispositionAllowed(
         ingredientId,
@@ -296,6 +303,7 @@ export class GenerationBillingService {
     ingredientId: string,
     organizationId: string,
   ): Promise<void> {
+    if (await this.recordCrunFailure(ingredientId, organizationId)) return;
     if (
       !(await this.crunDispositionAllowed(
         ingredientId,
@@ -481,6 +489,55 @@ export class GenerationBillingService {
       },
     });
     if (recorded) {
+      const crun = await this.crunMutation(
+        ingredientId,
+        organizationId,
+        'settle',
+        async (tx) => {
+          const current = await tx.ingredient.findFirst({
+            where: { id: ingredientId, organizationId, isDeleted: false },
+            select: { generationBilling: true, status: true },
+          });
+          const frozen = this.readUsageReceipt(current?.generationBilling);
+          if (
+            !current ||
+            !frozen ||
+            !SETTLEABLE_STATUSES.includes(current.status) ||
+            JSON.stringify(frozen) !== JSON.stringify(receipt)
+          )
+            return 'held' as const;
+          const ledger = await tx.creditTransaction.findFirst({
+            where: {
+              organizationId,
+              isDeleted: false,
+              idempotencyKey: `byok:${organizationId}:${idempotencyKey}`,
+              category: 'BYOK_USAGE',
+              actorUserId: frozen.userId,
+              amount: frozen.amount,
+              source: frozen.source,
+              metadata: { path: ['assetId'], equals: ingredientId },
+            },
+            select: { id: true },
+          });
+          if (!ledger) return 'held' as const;
+          await tx.ingredient.updateMany({
+            where: {
+              id: ingredientId,
+              organizationId,
+              isDeleted: false,
+              generationBilling: { equals: toPrismaJson(frozen) },
+              status: {
+                in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
+              },
+            },
+            data: {
+              generationBilling: toPrismaJson({ ...frozen, state: 'recorded' }),
+            },
+          });
+          return 'already-settled' as const;
+        },
+      );
+      if (crun !== undefined) return crun;
       await this.prisma.ingredient.updateMany({
         data: {
           generationBilling: toPrismaJson({ ...receipt, state: 'recorded' }),
@@ -496,6 +553,26 @@ export class GenerationBillingService {
       });
       return 'already-settled';
     }
+    const eligibility = await this.crunMutation(
+      ingredientId,
+      organizationId,
+      'settle',
+      async (tx) => {
+        const current = await tx.ingredient.findFirst({
+          where: { id: ingredientId, organizationId, isDeleted: false },
+          select: { generationBilling: true, status: true },
+        });
+        const frozen = this.readUsageReceipt(current?.generationBilling);
+        return current &&
+          frozen &&
+          frozen.state === 'pending' &&
+          SETTLEABLE_STATUSES.includes(current.status) &&
+          JSON.stringify(frozen) === JSON.stringify(receipt)
+          ? ('queued' as const)
+          : ('held' as const);
+      },
+    );
+    if (eligibility === 'held') return 'held';
     await this.queue.queueByokUsage({
       amount: receipt.amount,
       description: receipt.description,
@@ -520,6 +597,37 @@ export class GenerationBillingService {
     ingredientId: string,
     organizationId: string,
   ): Promise<GenerationReleaseOutcome> {
+    const crun = await this.crunMutation(
+      ingredientId,
+      organizationId,
+      'release',
+      async (tx) => {
+        const ingredient = await tx.ingredient.findFirst({
+          where: { id: ingredientId, organizationId, isDeleted: false },
+          select: { status: true, generationBilling: true },
+        });
+        const receipt = this.readUsageReceipt(ingredient?.generationBilling);
+        if (!ingredient || !receipt) return 'no-hold' as const;
+        if (SETTLEABLE_STATUSES.includes(ingredient.status))
+          return 'released' as const;
+        await tx.ingredient.updateMany({
+          where: {
+            id: ingredientId,
+            organizationId,
+            isDeleted: false,
+            generationBilling: { equals: toPrismaJson(receipt) },
+            status: {
+              notIn: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
+            },
+          },
+          data: {
+            generationBilling: toPrismaJson({ ...receipt, state: 'failed' }),
+          },
+        });
+        return 'released' as const;
+      },
+    );
+    if (crun !== undefined) return crun;
     if (
       !(await this.crunDispositionAllowed(
         ingredientId,
@@ -553,6 +661,205 @@ export class GenerationBillingService {
       organizationId,
     });
     return 'released';
+  }
+
+  private async crunMutation<T>(
+    ingredientId: string,
+    organizationId: string,
+    disposition: 'settle' | 'release',
+    mutate: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T | 'held' | undefined> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await this.prisma.$transaction(
+          async (tx) => {
+            const task = await tx.crunGenerationTask.findFirst({
+              where: { ingredientId, organizationId, isDeleted: false },
+            });
+            if (!task) {
+              const ingredient = await tx.ingredient.findFirst({
+                where: { id: ingredientId, organizationId, isDeleted: false },
+                select: { generationBilling: true },
+              });
+              const receipt = this.readUsageReceipt(
+                ingredient?.generationBilling,
+              );
+              if (receipt?.submissionIntentProvider === 'crun')
+                return 'held' as const;
+              const group = generationQuoteGroupReceiptSchema.safeParse(
+                ingredient?.generationBilling,
+              );
+              const hold = await tx.creditReservation.findFirst({
+                where: {
+                  organizationId,
+                  isDeleted: false,
+                  ...(group.success
+                    ? { id: group.data.reservationId }
+                    : {
+                        workloadId: ingredientId,
+                        workloadType: MEDIA_GENERATION_WORKLOAD_TYPE,
+                      }),
+                },
+              });
+              const metadata = modelBillableQuoteSnapshotSchema.safeParse(
+                hold?.metadata &&
+                  typeof hold.metadata === 'object' &&
+                  !Array.isArray(hold.metadata)
+                  ? hold.metadata.modelQuote
+                  : undefined,
+              );
+              if (metadata.success && metadata.data.providerQuote)
+                return 'held' as const;
+              return undefined;
+            }
+            if (!crunReceiptAllowsDisposition(task, disposition))
+              return 'held' as const;
+            if (task.credentialSource === 'byok') {
+              const ingredient = await tx.ingredient.findFirst({
+                where: {
+                  id: ingredientId,
+                  organizationId,
+                  userId: task.userId,
+                  isDeleted: false,
+                },
+                select: { generationBilling: true },
+              });
+              const usage = this.readUsageReceipt(
+                ingredient?.generationBilling,
+              );
+              const binding = z
+                .object({
+                  kind: z.literal('byok'),
+                  receipt: usageReceiptSchema.omit({
+                    kind: true,
+                    state: true,
+                    confirmedFailure: true,
+                  }),
+                })
+                .strict()
+                .safeParse(task.fundingBinding);
+              if (!usage || !binding.success) return 'held' as const;
+              const {
+                kind: _kind,
+                state: _state,
+                confirmedFailure: _failure,
+                ...immutable
+              } = usage;
+              if (
+                JSON.stringify(immutable) !==
+                JSON.stringify(binding.data.receipt)
+              )
+                return 'held' as const;
+            }
+            return mutate(tx);
+          },
+          { isolationLevel: 'Serializable' },
+        );
+      } catch (error: unknown) {
+        if (attempt >= 2 || !isCreditTransactionConflict(error)) throw error;
+      }
+    }
+  }
+
+  private async recordCrunFailure(
+    ingredientId: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    const result = await this.crunMutation(
+      ingredientId,
+      organizationId,
+      'release',
+      async (tx) => {
+        const ingredient = await tx.ingredient.findFirst({
+          where: { id: ingredientId, organizationId, isDeleted: false },
+          select: { status: true, generationBilling: true },
+        });
+        if (!ingredient || SETTLEABLE_STATUSES.includes(ingredient.status))
+          return true;
+        const receipt = this.readUsageReceipt(ingredient.generationBilling);
+        const task = await tx.crunGenerationTask.findFirst({
+          where: { ingredientId, organizationId, isDeleted: false },
+        });
+        const kind = crunFailureKind(task);
+        if (!kind || !task) return true;
+        if (task.reservationId) {
+          const hold = await tx.creditReservation.findFirst({
+            where: { id: task.reservationId, organizationId, isDeleted: false },
+          });
+          const submitted = submittedGenerationMetadataSchema.safeParse(
+            hold?.metadata,
+          );
+          if (
+            hold &&
+            submitted.success &&
+            submitted.data.submissionIntent.provider === 'crun'
+          ) {
+            if (
+              submitted.data.assetId !== ingredientId ||
+              hold.actorUserId !== task.userId
+            )
+              return true;
+            const raw = z.record(z.string(), z.unknown()).parse(hold.metadata);
+            const changed = await tx.creditReservation.updateMany({
+              where: {
+                id: hold.id,
+                organizationId,
+                isDeleted: false,
+                status: CreditReservationStatus.RESERVED,
+                metadata: { equals: toPrismaJson(raw) },
+              },
+              data: {
+                metadata: toPrismaJson({
+                  ...raw,
+                  confirmedFailure: {
+                    version: 1,
+                    ingredientId,
+                    provider: 'crun',
+                    kind,
+                    observedAt: new Date().toISOString(),
+                  },
+                }),
+              },
+            });
+            if (changed.count !== 1)
+              throw new BusinessLogicException('Crun failure evidence changed');
+          }
+        }
+        await tx.ingredient.updateMany({
+          where: {
+            id: ingredientId,
+            organizationId,
+            isDeleted: false,
+            status: {
+              notIn: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
+            },
+            ...(receipt
+              ? { generationBilling: { equals: toPrismaJson(receipt) } }
+              : {}),
+          },
+          data: {
+            status: IngredientStatus.FAILED,
+            ...(receipt
+              ? {
+                  generationBilling: toPrismaJson({
+                    ...receipt,
+                    state: 'failed',
+                    confirmedFailure: {
+                      version: 1,
+                      ingredientId,
+                      provider: 'crun',
+                      kind,
+                      observedAt: new Date().toISOString(),
+                    },
+                  }),
+                }
+              : {}),
+          },
+        });
+        return true;
+      },
+    );
+    return result !== undefined;
   }
 
   private async crunDispositionAllowed(
@@ -840,6 +1147,24 @@ export class GenerationBillingService {
     ingredientId: string,
     organizationId: string,
   ): Promise<boolean> {
+    const crun = await this.crunMutation(
+      ingredientId,
+      organizationId,
+      'release',
+      async (tx) => {
+        const result = await tx.ingredient.updateMany({
+          where: {
+            id: ingredientId,
+            organizationId,
+            isDeleted: false,
+            status: IngredientStatus.PROCESSING,
+          },
+          data: { status: IngredientStatus.FAILED },
+        });
+        return result.count === 1;
+      },
+    );
+    if (crun !== undefined) return crun === true;
     const claimed = await this.prisma.ingredient.updateMany({
       data: { status: IngredientStatus.FAILED },
       where: {

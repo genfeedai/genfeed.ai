@@ -267,6 +267,9 @@ describe('Crun durable credential and lease boundaries', () => {
   });
   it('recovers submitting-without-ID after restart without CreateTask', async () => {
     updateMany.mockResolvedValue({ count: 1 });
+    findFirst.mockResolvedValue(
+      task({ state: 'submitting', providerTaskId: null }),
+    );
     await service.poll(task({ state: 'submitting', providerTaskId: null }));
     expect(updateMany.mock.calls[0][0].data).toMatchObject({
       state: 'recovery-required',
@@ -298,13 +301,14 @@ describe('Crun durable credential and lease boundaries', () => {
           pollCount: 0,
         }),
       ),
-    ).toEqual(info);
+    ).toMatchObject({ info, task: { providerTaskId: 'known' } });
     const persisted = updateMany.mock.calls[0][0].data.terminalReceipt;
     expect(persisted).toMatchObject({ credits: '8', mediaCount: 1 });
     expect(JSON.stringify(persisted)).not.toContain('private');
     expect(persisted).not.toHaveProperty('mediaUrls');
   });
   it('bounds consecutive known-task 404s without changing provider identity', async () => {
+    findFirst.mockResolvedValue(task({ providerTaskId: 'known' }));
     updateMany.mockResolvedValue({ count: 1 });
     taskInfo.mockResolvedValue({
       isValid: false,
@@ -324,6 +328,29 @@ describe('Crun durable credential and lease boundaries', () => {
       state: 'recovery-required',
       recoveryCode: 'CRUN_TASK_NOT_FOUND',
     });
+    expect(createTask).not.toHaveBeenCalled();
+  });
+  it('caps a long status Retry-After at the frozen polling deadline', async () => {
+    const now = new Date();
+    const deadlineAt = new Date(now.getTime() + 45000);
+    const claimed = task({ providerTaskId: 'known', deadlineAt, pollCount: 0 });
+    findFirst.mockResolvedValue(claimed);
+    updateMany.mockResolvedValue({ count: 1 });
+    taskInfo.mockResolvedValue({
+      isValid: false,
+      disposition: 'deferred',
+      reasonCode: 'CRUN_RATE_LIMITED',
+      retryAfterMs: 3600000,
+    });
+    await service.poll(claimed, now);
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          nextPollAt: deadlineAt,
+          leaseUntil: null,
+        }),
+      }),
+    );
     expect(createTask).not.toHaveBeenCalled();
   });
 });

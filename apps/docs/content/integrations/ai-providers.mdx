@@ -23,6 +23,7 @@ deployments never gate BYOK.
 | `openrouter` | OpenRouter  | Curated text-model routing                   | `OPENROUTER_API_KEY`                           | [API keys](https://openrouter.ai/keys)                         |
 | `elevenlabs` | ElevenLabs  | Voice and audio generation                   | `ELEVENLABS_API_KEY`                           | [API keys](https://elevenlabs.io/app/settings/api-keys)        |
 | `replicate`  | Replicate   | Hosted media generation and training         | `REPLICATE_KEY`                                | [API tokens](https://replicate.com/account/api-tokens)         |
+| `crun`       | Crun        | Reviewed Nano Banana Pro and Seedream 4.5 images | `CRUN_API_KEY`                                | [API documentation](https://docs.crun.ai)                    |
 | `fal`        | fal.ai      | Hosted media generation                      | `FAL_API_KEY`                                  | [API keys](https://fal.ai/dashboard/keys)                      |
 | `argil`      | Argil       | Atom avatar-video generation                 | `ARGIL_KEY`                                    | [Argil app](https://app.argil.ai)                              |
 | `heygen`     | HeyGen      | Avatar video and voice workflows             | `HEYGEN_KEY`                                   | [HeyGen settings](https://app.heygen.com/settings)             |
@@ -75,3 +76,24 @@ the server environment used by the API and workers.
 
 For registry behavior and managed-provider boundaries, see
 [Provider Registry](/core/provider-registry) and [Models and Providers](/models).
+
+
+## Crun image generation
+
+Crun supports reviewed Nano Banana Pro and Seedream 4.5 image models. Deployment
+admission is disabled by default. Operators must review the imported contract,
+activate the model and configure hosted acquisition pricing before enabling
+hosted requests. Crun is unavailable through the managed inference proxy.
+
+Studio requests an exact quote for the prepared prompt and selected controls.
+The quote lasts 60 seconds and covers all requested outputs. Changing inputs or
+account requires another quote. Explicit prompt enhancement runs before quoting;
+quoting does not enhance the prompt automatically. Eligible organization keys
+report zero customer credits and retain BYOK usage accounting.
+
+Generation persists task identity before provider creation and copies results
+into owned storage. Accepted tasks continue to reconcile after admission is
+disabled. Keep the original key available until accepted tasks drain; rotating or
+deleting it may require operator recovery. Do not retry provider creation after
+an ambiguous response. Seedream reference images require authorized ingredient
+records with known file size and dimensions.

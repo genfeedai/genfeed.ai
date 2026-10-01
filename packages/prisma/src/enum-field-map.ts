@@ -2891,6 +2891,8 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'leaseUntil',
       'mediaPersistedAt',
       'modelKey',
+      'nextAccountingAttemptAt',
+      'nextMediaAttemptAt',
       'nextPollAt',
       'organizationId',
       'outputIndex',

@@ -16,31 +16,69 @@ export class CrunReconcileService {
   async reconcile(): Promise<void> {
     // Reconciliation remains mounted even when new admissions are disabled.
     const rows = await this.tasks.claimDue();
-    for (let offset = 0; offset < rows.length; offset += 4) {
-      await Promise.all(
-        rows.slice(offset, offset + 4).map(async (task) => {
-          try {
-            if (task.state === 'provider-failed' && !task.providerTaskId) {
-              await this.finalizer.finalize(task.organizationId, task.id);
-              return;
-            }
-            const receipt = await this.tasks.poll(task);
-            if (receipt)
-              await this.finalizer.finalize(
-                task.organizationId,
-                task.id,
-                receipt,
-              );
-          } catch {
-            // Durable state owns retries. Never log upstream response/key/prompt.
-            this.logger.warn('Crun reconciliation phase deferred', {
-              taskId: task.id,
-              organizationId: task.organizationId,
+    await Promise.all(
+      rows.map(async (claimed) => {
+        const controller = new AbortController();
+        let renewing = false;
+        const timer = setInterval(() => {
+          if (renewing || controller.signal.aborted) return;
+          renewing = true;
+          this.tasks
+            .renewLease(claimed)
+            .then((owned) => {
+              if (!owned) controller.abort();
+            })
+            .catch(() => {
+              controller.abort();
+            })
+            .finally(() => {
+              renewing = false;
             });
+        }, 20000);
+        try {
+          const terminal =
+            claimed.state === 'provider-failed' ||
+            (claimed.state === 'provider-success' &&
+              (claimed.mediaPersistedAt !== null ||
+                claimed.nextMediaAttemptAt === null ||
+                claimed.nextMediaAttemptAt > new Date()));
+          if (terminal) {
+            if (
+              !controller.signal.aborted &&
+              (await this.tasks.ownsLease(claimed))
+            )
+              await this.finalizer.finalize(
+                claimed,
+                undefined,
+                controller.signal,
+              );
+            return;
           }
-        }),
-      );
-    }
+          const result = await this.tasks.poll(
+            claimed,
+            new Date(),
+            controller.signal,
+          );
+          if (
+            result &&
+            !controller.signal.aborted &&
+            (await this.tasks.ownsLease(result.task))
+          )
+            await this.finalizer.finalize(
+              result.task,
+              result.info,
+              controller.signal,
+            );
+        } catch {
+          this.logger.warn('Crun reconciliation phase deferred', {
+            taskId: claimed.id,
+            organizationId: claimed.organizationId,
+          });
+        } finally {
+          clearInterval(timer);
+        }
+      }),
+    );
   }
 
   async synchronizeContracts(): Promise<void> {

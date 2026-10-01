@@ -1,5 +1,6 @@
 import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
+import { crunFailureKind } from '@api/helpers/utils/credits/generation-quote-group.schema';
 import {
   generationSubmissionIntentSchema,
   submittedGenerationMetadataSchema,
@@ -29,27 +30,42 @@ export async function persistSubmissionFailure(
   isFailureConfirmed: boolean,
 ): Promise<{ count: number } | null> {
   if (
-    !isFailureConfirmed ||
     data.status !== IngredientStatus.FAILED ||
     typeof where.id !== 'string' ||
     typeof where.organizationId !== 'string'
   )
     return null;
   const { id: ingredientId, organizationId } = where;
-  const candidate = await prisma.creditReservation.findFirst({
-    where: {
-      organizationId,
-      isDeleted: false,
-      workloadId: ingredientId,
-      workloadType: MEDIA_GENERATION_WORKLOAD_TYPE,
-    },
-  });
-  if (!generationSubmissionIntentSchema.safeParse(candidate?.metadata).success)
-    return persistByokSubmissionFailure(prisma, where, data);
   for (let attempt = 0; ; attempt += 1) {
     try {
       return await prisma.$transaction(
         async (tx) => {
+          const task = await tx.crunGenerationTask.findFirst({
+            where: { ingredientId, organizationId, isDeleted: false },
+          });
+          const kind = crunFailureKind(task);
+          if (task && !kind) return { count: 0 };
+          const candidate = await tx.creditReservation.findFirst({
+            select: { metadata: true },
+            where: {
+              organizationId,
+              isDeleted: false,
+              workloadId: ingredientId,
+              workloadType: MEDIA_GENERATION_WORKLOAD_TYPE,
+            },
+          });
+          const marked = generationSubmissionIntentSchema.safeParse(
+            candidate?.metadata,
+          );
+          if (
+            !task &&
+            marked.success &&
+            marked.data.submissionIntent.provider === 'crun'
+          )
+            return { count: 0 };
+          if (!task && !isFailureConfirmed) return null;
+          if (!marked.success)
+            return persistByokSubmissionFailure(tx, where, data);
           const hold = await lockSubmissionHold(
             tx,
             ingredientId,
@@ -85,7 +101,7 @@ export async function persistSubmissionFailure(
             hold,
             ingredientId,
             organizationId,
-            'provider-terminal',
+            kind ?? 'provider-terminal',
           );
           return changed;
         },
@@ -103,26 +119,45 @@ export async function persistSubmissionRejection(
   ingredientId: string,
   organizationId: string,
 ): Promise<void> {
-  await prisma.$transaction(
-    async (tx) => {
-      const hold = await lockSubmissionHold(tx, ingredientId, organizationId);
-      if (
-        !hold ||
-        !generationSubmissionIntentSchema.safeParse(hold.metadata).success
-      ) {
-        await recordByokSubmissionRejection(tx, ingredientId, organizationId);
-        return;
-      }
-      await recordFailure(
-        tx,
-        hold,
-        ingredientId,
-        organizationId,
-        'submission-rejected',
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await prisma.$transaction(
+        async (tx) => {
+          const task = await tx.crunGenerationTask.findFirst({
+            where: { ingredientId, organizationId, isDeleted: false },
+          });
+          if (task && crunFailureKind(task) !== 'submission-rejected') return;
+          const hold = await lockSubmissionHold(
+            tx,
+            ingredientId,
+            organizationId,
+          );
+          if (
+            !hold ||
+            !generationSubmissionIntentSchema.safeParse(hold.metadata).success
+          ) {
+            await recordByokSubmissionRejection(
+              tx,
+              ingredientId,
+              organizationId,
+            );
+            return;
+          }
+          await recordFailure(
+            tx,
+            hold,
+            ingredientId,
+            organizationId,
+            'submission-rejected',
+          );
+        },
+        { isolationLevel: 'Serializable' },
       );
-    },
-    { isolationLevel: 'Serializable' },
-  );
+      return;
+    } catch (error: unknown) {
+      if (attempt >= 2 || !isCreditTransactionConflict(error)) throw error;
+    }
+  }
 }
 
 async function lockSubmissionHold(
@@ -134,6 +169,7 @@ async function lockSubmissionHold(
     Prisma.sql`SELECT "id" FROM "credit_reservations" WHERE "organizationId" = ${organizationId} AND "workloadId" = ${ingredientId} AND "workloadType" = ${MEDIA_GENERATION_WORKLOAD_TYPE} AND "isDeleted" = false FOR UPDATE`,
   );
   return tx.creditReservation.findFirst({
+    select: { id: true, status: true, metadata: true },
     where: {
       organizationId,
       isDeleted: false,
@@ -163,9 +199,17 @@ async function recordFailure(
       );
     return;
   }
+  if (parsed.submissionIntent.provider === 'crun') {
+    const task = await tx.crunGenerationTask.findFirst({
+      where: { ingredientId, organizationId, isDeleted: false },
+    });
+    const proven = crunFailureKind(task);
+    if (!proven || proven !== kind)
+      throw new BusinessLogicException('Crun failure proof is unavailable');
+  }
   if (
     kind === 'submission-rejected' &&
-    parsed.submissionIntent.provider !== 'heygen'
+    !['heygen', 'crun'].includes(parsed.submissionIntent.provider)
   )
     throw new BusinessLogicException('Submission rejection provider differs');
   if (hold.status !== CreditReservationStatus.RESERVED)

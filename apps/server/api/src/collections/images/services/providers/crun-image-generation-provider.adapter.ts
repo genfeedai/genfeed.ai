@@ -12,8 +12,10 @@ import type {
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { reserveGenerationRequestCredits } from '@api/helpers/utils/credits/generation-credit-reservation.util';
 import { generationUsageReceiptSchema } from '@api/helpers/utils/credits/generation-submission-evidence.schema';
+import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { CrunPreviewQuoteService } from '@api/services/integrations/crun/crun-preview-quote.service';
 import type {
@@ -91,6 +93,37 @@ export class CrunImageGenerationProviderAdapter
   ): Promise<JsonApiSingleResponse> {
     const billingRequest = request as RequestWithContext &
       GenerationBillingRequest;
+    if (
+      (request as DeferredCreditsRequest).approvedRemixQuoteId !== undefined ||
+      (dto as CreateImageDto & { approvedRemixQuoteId?: string })
+        .approvedRemixQuoteId !== undefined ||
+      (request as DeferredCreditsRequest).creditsConfig?.approvedImageQuote !==
+        undefined
+    )
+      throw new BadRequestException({ code: 'CRUN_BILLING_UNSUPPORTED' });
+    if (
+      request.generationOriginalPrompt !== undefined &&
+      request.generationOriginalPrompt !== dto.text.trim()
+    ) {
+      if (!dto.promptId)
+        throw new BadRequestException({ code: 'CRUN_ENHANCEMENT_REQUIRED' });
+      const provenance = await this.prisma.prompt.findFirst({
+        where: {
+          id: dto.promptId,
+          organizationId: user.organizationId,
+          userId: user.userId,
+          brandId: dto.brandId ?? dto.brand ?? user.brandId,
+          isDeleted: false,
+        },
+        select: { original: true, enhanced: true },
+      });
+      if (
+        !provenance ||
+        provenance.original !== request.generationOriginalPrompt ||
+        provenance.enhanced !== dto.text.trim()
+      )
+        throw new BadRequestException({ code: 'CRUN_ENHANCEMENT_REQUIRED' });
+    }
     const raw = this.intentFromDto(dto);
     if (!raw.crunControls) {
       const model = await this.prisma.model.findFirst({
@@ -137,6 +170,22 @@ export class CrunImageGenerationProviderAdapter
     const provider = frozen.snapshot.providerQuote;
     if (!provider) throw new ConflictException({ code: 'CRUN_QUOTE_STALE' });
     const intent = this.input.normalize(raw, user);
+    if (
+      provider.credentialSource === 'hosted' &&
+      frozen.snapshot.credits > 0 &&
+      !(await this.credits.checkOrganizationCreditsAvailable(
+        user.organizationId,
+        frozen.snapshot.credits,
+      ))
+    ) {
+      const balance = await this.credits.getOrganizationCreditsBalance(
+        user.organizationId,
+      );
+      throw createInsufficientCreditsException(
+        frozen.snapshot.credits,
+        balance,
+      );
+    }
     billingRequest.creditsConfig = {
       ...billingRequest.creditsConfig,
       amount: frozen.snapshot.credits,
@@ -180,7 +229,10 @@ export class CrunImageGenerationProviderAdapter
         brandId: frozen.brandId,
         organizationId: user.organizationId,
         promptId: prompt.id,
-        extension: MetadataExtension.PNG,
+        extension:
+          frozen.request.input.output_format === 'jpg'
+            ? MetadataExtension.JPG
+            : MetadataExtension.PNG,
         model: intent.model,
         generationPrompt: String(frozen.request.input.prompt),
         generationSource: 'studio',
@@ -265,7 +317,23 @@ export class CrunImageGenerationProviderAdapter
     }
     const prepared = await this.tasks.prepareTasks(rows);
     // Every durable row and binding precedes the first paid request. Never regenerate effective input here.
-    for (const task of prepared) await this.tasks.submit(task, frozen.request);
+    for (const task of prepared) {
+      const result = await this.tasks.submit(task, frozen.request);
+      if (result.isSubmitted) continue;
+      const persisted = await this.tasks.findForIngredient(
+        user.organizationId,
+        task.ingredientId,
+      );
+      if (
+        persisted?.state === 'provider-failed' &&
+        persisted.providerTaskId === null
+      )
+        await this.billing.recordSubmissionRejection(
+          task.ingredientId,
+          user.organizationId,
+        );
+      // Ambiguous acceptance remains funded. No outcome is automatically redispatched.
+    }
     await this.billing.releasePool(billingRequest);
     const first = await this.images.findOne({
       id: ingredients[0].ingredientData.id,

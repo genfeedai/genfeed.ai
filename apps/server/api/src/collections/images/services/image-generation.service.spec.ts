@@ -1413,3 +1413,30 @@ describe('ImageGenerationService', () => {
     });
   });
 });
+
+describe('Crun unsupported caller context admission', () => {
+  it.each([0, 1, 2, 3])(
+    'rejects unsupported context %s before writes or enhancement',
+    async (index) => {
+      const f = createService();
+      const contexts: unknown[] = [undefined, undefined, undefined, undefined];
+      contexts[index] = index === 1 ? {} : index === 3 ? [] : vi.fn();
+      await expect(
+        f.service.generateImage(
+          buildUser(),
+          baseDto({ model: 'crun/google/nano-banana-pro' }),
+          buildRequest(),
+          contexts[0] as never,
+          contexts[1] as never,
+          contexts[2] as never,
+          contexts[3] as never,
+        ),
+      ).rejects.toMatchObject({ response: { code: 'CRUN_INVALID_INPUT' } });
+      expect(f.sharedService.createMediaDocuments).not.toHaveBeenCalled();
+      expect(f.promptBuilderService.buildPrompt).not.toHaveBeenCalled();
+      expect(
+        f.creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).not.toHaveBeenCalled();
+    },
+  );
+});

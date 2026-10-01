@@ -37,9 +37,13 @@ function fixture() {
   const input = { normalize: vi.fn().mockReturnValue(dto) };
   const tasks = {
     prepareTasks: vi.fn().mockImplementation(async (rows) => rows),
-    submit: vi.fn().mockResolvedValue(true),
+    submit: vi.fn().mockResolvedValue({ isSubmitted: true, taskId: 'opaque' }),
   };
-  const billing = { bindOutput: vi.fn(), releasePool: vi.fn() };
+  const billing = {
+    recordSubmissionRejection: vi.fn(),
+    bindOutput: vi.fn(),
+    releasePool: vi.fn(),
+  };
   const credits = { reserveCredits: vi.fn() };
   let index = 0;
   const shared = {
@@ -153,5 +157,39 @@ describe('Crun image admission batch', () => {
       f.adapter.generateQuoted(user as never, dto as never, f.request as never),
     ).rejects.toThrow('binding rejected');
     expect(f.tasks.submit).not.toHaveBeenCalled();
+  });
+  it.each(['approvedRemixQuoteId', 'approvedImageQuote'])(
+    'rejects approved caller budgets without consuming or funding: %s',
+    async (field) => {
+      const f = fixture();
+      const request = {
+        ...f.request,
+        ...(field === 'approvedRemixQuoteId'
+          ? { approvedRemixQuoteId: 'approved' }
+          : { creditsConfig: { approvedImageQuote: { model: dto.model } } }),
+      };
+      await expect(
+        f.adapter.generateQuoted(user as never, dto as never, request as never),
+      ).rejects.toMatchObject({
+        response: { code: 'CRUN_BILLING_UNSUPPORTED' },
+      });
+      expect(f.preview.consume).not.toHaveBeenCalled();
+      expect(f.tasks.submit).not.toHaveBeenCalled();
+      expect(f.shared.createMediaDocuments).not.toHaveBeenCalled();
+    },
+  );
+  it('requires persisted provenance when original differs, before consuming quote', async () => {
+    const f = fixture();
+    await expect(
+      f.adapter.generateQuoted(
+        user as never,
+        dto as never,
+        { ...f.request, generationOriginalPrompt: 'Original idea' } as never,
+      ),
+    ).rejects.toMatchObject({
+      response: { code: 'CRUN_ENHANCEMENT_REQUIRED' },
+    });
+    expect(f.preview.consume).not.toHaveBeenCalled();
+    expect(f.prompts.create).not.toHaveBeenCalled();
   });
 });

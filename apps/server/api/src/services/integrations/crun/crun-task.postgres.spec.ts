@@ -1,10 +1,12 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
+import { persistSubmissionFailure } from '@api/helpers/utils/credits/persist-submission-failure.util';
 import type { ByokService } from '@api/services/byok/byok.service';
 import type { CrunClient } from '@api/services/integrations/crun/crun-client.service';
 import { CrunTaskService } from '@api/services/integrations/crun/crun-task.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ActivitySource, IngredientStatus } from '@genfeedai/contracts';
 import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import { PrismaClient } from '@genfeedai/prisma';
 import type { ConfigService } from '@libs/config/config.service';
@@ -48,13 +50,20 @@ describe('Crun durable PostgreSQL submission and leases', () => {
       `INSERT INTO "${schema}"."models" VALUES ('model', 'crun/google/nano-banana-pro', true, false, 'contract-v1', NULL, NULL)`,
     );
     await pool.query(
-      `CREATE TABLE "${schema}"."ingredients" ("id" text PRIMARY KEY, "organizationId" text, "isDeleted" boolean DEFAULT false, "userId" text, "brandId" text, "generationBilling" jsonb)`,
+      `CREATE TYPE "${schema}"."IngredientStatus" AS ENUM (${Object.values(
+        IngredientStatus,
+      )
+        .map((status) => `'${status}'`)
+        .join(',')})`,
+    );
+    await pool.query(
+      `CREATE TABLE "${schema}"."ingredients" ("id" text PRIMARY KEY, "organizationId" text, "isDeleted" boolean DEFAULT false, "userId" text, "brandId" text, "generationBilling" jsonb, "status" "${schema}"."IngredientStatus" DEFAULT 'PROCESSING', "updatedAt" timestamp(3) DEFAULT now())`,
     );
     await pool.query(
       `CREATE TYPE "${schema}"."CreditReservationStatus" AS ENUM ('RESERVED','SETTLED','RELEASED','EXPIRED')`,
     );
     await pool.query(
-      `CREATE TABLE "${schema}"."credit_reservations" ("id" text PRIMARY KEY, "organizationId" text, "isDeleted" boolean DEFAULT false, "status" "${schema}"."CreditReservationStatus", "actorUserId" text, "metadata" jsonb, "amount" double precision, "workloadId" text)`,
+      `CREATE TABLE "${schema}"."credit_reservations" ("id" text PRIMARY KEY, "organizationId" text, "isDeleted" boolean DEFAULT false, "status" "${schema}"."CreditReservationStatus", "actorUserId" text, "metadata" jsonb, "amount" double precision, "workloadId" text, "workloadType" text DEFAULT 'media-generation')`,
     );
     await pool.query(
       `INSERT INTO "${schema}"."credit_reservations" ("id","organizationId","isDeleted","status") VALUES ('funded-group', 'fixture-org', false, 'RESERVED'), ('fixture-reservation', 'fixture-org', false, 'RESERVED')`,
@@ -201,7 +210,11 @@ describe('Crun durable PostgreSQL submission and leases', () => {
       submittedAt: new Date(),
       nextPollAt: new Date(),
     });
-    await service.poll(crashed);
+    const claimed = (await service.claimDue()).find(
+      (task) => task.id === crashed.id,
+    );
+    if (!claimed) throw new Error('Missing restart claim');
+    await service.poll(claimed);
     const stored = await service.findForIngredient(
       crashed.organizationId,
       crashed.ingredientId,
@@ -390,5 +403,199 @@ describe('Crun shared Redis admission with two process-equivalent clients', () =
       true,
     );
     expect(await first.zcard(key)).toBe(1);
+  });
+  async function byokRow() {
+    const receipt = {
+      kind: 'byok' as const,
+      state: 'pending' as const,
+      userId: 'fixture-user',
+      amount: 3,
+      source: ActivitySource.IMAGE_GENERATION,
+      description: 'BYOK race',
+      expiresAt: new Date(Date.now() + 60000).toISOString(),
+      submissionIntentProvider: 'crun',
+    };
+    const { kind: _kind, state: _state, ...immutable } = receipt;
+    const base = frozenQuote();
+    const snapshot = {
+      ...base,
+      providerQuote: {
+        ...base.providerQuote,
+        credentialSource: 'byok',
+        creditsPerUsd: null,
+        acquisitionRateVersion: null,
+      },
+    };
+    const prepared = await row({
+      reservationId: null,
+      credentialSource: 'byok',
+      quoteSnapshot: snapshot,
+      fundingBinding: { kind: 'byok', receipt: immutable },
+    });
+    await pool.query(
+      `UPDATE "${schema}"."ingredients" SET "generationBilling"=$2 WHERE "id"=$1`,
+      [prepared.ingredientId, JSON.stringify(receipt)],
+    );
+    const byokTasks = new CrunTaskService(
+      prisma as unknown as PrismaService,
+      {
+        lookupApiKey: async () => ({ apiKey: key }),
+        lookupRetainedCrunApiKey: async () => ({ apiKey: key }),
+      } as never,
+      {
+        get: (name: string) => (name === 'CRUN_ENABLED' ? 'true' : key),
+      } as never,
+      { createTask, taskInfo } as never,
+    );
+    return { prepared, byokTasks };
+  }
+  it('a committed BYOK failure transaction prevents a later submission claim and POST', async () => {
+    const { prepared, byokTasks } = await byokRow();
+    const before = createTask.mock.calls.length;
+    expect(
+      await persistSubmissionFailure(
+        prisma as unknown as PrismaService,
+        { id: prepared.ingredientId, organizationId: prepared.organizationId },
+        { status: IngredientStatus.FAILED },
+        false,
+      ),
+    ).toEqual({ count: 1 });
+    await expect(
+      byokTasks.submit(prepared, {
+        model: prepared.endpoint,
+        input: { prompt: 'fixture' },
+      }),
+    ).rejects.toThrow();
+    expect(createTask.mock.calls.length).toBe(before);
+    const saved = await prisma.ingredient.findFirst({
+      where: {
+        id: prepared.ingredientId,
+        organizationId: prepared.organizationId,
+        isDeleted: false,
+      },
+      select: { generationBilling: true },
+    });
+    expect(saved?.generationBilling).toMatchObject({
+      state: 'failed',
+      confirmedFailure: { kind: 'submission-rejected', provider: 'crun' },
+    });
+  });
+  it('a submission claim committed before the failure barrier keeps BYOK funding intact', async () => {
+    const { prepared, byokTasks } = await byokRow();
+    let accept: () => void = () => undefined;
+    let reached: () => void = () => undefined;
+    const posted = new Promise<void>((resolve) => {
+      reached = resolve;
+    });
+    createTask.mockImplementationOnce(async () => {
+      reached();
+      await new Promise<void>((resolve) => {
+        accept = resolve;
+      });
+      return { isValid: true, data: { taskId: randomUUID() } };
+    });
+    const submission = byokTasks.submit(prepared, {
+      model: prepared.endpoint,
+      input: { prompt: 'fixture' },
+    });
+    await posted;
+    try {
+      expect(
+        await persistSubmissionFailure(
+          prisma as unknown as PrismaService,
+          {
+            id: prepared.ingredientId,
+            organizationId: prepared.organizationId,
+          },
+          { status: IngredientStatus.FAILED },
+          true,
+        ),
+      ).toEqual({ count: 0 });
+    } finally {
+      accept();
+    }
+    expect((await submission).isSubmitted).toBe(true);
+    const saved = await prisma.ingredient.findFirst({
+      where: {
+        id: prepared.ingredientId,
+        organizationId: prepared.organizationId,
+        isDeleted: false,
+      },
+      select: { generationBilling: true },
+    });
+    expect(saved?.generationBilling).toMatchObject({ state: 'pending' });
+  });
+  it('persists proven gate deferral once and never resubmits after restart', async () => {
+    createTask.mockResolvedValueOnce({
+      isValid: false,
+      disposition: 'deferred',
+      reasonCode: 'CRUN_RATE_LIMITED',
+      retryAfterMs: 10000,
+    });
+    const prepared = await row();
+    const before = createTask.mock.calls.length;
+    await service.submit(prepared, {
+      model: prepared.endpoint,
+      input: { prompt: 'fixture' },
+    });
+    const saved = await service.findForIngredient(
+      prepared.organizationId,
+      prepared.ingredientId,
+    );
+    expect(saved).toMatchObject({
+      state: 'provider-failed',
+      providerTaskId: null,
+      terminalReceipt: { isAccepted: false, credits: '0' },
+      nextMediaAttemptAt: null,
+    });
+    expect(saved?.nextAccountingAttemptAt).toBeInstanceOf(Date);
+    if (!saved) throw new Error('Missing durable refusal');
+    await service.submit(saved, {
+      model: prepared.endpoint,
+      input: { prompt: 'fixture' },
+    });
+    expect(createTask.mock.calls.length).toBe(before + 1);
+  });
+  it('claims at most four immediate leases and preserves separate phase deadlines across restart', async () => {
+    const now = new Date();
+    await prisma.crunGenerationTask.updateMany({
+      where: { organizationId: 'fixture-org', isDeleted: false },
+      data: { nextPollAt: null },
+    });
+    const due = await Promise.all(
+      Array.from({ length: 5 }, () =>
+        row({
+          state: 'provider-success',
+          providerTaskId: randomUUID(),
+          terminalReceipt: { status: 'success', credits: '8' },
+          nextAccountingAttemptAt: now,
+          nextMediaAttemptAt: new Date(now.getTime() + 60000),
+          nextPollAt: now,
+        }),
+      ),
+    );
+    const claimed = await service.claimDue(now);
+    expect(claimed.length).toBeLessThanOrEqual(4);
+    expect(
+      claimed.filter((item) =>
+        due.some((candidate) => candidate.id === item.id),
+      ),
+    ).toHaveLength(4);
+    const restarted = new CrunTaskService(
+      prisma as unknown as PrismaService,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    const stored = await restarted.findForIngredient(
+      due[0].organizationId,
+      due[0].ingredientId,
+    );
+    expect(stored?.nextAccountingAttemptAt).toEqual(now);
+    expect(stored?.nextMediaAttemptAt?.getTime()).toBe(now.getTime() + 60000);
+    const next = await restarted.claimDue(now);
+    expect(
+      next.filter((item) => due.some((candidate) => candidate.id === item.id)),
+    ).toHaveLength(1);
   });
 });

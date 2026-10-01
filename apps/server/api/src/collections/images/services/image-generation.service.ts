@@ -126,6 +126,16 @@ export class ImageGenerationService {
     runReferences?: readonly ImageGenerationBriefReference[],
   ): Promise<JsonApiSingleResponse> {
     if (createImageDto.model?.startsWith('crun/')) {
+      if (
+        onPlaceholderCreated !== undefined ||
+        placeholderScope !== undefined ||
+        onCreditsPrepared !== undefined ||
+        runReferences !== undefined
+      )
+        throw new HttpException(
+          { code: 'CRUN_INVALID_INPUT' },
+          HttpStatus.BAD_REQUEST,
+        );
       if (!this.crunAdapter)
         throw new HttpException(
           { code: 'CRUN_MODEL_UNAVAILABLE' },

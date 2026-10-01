@@ -40,10 +40,17 @@ function fixture() {
   };
   const row = {
     id: 'task',
+    version: 1,
+    leaseUntil: new Date(Date.now() + 60000),
     ingredientId: 'image',
     organizationId: 'org',
     userId: 'user',
     modelKey: 'crun/google/nano-banana-pro',
+    inputHash: 'b'.repeat(64),
+    contractVersion: 'v1',
+    credentialFingerprint: 'c'.repeat(64),
+    credentialId: null,
+    outputIndex: 0,
     providerTaskId: 'opaque',
     state: 'provider-success',
     reservationId: 'hold',
@@ -55,6 +62,8 @@ function fixture() {
     vendorCostRecordedAt: null,
     billingRecordedAt: null,
     copyAttemptCount: 0,
+    nextMediaAttemptAt: new Date(),
+    nextAccountingAttemptAt: new Date(),
   } as unknown as CrunGenerationTask;
   const ingredient = {
     id: 'image',
@@ -62,18 +71,46 @@ function fixture() {
     status: IngredientStatus.PROCESSING as IngredientStatus,
     generationBilling: null as unknown,
   };
-  const hold = { status: 'RESERVED' };
+  const hold = {
+    id: 'hold',
+    organizationId: 'org',
+    actorUserId: 'user',
+    workloadId: 'image',
+    workloadType: 'media-generation',
+    amount: snapshot.allocatedCredits[0],
+    settledAmount: null as number | null,
+    metadata: { modelQuote: snapshot },
+    status: 'RESERVED',
+  };
   const prisma = {
     crunGenerationTask: {
-      findFirst: vi.fn(async () => row),
+      findMany: vi.fn(async () => [row]),
+      findFirst: vi.fn(async ({ where }) =>
+        (!where.version || where.version === row.version) &&
+        (!where.leaseUntil ||
+          (row.leaseUntil && row.leaseUntil > where.leaseUntil.gt)) &&
+        (!where.state || where.state === row.state)
+          ? row
+          : null,
+      ),
       findFirstOrThrow: vi.fn(async () => row),
-      updateMany: vi.fn(async ({ data }) => {
+      updateMany: vi.fn(async ({ where, data }) => {
+        if (
+          where.version !== row.version ||
+          where.state !== row.state ||
+          !row.leaseUntil ||
+          row.leaseUntil <= where.leaseUntil.gt
+        )
+          return { count: 0 };
+        const nextVersion = data.version ? row.version + 1 : row.version;
         Object.assign(row, data);
+        row.version = nextVersion;
         if (data.copyAttemptCount) row.copyAttemptCount = 1;
         return { count: 1 };
       }),
     },
     ingredient: {
+      findMany: vi.fn(async () => [ingredient]),
       findFirst: vi.fn(async () => ingredient),
       updateMany: vi.fn(async ({ data }) => {
         Object.assign(ingredient, data);
@@ -95,6 +132,7 @@ function fixture() {
   const billing = {
     settleOutput: vi.fn(async () => {
       hold.status = 'SETTLED';
+      hold.settledAmount = hold.amount;
     }),
     releaseOutput: vi.fn(async () => {
       hold.status = 'RELEASED';
@@ -139,7 +177,7 @@ function fixture() {
 describe('Crun authenticated finalization phases', () => {
   it('copies owned output, freezes actual cost, confirms funding, and does not repeat after restart', async () => {
     const f = fixture();
-    await f.service.finalize('org', 'task', f.info);
+    await f.service.finalize({ ...f.row }, f.info);
     expect(f.row.state).toBe('finalized');
     expect(f.row.mediaPersistedAt).toBeInstanceOf(Date);
     expect(f.row.billingRecordedAt).toBeInstanceOf(Date);
@@ -157,7 +195,7 @@ describe('Crun authenticated finalization phases', () => {
     expect(JSON.stringify(f.ledger.record.mock.calls)).not.toContain(
       'signature',
     );
-    await f.service.finalize('org', 'task', f.info);
+    await f.service.finalize({ ...f.row }, f.info);
     expect(f.media.processMediaForIngredient).toHaveBeenCalledTimes(1);
     expect(f.billing.settleOutput).toHaveBeenCalledTimes(1);
     expect(f.ledger.record).toHaveBeenCalledTimes(1);
@@ -165,7 +203,7 @@ describe('Crun authenticated finalization phases', () => {
   it('retains output and holds on successful credit discrepancy while disabling admission', async () => {
     const f = fixture();
     f.row.terminalReceipt = { status: 'success', credits: '9' };
-    await f.service.finalize('org', 'task', f.info);
+    await f.service.finalize({ ...f.row }, f.info);
     expect(f.row.mediaPersistedAt).toBeInstanceOf(Date);
     expect(f.row.vendorCostRecordedAt).toBeInstanceOf(Date);
     expect(f.row.recoveryCode).toBe('CRUN_FINAL_CREDITS_MISMATCH');
@@ -176,7 +214,7 @@ describe('Crun authenticated finalization phases', () => {
   it('preserves owned output but does not bill when final credits are missing', async () => {
     const f = fixture();
     f.row.terminalReceipt = { status: 'success', credits: null };
-    await f.service.finalize('org', 'task', f.info);
+    await f.service.finalize({ ...f.row }, f.info);
     expect(f.row.mediaPersistedAt).toBeInstanceOf(Date);
     expect(f.row.recoveryCode).toBe('CRUN_FINAL_CREDITS_UNAVAILABLE');
     expect(f.ledger.record).not.toHaveBeenCalled();
@@ -184,11 +222,14 @@ describe('Crun authenticated finalization phases', () => {
   });
   it('recovers invalid media without marking storage or settlement', async () => {
     const f = fixture();
-    await f.service.finalize('org', 'task', {
-      ...f.info,
-      mediaCount: 2,
-      mediaUrls: [],
-    });
+    await f.service.finalize(
+      { ...f.row },
+      {
+        ...f.info,
+        mediaCount: 2,
+        mediaUrls: [],
+      },
+    );
     expect(f.row.recoveryCode).toBe('CRUN_MEDIA_INVALID');
     expect(f.row.mediaPersistedAt).toBeNull();
     expect(f.billing.settleOutput).not.toHaveBeenCalled();
@@ -196,30 +237,36 @@ describe('Crun authenticated finalization phases', () => {
   it('retains durable media on cost-ledger outage and retries the same receipt', async () => {
     const f = fixture();
     f.ledger.record.mockRejectedValueOnce(new Error('fixture ledger outage'));
-    await expect(f.service.finalize('org', 'task', f.info)).rejects.toThrow(
-      'fixture ledger outage',
-    );
+    await f.service.finalize({ ...f.row }, f.info);
     expect(f.row.mediaPersistedAt).toBeInstanceOf(Date);
     expect(f.row.billingRecordedAt).toBeNull();
-    await f.service.finalize('org', 'task', f.info);
+    f.row.leaseUntil = new Date(Date.now() + 60000);
+    f.row.nextMediaAttemptAt = new Date();
+    f.row.nextAccountingAttemptAt = new Date();
+    f.row.version++;
+    await f.service.finalize({ ...f.row }, f.info);
     expect(f.media.processMediaForIngredient).toHaveBeenCalledTimes(1);
     expect(f.row.state).toBe('finalized');
   });
   it('queues settlement but waits for real ledger acknowledgement', async () => {
     const f = fixture();
     f.billing.settleOutput.mockImplementation(async () => undefined);
-    await f.service.finalize('org', 'task', f.info);
+    await f.service.finalize({ ...f.row }, f.info);
     expect(f.row.billingRecordedAt).toBeNull();
     expect(f.row.state).toBe('provider-success');
+    f.row.leaseUntil = new Date(Date.now() + 60000);
+    f.row.nextMediaAttemptAt = new Date();
+    f.row.nextAccountingAttemptAt = new Date();
+    f.row.version++;
     f.hold.status = 'SETTLED';
-    await f.service.finalize('org', 'task', f.info);
+    await f.service.finalize({ ...f.row }, f.info);
     expect(f.row.state).toBe('finalized');
   });
   it('records authenticated failed expense before releasing the customer hold', async () => {
     const f = fixture();
     f.row.state = 'provider-failed';
     f.row.terminalReceipt = { status: 'failed', credits: '1.5' };
-    await f.service.finalize('org', 'task');
+    await f.service.finalize({ ...f.row });
     expect(f.ledger.record).toHaveBeenCalledWith(
       expect.objectContaining({ vendorCostMicros: 1500 }),
     );
@@ -232,7 +279,7 @@ describe('Crun authenticated finalization phases', () => {
     f.row.state = 'provider-failed';
     f.row.providerTaskId = null;
     f.row.terminalReceipt = { isAccepted: false, credits: '0' };
-    await f.service.finalize('org', 'task');
+    await f.service.finalize({ ...f.row });
     expect(f.ledger.record).not.toHaveBeenCalled();
     expect(f.billing.releaseOutput).toHaveBeenCalled();
     expect(f.row.state).toBe('finalized');
@@ -240,7 +287,7 @@ describe('Crun authenticated finalization phases', () => {
   it('does not infer provider failure from ambiguous acceptance', async () => {
     const f = fixture();
     f.row.state = 'recovery-required';
-    await f.service.finalize('org', 'task', f.info);
+    await f.service.finalize({ ...f.row }, f.info);
     expect(f.billing.releaseOutput).not.toHaveBeenCalled();
     expect(f.ledger.record).not.toHaveBeenCalled();
   });
@@ -249,12 +296,16 @@ describe('Crun authenticated finalization phases', () => {
     f.media.processMediaForIngredient.mockRejectedValue(
       new Error('expired URL'),
     );
-    await f.service.finalize('org', 'task', f.info);
+    await f.service.finalize({ ...f.row }, f.info);
     expect(f.row.nextPollAt).toBeInstanceOf(Date);
     expect(f.row.copyAttemptCount).toBe(1);
     expect(f.billing.settleOutput).not.toHaveBeenCalled();
+    f.row.leaseUntil = new Date(Date.now() + 60000);
+    f.row.nextMediaAttemptAt = new Date();
+    f.row.nextAccountingAttemptAt = new Date();
+    f.row.version++;
     f.row.copyAttemptCount = 3;
-    await f.service.finalize('org', 'task', f.info);
+    await f.service.finalize({ ...f.row }, f.info);
     expect(f.row.recoveryCode).toBe('CRUN_MEDIA_COPY_EXHAUSTED');
   });
   it('free hosted output still records actual provider expense with no credit job', async () => {
@@ -267,7 +318,7 @@ describe('Crun authenticated finalization phases', () => {
     };
     f.row.fundingBinding = { kind: 'free' };
     f.row.reservationId = null;
-    await f.service.finalize('org', 'task', f.info);
+    await f.service.finalize({ ...f.row }, f.info);
     expect(f.row.state).toBe('finalized');
     expect(f.ledger.record).toHaveBeenCalled();
     expect(f.billing.settleOutput).not.toHaveBeenCalled();
@@ -300,11 +351,15 @@ describe('Crun authenticated finalization phases', () => {
       kind: 'byok',
       state: 'pending',
     };
-    await f.service.finalize('org', 'task', f.info);
+    await f.service.finalize({ ...f.row }, f.info);
     expect(f.row.billingRecordedAt).toBeNull();
     expect(f.ledger.record).toHaveBeenCalledWith(
       expect.objectContaining({ vendorCostMicros: 0, costEvidence: 'byok' }),
     );
+    f.row.leaseUntil = new Date(Date.now() + 60000);
+    f.row.nextMediaAttemptAt = new Date();
+    f.row.nextAccountingAttemptAt = new Date();
+    f.row.version++;
     f.prisma.creditTransaction.findFirst.mockResolvedValue({
       id: 'usage-ledger',
     });
@@ -313,7 +368,7 @@ describe('Crun authenticated finalization phases', () => {
       kind: 'byok',
       state: 'recorded',
     };
-    await f.service.finalize('org', 'task', f.info);
+    await f.service.finalize({ ...f.row }, f.info);
     expect(f.row.state).toBe('finalized');
     expect(f.prisma.creditTransaction.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -330,13 +385,131 @@ describe('Crun authenticated finalization phases', () => {
     const f = fixture();
     f.row.state = 'provider-failed';
     f.row.terminalReceipt = { status: 'failed', credits: '9' };
-    await f.service.finalize('org', 'task');
+    await f.service.finalize({ ...f.row });
     expect(f.logger.warn).toHaveBeenCalledWith(
       'Crun failed task expense exceeds frozen quote',
       expect.objectContaining({ taskId: 'task', modelKey: f.row.modelKey }),
     );
     expect(f.billing.releaseOutput).toHaveBeenCalled();
     expect(f.billing.settleOutput).not.toHaveBeenCalled();
+    expect(f.row.state).toBe('finalized');
+  });
+  it('expired ownership causes no media, expense or billing effects', async () => {
+    const f = fixture();
+    f.row.leaseUntil = new Date(Date.now() - 1);
+    await f.service.finalize({ ...f.row }, f.info);
+    expect(f.media.processMediaForIngredient).not.toHaveBeenCalled();
+    expect(f.ledger.record).not.toHaveBeenCalled();
+    expect(f.billing.settleOutput).not.toHaveBeenCalled();
+  });
+  it('an old media failure cannot overwrite a newer finalized epoch', async () => {
+    const f = fixture();
+    const claimed = { ...f.row };
+    f.media.processMediaForIngredient.mockImplementationOnce(async () => {
+      f.row.version++;
+      f.row.state = 'finalized';
+      f.row.leaseUntil = null;
+      throw new Error('old upload failed');
+    });
+    await expect(f.service.finalize(claimed, f.info)).rejects.toThrow(
+      'CRUN_LEASE_LOST',
+    );
+    expect(f.row.state).toBe('finalized');
+    expect(f.row.recoveryCode).toBeUndefined();
+    expect(f.billing.settleOutput).not.toHaveBeenCalled();
+  });
+  it('copy failure still records known expense independently and retains the hold', async () => {
+    const f = fixture();
+    f.media.processMediaForIngredient.mockRejectedValueOnce(
+      new Error('copy unavailable'),
+    );
+    await f.service.finalize({ ...f.row }, f.info);
+    expect(f.row.vendorCostRecordedAt).toBeInstanceOf(Date);
+    expect(f.row.mediaPersistedAt).toBeNull();
+    expect(f.billing.settleOutput).not.toHaveBeenCalled();
+    expect(f.billing.releaseOutput).not.toHaveBeenCalled();
+  });
+  it('keeps simultaneous expense and copy outages on independent 30s and 60s deadlines', async () => {
+    const f = fixture();
+    const before = Date.now();
+    f.ledger.record.mockRejectedValueOnce(new Error('ledger outage'));
+    f.media.processMediaForIngredient.mockRejectedValueOnce(
+      new Error('copy outage'),
+    );
+    await f.service.finalize({ ...f.row }, f.info);
+    expect(f.row.nextAccountingAttemptAt?.getTime()).toBeGreaterThanOrEqual(
+      before + 30000,
+    );
+    expect(f.row.nextMediaAttemptAt?.getTime()).toBeGreaterThanOrEqual(
+      before + 60000,
+    );
+    expect(f.row.nextPollAt).toEqual(f.row.nextAccountingAttemptAt);
+    expect(f.row.state).toBe('provider-success');
+    f.row.leaseUntil = new Date(Date.now() + 60000);
+    f.row.version++;
+    f.row.nextAccountingAttemptAt = new Date();
+    await f.service.finalize({ ...f.row });
+    expect(f.ledger.record).toHaveBeenCalledTimes(2);
+    expect(f.media.processMediaForIngredient).toHaveBeenCalledTimes(1);
+    expect(f.row.nextAccountingAttemptAt).toBeNull();
+    expect(f.row.nextPollAt).toEqual(f.row.nextMediaAttemptAt);
+  });
+  it('copy exhaustion preserves a pending expense retry', async () => {
+    const f = fixture();
+    f.row.copyAttemptCount = 3;
+    f.ledger.record.mockRejectedValueOnce(new Error('ledger outage'));
+    f.media.processMediaForIngredient.mockRejectedValueOnce(
+      new Error('copy outage'),
+    );
+    await f.service.finalize({ ...f.row }, f.info);
+    expect(f.row.nextMediaAttemptAt).toBeNull();
+    expect(f.row.nextAccountingAttemptAt).toBeInstanceOf(Date);
+    expect(f.row.state).toBe('provider-success');
+    expect(f.row.recoveryCode).toBe('CRUN_MEDIA_COPY_EXHAUSTED');
+  });
+  it('an aborted heartbeat stops later effects even if the scoped epoch still exists', async () => {
+    const f = fixture();
+    const controller = new AbortController();
+    f.media.processMediaForIngredient.mockImplementationOnce(async () => {
+      f.ingredient.s3Key = 'owned/image.png';
+      controller.abort();
+    });
+    await expect(
+      f.service.finalize({ ...f.row }, f.info, controller.signal),
+    ).rejects.toThrow('CRUN_LEASE_LOST');
+    expect(f.row.mediaPersistedAt).toBeNull();
+    expect(f.billing.settleOutput).not.toHaveBeenCalled();
+  });
+  it('does not adopt a takeover epoch between its CAS and reload', async () => {
+    const f = fixture();
+    f.prisma.crunGenerationTask.findFirstOrThrow.mockImplementationOnce(
+      async (args) => {
+        expect(args.where).toMatchObject({
+          id: 'task',
+          organizationId: 'org',
+          version: 1,
+          state: 'provider-success',
+          leaseUntil: { gt: expect.any(Date) },
+        });
+        f.row.version++;
+        f.row.leaseUntil = new Date(Date.now() + 60000);
+        throw new Error('owned epoch no longer exists');
+      },
+    );
+    await expect(f.service.finalize({ ...f.row }, f.info)).rejects.toThrow(
+      'CRUN_LEASE_LOST',
+    );
+    expect(f.media.processMediaForIngredient).not.toHaveBeenCalled();
+    expect(f.billing.settleOutput).not.toHaveBeenCalled();
+  });
+  it('recovers a stored owned artifact without reading original credentials or another media URL', async () => {
+    const f = fixture();
+    f.row.recoveryCode = 'CRUN_ORIGINAL_CREDENTIAL_UNAVAILABLE';
+    f.ingredient.s3Key = 'owned/image.png';
+    f.ingredient.status = IngredientStatus.GENERATED;
+    await f.service.finalize({ ...f.row });
+    expect(f.media.processMediaForIngredient).not.toHaveBeenCalled();
+    expect(f.row.mediaPersistedAt).toBeInstanceOf(Date);
     expect(f.row.state).toBe('finalized');
   });
 });

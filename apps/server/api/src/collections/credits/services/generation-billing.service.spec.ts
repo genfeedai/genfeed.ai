@@ -100,6 +100,9 @@ describe('GenerationBillingService', () => {
     prisma.crunGenerationTask.findFirst.mockReset().mockResolvedValue(null);
     prisma.crunGenerationTask.findMany.mockReset().mockResolvedValue([]);
     vi.resetAllMocks();
+    prisma.$transaction.mockImplementation(async (operation) =>
+      operation(prisma),
+    );
     prisma.crunGenerationTask.findFirst.mockResolvedValue(null);
     prisma.crunGenerationTask.findMany.mockResolvedValue([]);
     quoteGroups.reconcile.mockResolvedValue(0);
@@ -647,4 +650,35 @@ describe('GenerationBillingService', () => {
       expect(prisma.ingredient.updateMany).not.toHaveBeenCalled();
     },
   );
+  it('rechecks Crun release proof inside Serializable status mutation and retries only a rolled-back conflict', async () => {
+    prisma.crunGenerationTask.findFirst.mockResolvedValue({
+      state: 'prepared',
+      terminalReceipt: null,
+    });
+    prisma.ingredient.findFirst.mockResolvedValue({
+      id: 'ing_1',
+      status: IngredientStatus.PROCESSING,
+      generationBilling: null,
+    });
+    prisma.$transaction.mockRejectedValueOnce({ code: 'P2034' });
+    await service.recordProviderFailure('ing_1', 'org_1');
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(prisma.$transaction).toHaveBeenLastCalledWith(expect.any(Function), {
+      isolationLevel: 'Serializable',
+    });
+    expect(prisma.ingredient.updateMany).toHaveBeenCalledTimes(1);
+    expect(queue.queueDeduction).not.toHaveBeenCalled();
+  });
+  it('a submitting task cannot acquire negative proof from a local failure projection', async () => {
+    prisma.crunGenerationTask.findFirst.mockResolvedValue({
+      state: 'submitting',
+      terminalReceipt: null,
+    });
+    await service.recordSubmissionRejection('ing_1', 'org_1');
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: 'Serializable',
+    });
+    expect(prisma.ingredient.updateMany).not.toHaveBeenCalled();
+    expect(credits.releaseReservation).not.toHaveBeenCalled();
+  });
 });

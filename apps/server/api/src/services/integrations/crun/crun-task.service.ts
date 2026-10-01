@@ -16,6 +16,7 @@ import type {
 import { crunFundingBindingSchema } from '@api/services/integrations/crun/crun-task.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ByokProvider } from '@genfeedai/contracts';
+import { crunCreditsEqual } from '@genfeedai/pricing';
 import type { Prisma } from '@genfeedai/prisma';
 import { type CrunGenerationTask, toPrismaJson } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
@@ -190,8 +191,10 @@ export class CrunTaskService {
     request: CrunProviderRequest,
     now = new Date(),
   ) {
-    if (!this.isAdmissionEnabled())
+    if (!this.isAdmissionEnabled()) {
+      await this.markUnsubmitted(task, 'CRUN_DISABLED', now);
       return { isSubmitted: false, reasonCode: 'CRUN_DISABLED' };
+    }
     const active = await this.prisma.model.findFirst({
       where: {
         key: task.modelKey,
@@ -203,11 +206,17 @@ export class CrunTaskService {
       },
       select: { id: true },
     });
-    if (!active || request.model !== task.endpoint)
+    if (!active || request.model !== task.endpoint) {
+      await this.markUnsubmitted(task, 'CRUN_MODEL_UNAVAILABLE', now);
       return { isSubmitted: false, reasonCode: 'CRUN_MODEL_UNAVAILABLE' };
+    }
     const credential = await this.resolveSubmissionCredential(task);
     if (!credential) {
-      await this.markRecovery(task, 'CRUN_ORIGINAL_CREDENTIAL_UNAVAILABLE');
+      await this.markUnsubmitted(
+        task,
+        'CRUN_ORIGINAL_CREDENTIAL_UNAVAILABLE',
+        now,
+      );
       return {
         isSubmitted: false,
         reasonCode: 'CRUN_ORIGINAL_CREDENTIAL_UNAVAILABLE',
@@ -264,30 +273,46 @@ export class CrunTaskService {
       });
       return { isSubmitted: true, taskId: result.data.taskId };
     }
-    if (result.disposition === 'deferred') {
-      // Shared gate proves the HTTP request never started; explicit caller may retry this prepared row.
-      await this.prisma.crunGenerationTask.updateMany({
-        where,
-        data: {
-          state: 'prepared',
-          submittedAt: null,
-          deadlineAt: null,
-          nextPollAt: null,
-          version: { increment: 1 },
-        },
-      });
-    } else if (result.disposition === 'refused') {
-      await this.prisma.crunGenerationTask.updateMany({
-        where,
-        data: {
-          state: 'provider-failed',
-          failureCode: result.reasonCode,
-          terminalReceipt: { isAccepted: false, credits: '0' },
-          version: { increment: 1 },
-        },
-      });
-    } else await this.markRecovery({ ...task, version }, result.reasonCode);
+    if (result.disposition === 'deferred' || result.disposition === 'refused')
+      await this.markUnsubmitted(
+        { ...task, state: 'submitting', version },
+        result.reasonCode,
+        now,
+      );
+    else
+      await this.markRecovery(
+        { ...task, state: 'submitting', version },
+        result.reasonCode,
+      );
     return { isSubmitted: false, reasonCode: result.reasonCode };
+  }
+
+  private async markUnsubmitted(
+    task: CrunGenerationTask,
+    reasonCode: string,
+    now: Date,
+  ): Promise<void> {
+    if (!['prepared', 'submitting'].includes(task.state)) return;
+    await this.prisma.crunGenerationTask.updateMany({
+      where: {
+        id: task.id,
+        organizationId: task.organizationId,
+        isDeleted: false,
+        state: task.state,
+        version: task.version,
+        providerTaskId: null,
+      },
+      data: {
+        state: 'provider-failed',
+        failureCode: reasonCode,
+        terminalReceipt: { isAccepted: false, credits: '0' },
+        nextAccountingAttemptAt: now,
+        nextMediaAttemptAt: null,
+        nextPollAt: now,
+        leaseUntil: null,
+        version: { increment: 1 },
+      },
+    });
   }
 
   private async runSerializable<T>(
@@ -440,54 +465,125 @@ export class CrunTaskService {
     }
   }
 
-  /** Poll once. Return signed media URLs only ephemerally to the owned-media finalizer. */
+  async ownsLease(
+    task: CrunGenerationTask,
+    now = new Date(),
+  ): Promise<boolean> {
+    return Boolean(
+      await this.prisma.crunGenerationTask.findFirst({
+        where: {
+          id: task.id,
+          organizationId: task.organizationId,
+          isDeleted: false,
+          version: task.version,
+          leaseUntil: { gt: now },
+          state: task.state,
+        },
+        select: { id: true },
+      }),
+    );
+  }
+
+  async renewLease(
+    task: CrunGenerationTask,
+    now = new Date(),
+  ): Promise<boolean> {
+    const result = await this.prisma.crunGenerationTask.updateMany({
+      where: {
+        id: task.id,
+        organizationId: task.organizationId,
+        isDeleted: false,
+        version: task.version,
+        leaseUntil: { gt: now },
+      },
+      data: { leaseUntil: new Date(now.getTime() + 60000) },
+    });
+    return result.count === 1;
+  }
+
+  /** Poll once with the claimed ownership epoch; temporary URLs never enter persistence. */
   async poll(
     task: CrunGenerationTask,
     now = new Date(),
-  ): Promise<CrunTaskStatusResponse | null> {
+    signal?: AbortSignal,
+  ): Promise<{
+    task: CrunGenerationTask;
+    info?: CrunTaskStatusResponse;
+  } | null> {
+    if (signal?.aborted || !(await this.ownsLease(task, now))) return null;
     if (!task.providerTaskId) {
       await this.markRecovery(task, 'CRUN_ACCEPTANCE_AMBIGUOUS');
       return null;
     }
-    const hasTerminalReceipt =
+    const terminal =
       task.state === 'provider-success' || task.state === 'provider-failed';
     if (
-      !hasTerminalReceipt &&
+      !terminal &&
       (task.pollCount >= 40 || !task.deadlineAt || task.deadlineAt <= now)
     ) {
       await this.markRecovery(task, 'CRUN_POLL_EXHAUSTED');
       return null;
     }
     const credential = await this.resolveOriginalCredential(task);
+    if (signal?.aborted) return null;
     if (!credential) {
+      if (terminal) {
+        const changed = await this.prisma.crunGenerationTask.updateMany({
+          where: {
+            id: task.id,
+            organizationId: task.organizationId,
+            isDeleted: false,
+            version: task.version,
+            state: task.state,
+            leaseUntil: { gt: new Date() },
+          },
+          data: { recoveryCode: 'CRUN_ORIGINAL_CREDENTIAL_UNAVAILABLE' },
+        });
+        return changed.count === 1
+          ? {
+              task: {
+                ...task,
+                recoveryCode: 'CRUN_ORIGINAL_CREDENTIAL_UNAVAILABLE',
+              },
+            }
+          : null;
+      }
       await this.markRecovery(task, 'CRUN_ORIGINAL_CREDENTIAL_UNAVAILABLE');
       return null;
     }
+    if (signal?.aborted || !(await this.ownsLease(task))) return null;
     const result = await this.client.taskInfo(credential, task.providerTaskId);
+    if (signal?.aborted) return null;
     const where = {
       id: task.id,
       organizationId: task.organizationId,
       isDeleted: false,
       version: task.version,
+      state: task.state,
+      leaseUntil: { gt: new Date() },
     };
     if (!result.isValid) {
+      if (terminal) return (await this.ownsLease(task)) ? { task } : null;
       const consecutive404 =
         result.reasonCode === 'CRUN_TASK_NOT_FOUND'
           ? Number(
               task.failureCode?.match(/^CRUN_TASK_NOT_FOUND_(\d+)$/)?.[1] ?? 0,
             ) + 1
           : 0;
-      if (result.disposition === 'recovery' || consecutive404 >= 3) {
+      if (result.disposition === 'recovery' || consecutive404 >= 3)
         await this.markRecovery(
           task,
           consecutive404 >= 3 ? 'CRUN_TASK_NOT_FOUND' : result.reasonCode,
         );
-      } else
+      else
         await this.prisma.crunGenerationTask.updateMany({
           where,
           data: {
             nextPollAt: new Date(
-              now.getTime() + Math.max(30000, result.retryAfterMs),
+              Math.min(
+                now.getTime() + Math.max(30000, result.retryAfterMs),
+                task.deadlineAt?.getTime() ?? now.getTime(),
+              ),
             ),
             leaseUntil: null,
             pollCount: { increment: 1 },
@@ -501,26 +597,82 @@ export class CrunTaskService {
     }
     const info = result.data;
     const isTerminal = info.status === 'success' || info.status === 'failed';
-    const { mediaUrls: _ephemeralUrls, ...receipt } = info;
-    const updated = await this.prisma.crunGenerationTask.updateMany({
-      where,
-      data: {
-        state:
-          info.status === 'success'
+    const { mediaUrls: _urls, ...receipt } = info;
+    let data: Prisma.CrunGenerationTaskUpdateManyMutationInput;
+    if (terminal) {
+      const previous =
+        task.terminalReceipt &&
+        typeof task.terminalReceipt === 'object' &&
+        !Array.isArray(task.terminalReceipt)
+          ? task.terminalReceipt
+          : {};
+      const conflict =
+        isTerminal &&
+        (previous.status !== info.status ||
+          (typeof previous.credits === 'string' &&
+            info.credits !== null &&
+            !crunCreditsEqual(previous.credits, info.credits)));
+      data = {
+        ...(conflict ? { recoveryCode: 'CRUN_TERMINAL_RECEIPT_CONFLICT' } : {}),
+        ...(!conflict &&
+        isTerminal &&
+        previous.credits == null &&
+        info.credits !== null
+          ? {
+              terminalReceipt: toPrismaJson(receipt),
+              nextAccountingAttemptAt: now,
+            }
+          : {}),
+      };
+    } else
+      data = {
+        state: isTerminal
+          ? info.status === 'success'
             ? 'provider-success'
-            : info.status === 'failed'
-              ? 'provider-failed'
-              : info.status,
-        ...(isTerminal ? { terminalReceipt: toPrismaJson(receipt) } : {}),
+            : 'provider-failed'
+          : info.status,
+        ...(isTerminal
+          ? {
+              terminalReceipt: toPrismaJson(receipt),
+              nextAccountingAttemptAt: now,
+              nextMediaAttemptAt:
+                info.status === 'success' && !task.mediaPersistedAt
+                  ? now
+                  : null,
+              nextPollAt: now,
+            }
+          : {}),
         recoveryCode: info.recoveryCode,
         failureCode: null,
-        leaseUntil: null,
-        nextPollAt: new Date(now.getTime() + 30000),
         pollCount: { increment: 1 },
-        version: { increment: 1 },
+        ...(isTerminal
+          ? {}
+          : {
+              leaseUntil: null,
+              nextPollAt: new Date(
+                Math.min(
+                  now.getTime() + 30000,
+                  task.deadlineAt?.getTime() ?? now.getTime(),
+                ),
+              ),
+              version: { increment: 1 },
+            }),
+      };
+    const updated = await this.prisma.crunGenerationTask.updateMany({
+      where,
+      data,
+    });
+    if (updated.count !== 1 || (!terminal && !isTerminal)) return null;
+    const current = await this.prisma.crunGenerationTask.findFirst({
+      where: {
+        id: task.id,
+        organizationId: task.organizationId,
+        isDeleted: false,
+        version: task.version,
+        leaseUntil: { gt: new Date() },
       },
     });
-    return updated.count === 1 && isTerminal ? info : null;
+    return current ? { task: current, ...(isTerminal ? { info } : {}) } : null;
   }
 
   /** Deployment-global sweep; every claim re-enters the row's tenant scope. */
@@ -547,6 +699,7 @@ export class CrunTaskService {
       });
       const claimed: CrunGenerationTask[] = [];
       for (const row of rows) {
+        if (claimed.length >= 4) break;
         const leaseUntil = new Date(now.getTime() + 60000);
         const result = await transaction.crunGenerationTask.updateMany({
           data: { leaseUntil, version: { increment: 1 } },
@@ -579,6 +732,9 @@ export class CrunTaskService {
         organizationId: task.organizationId,
         isDeleted: false,
         version: task.version,
+        ...(task.leaseUntil
+          ? { leaseUntil: { gt: new Date() }, state: task.state }
+          : {}),
       },
     });
   }

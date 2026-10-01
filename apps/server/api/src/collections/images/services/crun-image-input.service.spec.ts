@@ -232,4 +232,30 @@ describe('Crun deterministic image preparation', () => {
     );
     expect(f.builder.buildPrompt).not.toHaveBeenCalled();
   });
+  it('canonical launch defaults and empty knowledge normalize to the same intent as explicit controls', () => {
+    const f = fixture();
+    const raw = {
+      model: f.model.key,
+      text: ' Bird ',
+      crunControls: { contractVersion: f.contract.version },
+    };
+    expect(
+      f.service.normalize({ ...raw, knowledge: {} }, user as never),
+    ).toEqual(
+      f.service.normalize(
+        {
+          ...raw,
+          text: 'Bird',
+          isBrandingEnabled: false,
+          crunControls: {
+            contractVersion: f.contract.version,
+            aspectRatio: '1:1',
+            resolution: '1K',
+            outputFormat: 'png',
+          },
+        },
+        user as never,
+      ),
+    );
+  });
 });

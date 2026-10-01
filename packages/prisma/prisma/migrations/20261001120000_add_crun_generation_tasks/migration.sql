@@ -23,6 +23,8 @@ CREATE TABLE "crun_generation_tasks" (
     "submittedAt" TIMESTAMP(3),
     "deadlineAt" TIMESTAMP(3),
     "nextPollAt" TIMESTAMP(3),
+    "nextMediaAttemptAt" TIMESTAMP(3),
+    "nextAccountingAttemptAt" TIMESTAMP(3),
     "pollCount" INTEGER NOT NULL DEFAULT 0,
     "leaseUntil" TIMESTAMP(3),
     "version" INTEGER NOT NULL DEFAULT 0,

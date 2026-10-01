@@ -217,6 +217,21 @@ export const crunImageQuoteIntentSchema = z
   })
   .transform((value) => ({
     ...value,
+    crunControls: {
+      ...value.crunControls,
+      aspectRatio:
+        value.crunControls.aspectRatio ??
+        (value.model === 'crun/bytedance/seedream-4-5' ? '16:9' : '1:1'),
+      resolution:
+        value.crunControls.resolution ??
+        (value.model === 'crun/bytedance/seedream-4-5' ? '2K' : '1K'),
+      ...(value.model === 'crun/google/nano-banana-pro'
+        ? { outputFormat: value.crunControls.outputFormat ?? 'png' }
+        : {}),
+    },
+    isBrandingEnabled:
+      (value.brandingMode ?? (value.isBrandingEnabled ? 'brand' : 'off')) ===
+      'brand',
     knowledge:
       value.knowledge &&
       Object.values(value.knowledge).some(

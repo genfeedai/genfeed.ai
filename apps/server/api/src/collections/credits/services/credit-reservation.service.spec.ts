@@ -3,10 +3,12 @@ import { CreditReservationService } from '@api/collections/credits/services/cred
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { ReservationEvidenceChangedException } from '@api/collections/credits/services/reservation-evidence-changed.exception';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
+import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CreditReservationStatus } from '@genfeedai/contracts';
+import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 
 describe('CreditReservationService', () => {
@@ -24,7 +26,12 @@ describe('CreditReservationService', () => {
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     creditTransaction: { updateMany: vi.fn() },
-    ingredient: { findFirst: vi.fn() },
+    ingredient: {
+      findFirst: vi.fn(),
+      findMany: vi
+        .fn()
+        .mockResolvedValue([{ id: 'image', s3Key: 'owned/image.png' }]),
+    },
     liveSession: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
   };
   const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
@@ -906,4 +913,105 @@ describe('CreditReservationService', () => {
       expect(prisma.creditReservation.create).not.toHaveBeenCalled();
     });
   });
+  it.each([
+    'pending',
+    'ambiguous',
+    'missing',
+    'mismatch',
+    'foreign',
+    'conflict',
+  ])(
+    'direct wallet settlement denies %s Crun proof before any financial write',
+    async (scenario) => {
+      const priced = quoteModelBillablePricing(
+        billableProfile({
+          key: 'crun/google/nano-banana-pro',
+          provider: 'crun',
+          cost: 3,
+        }),
+        {
+          modelKey: 'crun/google/nano-banana-pro',
+          provider: 'crun',
+          outputs: 1,
+          requests: 1,
+        },
+        1,
+        new Date().toISOString(),
+      );
+      if (priced.status !== 'priced') throw new Error('Invalid fixture');
+      const quote = {
+        ...priced.snapshot,
+        providerQuote: {
+          provider: 'crun',
+          estimated: false,
+          providerCreditsPerTask: '8',
+          quoteHash: 'a'.repeat(64),
+          inputHash: 'b'.repeat(64),
+          contractVersion: 'v1',
+          creditsPerUsd: '1000',
+          acquisitionRateVersion: 'fixture-rate',
+          credentialSource: 'hosted',
+          credentialId: null,
+          credentialFingerprint: 'c'.repeat(64),
+        },
+      };
+      const task = {
+        id: 'task',
+        ingredientId: 'image',
+        reservationId: 'res_1',
+        organizationId: 'org_1',
+        userId: scenario === 'foreign' ? 'foreign-user' : 'user_1',
+        modelKey: quote.modelKey,
+        inputHash: quote.providerQuote.inputHash,
+        contractVersion: 'v1',
+        credentialFingerprint: quote.providerQuote.credentialFingerprint,
+        credentialId: null,
+        credentialSource: 'hosted',
+        fundingBinding: { kind: 'reservation' },
+        quoteSnapshot: quote,
+        outputIndex: 0,
+        state:
+          scenario === 'pending'
+            ? 'pending'
+            : scenario === 'ambiguous'
+              ? 'submitting'
+              : 'provider-success',
+        providerTaskId: scenario === 'ambiguous' ? null : 'opaque',
+        terminalReceipt: {
+          status: 'success',
+          credits: scenario === 'mismatch' ? '9' : '8',
+        },
+        vendorCostRecordedAt: new Date(),
+        mediaPersistedAt: new Date(),
+        recoveryCode:
+          scenario === 'conflict' ? 'CRUN_TERMINAL_RECEIPT_CONFLICT' : null,
+      };
+      prisma.crunGenerationTask.findMany.mockResolvedValue(
+        scenario === 'missing' ? [] : [task],
+      );
+      prisma.creditReservation.findFirst.mockResolvedValue({
+        id: 'res_1',
+        organizationId: 'org_1',
+        actorUserId: 'user_1',
+        workloadId: 'image',
+        workloadType: 'media-generation',
+        amount: 3,
+        status: CreditReservationStatus.RESERVED,
+        metadata: { modelQuote: quote },
+      });
+      await expect(
+        service.settle({
+          organizationId: 'org_1',
+          reservationId: 'res_1',
+          actorUserId: 'user_1',
+          actualAmount: 3,
+        }),
+      ).rejects.toThrow('Crun settlement proof is incomplete');
+      expect(prisma.creditReservation.updateMany).not.toHaveBeenCalled();
+      expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
+      expect(
+        creditTransactionsService.createTransactionEntry,
+      ).not.toHaveBeenCalled();
+    },
+  );
 });
