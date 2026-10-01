@@ -1,4 +1,4 @@
-import { runOwnedRuntimeCleanup } from '@test/helpers/proactive-runtime-cleanup';
+import { runOwnedRuntimeCleanup } from '@api-test/helpers/proactive-runtime-cleanup';
 import { describe, expect, it } from 'vitest';
 
 const resourceOrder = [
