@@ -858,7 +858,9 @@
   "home": {
     "activity": {
       "empty": "No recent activity yet.",
-      "open": "View activity"
+      "open": "View activity",
+      "title": "Recent activity",
+      "unavailable": "Recent activity is temporarily unavailable. Approval, publishing, and credential summaries remain available."
     },
     "approvals": {
       "empty": "Nothing is waiting for review.",
@@ -866,25 +868,45 @@
       "openItem": "Open",
       "overflow": "{count} more waiting",
       "readyToReview": "Ready to review",
-      "viewAll": "View all"
+      "viewAll": "View all",
+      "title": "Attention queue",
+      "unavailable": "Approval state is temporarily unavailable. Publishing and credential checks remain available.",
+      "addBrand": "Add a brand before opening a brand-scoped review queue.",
+      "approve": "Approve",
+      "approvePost": "Approve post",
+      "workflowFailed": "Workflow execution failed."
     },
     "credentials": {
       "addBrand": "Add a brand",
       "empty": "No accounts are connected yet.",
       "loading": "Loading credential health...",
       "manage": "Manage accounts",
-      "reconnect": "Reconnect"
+      "reconnect": "Reconnect",
+      "title": "Accounts",
+      "unavailable": "Credential health is temporarily unavailable. Approval, publishing, and activity summaries remain available."
     },
     "publishing": {
       "empty": "No posts yet. Create a post to start publishing.",
-      "open": "Open publishing"
+      "open": "Open publishing",
+      "title": "Publishing",
+      "unavailable": "Publishing state could not be loaded. Credential health and activity remain available.",
+      "addBrand": "Add a brand before opening brand-scoped publishing."
     },
     "schedule": {
       "addBrand": "Add a brand before scheduling posts to the calendar.",
       "empty": "Nothing is scheduled for the next 7 days.",
       "open": "Open calendar",
       "title": "Next 7 days",
-      "unavailable": "The upcoming schedule is temporarily unavailable. Approval, publishing, and credential summaries remain available."
+      "unavailable": "The upcoming schedule is temporarily unavailable. Approval, publishing, and credential summaries remain available.",
+      "retry": "Retry upcoming schedule",
+      "scheduled": "scheduled"
+    },
+    "metrics": {
+      "readyToReview": "Ready to review",
+      "pendingPosts": "Pending posts",
+      "active": "Active",
+      "failedToday": "Failed today",
+      "needAttention": "Need attention"
     }
   },
   "agent": {

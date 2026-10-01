@@ -191,7 +191,7 @@ describe('IngredientsList', () => {
     mockUseBrand.mockReturnValue({ selectedBrand: undefined });
     mockUseIngredientsList.mockReturnValue(buildIngredientsListReturn());
 
-    render(<IngredientsList />);
+    render(<IngredientsList type="images" />);
 
     expect(screen.getByTestId('ingredients-content')).toHaveTextContent(
       '0 assets',
@@ -210,7 +210,7 @@ describe('IngredientsList', () => {
       }),
     );
 
-    render(<IngredientsList />);
+    render(<IngredientsList type="images" />);
 
     expect(screen.getByTestId('ingredients-content')).toHaveTextContent(
       '1 assets',
@@ -221,7 +221,7 @@ describe('IngredientsList', () => {
     mockUseBrand.mockReturnValue({ selectedBrand: undefined });
     mockUseIngredientsList.mockReturnValue(buildIngredientsListReturn());
 
-    render(<IngredientsList folderNavigation="shell" />);
+    render(<IngredientsList type="images" folderNavigation="shell" />);
 
     expect(screen.queryByTestId('ingredients-sidebar')).not.toBeInTheDocument();
     expect(screen.getByTestId('ingredients-content')).toBeInTheDocument();
@@ -241,7 +241,7 @@ describe('IngredientsList', () => {
       }),
     );
 
-    render(<IngredientsList />);
+    render(<IngredientsList type="images" />);
 
     expect(screen.getByText('Failed to load images')).toBeInTheDocument();
     expect(screen.queryByTestId('ingredients-content')).not.toBeInTheDocument();
@@ -277,7 +277,7 @@ describe('IngredientsList', () => {
       }),
     );
 
-    render(<IngredientsList />);
+    render(<IngredientsList type="images" />);
 
     expect(screen.getByTestId('publish-campaign-state')).toHaveTextContent(
       'enabled',
@@ -299,7 +299,7 @@ describe('IngredientsList', () => {
     mockUseBrand.mockReturnValue({ selectedBrand: undefined });
     mockUseIngredientsList.mockReturnValue(buildIngredientsListReturn());
 
-    render(<IngredientsList />);
+    render(<IngredientsList type="images" />);
 
     expect(screen.queryByTestId('selection-header')).not.toBeInTheDocument();
     expect(slot).toBeEmptyDOMElement();
@@ -322,7 +322,7 @@ describe('IngredientsList', () => {
       }),
     );
 
-    render(<IngredientsList />);
+    render(<IngredientsList type="images" />);
 
     const header = screen.getByTestId('selection-header');
     expect(header).toHaveAttribute('data-placement', 'subtopbar');
@@ -354,7 +354,7 @@ describe('IngredientsList', () => {
       }),
     );
 
-    render(<IngredientsList />);
+    render(<IngredientsList type="images" />);
 
     expect(screen.getByTestId('publish-campaign-state')).toHaveTextContent(
       'disabled',

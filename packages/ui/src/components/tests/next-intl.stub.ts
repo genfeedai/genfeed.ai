@@ -310,6 +310,10 @@ const UI_TEST_MESSAGES = {
     },
   },
   ui: {
+    quickActions: {
+      more: 'More',
+      groups: { reframe: 'Reframe', convert: 'Convert', prompt: 'Prompt' },
+    },
     brandGenerate: {
       banner: {
         label: 'Describe the banner',

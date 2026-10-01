@@ -20,6 +20,7 @@ import {
   QUICK_ACTION_TRIGGER_SIZE_CLASS,
 } from '@ui/quick-actions/quick-actions.constants';
 import { EllipsisVertical } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 const SIZE_CLASSES = {
   [ComponentSize.LG]: ButtonSize.LG,
@@ -29,7 +30,7 @@ const SIZE_CLASSES = {
 
 const NESTED_ACTION_GROUPS = [
   {
-    label: 'Reframe',
+    key: 'reframe',
     ids: [
       'portrait',
       'landscape',
@@ -39,8 +40,8 @@ const NESTED_ACTION_GROUPS = [
       'resize-square',
     ],
   },
-  { label: 'Convert', ids: ['convert-to-video', 'gif', 'convert-to-preset'] },
-  { label: 'Prompt', ids: ['copy-prompt', 'prompt', 'use-prompt'] },
+  { key: 'convert', ids: ['convert-to-video', 'gif', 'convert-to-preset'] },
+  { key: 'prompt', ids: ['copy-prompt', 'prompt', 'use-prompt'] },
 ];
 
 function ActionItem({
@@ -77,6 +78,7 @@ function SectionActions({
   actions: IQuickAction[];
   onActionClick: QuickActionsMenuProps['onActionClick'];
 }) {
+  const translate = useTranslations('ui.quickActions.groups');
   const renderedGroups = new Set<string>();
   return actions.map((action) => {
     const group = NESTED_ACTION_GROUPS.find((candidate) =>
@@ -90,15 +92,15 @@ function SectionActions({
           onActionClick={onActionClick}
         />
       );
-    if (renderedGroups.has(group.label)) return null;
-    renderedGroups.add(group.label);
+    if (renderedGroups.has(group.key)) return null;
+    renderedGroups.add(group.key);
     const children = actions.filter((candidate) =>
       group.ids.includes(candidate.id),
     );
     return (
-      <DropdownMenuSub key={group.label}>
+      <DropdownMenuSub key={group.key}>
         <DropdownMenuSubTrigger className="text-xs font-medium">
-          {group.label}
+          {translate(group.key)}
         </DropdownMenuSubTrigger>
         <DropdownMenuSubContent collisionPadding={8}>
           {children.map((child) => (
@@ -122,6 +124,7 @@ export default function QuickActionsMenu({
   onActionClick,
   triggerClassName,
 }: QuickActionsMenuProps): React.ReactNode {
+  const translate = useTranslations('ui.quickActions');
   if (actions.length === 0) {
     return null;
   }
@@ -144,7 +147,7 @@ export default function QuickActionsMenu({
         <Button
           withWrapper={false}
           variant={ButtonVariant.UNSTYLED}
-          tooltip="More"
+          tooltip={translate('more')}
           tooltipPosition="top"
           size={SIZE_CLASSES[size]}
           className={cn(
@@ -152,7 +155,7 @@ export default function QuickActionsMenu({
             triggerClassName ?? QUICK_ACTION_TRIGGER_SIZE_CLASS,
             'text-muted-foreground hover:bg-hover hover:text-foreground',
           )}
-          ariaLabel="More"
+          ariaLabel={translate('more')}
         >
           <EllipsisVertical className="size-4" />
         </Button>

@@ -262,16 +262,18 @@ function NeedsYouSurface({
       density="compact"
       flush
       title={
-        <SurfaceTitleLink href={reviewHref}>Attention queue</SurfaceTitleLink>
+        <SurfaceTitleLink href={reviewHref}>
+          {translate('home.approvals.title')}
+        </SurfaceTitleLink>
       }
     >
       {isError ? (
         <ErrorLine
-          description="Approval state is temporarily unavailable. Publishing and credential checks remain available."
+          description={translate('home.approvals.unavailable')}
           onRetry={onRetry}
         />
       ) : !brandSlug ? (
-        <EmptyLine description="Add a brand before opening a brand-scoped review queue." />
+        <EmptyLine description={translate('home.approvals.addBrand')} />
       ) : needsYouItems.length === 0 ? (
         <EmptyLine description={translate('home.approvals.empty')} />
       ) : (
@@ -365,7 +367,7 @@ function NeedsYouSurface({
                     }
                     trailing={
                       <Button
-                        ariaLabel="Approve"
+                        ariaLabel={translate('home.approvals.approve')}
                         className="size-8"
                         disabled={isApproving}
                         isLoading={isApproving}
@@ -373,7 +375,7 @@ function NeedsYouSurface({
                           void handleApprove(item);
                         }}
                         size={ButtonSize.ICON}
-                        tooltip="Approve post"
+                        tooltip={translate('home.approvals.approvePost')}
                         variant={ButtonVariant.GHOST}
                         withWrapper={false}
                       >
@@ -392,7 +394,7 @@ function NeedsYouSurface({
                 <ListRow
                   data-testid="operational-home-needs-you-row"
                   density="compact"
-                  description="Workflow execution failed."
+                  description={translate('home.approvals.workflowFailed')}
                   key={needsYouItem.key}
                   meta={
                     <ClientFormattedDate
@@ -575,7 +577,7 @@ function UpcomingScheduleBlock({
             {translate('home.schedule.unavailable')}
           </span>
           <Button
-            aria-label="Retry upcoming schedule"
+            aria-label={translate('home.schedule.retry')}
             onClick={() => {
               void refresh();
             }}
@@ -590,7 +592,10 @@ function UpcomingScheduleBlock({
         <MetricSummary
           data-testid="upcoming-schedule-summary"
           items={[
-            { label: 'scheduled', value: String(totalScheduled) },
+            {
+              label: translate('home.schedule.scheduled'),
+              value: String(totalScheduled),
+            },
             ...scheduleDays.map((day, index) => ({
               label: formatScheduleDayLabel(day.date, index),
               value: String(day.count),
@@ -628,15 +633,19 @@ function PublishingSurface({
       isLoading={isLoading}
       density="compact"
       flush
-      title={<SurfaceTitleLink href={postsHref}>Publishing</SurfaceTitleLink>}
+      title={
+        <SurfaceTitleLink href={postsHref}>
+          {translate('home.publishing.title')}
+        </SurfaceTitleLink>
+      }
     >
       {isError ? (
         <ErrorLine
-          description="Publishing state could not be loaded. Credential health and activity remain available."
+          description={translate('home.publishing.unavailable')}
           onRetry={onRetry}
         />
       ) : !brandSlug ? (
-        <EmptyLine description="Add a brand before opening brand-scoped publishing." />
+        <EmptyLine description={translate('home.publishing.addBrand')} />
       ) : (
         <>
           {publications.length === 0 ? (
@@ -718,11 +727,15 @@ function CredentialHealthSurface({
       loadingLabel={translate('home.credentials.loading')}
       density="compact"
       flush
-      title={<SurfaceTitleLink href={settingsHref}>Accounts</SurfaceTitleLink>}
+      title={
+        <SurfaceTitleLink href={settingsHref}>
+          {translate('home.credentials.title')}
+        </SurfaceTitleLink>
+      }
     >
       {isError ? (
         <ErrorLine
-          description="Credential health is temporarily unavailable. Approval, publishing, and activity summaries remain available."
+          description={translate('home.credentials.unavailable')}
           onRetry={onRetry}
         />
       ) : credentials.length === 0 ? (
@@ -787,12 +800,14 @@ function ActivitySurface({
       density="compact"
       flush
       title={
-        <SurfaceTitleLink href={activityHref}>Recent activity</SurfaceTitleLink>
+        <SurfaceTitleLink href={activityHref}>
+          {translate('home.activity.title')}
+        </SurfaceTitleLink>
       }
     >
       {isError ? (
         <ErrorLine
-          description="Recent activity is temporarily unavailable. Approval, publishing, and credential summaries remain available."
+          description={translate('home.activity.unavailable')}
           onRetry={refresh}
         />
       ) : recentActivities.length === 0 ? (
@@ -857,6 +872,7 @@ export default function OperationalHomeSections({
   brandSlug,
   orgSlug,
 }: OperationalHomeSectionsProps) {
+  const translate = useTranslations('common');
   const {
     brandId,
     organizationId,
@@ -900,10 +916,10 @@ export default function OperationalHomeSections({
         await refresh();
       } catch (error) {
         logger.error('Approve review item failed', error);
-        notifications.error('Approve');
+        notifications.error(translate('home.approvals.approve'));
       }
     },
-    [getBatchesService, notifications, refresh],
+    [getBatchesService, notifications, refresh, translate],
   );
   const brandSetupHref = createOrganizationAppRoute(
     orgSlug,
@@ -923,31 +939,31 @@ export default function OperationalHomeSections({
       <MetricCardGrid columns={5} data-testid="operational-home-metrics">
         <MetricCard
           isLoading={isLoading}
-          label="Ready to review"
+          label={translate('home.metrics.readyToReview')}
           size="sm"
           value={String(reviewInbox.readyCount)}
         />
         <MetricCard
           isLoading={isLoading}
-          label="Pending posts"
+          label={translate('home.metrics.pendingPosts')}
           size="sm"
           value={String(analytics.pendingPosts ?? 0)}
         />
         <MetricCard
           isLoading={areExecutionsLoading}
-          label="Active"
+          label={translate('home.metrics.active')}
           size="sm"
           value={String(executionStats.active)}
         />
         <MetricCard
           isLoading={areExecutionsLoading}
-          label="Failed today"
+          label={translate('home.metrics.failedToday')}
           size="sm"
           value={String(executionStats.failedToday)}
         />
         <MetricCard
           isLoading={credentialsLoading}
-          label="Need attention"
+          label={translate('home.metrics.needAttention')}
           size="sm"
           value={String(attentionCredentials.length)}
         />
