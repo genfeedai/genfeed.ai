@@ -71,6 +71,7 @@ export const ingredientAttributes = createEntityAttributes([
   // and no reason for it.
   'generationError',
   'generationCompletedAt',
+  'generationPrompt',
   'modelUsed',
   'fileSize',
   'mimeType',

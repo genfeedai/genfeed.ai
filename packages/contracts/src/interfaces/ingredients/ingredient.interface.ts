@@ -114,6 +114,7 @@ export interface IIngredient extends IBaseEntity {
    */
   generationError?: string | null;
   generationCompletedAt?: string | null;
+  generationPrompt?: string | null;
   modelUsed?: string | null;
   fileSize?: number | null;
   mimeType?: string | null;

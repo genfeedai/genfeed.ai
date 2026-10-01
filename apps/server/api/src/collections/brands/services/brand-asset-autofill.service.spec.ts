@@ -304,6 +304,34 @@ describe('BrandAssetAutofillService', () => {
       ]);
     });
 
+    it('imports scraped page images as generation references', async () => {
+      await service.fillFromWebsite(
+        SCOPE,
+        scraped({
+          ogImage: 'https://acme.com/og.png',
+          referenceImageUrls: [
+            'https://acme.com/product.jpg',
+            'https://acme.com/og.png',
+          ],
+        }),
+      );
+
+      const references = importBrandKitAssets.mock.calls
+        .flatMap(
+          (call) =>
+            (call[3] as { assets: IBrandKitAssetImportCandidate[] }).assets,
+        )
+        .filter((candidate) => candidate.role === 'reference');
+
+      expect(references.map((candidate) => candidate.sourceUrl)).toEqual([
+        'https://acme.com/og.png',
+        'https://acme.com/product.jpg',
+      ]);
+      expect(references.every((candidate) => candidate.replaceExisting)).toBe(
+        false,
+      );
+    });
+
     it('falls back to logoUrl when the scrape predates logo candidates', async () => {
       await service.fillFromWebsite(
         SCOPE,

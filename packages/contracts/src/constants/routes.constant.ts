@@ -55,6 +55,7 @@ export const APP_ROUTES = {
     },
     CONTENT: {
       // Ghost CRM routes (analytics/companies/leads/tasks) removed — no pages.
+      GENERATIONS: '/admin/content/generations',
       INGREDIENTS: '/admin/content/ingredients',
       INGREDIENTS_VIDEOS: '/admin/content/ingredients?assetType=videos',
       POSTS: '/admin/content/posts',

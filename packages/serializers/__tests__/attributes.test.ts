@@ -1045,6 +1045,16 @@ describe('Serializer Attributes', () => {
         ]),
       );
     });
+
+    it('exposes the generation ledger used by admin reviews', () => {
+      expect(ingredientAttributes).toEqual(
+        expect.arrayContaining([
+          'generationError',
+          'generationPrompt',
+          'modelUsed',
+        ]),
+      );
+    });
   });
 
   describe('avatarAttributes', () => {

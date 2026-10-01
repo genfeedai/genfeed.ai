@@ -8,6 +8,10 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import {
+  collectFirstRunReferenceIds,
+  resolveFirstRunImageRouting,
+} from '@api/helpers/utils/first-run-image-generation/first-run-image-generation.util';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import {
   AGENT_GENERATION_GATEWAY,
@@ -38,7 +42,6 @@ import {
 } from '@genfeedai/config';
 import {
   ByokProvider,
-  RouterPriority,
   Status,
   TargetExecutionState,
 } from '@genfeedai/contracts';
@@ -49,6 +52,7 @@ import {
 import type {
   AgentToolResult,
   AgentUiAction,
+  IBrandKitResolvedAssets,
 } from '@genfeedai/contracts/interfaces';
 import {
   type IOnboardingJourneyMissionState,
@@ -94,6 +98,10 @@ interface AgentBrandsServiceLike {
     userId: string,
     sourceActionId: string,
   ) => Promise<Record<string, unknown> | null>;
+  resolveBrandKitAssets?: (
+    brandId: string,
+    organizationId: string,
+  ) => Promise<IBrandKitResolvedAssets>;
   updateIdentityForOrganization: (
     id: string,
     organizationId: string,
@@ -902,6 +910,28 @@ export class AgentOnboardingToolHandler {
       success: true,
     };
   }
+  private async readBrandVisualReferenceIds(
+    ctx: ToolExecutionContext,
+  ): Promise<string[]> {
+    if (!ctx.brandId || !this.brandsService.resolveBrandKitAssets) {
+      return [];
+    }
+
+    try {
+      const kit = await this.brandsService.resolveBrandKitAssets(
+        ctx.brandId,
+        ctx.organizationId,
+      );
+      return collectFirstRunReferenceIds(kit);
+    } catch (error: unknown) {
+      this.loggerService.warn('Onboarding image skipped brand references', {
+        brandId: ctx.brandId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return [];
+    }
+  }
+
   private async generateOnboardingImage(
     prompt: string,
     ctx: ToolExecutionContext,
@@ -921,14 +951,16 @@ export class AgentOnboardingToolHandler {
     const dimensions = resolveAgentGenerationDimensions(
       DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
     );
+    const routing = resolveFirstRunImageRouting();
+    const references = await this.readBrandVisualReferenceIds(ctx);
     const body: Record<string, unknown> = {
-      autoSelectModel: true,
+      ...routing,
       height: dimensions.height,
-      prioritize: RouterPriority.COST,
       prompt,
       text: prompt,
       waitForCompletion: true,
       width: dimensions.width,
+      ...(references.length > 0 ? { references } : {}),
       ...(ctx.runId ? { workflowExecutionId: ctx.runId } : {}),
       ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
     };
