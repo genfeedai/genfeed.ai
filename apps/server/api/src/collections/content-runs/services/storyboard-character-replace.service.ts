@@ -19,13 +19,14 @@ import { HIGGSFIELD_GENJUTSU_DEFAULT_RESOLUTION } from '@api/services/integratio
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { IngredientStatus } from '@genfeedai/contracts';
+import { AssetScope, IngredientStatus } from '@genfeedai/contracts';
 import {
   replaceStoryboardCharacterSchema,
   STORYBOARD_CHARACTER_REPLACE_MODEL_KEY,
   type StoryboardCharacterReplacement,
   storyboardCharacterReplacementSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
+import type { Prisma } from '@genfeedai/prisma';
 import { readIngredientMediaUrl } from '@libs/media/media-url.util';
 import {
   BadRequestException,
@@ -88,21 +89,20 @@ export class StoryboardCharacterReplaceService {
     ids: readonly string[],
     category: 'IMAGE' | 'VIDEO',
   ) {
-    const rows = await this.prisma.ingredient.findMany({
-      where: scopedWhere(org, {
-        brandId: brand,
-        id: { in: [...ids] },
-        category,
-        scope: 'USER',
-        status: {
-          in: [
-            IngredientStatus.UPLOADED,
-            IngredientStatus.GENERATED,
-            IngredientStatus.VALIDATED,
-          ],
-        },
-      }),
-    });
+    const where: Prisma.IngredientWhereInput = scopedWhere(org, {
+      brandId: brand,
+      id: { in: [...ids] },
+      category,
+      scope: AssetScope.USER,
+      status: {
+        in: [
+          IngredientStatus.UPLOADED,
+          IngredientStatus.GENERATED,
+          IngredientStatus.VALIDATED,
+        ],
+      },
+    } satisfies Prisma.IngredientWhereInput);
+    const rows = await this.prisma.ingredient.findMany({ where });
     return ids.map((id) => {
       const row = rows.find((r) => r.id === id);
       if (!row) throw new NotFoundException('Storyboard character media', id);
