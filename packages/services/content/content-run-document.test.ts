@@ -297,6 +297,36 @@ describe('Versioned content-run response documents', () => {
       deserializeStoryboardRunDocument(document).config.scenePipeline,
     ).toEqual(config.scenePipeline);
   });
+  it('preserves accepted operation and quote identities in the actual JSON:API decoder', () => {
+    const { config } = fixture();
+    const operation = {
+      id: ' operation/old key ',
+      quoteId: ' quote/old key ',
+      acceptedRevision: 1,
+      status: 'cancelled',
+      canResume: true,
+      reasonCode: null,
+    };
+    const document = {
+      data: {
+        type: 'storyboard-run',
+        id: 'run-1',
+        attributes: {
+          organization_id: 'org-1',
+          brand_id: 'brand-1',
+          created_at: '2026-09-30T12:00:00.000Z',
+          updated_at: '2026-09-30T12:00:00.000Z',
+          config,
+          operation,
+        },
+      },
+    };
+    const before = structuredClone(document);
+    expect(deserializeStoryboardRunDocument(document).operation).toEqual(
+      operation,
+    );
+    expect(document).toEqual(before);
+  });
   it('preserves the legacy scenePipeline while existing outer view normalization continues', () => {
     const { scenePipeline } = fixture();
     const attributes = {
