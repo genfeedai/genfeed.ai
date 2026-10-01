@@ -6,6 +6,10 @@ import { resolveKnowledgeMinRelevance } from '@api/collections/contexts/utils/kn
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import type { BrandContextContribution } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
+import type {
+  BrandedGenerationCompilerCaptureV1,
+  BrandedGenerationCompilerRecipeV1,
+} from '@api/services/branded-generation-receipts/branded-generation-recompile.types';
 import {
   compileSnapshotBriefResolution,
   renderSnapshotHarnessContribution,
@@ -89,6 +93,21 @@ export type ResolveHarnessBriefParams = {
   topic?: string;
 };
 
+function captureSnapshotBriefResolution(
+  ...args: Parameters<typeof compileSnapshotBriefResolution>
+): BrandedGenerationCompilerCaptureV1 {
+  const recipe = structuredClone<BrandedGenerationCompilerRecipeV1>([
+    'snapshot-brief-v1',
+    args[4],
+    args[5],
+    args[6],
+    args[2],
+    args[3],
+  ]);
+  const result = compileSnapshotBriefResolution(...args);
+  return [result, result.status === 'resolved' ? recipe : null];
+}
+
 /**
  * Single entry for generation paths (text, media, ads, quality) that need a
  * brand harness brief without re-implementing compose + profile load.
@@ -127,6 +146,30 @@ export class HarnessGenerationService {
     learning: BrandLearningApplicationV1,
     learningContribution: ContentHarnessContribution,
   ): Promise<BrandedGenerationResolutionV1> {
+    const [result] = await this.resolveSnapshotBriefWithRecipe(
+      input,
+      snapshot,
+      resolvedSkills,
+      requestedSkillSlugs,
+      renderSkillSections,
+      learning,
+      learningContribution,
+    );
+    return result;
+  }
+
+  async resolveSnapshotBriefWithRecipe(
+    ...args: Parameters<HarnessGenerationService['resolveSnapshotBrief']>
+  ): Promise<BrandedGenerationCompilerCaptureV1> {
+    const [
+      input,
+      snapshot,
+      resolvedSkills,
+      requestedSkillSlugs,
+      renderSkillSections,
+      learning,
+      learningContribution,
+    ] = args;
     const parsed = brandedGenerationInputV1Schema.parse(input);
     const identity =
       snapshot === null ? null : brandIdentitySnapshotV1Schema.parse(snapshot);
@@ -135,7 +178,7 @@ export class HarnessGenerationService {
       scope: BrandIdentitySnapshotV1 | null,
       failure?: readonly [string, string?],
     ) =>
-      compileSnapshotBriefResolution(
+      captureSnapshotBriefResolution(
         parsed,
         scope,
         application,
@@ -185,7 +228,7 @@ export class HarnessGenerationService {
         renderSkillSections,
       );
     if (skillFailure)
-      return compileSnapshotBriefResolution(
+      return captureSnapshotBriefResolution(
         parsed,
         identity,
         application,
@@ -206,7 +249,7 @@ export class HarnessGenerationService {
         explicitKnowledge,
       );
     if (knowledgeFailure)
-      return compileSnapshotBriefResolution(
+      return captureSnapshotBriefResolution(
         parsed,
         identity,
         application,
@@ -218,7 +261,7 @@ export class HarnessGenerationService {
       );
     const profile = await this.resolveSnapshotProfile(parsed);
     const packs = await this.resolveSnapshotPacks(parsed, identity);
-    return compileSnapshotBriefResolution(
+    return captureSnapshotBriefResolution(
       parsed,
       identity,
       application,
