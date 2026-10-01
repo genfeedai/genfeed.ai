@@ -14,6 +14,7 @@ export async function createCrunTestTransport(videoBytes?: Buffer) {
   );
   let onCreate: (() => void) | undefined;
   let creditOverride: number | undefined;
+  let estimated = false;
   let outcomes: ('success' | 'failed' | 'refused' | 'ambiguous')[] = [];
   const tasks = new Map<
     string,
@@ -68,7 +69,7 @@ export async function createCrunTestTransport(videoBytes?: Buffer) {
               : 8);
     let data: unknown;
     if (url.pathname.endsWith('/estimate-credits'))
-      data = { credits, estimated: false };
+      data = { credits, estimated };
     else if (url.pathname.endsWith('/CreateTask')) {
       const outcome = outcomes.shift() ?? 'success';
       onCreate?.();
@@ -203,6 +204,9 @@ export async function createCrunTestTransport(videoBytes?: Buffer) {
     pixel,
     base,
     mediaOrigin,
+    setEstimated: (value: boolean) => {
+      estimated = value;
+    },
     setCredits: (credits?: number) => {
       creditOverride = credits;
     },

@@ -48,6 +48,7 @@ function fixture() {
     version: 1,
     leaseUntil: new Date(Date.now() + 60000),
     ingredientId: 'image',
+    endpoint: 'google/nano-banana-pro',
     organizationId: 'org',
     userId: 'user',
     modelKey: 'crun/google/nano-banana-pro',
@@ -534,4 +535,123 @@ describe('Crun authenticated finalization phases', () => {
     expect(f.row.mediaPersistedAt).toBeInstanceOf(Date);
     expect(f.row.state).toBe('finalized');
   });
+});
+
+describe('Crun frozen video output finalization', () => {
+  function videoFixture(endpoint: string) {
+    const f = fixture();
+    f.row.endpoint = endpoint;
+    f.row.modelKey = `crun/${endpoint}`;
+    f.snapshot.modelKey = f.row.modelKey;
+    f.snapshot.pricingProfile.key = f.row.modelKey;
+    f.ingredient.category = IngredientCategory.VIDEO;
+    return f;
+  }
+  it.each(['kling/v2-5-turbo-pro', 'google/veo3-1-fast-t2v'])(
+    'persists and accounts owned video once for %s',
+    async (endpoint) => {
+      const f = videoFixture(endpoint);
+      await f.service.finalize({ ...f.row }, f.info);
+      expect(f.media.processMediaForIngredient).toHaveBeenCalledWith(
+        'image',
+        'video',
+        f.info.mediaUrls[0],
+        'opaque',
+      );
+      expect(f.ledger.record).toHaveBeenCalledWith(
+        expect.objectContaining({ category: 'video', vendorCostMicros: 8000 }),
+      );
+      expect(f.row.state).toBe('finalized');
+      await f.service.finalize({ ...f.row }, f.info);
+      expect(f.billing.settleOutput).toHaveBeenCalledTimes(1);
+    },
+  );
+  it.each([
+    null,
+    { isDeleted: true, duration: 5, width: 1280, height: 720, hasAudio: false },
+    {
+      isDeleted: false,
+      duration: 0,
+      width: 1280,
+      height: 720,
+      hasAudio: false,
+    },
+    { isDeleted: false, duration: 5, width: 0, height: 720, hasAudio: false },
+    {
+      isDeleted: false,
+      duration: Number.NaN,
+      width: 1280,
+      height: 720,
+      hasAudio: false,
+    },
+  ])(
+    'holds invalid inspected metadata while recording authenticated expense: %j',
+    async (metadata) => {
+      const f = videoFixture('kling/v2-5-turbo-pro');
+      f.ingredient.metadata = metadata;
+      await f.service.finalize({ ...f.row }, f.info);
+      expect(f.row.recoveryCode).toBe('CRUN_MEDIA_INVALID');
+      expect(f.row.vendorCostRecordedAt).toBeInstanceOf(Date);
+      expect(f.billing.settleOutput).not.toHaveBeenCalled();
+      expect(f.billing.releaseOutput).not.toHaveBeenCalled();
+    },
+  );
+  it.each(['missing-credits', 'mismatch', 'conflict', 'failed'])(
+    'retains video financial disposition rules for %s',
+    async (mode) => {
+      const f = videoFixture('google/veo3-1-fast-t2v');
+      if (mode === 'missing-credits')
+        f.row.terminalReceipt = { status: 'success', credits: null };
+      if (mode === 'mismatch')
+        f.row.terminalReceipt = { status: 'success', credits: '9' };
+      if (mode === 'conflict')
+        f.row.recoveryCode = 'CRUN_TERMINAL_RECEIPT_CONFLICT';
+      if (mode === 'failed') {
+        f.row.state = 'provider-failed';
+        f.row.terminalReceipt = { status: 'failed', credits: '8' };
+      }
+      await f.service.finalize({ ...f.row }, f.info);
+      expect(f.billing.settleOutput).not.toHaveBeenCalled();
+      if (mode === 'failed') {
+        expect(f.billing.recordProviderFailure).toHaveBeenCalledOnce();
+        expect(f.media.processMediaForIngredient).not.toHaveBeenCalled();
+      } else {
+        expect(f.billing.releaseOutput).not.toHaveBeenCalled();
+        expect(f.row.recoveryCode).toBe(
+          mode === 'missing-credits'
+            ? 'CRUN_FINAL_CREDITS_UNAVAILABLE'
+            : mode === 'mismatch'
+              ? 'CRUN_FINAL_CREDITS_MISMATCH'
+              : 'CRUN_TERMINAL_RECEIPT_CONFLICT',
+        );
+      }
+    },
+  );
+  it('reconciles already owned inspected video after copy crash without a retained credential', async () => {
+    const f = videoFixture('kling/v2-5-turbo-pro');
+    f.ingredient.s3Key = 'owned/video.mp4';
+    f.ingredient.status = IngredientStatus.GENERATED;
+    f.row.recoveryCode = 'CRUN_ORIGINAL_CREDENTIAL_UNAVAILABLE';
+    await f.service.finalize({ ...f.row });
+    expect(f.media.processMediaForIngredient).not.toHaveBeenCalled();
+    expect(f.row.mediaPersistedAt).toBeInstanceOf(Date);
+    expect(f.billing.settleOutput).toHaveBeenCalledOnce();
+  });
+  it.each(['image-route-video', 'video-route-image'])(
+    'denies cross-category proof before copy or billing: %s',
+    async (direction) => {
+      const f =
+        direction === 'image-route-video'
+          ? fixture()
+          : videoFixture('kling/v2-5-turbo-pro');
+      f.ingredient.category =
+        direction === 'image-route-video'
+          ? IngredientCategory.VIDEO
+          : IngredientCategory.IMAGE;
+      await f.service.finalize({ ...f.row }, f.info);
+      expect(f.row.state).toBe('recovery-required');
+      expect(f.media.processMediaForIngredient).not.toHaveBeenCalled();
+      expect(f.billing.settleOutput).not.toHaveBeenCalled();
+    },
+  );
 });

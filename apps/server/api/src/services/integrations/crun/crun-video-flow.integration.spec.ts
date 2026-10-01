@@ -182,6 +182,7 @@ describe('Crun video quote through durable owned output and accounting', () => {
     } finally {
       currentOrganizationId = undefined;
       transport?.restoreMedia();
+      transport?.setEstimated(false);
       transport?.setOnCreate(undefined);
     }
   });
@@ -324,27 +325,32 @@ describe('Crun video quote through durable owned output and accounting', () => {
   });
 
   it.each([
-    [0, 1, 'hosted', 'success'],
-    [0, 1, 'byok', 'success'],
-    [0, 1, 'free', 'success'],
-    [0, 4, 'hosted', 'success'],
-    [0, 4, 'byok', 'success'],
-    [0, 4, 'free', 'success'],
-    [1, 1, 'hosted', 'success'],
-    [1, 1, 'byok', 'success'],
-    [1, 1, 'free', 'success'],
-    [1, 4, 'hosted', 'success'],
-    [1, 4, 'byok', 'success'],
-    [1, 4, 'free', 'success'],
-    [0, 4, 'hosted', 'mixed'],
-    [1, 4, 'hosted', 'failed'],
-    [0, 4, 'hosted', 'refused'],
-    [0, 4, 'hosted', 'deferred'],
-    [0, 4, 'hosted', 'disabled'],
-    [0, 4, 'hosted', 'ambiguous'],
+    [0, 1, 'hosted', 'success', 'default'],
+    [0, 1, 'byok', 'success', 'default'],
+    [0, 1, 'free', 'success', 'default'],
+    [0, 4, 'hosted', 'success', 'default'],
+    [0, 4, 'byok', 'success', 'default'],
+    [0, 4, 'free', 'success', 'default'],
+    [1, 1, 'hosted', 'success', 'default'],
+    [1, 1, 'byok', 'success', 'default'],
+    [1, 1, 'free', 'success', 'default'],
+    [1, 4, 'hosted', 'success', 'default'],
+    [1, 4, 'byok', 'success', 'default'],
+    [1, 4, 'free', 'success', 'default'],
+    [0, 4, 'hosted', 'mixed', 'default'],
+    [1, 4, 'hosted', 'failed', 'default'],
+    [0, 4, 'hosted', 'refused', 'default'],
+    [0, 4, 'hosted', 'deferred', 'default'],
+    [0, 4, 'hosted', 'disabled', 'default'],
+    [0, 4, 'hosted', 'ambiguous', 'default'],
+    [0, 1, 'hosted', 'success', '10s'],
+    [0, 1, 'hosted', 'success', 'start'],
+    [0, 1, 'hosted', 'success', 'end'],
+    [1, 1, 'hosted', 'success', '1080p'],
+    [1, 1, 'hosted', 'success', '4k'],
   ] as const)(
-    'model %s outputs %s funding %s scenario %s: frozen quote, restart, owned storage and exact accounting',
-    async (modelIndex, outputs, funding, scenario) => {
+    'model %s outputs %s funding %s scenario %s variant %s: frozen quote, restart, owned storage and exact accounting',
+    async (modelIndex, outputs, funding, scenario, variant) => {
       transport.setCredits(funding === 'free' ? 0 : undefined);
       transport.setOutcomes(
         scenario === 'mixed'
@@ -606,6 +612,20 @@ describe('Crun video quote through durable owned output and accounting', () => {
           _user: unknown,
           data: Record<string, unknown>,
         ) => {
+          expect(data).toMatchObject({
+            category: IngredientCategory.VIDEO,
+            extension: MetadataExtension.MP4,
+            model: modelKey,
+            generationSource: 'studio',
+          });
+          expect(data.sourceIds).toEqual(
+            variant === 'start' || variant === 'end'
+              ? [startId, ...(variant === 'end' ? [endId] : [])]
+              : [],
+          );
+          expect(data.parentId).toBe(
+            variant === 'start' || variant === 'end' ? startId : undefined,
+          );
           const metadata = await prisma.metadata.create({
             data: { extension: MetadataExtension.MP4, label: 'Fixture output' },
           });
@@ -619,6 +639,8 @@ describe('Crun video quote through durable owned output and accounting', () => {
               status: IngredientStatus.PROCESSING,
               category: IngredientCategory.VIDEO,
               modelUsed: modelKey,
+              parentId:
+                typeof data.parentId === 'string' ? data.parentId : null,
               generationPrompt: String(data.generationPrompt),
               groupId: String(data.groupId),
               groupIndex: Number(data.groupIndex),
@@ -653,17 +675,112 @@ describe('Crun video quote through durable owned output and accounting', () => {
           heldAmount: 0,
         },
       });
+      const startId = randomUUID();
+      const endId = randomUUID();
+      if (variant === 'start' || variant === 'end') {
+        for (const id of [startId, ...(variant === 'end' ? [endId] : [])]) {
+          await prisma.ingredient.create({
+            data: {
+              id,
+              organizationId: org,
+              brandId: user.brandId,
+              userId: user.userId,
+              category: IngredientCategory.IMAGE,
+              status: IngredientStatus.GENERATED,
+            },
+          });
+        }
+      }
       const intent = {
         model: modelKey,
         text: 'Fixture bird',
         outputs,
-        crunControls: { contractVersion: contract.version },
+        ...(variant === 'start' || variant === 'end'
+          ? { references: [startId], parentId: startId }
+          : {}),
+        ...(variant === 'end' ? { endFrame: endId } : {}),
+        crunControls: {
+          contractVersion: contract.version,
+          ...(variant === '10s'
+            ? { duration: 10 }
+            : variant === '1080p' || variant === '4k'
+              ? { resolution: variant }
+              : {}),
+        },
       };
       const request = {
         user,
         originalUrl: '/videos',
         creditsConfig: { amount: 0, deferred: true },
       };
+      const estimateCountBefore = transport.requests.filter((item) =>
+        item.route.endsWith('/estimate-credits'),
+      ).length;
+      if (modelIndex === 1) {
+        for (const duration of [4, 6]) {
+          expect(
+            await preview.preview(
+              { ...intent, crunControls: { ...intent.crunControls, duration } },
+              user as never,
+            ),
+          ).toMatchObject({
+            isAvailable: false,
+            reasonCode: 'PRICING_UNAVAILABLE',
+          });
+        }
+      }
+      const deletedFrame = randomUUID();
+      const videoFrame = randomUUID();
+      const foreignFrame = randomUUID();
+      for (const data of [
+        {
+          id: deletedFrame,
+          organizationId: org,
+          category: IngredientCategory.IMAGE,
+          isDeleted: true,
+        },
+        {
+          id: videoFrame,
+          organizationId: org,
+          category: IngredientCategory.VIDEO,
+          isDeleted: false,
+        },
+        {
+          id: foreignFrame,
+          organizationId: randomUUID(),
+          category: IngredientCategory.IMAGE,
+          isDeleted: false,
+        },
+      ])
+        await prisma.ingredient.create({
+          data: { ...data, brandId: user.brandId, userId: user.userId },
+        });
+      for (const invalid of [
+        { ...intent, brandId: randomUUID() },
+        { ...intent, folderId: randomUUID() },
+        { ...intent, references: [randomUUID()] },
+        { ...intent, references: [deletedFrame] },
+        { ...intent, references: [videoFrame] },
+        { ...intent, references: [foreignFrame] },
+        {
+          ...intent,
+          crunControls: { ...intent.crunControls, unreviewed: true },
+        },
+      ])
+        await expect(
+          preview.preview(invalid, user as never),
+        ).rejects.toBeDefined();
+      expect(
+        transport.requests.filter((item) =>
+          item.route.endsWith('/estimate-credits'),
+        ),
+      ).toHaveLength(estimateCountBefore);
+      transport.setEstimated(true);
+      expect(await preview.preview(intent, user as never)).toMatchObject({
+        isAvailable: false,
+        reasonCode: 'PRICING_UNAVAILABLE',
+      });
+      transport.setEstimated(false);
       const quoted = await new CrunVideoQuoteController(preview).quote(
         intent as never,
         request as never,
@@ -689,7 +806,7 @@ describe('Crun video quote through durable owned output and accounting', () => {
         }),
       ).toBe(0);
       if (scenario === 'deferred')
-        for (let index = 0; index < 18; index++)
+        for (let index = 0; index < 17; index++)
           expect(
             (await cache.claimCrunRequestSlot(fixtureFingerprint))?.isAdmitted,
           ).toBe(true);
@@ -954,9 +1071,15 @@ describe('Crun video quote through durable owned output and accounting', () => {
             expense.vendorCostMicros ===
               (funding === 'byok' || funding === 'free'
                 ? 0
-                : modelIndex === 0
-                  ? 42000
-                  : 30000),
+                : variant === '10s'
+                  ? 84000
+                  : variant === '1080p'
+                    ? 37500
+                    : variant === '4k'
+                      ? 90000
+                      : modelIndex === 0
+                        ? 42000
+                        : 30000),
         ),
       ).toBe(true);
       for (const { id } of succeeded) {
@@ -972,6 +1095,46 @@ describe('Crun video quote through durable owned output and accounting', () => {
           hasAudio: false,
         });
       }
+      const estimatedBodies = transport.requests
+        .filter((item) => item.route.endsWith('/estimate-credits'))
+        .map((item) => item.input);
+      const dispatchedBodies = transport.requests
+        .filter((item) => item.route.endsWith('/CreateTask'))
+        .slice(createdBefore)
+        .map((item) => item.input);
+      for (const body of dispatchedBodies)
+        expect(estimatedBodies).toContainEqual(body);
+      if (variant === 'start' || variant === 'end') {
+        expect(dispatchedBodies[0]).toMatchObject({
+          input: {
+            img_urls: [
+              `${config.ingredientsEndpoint}/images/${startId}`,
+              ...(variant === 'end'
+                ? [`${config.ingredientsEndpoint}/images/${endId}`]
+                : []),
+            ],
+          },
+        });
+        expect(
+          (dispatchedBodies[0] as { input: Record<string, unknown> }).input,
+        ).not.toHaveProperty('aspect_ratio');
+      }
+
+      await expect(
+        adapter.generate(
+          user as never,
+          {
+            ...intent,
+            text: 'Different intent',
+            crunQuoteId: attributes.quoteId,
+          } as never,
+          request as never,
+        ),
+      ).rejects.toMatchObject({ response: { code: 'CRUN_QUOTE_STALE' } });
+      await redis.del(
+        `crun:video:quote:${org}:${user.userId}:${attributes.quoteId}`,
+        `crun:video:quote:${org}:${user.userId}:${attributes.quoteId}:consumed`,
+      );
       const createCount = transport.requests.filter((item) =>
         item.route.endsWith('/CreateTask'),
       ).length;

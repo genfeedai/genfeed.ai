@@ -989,9 +989,9 @@ export class ModelsService extends BaseService<
           crunContract.fields.aspect_ratio.default,
         );
         patch.maxOutputs = 4;
-        patch.maxReferences = crunContract.fields.img_urls.maxItems;
+        patch.maxReferences = crunContract.fields.img_urls?.maxItems ?? 0;
         patch.isBatchSupported = false;
-        patch.hasResolutionOptions = true;
+        patch.hasResolutionOptions = Boolean(crunContract.fields.resolution);
       }
       patch.providerInputSchema = crunContract
         ? toPrismaJson(crunContract)

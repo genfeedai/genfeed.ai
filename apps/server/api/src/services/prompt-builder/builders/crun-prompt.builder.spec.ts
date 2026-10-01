@@ -23,6 +23,23 @@ describe('Crun prompt builder', () => {
       expect(builder.getProvider()).toBe(ModelProvider.CRUN);
     },
   );
+  it.each(['crun/kling/v2-5-turbo-pro', 'crun/google/veo3-1-fast-t2v'])(
+    'uses deterministic video text for %s without forwarding controls',
+    (model) => {
+      expect(
+        builder.buildPrompt(
+          model,
+          {
+            prompt: 'original',
+            modelCategory: ModelCategory.VIDEO,
+            duration: 8,
+            resolution: '1080p',
+          },
+          'rendered',
+        ),
+      ).toEqual({ prompt: 'rendered' });
+    },
+  );
   it('rejects unreviewed variants', () => {
     expect(builder.supportsModel('crun/google/nano-banana-pro-v2')).toBe(false);
     expect(() =>
@@ -31,6 +48,6 @@ describe('Crun prompt builder', () => {
         { prompt: 'original', modelCategory: ModelCategory.IMAGE },
         'rendered',
       ),
-    ).toThrow('Unsupported Crun image model');
+    ).toThrow('Unsupported Crun model');
   });
 });

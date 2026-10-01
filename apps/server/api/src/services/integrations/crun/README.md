@@ -1,8 +1,10 @@
-# Crun images
+# Crun image and video generation
 
 Supported model keys are `crun/google/nano-banana-pro` and
 `crun/bytedance/seedream-4-5`. One provider task produces one ingredient;
-requests support one to four outputs. Video dispatch is not enabled.
+requests support one to four outputs. Video routes are `crun/kling/v2-5-turbo-pro`
+and `crun/google/veo3-1-fast-t2v`. Every task produces one owned video;
+fanout creates separate tasks with one group credit rounding operation.
 
 ## Configuration and review
 
@@ -21,13 +23,13 @@ bun apps/server/api/scripts/import-crun-models.ts
 
 Review the captured request contract and dated pricing evidence. Applying the
 import creates candidates; it does not approve contracts or activate models.
-Use the existing operator contract review flow before activating either model.
+Use the existing operator contract review flow before activating any model.
 A pending or stale contract blocks new admission. Schema or tariff changes require
 review and a new quote; they never reinterpret accepted tasks.
 
 ## Quote and generation
 
-Authenticated `POST /images/crun-quote` prepares the effective prompt and references
+Authenticated `POST /images/crun-quote` and `POST /videos/crun-quote` prepare the effective prompt and references
 without automatic paid enhancement or credit reservation. It estimates the exact
 normalized provider input on the selected account and accepts only a fixed
 `estimated:false` price matching the reviewed tariff. The public quote reports
@@ -45,6 +47,37 @@ Seedream references require authorized image ingredients with nondeleted metadat
 known dimensions and file size. Asset/video references and missing facts are
 rejected before estimation. Prompt provenance must match the authorized stored
 original/enhanced prompt when generation supplies a distinct original.
+
+## Video controls
+
+Kling supports 5 or 10 seconds, negative prompts, guidance from 0 to 1, and
+16:9, 9:16 or 1:1 aspect ratios. A single authorized image reference is the start
+frame; `endFrame` adds the ordered end image and requires a start frame. `parentId`
+may identify the same start image ingredient. Aspect ratio is omitted from the
+provider request when frames are present. The reviewed tariffs are 42 provider
+credits for 5 seconds and 84 for 10 seconds per task.
+
+Veo is text-only. The reviewed 8-second tariffs are 30 provider credits for 720p,
+37.5 for 1080p and 90 for 4k. Raw 4/6-second controls remain visible in the captured
+contract but are unavailable for generation until pricing is reviewed. Supported
+aspect ratios are 16:9 and 9:16. Prompt translation defaults to true; explicit
+false is preserved. Frames, audio toggles, negative prompts and guidance are
+unsupported for Veo.
+
+`POST /videos` accepts a plain generation intent or the existing video JSON API
+request serializer. Crun generation checks the original body before DTO stripping;
+unknown fields, contradictory aliases, malformed entity IDs and unsupported
+controls return 400. Supply `crunQuoteId` to consume the frozen quote. Without one,
+the API prepares and consumes one quote using the current reviewed defaults.
+Generation is asynchronous: wait-for-completion, callbacks, approved remix budgets,
+advanced harnesses, requested skills and knowledge injection are unavailable.
+
+Owned video duration, dimensions and audio facts come from stored media inspection.
+Task execution time and requested duration never establish output metadata. Missing
+or invalid inspected duration/dimensions preserve the funding hold for recovery.
+Video and image identities cannot substitute for each other during submission,
+reconciliation or BYOK ledger consumption. Disabling video admission preserves
+accepted video reconciliation and does not disable independently reviewed images.
 
 ## Reconciliation and recovery
 

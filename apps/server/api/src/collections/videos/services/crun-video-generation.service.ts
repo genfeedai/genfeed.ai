@@ -13,6 +13,7 @@ import { reserveGenerationRequestCredits } from '@api/helpers/utils/credits/gene
 import { generationUsageReceiptSchema } from '@api/helpers/utils/credits/generation-submission-evidence.schema';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { CacheService } from '@api/services/cache/cache.service';
 import type {
   CrunFundingBinding,
@@ -366,7 +367,13 @@ export class CrunVideoGenerationService {
       new BadRequestException({ code: 'CRUN_INVALID_INPUT' });
     const record = (value: unknown): value is Record<string, unknown> =>
       value !== null && typeof value === 'object' && !Array.isArray(value);
-    let source: unknown = request.body === undefined ? dto : request.body;
+    let source: unknown = request.body;
+    if (request.body === undefined) {
+      if (!record(dto)) throw invalid();
+      source = Object.fromEntries(
+        Object.entries(dto).filter(([, value]) => value !== undefined),
+      );
+    }
     if (!record(source)) throw invalid();
     if ('data' in source) {
       if (
@@ -414,9 +421,16 @@ export class CrunVideoGenerationService {
       source.waitForCompletion !== false
     )
       throw new BadRequestException({ code: 'CRUN_INVALID_INPUT' });
+    for (const key of ['brandId', 'brand', 'folderId', 'folder'])
+      if (source[key] !== undefined && !isEntityId(source[key]))
+        throw new BadRequestException({ code: 'CRUN_INVALID_INPUT' });
     if (
-      (source.brandId && source.brand && source.brandId !== source.brand) ||
-      (source.folderId && source.folder && source.folderId !== source.folder)
+      (source.brandId !== undefined &&
+        source.brand !== undefined &&
+        source.brandId !== source.brand) ||
+      (source.folderId !== undefined &&
+        source.folder !== undefined &&
+        source.folderId !== source.folder)
     )
       throw new BadRequestException({ code: 'CRUN_INVALID_INPUT' });
     const intent = Object.fromEntries(
@@ -425,8 +439,10 @@ export class CrunVideoGenerationService {
         source[key],
       ]),
     );
-    if (!intent.brandId && source.brand) intent.brandId = source.brand;
-    if (!intent.folderId && source.folder) intent.folderId = source.folder;
+    if (intent.brandId === undefined && source.brand !== undefined)
+      intent.brandId = source.brand;
+    if (intent.folderId === undefined && source.folder !== undefined)
+      intent.folderId = source.folder;
     return {
       intent,
       quoteId: typeof quoteId === 'string' ? quoteId : undefined,

@@ -4,6 +4,8 @@ import { buildCrunContract } from '@api/services/integrations/crun/contracts/cru
 import {
   CRUN_IMAGE_MANIFEST,
   CRUN_PRICING_SNAPSHOT,
+  CRUN_VIDEO_MANIFEST,
+  getCrunPricingSnapshot,
 } from '@api/services/integrations/crun/contracts/crun-manifest';
 import type { CrunClient } from '@api/services/integrations/crun/crun-client.service';
 import { CrunQuoteService } from '@api/services/integrations/crun/crun-quote.service';
@@ -201,4 +203,48 @@ describe('Crun exact fixed account quote', () => {
       reasonCode: 'CRUN_RATE_LIMITED',
     });
   });
+  it.each([
+    [0, { duration: 5 }, '42'],
+    [0, { duration: 10 }, '84'],
+    [1, { duration: 8, resolution: '720p' }, '30'],
+    [1, { duration: 8, resolution: '1080p' }, '37.5'],
+    [1, { duration: 8, resolution: '4k' }, '90'],
+  ] as const)(
+    'freezes reviewed video row %s %j without duration multiplication',
+    async (index, controls, credits) => {
+      const entry = CRUN_VIDEO_MANIFEST[index];
+      const contract = buildCrunContract(entry);
+      estimate.mockResolvedValue({
+        isValid: true,
+        data: { credits, estimated: false },
+      });
+      const base = preparation();
+      const args = {
+        ...base,
+        contract,
+        profile: billableProfile({
+          key: entry.key,
+          provider: 'crun',
+          rateVersion: contract.version,
+          cost: 3,
+        }),
+        pricingEvidence: getCrunPricingSnapshot(entry),
+        request: {
+          model: entry.endpoint,
+          input: { prompt: 'bird', ...controls },
+        },
+        outputs: 4,
+      };
+      const result = await service.quote(args, now);
+      if (!result.isAvailable)
+        throw new Error(`Unavailable video: ${result.reasonCode}`);
+      expect(result.snapshot.providerQuote?.providerCreditsPerTask).toBe(
+        credits,
+      );
+      expect(result.snapshot.providerCostUsd).toBe(
+        (Number(credits) * 4) / 1000,
+      );
+      expect(result.snapshot.quantities.requests).toBe(4);
+    },
+  );
 });
