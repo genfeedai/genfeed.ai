@@ -26,6 +26,7 @@ describe('StudioGenerateStarterIdeas', () => {
       expect.objectContaining({
         aspectRatio: '1:1',
         promptTemplate: 'product-photo',
+        openLibraryRole: 'reference',
         type: 'image',
         content: {
           content: [
@@ -60,6 +61,7 @@ describe('StudioGenerateStarterIdeas', () => {
     expect(onSelect).toHaveBeenCalledWith(
       expect.objectContaining({
         aspectRatio: '9:16',
+        openLibraryRole: 'startFrame',
         promptTemplate: 'influencer-video',
         type: 'video',
         content: expect.objectContaining({
@@ -76,5 +78,49 @@ describe('StudioGenerateStarterIdeas', () => {
         }),
       }),
     );
+  });
+
+  it('attaches the brand product and asks for one when the kit has none', () => {
+    const onSelect = vi.fn();
+    const product = {
+      id: 'bottle-1',
+      label: 'Bottle',
+      previewUrl: 'https://cdn.example/bottle.png',
+    };
+    const { rerender } = render(
+      <StudioGenerateStarterIdeas
+        onSelect={onSelect}
+        productReference={product}
+      />,
+    );
+
+    expect(screen.getAllByText(/Uses Bottle/)).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: 'Use Product photo' }));
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        productReference: { ...product, role: 'reference' },
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Use Product ad' }));
+    expect(onSelect).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        productReference: { ...product, role: 'startFrame' },
+        type: 'video',
+      }),
+    );
+
+    rerender(
+      <StudioGenerateStarterIdeas
+        onSelect={onSelect}
+        productReference={{
+          id: 'bottle-1',
+          previewUrl: 'https://cdn.example/bottle.png',
+        }}
+      />,
+    );
+    expect(screen.getAllByText(/Uses Product/)).toHaveLength(2);
+
+    rerender(<StudioGenerateStarterIdeas onSelect={onSelect} />);
+    expect(screen.getAllByText(/Add a product image/)).toHaveLength(2);
   });
 });

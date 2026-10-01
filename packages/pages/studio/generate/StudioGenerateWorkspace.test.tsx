@@ -80,6 +80,9 @@ const mocks = vi.hoisted(() => ({
   saveDraft: vi.fn(),
   applyTypeSettings: vi.fn(),
   brandId: { value: 'brand-1' },
+  selectedBrand: {
+    value: undefined as { references?: readonly unknown[] } | undefined,
+  },
   organizationId: { value: 'org-1' },
   authIdentity: { value: 'identity-1' },
   getToken: vi.fn().mockResolvedValue('test-token'),
@@ -179,6 +182,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: mocks.brandId.value,
     organizationId: mocks.organizationId.value,
+    selectedBrand: mocks.selectedBrand.value,
   }),
 }));
 
@@ -424,6 +428,7 @@ describe('StudioGenerateWorkspace', () => {
     mocks.enhancedPromptId.value = undefined;
     mocks.isHydrated.value = true;
     mocks.brandId.value = 'brand-1';
+    mocks.selectedBrand.value = undefined;
     mocks.organizationId.value = 'org-1';
     mocks.authIdentity.value = 'identity-1';
     mocks.getToken.mockResolvedValue('test-token');
@@ -588,6 +593,74 @@ describe('StudioGenerateWorkspace', () => {
       reasonsByScope: {},
       setupByScope: {},
     });
+  });
+
+  it('attaches the brand product still and opens the library when the kit has none', () => {
+    mocks.selectedBrand.value = {
+      references: [
+        {
+          cdnUrl: 'https://cdn.example/face.png',
+          displayName: 'Anna',
+          id: 'face-1',
+          referenceCategory: 'FACE',
+        },
+        {
+          cdnUrl: 'https://cdn.example/bottle.png',
+          displayName: 'Bottle',
+          id: 'bottle-1',
+          referenceCategory: 'PRODUCT',
+        },
+      ],
+    };
+    const { rerender } = render(<StudioGenerateWorkspace />);
+    const productButtons = screen.getAllByRole('button', { name: 'apply' });
+    const productPhoto = productButtons[0];
+    const productAd = productButtons[1];
+    expect(productPhoto).toBeDefined();
+    expect(productAd).toBeDefined();
+    if (!productPhoto || !productAd) {
+      return;
+    }
+
+    fireEvent.click(productPhoto);
+    expect(mocks.composer.mock.calls.at(-1)?.[0].attachedAssets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'bottle-1',
+          name: 'Bottle',
+          previewUrl: 'https://cdn.example/bottle.png',
+          role: 'reference',
+          source: 'library',
+        }),
+      ]),
+    );
+    expect(
+      screen.queryByText('Reference library content'),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(productAd);
+    expect(mocks.setType).toHaveBeenCalledWith('video');
+    expect(mocks.composer.mock.calls.at(-1)?.[0].attachedAssets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'bottle-1',
+          role: 'startFrame',
+          source: 'library',
+        }),
+      ]),
+    );
+
+    mocks.selectedBrand.value = undefined;
+    rerender(<StudioGenerateWorkspace />);
+    const [photoWithoutProduct] = screen.getAllByRole('button', {
+      name: 'apply',
+    });
+    expect(photoWithoutProduct).toBeDefined();
+    if (!photoWithoutProduct) {
+      return;
+    }
+    fireEvent.click(photoWithoutProduct);
+    expect(screen.getByText('Reference library content')).toBeInTheDocument();
   });
 
   it('retains live or saved rows under a refresh warning', () => {

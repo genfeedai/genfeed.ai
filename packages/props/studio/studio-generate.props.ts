@@ -98,6 +98,24 @@ export interface StudioGenerateStarterIdea {
   type: StudioGenerateType;
   /** Image and video ideas can insert a real `@character` chip. */
   usesCharacter: boolean;
+  /** Product photo and product ad attach a brand product still. */
+  usesProductReference: boolean;
+}
+
+/** Brand-kit product still a starter card can attach. The card chooses the role. */
+export interface StudioGenerateStarterProductReference {
+  id: string;
+  /** Kit display name. The card supplies a fallback when this is absent. */
+  label?: string;
+  previewUrl: string;
+}
+
+/** Product still written onto the composer when a product idea is chosen. */
+export interface StudioGenerateStarterAttachedProduct {
+  id: string;
+  label: string;
+  previewUrl: string;
+  role: StudioGenerateReferenceRole;
 }
 
 /** What a starter card applies: rich prompt plus the setup that idea is known for. */
@@ -105,6 +123,9 @@ export interface StudioGenerateStarterSelection {
   aspectRatio?: string;
   content: JSONContent;
   instrumental?: boolean;
+  /** Set when a product idea has no product still, so the library can supply one. */
+  openLibraryRole?: StudioGenerateReferenceRole;
+  productReference?: StudioGenerateStarterAttachedProduct;
   promptTemplate?: string;
   seedId: string;
   type: StudioGenerateType;
@@ -127,6 +148,7 @@ export interface StudioGenerateStarterIdeasProps {
   character?: StudioGenerateStarterCharacter;
   isDisabled?: boolean;
   onSelect: (selection: StudioGenerateStarterSelection) => void;
+  productReference?: StudioGenerateStarterProductReference;
 }
 
 export interface StudioGenerateResultsProps {

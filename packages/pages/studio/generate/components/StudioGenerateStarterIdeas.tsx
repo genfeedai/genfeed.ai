@@ -6,6 +6,7 @@ import {
   buildStarterIdeaDocument,
   STUDIO_GENERATE_STARTER_IDEAS,
   starterIdeaPromptTemplate,
+  starterProductReferenceRole,
 } from '@pages/studio/generate/utils/studio-generate-starter-ideas';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
@@ -15,6 +16,7 @@ export default function StudioGenerateStarterIdeas({
   character,
   isDisabled = false,
   onSelect,
+  productReference,
 }: StudioGenerateStarterIdeasProps): ReactElement {
   const translate = useTranslations('pages.studioGenerate.starterIdeas');
 
@@ -47,6 +49,18 @@ export default function StudioGenerateStarterIdeas({
           const preview = taggedCharacter
             ? `${lead}${taggedCharacter.label}${tail ?? ''}`
             : lead;
+          const productLabel = productReference
+            ? (productReference.label ?? translate('productName'))
+            : undefined;
+          const attachedProduct =
+            idea.usesProductReference && productReference && productLabel
+              ? {
+                  id: productReference.id,
+                  label: productLabel,
+                  previewUrl: productReference.previewUrl,
+                  role: starterProductReferenceRole(idea.type),
+                }
+              : undefined;
 
           return (
             <Button
@@ -71,11 +85,19 @@ export default function StudioGenerateStarterIdeas({
                     taggedCharacter,
                   ),
                   instrumental: idea.instrumental,
+                  ...(idea.usesProductReference && !attachedProduct
+                    ? {
+                        openLibraryRole: starterProductReferenceRole(idea.type),
+                      }
+                    : {}),
+                  ...(attachedProduct
+                    ? { productReference: attachedProduct }
+                    : {}),
                   promptTemplate: starterIdeaPromptTemplate(
                     idea,
                     taggedCharacter !== undefined,
                   ),
-                  seedId: `${idea.id}:${taggedCharacter?.id ?? 'plain'}:${Date.now()}`,
+                  seedId: `${idea.id}:${taggedCharacter?.id ?? 'plain'}:${attachedProduct?.id ?? 'no-product'}:${Date.now()}`,
                   type: idea.type,
                 });
               }}
@@ -90,6 +112,13 @@ export default function StudioGenerateStarterIdeas({
                   {translate(`${idea.id}.detail`)}
                   {taggedCharacter
                     ? ` · ${translate('tagsCharacter', { name: taggedCharacter.label })}`
+                    : ''}
+                  {idea.usesProductReference
+                    ? ` · ${
+                        productLabel
+                          ? translate('usesProduct', { name: productLabel })
+                          : translate('needsProduct')
+                      }`
                     : ''}
                 </span>
               </span>

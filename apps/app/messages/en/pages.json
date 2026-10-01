@@ -1001,6 +1001,7 @@
         "lead": "Cinematic brand film. Slow camera move, one subject, natural light."
       },
       "description": "Pick one to fill the prompt. Edit it, then generate.",
+      "needsProduct": "Add a product image",
       "productAd": {
         "characterLead": "Short product ad featuring ",
         "characterTail": ". Open on the product, say one benefit, end on the brand.",
@@ -1008,6 +1009,7 @@
         "label": "Product ad",
         "lead": "Short product ad. Open on the product, say one benefit, end on the brand."
       },
+      "productName": "Product",
       "productPhoto": {
         "characterLead": "Lifestyle photo of ",
         "characterTail": " with the product, clean studio light, sharp detail.",
@@ -1022,6 +1024,7 @@
       },
       "tagsCharacter": "Tags {name}",
       "title": "Start with an idea",
+      "usesProduct": "Uses {name}",
       "voiceover": {
         "detail": "Voice",
         "label": "Voiceover",

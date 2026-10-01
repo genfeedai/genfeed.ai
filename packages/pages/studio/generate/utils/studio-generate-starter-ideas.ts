@@ -1,7 +1,13 @@
+import { ReferenceImageCategory } from '@genfeedai/contracts';
+import type {
+  StudioGenerateReferenceRole,
+  StudioGenerateType,
+} from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import type {
   StudioGenerateStarterCharacter,
   StudioGenerateStarterCharacterCandidate,
   StudioGenerateStarterIdea,
+  StudioGenerateStarterProductReference,
 } from '@genfeedai/props/studio/studio-generate.props';
 import type { JSONContent } from '@tiptap/core';
 
@@ -19,6 +25,7 @@ export const STUDIO_GENERATE_STARTER_IDEAS: readonly StudioGenerateStarterIdea[]
       promptTemplate: 'product-photo',
       type: 'image',
       usesCharacter: true,
+      usesProductReference: true,
     },
     {
       aspectRatio: '9:16',
@@ -27,6 +34,7 @@ export const STUDIO_GENERATE_STARTER_IDEAS: readonly StudioGenerateStarterIdea[]
       promptTemplate: 'product-ad-video',
       type: 'video',
       usesCharacter: true,
+      usesProductReference: true,
     },
     {
       aspectRatio: '16:9',
@@ -34,22 +42,26 @@ export const STUDIO_GENERATE_STARTER_IDEAS: readonly StudioGenerateStarterIdea[]
       promptTemplate: 'cinematic-video',
       type: 'video',
       usesCharacter: true,
+      usesProductReference: false,
     },
     {
       id: 'soundtrack',
       instrumental: true,
       type: 'music',
       usesCharacter: false,
+      usesProductReference: false,
     },
     {
       id: 'avatarIntro',
       type: 'avatar',
       usesCharacter: false,
+      usesProductReference: false,
     },
     {
       id: 'voiceover',
       type: 'voice',
       usesCharacter: false,
+      usesProductReference: false,
     },
   ];
 
@@ -67,6 +79,63 @@ export function pickStarterCharacter(
     id: match.id,
     label: match.label,
   };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function readNonEmptyString(
+  record: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const value = record[key];
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+/**
+ * First brand-kit still whose category is PRODUCT.
+ * Face references sort ahead of products, and a logo id does not resolve
+ * as a generation reference.
+ */
+export function pickStarterProductReference(
+  references: readonly unknown[] | undefined,
+): StudioGenerateStarterProductReference | undefined {
+  if (!references) {
+    return undefined;
+  }
+
+  for (const item of references) {
+    if (!isRecord(item)) {
+      continue;
+    }
+    const id = readNonEmptyString(item, 'id');
+    const previewUrl = readNonEmptyString(item, 'cdnUrl');
+    const category = readNonEmptyString(item, 'referenceCategory');
+    if (!id || !previewUrl || category !== ReferenceImageCategory.PRODUCT) {
+      continue;
+    }
+
+    const label = readNonEmptyString(item, 'displayName');
+    return {
+      id,
+      ...(label ? { label } : {}),
+      previewUrl,
+    };
+  }
+
+  return undefined;
+}
+
+/** Product photo stays a reference. A product ad opens on that still. */
+export function starterProductReferenceRole(
+  type: StudioGenerateType,
+): StudioGenerateReferenceRole {
+  return type === 'video' ? 'startFrame' : 'reference';
 }
 
 export function starterIdeaPromptTemplate(

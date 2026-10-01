@@ -78,7 +78,10 @@ import {
   recipeFromRepromptData,
   settingsPatchFromRecipe,
 } from '@pages/studio/generate/utils/studio-generate-recipe';
-import { pickStarterCharacter } from '@pages/studio/generate/utils/studio-generate-starter-ideas';
+import {
+  pickStarterCharacter,
+  pickStarterProductReference,
+} from '@pages/studio/generate/utils/studio-generate-starter-ideas';
 import { sanitizeStudioGenerateState } from '@pages/studio/generate/utils/studio-generate-storage';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
 import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
@@ -171,6 +174,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
   const {
     brandId,
     organizationId,
+    selectedBrand,
     settings: organizationSettings,
   } = useBrand();
   const [recognizedSkillSlugs, setRecognizedSkillSlugs] = useState<string[]>(
@@ -769,8 +773,31 @@ export default function StudioGenerateWorkspace(): ReactElement {
         content: selection.content,
         id: selection.seedId,
       });
+      if (selection.productReference) {
+        const attached = selection.productReference;
+        setContentReferences((current) => {
+          const next: StudioContentReference = {
+            item: {
+              brandId: brandId || null,
+              contentTitle: attached.label,
+              contentType: 'reference',
+              id: attached.id,
+              thumbnailUrl: attached.previewUrl,
+            },
+            role: attached.role,
+          };
+          return [
+            ...current.filter((reference) => reference.item.id !== attached.id),
+            next,
+          ];
+        });
+      }
+      if (selection.openLibraryRole) {
+        setContentLibraryRole(selection.openLibraryRole);
+        setIsContentLibraryOpen(true);
+      }
     },
-    [setType],
+    [brandId, setType],
   );
 
   const handleSubmit = useCallback(() => {
@@ -1397,6 +1424,9 @@ export default function StudioGenerateWorkspace(): ReactElement {
                   character={pickStarterCharacter(characterMentions)}
                   isDisabled={isGenerating}
                   onSelect={handleStarterIdea}
+                  productReference={pickStarterProductReference(
+                    selectedBrand?.references,
+                  )}
                 />
               ) : !galleryError || visibleJobs.length > 0 ? (
                 <StudioGenerateResults
