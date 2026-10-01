@@ -58,7 +58,7 @@
     },
     "test": {
       "dependsOn": ["//#env:check", "^build"],
-      "env": ["TZ"]
+      "env": ["TZ", "WORKFLOW_BILLING_TEST_DATABASE_URL", "CRUN_TEST_REDIS_URL"]
     },
     "test:e2e": {
       "dependsOn": ["//#env:check", "^build"],

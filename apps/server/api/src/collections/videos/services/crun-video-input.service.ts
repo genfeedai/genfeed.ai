@@ -8,16 +8,12 @@ import {
   crunVideoQuoteIntentSchema,
 } from '@api/collections/videos/dto/create-crun-video-quote.dto';
 import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
-import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
+import { resolveCrunReferences } from '@api/services/integrations/crun/crun-reference.util';
 import type { CrunQuotePreparation } from '@api/services/integrations/crun/crun-task.schema';
 import { CrunTaskService } from '@api/services/integrations/crun/crun-task.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import {
-  AssetCategory,
-  IngredientCategory,
-  ModelCategory,
-} from '@genfeedai/contracts';
+import { ModelCategory } from '@genfeedai/contracts';
 import type {
   CrunModelInputContract,
   CrunQuoteReasonCode,
@@ -81,148 +77,23 @@ export class CrunVideoInputService {
       reasonCode: CrunQuoteReasonCode,
     ): CrunPreparedImageResult => ({ isAvailable: false, reasonCode });
     if (!this.tasks.isAdmissionEnabled()) return unavailable('CRUN_DISABLED');
-    const brandId = intent.brandId;
-    if (!brandId) throw new BadRequestException({ code: 'CRUN_INVALID_INPUT' });
-    const brand = await this.prisma.brand.findFirst({
-      where: {
-        id: brandId,
-        organizationId: user.organizationId,
-        isDeleted: false,
-      },
-    });
-    if (!brand) throw new ForbiddenException('Selected brand is unavailable');
-    if (
-      intent.folderId &&
-      !(await this.prisma.folder.findFirst({
-        where: {
-          id: intent.folderId,
-          organizationId: user.organizationId,
-          brandId,
-          isDeleted: false,
-        },
-        select: { id: true },
-      }))
-    )
-      throw new ForbiddenException('Selected folder is unavailable');
-    if (
-      intent.harness ||
-      intent.requestedSkillSlugs.length ||
-      (intent.knowledge &&
-        ((intent.knowledge.sourceIds?.length ?? 0) ||
-          (intent.knowledge.spaceIds?.length ?? 0) ||
-          (intent.knowledge.purposes?.length ?? 0)))
-    )
-      return unavailable('CRUN_ENHANCEMENT_REQUIRED');
-    if (intent.promptId) {
-      const prompt = await this.prisma.prompt.findFirst({
-        where: {
-          id: intent.promptId,
-          organizationId: user.organizationId,
-          userId: user.userId,
-          brandId,
-          isDeleted: false,
-        },
-        select: { enhanced: true },
-      });
-      if (!prompt?.enhanced?.trim() || prompt.enhanced.trim() !== intent.text)
-        return unavailable('CRUN_ENHANCEMENT_REQUIRED');
-    }
-    const model = await this.models.findOne({
-      key: intent.model,
-      organizationId: user.organizationId,
-    });
-    if (
-      model?.provider !== 'crun' ||
-      !model.isActive ||
-      model.isDeleted ||
-      model.category !== ModelCategory.VIDEO
-    )
-      return unavailable('CRUN_MODEL_UNAVAILABLE');
-    if (
-      model.pendingProviderContractVersion ||
-      !model.reviewedProviderContractVersion ||
-      intent.crunControls.contractVersion !==
-        model.reviewedProviderContractVersion
-    )
-      return unavailable('CRUN_CONTRACT_UNAVAILABLE');
-    const rawContract = model.providerInputSchema;
-    if (
-      !rawContract ||
-      typeof rawContract !== 'object' ||
-      Array.isArray(rawContract)
-    )
-      return unavailable('CRUN_CONTRACT_UNAVAILABLE');
-    const contract = rawContract as unknown as CrunModelInputContract;
-    if (
-      contract.version !== model.reviewedProviderContractVersion ||
-      contract.endpoint !== intent.model.slice(5) ||
-      contract.mediaKind !== 'video' ||
-      !contract.fields
-    )
-      return unavailable('CRUN_CONTRACT_UNAVAILABLE');
+    const { brandId, brand } = await this.authorizeSelection(intent, user);
+    const provenance = await this.validatePromptProvenance(
+      intent,
+      user,
+      brandId,
+    );
+    if (provenance) return unavailable(provenance);
+    const selected = await this.readReviewedContract(intent, user);
+    if (!selected.isAvailable) return selected;
+    const { model, contract } = selected;
     const controls: CrunVideoQuoteControls = intent.crunControls;
     if (
       intent.model === 'crun/google/veo3-1-fast-t2v' &&
       controls.duration !== 8
     )
       return unavailable('PRICING_UNAVAILABLE');
-    const references: string[] = [];
-    const frameIds = [
-      ...intent.references,
-      ...(intent.endFrame ? [intent.endFrame] : []),
-    ];
-    for (const referenceId of frameIds) {
-      const ingredient = await this.prisma.ingredient.findFirst({
-        where: {
-          id: referenceId,
-          organizationId: user.organizationId,
-          brandId,
-          isDeleted: false,
-          category: IngredientCategory.IMAGE,
-        },
-        select: { id: true },
-      });
-      const asset = ingredient
-        ? null
-        : await this.assets.findOne({
-            id: referenceId,
-            organizationId: user.organizationId,
-            isDeleted: false,
-            category: AssetCategory.REFERENCE,
-          });
-      if (
-        (!ingredient && !asset?.mimeType?.startsWith('image/')) ||
-        (intent.parentId === referenceId && !ingredient)
-      )
-        throw new BadRequestException({
-          code: 'CRUN_INVALID_INPUT',
-          fieldErrors: [
-            {
-              field: 'references',
-              message:
-                'A selected frame is missing, unauthorized or not an image',
-            },
-          ],
-        });
-      const urls = await buildReferenceImageUrls({
-        assetsService: this.assets,
-        ingredientsService: this.ingredients,
-        configService: this.config,
-        organizationId: user.organizationId,
-        referenceIds: [referenceId],
-      });
-      if (urls.length !== 1)
-        throw new BadRequestException({
-          code: 'CRUN_INVALID_INPUT',
-          fieldErrors: [
-            {
-              field: 'references',
-              message: 'A selected frame has no authorized image URL',
-            },
-          ],
-        });
-      references.push(urls[0]);
-    }
+    const references = await this.resolveReferences(intent, user, brandId);
     const built = await this.builder.buildPrompt(
       intent.model,
       {
@@ -268,9 +139,178 @@ export class CrunVideoInputService {
         code: 'CRUN_INVALID_INPUT',
         fieldErrors: normalized.errors,
       });
+    return this.preparePricing(
+      intent,
+      user,
+      brandId,
+      contract,
+      model.id,
+      normalized.input,
+      built,
+    );
+  }
+
+  private async authorizeSelection(
+    intent: CrunVideoQuoteIntent,
+    user: AuthenticatedUser,
+  ) {
+    const brandId = intent.brandId;
+    if (!brandId) throw new BadRequestException({ code: 'CRUN_INVALID_INPUT' });
+    const brand = await this.prisma.brand.findFirst({
+      where: {
+        id: brandId,
+        organizationId: user.organizationId,
+        isDeleted: false,
+      },
+    });
+    if (!brand) throw new ForbiddenException('Selected brand is unavailable');
+    if (
+      intent.folderId &&
+      !(await this.prisma.folder.findFirst({
+        where: {
+          id: intent.folderId,
+          organizationId: user.organizationId,
+          brandId,
+          isDeleted: false,
+        },
+        select: { id: true },
+      }))
+    )
+      throw new ForbiddenException('Selected folder is unavailable');
+    return { brandId, brand };
+  }
+
+  private async validatePromptProvenance(
+    intent: CrunVideoQuoteIntent,
+    user: AuthenticatedUser,
+    brandId: string,
+  ): Promise<CrunQuoteReasonCode | null> {
+    if (
+      intent.harness ||
+      intent.requestedSkillSlugs.length ||
+      (intent.knowledge &&
+        ((intent.knowledge.sourceIds?.length ?? 0) ||
+          (intent.knowledge.spaceIds?.length ?? 0) ||
+          (intent.knowledge.purposes?.length ?? 0)))
+    )
+      return 'CRUN_ENHANCEMENT_REQUIRED';
+    if (intent.promptId) {
+      const prompt = await this.prisma.prompt.findFirst({
+        where: {
+          id: intent.promptId,
+          organizationId: user.organizationId,
+          userId: user.userId,
+          brandId,
+          isDeleted: false,
+        },
+        select: { enhanced: true },
+      });
+      if (!prompt?.enhanced?.trim() || prompt.enhanced.trim() !== intent.text)
+        return 'CRUN_ENHANCEMENT_REQUIRED';
+    }
+    return null;
+  }
+
+  private async readReviewedContract(
+    intent: CrunVideoQuoteIntent,
+    user: AuthenticatedUser,
+  ): Promise<
+    | {
+        isAvailable: true;
+        model: NonNullable<Awaited<ReturnType<ModelsService['findOne']>>>;
+        contract: CrunModelInputContract;
+      }
+    | { isAvailable: false; reasonCode: CrunQuoteReasonCode }
+  > {
+    const model = await this.models.findOne({
+      key: intent.model,
+      organizationId: user.organizationId,
+    });
+    if (
+      model?.provider !== 'crun' ||
+      !model.isActive ||
+      model.isDeleted ||
+      model.category !== ModelCategory.VIDEO
+    )
+      return { isAvailable: false, reasonCode: 'CRUN_MODEL_UNAVAILABLE' };
+    if (
+      model.pendingProviderContractVersion ||
+      !model.reviewedProviderContractVersion ||
+      intent.crunControls.contractVersion !==
+        model.reviewedProviderContractVersion
+    )
+      return { isAvailable: false, reasonCode: 'CRUN_CONTRACT_UNAVAILABLE' };
+    const rawContract = model.providerInputSchema;
+    if (
+      !rawContract ||
+      typeof rawContract !== 'object' ||
+      Array.isArray(rawContract)
+    )
+      return { isAvailable: false, reasonCode: 'CRUN_CONTRACT_UNAVAILABLE' };
+    const contract = rawContract as unknown as CrunModelInputContract;
+    if (
+      contract.version !== model.reviewedProviderContractVersion ||
+      contract.endpoint !== intent.model.slice(5) ||
+      contract.mediaKind !== 'video' ||
+      !contract.fields
+    )
+      return { isAvailable: false, reasonCode: 'CRUN_CONTRACT_UNAVAILABLE' };
+    return { isAvailable: true, model, contract };
+  }
+
+  private async resolveReferences(
+    intent: CrunVideoQuoteIntent,
+    user: AuthenticatedUser,
+    brandId: string,
+  ): Promise<string[]> {
+    const references = await resolveCrunReferences({
+      prisma: this.prisma,
+      assets: this.assets,
+      ingredients: this.ingredients,
+      config: this.config,
+      userId: user.userId,
+      organizationId: user.organizationId,
+      brandId,
+      referenceIds: [
+        ...intent.references,
+        ...(intent.endFrame ? [intent.endFrame] : []),
+      ],
+      mode: 'video-frame',
+    });
+    if (
+      !references ||
+      (intent.parentId &&
+        references.find((reference) => reference.id === intent.parentId)
+          ?.kind !== 'image-ingredient')
+    )
+      throw new BadRequestException({
+        code: 'CRUN_INVALID_INPUT',
+        fieldErrors: [
+          {
+            field: 'references',
+            message:
+              'A selected frame is missing, unauthorized or not an image',
+          },
+        ],
+      });
+    return references.map((reference) => reference.url);
+  }
+
+  private async preparePricing(
+    intent: CrunVideoQuoteIntent,
+    user: AuthenticatedUser,
+    brandId: string,
+    contract: CrunModelInputContract,
+    modelId: string,
+    normalizedInput: CrunQuotePreparation['request']['input'],
+    built: Awaited<ReturnType<PromptBuilderService['buildPrompt']>>,
+  ): Promise<CrunPreparedImageResult> {
+    const unavailable = (
+      reasonCode: CrunQuoteReasonCode,
+    ): CrunPreparedImageResult => ({ isAvailable: false, reasonCode });
     const reviewed = await this.prisma.modelProviderContract.findFirst({
       where: {
-        modelId: model.id,
+        modelId,
         provider: 'crun',
         endpoint: contract.endpoint,
         version: contract.version,
@@ -304,7 +344,7 @@ export class CrunVideoInputService {
           profile,
           contract,
           pricingEvidence: reviewed?.pricing,
-          request: { model: contract.endpoint, input: normalized.input },
+          request: { model: contract.endpoint, input: normalizedInput },
           credential,
           outputs: intent.outputs,
           creditsPerUsd:

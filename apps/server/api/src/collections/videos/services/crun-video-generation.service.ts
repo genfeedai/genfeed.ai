@@ -3,6 +3,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import type { GenerationBillingRequest } from '@api/collections/credits/services/generation-billing.service';
 import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import type { CrunVideoQuoteIntent } from '@api/collections/videos/dto/create-crun-video-quote.dto';
 import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { CrunVideoInputService } from '@api/collections/videos/services/crun-video-input.service';
 import { CrunVideoPreviewQuoteService } from '@api/collections/videos/services/crun-video-preview-quote.service';
@@ -16,6 +17,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { CacheService } from '@api/services/cache/cache.service';
 import type {
+  CrunFrozenVideoQuote,
   CrunFundingBinding,
   CrunPreparedTask,
 } from '@api/services/integrations/crun/crun-task.schema';
@@ -95,6 +97,45 @@ export class CrunVideoGenerationService {
   ): Promise<JsonApiSingleResponse> {
     const billingRequest = request as RequestWithContext &
       GenerationBillingRequest;
+    const { raw, consumed } = await this.prepareQuoteConsumption(
+      user,
+      dto,
+      request,
+    );
+    if (consumed.kind === 'replay')
+      return this.serializeReplay(user, request, consumed.ingredientIds);
+    const frozen = consumed.quote;
+    const { provider, intent } = await this.reserveFrozenFunding(
+      user,
+      raw,
+      frozen,
+      billingRequest,
+    );
+    const { rows, ingredients } = await this.createBoundOutputs(
+      user,
+      intent,
+      frozen,
+      provider,
+      billingRequest,
+    );
+    await this.submitPreparedOutputs(user, frozen, rows, billingRequest);
+    const first = await this.videos.findOne({
+      id: ingredients[0].ingredientData.id,
+      organizationId: user.organizationId,
+      isDeleted: false,
+    });
+    if (!first) throw new ConflictException({ code: 'CRUN_QUOTE_IN_PROGRESS' });
+    return serializeSingle(request, VideoSerializer, {
+      ...first,
+      pendingIngredientIds: ingredients.map((docs) => docs.ingredientData.id),
+    });
+  }
+
+  private async prepareQuoteConsumption(
+    user: AuthenticatedUser,
+    dto: CreateVideoDto,
+    request: RequestWithContext,
+  ) {
     if (
       (request as DeferredCreditsRequest).approvedRemixQuoteId !== undefined ||
       (dto as CreateVideoDto & { approvedRemixQuoteId?: string })
@@ -158,20 +199,33 @@ export class CrunVideoGenerationService {
       quoteId = quoted.quoteId;
     }
     const consumed = await this.preview.consume(raw, quoteId, user);
-    if (consumed.kind === 'replay') {
-      const existing = await this.videos.findOne({
-        id: consumed.ingredientIds[0],
-        organizationId: user.organizationId,
-        isDeleted: false,
-      });
-      if (!existing)
-        throw new ConflictException({ code: 'CRUN_QUOTE_IN_PROGRESS' });
-      return serializeSingle(request, VideoSerializer, {
-        ...existing,
-        pendingIngredientIds: consumed.ingredientIds,
-      });
-    }
-    const frozen = consumed.quote;
+    return { raw, consumed };
+  }
+
+  private async serializeReplay(
+    user: AuthenticatedUser,
+    request: RequestWithContext,
+    ingredientIds: string[],
+  ): Promise<JsonApiSingleResponse> {
+    const existing = await this.videos.findOne({
+      id: ingredientIds[0],
+      organizationId: user.organizationId,
+      isDeleted: false,
+    });
+    if (!existing)
+      throw new ConflictException({ code: 'CRUN_QUOTE_IN_PROGRESS' });
+    return serializeSingle(request, VideoSerializer, {
+      ...existing,
+      pendingIngredientIds: ingredientIds,
+    });
+  }
+
+  private async reserveFrozenFunding(
+    user: AuthenticatedUser,
+    raw: Record<string, unknown>,
+    frozen: CrunFrozenVideoQuote,
+    billingRequest: RequestWithContext & GenerationBillingRequest,
+  ) {
     await this.preview.assertCurrent(frozen);
     const provider = frozen.snapshot.providerQuote;
     if (!provider) throw new ConflictException({ code: 'CRUN_QUOTE_STALE' });
@@ -210,6 +264,16 @@ export class CrunVideoGenerationService {
       organizationId: user.organizationId,
       request: billingRequest,
     });
+    return { provider, intent };
+  }
+
+  private async createBoundOutputs(
+    user: AuthenticatedUser,
+    intent: CrunVideoQuoteIntent,
+    frozen: CrunFrozenVideoQuote,
+    provider: NonNullable<CrunFrozenVideoQuote['snapshot']['providerQuote']>,
+    billingRequest: RequestWithContext & GenerationBillingRequest,
+  ) {
     const prompt = intent.promptId
       ? { id: intent.promptId }
       : await this.prompts.create({
@@ -323,6 +387,15 @@ export class CrunVideoGenerationService {
         credentialFingerprint: provider.credentialFingerprint,
       });
     }
+    return { rows, ingredients };
+  }
+
+  private async submitPreparedOutputs(
+    user: AuthenticatedUser,
+    frozen: CrunFrozenVideoQuote,
+    rows: CrunPreparedTask[],
+    billingRequest: RequestWithContext & GenerationBillingRequest,
+  ): Promise<void> {
     await this.cache.invalidateByTags(['videos']);
     const prepared = await this.tasks.prepareTasks(rows);
     // Every durable row and binding precedes the first paid request. Never regenerate effective input here.
@@ -344,16 +417,6 @@ export class CrunVideoGenerationService {
       // Ambiguous acceptance remains funded. No outcome is automatically redispatched.
     }
     await this.billing.releasePool(billingRequest);
-    const first = await this.videos.findOne({
-      id: ingredients[0].ingredientData.id,
-      organizationId: user.organizationId,
-      isDeleted: false,
-    });
-    if (!first) throw new ConflictException({ code: 'CRUN_QUOTE_IN_PROGRESS' });
-    return serializeSingle(request, VideoSerializer, {
-      ...first,
-      pendingIngredientIds: ingredients.map((docs) => docs.ingredientData.id),
-    });
   }
 
   private originalIntent(

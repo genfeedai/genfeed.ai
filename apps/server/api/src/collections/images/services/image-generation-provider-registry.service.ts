@@ -1,3 +1,5 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import type {
   ImageGenerationProvider,
   ImageGenerationProviderAdapter,
@@ -13,8 +15,14 @@ import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/s
 import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
 import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
 import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import type { ModelProvider } from '@genfeedai/contracts';
-import { Injectable, Optional } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 
 @Injectable()
 export class ImageGenerationProviderRegistryService {
@@ -28,7 +36,8 @@ export class ImageGenerationProviderRegistryService {
     replicateAdapter: ReplicateImageGenerationProviderAdapter,
     sdxlAdapter: SdxlImageGenerationProviderAdapter,
     higgsFieldAdapter: HiggsFieldImageGenerationProviderAdapter,
-    @Optional() crunAdapter?: CrunImageGenerationProviderAdapter,
+    @Optional()
+    private readonly crunAdapter?: CrunImageGenerationProviderAdapter,
   ) {
     this.adapters = [
       genfeedAiAdapter,
@@ -38,8 +47,27 @@ export class ImageGenerationProviderRegistryService {
       leonardoAdapter,
       replicateAdapter,
       sdxlAdapter,
-      ...(crunAdapter ? [crunAdapter] : []),
+      ...(this.crunAdapter ? [this.crunAdapter] : []),
     ];
+  }
+
+  generateCrunQuoted(
+    user: AuthenticatedUser,
+    dto: CreateImageDto,
+    request: RequestWithContext,
+    hasUnsupportedContext: boolean,
+  ) {
+    if (hasUnsupportedContext)
+      throw new HttpException(
+        { code: 'CRUN_INVALID_INPUT' },
+        HttpStatus.BAD_REQUEST,
+      );
+    if (!this.crunAdapter)
+      throw new HttpException(
+        { code: 'CRUN_MODEL_UNAVAILABLE' },
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    return this.crunAdapter.generateQuoted(user, dto, request);
   }
 
   supports(model: string, provider?: ModelProvider | string): boolean {

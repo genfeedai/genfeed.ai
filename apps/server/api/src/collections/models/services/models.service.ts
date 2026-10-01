@@ -1,13 +1,14 @@
 import { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
 import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
+import {
+  crunModelCatalogPatch,
+  projectReviewedCrunModelInputControls,
+  validateProviderApprovalAndResolveCrunContract,
+} from '@api/collections/models/services/crun-model-contract.util';
 import { findModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
-import { isFalSchemaFamilyCompatible } from '@api/collections/models/utils/model-schema-family.util';
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { ValidationException } from '@api/exceptions/validation.exception';
-import { buildCrunContract } from '@api/services/integrations/crun/contracts/crun-contract-import.service';
-import { CRUN_MODEL_MANIFEST } from '@api/services/integrations/crun/contracts/crun-manifest';
-import { isReplicateSchemaFamilyCompatible } from '@api/services/integrations/replicate/services/replicate-contract';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
@@ -18,12 +19,10 @@ import {
 } from '@genfeedai/contracts';
 import type {
   CrunInputControls,
-  CrunModelInputContract,
   IModelProviderContractSnapshot,
   IModelProviderContracts,
   ModelBillablePricingProfile,
 } from '@genfeedai/contracts/interfaces';
-import { projectCrunInputControls } from '@genfeedai/helpers';
 import { withLiveModelCreditPricing } from '@genfeedai/pricing';
 import {
   type Prisma,
@@ -183,52 +182,11 @@ export class ModelsService extends BaseService<
     const withProviderConfig = {
       ...model,
       providerConfig: this.getProviderConfig(document),
-      inputControls: this.getCrunInputControls(document),
+      inputControls: projectReviewedCrunModelInputControls(document),
     };
     return withLiveModelCreditPricing(
       withProviderConfig,
     ) as unknown as ModelDocument;
-  }
-
-  private getCrunInputControls(
-    document: Pick<
-      PrismaModel,
-      'provider' | 'providerInputSchema' | 'reviewedProviderContractVersion'
-    >,
-  ): CrunInputControls | undefined {
-    if (
-      document.provider !== ModelProvider.CRUN ||
-      !document.reviewedProviderContractVersion ||
-      !this.isModelRecord(document.providerInputSchema)
-    )
-      return undefined;
-    const contract = document.providerInputSchema;
-    if (
-      contract.version !== document.reviewedProviderContractVersion ||
-      !this.isModelRecord(contract.fields) ||
-      typeof contract.endpoint !== 'string' ||
-      !['image', 'video'].includes(String(contract.mediaKind)) ||
-      (contract.mediaKind === 'video' &&
-        !this.isModelRecord(contract.videoRules))
-    )
-      return undefined;
-    if (contract.mediaKind === 'video') {
-      const rules = contract.videoRules;
-      const kling = contract.endpoint === 'kling/v2-5-turbo-pro';
-      const veo = contract.endpoint === 'google/veo3-1-fast-t2v';
-      if (
-        !this.isModelRecord(rules) ||
-        (!kling && !veo) ||
-        rules.referenceMode !== (kling ? 'start-end' : 'none') ||
-        rules.omitAspectRatioWithReferences !== kling ||
-        JSON.stringify(rules.availableDurations) !==
-          JSON.stringify(kling ? [5, 10] : [8])
-      )
-        return undefined;
-    }
-    return projectCrunInputControls(
-      contract as unknown as CrunModelInputContract,
-    );
   }
 
   private readString(value: unknown): string | undefined {
@@ -402,7 +360,7 @@ export class ModelsService extends BaseService<
       description: priced.description,
       durations: priced.durations,
       id: priced.id,
-      inputControls: this.getCrunInputControls(row),
+      inputControls: projectReviewedCrunModelInputControls(row),
       isDefault: priced.isDefault,
       isHighlighted: priced.isHighlighted,
       key: priced.key,
@@ -894,77 +852,11 @@ export class ModelsService extends BaseService<
         })
       : null;
 
-    if (
-      pendingVersion &&
-      (pendingContract?.mappingStatus !== 'supported' ||
-        !pendingContract.schemaFamily ||
-        !pendingContract.pricingType ||
-        (existing.provider !== ModelProvider.CRUN &&
-          pendingContract.unitPriceMicros === null))
-    ) {
-      throw new BadRequestException(
-        'The pending provider contract is quarantined and cannot be activated',
-      );
-    }
-    if (
-      pendingContract?.schemaFamily &&
-      existing.provider === ModelProvider.FAL &&
-      !isFalSchemaFamilyCompatible(
-        updateDto.category ?? existing.category,
-        pendingContract.schemaFamily,
-      )
-    ) {
-      throw new BadRequestException(
-        'The pending provider contract schema family does not match the model category',
-      );
-    }
-    if (
-      pendingContract?.schemaFamily &&
-      existing.provider === ModelProvider.REPLICATE &&
-      !isReplicateSchemaFamilyCompatible(
-        updateDto.category ?? existing.category,
-        pendingContract.schemaFamily,
-      )
-    ) {
-      throw new BadRequestException(
-        'The pending provider contract schema family does not match the model category',
-      );
-    }
-
-    let crunContract: CrunModelInputContract | undefined;
-    if (pendingContract && existing.provider === ModelProvider.CRUN) {
-      const entry = CRUN_MODEL_MANIFEST.find(
-        (candidate) =>
-          candidate.endpoint === existing.endpoint &&
-          candidate.key === existing.key,
-      );
-      if (
-        !entry ||
-        pendingContract.schemaFamily !== entry.schemaFamily ||
-        (updateDto.category ?? existing.category) !==
-          (entry.mediaKind === 'video'
-            ? ModelCategory.VIDEO
-            : ModelCategory.IMAGE)
-      )
-        throw new BadRequestException(
-          'The pending Crun contract does not match the exact media route',
-        );
-      try {
-        crunContract = buildCrunContract(
-          entry,
-          pendingContract.openapi,
-          pendingContract.pricing,
-        );
-      } catch {
-        throw new BadRequestException(
-          'The pending Crun contract is unsupported',
-        );
-      }
-      if (crunContract.version !== pendingContract.version)
-        throw new BadRequestException(
-          'The pending Crun contract version is invalid',
-        );
-    }
+    const crunContract = validateProviderApprovalAndResolveCrunContract(
+      existing,
+      pendingContract,
+      updateDto.category,
+    );
 
     const patch: RegistryReviewPatch = {
       ...updateDto,
@@ -980,19 +872,8 @@ export class ModelsService extends BaseService<
       if (existing.provider !== ModelProvider.CRUN)
         patch.providerCostUsd =
           Number(pendingContract.unitPriceMicros) / 1_000_000;
-      if (crunContract) {
-        patch.aspectRatios =
-          crunContract.fields.aspect_ratio.enum?.filter(
-            (value): value is string => typeof value === 'string',
-          ) ?? [];
-        patch.defaultAspectRatio = String(
-          crunContract.fields.aspect_ratio.default,
-        );
-        patch.maxOutputs = 4;
-        patch.maxReferences = crunContract.fields.img_urls?.maxItems ?? 0;
-        patch.isBatchSupported = false;
-        patch.hasResolutionOptions = Boolean(crunContract.fields.resolution);
-      }
+      if (crunContract)
+        Object.assign(patch, crunModelCatalogPatch(crunContract));
       patch.providerInputSchema = crunContract
         ? toPrismaJson(crunContract)
         : (pendingContract.inputSchema as Prisma.InputJsonValue);

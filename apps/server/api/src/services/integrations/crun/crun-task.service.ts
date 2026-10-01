@@ -5,10 +5,14 @@ import {
 } from '@api/helpers/utils/credits/generation-quote-group.schema';
 import { generationUsageReceiptSchema } from '@api/helpers/utils/credits/generation-submission-evidence.schema';
 import { modelBillableQuoteSnapshotSchema } from '@api/helpers/utils/credits/model-billable-quote.schema';
+import { scopedWhere } from '@api/index';
 import { ByokService } from '@api/services/byok/byok.service';
 import { CrunClient } from '@api/services/integrations/crun/crun-client.service';
 import { getCrunMediaKind } from '@api/services/integrations/crun/crun-media-kind.util';
-import type { CrunTaskStatusResponse } from '@api/services/integrations/crun/crun-response.schema';
+import type {
+  CrunResponse,
+  CrunTaskStatusResponse,
+} from '@api/services/integrations/crun/crun-response.schema';
 import type {
   CrunPreparedTask,
   CrunProviderRequest,
@@ -273,7 +277,7 @@ export class CrunTaskService {
     };
     if (result.isValid) {
       await this.prisma.crunGenerationTask.updateMany({
-        where,
+        where: scopedWhere(task.organizationId, where),
         data: {
           providerTaskId: result.data.taskId,
           state: 'pending',
@@ -375,13 +379,13 @@ export class CrunTaskService {
     )
       throw invalid();
     const ingredient = await transaction.ingredient.findFirst({
-      where: {
+      where: scopedWhere(input.organizationId, {
         id: input.ingredientId,
         organizationId: input.organizationId,
         userId: input.userId,
         isDeleted: false,
         ...(input.brandId ? { brandId: input.brandId } : {}),
-      },
+      }),
       select: { generationBilling: true, category: true },
     });
     if (
@@ -571,6 +575,10 @@ export class CrunTaskService {
     if (signal?.aborted || !(await this.ownsLease(task))) return null;
     const result = await this.client.taskInfo(credential, task.providerTaskId);
     if (signal?.aborted) return null;
+    if (!result.isValid) return this.handlePollFailure(task, result, now);
+    const info = result.data;
+    const isTerminal = info.status === 'success' || info.status === 'failed';
+    const data = this.buildPollUpdate(task, info, now);
     const where = {
       id: task.id,
       organizationId: task.organizationId,
@@ -579,40 +587,78 @@ export class CrunTaskService {
       state: task.state,
       leaseUntil: { gt: new Date() },
     };
-    if (!result.isValid) {
-      if (terminal) return (await this.ownsLease(task)) ? { task } : null;
-      const consecutive404 =
-        result.reasonCode === 'CRUN_TASK_NOT_FOUND'
-          ? Number(
-              task.failureCode?.match(/^CRUN_TASK_NOT_FOUND_(\d+)$/)?.[1] ?? 0,
-            ) + 1
-          : 0;
-      if (result.disposition === 'recovery' || consecutive404 >= 3)
-        await this.markRecovery(
-          task,
-          consecutive404 >= 3 ? 'CRUN_TASK_NOT_FOUND' : result.reasonCode,
-        );
-      else
-        await this.prisma.crunGenerationTask.updateMany({
-          where,
-          data: {
-            nextPollAt: new Date(
-              Math.min(
-                now.getTime() + Math.max(30000, result.retryAfterMs),
-                task.deadlineAt?.getTime() ?? now.getTime(),
-              ),
+    const updated = await this.prisma.crunGenerationTask.updateMany({
+      where: scopedWhere(task.organizationId, where),
+      data,
+    });
+    if (updated.count !== 1 || (!terminal && !isTerminal)) return null;
+    const current = await this.prisma.crunGenerationTask.findFirst({
+      where: {
+        id: task.id,
+        organizationId: task.organizationId,
+        isDeleted: false,
+        version: task.version,
+        leaseUntil: { gt: new Date() },
+      },
+    });
+    return current ? { task: current, ...(isTerminal ? { info } : {}) } : null;
+  }
+
+  private async handlePollFailure(
+    task: CrunGenerationTask,
+    result: Extract<CrunResponse<CrunTaskStatusResponse>, { isValid: false }>,
+    now: Date,
+  ): Promise<{ task: CrunGenerationTask } | null> {
+    const terminal =
+      task.state === 'provider-success' || task.state === 'provider-failed';
+    const where = {
+      id: task.id,
+      organizationId: task.organizationId,
+      isDeleted: false,
+      version: task.version,
+      state: task.state,
+      leaseUntil: { gt: new Date() },
+    };
+    if (terminal) return (await this.ownsLease(task)) ? { task } : null;
+    const consecutive404 =
+      result.reasonCode === 'CRUN_TASK_NOT_FOUND'
+        ? Number(
+            task.failureCode?.match(/^CRUN_TASK_NOT_FOUND_(\d+)$/)?.[1] ?? 0,
+          ) + 1
+        : 0;
+    if (result.disposition === 'recovery' || consecutive404 >= 3)
+      await this.markRecovery(
+        task,
+        consecutive404 >= 3 ? 'CRUN_TASK_NOT_FOUND' : result.reasonCode,
+      );
+    else
+      await this.prisma.crunGenerationTask.updateMany({
+        where: scopedWhere(task.organizationId, where),
+        data: {
+          nextPollAt: new Date(
+            Math.min(
+              now.getTime() + Math.max(30000, result.retryAfterMs),
+              task.deadlineAt?.getTime() ?? now.getTime(),
             ),
-            leaseUntil: null,
-            pollCount: { increment: 1 },
-            version: { increment: 1 },
-            failureCode: consecutive404
-              ? `CRUN_TASK_NOT_FOUND_${consecutive404}`
-              : null,
-          },
-        });
-      return null;
-    }
-    const info = result.data;
+          ),
+          leaseUntil: null,
+          pollCount: { increment: 1 },
+          version: { increment: 1 },
+          failureCode: consecutive404
+            ? `CRUN_TASK_NOT_FOUND_${consecutive404}`
+            : null,
+        },
+      });
+    return null;
+  }
+
+  private buildPollUpdate(
+    task: CrunGenerationTask,
+    info: CrunTaskStatusResponse,
+    now: Date,
+  ): Prisma.CrunGenerationTaskUpdateManyMutationInput {
+    const terminal =
+      task.state === 'provider-success' || task.state === 'provider-failed';
     const isTerminal = info.status === 'success' || info.status === 'failed';
     const { mediaUrls: _urls, ...receipt } = info;
     let data: Prisma.CrunGenerationTaskUpdateManyMutationInput;
@@ -675,21 +721,7 @@ export class CrunTaskService {
               version: { increment: 1 },
             }),
       };
-    const updated = await this.prisma.crunGenerationTask.updateMany({
-      where,
-      data,
-    });
-    if (updated.count !== 1 || (!terminal && !isTerminal)) return null;
-    const current = await this.prisma.crunGenerationTask.findFirst({
-      where: {
-        id: task.id,
-        organizationId: task.organizationId,
-        isDeleted: false,
-        version: task.version,
-        leaseUntil: { gt: new Date() },
-      },
-    });
-    return current ? { task: current, ...(isTerminal ? { info } : {}) } : null;
+    return data;
   }
 
   /** Deployment-global sweep; every claim re-enters the row's tenant scope. */
@@ -744,7 +776,7 @@ export class CrunTaskService {
         nextPollAt: null,
         version: { increment: 1 },
       },
-      where: {
+      where: scopedWhere(task.organizationId, {
         id: task.id,
         organizationId: task.organizationId,
         isDeleted: false,
@@ -752,7 +784,7 @@ export class CrunTaskService {
         ...(task.leaseUntil
           ? { leaseUntil: { gt: new Date() }, state: task.state }
           : {}),
-      },
+      }),
     });
   }
 

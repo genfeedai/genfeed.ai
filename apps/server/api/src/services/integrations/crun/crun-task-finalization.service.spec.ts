@@ -203,6 +203,12 @@ describe('Crun authenticated finalization phases', () => {
     expect(f.row.state).toBe('finalized');
     expect(f.row.mediaPersistedAt).toBeInstanceOf(Date);
     expect(f.row.billingRecordedAt).toBeInstanceOf(Date);
+    expect(f.ledger.record.mock.invocationCallOrder[0]).toBeLessThan(
+      f.media.processMediaForIngredient.mock.invocationCallOrder[0],
+    );
+    expect(
+      f.media.processMediaForIngredient.mock.invocationCallOrder[0],
+    ).toBeLessThan(f.billing.settleOutput.mock.invocationCallOrder[0]);
     expect(f.ledger.record).toHaveBeenCalledWith(
       expect.objectContaining({
         vendorCostMicros: 8000,

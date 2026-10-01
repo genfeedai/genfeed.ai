@@ -14,6 +14,7 @@ import {
 } from '@api/services/integrations/crun/contracts/crun-manifest';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { normalizeCrunInput } from '@genfeedai/helpers';
+import type { Prisma } from '@genfeedai/prisma';
 
 function inputSchema(raw: unknown): Record<string, unknown> {
   const schema = raw as {
@@ -172,6 +173,68 @@ describe('bounded Crun image contract import', () => {
     expect(transaction).not.toHaveBeenCalled();
   });
 
+  it.each([
+    {
+      state: 'foreign-tenant',
+      organizationId: 'foreign-org',
+      isDeleted: false,
+    },
+    { state: 'soft-deleted', organizationId: null, isDeleted: true },
+  ])(
+    'rejects a $state unique collision before any contract or model mutation',
+    async (stored) => {
+      const conflict = new Error('Unique provider/endpoint conflict');
+      const tx = {
+        model: {
+          upsert: vi.fn(async (args: Prisma.ModelUpsertArgs) => {
+            const row = {
+              id: 'conflicting-row',
+              provider: 'crun',
+              endpoint: CRUN_IMAGE_MANIFEST[0].endpoint,
+              organizationId: stored.organizationId,
+              isDeleted: stored.isDeleted,
+            };
+            expect(args.where.provider_endpoint).toEqual({
+              provider: row.provider,
+              endpoint: row.endpoint,
+            });
+            if (
+              args.where.organizationId === row.organizationId &&
+              args.where.isDeleted === row.isDeleted
+            )
+              return row;
+            throw conflict;
+          }),
+          update: vi.fn(),
+        },
+        modelProviderContract: { upsert: vi.fn() },
+      };
+      const transaction = vi.fn(
+        async (callback: (client: typeof tx) => Promise<void>) => callback(tx),
+      );
+      const service = new CrunContractImportService({
+        $transaction: transaction,
+      } as unknown as PrismaService);
+      await expect(
+        service.importModel(CRUN_IMAGE_MANIFEST[0], undefined, true),
+      ).rejects.toBe(conflict);
+      expect(tx.model.upsert.mock.calls[0][0]).toMatchObject({
+        where: {
+          organizationId: null,
+          isDeleted: false,
+          provider_endpoint: {
+            provider: 'crun',
+            endpoint: CRUN_IMAGE_MANIFEST[0].endpoint,
+          },
+        },
+        create: { organizationId: null, isDeleted: false },
+        update: {},
+      });
+      expect(tx.modelProviderContract.upsert).not.toHaveBeenCalled();
+      expect(tx.model.update).not.toHaveBeenCalled();
+      expect(transaction).toHaveBeenCalledTimes(1);
+    },
+  );
   it('applies immutable pending candidates and preserves active reviewed projection during drift', async () => {
     const model = {
       id: 'model-1',
@@ -190,6 +253,15 @@ describe('bounded Crun image contract import', () => {
       isActive: false,
       isDefault: false,
       organizationId: null,
+      isDeleted: false,
+    });
+    expect(tx.model.upsert.mock.calls[0][0].where).toEqual({
+      organizationId: null,
+      isDeleted: false,
+      provider_endpoint: {
+        provider: 'crun',
+        endpoint: CRUN_IMAGE_MANIFEST[0].endpoint,
+      },
     });
     expect(tx.modelProviderContract.upsert.mock.calls[0][0].update).toEqual({
       lastSeenAt: expect.any(Date),

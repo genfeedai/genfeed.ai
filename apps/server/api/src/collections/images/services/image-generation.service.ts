@@ -11,9 +11,9 @@ import type {
   ImageGenerationSavedMetadata,
 } from '@api/collections/images/services/image-generation.types';
 import { ImageGenerationAdmissionService } from '@api/collections/images/services/image-generation-admission.service';
+import { resolveImageGenerationCompletion } from '@api/collections/images/services/image-generation-completion.util';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
-import { CrunImageGenerationProviderAdapter } from '@api/collections/images/services/providers/crun-image-generation-provider.adapter';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -66,12 +66,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  HttpException,
-  HttpStatus,
-  Injectable,
-  Optional,
-} from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 /** Populate patterns for every image read on the wait/serialize path. */
 const IMAGE_POPULATE = [
@@ -94,6 +89,28 @@ const IMAGE_POPULATE = [
  */
 @Injectable()
 export class ImageGenerationService {
+  private resolveImageRequestParameters(
+    createImageDto: CreateImageDto,
+    model: string,
+  ): Pick<
+    ImageGenerationContext,
+    'width' | 'height' | 'style' | 'outputs' | 'referenceIds'
+  > {
+    const width = createImageDto.width || 1920;
+    const height = createImageDto.height || 1080;
+    const style = createImageDto.style;
+    const outputs = Number(createImageDto.outputs) || 1;
+
+    this.loggerService.debug('Image generation request received', {
+      model,
+      outputs,
+      rawOutputs: createImageDto.outputs,
+    });
+
+    const referenceIds = (createImageDto.references ?? []).map(String);
+    return { width, height, style, outputs, referenceIds };
+  }
+
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
@@ -112,8 +129,6 @@ export class ImageGenerationService {
     private readonly cancellationService: IngredientGenerationCancellationService,
     private readonly templatesService: TemplatesService,
     private readonly enhancementService: MediaPromptEnhancementService,
-    @Optional()
-    private readonly crunAdapter?: CrunImageGenerationProviderAdapter,
   ) {}
 
   async generateImage(
@@ -125,24 +140,16 @@ export class ImageGenerationService {
     onCreditsPrepared?: () => Promise<void>,
     runReferences?: readonly ImageGenerationBriefReference[],
   ): Promise<JsonApiSingleResponse> {
-    if (createImageDto.model?.startsWith('crun/')) {
-      if (
+    if (createImageDto.model?.startsWith('crun/'))
+      return this.imageGenerationProviderDispatchService.generateCrunQuoted(
+        user,
+        createImageDto,
+        request,
         onPlaceholderCreated !== undefined ||
-        placeholderScope !== undefined ||
-        onCreditsPrepared !== undefined ||
-        runReferences !== undefined
-      )
-        throw new HttpException(
-          { code: 'CRUN_INVALID_INPUT' },
-          HttpStatus.BAD_REQUEST,
-        );
-      if (!this.crunAdapter)
-        throw new HttpException(
-          { code: 'CRUN_MODEL_UNAVAILABLE' },
-          HttpStatus.SERVICE_UNAVAILABLE,
-        );
-      return this.crunAdapter.generateQuoted(user, createImageDto, request);
-    }
+          placeholderScope !== undefined ||
+          onCreditsPrepared !== undefined ||
+          runReferences !== undefined,
+      );
     const {
       brand,
       model,
@@ -180,18 +187,8 @@ export class ImageGenerationService {
       text: brand.text ?? undefined,
     };
 
-    const width = createImageDto.width || 1920;
-    const height = createImageDto.height || 1080;
-    const style = createImageDto.style;
-    const outputs = Number(createImageDto.outputs) || 1;
-
-    this.loggerService.debug('Image generation request received', {
-      model,
-      outputs,
-      rawOutputs: createImageDto.outputs,
-    });
-
-    const referenceIds = (createImageDto.references ?? []).map(String);
+    const { width, height, style, outputs, referenceIds } =
+      this.resolveImageRequestParameters(createImageDto, model);
 
     const referenceImageUrls =
       await this.admissionService.resolveReferenceImageUrls(
@@ -917,7 +914,12 @@ export class ImageGenerationService {
       });
       try {
         await plan.generationPromise;
-        const completed = await this.resolveCompletedIngredient(context, plan);
+        const completed = await resolveImageGenerationCompletion(
+          this.imagesService,
+          this.ingredientCompletionService,
+          context,
+          plan,
+        );
         return serializeSingle(
           context.request,
           IngredientSerializer,
@@ -958,38 +960,6 @@ export class ImageGenerationService {
   }
 
   /** Read the completed ingredient for the request's completion strategy. */
-  private async resolveCompletedIngredient(
-    context: ImageGenerationContext,
-    plan: ImageGenerationCompletionPlan,
-  ): Promise<unknown> {
-    if (plan.kind === 'inline') {
-      return this.imagesService.findOne(
-        { id: context.ingredientData.id },
-        IMAGE_POPULATE,
-      );
-    }
-
-    if (plan.kind === 'poll-multiple') {
-      const completedIngredients =
-        await this.ingredientCompletionService.waitForMultipleIngredientsCompletion(
-          plan.pollIds ?? [context.ingredientData.id.toString()],
-          180_000, // 3 minutes timeout
-          2_000, // 2 seconds poll interval
-          IMAGE_POPULATE,
-          context.abortSignal,
-        );
-      return completedIngredients[0];
-    }
-
-    // poll-single
-    return this.ingredientCompletionService.waitForIngredientCompletion(
-      context.ingredientData.id.toString(),
-      180000, // 3 minutes timeout
-      2000, // 2 seconds poll interval
-      IMAGE_POPULATE,
-      context.abortSignal,
-    );
-  }
 
   /**
    * Translate a polling timeout into a 504 with the ingredient's current

@@ -331,11 +331,14 @@ export class CrunContractImportService {
           key: entry.key,
           label: entry.label,
           organizationId: null,
+          isDeleted: false,
           provider: ModelProvider.CRUN,
           reviewStatus: 'pending',
         },
         update: {},
         where: {
+          organizationId: null,
+          isDeleted: false,
           provider_endpoint: {
             endpoint: entry.endpoint,
             provider: ModelProvider.CRUN,

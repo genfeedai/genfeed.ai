@@ -256,6 +256,49 @@ export class CreditReservationService {
     return row ? this.toReservation(row) : null;
   }
 
+  private async assertCrunSettlementAmount(
+    tx: PrismaTransactionClient,
+    reservation: Awaited<
+      ReturnType<CreditReservationService['findReservation']>
+    >,
+    actualAmount: number,
+  ): Promise<void> {
+    const tasks = await tx.crunGenerationTask.findMany({
+      where: {
+        reservationId: reservation.id,
+        organizationId: reservation.organizationId,
+        isDeleted: false,
+      },
+    });
+    const ingredients = tasks.length
+      ? await tx.ingredient.findMany({
+          where: {
+            id: { in: tasks.map((task) => task.ingredientId) },
+            organizationId: reservation.organizationId,
+            isDeleted: false,
+          },
+          select: { id: true, s3Key: true },
+        })
+      : [];
+    const completion = crunReservationCompletion(
+      reservation,
+      tasks,
+      ingredients,
+    );
+    if (completion === null || completion === 0)
+      throw new BusinessLogicException(
+        'Crun settlement proof is incomplete',
+        {},
+        'CRUN_SETTLEMENT_NOT_READY',
+      );
+    if (completion !== undefined && completion !== actualAmount)
+      throw new BusinessLogicException(
+        'Settlement amount does not match frozen completion',
+        {},
+        'SETTLEMENT_AMOUNT_MISMATCH',
+      );
+  }
+
   async settle(
     input: ISettleCreditReservationInput,
   ): Promise<ICreditWalletSnapshot> {
@@ -296,40 +339,11 @@ export class CreditReservationService {
         );
       }
 
-      const tasks = await tx.crunGenerationTask.findMany({
-        where: {
-          reservationId: reservation.id,
-          organizationId: reservation.organizationId,
-          isDeleted: false,
-        },
-      });
-      const ingredients = tasks.length
-        ? await tx.ingredient.findMany({
-            where: {
-              id: { in: tasks.map((task) => task.ingredientId) },
-              organizationId: reservation.organizationId,
-              isDeleted: false,
-            },
-            select: { id: true, s3Key: true },
-          })
-        : [];
-      const completion = crunReservationCompletion(
+      await this.assertCrunSettlementAmount(
+        tx,
         reservation,
-        tasks,
-        ingredients,
+        input.actualAmount,
       );
-      if (completion === null || completion === 0)
-        throw new BusinessLogicException(
-          'Crun settlement proof is incomplete',
-          {},
-          'CRUN_SETTLEMENT_NOT_READY',
-        );
-      if (completion !== undefined && completion !== input.actualAmount)
-        throw new BusinessLogicException(
-          'Settlement amount does not match frozen completion',
-          {},
-          'SETTLEMENT_AMOUNT_MISMATCH',
-        );
       const claimed = await tx.creditReservation.updateMany({
         data: {
           settledAmount: input.actualAmount,

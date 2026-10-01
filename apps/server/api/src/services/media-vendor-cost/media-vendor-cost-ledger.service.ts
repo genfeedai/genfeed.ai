@@ -21,7 +21,7 @@ export class MediaVendorCostLedgerService {
     private readonly logger: LoggerService,
   ) {}
 
-  async record(input: IMediaVendorCostRecordInput): Promise<void> {
+  private async resolveContinuation(input: IMediaVendorCostRecordInput) {
     let continuation = input.ingredientId
       ? await this.prisma.workflowNodeContinuation.findFirst({
           where: {
@@ -43,6 +43,11 @@ export class MediaVendorCostLedgerService {
       }))
     )
       continuation = null;
+    return continuation;
+  }
+
+  async record(input: IMediaVendorCostRecordInput): Promise<void> {
+    const continuation = await this.resolveContinuation(input);
     const intent = input.ingredientId
       ? await this.prisma.mediaVendorCost.findFirst({
           where: {

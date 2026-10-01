@@ -47,6 +47,25 @@ describe('ByokService subscription entitlement', () => {
     });
   });
 
+  it('drains a retained disabled Crun key using the real OrganizationSetting scope without admission checks', async () => {
+    organizationSettingsService.findOne.mockResolvedValue({
+      byokKeys: {
+        [ByokProvider.CRUN]: {
+          apiKey: 'retained-key',
+          isEnabled: false,
+          provider: ByokProvider.CRUN,
+        },
+      },
+    });
+    subscriptionGate.mockResolvedValue(true);
+    await expect(service.lookupRetainedCrunApiKey('org-1')).resolves.toEqual({
+      apiKey: 'decrypted:retained-key',
+    });
+    expect(organizationSettingsService.findOne).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+    });
+    expect(subscriptionGate).not.toHaveBeenCalled();
+  });
   it('resolves a stored key for an entitled organization', async () => {
     organizationPaidAccessService.isSubscriptionGated.mockResolvedValue(false);
 

@@ -1,4 +1,5 @@
 import type { ImageGenerationContext } from '@api/collections/images/services/image-generation.types';
+import { completeImageGeneration } from '@api/collections/images/services/image-generation-completion.util';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
@@ -120,6 +121,97 @@ describe('ImageGenerationProviderDispatchService', () => {
     websocketService as never,
   );
 
+  it('delegates frozen Crun generation through the existing registry with the original arguments', async () => {
+    const result = { data: { id: 'crun-output' } };
+    const delegate = vi
+      .spyOn(providerRegistry, 'generateCrunQuoted')
+      .mockResolvedValueOnce(result as never);
+    const user = { userId: 'user', organizationId: 'org' };
+    const dto = { model: 'crun/google/nano-banana-pro' };
+    const request = { user };
+    try {
+      await expect(
+        service.generateCrunQuoted(
+          user as never,
+          dto as never,
+          request as never,
+          false,
+        ),
+      ).resolves.toBe(result);
+      expect(delegate).toHaveBeenCalledWith(user, dto, request, false);
+    } finally {
+      delegate.mockRestore();
+    }
+  });
+  it('preserves Crun rejection status for missing adapter and unsupported context', () => {
+    const user = { userId: 'user', organizationId: 'org' };
+    const dto = { model: 'crun/google/nano-banana-pro' };
+    const request = {};
+    for (const [unsupported, status, code] of [
+      [false, 503, 'CRUN_MODEL_UNAVAILABLE'],
+      [true, 400, 'CRUN_INVALID_INPUT'],
+    ] as const) {
+      try {
+        service.generateCrunQuoted(
+          user as never,
+          dto as never,
+          request as never,
+          unsupported,
+        );
+        throw new Error('Expected rejection');
+      } catch (error: unknown) {
+        expect(error).toHaveProperty('status', status);
+        expect(error).toHaveProperty('response', { code });
+      }
+    }
+  });
+  it('continues settlement failure through ordered cost recording and the completion event', async () => {
+    const effects: string[] = [];
+    const error = new Error('settlement unavailable');
+    generationBilling.settleOutput.mockImplementationOnce(async () => {
+      effects.push('settle');
+      throw error;
+    });
+    mediaGenerationCostService.recordGenerationCost.mockImplementationOnce(
+      async () => {
+        effects.push('cost');
+      },
+    );
+    generationEventWebhookService.emitGenerationCompleted.mockImplementationOnce(
+      async () => {
+        effects.push('event');
+      },
+    );
+    const context = buildContext();
+    const output = {
+      storageKey: 'owned/image.png',
+      url: 'https://cdn.test/image.png',
+      mimeType: 'image/png',
+    };
+    await completeImageGeneration(
+      {
+        generationBilling: generationBilling as never,
+        loggerService,
+        mediaGenerationCostService: mediaGenerationCostService as never,
+        generationEventWebhookService: generationEventWebhookService as never,
+      },
+      context,
+      'ingredient-1',
+      output,
+      { width: 1280, height: 720 },
+    );
+    expect(effects).toEqual(['settle', 'cost', 'event']);
+    expect(loggerService.error).toHaveBeenCalledWith(
+      'Image credit settlement failed',
+      error,
+      { ingredientId: 'ingredient-1' },
+    );
+    expect(
+      generationEventWebhookService.emitGenerationCompleted,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ generationId: 'ingredient-1', output }),
+    );
+  });
   const buildContext = (
     overrides: Partial<ImageGenerationContext> = {},
   ): ImageGenerationContext =>

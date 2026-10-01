@@ -209,6 +209,7 @@ describe('Crun reviewed video preparation', () => {
       'aspect_ratio',
     );
     f.prisma.ingredient.findFirst.mockResolvedValue(null);
+    f.ingredients.findOne.mockResolvedValue(null);
     f.assets.findOne.mockResolvedValue(null);
     f.builder.buildPrompt.mockClear();
     await expect(

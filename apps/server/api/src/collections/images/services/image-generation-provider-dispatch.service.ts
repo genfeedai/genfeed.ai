@@ -1,7 +1,9 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   type GenerationBillingRequest,
   GenerationBillingService,
 } from '@api/collections/credits/services/generation-billing.service';
+import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import type {
   ImageGenerationCompletionPlan,
   ImageGenerationContext,
@@ -10,6 +12,10 @@ import type {
   ImageGenerationSavedIngredient,
   PreparedImageGenerationProvider,
 } from '@api/collections/images/services/image-generation.types';
+import {
+  completeImageGeneration,
+  type RealizedImageDimensions,
+} from '@api/collections/images/services/image-generation-completion.util';
 import {
   resolveImageDispatchExecutePath,
   shouldFailAdditionalActivity,
@@ -28,6 +34,7 @@ import { isGenerationCancelledError } from '@api/collections/ingredients/errors/
 import { ProviderGenerationFailedError } from '@api/collections/ingredients/errors/provider-generation-failed.error';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
@@ -53,11 +60,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
-
-interface RealizedImageDimensions {
-  height?: number;
-  width?: number;
-}
 
 /**
  * Coordinates provider-neutral output persistence and completion behavior.
@@ -119,6 +121,20 @@ export class ImageGenerationProviderDispatchService {
     provider?: ImageGenerationContext['modelProvider'],
   ): boolean {
     return this.providerRegistry.supports(model, provider);
+  }
+
+  generateCrunQuoted(
+    user: AuthenticatedUser,
+    dto: CreateImageDto,
+    request: RequestWithContext,
+    hasUnsupportedContext: boolean,
+  ) {
+    return this.providerRegistry.generateCrunQuoted(
+      user,
+      dto,
+      request,
+      hasUnsupportedContext,
+    );
   }
 
   async dispatch(
@@ -932,23 +948,6 @@ export class ImageGenerationProviderDispatchService {
     });
   }
 
-  /** A finished image settles its hold; a miss is backstopped by the sweep. */
-  private async settleOutputCredits(
-    context: ImageGenerationContext,
-    ingredientId: ImageGenerationSavedIngredient['id'],
-  ): Promise<void> {
-    try {
-      await this.generationBilling.settleOutput(
-        ingredientId.toString(),
-        context.user.organizationId,
-      );
-    } catch (error: unknown) {
-      this.loggerService.error('Image credit settlement failed', error, {
-        ingredientId: ingredientId.toString(),
-      });
-    }
-  }
-
   private async releaseOutputCredits(
     context: ImageGenerationContext,
     ingredientId: ImageGenerationSavedIngredient['id'],
@@ -971,24 +970,17 @@ export class ImageGenerationProviderDispatchService {
     output: GenerationWebhookOutput,
     dimensions: RealizedImageDimensions,
   ): Promise<void> {
-    await this.settleOutputCredits(context, ingredientId);
-    await this.mediaGenerationCostService.recordGenerationCost({
-      brandId: context.brand.id?.toString() ?? null,
-      category: 'image',
-      height: dimensions.height ?? null,
-      ingredientId: ingredientId.toString(),
-      modelKey: context.model,
-      organizationId: context.user.organizationId,
-      width: dimensions.width ?? null,
-    });
-
-    await this.generationEventWebhookService.emitGenerationCompleted({
-      brandId: context.brand.id?.toString() ?? null,
-      generationId: ingredientId.toString(),
-      kind: 'image',
-      model: context.model,
-      organizationId: context.user.organizationId,
+    await completeImageGeneration(
+      {
+        generationBilling: this.generationBilling,
+        loggerService: this.loggerService,
+        mediaGenerationCostService: this.mediaGenerationCostService,
+        generationEventWebhookService: this.generationEventWebhookService,
+      },
+      context,
+      ingredientId,
       output,
-    });
+      dimensions,
+    );
   }
 }

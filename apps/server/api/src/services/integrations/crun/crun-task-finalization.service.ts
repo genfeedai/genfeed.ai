@@ -3,6 +3,7 @@ import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { crunReservationCompletion } from '@api/helpers/utils/credits/generation-quote-group.schema';
 import { generationUsageReceiptSchema } from '@api/helpers/utils/credits/generation-submission-evidence.schema';
 import { modelBillableQuoteSnapshotSchema } from '@api/helpers/utils/credits/model-billable-quote.schema';
+import { scopedWhere } from '@api/index';
 import { getCrunMediaKind } from '@api/services/integrations/crun/crun-media-kind.util';
 import type { CrunTaskStatusResponse } from '@api/services/integrations/crun/crun-response.schema';
 import { crunFundingBindingSchema } from '@api/services/integrations/crun/crun-task.schema';
@@ -29,6 +30,12 @@ const receiptSchema = z.object({
   isAccepted: z.literal(false).optional(),
 });
 
+interface CrunFinalizationPhaseResult {
+  task: CrunGenerationTask;
+  ledgerFailed: boolean;
+  disposition: 'continue' | 'stopped' | 'retry';
+}
+
 @Injectable()
 export class CrunTaskFinalizationService {
   constructor(
@@ -44,15 +51,39 @@ export class CrunTaskFinalizationService {
     info?: CrunTaskStatusResponse,
     signal?: AbortSignal,
   ): Promise<void> {
-    let task = claimed;
-    const { organizationId, id: taskId } = task;
-    if (signal?.aborted || !(await this.owns(task))) return;
+    const context = await this.loadFinalizationContext(claimed, signal);
+    if (!context) return;
+    const vendor = await this.recordVendorCostPhase(context, signal);
+    if (vendor.disposition !== 'continue') return;
+    const media = await this.persistOwnedMediaPhase(
+      { ...context, task: vendor.task },
+      vendor.ledgerFailed,
+      info,
+      signal,
+    );
+    if (media.disposition !== 'continue') return;
+    const billing = await this.confirmBillingPhase(
+      { ...context, task: media.task },
+      media.ledgerFailed,
+      signal,
+    );
+    if (billing.disposition !== 'continue') return;
+    await this.finalizeTerminalPhases(billing.task, signal);
+  }
+
+  private async loadFinalizationContext(
+    claimed: CrunGenerationTask,
+    signal?: AbortSignal,
+  ) {
+    const task = claimed;
+    const { organizationId } = task;
+    if (signal?.aborted || !(await this.owns(task))) return null;
     if (
       !task ||
       task.state === 'finalized' ||
       !['provider-success', 'provider-failed'].includes(task.state)
     )
-      return;
+      return null;
     const quote = modelBillableQuoteSnapshotSchema.safeParse(
       task.quoteSnapshot,
     );
@@ -63,43 +94,24 @@ export class CrunTaskFinalizationService {
       !binding.success ||
       !receipt.success ||
       !quote.data.providerQuote
-    )
-      return this.recover(task, signal, 'CRUN_RECEIPT_INVALID');
+    ) {
+      await this.recover(task, signal, 'CRUN_RECEIPT_INVALID');
+      return null;
+    }
     const kind = getCrunMediaKind(task.endpoint);
     if (
       !kind ||
       task.modelKey !== `crun/${task.endpoint}` ||
       quote.data.modelKey !== task.modelKey ||
       quote.data.pricingProfile.key !== task.modelKey
-    )
-      return this.recover(task, signal, 'CRUN_RECEIPT_INVALID');
-    if (
-      binding.data.kind === 'free' &&
-      (task.credentialSource !== 'hosted' ||
-        task.reservationId !== null ||
-        quote.data.credits !== 0 ||
-        !quote.data.pricingProfile.isFree)
-    )
-      return this.recover(task, signal, 'CRUN_FUNDING_INVALID');
-    if (
-      binding.data.kind === 'reservation' &&
-      (!task.reservationId ||
-        task.credentialSource !== 'hosted' ||
-        quote.data.credits <= 0)
-    )
-      return this.recover(task, signal, 'CRUN_FUNDING_INVALID');
-    if (
-      binding.data.kind === 'byok' &&
-      (task.reservationId !== null ||
-        task.credentialSource !== 'byok' ||
-        binding.data.receipt.userId !== task.userId ||
-        binding.data.receipt.amount !==
-          quote.data.credits /
-            (quote.data.quantities.outputs ??
-              quote.data.quantities.requests ??
-              1))
-    )
-      return this.recover(task, signal, 'CRUN_FUNDING_INVALID');
+    ) {
+      await this.recover(task, signal, 'CRUN_RECEIPT_INVALID');
+      return null;
+    }
+    if (this.invalidFunding(task, binding.data, quote.data)) {
+      await this.recover(task, signal, 'CRUN_FUNDING_INVALID');
+      return null;
+    }
     const ingredient = await this.prisma.ingredient.findFirst({
       where: {
         id: task.ingredientId,
@@ -116,19 +128,28 @@ export class CrunTaskFinalizationService {
         metadata: true,
       },
     });
-    if (!ingredient)
-      return this.recover(task, signal, 'CRUN_OWNED_INGREDIENT_UNAVAILABLE');
+    if (!ingredient) {
+      await this.recover(task, signal, 'CRUN_OWNED_INGREDIENT_UNAVAILABLE');
+      return null;
+    }
     if (
       ingredient.category !==
       (kind === 'video' ? IngredientCategory.VIDEO : IngredientCategory.IMAGE)
-    )
-      return this.recover(task, signal, 'CRUN_RECEIPT_INVALID');
+    ) {
+      await this.recover(task, signal, 'CRUN_RECEIPT_INVALID');
+      return null;
+    }
     const refused =
       receipt.data.isAccepted === false && task.state === 'provider-failed';
     const succeeded =
       receipt.data.status === 'success' && task.state === 'provider-success';
-    if (!refused && receipt.data.status !== (succeeded ? 'success' : 'failed'))
-      return this.recover(task, signal, 'CRUN_RECEIPT_INVALID');
+    if (
+      !refused &&
+      receipt.data.status !== (succeeded ? 'success' : 'failed')
+    ) {
+      await this.recover(task, signal, 'CRUN_RECEIPT_INVALID');
+      return null;
+    }
     const credits = receipt.data.credits;
     const missingCredits =
       !refused && (credits == null || normalizeCrunCredits(credits) === null);
@@ -138,7 +159,6 @@ export class CrunTaskFinalizationService {
       task.nextAccountingAttemptAt <= now;
     const mediaDue =
       task.nextMediaAttemptAt !== null && task.nextMediaAttemptAt <= now;
-    let ledgerFailed = false;
     const mismatch =
       succeeded &&
       !missingCredits &&
@@ -169,7 +189,40 @@ export class CrunTaskFinalizationService {
               : 'CRUN_TERMINAL_RECEIPT_CONFLICT',
       );
     const provider = quote.data.providerQuote;
-    if (!provider) return this.recover(task, signal, 'CRUN_RECEIPT_INVALID');
+    if (!provider) {
+      await this.recover(task, signal, 'CRUN_RECEIPT_INVALID');
+      return null;
+    }
+    return {
+      task,
+      quote: quote.data,
+      binding: binding.data,
+      receipt: receipt.data,
+      ingredient,
+      kind,
+      refused,
+      succeeded,
+      credits,
+      missingCredits,
+      accountingDue,
+      mediaDue,
+      provider,
+    };
+  }
+
+  private async recordVendorCostPhase(
+    context: NonNullable<
+      Awaited<
+        ReturnType<CrunTaskFinalizationService['loadFinalizationContext']>
+      >
+    >,
+    signal?: AbortSignal,
+  ): Promise<CrunFinalizationPhaseResult> {
+    let task = context.task;
+    const { organizationId } = task;
+    const { kind, refused, credits, missingCredits, accountingDue, provider } =
+      context;
+    let ledgerFailed = false;
     if (accountingDue && !task.vendorCostRecordedAt && !missingCredits) {
       try {
         if (!refused) {
@@ -180,8 +233,10 @@ export class CrunTaskFinalizationService {
                   credits ?? '',
                   provider.creditsPerUsd ?? '',
                 );
-          if (micros === null)
-            return this.recover(task, signal, 'CRUN_RATE_INVALID');
+          if (micros === null) {
+            await this.recover(task, signal, 'CRUN_RATE_INVALID');
+            return { task, ledgerFailed, disposition: 'stopped' };
+          }
           await this.assertOwned(task, signal);
           await this.ledger.record({
             organizationId,
@@ -220,20 +275,40 @@ export class CrunTaskFinalizationService {
         });
       }
     }
+    return { task, ledgerFailed, disposition: 'continue' };
+  }
+
+  private async persistOwnedMediaPhase(
+    context: NonNullable<
+      Awaited<
+        ReturnType<CrunTaskFinalizationService['loadFinalizationContext']>
+      >
+    >,
+    ledgerFailed: boolean,
+    info?: CrunTaskStatusResponse,
+    signal?: AbortSignal,
+  ): Promise<CrunFinalizationPhaseResult> {
+    let task = context.task;
+    const { organizationId } = task;
+    const { ingredient, kind, succeeded, mediaDue } = context;
     if (
       task.recoveryCode === 'CRUN_TERMINAL_RECEIPT_CONFLICT' ||
       (task.recoveryCode === 'CRUN_ORIGINAL_CREDENTIAL_UNAVAILABLE' &&
         !task.mediaPersistedAt &&
         !ingredient.s3Key)
-    )
-      return this.recover(task, signal, task.recoveryCode);
+    ) {
+      await this.recover(task, signal, task.recoveryCode);
+      return { task, ledgerFailed, disposition: 'stopped' };
+    }
     if (
       succeeded &&
       kind === 'video' &&
       task.mediaPersistedAt &&
       (!ingredient.s3Key || !this.validVideoMetadata(ingredient.metadata))
-    )
-      return this.recover(task, signal, 'CRUN_MEDIA_INVALID');
+    ) {
+      await this.recover(task, signal, 'CRUN_MEDIA_INVALID');
+      return { task, ledgerFailed, disposition: 'stopped' };
+    }
     // Owned storage is independent of billing proof: preserve a completed output even if credits are missing/mismatched.
     if (mediaDue && succeeded && !task.mediaPersistedAt) {
       if (!ingredient.s3Key) {
@@ -244,11 +319,15 @@ export class CrunTaskFinalizationService {
           info.mediaCount !== 1 ||
           info.mediaUrls.length !== 1
         ) {
-          if (info) return this.recover(task, signal, 'CRUN_MEDIA_INVALID');
+          if (info) {
+            await this.recover(task, signal, 'CRUN_MEDIA_INVALID');
+            return { task, ledgerFailed, disposition: 'stopped' };
+          }
           task = await this.update(task, signal, {
             nextMediaAttemptAt: new Date(Date.now() + 30000),
           });
-          return this.finishPhases(task, signal);
+          await this.finishPhases(task, signal);
+          return { task, ledgerFailed, disposition: 'retry' };
         }
         try {
           await this.assertOwned(task, signal);
@@ -262,15 +341,18 @@ export class CrunTaskFinalizationService {
         } catch {
           await this.assertOwned(task, signal);
           const delays = [60000, 300000, 900000];
-          if (task.copyAttemptCount >= delays.length)
-            return this.recover(task, signal, 'CRUN_MEDIA_COPY_EXHAUSTED');
+          if (task.copyAttemptCount >= delays.length) {
+            await this.recover(task, signal, 'CRUN_MEDIA_COPY_EXHAUSTED');
+            return { task, ledgerFailed, disposition: 'stopped' };
+          }
           task = await this.update(task, signal, {
             copyAttemptCount: { increment: 1 },
             nextMediaAttemptAt: new Date(
               Date.now() + delays[task.copyAttemptCount],
             ),
           });
-          return this.finishPhases(task, signal);
+          await this.finishPhases(task, signal);
+          return { task, ledgerFailed, disposition: 'retry' };
         }
       }
       const owned = await this.prisma.ingredient.findFirst({
@@ -285,16 +367,20 @@ export class CrunTaskFinalizationService {
         },
         select: { s3Key: true, category: true, metadata: true },
       });
-      if (!owned?.s3Key)
-        return this.recover(task, signal, 'CRUN_OWNED_MEDIA_UNAVAILABLE');
+      if (!owned?.s3Key) {
+        await this.recover(task, signal, 'CRUN_OWNED_MEDIA_UNAVAILABLE');
+        return { task, ledgerFailed, disposition: 'stopped' };
+      }
       if (
         owned.category !==
           (kind === 'video'
             ? IngredientCategory.VIDEO
             : IngredientCategory.IMAGE) ||
         (kind === 'video' && !this.validVideoMetadata(owned.metadata))
-      )
-        return this.recover(task, signal, 'CRUN_MEDIA_INVALID');
+      ) {
+        await this.recover(task, signal, 'CRUN_MEDIA_INVALID');
+        return { task, ledgerFailed, disposition: 'stopped' };
+      }
       task = await this.update(task, signal, {
         mediaPersistedAt: new Date(),
         nextMediaAttemptAt: null,
@@ -303,6 +389,30 @@ export class CrunTaskFinalizationService {
           : new Date(),
       });
     }
+    return { task, ledgerFailed, disposition: 'continue' };
+  }
+
+  private async confirmBillingPhase(
+    context: NonNullable<
+      Awaited<
+        ReturnType<CrunTaskFinalizationService['loadFinalizationContext']>
+      >
+    >,
+    ledgerFailed: boolean,
+    signal?: AbortSignal,
+  ): Promise<CrunFinalizationPhaseResult> {
+    let task = context.task;
+    const { organizationId, id: taskId } = task;
+    const {
+      binding,
+      refused,
+      succeeded,
+      credits,
+      missingCredits,
+      accountingDue,
+      mediaDue,
+      provider,
+    } = context;
     if (
       missingCredits ||
       task.recoveryCode === 'CRUN_TERMINAL_RECEIPT_CONFLICT'
@@ -314,15 +424,19 @@ export class CrunTaskFinalizationService {
           ? 'CRUN_FINAL_CREDITS_UNAVAILABLE'
           : 'CRUN_TERMINAL_RECEIPT_CONFLICT',
       );
-      return this.recover(
+      await this.recover(
         task,
         signal,
         missingCredits
           ? 'CRUN_FINAL_CREDITS_UNAVAILABLE'
           : 'CRUN_TERMINAL_RECEIPT_CONFLICT',
       );
+      return { task, ledgerFailed, disposition: 'stopped' };
     }
-    if (ledgerFailed) return this.finishPhases(task, signal);
+    if (ledgerFailed) {
+      await this.finishPhases(task, signal);
+      return { task, ledgerFailed, disposition: 'retry' };
+    }
 
     if (
       succeeded &&
@@ -343,7 +457,8 @@ export class CrunTaskFinalizationService {
         modelKey: task.modelKey,
         contractVersion: task.contractVersion,
       });
-      return this.recover(task, signal, 'CRUN_FINAL_CREDITS_MISMATCH');
+      await this.recover(task, signal, 'CRUN_FINAL_CREDITS_MISMATCH');
+      return { task, ledgerFailed, disposition: 'stopped' };
     }
     if (
       !succeeded &&
@@ -364,9 +479,13 @@ export class CrunTaskFinalizationService {
     }
     if (succeeded && !task.mediaPersistedAt) {
       task = await this.update(task, signal, { nextAccountingAttemptAt: null });
-      return this.finishPhases(task, signal);
+      await this.finishPhases(task, signal);
+      return { task, ledgerFailed, disposition: 'retry' };
     }
-    if (!accountingDue && !mediaDue) return this.finishPhases(task, signal);
+    if (!accountingDue && !mediaDue) {
+      await this.finishPhases(task, signal);
+      return { task, ledgerFailed, disposition: 'retry' };
+    }
     try {
       if (!task.billingRecordedAt) {
         await this.assertOwned(task, signal);
@@ -377,75 +496,16 @@ export class CrunTaskFinalizationService {
           );
           await this.assertOwned(task, signal);
           await this.billing.releaseOutput(task.ingredientId, organizationId);
-        } else if (binding.data.kind !== 'free')
+        } else if (binding.kind !== 'free')
           await this.billing.settleOutput(task.ingredientId, organizationId);
         await this.assertOwned(task, signal);
-        let confirmed = binding.data.kind === 'free';
-        if (binding.data.kind === 'reservation') {
-          const hold = await this.prisma.creditReservation.findFirst({
-            where: {
-              id: task.reservationId ?? '',
-              organizationId,
-              isDeleted: false,
-            },
-          });
-          if (hold) {
-            const members = await this.prisma.crunGenerationTask.findMany({
-              where: {
-                reservationId: hold.id,
-                organizationId,
-                isDeleted: false,
-              },
-            });
-            const owned = await this.prisma.ingredient.findMany({
-              where: {
-                id: { in: members.map((member) => member.ingredientId) },
-                organizationId,
-                isDeleted: false,
-              },
-              select: { id: true, s3Key: true },
-            });
-            const amount = crunReservationCompletion(hold, members, owned);
-            confirmed =
-              amount !== null &&
-              amount !== undefined &&
-              (amount > 0
-                ? hold.status === 'SETTLED' && hold.settledAmount === amount
-                : hold.status === 'RELEASED');
-          }
-        } else if (binding.data.kind === 'byok') {
-          const current = await this.prisma.ingredient.findFirst({
-            where: { id: task.ingredientId, organizationId, isDeleted: false },
-            select: { generationBilling: true },
-          });
-          const usage = generationUsageReceiptSchema.safeParse(
-            current?.generationBilling,
-          );
-          if (succeeded) {
-            const frozen = binding.data.receipt;
-            const transaction = await this.prisma.creditTransaction.findFirst({
-              where: {
-                organizationId,
-                isDeleted: false,
-                idempotencyKey: `byok:${organizationId}:media-generation-usage:${task.ingredientId}`,
-                category: CreditTransactionCategory.BYOK_USAGE,
-                actorUserId: frozen.userId,
-                amount: frozen.amount,
-                source: frozen.source,
-                metadata: { path: ['assetId'], equals: task.ingredientId },
-              },
-              select: { id: true },
-            });
-            confirmed = Boolean(
-              transaction && usage.success && usage.data.state === 'recorded',
-            );
-          } else confirmed = usage.success && usage.data.state === 'failed';
-        }
+        const confirmed = await this.confirmBillingReceipt(task, context);
         if (!confirmed) {
           task = await this.update(task, signal, {
             nextAccountingAttemptAt: new Date(Date.now() + 30000),
           });
-          return this.finishPhases(task, signal);
+          await this.finishPhases(task, signal);
+          return { task, ledgerFailed, disposition: 'retry' };
         }
         task = await this.update(task, signal, {
           billingRecordedAt: new Date(),
@@ -457,8 +517,123 @@ export class CrunTaskFinalizationService {
       task = await this.update(task, signal, {
         nextAccountingAttemptAt: new Date(Date.now() + 30000),
       });
-      return this.finishPhases(task, signal);
+      await this.finishPhases(task, signal);
+      return { task, ledgerFailed, disposition: 'retry' };
     }
+    return { task, ledgerFailed, disposition: 'continue' };
+  }
+
+  private invalidFunding(
+    task: CrunGenerationTask,
+    binding: z.infer<typeof crunFundingBindingSchema>,
+    quote: z.infer<typeof modelBillableQuoteSnapshotSchema>,
+  ): boolean {
+    if (
+      binding.kind === 'free' &&
+      (task.credentialSource !== 'hosted' ||
+        task.reservationId !== null ||
+        quote.credits !== 0 ||
+        !quote.pricingProfile.isFree)
+    )
+      return true;
+    if (
+      binding.kind === 'reservation' &&
+      (!task.reservationId ||
+        task.credentialSource !== 'hosted' ||
+        quote.credits <= 0)
+    )
+      return true;
+    if (
+      binding.kind === 'byok' &&
+      (task.reservationId !== null ||
+        task.credentialSource !== 'byok' ||
+        binding.receipt.userId !== task.userId ||
+        binding.receipt.amount !==
+          quote.credits /
+            (quote.quantities.outputs ?? quote.quantities.requests ?? 1))
+    )
+      return true;
+    return false;
+  }
+
+  private async confirmBillingReceipt(
+    task: CrunGenerationTask,
+    context: NonNullable<
+      Awaited<
+        ReturnType<CrunTaskFinalizationService['loadFinalizationContext']>
+      >
+    >,
+  ): Promise<boolean> {
+    const { organizationId } = task;
+    const { binding, succeeded } = context;
+    let confirmed = binding.kind === 'free';
+    if (binding.kind === 'reservation') {
+      const hold = await this.prisma.creditReservation.findFirst({
+        where: {
+          id: task.reservationId ?? '',
+          organizationId,
+          isDeleted: false,
+        },
+      });
+      if (hold) {
+        const members = await this.prisma.crunGenerationTask.findMany({
+          where: {
+            reservationId: hold.id,
+            organizationId,
+            isDeleted: false,
+          },
+        });
+        const owned = await this.prisma.ingredient.findMany({
+          where: {
+            id: { in: members.map((member) => member.ingredientId) },
+            organizationId,
+            isDeleted: false,
+          },
+          select: { id: true, s3Key: true },
+        });
+        const amount = crunReservationCompletion(hold, members, owned);
+        confirmed =
+          amount !== null &&
+          amount !== undefined &&
+          (amount > 0
+            ? hold.status === 'SETTLED' && hold.settledAmount === amount
+            : hold.status === 'RELEASED');
+      }
+    } else if (binding.kind === 'byok') {
+      const current = await this.prisma.ingredient.findFirst({
+        where: { id: task.ingredientId, organizationId, isDeleted: false },
+        select: { generationBilling: true },
+      });
+      const usage = generationUsageReceiptSchema.safeParse(
+        current?.generationBilling,
+      );
+      if (succeeded) {
+        const frozen = binding.receipt;
+        const transaction = await this.prisma.creditTransaction.findFirst({
+          where: {
+            organizationId,
+            isDeleted: false,
+            idempotencyKey: `byok:${organizationId}:media-generation-usage:${task.ingredientId}`,
+            category: CreditTransactionCategory.BYOK_USAGE,
+            actorUserId: frozen.userId,
+            amount: frozen.amount,
+            source: frozen.source,
+            metadata: { path: ['assetId'], equals: task.ingredientId },
+          },
+          select: { id: true },
+        });
+        confirmed = Boolean(
+          transaction && usage.success && usage.data.state === 'recorded',
+        );
+      } else confirmed = usage.success && usage.data.state === 'failed';
+    }
+    return confirmed;
+  }
+
+  private async finalizeTerminalPhases(
+    task: CrunGenerationTask,
+    signal?: AbortSignal,
+  ): Promise<void> {
     await this.update(task, signal, {
       state: 'finalized',
       nextPollAt: null,
@@ -506,14 +681,14 @@ export class CrunTaskFinalizationService {
     });
     if (result.count !== 1) throw new Error('CRUN_LEASE_LOST');
     const current = await this.prisma.crunGenerationTask.findFirstOrThrow({
-      where: {
+      where: scopedWhere(task.organizationId, {
         id: task.id,
         organizationId: task.organizationId,
         isDeleted: false,
         version: task.version + (data.leaseUntil === null ? 1 : 0),
         state: typeof data.state === 'string' ? data.state : task.state,
         ...(data.leaseUntil === null ? {} : { leaseUntil: { gt: new Date() } }),
-      },
+      }),
     });
     if (signal?.aborted) throw new Error('CRUN_LEASE_LOST');
     return current;

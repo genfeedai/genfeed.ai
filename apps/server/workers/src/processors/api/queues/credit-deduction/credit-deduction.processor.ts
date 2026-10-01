@@ -19,7 +19,11 @@ import {
   CREDIT_DEDUCTION_QUEUE,
   CreditDeductionJobData,
 } from '@genfeedai/contracts/queue';
-import { Prisma } from '@genfeedai/prisma';
+import {
+  type CrunGenerationTask,
+  type Ingredient,
+  Prisma,
+} from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { RedisService } from '@libs/redis/redis.service';
@@ -258,149 +262,7 @@ export class CreditDeductionProcessor extends WorkerHost {
     for (let attempt = 0; ; attempt++) {
       try {
         await this.prisma.$transaction(
-          async (tx) => {
-            await tx.$queryRaw(
-              Prisma.sql`SELECT "id" FROM "crun_generation_tasks" WHERE "organizationId" = ${data.organizationId} AND "ingredientId" = ${assetId} AND "isDeleted" = false FOR UPDATE`,
-            );
-            await tx.$queryRaw(
-              Prisma.sql`SELECT "id" FROM "ingredients" WHERE "organizationId" = ${data.organizationId} AND "id" = ${assetId} AND "isDeleted" = false FOR UPDATE`,
-            );
-            const current = await tx.crunGenerationTask.findFirst({
-              where: {
-                ingredientId: assetId,
-                organizationId: data.organizationId,
-                isDeleted: false,
-              },
-            });
-            const owned = await tx.ingredient.findFirst({
-              where,
-              select: {
-                userId: true,
-                category: true,
-                status: true,
-                s3Key: true,
-                generationBilling: true,
-              },
-            });
-            if (!owned) throw invalid();
-            if (!current) throw new Error('CRUN_BYOK_USAGE_HELD');
-            const binding = crunFundingBindingSchema.safeParse(
-              current.fundingBinding,
-            );
-            const quote = modelBillableQuoteSnapshotSchema.safeParse(
-              current.quoteSnapshot,
-            );
-            const usage = generationUsageReceiptSchema.safeParse(
-              owned.generationBilling,
-            );
-            if (
-              !binding.success ||
-              binding.data.kind !== 'byok' ||
-              !quote.success ||
-              !quote.data.providerQuote ||
-              !usage.success
-            )
-              throw invalid();
-            const kind = getCrunMediaKind(current.endpoint);
-            const frozen = quote.data.providerQuote;
-            const outputs =
-              quote.data.quantities.outputs ??
-              quote.data.quantities.requests ??
-              1;
-            const {
-              kind: _kind,
-              state: _state,
-              confirmedFailure: _failure,
-              ...immutable
-            } = usage.data;
-            if (
-              current.organizationId !== data.organizationId ||
-              current.ingredientId !== assetId ||
-              current.userId !== data.userId ||
-              owned.userId !== current.userId ||
-              current.credentialSource !== 'byok' ||
-              current.reservationId !== null ||
-              frozen.credentialSource !== 'byok' ||
-              frozen.provider !== 'crun' ||
-              quote.data.modelKey !== current.modelKey ||
-              quote.data.pricingProfile.key !== current.modelKey ||
-              current.modelKey !== `crun/${current.endpoint}` ||
-              !kind ||
-              owned.category !==
-                (kind === 'video'
-                  ? IngredientCategory.VIDEO
-                  : IngredientCategory.IMAGE) ||
-              frozen.contractVersion !== current.contractVersion ||
-              frozen.inputHash !== current.inputHash ||
-              frozen.credentialId !== current.credentialId ||
-              frozen.credentialFingerprint !== current.credentialFingerprint ||
-              current.outputIndex < 0 ||
-              current.outputIndex >= outputs ||
-              quote.data.credits / outputs !== binding.data.receipt.amount ||
-              this.canonical(immutable) !==
-                this.canonical(binding.data.receipt) ||
-              data.amount !== binding.data.receipt.amount ||
-              data.source !== binding.data.receipt.source ||
-              data.description !== binding.data.receipt.description ||
-              data.userId !== binding.data.receipt.userId
-            )
-              throw invalid();
-            if (
-              usage.data.submissionIntentProvider !== 'crun' ||
-              !['pending', 'recorded'].includes(usage.data.state) ||
-              usage.data.confirmedFailure ||
-              !['GENERATED', 'VALIDATED'].includes(owned.status) ||
-              !owned.s3Key ||
-              !crunReceiptAllowsDisposition(current, 'settle')
-            )
-              throw new Error('CRUN_BYOK_USAGE_HELD');
-            const key = `byok:${data.organizationId}:media-generation-usage:${assetId}`;
-            const existing = await tx.creditTransaction.findFirst({
-              where: {
-                organizationId: data.organizationId,
-                isDeleted: false,
-                idempotencyKey: key,
-              },
-            });
-            if (existing) {
-              const saved = existing.metadata;
-              if (
-                existing.category !== CreditTransactionCategory.BYOK_USAGE ||
-                existing.actorUserId !== data.userId ||
-                existing.amount !== data.amount ||
-                existing.source !== data.source ||
-                !saved ||
-                typeof saved !== 'object' ||
-                Array.isArray(saved) ||
-                saved.assetId !== assetId
-              )
-                throw new UnrecoverableError(
-                  'CRUN_BYOK_USAGE_DUPLICATE_CONFLICT',
-                );
-              return;
-            }
-            const balance =
-              await this.creditsUtilsService.getOrganizationCreditsBalance(
-                data.organizationId,
-                tx,
-              );
-            await this.creditTransactionsService.createTransactionEntry(
-              data.organizationId,
-              CreditTransactionCategory.BYOK_USAGE,
-              binding.data.receipt.amount,
-              balance,
-              balance,
-              binding.data.receipt.source,
-              binding.data.receipt.description,
-              undefined,
-              tx,
-              {
-                actorUserId: data.userId,
-                idempotencyKey: key,
-                metadata: { assetId, submissionIntentProvider: 'crun' },
-              },
-            );
-          },
+          (tx) => this.recordCrunByokUsageInTransaction(tx, data, assetId),
           { isolationLevel: 'Serializable' },
         );
         return true;
@@ -408,6 +270,166 @@ export class CreditDeductionProcessor extends WorkerHost {
         if (attempt >= 2 || !isCreditTransactionConflict(error)) throw error;
       }
     }
+  }
+
+  private async recordCrunByokUsageInTransaction(
+    tx: Prisma.TransactionClient,
+    data: CreditDeductionJobData,
+    assetId: string,
+  ): Promise<void> {
+    await tx.$queryRaw(
+      Prisma.sql`SELECT "id" FROM "crun_generation_tasks" WHERE "organizationId" = ${data.organizationId} AND "ingredientId" = ${assetId} AND "isDeleted" = false FOR UPDATE`,
+    );
+    await tx.$queryRaw(
+      Prisma.sql`SELECT "id" FROM "ingredients" WHERE "organizationId" = ${data.organizationId} AND "id" = ${assetId} AND "isDeleted" = false FOR UPDATE`,
+    );
+    const current = await tx.crunGenerationTask.findFirst({
+      where: {
+        ingredientId: assetId,
+        organizationId: data.organizationId,
+        isDeleted: false,
+      },
+    });
+    const owned = await tx.ingredient.findFirst({
+      where: {
+        id: assetId,
+        organizationId: data.organizationId,
+        isDeleted: false,
+      },
+      select: {
+        userId: true,
+        category: true,
+        status: true,
+        s3Key: true,
+        generationBilling: true,
+      },
+    });
+    const binding = this.validateCrunByokProof(data, assetId, current, owned);
+    const key = `byok:${data.organizationId}:media-generation-usage:${assetId}`;
+    const existing = await tx.creditTransaction.findFirst({
+      where: {
+        organizationId: data.organizationId,
+        isDeleted: false,
+        idempotencyKey: key,
+      },
+    });
+    if (existing) {
+      const saved = existing.metadata;
+      if (
+        existing.category !== CreditTransactionCategory.BYOK_USAGE ||
+        existing.actorUserId !== data.userId ||
+        existing.amount !== data.amount ||
+        existing.source !== data.source ||
+        !saved ||
+        typeof saved !== 'object' ||
+        Array.isArray(saved) ||
+        saved.assetId !== assetId
+      )
+        throw new UnrecoverableError('CRUN_BYOK_USAGE_DUPLICATE_CONFLICT');
+      return;
+    }
+    const balance =
+      await this.creditsUtilsService.getOrganizationCreditsBalance(
+        data.organizationId,
+        tx,
+      );
+    await this.creditTransactionsService.createTransactionEntry(
+      data.organizationId,
+      CreditTransactionCategory.BYOK_USAGE,
+      binding.receipt.amount,
+      balance,
+      balance,
+      binding.receipt.source,
+      binding.receipt.description,
+      undefined,
+      tx,
+      {
+        actorUserId: data.userId,
+        idempotencyKey: key,
+        metadata: { assetId, submissionIntentProvider: 'crun' },
+      },
+    );
+  }
+
+  private validateCrunByokProof(
+    data: CreditDeductionJobData,
+    assetId: string,
+    current: CrunGenerationTask | null,
+    owned: Pick<
+      Ingredient,
+      'userId' | 'category' | 'status' | 's3Key' | 'generationBilling'
+    > | null,
+  ) {
+    const invalid = () =>
+      new UnrecoverableError('CRUN_BYOK_USAGE_IDENTITY_INVALID');
+    if (!owned) throw invalid();
+    if (!current) throw new Error('CRUN_BYOK_USAGE_HELD');
+    const binding = crunFundingBindingSchema.safeParse(current.fundingBinding);
+    const quote = modelBillableQuoteSnapshotSchema.safeParse(
+      current.quoteSnapshot,
+    );
+    const usage = generationUsageReceiptSchema.safeParse(
+      owned.generationBilling,
+    );
+    if (
+      !binding.success ||
+      binding.data.kind !== 'byok' ||
+      !quote.success ||
+      !quote.data.providerQuote ||
+      !usage.success
+    )
+      throw invalid();
+    const kind = getCrunMediaKind(current.endpoint);
+    const frozen = quote.data.providerQuote;
+    const outputs =
+      quote.data.quantities.outputs ?? quote.data.quantities.requests ?? 1;
+    const {
+      kind: _kind,
+      state: _state,
+      confirmedFailure: _failure,
+      ...immutable
+    } = usage.data;
+    if (
+      current.organizationId !== data.organizationId ||
+      current.ingredientId !== assetId ||
+      current.userId !== data.userId ||
+      owned.userId !== current.userId ||
+      current.credentialSource !== 'byok' ||
+      current.reservationId !== null ||
+      frozen.credentialSource !== 'byok' ||
+      frozen.provider !== 'crun' ||
+      quote.data.modelKey !== current.modelKey ||
+      quote.data.pricingProfile.key !== current.modelKey ||
+      current.modelKey !== `crun/${current.endpoint}` ||
+      !kind ||
+      owned.category !==
+        (kind === 'video'
+          ? IngredientCategory.VIDEO
+          : IngredientCategory.IMAGE) ||
+      frozen.contractVersion !== current.contractVersion ||
+      frozen.inputHash !== current.inputHash ||
+      frozen.credentialId !== current.credentialId ||
+      frozen.credentialFingerprint !== current.credentialFingerprint ||
+      current.outputIndex < 0 ||
+      current.outputIndex >= outputs ||
+      quote.data.credits / outputs !== binding.data.receipt.amount ||
+      this.canonical(immutable) !== this.canonical(binding.data.receipt) ||
+      data.amount !== binding.data.receipt.amount ||
+      data.source !== binding.data.receipt.source ||
+      data.description !== binding.data.receipt.description ||
+      data.userId !== binding.data.receipt.userId
+    )
+      throw invalid();
+    if (
+      usage.data.submissionIntentProvider !== 'crun' ||
+      !['pending', 'recorded'].includes(usage.data.state) ||
+      usage.data.confirmedFailure ||
+      !['GENERATED', 'VALIDATED'].includes(owned.status) ||
+      !owned.s3Key ||
+      !crunReceiptAllowsDisposition(current, 'settle')
+    )
+      throw new Error('CRUN_BYOK_USAGE_HELD');
+    return binding.data;
   }
 
   private async attachAcceptedGeneration(

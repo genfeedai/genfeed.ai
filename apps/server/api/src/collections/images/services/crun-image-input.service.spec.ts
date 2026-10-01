@@ -86,6 +86,7 @@ function fixture(index = 0) {
       key === 'CRUN_CREDITS_PER_USD' ? '1000' : 'test-rate',
     ),
     ingredientsEndpoint: 'https://owned.fixture.test',
+    cdnUrl: 'https://cdn.fixture.test',
   };
   const service = new CrunImageInputService(
     prisma as never,
@@ -106,6 +107,8 @@ function fixture(index = 0) {
     prisma,
     models,
     ingredients,
+    assets,
+    config,
     builder,
     tasks,
     raw,
@@ -114,6 +117,53 @@ function fixture(index = 0) {
 }
 
 describe('Crun deterministic image preparation', () => {
+  it('prepares Nano mixed owned-image and canonical asset references in original order', async () => {
+    const f = fixture();
+    const imageId = 'c2345678901234567890123456';
+    const assetId = 'c3456789012345678901234567';
+    f.ingredients.findOne.mockImplementation(
+      async (where: { id: string; category: string }) =>
+        where.id === imageId && where.category === 'IMAGE'
+          ? { id: imageId }
+          : null,
+    );
+    f.assets.findOne.mockResolvedValue({
+      id: assetId,
+      userId: user.userId,
+      mimeType: 'image/png',
+      category: 'REFERENCE',
+      parentType: 'BRAND',
+      parentBrandId: user.brandId,
+      parentOrgId: user.organizationId,
+      parentIngredientId: null,
+      parentArticleId: null,
+    });
+    const result = await f.service.prepare(
+      { ...f.raw, references: [imageId, assetId, imageId] },
+      user,
+    );
+    expect(result.isAvailable).toBe(true);
+    if (!result.isAvailable) throw new Error(result.reasonCode);
+    expect(result.data.preparation.request.input.img_urls).toEqual([
+      `https://owned.fixture.test/images/${imageId}`,
+      `https://cdn.fixture.test/references/${assetId}`,
+      `https://owned.fixture.test/images/${imageId}`,
+    ]);
+    expect(f.assets.findOne).toHaveBeenCalledWith({
+      id: assetId,
+      userId: user.userId,
+      isDeleted: false,
+      category: 'REFERENCE',
+    });
+    expect(f.prisma.brand.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: user.brandId,
+        organizationId: user.organizationId,
+        isDeleted: false,
+      },
+      select: { id: true },
+    });
+  });
   it.each([0, 1])(
     'prepares exact reviewed controls for launch model %s with one deterministic render',
     async (index) => {

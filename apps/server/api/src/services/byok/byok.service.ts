@@ -241,7 +241,6 @@ export class ByokService {
   ): Promise<{ apiKey: string } | undefined> {
     const settings = await this.organizationSettingsService.findOne({
       organizationId: orgId,
-      isDeleted: false,
     });
     if (!settings) return undefined;
     const entry = this.getByokKeys(settings)[ByokProvider.CRUN];
