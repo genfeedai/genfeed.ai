@@ -21,6 +21,7 @@ import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AssetScope, IngredientStatus } from '@genfeedai/contracts';
 import {
+  type ReplaceStoryboardCharacter,
   replaceStoryboardCharacterSchema,
   STORYBOARD_CHARACTER_REPLACE_MODEL_KEY,
   type StoryboardCharacterReplacement,
@@ -250,6 +251,117 @@ export class StoryboardCharacterReplaceService {
       (op.prompt ?? '') === input.prompt &&
       storyboardConfigHash([...new Set(op.imageAssetIds)]) ===
         storyboardConfigHash(input.imageAssetIds);
+    config = await this.adoptLegacyOperation(
+      org,
+      brand,
+      run,
+      shotId,
+      config,
+      input,
+      semantic,
+    );
+    const historical = config.characterReplacementOperations?.find(
+      (op) => semantic(op) && op.legacy,
+    );
+    if (historical) return this.success(historical, config, false);
+    const ambiguous = config.characterReplacementOperations?.find(
+      (op) =>
+        op.shotId === shotId &&
+        !op.receipts.length &&
+        ['submitting', 'reconciling'].includes(op.state),
+    );
+    if (ambiguous && !semantic(ambiguous))
+      await this.conflict(
+        ambiguous,
+        config,
+        'CHARACTER_REPLACEMENT_RECONCILIATION_REQUIRED',
+      );
+    const prepared = await this.prepareReplacementIdentity(
+      org,
+      brand,
+      run,
+      shotId,
+      config,
+      input,
+    );
+    const { intentHash } = prepared;
+    let op =
+      config.characterReplacementOperations?.find(
+        (item) => item.intentHash === intentHash,
+      ) ?? ambiguous;
+    if (op?.receipts.length) {
+      const receipt = await this.getStatus(
+        org,
+        brand,
+        run,
+        shotId,
+        op.operationId,
+      );
+      const {
+        acceptedRequestIds: _ids,
+        runId: _run,
+        errorCode: _error,
+        ...replacement
+      } = receipt;
+      return storyboardCharacterReplacementSchema.parse({
+        ...replacement,
+        prompt: input.prompt,
+      });
+    }
+    if (op && (op.leaseUntil ?? 0) > Date.now())
+      await this.conflict(op, config, 'CHARACTER_REPLACEMENT_IN_PROGRESS');
+    const leaseToken = randomUUID();
+    let initial = op?.state === 'blocked';
+    if (!op) {
+      op = await this.createReplacementOperation(input, prepared);
+      initial = true;
+    }
+    ({ config, op } = await this.claimReplacementOperation(
+      org,
+      brand,
+      run,
+      shotId,
+      op,
+      leaseToken,
+    ));
+    if (
+      initial &&
+      !(await this.current(org, brand, await this.read(org, brand, run), op))
+    ) {
+      const changed = await this.merge(
+        org,
+        brand,
+        run,
+        op.operationId,
+        (current) => ({
+          ...current,
+          state: 'blocked',
+          errorCode: 'CHARACTER_REPLACEMENT_INPUT_CHANGED',
+          leaseUntil: 0,
+        }),
+      );
+      await this.conflict(
+        changed.op,
+        changed.config,
+        'CHARACTER_REPLACEMENT_INPUT_CHANGED',
+      );
+    }
+    return this.submitClaimedReplacement(org, brand, run, shotId, config, op);
+  }
+  private async adoptLegacyOperation(
+    org: string,
+    brand: string,
+    run: string,
+    shotId: string,
+    config: StoryboardStoredRunConfig,
+    input: Required<ReplaceStoryboardCharacter>,
+    semantic: (
+      op: Pick<
+        StoryboardCharacterReplacement,
+        'shotId' | 'imageAssetIds' | 'prompt'
+      >,
+    ) => boolean,
+  ): Promise<StoryboardStoredRunConfig> {
     const legacy = config.characterReplacements?.find(
       (item) =>
         semantic(item) &&
@@ -299,22 +411,16 @@ export class StoryboardCharacterReplaceService {
         };
       });
     }
-    const historical = config.characterReplacementOperations?.find(
-      (op) => semantic(op) && op.legacy,
-    );
-    if (historical) return this.success(historical, config, false);
-    const ambiguous = config.characterReplacementOperations?.find(
-      (op) =>
-        op.shotId === shotId &&
-        !op.receipts.length &&
-        ['submitting', 'reconciling'].includes(op.state),
-    );
-    if (ambiguous && !semantic(ambiguous))
-      await this.conflict(
-        ambiguous,
-        config,
-        'CHARACTER_REPLACEMENT_RECONCILIATION_REQUIRED',
-      );
+    return config;
+  }
+  private async prepareReplacementIdentity(
+    org: string,
+    brand: string,
+    run: string,
+    shotId: string,
+    config: StoryboardStoredRunConfig,
+    input: Required<ReplaceStoryboardCharacter>,
+  ) {
     const shot = config.plan?.shots.find((s) => s.id === shotId);
     if (!shot) throw new NotFoundException('Storyboard shot', shotId);
     const snapshot = config.sourceSnapshot;
@@ -352,69 +458,60 @@ export class StoryboardCharacterReplaceService {
       prompt: input.prompt,
     };
     const intentHash = storyboardConfigHash(identity);
-    let op =
-      config.characterReplacementOperations?.find(
-        (item) => item.intentHash === intentHash,
-      ) ?? ambiguous;
-    if (op?.receipts.length) {
-      const receipt = await this.getStatus(
-        org,
-        brand,
-        run,
-        shotId,
-        op.operationId,
-      );
-      const {
-        acceptedRequestIds: _ids,
-        runId: _run,
-        errorCode: _error,
-        ...replacement
-      } = receipt;
-      return storyboardCharacterReplacementSchema.parse({
-        ...replacement,
+    return { identity, intentHash, videoAssetId, refs };
+  }
+  private async createReplacementOperation(
+    input: Required<ReplaceStoryboardCharacter>,
+    prepared: Awaited<
+      ReturnType<
+        StoryboardCharacterReplaceService['prepareReplacementIdentity']
+      >
+    >,
+  ): Promise<CharacterOperation> {
+    const { identity, intentHash, videoAssetId, refs } = prepared;
+    const { organizationId: org, brandId: brand } = identity;
+    const video = await this.videos.libraryAsset(org, brand, videoAssetId);
+    const imageUrls = refs.map((r) => r.url);
+    if (
+      !video.url.startsWith('https://') ||
+      imageUrls.some((url) => !url?.startsWith('https://'))
+    )
+      throw new ConflictException('Character media requires HTTPS.');
+    const fingerprint = await this.higgsField.getCredentialFingerprint(org);
+    const now = new Date().toISOString();
+    const op: CharacterOperation = {
+      version: 1,
+      operationId: randomUUID(),
+      intentHash,
+      ...identity,
+      videoAssetId,
+      imageAssetIds: input.imageAssetIds,
+      prompt: input.prompt,
+      body: {
+        video_url: video.url,
+        image_urls: imageUrls as string[],
         prompt: input.prompt,
-      });
-    }
-    if (op && (op.leaseUntil ?? 0) > Date.now())
-      await this.conflict(op, config, 'CHARACTER_REPLACEMENT_IN_PROGRESS');
-    const leaseToken = randomUUID();
-    let initial = op?.state === 'blocked';
-    if (!op) {
-      const video = await this.videos.libraryAsset(org, brand, videoAssetId);
-      const imageUrls = refs.map((r) => r.url);
-      if (
-        !video.url.startsWith('https://') ||
-        imageUrls.some((url) => !url?.startsWith('https://'))
-      )
-        throw new ConflictException('Character media requires HTTPS.');
-      const fingerprint = await this.higgsField.getCredentialFingerprint(org);
-      const now = new Date().toISOString();
-      op = {
-        version: 1,
-        operationId: randomUUID(),
-        intentHash,
-        ...identity,
-        videoAssetId,
-        imageAssetIds: input.imageAssetIds,
-        prompt: input.prompt,
-        body: {
-          video_url: video.url,
-          image_urls: imageUrls as string[],
-          prompt: input.prompt,
-          resolution: identity.resolution,
-        },
-        credentialFingerprint: fingerprint,
-        createdAt: now,
-        updatedAt: now,
-        state: 'submitting',
-        receipts: [],
-      };
-      // resolution belongs to the immutable body, not to the journal envelope.
-      delete (op as CharacterOperation & { resolution?: string }).resolution;
-      initial = true;
-    }
-    const candidate = op;
-    config = await this.mutate(org, brand, run, async (current) => {
+        resolution: identity.resolution,
+      },
+      credentialFingerprint: fingerprint,
+      createdAt: now,
+      updatedAt: now,
+      state: 'submitting',
+      receipts: [],
+    };
+    // resolution belongs to the immutable body, not to the journal envelope.
+    delete (op as CharacterOperation & { resolution?: string }).resolution;
+    return op;
+  }
+  private async claimReplacementOperation(
+    org: string,
+    brand: string,
+    run: string,
+    shotId: string,
+    candidate: CharacterOperation,
+    leaseToken: string,
+  ) {
+    const config = await this.mutate(org, brand, run, async (current) => {
       const journal = current.characterReplacementOperations ?? [];
       const ambiguous = journal.find(
         (item) =>
@@ -462,32 +559,20 @@ export class StoryboardCharacterReplaceService {
           : [...journal, claimed],
       };
     });
-    op = config.characterReplacementOperations?.find(
+    const op = config.characterReplacementOperations?.find(
       (item) => item.leaseToken === leaseToken,
     );
     if (!op) throw new ConflictException('CHARACTER_REPLACEMENT_IN_PROGRESS');
-    if (
-      initial &&
-      !(await this.current(org, brand, await this.read(org, brand, run), op))
-    ) {
-      const changed = await this.merge(
-        org,
-        brand,
-        run,
-        op.operationId,
-        (current) => ({
-          ...current,
-          state: 'blocked',
-          errorCode: 'CHARACTER_REPLACEMENT_INPUT_CHANGED',
-          leaseUntil: 0,
-        }),
-      );
-      await this.conflict(
-        changed.op,
-        changed.config,
-        'CHARACTER_REPLACEMENT_INPUT_CHANGED',
-      );
-    }
+    return { config, op };
+  }
+  private async submitClaimedReplacement(
+    org: string,
+    brand: string,
+    run: string,
+    shotId: string,
+    config: StoryboardStoredRunConfig,
+    op: CharacterOperation,
+  ): Promise<StoryboardCharacterReplacement> {
     if (!op.body || !op.credentialFingerprint)
       return this.conflict(
         op,
