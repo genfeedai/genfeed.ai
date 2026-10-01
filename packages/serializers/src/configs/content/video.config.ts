@@ -16,11 +16,10 @@ export const videoSerializerConfig = {
   type: 'video',
 };
 
-export const videoEditSerializerConfig = simpleConfig(
-  'video-edit',
-  videoEditAttributes,
-  videoGenerationRequestAttributes,
-);
+export const videoEditSerializerConfig = simpleConfig('video-edit', [
+  ...videoEditAttributes,
+  ...videoGenerationRequestAttributes,
+]);
 
 export const videoCaptionSerializerConfig = simpleConfig(
   'video-caption',
