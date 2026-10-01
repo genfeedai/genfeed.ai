@@ -146,6 +146,7 @@ export function sanitizeStudioGenerateSettings(
 
   return {
     ...defaults,
+    editPrimaryId: pickFreeText(value.editPrimaryId),
     editSize: isImageEditSize(value.editSize) ? value.editSize : 'source',
     editSeed:
       typeof value.editSeed === 'number' &&

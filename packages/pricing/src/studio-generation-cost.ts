@@ -265,16 +265,17 @@ export function resolveStudioGenerationCost({
     )
       return UNAVAILABLE;
     return {
-      credits: calculateImageGenerationCredits({
-        height: 1024,
-        width: 1024,
-        imageProvider: model.provider,
-        isBatchSupported: true,
-        modelKey: model.key,
-        outputs: settings.outputs,
-        pricing: model,
-        quality: 'medium',
-      }).credits,
+      credits:
+        calculateImageGenerationCredits({
+          height: 1024,
+          width: 1024,
+          imageProvider: model.provider,
+          isBatchSupported: true,
+          modelKey: model.key,
+          outputs: 1,
+          pricing: model,
+          quality: 'medium',
+        }).credits * settings.outputs,
       status: 'estimated',
     };
   }

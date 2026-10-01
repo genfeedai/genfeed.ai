@@ -329,7 +329,7 @@ export default function StudioGenerateComposer({
         ariaLabel={translate('prompt')}
         className="min-h-9 w-full"
         documentSeed={documentSeed}
-        extraExtensions={extraExtensions}
+        extraExtensions={type === 'image-edit' ? undefined : extraExtensions}
         isDisabled={isGenerating}
         onDocumentChange={onPromptDocumentChange}
         onSubmit={() => {
@@ -353,6 +353,33 @@ export default function StudioGenerateComposer({
 
       {type === 'image-edit' ? (
         <div className="mt-2 flex flex-wrap items-center gap-2">
+          {editSources.length > 1 ? (
+            <Select
+              value={
+                settings.editPrimaryId ??
+                editSources[0].ingredientId ??
+                editSources[0].id
+              }
+              disabled={isGenerating}
+              onValueChange={(editPrimaryId) =>
+                onSettingsChange({ editPrimaryId })
+              }
+            >
+              <SelectTrigger aria-label="Image editing target" className="w-44">
+                <SelectValue placeholder="Target image" />
+              </SelectTrigger>
+              <SelectContent>
+                {editSources.map((asset, index) => (
+                  <SelectItem
+                    key={asset.id}
+                    value={asset.ingredientId ?? asset.id}
+                  >
+                    Target: {asset.name || `Source ${index + 1}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : null}
           <Select
             disabled={isGenerating || hasEditMask}
             value={hasEditMask ? 'source' : (settings.editSize ?? 'source')}
@@ -548,7 +575,7 @@ export default function StudioGenerateComposer({
               variant={ButtonVariant.GHOST}
             />
           ) : null}
-          {onEnhancePrompt ? (
+          {onEnhancePrompt && type !== 'image-edit' ? (
             <Button
               ariaLabel={
                 isEnhancingPrompt

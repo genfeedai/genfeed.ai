@@ -1,3 +1,4 @@
+import { seedImageEditingContract } from '@api/seeds/image-editing-contract-seed';
 /**
  * Upserts the unified model catalog into the `Model` registry on boot.
  *
@@ -13,6 +14,7 @@ import { ModelLifecycle } from '@genfeedai/contracts';
 import {
   getModelCatalogForDeployment,
   isRetiredAgentChatModel,
+  MODEL_KEYS,
   type ModelCatalogSeedEntry,
   shouldUseLowestCostModelDefaults,
 } from '@genfeedai/contracts/constants';
@@ -264,7 +266,6 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       select: { cost: true, id: true, isLegacy: true, lifecycle: true },
       where: { key: entry.key },
     });
-
     const updateData: Prisma.ModelUpdateInput = {
       ...shared,
       ...(entry.endpoint ? { endpoint: entry.endpoint } : {}),
@@ -329,10 +330,15 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
     }
 
     // tenant-scope-ignore: the seeded catalog is the platform-wide registry (organizationId null) and `key` is its only unique index
-    await this.prisma.model.upsert({
+    const seededModel = await this.prisma.model.upsert({
       create: createData,
       update: updateData,
       where: { key: entry.key },
     });
+    if (
+      entry.key === MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5 &&
+      seededModel?.id
+    )
+      await seedImageEditingContract(this.prisma, seededModel.id);
   }
 }

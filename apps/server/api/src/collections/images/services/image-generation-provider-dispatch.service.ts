@@ -225,6 +225,38 @@ export class ImageGenerationProviderDispatchService {
     let generationPromise: Promise<unknown>;
     try {
       await this.bindOutputCredits(context, context.ingredientData.id);
+      if (context.editing && context.outputs > 1) {
+        const documents: ImageGenerationSaveDocumentsResult[] = [
+          {
+            ingredientData: context.ingredientData,
+            metadataData: context.metadataData,
+          },
+        ];
+        this.batchDocuments.set(context, documents);
+        try {
+          for (let index = 1; index < context.outputs; index += 1) {
+            const output = await this.createAdditionalDocuments(context);
+            documents.push(output);
+            await this.bindOutputCredits(context, output.ingredientData.id);
+            context.pendingIngredientIds.push(
+              output.ingredientData.id.toString(),
+            );
+          }
+        } catch (error: unknown) {
+          await Promise.all(
+            documents.map(({ ingredientData }) =>
+              this.handleProviderFailure(
+                context,
+                error,
+                'Image editing batch admission failed',
+                ingredientData.id,
+              ).catch(() => undefined),
+            ),
+          );
+          this.batchDocuments.delete(context);
+          throw error;
+        }
+      }
       generationPromise = this.execute(context, provider, pollIds);
     } catch (error: unknown) {
       await this.generationBilling.releasePool(billing);
@@ -430,8 +462,21 @@ export class ImageGenerationProviderDispatchService {
     ];
     try {
       // Every batch output must exist and be funded before the provider accepts the batch.
+      const preallocated = context.editing
+        ? this.batchDocuments.get(context)
+        : undefined;
       const additionalDocuments: ImageGenerationSaveDocumentsResult[] = [];
-      for (let index = 1; index < context.outputs; index += 1) {
+      if (preallocated) {
+        for (const output of preallocated.slice(1)) {
+          additionalDocuments.push(output);
+          documents.push(output);
+        }
+      }
+      for (
+        let index = preallocated ? context.outputs : 1;
+        index < context.outputs;
+        index += 1
+      ) {
         const output = await this.createAdditionalDocuments(context);
         additionalDocuments.push(output);
         documents.push(output);
@@ -699,6 +744,9 @@ export class ImageGenerationProviderDispatchService {
       promptId: context.promptData.id,
       scope: context.createImageDto.scope,
       sourceIds: context.referenceIds,
+      ...(context.editing
+        ? { sourceActionId: context.createImageDto.sourceActionId }
+        : {}),
       status: IngredientStatus.PROCESSING,
       style: context.style,
       tagIds: context.createImageDto.tags,

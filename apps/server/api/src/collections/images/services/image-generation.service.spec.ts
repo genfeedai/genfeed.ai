@@ -87,11 +87,12 @@ const baseDto = (overrides: Partial<CreateImageDto> = {}): CreateImageDto =>
 const createService = () => {
   let savedDocCount = 0;
   const sharedService = {
-    createMediaDocuments: vi.fn().mockImplementation(() => {
+    createMediaDocuments: vi.fn().mockImplementation((_user, params) => {
       const n = savedDocCount++;
       return Promise.resolve({
         ingredientData: {
           id: `ing-${n}`,
+          parentId: params.parentId,
           toString: () => `ing-${n}`,
         },
         metadataData: { id: `meta-${n}` },
@@ -119,7 +120,14 @@ const createService = () => {
         (
           model: string,
           organizationId: string,
-        ) => Promise<{ endpoint: string; provider: ModelProvider } | undefined>
+        ) => Promise<
+          | {
+              endpoint: string;
+              provider: ModelProvider;
+              category?: ModelCategory;
+            }
+          | undefined
+        >
       >()
       .mockResolvedValue(undefined),
   };
@@ -780,6 +788,7 @@ describe('ImageGenerationService', () => {
       const selectionKey = 'fal/google/nano-banana-2-lite';
       const endpoint = 'google/nano-banana-2-lite';
       modelRegistrationService.validateModelForOrg.mockResolvedValue({
+        category: ModelCategory.IMAGE,
         endpoint,
         provider: ModelProvider.FAL,
       });
@@ -1411,5 +1420,124 @@ describe('ImageGenerationService', () => {
         deletedId,
       );
     });
+  });
+});
+
+describe('instruction-based image editing lifecycle', () => {
+  const editingModel = MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5;
+  const sourceId = testId('editsource');
+  it('resolves the editing default, preserves raw instructions and funds one native batch of outputs', async () => {
+    const {
+      service,
+      imagesService,
+      routerService,
+      replicateService,
+      sharedService,
+      enhancementService,
+      promptBuilderService,
+    } = createService();
+    routerService.resolveModelKey.mockResolvedValue({
+      key: editingModel,
+      source: 'registry-default',
+    });
+    imagesService.findOne.mockImplementation(async (query: { id?: string }) =>
+      query.id === sourceId
+        ? {
+            id: sourceId,
+            status: IngredientStatus.GENERATED,
+            s3Key: 'images/source.png',
+            metadata: { width: 1024, height: 768 },
+          }
+        : null,
+    );
+    const response = await service.editImage(
+      buildUser(),
+      sourceId,
+      {
+        prompt: 'Change only the sign to OPEN',
+        brandId: RESOLVED_BRAND,
+        outputs: 3,
+        seed: 0,
+      },
+      buildRequest({ creditsConfig: { deferred: true, amount: 0 } }),
+    );
+    expect(routerService.resolveModelKey).toHaveBeenCalledWith({
+      category: ModelCategory.IMAGE_EDIT,
+      organizationId: ORG,
+    });
+    expect(enhancementService.enhance).not.toHaveBeenCalled();
+    expect(promptBuilderService.buildPrompt).not.toHaveBeenCalled();
+    expect(response.data.attributes?.pendingIngredientIds).toHaveLength(3);
+    // Background execution starts only after all native batch outputs have durable funded placeholders.
+    await vi.waitFor(() =>
+      expect(replicateService.generateTextToImage).toHaveBeenCalledTimes(1),
+    );
+    expect(sharedService.createMediaDocuments).toHaveBeenCalledTimes(3);
+    for (const [, params] of sharedService.createMediaDocuments.mock.calls) {
+      expect(params).toMatchObject({
+        category: 'IMAGE',
+        parentId: sourceId,
+        sourceIds: [sourceId],
+        providerData: {
+          imageEdit: {
+            operation: 'image-edit',
+            model: editingModel,
+            outputs: 3,
+            seed: 0,
+          },
+        },
+      });
+    }
+    expect(replicateService.generateTextToImage.mock.calls[0]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          prompt: 'Change only the sign to OPEN',
+          num_images: 3,
+          quality: 'medium',
+          size: 'source',
+          seed: 0,
+        }),
+      ]),
+    );
+  });
+  it('rejects a foreign source before creating documents or checking funding', async () => {
+    const {
+      service,
+      imagesService,
+      sharedService,
+      creditsUtilsService,
+      replicateService,
+    } = createService();
+    imagesService.findOne.mockResolvedValue(null);
+    await expect(
+      service.editImage(
+        buildUser(),
+        sourceId,
+        { prompt: 'Change the sign', brandId: RESOLVED_BRAND },
+        buildRequest(),
+      ),
+    ).rejects.toThrow();
+    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+    expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
+  });
+  it('rejects generation-only models before admitting an edit', async () => {
+    const { service, imagesService, sharedService } = createService();
+    await expect(
+      service.editImage(
+        buildUser(),
+        sourceId,
+        {
+          prompt: 'Change the sign',
+          brandId: RESOLVED_BRAND,
+          model: NON_BATCH_REPLICATE_MODEL,
+        },
+        buildRequest(),
+      ),
+    ).rejects.toThrow('does not support');
+    expect(imagesService.findOne).not.toHaveBeenCalled();
+    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
   });
 });

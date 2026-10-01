@@ -701,6 +701,11 @@ export default function StudioGenerateWorkspace(): ReactElement {
     return {
       editSourceIds: entries
         .filter((entry) => entry.role === 'editSource')
+        .toSorted(
+          (left, right) =>
+            Number(right.id === settings.editPrimaryId) -
+            Number(left.id === settings.editPrimaryId),
+        )
         .map((entry) => entry.id),
       editMaskId: entries.find((entry) => entry.role === 'editMask')?.id,
       endFrameId: entries.find((entry) => entry.role === 'endFrame')?.id,
@@ -719,6 +724,22 @@ export default function StudioGenerateWorkspace(): ReactElement {
     getAttachmentRole,
     getCompletedAttachments,
     type,
+    settings.editPrimaryId,
+  ]);
+
+  useEffect(() => {
+    if (type !== 'image-edit' || !resolvedReferences.editSourceIds.length)
+      return;
+    if (
+      !settings.editPrimaryId ||
+      !resolvedReferences.editSourceIds.includes(settings.editPrimaryId)
+    )
+      updateSettings({ editPrimaryId: resolvedReferences.editSourceIds[0] });
+  }, [
+    type,
+    resolvedReferences.editSourceIds,
+    settings.editPrimaryId,
+    updateSettings,
   ]);
 
   const rejectUnsupportedSkillSelection = useCallback(
@@ -736,11 +757,13 @@ export default function StudioGenerateWorkspace(): ReactElement {
 
   const handleEnhancePrompt = useCallback(() => {
     const { skillSlugs } = resolvePromptCommands(prompt);
-    if (rejectUnsupportedSkillSelection(skillSlugs)) return;
+    if (type === 'image-edit' || rejectUnsupportedSkillSelection(skillSlugs))
+      return;
     return enhancePrompt();
   }, [
     enhancePrompt,
     prompt,
+    type,
     rejectUnsupportedSkillSelection,
     resolvePromptCommands,
   ]);
@@ -1214,27 +1237,39 @@ export default function StudioGenerateWorkspace(): ReactElement {
   );
 
   const attachedAssets = useMemo<PromptBarAttachedAsset[]>(
-    () => [
-      ...attachments.map((attachment: AttachmentItem) => ({
-        id: attachment.id,
-        kind: attachment.kind,
-        name: attachment.name,
-        previewUrl: attachment.previewUrl,
-        role: resolveAttachmentRole(attachment),
-        source: 'upload' as const,
-      })),
-      ...contentReferences.map((reference) => ({
-        id: reference.item.id,
-        kind: reference.item.contentType.toLowerCase().includes('video')
-          ? ('video' as const)
-          : ('image' as const),
-        name: reference.item.contentTitle,
-        previewUrl: reference.item.thumbnailUrl,
-        role: reference.role,
-        source: 'library' as const,
-      })),
+    () =>
+      [
+        ...attachments.map((attachment: AttachmentItem) => ({
+          id: attachment.id,
+          ingredientId: attachment.ingredientId,
+          isPrimary: attachment.ingredientId === settings.editPrimaryId,
+          kind: attachment.kind,
+          name: attachment.name,
+          previewUrl: attachment.previewUrl,
+          role: resolveAttachmentRole(attachment),
+          source: 'upload' as const,
+        })),
+        ...contentReferences.map((reference) => ({
+          id: reference.item.id,
+          ingredientId: reference.item.id,
+          isPrimary: reference.item.id === settings.editPrimaryId,
+          kind: reference.item.contentType.toLowerCase().includes('video')
+            ? ('video' as const)
+            : ('image' as const),
+          name: reference.item.contentTitle,
+          previewUrl: reference.item.thumbnailUrl,
+          role: reference.role,
+          source: 'library' as const,
+        })),
+      ].toSorted(
+        (left, right) => Number(right.isPrimary) - Number(left.isPrimary),
+      ),
+    [
+      attachments,
+      contentReferences,
+      resolveAttachmentRole,
+      settings.editPrimaryId,
     ],
-    [attachments, contentReferences, resolveAttachmentRole],
   );
 
   const handleRemoveAttachedAsset = useCallback<
@@ -1374,6 +1409,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
       applyTypeSettings('image-edit', {
         editSize: 'source',
         editSeed: undefined,
+        editPrimaryId: reference.item.id,
       });
     },
     [clearAttachments, applyTypeSettings],
@@ -1407,6 +1443,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
         applyTypeSettings('image-edit', {
           editSize: 'source',
           editSeed: undefined,
+          editPrimaryId: reference.item.id,
         });
       })
       .catch((error: unknown) =>
@@ -1471,7 +1508,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
         setContentReferences([]);
         const ids = [...edit.sourceIds, ...(edit.maskId ? [edit.maskId] : [])];
         void getIngredientsService()
-          .then((service) => service.findByIds(ids, { brandId }))
+          .then((service) => service.findByIds(ids))
           .then((ingredients) => {
             const byId = new Map(
               ingredients.map((ingredient) => [ingredient.id, ingredient]),
@@ -1762,12 +1799,14 @@ export default function StudioGenerateWorkspace(): ReactElement {
         isOpen={isContentLibraryOpen}
         items={contentLibraryItems}
         knowledgeSection={
-          <KnowledgeReferenceSection
-            brandId={brandId || undefined}
-            key={brandId || 'no-brand'}
-            onChange={handleKnowledgeSelectionChange}
-            value={knowledgeSelection}
-          />
+          type !== 'image-edit' ? (
+            <KnowledgeReferenceSection
+              brandId={brandId || undefined}
+              key={brandId || 'no-brand'}
+              onChange={handleKnowledgeSelectionChange}
+              value={knowledgeSelection}
+            />
+          ) : null
         }
         onOpenChange={setIsContentLibraryOpen}
         onSelect={handleSelectContentReference}

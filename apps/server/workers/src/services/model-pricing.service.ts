@@ -124,6 +124,7 @@ const REPLICATE_KNOWN_COSTS: Record<string, number> = {
   'google/nano-banana-2-lite': 0.034,
   'google/veo-3': 0.5,
   'google/veo-3-fast': 0.25,
+  'ideogram-ai/ideogram-4-5': 0.06, // Medium-quality editing, USD per output.
   'ideogram-ai/ideogram-v3': 0.08,
   'ideogram-ai/ideogram-v3-turbo': 0.04,
   'luma/ray-2': 0.4,

@@ -39,9 +39,10 @@ const dto = (patch: Partial<EditImageDto> = {}) =>
     ...patch,
   });
 
-beforeEach(() =>
-  findOne.mockImplementation(async (query: { id: string }) => ready(query.id)),
-);
+beforeEach(() => {
+  findOne.mockReset();
+  findOne.mockImplementation(async (query: { id: string }) => ready(query.id));
+});
 
 describe('Image editing admission and provider contract', () => {
   it('preserves source order and sends only the verified editing fields with one native batch', async () => {

@@ -157,6 +157,7 @@ export interface StudioGenerateTypeConfig {
 export interface StudioGenerateSettings {
   editSize?: ImageEditSize;
   editSeed?: number;
+  editPrimaryId?: string;
   aspectRatio: string;
   /** Public URL of the chosen portrait, posted as `photoUrl`. */
   avatarPhotoUrl?: string;

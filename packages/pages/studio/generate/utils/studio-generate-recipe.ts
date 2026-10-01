@@ -391,7 +391,11 @@ export function settingsPatchFromRecipe(
 
   return {
     ...(recipe.imageEdit
-      ? { editSize: recipe.imageEdit.size, editSeed: recipe.imageEdit.seed }
+      ? {
+          editSize: recipe.imageEdit.size,
+          editPrimaryId: recipe.imageEdit.sourceIds[0],
+          editSeed: recipe.imageEdit.seed,
+        }
       : {}),
     ...(recipe.aspectRatio ? { aspectRatio: recipe.aspectRatio } : {}),
     blacklist: recipe.blacklist,

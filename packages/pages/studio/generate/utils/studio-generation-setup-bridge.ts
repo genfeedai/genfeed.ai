@@ -77,6 +77,7 @@ export const STUDIO_CLEARABLE_SETUP_KEYS = [
 export const STUDIO_RESIDUAL_SETTINGS_KEYS = [
   'editSize',
   'editSeed',
+  'editPrimaryId',
   'avatarPhotoUrl',
   'blacklist',
   'folder',

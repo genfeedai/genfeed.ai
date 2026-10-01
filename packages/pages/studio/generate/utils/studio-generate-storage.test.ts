@@ -15,6 +15,7 @@ describe('getDefaultStudioGenerateState', () => {
     expect(Object.keys(state.settingsByType).toSorted()).toEqual([
       'avatar',
       'image',
+      'image-edit',
       'music',
       'video',
       'voice',

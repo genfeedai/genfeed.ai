@@ -249,6 +249,8 @@ export interface UploadModalOptions {
 }
 
 export interface PromptBarAttachedAsset {
+  ingredientId?: string;
+  isPrimary?: boolean;
   id: string;
   kind: 'image' | 'video' | 'audio';
   source: 'upload' | 'library';
