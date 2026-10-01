@@ -2,7 +2,7 @@ import '@agent-tests/media-preview-mocks';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { AgentThreadUiActionState } from '@genfeedai/agent/models/agent-chat.model';
-import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentWorkObjectGateStore } from '@genfeedai/agent/stores/agent-work-object-gate.store';
 import {
   ModelCategory,
@@ -2730,6 +2730,15 @@ describe('GenerationActionCard', () => {
       id: 'flux-output',
       url: 'https://cdn.test/flux.jpg',
     });
+    const { baseUrl, ...methods } = createApiServiceMock({
+      models: [model],
+      estimateGenerationCredits,
+      generateIngredient,
+    });
+    const apiService = Object.assign(
+      new AgentApiService({ baseUrl, getToken: async () => null }),
+      methods,
+    );
     renderGenerationActionCard(
       <GenerationActionCard
         action={{
@@ -2744,11 +2753,7 @@ describe('GenerationActionCard', () => {
             aspectRatio: 'auto',
           },
         }}
-        apiService={createApiServiceMock({
-          models: [model],
-          estimateGenerationCredits,
-          generateIngredient,
-        })}
+        apiService={apiService}
       />,
     );
     await waitFor(() =>
