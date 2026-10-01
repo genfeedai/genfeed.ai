@@ -3,10 +3,16 @@ import {
   LearningCheckpointService,
   learningCheckpointCollection,
   learningCheckpointProfiles,
+  parseLearningMeasurement,
 } from '@api/collections/content-learning/services/learning-checkpoint.service';
 import type { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
+import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { captureLearningMetrics } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
+import {
+  learningDescriptorTuple,
+  learningRegisteredProfiles,
+} from '@genfeedai/harness';
 import type { ContentLearningCheckpoint } from '@genfeedai/prisma';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -318,5 +324,169 @@ describe('immutable physical observation profile projections', () => {
       )?.measurement,
     ).toBeNull();
     expect(learningCheckpointProfiles('unknown', 'text', metrics)).toEqual([]);
+  });
+});
+
+describe('exact descriptor frozen baseline', () => {
+  const descriptor = learningRegisteredProfiles(
+    'twitter',
+    'text',
+    'engagement',
+  )[0].descriptor;
+  const profileId = learningHash(learningDescriptorTuple(descriptor));
+  const scope = {
+    organizationId: 'org',
+    brandId: 'brand',
+    credentialId: 'credential',
+    platform: 'twitter',
+    format: 'text' as const,
+    objective: 'engagement' as const,
+    rewardProfileId: profileId,
+  };
+  function frozenFixture(rows: ContentLearningCheckpoint[]) {
+    const f = fixture(rows);
+    const baseline = {
+      upsert: vi
+        .fn()
+        .mockImplementation(({ create }) => ({ id: 'baseline', ...create })),
+    };
+    const prisma = { ...f.prisma, contentLearningBaseline: baseline };
+    prisma.$transaction.mockImplementation((callback) => callback(prisma));
+    prisma.contentLearningCheckpoint.findFirst.mockImplementation(
+      ({ where }) => rows.find((row) => row.id === where.id) ?? null,
+    );
+    const dependencies = {
+      valid: vi.fn().mockResolvedValue(true),
+      resolve: vi.fn().mockImplementation((kind, id) => ({
+        kind,
+        id,
+        version: '0',
+        organizationId: 'org',
+      })),
+      link: vi.fn(),
+    };
+    const service = new LearningCheckpointService(
+      prisma as unknown as PrismaService,
+      {} as LearningAccountService,
+      dependencies as unknown as LearningDependencyService,
+    );
+    return { prisma, baseline, dependencies, service };
+  }
+  function sample(
+    index: number,
+    measurement: unknown = { exposure: 1000, weightedActions: 0 },
+  ) {
+    return checkpoint({
+      id: `checkpoint-${index}`,
+      postId: `post-${index}`,
+      validity: 'valid',
+      measurement: {
+        profile: 'engagement',
+        measurement: { exposure: 9999, weightedActions: 999 },
+        profiles: [{ profileId, descriptor, measurement }],
+      } as ContentLearningCheckpoint['measurement'],
+    });
+  }
+  it.each([
+    { exposure: -1, weightedActions: 0 },
+    { exposure: 100, weightedActions: -1 },
+    { exposure: 100, weightedActions: 0, averageWatchTimeSeconds: -1 },
+    { exposure: 100, weightedActions: 0, averageWatchTimeSeconds: Infinity },
+  ])('rejects invalid measurements %j', (value) => {
+    expect(parseLearningMeasurement(value)).toBeNull();
+  });
+  it('counts exactly twenty matching profiles and preserves known zero, descriptor and same transaction lineage', async () => {
+    const rows = Array.from({ length: 20 }, (_, index) => sample(index));
+    const f = frozenFixture(rows);
+    const result = await f.service.freeze(
+      scope,
+      new Date('2026-10-01'),
+      descriptor,
+    );
+    expect(result).toMatchObject({
+      count: 20,
+      validity: 'valid',
+      medianExposure: 1000,
+      descriptorHash: profileId,
+      cellDescriptor: descriptor,
+      contributorCheckpointIds: rows.map((row) => row.id),
+    });
+    expect(result.samples).toHaveLength(20);
+    expect(f.dependencies.valid).toHaveBeenCalledWith(
+      'checkpoint',
+      rows[0].id,
+      f.prisma,
+      'org',
+    );
+    expect(f.prisma.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      f.prisma.contentLearningCheckpoint.findMany.mock.invocationCallOrder[0],
+    );
+  });
+  it('excludes mixed masks and malformed newest rows before consuming distinct posts', async () => {
+    const bad = sample(0, { exposure: -1, weightedActions: 0 });
+    const other = sample(2);
+    other.measurement = {
+      profiles: [
+        {
+          profileId: 'other',
+          descriptor,
+          measurement: { exposure: 1000, weightedActions: 1 },
+        },
+      ],
+    };
+    const rows = [bad, sample(0), sample(1), other];
+    const f = frozenFixture(rows);
+    const result = await f.service.freeze(
+      scope,
+      new Date('2026-10-01'),
+      descriptor,
+    );
+    expect(result.count).toBe(2);
+    expect(result.contributorCheckpointIds).toEqual([
+      sample(0).id,
+      sample(1).id,
+    ]);
+    expect(result.validity).toBe('insufficient_baseline');
+  });
+  it('pages beyond five hundred unmatched candidates and caps fifty matching distinct posts', async () => {
+    const rows = Array.from({ length: 550 }, (_, index) =>
+      checkpoint({ id: `unmatched-${index}`, postId: `unmatched-${index}` }),
+    ).concat(Array.from({ length: 55 }, (_, index) => sample(index)));
+    const f = frozenFixture(rows);
+    let page = 0;
+    f.prisma.contentLearningCheckpoint.findMany.mockImplementation(() =>
+      rows.slice(page++ * 100, page * 100),
+    );
+    const result = await f.service.freeze(
+      scope,
+      new Date('2026-10-01'),
+      descriptor,
+    );
+    expect(result.count).toBe(50);
+    expect(f.prisma.contentLearningCheckpoint.findMany).toHaveBeenCalledTimes(
+      6,
+    );
+    expect(f.prisma.contentLearningCheckpoint.findMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        take: 100,
+        where: expect.objectContaining({
+          OR: expect.any(Array),
+          receivedAt: {
+            lte: new Date('2026-10-01'),
+            gte: new Date(new Date('2026-10-01').getTime() - 90 * 86400000),
+          },
+        }),
+      }),
+    );
+  });
+  it('rejects a contributor superseded before final lineage validation', async () => {
+    const f = frozenFixture([sample(0)]);
+    f.dependencies.valid
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+    await expect(
+      f.service.freeze(scope, new Date('2026-10-01'), descriptor),
+    ).rejects.toThrow();
   });
 });
