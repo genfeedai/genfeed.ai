@@ -73,14 +73,6 @@
       "workspace": "agent"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/agent/src/components/AgentChatPromptBar.spec.tsx",
-      "fingerprint": "0dc10af886ee41cb9e95",
-      "message": "Type '{ activeWorkEvent: null; workEvents: never[]; addFiles: Mock<Procedure>; apiService: never; chatAttachments: never[]; clearAllAttachments: Mock<Procedure>; ... 24 more ...; socketConnectionState: \"connected\"; }' is not assignable to type 'IntrinsicAttributes & AgentChatPromptBarProps'.   Property 'models' does not exist on type 'IntrinsicAttributes & AgentChatPromptBarProps'.",
-      "workspace": "agent"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "packages/agent/src/components/AgentErrorMessage.spec.tsx",

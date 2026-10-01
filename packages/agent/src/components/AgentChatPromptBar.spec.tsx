@@ -1,5 +1,6 @@
 import { AgentChatPromptBar } from '@genfeedai/agent/components/AgentChatPromptBar';
 import type { AgentInputRequest } from '@genfeedai/agent/models/agent-chat.model';
+import { AgentThreadMode } from '@genfeedai/contracts';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -41,16 +42,19 @@ vi.mock('@genfeedai/agent/components/ConversationComposerShellContext', () => ({
 vi.mock('@ui/layout/prompt-bar-container/PromptBarContainer', () => ({
   default: ({
     children,
+    isVisible = true,
     topContent,
   }: {
     children: ReactNode;
+    isVisible?: boolean;
     topContent: ReactNode;
-  }) => (
-    <div>
-      {topContent}
-      {children}
-    </div>
-  ),
+  }) =>
+    isVisible ? (
+      <div>
+        {topContent}
+        {children}
+      </div>
+    ) : null,
 }));
 
 function renderPromptBar(
@@ -68,6 +72,7 @@ function renderPromptBar(
     onMoveFollowUp: () => void;
     onRemoveFollowUp: () => void;
     onSendFollowUpNow: () => void;
+    isCollapsed?: boolean;
     pendingInputRequest: AgentInputRequest | null;
     promptBarSuggestions: ReactNode;
   }> = {},
@@ -75,6 +80,7 @@ function renderPromptBar(
   render(
     <AgentChatPromptBar
       activeWorkEvent={null}
+      agentMode={AgentThreadMode.MANUAL}
       workEvents={[]}
       addFiles={vi.fn()}
       apiService={{} as never}
@@ -92,12 +98,13 @@ function renderPromptBar(
       getCompletedAttachments={() => []}
       isAttachmentUploading={false}
       isBusy={extras.isBusy ?? false}
+      isCollapsed={extras.isCollapsed}
       isReadOnly={isReadOnly}
       isRunActive={extras.isRunActive ?? false}
       isSubmittingInputRequest={false}
       latestProposedPlan={null}
       layoutMode="fixed"
-      models={[]}
+      onAgentModeChange={vi.fn()}
       onClearError={vi.fn()}
       onMoveFollowUp={extras.onMoveFollowUp}
       onRemoveFollowUp={extras.onRemoveFollowUp}
@@ -203,5 +210,11 @@ describe('AgentChatPromptBar', () => {
     });
 
     expect(screen.queryByTestId('follow-up-chips')).not.toBeInTheDocument();
+  });
+
+  it('unmounts the overlay composer while it is collapsed', () => {
+    renderPromptBar(false, { isCollapsed: true });
+
+    expect(screen.queryByTestId('chat-input')).not.toBeInTheDocument();
   });
 });

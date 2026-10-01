@@ -1391,12 +1391,16 @@ describe('UniversalWorkspaceShell', () => {
 
       await waitFor(() => expect(dock?.isAvailable).toBe(true));
       expect(screen.queryByRole('region', { name: 'Agent' })).toBeNull();
+      expect(screen.getByTestId('agent-page-promptbar')).toBeVisible();
+      expect(screen.queryByTestId('agent-conversation-bubble')).toBeNull();
       expect(screen.queryByTestId('dock-conversation')).toBeNull();
 
       act(() => dock?.open());
 
       const region = screen.getByRole('region', { name: 'Agent' });
+      expect(region).toHaveAttribute('data-chrome', 'bubble');
       expect(within(region).getByTestId('dock-conversation')).toBeVisible();
+      expect(screen.queryByTestId('agent-page-promptbar')).toBeNull();
       expect(
         screen.getByTestId('agent-dock-composer-slot').closest('section'),
       ).toBe(region);
@@ -1407,7 +1411,17 @@ describe('UniversalWorkspaceShell', () => {
       // Closing keeps the conversation mounted so drafts and runs survive.
       act(() => dock?.close());
       expect(screen.queryByRole('region', { name: 'Agent' })).toBeNull();
+      expect(screen.getByTestId('agent-page-promptbar')).toBeVisible();
       expect(screen.getByTestId('dock-conversation')).toBeInTheDocument();
+    });
+
+    it('uses a chat bubble on studio pages instead of a second promptbar', async () => {
+      navigation.pathname = '/acme/moonrise/studio/generate';
+      renderWithDock();
+
+      await waitFor(() => expect(dock?.isAvailable).toBe(true));
+      expect(screen.getByTestId('agent-conversation-bubble')).toBeVisible();
+      expect(screen.queryByTestId('agent-page-promptbar')).toBeNull();
     });
 
     it('renders scope notices in the dock without the scope switchers', async () => {

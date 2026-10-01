@@ -5,6 +5,7 @@ import {
   AGENT_DOCK_MIN_HEIGHT,
 } from '@contexts/ui/agent-dock-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { cn } from '@helpers/formatting/cn/cn.util';
 import type {
   AgentDockBodyOutletProps,
   AgentDockHeaderProps,
@@ -29,6 +30,8 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+import AgentConversationBubble from './AgentConversationBubble';
+import AgentPagePromptBar from './AgentPagePromptBar';
 
 const RESIZE_STEP = 16;
 const RESIZE_STEP_LARGE = 48;
@@ -135,11 +138,16 @@ function AgentDockBodyOutlet({ body }: AgentDockBodyOutletProps) {
  */
 export default function AgentDock({
   children,
+  chrome = 'split',
   composerSlotRef,
   dock,
+  hasMajorPromptBar = false,
   isCompact,
   onOpenFullPage,
+  onSelectSuggestedAction,
+  pagePlaceholder,
   scopeControls,
+  suggestedActions,
   threadTitle,
 }: AgentDockProps) {
   const translate = useTranslations('common.agentDock');
@@ -163,7 +171,21 @@ export default function AgentDock({
       ),
     [bodyNode],
   );
-  const { close, height, isOpen, setHeight } = dock;
+  const { close, height, isOpen, open, setHeight } = dock;
+  const isBubbleChrome = chrome === 'bubble';
+  const closedLauncher =
+    isBubbleChrome && !isOpen ? (
+      hasMajorPromptBar ? (
+        <AgentConversationBubble onOpen={open} />
+      ) : (
+        <AgentPagePromptBar
+          onOpen={open}
+          onSelectSuggestedAction={onSelectSuggestedAction}
+          placeholder={pagePlaceholder}
+          suggestedActions={suggestedActions}
+        />
+      )
+    ) : null;
 
   // Opening moves focus into the composer and remembers where it came from;
   // any close (header, Esc, ⌘J, topbar) hands focus back if it was inside.
@@ -305,6 +327,7 @@ export default function AgentDock({
     return (
       <>
         {body}
+        {closedLauncher}
         <Drawer
           open={isOpen}
           onOpenChange={(isDrawerOpen: boolean) => {
@@ -317,6 +340,7 @@ export default function AgentDock({
         >
           <DrawerContent
             className="h-[85vh] rounded-t-[var(--radius-workspace-overlay)]"
+            data-chrome={chrome}
             data-testid="agent-dock"
             id="workspace-agent-dock"
           >
@@ -343,9 +367,16 @@ export default function AgentDock({
   return (
     <>
       {body}
+      {closedLauncher}
       <section
         aria-label={translate('label')}
-        className="relative flex shrink-0 flex-col border-t border-border bg-background"
+        className={cn(
+          'flex flex-col bg-background',
+          isBubbleChrome
+            ? 'absolute bottom-4 right-4 z-30 w-[min(28rem,calc(100%-2rem))] max-h-[min(70vh,40rem)] overflow-hidden rounded-[var(--radius-workspace-overlay)] border border-border shadow-xl'
+            : 'relative shrink-0 border-t border-border',
+        )}
+        data-chrome={chrome}
         data-testid="agent-dock"
         hidden={!isOpen}
         id="workspace-agent-dock"
@@ -353,21 +384,23 @@ export default function AgentDock({
         ref={setRegion}
         // Short windows and half-height panels: the canvas keeps at least
         // 40% of the column, whatever height was stored.
-        style={{ height, maxHeight: '60%' }}
+        style={isBubbleChrome ? undefined : { height, maxHeight: '60%' }}
       >
-        <Button
-          aria-orientation="horizontal"
-          aria-valuemax={AGENT_DOCK_MAX_HEIGHT}
-          aria-valuemin={AGENT_DOCK_MIN_HEIGHT}
-          aria-valuenow={effectiveHeight}
-          ariaLabel={translate('resize')}
-          className="absolute inset-x-0 top-0 z-10 h-1.5 -translate-y-1/2 cursor-row-resize"
-          onKeyDown={handleResizeKeyDown}
-          onPointerDown={handleResizeStart}
-          role="separator"
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-        />
+        {isBubbleChrome ? null : (
+          <Button
+            aria-orientation="horizontal"
+            aria-valuemax={AGENT_DOCK_MAX_HEIGHT}
+            aria-valuemin={AGENT_DOCK_MIN_HEIGHT}
+            aria-valuenow={effectiveHeight}
+            ariaLabel={translate('resize')}
+            className="absolute inset-x-0 top-0 z-10 h-1.5 -translate-y-1/2 cursor-row-resize"
+            onKeyDown={handleResizeKeyDown}
+            onPointerDown={handleResizeStart}
+            role="separator"
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
+          />
+        )}
         <AgentDockHeader
           onClose={close}
           onOpenFullPage={onOpenFullPage}
