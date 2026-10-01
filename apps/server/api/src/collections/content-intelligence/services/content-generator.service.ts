@@ -126,12 +126,19 @@ function contentGenerationDefinition(
       ],
       inputVariables: [
         { key: 'dto', label: 'Content request', required: true, type: 'json' },
+        {
+          defaultValue: false,
+          key: 'requireBrandHarness',
+          label: 'Require saved brand context',
+          required: false,
+          type: 'json',
+        },
       ],
       nodes: [
         createGenfeedActionNode({
           actionId: CONTENT_GENERATION_ACTION_IDS.LOAD_CONTEXT,
           id: 'load-context',
-          inputVariableKeys: ['dto'],
+          inputVariableKeys: ['dto', 'requireBrandHarness'],
         }),
         createGenfeedActionNode({
           actionId: CONTENT_GENERATION_ACTION_IDS.LOAD_PATTERNS,
@@ -307,6 +314,7 @@ export class ContentGeneratorService implements OnModuleInit {
           context.organizationId,
           context.userId,
           this.readGenerationDto(input.dto),
+          input.requireBrandHarness === true,
         ),
     );
     runner.registerAction(
@@ -382,6 +390,7 @@ export class ContentGeneratorService implements OnModuleInit {
     userId: string | undefined,
     organizationId: string,
     dto: GenerateContentDto,
+    requireBrandHarness = false,
   ): Promise<GeneratedContent[]> {
     const actionId =
       dto.platform === ContentIntelligencePlatform.LINKEDIN
@@ -396,7 +405,7 @@ export class ContentGeneratorService implements OnModuleInit {
     >({
       actionType: actionId,
       canonicalId: workflowId,
-      inputValues: { dto: toGenerationWorkflowDto(dto) },
+      inputValues: { dto: toGenerationWorkflowDto(dto), requireBrandHarness },
       metadata: { brandId: dto.brandId, origin: 'api' },
       organizationId,
       source: 'ContentGeneratorService.generateContentWorkflow',
@@ -417,37 +426,48 @@ export class ContentGeneratorService implements OnModuleInit {
     organizationId: string,
     userId: string,
     dto: GenerateContentDto,
+    requireBrandHarness = false,
   ): Promise<ContentGenerationContext> {
-    const brandContext = await this.contextAssemblyService.assembleContext({
-      brandId: dto.brandId?.toString?.(),
-      layers: {
-        brandGuidance: true,
-        brandIdentity: true,
-        brandMemory: true,
-        performancePatterns: true,
-        ragContext: true,
-        recentPosts: true,
-      },
-      organizationId: organizationId.toString(),
-      platform: dto.platform,
-      query: dto.topic,
-      userId,
-    });
+    const brandContext = requireBrandHarness
+      ? null
+      : await this.contextAssemblyService.assembleContext({
+          brandId: dto.brandId?.toString?.(),
+          layers: {
+            brandGuidance: true,
+            brandIdentity: true,
+            brandMemory: true,
+            performancePatterns: true,
+            ragContext: true,
+            recentPosts: true,
+          },
+          organizationId: organizationId.toString(),
+          platform: dto.platform,
+          query: dto.topic,
+          userId,
+        });
 
     const brandContributions = brandContext
       ? this.contextAssemblyService.buildBrandContextContributions(brandContext)
       : [];
-    const harness = await this.buildHarnessSystemPrompt(organizationId, dto);
-    const harnessSystemPrompt = harness.prompt;
-    const topPerformerSystemPrompt = await this.buildTopPerformerSystemPrompt(
+    const harness = await this.buildHarnessSystemPrompt(
       organizationId,
       dto,
+      requireBrandHarness,
     );
-    const systemPrompt =
-      fitBrandContextToBudget(
-        [...brandContributions, topPerformerSystemPrompt, harnessSystemPrompt],
-        BRAND_CONTEXT_CHARACTER_BUDGET,
-      ) || undefined;
+    const harnessSystemPrompt = harness.prompt;
+    const topPerformerSystemPrompt = requireBrandHarness
+      ? undefined
+      : await this.buildTopPerformerSystemPrompt(organizationId, dto);
+    const systemPrompt = requireBrandHarness
+      ? harnessSystemPrompt
+      : fitBrandContextToBudget(
+          [
+            ...brandContributions,
+            topPerformerSystemPrompt,
+            harnessSystemPrompt,
+          ],
+          BRAND_CONTEXT_CHARACTER_BUDGET,
+        ) || undefined;
     let playbookInsights: PlaybookInsightsView | undefined;
     if (dto.playbookId) {
       const playbook = await this.playbookBuilderService.findOne({
@@ -564,20 +584,28 @@ export class ContentGeneratorService implements OnModuleInit {
   private async buildHarnessSystemPrompt(
     organizationId: string,
     dto: GenerateContentDto,
+    requireBrandHarness = false,
   ): Promise<{ knowledgeReceipts: KnowledgeReceipt[]; prompt?: string }> {
     if (
       !dto.brandId ||
-      !this.personasService ||
+      (!requireBrandHarness && !this.personasService) ||
       !this.harnessGenerationService
     ) {
+      if (requireBrandHarness) {
+        throw new Error(
+          'Brand context is unavailable for this draft. Please retry.',
+        );
+      }
       return { knowledgeReceipts: [] };
     }
 
     try {
-      const persona = await this.personasService.findOne({
-        brandId: dto.brandId,
-        organizationId: organizationId,
-      });
+      const persona = this.personasService
+        ? await this.personasService.findOne({
+            brandId: dto.brandId,
+            organizationId: organizationId,
+          })
+        : null;
 
       // Single seam: HarnessGenerationService.resolveBrief is the only place
       // that folds pgvector brand content memory into the brief (#3020).
@@ -602,11 +630,22 @@ export class ContentGeneratorService implements OnModuleInit {
       });
 
       const formattedBrief = this.harnessGenerationService.formatBrief(brief);
+      if (
+        requireBrandHarness &&
+        (!brief ||
+          !formattedBrief?.trim() ||
+          formattedBrief.length > BRAND_CONTEXT_CHARACTER_BUDGET)
+      ) {
+        throw new Error(
+          'Brand context is unavailable for this draft. Please retry.',
+        );
+      }
       return {
         knowledgeReceipts: collectKnowledgeReceipts(brief?.sources),
         prompt: formattedBrief || undefined,
       };
-    } catch {
+    } catch (error: unknown) {
+      if (requireBrandHarness) throw error;
       return { knowledgeReceipts: [] };
     }
   }

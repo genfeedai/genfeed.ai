@@ -1,3 +1,4 @@
+import type { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
@@ -14,10 +15,84 @@ import { HarnessGenerationService } from '@api/services/harness/harness-generati
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
 import { getActionDefinition } from '@genfeedai/actions';
+import type { IBrandOsRevision } from '@genfeedai/contracts/interfaces';
+import {
+  BRAND_FIDELITY_HARNESS_PACK,
+  CORE_CONTENT_HARNESS_PACK,
+  type ContentHarnessInput,
+  ContentHarnessRegistry,
+  composeContentHarnessBrief,
+  VIRAL_PSYCHOLOGY_HARNESS_PACK,
+  X_PLATFORM_HARNESS_PACK,
+} from '@genfeedai/harness';
+import { buildBrandKitDraftFromManualInput } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
 import { vi } from 'vitest';
+
+function approvedOnboardingRevision(version: number): IBrandOsRevision {
+  const content = buildBrandKitDraftFromManualInput(
+    { id: 'brand-1' },
+    {
+      description: `Approved offering ${version}`,
+      label: `Approved identity ${version}`,
+      voiceTone: `Distinctive voice ${version}`,
+    },
+  );
+  for (const field of Object.values(content.fields)) {
+    if (field) {
+      field.currentValue = field.proposedValue;
+      delete field.proposedValue;
+    }
+  }
+  return {
+    approvedAt: '2026-10-01T00:00:00.000Z',
+    approvedById: 'user-1',
+    brandId: 'brand-1',
+    content,
+    createdAt: '2026-10-01T00:00:00.000Z',
+    exportSchemaVersion: '1.0.0',
+    id: `revision-${version}`,
+    organizationId: 'org-1',
+    status: 'APPROVED',
+    updatedAt: '2026-10-01T00:00:00.000Z',
+    version,
+  };
+}
+
+function realOnboardingHarness() {
+  const registry = new ContentHarnessRegistry();
+  for (const pack of [
+    CORE_CONTENT_HARNESS_PACK,
+    X_PLATFORM_HARNESS_PACK,
+    BRAND_FIDELITY_HARNESS_PACK,
+    VIRAL_PSYCHOLOGY_HARNESS_PACK,
+  ])
+    registry.registerPack(pack);
+  const findApproved = vi
+    .fn<BrandOsRevisionsService['findApproved']>()
+    .mockResolvedValue(approvedOnboardingRevision(1));
+  const findOne = vi.fn().mockResolvedValue({
+    agentConfig: { voice: { tone: 'Saved fallback voice' } },
+    description: 'Conflicting legacy description',
+    id: 'brand-1',
+    label: 'Conflicting legacy label',
+  });
+  const harness = new HarnessGenerationService(
+    {
+      composeBrief: (input: ContentHarnessInput) =>
+        composeContentHarnessBrief(registry, input),
+    } as never,
+    { log: vi.fn(), warn: vi.fn() } as never,
+    { findOne } as never,
+    { resolveContributionForBrand: vi.fn().mockResolvedValue(null) } as never,
+    { retrieveBrandContentMemory: vi.fn().mockResolvedValue([]) } as never,
+    undefined,
+    { findApproved } as never,
+  );
+  return { findApproved, findOne, harness };
+}
 
 const ORG_ID = 'test-object-id';
 const PATTERN_ID = 'test-object-id';
@@ -74,7 +149,7 @@ function createContentGenerationRunnerFake(
     runWorkflow: vi.fn(
       async (request: {
         canonicalId: string;
-        inputValues: { dto: unknown };
+        inputValues: { dto: unknown; requireBrandHarness?: boolean };
         organizationId: string;
         userId?: string;
       }) => {
@@ -92,6 +167,7 @@ function createContentGenerationRunnerFake(
           'content-intelligence.load-context',
           {
             dto: request.inputValues.dto,
+            requireBrandHarness: request.inputValues.requireBrandHarness,
           },
         );
         const patterns = await invoke('content-intelligence.load-patterns', {
@@ -228,6 +304,13 @@ describe('ContentGeneratorService', () => {
       definition: {
         edges: Array<{ source: string; target: string; targetHandle?: string }>;
         nodes: GraphNode[];
+        inputVariables?: Array<{
+          key: string;
+          type: string;
+          defaultValue?: unknown;
+          required?: boolean;
+          label?: string;
+        }>;
       };
     };
     const readRequiredInputKeys = (schema: unknown): string[] => {
@@ -263,6 +346,24 @@ describe('ContentGeneratorService', () => {
             `${canonicalId} › ${node.id}`,
           ).toEqual([]);
         }
+      }
+    });
+
+    it('registers the strict saved-brand flag only on load-context', () => {
+      for (const { definition } of registered()) {
+        if (!definition.nodes.some((node) => node.id === 'load-context'))
+          continue;
+        expect(definition.inputVariables).toContainEqual({
+          defaultValue: false,
+          key: 'requireBrandHarness',
+          label: 'Require saved brand context',
+          required: false,
+          type: 'json',
+        });
+        const bindings = definition.nodes.filter((node) =>
+          node.data?.inputVariableKeys?.includes('requireBrandHarness'),
+        );
+        expect(bindings.map((node) => node.id)).toEqual(['load-context']);
       }
     });
 
@@ -816,4 +917,190 @@ describe('ContentGeneratorService actual typed final prompt composition', () => 
       await module.close();
     },
   );
+});
+
+describe('ContentGeneratorService strict onboarding saved brand context', () => {
+  async function fixture(
+    options: { omitHarness?: boolean; omitPersona?: boolean } = {},
+  ) {
+    const realHarness = realOnboardingHarness();
+    const assembly = {
+      assembleContext: vi.fn().mockResolvedValue({}),
+      buildBrandContextContributions: vi
+        .fn()
+        .mockReturnValue([
+          { header: 'Legacy', content: 'Conflicting legacy assembly' },
+        ]),
+    };
+    const topPerformer = {
+      assembleContext: vi
+        .fn()
+        .mockResolvedValue('Conflicting legacy performer'),
+    };
+    const persona = { findOne: vi.fn().mockResolvedValue(null) };
+    const llm = { completeStructured: vi.fn(completeStructuredFake) };
+    const runner = createContentGenerationRunnerFake(new Map());
+    const module = await Test.createTestingModule({
+      providers: [
+        ContentGeneratorService,
+        { provide: AgentContextAssemblyService, useValue: assembly },
+        {
+          provide: LoggerService,
+          useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
+        },
+        { provide: LlmDispatcherService, useValue: llm },
+        {
+          provide: PatternStoreService,
+          useValue: {
+            findByOrganization: vi.fn().mockResolvedValue([]),
+            incrementUsage: vi.fn(),
+          },
+        },
+        {
+          provide: PlaybookBuilderService,
+          useValue: { findOne: vi.fn().mockResolvedValue(null) },
+        },
+        { provide: SystemWorkflowRunnerService, useValue: runner },
+        { provide: TopPerformerPromptContextService, useValue: topPerformer },
+        ...(!options.omitPersona
+          ? [{ provide: PersonasService, useValue: persona }]
+          : []),
+        ...(!options.omitHarness
+          ? [
+              {
+                provide: HarnessGenerationService,
+                useValue: realHarness.harness,
+              },
+            ]
+          : []),
+      ],
+    }).compile();
+    const service = module.get(ContentGeneratorService);
+    service.onModuleInit();
+    return {
+      assembly,
+      llm,
+      persona,
+      realHarness,
+      runner,
+      service,
+      topPerformer,
+    };
+  }
+  const dto = {
+    ...BASE_DTO,
+    brandId: 'brand-1',
+    platform: 'twitter',
+    variationsCount: 1,
+  };
+
+  it('carries strict mode through the runner and sends complete real approved A/B identity and voice to the provider', async () => {
+    const f = await fixture();
+    const formatBrief = vi.spyOn(f.realHarness.harness, 'formatBrief');
+    for (const version of [1, 2]) {
+      f.realHarness.findApproved.mockResolvedValueOnce(
+        approvedOnboardingRevision(version),
+      );
+      await f.service.generateContentWorkflow(
+        'user-1',
+        'org-1',
+        dto as never,
+        true,
+      );
+      const messages = f.llm.completeStructured.mock.calls.at(
+        -1,
+      )?.[0] as unknown as {
+        messages: Array<{ role: string; content: string }>;
+      };
+      const system = messages.messages.find(
+        (message) => message.role === 'system',
+      )?.content;
+      expect(system).toContain(`Approved identity ${version}`);
+      expect(system).toContain(`Approved offering ${version}`);
+      expect(system).toContain(`Distinctive voice ${version}`);
+      expect(system).not.toContain('Conflicting legacy');
+      expect(system).toBe(formatBrief.mock.results.at(-1)?.value);
+    }
+    expect(f.runner.runWorkflow).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        inputValues: expect.objectContaining({ requireBrandHarness: true }),
+      }),
+    );
+    expect(f.assembly.assembleContext).not.toHaveBeenCalled();
+    expect(f.topPerformer.assembleContext).not.toHaveBeenCalled();
+    expect(f.realHarness.findApproved).toHaveBeenCalledWith('org-1', 'brand-1');
+    expect(f.realHarness.findOne).toHaveBeenCalledWith({
+      id: 'brand-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+    });
+  });
+
+  it('permits absent persona while preserving saved voice when no approval exists', async () => {
+    const f = await fixture({ omitPersona: true });
+    f.realHarness.findApproved.mockResolvedValue(null);
+    await f.service.generateContentWorkflow(
+      'user-1',
+      'org-1',
+      dto as never,
+      true,
+    );
+    const params = f.llm.completeStructured.mock.calls[0][0] as unknown as {
+      messages: Array<{ role: string; content: string }>;
+    };
+    expect(
+      params.messages.find((message) => message.role === 'system')?.content,
+    ).toContain('Saved fallback voice');
+  });
+
+  it.each([
+    'missing service',
+    'missing brand',
+    'null',
+    'empty',
+    'oversized',
+    'throwing',
+    'persona failure',
+  ] as const)('rejects %s before calling the provider', async (mode) => {
+    const f = await fixture({ omitHarness: mode === 'missing service' });
+    if (mode === 'null')
+      vi.spyOn(f.realHarness.harness, 'resolveBrief').mockResolvedValue(null);
+    if (mode === 'empty')
+      vi.spyOn(f.realHarness.harness, 'formatBrief').mockReturnValue('   ');
+    if (mode === 'oversized')
+      vi.spyOn(f.realHarness.harness, 'formatBrief').mockReturnValue(
+        'x'.repeat(BRAND_CONTEXT_CHARACTER_BUDGET + 1),
+      );
+    if (mode === 'throwing')
+      vi.spyOn(f.realHarness.harness, 'resolveBrief').mockRejectedValue(
+        new Error('Unavailable'),
+      );
+    if (mode === 'persona failure')
+      f.persona.findOne.mockRejectedValue(new Error('Persona unavailable'));
+    await expect(
+      f.service.generateContentWorkflow(
+        'user-1',
+        'org-1',
+        {
+          ...dto,
+          ...(mode === 'missing brand' ? { brandId: undefined } : {}),
+        } as never,
+        true,
+      ),
+    ).rejects.toThrow();
+    expect(f.llm.completeStructured).not.toHaveBeenCalled();
+  });
+
+  it('persists false by default and retains non-strict context assembly', async () => {
+    const f = await fixture({ omitHarness: true });
+    await f.service.generateContentWorkflow('user-1', 'org-1', dto as never);
+    expect(f.runner.runWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inputValues: expect.objectContaining({ requireBrandHarness: false }),
+      }),
+    );
+    expect(f.assembly.assembleContext).toHaveBeenCalled();
+    expect(f.topPerformer.assembleContext).toHaveBeenCalled();
+    expect(f.llm.completeStructured).toHaveBeenCalled();
+  });
 });

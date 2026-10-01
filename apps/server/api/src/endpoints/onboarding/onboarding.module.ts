@@ -22,6 +22,7 @@ import { BatchGenerationModule } from '@api/services/batch-generation/batch-gene
 import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
+import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { ComfyUIModule } from '@api/services/integrations/comfyui/comfyui.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
@@ -45,6 +46,7 @@ import { Module } from '@nestjs/common';
     ByokModule,
     ComfyUIModule,
     CommonModule,
+    ContentHarnessModule,
     CreditsModule,
     FilesClientModule,
     LinksModule,

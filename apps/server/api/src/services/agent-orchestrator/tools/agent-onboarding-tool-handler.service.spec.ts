@@ -499,8 +499,10 @@ describe('Agent onboarding first draft', () => {
         brandId: 'brand-1',
         platform: ContentIntelligencePlatform.TWITTER,
         variationsCount: 1,
-        topic: expect.stringContaining('Handmade commuter bicycles'),
+        topic:
+          'Introduce the brand with a useful, specific post grounded in its saved offering.',
       }),
+      true,
     );
     expect(generationGateway.generateImage).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({
@@ -610,6 +612,7 @@ describe('Agent onboarding first draft', () => {
           'Apply these requested changes: Use a calmer tone and focus on commuter bikes.',
         ]),
       }),
+      true,
     );
     expect(generationGateway.generateImage).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -750,19 +753,34 @@ describe('Agent onboarding first draft', () => {
     expect(generationGateway.generateImage).not.toHaveBeenCalled();
   });
 
-  it('does not spend an image generation when text generation fails', async () => {
-    vi.stubEnv('GENFEED_CLOUD', '1');
-    const { handler, contentGeneratorService, generationGateway } =
-      createHandler({ brand: { id: 'brand-1' } });
-    contentGeneratorService.generateContentWorkflow.mockRejectedValue(
-      new Error('Text provider unavailable'),
-    );
-    expect(
-      (await handler.generateOnboardingContent({ brandId: 'brand-1' }, CONTEXT))
-        .success,
-    ).toBe(false);
-    expect(generationGateway.generateImage).not.toHaveBeenCalled();
-  });
+  it.each([
+    'Text provider unavailable',
+    'Brand context is unavailable for this draft. Please retry.',
+  ])(
+    'returns the existing recoverable error without image or preview for %s',
+    async (message) => {
+      vi.stubEnv('GENFEED_CLOUD', '1');
+      const { handler, contentGeneratorService, generationGateway } =
+        createHandler({ brand: { id: 'brand-1' } });
+      contentGeneratorService.generateContentWorkflow.mockRejectedValue(
+        new Error(message),
+      );
+      const result = await handler.generateOnboardingContent(
+        { brandId: 'brand-1' },
+        CONTEXT,
+      );
+      expect(result).toMatchObject({
+        creditsUsed: 0,
+        error:
+          'We could not create your first post. Try again, or skip setup to open your workspace.',
+        isBillingDelegated: true,
+        success: false,
+      });
+      expect(result.nextActions).toBeUndefined();
+      expect(result.data).toBeUndefined();
+      expect(generationGateway.generateImage).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe('Agent onboarding create_brand identity', () => {
