@@ -390,6 +390,66 @@ describe('HiggsFieldService', () => {
       );
     });
 
+    it('uses caller key and returns actual status under the resolved binding', async () => {
+      const binding = await service.getCredentialFingerprint('org');
+      mockHttpService.post.mockReturnValue(
+        of({
+          data: {
+            request_id: 'stable',
+            status: 'completed',
+            video: { url: 'https://fixture.invalid/output' },
+          },
+        }),
+      );
+      const result = await service.generateMotionTransfer({
+        organizationId: 'org',
+        expectedCredentialFingerprint: binding,
+        idempotencyKey: 'durable-key',
+        imageUrls: ['https://fixture.invalid/image'],
+        videoUrl: 'https://fixture.invalid/video',
+      });
+      expect(result.status).toBe('completed');
+      expect(
+        mockHttpService.post.mock.calls[0][2].headers['Idempotency-Key'],
+      ).toBe('durable-key');
+    });
+    it('blocks changed credential before submit and bound status transport', async () => {
+      const binding = await service.getCredentialFingerprint('org');
+      mockByokService.resolveApiKey.mockResolvedValue({
+        apiKey: 'changed-key',
+        apiSecret: 'secret',
+      });
+      await expect(
+        service.generateMotionTransfer({
+          organizationId: 'org',
+          expectedCredentialFingerprint: binding,
+          idempotencyKey: 'same',
+          imageUrls: ['https://fixture.invalid/image'],
+          videoUrl: 'https://fixture.invalid/video',
+        }),
+      ).rejects.toThrow('CHARACTER_REPLACEMENT_CREDENTIALS_CHANGED');
+      await expect(
+        service.getBoundRequestStatus('accepted', 'org', binding),
+      ).rejects.toThrow('CHARACTER_REPLACEMENT_CREDENTIALS_CHANGED');
+      expect(mockHttpService.post).not.toHaveBeenCalled();
+      expect(mockHttpService.get).not.toHaveBeenCalled();
+    });
+    it('reads bound status with one credential resolution and matching account', async () => {
+      const binding = await service.getCredentialFingerprint('org');
+      mockByokService.resolveApiKey.mockClear();
+      mockHttpService.get.mockReturnValue(
+        of({ data: { request_id: 'accepted', status: 'in_progress' } }),
+      );
+      expect(
+        (await service.getBoundRequestStatus('accepted', 'org', binding))
+          .status,
+      ).toBe('in_progress');
+      expect(mockByokService.resolveApiKey).toHaveBeenCalledTimes(1);
+      expect(mockHttpService.get.mock.calls[0][1].headers.Authorization).toBe(
+        'Key test-key:test-secret',
+      );
+    });
+
     it('rejects a clip that is not https before calling Higgsfield', async () => {
       await expect(
         service.generateMotionTransfer({
