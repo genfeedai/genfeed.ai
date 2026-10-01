@@ -215,6 +215,46 @@ export interface VisualCodeAcceptanceFixture {
   close(): Promise<void>;
 }
 
+export interface VisualCodeCleanupStep {
+  stage: string;
+  run(): void | Promise<void>;
+}
+export interface VisualCodeCleanupLedgerEntry {
+  stage: string;
+  status: 'fulfilled' | 'rejected' | 'termination-unconfirmed';
+}
+export class VisualCodeCleanupStageError extends Error {
+  constructor(
+    readonly stage: string,
+    cause: unknown,
+  ) {
+    super(`Visual fixture cleanup failed: ${stage}`, { cause });
+  }
+}
+export class VisualCodeCleanupError extends AggregateError {
+  constructor(readonly failures: VisualCodeCleanupStageError[]) {
+    super(failures, 'Visual fixture cleanup failed');
+  }
+}
+export async function runVisualCodeCleanupSteps(
+  steps: VisualCodeCleanupStep[],
+  ledger: VisualCodeCleanupLedgerEntry[] = [],
+): Promise<void> {
+  const failures: VisualCodeCleanupStageError[] = [];
+  for (const step of steps) {
+    try {
+      await step.run();
+      ledger.push({ stage: step.stage, status: 'fulfilled' });
+    } catch (cause) {
+      ledger.push({ stage: step.stage, status: 'rejected' });
+      if (cause instanceof VisualCodeCleanupError)
+        failures.push(...cause.failures);
+      else failures.push(new VisualCodeCleanupStageError(step.stage, cause));
+    }
+  }
+  if (failures.length) throw new VisualCodeCleanupError(failures);
+}
+
 export type VisualCodeScriptedScenario =
   | 'hybrid-success'
   | 'compile-recovery'
@@ -519,7 +559,6 @@ export async function createVisualCodeAcceptanceFixture(
         dirname(runtimeOptions.artifactDirectory),
       )
     : undefined;
-  if (runtimeOptions) await validateRuntimeOptions(runtimeOptions);
   const originalFetch = globalThis.fetch;
   const actualQueues = new Map<string, Queue<WorkflowExecutionJobData>>();
   const receipts: IVisualSandboxReceipt[] = [];
@@ -538,7 +577,6 @@ export async function createVisualCodeAcceptanceFixture(
   const workerErrors: string[] = [];
   const prefix = `visual5695-${randomUUID()}`;
   let localStorage: LocalStorageProvider | undefined;
-  vi.stubEnv('GENFEED_CLOUD', 'true');
   const calls: VisualCodeExternalCalls = {
     routes: [],
     llm: [],
@@ -576,9 +614,194 @@ export async function createVisualCodeAcceptanceFixture(
   );
   let moduleRef: TestingModule | undefined;
   let prisma: PrismaService | undefined;
-  let fixture: VisualCodeAcceptanceFixture | undefined;
-  let closed = false;
+  let ownsRuntimeDirectory = false;
+  let setupFailed = false;
+  const cleanupLedger: VisualCodeCleanupLedgerEntry[] = [];
+  let runtimeClosePromise: Promise<void> | undefined;
+  let fixtureClosePromise: Promise<void> | undefined;
+  const closeRuntime = (): Promise<void> => {
+    runtimeClosePromise ??= (async () => {
+      const failures: VisualCodeCleanupStageError[] = [];
+      const steps: VisualCodeCleanupStep[] = [];
+      if (worker) {
+        let workerCloseFulfilled = false;
+        try {
+          await runVisualCodeCleanupSteps(
+            [
+              {
+                stage: 'worker.close',
+                async run() {
+                  await worker?.close();
+                  workerCloseFulfilled = true;
+                },
+              },
+            ],
+            cleanupLedger,
+          );
+        } catch (error) {
+          if (!(error instanceof VisualCodeCleanupError)) throw error;
+          failures.push(...error.failures);
+        }
+        if (workerCloseFulfilled)
+          steps.push({
+            stage: 'worker.run',
+            async run() {
+              await workerRun;
+            },
+          });
+        else
+          cleanupLedger.push({
+            stage: 'worker.termination',
+            status: 'termination-unconfirmed',
+          });
+      }
+      for (const [name, queue] of actualQueues) {
+        steps.push({
+          stage: `queue.${name}.obliterate`,
+          async run() {
+            await queue.obliterate({ force: true });
+          },
+        });
+        steps.push({
+          stage: `queue.${name}.close`,
+          async run() {
+            await queue.close();
+          },
+        });
+      }
+      try {
+        await runVisualCodeCleanupSteps(steps, cleanupLedger);
+      } catch (error) {
+        if (!(error instanceof VisualCodeCleanupError)) throw error;
+        failures.push(...error.failures);
+      }
+      if (failures.length) throw new VisualCodeCleanupError(failures);
+    })();
+    return runtimeClosePromise;
+  };
+  const closeFixture = (): Promise<void> => {
+    fixtureClosePromise ??= (async () => {
+      const steps: VisualCodeCleanupStep[] = [];
+      if (setupFailed && runtimeOptions && ownsRuntimeDirectory)
+        steps.push({
+          stage: 'evidence.setup-failure',
+          async run() {
+            await writeFile(
+              join(runtimeOptions.artifactDirectory, 'setup-failure.json'),
+              JSON.stringify({
+                outcome: 'failed',
+                phase: 'fixture-setup',
+                scenario: runtimeOptions.scenario,
+              }),
+              { mode: 0o600 },
+            );
+          },
+        });
+      if (runtimeHandle)
+        steps.push({
+          stage: 'evidence.before-cleanup',
+          async run() {
+            await runtimeHandle?.writeEvidence('before-cleanup');
+          },
+        });
+      steps.push({ stage: 'runtime.close', run: closeRuntime });
+      if (prisma)
+        steps.push({
+          stage: 'seeds.cleanup',
+          async run() {
+            if (prisma) await cleanupVisualCodeSeedState(prisma, seeds);
+          },
+        });
+      if (moduleRef)
+        steps.push({
+          stage: 'module.close',
+          async run() {
+            await moduleRef?.close();
+          },
+        });
+      steps.push(
+        {
+          stage: 'storage.upload.reset',
+          run() {
+            storageTransport.upload.mockReset();
+          },
+        },
+        {
+          stage: 'storage.download.reset',
+          run() {
+            storageTransport.download.mockReset();
+          },
+        },
+        {
+          stage: 'globals.restore',
+          run() {
+            vi.unstubAllGlobals();
+          },
+        },
+        {
+          stage: 'environment.restore',
+          run() {
+            vi.unstubAllEnvs();
+          },
+        },
+      );
+      let failure: VisualCodeCleanupError | undefined;
+      try {
+        await runVisualCodeCleanupSteps(steps, cleanupLedger);
+      } catch (error) {
+        if (!(error instanceof VisualCodeCleanupError)) throw error;
+        failure = error;
+      }
+      if (failure && runtimeOptions && ownsRuntimeDirectory) {
+        try {
+          await writeFile(
+            join(runtimeOptions.artifactDirectory, 'cleanup-failure.json'),
+            JSON.stringify(
+              { schemaVersion: 1, outcome: 'failed', stages: cleanupLedger },
+              null,
+              2,
+            ),
+            { mode: 0o600 },
+          );
+        } catch (cause) {
+          cleanupLedger.push({
+            stage: 'evidence.cleanup-failure',
+            status: 'rejected',
+          });
+          failure = new VisualCodeCleanupError([
+            ...failure.failures,
+            new VisualCodeCleanupStageError('evidence.cleanup-failure', cause),
+          ]);
+          try {
+            process.stderr.write(
+              'visual-fixture-cleanup-ledger-write-failed\n',
+            );
+          } catch (diagnosticCause) {
+            cleanupLedger.push({
+              stage: 'diagnostic.stderr',
+              status: 'rejected',
+            });
+            failure = new VisualCodeCleanupError([
+              ...failure.failures,
+              new VisualCodeCleanupStageError(
+                'diagnostic.stderr',
+                diagnosticCause,
+              ),
+            ]);
+          }
+        }
+      }
+      if (failure) throw failure;
+    })();
+    return fixtureClosePromise;
+  };
+
   try {
+    if (runtimeOptions) {
+      await validateRuntimeOptions(runtimeOptions);
+      ownsRuntimeDirectory = true;
+    }
+    vi.stubEnv('GENFEED_CLOUD', 'true');
     const png = await sharp({
       create: { width: 640, height: 360, channels: 4, background: '#4466aa' },
     })
@@ -1092,7 +1315,6 @@ export async function createVisualCodeAcceptanceFixture(
       });
       const executionQueue = actualQueues.get(WORKFLOW_EXECUTION_QUEUE);
       if (!executionQueue) throw new Error('Real execution queue absent');
-      let runtimeClosed = false;
       runtimeHandle = {
         queues: actualQueues,
         prefix,
@@ -1120,7 +1342,8 @@ export async function createVisualCodeAcceptanceFixture(
           if (workerRun) worker?.resume();
           if (!workerRun) {
             if (!worker) throw new Error('Worker absent');
-            workerRun = worker.run().catch((error: unknown) => {
+            workerRun = worker.run();
+            void workerRun.catch((error: unknown) => {
               workerErrors.push(
                 error instanceof Error ? error.message : String(error),
               );
@@ -1342,19 +1565,7 @@ export async function createVisualCodeAcceptanceFixture(
             { mode: 0o600 },
           );
         },
-        async close() {
-          if (runtimeClosed) return;
-          runtimeClosed = true;
-          await worker?.close();
-          await workerRun;
-          for (const queue of actualQueues.values()) {
-            try {
-              await queue.obliterate({ force: true });
-            } finally {
-              await queue.close();
-            }
-          }
-        },
+        close: closeRuntime,
       };
     }
 
@@ -1413,34 +1624,8 @@ export async function createVisualCodeAcceptanceFixture(
       resetExternalCalls() {
         for (const values of Object.values(calls)) values.length = 0;
       },
-      async close() {
-        if (closed) return;
-        closed = true;
-        try {
-          try {
-            if (runtimeHandle) {
-              try {
-                await runtimeHandle.writeEvidence('before-cleanup');
-              } finally {
-                await runtimeHandle.close();
-              }
-            }
-          } finally {
-            await cleanupVisualCodeFixture(createdFixture);
-          }
-        } finally {
-          try {
-            await compiledModule.close();
-          } finally {
-            storageTransport.upload.mockReset();
-            storageTransport.download.mockReset();
-            vi.unstubAllGlobals();
-            vi.unstubAllEnvs();
-          }
-        }
-      },
+      close: closeFixture,
     };
-    fixture = createdFixture;
     const registry = compiledModule.get(AgentChatModelRegistryService);
     await registry.refresh();
     const runner = compiledModule.get(SystemWorkflowRunnerService);
@@ -1450,32 +1635,22 @@ export async function createVisualCodeAcceptanceFixture(
     runner.onApplicationBootstrap();
     return createdFixture;
   } catch (error) {
-    if (runtimeOptions)
-      await writeFile(
-        join(runtimeOptions.artifactDirectory, 'setup-failure.json'),
-        JSON.stringify({
-          outcome: 'failed',
-          phase: 'fixture-setup',
-          scenario: runtimeOptions.scenario,
-          workerErrors,
-        }),
-      ).catch(() => undefined);
+    setupFailed = true;
     try {
-      if (fixture) await fixture.close();
-      else if (prisma) await cleanupVisualCodeSeedState(prisma, seeds);
-    } finally {
-      if (!closed) {
-        await worker?.close();
-        for (const queue of actualQueues.values()) {
-          await queue.obliterate({ force: true });
-          await queue.close();
-        }
-        await moduleRef?.close();
+      await closeFixture();
+    } catch (cleanupError) {
+      try {
+        process.stderr.write('visual-fixture-setup-cleanup-failed\n');
+      } catch (diagnosticCause) {
+        cleanupLedger.push({ stage: 'diagnostic.stderr', status: 'rejected' });
+        if (cleanupError instanceof VisualCodeCleanupError)
+          cleanupError.failures.push(
+            new VisualCodeCleanupStageError(
+              'diagnostic.stderr',
+              diagnosticCause,
+            ),
+          );
       }
-      storageTransport.upload.mockReset();
-      storageTransport.download.mockReset();
-      vi.unstubAllGlobals();
-      vi.unstubAllEnvs();
     }
     throw error;
   }
@@ -1698,12 +1873,6 @@ export async function seedVisualCodeAcceptanceActor(
     );
   fixture.calls.uploads.length = 0;
   return actor;
-}
-
-async function cleanupVisualCodeFixture(
-  fixture: VisualCodeAcceptanceFixture,
-): Promise<void> {
-  await cleanupVisualCodeSeedState(fixture.prisma, fixture.seeds);
 }
 
 async function cleanupVisualCodeSeedState(

@@ -21,14 +21,17 @@ import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/contracts/queue';
 import type { VisualRevision } from '@genfeedai/prisma';
 import { HttpException } from '@nestjs/common';
 import sharp from 'sharp';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
   createVisualCodeAcceptanceFixture,
   readVisualRuntimePreflight,
+  runVisualCodeCleanupSteps,
   seedVisualCodeAcceptanceActor,
   type VisualCodeAcceptanceActor,
   type VisualCodeAcceptanceFixture,
+  VisualCodeCleanupError,
+  type VisualCodeCleanupStep,
   type VisualCodeRuntimeFixture,
   type VisualCodeScriptedScenario,
 } from './visual-code-acceptance.fixture';
@@ -81,6 +84,7 @@ const receiptSchema = z.array(
     .passthrough(),
 );
 let fixture: VisualCodeAcceptanceFixture | undefined;
+let scenarioDeadline = 0;
 function required(name: string) {
   const value = process.env[name];
   if (!value) throw new Error(`Missing explicit ${name}`);
@@ -347,17 +351,28 @@ async function media(
     );
     await writeFile(path, bytes);
     if (output.format === 'mp4') {
+      const remainingMs = scenarioDeadline - Date.now();
+      if (remainingMs <= 0)
+        throw new Error('Scenario deadline exceeded before ffprobe');
       const probe = JSON.parse(
         (
-          await exec('ffprobe', [
-            '-v',
-            'error',
-            '-show_streams',
-            '-show_format',
-            '-of',
-            'json',
-            path,
-          ])
+          await exec(
+            'ffprobe',
+            [
+              '-v',
+              'error',
+              '-show_streams',
+              '-show_format',
+              '-of',
+              'json',
+              path,
+            ],
+            {
+              timeout: Math.min(30000, remainingMs),
+              maxBuffer: 1048576,
+              killSignal: 'SIGKILL',
+            },
+          )
         ).stdout,
       ) as {
         streams: {
@@ -924,10 +939,121 @@ async function finish(
   await settlement(f, actor, result.revision);
   return result;
 }
+describe('visual-code cleanup rejection isolation (renderless)', () => {
+  it.each([
+    ['synchronous', 0],
+    ['synchronous', 1],
+    ['asynchronous', 0],
+    ['asynchronous', 1],
+  ] as const)(
+    'continues after %s failure at step %i',
+    async (mode, failedIndex) => {
+      const calls: string[] = [];
+      const cause = { original: mode, failedIndex };
+      const stages = ['first', 'middle', 'last'];
+      const steps: VisualCodeCleanupStep[] = stages.map((stage, index) => ({
+        stage,
+        run() {
+          calls.push(stage);
+          if (index === failedIndex) {
+            if (mode === 'synchronous') throw cause;
+            return Promise.reject(cause);
+          }
+        },
+      }));
+      const failure: unknown = await runVisualCodeCleanupSteps(steps).then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+      expect(calls).toStrictEqual(stages);
+      expect(failure).toBeInstanceOf(VisualCodeCleanupError);
+      if (!(failure instanceof VisualCodeCleanupError))
+        throw new Error('Cleanup failure aggregate absent');
+      expect(failure.failures).toHaveLength(1);
+      expect(failure.failures[0]?.stage).toBe(stages[failedIndex]);
+      expect(failure.failures[0]?.cause).toBe(cause);
+    },
+  );
+  it('collects resource and restoration failures while attempting every later step', async () => {
+    const stages = [
+      'queue.first.obliterate',
+      'queue.first.close',
+      'queue.second.obliterate',
+      'queue.second.close',
+      'module.close',
+      'storage.upload.reset',
+      'storage.download.reset',
+      'globals.restore',
+      'environment.restore',
+    ];
+    const failedStages = new Set([
+      'queue.first.obliterate',
+      'queue.first.close',
+      'module.close',
+      'storage.upload.reset',
+    ]);
+    const causes = new Map(
+      [...failedStages].map((stage) => [stage, new Error(stage)]),
+    );
+    const calls: string[] = [];
+    const ledger: Parameters<typeof runVisualCodeCleanupSteps>[1] = [];
+    const failure: unknown = await runVisualCodeCleanupSteps(
+      stages.map((stage) => ({
+        stage,
+        run() {
+          calls.push(stage);
+          if (failedStages.has(stage)) throw causes.get(stage);
+        },
+      })),
+      ledger,
+    ).then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    expect(calls).toStrictEqual(stages);
+    expect(failure).toBeInstanceOf(VisualCodeCleanupError);
+    if (!(failure instanceof VisualCodeCleanupError))
+      throw new Error('Cleanup failure aggregate absent');
+    expect(failure.failures.map((error) => error.stage)).toStrictEqual([
+      ...failedStages,
+    ]);
+    for (const error of failure.failures)
+      expect(error.cause).toBe(causes.get(error.stage));
+    expect(ledger).toStrictEqual(
+      stages.map((stage) => ({
+        stage,
+        status: failedStages.has(stage) ? 'rejected' : 'fulfilled',
+      })),
+    );
+  });
+  it('fulfills after all successful steps', async () => {
+    const calls: string[] = [];
+    const ledger: Parameters<typeof runVisualCodeCleanupSteps>[1] = [];
+    await expect(
+      runVisualCodeCleanupSteps(
+        ['first', 'last'].map((stage) => ({
+          stage,
+          run() {
+            calls.push(stage);
+          },
+        })),
+        ledger,
+      ),
+    ).resolves.toBeUndefined();
+    expect(calls).toStrictEqual(['first', 'last']);
+    expect(ledger).toStrictEqual([
+      { stage: 'first', status: 'fulfilled' },
+      { stage: 'last', status: 'fulfilled' },
+    ]);
+  });
+});
 const enabled = process.env.VISUAL_CODE_LOCAL_ACCEPTANCE === '1';
 describe.skipIf(!enabled)(
   'visual-code local-runtime acceptance (explicit owned DB/Redis and Linux runsc prerequisites)',
   () => {
+    beforeEach(() => {
+      scenarioDeadline = Date.now() + 900000;
+    });
     afterEach(async () => {
       const current = fixture;
       fixture = undefined;
@@ -1279,9 +1405,12 @@ describe.skipIf(!enabled)(
       expect(revision.status).toBe(VisualCodeStatus.CANCELLED);
       expect(revision.outputs).toEqual([]);
       await settlement(f, actor, revision);
-      const terminalDeadline = Date.now() + 120000;
+      const terminalDeadline = Math.min(Date.now() + 120000, scenarioDeadline);
       let cancelled = false;
       while (Date.now() < terminalDeadline) {
+        const remainingMs = terminalDeadline - Date.now();
+        if (remainingMs <= 0) break;
+        const signal = AbortSignal.timeout(remainingMs);
         const id = f.calls.rendererSubmissions[0];
         if (!id) throw new Error('Submitted renderer ID absent');
         const response = await fetch(
@@ -1294,16 +1423,26 @@ describe.skipIf(!enabled)(
               authorization: `Bearer ${required('VISUAL_CODE_LOCAL_RENDERER_TOKEN')}`,
             },
             redirect: 'error',
+            signal,
           },
         );
-        const receipt = (await response.json()) as { status: string };
+        if (!response.ok)
+          throw new Error(`Renderer HTTP status ${response.status}`);
+        const receipt = z
+          .object({ status: z.string() })
+          .parse(await response.json());
         if (receipt.status === 'cancelled') {
           cancelled = true;
           break;
         }
         if (['completed', 'failed'].includes(receipt.status))
           throw new Error('Renderer did not cancel actual running job');
-        await new Promise((accept) => setTimeout(accept, 100));
+        const delayMs = Math.max(
+          0,
+          Math.min(100, terminalDeadline - Date.now()),
+        );
+        if (delayMs > 0)
+          await new Promise((accept) => setTimeout(accept, delayMs));
       }
       expect(cancelled).toBe(true);
       const before = await snapshot(f, actor);
