@@ -9,6 +9,20 @@ const source = readFileSync(
 );
 
 describe('WorkflowsModule optional executor imports', () => {
+  it('mounts the learning core and its actual workflow definition owner', () => {
+    expect(source).toContain(
+      "from '@api/collections/content-learning/content-learning-core.module'",
+    );
+    expect(source).toMatch(
+      /imports:\s*\[[\s\S]*ContentLearningCoreModule[\s\S]*\]/,
+    );
+    expect(source).toContain(
+      "from '@api/collections/workflows/services/content-learning-workflow.service'",
+    );
+    expect(source).toMatch(
+      /providers:\s*\[[\s\S]*ContentLearningWorkflowService[\s\S]*\]/,
+    );
+  });
   it('imports fat PostsModule so AnalyticsSyncWorkflowService is constructible', () => {
     expect(source).toContain("from '@api/collections/posts/posts.module'");
     expect(source).toContain('PostsModule');

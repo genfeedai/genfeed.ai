@@ -21,6 +21,7 @@ import { AgentGoalsModule } from '@api/collections/agent-goals/agent-goals.modul
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
+import { ContentLearningCoreModule } from '@api/collections/content-learning/content-learning-core.module';
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
@@ -53,6 +54,7 @@ import { TwitterSocialAdapter } from '@api/collections/workflows/services/adapte
 import { YoutubeSocialAdapter } from '@api/collections/workflows/services/adapters/youtube-social.adapter';
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
 import { BatchWorkflowExecutionService } from '@api/collections/workflows/services/batch-workflow-execution.service';
+import { ContentLearningWorkflowService } from '@api/collections/workflows/services/content-learning-workflow.service';
 import { ContentProductionWorkflowService } from '@api/collections/workflows/services/content-production-workflow.service';
 import { LivestreamBotWorkflowService } from '@api/collections/workflows/services/livestream-bot-workflow.service';
 import { OutreachCampaignDispatchWorkflowService } from '@api/collections/workflows/services/outreach-campaign-dispatch-workflow.service';
@@ -177,6 +179,7 @@ import { Module } from '@nestjs/common';
     CaptionsModule,
     ContentEngineModule,
     ContentPerformanceModule,
+    ContentLearningCoreModule,
     CredentialsCoreModule,
     CreditsModule,
     ElevenLabsModule,
@@ -256,6 +259,7 @@ import { Module } from '@nestjs/common';
     // are unregistered — so the services backing those actions belong here.
     AgentAutopilotWorkflowService,
     ContentProductionWorkflowService,
+    ContentLearningWorkflowService,
     TrendNotificationWorkflowService,
     LivestreamBotWorkflowService,
     OutreachCampaignDispatchWorkflowService,
