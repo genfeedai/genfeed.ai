@@ -276,7 +276,7 @@ describe('workflow immutable financial evidence', () => {
       claimId: 'claim-a',
     };
     expect(() =>
-      applyWorkflowOperationEvidence(plan, claim, new Date('2026-10-02')),
+      applyWorkflowOperationEvidence(plan, claim, new Date('2099-01-02')),
     ).toThrow(
       expect.objectContaining({
         response: expect.objectContaining({
