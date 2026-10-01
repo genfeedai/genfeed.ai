@@ -1452,6 +1452,7 @@ describe('snapshot diagnostic cardinality', () => {
       header: '',
       content: 'Complete registered craft',
       isAtomic: true,
+      untrusted: false,
     };
     const stage: SnapshotContextStage = [
       {

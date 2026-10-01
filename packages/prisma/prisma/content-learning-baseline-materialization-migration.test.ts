@@ -117,8 +117,8 @@ async function withMigration(
   ) => Promise<void>,
 ) {
   if (!databaseUrl) throw new Error('Missing isolated database URL');
-  const schema = `learning_baseline_materialization_test_${randomUUID().replaceAll('-', '')}`;
-  if (!/^learning_baseline_materialization_test_[0-9a-f]{32}$/.test(schema))
+  const schema = `learning_baseline_test_${randomUUID().replaceAll('-', '')}`;
+  if (!/^learning_baseline_test_[0-9a-f]{32}$/.test(schema))
     throw new Error('Invalid fixture schema');
   const pool = new Pool({ connectionString: databaseUrl, max: 1 });
   let client: PoolClient | undefined;

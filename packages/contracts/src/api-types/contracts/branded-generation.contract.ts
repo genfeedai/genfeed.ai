@@ -176,6 +176,10 @@ const literalText = z
   .min(1)
   .max(4000)
   .refine(
+    (value) => value.length <= 4000,
+    'Wording must not exceed 4000 UTF-16 code units',
+  )
+  .refine(
     (value) =>
       /\S/.test(value) &&
       Array.from(value).every((char) => {
