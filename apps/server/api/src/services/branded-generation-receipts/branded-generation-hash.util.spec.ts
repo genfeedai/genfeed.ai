@@ -450,7 +450,11 @@ describe('frozen typed hash projections', () => {
     ).not.toBe(hashBrandArtifactValidationReportV1(v));
   });
   it('operation rejects top-level keys while preserving nested command names', () => {
-    for (const body of [{ expectedRevision: 0 }, { operationKey: 'key' }])
+    const invalidBodies: readonly BrandedGenerationJsonV1[] = [
+      { expectedRevision: 0 },
+      { operationKey: 'key' },
+    ];
+    for (const body of invalidBodies)
       expect(() => hashBrandedGenerationOperationV1('resolve', body)).toThrow(
         'Invalid branded generation JSON',
       );
