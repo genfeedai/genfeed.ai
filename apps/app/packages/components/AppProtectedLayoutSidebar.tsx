@@ -17,7 +17,6 @@ import AppSidebar from '@ui/shell/menus/AppSidebar';
 import { Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import AppProtectedBrandSwitcher from '@/components/shell/AppProtectedBrandSwitcher';
 import { useOpenTaskComposer } from './useOpenTaskComposer';
 
 type AppSidebarSurface = {
@@ -28,8 +27,6 @@ type AppSidebarSurface = {
 };
 
 type Props = {
-  /** Route brand slug for the header brand switcher. */
-  brandSlug?: string;
   currentApp?: MenuSharedProps['currentApp'];
   isCollapsed?: MenuSharedProps['isCollapsed'];
   onToggleCollapse?: MenuSharedProps['onToggleCollapse'];
@@ -39,8 +36,6 @@ type Props = {
    * while DesktopSidebar and --desktop-sidebar-width track the drag.
    */
   sidebarWidth?: MenuSharedProps['sidebarWidth'];
-  /** Route org slug for the header brand switcher. */
-  orgSlug?: string;
   isAdminRoute: boolean;
   isAnalyticsRoute: boolean;
   isConversationRoute: boolean;
@@ -76,9 +71,7 @@ type Props = {
 };
 
 export default function AppProtectedLayoutSidebar({
-  brandSlug,
   currentApp,
-  orgSlug,
   isCollapsed,
   onToggleCollapse,
   sidebarWidth = SIDEBAR_DEFAULT_WIDTH,
@@ -116,16 +109,6 @@ export default function AppProtectedLayoutSidebar({
   const isDesktop = useIsDesktopClient();
   const newItemShortcut = isDesktop ? '⌘⇧N' : undefined;
   const { href } = useOrgUrl();
-  // The header carries the brand switcher (Codex "Codex ▾" slot); the
-  // organization avatar lives on the app rail. The brand switcher hides itself
-  // on admin, organization-settings and personal-settings pages (#4659).
-  const headerSlot = (
-    <AppProtectedBrandSwitcher
-      brandSlug={brandSlug}
-      isAdminChrome={isAdminRoute}
-      orgSlug={orgSlug}
-    />
-  );
   const sidebarStateProps = {
     isCollapsed,
     onToggleCollapse,
@@ -242,8 +225,8 @@ export default function AppProtectedLayoutSidebar({
         active: isSettingsRoute,
         currentApp,
         items: settingsMenuItems,
-        // No top-level "Settings" shell header — org/brand switcher + group
-        // labels (Organization / Access, Brand / Automation) are enough.
+        // No top-level "Settings" title. Group labels (Organization / Access,
+        // Brand / Automation) are enough. The brand switcher is in the topbar.
         sectionLabel: undefined,
       },
     ] satisfies AppSidebarSurface[]
@@ -256,7 +239,6 @@ export default function AppProtectedLayoutSidebar({
         currentApp={surface.currentApp}
         items={surface.items}
         sectionLabel={navPanel ? navPanel.sectionLabel : surface.sectionLabel}
-        headerSlot={headerSlot}
         sidebarWidth={sidebarWidth}
         {...navPanelProps}
         renderTopSlot={
@@ -276,7 +258,6 @@ export default function AppProtectedLayoutSidebar({
       sectionLabel={translate('workspace')}
       collapsedSidebarWidth={0}
       mobileSidebarWidth={304}
-      headerSlot={headerSlot}
       renderTopSlot={renderQuickActions}
       secondaryItems={secondaryMenuItems}
       showPrimaryItems

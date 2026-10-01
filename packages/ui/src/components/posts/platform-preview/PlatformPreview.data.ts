@@ -227,8 +227,10 @@ export function buildPostTargets(
 
   return platforms.map((platform) => ({
     author: {
-      handle: accountHandle,
-      name: accountName,
+      avatarUrl: post.credential?.externalAvatar ?? undefined,
+      handle: post.credential?.externalHandle || accountHandle,
+      name:
+        post.credential?.externalName || post.credential?.label || accountName,
     },
     caption: post.description ?? '',
     media,

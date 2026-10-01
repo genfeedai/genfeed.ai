@@ -9,7 +9,6 @@ import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 import type { Plugin } from 'yet-another-react-lightbox';
-import 'yet-another-react-lightbox/plugins/captions.css';
 import 'yet-another-react-lightbox/plugins/thumbnails.css';
 import 'yet-another-react-lightbox/styles.css';
 
@@ -52,7 +51,7 @@ export default function MediaLightbox({
 
   // Tint the viewer backdrop with a heavily-darkened version of the focused
   // slide's dominant colour so the viewer takes on the content's colour while
-  // the lightbox chrome (buttons, captions) stays grayscale.
+  // the lightbox chrome stays grayscale.
   const activeItem = items[activeIndex] ?? items[startIndex];
   const dominant = useDominantColor(
     activeItem?.ingredientUrl ?? activeItem?.thumbnailUrl,
@@ -74,15 +73,14 @@ export default function MediaLightbox({
     // Dynamically import ESM plugins on the client side. Abort on unmount so a
     // late resolution cannot setState after teardown (React root races).
     let isCancelled = false;
-    Promise.all([
-      import('yet-another-react-lightbox/plugins/captions'),
-      import('yet-another-react-lightbox/plugins/thumbnails'),
-    ]).then(([CaptionsModule, ThumbnailsModule]) => {
-      if (isCancelled) {
-        return;
-      }
-      setPlugins([CaptionsModule.default, ThumbnailsModule.default]);
-    });
+    import('yet-another-react-lightbox/plugins/thumbnails').then(
+      (ThumbnailsModule) => {
+        if (isCancelled) {
+          return;
+        }
+        setPlugins([ThumbnailsModule.default]);
+      },
+    );
     return () => {
       isCancelled = true;
     };
@@ -140,15 +138,6 @@ export default function MediaLightbox({
         slide.thumbnailSrc = posterUrl;
       }
 
-      // Add title and description for captions plugin
-      if (item.metadataLabel) {
-        slide.title = item.metadataLabel;
-      }
-
-      if (item.promptText) {
-        slide.description = item.promptText;
-      }
-
       acc.push(slide);
       return acc;
     }, []);
@@ -171,11 +160,6 @@ export default function MediaLightbox({
       slides={slides}
       index={safeIndex}
       plugins={plugins}
-      captions={{
-        descriptionMaxLines: 3,
-        descriptionTextAlign: 'start',
-        showToggle: true,
-      }}
       thumbnails={{
         border: 0,
         borderRadius: 4,

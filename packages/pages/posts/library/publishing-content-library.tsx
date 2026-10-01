@@ -40,6 +40,7 @@ import {
   parsePublishingContentType,
 } from '@pages/posts/library/publishing-content-library.helpers';
 import PublishingContentLibraryToolbar from '@pages/posts/library/publishing-content-library-toolbar';
+import PublishingPostHoverPreview from '@pages/posts/library/publishing-post-hover-preview';
 import { needsPostAttention } from '@pages/posts/list/post-attention.helpers';
 import ReleaseDetailDrawer from '@pages/posts/release/release-detail-drawer';
 import { isTargetBlockedByReadiness } from '@pages/posts/shared/release-status.helpers';
@@ -199,6 +200,10 @@ export default function PublishingContentLibrary({
   const items = useMemo(
     () => createPublishingContentLibraryItems(collections),
     [collections],
+  );
+  const postsById = useMemo(
+    () => new Map(collections.posts.map((post) => [post.id, post])),
+    [collections.posts],
   );
   const channelOptions = useMemo(
     () =>
@@ -467,7 +472,10 @@ export default function PublishingContentLibrary({
       header: 'Content',
       key: 'title',
       render: (item) => (
-        <>
+        <PublishingPostHoverPreview
+          post={postsById.get(item.id)}
+          release={item.release}
+        >
           <PublishingContentIdentity
             channels={item.channels ?? [item.channel]}
             title={item.title}
@@ -485,7 +493,7 @@ export default function PublishingContentLibrary({
               </span>
             ) : null}
           </div>
-        </>
+        </PublishingPostHoverPreview>
       ),
     },
     {
@@ -664,12 +672,17 @@ export default function PublishingContentLibrary({
       }}
     >
       <Card>
-        <PublishingContentIdentity
-          channels={item.channels ?? [item.channel]}
-          title={item.title}
-          summary={item.summary}
-          titleHref={getDetailHref(item)}
-        />
+        <PublishingPostHoverPreview
+          post={postsById.get(item.id)}
+          release={item.release}
+        >
+          <PublishingContentIdentity
+            channels={item.channels ?? [item.channel]}
+            title={item.title}
+            summary={item.summary}
+            titleHref={getDetailHref(item)}
+          />
+        </PublishingPostHoverPreview>
         <div className="flex items-center justify-between gap-2">
           <Badge>{formatPublishingContentType(item.type)}</Badge>
           <Badge status={item.status}>

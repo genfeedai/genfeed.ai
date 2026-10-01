@@ -1,32 +1,27 @@
 'use client';
 
+import { isPersonalSettingsPage } from '@app-components/app-protected-layout.settings-scope';
 import {
   AGENT_DOCK_CHROME_VISIBLE,
   useAgentDock,
 } from '@contexts/ui/agent-dock-context';
-import { useContextSidebar } from '@contexts/ui/context-sidebar-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_DISPLAY_LABELS } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers';
 import type { TopbarProps } from '@props/navigation/topbar.props';
-import SidebarLogoToggleButton from '@ui/menus/sidebar-logo-toggle/SidebarLogoToggleButton';
+import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
 import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
-import {
-  Menu,
-  PanelBottomClose,
-  PanelBottomOpen,
-  PanelRightClose,
-  PanelRightOpen,
-  X,
-} from 'lucide-react';
+import { Menu, PanelBottomClose, PanelBottomOpen, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, Suspense, useId } from 'react';
 
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
+import AppProtectedBrandSwitcher from '@/components/shell/AppProtectedBrandSwitcher';
 import GenerationToasts from '@/components/shell/GenerationToasts';
 import NotificationInboxMenu from '@/components/shell/NotificationInboxMenu';
 
@@ -104,12 +99,12 @@ function UnavailableToggleFrame({
 }
 
 function AppProtectedTopbarContent({
+  brandSlug,
   chrome = 'app',
+  currentApp,
   isMenuOpen,
   onMenuToggle,
-  isSidebarCollapsed,
-  onSidebarToggle,
-  currentApp,
+  orgSlug,
 }: AppProtectedTopbarProps = {}) {
   const pathname = usePathname();
   // Settings routes (/:org/~/settings or /:org/:brand/settings) show
@@ -117,29 +112,9 @@ function AppProtectedTopbarContent({
   // brand slug named "settings" cannot trigger the settings breadcrumb.
   const isSettingsRoute =
     pathname?.split('/').filter(Boolean)[2] === 'settings';
-  const contextSidebar = useContextSidebar();
-  const translateContextSidebar = useTranslations('common.contextSidebar');
+  const { settings } = useBrand();
   const agentDock = useAgentDock();
   const translateAgentDock = useTranslations('common.agentDock');
-  // The toggle drives the context sidebar. It stays in the bar while nothing
-  // is selected (disabled) so the controls never appear and disappear as the
-  // route changes.
-  const rightPanel = contextSidebar
-    ? {
-        isDisabled: !contextSidebar.selection,
-        isMobileOpen: contextSidebar.isMobileOpen,
-        isOpen: contextSidebar.isOpen,
-        labels: {
-          close: translateContextSidebar('close'),
-          collapse: translateContextSidebar('collapse'),
-          empty: translateContextSidebar('empty'),
-          expand: translateContextSidebar('expand'),
-          open: translateContextSidebar('open'),
-        },
-        setIsMobileOpen: contextSidebar.setIsMobileOpen,
-        toggle: contextSidebar.toggle,
-      }
-    : null;
 
   const ToggleIcon = isMenuOpen ? X : Menu;
   const isAdminChrome = chrome === 'admin';
@@ -149,22 +124,13 @@ function AppProtectedTopbarContent({
     : (currentApp ?? 'workspace');
   return (
     <header className="h-full w-full bg-transparent">
-      {/* Page identity and actions only: the brand switcher is the sidebar
-          header and the organization is on the app rail. */}
+      {/* Leading edge, one height: organization, brand, then the breadcrumb.
+          The Genfeed mark lives in the rail. Every control is h-8. */}
       <div
         data-testid="app-protected-topbar-inner"
-        className="grid h-full w-full grid-cols-[minmax(0,1fr)_minmax(0,auto)_minmax(min-content,1fr)] items-center gap-3 px-3"
+        className="flex h-full w-full items-center gap-1 px-2 md:gap-3 md:px-3"
       >
-        <div className="flex min-w-0 items-center gap-1.5 justify-self-start">
-          {onSidebarToggle && isSidebarCollapsed ? (
-            <SidebarLogoToggleButton
-              ariaLabel="Expand sidebar"
-              className="hidden md:flex"
-              direction="expand"
-              onClick={onSidebarToggle}
-            />
-          ) : null}
-
+        <div className="flex min-w-0 flex-1 items-center gap-1 md:gap-1.5">
           {onMenuToggle ? (
             <Button
               type="button"
@@ -176,22 +142,40 @@ function AppProtectedTopbarContent({
                 isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'
               }
               onClick={onMenuToggle}
+              withWrapper={false}
             >
               <ToggleIcon className="size-4" />
             </Button>
           ) : null}
+
+          {isAdminChrome || isPersonalSettingsPage(pathname) ? null : (
+            <div className="w-max min-w-0 max-w-52 md:shrink-0">
+              <OrganizationSwitcher
+                compactOnMobile
+                subscriptionTier={settings?.subscriptionTier}
+              />
+            </div>
+          )}
+
+          <div className="w-max min-w-0 max-w-52 md:shrink-0">
+            <AppProtectedBrandSwitcher
+              brandSlug={brandSlug}
+              isAdminChrome={isAdminChrome}
+              orgSlug={orgSlug}
+            />
+          </div>
+
+          <div className="hidden min-w-0 md:flex">
+            <TopbarBreadcrumbs
+              fallbackRootLabel={
+                TOPBAR_BREADCRUMB_ROOT_LABELS[breadcrumbFallbackApp]
+              }
+              rootLabel={isSettingsRoute ? 'Settings' : undefined}
+            />
+          </div>
         </div>
 
-        <div className="hidden min-w-0 justify-center md:flex">
-          <TopbarBreadcrumbs
-            fallbackRootLabel={
-              TOPBAR_BREADCRUMB_ROOT_LABELS[breadcrumbFallbackApp]
-            }
-            rootLabel={isSettingsRoute ? 'Settings' : undefined}
-          />
-        </div>
-
-        <div className="flex min-w-0 items-center justify-end gap-1.5">
+        <div className="flex min-w-0 shrink-0 items-center justify-end gap-1 md:gap-1.5">
           {!isAdminChrome ? <TopbarCreditsBar /> : null}
 
           {!isAdminChrome ? <NotificationInboxMenu /> : null}
@@ -199,11 +183,10 @@ function AppProtectedTopbarContent({
 
           {!isAdminChrome ? <CloudSyncIndicator /> : null}
 
-          {/* Inspector toggles stay in this slot and disable when nothing is
-              selected. At `xl` and up the rail toggle collapses the inspector;
-              below `xl` that variant is display:none and the drawer toggle
-              takes the slot. The agent-dock toggle uses the same unavailable
-              frame, but page-bubble chrome leaves it unmounted. */}
+          {/* Account chrome only. The details toggle lives on the page
+              sub-nav: it opens the inspector inside the content. The
+              agent-dock toggle uses the unavailable frame, but page-bubble
+              chrome leaves it unmounted. */}
           {agentDock && AGENT_DOCK_CHROME_VISIBLE ? (
             <UnavailableToggleFrame
               className="inline-flex"
@@ -240,81 +223,6 @@ function AppProtectedTopbarContent({
                 )}
               </Button>
             </UnavailableToggleFrame>
-          ) : null}
-          {rightPanel ? (
-            <>
-              <UnavailableToggleFrame
-                className="hidden xl:inline-flex"
-                isUnavailable={rightPanel.isDisabled}
-                reason={rightPanel.labels.empty}
-              >
-                <Button
-                  aria-controls="workspace-context-inspector"
-                  aria-expanded={!rightPanel.isDisabled && rightPanel.isOpen}
-                  type="button"
-                  variant={ButtonVariant.GHOST}
-                  size={ButtonSize.ICON}
-                  className="hidden size-8 xl:inline-flex"
-                  data-active={
-                    !rightPanel.isDisabled && rightPanel.isOpen
-                      ? 'true'
-                      : 'false'
-                  }
-                  data-testid="topbar-inspector-toggle"
-                  isDisabled={rightPanel.isDisabled}
-                  withWrapper={false}
-                  ariaLabel={
-                    rightPanel.isDisabled
-                      ? rightPanel.labels.empty
-                      : rightPanel.isOpen
-                        ? rightPanel.labels.collapse
-                        : rightPanel.labels.expand
-                  }
-                  onClick={rightPanel.toggle}
-                >
-                  {rightPanel.isOpen ? (
-                    <PanelRightClose className="size-4" />
-                  ) : (
-                    <PanelRightOpen className="size-4" />
-                  )}
-                </Button>
-              </UnavailableToggleFrame>
-              <UnavailableToggleFrame
-                className="inline-flex xl:hidden"
-                isUnavailable={rightPanel.isDisabled}
-                reason={rightPanel.labels.empty}
-              >
-                <Button
-                  aria-controls="workspace-context-inspector-drawer"
-                  aria-expanded={
-                    !rightPanel.isDisabled && rightPanel.isMobileOpen
-                  }
-                  type="button"
-                  variant={ButtonVariant.GHOST}
-                  size={ButtonSize.ICON}
-                  className="inline-flex size-8 xl:hidden"
-                  data-testid="topbar-inspector-drawer-toggle"
-                  isDisabled={rightPanel.isDisabled}
-                  withWrapper={false}
-                  ariaLabel={
-                    rightPanel.isDisabled
-                      ? rightPanel.labels.empty
-                      : rightPanel.isMobileOpen
-                        ? rightPanel.labels.close
-                        : rightPanel.labels.open
-                  }
-                  onClick={() =>
-                    rightPanel.setIsMobileOpen(!rightPanel.isMobileOpen)
-                  }
-                >
-                  {rightPanel.isMobileOpen ? (
-                    <PanelRightClose className="size-4" />
-                  ) : (
-                    <PanelRightOpen className="size-4" />
-                  )}
-                </Button>
-              </UnavailableToggleFrame>
-            </>
           ) : null}
         </div>
       </div>

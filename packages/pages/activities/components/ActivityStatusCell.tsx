@@ -12,7 +12,7 @@ type Props = {
   status: string;
 };
 
-/** Same labelled status pill as the tasks list: tone, icon, and Title Case label. */
+/** Same uppercase status pill as the tasks list: tone, icon, and label. */
 export default function ActivityStatusCell({ status }: Props) {
   return (
     <Badge
