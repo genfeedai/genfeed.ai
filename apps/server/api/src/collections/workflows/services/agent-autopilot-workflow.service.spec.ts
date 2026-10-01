@@ -696,6 +696,61 @@ describe('AgentAutopilotWorkflowService.discoverProactiveStrategies', () => {
     ).toEqual(['strategy-100', 'strategy-101', 'strategy-102']);
   });
 
+  it('discovers accepted future-cadence work while retaining strategy opt-outs', async () => {
+    const nextRunAt = '2099-01-01T00:00:00.000Z';
+    const rows = [
+      buildStrategyRow('eligible', { nextRunAt }),
+      buildStrategyRow('manual', {
+        nextRunAt,
+        requiresManualReactivation: true,
+      }),
+      buildStrategyRow('failed', { nextRunAt, consecutiveFailures: 5 }),
+      buildStrategyRow('future-without-pending', { nextRunAt }),
+    ];
+    const pending = vi
+      .fn()
+      .mockResolvedValue(
+        rows
+          .slice(0, 3)
+          .map((row) => ({ result: { metadata: { strategyId: row.id } } })),
+      );
+    const prisma = {
+      agentStrategy: { findMany: vi.fn().mockResolvedValue(rows) },
+      workflowExecution: { findMany: pending },
+    };
+    const service = new AgentAutopilotWorkflowService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    const result = await service.discoverProactiveStrategies('org-1', {
+      state: { acquired: true },
+    });
+
+    expect(pending).toHaveBeenCalledExactlyOnceWith({
+      select: { result: true },
+      where: {
+        organizationId: 'org-1',
+        isDeleted: false,
+        status: 'PENDING',
+        idempotencyKey: { startsWith: 'proactive:' },
+        result: { path: ['metadata', 'source'], equals: 'proactive' },
+        OR: rows.map((row) => ({
+          result: { path: ['metadata', 'strategyId'], equals: row.id },
+        })),
+      },
+    });
+    expect(
+      (result.items as Array<{ id: string }>).map((item) => item.id),
+    ).toEqual(['eligible']);
+  });
+
   it('stops paging once MAX_STRATEGIES_PER_CYCLE due strategies are found', async () => {
     const dueRows = Array.from({ length: 25 }, (_, index) =>
       buildStrategyRow(`strategy-${String(index).padStart(3, '0')}`),

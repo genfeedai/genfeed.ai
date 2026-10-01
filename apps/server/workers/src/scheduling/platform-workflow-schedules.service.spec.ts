@@ -7,7 +7,7 @@ describe('PlatformWorkflowSchedulesService', () => {
     agentStrategy: { findMany: vi.fn() },
     organization: { findMany: vi.fn() },
     workflow: { findFirst: vi.fn() },
-    workflowExecution: { findFirst: vi.fn() },
+    workflowExecution: { findFirst: vi.fn(), findMany: vi.fn() },
   };
   const runner = { enqueueWorkflow: vi.fn() };
   const logger = { error: vi.fn() };
@@ -27,11 +27,12 @@ describe('PlatformWorkflowSchedulesService', () => {
     ]);
     prisma.workflow.findFirst.mockResolvedValue(null);
     prisma.workflowExecution.findFirst.mockResolvedValue(null);
+    prisma.workflowExecution.findMany.mockResolvedValue([]);
     // Due by default (empty config: no failures, no manual-reactivation gate,
     // no future nextRunAt) so existing proactive-agent-strategies assertions
     // below keep exercising the installed-workflow branch they target.
     prisma.agentStrategy.findMany.mockResolvedValue([
-      { organizationId: 'org-1', config: {} },
+      { id: 'strategy-1', organizationId: 'org-1', config: {} },
     ]);
     runner.enqueueWorkflow.mockResolvedValue({ executionId: 'execution-1' });
   });
@@ -201,12 +202,87 @@ describe('PlatformWorkflowSchedulesService', () => {
     expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
   });
 
+  it('admits future-cadence agents with their own accepted pending proactive work', async () => {
+    prisma.agentStrategy.findMany.mockResolvedValue([
+      {
+        id: 'strategy-1',
+        organizationId: 'org-1',
+        config: { nextRunAt: '2099-01-01T00:00:00.000Z' },
+      },
+    ]);
+    prisma.workflowExecution.findMany.mockResolvedValue([
+      { organizationId: 'org-1' },
+    ]);
+
+    await service.sweep('proactive-agent-strategies', 120001);
+
+    expect(prisma.workflowExecution.findMany).toHaveBeenCalledExactlyOnceWith({
+      where: {
+        organizationId: { in: ['org-1'] },
+        isDeleted: false,
+        status: 'PENDING',
+        idempotencyKey: { startsWith: 'proactive:' },
+        result: { path: ['metadata', 'source'], equals: 'proactive' },
+        OR: [
+          {
+            organizationId: 'org-1',
+            result: { path: ['metadata', 'strategyId'], equals: 'strategy-1' },
+          },
+        ],
+      },
+      select: { organizationId: true },
+    });
+    expect(runner.enqueueWorkflow).toHaveBeenCalledOnce();
+  });
+
+  it.each([{ consecutiveFailures: 5 }, { requiresManualReactivation: true }])(
+    'keeps pending recovery behind strategy opt-outs: %s',
+    async (config) => {
+      prisma.agentStrategy.findMany.mockResolvedValue([
+        {
+          id: 'strategy-1',
+          organizationId: 'org-1',
+          config: { ...config, nextRunAt: '2099-01-01T00:00:00.000Z' },
+        },
+      ]);
+      prisma.workflowExecution.findMany.mockResolvedValue([
+        { organizationId: 'org-1' },
+      ]);
+
+      await service.sweep('proactive-agent-strategies', 120001);
+
+      expect(prisma.workflowExecution.findMany).not.toHaveBeenCalled();
+      expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+    },
+  );
+
+  it('retains the tenant installation pause control for pending recovery', async () => {
+    prisma.agentStrategy.findMany.mockResolvedValue([
+      {
+        id: 'strategy-1',
+        organizationId: 'org-1',
+        config: { nextRunAt: '2099-01-01T00:00:00.000Z' },
+      },
+    ]);
+    prisma.workflowExecution.findMany.mockResolvedValue([
+      { organizationId: 'org-1' },
+    ]);
+    prisma.workflow.findFirst.mockResolvedValue({ id: 'paused-installation' });
+
+    await service.sweep('proactive-agent-strategies', 120001);
+
+    expect(prisma.workflowExecution.findMany).toHaveBeenCalledOnce();
+    expect(prisma.workflow.findFirst).toHaveBeenCalledOnce();
+    expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+  });
+
   it.each(['analytics-sync', 'content-loop-autopilot'] as const)(
     'never gates %s on agent-strategy due state (AC-5: own catalog cadence)',
     async (template) => {
       prisma.agentStrategy.findMany.mockResolvedValue([]);
       await service.sweep(template, 0);
       expect(prisma.agentStrategy.findMany).not.toHaveBeenCalled();
+      expect(prisma.workflowExecution.findMany).not.toHaveBeenCalled();
       expect(runner.enqueueWorkflow).toHaveBeenCalledOnce();
     },
   );

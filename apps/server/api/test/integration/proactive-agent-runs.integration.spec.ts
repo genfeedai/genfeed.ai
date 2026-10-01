@@ -756,32 +756,67 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
       },
     });
     fixture.restartDispatcher();
-    fixture.startWorkers();
-    await fixture.schedules.sweep('proactive-agent-strategies', Date.now());
-    const recoverySweep =
-      await fixture.prisma.workflowExecution.findFirstOrThrow({
-        where: {
-          organizationId: fixture.organizationId,
-          isDeleted: false,
-          idempotencyKey: { startsWith: 'platform:' },
-        },
-      });
-    await fixture.waitForExecution(recoverySweep.id);
-    const recoveredJob = await fixture
-      .getQueue(PLATFORM_SYSTEM_WORKFLOW_QUEUE)
-      .getJob(`system-workflow-${execution.id}`);
-    if (!recoveredJob?.data.systemRun)
-      throw new Error('Restart sweep did not restore lost pending transport');
-    expect(recoveredJob.data.systemRun.input).toMatchObject({
-      idempotencyKey: execution.idempotencyKey,
-      userId: execution.userId,
-      inputValues: frozen.inputValues,
-      metadata: frozen.metadata,
+    let markRecoveryEntered!: () => void;
+    let releaseRecovery!: () => void;
+    const recoveryEntered = new Promise<void>((resolve) => {
+      markRecoveryEntered = resolve;
     });
-    expect(recoveredJob.data.systemRun.input.inputValues).toEqual(
-      frozen.inputValues,
-    );
-    expect(recoveredJob.data.systemRun.input.metadata).toEqual(frozen.metadata);
+    const recoveryReleased = new Promise<void>((resolve) => {
+      releaseRecovery = resolve;
+    });
+    const process = fixture.process.bind(fixture);
+    const heldRecovery = vi
+      .spyOn(fixture, 'process')
+      .mockImplementation(async (job) => {
+        if (job.data.systemRun?.priorExecution?.executionId === execution.id) {
+          markRecoveryEntered();
+          await recoveryReleased;
+        }
+        return process(job);
+      });
+    try {
+      fixture.startWorkers();
+      await fixture.schedules.sweep('proactive-agent-strategies', Date.now());
+      const recoverySweep =
+        await fixture.prisma.workflowExecution.findFirstOrThrow({
+          where: {
+            organizationId: fixture.organizationId,
+            isDeleted: false,
+            idempotencyKey: { startsWith: 'platform:' },
+          },
+        });
+      await fixture.waitForExecution(recoverySweep.id);
+      await recoveryEntered;
+      const recoveredJob = await fixture
+        .getQueue(PLATFORM_SYSTEM_WORKFLOW_QUEUE)
+        .getJob(`system-workflow-${execution.id}`);
+      if (!recoveredJob?.data.systemRun)
+        throw new Error('Restart sweep did not restore lost pending transport');
+      expect(recoveredJob.data.systemRun.input).toMatchObject({
+        idempotencyKey: execution.idempotencyKey,
+        userId: execution.userId,
+      });
+      expect(recoveredJob.data.systemRun.input.inputValues).toEqual(
+        frozen.inputValues,
+      );
+      expect(recoveredJob.data.systemRun.input.metadata).toEqual(
+        frozen.metadata,
+      );
+      const pendingExecution =
+        await fixture.prisma.workflowExecution.findUniqueOrThrow({
+          where: { id: execution.id },
+        });
+      expect(pendingExecution.status).toBe('PENDING');
+      expect(runtimeRecord(pendingExecution.result).inputValues).toEqual(
+        frozen.inputValues,
+      );
+      expect(runtimeRecord(pendingExecution.result).metadata).toEqual(
+        frozen.metadata,
+      );
+    } finally {
+      releaseRecovery();
+      heldRecovery.mockRestore();
+    }
     await fixture.waitForExecution(execution.id);
     const recoveredExecution =
       await fixture.prisma.workflowExecution.findUniqueOrThrow({
@@ -794,9 +829,21 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
     expect(runtimeRecord(recoveredExecution.result).inputValues).toEqual(
       frozen.inputValues,
     );
-    expect(runtimeRecord(recoveredExecution.result).metadata).toEqual(
-      frozen.metadata,
-    );
+    const { proactiveCreditsUsed, agentReport, ...preservedMetadata } =
+      runtimeRecord(runtimeRecord(recoveredExecution.result).metadata);
+    expect(preservedMetadata).toEqual(frozen.metadata);
+    expect(proactiveCreditsUsed).toBe(1);
+    expect(agentReport).toEqual({
+      summary:
+        '1 posts created; 0 published; 1 waiting for review. 1 credits used.',
+      pendingReviewCount: 1,
+      publishedCount: 0,
+      generatedCount: 1,
+      creditsUsed: 1,
+      strategyId: agent.id,
+      label: 'Craft agent',
+      sourcePath: `/${encodeURIComponent(fixture.organizationId)}/${encodeURIComponent(fixture.brandId)}/automation/agents/${encodeURIComponent(agent.id)}`,
+    });
     expect(
       runtimeRecord(
         (
