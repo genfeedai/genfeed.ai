@@ -104,14 +104,14 @@ export const BRAND_SOURCE_CONTRACT = {
     {
       path: 'apps/server/api/src/services/branded-generation-receipts/branded-generation-recompile-codec.util.spec.ts',
       sha256:
-        '5c0b3ca453dc52fd5c5e6c3b0cd8c9f55428b31ec6828b1cc364a902252d1379',
+        '67ab6c33f3d30f80238dae5e1f3acfc2b9f175261c4a4e2120bbc605a1480f8b',
       acceptance:
         'nonzero passed in this exact file; no failed/pending/skipped/todo',
     },
     {
       path: 'apps/server/api/src/services/harness/branded-generation-compiler.spec.ts',
       sha256:
-        '63c4516e5ea25c0b52f7fbbd6e2ab4bbf1b4662ba84895a197a3b0bf90757617',
+        '401c51ddee2c6cea40ccc712988619be54686acd6f0909893bd05800813242a2',
       acceptance:
         'nonzero passed in this exact file; no failed/pending/skipped/todo',
     },
@@ -123,7 +123,7 @@ export const BASELINE_SOURCE_CONTRACT = {
     {
       path: 'packages/prisma/prisma/content-learning-baseline-materialization-migration.test.ts',
       sha256:
-        'd8a0c0a32e5e3c2e41fe616a680c9ca8a34df8bb7766eb1e2876d5e427061b8d',
+        'ad817a2ad7b8eba1cd6eb7d431b981dc908bc4509eaa4149e4b159fd75894887',
     },
     {
       path: 'packages/prisma/prisma/migrations/20261001220000_content_learning_baseline_materialization/migration.sql',
@@ -5476,7 +5476,14 @@ export async function sealState(identity, env) {
   if (receipt) await rm(path.join(identity.state, 'receipt.json'));
   return publicReceipt;
 }
-const QUALIFIED_CLI_GROUPS = new Set(['dataset-diagnostic']);
+const QUALIFIED_CLI_GROUPS = new Set([
+  'dataset-diagnostic',
+  'final',
+  'agent-production',
+  'brand-acceptance',
+  'visual-isolation',
+  'visual-connected',
+]);
 function requireQualifiedGroup(group) {
   requireThat(QUALIFIED_CLI_GROUPS.has(group), 'UNQUALIFIED_RUNTIME_GROUP');
 }

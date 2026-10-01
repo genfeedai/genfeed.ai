@@ -971,56 +971,6 @@ async function snapshotState(root) {
   await visit(root);
   return files;
 }
-for (const group of [
-  'final',
-  'visual-isolation',
-  'visual-connected',
-  'agent-production',
-  'brand-acceptance',
-])
-  test(`actual CLI rejects unqualified ${group} preflight and direct command before side effects`, async (t) => {
-    const { options, env } = await preflightFixture(t);
-    const output = path.join(options.repo, 'cli.output');
-    const marker = path.join(options.repo, 'child-command.marker');
-    const testEnv = {
-      ...env,
-      GITHUB_OUTPUT: output,
-      RUNTIME_ACCEPTANCE_QUALIFIED_GROUPS: group,
-      CHILD_COMMAND_MARKER: marker,
-    };
-    assertUnqualifiedCli(
-      actualCli('preflight', { ...options, group }, testEnv),
-    );
-    assertUnqualifiedCli(actualCli(group, options, testEnv));
-    await assert.rejects(lstat(options.state));
-    await assert.rejects(lstat(output));
-    await assert.rejects(lstat(marker));
-  });
-for (const group of [
-  'final',
-  'visual-isolation',
-  'visual-connected',
-  'agent-production',
-  'brand-acceptance',
-])
-  for (const phase of ['prepared', 'finished', 'sealed'])
-    test(`actual CLI rejects forged ${group} ${phase} identity without mutation`, async (t) => {
-      const { value, options, env } = await stateFixture(t);
-      Object.assign(value, {
-        group,
-        phase,
-        ...validateTiming(group, Date.now()),
-      });
-      await writeFile(
-        path.join(value.state, 'identity.json'),
-        JSON.stringify(value),
-        { mode: 0o600 },
-      );
-      const before = await snapshotState(value.state);
-      assertUnqualifiedCli(actualCli('seal', options, env));
-      assertUnqualifiedCli(actualCli('dataset-diagnostic', options, env));
-      assert.deepEqual(await snapshotState(value.state), before);
-    });
 for (const relative of [
   'outcome.json',
   'receipt.json',
@@ -1054,10 +1004,6 @@ for (const relative of [
     assertUnqualifiedCli(actualCli('seal', options, env));
     assert.deepEqual(await snapshotState(value.state), before);
   });
-// These actual-CLI regressions become executable only after root releases S3.
-const QUALIFICATION_PENDING = {
-  skip: 'Await root source qualification for S3',
-};
 const QUALIFIED_GROUPS = [
   'dataset-diagnostic',
   'final',
@@ -1082,21 +1028,17 @@ async function persistFixtureIdentity(value) {
     { mode: 0o600 },
   );
 }
-test(
-  'source qualification is exactly the six prepared fixed groups',
-  QUALIFICATION_PENDING,
-  async () => {
-    const source = await readFile(CLI_PATH, 'utf8');
-    const declaration = source.match(
-      /const QUALIFIED_CLI_GROUPS = new Set\(\[([\s\S]*?)\]\)/,
-    );
-    assert.ok(declaration);
-    const actual = [...declaration[1].matchAll(/'([^']+)'/g)].map(
-      (entry) => entry[1],
-    );
-    assert.deepEqual(actual.sort(), [...QUALIFIED_GROUPS].sort());
-  },
-);
+test('source qualification is exactly the six prepared fixed groups', async () => {
+  const source = await readFile(CLI_PATH, 'utf8');
+  const declaration = source.match(
+    /const QUALIFIED_CLI_GROUPS = new Set\(\[([\s\S]*?)\]\)/,
+  );
+  assert.ok(declaration);
+  const actual = [...declaration[1].matchAll(/'([^']+)'/g)].map(
+    (entry) => entry[1],
+  );
+  assert.deepEqual(actual.sort(), [...QUALIFIED_GROUPS].sort());
+});
 for (const group of QUALIFIED_GROUPS) {
   for (const [scenario, amendment, code] of [
     [
@@ -1136,222 +1078,227 @@ for (const group of QUALIFIED_GROUPS) {
       'INVALID_JOB_TIMESTAMP',
     ],
   ])
-    test(
-      `actual ${group} preflight rejects ${scenario} before state or output`,
-      QUALIFICATION_PENDING,
-      async (t) => {
-        const { options, env } = await preflightFixture(t);
-        const output = path.join(options.repo, 'cli.output');
-        const result = actualCli(
-          'preflight',
-          { ...options, group },
-          { ...env, ...amendment, GITHUB_OUTPUT: output },
-        );
-        assertCliFailure(result, code);
-        await assert.rejects(lstat(options.state));
-        await assert.rejects(lstat(output));
-      },
-    );
-  test(
-    `actual ${group} preflight rejects wrong checkout before state or output`,
-    QUALIFICATION_PENDING,
-    async (t) => {
+    test(`actual ${group} preflight rejects ${scenario} before state or output`, async (t) => {
       const { options, env } = await preflightFixture(t);
       const output = path.join(options.repo, 'cli.output');
-      const linux24 =
-        process.platform === 'linux' && /^v24\./.test(process.version);
-      assertCliFailure(
-        actualCli(
-          'preflight',
-          {
-            ...options,
-            group,
-            ...(group === 'dataset-diagnostic'
-              ? { 'control-sha': CONTROL }
-              : { 'candidate-sha': SHA }),
-          },
-          { ...env, GITHUB_OUTPUT: output },
-        ),
-        linux24 ? 'CHECKOUT_MISMATCH' : 'HOST_PREREQUISITE',
+      const result = actualCli(
+        'preflight',
+        { ...options, group },
+        { ...env, ...amendment, GITHUB_OUTPUT: output },
       );
+      assertCliFailure(result, code);
       await assert.rejects(lstat(options.state));
       await assert.rejects(lstat(output));
-    },
-  );
-  test(
-    `actual ${group} prepared identity seals only encrypted preparation failure`,
-    QUALIFICATION_PENDING,
-    async (t) => {
-      const { value, options, env } = await stateFixture(t);
-      Object.assign(value, { group, ...validateTiming(group, Date.now()) });
-      await persistFixtureIdentity(value);
-      const output = path.join(value.repo, 'cli.output');
-      const result = actualCli('seal', options, {
-        ...env,
-        GITHUB_OUTPUT: output,
-      });
-      assert.ifError(result.error);
-      assert.equal(result.status, 1);
-      assert.match(result.stdout, /runtime-acceptance failed/);
-      assert.doesNotMatch(result.stdout, /prepared|passed|result=passed/);
-      const receipt = JSON.parse(
-        await readFile(path.join(value.state, 'public/receipt.json'), 'utf8'),
-      );
-      const envelope = JSON.parse(
-        await readFile(
-          path.join(value.state, 'public/evidence.encrypted.json'),
-          'utf8',
-        ),
-      );
-      assert.equal(receipt.group, group);
-      assert.equal(receipt.status, 'failed');
-      assert.equal(receipt.cleanup, false);
-      const plaintext = decrypt(envelope);
-      assert.equal(plaintext.outcome.group, group);
-      assert.deepEqual(plaintext.outcome.failures, [
-        { stage: 'preparation', code: 'PREPARATION_INCOMPLETE' },
-      ]);
-      assert.equal(plaintext.outcome.status, 'failed');
-      await assert.rejects(lstat(output));
-      const before = await snapshotState(value.state);
-      const cached = actualCli('seal', options, env);
-      assert.equal(cached.status, 1);
-      assert.match(cached.stdout, /runtime-acceptance failed/);
-      assert.deepEqual(await snapshotState(value.state), before);
-    },
-  );
+    });
+  test(`actual ${group} preflight rejects wrong checkout before state or output`, async (t) => {
+    const { options, env } = await preflightFixture(t);
+    const output = path.join(options.repo, 'cli.output');
+    const linux24 =
+      process.platform === 'linux' && /^v24\./.test(process.version);
+    assertCliFailure(
+      actualCli(
+        'preflight',
+        {
+          ...options,
+          group,
+          ...(group === 'dataset-diagnostic'
+            ? { 'control-sha': CONTROL }
+            : { 'candidate-sha': SHA }),
+        },
+        { ...env, GITHUB_OUTPUT: output },
+      ),
+      linux24 ? 'CHECKOUT_MISMATCH' : 'HOST_PREREQUISITE',
+    );
+    await assert.rejects(lstat(options.state));
+    await assert.rejects(lstat(output));
+  });
+  test(`actual ${group} prepared identity seals only encrypted preparation failure`, async (t) => {
+    const { value, options, env } = await stateFixture(t);
+    Object.assign(value, { group, ...validateTiming(group, Date.now()) });
+    await persistFixtureIdentity(value);
+    const output = path.join(value.repo, 'cli.output');
+    const result = actualCli('seal', options, {
+      ...env,
+      GITHUB_OUTPUT: output,
+    });
+    assert.ifError(result.error);
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /runtime-acceptance failed/);
+    assert.doesNotMatch(result.stdout, /prepared|passed|result=passed/);
+    const receipt = JSON.parse(
+      await readFile(path.join(value.state, 'public/receipt.json'), 'utf8'),
+    );
+    const envelope = JSON.parse(
+      await readFile(
+        path.join(value.state, 'public/evidence.encrypted.json'),
+        'utf8',
+      ),
+    );
+    assert.equal(receipt.group, group);
+    assert.equal(receipt.status, 'failed');
+    assert.equal(receipt.cleanup, false);
+    const plaintext = decrypt(envelope);
+    assert.equal(plaintext.outcome.group, group);
+    assert.deepEqual(plaintext.outcome.failures, [
+      { stage: 'preparation', code: 'PREPARATION_INCOMPLETE' },
+    ]);
+    assert.equal(plaintext.outcome.status, 'failed');
+    await assert.rejects(lstat(output));
+    const before = await snapshotState(value.state);
+    const cached = actualCli('seal', options, env);
+    assert.equal(cached.status, 1);
+    assert.match(cached.stdout, /runtime-acceptance failed/);
+    assert.deepEqual(await snapshotState(value.state), before);
+  });
   for (const phase of ['prepared', 'finished', 'sealed'])
-    test(
-      `actual ${group} rejects another qualified group's ${phase} saved identity`,
-      QUALIFICATION_PENDING,
-      async (t) => {
-        const { value, options, env } = await stateFixture(t);
-        const savedGroup =
-          group === 'dataset-diagnostic' ? 'final' : 'dataset-diagnostic';
-        Object.assign(value, {
-          group: savedGroup,
-          phase,
-          ...validateTiming(savedGroup, Date.now()),
-        });
-        await persistFixtureIdentity(value);
-        const before = await snapshotState(value.state);
-        assertCliFailure(actualCli(group, options, env), 'GROUP_MISMATCH');
-        assert.deepEqual(await snapshotState(value.state), before);
-      },
-    );
-}
-for (const group of ['final', 'agent-production', 'brand-acceptance'])
-  test(
-    `actual ${group} preflight requires exact frozen source before private state`,
-    QUALIFICATION_PENDING,
-    async (t) => {
-      const { options, env } = await preflightFixture(t);
-      const contract = ownerContract();
-      contract.brand = structuredClone(BRAND_SOURCE_CONTRACT.brand);
-      const output = path.join(options.repo, 'cli.output');
-      const linux24 =
-        process.platform === 'linux' && /^v24\./.test(process.version);
-      assertCliFailure(
-        actualCli(
-          'preflight',
-          { ...options, group },
-          {
-            ...env,
-            GITHUB_OUTPUT: output,
-            RUNTIME_ACCEPTANCE_OWNER_CONTRACT: JSON.stringify(contract),
-          },
-        ),
-        linux24 ? 'CONTROL_FAILED' : 'HOST_PREREQUISITE',
-      );
-      await assert.rejects(lstat(options.state));
-      await assert.rejects(lstat(output));
-    },
-  );
-for (const group of ['final', 'agent-production', 'brand-acceptance'])
-  test(
-    `actual ${group} preflight rejects changed frozen bytes before private state`,
-    QUALIFICATION_PENDING,
-    async (t) => {
-      const { options, env } = await preflightFixture(t);
-      const contract = ownerContract();
-      contract.brand = structuredClone(BRAND_SOURCE_CONTRACT.brand);
-      const entry =
-        group === 'final'
-          ? BASELINE_SOURCE_CONTRACT.sourceInputs[0]
-          : group === 'agent-production'
-            ? AGENT_PRODUCTION_FILES[0]
-            : BRAND_SOURCE_CONTRACT.brand;
-      const file = path.join(options.repo, entry.path);
-      await mkdir(path.dirname(file), { recursive: true });
-      await writeFile(file, 'changed frozen owner bytes');
-      const output = path.join(options.repo, 'cli.output');
-      const linux24 =
-        process.platform === 'linux' && /^v24\./.test(process.version);
-      assertCliFailure(
-        actualCli(
-          'preflight',
-          { ...options, group },
-          {
-            ...env,
-            GITHUB_OUTPUT: output,
-            RUNTIME_ACCEPTANCE_OWNER_CONTRACT: JSON.stringify(contract),
-          },
-        ),
-        linux24 ? 'SOURCE_HASH_MISMATCH' : 'HOST_PREREQUISITE',
-      );
-      await assert.rejects(lstat(options.state));
-      await assert.rejects(lstat(output));
-    },
-  );
-for (const group of QUALIFIED_GROUPS)
-  test(
-    `actual ${group} same-group finished documents preserve outcome validation`,
-    QUALIFICATION_PENDING,
-    async (t) => {
+    test(`actual ${group} rejects another qualified group's ${phase} saved identity`, async (t) => {
       const { value, options, env } = await stateFixture(t);
+      const savedGroup =
+        group === 'dataset-diagnostic' ? 'final' : 'dataset-diagnostic';
       Object.assign(value, {
-        group,
-        phase: 'finished',
-        ...validateTiming(group, Date.now()),
+        group: savedGroup,
+        phase,
+        ...validateTiming(savedGroup, Date.now()),
       });
       await persistFixtureIdentity(value);
-      const outcome = {
-        ...value,
-        status: 'failed',
-        completed: [],
-        failures: [],
-        cleanup: { passed: false },
-        commands: [],
-      };
-      await writeFile(
-        path.join(value.state, 'outcome.json'),
-        JSON.stringify(outcome),
-        { mode: 0o600 },
-      );
-      await writeFile(
-        path.join(value.state, 'receipt.json'),
-        JSON.stringify(outcome),
-        { mode: 0o600 },
-      );
       const before = await snapshotState(value.state);
-      assertCliFailure(
-        actualCli('seal', options, env),
-        'FAILED_SUCCESS_RECEIPT',
-      );
+      assertCliFailure(actualCli(group, options, env), 'GROUP_MISMATCH');
       assert.deepEqual(await snapshotState(value.state), before);
-      await rm(path.join(value.state, 'receipt.json'));
-      const result = actualCli('seal', options, env);
-      assert.ifError(result.error);
-      assert.equal(result.status, 1);
-      assert.match(result.stdout, /runtime-acceptance failed/);
-      assert.equal(
-        JSON.parse(
-          await readFile(path.join(value.state, 'public/receipt.json'), 'utf8'),
-        ).status,
-        'failed',
-      );
-    },
-  );
+    });
+}
+for (const group of ['visual-isolation', 'visual-connected'])
+  test(`actual ${group} source-only preflight creates private preparation without starting runtime`, async (t) => {
+    const { options, env } = await preflightFixture(t);
+    const output = path.join(options.repo, 'cli.output');
+    const result = actualCli(
+      'preflight',
+      { ...options, group },
+      { ...env, GITHUB_OUTPUT: output },
+    );
+    if (process.platform !== 'linux' || !/^v24\./.test(process.version)) {
+      assertCliFailure(result, 'HOST_PREREQUISITE');
+      await assert.rejects(lstat(options.state));
+      await assert.rejects(lstat(output));
+      return;
+    }
+    assert.ifError(result.error);
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /runtime-acceptance prepared/);
+    assert.equal(await readFile(output, 'utf8'), 'prepared=true\n');
+    const identity = JSON.parse(
+      await readFile(path.join(options.state, 'identity.json'), 'utf8'),
+    );
+    assert.equal(identity.group, group);
+    assert.equal(identity.phase, 'prepared');
+    assert.deepEqual(identity.resources, { databases: [], containers: [] });
+    assert.deepEqual(identity.evidence, []);
+    assert.equal((await lstat(options.state)).mode & 0o777, 0o700);
+    const sealed = actualCli('seal', options, {
+      ...env,
+      GITHUB_OUTPUT: output,
+    });
+    assert.equal(sealed.status, 1);
+    assert.match(sealed.stdout, /runtime-acceptance failed/);
+    assert.doesNotMatch(await readFile(output, 'utf8'), /result=passed/);
+  });
+
+for (const group of ['final', 'agent-production', 'brand-acceptance'])
+  test(`actual ${group} preflight requires exact frozen source before private state`, async (t) => {
+    const { options, env } = await preflightFixture(t);
+    const contract = ownerContract();
+    contract.brand = structuredClone(BRAND_SOURCE_CONTRACT.brand);
+    const output = path.join(options.repo, 'cli.output');
+    const linux24 =
+      process.platform === 'linux' && /^v24\./.test(process.version);
+    assertCliFailure(
+      actualCli(
+        'preflight',
+        { ...options, group },
+        {
+          ...env,
+          GITHUB_OUTPUT: output,
+          RUNTIME_ACCEPTANCE_OWNER_CONTRACT: JSON.stringify(contract),
+        },
+      ),
+      linux24 ? 'CONTROL_FAILED' : 'HOST_PREREQUISITE',
+    );
+    await assert.rejects(lstat(options.state));
+    await assert.rejects(lstat(output));
+  });
+for (const group of ['final', 'agent-production', 'brand-acceptance'])
+  test(`actual ${group} preflight rejects changed frozen bytes before private state`, async (t) => {
+    const { options, env } = await preflightFixture(t);
+    const contract = ownerContract();
+    contract.brand = structuredClone(BRAND_SOURCE_CONTRACT.brand);
+    const entry =
+      group === 'final'
+        ? BASELINE_SOURCE_CONTRACT.sourceInputs[0]
+        : group === 'agent-production'
+          ? AGENT_PRODUCTION_FILES[0]
+          : BRAND_SOURCE_CONTRACT.brand;
+    const file = path.join(options.repo, entry.path);
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(file, 'changed frozen owner bytes');
+    const output = path.join(options.repo, 'cli.output');
+    const linux24 =
+      process.platform === 'linux' && /^v24\./.test(process.version);
+    assertCliFailure(
+      actualCli(
+        'preflight',
+        { ...options, group },
+        {
+          ...env,
+          GITHUB_OUTPUT: output,
+          RUNTIME_ACCEPTANCE_OWNER_CONTRACT: JSON.stringify(contract),
+        },
+      ),
+      linux24 ? 'SOURCE_HASH_MISMATCH' : 'HOST_PREREQUISITE',
+    );
+    await assert.rejects(lstat(options.state));
+    await assert.rejects(lstat(output));
+  });
+for (const group of QUALIFIED_GROUPS)
+  test(`actual ${group} same-group finished documents preserve outcome validation`, async (t) => {
+    const { value, options, env } = await stateFixture(t);
+    Object.assign(value, {
+      group,
+      phase: 'finished',
+      ...validateTiming(group, Date.now()),
+    });
+    await persistFixtureIdentity(value);
+    const outcome = {
+      ...value,
+      status: 'failed',
+      completed: [],
+      failures: [],
+      cleanup: { passed: false },
+      commands: [],
+    };
+    await writeFile(
+      path.join(value.state, 'outcome.json'),
+      JSON.stringify(outcome),
+      { mode: 0o600 },
+    );
+    await writeFile(
+      path.join(value.state, 'receipt.json'),
+      JSON.stringify(outcome),
+      { mode: 0o600 },
+    );
+    const before = await snapshotState(value.state);
+    assertCliFailure(actualCli('seal', options, env), 'FAILED_SUCCESS_RECEIPT');
+    assert.deepEqual(await snapshotState(value.state), before);
+    await rm(path.join(value.state, 'receipt.json'));
+    const result = actualCli('seal', options, env);
+    assert.ifError(result.error);
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /runtime-acceptance failed/);
+    assert.equal(
+      JSON.parse(
+        await readFile(path.join(value.state, 'public/receipt.json'), 'utf8'),
+      ).status,
+      'failed',
+    );
+  });
 for (const [field, replacement, code] of [
   ['candidateSHA', 'e'.repeat(40), 'STATE_IDENTITY_MISMATCH'],
   ['controlSHA', 'e'.repeat(40), 'STATE_IDENTITY_MISMATCH'],
@@ -1376,43 +1323,39 @@ for (const phase of ['prepared', 'finished', 'sealed'])
     'public/receipt.json',
     ...(phase === 'sealed' ? ['public/evidence.encrypted.json'] : []),
   ])
-    test(
-      `actual ${phase} seal rejects another qualified group in ${relative} without mutation`,
-      QUALIFICATION_PENDING,
-      async (t) => {
-        const { value, options, env } = await stateFixture(t);
-        value.phase = phase;
-        const document = {
-          version: 1,
-          group: 'final',
-          candidateSHA: value.candidateSHA,
-          controlSHA: value.controlSHA,
-          fingerprint: value.fingerprint,
-          status: 'passed',
-        };
-        const serialized = JSON.stringify(document);
-        if (relative === 'public/evidence.encrypted.json')
-          value.envelopeHash = createHash('sha256')
-            .update(serialized)
-            .digest('hex');
-        await persistFixtureIdentity(value);
-        await mkdir(path.dirname(path.join(value.state, relative)), {
-          recursive: true,
-          mode: 0o700,
-        });
-        await writeFile(path.join(value.state, relative), serialized, {
-          mode: 0o600,
-        });
-        const output = path.join(value.repo, 'cli.output');
-        const before = await snapshotState(value.state);
-        assertCliFailure(
-          actualCli('seal', options, { ...env, GITHUB_OUTPUT: output }),
-          'QUALIFIED_RECEIPT_IDENTITY_MISMATCH',
-        );
-        assert.deepEqual(await snapshotState(value.state), before);
-        await assert.rejects(lstat(output));
-      },
-    );
+    test(`actual ${phase} seal rejects another qualified group in ${relative} without mutation`, async (t) => {
+      const { value, options, env } = await stateFixture(t);
+      value.phase = phase;
+      const document = {
+        version: 1,
+        group: 'final',
+        candidateSHA: value.candidateSHA,
+        controlSHA: value.controlSHA,
+        fingerprint: value.fingerprint,
+        status: 'passed',
+      };
+      const serialized = JSON.stringify(document);
+      if (relative === 'public/evidence.encrypted.json')
+        value.envelopeHash = createHash('sha256')
+          .update(serialized)
+          .digest('hex');
+      await persistFixtureIdentity(value);
+      await mkdir(path.dirname(path.join(value.state, relative)), {
+        recursive: true,
+        mode: 0o700,
+      });
+      await writeFile(path.join(value.state, relative), serialized, {
+        mode: 0o600,
+      });
+      const output = path.join(value.repo, 'cli.output');
+      const before = await snapshotState(value.state);
+      assertCliFailure(
+        actualCli('seal', options, { ...env, GITHUB_OUTPUT: output }),
+        'QUALIFIED_RECEIPT_IDENTITY_MISMATCH',
+      );
+      assert.deepEqual(await snapshotState(value.state), before);
+      await assert.rejects(lstat(output));
+    });
 test('actual CLI ignores environment attempts to qualify an unknown group', async (t) => {
   const { value, options, env } = await stateFixture(t);
   await writeFile(
@@ -2695,7 +2638,7 @@ test('frozen source verification rejects absent, changed and symlinked bytes bef
   assert.equal(BASELINE_SOURCE_CONTRACT.expectedPostgresCases, 5);
   assert.equal(AGENT_PRODUCTION_FILES.length, 2);
 });
-test('prepared owner revisions update only the approved production and receipt unit hashes', () => {
+test('prepared owner revisions retain only the exact approved source hashes', () => {
   assert.equal(
     AGENT_PRODUCTION_FILES[0].sha256,
     'd0a43718a8a8070935407048c44b05f760b168738cc7884c67a88683cb138b6a',
@@ -2711,6 +2654,26 @@ test('prepared owner revisions update only the approved production and receipt u
         'apps/server/api/src/services/branded-generation-receipts/branded-generation-receipts.service.spec.ts',
     )?.sha256,
     '30abc0d90142cb882e9e397d07d23b7221efef5937616b31b87772d807410f13',
+  );
+  assert.equal(
+    BRAND_SOURCE_CONTRACT.unitFiles.find(
+      (entry) =>
+        entry.path ===
+        'apps/server/api/src/services/branded-generation-receipts/branded-generation-recompile-codec.util.spec.ts',
+    )?.sha256,
+    '67ab6c33f3d30f80238dae5e1f3acfc2b9f175261c4a4e2120bbc605a1480f8b',
+  );
+  assert.equal(
+    BRAND_SOURCE_CONTRACT.unitFiles.find(
+      (entry) =>
+        entry.path ===
+        'apps/server/api/src/services/harness/branded-generation-compiler.spec.ts',
+    )?.sha256,
+    '401c51ddee2c6cea40ccc712988619be54686acd6f0909893bd05800813242a2',
+  );
+  assert.equal(
+    BASELINE_SOURCE_CONTRACT.sourceInputs[0].sha256,
+    'ad817a2ad7b8eba1cd6eb7d431b981dc908bc4509eaa4149e4b159fd75894887',
   );
   assert.equal(
     BRAND_SOURCE_CONTRACT.brand.sha256,
