@@ -76,7 +76,6 @@
       "@libs/*": ["../../packages/libs/dist/*", "../../packages/libs/*"],
       "@mcp/*": ["./mcp/src/*"],
       "@notifications/*": ["./notifications/src/*"],
-      "@pages/*": ["../../packages/pages/*"],
       "@serializers/*": ["../../packages/serializers/dist/*"],
       "@slack/*": ["./slack/src/*"],
       "@telegram/*": ["./telegram/src/*"],
