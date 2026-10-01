@@ -1,4 +1,7 @@
-import type { MergeVideosParams } from '@mcp/shared/interfaces/video.interface';
+import type {
+  MergeVideosParams,
+  MergeVideosResult,
+} from '@mcp/shared/interfaces/video.interface';
 
 /** Same message the video merge API returns when zoom is supplied. */
 export const MERGE_ZOOM_UNSUPPORTED =
@@ -84,5 +87,24 @@ export function toMergeVideosParams(
     ...(transition !== undefined ? { transition } : {}),
     ...(transitionDuration !== undefined ? { transitionDuration } : {}),
     ...(transitionEaseCurve !== undefined ? { transitionEaseCurve } : {}),
+  };
+}
+
+export async function handleMergeVideosTool(
+  client: {
+    mergeVideos(params: MergeVideosParams): Promise<MergeVideosResult>;
+  },
+  args: Record<string, unknown>,
+) {
+  const params = toMergeVideosParams(args);
+  const merged = await client.mergeVideos(params);
+  return {
+    structuredContent: { data: merged },
+    content: [
+      {
+        text: `Video merge started.\n\nVideo ID: ${merged.id}\nStatus: ${merged.status}`,
+        type: 'text',
+      },
+    ],
   };
 }

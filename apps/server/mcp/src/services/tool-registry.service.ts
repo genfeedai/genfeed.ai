@@ -43,7 +43,7 @@ import {
   approvalPendingToolResult,
   toMcpToolErrorResult,
 } from '@mcp/tools/mcp-tool-error';
-import { toMergeVideosParams } from '@mcp/tools/merge-videos';
+import { handleMergeVideosTool } from '@mcp/tools/merge-videos';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
 import { handleRemixTool, REMIX_TOOL_NAMES } from '@mcp/tools/remix.tool';
 import {
@@ -382,12 +382,7 @@ export class ToolRegistryService implements OnModuleInit {
     }
   }
 
-  /**
-   * Classify a tool name to the executor that will run it, WITHOUT executing.
-   * Single source of truth for dispatch — used by {@link executeTool} and by the
-   * boot-time drift guard. Precedence is identical to the historical if/switch
-   * chain, so routing is behaviour-preserving.
-   */
+  /** Classify a tool name to its executor. Precedence matches the historical chain. */
   static classify(name: string): ExecutorKind {
     if (TOOL_DISCOVERY_TOOL_NAMES.has(name)) return 'tool-discovery';
     if (AGENT_CHAT_TOOL_NAMES.has(name)) return 'agent-chat';
@@ -449,7 +444,9 @@ export class ToolRegistryService implements OnModuleInit {
         return this.toMcpResult(result);
       }
       case 'legacy':
-        return this.handleLegacyTool(name, args);
+        return name === 'merge_videos'
+          ? handleMergeVideosTool(this.clientService, args ?? {})
+          : this.handleLegacyTool(name, args);
       case 'meta-ads':
         return handleMetaAdsTool(this.clientService, name, args);
       case 'google-ads':
@@ -640,20 +637,6 @@ export class ToolRegistryService implements OnModuleInit {
           content: [
             {
               text: formatListResult(videos, 'videos'),
-              type: 'text',
-            },
-          ],
-        };
-      }
-
-      case 'merge_videos': {
-        const params = toMergeVideosParams(args ?? {});
-        const merged = await this.clientService.mergeVideos(params);
-        return {
-          structuredContent: { data: merged },
-          content: [
-            {
-              text: `Video merge started.\n\nVideo ID: ${merged.id}\nStatus: ${merged.status}`,
               type: 'text',
             },
           ],
