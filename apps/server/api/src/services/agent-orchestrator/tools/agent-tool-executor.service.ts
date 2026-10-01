@@ -603,6 +603,9 @@ export class AgentToolExecutorService implements OnModuleInit {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    if (toolName === 'get_generation_cost') {
+      return this.generationCostHandler.execute(params, ctx);
+    }
     return Object.hasOwn(VISUAL_CODE_ACTION_ALIASES, toolName)
       ? this.dispatchVisualCode(toolName, params, ctx)
       : this.dispatch(toolName, params, ctx);
@@ -643,9 +646,6 @@ export class AgentToolExecutorService implements OnModuleInit {
 
       case 'get_credits_balance':
         return this.workspaceHandler.getCreditsBalance(ctx);
-
-      case 'get_generation_cost':
-        return this.generationCostHandler.execute(params, ctx);
 
       case 'list_brands':
         return this.workspaceHandler.listBrands(ctx);
