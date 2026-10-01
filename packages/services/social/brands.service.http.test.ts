@@ -29,6 +29,72 @@ describe('BrandsService HTTP methods', () => {
     http = installMockHttp(service);
   });
 
+  it('starts a scan with the exact request and AbortSignal', async () => {
+    const signal = new AbortController().signal;
+    const data = { requestId: 'request-1', url: 'HTTPS://Acme.dev/path' };
+    http.post.mockResolvedValue(
+      axiosResponse(
+        resourceDocument(
+          { status: 'pending', brandId },
+          { id: data.requestId },
+        ),
+      ),
+    );
+    await expect(
+      service.startBrandOsScan(brandId, data, signal),
+    ).resolves.toMatchObject({
+      id: data.requestId,
+      status: 'pending',
+      brandId,
+    });
+    expect(http.post).toHaveBeenCalledWith(`/${brandId}/brand-os/scan`, data, {
+      signal,
+    });
+    expect(http.post).toHaveBeenCalledTimes(1);
+  });
+
+  it('reads a scan resource and null absence with the supplied signal', async () => {
+    const signal = new AbortController().signal;
+    http.get.mockResolvedValueOnce(
+      axiosResponse(
+        resourceDocument(
+          { status: 'ready', revisionId: 'revision-1' },
+          { id: 'request-1' },
+        ),
+      ),
+    );
+    await expect(
+      service.getBrandOsScan(brandId, signal),
+    ).resolves.toMatchObject({ id: 'request-1', revisionId: 'revision-1' });
+    expect(http.get).toHaveBeenCalledWith(`/${brandId}/brand-os/scan`, {
+      signal,
+    });
+    http.get.mockResolvedValueOnce(axiosResponse({ data: null }));
+    await expect(service.getBrandOsScan(brandId)).resolves.toBeNull();
+    expect(http.get).toHaveBeenLastCalledWith(`/${brandId}/brand-os/scan`, {
+      signal: undefined,
+    });
+  });
+
+  it.each([
+    new Error('409'),
+    new Error('403'),
+    new Error('404'),
+    Object.assign(new Error('cancelled'), { name: 'AbortError' }),
+  ])('propagates scan failure without retry: %s', async (error) => {
+    http.post.mockRejectedValue(error);
+    http.get.mockRejectedValue(error);
+    await expect(
+      service.startBrandOsScan(brandId, {
+        requestId: 'request-1',
+        url: 'https://acme.dev',
+      }),
+    ).rejects.toBe(error);
+    await expect(service.getBrandOsScan(brandId)).rejects.toBe(error);
+    expect(http.post).toHaveBeenCalledTimes(1);
+    expect(http.get).toHaveBeenCalledTimes(1);
+  });
+
   it('serializes explicit null watermark values so existing text and logo can be cleared', async () => {
     let requestBody: unknown;
     const instance = axios.create({

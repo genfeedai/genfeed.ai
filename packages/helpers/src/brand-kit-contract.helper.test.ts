@@ -1,5 +1,6 @@
 import type {
   IBrandKitAssetValue,
+  IBrandKitDraft,
   IBrandKitSocialLink,
 } from '@genfeedai/contracts/interfaces';
 import {
@@ -361,5 +362,205 @@ describe('brand kit contract helpers', () => {
         expect.objectContaining({ candidateId: 'reference:reference-upload' }),
       ]),
     );
+  });
+});
+
+function approveLikeRevisionService(draft: IBrandKitDraft): IBrandKitDraft {
+  const approved = structuredClone(draft);
+  for (const [key, field] of Object.entries(approved.fields)) {
+    if (!field) continue;
+    if (field.applyActionDefault === 'reject') {
+      Reflect.deleteProperty(approved.fields, key);
+      continue;
+    }
+    if (
+      field.applyActionDefault === 'accept' &&
+      field.proposedValue !== undefined
+    )
+      field.currentValue = field.proposedValue;
+    delete field.proposedValue;
+  }
+  approved.assetCandidates = [];
+  approved.status = 'accepted';
+  return approved;
+}
+
+describe('approved website baseline authority', () => {
+  const scraped = {
+    companyName: 'Website B',
+    description: 'Website description B',
+    fontFamily: 'Website Family',
+    logoUrl: 'https://acme.example/new.svg',
+    scrapedAt: new Date('2026-10-01T00:00:00Z'),
+    sourceUrl: 'https://acme.example',
+  };
+  it('retains approved fields, asset identities and exact family while keeping fresh proposals separate', () => {
+    const brand = createCompleteBrand();
+    const baseline = approveLikeRevisionService(
+      buildBrandKitDraftFromBrand(brand),
+    );
+    if (baseline.fields.fontFamily)
+      baseline.fields.fontFamily.currentValue = 'Owner Custom Family';
+    brand.label = 'Mutable B';
+    brand.logo = { id: 'mutable-logo' };
+    const before = structuredClone({ brand, baseline, scraped });
+    const draft = buildBrandKitDraftFromWebsiteScrape(brand, scraped, {
+      baselineDraft: baseline,
+      draftId: 'fresh',
+      createdAt: 'fresh-time',
+      fieldConfidence: { label: 0.8 },
+    });
+    expect(draft.fields.label).toMatchObject({
+      currentValue: 'Acme',
+      proposedValue: 'Website B',
+      applyActionDefault: 'preserve',
+      confidence: 0.8,
+    });
+    expect(draft.fields.logo?.currentValue).toMatchObject({ id: 'logo-asset' });
+    expect(draft.fields.logo?.proposedValue).toMatchObject({
+      url: scraped.logoUrl,
+    });
+    expect(draft.fields.fontFamily?.currentValue).toBe('Owner Custom Family');
+    expect(draft.fields.fontFamily?.proposedValue).toBe('Website Family');
+    expect(draft.fields.voiceTone?.currentValue).toBe('direct');
+    expect(draft.id).toBe('fresh');
+    expect(draft.createdAt).toBe('fresh-time');
+    expect(draft.sourceType).toBe('website');
+    expect(draft.status).toBe('ready');
+    expect(draft.evidence.map((e) => e.sourceType)).toEqual([
+      'current_brand',
+      'website',
+    ]);
+    expect(draft.fields.label?.evidence.map((e) => e.sourceType)).toEqual([
+      'current_brand',
+      'website',
+    ]);
+    expect(draft.assetCandidates).not.toHaveLength(0);
+    expect(approveLikeRevisionService(draft).fields.label?.currentValue).toBe(
+      'Acme',
+    );
+    expect(
+      approveLikeRevisionService(draft).fields.label?.proposedValue,
+    ).toBeUndefined();
+    expect({ brand, baseline, scraped }).toEqual(before);
+    expect(draft.fields.logo?.currentValue).not.toBe(
+      baseline.fields.logo?.currentValue,
+    );
+    expect(draft.fields.label?.evidence[0]).not.toBe(
+      baseline.fields.label?.evidence[0],
+    );
+  });
+  it('does not resurrect intentionally absent values and preserves explicit empty values', () => {
+    const baseline = approveLikeRevisionService(
+      buildBrandKitDraftFromBrand(createCompleteBrand()),
+    );
+    delete baseline.fields.voiceTone;
+    delete baseline.fields.description;
+    if (baseline.fields.label) baseline.fields.label.currentValue = '';
+    if (baseline.fields.voiceAudience)
+      baseline.fields.voiceAudience.currentValue = [];
+    if (baseline.fields.banner) baseline.fields.banner.currentValue = null;
+    const draft = buildBrandKitDraftFromWebsiteScrape(
+      createCompleteBrand(),
+      scraped,
+      { baselineDraft: baseline },
+    );
+    expect(draft.fields.voiceTone?.currentValue).toBeUndefined();
+    expect(draft.fields.description?.currentValue).toBeUndefined();
+    expect(draft.fields.description?.proposedValue).toBe(scraped.description);
+    expect(draft.fields.label?.currentValue).toBe('');
+    expect(draft.fields.voiceAudience?.currentValue).toEqual([]);
+    expect(draft.fields.banner?.currentValue).toBeNull();
+    expect(draft.readiness.missingFields).toContain('voiceTone');
+    expect(draft.readiness.missingFields).not.toContain('description');
+    expect(draft.status).toBe('partial');
+  });
+  it.each([
+    { brandId: 'foreign' },
+    { organizationId: 'foreign' },
+    { status: 'ready' as const },
+  ])('rejects invalid baseline %s', (change) => {
+    const baseline = {
+      ...approveLikeRevisionService(
+        buildBrandKitDraftFromBrand(createCompleteBrand()),
+      ),
+      ...change,
+    };
+    expect(() =>
+      buildBrandKitDraftFromWebsiteScrape(createCompleteBrand(), scraped, {
+        baselineDraft: baseline,
+      }),
+    ).toThrow('Invalid brand kit baseline');
+  });
+  it('clones approved enrichment unchanged and excludes stale baseline diagnostics/assets', () => {
+    const baseline = approveLikeRevisionService(
+      buildBrandKitDraftFromBrand(createCompleteBrand()),
+    );
+    baseline.generationRules = {
+      schemaVersion: 1,
+      evidence: [{ id: 'manual', sourceType: 'manual', label: 'Approved' }],
+      facts: [],
+      palette: [],
+      typography: [
+        {
+          id: 'font',
+          family: 'Owner Custom Family',
+          role: 'body',
+          weight: 400,
+          style: 'normal',
+          availability: 'unknown',
+          required: true,
+          evidenceIds: ['manual'],
+        },
+      ],
+      mandatory: [],
+      avoid: [],
+      examples: [],
+      assets: [],
+    };
+    baseline.diagnostics = [
+      { code: 'stale', message: 'Stale error', severity: 'error' },
+    ];
+    baseline.assetCandidates = [
+      {
+        candidateId: 'stale',
+        role: 'logo',
+        sourceType: 'website',
+        url: 'https://old.example/logo',
+      },
+    ];
+    const draft = buildBrandKitDraftFromWebsiteScrape(
+      createCompleteBrand(),
+      scraped,
+      { baselineDraft: baseline },
+    );
+    expect(draft.generationRules).toEqual(baseline.generationRules);
+    expect(draft.generationRules).not.toBe(baseline.generationRules);
+    expect(draft.diagnostics.some((d) => d.code === 'stale')).toBe(false);
+    expect(draft.assetCandidates.some((a) => a.candidateId === 'stale')).toBe(
+      false,
+    );
+    expect(draft.status).toBe('ready');
+  });
+  it('leaves the legacy call equivalent with no baseline and ignores baseline in brand/manual projection', () => {
+    const brand = createCompleteBrand();
+    const baseline = approveLikeRevisionService(
+      buildBrandKitDraftFromBrand({ id: 'other' }),
+    );
+    expect(buildBrandKitDraftFromWebsiteScrape(brand, scraped)).toEqual(
+      buildBrandKitDraftFromWebsiteScrape(brand, scraped, {
+        baselineDraft: undefined,
+      }),
+    );
+    expect(
+      buildBrandKitDraftFromBrand(brand, { baselineDraft: baseline }),
+    ).toEqual(buildBrandKitDraftFromBrand(brand));
+    expect(
+      buildBrandKitDraftFromManualInput(
+        brand,
+        { label: 'Manual' },
+        { baselineDraft: baseline },
+      ),
+    ).toEqual(buildBrandKitDraftFromManualInput(brand, { label: 'Manual' }));
   });
 });

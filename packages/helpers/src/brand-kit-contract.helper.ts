@@ -76,6 +76,7 @@ export interface BrandKitSourceBrand {
 }
 
 export interface BuildBrandKitDraftOptions {
+  baselineDraft?: IBrandKitDraft;
   draftId?: string;
   sourceType?: BrandKitSourceType;
   evidence?: IBrandKitSourceEvidence[];
@@ -872,6 +873,18 @@ export function buildBrandKitDraftFromWebsiteScrape(
     'assetCandidates' | 'evidence' | 'fieldDiagnostics' | 'proposedValues'
   > = {},
 ): IBrandKitDraft {
+  const baseline = options.baselineDraft;
+  const organizationId = getOrganizationId(brand.organization);
+  if (
+    baseline &&
+    (baseline.brandId !== brand.id ||
+      (baseline.organizationId !== undefined &&
+        organizationId !== undefined &&
+        baseline.organizationId !== organizationId) ||
+      baseline.status !== 'accepted')
+  ) {
+    throw new Error('Invalid brand kit baseline');
+  }
   const referenceValues = uniqueTextValues(scraped.referenceImageUrls ?? [])
     .filter(
       (url) =>
@@ -916,7 +929,7 @@ export function buildBrandKitDraftFromWebsiteScrape(
   setProposedValue('secondaryColor', scraped.secondaryColor);
   setProposedValue('socialLinks', readWebsiteSocialLinks(scraped));
 
-  return buildBrandKitDraftFromBrand(brand, {
+  const draft = buildBrandKitDraftFromBrand(brand, {
     ...options,
     assetCandidates: createWebsiteAssetCandidates(scraped),
     evidence: createWebsiteEvidence(scraped),
@@ -924,4 +937,27 @@ export function buildBrandKitDraftFromWebsiteScrape(
     proposedValues,
     sourceType: 'website',
   });
+  if (!baseline) return draft;
+  for (const owner of BRAND_KIT_FIELD_OWNERSHIP) {
+    const field = draft.fields[owner.key];
+    if (!field) continue;
+    const approvedField = baseline.fields[owner.key];
+    delete field.currentValue;
+    if (approvedField && 'currentValue' in approvedField) {
+      field.currentValue = structuredClone(approvedField.currentValue);
+    }
+    field.evidence = [
+      ...structuredClone(approvedField?.evidence ?? []),
+      ...field.evidence,
+    ];
+    field.applyActionDefault = 'preserve';
+  }
+  const readiness = buildReadiness(draft.fields, draft.diagnostics);
+  return {
+    ...structuredClone(baseline),
+    ...draft,
+    evidence: [...structuredClone(baseline.evidence), ...draft.evidence],
+    readiness,
+    status: readiness.status === 'complete' ? 'ready' : readiness.status,
+  };
 }

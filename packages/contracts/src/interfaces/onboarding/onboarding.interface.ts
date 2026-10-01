@@ -219,3 +219,19 @@ export interface IProactivePreparationStatus {
 }
 
 export type OnboardingContentType = 'ads' | 'social';
+
+export interface IBrandOnboardingScanRequest {
+  url: string;
+  requestId: string;
+}
+
+export interface IBrandOnboardingScan {
+  id: string;
+  brandId: string;
+  status: 'pending' | 'running' | 'ready' | 'partial' | 'failed';
+  url: string;
+  startedAt: string;
+  completedAt?: string;
+  revisionId?: string;
+  errorCode?: string;
+}
