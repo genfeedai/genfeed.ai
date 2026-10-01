@@ -341,3 +341,43 @@ it('preserves distinct Seedream defaults and reference-driven auto without video
     },
   });
 });
+
+describe('Veo text-only boundary independent of supplied fields', () => {
+  const veo = controlsFor('google/veo3-1-fast-t2v');
+  const accidentalFields = {
+    ...veo,
+    fields: { ...veo.fields, img_urls: controlsFor().fields.img_urls },
+  };
+  it.each([['https://example.com/frame'], [], undefined, null])(
+    'rejects supplied references even when an accidental field describes them: %j',
+    (img_urls) => {
+      expect(
+        normalizeCrunInput(accidentalFields, { prompt: 'motion', img_urls }),
+      ).toEqual({
+        isValid: false,
+        errors: [{ field: 'img_urls', code: 'unknown' }],
+      });
+    },
+  );
+  it('never forwards an accidental reference default', () => {
+    const contract = {
+      ...accidentalFields,
+      fields: {
+        ...accidentalFields.fields,
+        img_urls: {
+          ...accidentalFields.fields.img_urls,
+          default: ['https://example.com/default-frame'],
+        },
+      },
+    };
+    expect(normalizeCrunInput(contract, { prompt: 'motion' })).toEqual({
+      isValid: false,
+      errors: [{ field: 'img_urls', code: 'unknown' }],
+    });
+  });
+  it('preserves text-only defaults when unused accidental reference metadata has no default', () => {
+    expect(normalizeCrunInput(accidentalFields, { prompt: 'motion' })).toEqual(
+      normalizeCrunInput(veo, { prompt: 'motion' }),
+    );
+  });
+});

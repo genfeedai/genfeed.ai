@@ -85,13 +85,24 @@ export function normalizeCrunInput(
         errors: [{ field: 'videoRules', code: 'contract_mismatch' }],
       };
   }
+  const isTextOnlyVideo =
+    contract.mediaKind === 'video' &&
+    contract.endpoint === 'google/veo3-1-fast-t2v';
   const errors: CrunInputFieldError[] = [];
   const input: Record<string, CrunInputValue> = {};
   for (const name of Object.keys(values)) {
-    if (!Object.hasOwn(contract.fields, name))
+    if (
+      !Object.hasOwn(contract.fields, name) ||
+      (isTextOnlyVideo && name === 'img_urls')
+    )
       errors.push({ field: name, code: 'unknown' });
   }
   for (const [name, field] of Object.entries(contract.fields)) {
+    if (isTextOnlyVideo && name === 'img_urls') {
+      if (!Object.hasOwn(values, name) && field.default !== undefined)
+        errors.push({ field: name, code: 'unknown' });
+      continue;
+    }
     const value = Object.hasOwn(values, name) ? values[name] : field.default;
     if (value === undefined) {
       if (field.isRequired) errors.push({ field: name, code: 'required' });
