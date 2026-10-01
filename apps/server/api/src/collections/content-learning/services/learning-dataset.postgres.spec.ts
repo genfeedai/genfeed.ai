@@ -67,10 +67,7 @@ describe.skipIf(!explicitUrl)(
   'dataset atomic scalability on isolated PostgreSQL',
   () => {
     let pool: Pool,
-      prisma: PrismaClient<{
-        adapter: PrismaPg;
-        log: [{ emit: 'event'; level: 'query' }];
-      }>,
+      prisma: PrismaClient<'query'>,
       service: LearningDatasetService;
     let statements: string[] = [];
     let transactionElapsedMs = 0;
