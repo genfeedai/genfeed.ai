@@ -5,7 +5,10 @@ import {
   IngredientFormat,
   RouterPriority,
 } from '@genfeedai/contracts';
-import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
+import {
+  isFlux3ImageModel,
+  normalizeMusicSettings,
+} from '@genfeedai/contracts/constants';
 import type { IIngredient, IModel } from '@genfeedai/contracts/interfaces';
 import type {
   AvatarGenerationPayload,
@@ -100,6 +103,9 @@ export function buildImagePayload(
     ...basePayload,
     format:
       (promptData.format as IngredientFormat) || IngredientFormat.PORTRAIT,
+    ...(basePayload.model && isFlux3ImageModel(basePayload.model)
+      ? { resolution: promptData.resolution }
+      : {}),
     quality:
       basePayload.model &&
       isImageQualitySupported(basePayload.model, promptData.resolution)

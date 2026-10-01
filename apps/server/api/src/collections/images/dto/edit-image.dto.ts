@@ -41,7 +41,7 @@ export class EditImageDto {
   @IsOptional()
   @IsArray()
   @ArrayUnique()
-  @ArrayMaxSize(4)
+  @ArrayMaxSize(9)
   @IsEntityId({ each: true })
   readonly references?: string[];
 
@@ -64,6 +64,14 @@ export class EditImageDto {
   @Min(0)
   @Max(2147483647)
   readonly seed?: number;
+
+  @IsOptional()
+  @IsString()
+  readonly resolution?: string;
+
+  @IsOptional()
+  @IsString()
+  readonly aspectRatio?: string;
 
   @IsOptional()
   @IsBoolean()

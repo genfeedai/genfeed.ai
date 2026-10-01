@@ -6,6 +6,9 @@ import {
   RouterPriority,
 } from '@genfeedai/contracts';
 import {
+  FLUX_3_PROVIDER_COSTS,
+  isFlux3ImageModel,
+  isFlux3Resolution,
   isImageEditModel,
   MODEL_KEYS,
   MODEL_OUTPUT_CAPABILITIES,
@@ -24,6 +27,7 @@ import {
   calculateImageGenerationCredits,
   calculateVideoGenerationCredits,
 } from './generation-credit-calculator';
+import { applyMargin } from './plans-pricing';
 
 const UNAVAILABLE: StudioGenerationCostEstimate = {
   credits: null,
@@ -257,6 +261,19 @@ export function resolveStudioGenerationCost({
   )
     return UNAVAILABLE;
 
+  if (isFlux3ImageModel(model.key)) {
+    if (
+      !isFlux3Resolution(settings.resolution) ||
+      settings.outputs !== 1 ||
+      pricingType !== PricingType.FLAT ||
+      !model.reviewedProviderContractVersion
+    )
+      return UNAVAILABLE;
+    return {
+      credits: applyMargin(FLUX_3_PROVIDER_COSTS[settings.resolution]),
+      status: 'estimated',
+    };
+  }
   if (type === 'image-edit') {
     if (
       !isImageEditModel(model.key) ||

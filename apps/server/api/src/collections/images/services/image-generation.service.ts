@@ -41,6 +41,7 @@ import {
 import type { ImageGenerationBriefDispatch } from '@api/services/generation-brief/image-generation-brief-registry';
 import { rawPromptBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
 import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
+import { buildFlux3ImageInput } from '@api/services/prompt-builder/builders/replicate/flux-3-image.builder';
 import { buildIdeogramImageEditInput } from '@api/services/prompt-builder/builders/replicate/ideogram-image-edit.builder';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
@@ -62,6 +63,7 @@ import type {
 import type { GenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import { buildGenerationBriefExemptionSource } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import {
+  isFlux3ImageModel,
   isImageEditModel,
   MODEL_OUTPUT_CAPABILITIES,
   readImageEditingRecipe,
@@ -133,23 +135,36 @@ export class ImageGenerationService {
         'This model does not support instruction-based image editing',
         HttpStatus.BAD_REQUEST,
       );
+    const resolvedModel =
+      dto.model ??
+      (
+        await this.routerService.resolveModelKey({
+          category: ModelCategory.IMAGE_EDIT,
+          organizationId: user.organizationId,
+        })
+      ).key;
+    const admittedDto = Object.assign(new EditImageDto(), dto, {
+      model: resolvedModel,
+    });
     const editing = await this.admissionService.admitImageEdit(
       imageId,
-      dto,
+      admittedDto,
       user.organizationId,
       brandId,
     );
     const normalized = Object.assign(new CreateImageDto(), {
       text: dto.prompt.trim(),
       brandId,
-      model: dto.model,
+      model: resolvedModel,
       references: editing.sourceIds,
       parentId: imageId,
       width: editing.width,
       height: editing.height,
       outputs: dto.outputs ?? 1,
       seed: dto.seed,
-      quality: 'medium',
+      quality: isFlux3ImageModel(resolvedModel) ? undefined : 'medium',
+      resolution: dto.resolution,
+      aspectRatio: dto.aspectRatio,
       harness: false,
       brandingMode: 'off',
       useTemplate: false,
@@ -193,6 +208,8 @@ export class ImageGenerationService {
       editing ? ModelCategory.IMAGE_EDIT : ModelCategory.IMAGE,
     );
     if (editing) editing.recipe.model = model;
+    if (isFlux3ImageModel(model))
+      this.admissionService.assertFlux3Controls(createImageDto);
 
     const accepted = await this.reuseAcceptedGeneration(
       user,
@@ -246,10 +263,16 @@ export class ImageGenerationService {
 
     const referenceImageUrls =
       editing?.sourceUrls ??
-      (await this.admissionService.resolveReferenceImageUrls(
-        user.organizationId,
-        referenceIds,
-      ));
+      (isFlux3ImageModel(model)
+        ? await this.admissionService.resolveFlux3References(
+            user.organizationId,
+            brand.id,
+            referenceIds,
+          )
+        : await this.admissionService.resolveReferenceImageUrls(
+            user.organizationId,
+            referenceIds,
+          ));
 
     const referenceImageUrl: string | null = referenceImageUrls[0] || null;
 
@@ -591,6 +614,8 @@ export class ImageGenerationService {
         'Select a model for this image operation.',
         HttpStatus.BAD_REQUEST,
       );
+    if (isFlux3ImageModel(model))
+      this.admissionService.assertFlux3Controls(createImageDto);
     const approvedQuote = (request as unknown as DeferredCreditsRequest)
       .creditsConfig?.approvedImageQuote;
     if (approvedQuote) {
@@ -890,14 +915,22 @@ export class ImageGenerationService {
       promptOriginalText,
     );
 
-    let providerInput: Record<string, unknown> | undefined = editing
-      ? buildIdeogramImageEditInput(
-          generationHarness.enhancedPrompt,
-          editing,
-          createImageDto.outputs ?? 1,
-          createImageDto.seed,
-        )
-      : undefined;
+    let providerInput: Record<string, unknown> | undefined =
+      editing && isFlux3ImageModel(model)
+        ? buildFlux3ImageInput(
+            generationHarness.enhancedPrompt,
+            referenceImageUrls,
+            createImageDto.resolution ?? '1k',
+            createImageDto.aspectRatio ?? 'auto',
+          )
+        : editing
+          ? buildIdeogramImageEditInput(
+              generationHarness.enhancedPrompt,
+              editing,
+              createImageDto.outputs ?? 1,
+              createImageDto.seed,
+            )
+          : undefined;
     let imageTemplateUsed: string | undefined;
     let imageTemplateVersion: number | undefined;
     if (!compiledDispatch && !editing) {
@@ -915,6 +948,8 @@ export class ImageGenerationService {
           lens: createImageDto.lens,
           lighting: createImageDto.lighting,
           modelInputSchema,
+          resolution: createImageDto.resolution,
+          aspectRatio: createImageDto.aspectRatio,
           modelCategory: ModelCategory.IMAGE,
           mood: createImageDto.mood,
           outputs: MODEL_OUTPUT_CAPABILITIES[model]?.isBatchSupported

@@ -25,6 +25,25 @@ import { MODEL_KEYS } from './model-keys.constant';
  * List prices last reviewed 2026-08.
  */
 export const SELF_HOSTED_MODELS = [
+  ...[ModelCategory.IMAGE, ModelCategory.IMAGE_EDIT].map((category) => ({
+    category,
+    cost: 8,
+    costTier: CostTier.MEDIUM,
+    description:
+      'FLUX.3 Image — generation and reference editing with up to ten images, five resolutions and one output.',
+    isDefault: false,
+    isHighlighted: true,
+    key:
+      category === ModelCategory.IMAGE
+        ? MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE
+        : MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
+    endpoint: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
+    label: category === ModelCategory.IMAGE ? 'FLUX.3' : 'FLUX.3 Edit',
+    pricingType: PricingType.FLAT,
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'flux-3-image', owner: 'black-forest-labs' },
+    providerCostUsd: 0.024,
+  })),
   {
     category: ModelCategory.IMAGE_EDIT,
     cost: 20,

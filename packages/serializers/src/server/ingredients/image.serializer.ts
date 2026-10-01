@@ -14,6 +14,8 @@ export const { ImageSerializer: ImageGenerationSerializer } = buildSerializer(
     attributes: [
       ...imageSerializerConfig.attributes,
       ...generationRequestAttributes,
+      'resolution',
+      'aspectRatio',
     ],
   },
 );
@@ -52,6 +54,8 @@ export const { ImageEditingRequestSerializer } = buildSerializer('server', {
     'model',
     'references',
     'maskId',
+    'resolution',
+    'aspectRatio',
     'size',
     'outputs',
     'seed',

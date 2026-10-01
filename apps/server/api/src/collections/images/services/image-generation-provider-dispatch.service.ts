@@ -225,7 +225,11 @@ export class ImageGenerationProviderDispatchService {
     let generationPromise: Promise<unknown>;
     try {
       await this.bindOutputCredits(context, context.ingredientData.id);
-      if (context.editing && context.outputs > 1) {
+      if (
+        context.editing &&
+        context.outputs > 1 &&
+        provider.outputStrategy === 'batch'
+      ) {
         const documents: ImageGenerationSaveDocumentsResult[] = [
           {
             ingredientData: context.ingredientData,

@@ -1,6 +1,9 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { IngredientFormat, RouterPriority } from '@genfeedai/contracts';
 import {
+  FLUX_3_ASPECT_RATIOS,
+  FLUX_3_RESOLUTIONS,
+  isFlux3ImageModel,
   normalizeMusicSettings,
   resolveMusicSettings,
 } from '@genfeedai/contracts/constants';
@@ -129,7 +132,9 @@ export function resolveLongEdge(resolution: string): number {
 
 export function getStudioAspectRatios(
   type: StudioGenerateType,
+  modelKey?: string,
 ): readonly string[] {
+  if (modelKey && isFlux3ImageModel(modelKey)) return FLUX_3_ASPECT_RATIOS;
   return getStudioGenerateTypeConfig(type).capabilities.hasAspectRatio
     ? STUDIO_ASPECT_RATIOS
     : [];
@@ -139,6 +144,11 @@ export function getStudioResolutions(
   type: StudioGenerateType,
   modelKey?: string,
 ): ReadonlyArray<{ isDraft?: boolean; label: string; value: string }> {
+  if (modelKey && isFlux3ImageModel(modelKey))
+    return FLUX_3_RESOLUTIONS.map((value) => ({
+      label: value.toUpperCase(),
+      value,
+    }));
   if (type === 'video') {
     return modelKey ? getVideoResolutionsByModel(modelKey) : [];
   }
@@ -177,6 +187,7 @@ export function getDefaultStudioResolution(
   type: StudioGenerateType,
   modelKey?: string,
 ): string {
+  if (modelKey && isFlux3ImageModel(modelKey)) return '1k';
   if (type === 'video') {
     return (modelKey && getDefaultVideoResolution(modelKey)) || '720p';
   }

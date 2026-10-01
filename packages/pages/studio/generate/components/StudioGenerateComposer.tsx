@@ -2,9 +2,14 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
+  FLUX_3_ASPECT_RATIOS,
+  FLUX_3_RESOLUTIONS,
+  getImageEditMaxSources,
   hasEndFrame,
   hasVideoReferences,
   IMAGE_EDIT_SIZES,
+  isFlux3ImageModel,
+  isFlux3Resolution,
   isImageEditSize,
   MODEL_KEYS,
   normalizeMusicSettings,
@@ -67,7 +72,7 @@ import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import { ArrowUp, WandSparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 /** Types whose prompt is spoken aloud rather than described to a renderer. */
 const SCRIPT_PLACEHOLDER = 'Write the script you want spoken…';
@@ -122,10 +127,47 @@ export default function StudioGenerateComposer({
   // Narrowed against the selected model's own registry capability — the
   // static per-type config is only the widest case across every music
   // model (see `resolveStudioGenerateCapabilities`).
+  const effectiveModelKey =
+    settings.modelKey === AUTO_MODEL_OPTION_VALUE && type === 'image-edit'
+      ? models.find((model) => model.isDefault)?.key
+      : settings.modelKey;
+  const isFlux = isFlux3ImageModel(effectiveModelKey ?? '');
+  const editSourceLimit = getImageEditMaxSources(effectiveModelKey);
   const capabilities = resolveStudioGenerateCapabilities(
     type,
-    settings.modelKey,
+    effectiveModelKey,
   );
+  const unsupportedEditingControls =
+    isFlux &&
+    type === 'image-edit' &&
+    (settings.editSeed !== undefined ||
+      attachedAssets.some((asset) => asset.role === 'editMask'));
+  const [droppedEditingControls, setDroppedEditingControls] = useState(false);
+  useEffect(() => {
+    if (!isFlux) {
+      setDroppedEditingControls(false);
+      return;
+    }
+    if (unsupportedEditingControls) setDroppedEditingControls(true);
+    const patch: Partial<typeof settings> = {};
+    if (settings.outputs !== 1) patch.outputs = 1;
+    if (!isFlux3Resolution(settings.resolution)) patch.resolution = '1k';
+    if (settings.editSeed !== undefined) patch.editSeed = undefined;
+    if (settings.editSize !== undefined) patch.editSize = undefined;
+    for (const asset of attachedAssets)
+      if (asset.role === 'editMask') onRemoveAttachedAsset(asset.id);
+    if (Object.keys(patch).length) onSettingsChange(patch);
+  }, [
+    isFlux,
+    unsupportedEditingControls,
+    settings.outputs,
+    settings.resolution,
+    settings.editSeed,
+    settings.editSize,
+    attachedAssets,
+    onRemoveAttachedAsset,
+    onSettingsChange,
+  ]);
   useEffect(() => {
     if (type !== 'music') return;
     const normalized = normalizeMusicSettings(settings.modelKey, {
@@ -185,7 +227,8 @@ export default function StudioGenerateComposer({
   );
   const hasEditMask = attachedAssets.some((asset) => asset.role === 'editMask');
   const isEditSourceMissing =
-    type === 'image-edit' && (editSources.length < 1 || editSources.length > 5);
+    type === 'image-edit' &&
+    (editSources.length < 1 || editSources.length > editSourceLimit);
   const isEditingModelUnavailable =
     type === 'image-edit' &&
     !isLoadingModels &&
@@ -257,6 +300,15 @@ export default function StudioGenerateComposer({
       value: GenerationSetupValues[K],
     ) => {
       setGenerationSetupField(scope, key, value, defaults);
+      if (
+        key === 'modelKey' &&
+        typeof value === 'string' &&
+        isFlux3ImageModel(value)
+      ) {
+        setGenerationSetupField(scope, 'resolution', '1k', defaults);
+        setGenerationSetupField(scope, 'aspectRatio', 'auto', defaults);
+        setGenerationSetupField(scope, 'outputs', 1, defaults);
+      }
       if (
         key === 'modelKey' &&
         type === 'video' &&
@@ -359,6 +411,51 @@ export default function StudioGenerateComposer({
         value={prompt}
       />
 
+      {isFlux ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <Select
+            value={settings.resolution}
+            disabled={isGenerating}
+            onValueChange={(resolution) => onSettingsChange({ resolution })}
+          >
+            <SelectTrigger aria-label="FLUX resolution" className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {FLUX_3_RESOLUTIONS.map((value) => (
+                <SelectItem key={value} value={value}>
+                  {value.toUpperCase()}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={settings.aspectRatio}
+            disabled={isGenerating}
+            onValueChange={(aspectRatio) => onSettingsChange({ aspectRatio })}
+          >
+            <SelectTrigger aria-label="FLUX aspect ratio" className="w-52">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {FLUX_3_ASPECT_RATIOS.map((value) => (
+                <SelectItem key={value} value={value}>
+                  {value === 'auto'
+                    ? type === 'image-edit'
+                      ? 'Match source aspect ratio'
+                      : 'Auto aspect ratio'
+                    : value}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {droppedEditingControls ? (
+            <p role="status" className="text-xs text-muted-foreground">
+              Mask and seed settings were removed for FLUX.3.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       {type === 'image-edit' ? (
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {editSources.length > 1 ? (
@@ -388,51 +485,64 @@ export default function StudioGenerateComposer({
               </SelectContent>
             </Select>
           ) : null}
-          <Select
-            disabled={isGenerating || hasEditMask}
-            value={hasEditMask ? 'source' : (settings.editSize ?? 'source')}
-            onValueChange={(value) => {
-              if (isImageEditSize(value)) onSettingsChange({ editSize: value });
-            }}
-          >
-            <SelectTrigger aria-label="Editing output size" className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {IMAGE_EDIT_SIZES.map((size) => (
-                <SelectItem key={size} value={size}>
-                  {size === 'source' ? 'Source dimensions' : size}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Input
-            aria-label="Editing seed"
-            className="w-36"
-            type="number"
-            min={0}
-            max={2147483647}
-            step={1}
-            placeholder="Seed (optional)"
-            value={settings.editSeed ?? ''}
-            isDisabled={isGenerating}
-            onChange={(event) =>
-              onSettingsChange({
-                editSeed:
-                  event.target.value === ''
-                    ? undefined
-                    : Number(event.target.value),
-              })
-            }
-          />
+          {!isFlux ? (
+            <>
+              <Select
+                disabled={isGenerating || hasEditMask}
+                value={hasEditMask ? 'source' : (settings.editSize ?? 'source')}
+                onValueChange={(value) => {
+                  if (isImageEditSize(value))
+                    onSettingsChange({ editSize: value });
+                }}
+              >
+                <SelectTrigger
+                  aria-label="Editing output size"
+                  className="w-40"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {IMAGE_EDIT_SIZES.map((size) => (
+                    <SelectItem key={size} value={size}>
+                      {size === 'source' ? 'Source dimensions' : size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                aria-label="Editing seed"
+                className="w-36"
+                type="number"
+                min={0}
+                max={2147483647}
+                step={1}
+                placeholder="Seed (optional)"
+                value={settings.editSeed ?? ''}
+                isDisabled={isGenerating}
+                onChange={(event) =>
+                  onSettingsChange({
+                    editSeed:
+                      event.target.value === ''
+                        ? undefined
+                        : Number(event.target.value),
+                  })
+                }
+              />
+            </>
+          ) : null}
           <p className="text-xs text-muted-foreground">
-            First source is the target. {editSources.length}/5 sources · Medium
-            quality. Masks: black changes, white stays.
+            First source is the target. {editSources.length}/{editSourceLimit}{' '}
+            sources.
+            {isFlux
+              ? ' One output. No mask or seed.'
+              : ' Medium quality. Masks: black changes, white stays.'}
           </p>
           {isEditSourceMissing || isEditingModelUnavailable ? (
             <p role="status" className="text-xs text-destructive">
               {isEditSourceMissing
-                ? 'Choose a source image to edit.'
+                ? editSources.length > editSourceLimit
+                  ? `Remove sources to meet the ${editSourceLimit}-image limit.`
+                  : 'Choose a source image to edit.'
                 : 'An available editing default or selected model is required.'}
             </p>
           ) : null}
@@ -520,20 +630,26 @@ export default function StudioGenerateComposer({
                 accept="image/*"
                 label="Source images"
                 isAttachmentDisabled={
-                  isGenerating || isUploading || editSources.length >= 5
+                  isGenerating ||
+                  isUploading ||
+                  editSources.length >= editSourceLimit
                 }
-                isLibraryDisabled={isGenerating || editSources.length >= 5}
+                isLibraryDisabled={
+                  isGenerating || editSources.length >= editSourceLimit
+                }
                 onAddFiles={(files) => onAddFiles(files, 'editSource')}
                 onOpenLibrary={() => onOpenLibrary('editSource')}
               />
-              <PromptBarReferenceControls
-                accept="image/*"
-                label="Mask (optional)"
-                isAttachmentDisabled={isGenerating || isUploading}
-                isLibraryDisabled={isGenerating}
-                onAddFiles={(files) => onAddFiles(files, 'editMask')}
-                onOpenLibrary={() => onOpenLibrary('editMask')}
-              />
+              {!isFlux ? (
+                <PromptBarReferenceControls
+                  accept="image/*"
+                  label="Mask (optional)"
+                  isAttachmentDisabled={isGenerating || isUploading}
+                  isLibraryDisabled={isGenerating}
+                  onAddFiles={(files) => onAddFiles(files, 'editMask')}
+                  onOpenLibrary={() => onOpenLibrary('editMask')}
+                />
+              ) : null}
             </>
           ) : null}
           {type === 'video' ? (

@@ -1,5 +1,8 @@
 import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
-import { resolveMusicSettings } from '@genfeedai/contracts/constants';
+import {
+  isFlux3ImageModel,
+  resolveMusicSettings,
+} from '@genfeedai/contracts/constants';
 import type {
   StudioGenerateCapabilities,
   StudioGenerateType,
@@ -187,6 +190,8 @@ export function resolveStudioGenerateCapabilities(
   modelKey: string | undefined,
 ): StudioGenerateCapabilities {
   const { capabilities } = getStudioGenerateTypeConfig(type);
+  if (modelKey && isFlux3ImageModel(modelKey))
+    return { ...capabilities, hasOutputs: false, hasAspectRatio: false };
   if (type !== 'music') return capabilities;
   const music = resolveMusicSettings(modelKey);
   return {

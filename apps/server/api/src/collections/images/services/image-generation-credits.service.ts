@@ -24,7 +24,10 @@ import { ByokService } from '@api/services/byok/byok.service';
 import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
 import type { ByokProvider } from '@genfeedai/contracts';
 import { ModelCategory } from '@genfeedai/contracts';
-import { isImageEditModel } from '@genfeedai/contracts/constants';
+import {
+  isFlux3ImageModel,
+  isImageEditModel,
+} from '@genfeedai/contracts/constants';
 import type { ModelBillableQuoteSnapshot } from '@genfeedai/contracts/interfaces';
 import { buildPricingAuditStamp } from '@genfeedai/pricing';
 import { ConflictException, Injectable } from '@nestjs/common';
@@ -270,9 +273,11 @@ export class ImageGenerationCreditsService {
       width: createImageDto.width || 1920,
       outputs,
       requests: isNativeImageBatch(model, provider) ? 1 : outputs,
-      ...(createImageDto.quality !== undefined
-        ? { selectors: { quality: createImageDto.quality } }
-        : {}),
+      ...(isFlux3ImageModel(model)
+        ? { selectors: { resolution: createImageDto.resolution ?? '1k' } }
+        : createImageDto.quality !== undefined
+          ? { selectors: { quality: createImageDto.quality } }
+          : {}),
     });
     return {
       requiredCredits: modelQuote.credits,

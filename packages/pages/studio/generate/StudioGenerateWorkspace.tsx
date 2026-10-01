@@ -18,6 +18,7 @@ import {
   ViewType,
 } from '@genfeedai/contracts';
 import {
+  getImageEditMaxSources,
   getModelMaxVideoReferences,
   hasEndFrame,
   hasInterpolation,
@@ -385,6 +386,10 @@ export default function StudioGenerateWorkspace(): ReactElement {
   const { isLoadingModels, models } = useStudioGenerateModels(
     modelCategory,
     organizationId,
+  );
+  const editSourceLimit = getImageEditMaxSources(
+    models.find((model) => model.key === settings.modelKey)?.key ??
+      models.find((model) => model.isDefault)?.key,
   );
   const { galleryError, isLoadingGallery, refresh, storedJobs } =
     useStudioGenerateGallery({
@@ -936,11 +941,11 @@ export default function StudioGenerateWorkspace(): ReactElement {
             (attachment) => getAttachmentRole(attachment) === 'editSource',
           ).length;
         if (
-          count >= 5 &&
+          count >= editSourceLimit &&
           !contentReferences.some((reference) => reference.item.id === item.id)
         ) {
           notificationsService.warning(
-            'Image editing accepts at most five source images.',
+            `Image editing accepts at most ${editSourceLimit} source images.`,
           );
           return;
         }
@@ -991,6 +996,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
               getAttachmentRole(attachment) === 'videoReference',
           ).length;
         const maxVideoReferences = getModelMaxVideoReferences(
+          editSourceLimit,
           settings.modelKey,
         );
         if (selectedVideoReferences >= maxVideoReferences) {
@@ -1036,6 +1042,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
       contentReferences,
       getAttachmentRole,
       notificationsService,
+      editSourceLimit,
       settings.modelKey,
       settings.resolution,
       updateSettings,
@@ -1093,10 +1100,10 @@ export default function StudioGenerateWorkspace(): ReactElement {
           ).length;
         acceptedFiles = files
           .filter((file) => file.type.startsWith('image/'))
-          .slice(0, Math.max(0, 5 - count));
+          .slice(0, Math.max(0, editSourceLimit - count));
         if (acceptedFiles.length < files.length)
           notificationsService.warning(
-            'Image editing accepts at most five source images.',
+            `Image editing accepts at most ${editSourceLimit} source images.`,
           );
       }
       if (role === 'editMask') {
@@ -1120,6 +1127,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
               getAttachmentRole(attachment) === 'videoReference',
           ).length;
         const maxVideoReferences = getModelMaxVideoReferences(
+          editSourceLimit,
           settings.modelKey,
         );
         const remaining = Math.max(
@@ -1158,6 +1166,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
       getAttachmentRole,
       notificationsService,
       removeAttachment,
+      editSourceLimit,
       settings.modelKey,
       settings.resolution,
       updateSettings,

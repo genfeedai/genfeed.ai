@@ -7,8 +7,11 @@ export interface ImageEditingRecipe {
   model: string;
   sourceIds: string[];
   maskId?: string;
-  size: ImageEditSize;
-  quality: 'medium';
+  size?: ImageEditSize;
+  quality?: 'medium';
+  resolution?: string;
+  aspectRatio?: string;
+  grounding?: false;
   outputs: number;
   seed?: number;
 }
@@ -20,6 +23,8 @@ export interface ImageEditingPayload {
   references?: string[];
   maskId?: string;
   size?: ImageEditSize;
+  resolution?: string;
+  aspectRatio?: string;
   outputs?: number;
   seed?: number;
   sourceActionId?: string;

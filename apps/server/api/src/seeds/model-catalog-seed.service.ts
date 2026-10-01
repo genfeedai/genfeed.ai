@@ -1,4 +1,5 @@
 import { seedImageEditingContract } from '@api/seeds/image-editing-contract-seed';
+import { seedFlux3ImageContract } from './flux-3-image-contract-seed';
 /**
  * Upserts the unified model catalog into the `Model` registry on boot.
  *
@@ -340,5 +341,13 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       seededModel?.id
     )
       await seedImageEditingContract(this.prisma, seededModel.id);
+    if (
+      [
+        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
+        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
+      ].some((key) => key === entry.key) &&
+      seededModel?.id
+    )
+      await seedFlux3ImageContract(this.prisma, seededModel.id, entry.key);
   }
 }

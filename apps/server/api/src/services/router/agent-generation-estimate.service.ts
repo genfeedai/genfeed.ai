@@ -11,6 +11,8 @@ import {
   DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
   DEFAULT_AGENT_VIDEO_ASPECT_RATIO,
   DEFAULT_AGENT_VIDEO_DURATION_SECONDS,
+  isFlux3ImageModel,
+  isFlux3Resolution,
   MODEL_OUTPUT_CAPABILITIES,
   resolveAgentGenerationDimensions,
 } from '@genfeedai/contracts/constants';
@@ -112,7 +114,19 @@ export class AgentGenerationEstimateService {
       const isBatchSupported = isVideo
         ? Boolean(MODEL_OUTPUT_CAPABILITIES[modelKey]?.isBatchSupported)
         : isNativeImageBatch(modelKey, provider);
-      const selected = isVideo ? input.resolution : input.quality;
+      const flux = isFlux3ImageModel(modelKey);
+      if (
+        flux &&
+        (outputs !== 1 ||
+          !isFlux3Resolution(input.resolution ?? '1k') ||
+          input.quality !== undefined)
+      )
+        return UNAVAILABLE_QUOTE;
+      const selected = flux
+        ? (input.resolution ?? '1k')
+        : isVideo
+          ? input.resolution
+          : input.quality;
       const quote = await this.modelCreditQuote.quoteSnapshotByKey(modelKey, {
         ...dimensions,
         organizationId: input.organizationId,
@@ -123,7 +137,11 @@ export class AgentGenerationEstimateService {
           ? { duration: input.duration ?? DEFAULT_AGENT_VIDEO_DURATION_SECONDS }
           : {}),
         ...(selected !== undefined
-          ? { selectors: { [isVideo ? 'resolution' : 'quality']: selected } }
+          ? {
+              selectors: {
+                [isVideo || flux ? 'resolution' : 'quality']: selected,
+              },
+            }
           : {}),
       });
       const credits = quote.credits;

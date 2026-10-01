@@ -307,6 +307,12 @@ export class AgentMediaAssetGenerationService {
       input.params.model.trim().length > 0
         ? input.params.model.trim()
         : input.ctx.generationModelOverride);
+    const resolution =
+      input.ctx.generationSettings?.resolution ?? input.params.resolution;
+    const aspectRatio =
+      input.ctx.generationSettings?.aspectRatio ?? input.params.aspectRatio;
+    if (typeof resolution === 'string') body.resolution = resolution;
+    if (typeof aspectRatio === 'string') body.aspectRatio = aspectRatio;
     if (requestedModel) {
       body.model = requestedModel;
     } else {
@@ -381,6 +387,8 @@ export class AgentMediaAssetGenerationService {
         'size',
         'outputs',
         'seed',
+        'resolution',
+        'aspectRatio',
       ])
         if (params[key] !== undefined) body[key] = params[key];
       if (ctx.sourceActionId) body.sourceActionId = ctx.sourceActionId;

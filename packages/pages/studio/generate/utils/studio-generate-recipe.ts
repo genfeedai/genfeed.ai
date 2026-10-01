@@ -231,7 +231,9 @@ export function recipeFromIngredient(
 
   return {
     imageEdit: ingredient.imageEdit,
-    aspectRatio: resolveAspectRatioFromDimensions(width, height),
+    aspectRatio:
+      ingredient.imageEdit?.aspectRatio ??
+      resolveAspectRatioFromDimensions(width, height),
     blacklist: stringList(metadata.blacklist),
     brandingMode: resolveRecipeBrandingMode(
       type,
@@ -259,7 +261,7 @@ export function recipeFromIngredient(
             (reference): reference is string => typeof reference === 'string',
           )
         : []),
-    resolution: optional('resolution'),
+    resolution: ingredient.imageEdit?.resolution ?? optional('resolution'),
     scene: optional('scene'),
     speech: optional('speech'),
     style: optional('style') ?? '',
@@ -364,7 +366,12 @@ export function formatStudioRecipePrompt(recipe: StudioGenerateRecipe): string {
   }
 
   if (recipe.imageEdit) {
-    details.push(`Edit size: ${recipe.imageEdit.size}`, `Quality: Medium`);
+    if (recipe.imageEdit.resolution)
+      details.push(
+        `Resolution: ${recipe.imageEdit.resolution}`,
+        `Aspect ratio: ${recipe.imageEdit.aspectRatio}`,
+      );
+    else details.push(`Edit size: ${recipe.imageEdit.size}`, `Quality: Medium`);
     if (recipe.imageEdit.maskId)
       details.push('Mask: black changes, white stays');
     if (recipe.imageEdit.seed !== undefined)

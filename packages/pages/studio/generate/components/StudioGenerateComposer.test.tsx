@@ -973,3 +973,97 @@ describe('StudioGenerateComposer', () => {
     });
   });
 });
+
+describe('FLUX.3 composer controls', () => {
+  const fluxModel = {
+    key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
+    category: ModelCategory.IMAGE_EDIT,
+    provider: ModelProvider.REPLICATE,
+    isActive: true,
+    cost: 8,
+    label: 'FLUX.3 Edit',
+    reviewedProviderContractVersion: 'reviewed',
+  } as IModel;
+  it('shows native controls and ten sources without Ideogram mask, seed or size', () => {
+    render(
+      <StudioGenerateComposer
+        {...baseProps}
+        type="image-edit"
+        models={[fluxModel]}
+        prompt="Change the sign"
+        settings={{
+          ...settings,
+          modelKey: fluxModel.key,
+          resolution: '1.5k',
+          aspectRatio: 'auto',
+        }}
+        attachedAssets={Array.from({ length: 10 }, (_, i) => ({
+          id: `source${i}`,
+          ingredientId: `source${i}`,
+          kind: 'image' as const,
+          source: 'library' as const,
+          role: 'editSource' as const,
+          name: `Source ${i}`,
+          previewUrl: 'https://example.com/image.png',
+        }))}
+      />,
+    );
+    expect(
+      screen.getByRole('combobox', { name: 'FLUX resolution' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('combobox', { name: 'FLUX aspect ratio' }),
+    ).toBeVisible();
+    expect(screen.queryByLabelText('Editing seed')).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Editing output size'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Mask (optional)')).not.toBeInTheDocument();
+    expect(screen.getByText('Estimated 12 credits')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
+    expect(generationSetupPopoverMocks.props.capabilities).toMatchObject({
+      hasOutputs: false,
+      hasAspectRatio: false,
+    });
+  });
+  it('clears incompatible settings with a visible explanation', () => {
+    const onSettingsChange = vi.fn(),
+      onRemoveAttachedAsset = vi.fn();
+    render(
+      <StudioGenerateComposer
+        {...baseProps}
+        type="image-edit"
+        models={[fluxModel]}
+        prompt="Change"
+        onSettingsChange={onSettingsChange}
+        onRemoveAttachedAsset={onRemoveAttachedAsset}
+        settings={{
+          ...settings,
+          modelKey: fluxModel.key,
+          editSeed: 0,
+          outputs: 4,
+        }}
+        attachedAssets={[
+          {
+            id: 'mask',
+            kind: 'image',
+            source: 'library',
+            role: 'editMask',
+            previewUrl: 'https://example.com/image.png',
+          },
+        ]}
+      />,
+    );
+    expect(onSettingsChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resolution: '1k',
+        outputs: 1,
+        editSeed: undefined,
+      }),
+    );
+    expect(onRemoveAttachedAsset).toHaveBeenCalledWith('mask');
+    expect(
+      screen.getByText('Mask and seed settings were removed for FLUX.3.'),
+    ).toBeVisible();
+  });
+});

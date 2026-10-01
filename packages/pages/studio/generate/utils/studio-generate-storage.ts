@@ -157,7 +157,7 @@ export function sanitizeStudioGenerateSettings(
         : undefined,
     aspectRatio: pickString(
       aspectRatio,
-      getStudioAspectRatios(type),
+      getStudioAspectRatios(type, resolvedModelKey),
       defaults.aspectRatio,
     ),
     avatarPhotoUrl: pickFreeText(avatarPhotoUrl),

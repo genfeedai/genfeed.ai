@@ -60,6 +60,14 @@ export class CreateImageDto extends CreateIngredientDto {
   readonly seed?: number;
 
   @IsOptional()
+  @IsString()
+  readonly resolution?: string;
+
+  @IsOptional()
+  @IsString()
+  readonly aspectRatio?: string;
+
+  @IsOptional()
   @IsArray()
   @ArrayMaxSize(10)
   @IsEntityId({ each: true })

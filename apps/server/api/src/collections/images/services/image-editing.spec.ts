@@ -21,7 +21,7 @@ const ready = (id: string, width = 1024, height = 768) => ({
   category: IngredientCategory.IMAGE,
   status: IngredientStatus.UPLOADED,
   s3Key: `images/${id}.png`,
-  metadata: { width, height },
+  metadata: { width, height, extension: 'png' },
 });
 const findOne = vi.fn();
 const service = new ImageGenerationAdmissionService(
@@ -182,5 +182,118 @@ describe('Image editing admission and provider contract', () => {
     expect(errors.map((error) => error.property)).toEqual(
       expect.arrayContaining(['providerInput', 'harness', 'operation']),
     );
+  });
+});
+
+describe('FLUX.3 model-specific admission', () => {
+  const fluxDto = (patch: Partial<EditImageDto> = {}) =>
+    dto({
+      model: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
+      ...patch,
+    });
+  it.each([
+    { maskId: mask },
+    { seed: 0 },
+    { size: 'source' },
+    { outputs: 2 },
+    { resolution: '8k' },
+    { aspectRatio: '6:7' },
+  ])(
+    'rejects unsupported controls before any source lookup: %j',
+    async (patch) => {
+      await expect(
+        service.admitImageEdit(
+          primary,
+          fluxDto(patch as Partial<EditImageDto>),
+          organizationId,
+          brandId,
+        ),
+      ).rejects.toThrow('FLUX.3');
+      expect(findOne).not.toHaveBeenCalled();
+    },
+  );
+  it.each([
+    [255, 256],
+    [256, 255],
+    [4001, 4000],
+  ])('rejects provider source dimensions %sx%s', async (width, height) => {
+    findOne.mockResolvedValue(ready(primary, width, height));
+    await expect(
+      service.admitImageEdit(primary, fluxDto(), organizationId, brandId),
+    ).rejects.toThrow('16 megapixels');
+  });
+  it.each([
+    [256, 256],
+    [4000, 4000],
+  ])(
+    'accepts provider boundary %sx%s and persists native controls',
+    async (width, height) => {
+      findOne.mockResolvedValue(ready(primary, width, height));
+      const editing = await service.admitImageEdit(
+        primary,
+        fluxDto({ resolution: '1.5k', aspectRatio: 'auto' }),
+        organizationId,
+        brandId,
+      );
+      expect(editing.recipe).toMatchObject({
+        outputs: 1,
+        resolution: '1.5k',
+        aspectRatio: 'auto',
+        grounding: false,
+      });
+      expect(editing.recipe).not.toHaveProperty('quality');
+      expect(editing.recipe).not.toHaveProperty('size');
+    },
+  );
+  it('accepts ten ordered sources but rejects eleven before lookup', async () => {
+    const references = Array.from({ length: 9 }, (_, i) =>
+      testId('flux', i + 10),
+    );
+    const editing = await service.admitImageEdit(
+      primary,
+      fluxDto({ references }),
+      organizationId,
+      brandId,
+    );
+    expect(editing.sourceIds).toEqual([primary, ...references]);
+    findOne.mockClear();
+    await expect(
+      service.admitImageEdit(
+        primary,
+        fluxDto({ references: [...references, testId('flux', 30)] }),
+        organizationId,
+        brandId,
+      ),
+    ).rejects.toThrow();
+    expect(findOne).not.toHaveBeenCalled();
+  });
+  it.each(['svg', 'avif', ''])(
+    'rejects unsupported or unknown source formats %s',
+    async (extension) => {
+      findOne.mockResolvedValue({
+        ...ready(primary),
+        metadata: { width: 1024, height: 768, extension },
+      });
+      await expect(
+        service.resolveFlux3References(organizationId, brandId, [primary]),
+      ).rejects.toThrow('JPEG');
+    },
+  );
+  it('scopes ordinary generation references and fails on unresolved images', async () => {
+    await service.resolveFlux3References(organizationId, brandId, [primary]);
+    expect(findOne).toHaveBeenCalledWith(
+      {
+        id: primary,
+        organizationId,
+        brandId,
+        isDeleted: false,
+        category: IngredientCategory.IMAGE,
+      },
+      expect.any(Array),
+    );
+    findOne.mockResolvedValue(null);
+    await expect(
+      service.resolveFlux3References(organizationId, brandId, [secondary]),
+    ).rejects.toThrow('not found');
   });
 });

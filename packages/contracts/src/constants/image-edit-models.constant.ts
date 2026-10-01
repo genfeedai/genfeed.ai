@@ -1,8 +1,14 @@
+import {
+  FLUX_3_EDIT_CONTRACT_VERSION,
+  isFlux3AspectRatio,
+  isFlux3Resolution,
+} from './flux-3-image.constant';
 import { MODEL_KEYS } from './model-keys.constant';
 
 /** Verified Replicate Ideogram 4.5 editing contract, 2026-10-01. */
 export const IMAGE_EDIT_MODEL_KEYS: readonly string[] = [
   MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+  MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
 ];
 export const IMAGE_EDIT_SIZES = [
   'source',
@@ -38,6 +44,36 @@ export function readImageEditingRecipe(
   | undefined {
   if (typeof value !== 'object' || value === null) return undefined;
   const row = value as Record<string, unknown>;
+  if (row.model === MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT) {
+    if (
+      row.operation !== 'image-edit' ||
+      row.contractVersion !== FLUX_3_EDIT_CONTRACT_VERSION ||
+      !isFlux3Resolution(row.resolution) ||
+      !isFlux3AspectRatio(row.aspectRatio) ||
+      row.grounding !== false ||
+      row.outputs !== 1 ||
+      row.maskId !== undefined ||
+      row.seed !== undefined ||
+      row.size !== undefined ||
+      row.quality !== undefined ||
+      !Array.isArray(row.sourceIds) ||
+      row.sourceIds.length < 1 ||
+      row.sourceIds.length > 10 ||
+      row.sourceIds.some((id) => typeof id !== 'string' || !id) ||
+      new Set(row.sourceIds).size !== row.sourceIds.length
+    )
+      return undefined;
+    return {
+      operation: 'image-edit',
+      contractVersion: FLUX_3_EDIT_CONTRACT_VERSION,
+      model: row.model,
+      sourceIds: row.sourceIds as string[],
+      resolution: row.resolution,
+      aspectRatio: row.aspectRatio,
+      grounding: false,
+      outputs: 1,
+    };
+  }
   if (
     row.operation !== 'image-edit' ||
     row.contractVersion !== IMAGE_EDIT_CONTRACT_VERSION ||

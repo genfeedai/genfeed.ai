@@ -19,6 +19,7 @@ import {
   isCloudDeployment,
 } from '@genfeedai/config';
 import {
+  isFlux3ImageModel,
   isImageEditModel,
   MODEL_OUTPUT_CAPABILITIES,
 } from '@genfeedai/contracts/constants';
@@ -150,7 +151,9 @@ export class ReplicateImageGenerationProviderAdapter
   ): Promise<PreparedImageGenerationProvider> {
     const isBatchSupported =
       MODEL_OUTPUT_CAPABILITIES[request.model]?.isBatchSupported ?? false;
-    const preparedInput = request.compiledDispatch ?? request.providerInput;
+    const preparedInput = isFlux3ImageModel(request.model)
+      ? request.providerInput
+      : (request.compiledDispatch ?? request.providerInput);
     if (!preparedInput)
       throw new Error('Image provider input was not prepared');
     const input = { ...preparedInput };

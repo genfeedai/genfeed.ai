@@ -880,3 +880,71 @@ describe('dedicated image editing submission', () => {
     expect(mockImagesPost).not.toHaveBeenCalled();
   });
 });
+
+describe('FLUX.3 submission and reusable native recipe', () => {
+  it('posts native resolution/aspect ratio with ten ordered sources and no unsupported controls', async () => {
+    const modelKey = 'black-forest-labs/flux-3-image-edit';
+    mockImagesEdit.mockResolvedValue({ pendingIngredientIds: ['flux-edit'] });
+    const { result } = renderStudioGeneration({
+      type: 'image-edit',
+      models: [makeModel(modelKey)],
+      settings: {
+        ...getDefaultStudioGenerateSettings('image-edit'),
+        modelKey,
+        resolution: '2k',
+        aspectRatio: 'auto',
+      },
+    });
+    const sources = Array.from({ length: 10 }, (_, i) => `source-${i}`);
+    await act(async () => {
+      expect(
+        await result.current.submit('Change only the sign', {
+          editSourceIds: sources,
+        }),
+      ).toBe(true);
+    });
+    const [primary, payload] = mockImagesEdit.mock.calls[0];
+    expect(primary).toBe('source-0');
+    expect(payload).toMatchObject({
+      model: modelKey,
+      resolution: '2k',
+      aspectRatio: 'auto',
+      outputs: 1,
+      references: sources.slice(1),
+    });
+    for (const field of ['size', 'quality', 'maskId', 'seed'])
+      expect(payload).not.toHaveProperty(field);
+    expect(result.current.jobs[0].recipe?.imageEdit).toMatchObject({
+      sourceIds: sources,
+      resolution: '2k',
+      aspectRatio: 'auto',
+      grounding: false,
+      outputs: 1,
+    });
+  });
+  it('passes native resolution and aspect ratio on ordinary generation', async () => {
+    const modelKey = 'black-forest-labs/flux-3-image';
+    mockImagesPost.mockResolvedValue({ pendingIngredientIds: ['flux-gen'] });
+    const { result } = renderStudioGeneration({
+      type: 'image',
+      models: [makeModel(modelKey)],
+      settings: {
+        ...getDefaultStudioGenerateSettings('image'),
+        modelKey,
+        resolution: '4k',
+        aspectRatio: '21:9',
+      },
+    });
+    await act(async () => {
+      expect(await result.current.submit('A landscape', {})).toBe(true);
+    });
+    expect(mockImagesPost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: modelKey,
+        resolution: '4k',
+        aspectRatio: '21:9',
+        outputs: 1,
+      }),
+    );
+  });
+});

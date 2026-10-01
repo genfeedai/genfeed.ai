@@ -45,6 +45,8 @@ export interface VideoGenerationPayload extends BaseGenerationPayload {
 }
 
 export interface ImageGenerationPayload extends BaseGenerationPayload {
+  resolution?: string;
+  aspectRatio?: string;
   format: IngredientFormat;
   quality?: string;
 }

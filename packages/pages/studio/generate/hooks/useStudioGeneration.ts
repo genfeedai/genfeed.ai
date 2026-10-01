@@ -2,8 +2,11 @@
 
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import {
+  FLUX_3_EDIT_CONTRACT_VERSION,
+  getImageEditMaxSources,
   IMAGE_EDIT_CONTRACT_VERSION,
   IMAGE_EDIT_QUALITY,
+  isFlux3ImageModel,
   isImageEditModel,
 } from '@genfeedai/contracts/constants';
 import type {
@@ -598,20 +601,47 @@ export function useStudioGeneration({
         : {};
       const runId = crypto.randomUUID();
       const recipe = recipeFromPromptData(promptData, type, settings);
+      const editingModelKey =
+        modelKey || models.find((model) => model.isDefault)?.key || '';
+      const flux = isFlux3ImageModel(
+        type === 'image-edit' ? editingModelKey : modelKey,
+      );
+      if (
+        type === 'image-edit' &&
+        (references.editSourceIds?.length ?? 0) >
+          getImageEditMaxSources(editingModelKey)
+      ) {
+        notificationsService.error(
+          `This editing model accepts at most ${getImageEditMaxSources(editingModelKey)} sources.`,
+        );
+        return false;
+      }
       if (type === 'image-edit') {
-        recipe.imageEdit = {
-          contractVersion: IMAGE_EDIT_CONTRACT_VERSION,
-          operation: 'image-edit',
-          model: modelKey || models.find((model) => model.isDefault)?.key || '',
-          sourceIds: references.editSourceIds ?? [],
-          maskId: references.editMaskId,
-          size: references.editMaskId
-            ? 'source'
-            : (settings.editSize ?? 'source'),
-          quality: IMAGE_EDIT_QUALITY,
-          outputs: settings.outputs,
-          seed: settings.editSeed,
-        };
+        recipe.imageEdit = flux
+          ? {
+              contractVersion: FLUX_3_EDIT_CONTRACT_VERSION,
+              operation: 'image-edit',
+              model: editingModelKey,
+              sourceIds: references.editSourceIds ?? [],
+              resolution: settings.resolution,
+              aspectRatio: settings.aspectRatio,
+              grounding: false,
+              outputs: 1,
+            }
+          : {
+              contractVersion: IMAGE_EDIT_CONTRACT_VERSION,
+              operation: 'image-edit',
+              model:
+                modelKey || models.find((model) => model.isDefault)?.key || '',
+              sourceIds: references.editSourceIds ?? [],
+              maskId: references.editMaskId,
+              size: references.editMaskId
+                ? 'source'
+                : (settings.editSize ?? 'source'),
+              quality: IMAGE_EDIT_QUALITY,
+              outputs: settings.outputs,
+              seed: settings.editSeed,
+            };
         recipe.references = references.editSourceIds ?? [];
       }
       const pendingContext = {
@@ -659,12 +689,19 @@ export function useStudioGeneration({
               brand: brandId,
               ...(modelKey ? { model: modelKey } : {}),
               references: sources.slice(1),
-              maskId: references.editMaskId,
-              size: references.editMaskId
-                ? 'source'
-                : (settings.editSize ?? 'source'),
-              outputs: settings.outputs,
-              seed: settings.editSeed,
+              ...(flux
+                ? {
+                    resolution: settings.resolution,
+                    aspectRatio: settings.aspectRatio,
+                  }
+                : {
+                    maskId: references.editMaskId,
+                    size: references.editMaskId
+                      ? 'source'
+                      : (settings.editSize ?? 'source'),
+                    seed: settings.editSeed,
+                  }),
+              outputs: flux ? 1 : settings.outputs,
               sourceActionId: runId,
             })) as GenerationResponse;
             trackPendingIds(resolvePendingIds(data), pendingContext);
@@ -687,6 +724,7 @@ export function useStudioGeneration({
               },
               promptData,
             );
+            if (flux) payload.aspectRatio = settings.aspectRatio;
             const data = (await service.post(payload)) as GenerationResponse;
             trackPendingIds(resolvePendingIds(data), pendingContext);
             isAccepted = true;
@@ -718,6 +756,7 @@ export function useStudioGeneration({
               },
               videoPromptData,
             );
+            if (flux) payload.aspectRatio = settings.aspectRatio;
             const data = (await service.post(payload)) as GenerationResponse;
             trackPendingIds(resolvePendingIds(data), pendingContext);
             isAccepted = true;

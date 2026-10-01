@@ -47,6 +47,9 @@ export const MODEL_KEYS = {
   REPLICATE_BYTEDANCE_SEEDREAM_5_PRO: 'bytedance/seedream-5-pro',
   REPLICATE_BYTEDANCE_VIDEO_UPSCALER: 'bytedance/video-upscaler',
   REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO: 'black-forest-labs/flux-1.1-pro',
+  REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE: 'black-forest-labs/flux-3-image',
+  REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT:
+    'black-forest-labs/flux-3-image-edit',
   REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV: 'black-forest-labs/flux-2-dev',
   REPLICATE_BLACK_FOREST_LABS_FLUX_2_FLEX: 'black-forest-labs/flux-2-flex',
   REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO: 'black-forest-labs/flux-2-pro',
