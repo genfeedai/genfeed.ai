@@ -1,9 +1,8 @@
-import { createServer } from 'node:http';
+import { createServer, request as requestHttp } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
 /** Keyless loopback provider fixture. Production's fixed origin is rewritten only by the test seam. */
 export async function createCrunTestTransport() {
-  const nativeFetch = globalThis.fetch;
   const requests: { route: string; method: string; input: unknown }[] = [];
   let taskCount = 0;
   let base = '';
@@ -14,6 +13,7 @@ export async function createCrunTestTransport() {
     'base64',
   );
   let onCreate: (() => void) | undefined;
+  let creditOverride: number | undefined;
   let outcomes: ('success' | 'failed' | 'refused' | 'ambiguous')[] = [];
   const tasks = new Map<
     string,
@@ -42,11 +42,12 @@ export async function createCrunTestTransport() {
       | { model?: string; input?: { resolution?: string } }
       | undefined;
     const credits =
-      input?.model === 'bytedance/seedream-4-5'
+      creditOverride ??
+      (input?.model === 'bytedance/seedream-4-5'
         ? 6
         : input?.input?.resolution === '4K'
           ? 10
-          : 8;
+          : 8);
     let data: unknown;
     if (url.pathname.endsWith('/estimate-credits'))
       data = { credits, estimated: false };
@@ -126,7 +127,51 @@ export async function createCrunTestTransport() {
         : requested;
     if (new URL(target).origin !== base)
       throw new Error('Fixture forbids non-owned network requests');
-    return nativeFetch(target, init);
+    return new Promise<Response>((resolve, reject) => {
+      const source = input instanceof Request ? input : undefined;
+      const request = requestHttp(
+        target,
+        {
+          method: init?.method ?? source?.method ?? 'GET',
+          headers: Object.fromEntries(
+            new Headers(init?.headers ?? source?.headers),
+          ),
+          signal: init?.signal ?? source?.signal,
+        },
+        (response) => {
+          const chunks: Buffer[] = [];
+          response.on('data', (chunk: Buffer) => chunks.push(chunk));
+          response.on('error', reject);
+          response.on('end', () => {
+            const headers = new Headers();
+            for (const [key, value] of Object.entries(response.headers)) {
+              if (value !== undefined)
+                headers.set(
+                  key,
+                  Array.isArray(value) ? value.join(', ') : value,
+                );
+            }
+            resolve(
+              new Response(Buffer.concat(chunks), {
+                status: response.statusCode ?? 500,
+                headers,
+              }),
+            );
+          });
+        },
+      );
+      request.on('error', reject);
+      if (init?.body !== undefined && init.body !== null) {
+        if (typeof init.body !== 'string') {
+          request.destroy(
+            new Error('Fixture accepts only serialized JSON bodies'),
+          );
+          return;
+        }
+        request.write(init.body);
+      }
+      request.end();
+    });
   }) as typeof fetch;
   return {
     fetch: fetchFixture,
@@ -134,6 +179,9 @@ export async function createCrunTestTransport() {
     pixel,
     base,
     mediaOrigin,
+    setCredits: (credits?: number) => {
+      creditOverride = credits;
+    },
     setOnCreate: (callback?: () => void) => {
       onCreate = callback;
     },

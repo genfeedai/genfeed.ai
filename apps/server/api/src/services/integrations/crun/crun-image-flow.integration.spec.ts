@@ -1,8 +1,14 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import {
+  readFileSync,
+  realpathSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
@@ -41,6 +47,7 @@ import { Prisma, PrismaClient } from '@genfeedai/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
 import Redis from 'ioredis';
 import { Pool } from 'pg';
+import { z } from 'zod';
 
 vi.unmock('@genfeedai/prisma');
 vi.unmock('@prisma/adapter-pg');
@@ -49,9 +56,10 @@ vi.mock('@genfeedai/config', async (original) => ({
   usesMeteredCredits: () => true,
 }));
 
-/** Other touched services use the real client. Unrelated fixture tables follow generated scalar metadata, without foreign keys. */
+/** Other touched services use the real client. Unrelated fixture tables follow the canonical Prisma scalar schema, without foreign keys. */
 async function createFixtureTables(pool: Pool) {
   const names = new Set([
+    'Activity',
     'Brand',
     'Model',
     'ModelProviderContract',
@@ -68,62 +76,68 @@ async function createFixtureTables(pool: Pool) {
   const quoted = (value: string) => `"${value.replaceAll('"', '""')}"`;
   const literal = (value: unknown) =>
     `'${String(value).replaceAll("'", "''")}'`;
-  for (const enumeration of Prisma.dmmf.datamodel.enums)
+  const schema = readFileSync(
+    new URL(
+      '../../../../../../../packages/prisma/prisma/schema.prisma',
+      import.meta.url,
+    ),
+    'utf8',
+  );
+  const enumerations = new Set<string>();
+  for (const match of schema.matchAll(/^enum (\w+) \{([\s\S]*?)^\}/gm)) {
+    enumerations.add(match[1]);
+    const values = [
+      ...match[2].matchAll(/^\s*(\w+)\s*(?:@map\("([^"]+)"\))?\s*$/gm),
+    ].map((value) => literal(value[2] ?? value[1]));
     await pool.query(
-      `CREATE TYPE ${quoted(enumeration.dbName ?? enumeration.name)} AS ENUM (${enumeration.values.map((value) => literal(value.dbName ?? value.name)).join(',')})`,
+      `CREATE TYPE ${quoted(match[1])} AS ENUM (${values.join(',')})`,
     );
-  for (const model of Prisma.dmmf.datamodel.models.filter((model) =>
-    names.has(model.name),
-  )) {
-    const fields = model.fields.filter((field) => field.kind !== 'object');
-    const columns = fields.map((field) => {
-      const scalar =
-        field.kind === 'enum'
-          ? quoted(field.type)
-          : (
-              {
-                String: 'text',
-                Boolean: 'boolean',
-                Int: 'integer',
-                BigInt: 'bigint',
-                Float: 'double precision',
-                Decimal: 'numeric',
-                Json: 'jsonb',
-                DateTime: 'timestamp(3)',
-                Bytes: 'bytea',
-              } as Record<string, string>
-            )[field.type];
-      if (!scalar)
-        throw new Error(
-          `Unsupported fixture scalar ${model.name}.${field.name}`,
-        );
-      const type = `${scalar}${field.isList ? '[]' : ''}`;
-      let defaultSql = '';
-      if (field.isList) defaultSql = ` DEFAULT ARRAY[]::${type}`;
-      else if (field.hasDefaultValue) {
-        const value = field.default;
-        if (
-          value &&
-          typeof value === 'object' &&
-          'name' in value &&
-          value.name === 'now'
-        )
-          defaultSql = ' DEFAULT now()';
-        else if (field.type === 'Json')
-          defaultSql = ` DEFAULT ${literal(typeof value === 'string' ? value : JSON.stringify(value))}::jsonb`;
-        else if (typeof value === 'boolean' || typeof value === 'number')
-          defaultSql = ` DEFAULT ${value}`;
-        else if (typeof value === 'string')
-          defaultSql = ` DEFAULT ${literal(value)}`;
+  }
+  const scalarTypes: Record<string, string> = {
+    String: 'text',
+    Boolean: 'boolean',
+    Int: 'integer',
+    BigInt: 'bigint',
+    Float: 'double precision',
+    Decimal: 'numeric',
+    Json: 'jsonb',
+    DateTime: 'timestamp(3)',
+    Bytes: 'bytea',
+  };
+  for (const match of schema.matchAll(/^model (\w+) \{([\s\S]*?)^\}/gm)) {
+    if (!names.has(match[1])) continue;
+    const columns: string[] = [];
+    for (const field of match[2].matchAll(
+      /^\s*(\w+)\s+(\w+)(\[\]|\?)?([^\n]*)$/gm,
+    )) {
+      const [, name, kind, suffix, attributes] = field;
+      const scalar = enumerations.has(kind) ? quoted(kind) : scalarTypes[kind];
+      if (!scalar) continue; // relation fields are not persisted columns
+      const type = `${scalar}${suffix === '[]' ? '[]' : ''}`;
+      const defaultValue = attributes.match(
+        /@default\(("(?:\\.|[^"\\])*"|true|false|-?[\d.]+|\w+)\)/,
+      )?.[1];
+      let defaultSql = suffix === '[]' ? ` DEFAULT ARRAY[]::${type}` : '';
+      if (attributes.includes('@default(now())')) defaultSql = ' DEFAULT now()';
+      else if (defaultValue) {
+        const value: unknown = defaultValue.startsWith('"')
+          ? JSON.parse(defaultValue)
+          : defaultValue;
+        defaultSql = ` DEFAULT ${['Boolean', 'Int', 'BigInt', 'Float', 'Decimal'].includes(kind) ? String(value) : literal(value)}${kind === 'Json' ? '::jsonb' : ''}`;
       }
-      return `${quoted(field.dbName ?? field.name)} ${type}${field.isRequired ? ' NOT NULL' : ''}${defaultSql}${field.isId ? ' PRIMARY KEY' : field.isUnique ? ' UNIQUE' : ''}`;
-    });
-    await pool.query(
-      `CREATE TABLE ${quoted(model.dbName ?? model.name)} (${columns.join(',')})`,
-    );
-    for (const unique of model.uniqueFields)
+      const column = attributes.match(/@map\("([^"]+)"\)/)?.[1] ?? name;
+      columns.push(
+        `${quoted(column)} ${type}${suffix !== '?' ? ' NOT NULL' : ''}${defaultSql}${attributes.includes('@id') ? ' PRIMARY KEY' : attributes.includes('@unique') ? ' UNIQUE' : ''}`,
+      );
+    }
+    const table = match[2].match(/@@map\("([^"]+)"\)/)?.[1] ?? match[1];
+    await pool.query(`CREATE TABLE ${quoted(table)} (${columns.join(',')})`);
+    for (const unique of match[2].matchAll(/@@unique\(\[([^\]]+)\]/g))
       await pool.query(
-        `CREATE UNIQUE INDEX ON ${quoted(model.dbName ?? model.name)} (${unique.map(quoted).join(',')})`,
+        `CREATE UNIQUE INDEX ON ${quoted(table)} (${unique[1]
+          .split(',')
+          .map((name) => quoted(name.trim()))
+          .join(',')})`,
       );
   }
 }
@@ -136,6 +150,40 @@ describe('Crun image quote through durable owned output and accounting', () => {
   let ownedDirectory: string;
   let transport: Awaited<ReturnType<typeof createCrunTestTransport>>;
   const cleanupKeys: string[] = [];
+  let manifestPath: string | undefined;
+  const persistManifest = () => {
+    if (!manifestPath) return;
+    const temporary = `${manifestPath}.tmp`;
+    writeFileSync(
+      temporary,
+      JSON.stringify({
+        version: 1,
+        schema,
+        ownedDirectory,
+        redisKeys: [...new Set(cleanupKeys)],
+      }),
+      { mode: 0o600 },
+    );
+    renameSync(temporary, manifestPath);
+  };
+  const registerRedisKeys = (...keys: string[]) => {
+    cleanupKeys.push(...keys);
+    persistManifest();
+  };
+  let currentOrganizationId: string | undefined;
+  afterEach(async () => {
+    try {
+      if (currentOrganizationId)
+        await prisma.crunGenerationTask.updateMany({
+          where: { organizationId: currentOrganizationId, isDeleted: false },
+          data: { nextPollAt: null },
+        });
+    } finally {
+      currentOrganizationId = undefined;
+      transport?.restoreMedia();
+      transport?.setOnCreate(undefined);
+    }
+  });
   beforeAll(async () => {
     const database = process.env.WORKFLOW_BILLING_TEST_DATABASE_URL;
     const redisUrl = process.env.CRUN_TEST_REDIS_URL;
@@ -148,6 +196,37 @@ describe('Crun image quote through durable owned output and accounting', () => {
         !['localhost', '127.0.0.1', '[::1]'].includes(new URL(value).hostname)
       )
         throw new Error('Fixture forbids non-loopback services');
+    const explicitManifest = process.env.CRUN_TEST_RUN_MANIFEST;
+    const explicitDirectory = process.env.CRUN_TEST_OWNED_DIRECTORY;
+    if (Boolean(explicitManifest) !== Boolean(explicitDirectory))
+      throw new Error('Manifest and owned directory must be supplied together');
+    if (explicitManifest && explicitDirectory) {
+      const tempParent = realpathSync('/tmp');
+      if (
+        dirname(explicitManifest) !== '/tmp' ||
+        !/^crun-run-[a-f0-9-]+\.json$/.test(basename(explicitManifest)) ||
+        realpathSync(explicitManifest) !==
+          join(tempParent, basename(explicitManifest)) ||
+        dirname(explicitDirectory) !== '/tmp' ||
+        !/^crun-owned-[a-f0-9-]+$/.test(basename(explicitDirectory)) ||
+        realpathSync(explicitDirectory) !==
+          join(tempParent, basename(explicitDirectory)) ||
+        !statSync(explicitDirectory).isDirectory()
+      )
+        throw new Error('Invalid owned fixture paths');
+      const initial = z
+        .object({
+          version: z.literal(1),
+          schema: z.null(),
+          ownedDirectory: z.literal(explicitDirectory),
+          redisKeys: z.array(z.string()).length(0),
+        })
+        .strict()
+        .parse(JSON.parse(readFileSync(explicitManifest, 'utf8')));
+      ownedDirectory = initial.ownedDirectory;
+      manifestPath = explicitManifest;
+      persistManifest(); // registration precedes CREATE and every owned byte write
+    }
     pool = new Pool({ connectionString: database });
     await pool.query(
       `CREATE SCHEMA "${schema}"; SET search_path TO "${schema}"`,
@@ -172,24 +251,68 @@ describe('Crun image quote through durable owned output and accounting', () => {
       lazyConnect: true,
     });
     await redis.connect();
-    ownedDirectory = await mkdtemp(join(tmpdir(), 'crun-owned-'));
+    if (!ownedDirectory)
+      ownedDirectory = await mkdtemp(join(tmpdir(), 'crun-owned-'));
     transport = await createCrunTestTransport();
     vi.stubGlobal('fetch', transport.fetch);
   });
   afterAll(async () => {
     vi.unstubAllGlobals();
-    await transport?.close();
-    if (ownedDirectory)
-      await rm(ownedDirectory, { recursive: true, force: true });
-    if (redis?.status === 'ready') {
-      if (cleanupKeys.length) await redis.del(...cleanupKeys);
-      await redis.quit();
-    }
-    await prisma?.$disconnect();
-    if (pool) {
-      await pool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
-      await pool.end();
-    }
+    const cleanup = [
+      [
+        'listener',
+        async () => {
+          await transport?.close();
+        },
+      ],
+      [
+        'owned-directory',
+        async () => {
+          if (ownedDirectory)
+            await rm(ownedDirectory, { recursive: true, force: true });
+        },
+      ],
+      [
+        'redis-keys-and-client',
+        async () => {
+          if (redis?.status === 'ready') {
+            try {
+              if (cleanupKeys.length) await redis.del(...new Set(cleanupKeys));
+            } finally {
+              await redis.quit();
+            }
+          } else redis?.disconnect();
+        },
+      ],
+      [
+        'prisma-client',
+        async () => {
+          await prisma?.$disconnect();
+        },
+      ],
+      [
+        'schema-and-pool',
+        async () => {
+          if (pool) {
+            try {
+              await pool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+            } finally {
+              await pool.end();
+            }
+          }
+        },
+      ],
+    ] as const;
+    const results = await Promise.allSettled(
+      cleanup.map(([, operation]) => operation()),
+    );
+    const failed = results.flatMap((result, index) =>
+      result.status === 'rejected' ? [cleanup[index][0]] : [],
+    );
+    expect(
+      failed,
+      'Owned fixture cleanup failed; manifest remains for exact external cleanup',
+    ).toEqual([]);
   });
 
   it.each([
@@ -214,6 +337,7 @@ describe('Crun image quote through durable owned output and accounting', () => {
   ] as const)(
     'model %s outputs %s funding %s scenario %s: frozen quote, restart, owned storage and exact accounting',
     async (modelIndex, outputs, funding, scenario) => {
+      transport.setCredits(funding === 'free' ? 0 : undefined);
       transport.setOutcomes(
         scenario === 'mixed'
           ? ['success', 'failed', 'success', 'failed']
@@ -226,6 +350,7 @@ describe('Crun image quote through durable owned output and accounting', () => {
                 : [],
       );
       const org = randomUUID();
+      currentOrganizationId = org;
       const user = {
         userId: randomUUID(),
         id: randomUUID(),
@@ -235,7 +360,7 @@ describe('Crun image quote through durable owned output and accounting', () => {
       const account = `account-${org}`;
       const key = `fixture-${randomUUID()}`;
       const fixtureFingerprint = createHash('sha256').update(key).digest('hex');
-      cleanupKeys.push(`crun:requests:${fixtureFingerprint}`);
+      registerRedisKeys(`crun:requests:${fixtureFingerprint}`);
       let enabled = true;
       transport.setOnCreate(
         scenario === 'disabled'
@@ -341,6 +466,11 @@ describe('Crun image quote through durable owned output and accounting', () => {
         { setTags: async () => undefined } as never,
         logger as never,
       );
+      const originalSet = cache.set.bind(cache);
+      vi.spyOn(cache, 'set').mockImplementation(async (key, value, options) => {
+        registerRedisKeys(key);
+        return originalSet(key, value, options);
+      });
       const provider = new CrunClient(cache);
       const byok = {
         lookupApiKey: async () =>
@@ -354,6 +484,13 @@ describe('Crun image quote through durable owned output and accounting', () => {
         config as never,
         provider,
       );
+      const pricingEvidence = {
+        ...CRUN_PRICING_SNAPSHOT,
+        rates: CRUN_PRICING_SNAPSHOT.rates.map((rate) => ({
+          ...rate,
+          providerCredits: funding === 'free' ? '0' : rate.providerCredits,
+        })),
+      };
       const contract = buildCrunContract(CRUN_IMAGE_MANIFEST[modelIndex]);
       const modelKey = `crun/${contract.endpoint}`;
       await prisma.brand.create({
@@ -392,7 +529,11 @@ describe('Crun image quote through durable owned output and accounting', () => {
             version: contract.version,
           },
         },
-        update: { reviewStatus: 'approved', modelId: model.id },
+        update: {
+          reviewStatus: 'approved',
+          modelId: model.id,
+          pricing: pricingEvidence as unknown as Prisma.InputJsonObject,
+        },
         create: {
           provider: 'crun',
           endpoint: contract.endpoint,
@@ -403,7 +544,7 @@ describe('Crun image quote through durable owned output and accounting', () => {
           openapi: {},
           inputSchema: {},
           outputSchema: {},
-          pricing: CRUN_PRICING_SNAPSHOT as unknown as Prisma.InputJsonObject,
+          pricing: pricingEvidence as unknown as Prisma.InputJsonObject,
         },
       });
       const models = {
@@ -416,7 +557,7 @@ describe('Crun image quote through durable owned output and accounting', () => {
             key: modelKey,
             provider: 'crun',
             rateVersion: contract.version,
-            cost: 3,
+            cost: funding === 'free' ? 0 : 3,
             isFree: funding === 'free',
           }),
       };
@@ -515,15 +656,17 @@ describe('Crun image quote through durable owned output and accounting', () => {
       );
       const attributes = quoted.data.attributes as {
         isAvailable: boolean;
+        reasonCode: string | null;
         quoteId: string;
         credits: number;
       };
       if (attributes.quoteId)
-        cleanupKeys.push(
+        registerRedisKeys(
           `crun:quote:${org}:${user.userId}:${attributes.quoteId}`,
           `crun:quote:${org}:${user.userId}:${attributes.quoteId}:consumed`,
         );
-      expect(attributes.isAvailable).toBe(true);
+      expect(attributes.reasonCode).toBeNull();
+      expect(attributes).toMatchObject({ isAvailable: true });
       expect(
         await prisma.creditReservation.count({
           where: { organizationId: org },
@@ -608,44 +751,56 @@ describe('Crun image quote through durable owned output and accounting', () => {
         config as never,
         provider,
       );
+      const mediaErrors: string[] = [];
       const media = {
         processMediaForIngredient: async (
           ingredientId: string,
           _kind: string,
           url: string,
         ) => {
-          const response = await transport.fetch(url);
-          if (!response.ok)
-            throw new Error('Fixture temporary media unavailable');
-          const bytes = Buffer.from(await response.arrayBuffer());
-          await writeFile(join(ownedDirectory, ingredientId), bytes);
-          const owner = await prisma.ingredient.findFirstOrThrow({
-            where: { id: ingredientId, organizationId: org, isDeleted: false },
-            select: { metadataId: true },
-          });
-          await prisma.metadata.updateMany({
-            where: { id: owner.metadataId ?? '', isDeleted: false },
-            data: { width: 1, height: 1, size: bytes.length },
-          });
-          const projection = {
-            s3Key: `owned/${ingredientId}.png`,
-            status: IngredientStatus.GENERATED,
-          };
-          const scoped = {
-            id: ingredientId,
-            organizationId: org,
-            isDeleted: false,
-          };
-          const grouped = await persistQuoteGroupDisposition(
-            client,
-            scoped,
-            projection,
-          );
-          if (grouped === null)
-            await prisma.ingredient.updateMany({
-              where: scoped,
-              data: projection,
+          try {
+            const response = await transport.fetch(url);
+            if (!response.ok)
+              throw new Error('Fixture temporary media unavailable');
+            const bytes = Buffer.from(await response.arrayBuffer());
+            await writeFile(join(ownedDirectory, ingredientId), bytes);
+            const owner = await prisma.ingredient.findFirstOrThrow({
+              where: {
+                id: ingredientId,
+                organizationId: org,
+                isDeleted: false,
+              },
+              select: { metadataId: true },
             });
+            await prisma.metadata.updateMany({
+              where: { id: owner.metadataId ?? '', isDeleted: false },
+              data: { width: 1, height: 1, size: bytes.length },
+            });
+            const projection = {
+              s3Key: `owned/${ingredientId}.png`,
+              status: IngredientStatus.GENERATED,
+            };
+            const scoped = {
+              id: ingredientId,
+              organizationId: org,
+              isDeleted: false,
+            };
+            const grouped = await persistQuoteGroupDisposition(
+              client,
+              scoped,
+              projection,
+            );
+            if (grouped === null)
+              await prisma.ingredient.updateMany({
+                where: scoped,
+                data: projection,
+              });
+          } catch (error: unknown) {
+            mediaErrors.push(
+              error instanceof Error ? error.message : String(error),
+            );
+            throw error;
+          }
         },
       };
       const finalizer = new CrunTaskFinalizationService(
@@ -676,9 +831,37 @@ describe('Crun image quote through durable owned output and accounting', () => {
       });
       for (const claimed of await restarted.claimDue())
         await finalizer.finalize(claimed);
+      const phaseEvidence = await prisma.crunGenerationTask.findMany({
+        where: { organizationId: org, isDeleted: false },
+        select: {
+          state: true,
+          recoveryCode: true,
+          copyAttemptCount: true,
+          mediaPersistedAt: true,
+          vendorCostRecordedAt: true,
+          billingRecordedAt: true,
+          nextMediaAttemptAt: true,
+          nextAccountingAttemptAt: true,
+          leaseUntil: true,
+        },
+      });
+      const ingredientEvidence = await prisma.ingredient.findMany({
+        where: { organizationId: org, isDeleted: false },
+        select: { status: true, s3Key: true, generationBilling: true },
+      });
+      const holdEvidence = await prisma.creditReservation.findMany({
+        where: { organizationId: org, isDeleted: false },
+        select: { status: true, amount: true, settledAmount: true },
+      });
       expect(
         await prisma.crunGenerationTask.count({
           where: { organizationId: org, state: 'finalized' },
+        }),
+        JSON.stringify({
+          phaseEvidence,
+          ingredientEvidence,
+          holdEvidence,
+          mediaErrors,
         }),
       ).toBe(scenario === 'ambiguous' ? 0 : outputs);
       const wallet = await prisma.creditBalance.findFirstOrThrow({
@@ -737,7 +920,11 @@ describe('Crun image quote through durable owned output and accounting', () => {
             expense.costEvidence ===
               (funding === 'byok' ? 'byok' : 'observed') &&
             expense.vendorCostMicros ===
-              (funding === 'byok' ? 0 : modelIndex === 0 ? 8000 : 6000),
+              (funding === 'byok' || funding === 'free'
+                ? 0
+                : modelIndex === 0
+                  ? 8000
+                  : 6000),
         ),
       ).toBe(true);
       const createCount = transport.requests.filter((item) =>
