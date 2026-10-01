@@ -1,3 +1,4 @@
+import { ResearchCollectionRunner } from '@api/services/research-access/research-collection-runner.service';
 /**
  * @fileoverview Tests for ApifyLinkedInService
  */
@@ -8,6 +9,7 @@ import { ApifyLinkedInService } from '@api/services/integrations/apify/services/
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('ApifyLinkedInService', () => {
+  const researchRunner = { run: vi.fn() };
   let service: ApifyLinkedInService;
   let baseService: vi.Mocked<ApifyBaseService>;
 
@@ -23,6 +25,7 @@ describe('ApifyLinkedInService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        { provide: ResearchCollectionRunner, useValue: researchRunner },
         ApifyLinkedInService,
         {
           provide: ApifyBaseService,
@@ -93,5 +96,24 @@ describe('ApifyLinkedInService', () => {
         ),
       ).rejects.toThrow('Actor failed');
     });
+  });
+  it('governs hosted timelines before legacy token admission with unchanged input', async () => {
+    baseService.getApiToken.mockReturnValue(null);
+    researchRunner.run.mockResolvedValue([]);
+    await expect(
+      service.getLinkedInProfilePosts(
+        'https://linkedin.com/in/creator',
+        { limit: 7 },
+        { organizationId: 'org-1', origin: 'social-source' },
+      ),
+    ).resolves.toEqual([]);
+    expect(researchRunner.run).toHaveBeenCalledWith(
+      'org-1',
+      baseService.ACTORS.LINKEDIN_PROFILE_SCRAPER,
+      { profileUrls: ['https://linkedin.com/in/creator'], maxPosts: 7 },
+      { tokenMode: 'hosted-only', requestScope: 'social-source-hosted' },
+    );
+    expect(baseService.runActor).not.toHaveBeenCalled();
+    expect(baseService.getApiToken).not.toHaveBeenCalled();
   });
 });

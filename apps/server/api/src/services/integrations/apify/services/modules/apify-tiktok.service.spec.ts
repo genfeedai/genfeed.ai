@@ -1,3 +1,4 @@
+import { ResearchCollectionRunner } from '@api/services/research-access/research-collection-runner.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -64,6 +65,7 @@ const makeTikTokComment = (
   }) as ApifyTikTokComment;
 
 describe('ApifyTikTokService', () => {
+  const researchRunner = { run: vi.fn() };
   let service: ApifyTikTokService;
 
   const mockBaseService = {
@@ -95,6 +97,7 @@ describe('ApifyTikTokService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        { provide: ResearchCollectionRunner, useValue: researchRunner },
         ApifyTikTokService,
         {
           provide: ApifyBaseService,
@@ -535,5 +538,41 @@ describe('ApifyTikTokService', () => {
       expect(result).toEqual([]);
       expect(mockBaseService.loggerService.error).toHaveBeenCalled();
     });
+  });
+  it('governs hosted timelines before legacy token admission with unchanged input', async () => {
+    mockBaseService.getApiToken.mockReturnValue(null);
+    researchRunner.run.mockResolvedValue([]);
+    await expect(
+      service.getTikTokUserVideos(
+        'creator',
+        { limit: 7 },
+        { organizationId: 'org-1', origin: 'social-source' },
+      ),
+    ).resolves.toEqual([]);
+    expect(researchRunner.run).toHaveBeenCalledWith(
+      'org-1',
+      mockBaseService.ACTORS.TIKTOK_SCRAPER,
+      { profiles: ['creator'], resultsPerPage: 7 },
+      { tokenMode: 'hosted-only', requestScope: 'social-source-hosted' },
+    );
+    expect(mockBaseService.runActor).not.toHaveBeenCalled();
+    expect(mockBaseService.getApiToken).not.toHaveBeenCalled();
+  });
+  it('governs single posts with the existing actor input', async () => {
+    researchRunner.run.mockResolvedValue([{ id: '123' }]);
+    mockBaseService.getApiToken.mockReturnValue(null);
+    await expect(
+      service.getTikTokVideoByUrl('https://tiktok.com/@creator/video/123', {
+        organizationId: 'org-1',
+        origin: 'social-source',
+      }),
+    ).resolves.toMatchObject({ id: '123' });
+    expect(researchRunner.run).toHaveBeenCalledWith(
+      'org-1',
+      mockBaseService.ACTORS.TIKTOK_SCRAPER,
+      expect.any(Object),
+      { tokenMode: 'hosted-only', requestScope: 'social-source-hosted' },
+    );
+    expect(mockBaseService.runActor).not.toHaveBeenCalled();
   });
 });

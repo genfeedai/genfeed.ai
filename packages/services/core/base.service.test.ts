@@ -549,7 +549,8 @@ describe('BaseService', () => {
         signal,
         handledErrorStatuses: [503],
       });
-      const config = service.getInstanceForTest().get.mock.calls[0][1];
+      const config = service.getInstanceForTest().get.mock.calls[0]?.[1];
+      if (!config) throw new Error('expected request config');
       expect(config.params).toBe(query);
       expect(config.signal).toBe(signal);
       expect(config.params).not.toHaveProperty('handledErrorStatuses');
@@ -591,7 +592,8 @@ describe('BaseService', () => {
         unrecognized: 'must-not-forward',
       };
       await service.findAllPage(query, signal, options);
-      const config = service.getInstanceForTest().get.mock.calls[0][1];
+      const config = service.getInstanceForTest().get.mock.calls[0]?.[1];
+      if (!config) throw new Error('expected request config');
       expect(config).toEqual({
         params: query,
         signal,
