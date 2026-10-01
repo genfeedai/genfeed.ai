@@ -1,3 +1,4 @@
+import type { BrandGenerationRulesV1 } from '@genfeedai/contracts/api-types/contracts/branded-generation.contract';
 import {
   BrandKitApplySerializer,
   BrandKitAssetImportSerializer,
@@ -28,10 +29,27 @@ describe('Brand Kit JSON:API contract', () => {
   } as const;
 
   it('retains optional generation rules through kit and revision serialization', () => {
-    const generationRules = {
-      schemaVersion: '1',
-      typography: { fontFamily: 'Custom Approved Family' },
-      forbiddenPhrases: ['generic'],
+    const generationRules: BrandGenerationRulesV1 = {
+      schemaVersion: 1,
+      evidence: [{ id: 'manual', sourceType: 'manual', label: 'Approved' }],
+      facts: [],
+      palette: [],
+      typography: [
+        {
+          id: 'font',
+          role: 'body',
+          family: 'Custom Approved Family',
+          weight: 400,
+          style: 'normal',
+          availability: 'unknown',
+          required: true,
+          evidenceIds: ['manual'],
+        },
+      ],
+      mandatory: [],
+      avoid: [],
+      examples: [],
+      assets: [],
     };
     const content = { ...previewDraft, generationRules };
     expect(

@@ -1,5 +1,6 @@
 export * from '@serializers/configs/organizations/brand.config';
 export * from '@serializers/configs/organizations/brand-kit.config';
+export * from '@serializers/configs/organizations/brand-onboarding-scan.config';
 export * from '@serializers/configs/organizations/brand-os-revision.config';
 export * from '@serializers/configs/organizations/credential.config';
 export * from '@serializers/configs/organizations/fleet-capabilities.config';
@@ -9,4 +10,3 @@ export * from '@serializers/configs/organizations/member-invitation.config';
 export * from '@serializers/configs/organizations/organization.config';
 export * from '@serializers/configs/organizations/organization-settings.config';
 export * from '@serializers/configs/organizations/profile.config';
-export * from './brand-onboarding-scan.config';

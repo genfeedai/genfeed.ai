@@ -1,6 +1,7 @@
 // Auto-generated barrel file
 export * from '@serializers/server/organizations/brand.serializer';
 export * from '@serializers/server/organizations/brand-kit.serializer';
+export * from '@serializers/server/organizations/brand-onboarding-scan.serializer';
 export * from '@serializers/server/organizations/brand-os-export.serializer';
 export * from '@serializers/server/organizations/brand-os-revision.serializer';
 export * from '@serializers/server/organizations/credential.serializer';
@@ -12,4 +13,3 @@ export * from '@serializers/server/organizations/member-invitation.serializer';
 export * from '@serializers/server/organizations/organization.serializer';
 export * from '@serializers/server/organizations/organization-settings.serializer';
 export * from '@serializers/server/organizations/profile.serializer';
-export * from './brand-onboarding-scan.serializer';
