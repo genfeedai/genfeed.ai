@@ -14,5 +14,8 @@ export default defineConfig({
     globals: true,
     include: ['__tests__/**/*.test.ts'],
     passWithNoTests: true,
+    // 2000 bootstrap replicates over 180–240 rows exceeds Vitest's 5s default
+    // when the full packages graph shares a CI runner.
+    testTimeout: 20_000,
   },
 });
