@@ -3,13 +3,13 @@ import { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 
 /**
- * Covers the hand-written `handleLegacyTool` switch — the REST-backed tools that
- * predate the canonical registry. Each case is exercised through the public
- * `handleToolCall` path so the classifier, the role check and the legacy
+ * Covers the MCP catalog REST handlers (generation, content, analytics,
+ * workflow-status, merge-videos). Each case is exercised through the public
+ * `handleToolCall` path so the classifier, the role check and the response
  * formatting all run together. `create_article` is approval-gated, so it is
  * reached through the `resolve_approval` execution path instead.
  */
-const LEGACY_NAMES = [
+const CATALOG_REST_NAMES = [
   'get_video_status',
   'list_videos',
   'merge_videos',
@@ -54,7 +54,7 @@ const APPROVAL_GATED = new Set<string>(APPROVAL_GATED_NAMES);
 
 const MOCK_TOOLS = new Map(
   [
-    ...LEGACY_NAMES,
+    ...CATALOG_REST_NAMES,
     ...APPROVAL_GATED_NAMES,
     'generate_image',
     'resolve_approval',
@@ -209,7 +209,7 @@ describe('ToolRegistryService — boot-time drift guard', () => {
   });
 });
 
-describe('handleLegacyTool — video', () => {
+describe('catalog REST handlers — video', () => {
   it('reports video analytics with the default time range', async () => {
     const { client, registry } = build();
 
@@ -243,7 +243,7 @@ describe('handleLegacyTool — video', () => {
   });
 });
 
-describe('handleLegacyTool — articles', () => {
+describe('catalog REST handlers — articles', () => {
   it('creates an article through the approval execution path', async () => {
     const { client, registry } = build();
     client.resolveApproval.mockResolvedValue({
@@ -354,7 +354,7 @@ describe('handleLegacyTool — articles', () => {
   });
 });
 
-describe('handleLegacyTool — media libraries', () => {
+describe('catalog REST handlers — media libraries', () => {
   it('lists images with pagination forwarded', async () => {
     const { client, registry } = build();
 
@@ -447,7 +447,7 @@ describe('handleLegacyTool — media libraries', () => {
   });
 });
 
-describe('handleLegacyTool — workflows', () => {
+describe('catalog REST handlers — workflows', () => {
   it('renders workflow status with its pinned version and node count', async () => {
     const { client, registry } = build();
 
@@ -524,7 +524,7 @@ describe('handleLegacyTool — workflows', () => {
   });
 });
 
-describe('handleLegacyTool — usage and LinkedIn', () => {
+describe('catalog REST handlers — usage and LinkedIn', () => {
   it('defaults usage stats to a 30d window', async () => {
     const { client, registry } = build();
 

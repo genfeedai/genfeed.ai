@@ -3,6 +3,8 @@ import type {
   MergeVideosResult,
 } from '@mcp/shared/interfaces/video.interface';
 
+export const MERGE_VIDEOS_TOOL_NAMES = new Set(['merge_videos']);
+
 /** Same message the video merge API returns when zoom is supplied. */
 export const MERGE_ZOOM_UNSUPPORTED =
   'Zoom effects are not supported when merging videos';
