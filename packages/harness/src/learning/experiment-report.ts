@@ -293,7 +293,7 @@ export function learningAllocatedCostTotal(
 function groupCost(
   items: readonly LearningExperimentObservation[],
   reasons: Set<string>,
-): LearningCostRational | null {
+): number | null {
   if (
     !items.length ||
     items.some((row) => row.costAllocations === null || !row.generationClosed)
@@ -321,28 +321,12 @@ function groupCost(
       mean.denominator,
     );
     if (converted.reason) reasons.add(converted.reason);
-    return converted.value === null ? null : mean;
+    return converted.value;
   } catch (error) {
     if (!(error instanceof LearningCostArithmeticError)) throw error;
     reasons.add(error.reason);
     return null;
   }
-}
-function costRatioValue(
-  treatment: LearningCostRational | null,
-  control: LearningCostRational | null,
-  reasons: Set<string>,
-): number | null {
-  if (treatment === null || control === null) return null;
-  if (control.numerator === 0n) {
-    return treatment.numerator === 0n ? 1 : null;
-  }
-  const converted = learningCostFractionValue(
-    treatment.numerator * control.denominator,
-    treatment.denominator * control.numerator,
-  );
-  if (converted.reason) reasons.add(converted.reason);
-  return converted.value;
 }
 function metrics(
   rows: readonly LearningExperimentObservation[],
@@ -369,12 +353,7 @@ function metrics(
     t = group(treatment),
     difference = (a: number | null, b: number | null) =>
       a === null || b === null ? null : a - b;
-  if (
-    c.cost !== null &&
-    c.cost.numerator === 0n &&
-    t.cost !== null &&
-    t.cost.numerator > 0n
-  )
+  if (c.cost === 0 && t.cost !== null && t.cost > 0)
     costReasons.add('zero_control_cost');
   return {
     controlMean: c.reward,
@@ -382,7 +361,7 @@ function metrics(
     primaryDifference: difference(t.reward, c.reward),
     approvalDifference: difference(t.approval, c.approval),
     publishabilityDifference: difference(t.publishability, c.publishability),
-    costRatio: costRatioValue(t.cost, c.cost, costReasons),
+    costRatio: ratio(t.cost, c.cost),
     cadenceRatio: ratio(t.cadence, c.cadence),
   };
 }

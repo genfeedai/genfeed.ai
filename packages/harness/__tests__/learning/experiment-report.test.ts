@@ -356,7 +356,7 @@ it('preserves original batch denominator at report level when allocated peers ar
     ...input,
     observations: rows,
   });
-  expect(report.estimates.costRatio.value).toBe(3);
+  expect(report.estimates.costRatio.value).toBeCloseTo(3, 12);
   expect(report.groups?.control.costComplete).toBe(1);
 });
 it('retains repeated seven-day block multiplicity and nulls all cost estimates when any draw is unrepresentable', () => {
