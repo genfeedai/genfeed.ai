@@ -224,3 +224,71 @@ describe('ImagesService scoped endpoint cache', () => {
     endpoint.mockRestore();
   });
 });
+
+describe('ImagesService Crun preview wire contract', () => {
+  const request = {
+    model: 'crun/google/nano-banana-pro',
+    text: 'A product',
+    crunControls: { contractVersion: 'reviewed-1' },
+  };
+  const available = {
+    isAvailable: true,
+    modelKey: request.model,
+    quoteId: 'quote-1',
+    expiresAt: '2099-01-01T00:00:00.000Z',
+    contractVersion: 'reviewed-1',
+    credits: 12,
+    billingMode: 'credits',
+    reasonCode: null,
+  };
+  function respond(attributes: unknown) {
+    mockPost.mockResolvedValue({
+      data: {
+        data: { type: 'crun-generation-quote', id: 'preview-1', attributes },
+      },
+    });
+  }
+  it('posts plain JSON with its abort signal and reads JSON:API credits', async () => {
+    respond(available);
+    const signal = new AbortController().signal;
+    expect(await new ImagesService('token').quoteCrun(request, signal)).toEqual(
+      available,
+    );
+    expect(mockPost).toHaveBeenCalledWith('/crun-quote', request, { signal });
+  });
+  it('accepts genuine BYOK zero credits', async () => {
+    const quote = { ...available, billingMode: 'byok', credits: 0 };
+    respond(quote);
+    expect(await new ImagesService('token').quoteCrun(request)).toEqual(quote);
+  });
+  it('keeps unavailable quote fields null', async () => {
+    const quote = {
+      isAvailable: false,
+      modelKey: request.model,
+      quoteId: null,
+      expiresAt: null,
+      contractVersion: null,
+      credits: null,
+      billingMode: null,
+      reasonCode: 'PRICING_UNAVAILABLE',
+    };
+    respond(quote);
+    expect(await new ImagesService('token').quoteCrun(request)).toEqual(quote);
+  });
+  it.each([
+    { ...available, credits: -1 },
+    { ...available, credits: 1.1 },
+    { ...available, contractVersion: 'wrong' },
+    { ...available, modelKey: 'wrong' },
+    { ...available, billingMode: null },
+    { ...available, expiresAt: 'not-a-date' },
+  ])(
+    'rejects malformed availability instead of displaying a fabricated estimate',
+    async (quote) => {
+      respond(quote);
+      await expect(
+        new ImagesService('token').quoteCrun(request),
+      ).rejects.toThrow('CRUN_PROVIDER_UNAVAILABLE');
+    },
+  );
+});

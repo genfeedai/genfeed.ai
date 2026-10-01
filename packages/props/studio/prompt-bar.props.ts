@@ -27,6 +27,11 @@ import type {
   ITag,
   ITraining,
 } from '@genfeedai/contracts/interfaces';
+import type {
+  CrunGenerationQuoteResponse,
+  CrunImageQuoteRequest,
+  CrunQuoteReasonCode,
+} from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
 import type { IGenerationItem } from '@genfeedai/contracts/interfaces/components/generation.interface';
 import type { MediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
@@ -54,6 +59,14 @@ export interface PromptBarFeatures {
 }
 
 export interface PromptBarProps {
+  crunBinding?: {
+    prepareRequest: (
+      draft: PromptTextareaSchema,
+    ) => CrunImageQuoteRequest | null;
+    submit: (
+      request: CrunImageQuoteRequest & { crunQuoteId: string },
+    ) => Promise<void>;
+  };
   models?: IModel[];
   trainings?: ITraining[];
   presets?: IPreset[];
@@ -341,8 +354,8 @@ export interface UsePromptBarPricingReturn {
     width: number,
     height: number,
     duration: number,
-  ) => number;
-  selectedModelCost: number;
+  ) => number | null;
+  selectedModelCost: number | null;
 }
 
 export interface UsePromptBarFiltersOptions {
@@ -631,7 +644,7 @@ export interface PromptBarExpandedViewProps {
   isEnhancing: boolean;
   isGenerateDisabled: boolean;
   previousPrompt: string | null;
-  selectedModelCost: number;
+  selectedModelCost: number | null;
   activeGenerations: IGenerationItem[];
   generateLabel: string;
 
@@ -646,4 +659,18 @@ export interface PromptBarCrunControlsProps {
   onChange: (value: string) => void;
   isDisabled?: boolean;
   error?: string;
+}
+
+export interface UseCrunGenerationQuoteOptions {
+  request: CrunImageQuoteRequest | null;
+  isActive: boolean;
+}
+export interface UseCrunGenerationQuoteReturn {
+  status: 'idle' | 'pending' | 'available' | 'unavailable' | 'error';
+  quote: CrunGenerationQuoteResponse | null;
+  reasonCode: CrunQuoteReasonCode | null;
+  getCurrentQuote: () => Extract<
+    CrunGenerationQuoteResponse,
+    { isAvailable: true }
+  > | null;
 }

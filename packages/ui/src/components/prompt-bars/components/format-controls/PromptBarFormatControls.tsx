@@ -75,10 +75,25 @@ const PromptBarFormatControls = memo(function PromptBarFormatControls({
     }, []);
 
   const selectedFormatLabel =
-    getAspectRatioForFormat(form.getValues('format') as IngredientFormat) ??
-    'Format';
+    (controls
+      ? form.getValues('crunControls')?.aspectRatio
+      : getAspectRatioForFormat(
+          form.getValues('format') as IngredientFormat,
+        )) ?? 'Format';
 
   function handleFormatChange(_name: string, value: string): void {
+    if (controls) {
+      const current = form.getValues('crunControls');
+      if (current && filteredRatios.includes(value)) {
+        form.setValue(
+          'crunControls',
+          { ...current, aspectRatio: value },
+          { shouldValidate: true },
+        );
+        triggerConfigChange();
+      }
+      return;
+    }
     const nextFormatId = getFormatForAspectRatio(value);
     if (!nextFormatId) {
       return;
@@ -119,7 +134,11 @@ const PromptBarFormatControls = memo(function PromptBarFormatControls({
     <div className="flex flex-col gap-2">
       <AspectRatioDropdown
         name="format"
-        value={getAspectRatioForFormat(form.getValues('format')) ?? ''}
+        value={
+          (controls
+            ? form.getValues('crunControls')?.aspectRatio
+            : getAspectRatioForFormat(form.getValues('format'))) ?? ''
+        }
         ratios={filteredRatios}
         onChange={handleFormatChange}
         icon={formatIcon}

@@ -1,3 +1,7 @@
+import {
+  PromptBarInternalContext,
+  type PromptBarInternalContextValue,
+} from '@genfeedai/contexts/ui/prompt-bar-internal-context';
 import '@testing-library/jest-dom/vitest';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { IngredientCategory, IngredientFormat } from '@genfeedai/contracts';
@@ -100,5 +104,36 @@ describe('PromptBarQuickOptions', () => {
       expect.anything(),
       expect.anything(),
     );
+  });
+});
+
+describe('reviewed Crun quick resolution options', () => {
+  it('shows only reviewed image resolutions and preserves the exact selected value', () => {
+    const key = 'crun/bytedance/seedream-4-5';
+    const context = {
+      models: [
+        {
+          key,
+          provider: 'crun',
+          inputControls: { fields: { resolution: { enum: ['2K', '4K'] } } },
+        },
+      ],
+    } as unknown as PromptBarInternalContextValue;
+    const form = makeForm({ resolution: '2K' });
+    render(
+      <PromptBarInternalContext.Provider value={context}>
+        <PromptBarQuickOptions
+          {...makeProps({
+            categoryType: IngredientCategory.IMAGE,
+            normalizedWatchedModels: [key],
+            form,
+          })}
+        />
+      </PromptBarInternalContext.Provider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: '2K' }));
+    expect(screen.getByText('4K')).toBeInTheDocument();
+    expect(screen.queryByText('720p')).not.toBeInTheDocument();
+    expect(screen.queryByText('1080p')).not.toBeInTheDocument();
   });
 });

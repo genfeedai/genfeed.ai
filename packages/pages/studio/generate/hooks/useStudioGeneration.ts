@@ -6,6 +6,10 @@ import type {
   KnowledgeSelection,
 } from '@genfeedai/contracts/interfaces';
 import type {
+  CrunGenerationQuoteResponse,
+  CrunImageQuoteRequest,
+} from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
+import type {
   GenerationResponse,
   SocketResult,
 } from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
@@ -50,6 +54,7 @@ import { VideosService } from '@services/ingredients/videos.service';
 import { VoicesService } from '@services/ingredients/voices.service';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { resolvePendingIds } from '@utils/network/generation.util';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export interface UseStudioGenerationParams {
@@ -76,6 +81,11 @@ export interface UseStudioGenerationReturn {
 }
 
 export interface StudioGenerationOptions {
+  crunRequest?: CrunImageQuoteRequest;
+  getCurrentCrunQuote?: () => Extract<
+    CrunGenerationQuoteResponse,
+    { isAvailable: true }
+  > | null;
   requestedSkillSlugs?: string[];
   harness?: boolean;
   /** Explicit Knowledge pick from the Library picker; absent means Auto. */
@@ -120,10 +130,12 @@ export function useStudioGeneration({
   settings,
   type,
 }: UseStudioGenerationParams): UseStudioGenerationReturn {
+  const translateCrun = useTranslations('pages.studioGenerate.crun');
   const { subscribe, connectionState } = useSocketManager();
   const activeBrandRef = useRef(brandId);
   activeBrandRef.current = brandId;
   const submittingRef = useRef(false);
+  const consumedCrunQuoteRef = useRef<string | null>(null);
   const cancellingIds = useRef(new Set<string>());
   const [jobs, setJobs] = useState<readonly StudioGenerateJob[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -573,6 +585,16 @@ export function useStudioGeneration({
         models,
         config.capabilities.hasModelSelection,
       );
+      const initialCrunQuote = modelKey.startsWith('crun/')
+        ? options?.getCurrentCrunQuote?.()
+        : null;
+      if (
+        modelKey.startsWith('crun/') &&
+        (!initialCrunQuote ||
+          !options?.crunRequest ||
+          consumedCrunQuoteRef.current === initialCrunQuote.quoteId)
+      )
+        return false;
       const jobDimensions = config.capabilities.hasAspectRatio
         ? { height: promptData.height, width: promptData.width }
         : {};
@@ -617,6 +639,28 @@ export function useStudioGeneration({
         switch (type) {
           case 'image': {
             const service = await getImagesService();
+            if (modelKey.startsWith('crun/')) {
+              const request = options?.crunRequest;
+              const quote = options?.getCurrentCrunQuote?.();
+              if (
+                !request ||
+                !quote ||
+                quote.quoteId !== initialCrunQuote?.quoteId ||
+                request.model !== modelKey ||
+                request.text !== promptText.trim() ||
+                quote.modelKey !== modelKey ||
+                quote.contractVersion !== request.crunControls.contractVersion
+              )
+                throw new Error('CRUN_QUOTE_STALE');
+              consumedCrunQuoteRef.current = quote.quoteId;
+              const data = (await service.post({
+                ...request,
+                crunQuoteId: quote.quoteId,
+              })) as GenerationResponse;
+              trackPendingIds(resolvePendingIds(data), pendingContext);
+              isAccepted = true;
+              break;
+            }
             const payload = buildImagePayload(
               {
                 ...buildBaseGenerationPayload(promptData, modelKey, brandId),
@@ -757,10 +801,13 @@ export function useStudioGeneration({
       } catch (error) {
         if (activeBrandRef.current !== brandId) return false;
         logger.error('Studio generation failed', error);
-        const message = toErrorMessage(
-          error,
-          `Failed to generate ${config.label}`,
-        );
+        const message = modelKey.startsWith('crun/')
+          ? translateCrun(
+              error instanceof Error && error.message === 'CRUN_QUOTE_STALE'
+                ? 'quoteStale'
+                : 'reasons.CRUN_PROVIDER_UNAVAILABLE',
+            )
+          : toErrorMessage(error, `Failed to generate ${config.label}`);
 
         // A toast disappears. Leave a failed card so the operator can see what
         // died and reprompt it without retyping.
@@ -798,6 +845,7 @@ export function useStudioGeneration({
       notificationsService,
       settings,
       trackPendingIds,
+      translateCrun,
       type,
     ],
   );

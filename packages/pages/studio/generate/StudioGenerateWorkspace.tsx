@@ -52,6 +52,7 @@ import StudioGenerateComposer from '@pages/studio/generate/components/StudioGene
 import StudioGenerateInspector from '@pages/studio/generate/components/StudioGenerateInspector';
 import StudioGenerateResults from '@pages/studio/generate/components/StudioGenerateResults';
 import StudioGenerateStarterIdeas from '@pages/studio/generate/components/StudioGenerateStarterIdeas';
+import { useCrunGenerationQuote } from '@pages/studio/generate/hooks/useCrunGenerationQuote';
 import { useStudioGenerateAssetActions } from '@pages/studio/generate/hooks/useStudioGenerateAssetActions';
 import { useStudioGenerateDraft } from '@pages/studio/generate/hooks/useStudioGenerateDraft';
 import { useStudioGenerateGallery } from '@pages/studio/generate/hooks/useStudioGenerateGallery';
@@ -60,7 +61,11 @@ import { useStudioGenerateModels } from '@pages/studio/generate/hooks/useStudioG
 import { useStudioGenerateSettings } from '@pages/studio/generate/hooks/useStudioGenerateSettings';
 import { useStudioGeneration } from '@pages/studio/generate/hooks/useStudioGeneration';
 import { useStudioPromptEnhancement } from '@pages/studio/generate/hooks/useStudioPromptEnhancement';
-import { buildRepromptData } from '@pages/studio/generate/utils/generation-payloads';
+import {
+  buildRepromptData,
+  buildStudioCrunQuoteRequest,
+} from '@pages/studio/generate/utils/generation-payloads';
+import { prepareCrunGenerationIntent } from '@pages/studio/generate/utils/prepare-crun-generation-intent';
 import {
   filterStudioGenerateJobs,
   mergeStudioGenerateJobs,
@@ -207,6 +212,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     IngredientsService.getInstance(token),
   );
   const promptDocumentRef = useRef<JSONContent | null>(null);
+  const [quoteDocumentRevision, setQuoteDocumentRevision] = useState(0);
   const {
     applyTypeSettings,
     isHydrated,
@@ -800,20 +806,89 @@ export default function StudioGenerateWorkspace(): ReactElement {
     [brandId, setType],
   );
 
+  const crunModel =
+    type === 'image'
+      ? models.find(
+          (model) =>
+            model.key === settings.modelKey && model.provider === 'crun',
+        )
+      : undefined;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: editor document revisions and character catalog changes alter resolver output even when the displayed prompt is unchanged.
+  const crunPreparedIntent = useMemo(
+    () =>
+      crunModel
+        ? prepareCrunGenerationIntent({
+            document: promptDocumentRef.current,
+            existingReferenceIds: resolvedReferences.imageReferenceIds,
+            prompt,
+            resolvePromptCommands,
+            resolveCharacterMentions,
+          })
+        : {
+            text: prompt,
+            referenceIds: resolvedReferences.imageReferenceIds,
+            notices: [],
+            skillSlugs: [],
+          },
+    [
+      crunModel,
+      prompt,
+      resolvedReferences.imageReferenceIds,
+      resolvePromptCommands,
+      resolveCharacterMentions,
+      quoteDocumentRevision,
+      characterMentions,
+    ],
+  );
+  const crunRequest = useMemo(
+    () =>
+      buildStudioCrunQuoteRequest({
+        model: crunModel,
+        settings,
+        promptText: crunPreparedIntent.text,
+        references: crunPreparedIntent.referenceIds,
+        brandId,
+        ...(enhancedPromptId && crunPreparedIntent.text === prompt
+          ? { promptId: enhancedPromptId }
+          : {
+              requestedSkillSlugs: crunPreparedIntent.skillSlugs,
+              ...(hasKnowledgeSelection
+                ? { knowledge: knowledgeSelection }
+                : {}),
+            }),
+        harness: false,
+      }),
+    [
+      crunModel,
+      settings,
+      crunPreparedIntent,
+      brandId,
+      enhancedPromptId,
+      prompt,
+      hasKnowledgeSelection,
+      knowledgeSelection,
+    ],
+  );
+  const crunQuote = useCrunGenerationQuote({
+    request: isEnhancingPrompt || isUploading ? null : crunRequest,
+    isActive: Boolean(crunModel),
+  });
+
   const handleSubmit = useCallback(() => {
     if (isUploading || isListening || isTranscribing) {
       return;
     }
     // Skills picked from `/` are literal tokens in the prompt. They steer the
     // enhancement pass, never the generator, so they come off first.
-    const { content, skillSlugs } = resolvePromptCommands(prompt);
-    if (rejectUnsupportedSkillSelection(skillSlugs)) return;
-
-    const prepared = resolveCharacterMentions({
+    const prepared = prepareCrunGenerationIntent({
       document: promptDocumentRef.current,
       existingReferenceIds: resolvedReferences.imageReferenceIds,
-      text: content,
+      prompt,
+      resolvePromptCommands,
+      resolveCharacterMentions,
     });
+    const { skillSlugs } = prepared;
+    if (rejectUnsupportedSkillSelection(skillSlugs)) return;
     for (const notice of prepared.notices) {
       notificationsService.warning(notice);
     }
@@ -823,21 +898,28 @@ export default function StudioGenerateWorkspace(): ReactElement {
         ...resolvedReferences,
         imageReferenceIds: prepared.referenceIds,
       },
-      skillSlugs.length ||
-        hasKnowledgeSelection ||
-        (isHandoffAccepted && handoffPayload?.harness !== undefined) ||
-        (enhancedPromptId && prepared.text === prompt)
+      crunModel
         ? {
-            ...(skillSlugs.length ? { requestedSkillSlugs: skillSlugs } : {}),
-            ...(hasKnowledgeSelection ? { knowledge: knowledgeSelection } : {}),
-            ...(isHandoffAccepted && handoffPayload?.harness !== undefined
-              ? { harness: handoffPayload.harness }
-              : {}),
-            ...(enhancedPromptId && prepared.text === prompt
-              ? { promptId: enhancedPromptId }
-              : {}),
+            ...(crunRequest ? { crunRequest } : {}),
+            getCurrentCrunQuote: crunQuote.getCurrentQuote,
           }
-        : undefined,
+        : skillSlugs.length ||
+            hasKnowledgeSelection ||
+            (isHandoffAccepted && handoffPayload?.harness !== undefined) ||
+            (enhancedPromptId && prepared.text === prompt)
+          ? {
+              ...(skillSlugs.length ? { requestedSkillSlugs: skillSlugs } : {}),
+              ...(hasKnowledgeSelection
+                ? { knowledge: knowledgeSelection }
+                : {}),
+              ...(isHandoffAccepted && handoffPayload?.harness !== undefined
+                ? { harness: handoffPayload.harness }
+                : {}),
+              ...(enhancedPromptId && prepared.text === prompt
+                ? { promptId: enhancedPromptId }
+                : {}),
+            }
+          : undefined,
     ).then((isAccepted) => {
       // A sent generation leaves an empty composer (and draft) behind; the
       // model settings stay for the next one.
@@ -854,6 +936,9 @@ export default function StudioGenerateWorkspace(): ReactElement {
     clearAttachments,
     isHandoffAccepted,
     handoffPayload,
+    crunModel,
+    crunRequest,
+    crunQuote.getCurrentQuote,
     enhancedPromptId,
     hasKnowledgeSelection,
     knowledgeSelection,
@@ -1498,6 +1583,8 @@ export default function StudioGenerateWorkspace(): ReactElement {
                 ))}
               <StudioGenerateComposer
                 attachedAssets={attachedAssets}
+                crunQuote={crunModel ? crunQuote : undefined}
+                crunReferenceCount={crunPreparedIntent.referenceIds.length}
                 documentSeed={documentSeed}
                 extraExtensions={extraExtensions}
                 isDragActive={capabilities.hasReferences && dragState.isActive}
@@ -1515,6 +1602,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
                 onPromptChange={setPrompt}
                 onPromptDocumentChange={(document) => {
                   promptDocumentRef.current = document;
+                  setQuoteDocumentRevision((value) => value + 1);
                 }}
                 onRemoveAttachedAsset={handleRemoveAttachedAsset}
                 onResetSettings={resetSettings}

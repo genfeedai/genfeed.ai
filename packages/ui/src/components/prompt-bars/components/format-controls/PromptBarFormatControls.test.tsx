@@ -1,4 +1,8 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
+import {
+  PromptBarInternalContext,
+  type PromptBarInternalContextValue,
+} from '@genfeedai/contexts/ui/prompt-bar-internal-context';
 import { IngredientFormat } from '@genfeedai/contracts';
 import type { PromptBarFormatControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
 import { render } from '@testing-library/react';
@@ -87,5 +91,72 @@ describe('PromptBarFormatControls', () => {
         shouldValidate: false,
       },
     );
+  });
+});
+
+describe('Crun legacy exact aspect carrier', () => {
+  const key = 'crun/google/nano-banana-pro';
+  const context = {
+    models: [
+      {
+        key,
+        provider: 'crun',
+        inputControls: {
+          isAutoAspectReferenceRequired: true,
+          fields: { aspect_ratio: { enum: ['1:1', '21:9', 'auto'] } },
+        },
+      },
+    ],
+  } as unknown as PromptBarInternalContextValue;
+  const envelope = {
+    modelKey: key,
+    contractVersion: 'reviewed-1',
+    aspectRatio: '21:9',
+    outputFormat: 'jpg' as const,
+  };
+  function setup(references: string[]) {
+    const form = {
+      getValues: vi.fn(() => envelope),
+      setValue: vi.fn(),
+    } as unknown as UseFormReturn<PromptTextareaSchema>;
+    const setReferences = vi.fn();
+    render(
+      <PromptBarInternalContext.Provider value={context}>
+        <PromptBarFormatControls
+          currentConfig={{ buttons: { format: true } }}
+          form={form}
+          formatIcon={<span />}
+          normalizedWatchedModels={[key]}
+          watchedModel={key}
+          references={references}
+          setReferences={setReferences}
+          setReferenceSource={vi.fn()}
+          triggerConfigChange={vi.fn()}
+          isDisabledState={false}
+          controlClass="control"
+        />
+      </PromptBarInternalContext.Provider>,
+    );
+    return { form, setReferences };
+  }
+  it('round-trips 21:9/auto in the residual envelope without dimensions or reference clearing', () => {
+    const { form, setReferences } = setup(['image-1']);
+    expect(capturedAspectRatioDropdownProps.value).toBe('21:9');
+    expect(capturedAspectRatioDropdownProps.ratios).toEqual([
+      '1:1',
+      '21:9',
+      'auto',
+    ]);
+    capturedAspectRatioDropdownProps.onChange?.('format', 'auto');
+    expect(form.setValue).toHaveBeenCalledExactlyOnceWith(
+      'crunControls',
+      { ...envelope, aspectRatio: 'auto' },
+      { shouldValidate: true },
+    );
+    expect(setReferences).not.toHaveBeenCalled();
+  });
+  it('hides auto while the required reference is missing', () => {
+    setup([]);
+    expect(capturedAspectRatioDropdownProps.ratios).toEqual(['1:1', '21:9']);
   });
 });

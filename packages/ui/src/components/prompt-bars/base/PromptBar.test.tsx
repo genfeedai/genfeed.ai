@@ -19,6 +19,11 @@ import { use } from 'react';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string, values?: Record<string, unknown>) =>
+    values?.credits !== undefined ? `${values.credits} credits` : key,
+}));
+
 // Mock ResizeObserver globally
 class MockResizeObserver {
   observe = vi.fn();
@@ -32,6 +37,7 @@ const mockPush = vi.fn();
 const mockUsePromptBarFilters = vi.fn();
 const mockUsePromptBarModels = vi.fn();
 const mockUsePromptBarPricing = vi.fn();
+const mockCrunQuote = vi.fn();
 const mockUsePromptBarReferences = vi.fn();
 const mockUsePromptBarSync = vi.fn();
 const mockUseSpeechRecording = vi.fn();
@@ -168,6 +174,14 @@ vi.mock(
   '@genfeedai/hooks/prompt-bar/use-prompt-bar-models/use-prompt-bar-models',
   () => ({
     usePromptBarModels: (...args: unknown[]) => mockUsePromptBarModels(...args),
+  }),
+);
+
+vi.mock(
+  '@genfeedai/hooks/prompt-bar/use-crun-generation-quote/use-crun-generation-quote',
+  () => ({
+    useCrunGenerationQuote: (...args: unknown[]) => mockCrunQuote(...args),
+    serializeCrunQuoteIntent: (value: unknown) => JSON.stringify(value),
   }),
 );
 
@@ -329,6 +343,12 @@ describe('PromptBar', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockCrunQuote.mockReturnValue({
+      quote: null,
+      status: 'idle',
+      reasonCode: null,
+      getCurrentQuote: () => null,
+    });
     collapsedViewProps = undefined;
     expandedViewProps = undefined;
     speechHandlers = {};
@@ -1558,6 +1578,88 @@ describe('PromptBar', () => {
     it('should have relative positioning', () => {
       const { container } = render(<PromptBar {...defaultProps} />);
       expect(container.firstChild).toHaveClass('relative');
+    });
+  });
+  describe('Crun legacy binding admission and group meter', () => {
+    const model = {
+      key: 'crun/google/nano-banana-pro',
+      label: 'Nano',
+      provider: 'crun',
+      category: 'image',
+    };
+    const request = {
+      model: model.key,
+      text: 'Product',
+      outputs: 4 as const,
+      crunControls: { contractVersion: 'reviewed-1' },
+    };
+    const quote = {
+      isAvailable: true as const,
+      modelKey: model.key,
+      contractVersion: 'reviewed-1',
+      quoteId: 'quote-1',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      credits: 11,
+      billingMode: 'credits' as const,
+      reasonCode: null,
+    };
+    function selectCrun() {
+      const defaults = mockUsePromptBarModels();
+      mockUsePromptBarModels.mockReturnValue({
+        ...defaults,
+        selectedModels: [model],
+      });
+      const watch = mockUseWatch.getMockImplementation();
+      mockUseWatch.mockImplementation((options: { name?: string }) =>
+        options.name === 'models'
+          ? [model.key]
+          : options.name === 'outputs'
+            ? 4
+            : watch?.(options),
+      );
+    }
+    it('fails closed without a binding and never uses the static model estimate', () => {
+      selectCrun();
+      render(
+        <PromptBar
+          {...defaultProps}
+          features={{ collapsible: false }}
+          models={[model] as unknown as PromptBarProps['models']}
+        />,
+      );
+      fireEvent.click(screen.getByTestId('submit-button'));
+      expect(defaultProps.onSubmit).not.toHaveBeenCalled();
+      expect(expandedViewProps?.selectedModelCost).toBeNull();
+      expect(expandedViewProps?.isGenerateBlocked).toBe(true);
+    });
+    it('consumes one exact bound request and displays group total 11 for four outputs', async () => {
+      selectCrun();
+      mockCrunQuote.mockReturnValue({
+        quote,
+        status: 'available',
+        reasonCode: null,
+        getCurrentQuote: () => quote,
+      });
+      const submit = vi.fn().mockResolvedValue(undefined);
+      render(
+        <PromptBar
+          {...defaultProps}
+          features={{ collapsible: false }}
+          models={[model] as unknown as PromptBarProps['models']}
+          crunBinding={{ prepareRequest: () => request, submit }}
+        />,
+      );
+      expect(expandedViewProps?.selectedModelCost).toBe(11);
+      expect(expandedViewProps?.generationMeter).toMatchObject({ credits: 11 });
+      fireEvent.click(screen.getByTestId('submit-button'));
+      fireEvent.click(screen.getByTestId('submit-button'));
+      await waitFor(() =>
+        expect(submit).toHaveBeenCalledExactlyOnceWith({
+          ...request,
+          crunQuoteId: quote.quoteId,
+        }),
+      );
+      expect(defaultProps.onSubmit).not.toHaveBeenCalled();
     });
   });
 });

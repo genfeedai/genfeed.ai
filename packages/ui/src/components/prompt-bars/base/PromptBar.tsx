@@ -5,6 +5,7 @@ import { IngredientCategory } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarProps } from '@genfeedai/props/studio/prompt-bar.props';
 import { Form } from '@ui/primitives/form';
+import { Label } from '@ui/primitives/label';
 import PromptBarCollapsedView from '@ui/prompt-bars/components/collapsed-view/PromptBarCollapsedView';
 import PromptBarCrunControls from '@ui/prompt-bars/components/crun-controls/PromptBarCrunControls';
 import PromptBarExpandedView from '@ui/prompt-bars/components/expanded-view/PromptBarExpandedView';
@@ -14,6 +15,7 @@ import { EMPTY_ARRAY } from './prompt-bar.helpers';
 import { usePromptBarState } from './use-prompt-bar-state';
 
 function PromptBar({
+  crunBinding,
   isDisabled = false,
   models = EMPTY_ARRAY,
   trainings = EMPTY_ARRAY,
@@ -59,6 +61,7 @@ function PromptBar({
   banner,
 }: PromptBarProps) {
   const {
+    crunQuoteLabel,
     crunInputControls,
     watchedCrunControls,
     internalContextValue,
@@ -89,6 +92,7 @@ function PromptBar({
     isRecording,
     isProcessing,
   } = usePromptBarState({
+    crunBinding,
     isDisabled,
     models,
     trainings,
@@ -153,6 +157,15 @@ function PromptBar({
               bodyClassName="p-0"
               data-testid="studio-prompt-bar-shell"
             >
+              {crunQuoteLabel ? (
+                <Label
+                  role="status"
+                  aria-live="polite"
+                  className="text-xs text-muted-foreground"
+                >
+                  {crunQuoteLabel}
+                </Label>
+              ) : null}
               {crunInputControls ? (
                 <PromptBarCrunControls
                   controls={crunInputControls}

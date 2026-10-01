@@ -78,6 +78,8 @@ const RECOMMENDATION_DEBOUNCE_MS = 400;
  */
 export default function StudioGenerateComposer({
   attachedAssets,
+  crunQuote,
+  crunReferenceCount,
   documentSeed,
   extraExtensions,
   isDragActive = false,
@@ -113,7 +115,7 @@ export default function StudioGenerateComposer({
   const inputControls = useCrunInputControls(
     models,
     settings,
-    attachedAssets.length,
+    crunReferenceCount ?? attachedAssets.length,
     onSettingsChange,
   );
   const isRuntimeBlocked = !canSubmitStudioGeneration(runtime);
@@ -174,6 +176,7 @@ export default function StudioGenerateComposer({
   // stale list, so the send button waits for the type's models to land.
   const isAwaitingModels = capabilities.hasModelSelection && isLoadingModels;
   const isSubmitBlocked =
+    (selectedModel?.provider === 'crun' && !crunQuote?.getCurrentQuote()) ||
     isRuntimeBlocked ||
     isGenerating ||
     isPromptEmpty ||
@@ -342,6 +345,7 @@ export default function StudioGenerateComposer({
       />
 
       <StudioGenerationSummary
+        crunQuote={crunQuote}
         estimate={estimate}
         isLoadingModels={isLoadingModels}
         model={selectedModel}
@@ -383,7 +387,7 @@ export default function StudioGenerateComposer({
           ) : null}
           <GenerationSetupPopover
             inputControls={inputControls}
-            referenceCount={attachedAssets.length}
+            referenceCount={crunReferenceCount ?? attachedAssets.length}
             capabilities={capabilities}
             favoriteModelKeys={favoriteModelKeys}
             isDisabled={isGenerating}

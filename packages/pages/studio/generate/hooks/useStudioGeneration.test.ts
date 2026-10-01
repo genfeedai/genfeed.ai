@@ -4,6 +4,8 @@ import { act, renderHook } from '@testing-library/react';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
+
 // ────────────────────────────────────────────────────────────
 // Mock every service boundary before importing the hook
 // ────────────────────────────────────────────────────────────
@@ -802,5 +804,127 @@ describe('authoritative generation completion', () => {
       status: IngredientStatus.FAILED,
       phase: 'cancelled',
     });
+  });
+});
+
+describe('Crun quote-bound submission', () => {
+  const model = 'crun/google/nano-banana-pro';
+  const request = {
+    model,
+    text: 'A product',
+    brandId: 'brand-1',
+    outputs: 2 as const,
+    references: ['ref-1'],
+    crunControls: {
+      contractVersion: 'reviewed-1',
+      aspectRatio: '16:9',
+      resolution: '2K' as const,
+      outputFormat: 'png' as const,
+    },
+  };
+  const quote = {
+    isAvailable: true as const,
+    modelKey: model,
+    quoteId: 'quote-1',
+    expiresAt: '2099-01-01T00:00:00.000Z',
+    contractVersion: 'reviewed-1',
+    credits: 12,
+    billingMode: 'credits' as const,
+    reasonCode: null,
+  };
+  function setup() {
+    return renderStudioGeneration({
+      models: [makeModel(model)],
+      settings: {
+        ...getDefaultStudioGenerateSettings('image'),
+        modelKey: model,
+        outputs: 2,
+      },
+    });
+  }
+  it('posts the canonical quote request once and retains accepted output tracking', async () => {
+    const { result } = setup();
+    await act(async () => {
+      expect(
+        await result.current.submit(
+          request.text,
+          {},
+          { crunRequest: request, getCurrentCrunQuote: () => quote },
+        ),
+      ).toBe(true);
+    });
+    expect(mockImagesPost).toHaveBeenCalledExactlyOnceWith({
+      ...request,
+      crunQuoteId: quote.quoteId,
+    });
+    expect(mockImagesPost.mock.calls[0]?.[0]).not.toHaveProperty('width');
+    expect(
+      result.current.jobs.some((job) => job.ingredientId === 'img-1'),
+    ).toBe(true);
+  });
+  it('does not send the same quote twice after an accepted request', async () => {
+    const { result } = setup();
+    await act(async () => {
+      await result.current.submit(
+        request.text,
+        {},
+        { crunRequest: request, getCurrentCrunQuote: () => quote },
+      );
+    });
+    await act(async () => {
+      expect(
+        await result.current.submit(
+          request.text,
+          {},
+          { crunRequest: request, getCurrentCrunQuote: () => quote },
+        ),
+      ).toBe(false);
+    });
+    expect(mockImagesPost).toHaveBeenCalledTimes(1);
+  });
+  it('blocks missing or expired quote admission before creating a job', async () => {
+    const { result } = setup();
+    await act(async () => {
+      expect(
+        await result.current.submit(
+          request.text,
+          {},
+          { crunRequest: request, getCurrentCrunQuote: () => null },
+        ),
+      ).toBe(false);
+    });
+    expect(mockImagesPost).not.toHaveBeenCalled();
+    expect(result.current.jobs).toHaveLength(0);
+  });
+  it('rejects quote invalidation during async service lookup', async () => {
+    const { result } = setup();
+    const current = vi.fn().mockReturnValueOnce(quote).mockReturnValue(null);
+    await act(async () => {
+      expect(
+        await result.current.submit(
+          request.text,
+          {},
+          { crunRequest: request, getCurrentCrunQuote: current },
+        ),
+      ).toBe(false);
+    });
+    expect(mockImagesPost).not.toHaveBeenCalled();
+  });
+  it('rejects a replacement quote after service lookup rather than consume a different intent', async () => {
+    const { result } = setup();
+    const current = vi
+      .fn()
+      .mockReturnValueOnce(quote)
+      .mockReturnValue({ ...quote, quoteId: 'quote-2' });
+    await act(async () => {
+      expect(
+        await result.current.submit(
+          request.text,
+          {},
+          { crunRequest: request, getCurrentCrunQuote: current },
+        ),
+      ).toBe(false);
+    });
+    expect(mockImagesPost).not.toHaveBeenCalled();
   });
 });

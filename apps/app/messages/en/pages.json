@@ -1142,7 +1142,20 @@
       "outputFormat": "Output format",
       "quoteLoading": "Checking image price…",
       "quoteUnavailable": "Image pricing is unavailable",
-      "quoteStale": "Image settings changed. Refreshing the price…"
+      "quoteStale": "Image settings changed. Refreshing the price…",
+      "byok": "Your API key",
+      "credits": "{credits} credits",
+      "reasons": {
+        "CRUN_DISABLED": "This image provider is unavailable on this server.",
+        "CRUN_MODEL_UNAVAILABLE": "This image model is unavailable.",
+        "CRUN_CREDENTIALS_UNAVAILABLE": "Connect an image provider API key to continue.",
+        "CRUN_BILLING_UNSUPPORTED": "Image billing is unavailable for this connection.",
+        "CRUN_CONTRACT_UNAVAILABLE": "The image model settings need review.",
+        "PRICING_UNAVAILABLE": "A fixed image price is unavailable.",
+        "CRUN_RATE_LIMITED": "Image pricing is busy. Try again shortly.",
+        "CRUN_PROVIDER_UNAVAILABLE": "The image provider could not be reached.",
+        "CRUN_ENHANCEMENT_REQUIRED": "Enhance the prompt or remove pending skill and Knowledge selections before generating."
+      }
     }
   },
   "warmupAccounts": {

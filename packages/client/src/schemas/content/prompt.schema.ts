@@ -15,6 +15,7 @@ export const promptTextareaSchema = z.object({
       modelKey: z.string().min(1),
       contractVersion: z.string().min(1),
       outputFormat: z.string().optional(),
+      aspectRatio: z.string().optional(),
     })
     .strict()
     .optional(),

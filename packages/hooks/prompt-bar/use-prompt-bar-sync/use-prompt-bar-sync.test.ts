@@ -681,3 +681,54 @@ describe('usePromptBarSync', () => {
     });
   });
 });
+
+describe('Crun residual form synchronization', () => {
+  it('restores the exact auto/format carrier even when only the controls changed', () => {
+    const controls = {
+      modelKey: 'crun/google/nano-banana-pro',
+      contractVersion: 'reviewed-1',
+      aspectRatio: 'auto',
+      outputFormat: 'jpg',
+    };
+    const form = createMockForm();
+    renderHook(() =>
+      usePromptBarSync({
+        ...createBaseOptions(),
+        form,
+        promptData: { crunControls: controls } as Parameters<
+          typeof usePromptBarSync
+        >[0]['promptData'],
+      }),
+    );
+    expect(form.setValue).toHaveBeenCalledWith('crunControls', controls, {
+      shouldValidate: true,
+    });
+  });
+  it('synchronizes a split-state 21:9 carrier without mapping to dimensions', () => {
+    const controls = {
+      modelKey: 'crun/google/nano-banana-pro',
+      contractVersion: 'reviewed-1',
+      aspectRatio: '21:9',
+      outputFormat: 'png',
+    };
+    const form = createMockForm();
+    renderHook(() =>
+      usePromptBarSync({
+        ...createBaseOptions(),
+        form,
+        useSplitState: true,
+        promptConfig: { crunControls: controls } as Parameters<
+          typeof usePromptBarSync
+        >[0]['promptConfig'],
+      }),
+    );
+    expect(form.setValue).toHaveBeenCalledWith('crunControls', controls, {
+      shouldValidate: true,
+    });
+    expect(form.setValue).not.toHaveBeenCalledWith(
+      'width',
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+});

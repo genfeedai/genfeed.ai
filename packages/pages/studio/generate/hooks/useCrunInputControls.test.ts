@@ -9,7 +9,7 @@ const controls: CrunInputControls = {
   mediaKind: 'image',
   maxOutputs: 4,
   isBatchSupported: false,
-  referenceRoles: { image_urls: 'image' },
+  referenceRoles: { img_urls: 'image' },
   isAutoAspectReferenceRequired: false,
   fields: {
     aspect_ratio: {
@@ -24,7 +24,7 @@ const controls: CrunInputControls = {
       default: '2K',
       enum: ['2K', '4K'],
     },
-    image_urls: { type: 'array', isRequired: false, maxItems: 14 },
+    img_urls: { type: 'array', isRequired: false, maxItems: 14 },
   },
 };
 const settings = {
@@ -124,5 +124,59 @@ describe('reviewed Crun settings', () => {
       normalizeCrunSettings({ ...settings, aspectRatio: 'auto' }, nano, 1)
         .aspectRatio,
     ).toBeUndefined();
+  });
+});
+
+describe('Crun refreshed contract and residual normalization', () => {
+  it('retains a valid output format after a reviewed version changes', () => {
+    const nano = {
+      ...controls,
+      fields: {
+        ...controls.fields,
+        output_format: {
+          type: 'string' as const,
+          isRequired: false,
+          enum: ['png', 'jpg'],
+          default: 'png',
+        },
+      },
+    };
+    expect(
+      normalizeCrunSettings(
+        {
+          ...settings,
+          aspectRatio: '16:9',
+          resolution: '2K',
+          crunControls: {
+            modelKey: settings.modelKey,
+            contractVersion: 'old',
+            outputFormat: 'jpg',
+          },
+        },
+        nano,
+        1,
+      ).crunControls?.outputFormat,
+    ).toBe('jpg');
+  });
+  it('clears a stale residual carrier when the canonical Studio ratio changes', () => {
+    expect(
+      normalizeCrunSettings(
+        {
+          ...settings,
+          aspectRatio: '16:9',
+          resolution: '2K',
+          crunControls: {
+            modelKey: settings.modelKey,
+            contractVersion: controls.version,
+            aspectRatio: '1:1',
+          },
+        },
+        controls,
+        1,
+      ).crunControls,
+    ).toEqual({
+      modelKey: settings.modelKey,
+      contractVersion: controls.version,
+    });
   });
 });

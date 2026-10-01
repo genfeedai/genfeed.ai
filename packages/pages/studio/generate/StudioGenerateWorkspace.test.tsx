@@ -8,6 +8,7 @@ import {
   createStudioGenerateDraftOutbox,
   type StudioGenerateDraftOutbox,
 } from '@pages/studio/generate/utils/studio-generate-draft-outbox';
+import { getDefaultStudioGenerateSettings } from '@pages/studio/generate/utils/studio-generate-settings';
 import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
 import {
   act,
@@ -87,6 +88,7 @@ const mocks = vi.hoisted(() => ({
   authIdentity: { value: 'identity-1' },
   getToken: vi.fn().mockResolvedValue('test-token'),
   composer: vi.fn(),
+  crunQuote: vi.fn(),
   findByIds: vi.fn().mockResolvedValue([]),
   gallery: vi.fn(),
   // #4716 review — the Agent -> Studio handoff pipeline (apply, model
@@ -286,6 +288,10 @@ vi.mock('@pages/studio/generate/hooks/useStudioGenerateGallery', () => ({
   useStudioGenerateGallery: mocks.gallery,
 }));
 
+vi.mock('@pages/studio/generate/hooks/useCrunGenerationQuote', () => ({
+  useCrunGenerationQuote: (...args: unknown[]) => mocks.crunQuote(...args),
+}));
+
 vi.mock('@pages/studio/generate/hooks/useStudioGenerateModels', () => ({
   useStudioGenerateModels: () => mocks.models.value,
 }));
@@ -419,6 +425,12 @@ vi.mock('@pages/studio/generate/components/StudioGenerateInspector', () => ({
 describe('StudioGenerateWorkspace', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.crunQuote.mockReturnValue({
+      quote: null,
+      status: 'idle',
+      reasonCode: null,
+      getCurrentQuote: () => null,
+    });
     mocks.resolvePromptCommands
       .mockReset()
       .mockImplementation((text: string) => ({
@@ -1943,5 +1955,81 @@ describe('StudioGenerateWorkspace', () => {
       expect(lastComposerProps().prompt).toBe('Try again');
       expect(mocks.clearAttachments).not.toHaveBeenCalled();
     });
+  });
+  it('previews and submits the same rich Crun intent with exact quote binding options', () => {
+    const key = 'crun/google/nano-banana-pro';
+    const controls = {
+      version: 'reviewed-1',
+      endpoint: 'google/nano-banana-pro',
+      mediaKind: 'image',
+      maxOutputs: 4,
+      isBatchSupported: false,
+      referenceRoles: { img_urls: 'image' },
+      isAutoAspectReferenceRequired: true,
+      fields: {
+        prompt: { type: 'string', isRequired: true, maxLength: 20000 },
+        aspect_ratio: {
+          type: 'string',
+          isRequired: false,
+          enum: ['1:1', '9:16'],
+          default: '1:1',
+        },
+        resolution: {
+          type: 'string',
+          isRequired: false,
+          enum: ['1K', '2K', '4K'],
+          default: '1K',
+        },
+        output_format: {
+          type: 'string',
+          isRequired: false,
+          enum: ['png', 'jpg'],
+          default: 'png',
+        },
+        img_urls: { type: 'array', isRequired: false, maxItems: 8 },
+      },
+    };
+    mocks.models.value = {
+      isLoadingModels: false,
+      models: [{ key, provider: 'crun', inputControls: controls }],
+    } as unknown as typeof mocks.models.value;
+    mocks.settings.mockReturnValue({
+      settings: {
+        ...getDefaultStudioGenerateSettings('image'),
+        modelKey: key,
+        resolution: '2K',
+        crunControls: {
+          modelKey: key,
+          contractVersion: controls.version,
+          outputFormat: 'jpg',
+        },
+      },
+      setType: mocks.setType,
+      updateSettings: mocks.updateSettings,
+    });
+    render(<StudioGenerateWorkspace />);
+    act(() =>
+      mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('Portrait of @anna'),
+    );
+    const preview = mocks.crunQuote.mock.calls.at(-1)?.[0].request;
+    expect(preview).toMatchObject({
+      model: key,
+      text: 'Portrait of Anna',
+      brandId: 'brand-1',
+      references: ['ingredient-1', 'img-anna'],
+      outputs: 2,
+      crunControls: {
+        contractVersion: controls.version,
+        aspectRatio: '9:16',
+        resolution: '2K',
+        outputFormat: 'jpg',
+      },
+    });
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+    expect(mocks.submit).toHaveBeenCalledExactlyOnceWith(
+      'Portrait of Anna',
+      expect.objectContaining({ imageReferenceIds: preview.references }),
+      { crunRequest: preview, getCurrentCrunQuote: expect.any(Function) },
+    );
   });
 });

@@ -19,10 +19,6 @@ import {
   getModelDurations,
 } from '@genfeedai/contracts/constants';
 import {
-  getAspectRatioForFormat,
-  getFormatForAspectRatio,
-} from '@genfeedai/helpers/generation-controls.helper';
-import {
   getDefaultVideoResolution,
   hasResolutionOptions,
 } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
@@ -32,6 +28,10 @@ import {
   resolveStudioGenerationCostModels,
   resolveStudioGenerationMeter,
 } from '@genfeedai/hooks/prompt-bar/resolve-studio-generation-meter/resolve-studio-generation-meter';
+import {
+  serializeCrunQuoteIntent,
+  useCrunGenerationQuote,
+} from '@genfeedai/hooks/prompt-bar/use-crun-generation-quote/use-crun-generation-quote';
 import { usePromptBarEnhancement } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-enhancement/use-prompt-bar-enhancement';
 import { usePromptBarFilters } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-filters/use-prompt-bar-filters';
 import { usePromptBarForm } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-form/use-prompt-bar-form';
@@ -54,6 +54,7 @@ import {
 } from '@ui-constants/media.constant';
 import { RectangleHorizontal, RectangleVertical, Square } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWatch } from 'react-hook-form';
@@ -111,9 +112,11 @@ type UsePromptBarStateParams = Pick<
   | 'extraExtensions'
   | 'onPromptDocumentChange'
   | 'onPrepareSubmit'
+  | 'crunBinding'
 >;
 
 export function usePromptBarState({
+  crunBinding,
   isDisabled = false,
   models = EMPTY_ARRAY,
   trainings = EMPTY_ARRAY,
@@ -260,6 +263,11 @@ export function usePromptBarState({
     control: form.control,
     name: 'quality',
   }) as QualityTier | undefined;
+  const translateCrun = useTranslations('pages.studioGenerate.crun');
+  useWatch({ control: form.control });
+  const crunConsumedRef = useRef<string | null>(null);
+  const crunSubmittingRef = useRef(false);
+  const [, setCrunDocumentRevision] = useState(0);
   const subscriptionTier = settings?.subscriptionTier as
     | SubscriptionTier
     | undefined;
@@ -327,7 +335,7 @@ export function usePromptBarState({
     [currentConfig.defaultModel, models, selectedModels],
   );
 
-  const { selectedModelCost } = usePromptBarPricing({
+  const { selectedModelCost: staticSelectedModelCost } = usePromptBarPricing({
     selectedModels: pricedModels.models,
     watchedDuration,
     watchedHeight,
@@ -335,16 +343,9 @@ export function usePromptBarState({
     watchedWidth,
   });
 
-  const generationMeter = useMemo(
-    () =>
-      resolveStudioGenerationMeter({
-        credits: selectedModelCost,
-        isEstimate: pricedModels.isEstimate,
-        queuedCount: activeGenerations.length,
-      }),
-    [activeGenerations.length, pricedModels.isEstimate, selectedModelCost],
+  const hasCrunSelection = selectedModels.some(
+    (model) => model.provider === 'crun',
   );
-
   const {
     filteredStyles,
     filteredMoods,
@@ -459,6 +460,41 @@ export function usePromptBarState({
       watchedModel,
     });
 
+  const crunRequest =
+    crunModel && crunBinding && !isEnhancing
+      ? crunBinding.prepareRequest(form.getValues())
+      : null;
+  const crunQuote = useCrunGenerationQuote({
+    request: crunRequest,
+    isActive: Boolean(crunModel && crunBinding),
+  });
+  const selectedModelCost = hasCrunSelection
+    ? (crunQuote.getCurrentQuote()?.credits ?? null)
+    : staticSelectedModelCost;
+  const crunQuoteLabel = hasCrunSelection
+    ? crunQuote.quote?.isAvailable
+      ? crunQuote.quote.billingMode === 'byok'
+        ? translateCrun('byok')
+        : translateCrun('credits', { credits: crunQuote.quote.credits })
+      : crunQuote.status === 'pending'
+        ? translateCrun('quoteLoading')
+        : crunQuote.reasonCode
+          ? translateCrun(`reasons.${crunQuote.reasonCode}`)
+          : translateCrun('quoteUnavailable')
+    : null;
+
+  const generationMeter = useMemo(
+    () =>
+      selectedModelCost === null
+        ? null
+        : resolveStudioGenerationMeter({
+            credits: selectedModelCost,
+            isEstimate: pricedModels.isEstimate,
+            queuedCount: activeGenerations.length,
+          }),
+    [activeGenerations.length, pricedModels.isEstimate, selectedModelCost],
+  );
+
   const {
     isRecording,
     isProcessing,
@@ -503,19 +539,28 @@ export function usePromptBarState({
       current?.modelKey !== crunModel.key ||
       current?.contractVersion !== crunInputControls.version;
     const formatField = crunInputControls.fields.output_format;
-    const outputFormat =
-      !identityChanged &&
-      formatField?.enum?.includes(current?.outputFormat ?? '')
-        ? current?.outputFormat
-        : typeof formatField?.default === 'string'
-          ? formatField.default
-          : undefined;
+    const outputFormat = formatField?.enum?.includes(
+      current?.outputFormat ?? '',
+    )
+      ? current?.outputFormat
+      : typeof formatField?.default === 'string'
+        ? formatField.default
+        : undefined;
     let changed = false;
     if (identityChanged || current?.outputFormat !== outputFormat) {
       form.setValue('crunControls', {
         modelKey: crunModel.key,
         contractVersion: crunInputControls.version,
         ...(outputFormat ? { outputFormat } : {}),
+        ...(current?.aspectRatio &&
+        crunInputControls.fields.aspect_ratio?.enum?.includes(
+          current.aspectRatio,
+        ) &&
+        (current.aspectRatio !== 'auto' ||
+          references.length > 0 ||
+          !crunInputControls.isAutoAspectReferenceRequired)
+          ? { aspectRatio: current.aspectRatio }
+          : {}),
       });
       changed = true;
     }
@@ -525,21 +570,46 @@ export function usePromptBarState({
       changed = true;
     }
     const aspect = crunInputControls.fields.aspect_ratio;
-    const ratio = getAspectRatioForFormat(form.getValues('format'));
-    if (!ratio || !aspect?.enum?.includes(ratio)) {
-      const format = getFormatForAspectRatio(String(aspect?.default ?? '1:1'));
-      if (format) {
-        form.setValue('format', format);
+    const ratio = current?.aspectRatio;
+    if (
+      !ratio ||
+      !aspect?.enum?.includes(ratio) ||
+      (ratio === 'auto' &&
+        references.length === 0 &&
+        crunInputControls.isAutoAspectReferenceRequired)
+    ) {
+      const envelope = form.getValues('crunControls');
+      if (envelope) {
+        form.setValue('crunControls', {
+          ...envelope,
+          aspectRatio: String(aspect?.default ?? '1:1'),
+        });
         changed = true;
       }
     }
     const outputs = form.getValues('outputs') ?? 1;
-    if (outputs > crunInputControls.maxOutputs) {
-      form.setValue('outputs', crunInputControls.maxOutputs);
+    if (
+      !Number.isInteger(outputs) ||
+      outputs < 1 ||
+      outputs > crunInputControls.maxOutputs
+    ) {
+      form.setValue(
+        'outputs',
+        Math.min(
+          crunInputControls.maxOutputs,
+          Math.max(1, Math.floor(outputs) || 1),
+        ),
+      );
       changed = true;
     }
     if (changed) triggerConfigChange();
-  }, [crunInputControls, crunModel, form, triggerConfigChange]);
+  }, [
+    crunInputControls,
+    crunModel,
+    form,
+    references.length,
+    triggerConfigChange,
+  ]);
 
   useEffect(() => {
     if (speechError) {
@@ -646,7 +716,15 @@ export function usePromptBarState({
     watchedAutoSelectModel !== true &&
     normalizedWatchedModels.length === 0;
   const isDisabledState = isDisabled;
-  const isGenerateBlocked = isDisabled || isModelNotSet;
+  const isGenerateBlocked =
+    isDisabled ||
+    isModelNotSet ||
+    (hasCrunSelection &&
+      (!crunModel ||
+        !crunBinding ||
+        !crunRequest ||
+        !crunQuote.getCurrentQuote() ||
+        crunConsumedRef.current === crunQuote.getCurrentQuote()?.quoteId));
 
   useEffect(() => {
     if (isModelNotSet && !isCollapsed) {
@@ -704,6 +782,7 @@ export function usePromptBarState({
     (document: JSONContent) => {
       promptDocumentRef.current = document;
       onPromptDocumentChange?.(document);
+      setCrunDocumentRevision((value) => value + 1);
     },
     [onPromptDocumentChange],
   );
@@ -711,6 +790,35 @@ export function usePromptBarState({
   const handleSubmitForm = useCallback(
     (e?: FormEvent) => {
       e?.preventDefault();
+      if (hasCrunSelection) {
+        if (
+          isGenerateBlocked ||
+          isGenerateDisabled ||
+          isGenerating ||
+          crunSubmittingRef.current ||
+          !crunBinding
+        )
+          return;
+        const request = crunBinding.prepareRequest(form.getValues());
+        const quote = crunQuote.getCurrentQuote();
+        if (
+          !request ||
+          !quote ||
+          serializeCrunQuoteIntent(request) !==
+            serializeCrunQuoteIntent(crunRequest) ||
+          crunConsumedRef.current === quote.quoteId
+        )
+          return;
+        crunSubmittingRef.current = true;
+        crunConsumedRef.current = quote.quoteId;
+        void crunBinding
+          .submit({ ...request, crunQuoteId: quote.quoteId })
+          .catch(() => notificationsService.error(translateCrun('quoteStale')))
+          .finally(() => {
+            crunSubmittingRef.current = false;
+          });
+        return;
+      }
       if (
         onSubmit &&
         !isGenerateBlocked &&
@@ -739,6 +847,11 @@ export function usePromptBarState({
       }
     },
     [
+      crunBinding,
+      crunQuote.getCurrentQuote,
+      crunRequest,
+      hasCrunSelection,
+      translateCrun,
       form,
       isGenerateBlocked,
       isGenerateDisabled,
@@ -920,6 +1033,7 @@ export function usePromptBarState({
   });
 
   return {
+    crunQuoteLabel,
     crunInputControls,
     watchedCrunControls,
     // context value (consumed by PromptBarInternalContext.Provider)

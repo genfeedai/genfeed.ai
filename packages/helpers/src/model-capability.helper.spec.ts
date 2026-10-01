@@ -262,10 +262,10 @@ describe('reviewed Crun capability projection', () => {
         mediaKind: 'image',
         maxOutputs: 4,
         isBatchSupported: false,
-        referenceRoles: { image_urls: 'image' },
+        referenceRoles: { img_urls: 'image' },
         isAutoAspectReferenceRequired: true,
         fields: {
-          image_urls: { type: 'array', isRequired: false, maxItems: 8 },
+          img_urls: { type: 'array', isRequired: false, maxItems: 8 },
           aspect_ratio: {
             type: 'string',
             isRequired: false,

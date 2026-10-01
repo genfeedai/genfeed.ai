@@ -153,6 +153,10 @@ export function sanitizeStudioGenerateSettings(
         ? {
             modelKey: resolvedModelKey,
             contractVersion: value.crunControls.contractVersion,
+            ...(typeof value.crunControls.aspectRatio === 'string' &&
+            /^(auto|\d{1,2}:\d{1,2})$/.test(value.crunControls.aspectRatio)
+              ? { aspectRatio: value.crunControls.aspectRatio }
+              : {}),
             ...(typeof value.crunControls.outputFormat === 'string' &&
             ['png', 'jpg'].includes(value.crunControls.outputFormat)
               ? { outputFormat: value.crunControls.outputFormat }

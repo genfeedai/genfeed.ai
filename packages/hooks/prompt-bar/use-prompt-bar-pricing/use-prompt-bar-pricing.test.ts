@@ -381,3 +381,26 @@ describe('usePromptBarPricing', () => {
     });
   });
 });
+
+describe('Crun pricing cannot use static model costs', () => {
+  it('returns null for Crun even when catalog cost is populated and four outputs are selected', () => {
+    const model = createMockModel({ provider: 'crun', cost: 3 });
+    const { result } = renderHook(() =>
+      usePromptBarPricing({ selectedModels: [model], watchedOutputs: 4 }),
+    );
+    expect(result.current.selectedModelCost).toBeNull();
+    expect(result.current.calculateModelCost(model, 1024, 1024, 8)).toBeNull();
+  });
+  it('keeps a mixed Crun selection unavailable rather than add an incumbent estimate', () => {
+    const { result } = renderHook(() =>
+      usePromptBarPricing({
+        selectedModels: [
+          createMockModel({ provider: 'crun' }),
+          createMockModel(),
+        ],
+        watchedOutputs: 4,
+      }),
+    );
+    expect(result.current.selectedModelCost).toBeNull();
+  });
+});

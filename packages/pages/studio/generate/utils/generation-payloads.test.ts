@@ -6,6 +6,7 @@ import {
 } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { IIngredient, IModel } from '@genfeedai/contracts/interfaces';
+import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
 import { describe, expect, it } from 'vitest';
 import {
   buildAvatarPayload,
@@ -13,8 +14,10 @@ import {
   buildImagePayload,
   buildMusicPayload,
   buildRepromptData,
+  buildStudioCrunQuoteRequest,
   buildVideoPayload,
 } from './generation-payloads';
+import { getDefaultStudioGenerateSettings } from './studio-generate-settings';
 
 type PromptData = Parameters<typeof buildMusicPayload>[0];
 
@@ -360,5 +363,149 @@ describe('buildRepromptData', () => {
 
     expect(data.models).toEqual(['']);
     expect(data.format).toBe(IngredientFormat.PORTRAIT);
+  });
+});
+
+describe('reviewed Crun request projection', () => {
+  const controls: CrunInputControls = {
+    endpoint: 'google/nano-banana-pro',
+    version: 'reviewed-1',
+    mediaKind: 'image',
+    maxOutputs: 4,
+    isBatchSupported: false,
+    referenceRoles: { img_urls: 'image' },
+    isAutoAspectReferenceRequired: true,
+    fields: {
+      prompt: {
+        type: 'string',
+        isRequired: true,
+        minLength: 1,
+        maxLength: 20000,
+      },
+      aspect_ratio: {
+        type: 'string',
+        isRequired: false,
+        enum: ['1:1', '16:9', '21:9', 'auto'],
+        default: '1:1',
+      },
+      resolution: {
+        type: 'string',
+        isRequired: false,
+        enum: ['1K', '2K', '4K'],
+        default: '1K',
+      },
+      output_format: {
+        type: 'string',
+        isRequired: false,
+        enum: ['png', 'jpg'],
+        default: 'png',
+      },
+      img_urls: {
+        type: 'array',
+        isRequired: false,
+        maxItems: 8,
+        format: 'uri',
+      },
+    },
+  };
+  const model = {
+    key: 'crun/google/nano-banana-pro',
+    provider: 'crun',
+    inputControls: controls,
+  } as IModel;
+  function build(
+    overrides: Partial<Parameters<typeof buildStudioCrunQuoteRequest>[0]> = {},
+  ) {
+    return buildStudioCrunQuoteRequest({
+      model,
+      brandId: 'brand-1',
+      promptText: ' A product ',
+      references: ['image-1'],
+      settings: {
+        ...getDefaultStudioGenerateSettings('image'),
+        modelKey: model.key,
+        aspectRatio: '21:9',
+        resolution: '2K',
+        outputs: 4,
+        crunControls: {
+          modelKey: model.key,
+          contractVersion: controls.version,
+          outputFormat: 'jpg',
+        },
+      },
+      ...overrides,
+    });
+  }
+  it('carries reviewed ratio/count/format and canonical IDs without legacy provider defaults', () => {
+    const request = build();
+    expect(request).toMatchObject({
+      model: model.key,
+      text: 'A product',
+      brandId: 'brand-1',
+      outputs: 4,
+      references: ['image-1'],
+      harness: false,
+      crunControls: {
+        contractVersion: controls.version,
+        aspectRatio: '21:9',
+        resolution: '2K',
+        outputFormat: 'jpg',
+      },
+    });
+    for (const key of [
+      'width',
+      'height',
+      'format',
+      'quality',
+      'seed',
+      'duration',
+      'isAudioEnabled',
+      'brand',
+      'folder',
+    ])
+      expect(request).not.toHaveProperty(key);
+  });
+  it('preserves auto exactly when an authorized reference ID is selected', () => {
+    const settings = {
+      ...getDefaultStudioGenerateSettings('image'),
+      modelKey: model.key,
+      aspectRatio: 'auto',
+      resolution: '1K',
+      crunControls: {
+        modelKey: model.key,
+        contractVersion: controls.version,
+        aspectRatio: 'auto',
+      },
+    };
+    expect(build({ settings })?.crunControls.aspectRatio).toBe('auto');
+    expect(build({ settings, references: [] })).toBeNull();
+  });
+  it('rejects duplicate and excessive references before preview', () => {
+    expect(build({ references: ['one', 'one'] })).toBeNull();
+    expect(
+      build({ references: Array.from({ length: 9 }, (_, i) => `image-${i}`) }),
+    ).toBeNull();
+  });
+  it('rejects stale residual aspect and contract versions', () => {
+    const settings = {
+      ...getDefaultStudioGenerateSettings('image'),
+      modelKey: model.key,
+      resolution: '1K',
+      aspectRatio: '21:9',
+      crunControls: {
+        modelKey: model.key,
+        contractVersion: controls.version,
+        aspectRatio: '1:1',
+      },
+    };
+    expect(build({ settings })).toBeNull();
+    expect(
+      build({
+        settings: {
+          ...settings,
+          crunControls: { modelKey: model.key, contractVersion: 'old' },
+        },
+      }),
+    ).toBeNull();
   });
 });

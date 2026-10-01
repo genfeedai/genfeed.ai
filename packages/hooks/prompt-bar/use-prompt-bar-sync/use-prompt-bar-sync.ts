@@ -209,6 +209,7 @@ export function usePromptBarSync(
     syncField('duration');
     syncField('quality');
     syncField('resolution');
+    syncField('crunControls');
     syncField('outputs');
     const normalizedBrandingMode =
       promptConfig.brandingMode ||
@@ -356,7 +357,11 @@ export function usePromptBarSync(
       JSON.stringify(promptData.references) !==
         JSON.stringify(currentFormReferences);
 
-    if (!hasTextChange && !hasReferencesChange) {
+    const hasCrunControlsChange =
+      promptData.crunControls !== undefined &&
+      JSON.stringify(promptData.crunControls) !==
+        JSON.stringify(form.getValues('crunControls'));
+    if (!hasTextChange && !hasReferencesChange && !hasCrunControlsChange) {
       lastPromptDataRef.current = promptData;
       return;
     }
@@ -370,6 +375,7 @@ export function usePromptBarSync(
     }
 
     const fieldsToSync = [
+      'crunControls',
       'style',
       'mood',
       'camera',

@@ -33,7 +33,12 @@ function buildImageCapability(model: IModel): ImageModelCapability {
       category: ModelCategory.IMAGE,
       maxOutputs: controls.maxOutputs,
       isBatchSupported: controls.isBatchSupported,
-      maxReferences: controls.fields.image_urls?.maxItems ?? 0,
+      maxReferences: Math.max(
+        0,
+        ...Object.keys(controls.referenceRoles).map(
+          (field) => controls.fields[field]?.maxItems ?? 0,
+        ),
+      ),
       aspectRatios: controls.fields.aspect_ratio?.enum?.filter(
         (value): value is string => typeof value === 'string',
       ),

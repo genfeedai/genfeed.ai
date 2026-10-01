@@ -34,13 +34,13 @@ export function normalizeCrunSettings(
   const identityChanged =
     settings.crunControls?.modelKey !== settings.modelKey ||
     settings.crunControls?.contractVersion !== controls.version;
-  const outputFormat =
-    !identityChanged &&
-    formats.includes(settings.crunControls?.outputFormat ?? '')
-      ? settings.crunControls?.outputFormat
-      : typeof controls.fields.output_format?.default === 'string'
-        ? controls.fields.output_format.default
-        : undefined;
+  const outputFormat = formats.includes(
+    settings.crunControls?.outputFormat ?? '',
+  )
+    ? settings.crunControls?.outputFormat
+    : typeof controls.fields.output_format?.default === 'string'
+      ? controls.fields.output_format.default
+      : undefined;
   const patch: Partial<StudioGenerateSettings> = {};
   if (!ratios.includes(settings.aspectRatio))
     patch.aspectRatio = String(
@@ -59,7 +59,12 @@ export function normalizeCrunSettings(
       controls.maxOutputs,
       Math.max(1, Math.floor(settings.outputs) || 1),
     );
-  if (identityChanged || outputFormat !== settings.crunControls?.outputFormat)
+  if (
+    identityChanged ||
+    outputFormat !== settings.crunControls?.outputFormat ||
+    (settings.crunControls?.aspectRatio !== undefined &&
+      settings.crunControls.aspectRatio !== settings.aspectRatio)
+  )
     patch.crunControls = {
       modelKey: settings.modelKey,
       contractVersion: controls.version,

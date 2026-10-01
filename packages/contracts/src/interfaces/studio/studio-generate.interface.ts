@@ -155,6 +155,7 @@ export interface StudioCrunControls {
   modelKey: string;
   contractVersion: string;
   outputFormat?: string;
+  aspectRatio?: string;
 }
 
 export interface StudioGenerateSettings {

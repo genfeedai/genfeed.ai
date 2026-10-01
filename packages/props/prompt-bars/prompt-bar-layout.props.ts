@@ -18,7 +18,7 @@ export interface PromptBarCollapsedViewProps {
   isGenerateBlocked: boolean;
   isGenerateDisabled: boolean;
   isGenerating: boolean;
-  selectedModelCost?: number;
+  selectedModelCost?: number | null;
   generationMeter?: StudioGenerationMeter | null;
   onSubmit: (event?: FormEvent) => void;
   onCancel?: () => void;

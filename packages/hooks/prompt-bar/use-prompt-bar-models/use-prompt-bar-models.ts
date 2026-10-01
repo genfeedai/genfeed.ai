@@ -83,14 +83,25 @@ export function usePromptBarModels(
   );
   const supportsMultipleReferences =
     crunModels.some(
-      (model) => (model.inputControls?.fields.image_urls?.maxItems ?? 0) > 1,
+      (model) =>
+        Math.max(
+          0,
+          ...Object.keys(model.inputControls?.referenceRoles ?? {}).map(
+            (field) => model.inputControls?.fields[field]?.maxItems ?? 0,
+          ),
+        ) > 1,
     ) || hasAnyModel(modelSupportsMultipleReferences);
   const requiresReferences = hasAnyModel(isReferencesMandatory);
   const maxReferenceCount = selectedModels.length
     ? Math.min(
         ...selectedModels.map((model) =>
           model.provider === 'crun' && model.inputControls
-            ? (model.inputControls.fields.image_urls?.maxItems ?? 0)
+            ? Math.max(
+                0,
+                ...Object.keys(model.inputControls.referenceRoles).map(
+                  (field) => model.inputControls?.fields[field]?.maxItems ?? 0,
+                ),
+              )
             : getModelMaxReferences(model.key),
         ),
       )
