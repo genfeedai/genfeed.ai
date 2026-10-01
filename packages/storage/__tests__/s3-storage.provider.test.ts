@@ -527,4 +527,255 @@ describe('S3StorageProvider', () => {
       expect(objects[0].key).toBe('p/ok.png');
     });
   });
+  describe('native bounded conditional reads', () => {
+    afterEach(() => vi.useRealTimers());
+    it('pins HEAD ETag/version and returns raw exact bytes without decoding descriptive encoding', async () => {
+      mockSend
+        .mockResolvedValueOnce({
+          ContentLength: 2,
+          ETag: 'etag',
+          VersionId: 'version',
+          ContentEncoding: 'gzip',
+        })
+        .mockResolvedValueOnce({
+          ContentLength: 2,
+          ETag: 'etag',
+          VersionId: 'version',
+          ContentEncoding: 'gzip',
+          Body: Readable.from([Buffer.from([1, 2])]),
+        });
+      const provider = new S3StorageProvider({ bucket: 'bucket' });
+      expect(
+        await provider.readBytes('key', { maxBytes: 2, timeoutMs: 1000 }),
+      ).toEqual(Buffer.from([1, 2]));
+      expect(mockSend.mock.calls[1][0].params).toMatchObject({
+        Bucket: 'bucket',
+        Key: 'key',
+        IfMatch: 'etag',
+        VersionId: 'version',
+      });
+      expect(mockSend.mock.calls[0][1].abortSignal).toBe(
+        mockSend.mock.calls[1][1].abortSignal,
+      );
+    });
+    it.each([
+      { ContentLength: 3, ETag: 'etag', code: 'storage_read_limit_exceeded' },
+      { ETag: 'etag', code: 'storage_read_invalid_response' },
+      { ContentLength: 1, code: 'storage_read_invalid_response' },
+      {
+        ContentLength: -1,
+        ETag: 'etag',
+        code: 'storage_read_invalid_response',
+      },
+    ])('rejects invalid HEAD before GET', async ({ code, ...head }) => {
+      mockSend.mockResolvedValueOnce(head);
+      await expect(
+        new S3StorageProvider().readBytes('key', {
+          maxBytes: 2,
+          timeoutMs: 1000,
+        }),
+      ).rejects.toThrow(code);
+      expect(mockSend).toHaveBeenCalledTimes(1);
+    });
+    it('maps 412 to changed without another HEAD or GET', async () => {
+      mockSend
+        .mockResolvedValueOnce({ ContentLength: 1, ETag: 'etag' })
+        .mockRejectedValueOnce({
+          $metadata: { httpStatusCode: 412 },
+          secret: 'private',
+        });
+      await expect(
+        new S3StorageProvider().readBytes('key', {
+          maxBytes: 1,
+          timeoutMs: 1000,
+        }),
+      ).rejects.toThrow('storage_read_changed');
+      expect(mockSend).toHaveBeenCalledTimes(2);
+    });
+    it.each(['size', 'etag', 'version', 'range', 'encoding'] as const)(
+      'destroys changed response %s',
+      async (field) => {
+        const body = Readable.from([Buffer.from([1])]);
+        mockSend
+          .mockResolvedValueOnce({
+            ContentLength: 1,
+            ETag: 'etag',
+            VersionId: 'v',
+          })
+          .mockResolvedValueOnce({
+            ContentLength: field === 'size' ? 2 : 1,
+            ETag: field === 'etag' ? 'other' : 'etag',
+            VersionId: field === 'version' ? 'other' : 'v',
+            ...(field === 'range' ? { ContentRange: 'bytes 0-0/1' } : {}),
+            ...(field === 'encoding' ? { ContentEncoding: 'gzip' } : {}),
+            Body: body,
+          });
+        await expect(
+          new S3StorageProvider().readBytes('key', {
+            maxBytes: 2,
+            timeoutMs: 1000,
+          }),
+        ).rejects.toThrow(
+          field === 'range'
+            ? 'storage_read_invalid_response'
+            : 'storage_read_changed',
+        );
+        expect(body.destroyed).toBe(true);
+      },
+    );
+    it.each(['first-byte', 'mid-body'] as const)(
+      'deadline covers stalled %s and destroys body',
+      async (mode) => {
+        vi.useFakeTimers();
+        let first = true;
+        const body = new Readable({
+          read() {
+            if (mode === 'mid-body' && first) {
+              first = false;
+              this.push(Buffer.from([1]));
+            }
+          },
+        });
+        mockSend
+          .mockResolvedValueOnce({ ContentLength: 2, ETag: 'etag' })
+          .mockResolvedValueOnce({
+            ContentLength: 2,
+            ETag: 'etag',
+            Body: body,
+          });
+        const rejection = expect(
+          new S3StorageProvider().readBytes('key', {
+            maxBytes: 2,
+            timeoutMs: 10,
+          }),
+        ).rejects.toThrow('storage_read_timeout');
+        await vi.advanceTimersByTimeAsync(10);
+        await rejection;
+        expect(body.destroyed).toBe(true);
+        expect(vi.getTimerCount()).toBe(0);
+      },
+    );
+    it('deadline aborts stalled HEAD request, and pre-aborted calls perform no I/O', async () => {
+      vi.useFakeTimers();
+      mockSend.mockImplementationOnce(
+        (_command, options: { abortSignal: AbortSignal }) =>
+          new Promise((_resolve, reject) =>
+            options.abortSignal.addEventListener(
+              'abort',
+              () => reject(options.abortSignal.reason),
+              { once: true },
+            ),
+          ),
+      );
+      const rejection = expect(
+        new S3StorageProvider().readBytes('key', {
+          maxBytes: 1,
+          timeoutMs: 10,
+        }),
+      ).rejects.toThrow('storage_read_timeout');
+      await vi.advanceTimersByTimeAsync(10);
+      await rejection;
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      mockSend.mockClear();
+      const controller = new AbortController();
+      controller.abort();
+      await expect(
+        new S3StorageProvider().readBytes('key', {
+          maxBytes: 1,
+          timeoutMs: 10,
+          signal: controller.signal,
+        }),
+      ).rejects.toThrow('storage_read_aborted');
+      expect(mockSend).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
+    });
+    it('external abort stops body and excess chunks abort the shared transport', async () => {
+      const controller = new AbortController();
+      const body = new Readable({
+        read() {
+          controller.abort();
+        },
+      });
+      mockSend
+        .mockResolvedValueOnce({ ContentLength: 1, ETag: 'etag' })
+        .mockResolvedValueOnce({ ContentLength: 1, ETag: 'etag', Body: body });
+      await expect(
+        new S3StorageProvider().readBytes('key', {
+          maxBytes: 1,
+          timeoutMs: 1000,
+          signal: controller.signal,
+        }),
+      ).rejects.toThrow('storage_read_aborted');
+      expect(body.destroyed).toBe(true);
+      mockSend.mockClear();
+      const excess = Readable.from([Buffer.from([1, 2])]);
+      mockSend
+        .mockResolvedValueOnce({ ContentLength: 1, ETag: 'etag' })
+        .mockResolvedValueOnce({
+          ContentLength: 1,
+          ETag: 'etag',
+          Body: excess,
+        });
+      await expect(
+        new S3StorageProvider().readBytes('key', {
+          maxBytes: 1,
+          timeoutMs: 1000,
+        }),
+      ).rejects.toThrow('storage_read_limit_exceeded');
+      expect(mockSend.mock.calls[1][1].abortSignal.aborted).toBe(true);
+      expect(excess.destroyed).toBe(true);
+    });
+  });
+});
+
+describe('bounded GET terminal cleanup', () => {
+  it.each([true, false])(
+    'awaits native close on metadata mismatch=%s',
+    async (mismatch) => {
+      mockSend.mockReset();
+      let release: (() => void) | undefined;
+      const destroy = vi.fn(
+        (_error: Error | null, done: (error?: Error | null) => void) => {
+          release = () => done(new Error('private close failure'));
+        },
+      );
+      const body = new Readable({
+        autoDestroy: false,
+        emitClose: true,
+        read() {
+          this.push(Buffer.from([1]));
+          this.push(null);
+        },
+        destroy,
+      });
+      mockSend
+        .mockResolvedValueOnce({ ContentLength: 1, ETag: 'etag' })
+        .mockResolvedValueOnce({
+          ContentLength: 1,
+          ETag: mismatch ? 'changed' : 'etag',
+          Body: body,
+        });
+      let settled = false;
+      const pending = new S3StorageProvider()
+        .readBytes('key', { maxBytes: 1, timeoutMs: 1000 })
+        .then(
+          () => {
+            settled = true;
+            return 'success';
+          },
+          (error: Error) => {
+            settled = true;
+            return error.message;
+          },
+        );
+      await vi.waitFor(() => expect(release).toBeTypeOf('function'));
+      expect(settled).toBe(false);
+      release?.();
+      expect(await pending).toBe(
+        mismatch ? 'storage_read_changed' : 'storage_read_unavailable',
+      );
+      expect(destroy).toHaveBeenCalledTimes(1);
+      expect(body.closed).toBe(true);
+    },
+  );
 });

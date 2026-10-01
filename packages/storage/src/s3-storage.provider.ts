@@ -1,7 +1,7 @@
 import { createReadStream, createWriteStream } from 'node:fs';
 import { mkdir, stat } from 'node:fs/promises';
 import path from 'node:path';
-import type { Readable } from 'node:stream';
+import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import {
   DeleteObjectCommand,
@@ -14,16 +14,25 @@ import {
 import { fromIni } from '@aws-sdk/credential-provider-ini';
 import { Upload } from '@aws-sdk/lib-storage';
 import {
+  collectBoundedStorageBytes,
+  createStorageReadContext,
+  normalizeStorageReadError,
+  observeStorageReadBody,
+  type StorageReadBodyLifecycle,
+  StorageReadError,
+} from './bounded-storage-read';
+import {
   assertSafeObjectKey,
   assertSafeObjectKeyPrefix,
   resolveContainedPathWithoutSymlinks,
 } from './path-containment';
 import type {
+  BoundedStorageProvider,
   FileEntry,
   ListOptions,
   StorageObject,
-  StorageProvider,
   StorageProviderOptions,
+  StorageReadOptions,
 } from './storage.provider';
 
 const createStorageError = (message: string) => new Error(message);
@@ -82,7 +91,7 @@ function normalizeCdnUrl(value: string | undefined): string | undefined {
   return stripTrailingSlashes(trimmed);
 }
 
-export class S3StorageProvider implements StorageProvider {
+export class S3StorageProvider implements BoundedStorageProvider {
   private readonly client: S3Client;
   private readonly bucket: string;
   private readonly region: string;
@@ -107,6 +116,98 @@ export class S3StorageProvider implements StorageProvider {
       region: this.region,
       credentials,
     });
+  }
+
+  async readBytes(
+    filePath: string,
+    options: StorageReadOptions,
+  ): Promise<Buffer> {
+    const context = createStorageReadContext(options);
+    let body: Readable | undefined;
+    let lifecycle: StorageReadBodyLifecycle | undefined;
+    let primary: StorageReadError | undefined;
+    let result: Buffer | undefined;
+    try {
+      context.throwIfAborted();
+      const key = assertSafeObjectKey(
+        filePath,
+        () => new StorageReadError('storage_read_invalid_key'),
+      );
+      const head = await this.client.send(
+        new HeadObjectCommand({ Bucket: this.bucket, Key: key }),
+        { abortSignal: context.signal },
+      );
+      context.throwIfAborted();
+      if (head.DeleteMarker)
+        throw new StorageReadError('storage_read_unavailable');
+      if (
+        typeof head.ContentLength !== 'number' ||
+        !Number.isSafeInteger(head.ContentLength) ||
+        head.ContentLength < 0 ||
+        typeof head.ETag !== 'string' ||
+        !head.ETag.trim()
+      )
+        throw new StorageReadError('storage_read_invalid_response');
+      if (head.ContentLength > context.maxBytes)
+        throw new StorageReadError('storage_read_limit_exceeded');
+      const version =
+        typeof head.VersionId === 'string' &&
+        head.VersionId.length &&
+        head.VersionId !== 'null'
+          ? head.VersionId
+          : undefined;
+      const response = await this.client.send(
+        new GetObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+          IfMatch: head.ETag,
+          ...(version ? { VersionId: version } : {}),
+        }),
+        { abortSignal: context.signal },
+      );
+      if (response.Body instanceof Readable) {
+        body = response.Body;
+        lifecycle = observeStorageReadBody(body);
+      }
+      context.throwIfAborted();
+      if (response.DeleteMarker)
+        throw new StorageReadError('storage_read_unavailable');
+      if (
+        response.ContentLength !== head.ContentLength ||
+        response.ETag !== head.ETag ||
+        (version && response.VersionId !== version) ||
+        response.ContentEncoding !== head.ContentEncoding
+      )
+        throw new StorageReadError('storage_read_changed');
+      if (response.ContentRange !== undefined || !body)
+        throw new StorageReadError('storage_read_invalid_response');
+      result = await collectBoundedStorageBytes(
+        body,
+        head.ContentLength,
+        context,
+        undefined,
+        lifecycle,
+      );
+    } catch (error) {
+      primary = normalizeStorageReadError(error, context);
+    } finally {
+      try {
+        await lifecycle?.close(primary);
+      } catch (error) {
+        primary ??= normalizeStorageReadError(error, context);
+      }
+      if (!primary) {
+        try {
+          context.throwIfAborted();
+        } catch (error) {
+          primary = normalizeStorageReadError(error, context);
+        }
+      }
+      context.dispose();
+    }
+    if (primary) throw primary;
+    if (!result) throw new StorageReadError('storage_read_unavailable');
+    return result;
   }
 
   async upload(
