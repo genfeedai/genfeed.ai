@@ -600,7 +600,7 @@ describe('Crun shared Redis admission with two process-equivalent clients', () =
     await first.del(`crun:requests:${other}`);
     const [seconds, micros] = await first.time();
     const now = Number(seconds) * 1000 + Math.floor(Number(micros) / 1000);
-    const members = await first.zrange(key, 0, -1);
+    const members = await first.zrange(key, 0, '-1');
     await Promise.all(
       members.map((member) => first.zadd(key, now - 10001, member)),
     );
