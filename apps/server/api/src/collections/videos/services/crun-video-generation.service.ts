@@ -30,6 +30,11 @@ import {
   PromptStatus,
 } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
+import {
+  getDeserializer,
+  isDeserializerRuntime,
+  type JsonApiDocument,
+} from '@genfeedai/helpers';
 import type { Prisma } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { VideoSerializer } from '@genfeedai/serializers';
@@ -97,6 +102,11 @@ export class CrunVideoGenerationService {
         undefined
     )
       throw new BadRequestException({ code: 'CRUN_BILLING_UNSUPPORTED' });
+    const { intent: raw, quoteId: suppliedQuoteId } = this.originalIntent(
+      dto,
+      request,
+    );
+    if (raw.crunControls !== undefined) this.input.normalize(raw, user);
     if (
       request.generationOriginalPrompt !== undefined &&
       request.generationOriginalPrompt !== (dto.text ?? '').trim()
@@ -108,7 +118,7 @@ export class CrunVideoGenerationService {
           id: dto.promptId,
           organizationId: user.organizationId,
           userId: user.userId,
-          brandId: dto.brandId ?? dto.brand ?? user.brandId,
+          brandId: typeof raw.brandId === 'string' ? raw.brandId : user.brandId,
           isDeleted: false,
         },
         select: { original: true, enhanced: true },
@@ -120,7 +130,6 @@ export class CrunVideoGenerationService {
       )
         throw new BadRequestException({ code: 'CRUN_ENHANCEMENT_REQUIRED' });
     }
-    const raw = this.intentFromDto(dto);
     if (!raw.crunControls) {
       const model = await this.prisma.model.findFirst({
         where: {
@@ -140,7 +149,7 @@ export class CrunVideoGenerationService {
         contractVersion: model.reviewedProviderContractVersion,
       };
     }
-    let quoteId = dto.crunQuoteId;
+    let quoteId = suppliedQuoteId;
     if (!quoteId) {
       const quoted = await this.preview.preview(raw, user);
       if (!quoted.isAvailable)
@@ -346,24 +355,63 @@ export class CrunVideoGenerationService {
     });
   }
 
-  private intentFromDto(dto: CreateVideoDto): Record<string, unknown> {
-    const source = dto as unknown as Record<string, unknown>;
-    const allowed = new Set<string>([
-      ...INTENT_FIELDS,
-      'brand',
-      'folder',
-      'crunQuoteId',
-      'waitForCompletion',
-    ]);
+  private originalIntent(
+    dto: CreateVideoDto,
+    request: RequestWithContext,
+  ): {
+    intent: Record<string, unknown>;
+    quoteId?: string;
+  } {
+    const invalid = () =>
+      new BadRequestException({ code: 'CRUN_INVALID_INPUT' });
+    const record = (value: unknown): value is Record<string, unknown> =>
+      value !== null && typeof value === 'object' && !Array.isArray(value);
+    let source: unknown = request.body === undefined ? dto : request.body;
+    if (!record(source)) throw invalid();
+    if ('data' in source) {
+      if (
+        Object.keys(source).some((key) => key !== 'data') ||
+        !record(source.data)
+      )
+        throw invalid();
+      const data = source.data;
+      if (
+        data.type !== 'video' ||
+        !record(data.attributes) ||
+        Object.keys(data).some(
+          (key) => !['type', 'attributes', 'id'].includes(key),
+        ) ||
+        (data.id !== undefined && typeof data.id !== 'string')
+      )
+        throw invalid();
+      this.assertLogicalKeys(data.attributes);
+      try {
+        const decoded = getDeserializer(source as JsonApiDocument);
+        if (isDeserializerRuntime(decoded) || !record(decoded)) throw invalid();
+        const { id: _transportId, ...attributes } = decoded;
+        source = attributes;
+      } catch {
+        throw invalid();
+      }
+    }
+    if (!record(source)) throw invalid();
+    this.assertLogicalKeys(source);
+    if (
+      source.model !== dto.model ||
+      !['crun/kling/v2-5-turbo-pro', 'crun/google/veo3-1-fast-t2v'].includes(
+        String(source.model),
+      )
+    )
+      throw invalid();
+    const quoteId = source.crunQuoteId;
+    if (
+      quoteId !== undefined &&
+      (typeof quoteId !== 'string' || !quoteId.length || quoteId.length > 256)
+    )
+      throw invalid();
     if (
       source.waitForCompletion !== undefined &&
       source.waitForCompletion !== false
-    )
-      throw new BadRequestException({ code: 'CRUN_INVALID_INPUT' });
-    if (
-      Object.keys(source).some(
-        (key) => source[key] !== undefined && !allowed.has(key),
-      )
     )
       throw new BadRequestException({ code: 'CRUN_INVALID_INPUT' });
     if (
@@ -379,6 +427,21 @@ export class CrunVideoGenerationService {
     );
     if (!intent.brandId && source.brand) intent.brandId = source.brand;
     if (!intent.folderId && source.folder) intent.folderId = source.folder;
-    return intent;
+    return {
+      intent,
+      quoteId: typeof quoteId === 'string' ? quoteId : undefined,
+    };
+  }
+
+  private assertLogicalKeys(source: Record<string, unknown>): void {
+    const allowed = new Set<string>([
+      ...INTENT_FIELDS,
+      'brand',
+      'folder',
+      'crunQuoteId',
+      'waitForCompletion',
+    ]);
+    if (Object.keys(source).some((key) => !allowed.has(key)))
+      throw new BadRequestException({ code: 'CRUN_INVALID_INPUT' });
   }
 }

@@ -3,12 +3,14 @@ import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { crunReservationCompletion } from '@api/helpers/utils/credits/generation-quote-group.schema';
 import { generationUsageReceiptSchema } from '@api/helpers/utils/credits/generation-submission-evidence.schema';
 import { modelBillableQuoteSnapshotSchema } from '@api/helpers/utils/credits/model-billable-quote.schema';
+import { getCrunMediaKind } from '@api/services/integrations/crun/crun-media-kind.util';
 import type { CrunTaskStatusResponse } from '@api/services/integrations/crun/crun-response.schema';
 import { crunFundingBindingSchema } from '@api/services/integrations/crun/crun-task.schema';
 import { MediaVendorCostLedgerService } from '@api/services/media-vendor-cost/media-vendor-cost-ledger.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CreditTransactionCategory,
+  IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/contracts';
 import {
@@ -63,6 +65,14 @@ export class CrunTaskFinalizationService {
       !quote.data.providerQuote
     )
       return this.recover(task, signal, 'CRUN_RECEIPT_INVALID');
+    const kind = getCrunMediaKind(task.endpoint);
+    if (
+      !kind ||
+      task.modelKey !== `crun/${task.endpoint}` ||
+      quote.data.modelKey !== task.modelKey ||
+      quote.data.pricingProfile.key !== task.modelKey
+    )
+      return this.recover(task, signal, 'CRUN_RECEIPT_INVALID');
     if (
       binding.data.kind === 'free' &&
       (task.credentialSource !== 'hosted' ||
@@ -97,10 +107,22 @@ export class CrunTaskFinalizationService {
         userId: task.userId,
         isDeleted: false,
       },
-      select: { id: true, s3Key: true, status: true, generationBilling: true },
+      select: {
+        id: true,
+        s3Key: true,
+        status: true,
+        generationBilling: true,
+        category: true,
+        metadata: true,
+      },
     });
     if (!ingredient)
       return this.recover(task, signal, 'CRUN_OWNED_INGREDIENT_UNAVAILABLE');
+    if (
+      ingredient.category !==
+      (kind === 'video' ? IngredientCategory.VIDEO : IngredientCategory.IMAGE)
+    )
+      return this.recover(task, signal, 'CRUN_RECEIPT_INVALID');
     const refused =
       receipt.data.isAccepted === false && task.state === 'provider-failed';
     const succeeded =
@@ -165,7 +187,7 @@ export class CrunTaskFinalizationService {
             organizationId,
             ingredientId: task.ingredientId,
             brandId: task.brandId,
-            category: 'image',
+            category: kind,
             model: task.modelKey,
             provider: 'crun',
             isByok: task.credentialSource === 'byok',
@@ -205,6 +227,13 @@ export class CrunTaskFinalizationService {
         !ingredient.s3Key)
     )
       return this.recover(task, signal, task.recoveryCode);
+    if (
+      succeeded &&
+      kind === 'video' &&
+      task.mediaPersistedAt &&
+      (!ingredient.s3Key || !this.validVideoMetadata(ingredient.metadata))
+    )
+      return this.recover(task, signal, 'CRUN_MEDIA_INVALID');
     // Owned storage is independent of billing proof: preserve a completed output even if credits are missing/mismatched.
     if (mediaDue && succeeded && !task.mediaPersistedAt) {
       if (!ingredient.s3Key) {
@@ -225,7 +254,7 @@ export class CrunTaskFinalizationService {
           await this.assertOwned(task, signal);
           await this.media.processMediaForIngredient(
             task.ingredientId,
-            'image',
+            kind,
             info.mediaUrls[0],
             task.providerTaskId ?? undefined,
           );
@@ -254,10 +283,18 @@ export class CrunTaskFinalizationService {
             in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
           },
         },
-        select: { s3Key: true },
+        select: { s3Key: true, category: true, metadata: true },
       });
       if (!owned?.s3Key)
         return this.recover(task, signal, 'CRUN_OWNED_MEDIA_UNAVAILABLE');
+      if (
+        owned.category !==
+          (kind === 'video'
+            ? IngredientCategory.VIDEO
+            : IngredientCategory.IMAGE) ||
+        (kind === 'video' && !this.validVideoMetadata(owned.metadata))
+      )
+        return this.recover(task, signal, 'CRUN_MEDIA_INVALID');
       task = await this.update(task, signal, {
         mediaPersistedAt: new Date(),
         nextMediaAttemptAt: null,
@@ -430,6 +467,21 @@ export class CrunTaskFinalizationService {
       leaseUntil: null,
       recoveryCode: null,
     });
+  }
+
+  private validVideoMetadata(value: unknown): boolean {
+    if (!value || typeof value !== 'object' || Array.isArray(value))
+      return false;
+    const metadata = value as Record<string, unknown>;
+    return (
+      metadata.isDeleted === false &&
+      ['duration', 'width', 'height'].every(
+        (key) =>
+          typeof metadata[key] === 'number' &&
+          Number.isFinite(metadata[key]) &&
+          metadata[key] > 0,
+      )
+    );
   }
 
   private async update(

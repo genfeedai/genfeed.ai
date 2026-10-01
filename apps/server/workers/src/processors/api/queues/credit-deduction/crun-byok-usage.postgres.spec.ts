@@ -171,16 +171,25 @@ describe('Crun BYOK usage real Serializable ledger boundaries', () => {
     const failure = results.find((result) => result.status === 'rejected');
     if (failure?.status === 'rejected') throw failure.reason;
   });
-  async function fixture(amount = 3, beforeBalance?: () => Promise<void>) {
+  async function fixture(
+    amount = 3,
+    beforeBalance?: () => Promise<void>,
+    endpoint = 'google/nano-banana-pro',
+    category: IngredientCategory = IngredientCategory.IMAGE,
+  ) {
     const org = randomUUID();
     const actor = randomUUID();
     const id = randomUUID();
+    const modelKey = `crun/${endpoint}`;
     const usage = {
       kind: 'byok',
       state: 'pending',
       amount,
       description: 'Fixture generation',
-      source: ActivitySource.IMAGE_GENERATION,
+      source:
+        category === IngredientCategory.VIDEO
+          ? ActivitySource.VIDEO_GENERATION
+          : ActivitySource.IMAGE_GENERATION,
       userId: actor,
       expiresAt: '2099-01-01T00:00:00.000Z',
       submissionIntentProvider: 'crun',
@@ -188,13 +197,13 @@ describe('Crun BYOK usage real Serializable ledger boundaries', () => {
     const { kind: _kind, state: _state, ...immutable } = usage;
     const priced = quoteModelBillablePricing(
       billableProfile({
-        key: 'crun/google/nano-banana-pro',
+        key: modelKey,
         provider: 'crun',
         cost: amount,
         isFree: amount === 0,
       }),
       {
-        modelKey: 'crun/google/nano-banana-pro',
+        modelKey,
         provider: 'crun',
         outputs: 1,
         requests: 1,
@@ -227,7 +236,7 @@ describe('Crun BYOK usage real Serializable ledger boundaries', () => {
         id,
         organizationId: org,
         userId: actor,
-        category: IngredientCategory.IMAGE,
+        category,
         status: IngredientStatus.GENERATED,
         s3Key: `owned/${id}.png`,
         generationBilling: toPrismaJson(usage),
@@ -239,7 +248,7 @@ describe('Crun BYOK usage real Serializable ledger boundaries', () => {
         organizationId: org,
         ingredientId: id,
         userId: actor,
-        endpoint: 'google/nano-banana-pro',
+        endpoint,
         modelKey: quote.modelKey,
         contractVersion: 'v1',
         inputHash: 'b'.repeat(64),
@@ -361,10 +370,31 @@ describe('Crun BYOK usage real Serializable ledger boundaries', () => {
     await expect(f.run()).rejects.toThrow('CRUN_BYOK_USAGE_HELD');
     await f.assertCount(0);
   });
-  it.each(['task', 'ingredient'])(
-    're-reads %s proof changed while waiting on its SQL row lock',
-    async (owner) => {
-      const f = await fixture();
+  it.each([
+    {
+      owner: 'task',
+      endpoint: 'google/nano-banana-pro',
+      category: IngredientCategory.IMAGE,
+    },
+    {
+      owner: 'ingredient',
+      endpoint: 'google/nano-banana-pro',
+      category: IngredientCategory.IMAGE,
+    },
+    {
+      owner: 'task',
+      endpoint: 'kling/v2-5-turbo-pro',
+      category: IngredientCategory.VIDEO,
+    },
+    {
+      owner: 'ingredient',
+      endpoint: 'google/veo3-1-fast-t2v',
+      category: IngredientCategory.VIDEO,
+    },
+  ])(
+    're-reads $owner proof for $endpoint changed while waiting on its SQL row lock',
+    async ({ owner, endpoint, category }) => {
+      const f = await fixture(3, undefined, endpoint, category);
       const blocker = await pool.connect();
       const consumeErrors: unknown[] = [];
       let consumption: Promise<void> | undefined;
@@ -460,6 +490,32 @@ describe('Crun BYOK usage real Serializable ledger boundaries', () => {
       }
     }
   });
+  it.each([
+    { endpoint: 'kling/v2-5-turbo-pro', amount: 0 },
+    { endpoint: 'kling/v2-5-turbo-pro', amount: 3 },
+    { endpoint: 'google/veo3-1-fast-t2v', amount: 0 },
+    { endpoint: 'google/veo3-1-fast-t2v', amount: 3 },
+  ])(
+    'concurrent $endpoint usage $amount records one video ledger and Activity',
+    async ({ endpoint, amount }) => {
+      const f = await fixture(
+        amount,
+        undefined,
+        endpoint,
+        IngredientCategory.VIDEO,
+      );
+      await Promise.all([f.run(), f.run()]);
+      await f.assertCount(1);
+    },
+  );
+  it.each(['kling/v2-5-turbo-pro', 'google/veo3-1-fast-t2v'])(
+    'rejects an image ingredient bound to video endpoint %s',
+    async (endpoint) => {
+      const f = await fixture(3, undefined, endpoint, IngredientCategory.IMAGE);
+      await expect(f.run()).rejects.toThrow('CRUN_BYOK_USAGE_IDENTITY_INVALID');
+      await f.assertCount(0);
+    },
+  );
   it('two concurrent consumers commit exactly one ledger and Activity', async () => {
     const f = await fixture();
     await Promise.all([f.run(), f.run()]);

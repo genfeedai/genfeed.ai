@@ -7,6 +7,7 @@ import { generationUsageReceiptSchema } from '@api/helpers/utils/credits/generat
 import { modelBillableQuoteSnapshotSchema } from '@api/helpers/utils/credits/model-billable-quote.schema';
 import { ByokService } from '@api/services/byok/byok.service';
 import { CrunClient } from '@api/services/integrations/crun/crun-client.service';
+import { getCrunMediaKind } from '@api/services/integrations/crun/crun-media-kind.util';
 import type { CrunTaskStatusResponse } from '@api/services/integrations/crun/crun-response.schema';
 import type {
   CrunPreparedTask,
@@ -15,7 +16,11 @@ import type {
 } from '@api/services/integrations/crun/crun-task.schema';
 import { crunFundingBindingSchema } from '@api/services/integrations/crun/crun-task.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ByokProvider } from '@genfeedai/contracts';
+import {
+  ByokProvider,
+  IngredientCategory,
+  ModelCategory,
+} from '@genfeedai/contracts';
 import { crunCreditsEqual } from '@genfeedai/pricing';
 import type { Prisma } from '@genfeedai/prisma';
 import { type CrunGenerationTask, toPrismaJson } from '@genfeedai/prisma';
@@ -198,6 +203,10 @@ export class CrunTaskService {
     const active = await this.prisma.model.findFirst({
       where: {
         key: task.modelKey,
+        category:
+          getCrunMediaKind(task.endpoint) === 'video'
+            ? ModelCategory.VIDEO
+            : ModelCategory.IMAGE,
         isActive: true,
         isDeleted: false,
         reviewedProviderContractVersion: task.contractVersion,
@@ -350,11 +359,14 @@ export class CrunTaskService {
     );
     if (!binding.success || !quoted.success || !quoted.data.providerQuote)
       throw invalid();
+    const kind = getCrunMediaKind(input.endpoint);
+    if (!kind || input.modelKey !== `crun/${input.endpoint}`) throw invalid();
     const quote = quoted.data;
     const frozen = quote.providerQuote;
     if (!frozen) throw invalid();
     if (
       quote.modelKey !== input.modelKey ||
+      quote.pricingProfile.key !== input.modelKey ||
       frozen.contractVersion !== input.contractVersion ||
       frozen.inputHash !== input.inputHash ||
       frozen.credentialSource !== input.credentialSource ||
@@ -370,9 +382,14 @@ export class CrunTaskService {
         isDeleted: false,
         ...(input.brandId ? { brandId: input.brandId } : {}),
       },
-      select: { generationBilling: true },
+      select: { generationBilling: true, category: true },
     });
-    if (!ingredient) throw invalid();
+    if (
+      !ingredient ||
+      ingredient.category !==
+        (kind === 'video' ? IngredientCategory.VIDEO : IngredientCategory.IMAGE)
+    )
+      throw invalid();
     if (binding.data.kind === 'free') {
       if (
         input.credentialSource !== 'hosted' ||

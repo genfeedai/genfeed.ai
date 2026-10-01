@@ -4,6 +4,7 @@ import type { ByokService } from '@api/services/byok/byok.service';
 import type { CrunClient } from '@api/services/integrations/crun/crun-client.service';
 import { CrunTaskService } from '@api/services/integrations/crun/crun-task.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { IngredientCategory } from '@genfeedai/contracts';
 import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import type { CrunGenerationTask } from '@genfeedai/prisma';
 import type { ConfigService } from '@libs/config/config.service';
@@ -34,6 +35,7 @@ function task(overrides: Partial<CrunGenerationTask> = {}): CrunGenerationTask {
     fundingBinding: { kind: 'free' },
     userId: 'user-1',
     modelKey: 'crun/google/nano-banana-pro',
+    endpoint: 'google/nano-banana-pro',
     contractVersion: 'version-1',
     inputHash: 'a'.repeat(64),
     quoteSnapshot: {
@@ -77,7 +79,10 @@ describe('Crun durable credential and lease boundaries', () => {
   const transaction = {
     crunGenerationTask: { updateMany, findFirst, findMany },
     ingredient: {
-      findFirst: vi.fn().mockResolvedValue({ generationBilling: null }),
+      findFirst: vi.fn().mockResolvedValue({
+        category: IngredientCategory.IMAGE,
+        generationBilling: null,
+      }),
     },
   };
   const get = vi.fn();
@@ -89,6 +94,7 @@ describe('Crun durable credential and lease boundaries', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     transaction.ingredient.findFirst.mockResolvedValue({
+      category: IngredientCategory.IMAGE,
       generationBilling: null,
     });
     lookup.mockResolvedValue(undefined);

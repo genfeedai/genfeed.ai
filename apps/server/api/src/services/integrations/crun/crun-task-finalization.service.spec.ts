@@ -1,7 +1,11 @@
 import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import type { CrunTaskStatusResponse } from '@api/services/integrations/crun/crun-response.schema';
 import { CrunTaskFinalizationService } from '@api/services/integrations/crun/crun-task-finalization.service';
-import { ActivitySource, IngredientStatus } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/contracts';
 import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import type { CrunGenerationTask, Prisma } from '@genfeedai/prisma';
 import { z } from 'zod';
@@ -68,6 +72,20 @@ function fixture() {
   } as unknown as CrunGenerationTask;
   const ingredient = {
     id: 'image',
+    category: IngredientCategory.IMAGE as IngredientCategory,
+    metadata: {
+      isDeleted: false,
+      duration: 5.1,
+      width: 1280,
+      height: 720,
+      hasAudio: false,
+    } as {
+      isDeleted: boolean;
+      duration: number;
+      width: number;
+      height: number;
+      hasAudio: boolean;
+    } | null,
     s3Key: null as string | null,
     status: IngredientStatus.PROCESSING as IngredientStatus,
     generationBilling: null as unknown,

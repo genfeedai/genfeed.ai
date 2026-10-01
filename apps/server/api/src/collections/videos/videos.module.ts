@@ -27,6 +27,7 @@ import { VideosMergeController } from '@api/collections/videos/controllers/relat
 import { VideosRelationshipsController } from '@api/collections/videos/controllers/relationships/videos-relationships.controller';
 import { VideosUploadController } from '@api/collections/videos/controllers/upload/videos-upload.controller';
 import { VideosController } from '@api/collections/videos/controllers/videos.controller';
+import { CrunVideoGenerationService } from '@api/collections/videos/services/crun-video-generation.service';
 import { CrunVideoInputService } from '@api/collections/videos/services/crun-video-input.service';
 import { CrunVideoPreviewQuoteService } from '@api/collections/videos/services/crun-video-preview-quote.service';
 import { LiveSessionCreditsService } from '@api/collections/videos/services/live-session-credits.service';
@@ -132,6 +133,7 @@ import { Module } from '@nestjs/common';
     WhisperModule,
   ],
   providers: [
+    CrunVideoGenerationService,
     CrunVideoInputService,
     CrunVideoPreviewQuoteService,
     CreditsGuard,
