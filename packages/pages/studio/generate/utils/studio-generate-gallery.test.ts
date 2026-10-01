@@ -80,6 +80,15 @@ describe('bounded Studio gallery loading', () => {
       { length: count },
       (_, i) => ({ id: `ingredient-${start + i}` }) as Ingredient,
     );
+  const page = (items: Ingredient[], totalPages = 1) => ({
+    hasNext: totalPages > 1,
+    hasPrevious: false,
+    items,
+    page: 1,
+    pageSize: STUDIO_GALLERY_PAGE_SIZE,
+    total: items.length * totalPages,
+    totalPages,
+  });
   it('requests 24 rows for each All category and never asks for more than 100', async () => {
     const categories = resolveStudioGalleryCategories('all');
     const findAllPage = vi.fn();
@@ -90,10 +99,7 @@ describe('bounded Studio gallery loading', () => {
         typeof selected === 'string'
           ? categories.indexOf(selected as IngredientCategory)
           : -1;
-      return {
-        items: ingredients(Math.max(index, 0) * 24, 24),
-        totalPages: 3,
-      };
+      return page(ingredients(Math.max(index, 0) * 24, 24), 3);
     });
     const signal = new AbortController().signal;
     const items = await loadStudioGalleryIngredients(
@@ -120,9 +126,7 @@ describe('bounded Studio gallery loading', () => {
     }
   });
   it('loads one page of 24 for an individual category', async () => {
-    const findAllPage = vi
-      .fn()
-      .mockResolvedValue({ items: ingredients(0, 24), totalPages: 10 });
+    const findAllPage = vi.fn().mockResolvedValue(page(ingredients(0, 24), 10));
     expect(
       await loadStudioGalleryIngredients(
         { findAllPage },
@@ -137,7 +141,7 @@ describe('bounded Studio gallery loading', () => {
     const failure = new Error('next category unavailable');
     const findAllPage = vi
       .fn()
-      .mockResolvedValueOnce({ items: ingredients(0, 24), totalPages: 2 })
+      .mockResolvedValueOnce(page(ingredients(0, 24), 2))
       .mockRejectedValueOnce(failure);
     const signal = new AbortController().signal;
     await expect(
@@ -162,10 +166,7 @@ describe('bounded Studio gallery loading', () => {
   });
   it('deduplicates an ingredient returned by more than one category', async () => {
     const shared = ingredients(0, 1);
-    const findAllPage = vi.fn(async () => ({
-      items: shared,
-      totalPages: 1,
-    }));
+    const findAllPage = vi.fn(async () => page(shared));
     const items = await loadStudioGalleryIngredients(
       { findAllPage },
       'brand-1',
