@@ -468,7 +468,10 @@ describe('AppProtectedTopbar', () => {
       'workspace-context-inspector',
     );
     expect(railToggle).toHaveAttribute('aria-expanded', 'true');
+    expect(railToggle.closest('[tabindex="0"]')).toBeNull();
 
+    fireEvent.focus(railToggle);
+    expect(screen.queryByRole('tooltip')).toBeNull();
     fireEvent.click(railToggle);
     expect(toggle).toHaveBeenCalledTimes(1);
   });
@@ -500,6 +503,7 @@ describe('AppProtectedTopbar', () => {
       'xl:inline-flex',
     );
     expect(drawerToggle.className).toContain('xl:hidden');
+    expect(drawerToggle.closest('[tabindex="0"]')).toBeNull();
 
     fireEvent.click(drawerToggle);
     expect(setIsMobileOpen).toHaveBeenCalledWith(true);
@@ -518,7 +522,7 @@ describe('AppProtectedTopbar', () => {
     expect(setIsMobileOpen).toHaveBeenCalledWith(false);
   });
 
-  it('keeps the details toggles in the bar, disabled, when nothing is selected', () => {
+  it('keeps the details toggles in the bar, disabled, when nothing is selected', async () => {
     const toggle = vi.fn();
     contextSidebarState.value = {
       isMobileOpen: false,
@@ -532,16 +536,23 @@ describe('AppProtectedTopbar', () => {
 
     const railToggle = screen.getByTestId('topbar-inspector-toggle');
     const drawerToggle = screen.getByTestId('topbar-inspector-drawer-toggle');
-    expect(railToggle.closest('[tabindex="0"]')).toHaveAccessibleName(
-      railToggle.getAttribute('aria-label') ?? '',
-    );
-    expect(drawerToggle.closest('[tabindex="0"]')).toHaveAccessibleName(
-      drawerToggle.getAttribute('aria-label') ?? '',
-    );
-    expect(railToggle).toBeDisabled();
-    expect(railToggle).toHaveAccessibleName('Select an item to see details');
-    expect(drawerToggle).toBeDisabled();
+    const reason = 'Select an item to see details';
+    for (const toggleButton of [railToggle, drawerToggle]) {
+      const wrapper = toggleButton.closest('[tabindex="0"]');
+      expect(wrapper).toHaveAccessibleName(reason);
+      const reasonId = wrapper?.getAttribute('aria-describedby');
+      const reasonText = document.getElementById(reasonId ?? '');
+      expect(reasonText).toHaveTextContent(reason);
+      expect(wrapper).toContainElement(reasonText);
+      expect(toggleButton).toBeDisabled();
+      expect(toggleButton).toHaveAccessibleName(reason);
+    }
 
+    const railWrapper = railToggle.closest('[tabindex="0"]') as HTMLElement;
+    fireEvent.focus(railWrapper);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(reason);
+    fireEvent.keyDown(railWrapper, { key: 'Enter' });
+    fireEvent.keyDown(railWrapper, { key: ' ' });
     fireEvent.click(railToggle);
     expect(toggle).not.toHaveBeenCalled();
   });
@@ -549,6 +560,18 @@ describe('AppProtectedTopbar', () => {
   it('hides the agent dock toggle while split chrome is hidden', () => {
     const toggle = vi.fn();
     agentDockState.value = { isAvailable: true, isOpen: false, toggle };
+
+    render(<AppProtectedTopbar />);
+
+    expect(screen.queryByTestId('topbar-agent-dock-toggle')).toBeNull();
+  });
+
+  it('keeps the agent dock toggle hidden when the dock is unavailable', () => {
+    agentDockState.value = {
+      isAvailable: false,
+      isOpen: false,
+      toggle: vi.fn(),
+    };
 
     render(<AppProtectedTopbar />);
 
