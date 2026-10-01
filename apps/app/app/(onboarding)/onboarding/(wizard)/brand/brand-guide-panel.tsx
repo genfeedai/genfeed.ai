@@ -1,11 +1,11 @@
 'use client';
 import { BrandOsRevisionStatus, ButtonVariant } from '@genfeedai/contracts';
 import BrandOsSettingsCard from '@genfeedai/pages/brands/components/brand-kit/BrandOsSettingsCard';
+import type { BrandGuidePanelProps } from '@genfeedai/props/onboarding/brand-guide.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
-import type { BrandGuidePanelProps } from './brand-guide.types';
 import { useBrandGuideScan } from './use-brand-guide-scan';
 
 export default function BrandGuidePanel({

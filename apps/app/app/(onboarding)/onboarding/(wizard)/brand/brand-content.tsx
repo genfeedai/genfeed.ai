@@ -11,6 +11,10 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IOnboardingContextValue } from '@genfeedai/contracts/interfaces';
 import { resolveSignupBrandDomain } from '@genfeedai/helpers';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import type {
+  BrandGuideExitEpoch,
+  BrandGuideScope,
+} from '@genfeedai/props/onboarding/brand-guide.props';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
@@ -20,7 +24,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
-import type { BrandGuideExitEpoch, BrandGuideScope } from './brand-guide.types';
 import BrandGuidePanel from './brand-guide-panel';
 
 function authorizedScope(context: BrandContextType): BrandGuideScope | null {

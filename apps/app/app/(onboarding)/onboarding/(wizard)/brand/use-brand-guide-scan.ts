@@ -1,13 +1,13 @@
 'use client';
 import type { IBrandOnboardingScan } from '@genfeedai/contracts/interfaces';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { BrandsService } from '@services/social/brands.service';
-import { useEffect, useRef, useState } from 'react';
 import type {
   BrandGuideScanState,
   UseBrandGuideScanOptions,
   UseBrandGuideScanResult,
-} from './brand-guide.types';
+} from '@genfeedai/props/onboarding/brand-guide.props';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { BrandsService } from '@services/social/brands.service';
+import { useEffect, useRef, useState } from 'react';
 
 function initialState(): BrandGuideScanState {
   return {
