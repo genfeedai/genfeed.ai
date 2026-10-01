@@ -689,6 +689,9 @@ describe('Agent onboarding first draft', () => {
 
     await handler.generateOnboardingContent({ brandId: 'brand-1' }, CONTEXT);
 
+    expect(brandsService.resolveBrandKitAssets.mock.contexts[0]).toBe(
+      brandsService,
+    );
     expect(generationGateway.generateImage).toHaveBeenCalledWith(
       expect.objectContaining({
         body: expect.objectContaining({

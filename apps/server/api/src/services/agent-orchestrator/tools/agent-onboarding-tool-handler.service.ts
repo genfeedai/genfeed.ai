@@ -937,7 +937,9 @@ export class AgentOnboardingToolHandler {
         }),
       organizationId: ctx.organizationId,
       prompt,
-      resolveBrandKitAssets: this.brandsService.resolveBrandKitAssets,
+      resolveBrandKitAssets: this.brandsService.resolveBrandKitAssets?.bind(
+        this.brandsService,
+      ),
       runId: ctx.runId,
       strategyId: ctx.strategyId,
       width: dimensions.width,
