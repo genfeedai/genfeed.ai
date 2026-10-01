@@ -324,7 +324,7 @@ describe('AppProtectedTopbar', () => {
     const credits = screen.getByTestId('topbar-credits-bar');
     const topbarInner = screen.getByTestId('app-protected-topbar-inner');
 
-    expect(topbarInner).toHaveClass('gap-3', 'px-3');
+    expect(topbarInner).toHaveClass('gap-1', 'px-2', 'md:gap-3', 'md:px-3');
     expect(topbarInner).not.toHaveClass('justify-center');
     expect(breadcrumbs).toHaveTextContent('Studio');
     expect(
