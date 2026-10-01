@@ -41,7 +41,7 @@ describe('RoutedOrganizationBoundary', () => {
     contextState.status = 'loading';
   });
 
-  it('does not mount tenant content while route reconciliation is pending', () => {
+  it('shows a loader instead of tenant content while route reconciliation is pending', () => {
     render(
       <RoutedOrganizationBoundary>
         <span>Tenant content</span>
@@ -49,7 +49,32 @@ describe('RoutedOrganizationBoundary', () => {
     );
 
     expect(screen.queryByText('Tenant content')).not.toBeInTheDocument();
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Loading your workspace',
+    );
+    expect(screen.getByTestId('organization-route-pending')).toHaveClass(
+      'min-h-dvh',
+      'bg-background',
+    );
+    expect(document.querySelector('.genfeed-loader-root')).toBeTruthy();
+  });
+
+  it('shows a switching loader without mounting tenant content', () => {
+    contextState.status = 'switching';
+
+    render(
+      <RoutedOrganizationBoundary>
+        <span>Tenant content</span>
+      </RoutedOrganizationBoundary>,
+    );
+
+    expect(screen.queryByText('Tenant content')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Switching organization',
+    );
+    expect(
+      screen.queryByText('Loading your workspace'),
+    ).not.toBeInTheDocument();
   });
 
   it('renders tenant content only for a confirmed route', () => {
