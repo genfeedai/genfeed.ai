@@ -3414,6 +3414,33 @@
     "noteAttribution": "Attributed conversions describe recorded follow-through, not causal lift. Revenue is not shown because conversion values do not yet have a verified currency contract."
   },
   "brandOsSettings": {
+    "approvedContent": {
+      "title": "Approved wording and asset text",
+      "description": "Review the complete wording and the text visible in each saved asset before approving this revision.",
+      "addLiteral": "Add approved wording",
+      "removeLiteral": "Remove approved wording {index}",
+      "literalId": "Wording ID",
+      "text": "Complete wording",
+      "kind": "Wording type",
+      "fact": "Factual statement",
+      "approvedCopy": "Approved copy",
+      "factRule": "Linked fact",
+      "evidence": "Supporting evidence",
+      "assetText": "Text visible in this asset",
+      "notReviewed": "Not reviewed",
+      "noText": "No text is visible",
+      "selectedLiterals": "Only the selected approved wording is visible",
+      "selectLiterals": "Select all visible approved wording",
+      "assetUnavailable": "The exact saved asset is unavailable. Its text inventory cannot be approved.",
+      "sourceUnavailable": "Supporting evidence is unavailable. Review or replace the source before approval.",
+      "manualAttestation": "Owner-provided statement; external truth has not been independently verified.",
+      "acknowledge": "I reviewed this saved revision, its complete wording, supporting facts, and the text inventory of its exact saved assets.",
+      "saveFirst": "Save your changes, then review the saved revision before approving.",
+      "reviewRequired": "Review the saved wording and asset text inventory before approving.",
+      "reviewChanged": "The saved revision changed. Review it again before approving.",
+      "reviewLimit": "Approval evidence exceeds the guide limits. Reduce the entries and save again.",
+      "evidenceRequired": "Add supporting evidence before saving this wording or asset inventory."
+    },
     "title": "Brand OS revisions and export",
     "description": "Review the fields included in each approved version of your brand.",
     "export": {

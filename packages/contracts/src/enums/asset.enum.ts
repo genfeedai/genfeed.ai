@@ -6,6 +6,7 @@ export enum AssetCategory {
   LOGO = 'LOGO',
   BANNER = 'BANNER',
   REFERENCE = 'REFERENCE',
+  FONT = 'FONT',
 }
 
 /**

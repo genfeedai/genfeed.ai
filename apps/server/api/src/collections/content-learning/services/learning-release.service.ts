@@ -1,5 +1,8 @@
 import { randomBytes } from 'node:crypto';
-import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
+import {
+  LearningDependencyService,
+  learningFence,
+} from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { toPrismaJson } from '@genfeedai/prisma';
@@ -33,30 +36,33 @@ export class LearningReleaseService {
     requestId: string;
     organizationId: string;
   }) {
-    const report = await this.prisma.contentLearningRun.findFirst({
-      where: {
-        id: input.reportId,
-        type: 'evaluate',
-        status: 'completed',
-        isDeleted: false,
-      },
-    });
-    if (!report)
-      throw new BadRequestException('Completed immutable evaluation required');
-    const artifacts = await this.prisma.contentLearningSharedPolicy.findMany({
-      where: { id: { in: input.artifactIds }, isDeleted: false },
-    });
-    if (
-      artifacts.length !== input.artifactIds.length ||
-      artifacts.some((row) => row.validity === 'invalid') ||
-      !(await this.dependencies.valid('run', report.id, this.prisma, null))
-    )
-      throw new BadRequestException('Invalid artifact manifest');
-    const payloadHash = learningHash([
-      input.artifactIds.slice().sort(),
-      input.reportId,
-    ]);
     return this.prisma.$transaction(async (tx) => {
+      await learningFence(tx, 'shared');
+      const report = await tx.contentLearningRun.findFirst({
+        where: {
+          id: input.reportId,
+          type: 'evaluate',
+          status: 'completed',
+          isDeleted: false,
+        },
+      });
+      if (!report)
+        throw new BadRequestException(
+          'Completed immutable evaluation required',
+        );
+      const artifacts = await tx.contentLearningSharedPolicy.findMany({
+        where: { id: { in: input.artifactIds }, isDeleted: false },
+      });
+      if (
+        artifacts.length !== input.artifactIds.length ||
+        artifacts.some((row) => row.validity === 'invalid') ||
+        !(await this.dependencies.valid('run', report.id, tx, null))
+      )
+        throw new BadRequestException('Invalid artifact manifest');
+      const payloadHash = learningHash([
+        input.artifactIds.slice().sort(),
+        input.reportId,
+      ]);
       const prior = await tx.contentLearningOperation.findFirst({
         where: {
           organizationId: input.organizationId,

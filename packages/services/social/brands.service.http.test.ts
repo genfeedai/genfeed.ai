@@ -29,6 +29,61 @@ describe('BrandsService HTTP methods', () => {
     http = installMockHttp(service);
   });
 
+  it.each(['legacy', 'explicit undefined', 'reviewed'] as const)(
+    'preserves exact %s approval transport and server review digest',
+    async (mode) => {
+      const updatedAt = '2026-10-01T00:00:00.000Z';
+      const reviewHash = `sha256:${'a'.repeat(64)}`;
+      http.post.mockResolvedValue(
+        axiosResponse(
+          resourceDocument(
+            {
+              status: 'APPROVED',
+              updatedAt,
+              generationRulesReviewHash: reviewHash,
+            },
+            { id: 'revision-1' },
+          ),
+        ),
+      );
+      const result =
+        mode === 'legacy'
+          ? await service.approveBrandOsRevision(
+              brandId,
+              'revision-1',
+              updatedAt,
+            )
+          : await service.approveBrandOsRevision(
+              brandId,
+              'revision-1',
+              updatedAt,
+              mode === 'reviewed' ? reviewHash : undefined,
+            );
+      expect(http.post).toHaveBeenCalledExactlyOnceWith(
+        `/${brandId}/brand-os/revisions/revision-1/approve`,
+        mode === 'reviewed'
+          ? { updatedAt, reviewedGenerationRulesHash: reviewHash }
+          : { updatedAt },
+      );
+      expect(result).toMatchObject({
+        id: 'revision-1',
+        generationRulesReviewHash: reviewHash,
+      });
+    },
+  );
+
+  it('keeps a missing optional review digest absent in the client revision', async () => {
+    http.post.mockResolvedValue(
+      axiosResponse(resourceDocument({ status: 'APPROVED' }, { id: 'legacy' })),
+    );
+    const result = await service.approveBrandOsRevision(
+      brandId,
+      'legacy',
+      'saved-time',
+    );
+    expect(result).not.toHaveProperty('generationRulesReviewHash');
+  });
+
   it('starts a scan with the exact request and AbortSignal', async () => {
     const signal = new AbortController().signal;
     const data = { requestId: 'request-1', url: 'HTTPS://Acme.dev/path' };

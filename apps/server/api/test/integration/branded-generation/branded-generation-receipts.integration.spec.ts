@@ -4,10 +4,13 @@ import { randomUUID } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
+import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { BrandedGenerationPromptStoreService } from '@api/services/branded-generation-receipts/branded-generation-prompt-store.service';
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
 import { BrandedGenerationReceiptsService } from '@api/services/branded-generation-receipts/branded-generation-receipts.service';
 import type { BrandedGenerationActorV1 } from '@api/services/branded-generation-receipts/branded-generation-receipts.types';
+import type { BrandedGenerationCompilerRecipeV1 } from '@api/services/branded-generation-receipts/branded-generation-recompile.types';
+import { compileSnapshotBriefResolution } from '@api/services/harness/branded-generation-compiler';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   BrandedGenerationInputV1,
@@ -15,6 +18,7 @@ import type {
   BrandedGenerationResolutionV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import { PrismaClient } from '@genfeedai/prisma';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { ConflictException } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Client } from 'pg';
@@ -217,6 +221,36 @@ function resolution(
     },
   };
 }
+function retainedRecipe(
+  receipt: BrandedGenerationReceiptV1,
+): BrandedGenerationCompilerRecipeV1 {
+  return ['snapshot-brief-v1', [], [], [], resolution(receipt).learning, {}];
+}
+function retainedResolution(
+  value: BrandedGenerationInputV1,
+  recipe: BrandedGenerationCompilerRecipeV1,
+) {
+  return compileSnapshotBriefResolution(
+    value,
+    null,
+    recipe[4],
+    recipe[5],
+    recipe[1],
+    recipe[2],
+    recipe[3],
+  );
+}
+async function readPrivateCompiled(
+  actor: BrandedGenerationActorV1,
+  receipt: BrandedGenerationReceiptV1,
+) {
+  const store = new BrandedGenerationPromptStoreService(
+    new BrandedGenerationReceiptAccessService(),
+  );
+  return clients[0].$transaction((tx) =>
+    store.readCompiled(tx, actor, receipt),
+  );
+}
 async function counts(actor: BrandedGenerationActorV1) {
   const where = {
     organizationId: actor.organizationId,
@@ -348,6 +382,9 @@ describe('branded receipt full-migration service and relocation acceptance', () 
     );
     expect(migrationNames).toContain(
       '20261001170000_branded_generation_receipts',
+    );
+    expect(migrationNames).toContain(
+      '20261001173000_branded_generation_compiler_recipe',
     );
     for (const row of applied.rows) {
       expect(row.finished_at).not.toBeNull();
@@ -794,6 +831,382 @@ describe('branded receipt full-migration service and relocation acceptance', () 
     expect((await services[0].list(s.actor, { limit: 10 })).items).toEqual([]);
     await expect(services[0].create(value)).rejects.toThrow('receipt_deleted');
     expect(await counts(s.actor)).toEqual([1, 3, 3]);
+  }, 60000);
+  it('retains a real compiled recipe once across concurrent operation owners and preserves legacy reads', async () => {
+    const s = await seed();
+    const value = input(
+      { ...s.actor, actorId: s.member },
+      '  compiled Café 😀\r\n',
+    );
+    const current = (await services[0].create(value)).receipt;
+    const recipe = retainedRecipe(current);
+    const compiled = retainedResolution(value, recipe);
+    const mutation = { operationKey: 'compiled-recipe', expectedRevision: 0 };
+    const results = await Promise.all(
+      services.map((service) =>
+        service.recordCompiledResolution(
+          { ...s.actor, actorId: s.member },
+          current.id,
+          mutation,
+          compiled,
+          value,
+          recipe,
+        ),
+      ),
+    );
+    expect(results.filter((result) => !result.replayed)).toHaveLength(1);
+    expect(results[0].receipt).toEqual(results[1].receipt);
+    expect(await counts(s.actor)).toEqual([1, 2, 2]);
+    const receipt = results[0].receipt;
+    expect(await readPrivateCompiled(s.actor, receipt)).toMatchObject({
+      status: 'retained',
+      text: value.originalPrompt,
+      retainedInput: value,
+      compilerRecipe: recipe,
+    });
+    expect(
+      await services[0].readPrompt(s.actor, current.id, 'compiled'),
+    ).toEqual({
+      status: 'retained',
+      text: value.originalPrompt,
+      contentHash: hashBrandedGenerationTextV1(value.originalPrompt),
+    });
+    const rows = await clients[0].generationPromptSnapshot.findMany({
+      where: {
+        organizationId: s.source,
+        brandId: s.brand,
+        brandedGenerationReceiptId: current.id,
+        isDeleted: false,
+      },
+      orderBy: { brandedGenerationReceiptRevision: 'asc' },
+    });
+    expect(rows.map((row) => row.format)).toEqual([
+      'genfeed.branded-generation-prompt.v1',
+      'genfeed.branded-generation-compiled.v1',
+    ]);
+    expect(rows.every((row) => row.userId === s.member)).toBe(true);
+    expect(rows[1].ciphertext).not.toContain(value.originalPrompt);
+    const events = await clients[0].brandedGenerationReceiptEvent.findMany({
+      where: {
+        organizationId: s.source,
+        brandId: s.brand,
+        receiptId: current.id,
+        isDeleted: false,
+      },
+    });
+    for (const projection of [
+      receipt,
+      ...events.map((event) => event.projection),
+    ]) {
+      expect(projection).not.toHaveProperty('retainedInput');
+      expect(projection).not.toHaveProperty('compilerRecipe');
+    }
+    const hiddenStages: BrandedGenerationCompilerRecipeV1[2] = [
+      [
+        {
+          kind: 'pack',
+          id: 'hidden-pack',
+          version: 'v1',
+          status: 'not_applicable',
+          evidenceIds: [],
+          omittedIds: [],
+        },
+        [
+          {
+            header: 'hidden',
+            content: 'unused private bytes',
+            untrusted: false,
+            isAtomic: true,
+          },
+        ],
+        [[]],
+      ],
+    ];
+    const hidden: BrandedGenerationCompilerRecipeV1 = [
+      recipe[0],
+      recipe[1],
+      hiddenStages,
+      recipe[3],
+      recipe[4],
+      recipe[5],
+    ];
+    expect(retainedResolution(value, hidden)).toEqual(compiled);
+    await expect(
+      services[0].recordCompiledResolution(
+        { ...s.actor, actorId: s.member },
+        current.id,
+        mutation,
+        compiled,
+        value,
+        hidden,
+      ),
+    ).rejects.toThrow('request_payload_conflict');
+    expect(await counts(s.actor)).toEqual([1, 2, 2]);
+    const legacyInput = input(s.actor);
+    const legacy = (await services[0].create(legacyInput)).receipt;
+    const legacyResolved = (
+      await services[0].recordResolution(
+        s.actor,
+        legacy.id,
+        { operationKey: 'legacy', expectedRevision: 0 },
+        resolution(legacy),
+      )
+    ).receipt;
+    expect(await readPrivateCompiled(s.actor, legacyResolved)).toEqual({
+      status: 'unavailable',
+      reasonCode: 'compiler_recipe_unavailable',
+    });
+    expect(
+      await services[0].readPrompt(s.actor, legacy.id, 'compiled'),
+    ).toMatchObject({ status: 'retained', text: 'compiled fixture' });
+  }, 60000);
+  it('applies compiled-only linkage, foreign-scope rejection and unchanged immutability after full migrations', async () => {
+    const s = await seed();
+    const value = input(s.actor);
+    const current = (await services[0].create(value)).receipt;
+    const recipe = retainedRecipe(current);
+    const receipt = (
+      await services[0].recordCompiledResolution(
+        s.actor,
+        current.id,
+        { operationKey: 'compiled', expectedRevision: 0 },
+        retainedResolution(value, recipe),
+        value,
+        recipe,
+      )
+    ).receipt;
+    const before = await counts(s.actor);
+    for (const stage of ['original', 'enhanced'])
+      await rollbackFailure(
+        () =>
+          control.query(
+            `INSERT INTO generation_prompt_snapshots(id,"organizationId","brandId","userId",format,"contentHash",ciphertext,"brandedGenerationReceiptId","brandedGenerationReceiptRevision","brandedGenerationReceiptStage") SELECT $1,"organizationId","brandId","userId",format,"contentHash",ciphertext,"brandedGenerationReceiptId",2,$2 FROM generation_prompt_snapshots WHERE id=$3`,
+            [randomUUID(), stage, receipt.prompts.compiled?.snapshotId],
+          ),
+        {
+          code: '23514',
+          constraint: 'generation_prompt_snapshots_branded_link_check',
+        },
+      );
+    for (const [organizationId, brandId] of [
+      [s.destination, s.destinationBrand],
+      [s.source, s.fallback],
+    ])
+      await rollbackFailure(
+        () =>
+          control.query(
+            `INSERT INTO generation_prompt_snapshots(id,"organizationId","brandId","userId",format,"contentHash",ciphertext,"brandedGenerationReceiptId","brandedGenerationReceiptRevision","brandedGenerationReceiptStage") SELECT $1,$2,$3,"userId",format,"contentHash",ciphertext,"brandedGenerationReceiptId",2,'compiled' FROM generation_prompt_snapshots WHERE id=$4`,
+            [
+              randomUUID(),
+              organizationId,
+              brandId,
+              receipt.prompts.compiled?.snapshotId,
+            ],
+          ),
+        {
+          code: '23503',
+          constraint: 'generation_prompt_snapshots_receipt_fkey',
+        },
+      );
+    for (const [column, changed] of [
+      ['format', 'genfeed.branded-generation-prompt.v1'],
+      ['ciphertext', EncryptionUtil.encrypt('changed')],
+    ])
+      await rollbackFailure(
+        () =>
+          control.query(
+            `UPDATE generation_prompt_snapshots SET "${column}"=$1 WHERE id=$2`,
+            [changed, receipt.prompts.compiled?.snapshotId],
+          ),
+        { code: 'P0001', message: 'receipt_prompt_immutable' },
+      );
+    for (const cipher of [
+      `${'a'.repeat(32)}:a:${'b'.repeat(32)}`,
+      `${'a'.repeat(32)}:${'aa'.repeat(4194305)}:${'b'.repeat(32)}`,
+    ])
+      await rollbackFailure(
+        () =>
+          control.query(
+            `INSERT INTO generation_prompt_snapshots(id,"organizationId","brandId","userId",format,"contentHash",ciphertext,"brandedGenerationReceiptId","brandedGenerationReceiptRevision","brandedGenerationReceiptStage") SELECT $1,"organizationId","brandId","userId",format,"contentHash",$2,"brandedGenerationReceiptId",2,'compiled' FROM generation_prompt_snapshots WHERE id=$3`,
+            [randomUUID(), cipher, receipt.prompts.compiled?.snapshotId],
+          ),
+        {
+          code: '23514',
+          constraint: 'generation_prompt_snapshots_ciphertext_check',
+        },
+      );
+    expect(await counts(s.actor)).toEqual(before);
+    expect(await services[0].get(s.actor, current.id)).toEqual(receipt);
+  }, 60000);
+  it('rejects actually encrypted retained-input and recipe tampering without weakening immutable rows', async () => {
+    const s = await seed();
+    for (const kind of ['input', 'recipe']) {
+      const value = input(s.actor);
+      const current = (await services[0].create(value)).receipt;
+      const recipe = retainedRecipe(current);
+      const receipt = (
+        await services[0].recordCompiledResolution(
+          s.actor,
+          current.id,
+          { operationKey: 'compiled', expectedRevision: 0 },
+          retainedResolution(value, recipe),
+          value,
+          recipe,
+        )
+      ).receipt;
+      const original =
+        await clients[0].generationPromptSnapshot.findFirstOrThrow({
+          where: {
+            organizationId: s.source,
+            brandId: s.brand,
+            id: receipt.prompts.compiled?.snapshotId,
+            isDeleted: false,
+          },
+        });
+      const envelope = JSON.parse(EncryptionUtil.decrypt(original.ciphertext));
+      if (kind === 'input') envelope.retainedInput.actorId = s.member;
+      else
+        envelope.compilerRecipe[3] = [
+          { code: 'tampered', severity: 'warning', message: 'Tampered' },
+        ];
+      await control.query('BEGIN');
+      try {
+        const id = randomUUID();
+        await control.query(
+          `INSERT INTO generation_prompt_snapshots(id,"organizationId","brandId","userId",format,"contentHash",ciphertext,"brandedGenerationReceiptId","brandedGenerationReceiptRevision","brandedGenerationReceiptStage") SELECT $1,"organizationId","brandId","userId",format,"contentHash",$2,"brandedGenerationReceiptId",0,'compiled' FROM generation_prompt_snapshots WHERE id=$3`,
+          [id, EncryptionUtil.encrypt(JSON.stringify(envelope)), original.id],
+        );
+        const access = new BrandedGenerationReceiptAccessService();
+        const store = new BrandedGenerationPromptStoreService(access);
+        // Commit the scoped fixture row so the real Prisma read transaction can observe it.
+        await control.query('COMMIT');
+        const altered = structuredClone(receipt);
+        if (!altered.prompts.compiled)
+          throw new Error('Missing compiled reference');
+        altered.prompts.compiled.snapshotId = id;
+        expect(
+          await clients[0].$transaction((tx) =>
+            store.readCompiled(tx, s.actor, altered),
+          ),
+        ).toEqual({
+          status: 'unavailable',
+          reasonCode: 'prompt_integrity_failed',
+        });
+        expect(
+          await clients[0].$transaction((tx) =>
+            store.read(tx, s.actor, altered, 'compiled'),
+          ),
+        ).toEqual({
+          status: 'unavailable',
+          reasonCode: 'prompt_integrity_failed',
+        });
+        // Remove no immutable rows: exact permitted purge is the cleanup for this inserted fixture.
+        await control.query(
+          `UPDATE generation_prompt_snapshots SET ciphertext='',"retentionState"='purged',"isDeleted"=true WHERE id=$1`,
+          [id],
+        );
+      } finally {
+        await control.query('ROLLBACK');
+      }
+      expect(await services[0].get(s.actor, current.id)).toEqual(receipt);
+    }
+  }, 60000);
+  it('rolls compiled envelope, enhanced prompt, event and projection back on actual event failure', async () => {
+    const s = await seed();
+    const value = input(s.actor);
+    const current = (await services[0].create(value)).receipt;
+    const recipe = retainedRecipe(current);
+    await control.query(
+      `CREATE FUNCTION fixture_compiled_failure() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW."organizationId"='${s.source}' THEN RAISE EXCEPTION 'fixture_compiled_event_failure'; END IF; RETURN NEW; END $$; CREATE TRIGGER fixture_compiled_failure BEFORE INSERT ON branded_generation_receipt_events FOR EACH ROW EXECUTE FUNCTION fixture_compiled_failure()`,
+    );
+    try {
+      await expect(
+        services[0].recordCompiledResolution(
+          s.actor,
+          current.id,
+          { operationKey: 'compiled-fault', expectedRevision: 0 },
+          retainedResolution(value, recipe),
+          value,
+          recipe,
+          'enhanced',
+        ),
+      ).rejects.toThrow('fixture_compiled_event_failure');
+      expect(await counts(s.actor)).toEqual([1, 1, 1]);
+      expect(await services[0].get(s.actor, current.id)).toEqual(current);
+    } finally {
+      await control.query(
+        'DROP TRIGGER fixture_compiled_failure ON branded_generation_receipt_events; DROP FUNCTION fixture_compiled_failure()',
+      );
+    }
+  }, 60000);
+  it('purges both branded formats while preserving unrelated legacy payloads', async () => {
+    const s = await seed();
+    const value = input(s.actor);
+    const current = (await services[0].create(value)).receipt;
+    const recipe = retainedRecipe(current);
+    const receipt = (
+      await services[0].recordCompiledResolution(
+        s.actor,
+        current.id,
+        { operationKey: 'compiled', expectedRevision: 0 },
+        retainedResolution(value, recipe),
+        value,
+        recipe,
+        'enhanced',
+      )
+    ).receipt;
+    const legacy = await clients[0].generationPromptSnapshot.create({
+      data: {
+        id: randomUUID(),
+        organizationId: s.source,
+        brandId: s.brand,
+        userId: s.owner,
+        format: 'fixture-legacy',
+        contentHash: hashBrandedGenerationTextV1('unrelated'),
+        ciphertext: EncryptionUtil.encrypt('unrelated'),
+        retentionState: 'retained',
+      },
+    });
+    await services[0].softDelete(s.actor, current.id, {
+      operationKey: 'delete',
+      expectedRevision: 1,
+    });
+    const rows = await clients[0].generationPromptSnapshot.findMany({
+      where: {
+        organizationId: s.source,
+        brandId: s.brand,
+        brandedGenerationReceiptId: current.id,
+      },
+    });
+    expect(rows).toHaveLength(3);
+    expect(new Set(rows.map((row) => row.format))).toEqual(
+      new Set([
+        'genfeed.branded-generation-prompt.v1',
+        'genfeed.branded-generation-compiled.v1',
+      ]),
+    );
+    expect(
+      rows.every(
+        (row) =>
+          row.ciphertext === '' &&
+          row.retentionState === 'purged' &&
+          row.isDeleted,
+      ),
+    ).toBe(true);
+    expect(
+      await clients[0].generationPromptSnapshot.findFirstOrThrow({
+        where: {
+          id: legacy.id,
+          organizationId: s.source,
+          brandId: s.brand,
+          isDeleted: false,
+        },
+      }),
+    ).toEqual(legacy);
+    expect(await readPrivateCompiled(s.actor, receipt)).toEqual({
+      status: 'unavailable',
+      reasonCode: 'prompt_snapshot_unavailable',
+    });
   }, 60000);
   it('requires the active relocation history guard for live and tombstoned receipts', async () => {
     const s = await seed();
