@@ -4,6 +4,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import type { ReservationCreditsConfig } from '@api/helpers/utils/credits/generation-credit-reservation.util';
+import { crunReceiptAllowsDisposition } from '@api/helpers/utils/credits/generation-quote-group.schema';
 import { generationUsageReceiptSchema as usageReceiptSchema } from '@api/helpers/utils/credits/generation-submission-evidence.schema';
 import {
   generationSubmissionIntentSchema,
@@ -46,9 +47,10 @@ export type GenerationSettlementOutcome =
   | 'already-settled'
   | 'no-hold'
   | 'hold-ended'
-  | 'group-handled';
+  | 'group-handled'
+  | 'held';
 
-export type GenerationReleaseOutcome = 'released' | 'no-hold';
+export type GenerationReleaseOutcome = 'released' | 'no-hold' | 'held';
 
 /** Reconcile leaves a fresh hold to the completion hook before sweeping it. */
 const RECONCILE_GRACE_MS = 2 * 60 * 1000;
@@ -269,6 +271,14 @@ export class GenerationBillingService {
     ingredientId: string,
     organizationId: string,
   ): Promise<void> {
+    if (
+      !(await this.crunDispositionAllowed(
+        ingredientId,
+        organizationId,
+        'release',
+      ))
+    )
+      return;
     await persistSubmissionFailure(
       this.prisma,
       {
@@ -282,10 +292,18 @@ export class GenerationBillingService {
     );
   }
 
-  recordSubmissionRejection(
+  async recordSubmissionRejection(
     ingredientId: string,
     organizationId: string,
   ): Promise<void> {
+    if (
+      !(await this.crunDispositionAllowed(
+        ingredientId,
+        organizationId,
+        'release',
+      ))
+    )
+      return;
     return persistSubmissionRejection(
       this.prisma,
       ingredientId,
@@ -298,6 +316,14 @@ export class GenerationBillingService {
     ingredientId: string,
     organizationId: string,
   ): Promise<GenerationSettlementOutcome> {
+    if (
+      !(await this.crunDispositionAllowed(
+        ingredientId,
+        organizationId,
+        'settle',
+      ))
+    )
+      return 'held';
     if (await this.quoteGroups.reconcileOutput(ingredientId, organizationId))
       return 'group-handled';
     const hold = await this.findHold(ingredientId, organizationId);
@@ -372,7 +398,22 @@ export class GenerationBillingService {
         output.ingredientId,
         organizationId,
       );
-      if (!existing || !this.readUsageReceipt(existing.generationBilling))
+      const prior = this.readUsageReceipt(existing?.generationBilling);
+      const {
+        state: _state,
+        confirmedFailure: _failure,
+        ...immutable
+      } = receipt;
+      const priorImmutable = prior
+        ? (({ state: _oldState, confirmedFailure: _oldFailure, ...rest }) =>
+            rest)(prior)
+        : null;
+      if (
+        !existing ||
+        !prior ||
+        (output.submissionIntentProvider === 'crun' &&
+          JSON.stringify(immutable) !== JSON.stringify(priorImmutable))
+      )
         throw new BusinessLogicException('BYOK output linkage failed');
     }
     request.creditsConfig = {
@@ -401,6 +442,14 @@ export class GenerationBillingService {
     ingredientId: string,
     organizationId: string,
   ): Promise<GenerationSettlementOutcome> {
+    if (
+      !(await this.crunDispositionAllowed(
+        ingredientId,
+        organizationId,
+        'settle',
+      ))
+    )
+      return 'held';
     const ingredient = await this.readByokIngredient(
       ingredientId,
       organizationId,
@@ -420,6 +469,15 @@ export class GenerationBillingService {
         organizationId,
         isDeleted: false,
         idempotencyKey: `byok:${organizationId}:${idempotencyKey}`,
+        ...(receipt.submissionIntentProvider === 'crun'
+          ? {
+              category: 'BYOK_USAGE',
+              actorUserId: receipt.userId,
+              amount: receipt.amount,
+              source: receipt.source,
+              metadata: { path: ['assetId'], equals: ingredientId },
+            }
+          : {}),
       },
     });
     if (recorded) {
@@ -462,6 +520,14 @@ export class GenerationBillingService {
     ingredientId: string,
     organizationId: string,
   ): Promise<GenerationReleaseOutcome> {
+    if (
+      !(await this.crunDispositionAllowed(
+        ingredientId,
+        organizationId,
+        'release',
+      ))
+    )
+      return 'held';
     const ingredient = await this.readByokIngredient(
       ingredientId,
       organizationId,
@@ -489,6 +555,17 @@ export class GenerationBillingService {
     return 'released';
   }
 
+  private async crunDispositionAllowed(
+    ingredientId: string,
+    organizationId: string,
+    disposition: 'settle' | 'release',
+  ): Promise<boolean> {
+    const task = await this.prisma.crunGenerationTask.findFirst({
+      where: { ingredientId, organizationId, isDeleted: false },
+    });
+    return crunReceiptAllowsDisposition(task, disposition);
+  }
+
   private async reconcileByok(now: Date): Promise<number> {
     let cursor: string | undefined;
     let acted = 0;
@@ -514,6 +591,14 @@ export class GenerationBillingService {
         const receipt = this.readUsageReceipt(row.generationBilling);
         if (!receipt || !row.organizationId) continue;
         try {
+          if (
+            !(await this.crunDispositionAllowed(
+              row.id,
+              row.organizationId,
+              SETTLEABLE_STATUSES.includes(row.status) ? 'settle' : 'release',
+            ))
+          )
+            continue;
           if (SETTLEABLE_STATUSES.includes(row.status)) {
             await this.settleByokOutput(row.id, row.organizationId);
           } else if (receipt.submissionIntentProvider) {
@@ -557,6 +642,14 @@ export class GenerationBillingService {
     organizationId: string,
     reason: 'release' | 'expiry' = 'release',
   ): Promise<GenerationReleaseOutcome> {
+    if (
+      !(await this.crunDispositionAllowed(
+        ingredientId,
+        organizationId,
+        'release',
+      ))
+    )
+      return 'held';
     if (
       await this.quoteGroups.reconcileOutput(
         ingredientId,
@@ -659,6 +752,17 @@ export class GenerationBillingService {
       if (!ingredientId) continue;
       try {
         const ingredient = byKey.get(`${hold.organizationId}:${ingredientId}`);
+        if (
+          !(await this.crunDispositionAllowed(
+            ingredientId,
+            hold.organizationId,
+            ingredient &&
+              SETTLEABLE_STATUSES.includes(String(ingredient.status))
+              ? 'settle'
+              : 'release',
+          ))
+        )
+          continue;
         const status = String(ingredient?.status ?? '');
         if (
           ingredient &&

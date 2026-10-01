@@ -57,10 +57,13 @@ describe('PlatformSchedulesProcessor', () => {
     reconcileContinuations: handler(),
     reconcilePendingExecutions: handler(),
   };
+  const crun = { reconcile: handler(), synchronizeContracts: handler() };
   const logger = { debug: vi.fn() };
 
   const cases: Array<[PlatformScheduledTaskName, ReturnType<typeof handler>]> =
     [
+      [PLATFORM_SCHEDULED_TASKS.CRUN_TASK_RECONCILE, crun.reconcile],
+      [PLATFORM_SCHEDULED_TASKS.CRUN_CONTRACT_SYNC, crun.synchronizeContracts],
       [
         PLATFORM_SCHEDULED_TASKS.PROACTIVE_AGENT_STRATEGIES,
         workflowSchedules.sweep,
@@ -243,6 +246,7 @@ describe('PlatformSchedulesProcessor', () => {
       oauthClientCleanup as never,
       workflowSchedules as never,
       xReplyWatch as never,
+      crun as never,
     );
   });
 

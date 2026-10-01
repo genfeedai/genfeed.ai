@@ -1,13 +1,57 @@
 import { createHash } from 'node:crypto';
+import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import type { ByokService } from '@api/services/byok/byok.service';
 import type { CrunClient } from '@api/services/integrations/crun/crun-client.service';
 import { CrunTaskService } from '@api/services/integrations/crun/crun-task.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import type { CrunGenerationTask } from '@genfeedai/prisma';
 import type { ConfigService } from '@libs/config/config.service';
 
 function task(overrides: Partial<CrunGenerationTask> = {}): CrunGenerationTask {
+  const result = quoteModelBillablePricing(
+    billableProfile({
+      key: 'crun/google/nano-banana-pro',
+      provider: 'crun',
+      isFree: true,
+      cost: 0,
+    }),
+    {
+      modelKey: 'crun/google/nano-banana-pro',
+      provider: 'crun',
+      outputs: 1,
+      requests: 1,
+    },
+    1,
+    new Date().toISOString(),
+  );
+  if (result.status !== 'priced') throw new Error('Fixture quote invalid');
+  const fingerprint = createHash('sha256')
+    .update('fixture-hosted-key')
+    .digest('hex');
   return {
+    reservationId: null,
+    fundingBinding: { kind: 'free' },
+    userId: 'user-1',
+    modelKey: 'crun/google/nano-banana-pro',
+    contractVersion: 'version-1',
+    inputHash: 'a'.repeat(64),
+    quoteSnapshot: {
+      ...result.snapshot,
+      providerQuote: {
+        provider: 'crun',
+        estimated: false,
+        providerCreditsPerTask: '8',
+        quoteHash: 'b'.repeat(64),
+        inputHash: 'a'.repeat(64),
+        contractVersion: 'version-1',
+        creditsPerUsd: '1000',
+        acquisitionRateVersion: 'fixture-rate',
+        credentialSource: 'hosted',
+        credentialId: null,
+        credentialFingerprint: fingerprint,
+      },
+    },
     id: 'task-1',
     organizationId: 'org-1',
     ingredientId: 'image-1',
@@ -16,6 +60,7 @@ function task(overrides: Partial<CrunGenerationTask> = {}): CrunGenerationTask {
     credentialFingerprint: createHash('sha256')
       .update('fixture-hosted-key')
       .digest('hex'),
+    providerTaskId: 'known',
     state: 'pending',
     version: 0,
     isDeleted: false,
@@ -25,11 +70,15 @@ function task(overrides: Partial<CrunGenerationTask> = {}): CrunGenerationTask {
 
 describe('Crun durable credential and lease boundaries', () => {
   const lookup = vi.fn();
+  const retained = vi.fn();
   const updateMany = vi.fn();
   const findFirst = vi.fn();
   const findMany = vi.fn();
   const transaction = {
     crunGenerationTask: { updateMany, findFirst, findMany },
+    ingredient: {
+      findFirst: vi.fn().mockResolvedValue({ generationBilling: null }),
+    },
   };
   const get = vi.fn();
   const createTask = vi.fn();
@@ -39,7 +88,12 @@ describe('Crun durable credential and lease boundaries', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    transaction.ingredient.findFirst.mockResolvedValue({
+      generationBilling: null,
+    });
     lookup.mockResolvedValue(undefined);
+    retained.mockResolvedValue(undefined);
+    findFirst.mockResolvedValue(task());
     get.mockImplementation((key: string) =>
       key === 'CRUN_API_KEY' ? 'fixture-hosted-key' : 'false',
     );
@@ -50,7 +104,10 @@ describe('Crun durable credential and lease boundaries', () => {
         $transaction: async (callback: (tx: typeof transaction) => unknown) =>
           callback(transaction),
       } as unknown as PrismaService,
-      { lookupApiKeyWithIdentity: lookup } as unknown as ByokService,
+      {
+        lookupApiKey: lookup,
+        lookupRetainedCrunApiKey: retained,
+      } as unknown as ByokService,
       { get } as unknown as ConfigService,
       { createTask, taskInfo } as unknown as CrunClient,
     );
@@ -65,48 +122,65 @@ describe('Crun durable credential and lease boundaries', () => {
     expect(lookup).not.toHaveBeenCalled();
   });
 
-  it('retains frozen BYOK identity and never substitutes a hosted key after deletion', async () => {
+  it('drains retained disabled/re-encrypted BYOK plaintext while new submission stays blocked', async () => {
     const frozen = task({
       credentialSource: 'byok',
-      credentialId: 'key-version-1',
+      credentialId: null,
       credentialFingerprint: createHash('sha256')
         .update('fixture-byok-key')
         .digest('hex'),
     });
-    lookup
-      .mockResolvedValueOnce({
-        apiKey: 'fixture-byok-key',
-        credentialId: 'key-version-1',
-      })
-      .mockResolvedValueOnce(undefined);
+    findFirst.mockResolvedValue(frozen);
+    retained.mockResolvedValue({ apiKey: 'fixture-byok-key' });
     expect(await service.resolveOriginalCredential(frozen)).toMatchObject({
       credentialSource: 'byok',
-      credentialId: 'key-version-1',
+      credentialId: null,
     });
-    expect(await service.resolveOriginalCredential(frozen)).toBeNull();
+    expect(await service.resolveSubmissionCredential(frozen)).toBeNull();
+    expect(lookup).toHaveBeenCalledWith('org-1', 'crun');
     expect(get).not.toHaveBeenCalled();
   });
-
-  it('refuses rotated credentials or same plaintext in a new encrypted credential identity', async () => {
-    lookup.mockResolvedValue({
-      apiKey: 'fixture-byok-key',
-      credentialId: 'key-version-2',
-    });
-    expect(
-      await service.resolveOriginalCredential(
-        task({
-          credentialSource: 'byok',
-          credentialId: 'key-version-1',
-          credentialFingerprint: createHash('sha256')
-            .update('fixture-byok-key')
-            .digest('hex'),
-        }),
-      ),
-    ).toBeNull();
-    get.mockReturnValue('rotated-platform-key');
+  it.each(['deleted', 'rotated', 'unreadable'])(
+    'recovers %s retained key without hosted fallback',
+    async (cause) => {
+      const frozen = task({
+        credentialSource: 'byok',
+        credentialId: null,
+        credentialFingerprint: createHash('sha256')
+          .update('fixture-byok-key')
+          .digest('hex'),
+      });
+      findFirst.mockResolvedValue(frozen);
+      if (cause === 'unreadable')
+        retained.mockRejectedValue(new Error('fixture decrypt failure'));
+      else
+        retained.mockResolvedValue(
+          cause === 'rotated' ? { apiKey: 'rotated-key' } : undefined,
+        );
+      expect(await service.resolveOriginalCredential(frozen)).toBeNull();
+      expect(get).not.toHaveBeenCalled();
+    },
+  );
+  it.each(['prepared', 'submitting', 'finalized'])(
+    'denies retained bypass in %s state',
+    async (state) => {
+      const frozen = task({ state });
+      findFirst.mockResolvedValue(frozen);
+      expect(await service.resolveOriginalCredential(frozen)).toBeNull();
+      expect(retained).not.toHaveBeenCalled();
+    },
+  );
+  it('denies wrong durable identity, missing task ID, and rotated hosted key', async () => {
+    findFirst.mockResolvedValue(null);
+    expect(await service.resolveOriginalCredential(task())).toBeNull();
+    findFirst.mockResolvedValue(task({ credentialFingerprint: 'foreign' }));
+    expect(await service.resolveOriginalCredential(task())).toBeNull();
+    findFirst.mockResolvedValue(task({ providerTaskId: null }));
+    expect(await service.resolveOriginalCredential(task())).toBeNull();
+    findFirst.mockResolvedValue(task());
+    get.mockReturnValue('rotated-key');
     expect(await service.resolveOriginalCredential(task())).toBeNull();
   });
-
   it('re-enters the task tenant for receipt lookups', async () => {
     await service.findForIngredient('org-1', 'image-1');
     expect(findFirst).toHaveBeenCalledWith({
@@ -173,6 +247,7 @@ describe('Crun durable credential and lease boundaries', () => {
       state: 'prepared',
       endpoint: 'google/nano-banana-pro',
     });
+    findFirst.mockResolvedValue(prepared);
     expect(
       await service.submit(prepared, {
         model: prepared.endpoint,
@@ -214,6 +289,7 @@ describe('Crun durable credential and lease boundaries', () => {
       recoveryCode: null,
     };
     taskInfo.mockResolvedValue({ isValid: true, data: info });
+    findFirst.mockResolvedValue(task({ providerTaskId: 'known' }));
     expect(
       await service.poll(
         task({

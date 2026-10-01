@@ -13,6 +13,7 @@ import type {
 import { ImageGenerationAdmissionService } from '@api/collections/images/services/image-generation-admission.service';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
+import { CrunImageGenerationProviderAdapter } from '@api/collections/images/services/providers/crun-image-generation-provider.adapter';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -65,7 +66,12 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 
 /** Populate patterns for every image read on the wait/serialize path. */
 const IMAGE_POPULATE = [
@@ -106,6 +112,8 @@ export class ImageGenerationService {
     private readonly cancellationService: IngredientGenerationCancellationService,
     private readonly templatesService: TemplatesService,
     private readonly enhancementService: MediaPromptEnhancementService,
+    @Optional()
+    private readonly crunAdapter?: CrunImageGenerationProviderAdapter,
   ) {}
 
   async generateImage(
@@ -117,6 +125,14 @@ export class ImageGenerationService {
     onCreditsPrepared?: () => Promise<void>,
     runReferences?: readonly ImageGenerationBriefReference[],
   ): Promise<JsonApiSingleResponse> {
+    if (createImageDto.model?.startsWith('crun/')) {
+      if (!this.crunAdapter)
+        throw new HttpException(
+          { code: 'CRUN_MODEL_UNAVAILABLE' },
+          HttpStatus.SERVICE_UNAVAILABLE,
+        );
+      return this.crunAdapter.generateQuoted(user, createImageDto, request);
+    }
     const {
       brand,
       model,

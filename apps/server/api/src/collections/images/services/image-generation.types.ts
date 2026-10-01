@@ -12,6 +12,7 @@ import type { GenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-
 import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces';
 
 export type ImageGenerationProvider =
+  | 'crun'
   | 'genfeedai'
   | 'higgsfield'
   | 'klingai'
@@ -90,6 +91,8 @@ export interface ImageGenerationCompletionPlan {
 }
 
 export interface ImageGenerationProviderRequest {
+  ingredientId?: string;
+  crunProviderRequest?: import('@api/services/integrations/crun/crun-task.schema').CrunProviderRequest;
   providerInput?: Record<string, unknown>;
   /**
    * The org's own resolved BYOK key (#5294), set only when the credits

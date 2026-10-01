@@ -11,6 +11,10 @@ import { LoggerService } from '@libs/logger/logger.service';
 
 describe('CreditReservationService', () => {
   const prisma = {
+    crunGenerationTask: {
+      findFirst: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
     organization: { findMany: vi.fn() },
     creditReservation: {
       create: vi.fn(),
@@ -55,6 +59,8 @@ describe('CreditReservationService', () => {
   }
 
   beforeEach(() => {
+    prisma.crunGenerationTask.findFirst.mockReset().mockResolvedValue(null);
+    prisma.crunGenerationTask.findMany.mockReset().mockResolvedValue([]);
     prisma.organization.findMany
       .mockReset()
       .mockResolvedValue([{ id: 'org_1' }, { id: 'org_2' }]);

@@ -718,7 +718,12 @@ export interface TrainedModelInput extends Record<string, unknown> {
  * Union of all possible Replicate model input types.
  * Used as the return type of `buildPrompt()` across the builder hierarchy.
  */
+export interface CrunPromptInput extends Record<string, unknown> {
+  prompt: string;
+}
+
 export type ReplicateInput =
+  | CrunPromptInput
   | ReplicateImageInput
   | ReplicateVideoInput
   | ReplicateTextInput

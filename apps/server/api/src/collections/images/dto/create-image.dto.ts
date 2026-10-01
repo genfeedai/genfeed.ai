@@ -1,4 +1,5 @@
 import { KnowledgeSelectionDto } from '@api/collections/contexts/dto/knowledge-selection.dto';
+import { CrunImageQuoteControlsDto } from '@api/collections/images/dto/create-crun-image-quote.dto';
 import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
@@ -17,11 +18,23 @@ import {
   IsString,
   Matches,
   MaxLength,
+  ValidateBy,
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
 export class CreateImageDto extends CreateIngredientDto {
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @ValidateNested()
+  @Type(() => CrunImageQuoteControlsDto)
+  readonly crunControls?: CrunImageQuoteControlsDto;
+
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsString()
+  @MaxLength(256)
+  @Matches(/^[\x21-\x7e]{1,256}$/)
+  readonly crunQuoteId?: string;
+
   @ValidateIf((_object, value: unknown) => value !== undefined)
   @IsArray()
   @ArrayMaxSize(8)
@@ -61,7 +74,20 @@ export class CreateImageDto extends CreateIngredientDto {
 
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(10)
+  @ValidateBy({
+    name: 'imageReferenceCount',
+    validator: {
+      validate: (value: unknown, args) =>
+        Array.isArray(value) &&
+        value.length <=
+          ((args?.object as CreateImageDto | undefined)?.model?.startsWith(
+            'crun/',
+          )
+            ? 14
+            : 10),
+      defaultMessage: () => 'Too many selected references',
+    },
+  })
   @IsEntityId({ each: true })
   @ApiProperty({
     description: 'Source ingredient IDs used as image references',

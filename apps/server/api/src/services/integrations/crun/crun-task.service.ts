@@ -1,4 +1,10 @@
 import { createHash } from 'node:crypto';
+import {
+  generationQuoteGroupMetadataSchema,
+  generationQuoteGroupReceiptSchema,
+} from '@api/helpers/utils/credits/generation-quote-group.schema';
+import { generationUsageReceiptSchema } from '@api/helpers/utils/credits/generation-submission-evidence.schema';
+import { modelBillableQuoteSnapshotSchema } from '@api/helpers/utils/credits/model-billable-quote.schema';
 import { ByokService } from '@api/services/byok/byok.service';
 import { CrunClient } from '@api/services/integrations/crun/crun-client.service';
 import type { CrunTaskStatusResponse } from '@api/services/integrations/crun/crun-response.schema';
@@ -7,8 +13,10 @@ import type {
   CrunProviderRequest,
   CrunResolvedCredential,
 } from '@api/services/integrations/crun/crun-task.schema';
+import { crunFundingBindingSchema } from '@api/services/integrations/crun/crun-task.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ByokProvider } from '@genfeedai/contracts';
+import type { Prisma } from '@genfeedai/prisma';
 import { type CrunGenerationTask, toPrismaJson } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import {
@@ -33,7 +41,7 @@ export class CrunTaskService {
   async resolveCredential(
     organizationId: string,
   ): Promise<CrunResolvedCredential> {
-    const byok = await this.byok.lookupApiKeyWithIdentity(
+    const byok = await this.byok.lookupApiKey(
       organizationId,
       ByokProvider.CRUN,
     );
@@ -45,7 +53,7 @@ export class CrunTaskService {
     return {
       apiKey,
       credentialSource: byok ? 'byok' : 'hosted',
-      credentialId: byok?.credentialId ?? null,
+      credentialId: null,
       credentialFingerprint: createHash('sha256').update(apiKey).digest('hex'),
     };
   }
@@ -53,36 +61,81 @@ export class CrunTaskService {
   async resolveOriginalCredential(
     task: CrunGenerationTask,
   ): Promise<CrunResolvedCredential | null> {
+    const current = await this.prisma.crunGenerationTask.findFirst({
+      where: {
+        id: task.id,
+        organizationId: task.organizationId,
+        isDeleted: false,
+      },
+    });
+    if (
+      !current?.providerTaskId ||
+      ![
+        'pending',
+        'running',
+        'provider-success',
+        'provider-failed',
+        'recovery-required',
+      ].includes(current.state) ||
+      current.providerTaskId !== task.providerTaskId ||
+      current.credentialSource !== task.credentialSource ||
+      current.credentialFingerprint !== task.credentialFingerprint ||
+      current.credentialId !== null
+    )
+      return null;
     try {
       const byok =
-        task.credentialSource === 'byok'
-          ? await this.byok.lookupApiKeyWithIdentity(
-              task.organizationId,
-              ByokProvider.CRUN,
-            )
+        current.credentialSource === 'byok'
+          ? await this.byok.lookupRetainedCrunApiKey(current.organizationId)
           : undefined;
-      const apiKey =
-        task.credentialSource === 'hosted'
+      return this.matchCredential(
+        current,
+        current.credentialSource === 'hosted'
           ? this.config.get('CRUN_API_KEY')
-          : byok?.apiKey;
-      if (
-        typeof apiKey !== 'string' ||
-        !apiKey ||
-        createHash('sha256').update(apiKey).digest('hex') !==
-          task.credentialFingerprint ||
-        (task.credentialSource === 'byok' &&
-          byok?.credentialId !== task.credentialId)
-      )
-        return null;
-      return {
-        apiKey,
-        credentialSource: task.credentialSource as 'hosted' | 'byok',
-        credentialId: task.credentialId,
-        credentialFingerprint: task.credentialFingerprint,
-      };
+          : byok?.apiKey,
+      );
     } catch {
       return null;
     }
+  }
+
+  async resolveSubmissionCredential(
+    task: CrunGenerationTask,
+  ): Promise<CrunResolvedCredential | null> {
+    try {
+      const byok =
+        task.credentialSource === 'byok'
+          ? await this.byok.lookupApiKey(task.organizationId, ByokProvider.CRUN)
+          : undefined;
+      return this.matchCredential(
+        task,
+        task.credentialSource === 'hosted'
+          ? this.config.get('CRUN_API_KEY')
+          : byok?.apiKey,
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  private matchCredential(
+    task: CrunGenerationTask,
+    apiKey: unknown,
+  ): CrunResolvedCredential | null {
+    if (
+      task.credentialId !== null ||
+      typeof apiKey !== 'string' ||
+      !apiKey ||
+      createHash('sha256').update(apiKey).digest('hex') !==
+        task.credentialFingerprint
+    )
+      return null;
+    return {
+      apiKey,
+      credentialSource: task.credentialSource as 'hosted' | 'byok',
+      credentialId: null,
+      credentialFingerprint: task.credentialFingerprint,
+    };
   }
 
   findForIngredient(organizationId: string, ingredientId: string) {
@@ -97,29 +150,36 @@ export class CrunTaskService {
   ): Promise<CrunGenerationTask[]> {
     if (!this.isAdmissionEnabled())
       throw new ServiceUnavailableException({ code: 'CRUN_DISABLED' });
-    return this.prisma.$transaction(async (transaction) => {
+    return this.runSerializable(async (transaction) => {
       const rows: CrunGenerationTask[] = [];
       for (const input of inputs) {
-        const ingredient = await transaction.ingredient.findFirst({
-          where: {
-            id: input.ingredientId,
-            organizationId: input.organizationId,
-            isDeleted: false,
-          },
-          select: { id: true },
-        });
-        const reservation = await transaction.creditReservation.findFirst({
-          where: {
-            id: input.reservationId,
-            organizationId: input.organizationId,
-            isDeleted: false,
-            status: 'RESERVED',
-          },
-          select: { id: true },
-        });
-        if (!ingredient || !reservation)
-          throw new BadRequestException({ code: 'CRUN_TASK_BINDING_INVALID' });
-        rows.push(await transaction.crunGenerationTask.create({ data: input }));
+        await this.validateFunding(transaction, input);
+        const referenceCount = input.inputMetadata.referenceCount;
+        if (
+          typeof referenceCount !== 'number' ||
+          !Number.isInteger(referenceCount) ||
+          referenceCount < 0 ||
+          referenceCount > 14 ||
+          typeof input.inputMetadata.intentHash !== 'string' ||
+          !/^[a-f0-9]{64}$/.test(input.inputMetadata.intentHash)
+        )
+          throw new BadRequestException({ code: 'CRUN_TASK_METADATA_INVALID' });
+        rows.push(
+          await transaction.crunGenerationTask.create({
+            data: {
+              ...input,
+              fundingBinding: toPrismaJson(input.fundingBinding),
+              // Redacted projection: no prompt body, user metadata or signed URLs.
+              inputMetadata: {
+                referenceCount,
+                ...(typeof input.inputMetadata.intentHash === 'string' &&
+                /^[a-f0-9]{64}$/.test(input.inputMetadata.intentHash)
+                  ? { intentHash: input.inputMetadata.intentHash }
+                  : {}),
+              },
+            },
+          }),
+        );
       }
       return rows;
     });
@@ -138,12 +198,14 @@ export class CrunTaskService {
         isActive: true,
         isDeleted: false,
         reviewedProviderContractVersion: task.contractVersion,
+        pendingProviderContractVersion: null,
+        OR: [{ organizationId: null }, { organizationId: task.organizationId }],
       },
       select: { id: true },
     });
     if (!active || request.model !== task.endpoint)
       return { isSubmitted: false, reasonCode: 'CRUN_MODEL_UNAVAILABLE' };
-    const credential = await this.resolveOriginalCredential(task);
+    const credential = await this.resolveSubmissionCredential(task);
     if (!credential) {
       await this.markRecovery(task, 'CRUN_ORIGINAL_CREDENTIAL_UNAVAILABLE');
       return {
@@ -151,21 +213,34 @@ export class CrunTaskService {
         reasonCode: 'CRUN_ORIGINAL_CREDENTIAL_UNAVAILABLE',
       };
     }
-    const claimed = await this.prisma.crunGenerationTask.updateMany({
-      where: {
-        id: task.id,
-        organizationId: task.organizationId,
-        isDeleted: false,
-        state: 'prepared',
-        version: task.version,
-      },
-      data: {
-        state: 'submitting',
-        submittedAt: now,
-        deadlineAt: new Date(now.getTime() + 1200000),
-        nextPollAt: new Date(now.getTime() + 30000),
-        version: { increment: 1 },
-      },
+    const claimed = await this.runSerializable(async (transaction) => {
+      const current = await transaction.crunGenerationTask.findFirst({
+        where: {
+          id: task.id,
+          organizationId: task.organizationId,
+          isDeleted: false,
+          state: 'prepared',
+          version: task.version,
+        },
+      });
+      if (!current) return { count: 0 };
+      await this.validateFunding(transaction, current);
+      return transaction.crunGenerationTask.updateMany({
+        where: {
+          id: task.id,
+          organizationId: task.organizationId,
+          isDeleted: false,
+          state: 'prepared',
+          version: task.version,
+        },
+        data: {
+          state: 'submitting',
+          submittedAt: now,
+          deadlineAt: new Date(now.getTime() + 1200000),
+          nextPollAt: new Date(now.getTime() + 30000),
+          version: { increment: 1 },
+        },
+      });
     });
     if (claimed.count !== 1)
       return { isSubmitted: false, reasonCode: 'CRUN_TASK_ALREADY_CLAIMED' };
@@ -213,6 +288,156 @@ export class CrunTaskService {
       });
     } else await this.markRecovery({ ...task, version }, result.reasonCode);
     return { isSubmitted: false, reasonCode: result.reasonCode };
+  }
+
+  private async runSerializable<T>(
+    work: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await this.prisma.$transaction(work, {
+          isolationLevel: 'Serializable',
+        });
+      } catch (error) {
+        if (
+          attempt >= 2 ||
+          !(
+            typeof error === 'object' &&
+            error !== null &&
+            'code' in error &&
+            error.code === 'P2034'
+          )
+        )
+          throw error;
+      }
+    }
+  }
+
+  private async validateFunding(
+    transaction: Prisma.TransactionClient,
+    input: CrunPreparedTask | CrunGenerationTask,
+  ): Promise<void> {
+    const invalid = () =>
+      new BadRequestException({ code: 'CRUN_TASK_BINDING_INVALID' });
+    const binding = crunFundingBindingSchema.safeParse(input.fundingBinding);
+    const quoted = modelBillableQuoteSnapshotSchema.safeParse(
+      input.quoteSnapshot,
+    );
+    if (!binding.success || !quoted.success || !quoted.data.providerQuote)
+      throw invalid();
+    const quote = quoted.data;
+    const frozen = quote.providerQuote;
+    if (!frozen) throw invalid();
+    if (
+      quote.modelKey !== input.modelKey ||
+      frozen.contractVersion !== input.contractVersion ||
+      frozen.inputHash !== input.inputHash ||
+      frozen.credentialSource !== input.credentialSource ||
+      frozen.credentialId !== input.credentialId ||
+      frozen.credentialFingerprint !== input.credentialFingerprint
+    )
+      throw invalid();
+    const ingredient = await transaction.ingredient.findFirst({
+      where: {
+        id: input.ingredientId,
+        organizationId: input.organizationId,
+        userId: input.userId,
+        isDeleted: false,
+        ...(input.brandId ? { brandId: input.brandId } : {}),
+      },
+      select: { generationBilling: true },
+    });
+    if (!ingredient) throw invalid();
+    if (binding.data.kind === 'free') {
+      if (
+        input.credentialSource !== 'hosted' ||
+        input.reservationId !== null ||
+        quote.credits !== 0 ||
+        !quote.pricingProfile.isFree ||
+        ingredient.generationBilling !== null
+      )
+        throw invalid();
+      return;
+    }
+    if (binding.data.kind === 'byok') {
+      const receipt = generationUsageReceiptSchema.safeParse(
+        ingredient.generationBilling,
+      );
+      const outputs =
+        quote.quantities.outputs ?? quote.quantities.requests ?? 1;
+      if (
+        input.credentialSource !== 'byok' ||
+        input.reservationId !== null ||
+        !receipt.success ||
+        receipt.data.state !== 'pending' ||
+        receipt.data.confirmedFailure ||
+        receipt.data.userId !== input.userId ||
+        receipt.data.submissionIntentProvider !== 'crun' ||
+        receipt.data.amount !== quote.credits / outputs
+      )
+        throw invalid();
+      const {
+        kind: _kind,
+        state: _state,
+        confirmedFailure: _failure,
+        ...immutable
+      } = receipt.data;
+      if (JSON.stringify(immutable) !== JSON.stringify(binding.data.receipt))
+        throw invalid();
+      return;
+    }
+    if (
+      input.credentialSource !== 'hosted' ||
+      !input.reservationId ||
+      quote.credits <= 0
+    )
+      throw invalid();
+    const reservation = await transaction.creditReservation.findFirst({
+      where: {
+        id: input.reservationId,
+        organizationId: input.organizationId,
+        actorUserId: input.userId,
+        isDeleted: false,
+        status: 'RESERVED',
+      },
+      select: { workloadId: true, metadata: true, amount: true },
+    });
+    if (!reservation) throw invalid();
+    const receipt = generationQuoteGroupReceiptSchema.safeParse(
+      ingredient.generationBilling,
+    );
+    const metadata = generationQuoteGroupMetadataSchema.safeParse(
+      reservation.metadata,
+    );
+    if (receipt.success) {
+      if (
+        receipt.data.reservationId !== input.reservationId ||
+        receipt.data.outputIndex !== input.outputIndex ||
+        !metadata.success ||
+        metadata.data.boundOutputIds[input.outputIndex] !==
+          input.ingredientId ||
+        JSON.stringify(metadata.data.modelQuote) !== JSON.stringify(quote)
+      )
+        throw invalid();
+    } else {
+      if (
+        reservation.workloadId !== input.ingredientId ||
+        Number(reservation.amount) !== quote.allocatedCredits[input.outputIndex]
+      )
+        throw invalid();
+      const heldQuote = modelBillableQuoteSnapshotSchema.safeParse(
+        typeof reservation.metadata === 'object' &&
+          reservation.metadata !== null &&
+          !Array.isArray(reservation.metadata)
+          ? reservation.metadata.modelQuote
+          : undefined,
+      );
+      if (
+        !heldQuote.success ||
+        JSON.stringify(heldQuote.data) !== JSON.stringify(quote)
+      )
+        throw invalid();
+    }
   }
 
   /** Poll once. Return signed media URLs only ephemerally to the owned-media finalizer. */

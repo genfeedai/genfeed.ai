@@ -2882,6 +2882,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'deadlineAt',
       'endpoint',
       'failureCode',
+      'fundingBinding',
       'id',
       'ingredientId',
       'inputHash',

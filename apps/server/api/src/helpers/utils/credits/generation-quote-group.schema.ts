@@ -3,7 +3,65 @@ import {
   storyboardSubmissionSchema,
 } from '@api/helpers/utils/credits/generation-line-reservation.schema';
 import { modelBillableQuoteSnapshotSchema } from '@api/helpers/utils/credits/model-billable-quote.schema';
+import { crunCreditsEqual, normalizeCrunCredits } from '@genfeedai/pricing';
+import type { CrunGenerationTask } from '@genfeedai/prisma';
 import { z } from 'zod';
+
+/** Authenticated Crun disposition protects every settlement/release/expiry entry point. */
+export function crunReceiptAllowsDisposition(
+  task:
+    | Pick<
+        CrunGenerationTask,
+        | 'state'
+        | 'terminalReceipt'
+        | 'quoteSnapshot'
+        | 'vendorCostRecordedAt'
+        | 'mediaPersistedAt'
+      >
+    | null
+    | undefined,
+  disposition: 'settle' | 'release',
+): boolean {
+  if (!task || task.state === 'finalized') return true;
+  if (task.state === 'prepared') return disposition === 'release';
+  const receipt = z
+    .object({
+      status: z.enum(['success', 'failed']).optional(),
+      credits: z.string().optional(),
+      isAccepted: z.literal(false).optional(),
+    })
+    .safeParse(task.terminalReceipt);
+  if (!receipt.success) return false;
+  if (task.state === 'provider-failed' && receipt.data.isAccepted === false)
+    return disposition === 'release';
+  const credits = receipt.data.credits;
+  if (
+    !credits ||
+    normalizeCrunCredits(credits) === null ||
+    !task.vendorCostRecordedAt
+  )
+    return false;
+  if (task.state === 'provider-failed' && receipt.data.status === 'failed')
+    return disposition === 'release';
+  if (
+    disposition !== 'settle' ||
+    task.state !== 'provider-success' ||
+    receipt.data.status !== 'success' ||
+    !task.mediaPersistedAt
+  )
+    return false;
+  const quote = modelBillableQuoteSnapshotSchema.safeParse(task.quoteSnapshot);
+  return (
+    quote.success &&
+    Boolean(
+      quote.data.providerQuote &&
+        crunCreditsEqual(
+          credits,
+          quote.data.providerQuote.providerCreditsPerTask,
+        ),
+    )
+  );
+}
 
 export const generationQuoteGroupReceiptSchema = z.object({
   kind: z.literal('quote-group'),

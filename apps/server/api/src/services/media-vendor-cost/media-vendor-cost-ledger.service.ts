@@ -8,6 +8,7 @@ import type {
   IMediaVendorCostRecordInput,
 } from '@genfeedai/contracts/interfaces';
 import { resolveProviderCostUnits } from '@genfeedai/pricing';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -90,6 +91,9 @@ export class MediaVendorCostLedgerService {
           ? Math.round(pinnedPrice * realizedUnits * 1_000_000)
           : null;
     const data = {
+      ...(input.pricingSnapshot
+        ? { pricingSnapshot: toPrismaJson(input.pricingSnapshot) }
+        : {}),
       ...(await validatedWorkflowAccountingAttribution(
         this.prisma,
         input.organizationId,
@@ -140,6 +144,9 @@ export class MediaVendorCostLedgerService {
           },
         },
         data: {
+          ...(input.pricingSnapshot
+            ? { pricingSnapshot: toPrismaJson(input.pricingSnapshot) }
+            : {}),
           costEvidence: data.costEvidence,
           vendorCostMicros: data.vendorCostMicros,
           units: data.units,

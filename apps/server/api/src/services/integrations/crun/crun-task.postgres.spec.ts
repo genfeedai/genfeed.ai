@@ -1,9 +1,11 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import type { ByokService } from '@api/services/byok/byok.service';
 import type { CrunClient } from '@api/services/integrations/crun/crun-client.service';
 import { CrunTaskService } from '@api/services/integrations/crun/crun-task.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import { PrismaClient } from '@genfeedai/prisma';
 import type { ConfigService } from '@libs/config/config.service';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -40,10 +42,22 @@ describe('Crun durable PostgreSQL submission and leases', () => {
       `CREATE SCHEMA "${schema}"; SET search_path TO "${schema}"; ${sql}`,
     );
     await pool.query(
-      `CREATE TABLE "${schema}"."models" ("id" text PRIMARY KEY, "key" text, "isActive" boolean, "isDeleted" boolean, "reviewedProviderContractVersion" text)`,
+      `CREATE TABLE "${schema}"."models" ("id" text PRIMARY KEY, "key" text, "isActive" boolean, "isDeleted" boolean, "reviewedProviderContractVersion" text, "pendingProviderContractVersion" text, "organizationId" text)`,
     );
     await pool.query(
-      `INSERT INTO "${schema}"."models" VALUES ('model', 'crun/google/nano-banana-pro', true, false, 'contract-v1')`,
+      `INSERT INTO "${schema}"."models" VALUES ('model', 'crun/google/nano-banana-pro', true, false, 'contract-v1', NULL, NULL)`,
+    );
+    await pool.query(
+      `CREATE TABLE "${schema}"."ingredients" ("id" text PRIMARY KEY, "organizationId" text, "isDeleted" boolean DEFAULT false, "userId" text, "brandId" text, "generationBilling" jsonb)`,
+    );
+    await pool.query(
+      `CREATE TYPE "${schema}"."CreditReservationStatus" AS ENUM ('RESERVED','SETTLED','RELEASED','EXPIRED')`,
+    );
+    await pool.query(
+      `CREATE TABLE "${schema}"."credit_reservations" ("id" text PRIMARY KEY, "organizationId" text, "isDeleted" boolean DEFAULT false, "status" "${schema}"."CreditReservationStatus", "actorUserId" text, "metadata" jsonb, "amount" double precision, "workloadId" text)`,
+    );
+    await pool.query(
+      `INSERT INTO "${schema}"."credit_reservations" ("id","organizationId","isDeleted","status") VALUES ('funded-group', 'fixture-org', false, 'RESERVED'), ('fixture-reservation', 'fixture-org', false, 'RESERVED')`,
     );
     url.searchParams.set('options', `-c search_path=${schema}`);
     prisma = new PrismaClient({
@@ -52,7 +66,7 @@ describe('Crun durable PostgreSQL submission and leases', () => {
     service = new CrunTaskService(
       prisma as unknown as PrismaService,
       {
-        lookupApiKeyWithIdentity: vi.fn().mockResolvedValue(undefined),
+        lookupApiKey: vi.fn().mockResolvedValue(undefined),
       } as unknown as ByokService,
       {
         get: (name: string) => (name === 'CRUN_ENABLED' ? 'true' : key),
@@ -67,21 +81,66 @@ describe('Crun durable PostgreSQL submission and leases', () => {
       await pool.end();
     }
   });
+  function frozenQuote(outputs = 1) {
+    const result = quoteModelBillablePricing(
+      billableProfile({
+        key: 'crun/google/nano-banana-pro',
+        provider: 'crun',
+        cost: 3,
+      }),
+      {
+        modelKey: 'crun/google/nano-banana-pro',
+        provider: 'crun',
+        outputs,
+        requests: outputs,
+      },
+      1,
+      new Date().toISOString(),
+    );
+    if (result.status !== 'priced') throw new Error('Invalid fixture pricing');
+    return {
+      ...result.snapshot,
+      providerQuote: {
+        provider: 'crun',
+        estimated: false,
+        providerCreditsPerTask: '8',
+        quoteHash: 'a'.repeat(64),
+        inputHash: 'b'.repeat(64),
+        contractVersion: 'contract-v1',
+        creditsPerUsd: '1000',
+        acquisitionRateVersion: 'fixture-rate',
+        credentialSource: 'hosted',
+        credentialId: null,
+        credentialFingerprint: fingerprint,
+      },
+    };
+  }
   async function row(overrides: Record<string, unknown> = {}) {
+    const ingredientId = randomUUID();
+    const quote = frozenQuote();
+    await pool.query(
+      `INSERT INTO "${schema}"."ingredients" ("id","organizationId","userId") VALUES ($1,'fixture-org','fixture-user')`,
+      [ingredientId],
+    );
+    await pool.query(
+      `UPDATE "${schema}"."credit_reservations" SET "actorUserId"='fixture-user', "workloadId"=$1, "amount"=$2, "metadata"=$3 WHERE "id"='fixture-reservation'`,
+      [ingredientId, quote.credits, JSON.stringify({ modelQuote: quote })],
+    );
     return prisma.crunGenerationTask.create({
       data: {
         organizationId: 'fixture-org',
         userId: 'fixture-user',
-        ingredientId: randomUUID(),
+        ingredientId,
         reservationId: 'fixture-reservation',
         modelKey: 'crun/google/nano-banana-pro',
         endpoint: 'google/nano-banana-pro',
         contractVersion: 'contract-v1',
         quoteId: randomUUID(),
         outputIndex: 0,
-        inputHash: 'frozen-hash',
-        inputMetadata: { referenceCount: 0 },
-        quoteSnapshot: {},
+        inputHash: 'b'.repeat(64),
+        inputMetadata: { referenceCount: 0, intentHash: 'd'.repeat(64) },
+        quoteSnapshot: quote,
+        fundingBinding: { kind: 'reservation' },
         credentialSource: 'hosted',
         credentialFingerprint: fingerprint,
         ...overrides,
@@ -156,6 +215,97 @@ describe('Crun durable PostgreSQL submission and leases', () => {
     });
     expect(createTask).toHaveBeenCalledTimes(count);
     expect(stored?.reservationId).toBe('fixture-reservation');
+  });
+  it('prepares every funded output atomically and rolls back a foreign binding before dispatch', async () => {
+    const quoteId = randomUUID();
+    const quote = frozenQuote(4);
+    const outputs = Array.from({ length: 4 }, (_, outputIndex) => ({
+      organizationId: 'fixture-org',
+      userId: 'fixture-user',
+      ingredientId: randomUUID(),
+      reservationId: 'funded-group',
+      modelKey: 'crun/google/nano-banana-pro',
+      endpoint: 'google/nano-banana-pro',
+      contractVersion: 'contract-v1',
+      quoteId,
+      outputIndex,
+      inputHash: 'b'.repeat(64),
+      inputMetadata: { referenceCount: 0, intentHash: 'd'.repeat(64) },
+      quoteSnapshot: quote,
+      fundingBinding: { kind: 'reservation' as const },
+      credentialSource: 'hosted' as const,
+      credentialId: null,
+      credentialFingerprint: fingerprint,
+    }));
+    for (const input of outputs)
+      await pool.query(
+        `INSERT INTO "${schema}"."ingredients" ("id","organizationId","userId","generationBilling") VALUES ($1, $2, 'fixture-user', $3)`,
+        [
+          input.ingredientId,
+          input.organizationId,
+          JSON.stringify({
+            kind: 'quote-group',
+            reservationId: 'funded-group',
+            outputIndex: input.outputIndex,
+          }),
+        ],
+      );
+    await pool.query(
+      `UPDATE "${schema}"."credit_reservations" SET "actorUserId"='fixture-user', "amount"=$1, "metadata"=$2 WHERE "id"='funded-group'`,
+      [
+        quote.credits,
+        JSON.stringify({
+          modelQuote: quote,
+          boundOutputIds: outputs.map((input) => input.ingredientId),
+        }),
+      ],
+    );
+    const count = createTask.mock.calls.length;
+    expect(await service.prepareTasks(outputs)).toHaveLength(4);
+    expect(await prisma.crunGenerationTask.count({ where: { quoteId } })).toBe(
+      4,
+    );
+    expect(createTask).toHaveBeenCalledTimes(count);
+    const rejectedQuote = randomUUID();
+    const rejected = outputs.map((input) => ({
+      ...input,
+      quoteId: rejectedQuote,
+      ingredientId: randomUUID(),
+    }));
+    for (const input of rejected.slice(0, 3))
+      await pool.query(
+        `INSERT INTO "${schema}"."ingredients" ("id","organizationId","userId","generationBilling") VALUES ($1, $2, 'fixture-user', $3)`,
+        [
+          input.ingredientId,
+          input.organizationId,
+          JSON.stringify({
+            kind: 'quote-group',
+            reservationId: 'funded-group',
+            outputIndex: input.outputIndex,
+          }),
+        ],
+      );
+    await pool.query(
+      `INSERT INTO "${schema}"."ingredients" ("id","organizationId","userId") VALUES ($1, 'foreign-org', 'fixture-user')`,
+      [rejected[3].ingredientId],
+    );
+    await pool.query(
+      `UPDATE "${schema}"."credit_reservations" SET "metadata"=$1 WHERE "id"='funded-group'`,
+      [
+        JSON.stringify({
+          modelQuote: quote,
+          boundOutputIds: rejected.map((input) => input.ingredientId),
+        }),
+      ],
+    );
+    await expect(service.prepareTasks(rejected)).rejects.toMatchObject({
+      response: { code: 'CRUN_TASK_BINDING_INVALID' },
+    });
+    expect(
+      await prisma.crunGenerationTask.count({
+        where: { quoteId: rejectedQuote },
+      }),
+    ).toBe(0);
   });
   it('database uniqueness rejects duplicate quote outputs and provider IDs', async () => {
     const first = await row({ providerTaskId: randomUUID() });

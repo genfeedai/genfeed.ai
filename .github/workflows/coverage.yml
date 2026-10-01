@@ -264,6 +264,8 @@ jobs:
           --health-retries 10
     env:
       KNOWLEDGE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
+      WORKFLOW_BILLING_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
+      CRUN_TEST_REDIS_URL: redis://localhost:6379
       BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/billing_scope_test
       CREDIT_BALANCE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/credit_balance_test
       REDIS_URL: redis://localhost:6379

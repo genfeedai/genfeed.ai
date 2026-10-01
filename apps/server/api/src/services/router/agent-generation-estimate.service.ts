@@ -79,6 +79,8 @@ export class AgentGenerationEstimateService {
           })
         ).modelDetails.key;
 
+      if (modelKey.startsWith('crun/'))
+        return { ...UNAVAILABLE_QUOTE, modelKey };
       const model = await this.modelRegistrationService.validateModelForOrg(
         modelKey,
         input.organizationId,

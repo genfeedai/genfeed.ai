@@ -5,7 +5,8 @@ CREATE TABLE "crun_generation_tasks" (
     "userId" TEXT NOT NULL,
     "ingredientId" TEXT NOT NULL,
     "brandId" TEXT,
-    "reservationId" TEXT NOT NULL,
+    "reservationId" TEXT,
+    "fundingBinding" JSONB NOT NULL,
     "modelKey" TEXT NOT NULL,
     "endpoint" TEXT NOT NULL,
     "contractVersion" TEXT NOT NULL,
@@ -36,7 +37,11 @@ CREATE TABLE "crun_generation_tasks" (
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    CONSTRAINT "crun_generation_tasks_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "crun_generation_tasks_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "crun_tasks_funding_binding_check" CHECK (COALESCE(
+        ("credentialSource" = 'hosted' AND "fundingBinding"->>'kind' = 'reservation' AND "reservationId" IS NOT NULL)
+        OR ("credentialSource" = 'hosted' AND "fundingBinding"->>'kind' = 'free' AND "reservationId" IS NULL)
+        OR ("credentialSource" = 'byok' AND "fundingBinding"->>'kind' = 'byok' AND "reservationId" IS NULL), false))
 );
 
 CREATE UNIQUE INDEX "crun_tasks_org_ingredient_key" ON "crun_generation_tasks" ("organizationId", "ingredientId");

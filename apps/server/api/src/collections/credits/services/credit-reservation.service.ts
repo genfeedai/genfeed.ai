@@ -10,6 +10,7 @@ import {
   BusinessLogicException,
   UnsettleableReservationException,
 } from '@api/exceptions/business-logic.exception';
+import { crunReceiptAllowsDisposition } from '@api/helpers/utils/credits/generation-quote-group.schema';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { scopedWhere } from '@api/index';
@@ -388,6 +389,16 @@ export class CreditReservationService {
       if (reservation.status !== CreditReservationStatus.RESERVED) {
         return this.walletSnapshot(reservation, tx);
       }
+
+      const tasks = await tx.crunGenerationTask.findMany({
+        where: {
+          reservationId: reservation.id,
+          organizationId: reservation.organizationId,
+          isDeleted: false,
+        },
+      });
+      if (tasks.some((task) => !crunReceiptAllowsDisposition(task, 'release')))
+        return this.walletSnapshot(reservation, tx);
 
       const nextStatus =
         input.reason === 'expiry'

@@ -1,3 +1,9 @@
+const crunCache = {
+  claimCrunRequestSlot: vi
+    .fn()
+    .mockResolvedValue({ isAdmitted: true, retryAfterMs: 0 }),
+};
+
 import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProvider } from '@genfeedai/contracts';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -25,6 +31,7 @@ describe('ByokService subscription entitlement', () => {
     {} as never,
     logger as never,
     {} as never,
+    crunCache as never,
   );
 
   beforeEach(() => {
@@ -192,6 +199,7 @@ describe('ByokService Argil validation', () => {
     httpService as never,
     logger as never,
     {} as never,
+    crunCache as never,
   );
 
   beforeEach(() => {
@@ -230,6 +238,7 @@ describe('ByokService OpenRouter validation', () => {
     httpService as never,
     logger as never,
     {} as never,
+    crunCache as never,
   );
 
   beforeEach(() => {
@@ -320,6 +329,7 @@ describe('ByokService saveKey validation (#5294)', () => {
     {} as never,
     logger as never,
     prisma as never,
+    crunCache as never,
   );
 
   beforeEach(() => {
@@ -365,8 +375,15 @@ describe('ByokService Crun harmless credential verification', () => {
     http as never,
     { error: vi.fn() } as never,
     {} as never,
+    crunCache as never,
   );
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    crunCache.claimCrunRequestSlot.mockResolvedValue({
+      isAdmitted: true,
+      retryAfterMs: 0,
+    });
+  });
   it('only estimates the fixed harmless payload and accepts a valid fractional envelope', async () => {
     http.post.mockReturnValue(
       of({
@@ -416,6 +433,19 @@ describe('ByokService Crun harmless credential verification', () => {
     http.post.mockReturnValue(throwError(() => new Error('private api key')));
     expect(await service.validateKey(ByokProvider.CRUN, 'fixture-key')).toEqual(
       { isValid: false, error: 'Crun credential verification is unavailable' },
+    );
+  });
+  it('shares the fingerprint account gate and makes no verification request when throttled', async () => {
+    crunCache.claimCrunRequestSlot.mockResolvedValueOnce({
+      isAdmitted: false,
+      retryAfterMs: 10000,
+    });
+    expect(await service.validateKey(ByokProvider.CRUN, 'fixture-key')).toEqual(
+      { isValid: false, error: 'Crun credential verification is unavailable' },
+    );
+    expect(http.post).not.toHaveBeenCalled();
+    expect(crunCache.claimCrunRequestSlot).toHaveBeenCalledWith(
+      expect.stringMatching(/^[a-f0-9]{64}$/),
     );
   });
 });

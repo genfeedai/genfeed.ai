@@ -1,5 +1,6 @@
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.util';
+import { CrunPromptBuilder } from '@api/services/prompt-builder/builders/crun-prompt.builder';
 import { ReplicatePromptBuilder } from '@api/services/prompt-builder/builders/replicate-prompt.builder';
 import { IPromptBuilder } from '@api/services/prompt-builder/interfaces/prompt-builder.interface';
 import type {
@@ -51,10 +52,12 @@ export class PromptBuilderService {
     private readonly loggerService: LoggerService,
     private readonly templatesService: TemplatesService,
     replicateBuilder: ReplicatePromptBuilder,
+    crunBuilder: CrunPromptBuilder,
   ) {
     // Register all builders - all AI models now route through Replicate
     this.builders = new Map<ModelProvider, IPromptBuilder>([
       [ModelProvider.REPLICATE, replicateBuilder],
+      [ModelProvider.CRUN, crunBuilder],
     ]);
   }
 

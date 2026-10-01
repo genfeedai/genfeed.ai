@@ -5,6 +5,7 @@ import type {
   PreparedImageGenerationProvider,
 } from '@api/collections/images/services/image-generation.types';
 import { resolveImageGenerationProvider } from '@api/collections/images/services/image-generation-provider.util';
+import { CrunImageGenerationProviderAdapter } from '@api/collections/images/services/providers/crun-image-generation-provider.adapter';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
 import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
 import { HiggsFieldImageGenerationProviderAdapter } from '@api/collections/images/services/providers/higgsfield-image-generation-provider.adapter';
@@ -13,7 +14,7 @@ import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/
 import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
 import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
 import type { ModelProvider } from '@genfeedai/contracts';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 @Injectable()
 export class ImageGenerationProviderRegistryService {
@@ -27,6 +28,7 @@ export class ImageGenerationProviderRegistryService {
     replicateAdapter: ReplicateImageGenerationProviderAdapter,
     sdxlAdapter: SdxlImageGenerationProviderAdapter,
     higgsFieldAdapter: HiggsFieldImageGenerationProviderAdapter,
+    @Optional() crunAdapter?: CrunImageGenerationProviderAdapter,
   ) {
     this.adapters = [
       genfeedAiAdapter,
@@ -36,6 +38,7 @@ export class ImageGenerationProviderRegistryService {
       leonardoAdapter,
       replicateAdapter,
       sdxlAdapter,
+      ...(crunAdapter ? [crunAdapter] : []),
     ];
   }
 

@@ -47,6 +47,10 @@ describe('GenerationBillingService', () => {
   };
   const queue = { queueDeduction: vi.fn(), queueByokUsage: vi.fn() };
   const prisma = {
+    crunGenerationTask: {
+      findFirst: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
     $transaction: vi.fn(),
     $queryRaw: vi.fn(),
     creditReservation: {
@@ -93,7 +97,11 @@ describe('GenerationBillingService', () => {
   });
 
   beforeEach(() => {
+    prisma.crunGenerationTask.findFirst.mockReset().mockResolvedValue(null);
+    prisma.crunGenerationTask.findMany.mockReset().mockResolvedValue([]);
     vi.resetAllMocks();
+    prisma.crunGenerationTask.findFirst.mockResolvedValue(null);
+    prisma.crunGenerationTask.findMany.mockResolvedValue([]);
     quoteGroups.reconcile.mockResolvedValue(0);
     quoteGroups.reconcileOutput.mockResolvedValue(false);
     credits.bindReservationOutput.mockResolvedValue(hold());
@@ -621,4 +629,22 @@ describe('GenerationBillingService', () => {
       expect(logger.error).toHaveBeenCalled();
     });
   });
+  it.each(['submitting', 'pending', 'running', 'recovery-required'])(
+    'keeps unresolved Crun %s funding despite local failure/TTL',
+    async (state) => {
+      prisma.crunGenerationTask.findFirst.mockResolvedValue({
+        state,
+        terminalReceipt: null,
+        vendorCostRecordedAt: null,
+        mediaPersistedAt: null,
+        quoteSnapshot: {},
+      });
+      expect(await service.releaseOutput('ing_1', 'org_1')).toBe('held');
+      expect(await service.settleOutput('ing_1', 'org_1')).toBe('held');
+      await service.recordProviderFailure('ing_1', 'org_1');
+      expect(credits.releaseReservation).not.toHaveBeenCalled();
+      expect(queue.queueDeduction).not.toHaveBeenCalled();
+      expect(prisma.ingredient.updateMany).not.toHaveBeenCalled();
+    },
+  );
 });

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
 import type { GenerationCreditReservationRequest } from '@api/helpers/utils/credits/generation-credit-reservation.util';
@@ -34,6 +35,14 @@ describe.skipIf(!connectionString)(
         );
       pool = new Pool({ connectionString });
       await pool.query(`CREATE SCHEMA "${schema}"`);
+      const crunMigration = readFileSync(
+        new URL(
+          '../../../../../../../packages/prisma/prisma/migrations/20261001120000_add_crun_generation_tasks/migration.sql',
+          import.meta.url,
+        ),
+        'utf8',
+      );
+      await pool.query(`SET search_path TO "${schema}"; ${crunMigration}`);
       await pool.query(
         `CREATE TYPE "${schema}"."CreditReservationStatus" AS ENUM ('RESERVED', 'SETTLED', 'RELEASED', 'EXPIRED')`,
       );

@@ -8789,7 +8789,8 @@ model CrunGenerationTask {
   userId                String
   ingredientId          String
   brandId               String?
-  reservationId         String
+  reservationId         String?
+  fundingBinding        Json
   modelKey              String
   endpoint              String
   contractVersion       String

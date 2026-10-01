@@ -37,6 +37,7 @@ import {
   type PlatformScheduledTaskName,
 } from '@workers/scheduling/platform-schedules.constants';
 import { PlatformWorkflowSchedulesService } from '@workers/scheduling/platform-workflow-schedules.service';
+import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
 import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-delivery.service';
 import type { Job } from 'bullmq';
 
@@ -84,9 +85,14 @@ export class PlatformSchedulesProcessor extends WorkerHost {
     private readonly oauthClientCleanup: CronOAuthClientCleanupService,
     private readonly workflowSchedules: PlatformWorkflowSchedulesService,
     private readonly xReplyWatch: CronXReplyWatchService,
+    private readonly crun: CrunReconcileService,
   ) {
     super();
     this.handlers = {
+      [PLATFORM_SCHEDULED_TASKS.CRUN_TASK_RECONCILE]: () =>
+        this.crun.reconcile(),
+      [PLATFORM_SCHEDULED_TASKS.CRUN_CONTRACT_SYNC]: () =>
+        this.crun.synchronizeContracts(),
       [PLATFORM_SCHEDULED_TASKS.PROACTIVE_AGENT_STRATEGIES]: (job) =>
         this.workflowSchedules.sweep(
           'proactive-agent-strategies',
