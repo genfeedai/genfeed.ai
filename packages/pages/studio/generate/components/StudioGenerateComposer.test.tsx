@@ -896,7 +896,7 @@ describe('StudioGenerateComposer', () => {
           {...baseProps}
           models={[editModel]}
           prompt="Change the sign"
-          settings={settings}
+          settings={{ ...settings, modelKey: editModel.key }}
           type="image-edit"
           onEnhancePrompt={vi.fn()}
         />,
@@ -915,7 +915,12 @@ describe('StudioGenerateComposer', () => {
           {...baseProps}
           models={[editModel]}
           prompt="Change the sign"
-          settings={{ ...settings, editSeed: 0, editSize: '1024x1024' }}
+          settings={{
+            ...settings,
+            modelKey: editModel.key,
+            editSeed: 0,
+            editSize: '1024x1024',
+          }}
           type="image-edit"
           extraExtensions={[]}
           attachedAssets={[
