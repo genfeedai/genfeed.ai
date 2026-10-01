@@ -39,6 +39,37 @@ describe('ModelSerializer', () => {
     expect(attributes).toHaveProperty('isDefault', false);
   });
 
+  it('serializes only the safe Crun projection, never provider input or terminal billing evidence', () => {
+    const result = ModelSerializer.serialize({
+      id: 'crun-model',
+      inputControls: {
+        version: 'reviewed',
+        fields: { resolution: { enum: ['2K', '4K'], default: '2K' } },
+      },
+      providerInputSchema: {
+        serverOverrides: { num_outputs: 1 },
+        raw: 'private',
+      },
+      openapi: { paths: 'private' },
+      pricing: { rates: 'private' },
+      credentialFingerprint: 'private',
+      providerCostUsd: 0.1,
+    });
+    const attributes = serializedAttributes(result);
+    expect(attributes.inputControls).toEqual({
+      version: 'reviewed',
+      fields: { resolution: { enum: ['2K', '4K'], default: '2K' } },
+    });
+    for (const key of [
+      'providerInputSchema',
+      'openapi',
+      'pricing',
+      'credentialFingerprint',
+      'providerCostUsd',
+    ])
+      expect(attributes).not.toHaveProperty(key);
+  });
+
   it('keeps raw provider commercial metadata private', () => {
     const now = new Date();
     const result = ModelSerializer.serialize({

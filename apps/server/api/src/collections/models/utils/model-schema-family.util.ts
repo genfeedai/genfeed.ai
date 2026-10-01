@@ -23,3 +23,10 @@ export function isFalSchemaFamilyCompatible(
   }
   return false;
 }
+
+export function isCrunSchemaFamilyCompatible(
+  category: string,
+  schemaFamily: string,
+): boolean {
+  return category === ModelCategory.IMAGE && schemaFamily === 'crun-image-v1';
+}

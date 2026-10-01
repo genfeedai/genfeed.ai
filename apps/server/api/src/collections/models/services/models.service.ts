@@ -5,6 +5,8 @@ import { findModelBillablePricingProfile } from '@api/collections/models/utils/m
 import { isFalSchemaFamilyCompatible } from '@api/collections/models/utils/model-schema-family.util';
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { ValidationException } from '@api/exceptions/validation.exception';
+import { buildCrunContract } from '@api/services/integrations/crun/contracts/crun-contract-import.service';
+import { CRUN_IMAGE_MANIFEST } from '@api/services/integrations/crun/contracts/crun-manifest';
 import { isReplicateSchemaFamilyCompatible } from '@api/services/integrations/replicate/services/replicate-contract';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
@@ -15,12 +17,19 @@ import {
   ModelProvider,
 } from '@genfeedai/contracts';
 import type {
+  CrunInputControls,
+  CrunModelInputContract,
   IModelProviderContractSnapshot,
   IModelProviderContracts,
   ModelBillablePricingProfile,
 } from '@genfeedai/contracts/interfaces';
+import { projectCrunInputControls } from '@genfeedai/helpers';
 import { withLiveModelCreditPricing } from '@genfeedai/pricing';
-import type { Prisma, Model as PrismaModel } from '@genfeedai/prisma';
+import {
+  type Prisma,
+  type Model as PrismaModel,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -65,6 +74,8 @@ const PUBLIC_MODEL_CATALOG_SELECT = {
   pricingType: true,
   provider: true,
   providerCostUsd: true,
+  providerInputSchema: true,
+  reviewedProviderContractVersion: true,
   qualityTier: true,
   recommendedFor: true,
   speedTier: true,
@@ -96,7 +107,7 @@ export type PublicModelCatalogDocument = Pick<
   | 'recommendedFor'
   | 'speedTier'
   | 'supportsFeatures'
-> & { cost: number };
+> & { cost: number; inputControls?: CrunInputControls };
 
 type PublicModelCatalogFilters = {
   category?: ModelCategory;
@@ -120,6 +131,12 @@ type RegistryReviewPatch = Partial<UpdateModelDto> & {
   pricingType?: string;
   providerCostUsd?: number;
   succeededBy?: string;
+  aspectRatios?: string[];
+  defaultAspectRatio?: string;
+  maxOutputs?: number;
+  maxReferences?: number;
+  isBatchSupported?: boolean;
+  hasResolutionOptions?: boolean;
 };
 
 const SUCCESSOR_REQUIRED_LIFECYCLES = new Set<ModelLifecycle>([
@@ -166,10 +183,36 @@ export class ModelsService extends BaseService<
     const withProviderConfig = {
       ...model,
       providerConfig: this.getProviderConfig(document),
+      inputControls: this.getCrunInputControls(document),
     };
     return withLiveModelCreditPricing(
       withProviderConfig,
     ) as unknown as ModelDocument;
+  }
+
+  private getCrunInputControls(
+    document: Pick<
+      PrismaModel,
+      'provider' | 'providerInputSchema' | 'reviewedProviderContractVersion'
+    >,
+  ): CrunInputControls | undefined {
+    if (
+      document.provider !== ModelProvider.CRUN ||
+      !document.reviewedProviderContractVersion ||
+      !this.isModelRecord(document.providerInputSchema)
+    )
+      return undefined;
+    const contract = document.providerInputSchema;
+    if (
+      contract.version !== document.reviewedProviderContractVersion ||
+      !this.isModelRecord(contract.fields) ||
+      typeof contract.endpoint !== 'string' ||
+      contract.mediaKind !== 'image'
+    )
+      return undefined;
+    return projectCrunInputControls(
+      contract as unknown as CrunModelInputContract,
+    );
   }
 
   private readString(value: unknown): string | undefined {
@@ -343,6 +386,7 @@ export class ModelsService extends BaseService<
       description: priced.description,
       durations: priced.durations,
       id: priced.id,
+      inputControls: this.getCrunInputControls(row),
       isDefault: priced.isDefault,
       isHighlighted: priced.isHighlighted,
       key: priced.key,
@@ -839,7 +883,8 @@ export class ModelsService extends BaseService<
       (pendingContract?.mappingStatus !== 'supported' ||
         !pendingContract.schemaFamily ||
         !pendingContract.pricingType ||
-        pendingContract.unitPriceMicros === null)
+        (existing.provider !== ModelProvider.CRUN &&
+          pendingContract.unitPriceMicros === null))
     ) {
       throw new BadRequestException(
         'The pending provider contract is quarantined and cannot be activated',
@@ -870,6 +915,38 @@ export class ModelsService extends BaseService<
       );
     }
 
+    let crunContract: CrunModelInputContract | undefined;
+    if (pendingContract && existing.provider === ModelProvider.CRUN) {
+      const entry = CRUN_IMAGE_MANIFEST.find(
+        (candidate) =>
+          candidate.endpoint === existing.endpoint &&
+          candidate.key === existing.key,
+      );
+      if (
+        !entry ||
+        pendingContract.schemaFamily !== 'crun-image-v1' ||
+        (updateDto.category ?? existing.category) !== ModelCategory.IMAGE
+      )
+        throw new BadRequestException(
+          'The pending Crun contract does not match the exact image route',
+        );
+      try {
+        crunContract = buildCrunContract(
+          entry,
+          pendingContract.openapi,
+          pendingContract.pricing,
+        );
+      } catch {
+        throw new BadRequestException(
+          'The pending Crun contract is unsupported',
+        );
+      }
+      if (crunContract.version !== pendingContract.version)
+        throw new BadRequestException(
+          'The pending Crun contract version is invalid',
+        );
+    }
+
     const patch: RegistryReviewPatch = {
       ...updateDto,
       isActive: existing.lifecycle !== ModelLifecycle.RETIRED,
@@ -881,10 +958,25 @@ export class ModelsService extends BaseService<
 
     if (pendingContract) {
       patch.pendingProviderContractVersion = null;
-      patch.providerCostUsd =
-        Number(pendingContract.unitPriceMicros) / 1_000_000;
-      patch.providerInputSchema =
-        pendingContract.inputSchema as Prisma.InputJsonValue;
+      if (existing.provider !== ModelProvider.CRUN)
+        patch.providerCostUsd =
+          Number(pendingContract.unitPriceMicros) / 1_000_000;
+      if (crunContract) {
+        patch.aspectRatios =
+          crunContract.fields.aspect_ratio.enum?.filter(
+            (value): value is string => typeof value === 'string',
+          ) ?? [];
+        patch.defaultAspectRatio = String(
+          crunContract.fields.aspect_ratio.default,
+        );
+        patch.maxOutputs = 4;
+        patch.maxReferences = crunContract.fields.img_urls.maxItems;
+        patch.isBatchSupported = false;
+        patch.hasResolutionOptions = true;
+      }
+      patch.providerInputSchema = crunContract
+        ? toPrismaJson(crunContract)
+        : (pendingContract.inputSchema as Prisma.InputJsonValue);
       patch.providerSchemaFamily = pendingContract.schemaFamily as string;
       patch.providerSyncStatus = 'fresh';
       patch.pricingType = pendingContract.pricingType as string;

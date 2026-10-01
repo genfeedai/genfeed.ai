@@ -1,0 +1,33 @@
+{
+  "sourceUrl": "https://crun.ai/pricing",
+  "verifiedAt": "2026-10-01T00:00:00.000Z",
+  "currency": "CRUN_CREDITS",
+  "rates": [
+    {
+      "endpoint": "google/nano-banana-pro",
+      "when": {
+        "resolution": "1K"
+      },
+      "providerCredits": "8"
+    },
+    {
+      "endpoint": "google/nano-banana-pro",
+      "when": {
+        "resolution": "2K"
+      },
+      "providerCredits": "8"
+    },
+    {
+      "endpoint": "google/nano-banana-pro",
+      "when": {
+        "resolution": "4K"
+      },
+      "providerCredits": "10"
+    },
+    {
+      "endpoint": "bytedance/seedream-4-5",
+      "when": {},
+      "providerCredits": "6"
+    }
+  ]
+}

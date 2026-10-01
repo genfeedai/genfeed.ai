@@ -1,0 +1,234 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Google Nano Banana Pro API",
+    "description": "crun.ai Nano Banana Pro API Documentation",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Technical Support",
+      "email": "support@crun.ai"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.crun.ai",
+      "description": "API Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "All APIs require authentication via API Key.\n\nGet API Key:\n1. Visit [API Key Management Page](https://crun.ai/user-api-key) to get your API Key\n\nUsage:\nAdd to request header:\n\nx-api-key: YOUR_API_KEY\n\nNote:\n- Keep your API Key secure and do not share it with others\n- If you suspect your API Key has been compromised, reset it immediately in the management page"
+      }
+    },
+    "schemas": {
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "enum": [200, 401, 402, 404, 422, 429, 455, 500, 501, 505],
+            "description": "Response status code\n\n- **200**: Success - Request has been processed successfully\n- **401**: Unauthorized - Authentication credentials are missing or invalid\n- **402**: Insufficient Credits - Account does not have enough credits to perform the operation\n- **404**: Not Found - The requested resource or endpoint does not exist\n- **422**: Validation Error - The request parameters failed validation checks\n- **429**: Rate Limited - Request limit has been exceeded for this resource\n- **455**: Service Unavailable - System is currently undergoing maintenance\n- **500**: Server Error - An unexpected error occurred while processing the request\n- **501**: Generation Failed - Content generation task failed\n- **505**: Feature Disabled - The requested feature is currently disabled"
+          },
+          "message": {
+            "type": "string",
+            "description": "Response message, error description when failed",
+            "example": "success"
+          }
+        }
+      }
+    },
+    "responses": {
+      "Error": {
+        "description": "Server Error"
+      }
+    }
+  },
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "paths": {
+    "/api/v1/client/job/CreateTask": {
+      "post": {
+        "operationId": "google/nano-banana-pro",
+        "summary": "Generate images using google nano banana pro",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["model", "input"],
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "enum": [
+                      "google/nano-banana-pro",
+                      "google/nano-banana-pro-v2"
+                    ],
+                    "description": "The model name to use for generation. Required field.\n\n- Supports `google/nano-banana-pro` \n- Supports `google/nano-banana-pro-v2`"
+                  },
+                  "callback_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Optional. Callback URL for receiving task completion notifications.\n\n- System will POST task status and results to this URL when generation completes\n- Callback payloads structure is consistent with the `data` object returned by the task status query\n- Your callback endpoint should accept POST requests with JSON payload containing results\n- It returns an HTTP 200 status code upon successful receipt",
+                    "example": "https://your-domain.com/api/callback"
+                  },
+                  "input": {
+                    "type": "object",
+                    "description": "Input parameters for the Google Nano Banana Pro text-to-image or image-to-image generation task.\n\nParameter compatibility notes for `google/nano-banana-pro-v2`:\n- `output_format` is not supported and may be ignored.",
+                    "properties": {
+                      "prompt": {
+                        "type": "string",
+                        "description": "Text prompt describing the image to generate.",
+                        "minLength": 1,
+                        "maxLength": 20000,
+                        "example": "A high-detail futuristic cafe interior with natural lighting and minimalist furniture."
+                      },
+                      "img_urls": {
+                        "type": "array",
+                        "description": "Optional reference image URLs for image-to-image generation.",
+                        "items": {
+                          "type": "string",
+                          "format": "uri"
+                        },
+                        "minItems": 1,
+                        "maxItems": 8,
+                        "example": ["https://example.com/reference1.jpg"]
+                      },
+                      "resolution": {
+                        "type": "string",
+                        "description": "Output image resolution.",
+                        "enum": ["1K", "2K", "4K"],
+                        "default": "1K",
+                        "example": "2K"
+                      },
+                      "output_format": {
+                        "type": "string",
+                        "description": "Output image file format. Not supported by `google/nano-banana-pro-v2` and may be ignored.",
+                        "enum": ["png", "jpg"],
+                        "default": "png",
+                        "example": "png"
+                      },
+                      "aspect_ratio": {
+                        "type": "string",
+                        "description": "Aspect ratio of the generated image. For image-to-image generation, setting `auto` uses the aspect ratio returned by the upstream service. Explicitly set an aspect ratio when a specific output ratio is required.",
+                        "enum": [
+                          "1:1",
+                          "2:3",
+                          "3:2",
+                          "3:4",
+                          "4:3",
+                          "4:5",
+                          "5:4",
+                          "9:16",
+                          "16:9",
+                          "21:9",
+                          "auto"
+                        ],
+                        "default": "1:1",
+                        "example": "16:9"
+                      }
+                    },
+                    "required": ["prompt"]
+                  }
+                }
+              },
+              "example": {
+                "model": "google/nano-banana-pro",
+                "callback_url": "https://your-domain.com/api/callback",
+                "input": {
+                  "prompt": "A high-detail futuristic cafe interior with natural lighting and minimalist furniture, suitable for a SaaS product hero banner.",
+                  "resolution": "2K",
+                  "aspect_ratio": "16:9"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Request successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "task_id": {
+                              "type": "string",
+                              "description": "Task ID, can be used with Get Task Details endpoint to query task status",
+                              "example": "task_nano-banana-pro_1765166238715"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 200,
+                  "message": "success",
+                  "data": {
+                    "task_id": "task_nano-banana-pro_1765166238716"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "errors": {
+                          "type": "array",
+                          "description": "Detailed validation error messages",
+                          "items": {
+                            "type": "string"
+                          },
+                          "example": [
+                            "Value error, Invalid input for model google/nano-banana-pro: output_format: Input should be 'png' or 'jpeg'"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 422,
+                  "message": "Missing Params or Type Error",
+                  "errors": [
+                    "Value error, Invalid input for model google/nano-banana-pro: output_format: Input should be 'png' or 'jpg'"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    }
+  }
+}

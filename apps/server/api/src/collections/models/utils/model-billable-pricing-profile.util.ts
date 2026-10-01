@@ -208,7 +208,11 @@ export function projectModelBillablePricingProfile(
   const contract = contracts.find(
     (candidate) => candidate.version === model.reviewedProviderContractVersion,
   );
-  const properties = record(record(model.providerInputSchema).properties);
+  const properties = record(
+    model.provider === 'crun'
+      ? record(model.providerInputSchema).fields
+      : record(model.providerInputSchema).properties,
+  );
   const requiredSelectorKeys = [
     'resolution',
     'quality',
@@ -254,6 +258,7 @@ export function projectModelBillablePricingProfile(
     ),
     requiredSelectorKeys,
     requiresReviewedRates:
+      model.provider === 'crun' ||
       requiredSelectorKeys.length > 0 ||
       Object.keys(record(contract?.conditionalDimensions)).length > 0,
   };
