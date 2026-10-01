@@ -12,7 +12,12 @@ import {
   buildSocialTriggerPollingWorkflowDefinition,
   buildTrendNotificationWorkflowDefinition,
 } from '@api/collections/workflows/services/automation-workflow-definitions';
+import { WorkflowEngineConverterService } from '@api/collections/workflows/services/workflow-engine-converter.service';
 import { getActionDefinition } from '@genfeedai/actions';
+import {
+  buildActionExecutionInput,
+  WorkflowEngine,
+} from '@genfeedai/workflows/engine';
 import { describe, expect, it } from 'vitest';
 
 function actionIds(
@@ -90,6 +95,86 @@ describe('automation workflow definitions', () => {
       });
     },
   );
+
+  it.each([
+    {
+      actionId: AUTOMATION_ACTION_IDS.AGENT_RESET,
+      canonicalId: AUTOMATION_WORKFLOW_IDS.AGENT_RESET,
+      now: '2026-10-01T10:00:00.000Z',
+      output: { status: 'reset', strategyId: 'strategy-1' },
+    },
+    {
+      actionId: AUTOMATION_ACTION_IDS.AGENT_DISPATCH,
+      canonicalId: AUTOMATION_WORKFLOW_IDS.AGENT_STRATEGY,
+      output: { status: 'enqueued', executionId: 'execution-1' },
+    },
+  ])(
+    'delivers flat fan-out inputs through the native $canonicalId action contract',
+    async ({ actionId, canonicalId, now, output }) => {
+      const child = AUTOMATION_CHILD_WORKFLOWS.find(
+        (definition) => definition.canonicalId === canonicalId,
+      );
+      if (!child) throw new Error(`Missing child definition ${canonicalId}`);
+      const inputValues: Record<string, unknown> = {
+        item: {
+          config: { agentType: 'social', platforms: ['linkedin'] },
+          id: 'strategy-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
+        },
+        organizationId: 'org-1',
+        request: { fixture: true },
+        ...(now ? { now } : {}),
+      };
+      const converter = new WorkflowEngineConverterService();
+      const executable = converter.applyRuntimeInputValues(
+        child.definition,
+        converter.convertToExecutableWorkflow({
+          ...child.definition,
+          id: canonicalId,
+          organizationId: 'org-1',
+          userId: 'user-1',
+          versionId: 'fixture-version',
+        }),
+        inputValues,
+      );
+      const engine = new WorkflowEngine({ maxConcurrency: 1 });
+      const deliveredInputs: Record<string, unknown>[] = [];
+      engine.registerExecutor(actionId, async (node, inputs) => {
+        deliveredInputs.push(buildActionExecutionInput(node.config, inputs));
+        return output;
+      });
+
+      const result = await engine.execute(executable, {
+        executionId: 'fixture-execution',
+        maxRetries: 0,
+      });
+
+      expect(result.status).toBe('completed');
+      expect(deliveredInputs).toEqual([inputValues]);
+      expect(result.nodeResults.get('execute')?.output).toEqual(output);
+    },
+  );
+
+  it('preserves request-only inputs for other single-action children', () => {
+    const child = AUTOMATION_CHILD_WORKFLOWS.find(
+      (definition) =>
+        definition.canonicalId ===
+        AUTOMATION_WORKFLOW_IDS.SOCIAL_TRIGGER_WORKFLOW,
+    );
+    expect(child?.definition.inputVariables).toEqual([
+      {
+        key: 'request',
+        label: 'Workflow request',
+        required: false,
+        type: 'json',
+      },
+    ]);
+    expect(child?.definition.nodes[0]?.data.inputVariableKeys).toEqual([
+      'request',
+    ]);
+    expect(child?.definition.nodes[0]?.data.config.parameters).toEqual({});
+  });
 
   it('decomposes trend delivery into three independent channel actions', () => {
     expect(

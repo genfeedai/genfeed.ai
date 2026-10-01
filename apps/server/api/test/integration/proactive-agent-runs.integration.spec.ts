@@ -475,6 +475,7 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
     });
     expect(fixture.generated).toHaveBeenCalledTimes(1);
     expect(fixture.published).not.toHaveBeenCalled();
+    await fixture.stopWorkers();
     if (!post.reviewBatchId || !post.reviewItemId)
       throw new Error('Generated draft lost its review attribution');
     await fixture.review.approveItems(
@@ -520,6 +521,7 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
       userId: fixture.userId,
       source: 'publish_now' as const,
     };
+    fixture.startWorkers();
     await Promise.all([
       fixture.publish(publishInput),
       fixture.publish(publishInput),
