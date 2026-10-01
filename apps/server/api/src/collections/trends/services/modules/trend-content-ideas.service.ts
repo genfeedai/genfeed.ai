@@ -5,6 +5,10 @@ import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import {
+  TREND_CONTENT_IDEAS_SCHEMA_NAME,
+  trendContentIdeasSchema,
+} from '@genfeedai/contracts/api-types/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -68,7 +72,10 @@ export class TrendContentIdeasService {
         ideasMap.set(platform, ideas);
       }
     } catch (error: unknown) {
-      this.loggerService.error('Failed to generate content ideas', error);
+      this.loggerService.warn('Trend idea generation failed', {
+        code: 'trend_content_ideas_failed',
+      });
+      throw error;
     }
 
     return ideasMap;
@@ -85,105 +92,6 @@ export class TrendContentIdeasService {
       .replace(/[<>]/g, '') // Remove angle brackets
       .replace(/\n{3,}/g, '\n\n') // Limit consecutive newlines
       .substring(0, 2000); // Limit length to prevent token overflow
-  }
-
-  /**
-   * Call API with exponential backoff retry logic
-   */
-  async callWithRetry<T>(
-    operation: () => Promise<T>,
-    maxRetries: number = 3,
-    baseDelay: number = 2000,
-  ): Promise<T> {
-    let lastError: unknown;
-
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        return await operation();
-      } catch (error: unknown) {
-        lastError = error;
-
-        // Calculate exponential backoff delay
-        const delay = baseDelay * 2 ** attempt;
-        const jitter = Math.random() * 1000; // Add jitter to prevent thundering herd
-        const totalDelay = delay + jitter;
-
-        this.loggerService.warn(
-          `API call failed (attempt ${attempt + 1}/${maxRetries}), retrying in ${Math.round(totalDelay)}ms`,
-          {
-            attempt: attempt + 1,
-            error: (error as Error)?.message,
-            maxRetries,
-            service: 'TrendContentIdeasService',
-          },
-        );
-
-        // Wait before retrying
-        await new Promise((resolve) => setTimeout(resolve, totalDelay));
-      }
-    }
-
-    // All retries exhausted
-    this.loggerService.error('API call failed after all retries', lastError, {
-      finalError: (lastError as Error)?.message,
-      maxRetries,
-      service: 'TrendContentIdeasService',
-    });
-    throw lastError;
-  }
-
-  /**
-   * Parse and validate JSON response from AI
-   */
-  parseAIResponse(content: string, platform: string): TrendIdea[] {
-    // Extract JSON array from response
-    const jsonMatch = content.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
-      this.loggerService.error(
-        'No JSON array found in AI response',
-        new Error('Invalid response format'),
-        {
-          contentPreview: content.substring(0, 200),
-          platform,
-          service: 'TrendContentIdeasService',
-        },
-      );
-      throw new Error('No JSON array found in response');
-    }
-
-    let ideas: TrendIdea[];
-    try {
-      ideas = JSON.parse(jsonMatch[0]);
-
-      // Validate structure
-      if (!Array.isArray(ideas)) {
-        throw new Error('Response is not an array');
-      }
-
-      if (ideas.length === 0) {
-        this.loggerService.warn('AI returned empty ideas array', {
-          platform,
-          service: 'TrendContentIdeasService',
-        });
-      }
-
-      // Validate each idea has required fields
-      ideas.forEach((idea, index) => {
-        if (!idea.title || !idea.description || !idea.contentType) {
-          throw new Error(
-            `Idea at index ${index} missing required fields: ${JSON.stringify(idea)}`,
-          );
-        }
-      });
-
-      return ideas;
-    } catch (error: unknown) {
-      this.loggerService.error(
-        'Failed to parse or validate AI response',
-        error,
-      );
-      return []; // Graceful degradation
-    }
   }
 
   /**
@@ -225,72 +133,41 @@ For each idea, provide:
 3. Content type (video, image, carousel, thread, or text)
 4. Suggested hashtags (3-5)
 5. A sample caption (1-2 sentences)
-6. Estimated views range
+6. An optional nonnegative numeric estimatedViews estimate
 
-Format as JSON array with this structure:
-[
-  {
-    "title": "string",
-    "description": "string",
-    "contentType": "video|image|carousel|thread|text",
-    "hashtags": ["string"],
-    "caption": "string",
-    "estimatedViews": "string (e.g., '10K-50K')"
-  }
-]
+The ideas field contains creative, engaging, platform-appropriate ideas.`;
 
-Make ideas creative, engaging, and platform-appropriate.
-
-Return ONLY valid JSON. Do not include any text before or after the JSON array.`;
-
-      // Call Replicate GPT-5.2 with retry logic
-      const input = {
-        max_completion_tokens: 2000,
-        prompt,
-      };
-      const content = await this.callWithRetry(
-        () =>
-          this.replicateService.generateTextCompletionSync(
-            DEFAULT_TEXT_MODEL,
-            input,
-            byokApiKeyOverride,
-          ),
-        3, // max retries
-        2000, // base delay 2s
-      );
-
-      if (!content) {
-        this.loggerService.error(
-          'AI returned empty content',
-          new Error('No content generated'),
-          {
-            platform,
-            sanitizedCount,
-            service: 'TrendContentIdeasService',
-          },
-        );
-        return [];
-      }
-
-      onBilling?.(await this.calculateDefaultTextCharge(input, content));
-
-      // Parse and validate JSON response with robust error handling
-      const ideas = this.parseAIResponse(content, platform);
-
-      return ideas.slice(0, sanitizedCount);
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `Failed to generate ideas for ${platform}`,
-        error,
+      const result = await this.replicateService.generateStructuredTextSync(
+        DEFAULT_TEXT_MODEL,
         {
-          count,
-          errorMessage: (error as Error)?.message,
-          errorStatus: (error as Record<string, unknown>)?.status,
-          platform,
-          service: 'TrendContentIdeasService',
+          input: { max_completion_tokens: 2000 },
+          prompt,
+          schema: trendContentIdeasSchema,
+          schemaName: TREND_CONTENT_IDEAS_SCHEMA_NAME,
+          onAttempt: onBilling
+            ? async (input, output) => {
+                onBilling(await this.calculateDefaultTextCharge(input, output));
+              }
+            : undefined,
         },
+        byokApiKeyOverride,
       );
-      return []; // Graceful degradation
+      return result.ideas.slice(0, sanitizedCount).map((idea) => ({
+        title: idea.title,
+        description: idea.description,
+        contentType: idea.contentType,
+        platform,
+        ...(idea.hashtags != null ? { hashtags: idea.hashtags } : {}),
+        ...(idea.caption != null ? { caption: idea.caption } : {}),
+        ...(idea.estimatedViews != null
+          ? { estimatedViews: idea.estimatedViews }
+          : {}),
+      }));
+    } catch (error: unknown) {
+      this.loggerService.warn('Trend idea generation failed', {
+        code: 'trend_content_ideas_failed',
+      });
+      throw error;
     }
   }
 
