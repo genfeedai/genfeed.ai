@@ -1631,6 +1631,7 @@ describe('snapshot compiler recipe capture', () => {
         id: 'fact',
         kind: 'statement',
         subject: 'Product',
+        predicate: 'is',
         value: 'Acme',
         evidenceIds: ['e'],
         required: true,
