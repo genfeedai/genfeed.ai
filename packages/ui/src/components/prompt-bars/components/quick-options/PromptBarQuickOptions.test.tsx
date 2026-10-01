@@ -5,9 +5,9 @@ import {
 import '@testing-library/jest-dom/vitest';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { IngredientCategory, IngredientFormat } from '@genfeedai/contracts';
-import type { PromptBarQuickOptionsProps } from '@genfeedai/props/prompt-bars/prompt-bar-tiers.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import PromptBarQuickOptions from '@ui/prompt-bars/components/quick-options/PromptBarQuickOptions';
+import type { ComponentProps } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -23,8 +23,8 @@ function makeForm(
 }
 
 function makeProps(
-  overrides: Partial<PromptBarQuickOptionsProps> = {},
-): PromptBarQuickOptionsProps {
+  overrides: Partial<ComponentProps<typeof PromptBarQuickOptions>> = {},
+): ComponentProps<typeof PromptBarQuickOptions> {
   return {
     categoryType: IngredientCategory.VIDEO,
     controlClass: 'control',

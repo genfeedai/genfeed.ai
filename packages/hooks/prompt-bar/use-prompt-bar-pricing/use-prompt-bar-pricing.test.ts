@@ -1,3 +1,4 @@
+import { ModelProvider } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import { usePromptBarPricing } from '@hooks/prompt-bar/use-prompt-bar-pricing/use-prompt-bar-pricing';
 import { renderHook } from '@testing-library/react';
@@ -384,7 +385,7 @@ describe('usePromptBarPricing', () => {
 
 describe('Crun pricing cannot use static model costs', () => {
   it('returns null for Crun even when catalog cost is populated and four outputs are selected', () => {
-    const model = createMockModel({ provider: 'crun', cost: 3 });
+    const model = createMockModel({ provider: ModelProvider.CRUN, cost: 3 });
     const { result } = renderHook(() =>
       usePromptBarPricing({ selectedModels: [model], watchedOutputs: 4 }),
     );
@@ -395,7 +396,7 @@ describe('Crun pricing cannot use static model costs', () => {
     const { result } = renderHook(() =>
       usePromptBarPricing({
         selectedModels: [
-          createMockModel({ provider: 'crun' }),
+          createMockModel({ provider: ModelProvider.CRUN }),
           createMockModel(),
         ],
         watchedOutputs: 4,

@@ -4,6 +4,7 @@ import {
   type PromptBarInternalContextValue,
 } from '@genfeedai/contexts/ui/prompt-bar-internal-context';
 import { IngredientFormat } from '@genfeedai/contracts';
+import type { MediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
 import type { PromptBarFormatControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
 import { render } from '@testing-library/react';
 import PromptBarFormatControls from '@ui/prompt-bars/components/format-controls/PromptBarFormatControls';
@@ -114,7 +115,7 @@ describe('Crun legacy exact aspect carrier', () => {
     aspectRatio: '21:9',
     outputFormat: 'jpg' as const,
   };
-  function setup(references: string[]) {
+  function setup(references: MediaReference[]) {
     const form = {
       getValues: vi.fn(() => envelope),
       setValue: vi.fn(),
@@ -140,7 +141,7 @@ describe('Crun legacy exact aspect carrier', () => {
     return { form, setReferences };
   }
   it('round-trips 21:9/auto in the residual envelope without dimensions or reference clearing', () => {
-    const { form, setReferences } = setup(['image-1']);
+    const { form, setReferences } = setup([{ id: 'image-1' }]);
     expect(capturedAspectRatioDropdownProps.value).toBe('21:9');
     expect(capturedAspectRatioDropdownProps.ratios).toEqual([
       '1:1',

@@ -1,3 +1,4 @@
+import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import {
   IngredientCategory,
   IngredientFormat,
@@ -5,6 +6,7 @@ import {
 } from '@genfeedai/contracts';
 import { usePromptBarSync } from '@hooks/prompt-bar/use-prompt-bar-sync/use-prompt-bar-sync';
 import { act, renderHook } from '@testing-library/react';
+import { useForm } from 'react-hook-form';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const createMockForm = () => ({
@@ -688,44 +690,70 @@ describe('Crun residual form synchronization', () => {
       modelKey: 'crun/google/nano-banana-pro',
       contractVersion: 'reviewed-1',
       aspectRatio: 'auto',
-      outputFormat: 'jpg',
+      outputFormat: 'jpg' as const,
     };
-    const form = createMockForm();
-    renderHook(() =>
+    const { result } = renderHook(() => {
+      const form = useForm<PromptTextareaSchema>({
+        defaultValues: {
+          text: 'current text',
+          format: IngredientFormat.PORTRAIT,
+          models: ['model-1'],
+          width: 1080,
+          height: 1920,
+          references: [],
+        },
+      });
+      const setValue = vi.spyOn(form, 'setValue');
       usePromptBarSync({
         ...createBaseOptions(),
         form,
-        promptData: { crunControls: controls } as Parameters<
-          typeof usePromptBarSync
-        >[0]['promptData'],
-      }),
-    );
-    expect(form.setValue).toHaveBeenCalledWith('crunControls', controls, {
-      shouldValidate: true,
+        promptData: { crunControls: controls, isValid: true },
+      });
+      return { setValue };
     });
+    expect(result.current.setValue).toHaveBeenCalledWith(
+      'crunControls',
+      controls,
+      {
+        shouldValidate: true,
+      },
+    );
   });
   it('synchronizes a split-state 21:9 carrier without mapping to dimensions', () => {
     const controls = {
       modelKey: 'crun/google/nano-banana-pro',
       contractVersion: 'reviewed-1',
       aspectRatio: '21:9',
-      outputFormat: 'png',
+      outputFormat: 'png' as const,
     };
-    const form = createMockForm();
-    renderHook(() =>
+    const { result } = renderHook(() => {
+      const form = useForm<PromptTextareaSchema>({
+        defaultValues: {
+          text: 'current text',
+          format: IngredientFormat.PORTRAIT,
+          models: ['model-1'],
+          width: 1080,
+          height: 1920,
+          references: [],
+        },
+      });
+      const setValue = vi.spyOn(form, 'setValue');
       usePromptBarSync({
         ...createBaseOptions(),
         form,
         useSplitState: true,
-        promptConfig: { crunControls: controls } as Parameters<
-          typeof usePromptBarSync
-        >[0]['promptConfig'],
-      }),
-    );
-    expect(form.setValue).toHaveBeenCalledWith('crunControls', controls, {
-      shouldValidate: true,
+        promptConfig: { crunControls: controls, isValid: true },
+      });
+      return { setValue };
     });
-    expect(form.setValue).not.toHaveBeenCalledWith(
+    expect(result.current.setValue).toHaveBeenCalledWith(
+      'crunControls',
+      controls,
+      {
+        shouldValidate: true,
+      },
+    );
+    expect(result.current.setValue).not.toHaveBeenCalledWith(
       'width',
       expect.anything(),
       expect.anything(),

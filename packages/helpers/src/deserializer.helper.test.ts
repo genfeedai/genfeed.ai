@@ -622,6 +622,10 @@ describe('model inputControls opaque boundary', () => {
           },
         },
       });
+      if (isDeserializerRuntime(result))
+        throw new Error(
+          'Expected a deserialized model fixture, received the runtime',
+        );
       expect(result.inputControls).toEqual(controls);
       expect(result.inputControls).not.toBe(controls);
       expect(result.inputControls.fields).not.toBe(controls.fields);
