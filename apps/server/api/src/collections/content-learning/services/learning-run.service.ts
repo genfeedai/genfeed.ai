@@ -58,6 +58,17 @@ export function parseLearningRunDispatch(
 ): LearningRunDispatchReceiptV1 | null {
   return validLearningRunDispatchReceipt(value) ? value : null;
 }
+function scopedRunDispatch(
+  claim: LearningRunClaim,
+): LearningRunDispatchInput | null {
+  const organizationId = claim.operation.organizationId;
+  if (typeof organizationId !== 'string' || !organizationId.trim()) return null;
+  return {
+    runId: claim.run.id,
+    operationId: claim.operation.id,
+    organizationId,
+  };
+}
 const terminalStatuses = new Set([
   'completed',
   'insufficient_data',
@@ -563,13 +574,10 @@ export class LearningRunService {
     claim: LearningRunClaim,
     apply: (tx: Prisma.TransactionClient, now: Date) => Promise<T>,
   ): Promise<T | null> {
+    const input = scopedRunDispatch(claim);
+    if (!input) return null;
     return this.prisma.$transaction(async (tx) => {
       await learningFence(tx, 'shared');
-      const input = {
-        runId: claim.run.id,
-        operationId: claim.operation.id,
-        organizationId: claim.operation.organizationId,
-      };
       const { run, operation, now } = await this.lockedDispatch(tx, input);
       const receipt = parseLearningRunDispatch(operation.resultReferences);
       if (
@@ -598,11 +606,8 @@ export class LearningRunService {
     });
   }
   private async failedAttempt(claim: LearningRunClaim, error: unknown) {
-    const input = {
-      runId: claim.run.id,
-      operationId: claim.operation.id,
-      organizationId: claim.operation.organizationId,
-    };
+    const input = scopedRunDispatch(claim);
+    if (!input) return;
     const deterministic =
       error instanceof LearningEvidenceValidationError ||
       error instanceof BadRequestException;

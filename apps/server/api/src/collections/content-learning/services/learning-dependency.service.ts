@@ -525,6 +525,7 @@ export class LearningDependencyService {
               activeCells: [],
             },
           });
+        if (!validLearningDependencyKind(edge.derivedKind)) continue;
         queue.push({
           kind: edge.derivedKind,
           id: edge.derivedId,

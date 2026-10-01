@@ -147,7 +147,8 @@ export class LearningRunControlService {
         for (const cycle of cycles.filter((cycle) =>
           ['pending', 'running'].includes(cycle.status),
         )) {
-          if (!validLearningRunDispatchReceipt(cycle.resultReferences))
+          const receipt = cycle.resultReferences;
+          if (!validLearningRunDispatchReceipt(receipt))
             throw new ConflictException('dispatch_receipt_invalid');
           await tx.contentLearningOperation.updateMany({
             where: {
@@ -160,7 +161,7 @@ export class LearningRunControlService {
               status: 'cancelled',
               error: null,
               resultReferences: toPrismaJson({
-                ...cycle.resultReferences,
+                ...receipt,
                 nextAttemptAt: null,
                 terminalResult: {
                   runStatus: 'cancelled',

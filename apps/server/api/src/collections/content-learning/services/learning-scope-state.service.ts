@@ -13,7 +13,7 @@ import {
   learningDescriptorTuple,
   validLearningDescriptor,
 } from '@genfeedai/harness';
-import type { Prisma } from '@genfeedai/prisma';
+import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import {
   BadRequestException,
   ConflictException,
@@ -81,7 +81,7 @@ export class LearningScopeStateService {
         credentialId: scope.credentialId,
         scopeKey: learningScopeKey(scope),
         epoch,
-        cellDescriptor: descriptor,
+        cellDescriptor: toPrismaJson(descriptor),
         descriptorHash,
       },
       update: {},

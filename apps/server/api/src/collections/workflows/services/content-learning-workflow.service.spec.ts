@@ -43,7 +43,10 @@ function fixture() {
   };
   const queue = { queueSystemWorkflow: vi.fn().mockResolvedValue('job') },
     runner = { registerWorkflow: vi.fn(), runWorkflow: vi.fn() },
-    runs = { execute: vi.fn().mockResolvedValue({}) },
+    runs = {
+      execute: vi.fn().mockResolvedValue({}),
+      reconcileDispatch: vi.fn().mockResolvedValue({ dispatchable: true }),
+    },
     checkpoints = {
       fulfilledWindow: vi.fn().mockResolvedValue(null),
       latestAttempt: vi.fn().mockResolvedValue(null),
