@@ -99,9 +99,7 @@ describe('Studio history recovery with the real bounded loader', () => {
       act(() => result.current.refresh());
       await waitFor(() => expect(result.current.galleryError).toBe('refresh'));
       act(() => result.current.refresh());
-      await waitFor(() =>
-        expect(mocks.error).toHaveBeenCalledTimes(ALL_CATEGORY_COUNT * 2),
-      );
+      await waitFor(() => expect(mocks.error).toHaveBeenCalledTimes(2));
       expect(result.current.storedJobs.map((job) => job.id)).toEqual(ids);
       expect(result.current.galleryError).toBe('refresh');
     },
