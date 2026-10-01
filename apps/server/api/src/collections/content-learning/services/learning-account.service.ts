@@ -7,11 +7,12 @@ import {
   LearningOperationService,
   learningHash,
 } from '@api/collections/content-learning/services/learning-operation.service';
+import { LearningScopeStateService } from '@api/collections/content-learning/services/learning-scope-state.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { LEARNING_ARMS } from '@genfeedai/harness';
-import { toPrismaJson } from '@genfeedai/prisma';
+import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import {
   BadRequestException,
   ConflictException,
@@ -23,29 +24,40 @@ export class LearningAccountService {
     private readonly prisma: PrismaService,
     private readonly operations: LearningOperationService,
     private readonly dependencies: LearningDependencyService,
+    private readonly scopes: LearningScopeStateService,
   ) {}
   async credential(
     organizationId: string,
     credentialId: string,
     brandId?: string,
+    tx: Prisma.TransactionClient = this.prisma,
   ) {
-    const credential = await this.prisma.credential.findFirst({
+    const credential = await tx.credential.findFirst({
       where: scopedWhere(organizationId, {
         id: credentialId,
         ...(brandId ? { brandId } : {}),
       }),
     });
     if (!credential?.brandId) throw new NotFoundException('Account not found');
-    const brand = await this.prisma.brand.findFirst({
+    const brand = await tx.brand.findFirst({
       where: { id: credential.brandId, organizationId, isDeleted: false },
     });
     if (!brand) throw new NotFoundException('Account not found');
     return { ...credential, brandId: credential.brandId };
   }
-  async ensure(organizationId: string, credentialId: string) {
-    const credential = await this.credential(organizationId, credentialId);
+  async ensure(
+    organizationId: string,
+    credentialId: string,
+    tx: Prisma.TransactionClient = this.prisma,
+  ) {
+    const credential = await this.credential(
+      organizationId,
+      credentialId,
+      undefined,
+      tx,
+    );
     // tenant-scope-ignore: unique-key upsert; organizationId is part of the key
-    return this.prisma.contentLearningAccount.upsert({
+    return tx.contentLearningAccount.upsert({
       where: { organizationId_credentialId: { organizationId, credentialId } },
       create: { organizationId, credentialId, brandId: credential.brandId },
       update: {},
@@ -160,7 +172,21 @@ export class LearningAccountService {
             ))
           )
             throw new ConflictException('No valid in-epoch predecessor');
+          await this.scopes.pin(
+            tx,
+            actor.organizationId,
+            credentialId,
+            policy.id,
+            account.epoch,
+          );
         }
+        if (body.action === 'live')
+          await this.scopes.clearPins(
+            tx,
+            actor.organizationId,
+            credentialId,
+            account.epoch,
+          );
         if (body.action === 'reset')
           await tx.contentLearningPolicyVersion.updateMany({
             where: {
@@ -193,9 +219,6 @@ export class LearningAccountService {
                   approvedArmIds: [],
                   failureReason: null,
                 }
-              : {}),
-            ...(body.action === 'rollback'
-              ? { activePolicyId: body.policyId }
               : {}),
           },
         });

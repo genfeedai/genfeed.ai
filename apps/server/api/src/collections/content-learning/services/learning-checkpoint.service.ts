@@ -21,6 +21,7 @@ import {
   learningDescriptorTuple,
   learningRegisteredProfiles,
   median,
+  validLearningDescriptor,
   weightedMeasurement,
 } from '@genfeedai/harness';
 import {
@@ -28,7 +29,11 @@ import {
   type Prisma,
   toPrismaJson,
 } from '@genfeedai/prisma';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 interface LearningCheckpointProfile {
   profileId: string;
@@ -97,13 +102,20 @@ export function parseLearningMeasurement(
     typeof exposure !== 'number' ||
     typeof weightedActions !== 'number' ||
     !Number.isFinite(exposure) ||
-    !Number.isFinite(weightedActions)
+    !Number.isFinite(weightedActions) ||
+    exposure < 0 ||
+    weightedActions < 0
   )
     return null;
   const watch =
     'averageWatchTimeSeconds' in value
       ? value.averageWatchTimeSeconds
       : undefined;
+  if (
+    watch !== undefined &&
+    (typeof watch !== 'number' || !Number.isFinite(watch) || watch < 0)
+  )
+    return null;
   return {
     exposure,
     weightedActions,
@@ -485,58 +497,135 @@ export class LearningCheckpointService {
       return checkpoint;
     });
   }
-  async freeze(scope: LearningScope, cutoff: Date) {
-    const rows = await this.prisma.contentLearningCheckpoint.findMany({
-      where: {
-        organizationId: scope.organizationId,
-        brandId: scope.brandId,
-        credentialId: scope.credentialId,
-        format: scope.format,
-        validity: 'valid',
-        windowId: '48h-v1',
-        isDeleted: false,
-        receivedAt: {
-          lte: cutoff,
-          gte: new Date(cutoff.getTime() - 90 * 86400000),
-        },
-      },
-      orderBy: [{ receivedAt: 'desc' }, { id: 'asc' }],
-      take: 500,
-    });
-    const distinct = new Set<string>();
-    const selected = rows
-      .filter((row) => {
-        if (distinct.has(row.postId)) return false;
-        const data = row.measurement;
-        if (
-          !data ||
-          typeof data !== 'object' ||
-          Array.isArray(data) ||
-          !('profile' in data) ||
-          data.profile !== scope.objective
-        )
-          return false;
-        distinct.add(row.postId);
-        return true;
-      })
-      .slice(0, 50);
-    const samples = selected.flatMap((row) => {
-      const value = row.measurement;
-      if (!value || typeof value !== 'object' || Array.isArray(value))
-        return [];
-      const measurement = parseLearningMeasurement(
-        'measurement' in value ? value.measurement : null,
+  async freeze(
+    scope: LearningScope,
+    cutoff: Date,
+    descriptor: LearningCellDescriptor,
+    tx?: Prisma.TransactionClient,
+  ) {
+    if (!validLearningDescriptor(descriptor))
+      throw new BadRequestException(
+        'Immutable registered cell descriptor required',
       );
-      return measurement ? [measurement] : [];
-    });
-    const fingerprint = learningHash([
-      learningScopeKey(scope),
-      cutoff.toISOString(),
-      selected.map((row) => [row.id, row.revision]),
-    ]);
-    return this.prisma.$transaction(async (tx) => {
-      // tenant-scope-ignore: unique-key upsert cannot carry scopedWhere
-      const baseline = await tx.contentLearningBaseline.upsert({
+    const descriptorHash = learningHash(learningDescriptorTuple(descriptor));
+    if (
+      !validLearningDescriptor(descriptor) ||
+      descriptorHash !== scope.rewardProfileId ||
+      descriptor.platform !== scope.platform ||
+      descriptor.format !== scope.format ||
+      descriptor.objective !== scope.objective ||
+      !Number.isFinite(cutoff.getTime())
+    )
+      throw new BadRequestException(
+        'Immutable registered cell descriptor required',
+      );
+    const collect = async (client: Prisma.TransactionClient) => {
+      const selected: ContentLearningCheckpoint[] = [],
+        samples: LearningMeasurement[] = [],
+        distinct = new Set<string>();
+      let cursor: { receivedAt: Date; id: string } | undefined;
+      while (selected.length < 50) {
+        const rows = await client.contentLearningCheckpoint.findMany({
+          where: {
+            organizationId: scope.organizationId,
+            brandId: scope.brandId,
+            credentialId: scope.credentialId,
+            format: scope.format,
+            validity: 'valid',
+            windowId: '48h-v1',
+            isDeleted: false,
+            receivedAt: {
+              lte: cutoff,
+              gte: new Date(cutoff.getTime() - 90 * 86400000),
+            },
+            ...(cursor
+              ? {
+                  OR: [
+                    { receivedAt: { lt: cursor.receivedAt } },
+                    { receivedAt: cursor.receivedAt, id: { gt: cursor.id } },
+                  ],
+                }
+              : {}),
+          },
+          orderBy: [{ receivedAt: 'desc' }, { id: 'asc' }],
+          take: 100,
+        });
+        for (const row of rows) {
+          if (distinct.has(row.postId)) continue;
+          const raw = row.measurement;
+          if (
+            !raw ||
+            typeof raw !== 'object' ||
+            Array.isArray(raw) ||
+            !Array.isArray(raw.profiles)
+          )
+            continue;
+          const profile = raw.profiles.find(
+            (value) =>
+              value &&
+              typeof value === 'object' &&
+              !Array.isArray(value) &&
+              value.profileId === descriptorHash &&
+              validLearningDescriptor(value.descriptor) &&
+              learningHash(learningDescriptorTuple(value.descriptor)) ===
+                descriptorHash,
+          );
+          if (!profile || typeof profile !== 'object' || Array.isArray(profile))
+            continue;
+          const measurement = parseLearningMeasurement(profile.measurement);
+          if (
+            !measurement ||
+            (descriptor.retention &&
+              measurement.averageWatchTimeSeconds === undefined) ||
+            !(await this.dependencies.valid(
+              'checkpoint',
+              row.id,
+              client,
+              scope.organizationId,
+            ))
+          )
+            continue;
+          selected.push(row);
+          samples.push(measurement);
+          distinct.add(row.postId);
+          if (selected.length === 50) break;
+        }
+        if (rows.length < 100) break;
+        const last = rows[rows.length - 1];
+        cursor = { receivedAt: last.receivedAt, id: last.id };
+      }
+      // Revalidate the exact contributing versions before any immutable baseline write.
+      for (const row of selected) {
+        const current = await client.contentLearningCheckpoint.findFirst({
+          where: {
+            id: row.id,
+            organizationId: scope.organizationId,
+            brandId: scope.brandId,
+            credentialId: scope.credentialId,
+            revision: row.revision,
+            validity: 'valid',
+            isDeleted: false,
+          },
+        });
+        if (
+          !current ||
+          !(await this.dependencies.valid(
+            'checkpoint',
+            row.id,
+            client,
+            scope.organizationId,
+          ))
+        )
+          throw new ConflictException('Baseline contributor changed');
+      }
+      const fingerprint = learningHash([
+        learningScopeKey(scope),
+        descriptorHash,
+        cutoff.toISOString(),
+        selected.map((row) => [row.id, row.revision]),
+      ]);
+      // tenant-scope-ignore: unique immutable fingerprint upsert
+      const baseline = await client.contentLearningBaseline.upsert({
         where: { fingerprint },
         create: {
           organizationId: scope.organizationId,
@@ -544,8 +633,10 @@ export class LearningCheckpointService {
           credentialId: scope.credentialId,
           fingerprint,
           scopeKey: learningScopeKey(scope),
+          cellDescriptor: toPrismaJson(descriptor),
+          descriptorHash,
           cutoff,
-          configVersion: 'rl-reward-v1-experimental',
+          configVersion: descriptor.configVersion,
           contributorCheckpointIds: selected.map((row) => row.id),
           contributorRevisions: selected.map((row) => row.revision),
           count: samples.length,
@@ -557,21 +648,26 @@ export class LearningCheckpointService {
       });
       for (const row of selected)
         await this.dependencies.link(
-          tx,
+          client,
           await this.dependencies.resolve(
             'checkpoint',
             row.id,
             scope.organizationId,
-            tx,
+            client,
           ),
           await this.dependencies.resolve(
             'baseline',
             baseline.id,
             scope.organizationId,
-            tx,
+            client,
           ),
         );
       return baseline;
+    };
+    if (tx) return collect(tx);
+    return this.prisma.$transaction(async (client) => {
+      await learningFence(client, 'shared');
+      return collect(client);
     });
   }
 }

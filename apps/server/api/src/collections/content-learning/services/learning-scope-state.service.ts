@@ -31,6 +31,10 @@ export class LearningScopeStateService {
     descriptor: LearningCellDescriptor,
     epoch: number,
   ) {
+    if (!validLearningDescriptor(descriptor))
+      throw new BadRequestException(
+        'Immutable registered cell descriptor required',
+      );
     const descriptorHash = learningHash(learningDescriptorTuple(descriptor));
     if (
       !validLearningDescriptor(descriptor) ||
@@ -66,7 +70,7 @@ export class LearningScopeStateService {
     if (!account || account.epoch !== epoch)
       throw new ConflictException('Account epoch changed');
     // tenant-scope-ignore: unique-key upsert; organizationId is part of the key
-    return tx.contentLearningScopeState.upsert({
+    const state = await tx.contentLearningScopeState.upsert({
       where: {
         organizationId_credentialId_scopeKey_epoch: {
           organizationId: scope.organizationId,
@@ -86,9 +90,23 @@ export class LearningScopeStateService {
       },
       update: {},
     });
+    if (
+      state.isDeleted ||
+      state.organizationId !== scope.organizationId ||
+      state.brandId !== scope.brandId ||
+      state.credentialId !== scope.credentialId ||
+      state.scopeKey !== learningScopeKey(scope) ||
+      state.epoch !== epoch ||
+      state.descriptorHash !== descriptorHash ||
+      !validLearningDescriptor(state.cellDescriptor) ||
+      learningHash(learningDescriptorTuple(state.cellDescriptor)) !==
+        descriptorHash
+    )
+      throw new ConflictException('Existing scope descriptor mismatch');
+    return state;
   }
   async read(
-    tx: Prisma.TransactionClient,
+    tx: Prisma.TransactionClient = this.prisma,
     organizationId: string,
     credentialId: string,
     scopeKey: string,
@@ -152,6 +170,7 @@ export class LearningScopeStateService {
         scopeKey: input.scopeKey,
         epoch: input.epoch,
         descriptorHash: scope.descriptorHash,
+        brandId: scope.brandId,
         synthetic: false,
         state: { in: ['shadow', 'active', 'retired'] },
         isDeleted: false,
@@ -167,6 +186,7 @@ export class LearningScopeStateService {
       ))
     )
       return null;
+    if (scope.activePolicyId === policy.id) return scope;
     const changed = await tx.contentLearningScopeState.updateMany({
       where: {
         id: scope.id,
@@ -244,9 +264,17 @@ export class LearningScopeStateService {
       policy.scopeKey,
       epoch,
     );
-    if (!scope || scope.descriptorHash !== policy.descriptorHash)
+    if (
+      !scope ||
+      scope.brandId !== policy.brandId ||
+      scope.descriptorHash !== policy.descriptorHash ||
+      !validLearningDescriptor(policy.cellDescriptor) ||
+      learningHash(learningDescriptorTuple(policy.cellDescriptor)) !==
+        scope.descriptorHash
+    )
       throw new ConflictException('Policy scope descriptor mismatch');
-    await tx.contentLearningScopeState.updateMany({
+    await tx.$queryRaw`SELECT id FROM content_learning_scope_states WHERE id = ${scope.id} AND "organizationId" = ${organizationId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
+    const changed = await tx.contentLearningScopeState.updateMany({
       where: {
         id: scope.id,
         organizationId,
@@ -259,6 +287,42 @@ export class LearningScopeStateService {
         revision: { increment: 1 },
       },
     });
+    if (changed.count !== 1)
+      throw new ConflictException('Scope revision changed');
     return this.read(tx, organizationId, credentialId, policy.scopeKey, epoch);
+  }
+  async clearPins(
+    tx: Prisma.TransactionClient,
+    organizationId: string,
+    credentialId: string,
+    epoch: number,
+  ) {
+    const rows = await tx.contentLearningScopeState.findMany({
+      where: {
+        organizationId,
+        credentialId,
+        epoch,
+        isDeleted: false,
+        pinnedPolicyId: { not: null },
+      },
+      orderBy: { id: 'asc' },
+    });
+    for (const row of rows) {
+      await tx.$queryRaw`SELECT id FROM content_learning_scope_states WHERE id = ${row.id} AND "organizationId" = ${organizationId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
+      const changed = await tx.contentLearningScopeState.updateMany({
+        where: {
+          id: row.id,
+          organizationId,
+          credentialId,
+          epoch,
+          isDeleted: false,
+          revision: row.revision,
+          pinnedPolicyId: row.pinnedPolicyId,
+        },
+        data: { pinnedPolicyId: null, revision: { increment: 1 } },
+      });
+      if (changed.count !== 1)
+        throw new ConflictException('Scope revision changed');
+    }
   }
 }
