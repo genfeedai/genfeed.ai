@@ -16,8 +16,6 @@ locals {
     # only receives an SSM allowlist; this URL is not a secret, so it is injected
     # here for every task (including notifications) instead of being omitted and
     # falling back to localhost JWKS.
-    { name = "MARKETPLACE_API_URL", value = "https://api.marketplace.${var.domain}" },
-    { name = "MARKETPLACE_AUTH_ORIGIN", value = "https://marketplace.${var.domain}" },
     { name = "BETTER_AUTH_URL", value = "https://${var.api_subdomain}.${var.domain}" },
     { name = "GENFEEDAI_API_URL", value = "http://api.genfeed.internal:${local.services.api.port}" },
     { name = "GENFEEDAI_MCP_PUBLIC_URL", value = "https://mcp.${var.domain}/mcp" },
