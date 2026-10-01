@@ -5,8 +5,7 @@
  * `lg` control inside an `md` container makes the inner corner bulge — pick the
  * step *below* the parent for anything inset by a single padding step.
  *
- * `card` matches the workspace content panel (`lg`), so a card sitting in the
- * panel reads as part of the same rounded surface.
+ * `card` is `lg` (8px): cards and media tiles.
  */
 export type RadiusTokenName =
   | 'none'

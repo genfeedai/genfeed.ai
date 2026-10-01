@@ -701,14 +701,18 @@ describe('UniversalWorkspaceShell', () => {
 
     const layoutRoot = screen.getByTestId('layout-root');
     const aside = container.querySelector('#workspace-context-inspector');
-    // Open: the panel squares its right edge; the inspector adds no left edge
-    // of its own, so the two share one divider.
+    // Open: a full-height page column. Its left border is the divider.
     expect(layoutRoot).toHaveAttribute('data-inspector-open', 'true');
     expect(
       layoutRoot.style.getPropertyValue('--workspace-inspector-width'),
     ).toBe('320px');
-    expect(aside).toHaveClass('rounded-r-lg', 'border-y', 'border-r');
-    expect(aside).not.toHaveClass('border-l', 'rounded-lg');
+    expect(aside).toHaveClass('border-l', 'border-border');
+    expect(aside).not.toHaveClass(
+      'rounded-r-lg',
+      'rounded-lg',
+      'border-y',
+      'border-r',
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Close details' }));
 

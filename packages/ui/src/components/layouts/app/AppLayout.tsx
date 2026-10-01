@@ -60,9 +60,9 @@ export default function AppLayout({
     topbarComponent,
   });
 
-  // Codex/Slack chrome: rail + sidebar share one surface and the page sits in
-  // an inset, bordered panel that owns its own scroll (desktop only; mobile
-  // keeps document scrolling under the fixed topbar).
+  // Codex chrome: rail, sidebar, and topbar share the sidebar plane. The page
+  // is the surface beneath the topbar and owns its own scroll (desktop only;
+  // mobile keeps document scrolling under the fixed topbar).
   const hasChrome = Boolean(railComponent);
   const TopbarComponent = topbarComponent;
   const topbarContent =
@@ -82,7 +82,7 @@ export default function AppLayout({
           className={cn(
             'overflow-x-hidden',
             hasChrome
-              ? 'bg-gray-100 [--shell-edge:0px] [--shell-inset:0px] md:[--shell-edge:1px] md:[--shell-inset:0.5rem]'
+              ? 'bg-gray-100 [--shell-edge:0px] [--shell-inset:0px]'
               : 'bg-background',
             lockViewportHeight ? 'h-dvh overflow-hidden' : 'min-h-screen',
           )}
@@ -175,12 +175,10 @@ export default function AppLayout({
               'relative flex flex-col',
               hasChrome
                 ? cn(
-                    // Codex: the content panel floats one inset from the top,
-                    // right and bottom of the window (so the rail, sidebar
-                    // header and topbar share a row) and bounds the page
-                    // instead of letting it run to the edge. The inspector
-                    // attaches to its right side; its width is reserved here.
-                    'bg-background md:bg-transparent md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] md:pt-[calc(var(--desktop-titlebar-height)+var(--shell-inset))] md:pr-[var(--shell-inset)] md:pb-[var(--shell-inset)] xl:pr-[calc(var(--shell-inset)+var(--workspace-inspector-width,0px))]',
+                    // Codex: flush to the window. The rail, sidebar header, and
+                    // topbar share one row on the chrome plane. The inspector
+                    // reserves its width on the right.
+                    'bg-background md:bg-transparent md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] md:pt-[var(--desktop-titlebar-height)] xl:pr-[var(--workspace-inspector-width,0px)]',
                     lockViewportHeight
                       ? 'h-dvh overflow-hidden'
                       : 'min-h-screen md:h-dvh md:min-h-0 md:overflow-hidden',
@@ -194,35 +192,33 @@ export default function AppLayout({
             )}
             style={{ transition: sidebarOffsetTransition }}
           >
+            {topbarContent ? (
+              <div
+                data-testid="app-topbar-shell"
+                className={cn(
+                  'fixed top-0 right-0 left-0 z-50 h-12 border-b border-border',
+                  hasChrome
+                    ? 'bg-gray-100 md:static md:z-auto md:shrink-0'
+                    : 'bg-background md:left-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] xl:right-[var(--workspace-inspector-width,0px)]',
+                )}
+                style={{
+                  top: 'var(--desktop-titlebar-height)',
+                  transition: hasChrome ? undefined : sidebarOffsetTransition,
+                }}
+              >
+                {topbarContent}
+              </div>
+            ) : null}
+
             <div
               data-testid="app-content-panel"
               className={cn(
                 'flex flex-1 flex-col bg-background',
-                hasChrome &&
-                  // The content panel: bordered and rounded on every side. With
-                  // the inspector open it stays bordered on the right (the
-                  // divider) but squares that edge to meet the inspector.
-                  'md:min-h-0 md:overflow-hidden md:rounded-lg md:border md:border-border xl:[[data-inspector-open=true]_&]:rounded-r-none',
+                // The page surface. The sidebar's right border is the divider,
+                // so this column has no frame of its own.
+                hasChrome && 'md:min-h-0 md:overflow-hidden',
               )}
             >
-              {topbarContent ? (
-                <div
-                  data-testid="app-topbar-shell"
-                  className={cn(
-                    'fixed top-0 right-0 left-0 z-50 h-12 border-b border-border bg-background',
-                    hasChrome
-                      ? 'md:static md:z-auto md:shrink-0'
-                      : 'md:left-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] xl:right-[var(--workspace-inspector-width,0px)]',
-                  )}
-                  style={{
-                    top: 'var(--desktop-titlebar-height)',
-                    transition: hasChrome ? undefined : sidebarOffsetTransition,
-                  }}
-                >
-                  {topbarContent}
-                </div>
-              ) : null}
-
               <main
                 ref={mainScrollRef}
                 data-testid="app-main-content"

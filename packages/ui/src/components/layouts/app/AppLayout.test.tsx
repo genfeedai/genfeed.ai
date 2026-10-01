@@ -173,9 +173,8 @@ describe('AppLayout', () => {
 
     const rail = screen.getByTestId('desktop-sidebar-rail');
     expect(rail).toBeInTheDocument();
-    // Chrome surface shared with the app rail; the content panel owns the border.
-    expect(rail).toHaveClass('bg-gray-100');
-    expect(rail).not.toHaveClass('border-r');
+    // Chrome plane shared with the topbar. The right border is the page divider.
+    expect(rail).toHaveClass('bg-gray-100', 'border-r', 'border-border');
     expect(rail).toHaveClass('fixed', 'bottom-0');
     expect(rail).toHaveStyle({
       left: 'var(--desktop-rail-width, 0px)',
@@ -237,14 +236,18 @@ describe('AppLayout', () => {
     expect(screen.getByTestId('app-content-shell').parentElement).toHaveStyle({
       '--desktop-rail-width': '52px',
     });
-    // Desktop: the topbar lives inside the inset panel instead of floating.
+    // Desktop: the topbar sits on the chrome plane, outside the page.
     expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
       'fixed',
+      'bg-gray-100',
       'md:static',
+    );
+    expect(screen.getByTestId('app-content-panel')).not.toContainElement(
+      screen.getByTestId('app-topbar-shell'),
     );
   });
 
-  it('sets the page on one Codex-style content surface that owns desktop scrolling', () => {
+  it('sets the page flush under a chrome topbar that owns desktop scrolling', () => {
     render(
       <AppLayout
         menuComponent={<MenuComponent />}
@@ -263,31 +266,32 @@ describe('AppLayout', () => {
     expect(layoutRoot).toHaveClass(
       'bg-gray-100',
       '[--shell-inset:0px]',
+      '[--shell-edge:0px]',
+    );
+    expect(layoutRoot).not.toHaveClass(
       'md:[--shell-inset:0.5rem]',
       'md:[--shell-edge:1px]',
     );
-    // One inset on the top, right and bottom; the inspector's width is reserved
-    // on top of the right inset.
+    // Flush under the titlebar. The inspector's width is reserved on the right.
     expect(contentShell).toHaveClass(
       'md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))]',
-      'md:pt-[calc(var(--desktop-titlebar-height)+var(--shell-inset))]',
-      'md:pr-[var(--shell-inset)]',
-      'md:pb-[var(--shell-inset)]',
-      'xl:pr-[calc(var(--shell-inset)+var(--workspace-inspector-width,0px))]',
+      'md:pt-[var(--desktop-titlebar-height)]',
+      'xl:pr-[var(--workspace-inspector-width,0px)]',
       'md:h-dvh',
       'md:overflow-hidden',
     );
-    // A bordered panel, rounded on every side.
-    expect(panel).toHaveClass(
-      'bg-background',
-      'md:rounded-lg',
-      'md:border',
-      'md:border-border',
-      'md:overflow-hidden',
-      // Open inspector: the panel squares its right edge to meet it.
-      'xl:[[data-inspector-open=true]_&]:rounded-r-none',
+    expect(contentShell).not.toHaveClass(
+      'md:pr-[var(--shell-inset)]',
+      'md:pb-[var(--shell-inset)]',
     );
-    expect(panel).toContainElement(screen.getByTestId('app-topbar-shell'));
+    // The page has no frame. The sidebar border is the divider.
+    expect(panel).toHaveClass('bg-background', 'md:overflow-hidden');
+    expect(panel).not.toHaveClass('md:rounded-lg', 'md:border');
+    expect(panel).not.toContainElement(screen.getByTestId('app-topbar-shell'));
+    expect(contentShell).toContainElement(
+      screen.getByTestId('app-topbar-shell'),
+    );
+    expect(screen.getByTestId('app-topbar-shell')).toHaveClass('bg-gray-100');
     expect(mainContent).toHaveClass(
       'md:overflow-y-auto',
       'md:pt-0',
@@ -340,6 +344,9 @@ describe('AppLayout', () => {
         width: '0px',
       });
     });
+    expect(screen.getByTestId('desktop-sidebar-rail')).not.toHaveClass(
+      'border-r',
+    );
     expect(screen.getByTestId('desktop-app-rail')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Expand sidebar' })).toHaveStyle({
       left: 'calc(var(--desktop-rail-width, 0px) + 0.75rem)',

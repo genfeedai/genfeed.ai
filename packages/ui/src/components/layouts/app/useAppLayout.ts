@@ -70,12 +70,12 @@ export function useAppLayout({
   });
   /** Layout root for CSS-var drag updates (no React re-render per pixel). */
   const layoutRootRef = useRef<HTMLDivElement | null>(null);
-  /** The inset panel's scroll container (desktop chrome). */
+  /** The page scroll container (desktop chrome). */
   const mainScrollRef = useRef<HTMLElement | null>(null);
   const pathname = usePathname();
 
   // Next.js resets window scroll on navigation, but only scrolls a nested
-  // container when the new segment's top is out of view. The inset panel owns
+  // container when the new segment's top is out of view. The page column owns
   // scroll on desktop, so start every route at the top (hash links excepted).
   useEffect(() => {
     const main = mainScrollRef.current;

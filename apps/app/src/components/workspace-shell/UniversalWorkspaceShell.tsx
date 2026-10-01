@@ -877,8 +877,8 @@ function UniversalWorkspaceShellContent({
       '--workspace-inspector-width',
       `${inspectorRailWidth}px`,
     );
-    // Open, the content panel drops its right corners and the inspector
-    // continues it: one surface, one divider.
+    // Open, the inspector is a full-height page column. Its left border is
+    // the divider.
     layoutRoot.dataset.inspectorOpen = String(isInspectorOpen);
 
     return () => {
@@ -960,9 +960,8 @@ function UniversalWorkspaceShellContent({
           'relative overflow-hidden bg-background',
           isFocusedOnboardingRoute
             ? 'min-h-[calc(100dvh-var(--desktop-titlebar-height))]'
-            : // Desktop: fill the inset content panel (its insets, border and
-              // any shell banner are already taken out of the flex column).
-              // Mobile keeps viewport sizing under the fixed topbar.
+            : // Desktop: fill the page column under the topbar. Mobile keeps
+              // viewport sizing under the fixed topbar.
               'min-h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] md:flex md:min-h-0 md:flex-1 md:flex-col',
         )}
         data-shell-state={state}
@@ -1078,12 +1077,10 @@ function UniversalWorkspaceShellContent({
             ) : null}
           </div>
 
-          {/* Full-height rail, mirroring the left navigation sidebar: fixed to the
-              viewport edge, flush from titlebar to bottom, square, same surface
-              colour, same 300ms curve on width and min-width. Collapsed it goes
-              to zero — border included, or a 1px line survives at width 0. The
-              topbar and main content reserve space for it through
-              --workspace-inspector-width, which is how the rail pushes content. */}
+          {/* Full-height column on the page colour, flush from the titlebar to
+              the bottom. Collapsed it goes to zero — border included, or a 1px
+              line survives at width 0. The topbar and the page reserve space
+              for it through --workspace-inspector-width. */}
           {isFocusedOnboardingRoute ? null : (
             <aside
               // Nothing selected: the empty, zero-width column is not a
@@ -1091,11 +1088,10 @@ function UniversalWorkspaceShellContent({
               aria-hidden={activeContextSidebar ? undefined : true}
               aria-label={translateContextSidebar('label')}
               className={cn(
-                'fixed z-30 hidden min-h-0 flex-col overflow-hidden rounded-r-lg bg-background xl:flex',
-                // Attached to the content panel: its right border is the
-                // divider, so the inspector adds only the top, right and
-                // bottom edges. Collapsed it is zero-width, so no border.
-                isInspectorOpen && 'border-y border-r border-border',
+                'fixed z-30 hidden min-h-0 flex-col overflow-hidden bg-background xl:flex',
+                // Left border is the divider against the page. Collapsed it is
+                // zero-width, so no border.
+                isInspectorOpen && 'border-l border-border',
               )}
               id="workspace-context-inspector"
               inert={!isInspectorOpen}

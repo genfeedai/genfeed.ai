@@ -5,8 +5,8 @@ import type {
 
 /**
  * Container-query column ladder. Columns resolve from the collection's own
- * width, never the viewport: the inset content panel sits beside the app rail
- * and sidebar, so viewport breakpoints over-count the room a grid has.
+ * width, never the viewport: the page column sits beside the app rail and
+ * sidebar, so viewport breakpoints over-count the room a grid has.
  * 1 column below 40rem (640px), 2 from 40rem, 3 from 60rem (960px), 4 from
  * 80rem (1280px). Literal strings so Tailwind's scanner sees every class.
  */

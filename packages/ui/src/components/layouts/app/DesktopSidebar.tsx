@@ -55,8 +55,11 @@ export default function DesktopSidebar({
       aria-label={ariaLabel}
       data-testid="desktop-sidebar-rail"
       className={cn(
-        // Same chrome surface as the rail; the content panel owns the border.
+        // Chrome plane, shared with the topbar. The right border is the
+        // divider against the page. Omitted while collapsed so a 1px line
+        // does not survive at width 0.
         'fixed bottom-0 z-30 hidden flex-col overflow-hidden bg-gray-100 md:flex',
+        !isCollapsed && 'border-r border-border',
       )}
       style={{
         // Sits right of the app rail; 0 when the host renders no rail.
