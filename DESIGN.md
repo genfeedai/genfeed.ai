@@ -823,12 +823,13 @@ Section labels are `caption` type, uppercase, `text-muted`.
 
 ### App Rail
 
-Persistent top-level navigation at the far left, 52px wide, the same `gray-100`
-plane as the topbar, with no divider. Its top band is `h-12`, matching the
-topbar, and holds the Genfeed mark: the logo at rest, the sidebar collapse
+Persistent top-level navigation at the far left, 40px wide, the same `gray-100`
+plane as the topbar, with no divider. Rail width and topbar height share one
+dimension: a 32px control plus 4px padding on each side. Its 40px top band
+holds the Genfeed mark: the logo at rest, the sidebar collapse
 control on hover. It picks the app; the sidebar to its right
 holds that app's own menu, and collapsing the sidebar leaves the rail in place.
-Items are 36px `rounded-lg` icon-only links: `text-foreground/50` at rest,
+Items are 32px `rounded-lg` icon-only links with 16px icons: `text-foreground/50` at rest,
 `hover:bg-foreground/[0.06]`, and the active app a filled
 `bg-foreground/[0.12] text-foreground` tile.
 Each item carries a right-side tooltip (label, one-line description, and shortcut).
