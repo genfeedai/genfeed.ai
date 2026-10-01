@@ -505,8 +505,9 @@ solid step everywhere else. They are interchangeable by design.
 
 Four planes, one step apart, and no fifth:
 
-1. `bg-primary` — the page canvas (`background-100`). The app chrome (rail and
-   sidebar) sits on the `gray-100` sidebar plane around it — see Shell Layout.
+1. `bg-primary` — the page canvas (`background-100`). The app rail and the
+   topbar sit on the `gray-100` window plane; the menu shares that step inside
+   the page block — see Shell Layout.
 2. `bg-secondary` / `card` / `bg-elevated` — the raised content plane: cards,
    panels, dropdowns, dialogs, the composer (`gray-100` in Dark,
    `background-200` in Light).
@@ -630,8 +631,7 @@ in `packages/ui/web-tokens.css`:
 - `2xl` (12px) — large modals and workspace overlays
 - `3xl` (16px) — oversized media and promo surfaces
 - `full` (9999px) — badges, pills, avatars, circular controls
-- `card` (8px) — cards match the content panel's radius, so a card in the panel
-  reads as part of the same rounded surface
+- `card` (8px) — cards and media tiles
 
 **Concentric rule:** a child's radius is never larger than its parent's. Something
 inset by a single padding step takes the step *below* its parent, or the inner
@@ -674,10 +674,9 @@ The docked composer is the exception: a 1px ring on the glass prompt bar reads a
 a slab on `#0A0A0A`. `shadow-composer` / `shadow-composer-strong` lift with
 `--shadow-lg` only — no inset or outer hairline.
 
-Reserve plain `border` for structural dividers (the content panel edge, header
-separators) where there is no elevation to express. Chrome columns (rail,
-sidebar) are never divided from each other — the panel they surround carries
-the border.
+Reserve plain `border` for structural dividers (the menu sidebar's right
+edge, the topbar's bottom edge, header separators) where there is no elevation
+to express. The app rail is not divided from the sidebar.
 
 ### Focus
 
@@ -752,9 +751,9 @@ fails shows its own error; the other sections stay interactive.
 **One toolbar row, no filter sidebar.** Search, Type/Category dropdowns, sort, and
 the view toggle share one row. Active filters appear beneath it as removable chips.
 
-**Density follows the panel, not the viewport.** Pages render inside the inset
-content panel (see Shell Layout), which is roughly 300px narrower than the window
-once the rail and sidebar are open. Grid columns therefore resolve from container
+**Density follows the page column, not the viewport.** Pages render beside the
+rail and sidebar (see Shell Layout), which is roughly 300px narrower than the
+window once both are open. Grid columns therefore resolve from container
 queries on the collection itself:
 
 | Panel width | Columns |
@@ -787,31 +786,36 @@ the same overlay surface — never `bg-hover`, never the page canvas.
 
 ### Shell Layout
 
-Codex/Slack chrome. The sidebar sits on the `gray-100` sidebar plane (`#0A0A0A`
-dark, `#F5F5F5` light) and the app rail one tone off it (`bg-foreground/[0.04]`,
-lighter in Dark, darker in Light) — no border between them or under the sidebar
-header. The rail's bottom holds Admin (platform admins), Help, and the account
-avatar, whose menu carries the name, email and settings scopes; the sidebar has
-no profile row. The page sits in a single **content
-panel** inset from the window by `--shell-inset` (8px, desktop): `bg-primary`,
-`rounded-lg`, `border border-border`, and it owns scrolling — the topbar is its
-first row (static) and the page scrolls beneath it, so `sticky top-0` inside a
-page sticks under the topbar. The workspace inspector attaches to the panel's right
-side as one surface: the panel squares its right corners and their shared border
-is the divider, with no gap. Every route starts at the top of
-the panel scroll. Mobile has no inset: document scroll under a fixed topbar, and
-the rail + menu live in the navigation drawer.
+Codex chrome. The app rail and the topbar share the `gray-100` window plane
+(`#0A0A0A` dark, `#F5F5F5` light). The rail is full height, flush under the
+titlebar, with no border of its own. The rail's bottom holds Admin (platform
+admins), Help, and the account avatar, whose menu carries the name, email and
+settings scopes; the sidebar has no profile row.
+
+The menu and the page share one block, inset from the window by `--shell-inset`
+(8px, desktop) on every side: `rounded-lg` and `border border-border`. The menu
+is `gray-100`, one step off the page (`bg-primary`; pure black in Dark), with
+`border-r border-border` while expanded. The page owns scrolling, so
+`sticky top-0` inside a page sticks under the block's top. The topbar sits on
+the rail plane, outside that block, in the band above it.
+
+The workspace inspector attaches to the block's right side as one surface: the
+block squares its right corners and the inspector carries the outer right
+radius. The block's right border is their shared divider. Every route starts at
+the top of the page scroll. Mobile has no inset: document scroll under a fixed
+topbar on the same plane, and the rail + menu live in the navigation drawer.
 
 ### Sidebar
 
-On the shared chrome surface (see Shell Layout), no border. Menu items use
-ghost semantics: transparent, `hover:bg-hover`, active is `bg-hover text-foreground`.
+Inside the rounded block (see Shell Layout), on `gray-100`, with `border-r`
+against the page. Menu items use ghost semantics: transparent,
+`hover:bg-hover`, active is `bg-hover text-foreground`.
 Section labels are `caption` type, uppercase, `text-muted`.
 
 ### App Rail
 
-Persistent top-level navigation at the far left, 52px wide, on the shared
-chrome surface with no divider. It picks the app; the sidebar to its right
+Persistent top-level navigation at the far left, 52px wide, the same `gray-100`
+plane as the topbar, with no divider. It picks the app; the sidebar to its right
 holds that app's own menu, and collapsing the sidebar leaves the rail in place.
 Items are 36px `rounded-lg` icon-only links: `text-foreground/50` at rest,
 `hover:bg-foreground/[0.06]`, and the active app a filled
@@ -934,8 +938,8 @@ animations in chrome.
   inside cards.
 - **Don't** lay a text-first collection out as a wall of equal cards, or give a
   card more than one visible action.
-- **Don't** choose collection columns from viewport breakpoints; the content panel
-  is narrower than the window.
+- **Don't** choose collection columns from viewport breakpoints; the page
+  column is narrower than the window.
 - **Don't** add coloured accents or glow shadows to chrome — colour enters only
   through the four doors above.
 
