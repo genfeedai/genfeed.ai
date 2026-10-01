@@ -151,7 +151,15 @@ export default function StudioGenerateComposer({
 
   const isPromptEmpty = prompt.trim().length === 0;
   const isAutoMode = settings.modelKey === AUTO_MODEL_OPTION_VALUE;
-  const selectedModel = models.find((model) => model.key === settings.modelKey);
+  const selectedModel = models.find((model) =>
+    type === 'image-edit' && isAutoMode
+      ? model.isDefault
+      : model.key === settings.modelKey,
+  );
+  const displaySettings =
+    type === 'image-edit' && isAutoMode && selectedModel
+      ? { ...settings, modelKey: selectedModel.key }
+      : settings;
   const isFirstFrameMissing =
     type === 'video' &&
     !isAutoMode &&
@@ -198,7 +206,7 @@ export default function StudioGenerateComposer({
   const estimate = resolveStudioGenerationCost({
     isLoadingModels,
     model: selectedModel,
-    settings,
+    settings: displaySettings,
     type,
   });
 
@@ -434,7 +442,7 @@ export default function StudioGenerateComposer({
         estimate={estimate}
         isLoadingModels={isLoadingModels}
         model={selectedModel}
-        settings={settings}
+        settings={displaySettings}
         type={type}
       />
 

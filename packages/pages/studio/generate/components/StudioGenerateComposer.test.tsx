@@ -891,6 +891,23 @@ describe('StudioGenerateComposer', () => {
       cost: 20,
       label: 'Ideogram 4.5',
     } as IModel;
+    it('shows the editing default and its full output cost in Auto mode', () => {
+      render(
+        <StudioGenerateComposer
+          {...baseProps}
+          models={[editModel]}
+          prompt="Change the sign"
+          settings={{
+            ...settings,
+            modelKey: AUTO_MODEL_OPTION_VALUE,
+            outputs: 3,
+          }}
+          type="image-edit"
+        />,
+      );
+      expect(screen.getByText('Estimated 60 credits')).toBeVisible();
+      expect(screen.getByText('Ideogram 4.5 · 3 outputs')).toBeVisible();
+    });
     it('blocks submission without a source and never offers prompt enhancement', () => {
       render(
         <StudioGenerateComposer
