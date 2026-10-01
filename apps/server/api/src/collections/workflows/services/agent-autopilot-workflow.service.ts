@@ -9,6 +9,10 @@ import {
 } from '@api/collections/agent-strategies/services/agent-strategy-due.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import {
+  getNextDailyReset,
+  getNextWeeklyReset,
+} from '@api/collections/workflows/services/agent-autopilot-time.util';
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
 import { PROACTIVE_AGENT_TURN_SOURCE } from '@api/collections/workflows/system-workflow-definition';
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
@@ -189,7 +193,7 @@ export class AgentAutopilotWorkflowService {
 
       const dailyResetAt = this.parseDate(config.dailyResetAt);
       if (!dailyResetAt || dailyResetAt <= now) {
-        const nextDailyReset = this.getNextDailyReset();
+        const nextDailyReset = getNextDailyReset();
         updatedConfig.creditsUsedToday = 0;
         updatedConfig.dailyCreditsUsed = 0;
         updatedConfig.dailyResetAt = nextDailyReset.toISOString();
@@ -199,7 +203,7 @@ export class AgentAutopilotWorkflowService {
       const weeklyResetAt = this.parseDate(config.weeklyResetAt);
       if (!weeklyResetAt || weeklyResetAt <= now) {
         updatedConfig.creditsUsedThisWeek = 0;
-        updatedConfig.weeklyResetAt = this.getNextWeeklyReset().toISOString();
+        updatedConfig.weeklyResetAt = getNextWeeklyReset().toISOString();
       }
 
       await transaction.agentStrategy.update({
@@ -961,22 +965,6 @@ export class AgentAutopilotWorkflowService {
 
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? null : date;
-  }
-
-  private getNextDailyReset(): Date {
-    const next = new Date();
-    next.setDate(next.getDate() + 1);
-    next.setHours(0, 0, 0, 0);
-    return next;
-  }
-
-  private getNextWeeklyReset(): Date {
-    const next = new Date();
-    const dayOfWeek = next.getDay();
-    const daysUntilMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
-    next.setDate(next.getDate() + daysUntilMonday);
-    next.setHours(0, 0, 0, 0);
-    return next;
   }
 
   private lockKey(organizationId: string): string {

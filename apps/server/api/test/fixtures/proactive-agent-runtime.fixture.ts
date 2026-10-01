@@ -49,6 +49,7 @@ import { BatchGenerationReviewService } from '@api/services/batch-generation/bat
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
 import { BatchReviewLockService } from '@api/services/batch-generation/batch-review-lock';
 import { CacheService } from '@api/services/cache/cache.service';
+import { runOwnedRuntimeCleanup } from '@api-test/helpers/proactive-runtime-cleanup';
 import {
   AgentAutonomyMode,
   AgentType,
@@ -69,7 +70,6 @@ import {
 } from '@genfeedai/prisma';
 import { WorkflowEngine } from '@genfeedai/workflows/engine';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { runOwnedRuntimeCleanup } from '@test/helpers/proactive-runtime-cleanup';
 import { PlatformWorkflowSchedulesService } from '@workers/scheduling/platform-workflow-schedules.service';
 import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
 import { ScheduledPostExecutionGuardService } from '@workers/services/scheduled-post-execution-guard.service';
