@@ -1,8 +1,8 @@
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { isAbsolute, join } from 'node:path';
-import { promisify } from 'node:util';
+import { dirname, isAbsolute, join } from 'node:path';
+import { inspect, isDeepStrictEqual, promisify } from 'node:util';
 import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
 import type { CreateVisualProjectDto } from '@api/collections/visual-projects/dto/create-visual-project.dto';
 import {
@@ -464,6 +464,431 @@ async function immutable(
     ),
   };
 }
+const ingredientInspectionSymbol = Symbol.for('nodejs.util.inspect.custom');
+function ingredientSnapshot<T extends object>(row: T): T {
+  const result = {} as T;
+  for (const key of Reflect.ownKeys(row)) {
+    const descriptor = Object.getOwnPropertyDescriptor(row, key);
+    if (!descriptor) throw new Error('Ingredient own-key descriptor absent');
+    const value: unknown = Reflect.get(row, key);
+    if (key === ingredientInspectionSymbol) {
+      if (!descriptor.enumerable || typeof value !== 'function')
+        throw new Error('Unexpected Prisma Ingredient inspection property');
+      continue;
+    }
+    Object.defineProperty(result, key, {
+      value,
+      enumerable: descriptor.enumerable,
+      configurable: descriptor.configurable,
+      writable: 'writable' in descriptor ? descriptor.writable : true,
+    });
+  }
+  return result;
+}
+const snapshotInspectOptions = {
+  customInspect: false,
+  depth: null,
+  maxArrayLength: null,
+  maxStringLength: null,
+  showHidden: true,
+  colors: false,
+  getters: false,
+  compact: false,
+  sorted: false,
+} as const;
+function snapshotText(value: unknown) {
+  return inspect(value, snapshotInspectOptions);
+}
+type SnapshotPathSegment =
+  | { kind: 'string'; key: string }
+  | {
+      kind: 'symbol';
+      globalKey: string | null;
+      description: string | null;
+      identity: string;
+    };
+function snapshotDiagnostics(before: unknown, actual: unknown) {
+  const symbolIds = new Map<symbol, string>();
+  const segment = (key: string | symbol): SnapshotPathSegment => {
+    if (typeof key === 'string') return { kind: 'string', key };
+    let identity = symbolIds.get(key);
+    if (!identity) {
+      identity = `symbol-${symbolIds.size + 1}`;
+      symbolIds.set(key, identity);
+    }
+    return {
+      kind: 'symbol',
+      globalKey: Symbol.keyFor(key) ?? null,
+      description: key.description ?? null,
+      identity,
+    };
+  };
+  const metadata = (value: unknown) => {
+    if (
+      value === null ||
+      (typeof value !== 'object' && typeof value !== 'function')
+    )
+      return { type: typeof value, value: snapshotText(value) };
+    return {
+      type: typeof value,
+      prototype: snapshotText(Object.getPrototypeOf(value)),
+      keys: Reflect.ownKeys(value).map((key) => {
+        const descriptor = Object.getOwnPropertyDescriptor(value, key);
+        return {
+          key: segment(key),
+          enumerable: descriptor?.enumerable,
+          type:
+            descriptor && 'value' in descriptor
+              ? typeof descriptor.value
+              : 'accessor',
+        };
+      }),
+    };
+  };
+  const differences: {
+    path: SnapshotPathSegment[];
+    reason: string;
+    beforePresent: boolean;
+    actualPresent: boolean;
+    before: string;
+    actual: string;
+  }[] = [];
+  const add = (
+    path: SnapshotPathSegment[],
+    reason: string,
+    left: unknown,
+    right: unknown,
+    beforePresent = true,
+    actualPresent = true,
+  ) =>
+    differences.push({
+      path,
+      reason,
+      beforePresent,
+      actualPresent,
+      before: snapshotText(left),
+      actual: snapshotText(right),
+    });
+  const visited = new WeakMap<object, WeakSet<object>>();
+  const walk = (left: unknown, right: unknown, path: SnapshotPathSegment[]) => {
+    if (Object.is(left, right) || isDeepStrictEqual(left, right)) return;
+    if (left instanceof Date || right instanceof Date) {
+      add(path, 'date-epoch-or-type', left, right);
+      return;
+    }
+    if (
+      left === null ||
+      right === null ||
+      typeof left !== 'object' ||
+      typeof right !== 'object'
+    ) {
+      add(path, 'type-value-or-function-identity', left, right);
+      return;
+    }
+    const seen = visited.get(left) ?? new WeakSet<object>();
+    if (seen.has(right)) return;
+    seen.add(right);
+    visited.set(left, seen);
+    if (Object.getPrototypeOf(left) !== Object.getPrototypeOf(right))
+      add(
+        path,
+        'prototype',
+        Object.getPrototypeOf(left),
+        Object.getPrototypeOf(right),
+      );
+    const keys = new Set([...Reflect.ownKeys(left), ...Reflect.ownKeys(right)]);
+    for (const key of keys) {
+      const next = [...path, segment(key)];
+      const beforePresent = Object.hasOwn(left, key);
+      const actualPresent = Object.hasOwn(right, key);
+      const first = Object.getOwnPropertyDescriptor(left, key);
+      const second = Object.getOwnPropertyDescriptor(right, key);
+      if (!beforePresent || !actualPresent) {
+        add(
+          next,
+          'own-key-presence',
+          first && 'value' in first ? first.value : first,
+          second && 'value' in second ? second.value : second,
+          beforePresent,
+          actualPresent,
+        );
+        continue;
+      }
+      if (first?.enumerable !== second?.enumerable)
+        add(next, 'enumerability', first?.enumerable, second?.enumerable);
+      if (!first || !second)
+        throw new Error('Snapshot diagnostic descriptor absent');
+      if (!('value' in first) || !('value' in second)) {
+        if (first.get !== second.get || first.set !== second.set)
+          add(next, 'accessor-identity', first, second);
+        continue;
+      }
+      walk(first.value, second.value, next);
+    }
+  };
+  walk(before, actual, []);
+  return { before: metadata(before), actual: metadata(actual), differences };
+}
+async function assertIngredientSnapshotContract(
+  f: VisualCodeAcceptanceFixture,
+  actor: VisualCodeAcceptanceActor,
+) {
+  const counts = {
+    llm: f.calls.llm.length,
+    renderer: f.calls.rendererSubmissions.length,
+    uploads: f.calls.uploads.length,
+  };
+  const where = {
+    id: actor.sourceAssetId,
+    organizationId: actor.organizationId,
+    brandId: actor.brandId,
+    isDeleted: false,
+  };
+  const first = await f.prisma.ingredient.findFirstOrThrow({ where });
+  const second = await f.prisma.ingredient.findFirstOrThrow({ where });
+  const firstDescriptor = Object.getOwnPropertyDescriptor(
+    first,
+    ingredientInspectionSymbol,
+  );
+  const secondDescriptor = Object.getOwnPropertyDescriptor(
+    second,
+    ingredientInspectionSymbol,
+  );
+  const firstCallback: unknown = Reflect.get(first, ingredientInspectionSymbol);
+  const secondCallback: unknown = Reflect.get(
+    second,
+    ingredientInspectionSymbol,
+  );
+  const observedPreflight = await readVisualRuntimePreflight(
+    dirname(runtime(f).directory),
+  );
+  await writeFile(
+    join(runtime(f).directory, 'ingredient-inspection-observation.json'),
+    JSON.stringify(
+      {
+        gitHead: observedPreflight.metadata.gitHead,
+        ingredientIds: [first.id, second.id],
+        symbolGlobalKey: Symbol.keyFor(ingredientInspectionSymbol),
+        callbacks: [firstDescriptor, secondDescriptor].map(
+          (descriptor, index) => ({
+            present: descriptor !== undefined,
+            enumerable: descriptor?.enumerable,
+            configurable: descriptor?.configurable,
+            writable:
+              descriptor && 'writable' in descriptor
+                ? descriptor.writable
+                : undefined,
+            type: typeof (index === 0 ? firstCallback : secondCallback),
+          }),
+        ),
+        differentReferences: firstCallback !== secondCallback,
+      },
+      null,
+      2,
+    ),
+    { flag: 'wx', mode: 0o600 },
+  );
+  expect(first.id).toBe(second.id);
+  expect(firstDescriptor?.enumerable).toBe(true);
+  expect(secondDescriptor?.enumerable).toBe(true);
+  expect(typeof firstCallback).toBe('function');
+  expect(typeof secondCallback).toBe('function');
+  expect(firstCallback).not.toBe(secondCallback);
+  expect(first).not.toStrictEqual(second);
+  const materialized = ingredientSnapshot(first);
+  expect(materialized).toStrictEqual(ingredientSnapshot(second));
+  expect(Reflect.ownKeys(materialized)).toStrictEqual(
+    Reflect.ownKeys(first).filter((key) => key !== ingredientInspectionSymbol),
+  );
+  for (const key of Reflect.ownKeys(materialized)) {
+    expect(Object.getOwnPropertyDescriptor(materialized, key)?.enumerable).toBe(
+      Object.getOwnPropertyDescriptor(first, key)?.enumerable,
+    );
+    const value: unknown = Reflect.get(materialized, key);
+    const originalValue: unknown = Reflect.get(first, key);
+    expect(value).toBe(originalValue);
+    if (originalValue instanceof Date) {
+      expect(value).toBeInstanceOf(Date);
+      if (!(value instanceof Date))
+        throw new Error('Materialized Date lost its type');
+      expect(value.getTime()).toBe(originalValue.getTime());
+    }
+  }
+  expect(materialized.updatedAt).toBeInstanceOf(Date);
+  expect(typeof materialized.fileSize).toBe('number');
+  const copy = () =>
+    Object.defineProperties({}, Object.getOwnPropertyDescriptors(materialized));
+  const controls: { name: string; preserved: true }[] = [];
+  const unequal = (name: string, baseline: object, changed: object) => {
+    expect(ingredientSnapshot(changed)).not.toStrictEqual(
+      ingredientSnapshot(baseline),
+    );
+    controls.push({ name, preserved: true });
+  };
+  const shifted = copy();
+  Object.defineProperty(shifted, 'updatedAt', {
+    ...Object.getOwnPropertyDescriptor(materialized, 'updatedAt'),
+    value: new Date(materialized.updatedAt.getTime() + 1),
+  });
+  unequal('updatedAt-plus-1ms', materialized, shifted);
+  const resized = copy();
+  Object.defineProperty(resized, 'fileSize', {
+    ...Object.getOwnPropertyDescriptor(materialized, 'fileSize'),
+    value: Number(materialized.fileSize) + 1,
+  });
+  unequal('fileSize', materialized, resized);
+  const positive = copy();
+  const negative = copy();
+  Object.defineProperty(positive, 'fixtureZero', {
+    value: +0,
+    enumerable: true,
+  });
+  Object.defineProperty(negative, 'fixtureZero', {
+    value: -0,
+    enumerable: true,
+  });
+  unequal('signed-zero', positive, negative);
+  const undefinedPresent = copy();
+  Object.defineProperty(undefinedPresent, 'fixtureUndefined', {
+    value: undefined,
+    enumerable: true,
+  });
+  unequal('undefined-versus-missing', undefinedPresent, copy());
+  const otherSymbol = Symbol('fixture-other-symbol');
+  const symbolBefore = copy();
+  const symbolAfter = copy();
+  Object.defineProperty(symbolBefore, otherSymbol, {
+    value: 1,
+    enumerable: true,
+  });
+  Object.defineProperty(symbolAfter, otherSymbol, {
+    value: 2,
+    enumerable: true,
+  });
+  unequal('other-symbol-value', symbolBefore, symbolAfter);
+  expect({
+    llm: f.calls.llm.length,
+    renderer: f.calls.rendererSubmissions.length,
+    uploads: f.calls.uploads.length,
+  }).toStrictEqual(counts);
+  for (const queue of runtime(f).queues.values())
+    expect(
+      await queue.getJobCountByTypes(
+        'waiting',
+        'active',
+        'delayed',
+        'completed',
+        'failed',
+      ),
+    ).toBe(0);
+  const preflight = await readVisualRuntimePreflight(
+    dirname(runtime(f).directory),
+  );
+  await writeFile(
+    join(runtime(f).directory, 'ingredient-snapshot-contract.json'),
+    JSON.stringify(
+      {
+        gitHead: preflight.metadata.gitHead,
+        ingredientId: first.id,
+        symbol: {
+          globalKey: Symbol.keyFor(ingredientInspectionSymbol),
+          description: ingredientInspectionSymbol.description,
+        },
+        callbacks: {
+          first: {
+            enumerable: firstDescriptor?.enumerable,
+            configurable: firstDescriptor?.configurable,
+            writable:
+              firstDescriptor && 'writable' in firstDescriptor
+                ? firstDescriptor.writable
+                : undefined,
+            type: typeof firstCallback,
+          },
+          second: {
+            enumerable: secondDescriptor?.enumerable,
+            configurable: secondDescriptor?.configurable,
+            writable:
+              secondDescriptor && 'writable' in secondDescriptor
+                ? secondDescriptor.writable
+                : undefined,
+            type: typeof secondCallback,
+          },
+          differentReferences: firstCallback !== secondCallback,
+        },
+        rawRowsStrictUnequal: true,
+        materializedStrictEqual: true,
+        ownKeys: snapshotDiagnostics(materialized, materialized).before,
+        dates: Reflect.ownKeys(materialized).flatMap((key) => {
+          const value: unknown = Reflect.get(materialized, key);
+          return value instanceof Date
+            ? [{ key: String(key), epoch: value.getTime() }]
+            : [];
+        }),
+        controls,
+        counts,
+        queuesEmpty: true,
+      },
+      null,
+      2,
+    ),
+    { flag: 'wx', mode: 0o600 },
+  );
+}
+async function assertReplaySnapshot(
+  f: VisualCodeAcceptanceFixture,
+  before: Awaited<ReturnType<typeof snapshot>>,
+  actual: Awaited<ReturnType<typeof snapshot>>,
+  phase: string,
+) {
+  const directory = runtime(f).directory;
+  await writeFile(
+    join(directory, `${phase}-before.txt`),
+    snapshotText(before),
+    { flag: 'wx', mode: 0o600 },
+  );
+  await writeFile(
+    join(directory, `${phase}-actual.txt`),
+    snapshotText(actual),
+    { flag: 'wx', mode: 0o600 },
+  );
+  const preflight = await readVisualRuntimePreflight(dirname(directory));
+  const diagnostic = {
+    gitHead: preflight.metadata.gitHead,
+    phase,
+    ...snapshotDiagnostics(before, actual),
+  };
+  const path = join(directory, `${phase}-differences.json`);
+  await writeFile(path, JSON.stringify(diagnostic, null, 2), {
+    flag: 'wx',
+    mode: 0o600,
+  });
+  try {
+    expect(actual).toStrictEqual(before);
+  } catch (error) {
+    if (!diagnostic.differences.length)
+      diagnostic.differences.push({
+        path: [],
+        reason: 'unclassified-strict-difference',
+        beforePresent: true,
+        actualPresent: true,
+        before: snapshotText(before),
+        actual: snapshotText(actual),
+      });
+    try {
+      await writeFile(path, JSON.stringify(diagnostic, null, 2), {
+        mode: 0o600,
+      });
+    } catch (diagnosticError) {
+      if (error instanceof Error)
+        Object.defineProperty(error, 'snapshotDiagnosticWriteError', {
+          value: diagnosticError,
+        });
+      throw error;
+    }
+    throw error;
+  }
+}
+
 async function snapshot(
   f: VisualCodeAcceptanceFixture,
   actor: VisualCodeAcceptanceActor,
@@ -476,10 +901,12 @@ async function snapshot(
       where: scope,
       orderBy: { id: 'asc' },
     }),
-    ingredients: await f.prisma.ingredient.findMany({
-      where: scope,
-      orderBy: { id: 'asc' },
-    }),
+    ingredients: (
+      await f.prisma.ingredient.findMany({
+        where: scope,
+        orderBy: { id: 'asc' },
+      })
+    ).map(ingredientSnapshot),
     calls: {
       llm: [...f.calls.llm],
       renderer: [...f.calls.rendererSubmissions],
@@ -512,6 +939,7 @@ describe.skipIf(!enabled)(
       const f = await setup('hybrid-success');
       const actor = await seedVisualCodeAcceptanceActor(f);
       const other = await seedVisualCodeAcceptanceActor(f);
+      await assertIngredientSnapshotContract(f, actor);
       const baseline = await f.credits.getWalletSnapshot(actor.organizationId);
       const { parameters, projectId } = await create(f, actor);
       expect(
@@ -545,14 +973,31 @@ describe.skipIf(!enabled)(
       );
       expect(replay.data.id).toBe(projectId);
       expect(replay.data.attributes.revisions[0]?.id).toBe(first.revision.id);
+      await assertReplaySnapshot(
+        f,
+        before,
+        await snapshot(f, actor),
+        'unchanged-api-replay',
+      );
       await expect(
         f.controller.create(f.request(actor.user), actor.user, {
           ...parameters,
           prompt: 'Changed replay input',
         }),
       ).rejects.toMatchObject({ status: 409 });
+      await assertReplaySnapshot(
+        f,
+        before,
+        await snapshot(f, actor),
+        'rejected-conflicting-replay',
+      );
       await runtime(f).redeliver(first.jobId);
-      expect(await snapshot(f, actor)).toEqual(before);
+      await assertReplaySnapshot(
+        f,
+        before,
+        await snapshot(f, actor),
+        'broker-redelivery',
+      );
       expect(await immutable(f, actor, first.revision)).toEqual(original);
       const change = {
         requestId: `props-${randomUUID()}`,
@@ -734,7 +1179,7 @@ describe.skipIf(!enabled)(
           maximumCredits: parameters.maximumCredits - 0.01,
         }),
       ).rejects.toThrow();
-      expect(await snapshot(f, actor)).toEqual(before);
+      expect(await snapshot(f, actor)).toStrictEqual(before);
       const brandId = generateIdString();
       await f.prisma.brand.create({
         data: createTestBrand({
@@ -863,7 +1308,7 @@ describe.skipIf(!enabled)(
       expect(cancelled).toBe(true);
       const before = await snapshot(f, actor);
       await runtime(f).redeliver(pending.job.id ?? '');
-      expect(await snapshot(f, actor)).toEqual(before);
+      expect(await snapshot(f, actor)).toStrictEqual(before);
       runtime(f).assertions.push(
         'running-render-cancellation',
         'once-only-settlement',
