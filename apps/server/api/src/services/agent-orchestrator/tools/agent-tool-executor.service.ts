@@ -604,12 +604,26 @@ export class AgentToolExecutorService implements OnModuleInit {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     if (toolName === 'get_generation_cost') {
-      return this.generationCostHandler.execute(params, ctx);
+      return this.dispatchGenerationCost(toolName, params, ctx);
     }
     return Object.hasOwn(VISUAL_CODE_ACTION_ALIASES, toolName)
       ? this.dispatchVisualCode(toolName, params, ctx)
       : this.dispatch(toolName, params, ctx);
   }
+
+  private dispatchGenerationCost(
+    toolName: CuratedActionName,
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    switch (toolName) {
+      case 'get_generation_cost':
+        return this.generationCostHandler.execute(params, ctx);
+      default:
+        throw new Error(`Unknown tool: ${toolName}`);
+    }
+  }
+
   private async dispatchVisualCode(
     toolName: CuratedActionName,
     params: Record<string, unknown>,
