@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
 import { ImagesQueryDto } from '@api/collections/images/dto/images-query.dto';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { VotesService } from '@api/collections/votes/services/votes.service';
@@ -34,6 +35,7 @@ import {
   Controller,
   Delete,
   Get,
+  Optional,
   Param,
   Query,
   Req,
@@ -51,6 +53,8 @@ export class ImagesController {
     private readonly imagesService: ImagesService,
     private readonly loggerService: LoggerService,
     private readonly votesService: VotesService,
+    @Optional()
+    private readonly evaluationProjection?: ContentEvaluationProjectionService,
   ) {}
 
   @Get()
@@ -182,7 +186,14 @@ export class ImagesController {
     };
 
     const data = await this.imagesService.findAll(aggregate, options);
-    return serializeCollection(request, IngredientSerializer, data);
+    return serializeCollection(
+      request,
+      IngredientSerializer,
+      (await this.evaluationProjection?.attachToPage(data, {
+        brandId: user.brandId,
+        contentType: 'image',
+      })) ?? data,
+    );
   }
 
   private async findLatest(
@@ -234,7 +245,14 @@ export class ImagesController {
       page: 1,
       pagination: true,
     });
-    return serializeCollection(request, IngredientSerializer, data);
+    return serializeCollection(
+      request,
+      IngredientSerializer,
+      (await this.evaluationProjection?.attachToPage(data, {
+        brandId: user.brandId,
+        contentType: 'image',
+      })) ?? data,
+    );
   }
 
   @Get(':imageId')
@@ -244,11 +262,10 @@ export class ImagesController {
     @Param('imageId') imageId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const aggregatedData: Record<string, unknown> = { evaluation: null };
-
     const data = await this.imagesService.findOne(
       {
         id: imageId,
+        isDeleted: false,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.IMAGE,
         ),
@@ -281,7 +298,6 @@ export class ImagesController {
         : (data as unknown as Record<string, unknown>);
     const mergedData: Record<string, unknown> = {
       ...dataRecord,
-      evaluation: aggregatedData.evaluation,
     };
 
     const vote = await this.votesService.findOne({
@@ -292,7 +308,14 @@ export class ImagesController {
 
     mergedData.hasVoted = !!vote;
 
-    return serializeSingle(request, IngredientSerializer, mergedData);
+    return serializeSingle(
+      request,
+      IngredientSerializer,
+      (await this.evaluationProjection?.attachToItem(mergedData, {
+        brandId: user.brandId,
+        contentType: 'image',
+      })) ?? mergedData,
+    );
   }
 
   @Delete(':imageId')

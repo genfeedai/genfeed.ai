@@ -19,6 +19,12 @@ import {
   isBrandResourceReady,
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import {
+  evaluationReadRevision,
+  evaluationVideoCache,
+  evaluationVideosQueryKey,
+  useEvaluationReadScopeKey,
+} from '@hooks/ui/evaluation/use-evaluation/evaluation-read-cache';
 import type {
   TrendCorpusFreshnessHealth,
   TrendItem,
@@ -67,7 +73,10 @@ export function normalizeAnalyticsVideo(video: Video): ITrendVideo {
     engagementRate: actualPerformance?.engagementRate ?? 0,
     id: video.id || '',
     persuasionHighlight: getPersuasionHighlight(
-      evaluationData?.scores?.persuasion,
+      evaluationData?.status === 'completed'
+        ? evaluationData.scores?.persuasion
+        : undefined,
+      evaluationData?.analysis?.strengths,
     ),
     platform:
       evaluationData?.externalContent?.platform ||
@@ -152,17 +161,21 @@ export function useAnalyticsTrends() {
 
   const [remixVideo, setRemixVideo] = useState<ITrendVideo | null>(null);
 
-  const videoCacheKey = `videos:${brandId}`;
-  const { data: analyticsVideos = [], isLoading: isLoadingVideos } = useQuery<
-    ITrendVideo[]
-  >({
-    enabled: isBrandReady,
-    queryKey: ['analytics-trends-videos', brandId],
+  const evaluationScopeKey = useEvaluationReadScopeKey();
+  const {
+    data: videoRead,
+    isLoading: isLoadingVideos,
+    refetch: retryEvaluationRead,
+  } = useQuery({
+    enabled: isBrandReady && Boolean(evaluationScopeKey),
+    queryKey: evaluationVideosQueryKey(evaluationScopeKey),
     queryFn: async ({ signal }) => {
-      const service = await getVideosService();
-      signal.throwIfAborted();
-
+      if (!evaluationScopeKey)
+        throw new Error('Evaluation read scope is unavailable');
+      const revision = evaluationReadRevision(evaluationScopeKey);
       try {
+        const service = await getVideosService();
+        signal.throwIfAborted();
         const videos = await service.findAll(
           {
             brand: brandId,
@@ -172,25 +185,36 @@ export function useAnalyticsTrends() {
           },
           signal,
         );
+        signal.throwIfAborted();
+        if (evaluationReadRevision(evaluationScopeKey) !== revision)
+          throw new DOMException('Evaluation read changed', 'AbortError');
         const normalizedVideos = videos.map(normalizeAnalyticsVideo);
-
-        trendsCache.set(videoCacheKey, normalizedVideos, TRENDS_CACHE_TTL);
-        logger.info('Fetched analytics videos', {
-          count: normalizedVideos.length,
-        });
-        return normalizedVideos;
+        evaluationVideoCache.set(
+          evaluationScopeKey,
+          normalizedVideos,
+          TRENDS_CACHE_TTL,
+        );
+        return { videos: normalizedVideos, isCached: false, hasError: false };
       } catch (error) {
-        if (signal.aborted) {
+        if (
+          signal.aborted ||
+          evaluationReadRevision(evaluationScopeKey) !== revision
+        )
           throw error;
-        }
-
         logger.error('Failed to fetch analytics videos', { error });
-        return (trendsCache.get(videoCacheKey) as ITrendVideo[] | null) ?? [];
+        const cached = evaluationVideoCache.get(evaluationScopeKey);
+        return {
+          videos: cached ?? [],
+          isCached: cached !== null,
+          hasError: true,
+        };
       }
     },
+    refetchOnMount: 'always',
     retry: false,
     staleTime: TRENDS_CACHE_TTL,
   });
+  const analyticsVideos = videoRead?.videos ?? [];
   const { data: outlierPosts = [] } = useQuery({
     enabled: isBrandReady,
     queryFn: async ({ signal }) => {
@@ -615,6 +639,9 @@ export function useAnalyticsTrends() {
     isLoadingSounds,
     isLoadingTrends,
     isLoadingVideos,
+    isUsingCachedVideos: videoRead?.isCached ?? false,
+    hasVideoReadError: videoRead?.hasError ?? false,
+    retryEvaluationRead,
     leadingPlatform,
     platformSections,
     playbooks,

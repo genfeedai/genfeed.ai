@@ -1,7 +1,24 @@
 import { IngredientCategory, Status } from '@genfeedai/contracts';
 import { useEvaluation } from '@hooks/ui/evaluation/use-evaluation/use-evaluation';
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  act,
+  renderHook as renderHookWithoutProvider,
+  waitFor,
+} from '@testing-library/react';
+import { createElement, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const scoped = vi.hoisted(() => ({ key: 'scope-a', invalidate: vi.fn() }));
+vi.mock('@hooks/ui/evaluation/use-evaluation/evaluation-read-cache', () => ({
+  useEvaluationReadScopeKey: () => scoped.key,
+  invalidateEvaluationVideoRead: scoped.invalidate,
+}));
+let queryClient: QueryClient;
+const wrapper = ({ children }: { children: ReactNode }) =>
+  createElement(QueryClientProvider, { client: queryClient }, children);
+const renderHook: typeof renderHookWithoutProvider = (callback, options) =>
+  renderHookWithoutProvider(callback, { ...options, wrapper });
 
 // Mock functions must be defined inside the factory function to avoid hoisting issues
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -29,6 +46,7 @@ vi.mock('@genfeedai/services/core/notifications.service', () => ({
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 // Import after mocking
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useSocketSubscriptions } from '@hooks/utils/use-socket-manager/use-socket-manager';
 
 // Mock references
 const mockGetImageEvaluations = vi.fn();
@@ -45,6 +63,9 @@ const mockError = vi.fn();
 describe('useEvaluation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    queryClient = new QueryClient();
+    scoped.key = 'scope-a';
+    scoped.invalidate.mockResolvedValue(undefined);
 
     // Setup useAuthedService mock
     (useAuthedService as ReturnType<typeof vi.fn>).mockReturnValue(
@@ -557,6 +578,122 @@ describe('useEvaluation', () => {
 
       // Should set empty evaluations for unknown type
       expect(result.current.evaluation).toBeNull();
+    });
+  });
+  describe('scope-safe persisted status freshness', () => {
+    it('invalidates the matching warm Trends scope after synchronous completion', async () => {
+      mockEvaluateVideo.mockResolvedValue({
+        id: 'saved',
+        data: { status: Status.COMPLETED },
+      });
+      const { result } = renderHook(() =>
+        useEvaluation({
+          autoFetch: false,
+          contentId: 'video',
+          contentType: IngredientCategory.VIDEO,
+        }),
+      );
+      await act(async () => {
+        await result.current.evaluate();
+      });
+      expect(scoped.invalidate).toHaveBeenCalledWith(queryClient, 'scope-a');
+      expect(result.current.isEvaluating).toBe(false);
+    });
+    it.each([Status.COMPLETED, Status.FAILED])(
+      'invalidates matching websocket %s but ignores another result ID',
+      async (status) => {
+        mockEvaluateVideo.mockResolvedValue({
+          id: 'pending',
+          data: { status: Status.PROCESSING },
+        });
+        const { result } = renderHook(() =>
+          useEvaluation({
+            autoFetch: false,
+            contentId: 'video',
+            contentType: IngredientCategory.VIDEO,
+          }),
+        );
+        await act(async () => {
+          await result.current.evaluate();
+        });
+        const subscriptions = vi
+          .mocked(useSocketSubscriptions)
+          .mock.calls.at(-1)?.[0];
+        const handler = subscriptions?.[0]?.handler;
+        expect(handler).toBeDefined();
+        const completed = { id: 'pending', data: { status } };
+        act(() => {
+          handler?.({ status, result: { ...completed, id: 'different' } });
+        });
+        expect(result.current.isEvaluating).toBe(true);
+        expect(scoped.invalidate).toHaveBeenCalledTimes(1);
+        act(() => {
+          handler?.({ status, result: completed });
+        });
+        expect(scoped.invalidate).toHaveBeenCalledTimes(2);
+        expect(result.current.evaluation).toEqual(completed);
+        expect(result.current.isEvaluating).toBe(false);
+      },
+    );
+    it('ignores an old organization response and clears transient state on scope change', async () => {
+      let resolve: (value: object) => void = () => {};
+      mockEvaluateVideo.mockReturnValue(
+        new Promise((done) => {
+          resolve = done;
+        }),
+      );
+      const { result, rerender } = renderHook(() =>
+        useEvaluation({
+          autoFetch: false,
+          contentId: 'video',
+          contentType: IngredientCategory.VIDEO,
+        }),
+      );
+      let pending: Promise<unknown> | undefined;
+      await act(async () => {
+        pending = result.current.evaluate();
+        await Promise.resolve();
+      });
+      expect(result.current.isEvaluating).toBe(true);
+      scoped.key = 'scope-b';
+      rerender();
+      expect(result.current.isEvaluating).toBe(false);
+      await act(async () => {
+        resolve({ id: 'old', data: { status: Status.COMPLETED } });
+        await pending;
+      });
+      expect(result.current.evaluation).toBeNull();
+      expect(scoped.invalidate).not.toHaveBeenCalled();
+      expect(mockSuccess).not.toHaveBeenCalled();
+    });
+    it('ignores an old content read after another content opens', async () => {
+      let resolve: (value: object[]) => void = () => {};
+      mockGetVideoEvaluations.mockReturnValue(
+        new Promise((done) => {
+          resolve = done;
+        }),
+      );
+      const { result, rerender } = renderHook(
+        ({ id }) =>
+          useEvaluation({
+            autoFetch: false,
+            contentId: id,
+            contentType: IngredientCategory.VIDEO,
+          }),
+        { initialProps: { id: 'first' } },
+      );
+      let pending: Promise<void> | undefined;
+      await act(async () => {
+        pending = result.current.refetch();
+        await Promise.resolve();
+      });
+      rerender({ id: 'second' });
+      await act(async () => {
+        resolve([{ id: 'old' }]);
+        await pending;
+      });
+      expect(result.current.evaluation).toBeNull();
+      expect(result.current.isLoading).toBe(false);
     });
   });
 });

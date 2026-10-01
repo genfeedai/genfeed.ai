@@ -1,5 +1,6 @@
 import { Readable } from 'node:stream';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
@@ -59,6 +60,7 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  Optional,
   Param,
   Post,
   Query,
@@ -95,6 +97,8 @@ export class VideosController {
     private readonly filesClientService: FilesClientService,
     private readonly metadataService: MetadataService,
     private readonly videoGenerationService: VideoGenerationService,
+    @Optional()
+    private readonly evaluationProjection?: ContentEvaluationProjectionService,
   ) {}
 
   @Get()
@@ -143,7 +147,14 @@ export class VideosController {
         pagination: false,
       });
 
-      return serializeCollection(request, VideoSerializer, latestData);
+      return serializeCollection(
+        request,
+        VideoSerializer,
+        (await this.evaluationProjection?.attachToPage(latestData, {
+          brandId: user.brandId,
+          contentType: 'video',
+        })) ?? latestData,
+      );
     }
 
     const options = {
@@ -212,7 +223,14 @@ export class VideosController {
     };
 
     const data = await this.videosService.findAll(aggregate, options);
-    return serializeCollection(request, VideoSerializer, data);
+    return serializeCollection(
+      request,
+      VideoSerializer,
+      (await this.evaluationProjection?.attachToPage(data, {
+        brandId: user.brandId,
+        contentType: 'video',
+      })) ?? data,
+    );
   }
 
   @Get(':videoId')
@@ -231,6 +249,7 @@ export class VideosController {
     const pipeline = {
       where: scopedWhere(user.organizationId, {
         id: videoId,
+        isDeleted: false,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.VIDEO,
         ),
@@ -251,6 +270,7 @@ export class VideosController {
     const populatedData = await this.videosService.findOne(
       scopedWhere(user.organizationId, {
         id: videoId,
+        isDeleted: false,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.VIDEO,
         ),
@@ -287,7 +307,14 @@ export class VideosController {
 
     mergedData.hasVoted = !!vote;
 
-    return serializeSingle(request, VideoSerializer, mergedData);
+    return serializeSingle(
+      request,
+      VideoSerializer,
+      (await this.evaluationProjection?.attachToItem(mergedData, {
+        brandId: user.brandId,
+        contentType: 'video',
+      })) ?? mergedData,
+    );
   }
 
   @Get(':videoId/thumbnail')
