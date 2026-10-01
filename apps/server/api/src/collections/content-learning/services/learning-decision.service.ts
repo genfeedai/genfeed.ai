@@ -411,21 +411,24 @@ export class LearningDecisionService {
       return suppressed(
         !input.harnessEnabled ? 'harness_off' : 'incompatible_intent',
       );
+    const context = input.context;
+    if (!context) return suppressed('invalid_lineage');
     const descriptor = decision.cellDescriptor;
     if (
       decision.isDeleted ||
       decision.synthetic ||
       decision.organizationId !== input.organizationId ||
       decision.brandId !== input.brandId ||
-      decision.credentialId !== input.context?.credentialId ||
-      decision.requestKey !== input.context.requestKey ||
-      decision.candidateIndex !== input.context.candidateIndex ||
+      decision.credentialId !== context.credentialId ||
+      decision.requestKey !== context.requestKey ||
+      decision.candidateIndex !== context.candidateIndex ||
       decision.destinationKey !== destinationKey ||
       account.brandId !== input.brandId ||
       scope.brandId !== input.brandId ||
+      !decision.descriptorHash ||
       !validLearningDescriptor(descriptor) ||
       descriptor.format !== input.format ||
-      descriptor.objective !== (input.context.objective ?? 'awareness') ||
+      descriptor.objective !== (context.objective ?? 'awareness') ||
       descriptor.configVersion !== decision.configVersion ||
       learningHash(learningDescriptorTuple(descriptor)) !==
         decision.descriptorHash ||
@@ -444,7 +447,7 @@ export class LearningDecisionService {
       }) !== decision.scopeKey ||
       !LEARNING_ARMS.includes(decision.selectedArmId as LearningArmId)
     )
-      return suppressed('invalid_source');
+      return suppressed('invalid_lineage');
     const credential = await this.accounts.credential(
       input.organizationId,
       decision.credentialId,
@@ -454,7 +457,7 @@ export class LearningDecisionService {
     if (
       fromPrismaCredentialPlatform(credential.platform) !== descriptor.platform
     )
-      return suppressed('invalid_source');
+      return suppressed('invalid_lineage');
     const baseline = decision.baselineId
       ? await tx.contentLearningBaseline.findFirst({
           where: {
@@ -470,18 +473,24 @@ export class LearningDecisionService {
       : null;
     if (
       !baseline ||
+      baseline.organizationId !== decision.organizationId ||
+      baseline.brandId !== decision.brandId ||
+      baseline.credentialId !== decision.credentialId ||
+      baseline.scopeKey !== decision.scopeKey ||
+      baseline.descriptorHash !== decision.descriptorHash ||
+      baseline.isDeleted ||
       !validLearningDescriptor(baseline.cellDescriptor) ||
       learningHash(learningDescriptorTuple(baseline.cellDescriptor)) !==
         decision.descriptorHash ||
       baseline.configVersion !== decision.configVersion ||
       !['valid', 'insufficient_baseline'].includes(baseline.validity)
     )
-      return suppressed('invalid_source');
+      return suppressed('invalid_lineage');
     const receipt = this.receipt(decision),
       qT = receipt.treatmentProbabilities,
       qC = receipt.controlProbabilities,
       marginal = receipt.executionProbabilities;
-    if (!qT || !qC || !marginal) return suppressed('invalid_source');
+    if (!qT || !qC || !marginal) return suppressed('invalid_lineage');
     const isInsufficientControl =
       decision.selectedArmId === 'baseline-v1' &&
       decision.assignment === 'control' &&

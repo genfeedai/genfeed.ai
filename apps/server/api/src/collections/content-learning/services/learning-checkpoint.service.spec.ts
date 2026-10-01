@@ -424,6 +424,7 @@ describe('exact descriptor frozen baseline', () => {
   });
   it('excludes mixed masks and malformed newest rows before consuming distinct posts', async () => {
     const bad = sample(0, { exposure: -1, weightedActions: 0 });
+    bad.id = 'malformed-newest';
     const other = sample(2);
     other.measurement = {
       profiles: [
@@ -479,6 +480,55 @@ describe('exact descriptor frozen baseline', () => {
         }),
       }),
     );
+  });
+  it('keeps nineteen valid contributors insufficient and reuses a supplied transaction without another fence', async () => {
+    const f = frozenFixture(
+      Array.from({ length: 19 }, (_, index) => sample(index)),
+    );
+    const result = await f.service.freeze(
+      scope,
+      new Date('2026-10-01'),
+      descriptor,
+      f.prisma as unknown as import('@genfeedai/prisma').Prisma.TransactionClient,
+    );
+    expect(result.count).toBe(19);
+    expect(result.validity).toBe('insufficient_baseline');
+    expect(f.prisma.$transaction).not.toHaveBeenCalled();
+    expect(f.prisma.$queryRaw).not.toHaveBeenCalled();
+  });
+  it('requires finite watch time for a retention descriptor', async () => {
+    const watchDescriptor = learningRegisteredProfiles(
+      'tiktok',
+      'video',
+      'retention-watch',
+    )[0].descriptor;
+    const watchHash = learningHash(learningDescriptorTuple(watchDescriptor));
+    const row = checkpoint({
+      validity: 'valid',
+      format: 'video',
+      measurement: {
+        profiles: [
+          {
+            profileId: watchHash,
+            descriptor: watchDescriptor,
+            measurement: { exposure: 1000, weightedActions: 0 },
+          },
+        ],
+      },
+    });
+    const f = frozenFixture([row]);
+    const result = await f.service.freeze(
+      {
+        ...scope,
+        platform: 'tiktok',
+        format: 'video',
+        objective: 'retention-watch',
+        rewardProfileId: watchHash,
+      },
+      new Date('2026-10-01'),
+      watchDescriptor,
+    );
+    expect(result.count).toBe(0);
   });
   it('rejects a contributor superseded before final lineage validation', async () => {
     const f = frozenFixture([sample(0)]);

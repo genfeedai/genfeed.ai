@@ -280,6 +280,8 @@ export class LearningScopeStateService {
         organizationId,
         isDeleted: false,
         revision: scope.revision,
+        epoch,
+        descriptorHash: scope.descriptorHash,
       },
       data: {
         pinnedPolicyId: policy.id,

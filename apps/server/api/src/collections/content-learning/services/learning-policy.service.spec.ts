@@ -59,8 +59,8 @@ function policyFixture() {
     isDeleted: false,
   };
   const policy = {
-    id: 'policy',
     ...account,
+    id: 'policy',
     scopeKey: scope.scopeKey,
     descriptorHash,
     cellDescriptor: descriptor,
@@ -71,8 +71,8 @@ function policyFixture() {
     version: 1,
   };
   const decision = {
-    id: 'decision',
     ...account,
+    id: 'decision',
     scopeKey: scope.scopeKey,
     descriptorHash,
     cellDescriptor: descriptor,
