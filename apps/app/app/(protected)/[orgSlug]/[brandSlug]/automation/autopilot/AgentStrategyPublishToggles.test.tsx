@@ -9,12 +9,26 @@ import type { AgentStrategyPublishPolicy } from '@services/automation/agent-stra
 import {
   cleanup,
   fireEvent,
-  render,
+  render as rtlRender,
   screen,
   within,
 } from '@testing-library/react';
+import { NextIntlClientProvider } from 'next-intl';
+import type { ReactElement, ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import common from '../../../../../../messages/en/common.json';
 import AgentStrategyPublishToggles from './AgentStrategyPublishToggles';
+
+function TranslationWrapper({ children }: { children: ReactNode }) {
+  return (
+    <NextIntlClientProvider locale="en" messages={{ common }}>
+      {children}
+    </NextIntlClientProvider>
+  );
+}
+function render(ui: ReactElement) {
+  return rtlRender(ui, { wrapper: TranslationWrapper });
+}
 
 const form: AgentStrategyFormState = {
   agentType: AgentType.GENERAL,

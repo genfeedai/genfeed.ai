@@ -421,9 +421,10 @@ export async function createProactiveProductionTurnFixture() {
     }
     moduleRef = await builder.compile();
     const module = moduleRef;
-    prisma = module.get(PrismaToken);
-    await prisma.$connect();
-    const db = prisma;
+    const db = module.get<PrismaService>(PrismaToken);
+    if (!db) throw new Error('Production-turn Prisma provider is unavailable');
+    prisma = db;
+    await db.$connect();
     // This module boots the actual scheduler. Unrelated tenant schedules are not
     // permitted in its dedicated database; no global database clear is used.
     const { SYSTEM_WORKFLOW_PRINCIPAL_ID } = await import(

@@ -236,9 +236,12 @@ export class AgentAutopilotWorkflowService {
       if (page.length === 0) break;
       const pending = await this.prisma.workflowExecution.findMany({
         select: { result: true },
-        where: this.pendingDispatchWhere(
+        where: scopedWhere(
           organizationId,
-          page.map((strategy) => strategy.id),
+          this.pendingDispatchWhere(
+            organizationId,
+            page.map((strategy) => strategy.id),
+          ),
         ),
       });
       const pendingIds = new Set(
@@ -367,7 +370,10 @@ export class AgentAutopilotWorkflowService {
       return null;
     let recovery = await this.prisma.workflowExecution.findFirst({
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-      where: this.pendingDispatchWhere(organizationId, [strategyId]),
+      where: scopedWhere(
+        organizationId,
+        this.pendingDispatchWhere(organizationId, [strategyId]),
+      ),
     });
     if (recovery?.status !== PrismaWorkflowExecutionStatus.PENDING)
       recovery = null;

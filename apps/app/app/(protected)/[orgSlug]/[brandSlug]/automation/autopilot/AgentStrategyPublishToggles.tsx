@@ -1,5 +1,6 @@
 import type { AgentStrategyPublishTogglesProps } from '@props/automation/agent-strategy-publish-toggles.props';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { useTranslations } from 'next-intl';
 import { PLATFORM_OPTIONS } from './useAgentStrategyDialog';
 
 export default function AgentStrategyPublishToggles({
@@ -7,6 +8,9 @@ export default function AgentStrategyPublishToggles({
   setForm,
   publishPolicy,
 }: AgentStrategyPublishTogglesProps) {
+  const translate = useTranslations(
+    'common.automation.autopilot.publishToggles',
+  );
   const threshold = publishPolicy?.autoPublishAfterApprovals;
   const requiredApprovals =
     typeof threshold === 'number' &&
@@ -30,9 +34,9 @@ export default function AgentStrategyPublishToggles({
               autoPublishEnabled: checked === true,
             }))
           }
-          aria-label="Allow automatic publishing when policy checks pass"
+          aria-label={translate('allowAutomaticPublishing')}
         />
-        Allow automatic publishing when policy checks pass
+        {translate('allowAutomaticPublishing')}
       </span>
 
       <span className="flex items-center gap-3 text-sm text-foreground">
@@ -44,9 +48,9 @@ export default function AgentStrategyPublishToggles({
               isEnabled: checked === true,
             }))
           }
-          aria-label="Enable agent"
+          aria-label={translate('enableAgent')}
         />
-        Enabled for scheduling
+        {translate('enabledForScheduling')}
       </span>
 
       <span className="flex items-center gap-3 text-sm text-foreground">
@@ -58,18 +62,20 @@ export default function AgentStrategyPublishToggles({
               isActive: checked === true,
             }))
           }
-          aria-label="Mark agent active"
+          aria-label={translate('markAgentActive')}
         />
-        Active and ready to run
+        {translate('activeAndReady')}
       </span>
       <section
-        aria-label="Platform approval progress"
+        aria-label={translate('platformApprovalProgress')}
         className="flex flex-col gap-2"
       >
-        <p className="text-sm font-medium">Platform approval progress</p>
+        <p className="text-sm font-medium">
+          {translate('platformApprovalProgress')}
+        </p>
         {platforms.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Choose a platform to track approval progress.
+            {translate('choosePlatform')}
           </p>
         ) : (
           <ul className="flex flex-col gap-2 text-sm">
@@ -92,12 +98,15 @@ export default function AgentStrategyPublishToggles({
                 >
                   <span>{label}</span>
                   <span>
-                    {count}/{requiredApprovals} pristine approvals
+                    {translate('pristineApprovals', {
+                      count,
+                      requiredApprovals,
+                    })}
                   </span>
                   <span>
                     {state?.autoPublishEnabled === true
-                      ? 'Graduated'
-                      : 'Review required'}
+                      ? translate('graduated')
+                      : translate('reviewRequired')}
                   </span>
                 </li>
               );
@@ -105,12 +114,11 @@ export default function AgentStrategyPublishToggles({
           </ul>
         )}
         <p className="text-sm text-muted-foreground">
-          Graduation still requires agent and brand opt-ins, a connected
-          account, and all publishing policy checks.
+          {translate('graduationRequirements')}
         </p>
         {!form.autoPublishEnabled && (
           <p className="text-sm text-muted-foreground">
-            Automatic publishing is off for this agent.
+            {translate('automaticPublishingOff')}
           </p>
         )}
       </section>
