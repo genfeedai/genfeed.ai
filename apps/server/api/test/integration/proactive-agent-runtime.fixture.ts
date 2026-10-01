@@ -68,6 +68,7 @@ import {
 } from '@genfeedai/prisma';
 import { WorkflowEngine } from '@genfeedai/workflows/engine';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { runOwnedRuntimeCleanup } from '@test/helpers/proactive-runtime-cleanup';
 import { PlatformWorkflowSchedulesService } from '@workers/scheduling/platform-workflow-schedules.service';
 import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
 import { ScheduledPostExecutionGuardService } from '@workers/services/scheduled-post-execution-guard.service';
@@ -602,63 +603,76 @@ export class ProactiveAgentRuntimeFixture {
   }
 
   async initialize() {
-    this.runner.onApplicationBootstrap();
-    await this.prisma.$connect();
-    await this.redis.ping();
-    await Promise.all(
-      this.queueEvents.map((events) => events.waitUntilReady()),
-    );
-    await this.prisma.user.upsert({
-      where: { id: SYSTEM_WORKFLOW_PRINCIPAL_ID },
-      create: {
-        id: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-        handle: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-      },
-      update: {},
-    });
-    await this.prisma.organization.upsert({
-      where: { id: SYSTEM_WORKFLOW_PRINCIPAL_ID },
-      create: {
-        id: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-        userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-        slug: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-        label: 'Fixture system',
-      },
-      update: {},
-    });
-    await this.prisma.user.create({
-      data: { id: this.userId, handle: this.userId },
-    });
-    await this.prisma.organization.create({
-      data: {
-        id: this.organizationId,
-        userId: this.userId,
-        slug: this.organizationId,
-        label: 'Isolated agent runtime',
-      },
-    });
-    await this.prisma.brand.create({
-      data: {
-        id: this.brandId,
-        userId: this.userId,
-        organizationId: this.organizationId,
-        slug: this.brandId,
-        label: 'Craft',
-        agentConfig: { voice: { tone: 'precise' } },
-      },
-    });
-    await this.prisma.credential.create({
-      data: {
-        id: this.credentialId,
-        brandId: this.brandId,
-        userId: this.userId,
-        organizationId: this.organizationId,
-        platform: CredentialPlatform.LINKEDIN,
-        isConnected: true,
-        externalId: this.credentialId,
-        accessToken: 'fixture-never-used',
-      },
-    });
+    try {
+      this.runner.onApplicationBootstrap();
+      await this.prisma.$connect();
+      await this.redis.ping();
+      await Promise.all(
+        this.queueEvents.map((events) => events.waitUntilReady()),
+      );
+      await this.prisma.user.upsert({
+        where: { id: SYSTEM_WORKFLOW_PRINCIPAL_ID },
+        create: {
+          id: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+          handle: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+        },
+        update: {},
+      });
+      await this.prisma.organization.upsert({
+        where: { id: SYSTEM_WORKFLOW_PRINCIPAL_ID },
+        create: {
+          id: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+          userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+          slug: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+          label: 'Fixture system',
+        },
+        update: {},
+      });
+      await this.prisma.user.create({
+        data: { id: this.userId, handle: this.userId },
+      });
+      await this.prisma.organization.create({
+        data: {
+          id: this.organizationId,
+          userId: this.userId,
+          slug: this.organizationId,
+          label: 'Isolated agent runtime',
+        },
+      });
+      await this.prisma.brand.create({
+        data: {
+          id: this.brandId,
+          userId: this.userId,
+          organizationId: this.organizationId,
+          slug: this.brandId,
+          label: 'Craft',
+          agentConfig: { voice: { tone: 'precise' } },
+        },
+      });
+      await this.prisma.credential.create({
+        data: {
+          id: this.credentialId,
+          brandId: this.brandId,
+          userId: this.userId,
+          organizationId: this.organizationId,
+          platform: CredentialPlatform.LINKEDIN,
+          isConnected: true,
+          externalId: this.credentialId,
+          accessToken: 'fixture-never-used',
+        },
+      });
+    } catch (initializationError) {
+      try {
+        await this.close();
+      } catch (cleanupError) {
+        throw new AggregateError(
+          [initializationError, cleanupError],
+          'Proactive runtime initialization and cleanup failed',
+          { cause: initializationError },
+        );
+      }
+      throw initializationError;
+    }
   }
 
   async createAgent(dailyCreditBudget = 20, isActive = true) {
@@ -993,48 +1007,46 @@ export class ProactiveAgentRuntimeFixture {
   }
 
   async close() {
-    await Promise.all(this.workers.map((worker) => worker.close()));
-    await Promise.all(this.queueEvents.map((events) => events.close()));
-    await Promise.all(
-      this.queues.map(async (queue) => {
-        await queue.obliterate({ force: true });
-        await queue.close();
-      }),
-    );
-    await this.reviewLocks.onModuleDestroy();
     // Scope every cleanup write to this unique fixture organization; never clear a shared DB.
-    try {
-      const where = { organizationId: { in: [...this.ownedOrganizationIds] } };
-      await this.prisma.post.updateMany({
-        where,
-        data: { publishApprovalId: null, reviewVersionPinId: null },
-      });
-      await this.prisma.publishApproval.deleteMany({ where });
-      await this.prisma.contentVersionPin.deleteMany({ where });
-      await this.prisma.batchItem.deleteMany({ where });
-      await this.prisma.batch.deleteMany({ where });
-      await this.prisma.contentPerformance.deleteMany({ where });
-      await this.prisma.postAnalytics.deleteMany({ where });
-      await this.prisma.agentPublishAudit.deleteMany({ where });
-      await this.prisma.activity.deleteMany({ where });
-      await this.prisma.post.deleteMany({ where });
-      await this.prisma.creditTransaction.deleteMany({ where });
-      await this.prisma.agentStrategyReport.deleteMany({ where });
-      await this.prisma.agentMessage.deleteMany({ where });
-      await this.prisma.agentThread.deleteMany({ where });
-      await this.prisma.agentStrategy.deleteMany({ where });
-      await this.prisma.workflowExecution.deleteMany({ where });
-
-      await this.prisma.workflow.deleteMany({ where });
-      await this.prisma.credential.deleteMany({ where });
-      await this.prisma.brand.deleteMany({ where });
-      await this.prisma.organization.deleteMany({
-        where: { id: { in: [...this.ownedOrganizationIds] } },
-      });
-      await this.prisma.user.deleteMany({ where: { id: this.userId } });
-    } finally {
-      await this.redis.quit();
-      await this.prisma.$disconnect();
-    }
+    const where = { organizationId: { in: [...this.ownedOrganizationIds] } };
+    await runOwnedRuntimeCleanup([
+      ...this.workers.map((worker) => () => worker.close()),
+      ...this.queueEvents.map((events) => () => events.close()),
+      ...this.queues.flatMap((queue) => [
+        () => queue.obliterate({ force: true }),
+        () => queue.close(),
+      ]),
+      () => this.reviewLocks.onModuleDestroy(),
+      () =>
+        this.prisma.post.updateMany({
+          where,
+          data: { publishApprovalId: null, reviewVersionPinId: null },
+        }),
+      () => this.prisma.publishApproval.deleteMany({ where }),
+      () => this.prisma.contentVersionPin.deleteMany({ where }),
+      () => this.prisma.batchItem.deleteMany({ where }),
+      () => this.prisma.batch.deleteMany({ where }),
+      () => this.prisma.contentPerformance.deleteMany({ where }),
+      () => this.prisma.postAnalytics.deleteMany({ where }),
+      () => this.prisma.agentPublishAudit.deleteMany({ where }),
+      () => this.prisma.activity.deleteMany({ where }),
+      () => this.prisma.post.deleteMany({ where }),
+      () => this.prisma.creditTransaction.deleteMany({ where }),
+      () => this.prisma.agentStrategyReport.deleteMany({ where }),
+      () => this.prisma.agentMessage.deleteMany({ where }),
+      () => this.prisma.agentThread.deleteMany({ where }),
+      () => this.prisma.agentStrategy.deleteMany({ where }),
+      () => this.prisma.workflowExecution.deleteMany({ where }),
+      () => this.prisma.workflow.deleteMany({ where }),
+      () => this.prisma.credential.deleteMany({ where }),
+      () => this.prisma.brand.deleteMany({ where }),
+      () =>
+        this.prisma.organization.deleteMany({
+          where: { id: { in: [...this.ownedOrganizationIds] } },
+        }),
+      () => this.prisma.user.deleteMany({ where: { id: this.userId } }),
+      () => this.redis.quit(),
+      () => this.prisma.$disconnect(),
+    ]);
   }
 }
