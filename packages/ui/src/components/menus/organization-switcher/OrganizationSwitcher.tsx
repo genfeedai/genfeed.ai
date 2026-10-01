@@ -1,5 +1,6 @@
 'use client';
 
+import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
 import { ButtonVariant } from '@genfeedai/contracts';
 import {
@@ -34,6 +35,7 @@ export default function OrganizationSwitcher({
     OrganizationsService.getInstance(token),
   );
   const { isSubscriptionActive } = useSubscription();
+  const { isLoading: isAccessLoading, isSuperAdmin } = useAccessState();
   const pathname = usePathname() ?? APP_ROUTES.ROOT;
   const { push } = useRouter();
   const {
@@ -54,10 +56,12 @@ export default function OrganizationSwitcher({
     ? orgs.filter((org) => org.isOwner).length
     : orgs.length;
   const canCreateOrganization =
-    isSubscriptionActive &&
+    !isAccessLoading &&
     !isLoading &&
-    (organizationLimit === null ||
-      organizationCountForLimit < organizationLimit);
+    (isSuperAdmin ||
+      (isSubscriptionActive &&
+        (organizationLimit === null ||
+          organizationCountForLimit < organizationLimit)));
 
   const handleSwitch = useCallback(
     async (orgId: string) => {

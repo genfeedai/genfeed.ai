@@ -50,7 +50,27 @@ describe('executable contract runner', () => {
     expect(message).toContain('stderr line');
   });
 
-  it('throws the process error before evaluating status', () => {
+  it('classifies spawnSync ETIMEDOUT and retains its diagnostics', () => {
+    const result = {
+      error: Object.assign(new Error('spawnSync bun ETIMEDOUT'), {
+        code: 'ETIMEDOUT',
+      }),
+      signal: 'SIGTERM' as const,
+      status: null,
+      stderr: 'workspace scan pending',
+      stdout: 'scan started',
+    };
+    const message = formatContractFailure(command, result);
+    expect(message).toContain(
+      `timed out (SIGTERM) after ${CONTRACT_CHILD_TIMEOUT_MS}ms`,
+    );
+    expect(message).toContain('scan started');
+    expect(message).toContain('workspace scan pending');
+    expect(message).not.toContain('failed to start');
+    expect(() => assertContractResult(command, result)).toThrow(/timed out/);
+  });
+
+  it('throws other process errors before evaluating status', () => {
     expect(() =>
       assertContractResult(command, {
         error: new Error('ETIMEDOUT'),

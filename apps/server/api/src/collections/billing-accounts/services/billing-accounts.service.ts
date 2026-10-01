@@ -74,6 +74,7 @@ export class BillingAccountsService {
     userId: string;
     label?: string;
     billingAccountId?: string;
+    isSeparateAccount?: boolean;
     planTier?: string | null;
   }) {
     const organization = await this.prisma.organization.findFirst({
@@ -95,14 +96,18 @@ export class BillingAccountsService {
       });
     }
 
-    const owned = await this.prisma.billingAccountMember.findMany({
-      where: {
-        isDeleted: false,
-        role: BillingAccountMemberRole.OWNER,
-        userId: input.userId,
-      },
-      include: { billingAccount: true },
-    });
+    // Platform-admin organization creation uses an independent billing account
+    // so a capped existing wallet cannot block provisioning or gain extra links.
+    const owned = input.isSeparateAccount
+      ? []
+      : await this.prisma.billingAccountMember.findMany({
+          where: {
+            isDeleted: false,
+            role: BillingAccountMemberRole.OWNER,
+            userId: input.userId,
+          },
+          include: { billingAccount: true },
+        });
     const liveOwned = owned.filter((row) => !row.billingAccount.isDeleted);
     if (liveOwned.length === 1) {
       const candidate = liveOwned[0].billingAccount;
