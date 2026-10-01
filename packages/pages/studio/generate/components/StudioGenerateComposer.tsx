@@ -295,7 +295,10 @@ export default function StudioGenerateComposer({
           </div>
         ) : null
       }
-      className={cn(isDragActive && 'ring-1 ring-primary/40')}
+      className={cn(
+        'shadow-composer',
+        isDragActive && 'ring-1 ring-primary/40',
+      )}
       data-testid="studio-generate-composer-shell"
     >
       <PromptEditor

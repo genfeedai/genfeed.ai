@@ -264,19 +264,14 @@ export function useAppLayout({
       brandSlug,
       currentApp,
       isMenuOpen: isSidebarOpen,
-      isSidebarCollapsed: menuComponent ? isDesktopCollapsed : undefined,
       onMenuToggle: handleToggleSidebar,
-      onSidebarToggle: menuComponent ? handleToggleDesktopSidebar : undefined,
       orgSlug,
     };
   }, [
     brandSlug,
     currentApp,
     handleToggleSidebar,
-    handleToggleDesktopSidebar,
-    isDesktopCollapsed,
     isSidebarOpen,
-    menuComponent,
     orgSlug,
     topbarComponent,
   ]);

@@ -6,4 +6,8 @@ export interface SelectionToolbarProps {
   onClear: () => void;
   clearLabel?: string;
   children: ReactNode;
+  /**
+   * `overlay` floats over the list. `subtopbar` sits in a pinned filters bar.
+   */
+  placement?: 'overlay' | 'subtopbar';
 }

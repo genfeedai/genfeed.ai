@@ -95,12 +95,12 @@ export default function AppLayout({
         <div
           ref={layoutRootRef}
           className={cn(
-            'overflow-x-hidden',
+            'overflow-x-hidden [--shell-topbar-height:2.5rem]',
             hasChrome
               ? cn(
                   'bg-gray-100 [--shell-edge:0px] [--shell-inset:0px] md:[--shell-inset:0.5rem]',
                   topbarContent
-                    ? '[--shell-topbar-offset:3rem]'
+                    ? '[--shell-topbar-offset:var(--shell-topbar-height)]'
                     : '[--shell-topbar-offset:0px]',
                 )
               : 'bg-background',
@@ -110,13 +110,27 @@ export default function AppLayout({
           data-workspace-shell={isWorkspaceShell ? 'true' : undefined}
           style={layoutStyle}
         >
-          {railComponent ? <DesktopRail>{railComponent}</DesktopRail> : null}
+          {railComponent ? (
+            <DesktopRail
+              sidebarToggle={
+                menuComponent
+                  ? {
+                      isCollapsed: isDesktopCollapsed,
+                      onToggle: handleToggleDesktopSidebar,
+                    }
+                  : null
+              }
+            >
+              {railComponent}
+            </DesktopRail>
+          ) : null}
           {menuComponent ? (
             <>
               {/* Without a rail there is no rounded block, so the menu stays a
-                  fixed column. With a rail it renders inside the block. */}
+                  fixed column. With a rail it renders inside the block, and
+                  the rail mark is the only collapse control. */}
               {hasChrome ? null : desktopSidebar}
-              {isDesktopCollapsed && !topbarContent ? (
+              {isDesktopCollapsed && !topbarContent && !hasChrome ? (
                 <CollapsedSidebarToggle onClick={handleToggleDesktopSidebar} />
               ) : null}
             </>
@@ -158,16 +172,16 @@ export default function AppLayout({
                     <div
                       // The drawer starts under the fixed topbar (z-50), so the
                       // rail begins below that band or its first app is hidden.
-                      className="flex h-full w-[var(--desktop-rail-width)] shrink-0 flex-col bg-foreground/[0.04] pt-12"
+                      className="flex h-full w-[var(--desktop-rail-width)] shrink-0 flex-col bg-foreground/[0.04] pt-[var(--shell-topbar-height)]"
                       data-testid="mobile-app-rail"
                     >
                       {mobileRailContent}
                     </div>
                   ) : null}
                   {mobileMenuContent ? (
-                    // Below the fixed topbar, like the rail, so the header's
-                    // brand switcher stays reachable.
-                    <div className="h-full min-w-0 flex-1 pt-12">
+                    // Below the fixed topbar, like the rail. The brand
+                    // switcher lives in that bar.
+                    <div className="h-full min-w-0 flex-1 pt-[var(--shell-topbar-height)]">
                       {mobileMenuContent}
                     </div>
                   ) : null}
@@ -185,7 +199,11 @@ export default function AppLayout({
                     // The shell starts after the rail. The topbar is the chrome
                     // band; the rounded block below it carries the menu and the
                     // page. The inspector reserves its width on the right.
-                    'bg-background md:bg-transparent md:pl-[var(--desktop-rail-width)] md:pt-[var(--desktop-titlebar-height)] xl:pr-[var(--workspace-inspector-width,0px)]',
+                    // Inspector width stays off this shell. The topbar is a child of
+                    // it, and padding here slides the topbar's right icons
+                    // whenever the details column opens. The panel reserves
+                    // that width instead.
+                    'bg-background md:bg-transparent md:pl-[var(--desktop-rail-width)] md:pt-[var(--desktop-titlebar-height)]',
                     lockViewportHeight
                       ? 'h-dvh overflow-hidden'
                       : 'min-h-screen md:h-dvh md:min-h-0 md:overflow-hidden',
@@ -203,7 +221,7 @@ export default function AppLayout({
               <div
                 data-testid="app-topbar-shell"
                 className={cn(
-                  'fixed top-0 right-0 left-0 z-50 h-12 border-b border-border',
+                  'fixed top-0 right-0 left-0 z-50 h-[var(--shell-topbar-height)] border-b border-border',
                   hasChrome
                     ? 'bg-gray-100 md:static md:z-auto md:shrink-0 md:border-b-0'
                     : 'bg-background md:left-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] xl:right-[var(--workspace-inspector-width,0px)]',
@@ -225,7 +243,10 @@ export default function AppLayout({
                 // reads against the rail plane. The inspector squares the
                 // right corners and finishes the outer radius.
                 hasChrome &&
-                  'md:m-[var(--shell-inset)] md:min-h-0 md:flex-row md:overflow-hidden md:rounded-lg md:border md:border-border xl:[[data-inspector-open=true]_&]:rounded-r-none',
+                  // No top margin: the chips sit in the middle of the topbar, so
+                  // an extra inset under the bar made the gap below them twice
+                  // the gap above. Left, right, and bottom stay inset.
+                  'md:mb-[var(--shell-inset)] md:ml-[var(--shell-inset)] md:mr-[var(--shell-inset)] md:min-h-0 md:flex-row md:overflow-hidden md:rounded-lg md:border md:border-border xl:mr-[calc(var(--shell-inset)+var(--workspace-inspector-width,0px))] xl:[[data-inspector-open=true]_&]:rounded-r-none',
               )}
             >
               {hasChrome ? desktopSidebar : null}
@@ -236,7 +257,7 @@ export default function AppLayout({
                   'relative z-0 flex min-w-0 flex-1 flex-col bg-background',
                   hasChrome &&
                     (topbarContent
-                      ? 'pt-[calc(var(--desktop-titlebar-height)+3rem)] md:pt-0'
+                      ? 'pt-[calc(var(--desktop-titlebar-height)+var(--shell-topbar-height))] md:pt-0'
                       : 'pt-[var(--desktop-titlebar-height)] md:pt-0'),
                   hasChrome &&
                     !lockViewportHeight &&
@@ -249,7 +270,7 @@ export default function AppLayout({
                     ? undefined
                     : {
                         paddingTop: topbarContent
-                          ? 'calc(var(--desktop-titlebar-height) + 3rem)'
+                          ? 'calc(var(--desktop-titlebar-height) + var(--shell-topbar-height))'
                           : 'var(--desktop-titlebar-height)',
                       }
                 }

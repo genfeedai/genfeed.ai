@@ -118,6 +118,30 @@ describe('IngredientsMediaGrid', () => {
     );
   });
 
+  it('docks a chronological group on the pinned section bar', () => {
+    render(
+      <IngredientsMediaGrid
+        {...baseProps}
+        items={
+          [
+            { ...items[0], createdAt: '2026-09-20T12:00:00.000Z' },
+            { ...items[1], createdAt: '2026-09-02T12:00:00.000Z' },
+          ] as IIngredient[]
+        }
+      />,
+    );
+
+    const heading = screen.getByTestId('ingredient-time-group-heading');
+
+    expect(heading).toHaveTextContent('September 2026');
+    expect(heading).toHaveTextContent('· 2');
+    expect(heading).toHaveClass('bg-background', 'sticky');
+    expect(heading.className).not.toContain('backdrop-blur');
+    expect(heading.getAttribute('style')).toContain(
+      'var(--pinned-topbar-height, 0px)',
+    );
+  });
+
   it('renders loading skeletons while fetching items', () => {
     const { container } = render(
       <IngredientsMediaGrid {...baseProps} isLoading={true} />,

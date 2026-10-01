@@ -1299,7 +1299,7 @@ describe('AgentChatContainer', () => {
       '[data-layout-mode="inflow"][data-max-width="full"]',
     );
     expect(portaled).not.toBeNull();
-    expect(portaled?.getAttribute('data-show-top-fade')).toBe('true');
+    expect(portaled?.getAttribute('data-show-top-fade')).toBe('false');
     expect(screen.getByTestId('chat-input')).toHaveAttribute(
       'data-density',
       'dock',

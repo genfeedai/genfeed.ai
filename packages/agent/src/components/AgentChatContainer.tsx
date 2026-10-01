@@ -451,7 +451,10 @@ export function AgentChatContainer({
           ) : (
             <AgentChatPromptBar
               highlightWhenEmpty={
-                container.isEmpty && !activeThreadId && !onboardingMode
+                container.isEmpty &&
+                !activeThreadId &&
+                !onboardingMode &&
+                !isShellHostedComposer
               }
               isCollapsed={isCollapsed}
               onOccupancyChange={handleComposerOccupancyChange}

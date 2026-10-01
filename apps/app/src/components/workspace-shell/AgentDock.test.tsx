@@ -350,14 +350,46 @@ describe('AgentDock', () => {
     opener.remove();
   });
 
-  it('shows a compact page promptbar while bubble chrome is closed', () => {
+  it('switches threads and starts a new one from the header menu', () => {
+    const onNewThread = vi.fn();
+    const onSelectThread = vi.fn();
+    render(
+      <AgentDock
+        activeThreadId="thread-1"
+        dock={buildDock()}
+        isCompact={false}
+        onNewThread={onNewThread}
+        onOpenFullPage={vi.fn()}
+        onSelectThread={onSelectThread}
+        threads={[
+          { id: 'thread-1', title: 'Spring launch plan' },
+          { id: 'thread-2', title: 'Make three stronger variations' },
+        ]}
+      >
+        <p>Conversation transcript</p>
+      </AgentDock>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Spring launch plan' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'New thread' }));
+    expect(onNewThread).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Spring launch plan' }));
+    fireEvent.click(
+      screen.getByRole('menuitem', { name: 'Make three stronger variations' }),
+    );
+    expect(onSelectThread).toHaveBeenCalledWith('thread-2');
+  });
+
+  it('shows a chat bubble and radial shortcuts while bubble chrome is closed', () => {
+    const onSelectSuggestedAction = vi.fn();
     render(
       <AgentDock
         chrome="bubble"
         dock={buildDock({ isOpen: false })}
         isCompact={false}
         onOpenFullPage={vi.fn()}
-        pagePlaceholder="Ask about this page..."
+        onSelectSuggestedAction={onSelectSuggestedAction}
         suggestedActions={[
           {
             id: 'summarize',
@@ -370,15 +402,26 @@ describe('AgentDock', () => {
       </AgentDock>,
     );
 
-    expect(screen.getByTestId('agent-page-promptbar')).toBeVisible();
-    expect(screen.queryByTestId('agent-conversation-bubble')).toBeNull();
+    expect(screen.getByTestId('agent-conversation-bubble')).toBeVisible();
+    expect(screen.queryByTestId('agent-page-promptbar')).toBeNull();
+    const shortcut = screen.getByRole('button', {
+      name: 'Summarize. Summarize this page',
+    });
+    expect(shortcut.parentElement).toHaveClass('opacity-0');
+    expect(shortcut.parentElement).toHaveClass('pointer-events-none');
+    fireEvent.pointerEnter(screen.getByTestId('agent-conversation-bubble'));
+    expect(shortcut.parentElement).toHaveClass('opacity-100');
+    expect(shortcut.parentElement).not.toHaveClass('pointer-events-none');
+    expect(shortcut).toHaveTextContent('Summarize');
+    fireEvent.click(shortcut);
+    expect(onSelectSuggestedAction).toHaveBeenCalledWith('Summarize this page');
     expect(screen.queryByRole('region', { name: 'Agent' })).toBeNull();
     expect(
       screen.queryByRole('separator', { name: 'Resize agent' }),
     ).toBeNull();
   });
 
-  it('shows a chat bubble on major prompt-bar pages and an overlay when open', () => {
+  it('shows a chat bubble on major prompt-bar pages and an overlay when open', async () => {
     const dock = buildDock({ isOpen: false, open: vi.fn() });
     const { rerender } = render(
       <AgentDock
@@ -412,8 +455,20 @@ describe('AgentDock', () => {
 
     const overlay = screen.getByRole('region', { name: 'Agent' });
     expect(overlay).toHaveAttribute('data-chrome', 'bubble');
+    expect(overlay).toHaveAttribute('data-morph', 'from');
+    expect(overlay).toHaveStyle({ transformOrigin: 'bottom right' });
+    expect(overlay.style.transform).toContain('--bubble-from-x');
     expect(overlay).toHaveTextContent('Conversation transcript');
-    expect(screen.queryByTestId('agent-conversation-bubble')).toBeNull();
+    expect(screen.getByTestId('agent-conversation-bubble')).not.toBeVisible();
+
+    await act(async () => {
+      await new Promise((resolve) => {
+        requestAnimationFrame(() => resolve(undefined));
+      });
+    });
+    const openOverlay = screen.getByRole('region', { name: 'Agent' });
+    expect(openOverlay).toHaveAttribute('data-morph', 'open');
+    expect(openOverlay.style.transform).toBe('scale(1, 1)');
     expect(
       screen.queryByRole('separator', { name: 'Resize agent' }),
     ).toBeNull();

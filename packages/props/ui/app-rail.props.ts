@@ -47,6 +47,13 @@ export interface AppRailProps {
   resolveNavigation?: (href: string) => AppRailNavigationTarget;
   /** Include platform-admin navigation for users with platform access. */
   showAdmin?: boolean;
+  /**
+   * More-menu apps the signed-in user pinned onto the rail, in pin order.
+   * Unknown ids are ignored.
+   */
+  pinnedAppIds?: readonly string[];
+  /** Pins or unpins a More app. Absent in surfaces that cannot save a user. */
+  onTogglePin?: (appId: string) => void;
 }
 
 export interface AppRailItemProps {

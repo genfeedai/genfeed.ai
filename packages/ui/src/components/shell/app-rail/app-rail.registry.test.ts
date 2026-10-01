@@ -9,42 +9,51 @@ import {
 } from './app-rail.registry';
 
 describe('app rail registry', () => {
-  it('keeps the daily loop and secondary tools in the contracted order', () => {
+  it('keeps the daily loop and More apps in the contracted order', () => {
     expect(APP_RAIL_REGISTRY.map((app) => app.id)).toEqual([
-      'agent',
       'workspace',
-      'studio',
+      'agent',
       'library',
       'publishing',
+      'analytics',
+      'studio',
+      'automation',
       'messages',
       'discovery',
-      'analytics',
-      'automation',
     ]);
     expect(APP_RAIL_REGISTRY.map((app) => app.group)).toEqual([
-      ...Array(6).fill('daily'),
-      ...Array(3).fill('tools'),
+      ...Array(5).fill('daily'),
+      ...Array(4).fill('more'),
     ]);
     expect(ADMIN_RAIL_APP.group).toBe('admin');
   });
 
   it('uses the selected brand only for Agent/Studio on org-scoped routes (#4671)', () => {
     const scope = { orgSlug: 'acme', brandAwareSlug: 'selected' };
+    const app = (id: string) => {
+      const match = APP_RAIL_REGISTRY.find((candidate) => candidate.id === id);
+      if (!match) throw new Error(`missing rail app ${id}`);
+      return match;
+    };
     expect(
-      APP_RAIL_REGISTRY.slice(0, 3).map((app) => getAppRailHref(app, scope)),
+      ['agent', 'workspace', 'studio'].map((id) =>
+        getAppRailHref(app(id), scope),
+      ),
     ).toEqual([
       '/acme/selected/agent',
       '/acme/~/workspace/overview',
       '/acme/selected/studio/generate',
     ]);
     expect(
-      getAppRailHref(APP_RAIL_REGISTRY[0], { ...scope, brandSlug: 'routed' }),
+      getAppRailHref(app('agent'), { ...scope, brandSlug: 'routed' }),
     ).toBe('/acme/routed/agent');
   });
 
   it('preserves task context and the first-asset gate for every navigation entry point', () => {
+    const workspace = APP_RAIL_REGISTRY.find((app) => app.id === 'workspace');
+    if (!workspace) throw new Error('missing workspace rail app');
     expect(
-      resolveAppRailHref(APP_RAIL_REGISTRY[1], APP_RAIL_REGISTRY, {
+      resolveAppRailHref(workspace, APP_RAIL_REGISTRY, {
         orgSlug: 'acme',
         brandAwareSlug: 'selected',
         isAssetGateLocked: true,

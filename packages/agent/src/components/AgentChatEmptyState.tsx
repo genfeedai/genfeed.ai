@@ -130,7 +130,7 @@ export function AgentChatEmptyState({
   if (isDock) {
     return (
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 overflow-y-auto px-4 py-6">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-end gap-3 overflow-y-auto px-4 pb-3 pt-6">
           <div className="w-full max-w-sm px-1 text-center">
             <h2 className="text-sm font-semibold tracking-[-0.01em] text-foreground">
               {emptyStateTitle}
@@ -178,7 +178,7 @@ export function AgentChatEmptyState({
               className="w-full"
               layoutMode="inflow"
               maxWidth="full"
-              showTopFade
+              showTopFade={variant !== 'dock'}
               topContent={composerTopContent}
               zIndex={60}
             >

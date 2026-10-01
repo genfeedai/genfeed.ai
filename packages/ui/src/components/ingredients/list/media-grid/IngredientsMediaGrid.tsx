@@ -17,6 +17,7 @@ import {
 } from '@ui/lazy/masonry/LazyMasonry';
 import { useMemo, useSyncExternalStore } from 'react';
 
+import IngredientTimeGroupHeading from './ingredient-time-group-heading';
 import { groupIngredientsByTime } from './ingredient-time-groups.util';
 
 const COLUMN_GAP = '4px';
@@ -230,17 +231,17 @@ export default function IngredientsMediaGrid({
   );
 
   if (!timeGroups) {
-    return renderColumns(items);
+    return <div className="relative z-0">{renderColumns(items)}</div>;
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="relative z-0 flex flex-col gap-6">
       {timeGroups.map((group) => (
-        <section key={group.label}>
-          <h3 className="sticky top-0 z-10 -mx-1 mb-2 bg-background/85 px-1 py-1.5 text-sm font-semibold text-foreground backdrop-blur">
-            {group.label}
-            <span className="text-foreground/55"> · {group.items.length}</span>
-          </h3>
+        <section key={group.label} className="flex flex-col gap-3">
+          <IngredientTimeGroupHeading
+            count={group.items.length}
+            label={group.label}
+          />
           {renderColumns(group.items)}
         </section>
       ))}

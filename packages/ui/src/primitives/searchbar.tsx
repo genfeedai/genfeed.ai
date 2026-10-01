@@ -5,6 +5,7 @@ import { cn } from '@genfeedai/helpers';
 import { Search, X } from 'lucide-react';
 import type {
   ChangeEvent,
+  FocusEvent,
   KeyboardEvent,
   MouseEvent,
   ReactElement,
@@ -55,6 +56,8 @@ export interface SearchbarProps {
   inputRef?: RefObject<HTMLInputElement | null>;
   onClick?: (event: MouseEvent<HTMLInputElement>) => void;
   onKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void;
+  /** Rest as an icon. Expand on click; collapse on blur when the field is empty. */
+  isCollapsible?: boolean;
   size?:
     | ComponentSize.XS
     | ComponentSize.SM
@@ -79,10 +82,13 @@ export default function Searchbar({
   inputRef,
   onClick,
   onKeyDown,
+  isCollapsible = false,
   size = ComponentSize.SM,
 }: SearchbarProps): ReactElement {
   const internalRef = useRef<HTMLInputElement>(null);
   const resolvedRef = inputRef ?? internalRef;
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
   const isDebounced = Boolean(onSearch);
 
   const committedValue = value ?? '';
@@ -149,6 +155,9 @@ export default function Searchbar({
   };
 
   const handleClear = () => {
+    if (isCollapsible) {
+      setIsExpanded(true);
+    }
     if (isDebounced) {
       cancelPending();
       setDraft('');
@@ -178,52 +187,99 @@ export default function Searchbar({
   };
 
   const displayedValue = isDebounced ? draft : value;
+  const hasValue = Boolean((displayedValue ?? '').trim());
+  const isOpen = !isCollapsible || isExpanded || hasValue;
   const sizeClass = SIZE_CLASSES[size];
   const iconSize = ICON_SIZES[size];
 
+  useEffect(() => {
+    if (!isCollapsible || !isExpanded) {
+      return;
+    }
+    resolvedRef.current?.focus();
+  }, [isCollapsible, isExpanded, resolvedRef]);
+
+  const collapseIfEmpty = (event: FocusEvent<HTMLInputElement>) => {
+    if (!isCollapsible) {
+      return;
+    }
+    const next = event.relatedTarget;
+    if (next instanceof Node && rootRef.current?.contains(next)) {
+      return;
+    }
+    if (event.currentTarget.value.trim()) {
+      return;
+    }
+    setIsExpanded(false);
+  };
+
   return (
-    <div className={cn('relative min-w-0', className)}>
-      {showIcon && (
-        <Search
-          className={cn(
-            'absolute left-3 top-1/2 z-10 -translate-y-1/2 transform pointer-events-none text-foreground/60',
-            iconSize,
-          )}
-        />
+    <div
+      className={cn(
+        'relative min-w-0',
+        isCollapsible ? (isOpen ? 'w-64' : 'w-8') : null,
+        className,
       )}
-
-      <input
-        aria-label={ariaLabel}
-        name={name}
-        ref={resolvedRef}
-        type="text"
-        value={displayedValue}
-        onChange={handleChange}
-        placeholder={placeholder}
-        className={cn(
-          sizeClass,
-          'w-full rounded-md border border-border bg-card px-3 text-foreground placeholder:text-foreground/40',
-          'focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-0',
-          showIcon && 'pl-10',
-          showClearButton && displayedValue && 'pr-8',
-          inputClassName,
-        )}
-        disabled={isDisabled}
-        onClick={onClick}
-        onKeyDown={handleKeyDown}
-      />
-
-      {showClearButton && displayedValue && (
+      data-testid={isCollapsible ? 'collapsible-search' : undefined}
+      ref={rootRef}
+    >
+      {isCollapsible && !isOpen ? (
         <Button
-          ariaLabel="Clear search"
-          withWrapper={false}
-          isDisabled={isDisabled}
-          onClick={handleClear}
+          ariaLabel={ariaLabel}
+          className="size-8"
+          data-testid="collapsible-search-trigger"
+          icon={<Search className={iconSize} />}
+          onClick={() => setIsExpanded(true)}
+          size={ButtonSize.ICON}
           variant={ButtonVariant.GHOST}
-          size={ButtonSize.MICRO}
-          className="absolute right-1 top-1/2 -translate-y-1/2 transform p-1"
-          icon={<X className={iconSize} />}
+          withWrapper={false}
         />
+      ) : (
+        <>
+          {showIcon && (
+            <Search
+              className={cn(
+                'absolute left-3 top-1/2 z-10 -translate-y-1/2 transform pointer-events-none text-foreground/60',
+                iconSize,
+              )}
+            />
+          )}
+
+          <input
+            aria-label={ariaLabel}
+            name={name}
+            ref={resolvedRef}
+            type="text"
+            value={displayedValue}
+            onBlur={collapseIfEmpty}
+            onChange={handleChange}
+            placeholder={placeholder}
+            className={cn(
+              sizeClass,
+              'w-full rounded-md border border-border bg-card px-3 text-foreground placeholder:text-foreground/40',
+              'focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-0',
+              showIcon && 'pl-10',
+              showClearButton && displayedValue && 'pr-8',
+              inputClassName,
+            )}
+            disabled={isDisabled}
+            onClick={onClick}
+            onKeyDown={handleKeyDown}
+          />
+
+          {showClearButton && displayedValue && (
+            <Button
+              ariaLabel="Clear search"
+              withWrapper={false}
+              isDisabled={isDisabled}
+              onClick={handleClear}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.MICRO}
+              className="absolute right-1 top-1/2 -translate-y-1/2 transform p-1"
+              icon={<X className={iconSize} />}
+            />
+          )}
+        </>
       )}
     </div>
   );

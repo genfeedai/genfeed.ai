@@ -18,6 +18,7 @@ export default function SelectionActionsBar({
   onDownload,
   onMerge,
   onPublishCampaign,
+  placement = 'overlay',
 }: SelectionActionsBarProps) {
   const translate = useTranslations('common.selectionActions');
 
@@ -30,6 +31,7 @@ export default function SelectionActionsBar({
       count={count}
       label={translate('count', { count })}
       onClear={onClear}
+      placement={placement}
     >
       {canPublishCampaign && onPublishCampaign && (
         <Button
