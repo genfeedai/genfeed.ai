@@ -425,6 +425,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['mcp'],
     toolset: 'social-inbox',
   },
+  { name: 'merge_videos', surfaces: ['mcp'], toolset: 'generation' },
   { name: 'open_in_editor', surfaces: ['mcp'], toolset: 'clips' },
   { name: 'open_studio_handoff', surfaces: ['agent'], toolset: 'ui' },
   { name: 'pause_outreach_sequence', surfaces: ['agent'], toolset: 'outreach' },

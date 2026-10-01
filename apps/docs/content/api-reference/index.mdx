@@ -22,7 +22,8 @@ Video merge requests support transitions, captions, resizing, muting and
 background music. `zoomEaseCurve` and `zoomConfigs` are slideshow effects and
 are unsupported by video stitching. Supplying either option to a video merge
 returns HTTP 400 with “Zoom effects are not supported when merging videos.”
-The merge schema omits these options.
+The merge schema omits these options. The MCP `merge_videos` tool calls the
+same endpoint and rejects those fields instead of dropping them.
 
 ## Authentication
 

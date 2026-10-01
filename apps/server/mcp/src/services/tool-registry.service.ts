@@ -44,6 +44,7 @@ import {
   approvalPendingToolResult,
   toMcpToolErrorResult,
 } from '@mcp/tools/mcp-tool-error';
+import { handleMergeVideosTool } from '@mcp/tools/merge-videos';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
 import { handleRemixTool, REMIX_TOOL_NAMES } from '@mcp/tools/remix.tool';
 import {
@@ -108,6 +109,7 @@ const WORKFLOW_CONTROL_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
 const LEGACY_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'get_video_status',
   'list_videos',
+  'merge_videos',
   'get_video_analytics',
   'create_article',
   'search_articles',
@@ -447,7 +449,9 @@ export class ToolRegistryService implements OnModuleInit {
         return this.toMcpResult(result);
       }
       case 'legacy':
-        return this.handleLegacyTool(name, args);
+        return name === 'merge_videos'
+          ? handleMergeVideosTool(this.clientService, args ?? {})
+          : this.handleLegacyTool(name, args);
       case 'meta-ads':
         return handleMetaAdsTool(this.clientService, name, args);
       case 'google-ads':

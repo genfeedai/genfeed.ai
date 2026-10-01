@@ -16,6 +16,8 @@ export function toManualStitchRequest(
   dto: CreateMergedVideoDto,
   idempotencyKey: string,
 ): VideoStitchRequest {
+  // Ken Burns zoom is a slideshow effect. The stitch worker never applies it,
+  // so a merge that includes it is rejected instead of started without zoom.
   if (dto.zoomEaseCurve != null || dto.zoomConfigs != null) {
     throw new BadRequestException(
       'Zoom effects are not supported when merging videos',
