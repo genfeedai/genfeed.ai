@@ -35,6 +35,16 @@ const MCP_QUEUED_WRITES = [
 ] as const;
 
 describe('mutation policy map', () => {
+  it('opens existing videos in the Editor as a free direct write', () => {
+    expect(getToolByName('open_in_editor')).toMatchObject({
+      creditCost: 0,
+      mutationPolicy: 'direct',
+      toolset: 'clips',
+    });
+    expect(isReadOnlyToolName('open_in_editor')).toBe(false);
+    expect(toolRequiresMutationPolicy('open_in_editor')).toBe(true);
+  });
+
   it('exposes Storyboard capabilities as a free read-only MCP tool', () => {
     expect(getToolByName('storyboard_run_capabilities')).toMatchObject({
       creditCost: 0,

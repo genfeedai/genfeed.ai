@@ -319,6 +319,7 @@ describe('curated action catalog', () => {
       ['list_instagram_inspiration', 'inspiration'],
       ['get_tiktok_top_performers', 'inspiration'],
       ['analyze_clip_project', 'clips'],
+      ['open_in_editor', 'clips'],
       ['search_knowledge', 'knowledge'],
       ['create_chat', 'agent-chat'],
       ['send_chat_message', 'agent-chat'],
