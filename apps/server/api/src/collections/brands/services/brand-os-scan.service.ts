@@ -643,10 +643,10 @@ export class BrandOsScanService {
         JSON.stringify(baseline?.content.generationRules)
     )
       throw new BrandOsScanContentError('brand_scan.invalid_content');
-    const json = JSON.stringify(draft);
-    if (Buffer.byteLength(json, 'utf8') > 250_000)
+    const projection: IBrandKitDraft = { ...draft, id: scan.brandId };
+    if (Buffer.byteLength(JSON.stringify(projection), 'utf8') > 250_000)
       throw new BrandOsScanContentError('brand_scan.content_too_large');
-    return JSON.parse(json) as IBrandKitDraft;
+    return JSON.parse(JSON.stringify(draft)) as IBrandKitDraft;
   }
 
   private hasUsableEvidence(data: IScrapedBrandData): boolean {

@@ -7,7 +7,11 @@ import type { BrandScraperService } from '@api/services/brand-scraper/brand-scra
 import type { WebsiteBrandScrapeEvidence } from '@api/services/brand-scraper/interfaces/brand-scraper.interfaces';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { IBrandKitDraft } from '@genfeedai/contracts/interfaces';
-import { buildBrandKitDraftFromBrand } from '@genfeedai/helpers';
+import {
+  type BrandKitSourceBrand,
+  buildBrandKitDraftFromBrand,
+  buildBrandKitDraftFromWebsiteScrape,
+} from '@genfeedai/helpers';
 import {
   type Brand,
   type BrandOsRevision,
@@ -520,6 +524,100 @@ describe('BrandOsScanService durable bounded scan', () => {
     );
     expect(h.state.rows).toHaveLength(1);
   });
+  it.each([
+    [249995, 250006, false],
+    [249989, 250000, true],
+  ])(
+    'checks actual helper %i bytes as persisted %i bytes before creating a revision',
+    async (helperBytes, persistedBytes, accepted) => {
+      const h = harness([approved()]);
+      const brandId = `brand-${'b'.repeat(41)}`;
+      expect(brandId).toHaveLength(47);
+      expect(h.input.requestId).toHaveLength(36);
+      h.state.brand.id = brandId;
+      h.input.brandId = brandId;
+      const baselineRow = h.state.rows[0];
+      baselineRow.brandId = brandId;
+      const baseline = baselineRow.content as unknown as IBrandKitDraft;
+      baseline.id = brandId;
+      baseline.brandId = brandId;
+      baseline.evidence = [
+        {
+          sourceType: 'manual',
+          label: 'Owner byte-boundary padding',
+          excerpt: '',
+        },
+      ];
+      const extracted = envelope();
+      extracted.evidence = [];
+      extracted.diagnostics = [];
+      extracted.fontCandidates = [];
+      const brand = h.state.brand;
+      const source: BrandKitSourceBrand = {
+        id: brandId,
+        organization: { id: ORG },
+        label: brand.label,
+        description: brand.description,
+        text: brand.text,
+        fontFamily: brand.fontFamily,
+        primaryColor: brand.primaryColor,
+        secondaryColor: brand.secondaryColor,
+        backgroundColor: brand.backgroundColor,
+      };
+      const options = {
+        baselineDraft: baseline,
+        draftId: h.input.requestId,
+        createdAt: NOW.toISOString(),
+        updatedAt: NOW.toISOString(),
+      };
+      const empty = buildBrandKitDraftFromWebsiteScrape(
+        source,
+        extracted.data,
+        options,
+      );
+      const paddingBytes =
+        helperBytes - Buffer.byteLength(JSON.stringify(empty), 'utf8');
+      expect(paddingBytes).toBeGreaterThan(0);
+      const padding =
+        '界'.repeat(Math.floor(paddingBytes / 3)) +
+        'x'.repeat(paddingBytes % 3);
+      baseline.evidence[0].excerpt = padding;
+      baselineRow.content = toPrismaJson(baseline);
+      const before = structuredClone(baselineRow);
+      const draft = buildBrandKitDraftFromWebsiteScrape(
+        source,
+        extracted.data,
+        options,
+      );
+      expect(Buffer.byteLength(JSON.stringify(draft), 'utf8')).toBe(
+        helperBytes,
+      );
+      expect(
+        Buffer.byteLength(JSON.stringify({ ...draft, id: brandId }), 'utf8'),
+      ).toBe(persistedBytes);
+      expect(JSON.stringify(draft).length).toBeLessThan(helperBytes);
+      h.scraper.scrapeWebsiteWithEvidence.mockResolvedValue(extracted);
+      const create = vi.spyOn(h.revisions, 'create');
+      const result = await h.service.start(h.input);
+      expect(h.state.rows[0]).toEqual(before);
+      if (accepted) {
+        expect(result.status).toBe('partial');
+        expect(create).toHaveBeenCalledOnce();
+        expect(create.mock.calls[0][2].id).toBe(h.input.requestId);
+        expect(h.state.rows).toHaveLength(2);
+        expect(h.state.brand.brandOsRevisionVersion).toBe(2);
+        expect(
+          Buffer.byteLength(JSON.stringify(h.state.rows[1].content), 'utf8'),
+        ).toBe(250000);
+      } else {
+        expect(result.errorCode).toBe('brand_scan.content_too_large');
+        expect(create).not.toHaveBeenCalled();
+        expect(h.state.rows).toHaveLength(1);
+        expect(h.state.brand.brandOsRevisionVersion).toBe(1);
+      }
+    },
+  );
+
   it('rejects oversized multibyte owner baseline content without trimming the approved revision', async () => {
     const before = approved();
     const content = before.content as unknown as IBrandKitDraft;
