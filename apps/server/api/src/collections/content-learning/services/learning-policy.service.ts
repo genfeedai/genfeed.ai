@@ -14,7 +14,14 @@ import {
   updateLearningPolicy,
   validLearningDescriptor,
 } from '@genfeedai/harness';
-import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
+import {
+  type ContentLearningAccount,
+  type ContentLearningDecision,
+  type ContentLearningReward,
+  type ContentLearningScopeState,
+  type Prisma,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import { ConflictException, Injectable } from '@nestjs/common';
 export function parseLearningPolicy(
   value: unknown,
@@ -175,6 +182,102 @@ export class LearningPolicyService {
       return read(client);
     });
   }
+  private async collectPolicyEvidence(
+    tx: Prisma.TransactionClient,
+    organizationId: string,
+    credentialId: string,
+    account: ContentLearningAccount,
+    scope: ContentLearningScopeState,
+    decisions: ContentLearningDecision[],
+  ) {
+    const state = initializeLearningPolicy(),
+      evidence: Array<
+        Pick<
+          ContentLearningReward,
+          'id' | 'version' | 'decisionId' | 'createdAt'
+        >
+      > = [];
+    for (const decision of decisions) {
+      if (
+        !validLearningDescriptor(decision.cellDescriptor) ||
+        learningHash(learningDescriptorTuple(decision.cellDescriptor)) !==
+          scope.descriptorHash ||
+        decision.contextVector.length !== 9 ||
+        decision.contextVector.some((value) => !Number.isFinite(value)) ||
+        !LEARNING_ARMS.includes(
+          decision.selectedArmId as (typeof LEARNING_ARMS)[number],
+        ) ||
+        !(await this.dependencies.valid(
+          'decision',
+          decision.id,
+          tx,
+          organizationId,
+        ))
+      )
+        continue;
+      const reward = await tx.contentLearningReward.findFirst({
+        where: {
+          organizationId,
+          brandId: account.brandId,
+          credentialId,
+          decisionId: decision.id,
+          isDeleted: false,
+        },
+        orderBy: { version: 'desc' },
+      });
+      if (
+        reward?.status !== 'valid' ||
+        reward.composite === null ||
+        !Number.isFinite(reward.composite) ||
+        reward.composite < -1 ||
+        reward.composite > 1 ||
+        !Number.isFinite(reward.createdAt.getTime()) ||
+        reward.createdAt.getTime() > Date.now() ||
+        !(await this.dependencies.valid(
+          'reward',
+          reward.id,
+          tx,
+          organizationId,
+        ))
+      )
+        continue;
+      updateLearningPolicy(
+        state,
+        decision.selectedArmId as (typeof LEARNING_ARMS)[number],
+        decision.contextVector,
+        reward.composite,
+      );
+      evidence.push({
+        id: reward.id,
+        version: reward.version,
+        decisionId: decision.id,
+        createdAt: reward.createdAt,
+      });
+    }
+    return { state, evidence };
+  }
+  private async assertEvidenceCurrent(
+    tx: Prisma.TransactionClient,
+    organizationId: string,
+    evidence: ReadonlyArray<Pick<ContentLearningReward, 'id' | 'decisionId'>>,
+  ): Promise<void> {
+    for (const reward of evidence)
+      if (
+        !(await this.dependencies.valid(
+          'decision',
+          reward.decisionId,
+          tx,
+          organizationId,
+        )) ||
+        !(await this.dependencies.valid(
+          'reward',
+          reward.id,
+          tx,
+          organizationId,
+        ))
+      )
+        throw new ConflictException('Policy evidence changed');
+  }
   async rebuild(
     organizationId: string,
     credentialId: string,
@@ -214,70 +317,14 @@ export class LearningPolicyService {
         },
         orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       });
-      const state = initializeLearningPolicy(),
-        evidence: Array<{
-          id: string;
-          version: number;
-          decisionId: string;
-          createdAt: Date;
-        }> = [];
-      for (const decision of decisions) {
-        if (
-          !validLearningDescriptor(decision.cellDescriptor) ||
-          learningHash(learningDescriptorTuple(decision.cellDescriptor)) !==
-            scope.descriptorHash ||
-          decision.contextVector.length !== 9 ||
-          decision.contextVector.some((value) => !Number.isFinite(value)) ||
-          !LEARNING_ARMS.includes(
-            decision.selectedArmId as (typeof LEARNING_ARMS)[number],
-          ) ||
-          !(await this.dependencies.valid(
-            'decision',
-            decision.id,
-            tx,
-            organizationId,
-          ))
-        )
-          continue;
-        const reward = await tx.contentLearningReward.findFirst({
-          where: {
-            organizationId,
-            brandId: account.brandId,
-            credentialId,
-            decisionId: decision.id,
-            isDeleted: false,
-          },
-          orderBy: { version: 'desc' },
-        });
-        if (
-          reward?.status !== 'valid' ||
-          reward.composite === null ||
-          !Number.isFinite(reward.composite) ||
-          reward.composite < -1 ||
-          reward.composite > 1 ||
-          !Number.isFinite(reward.createdAt.getTime()) ||
-          reward.createdAt.getTime() > Date.now() ||
-          !(await this.dependencies.valid(
-            'reward',
-            reward.id,
-            tx,
-            organizationId,
-          ))
-        )
-          continue;
-        updateLearningPolicy(
-          state,
-          decision.selectedArmId as (typeof LEARNING_ARMS)[number],
-          decision.contextVector,
-          reward.composite,
-        );
-        evidence.push({
-          id: reward.id,
-          version: reward.version,
-          decisionId: decision.id,
-          createdAt: reward.createdAt,
-        });
-      }
+      const { state, evidence } = await this.collectPolicyEvidence(
+        tx,
+        organizationId,
+        credentialId,
+        account,
+        scope,
+        decisions,
+      );
       if (!evidence.length) return null;
       const coefficients = Object.fromEntries(
         LEARNING_ARMS.map((arm) => [arm, solveLearningRidge(state[arm])]),
@@ -315,22 +362,7 @@ export class LearningPolicyService {
         currentScope.descriptorHash !== scope.descriptorHash
       )
         throw new ConflictException('Learning scope changed during rebuild');
-      for (const reward of evidence)
-        if (
-          !(await this.dependencies.valid(
-            'decision',
-            reward.decisionId,
-            tx,
-            organizationId,
-          )) ||
-          !(await this.dependencies.valid(
-            'reward',
-            reward.id,
-            tx,
-            organizationId,
-          ))
-        )
-          throw new ConflictException('Policy evidence changed');
+      await this.assertEvidenceCurrent(tx, organizationId, evidence);
       let policy = await tx.contentLearningPolicyVersion.findFirst({
         where: {
           organizationId,
