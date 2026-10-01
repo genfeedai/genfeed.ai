@@ -254,6 +254,7 @@ export function buildStudioCrunQuoteRequest({
   harness = false,
 }: BuildStudioCrunQuoteRequestProps): CrunImageQuoteRequest | null {
   const controls = model?.provider === 'crun' ? model.inputControls : undefined;
+  if (!model || !controls || !settings.crunControls) return null;
   if (
     !controls ||
     settings.crunControls?.modelKey !== model?.key ||
