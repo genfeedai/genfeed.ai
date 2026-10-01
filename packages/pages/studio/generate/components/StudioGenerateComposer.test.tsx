@@ -303,6 +303,7 @@ describe('StudioGenerateComposer', () => {
         scopeKey: 'studio:image',
         typeOptions: [
           { label: 'Image', value: 'image' },
+          { label: 'Edit image', value: 'image-edit' },
           { label: 'Video', value: 'video' },
           { label: 'Music', value: 'music' },
           { label: 'Avatar', value: 'avatar' },
@@ -877,5 +878,72 @@ describe('StudioGenerateComposer', () => {
     );
     expect(screen.getByText('Estimate unavailable')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
+  });
+
+  describe('image editing composer', () => {
+    const editModel = {
+      key: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+      category: ModelCategory.IMAGE_EDIT,
+      provider: ModelProvider.REPLICATE,
+      isDefault: true,
+      isActive: true,
+      cost: 20,
+      label: 'Ideogram 4.5',
+    };
+    it('blocks submission without a source and never offers prompt enhancement', () => {
+      render(
+        <StudioGenerateComposer
+          {...baseProps}
+          models={[editModel]}
+          prompt="Change the sign"
+          settings={settings}
+          type="image-edit"
+          onEnhancePrompt={vi.fn()}
+        />,
+      );
+      expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
+      expect(
+        screen.getByText('Choose a source image to edit.'),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Enhance prompt' }),
+      ).not.toBeInTheDocument();
+    });
+    it('forces source dimensions for a mask, preserves seed zero and hides character extensions', () => {
+      render(
+        <StudioGenerateComposer
+          {...baseProps}
+          models={[editModel]}
+          prompt="Change the sign"
+          settings={{ ...settings, editSeed: 0, editSize: '1024x1024' }}
+          type="image-edit"
+          extraExtensions={[]}
+          attachedAssets={[
+            {
+              id: 'source',
+              ingredientId: 'source',
+              kind: 'image',
+              role: 'editSource',
+              name: 'Target',
+              previewUrl: 'https://example.com/source.png',
+            },
+            {
+              id: 'mask',
+              ingredientId: 'mask',
+              kind: 'image',
+              role: 'editMask',
+              name: 'Mask',
+              previewUrl: 'https://example.com/mask.png',
+            },
+          ]}
+        />,
+      );
+      expect(
+        screen.getByRole('combobox', { name: 'Editing output size' }),
+      ).toBeDisabled();
+      expect(screen.getByLabelText('Editing seed')).toHaveValue(0);
+      expect(promptEditorProps.extraExtensions).toBeUndefined();
+      expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
+    });
   });
 });

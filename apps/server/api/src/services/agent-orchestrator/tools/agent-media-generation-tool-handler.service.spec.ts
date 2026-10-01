@@ -20,6 +20,7 @@ function createHandler() {
     generateArticle: vi.fn(),
     generateAvatarVideo: vi.fn(),
     generateImage: vi.fn(),
+    editImage: vi.fn(),
     generateMusic: vi.fn(),
     generateVideo: vi.fn(),
     generateVoice: vi.fn(),
@@ -1391,4 +1392,53 @@ describe('media tool skill transport', () => {
       expect(gateway[method]).not.toHaveBeenCalled();
     },
   );
+});
+
+describe('dedicated image editing', () => {
+  it('forwards exact editing instructions and preserves every output id without inheriting generation settings', async () => {
+    const { gateway, handler } = createHandler();
+    gateway.editImage.mockResolvedValue({
+      data: {
+        id: 'edited-1',
+        attributes: {
+          status: 'GENERATED',
+          cdnUrl: 'https://cdn.example.com/edited.png',
+          pendingIngredientIds: ['edited-1', 'edited-2'],
+        },
+      },
+    });
+    const result = await handler.editImage(
+      {
+        imageId: 'source-1',
+        prompt: 'Change only the sign',
+        references: ['ref-1'],
+        maskId: 'mask-1',
+        outputs: 2,
+        seed: 0,
+      },
+      {
+        ...context,
+        generationSettings: { image: { model: 'generation-only-model' } },
+      } as never,
+    );
+    expect(gateway.editImage).toHaveBeenCalledWith({
+      principal: context,
+      resourceId: 'source-1',
+      body: {
+        brandId: context.brandId,
+        prompt: 'Change only the sign',
+        references: ['ref-1'],
+        maskId: 'mask-1',
+        outputs: 2,
+        seed: 0,
+        waitForCompletion: true,
+      },
+    });
+    expect(result).toMatchObject({
+      success: true,
+      isBillingDelegated: true,
+      creditsUsed: 0,
+      data: { sourceImageId: 'source-1', outputIds: ['edited-1', 'edited-2'] },
+    });
+  });
 });

@@ -385,7 +385,8 @@ function IngredientQuickActionsContent(
   if (
     actions.length === 0 &&
     contextActions.length === 0 &&
-    !props.characterAction
+    !props.characterAction &&
+    editingActions.length === 0
   ) {
     return null;
   }

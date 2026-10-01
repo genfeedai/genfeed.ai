@@ -411,12 +411,26 @@ export class AgentMediaAssetGenerationService {
           creditsUsed: 0,
           error: 'Image editing did not produce a usable image.',
         };
-      return this.buildImageGenerationResult(
+      const result = this.buildImageGenerationResult(
         id,
         url,
         params.prompt.substring(0, 80),
         undefined,
       );
+      const outputIds = readMediaReferenceStrings(
+        readMediaResponseValue(response, 'pendingIngredientIds'),
+        8,
+      );
+      return {
+        ...result,
+        data: {
+          ...(typeof result.data === 'object' && result.data !== null
+            ? result.data
+            : {}),
+          sourceImageId: params.imageId,
+          outputIds: outputIds.length ? outputIds : [id],
+        },
+      };
     } catch (error: unknown) {
       return {
         success: false,

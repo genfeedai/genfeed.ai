@@ -386,7 +386,49 @@ export class ImageGenerationService {
         request,
         onCreditsPrepared,
       );
-      return serializeSingle(request, IngredientSerializer, accepted);
+      let pendingIngredientIds: string[] | undefined;
+      if (editing && createImageDto.sourceActionId) {
+        const batch = await this.imagesService.findAll(
+          {
+            organizationId: user.organizationId,
+            brandId: accepted.brandId,
+            category: IngredientCategory.IMAGE,
+            isDeleted: false,
+            sourceActionId: createImageDto.sourceActionId,
+            parentId: accepted.parentId,
+            generationSource: 'image-edit',
+          },
+          {
+            pagination: false,
+            populate: IMAGE_POPULATE,
+            sort: { createdAt: 1 },
+          },
+          false,
+        );
+        pendingIngredientIds = batch.docs
+          .filter((output) => {
+            const data = output.metadata?.providerData;
+            const recipe = readImageEditingRecipe(
+              typeof data === 'object' && data !== null
+                ? (data as Record<string, unknown>).imageEdit
+                : undefined,
+            );
+            return (
+              output.generationPrompt === createImageDto.text &&
+              JSON.stringify(recipe) === JSON.stringify(acceptedEdit)
+            );
+          })
+          .map((output) => output.id.toString());
+        if (pendingIngredientIds.length !== editing.recipe.outputs)
+          throw new HttpException(
+            'This editing batch is still being admitted. Retry shortly.',
+            HttpStatus.CONFLICT,
+          );
+      }
+      return serializeSingle(request, IngredientSerializer, {
+        ...accepted,
+        ...(pendingIngredientIds ? { pendingIngredientIds } : {}),
+      });
     }
     return null;
   }
@@ -1039,7 +1081,12 @@ export class ImageGenerationService {
         return serializeSingle(
           context.request,
           IngredientSerializer,
-          completed,
+          context.editing && typeof completed === 'object' && completed !== null
+            ? {
+                ...completed,
+                pendingIngredientIds: context.pendingIngredientIds,
+              }
+            : completed,
         );
       } catch (error: unknown) {
         // GenfeedAi (`inline`) completes synchronously and never had timeout

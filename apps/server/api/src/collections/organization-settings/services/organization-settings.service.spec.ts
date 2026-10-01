@@ -14,6 +14,10 @@ import { resolve } from 'node:path';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { isCloudDeployment } from '@genfeedai/config';
+import {
+  LOWEST_COST_IMAGE_MODEL_KEY,
+  MODEL_KEYS,
+} from '@genfeedai/contracts/constants';
 import { Prisma } from '@genfeedai/prisma';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -411,5 +415,24 @@ describe('OrganizationSettingsService.ensureForOrganization', () => {
 
     expect(findOne).toHaveBeenCalledTimes(2);
     expect(findOne).toHaveBeenNthCalledWith(2, { organizationId: 'org_1' });
+  });
+});
+
+describe('editing bootstrap default', () => {
+  it('includes the dedicated editing model in the initial local allowlist alongside the ordinary generation default', async () => {
+    const service = makeService('test', undefined, {
+      findAllActive: vi.fn().mockResolvedValue([
+        { id: 'image-default', key: LOWEST_COST_IMAGE_MODEL_KEY },
+        {
+          id: 'edit-default',
+          key: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+        },
+        { id: 'unrelated', key: 'other/model' },
+      ]),
+    });
+    expect(await service.getLowestCostModelIds()).toEqual([
+      'image-default',
+      'edit-default',
+    ]);
   });
 });

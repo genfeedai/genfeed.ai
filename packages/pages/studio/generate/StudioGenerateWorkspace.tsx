@@ -101,6 +101,7 @@ import { Button } from '@ui/primitives/button';
 import Searchbar from '@ui/primitives/searchbar';
 import { usePromptCommandExtension } from '@ui/prompt-editor/use-prompt-command-extension';
 import { LayoutGrid, RotateCcw, Rows3 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   type ReactElement,
@@ -169,6 +170,7 @@ function toRestoredAttachment(asset: IIngredient): AttachmentItem | null {
 }
 
 export default function StudioGenerateWorkspace(): ReactElement {
+  const editSourceQueryId = useSearchParams().get('editImage');
   const translate = useTranslations('pages.studioGenerate');
   const translateActions = useTranslations('ui.quickActions');
   const storyboardEntry = useStoryboardEntry();
@@ -1390,8 +1392,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     isAutosaveEnabled: true,
     isRestoreBlocked:
       Boolean(handoffPayload) ||
-      (typeof window !== 'undefined' &&
-        new URLSearchParams(window.location.search).has('editImage')),
+      (typeof window !== 'undefined' && Boolean(editSourceQueryId)),
     onRestore: restoreDraft,
     payload: draftPayload,
   });
@@ -1418,14 +1419,14 @@ export default function StudioGenerateWorkspace(): ReactElement {
   const editEntryRef = useRef<string | null>(null);
   useEffect(() => {
     if (!isHydrated || !brandId) return;
-    const sourceId = new URLSearchParams(window.location.search).get(
-      'editImage',
-    );
+    const sourceId = editSourceQueryId;
     if (!sourceId || editEntryRef.current === `${brandId}:${sourceId}`) return;
     editEntryRef.current = `${brandId}:${sourceId}`;
+    let cancelled = false;
     void getIngredientsService()
       .then((service) => service.findOne(sourceId, { brandId }))
       .then((ingredient) => {
+        if (cancelled) return;
         if (
           !ingredient ||
           ingredient.brandId !== brandId ||
@@ -1446,16 +1447,22 @@ export default function StudioGenerateWorkspace(): ReactElement {
           editPrimaryId: reference.item.id,
         });
       })
-      .catch((error: unknown) =>
-        notificationsService.error(
-          error instanceof Error
-            ? error.message
-            : 'Editing source unavailable.',
-        ),
-      );
+      .catch((error: unknown) => {
+        if (!cancelled)
+          notificationsService.error(
+            error instanceof Error
+              ? error.message
+              : 'Editing source unavailable.',
+          );
+      });
+    return () => {
+      cancelled = true;
+      editEntryRef.current = null;
+    };
   }, [
     isHydrated,
     brandId,
+    editSourceQueryId,
     getIngredientsService,
     clearAttachments,
     setType,

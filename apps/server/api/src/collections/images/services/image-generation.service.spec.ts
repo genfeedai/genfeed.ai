@@ -136,6 +136,27 @@ const createService = () => {
       key,
       provider: resolveImageGenerationProvider(key),
       cost: 10,
+      ...(key === MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5
+        ? {
+            rateVersion: 'edit-test-rate',
+            requiredSelectorKeys: ['quality'],
+            reviewedPricing: {
+              version: 'edit-test-rate',
+              currency: 'USD',
+              reviewStatus: 'approved',
+              sourceUrl: 'https://replicate.com/ideogram-ai/ideogram-4-5',
+              verifiedAt: new Date().toISOString(),
+              rates: [
+                {
+                  component: 'edited-image',
+                  unit: 'output',
+                  unitPriceUsd: 0.06,
+                  when: { quality: 'medium' },
+                },
+              ],
+            },
+          }
+        : {}),
     })),
   };
   const creditsUtilsService = {
@@ -194,6 +215,7 @@ const createService = () => {
   };
   const metadataService = { patch: vi.fn().mockResolvedValue(undefined) };
   const imagesService = {
+    findAll: vi.fn().mockResolvedValue({ docs: [] }),
     findOne: vi.fn().mockResolvedValue({
       id: 'ing-0',
       status: IngredientStatus.PROCESSING,
@@ -1539,5 +1561,78 @@ describe('instruction-based image editing lifecycle', () => {
     ).rejects.toThrow('does not support');
     expect(imagesService.findOne).not.toHaveBeenCalled();
     expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+  });
+});
+
+describe('editing retry output lineage', () => {
+  it('returns every accepted native output without submitting the provider again', async () => {
+    const {
+      service,
+      imagesService,
+      routerService,
+      replicateService,
+      sharedService,
+    } = createService();
+    const model = MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5;
+    const sourceId = testId('editsource');
+    const prompt = 'Change the sign';
+    const sourceActionId = 'edit-retry';
+    routerService.resolveModelKey.mockResolvedValue({
+      key: model,
+      source: 'registry-default',
+    });
+    const recipe = {
+      contractVersion: 'ideogram-4-5-edit-2026-10-01',
+      operation: 'image-edit',
+      model,
+      sourceIds: [sourceId],
+      size: 'source',
+      quality: 'medium',
+      outputs: 2,
+    };
+    const accepted = {
+      id: 'accepted-1',
+      brandId: RESOLVED_BRAND,
+      parentId: sourceId,
+      generationPrompt: prompt,
+      generationSource: 'image-edit',
+      status: IngredientStatus.GENERATED,
+      metadata: { model, providerData: { imageEdit: recipe } },
+    };
+    imagesService.findOne.mockImplementation(
+      async (query: { sourceActionId?: string }) =>
+        query.sourceActionId
+          ? accepted
+          : {
+              id: sourceId,
+              status: IngredientStatus.GENERATED,
+              s3Key: 'source.png',
+              metadata: { width: 1024, height: 768 },
+            },
+    );
+    imagesService.findAll.mockResolvedValue({
+      docs: [accepted, { ...accepted, id: 'accepted-2' }],
+    });
+    const response = await service.editImage(
+      buildUser(),
+      sourceId,
+      { prompt, brandId: RESOLVED_BRAND, sourceActionId, outputs: 2 },
+      buildRequest(),
+    );
+    expect(response.data?.attributes).toMatchObject({
+      pendingIngredientIds: ['accepted-1', 'accepted-2'],
+    });
+    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
+    expect(imagesService.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: ORG,
+        brandId: RESOLVED_BRAND,
+        isDeleted: false,
+        sourceActionId,
+      }),
+      expect.any(Object),
+      false,
+    );
   });
 });

@@ -88,6 +88,7 @@ const mocks = vi.hoisted(() => ({
   getToken: vi.fn().mockResolvedValue('test-token'),
   composer: vi.fn(),
   findByIds: vi.fn().mockResolvedValue([]),
+  findOne: vi.fn().mockResolvedValue(null),
   gallery: vi.fn(),
   // #4716 review — the Agent -> Studio handoff pipeline (apply, model
   // validation/fallback, param validation, reference attachment, brand
@@ -317,7 +318,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 
 vi.mock('@services/content/ingredients.service', () => ({
   IngredientsService: {
-    getInstance: () => ({ findByIds: mocks.findByIds }),
+    getInstance: () => ({ findByIds: mocks.findByIds, findOne: mocks.findOne }),
   },
 }));
 
@@ -437,6 +438,7 @@ describe('StudioGenerateWorkspace', () => {
     mocks.handoff.value = { isLoading: false, payload: null };
     mocks.models.value = { isLoadingModels: false, models: [] };
     mocks.findByIds.mockResolvedValue([]);
+    mocks.findOne.mockReset().mockResolvedValue(null);
     window.localStorage.clear();
     mocks.outbox.current = createStudioGenerateDraftOutbox();
     mocks.getDraft.mockResolvedValue(null);
@@ -904,6 +906,8 @@ describe('StudioGenerateWorkspace', () => {
     expect(mocks.submit).toHaveBeenCalledWith(
       'Use this composition',
       {
+        editMaskId: undefined,
+        editSourceIds: [],
         endFrameId: undefined,
         imageReferenceIds: ['ingredient-1', 'img-anna'],
         videoReferenceIds: [],
@@ -928,6 +932,8 @@ describe('StudioGenerateWorkspace', () => {
     expect(mocks.submit).toHaveBeenCalledWith(
       'Anna walking',
       {
+        editMaskId: undefined,
+        editSourceIds: [],
         endFrameId: undefined,
         imageReferenceIds: ['ingredient-1', 'img-anna'],
         videoReferenceIds: [],
@@ -1942,6 +1948,61 @@ describe('StudioGenerateWorkspace', () => {
       });
       expect(lastComposerProps().prompt).toBe('Try again');
       expect(mocks.clearAttachments).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Library image editing entry', () => {
+    it('opens a source-only draft and reacts to changing the source query on the same route', async () => {
+      mocks.searchParams.value = 'editImage=source-1';
+      mocks.findOne.mockImplementation(async (id: string) => ({
+        id,
+        brandId: 'brand-1',
+        category: 'IMAGE',
+        status: 'GENERATED',
+        cdnUrl: 'https://example.com/source.png',
+        promptText: 'Old generation prompt',
+      }));
+      const { rerender } = render(<StudioGenerateWorkspace />);
+      await waitFor(() =>
+        expect(mocks.applyTypeSettings).toHaveBeenCalledWith('image-edit', {
+          editSize: 'source',
+          editSeed: undefined,
+          editPrimaryId: 'source-1',
+        }),
+      );
+      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe('');
+      expect(
+        mocks.composer.mock.calls.at(-1)?.[0].attachedAssets,
+      ).toContainEqual(
+        expect.objectContaining({ id: 'source-1', role: 'editSource' }),
+      );
+      mocks.searchParams.value = 'editImage=source-2';
+      rerender(<StudioGenerateWorkspace />);
+      await waitFor(() =>
+        expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+          'image-edit',
+          expect.objectContaining({ editPrimaryId: 'source-2' }),
+        ),
+      );
+      expect(
+        mocks.composer.mock.calls.at(-1)?.[0].attachedAssets,
+      ).not.toContainEqual(expect.objectContaining({ id: 'source-1' }));
+    });
+    it('sends editing instructions without parsing skills or character mentions', async () => {
+      mocks.type.value = 'image-edit';
+      mocks.submit.mockResolvedValue(true);
+      render(<StudioGenerateWorkspace />);
+      const props = mocks.composer.mock.calls.at(-1)?.[0];
+      act(() => props.onPromptChange('/cinema keep @anna unchanged'));
+      act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+      await waitFor(() =>
+        expect(mocks.submit).toHaveBeenCalledWith(
+          '/cinema keep @anna unchanged',
+          expect.any(Object),
+        ),
+      );
+      expect(mocks.resolvePromptCommands).not.toHaveBeenCalled();
+      expect(characterMentionMocks.resolveSubmit).not.toHaveBeenCalled();
     });
   });
 });

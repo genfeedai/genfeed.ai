@@ -12,14 +12,14 @@ describe('image editing provider evidence seed', () => {
           reviewedProviderContractVersion: null,
           pendingProviderContractVersion: null,
         }),
-        update: vi.fn(),
+        updateMany: vi.fn(),
       },
       modelProviderContract: { upsert: vi.fn() },
     };
     await seedImageEditingContract(prisma as never, 'model-edit');
     const contract =
       prisma.modelProviderContract.upsert.mock.calls[0][0].create;
-    const update = prisma.model.update.mock.calls[0][0].data;
+    const update = prisma.model.updateMany.mock.calls[0][0].data;
     const profile = projectModelBillablePricingProfile(
       {
         id: 'model-edit',
@@ -76,12 +76,12 @@ describe('image editing provider evidence seed', () => {
     const prisma = {
       model: {
         findUnique: vi.fn().mockResolvedValue({ [field]: 'operator-version' }),
-        update: vi.fn(),
+        updateMany: vi.fn(),
       },
       modelProviderContract: { upsert: vi.fn() },
     };
     await seedImageEditingContract(prisma as never, 'model-edit');
     expect(prisma.modelProviderContract.upsert).not.toHaveBeenCalled();
-    expect(prisma.model.update).not.toHaveBeenCalled();
+    expect(prisma.model.updateMany).not.toHaveBeenCalled();
   });
 });

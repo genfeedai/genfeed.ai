@@ -440,7 +440,7 @@ export default function StudioGenerateInspector({
           withWrapper={false}
         />
       ) : null}
-      {ingredient && (job.type === 'image' || job.type === 'image-edit') ? (
+      {ingredient && job.type === 'image' ? (
         <Button
           className="w-full"
           icon={<Shuffle className="size-3.5" />}

@@ -33,7 +33,6 @@ describe('image editing per-output funding', () => {
         provider: 'replicate',
         outputs: 8,
         requests: 1,
-        selectors: { quality: 'medium' },
       },
       3.33,
       '2026-10-01T01:00:00.000Z',

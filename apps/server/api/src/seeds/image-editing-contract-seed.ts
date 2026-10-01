@@ -75,8 +75,12 @@ export async function seedImageEditingContract(
     },
     update: {},
   });
-  await prisma.model.update({
-    where: { id: modelId },
+  await prisma.model.updateMany({
+    where: {
+      id: modelId,
+      reviewedProviderContractVersion: null,
+      pendingProviderContractVersion: null,
+    },
     data: {
       endpoint,
       providerInputSchema: inputSchema as Prisma.InputJsonValue,
