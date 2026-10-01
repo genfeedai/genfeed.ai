@@ -4,6 +4,7 @@ import type {
   IStudioLook,
   StudioGenerateCapabilities,
 } from '@genfeedai/contracts/interfaces';
+import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
 import type {
   GenerationSetup,
   GenerationSetupFieldKey,
@@ -45,6 +46,8 @@ export type GenerationSetupFieldSetter = <K extends GenerationSetupFieldKey>(
 ) => void;
 
 export interface GenerationSetupPopoverProps {
+  inputControls?: CrunInputControls;
+  referenceCount?: number;
   scopeKey: string;
   setup: GenerationSetup;
   reasons: Partial<Record<GenerationSetupFieldKey, string>>;
@@ -135,6 +138,8 @@ export interface GenerationSetupSearchOption {
 }
 
 export interface GenerationSetupSearchProps {
+  inputControls?: CrunInputControls;
+  referenceCount?: number;
   capabilities: StudioGenerateCapabilities;
   lookOptions: GenerationSetupLookOptions;
   models: readonly IModel[];
@@ -151,6 +156,8 @@ export type GenerationSetupCustomizeSectionId =
   | 'output';
 
 export interface GenerationSetupCustomizePanelProps {
+  inputControls?: CrunInputControls;
+  referenceCount?: number;
   capabilities: StudioGenerateCapabilities;
   creditQuoteLabel?: string;
   creditsAvailable?: number | null;
@@ -194,6 +201,8 @@ export interface GenerationSetupLookSectionProps {
 }
 
 export interface GenerationSetupOutputSectionProps {
+  inputControls?: CrunInputControls;
+  referenceCount?: number;
   capabilities: StudioGenerateCapabilities;
   onResetField: (key: GenerationSetupFieldKey) => void;
   onSetField: GenerationSetupFieldSetter;

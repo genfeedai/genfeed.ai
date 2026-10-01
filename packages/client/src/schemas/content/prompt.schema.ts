@@ -10,6 +10,14 @@ export const promptTextareaSchema = z.object({
   camera: z.string().optional(),
   cameraMovement: z.string().optional(),
   category: z.string(),
+  crunControls: z
+    .object({
+      modelKey: z.string().min(1),
+      contractVersion: z.string().min(1),
+      outputFormat: z.string().optional(),
+    })
+    .strict()
+    .optional(),
   duration: z.number().optional(),
   endFrame: z.string().optional(),
   folder: z.string().optional(),

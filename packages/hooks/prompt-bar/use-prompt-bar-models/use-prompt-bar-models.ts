@@ -78,11 +78,23 @@ export function usePromptBarModels(
     [normalizedWatchedModels, watchedModel],
   );
 
-  const supportsMultipleReferences = hasAnyModel(
-    modelSupportsMultipleReferences,
+  const crunModels = selectedModels.filter(
+    (model) => model.provider === 'crun' && model.inputControls,
   );
+  const supportsMultipleReferences =
+    crunModels.some(
+      (model) => (model.inputControls?.fields.image_urls?.maxItems ?? 0) > 1,
+    ) || hasAnyModel(modelSupportsMultipleReferences);
   const requiresReferences = hasAnyModel(isReferencesMandatory);
-  const maxReferenceCount = getMinFromAllModels(getModelMaxReferences);
+  const maxReferenceCount = selectedModels.length
+    ? Math.min(
+        ...selectedModels.map((model) =>
+          model.provider === 'crun' && model.inputControls
+            ? (model.inputControls.fields.image_urls?.maxItems ?? 0)
+            : getModelMaxReferences(model.key),
+        ),
+      )
+    : getMinFromAllModels(getModelMaxReferences);
 
   const featureFlags = useMemo(
     () => ({

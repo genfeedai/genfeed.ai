@@ -151,7 +151,14 @@ export interface StudioGenerateTypeConfig {
  * Everything the gear popover owns. Persisted per type so switching Image →
  * Video → Image restores the operator's last setup.
  */
+export interface StudioCrunControls {
+  modelKey: string;
+  contractVersion: string;
+  outputFormat?: string;
+}
+
 export interface StudioGenerateSettings {
+  crunControls?: StudioCrunControls;
   aspectRatio: string;
   /** Public URL of the chosen portrait, posted as `photoUrl`. */
   avatarPhotoUrl?: string;

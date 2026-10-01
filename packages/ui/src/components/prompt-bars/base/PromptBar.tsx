@@ -6,6 +6,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarProps } from '@genfeedai/props/studio/prompt-bar.props';
 import { Form } from '@ui/primitives/form';
 import PromptBarCollapsedView from '@ui/prompt-bars/components/collapsed-view/PromptBarCollapsedView';
+import PromptBarCrunControls from '@ui/prompt-bars/components/crun-controls/PromptBarCrunControls';
 import PromptBarExpandedView from '@ui/prompt-bars/components/expanded-view/PromptBarExpandedView';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import { memo } from 'react';
@@ -58,6 +59,8 @@ function PromptBar({
   banner,
 }: PromptBarProps) {
   const {
+    crunInputControls,
+    watchedCrunControls,
     internalContextValue,
     promptBarRef,
     collapsedInputRef,
@@ -150,6 +153,22 @@ function PromptBar({
               bodyClassName="p-0"
               data-testid="studio-prompt-bar-shell"
             >
+              {crunInputControls ? (
+                <PromptBarCrunControls
+                  controls={crunInputControls}
+                  value={watchedCrunControls?.outputFormat}
+                  isDisabled={isDisabledState}
+                  onChange={(outputFormat) => {
+                    if (!watchedCrunControls) return;
+                    form.setValue(
+                      'crunControls',
+                      { ...watchedCrunControls, outputFormat },
+                      { shouldValidate: true },
+                    );
+                    triggerConfigChange();
+                  }}
+                />
+              ) : null}
               {isCollapsed && isCollapsible ? (
                 <PromptBarCollapsedView
                   collapsedInputRef={collapsedInputRef}

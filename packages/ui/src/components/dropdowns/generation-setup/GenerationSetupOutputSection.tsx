@@ -25,6 +25,8 @@ import { useTranslations } from 'next-intl';
 /** Output tab: aspect ratio, duration, output count, and (music only) style/instrumental/lyrics. */
 export default function GenerationSetupOutputSection({
   capabilities,
+  inputControls,
+  referenceCount = 0,
   onResetField,
   onSetField,
   reasons,
@@ -64,7 +66,15 @@ export default function GenerationSetupOutputSection({
               <SelectValue placeholder="Aspect ratio" />
             </SelectTrigger>
             <SelectContent>
-              {GENERATION_SETUP_ASPECT_RATIO_OPTIONS.map((ratio) => (
+              {(
+                inputControls?.fields.aspect_ratio?.enum?.filter(
+                  (value): value is string =>
+                    typeof value === 'string' &&
+                    (value !== 'auto' ||
+                      referenceCount > 0 ||
+                      !inputControls.isAutoAspectReferenceRequired),
+                ) ?? GENERATION_SETUP_ASPECT_RATIO_OPTIONS
+              ).map((ratio) => (
                 <SelectItem key={ratio} value={ratio}>
                   {ratio}
                 </SelectItem>
@@ -186,7 +196,9 @@ export default function GenerationSetupOutputSection({
               <SelectValue placeholder="Outputs" />
             </SelectTrigger>
             <SelectContent>
-              {GENERATION_SETUP_OUTPUTS_OPTIONS.map((count) => (
+              {GENERATION_SETUP_OUTPUTS_OPTIONS.filter(
+                (count) => !inputControls || count <= inputControls.maxOutputs,
+              ).map((count) => (
                 <SelectItem key={count} value={String(count)}>
                   {count}
                 </SelectItem>

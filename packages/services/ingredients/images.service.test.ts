@@ -1,3 +1,4 @@
+import { EnvironmentService } from '@services/core/environment.service';
 import { ImagesService } from '@services/ingredients/images.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -78,6 +79,7 @@ vi.mock('@services/content/ingredients.service', () => {
   };
 
   class MockIngredientsService {
+    public capturedApiEndpoint = EnvironmentService.apiEndpoint;
     public instance = mockInstance;
     public endpoint: string;
     public token: string;
@@ -202,5 +204,23 @@ describe('ImagesService', () => {
 
       expect(mockPost).toHaveBeenCalledWith(`/${imageId}/reframe`, params);
     });
+  });
+});
+
+describe('ImagesService scoped endpoint cache', () => {
+  it('creates a correctly targeted service after a same-token endpoint switch', () => {
+    const endpoint = vi.spyOn(EnvironmentService, 'apiEndpoint', 'get');
+    endpoint.mockReturnValue('https://first.example/api/');
+    const first = ImagesService.getInstance('scope-endpoint-test');
+    expect(ImagesService.getInstance('scope-endpoint-test')).toBe(first);
+    endpoint.mockReturnValue('https://second.example/api/');
+    const second = ImagesService.getInstance('scope-endpoint-test');
+    expect(second).not.toBe(first);
+    expect(
+      (second as unknown as { capturedApiEndpoint: string })
+        .capturedApiEndpoint,
+    ).toBe('https://second.example/api/');
+    expect(ImagesService.getInstance('scope-endpoint-test')).toBe(second);
+    endpoint.mockRestore();
   });
 });

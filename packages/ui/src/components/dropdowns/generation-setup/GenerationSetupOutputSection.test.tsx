@@ -274,3 +274,37 @@ describe('controlled lyrics editing', () => {
     },
   );
 });
+
+describe('reviewed Crun output choices', () => {
+  it('narrows ratios and counts and excludes auto without a reference', () => {
+    render(
+      <GenerationSetupOutputSection
+        capabilities={{ ...MUSIC_CAPABILITIES, hasAspectRatio: true }}
+        setup={buildSetup({ type: 'image' })}
+        reasons={{}}
+        onResetField={vi.fn()}
+        onSetField={vi.fn()}
+        referenceCount={0}
+        inputControls={{
+          version: 'reviewed',
+          endpoint: 'google/nano-banana-pro',
+          mediaKind: 'image',
+          maxOutputs: 4,
+          isBatchSupported: false,
+          referenceRoles: {},
+          isAutoAspectReferenceRequired: true,
+          fields: {
+            aspect_ratio: {
+              type: 'string',
+              isRequired: false,
+              enum: ['1:1', 'auto'],
+            },
+          },
+        }}
+      />,
+    );
+    expect(screen.getByLabelText('Aspect ratio')).toHaveTextContent('1:1');
+    expect(screen.getByLabelText('Aspect ratio')).not.toHaveTextContent('auto');
+    expect(screen.getByLabelText('Outputs')).not.toHaveTextContent('8');
+  });
+});

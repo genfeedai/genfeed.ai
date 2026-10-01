@@ -19,6 +19,10 @@ import {
   getModelDurations,
 } from '@genfeedai/contracts/constants';
 import {
+  getAspectRatioForFormat,
+  getFormatForAspectRatio,
+} from '@genfeedai/helpers/generation-controls.helper';
+import {
   getDefaultVideoResolution,
   hasResolutionOptions,
 } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
@@ -283,6 +287,16 @@ export function usePromptBarState({
     watchedModel,
   });
 
+  const crunModel =
+    selectedModels.length === 1 && selectedModels[0]?.provider === 'crun'
+      ? selectedModels[0]
+      : undefined;
+  const crunInputControls = crunModel?.inputControls;
+  const watchedCrunControls = useWatch({
+    control: form.control,
+    name: 'crunControls',
+  });
+
   const currentModelCategory = useMemo(() => {
     switch (categoryType) {
       case IngredientCategory.VIDEO:
@@ -475,6 +489,57 @@ export function usePromptBarState({
       );
     },
   });
+
+  useEffect(() => {
+    if (!crunInputControls || !crunModel) {
+      if (form.getValues('crunControls')) {
+        form.setValue('crunControls', undefined);
+        triggerConfigChange();
+      }
+      return;
+    }
+    const current = form.getValues('crunControls');
+    const identityChanged =
+      current?.modelKey !== crunModel.key ||
+      current?.contractVersion !== crunInputControls.version;
+    const formatField = crunInputControls.fields.output_format;
+    const outputFormat =
+      !identityChanged &&
+      formatField?.enum?.includes(current?.outputFormat ?? '')
+        ? current?.outputFormat
+        : typeof formatField?.default === 'string'
+          ? formatField.default
+          : undefined;
+    let changed = false;
+    if (identityChanged || current?.outputFormat !== outputFormat) {
+      form.setValue('crunControls', {
+        modelKey: crunModel.key,
+        contractVersion: crunInputControls.version,
+        ...(outputFormat ? { outputFormat } : {}),
+      });
+      changed = true;
+    }
+    const resolution = crunInputControls.fields.resolution;
+    if (!resolution?.enum?.includes(form.getValues('resolution') ?? '')) {
+      form.setValue('resolution', String(resolution?.default ?? ''));
+      changed = true;
+    }
+    const aspect = crunInputControls.fields.aspect_ratio;
+    const ratio = getAspectRatioForFormat(form.getValues('format'));
+    if (!ratio || !aspect?.enum?.includes(ratio)) {
+      const format = getFormatForAspectRatio(String(aspect?.default ?? '1:1'));
+      if (format) {
+        form.setValue('format', format);
+        changed = true;
+      }
+    }
+    const outputs = form.getValues('outputs') ?? 1;
+    if (outputs > crunInputControls.maxOutputs) {
+      form.setValue('outputs', crunInputControls.maxOutputs);
+      changed = true;
+    }
+    if (changed) triggerConfigChange();
+  }, [crunInputControls, crunModel, form, triggerConfigChange]);
 
   useEffect(() => {
     if (speechError) {
@@ -855,6 +920,8 @@ export function usePromptBarState({
   });
 
   return {
+    crunInputControls,
+    watchedCrunControls,
     // context value (consumed by PromptBarInternalContext.Provider)
     internalContextValue,
     // refs for JSX

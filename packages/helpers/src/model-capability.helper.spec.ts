@@ -249,3 +249,38 @@ describe('getModelCapabilityByKey', () => {
     expect(result?.maxOutputs).toBe(15);
   });
 });
+
+describe('reviewed Crun capability projection', () => {
+  it('uses the safe reviewed contract rather than stale catalog flags', () => {
+    const model = createMockModel({
+      provider: ModelProvider.CRUN,
+      maxOutputs: 8,
+      maxReferences: 1,
+      inputControls: {
+        version: 'reviewed',
+        endpoint: 'google/nano-banana-pro',
+        mediaKind: 'image',
+        maxOutputs: 4,
+        isBatchSupported: false,
+        referenceRoles: { image_urls: 'image' },
+        isAutoAspectReferenceRequired: true,
+        fields: {
+          image_urls: { type: 'array', isRequired: false, maxItems: 8 },
+          aspect_ratio: {
+            type: 'string',
+            isRequired: false,
+            enum: ['1:1', 'auto'],
+            default: '1:1',
+          },
+        },
+      },
+    });
+    expect(getModelCapability(model)).toMatchObject({
+      maxOutputs: 4,
+      maxReferences: 8,
+      isBatchSupported: false,
+      aspectRatios: ['1:1', 'auto'],
+      defaultAspectRatio: '1:1',
+    });
+  });
+});

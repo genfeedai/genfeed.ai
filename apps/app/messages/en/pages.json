@@ -1137,7 +1137,13 @@
     "title": "Generate",
     "viewGrid": "Grid",
     "viewList": "List",
-    "makeClips": "Make clips"
+    "makeClips": "Make clips",
+    "crun": {
+      "outputFormat": "Output format",
+      "quoteLoading": "Checking image price…",
+      "quoteUnavailable": "Image pricing is unavailable",
+      "quoteStale": "Image settings changed. Refreshing the price…"
+    }
   },
   "warmupAccounts": {
     "invitation": {

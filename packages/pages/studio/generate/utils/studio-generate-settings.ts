@@ -285,6 +285,7 @@ export function buildStudioPromptData({
     : Boolean(text);
 
   return {
+    crunControls: settings.crunControls,
     autoSelectModel: isAutoSelectModel,
     // Studio posts the portrait as `photoUrl`; `avatarId` on the shared
     // schema means a HeyGen catalog id we never hold here.

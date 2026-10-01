@@ -413,3 +413,62 @@ describe('usePromptBarModels', () => {
     });
   });
 });
+
+describe('reviewed Crun reference limits', () => {
+  it('uses reviewed reference bounds instead of static key fallbacks', () => {
+    const model = createMockModel({
+      key: 'crun/google/nano-banana-pro',
+      provider: 'crun' as IModel['provider'],
+      inputControls: {
+        version: 'reviewed',
+        endpoint: 'google/nano-banana-pro',
+        mediaKind: 'image',
+        maxOutputs: 4,
+        isBatchSupported: false,
+        referenceRoles: { image_urls: 'image' },
+        isAutoAspectReferenceRequired: true,
+        fields: {
+          image_urls: { type: 'array', isRequired: false, maxItems: 8 },
+        },
+      },
+    });
+    const { result } = renderHook(() =>
+      usePromptBarModels({
+        models: [model],
+        trainings: [],
+        normalizedWatchedModels: [model.key],
+        watchedModel: model.key,
+      }),
+    );
+    expect(result.current.maxReferenceCount).toBe(8);
+    expect(result.current.supportsMultipleReferences).toBe(true);
+  });
+  it('does not union reference bounds for a multiple-model request', () => {
+    const model = createMockModel({
+      key: 'crun/bytedance/seedream-4-5',
+      provider: 'crun' as IModel['provider'],
+      inputControls: {
+        version: 'reviewed',
+        endpoint: 'bytedance/seedream-4-5',
+        mediaKind: 'image',
+        maxOutputs: 4,
+        isBatchSupported: false,
+        referenceRoles: {},
+        isAutoAspectReferenceRequired: false,
+        fields: {
+          image_urls: { type: 'array', isRequired: false, maxItems: 14 },
+        },
+      },
+    });
+    const incumbent = createMockModel({ key: 'model-multi-ref' });
+    const { result } = renderHook(() =>
+      usePromptBarModels({
+        models: [model, incumbent],
+        trainings: [],
+        normalizedWatchedModels: [model.key, incumbent.key],
+        watchedModel: model.key,
+      }),
+    );
+    expect(result.current.maxReferenceCount).toBe(5);
+  });
+});

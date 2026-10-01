@@ -38,6 +38,8 @@ const SECTION_LABELS: Record<GenerationSetupCustomizeSectionId, string> = {
  */
 export default function GenerationSetupCustomizePanel({
   capabilities,
+  inputControls,
+  referenceCount,
   creditQuoteLabel,
   creditsAvailable,
   favoriteModelKeys,
@@ -177,6 +179,8 @@ export default function GenerationSetupCustomizePanel({
 
         {resolvedSection === 'output' ? (
           <GenerationSetupOutputSection
+            inputControls={inputControls}
+            referenceCount={referenceCount}
             capabilities={capabilities}
             onResetField={onResetField}
             onSetField={onSetField}

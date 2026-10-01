@@ -1,5 +1,6 @@
 'use client';
 
+import { PromptBarInternalContext } from '@genfeedai/contexts/ui/prompt-bar-internal-context';
 import type { IngredientFormat } from '@genfeedai/contracts';
 import { isAspectRatioSupported } from '@genfeedai/helpers/aspect-ratio.helper';
 import { formatVideos } from '@genfeedai/helpers/data/data/data.helper';
@@ -9,7 +10,7 @@ import {
 } from '@genfeedai/helpers/generation-controls.helper';
 import type { PromptBarFormatControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
 import AspectRatioDropdown from '@ui/dropdowns/aspect-ratio/AspectRatioDropdown';
-import { memo } from 'react';
+import { memo, useContext } from 'react';
 
 const PromptBarFormatControls = memo(function PromptBarFormatControls({
   currentConfig,
@@ -24,6 +25,15 @@ const PromptBarFormatControls = memo(function PromptBarFormatControls({
   isDisabledState,
   controlClass,
 }: PromptBarFormatControlsProps) {
+  const context = useContext(PromptBarInternalContext);
+  const selected =
+    context?.models.filter((model) =>
+      normalizedWatchedModels.includes(model.key),
+    ) ?? [];
+  const controls =
+    selected.length === 1 && selected[0]?.provider === 'crun'
+      ? selected[0].inputControls
+      : undefined;
   if (!currentConfig.buttons?.format) {
     return null;
   }
@@ -33,27 +43,36 @@ const PromptBarFormatControls = memo(function PromptBarFormatControls({
       ? normalizedWatchedModels
       : [watchedModel];
 
-  const filteredRatios = formatVideos.reduce<string[]>((acc, format) => {
-    if (format.isDisabled) {
+  const reviewedRatios = controls?.fields.aspect_ratio?.enum?.filter(
+    (value): value is string =>
+      typeof value === 'string' &&
+      (value !== 'auto' ||
+        references.length > 0 ||
+        !controls.isAutoAspectReferenceRequired),
+  );
+  const filteredRatios =
+    reviewedRatios ??
+    formatVideos.reduce<string[]>((acc, format) => {
+      if (format.isDisabled) {
+        return acc;
+      }
+
+      const aspectRatio = getAspectRatioForFormat(format.id);
+      if (!aspectRatio) {
+        // Include format but no ratio string to add — skip per original logic
+        return acc;
+      }
+
+      const isSupported = modelsToCheck.some(
+        (modelKey: string) =>
+          modelKey && isAspectRatioSupported(modelKey, aspectRatio),
+      );
+
+      if (isSupported) {
+        acc.push(aspectRatio);
+      }
       return acc;
-    }
-
-    const aspectRatio = getAspectRatioForFormat(format.id);
-    if (!aspectRatio) {
-      // Include format but no ratio string to add — skip per original logic
-      return acc;
-    }
-
-    const isSupported = modelsToCheck.some(
-      (modelKey: string) =>
-        modelKey && isAspectRatioSupported(modelKey, aspectRatio),
-    );
-
-    if (isSupported) {
-      acc.push(aspectRatio);
-    }
-    return acc;
-  }, []);
+    }, []);
 
   const selectedFormatLabel =
     getAspectRatioForFormat(form.getValues('format') as IngredientFormat) ??
@@ -87,7 +106,7 @@ const PromptBarFormatControls = memo(function PromptBarFormatControls({
       shouldValidate: false,
     });
 
-    if (previousFormat !== nextFormatId && references.length > 0) {
+    if (!controls && previousFormat !== nextFormatId && references.length > 0) {
       setReferences([]);
       setReferenceSource('');
       form.setValue('references', [], { shouldValidate: true });

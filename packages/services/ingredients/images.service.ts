@@ -12,7 +12,11 @@ import {
 } from '@genfeedai/serializers';
 import { IngredientsService } from '@services/content/ingredients.service';
 import type { JsonApiResponseDocument } from '@services/core/base.service';
-import { ServiceInstanceManager } from '@services/core/service-instance-manager';
+import { EnvironmentService } from '@services/core/environment.service';
+import {
+  buildInstanceKey,
+  ServiceInstanceManager,
+} from '@services/core/service-instance-manager';
 
 const imageInstances = new ServiceInstanceManager<ImagesService>();
 
@@ -22,13 +26,14 @@ export class ImagesService extends IngredientsService<Image> {
   }
 
   static getInstance(token: string): ImagesService {
-    const cached = imageInstances.get(ImagesService, token);
+    const key = buildInstanceKey([token, EnvironmentService.apiEndpoint]);
+    const cached = imageInstances.get(ImagesService, key);
     if (cached) {
       return cached;
     }
 
     const instance = new ImagesService(token);
-    imageInstances.set(ImagesService, token, instance);
+    imageInstances.set(ImagesService, key, instance);
     return instance;
   }
 

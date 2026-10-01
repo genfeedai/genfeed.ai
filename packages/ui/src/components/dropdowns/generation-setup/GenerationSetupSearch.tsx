@@ -34,6 +34,8 @@ import { useMemo } from 'react';
  */
 export default function GenerationSetupSearch({
   capabilities,
+  inputControls,
+  referenceCount = 0,
   lookOptions,
   models,
   onBack,
@@ -83,7 +85,13 @@ export default function GenerationSetupSearch({
     }
 
     if (capabilities.hasAspectRatio) {
-      for (const ratio of GENERATION_SETUP_ASPECT_RATIO_OPTIONS) {
+      for (const ratio of inputControls?.fields.aspect_ratio?.enum?.filter(
+        (value): value is string =>
+          typeof value === 'string' &&
+          (value !== 'auto' ||
+            referenceCount > 0 ||
+            !inputControls.isAutoAspectReferenceRequired),
+      ) ?? GENERATION_SETUP_ASPECT_RATIO_OPTIONS) {
         index.push({
           fieldKey: 'aspectRatio',
           group: 'Aspect ratio',
@@ -107,7 +115,9 @@ export default function GenerationSetupSearch({
     }
 
     if (capabilities.hasOutputs) {
-      for (const count of GENERATION_SETUP_OUTPUTS_OPTIONS) {
+      for (const count of GENERATION_SETUP_OUTPUTS_OPTIONS.filter(
+        (count) => !inputControls || count <= inputControls.maxOutputs,
+      )) {
         index.push({
           fieldKey: 'outputs',
           group: 'Outputs',
@@ -151,6 +161,8 @@ export default function GenerationSetupSearch({
 
     return index;
   }, [
+    inputControls,
+    referenceCount,
     capabilities,
     lookOptions,
     models,

@@ -143,6 +143,22 @@ export function sanitizeStudioGenerateSettings(
 
   return {
     ...defaults,
+    crunControls:
+      type === 'image' &&
+      isRecord(value.crunControls) &&
+      value.crunControls.modelKey === resolvedModelKey &&
+      typeof value.crunControls.contractVersion === 'string' &&
+      value.crunControls.contractVersion.length > 0 &&
+      value.crunControls.contractVersion.length <= 256
+        ? {
+            modelKey: resolvedModelKey,
+            contractVersion: value.crunControls.contractVersion,
+            ...(typeof value.crunControls.outputFormat === 'string' &&
+            ['png', 'jpg'].includes(value.crunControls.outputFormat)
+              ? { outputFormat: value.crunControls.outputFormat }
+              : {}),
+          }
+        : undefined,
     aspectRatio: pickString(
       aspectRatio,
       getStudioAspectRatios(type),

@@ -22,6 +22,10 @@ import { canSubmitStudioGeneration } from '@genfeedai/services/core/desktop-runt
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import StudioGenerationSummary from '@pages/studio/generate/components/StudioGenerationSummary';
 import StudioIdentityFields from '@pages/studio/generate/components/StudioIdentityFields';
+import {
+  crunFieldOptions,
+  useCrunInputControls,
+} from '@pages/studio/generate/hooks/useCrunInputControls';
 import { useStudioGenerationSetupLookOptions } from '@pages/studio/generate/hooks/useStudioGenerationSetupLookOptions';
 import {
   presetToGenerationSetupValues,
@@ -50,6 +54,7 @@ import { useModelFavorites } from '@ui/dropdowns/model-selector/useModelFavorite
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
+import PromptBarCrunControls from '@ui/prompt-bars/components/crun-controls/PromptBarCrunControls';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
 import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarVoiceControl';
@@ -105,6 +110,12 @@ export default function StudioGenerateComposer({
 }: StudioGenerateComposerProps): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
   const runtime = useDesktopRuntimeContext();
+  const inputControls = useCrunInputControls(
+    models,
+    settings,
+    attachedAssets.length,
+    onSettingsChange,
+  );
   const isRuntimeBlocked = !canSubmitStudioGeneration(runtime);
   const guardedSubmit = () => {
     if (canSubmitStudioGeneration()) onSubmit();
@@ -198,10 +209,18 @@ export default function StudioGenerateComposer({
     looks: presets,
     saveLook,
   } = useStudioLooks(type);
-  const lookOptions = useStudioGenerationSetupLookOptions(
+  const incumbentLookOptions = useStudioGenerationSetupLookOptions(
     type,
     settings.modelKey,
   );
+  const lookOptions = inputControls
+    ? {
+        ...incumbentLookOptions,
+        resolution: crunFieldOptions(inputControls, 'resolution').map(
+          (key) => ({ key, label: key }),
+        ),
+      }
+    : incumbentLookOptions;
   const typeOptions = listStudioGenerateTypeConfigs().map((config) => ({
     label: config.label,
     value: config.type,
@@ -346,7 +365,25 @@ export default function StudioGenerateComposer({
       ) : null}
       <div className="mt-0.5 flex min-h-9 min-w-0 flex-wrap items-center justify-between gap-2 pt-1">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5">
+          {inputControls ? (
+            <PromptBarCrunControls
+              controls={inputControls}
+              value={settings.crunControls?.outputFormat}
+              isDisabled={isGenerating}
+              onChange={(outputFormat) =>
+                onSettingsChange({
+                  crunControls: {
+                    modelKey: settings.modelKey,
+                    contractVersion: inputControls.version,
+                    outputFormat,
+                  },
+                })
+              }
+            />
+          ) : null}
           <GenerationSetupPopover
+            inputControls={inputControls}
+            referenceCount={attachedAssets.length}
             capabilities={capabilities}
             favoriteModelKeys={favoriteModelKeys}
             isDisabled={isGenerating}

@@ -27,6 +27,22 @@ function buildBaseFields(model: IModel) {
 }
 
 function buildImageCapability(model: IModel): ImageModelCapability {
+  const controls = model.inputControls;
+  if (model.provider === 'crun' && controls) {
+    return {
+      category: ModelCategory.IMAGE,
+      maxOutputs: controls.maxOutputs,
+      isBatchSupported: controls.isBatchSupported,
+      maxReferences: controls.fields.image_urls?.maxItems ?? 0,
+      aspectRatios: controls.fields.aspect_ratio?.enum?.filter(
+        (value): value is string => typeof value === 'string',
+      ),
+      defaultAspectRatio:
+        typeof controls.fields.aspect_ratio?.default === 'string'
+          ? controls.fields.aspect_ratio.default
+          : undefined,
+    };
+  }
   return {
     ...buildBaseFields(model),
     category: ModelCategory.IMAGE,
@@ -191,7 +207,7 @@ const CATEGORY_BUILDERS: Record<
 export function getModelCapabilityFromDoc(
   model: IModel,
 ): ModelOutputCapability | null {
-  if (model.maxOutputs == null) {
+  if (model.maxOutputs == null && !model.inputControls) {
     return null;
   }
 
