@@ -13,6 +13,8 @@ export class CrunPromptBuilder extends BasePromptBuilder {
     return [
       'crun/google/nano-banana-pro',
       'crun/bytedance/seedream-4-5',
+      'crun/kling/v2-5-turbo-pro',
+      'crun/google/veo3-1-fast-t2v',
     ].includes(model);
   }
   buildPrompt(
@@ -20,8 +22,7 @@ export class CrunPromptBuilder extends BasePromptBuilder {
     _params: PromptBuilderParams,
     promptText: string,
   ): CrunPromptInput {
-    if (!this.supportsModel(model))
-      throw new Error('Unsupported Crun image model');
+    if (!this.supportsModel(model)) throw new Error('Unsupported Crun model');
     return { prompt: promptText };
   }
 }

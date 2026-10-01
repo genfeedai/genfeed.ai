@@ -1,4 +1,8 @@
-import type { IModel } from '@genfeedai/contracts/interfaces';
+import { ModelProvider } from '@genfeedai/contracts';
+import type {
+  CrunInputControls,
+  IModel,
+} from '@genfeedai/contracts/interfaces';
 import { usePromptBarModels } from '@hooks/prompt-bar/use-prompt-bar-models/use-prompt-bar-models';
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -471,4 +475,111 @@ describe('reviewed Crun reference limits', () => {
     );
     expect(result.current.maxReferenceCount).toBe(5);
   });
+});
+
+function controlsFor(endpoint = 'kling/v2-5-turbo-pro'): CrunInputControls {
+  const kling = endpoint === 'kling/v2-5-turbo-pro';
+  return {
+    endpoint,
+    version: 'reviewed-video-v1',
+    mediaKind: 'video',
+    maxOutputs: 4,
+    isBatchSupported: false,
+    isAutoAspectReferenceRequired: false,
+    referenceRoles: kling ? { img_urls: 'image' } : {},
+    videoRules: {
+      referenceMode: kling ? 'start-end' : 'none',
+      omitAspectRatioWithReferences: kling,
+      availableDurations: kling ? [5, 10] : [8],
+    },
+    fields: {
+      prompt: {
+        type: 'string',
+        isRequired: true,
+        minLength: 1,
+        maxLength: kling ? 2500 : 5000,
+      },
+      duration: {
+        type: 'integer',
+        isRequired: false,
+        enum: kling ? [5, 10] : [4, 6, 8],
+        default: kling ? 5 : 8,
+      },
+      aspect_ratio: {
+        type: 'string',
+        isRequired: false,
+        enum: kling ? ['1:1', '16:9', '9:16'] : ['16:9', '9:16'],
+        default: '16:9',
+      },
+      ...(kling
+        ? {
+            negative_prompt: {
+              type: 'string' as const,
+              isRequired: false,
+              maxLength: 2000,
+            },
+            cfg_scale: {
+              type: 'number' as const,
+              isRequired: false,
+              minimum: 0,
+              maximum: 1,
+              default: 0.5,
+            },
+            img_urls: {
+              type: 'array' as const,
+              isRequired: false,
+              format: 'uri' as const,
+              minItems: 1,
+              maxItems: 2,
+            },
+          }
+        : {
+            resolution: {
+              type: 'string' as const,
+              isRequired: false,
+              enum: ['720p', '1080p', '4k'],
+              default: '720p',
+            },
+            translate_prompt: {
+              type: 'boolean' as const,
+              isRequired: false,
+              default: true,
+            },
+          }),
+    },
+  };
+}
+
+describe('legacy reviewed video modes', () => {
+  it.each(['kling/v2-5-turbo-pro', 'google/veo3-1-fast-t2v'])(
+    'projects frame/scalar flags without incumbent fallback for %s',
+    (endpoint) => {
+      const key = `crun/${endpoint}`;
+      const kling = endpoint.startsWith('kling/');
+      const { result } = renderHook(() =>
+        usePromptBarModels({
+          ...baseOptions,
+          models: [
+            createMockModel({
+              key,
+              provider: ModelProvider.CRUN,
+              inputControls: controlsFor(endpoint),
+            }),
+          ],
+          normalizedWatchedModels: [key],
+          watchedModel: key,
+        }),
+      );
+      expect(result.current).toMatchObject({
+        maxReferenceCount: kling ? 1 : 0,
+        supportsMultipleReferences: false,
+        requiresReferences: false,
+        hasEndFrame: kling,
+        supportsInterpolation: kling,
+        hasAudioToggle: false,
+        hasSpeech: false,
+        hasAnyResolutionOptions: !kling,
+      });
+    },
+  );
 });

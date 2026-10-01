@@ -16,6 +16,9 @@ export const promptTextareaSchema = z.object({
       contractVersion: z.string().min(1),
       outputFormat: z.string().optional(),
       aspectRatio: z.string().optional(),
+      negativePrompt: z.string().optional(),
+      guidanceScale: z.number().finite().optional(),
+      translatePrompt: z.boolean().optional(),
     })
     .strict()
     .optional(),

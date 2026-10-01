@@ -1,8 +1,21 @@
-import { IngredientFormat, IngredientStatus } from '@genfeedai/contracts';
-import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
+import {
+  IngredientFormat,
+  IngredientStatus,
+  ModelProvider,
+} from '@genfeedai/contracts';
+import type {
+  CrunInputControls,
+  IIngredient,
+} from '@genfeedai/contracts/interfaces';
+import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { useIngredientsGeneration } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-generation';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ brandId: 'brand-1' }),
+}));
 
 const { mockOpenModal, mockServicePost } = vi.hoisted(() => ({
   mockOpenModal: vi.fn(),
@@ -266,5 +279,176 @@ describe('useIngredientsGeneration', () => {
       text: '',
     });
     expect(result.current.isImageToVideoGenerating).toBe(false);
+  });
+});
+
+function controlsFor(endpoint = 'kling/v2-5-turbo-pro'): CrunInputControls {
+  const kling = endpoint === 'kling/v2-5-turbo-pro';
+  return {
+    endpoint,
+    version: 'reviewed-video-v1',
+    mediaKind: 'video',
+    maxOutputs: 4,
+    isBatchSupported: false,
+    isAutoAspectReferenceRequired: false,
+    referenceRoles: kling ? { img_urls: 'image' } : {},
+    videoRules: {
+      referenceMode: kling ? 'start-end' : 'none',
+      omitAspectRatioWithReferences: kling,
+      availableDurations: kling ? [5, 10] : [8],
+    },
+    fields: {
+      prompt: {
+        type: 'string',
+        isRequired: true,
+        minLength: 1,
+        maxLength: kling ? 2500 : 5000,
+      },
+      duration: {
+        type: 'integer',
+        isRequired: false,
+        enum: kling ? [5, 10] : [4, 6, 8],
+        default: kling ? 5 : 8,
+      },
+      aspect_ratio: {
+        type: 'string',
+        isRequired: false,
+        enum: kling ? ['1:1', '16:9', '9:16'] : ['16:9', '9:16'],
+        default: '16:9',
+      },
+      ...(kling
+        ? {
+            negative_prompt: {
+              type: 'string' as const,
+              isRequired: false,
+              maxLength: 2000,
+            },
+            cfg_scale: {
+              type: 'number' as const,
+              isRequired: false,
+              minimum: 0,
+              maximum: 1,
+              default: 0.5,
+            },
+            img_urls: {
+              type: 'array' as const,
+              isRequired: false,
+              format: 'uri' as const,
+              minItems: 1,
+              maxItems: 2,
+            },
+          }
+        : {
+            resolution: {
+              type: 'string' as const,
+              isRequired: false,
+              enum: ['720p', '1080p', '4k'],
+              default: '720p',
+            },
+            translate_prompt: {
+              type: 'boolean' as const,
+              isRequired: false,
+              default: true,
+            },
+          }),
+    },
+  };
+}
+
+describe('real quoted image-to-video binding', () => {
+  function setup() {
+    const current = vi.mocked(useElements)();
+    const baseModel = current.videoModels[0];
+    if (!baseModel) throw new Error('Expected model fixture');
+    vi.mocked(useElements).mockReturnValue({
+      ...current,
+      videoModels: [
+        {
+          ...baseModel,
+          key: 'crun/kling/v2-5-turbo-pro',
+          provider: ModelProvider.CRUN,
+          inputControls: controlsFor(),
+        },
+      ],
+    });
+    const props = {
+      notificationsService: {
+        info: vi.fn(),
+        error: vi.fn(),
+        success: vi.fn(),
+      } as never,
+      findAllIngredientsByCategory: vi.fn().mockResolvedValue(undefined),
+    };
+    const hook = renderHook(() => useIngredientsGeneration(props));
+    act(() => hook.result.current.handleConvertToVideo(createIngredient()));
+    const data = {
+      models: ['crun/kling/v2-5-turbo-pro'],
+      text: 'Motion',
+      references: ['img-1'],
+      endFrame: 'img-end',
+      outputs: 1,
+      duration: 10,
+      resolution: '',
+      blacklist: [],
+      brandingMode: 'off',
+      crunControls: {
+        modelKey: 'crun/kling/v2-5-turbo-pro',
+        contractVersion: 'reviewed-video-v1',
+        aspectRatio: '16:9',
+        guidanceScale: 0,
+        negativePrompt: ' blur ',
+      },
+    } as PromptTextareaSchema;
+    return { ...hook, data, props };
+  }
+  it('locks parent/start, retains zero, omits dimensions/audio/tags and posts exact quoted body', async () => {
+    const { result, data, props } = setup();
+    const request = result.current.imageToVideoCrunBinding.prepareRequest(data);
+    expect(request).toMatchObject({
+      parentId: 'img-1',
+      references: ['img-1'],
+      endFrame: 'img-end',
+      crunControls: { duration: 10, guidanceScale: 0, negativePrompt: 'blur' },
+    });
+    expect(request?.crunControls).not.toHaveProperty('aspectRatio');
+    for (const field of ['width', 'height', 'tags', 'sounds', 'type'])
+      expect(request).not.toHaveProperty(field);
+    if (!request) throw new Error('Expected prepared request');
+    await act(async () =>
+      result.current.imageToVideoCrunBinding.submit({
+        ...request,
+        crunQuoteId: 'quote-owned',
+      }),
+    );
+    expect(mockServicePost).toHaveBeenCalledExactlyOnceWith({
+      ...request,
+      crunQuoteId: 'quote-owned',
+    });
+    expect(props.findAllIngredientsByCategory).toHaveBeenCalledWith(true);
+    expect(result.current.imageToVideoTarget).toBeNull();
+  });
+  it('blocks extra sources, duplicate/end-only frames, Veo and mixed models before effects', async () => {
+    const { result, data } = setup();
+    for (const patch of [
+      { references: ['foreign'] },
+      { references: ['img-1', 'extra'] },
+      { endFrame: 'img-1' },
+      { models: ['crun/google/veo3-1-fast-t2v'] },
+      { models: ['model-1', 'crun/kling/v2-5-turbo-pro'] },
+    ])
+      expect(
+        result.current.imageToVideoCrunBinding.prepareRequest({
+          ...data,
+          ...patch,
+        }),
+      ).toBeNull();
+    await act(async () =>
+      result.current.handleImageToVideoSubmit({
+        ...data,
+        models: ['model-1', 'crun/kling/v2-5-turbo-pro'],
+        isValid: true,
+      }),
+    );
+    expect(mockServicePost).not.toHaveBeenCalled();
   });
 });

@@ -307,15 +307,20 @@ describe('VideoGenerationService', () => {
         bindCancelOnAbort: vi.fn(),
       } as never,
     );
+    const crun = {
+      generate: vi.fn().mockResolvedValue({ data: { id: 'crun-video' } }),
+    };
     const service = new VideoGenerationService(
       completionService,
       creditsService,
       executionService,
       preparationService,
       videosService as never,
+      crun as never,
     );
 
     return {
+      crun,
       assetsService,
       brandsService,
       cacheService,
@@ -338,6 +343,24 @@ describe('VideoGenerationService', () => {
       videosService,
     };
   };
+
+  it('routes only explicit Crun video through quoted generation before incumbent preparation', async () => {
+    const f = createService();
+    const dto = {
+      model: 'crun/kling/v2-5-turbo-pro',
+      text: 'bird',
+    } as CreateVideoDto;
+    const user = buildUser();
+    const request = buildRequest();
+    await f.service.generateVideo(user, dto, request);
+    expect(f.crun.generate).toHaveBeenCalledWith(user, dto, request);
+    expect(f.sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    expect(f.promptBuilderService.buildPrompt).not.toHaveBeenCalled();
+    await expect(
+      f.service.generateVideo(user, dto, request, async () => undefined),
+    ).rejects.toMatchObject({ response: { code: 'CRUN_INVALID_INPUT' } });
+    expect(f.crun.generate).toHaveBeenCalledTimes(1);
+  });
 
   function mockTenantIngredients(
     ingredientsService: { findOne: ReturnType<typeof vi.fn> },

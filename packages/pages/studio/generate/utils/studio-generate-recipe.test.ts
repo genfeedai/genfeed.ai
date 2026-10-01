@@ -6,6 +6,7 @@ import { buildRepromptData } from './generation-payloads';
 import {
   formatStudioRecipePrompt,
   groupStudioGenerateJobsByRun,
+  readStudioCrunRecipeControls,
   recipeFromIngredient,
   recipeFromPromptData,
   recipeFromRepromptData,
@@ -364,5 +365,64 @@ describe('resolveRecipeForJob', () => {
 
     expect(resolved?.text).toBe('Enriched');
     expect(resolved?.style).toBe('editorial');
+  });
+});
+
+describe('Crun recipe residual preservation', () => {
+  const kling = {
+    modelKey: 'crun/kling/v2-5-turbo-pro',
+    contractVersion: 'video-v1',
+    guidanceScale: 0,
+    negativePrompt: '  exact submitted bytes  ',
+  };
+  it('clones model/version and exact zero/false/negative bytes without catalog inference', () => {
+    const copy = readStudioCrunRecipeControls(kling, 'video', kling.modelKey);
+    expect(copy).toEqual(kling);
+    expect(copy).not.toBe(kling);
+    const veo = {
+      modelKey: 'crun/google/veo3-1-fast-t2v',
+      contractVersion: 'video-v1',
+      translatePrompt: false,
+    };
+    expect(readStudioCrunRecipeControls(veo, 'video', veo.modelKey)).toEqual(
+      veo,
+    );
+  });
+  it.each([
+    { ...kling, guidanceScale: Infinity },
+    { ...kling, guidanceScale: null },
+    { ...kling, translatePrompt: false },
+    { ...kling, quoteId: 'secret' },
+    { ...kling, duration: 10 },
+    { ...kling, resolution: '720p' },
+    { ...kling, aspectRatio: '21:9' },
+    { ...kling, contractVersion: '' },
+  ])('rejects incompatible stored controls %j', (value) => {
+    expect(
+      readStudioCrunRecipeControls(value, 'video', kling.modelKey),
+    ).toBeUndefined();
+  });
+  it('captures and restores a cloned matching residual but clears one for legacy Crun recipes', () => {
+    const settings = {
+      ...getDefaultStudioGenerateSettings('video'),
+      modelKey: kling.modelKey,
+      duration: 10,
+      resolution: '',
+      crunControls: kling,
+    };
+    const recipe = recipeFromPromptData(
+      buildStudioPromptData('video', 'Motion', settings, [], 'brand-1'),
+      'video',
+      settings,
+    );
+    expect(recipe.crunControls).toEqual(kling);
+    expect(recipe.crunControls).not.toBe(kling);
+    expect(settingsPatchFromRecipe(recipe).crunControls).toEqual(kling);
+    expect(
+      settingsPatchFromRecipe({ ...recipe, crunControls: undefined }),
+    ).toHaveProperty('crunControls', undefined);
+    expect(
+      readStudioCrunRecipeControls(kling, 'image', kling.modelKey),
+    ).toBeUndefined();
   });
 });

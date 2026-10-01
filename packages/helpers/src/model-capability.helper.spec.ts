@@ -5,7 +5,10 @@ import {
   MODEL_OUTPUT_CAPABILITIES,
   type VideoModelCapability,
 } from '@genfeedai/contracts/constants';
-import type { IModel } from '@genfeedai/contracts/interfaces';
+import type {
+  CrunInputControls,
+  IModel,
+} from '@genfeedai/contracts/interfaces';
 
 import {
   getModelCapability,
@@ -283,4 +286,114 @@ describe('reviewed Crun capability projection', () => {
       defaultAspectRatio: '1:1',
     });
   });
+});
+
+function controlsFor(endpoint = 'kling/v2-5-turbo-pro'): CrunInputControls {
+  const kling = endpoint === 'kling/v2-5-turbo-pro';
+  return {
+    endpoint,
+    version: 'reviewed-video-v1',
+    mediaKind: 'video',
+    maxOutputs: 4,
+    isBatchSupported: false,
+    isAutoAspectReferenceRequired: false,
+    referenceRoles: kling ? { img_urls: 'image' } : {},
+    videoRules: {
+      referenceMode: kling ? 'start-end' : 'none',
+      omitAspectRatioWithReferences: kling,
+      availableDurations: kling ? [5, 10] : [8],
+    },
+    fields: {
+      prompt: {
+        type: 'string',
+        isRequired: true,
+        minLength: 1,
+        maxLength: kling ? 2500 : 5000,
+      },
+      duration: {
+        type: 'integer',
+        isRequired: false,
+        enum: kling ? [5, 10] : [4, 6, 8],
+        default: kling ? 5 : 8,
+      },
+      aspect_ratio: {
+        type: 'string',
+        isRequired: false,
+        enum: kling ? ['1:1', '16:9', '9:16'] : ['16:9', '9:16'],
+        default: '16:9',
+      },
+      ...(kling
+        ? {
+            negative_prompt: {
+              type: 'string' as const,
+              isRequired: false,
+              maxLength: 2000,
+            },
+            cfg_scale: {
+              type: 'number' as const,
+              isRequired: false,
+              minimum: 0,
+              maximum: 1,
+              default: 0.5,
+            },
+            img_urls: {
+              type: 'array' as const,
+              isRequired: false,
+              format: 'uri' as const,
+              minItems: 1,
+              maxItems: 2,
+            },
+          }
+        : {
+            resolution: {
+              type: 'string' as const,
+              isRequired: false,
+              enum: ['720p', '1080p', '4k'],
+              default: '720p',
+            },
+            translate_prompt: {
+              type: 'boolean' as const,
+              isRequired: false,
+              default: true,
+            },
+          }),
+    },
+  };
+}
+
+describe('reviewed Crun video capability projection', () => {
+  it.each(['kling/v2-5-turbo-pro', 'google/veo3-1-fast-t2v'])(
+    'overrides stale generic flags for %s',
+    (endpoint) => {
+      const controls = controlsFor(endpoint);
+      const kling = endpoint.startsWith('kling/');
+      expect(
+        getModelCapability(
+          createMockModel({
+            key: `crun/${endpoint}`,
+            category: ModelCategory.VIDEO,
+            provider: ModelProvider.CRUN,
+            inputControls: controls,
+            hasAudioToggle: true,
+            hasSpeech: true,
+            hasVideoReferences: true,
+            hasNativeExtend: true,
+            requiresFirstFrame: true,
+            maxReferences: 5,
+          }),
+        ),
+      ).toMatchObject({
+        maxReferences: kling ? 1 : 0,
+        hasEndFrame: kling,
+        hasInterpolation: kling,
+        hasAudioToggle: false,
+        hasSpeech: false,
+        hasVideoReferences: false,
+        hasNativeExtend: false,
+        requiresFirstFrame: false,
+        durations: kling ? [5, 10] : [8],
+        hasResolutionOptions: !kling,
+      });
+    },
+  );
 });

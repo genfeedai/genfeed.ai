@@ -180,3 +180,125 @@ describe('Crun refreshed contract and residual normalization', () => {
     });
   });
 });
+
+function controlsFor(endpoint = 'kling/v2-5-turbo-pro'): CrunInputControls {
+  const kling = endpoint === 'kling/v2-5-turbo-pro';
+  return {
+    endpoint,
+    version: 'reviewed-video-v1',
+    mediaKind: 'video',
+    maxOutputs: 4,
+    isBatchSupported: false,
+    isAutoAspectReferenceRequired: false,
+    referenceRoles: kling ? { img_urls: 'image' } : {},
+    videoRules: {
+      referenceMode: kling ? 'start-end' : 'none',
+      omitAspectRatioWithReferences: kling,
+      availableDurations: kling ? [5, 10] : [8],
+    },
+    fields: {
+      prompt: {
+        type: 'string',
+        isRequired: true,
+        minLength: 1,
+        maxLength: kling ? 2500 : 5000,
+      },
+      duration: {
+        type: 'integer',
+        isRequired: false,
+        enum: kling ? [5, 10] : [4, 6, 8],
+        default: kling ? 5 : 8,
+      },
+      aspect_ratio: {
+        type: 'string',
+        isRequired: false,
+        enum: kling ? ['1:1', '16:9', '9:16'] : ['16:9', '9:16'],
+        default: '16:9',
+      },
+      ...(kling
+        ? {
+            negative_prompt: {
+              type: 'string' as const,
+              isRequired: false,
+              maxLength: 2000,
+            },
+            cfg_scale: {
+              type: 'number' as const,
+              isRequired: false,
+              minimum: 0,
+              maximum: 1,
+              default: 0.5,
+            },
+            img_urls: {
+              type: 'array' as const,
+              isRequired: false,
+              format: 'uri' as const,
+              minItems: 1,
+              maxItems: 2,
+            },
+          }
+        : {
+            resolution: {
+              type: 'string' as const,
+              isRequired: false,
+              enum: ['720p', '1080p', '4k'],
+              default: '720p',
+            },
+            translate_prompt: {
+              type: 'boolean' as const,
+              isRequired: false,
+              default: true,
+            },
+          }),
+    },
+  };
+}
+
+describe('reviewed video defaults', () => {
+  it('changes model and version once, clearing incompatible image/video residuals', () => {
+    const controls = controlsFor('google/veo3-1-fast-t2v');
+    const settings = {
+      ...getDefaultStudioGenerateSettings('video'),
+      modelKey: `crun/${controls.endpoint}`,
+      duration: 10,
+      resolution: '',
+      crunControls: {
+        modelKey: 'crun/kling/v2-5-turbo-pro',
+        contractVersion: 'old',
+        negativePrompt: 'old negative',
+        guidanceScale: 0,
+      },
+    };
+    const patch = normalizeCrunSettings(settings, controls, 0);
+    expect(patch).toEqual({
+      duration: 8,
+      aspectRatio: '16:9',
+      resolution: '720p',
+      crunControls: {
+        modelKey: settings.modelKey,
+        contractVersion: controls.version,
+        translatePrompt: true,
+      },
+    });
+    expect(
+      normalizeCrunSettings({ ...settings, ...patch }, controls, 0),
+    ).toEqual({});
+  });
+  it('keeps Kling absent resolution empty and does not coerce it to undefined text', () => {
+    const controls = controlsFor();
+    expect(
+      normalizeCrunSettings(
+        {
+          ...getDefaultStudioGenerateSettings('video'),
+          modelKey: `crun/${controls.endpoint}`,
+        },
+        controls,
+        0,
+      ),
+    ).toMatchObject({
+      duration: 5,
+      resolution: '',
+      crunControls: { guidanceScale: 0.5 },
+    });
+  });
+});

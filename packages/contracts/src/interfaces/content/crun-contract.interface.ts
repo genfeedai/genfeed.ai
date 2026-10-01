@@ -18,7 +18,8 @@ export interface CrunInputField {
 export interface CrunModelInputContract {
   version: string;
   endpoint: string;
-  mediaKind: 'image';
+  mediaKind: 'image' | 'video';
+  videoRules?: CrunVideoInputRules;
   fields: Record<string, CrunInputField>;
   referenceRoles: Record<string, 'image'>;
   serverOverrides: Record<string, CrunInputValue>;
@@ -29,7 +30,8 @@ export interface CrunModelInputContract {
 export interface CrunInputControls {
   version: string;
   endpoint: string;
-  mediaKind: 'image';
+  mediaKind: 'image' | 'video';
+  videoRules?: CrunVideoInputRules;
   fields: Record<string, CrunInputField>;
   referenceRoles: Record<string, 'image'>;
   isAutoAspectReferenceRequired: boolean;
@@ -46,7 +48,9 @@ export interface CrunInputFieldError {
     | 'enum'
     | 'bounds'
     | 'uri'
-    | 'reference_required';
+    | 'reference_required'
+    | 'pricing_unavailable'
+    | 'contract_mismatch';
 }
 
 export type CrunNormalizedInput =
@@ -71,3 +75,25 @@ export function parseCrunTaskState(value: unknown): CrunTaskState | null {
     ? (CRUN_TASK_STATES.find((state) => state === value) ?? null)
     : null;
 }
+
+export interface CrunVideoInputRules {
+  referenceMode: 'none' | 'start-end';
+  omitAspectRatioWithReferences: boolean;
+  availableDurations: readonly number[];
+}
+
+export interface CrunVideoDraft {
+  modelKey: string;
+  contractVersion: string;
+  prompt: string;
+  duration?: number;
+  aspectRatio?: string;
+  resolution?: string;
+  negativePrompt?: string;
+  guidanceScale?: number;
+  translatePrompt?: boolean;
+  startFrameId?: string;
+  endFrameId?: string;
+}
+
+export type CrunVideoReferenceMode = 'id' | 'url';

@@ -43,11 +43,14 @@ export default function GenerationSetupOutputSection({
   const hasDurationEditing = musicDurationState
     ? musicDurationState.hasDurationEditing
     : true;
-  const showDuration = capabilities.hasDuration && hasDurationEditing;
+  const showDuration =
+    inputControls?.mediaKind !== 'video' &&
+    capabilities.hasDuration &&
+    hasDurationEditing;
 
   return (
     <div className="flex flex-col gap-3">
-      {capabilities.hasAspectRatio ? (
+      {capabilities.hasAspectRatio && inputControls?.mediaKind !== 'video' ? (
         <GenerationSetupFieldRow
           fieldKey="aspectRatio"
           label="Aspect ratio"

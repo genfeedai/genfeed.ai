@@ -1,17 +1,20 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
+import { CrunVideoGenerationService } from '@api/collections/videos/services/crun-video-generation.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import {
   type MediaPromptEnhancementInput,
   MediaPromptEnhancementService,
 } from '@api/services/harness/media-prompt-enhancement.service';
+import { VideoGenerationSerializer } from '@genfeedai/serializers';
 
 vi.mock('@api/collections/templates/services/templates.service', () => ({
   TemplatesService: class {},
@@ -35,7 +38,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { VideosController } from '@api/collections/videos/controllers/videos.controller';
-import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import type { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
 import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
 import { HeyGenVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/heygen-video-generation-provider.adapter';
@@ -503,6 +506,10 @@ describe('VideosController', () => {
         VideoGenerationPreparationService,
         VideoGenerationProviderDispatchService,
         VideoGenerationService,
+        {
+          provide: CrunVideoGenerationService,
+          useValue: { generate: vi.fn() },
+        },
       ],
     })
       .overrideGuard(BetterAuthGuard)
@@ -1095,6 +1102,27 @@ describe('VideosController', () => {
       brandsService.findOne.mockResolvedValue(
         mockBrand as unknown as BrandDocument,
       );
+    });
+
+    it('passes the original serialized HTTP body unchanged through controller and Crun routing', async () => {
+      const body = VideoGenerationSerializer.serialize({
+        model: 'crun/kling/v2-5-turbo-pro',
+        text: 'A bird',
+        crunControls: { contractVersion: 'reviewed', guidanceScale: 0 },
+        crunQuoteId: 'frozen',
+      });
+      const dto = (await new ValidationPipe().transform(body, {
+        type: 'body',
+        metatype: CreateVideoDto,
+      })) as CreateVideoDto;
+      const request = { ...mockRequest, body } as ExpressRequest;
+      const crun = testingModule.get(CrunVideoGenerationService);
+      vi.mocked(crun.generate).mockResolvedValue({
+        data: { type: 'video', id: 'owned', attributes: {} },
+      });
+      await controller.create(request, dto, mockUser);
+      expect(crun.generate).toHaveBeenCalledWith(mockUser, dto, request);
+      expect(request.body).toBe(body);
     });
 
     it('should create a video with KlingAI model', async () => {

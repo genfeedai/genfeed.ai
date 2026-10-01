@@ -84,7 +84,7 @@ export default function GenerationSetupSearch({
       }
     }
 
-    if (capabilities.hasAspectRatio) {
+    if (capabilities.hasAspectRatio && inputControls?.mediaKind !== 'video') {
       for (const ratio of inputControls?.fields.aspect_ratio?.enum?.filter(
         (value): value is string =>
           typeof value === 'string' &&
@@ -101,7 +101,7 @@ export default function GenerationSetupSearch({
       }
     }
 
-    if (capabilities.hasDuration) {
+    if (capabilities.hasDuration && inputControls?.mediaKind !== 'video') {
       for (const seconds of setup.values.type === 'music'
         ? resolveMusicSettings(setup.values.modelKey).durations
         : GENERATION_SETUP_DURATION_OPTIONS_SECONDS) {
@@ -128,6 +128,8 @@ export default function GenerationSetupSearch({
     }
 
     for (const key of GENERATION_SETUP_LOOK_FIELD_ORDER) {
+      if (key === 'resolution' && inputControls?.mediaKind === 'video')
+        continue;
       const fieldOptions = lookOptions[key] ?? [];
       for (const option of fieldOptions) {
         index.push({

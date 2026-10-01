@@ -18,6 +18,7 @@ import {
   getModelDefaultDuration,
   getModelDurations,
 } from '@genfeedai/contracts/constants';
+import { createCrunVideoDraft } from '@genfeedai/helpers/crun-video-input.helper';
 import {
   getDefaultVideoResolution,
   hasResolutionOptions,
@@ -113,10 +114,12 @@ type UsePromptBarStateParams = Pick<
   | 'onPromptDocumentChange'
   | 'onPrepareSubmit'
   | 'crunBinding'
+  | 'crunVideoBinding'
 >;
 
 export function usePromptBarState({
   crunBinding,
+  crunVideoBinding,
   isDisabled = false,
   models = EMPTY_ARRAY,
   trainings = EMPTY_ARRAY,
@@ -460,14 +463,31 @@ export function usePromptBarState({
       watchedModel,
     });
 
+  const isCrunVideo = crunInputControls?.mediaKind === 'video';
   const crunRequest =
-    crunModel && crunBinding && !isEnhancing
-      ? crunBinding.prepareRequest(form.getValues())
+    crunModel && !isEnhancing
+      ? isCrunVideo
+        ? (crunVideoBinding?.prepareRequest(form.getValues()) ?? null)
+        : (crunBinding?.prepareRequest(form.getValues()) ?? null)
       : null;
-  const crunQuote = useCrunGenerationQuote({
-    request: crunRequest,
-    isActive: Boolean(crunModel && crunBinding),
-  });
+  const crunQuote = useCrunGenerationQuote(
+    isCrunVideo
+      ? {
+          mediaKind: 'video',
+          request:
+            crunModel && !isEnhancing
+              ? (crunVideoBinding?.prepareRequest(form.getValues()) ?? null)
+              : null,
+          isActive: Boolean(crunModel && crunVideoBinding),
+        }
+      : {
+          request:
+            crunModel && !isEnhancing
+              ? (crunBinding?.prepareRequest(form.getValues()) ?? null)
+              : null,
+          isActive: Boolean(crunModel && crunBinding),
+        },
+  );
   const selectedModelCost = hasCrunSelection
     ? (crunQuote.getCurrentQuote()?.credits ?? null)
     : staticSelectedModelCost;
@@ -479,8 +499,12 @@ export function usePromptBarState({
       : crunQuote.status === 'pending'
         ? translateCrun('quoteLoading')
         : crunQuote.reasonCode
-          ? translateCrun(`reasons.${crunQuote.reasonCode}`)
-          : translateCrun('quoteUnavailable')
+          ? translateCrun(
+              `${isCrunVideo ? 'videoReasons' : 'reasons'}.${crunQuote.reasonCode}`,
+            )
+          : translateCrun(
+              isCrunVideo ? 'videoQuoteUnavailable' : 'quoteUnavailable',
+            )
     : null;
 
   const generationMeter = useMemo(
@@ -538,6 +562,33 @@ export function usePromptBarState({
     const identityChanged =
       current?.modelKey !== crunModel.key ||
       current?.contractVersion !== crunInputControls.version;
+    if (crunInputControls.mediaKind === 'video') {
+      const draft = createCrunVideoDraft(
+        crunInputControls,
+        form.getValues('text'),
+      );
+      if (!draft) return;
+      if (identityChanged) {
+        form.setValue('crunControls', {
+          modelKey: draft.modelKey,
+          contractVersion: draft.contractVersion,
+          aspectRatio: draft.aspectRatio,
+          guidanceScale: draft.guidanceScale,
+          translatePrompt: draft.translatePrompt,
+        });
+        form.setValue('duration', draft.duration);
+        form.setValue('resolution', draft.resolution ?? '');
+        form.setValue('endFrame', '');
+        form.setValue('videoReferences', []);
+        setEndFrame(null);
+        if (crunInputControls.videoRules?.referenceMode === 'none') {
+          form.setValue('references', []);
+          setReferences([]);
+        }
+        triggerConfigChange();
+      }
+      return;
+    }
     const formatField = crunInputControls.fields.output_format;
     const outputFormat = formatField?.enum?.includes(
       current?.outputFormat ?? '',
@@ -609,6 +660,8 @@ export function usePromptBarState({
     form,
     references.length,
     triggerConfigChange,
+    setEndFrame,
+    setReferences,
   ]);
 
   useEffect(() => {
@@ -618,7 +671,11 @@ export function usePromptBarState({
   }, [speechError, notificationsService]);
 
   useEffect(() => {
-    if (normalizedWatchedModels.length > 0 && !watchedDuration) {
+    if (
+      !isCrunVideo &&
+      normalizedWatchedModels.length > 0 &&
+      !watchedDuration
+    ) {
       const defaultDuration = getModelDefaultDuration(watchedModel);
       if (defaultDuration) {
         form.setValue('duration', defaultDuration, { shouldValidate: true });
@@ -626,6 +683,7 @@ export function usePromptBarState({
       }
     }
   }, [
+    isCrunVideo,
     normalizedWatchedModels.length,
     watchedModel,
     watchedDuration,
@@ -634,7 +692,7 @@ export function usePromptBarState({
   ]);
 
   useEffect(() => {
-    if (watchedModel && hasResolutionOptions(watchedModel)) {
+    if (!isCrunVideo && watchedModel && hasResolutionOptions(watchedModel)) {
       const currentResolution = form.getValues('resolution');
       if (!currentResolution) {
         const defaultResolution = getDefaultVideoResolution(watchedModel);
@@ -646,7 +704,7 @@ export function usePromptBarState({
         }
       }
     }
-  }, [watchedModel, form, triggerConfigChange]);
+  }, [isCrunVideo, watchedModel, form, triggerConfigChange]);
 
   useEffect(() => {
     if (brandId) {
@@ -721,7 +779,7 @@ export function usePromptBarState({
     isModelNotSet ||
     (hasCrunSelection &&
       (!crunModel ||
-        !crunBinding ||
+        !(isCrunVideo ? crunVideoBinding : crunBinding) ||
         !crunRequest ||
         !crunQuote.getCurrentQuote() ||
         crunConsumedRef.current === crunQuote.getCurrentQuote()?.quoteId));
@@ -742,7 +800,11 @@ export function usePromptBarState({
   }, []);
 
   const openAttachedAssetsBrowser = useCallback(() => {
-    if (!currentConfig.buttons?.reference || isOnlyImagenModels) {
+    if (
+      !currentConfig.buttons?.reference ||
+      isOnlyImagenModels ||
+      (isCrunVideo && crunInputControls?.videoRules?.referenceMode === 'none')
+    ) {
       return;
     }
 
@@ -766,6 +828,8 @@ export function usePromptBarState({
   }, [
     currentConfig.buttons,
     currentModelCategory,
+    crunInputControls,
+    isCrunVideo,
     handleReferenceSelect,
     handleSelectAccountReference,
     isOnlyImagenModels,
@@ -796,10 +860,12 @@ export function usePromptBarState({
           isGenerateDisabled ||
           isGenerating ||
           crunSubmittingRef.current ||
-          !crunBinding
+          !(isCrunVideo ? crunVideoBinding : crunBinding)
         )
           return;
-        const request = crunBinding.prepareRequest(form.getValues());
+        const request = isCrunVideo
+          ? crunVideoBinding?.prepareRequest(form.getValues())
+          : crunBinding?.prepareRequest(form.getValues());
         const quote = crunQuote.getCurrentQuote();
         if (
           !request ||
@@ -811,9 +877,34 @@ export function usePromptBarState({
           return;
         crunSubmittingRef.current = true;
         crunConsumedRef.current = quote.quoteId;
-        void crunBinding
-          .submit({ ...request, crunQuoteId: quote.quoteId })
-          .catch(() => notificationsService.error(translateCrun('quoteStale')))
+        const submission = isCrunVideo
+          ? (() => {
+              const video = crunVideoBinding?.prepareRequest(form.getValues());
+              return (
+                video &&
+                crunVideoBinding?.submit({
+                  ...video,
+                  crunQuoteId: quote.quoteId,
+                })
+              );
+            })()
+          : (() => {
+              const image = crunBinding?.prepareRequest(form.getValues());
+              return (
+                image &&
+                crunBinding?.submit({ ...image, crunQuoteId: quote.quoteId })
+              );
+            })();
+        if (!submission) {
+          crunSubmittingRef.current = false;
+          return;
+        }
+        void submission
+          .catch(() =>
+            notificationsService.error(
+              translateCrun(isCrunVideo ? 'videoQuoteStale' : 'quoteStale'),
+            ),
+          )
           .finally(() => {
             crunSubmittingRef.current = false;
           });
@@ -848,6 +939,8 @@ export function usePromptBarState({
     },
     [
       crunBinding,
+      crunVideoBinding,
+      isCrunVideo,
       crunQuote.getCurrentQuote,
       crunRequest,
       hasCrunSelection,
@@ -864,6 +957,7 @@ export function usePromptBarState({
   );
 
   const videoDurations = useMemo(() => {
+    if (isCrunVideo) return [];
     if (normalizedWatchedModels.length === 0) {
       return [...getModelDurations(watchedModel as string)];
     }
@@ -871,7 +965,12 @@ export function usePromptBarState({
       const durations = getModelDurations(modelKey);
       return Array.from(durations);
     }) as (modelKey: string) => number[]);
-  }, [normalizedWatchedModels, watchedModel, getUnionFromAllModels]);
+  }, [
+    isCrunVideo,
+    normalizedWatchedModels,
+    watchedModel,
+    getUnionFromAllModels,
+  ]);
 
   const formatIcon = useMemo(() => {
     switch (watchedFormat) {
@@ -1036,6 +1135,22 @@ export function usePromptBarState({
     crunQuoteLabel,
     crunInputControls,
     watchedCrunControls,
+    crunVideoDraft:
+      isCrunVideo && watchedCrunControls
+        ? {
+            modelKey: watchedCrunControls.modelKey,
+            contractVersion: watchedCrunControls.contractVersion,
+            prompt: form.watch('text') ?? '',
+            duration: watchedDuration,
+            aspectRatio: watchedCrunControls.aspectRatio,
+            resolution: form.watch('resolution') || undefined,
+            negativePrompt: watchedCrunControls.negativePrompt,
+            guidanceScale: watchedCrunControls.guidanceScale,
+            translatePrompt: watchedCrunControls.translatePrompt,
+            startFrameId: references[0]?.id,
+            endFrameId: endFrame?.id,
+          }
+        : null,
     // context value (consumed by PromptBarInternalContext.Provider)
     internalContextValue,
     // refs for JSX

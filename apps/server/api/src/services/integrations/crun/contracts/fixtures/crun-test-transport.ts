@@ -2,7 +2,7 @@ import { createServer, request as requestHttp } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
 /** Keyless loopback provider fixture. Production's fixed origin is rewritten only by the test seam. */
-export async function createCrunTestTransport() {
+export async function createCrunTestTransport(videoBytes?: Buffer) {
   const requests: { route: string; method: string; input: unknown }[] = [];
   let taskCount = 0;
   let base = '';
@@ -14,6 +14,7 @@ export async function createCrunTestTransport() {
   );
   let onCreate: (() => void) | undefined;
   let creditOverride: number | undefined;
+  let estimated = false;
   let outcomes: ('success' | 'failed' | 'refused' | 'ambiguous')[] = [];
   const tasks = new Map<
     string,
@@ -23,9 +24,17 @@ export async function createCrunTestTransport() {
     const url = new URL(request.url ?? '/', base);
     if (url.pathname.startsWith('/media/')) {
       response.writeHead(mediaAvailable ? 200 : 404, {
-        'Content-Type': 'image/png',
+        'Content-Type': url.pathname.endsWith('.mp4')
+          ? 'video/mp4'
+          : 'image/png',
       });
-      response.end(mediaAvailable ? pixel : undefined);
+      response.end(
+        mediaAvailable
+          ? url.pathname.endsWith('.mp4')
+            ? videoBytes
+            : pixel
+          : undefined,
+      );
       return;
     }
     const chunks: Buffer[] = [];
@@ -39,18 +48,28 @@ export async function createCrunTestTransport() {
       input: body,
     });
     const input = body as
-      | { model?: string; input?: { resolution?: string } }
+      | { model?: string; input?: { resolution?: string; duration?: number } }
       | undefined;
     const credits =
       creditOverride ??
-      (input?.model === 'bytedance/seedream-4-5'
-        ? 6
-        : input?.input?.resolution === '4K'
-          ? 10
-          : 8);
+      (input?.model === 'kling/v2-5-turbo-pro'
+        ? input.input?.duration === 10
+          ? 84
+          : 42
+        : input?.model === 'google/veo3-1-fast-t2v'
+          ? input.input?.resolution === '4k'
+            ? 90
+            : input.input?.resolution === '1080p'
+              ? 37.5
+              : 30
+          : input?.model === 'bytedance/seedream-4-5'
+            ? 6
+            : input?.input?.resolution === '4K'
+              ? 10
+              : 8);
     let data: unknown;
     if (url.pathname.endsWith('/estimate-credits'))
-      data = { credits, estimated: false };
+      data = { credits, estimated };
     else if (url.pathname.endsWith('/CreateTask')) {
       const outcome = outcomes.shift() ?? 'success';
       onCreate?.();
@@ -91,12 +110,18 @@ export async function createCrunTestTransport() {
         source: 'api',
         create_at: 1,
         complete_at: 2,
-        duration_s: 1,
+        duration_s:
+          task.model === 'kling/v2-5-turbo-pro' ||
+          task.model === 'google/veo3-1-fast-t2v'
+            ? 99
+            : 1,
         result: {
           code: 200,
           media_urls:
             task.status === 'success'
-              ? [`${mediaOrigin}/media/${taskId}.png`]
+              ? [
+                  `${mediaOrigin}/media/${taskId}.${['kling/v2-5-turbo-pro', 'google/veo3-1-fast-t2v'].includes(task.model) ? 'mp4' : 'png'}`,
+                ]
               : [],
         },
       };
@@ -179,6 +204,9 @@ export async function createCrunTestTransport() {
     pixel,
     base,
     mediaOrigin,
+    setEstimated: (value: boolean) => {
+      estimated = value;
+    },
     setCredits: (credits?: number) => {
       creditOverride = credits;
     },

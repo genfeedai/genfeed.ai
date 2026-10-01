@@ -124,7 +124,6 @@ describe('ImagesService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    ImagesService.imageInstances = new Map();
     service = new ImagesService(mockToken);
   });
 
@@ -291,4 +290,35 @@ describe('ImagesService Crun preview wire contract', () => {
       ).rejects.toThrow('CRUN_PROVIDER_UNAVAILABLE');
     },
   );
+});
+
+describe('image parser extraction regression', () => {
+  it('rejects a video response instead of admitting it to image generation', async () => {
+    const request = {
+      model: 'crun/google/nano-banana-pro',
+      text: 'Bird',
+      crunControls: { contractVersion: 'reviewed-1' },
+    };
+    mockPost.mockResolvedValue({
+      data: {
+        data: {
+          type: 'crun-generation-quote',
+          id: 'preview',
+          attributes: {
+            isAvailable: true,
+            quoteId: 'quote',
+            expiresAt: '2099-01-01T00:00:00.000Z',
+            modelKey: 'crun/kling/v2-5-turbo-pro',
+            contractVersion: 'reviewed-1',
+            credits: 11,
+            billingMode: 'credits',
+            reasonCode: null,
+          },
+        },
+      },
+    });
+    await expect(
+      new ImagesService('image-only').quoteCrun(request),
+    ).rejects.toThrow('CRUN_PROVIDER_UNAVAILABLE');
+  });
 });

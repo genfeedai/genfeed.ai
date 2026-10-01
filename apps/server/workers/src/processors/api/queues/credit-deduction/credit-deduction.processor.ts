@@ -7,11 +7,13 @@ import { crunReceiptAllowsDisposition } from '@api/helpers/utils/credits/generat
 import { generationUsageReceiptSchema } from '@api/helpers/utils/credits/generation-submission-evidence.schema';
 import { modelBillableQuoteSnapshotSchema } from '@api/helpers/utils/credits/model-billable-quote.schema';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import { getCrunMediaKind } from '@api/services/integrations/crun/crun-media-kind.util';
 import { crunFundingBindingSchema } from '@api/services/integrations/crun/crun-task.schema';
 import {
   ActivityKey,
   ActivitySource,
   CreditTransactionCategory,
+  IngredientCategory,
 } from '@genfeedai/contracts';
 import {
   CREDIT_DEDUCTION_QUEUE,
@@ -274,6 +276,7 @@ export class CreditDeductionProcessor extends WorkerHost {
               where,
               select: {
                 userId: true,
+                category: true,
                 status: true,
                 s3Key: true,
                 generationBilling: true,
@@ -298,6 +301,7 @@ export class CreditDeductionProcessor extends WorkerHost {
               !usage.success
             )
               throw invalid();
+            const kind = getCrunMediaKind(current.endpoint);
             const frozen = quote.data.providerQuote;
             const outputs =
               quote.data.quantities.outputs ??
@@ -321,9 +325,11 @@ export class CreditDeductionProcessor extends WorkerHost {
               quote.data.modelKey !== current.modelKey ||
               quote.data.pricingProfile.key !== current.modelKey ||
               current.modelKey !== `crun/${current.endpoint}` ||
-              !['google/nano-banana-pro', 'bytedance/seedream-4-5'].includes(
-                current.endpoint,
-              ) ||
+              !kind ||
+              owned.category !==
+                (kind === 'video'
+                  ? IngredientCategory.VIDEO
+                  : IngredientCategory.IMAGE) ||
               frozen.contractVersion !== current.contractVersion ||
               frozen.inputHash !== current.inputHash ||
               frozen.credentialId !== current.credentialId ||

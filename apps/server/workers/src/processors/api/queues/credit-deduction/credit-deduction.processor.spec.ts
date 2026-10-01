@@ -6,6 +6,7 @@ import {
   ActivityKey,
   ActivitySource,
   CreditTransactionCategory,
+  IngredientCategory,
 } from '@genfeedai/contracts';
 import type { CreditDeductionJobData } from '@genfeedai/contracts/queue';
 import { quoteModelBillablePricing } from '@genfeedai/pricing';
@@ -524,27 +525,35 @@ describe('CreditDeductionProcessor', () => {
 });
 
 describe('Crun media BYOK consumer authority', () => {
-  function fixture(amount = 3) {
+  function fixture(
+    amount = 3,
+    endpoint = 'google/nano-banana-pro',
+    category: IngredientCategory = IngredientCategory.IMAGE,
+  ) {
+    const modelKey = `crun/${endpoint}`;
     const receipt = {
       kind: 'byok',
       state: 'pending',
       amount,
       description: 'Image generation',
       expiresAt: '2099-01-01T00:00:00.000Z',
-      source: ActivitySource.IMAGE_GENERATION,
+      source:
+        category === IngredientCategory.VIDEO
+          ? ActivitySource.VIDEO_GENERATION
+          : ActivitySource.IMAGE_GENERATION,
       userId: 'user-1',
       submissionIntentProvider: 'crun',
     };
     const { kind: _kind, state: _state, ...immutable } = receipt;
     const priced = quoteModelBillablePricing(
       billableProfile({
-        key: 'crun/google/nano-banana-pro',
+        key: modelKey,
         provider: 'crun',
         cost: amount,
         isFree: amount === 0,
       }),
       {
-        modelKey: 'crun/google/nano-banana-pro',
+        modelKey,
         provider: 'crun',
         outputs: 1,
         requests: 1,
@@ -578,7 +587,7 @@ describe('Crun media BYOK consumer authority', () => {
       fundingBinding: { kind: 'byok', receipt: immutable },
       quoteSnapshot: quote,
       modelKey: quote.modelKey,
-      endpoint: 'google/nano-banana-pro',
+      endpoint,
       contractVersion: 'v1',
       inputHash: 'b'.repeat(64),
       credentialId: null,
@@ -595,6 +604,7 @@ describe('Crun media BYOK consumer authority', () => {
     const ingredient = {
       userId: 'user-1',
       status: 'GENERATED',
+      category,
       s3Key: 'owned/image.png',
       generationBilling: receipt,
     };
@@ -680,6 +690,31 @@ describe('Crun media BYOK consumer authority', () => {
       expect(f.tx.$queryRaw).toHaveBeenCalledTimes(4);
       expect(f.task.leaseUntil).toBe(lease);
       expect(f.task.version).toBe(7);
+    },
+  );
+  it.each(['kling/v2-5-turbo-pro', 'google/veo3-1-fast-t2v'])(
+    'records exact video usage for %s and rejects category/model mixing',
+    async (endpoint) => {
+      const f = fixture(3, endpoint, IngredientCategory.VIDEO);
+      await f.run();
+      await f.run();
+      expect(f.create).toHaveBeenCalledTimes(1);
+      expect(f.create.mock.calls[0]?.[5]).toBe(ActivitySource.VIDEO_GENERATION);
+      for (const wrong of [
+        fixture(3, endpoint),
+        fixture(3, 'google/nano-banana-pro', IngredientCategory.VIDEO),
+        fixture(3, 'unknown/video', IngredientCategory.VIDEO),
+      ]) {
+        await expect(wrong.run()).rejects.toThrow(
+          'CRUN_BYOK_USAGE_IDENTITY_INVALID',
+        );
+        expect(wrong.create).not.toHaveBeenCalled();
+      }
+      const mismatched = fixture(3, endpoint, IngredientCategory.VIDEO);
+      mismatched.task.modelKey = 'crun/google/nano-banana-pro';
+      await expect(mismatched.run()).rejects.toThrow(
+        'CRUN_BYOK_USAGE_IDENTITY_INVALID',
+      );
     },
   );
   it('supports previously queued canonical media jobs without a new marker', async () => {

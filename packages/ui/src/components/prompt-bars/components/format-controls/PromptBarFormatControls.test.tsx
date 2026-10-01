@@ -63,6 +63,31 @@ describe('PromptBarFormatControls', () => {
     watchedModel: 'model-1',
   };
 
+  it('leaves reviewed video aspect selection to the shared scalar component', () => {
+    const key = 'crun/kling/v2-5-turbo-pro';
+    const context = {
+      models: [
+        {
+          key,
+          provider: 'crun',
+          inputControls: {
+            mediaKind: 'video',
+            fields: { aspect_ratio: { enum: ['16:9', '9:16'] } },
+          },
+        },
+      ],
+    } as unknown as PromptBarInternalContextValue;
+    const { container } = render(
+      <PromptBarInternalContext.Provider value={context}>
+        <PromptBarFormatControls
+          {...baseProps}
+          normalizedWatchedModels={[key]}
+        />
+      </PromptBarInternalContext.Provider>,
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it('should render without crashing', () => {
     const { container } = render(<PromptBarFormatControls {...baseProps} />);
     expect(container.firstChild).toBeInTheDocument();

@@ -137,6 +137,7 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
               {inlineContent}
 
               {isAdvancedControlsEnabled &&
+                inputControls?.mediaKind !== 'video' &&
                 ((categoryType === IngredientCategory.VIDEO &&
                   hasAnyResolutionOptionsValue) ||
                   Boolean(inputControls)) && (
@@ -166,6 +167,7 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
 
               {isAdvancedControlsEnabled &&
                 categoryType === IngredientCategory.VIDEO &&
+                inputControls?.mediaKind !== 'video' &&
                 hasAudioToggleValue && (
                   <Checkbox
                     key="isAudioEnabled"
@@ -207,7 +209,10 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
                   watchedHeight={watchedHeight}
                   disabled={isDisabledState}
                   iconButtonClass={iconButtonClass}
-                  showReference={true}
+                  showReference={
+                    inputControls?.mediaKind !== 'video' ||
+                    inputControls.videoRules?.referenceMode === 'start-end'
+                  }
                   triggerConfigChange={triggerConfigChange}
                 />
               )}

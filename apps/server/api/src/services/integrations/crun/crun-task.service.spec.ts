@@ -1,9 +1,11 @@
 import { createHash } from 'node:crypto';
 import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
+import { modelBillableQuoteSnapshotSchema } from '@api/helpers/utils/credits/model-billable-quote.schema';
 import type { ByokService } from '@api/services/byok/byok.service';
 import type { CrunClient } from '@api/services/integrations/crun/crun-client.service';
 import { CrunTaskService } from '@api/services/integrations/crun/crun-task.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { IngredientCategory } from '@genfeedai/contracts';
 import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import type { CrunGenerationTask } from '@genfeedai/prisma';
 import type { ConfigService } from '@libs/config/config.service';
@@ -34,6 +36,7 @@ function task(overrides: Partial<CrunGenerationTask> = {}): CrunGenerationTask {
     fundingBinding: { kind: 'free' },
     userId: 'user-1',
     modelKey: 'crun/google/nano-banana-pro',
+    endpoint: 'google/nano-banana-pro',
     contractVersion: 'version-1',
     inputHash: 'a'.repeat(64),
     quoteSnapshot: {
@@ -77,7 +80,10 @@ describe('Crun durable credential and lease boundaries', () => {
   const transaction = {
     crunGenerationTask: { updateMany, findFirst, findMany },
     ingredient: {
-      findFirst: vi.fn().mockResolvedValue({ generationBilling: null }),
+      findFirst: vi.fn().mockResolvedValue({
+        category: IngredientCategory.IMAGE,
+        generationBilling: null,
+      }),
     },
   };
   const get = vi.fn();
@@ -89,6 +95,7 @@ describe('Crun durable credential and lease boundaries', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     transaction.ingredient.findFirst.mockResolvedValue({
+      category: IngredientCategory.IMAGE,
       generationBilling: null,
     });
     lookup.mockResolvedValue(undefined);
@@ -265,6 +272,86 @@ describe('Crun durable credential and lease boundaries', () => {
     });
     expect(createTask).toHaveBeenCalledTimes(1);
   });
+  it.each(['kling/v2-5-turbo-pro', 'google/veo3-1-fast-t2v'])(
+    'submits only category-bound video funding for %s',
+    async (endpoint) => {
+      get.mockImplementation((key: string) =>
+        key === 'CRUN_ENABLED' ? 'true' : 'fixture-hosted-key',
+      );
+      modelFind.mockResolvedValue({ id: 'model-1' });
+      updateMany.mockResolvedValue({ count: 1 });
+      createTask.mockResolvedValue({
+        isValid: true,
+        data: { taskId: 'opaque-video' },
+      });
+      const prepared = task({
+        state: 'prepared',
+        endpoint,
+        modelKey: `crun/${endpoint}`,
+      });
+      const quote = modelBillableQuoteSnapshotSchema.parse(
+        prepared.quoteSnapshot,
+      );
+      quote.modelKey = prepared.modelKey;
+      quote.pricingProfile.key = prepared.modelKey;
+      prepared.quoteSnapshot = quote as never;
+      findFirst.mockResolvedValue(prepared);
+      transaction.ingredient.findFirst.mockResolvedValue({
+        category: IngredientCategory.VIDEO,
+        generationBilling: null,
+      });
+      expect(
+        await service.submit(prepared, {
+          model: endpoint,
+          input: { prompt: 'fixture' },
+        }),
+      ).toMatchObject({ isSubmitted: true });
+      expect(modelFind).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ category: 'VIDEO' }),
+        }),
+      );
+      expect(createTask).toHaveBeenCalledOnce();
+    },
+  );
+  it.each(['image-route-video', 'video-route-image', 'unknown-route'])(
+    'denies %s task binding before provider create',
+    async (mode) => {
+      get.mockImplementation((key: string) =>
+        key === 'CRUN_ENABLED' ? 'true' : 'fixture-hosted-key',
+      );
+      modelFind.mockResolvedValue({ id: 'model-1' });
+      const prepared = task({ state: 'prepared' });
+      if (mode !== 'image-route-video') {
+        prepared.endpoint =
+          mode === 'unknown-route' ? 'unknown/model' : 'kling/v2-5-turbo-pro';
+        prepared.modelKey = `crun/${prepared.endpoint}`;
+        const quote = modelBillableQuoteSnapshotSchema.parse(
+          prepared.quoteSnapshot,
+        );
+        quote.modelKey = prepared.modelKey;
+        quote.pricingProfile.key = prepared.modelKey;
+        prepared.quoteSnapshot = quote as never;
+      }
+      transaction.ingredient.findFirst.mockResolvedValue({
+        category:
+          mode === 'image-route-video'
+            ? IngredientCategory.VIDEO
+            : IngredientCategory.IMAGE,
+        generationBilling: null,
+      });
+      findFirst.mockResolvedValue(prepared);
+      await expect(
+        service.submit(prepared, {
+          model: prepared.endpoint,
+          input: { prompt: 'fixture' },
+        }),
+      ).rejects.toMatchObject({
+        response: { code: 'CRUN_TASK_BINDING_INVALID' },
+      });
+      expect(createTask).not.toHaveBeenCalled();
+    },
+  );
   it('recovers submitting-without-ID after restart without CreateTask', async () => {
     updateMany.mockResolvedValue({ count: 1 });
     findFirst.mockResolvedValue(

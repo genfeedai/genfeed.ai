@@ -1,4 +1,9 @@
+import type {
+  CrunInputControls,
+  IModel,
+} from '@genfeedai/contracts/interfaces';
 import type { DesktopRuntimeSnapshot } from '@genfeedai/services/core/desktop-runtime.service';
+import { getDefaultStudioGenerateSettings } from '@pages/studio/generate/utils/studio-generate-settings';
 
 const runtimeMocks = vi.hoisted(() => ({
   snapshot: { status: 'web', context: null } as DesktopRuntimeSnapshot,
@@ -878,4 +883,168 @@ describe('StudioGenerateComposer', () => {
     expect(screen.getByText('Estimate unavailable')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
   });
+});
+
+function controlsFor(endpoint = 'kling/v2-5-turbo-pro'): CrunInputControls {
+  const kling = endpoint === 'kling/v2-5-turbo-pro';
+  return {
+    endpoint,
+    version: 'reviewed-video-v1',
+    mediaKind: 'video',
+    maxOutputs: 4,
+    isBatchSupported: false,
+    isAutoAspectReferenceRequired: false,
+    referenceRoles: kling ? { img_urls: 'image' } : {},
+    videoRules: {
+      referenceMode: kling ? 'start-end' : 'none',
+      omitAspectRatioWithReferences: kling,
+      availableDurations: kling ? [5, 10] : [8],
+    },
+    fields: {
+      prompt: {
+        type: 'string',
+        isRequired: true,
+        minLength: 1,
+        maxLength: kling ? 2500 : 5000,
+      },
+      duration: {
+        type: 'integer',
+        isRequired: false,
+        enum: kling ? [5, 10] : [4, 6, 8],
+        default: kling ? 5 : 8,
+      },
+      aspect_ratio: {
+        type: 'string',
+        isRequired: false,
+        enum: kling ? ['1:1', '16:9', '9:16'] : ['16:9', '9:16'],
+        default: '16:9',
+      },
+      ...(kling
+        ? {
+            negative_prompt: {
+              type: 'string' as const,
+              isRequired: false,
+              maxLength: 2000,
+            },
+            cfg_scale: {
+              type: 'number' as const,
+              isRequired: false,
+              minimum: 0,
+              maximum: 1,
+              default: 0.5,
+            },
+            img_urls: {
+              type: 'array' as const,
+              isRequired: false,
+              format: 'uri' as const,
+              minItems: 1,
+              maxItems: 2,
+            },
+          }
+        : {
+            resolution: {
+              type: 'string' as const,
+              isRequired: false,
+              enum: ['720p', '1080p', '4k'],
+              default: '720p',
+            },
+            translate_prompt: {
+              type: 'boolean' as const,
+              isRequired: false,
+              default: true,
+            },
+          }),
+    },
+  };
+}
+
+describe('complete reviewed Studio video scalar composition', () => {
+  it.each(['kling/v2-5-turbo-pro', 'google/veo3-1-fast-t2v'])(
+    'mounts one scalar owner and no mandatory first frame for %s',
+    (endpoint) => {
+      const controls = controlsFor(endpoint);
+      const kling = endpoint.startsWith('kling/');
+      const key = `crun/${endpoint}`;
+      const model: IModel = {
+        id: 'video-model',
+        createdAt: '2026-10-01T00:00:00.000Z',
+        updatedAt: '2026-10-01T00:00:00.000Z',
+        key,
+        label: 'Reviewed video',
+        category: ModelCategory.VIDEO,
+        provider: ModelProvider.CRUN,
+        cost: 999,
+        isActive: true,
+        isDefault: false,
+        isDeleted: false,
+        lifecycle: ModelLifecycle.AVAILABLE,
+      };
+      model.inputControls = controls;
+      const quote = {
+        isAvailable: true as const,
+        modelKey: key,
+        contractVersion: controls.version,
+        quoteId: 'video-quote',
+        expiresAt: '2099-01-01T00:00:00.000Z',
+        credits: 11,
+        billingMode: 'credits' as const,
+        reasonCode: null,
+      };
+      render(
+        <StudioGenerateComposer
+          {...baseProps}
+          type="video"
+          prompt="Motion"
+          models={[model]}
+          settings={{
+            ...getDefaultStudioGenerateSettings('video'),
+            modelKey: key,
+            outputs: 4,
+            aspectRatio: '16:9',
+            duration: kling ? 5 : 8,
+            resolution: kling ? '' : '720p',
+            crunControls: {
+              modelKey: key,
+              contractVersion: controls.version,
+              ...(kling ? { guidanceScale: 0 } : { translatePrompt: false }),
+            },
+          }}
+          crunQuote={{
+            status: 'available',
+            quote,
+            reasonCode: null,
+            getCurrentQuote: () => quote,
+          }}
+        />,
+      );
+      expect(
+        screen.getAllByRole('combobox', { name: 'Duration', exact: true }),
+      ).toHaveLength(1);
+      expect(
+        screen.getAllByRole('combobox', { name: 'Aspect ratio', exact: true }),
+      ).toHaveLength(1);
+      expect(
+        screen.getByRole('button', { name: 'Generate', exact: true }),
+      ).toBeEnabled();
+      expect(screen.getByText('11 credits', { exact: true })).toBeVisible();
+      if (kling) {
+        expect(
+          screen.getByRole('spinbutton', { name: 'Guidance', exact: true }),
+        ).toHaveValue(0);
+        expect(
+          screen.queryByRole('combobox', { name: 'Resolution', exact: true }),
+        ).not.toBeInTheDocument();
+      } else {
+        expect(
+          screen.getByRole('checkbox', {
+            name: 'Translate prompt',
+            exact: true,
+          }),
+        ).not.toBeChecked();
+        expect(
+          screen.queryByRole('button', { name: 'Start frame', exact: true }),
+        ).not.toBeInTheDocument();
+      }
+    },
+  );
 });

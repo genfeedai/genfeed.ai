@@ -30,8 +30,11 @@ export interface StudioIdentityFieldsProps {
 }
 
 export interface StudioGenerateComposerProps {
+  isCrunRestoreBlocked?: boolean;
   crunQuote?: UseCrunGenerationQuoteReturn;
   crunReferenceCount?: number;
+  crunStartFrameId?: string;
+  crunEndFrameId?: string;
   attachedAssets: PromptBarAttachedAsset[];
   documentSeed?: PromptEditorDocumentSeed | null;
   extraExtensions?: readonly AnyExtension[];
@@ -226,4 +229,10 @@ export interface BuildStudioCrunQuoteRequestProps {
   requestedSkillSlugs?: string[];
   knowledge?: KnowledgeSelection;
   harness?: boolean;
+}
+
+export interface BuildStudioCrunVideoQuoteRequestProps
+  extends BuildStudioCrunQuoteRequestProps {
+  endFrameId?: string;
+  parentId?: string;
 }

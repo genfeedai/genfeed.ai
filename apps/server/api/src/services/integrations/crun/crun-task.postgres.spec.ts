@@ -7,7 +7,12 @@ import type { CrunClient } from '@api/services/integrations/crun/crun-client.ser
 import type { CrunPreparedTask } from '@api/services/integrations/crun/crun-task.schema';
 import { CrunTaskService } from '@api/services/integrations/crun/crun-task.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ActivitySource, IngredientStatus } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  IngredientCategory,
+  IngredientStatus,
+  ModelCategory,
+} from '@genfeedai/contracts';
 import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import { PrismaClient, toPrismaJson } from '@genfeedai/prisma';
 import type { ConfigService } from '@libs/config/config.service';
@@ -51,11 +56,18 @@ describe('Crun durable PostgreSQL submission and leases', () => {
     await pool.query(
       `CREATE SCHEMA "${schema}"; SET search_path TO "${schema}"; ${sql}`,
     );
+    for (const [name, values] of [
+      ['ModelCategory', Object.values(ModelCategory)],
+      ['IngredientCategory', Object.values(IngredientCategory)],
+    ] as const)
+      await pool.query(
+        `CREATE TYPE "${schema}"."${name}" AS ENUM (${values.map((value) => `'${value}'`).join(',')})`,
+      );
     await pool.query(
-      `CREATE TABLE "${schema}"."models" ("id" text PRIMARY KEY, "key" text, "isActive" boolean, "isDeleted" boolean, "reviewedProviderContractVersion" text, "pendingProviderContractVersion" text, "organizationId" text)`,
+      `CREATE TABLE "${schema}"."models" ("id" text PRIMARY KEY, "key" text, "isActive" boolean, "isDeleted" boolean, "reviewedProviderContractVersion" text, "pendingProviderContractVersion" text, "organizationId" text, "category" "${schema}"."ModelCategory" DEFAULT 'IMAGE')`,
     );
     await pool.query(
-      `INSERT INTO "${schema}"."models" VALUES ('model', 'crun/google/nano-banana-pro', true, false, 'contract-v1', NULL, NULL)`,
+      `INSERT INTO "${schema}"."models" VALUES ('model', 'crun/google/nano-banana-pro', true, false, 'contract-v1', NULL, NULL, 'IMAGE')`,
     );
     await pool.query(
       `CREATE TYPE "${schema}"."IngredientStatus" AS ENUM (${Object.values(
@@ -65,7 +77,7 @@ describe('Crun durable PostgreSQL submission and leases', () => {
         .join(',')})`,
     );
     await pool.query(
-      `CREATE TABLE "${schema}"."ingredients" ("id" text PRIMARY KEY, "organizationId" text, "isDeleted" boolean DEFAULT false, "userId" text, "brandId" text, "generationBilling" jsonb, "status" "${schema}"."IngredientStatus" DEFAULT 'PROCESSING', "updatedAt" timestamp(3) DEFAULT now())`,
+      `CREATE TABLE "${schema}"."ingredients" ("id" text PRIMARY KEY, "organizationId" text, "isDeleted" boolean DEFAULT false, "userId" text, "brandId" text, "generationBilling" jsonb, "category" "${schema}"."IngredientCategory" DEFAULT 'IMAGE', "status" "${schema}"."IngredientStatus" DEFAULT 'PROCESSING', "updatedAt" timestamp(3) DEFAULT now())`,
     );
     await pool.query(
       `CREATE TYPE "${schema}"."CreditReservationStatus" AS ENUM ('RESERVED','SETTLED','RELEASED','EXPIRED')`,

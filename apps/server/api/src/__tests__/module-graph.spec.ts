@@ -1,6 +1,12 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CrunVideoQuoteController } from '@api/collections/videos/controllers/crun-video-quote.controller';
+import { CrunVideoGenerationService } from '@api/collections/videos/services/crun-video-generation.service';
+import { CrunVideoInputService } from '@api/collections/videos/services/crun-video-input.service';
+import { CrunVideoPreviewQuoteService } from '@api/collections/videos/services/crun-video-preview-quote.service';
+import { VideosModule } from '@api/collections/videos/videos.module';
+import { Test } from '@nestjs/testing';
 
 const SRC_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -279,5 +285,35 @@ describe('Module dependency graph', () => {
     // Start as a warning, tighten to 0 after Phase 1
     const MAX_LEAF_VIOLATIONS = 115;
     expect(violations.length).toBeLessThanOrEqual(MAX_LEAF_VIOLATIONS);
+  });
+});
+
+describe('Crun video Nest module graph', () => {
+  it('mounts and resolves the real quote/input/generation providers and controller', async () => {
+    const providers = [
+      CrunVideoGenerationService,
+      CrunVideoInputService,
+      CrunVideoPreviewQuoteService,
+    ];
+    const mounted: unknown[] = Reflect.getMetadata('providers', VideosModule);
+    for (const provider of providers) expect(mounted).toContain(provider);
+    expect(Reflect.getMetadata('controllers', VideosModule)).toContain(
+      CrunVideoQuoteController,
+    );
+    const module = await Test.createTestingModule({
+      providers,
+      controllers: [CrunVideoQuoteController],
+    })
+      .useMocker(() => ({}))
+      .compile();
+    try {
+      for (const provider of providers)
+        expect(module.get(provider)).toBeInstanceOf(provider);
+      expect(module.get(CrunVideoQuoteController)).toBeInstanceOf(
+        CrunVideoQuoteController,
+      );
+    } finally {
+      await module.close();
+    }
   });
 });

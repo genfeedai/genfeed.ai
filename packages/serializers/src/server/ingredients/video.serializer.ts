@@ -1,10 +1,11 @@
-import { generationRequestAttributes } from '@serializers/attributes/ingredients/ingredient.attributes';
 import { buildSerializer } from '@serializers/builders';
 import {
   videoCaptionSerializerConfig,
   videoEditSerializerConfig,
   videoSerializerConfig,
 } from '@serializers/configs';
+
+import { videoGenerationSerializerConfig } from '@serializers/configs/content/video.config';
 
 const SERVER_VIDEO_ATTRIBUTES = ['frameRate', 'codec', 'bitrate'];
 
@@ -21,10 +22,10 @@ export const { VideoSerializer } = buildSerializer(
 export const { VideoSerializer: VideoGenerationSerializer } = buildSerializer(
   'server',
   {
-    ...SERVER_VIDEO_CONFIG,
+    ...videoGenerationSerializerConfig,
     attributes: [
-      ...SERVER_VIDEO_CONFIG.attributes,
-      ...generationRequestAttributes,
+      ...videoGenerationSerializerConfig.attributes,
+      ...SERVER_VIDEO_ATTRIBUTES,
     ],
   },
 );

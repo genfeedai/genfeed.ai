@@ -23,7 +23,7 @@ deployments never gate BYOK.
 | `openrouter` | OpenRouter  | Curated text-model routing                   | `OPENROUTER_API_KEY`                           | [API keys](https://openrouter.ai/keys)                         |
 | `elevenlabs` | ElevenLabs  | Voice and audio generation                   | `ELEVENLABS_API_KEY`                           | [API keys](https://elevenlabs.io/app/settings/api-keys)        |
 | `replicate`  | Replicate   | Hosted media generation and training         | `REPLICATE_KEY`                                | [API tokens](https://replicate.com/account/api-tokens)         |
-| `crun`       | Crun        | Reviewed Nano Banana Pro and Seedream 4.5 images | `CRUN_API_KEY`                                | [API documentation](https://docs.crun.ai)                    |
+| `crun`       | Crun        | Reviewed images, Kling and Veo videos | `CRUN_API_KEY`                                | [API documentation](https://docs.crun.ai)                    |
 | `fal`        | fal.ai      | Hosted media generation                      | `FAL_API_KEY`                                  | [API keys](https://fal.ai/dashboard/keys)                      |
 | `argil`      | Argil       | Atom avatar-video generation                 | `ARGIL_KEY`                                    | [Argil app](https://app.argil.ai)                              |
 | `heygen`     | HeyGen      | Avatar video and voice workflows             | `HEYGEN_KEY`                                   | [HeyGen settings](https://app.heygen.com/settings)             |
@@ -78,9 +78,9 @@ For registry behavior and managed-provider boundaries, see
 [Provider Registry](/core/provider-registry) and [Models and Providers](/models).
 
 
-## Crun image generation
+## Crun image and video generation
 
-Crun supports reviewed Nano Banana Pro and Seedream 4.5 image models. Deployment
+Crun supports reviewed Nano Banana Pro and Seedream 4.5 image models, Kling 2.5 Turbo Pro videos and Veo 3.1 Fast text-to-video. Deployment
 admission is disabled by default. Operators must review the imported contract,
 activate the model and configure hosted acquisition pricing before enabling
 hosted requests. Crun is unavailable through the managed inference proxy.
@@ -97,3 +97,22 @@ disabled. Keep the original key available until accepted tasks drain; rotating o
 deleting it may require operator recovery. Do not retry provider creation after
 an ambiguous response. Seedream reference images require authorized ingredient
 records with known file size and dimensions.
+
+Crun video quotes use authenticated `POST /videos/crun-quote`; generation uses
+`POST /videos` with the returned `crunQuoteId`. Quotes last 60 seconds and freeze
+the exact prepared input. Each output is a separate task, with up to four outputs.
+The API can prepare one quote automatically when no quote ID is supplied.
+
+Kling supports 5/10 seconds and optional ordered start/end image frames. End frames
+require a start image; frame inputs omit aspect ratio. Veo supports reviewed
+8-second 720p, 1080p and 4k output, with translation true by default (false is
+preserved). Veo 4/6 seconds, frames, audio toggles, negative prompts and guidance
+are unavailable. Crun video generation is asynchronous; wait-for-completion,
+callbacks, remix budget approvals and advanced skill/knowledge execution are
+unsupported. Enhanced prompts must carry authorized stored provenance.
+
+Provider prices must match a reviewed fixed estimate. Operator approval, explicit
+admission enablement and funded canary checks are separate release steps. Stored
+video inspection establishes duration, dimensions and audio metadata; temporary
+provider URLs are copied into owned storage before financial completion. Accepted
+work continues reconciliation when admission is disabled.

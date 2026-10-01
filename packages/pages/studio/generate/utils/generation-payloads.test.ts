@@ -15,6 +15,7 @@ import {
   buildMusicPayload,
   buildRepromptData,
   buildStudioCrunQuoteRequest,
+  buildStudioCrunVideoQuoteRequest,
   buildVideoPayload,
 } from './generation-payloads';
 import { getDefaultStudioGenerateSettings } from './studio-generate-settings';
@@ -507,5 +508,234 @@ describe('reviewed Crun request projection', () => {
         },
       }),
     ).toBeNull();
+  });
+});
+
+function controlsFor(endpoint = 'kling/v2-5-turbo-pro'): CrunInputControls {
+  const kling = endpoint === 'kling/v2-5-turbo-pro';
+  return {
+    endpoint,
+    version: 'reviewed-video-v1',
+    mediaKind: 'video',
+    maxOutputs: 4,
+    isBatchSupported: false,
+    isAutoAspectReferenceRequired: false,
+    referenceRoles: kling ? { img_urls: 'image' } : {},
+    videoRules: {
+      referenceMode: kling ? 'start-end' : 'none',
+      omitAspectRatioWithReferences: kling,
+      availableDurations: kling ? [5, 10] : [8],
+    },
+    fields: {
+      prompt: {
+        type: 'string',
+        isRequired: true,
+        minLength: 1,
+        maxLength: kling ? 2500 : 5000,
+      },
+      duration: {
+        type: 'integer',
+        isRequired: false,
+        enum: kling ? [5, 10] : [4, 6, 8],
+        default: kling ? 5 : 8,
+      },
+      aspect_ratio: {
+        type: 'string',
+        isRequired: false,
+        enum: kling ? ['1:1', '16:9', '9:16'] : ['16:9', '9:16'],
+        default: '16:9',
+      },
+      ...(kling
+        ? {
+            negative_prompt: {
+              type: 'string' as const,
+              isRequired: false,
+              maxLength: 2000,
+            },
+            cfg_scale: {
+              type: 'number' as const,
+              isRequired: false,
+              minimum: 0,
+              maximum: 1,
+              default: 0.5,
+            },
+            img_urls: {
+              type: 'array' as const,
+              isRequired: false,
+              format: 'uri' as const,
+              minItems: 1,
+              maxItems: 2,
+            },
+          }
+        : {
+            resolution: {
+              type: 'string' as const,
+              isRequired: false,
+              enum: ['720p', '1080p', '4k'],
+              default: '720p',
+            },
+            translate_prompt: {
+              type: 'boolean' as const,
+              isRequired: false,
+              default: true,
+            },
+          }),
+    },
+  };
+}
+
+describe('canonical Studio Crun video requests', () => {
+  function request(
+    endpoint = 'kling/v2-5-turbo-pro',
+    overrides: Partial<
+      Parameters<typeof buildStudioCrunVideoQuoteRequest>[0]
+    > = {},
+  ) {
+    const controls = controlsFor(endpoint);
+    const model = {
+      key: `crun/${endpoint}`,
+      provider: 'crun',
+      inputControls: controls,
+    } as IModel;
+    return buildStudioCrunVideoQuoteRequest({
+      model,
+      settings: {
+        ...getDefaultStudioGenerateSettings('video'),
+        modelKey: model.key,
+        duration: endpoint.startsWith('kling/') ? 5 : 8,
+        aspectRatio: '16:9',
+        resolution: endpoint.startsWith('kling/') ? '' : '720p',
+        crunControls: {
+          modelKey: model.key,
+          contractVersion: controls.version,
+        },
+      },
+      promptText: '  bird in motion  ',
+      brandId: 'brand-1',
+      references: [],
+      ...overrides,
+    });
+  }
+  it('sends canonical text mode and never forwards legacy audio, size or tags', () => {
+    const body = request();
+    expect(body).toMatchObject({
+      model: 'crun/kling/v2-5-turbo-pro',
+      text: 'bird in motion',
+      outputs: 1,
+      crunControls: { duration: 5, aspectRatio: '16:9', guidanceScale: 0.5 },
+    });
+    for (const field of [
+      'height',
+      'width',
+      'format',
+      'tags',
+      'speech',
+      'sounds',
+      'isAudioEnabled',
+      'resolution',
+    ])
+      expect(body).not.toHaveProperty(field);
+  });
+  it('binds distinct frame IDs in order and omits aspect only when frames are present', () => {
+    expect(
+      request('kling/v2-5-turbo-pro', {
+        references: ['start-owned'],
+        endFrameId: 'end-owned',
+        parentId: 'start-owned',
+      }),
+    ).toMatchObject({
+      references: ['start-owned'],
+      endFrame: 'end-owned',
+      parentId: 'start-owned',
+      crunControls: { duration: 5 },
+    });
+    expect(
+      request('kling/v2-5-turbo-pro', {
+        references: ['start-owned'],
+        endFrameId: 'end-owned',
+      })?.crunControls,
+    ).not.toHaveProperty('aspectRatio');
+  });
+  it.each([
+    { references: ['one', 'two'] },
+    { references: [], endFrameId: 'end' },
+    { references: ['same'], endFrameId: 'same' },
+    { references: ['https://secret.example/image'] },
+    { references: ['start'], parentId: 'foreign' },
+  ])('rejects invalid frame preparation %j', (overrides) => {
+    expect(request('kling/v2-5-turbo-pro', overrides)).toBeNull();
+  });
+  it('rejects every Veo reference and keeps its reviewed text defaults', () => {
+    expect(request('google/veo3-1-fast-t2v')?.crunControls).toEqual({
+      contractVersion: 'reviewed-video-v1',
+      duration: 8,
+      aspectRatio: '16:9',
+      resolution: '720p',
+      translatePrompt: true,
+    });
+    expect(
+      request('google/veo3-1-fast-t2v', { references: ['start'] }),
+    ).toBeNull();
+  });
+  it.each([4, 6])(
+    'rejects unreviewed Veo %s seconds before quote',
+    (duration) => {
+      const controls = controlsFor('google/veo3-1-fast-t2v');
+      const modelKey = `crun/${controls.endpoint}`;
+      expect(
+        request(controls.endpoint, {
+          settings: {
+            ...getDefaultStudioGenerateSettings('video'),
+            modelKey,
+            duration,
+            resolution: '720p',
+            aspectRatio: '16:9',
+            crunControls: { modelKey, contractVersion: controls.version },
+          },
+        }),
+      ).toBeNull();
+    },
+  );
+  it('retains group output count, numeric zero and false without pricing arithmetic', () => {
+    const controls = controlsFor('google/veo3-1-fast-t2v');
+    const modelKey = `crun/${controls.endpoint}`;
+    const body = request(controls.endpoint, {
+      settings: {
+        ...getDefaultStudioGenerateSettings('video'),
+        modelKey,
+        duration: 8,
+        resolution: '4k',
+        aspectRatio: '9:16',
+        outputs: 4,
+        crunControls: {
+          modelKey,
+          contractVersion: controls.version,
+          translatePrompt: false,
+        },
+      },
+    });
+    expect(body).toMatchObject({
+      outputs: 4,
+      crunControls: { translatePrompt: false, resolution: '4k' },
+    });
+    const kling = controlsFor();
+    const key = `crun/${kling.endpoint}`;
+    expect(
+      request(kling.endpoint, {
+        settings: {
+          ...getDefaultStudioGenerateSettings('video'),
+          modelKey: key,
+          duration: 10,
+          resolution: '',
+          aspectRatio: '1:1',
+          crunControls: {
+            modelKey: key,
+            contractVersion: kling.version,
+            guidanceScale: 0,
+            negativePrompt: '  blur  ',
+          },
+        },
+      })?.crunControls,
+    ).toMatchObject({ duration: 10, guidanceScale: 0, negativePrompt: 'blur' });
   });
 });

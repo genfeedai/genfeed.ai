@@ -58,7 +58,11 @@ export default function GenerationSetupCustomizePanel({
   setup,
   typeOptions,
 }: GenerationSetupCustomizePanelProps) {
-  const hasLookFields = Object.values(lookOptions).some(
+  const scopedLookOptions =
+    inputControls?.mediaKind === 'video'
+      ? { ...lookOptions, resolution: [] }
+      : lookOptions;
+  const hasLookFields = Object.values(scopedLookOptions).some(
     (options) => (options?.length ?? 0) > 0,
   );
 
@@ -169,7 +173,7 @@ export default function GenerationSetupCustomizePanel({
 
         {resolvedSection === 'look' ? (
           <GenerationSetupLookSection
-            lookOptions={lookOptions}
+            lookOptions={scopedLookOptions}
             onResetField={onResetField}
             onSetField={onSetField}
             reasons={reasons}

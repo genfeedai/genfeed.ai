@@ -165,6 +165,7 @@ export function useIngredientsList({
     handleUpdateParent: actionsState.handleUpdateParent,
     hasFilteredEmptyState,
     imageToVideoPromptData: generationState.imageToVideoPromptData,
+    imageToVideoCrunBinding: generationState.imageToVideoCrunBinding,
     imageToVideoTarget: generationState.imageToVideoTarget,
     ingredients,
     isActionsEnabled,

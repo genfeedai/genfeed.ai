@@ -1,4 +1,7 @@
+import { buildCrunContract } from '@api/services/integrations/crun/contracts/crun-contract-import.service';
+import { CRUN_VIDEO_MANIFEST } from '@api/services/integrations/crun/contracts/crun-manifest';
 import { IngredientCategory } from '@genfeedai/contracts';
+import { projectCrunInputControls } from '@genfeedai/helpers';
 import { ModelSerializer } from '@genfeedai/serializers';
 
 function serializedAttributes(
@@ -106,4 +109,32 @@ describe('ModelSerializer', () => {
     expect(attributes).not.toHaveProperty('providerConfig');
     expect(attributes).not.toHaveProperty('providerCostUsd');
   });
+});
+
+describe('Reviewed video model serializer', () => {
+  it.each(CRUN_VIDEO_MANIFEST)(
+    'keeps safe controls for $endpoint and excludes raw evidence',
+    (entry) => {
+      const contract = buildCrunContract(entry);
+      const result = serializedAttributes(
+        ModelSerializer.serialize({
+          id: 'video-model',
+          inputControls: projectCrunInputControls(contract),
+          providerInputSchema: contract,
+          openapi: entry.openapi,
+          pricing: { private: true },
+        }),
+      );
+      expect(result).toHaveProperty('inputControls.mediaKind', 'video');
+      expect(result).toHaveProperty(
+        'inputControls.videoRules.availableDurations',
+        entry.videoRules.availableDurations,
+      );
+      if (entry.endpoint === 'google/veo3-1-fast-t2v')
+        expect(result).not.toHaveProperty('inputControls.fields.img_urls');
+      else expect(result).not.toHaveProperty('inputControls.fields.resolution');
+      for (const key of ['providerInputSchema', 'openapi', 'pricing'])
+        expect(result).not.toHaveProperty(key);
+    },
+  );
 });

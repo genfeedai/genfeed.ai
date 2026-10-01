@@ -928,3 +928,109 @@ describe('Crun quote-bound submission', () => {
     expect(mockImagesPost).not.toHaveBeenCalled();
   });
 });
+
+describe('canonical quote-bound Crun video submission', () => {
+  const model = 'crun/kling/v2-5-turbo-pro' as const;
+  const request = {
+    model,
+    text: 'Motion',
+    brandId: 'brand-1',
+    outputs: 4 as const,
+    references: ['00000000-0000-4000-8000-000000000001'],
+    endFrame: '00000000-0000-4000-8000-000000000002',
+    crunControls: {
+      contractVersion: 'video-v1',
+      duration: 10 as const,
+      guidanceScale: 0,
+    },
+  };
+  const quote = {
+    isAvailable: true as const,
+    modelKey: model,
+    contractVersion: 'video-v1',
+    quoteId: 'video-quote',
+    expiresAt: '2099-01-01T00:00:00.000Z',
+    credits: 11,
+    billingMode: 'credits' as const,
+    reasonCode: null,
+  };
+  function setup() {
+    return renderStudioGeneration({
+      type: 'video',
+      models: [makeModel(model)],
+      settings: {
+        ...getDefaultStudioGenerateSettings('video'),
+        modelKey: model,
+        outputs: 4,
+      },
+    });
+  }
+  it('posts one canonical body, tracks all accepted IDs and consumes no image endpoint', async () => {
+    mockVideosPost.mockResolvedValue({
+      id: 'video-1',
+      pendingIngredientIds: ['video-1', 'video-2', 'video-3', 'video-4'],
+    });
+    const { result } = setup();
+    await act(async () => {
+      expect(
+        await result.current.submit(
+          request.text,
+          { imageReferenceIds: ['start'], endFrameId: 'end' },
+          { crunVideoRequest: request, getCurrentCrunQuote: () => quote },
+        ),
+      ).toBe(true);
+    });
+    expect(mockVideosPost).toHaveBeenCalledExactlyOnceWith({
+      ...request,
+      crunQuoteId: quote.quoteId,
+    });
+    expect(mockImagesPost).not.toHaveBeenCalled();
+    expect(result.current.jobs[0]?.recipe).toMatchObject({
+      modelKey: model,
+      duration: 10,
+      outputs: 4,
+      references: request.references,
+      endFrameId: request.endFrame,
+      crunControls: {
+        modelKey: model,
+        contractVersion: 'video-v1',
+        guidanceScale: 0,
+      },
+      isAudioEnabled: false,
+    });
+    expect(result.current.jobs[0]?.recipe?.crunControls).not.toHaveProperty(
+      'duration',
+    );
+    expect(result.current.jobs[0]?.recipe).not.toHaveProperty('crunQuoteId');
+    for (const id of ['video-1', 'video-2', 'video-3', 'video-4'])
+      expect(mockSubscribe).toHaveBeenCalledWith(
+        `/videos/${id}`,
+        expect.anything(),
+      );
+    await act(async () => {
+      expect(
+        await result.current.submit(
+          request.text,
+          {},
+          { crunVideoRequest: request, getCurrentCrunQuote: () => quote },
+        ),
+      ).toBe(false);
+    });
+    expect(mockVideosPost).toHaveBeenCalledTimes(1);
+  });
+  it('rejects a changed quote after authentication without a fallback', async () => {
+    const current = vi.fn().mockReturnValueOnce(quote).mockReturnValue(null);
+    const { result } = setup();
+    await act(async () => {
+      expect(
+        await result.current.submit(
+          request.text,
+          {},
+          { crunVideoRequest: request, getCurrentCrunQuote: current },
+        ),
+      ).toBe(false);
+    });
+    expect(mockVideosPost).not.toHaveBeenCalled();
+    expect(mockImagesPost).not.toHaveBeenCalled();
+  });
+});

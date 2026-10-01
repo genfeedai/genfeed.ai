@@ -31,6 +31,7 @@ import type {
   CrunGenerationQuoteResponse,
   CrunImageQuoteRequest,
   CrunQuoteReasonCode,
+  CrunVideoQuoteRequest,
 } from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
 import type { IGenerationItem } from '@genfeedai/contracts/interfaces/components/generation.interface';
 import type { MediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
@@ -58,7 +59,15 @@ export interface PromptBarFeatures {
   dragDrop?: boolean;
 }
 
+export interface CrunVideoPromptBinding {
+  prepareRequest: (draft: PromptTextareaSchema) => CrunVideoQuoteRequest | null;
+  submit: (
+    request: CrunVideoQuoteRequest & { crunQuoteId: string },
+  ) => Promise<void>;
+}
+
 export interface PromptBarProps {
+  crunVideoBinding?: CrunVideoPromptBinding;
   crunBinding?: {
     prepareRequest: (
       draft: PromptTextareaSchema,
@@ -661,10 +670,17 @@ export interface PromptBarCrunControlsProps {
   error?: string;
 }
 
-export interface UseCrunGenerationQuoteOptions {
-  request: CrunImageQuoteRequest | null;
-  isActive: boolean;
-}
+export type UseCrunGenerationQuoteOptions =
+  | {
+      mediaKind?: 'image';
+      request: CrunImageQuoteRequest | null;
+      isActive: boolean;
+    }
+  | {
+      mediaKind: 'video';
+      request: CrunVideoQuoteRequest | null;
+      isActive: boolean;
+    };
 export interface UseCrunGenerationQuoteReturn {
   status: 'idle' | 'pending' | 'available' | 'unavailable' | 'error';
   quote: CrunGenerationQuoteResponse | null;

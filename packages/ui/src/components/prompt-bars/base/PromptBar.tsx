@@ -8,14 +8,17 @@ import { Form } from '@ui/primitives/form';
 import { Label } from '@ui/primitives/label';
 import PromptBarCollapsedView from '@ui/prompt-bars/components/collapsed-view/PromptBarCollapsedView';
 import PromptBarCrunControls from '@ui/prompt-bars/components/crun-controls/PromptBarCrunControls';
+import PromptBarCrunVideoControls from '@ui/prompt-bars/components/crun-controls/PromptBarCrunVideoControls';
 import PromptBarExpandedView from '@ui/prompt-bars/components/expanded-view/PromptBarExpandedView';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
+import { useTranslations } from 'next-intl';
 import { memo } from 'react';
 import { EMPTY_ARRAY } from './prompt-bar.helpers';
 import { usePromptBarState } from './use-prompt-bar-state';
 
 function PromptBar({
   crunBinding,
+  crunVideoBinding,
   isDisabled = false,
   models = EMPTY_ARRAY,
   trainings = EMPTY_ARRAY,
@@ -60,10 +63,12 @@ function PromptBar({
   onPrepareSubmit,
   banner,
 }: PromptBarProps) {
+  const translate = useTranslations('pages.studioGenerate.crun');
   const {
     crunQuoteLabel,
     crunInputControls,
     watchedCrunControls,
+    crunVideoDraft,
     internalContextValue,
     promptBarRef,
     collapsedInputRef,
@@ -93,6 +98,7 @@ function PromptBar({
     isProcessing,
   } = usePromptBarState({
     crunBinding,
+    crunVideoBinding,
     isDisabled,
     models,
     trainings,
@@ -166,7 +172,7 @@ function PromptBar({
                   {crunQuoteLabel}
                 </Label>
               ) : null}
-              {crunInputControls ? (
+              {crunInputControls?.mediaKind === 'image' ? (
                 <PromptBarCrunControls
                   controls={crunInputControls}
                   value={watchedCrunControls?.outputFormat}
@@ -176,6 +182,67 @@ function PromptBar({
                     form.setValue(
                       'crunControls',
                       { ...watchedCrunControls, outputFormat },
+                      { shouldValidate: true },
+                    );
+                    triggerConfigChange();
+                  }}
+                />
+              ) : null}
+              {crunInputControls?.mediaKind === 'video' && crunVideoDraft ? (
+                <PromptBarCrunVideoControls
+                  controls={crunInputControls}
+                  value={crunVideoDraft}
+                  isDisabled={isDisabledState}
+                  labels={{
+                    duration: translate('duration'),
+                    aspectRatio: translate('aspectRatio'),
+                    resolution: translate('resolution'),
+                    negativePrompt: translate('negativePrompt'),
+                    guidanceScale: translate('guidanceScale'),
+                    translatePrompt: translate('translatePrompt'),
+                    pricingReviewRequired: translate('pricingReviewRequired'),
+                    aspectFromFrames: translate('aspectFromFrames'),
+                    invalidContract: translate('invalidContract'),
+                    errorMessages: {
+                      required: translate('fieldRequired'),
+                      unknown: translate('fieldUnknown'),
+                      type: translate('fieldType'),
+                      enum: translate('fieldEnum'),
+                      bounds: translate('fieldBounds'),
+                      uri: translate('fieldUri'),
+                      reference_required: translate('fieldReferenceRequired'),
+                      pricing_unavailable: translate('pricingReviewRequired'),
+                      contract_mismatch: translate('invalidContract'),
+                    },
+                  }}
+                  onChange={(patch) => {
+                    const current = form.getValues('crunControls');
+                    if (!current) return;
+                    if (Object.hasOwn(patch, 'duration'))
+                      form.setValue('duration', patch.duration, {
+                        shouldValidate: true,
+                      });
+                    if (Object.hasOwn(patch, 'resolution'))
+                      form.setValue('resolution', patch.resolution ?? '', {
+                        shouldValidate: true,
+                      });
+                    form.setValue(
+                      'crunControls',
+                      {
+                        ...current,
+                        ...(Object.hasOwn(patch, 'aspectRatio')
+                          ? { aspectRatio: patch.aspectRatio }
+                          : {}),
+                        ...(Object.hasOwn(patch, 'negativePrompt')
+                          ? { negativePrompt: patch.negativePrompt }
+                          : {}),
+                        ...(Object.hasOwn(patch, 'guidanceScale')
+                          ? { guidanceScale: patch.guidanceScale }
+                          : {}),
+                        ...(Object.hasOwn(patch, 'translatePrompt')
+                          ? { translatePrompt: patch.translatePrompt }
+                          : {}),
+                      },
                       { shouldValidate: true },
                     );
                     triggerConfigChange();

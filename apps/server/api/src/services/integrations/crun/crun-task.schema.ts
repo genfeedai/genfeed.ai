@@ -85,3 +85,8 @@ export interface CrunFrozenImageQuote {
   templateUsed?: string;
   templateVersion?: number;
 }
+
+export interface CrunFrozenVideoQuote
+  extends Omit<CrunFrozenImageQuote, 'intent'> {
+  intent: import('@genfeedai/contracts/interfaces/billing').CrunVideoQuoteRequest;
+}

@@ -2,6 +2,8 @@ import { buildCrunContract } from '@api/services/integrations/crun/contracts/cru
 import {
   CRUN_IMAGE_MANIFEST,
   CRUN_PRICING_SNAPSHOT,
+  CRUN_VIDEO_MANIFEST,
+  getCrunPricingSnapshot,
 } from '@api/services/integrations/crun/contracts/crun-manifest';
 
 vi.mock('@genfeedai/prisma', async () => {
@@ -710,6 +712,61 @@ describe('ModelsService', () => {
       (result as unknown as { inputControls: unknown })?.inputControls,
     ).not.toHaveProperty('serverOverrides');
   });
+
+  it.each(CRUN_VIDEO_MANIFEST)(
+    'promotes the reviewed video contract $endpoint with its safe projection',
+    async (entry) => {
+      const contract = buildCrunContract(entry);
+      modelDelegate.findFirst.mockResolvedValue(
+        makeModel({
+          provider: ModelProvider.CRUN,
+          category: ModelCategory.VIDEO,
+          endpoint: entry.endpoint,
+          key: entry.key,
+          pendingProviderContractVersion: contract.version,
+        }),
+      );
+      providerContractDelegate.findUnique.mockResolvedValue({
+        id: 'video-contract',
+        inputSchema: contract,
+        openapi: entry.openapi,
+        pricing: getCrunPricingSnapshot(entry),
+        mappingStatus: 'supported',
+        pricingType: 'per-request',
+        schemaFamily: entry.schemaFamily,
+        unitPriceMicros: null,
+        version: contract.version,
+      });
+      modelDelegate.update.mockResolvedValue(
+        makeModel({
+          provider: ModelProvider.CRUN,
+          category: ModelCategory.VIDEO,
+          providerInputSchema: contract,
+          reviewedProviderContractVersion: contract.version,
+        }),
+      );
+      const result = await service.approveRegistryModel(
+        'model-1',
+        {},
+        'operator-1',
+      );
+      expect(modelDelegate.update.mock.calls[0][0].data).toMatchObject({
+        maxOutputs: 4,
+        maxReferences: entry.videoRules.referenceMode === 'none' ? 0 : 2,
+        hasResolutionOptions: entry.endpoint === 'google/veo3-1-fast-t2v',
+        isBatchSupported: false,
+        reviewedProviderContractVersion: contract.version,
+      });
+      expect(result).toHaveProperty('inputControls.mediaKind', 'video');
+      expect(result).toHaveProperty(
+        'inputControls.videoRules.availableDurations',
+        entry.videoRules.availableDurations,
+      );
+      expect(
+        (result as unknown as { inputControls: unknown }).inputControls,
+      ).not.toHaveProperty('serverOverrides');
+    },
+  );
 
   it('rejects a Crun candidate with a forged contract version', async () => {
     const entry = CRUN_IMAGE_MANIFEST[0];

@@ -15,6 +15,7 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { ImagesService } from '@services/ingredients/images.service';
+import { VideosService } from '@services/ingredients/videos.service';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 /** Stable effective-intent comparison; authorization hashes remain server-owned. */
@@ -33,10 +34,10 @@ export function serializeCrunQuoteIntent(value: unknown): string {
   return JSON.stringify(canonical(value));
 }
 
-export function useCrunGenerationQuote({
-  request,
-  isActive,
-}: UseCrunGenerationQuoteOptions): UseCrunGenerationQuoteReturn {
+export function useCrunGenerationQuote(
+  options: UseCrunGenerationQuoteOptions,
+): UseCrunGenerationQuoteReturn {
+  const { request, isActive } = options;
   const auth = useAuthIdentity();
   const brand = useBrand();
   const desktop = isDesktopClient();
@@ -44,8 +45,15 @@ export function useCrunGenerationQuote({
   const environmentRef = useRef<IDesktopBootstrap['environment'] | null>(null);
   const epochRef = useRef(0);
   const controllerRef = useRef<AbortController | null>(null);
-  const currentRef = useRef({ auth, brand, request, isActive, desktop });
-  currentRef.current = { auth, brand, request, isActive, desktop };
+  const currentRef = useRef({
+    auth,
+    brand,
+    request,
+    isActive,
+    desktop,
+    options,
+  });
+  currentRef.current = { auth, brand, request, isActive, desktop, options };
   const [refresh, setRefresh] = useState(0);
   const [record, setRecord] = useState<{
     scope: string;
@@ -57,6 +65,9 @@ export function useCrunGenerationQuote({
   recordRef.current = record;
   const getImagesService = useAuthedService((token: string) =>
     ImagesService.getInstance(token),
+  );
+  const getVideosService = useAuthedService((token: string) =>
+    VideosService.getInstance(token),
   );
   const readScope = useCallback(() => {
     const current = currentRef.current;
@@ -77,6 +88,7 @@ export function useCrunGenerationQuote({
     )
       return null;
     return serializeCrunQuoteIntent([
+      current.options.mediaKind ?? 'image',
       endpoint,
       current.desktop ? environment?.serverId : 'web',
       current.auth.sessionId,
@@ -151,7 +163,8 @@ export function useCrunGenerationQuote({
     const controller = new AbortController();
     controllerRef.current = controller;
     const epoch = ++epochRef.current;
-    const request = currentRef.current.request;
+    const activeOptions = currentRef.current.options;
+    const request = activeOptions.request;
     if (!scope || !request || !currentRef.current.isActive) {
       setRecord({ scope: '', epoch, quote: null, status: 'idle' });
       return () => controller.abort();
@@ -162,14 +175,35 @@ export function useCrunGenerationQuote({
       if (document.visibilityState === 'hidden' || controller.signal.aborted)
         return;
       try {
-        const service = await getImagesService();
+        const transport =
+          activeOptions.mediaKind === 'video'
+            ? {
+                mediaKind: 'video' as const,
+                service: await getVideosService(),
+                request: activeOptions.request,
+              }
+            : {
+                mediaKind: 'image' as const,
+                service: await getImagesService(),
+                request: activeOptions.request,
+              };
         if (
           controller.signal.aborted ||
           epoch !== epochRef.current ||
           readScope() !== scope
         )
           return;
-        const quote = await service.quoteCrun(request, controller.signal);
+        if (!transport.request) return;
+        const quote =
+          transport.mediaKind === 'video'
+            ? await transport.service.quoteCrun(
+                transport.request,
+                controller.signal,
+              )
+            : await transport.service.quoteCrun(
+                transport.request,
+                controller.signal,
+              );
         if (
           controller.signal.aborted ||
           epoch !== epochRef.current ||
@@ -217,7 +251,14 @@ export function useCrunGenerationQuote({
       document.removeEventListener('visibilitychange', visible);
       window.removeEventListener('focus', visible);
     };
-  }, [scope, refresh, getImagesService, getCurrentQuote, readScope]);
+  }, [
+    scope,
+    refresh,
+    getImagesService,
+    getVideosService,
+    getCurrentQuote,
+    readScope,
+  ]);
   const current = scope && record.scope === scope ? record : null;
   const quote = current?.quote?.isAvailable
     ? getCurrentQuote()

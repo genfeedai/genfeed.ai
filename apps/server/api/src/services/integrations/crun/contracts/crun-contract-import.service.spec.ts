@@ -6,7 +6,11 @@ import {
 } from '@api/services/integrations/crun/contracts/crun-contract-import.service';
 import {
   CRUN_IMAGE_MANIFEST,
+  CRUN_PRICING_SNAPSHOT,
   CRUN_RESPONSE_CAPTURES,
+  CRUN_VIDEO_MANIFEST,
+  CRUN_VIDEO_PRICING_SNAPSHOT,
+  getCrunPricingSnapshot,
 } from '@api/services/integrations/crun/contracts/crun-manifest';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { normalizeCrunInput } from '@genfeedai/helpers';
@@ -142,7 +146,7 @@ describe('bounded Crun image contract import', () => {
     } finally {
       vi.unstubAllGlobals();
     }
-    expect(updateMany).toHaveBeenCalledTimes(2);
+    expect(updateMany).toHaveBeenCalledTimes(4);
     for (const [call] of updateMany.mock.calls) {
       expect(call.data).toMatchObject({
         providerSyncStatus: 'failed',
@@ -199,4 +203,82 @@ describe('bounded Crun image contract import', () => {
     expect(patch).not.toHaveProperty('providerCostUsd');
     expect(patch).not.toHaveProperty('isActive');
   });
+});
+
+describe('Crun exact video candidates and preserved image versions', () => {
+  it.each(CRUN_VIDEO_MANIFEST)(
+    'pins raw $endpoint bytes and strict video rules',
+    (entry) => {
+      const file = entry.endpoint.startsWith('kling/')
+        ? 'kling-v2-5-turbo-pro.openapi.json'
+        : 'veo3-1-fast-t2v.openapi.json';
+      expect(
+        createHash('sha256')
+          .update(readFileSync(new URL(`./fixtures/${file}`, import.meta.url)))
+          .digest('hex'),
+      ).toBe(entry.sha256);
+      const contract = buildCrunContract(entry);
+      expect(contract).toMatchObject({
+        mediaKind: 'video',
+        videoRules: entry.videoRules,
+        serverOverrides: {},
+      });
+      expect(contract.fields).not.toHaveProperty('audio');
+      expect(contract.fields).not.toHaveProperty('output_format');
+      expect(normalizeCrunInput(contract, { prompt: 'bird' }).isValid).toBe(
+        true,
+      );
+    },
+  );
+  it('keeps image hashes based on the original four image rows and video hashes endpoint-scoped', () => {
+    expect(CRUN_PRICING_SNAPSHOT.rates).toHaveLength(4);
+    expect(CRUN_VIDEO_PRICING_SNAPSHOT.rates).toHaveLength(5);
+    for (const entry of CRUN_IMAGE_MANIFEST) {
+      expect(getCrunPricingSnapshot(entry)).toEqual(CRUN_PRICING_SNAPSHOT);
+      expect(buildCrunContract(entry).version).toBe(
+        buildCrunContract(entry, entry.openapi, CRUN_PRICING_SNAPSHOT).version,
+      );
+    }
+    for (const entry of CRUN_VIDEO_MANIFEST)
+      expect(
+        getCrunPricingSnapshot(entry).rates.every(
+          (rate) => rate.endpoint === entry.endpoint,
+        ),
+      ).toBe(true);
+  });
+  it.each(CRUN_VIDEO_MANIFEST)(
+    'imports $endpoint inactive pending and quarantines drift',
+    async (entry) => {
+      const tx = {
+        model: {
+          upsert: vi.fn().mockResolvedValue({ id: 'candidate' }),
+          update: vi.fn(),
+        },
+        modelProviderContract: { upsert: vi.fn() },
+      };
+      const service = new CrunContractImportService({
+        $transaction: async (callback: (client: typeof tx) => Promise<void>) =>
+          callback(tx),
+      } as unknown as PrismaService);
+      await service.importModel(entry, undefined, true);
+      expect(tx.model.upsert.mock.calls[0]?.[0].create).toMatchObject({
+        category: 'VIDEO',
+        isActive: false,
+        isDefault: false,
+      });
+      expect(
+        tx.modelProviderContract.upsert.mock.calls[0]?.[0].create,
+      ).toMatchObject({
+        schemaFamily: entry.schemaFamily,
+        reviewStatus: 'pending',
+        pricingType: 'per-request',
+        outputSchema: expect.objectContaining({ type: 'video' }),
+      });
+      const raw = structuredClone(entry.openapi);
+      inputSchema(raw).oneOf = [{ type: 'string' }];
+      expect((await service.importModel(entry, raw)).mappingStatus).toBe(
+        'quarantined',
+      );
+    },
+  );
 });
