@@ -454,13 +454,14 @@ export function useGenerationActionCard({
 
   // Reset invalid values when model changes
   useEffect(() => {
+    if (pickerLoading) return;
     if (
       availableAspectRatios.length > 0 &&
       !availableAspectRatios.includes(aspectRatio)
     ) {
       setAspectRatio(defaultAspectRatio);
     }
-  }, [availableAspectRatios, aspectRatio, defaultAspectRatio]);
+  }, [availableAspectRatios, aspectRatio, defaultAspectRatio, pickerLoading]);
 
   useEffect(() => {
     if (showDuration && !durationOptions.includes(duration)) {

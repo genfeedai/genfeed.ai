@@ -2,6 +2,7 @@ import { brandPath } from '@e2e/utils/app-chrome';
 import {
   APP_ROUTES,
   FLUX_3_EDIT_CONTRACT_VERSION,
+  FLUX_3_IMAGE_CONTRACT_VERSION,
   IMAGE_EDIT_CONTRACT_VERSION,
   MODEL_KEYS,
 } from '@genfeedai/contracts/constants';
@@ -122,7 +123,9 @@ for (const { model, editing } of [
                 maxOutputs: flux ? 1 : 8,
                 maxReferences: flux ? 10 : 5,
                 reviewedProviderContractVersion: flux
-                  ? FLUX_3_EDIT_CONTRACT_VERSION
+                  ? editing
+                    ? FLUX_3_EDIT_CONTRACT_VERSION
+                    : FLUX_3_IMAGE_CONTRACT_VERSION
                   : IMAGE_EDIT_CONTRACT_VERSION,
               },
             },

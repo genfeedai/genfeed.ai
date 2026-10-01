@@ -1,8 +1,10 @@
 import { AiActionType } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { AgentMediaAssetGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-asset-generation.service';
 import { AgentMediaBatchGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-batch-generation.service';
+import { resolveGenerationReferences } from '@api/services/agent-orchestrator/tools/agent-media-generation-references';
 import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service';
 import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -75,6 +77,43 @@ const context = {
   organizationId: 'organization-1',
   userId: 'user-1',
 };
+
+describe('FLUX generation source admission', () => {
+  it('rejects combined character and explicit references exceeding ten without truncating', async () => {
+    const result = await resolveGenerationReferences({
+      ctx: context,
+      modelKey: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
+      explicitReferences: Array.from({ length: 10 }, (_, i) => `image-${i}`),
+      handles: ['character'],
+      personasService: {
+        resolveCharacterHandles: async () => ({
+          resolvedIngredientIds: ['character-image'],
+          unresolvedHandles: [],
+        }),
+      },
+    });
+    expect(result.error).toMatchObject({ success: false, creditsUsed: 0 });
+    expect(result.references).toEqual([]);
+  });
+
+  it('keeps all ten unique sources when a character duplicates an explicit reference', async () => {
+    const references = Array.from({ length: 10 }, (_, i) => `image-${i}`);
+    const result = await resolveGenerationReferences({
+      ctx: context,
+      modelKey: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
+      explicitReferences: references,
+      handles: ['character'],
+      personasService: {
+        resolveCharacterHandles: async () => ({
+          resolvedIngredientIds: [references[0]],
+          unresolvedHandles: [],
+        }),
+      },
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.references).toEqual(references);
+  });
+});
 
 describe('AgentMediaGenerationToolHandler ownership', () => {
   it('routes each public media tool to exactly one family owner', async () => {
