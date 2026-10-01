@@ -113,12 +113,13 @@ function useGuideExit(
         push(APP_ROUTES.DESKTOP.LOCAL);
         return;
       }
-      if (!token || !scope || !userId)
-        throw new Error('Authentication or membership is unavailable');
-      await OrganizationsService.getInstance(token).patchSettings(
-        scope.organizationId,
-        { isFirstLogin: false },
-      );
+      if (!token || !userId) throw new Error('Authentication is unavailable');
+      if (scope) {
+        await OrganizationsService.getInstance(token).patchSettings(
+          scope.organizationId,
+          { isFirstLogin: false },
+        );
+      }
       if (!shouldContinue()) return;
       await UsersService.getInstance(token).patchMe({
         isOnboardingCompleted: true,

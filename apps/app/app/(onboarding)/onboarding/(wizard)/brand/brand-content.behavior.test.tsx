@@ -538,6 +538,62 @@ describe('membership-scoped saved guide wizard', () => {
         screen.getByRole('button', { name: 'Continue', exact: true }),
       ).toBeDisabled();
   });
+  it.each([
+    'empty',
+    'mismatched organization',
+    'missing membership',
+    'deleted',
+  ] as const)(
+    'authenticated web Skip completes without organization writes for %s scope',
+    async (state) => {
+      if (state === 'empty') {
+        mocks.scope.brandId = '';
+        mocks.scope.organizationId = '';
+      }
+      if (state === 'mismatched organization')
+        mocks.scope.organizationId = 'other-org';
+      if (state === 'missing membership')
+        mocks.scope.brands = [brand('other-brand', 'other-org')];
+      if (state === 'deleted') {
+        mocks.scope.selectedBrand = brand('brand-1', 'org-1', true);
+        mocks.scope.brands = [mocks.scope.selectedBrand];
+      }
+      render(tree());
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Skip for now' }),
+      );
+      await waitFor(() =>
+        expect(mocks.push).toHaveBeenCalledExactlyOnceWith('/'),
+      );
+      expect(mocks.patchMe).toHaveBeenCalledExactlyOnceWith({
+        isOnboardingCompleted: true,
+      });
+      expect(mocks.patchSettings).not.toHaveBeenCalled();
+      expect(mocks.updateOnboarding).not.toHaveBeenCalled();
+      expect(mocks.getBrandOsScan).not.toHaveBeenCalled();
+      expect(mocks.listBrandOsRevisions).not.toHaveBeenCalled();
+      expect(mocks.startBrandOsScan).not.toHaveBeenCalled();
+    },
+  );
+  it.each(['token', 'current user id'] as const)(
+    'web Skip fails without writes when missing %s',
+    async (missing) => {
+      if (missing === 'token') mocks.getToken.mockResolvedValue(null);
+      if (missing === 'current user id') mocks.user.id = '';
+      render(tree());
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Skip for now' }),
+      );
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        "We couldn't skip onboarding",
+      );
+      expect(mocks.patchSettings).not.toHaveBeenCalled();
+      expect(mocks.patchMe).not.toHaveBeenCalled();
+      expect(mocks.updateOnboarding).not.toHaveBeenCalled();
+      expect(mocks.push).not.toHaveBeenCalled();
+      expect(mocks.replace).not.toHaveBeenCalled();
+    },
+  );
   it('uses the selected authorized brand and matching org instead of either first record', async () => {
     selectBrand('brand-2', 'org-2');
     mocks.scope.brands.unshift(brand('brand-1', 'org-1'));
@@ -627,9 +683,7 @@ describe('membership-scoped saved guide wizard', () => {
         stage === 'auth' ? 0 : 1,
       );
       expect(mocks.clearCache).toHaveBeenCalledTimes(stage === 'auth' ? 0 : 1);
-      expect(mocks.refetchUser).toHaveBeenCalledTimes(
-        stage === 'refetch' ? 1 : 0,
-      );
+      expect(mocks.refetchUser).toHaveBeenCalledTimes(stage === 'auth' ? 0 : 1);
     },
   );
   it('unmount suppresses navigation after an already-started user-wide progress update', async () => {
@@ -647,7 +701,7 @@ describe('membership-scoped saved guide wizard', () => {
       gate.resolve();
     });
     expect(mocks.clearCache).toHaveBeenCalledTimes(1);
-    expect(mocks.refetchUser).not.toHaveBeenCalled();
+    expect(mocks.refetchUser).toHaveBeenCalledTimes(1);
     expect(mocks.push).not.toHaveBeenCalled();
   });
   it.each(['auth', 'organization', 'user'] as const)(

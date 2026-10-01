@@ -112,7 +112,6 @@ export default function OnboardingProvider({
         // first-login operator back to `/onboarding/brand` from the agent
         // handoff the step just unlocked.
         clearClientProtectedBootstrapCache();
-        if (shouldContinue?.() === false) return;
         await refetchUser();
       } catch (error) {
         logger.error('Failed to save onboarding progress', error);

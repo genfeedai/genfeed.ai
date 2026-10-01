@@ -12,6 +12,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const boundary = vi.hoisted(() => ({
   clearCache: vi.fn(),
+  currentUser: { id: 'usr_123', onboardingStepsCompleted: [] as string[] },
   brands: [] as import('@genfeedai/models/organization/brand.model').Brand[],
   selectedBrand: undefined as
     | import('@genfeedai/models/organization/brand.model').Brand
@@ -52,10 +53,7 @@ vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
 
 vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   useCurrentUser: () => ({
-    currentUser: {
-      id: 'usr_123',
-      onboardingStepsCompleted: [],
-    },
+    currentUser: boundary.currentUser,
     isLoading: false,
     refetchUser: refetchUserMock,
   }),
@@ -109,6 +107,7 @@ function StepCompleteControl() {
 describe('OnboardingProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    boundary.currentUser = { id: 'usr_123', onboardingStepsCompleted: [] };
     boundary.brands = [];
     boundary.selectedBrand = undefined;
     hasAgentFirstOnboardingMock.mockReturnValue(true);
@@ -169,6 +168,7 @@ describe('OnboardingProvider', () => {
 });
 
 interface CompletionProbeProps {
+  stepKey?: import('@genfeedai/contracts/constants').OnboardingStepKey;
   shouldContinue?: () => boolean;
   onComplete: () => void;
 }
@@ -183,14 +183,18 @@ function progressDeferred(): ProgressDeferred {
   });
   return { promise, resolve };
 }
-function CompletionProbe({ shouldContinue, onComplete }: CompletionProbeProps) {
+function CompletionProbe({
+  shouldContinue,
+  onComplete,
+  stepKey = 'brand',
+}: CompletionProbeProps) {
   const { handleStepComplete, saving } = useOnboarding();
   return (
     <>
       <Button
         label="Guarded completion"
         onClick={async () => {
-          await handleStepComplete('brand', undefined, shouldContinue);
+          await handleStepComplete(stepKey, undefined, shouldContinue);
           onComplete();
         }}
       />
@@ -210,6 +214,7 @@ function scopedBrand(
 describe('guarded onboarding completion boundaries', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    boundary.currentUser = { id: 'usr_123', onboardingStepsCompleted: [] };
     boundary.brands = [];
     boundary.selectedBrand = undefined;
     hasAgentFirstOnboardingMock.mockReturnValue(true);
@@ -237,7 +242,7 @@ describe('guarded onboarding completion boundaries', () => {
     expect(pushMock).not.toHaveBeenCalled();
   });
   it.each(['auth', 'update', 'refetch'] as const)(
-    'suppresses subsequent stale work after %s while preserving committed invalidation',
+    'suppresses stale navigation after %s while refreshing committed progress',
     async (stage) => {
       let current = true;
       const completed = vi.fn();
@@ -281,14 +286,55 @@ describe('guarded onboarding completion boundaries', () => {
       expect(boundary.clearCache).toHaveBeenCalledTimes(
         stage === 'auth' ? 0 : 1,
       );
-      expect(refetchUserMock).toHaveBeenCalledTimes(
-        stage === 'refetch' ? 1 : 0,
-      );
+      expect(refetchUserMock).toHaveBeenCalledTimes(stage === 'auth' ? 0 : 1);
       expect(pushMock).not.toHaveBeenCalled();
       expect(replaceMock).not.toHaveBeenCalled();
       expect(screen.getByText('idle')).toBeTruthy();
     },
   );
+  it('retains a committed brand step in a later completion after cancellation', async () => {
+    let current = true;
+    const committed = progressDeferred();
+    const completed = vi.fn();
+    updateOnboardingMock.mockReturnValueOnce(committed.promise);
+    refetchUserMock.mockImplementationOnce(async () => {
+      boundary.currentUser = {
+        id: 'usr_123',
+        onboardingStepsCompleted: ['brand'],
+      };
+    });
+    const view = render(
+      <OnboardingProvider>
+        <CompletionProbe
+          shouldContinue={() => current}
+          onComplete={completed}
+        />
+      </OnboardingProvider>,
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Guarded completion' }),
+    );
+    await waitFor(() => expect(updateOnboardingMock).toHaveBeenCalledTimes(1));
+    current = false;
+    await act(async () => {
+      committed.resolve();
+    });
+    await waitFor(() => expect(completed).toHaveBeenCalledTimes(1));
+    expect(refetchUserMock).toHaveBeenCalledTimes(1);
+    expect(pushMock).not.toHaveBeenCalled();
+    view.rerender(
+      <OnboardingProvider>
+        <CompletionProbe stepKey="providers" onComplete={completed} />
+      </OnboardingProvider>,
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Guarded completion' }),
+    );
+    await waitFor(() => expect(completed).toHaveBeenCalledTimes(2));
+    expect(updateOnboardingMock).toHaveBeenNthCalledWith(2, 'usr_123', {
+      onboardingStepsCompleted: ['brand', 'providers'],
+    });
+  });
   it.each(['true', 'omitted'] as const)(
     'preserves compatible %s predicate dispatch and navigation',
     async (mode) => {
