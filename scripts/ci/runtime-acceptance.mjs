@@ -97,7 +97,7 @@ export const BRAND_SOURCE_CONTRACT = {
     {
       path: 'apps/server/api/src/services/branded-generation-receipts/branded-generation-receipts.service.spec.ts',
       sha256:
-        '107c2cad0059abff199425988f0f357db3503a5161eb74e6c4740fe71dd2e603',
+        '30abc0d90142cb882e9e397d07d23b7221efef5937616b31b87772d807410f13',
       acceptance:
         'nonzero passed in this exact file; no failed/pending/skipped/todo',
     },
@@ -164,7 +164,7 @@ export async function verifyBaselineSources(repo) {
 export const AGENT_PRODUCTION_FILES = [
   {
     path: 'apps/server/api/test/integration/proactive-agent-production-turn.integration.spec.ts',
-    sha256: 'da63dde36da5685ea15e788c6e2e456f450fcab84d03f61a975baf2824abd4b2',
+    sha256: 'd0a43718a8a8070935407048c44b05f760b168738cc7884c67a88683cb138b6a',
   },
   {
     path: 'apps/server/api/test/integration/proactive-agent-production-turn.fixture.ts',
@@ -5509,6 +5509,7 @@ async function checkQualifiedSealDocuments(identity) {
     requireQualifiedGroup(document?.group);
     requireThat(
       document.version === 1 &&
+        document.group === identity.group &&
         document.candidateSHA === identity.candidateSHA &&
         document.controlSHA === identity.controlSHA &&
         document.fingerprint === identity.fingerprint,

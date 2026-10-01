@@ -1033,6 +1033,37 @@ test('final visual proof uses separate bounded isolation and connected jobs with
   assert.match(workflow, /value: \$\{\{ jobs\.connected\.outputs\.result \}\}/);
 });
 
+test('final Full Suite forwards full API discovery only with explicit runtime acceptance', () => {
+  const suite = jobBlock(
+    readWorkflow('full-suite.yml'),
+    'e2e',
+    'full-suite.yml',
+  );
+  assert.match(
+    suite,
+    /run_api_full: \$\{\{ inputs\.run_runtime_acceptance == true \}\}/,
+  );
+  assert.match(
+    suite,
+    /run_runtime_acceptance: \$\{\{ inputs\.run_runtime_acceptance == true \}\}/,
+  );
+  const inputDefaults = readWorkflow('full-suite.yml').matchAll(
+    /run_runtime_acceptance:\n\s+description:[^\n]*\n\s+type: boolean\n\s+required: false\n\s+default: false/g,
+  );
+  assert.equal([...inputDefaults].length, 2);
+  const e2e = readWorkflow('e2e.yml');
+  assert.match(
+    e2e,
+    /run_api_full:\n\s+description:[^\n]*\n\s+type: boolean\n\s+required: false\n\s+default: false/,
+  );
+  for (const caller of ['pr-full-suite.yml', 'release.yml']) {
+    assert.doesNotMatch(
+      readWorkflow(caller),
+      /run_api_full: true|run_runtime_acceptance: true/,
+    );
+  }
+});
+
 test('dedicated production agent and BRAND jobs preserve full-tier selection and immutable receipt gates', () => {
   const workflow = readWorkflow('e2e.yml'),
     suite = readWorkflow('full-suite.yml');

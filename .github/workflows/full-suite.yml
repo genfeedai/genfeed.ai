@@ -98,6 +98,7 @@ jobs:
       issues: write
     uses: ./.github/workflows/e2e.yml
     with:
+      run_api_full: ${{ inputs.run_runtime_acceptance == true }}
       run_runtime_acceptance: ${{ inputs.run_runtime_acceptance == true }}
     secrets: inherit
 
