@@ -9,12 +9,14 @@ import {
 } from '@api/common/constants/request-context-cache.constants';
 import { IRequestContext } from '@api/common/interfaces/request-context.interface';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { SubscriptionStatus } from '@genfeedai/contracts';
 import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/contracts/interfaces/billing';
+import { isBearerScheme } from '@libs/auth/authorization-header';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Inject, Injectable, type NestMiddleware } from '@nestjs/common';
@@ -67,12 +69,17 @@ export class RequestContextMiddleware implements NestMiddleware {
       return;
     }
 
-    if (isSelfHostedDeployment()) {
+    const user = req.user;
+
+    if (isSelfHostedDeployment() && !user) {
+      // Guards authenticate bearer credentials after Express middleware runs.
+      // Default context here would make bootstrap return another workspace.
+      if (isBetterAuthEnabled() && isBearerScheme(req.headers?.authorization)) {
+        return;
+      }
       await this.hydrateSelfHostedContext(req);
       return;
     }
-
-    const user = req.user;
 
     if (!user) {
       return;

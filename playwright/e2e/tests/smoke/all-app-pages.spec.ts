@@ -2,6 +2,7 @@ import { existsSync, readdirSync } from 'node:fs';
 import { createServer, type Server, type ServerResponse } from 'node:http';
 import path from 'node:path';
 import type { Page, Response } from '@playwright/test';
+import { playwrightApiEndpoint } from '../../config/environment';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { buildUnhandledApiMockBody } from '../../utils/api-interceptor';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
@@ -413,12 +414,16 @@ async function startMockApiServer(): Promise<Server | null> {
       reject(error);
     });
 
-    // Bind dual-stack (::) so the app's SSR fetch to `localhost:3010` (which
+    // Bind dual-stack (::) so SSR requests to the configured local endpoint (which
     // resolves to IPv6 ::1 first) reaches the mock; IPv4-only binding made
     // API-dependent pages 500 with ECONNREFUSED ::1:3010.
-    server.listen(3010, '::', () => {
-      resolve(server);
-    });
+    server.listen(
+      Number(new URL(playwrightApiEndpoint).port || 80),
+      '::',
+      () => {
+        resolve(server);
+      },
+    );
   });
 }
 
