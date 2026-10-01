@@ -5,6 +5,13 @@ import { KnowledgeSelectionService } from '@api/collections/contexts/services/kn
 import { resolveKnowledgeMinRelevance } from '@api/collections/contexts/utils/knowledge-source.util';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
+import type { BrandContextContribution } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
+import {
+  compileSnapshotBriefResolution,
+  renderSnapshotHarnessContribution,
+  type SnapshotContextStage,
+  type SnapshotStageResult,
+} from '@api/services/harness/branded-generation-compiler';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
 import {
   buildHarnessInput,
@@ -12,10 +19,35 @@ import {
   type PersonaSource,
 } from '@api/services/harness/harness-brief.util';
 import { brandMemoryHitsToHarnessSources } from '@api/services/harness/harness-context-sources.util';
+import type { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
+import {
+  brandedGenerationInputV1Schema,
+  brandGenerationLayerReceiptV1Schema,
+  brandGenerationLayerVersionV1Schema,
+  brandIdentitySnapshotV1Schema,
+  brandLearningApplicationV1Schema,
+} from '@genfeedai/contracts/api-types/contracts/branded-generation.contract';
+import {
+  learningContractIdSchema,
+  learningContractVersionSchema,
+} from '@genfeedai/contracts/api-types/contracts/content-learning-generation.contract';
+import {
+  KnowledgeSourceKind,
+  KnowledgeSourcePurpose,
+} from '@genfeedai/contracts/enums';
 import type {
+  BrandedGenerationInputV1,
+  BrandedGenerationResolutionV1,
+  BrandIdentitySnapshotV1,
+  BrandLearningApplicationV1,
   KnowledgeRetrievalFilters,
   KnowledgeSelection,
 } from '@genfeedai/contracts/interfaces';
+import type { ResolveActiveSkillsContext } from '@genfeedai/contracts/interfaces/ai';
+import type {
+  ContentHarnessContribution,
+  ContentHarnessInput,
+} from '@genfeedai/harness';
 import {
   type ContentHarnessBrief,
   type ContentKind,
@@ -83,6 +115,502 @@ export class HarnessGenerationService {
     @Optional()
     private readonly brandOsRevisionsService?: BrandOsRevisionsService,
   ) {}
+
+  async resolveSnapshotBrief(
+    input: BrandedGenerationInputV1,
+    snapshot: BrandIdentitySnapshotV1 | null,
+    resolvedSkills: Awaited<
+      ReturnType<SkillRuntimeService['resolveActiveSkills']>
+    >,
+    requestedSkillSlugs: ResolveActiveSkillsContext['requestedSkillSlugs'],
+    renderSkillSections: SkillRuntimeService['buildSkillPromptSections'],
+    learning: BrandLearningApplicationV1,
+    learningContribution: ContentHarnessContribution,
+  ): Promise<BrandedGenerationResolutionV1> {
+    const parsed = brandedGenerationInputV1Schema.parse(input);
+    const identity =
+      snapshot === null ? null : brandIdentitySnapshotV1Schema.parse(snapshot);
+    const application = brandLearningApplicationV1Schema.parse(learning);
+    const compile = (
+      scope: BrandIdentitySnapshotV1 | null,
+      failure?: readonly [string, string?],
+    ) =>
+      compileSnapshotBriefResolution(
+        parsed,
+        scope,
+        application,
+        learningContribution,
+        [],
+        [],
+        [],
+        failure,
+      );
+    const selected = Boolean(
+      requestedSkillSlugs?.length ||
+        parsed.knowledgeSourceIds.length ||
+        parsed.knowledgeSpaceIds.length,
+    );
+    if (parsed.mode === 'raw') {
+      const privateApplication = application.privateAccount.application;
+      if (
+        identity ||
+        application.brandFeedback.status === 'applied' ||
+        application.global.status === 'applied' ||
+        privateApplication?.status === 'applied' ||
+        privateApplication?.privatePolicyApplied ||
+        privateApplication?.sharedReleaseApplied
+      )
+        return compile(null, ['identity_conflict']);
+      return compile(
+        null,
+        selected
+          ? ['context_unavailable', 'raw_mode_selection_conflict']
+          : undefined,
+      );
+    }
+    if (!identity) return compile(null, ['no_approved_revision']);
+    if (
+      identity.organizationId !== parsed.organizationId ||
+      identity.brandId !== parsed.brandId ||
+      identity.approval !==
+        (parsed.mode === 'approved_brand' ? 'approved' : 'provisional')
+    )
+      return compile(null, ['identity_conflict']);
+    if (parsed.format !== 'text' && parsed.format !== 'thread')
+      return compile(identity, ['unsupported_capability']);
+    const [explicitSkills, autoSkills, skillDiagnostics, skillFailure] =
+      this.resolveSnapshotSkills(
+        resolvedSkills,
+        requestedSkillSlugs,
+        renderSkillSections,
+      );
+    if (skillFailure)
+      return compileSnapshotBriefResolution(
+        parsed,
+        identity,
+        application,
+        learningContribution,
+        [],
+        [],
+        skillDiagnostics,
+        ['context_unavailable', skillFailure],
+      );
+    const [sourceIds, explicitKnowledge, selectionFailure] =
+      await this.resolveSnapshotKnowledgeSelection(parsed);
+    if (selectionFailure)
+      return compile(identity, ['knowledge_unavailable', selectionFailure]);
+    const [knowledge, knowledgeDiagnostics, knowledgeFailure] =
+      await this.retrieveSnapshotKnowledge(
+        parsed,
+        sourceIds,
+        explicitKnowledge,
+      );
+    if (knowledgeFailure)
+      return compileSnapshotBriefResolution(
+        parsed,
+        identity,
+        application,
+        learningContribution,
+        [],
+        [],
+        knowledgeDiagnostics,
+        ['knowledge_unavailable'],
+      );
+    const profile = await this.resolveSnapshotProfile(parsed);
+    const packs = await this.resolveSnapshotPacks(parsed, identity);
+    return compileSnapshotBriefResolution(
+      parsed,
+      identity,
+      application,
+      learningContribution,
+      [...explicitSkills, ...(explicitKnowledge ? knowledge : [])],
+      [
+        ...profile,
+        ...autoSkills,
+        ...packs,
+        ...(explicitKnowledge ? [] : knowledge),
+      ],
+      [...skillDiagnostics, ...knowledgeDiagnostics],
+    );
+  }
+
+  private async resolveSnapshotProfile(
+    input: BrandedGenerationInputV1,
+  ): Promise<SnapshotContextStage[]> {
+    const provider = this.resolveProvider(
+      this.harnessProfilesService,
+      HarnessProfilesService,
+    );
+    let profile: Awaited<
+      ReturnType<HarnessProfilesService['resolveContributionForBrand']>
+    >;
+    try {
+      if (!provider) throw new Error('Profile unavailable');
+      profile = await provider.resolveContributionForBrand(
+        input.organizationId,
+        input.brandId,
+      );
+    } catch {
+      return [
+        [
+          {
+            kind: 'harness_profile',
+            status: 'unavailable',
+            reasonCode: 'profile_context_unavailable',
+            evidenceIds: [],
+            omittedIds: [],
+          },
+          [],
+          [],
+        ],
+      ];
+    }
+    if (!profile)
+      return [
+        [
+          {
+            kind: 'harness_profile',
+            status: 'not_applicable',
+            evidenceIds: [],
+            omittedIds: [],
+          },
+          [],
+          [],
+        ],
+      ];
+    const section = renderSnapshotHarnessContribution(
+      profile.contribution,
+      true,
+    );
+    const layer = brandGenerationLayerReceiptV1Schema.parse({
+      kind: 'harness_profile',
+      id: learningContractIdSchema.parse(profile.profileId),
+      status: 'not_applicable',
+      evidenceIds: [],
+      omittedIds: [],
+    });
+    return [
+      [layer, section ? [section] : [], section ? [[profile.profileId]] : []],
+    ];
+  }
+
+  private resolveSnapshotSkills(
+    skills: Awaited<ReturnType<SkillRuntimeService['resolveActiveSkills']>>,
+    requested: ResolveActiveSkillsContext['requestedSkillSlugs'],
+    formatter: SkillRuntimeService['buildSkillPromptSections'],
+  ): readonly [
+    SnapshotContextStage[],
+    SnapshotContextStage[],
+    BrandIdentitySnapshotV1['diagnostics'],
+    string?,
+  ] {
+    const explicit = [...new Set(requested ?? [])];
+    const selected: SnapshotContextStage[] = [];
+    const automatic: SnapshotContextStage[] = [];
+    const diagnostics: BrandIdentitySnapshotV1['diagnostics'] = [];
+    if (explicit.some((slug) => !skills.some((skill) => skill.slug === slug)))
+      return [[], [], [], 'skill.selection_unavailable'];
+    const ordered = [
+      ...explicit.map((slug) => skills.find((skill) => skill.slug === slug)),
+      ...skills.filter((skill) => !explicit.includes(skill.slug)),
+    ];
+    for (const skill of ordered) {
+      if (!skill) continue;
+      const required = explicit.includes(skill.slug);
+      const layer = {
+        kind: 'skill' as const,
+        id: skill.versionId,
+        contentHash: skill.contentHash,
+        status: 'not_applicable' as const,
+        evidenceIds: [],
+        omittedIds: [],
+      };
+      const valid =
+        skill.instructions?.trim() &&
+        skill.versionId &&
+        skill.contentHash &&
+        brandGenerationLayerReceiptV1Schema.safeParse({
+          ...layer,
+          status: 'applied',
+        }).success;
+      let text = '';
+      let reason = valid ? '' : 'skill.version_unavailable';
+      if (valid) {
+        try {
+          text = formatter([skill], [skill.slug]);
+        } catch {
+          reason = 'skill.selection_unavailable';
+        }
+        if (!text && !reason) reason = 'skill.selection_unavailable';
+      }
+      if (reason) {
+        if (required) return [[], [], diagnostics, reason];
+        automatic.push([
+          {
+            kind: 'skill',
+            status: 'unavailable',
+            reasonCode: reason,
+            evidenceIds: [],
+            omittedIds: [],
+          },
+          [],
+          [],
+        ]);
+        diagnostics.push({
+          code: reason,
+          severity: 'warning',
+          message: 'An optional skill lacks usable immutable instructions.',
+        });
+        continue;
+      }
+      const section: BrandContextContribution = {
+        header: '',
+        content: text,
+        untrusted: false,
+        isAtomic: true,
+      };
+      (required ? selected : automatic).push([
+        layer,
+        [section],
+        [[skill.versionId ?? '']],
+      ]);
+    }
+    return [selected, automatic, diagnostics];
+  }
+
+  private async resolveSnapshotKnowledgeSelection(
+    input: BrandedGenerationInputV1,
+  ): Promise<readonly [string[], boolean, string?]> {
+    const explicit = Boolean(
+      input.knowledgeSourceIds.length || input.knowledgeSpaceIds.length,
+    );
+    if (!explicit) return [[], false];
+    const selection = this.resolveProvider(
+      undefined,
+      KnowledgeSelectionService,
+    );
+    const retrieval = this.resolveProvider(
+      this.knowledgeContentRetrievalService,
+      KnowledgeContentRetrievalService,
+    );
+    if (!selection || !retrieval) return [[], true, 'knowledge_unavailable'];
+    const sources = new Set(input.knowledgeSourceIds);
+    try {
+      for (const spaceId of input.knowledgeSpaceIds) {
+        const expanded = await selection.resolve(
+          input.organizationId,
+          input.brandId,
+          { spaceIds: [spaceId] },
+        );
+        if (!expanded.knowledgeSourceIds?.length)
+          return [[], true, 'knowledge_unavailable'];
+        for (const id of expanded.knowledgeSourceIds) sources.add(id);
+      }
+    } catch {
+      return [[], true, 'knowledge_unavailable'];
+    }
+    return sources.size > HARNESS_SELECTED_KNOWLEDGE_LIMIT
+      ? [[], true, 'knowledge.selection_budget_exceeded']
+      : [[...sources], true];
+  }
+
+  private async retrieveSnapshotKnowledge(
+    input: BrandedGenerationInputV1,
+    sourceIds: string[],
+    explicit: boolean,
+  ): Promise<SnapshotStageResult> {
+    const provider = this.resolveProvider(
+      this.knowledgeContentRetrievalService,
+      KnowledgeContentRetrievalService,
+    );
+    const unavailable = (): SnapshotStageResult => [
+      [
+        [
+          {
+            kind: 'knowledge',
+            status: 'unavailable',
+            reasonCode: 'knowledge_unavailable',
+            evidenceIds: [],
+            omittedIds: [],
+          },
+          [],
+          [],
+        ],
+      ],
+      [
+        {
+          code: 'knowledge_unavailable',
+          severity: 'warning',
+          message: 'Immutable Knowledge context is unavailable.',
+        },
+      ],
+      explicit ? 'knowledge_unavailable' : undefined,
+    ];
+    if (!provider || !input.originalPrompt.trim()) return unavailable();
+    let hits: Awaited<
+      ReturnType<KnowledgeContentRetrievalService['retrieveBrandContentMemory']>
+    >;
+    try {
+      hits = await provider.retrieveBrandContentMemory({
+        organizationId: input.organizationId,
+        brandId: input.brandId,
+        query: input.originalPrompt,
+        limit: explicit
+          ? HARNESS_SELECTED_KNOWLEDGE_LIMIT
+          : HARNESS_MEMORY_LIMIT,
+        minRelevance: resolveKnowledgeMinRelevance(
+          explicit ? sourceIds : undefined,
+          HARNESS_MEMORY_MIN_RELEVANCE,
+        ),
+        ...(explicit
+          ? { knowledgeSourceIds: sourceIds, isKnowledgeOnly: true }
+          : {}),
+      });
+    } catch {
+      return unavailable();
+    }
+    const groups = new Map<string, SnapshotContextStage>();
+    const versions = new Map<string, string>();
+    let omitted = false;
+    for (const hit of hits) {
+      const citation = hit.citation;
+      const valid =
+        citation &&
+        typeof hit.content === 'string' &&
+        hit.content.trim() &&
+        learningContractVersionSchema.safeParse(citation.version).success &&
+        typeof citation.title === 'string' &&
+        Boolean(citation.title.trim()) &&
+        Object.values(KnowledgeSourceKind).includes(citation.kind) &&
+        Object.values(KnowledgeSourcePurpose).includes(citation.purpose) &&
+        learningContractIdSchema.safeParse(citation.versionId).success &&
+        learningContractIdSchema.safeParse(citation.sourceId).success;
+      if (!valid || (explicit && !sourceIds.includes(citation.sourceId))) {
+        if (explicit) return unavailable();
+        omitted = true;
+        continue;
+      }
+      if (
+        versions.has(citation.sourceId) &&
+        versions.get(citation.sourceId) !==
+          JSON.stringify([citation.versionId, citation.version])
+      )
+        return unavailable();
+      versions.set(
+        citation.sourceId,
+        JSON.stringify([citation.versionId, citation.version]),
+      );
+      const section: BrandContextContribution = {
+        header: '',
+        content: JSON.stringify({ content: hit.content, citation }),
+        untrusted: true,
+        isAtomic: true,
+      };
+      const existing = groups.get(citation.versionId);
+      groups.set(citation.versionId, [
+        {
+          kind: 'knowledge',
+          id: citation.versionId,
+          status: 'not_applicable',
+          evidenceIds: [],
+          omittedIds: [],
+        },
+        [...(existing?.[1] ?? []), section],
+        [...(existing?.[2] ?? []), [citation.versionId]],
+      ]);
+    }
+    if (explicit && (!hits.length || sourceIds.some((id) => !versions.has(id))))
+      return unavailable();
+    const stages = [...groups.values()];
+    if (!omitted) return [stages, []];
+    const [missing, diagnostics] = unavailable();
+    return [[...stages, ...missing], diagnostics];
+  }
+
+  private async resolveSnapshotPacks(
+    input: BrandedGenerationInputV1,
+    snapshot: BrandIdentitySnapshotV1,
+  ): Promise<SnapshotContextStage[]> {
+    const objectives = {
+      awareness: 'awareness',
+      engagement: 'engagement',
+      'authority-proxy': 'authority',
+      'conversion-click': 'conversion',
+      'retention-watch': 'retention',
+    } as const;
+    const packInput: ContentHarnessInput = {
+      organizationId: input.organizationId,
+      brandId: input.brandId,
+      brandName: snapshot.identity.name,
+      brandOsRevisionId: snapshot.revisionId,
+      voiceProfile: {
+        ...(snapshot.voice.tone !== undefined
+          ? { tone: snapshot.voice.tone }
+          : {}),
+        ...(snapshot.voice.style !== undefined
+          ? { style: snapshot.voice.style }
+          : {}),
+        audience: [...snapshot.voice.audience],
+        values: [...snapshot.voice.values],
+        messagingPillars: [...snapshot.voice.messagingPillars],
+        doNotSoundLike: [...snapshot.voice.avoid],
+        ...(snapshot.voice.sample !== undefined
+          ? { sampleOutput: snapshot.voice.sample }
+          : {}),
+      },
+      intent: {
+        contentType: input.contentType,
+        objective: input.objective ? objectives[input.objective] : 'engagement',
+        topic: input.originalPrompt,
+        ...(input.platform !== undefined ? { platform: input.platform } : {}),
+      },
+    };
+    let packs: Awaited<ReturnType<ContentHarnessService['composeBriefLayers']>>;
+    try {
+      packs = await this.contentHarnessService.composeBriefLayers(packInput);
+    } catch {
+      return [
+        [
+          {
+            kind: 'pack',
+            status: 'unavailable',
+            reasonCode: 'pack_context_unavailable',
+            evidenceIds: [],
+            omittedIds: [],
+          },
+          [],
+          [],
+        ],
+      ];
+    }
+    return packs.map(([metadata, contribution]): SnapshotContextStage => {
+      const base = brandGenerationLayerReceiptV1Schema.parse({
+        kind: 'pack',
+        id: learningContractIdSchema.parse(metadata.id),
+        status: 'not_applicable',
+        evidenceIds: [],
+        omittedIds: [],
+      });
+      if (
+        !brandGenerationLayerVersionV1Schema.safeParse(metadata.version).success
+      )
+        return [
+          {
+            ...base,
+            status: 'unavailable',
+            reasonCode: 'pack_version_invalid',
+          },
+          [],
+          [],
+        ];
+      const section = renderSnapshotHarnessContribution(contribution, false);
+      return [
+        { ...base, version: metadata.version },
+        section ? [section] : [],
+        section ? [[metadata.id]] : [],
+      ];
+    });
+  }
 
   async resolveBrief(
     params: ResolveHarnessBriefParams,
