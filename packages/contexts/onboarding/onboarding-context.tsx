@@ -95,19 +95,24 @@ export default function OnboardingProvider({
   }, [getToken]);
 
   const saveProgress = useCallback(
-    async (payload: UpdateUserOnboardingPayload) => {
-      if (!currentUser) {
+    async (
+      payload: UpdateUserOnboardingPayload,
+      shouldContinue?: () => boolean,
+    ): Promise<void> => {
+      if (!currentUser || shouldContinue?.() === false) {
         return;
       }
       setSaving(true);
       try {
         const service = await getService();
+        if (shouldContinue?.() === false) return;
         await service.updateOnboarding(currentUser.id, payload);
         // A saved step must not re-serve the 60s client bootstrap snapshot —
         // that is what left `onboardingStepsCompleted` stale and bounced a
         // first-login operator back to `/onboarding/brand` from the agent
         // handoff the step just unlocked.
         clearClientProtectedBootstrapCache();
+        if (shouldContinue?.() === false) return;
         await refetchUser();
       } catch (error) {
         logger.error('Failed to save onboarding progress', error);
@@ -120,10 +125,7 @@ export default function OnboardingProvider({
   );
 
   const agentOnboardingOrgSlug = useMemo(
-    () =>
-      getBrandOrganizationSlug(selectedBrand) ||
-      getBrandOrganizationSlug(brands[0]) ||
-      null,
+    () => getBrandOrganizationSlug(selectedBrand ?? brands[0]) || null,
     [brands, selectedBrand],
   );
 
@@ -131,7 +133,9 @@ export default function OnboardingProvider({
     async (
       stepKey: OnboardingStepKey,
       extraPayload?: Partial<UpdateUserOnboardingPayload>,
+      shouldContinue?: () => boolean,
     ) => {
+      if (shouldContinue?.() === false) return;
       const completedSteps = [...(currentUser?.onboardingStepsCompleted ?? [])];
       if (!completedSteps.includes(stepKey)) {
         completedSteps.push(stepKey);
@@ -142,7 +146,8 @@ export default function OnboardingProvider({
         ...extraPayload,
       };
 
-      await saveProgress(payload);
+      await saveProgress(payload, shouldContinue);
+      if (shouldContinue?.() === false) return;
 
       // Every other caller of the onboarding href helpers supplies the org
       // slug so the agent handoff lands on the canonical
