@@ -54,6 +54,29 @@ export interface CrunImageQuoteRequest {
   knowledge?: KnowledgeSelection;
 }
 
+export interface CrunVideoQuoteControls {
+  contractVersion: string;
+  duration?: 5 | 10 | 4 | 6 | 8;
+  aspectRatio?: string;
+  resolution?: '720p' | '1080p' | '4k';
+  negativePrompt?: string;
+  guidanceScale?: number;
+  translatePrompt?: boolean;
+}
+
+export interface CrunVideoQuoteRequest
+  extends Omit<CrunImageQuoteRequest, 'model' | 'references' | 'crunControls'> {
+  model: 'crun/kling/v2-5-turbo-pro' | 'crun/google/veo3-1-fast-t2v';
+  references?: string[];
+  endFrame?: string;
+  parentId?: string;
+  crunControls: CrunVideoQuoteControls;
+}
+
+export type CrunVideoGenerationRequest = CrunVideoQuoteRequest & {
+  crunQuoteId?: string;
+};
+
 export type CrunGenerationQuoteResponse =
   | {
       isAvailable: true;
