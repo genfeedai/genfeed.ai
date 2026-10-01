@@ -176,6 +176,17 @@ export const brandGenerationRulesV1Schema = bounded(
       assets: keyed(brandAssetReferenceV1Schema, 64),
     })
     .superRefine((v, ctx) => {
+      const allRules = [
+        ...v.facts,
+        ...v.palette,
+        ...v.typography,
+        ...v.mandatory,
+        ...v.avoid,
+        ...v.examples,
+        ...v.assets,
+      ];
+      if (new Set(allRules.map((rule) => rule.id)).size !== allRules.length)
+        issue(ctx, 'Rule IDs must be globally unique');
       const evidence = new Set(v.evidence.map((e) => e.id));
       for (const row of [
         ...v.facts,
@@ -490,6 +501,7 @@ function checkMode(
     learning: z.infer<typeof brandLearningApplicationV1Schema> | null;
   },
   ctx: z.RefinementCtx,
+  allowMissingSnapshot = false,
 ) {
   if (v.mode === 'raw') {
     if (
@@ -511,12 +523,28 @@ function checkMode(
           v.learning.privateAccount.application?.sharedReleaseApplied))
     )
       issue(ctx, 'Raw mode cannot apply identity/learning');
-  } else if (
-    !v.snapshot ||
-    v.snapshot.approval !==
+  } else if (v.snapshot) {
+    if (
+      v.snapshot.approval !==
       (v.mode === 'approved_brand' ? 'approved' : 'provisional')
-  )
-    issue(ctx, 'Branded mode requires matching approval');
+    )
+      issue(ctx, 'Branded mode requires matching approval');
+  } else {
+    if (!allowMissingSnapshot)
+      issue(ctx, 'Resolved branded mode requires snapshot');
+    if (
+      v.layers.some(
+        (layer) => layer.kind === 'identity' && layer.status === 'applied',
+      ) ||
+      (v.learning &&
+        (v.learning.brandFeedback.status === 'applied' ||
+          v.learning.global.status === 'applied' ||
+          v.learning.privateAccount.application?.status === 'applied' ||
+          v.learning.privateAccount.application?.privatePolicyApplied ||
+          v.learning.privateAccount.application?.sharedReleaseApplied))
+    )
+      issue(ctx, 'Missing identity cannot claim applied identity/learning');
+  }
 }
 const common = {
   schemaVersion: z.literal(1),
@@ -542,7 +570,7 @@ export const brandedGenerationResolutionV1Schema = bounded(
         diagnostics: diagnostics.min(1),
       }),
     ])
-    .superRefine(checkMode),
+    .superRefine((v, ctx) => checkMode(v, ctx, v.status === 'blocked')),
   768000,
 );
 export const brandGenerationArtifactPartV1Schema = z.strictObject({
@@ -570,6 +598,8 @@ export const brandArtifactValidationCheckV1Schema = z
       'overlay',
       'product_identity',
       'avoid_rule',
+      'mandatory_rule',
+      'asset_reference',
     ]),
     severity: z.enum(['hard', 'soft']),
     result: z.enum([
@@ -596,8 +626,20 @@ export const brandArtifactValidationCheckV1Schema = z
     if (v.result === 'pass') {
       if (!v.evidenceIds.length) issue(ctx, 'Pass requires evidence');
       if (
+        v.method === 'semantic_evaluator' &&
+        (!v.evaluatorId || !v.evaluatorVersion)
+      )
+        issue(ctx, 'Semantic pass requires evaluator identity/version');
+      if (
         v.severity === 'hard' &&
-        ['typography', 'logo', 'overlay'].includes(v.category) &&
+        [
+          'typography',
+          'palette',
+          'logo',
+          'overlay',
+          'product_identity',
+          'asset_reference',
+        ].includes(v.category) &&
         !['deterministic_render', 'asset_hash'].includes(v.method)
       )
         issue(ctx, 'Exact hard visual pass requires deterministic evidence');
@@ -752,7 +794,7 @@ export const brandedGenerationReceiptV1Schema = bounded(
           v.snapshot.brandId !== v.brandId)
       )
         issue(ctx, 'Snapshot scope must match receipt');
-      if (v.mode === 'raw' || v.snapshot) checkMode(v, ctx);
+      checkMode(v, ctx, true);
       if (
         v.state === 'created' &&
         (v.snapshot ||
@@ -833,30 +875,83 @@ export const brandedGenerationReceiptV1Schema = bounded(
         issue(ctx, 'Passed requires approved validated readiness');
       if (v.validation && v.snapshot) {
         const r = v.snapshot.generationRules;
-        const required = [
-          ...r.facts,
-          ...r.palette,
-          ...r.typography,
-          ...r.mandatory,
-          ...r.avoid,
-          ...r.assets,
-        ].filter((x) => x.required);
-        const fail = required.some((r) =>
-          v.validation?.checks.some(
-            (c) =>
-              c.ruleId === r.id && c.severity === 'hard' && c.result === 'fail',
-          ),
+        const mapped = [
+          ...r.facts.map((rule) => ({ rule, category: 'fact' })),
+          ...r.palette.map((rule) => ({ rule, category: 'palette' })),
+          ...r.typography.map((rule) => ({ rule, category: 'typography' })),
+          ...r.mandatory.map((rule) => ({ rule, category: 'mandatory_rule' })),
+          ...r.avoid.map((rule) => ({ rule, category: 'avoid_rule' })),
+          ...r.assets.map((rule) => ({
+            rule,
+            category:
+              rule.role === 'logo'
+                ? 'logo'
+                : rule.role === 'font'
+                  ? 'typography'
+                  : rule.role === 'product'
+                    ? 'product_identity'
+                    : 'asset_reference',
+          })),
+        ];
+        for (const check of v.validation.checks) {
+          const origin = mapped.find((row) => row.rule.id === check.ruleId);
+          if (!origin) continue;
+          if (check.category !== origin.category)
+            issue(ctx, 'Check category must match canonical rule origin');
+          if (
+            check.severity === 'hard' &&
+            check.result === 'pass' &&
+            'match' in origin.rule
+          ) {
+            const methods =
+              origin.rule.match === 'literal'
+                ? [
+                    v.artifact?.mediaKind === 'text'
+                      ? 'exact_text'
+                      : 'deterministic_render',
+                  ]
+                : [
+                    'exact_text',
+                    'deterministic_render',
+                    'semantic_evaluator',
+                    'human_review',
+                  ];
+            if (!methods.includes(check.method))
+              issue(
+                ctx,
+                'Hard text-rule method must match literal/semantic rule and artifact medium',
+              );
+          }
+        }
+        const fail = v.validation.checks.some(
+          (check) => check.severity === 'hard' && check.result === 'fail',
         );
-        const pass = required.every((r) =>
-          v.validation?.checks.some(
-            (c) =>
-              c.ruleId === r.id && c.severity === 'hard' && c.result === 'pass',
-          ),
+        const unknown = v.validation.checks.some(
+          (check) =>
+            check.severity === 'hard' &&
+            ['unknown', 'unsupported'].includes(check.result),
         );
+        const pass = mapped
+          .filter((row) => row.rule.required)
+          .every((row) =>
+            v.validation?.checks.some(
+              (check) =>
+                check.ruleId === row.rule.id &&
+                check.category === row.category &&
+                check.severity === 'hard' &&
+                check.result === 'pass',
+            ),
+          );
         if (fail && (v.state !== 'blocked' || v.compliance !== 'failed'))
-          issue(ctx, 'Hard failure blocks');
-        if ((v.compliance === 'passed' || v.state === 'ready') && !pass)
-          issue(ctx, 'Missing/unknown required check prevents readiness');
+          issue(ctx, 'Any hard failure blocks');
+        if (
+          (v.compliance === 'passed' || v.state === 'ready') &&
+          (!pass || unknown)
+        )
+          issue(
+            ctx,
+            'Missing/unknown required or additional hard checks prevent readiness',
+          );
       }
       if (v.compliance === 'failed' && (!v.validation || v.state !== 'blocked'))
         issue(ctx, 'Failed compliance requires blocked report');

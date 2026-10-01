@@ -474,3 +474,42 @@ describe('registered learning descriptor hash boundary', () => {
     ).toBe(false);
   });
 });
+
+it('scope view preserves required nullable fields and safe counters', () => {
+  const v = {
+    scopeKey: 'scope',
+    epoch: 0,
+    revision: 0,
+    descriptor: applied().cellDescriptor,
+    descriptorHash: hash,
+    baselineCount: 0,
+    activePolicyId: null,
+    pinnedPolicyId: null,
+    lastValidRewardAt: null,
+    unavailableReasons: [],
+  };
+  for (const key of Object.keys(v)) {
+    const missing: Record<string, unknown> = { ...v };
+    delete missing[key];
+    expect(learningScopeViewSchema.safeParse(missing).success).toBe(false);
+  }
+  for (const patch of [
+    { unknown: true },
+    { epoch: -1 },
+    { revision: 0.5 },
+    { baselineCount: Number.MAX_SAFE_INTEGER + 1 },
+    { lastValidRewardAt: 'yesterday' },
+    { unavailableReasons: ['Invalid code'] },
+    { unavailableReasons: ['x'.repeat(97)] },
+  ])
+    expect(learningScopeViewSchema.safeParse({ ...v, ...patch }).success).toBe(
+      false,
+    );
+  expect(
+    learningScopeViewSchema.safeParse({
+      ...v,
+      lastValidRewardAt: time,
+      unavailableReasons: ['learning_unavailable'],
+    }).success,
+  ).toBe(true);
+});

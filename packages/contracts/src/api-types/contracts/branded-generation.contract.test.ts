@@ -710,3 +710,293 @@ it('retains branded prefixed snapshot/artifact/prompt/resolution hashes', () => 
         .success,
     ).toBe(false);
 });
+
+describe('blocked identity and canonical rule origin', () => {
+  it('represents unavailable branded identity without fabricated revision', () => {
+    const v = {
+      schemaVersion: 1,
+      status: 'blocked',
+      mode: 'approved_brand',
+      snapshot: null,
+      reasonCode: 'no_approved_revision',
+      diagnostics: [
+        {
+          code: 'no_approved_revision',
+          severity: 'error',
+          message: 'Approve a persisted revision',
+        },
+      ],
+      layers: [],
+      learning,
+    };
+    expect(brandedGenerationResolutionV1Schema.safeParse(v).success).toBe(true);
+    expect(
+      brandedGenerationResolutionV1Schema.safeParse({
+        ...v,
+        status: 'resolved',
+        compiledPrompt: 'x',
+        originalPromptHash: hash,
+        reasonCode: undefined,
+      }).success,
+    ).toBe(false);
+    expect(
+      brandedGenerationResolutionV1Schema.safeParse({
+        ...v,
+        mode: 'provisional_brand',
+        snapshot: snapshot(),
+      }).success,
+    ).toBe(false);
+    expect(
+      brandedGenerationResolutionV1Schema.safeParse({
+        ...v,
+        snapshot: { ...snapshot(), approval: 'provisional' },
+      }).success,
+    ).toBe(false);
+    expect(
+      brandedGenerationResolutionV1Schema.safeParse({
+        ...v,
+        layers: [
+          {
+            kind: 'identity',
+            id: 'id',
+            version: 1,
+            status: 'applied',
+            evidenceIds: [],
+            omittedIds: [],
+          },
+        ],
+      }).success,
+    ).toBe(false);
+    expect(
+      brandedGenerationResolutionV1Schema.safeParse({
+        ...v,
+        learning: {
+          ...learning,
+          brandFeedback: {
+            status: 'applied',
+            profileId: 'p',
+            profileVersion: 1,
+            contributionHash: hash,
+            sourceIds: [],
+          },
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      brandedGenerationResolutionV1Schema.safeParse({
+        ...v,
+        layers: [
+          {
+            kind: 'knowledge',
+            id: 'source',
+            version: 1,
+            status: 'applied',
+            evidenceIds: [],
+            omittedIds: [],
+          },
+        ],
+      }).success,
+    ).toBe(true);
+  });
+  function visualRuleReceipt(): BrandedGenerationReceiptV1 {
+    const v = receipt();
+    if (!v.snapshot || !v.validation)
+      throw new Error('Missing fixture evidence');
+    v.snapshot.generationRules.typography = [
+      {
+        id: 'font-rule',
+        role: 'heading',
+        family: 'Custom',
+        weight: 400,
+        style: 'normal',
+        availability: 'verified_runtime',
+        runtimeFontId: 'runtime',
+        required: true,
+        evidenceIds: ['evidence'],
+      },
+    ];
+    v.validation.checks.push({
+      ruleId: 'font-rule',
+      category: 'typography',
+      severity: 'hard',
+      result: 'pass',
+      method: 'deterministic_render',
+      evidenceIds: ['render-manifest'],
+    });
+    return v;
+  }
+  it('rejects global rule ID collision across facts/typography', () => {
+    const v = visualRuleReceipt();
+    if (!v.snapshot) throw new Error('Missing snapshot');
+    v.snapshot.generationRules.typography[0].id = 'fact';
+    expect(
+      brandGenerationRulesV1Schema.safeParse(v.snapshot.generationRules)
+        .success,
+    ).toBe(false);
+  });
+  it('requires typography category even when mislabeled check uses exact_text', () => {
+    const v = visualRuleReceipt();
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(true);
+    if (!v.validation) throw new Error('Missing report');
+    v.validation.checks[1] = {
+      ...v.validation.checks[1],
+      category: 'fact',
+      method: 'exact_text',
+    };
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+    v.state = 'needs_review';
+    v.compliance = 'unverified';
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+  });
+  it('requires palette origin category and deterministic proof', () => {
+    const v = receipt();
+    if (!v.snapshot || !v.validation) throw new Error('Missing evidence');
+    v.snapshot.generationRules.palette = [
+      {
+        id: 'palette',
+        color: '#AABBCC',
+        usage: 'primary',
+        required: true,
+        evidenceIds: ['evidence'],
+      },
+    ];
+    v.validation.checks.push({
+      ruleId: 'palette',
+      category: 'palette',
+      severity: 'hard',
+      result: 'pass',
+      method: 'deterministic_render',
+      evidenceIds: ['render'],
+    });
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(true);
+    v.validation.checks[1].category = 'fact';
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+  });
+  it.each([
+    ['logo', 'logo'],
+    ['font', 'typography'],
+    ['product', 'product_identity'],
+    ['banner', 'asset_reference'],
+    ['style', 'asset_reference'],
+  ] as const)('binds %s assets to %s checks', (role, category) => {
+    const v = receipt();
+    if (!v.snapshot || !v.validation) throw new Error('Missing evidence');
+    v.snapshot.generationRules.assets = [
+      {
+        id: 'asset-rule',
+        assetId: 'asset',
+        role,
+        required: true,
+        evidenceIds: ['evidence'],
+        contentHash: hash,
+      },
+    ];
+    v.validation.checks.push({
+      ruleId: 'asset-rule',
+      category,
+      severity: 'hard',
+      result: 'pass',
+      method: 'asset_hash',
+      evidenceIds: ['artifact-bound-asset'],
+    });
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(true);
+    v.validation.checks[1].category =
+      category === 'logo' ? 'product_identity' : 'logo';
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+    v.validation.checks[1] = {
+      ruleId: 'asset-rule',
+      category,
+      severity: 'hard',
+      result: 'unknown',
+      method: 'capability',
+      evidenceIds: [],
+      reasonCode: 'unsupported_capability',
+    };
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+    v.state = 'needs_review';
+    v.compliance = 'unverified';
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(true);
+  });
+  it.each(['mandatory', 'avoid'] as const)(
+    'literal %s requires own category and medium-appropriate exact evidence',
+    (origin) => {
+      const v = receipt();
+      if (!v.snapshot || !v.validation || !v.artifact)
+        throw new Error('Missing evidence');
+      v.snapshot.generationRules[origin] = [
+        {
+          id: 'text-rule',
+          text: 'Acme',
+          match: 'literal',
+          required: true,
+          evidenceIds: ['evidence'],
+        },
+      ];
+      v.validation.checks.push({
+        ruleId: 'text-rule',
+        category: origin === 'mandatory' ? 'mandatory_rule' : 'avoid_rule',
+        severity: 'hard',
+        result: 'pass',
+        method: 'exact_text',
+        evidenceIds: ['artifact-text'],
+      });
+      expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(true);
+      v.validation.checks[1].method = 'human_review';
+      expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+      v.validation.checks[1].method = 'exact_text';
+      v.artifact.mediaKind = 'image';
+      v.validation.checks[0].method = 'deterministic_render';
+      expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+      v.validation.checks[1].method = 'deterministic_render';
+      expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(true);
+    },
+  );
+  it('semantic pass requires evaluator identity/version and never substitutes for literal match', () => {
+    const v = receipt();
+    if (!v.snapshot || !v.validation) throw new Error('Missing evidence');
+    v.snapshot.generationRules.facts[0].match = 'semantic';
+    v.validation.checks[0].method = 'semantic_evaluator';
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+    v.validation.checks[0].evaluatorId = 'eval';
+    v.validation.checks[0].evaluatorVersion = 1;
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(true);
+    v.snapshot.generationRules.facts[0].match = 'literal';
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+  });
+  it.each(['fail', 'unknown', 'unsupported'] as const)(
+    'additional hard %s prevents ready',
+    (result) => {
+      const v = receipt();
+      if (!v.validation) throw new Error('Missing report');
+      v.validation.checks.push({
+        ruleId: 'extra-artifact-check',
+        category: 'fact',
+        severity: 'hard',
+        result,
+        method: 'capability',
+        evidenceIds: [],
+        reasonCode: 'validation_failed',
+      });
+      expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+      v.state = result === 'fail' ? 'blocked' : 'needs_review';
+      v.compliance = result === 'fail' ? 'failed' : 'unverified';
+      expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(true);
+    },
+  );
+});
+it('rejects an oversized receipt projection without truncating lineage', () => {
+  const v = receipt();
+  v.layers = Array.from({ length: 20 }, (_, i) => ({
+    kind: 'knowledge',
+    id: `layer-${i}`,
+    status: 'truncated',
+    reasonCode: 'context_budget_exceeded',
+    budgetBytes: 0,
+    evidenceIds: [],
+    omittedIds: Array.from(
+      { length: 256 },
+      (_, j) => `${j}-${'x'.repeat(240)}`,
+    ),
+  }));
+  expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+});
