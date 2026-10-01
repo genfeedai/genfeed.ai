@@ -153,6 +153,7 @@ export default function AgentConversationBubble({
           onBlur={hideShortcuts}
           onPointerEnter={showShortcuts}
           onPointerLeave={hideShortcuts}
+          tabIndex={isDismissed ? -1 : 0}
           size={ButtonSize.ICON}
           variant={ButtonVariant.DEFAULT}
           withWrapper={false}

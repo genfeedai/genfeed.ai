@@ -484,7 +484,13 @@ describe('AgentDock', () => {
     expect(overlay).toHaveStyle({ transformOrigin: 'bottom right' });
     expect(overlay.style.transform).toContain('--bubble-from-x');
     expect(overlay).toHaveTextContent('Conversation transcript');
-    expect(screen.getByTestId('agent-conversation-bubble')).not.toBeVisible();
+    expect(screen.getByTestId('agent-conversation-bubble')).toHaveAttribute(
+      'tabindex',
+      '-1',
+    );
+    expect(
+      screen.getByTestId('agent-conversation-bubble').closest('[inert]'),
+    ).toHaveAttribute('aria-hidden', 'true');
 
     await act(async () => {
       await new Promise((resolve) => {

@@ -1408,7 +1408,13 @@ describe('UniversalWorkspaceShell', () => {
       const region = screen.getByRole('region', { name: 'Agent' });
       expect(region).toHaveAttribute('data-chrome', 'bubble');
       expect(within(region).getByTestId('dock-conversation')).toBeVisible();
-      expect(screen.getByTestId('agent-conversation-bubble')).not.toBeVisible();
+      expect(screen.getByTestId('agent-conversation-bubble')).toHaveAttribute(
+        'tabindex',
+        '-1',
+      );
+      expect(
+        screen.getByTestId('agent-conversation-bubble').closest('[inert]'),
+      ).toHaveAttribute('aria-hidden', 'true');
       expect(
         screen.getByTestId('agent-dock-composer-slot').closest('section'),
       ).toBe(region);
