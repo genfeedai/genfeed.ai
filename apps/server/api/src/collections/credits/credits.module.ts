@@ -10,10 +10,12 @@ import { CreditReservationService } from '@api/collections/credits/services/cred
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
+import { GenerationLineReservationService } from '@api/collections/credits/services/generation-line-reservation.service';
 import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
 import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
 import { TopbarBalancesService } from '@api/collections/credits/services/topbar-balances.service';
 import { VideoGenerationLineageService } from '@api/collections/credits/services/video-generation-lineage.service';
+import { WorkflowGenerationBillingService } from '@api/collections/credits/services/workflow-generation-billing.service';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { CommonModule } from '@api/common/common.module';
 import { OssCreditsUtilsService } from '@api/common/credits/oss-credits-utils.service';
@@ -37,7 +39,9 @@ import { Module } from '@nestjs/common';
     CreditsUtilsService,
     GenerationBillingService,
     GenerationQuoteGroupService,
+    GenerationLineReservationService,
     VideoGenerationLineageService,
+    WorkflowGenerationBillingService,
   ],
   imports: [
     BillingAccountsModule,
@@ -58,7 +62,9 @@ import { Module } from '@nestjs/common';
     CreditTransactionsService,
     GenerationBillingService,
     GenerationQuoteGroupService,
+    GenerationLineReservationService,
     VideoGenerationLineageService,
+    WorkflowGenerationBillingService,
     {
       provide: CreditsUtilsService,
       // SaaS cloud AND self-hosted EE use the real ledger. Community OSS / desktop

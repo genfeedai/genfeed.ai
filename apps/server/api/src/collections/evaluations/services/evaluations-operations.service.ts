@@ -19,7 +19,10 @@ import {
   PromptTemplateKey,
   SystemPromptKey,
 } from '@genfeedai/contracts';
-import { normalizePersuasionScores } from '@genfeedai/harness';
+import {
+  buildPersuasionEvaluationRubric,
+  normalizePersuasionScores,
+} from '@genfeedai/harness';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -172,6 +175,7 @@ export class EvaluationsOperationsService {
         prompt: truncatedContent,
         promptTemplate: config.promptTemplate,
         systemPromptTemplate: SystemPromptKey.EVALUATION,
+        systemPromptSuffix: buildPersuasionEvaluationRubric(),
         temperature: 0.1,
         topP: 0.5,
       };

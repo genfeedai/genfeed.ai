@@ -1,4 +1,6 @@
 export const API_ENDPOINTS = {
+  CONTENT_LEARNING: '/content-learning',
+  ADMIN_CONTENT_LEARNING: '/admin/content-learning',
   ACTIVITIES: '/activities',
   AD_WATCHED_ADVERTISERS: '/ad-watched-advertisers',
   SAVED_ADS: '/saved-ads',

@@ -9,6 +9,7 @@ import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/
 import { WorkflowEngineExecutorRegistryService } from '@api/collections/workflows/services/workflow-engine-executor-registry.service';
 import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
 import { WorkflowMediaProcessingExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-processing-executor-registrar.service';
+import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
 import { WorkflowSocialExecutorRegistrarService } from '@api/collections/workflows/services/workflow-social-executor-registrar.service';
 import { WorkflowTrendPublishExecutorRegistrarService } from '@api/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
@@ -166,7 +167,12 @@ function createProductionEngine(): WorkflowEngine {
     new WorkflowMediaGenerationExecutorRegistrarService(
       helper,
       presentDependency(),
-      presentDependency(),
+      new WorkflowMediaProviderPlanService(
+        helper,
+        presentDependency(),
+        presentDependency(),
+        presentDependency(),
+      ),
       presentDependency(),
       presentDependency(),
       presentDependency(),

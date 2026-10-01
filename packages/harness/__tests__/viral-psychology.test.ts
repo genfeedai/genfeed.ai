@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildPersuasionEvaluationRubric,
   normalizePersuasionScores,
   PERSUASION_LAYERS,
   PERSUASION_SCORE_KEYS,
@@ -177,4 +178,31 @@ describe('normalizePersuasionScores', () => {
       overall: 50,
     });
   });
+});
+
+describe('canonical persuasion producer rubric', () => {
+  it('names the nested JSON shape and each canonical criterion once', () => {
+    const rubric = buildPersuasionEvaluationRubric();
+    expect(rubric).toContain('scores.persuasion');
+    expect(rubric).toContain('arithmetic mean');
+    for (const layer of PERSUASION_LAYERS)
+      expect(rubric.split(layer.criterion)).toHaveLength(2);
+    const contribution = contribute({
+      intent: { contentType: 'post', objective: 'engagement' },
+    });
+    expect(rubric).toContain(contribution.providerHints?.[0]);
+  });
+  it.each([NaN, Infinity, -Infinity])(
+    'rejects a nonfinite layer %s',
+    (value) => {
+      expect(
+        normalizePersuasionScores({
+          demandFit: value,
+          hookStrength: 80,
+          openLoopIntegrity: 80,
+          ctaNaturalness: 80,
+        }),
+      ).toBeUndefined();
+    },
+  );
 });

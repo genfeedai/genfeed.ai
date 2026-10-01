@@ -9,6 +9,7 @@ import type {
 import { isOpenRouterTextModel } from '@api/services/integrations/openrouter/openrouter-model.util';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { toReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
+import { resolvePredictionTarget } from '@api/services/integrations/replicate/helpers/replicate-prediction-target.util';
 import {
   canReceiveProviderWebhooks,
   isCloudDeployment,
@@ -22,29 +23,6 @@ import Replicate from 'replicate';
 import type { ZodType } from 'zod';
 
 import type { ReplicateStructuredTextParams } from '../dto/replicate-structured-text.dto';
-
-type ReplicatePredictionTarget = { model: string } | { version: string };
-
-/**
- * Replicate accepts official model slugs through `model`, while immutable
- * version IDs must be sent through `version`. Stored model keys may include
- * both (`owner/model:version`), in which case the immutable version wins.
- */
-function resolvePredictionTarget(
-  modelIdentifier: string,
-): ReplicatePredictionTarget {
-  const versionSeparator = modelIdentifier.lastIndexOf(':');
-  if (versionSeparator >= 0) {
-    const version = modelIdentifier.slice(versionSeparator + 1);
-    if (version.length > 0) {
-      return { version };
-    }
-  }
-
-  return modelIdentifier.includes('/')
-    ? { model: modelIdentifier }
-    : { version: modelIdentifier };
-}
 
 function readPositiveInteger(value: unknown): number | undefined {
   if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {

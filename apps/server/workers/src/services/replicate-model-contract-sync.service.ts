@@ -10,12 +10,10 @@ import {
   PricingType,
 } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
+import { hashReplicateProviderContract } from '@libs/utils/provider-contract.util';
 import { Injectable } from '@nestjs/common';
 import type { IReplicateModel } from '@workers/interfaces/model-discovery.interface';
-import {
-  hashProviderContract,
-  isRecord,
-} from '@workers/services/provider-contract.util';
+import { isRecord } from '@workers/services/provider-contract.util';
 
 export interface ReplicateSyncModelRecord {
   category: string;
@@ -256,7 +254,7 @@ export class ReplicateModelContractSyncService {
         ? BigInt(Math.round((pricing.unitPriceUsd as number) * 1_000_000))
         : null,
       unsupportedReason,
-      version: hashProviderContract(candidateWithoutVersion),
+      version: hashReplicateProviderContract(candidateWithoutVersion),
     };
   }
 }

@@ -7,6 +7,7 @@ import { AD_AUTOMATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/tem
 import { AGENT_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/agent-autopilot-workflows.template';
 import { ANALYTICS_SYNC_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/analytics-sync-workflows.template';
 import { CAMPAIGN_ORCHESTRATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/campaign-orchestration-workflows.template';
+import { CONTENT_LEARNING_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-learning-workflows.template';
 import { CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-loop-autopilot-workflows.template';
 import { CONTENT_PRODUCTION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-production-workflows.template';
 import { DAILY_TRENDS_DIGEST_TEMPLATE } from '@api/collections/workflows/templates/daily-trends-digest.template';
@@ -32,6 +33,7 @@ export type SystemWorkflowCatalogFamily =
   | 'ad-automation'
   | 'agent-autopilot'
   | 'analytics-sync'
+  | 'content-learning'
   | 'campaign-orchestration'
   | 'content-loop-autopilot'
   | 'content-production'
@@ -118,6 +120,12 @@ const CATALOG_TEMPLATE_SOURCES: readonly CatalogTemplateSource[] = [
     installable: true,
     sourceIssue: 784,
     templates: AGENT_AUTOPILOT_WORKFLOW_TEMPLATES,
+  },
+  {
+    family: 'content-learning',
+    installable: true,
+    sourceIssue: 5728,
+    templates: CONTENT_LEARNING_WORKFLOW_TEMPLATES,
   },
   {
     family: 'analytics-sync',

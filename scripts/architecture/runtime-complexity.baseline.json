@@ -1,5 +1,17 @@
 [
   {
+    "actual": 165,
+    "file": "apps/server/api/src/analytics/services/analytics-social-collection.service.ts",
+    "metric": "method-lines",
+    "symbol": "AnalyticsSocialCollectionService.collectPost"
+  },
+  {
+    "actual": 154,
+    "file": "apps/server/api/src/analytics/services/analytics-twitter-collection.service.ts",
+    "metric": "method-lines",
+    "symbol": "AnalyticsTwitterCollectionService.collect"
+  },
+  {
     "actual": 156,
     "file": "apps/server/api/src/collections/agent-memories/services/agent-memories.service.ts",
     "metric": "method-lines",
@@ -34,6 +46,54 @@
     "file": "apps/server/api/src/collections/clip-projects/services/public-youtube-clip-claim.service.ts",
     "metric": "method-lines",
     "symbol": "PublicYoutubeClipClaimService.claim"
+  },
+  {
+    "actual": 262,
+    "file": "apps/server/api/src/collections/content-learning/services/learning-checkpoint.service.ts",
+    "metric": "method-lines",
+    "symbol": "LearningCheckpointService.capture"
+  },
+  {
+    "actual": 273,
+    "file": "apps/server/api/src/collections/content-learning/services/learning-dataset.service.ts",
+    "metric": "method-lines",
+    "symbol": "LearningDatasetService.buildSnapshot"
+  },
+  {
+    "actual": 214,
+    "file": "apps/server/api/src/collections/content-learning/services/learning-decision.service.ts",
+    "metric": "method-lines",
+    "symbol": "LearningDecisionService.resolveForGeneration"
+  },
+  {
+    "actual": 261,
+    "file": "apps/server/api/src/collections/content-learning/services/learning-dependency.service.ts",
+    "metric": "method-lines",
+    "symbol": "LearningDependencyService.pinned"
+  },
+  {
+    "actual": 219,
+    "file": "apps/server/api/src/collections/content-learning/services/learning-experiment.service.ts",
+    "metric": "method-lines",
+    "symbol": "LearningExperimentService.evaluate"
+  },
+  {
+    "actual": 168,
+    "file": "apps/server/api/src/collections/content-learning/services/learning-release.service.ts",
+    "metric": "method-lines",
+    "symbol": "LearningReleaseService.control"
+  },
+  {
+    "actual": 254,
+    "file": "apps/server/api/src/collections/content-learning/services/learning-run.service.ts",
+    "metric": "method-lines",
+    "symbol": "LearningRunService.execute"
+  },
+  {
+    "actual": 278,
+    "file": "apps/server/api/src/collections/content-learning/services/learning-run.service.ts",
+    "metric": "method-lines",
+    "symbol": "LearningRunService.reconcileDispatch"
   },
   {
     "actual": 1113,
@@ -82,6 +142,12 @@
     "file": "apps/server/api/src/collections/videos/services/avatar-video-generation.service.ts",
     "metric": "method-lines",
     "symbol": "AvatarVideoGenerationService.resolveIdentityInputs"
+  },
+  {
+    "actual": 155,
+    "file": "apps/server/api/src/collections/workflows/services/content-learning-workflow.service.ts",
+    "metric": "method-lines",
+    "symbol": "ContentLearningWorkflowService.execute"
   },
   {
     "actual": 1186,
@@ -198,10 +264,16 @@
     "symbol": "AgentToolExecutorService.dispatch"
   },
   {
-    "actual": 1279,
+    "actual": 1266,
     "file": "apps/server/api/src/services/content-optimization/content-optimization.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/content-optimization/content-optimization.service.ts"
+  },
+  {
+    "actual": 157,
+    "file": "apps/server/api/src/services/integrations/facebook/services/facebook.service.ts",
+    "metric": "method-lines",
+    "symbol": "FacebookService.getPostAnalytics"
   },
   {
     "actual": 1049,

@@ -2,10 +2,12 @@ import { ApifyService } from '@api/services/integrations/apify/services/apify.se
 import type { SourceTimelineProvider } from '@api/services/source-collector/source-collector.interface';
 import type {
   CollectedSourcePost,
+  SocialSourceResearchContext,
   SourceCollectContext,
   SourceCollectResult,
 } from '@api/services/source-collector/source-collector.types';
 import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
+import { isSaaS } from '@genfeedai/config';
 import type { SocialPostUrlReference } from '@genfeedai/contracts';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
 import { Injectable } from '@nestjs/common';
@@ -85,15 +87,20 @@ export class ApifySocialProvider implements SourceTimelineProvider {
     handle: string,
     context: SourceCollectContext,
   ): Promise<SourceCollectResult> {
+    const researchContext = this.researchContext(context);
     const limit = context.limit ?? 25;
     const includeReplies = Boolean(context.includeReplies);
     const includeReposts = Boolean(context.includeReposts);
 
     if (platform === SocialSourcePlatform.TWITTER) {
-      const tweets = await this.apifyService.getTwitterUserTimeline(handle, {
-        limit,
-        sinceId: context.sinceId,
-      });
+      const tweets = await this.apifyService.getTwitterUserTimeline(
+        handle,
+        {
+          limit,
+          sinceId: context.sinceId,
+        },
+        researchContext,
+      );
       const filtered = tweets.filter((tweet) => {
         if (!includeReposts && tweet.isRetweet) {
           return false;
@@ -139,9 +146,13 @@ export class ApifySocialProvider implements SourceTimelineProvider {
     }
 
     if (platform === SocialSourcePlatform.INSTAGRAM) {
-      const posts = await this.apifyService.getInstagramUserPosts(handle, {
-        limit,
-      });
+      const posts = await this.apifyService.getInstagramUserPosts(
+        handle,
+        {
+          limit,
+        },
+        researchContext,
+      );
       return {
         handle,
         platform,
@@ -173,9 +184,13 @@ export class ApifySocialProvider implements SourceTimelineProvider {
     }
 
     if (platform === SocialSourcePlatform.TIKTOK) {
-      const videos = await this.apifyService.getTikTokUserVideos(handle, {
-        limit,
-      });
+      const videos = await this.apifyService.getTikTokUserVideos(
+        handle,
+        {
+          limit,
+        },
+        researchContext,
+      );
       return {
         handle,
         platform,
@@ -209,6 +224,7 @@ export class ApifySocialProvider implements SourceTimelineProvider {
       const videos = await this.apifyService.getYouTubeChannelUploads(
         toYoutubeChannelUrl(handle),
         { limit },
+        researchContext,
       );
       return {
         handle,
@@ -248,6 +264,7 @@ export class ApifySocialProvider implements SourceTimelineProvider {
       const posts = await this.apifyService.getLinkedInProfilePosts(
         toLinkedinProfileUrl(handle),
         { limit },
+        researchContext,
       );
       return {
         handle,
@@ -299,11 +316,14 @@ export class ApifySocialProvider implements SourceTimelineProvider {
 
   async collectPost(
     reference: SocialPostUrlReference,
+    context: SourceCollectContext,
   ): Promise<SourceCollectResult> {
+    const researchContext = this.researchContext(context);
     if (reference.platform === SocialSourcePlatform.TWITTER) {
       const tweet = await this.apifyService.getTweetByUrl(
         reference.url,
         reference.postId,
+        researchContext,
       );
       return {
         handle: tweet.authorUsername || (reference.authorHandle ?? ''),
@@ -338,7 +358,10 @@ export class ApifySocialProvider implements SourceTimelineProvider {
     }
 
     if (reference.platform === SocialSourcePlatform.INSTAGRAM) {
-      const post = await this.apifyService.getInstagramPostByUrl(reference.url);
+      const post = await this.apifyService.getInstagramPostByUrl(
+        reference.url,
+        researchContext,
+      );
       return {
         handle: post.ownerUsername || (reference.authorHandle ?? ''),
         platform: reference.platform,
@@ -369,7 +392,10 @@ export class ApifySocialProvider implements SourceTimelineProvider {
     }
 
     if (reference.platform === SocialSourcePlatform.TIKTOK) {
-      const video = await this.apifyService.getTikTokVideoByUrl(reference.url);
+      const video = await this.apifyService.getTikTokVideoByUrl(
+        reference.url,
+        researchContext,
+      );
       return {
         handle: video.authorMeta?.name || (reference.authorHandle ?? ''),
         platform: reference.platform,
@@ -402,5 +428,13 @@ export class ApifySocialProvider implements SourceTimelineProvider {
     throw new Error(
       `Apify provider does not support platform: ${reference.platform}`,
     );
+  }
+
+  private researchContext(
+    context: SourceCollectContext,
+  ): SocialSourceResearchContext | undefined {
+    return isSaaS()
+      ? { organizationId: context.organizationId, origin: 'social-source' }
+      : undefined;
   }
 }

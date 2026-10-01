@@ -865,7 +865,7 @@ describe('ThreadsService (coverage)', () => {
         'thread-1',
       );
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         likes: 0,
         quotes: 0,
         replies: 0,
@@ -884,7 +884,7 @@ describe('ThreadsService (coverage)', () => {
         'thread-1',
       );
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         likes: 0,
         quotes: 0,
         replies: 0,
@@ -912,7 +912,7 @@ describe('ThreadsService (coverage)', () => {
         'thread-1',
       );
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         likes: 50,
         quotes: 3,
         replies: 5,

@@ -29,7 +29,7 @@ function fixture(
     actorUserId: 'user-1',
     status: CreditReservationStatus.RESERVED,
     source: ActivitySource.IMAGE_GENERATION,
-    expiresAt: new Date('2026-10-01'),
+    expiresAt: new Date('2027-01-01'),
     metadata: {
       modelQuote: quoted.snapshot,
       boundOutputIds: ['image-0', 'image-1', 'image-2'],
@@ -221,6 +221,25 @@ describe('GenerationQuoteGroupService', () => {
     expect(state.credits.settleReservation).not.toHaveBeenCalled();
   });
 
+  it('enlists placeholder and group binding in the caller transaction without opening another transaction', async () => {
+    const state = fixture();
+    state.hold.metadata.boundOutputIds = [];
+    state.hold.metadata.dispatchClosed = false;
+    const tx = state.prisma as unknown as Prisma.TransactionClient;
+    await state.service.bindOutputInTransaction(
+      tx,
+      {
+        creditsConfig: { reservationId: 'hold-1', description: 'test' },
+        user: { organizationId: 'org-1' } as never,
+      },
+      'image-0',
+    );
+    expect(state.prisma.$transaction).not.toHaveBeenCalled();
+    expect(state.prisma.ingredient.updateMany).toHaveBeenCalledTimes(1);
+    expect(state.hold.metadata.boundOutputIds).toEqual(['image-0']);
+    expect(state.credits.settleReservation).not.toHaveBeenCalled();
+    expect(state.credits.releaseReservation).not.toHaveBeenCalled();
+  });
   it('refuses new or replayed dispatch admission after the group is closed', async () => {
     const state = fixture();
     await expect(
@@ -265,7 +284,7 @@ describe('GenerationQuoteGroupService', () => {
     state.hold.metadata.dispatchClosed = false;
     state.outputs[0].status = IngredientStatus.PROCESSING;
     state.hold.metadata.failedOutputIds = ['image-1', 'image-2'];
-    await state.service.reconcile(new Date('2026-10-02'));
+    await state.service.reconcile(new Date('2027-01-02'));
     expect(state.hold.metadata.dispatchClosed).toBe(true);
     expect(state.outputs[0].status).toBe(IngredientStatus.PROCESSING);
     expect(state.prisma.ingredient.updateMany).not.toHaveBeenCalled();

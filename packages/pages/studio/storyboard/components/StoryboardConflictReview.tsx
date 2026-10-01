@@ -4,33 +4,32 @@ import type { StoryboardConflictReviewProps } from '@genfeedai/props/studio/stor
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
-function display(value: unknown) {
-  return value === undefined
-    ? 'Empty'
-    : typeof value === 'string'
-      ? value || 'Empty'
-      : JSON.stringify(value, null, 2);
-}
 export default function StoryboardConflictReview({
   conflicts,
   choices,
   choose,
   resolve,
 }: StoryboardConflictReviewProps) {
+  const translate = useTranslations('pages.studioStoryboard.conflict');
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string>();
   const [editing, setEditing] = useState(false);
+  function display(value: unknown) {
+    return value === undefined
+      ? translate('empty')
+      : typeof value === 'string'
+        ? value || translate('empty')
+        : JSON.stringify(value, null, 2);
+  }
   if (!conflicts.length) return null;
   return (
-    <Card
-      label="Review concurrent edits"
-      description="Another saved version changed these fields. Your recovery draft is retained until the resolved changes are acknowledged."
-    >
+    <Card label={translate('title')} description={translate('description')}>
       {editing ? (
         <Button
-          label="Review saved versions"
+          label={translate('reviewSaved')}
           variant={ButtonVariant.SECONDARY}
           onClick={() => setEditing(false)}
         />
@@ -57,10 +56,14 @@ export default function StoryboardConflictReview({
                       <RadioGroupItem
                         value={choice}
                         aria-label={
-                          choice === 'local' ? 'Your edit' : 'Saved version'
+                          choice === 'local'
+                            ? translate('yourEdit')
+                            : translate('savedVersion')
                         }
                       />
-                      {choice === 'local' ? 'Your edit' : 'Saved version'}
+                      {choice === 'local'
+                        ? translate('yourEdit')
+                        : translate('savedVersion')}
                     </span>
                     <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words text-xs">
                       {display(conflict[choice])}
@@ -72,13 +75,13 @@ export default function StoryboardConflictReview({
           ))}
           <div className="flex flex-wrap gap-2">
             <Button
-              label="Keep editing"
+              label={translate('keepEditing')}
               variant={ButtonVariant.SECONDARY}
               disabled={working}
               onClick={() => setEditing(true)}
             />
             <Button
-              label="Save resolved changes"
+              label={translate('saveResolved')}
               disabled={
                 working || conflicts.some((entry) => !choices[entry.path])
               }
@@ -90,7 +93,7 @@ export default function StoryboardConflictReview({
                     setError(
                       caught instanceof Error
                         ? caught.message
-                        : 'Could not save resolved changes.',
+                        : translate('saveFailed'),
                     ),
                   )
                   .finally(() => setWorking(false));

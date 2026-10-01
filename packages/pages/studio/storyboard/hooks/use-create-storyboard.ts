@@ -9,6 +9,7 @@ import {
 import type { StoryboardCreationIntent } from '@genfeedai/props/studio/storyboard.props';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { sessionActiveOrganizationId } from '@pages/studio/storyboard/utils/storyboard-session';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import {
@@ -93,7 +94,7 @@ export function useCreateStoryboard() {
       activeIntent.current === key;
     const identityCurrent = async () => {
       const session = await getSession();
-      const currentOrg = session.data?.session.activeOrganizationId;
+      const currentOrg = sessionActiveOrganizationId(session);
       return (
         !session.error &&
         session.data?.user.id === userId &&

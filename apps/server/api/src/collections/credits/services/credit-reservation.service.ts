@@ -2,7 +2,10 @@ import { CreditBalanceService } from '@api/collections/credits/services/credit-b
 import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { ReservationEvidenceChangedException } from '@api/collections/credits/services/reservation-evidence-changed.exception';
-import { validatedWorkflowAccountingAttribution } from '@api/collections/workflow-executions/services/workflow-accounting.context';
+import {
+  validatedWorkflowAccountingAttribution,
+  validatedWorkflowFundingAttribution,
+} from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import {
   BusinessLogicException,
   UnsettleableReservationException,
@@ -23,6 +26,7 @@ import {
   LIVE_SESSION_WORKLOAD_TYPE,
   MEDIA_GENERATION_GROUP_WORKLOAD_TYPE,
   MEDIA_GENERATION_WORKLOAD_TYPE,
+  WORKFLOW_GENERATION_WORKLOAD_TYPE,
 } from '@genfeedai/contracts/constants';
 import type {
   IBindCreditReservationOutputInput,
@@ -84,10 +88,16 @@ export class CreditReservationService {
 
         const created = await tx.creditReservation.create({
           data: {
-            ...(await validatedWorkflowAccountingAttribution(
-              tx,
-              input.organizationId,
-            )),
+            ...(input.workflowExecutionId !== undefined
+              ? await validatedWorkflowFundingAttribution(
+                  tx,
+                  input.organizationId,
+                  input.workflowExecutionId,
+                )
+              : await validatedWorkflowAccountingAttribution(
+                  tx,
+                  input.organizationId,
+                )),
             actorUserId: input.actorUserId,
             amount: input.amount,
             billingAccountId: input.billingAccountId,
@@ -457,6 +467,7 @@ export class CreditReservationService {
               notIn: [
                 MEDIA_GENERATION_WORKLOAD_TYPE,
                 MEDIA_GENERATION_GROUP_WORKLOAD_TYPE,
+                WORKFLOW_GENERATION_WORKLOAD_TYPE,
               ],
             },
           },
@@ -475,6 +486,7 @@ export class CreditReservationService {
           [
             MEDIA_GENERATION_WORKLOAD_TYPE,
             MEDIA_GENERATION_GROUP_WORKLOAD_TYPE,
+            WORKFLOW_GENERATION_WORKLOAD_TYPE,
           ].includes(reservation.workloadType ?? '')
         )
           continue;

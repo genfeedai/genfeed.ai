@@ -120,11 +120,18 @@ export async function composeContentHarnessBrief(
     aggregate = mergeContribution(aggregate, contribution);
   }
 
+  if (input.learningContribution) {
+    aggregate = mergeContribution(aggregate, input.learningContribution);
+  }
+
   return {
     appliedPacks,
     evaluationCriteria: aggregate.evaluationCriteria ?? [],
     guardrails: aggregate.guardrails ?? [],
     metadata: {
+      ...(input.learningDecisionId
+        ? { learningDecisionId: input.learningDecisionId }
+        : {}),
       brandId: input.brandId,
       brandName: input.brandName,
       contentType: input.intent.contentType,

@@ -1,5 +1,6 @@
 import type { ByokProvider } from '@genfeedai/contracts';
 import type { AnalyticsPersistenceContext } from '@genfeedai/contracts/interfaces';
+import type { LearningMetrics } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import type { Prisma, PrismaClient } from '@genfeedai/prisma';
 
 export type { ServerCredentialStore } from './collections/credentials/credentials.port';
@@ -103,6 +104,7 @@ export interface ServerSocialAnalytics {
     externalId: string,
     credentialId: string,
   ): Promise<{
+    learningMetrics?: LearningMetrics;
     clicks?: number;
     comments?: number;
     engagementRate?: number;

@@ -1393,14 +1393,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflows/services/workflow-artifact-lifecycle.service.ts",
-      "fingerprint": "d112b671b4001d932dae",
-      "method": "findMany",
-      "model": "WorkflowExecution",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "workflow",
       "file": "apps/server/api/src/collections/workflows/services/workflow-execution-finalizer.service.ts",
       "fingerprint": "04616463fa2505fa34d4",

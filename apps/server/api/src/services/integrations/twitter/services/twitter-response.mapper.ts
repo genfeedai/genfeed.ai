@@ -1,5 +1,9 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type { ITwitterSearchResult } from '@genfeedai/contracts/interfaces';
+import {
+  captureLearningMetrics,
+  type LearningMetrics,
+} from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { Injectable } from '@nestjs/common';
 
 export interface TwitterTrendItem {
@@ -112,6 +116,7 @@ export interface TwitterAnalyticsResponse {
 }
 
 export interface TwitterAnalyticsResult {
+  learningMetrics?: LearningMetrics;
   bookmarks?: number;
   comments: number;
   engagementRate?: number;
@@ -253,6 +258,17 @@ export class TwitterResponseMapper {
     }
 
     return {
+      learningMetrics: captureLearningMetrics(
+        { ...metrics, ...nonPublicMetrics, ...organicMetrics },
+        {
+          views: 'view_count',
+          impressions: 'impression_count',
+          likes: 'like_count',
+          comments: 'reply_count',
+          shares: 'retweet_count',
+          saves: 'bookmark_count',
+        },
+      ),
       bookmarks: metrics.bookmark_count || 0,
       comments: metrics.reply_count || 0,
       engagementRate:

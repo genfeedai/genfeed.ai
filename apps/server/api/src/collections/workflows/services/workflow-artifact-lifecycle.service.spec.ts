@@ -2,7 +2,60 @@ import {
   WORKFLOW_ARTIFACT_BACKSTOP_MS,
   WorkflowArtifactLifecycleService,
 } from '@api/collections/workflows/services/workflow-artifact-lifecycle.service';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
+import { Prisma } from '@genfeedai/prisma';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+function admissionSource() {
+  const body = {
+    version: 1,
+    state: 'available',
+    preparationVersion: 1,
+    requestHash: 'a'.repeat(64),
+    organizationId: 'org-1',
+    actorUserId: 'user-1',
+    workflowId: 'workflow-1',
+    workflowVersionId: 'version-1',
+    workflowVersionContentHash: `sha256:v1:${'b'.repeat(64)}`,
+    brandId: null,
+    trigger: {
+      type: 'manual',
+      platform: 'internal',
+      data: { prompt: 'private' },
+    },
+    selection: { mode: 'full', respectLocks: true },
+    workflow: {
+      id: 'workflow-1',
+      versionId: 'version-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+      nodes: [
+        {
+          id: 'media',
+          type: 'genfeedAction',
+          label: 'Image',
+          config: { actionId: 'imageGen' },
+          inputs: [],
+        },
+      ],
+      edges: [],
+      lockedNodeIds: [],
+    },
+    selectedNodeIds: ['media'],
+    initialNodeOutputs: {},
+    initiallyCompletedNodeIds: [],
+  };
+  return { ...body, sourceHash: quoteSnapshotHash(body) };
+}
+function tombstone(source: ReturnType<typeof admissionSource>) {
+  return {
+    version: 1,
+    state: 'redacted',
+    reason: 'execution-payload-retention',
+    requestHash: source.requestHash,
+    sourceHash: source.sourceHash,
+  };
+}
 
 describe('WorkflowArtifactLifecycleService', () => {
   const workflowArtifact = {
@@ -50,6 +103,8 @@ describe('WorkflowArtifactLifecycleService', () => {
       workflowQueue as never,
     );
   });
+
+  afterEach(() => vi.useRealTimers());
 
   it('registers immutable trusted metadata with terminal retention by default', async () => {
     await service.register({
@@ -161,6 +216,226 @@ describe('WorkflowArtifactLifecycleService', () => {
             scrubbed: true,
           }),
         }),
+      }),
+    );
+  });
+
+  it('redacts the entire available source during a selective node scrub in the same transaction', async () => {
+    const source = admissionSource();
+    workflowExecution.findFirst.mockResolvedValue({
+      generationAdmissionSource: source,
+      payloadScrubbedAt: null,
+      purgeAfterHours: 4,
+      result: {
+        inputValues: { prompt: 'private' },
+        metadata: { origin: 'ui' },
+        nodeResults: ['private'],
+      },
+      scrubAllNodePayloads: false,
+      scrubNodeIds: ['media'],
+    });
+    workflowExecutionNodeResult.updateMany.mockResolvedValue({ count: 1 });
+    workflowExecution.updateMany.mockResolvedValue({ count: 1 });
+    await expect(
+      service.applyTerminalRetention({
+        executionId: 'execution-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      }),
+    ).resolves.toBe(true);
+    expect(prisma.$transaction).toHaveBeenCalledWith([
+      expect.any(Promise),
+      expect.any(Promise),
+    ]);
+    expect(workflowExecution.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          generationAdmissionSource: tombstone(source),
+          purgeAt: null,
+          result: expect.objectContaining({
+            metadata: { origin: 'ui' },
+            scrubbed: true,
+          }),
+        }),
+        where: expect.objectContaining({
+          organizationId: 'org-1',
+          isDeleted: false,
+          payloadScrubbedAt: null,
+        }),
+      }),
+    );
+    expect(source.state).toBe('available');
+  });
+  it('preserves full-scrub purge duration without retaining raw source', async () => {
+    vi.useFakeTimers();
+    const now = new Date('2026-09-30T12:00:00Z');
+    vi.setSystemTime(now);
+    workflowExecution.findFirst.mockResolvedValue({
+      generationAdmissionSource: admissionSource(),
+      payloadScrubbedAt: null,
+      purgeAfterHours: 4,
+      result: {},
+      scrubAllNodePayloads: true,
+      scrubNodeIds: [],
+    });
+    workflowExecutionNodeResult.updateMany.mockResolvedValue({ count: 2 });
+    workflowExecution.updateMany.mockResolvedValue({ count: 1 });
+    await service.applyTerminalRetention({
+      executionId: 'execution-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+    expect(workflowExecution.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          payloadScrubbedAt: now,
+          purgeAt: new Date('2026-09-30T16:00:00Z'),
+        }),
+      }),
+    );
+    expect(workflowExecutionNodeResult.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { executionId: 'execution-1', organizationId: 'org-1' },
+      }),
+    );
+  });
+  it('repairs an already-scrubbed source without rewriting payloads, timestamps or purge timing', async () => {
+    const source = admissionSource();
+    const scrubbedAt = new Date('2026-09-29T12:00:00Z');
+    workflowExecution.findFirst.mockResolvedValue({
+      generationAdmissionSource: source,
+      payloadScrubbedAt: scrubbedAt,
+      purgeAfterHours: 4,
+      result: { scrubbed: true },
+      scrubAllNodePayloads: true,
+      scrubNodeIds: [],
+    });
+    workflowExecution.updateMany.mockResolvedValue({ count: 1 });
+    await expect(
+      service.applyTerminalRetention({
+        executionId: 'execution-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      }),
+    ).resolves.toBe(true);
+    expect(workflowExecutionNodeResult.updateMany).not.toHaveBeenCalled();
+    expect(workflowExecution.updateMany).toHaveBeenCalledWith({
+      data: { generationAdmissionSource: tombstone(source) },
+      where: {
+        id: 'execution-1',
+        organizationId: 'org-1',
+        isDeleted: false,
+        payloadScrubbedAt: scrubbedAt,
+      },
+    });
+  });
+  it('leaves an already-redacted source and timestamps unchanged on replay', async () => {
+    workflowExecution.findFirst.mockResolvedValue({
+      generationAdmissionSource: tombstone(admissionSource()),
+      payloadScrubbedAt: new Date('2026-09-29T12:00:00Z'),
+      scrubAllNodePayloads: true,
+      scrubNodeIds: [],
+    });
+    await expect(
+      service.applyTerminalRetention({
+        executionId: 'execution-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      }),
+    ).resolves.toBe(false);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(workflowExecution.updateMany).not.toHaveBeenCalled();
+  });
+  it.each([null, new Date('2026-09-29T12:00:00Z')])(
+    'clears malformed raw source to database NULL during scrub/repair (%s)',
+    async (payloadScrubbedAt) => {
+      workflowExecution.findFirst.mockResolvedValue({
+        generationAdmissionSource: {
+          state: 'redacted',
+          privatePrompt: 'must disappear',
+        },
+        payloadScrubbedAt,
+        purgeAfterHours: null,
+        result: {},
+        scrubAllNodePayloads: true,
+        scrubNodeIds: [],
+      });
+      workflowExecutionNodeResult.updateMany.mockResolvedValue({ count: 1 });
+      workflowExecution.updateMany.mockResolvedValue({ count: 1 });
+      await expect(
+        service.applyTerminalRetention({
+          executionId: 'execution-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
+        }),
+      ).resolves.toBe(true);
+      expect(workflowExecution.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            generationAdmissionSource: Prisma.DbNull,
+          }),
+        }),
+      );
+    },
+  );
+  it('retains source when no existing payload scrub policy applies', async () => {
+    workflowExecution.findFirst.mockResolvedValue({
+      generationAdmissionSource: admissionSource(),
+      payloadScrubbedAt: null,
+      scrubAllNodePayloads: false,
+      scrubNodeIds: [],
+    });
+    await expect(
+      service.applyTerminalRetention({
+        executionId: 'execution-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      }),
+    ).resolves.toBe(false);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+  it('discovers already-scrubbed available sources for repair without a new timer', async () => {
+    workflowArtifact.findMany.mockResolvedValue([]);
+    workflowExecution.findMany.mockResolvedValue([]);
+    await service.findExpiredExecutionScopes(new Date('2026-09-30T12:00:00Z'));
+    expect(workflowExecution.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([
+            {
+              payloadScrubbedAt: { not: null },
+              generationAdmissionSource: {
+                path: ['state'],
+                equals: 'available',
+              },
+            },
+          ]),
+        }),
+      }),
+    );
+    expect(workflowQueue.queueSystemWorkflow).not.toHaveBeenCalled();
+  });
+  it('does not reset retention timestamps when another scrub won the update', async () => {
+    workflowExecution.findFirst.mockResolvedValue({
+      generationAdmissionSource: admissionSource(),
+      payloadScrubbedAt: null,
+      purgeAfterHours: 4,
+      result: {},
+      scrubAllNodePayloads: true,
+      scrubNodeIds: [],
+    });
+    workflowExecutionNodeResult.updateMany.mockResolvedValue({ count: 1 });
+    workflowExecution.updateMany.mockResolvedValue({ count: 0 });
+    await expect(
+      service.applyTerminalRetention({
+        executionId: 'execution-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      }),
+    ).resolves.toBe(false);
+    expect(workflowExecution.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ payloadScrubbedAt: null }),
       }),
     );
   });

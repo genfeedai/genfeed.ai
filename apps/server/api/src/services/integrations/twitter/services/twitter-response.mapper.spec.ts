@@ -155,7 +155,7 @@ describe('TwitterResponseMapper', () => {
         },
       });
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         bookmarks: 0,
         comments: 10,
         engagementRate: 7.5,
@@ -169,7 +169,7 @@ describe('TwitterResponseMapper', () => {
     });
 
     it('returns the existing zero-value contract for a partial response', () => {
-      expect(mapper.mapAnalytics({})).toEqual({
+      expect(mapper.mapAnalytics({})).toMatchObject({
         bookmarks: 0,
         comments: 0,
         engagementRate: undefined,

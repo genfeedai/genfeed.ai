@@ -76,6 +76,8 @@ export interface ContentHarnessInput {
   /** Harness profile whose contribution shaped this brief, for receipts. */
   harnessProfileId?: string;
   identityContribution?: ContentHarnessContribution;
+  learningContribution?: ContentHarnessContribution;
+  learningDecisionId?: string;
   intent: ContentHarnessIntent;
   voiceProfile?: HarnessVoiceProfile;
   personaProfile?: HarnessPersonaProfile;

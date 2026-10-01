@@ -20,6 +20,7 @@ export interface ITrend {
 }
 
 export interface ITrendVideoPersuasionHighlight {
+  analysisNote?: string;
   id: string;
   label: string;
   score: number;

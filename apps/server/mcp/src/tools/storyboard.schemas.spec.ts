@@ -72,6 +72,31 @@ describe('Canonical Storyboard MCP boundary', () => {
       ).toBe(true);
     }
   });
+  it('preserves accepted historical operation bytes through cancel and resume', () => {
+    for (const name of [
+      'storyboard_run_cancel',
+      'storyboard_run_resume',
+    ] as const) {
+      for (const operationId of ['operation/old key', ' operation/old key ']) {
+        expect(
+          storyboardToolSchemas[name].parse({
+            brandId: 'brand-1',
+            runId: 'run-1',
+            expectedRevision: 4,
+            operationId,
+          }).operationId,
+        ).toBe(operationId);
+      }
+      expect(
+        storyboardToolSchemas[name].safeParse({
+          brandId: 'brand-1',
+          runId: 'run-1',
+          expectedRevision: 4,
+          operationId: 's'.repeat(201),
+        }).success,
+      ).toBe(false);
+    }
+  });
   it('quotes reject ambiguous stages and execute requires an accepted quote identity', () => {
     expect(
       storyboardToolSchemas.storyboard_run_quote.safeParse({

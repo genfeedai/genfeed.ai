@@ -1,8 +1,10 @@
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
 import { ApifyTwitterService } from '@api/services/integrations/apify/services/modules/apify-twitter.service';
+import { ResearchCollectionRunner } from '@api/services/research-access/research-collection-runner.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('ApifyTwitterService', () => {
+  const researchRunner = { run: vi.fn() };
   let service: ApifyTwitterService;
   let baseService: {
     ACTORS: Record<string, string>;
@@ -63,6 +65,7 @@ describe('ApifyTwitterService', () => {
       providers: [
         ApifyTwitterService,
         { provide: ApifyBaseService, useValue: baseService },
+        { provide: ResearchCollectionRunner, useValue: researchRunner },
       ],
     }).compile();
 
@@ -238,5 +241,41 @@ describe('ApifyTwitterService', () => {
     ]);
     const result = await service.getTwitterTrends();
     expect(result[0].metadata.trendType).toBe('topic');
+  });
+  it('governs hosted timelines before legacy token admission with unchanged input', async () => {
+    baseService.getApiToken.mockReturnValue(null);
+    researchRunner.run.mockResolvedValue([]);
+    await expect(
+      service.getTwitterUserTimeline(
+        'creator',
+        { limit: 7 },
+        { organizationId: 'org-1', origin: 'social-source' },
+      ),
+    ).resolves.toEqual([]);
+    expect(researchRunner.run).toHaveBeenCalledWith(
+      'org-1',
+      baseService.ACTORS.TWITTER_SCRAPER,
+      { handles: ['creator'], maxTweets: 7, sort: 'Latest' },
+      { tokenMode: 'hosted-only', requestScope: 'social-source-hosted' },
+    );
+    expect(baseService.runActor).not.toHaveBeenCalled();
+    expect(baseService.getApiToken).not.toHaveBeenCalled();
+  });
+  it('governs single posts with the existing actor input', async () => {
+    researchRunner.run.mockResolvedValue([{ id: '123' }]);
+    baseService.getApiToken.mockReturnValue(null);
+    await expect(
+      service.getTweetByUrl('https://x.com/creator/status/123', '123', {
+        organizationId: 'org-1',
+        origin: 'social-source',
+      }),
+    ).resolves.toMatchObject({ id: '123' });
+    expect(researchRunner.run).toHaveBeenCalledWith(
+      'org-1',
+      baseService.ACTORS.TWITTER_SCRAPER,
+      expect.any(Object),
+      { tokenMode: 'hosted-only', requestScope: 'social-source-hosted' },
+    );
+    expect(baseService.runActor).not.toHaveBeenCalled();
   });
 });

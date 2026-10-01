@@ -1,5 +1,6 @@
 import {
   OPENROUTER_FIRST_PARTY_PROVIDER_POLICY,
+  type OpenRouterChatCompletionEvidence,
   type OpenRouterChatCompletionParams,
   type OpenRouterChatCompletionResponse,
   type OpenRouterEmbeddingParams,
@@ -158,6 +159,58 @@ export class OpenRouterService {
         this.getSafeErrorDetails(error),
       );
       throw error;
+    }
+  }
+
+  /** Preserve the completion body and lookup evidence separately for funded callers. */
+  async chatCompletionWithEvidence(
+    params: OpenRouterChatCompletionParams,
+    apiKeyOverride?: string,
+  ): Promise<OpenRouterChatCompletionEvidence> {
+    const apiKey = this.resolveApiKey(apiKeyOverride);
+    let response: unknown;
+    try {
+      const result = await firstValueFrom(
+        this.httpService.post<unknown>(
+          this.apiUrl,
+          { ...this.withRetentionPolicy(params), stream: false },
+          {
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://genfeed.ai',
+              'X-Title': 'Genfeed AI',
+            },
+          },
+        ),
+      );
+      response = result.data;
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName}.chatCompletionWithEvidence failed`,
+        this.getSafeErrorDetails(error),
+      );
+      throw error;
+    }
+    const body = asRecord(response);
+    const responseId = asNonEmptyString(body?.id);
+    if (typeof asRecord(body?.usage)?.cost === 'number' || !responseId) {
+      return { response, generationMetadata: null };
+    }
+    try {
+      const metadata = await firstValueFrom(
+        this.httpService.get<{ data?: unknown }>(this.generationUrl, {
+          headers: { Authorization: `Bearer ${apiKey}` },
+          params: { id: responseId },
+        }),
+      );
+      return { response, generationMetadata: metadata.data.data ?? null };
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        `${this.constructorName}.generationMetadata unavailable`,
+        { generationId: responseId, ...this.getSafeErrorDetails(error) },
+      );
+      return { response, generationMetadata: null };
     }
   }
 

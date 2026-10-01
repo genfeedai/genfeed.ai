@@ -1,6 +1,8 @@
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationPaidAccessService } from '@api/common/subscriptions/organization-paid-access.service';
+import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
 import { encodeJwtToken } from '@api/helpers/utils/jwt/jwt.util';
+import type { ResolvedByokCredential } from '@api/services/byok/byok-credential-identity.interface';
 import {
   HIGGSFIELD_API_BASE,
   HIGGSFIELD_CREDENTIAL_PROBE_PATH,
@@ -218,6 +220,17 @@ export class ByokService {
     orgId: string,
     provider: ByokProvider,
   ): Promise<{ apiKey: string; apiSecret?: string } | undefined> {
+    const credential = await this.lookupApiKeyWithIdentity(orgId, provider);
+    return credential
+      ? { apiKey: credential.apiKey, apiSecret: credential.apiSecret }
+      : undefined;
+  }
+
+  /** Strict lookup whose identity changes only with the encrypted credential version. */
+  async lookupApiKeyWithIdentity(
+    orgId: string,
+    provider: ByokProvider,
+  ): Promise<ResolvedByokCredential | undefined> {
     const settings = await this.organizationSettingsService.findOne({
       organizationId: orgId,
     });
@@ -233,11 +246,20 @@ export class ByokService {
       return undefined;
     }
 
-    if (await this.organizationPaidAccessService.isSubscriptionGated(orgId)) {
+    if (
+      await this.organizationPaidAccessService.isSubscriptionGatedStrict(orgId)
+    ) {
       return undefined;
     }
 
     return {
+      credentialId: quoteSnapshotHash({
+        version: 1,
+        organizationId: orgId,
+        provider,
+        encryptedApiKey: entry.apiKey,
+        encryptedApiSecret: entry.apiSecret,
+      }),
       apiKey: EncryptionUtil.decrypt(entry.apiKey),
       apiSecret: entry.apiSecret
         ? EncryptionUtil.decrypt(entry.apiSecret)

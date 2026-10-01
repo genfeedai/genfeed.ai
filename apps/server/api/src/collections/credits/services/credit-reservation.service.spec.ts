@@ -692,32 +692,43 @@ describe('CreditReservationService', () => {
     );
   });
 
-  it('leaves media holds to generation reconciliation even when settlement is queued at expiry', async () => {
-    mockDueReservations([
-      {
-        id: 'media-hold',
-        organizationId: 'org_1',
-        workloadType: 'media-generation',
-      },
-    ]);
-    const release = vi.spyOn(service, 'release');
-    await service.expireDue();
-    expect(release).not.toHaveBeenCalled();
-    expect(prisma.creditReservation.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          OR: [
-            { workloadType: null },
-            {
-              workloadType: {
-                notIn: ['media-generation', 'media-generation-group'],
+  it.each([
+    'media-generation',
+    'media-generation-group',
+    'workflow-generation',
+  ])(
+    'leaves %s holds to their evidence reconciler at expiry',
+    async (workloadType) => {
+      mockDueReservations([
+        {
+          id: 'media-hold',
+          organizationId: 'org_1',
+          workloadType,
+        },
+      ]);
+      const release = vi.spyOn(service, 'release');
+      await service.expireDue();
+      expect(release).not.toHaveBeenCalled();
+      expect(prisma.creditReservation.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: [
+              { workloadType: null },
+              {
+                workloadType: {
+                  notIn: [
+                    'media-generation',
+                    'media-generation-group',
+                    'workflow-generation',
+                  ],
+                },
               },
-            },
-          ],
+            ],
+          }),
         }),
-      }),
-    );
-  });
+      );
+    },
+  );
 
   describe('bindOutput', () => {
     const pool = (overrides: Record<string, unknown> = {}) => ({

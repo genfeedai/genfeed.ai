@@ -1,3 +1,4 @@
+import type { LearningGenerationReceipt } from '../analytics/content-learning.interface';
 import type { KnowledgeReceipt } from '../knowledge-base/knowledge-retrieval.interface';
 
 export interface GenerationHarnessSettings {
@@ -15,6 +16,8 @@ export interface UpdateGenerationHarnessSettings {
 }
 
 export interface GenerationHarnessReceipt {
+  learningReceipt?: LearningGenerationReceipt;
+  composedPrompt?: string;
   originalPrompt: string;
   enhancedPrompt: string;
   /**

@@ -574,6 +574,9 @@ describe('ContentRunsService canonical storyboard drafts', () => {
     expect(mockPatch).toHaveBeenCalledWith(
       '/brands/brand-1/storyboard-runs/run-1/plan',
       expect.objectContaining({ expectedRevision: 1 }),
+      expect.objectContaining({
+        handlesErrorResponse: expect.any(Function),
+      }),
     );
     await service.approveStoryboardPlan('brand-1', 'run-1', {
       expectedRevision: 1,

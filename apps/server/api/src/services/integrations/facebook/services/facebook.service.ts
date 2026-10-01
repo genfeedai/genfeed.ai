@@ -2,8 +2,13 @@ import {
   SERVER_TOKENS,
   type ServerCredentialStore,
 } from '@api/server.dependencies';
+import { getInstagramErrorCode as getMetaGraphErrorCode } from '@api/services/integrations/instagram/utils/instagram-error.util';
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
+import {
+  captureLearningMetrics,
+  type LearningMetrics,
+} from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import type {
   FacebookInsight,
   FacebookPage,
@@ -704,6 +709,7 @@ export class FacebookService {
     postId: string,
     accessToken: string,
   ): Promise<{
+    learningMetrics?: LearningMetrics;
     views: number;
     likes: number;
     comments: number;
@@ -733,7 +739,15 @@ export class FacebookService {
         }),
       );
 
-      const data = response.data || {};
+      const data = response.data;
+      if (
+        !data ||
+        typeof data !== 'object' ||
+        Array.isArray(data) ||
+        typeof data.id !== 'string' ||
+        data.id !== postId
+      )
+        throw new Error('malformed_provider_response');
       const insights = data.insights?.data || [];
 
       // Extract insights metrics
@@ -761,7 +775,28 @@ export class FacebookService {
         });
       }
 
+      const rawInsights = Object.fromEntries(
+        (insights as FacebookInsight[]).map((insight) => [
+          insight.name,
+          insight.values?.[0]?.value,
+        ]),
+      );
       return {
+        learningMetrics: captureLearningMetrics(
+          {
+            post_impressions: rawInsights.post_impressions,
+            'reactions.summary.total_count':
+              data.reactions?.summary?.total_count,
+            'comments.summary.total_count': data.comments?.summary?.total_count,
+            'shares.count': data.shares?.count,
+          },
+          {
+            impressions: 'post_impressions',
+            likes: 'reactions.summary.total_count',
+            comments: 'comments.summary.total_count',
+            shares: 'shares.count',
+          },
+        ),
         comments: data.comments?.summary?.total_count || 0,
         engagementRate:
           engagementRate > 0 ? Number(engagementRate.toFixed(2)) : undefined,
@@ -774,7 +809,52 @@ export class FacebookService {
       };
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
+      const response =
+        error && typeof error === 'object' && 'response' in error
+          ? error.response
+          : null;
+      const status =
+        response &&
+        typeof response === 'object' &&
+        'status' in response &&
+        typeof response.status === 'number'
+          ? response.status
+          : null;
+      const graphCode = getMetaGraphErrorCode(error);
+      const rateLimited =
+        status === 429 ||
+        (graphCode !== undefined && [4, 17, 32, 613].includes(graphCode));
+      const unauthorized =
+        !rateLimited &&
+        (status === 401 ||
+          status === 403 ||
+          (graphCode !== undefined &&
+            [190, 102, 10, 200, 294].includes(graphCode)));
+      const permanent =
+        !rateLimited &&
+        (unauthorized || (status !== null && [404, 405, 410].includes(status)));
       return {
+        learningMetrics: {
+          collection: {
+            version: 1,
+            outcome: permanent ? 'terminal_unavailable' : 'retryable_failure',
+            reasonCode: rateLimited
+              ? 'rate_limited'
+              : unauthorized
+                ? 'unauthorized'
+                : status === 404 || status === 410
+                  ? 'publication_unavailable'
+                  : status === 405
+                    ? 'unsupported_metric'
+                    : 'provider_fetch_failed',
+          },
+          metrics: {
+            impressions: { availability: 'failed', source: 'post_impressions' },
+            likes: { availability: 'failed', source: 'reactions.summary' },
+            comments: { availability: 'failed', source: 'comments.summary' },
+            shares: { availability: 'failed', source: 'shares.count' },
+          },
+        },
         comments: 0,
         likes: 0,
         shares: 0,

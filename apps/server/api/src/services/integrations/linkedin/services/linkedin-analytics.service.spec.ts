@@ -51,6 +51,40 @@ describe('LinkedInAnalyticsService', () => {
       comments: 2,
       engagementRate: 7,
       impressions: 200,
+      learningMetrics: {
+        collection: {
+          outcome: 'observed',
+          reasonCode: null,
+          version: 1,
+        },
+        metrics: {
+          clicks: {
+            availability: 'observed',
+            source: 'clickCount',
+            value: 3,
+          },
+          comments: {
+            availability: 'observed',
+            source: 'commentCount',
+            value: 2,
+          },
+          impressions: {
+            availability: 'observed',
+            source: 'impressionCount',
+            value: 200,
+          },
+          likes: {
+            availability: 'observed',
+            source: 'likeCount',
+            value: 5,
+          },
+          shares: {
+            availability: 'observed',
+            source: 'shareCount',
+            value: 4,
+          },
+        },
+      },
       likes: 5,
       mediaType: undefined,
       reach: 150,

@@ -1414,6 +1414,36 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Projects a terminal workflow failure onto one ad bulk-upload job.',
   ),
   internalAction(
+    'content-learning.reconcile',
+    'Reconcile Content Learning',
+    'Queue missing learning checkpoints and authorized operations.',
+  ),
+  internalAction(
+    'content-learning.checkpoint',
+    'Collect Learning Checkpoint',
+    'Collect one scoped publication observation in its fixed maturity window.',
+  ),
+  internalAction(
+    'content-learning.account-rebuild',
+    'Rebuild Account Learning',
+    'Replay valid scoped rewards into an immutable account policy.',
+  ),
+  internalAction(
+    'content-learning.dataset-train',
+    'Train Content Learning Dataset',
+    'Execute one stored authorized immutable training operation.',
+  ),
+  internalAction(
+    'content-learning.evaluate',
+    'Evaluate Content Learning',
+    'Execute one stored authorized immutable evaluation operation.',
+  ),
+  internalAction(
+    'content-learning.retention',
+    'Retain Content Learning Evidence',
+    'Invalidate and remove expired scoped learning evidence.',
+  ),
+  internalAction(
     'analytics.posts.discover',
     'Discover Analytics Posts',
     'Discovers bounded tenant posts requiring analytics collection.',

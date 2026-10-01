@@ -87,9 +87,14 @@ describe('AnalyticsTwitterCollectionService', () => {
       'post-1',
       { views: 42 },
       {
-        organizationId: 'org-1',
         brandId: 'brand-1',
         credentialId: 'credential-1',
+        learningObservation: {
+          receivedAt: expect.any(Date),
+          requestStartedAt: expect.any(Date),
+          sourceAttemptId: expect.any(String),
+        },
+        organizationId: 'org-1',
       },
     );
     expect(harness.accountSnapshots.upsertDailySnapshot).toHaveBeenCalledWith(

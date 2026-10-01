@@ -3,6 +3,7 @@ import { AnalyticsSocialCollectionService } from '@api/analytics/services/analyt
 import { AnalyticsTwitterCollectionService } from '@api/analytics/services/analytics-twitter-collection.service';
 import { AnalyticsYouTubeCollectionService } from '@api/analytics/services/analytics-youtube-collection.service';
 import { PostAnalyticsCollectionStateService } from '@api/analytics/services/post-analytics-collection-state.service';
+import { ContentLearningCoreModule } from '@api/collections/content-learning/content-learning-core.module';
 import { ContentPerformanceCoreModule } from '@api/collections/content-performance/content-performance-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -51,6 +52,7 @@ const ANALYTICS_COLLECTION_SERVICES = [
 @Module({
   exports: [...ANALYTICS_COLLECTION_SERVICES],
   imports: [
+    ContentLearningCoreModule,
     OutliersCoreModule,
     ContentPerformanceCoreModule,
     CredentialsCoreModule,

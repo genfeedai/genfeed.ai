@@ -92,6 +92,16 @@ export class PlatformSchedulesProcessor extends WorkerHost {
           'proactive-agent-strategies',
           job.timestamp,
         ),
+      [PLATFORM_SCHEDULED_TASKS.CONTENT_LEARNING_RECONCILE]: (job) =>
+        this.workflowSchedules.sweep(
+          'content-learning.reconcile',
+          job.timestamp,
+        ),
+      [PLATFORM_SCHEDULED_TASKS.CONTENT_LEARNING_RETENTION]: (job) =>
+        this.workflowSchedules.sweep(
+          'content-learning.retention',
+          job.timestamp,
+        ),
       [PLATFORM_SCHEDULED_TASKS.ANALYTICS_SYNC]: (job) =>
         this.workflowSchedules.sweep('analytics-sync', job.timestamp),
       [PLATFORM_SCHEDULED_TASKS.CONTENT_LOOP_AUTOPILOT]: (job) =>

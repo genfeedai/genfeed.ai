@@ -52,6 +52,11 @@ export class BusinessLogicException extends HttpException {
       HttpStatus.UNPROCESSABLE_ENTITY,
     );
     this.name = 'BusinessLogicException';
+    // Give `Error.message` the human-readable detail (HttpException otherwise
+    // derives a generic "Business Logic Exception" from the class name). This
+    // keeps logs meaningful and lets `expect(...).toThrow('<detail>')` work,
+    // without adding a `message` key to the serialized response body.
+    this.message = message;
   }
 }
 
@@ -70,8 +75,8 @@ export class InsufficientCreditsException extends BusinessLogicException {
  * never be settled.
  *
  * Callers must match on this class (or its `RESERVATION_NOT_SETTLEABLE` code),
- * never on `error.message`: `BusinessLogicException` passes its reason to Nest
- * as the response `detail`, leaving `message` as the generic class label.
+ * not a substring of `error.message`: several reservation failures share
+ * similar copy, and the HTTP body still carries the reason as `detail`.
  */
 export class UnsettleableReservationException extends BusinessLogicException {
   constructor(status: string) {

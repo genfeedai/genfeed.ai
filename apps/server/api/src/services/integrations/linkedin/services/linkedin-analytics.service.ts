@@ -1,3 +1,7 @@
+import {
+  captureLearningMetrics,
+  type LearningMetrics,
+} from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -15,6 +19,7 @@ interface LinkedInReactionCounts {
 }
 
 export interface LinkedInMediaAnalytics {
+  learningMetrics?: LearningMetrics;
   clicks?: number;
   comments: number;
   engagementRate?: number;
@@ -109,6 +114,16 @@ export class LinkedInAnalyticsService {
         impressions > 0 ? (totalEngagements / impressions) * 100 : 0;
 
       return {
+        learningMetrics: captureLearningMetrics(
+          { ...socialActions, ...shareStats },
+          {
+            impressions: 'impressionCount',
+            likes: 'likeCount',
+            comments: 'commentCount',
+            shares: 'shareCount',
+            clicks: 'clickCount',
+          },
+        ),
         clicks: shareStats.clickCount || undefined,
         comments: socialActions.commentCount || shareStats.commentCount || 0,
         engagementRate:

@@ -5,6 +5,10 @@ import {
   type ServerCredentialStore,
 } from '@api/server.dependencies';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
+import {
+  captureLearningMetrics,
+  type LearningMetrics,
+} from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -33,6 +37,15 @@ export interface PinterestTrend {
   yearlyGrowth: number;
 }
 
+interface PinterestMetricRead {
+  found: boolean;
+  value: number;
+  source: string | null;
+}
+interface PinterestMetricNumber {
+  value: number;
+  source: string;
+}
 @Injectable()
 export class PinterestService {
   private readonly constructorName = String(this.constructor.name);
@@ -306,6 +319,7 @@ export class PinterestService {
     externalId: string,
     credentialId?: string,
   ): Promise<{
+    learningMetrics?: LearningMetrics;
     views: number;
     likes: number;
     comments: number;
@@ -361,6 +375,22 @@ export class PinterestService {
       }
 
       return {
+        learningMetrics: captureLearningMetrics(
+          {
+            [impressions.source ?? 'IMPRESSION']: impressions.found
+              ? impressions.value
+              : undefined,
+            [saves.source ?? 'SAVE']: saves.found ? saves.value : undefined,
+            [outboundClicks.source ?? 'OUTBOUND_CLICK']: outboundClicks.found
+              ? outboundClicks.value
+              : undefined,
+          },
+          {
+            impressions: impressions.source ?? 'IMPRESSION',
+            saves: saves.source ?? 'SAVE',
+            clicks: outboundClicks.source ?? 'OUTBOUND_CLICK',
+          },
+        ),
         clicks: pinClicks.value + outboundClicks.value,
         comments: 0,
         impressions: impressions.value,
@@ -382,15 +412,18 @@ export class PinterestService {
   private readPinterestMetric(
     source: unknown,
     aliases: string[],
-  ): { found: boolean; value: number } {
+  ): PinterestMetricRead {
     const normalizedAliases = new Set(
       aliases.map((alias) => this.normalizeMetricName(alias)),
     );
-    const queue: unknown[] = [source];
+    const queue: Array<{ value: unknown; path: string }> = [
+      { value: source, path: '' },
+    ];
     let head = 0;
 
     while (head < queue.length) {
-      const current = queue[head];
+      const entry = queue[head];
+      const current = entry.value;
       head += 1;
       if (!current || typeof current !== 'object') {
         continue;
@@ -400,29 +433,41 @@ export class PinterestService {
         current as Record<string, unknown>,
       )) {
         if (normalizedAliases.has(this.normalizeMetricName(key))) {
-          const metricValue = this.readMetricNumber(value);
+          const path = entry.path ? `${entry.path}.${key}` : key;
+          const metricValue = this.readMetricNumber(value, path);
           if (metricValue !== null) {
-            return { found: true, value: metricValue };
+            return {
+              found: true,
+              value: metricValue.value,
+              source: metricValue.source,
+            };
           }
         }
 
         if (value && typeof value === 'object') {
-          queue.push(value);
+          queue.push({
+            value,
+            path: entry.path ? `${entry.path}.${key}` : key,
+          });
         }
       }
     }
 
-    return { found: false, value: 0 };
+    return { found: false, value: 0, source: null };
   }
 
-  private readMetricNumber(value: unknown): number | null {
+  private readMetricNumber(
+    value: unknown,
+    path: string,
+  ): PinterestMetricNumber | null {
     if (typeof value === 'number' && Number.isFinite(value)) {
-      return value;
+      return { value, source: path };
     }
 
     if (typeof value === 'string') {
+      if (!value.trim()) return null;
       const parsed = Number(value);
-      return Number.isFinite(parsed) ? parsed : null;
+      return Number.isFinite(parsed) ? { value: parsed, source: path } : null;
     }
 
     if (!value || typeof value !== 'object') {
@@ -431,9 +476,9 @@ export class PinterestService {
 
     const record = value as Record<string, unknown>;
     return (
-      this.readMetricNumber(record.value) ??
-      this.readMetricNumber(record.total) ??
-      this.readMetricNumber(record.count)
+      this.readMetricNumber(record.value, `${path}.value`) ??
+      this.readMetricNumber(record.total, `${path}.total`) ??
+      this.readMetricNumber(record.count, `${path}.count`)
     );
   }
 
