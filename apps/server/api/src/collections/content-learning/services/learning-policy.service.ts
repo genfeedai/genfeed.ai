@@ -347,7 +347,10 @@ export class LearningPolicyService {
       });
       if (
         policy &&
-        (!parseLearningPolicy(policy.armState) ||
+        (!validLearningDescriptor(policy.cellDescriptor) ||
+          learningHash(learningDescriptorTuple(policy.cellDescriptor)) !==
+            scope.descriptorHash ||
+          !parseLearningPolicy(policy.armState) ||
           !(await this.dependencies.valid(
             'policy',
             policy.id,

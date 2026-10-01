@@ -275,6 +275,15 @@ describe('current epoch scope authority and rebuild', () => {
     expect(f.scope.revision).toBe(4);
     expect(f.tx.contentLearningScopeState.updateMany).toHaveBeenCalledTimes(1);
   });
+  it('rejects identical shadow candidates with legacy-null cell descriptors', async () => {
+    const f = policyFixture();
+    f.tx.contentLearningPolicyVersion.findFirst.mockResolvedValue(f.policy);
+    Object.assign(f.policy, { cellDescriptor: null });
+    await expect(
+      f.service.rebuild('org', 'credential', 'scope-key'),
+    ).rejects.toThrow('Identical policy source invalid');
+    expect(f.tx.contentLearningScopeState.updateMany).not.toHaveBeenCalled();
+  });
   it('preserves rollback pin and rejects final invalidation or zero scope CAS', async () => {
     const f = policyFixture();
     f.scope.pinnedPolicyId = 'policy';

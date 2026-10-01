@@ -411,6 +411,7 @@ export class LearningDecisionService {
       return suppressed(
         !input.harnessEnabled ? 'harness_off' : 'incompatible_intent',
       );
+    if (account.failureReason) return suppressed(account.failureReason);
     const context = input.context;
     if (!context) return suppressed('invalid_lineage');
     const descriptor = decision.cellDescriptor;
@@ -540,7 +541,6 @@ export class LearningDecisionService {
           ? 'insufficient_baseline'
           : (decision.censorshipReason ?? 'experiment_assignment_unavailable'),
       );
-    if (account.failureReason) return suppressed(account.failureReason);
     if (
       !decision.accountPolicyId ||
       decision.sharedReleaseId ||

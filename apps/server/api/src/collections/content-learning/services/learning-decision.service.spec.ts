@@ -390,6 +390,24 @@ describe('structurally proven insufficient baseline observation retry', () => {
       'org',
     );
   });
+  it('current account failure precedes insufficient baseline while preserving selection identity', async () => {
+    const f = decisionFixture(0);
+    const original = await f.service.resolveForGeneration(f.input);
+    Object.assign(f.account, { failureReason: 'invalid_evidence' });
+    const result = await f.service.resolveForGeneration(f.input);
+    expect(result.receipt).toMatchObject({
+      decisionId: original.receipt.decisionId,
+      armId: original.receipt.armId,
+      assignment: original.receipt.assignment,
+      assignmentProbability: original.receipt.assignmentProbability,
+      reason: 'invalid_evidence',
+    });
+    expect(result.contribution).toEqual({});
+    f.account.mode = 'paused';
+    expect((await f.service.resolveForGeneration(f.input)).receipt.reason).toBe(
+      'paused',
+    );
+  });
   it.each(['count', 'samples', 'ids', 'fingerprint', 'edge', 'descriptor'])(
     'fails closed on malformed zero-sample %s',
     async (mutation) => {
