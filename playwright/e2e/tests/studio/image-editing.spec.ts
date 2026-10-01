@@ -51,7 +51,7 @@ test('Library image entry submits a raw editing instruction and saves a reusable
         ? {
             parentId: sourceId,
             imageEdit: recipe,
-            promptText: 'Change only the sign to OPEN',
+            generationPrompt: 'Change only the sign to OPEN',
           }
         : {}),
     },
@@ -173,6 +173,9 @@ test('Library image entry submits a raw editing instruction and saves a reusable
   await expect(page.getByTestId('studio-generate-results')).toBeVisible();
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('studio-generate-results')).toBeVisible();
+  await expect(
+    page.getByRole('article', { name: 'Edit image generation' }).first(),
+  ).toContainText('Change only the sign to OPEN');
   await expect(page.getByLabel('Editing seed')).toHaveValue('');
   await expectNoErrorOverlay(page);
 });
