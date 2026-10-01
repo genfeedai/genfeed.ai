@@ -710,3 +710,82 @@ describe('Genfeed action registry', () => {
     );
   });
 });
+
+describe('content learning bounded refresh contracts', () => {
+  const base = {
+    postId: { type: 'string' },
+    credentialId: { type: 'string' },
+    scopeKey: { type: 'string' },
+    operationId: { type: 'string' },
+  };
+  const cases: Array<[string, string[]]> = [
+    ['content-learning.reconcile', []],
+    ['content-learning.checkpoint', ['postId']],
+    ['content-learning.account-rebuild', ['credentialId', 'scopeKey']],
+    ['content-learning.dataset-train', ['operationId']],
+    ['content-learning.evaluate', ['operationId']],
+    ['content-learning.retention', []],
+  ];
+  it.each(cases)(
+    'retains the exact closed base and required properties for %s',
+    (id, required) => {
+      if (typeof id !== 'string') throw new Error('Invalid fixture action');
+      const action = getActionDefinition(id);
+      const properties = {
+        ...base,
+        ...(id === 'content-learning.reconcile'
+          ? {
+              materializationOnly: { type: 'boolean' },
+              accountCursor: { type: 'string', minLength: 1, maxLength: 256 },
+              scopeCursor: { type: 'string', minLength: 1, maxLength: 256 },
+              refreshBucket: {
+                type: 'integer',
+                minimum: 0,
+                maximum: Number.MAX_SAFE_INTEGER,
+              },
+            }
+          : {}),
+      };
+      expect(action?.inputSchema).toEqual({
+        type: 'object',
+        additionalProperties: false,
+        properties,
+        ...(required.length ? { required } : {}),
+      });
+      const schema = action?.outputSchema;
+      if (
+        !schema ||
+        !('properties' in schema) ||
+        !schema.properties ||
+        typeof schema.properties !== 'object'
+      )
+        throw new Error('Missing output properties');
+      expect(Object.keys(schema.properties).sort()).toEqual(
+        [
+          'status',
+          'reason',
+          'queued',
+          'removed',
+          'policyId',
+          'operationId',
+          'provenance',
+          'result',
+          'failed',
+          'checkpointId',
+          'runStatus',
+        ].sort(),
+      );
+      expect(action?.outputSchema).toMatchObject({
+        type: 'object',
+        additionalProperties: false,
+        required: ['status'],
+        properties: {
+          failed: { type: 'integer', minimum: 0 },
+          reason: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+          checkpointId: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+          runStatus: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+        },
+      });
+    },
+  );
+});

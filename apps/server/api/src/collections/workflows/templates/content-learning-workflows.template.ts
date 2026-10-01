@@ -15,11 +15,18 @@ export const CONTENT_LEARNING_WORKFLOW_TEMPLATES: WorkflowTemplate[] =
     id,
     name: id.replace('content-learning.', 'Content Learning '),
     category: 'analytics',
-    version: 1,
+    version:
+      id === CONTENT_LEARNING_ACTION_IDS.RECONCILE ||
+      id === CONTENT_LEARNING_ACTION_IDS.CHECKPOINT
+        ? 2
+        : 1,
     description:
       'Process scoped learning evidence and durable authorized operations.',
     changeSummary:
-      'Persist evidence and receipts through the background workflow queue.',
+      id === CONTENT_LEARNING_ACTION_IDS.RECONCILE ||
+      id === CONTENT_LEARNING_ACTION_IDS.CHECKPOINT
+        ? 'Refresh committed learning evidence through bounded account and scope pages.'
+        : 'Persist evidence and receipts through the background workflow queue.',
     ...(id === CONTENT_LEARNING_ACTION_IDS.RECONCILE
       ? { schedule: '*/5 * * * *', isScheduleEnabled: true }
       : id === CONTENT_LEARNING_ACTION_IDS.RETENTION
@@ -35,6 +42,34 @@ export const CONTENT_LEARNING_WORKFLOW_TEMPLATES: WorkflowTemplate[] =
         type: 'text',
         required: false,
       },
+      ...(id === CONTENT_LEARNING_ACTION_IDS.RECONCILE
+        ? [
+            {
+              key: 'materializationOnly',
+              label: 'Materialization only',
+              type: 'boolean',
+              required: false,
+            },
+            {
+              key: 'accountCursor',
+              label: 'Account cursor',
+              type: 'text',
+              required: false,
+            },
+            {
+              key: 'scopeCursor',
+              label: 'Scope cursor',
+              type: 'text',
+              required: false,
+            },
+            {
+              key: 'refreshBucket',
+              label: 'Refresh bucket',
+              type: 'number',
+              required: false,
+            },
+          ]
+        : []),
     ],
     nodes: [
       createTemplateActionNode(id, {
@@ -42,12 +77,33 @@ export const CONTENT_LEARNING_WORKFLOW_TEMPLATES: WorkflowTemplate[] =
         position: { x: 0, y: 0 },
         data: {
           label: 'Process learning operation',
-          config: {
-            postId: '{{inputs.postId}}',
-            credentialId: '{{inputs.credentialId}}',
-            scopeKey: '{{inputs.scopeKey}}',
-            operationId: '{{inputs.operationId}}',
-          },
+          ...(id === CONTENT_LEARNING_ACTION_IDS.RECONCILE ||
+          id === CONTENT_LEARNING_ACTION_IDS.CHECKPOINT
+            ? {
+                config: {},
+                inputVariableKeys: [
+                  'postId',
+                  'credentialId',
+                  'scopeKey',
+                  'operationId',
+                  ...(id === CONTENT_LEARNING_ACTION_IDS.RECONCILE
+                    ? [
+                        'materializationOnly',
+                        'accountCursor',
+                        'scopeCursor',
+                        'refreshBucket',
+                      ]
+                    : []),
+                ],
+              }
+            : {
+                config: {
+                  postId: '{{inputs.postId}}',
+                  credentialId: '{{inputs.credentialId}}',
+                  scopeKey: '{{inputs.scopeKey}}',
+                  operationId: '{{inputs.operationId}}',
+                },
+              }),
         },
       }),
     ],

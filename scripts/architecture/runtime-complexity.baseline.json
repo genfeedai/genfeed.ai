@@ -114,12 +114,6 @@
     "symbol": "AvatarVideoGenerationService.resolveIdentityInputs"
   },
   {
-    "actual": 155,
-    "file": "apps/server/api/src/collections/workflows/services/content-learning-workflow.service.ts",
-    "metric": "method-lines",
-    "symbol": "ContentLearningWorkflowService.execute"
-  },
-  {
     "actual": 1186,
     "file": "apps/server/api/src/endpoints/ads-research/ads-research.service.ts",
     "metric": "file-lines",
