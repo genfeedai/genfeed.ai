@@ -127,9 +127,13 @@ export class MediaClient {
         const video = (response.data?.data ?? response.data) as
           | MergeVideoResource
           | undefined;
+        const id = readNonEmptyString(video?.id);
+        if (!id) {
+          throw new Error('Video merge did not return an output id');
+        }
         const attributeStatus = video?.attributes?.status;
         return {
-          id: typeof video?.id === 'string' ? video.id : '',
+          id,
           status:
             typeof attributeStatus === 'string'
               ? attributeStatus
