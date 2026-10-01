@@ -781,6 +781,9 @@ describe('Crun video quote through durable owned output and accounting', () => {
         reasonCode: 'PRICING_UNAVAILABLE',
       });
       transport.setEstimated(false);
+      const acceptedEstimateCountBefore = transport.requests.filter((item) =>
+        item.route.endsWith('/estimate-credits'),
+      ).length;
       const quoted = await new CrunVideoQuoteController(preview).quote(
         intent as never,
         request as never,
@@ -1097,7 +1100,9 @@ describe('Crun video quote through durable owned output and accounting', () => {
       }
       const estimatedBodies = transport.requests
         .filter((item) => item.route.endsWith('/estimate-credits'))
+        .slice(acceptedEstimateCountBefore)
         .map((item) => item.input);
+      expect(estimatedBodies).toHaveLength(1);
       const dispatchedBodies = transport.requests
         .filter((item) => item.route.endsWith('/CreateTask'))
         .slice(createdBefore)
