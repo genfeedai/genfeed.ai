@@ -1489,7 +1489,13 @@ describe('instruction-based image editing lifecycle', () => {
     });
     expect(enhancementService.enhance).not.toHaveBeenCalled();
     expect(promptBuilderService.buildPrompt).not.toHaveBeenCalled();
-    expect(response.data.attributes?.pendingIngredientIds).toHaveLength(3);
+    expect(response.data?.attributes).toMatchObject({
+      pendingIngredientIds: [
+        expect.any(String),
+        expect.any(String),
+        expect.any(String),
+      ],
+    });
     // Background execution starts only after all native batch outputs have durable funded placeholders.
     await vi.waitFor(() =>
       expect(replicateService.generateTextToImage).toHaveBeenCalledTimes(1),

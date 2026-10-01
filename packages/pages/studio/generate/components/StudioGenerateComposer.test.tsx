@@ -32,6 +32,7 @@ import {
   RouterPriority,
 } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import StudioGenerateComposer from '@pages/studio/generate/components/StudioGenerateComposer';
 import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
@@ -889,7 +890,7 @@ describe('StudioGenerateComposer', () => {
       isActive: true,
       cost: 20,
       label: 'Ideogram 4.5',
-    };
+    } as IModel;
     it('blocks submission without a source and never offers prompt enhancement', () => {
       render(
         <StudioGenerateComposer
@@ -928,6 +929,7 @@ describe('StudioGenerateComposer', () => {
               id: 'source',
               ingredientId: 'source',
               kind: 'image',
+              source: 'library',
               role: 'editSource',
               name: 'Target',
               previewUrl: 'https://example.com/source.png',
@@ -936,6 +938,7 @@ describe('StudioGenerateComposer', () => {
               id: 'mask',
               ingredientId: 'mask',
               kind: 'image',
+              source: 'library',
               role: 'editMask',
               name: 'Mask',
               previewUrl: 'https://example.com/mask.png',

@@ -7,6 +7,7 @@ import {
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
+import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
 const sourceId = 'editing-source-e2e';
 const outputId = 'editing-output-e2e';
@@ -92,6 +93,16 @@ test('Library image entry submits a raw editing instruction and saves a reusable
       },
     }),
   );
+  await page.route('**/v1/studio-generate-drafts/current**', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ json: { data: null } });
+      return;
+    }
+    const body = route.request().postDataJSON();
+    await route.fulfill({
+      json: { data: { ...body.data, id: 'editing-draft-e2e' } },
+    });
+  });
   await page.route('**/v1/ingredients**', async (route) => {
     const url = new URL(route.request().url());
     const isSingle =
@@ -141,6 +152,10 @@ test('Library image entry submits a raw editing instruction and saves a reusable
   await expect(composer).toBeEmpty();
   await composer.fill('Change only the sign to OPEN');
   await page.getByLabel('Editing seed').fill('0');
+  await page.screenshot({
+    path: testInfo.outputPath('image-editing-studio.png'),
+    fullPage: true,
+  });
   await page.getByRole('button', { name: 'Generate', exact: true }).click();
   await expect.poll(() => bodies.length).toBe(1);
   expect(bodies[0]).toMatchObject({
@@ -159,4 +174,5 @@ test('Library image entry submits a raw editing instruction and saves a reusable
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('studio-generate-results')).toBeVisible();
   await expect(page.getByLabel('Editing seed')).toHaveValue('');
+  await expectNoErrorOverlay(page);
 });
