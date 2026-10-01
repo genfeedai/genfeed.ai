@@ -30,6 +30,7 @@ import type {
 import type { LearningGenerationReceipt } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { learningContribution } from '@genfeedai/harness';
 import { describe, expect, it, vi } from 'vitest';
+import { ZodError } from 'zod';
 
 const hash = `sha256:${'a'.repeat(64)}`;
 function snapshot(): BrandIdentitySnapshotV1 {
@@ -1223,4 +1224,304 @@ describe('atomic source-group and effective learning table regressions', () => {
     ).toBe('learning_contribution_unrecognized');
     expect(getter).not.toHaveBeenCalled();
   });
+});
+
+const boundsDiagnostic = {
+  code: 'context_receipt_bounds_exceeded',
+  severity: 'error',
+  message:
+    'Detailed generation diagnostics exceeded the receipt limit; generation context was not applied.',
+};
+function detailDiagnostics(
+  count: number,
+): BrandIdentitySnapshotV1['diagnostics'] {
+  return Array.from({ length: count }, (_, index) => ({
+    code: `detail_${index}`,
+    severity: 'warning',
+    message: `Detail ${index}`,
+  }));
+}
+
+describe('snapshot diagnostic cardinality', () => {
+  it.each(['raw', 'approved_brand'] as const)(
+    'keeps exactly128 diagnostics and rejects129 in %s mode',
+    (mode) => {
+      const input = { ...generationInput(), mode };
+      const identity = mode === 'raw' ? null : compatibleSnapshot();
+      const diagnostics = detailDiagnostics(128);
+      const before = structuredClone({ input, identity, diagnostics });
+      const resolved = compileSnapshotBriefResolution(
+        input,
+        identity,
+        baselineLearning(),
+        {},
+        [],
+        [],
+        diagnostics,
+      );
+      expect(resolved.status).toBe('resolved');
+      expect(resolved.diagnostics).toEqual(diagnostics);
+      expect(brandedGenerationResolutionV1Schema.parse(resolved)).toEqual(
+        resolved,
+      );
+      const blocked = compileSnapshotBriefResolution(
+        input,
+        identity,
+        baselineLearning(),
+        {},
+        [],
+        [],
+        [...diagnostics, ...detailDiagnostics(1)],
+      );
+      expect(blocked).toMatchObject({
+        status: 'blocked',
+        reasonCode: 'context_unavailable',
+        snapshot: identity,
+        layers: [],
+        diagnostics: [boundsDiagnostic],
+      });
+      expect(blocked).not.toHaveProperty('compiledPrompt');
+      expect(brandedGenerationResolutionV1Schema.parse(blocked)).toEqual(
+        blocked,
+      );
+      expect({ input, identity, diagnostics }).toEqual(before);
+    },
+  );
+
+  it.each(['identity_conflict', 'context_budget_exceeded'] as const)(
+    'preserves %s before the bounds failure',
+    (reason) => {
+      const diagnostics = detailDiagnostics(127);
+      const primary = {
+        code: reason,
+        severity: 'error',
+        message: 'Required generation context could not be compiled.',
+      };
+      const resolve = (details: BrandIdentitySnapshotV1['diagnostics']) =>
+        compileSnapshotBriefResolution(
+          generationInput(),
+          compatibleSnapshot(),
+          baselineLearning(),
+          {},
+          [],
+          [],
+          details,
+          [reason],
+        );
+      const fits = resolve(diagnostics);
+      expect(fits).toMatchObject({
+        status: 'blocked',
+        reasonCode: reason,
+        diagnostics: [...diagnostics, primary],
+      });
+      expect(fits.diagnostics).toHaveLength(128);
+      const overflow = resolve([...diagnostics, ...detailDiagnostics(1)]);
+      expect(overflow).toMatchObject({
+        status: 'blocked',
+        reasonCode: reason,
+        layers: [],
+        diagnostics: [primary, boundsDiagnostic],
+      });
+      expect(overflow).not.toHaveProperty('compiledPrompt');
+      expect(brandedGenerationResolutionV1Schema.parse(overflow)).toEqual(
+        overflow,
+      );
+    },
+  );
+
+  it('keeps actual prompt budget failure ahead of resolved diagnostic overflow', () => {
+    const input = generationInput();
+    input.originalPrompt = 'x'.repeat(65500);
+    const result = compileSnapshotBriefResolution(
+      input,
+      compatibleSnapshot(),
+      baselineLearning(),
+      {},
+      [],
+      [],
+      detailDiagnostics(129),
+    );
+    expect(result).toMatchObject({
+      status: 'blocked',
+      reasonCode: 'context_budget_exceeded',
+      layers: [],
+    });
+    expect(result.diagnostics).toEqual([
+      {
+        code: 'context_budget_exceeded',
+        severity: 'error',
+        message: 'Required generation context could not be compiled.',
+      },
+      boundsDiagnostic,
+    ]);
+    expect(result).not.toHaveProperty('compiledPrompt');
+    expect(brandedGenerationResolutionV1Schema.parse(result)).toEqual(result);
+  });
+
+  it('suppresses original experimental learning with the precise learning failure and retains provenance', () => {
+    const learning = treatmentLearning();
+    const before = structuredClone(learning);
+    const diagnostics = detailDiagnostics(128);
+    const result = compileSnapshotBriefResolution(
+      generationInput(),
+      compatibleSnapshot(),
+      learning,
+      {},
+      [],
+      [],
+      diagnostics,
+    );
+    expect(result).toMatchObject({
+      status: 'blocked',
+      reasonCode: 'learning_unavailable',
+      layers: [],
+      diagnostics: [
+        {
+          code: 'learning_contribution_mismatch',
+          severity: 'error',
+          message: 'Required generation context could not be compiled.',
+        },
+        boundsDiagnostic,
+      ],
+    });
+    expect(result.learning).toEqual(
+      suppressSnapshotLearning(
+        learning,
+        'learning_contribution_mismatch',
+        true,
+      ),
+    );
+    expect(result.learning.privateAccount).toMatchObject({
+      decisionId: learning.privateAccount.decisionId,
+      experimentId: learning.privateAccount.experimentId,
+      cellDescriptor: learning.privateAccount.cellDescriptor,
+      application: {
+        status: 'suppressed',
+        privatePolicyApplied: false,
+        sharedReleaseApplied: false,
+      },
+    });
+    expect(result.learning.privateAccount.application).not.toHaveProperty(
+      'appliedArmId',
+    );
+    expect(result).not.toHaveProperty('compiledPrompt');
+    expect(learning).toEqual(before);
+    expect(brandedGenerationResolutionV1Schema.parse(result)).toEqual(result);
+  });
+
+  it('uses original learning rather than prepared feedback when final diagnostics overflow', () => {
+    const learning = treatmentLearning();
+    learning.brandFeedback = {
+      status: 'applied',
+      profileId: 'historical-profile',
+      profileVersion: 7,
+      contributionHash: hash,
+      sourceIds: ['feedback-source'],
+    };
+    const before = structuredClone(learning);
+    const result = compileSnapshotBriefResolution(
+      generationInput(),
+      compatibleSnapshot(),
+      learning,
+      learningContribution(ContentLearningArm.QUESTION_EXAMPLE),
+      [],
+      [],
+      detailDiagnostics(128),
+    );
+    expect(result).toMatchObject({
+      status: 'blocked',
+      reasonCode: 'context_unavailable',
+      layers: [],
+      diagnostics: [boundsDiagnostic],
+    });
+    expect(result.learning).toEqual(
+      suppressSnapshotLearning(learning, 'context_unavailable', true),
+    );
+    expect(result.learning.brandFeedback).toMatchObject({
+      profileId: 'historical-profile',
+      profileVersion: 7,
+      sourceIds: ['feedback-source'],
+    });
+    expect(learning).toEqual(before);
+  });
+
+  it('counts compatibility warnings and class warnings in their complete final order', () => {
+    const identity = compatibleSnapshot();
+    identity.generationRules.examples = [];
+    const section = {
+      header: '',
+      content: 'Complete registered craft',
+      isAtomic: true,
+    };
+    const stage: SnapshotContextStage = [
+      {
+        kind: 'pack',
+        id: 'pack',
+        version: '1.0.0',
+        status: 'not_applicable',
+        evidenceIds: [],
+        omittedIds: [],
+      },
+      [section],
+      [['pack']],
+    ];
+    const diagnostics = detailDiagnostics(126);
+    const resolve = (details: BrandIdentitySnapshotV1['diagnostics']) =>
+      compileSnapshotBriefResolution(
+        generationInput(),
+        identity,
+        baselineLearning(),
+        {},
+        [],
+        [stage],
+        details,
+      );
+    const result = resolve(diagnostics);
+    expect(result.status).toBe('resolved');
+    expect(result.diagnostics).toEqual([
+      ...diagnostics,
+      {
+        code: 'learning.missing_approved_example',
+        severity: 'warning',
+        message:
+          'No approved positive example supports the question/example tactic.',
+      },
+      {
+        code: 'brand.compatibility_unverified',
+        severity: 'warning',
+        message: 'Artifact validation is required for pack guidance.',
+      },
+    ]);
+    expect(resolve([...diagnostics, ...detailDiagnostics(1)])).toMatchObject({
+      status: 'blocked',
+      reasonCode: 'context_unavailable',
+      layers: [],
+      diagnostics: [boundsDiagnostic],
+    });
+  });
+
+  it.each(['message', 'evidence'] as const)(
+    'throws for malformed %s at index128 even when the array overflows',
+    (kind) => {
+      const diagnostics = detailDiagnostics(129);
+      if (kind === 'message') diagnostics[128].message = 'x'.repeat(2001);
+      else diagnostics[128].evidenceIds = ['bad\u0000id'];
+      const before = structuredClone(diagnostics);
+      for (const failure of [undefined, ['identity_conflict'] as const]) {
+        expect(() =>
+          compileSnapshotBriefResolution(
+            generationInput(),
+            compatibleSnapshot(),
+            baselineLearning(),
+            {},
+            [],
+            [],
+            diagnostics,
+            failure,
+          ),
+        ).toThrow(ZodError);
+      }
+      expect(diagnostics).toEqual(before);
+    },
+  );
 });

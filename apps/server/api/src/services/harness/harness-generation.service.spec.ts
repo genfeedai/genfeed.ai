@@ -1174,6 +1174,7 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
   it.each([
     'dependency',
     'empty-space',
+    'undefined-space',
     'over-limit',
     'empty-result',
     'missing-source',
@@ -1198,6 +1199,10 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
       if (kind === 'empty-space') {
         input.knowledgeSpaceIds = ['space'];
         env.selection.resolve.mockResolvedValue({ knowledgeSourceIds: [] });
+      }
+      if (kind === 'undefined-space') {
+        input.knowledgeSpaceIds = ['space'];
+        env.selection.resolve.mockResolvedValue(undefined);
       }
       if (kind === 'over-limit')
         input.knowledgeSourceIds = Array.from(
@@ -1270,6 +1275,13 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
       expect(
         env.retrieval.retrieveBrandContentMemory.mock.calls.length,
       ).toBeLessThanOrEqual(1);
+      if (kind === 'undefined-space') {
+        expect(result).not.toHaveProperty('compiledPrompt');
+        expect(env.retrieval.retrieveBrandContentMemory).not.toHaveBeenCalled();
+        expect(brandedGenerationResolutionV1Schema.parse(result)).toEqual(
+          result,
+        );
+      }
       if (kind === 'altered')
         expect(
           result.diagnostics.some(
@@ -1391,5 +1403,48 @@ describe('snapshot source boundary regressions', () => {
         {},
       ),
     ).rejects.toHaveProperty('name', 'ZodError');
+  });
+});
+
+describe('snapshot diagnostic report bounds', () => {
+  it('rejects 129 distinct unversioned automatic skills without repeating context calls', async () => {
+    const env = snapshotService();
+    const automaticSkills = Array.from({ length: 129 }, (_, index) => {
+      const entry = skill(`automatic-${index}`);
+      delete entry.versionId;
+      delete entry.contentHash;
+      return entry;
+    });
+    const before = structuredClone(automaticSkills);
+    const result = await env.service.resolveSnapshotBrief(
+      generationInput(),
+      snapshot(),
+      automaticSkills,
+      [],
+      env.formatter,
+      baselineLearning(),
+      {},
+    );
+    expect(result).toMatchObject({
+      status: 'blocked',
+      reasonCode: 'context_unavailable',
+      layers: [],
+      diagnostics: [
+        {
+          code: 'context_receipt_bounds_exceeded',
+          severity: 'error',
+          message:
+            'Detailed generation diagnostics exceeded the receipt limit; generation context was not applied.',
+        },
+      ],
+    });
+    expect(result).not.toHaveProperty('compiledPrompt');
+    expect(brandedGenerationResolutionV1Schema.parse(result)).toEqual(result);
+    expect(automaticSkills).toEqual(before);
+    expect(env.formatter).not.toHaveBeenCalled();
+    expect(env.profile.resolveContributionForBrand).toHaveBeenCalledTimes(1);
+    expect(env.packs.composeBriefLayers).toHaveBeenCalledTimes(1);
+    expect(env.retrieval.retrieveBrandContentMemory).toHaveBeenCalledTimes(1);
+    expect(env.brand.findOne).not.toHaveBeenCalled();
   });
 });

@@ -12,6 +12,7 @@ import { deriveBrandLearningCompatibility } from '@api/services/harness/branded-
 import { BrandedGenerationCompileError } from '@api/services/harness/branded-generation-compile.error';
 import {
   brandedGenerationResolutionV1Schema,
+  brandGenerationDiagnosticSchema,
   brandGenerationLayerReceiptV1Schema,
   brandIdentitySnapshotV1Schema,
   brandLearningApplicationV1Schema,
@@ -497,6 +498,21 @@ function snapshotStages(
   ];
 }
 
+const SNAPSHOT_BOUNDS_DIAGNOSTIC = {
+  code: 'context_receipt_bounds_exceeded',
+  severity: 'error' as const,
+  message:
+    'Detailed generation diagnostics exceeded the receipt limit; generation context was not applied.',
+};
+
+function snapshotDiagnosticsFit(
+  diagnostics: BrandIdentitySnapshotV1['diagnostics'],
+): boolean {
+  for (const diagnostic of diagnostics)
+    brandGenerationDiagnosticSchema.parse(diagnostic);
+  return diagnostics.length <= 128;
+}
+
 function blockedSnapshotResolution(
   input: BrandedGenerationInputV1,
   snapshot: BrandIdentitySnapshotV1 | null,
@@ -506,6 +522,16 @@ function blockedSnapshotResolution(
   reasonCode: string,
   diagnosticCode = reasonCode,
 ): BrandedGenerationResolutionV1 {
+  const primary = {
+    code: diagnosticCode,
+    severity: 'error' as const,
+    message:
+      diagnosticCode === SNAPSHOT_BOUNDS_DIAGNOSTIC.code
+        ? SNAPSHOT_BOUNDS_DIAGNOSTIC.message
+        : 'Required generation context could not be compiled.',
+  };
+  const candidateDiagnostics = [...diagnostics, primary];
+  const fits = snapshotDiagnosticsFit(candidateDiagnostics);
   return brandedGenerationResolutionV1Schema.parse({
     schemaVersion: 1,
     status: 'blocked',
@@ -516,7 +542,7 @@ function blockedSnapshotResolution(
       reasonCode === 'learning_unavailable' ? diagnosticCode : reasonCode,
       true,
     ),
-    layers: layers.map((layer) =>
+    layers: (fits ? layers : []).map((layer) =>
       layer.status === 'applied' || layer.status === 'truncated'
         ? {
             ...layer,
@@ -527,16 +553,51 @@ function blockedSnapshotResolution(
           }
         : layer,
     ),
-    diagnostics: [
-      ...diagnostics,
-      {
-        code: diagnosticCode,
-        severity: 'error',
-        message: 'Required generation context could not be compiled.',
-      },
-    ],
+    diagnostics: fits
+      ? candidateDiagnostics
+      : [primary, SNAPSHOT_BOUNDS_DIAGNOSTIC],
     reasonCode,
   });
+}
+
+function finalizeSnapshotResolution(
+  input: BrandedGenerationInputV1,
+  candidate: Extract<BrandedGenerationResolutionV1, { status: 'resolved' }>,
+  suppliedLearning: BrandLearningApplicationV1,
+): BrandedGenerationResolutionV1 {
+  if (snapshotDiagnosticsFit(candidate.diagnostics))
+    return brandedGenerationResolutionV1Schema.parse(candidate);
+  return blockedSnapshotResolution(
+    input,
+    candidate.snapshot,
+    suppliedLearning,
+    [],
+    [],
+    'context_unavailable',
+    SNAPSHOT_BOUNDS_DIAGNOSTIC.code,
+  );
+}
+
+function compileRawSnapshotResolution(
+  input: BrandedGenerationInputV1,
+  suppliedLearning: BrandLearningApplicationV1,
+  diagnostics: BrandIdentitySnapshotV1['diagnostics'],
+): BrandedGenerationResolutionV1 {
+  return finalizeSnapshotResolution(
+    input,
+    {
+      schemaVersion: 1,
+      status: 'resolved',
+      mode: input.mode,
+      snapshot: null,
+      layers: [],
+      learning: structuredClone(suppliedLearning),
+      diagnostics,
+      compiledPrompt: input.originalPrompt,
+      originalPromptHash: hashBrandedGenerationTextV1(input.originalPrompt),
+    },
+    suppliedLearning,
+  );
 }
 
 function prepareSnapshotLearningStage(
@@ -697,17 +758,7 @@ export function compileSnapshotBriefResolution(
     );
   if (failure) return blocked(failure[0], failure[1]);
   if (!snapshot)
-    return brandedGenerationResolutionV1Schema.parse({
-      schemaVersion: 1,
-      status: 'resolved',
-      mode: input.mode,
-      snapshot: null,
-      layers: [],
-      learning,
-      diagnostics,
-      compiledPrompt: input.originalPrompt,
-      originalPromptHash: hashBrandedGenerationTextV1(input.originalPrompt),
-    });
+    return compileRawSnapshotResolution(input, suppliedLearning, diagnostics);
   const [
     preparedLearning,
     learningStages,
@@ -763,17 +814,21 @@ export function compileSnapshotBriefResolution(
     const compiledPrompt = `${SNAPSHOT_PREFIX}\n\n${fitted.text}\n\n## Generation request\n${input.originalPrompt}`;
     if (new TextEncoder().encode(compiledPrompt).length > 65536)
       return blocked('context_budget_exceeded', undefined, layers);
-    return brandedGenerationResolutionV1Schema.parse({
-      schemaVersion: 1,
-      status: 'resolved',
-      mode: input.mode,
-      snapshot,
-      layers,
-      learning,
-      diagnostics: [...diagnostics, ...compatibilityDiagnostics, ...warnings],
-      compiledPrompt,
-      originalPromptHash: hashBrandedGenerationTextV1(input.originalPrompt),
-    });
+    return finalizeSnapshotResolution(
+      input,
+      {
+        schemaVersion: 1,
+        status: 'resolved',
+        mode: input.mode,
+        snapshot,
+        layers,
+        learning,
+        diagnostics: [...diagnostics, ...compatibilityDiagnostics, ...warnings],
+        compiledPrompt,
+        originalPromptHash: hashBrandedGenerationTextV1(input.originalPrompt),
+      },
+      suppliedLearning,
+    );
   } catch (error) {
     if (!(error instanceof BrandedGenerationCompileError)) throw error;
     return blocked(

@@ -402,7 +402,7 @@ export class HarnessGenerationService {
           input.brandId,
           { spaceIds: [spaceId] },
         );
-        if (!expanded.knowledgeSourceIds?.length)
+        if (!expanded?.knowledgeSourceIds?.length)
           return [[], true, 'knowledge_unavailable'];
         for (const id of expanded.knowledgeSourceIds) sources.add(id);
       }
