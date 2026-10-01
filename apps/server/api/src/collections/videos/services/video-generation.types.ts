@@ -40,6 +40,7 @@ export interface DispatchVideoGenerationParams {
 
 export type VideoGenerationProvider =
   | 'fal'
+  | 'heygen'
   | 'higgsfield'
   | 'klingai'
   | 'replicate';

@@ -2,6 +2,7 @@ import {
   FalVideoGenerationProviderAdapter,
   prepareFalVideoDispatch,
 } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
+import { HeyGenVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/heygen-video-generation-provider.adapter';
 import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/higgsfield-video-generation-provider.adapter';
 import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
 import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
@@ -21,10 +22,12 @@ export class VideoGenerationProviderDispatchService {
     falAdapter: FalVideoGenerationProviderAdapter,
     replicateAdapter: ReplicateVideoGenerationProviderAdapter,
     higgsFieldAdapter: HiggsFieldVideoGenerationProviderAdapter,
+    heyGenAdapter: HeyGenVideoGenerationProviderAdapter,
   ) {
     this.adapters = [
       klingAiAdapter,
       higgsFieldAdapter,
+      heyGenAdapter,
       falAdapter,
       replicateAdapter,
     ];

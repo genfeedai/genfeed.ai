@@ -28,6 +28,7 @@ import { VideosUploadController } from '@api/collections/videos/controllers/uplo
 import { VideosController } from '@api/collections/videos/controllers/videos.controller';
 import { LiveSessionCreditsService } from '@api/collections/videos/services/live-session-credits.service';
 import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
+import { HeyGenVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/heygen-video-generation-provider.adapter';
 import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/higgsfield-video-generation-provider.adapter';
 import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
 import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
@@ -128,6 +129,7 @@ import { Module } from '@nestjs/common';
     CreditsGuard,
     CreditsInterceptor,
     FalVideoGenerationProviderAdapter,
+    HeyGenVideoGenerationProviderAdapter,
     {
       inject: [HiggsFieldService],
       provide: HiggsFieldVideoGenerationProviderAdapter,

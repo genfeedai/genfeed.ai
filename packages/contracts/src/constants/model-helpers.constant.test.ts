@@ -21,6 +21,7 @@ import {
   hasNativeExtend,
   hasResolutionOptions,
   hasSpeech,
+  hasVideoReferences,
   isImagenModel,
   isOnlyImagenModels,
   isReferencesMandatory,
@@ -117,6 +118,24 @@ describe('model-helpers.constant', () => {
       expect(requiresFirstFrame(MODEL_KEYS.HIGGSFIELD_DOP_LITE)).toBe(true);
       expect(requiresFirstFrame(MODEL_KEYS.HIGGSFIELD_DOP_TURBO)).toBe(true);
       expect(requiresFirstFrame(MODEL_KEYS.HIGGSFIELD_DOP_STANDARD)).toBe(true);
+    });
+
+    it('requires a character still and one source clip for Genjutsu', () => {
+      expect(requiresFirstFrame(MODEL_KEYS.HIGGSFIELD_GENJUTSU)).toBe(true);
+      expect(hasVideoReferences(MODEL_KEYS.HIGGSFIELD_GENJUTSU)).toBe(true);
+      expect(getModelMaxVideoReferences(MODEL_KEYS.HIGGSFIELD_GENJUTSU)).toBe(
+        1,
+      );
+      expect(hasDurationEditing(MODEL_KEYS.HIGGSFIELD_GENJUTSU)).toBe(false);
+    });
+  });
+
+  describe('HeyGen Video', () => {
+    it('accepts speech, duration, and up to three reference clips', () => {
+      expect(hasSpeech(MODEL_KEYS.HEYGEN_VIDEO)).toBe(true);
+      expect(hasVideoReferences(MODEL_KEYS.HEYGEN_VIDEO)).toBe(true);
+      expect(getModelMaxVideoReferences(MODEL_KEYS.HEYGEN_VIDEO)).toBe(3);
+      expect(requiresFirstFrame(MODEL_KEYS.HEYGEN_VIDEO)).toBe(false);
     });
   });
 

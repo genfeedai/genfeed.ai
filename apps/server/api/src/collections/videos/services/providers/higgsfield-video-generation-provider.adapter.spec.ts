@@ -43,6 +43,14 @@ describe('HiggsFieldVideoGenerationProviderAdapter', () => {
       const adapter = buildAdapter({});
       expect(adapter.supports('klingai/v2/pro/image-to-video')).toBe(false);
     });
+
+    it('matches Genjutsu and the legacy misspelled endpoint', () => {
+      const adapter = buildAdapter({});
+      expect(adapter.supports(MODEL_KEYS.HIGGSFIELD_GENJUTSU)).toBe(true);
+      expect(adapter.supports('higgsfiled/genjutsu/motion-transfer/v1.0')).toBe(
+        true,
+      );
+    });
   });
 
   describe('generate', () => {
@@ -92,6 +100,51 @@ describe('HiggsFieldVideoGenerationProviderAdapter', () => {
       expect(result).toEqual({
         completion: 'remote-output',
         externalId: 'https://cdn.test/out.mp4',
+        provider: 'higgsfield',
+      });
+    });
+
+    it('sends Genjutsu motion transfer instead of DoP image-to-video', async () => {
+      const generateImageToVideo = vi.fn();
+      const generateMotionTransfer = vi
+        .fn()
+        .mockResolvedValue({ requestId: 'req-gen' });
+      const waitForVideoCompletion = vi
+        .fn()
+        .mockResolvedValue({ videoUrl: 'https://cdn.test/gen.mp4' });
+      const adapter = buildAdapter({
+        generateImageToVideo,
+        generateMotionTransfer,
+        waitForVideoCompletion,
+      });
+
+      const result = await adapter.generate(
+        buildParams({
+          imageUrl: 'https://cdn.test/face.png',
+          model: MODEL_KEYS.HIGGSFIELD_GENJUTSU,
+          organizationId: 'org-1',
+          prompt: 'keep the walk',
+          promptParams: {
+            image_urls: ['https://cdn.test/alt.png'],
+            prompt: 'keep the walk',
+            reference_video: 'https://cdn.test/walk.mp4',
+            resolution: '720p',
+          },
+        }),
+      );
+
+      expect(generateImageToVideo).not.toHaveBeenCalled();
+      expect(generateMotionTransfer).toHaveBeenCalledWith({
+        imageUrls: ['https://cdn.test/alt.png', 'https://cdn.test/face.png'],
+        onProviderSubmissionStarted: undefined,
+        organizationId: 'org-1',
+        prompt: 'keep the walk',
+        resolution: '720p',
+        videoUrl: 'https://cdn.test/walk.mp4',
+      });
+      expect(result).toEqual({
+        completion: 'remote-output',
+        externalId: 'https://cdn.test/gen.mp4',
         provider: 'higgsfield',
       });
     });

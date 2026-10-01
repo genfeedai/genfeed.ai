@@ -280,12 +280,16 @@ describe('model.enum', () => {
       expect(MODEL_KEYS.HIGGSFIELD_DOP_STANDARD).toBe(
         'higgsfield-ai/dop/standard',
       );
+      expect(MODEL_KEYS.HIGGSFIELD_GENJUTSU).toBe(
+        'higgsfield/genjutsu/motion-transfer/v1.0',
+      );
+      expect(MODEL_KEYS.HEYGEN_VIDEO).toBe('heygen/heygen-video-1');
     });
   });
 
   describe('ModelProvider', () => {
-    it('should have 6 members', () => {
-      expect(Object.values(ModelProvider)).toHaveLength(6);
+    it('should have 7 members', () => {
+      expect(Object.values(ModelProvider)).toHaveLength(7);
     });
 
     it('should have correct values', () => {
@@ -295,6 +299,7 @@ describe('model.enum', () => {
       expect(ModelProvider.GENFEED_AI).toBe('genfeed-ai');
       expect(ModelProvider.MUREKA).toBe('mureka');
       expect(ModelProvider.HEYGEN).toBe('heygen');
+      expect(ModelProvider.HIGGSFIELD).toBe('higgsfield');
     });
   });
 

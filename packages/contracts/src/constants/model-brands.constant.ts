@@ -55,6 +55,11 @@ export const MODEL_BRANDS: Record<string, ModelBrandConfig> = {
   'genfeed-ai': { color: '#3B82F6', iconKey: 'genfeed', label: 'GenFeed' },
   google: { color: '#4285F4', iconKey: 'google', label: 'Google' },
   heygen: { color: '#00C2FF', iconKey: 'heygen', label: 'HeyGen' },
+  higgsfield: {
+    color: '#EC4899',
+    iconKey: 'higgsfield',
+    label: 'Higgsfield',
+  },
   'higgsfield-ai': {
     color: '#EC4899',
     iconKey: 'higgsfield',
@@ -117,6 +122,7 @@ const FALLBACK_BRAND_LABELS: Record<string, string> = {
  */
 const BRAND_SLUG_ALIASES: Record<string, string> = {
   fal: 'fal-ai',
+  higgsfield: 'higgsfield-ai',
   xai: 'x-ai',
 };
 
