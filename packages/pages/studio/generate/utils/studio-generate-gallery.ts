@@ -83,18 +83,26 @@ export async function loadStudioGalleryIngredients(
 ): Promise<Ingredient[]> {
   if (!brandId) return [];
   const categories = resolveStudioGalleryCategories(filter);
+  signal.throwIfAborted();
+  // These independent reads are bounded to the five persisted categories.
+  // Publish only after every page succeeds, in category order, so a failure
+  // cannot expose partial history and network timing cannot affect deduping.
+  const results = await Promise.all(
+    categories.map((category) => {
+      const query = buildStudioGalleryQuery(
+        brandId,
+        filter,
+        STUDIO_GALLERY_PAGE_SIZE,
+        category,
+      );
+      return service.findAllPage({ ...query, page: 1 }, signal, {
+        handledErrorStatuses: [...GALLERY_HANDLED_STATUSES],
+      });
+    }),
+  );
+  signal.throwIfAborted();
   const collected = new Map<string, Ingredient>();
-  for (const category of categories) {
-    signal.throwIfAborted();
-    const query = buildStudioGalleryQuery(
-      brandId,
-      filter,
-      STUDIO_GALLERY_PAGE_SIZE,
-      category,
-    );
-    const result = await service.findAllPage({ ...query, page: 1 }, signal, {
-      handledErrorStatuses: [...GALLERY_HANDLED_STATUSES],
-    });
+  for (const result of results) {
     for (const ingredient of result.items.slice(0, STUDIO_GALLERY_PAGE_SIZE))
       collected.set(ingredient.id, ingredient);
   }

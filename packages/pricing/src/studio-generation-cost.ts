@@ -22,7 +22,7 @@ import {
 import {
   calculateImageGenerationCredits,
   calculateVideoGenerationCredits,
-} from '@genfeedai/pricing';
+} from './generation-credit-calculator';
 
 const UNAVAILABLE: StudioGenerationCostEstimate = {
   credits: null,

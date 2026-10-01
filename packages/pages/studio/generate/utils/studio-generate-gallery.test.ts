@@ -142,15 +142,71 @@ describe('bounded Studio gallery loading', () => {
     const findAllPage = vi
       .fn()
       .mockResolvedValueOnce(page(ingredients(0, 24), 2))
-      .mockRejectedValueOnce(failure);
+      .mockRejectedValueOnce(failure)
+      .mockResolvedValue(page([]));
     const signal = new AbortController().signal;
     await expect(
       loadStudioGalleryIngredients({ findAllPage }, 'brand-1', 'all', signal),
     ).rejects.toBe(failure);
-    expect(findAllPage).toHaveBeenCalledTimes(2);
+    expect(findAllPage).toHaveBeenCalledTimes(
+      resolveStudioGalleryCategories('all').length,
+    );
     for (const call of findAllPage.mock.calls) {
       expect(call[0]).toEqual(expect.objectContaining({ limit: 24, page: 1 }));
     }
+  });
+  it('starts every bounded category read before any one completes', async () => {
+    const categories = resolveStudioGalleryCategories('all');
+    const releases: Array<(value: ReturnType<typeof page>) => void> = [];
+    const findAllPage = vi.fn(
+      () =>
+        new Promise<ReturnType<typeof page>>((resolve) => {
+          releases.push(resolve);
+        }),
+    );
+    const pending = loadStudioGalleryIngredients(
+      { findAllPage },
+      'brand-1',
+      'all',
+      new AbortController().signal,
+    );
+    expect(findAllPage).toHaveBeenCalledTimes(categories.length);
+    // Resolve in reverse order; output must still follow category order.
+    for (let index = releases.length - 1; index >= 0; index--) {
+      releases[index]?.(page(ingredients(index, 1)));
+    }
+    expect((await pending).map((item) => item.id)).toEqual(
+      categories.map((_, index) => `ingredient-${index}`),
+    );
+  });
+  it('does not start reads after cancellation', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const findAllPage = vi.fn();
+    await expect(
+      loadStudioGalleryIngredients(
+        { findAllPage },
+        'brand-1',
+        'all',
+        controller.signal,
+      ),
+    ).rejects.toMatchObject({ name: 'AbortError' });
+    expect(findAllPage).not.toHaveBeenCalled();
+  });
+  it('rejects late results when a transport ignores cancellation', async () => {
+    const controller = new AbortController();
+    const findAllPage = vi.fn(async () => {
+      controller.abort();
+      return page(ingredients(0, 1));
+    });
+    await expect(
+      loadStudioGalleryIngredients(
+        { findAllPage },
+        'brand-1',
+        'video',
+        controller.signal,
+      ),
+    ).rejects.toMatchObject({ name: 'AbortError' });
   });
   it('does not fetch an unresolved brand', async () => {
     const findAllPage = vi.fn();
