@@ -325,6 +325,36 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(getModelCatalogForDeployment(true)).toBe(UNIFIED_MODEL_CATALOG);
   });
 
+  it('seeds HeyGen Video and Genjutsu inactive at zero cost on their own providers', () => {
+    const heygen = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.HEYGEN_VIDEO,
+    );
+    const genjutsu = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.HIGGSFIELD_GENJUTSU,
+    );
+    const soul = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.HIGGSFIELD_SOUL,
+    );
+
+    expect(heygen).toMatchObject({
+      category: ModelCategory.VIDEO,
+      cost: 0,
+      isActive: false,
+      label: 'HeyGen Video',
+      provider: ModelProvider.HEYGEN,
+    });
+    expect(genjutsu).toMatchObject({
+      category: ModelCategory.VIDEO,
+      cost: 0,
+      isActive: false,
+      label: 'Genjutsu',
+      provider: ModelProvider.HIGGSFIELD,
+    });
+    expect(soul?.provider).toBe(ModelProvider.HIGGSFIELD);
+    expect(heygen?.providerCostUsd).toBeUndefined();
+    expect(genjutsu?.providerCostUsd).toBeUndefined();
+  });
+
   it('seeds curated media rows with providerCostUsd for live-margin billing', () => {
     const curatedWithUsd = UNIFIED_MODEL_CATALOG.filter(
       (entry) => entry.isActive && entry.providerCostUsd != null,

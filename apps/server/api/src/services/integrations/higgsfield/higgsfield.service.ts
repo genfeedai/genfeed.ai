@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   SERVER_TOKENS,
   type ServerByokResolver,
@@ -9,6 +10,8 @@ import {
 } from '@api/services/integrations/higgsfield/errors/higgsfield-provider.error';
 import {
   HIGGSFIELD_API_BASE,
+  HIGGSFIELD_GENJUTSU_DEFAULT_RESOLUTION,
+  HIGGSFIELD_GENJUTSU_RESOLUTIONS,
   HIGGSFIELD_SOUL_ENDPOINT,
   type HiggsFieldSoulQuality,
   resolveDopEndpoint,
@@ -18,6 +21,7 @@ import {
 import {
   type HiggsFieldCredentials,
   type HiggsFieldDopInput,
+  type HiggsFieldGenjutsuInput,
   type HiggsFieldResponse,
   type HiggsFieldSoulInput,
   type HiggsFieldWebhook,
@@ -27,6 +31,7 @@ import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { createConcurrencyLimit } from '@api/shared/utils/create-concurrency-limit.util';
 import { AgentFailureReason, ByokProvider } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -35,6 +40,7 @@ import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 interface HiggsFieldRequestOptions {
+  idempotencyKey?: string;
   onProviderSubmissionStarted?: () => void;
   organizationId?: string;
   webhook?: HiggsFieldWebhook;
@@ -49,8 +55,8 @@ interface HiggsFieldPollOptions {
 /**
  * Client for the documented Higgsfield REST catalog.
  *
- * Submit posts to `https://api.higgsfield.ai/<endpoint-id>` (Soul 2, DoP),
- * then polls `GET /requests/{id}/status`. Auth is `Key <id>:<secret>`.
+ * Submit posts to `https://api.higgsfield.ai/<endpoint-id>` (Soul 2, DoP,
+ * Genjutsu), then polls `GET /requests/{id}/status`. Auth is `Key <id>:<secret>`.
  *
  * @see https://docs.higgsfield.ai/docs
  */
@@ -119,13 +125,18 @@ export class HiggsFieldService {
   }
 
   /** Higgsfield authenticates with a key id and secret pair on one header. */
-  private getHeaders(credentials: HiggsFieldCredentials): {
+  private getHeaders(
+    credentials: HiggsFieldCredentials,
+    idempotencyKey?: string,
+  ): {
     Authorization: string;
     'Content-Type': string;
+    'Idempotency-Key'?: string;
   } {
     return {
       Authorization: `Key ${credentials.apiKey}:${credentials.apiSecret}`,
       'Content-Type': 'application/json',
+      ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
     };
   }
 
@@ -160,7 +171,7 @@ export class HiggsFieldService {
 
     try {
       const submitUrl = this.buildSubmitUrl(endpointId, options.webhook);
-      const headers = this.getHeaders(credentials);
+      const headers = this.getHeaders(credentials, options.idempotencyKey);
       options.onProviderSubmissionStarted?.();
       const response = await firstValueFrom(
         this.httpService.post<HiggsFieldResponse>(submitUrl, input, {
@@ -358,6 +369,60 @@ export class HiggsFieldService {
       onProviderSubmissionStarted: params.onProviderSubmissionStarted,
       organizationId: params.organizationId,
       webhook: params.webhook,
+    });
+
+    return {
+      requestId: submitted.request_id,
+      videoUrl: submitted.video?.url,
+    };
+  }
+
+  /**
+   * Genjutsu motion transfer. The source clip is at least 4s and trimmed at
+   * 30s by Higgsfield. One to eight character stills ride `image_urls`.
+   */
+  async generateMotionTransfer(params: {
+    imageUrls: readonly string[];
+    onProviderSubmissionStarted?: () => void;
+    organizationId?: string;
+    prompt?: string;
+    resolution?: string;
+    videoUrl: string;
+  }): Promise<{ requestId: string; videoUrl?: string }> {
+    const videoUrl = params.videoUrl.trim();
+    if (!videoUrl.startsWith('https://')) {
+      throw new BadRequestException(
+        'Higgsfield Genjutsu requires an https source video URL.',
+      );
+    }
+
+    const imageUrls = [
+      ...new Set(
+        params.imageUrls
+          .map((url) => url.trim())
+          .filter((url) => url.startsWith('https://')),
+      ),
+    ];
+    if (imageUrls.length < 1 || imageUrls.length > 8) {
+      throw new BadRequestException(
+        'Higgsfield Genjutsu requires 1 to 8 https character image URLs.',
+      );
+    }
+
+    const resolution = HIGGSFIELD_GENJUTSU_RESOLUTIONS.find(
+      (value) => value === params.resolution,
+    );
+    const input: HiggsFieldGenjutsuInput = {
+      image_urls: imageUrls,
+      prompt: params.prompt?.trim() ?? '',
+      resolution: resolution ?? HIGGSFIELD_GENJUTSU_DEFAULT_RESOLUTION,
+      video_url: videoUrl,
+    };
+
+    const submitted = await this.submit(MODEL_KEYS.HIGGSFIELD_GENJUTSU, input, {
+      idempotencyKey: randomUUID(),
+      onProviderSubmissionStarted: params.onProviderSubmissionStarted,
+      organizationId: params.organizationId,
     });
 
     return {

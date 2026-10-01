@@ -53,6 +53,16 @@ export interface HiggsFieldDopInput {
   image_url: string;
 }
 
+export type HiggsFieldGenjutsuResolution = '480p' | '720p' | '1080p';
+
+/** `POST /higgsfield/genjutsu/motion-transfer/v1.0` */
+export interface HiggsFieldGenjutsuInput {
+  image_urls: string[];
+  prompt: string;
+  resolution: HiggsFieldGenjutsuResolution;
+  video_url: string;
+}
+
 /** `POST /higgsfield-ai/soul/v2/standard` */
 export interface HiggsFieldSoulInput {
   prompt: string;

@@ -38,6 +38,7 @@ import { VideosController } from '@api/collections/videos/controllers/videos.con
 import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import type { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
 import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
+import { HeyGenVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/heygen-video-generation-provider.adapter';
 import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/higgsfield-video-generation-provider.adapter';
 import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
 import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
@@ -56,6 +57,7 @@ import { ByokService } from '@api/services/byok/byok.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FalService } from '@api/services/integrations/fal/services/fal.service';
+import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { KlingAIService } from '@api/services/integrations/klingai/services/klingai.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
@@ -482,6 +484,11 @@ describe('VideosController', () => {
         // above. This catches constructor-dependency regressions that the
         // previous `new VideoGenerationService(...)` pattern silently missed.
         FalVideoGenerationProviderAdapter,
+        {
+          provide: HeyGenService,
+          useValue: { generateModelVideo: vi.fn() },
+        },
+        HeyGenVideoGenerationProviderAdapter,
         {
           inject: [HiggsFieldService],
           provide: HiggsFieldVideoGenerationProviderAdapter,

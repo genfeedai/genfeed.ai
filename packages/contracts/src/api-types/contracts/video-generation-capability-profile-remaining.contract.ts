@@ -102,7 +102,8 @@ export function deriveRemainingVideoReferenceRoles(
   }
   if (
     nativeFields.includes('reference_video') ||
-    nativeFields.includes('reference_videos')
+    nativeFields.includes('reference_videos') ||
+    nativeFields.includes('reference_video_urls')
   ) {
     roles.add('reference_video');
   }
@@ -121,6 +122,7 @@ export function buildRemainingVideoCapabilityProfile(input: {
   maxSeconds?: number;
   minSeconds?: number;
   modelKey: string;
+  maxCharacters?: number;
   nativeFields?: string[];
   negativePromptSupported?: boolean;
   requireImageToVideo?: boolean;
@@ -156,7 +158,7 @@ export function buildRemainingVideoCapabilityProfile(input: {
     prompt: {
       enhancement: 'unsupported',
       format: 'natural_language',
-      maxCharacters: 10_000,
+      maxCharacters: input.maxCharacters ?? 10_000,
     },
     references: {
       max: maxReferences,
