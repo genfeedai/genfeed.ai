@@ -39,6 +39,8 @@
       "@genfeedai/contracts/*": ["../../packages/contracts/dist/*"],
       "@genfeedai/harness": ["../../packages/harness/dist/index.d.ts"],
       "@genfeedai/harness/*": ["../../packages/harness/dist/*"],
+      "@genfeedai/helpers": ["../../packages/helpers/src/index.ts"],
+      "@genfeedai/helpers/*": ["../../packages/helpers/src/*"],
       "@genfeedai/integrations": [
         "../../packages/integrations/dist/index.d.ts"
       ],

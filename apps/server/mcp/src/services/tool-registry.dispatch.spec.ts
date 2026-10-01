@@ -56,6 +56,7 @@ describe('ToolRegistryService.classify', () => {
     ['cancel_visual_code_project', 'agent-executor'],
     ['retry_visual_code_project', 'agent-executor'],
     ['enhance_prompt', 'agent-executor'],
+    ['get_generation_cost', 'agent-executor'],
     ['get_generation_settings', 'agent-executor'],
     ['set_generation_settings', 'agent-executor'],
     ['get_video_status', 'legacy'],

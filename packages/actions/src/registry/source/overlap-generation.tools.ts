@@ -38,6 +38,29 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
     },
   },
   {
+    name: 'get_generation_cost',
+    description:
+      'Read the Studio image or video generation estimate and the organization credit balance. Returns the same catalog estimate the Generate composer shows and the same Genfeed balance as the credits bar. Does not charge credits, change a price, or authorize a generation. Omit modelKey, or pass Auto, for estimate status auto. Unsupported, missing, or unpriced models return estimate status unavailable with credits null. balance is null when the wallet cannot be read; a numeric 0 is a real empty balance.',
+    creditCost: 0,
+    requiredRole: 'user',
+    parameters: {
+      type: 'object',
+      required: ['type'],
+      properties: {
+        type: { type: 'string', enum: ['image', 'video'] },
+        modelKey: {
+          type: 'string',
+          description:
+            'Catalog model key. Omit for Auto, which has no estimate until a model is selected.',
+        },
+        aspectRatio: { type: 'string' },
+        resolution: { type: 'string' },
+        duration: { type: 'number' },
+        outputs: { type: 'number' },
+      },
+    },
+  },
+  {
     name: 'get_generation_settings',
     description:
       'Read effective image/video prompt enhancement settings and organization or brand overrides. Threaded Agent calls use the validated current thread brand; brandId must match it. In threadless MCP calls, brandId selects the brand scope.',

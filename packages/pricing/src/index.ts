@@ -22,4 +22,5 @@ export * from './model-pricing-export';
 export * from './plans-pricing';
 export * from './provider-pricing';
 export * from './reviewed-provider-pricing';
+export * from './studio-generation-cost';
 export * from './tier-entitlements';

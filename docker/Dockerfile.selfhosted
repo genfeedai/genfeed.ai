@@ -148,9 +148,10 @@ COPY apps/server/ apps/server/
 # package exports before the parallel batch. A clean Docker context has no host
 # dist output, so this follows docker/Dockerfile.server's dependency order and
 # includes contracts because the self-hosted image also builds the Next.js app:
-# contracts -> pricing -> client, then config can build.
+# contracts -> helpers -> pricing -> client, then config can build.
 RUN set -e; \
     bun --filter @genfeedai/contracts build; \
+    bun --filter @genfeedai/helpers build; \
     bun --filter @genfeedai/pricing build; \
     bun --filter @genfeedai/client build
 
@@ -164,7 +165,6 @@ RUN set -e; \
 # note in docker/Dockerfile.server.
 RUN set -e; \
     bun --filter @genfeedai/config build; \
-    bun --filter @genfeedai/helpers build; \
     bun --filter @genfeedai/integrations build; \
     bun --filter @genfeedai/serializers build; \
     bun --filter @genfeedai/workflows build:server
