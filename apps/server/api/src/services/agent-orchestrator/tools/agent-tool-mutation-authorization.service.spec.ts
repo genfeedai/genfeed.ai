@@ -5,6 +5,7 @@ import {
   HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
   SYSTEM_WORKFLOW_PRINCIPAL_ID,
 } from '@api/collections/workflows/system-workflow.contract';
+import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentToolMutationAuthorizationService } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-authorization.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -238,6 +239,14 @@ function proactiveAuthorizationFixture() {
     >[2],
     { $transaction: transaction } as unknown as PrismaService,
   );
+  const routeRewriteService = new AgentRouteRewriteService(
+    {} as LoggerService,
+    { findOne: vi.fn().mockResolvedValue(null) },
+    { findOne: vi.fn().mockResolvedValue(null) },
+  );
+  vi.spyOn(routeRewriteService, 'scopeToolResultHrefs').mockImplementation(
+    async (result) => result,
+  );
   const authorize = (
     parameters: Record<string, unknown> = {
       content: 'Text draft',
@@ -253,9 +262,7 @@ function proactiveAuthorizationFixture() {
         prepareHandler: {} as Parameters<
           typeof service.authorize
         >[3]['prepareHandler'],
-        routeRewriteService: {
-          scopeToolResultHrefs: async (result) => result,
-        } as Parameters<typeof service.authorize>[3]['routeRewriteService'],
+        routeRewriteService,
         dispatchPreview: vi.fn(),
       }),
     );
