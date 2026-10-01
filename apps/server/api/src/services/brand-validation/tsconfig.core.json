@@ -1,0 +1,20 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "noEmit": true,
+    "incremental": false,
+    "types": ["node", "vitest/globals"]
+  },
+  "include": [],
+  "files": [
+    "./brand-validation.service.ts",
+    "./brand-validation.module.ts",
+    "./brand-validation-material.util.ts",
+    "./brand-validation-rules.util.ts",
+    "./brand-validation.service.spec.ts",
+    "./brand-validation.corpus.spec.ts",
+    "./brand-validation-artifact.util.ts",
+    "./brand-validation-artifact.util.spec.ts"
+  ]
+}
