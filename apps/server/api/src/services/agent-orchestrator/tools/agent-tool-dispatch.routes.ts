@@ -53,7 +53,7 @@ export type AgentToolDispatchHandlers = {
   workspaceHandler: AgentWorkspaceToolHandler;
 };
 
-type FamilyResult = Promise<AgentToolResult> | null;
+type FamilyResult = Promise<AgentToolResult> | AgentToolResult | null;
 
 export function dispatchRegisteredAgentTool(
   handlers: AgentToolDispatchHandlers,
@@ -61,20 +61,19 @@ export function dispatchRegisteredAgentTool(
   params: Record<string, unknown>,
   ctx: ToolExecutionContext,
 ): Promise<AgentToolResult> {
-  return (
+  return Promise.resolve(
     dispatchCatalogAndTransfer(handlers, toolName, params, ctx) ??
-    dispatchWorkspaceFamily(handlers, toolName, params, ctx) ??
-    dispatchWorkflowFamily(handlers, toolName, params, ctx) ??
-    dispatchInsightsFamily(handlers, toolName, params, ctx) ??
-    dispatchMediaFamily(handlers, toolName, params, ctx) ??
-    dispatchGrowthFamily(handlers, toolName, params, ctx) ??
-    dispatchStudioFamily(handlers, toolName, params, ctx) ??
-    dispatchKnowledgeFamily(handlers, toolName, params, ctx) ??
-    Promise.resolve({
-      creditsUsed: 0,
-      error: `Unknown tool: ${toolName as string}`,
-      success: false,
-    })
+      dispatchWorkspaceFamily(handlers, toolName, params, ctx) ??
+      dispatchWorkflowFamily(handlers, toolName, params, ctx) ??
+      dispatchInsightsFamily(handlers, toolName, params, ctx) ??
+      dispatchMediaFamily(handlers, toolName, params, ctx) ??
+      dispatchGrowthFamily(handlers, toolName, params, ctx) ??
+      dispatchStudioFamily(handlers, toolName, params, ctx) ??
+      dispatchKnowledgeFamily(handlers, toolName, params, ctx) ?? {
+        creditsUsed: 0,
+        error: `Unknown tool: ${toolName as string}`,
+        success: false,
+      },
   );
 }
 
