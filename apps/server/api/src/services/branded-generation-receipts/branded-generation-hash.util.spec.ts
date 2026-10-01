@@ -545,3 +545,35 @@ it('identity preserves canonical rule list order and source values', () => {
     }),
   ).not.toBe(original);
 });
+
+it('identity hashes explicit approved applicability and preserves list order and repeated resolution', () => {
+  const v = snapshot();
+  v.generationRules.evidence = [
+    { id: 'evidence', sourceType: 'manual', label: 'Owner attestation' },
+  ];
+  v.generationRules.typography = [
+    {
+      id: 'font',
+      role: 'heading',
+      family: 'Custom',
+      weight: 400,
+      style: 'normal',
+      availability: 'verified_runtime',
+      runtimeFontId: 'runtime',
+      required: true,
+      evidenceIds: ['evidence'],
+    },
+  ];
+  const universal = hashBrandIdentitySnapshotV1(v);
+  v.generationRules.typography[0].appliesToMediaKinds = ['image', 'video'];
+  const scoped = hashBrandIdentitySnapshotV1(v);
+  expect(scoped).not.toBe(universal);
+  expect(
+    hashBrandIdentitySnapshotV1({
+      ...v,
+      resolvedAt: '2027-01-01T00:00:00.000Z',
+    }),
+  ).toBe(scoped);
+  v.generationRules.typography[0].appliesToMediaKinds = ['video', 'image'];
+  expect(hashBrandIdentitySnapshotV1(v)).not.toBe(scoped);
+});
