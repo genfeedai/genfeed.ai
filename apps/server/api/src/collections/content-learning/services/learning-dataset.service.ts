@@ -107,10 +107,10 @@ export class LearningDatasetGraph {
         : !organizationId?.trim()
     )
       return result;
-    const where = {
-      id: { in: ids },
-      ...(organizationId === null ? {} : { organizationId }),
-      isDeleted: false,
+    const globalWhere = { id: { in: ids }, isDeleted: false };
+    const tenantWhere = {
+      ...globalWhere,
+      organizationId: organizationId ?? '',
     };
     switch (kind) {
       case 'config':
@@ -136,7 +136,7 @@ export class LearningDatasetGraph {
       case 'brand': {
         const rows = await this.tx.brand.findMany({
           select: { id: true },
-          where: { ...where },
+          where: { ...tenantWhere },
         });
         for (const row of rows) {
           const pin = row.id;
@@ -147,7 +147,7 @@ export class LearningDatasetGraph {
       case 'credential': {
         const rows = await this.tx.credential.findMany({
           select: { id: true },
-          where: { ...where },
+          where: { ...tenantWhere },
         });
         for (const row of rows) {
           const pin = row.id;
@@ -158,7 +158,7 @@ export class LearningDatasetGraph {
       case 'post': {
         const rows = await this.tx.post.findMany({
           select: { id: true },
-          where: { ...where },
+          where: { ...tenantWhere },
         });
         for (const row of rows) {
           const pin = row.id;
@@ -169,7 +169,7 @@ export class LearningDatasetGraph {
       case 'account': {
         const rows = await this.tx.contentLearningAccount.findMany({
           select: { epoch: true, id: true },
-          where: { ...where },
+          where: { ...tenantWhere },
         });
         for (const row of rows) {
           const pin = String(row.epoch);
@@ -180,7 +180,7 @@ export class LearningDatasetGraph {
       case 'checkpoint': {
         const rows = await this.tx.contentLearningCheckpoint.findMany({
           select: { id: true, revision: true },
-          where: { ...where },
+          where: { ...tenantWhere },
         });
         for (const row of rows) {
           const pin = String(row.revision);
@@ -191,7 +191,7 @@ export class LearningDatasetGraph {
       case 'baseline': {
         const rows = await this.tx.contentLearningBaseline.findMany({
           select: { fingerprint: true, id: true },
-          where: { ...where },
+          where: { ...tenantWhere },
         });
         for (const row of rows) {
           const pin = row.fingerprint;
@@ -202,7 +202,7 @@ export class LearningDatasetGraph {
       case 'decision': {
         const rows = await this.tx.contentLearningDecision.findMany({
           select: { id: true, payloadHash: true },
-          where: { ...where },
+          where: { ...tenantWhere },
         });
         for (const row of rows) {
           const pin = row.payloadHash;
@@ -213,7 +213,7 @@ export class LearningDatasetGraph {
       case 'reward': {
         const rows = await this.tx.contentLearningReward.findMany({
           select: REWARD_SELECT,
-          where: { ...where },
+          where: { ...tenantWhere },
         });
         for (const row of rows) {
           this.rewardFacts.set(
@@ -228,7 +228,7 @@ export class LearningDatasetGraph {
       case 'policy': {
         const rows = await this.tx.contentLearningPolicyVersion.findMany({
           select: { id: true, version: true },
-          where: { ...where, state: { not: 'invalid' } },
+          where: { ...tenantWhere, state: { not: 'invalid' } },
         });
         for (const row of rows) {
           const pin = String(row.version);
@@ -239,7 +239,7 @@ export class LearningDatasetGraph {
       case 'dataset': {
         const rows = await this.tx.contentLearningDataset.findMany({
           select: { id: true, manifestHash: true },
-          where: { ...where, status: { not: 'invalidated' } },
+          where: { ...globalWhere, status: { not: 'invalidated' } },
         });
         for (const row of rows) {
           const pin = row.manifestHash;
@@ -250,7 +250,7 @@ export class LearningDatasetGraph {
       case 'run': {
         const rows = await this.tx.contentLearningRun.findMany({
           select: { configHash: true, id: true },
-          where: { ...where, status: { not: 'invalidated' } },
+          where: { ...globalWhere, status: { not: 'invalidated' } },
         });
         for (const row of rows) {
           const pin = row.configHash;
@@ -261,7 +261,7 @@ export class LearningDatasetGraph {
       case 'shared-policy': {
         const rows = await this.tx.contentLearningSharedPolicy.findMany({
           select: { id: true, version: true },
-          where: { ...where, validity: { not: 'invalid' } },
+          where: { ...globalWhere, validity: { not: 'invalid' } },
         });
         for (const row of rows) {
           const pin = String(row.version);
@@ -272,7 +272,7 @@ export class LearningDatasetGraph {
       case 'release': {
         const rows = await this.tx.contentLearningRelease.findMany({
           select: { id: true, revision: true },
-          where: { ...where, stage: { not: 'invalid' } },
+          where: { ...globalWhere, stage: { not: 'invalid' } },
         });
         for (const row of rows) {
           const pin = String(row.revision);
@@ -283,7 +283,7 @@ export class LearningDatasetGraph {
       case 'experiment': {
         const rows = await this.tx.contentLearningExperiment.findMany({
           select: { id: true, specHash: true },
-          where: { ...where },
+          where: { ...tenantWhere },
         });
         for (const row of rows) {
           const pin = row.specHash;
@@ -294,7 +294,7 @@ export class LearningDatasetGraph {
       case 'enrollment': {
         const rows = await this.tx.contentLearningEnrollment.findMany({
           select: { accountEpoch: true, consentNoticeVersion: true, id: true },
-          where: { ...where },
+          where: { ...tenantWhere },
         });
         for (const row of rows) {
           const pin = `${row.accountEpoch}:${row.consentNoticeVersion}`;
@@ -305,7 +305,7 @@ export class LearningDatasetGraph {
       case 'opportunity': {
         const rows = await this.tx.contentLearningOpportunity.findMany({
           select: { id: true, specHash: true },
-          where: { ...where },
+          where: { ...tenantWhere },
         });
         for (const row of rows) {
           const pin = row.specHash;
@@ -316,7 +316,7 @@ export class LearningDatasetGraph {
       case 'experiment-event': {
         const rows = await this.tx.contentLearningExperimentEvent.findMany({
           select: { fingerprint: true, id: true },
-          where: { ...where },
+          where: { ...tenantWhere },
         });
         for (const row of rows) {
           const pin = row.fingerprint;
@@ -327,7 +327,7 @@ export class LearningDatasetGraph {
       case 'llm_vendor_cost': {
         const rows = await this.tx.llmVendorCost.findMany({
           select: { id: true, learningAttemptId: true, updatedAt: true },
-          where: { ...where },
+          where: { ...tenantWhere },
         });
         for (const row of rows) {
           const pin = row.learningAttemptId
@@ -340,7 +340,7 @@ export class LearningDatasetGraph {
       case 'media_vendor_cost': {
         const rows = await this.tx.mediaVendorCost.findMany({
           select: { id: true, learningAttemptId: true, updatedAt: true },
-          where: { ...where },
+          where: { ...tenantWhere },
         });
         for (const row of rows) {
           const pin = row.learningAttemptId
@@ -384,7 +384,7 @@ export class LearningDatasetGraph {
       case 'consent': {
         const rows = await this.tx.contentLearningConsent.findMany({
           select: { id: true, accountId: true, version: true },
-          where: { ...where, granted: true, revokedAt: null },
+          where: { ...tenantWhere, granted: true, revokedAt: null },
         });
         const accounts = new Map<string, number | null>();
         for (const ids of batches([
@@ -889,12 +889,12 @@ export class LearningDatasetService {
         const rewards = await tx.contentLearningReward.findMany({
           select: REWARD_SELECT,
           where: {
+            ...(cursor ? { id: { gt: cursor } } : {}),
             organizationId: account.organizationId,
             credentialId: account.credentialId,
             status: 'valid',
             isDeleted: false,
             createdAt: { lte: cutoff },
-            ...(cursor ? { id: { gt: cursor } } : {}),
           },
           orderBy: { id: 'asc' },
           take: DATASET_BATCH_SIZE,

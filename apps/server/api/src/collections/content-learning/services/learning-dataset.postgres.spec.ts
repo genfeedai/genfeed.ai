@@ -327,7 +327,7 @@ describe.skipIf(!explicitUrl)(
         [size],
       );
       await pool.query(
-        `INSERT INTO content_learning_baselines (id,"organizationId","brandId","credentialId",fingerprint,"scopeKey",cutoff,"configVersion","contributorCheckpointIds","contributorRevisions",count,"medianExposure",samples,validity,"updatedAt") SELECT 'baseline-'||i,'org-'||(i%2),'brand-'||(i%2),'credential-'||i,'baseline-fingerprint-'||i,'scope-'||i,TIMESTAMP '2026-09-01','rl-reward-v1-experimental',ARRAY[]::text[],ARRAY[]::int[],20,1,'[]','valid',NOW() FROM generate_series(0,9) i`,
+        `INSERT INTO content_learning_baselines (id,"organizationId","brandId","credentialId",fingerprint,"scopeKey",cutoff,"configVersion","contributorCheckpointIds","contributorRevisions",count,"medianExposure",samples,validity,"updatedAt") SELECT 'baseline-'||i,'org-'||(i%2),'brand-'||(i%2),'credential-'||i,'baseline-fingerprint-'||i,'scope-'||i,TIMESTAMP '2026-09-01','rl-reward-v1-experimental',ARRAY(SELECT 'checkpoint-'||(i+k*10) FROM generate_series(0,19) k),array_fill(0,ARRAY[20]),20,1,'[]','valid',NOW() FROM generate_series(0,9) i`,
       );
       await pool.query(
         `INSERT INTO content_learning_decisions (id,"organizationId","brandId","credentialId","requestKey","destinationKey","candidateIndex","payloadHash","scopeKey",epoch,"accountRevision",mode,"contextVector","contextSnapshot","eligibleArmIds",probabilities,"selectedArmId","selectedProbability",assignment,"assignmentProbability","executionProbability","configVersion","baselineId",state,"createdAt","updatedAt") SELECT 'decision-'||i,'org-'||(i%10%2),'brand-'||(i%10%2),'credential-'||(i%10),'request-'||i,'destination',0,'payload-'||i,'scope-'||(i%10),0,0,'shadow',ARRAY[1,0,1,0,1,0,1,0,1]::float8[],'{}',ARRAY['baseline-v1'],'{"baseline-v1":1,"question-example-v1":0,"proof-steps-v1":0}','baseline-v1',1,'fixture',1,1,'ridge-epsilon-v1','baseline-'||(i%10),'published',TIMESTAMP '2026-09-01'+(i%100)*INTERVAL '1 second',NOW() FROM generate_series(0,$1::int-1) i`,
@@ -430,6 +430,16 @@ describe.skipIf(!explicitUrl)(
         take: 1,
       });
       expect(entries[0].accountGroup).toMatch(/^[a-f0-9]{64}$/);
+      expect(
+        await prisma.contentLearningDatasetEntry.count({
+          where: { datasetId: dataset.id },
+        }),
+      ).toBe(counts.total);
+      expect(
+        await prisma.contentLearningDependency.count({
+          where: { derivedKind: 'dataset', derivedId: dataset.id },
+        }),
+      ).toBe(kind === 'owned' ? 0 : size + 10);
       await clearOutputs();
     }
     it.skipIf(!benchmark)(
@@ -471,10 +481,10 @@ describe.skipIf(!explicitUrl)(
         'content_learning_dependencys',
       ]) {
         await pool.query(
-          `CREATE FUNCTION fail_${table}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF ${table === 'content_learning_dependencys' ? 'NEW."derivedKind" = \'dataset\' AND NEW."sourceId" = \'reward-0001999\'' : 'NEW."sourceFingerprint" = \'reward-fingerprint-1999\''} THEN RAISE EXCEPTION 'injected late batch failure'; END IF; RETURN NEW; END $$`,
+          `CREATE FUNCTION fail_${table}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF (SELECT count(*) FROM "${table}" ${table === 'content_learning_dependencys' ? 'WHERE "derivedKind" = \'dataset\'' : ''}) >= 1000 THEN RAISE EXCEPTION 'injected late batch failure'; END IF; RETURN NULL; END $$`,
         );
         await pool.query(
-          `CREATE TRIGGER fail_insert BEFORE INSERT ON "${table}" FOR EACH ROW EXECUTE FUNCTION fail_${table}()`,
+          `CREATE TRIGGER fail_insert BEFORE INSERT ON "${table}" FOR EACH STATEMENT EXECUTE FUNCTION fail_${table}()`,
         );
         const retry = { ...request, requestId: randomUUID() };
         await expect(service.create(retry)).rejects.toThrow(
