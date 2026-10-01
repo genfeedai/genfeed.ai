@@ -101,7 +101,9 @@ describe('GenerationsPage shell-first loading', () => {
     expect(screen.getByText(/user@example.com/)).toBeVisible();
     expect(screen.getByText(/Acme/)).toBeVisible();
     await waitFor(() => {
-      expect(screen.getByRole('img')).toBeVisible();
+      expect(
+        screen.getByRole('img', { name: 'original prompt' }),
+      ).toBeVisible();
     });
   });
 });

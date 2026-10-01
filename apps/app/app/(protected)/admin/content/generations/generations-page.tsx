@@ -146,7 +146,7 @@ function GenerationsPageContent() {
                     <div className="overflow-hidden rounded-md bg-foreground/5">
                       {imageUrl ? (
                         <Image
-                          alt=""
+                          alt={original || 'Generated result'}
                           className="aspect-square w-full object-cover"
                           height={256}
                           src={imageUrl}
