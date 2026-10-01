@@ -265,7 +265,7 @@ describe('GenerationQuoteGroupService', () => {
     state.hold.metadata.dispatchClosed = false;
     state.outputs[0].status = IngredientStatus.PROCESSING;
     state.hold.metadata.failedOutputIds = ['image-1', 'image-2'];
-    await state.service.reconcile(new Date('2026-10-02'));
+    await state.service.reconcile(new Date('2027-01-02'));
     expect(state.hold.metadata.dispatchClosed).toBe(true);
     expect(state.outputs[0].status).toBe(IngredientStatus.PROCESSING);
     expect(state.prisma.ingredient.updateMany).not.toHaveBeenCalled();
