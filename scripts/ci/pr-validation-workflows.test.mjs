@@ -9,6 +9,7 @@ import './full-suite-evidence.test.mjs';
 import './nightly-e2e-failure-reporter.test.mjs';
 import './nightly-playwright-full-failure-reporter.test.mjs';
 import './playwright-full-nightly.test.mjs';
+import './runtime-acceptance.test.mjs';
 import './scheduled-failure-tracker.test.mjs';
 
 const REPOSITORY_ROOT = fileURLToPath(new URL('../..', import.meta.url));
@@ -786,4 +787,48 @@ test('bundle report publishing isolates write credentials from PR build code', (
   for (const job of [measure, comment]) {
     assert.match(job, /name: bundle-report-\$\{\{ matrix.app \}\}/);
   }
+});
+
+test('dataset diagnostic freezes inspected control before the exact candidate checkout', () => {
+  const workflow = readWorkflow('dataset-diagnostic.yml');
+  assert.match(workflow, /^ {2}workflow_dispatch:/m);
+  assert.doesNotMatch(
+    workflow,
+    /^ {2}(?:pull_request|push|schedule|workflow_call):/m,
+  );
+  assert.match(workflow, /^ {4}timeout-minutes: 20$/m);
+  assert.match(
+    workflow,
+    /RUNTIME_ACCEPTANCE_JOB_STARTED_MS=\$\(date \+%s%3N\)/,
+  );
+  const preflight = workflow.indexOf(
+    'Validate control identity and freeze controller',
+  );
+  const freeze = workflow.indexOf(
+    'cp scripts/ci/runtime-acceptance.mjs "$CONTROL_RUNNER"',
+  );
+  const candidate = workflow.indexOf('Checkout exact dataset candidate');
+  const install = workflow.indexOf('Setup Bun environment');
+  assert.ok(
+    preflight > 0 &&
+      preflight < freeze &&
+      freeze < candidate &&
+      candidate < install,
+  );
+  assert.match(workflow, /ref: \$\{\{ inputs\.candidate_sha \}\}/);
+  assert.match(workflow, /test "\$\(git rev-parse HEAD\)" = "\$CANDIDATE_SHA"/);
+  assert.match(workflow, /node "\$CONTROL_RUNNER" dataset-diagnostic/);
+  assert.match(
+    workflow,
+    /RUNTIME_ACCEPTANCE_PUBLIC_KEY: \$\{\{ vars\.RUNTIME_ACCEPTANCE_PUBLIC_KEY \}\}/,
+  );
+  assert.doesNotMatch(
+    workflow,
+    /secrets: inherit|continue-on-error|passWithNoTests|upload[^\n]*raw/,
+  );
+  assert.match(workflow, /persist-credentials: false/);
+  assert.match(workflow, /public\/receipt\.json/);
+  assert.match(workflow, /public\/evidence\.encrypted\.json/);
+  assert.match(workflow, /if-no-files-found: error/);
+  assert.doesNotMatch(workflow, /path:.*\*|path:.*raw\//);
 });
