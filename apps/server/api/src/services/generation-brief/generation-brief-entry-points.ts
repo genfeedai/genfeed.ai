@@ -41,14 +41,14 @@ export const GENERATION_BRIEF_GENERATIVE_ENTRY_POINTS: readonly GenerationBriefG
       id: 'workflow-imageGen',
       marker: 'runImageGenerationBrief',
       source:
-        'apps/server/api/src/collections/workflows/services/workflow-media-generation-executor-registrar.service.ts',
+        'apps/server/api/src/collections/workflows/services/workflow-media-provider-plan.service.ts',
       surface: 'workflow',
     },
     {
       id: 'workflow-videoGen',
       marker: 'runVideoGenerationBrief',
       source:
-        'apps/server/api/src/collections/workflows/services/workflow-media-generation-executor-registrar.service.ts',
+        'apps/server/api/src/collections/workflows/services/workflow-media-provider-plan.service.ts',
       surface: 'workflow',
     },
     {

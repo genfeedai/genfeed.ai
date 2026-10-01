@@ -2,6 +2,7 @@ import { readWorkflowAccounting } from '@api/collections/workflow-executions/ser
 import {
   runWithWorkflowAccounting,
   validatedWorkflowAccountingAttribution,
+  validatedWorkflowFundingAttribution,
   workflowAccountingAttribution,
 } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { captureWorkflowCostEstimate } from '@api/collections/workflow-executions/services/workflow-cost-estimate';
@@ -45,6 +46,43 @@ const scope = {
   workflowOperationId: 'attempt',
 };
 describe('workflow accounting', () => {
+  it('attributes aggregate funding explicitly without borrowing an unrelated current node scope', async () => {
+    const prisma = {
+      workflowExecution: {
+        findFirst: vi.fn().mockResolvedValue({ id: 'funded-run' }),
+      },
+    };
+    await runWithWorkflowAccounting(scope, async () => {
+      expect(
+        await validatedWorkflowFundingAttribution(
+          prisma as unknown as PrismaService,
+          'org',
+          'funded-run',
+        ),
+      ).toEqual({ workflowExecutionId: 'funded-run' });
+    });
+    expect(prisma.workflowExecution.findFirst).toHaveBeenCalledExactlyOnceWith({
+      where: { id: 'funded-run', organizationId: 'org', isDeleted: false },
+      select: { id: true },
+    });
+  });
+  it('rejects foreign or deleted explicit funding attribution before the hold can be written', async () => {
+    const prisma = {
+      workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) },
+    };
+    await expect(
+      validatedWorkflowFundingAttribution(
+        prisma as unknown as PrismaService,
+        'org',
+        'foreign',
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        detail: expect.stringContaining('outside the organization'),
+      }),
+    });
+  });
+
   it('isolates concurrent node and tenant attribution', async () => {
     const result = await Promise.all(
       ['a', 'b'].map((workflowNodeId) =>

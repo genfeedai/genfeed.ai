@@ -5,6 +5,7 @@ import { AgentStrategiesCoreModule } from '@api/collections/agent-strategies/age
  * duration, status, and error information.
  */
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
+import { CreditsModule } from '@api/collections/credits/credits.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { InternalWorkflowExecutionsController } from '@api/collections/workflow-executions/controllers/internal-workflow-executions.controller';
 import { WorkflowExecutionsController } from '@api/collections/workflow-executions/controllers/workflow-executions.controller';
@@ -31,6 +32,7 @@ import { Module } from '@nestjs/common';
   imports: [
     ActivityRecordingModule,
     AgentStrategiesCoreModule,
+    CreditsModule,
     AgentThreadsModule,
     WorkflowsCoreModule,
     UsersModule,

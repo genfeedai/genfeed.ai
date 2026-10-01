@@ -31,6 +31,15 @@ export type DurableNodeClaimOutcome =
       error?: string;
     };
 
+type ClaimClient = {
+  workflowNodeClaim: PrismaService['workflowNodeClaim'];
+};
+
+export type DurableNodeClaimedHandler = (
+  tx: Prisma.TransactionClient,
+  lease: WorkflowNodeClaimLease,
+) => Promise<void>;
+
 /**
  * Thrown when a durable node claim's owner-scoped write (renew or complete)
  * discovers this worker no longer owns the lease — another worker reclaimed
@@ -68,11 +77,28 @@ export class WorkflowNodeClaimService {
 
   async tryClaim(
     params: WorkflowNodeClaimOptions,
+    onClaimed?: DurableNodeClaimedHandler,
+  ): Promise<DurableNodeClaimOutcome> {
+    if (!onClaimed) {
+      return this.tryClaimWithClient(this.prisma, params);
+    }
+    return this.prisma.$transaction(async (tx) => {
+      const outcome = await this.tryClaimWithClient(tx, params);
+      if (outcome.action === 'claimed') {
+        await onClaimed(tx, outcome.lease);
+      }
+      return outcome;
+    });
+  }
+
+  private async tryClaimWithClient(
+    client: ClaimClient,
+    params: WorkflowNodeClaimOptions,
   ): Promise<DurableNodeClaimOutcome> {
     const lease = this.createLease(params);
     const leaseExpiresAt = this.getLeaseExpiration();
     try {
-      await this.prisma.workflowNodeClaim.create({
+      await client.workflowNodeClaim.create({
         data: {
           executionId: params.executionId,
           leaseExpiresAt,
@@ -88,7 +114,7 @@ export class WorkflowNodeClaimService {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        let existing = await this.prisma.workflowNodeClaim.findFirst({
+        let existing = await client.workflowNodeClaim.findFirst({
           where: {
             executionId: params.executionId,
             nodeId: params.nodeId,
@@ -116,7 +142,7 @@ export class WorkflowNodeClaimService {
             ? existing.leaseExpiresAt <= now
             : existing.updatedAt < staleBefore);
         if (isFailed || isStaleRunning) {
-          const reclaimed = await this.prisma.workflowNodeClaim.updateMany({
+          const reclaimed = await client.workflowNodeClaim.updateMany({
             data: {
               error: null,
               leaseExpiresAt,
@@ -142,7 +168,7 @@ export class WorkflowNodeClaimService {
           if (reclaimed.count === 1) {
             return { action: 'claimed', lease };
           }
-          existing = await this.prisma.workflowNodeClaim.findFirst({
+          existing = await client.workflowNodeClaim.findFirst({
             where: {
               executionId: params.executionId,
               nodeId: params.nodeId,

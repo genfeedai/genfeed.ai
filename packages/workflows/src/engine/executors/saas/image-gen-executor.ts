@@ -5,6 +5,7 @@ import {
   type ExecutorInput,
   type ExecutorOutput,
 } from '../base-executor';
+import { buildImageGenerationResolverRequest } from './media-generation-resolver-request';
 
 export interface ImageGenOutput {
   // `id` and `status` mirror the pending ingredient the resolver creates before
@@ -67,84 +68,7 @@ export class ImageGenExecutor extends BaseExecutor {
       throw new Error('ImageGen resolver not configured');
     }
 
-    const model = this.getRequiredConfig<string>(node.config, 'model');
-
-    // Collect params from node config and upstream inputs
-    const prompt =
-      (inputs.get('prompt') as string) ??
-      this.getOptionalConfig<string>(node.config, 'prompt', '');
-    const seed = this.getOptionalConfig<number | undefined>(
-      node.config,
-      'seed',
-      undefined,
-    );
-    const width = this.getOptionalConfig<number>(node.config, 'width', 1024);
-    const height = this.getOptionalConfig<number>(node.config, 'height', 1024);
-    const steps = this.getOptionalConfig<number | undefined>(
-      node.config,
-      'steps',
-      undefined,
-    );
-    const strength = this.getOptionalConfig<number | undefined>(
-      node.config,
-      'strength',
-      undefined,
-    );
-    const cfg = this.getOptionalConfig<number | undefined>(
-      node.config,
-      'cfg',
-      undefined,
-    );
-    const negativePrompt = this.getOptionalConfig<string | undefined>(
-      node.config,
-      'negativePrompt',
-      undefined,
-    );
-    const faceImage =
-      (inputs.get('faceImage') as string) ??
-      this.getOptionalConfig<string | undefined>(
-        node.config,
-        'faceImage',
-        undefined,
-      );
-    const image =
-      (inputs.get('image') as string) ??
-      this.getOptionalConfig<string | undefined>(
-        node.config,
-        'image',
-        undefined,
-      );
-    const style = this.getOptionalConfig<string | undefined>(
-      node.config,
-      'style',
-      undefined,
-    );
-
-    const params: Record<string, unknown> = {
-      brandId: this.getOptionalConfig<string | undefined>(
-        node.config,
-        'brandId',
-        undefined,
-      ),
-      cfg,
-      faceImage,
-      height,
-      negativePrompt,
-      prompt,
-      references: image ? [image] : undefined,
-      seed,
-      steps,
-      strength,
-      style,
-      width,
-    };
-
-    // Remove undefined params
-    for (const key of Object.keys(params)) {
-      if (params[key] === undefined) {
-        delete params[key];
-      }
-    }
+    const { model, params } = buildImageGenerationResolverRequest(node, inputs);
 
     const result = await this.resolver(model, params, input.context, node);
 

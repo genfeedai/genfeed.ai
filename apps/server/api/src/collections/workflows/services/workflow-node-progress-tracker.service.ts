@@ -1,6 +1,6 @@
 import { WorkflowExecutionProgressService } from '@api/collections/workflows/services/workflow-execution-progress.service';
-import { EVENT_TYPE_TO_NODE_TYPE } from '@api/collections/workflows/services/workflow-executor.constants';
 import type { TriggerEvent } from '@api/collections/workflows/services/workflow-executor.types';
+import { findInitialWorkflowTriggerNode } from '@api/collections/workflows/utils/workflow-initial-node-state.util';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import {
   type ExecutableNode,
@@ -35,11 +35,9 @@ export class WorkflowNodeProgressTrackerService {
       nodeResults: Map<string, NodeExecutionResult>;
     },
   ): Promise<void> {
-    const triggerNodeType =
-      EVENT_TYPE_TO_NODE_TYPE[input.triggerEvent.type] ??
-      input.triggerEvent.type;
-    const triggerNode = input.workflow.nodes.find(
-      (n) => n.type === triggerNodeType,
+    const triggerNode = findInitialWorkflowTriggerNode(
+      input.workflow,
+      input.triggerEvent.type,
     );
     if (!triggerNode) {
       return;

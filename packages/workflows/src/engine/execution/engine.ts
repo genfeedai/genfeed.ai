@@ -24,6 +24,7 @@ import { buildActionExecutionInput } from '../utils/action-input';
 import {
   getExecutableNodeOperationId,
   isEngineNativeNodeType,
+  unwrapExecutableActionNode,
 } from '../utils/action-node';
 import {
   type ActionContractJsonSchema,
@@ -78,12 +79,6 @@ const DEFAULT_ENGINE_CONFIG: EngineConfig = {
   retryConfig: DEFAULT_RETRY_CONFIG,
   videoGenerationGate: DEFAULT_VIDEO_GENERATION_GATE_CONFIG,
 };
-
-function readRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
 
 export class WorkflowEngine {
   private readonly actionExecutors = new Map<string, NodeExecutor>();
@@ -885,28 +880,14 @@ export class WorkflowEngine {
     executor: NodeExecutor;
     node: ExecutableNode;
   } {
-    const actionId = node.config.actionId;
-    if (typeof actionId !== 'string' || actionId.length === 0) {
-      throw new Error('A Genfeed action node requires a non-empty actionId');
-    }
-    if (!getActionDefinition(actionId)) {
-      throw new Error(`Unknown Genfeed action: ${actionId}`);
-    }
-
-    const executor = this.actionExecutors.get(actionId);
+    const resolved = unwrapExecutableActionNode(node);
+    const executor = this.actionExecutors.get(resolved.type);
     if (!executor) {
-      throw new Error(`No executor registered for Genfeed action: ${actionId}`);
+      throw new Error(
+        `No executor registered for Genfeed action: ${resolved.type}`,
+      );
     }
-
-    const { actionId: _actionId, parameters, ...runtimeConfig } = node.config;
-    return {
-      executor,
-      node: {
-        ...node,
-        config: { ...readRecord(parameters), ...runtimeConfig },
-        type: actionId,
-      },
-    };
+    return { executor, node: resolved };
   }
 
   private emitProgress(
