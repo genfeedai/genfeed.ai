@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import {
+  copyFileSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -41,8 +42,8 @@ function fixture(
   return root;
 }
 
-function scan(root: string, args: string[] = []) {
-  return spawnSync('bun', [checker, '--json', ...args], {
+function scan(root: string, args: string[] = [], checkerPath = checker) {
+  return spawnSync('bun', [checkerPath, '--json', ...args], {
     cwd: root,
     encoding: 'utf8',
     timeout: 15_000,
@@ -55,6 +56,27 @@ afterEach(() => {
 });
 
 describe('import-cycle scanner', () => {
+  it('fails closed when the direct worker fails without a JSON report', () => {
+    const root = fixture({
+      'packages/example/src/main.ts': 'export const main = 1;',
+      'node_modules/madge/package.json': JSON.stringify({
+        main: 'index.cjs',
+        name: 'madge',
+        version: '0.0.0-fixture',
+      }),
+      'node_modules/madge/index.cjs':
+        "module.exports = () => { throw new Error('fixture madge failure'); };",
+    });
+    const fixtureChecker = path.join(root, 'check-import-cycles.ts');
+    copyFileSync(checker, fixtureChecker);
+    const result = scan(root, [], fixtureChecker);
+    expect(result.error).toBeUndefined();
+    expect(result.status).toBe(1);
+    expect(result.stdout.trim()).toBe('');
+    expect(result.stderr).toContain('packages/example');
+    expect(result.stderr).toContain('fixture madge failure');
+  });
+
   it('preserves production cycles, workspace selection and canonical paths', () => {
     const root = fixture({
       'packages/example/src/a.ts':

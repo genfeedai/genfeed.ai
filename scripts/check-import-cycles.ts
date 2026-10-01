@@ -314,7 +314,8 @@ async function runMadge(
     );
   }
 
-  if (exitStatus !== 0 && exitStatus !== 1) {
+  // This worker returns cycles as JSON with exit 0; exit 1 signals an error.
+  if (exitStatus !== 0) {
     const trimmedStderr = stderr.trim();
     throw new Error(
       `${workspace}: ${trimmedStderr.length > 0 ? trimmedStderr : 'madge execution failed'}`,
@@ -323,15 +324,28 @@ async function runMadge(
 
   const rawOutput = stdout.trim();
   if (rawOutput.length === 0) {
-    return [];
+    throw new Error(`${workspace}: madge returned no JSON payload`);
   }
 
-  const parsed = JSON.parse(rawOutput) as unknown;
-  if (!Array.isArray(parsed)) {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawOutput);
+  } catch {
+    throw new Error(`${workspace}: madge returned invalid JSON`);
+  }
+  if (
+    !Array.isArray(parsed) ||
+    !parsed.every(
+      (entry): entry is string[] =>
+        Array.isArray(entry) &&
+        entry.length > 0 &&
+        entry.every((file) => typeof file === 'string'),
+    )
+  ) {
     throw new Error(`${workspace}: madge returned an unexpected JSON payload`);
   }
 
-  return parsed.filter((entry): entry is string[] => Array.isArray(entry));
+  return parsed;
 }
 
 /**
