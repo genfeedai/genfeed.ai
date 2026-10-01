@@ -192,11 +192,15 @@ export class Coordinator {
   async initialize() {
     const info = await command(
       'docker',
-      ['info', '--format', '{{json .Runtimes}}'],
+      [
+        'info',
+        '--format',
+        '{{if index .Runtimes "runsc"}}true{{else}}false{{end}}',
+      ],
       { limit: 8192 },
     );
     invariant(
-      info.code === 0 && JSON.parse(info.bytes.toString()).runsc,
+      info.code === 0 && JSON.parse(info.bytes.toString()) === true,
       'runsc_unavailable',
     );
     invariant(
