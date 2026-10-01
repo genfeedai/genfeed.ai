@@ -23,6 +23,10 @@ import {
   type PersonaSource,
 } from '@api/services/harness/harness-brief.util';
 import { brandMemoryHitsToHarnessSources } from '@api/services/harness/harness-context-sources.util';
+import {
+  retrieveSelectedKnowledge,
+  SELECTED_KNOWLEDGE_PASSAGE_BUDGET,
+} from '@api/services/harness/harness-selected-knowledge-retrieval.util';
 import type { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import {
   brandedGenerationInputV1Schema,
@@ -63,7 +67,8 @@ import { Injectable, Optional, type Type } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
 export const HARNESS_MEMORY_LIMIT = 5;
-export const HARNESS_SELECTED_KNOWLEDGE_LIMIT = 8;
+export const HARNESS_SELECTED_KNOWLEDGE_LIMIT =
+  SELECTED_KNOWLEDGE_PASSAGE_BUDGET;
 export const HARNESS_MEMORY_MIN_RELEVANCE = 0.65;
 
 export type ResolveHarnessBriefParams = {
@@ -494,21 +499,16 @@ export class HarnessGenerationService {
       ReturnType<KnowledgeContentRetrievalService['retrieveBrandContentMemory']>
     >;
     try {
-      hits = await provider.retrieveBrandContentMemory({
+      const retrievalInput = {
         organizationId: input.organizationId,
         brandId: input.brandId,
         query: input.originalPrompt,
-        limit: explicit
-          ? HARNESS_SELECTED_KNOWLEDGE_LIMIT
-          : HARNESS_MEMORY_LIMIT,
-        minRelevance: resolveKnowledgeMinRelevance(
-          explicit ? sourceIds : undefined,
-          HARNESS_MEMORY_MIN_RELEVANCE,
-        ),
-        ...(explicit
-          ? { knowledgeSourceIds: sourceIds, isKnowledgeOnly: true }
-          : {}),
-      });
+        limit: HARNESS_MEMORY_LIMIT,
+        minRelevance: HARNESS_MEMORY_MIN_RELEVANCE,
+      };
+      hits = explicit
+        ? await retrieveSelectedKnowledge(provider, retrievalInput, sourceIds)
+        : await provider.retrieveBrandContentMemory(retrievalInput);
     } catch {
       return unavailable();
     }

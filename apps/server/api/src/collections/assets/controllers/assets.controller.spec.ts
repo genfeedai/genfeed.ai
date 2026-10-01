@@ -98,7 +98,9 @@ describe('AssetsController', () => {
       category: AssetCategory.FONT,
     });
     await expect(
-      controller.update(mockRequest, mockAssetId, mockUser, {}),
+      controller.update(mockRequest, mockAssetId, mockUser, {
+        isDeleted: false,
+      }),
     ).rejects.toThrow('font_asset_dedicated_route_required');
     await expect(
       controller.remove(mockRequest, mockAssetId, mockUser),
@@ -107,6 +109,7 @@ describe('AssetsController', () => {
     await expect(
       controller.update(mockRequest, mockAssetId, mockUser, {
         category: AssetCategory.FONT,
+        isDeleted: false,
       }),
     ).rejects.toThrow('font_asset_dedicated_route_required');
     expect(mockAssetsService.patchAll).not.toHaveBeenCalled();

@@ -59,11 +59,8 @@ export class BrandFontAssetsController {
     @Param('brandId') brandId: string,
     @Query() query: BrandFontAssetsQueryDto,
   ) {
-    return serializeCollection(
-      req,
-      BrandFontAssetSerializer,
-      await this.fonts.list(this.actor(user, brandId), query),
-    );
+    const result = await this.fonts.list(this.actor(user, brandId), query);
+    return serializeCollection(req, BrandFontAssetSerializer, { ...result });
   }
   @Post()
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)

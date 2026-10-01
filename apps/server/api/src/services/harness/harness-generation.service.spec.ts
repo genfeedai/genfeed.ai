@@ -1126,7 +1126,7 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
     ]);
     expect(layers[2].reasonCode).toBe('pack_version_invalid');
   });
-  it('expands each selected space once, unions sources stably, retrieves once, and retains full long passages', async () => {
+  it('expands each selected space once, unions sources stably, reserves every source passage budget, and retains full long passages', async () => {
     const env = snapshotService();
     const input = generationInput();
     input.knowledgeSourceIds = ['direct'];
@@ -1134,11 +1134,15 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
     env.selection.resolve
       .mockResolvedValueOnce({ knowledgeSourceIds: ['space-source', 'direct'] })
       .mockResolvedValueOnce({ knowledgeSourceIds: ['second'] });
-    env.retrieval.retrieveBrandContentMemory.mockResolvedValue([
-      hit('direct', 'v-direct', 1, 'p'.repeat(700)),
-      hit('space-source', 'v-space'),
-      hit('second', 'v-second'),
-    ]);
+    env.retrieval.retrieveBrandContentMemory.mockImplementation(
+      async ({ knowledgeSourceIds }) => {
+        if (knowledgeSourceIds[0] === 'direct')
+          return [hit('direct', 'v-direct', 1, 'p'.repeat(700))];
+        if (knowledgeSourceIds[0] === 'space-source')
+          return [hit('space-source', 'v-space')];
+        return [hit('second', 'v-second')];
+      },
+    );
     const result = await env.service.resolveSnapshotBrief(
       input,
       snapshot(),
@@ -1153,17 +1157,23 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
       ['org', 'brand', { spaceIds: ['space-a'] }],
       ['org', 'brand', { spaceIds: ['space-b'] }],
     ]);
-    expect(
-      env.retrieval.retrieveBrandContentMemory,
-    ).toHaveBeenCalledExactlyOnceWith({
-      organizationId: 'org',
-      brandId: 'brand',
-      query: input.originalPrompt,
-      limit: 8,
-      minRelevance: 0,
-      knowledgeSourceIds: ['direct', 'space-source', 'second'],
-      isKnowledgeOnly: true,
-    });
+    expect(env.retrieval.retrieveBrandContentMemory.mock.calls).toEqual(
+      [
+        ['direct', 3],
+        ['space-source', 3],
+        ['second', 2],
+      ].map(([sourceId, limit]) => [
+        {
+          organizationId: 'org',
+          brandId: 'brand',
+          query: input.originalPrompt,
+          limit,
+          minRelevance: 0,
+          knowledgeSourceIds: [sourceId],
+          isKnowledgeOnly: true,
+        },
+      ]),
+    );
     if (result.status !== 'resolved') throw new Error('Expected resolution');
     expect(result.compiledPrompt).toContain('p'.repeat(700));
     expect(
@@ -1176,12 +1186,100 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
       ['v-second', 'applied', []],
     ]);
   });
+  it('reserves coverage for a lower-ranked selected source when another dominates global ranking', async () => {
+    const env = snapshotService();
+    const input = generationInput();
+    input.knowledgeSourceIds = ['dominant', 'lower-ranked'];
+    env.retrieval.retrieveBrandContentMemory.mockImplementation(
+      async ({ knowledgeSourceIds, limit }) => {
+        const ranking = [
+          ...Array.from({ length: 8 }, () => hit('dominant', 'v-dominant')),
+          hit('lower-ranked', 'v-lower'),
+        ];
+        return ranking
+          .filter((passage) =>
+            knowledgeSourceIds.includes(passage.citation.sourceId),
+          )
+          .slice(0, limit);
+      },
+    );
+    const result = await env.service.resolveSnapshotBrief(
+      input,
+      snapshot(),
+      [],
+      [],
+      env.formatter,
+      baselineLearning(),
+      {},
+    );
+    expect(result.status).toBe('resolved');
+    expect(
+      env.retrieval.retrieveBrandContentMemory.mock.calls.map(([request]) => [
+        request.knowledgeSourceIds,
+        request.limit,
+      ]),
+    ).toEqual([
+      [['dominant'], 4],
+      [['lower-ranked'], 4],
+    ]);
+    expect(
+      result.layers
+        .filter((layer) => layer.kind === 'knowledge')
+        .map((layer) => [layer.id, layer.status]),
+    ).toEqual([
+      ['v-dominant', 'applied'],
+      ['v-lower', 'applied'],
+    ]);
+  });
+  it.each([1, 2, 3, 4, 5, 6, 7, 8])(
+    'keeps the total eight-passage budget for %s selected sources',
+    async (count) => {
+      const env = snapshotService();
+      const input = generationInput();
+      input.knowledgeSourceIds = Array.from(
+        { length: count },
+        (_, index) => `source-${index}`,
+      );
+      env.retrieval.retrieveBrandContentMemory.mockImplementation(
+        async ({ knowledgeSourceIds }) => [
+          hit(knowledgeSourceIds[0], `v-${knowledgeSourceIds[0]}`),
+        ],
+      );
+      const result = await env.service.resolveSnapshotBrief(
+        input,
+        snapshot(),
+        [],
+        [],
+        env.formatter,
+        baselineLearning(),
+        {},
+      );
+      expect(result.status).toBe('resolved');
+      const requests = env.retrieval.retrieveBrandContentMemory.mock.calls.map(
+        ([request]) => request,
+      );
+      expect(requests).toHaveLength(count);
+      expect(requests.map((request) => request.knowledgeSourceIds[0])).toEqual(
+        input.knowledgeSourceIds,
+      );
+      expect(requests.every((request) => request.limit >= 1)).toBe(true);
+      expect(requests.reduce((sum, request) => sum + request.limit, 0)).toBe(8);
+      expect(
+        result.layers.filter((layer) => layer.kind === 'knowledge'),
+      ).toHaveLength(count);
+      if (count === 8)
+        expect(requests.map((request) => request.limit)).toEqual(
+          Array(8).fill(1),
+        );
+    },
+  );
   it.each([
     'dependency',
     'empty-space',
     'undefined-space',
     'over-limit',
     'empty-result',
+    'over-return',
     'missing-source',
     'unselected',
     'uncited',
@@ -1216,7 +1314,17 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
         );
       if (kind === 'empty-result')
         env.retrieval.retrieveBrandContentMemory.mockResolvedValue([]);
-      if (kind === 'missing-source') input.knowledgeSourceIds.push('missing');
+      if (kind === 'missing-source') {
+        input.knowledgeSourceIds.push('missing');
+        env.retrieval.retrieveBrandContentMemory.mockImplementation(
+          async ({ knowledgeSourceIds }) =>
+            knowledgeSourceIds[0] === 'source' ? [hit()] : [],
+        );
+      }
+      if (kind === 'over-return')
+        env.retrieval.retrieveBrandContentMemory.mockResolvedValue(
+          Array.from({ length: 9 }, () => hit()),
+        );
       if (kind === 'unselected')
         env.retrieval.retrieveBrandContentMemory.mockResolvedValue([
           hit('other'),
@@ -1279,7 +1387,7 @@ describe('HarnessGenerationService#resolveSnapshotBrief', () => {
       );
       expect(
         env.retrieval.retrieveBrandContentMemory.mock.calls.length,
-      ).toBeLessThanOrEqual(1);
+      ).toBeLessThanOrEqual(kind === 'missing-source' ? 2 : 1);
       if (kind === 'undefined-space') {
         expect(result).not.toHaveProperty('compiledPrompt');
         expect(env.retrieval.retrieveBrandContentMemory).not.toHaveBeenCalled();

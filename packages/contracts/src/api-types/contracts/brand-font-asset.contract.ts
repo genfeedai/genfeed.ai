@@ -17,7 +17,12 @@ export const brandFontAssetReadV1Schema = z.strictObject({
   mimeType: z.literal('font/woff2'),
   contentHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
   sizeBytes: z.number().int().min(48).max(4194304),
-  displayName: z.string().min(1).max(256).nullable(),
+  displayName: z
+    .string()
+    .min(1)
+    .max(256)
+    .refine((value) => value.length <= 256)
+    .nullable(),
   originalFileName: z
     .string()
     .min(1)
