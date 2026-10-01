@@ -204,6 +204,18 @@ interface ContractRoute {
  */
 const ROUTE_CONTRACT: ContractRoute[] = [
   {
+    method: 'Post',
+    sub: '',
+    controller: 'storyboardRuns',
+    tools: ['create_storyboard_remix'],
+  },
+  {
+    method: 'Post',
+    sub: ':runId/shots/:shotId/character-replacement',
+    controller: 'storyboardRuns',
+    tools: ['replace_storyboard_character'],
+  },
+  {
     method: 'Get',
     sub: ':runId/capabilities',
     controller: 'storyboardRuns',

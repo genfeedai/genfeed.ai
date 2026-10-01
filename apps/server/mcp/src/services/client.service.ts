@@ -1,3 +1,5 @@
+import { storyboardCharacterReplacementSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
+import { storyboardRunSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { storyboardRunCapabilitiesSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
 import type {
   AgentToolResult,
@@ -368,6 +370,52 @@ export class ClientService {
   createRemixConcept(input: RemixToolInput<'create_remix_concept'>) {
     return this.remix.createRemixConcept(input);
   }
+  createStoryboardRemix(input: StoryboardToolInput<'create_storyboard_remix'>) {
+    const { assetId, brandId, clientRequestId } =
+      storyboardToolSchemas.create_storyboard_remix.parse(input);
+    return this.base.request(
+      'creating a storyboard remix',
+      async (http) => {
+        const response = await http.post(
+          `/brands/${encodeURIComponent(brandId)}/storyboard-runs`,
+          {
+            clientRequestId,
+            source: { kind: 'uploaded_video', assetId },
+          },
+        );
+        const resource =
+          this.base.unwrapObject<Record<string, unknown>>(response);
+        const attributes = storyboardRecord(resource.attributes);
+        return storyboardRunSchema.parse({
+          ...attributes,
+          ...(typeof resource.id === 'string' ? { id: resource.id } : {}),
+        });
+      },
+      this.base.failWithDetail('Failed to create a storyboard remix'),
+    );
+  }
+
+  replaceStoryboardCharacter(
+    input: StoryboardToolInput<'replace_storyboard_character'>,
+  ) {
+    const { brandId, imageAssetIds, prompt, runId, shotId } =
+      storyboardToolSchemas.replace_storyboard_character.parse(input);
+    return this.base.request(
+      'replacing a storyboard character',
+      async (http) => {
+        const response = await http.post(
+          `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/shots/${encodeURIComponent(shotId)}/character-replacement`,
+          {
+            imageAssetIds,
+            ...(prompt === undefined ? {} : { prompt }),
+          },
+        );
+        return storyboardCharacterReplacementSchema.parse(response.data);
+      },
+      this.base.failWithDetail('Failed to replace the storyboard character'),
+    );
+  }
+
   getStoryboardRunCapabilities(
     input: StoryboardToolInput<'storyboard_run_capabilities'>,
   ) {
@@ -885,4 +933,11 @@ export class ClientService {
   ): Promise<Record<string, unknown>> {
     return this.linkedin.getLinkedInAnalytics(contentId, timeRange);
   }
+}
+
+function storyboardRecord(value: unknown): Record<string, unknown> {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+  return Object.fromEntries(Object.entries(value));
 }

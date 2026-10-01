@@ -33,6 +33,7 @@ import { ContentRunRecommendationsService } from '@api/collections/content-runs/
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import { PausedMetaCampaignDraftService } from '@api/collections/content-runs/services/paused-meta-campaign-draft.service';
 import { PausedXAdsCampaignDraftService } from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
+import { StoryboardCharacterReplaceService } from '@api/collections/content-runs/services/storyboard-character-replace.service';
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunStoreService } from '@api/collections/content-runs/services/storyboard-run-store.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
@@ -53,6 +54,7 @@ import { ByokModule } from '@api/services/byok/byok.module';
 import { ContentOptimizationModule } from '@api/services/content-optimization/content-optimization.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
+import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
 import { MetaAdsModule } from '@api/services/integrations/meta-ads/meta-ads.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { XAdsModule } from '@api/services/integrations/x-ads/x-ads.module';
@@ -92,6 +94,7 @@ import { Module } from '@nestjs/common';
     CreditsModule,
     ContentOptimizationModule,
     FilesClientModule,
+    HiggsFieldModule,
     ImagesModule,
     MetaAdsModule,
     ModelsModule,
@@ -103,6 +106,7 @@ import { Module } from '@nestjs/common';
     XAdsModule,
   ],
   providers: [
+    StoryboardCharacterReplaceService,
     StoryboardRunCapabilitiesService,
     StoryboardRunsService,
     StoryboardRunStoreService,

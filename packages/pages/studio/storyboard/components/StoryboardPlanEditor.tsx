@@ -22,6 +22,7 @@ import type {
 } from '@genfeedai/props/studio/storyboard.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import StoryboardAnimatic from '@pages/studio/storyboard/components/StoryboardAnimatic';
+import StoryboardCharacterReplace from '@pages/studio/storyboard/components/StoryboardCharacterReplace';
 import StoryboardRuntimeRail from '@pages/studio/storyboard/components/StoryboardRuntimeRail';
 import StoryboardSaveIndicator from '@pages/studio/storyboard/components/StoryboardSaveIndicator';
 import StoryboardSelect from '@pages/studio/storyboard/components/StoryboardSelect';
@@ -901,6 +902,15 @@ export default function StoryboardPlanEditor({
                   {translate('speakerOnScreen')}
                 </label>
               </div>
+              <StoryboardCharacterReplace
+                brandId={run.brandId}
+                runId={run.id}
+                shotId={shot.id}
+                isDisabled={isDisabled}
+                saved={run.config.characterReplacements?.find(
+                  (item) => item.shotId === shot.id,
+                )}
+              />
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button
                   ariaLabel={translate('moveShotUp', { ordinal: shot.ordinal })}

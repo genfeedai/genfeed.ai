@@ -18,6 +18,11 @@ import type {
   ExecuteBrandRemixScenes,
   QuoteBrandRemixScenes,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
+import {
+  type ReplaceStoryboardCharacter,
+  type StoryboardCharacterReplacement,
+  storyboardCharacterReplacementSchema,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
 import type { UpdateStoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type {
   ControlStoryboardRun,
@@ -135,6 +140,21 @@ export class ContentRunsService extends HTTPBaseService {
       { signal },
     );
     return storyboardRunCapabilitiesSchema.parse(response.data);
+  }
+
+  async replaceStoryboardCharacter(
+    brandId: string,
+    runId: string,
+    shotId: string,
+    input: ReplaceStoryboardCharacter,
+    signal?: AbortSignal,
+  ): Promise<StoryboardCharacterReplacement> {
+    const response = await this.instance.post<StoryboardCharacterReplacement>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/shots/${encodeURIComponent(shotId)}/character-replacement`,
+      input,
+      { signal },
+    );
+    return storyboardCharacterReplacementSchema.parse(response.data);
   }
 
   async quoteStoryboardRun(

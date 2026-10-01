@@ -1,3 +1,4 @@
+import { replaceStoryboardCharacterSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
 import { updateStoryboardPlanSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import {
   controlStoryboardRunSchema,
@@ -17,6 +18,16 @@ const scope = { brandId: storyboardIdSchema };
 const run = { ...scope, runId: storyboardIdSchema };
 // Exported schemas do not register unfinished paid tools. API ownership gates remain authoritative.
 export const storyboardToolSchemas = {
+  create_storyboard_remix: z
+    .object({
+      ...scope,
+      assetId: storyboardIdSchema,
+      clientRequestId: z.string().uuid(),
+    })
+    .strict(),
+  replace_storyboard_character: replaceStoryboardCharacterSchema
+    .extend({ ...run, shotId: storyboardIdSchema })
+    .strict(),
   storyboard_run_capabilities: z.object(run).strict(),
   storyboard_run_create: createStoryboardRunSchema.extend(scope).strict(),
   storyboard_run_list: listStoryboardRunsSchema.extend(scope).strict(),

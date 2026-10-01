@@ -31,6 +31,13 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 const scope = { brandId: 'brand-a', filter: 'all' as const };
+const ALL_CATEGORY_COUNT = 5;
+
+function queueCategoryPages(ids: string[]) {
+  mocks.findAllPage.mockResolvedValueOnce(page(ids));
+  for (let index = 1; index < ALL_CATEGORY_COUNT; index += 1)
+    mocks.findAllPage.mockResolvedValueOnce(page());
+}
 
 describe('Studio history recovery with the real bounded loader', () => {
   beforeEach(() => {
@@ -39,22 +46,28 @@ describe('Studio history recovery with the real bounded loader', () => {
   });
 
   it('loads a complete snapshot and supports a successful empty result', async () => {
-    mocks.findAllPage
-      .mockResolvedValueOnce(page(['saved']))
-      .mockResolvedValueOnce(page());
+    queueCategoryPages(['saved']);
+    queueCategoryPages([]);
     const { result } = renderHook(() => useStudioGenerateGallery(scope));
     await waitFor(() => expect(result.current.storedJobs).toHaveLength(1));
     act(() => result.current.refresh());
     await waitFor(() => expect(result.current.isLoadingGallery).toBe(false));
     expect(result.current.storedJobs).toEqual([]);
     expect(result.current.galleryError).toBeNull();
+    expect(
+      mocks.findAllPage.mock.calls.every(([query]) => query.limit === 24),
+    ).toBe(true);
   });
 
   it('keeps load error visible during retry, then clears it only on success', async () => {
     const retry = deferred<ReturnType<typeof page>>();
-    mocks.findAllPage
-      .mockRejectedValueOnce(new Error('offline'))
-      .mockReturnValueOnce(retry.promise);
+    let calls = 0;
+    mocks.findAllPage.mockImplementation(() => {
+      calls += 1;
+      if (calls === 1) return Promise.reject(new Error('offline'));
+      if (calls === 2) return retry.promise;
+      return Promise.resolve(page(calls === 3 ? ['restored'] : []));
+    });
     const { result } = renderHook(() => useStudioGenerateGallery(scope));
     await waitFor(() => expect(result.current.galleryError).toBe('load'));
     act(() => result.current.refresh());
@@ -62,7 +75,7 @@ describe('Studio history recovery with the real bounded loader', () => {
     expect(result.current.galleryError).toBe('load');
     expect(result.current.isLoadingGallery).toBe(true);
     await act(async () => retry.resolve(page(['restored'])));
-    expect(result.current.galleryError).toBeNull();
+    await waitFor(() => expect(result.current.galleryError).toBeNull());
     expect(result.current.storedJobs.map((job) => job.id)).toEqual([
       'restored',
     ]);
@@ -72,9 +85,13 @@ describe('Studio history recovery with the real bounded loader', () => {
   it.each([{ ids: [] }, { ids: ['saved'] }])(
     'retains the last complete snapshot after repeated refresh failures: %j',
     async ({ ids }) => {
-      mocks.findAllPage
-        .mockResolvedValueOnce(page(ids))
-        .mockRejectedValue(new Error('offline'));
+      let calls = 0;
+      mocks.findAllPage.mockImplementation(() => {
+        calls += 1;
+        if (calls <= ALL_CATEGORY_COUNT)
+          return Promise.resolve(page(calls === 1 ? ids : []));
+        return Promise.reject(new Error('offline'));
+      });
       const { result } = renderHook(() => useStudioGenerateGallery(scope));
       await waitFor(() => expect(result.current.isLoadingGallery).toBe(false));
       act(() => result.current.refresh());
@@ -86,29 +103,35 @@ describe('Studio history recovery with the real bounded loader', () => {
     },
   );
 
-  it('never publishes partial pages and retries from page one', async () => {
-    const ids = Array.from({ length: 100 }, (_, index) => `asset-${index}`);
+  it('never publishes a partial category set and retries from the first category', async () => {
     mocks.findAllPage
-      .mockResolvedValueOnce(page(ids, 2))
-      .mockRejectedValueOnce(new Error('page two'))
-      .mockResolvedValueOnce(page(['retry-result']));
+      .mockResolvedValueOnce(page(['kept-out']))
+      .mockRejectedValueOnce(new Error('next category'))
+      .mockResolvedValue(page(['retry-result']));
     const { result } = renderHook(() => useStudioGenerateGallery(scope));
     await waitFor(() => expect(result.current.galleryError).toBe('load'));
     expect(result.current.storedJobs).toEqual([]);
     act(() => result.current.refresh());
     await waitFor(() => expect(result.current.galleryError).toBeNull());
-    expect(mocks.findAllPage.mock.calls.map(([query]) => query.page)).toEqual([
-      1, 2, 1,
-    ]);
+    expect(
+      mocks.findAllPage.mock.calls.map(([query]) => query.page),
+    ).not.toContain(2);
+    expect(
+      mocks.findAllPage.mock.calls.every(([query]) => query.limit === 24),
+    ).toBe(true);
     expect(result.current.storedJobs.map((job) => job.id)).toEqual([
       'retry-result',
     ]);
   });
 
   it('clears brand and filter scope synchronously and never resurrects discarded A', async () => {
-    mocks.findAllPage
-      .mockResolvedValueOnce(page(['a']))
-      .mockRejectedValue(new Error('unavailable'));
+    let calls = 0;
+    mocks.findAllPage.mockImplementation(() => {
+      calls += 1;
+      if (calls <= ALL_CATEGORY_COUNT)
+        return Promise.resolve(page(calls === 1 ? ['a'] : []));
+      return Promise.reject(new Error('unavailable'));
+    });
     const { result, rerender } = renderHook(useStudioGenerateGallery, {
       initialProps: { brandId: 'brand-a', filter: 'all' as 'all' | 'image' },
     });
@@ -142,7 +165,7 @@ describe('Studio history recovery with the real bounded loader', () => {
     mocks.findAllPage
       .mockReturnValueOnce(first.promise)
       .mockReturnValueOnce(second.promise)
-      .mockResolvedValueOnce(page(['c']));
+      .mockResolvedValue(page(['c']));
     const { result, rerender } = renderHook(useStudioGenerateGallery, {
       initialProps: scope,
     });

@@ -123,6 +123,7 @@ describe('MCP tool annotations', () => {
         tool.name === 'import_source_post' ||
         tool.name === 'start_remix_generation' ||
         tool.name === 'control_remix_generation' ||
+        tool.name === 'replace_storyboard_character' ||
         publishing.has(tool.name);
       expect(tool.annotations?.openWorldHint, tool.name).toBe(isOpenWorld);
     }
