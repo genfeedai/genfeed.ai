@@ -38,6 +38,13 @@ export class AgentMediaGenerationToolHandler {
     return this.assetGeneration.generateImage(params, ctx);
   }
 
+  async editImage(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    return this.assetGeneration.editImage(params, ctx);
+  }
+
   async reframeImage(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,

@@ -1,4 +1,7 @@
-import type { IImage } from '@genfeedai/contracts/interfaces';
+import type {
+  IImage,
+  ImageEditingPayload,
+} from '@genfeedai/contracts/interfaces';
 import type { IImageEditParams } from '@genfeedai/contracts/interfaces/components/image-edit.interface';
 import type { ImageGenerationPayload } from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
 import type { Image } from '@genfeedai/models/ingredients/image.model';
@@ -7,6 +10,7 @@ import type {
   SplitResponse,
 } from '@genfeedai/props/studio/contact-sheet.props';
 import {
+  ImageEditingRequestSerializer,
   ImageEditSerializer,
   ImageGenerationSerializer,
 } from '@genfeedai/serializers';
@@ -36,6 +40,13 @@ export class ImagesService extends IngredientsService<Image> {
     const data = ImageGenerationSerializer.serialize(body);
     return await this.instance
       .post<JsonApiResponseDocument>('', data) // Empty string for root path, data as second argument
+      .then((res) => this.mapOne(res.data));
+  }
+
+  public async postEdit(id: string, body: ImageEditingPayload) {
+    const data = ImageEditingRequestSerializer.serialize(body);
+    return await this.instance
+      .post<JsonApiResponseDocument>(`/${id}/edit`, data)
       .then((res) => this.mapOne(res.data));
   }
 

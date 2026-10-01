@@ -351,6 +351,82 @@ export class AgentMediaAssetGenerationService {
     };
   }
 
+  async editImage(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const scoped = await this.resolveMediaBrandContext(params, ctx);
+    if ('error' in scoped) return scoped.error;
+    ctx = scoped.context;
+    if (
+      typeof params.imageId !== 'string' ||
+      typeof params.prompt !== 'string' ||
+      !params.prompt.trim()
+    )
+      return {
+        success: false,
+        creditsUsed: 0,
+        error: 'Provide a source image id and an editing instruction.',
+      };
+    try {
+      const body: Record<string, unknown> = {
+        prompt: params.prompt,
+        brandId: ctx.brandId,
+        waitForCompletion: true,
+      };
+      for (const key of [
+        'model',
+        'references',
+        'maskId',
+        'size',
+        'outputs',
+        'seed',
+      ])
+        if (params[key] !== undefined) body[key] = params[key];
+      if (ctx.sourceActionId) body.sourceActionId = ctx.sourceActionId;
+      const response = toMediaResponseRecord(
+        await this.generationGateway.editImage({
+          resourceId: params.imageId,
+          body,
+          principal: this.toPrincipal(ctx),
+        }),
+      );
+      const id = readMediaResponseString(response, 'id');
+      const url = readUsableCdnAssetUrl(
+        response,
+        this.configService.ingredientsEndpoint,
+      );
+      if (!id)
+        return {
+          success: false,
+          isBillingDelegated: true,
+          creditsUsed: 0,
+          error: 'Image editing returned no asset id.',
+        };
+      const status = readMediaResponseString(response, 'status')?.toLowerCase();
+      if (!url && status !== Status.PROCESSING)
+        return {
+          success: false,
+          isBillingDelegated: true,
+          creditsUsed: 0,
+          error: 'Image editing did not produce a usable image.',
+        };
+      return this.buildImageGenerationResult(
+        id,
+        url,
+        params.prompt.substring(0, 80),
+        undefined,
+      );
+    } catch (error: unknown) {
+      return {
+        success: false,
+        isBillingDelegated: true,
+        creditsUsed: 0,
+        error: error instanceof Error ? error.message : 'Image editing failed',
+      };
+    }
+  }
+
   async reframeImage(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,

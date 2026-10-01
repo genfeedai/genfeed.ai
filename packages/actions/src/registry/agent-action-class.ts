@@ -50,6 +50,7 @@ const CREDIT_SPENDING_TOOL_NAMES = new Set<string>([
   'export_visual_code_project',
   'retry_visual_code_project',
 
+  'edit_image',
   'generate_ad_pack',
   'generate_as_identity',
   'generate_clips',

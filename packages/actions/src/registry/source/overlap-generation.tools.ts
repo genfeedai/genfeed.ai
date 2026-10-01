@@ -47,7 +47,7 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
       type: 'object',
       required: ['type'],
       properties: {
-        type: { type: 'string', enum: ['image', 'video'] },
+        type: { type: 'string', enum: ['image', 'image-edit', 'video'] },
         modelKey: {
           type: 'string',
           description:

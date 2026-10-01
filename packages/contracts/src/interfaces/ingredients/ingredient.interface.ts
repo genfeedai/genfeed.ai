@@ -24,7 +24,10 @@ import type {
   IUser,
 } from '../index';
 
+import type { ImageEditingRecipe } from '../studio/image-editing.interface';
+
 export interface IIngredient extends IBaseEntity {
+  imageEdit?: ImageEditingRecipe;
   generationHarness?: GenerationHarnessReceipt | null;
   agentWorkObject?: AgentWorkObjectMaterial;
   userId?: string | null;

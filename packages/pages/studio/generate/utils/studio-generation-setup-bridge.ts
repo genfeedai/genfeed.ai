@@ -75,6 +75,8 @@ export const STUDIO_CLEARABLE_SETUP_KEYS = [
 
 /** `StudioGenerateSettings`-only fields — no shared-store equivalent. */
 export const STUDIO_RESIDUAL_SETTINGS_KEYS = [
+  'editSize',
+  'editSeed',
   'avatarPhotoUrl',
   'blacklist',
   'folder',
@@ -185,7 +187,7 @@ export function splitStudioSettingsPatch(
     const value = patch[key];
     if (
       value === undefined &&
-      !['duration', 'instrumental', 'lyrics'].includes(key)
+      !['duration', 'instrumental', 'lyrics', 'editSeed'].includes(key)
     ) {
       continue;
     }

@@ -6,6 +6,7 @@ import {
   RouterPriority,
 } from '@genfeedai/contracts';
 import {
+  isImageEditModel,
   MODEL_KEYS,
   MODEL_OUTPUT_CAPABILITIES,
 } from '@genfeedai/contracts/constants';
@@ -54,11 +55,13 @@ const AUTO_MODEL_KEY = '__auto_model__';
 
 const DEFAULT_ASPECT_RATIO = {
   image: '1:1',
+  'image-edit': '1:1',
   video: '16:9',
 } as const;
 
 const DEFAULT_RESOLUTION = {
   image: '1K',
+  'image-edit': '1K',
   video: '720p',
 } as const;
 
@@ -142,7 +145,7 @@ function resolveSubmittedVideoResolution(
 
 /** Composer defaults for the fields that change the estimate. Omitted tool inputs use these. */
 export function buildStudioGenerationCostSettings(
-  type: 'image' | 'video',
+  type: 'image' | 'image-edit' | 'video',
   overrides: {
     aspectRatio?: string;
     duration?: number;
@@ -178,7 +181,8 @@ export function resolveStudioGenerationCost({
   settings,
   type,
 }: StudioGenerationCostInput): StudioGenerationCostEstimate {
-  if (type !== 'image' && type !== 'video') return UNAVAILABLE;
+  if (type !== 'image' && type !== 'image-edit' && type !== 'video')
+    return UNAVAILABLE;
   if (isLoadingModels) return { credits: null, status: 'loading' };
   if (isAutoStudioModelKey(settings.modelKey))
     return { credits: null, status: 'auto' };
@@ -188,7 +192,11 @@ export function resolveStudioGenerationCost({
     !model.isActive ||
     model.lifecycle === ModelLifecycle.RETIRED ||
     model.category !==
-      (type === 'image' ? ModelCategory.IMAGE : ModelCategory.VIDEO) ||
+      (type === 'image-edit'
+        ? ModelCategory.IMAGE_EDIT
+        : type === 'image'
+          ? ModelCategory.IMAGE
+          : ModelCategory.VIDEO) ||
     model.reviewStatus === 'pending' ||
     model.reviewStatus === 'rejected' ||
     model.providerSyncStatus === 'quarantined' ||
@@ -249,6 +257,27 @@ export function resolveStudioGenerationCost({
   )
     return UNAVAILABLE;
 
+  if (type === 'image-edit') {
+    if (
+      !isImageEditModel(model.key) ||
+      settings.outputs > 8 ||
+      pricingType !== PricingType.FLAT
+    )
+      return UNAVAILABLE;
+    return {
+      credits: calculateImageGenerationCredits({
+        height: 1024,
+        width: 1024,
+        imageProvider: model.provider,
+        isBatchSupported: true,
+        modelKey: model.key,
+        outputs: settings.outputs,
+        pricing: model,
+        quality: 'medium',
+      }).credits,
+      status: 'estimated',
+    };
+  }
   const size = resolveAspectDimensions(
     settings.aspectRatio,
     resolveLongEdge(settings.resolution),

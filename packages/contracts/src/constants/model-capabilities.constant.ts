@@ -594,6 +594,13 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 1,
     },
 
+    [MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5]: {
+      category: ModelCategory.IMAGE_EDIT,
+      isBatchSupported: true,
+      maxOutputs: 8,
+      maxReferences: 5,
+    },
+
     [MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE]: {
       aspectRatios: ASPECT_RATIOS.LUMA_REFRAME,
       category: ModelCategory.IMAGE_EDIT,

@@ -26,6 +26,21 @@ import { MODEL_KEYS } from './model-keys.constant';
  */
 export const SELF_HOSTED_MODELS = [
   {
+    category: ModelCategory.IMAGE_EDIT,
+    cost: 20,
+    costTier: CostTier.MEDIUM,
+    description:
+      'Ideogram 4.5 — instruction-based image editing with up to five source images and an optional mask. Medium quality preserves source proportions by default.',
+    isDefault: true,
+    isHighlighted: true,
+    key: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+    label: 'Ideogram 4.5',
+    pricingType: PricingType.FLAT,
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'ideogram-4-5', owner: 'ideogram-ai' },
+    providerCostUsd: 0.06,
+  },
+  {
     category: ModelCategory.IMAGE,
     cost: 12,
     costTier: CostTier.MEDIUM,

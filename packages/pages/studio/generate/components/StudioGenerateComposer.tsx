@@ -4,6 +4,8 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   hasEndFrame,
   hasVideoReferences,
+  IMAGE_EDIT_SIZES,
+  isImageEditSize,
   MODEL_KEYS,
   normalizeMusicSettings,
   requiresFirstFrame,
@@ -48,6 +50,14 @@ import {
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { useModelFavorites } from '@ui/dropdowns/model-selector/useModelFavorites';
 import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import Spinner from '@ui/primitives/spinner';
 import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
@@ -162,7 +172,19 @@ export default function StudioGenerateComposer({
   // Submitting mid-catalog-load would resolve the model against an empty or
   // stale list, so the send button waits for the type's models to land.
   const isAwaitingModels = capabilities.hasModelSelection && isLoadingModels;
+  const editSources = attachedAssets.filter(
+    (asset) => asset.role === 'editSource',
+  );
+  const hasEditMask = attachedAssets.some((asset) => asset.role === 'editMask');
+  const isEditSourceMissing =
+    type === 'image-edit' && (editSources.length < 1 || editSources.length > 5);
+  const isEditingModelUnavailable =
+    type === 'image-edit' &&
+    !isLoadingModels &&
+    (isAutoMode ? !models.some((model) => model.isDefault) : !selectedModel);
   const isSubmitBlocked =
+    isEditSourceMissing ||
+    isEditingModelUnavailable ||
     isRuntimeBlocked ||
     isGenerating ||
     isPromptEmpty ||
@@ -211,6 +233,7 @@ export default function StudioGenerateComposer({
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `recommendGenerationSetup` only reads the type-level capability flags (aspect ratio, duration, model selection, outputs, brand) that stay constant for a given `type`, which is already a dep. `capabilities.hasInstrumentalToggle`/`hasLyrics` do vary with `settings.modelKey`, but nothing this effect reads depends on them, so omitting `settings.modelKey` here doesn't skip a real update — and including capabilities'/defaults' fresh-per-render object identities would re-run this on every render and defeat the debounce.
   useEffect(() => {
+    if (type === 'image-edit') return;
     const recommendation = recommendGenerationSetup({
       capabilities,
       lockedType: type,
@@ -289,7 +312,11 @@ export default function StudioGenerateComposer({
             <PromptBarAttachedAssetsTray
               assets={attachedAssets}
               isDisabled={isGenerating}
-              onBrowseAssets={() => onOpenLibrary('reference')}
+              onBrowseAssets={() =>
+                onOpenLibrary(
+                  type === 'image-edit' ? 'editSource' : 'reference',
+                )
+              }
               onRemoveAttachedAsset={onRemoveAttachedAsset}
             />
           </div>
@@ -314,14 +341,68 @@ export default function StudioGenerateComposer({
         placeholder={
           isDragActive
             ? 'drop it here?'
-            : capabilities.hasSpeech
-              ? SCRIPT_PLACEHOLDER
-              : PROMPT_PLACEHOLDER
+            : type === 'image-edit'
+              ? 'Describe the change to your source image…'
+              : capabilities.hasSpeech
+                ? SCRIPT_PLACEHOLDER
+                : PROMPT_PLACEHOLDER
         }
         testId="studio-generate-prompt"
         value={prompt}
       />
 
+      {type === 'image-edit' ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <Select
+            disabled={isGenerating || hasEditMask}
+            value={hasEditMask ? 'source' : (settings.editSize ?? 'source')}
+            onValueChange={(value) => {
+              if (isImageEditSize(value)) onSettingsChange({ editSize: value });
+            }}
+          >
+            <SelectTrigger aria-label="Editing output size" className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {IMAGE_EDIT_SIZES.map((size) => (
+                <SelectItem key={size} value={size}>
+                  {size === 'source' ? 'Source dimensions' : size}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            aria-label="Editing seed"
+            className="w-36"
+            type="number"
+            min={0}
+            max={2147483647}
+            step={1}
+            placeholder="Seed (optional)"
+            value={settings.editSeed ?? ''}
+            isDisabled={isGenerating}
+            onChange={(event) =>
+              onSettingsChange({
+                editSeed:
+                  event.target.value === ''
+                    ? undefined
+                    : Number(event.target.value),
+              })
+            }
+          />
+          <p className="text-xs text-muted-foreground">
+            First source is the target. {editSources.length}/5 sources · Medium
+            quality. Masks: black changes, white stays.
+          </p>
+          {isEditSourceMissing || isEditingModelUnavailable ? (
+            <p role="status" className="text-xs text-destructive">
+              {isEditSourceMissing
+                ? 'Choose a source image to edit.'
+                : 'An available editing default or selected model is required.'}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <StudioGenerationSummary
         estimate={estimate}
         isLoadingModels={isLoadingModels}
@@ -398,6 +479,28 @@ export default function StudioGenerateComposer({
             />
           ) : null}
 
+          {type === 'image-edit' ? (
+            <>
+              <PromptBarReferenceControls
+                accept="image/*"
+                label="Source images"
+                isAttachmentDisabled={
+                  isGenerating || isUploading || editSources.length >= 5
+                }
+                isLibraryDisabled={isGenerating || editSources.length >= 5}
+                onAddFiles={(files) => onAddFiles(files, 'editSource')}
+                onOpenLibrary={() => onOpenLibrary('editSource')}
+              />
+              <PromptBarReferenceControls
+                accept="image/*"
+                label="Mask (optional)"
+                isAttachmentDisabled={isGenerating || isUploading}
+                isLibraryDisabled={isGenerating}
+                onAddFiles={(files) => onAddFiles(files, 'editMask')}
+                onOpenLibrary={() => onOpenLibrary('editMask')}
+              />
+            </>
+          ) : null}
           {type === 'video' ? (
             <>
               <PromptBarReferenceControls

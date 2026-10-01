@@ -12,6 +12,7 @@ import type {
  */
 export const STUDIO_GENERATE_TYPES = [
   'image',
+  'image-edit',
   'video',
   'music',
   'avatar',
@@ -73,6 +74,28 @@ const STUDIO_GENERATE_TYPE_CONFIGS: Record<
     modelCategory: ModelCategory.IMAGE,
     resourceSegment: 'images',
     type: 'image',
+  },
+  'image-edit': {
+    capabilities: {
+      hasAspectRatio: false,
+      hasBrandEnrichment: false,
+      hasDuration: false,
+      hasIdentity: false,
+      hasInstrumentalToggle: false,
+      hasLook: false,
+      hasLyrics: false,
+      hasModelSelection: true,
+      hasOutputs: true,
+      hasReferences: true,
+      hasSpeech: false,
+      hasStyle: false,
+    },
+    elementsType: 'image',
+    ingredientCategory: IngredientCategory.IMAGE,
+    label: 'Edit image',
+    modelCategory: ModelCategory.IMAGE_EDIT,
+    resourceSegment: 'images',
+    type: 'image-edit',
   },
   music: {
     capabilities: {

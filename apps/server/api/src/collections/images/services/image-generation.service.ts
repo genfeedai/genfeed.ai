@@ -2,7 +2,9 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
+import { EditImageDto } from '@api/collections/images/dto/edit-image.dto';
 import type {
+  ImageEditingContext,
   ImageGenerationCompletionPlan,
   ImageGenerationContext,
   ImageGenerationResolvedBrand,
@@ -39,6 +41,7 @@ import {
 import type { ImageGenerationBriefDispatch } from '@api/services/generation-brief/image-generation-brief-registry';
 import { rawPromptBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
 import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
+import { buildIdeogramImageEditInput } from '@api/services/prompt-builder/builders/replicate/ideogram-image-edit.builder';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
@@ -58,7 +61,11 @@ import type {
 } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type { GenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import { buildGenerationBriefExemptionSource } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
-import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
+import {
+  isImageEditModel,
+  MODEL_OUTPUT_CAPABILITIES,
+  readImageEditingRecipe,
+} from '@genfeedai/contracts/constants';
 import type {
   GenerationHarnessReceipt,
   JsonApiSingleResponse,
@@ -108,6 +115,59 @@ export class ImageGenerationService {
     private readonly enhancementService: MediaPromptEnhancementService,
   ) {}
 
+  async editImage(
+    user: User,
+    imageId: string,
+    dto: EditImageDto,
+    request: Request,
+    onPlaceholderCreated?: GenerationPlaceholderCreatedCallback,
+  ): Promise<JsonApiSingleResponse> {
+    const brandId = dto.brandId || user.brandId;
+    if (!brandId)
+      throw new HttpException(
+        'Select a brand before editing',
+        HttpStatus.BAD_REQUEST,
+      );
+    if (dto.model && !isImageEditModel(dto.model))
+      throw new HttpException(
+        'This model does not support instruction-based image editing',
+        HttpStatus.BAD_REQUEST,
+      );
+    const editing = await this.admissionService.admitImageEdit(
+      imageId,
+      dto,
+      user.organizationId,
+      brandId,
+    );
+    const normalized = Object.assign(new CreateImageDto(), {
+      text: dto.prompt.trim(),
+      brandId,
+      model: dto.model,
+      references: editing.sourceIds,
+      parentId: imageId,
+      width: editing.width,
+      height: editing.height,
+      outputs: dto.outputs ?? 1,
+      seed: dto.seed,
+      quality: 'medium',
+      harness: false,
+      brandingMode: 'off',
+      useTemplate: false,
+      sourceActionId: dto.sourceActionId,
+      waitForCompletion: dto.waitForCompletion,
+    });
+    return this.generateImage(
+      user,
+      normalized,
+      request,
+      onPlaceholderCreated,
+      undefined,
+      undefined,
+      undefined,
+      editing,
+    );
+  }
+
   async generateImage(
     user: User,
     createImageDto: CreateImageDto,
@@ -116,6 +176,7 @@ export class ImageGenerationService {
     placeholderScope?: GenerationPlaceholderScope,
     onCreditsPrepared?: () => Promise<void>,
     runReferences?: readonly ImageGenerationBriefReference[],
+    editing?: ImageEditingContext,
   ): Promise<JsonApiSingleResponse> {
     const {
       brand,
@@ -125,7 +186,13 @@ export class ImageGenerationService {
       modelProvider,
       modelSchemaFamily,
       promptOriginalText,
-    } = await this.resolveAndValidate(user, createImageDto, request);
+    } = await this.resolveAndValidate(
+      user,
+      createImageDto,
+      request,
+      editing ? ModelCategory.IMAGE_EDIT : ModelCategory.IMAGE,
+    );
+    if (editing) editing.recipe.model = model;
 
     const accepted = await this.reuseAcceptedGeneration(
       user,
@@ -133,17 +200,27 @@ export class ImageGenerationService {
       request,
       model,
       onCreditsPrepared,
+      editing,
     );
     if (accepted) return accepted;
 
-    const generationHarness = await this.enhanceGenerationPrompt(
-      user,
-      createImageDto,
-      request,
-      brand.id,
-      model,
-      promptOriginalText,
-    );
+    const generationHarness: GenerationHarnessReceipt = editing
+      ? {
+          originalPrompt: promptOriginalText,
+          enhancedPrompt: promptOriginalText,
+          status: 'skipped',
+          source: 'request',
+          brandId: brand.id,
+          appliedPacks: [],
+        }
+      : await this.enhanceGenerationPrompt(
+          user,
+          createImageDto,
+          request,
+          brand.id,
+          model,
+          promptOriginalText,
+        );
 
     const brandPromptBranding = buildPromptBrandingFromBrand(brand);
     const promptBuilderBrand = {
@@ -168,10 +245,11 @@ export class ImageGenerationService {
     const referenceIds = (createImageDto.references ?? []).map(String);
 
     const referenceImageUrls =
-      await this.admissionService.resolveReferenceImageUrls(
+      editing?.sourceUrls ??
+      (await this.admissionService.resolveReferenceImageUrls(
         user.organizationId,
         referenceIds,
-      );
+      ));
 
     const referenceImageUrl: string | null = referenceImageUrls[0] || null;
 
@@ -182,21 +260,29 @@ export class ImageGenerationService {
       promptBuilderBrand,
     });
 
-    const compiledBrief = await this.compileImageGenerationBrief({
-      briefBrandContext,
-      createImageDto,
-      height,
-      model,
-      generationHarness,
-      organizationId: user.organizationId,
-      referenceIds,
-      runReferences,
-      style,
-      width,
-    });
+    const compiledBrief = editing
+      ? {
+          evidence: undefined,
+          dispatch: undefined,
+          brief: undefined,
+          generationSource: 'image-edit',
+        }
+      : await this.compileImageGenerationBrief({
+          briefBrandContext,
+          createImageDto,
+          height,
+          model,
+          generationHarness,
+          organizationId: user.organizationId,
+          referenceIds,
+          runReferences,
+          style,
+          width,
+        });
 
     const { promptData, metadataData, ingredientData, providerInput } =
       await this.persistImageDocuments({
+        editing,
         brand,
         brandPromptBranding,
         briefEvidence: compiledBrief.evidence,
@@ -218,6 +304,7 @@ export class ImageGenerationService {
       });
 
     const context: ImageGenerationContext = {
+      editing,
       generationHarness,
       providerInput,
       brand,
@@ -264,12 +351,34 @@ export class ImageGenerationService {
     request: Request,
     model: string,
     onCreditsPrepared?: () => Promise<void>,
+    editing?: ImageEditingContext,
   ): Promise<JsonApiSingleResponse | null> {
     const accepted = await this.admissionService.findReusableIngredient(
       createImageDto.sourceActionId,
       user.organizationId,
     );
     if (accepted) {
+      const providerData = accepted.metadata?.providerData;
+      const acceptedEdit = readImageEditingRecipe(
+        typeof providerData === 'object' && providerData !== null
+          ? (providerData as Record<string, unknown>).imageEdit
+          : undefined,
+      );
+      if (
+        (editing &&
+          (accepted.brandId !== (createImageDto.brandId || user.brandId) ||
+            accepted.metadata?.model !== model ||
+            accepted.parentId !== createImageDto.parentId ||
+            accepted.generationPrompt !== createImageDto.text ||
+            JSON.stringify(acceptedEdit) !==
+              JSON.stringify(readImageEditingRecipe(editing.recipe)))) ||
+        (!editing && acceptedEdit)
+      ) {
+        throw new HttpException(
+          'This action already belongs to a different image request.',
+          HttpStatus.CONFLICT,
+        );
+      }
       await this.admissionService.ensureCredits(
         createImageDto,
         model,
@@ -360,6 +469,7 @@ export class ImageGenerationService {
     user: User,
     createImageDto: CreateImageDto,
     request: Request,
+    modelCategory: ModelCategory = ModelCategory.IMAGE,
   ): Promise<{
     brand: ImageGenerationResolvedBrand;
     model: string;
@@ -413,7 +523,14 @@ export class ImageGenerationService {
       brand,
       organizationSettings,
       user.organizationId,
+      modelCategory,
     );
+
+    if (modelCategory === ModelCategory.IMAGE_EDIT && !isImageEditModel(model))
+      throw new HttpException(
+        'The configured editing model is unavailable. Select a supported editing model.',
+        HttpStatus.BAD_REQUEST,
+      );
 
     // Validate resolved model against org (catches default-resolution bypassing
     // ModelsGuard). Prefer the verified token org so validation still runs when
@@ -427,6 +544,11 @@ export class ImageGenerationService {
           validationOrgId,
         )
       : undefined;
+    if (registeredModel && registeredModel.category !== modelCategory)
+      throw new HttpException(
+        'Select a model for this image operation.',
+        HttpStatus.BAD_REQUEST,
+      );
     const approvedQuote = (request as unknown as DeferredCreditsRequest)
       .creditsConfig?.approvedImageQuote;
     if (approvedQuote) {
@@ -672,9 +794,10 @@ export class ImageGenerationService {
    * documents the generation flow operates on.
    */
   private async persistImageDocuments(params: {
+    editing?: ImageEditingContext;
     brand: ImageGenerationResolvedBrand;
     brandPromptBranding: ReturnType<typeof buildPromptBrandingFromBrand>;
-    briefEvidence: GenerationBriefPersistedEvidence;
+    briefEvidence?: GenerationBriefPersistedEvidence;
     compiledDispatch?: ImageGenerationBriefDispatch;
     createImageDto: CreateImageDto;
     generationSource: string;
@@ -716,6 +839,7 @@ export class ImageGenerationService {
       style,
       width,
     } = params;
+    const editing = params.editing;
 
     const promptData = await this.resolveGenerationPrompt(
       user,
@@ -724,10 +848,17 @@ export class ImageGenerationService {
       promptOriginalText,
     );
 
-    let providerInput: Record<string, unknown> | undefined;
+    let providerInput: Record<string, unknown> | undefined = editing
+      ? buildIdeogramImageEditInput(
+          generationHarness.enhancedPrompt,
+          editing,
+          createImageDto.outputs ?? 1,
+          createImageDto.seed,
+        )
+      : undefined;
     let imageTemplateUsed: string | undefined;
     let imageTemplateVersion: number | undefined;
-    if (!compiledDispatch) {
+    if (!compiledDispatch && !editing) {
       const builtPrompt = await this.promptBuilderService.buildPrompt(
         model,
         {
@@ -794,7 +925,11 @@ export class ImageGenerationService {
           : undefined,
         promptId: promptData.id,
         promptTemplate: imageTemplateUsed,
-        providerData: toRedactedGenerationBriefProviderData(briefEvidence),
+        providerData: editing
+          ? { imageEdit: { ...editing.recipe } }
+          : briefEvidence
+            ? toRedactedGenerationBriefProviderData(briefEvidence)
+            : {},
         scope: createImageDto.scope,
         sourceActionId: createImageDto.sourceActionId,
         sourceIds: referenceIds,
@@ -822,7 +957,16 @@ export class ImageGenerationService {
     brand: ImageGenerationResolvedBrand,
     organizationSettings: { defaultImageModel?: unknown } | null,
     organizationId?: string,
+    modelCategory: ModelCategory = ModelCategory.IMAGE,
   ): Promise<string> {
+    if (modelCategory === ModelCategory.IMAGE_EDIT) {
+      if (createImageDto.model) return createImageDto.model;
+      const resolution = await this.routerService.resolveModelKey({
+        category: ModelCategory.IMAGE_EDIT,
+        organizationId,
+      });
+      return resolution.key;
+    }
     if (createImageDto.autoSelectModel) {
       // Auto model routing - let RouterService pick the best model
       const recommendation = await this.routerService.selectModel({

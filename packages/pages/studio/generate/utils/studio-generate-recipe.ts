@@ -230,6 +230,7 @@ export function recipeFromIngredient(
   const height = ingredient.metadataHeight || ingredient.height || 0;
 
   return {
+    imageEdit: ingredient.imageEdit,
     aspectRatio: resolveAspectRatioFromDimensions(width, height),
     blacklist: stringList(metadata.blacklist),
     brandingMode: resolveRecipeBrandingMode(
@@ -249,13 +250,15 @@ export function recipeFromIngredient(
       optional('model') ||
       optionalText(ingredient.model),
     mood: optional('mood'),
-    outputs: 1,
+    outputs: ingredient.imageEdit?.outputs ?? 1,
     promptTemplate: optional('promptTemplate') || optional('prompt_template'),
-    references: Array.isArray(ingredient.references)
-      ? ingredient.references.filter(
-          (reference): reference is string => typeof reference === 'string',
-        )
-      : [],
+    references:
+      ingredient.imageEdit?.sourceIds ??
+      (Array.isArray(ingredient.references)
+        ? ingredient.references.filter(
+            (reference): reference is string => typeof reference === 'string',
+          )
+        : []),
     resolution: optional('resolution'),
     scene: optional('scene'),
     speech: optional('speech'),
@@ -360,6 +363,13 @@ export function formatStudioRecipePrompt(recipe: StudioGenerateRecipe): string {
     }
   }
 
+  if (recipe.imageEdit) {
+    details.push(`Edit size: ${recipe.imageEdit.size}`, `Quality: Medium`);
+    if (recipe.imageEdit.maskId)
+      details.push('Mask: black changes, white stays');
+    if (recipe.imageEdit.seed !== undefined)
+      details.push(`Seed: ${recipe.imageEdit.seed}`);
+  }
   if (recipe.references.length > 0) {
     details.push(`References: ${recipe.references.length}`);
   }
@@ -380,6 +390,9 @@ export function settingsPatchFromRecipe(
   const modelKey = optionalText(recipe.modelKey);
 
   return {
+    ...(recipe.imageEdit
+      ? { editSize: recipe.imageEdit.size, editSeed: recipe.imageEdit.seed }
+      : {}),
     ...(recipe.aspectRatio ? { aspectRatio: recipe.aspectRatio } : {}),
     blacklist: recipe.blacklist,
     // Unknown (undefined) means the source never recorded the applied brand

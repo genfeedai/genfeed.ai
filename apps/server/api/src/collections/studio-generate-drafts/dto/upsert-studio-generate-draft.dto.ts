@@ -21,6 +21,7 @@ import {
 
 export const STUDIO_GENERATE_DRAFT_TYPES = [
   'image',
+  'image-edit',
   'video',
   'music',
   'avatar',
@@ -29,6 +30,8 @@ export const STUDIO_GENERATE_DRAFT_TYPES = [
 
 export const STUDIO_GENERATE_REFERENCE_ROLES = [
   'reference',
+  'editSource',
+  'editMask',
   'startFrame',
   'endFrame',
   'videoReference',

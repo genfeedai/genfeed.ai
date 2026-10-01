@@ -20,6 +20,7 @@ export const MODEL_KEYS = {
   REPLICATE_GOOGLE_VEO_3_1_FAST: 'google/veo-3.1-fast',
   REPLICATE_GOOGLE_VEO_3_1_LITE: 'google/veo-3.1-lite',
   REPLICATE_IDEOGRAM_AI_IDEOGRAM_CHARACTER: 'ideogram-ai/ideogram-character',
+  REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5: 'ideogram-ai/ideogram-4-5',
   REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED:
     'ideogram-ai/ideogram-v3-balanced',
   REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY: 'ideogram-ai/ideogram-v3-quality',

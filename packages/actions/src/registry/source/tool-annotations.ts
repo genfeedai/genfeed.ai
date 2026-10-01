@@ -25,6 +25,7 @@ const GENERATION_OPEN_WORLD_NAMES: ReadonlySet<string> = new Set([
   'import_source_post',
   'start_remix_generation',
   'control_remix_generation',
+  'edit_image',
   'reframe_image',
   'replace_storyboard_character',
   'upscale_image',

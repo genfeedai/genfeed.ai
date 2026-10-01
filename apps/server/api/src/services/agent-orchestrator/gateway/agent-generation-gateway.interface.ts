@@ -69,6 +69,9 @@ export interface IAgentGenerationGateway {
   generateMusic(input: AgentGenerationInput): Promise<JsonApiSingleResponse>;
   generateVideo(input: AgentGenerationInput): Promise<JsonApiSingleResponse>;
   generateVoice(input: AgentGenerationInput): Promise<JsonApiSingleResponse>;
+  editImage(
+    input: AgentGenerationResourceInput,
+  ): Promise<JsonApiSingleResponse>;
   reframeImage(
     input: AgentGenerationResourceInput,
   ): Promise<JsonApiSingleResponse>;

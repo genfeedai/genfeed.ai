@@ -1,6 +1,11 @@
 'use client';
 
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import {
+  IMAGE_EDIT_CONTRACT_VERSION,
+  IMAGE_EDIT_QUALITY,
+  isImageEditModel,
+} from '@genfeedai/contracts/constants';
 import type {
   IModel,
   KnowledgeSelection,
@@ -84,6 +89,8 @@ export interface StudioGenerationOptions {
 }
 
 export interface StudioGenerationReferences {
+  editSourceIds?: string[];
+  editMaskId?: string;
   endFrameId?: string;
   imageReferenceIds?: string[];
   videoReferenceIds?: string[];
@@ -215,6 +222,7 @@ export function useStudioGeneration({
         return await getIngredientsService();
       }
       switch (jobType) {
+        case 'image-edit':
         case 'image':
           return await getImagesService();
         case 'video':
@@ -568,6 +576,18 @@ export function useStudioGeneration({
         return false;
       }
 
+      if (
+        type === 'image-edit' &&
+        (!references.editSourceIds?.length ||
+          (settings.modelKey !== AUTO_MODEL_OPTION_VALUE &&
+            (!isImageEditModel(settings.modelKey) ||
+              !models.some((model) => model.key === settings.modelKey))))
+      ) {
+        notificationsService.error(
+          'Choose a source image and an available editing model.',
+        );
+        return false;
+      }
       const modelKey = resolveModelKey(
         settings,
         models,
@@ -578,6 +598,22 @@ export function useStudioGeneration({
         : {};
       const runId = crypto.randomUUID();
       const recipe = recipeFromPromptData(promptData, type, settings);
+      if (type === 'image-edit') {
+        recipe.imageEdit = {
+          contractVersion: IMAGE_EDIT_CONTRACT_VERSION,
+          operation: 'image-edit',
+          model: modelKey || models.find((model) => model.isDefault)?.key || '',
+          sourceIds: references.editSourceIds ?? [],
+          maskId: references.editMaskId,
+          size: references.editMaskId
+            ? 'source'
+            : (settings.editSize ?? 'source'),
+          quality: IMAGE_EDIT_QUALITY,
+          outputs: settings.outputs,
+          seed: settings.editSeed,
+        };
+        recipe.references = references.editSourceIds ?? [];
+      }
       const pendingContext = {
         ...jobDimensions,
         modelKey,
@@ -615,6 +651,26 @@ export function useStudioGeneration({
 
       try {
         switch (type) {
+          case 'image-edit': {
+            const service = await getImagesService();
+            const sources = references.editSourceIds ?? [];
+            const data = (await service.postEdit(sources[0], {
+              prompt: promptText.trim(),
+              brand: brandId,
+              ...(modelKey ? { model: modelKey } : {}),
+              references: sources.slice(1),
+              maskId: references.editMaskId,
+              size: references.editMaskId
+                ? 'source'
+                : (settings.editSize ?? 'source'),
+              outputs: settings.outputs,
+              seed: settings.editSeed,
+              sourceActionId: runId,
+            })) as GenerationResponse;
+            trackPendingIds(resolvePendingIds(data), pendingContext);
+            isAccepted = true;
+            break;
+          }
           case 'image': {
             const service = await getImagesService();
             const payload = buildImagePayload(

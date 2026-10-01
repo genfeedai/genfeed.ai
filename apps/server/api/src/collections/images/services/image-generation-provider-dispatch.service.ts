@@ -679,13 +679,19 @@ export class ImageGenerationProviderDispatchService {
       ...(context.generationSource
         ? { generationSource: context.generationSource }
         : {}),
-      ...(context.briefEvidence
+      ...(context.editing
         ? {
-            providerData: toRedactedGenerationBriefProviderData(
-              context.briefEvidence,
-            ),
+            providerData: { imageEdit: { ...context.editing.recipe } },
+            width: context.width,
+            height: context.height,
           }
-        : {}),
+        : context.briefEvidence
+          ? {
+              providerData: toRedactedGenerationBriefProviderData(
+                context.briefEvidence,
+              ),
+            }
+          : {}),
       model: context.model,
       negativePrompt: context.createImageDto.negativePrompt,
       organizationId: context.user.organizationId,

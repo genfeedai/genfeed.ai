@@ -73,7 +73,11 @@ const MODEL_GETTER_FIELDS = new Set([
 function buildMasonryIngredient(
   job: StudioGenerateCardProps['job'],
 ): IImage | IVideo | null {
-  if (job.type !== 'image' && !VIDEO_TYPES.has(job.type)) {
+  if (
+    job.type !== 'image' &&
+    job.type !== 'image-edit' &&
+    !VIDEO_TYPES.has(job.type)
+  ) {
     return null;
   }
 
@@ -105,7 +109,7 @@ function buildMasonryIngredient(
     prompt: job.ingredient?.prompt || job.prompt,
   };
 
-  return job.type === 'image'
+  return job.type === 'image' || job.type === 'image-edit'
     ? new IngredientImage(ingredient as IImage)
     : new Video(ingredient as IVideo);
 }
@@ -378,7 +382,7 @@ export default function StudioGenerateCard({
               : 'relative min-w-0 overflow-hidden'
           }
         >
-          {job.type === 'image' ? (
+          {job.type === 'image' || job.type === 'image-edit' ? (
             <LazyMasonryImage
               {...sharedProps}
               image={masonryIngredient as IImage}

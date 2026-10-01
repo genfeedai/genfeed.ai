@@ -21,10 +21,15 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 }));
 
 const mockImagesPost = vi.fn();
+const mockImagesEdit = vi.fn();
 const mockImagesFindOne = vi.fn();
 vi.mock('@services/ingredients/images.service', () => ({
   ImagesService: {
-    getInstance: () => ({ findOne: mockImagesFindOne, post: mockImagesPost }),
+    getInstance: () => ({
+      findOne: mockImagesFindOne,
+      post: mockImagesPost,
+      postEdit: mockImagesEdit,
+    }),
   },
 }));
 
@@ -802,5 +807,76 @@ describe('authoritative generation completion', () => {
       status: IngredientStatus.FAILED,
       phase: 'cancelled',
     });
+  });
+});
+
+describe('dedicated image editing submission', () => {
+  const modelKey = 'ideogram-ai/ideogram-4-5';
+  it('sends raw instructions, ordered sources, mask and seed to editing rather than generation', async () => {
+    mockImagesEdit.mockResolvedValue({
+      pendingIngredientIds: ['edited-1', 'edited-2'],
+    });
+    const { result } = renderStudioGeneration({
+      type: 'image-edit',
+      models: [makeModel(modelKey)],
+      settings: {
+        ...getDefaultStudioGenerateSettings('image-edit'),
+        modelKey,
+        outputs: 2,
+        editSize: '1536x640',
+        editSeed: 0,
+        brandingMode: 'brand',
+        style: 'cinematic',
+      },
+    });
+    await act(async () => {
+      expect(
+        await result.current.submit('Change only the sign', {
+          editSourceIds: ['source-1', 'source-2'],
+          editMaskId: 'mask-1',
+        }),
+      ).toBe(true);
+    });
+    expect(mockImagesEdit).toHaveBeenCalledWith(
+      'source-1',
+      expect.objectContaining({
+        prompt: 'Change only the sign',
+        references: ['source-2'],
+        maskId: 'mask-1',
+        size: 'source',
+        outputs: 2,
+        seed: 0,
+        model: modelKey,
+        brand: 'brand-1',
+      }),
+    );
+    expect(mockImagesPost).not.toHaveBeenCalled();
+    const payload = mockImagesEdit.mock.calls[0][1];
+    expect(payload).not.toHaveProperty('style');
+    expect(payload).not.toHaveProperty('harness');
+    expect(result.current.jobs).toHaveLength(2);
+    expect(result.current.jobs[0].recipe?.imageEdit?.sourceIds).toEqual([
+      'source-1',
+      'source-2',
+    ]);
+  });
+  it('blocks a missing source or unavailable explicit editing model without substituting a generation model', async () => {
+    const { result } = renderStudioGeneration({
+      type: 'image-edit',
+      models: [makeModel(modelKey)],
+      settings: {
+        ...getDefaultStudioGenerateSettings('image-edit'),
+        modelKey: 'flux-dev',
+      },
+    });
+    await act(async () => {
+      expect(
+        await result.current.submit('Change the sign', {
+          editSourceIds: ['source'],
+        }),
+      ).toBe(false);
+    });
+    expect(mockImagesEdit).not.toHaveBeenCalled();
+    expect(mockImagesPost).not.toHaveBeenCalled();
   });
 });

@@ -2,6 +2,46 @@ import type { SourceTool } from '../../../interfaces/source-tool.interface';
 
 export const AGENT_GENERATION_TOOLS: SourceTool[] = [
   {
+    name: 'edit_image',
+    creditCost: 0,
+    requiredRole: 'user',
+    description:
+      'Edit an existing Library image using an exact instruction. The original stays unchanged. imageId is the primary source; references adds up to four ordered images. Optional maskId must match the primary dimensions: black changes, white stays. Uses the image-editing category default, never the generation model. Do not enhance or rewrite the instruction.',
+    parameters: {
+      type: 'object',
+      required: ['imageId', 'prompt'],
+      additionalProperties: false,
+      properties: {
+        imageId: { type: 'string' },
+        prompt: { type: 'string', minLength: 1, maxLength: 20000 },
+        brandId: { type: 'string' },
+        model: { type: 'string' },
+        references: {
+          type: 'array',
+          maxItems: 4,
+          uniqueItems: true,
+          items: { type: 'string' },
+        },
+        maskId: { type: 'string' },
+        size: {
+          type: 'string',
+          enum: [
+            'source',
+            '1024x1024',
+            '1280x896',
+            '896x1280',
+            '1344x768',
+            '768x1344',
+            '1536x640',
+            '640x1536',
+          ],
+        },
+        outputs: { type: 'integer', minimum: 1, maximum: 8 },
+        seed: { type: 'integer', minimum: 0, maximum: 2147483647 },
+      },
+    },
+  },
+  {
     creditCost: 0,
     description:
       'Reframe an existing image to a new aspect ratio. Provide imageId and target aspect ratio.',
