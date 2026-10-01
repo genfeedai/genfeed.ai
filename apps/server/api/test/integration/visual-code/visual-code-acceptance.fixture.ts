@@ -1072,9 +1072,23 @@ export async function createVisualCodeAcceptanceFixture(
       worker.on('failed', (job, error) =>
         workerErrors.push(`${job?.id}: ${error.message}`),
       );
-      // Completion/failure listeners are installed before any job is processed.
-      worker.on('completed', () => {
-        workerPause = worker?.pause(true);
+      const observedCompletions = new Set<string>();
+      // Record the actual worker event only after its local pause completes.
+      // Broker state may become completed before this listener runs.
+      worker.on('completed', (job) => {
+        const id = job.id;
+        if (!id || !worker) {
+          workerErrors.push('Actual completion event has no worker or job ID');
+          return;
+        }
+        workerPause = worker.pause(true);
+        void workerPause
+          .then(() => observedCompletions.add(id))
+          .catch((error: unknown) => {
+            workerErrors.push(
+              error instanceof Error ? error.message : String(error),
+            );
+          });
       });
       const executionQueue = actualQueues.get(WORKFLOW_EXECUTION_QUEUE);
       if (!executionQueue) throw new Error('Real execution queue absent');
@@ -1122,10 +1136,7 @@ export async function createVisualCodeAcceptanceFixture(
             const job = await executionQueue.getJob(jobId);
             if (!job) throw new Error('Actual broker job absent');
             const state = await job.getState();
-            if (state === 'completed') {
-              await workerPause;
-              return;
-            }
+            if (state === 'completed' && observedCompletions.has(jobId)) return;
             if (state === 'failed') throw new Error(job.failedReason);
             await new Promise((accept) => setTimeout(accept, 100));
           }

@@ -105,6 +105,9 @@ async function isolated(id, args, input, deadline = 120_000) {
           assert.ok(!inspected.Mounts.some((mount) => mount.Type === 'bind'));
           assert.ok(!config.Binds || config.Binds.length === 0);
           assert.equal(config.Memory, 2 * 1024 * 1024 * 1024);
+          assert.equal(config.MemorySwap, 2 * 1024 * 1024 * 1024);
+          assert.equal(config.ShmSize, 256 * 1024 * 1024);
+          assert.equal(inspected.Config.User, '65532:65532');
           assert.equal(config.NanoCpus, 2 * 1e9);
           assert.equal(config.PidsLimit, 256);
           assert.ok(config.CapDrop.includes('ALL'));
@@ -118,6 +121,8 @@ async function isolated(id, args, input, deadline = 120_000) {
             privileged: config.Privileged,
             mounts: inspected.Mounts,
             memory: config.Memory,
+            memorySwap: config.MemorySwap,
+            shmSize: config.ShmSize,
             nanoCpus: config.NanoCpus,
             pidsLimit: config.PidsLimit,
             capDrop: config.CapDrop,
