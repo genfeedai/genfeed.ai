@@ -6,6 +6,8 @@ import {
 import { BatchProjectIdeaDispatchService } from '@api/collections/batch-projects/services/batch-project-idea-dispatch.service';
 import { BatchProjectQuoteService } from '@api/collections/batch-projects/services/batch-project-quote.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -48,6 +50,7 @@ export class BatchProjectIdeaGenerationService {
     private readonly quotes: BatchProjectQuoteService,
     private readonly credits: CreditsUtilsService,
     private readonly dispatcher: BatchProjectIdeaDispatchService,
+    private readonly platformSettingsService: PlatformSettingsService,
   ) {}
 
   /**
@@ -59,6 +62,7 @@ export class BatchProjectIdeaGenerationService {
     itemIds: string[] | undefined,
     scope: IBatchProjectScope,
   ): Promise<IBatchProjectQuote> {
+    await this.assertIdeasEnabled(scope);
     // Each retry accepts its own quote, so a retry quote prices one idea.
     if (itemIds && itemIds.length !== 1) {
       throw new BadRequestException('Quote one failed idea at a time');
@@ -105,6 +109,7 @@ export class BatchProjectIdeaGenerationService {
     quoteId: string | undefined,
     scope: IBatchProjectScope,
   ): Promise<void> {
+    await this.assertIdeasEnabled(scope);
     const quote = this.acceptableQuote(project, quoteId);
     const linesByItem = this.linesFor(
       quote,
@@ -170,6 +175,7 @@ export class BatchProjectIdeaGenerationService {
     quoteId: string | undefined,
     scope: IBatchProjectScope,
   ): Promise<void> {
+    await this.assertIdeasEnabled(scope);
     const attempt = nextIdeaAttempt(item);
     const quote = this.acceptableQuote(project, quoteId);
     const line = this.lineOf(
@@ -307,5 +313,19 @@ export class BatchProjectIdeaGenerationService {
     const balance =
       await this.credits.getOrganizationCreditsBalance(organizationId);
     throw createInsufficientCreditsException(quote.total, balance);
+  }
+
+  /**
+   * Same `batch_ideas` gate as project create (#5463, #5673). Superadmins
+   * keep that bypass. Runs before a quote is priced or a job is queued.
+   */
+  private async assertIdeasEnabled(scope: IBatchProjectScope): Promise<void> {
+    if (scope.isSuperAdmin) {
+      return;
+    }
+    const { flags } = await this.platformSettingsService.getFeatureSettings();
+    if (!flags.batch_ideas) {
+      throw new NotFoundException({ message: 'Idea batches are not enabled' });
+    }
   }
 }

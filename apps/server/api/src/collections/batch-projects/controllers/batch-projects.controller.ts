@@ -203,6 +203,7 @@ export class BatchProjectsController {
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async quote(
+    @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() body: QuoteBatchProjectDto,
@@ -211,7 +212,7 @@ export class BatchProjectsController {
       data: await this.batchProjectsService.quote(
         id,
         body,
-        this.requireScope(user),
+        this.requireScope(user, request),
       ),
     };
   }
@@ -228,7 +229,7 @@ export class BatchProjectsController {
   ) {
     const project = await this.batchProjectsService.start(
       id,
-      this.requireScope(user),
+      this.requireScope(user, request),
       body.quoteId,
     );
     return serializeSingle(request, BatchProjectSerializer, project);
@@ -248,7 +249,7 @@ export class BatchProjectsController {
     const project = await this.batchProjectsService.retryItem(
       id,
       itemId,
-      this.requireScope(user),
+      this.requireScope(user, request),
       body.quoteId,
     );
     return serializeSingle(request, BatchProjectSerializer, project);
