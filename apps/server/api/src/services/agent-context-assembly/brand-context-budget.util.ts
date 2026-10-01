@@ -8,6 +8,7 @@ import {
   sanitizeAgentUntrustedInput,
   UNTRUSTED_USER_DATA_FRAMING,
 } from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
+import { BrandedGenerationCompileError } from '@api/services/harness/branded-generation-compile.error';
 
 /**
  * Shared character budget for every brand-context contribution supplied to a
@@ -239,7 +240,10 @@ export function fitBrandContextToBudgetWithReport(
         return finish(rendered);
       }
 
-      if (section.contribution && section.body) {
+      if (section.contribution?.isAtomic) {
+        section.body = '';
+        section.content = '';
+      } else if (section.contribution && section.body) {
         // Binary search the body only; the immutable frame is all-or-nothing.
         const target = Math.max(0, section.content.length - overflow);
         let low = 0;
@@ -278,4 +282,75 @@ export function fitBrandContextToBudget(
   maxLength = BRAND_CONTEXT_CHARACTER_BUDGET,
 ): string {
   return fitBrandContextToBudgetWithReport(contributions, maxLength).text;
+}
+
+/** Protects required sections in full; only optional sections enter the reducer. */
+export function fitRequiredBrandContextToBudgetWithReport(
+  requiredContributions: readonly BrandContextContribution[],
+  optionalContributions: readonly BrandContextContribution[],
+  maxLength = BRAND_CONTEXT_CHARACTER_BUDGET,
+): BrandContextBudgetResult {
+  if (
+    !Number.isInteger(maxLength) ||
+    maxLength < 0 ||
+    maxLength > BRAND_CONTEXT_CHARACTER_BUDGET
+  ) {
+    throw new RangeError('Invalid required brand context budget');
+  }
+  const requiredCharacters = requiredContributions
+    .map((contribution) =>
+      renderContribution(contribution, contribution.content),
+    )
+    .filter(Boolean)
+    .join('\n\n').length;
+  for (const contribution of requiredContributions) {
+    if (
+      contribution.untrusted &&
+      sanitizeAgentUntrustedInput(contribution.content, Infinity).replace(
+        /\r\n?/g,
+        '\n',
+      ) !== contribution.content
+    ) {
+      throw new BrandedGenerationCompileError(
+        'required_context_altered',
+        requiredCharacters,
+        maxLength,
+      );
+    }
+  }
+  if (requiredCharacters > maxLength) {
+    throw new BrandedGenerationCompileError(
+      'context_budget_exceeded',
+      requiredCharacters,
+      maxLength,
+    );
+  }
+  const requiredSections = requiredContributions.map(structuredSection);
+  const requiredText = renderSections(requiredSections);
+  const remaining = Math.max(
+    0,
+    maxLength - requiredCharacters - (requiredText ? 2 : 0),
+  );
+  const optional = fitBrandContextToBudgetWithReport(
+    optionalContributions,
+    remaining,
+  );
+  const text = [requiredText, optional.text].filter(Boolean).join('\n\n');
+  const untrimmedLength =
+    requiredCharacters +
+    optional.untrimmedLength +
+    (requiredText && optional.untrimmedLength ? 2 : 0);
+  return {
+    text,
+    maxLength,
+    untrimmedLength,
+    isTrimmed: text.length < untrimmedLength,
+    sections: [
+      ...toSectionReports(requiredSections).map((section) => ({
+        ...section,
+        status: 'kept' as const,
+      })),
+      ...optional.sections,
+    ],
+  };
 }
