@@ -6,7 +6,7 @@ import {
   learningCheckpointProfiles,
   parseLearningMeasurement,
 } from '@api/collections/content-learning/services/learning-checkpoint.service';
-import type { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
+import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
 import {
   learningHash,
   learningScopeKey,
@@ -18,7 +18,12 @@ import {
   learningDescriptorTuple,
   learningRegisteredProfiles,
 } from '@genfeedai/harness';
-import type { ContentLearningCheckpoint } from '@genfeedai/prisma';
+import type {
+  ContentLearningBaseline,
+  ContentLearningCheckpoint,
+  ContentLearningDependency,
+  Prisma,
+} from '@genfeedai/prisma';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
@@ -58,7 +63,12 @@ function checkpoint(
     ...overrides,
   };
 }
-function fixture(rows: ContentLearningCheckpoint[]) {
+function fixture(
+  rows: ContentLearningCheckpoint[],
+  providedDependencies?: (
+    tx: Prisma.TransactionClient,
+  ) => LearningDependencyService,
+) {
   const row = checkpoint();
   const prisma = {
     $queryRaw: vi.fn().mockImplementation((parts: TemplateStringsArray) => {
@@ -120,7 +130,9 @@ function fixture(rows: ContentLearningCheckpoint[]) {
     service: new LearningCheckpointService(
       prisma as unknown as PrismaService,
       accounts as unknown as LearningAccountService,
-      dependencies as unknown as LearningDependencyService,
+      providedDependencies
+        ? providedDependencies(prisma as unknown as Prisma.TransactionClient)
+        : (dependencies as unknown as LearningDependencyService),
     ),
   };
 }
@@ -530,7 +542,7 @@ describe('exact descriptor frozen baseline', () => {
       scope,
       new Date('2026-10-01'),
       descriptor,
-      f.prisma as unknown as import('@genfeedai/prisma').Prisma.TransactionClient,
+      f.prisma as unknown as Prisma.TransactionClient,
     );
     expect(result.count).toBe(19);
     expect(result.validity).toBe('insufficient_baseline');
@@ -578,7 +590,7 @@ describe('exact descriptor frozen baseline', () => {
         f = frozenFixture(rows),
         cutoff = new Date('2026-10-01');
       const selected = await selectLearningBaseline(
-        f.prisma as unknown as import('@genfeedai/prisma').Prisma.TransactionClient,
+        f.prisma as unknown as Prisma.TransactionClient,
         scope,
         cutoff,
         descriptor,
@@ -600,7 +612,7 @@ describe('exact descriptor frozen baseline', () => {
         scope,
         cutoff,
         descriptor,
-        f.prisma as unknown as import('@genfeedai/prisma').Prisma.TransactionClient,
+        f.prisma as unknown as Prisma.TransactionClient,
       );
       expect(frozen).toMatchObject({
         fingerprint: learningHash([
@@ -628,7 +640,7 @@ describe('exact descriptor frozen baseline', () => {
       .mockResolvedValueOnce(rows)
       .mockResolvedValueOnce(matching);
     const result = await selectLearningBaseline(
-      f.prisma as unknown as import('@genfeedai/prisma').Prisma.TransactionClient,
+      f.prisma as unknown as Prisma.TransactionClient,
       scope,
       new Date('2026-10-01'),
       descriptor,
@@ -667,7 +679,7 @@ describe('exact descriptor frozen baseline', () => {
     expect(
       (
         await selectLearningBaseline(
-          f.prisma as unknown as import('@genfeedai/prisma').Prisma.TransactionClient,
+          f.prisma as unknown as Prisma.TransactionClient,
           scope,
           new Date('2026-10-01'),
           descriptor,
@@ -682,7 +694,7 @@ describe('exact descriptor frozen baseline', () => {
     expect(
       (
         await selectLearningBaseline(
-          f.prisma as unknown as import('@genfeedai/prisma').Prisma.TransactionClient,
+          f.prisma as unknown as Prisma.TransactionClient,
           scope,
           new Date('2026-10-01'),
           descriptor,
@@ -694,7 +706,7 @@ describe('exact descriptor frozen baseline', () => {
     f.prisma.contentLearningCheckpoint.findFirst.mockResolvedValue(null);
     await expect(
       selectLearningBaseline(
-        f.prisma as unknown as import('@genfeedai/prisma').Prisma.TransactionClient,
+        f.prisma as unknown as Prisma.TransactionClient,
         scope,
         new Date('2026-10-01'),
         descriptor,
@@ -833,6 +845,7 @@ describe('capture account-before-publication locking', () => {
       );
       expect(f.prisma.contentLearningCheckpoint.create).not.toHaveBeenCalled();
       expect(f.prisma.contentLearningAccount.updateMany).not.toHaveBeenCalled();
+      expect(f.dependencies.invalidate).not.toHaveBeenCalled();
       if (kind !== 'post-lock')
         expect(f.prisma.post.findFirst).toHaveBeenCalledTimes(1);
     },
@@ -870,6 +883,7 @@ describe('capture account-before-publication locking', () => {
     expect(f.prisma.$queryRaw).toHaveBeenCalledTimes(3);
     expect(f.prisma.contentLearningCheckpoint.create).not.toHaveBeenCalled();
     expect(f.prisma.contentLearningAccount.updateMany).not.toHaveBeenCalled();
+    expect(f.dependencies.invalidate).not.toHaveBeenCalled();
   });
   it('preserves the first fulfilled physical observation ahead of fingerprint retry', async () => {
     const row = checkpoint(),
@@ -878,6 +892,7 @@ describe('capture account-before-publication locking', () => {
     expect(f.prisma.contentLearningCheckpoint.findFirst).not.toHaveBeenCalled();
     expect(f.prisma.contentLearningCheckpoint.create).not.toHaveBeenCalled();
     expect(f.prisma.contentLearningAccount.updateMany).not.toHaveBeenCalled();
+    expect(f.dependencies.invalidate).not.toHaveBeenCalled();
   });
   it('corrects the same immutable window under exclusive fence, supersedes/invalidate then increments exactly once', async () => {
     const original = checkpoint({ revision: 2 }),
@@ -924,6 +939,7 @@ describe('capture account-before-publication locking', () => {
       'checkpoint',
       original.id,
       f.prisma,
+      input.organizationId,
     );
     expect(
       f.prisma.contentLearningCheckpoint.create.mock.invocationCallOrder[0],
@@ -951,6 +967,7 @@ describe('capture account-before-publication locking', () => {
       ).rejects.toThrow('Correction must identify the same observation window');
       expect(f.prisma.contentLearningCheckpoint.create).not.toHaveBeenCalled();
       expect(f.prisma.contentLearningAccount.updateMany).not.toHaveBeenCalled();
+      expect(f.dependencies.invalidate).not.toHaveBeenCalled();
     },
   );
   it.each(['write', 'invalidation'])(
@@ -975,7 +992,147 @@ describe('capture account-before-publication locking', () => {
         }),
       ).rejects.toBe(failure);
       expect(f.prisma.contentLearningAccount.updateMany).not.toHaveBeenCalled();
+      if (kind === 'invalidation')
+        expect(f.dependencies.invalidate).toHaveBeenCalledTimes(1);
+      else expect(f.dependencies.invalidate).not.toHaveBeenCalled();
       expect(f.prisma.$transaction).toHaveBeenCalledTimes(1);
+    },
+  );
+});
+
+describe('correction composes tenant-scoped dependency invalidation', () => {
+  it.each(['org', 'foreign', null])(
+    'stamps only the authorized initial source tenant %s without changing its immutable baseline',
+    async (sourceOrganizationId) => {
+      const original = checkpoint({ revision: 2 }),
+        descriptor = learningRegisteredProfiles(
+          'twitter',
+          'text',
+          'awareness',
+        )[0].descriptor,
+        descriptorHash = learningHash(learningDescriptorTuple(descriptor)),
+        row: ContentLearningBaseline = {
+          id: 'baseline',
+          organizationId: 'org',
+          brandId: 'brand',
+          credentialId: 'credential',
+          isDeleted: false,
+          createdAt: original.createdAt,
+          updatedAt: original.updatedAt,
+          fingerprint: 'immutable-fingerprint',
+          scopeKey: 'immutable-scope',
+          cellDescriptor: { ...descriptor },
+          descriptorHash,
+          cutoff: original.receivedAt,
+          configVersion: descriptor.configVersion,
+          contributorCheckpointIds: [original.id],
+          contributorRevisions: [original.revision],
+          count: 1,
+          medianExposure: 1000,
+          samples: [{ exposure: 1000, weightedActions: 0 }],
+          validity: 'insufficient_baseline',
+        },
+        before = structuredClone(row),
+        edge: ContentLearningDependency = {
+          id: 'checkpoint-baseline-edge',
+          isDeleted: false,
+          createdAt: original.createdAt,
+          updatedAt: original.updatedAt,
+          sourceKind: 'checkpoint',
+          sourceId: original.id,
+          sourceVersion: String(original.revision),
+          sourceOrganizationId,
+          derivedKind: 'baseline',
+          derivedId: row.id,
+          derivedOrganizationId: row.organizationId,
+          valid: true,
+          invalidatedAt: null,
+        },
+        findMany = vi
+          .fn()
+          .mockImplementation(
+            ({
+              where,
+            }: {
+              where: Prisma.ContentLearningDependencyWhereInput;
+            }) =>
+              where.sourceKind === edge.sourceKind &&
+              where.sourceId === edge.sourceId &&
+              where.sourceOrganizationId === edge.sourceOrganizationId
+                ? [edge]
+                : [],
+          ),
+        updateEdge = vi.fn().mockResolvedValue({ count: 1 }),
+        updateBaseline = vi
+          .fn()
+          .mockImplementation(
+            ({ where, data }: Prisma.ContentLearningBaselineUpdateManyArgs) => {
+              if (
+                where?.id === row.id &&
+                where.organizationId === row.organizationId &&
+                where.isDeleted === false
+              ) {
+                Object.assign(row, data);
+                return { count: 1 };
+              }
+              return { count: 0 };
+            },
+          );
+      const f = fixture([], (tx) => {
+        Object.assign(tx, {
+          contentLearningDependency: { findMany, updateMany: updateEdge },
+          contentLearningBaseline: { updateMany: updateBaseline },
+        });
+        return new LearningDependencyService(tx as unknown as PrismaService);
+      });
+      f.prisma.contentLearningCheckpoint.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(original)
+        .mockResolvedValueOnce(original);
+      const input = { ...captureInput(), supersedesId: original.id };
+      expect(await f.service.capture(input)).toMatchObject({
+        supersedesId: original.id,
+        revision: 3,
+      });
+      expect(findMany).toHaveBeenNthCalledWith(1, {
+        where: {
+          sourceKind: 'checkpoint',
+          sourceId: original.id,
+          sourceOrganizationId: input.organizationId,
+          isDeleted: false,
+        },
+        orderBy: { id: 'asc' },
+      });
+      if (sourceOrganizationId === 'org') {
+        expect(updateBaseline).toHaveBeenCalledTimes(1);
+        expect(updateBaseline).toHaveBeenCalledWith({
+          where: { id: row.id, organizationId: 'org', isDeleted: false },
+          data: { validity: 'invalid_source' },
+        });
+        expect(row).toEqual({ ...before, validity: 'invalid_source' });
+        expect(findMany).toHaveBeenLastCalledWith({
+          where: {
+            sourceKind: 'baseline',
+            sourceId: row.id,
+            sourceOrganizationId: 'org',
+            isDeleted: false,
+          },
+          orderBy: { id: 'asc' },
+        });
+        expect(updateBaseline.mock.invocationCallOrder[0]).toBeLessThan(
+          f.prisma.contentLearningAccount.updateMany.mock
+            .invocationCallOrder[0],
+        );
+      } else {
+        expect(updateBaseline).not.toHaveBeenCalled();
+        expect(updateEdge).not.toHaveBeenCalled();
+        expect(row).toEqual(before);
+      }
+      expect(f.prisma.contentLearningAccount.updateMany).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(f.prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(f.dependencies.invalidate).not.toHaveBeenCalled();
     },
   );
 });

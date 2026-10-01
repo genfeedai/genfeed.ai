@@ -478,7 +478,12 @@ export class LearningCheckpointService {
         },
         data: { validity: 'superseded' },
       });
-      await this.dependencies.invalidate('checkpoint', original.id, tx);
+      await this.dependencies.invalidate(
+        'checkpoint',
+        original.id,
+        tx,
+        input.organizationId,
+      );
     }
     await tx.contentLearningAccount.updateMany({
       where: {

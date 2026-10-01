@@ -11,6 +11,7 @@ import {
   learningDescriptorTuple,
   learningRegisteredProfiles,
 } from '@genfeedai/harness';
+import type { Prisma } from '@genfeedai/prisma';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
@@ -98,6 +99,12 @@ function fixture() {
       findFirst: vi.fn().mockResolvedValue(policy),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
+    contentLearningConsent: {
+      findFirst: vi.fn().mockResolvedValue(null),
+      create: vi
+        .fn()
+        .mockImplementation(({ data }) => ({ id: 'consent', ...data })),
+    },
     contentLearningOperation: {
       findFirst: vi.fn().mockResolvedValue(null),
       create: vi
@@ -105,15 +112,19 @@ function fixture() {
         .mockImplementation(({ data }) => ({ id: 'operation', ...data })),
     },
   };
-  tx.$transaction.mockImplementation((fn) => fn(tx));
-  const dependencies = { valid: vi.fn().mockResolvedValue(true) },
+  const root = { ...tx, $queryRaw: vi.fn(), $transaction: vi.fn() };
+  root.$transaction.mockImplementation((fn) => fn(tx));
+  const dependencies = {
+      valid: vi.fn().mockResolvedValue(true),
+      invalidate: vi.fn(),
+    },
     scopes = new LearningScopeStateService(
-      tx as unknown as PrismaService,
+      root as unknown as PrismaService,
       dependencies as unknown as LearningDependencyService,
     ),
-    operations = new LearningOperationService(tx as unknown as PrismaService);
+    operations = new LearningOperationService(root as unknown as PrismaService);
   const service = new LearningAccountService(
-    tx as unknown as PrismaService,
+    root as unknown as PrismaService,
     operations,
     dependencies as unknown as LearningDependencyService,
     scopes,
@@ -129,6 +140,8 @@ function fixture() {
     });
   return {
     tx,
+    root,
+    dependencies,
     account,
     scope,
     policy,
@@ -150,9 +163,10 @@ describe('scoped rollback pins and control epochs', () => {
     const calls = f.tx.$queryRaw.mock.calls.map(([strings]) =>
       strings.join(''),
     );
-    expect(calls[0]).toContain('pg_advisory_xact_lock(');
-    expect(calls[1]).toContain('content_learning_accounts');
-    expect(calls[2]).toContain('content_learning_scope_states');
+    expect(calls[0]).toContain('pg_advisory_xact_lock_shared');
+    expect(calls[1]).toContain('pg_advisory_xact_lock(');
+    expect(calls[2]).toContain('content_learning_accounts');
+    expect(calls[3]).toContain('content_learning_scope_states');
     expect(f.tx.contentLearningAccount.updateMany).not.toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ activePolicyId: 'policy' }),
@@ -218,7 +232,7 @@ describe('scoped rollback pins and control epochs', () => {
       if (mutation === 'epoch') f.scope.epoch = 2;
       await expect(
         f.scopes.ensure(
-          f.tx as unknown as import('@genfeedai/prisma').Prisma.TransactionClient,
+          f.tx as unknown as Prisma.TransactionClient,
           scope,
           f.descriptor,
           1,
@@ -489,6 +503,33 @@ function readFixture() {
   };
 }
 describe('canonical read-only account scope snapshots', () => {
+  it('rejects unknown current credential platform before a filter can omit the registered scope', async () => {
+    const f = readFixture();
+    f.addScope('text', 'awareness');
+    f.tx.credential.findFirst
+      .mockResolvedValueOnce({
+        id: 'credential',
+        organizationId: 'org',
+        brandId: 'brand',
+        platform: 'TWITTER',
+        isDeleted: false,
+      })
+      .mockResolvedValueOnce({
+        id: 'credential',
+        organizationId: 'org',
+        brandId: 'brand',
+        platform: 'UNSUPPORTED_PLATFORM',
+        isDeleted: false,
+      });
+    await expect(f.service.read('org', 'credential', 'image')).rejects.toThrow(
+      'Learning scope state unavailable',
+    );
+    expect(f.policies.current).not.toHaveBeenCalled();
+    expect(f.tx.contentLearningCheckpoint.findMany).not.toHaveBeenCalled();
+    expect(f.tx.contentLearningDecision.findFirst).not.toHaveBeenCalled();
+    f.assertNoWrites();
+  });
+
   it('returns complete authorized shadow default without creating state', async () => {
     const f = readFixture();
     f.tx.contentLearningAccount.findFirst.mockResolvedValue(null);
@@ -933,4 +974,229 @@ describe('member-scoped saved brand receiving configuration', () => {
     ).not.toHaveBeenCalled();
     f.assertNoWrites();
   });
+});
+
+function ensureScope(f: ReturnType<typeof fixture>) {
+  const scope = {
+    organizationId: 'org',
+    brandId: 'brand',
+    credentialId: 'credential',
+    platform: 'twitter',
+    format: 'text' as const,
+    objective: 'awareness' as const,
+    rewardProfileId: f.descriptorHash,
+  };
+  f.scope.scopeKey = learningScopeKey(scope);
+  return scope;
+}
+describe('ensure transaction ownership and source-scoped revocation', () => {
+  it.each(['omitted', 'undefined', 'root'])(
+    'owns one shared-fenced account transaction for %s root invocation',
+    async (kind) => {
+      const f = fixture(),
+        before = structuredClone(f.account);
+      const row =
+        kind === 'omitted'
+          ? await f.service.ensure('org', 'credential')
+          : await f.service.ensure(
+              'org',
+              'credential',
+              kind === 'root'
+                ? (f.root as unknown as Prisma.TransactionClient)
+                : undefined,
+            );
+      expect(row).toBe(f.account);
+      expect(f.account).toEqual(before);
+      expect(f.root.$transaction).toHaveBeenCalledTimes(1);
+      expect(f.tx.$transaction).not.toHaveBeenCalled();
+      expect(f.root.$queryRaw).not.toHaveBeenCalled();
+      expect(f.tx.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(f.tx.$queryRaw.mock.calls[0][0].join('')).toContain(
+        'pg_advisory_xact_lock_shared',
+      );
+      expect(f.tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+        f.tx.credential.findFirst.mock.invocationCallOrder[0],
+      );
+      expect(
+        f.tx.credential.findFirst.mock.invocationCallOrder[0],
+      ).toBeLessThan(f.tx.brand.findFirst.mock.invocationCallOrder[0]);
+      expect(f.tx.brand.findFirst.mock.invocationCallOrder[0]).toBeLessThan(
+        f.tx.contentLearningAccount.upsert.mock.invocationCallOrder[0],
+      );
+      expect(f.tx.contentLearningAccount.upsert).toHaveBeenCalledWith({
+        where: {
+          organizationId_credentialId: {
+            organizationId: 'org',
+            credentialId: 'credential',
+          },
+        },
+        create: {
+          organizationId: 'org',
+          credentialId: 'credential',
+          brandId: 'brand',
+        },
+        update: {},
+      });
+    },
+  );
+  it('joins a distinct supplied account client without transaction or late fence', async () => {
+    const f = fixture();
+    expect(
+      await f.service.ensure(
+        'org',
+        'credential',
+        f.tx as unknown as Prisma.TransactionClient,
+      ),
+    ).toBe(f.account);
+    expect(f.root.$transaction).not.toHaveBeenCalled();
+    expect(f.tx.$transaction).not.toHaveBeenCalled();
+    expect(f.tx.$queryRaw).not.toHaveBeenCalled();
+    expect(f.tx.credential.findFirst).toHaveBeenCalledWith({
+      where: { organizationId: 'org', id: 'credential', isDeleted: false },
+    });
+    expect(f.tx.contentLearningAccount.upsert).toHaveBeenCalledTimes(1);
+  });
+  it.each(['credential', 'brand'])(
+    'retains scoped missing/foreign/deleted %s rejection before account creation',
+    async (kind) => {
+      const f = fixture();
+      f.tx[kind].findFirst.mockResolvedValue(null);
+      await expect(f.service.ensure('org', 'credential')).rejects.toThrow(
+        'Account not found',
+      );
+      expect(f.tx.contentLearningAccount.upsert).not.toHaveBeenCalled();
+      expect(f.root.$transaction).toHaveBeenCalledTimes(1);
+    },
+  );
+  it.each(['undefined', 'root'])(
+    'owns one shared-fenced scope transaction for %s invocation',
+    async (kind) => {
+      const f = fixture(),
+        scope = ensureScope(f);
+      expect(
+        await f.scopes.ensure(
+          kind === 'root'
+            ? (f.root as unknown as Prisma.TransactionClient)
+            : undefined,
+          scope,
+          f.descriptor,
+          1,
+        ),
+      ).toBe(f.scope);
+      expect(f.root.$transaction).toHaveBeenCalledTimes(1);
+      expect(f.tx.$transaction).not.toHaveBeenCalled();
+      expect(f.root.$queryRaw).not.toHaveBeenCalled();
+      expect(f.tx.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(f.tx.$queryRaw.mock.calls[0][0].join('')).toContain(
+        'pg_advisory_xact_lock_shared',
+      );
+      expect(f.tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+        f.tx.credential.findFirst.mock.invocationCallOrder[0],
+      );
+      expect(
+        f.tx.contentLearningAccount.findFirst.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        f.tx.contentLearningScopeState.upsert.mock.invocationCallOrder[0],
+      );
+      expect(f.tx.contentLearningScopeState.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ update: {} }),
+      );
+      expect(f.tx.contentLearningAccount.upsert).not.toHaveBeenCalled();
+    },
+  );
+  it('joins a distinct supplied scope client without transaction or fence', async () => {
+    const f = fixture(),
+      scope = ensureScope(f);
+    expect(
+      await f.scopes.ensure(
+        f.tx as unknown as Prisma.TransactionClient,
+        scope,
+        f.descriptor,
+        1,
+      ),
+    ).toBe(f.scope);
+    expect(f.root.$transaction).not.toHaveBeenCalled();
+    expect(f.tx.$transaction).not.toHaveBeenCalled();
+    expect(f.tx.$queryRaw).not.toHaveBeenCalled();
+    expect(f.tx.contentLearningScopeState.upsert).toHaveBeenCalledTimes(1);
+  });
+  it.each(['descriptor', 'destination', 'account', 'epoch'])(
+    'preserves standalone scope %s refusal without upsert',
+    async (kind) => {
+      const f = fixture(),
+        scope = ensureScope(f);
+      if (kind === 'destination')
+        f.tx.credential.findFirst.mockResolvedValue(null);
+      if (kind === 'account')
+        f.tx.contentLearningAccount.findFirst.mockResolvedValue(null);
+      if (kind === 'epoch') f.account.epoch = 2;
+      const descriptor =
+        kind === 'descriptor'
+          ? { ...f.descriptor, configVersion: 'invalid' }
+          : f.descriptor;
+      await expect(
+        f.scopes.ensure(undefined, scope, descriptor, 1),
+      ).rejects.toThrow(
+        kind === 'descriptor'
+          ? 'Immutable registered cell descriptor required'
+          : kind === 'destination'
+            ? 'Descriptor destination mismatch'
+            : 'Account epoch changed',
+      );
+      expect(f.tx.contentLearningScopeState.upsert).not.toHaveBeenCalled();
+      expect(f.root.$transaction).toHaveBeenCalledTimes(1);
+      expect(f.tx.contentLearningAccount.upsert).not.toHaveBeenCalled();
+    },
+  );
+  it.each(['revoke', 'grant', 'no-prior', 'replay'])(
+    'keeps exact scoped consent invalidation and exclusive transaction for %s',
+    async (kind) => {
+      const f = fixture(),
+        actor = { organizationId: 'org', actorId: 'user' },
+        body = {
+          enabled: kind === 'grant',
+          noticeVersion: 'notice-v1',
+          expectedRevision: 3,
+          requestId: 'sharing-request',
+        };
+      if (kind !== 'no-prior')
+        f.tx.contentLearningConsent.findFirst.mockResolvedValue({
+          id: 'prior-consent',
+          version: 2,
+        });
+      const result = await f.service.sharing(actor, 'credential', body);
+      if (kind === 'replay') {
+        f.tx.contentLearningOperation.findFirst.mockResolvedValue(result);
+        expect(await f.service.sharing(actor, 'credential', body)).toBe(result);
+      }
+      expect(f.tx.contentLearningConsent.findFirst).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org',
+          accountId: 'account',
+          isDeleted: false,
+        },
+        orderBy: { version: 'desc' },
+      });
+      if (kind === 'grant' || kind === 'no-prior')
+        expect(f.dependencies.invalidate).not.toHaveBeenCalled();
+      else {
+        expect(f.dependencies.invalidate).toHaveBeenCalledTimes(1);
+        expect(f.dependencies.invalidate).toHaveBeenCalledWith(
+          'consent',
+          'prior-consent',
+          f.tx,
+          actor.organizationId,
+        );
+        expect(
+          f.tx.contentLearningConsent.findFirst.mock.invocationCallOrder[0],
+        ).toBeLessThan(f.dependencies.invalidate.mock.invocationCallOrder[0]);
+      }
+      const sql = f.tx.$queryRaw.mock.calls.map(([parts]) => parts.join(''));
+      expect(sql[0]).toContain('pg_advisory_xact_lock_shared');
+      expect(sql[1]).toContain('pg_advisory_xact_lock(');
+      expect(sql[2]).toContain('content_learning_accounts');
+      expect(f.tx.$transaction).not.toHaveBeenCalled();
+      expect(f.tx.contentLearningConsent.create).toHaveBeenCalledTimes(1);
+    },
+  );
 });

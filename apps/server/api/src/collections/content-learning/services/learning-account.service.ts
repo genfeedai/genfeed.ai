@@ -83,6 +83,18 @@ export class LearningAccountService {
     credentialId: string,
     tx: Prisma.TransactionClient = this.prisma,
   ) {
+    if (tx !== this.prisma)
+      return this.ensureInTransaction(organizationId, credentialId, tx);
+    return this.prisma.$transaction(async (client) => {
+      await learningFence(client, 'shared');
+      return this.ensureInTransaction(organizationId, credentialId, client);
+    });
+  }
+  private async ensureInTransaction(
+    organizationId: string,
+    credentialId: string,
+    tx: Prisma.TransactionClient,
+  ) {
     const credential = await this.credential(
       organizationId,
       credentialId,
@@ -141,7 +153,7 @@ export class LearningAccountService {
   }
   private scopeDescriptor(
     account: ContentLearningAccount,
-    platform: string | null,
+    platform: ReturnType<typeof fromPrismaCredentialPlatform>,
     scope: ContentLearningScopeState,
   ) {
     const descriptor = scope.cellDescriptor;
@@ -635,7 +647,12 @@ export class LearningAccountService {
           },
         });
         if (!body.enabled && previous)
-          await this.dependencies.invalidate('consent', previous.id, tx);
+          await this.dependencies.invalidate(
+            'consent',
+            previous.id,
+            tx,
+            actor.organizationId,
+          );
         await tx.contentLearningAccount.updateMany({
           where: {
             id: account.id,
