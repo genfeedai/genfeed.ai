@@ -91,8 +91,10 @@ export function readRuntimeBrief(content: string): RecordValue {
   return runtimeRecord(JSON.parse(json));
 }
 
-// Only provider inference/delivery and notification/memory sends are fixtures.
-// Persistence, workflow engine, dispatch queues, review, grants and accounting are real.
+// Dispatcher/graph/review orchestration harness with real PostgreSQL and Redis.
+// Turn actions and the queue-processing bridge are replacements; messages and
+// a synthetic debit are fixture-written. This does not prove production turn,
+// context assembly, worker execution, or credit reservation/settlement.
 export class ProactiveAgentRuntimeFixture {
   readonly namespace = `4959-runtime-${randomUUID()}`;
   readonly organizationId = `${this.namespace}-org`;
