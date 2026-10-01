@@ -69,7 +69,9 @@ export class ImageGenerationAdmissionService {
         (!Number.isInteger(dto.seed) || dto.seed < 0 || dto.seed > 2147483647))
     ) {
       throw new BadRequestException(
-        'Provide an instruction, one to five distinct source images, a valid size and one to eight outputs.',
+        flux
+          ? 'Provide an instruction, one to ten distinct source images, valid native settings and one output.'
+          : 'Provide an instruction, one to five distinct source images, a valid size and one to eight outputs.',
       );
     }
     const findReadyImage = async (id: string) => {
