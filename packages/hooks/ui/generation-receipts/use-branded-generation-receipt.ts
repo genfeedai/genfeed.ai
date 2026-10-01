@@ -5,6 +5,7 @@ import type {
 } from '@genfeedai/props/content/branded-generation-receipt.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { BrandedGenerationReceiptsService } from '@services/ai/branded-generation-receipts.service';
+import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import { isAxiosError } from 'axios';
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
@@ -20,8 +21,29 @@ const empty: ReadState = {
   loadingPrompt: null,
   promptError: null,
 };
-function status(error: unknown) {
-  return isAxiosError(error) ? error.response?.status : undefined;
+function numericStatus(value: unknown): number | undefined {
+  return typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value >= 400 &&
+    value <= 599
+    ? value
+    : undefined;
+}
+function status(error: unknown): number | undefined {
+  const object =
+    typeof error === 'object' && error !== null && !Array.isArray(error)
+      ? error
+      : undefined;
+  if (object && 'isAuthError' in object && object.isAuthError === true)
+    return 401;
+  return (
+    numericStatus(getJsonApiErrorMember(error)?.status) ??
+    numericStatus(object && 'status' in object ? object.status : undefined) ??
+    numericStatus(
+      object && 'statusCode' in object ? object.statusCode : undefined,
+    ) ??
+    numericStatus(isAxiosError(error) ? error.response?.status : undefined)
+  );
 }
 function useSnapshotState(input: BrandedGenerationReceiptInspectorInput) {
   const getService = useAuthedService((token) =>

@@ -1,4 +1,5 @@
 'use client';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   BrandedGenerationReceiptInspectorProps,
   BrandedGenerationReceiptInspectorState,
@@ -110,8 +111,8 @@ function SavedPrompts(state: BrandedGenerationReceiptInspectorState) {
             ) : null}
             {reference?.retention === 'retained' && !revealed ? (
               <Button
-                size="sm"
-                variant="secondary"
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
                 disabled={state.loadingPrompt !== null}
                 onClick={() => void state.revealPrompt(stage)}
                 aria-label={`${t('showPrompt')} · ${stage}`}
@@ -122,8 +123,8 @@ function SavedPrompts(state: BrandedGenerationReceiptInspectorState) {
             {revealed ? (
               <>
                 <Button
-                  size="sm"
-                  variant="secondary"
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
                   onClick={() => state.hidePrompt(stage)}
                   aria-label={`${t('hidePrompt')} · ${stage}`}
                 >
@@ -294,8 +295,8 @@ export default function BrandedGenerationReceiptInspector(
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-base font-semibold">{t('details')}</h2>
         <Button
-          size="sm"
-          variant="secondary"
+          size={ButtonSize.SM}
+          variant={ButtonVariant.SECONDARY}
           onClick={state.refresh}
           disabled={state.isLoading}
         >

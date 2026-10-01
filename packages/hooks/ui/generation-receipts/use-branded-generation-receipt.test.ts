@@ -54,7 +54,13 @@ function publicReceipt() {
   };
 }
 
+import type { IHttpError } from '@genfeedai/contracts/interfaces/utils/error.interface';
+import type {
+  IHttpInterceptorError,
+  IHttpSanitizedError,
+} from '@genfeedai/contracts/interfaces/utils/http-interceptor-error.interface';
 import { act, renderHook, waitFor } from '@testing-library/react';
+import { isAxiosError } from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -99,6 +105,15 @@ function prompt() {
     reasonCode: null,
   };
 }
+function authError(): IHttpInterceptorError {
+  return Object.assign(new Error('PRIVATE'), { isAuthError: true });
+}
+function sanitizedError(status: number): Error & IHttpSanitizedError {
+  return Object.assign(new Error('PRIVATE'), { status, statusText: 'PRIVATE' });
+}
+function httpError(statusCode: number): IHttpError {
+  return { statusCode, message: 'PRIVATE' };
+}
 function deferred<T>() {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((done) => {
@@ -107,8 +122,12 @@ function deferred<T>() {
   return { promise, resolve };
 }
 describe('historical receipt hook', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  beforeEach(async () => {
+    const actual = await vi.importActual<typeof import('axios')>('axios');
+    vi.mocked(isAxiosError).mockImplementation(actual.isAxiosError);
+    mocks.service.get.mockReset();
+    mocks.service.getRevision.mockReset();
+    mocks.service.readPrompt.mockReset();
     mocks.getService = async () => mocks.service;
     mocks.service.get.mockResolvedValue(retained());
     mocks.service.getRevision.mockResolvedValue({
@@ -170,7 +189,16 @@ describe('historical receipt hook', () => {
       expect(result.current.prompts).toEqual({});
       expect(result.current.isLoading).toBe(true);
       act(() => result.current.refresh());
-      await act(async () => pending.resolve(retained()));
+      const value = {
+        ...retained(),
+        organizationId: next.organizationId,
+        brandId: next.brandId,
+        id: next.revision === undefined ? next.receiptId : `${next.receiptId}:2`,
+        ...(next.revision === undefined
+          ? {}
+          : { receiptId: next.receiptId, revision: 2 }),
+      };
+      await act(async () => pending.resolve(value));
       expect(result.current.prompts).toEqual({});
     },
   );
@@ -181,24 +209,73 @@ describe('historical receipt hook', () => {
       (props) => useBrandedGenerationReceipt(props),
       { initialProps: input },
     );
+    await waitFor(() =>
+      expect(mocks.service.get).toHaveBeenCalledWith(
+        'brand',
+        'receipt',
+        expect.any(AbortSignal),
+      ),
+    );
+    const oldSignal = mocks.service.get.mock.calls[0][2];
+    mocks.service.get.mockResolvedValueOnce({ ...retained(), id: 'new' });
     rerender({ ...input, receiptId: 'new' });
-    await waitFor(() => expect(result.current.receipt).not.toBeNull());
-    const saved = result.current.receipt;
-    await act(async () => old.resolve({ ...retained(), id: 'old' }));
-    expect(result.current.receipt).toEqual(saved);
+    await waitFor(() => expect(result.current.receipt?.id).toBe('new'));
+    expect(oldSignal.aborted).toBe(true);
+    await act(async () => old.resolve(retained()));
+    expect(result.current.receipt?.id).toBe('new');
+    expect(result.current.isLoading).toBe(false);
     const pending = deferred<ReturnType<typeof prompt>>();
     mocks.service.readPrompt.mockReturnValueOnce(pending.promise);
     let work: Promise<void> = Promise.resolve();
     act(() => {
       work = result.current.revealPrompt('original');
     });
-    rerender({ ...input, isOpen: false });
+    await waitFor(() =>
+      expect(mocks.service.readPrompt).toHaveBeenCalledWith(
+        'brand',
+        'new',
+        0,
+        'original',
+        expect.any(AbortSignal),
+      ),
+    );
+    const promptSignal = mocks.service.readPrompt.mock.calls[0][4];
+    rerender({ ...input, receiptId: 'new', isOpen: false });
+    expect(promptSignal.aborted).toBe(true);
     await act(async () => {
-      pending.resolve(prompt());
+      pending.resolve({ ...prompt(), id: 'new:0:original', receiptId: 'new' });
       await work;
     });
     expect(result.current.prompts).toEqual({});
     expect(result.current.receipt).toBeNull();
+  });
+  it('ignores old finally while the new metadata request remains pending', async () => {
+    const old = deferred<ReturnType<typeof retained>>();
+    const next = deferred<ReturnType<typeof retained>>();
+    mocks.service.get
+      .mockReturnValueOnce(old.promise)
+      .mockReturnValueOnce(next.promise);
+    const { result, rerender } = renderHook(
+      (props) => useBrandedGenerationReceipt(props),
+      { initialProps: input },
+    );
+    await waitFor(() => expect(mocks.service.get).toHaveBeenCalledTimes(1));
+    const oldSignal = mocks.service.get.mock.calls[0][2];
+    rerender({ ...input, receiptId: 'new' });
+    await waitFor(() =>
+      expect(mocks.service.get).toHaveBeenCalledWith(
+        'brand',
+        'new',
+        expect.any(AbortSignal),
+      ),
+    );
+    await act(async () => old.resolve(retained()));
+    expect(oldSignal.aborted).toBe(true);
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.receipt).toBeNull();
+    await act(async () => next.resolve({ ...retained(), id: 'new' }));
+    expect(result.current.receipt?.id).toBe('new');
+    expect(result.current.isLoading).toBe(false);
   });
   it('prevents duplicate/concurrent reveal and hides an in-flight response permanently', async () => {
     const { result } = renderHook(() => useBrandedGenerationReceipt(input));
@@ -253,6 +330,137 @@ describe('historical receipt hook', () => {
       await work;
     });
   });
+  const transformedErrors = [
+    ['auth Error', authError(), 'unavailable', 'unavailable'],
+    ...[403, 404, 500].map(
+      (code) =>
+        [
+          `sanitized ${code}`,
+          sanitizedError(code),
+          code === 500 ? 'load_failed' : 'unavailable',
+          code === 403
+            ? 'restricted'
+            : code === 404
+              ? 'unavailable'
+              : 'load_failed',
+        ] as const,
+    ),
+    ...[403, 404, 500].map(
+      (code) =>
+        [
+          `JSON API ${code}`,
+          {
+            errors: [
+              {
+                status: String(code),
+                code: 'receipt_access_denied',
+                detail: 'PRIVATE',
+              },
+            ],
+          },
+          code === 500 ? 'load_failed' : 'unavailable',
+          code === 403
+            ? 'restricted'
+            : code === 404
+              ? 'unavailable'
+              : 'load_failed',
+        ] as const,
+    ),
+    ...[401, 403, 404].map(
+      (code) =>
+        [
+          `statusCode ${code}`,
+          httpError(code),
+          'unavailable',
+          code === 403 ? 'restricted' : 'unavailable',
+        ] as const,
+    ),
+    ['unknown Error', new Error('PRIVATE'), 'load_failed', 'load_failed'],
+    ['top-level string', { status: '403' }, 'load_failed', 'load_failed'],
+    [
+      'malformed JSON API',
+      {
+        errors: [
+          { status: 'bad', code: 'receipt_access_denied', detail: 'PRIVATE' },
+        ],
+      },
+      'load_failed',
+      'load_failed',
+    ],
+    [
+      'semantic-only JSON API',
+      { errors: [{ code: 'receipt_access_denied', detail: 'PRIVATE' }] },
+      'load_failed',
+      'load_failed',
+    ],
+    [
+      'false auth flag',
+      { isAuthError: false, message: 'PRIVATE' },
+      'load_failed',
+      'load_failed',
+    ],
+    [
+      'JSON API precedence',
+      {
+        status: 500,
+        statusCode: 401,
+        errors: [{ status: '403', detail: 'PRIVATE' }],
+      },
+      'unavailable',
+      'restricted',
+    ],
+    [
+      'auth precedence',
+      {
+        isAuthError: true,
+        status: 500,
+        errors: [{ status: '403', detail: 'PRIVATE' }],
+      },
+      'unavailable',
+      'unavailable',
+    ],
+    [
+      'numeric JSON API code',
+      { errors: [{ code: '404', detail: 'PRIVATE' }] },
+      'unavailable',
+      'unavailable',
+    ],
+    ...[NaN, Infinity, 403.5, 399, 600].map(
+      (code) =>
+        [
+          `invalid numeric ${code}`,
+          { status: code },
+          'load_failed',
+          'load_failed',
+        ] as const,
+    ),
+  ] as const;
+  it.each(transformedErrors)(
+    'maps transformed metadata %s safely',
+    async (_name, error, metadata) => {
+      mocks.service.get.mockRejectedValueOnce(error);
+      const { result } = renderHook(() => useBrandedGenerationReceipt(input));
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      expect(result.current.error).toBe(metadata);
+      expect(result.current.receipt).toBeNull();
+      expect(result.current.prompts).toEqual({});
+      expect(JSON.stringify(result.current)).not.toContain('PRIVATE');
+    },
+  );
+  it.each(transformedErrors)(
+    'maps transformed prompt %s and clears prior plaintext',
+    async (_name, error, _metadata, expected) => {
+      const { result } = renderHook(() => useBrandedGenerationReceipt(input));
+      await waitFor(() => expect(result.current.receipt).not.toBeNull());
+      await act(() => result.current.revealPrompt('original'));
+      expect(result.current.prompts.original).toEqual(prompt());
+      mocks.service.readPrompt.mockRejectedValueOnce(error);
+      await act(() => result.current.revealPrompt('original'));
+      expect(result.current.promptError).toBe(expected);
+      expect(result.current.prompts).toEqual({});
+      expect(JSON.stringify(result.current)).not.toContain('PRIVATE');
+    },
+  );
   it.each([
     [403, 'restricted'],
     [401, 'unavailable'],

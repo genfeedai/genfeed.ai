@@ -1,5 +1,6 @@
 'use client';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { learningContractIdSchema } from '@genfeedai/contracts/api-types/contracts/content-learning-generation.contract';
 import type {
   BrandedGenerationReceiptReadV1,
@@ -217,8 +218,8 @@ function ReceiptHistory(
   return (
     <section className="space-y-3">
       <Button
-        size="sm"
-        variant="secondary"
+        size={ButtonSize.SM}
+        variant={ButtonVariant.SECONDARY}
         disabled={visible?.loading}
         onClick={() => void load()}
       >
@@ -250,8 +251,8 @@ function ReceiptHistory(
           </ul>
           {visible.cursor !== null ? (
             <Button
-              size="sm"
-              variant="secondary"
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
               disabled={visible.loading}
               onClick={() => void load(visible.cursor ?? undefined)}
             >
@@ -285,8 +286,8 @@ export default function GenerationReceiptsContent() {
     <Container label={t('title')} description={t('description')} fullWidth>
       <div className="space-y-6">
         <Button
-          size="sm"
-          variant="secondary"
+          size={ButtonSize.SM}
+          variant={ButtonVariant.SECONDARY}
           disabled={state.loading || !brandId}
           onClick={() => void load()}
         >
@@ -318,8 +319,8 @@ export default function GenerationReceiptsContent() {
         </ul>
         {state.cursor ? (
           <Button
-            size="sm"
-            variant="secondary"
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
             disabled={state.loading}
             onClick={() => void load(state.cursor ?? undefined)}
           >

@@ -59,14 +59,24 @@ import { BrandedGenerationReceiptSerializer } from '@serializers/server/content/
 import { BrandedGenerationReceiptRevisionSerializer } from '@serializers/server/content/branded-generation-receipt-revision.serializer';
 import { describe, expect, it } from 'vitest';
 
+const lineageFields = [
+  'platform',
+  'parentRequestId',
+  'runId',
+  'workflowExecutionId',
+  'generationId',
+] as const;
+
 describe('public read serializer round trips', () => {
   it('redacts actor/request after validating full internal cross-field invariants', () => {
     const value = receipt();
     const result = BrandedGenerationReceiptSerializer.serialize(value);
     expect(JSON.stringify(result)).not.toContain('PRIVATE_');
-    expect(
-      brandedGenerationReceiptReadV1Schema.parse(deserializeResource(result)),
-    ).toMatchObject({ platform: null, generationId: null, id: value.id });
+    const parsed = brandedGenerationReceiptReadV1Schema.parse(
+      deserializeResource(result),
+    );
+    expect(parsed.id).toBe(value.id);
+    for (const field of lineageFields) expect(parsed).not.toHaveProperty(field);
     expect(() =>
       BrandedGenerationReceiptRevisionSerializer.serialize({
         ...value,
@@ -83,8 +93,39 @@ describe('public read serializer round trips', () => {
     );
     expect(items.map((v) => v.id)).toEqual(['receipt:0', 'receipt:1']);
     expect(items.map((v) => v.receiptId)).toEqual(['receipt', 'receipt']);
+    for (const item of items)
+      for (const field of lineageFields) expect(item).not.toHaveProperty(field);
     expect(values).toEqual(before);
     expect(JSON.stringify(result)).not.toContain('PRIVATE_');
+  });
+  it('preserves supplied lineage through ordinary and revision wrappers without mutation', () => {
+    const lineage = {
+      platform: 'instagram',
+      parentRequestId: 'parent',
+      runId: 'run',
+      workflowExecutionId: 'workflow',
+      generationId: 'generation',
+    };
+    const value = { ...receipt(), ...lineage, revision: 3 };
+    const before = structuredClone(value);
+    const ordinary = BrandedGenerationReceiptSerializer.serialize(value);
+    const revision = BrandedGenerationReceiptRevisionSerializer.serialize(value);
+    const parsed = brandedGenerationReceiptReadV1Schema.parse(
+      deserializeResource(ordinary),
+    );
+    const historical = brandedGenerationReceiptRevisionReadV1Schema.parse(
+      deserializeResource(revision),
+    );
+    expect(parsed).toMatchObject({ ...lineage, id: 'receipt', revision: 3 });
+    expect(historical).toMatchObject({
+      ...lineage,
+      id: 'receipt:3',
+      receiptId: 'receipt',
+      revision: 3,
+    });
+    expect(value).toEqual(before);
+    expect(JSON.stringify(ordinary)).not.toContain('PRIVATE_');
+    expect(JSON.stringify(revision)).not.toContain('PRIVATE_');
   });
   it.each(['retained', 'unavailable'] as const)(
     'emits explicit nulls for %s without entity fields',
