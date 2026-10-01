@@ -8242,42 +8242,10 @@
     },
     {
       "code": 2341,
-      "count": 4,
-      "file": "packages/services/core/interceptor.service.test.ts",
-      "fingerprint": "18769e8cc3db5ebbfeb3",
-      "message": "Property 'handleError' is private and only accessible within class 'HTTPBaseService'.",
-      "workspace": "services"
-    },
-    {
-      "code": 2341,
-      "count": 1,
-      "file": "packages/services/core/interceptor.service.test.ts",
-      "fingerprint": "27b7cf72593239a0bc31",
-      "message": "Property 'handleError' is private and only accessible within class 'HTTPBaseService'.",
-      "workspace": "services"
-    },
-    {
-      "code": 2341,
-      "count": 1,
-      "file": "packages/services/core/interceptor.service.test.ts",
-      "fingerprint": "28c7a21c528543f84534",
-      "message": "Property 'handleError' is private and only accessible within class 'HTTPBaseService'.",
-      "workspace": "services"
-    },
-    {
-      "code": 2341,
       "count": 1,
       "file": "packages/services/core/interceptor.service.test.ts",
       "fingerprint": "42b38a1b5ee3254dfaa9",
       "message": "Property 'abortController' is private and only accessible within class 'HTTPBaseService'.",
-      "workspace": "services"
-    },
-    {
-      "code": 2341,
-      "count": 1,
-      "file": "packages/services/core/interceptor.service.test.ts",
-      "fingerprint": "8b115d8bfe26d277b4df",
-      "message": "Property 'handleError' is private and only accessible within class 'HTTPBaseService'.",
       "workspace": "services"
     },
     {
@@ -8302,14 +8270,6 @@
       "file": "packages/services/core/interceptor.service.test.ts",
       "fingerprint": "af1674954adcfdad982a",
       "message": "Property 'handleRequest' is private and only accessible within class 'HTTPBaseService'.",
-      "workspace": "services"
-    },
-    {
-      "code": 2341,
-      "count": 3,
-      "file": "packages/services/core/interceptor.service.test.ts",
-      "fingerprint": "b98a19f5b928646eb9ac",
-      "message": "Property 'handleError' is private and only accessible within class 'HTTPBaseService'.",
       "workspace": "services"
     },
     {

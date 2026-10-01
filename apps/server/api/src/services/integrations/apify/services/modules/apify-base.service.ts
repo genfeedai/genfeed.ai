@@ -314,10 +314,7 @@ export class ApifyBaseService {
       this.assertRegisteredHostedActor(actorId);
     }
 
-    const suspension = this.getActiveAccountLimitSuspension(scope);
-    if (suspension) {
-      throw this.buildAccountLimitException(suspension);
-    }
+    this.assertCollectionAdmission(scope);
 
     const budget = await this.runBudgetService.consumeRun(
       scope,
@@ -382,6 +379,20 @@ export class ApifyBaseService {
       this.loggerService.error(failureLabel, error);
       throw error;
     }
+  }
+
+  assertCollectionAdmission(scope: string): void {
+    const suspension = this.getActiveAccountLimitSuspension(scope);
+    if (suspension) throw this.buildAccountLimitException(suspension);
+  }
+
+  recordCollectionFailure(
+    scope: string,
+    actorId: string,
+    error: unknown,
+  ): void {
+    if (isApifyAccountLimitError(error))
+      this.recordAccountLimit(scope, actorId, error);
   }
 
   /**

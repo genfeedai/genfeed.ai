@@ -21,6 +21,7 @@ import { ArticlesContentService } from '@api/collections/articles/services/artic
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
+import { EvaluationReadModule } from '@api/collections/evaluations/evaluation-read.module';
 import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness-profiles.module';
 import { MembersModule } from '@api/collections/members/members.module';
 import { ModelsModule } from '@api/collections/models/models.module';
@@ -60,6 +61,7 @@ import { Module } from '@nestjs/common';
     ArticlesService,
   ],
   imports: [
+    EvaluationReadModule,
     ActivitiesModule,
     AgentChatModelRegistryModule,
     ApiKeysModule,

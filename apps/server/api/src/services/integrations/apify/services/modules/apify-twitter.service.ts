@@ -6,6 +6,8 @@ import type {
   TrendOptions,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
+import { ResearchCollectionRunner } from '@api/services/research-access/research-collection-runner.service';
+import type { SocialSourceResearchContext } from '@api/services/source-collector/source-collector.types';
 import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import { Injectable } from '@nestjs/common';
 
@@ -19,7 +21,10 @@ import { Injectable } from '@nestjs/common';
 export class ApifyTwitterService {
   private readonly constructorName: string = String(this.constructor.name);
 
-  constructor(private readonly baseService: ApifyBaseService) {}
+  constructor(
+    private readonly baseService: ApifyBaseService,
+    private readonly runner: ResearchCollectionRunner,
+  ) {}
 
   /**
    * Get Twitter/X trending topics
@@ -94,11 +99,12 @@ export class ApifyTwitterService {
   async getTwitterUserTimeline(
     username: string,
     options?: { limit?: number; sinceId?: string },
+    researchContext?: SocialSourceResearchContext,
   ): Promise<ApifyNormalizedTweet[]> {
     // Hard-fail when Apify is not configured so Following sync cannot look
     // "successful" with zero posts after a silent skip.
-    const token = this.baseService.getApiToken();
-    if (!token) {
+    const token = researchContext ? undefined : this.baseService.getApiToken();
+    if (!researchContext && !token) {
       throw new Error(
         'APIFY_API_TOKEN is not configured — cannot scrape X timelines',
       );
@@ -111,10 +117,17 @@ export class ApifyTwitterService {
         sort: 'Latest',
       };
 
-      const rawTweets = await this.baseService.runActor<ApifyTwitterTweet>(
-        this.baseService.ACTORS.TWITTER_SCRAPER,
-        input,
-      );
+      const rawTweets = await (researchContext
+        ? this.runner.run<ApifyTwitterTweet>(
+            researchContext.organizationId,
+            this.baseService.ACTORS.TWITTER_SCRAPER,
+            input,
+            { tokenMode: 'hosted-only', requestScope: 'social-source-hosted' },
+          )
+        : this.baseService.runActor<ApifyTwitterTweet>(
+            this.baseService.ACTORS.TWITTER_SCRAPER,
+            input,
+          ));
 
       const normalizedTweets = this.normalizeTwitterTweets(rawTweets);
 
@@ -144,9 +157,10 @@ export class ApifyTwitterService {
   async getTweetByUrl(
     tweetUrl: string,
     tweetId: string,
+    researchContext?: SocialSourceResearchContext,
   ): Promise<ApifyNormalizedTweet> {
-    const token = this.baseService.getApiToken();
-    if (!token) {
+    const token = researchContext ? undefined : this.baseService.getApiToken();
+    if (!researchContext && !token) {
       throw new Error(
         'APIFY_API_TOKEN is not configured — cannot scrape X posts',
       );
@@ -157,10 +171,17 @@ export class ApifyTwitterService {
       startUrls: [tweetUrl],
     };
 
-    const rawTweets = await this.baseService.runActor<ApifyTwitterTweet>(
-      this.baseService.ACTORS.TWITTER_SCRAPER,
-      input,
-    );
+    const rawTweets = await (researchContext
+      ? this.runner.run<ApifyTwitterTweet>(
+          researchContext.organizationId,
+          this.baseService.ACTORS.TWITTER_SCRAPER,
+          input,
+          { tokenMode: 'hosted-only', requestScope: 'social-source-hosted' },
+        )
+      : this.baseService.runActor<ApifyTwitterTweet>(
+          this.baseService.ACTORS.TWITTER_SCRAPER,
+          input,
+        ));
 
     const tweet = this.normalizeTwitterTweets(rawTweets).find(
       (candidate) => candidate.id === tweetId,

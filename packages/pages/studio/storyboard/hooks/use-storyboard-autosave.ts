@@ -1,6 +1,5 @@
 'use client';
 
-import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardSourceSelector } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import type {
@@ -8,6 +7,7 @@ import type {
   StoryboardAutosaveOptions,
   StoryboardDraftTransport,
   StoryboardDraftValue,
+  StoryboardEditablePlan,
   StoryboardSaveSnapshot,
 } from '@genfeedai/props/studio/storyboard.props';
 import {
@@ -268,7 +268,7 @@ export function useStoryboardDraftOutbox(
   return {
     queue,
     snapshot: current,
-    plan: bind<StoryboardPlan>('plan'),
+    plan: bind<StoryboardEditablePlan>('plan'),
     source: bind<StoryboardSourceSelector>('source'),
   };
 }

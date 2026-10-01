@@ -42,4 +42,37 @@ describe('getPersuasionHighlight', () => {
 
     expect(highlight?.id).toBe('demandFit');
   });
+  it('retains the full first saved nonempty observation without generating evidence', () => {
+    const observation = 'Saved content-specific observation. '.repeat(30);
+    expect(
+      getPersuasionHighlight(buildPersuasionScores(), [
+        '',
+        '  ',
+        observation,
+        'later',
+      ])?.analysisNote,
+    ).toBe(observation);
+    expect(
+      getPersuasionHighlight(buildPersuasionScores())?.analysisNote,
+    ).toBeUndefined();
+  });
+  it('omits malformed or incomplete persuasion despite a saved note', () => {
+    expect(
+      getPersuasionHighlight({ demandFit: 90 } as IPersuasionScores, ['saved']),
+    ).toBeUndefined();
+    expect(
+      getPersuasionHighlight(
+        buildPersuasionScores({ hookStrength: Number.NaN }),
+        ['saved'],
+      ),
+    ).toBeUndefined();
+  });
+  it('omits written evidence for a malformed stored strengths field', () => {
+    expect(
+      getPersuasionHighlight(
+        buildPersuasionScores(),
+        'not a saved list' as unknown as readonly string[],
+      )?.analysisNote,
+    ).toBeUndefined();
+  });
 });

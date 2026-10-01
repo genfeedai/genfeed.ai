@@ -5,6 +5,7 @@ export {
 } from '../media-prompt';
 export type { PersuasionLayerId } from '../persuasion/viral-psychology';
 export {
+  normalizePersuasionScores,
   PERSUASION_LAYERS,
   PERSUASION_SCORE_KEYS,
 } from '../persuasion/viral-psychology';

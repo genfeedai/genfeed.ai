@@ -53,8 +53,17 @@ export class SocialSourcesController {
 
   @Post('validate')
   @HttpCode(HttpStatus.OK)
-  validate(@Body() body: ValidateSocialSourceDto) {
-    return this.socialSourcesService.validateSource(body.platform, body.handle);
+  validate(
+    @CurrentUser() user: User,
+    @Query() query: BrandScopeQueryDto,
+    @Body() body: ValidateSocialSourceDto,
+  ) {
+    const context = resolveRequiredBrandRequestContext(user, query);
+    return this.socialSourcesService.validateSource(
+      body.platform,
+      body.handle,
+      context,
+    );
   }
 
   @Post('import-post')

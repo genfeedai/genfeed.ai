@@ -1,4 +1,4 @@
-import { storyboardPlanDraftSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
+import { storyboardImportedPlanDraftSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import {
   storyboardIdSchema,
@@ -34,7 +34,7 @@ const scopeSchema = z
   .strict();
 const draftValidationSchema = z
   .object({
-    plan: storyboardPlanDraftSchema,
+    plan: storyboardImportedPlanDraftSchema,
     source: storyboardSourceSelectorSchema.or(
       z
         .object({
@@ -87,7 +87,10 @@ export function storyboardDraftKey(scope: StoryboardDraftScope) {
 }
 export function storyboardDraftValue(run: StoryboardRun): StoryboardDraftValue {
   if (!run.config.plan) throw new Error('Storyboard has no plan.');
-  return { plan: run.config.plan, source: run.config.sourceSnapshot.selector };
+  return {
+    plan: structuredClone(run.config.plan),
+    source: structuredClone(run.config.sourceSnapshot.selector),
+  };
 }
 const queues = new Map<string, StoryboardDraftOutbox>();
 export function getStoryboardDraftOutbox(
@@ -133,7 +136,7 @@ export class StoryboardDraftOutbox {
       version: 1,
       scope: transport.scope,
       revision: run.config.revision,
-      base: value,
+      base: storyboardDraftValue(run),
       value,
       sequence: 0,
       pending: [],
@@ -189,7 +192,7 @@ export class StoryboardDraftOutbox {
   private withFreshness(
     plan: StoryboardDraftValue['plan'],
     remote: StoryboardDraftValue['plan'],
-  ) {
+  ): StoryboardDraftValue['plan'] {
     return {
       ...plan,
       shots: plan.shots.map((shot) => ({
@@ -200,7 +203,7 @@ export class StoryboardDraftOutbox {
               saved.id === shot.id && saved.stillAssetId === shot.stillAssetId,
           )?.stillFreshness ?? ('missing' as const),
       })),
-    };
+    } as StoryboardDraftValue['plan'];
   }
   private view() {
     return {
@@ -258,7 +261,16 @@ export class StoryboardDraftOutbox {
     channel: 'source' | 'plan',
     value: StoryboardDraftValue['source'] | StoryboardDraftValue['plan'],
   ) => {
-    this.envelope.value = { ...this.envelope.value, [channel]: value };
+    this.envelope.value =
+      channel === 'plan'
+        ? {
+            ...this.envelope.value,
+            plan: value as StoryboardDraftValue['plan'],
+          }
+        : {
+            ...this.envelope.value,
+            source: value as StoryboardDraftValue['source'],
+          };
     this.queue(channel);
     if (this.review) {
       this.review.local = this.envelope.value;
@@ -442,22 +454,14 @@ export class StoryboardDraftOutbox {
           const entry = this.envelope.pending[0];
           const previous = this.envelope.base;
           // Unsubmitted changes in the other channel are not attributed to this PATCH.
-          const submittedValue = {
-            ...previous,
-            [entry.channel]: this.envelope.value[entry.channel],
-          };
-          submittedValue.plan = {
-            ...submittedValue.plan,
-            shots: submittedValue.plan.shots.map((shot) => ({
-              ...shot,
-              stillFreshness:
-                previous.plan.shots.find(
-                  (saved) =>
-                    saved.id === shot.id &&
-                    saved.stillAssetId === shot.stillAssetId,
-                )?.stillFreshness ?? 'missing',
-            })),
-          };
+          const submittedValue: StoryboardDraftValue =
+            entry.channel === 'plan'
+              ? { ...previous, plan: this.envelope.value.plan }
+              : { ...previous, source: this.envelope.value.source };
+          submittedValue.plan = this.withFreshness(
+            submittedValue.plan,
+            previous.plan,
+          );
 
           this.envelope.submitted = { ...entry, value: submittedValue };
           this.status = 'saving';

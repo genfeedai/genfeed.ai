@@ -256,6 +256,7 @@ describe('ImagesController', () => {
       expect(imagesService.findOne).toHaveBeenCalledWith(
         {
           id: mockImage.id,
+          isDeleted: false,
           category: 'IMAGE',
           OR: [
             { organizationId: mockUser.organizationId },

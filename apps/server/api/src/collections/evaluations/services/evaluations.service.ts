@@ -24,10 +24,14 @@ import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { scopedWhere } from '@api/index';
 import type { TextByokDispatch } from '@api/services/byok/text-dispatch-byok.util';
 import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
+import { CacheService } from '@api/services/cache/cache.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
+import {
+  BaseService,
+  type PopulateInput,
+} from '@api/shared/services/base/base.service';
 import {
   ActivitySource,
   EvaluationType,
@@ -77,8 +81,62 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     @Optional() private readonly postsService?: PostsService,
     @Optional() private readonly configService?: ConfigService,
     @Optional() private readonly mediaUrlService?: MediaUrlService,
+    @Optional() private readonly evaluationReadCache?: CacheService,
   ) {
     super(prisma, 'evaluation', logger);
+  }
+
+  private async invalidateEvaluationReadCaches(
+    evaluation:
+      | Pick<
+          EvaluationDocument,
+          'id' | 'organizationId' | 'contentType' | 'contentId'
+        >
+      | null
+      | undefined,
+  ): Promise<void> {
+    if (!evaluation?.contentId || !this.evaluationReadCache) return;
+    let tags: string[];
+    switch (evaluation.contentType) {
+      case IngredientCategory.IMAGE:
+        tags = ['images', 'ingredients'];
+        break;
+      case IngredientCategory.VIDEO:
+        tags = ['videos', 'ingredients'];
+        break;
+      case 'post':
+        tags = ['posts'];
+        break;
+      case 'article':
+        tags = ['articles'];
+        break;
+      default:
+        return;
+    }
+    try {
+      await this.evaluationReadCache.invalidateByTags(tags);
+    } catch (error: unknown) {
+      this.logger.error(
+        'Failed to invalidate persisted evaluation content reads',
+        {
+          error,
+          evaluationId: evaluation.id,
+          contentId: evaluation.contentId,
+          contentType: evaluation.contentType,
+          organizationId: evaluation.organizationId,
+        },
+      );
+    }
+  }
+
+  override async patch(
+    id: string,
+    updateDto: Parameters<BaseService<EvaluationDocument>['patch']>[1],
+    populate: PopulateInput = [],
+  ): Promise<EvaluationDocument> {
+    const evaluation = await super.patch(id, updateDto, populate);
+    await this.invalidateEvaluationReadCaches(evaluation);
+    return evaluation;
   }
 
   private resolveMediaUrl(ingredient: {
@@ -301,6 +359,8 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       },
     });
 
+    await this.invalidateEvaluationReadCaches(evaluation);
+
     await this.settleEvaluationCredits(
       organizationId,
       userId,
@@ -373,6 +433,8 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       },
     });
 
+    await this.invalidateEvaluationReadCaches(evaluation);
+
     await this.settleEvaluationCredits(
       organizationId,
       userId,
@@ -443,6 +505,8 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       },
     });
 
+    await this.invalidateEvaluationReadCaches(evaluation);
+
     await this.settleEvaluationCredits(
       organizationId,
       userId,
@@ -486,6 +550,8 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         }) as Prisma.InputJsonValue,
       },
     });
+
+    await this.invalidateEvaluationReadCaches(evaluation);
 
     this.evaluatePostAsync(
       evaluation.id,
@@ -573,6 +639,8 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         },
       });
 
+      await this.invalidateEvaluationReadCaches(updatedEvaluation);
+
       await this.websocketService.emit(
         WebSocketPaths.evaluation(evaluationId),
         { result: updatedEvaluation, status: Status.COMPLETED },
@@ -590,7 +658,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       });
       const existingData = (existing?.data as EvaluationData) ?? {};
 
-      await this.prisma.evaluation.update({
+      const failedEvaluation = await this.prisma.evaluation.update({
         where: scopedWhere(organizationId, { id: evaluationId }),
         data: {
           data: evaluationResultProjection.buildStoredEvaluationData({
@@ -599,6 +667,8 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           }) as Prisma.InputJsonValue,
         },
       });
+
+      await this.invalidateEvaluationReadCaches(failedEvaluation);
 
       // Credits were settled before the evaluation ultimately failed (e.g. the
       // completion write threw after the AI charge). Return them so a failed
@@ -681,6 +751,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       },
     });
 
+    await this.invalidateEvaluationReadCaches(updated);
     return updated;
   }
 
@@ -790,6 +861,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       },
     });
 
+    await this.invalidateEvaluationReadCaches(updated);
     return updated;
   }
 

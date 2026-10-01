@@ -1,9 +1,17 @@
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
-import type { StoryboardSelectProps } from '@genfeedai/props/studio/storyboard.props';
+import type {
+  StoryboardPlanEditorProps,
+  StoryboardSelectProps,
+} from '@genfeedai/props/studio/storyboard.props';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import StoryboardPlanEditor from './StoryboardPlanEditor';
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock(
   '@genfeedai/contexts/providers/global-modals/global-modals.provider',
@@ -55,20 +63,21 @@ vi.mock('@pages/studio/storyboard/components/StoryboardSelect', () => ({
     </select>
   ),
 }));
-const run: StoryboardRun = {
+const run = {
   id: 'run',
   organizationId: 'org',
   brandId: 'brand',
   createdAt: '2026-09-30T00:00:00Z',
   updatedAt: '2026-09-30T00:00:00Z',
   config: {
-    contract: 'storyboard-run',
-    version: 1,
+    origin: 'native' as const,
+    contract: 'storyboard-run' as const,
+    version: 1 as const,
     revision: 1,
     clientRequestId: 'f86c1871-d577-4dca-b79d-6d9f295a58cc',
     createdByUserId: 'user',
     submittedInputHash: 'a'.repeat(64),
-    state: 'storyboard',
+    state: 'storyboard' as const,
     sourceSnapshot: {
       selector: { kind: 'brief', brief: 'Idea' },
       capturedAt: '2026-09-30T00:00:00Z',
@@ -93,7 +102,7 @@ const run: StoryboardRun = {
       })),
     },
   },
-};
+} satisfies StoryboardRun;
 function capabilities(durations: number[]): StoryboardRunCapabilities {
   const model = {
     key: 'model',
@@ -117,10 +126,11 @@ function capabilities(durations: number[]): StoryboardRunCapabilities {
     reasonCode: null,
   };
 }
-const update = async (
-  revision: number,
-  plan: StoryboardRun['config']['plan'],
-) => ({ ...run, config: { ...run.config, revision: revision + 1, plan } });
+const update: StoryboardPlanEditorProps['savePlan'] = async (revision, plan) =>
+  ({
+    ...run,
+    config: { ...run.config, revision: revision + 1, plan },
+  }) as StoryboardRun;
 describe('persisted storyboard plan editor', () => {
   it('flushes a dirty plan before approving the returned revision', async () => {
     const save = vi.fn(update);

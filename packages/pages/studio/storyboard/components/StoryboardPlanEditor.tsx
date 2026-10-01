@@ -12,12 +12,14 @@ import {
   IngredientCategory,
 } from '@genfeedai/contracts';
 import {
-  type StoryboardPlan,
   type StoryboardShot,
-  storyboardPlanSchema,
+  storyboardImportedPlanSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { StoryboardPlanEditorProps } from '@genfeedai/props/studio/storyboard.props';
+import type {
+  StoryboardEditablePlan,
+  StoryboardPlanEditorProps,
+} from '@genfeedai/props/studio/storyboard.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import StoryboardAnimatic from '@pages/studio/storyboard/components/StoryboardAnimatic';
 import StoryboardRuntimeRail from '@pages/studio/storyboard/components/StoryboardRuntimeRail';
@@ -44,6 +46,7 @@ import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { ArrowDown, ArrowUp, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useEffect, useImperativeHandle, useState } from 'react';
 
 /** Draft edits persist independently of paid planning or video execution. */
@@ -60,6 +63,7 @@ export default function StoryboardPlanEditor({
   capabilityError,
   refreshCapabilities,
 }: StoryboardPlanEditorProps) {
+  const translate = useTranslations('pages.studioStoryboard.plan');
   const { openConfirm } = useConfirmModal();
   const { openGallery } = useGalleryModal();
   const {
@@ -73,7 +77,7 @@ export default function StoryboardPlanEditor({
   const [error, setError] = useState<string>();
   const [working, setWorking] = useState(false);
   const persistedPlan = run.config.plan;
-  const autosave = useStoryboardAutosave<StoryboardPlan>({
+  const autosave = useStoryboardAutosave<StoryboardEditablePlan>({
     binding: draft,
     scope: `${run.brandId}:${run.id}`,
     initial: {
@@ -99,16 +103,14 @@ export default function StoryboardPlanEditor({
                 !voices.some((voice) => voice.id === member.voiceId)),
           )
         )
-          throw new Error(
-            'Replace or clear unavailable saved voices before saving.',
-          );
+          throw new Error(translate('replaceVoicesBeforeSave'));
         const result = await savePlan(
           snapshot.revision,
           snapshot.value,
           signal,
           capabilities?.capabilityVersion,
         );
-        if (!result.config.plan) throw new Error('Storyboard has no plan.');
+        if (!result.config.plan) throw new Error(translate('missingPlan'));
         return { revision: result.config.revision, value: result.config.plan };
       } catch (caught) {
         refreshCapabilities?.();
@@ -161,24 +163,22 @@ export default function StoryboardPlanEditor({
       (voiceStatus !== 'loaded' ||
         !voices.some((voice) => voice.id === member.voiceId))
     )
-      problems.push(
-        `Saved voice for ${member.name} is unavailable. Replace or clear it.`,
-      );
+      problems.push(translate('voiceUnavailableFor', { name: member.name }));
   if (!supportedDurations.length)
-    problems.push('Video model capabilities are unavailable.');
+    problems.push(translate('capabilitiesUnavailable'));
   const approved =
     autosave.status === 'saved' &&
     run.config.approvedRevision === autosave.revision;
 
-  function edit(next: StoryboardPlan) {
+  function edit(next: unknown) {
     if (isDisabled) return;
-    const parsed = storyboardPlanSchema.safeParse(next);
+    const parsed = storyboardImportedPlanSchema.safeParse(next);
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message);
       return;
     }
     setError(undefined);
-    autosave.edit(next);
+    autosave.edit(parsed.data);
   }
   function patchShot(shot: StoryboardShot, patch: Partial<StoryboardShot>) {
     edit(editStoryboardShot(plan, shot.id, patch));
@@ -192,7 +192,7 @@ export default function StoryboardPlanEditor({
     const available = (plan.runtimeBudgetSeconds ?? 0) - usedElsewhere;
     // Refuse an over-budget request instead of silently shortening it to fit.
     if (requested > available) {
-      setError('Shorten another shot before increasing this duration.');
+      setError(translate('shortenBeforeIncrease'));
       return;
     }
     const snapped = snapStoryboardDuration(
@@ -201,13 +201,16 @@ export default function StoryboardPlanEditor({
       available,
     );
     if (snapped === undefined) {
-      setError('No supported duration fits the remaining runtime.');
+      setError(translate('noSupportedDuration'));
       return;
     }
     patchShot(shot, { durationSeconds: snapped });
   }
   async function perform(
-    action: (revision: number, saved: StoryboardPlan) => Promise<unknown>,
+    action: (
+      revision: number,
+      saved: StoryboardEditablePlan,
+    ) => Promise<unknown>,
   ) {
     setWorking(true);
     setError(undefined);
@@ -216,9 +219,7 @@ export default function StoryboardPlanEditor({
       await action(saved.revision, saved.value);
     } catch (caught) {
       setError(
-        caught instanceof Error
-          ? caught.message
-          : 'Could not update storyboard. Your edits are kept.',
+        caught instanceof Error ? caught.message : translate('updateFailed'),
       );
     } finally {
       setWorking(false);
@@ -227,10 +228,9 @@ export default function StoryboardPlanEditor({
   function reset() {
     openConfirm({
       isOpen: true,
-      label: 'Reset storyboard?',
-      message:
-        'Restore the most recently generated plan. This saves a new revision.',
-      confirmLabel: 'Reset plan',
+      label: translate('resetConfirm'),
+      message: translate('resetMessage'),
+      confirmLabel: translate('resetPlan'),
       onConfirm: () => perform((revision) => resetPlan(revision)),
     });
   }
@@ -246,9 +246,7 @@ export default function StoryboardPlanEditor({
       !Number.isFinite(minimum) ||
       minimum > remaining
     ) {
-      setError(
-        'No room for another supported shot. Shorten a shot or increase the budget.',
-      );
+      setError(translate('noRoomForShot'));
       return;
     }
     edit({
@@ -271,7 +269,7 @@ export default function StoryboardPlanEditor({
     openGallery({
       category: IngredientCategory.IMAGE,
       maxSelectableItems: 20 - plan.styleReferenceAssetIds.length,
-      title: 'Style references',
+      title: translate('styleReferences'),
       onSelect: (selected) => {
         const ids = selected
           .filter((item) => item.brandId === run.brandId && !item.isDeleted)
@@ -296,13 +294,13 @@ export default function StoryboardPlanEditor({
         />
         <div className="flex flex-wrap gap-2">
           <Button
-            label="Undo"
+            label={translate('undo')}
             variant={ButtonVariant.SECONDARY}
             disabled={isDisabled || !autosave.canUndo}
             onClick={() => void perform(() => autosave.undo())}
           />
           <Button
-            label="Reset plan"
+            label={translate('resetPlan')}
             icon={<RotateCcw className="size-4" />}
             variant={ButtonVariant.SECONDARY}
             disabled={
@@ -313,7 +311,7 @@ export default function StoryboardPlanEditor({
             onClick={reset}
           />
           <Button
-            label={approved ? 'Approved' : 'Approve storyboard'}
+            label={approved ? translate('approved') : translate('approve')}
             disabled={
               isDisabled ||
               approved ||
@@ -335,10 +333,15 @@ export default function StoryboardPlanEditor({
         <div role="status" className="space-y-2 text-sm text-muted-foreground">
           <p>
             {capabilityError ||
-              `Video model unavailable: ${currentCapabilities?.reasonCode?.toLowerCase().replaceAll('_', ' ')}. Text edits and shot deletion remain available.`}
+              translate('modelUnavailable', {
+                reason:
+                  currentCapabilities?.reasonCode
+                    ?.toLowerCase()
+                    .replaceAll('_', ' ') ?? '',
+              })}
           </p>
           <Button
-            label="Reload model capabilities"
+            label={translate('reloadCapabilities')}
             variant={ButtonVariant.SECONDARY}
             onClick={refreshCapabilities}
           />
@@ -349,9 +352,9 @@ export default function StoryboardPlanEditor({
           {error}
         </p>
       ) : null}
-      <Card label="Plan">
+      <Card label={translate('title')}>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Title">
+          <Field label={translate('titleField')}>
             <Input
               value={plan.title}
               maxLength={120}
@@ -359,7 +362,7 @@ export default function StoryboardPlanEditor({
               onChange={(event) => edit({ ...plan, title: event.target.value })}
             />
           </Field>
-          <Field label="Style">
+          <Field label={translate('style')}>
             <Input
               value={plan.styleLabel ?? ''}
               maxLength={60}
@@ -371,7 +374,7 @@ export default function StoryboardPlanEditor({
               }
             />
           </Field>
-          <Field label="Logline" className="sm:col-span-2">
+          <Field label={translate('logline')} className="sm:col-span-2">
             <Textarea
               value={plan.logline}
               maxLength={300}
@@ -381,11 +384,11 @@ export default function StoryboardPlanEditor({
               }
             />
           </Field>
-          <Field label="Video model">
+          <Field label={translate('videoModel')}>
             <StoryboardSelect
-              ariaLabel="Video model"
+              ariaLabel={translate('videoModel')}
               value={plan.videoModelKey ?? '__automatic__'}
-              placeholder="Choose video model"
+              placeholder={translate('chooseVideoModel')}
               isDisabled={
                 isDisabled ||
                 autosave.status === 'saving' ||
@@ -397,7 +400,9 @@ export default function StoryboardPlanEditor({
                   ? [
                       {
                         value: '__automatic__',
-                        label: `Automatic: ${currentCapabilities.effectiveModel.label}`,
+                        label: translate('automaticModel', {
+                          label: currentCapabilities.effectiveModel.label,
+                        }),
                       },
                     ]
                   : []),
@@ -429,17 +434,17 @@ export default function StoryboardPlanEditor({
                   setError(
                     caught instanceof Error
                       ? caught.message
-                      : 'Could not switch video model.',
+                      : translate('switchModelFailed'),
                   );
                 }
               }}
             />
           </Field>
-          <Field label="Format">
+          <Field label={translate('format')}>
             <StoryboardSelect
-              ariaLabel="Format"
+              ariaLabel={translate('format')}
               value={plan.format}
-              placeholder="Choose format"
+              placeholder={translate('chooseFormat')}
               isDisabled={isDisabled || timingDisabled}
               options={(
                 model?.supportedFormats.filter((format) => format !== '4:5') ??
@@ -454,7 +459,7 @@ export default function StoryboardPlanEditor({
               }}
             />
           </Field>
-          <Field label="Runtime budget (seconds)">
+          <Field label={translate('runtimeBudget')}>
             <Input
               type="number"
               min={1}
@@ -476,8 +481,13 @@ export default function StoryboardPlanEditor({
           {plan.styleReferenceAssetIds.map((id, index) => (
             <Button
               key={id}
-              label={`${storyboardAssetLabel(assets[`image:${id}`], `Reference ${index + 1}`)} ×`}
-              ariaLabel={`Remove ${storyboardAssetLabel(assets[`image:${id}`], `reference ${index + 1}`)}`}
+              label={`${storyboardAssetLabel(assets[`image:${id}`], translate('referenceFallback', { ordinal: index + 1 }))} ×`}
+              ariaLabel={translate('removeReference', {
+                label: storyboardAssetLabel(
+                  assets[`image:${id}`],
+                  translate('referenceFallback', { ordinal: index + 1 }),
+                ),
+              })}
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
               disabled={isDisabled}
@@ -493,7 +503,7 @@ export default function StoryboardPlanEditor({
             />
           ))}
           <Button
-            label="Add style references"
+            label={translate('addStyleReferences')}
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
             disabled={isDisabled || plan.styleReferenceAssetIds.length >= 20}
@@ -502,36 +512,35 @@ export default function StoryboardPlanEditor({
         </div>
       </Card>
       <Card
-        label="Cast"
-        description="Each speaker keeps one voice across their dialogue."
+        label={translate('cast')}
+        description={translate('castDescription')}
       >
         <div className="space-y-3">
           {voiceStatus === 'loading' ? (
-            <p role="status">Loading saved voices…</p>
+            <p role="status">{translate('loadingVoices')}</p>
           ) : voiceStatus === 'failed' ? (
             <div role="alert">
               <p>{voiceError}</p>
               <Button
-                label="Retry loading voices"
+                label={translate('retryVoices')}
                 variant={ButtonVariant.SECONDARY}
                 onClick={retryVoices}
               />
             </div>
           ) : !voices.length ? (
-            <p>
-              No usable saved voices. Save a usable voice in Voices Library
-              before assigning it.
-            </p>
+            <p>{translate('noVoices')}</p>
           ) : null}
           <Button asChild variant={ButtonVariant.SECONDARY}>
-            <Link href={href(APP_ROUTES.LIBRARY.VOICES)}>Voices Library</Link>
+            <Link href={href(APP_ROUTES.LIBRARY.VOICES)}>
+              {translate('voicesLibrary')}
+            </Link>
           </Button>
           {plan.cast.map((member, index) => (
             <div
               key={member.id}
               className="grid items-end gap-3 sm:grid-cols-[1fr_1fr_auto]"
             >
-              <Field label={`Speaker ${index + 1}`}>
+              <Field label={translate('speaker', { ordinal: index + 1 })}>
                 <Input
                   value={member.name}
                   maxLength={40}
@@ -548,11 +557,11 @@ export default function StoryboardPlanEditor({
                   }
                 />
               </Field>
-              <Field label="Voice">
+              <Field label={translate('voice')}>
                 <StoryboardSelect
-                  ariaLabel={`Voice for ${member.name}`}
+                  ariaLabel={translate('voiceFor', { name: member.name })}
                   value={member.voiceId}
-                  placeholder="Choose voice"
+                  placeholder={translate('chooseVoice')}
                   isDisabled={isDisabled || voiceStatus === 'loading'}
                   options={[
                     ...(member.voiceId &&
@@ -560,14 +569,17 @@ export default function StoryboardPlanEditor({
                       ? [
                           {
                             value: member.voiceId,
-                            label: 'Saved voice unavailable — replace or clear',
+                            label: translate('voiceUnavailable'),
                             isDisabled: true,
                           },
                         ]
                       : []),
                     ...voices.map((voice) => ({
                       value: voice.id,
-                      label: storyboardAssetLabel(voice, 'Saved voice'),
+                      label: storyboardAssetLabel(
+                        voice,
+                        translate('savedVoice'),
+                      ),
                     })),
                   ]}
                   onChange={(voiceId) =>
@@ -584,8 +596,8 @@ export default function StoryboardPlanEditor({
                 <Button
                   label={
                     member.avatarAssetId
-                      ? 'Change avatar image'
-                      : 'Choose avatar image'
+                      ? translate('changeAvatar')
+                      : translate('chooseAvatar')
                   }
                   variant={ButtonVariant.SECONDARY}
                   disabled={isDisabled}
@@ -593,7 +605,7 @@ export default function StoryboardPlanEditor({
                     openGallery({
                       category: IngredientCategory.IMAGE,
                       maxSelectableItems: 1,
-                      title: `Avatar image for ${member.name}`,
+                      title: translate('avatarFor', { name: member.name }),
                       onSelect: (items) => {
                         const item = items.find(
                           (candidate) =>
@@ -615,7 +627,7 @@ export default function StoryboardPlanEditor({
                 />
                 {member.avatarAssetId ? (
                   <Button
-                    label="Clear avatar"
+                    label={translate('clearAvatar')}
                     variant={ButtonVariant.SECONDARY}
                     disabled={isDisabled}
                     onClick={() =>
@@ -637,7 +649,7 @@ export default function StoryboardPlanEditor({
                 ) : null}
               </div>
               <Button
-                ariaLabel={`Remove ${member.name}`}
+                ariaLabel={translate('removeSpeaker', { name: member.name })}
                 icon={<Trash2 className="size-4" />}
                 variant={ButtonVariant.SECONDARY}
                 disabled={isDisabled}
@@ -662,14 +674,17 @@ export default function StoryboardPlanEditor({
         </div>
         <Button
           className="mt-3"
-          label="Add speaker"
+          label={translate('addSpeaker')}
           icon={<Plus className="size-4" />}
           variant={ButtonVariant.SECONDARY}
           disabled={isDisabled || plan.cast.length >= 6}
           onClick={() => {
             let index = plan.cast.length + 1;
             while (
-              plan.cast.some((member) => member.name === `Speaker ${index}`)
+              plan.cast.some(
+                (member) =>
+                  member.name === translate('speaker', { ordinal: index }),
+              )
             )
               index++;
             edit({
@@ -678,7 +693,7 @@ export default function StoryboardPlanEditor({
                 ...plan.cast,
                 {
                   id: crypto.randomUUID(),
-                  name: `Speaker ${index}`,
+                  name: translate('speaker', { ordinal: index }),
                   referenceAssetIds: [],
                 },
               ],
@@ -712,8 +727,7 @@ export default function StoryboardPlanEditor({
       />
       {!supportedDurations.length ? (
         <p role="status" className="text-xs text-muted-foreground">
-          Duration editing and adding shots become available when the supported
-          model durations are resolved.
+          {translate('durationUntilResolved')}
         </p>
       ) : null}
       <div className="space-y-3">
@@ -721,11 +735,13 @@ export default function StoryboardPlanEditor({
           <section
             key={shot.id}
             id={`shot-${shot.id}`}
-            aria-label={`Shot ${shot.ordinal}`}
+            aria-label={translate('shot', { ordinal: shot.ordinal })}
           >
             <Card
-              label={`Shot ${shot.ordinal}`}
-              description={`Still: ${shot.stillFreshness}`}
+              label={translate('shot', { ordinal: shot.ordinal })}
+              description={translate('stillStatus', {
+                status: shot.stillFreshness,
+              })}
             >
               <div className="mb-3 max-w-sm">
                 {shot.stillAssetId &&
@@ -738,24 +754,24 @@ export default function StoryboardPlanEditor({
                         url: assets[`image:${shot.stillAssetId}`].cdnUrl || '',
                         title: storyboardAssetLabel(
                           assets[`image:${shot.stillAssetId}`],
-                          `Shot ${shot.ordinal}`,
+                          translate('shot', { ordinal: shot.ordinal }),
                         ),
                         width:
                           assets[`image:${shot.stillAssetId}`].metadataWidth,
                         height:
                           assets[`image:${shot.stillAssetId}`].metadataHeight,
-                        alt: `Still for shot ${shot.ordinal}`,
+                        alt: translate('stillAlt', { ordinal: shot.ordinal }),
                       },
                     ]}
                   />
                 ) : (
                   <p className="flex aspect-video items-center justify-center rounded-md border border-border text-xs text-muted-foreground">
-                    Still preview unavailable
+                    {translate('stillUnavailable')}
                   </p>
                 )}
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Section">
+                <Field label={translate('section')}>
                   <Input
                     value={shot.sectionLabel ?? ''}
                     maxLength={40}
@@ -765,7 +781,7 @@ export default function StoryboardPlanEditor({
                     }
                   />
                 </Field>
-                <Field label="Duration (seconds)">
+                <Field label={translate('duration')}>
                   <Input
                     type="number"
                     min={1}
@@ -777,20 +793,27 @@ export default function StoryboardPlanEditor({
                     }
                   />
                 </Field>
-                <Field label="Transition">
+                <Field label={translate('transition')}>
                   <StoryboardSelect
-                    ariaLabel={`Shot ${shot.ordinal} transition`}
+                    ariaLabel={translate('shotTransition', {
+                      ordinal: shot.ordinal,
+                    })}
                     value={shot.transition}
-                    placeholder="Choose transition"
+                    placeholder={translate('chooseTransition')}
                     isDisabled={isDisabled || timingDisabled}
                     options={[
-                      { value: 'cut', label: 'Cut' },
-                      { value: 'stitch', label: 'Stitch' },
+                      { value: 'cut', label: translate('cut') },
+                      { value: 'stitch', label: translate('stitch') },
                       ...(model?.hasInterpolation &&
                       index < plan.shots.length - 1 &&
                       shot.stillFreshness === 'fresh' &&
                       plan.shots[index + 1]?.stillFreshness === 'fresh'
-                        ? [{ value: 'interpolate', label: 'Interpolate' }]
+                        ? [
+                            {
+                              value: 'interpolate',
+                              label: translate('interpolate'),
+                            },
+                          ]
                         : []),
                     ]}
                     onChange={(value) => {
@@ -803,7 +826,7 @@ export default function StoryboardPlanEditor({
                     }}
                   />
                 </Field>
-                <Field label="Action" className="sm:col-span-2">
+                <Field label={translate('action')} className="sm:col-span-2">
                   <Textarea
                     value={shot.action}
                     maxLength={4000}
@@ -814,8 +837,10 @@ export default function StoryboardPlanEditor({
                   />
                 </Field>
                 <Field
-                  label="Dialogue"
-                  helpText={shot.dialogue?.trim() ? undefined : 'No dialogue'}
+                  label={translate('dialogue')}
+                  helpText={
+                    shot.dialogue?.trim() ? undefined : translate('noDialogue')
+                  }
                 >
                   <Textarea
                     value={shot.dialogue ?? ''}
@@ -827,8 +852,8 @@ export default function StoryboardPlanEditor({
                   />
                 </Field>
                 <Field
-                  label="Notes"
-                  helpText="Notes are saved with the plan and excluded from generation."
+                  label={translate('notes')}
+                  helpText={translate('notesHelp')}
                 >
                   <Textarea
                     value={shot.notes ?? ''}
@@ -839,11 +864,13 @@ export default function StoryboardPlanEditor({
                     }
                   />
                 </Field>
-                <Field label="Speaker">
+                <Field label={translate('speakerField')}>
                   <StoryboardSelect
-                    ariaLabel={`Speaker for shot ${shot.ordinal}`}
+                    ariaLabel={translate('speakerForShot', {
+                      ordinal: shot.ordinal,
+                    })}
                     value={shot.speakerId}
-                    placeholder="Choose speaker"
+                    placeholder={translate('chooseSpeaker')}
                     isDisabled={isDisabled}
                     options={plan.cast.map((member) => ({
                       value: member.id,
@@ -871,12 +898,12 @@ export default function StoryboardPlanEditor({
                       patchShot(shot, { onScreenSpeaker: checked === true })
                     }
                   />
-                  Speaker on screen
+                  {translate('speakerOnScreen')}
                 </label>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button
-                  ariaLabel={`Move shot ${shot.ordinal} up`}
+                  ariaLabel={translate('moveShotUp', { ordinal: shot.ordinal })}
                   icon={<ArrowUp className="size-4" />}
                   variant={ButtonVariant.SECONDARY}
                   disabled={isDisabled || timingDisabled || index === 0}
@@ -885,7 +912,9 @@ export default function StoryboardPlanEditor({
                   }
                 />
                 <Button
-                  ariaLabel={`Move shot ${shot.ordinal} down`}
+                  ariaLabel={translate('moveShotDown', {
+                    ordinal: shot.ordinal,
+                  })}
                   icon={<ArrowDown className="size-4" />}
                   variant={ButtonVariant.SECONDARY}
                   disabled={
@@ -896,7 +925,7 @@ export default function StoryboardPlanEditor({
                   onClick={() => edit(reorderStoryboardShots(plan, shot.id, 1))}
                 />
                 <Button
-                  label="Delete shot"
+                  label={translate('deleteShot')}
                   icon={<Trash2 className="size-4" />}
                   variant={ButtonVariant.SECONDARY}
                   disabled={isDisabled}
@@ -908,7 +937,7 @@ export default function StoryboardPlanEditor({
         ))}
       </div>
       <Button
-        label="Add shot"
+        label={translate('addShot')}
         icon={<Plus className="size-4" />}
         variant={ButtonVariant.SECONDARY}
         disabled={isDisabled || plan.shots.length >= 12 || timingDisabled}
@@ -916,7 +945,7 @@ export default function StoryboardPlanEditor({
       />
       {problems.length ? (
         <div role="status" className="space-y-1 text-xs text-muted-foreground">
-          <p>Before approving:</p>
+          <p>{translate('beforeApproving')}</p>
           <ul className="list-disc pl-4">
             {problems.map((problem) => (
               <li key={problem}>{problem}</li>

@@ -5,6 +5,7 @@ import type { StoryboardAnimaticProps } from '@genfeedai/props/studio/storyboard
 import { Button } from '@ui/primitives/button';
 import { Pause, Play, RotateCcw } from 'lucide-react';
 import NextImage from 'next/image';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 function previewDuration(seconds: number | null): number {
@@ -24,6 +25,7 @@ export default function StoryboardAnimatic({
   scope,
   shots,
 }: StoryboardAnimaticProps) {
+  const translate = useTranslations('pages.studioStoryboard.animatic');
   const [elapsed, setElapsed] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [singleShot, setSingleShot] = useState<string>();
@@ -174,14 +176,14 @@ export default function StoryboardAnimatic({
 
   return (
     <section
-      aria-label="Storyboard animatic"
+      aria-label={translate('ariaLabel')}
       className="space-y-3 border-y border-border py-4"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-sm font-semibold">Animatic</h2>
+          <h2 className="text-sm font-semibold">{translate('title')}</h2>
           <p className="text-xs text-muted-foreground">
-            Stills and dialogue preview · no generation credits
+            {translate('subtitle')}
           </p>
         </div>
         <span className="font-mono text-xs text-muted-foreground">
@@ -190,7 +192,7 @@ export default function StoryboardAnimatic({
       </div>
       <Button
         className="relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-md border border-border"
-        ariaLabel={playing ? 'Pause animatic' : 'Play animatic'}
+        ariaLabel={playing ? translate('pauseAria') : translate('playAria')}
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
         isDisabled={!playable && !singleReady}
@@ -210,7 +212,7 @@ export default function StoryboardAnimatic({
         {current?.shot.stillUrl && mediaStatus(current.shot.id) === 'loaded' ? (
           <NextImage
             src={current.shot.stillUrl}
-            alt={`Shot ${current.shot.ordinal}`}
+            alt={translate('shotAlt', { ordinal: current.shot.ordinal })}
             fill
             unoptimized
             sizes="(max-width: 768px) 100vw, 768px"
@@ -232,14 +234,14 @@ export default function StoryboardAnimatic({
         ) : (
           <p className="text-xs text-muted-foreground">
             {current?.shot.stillUrl && mediaStatus(current.shot.id) !== 'failed'
-              ? 'Loading still preview'
-              : 'Still preview unavailable'}
+              ? translate('loadingStill')
+              : translate('stillUnavailable')}
           </p>
         )}
       </Button>
       {current?.shot.stillUrl && mediaStatus(current.shot.id) === 'failed' ? (
         <Button
-          label="Retry still preview"
+          label={translate('retryStill')}
           size={ButtonSize.SM}
           variant={ButtonVariant.SECONDARY}
           onClick={() => {
@@ -253,17 +255,19 @@ export default function StoryboardAnimatic({
         aria-live="polite"
         className="text-xs text-muted-foreground"
       >
-        {current ? `Shot ${current.shot.ordinal}` : 'No shots'}
+        {current
+          ? translate('shotStatus', { ordinal: current.shot.ordinal })
+          : translate('noShots')}
         {current
           ? ` · ${timecode(current.start)}–${timecode(current.end)}`
           : ''}
       </p>
       <p className="whitespace-pre-wrap break-words text-sm">
-        {current?.shot.dialogue || 'No dialogue'}
+        {current?.shot.dialogue || translate('noDialogue')}
       </p>
       {!playable ? (
         <p className="text-xs text-muted-foreground">
-          Every shot needs a still and duration to preview the full storyboard.
+          {translate('needsStills')}
         </p>
       ) : null}
       <div className="flex flex-wrap gap-2">
@@ -273,10 +277,10 @@ export default function StoryboardAnimatic({
           }
           label={
             playing
-              ? 'Pause'
+              ? translate('pause')
               : singleShot && !playable
-                ? `Play shot ${current?.shot.ordinal}`
-                : 'Play storyboard'
+                ? translate('playShot', { ordinal: current?.shot.ordinal ?? 0 })
+                : translate('playStoryboard')
           }
           isDisabled={!playable && !singleReady}
           size={ButtonSize.SM}
@@ -301,7 +305,7 @@ export default function StoryboardAnimatic({
         />
         <Button
           icon={<RotateCcw className="size-4" />}
-          label="Restart"
+          label={translate('restart')}
           size={ButtonSize.SM}
           variant={ButtonVariant.GHOST}
           isDisabled={!shots.length}
@@ -310,7 +314,7 @@ export default function StoryboardAnimatic({
         {ranges.map((range) => (
           <div key={range.shot.id} className="space-y-1">
             <Button
-              label={`Play shot ${range.shot.ordinal}`}
+              label={translate('playShot', { ordinal: range.shot.ordinal })}
               size={ButtonSize.SM}
               variant={ButtonVariant.GHOST}
               isDisabled={!ready(range.shot)}
@@ -321,12 +325,15 @@ export default function StoryboardAnimatic({
             />
             {mediaStatus(range.shot.id) === 'failed' ? (
               <div className="space-y-1">
-                <p
-                  role="status"
-                  className="text-xs text-muted-foreground"
-                >{`Shot ${range.shot.ordinal}: Still preview unavailable`}</p>
+                <p role="status" className="text-xs text-muted-foreground">
+                  {translate('shotStillUnavailable', {
+                    ordinal: range.shot.ordinal,
+                  })}
+                </p>
                 <Button
-                  label={`Retry shot ${range.shot.ordinal} still preview`}
+                  label={translate('retryShotStill', {
+                    ordinal: range.shot.ordinal,
+                  })}
                   size={ButtonSize.SM}
                   variant={ButtonVariant.GHOST}
                   onClick={() => {
