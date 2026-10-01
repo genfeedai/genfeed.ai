@@ -33,6 +33,8 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
+      RUNTIME_ACCEPTANCE_POSTGRES_USER: genfeed
+      RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD: genfeed_local
       RUNTIME_ACCEPTANCE_PUBLIC_KEY: ${{ vars.RUNTIME_ACCEPTANCE_PUBLIC_KEY }}
       ACCEPTANCE_REPO: ${{ github.workspace }}
       CONTROL_SHA: ${{ github.sha }}

@@ -124,7 +124,29 @@ export function validateSha(value) {
   requireThat(SHA.test(value ?? ''), 'INVALID_SHA');
   return value;
 }
-export function validateUrl(value, kind, database) {
+export function readPostgresCredentials(env) {
+  const username = env?.RUNTIME_ACCEPTANCE_POSTGRES_USER;
+  const password = env?.RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD;
+  requireThat(
+    typeof username === 'string' &&
+      username.length > 0 &&
+      typeof password === 'string' &&
+      password.length > 0,
+    'POSTGRES_CREDENTIALS_REQUIRED',
+  );
+  requireThat(
+    username === 'genfeed' && /^[A-Za-z0-9_-]{12,128}$/.test(password),
+    'INVALID_POSTGRES_CREDENTIALS',
+  );
+  return { username, password };
+}
+function validateCredentials(credentials) {
+  return readPostgresCredentials({
+    RUNTIME_ACCEPTANCE_POSTGRES_USER: credentials?.username,
+    RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD: credentials?.password,
+  });
+}
+export function validateUrl(value, kind, database, credentials) {
   let url;
   try {
     url = new URL(value);
@@ -143,6 +165,7 @@ export function validateUrl(value, kind, database) {
     'SERVICE_OVERRIDE',
   );
   if (kind === 'postgres') {
+    validateCredentials(credentials);
     requireThat(
       url.protocol === 'postgresql:' &&
         url.port === '5432' &&
@@ -152,7 +175,9 @@ export function validateUrl(value, kind, database) {
     );
     requireThat(
       url.username === 'genfeed' &&
-        url.password === 'genfeed_local' &&
+        url.password === credentials.password &&
+        !url.username.includes('%') &&
+        !url.password.includes('%') &&
         !url.search,
       'INVALID_DATABASE',
     );
@@ -796,6 +821,7 @@ export function workBudget(identity, now = Date.now()) {
   return identity.overallDeadline - reserve;
 }
 export async function createState(options, env) {
+  readPostgresCredentials(env);
   const { fingerprint } = validatePublicKey(env.RUNTIME_ACCEPTANCE_PUBLIC_KEY);
   const timing = validateTiming(
     options.group,
@@ -903,17 +929,35 @@ function serviceId(value) {
   requireThat(/^[a-f0-9]{12,64}$/.test(value ?? ''), 'SERVICE_ID_REQUIRED');
   return value;
 }
-function databaseUrl(name) {
+export function databaseUrl(name, credentials) {
+  validateCredentials(credentials);
   const url = new URL('postgresql://127.0.0.1:5432');
-  url.username = 'genfeed';
-  url.password = 'genfeed_local';
+  url.username = credentials.username;
+  url.password = credentials.password;
   url.pathname = `/${name}`;
   return url.href;
+}
+export function postgresClientInvocation(containerId, psqlArgs, credentials) {
+  validateCredentials(credentials);
+  return {
+    args: [
+      'exec',
+      '--env',
+      'PGPASSWORD',
+      serviceId(containerId),
+      'psql',
+      '-U',
+      'genfeed',
+      ...psqlArgs,
+    ],
+    env: { PGPASSWORD: credentials.password },
+  };
 }
 async function persistIdentity(identity) {
   await atomicJson(path.join(identity.state, 'identity.json'), identity);
 }
 async function execution(identity, env) {
+  const credentials = readPostgresCredentials(env);
   requireThat(identity.phase === 'prepared', 'INVALID_PHASE');
   identity.phase = 'running';
   await persistIdentity(identity);
@@ -969,6 +1013,8 @@ async function execution(identity, env) {
     STRIPE_SECRET_KEY: 'test-mock-key',
     BETTER_AUTH_SECRET: 'test-better-auth-secret',
   };
+  delete privateEnv.RUNTIME_ACCEPTANCE_POSTGRES_USER;
+  delete privateEnv.RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD;
   delete privateEnv.LEARNING_DATASET_PROFILE;
   delete privateEnv.LEARNING_DATASET_BENCHMARK;
   const save = async (relative, bytes) => {
@@ -1095,45 +1141,43 @@ async function execution(identity, env) {
     return readFile(stdoutPath, 'utf8');
   };
   const database = async (name) => {
-    const url = databaseUrl(name);
-    validateUrl(url, 'postgres', name);
+    const url = databaseUrl(name, credentials);
+    validateUrl(url, 'postgres', name, credentials);
     const id = serviceId(identity.resources.postgres);
     const exists = await capture(
       'docker',
-      [
-        'exec',
+      postgresClientInvocation(
         id,
-        'psql',
-        '-U',
-        'genfeed',
-        '-d',
-        'test',
-        '-tAc',
-        `SELECT 1 FROM pg_database WHERE datname = '${name}'`,
-      ],
+        [
+          '-d',
+          'test',
+          '-tAc',
+          `SELECT 1 FROM pg_database WHERE datname = '${name}'`,
+        ],
+        credentials,
+      ).args,
       identity.repo,
-      privateEnv,
+      { ...privateEnv, ...postgresClientInvocation(id, [], credentials).env },
     );
     requireThat(exists === '', 'DATABASE_ALREADY_EXISTS');
     identity.resources.databases.push({ name, created: false });
     await persistIdentity(identity);
     await capture(
       'docker',
-      [
-        'exec',
+      postgresClientInvocation(
         id,
-        'psql',
-        '-U',
-        'genfeed',
-        '-d',
-        'test',
-        '-v',
-        'ON_ERROR_STOP=1',
-        '-c',
-        `CREATE DATABASE "${name}"`,
-      ],
+        [
+          '-d',
+          'test',
+          '-v',
+          'ON_ERROR_STOP=1',
+          '-c',
+          `CREATE DATABASE "${name}"`,
+        ],
+        credentials,
+      ).args,
       identity.repo,
-      privateEnv,
+      { ...privateEnv, ...postgresClientInvocation(id, [], credentials).env },
     );
     identity.resources.databases.at(-1).created = true;
     await persistIdentity(identity);
@@ -1183,16 +1227,29 @@ async function execution(identity, env) {
         ];
         if (kind === 'postgres')
           args.push(
-            '-e',
-            'POSTGRES_USER=genfeed',
-            '-e',
-            'POSTGRES_PASSWORD=genfeed_local',
-            '-e',
-            'POSTGRES_DB=test',
+            '--env',
+            'POSTGRES_USER',
+            '--env',
+            'POSTGRES_PASSWORD',
+            '--env',
+            'POSTGRES_DB',
           );
         args.push(image);
         const id = serviceId(
-          await capture('docker', args, identity.repo, privateEnv, 120000),
+          await capture(
+            'docker',
+            args,
+            identity.repo,
+            kind === 'postgres'
+              ? {
+                  ...privateEnv,
+                  POSTGRES_USER: credentials.username,
+                  POSTGRES_PASSWORD: credentials.password,
+                  POSTGRES_DB: 'test',
+                }
+              : privateEnv,
+            120000,
+          ),
         );
         identity.resources.containers.at(-1).id = id;
         identity.resources[kind] = id;
@@ -1237,19 +1294,20 @@ async function execution(identity, env) {
     if (identity.resources.postgres)
       serviceVersions.postgres = await capture(
         'docker',
-        [
-          'exec',
+        postgresClientInvocation(
           identity.resources.postgres,
-          'psql',
-          '-U',
-          'genfeed',
-          '-d',
-          'test',
-          '-tAc',
-          'SHOW server_version',
-        ],
+          ['-d', 'test', '-tAc', 'SHOW server_version'],
+          credentials,
+        ).args,
         identity.repo,
-        privateEnv,
+        {
+          ...privateEnv,
+          ...postgresClientInvocation(
+            identity.resources.postgres,
+            [],
+            credentials,
+          ).env,
+        },
       );
     if (identity.resources.redis)
       serviceVersions.redis = await capture(
@@ -1840,21 +1898,27 @@ async function execution(identity, env) {
         if (manifest.schema)
           await cleanupCapture(
             'docker',
-            [
-              'exec',
+            postgresClientInvocation(
               identity.resources.postgres,
-              'psql',
-              '-U',
-              'genfeed',
-              '-d',
-              'genfeed_crun_test',
-              '-v',
-              'ON_ERROR_STOP=1',
-              '-c',
-              `DROP SCHEMA IF EXISTS "${manifest.schema}" CASCADE`,
-            ],
+              [
+                '-d',
+                'genfeed_crun_test',
+                '-v',
+                'ON_ERROR_STOP=1',
+                '-c',
+                `DROP SCHEMA IF EXISTS "${manifest.schema}" CASCADE`,
+              ],
+              credentials,
+            ).args,
             identity.repo,
-            privateEnv,
+            {
+              ...privateEnv,
+              ...postgresClientInvocation(
+                identity.resources.postgres,
+                [],
+                credentials,
+              ).env,
+            },
           );
         if (manifest.redisKeys.length)
           await cleanupCapture(
@@ -1909,21 +1973,27 @@ async function execution(identity, env) {
         await clean('database', () =>
           cleanupCapture(
             'docker',
-            [
-              'exec',
+            postgresClientInvocation(
               serviceId(identity.resources.postgres),
-              'psql',
-              '-U',
-              'genfeed',
-              '-d',
-              'test',
-              '-v',
-              'ON_ERROR_STOP=1',
-              '-c',
-              `DROP DATABASE "${name}" WITH (FORCE)`,
-            ],
+              [
+                '-d',
+                'test',
+                '-v',
+                'ON_ERROR_STOP=1',
+                '-c',
+                `DROP DATABASE "${name}" WITH (FORCE)`,
+              ],
+              credentials,
+            ).args,
             identity.repo,
-            privateEnv,
+            {
+              ...privateEnv,
+              ...postgresClientInvocation(
+                serviceId(identity.resources.postgres),
+                [],
+                credentials,
+              ).env,
+            },
           ),
         );
     for (const container of identity.resources.containers)

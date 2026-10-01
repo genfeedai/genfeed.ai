@@ -6,6 +6,7 @@ import {
   createHash,
   generateKeyPairSync,
   privateDecrypt,
+  randomBytes,
 } from 'node:crypto';
 import {
   chmod,
@@ -26,12 +27,15 @@ import test from 'node:test';
 import {
   BRAND_PATH,
   createState,
+  databaseUrl,
   ENVELOPE_LIMIT,
   encryptEvidence,
   loadState,
   parseArguments,
   parseDatasetRecords,
+  postgresClientInvocation,
   RAW_LIMIT,
+  readPostgresCredentials,
   runBounded,
   STORAGE_PATHS,
   safeFile,
@@ -183,15 +187,28 @@ test('rejects arbitrary runner commands, arguments and nonexact SHAs', () => {
     assert.throws(() => parseArguments(args));
 });
 
-function postgresFixtureUrl(mutate = () => {}) {
-  const url = new URL('postgresql://127.0.0.1:5432/owned_test');
-  url.username = 'genfeed';
-  url.password = 'genfeed_local';
+function fixtureCredentials() {
+  return { username: 'genfeed', password: randomBytes(24).toString('hex') };
+}
+function credentialEnv(credentials = fixtureCredentials()) {
+  return {
+    RUNTIME_ACCEPTANCE_POSTGRES_USER: credentials.username,
+    RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD: credentials.password,
+  };
+}
+function postgresFixtureUrl(credentials, mutate = () => {}) {
+  const url = new URL(databaseUrl('owned_test', credentials));
   mutate(url);
   return url.href;
 }
 test('requires loopback dedicated PostgreSQL and explicit Redis DB without host overrides', () => {
-  validateUrl(postgresFixtureUrl(), 'postgres', 'owned_test');
+  const credentials = fixtureCredentials();
+  validateUrl(
+    postgresFixtureUrl(credentials),
+    'postgres',
+    'owned_test',
+    credentials,
+  );
   validateUrl('redis://localhost:6379/11', 'redis');
   for (const mutate of [
     (url) => {
@@ -208,7 +225,12 @@ test('requires loopback dedicated PostgreSQL and explicit Redis DB without host 
     },
   ])
     assert.throws(() =>
-      validateUrl(postgresFixtureUrl(mutate), 'postgres', 'owned_test'),
+      validateUrl(
+        postgresFixtureUrl(credentials, mutate),
+        'postgres',
+        'owned_test',
+        credentials,
+      ),
     );
   for (const value of [
     'redis://localhost:6379',
@@ -713,6 +735,7 @@ async function preflightFixture(t) {
     },
     env: {
       ...process.env,
+      ...credentialEnv(),
       RUNNER_TEMP: repo,
       RUNTIME_ACCEPTANCE_PUBLIC_KEY: PEM,
       RUNTIME_ACCEPTANCE_JOB_STARTED_MS: String(Date.now()),
@@ -875,9 +898,12 @@ function actualCli(command, options, env = {}) {
     options['control-sha'],
   ];
   if (command === 'preflight') args.push('--group', options.group);
+  const childEnv = { ...process.env };
+  delete childEnv.RUNTIME_ACCEPTANCE_POSTGRES_USER;
+  delete childEnv.RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD;
   return spawnSync(process.execPath, [CLI_PATH.pathname, ...args], {
     cwd: options.repo,
-    env: { ...process.env, ...env },
+    env: { ...childEnv, ...env },
     encoding: 'utf8',
     timeout: 10000,
     maxBuffer: 128 * 1024,
@@ -984,11 +1010,16 @@ test('actual dataset preflight remains qualified and preparation-only seal retai
   assert.ifError(prepared.error);
   assert.equal(prepared.status, 0, prepared.stderr);
   assert.match(await readFile(output, 'utf8'), /prepared=true/);
+  delete testEnv.RUNTIME_ACCEPTANCE_POSTGRES_USER;
+  delete testEnv.RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD;
   const sealed = actualCli('seal', options, testEnv);
   assert.ifError(sealed.error);
   assert.equal(sealed.status, 1);
   assert.match(sealed.stdout, /runtime-acceptance failed/);
-  assert.doesNotMatch(sealed.stderr, /UNQUALIFIED_RUNTIME_GROUP/);
+  assert.doesNotMatch(
+    sealed.stderr,
+    /UNQUALIFIED_RUNTIME_GROUP|POSTGRES_CREDENTIALS_REQUIRED|INVALID_POSTGRES_CREDENTIALS/,
+  );
   const receipt = JSON.parse(
     await readFile(path.join(options.state, 'public/receipt.json'), 'utf8'),
   );
@@ -1033,4 +1064,130 @@ test('actual dataset seal rejects qualified documents with a mismatched identity
     assert.doesNotMatch(result.stdout, /passed/);
     assert.deepEqual(await snapshotState(value.state), before);
   }
+});
+
+test('explicit PostgreSQL credentials reject defaults, unsafe spelling and mismatches', () => {
+  const credentials = fixtureCredentials();
+  assert.deepEqual(
+    readPostgresCredentials(credentialEnv(credentials)),
+    credentials,
+  );
+  const url = databaseUrl('owned_test', credentials);
+  assert.equal(
+    validateUrl(url, 'postgres', 'owned_test', credentials).password,
+    credentials.password,
+  );
+  const env = credentialEnv(credentials);
+  const bad = [
+    {},
+    { PGUSER: credentials.username, PGPASSWORD: credentials.password },
+  ];
+  for (const field of Object.keys(env))
+    for (const value of [undefined, '', null, 42])
+      bad.push({ ...env, [field]: value });
+  bad.push({ ...env, RUNTIME_ACCEPTANCE_POSTGRES_USER: 'other' });
+  for (const password of [
+    credentials.password.slice(0, 11),
+    credentials.password.repeat(3),
+    ...['!', '%', ' ', '\n', '\0'].map((char) => credentials.password + char),
+  ])
+    bad.push({ ...env, RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD: password });
+  for (const value of bad)
+    assert.throws(
+      () => readPostgresCredentials(value),
+      (error) => {
+        assert.match(
+          error.code,
+          /^(?:POSTGRES_CREDENTIALS_REQUIRED|INVALID_POSTGRES_CREDENTIALS)$/,
+        );
+        assert.ok(!error.message.includes(credentials.password));
+        return true;
+      },
+    );
+  assert.throws(() =>
+    validateUrl(url, 'postgres', 'owned_test', fixtureCredentials()),
+  );
+  assert.throws(() => validateUrl(url, 'postgres', 'owned_test'));
+  for (const mutate of [
+    (value) => {
+      value.password = '%zz';
+    },
+    (value) => {
+      value.password = `%${credentials.password.charCodeAt(0).toString(16)}${credentials.password.slice(1)}`;
+    },
+    (value) => {
+      value.username = '%67enfeed';
+    },
+  ])
+    assert.throws(() =>
+      validateUrl(
+        postgresFixtureUrl(credentials, mutate),
+        'postgres',
+        'owned_test',
+        credentials,
+      ),
+    );
+});
+test('actual PostgreSQL invocation forwards password only through its specific child environment', () => {
+  const credentials = fixtureCredentials();
+  const id = 'a'.repeat(64);
+  const invocation = postgresClientInvocation(
+    id,
+    ['-d', 'owned_test', '-tAc', 'SELECT 1'],
+    credentials,
+  );
+  assert.deepEqual(invocation.args, [
+    'exec',
+    '--env',
+    'PGPASSWORD',
+    id,
+    'psql',
+    '-U',
+    credentials.username,
+    '-d',
+    'owned_test',
+    '-tAc',
+    'SELECT 1',
+  ]);
+  assert.deepEqual(invocation.env, { PGPASSWORD: credentials.password });
+  assert.ok(
+    !invocation.args.some((value) => value.includes(credentials.password)),
+  );
+  assert.throws(() => postgresClientInvocation('unowned', [], credentials));
+});
+test('actual dataset preflight rejects missing credentials before state or prepared output', async (t) => {
+  for (const [field, value] of [
+    ['RUNTIME_ACCEPTANCE_POSTGRES_USER', undefined],
+    ['RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD', undefined],
+    ['RUNTIME_ACCEPTANCE_POSTGRES_USER', ''],
+    ['RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD', ''],
+    ['RUNTIME_ACCEPTANCE_POSTGRES_USER', 'other'],
+  ]) {
+    const { options, env } = await preflightFixture(t);
+    const output = path.join(options.repo, 'denied.output');
+    const childEnv = { ...env, GITHUB_OUTPUT: output, [field]: value };
+    const result = actualCli('preflight', options, childEnv);
+    assert.ifError(result.error);
+    assert.equal(result.status, 1);
+    assert.match(
+      result.stderr,
+      /POSTGRES_CREDENTIALS_REQUIRED|INVALID_POSTGRES_CREDENTIALS/,
+    );
+    assert.doesNotMatch(result.stdout, /prepared|passed/);
+    await assert.rejects(lstat(options.state), { code: 'ENOENT' });
+    await assert.rejects(lstat(output), { code: 'ENOENT' });
+  }
+});
+
+test('actual dataset execution rejects missing credentials before prepared identity mutation', async (t) => {
+  const { options, env } = await preflightFixture(t);
+  await createState(options, env);
+  const before = await snapshotState(options.state);
+  const childEnv = { ...env };
+  delete childEnv.RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD;
+  const result = actualCli('dataset-diagnostic', options, childEnv);
+  assert.ifError(result.error);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /POSTGRES_CREDENTIALS_REQUIRED/);
+  assert.deepEqual(await snapshotState(options.state), before);
 });

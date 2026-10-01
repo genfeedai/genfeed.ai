@@ -791,6 +791,16 @@ test('bundle report publishing isolates write credentials from PR build code', (
 
 test('dataset diagnostic freezes inspected control before the exact candidate checkout', () => {
   const workflow = readWorkflow('dataset-diagnostic.yml');
+  for (const field of ['USER', 'PASSWORD']) {
+    const service = workflow.match(
+      new RegExp(`^ {10}POSTGRES_${field}: (.+)$`, 'm'),
+    )?.[1];
+    const job = workflow.match(
+      new RegExp(`^ {6}RUNTIME_ACCEPTANCE_POSTGRES_${field}: (.+)$`, 'm'),
+    )?.[1];
+    assert.ok(service && job);
+    assert.equal(job, service);
+  }
   assert.match(workflow, /^ {2}workflow_dispatch:/m);
   assert.doesNotMatch(
     workflow,
