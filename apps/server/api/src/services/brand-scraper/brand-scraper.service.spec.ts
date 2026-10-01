@@ -142,8 +142,268 @@ describe('BrandScraperService', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  describe('bounded website stylesheet enrichment', () => {
+    function cssResponse(
+      css: string | ReadableStream<Uint8Array>,
+      headers: Record<string, string> = {},
+      status = 200,
+    ): Response {
+      return new Response(css, {
+        headers: { 'content-type': 'text/css; charset=utf-8', ...headers },
+        status,
+      });
+    }
+    function pageWithSheets(count = 1): Response {
+      return makeResponse(
+        makeHtml({
+          themeColor: '',
+          head: Array.from(
+            { length: count },
+            (_, i) => `<link rel="stylesheet" href="/sheet${i}.css">`,
+          ).join(''),
+          body: '<h1>Useful company content</h1>',
+        }),
+      );
+    }
+    function codes(
+      result: Awaited<
+        ReturnType<BrandScraperService['scrapeWebsiteWithEvidence']>
+      >,
+    ): string[] {
+      return result.diagnostics.map((entry) => entry.code);
+    }
+    function fakeClock(): void {
+      vi.useFakeTimers();
+      vi.spyOn(performance, 'now').mockImplementation(() => Date.now());
+    }
+    it('enriches existing callers and exposes variable-font evidence without fetching nested assets', async () => {
+      fetchMock
+        .mockResolvedValueOnce(pageWithSheets())
+        .mockResolvedValueOnce(
+          cssResponse(
+            `@import '/nested.css'; @font-face {font-family:'Acme Variable';font-weight:100 900;src:url('/font.woff2')} body {font-family:'Acme Variable';color:#123abc;background-image:url('/image.png')}`,
+          ),
+        );
+      const result =
+        await service.scrapeWebsiteWithEvidence('https://acme.com');
+      expect(result.data.fontCandidates).toEqual(['Acme Variable']);
+      expect(result.data.fontFamily).toBe('Acme Variable');
+      expect(result.data.primaryColor).toBe('#123abc');
+      expect(result.data.heroText).toBe('Useful company content');
+      expect(result.fontCandidates).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            family: 'Acme Variable',
+            weight: '100 900',
+            availability: 'unknown',
+            sourceUrl: 'https://acme.com/sheet0.css',
+          }),
+        ]),
+      );
+      expect(fetchMock.mock.calls.map((call) => String(call[0]))).toEqual([
+        'https://acme.com',
+        'https://acme.com/sheet0.css',
+      ]);
+      fetchMock
+        .mockResolvedValueOnce(pageWithSheets())
+        .mockResolvedValueOnce(
+          cssResponse("body{font-family:'Legacy Enriched'}"),
+        );
+      const data = await service.scrapeWebsite('https://acme.com');
+      expect(data.fontFamily).toBe('Legacy Enriched');
+      expect(data).not.toHaveProperty('evidence');
+    });
+    it('resolves links from the final redirect URL and permits five CSS redirects', async () => {
+      fetchMock
+        .mockResolvedValueOnce(makeRedirect('/final/page'))
+        .mockResolvedValueOnce(
+          makeResponse(
+            makeHtml({ head: '<link rel="stylesheet" href="styles.css">' }),
+          ),
+        );
+      for (let i = 0; i < 5; i++)
+        fetchMock.mockResolvedValueOnce(makeRedirect(`/hop${i}.css`));
+      fetchMock.mockResolvedValueOnce(
+        cssResponse("a{font-family:'Redirect Face'}"),
+      );
+      const result =
+        await service.scrapeWebsiteWithEvidence('https://acme.com');
+      expect(fetchMock.mock.calls[2][0]).toBe(
+        'https://acme.com/final/styles.css',
+      );
+      expect(result.fontCandidates[0].sourceUrl).toBe(
+        'https://acme.com/hop4.css',
+      );
+      expect(result.data.fontFamily).toBe('Redirect Face');
+    });
+    it('rejects the sixth CSS redirect and private destinations before connecting', async () => {
+      fetchMock.mockResolvedValueOnce(
+        makeResponse(
+          makeHtml({
+            head: '<link rel="stylesheet" href="/loop.css"><link rel="stylesheet" href="/private.css"><link rel="stylesheet" href="http://localhost/direct.css"><link rel="stylesheet" href="javascript:alert(1)">',
+          }),
+        ),
+      );
+      for (let i = 0; i < 6; i++)
+        fetchMock.mockResolvedValueOnce(makeRedirect(`/loop${i}.css`));
+      fetchMock.mockResolvedValueOnce(
+        makeRedirect('http://192.168.1.1/secret.css'),
+      );
+      const result =
+        await service.scrapeWebsiteWithEvidence('https://acme.com');
+      expect(codes(result)).toEqual(
+        expect.arrayContaining([
+          'brand_scrape.stylesheet_redirect_limit',
+          'brand_scrape.stylesheet_unsafe',
+        ]),
+      );
+      expect(fetchMock).toHaveBeenCalledTimes(8);
+      expect(
+        fetchMock.mock.calls.some((call) =>
+          /localhost|192\.168/.test(String(call[0])),
+        ),
+      ).toBe(false);
+      expect(result.data.companyName).toBe('Acme Corp');
+    });
+    it.each([
+      [
+        'wrong MIME',
+        () => cssResponse('body{}', { 'content-type': 'text/html' }),
+        'stylesheet_content_type',
+      ],
+      ['HTTP failure', () => cssResponse('', {}, 404), 'stylesheet_failed'],
+      [
+        'declared size',
+        () => cssResponse('body{}', { 'content-length': '262145' }),
+        'stylesheet_size_limit',
+      ],
+      [
+        'actual streamed size',
+        () => cssResponse('x'.repeat(262145)),
+        'stylesheet_size_limit',
+      ],
+    ])('keeps useful HTML after %s', async (_name, response, code) => {
+      fetchMock
+        .mockResolvedValueOnce(pageWithSheets(2))
+        .mockResolvedValueOnce(response())
+        .mockResolvedValueOnce(cssResponse("a{font-family:'Surviving Face'}"));
+      const result =
+        await service.scrapeWebsiteWithEvidence('https://acme.com');
+      expect(codes(result)).toContain(`brand_scrape.${code}`);
+      expect(result.data.heroText).toBe('Useful company content');
+      expect(result.data.fontFamily).toBe('Surviving Face');
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+    });
+    it('fetches only five distinct sheets and cancels the sheet at aggregate exhaustion', async () => {
+      const cancel = vi.fn();
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new Uint8Array(262144));
+        },
+        cancel,
+      });
+      fetchMock.mockResolvedValueOnce(pageWithSheets(6));
+      const css = "a{font-family:'Retained Face'}".padEnd(262144, ' ');
+      for (let i = 0; i < 3; i++)
+        fetchMock.mockResolvedValueOnce(cssResponse(css));
+      fetchMock.mockResolvedValueOnce(cssResponse(stream));
+      const result =
+        await service.scrapeWebsiteWithEvidence('https://acme.com');
+      expect(codes(result)).toEqual(
+        expect.arrayContaining([
+          'brand_scrape.stylesheet_count_limit',
+          'brand_scrape.stylesheet_total_limit',
+        ]),
+      );
+      expect(fetchMock).toHaveBeenCalledTimes(5);
+      expect(cancel).toHaveBeenCalledOnce();
+      expect(result.data.fontFamily).toBe('Retained Face');
+    });
+    it('keeps the per-attempt body timeout active after headers and cancels the reader', async () => {
+      fakeClock();
+      const cancel = vi.fn();
+      const stream = new ReadableStream<Uint8Array>({ cancel });
+      fetchMock
+        .mockResolvedValueOnce(pageWithSheets())
+        .mockResolvedValueOnce(cssResponse(stream));
+      const pending = service.scrapeWebsiteWithEvidence('https://acme.com');
+      await vi.advanceTimersByTimeAsync(10000);
+      const result = await pending;
+      expect(codes(result)).toContain('brand_scrape.stylesheet_failed');
+      expect(cancel).toHaveBeenCalledOnce();
+      expect(fetchMock.mock.calls[1][1].signal.aborted).toBe(true);
+      expect(vi.getTimerCount()).toBe(0);
+      vi.useRealTimers();
+    });
+    it('does not wait past the shared deadline for Retry-After', async () => {
+      fakeClock();
+      fetchMock
+        .mockResolvedValueOnce(pageWithSheets(2))
+        .mockResolvedValueOnce(make429Response('61'))
+        .mockResolvedValueOnce(cssResponse("a{font-family:'Next Face'}"));
+      const result =
+        await service.scrapeWebsiteWithEvidence('https://acme.com');
+      expect(codes(result)).toContain('brand_scrape.deadline_exceeded');
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(vi.getTimerCount()).toBe(0);
+      vi.useRealTimers();
+    });
+    it('bounds deferred headers, fallback and concurrent website operations independently', async () => {
+      fakeClock();
+      fetchMock.mockImplementation((url: string) =>
+        url.includes('slow')
+          ? new Promise<Response>(() => undefined)
+          : Promise.resolve(makeResponse(makeHtml())),
+      );
+      const slow = service
+        .scrapeWebsiteWithEvidence('https://slow.example')
+        .catch((error) => error);
+      const fast = await service.scrapeWebsiteWithEvidence('https://acme.com');
+      expect(fast.data.companyName).toBe('Acme Corp');
+      await vi.advanceTimersByTimeAsync(20000);
+      expect(await slow).toBeInstanceOf(Error);
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(vi.getTimerCount()).toBe(0);
+      vi.useRealTimers();
+    });
+    it('shares the operation deadline across slow redirects without postdeadline fetches', async () => {
+      fakeClock();
+      fetchMock.mockResolvedValueOnce(pageWithSheets(2));
+      fetchMock.mockImplementation(
+        () =>
+          new Promise<Response>((resolve) =>
+            setTimeout(() => resolve(makeRedirect('/next.css')), 9999),
+          ),
+      );
+      const pending = service.scrapeWebsiteWithEvidence('https://acme.com');
+      await vi.advanceTimersByTimeAsync(60000);
+      const result = await pending;
+      expect(codes(result)).toContain('brand_scrape.deadline_exceeded');
+      expect(fetchMock).toHaveBeenCalledTimes(8);
+      await vi.runAllTimersAsync();
+      expect(fetchMock).toHaveBeenCalledTimes(8);
+      expect(vi.getTimerCount()).toBe(0);
+      vi.useRealTimers();
+    });
+    it('reports successful meta fallback and never logs credential-bearing website URLs', async () => {
+      fetchMock
+        .mockRejectedValueOnce(new Error('network'))
+        .mockResolvedValueOnce(makeResponse(makeHtml()));
+      const result = await service.scrapeWebsiteWithEvidence(
+        'https://acme.com?token=secret',
+      );
+      expect(codes(result)).toContain('brand_scrape.html_fallback');
+      expect(JSON.stringify(result.evidence)).not.toContain('secret');
+      expect(JSON.stringify(mockLogger.log.mock.calls)).not.toContain('secret');
+      expect(JSON.stringify(mockLogger.warn.mock.calls)).not.toContain(
+        'secret',
+      );
+    });
   });
 
   it('should be defined', () => {

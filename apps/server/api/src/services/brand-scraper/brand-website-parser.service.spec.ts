@@ -133,3 +133,94 @@ describe('BrandWebsiteParserService', () => {
     );
   });
 });
+
+describe('website CSS evidence', () => {
+  const parser = new BrandWebsiteParserService();
+  it('retains exact families, variable weights and declaration source without runtime claims', () => {
+    const parsed = parser.parseHtml(
+      `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Known+Face:wght@400"><style>h1 {font-family: 'Inline Face', serif;}</style>`,
+      'https://acme.example/page',
+      [
+        {
+          url: 'https://cdn.example/style.css?token=hidden#fragment',
+          cssText: `@font-face {font-family: 'Acme Variable';font-weight:100 900;font-style:italic;src:url('/font.woff2')} body {font-family:'Acme Variable', 'Fallback Face', sans-serif;color:#123abc}`,
+        },
+      ],
+    );
+    expect(parsed.fonts).toEqual([
+      'Known Face',
+      'Inline Face',
+      'Acme Variable',
+      'Fallback Face',
+    ]);
+    expect(parsed.colors.primary).toBe('#123abc');
+    expect(parsed.fontDetails).toContainEqual({
+      family: 'Acme Variable',
+      sourceUrl: 'https://cdn.example/style.css',
+      weight: '100 900',
+      style: 'italic',
+      availability: 'unknown',
+    });
+    expect(
+      parsed.evidence?.some(
+        (entry) => entry.url === 'https://cdn.example/style.css',
+      ),
+    ).toBe(true);
+    expect(
+      parsed.evidence?.every((entry) => entry.confidence === undefined),
+    ).toBe(true);
+    expect(parsed.diagnostics?.map((entry) => entry.code)).toContain(
+      'brand_scrape.font_availability_unknown',
+    );
+    expect(parsed.diagnostics?.map((entry) => entry.code)).toContain(
+      'brand_scrape.css_cascade_unverified',
+    );
+  });
+  it('uses the final page base, ignores markup base and deduplicates eligible link tokens', () => {
+    expect(
+      parser.extractStylesheetUrls(
+        `<base href="https://evil.example/"><link rel="alternate STYLESHEET" href="../one.css#first"><link rel="stylesheet" href="../one.css#second"><link rel="stylesheet" disabled href="disabled.css"><link rel="stylesheet" href="data:text/css,body{}"><link rel="stylesheet" href="https://user:secret@cdn.example/a.css"><link rel="stylesheet" href="//cdn.example/two.css?q=1">`,
+        'https://acme.example/final/page',
+      ),
+    ).toEqual([
+      'https://acme.example/one.css',
+      'https://cdn.example/two.css?q=1',
+    ]);
+  });
+  it('omits unresolved and escaped families and caps candidates with diagnostics', () => {
+    const parsed = parser.parseHtml(
+      `<style>a{font-family:var(--font)} b{font-family:Bad\\\\Font} c{font-family:${Array.from({ length: 20 }, (_, i) => `'Family ${i}'`).join(',')}} d{font-family: '${'x'.repeat(513)}'}</style>`,
+      'https://acme.example',
+    );
+    expect(parsed.fonts).toHaveLength(8);
+    expect(parsed.fontDetails).toHaveLength(16);
+    expect(parsed.fonts?.every((family) => family.startsWith('Family '))).toBe(
+      true,
+    );
+    expect(parsed.diagnostics?.map((entry) => entry.code)).toEqual(
+      expect.arrayContaining([
+        'brand_scrape.font_syntax_unsupported',
+        'brand_scrape.font_candidate_limit',
+      ]),
+    );
+  });
+  it('removes credentials and omits signed provenance URLs', () => {
+    expect(
+      parser.sanitizeProvenanceUrl(
+        'https://u:p@acme.example/a?ToKeN=s&ACCESS_TOKEN=t&api_key=x&apikey=y&key=z&signature=a&sig=b&credential=c&authorization=d&auth=e&password=f&secret=g&safe=yes#fragment',
+      ),
+    ).toBe('https://acme.example/a?safe=yes');
+    const parsed = parser.parseHtml('', 'https://acme.example', [
+      {
+        url: 'https://cdn.example/a?X-Amz-Credential=secret',
+        cssText: "a{font-family:'Signed Face'}",
+      },
+    ]);
+    expect(parsed.fontDetails?.[0].sourceUrl).toBe('');
+    expect(
+      parsed.evidence?.find(
+        (entry) => entry.label === 'Stylesheet font declaration',
+      )?.url,
+    ).toBeUndefined();
+  });
+});
