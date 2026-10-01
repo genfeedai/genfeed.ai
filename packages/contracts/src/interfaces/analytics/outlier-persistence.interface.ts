@@ -93,8 +93,27 @@ export interface OutlierConfigurationResponse
   id: string;
   organizationId: string;
 }
+export interface LearningPublicationSourceV1 {
+  version: 1;
+  organizationId: string;
+  brandId: string;
+  credentialId: string;
+  postId: string;
+  approvalId: string;
+  approvalOperationId: string;
+  versionPinId: string;
+  platform: Platform;
+  externalId: string;
+  publishedAt: string;
+  contentDigest: string;
+  postSourceVersion: string;
+  finalizationId: string;
+  finalizationVersion: string;
+  approvalVersion: string;
+}
 export interface AnalyticsPersistenceContext {
   learningObservation?: {
+    publicationSource?: LearningPublicationSourceV1;
     sourceAttemptId: string;
     requestStartedAt: Date;
     receivedAt: Date;
