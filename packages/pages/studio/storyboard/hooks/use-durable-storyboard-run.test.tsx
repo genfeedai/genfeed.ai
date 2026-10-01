@@ -110,6 +110,7 @@ describe('brand-scoped durable storyboard loading', () => {
       plan: { ...run.config.plan, title: 'Detached title' },
       source: run.config.sourceSnapshot.selector,
     });
+    if (!saved.config.plan) throw new Error('Storyboard has no plan.');
     expect(saved.config.plan.title).toBe('Detached title');
     expect(mocks.update).toHaveBeenCalledWith(
       'brand-one',
@@ -167,7 +168,7 @@ describe('brand-scoped durable storyboard loading', () => {
   });
 });
 
-function persistedRun(): StoryboardRun {
+function persistedRun() {
   return {
     id: 'run',
     brandId: 'brand-one',
@@ -175,13 +176,14 @@ function persistedRun(): StoryboardRun {
     createdAt: '2026-09-30T00:00:00Z',
     updatedAt: '2026-09-30T00:00:00Z',
     config: {
-      contract: 'storyboard-run',
-      version: 1,
+      origin: 'native' as const,
+      contract: 'storyboard-run' as const,
+      version: 1 as const,
       revision: 1,
       clientRequestId: 'f86c1871-d577-4dca-b79d-6d9f295a58cc',
       createdByUserId: 'user',
       submittedInputHash: 'a'.repeat(64),
-      state: 'storyboard',
+      state: 'storyboard' as const,
       sourceSnapshot: {
         selector: { kind: 'brief', brief: 'Idea' },
         capturedAt: '2026-09-30T00:00:00Z',
@@ -189,7 +191,7 @@ function persistedRun(): StoryboardRun {
       plan: {
         title: 'Plan',
         logline: '',
-        format: '9:16',
+        format: '9:16' as const,
         videoModelKey: null,
         runtimeBudgetSeconds: 10,
         cast: [],
@@ -197,5 +199,5 @@ function persistedRun(): StoryboardRun {
         shots: [],
       },
     },
-  };
+  } satisfies StoryboardRun;
 }

@@ -9,6 +9,7 @@ import { credentialAttributes } from '@serializers/attributes/organizations/cred
 import { nestedRel, rel, simpleConfig } from '@serializers/builders';
 import {
   CONTENT_ENTITY_RELS,
+  EVALUATION_REL,
   MINIMAL_ENTITY_RELS,
 } from '@serializers/relationships';
 
@@ -29,6 +30,7 @@ export const postListSerializerConfig = {
   attributes: postAttributes,
   type: 'post',
   ...MINIMAL_ENTITY_RELS,
+  evaluation: EVALUATION_REL,
 };
 
 export const publicPostSerializerConfig = simpleConfig(

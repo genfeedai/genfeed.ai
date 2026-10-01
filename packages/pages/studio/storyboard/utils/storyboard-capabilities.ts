@@ -1,10 +1,12 @@
-import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
+import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardVideoModelCapability } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
+
+type StoryboardRunPlan = NonNullable<StoryboardRun['config']['plan']>;
 
 /** Match the API's deletion exception: unavailable models must not trap draft shots. */
 export function requiresStoryboardTimingCapabilities(
-  previous: StoryboardPlan,
-  next: StoryboardPlan,
+  previous: StoryboardRunPlan,
+  next: StoryboardRunPlan,
 ): boolean {
   const sameSettings =
     previous.format === next.format &&
@@ -50,9 +52,9 @@ export function requiresStoryboardTimingCapabilities(
 
 /** Switching models is atomic: reject the whole edit if snapped timing cannot fit. */
 export function normalizeStoryboardModel(
-  plan: StoryboardPlan,
+  plan: StoryboardRunPlan,
   model: StoryboardVideoModelCapability,
-): StoryboardPlan {
+): StoryboardRunPlan {
   if (!model.supportedFormats.includes(plan.format))
     throw new Error('Choose a format supported by this video model.');
   const shots = plan.shots.map((shot, index) => {
@@ -85,5 +87,5 @@ export function normalizeStoryboardModel(
     throw new Error(
       'This model exceeds the runtime budget. Shorten shots or increase the budget first.',
     );
-  return { ...plan, shots };
+  return { ...plan, shots } as StoryboardRunPlan;
 }

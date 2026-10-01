@@ -7,6 +7,8 @@ import type {
   TrendOptions,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
+import { ResearchCollectionRunner } from '@api/services/research-access/research-collection-runner.service';
+import type { SocialSourceResearchContext } from '@api/services/source-collector/source-collector.types';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -19,7 +21,10 @@ import { Injectable } from '@nestjs/common';
 export class ApifyYouTubeService {
   private readonly constructorName: string = String(this.constructor.name);
 
-  constructor(private readonly baseService: ApifyBaseService) {}
+  constructor(
+    private readonly baseService: ApifyBaseService,
+    private readonly runner: ResearchCollectionRunner,
+  ) {}
 
   /**
    * Get YouTube trending videos
@@ -152,9 +157,10 @@ export class ApifyYouTubeService {
   async getYouTubeChannelUploads(
     channelUrl: string,
     options?: { limit?: number },
+    researchContext?: SocialSourceResearchContext,
   ): Promise<ApifyYouTubeVideo[]> {
-    const token = this.baseService.getApiToken();
-    if (!token) {
+    const token = researchContext ? undefined : this.baseService.getApiToken();
+    if (!researchContext && !token) {
       throw new Error(
         'APIFY_API_TOKEN is not configured — cannot scrape YouTube channels',
       );
@@ -166,10 +172,17 @@ export class ApifyYouTubeService {
         startUrls: [{ url: channelUrl }],
       };
 
-      const rawVideos = await this.baseService.runActor<ApifyYouTubeVideo>(
-        this.baseService.ACTORS.YOUTUBE_CHANNEL_SCRAPER,
-        input,
-      );
+      const rawVideos = await (researchContext
+        ? this.runner.run<ApifyYouTubeVideo>(
+            researchContext.organizationId,
+            this.baseService.ACTORS.YOUTUBE_CHANNEL_SCRAPER,
+            input,
+            { tokenMode: 'hosted-only', requestScope: 'social-source-hosted' },
+          )
+        : this.baseService.runActor<ApifyYouTubeVideo>(
+            this.baseService.ACTORS.YOUTUBE_CHANNEL_SCRAPER,
+            input,
+          ));
 
       return rawVideos;
     } catch (error: unknown) {

@@ -9,6 +9,8 @@ import type {
   TrendOptions,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
+import { ResearchCollectionRunner } from '@api/services/research-access/research-collection-runner.service';
+import type { SocialSourceResearchContext } from '@api/services/source-collector/source-collector.types';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -21,7 +23,10 @@ import { Injectable } from '@nestjs/common';
 export class ApifyTikTokService {
   private readonly constructorName: string = String(this.constructor.name);
 
-  constructor(private readonly baseService: ApifyBaseService) {}
+  constructor(
+    private readonly baseService: ApifyBaseService,
+    private readonly runner: ResearchCollectionRunner,
+  ) {}
 
   /**
    * Get TikTok trending topics/hashtags
@@ -152,11 +157,12 @@ export class ApifyTikTokService {
   async getTikTokUserVideos(
     username: string,
     options?: { limit?: number },
+    researchContext?: SocialSourceResearchContext,
   ): Promise<ApifyTikTokVideo[]> {
     // Hard-fail when Apify is not configured so Following sync cannot look
     // "successful" with zero posts after a silent skip.
-    const token = this.baseService.getApiToken();
-    if (!token) {
+    const token = researchContext ? undefined : this.baseService.getApiToken();
+    if (!researchContext && !token) {
       throw new Error(
         'APIFY_API_TOKEN is not configured — cannot scrape TikTok timelines',
       );
@@ -168,10 +174,17 @@ export class ApifyTikTokService {
         resultsPerPage: options?.limit || 20,
       };
 
-      const rawVideos = await this.baseService.runActor<ApifyTikTokVideo>(
-        this.baseService.ACTORS.TIKTOK_SCRAPER,
-        input,
-      );
+      const rawVideos = await (researchContext
+        ? this.runner.run<ApifyTikTokVideo>(
+            researchContext.organizationId,
+            this.baseService.ACTORS.TIKTOK_SCRAPER,
+            input,
+            { tokenMode: 'hosted-only', requestScope: 'social-source-hosted' },
+          )
+        : this.baseService.runActor<ApifyTikTokVideo>(
+            this.baseService.ACTORS.TIKTOK_SCRAPER,
+            input,
+          ));
 
       return rawVideos;
     } catch (error: unknown) {
@@ -188,9 +201,12 @@ export class ApifyTikTokService {
    * Hard-fails without a token or when the post cannot be resolved so the
    * import flow never reports an empty success.
    */
-  async getTikTokVideoByUrl(videoUrl: string): Promise<ApifyTikTokVideo> {
-    const token = this.baseService.getApiToken();
-    if (!token) {
+  async getTikTokVideoByUrl(
+    videoUrl: string,
+    researchContext?: SocialSourceResearchContext,
+  ): Promise<ApifyTikTokVideo> {
+    const token = researchContext ? undefined : this.baseService.getApiToken();
+    if (!researchContext && !token) {
       throw new Error(
         'APIFY_API_TOKEN is not configured — cannot scrape TikTok posts',
       );
@@ -201,10 +217,17 @@ export class ApifyTikTokService {
       resultsPerPage: 1,
     };
 
-    const rawVideos = await this.baseService.runActor<ApifyTikTokVideo>(
-      this.baseService.ACTORS.TIKTOK_SCRAPER,
-      input,
-    );
+    const rawVideos = await (researchContext
+      ? this.runner.run<ApifyTikTokVideo>(
+          researchContext.organizationId,
+          this.baseService.ACTORS.TIKTOK_SCRAPER,
+          input,
+          { tokenMode: 'hosted-only', requestScope: 'social-source-hosted' },
+        )
+      : this.baseService.runActor<ApifyTikTokVideo>(
+          this.baseService.ACTORS.TIKTOK_SCRAPER,
+          input,
+        ));
 
     const video = rawVideos[0];
     if (!video?.id) {

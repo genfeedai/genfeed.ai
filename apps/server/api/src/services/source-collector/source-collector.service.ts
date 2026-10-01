@@ -18,7 +18,7 @@ import type {
 import type { SocialPostUrlReference } from '@genfeedai/contracts';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
 function hasExternalPostId(
   post: CollectedSourcePost,
@@ -115,6 +115,11 @@ export class SourceCollectorService {
         });
         return { ...result, posts: validPosts };
       } catch (error: unknown) {
+        if (
+          provider.name === 'apify' &&
+          error instanceof ServiceUnavailableException
+        )
+          throw error;
         const message = (error as Error)?.message ?? 'unknown error';
         errors.push(`${provider.name}: ${message}`);
         this.logger.warn('SourceCollector provider failed', {
@@ -174,6 +179,11 @@ export class SourceCollectorService {
         });
         return { ...result, posts: validPosts };
       } catch (error: unknown) {
+        if (
+          provider.name === 'apify' &&
+          error instanceof ServiceUnavailableException
+        )
+          throw error;
         const message = (error as Error)?.message ?? 'unknown error';
         errors.push(`${provider.name}: ${message}`);
         this.logger.warn('SourceCollector post provider failed', {

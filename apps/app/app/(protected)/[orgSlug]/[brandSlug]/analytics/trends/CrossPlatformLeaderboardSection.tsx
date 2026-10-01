@@ -1,5 +1,6 @@
 'use client';
 
+import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
 import type {
   ICreatorWatchlist,
   ITrendVideo,
@@ -10,6 +11,13 @@ import type { Props } from '@props/analytics/cross-platform-leaderboard-section.
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
+import Alert from '@ui/feedback/alert/Alert';
+import { Button } from '@ui/primitives/button';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@ui/primitives/collapsible';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { useTranslations } from 'next-intl';
@@ -18,15 +26,45 @@ export default function CrossPlatformLeaderboardSection({
   viralLeaderboard,
   creatorLeaderboard,
   platformConfigLookup,
+  isUsingCachedVideos = false,
+  hasVideoReadError = false,
+  onRetryEvaluationRead,
 }: Props) {
   const translate = useTranslations('ui.analyticsTrends');
+  const translateCommon = useTranslations('common.errors');
 
-  if (viralLeaderboard.length === 0 && creatorLeaderboard.length === 0) {
+  if (
+    viralLeaderboard.length === 0 &&
+    creatorLeaderboard.length === 0 &&
+    !hasVideoReadError
+  ) {
     return null;
   }
 
   return (
     <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+      {hasVideoReadError && (
+        <div className="xl:col-span-3">
+          <Alert
+            type={
+              isUsingCachedVideos ? AlertCategory.WARNING : AlertCategory.ERROR
+            }
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Text as="p" size="sm">
+                {isUsingCachedVideos
+                  ? translate('cachedEvaluationWarning')
+                  : translateCommon('loadFailed')}
+              </Text>
+              <Button
+                label={translate('retryEvaluationRead')}
+                onClick={onRetryEvaluationRead}
+                variant={ButtonVariant.SECONDARY}
+              />
+            </div>
+          </Alert>
+        </div>
+      )}
       {viralLeaderboard.length > 0 && (
         <Card className="xl:col-span-2 backdrop-blur" bodyClassName="space-y-6">
           <div className="flex flex-col gap-2">
@@ -138,14 +176,36 @@ export default function CrossPlatformLeaderboardSection({
                 key: 'persuasionHighlight',
                 render: (video) =>
                   video.persuasionHighlight ? (
-                    <Badge
-                      value={`${video.persuasionHighlight.label} · ${video.persuasionHighlight.score}`}
-                      className="bg-secondary/10 text-secondary text-xs"
-                    />
+                    <div className="max-w-sm space-y-2 break-words">
+                      <Badge
+                        value={`${video.persuasionHighlight.label} · ${video.persuasionHighlight.score}`}
+                        className="bg-secondary/10 text-secondary text-xs"
+                      />
+                      {video.persuasionHighlight.analysisNote ? (
+                        <Collapsible>
+                          <CollapsibleTrigger className="py-1 text-left text-xs">
+                            {translate('evaluatorObservation')}
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <Text
+                              as="p"
+                              size="sm"
+                              className="whitespace-pre-wrap break-words"
+                            >
+                              {video.persuasionHighlight.analysisNote}
+                            </Text>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      ) : (
+                        <Text as="p" size="sm" color="subtle-60">
+                          {translate('noWrittenPersuasionExplanation')}
+                        </Text>
+                      )}
+                    </div>
                   ) : (
-                    <span className="text-xs text-foreground/40">
-                      {translate('notEvaluated')}
-                    </span>
+                    <Text as="p" size="sm" color="subtle-60">
+                      {translate('noPersuasionAnalysis')}
+                    </Text>
                   ),
               },
             ]}

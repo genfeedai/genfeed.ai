@@ -1,5 +1,6 @@
 import { SourceCollectorService } from '@api/services/source-collector/source-collector.service';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('SourceCollectorService', () => {
@@ -421,5 +422,32 @@ describe('SourceCollectorService', () => {
         /All single-post collectors failed/,
       );
     });
+  });
+  it('preserves the governance exception from the final fallback', async () => {
+    brandOAuth.canCollect.mockResolvedValue(true);
+    brandOAuth.collectTimeline.mockRejectedValue(
+      new Error('native unavailable'),
+    );
+    appBearer.canCollect.mockResolvedValue(false);
+    apify.canCollect.mockResolvedValue(true);
+    const denied = new ServiceUnavailableException(
+      'research_paid_access_required',
+    );
+    apify.collectTimeline.mockRejectedValue(denied);
+    await expect(
+      service.collectTimeline(SocialSourcePlatform.TWITTER, 'creator', {
+        organizationId: 'org-1',
+      }),
+    ).rejects.toBe(denied);
+    apify.collectPost.mockRejectedValue(denied);
+    brandOAuth.collectPost.mockRejectedValue(new Error('native unavailable'));
+    await expect(
+      service.collectPost({
+        platform: SocialSourcePlatform.TWITTER,
+        postId: '123',
+        authorHandle: null,
+        url: 'https://x.com/a/status/123',
+      }),
+    ).rejects.toBe(denied);
   });
 });
