@@ -68,6 +68,9 @@ type SchedulerPublishStateInput = {
   update: SchedulerPublishTargetUpdate;
 };
 
+type SchedulerPublicationSourceRow = LearningPublicationPostRow &
+  Pick<Post, 'workflowExecutionId'>;
+
 type SchedulerGroupRow = {
   id: string;
   publishedAt: Date | null;
@@ -137,42 +140,7 @@ export class SchedulerPublishStateService {
     tx: Prisma.TransactionClient,
   ): Promise<boolean> {
     await learningFence(tx, 'exclusive');
-    const request = {
-      error: input.update.error,
-      groupId: input.groupId,
-      guard: input.guard,
-      mutation: {
-        ...(input.update.externalId !== undefined && {
-          externalId: input.update.externalId,
-        }),
-        ...(input.update.externalShortcode !== undefined && {
-          externalShortcode: input.update.externalShortcode,
-        }),
-        ...(input.update.lastAttemptAt !== undefined && {
-          lastAttemptAt: input.update.lastAttemptAt,
-        }),
-        ...(input.update.publicationDate !== undefined && {
-          publicationDate: input.update.publicationDate,
-        }),
-        ...(input.update.publishedAt !== undefined && {
-          publishedAt: input.update.publishedAt,
-        }),
-        ...(input.update.retryCount !== undefined && {
-          retryCount: input.update.retryCount,
-        }),
-        ...(input.update.url !== undefined && {
-          url: input.update.url,
-        }),
-        ...(input.update.workflowExecutionId !== undefined && {
-          workflowExecutionId: input.update.workflowExecutionId,
-        }),
-      },
-      nextState: input.update.executionState,
-      organizationId: input.organizationId,
-      postId: input.postId,
-      reason: input.reason,
-      visibility: input.update.visibility,
-    };
+    const request = this.buildTransitionRequest(input);
 
     const where = {
       id: input.postId,
@@ -193,63 +161,9 @@ export class SchedulerPublishStateService {
         await this.rollUpRelease({ ...input, groupId: input.groupId }, tx);
       return true;
     }
-    const accountWhere = {
-      organizationId: input.organizationId,
-      brandId: discovered.brandId,
-      credentialId: discovered.credentialId ?? '',
-      isDeleted: false,
-    };
-    const accounts = await tx.contentLearningAccount.findMany({
-      where: accountWhere,
-      select: { id: true },
-      orderBy: { id: 'asc' },
-    });
-    for (const account of accounts) {
-      await tx.$queryRaw`SELECT id FROM content_learning_accounts WHERE id = ${account.id} AND "organizationId" = ${input.organizationId} AND "brandId" = ${discovered.brandId} AND "credentialId" = ${discovered.credentialId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
-    }
-    const lockedAccounts = await tx.contentLearningAccount.findMany({
-      where: {
-        ...accountWhere,
-        id: { in: accounts.map((account) => account.id) },
-      },
-      select: { id: true },
-      orderBy: { id: 'asc' },
-    });
-    await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${input.organizationId} AND "isDeleted" = false ORDER BY id FOR SHARE`;
-    await tx.$queryRaw`SELECT id FROM brands WHERE id = ${discovered.brandId} AND "organizationId" = ${input.organizationId} AND "isDeleted" = false ORDER BY id FOR SHARE`;
-    if (discovered.credentialId)
-      await tx.$queryRaw`SELECT id FROM credentials WHERE id = ${discovered.credentialId} AND "organizationId" = ${input.organizationId} AND "brandId" = ${discovered.brandId} AND "isDeleted" = false ORDER BY id FOR SHARE`;
-    await tx.$queryRaw`SELECT id FROM posts WHERE id = ${input.postId} AND "organizationId" = ${input.organizationId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
-    const before = await tx.post.findFirst({
-      where,
-      select: { ...learningPublicationPostSelect, workflowExecutionId: true },
-    });
-    if (
-      !before ||
-      before.organizationId !== discovered.organizationId ||
-      before.brandId !== discovered.brandId ||
-      before.credentialId !== discovered.credentialId
-    )
-      throw new ConflictException(
-        'Publication source identity changed during discovery.',
-      );
-    if (before.publishApprovalId)
-      await tx.$queryRaw`SELECT id FROM publish_approvals WHERE id = ${before.publishApprovalId} AND "organizationId" = ${input.organizationId} AND "brandId" = ${before.brandId} AND "postId" = ${before.id} ORDER BY id FOR SHARE`;
-    const approval = before.publishApprovalId
-      ? await tx.publishApproval.findFirst({
-          where: {
-            id: before.publishApprovalId,
-            organizationId: input.organizationId,
-            brandId: before.brandId,
-            postId: before.id,
-          },
-          select: { artifactVersionPinId: true },
-        })
-      : null;
-    const pinId = approval?.artifactVersionPinId;
-    if (pinId)
-      await tx.$queryRaw`SELECT id FROM content_version_pins WHERE id = ${pinId} AND "organizationId" = ${input.organizationId} AND "brandId" = ${before.brandId} AND "recordKind" = 'post' AND "recordId" = ${before.id} ORDER BY id FOR SHARE`;
-    await tx.$queryRaw`SELECT id FROM post_publish_finalizations WHERE "organizationId" = ${input.organizationId} AND "postId" = ${before.id} ORDER BY id FOR UPDATE`;
+    const { before, lockedAccounts, accountWhere } =
+      await this.lockPublicationSource(input, tx, discovered);
+
     if (
       (input.guard?.expectedExternalId !== undefined &&
         before.externalId !== input.guard.expectedExternalId) ||
@@ -355,6 +269,117 @@ export class SchedulerPublishStateService {
       await this.rollUpRelease({ ...input, groupId: input.groupId }, tx);
     }
     return true;
+  }
+
+  private buildTransitionRequest(
+    input: SchedulerPublishStateInput,
+  ): Parameters<PostLifecycleService['transition']>[0] {
+    return {
+      error: input.update.error,
+      groupId: input.groupId,
+      guard: input.guard,
+      mutation: {
+        ...(input.update.externalId !== undefined && {
+          externalId: input.update.externalId,
+        }),
+        ...(input.update.externalShortcode !== undefined && {
+          externalShortcode: input.update.externalShortcode,
+        }),
+        ...(input.update.lastAttemptAt !== undefined && {
+          lastAttemptAt: input.update.lastAttemptAt,
+        }),
+        ...(input.update.publicationDate !== undefined && {
+          publicationDate: input.update.publicationDate,
+        }),
+        ...(input.update.publishedAt !== undefined && {
+          publishedAt: input.update.publishedAt,
+        }),
+        ...(input.update.retryCount !== undefined && {
+          retryCount: input.update.retryCount,
+        }),
+        ...(input.update.url !== undefined && {
+          url: input.update.url,
+        }),
+        ...(input.update.workflowExecutionId !== undefined && {
+          workflowExecutionId: input.update.workflowExecutionId,
+        }),
+      },
+      nextState: input.update.executionState,
+      organizationId: input.organizationId,
+      postId: input.postId,
+      reason: input.reason,
+      visibility: input.update.visibility,
+    };
+  }
+
+  private async lockPublicationSource(
+    input: SchedulerPublishStateInput,
+    tx: Prisma.TransactionClient,
+    discovered: SchedulerPublicationSourceRow,
+  ) {
+    const where = {
+      id: input.postId,
+      organizationId: input.organizationId,
+      isDeleted: false,
+    };
+    const accountWhere = {
+      organizationId: input.organizationId,
+      brandId: discovered.brandId,
+      credentialId: discovered.credentialId ?? '',
+      isDeleted: false,
+    };
+    const accounts = await tx.contentLearningAccount.findMany({
+      where: accountWhere,
+      select: { id: true },
+      orderBy: { id: 'asc' },
+    });
+    for (const account of accounts) {
+      await tx.$queryRaw`SELECT id FROM content_learning_accounts WHERE id = ${account.id} AND "organizationId" = ${input.organizationId} AND "brandId" = ${discovered.brandId} AND "credentialId" = ${discovered.credentialId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
+    }
+    const lockedAccounts = await tx.contentLearningAccount.findMany({
+      where: {
+        ...accountWhere,
+        id: { in: accounts.map((account) => account.id) },
+      },
+      select: { id: true },
+      orderBy: { id: 'asc' },
+    });
+    await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${input.organizationId} AND "isDeleted" = false ORDER BY id FOR SHARE`;
+    await tx.$queryRaw`SELECT id FROM brands WHERE id = ${discovered.brandId} AND "organizationId" = ${input.organizationId} AND "isDeleted" = false ORDER BY id FOR SHARE`;
+    if (discovered.credentialId)
+      await tx.$queryRaw`SELECT id FROM credentials WHERE id = ${discovered.credentialId} AND "organizationId" = ${input.organizationId} AND "brandId" = ${discovered.brandId} AND "isDeleted" = false ORDER BY id FOR SHARE`;
+    await tx.$queryRaw`SELECT id FROM posts WHERE id = ${input.postId} AND "organizationId" = ${input.organizationId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
+    const before = await tx.post.findFirst({
+      where,
+      select: { ...learningPublicationPostSelect, workflowExecutionId: true },
+    });
+    if (
+      !before ||
+      before.organizationId !== discovered.organizationId ||
+      before.brandId !== discovered.brandId ||
+      before.credentialId !== discovered.credentialId
+    )
+      throw new ConflictException(
+        'Publication source identity changed during discovery.',
+      );
+    if (before.publishApprovalId)
+      await tx.$queryRaw`SELECT id FROM publish_approvals WHERE id = ${before.publishApprovalId} AND "organizationId" = ${input.organizationId} AND "brandId" = ${before.brandId} AND "postId" = ${before.id} ORDER BY id FOR SHARE`;
+    const approval = before.publishApprovalId
+      ? await tx.publishApproval.findFirst({
+          where: {
+            id: before.publishApprovalId,
+            organizationId: input.organizationId,
+            brandId: before.brandId,
+            postId: before.id,
+          },
+          select: { artifactVersionPinId: true },
+        })
+      : null;
+    const pinId = approval?.artifactVersionPinId;
+    if (pinId)
+      await tx.$queryRaw`SELECT id FROM content_version_pins WHERE id = ${pinId} AND "organizationId" = ${input.organizationId} AND "brandId" = ${before.brandId} AND "recordKind" = 'post' AND "recordId" = ${before.id} ORDER BY id FOR SHARE`;
+    await tx.$queryRaw`SELECT id FROM post_publish_finalizations WHERE "organizationId" = ${input.organizationId} AND "postId" = ${before.id} ORDER BY id FOR UPDATE`;
+    return { before, lockedAccounts, accountWhere };
   }
 
   private factualTuple(post: LearningPublicationPostRow): string {
