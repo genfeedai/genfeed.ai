@@ -184,10 +184,10 @@ COPY apps/server/tsconfig.json apps/server/tsconfig.json
 # compile against their package exports.
 RUN set -e; \
     bun --filter @genfeedai/contracts build; \
+    bun --filter @genfeedai/helpers build; \
     bun --filter @genfeedai/pricing build; \
     bun --filter @genfeedai/client build; \
     bun --filter @genfeedai/config build; \
-    bun --filter @genfeedai/helpers build; \
     bun --filter @genfeedai/integrations build; \
     bun --filter @genfeedai/serializers build; \
     bun --filter @genfeedai/workflows build:server

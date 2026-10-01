@@ -10,8 +10,10 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import {
+  buildStudioGenerationCostSettings,
   calculateImageGenerationCredits,
   calculateVideoGenerationCredits,
+  resolveStudioGenerationCost,
 } from '@genfeedai/pricing';
 import {
   buildBaseGenerationPayload,
@@ -22,7 +24,6 @@ import {
   buildStudioPromptData,
   getDefaultStudioGenerateSettings,
 } from '@pages/studio/generate/utils/studio-generate-settings';
-import { resolveStudioGenerationCost } from '@pages/studio/generate/utils/studio-generation-cost';
 import { describe, expect, it } from 'vitest';
 
 function catalogModel(overrides: Partial<IModel> = {}): IModel {
@@ -45,6 +46,25 @@ function catalogModel(overrides: Partial<IModel> = {}): IModel {
 
 const imageSettings = getDefaultStudioGenerateSettings('image');
 const videoSettings = getDefaultStudioGenerateSettings('video');
+
+describe('buildStudioGenerationCostSettings', () => {
+  it('uses the composer defaults when setup fields are omitted', () => {
+    const image = getDefaultStudioGenerateSettings('image');
+    const builtImage = buildStudioGenerationCostSettings('image');
+    expect(builtImage.aspectRatio).toBe(image.aspectRatio);
+    expect(builtImage.resolution).toBe(image.resolution);
+    expect(builtImage.outputs).toBe(image.outputs);
+    expect(builtImage.modelKey).toBe(image.modelKey);
+    expect(builtImage.duration).toBe(image.duration);
+
+    const video = getDefaultStudioGenerateSettings('video');
+    const builtVideo = buildStudioGenerationCostSettings('video');
+    expect(builtVideo.aspectRatio).toBe(video.aspectRatio);
+    expect(builtVideo.resolution).toBe(video.resolution);
+    expect(builtVideo.duration).toBe(video.duration);
+    expect(builtVideo.outputs).toBe(video.outputs);
+  });
+});
 
 describe('resolveStudioGenerationCost', () => {
   it.each([

@@ -20,11 +20,6 @@ on:
         required: false
         default: ""
         type: string
-      marketplace_source_sha:
-        description: "exact Marketplace master SHA; empty skips Marketplace"
-        required: false
-        default: ""
-        type: string
       source_sha:
         description: "exact public genfeed.ai source commit to deploy"
         required: true
@@ -40,8 +35,6 @@ on:
         default: false
         type: boolean
     secrets:
-      MARKETPLACE_DEPLOY_TOKEN:
-        required: false
       VERCEL_TOKEN:
         required: true
       NEXT_PUBLIC_POSTHOG_KEY:
@@ -542,33 +535,16 @@ jobs:
             --timeout-seconds 1200 \
             --stop-on-timeout
 
-  deploy-marketplace-api:
-    name: Deploy Marketplace API
-    needs: deploy
-    if: ${{ inputs.marketplace_source_sha != '' }}
-    permissions:
-      contents: read
-      id-token: write
-    uses: ./.github/workflows/_deploy-marketplace-api.yml
-    with:
-      source_sha: ${{ inputs.source_sha }}
-      marketplace_source_sha: ${{ inputs.marketplace_source_sha }}
-    secrets:
-      MARKETPLACE_DEPLOY_TOKEN: ${{ secrets.MARKETPLACE_DEPLOY_TOKEN }}
-
   deploy-vercel-frontends:
     name: Deploy Vercel frontends
-    needs: [deploy, deploy-marketplace-api]
-    if: ${{ always() && needs.deploy.result == 'success' && (needs.deploy-marketplace-api.result == 'success' || needs.deploy-marketplace-api.result == 'skipped') }}
+    needs: deploy
     permissions:
       contents: read
     uses: ./.github/workflows/_deploy-hosted-saas-vercel.yml
     with:
       release_tag: ${{ inputs.release_tag }}
       source_sha: ${{ inputs.source_sha }}
-      marketplace_source_sha: ${{ inputs.marketplace_source_sha }}
     secrets:
-      MARKETPLACE_DEPLOY_TOKEN: ${{ secrets.MARKETPLACE_DEPLOY_TOKEN }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}

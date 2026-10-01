@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  assertMarketplaceSourceReachable,
   buildCorrelationId,
   buildExpectedTitle,
   mapDispatchCapabilityError,
@@ -10,7 +9,6 @@ import {
 } from './dispatch-hosted-saas.mjs';
 
 const RELEASE_SHA = 'd4a8d36e8eaf35747a0957a500e50daf737a85db';
-const MARKETPLACE_SHA = 'a23750b394e29d2dc650cf4ffacac644d7cf7529';
 
 test('builds a unique correlation id and expected title from the pinned SHA', () => {
   const correlationId = buildCorrelationId({
@@ -125,10 +123,12 @@ test('preflights capability before dispatching and preserves the SHA contract', 
   assert.equal(calls[2]?.body.ref, 'master');
   assert.equal(calls[2]?.body.inputs.release_sha, RELEASE_SHA);
   assert.equal(calls[2]?.body.inputs.source_sha, RELEASE_SHA);
-  assert.equal(calls[2]?.body.inputs.marketplace_source_sha, '');
+  assert.equal(
+    Object.hasOwn(calls[2]?.body.inputs, 'marketplace_source_sha'),
+    false,
+  );
   assert.deepEqual(Object.keys(calls[2]?.body.inputs ?? {}).sort(), [
     'correlation_id',
-    'marketplace_source_sha',
     'release_sha',
     'source_sha',
   ]);
@@ -136,142 +136,11 @@ test('preflights capability before dispatching and preserves the SHA contract', 
     JSON.stringify(calls[2]?.body ?? {}),
     /GITHUB_TOKEN|ghcr\.io|password/i,
   );
-  assert.equal(result.marketplaceSourceSha, '');
   assert.equal(result.correlationId, `release-31678573754-1-${RELEASE_SHA}`);
   assert.equal(
     result.expectedTitle,
     `Deploy hosted SaaS | ${RELEASE_SHA} | ${result.correlationId}`,
   );
-});
-
-test('accepts a provided marketplace SHA after proving it is reachable from master', async () => {
-  const calls = [];
-  const ghApi = async (method, path, body) => {
-    calls.push({ method, path, body });
-    if (path.endsWith('/console.genfeed.ai')) {
-      return { status: 200, json: {} };
-    }
-    if (path.includes('/actions/workflows/')) {
-      return { status: 200, json: {} };
-    }
-    if (path.includes('/compare/')) {
-      return { status: 200, json: { status: 'ahead' } };
-    }
-    if (path.endsWith('/dispatches')) {
-      return { status: 204, json: {} };
-    }
-    throw new Error(`unexpected ${method} ${path}`);
-  };
-
-  const result = await preflightAndDispatch({
-    ghApi,
-    consoleRepository: 'genfeedai/console.genfeed.ai',
-    consoleWorkflow: 'deploy-hosted-saas.yml',
-    marketplaceSourceSha: MARKETPLACE_SHA,
-    releaseSha: RELEASE_SHA,
-    runId: '1',
-    runAttempt: '1',
-    token: 'present',
-  });
-
-  assert.equal(
-    calls.some((call) => call.path?.endsWith('/commits/master')),
-    false,
-  );
-  assert.equal(
-    calls.some(
-      (call) =>
-        call.path ===
-        `repos/genfeedai/marketplace.genfeed.ai/compare/${MARKETPLACE_SHA}...master`,
-    ),
-    true,
-  );
-  assert.equal(result.marketplaceSourceSha, MARKETPLACE_SHA);
-  assert.equal(calls.at(-1)?.method, 'POST');
-});
-
-test('fails closed when a marketplace SHA is not reachable from marketplace master', async () => {
-  const calls = [];
-  const ghApi = async (method, path) => {
-    calls.push({ method, path });
-    if (path.endsWith('/console.genfeed.ai')) {
-      return { status: 200, json: {} };
-    }
-    if (path.includes('/actions/workflows/')) {
-      return { status: 200, json: {} };
-    }
-    if (path.includes('/compare/')) {
-      return { status: 200, json: { status: 'diverged' } };
-    }
-    return { status: 200, json: {} };
-  };
-
-  await assert.rejects(
-    () =>
-      preflightAndDispatch({
-        ghApi,
-        consoleRepository: 'genfeedai/console.genfeed.ai',
-        consoleWorkflow: 'deploy-hosted-saas.yml',
-        marketplaceSourceSha: MARKETPLACE_SHA,
-        releaseSha: RELEASE_SHA,
-        runId: '1',
-        runAttempt: '1',
-        token: 'present',
-      }),
-    /not reachable from genfeedai\/marketplace\.genfeed\.ai master/,
-  );
-
-  assert.equal(
-    calls.some((call) => call.method === 'POST'),
-    false,
-  );
-});
-
-test('rejects a marketplace SHA that is not an exact lowercase 40-character commit', async () => {
-  await assert.rejects(
-    () =>
-      assertMarketplaceSourceReachable({
-        ghApi: async () => {
-          throw new Error('must not call GitHub for a malformed SHA');
-        },
-        marketplaceSourceSha: 'MASTER',
-      }),
-    /marketplace source SHA is not an exact lowercase 40-character commit/,
-  );
-});
-
-test('skips marketplace lookup when the pin is empty', async () => {
-  const calls = [];
-  const ghApi = async (method, path, body) => {
-    calls.push({ method, path, body });
-    if (path.endsWith('/console.genfeed.ai')) {
-      return { status: 200, json: {} };
-    }
-    if (path.includes('/actions/workflows/')) {
-      return { status: 200, json: {} };
-    }
-    if (path.endsWith('/dispatches')) {
-      return { status: 204, json: {} };
-    }
-    throw new Error(`unexpected ${method} ${path}`);
-  };
-
-  const result = await preflightAndDispatch({
-    ghApi,
-    consoleRepository: 'genfeedai/console.genfeed.ai',
-    consoleWorkflow: 'deploy-hosted-saas.yml',
-    releaseSha: RELEASE_SHA,
-    runId: '1',
-    runAttempt: '1',
-    token: 'present',
-  });
-
-  assert.equal(
-    calls.some((call) => String(call.path).includes('marketplace.genfeed.ai')),
-    false,
-  );
-  assert.equal(result.marketplaceSourceSha, '');
-  assert.equal(calls.at(-1)?.body.inputs.marketplace_source_sha, '');
 });
 
 test('fails closed in preflight on 403 and never POSTs the dispatch', async () => {

@@ -173,9 +173,8 @@ describe('AppLayout', () => {
 
     const rail = screen.getByTestId('desktop-sidebar-rail');
     expect(rail).toBeInTheDocument();
-    // Chrome surface shared with the app rail; the content panel owns the border.
-    expect(rail).toHaveClass('bg-gray-100');
-    expect(rail).not.toHaveClass('border-r');
+    // Chrome plane shared with the topbar. The right border is the page divider.
+    expect(rail).toHaveClass('bg-gray-100', 'border-r', 'border-border');
     expect(rail).toHaveClass('fixed', 'bottom-0');
     expect(rail).toHaveStyle({
       left: 'var(--desktop-rail-width, 0px)',
@@ -227,24 +226,29 @@ describe('AppLayout', () => {
       'left-0',
       'bottom-0',
       'w-[var(--desktop-rail-width)]',
-      // One tone off the sidebar plane behind it, no divider.
-      'bg-foreground/[0.04]',
+      // Same plane as the topbar, no divider.
+      'bg-gray-100',
     );
-    expect(appRail).not.toHaveClass('border-r');
+    expect(appRail).not.toHaveClass('border-r', 'bg-foreground/[0.04]');
+    expect(appRail).toHaveStyle({ top: 'var(--desktop-titlebar-height)' });
     expect(appRail).toContainElement(
       screen.getAllByTestId('rail-component')[0],
     );
     expect(screen.getByTestId('app-content-shell').parentElement).toHaveStyle({
       '--desktop-rail-width': '52px',
     });
-    // Desktop: the topbar lives inside the inset panel instead of floating.
+    // Desktop: the topbar sits on the chrome plane, outside the page.
     expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
       'fixed',
+      'bg-gray-100',
       'md:static',
+    );
+    expect(screen.getByTestId('app-content-panel')).not.toContainElement(
+      screen.getByTestId('app-topbar-shell'),
     );
   });
 
-  it('sets the page on one Codex-style content surface that owns desktop scrolling', () => {
+  it('keeps the menu and page in one rounded block under a chrome topbar', () => {
     render(
       <AppLayout
         menuComponent={<MenuComponent />}
@@ -259,35 +263,48 @@ describe('AppLayout', () => {
     const contentShell = screen.getByTestId('app-content-shell');
     const panel = screen.getByTestId('app-content-panel');
     const mainContent = screen.getByTestId('app-main-content');
+    const sidebar = screen.getByTestId('desktop-sidebar-rail');
 
     expect(layoutRoot).toHaveClass(
       'bg-gray-100',
       '[--shell-inset:0px]',
+      '[--shell-edge:0px]',
       'md:[--shell-inset:0.5rem]',
-      'md:[--shell-edge:1px]',
+      '[--shell-topbar-offset:3rem]',
     );
-    // One inset on the top, right and bottom; the inspector's width is reserved
-    // on top of the right inset.
+    expect(layoutRoot).not.toHaveClass('md:[--shell-edge:1px]');
+    // Shell starts after the rail. The inspector's width is reserved on the right.
     expect(contentShell).toHaveClass(
-      'md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))]',
-      'md:pt-[calc(var(--desktop-titlebar-height)+var(--shell-inset))]',
-      'md:pr-[var(--shell-inset)]',
-      'md:pb-[var(--shell-inset)]',
-      'xl:pr-[calc(var(--shell-inset)+var(--workspace-inspector-width,0px))]',
+      'md:pl-[var(--desktop-rail-width)]',
+      'md:pt-[var(--desktop-titlebar-height)]',
+      'xl:pr-[var(--workspace-inspector-width,0px)]',
       'md:h-dvh',
       'md:overflow-hidden',
     );
-    // A bordered panel, rounded on every side.
+    expect(contentShell).not.toHaveClass(
+      'md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))]',
+    );
+    // Menu and page share the rounded block. The topbar stays outside it.
     expect(panel).toHaveClass(
       'bg-background',
+      'md:m-[var(--shell-inset)]',
+      'md:flex-row',
+      'md:overflow-hidden',
       'md:rounded-lg',
       'md:border',
       'md:border-border',
-      'md:overflow-hidden',
-      // Open inspector: the panel squares its right edge to meet it.
-      'xl:[[data-inspector-open=true]_&]:rounded-r-none',
     );
-    expect(panel).toContainElement(screen.getByTestId('app-topbar-shell'));
+    expect(panel).toContainElement(sidebar);
+    expect(sidebar).toHaveClass('relative', 'bg-gray-100', 'border-r');
+    expect(sidebar).not.toHaveClass('fixed');
+    expect(panel).not.toContainElement(screen.getByTestId('app-topbar-shell'));
+    expect(contentShell).toContainElement(
+      screen.getByTestId('app-topbar-shell'),
+    );
+    expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
+      'bg-gray-100',
+      'md:border-b-0',
+    );
     expect(mainContent).toHaveClass(
       'md:overflow-y-auto',
       'md:pt-0',
@@ -340,6 +357,9 @@ describe('AppLayout', () => {
         width: '0px',
       });
     });
+    expect(screen.getByTestId('desktop-sidebar-rail')).not.toHaveClass(
+      'border-r',
+    );
     expect(screen.getByTestId('desktop-app-rail')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Expand sidebar' })).toHaveStyle({
       left: 'calc(var(--desktop-rail-width, 0px) + 0.75rem)',
@@ -380,9 +400,13 @@ describe('AppLayout', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
     expect(drawer).toHaveClass('flex');
-    expect(mobileRail.nextElementSibling).toContainElement(
-      screen.getAllByTestId('menu-component')[1],
-    );
+    // The drawer renders before the desktop rounded block, so the mobile menu
+    // is the first menu-component, next to the rail.
+    expect(
+      mobileRail.nextElementSibling?.querySelector(
+        '[data-testid="menu-component"]',
+      ),
+    ).not.toBeNull();
 
     const mobileRailItem = mobileRail.querySelector(
       '[data-testid="rail-component"]',

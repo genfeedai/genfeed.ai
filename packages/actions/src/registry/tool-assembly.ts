@@ -68,6 +68,7 @@ export function inferCategory(name: string): ToolCategory {
   if (name.includes('visual_code')) return 'generation';
   if (
     [
+      'get_generation_cost',
       'get_generation_settings',
       'set_generation_settings',
       'enhance_prompt',

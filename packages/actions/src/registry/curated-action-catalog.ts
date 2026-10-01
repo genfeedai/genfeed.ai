@@ -236,6 +236,11 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'get_current_brand', surfaces: ['agent'], toolset: 'brand' },
   { name: 'get_dashboard_layout', surfaces: ['agent'], toolset: 'ui' },
   {
+    name: 'get_generation_cost',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'generation',
+  },
+  {
     name: 'get_generation_settings',
     surfaces: ['agent', 'mcp'],
     toolset: 'generation',

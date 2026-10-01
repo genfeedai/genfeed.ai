@@ -43,6 +43,7 @@ const SHARED_READ_TOOLS: CuratedActionName[] = [
   'get_analytics',
   'get_brand_context',
   'get_credits_balance',
+  'get_generation_cost',
   'get_dashboard_layout',
   'get_trends',
   'list_brands',

@@ -9,11 +9,6 @@ run-name: Release ${{ inputs.tag }}
 on:
   workflow_dispatch:
     inputs:
-      marketplace_source_sha:
-        description: "Optional exact Marketplace master commit to release alongside Genfeed"
-        required: false
-        default: ""
-        type: string
       tag:
         description: "stable release tag (vX.Y.Z)"
         required: true
@@ -538,12 +533,10 @@ jobs:
       issues: write
     uses: ./.github/workflows/deploy-hosted-saas.yml
     with:
-      marketplace_source_sha: ${{ inputs.marketplace_source_sha }}
       release_tag: ${{ needs.validate-release.outputs.release_tag }}
       source_sha: ${{ needs.validate-release.outputs.release_sha }}
       correlation_id: release-${{ github.run_id }}-${{ github.run_attempt }}-${{ needs.validate-release.outputs.release_sha }}
     secrets:
-      MARKETPLACE_DEPLOY_TOKEN: ${{ secrets.MARKETPLACE_DEPLOY_TOKEN }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
