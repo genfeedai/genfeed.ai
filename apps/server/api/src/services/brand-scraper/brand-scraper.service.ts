@@ -72,12 +72,20 @@ export class BrandScraperService {
 
   async scrapeWebsiteWithEvidence(
     url: string,
+    callerBudget?: WebsiteFetchBudget,
   ): Promise<WebsiteBrandScrapeEvidence> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const normalizedUrl = this.normalizeUrl(url);
+    const now = performance.now();
+    if (callerBudget && !Number.isFinite(callerBudget.deadlineAt))
+      throw new Error('deadline_exceeded');
     const budget: WebsiteFetchBudget = {
-      deadlineAt: performance.now() + WEBSITE_TIMEOUT_MS,
+      deadlineAt: Math.min(
+        callerBudget?.deadlineAt ?? now + WEBSITE_TIMEOUT_MS,
+        now + WEBSITE_TIMEOUT_MS,
+      ),
     };
+    if (budget.deadlineAt <= now) throw new Error('deadline_exceeded');
     this.loggerService.log(`${caller} starting`, {
       url: this.brandWebsiteParser.sanitizeProvenanceUrl(normalizedUrl),
     });
