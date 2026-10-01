@@ -122,6 +122,7 @@ export default function AppProtectedBrandSwitcher({
   return (
     <MenuBrandSwitcher
       variant="labeled"
+      compactOnMobile
       brands={brands}
       brandId={visibleBrandId}
       onBrandChange={handleBrandChange}

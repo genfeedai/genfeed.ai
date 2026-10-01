@@ -128,9 +128,9 @@ function AppProtectedTopbarContent({
           The Genfeed mark lives in the rail. Every control is h-8. */}
       <div
         data-testid="app-protected-topbar-inner"
-        className="flex h-full w-full items-center gap-3 px-3"
+        className="flex h-full w-full items-center gap-1 px-2 md:gap-3 md:px-3"
       >
-        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+        <div className="flex min-w-0 flex-1 items-center gap-1 md:gap-1.5">
           {onMenuToggle ? (
             <Button
               type="button"
@@ -142,20 +142,22 @@ function AppProtectedTopbarContent({
                 isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'
               }
               onClick={onMenuToggle}
+              withWrapper={false}
             >
               <ToggleIcon className="size-4" />
             </Button>
           ) : null}
 
           {isAdminChrome || isPersonalSettingsPage(pathname) ? null : (
-            <div className="w-max min-w-0 max-w-52 shrink-0">
+            <div className="w-max min-w-0 max-w-52 md:shrink-0">
               <OrganizationSwitcher
+                compactOnMobile
                 subscriptionTier={settings?.subscriptionTier}
               />
             </div>
           )}
 
-          <div className="w-max min-w-0 max-w-52 shrink-0">
+          <div className="w-max min-w-0 max-w-52 md:shrink-0">
             <AppProtectedBrandSwitcher
               brandSlug={brandSlug}
               isAdminChrome={isAdminChrome}
@@ -173,7 +175,7 @@ function AppProtectedTopbarContent({
           </div>
         </div>
 
-        <div className="flex min-w-0 items-center justify-end gap-1.5">
+        <div className="flex min-w-0 shrink-0 items-center justify-end gap-1 md:gap-1.5">
           {!isAdminChrome ? <TopbarCreditsBar /> : null}
 
           {!isAdminChrome ? <NotificationInboxMenu /> : null}

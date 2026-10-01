@@ -29,10 +29,12 @@ import { useCallback } from 'react';
 import { useCreateOrganizationModal } from './use-create-organization-modal';
 
 interface OrganizationSwitcherProps {
+  compactOnMobile?: boolean;
   subscriptionTier?: string | null;
 }
 
 export default function OrganizationSwitcher({
+  compactOnMobile = false,
   subscriptionTier,
 }: OrganizationSwitcherProps = {}) {
   const getOrgsService = useAuthedService((token: string) =>
@@ -111,6 +113,7 @@ export default function OrganizationSwitcher({
             className={cn(
               'flex h-8 w-max max-w-52 min-w-0 cursor-pointer items-center gap-2 rounded-md px-1.5 text-left transition-colors duration-150 hover:bg-foreground/[0.06]',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+              compactOnMobile && 'gap-0 px-1 md:gap-2 md:px-1.5',
               isSwitching && 'cursor-not-allowed opacity-50',
               isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,
             )}
@@ -118,10 +121,20 @@ export default function OrganizationSwitcher({
             <span className={SWITCHER_AVATAR_CLASSNAME}>
               {displayLabel.charAt(0).toUpperCase()}
             </span>
-            <span className="min-w-0 truncate text-sm font-medium leading-none text-foreground">
+            <span
+              className={cn(
+                'min-w-0 truncate text-sm font-medium leading-none text-foreground',
+                compactOnMobile && 'hidden md:inline',
+              )}
+            >
               {isSwitching ? 'Switching…' : displayLabel}
             </span>
-            <ChevronsUpDown className={SWITCHER_CHEVRON_CLASSNAME} />
+            <ChevronsUpDown
+              className={cn(
+                SWITCHER_CHEVRON_CLASSNAME,
+                compactOnMobile && 'hidden md:block',
+              )}
+            />
           </Button>
         )}
         onSelect={(id) => void handleSwitch(id)}

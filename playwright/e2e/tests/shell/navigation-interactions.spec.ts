@@ -1,4 +1,5 @@
 import { expect, test } from '../../fixtures/auth.fixture';
+import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
 import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
 
 /**
@@ -8,11 +9,84 @@ import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
  * rendered on every protected page, so exercising them lifts coverage broadly.
  *
  * Auth + all API + Better Auth are mocked by the fixtures; the strict network guard
- * fails on real outbound calls. Interactions are best-effort: tryClick never
- * throws and direct clicks are .catch-guarded so the specs stay non-brittle.
+ * fails on real outbound calls. Legacy exploration uses best-effort clicks;
+ * geometry and switcher regressions below require real successful interactions.
  */
 
 const BRAND_BASE = '/test-org/brand-1';
+const LONG_ORGANIZATION_NAME =
+  'International Creative Production and Publishing Workspace';
+const LONG_BRAND_NAME =
+  'Global Editorial Campaigns and Brand Experience Studio';
+
+async function mockLongScopeNames(
+  page: Parameters<typeof tryClick>[0],
+): Promise<void> {
+  const bootstrap = buildProtectedAppBootstrapPayload();
+  bootstrap.brands = bootstrap.brands.map((brand) => ({
+    ...brand,
+    label: LONG_BRAND_NAME,
+    name: LONG_BRAND_NAME,
+    organization: {
+      ...brand.organization,
+      name: LONG_ORGANIZATION_NAME,
+    },
+  }));
+  const brands = bootstrap.brands.map((brand) => ({
+    attributes: brand,
+    id: brand.id,
+    type: 'brands',
+  }));
+
+  // Override only fixture reads; never fetch through to a real API.
+  await page.route(
+    (url) =>
+      /^\/v1\/(?:auth\/bootstrap|organizations|brands(?:\/brand-1)?|users\/me\/brands)\/?$/.test(
+        url.pathname,
+      ),
+    async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.fallback();
+        return;
+      }
+      const { pathname, searchParams } = new URL(route.request().url());
+      if (pathname.endsWith('/auth/bootstrap')) {
+        await route.fulfill({ json: bootstrap });
+      } else if (
+        pathname.endsWith('/organizations') &&
+        searchParams.get('mine') === 'true'
+      ) {
+        await route.fulfill({
+          json: [
+            {
+              brand: { id: 'brand-1', label: LONG_BRAND_NAME },
+              id: 'mock-org-id-e2e-test',
+              isActive: true,
+              isOwner: true,
+              label: LONG_ORGANIZATION_NAME,
+              slug: 'test-org',
+            },
+          ],
+        });
+      } else if (pathname.endsWith('/brands/brand-1')) {
+        await route.fulfill({ json: { data: brands[0] } });
+      } else if (pathname.endsWith('/brands')) {
+        await route.fulfill({
+          json: {
+            data: brands,
+            meta: {
+              page: 1,
+              pageSize: brands.length,
+              totalCount: brands.length,
+            },
+          },
+        });
+      } else {
+        await route.fallback();
+      }
+    },
+  );
+}
 
 async function settle(page: Parameters<typeof tryClick>[0]): Promise<void> {
   await page.waitForLoadState('domcontentloaded').catch(() => {});
@@ -154,6 +228,94 @@ test.describe('Shell — navigation interactions', () => {
 
     await assertHealthy(authenticatedPage);
   });
+
+  for (const width of [320, 360, 1280]) {
+    test(`long organization and brand names keep topbar controls reachable at ${width}px`, async ({
+      authenticatedPage,
+    }) => {
+      await authenticatedPage.setViewportSize({ height: 812, width });
+      await mockLongScopeNames(authenticatedPage);
+      await authenticatedPage.goto(`${BRAND_BASE}/workspace`, {
+        waitUntil: 'domcontentloaded',
+      });
+
+      const row = authenticatedPage.getByTestId('app-protected-topbar-inner');
+      const organization = row.getByTestId('organization-switcher-trigger');
+      const brand = row.getByTestId('brand-switcher-trigger');
+      await expect(organization).toHaveAttribute(
+        'title',
+        LONG_ORGANIZATION_NAME,
+      );
+      await expect(brand).toHaveAttribute('title', LONG_BRAND_NAME);
+
+      await expect
+        .poll(() =>
+          authenticatedPage
+            .getByTestId('app-topbar-shell')
+            .evaluate((element) => element.getBoundingClientRect().height),
+        )
+        .toBe(40);
+
+      // Poll actual layout after hydration; neither clipping nor wrapping is OK.
+      await expect
+        .poll(() =>
+          row.evaluate((element) => {
+            const bounds = element.getBoundingClientRect();
+            const controls = Array.from(element.querySelectorAll('button'))
+              .map((button) => button.getBoundingClientRect())
+              .filter((box) => box.width > 0 && box.height > 0);
+            return (
+              bounds.height >= 32 &&
+              bounds.height <= 40 &&
+              element.scrollWidth <= element.clientWidth + 1 &&
+              controls.every(
+                (box) =>
+                  box.left >= bounds.left &&
+                  box.right <= bounds.right &&
+                  box.top >= bounds.top &&
+                  box.bottom <= bounds.bottom,
+              ) &&
+              controls.every(
+                (box, index) =>
+                  index === 0 || box.left >= controls[index - 1].right,
+              )
+            );
+          }),
+        )
+        .toBe(true);
+
+      // Real dropdown interactions must work even when mobile labels are compact.
+      await organization.click();
+      const organizationOption = authenticatedPage
+        .getByRole('option')
+        .filter({ hasText: LONG_ORGANIZATION_NAME });
+      await expect(organizationOption).toBeVisible();
+      await organizationOption.click();
+      await expect(organizationOption).toBeHidden();
+      await brand.click();
+      const brandOption = authenticatedPage
+        .getByRole('option')
+        .filter({ hasText: LONG_BRAND_NAME });
+      await expect(brandOption).toBeVisible();
+      await brandOption.click();
+      await expect(brandOption).toBeHidden();
+
+      if (width < 768) {
+        await row.getByRole('button', { name: 'Open navigation menu' }).click();
+        await expect(
+          authenticatedPage.getByTestId('mobile-app-rail'),
+        ).toBeVisible();
+      } else {
+        await expect(organization).toContainText(LONG_ORGANIZATION_NAME, {
+          useInnerText: true,
+        });
+        await expect(brand).toContainText(LONG_BRAND_NAME, {
+          useInnerText: true,
+        });
+      }
+      await assertHealthy(authenticatedPage);
+    });
+  }
 
   test('brand switcher opens and shows per-brand settings actions', async ({
     authenticatedPage,
