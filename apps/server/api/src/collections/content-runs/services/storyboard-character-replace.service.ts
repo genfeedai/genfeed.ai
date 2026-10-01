@@ -1,3 +1,4 @@
+import { MAX_SERIALIZATION_RETRIES } from '@api/collections/content-runs/services/brand-remix-runs.types';
 import { BrandRemixSceneSourceService } from '@api/collections/content-runs/services/brand-remix-scene-source.service';
 import { StoryboardRunStoreService } from '@api/collections/content-runs/services/storyboard-run-store.service';
 import { StoryboardSourceService } from '@api/collections/content-runs/services/storyboard-source.service';
@@ -31,6 +32,23 @@ function parseInput<T>(schema: ZodType<T>, value: unknown): T {
         .join('; '),
     );
   return parsed.data;
+}
+
+function sameReplacementIntent(
+  existing: StoryboardCharacterReplacement,
+  intent: {
+    imageAssetIds: readonly string[];
+    prompt?: string;
+    shotId: string;
+  },
+): boolean {
+  if (existing.shotId !== intent.shotId) return false;
+  if ((existing.prompt ?? '') !== (intent.prompt ?? '')) return false;
+  if (existing.imageAssetIds.length !== intent.imageAssetIds.length)
+    return false;
+  return existing.imageAssetIds.every(
+    (id, index) => id === intent.imageAssetIds[index],
+  );
 }
 
 function sourceVideoAssetId(config: StoryboardRunConfig): string | undefined {
@@ -94,6 +112,14 @@ export class StoryboardCharacterReplaceService {
       throw new ConflictException(
         'The source video needs an https address before character replace.',
       );
+    const existing = (config.characterReplacements ?? []).find((item) =>
+      sameReplacementIntent(item, {
+        imageAssetIds: input.imageAssetIds,
+        prompt: input.prompt,
+        shotId: shot.id,
+      }),
+    );
+    if (existing) return existing;
     const imageUrls = await this.imageUrls(
       organizationId,
       brandId,
@@ -116,17 +142,52 @@ export class StoryboardCharacterReplaceService {
       status: submitted.videoUrl ? 'ready' : 'submitted',
       videoAssetId: video.sourceAssetId,
     });
-    const characterReplacements = [
-      ...(config.characterReplacements ?? []).filter(
-        (item) => item.shotId !== shot.id,
-      ),
+    await this.persistReplacement(
+      organizationId,
+      brandId,
+      runId,
+      config,
       replacement,
-    ].slice(-12);
-    await this.store.save(organizationId, brandId, runId, config, {
-      ...config,
-      characterReplacements,
-    });
+    );
     return replacement;
+  }
+
+  private async persistReplacement(
+    organizationId: string,
+    brandId: string,
+    runId: string,
+    config: StoryboardRunConfig,
+    replacement: StoryboardCharacterReplacement,
+  ): Promise<void> {
+    let current = config;
+    for (let attempt = 0; attempt < MAX_SERIALIZATION_RETRIES; attempt++) {
+      const already = (current.characterReplacements ?? []).find(
+        (item) =>
+          item.requestId === replacement.requestId ||
+          sameReplacementIntent(item, replacement),
+      );
+      if (already) return;
+      const characterReplacements = [
+        ...(current.characterReplacements ?? []).filter(
+          (item) => item.shotId !== replacement.shotId,
+        ),
+        replacement,
+      ].slice(-12);
+      try {
+        await this.store.save(organizationId, brandId, runId, current, {
+          ...current,
+          characterReplacements,
+        });
+        return;
+      } catch (error) {
+        if (!(error instanceof ConflictException)) throw error;
+        current = (await this.store.read(organizationId, brandId, runId))
+          .config;
+      }
+    }
+    throw new ConflictException(
+      `The storyboard changed after character replace was accepted (${replacement.requestId}). Reload before retrying.`,
+    );
   }
 
   private async imageUrls(

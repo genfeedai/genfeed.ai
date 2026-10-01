@@ -49,6 +49,7 @@ import {
   storyboardRunSummarySchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run-summary.contract';
 import { Prisma } from '@genfeedai/prisma';
+import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   ConflictException,
@@ -74,7 +75,7 @@ function canonicalInput(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonicalInput).join(',')}]`;
   return `{${Object.entries(value)
     .filter(([, item]) => item !== undefined)
-    .sort(([left], [right]) => left.localeCompare(right))
+    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
     .map(([key, item]) => `${JSON.stringify(key)}:${canonicalInput(item)}`)
     .join(',')}}`;
 }
@@ -87,6 +88,7 @@ export class StoryboardRunsService {
     private readonly source: StoryboardSourceService,
     private readonly store: StoryboardRunStoreService,
     private readonly capabilities: StoryboardRunCapabilitiesService,
+    private readonly logger: LoggerService,
   ) {}
 
   async create(
@@ -254,35 +256,47 @@ export class StoryboardRunsService {
         config: { path: ['contract'], equals: STORYBOARD_RUN_CONTRACT },
       }),
     });
-    return records.map((record) => {
-      const config = storyboardStoredRunConfigSchema.parse(record.config);
+    return records.flatMap((record) => {
+      const parsed = storyboardStoredRunConfigSchema.safeParse(record.config);
+      if (!parsed.success) {
+        this.logger.warn('Skipping malformed storyboard run in list', {
+          brandId,
+          organizationId,
+          runId: record.id,
+          issues: parsed.error.issues.map((issue) => issue.message).slice(0, 8),
+        });
+        return [];
+      }
+      const config = parsed.data;
       const kind = config.sourceSnapshot.selector.kind;
-      return storyboardRunSummarySchema.parse({
-        id: record.id,
-        brandId: record.brandId,
-        title: config.plan?.title ?? config.importedPresentation?.title ?? '',
-        sourceLabel:
-          kind === 'brief'
-            ? 'brief'
-            : kind === 'uploaded_video'
-              ? 'remix_upload'
-              : 'remix_discovery',
-        shotCount:
-          config.plan?.shots.length ??
-          config.importedPresentation?.shots.length ??
-          0,
-        runtimeSeconds: (
-          config.plan?.shots ??
-          config.importedPresentation?.shots ??
-          []
-        ).reduce((sum, shot) => sum + (shot.durationSeconds ?? 0), 0),
-        runtimeBudgetSeconds: config.plan?.runtimeBudgetSeconds ?? null,
-        approvalState:
-          config.approvedRevision === config.revision ? 'approved' : 'draft',
-        state: config.state,
-        migrationReview: config.migrationReview ?? null,
-        updatedAt: record.updatedAt.toISOString(),
-      });
+      return [
+        storyboardRunSummarySchema.parse({
+          id: record.id,
+          brandId: record.brandId,
+          title: config.plan?.title ?? config.importedPresentation?.title ?? '',
+          sourceLabel:
+            kind === 'brief'
+              ? 'brief'
+              : kind === 'uploaded_video'
+                ? 'remix_upload'
+                : 'remix_discovery',
+          shotCount:
+            config.plan?.shots.length ??
+            config.importedPresentation?.shots.length ??
+            0,
+          runtimeSeconds: (
+            config.plan?.shots ??
+            config.importedPresentation?.shots ??
+            []
+          ).reduce((sum, shot) => sum + (shot.durationSeconds ?? 0), 0),
+          runtimeBudgetSeconds: config.plan?.runtimeBudgetSeconds ?? null,
+          approvalState:
+            config.approvedRevision === config.revision ? 'approved' : 'draft',
+          state: config.state,
+          migrationReview: config.migrationReview ?? null,
+          updatedAt: record.updatedAt.toISOString(),
+        }),
+      ];
     });
   }
 

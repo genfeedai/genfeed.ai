@@ -153,6 +153,8 @@ export default function AgentDock({
   const translate = useTranslations('common.agentDock');
   const [region, setRegion] = useState<HTMLElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
+  const launcherNodeRef = useRef<HTMLElement | null>(null);
+  const shouldReturnToLauncherRef = useRef(false);
   const [bodyNode] = useState<HTMLElement | null>(() => {
     if (typeof document === 'undefined') {
       return null;
@@ -173,18 +175,27 @@ export default function AgentDock({
   );
   const { close, height, isOpen, open, setHeight } = dock;
   const isBubbleChrome = chrome === 'bubble';
+  const bindLauncher = useCallback((node: HTMLDivElement | null) => {
+    launcherNodeRef.current = node?.querySelector('button') ?? null;
+  }, []);
+  const handleLauncherOpen = useCallback(() => {
+    shouldReturnToLauncherRef.current = true;
+    open();
+  }, [open]);
   const closedLauncher =
     isBubbleChrome && !isOpen ? (
-      hasMajorPromptBar ? (
-        <AgentConversationBubble onOpen={open} />
-      ) : (
-        <AgentPagePromptBar
-          onOpen={open}
-          onSelectSuggestedAction={onSelectSuggestedAction}
-          placeholder={pagePlaceholder}
-          suggestedActions={suggestedActions}
-        />
-      )
+      <div ref={bindLauncher}>
+        {hasMajorPromptBar ? (
+          <AgentConversationBubble onOpen={handleLauncherOpen} />
+        ) : (
+          <AgentPagePromptBar
+            onOpen={handleLauncherOpen}
+            onSelectSuggestedAction={onSelectSuggestedAction}
+            placeholder={pagePlaceholder}
+            suggestedActions={suggestedActions}
+          />
+        )}
+      </div>
     ) : null;
 
   // Opening moves focus into the composer and remembers where it came from;
@@ -194,14 +205,19 @@ export default function AgentDock({
       const returnFocus = returnFocusRef.current;
       returnFocusRef.current = null;
       const activeElement = document.activeElement;
-      if (
-        returnFocus?.isConnected &&
-        (!activeElement ||
-          activeElement === document.body ||
-          isInsideDock(activeElement))
-      ) {
-        returnFocus.focus({ preventScroll: true });
-      }
+      const shouldRestore =
+        !activeElement ||
+        activeElement === document.body ||
+        isInsideDock(activeElement);
+      const target = shouldRestore
+        ? returnFocus?.isConnected
+          ? returnFocus
+          : shouldReturnToLauncherRef.current
+            ? launcherNodeRef.current
+            : null
+        : null;
+      shouldReturnToLauncherRef.current = false;
+      target?.focus({ preventScroll: true });
       return;
     }
 

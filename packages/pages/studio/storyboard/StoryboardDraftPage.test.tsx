@@ -149,4 +149,23 @@ describe('draft detail navigation', () => {
     expect(screen.getByText('Plan editor')).toBeInTheDocument();
     expect(mocks.push).not.toHaveBeenCalled();
   });
+  it('renders a new storyboard that has no plan without creating an outbox', () => {
+    render(
+      <StoryboardDraftPage
+        run={
+          {
+            ...run,
+            config: {
+              ...run.config,
+              plan: null,
+            },
+          } as StoryboardRun
+        }
+        savePlan={vi.fn()}
+        resetPlan={vi.fn()}
+        approvePlan={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('Plan editor')).toBeInTheDocument();
+  });
 });

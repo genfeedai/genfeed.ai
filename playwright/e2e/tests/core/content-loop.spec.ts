@@ -102,16 +102,13 @@ test.describe('Core Content Loop', () => {
       .click();
     await expect(authenticatedPage).toHaveURL(/\/studio\/storyboard\/new$/);
     await expect(
-      authenticatedPage.getByRole('link', { name: 'Pick a source' }),
+      authenticatedPage.getByRole('link', { name: 'Browse Discovery' }),
     ).toHaveAttribute('href', /\/discovery\/overview$/);
     await expect(
-      authenticatedPage.getByRole('button', { name: /Frame sequence/i }),
+      authenticatedPage.getByRole('button', { name: 'From a brief' }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('button', { name: /Scenes/i }),
-    ).toBeVisible();
-    await expect(
-      authenticatedPage.getByRole('button', { name: /Merge videos/i }),
+      authenticatedPage.getByRole('button', { name: 'Remix a video' }),
     ).toBeVisible();
   });
 

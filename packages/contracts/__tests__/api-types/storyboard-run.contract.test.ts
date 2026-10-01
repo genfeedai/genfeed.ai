@@ -3,6 +3,7 @@ import { storyboardImportedReferenceIdSchema } from '../../src/api-types/contrac
 import {
   storyboardImportedPlanSchema,
   storyboardPlanSchema,
+  updateStoryboardPlanSchema,
 } from '../../src/api-types/contracts/storyboard-plan.contract';
 import {
   createStoryboardRunSchema,
@@ -141,6 +142,15 @@ describe('Canonical storyboard contract', () => {
         ...plan,
         runtimeBudgetSeconds: 5,
         shots: [shot],
+      }).success,
+    ).toBe(false);
+    expect(
+      updateStoryboardPlanSchema.safeParse({
+        expectedRevision: 1,
+        plan: {
+          ...plan,
+          shots: [{ ...shot, transition: 'interpolate' }],
+        },
       }).success,
     ).toBe(false);
     expect(

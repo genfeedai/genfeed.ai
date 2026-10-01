@@ -279,6 +279,28 @@ describe('AgentChatInput', () => {
     expect(editor).toHaveTextContent('Send after upload');
   });
 
+  it('keeps occupancy focused when moving from the editor to the toolbar', async () => {
+    const onOccupancyChange = vi.fn();
+    render(
+      <AgentChatInput onOccupancyChange={onOccupancyChange} onSend={vi.fn()} />,
+    );
+    const shell = screen.getByTestId('agent-chat-input-shell');
+    fireEvent.focus(shell);
+    expect(onOccupancyChange).toHaveBeenCalledWith(
+      expect.objectContaining({ isFocused: true }),
+    );
+    const toolbarButton = within(shell).getAllByRole('button')[0];
+    expect(toolbarButton).toBeTruthy();
+    fireEvent.blur(shell, { relatedTarget: toolbarButton });
+    expect(onOccupancyChange.mock.calls.at(-1)?.[0]).toMatchObject({
+      isFocused: true,
+    });
+    fireEvent.blur(shell, { relatedTarget: document.body });
+    expect(onOccupancyChange.mock.calls.at(-1)?.[0]).toMatchObject({
+      isFocused: false,
+    });
+  });
+
   it('does not render a context usage meter', () => {
     render(<AgentChatInput onSend={vi.fn()} />);
 

@@ -30,6 +30,7 @@ import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import { BookOpen } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
+  type FocusEvent,
   type ReactElement,
   type ReactNode,
   useCallback,
@@ -225,17 +226,18 @@ export function AgentChatInput({
       return;
     }
 
-    const handleFocus = () => setIsComposerFocused(true);
-    const handleBlur = () => setIsComposerFocused(false);
-    editor.on('focus', handleFocus);
-    editor.on('blur', handleBlur);
     setIsComposerFocused(editor.isFocused);
-
-    return () => {
-      editor.off('focus', handleFocus);
-      editor.off('blur', handleBlur);
-    };
   }, [editor]);
+
+  function handleComposerFocus(): void {
+    setIsComposerFocused(true);
+  }
+
+  function handleComposerBlur(event: FocusEvent<HTMLDivElement>): void {
+    const next = event.relatedTarget;
+    if (next instanceof Node && event.currentTarget.contains(next)) return;
+    setIsComposerFocused(false);
+  }
 
   useEffect(() => {
     onOccupancyChange?.({
@@ -275,6 +277,8 @@ export function AgentChatInput({
       ) : null}
 
       <PromptBarComposer
+        onBlur={handleComposerBlur}
+        onFocus={handleComposerFocus}
         beforeBody={
           <>
             {showEmptyHighlight ? (

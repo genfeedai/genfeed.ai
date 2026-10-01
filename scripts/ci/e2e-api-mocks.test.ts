@@ -214,6 +214,31 @@ describe('Playwright API mocks', () => {
     ).toEqual({ workObjects: [], sessionAssets: [] });
   });
 
+  it('returns a JSON:API catalog resource for visual-projects catalog', () => {
+    expect(
+      buildUnhandledApiMockBody(
+        'https://api.genfeed.ai/v1/visual-projects/catalog?brandId=brand-1',
+      ),
+    ).toEqual({
+      data: {
+        attributes: expect.objectContaining({
+          isAvailable: true,
+          models: [],
+        }),
+        id: 'catalog',
+        type: 'visual-code-catalog',
+      },
+    });
+  });
+
+  it('returns a JSON:API collection for visual-projects lists', () => {
+    expect(
+      buildUnhandledApiMockBody(
+        'https://api.genfeed.ai/v1/visual-projects/projects?brandId=brand-1',
+      ),
+    ).toEqual({ data: [], links: { cursor: { nextCursor: null } } });
+  });
+
   it.each([
     '/batches',
     '/agent/threads/thread-1/work-objects-summary',

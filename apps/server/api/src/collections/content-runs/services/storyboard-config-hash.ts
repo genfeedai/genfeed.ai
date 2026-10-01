@@ -6,7 +6,7 @@ export function storyboardConfigHash(value: unknown): string {
     if (Array.isArray(item)) return `[${item.map(canonical).join(',')}]`;
     return `{${Object.entries(item)
       .filter(([, value]) => value !== undefined)
-      .sort(([a], [b]) => a.localeCompare(b))
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
       .map(([key, value]) => `${JSON.stringify(key)}:${canonical(value)}`)
       .join(',')}}`;
   }

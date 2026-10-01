@@ -34,10 +34,7 @@ export default function AgentPagePromptBar({
   );
 
   return (
-    <div
-      className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex justify-center px-3 sm:px-4"
-      data-testid="agent-page-promptbar"
-    >
+    <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex justify-center px-3 sm:px-4">
       <div className="pointer-events-auto w-full min-w-0 max-w-3xl">
         {suggestions.length > 0 ? (
           <div className="pb-3">
@@ -54,6 +51,7 @@ export default function AgentPagePromptBar({
           <Button
             ariaLabel={resolvedPlaceholder}
             className="flex min-h-11 w-full items-center px-1 text-left text-sm text-muted-foreground"
+            data-testid="agent-page-promptbar"
             onClick={onOpen}
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}

@@ -43,7 +43,10 @@ export default function StoryboardDraftPage({
   const { href } = useOrgUrl();
   const router = useRouter();
   const editor = useRef<StoryboardPlanEditorHandle>(null);
-  const draft = useStoryboardDraftOutbox(transport, run);
+  const draft = useStoryboardDraftOutbox(
+    run.config.plan ? transport : undefined,
+    run,
+  );
   useEffect(() => {
     if (draft.snapshot?.status === 'failed') refreshCapabilities?.();
   }, [draft.snapshot?.status, refreshCapabilities]);

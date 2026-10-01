@@ -23,7 +23,7 @@ export class ContentMentionsController {
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getMentions(
     @CurrentUser() user: User,
-    @Query('brandId') brandId?: string,
+    @Query('brandId') brandIdParam?: unknown,
   ): Promise<AgentContentMentionsResponse> {
     if (!user.organizationId) {
       throw new BadRequestException({
@@ -34,9 +34,18 @@ export class ContentMentionsController {
 
     const mentions = await this.postsService.listContentMentions(
       user.organizationId,
-      brandId,
+      parseOptionalBrandId(brandIdParam),
     );
 
     return { mentions };
   }
+}
+
+function parseOptionalBrandId(value: unknown): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value === 'string') return value;
+  throw new BadRequestException({
+    detail: 'brandId must be a single string',
+    title: 'Bad Request',
+  });
 }
