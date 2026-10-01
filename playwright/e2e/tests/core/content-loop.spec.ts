@@ -65,7 +65,10 @@ test.describe('Core Content Loop', () => {
     await expect(breadcrumb).toContainText('Workspace');
     await expect(breadcrumb).toContainText('Overview');
 
-    const sidebar = authenticatedPage.getByTestId('sidebar-shell').first();
+    const sidebar = authenticatedPage
+      .getByTestId('desktop-sidebar-rail')
+      .getByTestId('sidebar-shell');
+    await expect(sidebar).toBeVisible();
     await expect(sidebar).toHaveAttribute(
       'data-shell-current-app',
       'workspace',

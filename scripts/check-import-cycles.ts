@@ -5,6 +5,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
+import { createRequire } from 'node:module';
 import { availableParallelism } from 'node:os';
 import path from 'node:path';
 
@@ -51,6 +52,36 @@ type JsonReport = {
   baselinedCount: number;
   newCycles: CycleRecord[];
 };
+
+type MadgeWorkerInput = {
+  baseDir: string;
+  scanTargets: string[];
+  tsconfigPath: string;
+};
+
+type MadgeFactory = (
+  targets: string[],
+  options: {
+    baseDir: string;
+    excludeRegExp: string[];
+    fileExtensions: string[];
+    tsConfig: string;
+  },
+) => Promise<{ circular(): string[][] }>;
+
+async function runMadgeWorker(): Promise<void> {
+  const input: MadgeWorkerInput = JSON.parse(await Bun.stdin.text());
+  // Keep complete traversal: excluded nodes can lead to production cycles.
+  // A direct Bun worker avoids bunx and the CLI's separate Node process.
+  const madge: MadgeFactory = createRequire(import.meta.url)('madge');
+  const graph = await madge(input.scanTargets, {
+    baseDir: input.baseDir,
+    excludeRegExp: [EXCLUDE_REGEX],
+    fileExtensions: ['ts', 'tsx'],
+    tsConfig: input.tsconfigPath,
+  });
+  process.stdout.write(`${JSON.stringify(graph.circular())}\n`);
+}
 
 function parseArgs(argv: string[]): CliArgs {
   const files: string[] = [];
@@ -254,21 +285,17 @@ async function runMadge(
 
   const workspace = toRepoRelative(workspaceRoot);
   const child = Bun.spawn(
-    [
-      'bunx',
-      'madge',
-      '--json',
-      '--circular',
-      '--extensions',
-      'ts,tsx',
-      '--ts-config',
-      tsconfigPath,
-      '--exclude',
-      EXCLUDE_REGEX,
-      ...scanTargets,
-    ],
-    { cwd: ROOT_DIR, stderr: 'pipe', stdin: 'ignore', stdout: 'pipe' },
+    [process.execPath, import.meta.filename, '--madge-worker'],
+    { cwd: ROOT_DIR, stderr: 'pipe', stdin: 'pipe', stdout: 'pipe' },
   );
+  child.stdin.write(
+    JSON.stringify({
+      baseDir: resolveMadgeBaseDir(scanTargets),
+      scanTargets,
+      tsconfigPath,
+    } satisfies MadgeWorkerInput),
+  );
+  child.stdin.end();
   let isTimedOut = false;
   const timer = setTimeout(() => {
     isTimedOut = true;
@@ -287,7 +314,8 @@ async function runMadge(
     );
   }
 
-  if (exitStatus !== 0 && exitStatus !== 1) {
+  // This worker returns cycles as JSON with exit 0; exit 1 signals an error.
+  if (exitStatus !== 0) {
     const trimmedStderr = stderr.trim();
     throw new Error(
       `${workspace}: ${trimmedStderr.length > 0 ? trimmedStderr : 'madge execution failed'}`,
@@ -296,15 +324,28 @@ async function runMadge(
 
   const rawOutput = stdout.trim();
   if (rawOutput.length === 0) {
-    return [];
+    throw new Error(`${workspace}: madge returned no JSON payload`);
   }
 
-  const parsed = JSON.parse(rawOutput) as unknown;
-  if (!Array.isArray(parsed)) {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawOutput);
+  } catch {
+    throw new Error(`${workspace}: madge returned invalid JSON`);
+  }
+  if (
+    !Array.isArray(parsed) ||
+    !parsed.every(
+      (entry): entry is string[] =>
+        Array.isArray(entry) &&
+        entry.length > 0 &&
+        entry.every((file) => typeof file === 'string'),
+    )
+  ) {
     throw new Error(`${workspace}: madge returned an unexpected JSON payload`);
   }
 
-  return parsed.filter((entry): entry is string[] => Array.isArray(entry));
+  return parsed;
 }
 
 /**
@@ -591,7 +632,9 @@ async function main(): Promise<void> {
   process.exit(newCycles.length > 0 ? 1 : 0);
 }
 
-void main().catch((error: unknown) => {
+void (
+  process.argv.includes('--madge-worker') ? runMadgeWorker() : main()
+).catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
   process.stderr.write(`Import cycle check failed: ${message}\n`);
   process.exit(1);

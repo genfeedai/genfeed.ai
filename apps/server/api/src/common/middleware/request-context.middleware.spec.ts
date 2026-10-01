@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const configState = vi.hoisted(() => ({
+  betterAuthEnabled: true,
   isSelfHosted: false,
+}));
+
+vi.mock('@genfeedai/auth-client/server', () => ({
+  isBetterAuthEnabled: () => configState.betterAuthEnabled,
 }));
 
 vi.mock('@genfeedai/config', async (importOriginal) => {
@@ -115,6 +120,7 @@ describe('RequestContextMiddleware', () => {
   let redisService: { getPublisher: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
+    configState.betterAuthEnabled = true;
     configState.isSelfHosted = false;
     redisService = { getPublisher: vi.fn() };
     middleware = new RequestContextMiddleware(
@@ -296,46 +302,116 @@ describe('RequestContextMiddleware', () => {
     expect(ctx.isSuperAdmin).toBe(false);
   });
 
-  it('hydrates self-hosted context with the default brand', async () => {
+  it.each(['Bearer token', 'Bearer gf_key', 'bEaReR', 'Bearer token extra'])(
+    'defers self-hosted context until %s is authenticated',
+    async (authorization) => {
+      configState.isSelfHosted = true;
+      const publisher = buildPublisher();
+      redisService.getPublisher.mockReturnValue(publisher);
+      const prisma = buildPrismaService();
+      middleware = new RequestContextMiddleware(
+        redisService as unknown as RedisService,
+        buildLogger(),
+        buildOrgSettingsService() as never,
+        buildSubscriptionsService() as never,
+        prisma as never,
+      );
+      const req = { headers: { authorization } } as never;
+      await middleware.hydrate(req);
+      expect((req as { context?: unknown }).context).toBeUndefined();
+      expect(publisher.get).not.toHaveBeenCalled();
+      expect(prisma.user.findFirst).not.toHaveBeenCalled();
+      expect(prisma.organization.findFirst).not.toHaveBeenCalled();
+      expect(prisma.brand.findFirst).not.toHaveBeenCalled();
+    },
+  );
+
+  it('hydrates the verified actor after bearer auth instead of the self-hosted default', async () => {
     configState.isSelfHosted = true;
     const publisher = buildPublisher();
     redisService.getPublisher.mockReturnValue(publisher);
     const prisma = buildPrismaService();
-
     middleware = new RequestContextMiddleware(
       redisService as unknown as RedisService,
       buildLogger(),
-      buildOrgSettingsService('free') as never,
-      buildSubscriptionsService('active') as never,
+      buildOrgSettingsService() as never,
+      buildSubscriptionsService() as never,
       prisma as never,
     );
-
-    const req = {} as never;
-    const next: NextFunction = vi.fn();
-
-    await middleware.use(req, {} as Response, next);
-
-    expect(prisma.brand.findFirst).toHaveBeenCalledWith({
-      where: {
-        isDefault: true,
-        isDeleted: false,
-        organizationId: 'org_default',
-      },
-    });
-    expect((req as { context: unknown }).context).toEqual(
+    const req = {
+      headers: { authorization: 'Bearer valid-token' },
+      user: undefined as ReturnType<typeof buildUser> | undefined,
+    };
+    await middleware.hydrate(req as never);
+    req.user = buildUser();
+    await middleware.hydrate(req as never);
+    const hydrated = (req as typeof req & { context: unknown }).context;
+    expect(hydrated).toEqual(
       expect.objectContaining({
-        brandId: 'brand_default',
-        isSuperAdmin: true,
-        organizationId: 'org_default',
-        subscriptionTier: 'free',
-        userId: 'user_default',
+        userId: 'user_1',
+        organizationId: 'org_1',
+        brandId: 'brand_1',
+        isSuperAdmin: false,
       }),
     );
-    expect(publisher.setex).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.any(Number),
-      expect.stringContaining('"brandId":"brand_default"'),
-    );
-    expect(next).toHaveBeenCalledOnce();
+    expect(publisher.get).toHaveBeenCalledTimes(1);
+    expect(publisher.get).toHaveBeenCalledWith('rc:user_1:org_1:brand_1');
+    expect(prisma.user.findFirst).not.toHaveBeenCalled();
+    expect(prisma.organization.findFirst).not.toHaveBeenCalled();
+    expect(prisma.brand.findFirst).not.toHaveBeenCalled();
+    await middleware.hydrate(req as never);
+    expect((req as typeof req & { context: unknown }).context).toBe(hydrated);
+    expect(publisher.get).toHaveBeenCalledTimes(1);
   });
+
+  it.each([
+    { authorization: undefined, enabled: true },
+    { authorization: 'Basic reverse-proxy', enabled: true },
+    { authorization: 'Bearer ignored-local-token', enabled: false },
+  ])(
+    'preserves self-hosted fallback with $authorization and auth enabled $enabled',
+    async ({ authorization, enabled }) => {
+      configState.isSelfHosted = true;
+      configState.betterAuthEnabled = enabled;
+      const publisher = buildPublisher();
+      redisService.getPublisher.mockReturnValue(publisher);
+      const prisma = buildPrismaService();
+
+      middleware = new RequestContextMiddleware(
+        redisService as unknown as RedisService,
+        buildLogger(),
+        buildOrgSettingsService('free') as never,
+        buildSubscriptionsService('active') as never,
+        prisma as never,
+      );
+
+      const req = { headers: { authorization } } as never;
+      const next: NextFunction = vi.fn();
+
+      await middleware.use(req, {} as Response, next);
+
+      expect(prisma.brand.findFirst).toHaveBeenCalledWith({
+        where: {
+          isDefault: true,
+          isDeleted: false,
+          organizationId: 'org_default',
+        },
+      });
+      expect((req as { context: unknown }).context).toEqual(
+        expect.objectContaining({
+          brandId: 'brand_default',
+          isSuperAdmin: true,
+          organizationId: 'org_default',
+          subscriptionTier: 'free',
+          userId: 'user_default',
+        }),
+      );
+      expect(publisher.setex).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(Number),
+        expect.stringContaining('"brandId":"brand_default"'),
+      );
+      expect(next).toHaveBeenCalledOnce();
+    },
+  );
 });

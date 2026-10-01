@@ -18,6 +18,7 @@ type PageContextContract = {
   /** Buttons matched by accessible name — survives icon-only compaction. */
   pageButtons?: string[];
   pageLabels?: string[];
+  breadcrumbLabels?: string[];
   sidebarLabels?: string[];
 };
 
@@ -26,7 +27,7 @@ const CONTRACTS: PageContextContract[] = [
     route: `${BRAND_BASE}/workspace`,
     currentApp: 'workspace',
     sectionLabel: 'Workspace',
-    pageLabels: ['Overview'],
+    breadcrumbLabels: ['Overview'],
   },
   {
     route: `${BRAND_BASE}/library/images`,
@@ -60,7 +61,7 @@ const CONTRACTS: PageContextContract[] = [
     route: `${BRAND_BASE}/publishing/campaigns`,
     currentApp: 'publishing',
     sectionLabel: 'Publishing',
-    pageLabels: ['Campaigns'],
+    breadcrumbLabels: ['Campaigns'],
   },
   {
     route: `${BRAND_BASE}/automation/agents`,
@@ -95,7 +96,9 @@ test.describe('Shell page context contract', () => {
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
       await expectNoErrorOverlay(authenticatedPage);
 
-      const sidebar = authenticatedPage.getByTestId('sidebar-shell').first();
+      const sidebar = authenticatedPage
+        .getByTestId('desktop-sidebar-rail')
+        .getByTestId('sidebar-shell');
       await expect(sidebar).toBeVisible();
       await expect(sidebar).toHaveAttribute(
         'data-shell-current-app',
@@ -119,13 +122,28 @@ test.describe('Shell page context contract', () => {
 
       for (const name of contract.pageButtons ?? []) {
         await expect(
-          authenticatedPage.getByRole('button', { exact: true, name }).first(),
+          authenticatedPage
+            .getByRole('region', { name: 'Primary workspace canvas' })
+            .getByRole('button', { exact: true, name })
+            .first(),
         ).toBeVisible();
       }
 
       for (const label of contract.pageLabels ?? []) {
         await expect(
-          authenticatedPage.getByText(label, { exact: true }).first(),
+          authenticatedPage
+            .getByRole('region', { name: 'Primary workspace canvas' })
+            .getByText(label, { exact: true })
+            .first(),
+        ).toBeVisible();
+      }
+      for (const label of contract.breadcrumbLabels ?? []) {
+        const breadcrumb = authenticatedPage.getByRole('navigation', {
+          name: 'Breadcrumb',
+        });
+        await expect(breadcrumb).toBeVisible();
+        await expect(
+          breadcrumb.getByText(label, { exact: true }),
         ).toBeVisible();
       }
     });
