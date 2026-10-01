@@ -82,7 +82,12 @@ function setup(dailyCreditBudget = 20) {
           )),
     );
   const prisma = {
-    $queryRaw: vi.fn(async () => []),
+    $queryRaw: vi.fn(async (query: unknown) =>
+      Array.isArray(query) &&
+      String(query[0]).includes('pg_try_advisory_xact_lock')
+        ? [{ acquired: true }]
+        : [],
+    ),
     $transaction: vi.fn(async (operation: (tx: unknown) => Promise<unknown>) =>
       operation(prisma),
     ),

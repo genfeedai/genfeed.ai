@@ -3,12 +3,22 @@ import { WorkflowExecutionsService } from '@api/collections/workflow-executions/
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
 import { BatchGenerationCreationService } from '@api/services/batch-generation/batch-generation-creation.service';
 import { BatchGenerationProcessingService } from '@api/services/batch-generation/batch-generation-processing.service';
-import { AgentPublishDecision } from '@genfeedai/contracts';
+import {
+  AgentPublishDecision,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
+import { PLATFORM_SYSTEM_WORKFLOW_QUEUE } from '@genfeedai/contracts/queue';
+import { CredentialPlatform, toPrismaJson } from '@genfeedai/prisma';
 import { PLATFORM_SCHEDULE_CATALOG } from '@workers/scheduling/platform-schedules.constants';
 import { PlatformSchedulesProcessor } from '@workers/scheduling/platform-schedules.processor';
 import { PlatformWorkflowSchedulesService } from '@workers/scheduling/platform-workflow-schedules.service';
 import type { Job } from 'bullmq';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  ProactiveAgentRuntimeFixture,
+  readRuntimeBrief,
+  runtimeRecord,
+} from './proactive-agent-runtime.fixture';
 
 type Row = Record<string, unknown>;
 
@@ -33,7 +43,12 @@ describe('proactive organization to strategy run and attributed draft integratio
       log: vi.fn(),
     };
     const prisma = {
-      $queryRaw: vi.fn().mockResolvedValue([]),
+      $queryRaw: vi.fn(async (query: unknown) =>
+        Array.isArray(query) &&
+        String(query[0]).includes('pg_try_advisory_xact_lock')
+          ? [{ acquired: true }]
+          : [],
+      ),
       $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
         fn(prisma),
       ),
@@ -172,7 +187,10 @@ describe('proactive organization to strategy run and attributed draft integratio
     const jobs: Row[] = [];
     const runner = {
       enqueueWorkflow: vi.fn(async (input) => {
-        if (input.idempotencyKey) {
+        if (
+          input.canonicalId !== 'agent.turn.execute' &&
+          input.idempotencyKey
+        ) {
           if (slots.has(input.idempotencyKey)) return { executionId: 'sweep' };
           slots.add(input.idempotencyKey);
           jobs.push(input);
@@ -384,4 +402,503 @@ describe('proactive organization to strategy run and attributed draft integratio
     await processor.process({ ...job, timestamp: Date.now() + 60_000 } as Job);
     expect(jobs).toHaveLength(1);
   });
+});
+
+describe('isolated PostgreSQL/Redis proactive runtime', () => {
+  let fixture: ProactiveAgentRuntimeFixture;
+  beforeEach(async () => {
+    fixture = new ProactiveAgentRuntimeFixture();
+    await fixture.initialize();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => {
+        throw new Error('External HTTP forbidden in isolated agent runtime');
+      }),
+    );
+  });
+  afterEach(async () => {
+    await fixture?.close();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('runs a native queued graph, requires approval, publishes, and learns its own measured hook in cycle two', async () => {
+    const agent = await fixture.createAgent();
+    const paused = await fixture.createAgent(20, false);
+    const controls = await fixture.seedLearningScopeControls(
+      agent.id,
+      paused.id,
+    );
+    fixture.runner.onApplicationBootstrap();
+    fixture.runner.onApplicationBootstrap();
+    fixture.startWorkers();
+    await fixture.schedules.sweep('proactive-agent-strategies', Date.now());
+    const sweep = await fixture.prisma.workflowExecution.findFirstOrThrow({
+      where: {
+        organizationId: fixture.organizationId,
+        isDeleted: false,
+        idempotencyKey: { startsWith: 'platform:' },
+      },
+    });
+    const sweepResult = await fixture.waitForExecution(sweep.id);
+    expect(
+      runtimeRecord(sweepResult).nodeResults,
+      JSON.stringify(fixture.graphRuns.mock.calls),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          nodeId: 'finalize',
+          output: expect.objectContaining({ enqueued: 1 }),
+        }),
+      ]),
+    );
+    const first = await fixture.prisma.workflowExecution.findFirstOrThrow({
+      where: {
+        organizationId: fixture.organizationId,
+        isDeleted: false,
+        idempotencyKey: { startsWith: 'proactive:' },
+      },
+    });
+    await fixture.waitForExecution(first.id);
+    const post = await fixture.prisma.post.findFirstOrThrow({
+      where: {
+        organizationId: fixture.organizationId,
+        isDeleted: false,
+        workflowExecutionId: first.id,
+      },
+    });
+    expect(post).toMatchObject({
+      agentStrategyId: agent.id,
+      platform: 'linkedin',
+      targetExecutionState: TargetExecutionState.DRAFT,
+      publishApprovalId: null,
+    });
+    expect(fixture.generated).toHaveBeenCalledTimes(1);
+    expect(fixture.published).not.toHaveBeenCalled();
+    if (!post.reviewBatchId || !post.reviewItemId)
+      throw new Error('Generated draft lost its review attribution');
+    await fixture.review.approveItems(
+      post.reviewBatchId,
+      [post.reviewItemId],
+      fixture.organizationId,
+      fixture.userId,
+    );
+    const approved = await fixture.prisma.post.findFirstOrThrow({
+      where: {
+        id: post.id,
+        organizationId: fixture.organizationId,
+        isDeleted: false,
+      },
+      include: { publishApproval: true },
+    });
+    expect(approved.targetExecutionState).toBe(TargetExecutionState.SCHEDULED);
+    const grant = approved.publishApproval;
+    if (!grant) throw new Error('Approval did not mint a version-bound grant');
+    expect(grant.artifactVersionPinId).toBeTruthy();
+    const afterApproval = await fixture.prisma.agentStrategy.findUniqueOrThrow({
+      where: { id: agent.id },
+    });
+    await fixture.review.approveItems(
+      post.reviewBatchId,
+      [post.reviewItemId],
+      fixture.organizationId,
+      fixture.userId,
+    );
+    expect(
+      (
+        await fixture.prisma.agentStrategy.findUniqueOrThrow({
+          where: { id: agent.id },
+        })
+      ).policies,
+    ).toEqual(afterApproval.policies);
+    const publishInput = {
+      approvalId: grant.id,
+      operationId: grant.operationId,
+      versionPinId: grant.artifactVersionPinId,
+      postId: post.id,
+      organizationId: fixture.organizationId,
+      userId: fixture.userId,
+      source: 'publish_now' as const,
+    };
+    await Promise.all([
+      fixture.publish(publishInput),
+      fixture.publish(publishInput),
+    ]);
+    expect(fixture.published).toHaveBeenCalledTimes(1);
+    await fixture.stopWorkers();
+    fixture.startWorkers();
+    await expect(fixture.publish(publishInput)).rejects.toThrow();
+    expect(fixture.published).toHaveBeenCalledTimes(1);
+    expect(
+      await fixture.prisma.post.findUnique({ where: { id: post.id } }),
+    ).toMatchObject({ targetExecutionState: TargetExecutionState.PUBLISHED });
+    await fixture.prisma.postAnalytics.create({
+      data: {
+        postId: post.id,
+        organizationId: fixture.organizationId,
+        userId: fixture.userId,
+        brandId: fixture.brandId,
+        platform: CredentialPlatform.LINKEDIN,
+        date: new Date(),
+        totalViews: 100,
+        clicks: 1,
+      },
+    });
+    await fixture.ingest();
+    await fixture.prisma.postAnalytics.updateMany({
+      where: {
+        postId: post.id,
+        organizationId: fixture.organizationId,
+        isDeleted: false,
+      },
+      data: { totalViews: 200, clicks: 2 },
+    });
+    await fixture.ingest();
+    expect(
+      await fixture.prisma.contentPerformance.count({
+        where: {
+          postId: post.id,
+          organizationId: fixture.organizationId,
+          isDeleted: false,
+        },
+      }),
+    ).toBe(1);
+    const snapshot = await fixture.performance.getPerformanceSnapshot(
+      agent.id,
+      fixture.organizationId,
+    );
+    const winningHook = post.description?.split('\n')[0];
+    expect(winningHook).not.toBe('craft');
+    expect(snapshot.topHooks).toEqual([winningHook]);
+    expect(snapshot.impressions).toBe(200);
+    expect(snapshot.clicks).toBe(2);
+    expect(snapshot.bestPlatformFormatPairs[0]?.platform).toBe('linkedin');
+    const current = await fixture.prisma.agentStrategy.findUniqueOrThrow({
+      where: { id: agent.id },
+    });
+    await fixture.prisma.agentStrategy.update({
+      where: {
+        id: agent.id,
+        organizationId: fixture.organizationId,
+        isDeleted: false,
+      },
+      data: {
+        config: toPrismaJson({
+          ...runtimeRecord(current.config),
+          nextRunAt: new Date(Date.now() - 1000).toISOString(),
+        }),
+      },
+    });
+    const dispatched = await fixture.dispatch(agent.id);
+    const secondId = String(dispatched.executionId);
+    expect(secondId).not.toBe(first.id);
+    await fixture.waitForExecution(secondId);
+    const second = await fixture.prisma.workflowExecution.findUniqueOrThrow({
+      where: { id: secondId },
+    });
+    const request = runtimeRecord(
+      runtimeRecord(second.result).inputValues,
+    ).request;
+    expect(
+      runtimeRecord(
+        readRuntimeBrief(String(runtimeRecord(request).content))
+          .weeklyPerformance,
+      ).topHooks,
+    ).toEqual([winningHook]);
+    expect(fixture.generated.mock.calls[1][0]).toMatchObject({
+      topic: winningHook,
+      platform: 'linkedin',
+    });
+    expect(
+      await fixture.prisma.agentThread.count({
+        where: {
+          agentStrategyId: agent.id,
+          organizationId: fixture.organizationId,
+          isDeleted: false,
+        },
+      }),
+    ).toBe(1);
+    expect(
+      await fixture.prisma.creditTransaction.count({
+        where: { organizationId: fixture.organizationId, isDeleted: false },
+      }),
+    ).toBe(2);
+    expect(
+      await fixture.prisma.agentStrategyReport.count({
+        where: {
+          strategyId: agent.id,
+          organizationId: fixture.organizationId,
+          isDeleted: false,
+        },
+      }),
+    ).toBe(2);
+    const settled = await fixture.prisma.agentStrategy.findUniqueOrThrow({
+      where: { id: agent.id },
+    });
+    expect(runtimeRecord(settled.config)).toMatchObject({
+      creditsUsedToday: 2,
+      totalRuns: 2,
+    });
+    expect(
+      await fixture.prisma.agentStrategy.findUnique({
+        where: { id: paused.id },
+      }),
+    ).toMatchObject({ isActive: false, config: paused.config });
+    expect(
+      await fixture.prisma.workflow.findUniqueOrThrow({
+        where: { id: controls.pausedWorkflow.id },
+      }),
+    ).toMatchObject({
+      status: 'draft',
+      isScheduleEnabled: false,
+      currentVersionId: controls.pausedWorkflow.currentVersionId,
+    });
+    expect(
+      await fixture.prisma.workflowExecution.count({
+        where: {
+          organizationId: controls.foreignAgent.organizationId,
+          isDeleted: false,
+        },
+      }),
+    ).toBe(0);
+    expect(
+      await fixture.prisma.agentStrategy.findUniqueOrThrow({
+        where: { id: controls.foreignAgent.id },
+      }),
+    ).toMatchObject({ config: controls.foreignAgent.config });
+  }, 60_000);
+
+  it('converges concurrent dispatch and recovers PENDING transport using the frozen request after restart', async () => {
+    const agent = await fixture.createAgent();
+    const slot = await fixture.makeDue(agent.id);
+    let markEntered!: () => void;
+    let releaseEnqueue!: () => void;
+    const entered = new Promise<void>((resolve) => {
+      markEntered = resolve;
+    });
+    const released = new Promise<void>((resolve) => {
+      releaseEnqueue = resolve;
+    });
+    const enqueue = fixture.runner.enqueueWorkflow.bind(fixture.runner);
+    const heldEnqueue = vi
+      .spyOn(fixture.runner, 'enqueueWorkflow')
+      .mockImplementationOnce(async (...args) => {
+        markEntered();
+        await released;
+        return enqueue(...args);
+      });
+    const firstDispatch = fixture.dispatch(agent.id);
+    const results: Record<string, unknown>[] = [];
+    try {
+      await Promise.race([
+        entered,
+        firstDispatch.then(() => {
+          throw new Error(
+            'Dispatch settled before acquiring the enqueue barrier',
+          );
+        }),
+      ]);
+      const competing = await fixture.dispatch(agent.id);
+      results.push(competing);
+      expect(competing).toEqual({ status: 'skipped' });
+    } finally {
+      releaseEnqueue();
+      try {
+        results.push(await firstDispatch);
+      } finally {
+        heldEnqueue.mockRestore();
+      }
+    }
+    const execution = await fixture.prisma.workflowExecution.findFirstOrThrow({
+      where: {
+        organizationId: fixture.organizationId,
+        isDeleted: false,
+        idempotencyKey: { startsWith: 'proactive:' },
+      },
+    });
+    expect(
+      results.filter((result) => result?.executionId === execution.id),
+    ).toHaveLength(1);
+    expect(
+      await fixture.prisma.workflowExecution.count({
+        where: {
+          organizationId: fixture.organizationId,
+          isDeleted: false,
+          idempotencyKey: execution.idempotencyKey,
+        },
+      }),
+    ).toBe(1);
+    const frozen = execution.result;
+    const queued = await fixture
+      .getQueue(PLATFORM_SYSTEM_WORKFLOW_QUEUE)
+      .getJob(`system-workflow-${execution.id}`);
+    if (!queued) throw new Error('Missing actual pending transport job');
+    await queued.remove();
+    await fixture.makeDue(agent.id, slot);
+    expect(
+      await fixture.dispatch(agent.id, fixture.restartDispatcher()),
+    ).toMatchObject({ executionId: execution.id });
+    expect(
+      await fixture.prisma.workflowExecution.findUnique({
+        where: { id: execution.id },
+      }),
+    ).toMatchObject({ result: frozen });
+    fixture.startWorkers();
+    await fixture.waitForExecution(execution.id);
+    expect(fixture.generated).toHaveBeenCalledTimes(1);
+    expect(
+      await fixture.prisma.creditTransaction.count({
+        where: { organizationId: fixture.organizationId, isDeleted: false },
+      }),
+    ).toBe(1);
+    await fixture.stopWorkers();
+    const completed = await fixture
+      .getQueue(PLATFORM_SYSTEM_WORKFLOW_QUEUE)
+      .getJob(`system-workflow-${execution.id}`);
+    await completed?.remove();
+    await fixture.makeDue(agent.id, slot);
+    expect(
+      await fixture.dispatch(agent.id, fixture.restartDispatcher()),
+    ).toMatchObject({ executionId: execution.id });
+    expect(
+      await fixture
+        .getQueue(PLATFORM_SYSTEM_WORKFLOW_QUEUE)
+        .getJob(`system-workflow-${execution.id}`),
+    ).toBeUndefined();
+    expect(fixture.generated).toHaveBeenCalledTimes(1);
+  }, 60_000);
+
+  it('accepts a lost enqueue response without counting a failure and never replays a failed slot', async () => {
+    const agent = await fixture.createAgent();
+    const slot = await fixture.makeDue(agent.id);
+    const enqueue = fixture.runner.enqueueWorkflow.bind(fixture.runner);
+    const lostResponse = vi
+      .spyOn(fixture.runner, 'enqueueWorkflow')
+      .mockImplementationOnce(async (...args) => {
+        await enqueue(...args);
+        throw new Error('Response lost after durable enqueue');
+      });
+    const result = await fixture.dispatch(agent.id);
+    expect(result.executionId).toBeTruthy();
+    expect(
+      runtimeRecord(
+        (
+          await fixture.prisma.agentStrategy.findUniqueOrThrow({
+            where: { id: agent.id },
+          })
+        ).config,
+      ).consecutiveFailures,
+    ).toBe(0);
+    lostResponse.mockRestore();
+    const executionId = String(result.executionId);
+    await fixture.executions.completeExecution(
+      executionId,
+      'Deterministic worker failure before inference',
+    );
+    const job = await fixture
+      .getQueue(PLATFORM_SYSTEM_WORKFLOW_QUEUE)
+      .getJob(`system-workflow-${executionId}`);
+    await job?.remove();
+    await fixture.makeDue(agent.id, slot);
+    expect(
+      await fixture.dispatch(agent.id, fixture.restartDispatcher()),
+    ).toMatchObject({ executionId });
+    expect(
+      await fixture
+        .getQueue(PLATFORM_SYSTEM_WORKFLOW_QUEUE)
+        .getJob(`system-workflow-${executionId}`),
+    ).toBeUndefined();
+    expect(fixture.generated).not.toHaveBeenCalled();
+    expect(fixture.published).not.toHaveBeenCalled();
+  });
+
+  it('refuses a zero budget and preserves archived strategy threads', async () => {
+    const zero = await fixture.createAgent(0);
+    expect(await fixture.dispatch(zero.id)).toMatchObject({
+      status: 'skipped',
+    });
+    const agent = await fixture.createAgent();
+    const first = await fixture.dispatch(agent.id);
+    await fixture.executions.completeExecution(
+      String(first.executionId),
+      'Fixture stops before inference',
+    );
+    await fixture.prisma.agentThread.updateMany({
+      where: {
+        agentStrategyId: agent.id,
+        organizationId: fixture.organizationId,
+        isDeleted: false,
+      },
+      data: { status: 'archived' },
+    });
+    await fixture.makeDue(agent.id);
+    expect(await fixture.dispatch(agent.id)).toMatchObject({
+      status: 'skipped',
+    });
+    expect(
+      await fixture.prisma.agentThread.count({
+        where: {
+          agentStrategyId: agent.id,
+          organizationId: fixture.organizationId,
+          isDeleted: false,
+        },
+      }),
+    ).toBe(1);
+    expect(fixture.generated).not.toHaveBeenCalled();
+    expect(fixture.published).not.toHaveBeenCalled();
+  });
+
+  it('serializes approval against expiry and never publishes an expired draft', async () => {
+    const agent = await fixture.createAgent();
+    const run = await fixture.dispatch(agent.id);
+    fixture.startWorkers();
+    await fixture.waitForExecution(String(run.executionId));
+    const post = await fixture.prisma.post.findFirstOrThrow({
+      where: {
+        organizationId: fixture.organizationId,
+        agentStrategyId: agent.id,
+        isDeleted: false,
+      },
+    });
+    if (!post.reviewBatchId || !post.reviewItemId)
+      throw new Error('Review attribution missing');
+    const outcomes = await Promise.allSettled([
+      fixture.review.expireAutonomousReviewBatch(
+        post.reviewBatchId,
+        fixture.organizationId,
+        new Date(Date.now() + 25 * 3_600_000),
+      ),
+      fixture.review.approveItems(
+        post.reviewBatchId,
+        [post.reviewItemId],
+        fixture.organizationId,
+        fixture.userId,
+      ),
+    ]);
+    const current = await fixture.prisma.post.findUniqueOrThrow({
+      where: { id: post.id },
+    });
+    expect([
+      TargetExecutionState.CANCELLED,
+      TargetExecutionState.SCHEDULED,
+    ]).toContain(current.targetExecutionState);
+    if (current.isDeleted) {
+      expect(current.targetExecutionState).toBe(TargetExecutionState.CANCELLED);
+      expect(current.publishApprovalId).toBeNull();
+      expect(outcomes[1].status).toBe('rejected');
+      await expect(
+        fixture.publish({
+          organizationId: fixture.organizationId,
+          postId: post.id,
+          userId: fixture.userId,
+          source: 'publish_now',
+        }),
+      ).rejects.toThrow();
+    } else {
+      expect(current.publishApprovalId).toBeTruthy();
+      expect(outcomes[1].status).toBe('fulfilled');
+      expect(outcomes[0]).toMatchObject({ status: 'fulfilled', value: [] });
+    }
+    expect(fixture.published).not.toHaveBeenCalled();
+  }, 60_000);
 });

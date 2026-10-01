@@ -36,6 +36,8 @@ describe('AgentAutopilotWorkflowService atomic actions', () => {
     const strategyRow = {
       brandId: null,
       config,
+      agentType: 'social',
+      platforms: ['linkedin'],
       goalId: null,
       id: 'strategy-1',
       isActive: true,
@@ -44,13 +46,18 @@ describe('AgentAutopilotWorkflowService atomic actions', () => {
       userId: 'user-1',
     };
     const strategySnapshot = {
-      config,
+      config: { ...config, agentType: 'social', platforms: ['linkedin'] },
       id: 'strategy-1',
       organizationId: 'org-1',
       userId: 'user-1',
     };
     const prisma = {
-      $queryRaw: vi.fn().mockResolvedValue([]),
+      $queryRaw: vi.fn(async (query: unknown) =>
+        Array.isArray(query) &&
+        String(query[0]).includes('pg_try_advisory_xact_lock')
+          ? [{ acquired: true }]
+          : [],
+      ),
       $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
         fn(prisma),
       ),
@@ -106,7 +113,12 @@ describe('AgentAutopilotWorkflowService atomic actions', () => {
 describe('AgentAutopilotWorkflowService.resetCreditWindow', () => {
   it('reports a strategy that vanished after discovery as skipped, within the output contract', async () => {
     const prisma = {
-      $queryRaw: vi.fn().mockResolvedValue([]),
+      $queryRaw: vi.fn(async (query: unknown) =>
+        Array.isArray(query) &&
+        String(query[0]).includes('pg_try_advisory_xact_lock')
+          ? [{ acquired: true }]
+          : [],
+      ),
       $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
         fn(prisma),
       ),
@@ -177,7 +189,12 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
       getOrganizationCreditsBalance: vi.fn().mockResolvedValue(1000),
     };
     const prisma = {
-      $queryRaw: vi.fn().mockResolvedValue([]),
+      $queryRaw: vi.fn(async (query: unknown) =>
+        Array.isArray(query) &&
+        String(query[0]).includes('pg_try_advisory_xact_lock')
+          ? [{ acquired: true }]
+          : [],
+      ),
       $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
         fn(prisma),
       ),
@@ -277,6 +294,28 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
     });
     expect(dispatch.metadata.performanceSnapshot).toEqual(snapshot);
   });
+  it.each([['linkedin'], []])(
+    'uses canonical column platforms %j over legacy config and brand defaults',
+    async (platforms) => {
+      const { service, prisma, runner, row } = setup({
+        dailyCreditBudget: 20,
+        platforms: ['instagram'],
+      });
+      const canonical = { ...row, platforms };
+      prisma.agentStrategy.findFirst.mockResolvedValue(canonical);
+      await service.dispatchProactiveStrategy({ item: canonical });
+      const input = runner.enqueueWorkflow.mock.calls[0][0].inputValues.request;
+      const content = String(input.content);
+      const brief = JSON.parse(
+        content
+          .split('<agent_brief_json>\n')[1]
+          .split('\n</agent_brief_json>')[0],
+      );
+      expect(brief.strategy.platforms).toEqual(platforms);
+      expect(brief.agentType).toBe(row.agentType);
+    },
+  );
+
   it('preserves explicitly empty platforms instead of silently choosing a network', async () => {
     const { service, runner, row } = setup({
       dailyCreditBudget: 20,
@@ -354,9 +393,9 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
   });
   it('does not double-record a failure after the current dispatch has persisted', async () => {
     const { service, runner, prisma, row } = setup({ dailyCreditBudget: 20 });
-    prisma.workflowExecution.findFirst.mockResolvedValue({
-      id: 'current-run',
-    } as never);
+    prisma.workflowExecution.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValue({ id: 'current-run' } as never);
     runner.enqueueWorkflow.mockRejectedValue(new Error('acknowledgement lost'));
     await service.dispatchProactiveStrategy({ item: row });
     const dispatchId =
@@ -364,13 +403,73 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
     expect(prisma.workflowExecution.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          result: { path: ['metadata', 'dispatchId'], equals: dispatchId },
+          idempotencyKey: dispatchId,
         }),
       }),
     );
     for (const [update] of prisma.agentStrategy.update.mock.calls) {
       expect(update.data.config).not.toHaveProperty('consecutiveFailures');
     }
+  });
+  it('skips lock contenders before inspecting or enqueueing paid work', async () => {
+    const { service, runner, prisma, row, performance } = setup({
+      dailyCreditBudget: 20,
+    });
+    prisma.$queryRaw.mockResolvedValueOnce([{ acquired: false }]);
+    expect(await service.dispatchProactiveStrategy({ item: row })).toEqual({
+      status: 'skipped',
+    });
+    expect(prisma.agentStrategy.findFirst).not.toHaveBeenCalled();
+    expect(performance.getPerformanceSnapshot).not.toHaveBeenCalled();
+    expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+  });
+  it.each(['RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED'])(
+    'never requeues a durable %s due slot',
+    async (status) => {
+      const { service, runner, prisma, row, performance } = setup({
+        dailyCreditBudget: 20,
+      });
+      prisma.workflowExecution.findFirst.mockResolvedValue({
+        id: 'durable-run',
+        status,
+      } as never);
+      expect(await service.dispatchProactiveStrategy({ item: row })).toEqual({
+        executionId: 'durable-run',
+        status: 'enqueued',
+      });
+      expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+      expect(performance.getPerformanceSnapshot).not.toHaveBeenCalled();
+    },
+  );
+  it('recovers pending transport with its frozen request and stable key', async () => {
+    const { service, runner, prisma, row, performance } = setup({
+      dailyCreditBudget: 20,
+      nextRunAt: '2020-01-01T00:00:00Z',
+    });
+    const inputValues = {
+      request: { content: 'Frozen brief', threadId: 'original-thread' },
+    };
+    const metadata = {
+      strategyId: row.id,
+      performanceSnapshot: { impressions: 4 },
+    };
+    prisma.workflowExecution.findFirst.mockResolvedValue({
+      id: 'durable-run',
+      status: 'PENDING',
+      userId: row.userId,
+      result: { inputValues, metadata },
+    } as never);
+    await service.dispatchProactiveStrategy({ item: row });
+    expect(runner.enqueueWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inputValues,
+        metadata,
+        idempotencyKey: expect.stringMatching(/^proactive:[a-f0-9]{64}$/),
+      }),
+      expect.anything(),
+    );
+    expect(performance.getPerformanceSnapshot).not.toHaveBeenCalled();
+    expect(prisma.agentThread.create).not.toHaveBeenCalled();
   });
   it('dispatches legacy missing weekly budget using daily times five', async () => {
     const { service, runner, row } = setup({ dailyCreditBudget: 10 });
