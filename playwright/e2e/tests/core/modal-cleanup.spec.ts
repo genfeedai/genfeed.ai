@@ -63,11 +63,14 @@ test.describe('Modal cleanup', () => {
       authenticatedPage.getByRole('navigation', { name: 'Breadcrumb' }),
     ).toContainText('Overview');
 
+    const sidebar = authenticatedPage
+      .getByTestId('desktop-sidebar-rail')
+      .getByTestId('sidebar-shell');
+    await expect(sidebar).toBeVisible();
+
     await setStaleModalGlobalState(authenticatedPage);
 
-    await authenticatedPage
-      .getByTestId('sidebar-shell')
-      .first()
+    await sidebar
       .getByRole('link', { name: 'Inbox' })
       .evaluate((link) => (link as HTMLAnchorElement).click());
 
