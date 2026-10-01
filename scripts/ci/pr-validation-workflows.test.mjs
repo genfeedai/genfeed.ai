@@ -842,3 +842,330 @@ test('dataset diagnostic freezes inspected control before the exact candidate ch
   assert.match(workflow, /if-no-files-found: error/);
   assert.doesNotMatch(workflow, /path:.*\*|path:.*raw\//);
 });
+
+test('final connected Full Suite is an explicit opt-in with all receipt outputs required', () => {
+  const suite = readWorkflow('full-suite.yml');
+  assert.equal((suite.match(/run_runtime_acceptance:/g) ?? []).length, 3);
+  assert.equal((suite.match(/default: false/g) ?? []).length, 2);
+  assert.match(
+    jobBlock(suite, 'e2e', 'full-suite.yml'),
+    /run_runtime_acceptance: \$\{\{ inputs\.run_runtime_acceptance == true \}\}/,
+  );
+  const visual = jobBlock(suite, 'visual-connected', 'full-suite.yml');
+  assert.match(visual, /if: inputs\.run_runtime_acceptance == true/);
+  assert.match(
+    visual,
+    /uses: \.\/\.github\/workflows\/visual-code-isolation\.yml/,
+  );
+  assert.match(visual, /run_connected: true/);
+  assert.doesNotMatch(visual, /secrets: inherit/);
+  const gate = jobBlock(suite, 'runtime-acceptance-gate', 'full-suite.yml');
+  assert.match(
+    gate,
+    /if: always\(\) && inputs\.run_runtime_acceptance == true/,
+  );
+  assert.match(gate, /needs: \[ci, build-verify, e2e, visual-connected\]/);
+  for (const output of [
+    'runtime_acceptance_result',
+    'isolation_acceptance_result',
+    'connected_acceptance_result',
+  ])
+    assert.ok(gate.includes(output));
+  for (const status of [
+    'CI_RESULT',
+    'BUILD_RESULT',
+    'E2E_RESULT',
+    'VISUAL_RESULT',
+  ])
+    assert.ok(gate.includes(`test "$${status}" = success`));
+  for (const receipt of [
+    'RUNTIME_RECEIPT',
+    'ISOLATION_RECEIPT',
+    'VISUAL_RECEIPT',
+  ])
+    assert.ok(gate.includes(`test "$${receipt}" = passed`));
+});
+
+test('serial runtime acceptance preserves ordinary E2E routing and requires receipt plus upload', () => {
+  const workflow = readWorkflow('e2e.yml');
+  const dispatch = workflow
+    .split('  workflow_dispatch:\n')[1]
+    .split('  workflow_call:\n')[0];
+  assert.doesNotMatch(dispatch, /run_runtime_acceptance/);
+  const runtime = jobBlock(workflow, 'runtime-acceptance', 'e2e.yml');
+  assert.match(runtime, /if: inputs\.run_runtime_acceptance == true/);
+  assert.match(runtime, /timeout-minutes: 60/);
+  assert.match(runtime, /TURBO_TOKEN: ''/);
+  assert.match(
+    runtime,
+    /RUNTIME_ACCEPTANCE_OWNER_CONTRACT: \$\{\{ vars\.RUNTIME_ACCEPTANCE_OWNER_CONTRACT \}\}/,
+  );
+  assert.match(runtime, /image: pgvector\/pgvector:pg17/);
+  assert.match(runtime, /image: redis:7/);
+  assert.ok(
+    runtime.indexOf('Anchor acceptance job deadline') <
+      runtime.indexOf('actions/checkout@'),
+  );
+  assert.ok(
+    runtime.indexOf('Validate final prerequisites') <
+      runtime.indexOf('Setup Bun environment'),
+  );
+  assert.match(
+    runtime,
+    /steps\.seal\.outputs\.result == 'passed' && steps\.upload\.outcome == 'success'/,
+  );
+  assert.match(runtime, /ref: \$\{\{ github\.sha \}\}/);
+  assert.match(runtime, /persist-credentials: false/);
+  assert.doesNotMatch(
+    runtime,
+    /secrets: inherit|continue-on-error|passWithNoTests/,
+  );
+  const gate = jobBlock(workflow, 'e2e-gate', 'e2e.yml');
+  assert.match(
+    gate,
+    /needs: \[e2e-route-coverage, e2e-frontend, e2e-api, runtime-acceptance\]/,
+  );
+  assert.ok(gate.includes('needs.runtime-acceptance.outputs.result'));
+  assert.match(gate, /needs\.runtime-acceptance\.result \}\}" = skipped/);
+});
+
+test('final visual proof uses separate bounded isolation and connected jobs with encrypted uploads', () => {
+  const workflow = readWorkflow('visual-code-isolation.yml');
+  const isolation = jobBlock(
+    workflow,
+    'isolation',
+    'visual-code-isolation.yml',
+  );
+  const connected = jobBlock(
+    workflow,
+    'connected',
+    'visual-code-isolation.yml',
+  );
+  assert.match(isolation, /timeout-minutes: 25/);
+  assert.match(connected, /timeout-minutes: 105/);
+  const diagnostic = readWorkflow('dataset-diagnostic.yml');
+  for (const field of ['USER', 'PASSWORD']) {
+    const expected = diagnostic.match(
+      new RegExp(`^ {6}RUNTIME_ACCEPTANCE_POSTGRES_${field}: (.+)$`, 'm'),
+    )?.[1];
+    assert.ok(expected);
+    for (const block of [isolation, connected]) {
+      const value = block.match(
+        new RegExp(`^ {6}RUNTIME_ACCEPTANCE_POSTGRES_${field}: (.+)$`, 'm'),
+      )?.[1];
+      assert.equal(value, expected);
+      if (field === 'USER') assert.equal(value, 'genfeed');
+    }
+  }
+
+  assert.match(connected, /if: inputs\.run_connected == true/);
+  assert.match(connected, /needs: \[isolation\]/);
+  assert.doesNotMatch(connected, /node --test|isolation-acceptance\.mjs/);
+  assert.match(
+    isolation,
+    /if: inputs\.run_connected != true[\s\S]*node --test scripts\/visual-code\/\*\.test\.mjs/,
+  );
+  assert.match(
+    isolation,
+    /if: always\(\) && inputs\.run_connected != true[\s\S]*path: visual-code-artifacts\//,
+  );
+  for (const [group, block, budget] of [
+    ['visual-isolation', isolation, 300],
+    ['visual-connected', connected, 720],
+  ]) {
+    assert.ok(
+      block.indexOf('Anchor acceptance job deadline') <
+        block.indexOf('actions/checkout@'),
+    );
+    assert.ok(
+      block.indexOf('Validate final prerequisites') <
+        block.indexOf('Install verified final gVisor runtime'),
+    );
+    assert.ok(block.includes(`--group ${group}`));
+    assert.ok(
+      block.includes(`${budget}000 + RUNTIME_ACCEPTANCE_JOB_STARTED_MS`),
+    );
+    assert.match(block, /sha512sum -c gvisor\.tar\.zstd\.sha512/);
+    assert.match(block, /genfeed-visual-code:4\.0\.530/);
+    assert.match(
+      block,
+      /steps\.seal\.outputs\.result == 'passed' && steps\.upload\.outcome == 'success'/,
+    );
+    assert.match(block, /public\/receipt\.json/);
+    assert.match(block, /public\/evidence\.encrypted\.json/);
+    assert.match(block, /if-no-files-found: error/);
+    assert.doesNotMatch(block, /secrets: inherit|continue-on-error/);
+  }
+  const budget = connected.slice(
+    connected.indexOf('- name: Require remaining shared setup budget'),
+    connected.indexOf('- name: Restore actual connected ffmpeg'),
+  );
+  assert.match(budget, /id: connected-setup-budget\n {8}shell: bash/);
+  assert.match(
+    budget,
+    /remaining_ms=\$\(\(RUNTIME_ACCEPTANCE_JOB_STARTED_MS \+ 720000 - \$\(date \+%s%3N\)\)\)/,
+  );
+  assert.match(budget, /remaining_minutes=\$\(\(remaining_ms \/ 60000\)\)/);
+  assert.match(budget, /test "\$remaining_ms" -ge 60000/);
+  assert.match(budget, /test "\$remaining_minutes" -ge 1/);
+  assert.match(
+    budget,
+    /echo "minutes=\$remaining_minutes" >> "\$GITHUB_OUTPUT"/,
+  );
+  assert.match(
+    budget,
+    /timeout-minutes: \$\{\{ fromJSON\(steps\.connected-setup-budget\.outputs\.minutes\) \}\}\n {8}uses: \.\/\.github\/actions\/setup-bun-env/,
+  );
+  assert.doesNotMatch(
+    budget,
+    /timeout-minutes: 12|ceil|max\(1|remaining_ms \+|RUNTIME_ACCEPTANCE_JOB_STARTED_MS=/,
+  );
+  const afterSetup = connected.slice(
+    connected.indexOf('- name: Restore actual connected ffmpeg'),
+    connected.indexOf('- name: Run visual-connected acceptance'),
+  );
+  assert.match(
+    afterSetup,
+    /test "\$\(\(720000 \+ RUNTIME_ACCEPTANCE_JOB_STARTED_MS - \$\(date \+%s%3N\)\)\)" -gt 0/,
+  );
+  assert.match(connected, /FFMPEG_BIN=\/usr\/bin\/ffmpeg/);
+  assert.match(workflow, /value: \$\{\{ jobs\.isolation\.outputs\.result \}\}/);
+  assert.match(workflow, /value: \$\{\{ jobs\.connected\.outputs\.result \}\}/);
+});
+
+test('dedicated production agent and BRAND jobs preserve full-tier selection and immutable receipt gates', () => {
+  const workflow = readWorkflow('e2e.yml'),
+    suite = readWorkflow('full-suite.yml');
+  const full = jobBlock(workflow, 'e2e-api-full', 'e2e.yml');
+  assert.match(
+    full,
+    /if: \(github.event_name == 'schedule' && github.workflow == 'E2E Tests'\) \|\| inputs\.run_api_full == true/,
+  );
+  assert.doesNotMatch(full, /if: .*run_runtime_acceptance/);
+  const delegated = [
+    'test/integration/proactive-agent-production-turn.integration.spec.ts',
+    'test/integration/branded-generation/branded-generation-receipts.integration.spec.ts',
+  ];
+  assert.equal((full.match(/--exclude /g) ?? []).length, 2);
+  for (const file of delegated) assert.ok(full.includes(`--exclude ${file}`));
+  assert.ok(
+    full.includes(
+      'env -u PROACTIVE_AGENT_PRODUCTION_TURN_EXCLUSIVE_DB -u BRANDED_GENERATION_TEST_DATABASE_URL',
+    ),
+  );
+  assert.ok(full.includes('verifySharedApiFullPartition(process.cwd())'));
+  assert.ok(
+    full.indexOf('Check exact shared full partition') >
+      full.indexOf('Run API E2E full tier'),
+  );
+  assert.match(
+    full,
+    /partition: \$\{\{ steps\.partition\.outputs\.partition \}\}/,
+  );
+  const diagnostic = readWorkflow('dataset-diagnostic.yml');
+  for (const [job, group, minutes, redis] of [
+    ['agent-production-acceptance', 'agent-production', 20, true],
+    ['brand-acceptance', 'brand-acceptance', 30, false],
+  ]) {
+    assert.equal(workflow.split(`  ${job}:\n`).length, 2);
+    const block = jobBlock(workflow, job, 'e2e.yml');
+    assert.match(
+      block,
+      /if: .*inputs\.run_api_full == true \|\| inputs\.run_runtime_acceptance == true/,
+    );
+    assert.ok(block.includes(`timeout-minutes: ${minutes}`));
+    assert.ok(block.includes(`--group ${group}`));
+    assert.ok(
+      block.indexOf('Anchor acceptance job deadline') <
+        block.indexOf('actions/checkout@'),
+    );
+    assert.ok(
+      block.indexOf('Setup preflight Node.js 24.x') <
+        block.indexOf('Validate final prerequisites'),
+    );
+    assert.ok(
+      block.indexOf('Validate final prerequisites') <
+        block.indexOf('Setup Bun environment'),
+    );
+    assert.match(block, /image: pgvector\/pgvector:pg17/);
+    assert.equal(block.includes('image: redis:7'), redis);
+    assert.equal(block.includes('RUNTIME_ACCEPTANCE_REDIS_ID:'), redis);
+    const budget = redis ? 'agent-setup-budget' : 'brand-setup-budget';
+    assert.ok(
+      block.includes(
+        `timeout-minutes: \${{ fromJSON(steps.${budget}.outputs.minutes) }}`,
+      ),
+    );
+    assert.ok(
+      block.includes(
+        'RUNTIME_ACCEPTANCE_JOB_STARTED_MS + 300000 - $(date +%s%3N)',
+      ),
+    );
+    assert.match(block, /test "\$remaining_ms" -ge 60000/);
+    assert.match(
+      block,
+      /test "\$\(\(300000 \+ RUNTIME_ACCEPTANCE_JOB_STARTED_MS - \$\(date \+%s%3N\)\)\)" -gt 0/,
+    );
+    for (const field of ['USER', 'PASSWORD']) {
+      const expected = diagnostic.match(
+        new RegExp(`^ {6}RUNTIME_ACCEPTANCE_POSTGRES_${field}: (.+)$`, 'm'),
+      )?.[1];
+      const value = block.match(
+        new RegExp(`^ {6}RUNTIME_ACCEPTANCE_POSTGRES_${field}: (.+)$`, 'm'),
+      )?.[1];
+      const serviceValue = block.match(
+        new RegExp(`^ {10}POSTGRES_${field}: (.+)$`, 'm'),
+      )?.[1];
+      assert.ok(value);
+      assert.equal(value, expected);
+      assert.equal(value, serviceValue);
+      if (field === 'USER') assert.equal(value, 'genfeed');
+    }
+    assert.match(block, /TURBO_TOKEN: ''/);
+    assert.match(block, /persist-credentials: false/);
+    assert.match(
+      block,
+      /steps\.seal\.outputs\.result == 'passed' && steps\.upload\.outcome == 'success'/,
+    );
+    assert.match(block, /public\/receipt\.json/);
+    assert.match(block, /public\/evidence\.encrypted\.json/);
+    assert.match(block, /if-no-files-found: error/);
+    assert.doesNotMatch(
+      block,
+      /continue-on-error|secrets: inherit|PROACTIVE_AGENT_PRODUCTION_TURN_EXCLUSIVE_DB:|BRANDED_GENERATION_TEST_DATABASE_URL:/,
+    );
+  }
+  const gate = jobBlock(workflow, 'e2e-api-full-gate', 'e2e.yml');
+  assert.match(gate, /if: always\(\) && .*inputs\.run_api_full == true/);
+  assert.doesNotMatch(gate, /if: .*run_runtime_acceptance/);
+  assert.match(
+    gate,
+    /needs: \[e2e-api-full, agent-production-acceptance, brand-acceptance\]/,
+  );
+  for (const field of ['FULL_RESULT', 'AGENT_RESULT', 'BRAND_RESULT'])
+    assert.ok(gate.includes(`test "$${field}" = success`));
+  for (const field of ['PARTITION', 'AGENT_RECEIPT', 'BRAND_RECEIPT'])
+    assert.ok(gate.includes(`test "$${field}" = passed`));
+  for (const output of ['agent_production_result', 'brand_acceptance_result']) {
+    assert.ok(workflow.includes(output));
+    assert.ok(suite.includes(`needs.e2e.outputs.${output}`));
+  }
+  const final = jobBlock(suite, 'runtime-acceptance-gate', 'full-suite.yml');
+  for (const field of ['AGENT_RECEIPT', 'BRAND_RECEIPT'])
+    assert.ok(final.includes(`test "$${field}" = passed`));
+  for (const job of ['nightly-failure-report', 'nightly-recovery-report']) {
+    const block = jobBlock(workflow, job, 'e2e.yml');
+    for (const dependency of [
+      'agent-production-acceptance',
+      'brand-acceptance',
+      'e2e-api-full-gate',
+    ])
+      assert.ok(block.includes(dependency));
+  }
+  for (const [display, job] of [
+    ['Proactive Production Turn Acceptance', 'agent-production-acceptance'],
+    ['BRAND Receipt and Relocation Acceptance', 'brand-acceptance'],
+    ['API E2E Full Gate', 'e2e-api-full'],
+  ])
+    assert.ok(workflow.includes(`if (name === '${display}') return '${job}';`));
+});

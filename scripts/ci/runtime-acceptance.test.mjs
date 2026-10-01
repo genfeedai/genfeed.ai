@@ -7,6 +7,7 @@ import {
   generateKeyPairSync,
   privateDecrypt,
   randomBytes,
+  randomUUID,
 } from 'node:crypto';
 import {
   chmod,
@@ -16,6 +17,7 @@ import {
   readdir,
   readFile,
   realpath,
+  rename,
   rm,
   symlink,
   writeFile,
@@ -25,29 +27,67 @@ import path from 'node:path';
 import test from 'node:test';
 
 import {
+  AGENT_PRODUCTION_FILES,
+  AGENT_PRODUCTION_TITLES,
+  BASELINE_SOURCE_CONTRACT,
   BRAND_PATH,
+  BRAND_SOURCE_CONTRACT,
+  cleanupFinalCrunResources,
+  cleanupFinalOwnedDatabase,
+  collectConnectedEvidence,
+  collectIsolationEvidence,
+  createFinalOwnedDatabase,
   createState,
+  DEDICATED_BUDGETS,
+  DELEGATED_API_FILES,
   databaseUrl,
+  dedicatedChildEnvironment,
   ENVELOPE_LIMIT,
   encryptEvidence,
+  hasFinalCrunTerminationProof,
   loadState,
   parseArguments,
   parseDatasetRecords,
+  parseProtocolTotals,
+  performDedicatedCleanup,
+  persistVisualJournal,
   postgresClientInvocation,
   RAW_LIMIT,
   readPostgresCredentials,
+  removeValidatedVisualRenderers,
+  rendererContainerNames,
   runBounded,
+  runFinalCrunBounded,
   STORAGE_PATHS,
   safeFile,
   sealState,
+  startDedicatedControlProcess,
+  startRegisteredDedicatedProcess,
+  startVisualProcess,
+  stopVisualGroups,
+  superviseDedicatedAcceptance,
+  superviseVisualCase,
+  superviseVisualCases,
+  VISUAL_CASES,
+  VISUAL_LIBRARY_LIMITS,
+  VISUAL_RENDERLESS_TITLES,
+  validateBrandOwnerContract,
   validateCrunManifest,
   validateOutcome,
   validateOwnerContract,
   validatePublicKey,
   validateReport,
   validateSha,
+  validateSharedApiFullPartition,
   validateTiming,
   validateUrl,
+  validateVisualScenarioEvidence,
+  validateVisualSelection,
+  verifyBaselineSources,
+  verifyDedicatedSources,
+  verifyFrozenSources,
+  verifyVisualScenarioSources,
+  visualSelection,
   workBudget,
 } from './runtime-acceptance.mjs';
 
@@ -931,7 +971,13 @@ async function snapshotState(root) {
   await visit(root);
   return files;
 }
-for (const group of ['final', 'visual-isolation', 'visual-connected'])
+for (const group of [
+  'final',
+  'visual-isolation',
+  'visual-connected',
+  'agent-production',
+  'brand-acceptance',
+])
   test(`actual CLI rejects unqualified ${group} preflight and direct command before side effects`, async (t) => {
     const { options, env } = await preflightFixture(t);
     const output = path.join(options.repo, 'cli.output');
@@ -950,7 +996,13 @@ for (const group of ['final', 'visual-isolation', 'visual-connected'])
     await assert.rejects(lstat(output));
     await assert.rejects(lstat(marker));
   });
-for (const group of ['final', 'visual-isolation', 'visual-connected'])
+for (const group of [
+  'final',
+  'visual-isolation',
+  'visual-connected',
+  'agent-production',
+  'brand-acceptance',
+])
   for (const phase of ['prepared', 'finished', 'sealed'])
     test(`actual CLI rejects forged ${group} ${phase} identity without mutation`, async (t) => {
       const { value, options, env } = await stateFixture(t);
@@ -1190,4 +1242,2462 @@ test('actual dataset execution rejects missing credentials before prepared ident
   assert.equal(result.status, 1);
   assert.match(result.stderr, /POSTGRES_CREDENTIALS_REQUIRED/);
   assert.deepEqual(await snapshotState(options.state), before);
+});
+async function isolationEvidenceFixture(t, status) {
+  const { value, env } = await stateFixture(t);
+  Object.assign(value, {
+    group: 'visual-isolation',
+    ...validateTiming('visual-isolation', Date.now()),
+    phase: 'finished',
+  });
+  const directory = path.join(value.state, 'raw/isolation/nested');
+  await mkdir(directory, { recursive: true, mode: 0o700 });
+  const expected = {
+    'raw/isolation/nested/render.mp4': Buffer.from('synthetic MP4 bytes'),
+    'raw/isolation/nested/still.png': Buffer.from('synthetic still bytes'),
+    'raw/isolation/evidence.json': Buffer.from('{"proof":"synthetic receipt"}'),
+  };
+  for (const [relative, bytes] of Object.entries(expected))
+    await writeFile(path.join(value.state, relative), bytes, { mode: 0o644 });
+  const outcome = {
+    version: 1,
+    candidateSHA: value.candidateSHA,
+    controlSHA: value.controlSHA,
+    group: value.group,
+    fingerprint: value.fingerprint,
+    status,
+    completed: [{ stage: 'visual-protocol' }, { stage: 'visual-isolation' }],
+    failures:
+      status === 'failed'
+        ? [{ stage: 'visual-isolation', code: 'CHILD_FAILED' }]
+        : [],
+    cleanup: { passed: true, operations: [] },
+    commands: [{ elapsedMs: 1 }],
+  };
+  await writeFile(
+    path.join(value.state, 'outcome.json'),
+    JSON.stringify(outcome),
+    { mode: 0o600 },
+  );
+  if (status === 'passed')
+    await writeFile(
+      path.join(value.state, 'receipt.json'),
+      JSON.stringify(outcome),
+      { mode: 0o600 },
+    );
+  return { value, env, expected };
+}
+
+for (const status of ['passed', 'failed'])
+  test(`actual isolation collector retains ${status} media in encrypted evidence`, async (t) => {
+    const { value, env, expected } = await isolationEvidenceFixture(t, status);
+    assert.deepEqual(value.evidence, []);
+    assert.equal(await collectIsolationEvidence(value), 3);
+    assert.equal(await collectIsolationEvidence(value), 3);
+    assert.equal(value.evidence.length, 3);
+    const receipt = await sealState(value, env);
+    assert.equal(receipt.status, status);
+    const payload = decrypt(
+      JSON.parse(
+        await readFile(
+          path.join(value.state, 'public/evidence.encrypted.json'),
+        ),
+      ),
+    );
+    assert.equal(payload.outcome.status, status);
+    if (status === 'failed') {
+      assert.equal(payload.receipt, undefined);
+      assert.equal(payload.outcome.failures[0].code, 'CHILD_FAILED');
+    }
+    for (const [relative, bytes] of Object.entries(expected))
+      assert.deepEqual(
+        Buffer.from(
+          payload.files.find((file) => file.path === relative).bytes,
+          'base64',
+        ),
+        bytes,
+      );
+  });
+
+for (const kind of ['file', 'directory'])
+  test(`isolation collector refuses symlink ${kind} without reading its target`, async (t) => {
+    const { value } = await isolationEvidenceFixture(t, 'failed');
+    const target =
+      kind === 'file'
+        ? path.join(value.state, 'outcome.json')
+        : path.join(value.state, 'public-target');
+    if (kind === 'directory') await mkdir(target, { mode: 0o700 });
+    const relative = `raw/isolation/unsafe-${kind}`;
+    await symlink(target, path.join(value.state, relative));
+    await assert.rejects(collectIsolationEvidence(value));
+    assert.ok(!value.evidence.includes(relative));
+  });
+
+test('fixed visual selection requires each exact real title and pending exclusions', () => {
+  assert.equal(VISUAL_CASES.length, 5);
+  assert.equal(VISUAL_RENDERLESS_TITLES.length, 6);
+  for (const index of [0, 1, 2, 3, 4, 5]) {
+    const selection = visualSelection(index);
+    const titles = [...selection.titles, ...selection.skipped];
+    assert.equal(titles.length, 11);
+    assert.equal(new Set(titles).size, 11);
+    const assertions = titles.map((title) =>
+      assertion(title, selection.titles.includes(title) ? 'passed' : 'pending'),
+    );
+    const fixture = report(assertions, `/fixture/${selection.file}`);
+    assert.equal(
+      validateVisualSelection(fixture, index, child)[0].passed,
+      index === 0 ? 6 : 1,
+    );
+    for (const title of selection.titles)
+      assert.ok(new RegExp(selection.pattern).test(title));
+    for (const title of selection.skipped)
+      assert.ok(!new RegExp(selection.pattern).test(title));
+    for (const status of ['pending', 'skipped', 'failed', 'todo']) {
+      const changed = structuredClone(fixture);
+      changed.testResults[0].assertionResults[0].status = status;
+      assert.throws(() => validateVisualSelection(changed, index, child));
+    }
+    const wrong = structuredClone(fixture);
+    wrong.testResults[0].assertionResults.at(-1).status = 'passed';
+    assert.throws(() => validateVisualSelection(wrong, index, child));
+    const skipped = structuredClone(fixture);
+    skipped.testResults[0].assertionResults.at(-1).status = 'skipped';
+    assert.throws(() => validateVisualSelection(skipped, index, child));
+  }
+});
+const tapSummary = (values = {}) =>
+  Object.entries({
+    tests: 3,
+    pass: 3,
+    fail: 0,
+    cancelled: 0,
+    skipped: 0,
+    todo: 0,
+    ...values,
+  })
+    .map(([key, value]) => `# ${key} ${value}`)
+    .join('\n');
+test('actual TAP totals require complete unique nonzero unskipped original success', () => {
+  assert.deepEqual(parseProtocolTotals(tapSummary(), child), {
+    tests: 3,
+    pass: 3,
+    fail: 0,
+    cancelled: 0,
+    skipped: 0,
+    todo: 0,
+  });
+  for (const output of [
+    tapSummary({ tests: 0, pass: 0 }),
+    tapSummary({ tests: 3, pass: 0, skipped: 3 }),
+    tapSummary({ todo: 1 }),
+    tapSummary({ cancelled: 1 }),
+    tapSummary({ fail: 1 }),
+    tapSummary({ tests: 4 }),
+    tapSummary({ tests: 'NaN' }),
+    tapSummary({ tests: '9007199254740992' }),
+    tapSummary().replace('# todo 0', ''),
+    `${tapSummary()}\n# tests 3`,
+    tapSummary().replace('# pass 3', '# pass -1'),
+  ])
+    assert.throws(() => parseProtocolTotals(output, child));
+  for (const failure of [
+    { exitCode: 1 },
+    { signal: 'SIGTERM' },
+    { timedOut: true },
+    { outputLimit: true },
+    { streamError: true },
+  ])
+    assert.throws(() =>
+      parseProtocolTotals(tapSummary(), { ...child, ...failure }),
+    );
+});
+test('renderer deletion names require exact private manifest hash ownership', () => {
+  const id = randomBytes(20).toString('hex');
+  const name = `visual-code-${createHash('sha256').update(id).digest('hex').slice(0, 40)}`;
+  assert.deepEqual(
+    rendererContainerNames([{ filename: `${name}.json`, receipt: { id } }]),
+    [name],
+  );
+  for (const entries of [
+    [{ filename: 'visual-code-other.json', receipt: { id } }],
+    [{ filename: `${name}.json`, receipt: { id: '' } }],
+    [
+      { filename: `${name}.json`, receipt: { id } },
+      { filename: `${name}.json`, receipt: { id } },
+    ],
+  ])
+    assert.throws(() => rendererContainerNames(entries));
+});
+async function supervisorFixture(
+  t,
+  { marker = true, failCleanup = false, grandchild = false } = {},
+) {
+  const root = await mkdtemp(path.join(tmpdir(), 'visual-supervisor-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const calls = [];
+  let handle;
+  let ledgerSaved;
+  const adapters = {
+    cancelled: () => false,
+    persist: async (ledger) => {
+      ledgerSaved = structuredClone(ledger);
+      await writeFile(path.join(root, 'ledger.json'), JSON.stringify(ledger), {
+        mode: 0o600,
+      });
+    },
+    allocate: async (ledger) => {
+      ledger.resources.redis = { id: randomBytes(32).toString('hex') };
+      ledger.resources.database = { name: `owned_${ledger.index}_test` };
+    },
+    startChild: async () => {
+      const code = grandchild
+        ? `const {spawn}=require('node:child_process');const c=spawn(process.execPath,['-e','setInterval(()=>{},100)'],{stdio:'ignore'});process.on('SIGTERM',()=>c.kill('SIGKILL'));c.on('exit',()=>{});process.stdout.write('ready\\n');setInterval(()=>{},100)`
+        : 'setInterval(()=>{},100)';
+      handle = await startVisualProcess({
+        executable: process.execPath,
+        args: ['-e', code],
+        cwd: root,
+        env: process.env,
+        stdoutPath: path.join(root, 'stdout'),
+        stderrPath: path.join(root, 'stderr'),
+      });
+      return handle;
+    },
+    marker: async () => {
+      if (!marker) return null;
+      if (
+        grandchild &&
+        !(await readFile(path.join(root, 'stdout'), 'utf8')).includes('ready')
+      )
+        return null;
+      return { outcome: 'failed', label: 'before-cleanup' };
+    },
+    stopGroups: async (_ledger, limits) => {
+      calls.push('process-groups');
+      await stopVisualGroups([handle?.pid], limits);
+    },
+    removeRenderers: async () => {
+      calls.push('renderer-containers');
+      if (failCleanup) throw new Error('synthetic refused ownership');
+    },
+    removeRedis: async (ledger) => {
+      calls.push(`redis:${ledger.resources.redis.id}`);
+    },
+    removeDatabase: async (ledger) => {
+      calls.push(`database:${ledger.resources.database.name}`);
+    },
+    verifyListeners: async () => {
+      calls.push('listeners');
+    },
+    validate: async () => {
+      throw new Error('original failed assertion');
+    },
+  };
+  t.after(async () => {
+    if (handle)
+      await stopVisualGroups([handle.pid], {
+        term: 100,
+        kill: 1000,
+        deadline: Date.now() + 2000,
+      });
+  });
+  const limits = {
+    work: 1000,
+    cleanup: 3000,
+    cooperative: 100,
+    term: 200,
+    kill: 1000,
+    resources: 1000,
+    final: 200,
+    poll: 20,
+  };
+  return { adapters, limits, calls, root, saved: () => ledgerSaved };
+}
+test('actual visual supervisor terminates child and grandchild after early cleanup marker', async (t) => {
+  const fixture = await supervisorFixture(t, { grandchild: true });
+  const ledger = await superviseVisualCase({
+    caseInfo: VISUAL_CASES[0],
+    adapters: fixture.adapters,
+    limits: fixture.limits,
+  });
+  assert.equal(ledger.status, 'failed');
+  assert.equal(ledger.cleanupConfirmed, true);
+  assert.ok(ledger.child.signal);
+  assert.ok(ledger.failures.some((failure) => failure.stage === 'assertion'));
+  assert.equal(fixture.saved().status, 'failed');
+  assert.equal(fixture.calls.length, 5);
+});
+test('actual visual supervisor enters owned cleanup at work timeout without queue-prefix evidence', async (t) => {
+  const fixture = await supervisorFixture(t, { marker: false });
+  const ledger = await superviseVisualCase({
+    caseInfo: VISUAL_CASES[1],
+    adapters: fixture.adapters,
+    limits: fixture.limits,
+  });
+  assert.equal(ledger.status, 'failed');
+  assert.equal(ledger.cleanupConfirmed, true);
+  assert.ok(
+    ledger.failures.some((failure) => failure.code === 'VISUAL_WORK_TIMEOUT'),
+  );
+  assert.ok(fixture.calls.includes(`redis:${ledger.resources.redis.id}`));
+  assert.equal(ledger.receipt, null);
+});
+test('cleanup refusal attempts later exact resources and prevents next real case', async (t) => {
+  const fixture = await supervisorFixture(t, { failCleanup: true });
+  let starts = 0;
+  await assert.rejects(
+    superviseVisualCases({
+      adaptersFor: () => {
+        starts++;
+        return fixture.adapters;
+      },
+      limits: fixture.limits,
+    }),
+  );
+  assert.equal(starts, 1);
+  assert.equal(fixture.saved().status, 'failed');
+  assert.equal(fixture.saved().cleanupConfirmed, false);
+  assert.ok(fixture.calls.some((value) => value.startsWith('redis:')));
+  assert.ok(fixture.calls.some((value) => value.startsWith('database:')));
+  assert.ok(fixture.calls.includes('listeners'));
+});
+
+for (const status of ['passed', 'failed'])
+  test(`actual connected collector seals ${status} partial media and ownership ledger`, async (t) => {
+    const { value, env } = await stateFixture(t);
+    Object.assign(value, {
+      group: 'visual-connected',
+      ...validateTiming('visual-connected', Date.now()),
+      phase: 'finished',
+    });
+    const expected = {
+      'raw/visual/artifacts/case-01/scenario/partial.mp4': Buffer.from(
+        'partial render media',
+      ),
+      'raw/visual/renderers/case-01/visual-code-owned.result': Buffer.from(
+        'renderer result bytes',
+      ),
+      'raw/visual/supervisor/case-01.json': Buffer.from(
+        JSON.stringify({
+          status,
+          resources: { redis: { id: 'a'.repeat(64) } },
+          cleanupConfirmed: status === 'passed',
+        }),
+      ),
+    };
+    for (const [relative, bytes] of Object.entries(expected)) {
+      await mkdir(path.dirname(path.join(value.state, relative)), {
+        recursive: true,
+        mode: 0o700,
+      });
+      await writeFile(path.join(value.state, relative), bytes, { mode: 0o644 });
+    }
+    const outcome = {
+      version: 1,
+      candidateSHA: value.candidateSHA,
+      controlSHA: value.controlSHA,
+      group: value.group,
+      fingerprint: value.fingerprint,
+      status,
+      completed: [
+        'visual-preparation',
+        'visual-renderless',
+        ...[1, 2, 3, 4, 5].map((index) => `visual-case-${index}`),
+        'visual-library',
+      ].map((stage) => ({ stage })),
+      cleanup: { passed: status === 'passed' },
+      failures: status === 'passed' ? [] : [{ code: 'VISUAL_WORK_TIMEOUT' }],
+    };
+    await writeFile(
+      path.join(value.state, 'outcome.json'),
+      JSON.stringify(outcome),
+      { mode: 0o600 },
+    );
+    if (status === 'passed')
+      await writeFile(
+        path.join(value.state, 'receipt.json'),
+        JSON.stringify(outcome),
+        { mode: 0o600 },
+      );
+    assert.equal(await collectConnectedEvidence(value), 3);
+    assert.equal(await collectConnectedEvidence(value), 3);
+    assert.equal(value.evidence.length, 3);
+    assert.equal((await sealState(value, env)).status, status);
+    const payload = decrypt(
+      JSON.parse(
+        await readFile(
+          path.join(value.state, 'public/evidence.encrypted.json'),
+        ),
+      ),
+    );
+    for (const [relative, bytes] of Object.entries(expected))
+      assert.deepEqual(
+        Buffer.from(
+          payload.files.find((file) => file.path === relative).bytes,
+          'base64',
+        ),
+        bytes,
+      );
+    assert.equal(payload.outcome.status, status);
+    if (status === 'failed') assert.equal(payload.receipt, undefined);
+  });
+test('actual connected collector rejects symlink evidence without following target', async (t) => {
+  const { value } = await stateFixture(t);
+  value.group = 'visual-connected';
+  const root = path.join(value.state, 'raw/visual/supervisor');
+  await mkdir(root, { recursive: true, mode: 0o700 });
+  await symlink(
+    path.join(value.state, 'identity.json'),
+    path.join(root, 'forged-ledger.json'),
+  );
+  await assert.rejects(collectConnectedEvidence(value));
+  assert.ok(
+    !value.evidence.includes('raw/visual/supervisor/forged-ledger.json'),
+  );
+});
+
+function scenarioEvidence(index) {
+  const sourceHash = createHash('sha256')
+    .update('synthetic source')
+    .digest('hex');
+  const markers = [
+    [
+      'create-replay',
+      'broker-redelivery',
+      'immutable-revisions',
+      'stale-concurrency',
+    ],
+    ['real-compile-failure', 'one-applied-repair'],
+    ['two-repair-limit', 'no-output-admission'],
+    ['quote-minus-cent-denied', 'tenant-and-brand-denied'],
+    ['running-render-cancellation', 'once-only-settlement'],
+  ][index - 1];
+  const count = [2, 3].includes(index) ? 3 : 1;
+  const receipts = [
+    { kind: 'settlement', state: 'confirmed', operatorCredits: 0 },
+  ];
+  if (index === 2)
+    receipts.push({
+      kind: 'repair',
+      isResultApplied: true,
+      operatorCredits: 0,
+    });
+  if (index === 3) {
+    for (let n = 0; n < 2; n++)
+      receipts.push({
+        kind: 'repair',
+        isResultApplied: true,
+        operatorCredits: 0,
+      });
+    for (let n = 0; n < 3; n++)
+      receipts.push({ kind: 'inspection', operatorCredits: 0 });
+  }
+  const evidence = {
+    outcome: 'passed',
+    revisions: [
+      {
+        id: 'revision',
+        sourceHash,
+        status:
+          index === 3 ? 'failed' : index === 5 ? 'cancelled' : 'completed',
+        outputs: [],
+        receipts,
+        consumedCredits: 1,
+        maximumCredits: 2,
+      },
+    ],
+    rendererSubmissions: Array.from({ length: count }, (_, i) => ({
+      id: `submission_${i}`,
+      sourceHash,
+    })),
+    rendererReceipts: Array.from({ length: count }, (_, i) => ({
+      id: `submission_${i}`,
+      status:
+        index === 5
+          ? 'running'
+          : index === 2 && i === 0
+            ? 'failed'
+            : 'completed',
+    })),
+    reservations: [
+      { id: 'reservation', status: 'SETTLED', amount: 2, settledAmount: 1 },
+    ],
+    transactions: [
+      { id: 'transaction', reservationId: 'reservation', amount: 1 },
+      { id: 'seed_grant', reservationId: null, amount: 100 },
+    ],
+    wallets: [{ snapshot: { held: 0 } }],
+    assertions: [...markers, 'settlement:revision', 'media-lineage:revision'],
+  };
+  if (index === 4) {
+    evidence.revisions = [];
+    evidence.rendererSubmissions = [];
+    evidence.rendererReceipts = [];
+    evidence.assertions = markers;
+  }
+  return evidence;
+}
+test('scenario receipt validates source, render, exact markers and settlement facts without inventing polling counts', () => {
+  for (const index of [1, 2, 3, 4, 5]) {
+    const evidence = scenarioEvidence(index);
+    assert.ok(
+      Array.isArray(
+        validateVisualScenarioEvidence(evidence, VISUAL_CASES[index - 1]),
+      ),
+    );
+    if (index !== 4) {
+      evidence.rendererReceipts.push({ ...evidence.rendererReceipts[0] });
+      validateVisualScenarioEvidence(evidence, VISUAL_CASES[index - 1]);
+    }
+  }
+  const cancellation = scenarioEvidence(5);
+  assert.ok(
+    !cancellation.rendererReceipts.some((row) => row.status === 'cancelled'),
+  );
+  validateVisualScenarioEvidence(cancellation, VISUAL_CASES[4]);
+  const refusal = scenarioEvidence(4);
+  validateVisualScenarioEvidence(refusal, VISUAL_CASES[3]);
+  const invalid = [
+    [
+      1,
+      (value) => {
+        value.assertions.shift();
+      },
+    ],
+    [
+      1,
+      (value) => {
+        value.revisions[0].sourceHash = 'bad';
+      },
+    ],
+    ...[
+      'revisions',
+      'reservations',
+      'rendererSubmissions',
+      'rendererReceipts',
+      'wallets',
+    ].map((field) => [
+      1,
+      (value) => {
+        value[field] = [];
+      },
+    ]),
+    [
+      1,
+      (value) => {
+        value.transactions[0].reservationId = 'unowned';
+      },
+    ],
+    [
+      1,
+      (value) => {
+        value.transactions.push({
+          id: 'extra_debit',
+          reservationId: 'reservation',
+          amount: 1,
+        });
+      },
+    ],
+    [
+      1,
+      (value) => {
+        value.transactions[0].amount = 2;
+      },
+    ],
+    [
+      1,
+      (value) => {
+        value.wallets[0].snapshot.held = 1;
+      },
+    ],
+    [
+      2,
+      (value) => {
+        value.rendererReceipts[0].status = 'completed';
+      },
+    ],
+    [
+      2,
+      (value) => {
+        value.rendererSubmissions.pop();
+        value.rendererReceipts.pop();
+      },
+    ],
+    [
+      3,
+      (value) => {
+        value.revisions[0].outputs = [{}];
+      },
+    ],
+    [
+      4,
+      (value) => {
+        value.reservations[0].status = 'RESERVED';
+      },
+    ],
+    [
+      5,
+      (value) => {
+        value.rendererReceipts[0].status = 'completed';
+      },
+    ],
+  ];
+  for (const [index, mutate] of invalid) {
+    const value = scenarioEvidence(index);
+    mutate(value);
+    assert.throws(() =>
+      validateVisualScenarioEvidence(value, VISUAL_CASES[index - 1]),
+    );
+  }
+});
+test('actual scenario source verifier rejects missing, changed and unsafe retained source files', async (t) => {
+  const { value } = await stateFixture(t);
+  const directory = path.join(
+    value.state,
+    'raw/visual/artifacts/case-01/scenario',
+  );
+  await mkdir(directory, { recursive: true, mode: 0o700 });
+  const evidence = {
+    evidencePath: 'raw/visual/artifacts/case-01/scenario/evidence.json',
+  };
+  const sources = [
+    {
+      id: 'source',
+      sourceHash: createHash('sha256').update('synthetic source').digest('hex'),
+    },
+  ];
+  const file = path.join(directory, 'source.tsx');
+  await assert.rejects(verifyVisualScenarioSources(value, evidence, sources));
+  await writeFile(file, 'synthetic source', { mode: 0o600 });
+  assert.equal(
+    (await verifyVisualScenarioSources(value, evidence, sources))[0].sha256,
+    sources[0].sourceHash,
+  );
+  await writeFile(file, 'changed source');
+  await assert.rejects(verifyVisualScenarioSources(value, evidence, sources));
+  await assert.rejects(
+    verifyVisualScenarioSources(value, evidence, [
+      { ...sources[0], id: '../escape' },
+    ]),
+  );
+  await rm(file);
+  await symlink(path.join(value.state, 'identity.json'), file);
+  await assert.rejects(verifyVisualScenarioSources(value, evidence, sources));
+});
+test('Library supervision retains 120s work plus 60s total cleanup inside unchanged 180s', async (t) => {
+  assert.equal(VISUAL_LIBRARY_LIMITS.work, 120000);
+  assert.equal(VISUAL_LIBRARY_LIMITS.cleanup, 60000);
+  assert.equal(
+    VISUAL_LIBRARY_LIMITS.work + VISUAL_LIBRARY_LIMITS.cleanup,
+    180000,
+  );
+  assert.equal(
+    VISUAL_LIBRARY_LIMITS.cooperative +
+      VISUAL_LIBRARY_LIMITS.term +
+      VISUAL_LIBRARY_LIMITS.kill +
+      VISUAL_LIBRARY_LIMITS.resources +
+      VISUAL_LIBRARY_LIMITS.final,
+    60000,
+  );
+  const fixture = await supervisorFixture(t);
+  const end = Date.now() - 1;
+  await assert.rejects(
+    superviseVisualCase({
+      caseInfo: VISUAL_CASES[0],
+      adapters: fixture.adapters,
+      limits: VISUAL_LIBRARY_LIMITS,
+      cumulativeDeadline: end,
+    }),
+  );
+  assert.equal(fixture.calls.length, 0);
+  assert.equal(fixture.saved(), undefined);
+});
+
+test('successful exact selected child preserves independent cleanup proof and unique case resources', async (t) => {
+  const first = await supervisorFixture(t);
+  const second = await supervisorFixture(t);
+  const roots = [];
+  for (const [index, fixture] of [
+    [1, first],
+    [2, second],
+  ]) {
+    const selection = visualSelection(index);
+    fixture.adapters.startChild = async () =>
+      startVisualProcess({
+        executable: process.execPath,
+        args: ['-e', 'process.exit(0)'],
+        cwd: fixture.root,
+        env: process.env,
+        stdoutPath: path.join(fixture.root, 'success.stdout'),
+        stderrPath: path.join(fixture.root, 'success.stderr'),
+      });
+    fixture.adapters.marker = async () => ({
+      outcome: 'passed',
+      label: 'before-cleanup',
+    });
+    fixture.adapters.stopGroups = async () => {
+      fixture.calls.push('process-groups');
+    };
+    fixture.adapters.validate = async (_ledger, result) =>
+      validateVisualSelection(
+        report(
+          [
+            ...selection.titles.map((title) => assertion(title)),
+            ...selection.skipped.map((title) => assertion(title, 'pending')),
+          ],
+          `/fixture/${selection.file}`,
+        ),
+        index,
+        result,
+      );
+    const ledger = await superviseVisualCase({
+      caseInfo: VISUAL_CASES[index - 1],
+      adapters: fixture.adapters,
+      limits: fixture.limits,
+    });
+    assert.equal(ledger.status, 'passed');
+    assert.equal(ledger.cleanupConfirmed, true);
+    assert.equal(ledger.child.exitCode, 0);
+    assert.equal(ledger.cases[0].passed, 1);
+    roots.push(ledger.resources.redis.id);
+  }
+  assert.notEqual(roots[0], roots[1]);
+  assert.notEqual(first.root, second.root);
+});
+
+function journalSupervisorFixture(failAt, cleanupMs = 120000) {
+  let now = 1000;
+  let writes = 0;
+  const calls = [];
+  let last;
+  const clock = { now: () => now, sleep: () => new Promise(() => {}) };
+  const adapters = {
+    cancelled: () => false,
+    persist: (ledger) =>
+      persistVisualJournal(ledger, async () => {
+        writes++;
+        last = ledger;
+        if (writes === failAt)
+          throw Object.assign(new Error('private synthetic disk error'), {
+            code: 'EIO',
+          });
+      }),
+    allocate: async (ledger) => {
+      calls.push('allocate');
+      ledger.resources.redis = { id: 'a'.repeat(64) };
+      ledger.resources.database = { name: 'registered_test' };
+      await adapters.persist(ledger);
+    },
+    startChild: async () => {
+      calls.push('start');
+      return { done: Promise.resolve({ ...child }) };
+    },
+    marker: async () => ({ outcome: 'passed' }),
+    stopGroups: async () => {
+      calls.push('groups');
+      now += 10;
+    },
+    removeRenderers: async () => {
+      calls.push('renderers');
+      now += 10;
+    },
+    removeRedis: async () => {
+      calls.push('redis');
+      now += 10;
+    },
+    removeDatabase: async () => {
+      calls.push('database');
+      now += 10;
+    },
+    verifyListeners: async () => {
+      calls.push('listeners');
+      now += 10;
+    },
+    validate: async () => [{ passed: 1, skipped: 10 }],
+  };
+  const limits = {
+    work: 900000,
+    cleanup: cleanupMs,
+    cooperative: 20000,
+    term: 5000,
+    kill: 5000,
+    resources: cleanupMs === 60000 ? 30000 : 80000,
+    final: 10000,
+    poll: 100,
+  };
+  return {
+    adapters,
+    clock,
+    limits,
+    calls,
+    last: () => last,
+    writes: () => writes,
+  };
+}
+test('initial actual visual journal rejection stops allocation before owned resources exist', async () => {
+  const fixture = journalSupervisorFixture(1);
+  await assert.rejects(
+    superviseVisualCase({ caseInfo: VISUAL_CASES[0], ...fixture }),
+    { code: 'VISUAL_JOURNAL_WRITE_FAILED' },
+  );
+  assert.deepEqual(fixture.calls, []);
+  assert.equal(fixture.writes(), 1);
+  assert.equal(fixture.last().journalFailed, true);
+});
+for (const cleanupMs of [120000, 60000])
+  test(`failed durable acknowledgement still attempts every cleanup inside ${cleanupMs}ms`, async () => {
+    const fixture = journalSupervisorFixture(2, cleanupMs);
+    const ledger = await superviseVisualCase({
+      caseInfo: VISUAL_CASES[0],
+      ...fixture,
+    });
+    assert.deepEqual(fixture.calls, [
+      'allocate',
+      'groups',
+      'renderers',
+      'redis',
+      'database',
+      'listeners',
+    ]);
+    assert.equal(ledger.cleanupDeadline - ledger.cleanupStartedAt, cleanupMs);
+    assert.equal(ledger.status, 'failed');
+    assert.equal(ledger.cleanupConfirmed, false);
+    assert.equal(ledger.journalFailed, true);
+    assert.equal(
+      ledger.failures.filter((failure) => failure.stage === 'journal').length,
+      1,
+    );
+    assert.ok(
+      ledger.failures.some(
+        (failure) =>
+          failure.stage === 'work' &&
+          failure.code === 'VISUAL_JOURNAL_WRITE_FAILED',
+      ),
+    );
+  });
+test('final journal failure returns a failed ledger to aggregate and forbids another scenario', async () => {
+  const fixture = journalSupervisorFixture(3);
+  let starts = 0;
+  let observed;
+  // Keep a real clock here; the three injected writes settle immediately.
+  await assert.rejects(
+    superviseVisualCases({
+      adaptersFor: () => {
+        starts++;
+        return fixture.adapters;
+      },
+      limits: fixture.limits,
+      onCase: async (ledger) => {
+        observed = ledger;
+      },
+    }),
+    { code: 'VISUAL_CLEANUP_UNCONFIRMED' },
+  );
+  assert.equal(starts, 1);
+  assert.equal(observed.status, 'failed');
+  assert.equal(observed.cleanupConfirmed, false);
+  assert.equal(observed.journalFailed, true);
+  assert.equal(fixture.writes(), 3);
+  assert.equal(observed.child.exitCode, 0);
+});
+test('normal actual durable journal path still requires original success and confirmed cleanup', async () => {
+  const fixture = journalSupervisorFixture(-1);
+  const ledger = await superviseVisualCase({
+    caseInfo: VISUAL_CASES[0],
+    ...fixture,
+  });
+  assert.equal(ledger.status, 'passed');
+  assert.equal(ledger.cleanupConfirmed, true);
+  assert.equal(ledger.journalFailed, undefined);
+  assert.equal(fixture.writes(), 3);
+});
+for (const firstRemovalFails of [false, true])
+  test(`actual validated renderer helper deletes before failed final journal (${firstRemovalFails})`, async () => {
+    const ledger = { resources: {}, failures: [] };
+    const resources = rendererContainerNames(
+      ['first', 'second'].map((id) => ({
+        filename: `visual-code-${createHash('sha256').update(id).digest('hex').slice(0, 40)}.json`,
+        receipt: { id },
+      })),
+    ).map((name) => ({ name, removed: false }));
+    const events = [];
+    let writes = 0;
+    await assert.rejects(
+      removeValidatedVisualRenderers(
+        ledger,
+        resources,
+        async (name) => {
+          events.push(`remove:${name}`);
+          if (firstRemovalFails && name === resources[0].name)
+            throw new Error('original failed absence');
+          events.push(`absent:${name}`);
+          return 'a'.repeat(64);
+        },
+        async (value) => {
+          events.push('write');
+          writes++;
+          await persistVisualJournal(value, async () => {
+            throw Object.assign(new Error('synthetic full disk'), {
+              code: 'ENOSPC',
+            });
+          });
+        },
+        Date.now() + 1000,
+      ),
+      {
+        code: firstRemovalFails
+          ? 'RENDERER_REMOVAL_UNCONFIRMED'
+          : 'VISUAL_JOURNAL_WRITE_FAILED',
+      },
+    );
+    assert.equal(writes, 1);
+    assert.equal(events.at(-1), 'write');
+    assert.ok(events.includes(`remove:${resources[1].name}`));
+    assert.ok(events.includes(`absent:${resources[1].name}`));
+    assert.equal(resources[1].removed, true);
+    assert.equal(ledger.journalFailed, true);
+    assert.equal(
+      ledger.failures.filter((failure) => failure.stage === 'journal').length,
+      1,
+    );
+    if (firstRemovalFails) {
+      assert.equal(resources[0].removed, false);
+      assert.ok(
+        ledger.failures.some((failure) => failure.stage === 'renderer-removal'),
+      );
+    }
+  });
+test('expired renderer cleanup cannot launch another journal write or gain time', async () => {
+  const ledger = { failures: [] };
+  let removals = 0;
+  let writes = 0;
+  await assert.rejects(
+    removeValidatedVisualRenderers(
+      ledger,
+      [{ name: `visual-code-${'a'.repeat(40)}` }],
+      async () => {
+        removals++;
+      },
+      async () => {
+        writes++;
+      },
+      Date.now() - 1,
+    ),
+    { code: 'RENDERER_REMOVAL_UNCONFIRMED' },
+  );
+  assert.equal(removals, 0);
+  assert.equal(writes, 0);
+  assert.equal(ledger.journalFailed, true);
+});
+test('invalid manifest cannot reach actual deletion helper and later owned cleanup still runs', async () => {
+  const fixture = journalSupervisorFixture(-1);
+  let removals = 0;
+  fixture.adapters.removeRenderers = async (ledger) => {
+    const resources = rendererContainerNames([
+      {
+        filename: `visual-code-${'a'.repeat(40)}.json`,
+        receipt: { id: 'mismatch' },
+      },
+    ]).map((name) => ({ name }));
+    await removeValidatedVisualRenderers(
+      ledger,
+      resources,
+      async () => {
+        removals++;
+      },
+      fixture.adapters.persist,
+      Date.now() + 1000,
+    );
+  };
+  const ledger = await superviseVisualCase({
+    caseInfo: VISUAL_CASES[0],
+    ...fixture,
+  });
+  assert.equal(removals, 0);
+  assert.ok(fixture.calls.includes('groups'));
+  assert.ok(fixture.calls.includes('redis'));
+  assert.ok(fixture.calls.includes('database'));
+  assert.ok(fixture.calls.includes('listeners'));
+  assert.equal(ledger.status, 'failed');
+});
+
+const focusedContracts = {
+  'agent-production': {
+    file: DELEGATED_API_FILES[0],
+    titles: AGENT_PRODUCTION_TITLES,
+    count: 3,
+  },
+  'brand-acceptance': {
+    file: DELEGATED_API_FILES[1],
+    titles: BRAND_SOURCE_CONTRACT.brand.passedTitles,
+    count: 16,
+  },
+  'baseline-materialization-migration': {
+    file: 'prisma/content-learning-baseline-materialization-migration.test.ts',
+    titles: BASELINE_SOURCE_CONTRACT.passedTitles,
+    count: 7,
+  },
+};
+for (const [group, contract] of Object.entries(focusedContracts))
+  test(`focused ${group} requires exact source-bound names, zero skips and original exit`, () => {
+    const positive = report(
+      contract.titles.map((title) => assertion(title)),
+      `/fixture/${contract.file}`,
+    );
+    assert.equal(
+      validateReport(positive, [contract], child)[0].passed,
+      contract.count,
+    );
+    for (const modify of [
+      (value) => value.testResults[0].assertionResults.pop(),
+      (value) =>
+        value.testResults[0].assertionResults.push(assertion('unknown case')),
+      (value) =>
+        value.testResults[0].assertionResults.push(
+          value.testResults[0].assertionResults[0],
+        ),
+      (value) => {
+        value.testResults[0].assertionResults[0].status = 'pending';
+      },
+      (value) => {
+        value.testResults[0].name = '/fixture/unselected.spec.ts';
+      },
+    ]) {
+      const negative = structuredClone(positive);
+      modify(negative);
+      assert.throws(() => validateReport(negative, [contract], child));
+    }
+    assert.throws(
+      () => validateReport(positive, [contract], { ...child, exitCode: 1 }),
+      { code: 'CHILD_FAILED' },
+    );
+    if (group === 'baseline-materialization-migration') {
+      const sourceOnly = structuredClone(positive);
+      sourceOnly.testResults[0].assertionResults.slice(2).forEach((value) => {
+        value.status = 'pending';
+      });
+      assert.throws(() => validateReport(sourceOnly, [contract], child));
+    }
+  });
+test('frozen source verification rejects absent, changed and symlinked bytes before allocation', async (t) => {
+  const root = await fixture(t),
+    name = 'fixture.ts',
+    bytes = 'source fixture';
+  const contract = [
+    { path: name, sha256: createHash('sha256').update(bytes).digest('hex') },
+  ];
+  await assert.rejects(verifyFrozenSources(root, contract), { code: 'ENOENT' });
+  await writeFile(path.join(root, name), bytes);
+  await verifyFrozenSources(root, contract);
+  await writeFile(path.join(root, name), 'changed');
+  await assert.rejects(verifyFrozenSources(root, contract), {
+    code: 'SOURCE_HASH_MISMATCH',
+  });
+  await rm(path.join(root, name));
+  await writeFile(path.join(root, 'target.ts'), bytes);
+  await symlink(path.join(root, 'target.ts'), path.join(root, name));
+  await assert.rejects(verifyFrozenSources(root, contract), {
+    code: 'UNSAFE_SOURCE',
+  });
+  await assert.rejects(verifyBaselineSources(root), { code: 'ENOENT' });
+  await assert.rejects(verifyDedicatedSources(root, 'agent-production', {}), {
+    code: 'ENOENT',
+  });
+  assert.equal(BASELINE_SOURCE_CONTRACT.sourceInputs.length, 3);
+  assert.equal(BASELINE_SOURCE_CONTRACT.expectedPostgresCases, 5);
+  assert.equal(AGENT_PRODUCTION_FILES.length, 2);
+});
+test('dedicated BRAND requires frozen integration hash and exact title inventory', () => {
+  const value = ownerContract();
+  value.brand = structuredClone(BRAND_SOURCE_CONTRACT.brand);
+  assert.deepEqual(validateBrandOwnerContract(JSON.stringify(value)), value);
+  for (const change of [
+    (entry) => {
+      entry.sha256 = 'e'.repeat(64);
+    },
+    (entry) => {
+      entry.passedTitles[0] = 'unrelated';
+    },
+  ]) {
+    const negative = structuredClone(value);
+    change(negative.brand);
+    assert.throws(() => validateBrandOwnerContract(JSON.stringify(negative)), {
+      code: 'BRAND_SOURCE_CONTRACT_MISMATCH',
+    });
+  }
+});
+test('exclusive agent environment is provided only after exact DB migration and empty owned Redis proof', () => {
+  const credentials = fixtureCredentials(),
+    env = {
+      ...credentialEnv(credentials),
+      DATABASE_URL: 'unrelated',
+      REDIS_URL: 'unrelated',
+      PROACTIVE_AGENT_PRODUCTION_TURN_EXCLUSIVE_DB: '1',
+    };
+  const name = 'genfeed_agent_production_4959_test',
+    url = databaseUrl(name, credentials),
+    owned = {
+      database: name,
+      migrated: true,
+      postgres: 'a'.repeat(64),
+      redis: 'b'.repeat(64),
+      redisEmpty: true,
+    };
+  const result = dedicatedChildEnvironment(
+    env,
+    'agent-production',
+    url,
+    'redis://127.0.0.1:6379/14',
+    owned,
+  );
+  assert.equal(result.PROACTIVE_AGENT_PRODUCTION_TURN_EXCLUSIVE_DB, '1');
+  assert.equal(result.DATABASE_URL, url);
+  assert.equal(result.RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD, undefined);
+  assert.equal(result.RUNTIME_ACCEPTANCE_POSTGRES_USER, undefined);
+  for (const invalid of [
+    { ...owned, migrated: false },
+    { ...owned, redisEmpty: false },
+    { ...owned, postgres: 'unknown' },
+    { ...owned, database: 'test' },
+  ])
+    assert.throws(() =>
+      dedicatedChildEnvironment(
+        env,
+        'agent-production',
+        url,
+        'redis://127.0.0.1:6379/14',
+        invalid,
+      ),
+    );
+  for (const invalid of [
+    `${url}?schema=public`,
+    url.replace('127.0.0.1', 'example.com'),
+    databaseUrl('test', credentials),
+  ])
+    assert.throws(() =>
+      dedicatedChildEnvironment(
+        env,
+        'agent-production',
+        invalid,
+        'redis://127.0.0.1:6379/14',
+        owned,
+      ),
+    );
+  const brand = dedicatedChildEnvironment(
+    env,
+    'brand-acceptance',
+    databaseUrl('genfeed_branded_acceptance_test', credentials),
+    'ignored',
+    {
+      database: 'genfeed_branded_acceptance_test',
+      migrated: false,
+      postgres: 'a'.repeat(64),
+    },
+  );
+  assert.equal(brand.DATABASE_URL, undefined);
+  assert.equal(brand.REDIS_URL, undefined);
+  assert.equal(brand.PROACTIVE_AGENT_PRODUCTION_TURN_EXCLUSIVE_DB, undefined);
+});
+function dedicatedFixture(group) {
+  const calls = [];
+  let now = 1000,
+    writes = 0;
+  const value = { ...identity, group, startedAt: now };
+  const clock = { now: () => now, sleep: () => new Promise(() => {}) };
+  const adapters = {
+    persist: async () => {
+      calls.push('write');
+      writes++;
+    },
+    cancelled: () => false,
+    prepare: async (ledger, end) => {
+      calls.push('prepare');
+      ledger.resources.database = { name: 'owned_test' };
+      if (group !== 'baseline-materialization-migration')
+        ledger.resources.services = [
+          { kind: 'postgres', id: 'a'.repeat(64) },
+          ...(group === 'agent-production'
+            ? [{ kind: 'redis', id: 'b'.repeat(64) }]
+            : []),
+        ];
+      assert.equal(end, 1000 + DEDICATED_BUDGETS[group].setup);
+      now += 10;
+    },
+    migrate: async () => {
+      calls.push('migration');
+      now += 10;
+    },
+    units: async (ledger) => {
+      calls.push('units');
+      ledger.unitCases = [{ passed: 1 }];
+      now += 10;
+    },
+    startWork: async () => {
+      calls.push('work');
+      return { done: Promise.resolve({ ...child }) };
+    },
+    stopGroups: async () => {
+      calls.push('groups');
+      now += 1;
+    },
+    dropDatabase: async () => {
+      calls.push('drop');
+      now += 1;
+    },
+    removeService: async (_ledger, service) => {
+      calls.push(service.kind);
+      now += 1;
+    },
+    validate: async () => [
+      { passed: focusedContracts[group].count, skipped: 0 },
+    ],
+  };
+  return {
+    identity: value,
+    adapters,
+    clock,
+    calls,
+    writes: () => writes,
+    now: (value) => {
+      now = value;
+    },
+  };
+}
+for (const group of Object.keys(focusedContracts))
+  test(`actual dedicated supervisor ${group} retains fixed preparation/work/cleanup envelopes`, async () => {
+    const fixture = dedicatedFixture(group),
+      ledger = await superviseDedicatedAcceptance(fixture);
+    assert.equal(ledger.status, 'passed');
+    assert.equal(ledger.cleanupConfirmed, true);
+    assert.ok(fixture.calls.indexOf('groups') < fixture.calls.indexOf('drop'));
+    assert.ok(
+      ledger.completed.some(
+        (item) =>
+          item.stage === group &&
+          item.cases[0].passed === focusedContracts[group].count,
+      ),
+    );
+    const limits = DEDICATED_BUDGETS[group];
+    assert.ok(
+      ledger.cleanupDeadline <= fixture.identity.startedAt + limits.cleanupEnd,
+    );
+    assert.equal(
+      ledger.cleanupDeadline - ledger.cleanupStartedAt,
+      limits.cleanup,
+    );
+    if (group === 'baseline-materialization-migration') {
+      assert.equal(limits.workEnd, 45000);
+      assert.equal(limits.cleanupEnd, 60000);
+      assert.ok(!fixture.calls.includes('migration'));
+    }
+  });
+test('strict initial dedicated journal rejects before allocation and stale anchor rejects before child', async () => {
+  const value = dedicatedFixture('agent-production');
+  value.adapters.persist = async () => {
+    throw Object.assign(new Error('synthetic journal'), { code: 'EIO' });
+  };
+  await assert.rejects(superviseDedicatedAcceptance(value), { code: 'EIO' });
+  assert.deepEqual(value.calls, []);
+  const stale = dedicatedFixture('agent-production');
+  stale.now(stale.identity.startedAt + 300000);
+  const ledger = await superviseDedicatedAcceptance(stale);
+  assert.equal(ledger.status, 'failed');
+  assert.ok(!stale.calls.includes('work'));
+});
+for (const failStage of [
+  'work',
+  'groups',
+  'drop',
+  'postgres',
+  'redis',
+  'journal',
+])
+  test(`dedicated ${failStage} failure retains original status and attempts all owned cleanup`, async () => {
+    const value = dedicatedFixture('agent-production');
+    if (failStage === 'work')
+      value.adapters.startWork = async () => ({
+        done: Promise.resolve({ ...child, exitCode: 7 }),
+      });
+    if (failStage === 'groups')
+      value.adapters.stopGroups = async () => {
+        value.calls.push('groups');
+        throw Object.assign(new Error('synthetic'), {
+          code: 'TERMINATION_UNCONFIRMED',
+        });
+      };
+    if (failStage === 'drop')
+      value.adapters.dropDatabase = async () => {
+        value.calls.push('drop');
+        throw Object.assign(new Error('synthetic'), {
+          code: 'DATABASE_REMOVAL_UNCONFIRMED',
+        });
+      };
+    if (['postgres', 'redis'].includes(failStage))
+      value.adapters.removeService = async (_ledger, service) => {
+        value.calls.push(service.kind);
+        if (service.kind === failStage) throw new Error('synthetic');
+      };
+    if (failStage === 'journal')
+      value.adapters.persist = async (ledger) => {
+        if (value.calls.includes('work')) {
+          ledger.journalFailed = true;
+          throw new Error('synthetic');
+        }
+      };
+    const ledger = await superviseDedicatedAcceptance(value);
+    assert.equal(ledger.status, 'failed');
+    assert.ok(value.calls.includes('drop'));
+    assert.ok(value.calls.includes('postgres'));
+    assert.ok(value.calls.includes('redis'));
+    if (failStage === 'work') assert.equal(ledger.originalChild.exitCode, 7);
+  });
+test('actual cleanup helper performs every physical removal before rejected journal writes', async () => {
+  const ledger = { failures: [] },
+    calls = [];
+  for (const name of ['database', 'postgres', 'redis'])
+    await assert.rejects(
+      performDedicatedCleanup(
+        ledger,
+        async () => {
+          calls.push(name);
+        },
+        async () => {
+          calls.push('write');
+          throw new Error('synthetic');
+        },
+        Date.now() + 1000,
+      ),
+      { code: 'DEDICATED_JOURNAL_WRITE_FAILED' },
+    );
+  assert.deepEqual(calls, [
+    'database',
+    'write',
+    'postgres',
+    'write',
+    'redis',
+    'write',
+  ]);
+  assert.equal(ledger.journalFailed, true);
+  assert.equal(ledger.failures.length, 1);
+});
+test('bounded control helper handles readable errors without losing its child handle', async () => {
+  const handle = startDedicatedControlProcess({
+    executable: process.execPath,
+    args: ['-e', 'setInterval(()=>{},1000)'],
+    cwd: process.cwd(),
+    env: process.env,
+  });
+  handle.child.stdout.emit('error', new Error('synthetic readable error'));
+  const result = await handle.done;
+  assert.equal(result.streamError, true);
+  assert.notEqual(result.exitCode, 0);
+  await stopVisualGroups([handle.pid], {
+    term: 0,
+    kill: 1000,
+    deadline: Date.now() + 1500,
+  });
+});
+test('dedicated work timeout supervises a real child/grandchild and waits all private streams before disposal', async (t) => {
+  const directory = await fixture(t),
+    value = dedicatedFixture('agent-production');
+  let handle;
+  value.adapters.startWork = async () => {
+    handle = await startVisualProcess({
+      executable: process.execPath,
+      args: [
+        '-e',
+        `const {spawn}=require('node:child_process');spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'});process.stdout.write('started');setInterval(()=>{},1000);`,
+      ],
+      cwd: directory,
+      env: process.env,
+      stdoutPath: path.join(directory, 'stdout'),
+      stderrPath: path.join(directory, 'stderr'),
+    });
+    value.clock.sleep = (ms) =>
+      new Promise((resolve) =>
+        setTimeout(
+          () => {
+            value.now(1000 + DEDICATED_BUDGETS['agent-production'].workEnd);
+            resolve();
+          },
+          Math.min(ms, 30),
+        ),
+      );
+    return handle;
+  };
+  value.adapters.stopGroups = async (ledger) => {
+    value.clock.sleep = () => new Promise(() => {});
+    await stopVisualGroups([handle.pid], {
+      term: 10,
+      kill: 1000,
+      deadline: Date.now() + 1200,
+    });
+    ledger.originalChild = await handle.done;
+    value.calls.push('groups');
+  };
+  const ledger = await superviseDedicatedAcceptance(value);
+  assert.equal(ledger.status, 'failed');
+  assert.ok(
+    ledger.failures.some((item) => item.code === 'DEDICATED_WORK_TIMEOUT'),
+  );
+  assert.ok(value.calls.includes('redis'));
+  assert.ok(value.calls.indexOf('groups') < value.calls.indexOf('drop'));
+  assert.ok(ledger.originalChild.signal);
+  assert.equal(
+    (await lstat(path.join(directory, 'stdout'))).mode & 0o777,
+    0o600,
+  );
+});
+function partitionFixture() {
+  const apiRoot = '/fixture/apps/server/api',
+    selected = [
+      ...DELEGATED_API_FILES,
+      'test/integration/ordinary.integration.spec.ts',
+    ];
+  return {
+    apiRoot,
+    summary: {
+      tier: 'full',
+      status: 'passed',
+      vitestExitCode: 0,
+      failedFileCount: 0,
+      selectedFiles: selected,
+      selectedFileCount: 3,
+      executedFileCount: 1,
+    },
+    report: {
+      success: true,
+      testResults: [
+        { name: path.join(apiRoot, selected[2]), status: 'passed' },
+      ],
+    },
+  };
+}
+test('shared API partition delegates exactly two selected fixtures without manufacturing their passes', () => {
+  const value = partitionFixture(),
+    result = validateSharedApiFullPartition(
+      value.summary,
+      value.report,
+      value.apiRoot,
+    );
+  assert.equal(result.executedFileCount, 1);
+  assert.equal(result.selectedFileCount, 3);
+  assert.deepEqual(
+    result.delegatedFiles.map((entry) => entry.proof),
+    ['REQUIRED', 'REQUIRED'],
+  );
+  for (const change of [
+    (v) => {
+      v.summary.selectedFiles.pop();
+    },
+    (v) => {
+      v.summary.selectedFiles.push(v.summary.selectedFiles[0]);
+      v.summary.selectedFileCount++;
+    },
+    (v) => {
+      v.report.testResults.push({
+        name: path.join(v.apiRoot, DELEGATED_API_FILES[0]),
+        status: 'passed',
+      });
+    },
+    (v) => {
+      v.report.testResults[0].name = '/outside/spec.ts';
+    },
+    (v) => {
+      v.report.testResults[0].status = 'pending';
+    },
+    (v) => {
+      v.summary.vitestExitCode = 1;
+    },
+    (v) => {
+      v.summary.executedFileCount = 3;
+    },
+  ]) {
+    const negative = structuredClone(value);
+    change(negative);
+    assert.throws(
+      () =>
+        validateSharedApiFullPartition(
+          negative.summary,
+          negative.report,
+          negative.apiRoot,
+        ),
+      { code: 'INVALID_FULL_PARTITION' },
+    );
+  }
+});
+function finalDatabaseFixture() {
+  const calls = [],
+    credentials = fixtureCredentials();
+  return {
+    calls,
+    identity: {
+      ...identity,
+      group: 'final',
+      resources: { postgres: 'a'.repeat(64), databases: [] },
+    },
+    adapters: {
+      credentials,
+      persist: async () => {
+        calls.push('write');
+      },
+      absent: async () => {
+        calls.push('absent');
+        return '';
+      },
+      create: async () => {
+        calls.push('create');
+      },
+      drop: async () => {
+        calls.push('drop');
+      },
+    },
+  };
+}
+test('final lost CREATE response stays eligible for exact owned disposal while preserving original failure', async () => {
+  const value = finalDatabaseFixture(),
+    error = Object.assign(new Error('lost response'), {
+      code: 'PREPARATION_FAILED',
+    });
+  value.adapters.create = async () => {
+    value.calls.push('create');
+    throw error;
+  };
+  await assert.rejects(
+    createFinalOwnedDatabase(
+      value.identity,
+      'genfeed_crun_test',
+      value.adapters,
+    ),
+    (e) => e === error,
+  );
+  const resource = value.identity.resources.databases[0];
+  assert.equal(resource.creationIssued, true);
+  assert.equal(resource.created, false);
+  await cleanupFinalOwnedDatabase(
+    value.identity,
+    resource,
+    value.adapters,
+    Date.now() + 1000,
+  );
+  assert.equal(resource.removed, true);
+  assert.deepEqual(value.calls, [
+    'absent',
+    'write',
+    'create',
+    'drop',
+    'absent',
+    'write',
+  ]);
+  assert.equal(error.code, 'PREPARATION_FAILED');
+});
+for (const kind of ['preexisting', 'intent-write', 'ack-write'])
+  test(`final ${kind} failure never invents ownership from registration alone`, async () => {
+    const value = finalDatabaseFixture();
+    let writes = 0;
+    if (kind === 'preexisting') value.adapters.absent = async () => '1';
+    else
+      value.adapters.persist = async () => {
+        if (++writes === (kind === 'intent-write' ? 1 : 2))
+          throw new Error('synthetic journal');
+      };
+    await assert.rejects(
+      createFinalOwnedDatabase(
+        value.identity,
+        'genfeed_crun_test',
+        value.adapters,
+      ),
+    );
+    for (const resource of value.identity.resources.databases)
+      await cleanupFinalOwnedDatabase(
+        value.identity,
+        resource,
+        { ...value.adapters, persist: async () => {} },
+        Date.now() + 1000,
+      );
+    assert.equal(value.calls.includes('create'), kind === 'ack-write');
+    assert.equal(value.calls.includes('drop'), kind === 'ack-write');
+    await cleanupFinalOwnedDatabase(
+      value.identity,
+      { name: 'genfeed_crun_test', creationIntent: true, created: true },
+      value.adapters,
+      Date.now() + 1000,
+    );
+  });
+test('final cleanup rejects wrong service, unknown absence, expired deadline and journal error after physical disposal', async () => {
+  for (const kind of ['wrong-service', 'not-absent', 'expired', 'journal']) {
+    const value = finalDatabaseFixture();
+    await createFinalOwnedDatabase(
+      value.identity,
+      'genfeed_baseline_materialization_test',
+      value.adapters,
+    );
+    const resource = value.identity.resources.databases[0];
+    if (kind === 'wrong-service') resource.postgresId = 'b'.repeat(64);
+    if (kind === 'not-absent') value.adapters.absent = async () => 'unknown';
+    if (kind === 'journal')
+      value.adapters.persist = async () => {
+        throw new Error('synthetic journal');
+      };
+    await assert.rejects(
+      cleanupFinalOwnedDatabase(
+        value.identity,
+        resource,
+        value.adapters,
+        Date.now() + (kind === 'expired' ? -1 : 1000),
+      ),
+    );
+    assert.equal(
+      value.calls.includes('drop'),
+      kind === 'not-absent' || kind === 'journal',
+    );
+    assert.equal(resource.removed === true, kind === 'journal');
+  }
+});
+async function crunCleanupFixture(t) {
+  const uuid = randomUUID(),
+    directory = `/tmp/crun-owned-${uuid}`,
+    manifest = `/tmp/crun-run-${uuid}.json`,
+    schema = `crun_flow_${randomBytes(16).toString('hex')}`,
+    key = `crun:requests:${'a'.repeat(64)}`;
+  await mkdir(directory, { mode: 0o700 });
+  const content = {
+    version: 1,
+    schema,
+    ownedDirectory: directory,
+    redisKeys: [key],
+  };
+  await writeFile(manifest, JSON.stringify(content), { mode: 0o600 });
+  await writeFile(`${manifest}.tmp`, 'uncommitted', { mode: 0o600 });
+  t.after(async () => {
+    await rm(directory, { recursive: true, force: true });
+    await rm(manifest, { force: true });
+    await rm(`${manifest}.tmp`, { force: true });
+  });
+  const resource = { uuid, directory, manifest };
+  for (const [name, file] of [
+    ['directory', directory],
+    ['manifest', manifest],
+  ]) {
+    const metadata = await lstat(file);
+    resource[`${name}Metadata`] = {
+      device: metadata.dev,
+      inode: metadata.ino,
+      realpath: await realpath(file),
+    };
+  }
+  const calls = [];
+  const adapters = {
+    save: async () => {
+      calls.push('evidence');
+    },
+    dropSchema: async (value) => {
+      assert.equal(value, schema);
+      calls.push('schema');
+    },
+    schemaAbsent: async () => {
+      calls.push('schema-absence');
+      return '';
+    },
+    deleteKeys: async (values) => {
+      assert.deepEqual(values, [key]);
+      calls.push('redis');
+    },
+    keysAbsent: async () => {
+      calls.push('keys-absence');
+      return '0';
+    },
+  };
+  await runFinalCrunBounded({
+    identity: {
+      ...identity,
+      group: 'final',
+      overallDeadline: Date.now() + 100000,
+      resources: { crun: resource },
+    },
+    resource,
+    start: async ({ onSpawn }) => {
+      onSpawn(12345);
+      return { pid: 12345, done: Promise.resolve({ ...child }) };
+    },
+    stop: async () => {},
+    probe: () => {
+      throw Object.assign(new Error('absent'), { code: 'ESRCH' });
+    },
+    persistProof: async () => {},
+    cleanupOwned: async () => ({ passed: true, operations: [], failures: [] }),
+  });
+  assert.equal(hasFinalCrunTerminationProof(resource), true);
+  return { resource, adapters, calls };
+}
+for (const kind of [
+  'success',
+  'evidence',
+  'schema',
+  'directory-replacement',
+  'manifest-replacement',
+  'invalid',
+  'unterminated',
+])
+  test(`actual Crun cleanup ${kind} preserves ownership and independently disposes valid resources`, async (t) => {
+    const value = await crunCleanupFixture(t),
+      original = new Error('original fixture failure');
+    if (kind === 'evidence')
+      value.adapters.save = async () => {
+        value.calls.push('evidence');
+        throw Object.assign(new Error('disk'), { code: 'EIO' });
+      };
+    if (kind === 'schema')
+      value.adapters.dropSchema = async () => {
+        value.calls.push('schema');
+        throw new Error('schema failure');
+      };
+    if (kind === 'directory-replacement') {
+      const backup = `${value.resource.directory}.original`;
+      await rename(value.resource.directory, backup);
+      t.after(() => rm(backup, { recursive: true, force: true }));
+      await mkdir(value.resource.directory, { mode: 0o700 });
+    }
+    if (kind === 'manifest-replacement')
+      value.adapters.save = async () => {
+        await writeFile(
+          `${value.resource.manifest}.replacement`,
+          'replacement',
+          { mode: 0o600 },
+        );
+        await rename(
+          `${value.resource.manifest}.replacement`,
+          value.resource.manifest,
+        );
+      };
+    if (kind === 'invalid')
+      await writeFile(
+        value.resource.manifest,
+        JSON.stringify({
+          version: 1,
+          schema: 'public',
+          ownedDirectory: value.resource.directory,
+          redisKeys: [],
+        }),
+        { mode: 0o600 },
+      );
+    if (kind === 'unterminated') value.resource.terminationConfirmed = false;
+    const result = await cleanupFinalCrunResources(
+      value.resource,
+      value.adapters,
+      Date.now() + 2000,
+    );
+    assert.equal(result.passed, kind === 'success');
+    assert.equal(original.message, 'original fixture failure');
+    if (['invalid', 'unterminated'].includes(kind)) {
+      assert.deepEqual(value.calls, []);
+      assert.ok((await lstat(value.resource.directory)).isDirectory());
+    } else {
+      assert.ok(value.calls.includes('redis'));
+      assert.ok(value.calls.includes('keys-absence'));
+      if (kind === 'directory-replacement')
+        assert.ok((await lstat(value.resource.directory)).isDirectory());
+      else
+        await assert.rejects(lstat(value.resource.directory), {
+          code: 'ENOENT',
+        });
+      if (kind === 'manifest-replacement')
+        assert.equal(
+          await readFile(value.resource.manifest, 'utf8'),
+          'replacement',
+        );
+      else
+        await assert.rejects(lstat(value.resource.manifest), {
+          code: 'ENOENT',
+        });
+      await assert.rejects(lstat(`${value.resource.manifest}.tmp`), {
+        code: 'ENOENT',
+      });
+    }
+  });
+
+test('actual registered allocation helper distinguishes pre-spawn failure from post-spawn lost acknowledgement', async () => {
+  for (const kind of ['pre-spawn', 'post-spawn', 'success']) {
+    const ledger = {
+        resources: {
+          groups: [],
+          database: {
+            intentPersisted: true,
+            creationAuthorized: false,
+            creationIssued: false,
+          },
+        },
+      },
+      handles = [],
+      handle = { pid: 12345, done: Promise.resolve({ ...child }) };
+    const operation = startRegisteredDedicatedProcess(
+      ledger,
+      'database-allocation',
+      async () => {
+        if (kind === 'pre-spawn')
+          throw Object.assign(new Error('file'), { code: 'EIO' });
+        return handle;
+      },
+      (value) => handles.push(value),
+      async () => {
+        if (kind === 'post-spawn')
+          throw Object.assign(new Error('journal'), { code: 'ENOSPC' });
+      },
+    );
+    if (kind === 'success') assert.equal(await operation, handle);
+    else await assert.rejects(operation);
+    assert.equal(
+      ledger.resources.database.creationIssued,
+      kind !== 'pre-spawn',
+    );
+    assert.equal(
+      ledger.resources.database.creationAuthorized,
+      kind !== 'pre-spawn',
+    );
+    assert.equal(handles.length, kind === 'pre-spawn' ? 0 : 1);
+    if (kind === 'post-spawn')
+      assert.equal((await handles[0].done).exitCode, 0);
+  }
+});
+test('baseline strict allocation intent rejects before spawn and failed cleanup keeps live final ownership', async () => {
+  const value = dedicatedFixture('baseline-materialization-migration'),
+    calls = [];
+  await assert.rejects(
+    startRegisteredDedicatedProcess(
+      { resources: { database: { creationIntent: true }, groups: [] } },
+      'database-allocation',
+      async () => {
+        calls.push('spawn');
+        return { pid: 12345 };
+      },
+      () => {},
+      async () => {},
+    ),
+    { code: 'DEDICATED_OWNERSHIP' },
+  );
+  assert.deepEqual(calls, []);
+  value.adapters.prepare = async (ledger) => {
+    ledger.resources.database = {
+      name: 'genfeed_baseline_materialization_test',
+      postgresId: 'a'.repeat(64),
+      intentPersisted: true,
+      creationIssued: true,
+      creationAuthorized: true,
+    };
+  };
+  value.adapters.dropDatabase = async () => {
+    throw Object.assign(new Error('drop'), {
+      code: 'DATABASE_REMOVAL_UNCONFIRMED',
+    });
+  };
+  const ledger = await superviseDedicatedAcceptance(value);
+  assert.equal(ledger.status, 'failed');
+  assert.equal(ledger.resources.database.creationIssued, true);
+  assert.equal(ledger.resources.database.intentPersisted, true);
+  const final = finalDatabaseFixture();
+  await cleanupFinalOwnedDatabase(
+    final.identity,
+    ledger.resources.database,
+    final.adapters,
+    Date.now() + 1000,
+  );
+  assert.equal(ledger.resources.database.removed, true);
+  assert.equal(ledger.status, 'failed');
+});
+test('final Crun unsafe committed symlink does not authorize schema or key deletion, expired deadline does not restart', async (t) => {
+  const value = await crunCleanupFixture(t),
+    backup = `${value.resource.manifest}.original`;
+  await rename(value.resource.manifest, backup);
+  t.after(() => rm(backup, { force: true }));
+  await symlink(backup, value.resource.manifest);
+  const result = await cleanupFinalCrunResources(
+    value.resource,
+    value.adapters,
+    Date.now() + 1000,
+  );
+  assert.equal(result.passed, false);
+  assert.deepEqual(value.calls, []);
+  assert.equal((await lstat(value.resource.manifest)).isSymbolicLink(), true);
+  const expired = await cleanupFinalCrunResources(
+    value.resource,
+    value.adapters,
+    Date.now() - 1,
+  );
+  assert.equal(expired.passed, false);
+  assert.equal(expired.failures[0].code, 'CLEANUP_DEADLINE');
+  assert.deepEqual(value.calls, []);
+});
+
+test('baseline frozen input verification checks fixture plus target and predecessor SQL independently', async (t) => {
+  const root = await fixture(t);
+  const entries = [];
+  for (const [
+    index,
+    entry,
+  ] of BASELINE_SOURCE_CONTRACT.sourceInputs.entries()) {
+    const bytes = `synthetic baseline source ${index}`;
+    await mkdir(path.dirname(path.join(root, entry.path)), { recursive: true });
+    await writeFile(path.join(root, entry.path), bytes);
+    entries.push({
+      path: entry.path,
+      sha256: createHash('sha256').update(bytes).digest('hex'),
+    });
+  }
+  await verifyFrozenSources(root, entries);
+  for (const entry of entries) {
+    const filename = path.join(root, entry.path),
+      bytes = await readFile(filename);
+    await rm(filename);
+    await assert.rejects(verifyFrozenSources(root, entries), {
+      code: 'ENOENT',
+    });
+    await writeFile(filename, 'changed fixture or SQL');
+    await assert.rejects(verifyFrozenSources(root, entries), {
+      code: 'SOURCE_HASH_MISMATCH',
+    });
+    await writeFile(filename, bytes);
+  }
+});
+test('baseline external deadline includes allocation and terminates without fresh work time', async () => {
+  const value = dedicatedFixture('baseline-materialization-migration');
+  let workEnd;
+  value.adapters.prepare = async (ledger) => {
+    ledger.resources.database = { creationIssued: true, intentPersisted: true };
+    value.now(1000 + 44000);
+  };
+  value.adapters.startWork = async (_ledger, end) => {
+    workEnd = end;
+    value.now(end);
+    throw Object.assign(new Error('work timeout'), {
+      code: 'DEDICATED_WORK_TIMEOUT',
+    });
+  };
+  const ledger = await superviseDedicatedAcceptance(value);
+  assert.equal(workEnd, 46000);
+  assert.equal(ledger.cleanupDeadline, 61000);
+  assert.equal(ledger.status, 'failed');
+  assert.ok(value.calls.includes('drop'));
+  assert.ok(
+    ledger.failures.some((item) => item.code === 'DEDICATED_WORK_TIMEOUT'),
+  );
+});
+test('final-only database routing preserves the diagnostic created acknowledgement predicate', async () => {
+  const source = await readFile(
+    new URL('./runtime-acceptance.mjs', import.meta.url),
+    'utf8',
+  );
+  const creation = source.slice(
+    source.indexOf('  const database = async (name)'),
+    source.indexOf('  const migrate = async (stage'),
+  );
+  assert.match(
+    creation,
+    /if \(identity\.group === 'final'\)[\s\S]*createFinalOwnedDatabase/,
+  );
+  assert.match(
+    creation,
+    /identity\.resources\.databases\.push\(\{ name, created: false \}\)/,
+  );
+  assert.match(
+    creation,
+    /identity\.resources\.databases\.at\(-1\)\.created = true/,
+  );
+  const cleanup = source.slice(
+    source.indexOf(
+      'for (const resource of [...identity.resources.databases].reverse())',
+    ),
+    source.indexOf('for (const container of identity.resources.containers)'),
+  );
+  assert.match(
+    cleanup,
+    /if \(identity\.group === 'final'\)[\s\S]*cleanupFinalOwnedDatabase[\s\S]*continue;[\s\S]*if \(created\)/,
+  );
+});
+
+function finalCrunSupervisorFixture() {
+  let now = 1000,
+    writes = 0,
+    alive = true;
+  const calls = [],
+    resource = { uuid: randomUUID() },
+    value = {
+      ...identity,
+      group: 'final',
+      overallDeadline: 100000,
+      resources: { crun: resource },
+    };
+  const clock = { now: () => now, sleep: () => new Promise(() => {}) };
+  const options = {
+    identity: value,
+    resource,
+    clock,
+    start: async ({ onSpawn }) => {
+      calls.push('spawn');
+      onSpawn(12345);
+      assert.equal(resource.pgid, 12345);
+      return { pid: 12345, done: Promise.resolve({ ...child }) };
+    },
+    stop: async (pids, limits) => {
+      calls.push('stop');
+      assert.deepEqual(pids, [12345]);
+      assert.equal(limits.term, 5000);
+      assert.equal(limits.kill, 3000);
+      assert.equal(limits.deadline, 11000);
+      now += 20;
+      alive = false;
+    },
+    probe: () => {
+      calls.push('probe');
+      if (!alive) throw Object.assign(new Error('absent'), { code: 'ESRCH' });
+    },
+    persistProof: async () => {
+      calls.push(++writes === 1 ? 'ack' : 'proof');
+    },
+    cleanupOwned: async (end) => {
+      calls.push('cleanup');
+      assert.equal(hasFinalCrunTerminationProof(resource), true);
+      assert.ok(end - now <= 5000);
+      return { passed: true, operations: [], failures: [] };
+    },
+  };
+  return {
+    options,
+    calls,
+    resource,
+    now: (value) => {
+      now = value;
+    },
+    alive: (value) => {
+      alive = value;
+    },
+    writes: () => writes,
+  };
+}
+test('actual final Crun binding requires observed group absence, closed streams and acknowledged proof before owned cleanup', async () => {
+  const value = finalCrunSupervisorFixture(),
+    result = await runFinalCrunBounded(value.options);
+  assert.equal(result.exitCode, 0);
+  assert.equal(result.cleanupError, null);
+  assert.equal(result.spawnError, null);
+  assert.deepEqual(value.calls, [
+    'spawn',
+    'ack',
+    'stop',
+    'probe',
+    'proof',
+    'cleanup',
+  ]);
+  assert.equal(result.cleanupDeadline, 16000);
+  assert.equal(hasFinalCrunTerminationProof(value.resource), true);
+  assert.equal(value.resource.cleanupResult.passed, true);
+  assert.equal(value.resource.terminationProof.candidateSHA, SHA);
+  assert.equal(value.resource.terminationProof.controlSHA, CONTROL);
+});
+for (const kind of [
+  'failed-child',
+  'output-error',
+  'stream-error',
+  'postspawn-ack',
+  'postspawn-setup',
+  'alive',
+  'EPERM',
+  'missing-pid',
+  'proof-write',
+  'owned-cleanup',
+])
+  test(`final Crun ${kind} preserves failure and never substitutes direct close for durable proof`, async () => {
+    const value = finalCrunSupervisorFixture();
+    if (['failed-child', 'output-error', 'stream-error'].includes(kind))
+      value.options.start = async ({ onSpawn }) => {
+        onSpawn(12345);
+        return {
+          pid: 12345,
+          done: Promise.resolve({
+            ...child,
+            exitCode: kind === 'failed-child' ? 7 : 0,
+            outputLimit: kind === 'output-error',
+            streamError: kind === 'stream-error',
+          }),
+        };
+      };
+    if (kind === 'postspawn-ack')
+      value.options.persistProof = async () => {
+        if (!value.resource.terminationProof)
+          throw Object.assign(new Error('disk'), { code: 'EIO' });
+      };
+    if (kind === 'postspawn-setup')
+      value.options.start = async ({ onSpawn }) => {
+        onSpawn(12345);
+        throw Object.assign(new Error('pipeline setup'), { code: 'EIO' });
+      };
+    if (kind === 'alive') value.options.probe = () => 0;
+    if (kind === 'EPERM')
+      value.options.probe = () => {
+        throw Object.assign(new Error('permission'), { code: 'EPERM' });
+      };
+    if (kind === 'missing-pid')
+      value.options.start = async ({ onSpawn }) => {
+        onSpawn(undefined);
+        return { done: Promise.resolve({ ...child }) };
+      };
+    if (kind === 'proof-write')
+      value.options.persistProof = async () => {
+        if (value.resource.terminationProof)
+          throw Object.assign(new Error('disk'), { code: 'ENOSPC' });
+      };
+    if (kind === 'owned-cleanup')
+      value.options.cleanupOwned = async () => ({
+        passed: false,
+        operations: [{ name: 'schema', passed: false }],
+        failures: [{ code: 'CRUN_SCHEMA_REMOVAL_FAILED' }],
+      });
+    const result = await runFinalCrunBounded(value.options);
+    if (kind === 'failed-child') {
+      assert.equal(result.exitCode, 7);
+      assert.ok(value.calls.includes('cleanup'));
+    }
+    if (kind === 'output-error') {
+      assert.equal(result.outputLimit, true);
+      assert.ok(value.calls.includes('cleanup'));
+    }
+    if (kind === 'stream-error') {
+      assert.equal(result.streamError, 'STREAM_FAILED');
+      assert.ok(value.calls.includes('cleanup'));
+    }
+    if (kind === 'postspawn-ack') {
+      assert.equal(result.spawnError, 'EIO');
+      assert.ok(value.calls.includes('cleanup'));
+    }
+    if (
+      [
+        'postspawn-setup',
+        'alive',
+        'EPERM',
+        'missing-pid',
+        'proof-write',
+      ].includes(kind)
+    ) {
+      assert.ok(result.cleanupError);
+      assert.equal(value.calls.includes('cleanup'), false);
+      assert.equal(hasFinalCrunTerminationProof(value.resource), false);
+    }
+    if (kind === 'owned-cleanup') {
+      assert.equal(result.cleanupError, 'CRUN_RESOURCE_CLEANUP_FAILED');
+      assert.equal(value.resource.cleanupResult.passed, false);
+    }
+  });
+test('Crun work timeout and unresolved pipelines cannot reset sixty plus fifteen seconds', async () => {
+  const value = finalCrunSupervisorFixture();
+  let waits = 0;
+  value.options.clock.sleep = () => {
+    waits++;
+    if (waits === 3 || waits === 5)
+      return Promise.resolve().then(() =>
+        value.now(waits === 3 ? 61000 : 71000),
+      );
+    return new Promise(() => {});
+  };
+  value.options.start = async ({ onSpawn }) => {
+    onSpawn(12345);
+    return { pid: 12345, done: new Promise(() => {}) };
+  };
+  value.options.stop = async (_pids, limits) => {
+    value.calls.push('stop');
+    assert.equal(limits.deadline, 71000);
+  };
+  const result = await runFinalCrunBounded(value.options);
+  assert.equal(result.timedOut, true);
+  assert.equal(result.cleanupDeadline, 76000);
+  assert.ok(result.cleanupError);
+  assert.equal(value.calls.includes('cleanup'), false);
+  assert.equal(hasFinalCrunTerminationProof(value.resource), false);
+});
+test('timed out Crun proof persistence cannot grant delayed authority or read a manifest', async () => {
+  const value = finalCrunSupervisorFixture();
+  let complete;
+  value.options.persistProof = async () => {
+    if (value.resource.terminationProof) {
+      value.options.clock.sleep = () =>
+        Promise.resolve().then(() => value.now(11000));
+      await new Promise((resolve) => {
+        complete = resolve;
+      });
+    }
+  };
+  const result = await runFinalCrunBounded(value.options);
+  assert.equal(result.cleanupError, 'CRUN_TERMINATION_PROOF_FAILED');
+  assert.equal(hasFinalCrunTerminationProof(value.resource), false);
+  assert.equal(value.calls.includes('cleanup'), false);
+  complete();
+  await Promise.resolve();
+  assert.equal(value.resource.terminationProofPersisted, false);
+  assert.equal(value.resource.terminationConfirmed, false);
+});
+test('actual starter hook records the real pid before child streams or postspawn journal failure', async (t) => {
+  const directory = await fixture(t),
+    resource = { uuid: randomUUID() },
+    value = {
+      ...identity,
+      group: 'final',
+      overallDeadline: Date.now() + 100000,
+      resources: { crun: resource },
+    };
+  let actual, stopped;
+  const result = await runFinalCrunBounded({
+    identity: value,
+    resource,
+    executable: process.execPath,
+    args: ['-e', 'setInterval(()=>{},1000)'],
+    cwd: directory,
+    env: process.env,
+    stdoutPath: path.join(directory, 'stdout'),
+    stderrPath: path.join(directory, 'stderr'),
+    persistProof: async () => {
+      assert.ok(resource.pgid > 1);
+      actual = resource.pgid;
+      if (!resource.terminationProof)
+        throw Object.assign(new Error('disk'), { code: 'EIO' });
+    },
+    stop: async (pids, limits) => {
+      stopped = pids;
+      await stopVisualGroups(pids, { ...limits, term: 10, kill: 1000 });
+    },
+    cleanupOwned: async () => ({ passed: true, operations: [], failures: [] }),
+  });
+  assert.deepEqual(stopped, [actual]);
+  assert.equal(result.spawnError, 'EIO');
+  assert.equal(resource.streamsClosed, true);
+  assert.equal(hasFinalCrunTerminationProof(resource), true);
+  assert.ok(result.signal);
+  assert.equal(
+    (await lstat(path.join(directory, 'stdout'))).mode & 0o777,
+    0o600,
+  );
+});
+test('direct child close with surviving same-group descendant still requires actual group termination', async (t) => {
+  const directory = await fixture(t),
+    resource = { uuid: randomUUID() },
+    value = {
+      ...identity,
+      group: 'final',
+      overallDeadline: Date.now() + 100000,
+      resources: { crun: resource },
+    };
+  let beforeStopAlive = false,
+    cleanup = 0;
+  const result = await runFinalCrunBounded({
+    identity: value,
+    resource,
+    executable: process.execPath,
+    args: [
+      '-e',
+      `const {spawn}=require('node:child_process');const child=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'});child.unref();process.stdout.write('descendant:'+child.pid);`,
+    ],
+    cwd: directory,
+    env: process.env,
+    stdoutPath: path.join(directory, 'stdout'),
+    stderrPath: path.join(directory, 'stderr'),
+    persistProof: async () => {},
+    stop: async (pids, limits) => {
+      try {
+        process.kill(-pids[0], 0);
+        beforeStopAlive = true;
+      } catch {}
+      assert.equal(resource.terminationConfirmed, false);
+      await stopVisualGroups(pids, { ...limits, term: 10, kill: 1000 });
+    },
+    cleanupOwned: async () => {
+      cleanup++;
+      assert.equal(hasFinalCrunTerminationProof(resource), true);
+      return { passed: true, operations: [], failures: [] };
+    },
+  });
+  assert.equal(beforeStopAlive, true);
+  assert.equal(result.exitCode, 0);
+  assert.equal(cleanup, 1);
+  assert.equal(result.cleanupError, null);
+  assert.match(
+    await readFile(path.join(directory, 'stdout'), 'utf8'),
+    /^descendant:\d+$/,
+  );
+});
+test('Crun production routing leaves diagnostic and other stages on untouched generic helper and consumes recorded cleanup once', async () => {
+  const source = await readFile(
+    new URL('./runtime-acceptance.mjs', import.meta.url),
+    'utf8',
+  );
+  assert.match(
+    source,
+    /identity\.group === 'final' && stage === 'crun'[\s\S]*runFinalCrunBounded[\s\S]*: await runBounded/,
+  );
+  const outer = source.slice(
+    source.indexOf(
+      '    if (identity.resources.crun) {',
+      source.indexOf('    const clean = async'),
+    ),
+    source.indexOf(
+      '    for (const resource of [...identity.resources.databases].reverse())',
+    ),
+  );
+  assert.ok(outer.includes('resource.cleanupResult'));
+  assert.ok(!outer.includes('cleanupFinalCrunResources('));
+  assert.ok(!outer.includes('readFile('));
+  assert.equal(
+    hasFinalCrunTerminationProof({
+      pgid: 12345,
+      terminationConfirmed: true,
+      terminationProofPersisted: true,
+      streamsClosed: true,
+    }),
+    false,
+  );
+});
+
+async function spawnMarkerInvocation(t) {
+  const directory = await fixture(t),
+    marker = path.join(directory, 'executed.marker');
+  return {
+    marker,
+    options: {
+      executable: process.execPath,
+      args: [
+        '-e',
+        "require('node:fs').writeFileSync(process.argv[1],'executed',{flag:'wx'})",
+        marker,
+      ],
+      cwd: directory,
+      env: process.env,
+      stdoutPath: path.join(directory, 'stdout'),
+      stderrPath: path.join(directory, 'stderr'),
+    },
+  };
+}
+test('actual starter checks the exact absolute work boundary after private file preparation', async (t) => {
+  for (const allowed of [false, true]) {
+    const value = await spawnMarkerInvocation(t);
+    let now = 1000,
+      spawns = 0;
+    const pending = startVisualProcess({
+      ...value.options,
+      beforeSpawn: () => {
+        if (now >= 61000)
+          throw Object.assign(new Error('deadline'), {
+            code: 'CRUN_WORK_TIMEOUT',
+          });
+      },
+      onSpawn: () => {
+        spawns++;
+      },
+    });
+    now = allowed ? 60999 : 61000;
+    if (allowed) {
+      const handle = await pending;
+      const status = await handle.done;
+      assert.equal(status.exitCode, 0);
+      assert.equal(spawns, 1);
+      assert.equal(await readFile(value.marker, 'utf8'), 'executed');
+      await stopVisualGroups([handle.pid], {
+        term: 0,
+        kill: 1000,
+        deadline: Date.now() + 1500,
+      });
+    } else {
+      await assert.rejects(pending, { code: 'CRUN_WORK_TIMEOUT' });
+      assert.equal(spawns, 0);
+      await assert.rejects(lstat(value.marker), { code: 'ENOENT' });
+      assert.equal((await lstat(value.options.stdoutPath)).mode & 0o777, 0o600);
+    }
+  }
+});
+for (const kind of ['deadline', 'cancelled', 'closed-window'])
+  test(`actual final Crun ${kind} preparation cannot allocate a late process or replace the first error`, async (t) => {
+    const value = await spawnMarkerInvocation(t),
+      resource = { uuid: randomUUID() },
+      calls = [];
+    let now = 1000,
+      cancelled = false,
+      pending,
+      lateError;
+    const clock = { now: () => now, sleep: () => new Promise(() => {}) };
+    const result = await runFinalCrunBounded({
+      identity: {
+        ...identity,
+        group: 'final',
+        overallDeadline: 100000,
+        resources: { crun: resource },
+      },
+      resource,
+      ...value.options,
+      clock,
+      isCancelled: () => cancelled,
+      start: (options) => {
+        pending = startVisualProcess(options);
+        pending.catch((error) => {
+          lateError = error.code;
+        });
+        if (kind === 'deadline') now = 61000;
+        if (kind === 'cancelled') cancelled = true;
+        if (kind === 'closed-window')
+          throw Object.assign(new Error('fixed original control error'), {
+            code: 'SYNTHETIC_CONTROL_FAILED',
+          });
+        return pending;
+      },
+      stop: async () => {
+        calls.push('stop');
+      },
+      persistProof: async () => {
+        calls.push('persist');
+      },
+      cleanupOwned: async () => {
+        calls.push('manifest');
+        return { passed: true };
+      },
+    });
+    await assert.rejects(pending, {
+      code: kind === 'cancelled' ? 'CANCELLED' : 'CRUN_WORK_TIMEOUT',
+    });
+    assert.equal(
+      lateError,
+      kind === 'cancelled' ? 'CANCELLED' : 'CRUN_WORK_TIMEOUT',
+    );
+    assert.equal(resource.spawnIssued, false);
+    assert.equal(resource.pgid, null);
+    assert.equal(resource.terminationConfirmed, false);
+    assert.equal(resource.terminationProofPersisted, false);
+    assert.equal(resource.streamsClosed, false);
+    assert.deepEqual(calls, []);
+    await assert.rejects(lstat(value.marker), { code: 'ENOENT' });
+    if (kind === 'deadline') assert.equal(result.timedOut, true);
+    if (kind === 'cancelled') assert.equal(result.spawnError, 'CANCELLED');
+    if (kind === 'closed-window') {
+      assert.equal(result.spawnError, 'SYNTHETIC_CONTROL_FAILED');
+      assert.equal(result.timedOut, false);
+      assert.ok(now < 61000);
+    }
+  });
+test('actual spawn guard is synchronous and immediately precedes spawn, while existing callers remain optional', async () => {
+  const source = await readFile(
+      new URL('./runtime-acceptance.mjs', import.meta.url),
+      'utf8',
+    ),
+    starter = source.slice(
+      source.indexOf('export async function startVisualProcess('),
+      source.indexOf('export async function stopVisualGroups('),
+    );
+  assert.match(
+    starter,
+    /await privateFile\(stdoutPath, ''\);\n {2}await privateFile\(stderrPath, ''\);\n {2}beforeSpawn\?\.\(\);\n {2}const child = spawn/,
+  );
+  assert.match(
+    source,
+    /finally \{\n {4}spawnWindowOpen = false;\n {2}\}\n {2}const cleanupStarted/,
+  );
+  const generic = source.slice(
+    source.indexOf('export async function runBounded('),
+    source.indexOf('async function captureCommand('),
+  );
+  assert.ok(!generic.includes('beforeSpawn'));
+  assert.ok(!generic.includes('onSpawn'));
 });
