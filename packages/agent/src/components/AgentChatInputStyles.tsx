@@ -35,18 +35,10 @@ export function AgentChatInputStyles(): ReactElement {
             stroke-dasharray: none;
           }
         }
-        .ProseMirror {
-          /* One line at rest, grows to five lines (text-sm = 20px/line +
-             12px padding), then scrolls — Cursor-style composer. */
-          min-height: 36px;
-          max-height: 112px;
-          overflow-y: auto;
-          outline: none;
-        }
         [data-density='dock'] .ProseMirror {
           min-height: 56px;
         }
-        .ProseMirror p.is-editor-empty:first-child::before {
+        [data-density] .ProseMirror p.is-editor-empty:first-child::before {
           content: attr(data-placeholder);
           float: left;
           pointer-events: none;

@@ -6,9 +6,14 @@ import type {
   IActivityPopulated,
 } from '@genfeedai/contracts/interfaces';
 import {
+  getActivityIngredientPreviewUrl,
   getActivityMediaPreviewUrl,
   getActivityTypeKind,
+  getActivityVideoUrl,
+  getBackgroundTaskStatus,
+  getResultTypeFromActivityKey,
 } from '@pages/activities/activities-list.utils';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
 import {
   Coins,
@@ -27,16 +32,16 @@ import { type ReactNode, useState } from 'react';
 
 type Props = {
   activity: IActivity;
-  isBackgroundTask: boolean;
-  status: 'processing' | 'completed' | 'failed' | 'pending';
-  resultType: IngredientCategory | undefined;
-  parsedMediaUrl: string | undefined;
-  resultId: string | undefined;
-  getPreviewUrl: (
+  isBackgroundTask?: boolean;
+  status?: 'processing' | 'completed' | 'failed' | 'pending';
+  resultType?: IngredientCategory;
+  parsedMediaUrl?: string;
+  resultId?: string;
+  getPreviewUrl?: (
     ingredient: Record<string, unknown>,
     category: IngredientCategory,
   ) => string | undefined;
-  onViewIngredient: (ingredient: unknown) => void;
+  onViewIngredient?: (ingredient: unknown) => void;
 };
 
 /** Both inspect controls are icon-only, so the name lives on the button. */
@@ -73,7 +78,7 @@ function ActivityAssetPreview({
   activity: IActivity;
   fallback: ReactNode;
   ingredient: unknown;
-  onViewIngredient: (ingredient: unknown) => void;
+  onViewIngredient?: (ingredient: unknown) => void;
   resultType: IngredientCategory | undefined;
   src: string;
 }) {
@@ -81,24 +86,46 @@ function ActivityAssetPreview({
   // swaps in a new preview URL. Remember which URL failed rather than latching
   // a boolean that would hide the replacement image too.
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
-  if (failedSrc === src) {
+  const [failedVideoSrc, setFailedVideoSrc] = useState<string | null>(null);
+  const videoSrc = getActivityVideoUrl(activity);
+  if (failedSrc === src && (!videoSrc || failedVideoSrc === videoSrc)) {
     return fallback;
   }
 
-  const canInspect = Boolean(ingredient);
+  const canInspect = Boolean(ingredient && onViewIngredient);
   const isVideo = resultType === IngredientCategory.VIDEO;
 
   return (
     <div className="group relative size-10 shrink-0 overflow-hidden bg-background">
-      <Image
-        src={src}
-        alt={activity.label || 'Activity asset'}
-        fill
-        className="object-cover"
-        sizes="48px"
-        unoptimized
-        onError={() => setFailedSrc(src)}
-      />
+      {failedSrc === src && videoSrc ? (
+        <VideoPlayer
+          ariaLabel={activity.label || 'Generated video preview'}
+          className="size-full"
+          mediaClassName="object-cover"
+          src={`${videoSrc.split('#')[0]}#t=0.001`}
+          config={{
+            controls: false,
+            loop: false,
+            muted: true,
+            playsInline: true,
+            preload: 'metadata',
+          }}
+          mediaProps={{
+            tabIndex: -1,
+            onError: () => setFailedVideoSrc(videoSrc),
+          }}
+        />
+      ) : (
+        <Image
+          src={src}
+          alt={activity.label || 'Activity asset'}
+          fill
+          className="object-cover"
+          sizes="48px"
+          unoptimized
+          onError={() => setFailedSrc(src)}
+        />
+      )}
       {isVideo ? (
         <div
           className={
@@ -126,7 +153,7 @@ function ActivityAssetPreview({
           variant={ButtonVariant.UNSTYLED}
           onClick={(event) => {
             event.stopPropagation();
-            onViewIngredient(ingredient);
+            onViewIngredient?.(ingredient);
           }}
           className={
             'absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary' /* design-system-allow-content-color */
@@ -146,7 +173,7 @@ function ActivityAssetPreview({
           withWrapper={false}
           onClick={(event) => {
             event.stopPropagation();
-            onViewIngredient(ingredient);
+            onViewIngredient?.(ingredient);
           }}
           className="absolute inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
         />
@@ -157,11 +184,11 @@ function ActivityAssetPreview({
 
 export default function ActivityThumbnailCell({
   activity,
-  status,
-  resultType,
+  status = getBackgroundTaskStatus(activity.key),
+  resultType = getResultTypeFromActivityKey(activity.key),
   parsedMediaUrl,
   resultId,
-  getPreviewUrl,
+  getPreviewUrl = getActivityIngredientPreviewUrl,
   onViewIngredient,
 }: Props) {
   const previewUrl = getActivityMediaPreviewUrl(activity, {

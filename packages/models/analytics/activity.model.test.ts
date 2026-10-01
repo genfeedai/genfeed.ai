@@ -1,12 +1,18 @@
-import { ActivityKey } from '@genfeedai/contracts';
+import {
+  ActivityKey,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/contracts';
 import type {
   IActivity,
+  IIngredient,
   ISetting,
   IUser,
 } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@genfeedai/client/models', () => ({
+vi.mock('@genfeedai/client/models', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/client/models')>()),
   Activity: class BaseActivity {
     public key?: string;
     public value?: string;
@@ -27,6 +33,7 @@ vi.mock('@models/auth/user.model', () => ({
 }));
 
 import { Activity } from '@models/analytics/activity.model';
+import { Ingredient } from '@models/content/ingredient.model';
 
 const createBaseEntity = <T extends { id: string }>(
   partial: Partial<T> = {},
@@ -81,6 +88,18 @@ const createActivity = (partial: Partial<IActivity> = {}) =>
 
 describe('Activity', () => {
   describe('constructor', () => {
+    it('hydrates an included output into the ingredient model used by the inspector', () => {
+      const activity = new Activity({
+        ingredient: {
+          id: 'asset-1',
+          category: IngredientCategory.IMAGE,
+          status: IngredientStatus.GENERATED,
+        } as IIngredient,
+      });
+      expect(activity.ingredient).toBeInstanceOf(Ingredient);
+      expect(activity.ingredient?.id).toBe('asset-1');
+    });
+
     it('should create an activity instance', () => {
       const activity = createActivity({
         key: ActivityKey.VIDEO_PROCESSING,

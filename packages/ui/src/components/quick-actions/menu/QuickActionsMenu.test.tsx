@@ -3,6 +3,13 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import QuickActionsMenu from '@ui/quick-actions/menu/QuickActionsMenu';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return {
+    useTranslations: (namespace: string) => translateFromCatalog(namespace),
+  };
+});
+
 describe('QuickActionsMenu', () => {
   const actions = [
     {
@@ -67,7 +74,7 @@ describe('QuickActionsMenu', () => {
     expect(trigger.className).not.toContain('ring-ring');
   });
 
-  it('renders grouped section labels inside the open menu', async () => {
+  it('renders section headings as submenus without exposing their actions at the root', async () => {
     render(
       <QuickActionsMenu
         actions={actions}
@@ -81,8 +88,8 @@ describe('QuickActionsMenu', () => {
       expect(screen.getByRole('menu')).toBeInTheDocument();
       expect(screen.getByText('Transform')).toBeInTheDocument();
       expect(screen.getByText('Danger')).toBeInTheDocument();
-      expect(screen.getByText('Trim Video')).toBeInTheDocument();
-      expect(screen.getByText('Delete')).toBeInTheDocument();
+      expect(screen.queryByText('Trim Video')).not.toBeInTheDocument();
+      expect(screen.queryByText('Delete')).not.toBeInTheDocument();
     });
 
     const menu = screen.getByTestId('quick-actions-menu');
@@ -104,6 +111,9 @@ describe('QuickActionsMenu', () => {
       />,
     );
 
+    fireEvent.keyDown(screen.getByRole('menuitem', { name: 'Transform' }), {
+      key: 'ArrowRight',
+    });
     await waitFor(() => {
       expect(screen.getByText('Trim Video')).toBeInTheDocument();
     });
@@ -111,5 +121,38 @@ describe('QuickActionsMenu', () => {
     fireEvent.click(screen.getByText('Trim Video'));
 
     expect(onActionClick).toHaveBeenCalledWith(actions[0]);
+  });
+  it('supports a second submenu level and preserves the selected action', async () => {
+    const onActionClick = vi.fn();
+    const reframe = {
+      id: 'portrait',
+      label: 'Reframe to Portrait',
+      sectionLabel: 'Transform',
+      onClick: vi.fn(),
+    };
+    render(
+      <QuickActionsMenu
+        actions={[reframe]}
+        isMenuOpen={true}
+        setIsMenuOpen={vi.fn()}
+        onActionClick={onActionClick}
+      />,
+    );
+    fireEvent.keyDown(screen.getByRole('menuitem', { name: 'Transform' }), {
+      key: 'ArrowRight',
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByRole('menuitem', { name: /^Reframe$/ }),
+      ).toBeInTheDocument(),
+    );
+    fireEvent.keyDown(screen.getByRole('menuitem', { name: /^Reframe$/ }), {
+      key: 'ArrowRight',
+    });
+    await waitFor(() =>
+      expect(screen.getByText('Reframe to Portrait')).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByText('Reframe to Portrait'));
+    expect(onActionClick).toHaveBeenCalledWith(reframe);
   });
 });

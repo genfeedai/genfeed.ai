@@ -9,6 +9,12 @@ const messagesUnread = vi.hoisted(() => ({
   count: 0,
   spy: vi.fn(),
 }));
+vi.mock('@/components/shell/use-pinned-rail-apps', () => ({
+  usePinnedRailApps: () => ({
+    pinnedAppIds: ['studio'],
+    togglePin: vi.fn(),
+  }),
+}));
 vi.mock('@/components/shell/use-messages-unread-count', () => ({
   useMessagesUnreadCount: (
     brandId?: string,
@@ -191,8 +197,12 @@ describe('AppProtectedRail', () => {
           workspace: { count: 4, label: 'workspaceBadge' },
           messages: { count: 0, label: '0 unread conversations' },
         },
+        pinnedAppIds: ['studio'],
         surface: 'desktop',
       }),
+    );
+    expect(appRailSpy.mock.lastCall?.[0].onTogglePin).toEqual(
+      expect.any(Function),
     );
   });
 
@@ -345,37 +355,11 @@ describe('AppProtectedRail', () => {
     );
   });
 
-  it('pins the organization avatar at the top of the rail', () => {
+  it('leaves the organization switcher to the topbar', () => {
     render(<AppProtectedRail orgSlug="acme" brandSlug="brand" />);
 
-    const organization = screen.getByTestId('organization-switcher');
-    expect(organization).toHaveAttribute('data-subscription-tier', 'pro');
-  });
-
-  it('keeps the organization avatar on organization settings pages', () => {
-    mockPathname.value = '/acme/~/settings/general';
-
-    render(<AppProtectedRail orgSlug="acme" />);
-
-    expect(screen.getByTestId('organization-switcher')).toBeInTheDocument();
-  });
-
-  it('hides the organization avatar on personal-account settings pages (#4659)', () => {
-    for (const pathname of [
-      '/settings',
-      '/settings/personal',
-      '/acme/~/settings/personal',
-      '/acme/~/settings/notifications',
-    ]) {
-      mockPathname.value = pathname;
-
-      const { unmount } = render(<AppProtectedRail orgSlug="acme" />);
-
-      expect(
-        screen.queryByTestId('organization-switcher'),
-      ).not.toBeInTheDocument();
-      unmount();
-    }
+    expect(screen.queryByTestId('organization-switcher')).toBeNull();
+    expect(appRailSpy.mock.lastCall?.[0].header).toBeUndefined();
   });
 
   it('launches rail destinations through the trusted shell resolver', () => {

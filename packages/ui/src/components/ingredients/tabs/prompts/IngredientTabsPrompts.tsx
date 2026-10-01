@@ -2,7 +2,6 @@
 
 import type { IPrompt } from '@genfeedai/contracts/interfaces';
 import type { IngredientTabsPromptsProps } from '@genfeedai/props/content/ingredient.props';
-import Card from '@ui/card/Card';
 import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHarnessReceipt';
 
 export default function IngredientTabsPrompts({
@@ -33,43 +32,32 @@ export default function IngredientTabsPrompts({
 
   return (
     <div className="space-y-5">
-      <Card bodyClassName="gap-1">
-        <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          Prompt Context
-        </p>
-        <p className="text-sm text-muted-foreground">
-          The original generation prompt and the structured creative controls
-          that shaped it.
-        </p>
-      </Card>
-
-      {/* First row: full width */}
-      <Card bodyClassName="gap-1">
-        <span className="font-semibold text-muted-foreground">
-          {promptRows[0].label}
-        </span>
-        <span className="whitespace-pre-wrap text-foreground">
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium">Original prompt</h3>
+        <p className="whitespace-pre-wrap break-words text-sm text-foreground">
           {promptRows[0].value}
-        </span>
-      </Card>
+        </p>
+      </div>
 
       {ingredient?.generationHarness ? (
         <GenerationHarnessReceipt receipt={ingredient.generationHarness} />
       ) : null}
 
-      {/* Remaining rows: 2 columns */}
-      <div className="grid grid-cols-2 gap-4">
-        {promptRows.slice(1).map((row) => (
-          <Card key={row.label} bodyClassName="gap-1">
-            <span className="font-semibold text-muted-foreground">
-              {row.label}
-            </span>
-            <span className="whitespace-pre-wrap text-foreground">
-              {row.value}
-            </span>
-          </Card>
-        ))}
-      </div>
+      <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {promptRows
+          .slice(1)
+          .filter((row) => row.value !== 'None')
+          .map((row) => (
+            <div key={row.label} className="space-y-1">
+              <dt className="text-sm font-medium text-muted-foreground">
+                {row.label}
+              </dt>
+              <dd className="whitespace-pre-wrap break-words text-sm text-foreground">
+                {row.value}
+              </dd>
+            </div>
+          ))}
+      </dl>
     </div>
   );
 }

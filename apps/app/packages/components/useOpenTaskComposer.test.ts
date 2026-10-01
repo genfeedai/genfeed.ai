@@ -1,14 +1,13 @@
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { dispatchOpenTaskComposer, mockPathname, push } = vi.hoisted(() => ({
+const { dispatchOpenTaskComposer, push } = vi.hoisted(() => ({
   dispatchOpenTaskComposer: vi.fn(),
-  mockPathname: { value: '/acme/brand/studio/generate' },
   push: vi.fn(),
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => mockPathname.value,
+  usePathname: () => '/acme/brand/publishing/review',
   useRouter: () => ({ push }),
 }));
 
@@ -28,16 +27,7 @@ describe('useOpenTaskComposer', () => {
     push.mockClear();
   });
 
-  it('navigates to the workspace inbox when the composer is not mounted', () => {
-    mockPathname.value = '/acme/brand/studio/generate';
-    renderHook(() => useOpenTaskComposer()).result.current();
-
-    expect(dispatchOpenTaskComposer).toHaveBeenCalledTimes(1);
-    expect(push).toHaveBeenCalledWith('/acme/brand/workspace/inbox');
-  });
-
-  it('only dispatches when already on the workspace inbox', () => {
-    mockPathname.value = '/acme/brand/workspace/inbox';
+  it('opens the composer on the current page', () => {
     renderHook(() => useOpenTaskComposer()).result.current();
 
     expect(dispatchOpenTaskComposer).toHaveBeenCalledTimes(1);

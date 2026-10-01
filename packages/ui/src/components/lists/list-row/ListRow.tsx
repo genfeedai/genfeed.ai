@@ -11,7 +11,7 @@ const DENSITY_CLASSES: Record<'compact' | 'comfortable', string> = {
 };
 
 const BASE_CLASSES =
-  'w-full border-b border-border text-left transition-colors duration-150 last:border-b-0';
+  'block w-full border-b border-border text-left transition-colors duration-150 last:border-b-0';
 
 function ListRowContent({
   description,

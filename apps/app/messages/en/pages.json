@@ -1031,6 +1031,14 @@
         "lead": "Meet the product. One line on the problem, one line on the result."
       }
     },
+    "filters": {
+      "allTypes": "All types",
+      "newest": "Newest first",
+      "oldest": "Oldest first",
+      "sort": "Sort",
+      "type": "Type"
+    },
+    "searchPlaceholder": "Search generations",
     "cancelEnhancingPrompt": "Cancel enhancing prompt",
     "enhancePrompt": "Enhance prompt",
     "estimatedCredits": "Estimated {credits} credits",

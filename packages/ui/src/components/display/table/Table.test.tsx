@@ -25,6 +25,36 @@ describe('Table', () => {
     expect(rootElement).toBeInTheDocument();
   });
 
+  it('pins the column header and one day heading under the section bar', () => {
+    render(
+      <Table
+        columns={[{ header: 'Name', key: 'name' }]}
+        getGroupHeading={(item) =>
+          item.id === 'a'
+            ? {
+                content: <h3>September 2026 · 2</h3>,
+                key: 'September 2026',
+              }
+            : null
+        }
+        getRowKey={(item) => item.id}
+        isHeaderPinned
+        items={[
+          { id: 'a', name: 'One' },
+          { id: 'b', name: 'Two' },
+        ]}
+      />,
+    );
+
+    expect(
+      screen.getByText('Name').closest('thead')?.getAttribute('style'),
+    ).toContain('var(--pinned-topbar-height, 0px)');
+    expect(screen.getAllByText('September 2026 · 2')).toHaveLength(1);
+    expect(
+      screen.getByText('September 2026 · 2').closest('td'),
+    ).toHaveAttribute('colspan', '1');
+  });
+
   it('reveals touch-safe row actions on keyboard focus', () => {
     render(
       <Table

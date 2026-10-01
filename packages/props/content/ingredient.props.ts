@@ -53,6 +53,16 @@ export interface IngredientListProps<T extends IIngredient = IIngredient> {
   ignoreFormatCompatibility?: boolean;
 }
 
+export interface IngredientTimeGroupHeadingProps {
+  label: string;
+  count: number;
+  /**
+   * `under-topbar` docks the row on the filters bar. `under-column-header`
+   * docks it beneath a sticky list header of the same height.
+   */
+  placement?: 'under-topbar' | 'under-column-header';
+}
+
 export interface IngredientsMediaGridProps {
   emptyLabel: string;
   emptyDescription?: string;
@@ -368,4 +378,6 @@ export interface SelectionActionsBarProps {
   onDownload?: () => void;
   onMerge?: () => void;
   onPublishCampaign?: () => void;
+  /** `subtopbar` joins the pinned library filters instead of floating. */
+  placement?: 'overlay' | 'subtopbar';
 }
