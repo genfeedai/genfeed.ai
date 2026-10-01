@@ -8,6 +8,7 @@ import {
   learningScopeKey,
 } from '@api/collections/content-learning/services/learning-operation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import type {
   LearningCellDescriptor,
   LearningCollectionReceiptV1,
@@ -497,6 +498,88 @@ export class LearningCheckpointService {
       return checkpoint;
     });
   }
+  private async collectBaselineContributors(
+    client: Prisma.TransactionClient,
+    scope: LearningScope,
+    cutoff: Date,
+    descriptor: LearningCellDescriptor,
+    descriptorHash: string,
+  ) {
+    const selected: ContentLearningCheckpoint[] = [],
+      samples: LearningMeasurement[] = [],
+      distinct = new Set<string>();
+    let cursor: { receivedAt: Date; id: string } | undefined;
+    while (selected.length < 50) {
+      const rows = await client.contentLearningCheckpoint.findMany({
+        where: scopedWhere(scope.organizationId, {
+          brandId: scope.brandId,
+          credentialId: scope.credentialId,
+          format: scope.format,
+          validity: 'valid',
+          windowId: '48h-v1',
+          isDeleted: false,
+          receivedAt: {
+            lte: cutoff,
+            gte: new Date(cutoff.getTime() - 90 * 86400000),
+          },
+          ...(cursor
+            ? {
+                OR: [
+                  { receivedAt: { lt: cursor.receivedAt } },
+                  { receivedAt: cursor.receivedAt, id: { gt: cursor.id } },
+                ],
+              }
+            : {}),
+        }),
+        orderBy: [{ receivedAt: 'desc' }, { id: 'asc' }],
+        take: 100,
+      });
+      for (const row of rows) {
+        if (distinct.has(row.postId)) continue;
+        const raw = row.measurement;
+        if (
+          !raw ||
+          typeof raw !== 'object' ||
+          Array.isArray(raw) ||
+          !Array.isArray(raw.profiles)
+        )
+          continue;
+        const profile = raw.profiles.find(
+          (value) =>
+            value &&
+            typeof value === 'object' &&
+            !Array.isArray(value) &&
+            value.profileId === descriptorHash &&
+            validLearningDescriptor(value.descriptor) &&
+            learningHash(learningDescriptorTuple(value.descriptor)) ===
+              descriptorHash,
+        );
+        if (!profile || typeof profile !== 'object' || Array.isArray(profile))
+          continue;
+        const measurement = parseLearningMeasurement(profile.measurement);
+        if (
+          !measurement ||
+          (descriptor.retention &&
+            measurement.averageWatchTimeSeconds === undefined) ||
+          !(await this.dependencies.valid(
+            'checkpoint',
+            row.id,
+            client,
+            scope.organizationId,
+          ))
+        )
+          continue;
+        selected.push(row);
+        samples.push(measurement);
+        distinct.add(row.postId);
+        if (selected.length === 50) break;
+      }
+      if (rows.length < 100) break;
+      const last = rows[rows.length - 1];
+      cursor = { receivedAt: last.receivedAt, id: last.id };
+    }
+    return { selected, samples };
+  }
   async freeze(
     scope: LearningScope,
     cutoff: Date,
@@ -520,80 +603,13 @@ export class LearningCheckpointService {
         'Immutable registered cell descriptor required',
       );
     const collect = async (client: Prisma.TransactionClient) => {
-      const selected: ContentLearningCheckpoint[] = [],
-        samples: LearningMeasurement[] = [],
-        distinct = new Set<string>();
-      let cursor: { receivedAt: Date; id: string } | undefined;
-      while (selected.length < 50) {
-        const rows = await client.contentLearningCheckpoint.findMany({
-          where: {
-            organizationId: scope.organizationId,
-            brandId: scope.brandId,
-            credentialId: scope.credentialId,
-            format: scope.format,
-            validity: 'valid',
-            windowId: '48h-v1',
-            isDeleted: false,
-            receivedAt: {
-              lte: cutoff,
-              gte: new Date(cutoff.getTime() - 90 * 86400000),
-            },
-            ...(cursor
-              ? {
-                  OR: [
-                    { receivedAt: { lt: cursor.receivedAt } },
-                    { receivedAt: cursor.receivedAt, id: { gt: cursor.id } },
-                  ],
-                }
-              : {}),
-          },
-          orderBy: [{ receivedAt: 'desc' }, { id: 'asc' }],
-          take: 100,
-        });
-        for (const row of rows) {
-          if (distinct.has(row.postId)) continue;
-          const raw = row.measurement;
-          if (
-            !raw ||
-            typeof raw !== 'object' ||
-            Array.isArray(raw) ||
-            !Array.isArray(raw.profiles)
-          )
-            continue;
-          const profile = raw.profiles.find(
-            (value) =>
-              value &&
-              typeof value === 'object' &&
-              !Array.isArray(value) &&
-              value.profileId === descriptorHash &&
-              validLearningDescriptor(value.descriptor) &&
-              learningHash(learningDescriptorTuple(value.descriptor)) ===
-                descriptorHash,
-          );
-          if (!profile || typeof profile !== 'object' || Array.isArray(profile))
-            continue;
-          const measurement = parseLearningMeasurement(profile.measurement);
-          if (
-            !measurement ||
-            (descriptor.retention &&
-              measurement.averageWatchTimeSeconds === undefined) ||
-            !(await this.dependencies.valid(
-              'checkpoint',
-              row.id,
-              client,
-              scope.organizationId,
-            ))
-          )
-            continue;
-          selected.push(row);
-          samples.push(measurement);
-          distinct.add(row.postId);
-          if (selected.length === 50) break;
-        }
-        if (rows.length < 100) break;
-        const last = rows[rows.length - 1];
-        cursor = { receivedAt: last.receivedAt, id: last.id };
-      }
+      const { selected, samples } = await this.collectBaselineContributors(
+        client,
+        scope,
+        cutoff,
+        descriptor,
+        descriptorHash,
+      );
       // Revalidate the exact contributing versions before any immutable baseline write.
       for (const row of selected) {
         const current = await client.contentLearningCheckpoint.findFirst({

@@ -1,8 +1,6 @@
 import { LearningAccountService } from '@api/collections/content-learning/services/learning-account.service';
-import {
-  LearningCheckpointService,
-  parseLearningMeasurement,
-} from '@api/collections/content-learning/services/learning-checkpoint.service';
+import { hasInsufficientBaselineLineage } from '@api/collections/content-learning/services/learning-baseline-lineage.helper';
+import { LearningCheckpointService } from '@api/collections/content-learning/services/learning-checkpoint.service';
 import {
   LearningDependencyService,
   learningFence,
@@ -19,11 +17,10 @@ import {
   fromPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
 import {
-  isLearningGlobalDependencyKind,
+  type LearningCellDescriptor,
   type LearningGenerationContext,
   type LearningGenerationReceipt,
   type LearningScope,
-  validLearningDependencyKind,
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import {
   type ContentHarnessContribution,
@@ -39,6 +36,9 @@ import {
   type ContentLearningAccount,
   type ContentLearningBaseline,
   type ContentLearningDecision,
+  type ContentLearningExperiment,
+  type ContentLearningPolicyVersion,
+  type ContentLearningScopeState,
   type Prisma,
   toPrismaJson,
 } from '@genfeedai/prisma';
@@ -177,204 +177,50 @@ export class LearningDecisionService {
       contribution: {},
     };
   }
-  private async insufficientBaselineLineage(
-    tx: Prisma.TransactionClient,
+  private validReplayIdentity(
+    input: LearningGenerationInput,
     decision: ContentLearningDecision,
     account: ContentLearningAccount,
-    baseline: ContentLearningBaseline,
-  ): Promise<boolean> {
+    scope: ContentLearningScopeState,
+    destinationKey: string,
+    descriptor: LearningCellDescriptor,
+  ): boolean {
+    const context = input.context;
+    if (!context) return false;
     if (
-      baseline.validity !== 'insufficient_baseline' ||
-      !Number.isInteger(baseline.count) ||
-      baseline.count < 0 ||
-      baseline.count >= 20 ||
-      !Array.isArray(baseline.samples) ||
-      baseline.samples.length !== baseline.count ||
-      baseline.contributorCheckpointIds.length !== baseline.count ||
-      baseline.contributorRevisions.length !== baseline.count ||
-      new Set(baseline.contributorCheckpointIds).size !== baseline.count ||
-      !Number.isFinite(baseline.cutoff.getTime()) ||
-      baseline.cutoff.getTime() > Date.now()
+      decision.isDeleted ||
+      decision.synthetic ||
+      decision.organizationId !== input.organizationId ||
+      decision.brandId !== input.brandId ||
+      decision.credentialId !== context.credentialId ||
+      decision.requestKey !== context.requestKey ||
+      decision.candidateIndex !== context.candidateIndex ||
+      decision.destinationKey !== destinationKey ||
+      account.brandId !== input.brandId ||
+      scope.brandId !== input.brandId ||
+      !decision.descriptorHash ||
+      !validLearningDescriptor(descriptor) ||
+      descriptor.format !== input.format ||
+      descriptor.objective !== (context.objective ?? 'awareness') ||
+      descriptor.configVersion !== decision.configVersion ||
+      learningHash(learningDescriptorTuple(descriptor)) !==
+        decision.descriptorHash ||
+      decision.descriptorHash !== scope.descriptorHash ||
+      !validLearningDescriptor(scope.cellDescriptor) ||
+      learningHash(learningDescriptorTuple(scope.cellDescriptor)) !==
+        decision.descriptorHash ||
+      learningScopeKey({
+        organizationId: input.organizationId,
+        brandId: input.brandId,
+        credentialId: decision.credentialId,
+        platform: descriptor.platform,
+        format: descriptor.format,
+        objective: descriptor.objective,
+        rewardProfileId: decision.descriptorHash,
+      }) !== decision.scopeKey ||
+      !LEARNING_ARMS.includes(decision.selectedArmId as LearningArmId)
     )
       return false;
-    const descriptor = decision.cellDescriptor;
-    if (!validLearningDescriptor(descriptor)) return false;
-    const expectedFingerprint = learningHash([
-      decision.scopeKey,
-      decision.descriptorHash,
-      baseline.cutoff.toISOString(),
-      baseline.contributorCheckpointIds.map((id, index) => [
-        id,
-        baseline.contributorRevisions[index],
-      ]),
-    ]);
-    if (baseline.fingerprint !== expectedFingerprint) return false;
-    const checkpointEdges = await tx.contentLearningDependency.findMany({
-      where: {
-        derivedKind: 'baseline',
-        derivedId: baseline.id,
-        derivedOrganizationId: decision.organizationId,
-        sourceKind: 'checkpoint',
-        isDeleted: false,
-      },
-      orderBy: { id: 'asc' },
-    });
-    if (checkpointEdges.length !== baseline.count) return false;
-    const posts = new Set<string>();
-    for (let index = 0; index < baseline.count; index++) {
-      const id = baseline.contributorCheckpointIds[index],
-        revision = baseline.contributorRevisions[index],
-        sample = parseLearningMeasurement(baseline.samples[index]);
-      if (
-        !Number.isInteger(revision) ||
-        revision < 0 ||
-        !sample ||
-        (descriptor.retention && sample.averageWatchTimeSeconds === undefined)
-      )
-        return false;
-      const checkpoint = await tx.contentLearningCheckpoint.findFirst({
-        where: {
-          id,
-          organizationId: decision.organizationId,
-          brandId: decision.brandId,
-          credentialId: decision.credentialId,
-          format: descriptor.format,
-          windowId: descriptor.windowId,
-          revision,
-          validity: 'valid',
-          isDeleted: false,
-          receivedAt: {
-            lte: baseline.cutoff,
-            gte: new Date(
-              Math.max(
-                baseline.cutoff.getTime() - 90 * 86400000,
-                Date.now() - 90 * 86400000,
-              ),
-            ),
-          },
-        },
-      });
-      if (
-        !checkpoint ||
-        posts.has(checkpoint.postId) ||
-        !(await this.dependencies.valid(
-          'checkpoint',
-          id,
-          tx,
-          decision.organizationId,
-        ))
-      )
-        return false;
-      posts.add(checkpoint.postId);
-      const raw = checkpoint.measurement;
-      if (
-        !raw ||
-        typeof raw !== 'object' ||
-        Array.isArray(raw) ||
-        !Array.isArray(raw.profiles)
-      )
-        return false;
-      const matching = raw.profiles.find(
-        (value) =>
-          value &&
-          typeof value === 'object' &&
-          !Array.isArray(value) &&
-          value.profileId === decision.descriptorHash &&
-          validLearningDescriptor(value.descriptor) &&
-          learningHash(learningDescriptorTuple(value.descriptor)) ===
-            decision.descriptorHash,
-      );
-      if (
-        !matching ||
-        typeof matching !== 'object' ||
-        Array.isArray(matching) ||
-        learningHash(parseLearningMeasurement(matching.measurement)) !==
-          learningHash(sample)
-      )
-        return false;
-      if (
-        !checkpointEdges.some(
-          (edge) =>
-            edge.valid &&
-            edge.sourceId === id &&
-            edge.sourceOrganizationId === decision.organizationId &&
-            edge.sourceVersion === String(revision),
-        )
-      )
-        return false;
-    }
-    const edges = await tx.contentLearningDependency.findMany({
-      where: {
-        derivedKind: 'decision',
-        derivedId: decision.id,
-        derivedOrganizationId: decision.organizationId,
-        isDeleted: false,
-      },
-      orderBy: { id: 'asc' },
-    });
-    if (
-      !edges.some(
-        (edge) =>
-          edge.sourceKind === 'baseline' &&
-          edge.sourceId === baseline.id &&
-          edge.sourceOrganizationId === decision.organizationId &&
-          edge.sourceVersion === baseline.fingerprint &&
-          edge.valid,
-      )
-    )
-      return false;
-    for (const [kind, id] of [
-      ['account', account.id],
-      ['credential', decision.credentialId],
-      ['brand', decision.brandId],
-    ] as const)
-      if (
-        !edges.some(
-          (edge) =>
-            edge.sourceKind === kind &&
-            edge.sourceId === id &&
-            edge.sourceOrganizationId === decision.organizationId &&
-            edge.valid,
-        )
-      )
-        return false;
-    for (const edge of edges) {
-      if (
-        !edge.valid ||
-        !validLearningDependencyKind(edge.sourceKind) ||
-        edge.sourceVersion === 'current'
-      )
-        return false;
-      if (edge.sourceKind === 'baseline') {
-        if (
-          edge.sourceId !== baseline.id ||
-          edge.sourceOrganizationId !== decision.organizationId ||
-          edge.sourceVersion !== baseline.fingerprint
-        )
-          return false;
-        continue;
-      }
-      const sourceOrg = isLearningGlobalDependencyKind(edge.sourceKind)
-        ? null
-        : decision.organizationId;
-      if (
-        edge.sourceOrganizationId !== sourceOrg ||
-        !(await this.dependencies.valid(
-          edge.sourceKind,
-          edge.sourceId,
-          tx,
-          sourceOrg,
-        ))
-      )
-        return false;
-      const ref = await this.dependencies.resolve(
-        edge.sourceKind,
-        edge.sourceId,
-        sourceOrg,
-        tx,
-      );
-      if (ref.version !== edge.sourceVersion) return false;
-    }
     return true;
   }
   private async replay(
@@ -417,37 +263,15 @@ export class LearningDecisionService {
     if (!context) return suppressed('invalid_lineage');
     const descriptor = decision.cellDescriptor;
     if (
-      decision.isDeleted ||
-      decision.synthetic ||
-      decision.organizationId !== input.organizationId ||
-      decision.brandId !== input.brandId ||
-      decision.credentialId !== context.credentialId ||
-      decision.requestKey !== context.requestKey ||
-      decision.candidateIndex !== context.candidateIndex ||
-      decision.destinationKey !== destinationKey ||
-      account.brandId !== input.brandId ||
-      scope.brandId !== input.brandId ||
-      !decision.descriptorHash ||
       !validLearningDescriptor(descriptor) ||
-      descriptor.format !== input.format ||
-      descriptor.objective !== (context.objective ?? 'awareness') ||
-      descriptor.configVersion !== decision.configVersion ||
-      learningHash(learningDescriptorTuple(descriptor)) !==
-        decision.descriptorHash ||
-      decision.descriptorHash !== scope.descriptorHash ||
-      !validLearningDescriptor(scope.cellDescriptor) ||
-      learningHash(learningDescriptorTuple(scope.cellDescriptor)) !==
-        decision.descriptorHash ||
-      learningScopeKey({
-        organizationId: input.organizationId,
-        brandId: input.brandId,
-        credentialId: decision.credentialId,
-        platform: descriptor.platform,
-        format: descriptor.format,
-        objective: descriptor.objective,
-        rewardProfileId: decision.descriptorHash,
-      }) !== decision.scopeKey ||
-      !LEARNING_ARMS.includes(decision.selectedArmId as LearningArmId)
+      !this.validReplayIdentity(
+        input,
+        decision,
+        account,
+        scope,
+        destinationKey,
+        descriptor,
+      )
     )
       return suppressed('invalid_lineage');
     const credential = await tx.credential.findFirst({
@@ -522,8 +346,9 @@ export class LearningDecisionService {
       baseline.count < 20;
     if (isInsufficientControl)
       return suppressed(
-        (await this.insufficientBaselineLineage(
+        (await hasInsufficientBaselineLineage(
           tx,
+          this.dependencies,
           decision,
           account,
           baseline,
@@ -553,6 +378,65 @@ export class LearningDecisionService {
           ? 'insufficient_baseline'
           : (decision.censorshipReason ?? 'experiment_assignment_unavailable'),
       );
+    return this.replayTreatment(
+      tx,
+      input,
+      decision,
+      account,
+      scope,
+      destinationKey,
+      baseline,
+      descriptor,
+    );
+  }
+  private validTreatmentSpec(
+    experiment: ContentLearningExperiment,
+    policy: ContentLearningPolicyVersion,
+    decision: ContentLearningDecision,
+    descriptor: LearningCellDescriptor,
+  ): boolean {
+    const spec = experiment.spec;
+    if (
+      !spec ||
+      typeof spec !== 'object' ||
+      Array.isArray(spec) ||
+      spec.kind !== 'private_pilot' ||
+      spec.synthetic !== false ||
+      spec.cellKey !== decision.scopeKey ||
+      spec.rewardProfileId !== decision.descriptorHash ||
+      spec.format !== descriptor.format ||
+      spec.objective !== descriptor.objective ||
+      spec.configVersion !== decision.configVersion ||
+      spec.featureVersion !== descriptor.featureSchema ||
+      spec.treatmentProbability !== 0.1 ||
+      experiment.candidatePolicyId !== policy.id ||
+      spec.candidateId !== policy.id ||
+      spec.candidateHash !== policy.evidenceManifestHash ||
+      !Array.isArray(spec.approvedArmIds) ||
+      !spec.approvedArmIds.includes(decision.selectedArmId)
+    )
+      return false;
+    return true;
+  }
+  private async replayTreatment(
+    tx: Prisma.TransactionClient,
+    input: LearningGenerationInput,
+    decision: ContentLearningDecision,
+    account: ContentLearningAccount,
+    scope: ContentLearningScopeState,
+    destinationKey: string,
+    baseline: ContentLearningBaseline,
+    descriptor: LearningCellDescriptor,
+  ): Promise<LearningResolution> {
+    const suppressed = (reason: string): LearningResolution => ({
+      receipt: { ...this.receipt(decision), reason },
+      contribution: {},
+    });
+    const receipt = this.receipt(decision),
+      qT = receipt.treatmentProbabilities,
+      qC = receipt.controlProbabilities,
+      marginal = receipt.executionProbabilities;
+    if (!qT || !qC || !marginal) return suppressed('invalid_lineage');
     if (
       !decision.accountPolicyId ||
       decision.sharedReleaseId ||
@@ -648,26 +532,7 @@ export class LearningDecisionService {
       decision.assignmentProbability !== 0.1
     )
       return suppressed('experiment_assignment_unavailable');
-    const spec = experiment.spec;
-    if (
-      !spec ||
-      typeof spec !== 'object' ||
-      Array.isArray(spec) ||
-      spec.kind !== 'private_pilot' ||
-      spec.synthetic !== false ||
-      spec.cellKey !== decision.scopeKey ||
-      spec.rewardProfileId !== decision.descriptorHash ||
-      spec.format !== descriptor.format ||
-      spec.objective !== descriptor.objective ||
-      spec.configVersion !== decision.configVersion ||
-      spec.featureVersion !== descriptor.featureSchema ||
-      spec.treatmentProbability !== 0.1 ||
-      experiment.candidatePolicyId !== policy.id ||
-      spec.candidateId !== policy.id ||
-      spec.candidateHash !== policy.evidenceManifestHash ||
-      !Array.isArray(spec.approvedArmIds) ||
-      !spec.approvedArmIds.includes(decision.selectedArmId)
-    )
+    if (!this.validTreatmentSpec(experiment, policy, decision, descriptor))
       return suppressed('experiment_assignment_unavailable');
     const p = qT as LearningDistribution,
       c = qC as LearningDistribution;
@@ -696,6 +561,54 @@ export class LearningDecisionService {
     // Existing assignment has no authoritative control/source projection writer.
     // Until that lineage can be proved, selected history remains immutable and inert.
     return suppressed('experiment_assignment_unavailable');
+  }
+  private async selectBaseline(
+    tx: Prisma.TransactionClient,
+    input: LearningGenerationInput,
+    credentialId: string,
+    platform: string,
+    objective: LearningScope['objective'],
+    decisionAt: Date,
+    profiles: ReturnType<typeof learningRegisteredProfiles>,
+  ) {
+    let descriptor = profiles[0].descriptor;
+    let scope: LearningScope = {
+      organizationId: input.organizationId,
+      brandId: input.brandId,
+      credentialId: credentialId,
+      platform,
+      format: input.format,
+      objective,
+      rewardProfileId: learningHash(learningDescriptorTuple(descriptor)),
+    };
+    let baseline = await this.checkpoints.freeze(
+      scope,
+      decisionAt,
+      descriptor,
+      tx,
+    );
+    for (const profile of profiles.slice(1)) {
+      if (baseline.count >= 20) break;
+      const candidateScope = {
+        ...scope,
+        rewardProfileId: learningHash(
+          learningDescriptorTuple(profile.descriptor),
+        ),
+      };
+      const candidate = await this.checkpoints.freeze(
+        candidateScope,
+        decisionAt,
+        profile.descriptor,
+        tx,
+      );
+      if (candidate.count >= 20) {
+        descriptor = profile.descriptor;
+        scope = candidateScope;
+        baseline = candidate;
+        break;
+      }
+    }
+    return { descriptor, scope, baseline };
   }
   async resolveForGeneration(
     input: LearningGenerationInput,
@@ -809,43 +722,15 @@ export class LearningDecisionService {
       );
       if (!profiles.length) return this.fallback('unsupported_cell');
       const decisionAt = new Date();
-      let descriptor = profiles[0].descriptor;
-      let scope: LearningScope = {
-        organizationId: input.organizationId,
-        brandId: input.brandId,
-        credentialId: credential.id,
-        platform,
-        format: input.format,
-        objective,
-        rewardProfileId: learningHash(learningDescriptorTuple(descriptor)),
-      };
-      let baseline = await this.checkpoints.freeze(
-        scope,
-        decisionAt,
-        descriptor,
+      const { descriptor, scope, baseline } = await this.selectBaseline(
         tx,
+        input,
+        credential.id,
+        platform,
+        objective,
+        decisionAt,
+        profiles,
       );
-      for (const profile of profiles.slice(1)) {
-        if (baseline.count >= 20) break;
-        const candidateScope = {
-          ...scope,
-          rewardProfileId: learningHash(
-            learningDescriptorTuple(profile.descriptor),
-          ),
-        };
-        const candidate = await this.checkpoints.freeze(
-          candidateScope,
-          decisionAt,
-          profile.descriptor,
-          tx,
-        );
-        if (candidate.count >= 20) {
-          descriptor = profile.descriptor;
-          scope = candidateScope;
-          baseline = candidate;
-          break;
-        }
-      }
       const scoped = await this.scopes.ensure(
           tx,
           scope,
