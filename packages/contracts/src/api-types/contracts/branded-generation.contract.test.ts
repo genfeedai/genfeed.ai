@@ -1,4 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import type {
+  BrandGenerationLayerVersionV1,
+  BrandGenerationMediaKindV1,
+} from '../../interfaces/content/branded-generation.interface';
 import type { GenerationHarnessReceipt } from '../../interfaces/content/generation-harness.interface';
 import type { IBrandKitDraft } from '../../interfaces/organization/brand-kit.interface';
 import {
@@ -11,6 +15,7 @@ import {
   brandedGenerationReceiptV1Schema,
   brandedGenerationResolutionV1Schema,
   brandGenerationLayerReceiptV1Schema,
+  brandGenerationLayerVersionV1Schema,
   brandGenerationRulesV1Schema,
   brandIdentitySnapshotV1Schema,
 } from './branded-generation.contract';
@@ -999,4 +1004,425 @@ it('rejects an oversized receipt projection without truncating lineage', () => {
     ),
   }));
   expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+});
+
+describe('lossless source layer versions', () => {
+  const layer = {
+    kind: 'pack',
+    id: 'brand-fidelity',
+    version: '1.0.0',
+    status: 'applied',
+    evidenceIds: [],
+    omittedIds: [],
+  };
+  it('accepts actual loaded pack version unchanged and retains numeric/string identity', () => {
+    expect(brandGenerationLayerReceiptV1Schema.parse(layer).version).toBe(
+      '1.0.0',
+    );
+    const numeric: BrandGenerationLayerVersionV1 = 1;
+    const opaque: BrandGenerationLayerVersionV1 = '1';
+    expect(brandGenerationLayerVersionV1Schema.parse(numeric)).toBe(1);
+    expect(brandGenerationLayerVersionV1Schema.parse(opaque)).toBe('1');
+    expect(
+      brandGenerationLayerReceiptV1Schema.parse({ ...layer, version: numeric })
+        .version,
+    ).toBe(1);
+    expect(
+      brandGenerationLayerReceiptV1Schema.parse({
+        ...layer,
+        version: Number.MAX_SAFE_INTEGER,
+      }).version,
+    ).toBe(Number.MAX_SAFE_INTEGER);
+  });
+  it.each([
+    '1',
+    '1.0.0',
+    'v1.0.0',
+    '1.0.0-beta.2',
+    '1.0.0+build.42',
+    'release 2026-10-01',
+    ' 1.0.0 ',
+    'x'.repeat(256),
+  ])('preserves bounded opaque version %s exactly', (value) => {
+    expect(brandGenerationLayerVersionV1Schema.parse(value)).toBe(value);
+    expect(
+      brandGenerationLayerReceiptV1Schema.parse({ ...layer, version: value })
+        .version,
+    ).toBe(value);
+  });
+  it.each([
+    '',
+    ' ',
+    '\t',
+    '\n',
+    '\u00a0',
+    '\u2003',
+    '\u0000version',
+    'version\u001f',
+    'version\u007f',
+    'version\u0085',
+    'version\u009f',
+    'x'.repeat(257),
+  ])('rejects blank/control/oversize version %j', (value) => {
+    expect(brandGenerationLayerVersionV1Schema.safeParse(value).success).toBe(
+      false,
+    );
+    expect(
+      brandGenerationLayerReceiptV1Schema.safeParse({
+        ...layer,
+        version: value,
+        contentHash: hash,
+      }).success,
+    ).toBe(false);
+  });
+  it.each([0, -1, 0.5, Number.MAX_SAFE_INTEGER + 1, NaN, Infinity, -Infinity])(
+    'rejects invalid numeric version %s',
+    (value) => {
+      expect(brandGenerationLayerVersionV1Schema.safeParse(value).success).toBe(
+        false,
+      );
+      expect(
+        brandGenerationLayerReceiptV1Schema.safeParse({
+          ...layer,
+          version: value,
+        }).success,
+      ).toBe(false);
+    },
+  );
+  it('keeps applied source ID and version-or-hash requirements', () => {
+    expect(
+      brandGenerationLayerReceiptV1Schema.safeParse({ ...layer, id: undefined })
+        .success,
+    ).toBe(false);
+    expect(
+      brandGenerationLayerReceiptV1Schema.safeParse({
+        ...layer,
+        version: undefined,
+      }).success,
+    ).toBe(false);
+    expect(
+      brandGenerationLayerReceiptV1Schema.safeParse({
+        ...layer,
+        version: undefined,
+        contentHash: hash,
+      }).success,
+    ).toBe(true);
+    expect(
+      brandGenerationLayerReceiptV1Schema.safeParse({
+        ...layer,
+        omittedIds: ['rule'],
+      }).success,
+    ).toBe(false);
+  });
+  it('retains semantic pack version in complete resolution and saved receipt fixtures', () => {
+    const saved = { ...receipt(), layers: [layer] };
+    const before = structuredClone(saved);
+    const parsed = brandedGenerationReceiptV1Schema.parse(saved);
+    expect(parsed.layers[0].version).toBe('1.0.0');
+    expect(parsed.snapshot).toEqual(saved.snapshot);
+    expect(parsed.learning).toEqual(saved.learning);
+    const resolved = brandedGenerationResolutionV1Schema.parse({
+      schemaVersion: 1,
+      status: 'resolved',
+      mode: 'approved_brand',
+      snapshot: snapshot(),
+      compiledPrompt: 'Acme',
+      originalPromptHash: hash,
+      layers: [layer],
+      learning,
+      diagnostics: [],
+    });
+    expect(resolved.layers[0].version).toBe('1.0.0');
+    expect(saved).toEqual(before);
+  });
+  it('leaves identity, evidence, evaluator, capability and learning counters numeric', () => {
+    expect(
+      brandIdentitySnapshotV1Schema.safeParse({
+        ...snapshot(),
+        revisionVersion: '1',
+      }).success,
+    ).toBe(false);
+    const guide = snapshot();
+    guide.generationRules.evidence = [
+      { ...guide.generationRules.evidence[0], sourceVersion: 1 },
+    ];
+    expect(
+      brandIdentitySnapshotV1Schema.safeParse({
+        ...guide,
+        generationRules: {
+          ...guide.generationRules,
+          evidence: [
+            { ...guide.generationRules.evidence[0], sourceVersion: '1.0.0' },
+          ],
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      brandArtifactValidationReportV1Schema.safeParse({
+        ...report(),
+        rubricVersion: '1',
+      }).success,
+    ).toBe(false);
+    expect(
+      brandArtifactValidationReportV1Schema.safeParse({
+        ...report(),
+        checks: [{ ...report().checks[0], evaluatorVersion: '1' }],
+      }).success,
+    ).toBe(false);
+    expect(
+      brandedGenerationReceiptV1Schema.safeParse({
+        ...receipt(),
+        execution: { ...receipt().execution, capabilityVersion: '1' },
+      }).success,
+    ).toBe(false);
+    expect(
+      brandedGenerationReceiptV1Schema.safeParse({
+        ...receipt(),
+        learning: {
+          ...learning,
+          privateAccount: { ...learning.privateAccount, accountRevision: '1' },
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      brandedGenerationReceiptV1Schema.safeParse({
+        ...receipt(),
+        learning: {
+          ...learning,
+          global: { ...learning.global, releaseRevision: '1' },
+        },
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('explicit owner rule media applicability', () => {
+  function fontReceipt() {
+    const v = receipt();
+    if (!v.snapshot || !v.validation || !v.artifact)
+      throw new Error('Missing fixture evidence');
+    v.snapshot.generationRules.typography = [
+      {
+        id: 'font-rule',
+        role: 'heading',
+        family: 'Custom',
+        weight: 400,
+        style: 'normal',
+        availability: 'verified_runtime',
+        runtimeFontId: 'runtime',
+        required: true,
+        evidenceIds: ['evidence'],
+      },
+    ];
+    return {
+      ...v,
+      snapshot: v.snapshot,
+      validation: v.validation,
+      artifact: v.artifact,
+    };
+  }
+  function excludedReceipt() {
+    const v = fontReceipt();
+    v.snapshot.generationRules.typography[0].appliesToMediaKinds = [
+      'image',
+      'video',
+    ];
+    return v;
+  }
+  function excludedCheck(): BrandArtifactValidationReportV1['checks'][number] {
+    return {
+      ruleId: 'font-rule',
+      category: 'typography',
+      severity: 'hard',
+      result: 'not_applicable',
+      method: 'capability',
+      reasonCode: 'rule_media_not_applicable',
+      evidenceIds: [],
+    };
+  }
+  it('omission is universal; explicit scope permits text without a font check', () => {
+    const medium: BrandGenerationMediaKindV1 = 'text';
+    expect(fontReceipt().artifact.mediaKind).toBe(medium);
+    expect(
+      brandedGenerationReceiptV1Schema.safeParse(fontReceipt()).success,
+    ).toBe(false);
+    expect(
+      brandedGenerationReceiptV1Schema.safeParse(excludedReceipt()).success,
+    ).toBe(true);
+    const v = excludedReceipt();
+    v.validation.checks.push(excludedCheck());
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(true);
+  });
+  it('the same rule still requires actual qualified coverage for image', () => {
+    const v = excludedReceipt();
+    v.artifact.mediaKind = 'image';
+    v.validation.checks[0].method = 'deterministic_render';
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+    v.validation.checks.push({
+      ...excludedCheck(),
+      result: 'pass',
+      method: 'deterministic_render',
+      reasonCode: undefined,
+      evidenceIds: ['render-manifest'],
+    });
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(true);
+    v.validation.checks[1] = excludedCheck();
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+  });
+  it.each([
+    [],
+    ['image', 'image'],
+    ['audio'],
+    ['text', 'image', 'video', 'image'],
+  ])('rejects invalid applicability %j', (scope) => {
+    const v = excludedReceipt();
+    expect(
+      brandGenerationRulesV1Schema.safeParse({
+        ...v.snapshot.generationRules,
+        typography: [
+          {
+            ...v.snapshot.generationRules.typography[0],
+            appliesToMediaKinds: scope,
+          },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+  it('supports explicit scope on every owner rule origin without narrowing by category', () => {
+    const v = excludedReceipt();
+    const r = v.snapshot.generationRules;
+    r.facts[0].appliesToMediaKinds = ['image'];
+    r.palette = [
+      {
+        id: 'palette',
+        color: '#ABCDEF',
+        usage: 'primary',
+        required: true,
+        evidenceIds: ['evidence'],
+        appliesToMediaKinds: ['image'],
+      },
+    ];
+    r.mandatory = [
+      {
+        id: 'mandatory',
+        text: 'Acme',
+        match: 'literal',
+        required: true,
+        evidenceIds: ['evidence'],
+        appliesToMediaKinds: ['image'],
+      },
+    ];
+    r.avoid = [
+      {
+        id: 'avoid',
+        text: 'Forbidden',
+        match: 'literal',
+        required: true,
+        evidenceIds: ['evidence'],
+        appliesToMediaKinds: ['image'],
+      },
+    ];
+    r.assets = [
+      {
+        id: 'logo',
+        assetId: 'asset',
+        role: 'logo',
+        required: true,
+        evidenceIds: ['evidence'],
+        appliesToMediaKinds: ['image'],
+      },
+    ];
+    v.validation.checks = [];
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(true);
+    v.validation.checks.push({
+      ruleId: 'mandatory',
+      category: 'mandatory_rule',
+      severity: 'hard',
+      result: 'not_applicable',
+      method: 'capability',
+      reasonCode: 'rule_media_not_applicable',
+      evidenceIds: [],
+    });
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(true);
+    r.mandatory[0].appliesToMediaKinds = undefined;
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+  });
+  it('does not add applicability to examples or evidence', () => {
+    const r = rules();
+    expect(
+      brandGenerationRulesV1Schema.safeParse({
+        ...r,
+        evidence: [{ ...r.evidence[0], appliesToMediaKinds: ['text'] }],
+      }).success,
+    ).toBe(false);
+    expect(
+      brandGenerationRulesV1Schema.safeParse({
+        ...r,
+        examples: [
+          {
+            id: 'example',
+            polarity: 'positive',
+            text: 'Acme',
+            evidenceIds: ['evidence'],
+            appliesToMediaKinds: ['text'],
+          },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+  it.each(['ready', 'checking', 'needs_review', 'blocked'] as const)(
+    'enforces excluded checks in %s',
+    (state) => {
+      const mutations = [
+        { result: 'pass' },
+        { result: 'fail' },
+        { result: 'unknown' },
+        { result: 'unsupported' },
+        { category: 'fact' },
+        { method: 'exact_text' },
+        { severity: 'soft' },
+        { reasonCode: 'other' },
+      ];
+      for (const mutation of mutations) {
+        const v = excludedReceipt();
+        v.state = state;
+        v.compliance = state === 'ready' ? 'passed' : 'unverified';
+        v.validation.checks.push({
+          ...excludedCheck(),
+          ...mutation,
+        } as BrandArtifactValidationReportV1['checks'][number]);
+        expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(
+          false,
+        );
+      }
+    },
+  );
+  it('optional excluded rules use soft severity', () => {
+    const v = excludedReceipt();
+    v.snapshot.generationRules.typography[0].required = false;
+    v.validation.checks.push({ ...excludedCheck(), severity: 'soft' });
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(true);
+    v.validation.checks[1].severity = 'hard';
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+  });
+  it.each(['unknown', 'fail'] as const)(
+    'preserves synthetic hard %s and provisional guards',
+    (result) => {
+      const v = excludedReceipt();
+      v.validation.checks.push({
+        ...excludedCheck(),
+        ruleId: 'system:factual_coverage',
+        result,
+      });
+      expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+      v.validation.checks.pop();
+      v.mode = 'provisional_brand';
+      expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+    },
+  );
+  it('does not exempt unknown applicable required evidence', () => {
+    const v = excludedReceipt();
+    v.validation.checks[0].result = 'unknown';
+    expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+  });
 });
