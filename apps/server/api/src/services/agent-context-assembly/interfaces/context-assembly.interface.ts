@@ -203,6 +203,8 @@ export interface BrandContextContribution {
   content: string;
   instructions?: string;
   untrusted: boolean;
+  /** Structured payloads must be kept whole or dropped, never sliced. */
+  isAtomic?: boolean;
 }
 
 export type BrandContextContributionOptions = Omit<

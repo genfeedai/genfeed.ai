@@ -240,7 +240,10 @@ export function fitBrandContextToBudgetWithReport(
         return finish(rendered);
       }
 
-      if (section.contribution && section.body) {
+      if (section.contribution?.isAtomic) {
+        section.body = '';
+        section.content = '';
+      } else if (section.contribution && section.body) {
         // Binary search the body only; the immutable frame is all-or-nothing.
         const target = Math.max(0, section.content.length - overflow);
         let low = 0;

@@ -17,6 +17,7 @@ function dataContribution(
     instructions: DATA_FRAME,
     content: JSON.stringify(value),
     untrusted: false,
+    isAtomic: true,
   };
 }
 
@@ -70,20 +71,28 @@ export function compileBrandSnapshotContext(
       .map((rule) => withEvidence(rule));
     if (hard.length)
       required.push(dataContribution(`## Required Brand ${category}`, hard));
-    const soft = entries
-      .filter((rule) => !rule.required)
-      .map((rule) => withEvidence(rule));
-    if (soft.length)
-      optional.push(dataContribution(`## Optional Brand ${category}`, soft));
+    for (const rule of entries.filter((entry) => !entry.required)) {
+      optional.push(
+        dataContribution(`## Optional Brand ${category} (${rule.id})`, [
+          withEvidence(rule),
+        ]),
+      );
+    }
   }
-  const examples = rules.examples.map((rule) => withEvidence(rule));
-  if (examples.length)
-    optional.unshift(dataContribution('## Brand Examples', examples));
-  const excerpts = rules.evidence
-    .filter((entry) => entry.excerpt !== undefined)
-    .map((entry) => ({ id: entry.id, excerpt: entry.excerpt }));
-  if (excerpts.length)
-    optional.push(dataContribution('## Brand Evidence Excerpts', excerpts));
+  const examples = rules.examples.map((rule) =>
+    dataContribution(`## Brand Examples (${rule.id})`, [withEvidence(rule)]),
+  );
+  optional.unshift(...examples);
+  for (const entry of rules.evidence.filter(
+    (source) => source.excerpt !== undefined,
+  )) {
+    optional.push({
+      ...dataContribution(`## Brand Evidence Excerpts (${entry.id})`, [
+        { id: entry.id, excerpt: entry.excerpt },
+      ]),
+      untrusted: true,
+    });
+  }
   return fitRequiredBrandContextToBudgetWithReport(
     required,
     [...optional, ...optionalContributions],

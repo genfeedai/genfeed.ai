@@ -262,6 +262,63 @@ describe('finite typed final combination with legacy extra assemblers', () => {
   });
 });
 
+describe('atomic structured context budget', () => {
+  it('drops a complete JSON value instead of shortening a price or qualifier', () => {
+    const value = {
+      header: '## Optional Price',
+      content: JSON.stringify({
+        value: 1999,
+        unit: 'USD',
+        qualifier: 'annual',
+      }),
+      untrusted: false,
+      isAtomic: true,
+    };
+    const full = fitBrandContextToBudgetWithReport([value], Infinity);
+    for (const budget of [1, full.text.length - 1]) {
+      expect(fitBrandContextToBudgetWithReport([value], budget)).toMatchObject({
+        text: '',
+        isTrimmed: true,
+        sections: [{ status: 'dropped', renderedLength: 0 }],
+      });
+    }
+    expect(
+      fitBrandContextToBudgetWithReport([value], full.text.length).text,
+    ).toBe(full.text);
+  });
+
+  it('retains earlier complete values and preserves ordinary text trimming', () => {
+    const first = {
+      header: '## First',
+      content: JSON.stringify({ value: 1999, unit: 'USD' }),
+      untrusted: false,
+      isAtomic: true,
+    };
+    const second = { ...first, header: '## Second' };
+    const full = fitBrandContextToBudgetWithReport([first], Infinity);
+    const before = structuredClone([first, second]);
+    const result = fitBrandContextToBudgetWithReport(
+      [first, second],
+      full.text.length + 10,
+    );
+    expect(result.text).toBe(full.text);
+    expect(result.sections.map((section) => section.status)).toEqual([
+      'kept',
+      'dropped',
+    ]);
+    expect([first, second]).toEqual(before);
+    const ordinary = {
+      header: '## Ordinary',
+      content: 'x'.repeat(100),
+      untrusted: false,
+    };
+    expect(fitBrandContextToBudgetWithReport([ordinary], 40)).toMatchObject({
+      text: `## Ordinary\n${'x'.repeat(28)}`,
+      sections: [{ status: 'trimmed', renderedLength: 40 }],
+    });
+  });
+});
+
 describe('protected required context budget', () => {
   const required = {
     header: '## Required Facts',
