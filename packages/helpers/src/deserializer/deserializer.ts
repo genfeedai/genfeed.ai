@@ -150,18 +150,36 @@ class DeserializerUtils {
   }
 
   private extractAttributes(from: JsonApiResource): Record<string, unknown> {
-    const dest = this.convertKeys(from.attributes || {});
+    const dest = this.convertKeys(from.attributes || {}, from.type === 'model');
     if ('id' in from) {
       dest.id = from.id;
     }
     return dest;
   }
 
-  private convertKeys(obj: Record<string, unknown>): Record<string, unknown> {
+  private cloneOpaqueValue(value: unknown): unknown {
+    if (Array.isArray(value))
+      return value.map((item) => this.cloneOpaqueValue(item));
+    if (isPlainObject(value))
+      return Object.fromEntries(
+        Object.entries(value).map(([key, item]) => [
+          key,
+          this.cloneOpaqueValue(item),
+        ]),
+      );
+    return value;
+  }
+
+  private convertKeys(
+    obj: Record<string, unknown>,
+    isModelAttributeBoundary = false,
+  ): Record<string, unknown> {
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj)) {
       const newKey = convertKey(key, this.opts.keyForAttribute);
-      if (Array.isArray(value)) {
+      if (isModelAttributeBoundary && newKey === 'inputControls') {
+        result[newKey] = this.cloneOpaqueValue(value);
+      } else if (Array.isArray(value)) {
         result[newKey] = value.map((item) =>
           isPlainObject(item)
             ? this.convertKeys(item as Record<string, unknown>)
