@@ -1,294 +1,162 @@
-import { ModelsService } from '@api/collections/models/services/models.service';
-import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
+import type { TrendEntity } from '@api/collections/trends/entities/trend.entity';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
+import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
+import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, type TestingModule } from '@nestjs/testing';
-import { describe, expect, it, vi } from 'vitest';
-
 import { TrendContentIdeasService } from './trend-content-ideas.service';
 
-const makeTrend = (
-  platform: string,
-  topic: string,
-  viralityScore = 80,
-): TrendEntity =>
-  ({
-    _id: 'test-object-id',
-    expiresAt: new Date(),
-    growthRate: 5,
-    isCurrent: true,
-    isDeleted: false,
-    mentions: 1000,
-    metadata: {},
-    platform,
-    requiresAuth: false,
-    topic,
-    viralityScore,
-  }) as unknown as TrendEntity;
-
-const validIdeasJson = JSON.stringify([
-  {
-    caption: 'Check this out!',
-    contentType: 'video',
-    description: 'A great video idea',
-    estimatedViews: '10K-50K',
-    hashtags: ['#trending'],
-    title: 'Video Idea 1',
-  },
-]);
-
-describe('TrendContentIdeasService', () => {
+const trend = (platform = 'tiktok') =>
+  ({ platform, topic: '<topic>', viralityScore: 80 }) as TrendEntity;
+const idea = {
+  title: ' Title ',
+  description: 'Description',
+  contentType: 'video',
+  estimatedViews: 100,
+  hashtags: null,
+  caption: null,
+};
+const valid = JSON.stringify({ ideas: [idea] });
+describe('TrendContentIdeasService structured adapter', () => {
   let service: TrendContentIdeasService;
-  let replicateService: {
-    generateTextCompletionSync: ReturnType<typeof vi.fn>;
+  let completion: ReturnType<typeof vi.fn>;
+  let findOne: ReturnType<typeof vi.fn>;
+  const pricing = {
+    pricingType: 'per-token',
+    inputCostPerMillionTokens: 1000000,
+    outputCostPerMillionTokens: 1000000,
   };
-  let modelsService: {
-    findOne: ReturnType<typeof vi.fn>;
-  };
-  let loggerService: {
-    error: ReturnType<typeof vi.fn>;
-    log: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
-  };
-
-  beforeEach(async () => {
-    replicateService = {
-      generateTextCompletionSync: vi.fn().mockResolvedValue(validIdeasJson),
-    };
-    modelsService = {
-      findOne: vi.fn().mockResolvedValue({
-        cost: 1,
-        minCost: 1,
-        pricingType: 'fixed',
-      }),
-    };
-    loggerService = {
-      error: vi.fn(),
-      log: vi.fn(),
-      warn: vi.fn(),
-    };
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        TrendContentIdeasService,
-        { provide: ModelsService, useValue: modelsService },
-        { provide: ReplicateService, useValue: replicateService },
-        { provide: LoggerService, useValue: loggerService },
+  beforeEach(() => {
+    // Real structured adapter/helper; only the underlying provider completion is mocked.
+    completion = vi.fn().mockResolvedValue(valid);
+    const replicate = Object.create(
+      ReplicateService.prototype,
+    ) as ReplicateService;
+    replicate.generateTextCompletionSync =
+      completion as unknown as ReplicateService['generateTextCompletionSync'];
+    findOne = vi.fn().mockResolvedValue(pricing);
+    service = new TrendContentIdeasService(
+      { warn: vi.fn() } as never,
+      { findOne } as never,
+      replicate,
+    );
+  });
+  it('validates one completion, maps trusted platform and omits nullish properties', async () => {
+    const billing = vi.fn();
+    expect(
+      await service.generateIdeasForPlatform('tiktok', [trend()], 1, billing),
+    ).toEqual([
+      {
+        title: 'Title',
+        description: 'Description',
+        contentType: 'video',
+        platform: 'tiktok',
+        estimatedViews: 100,
+      },
+    ]);
+    expect(completion).toHaveBeenCalledTimes(1);
+    expect(billing).toHaveBeenCalledExactlyOnceWith(
+      calculateEstimatedTextCredits(
+        pricing,
+        completion.mock.calls[0][1],
+        valid,
+      ),
+    );
+  });
+  it('accounts each returned completion using its actual repair input and preserves model/BYOK', async () => {
+    const invalid = JSON.stringify({
+      ideas: [{ ...idea, estimatedViews: '10K-50K' }],
+    });
+    completion.mockResolvedValueOnce(invalid).mockResolvedValueOnce(valid);
+    const billing = vi.fn();
+    await service.generateIdeasForPlatform(
+      'tiktok',
+      [trend()],
+      1,
+      billing,
+      { label: '<brand>', text: '<voice>' },
+      'org-key',
+    );
+    expect(completion).toHaveBeenCalledTimes(2);
+    expect(billing.mock.calls).toEqual([
+      [
+        calculateEstimatedTextCredits(
+          pricing,
+          completion.mock.calls[0][1],
+          invalid,
+        ),
       ],
-    }).compile();
-
-    service = module.get<TrendContentIdeasService>(TrendContentIdeasService);
-
-    vi.spyOn(globalThis, 'setTimeout').mockImplementation(((
-      callback: TimerHandler,
-    ) => {
-      if (typeof callback === 'function') {
-        callback();
-      }
-
-      return 0 as unknown as ReturnType<typeof setTimeout>;
-    }) as typeof setTimeout);
+      [
+        calculateEstimatedTextCredits(
+          pricing,
+          completion.mock.calls[1][1],
+          valid,
+        ),
+      ],
+    ]);
+    for (const [model, input, key] of completion.mock.calls) {
+      expect(model).toBe(DEFAULT_TEXT_MODEL);
+      expect(key).toBe('org-key');
+      expect(input.max_completion_tokens).toBe(2000);
+      expect(input.prompt).toContain('brand');
+      expect(input.prompt).not.toContain('<brand>');
+    }
+    expect(completion.mock.calls[1][1].prompt.length).toBeGreaterThan(
+      completion.mock.calls[0][1].prompt.length,
+    );
+    expect(completion.mock.calls[1][1].prompt).toContain('estimatedViews');
   });
-
-  afterEach(() => {
-    vi.clearAllMocks();
-    vi.restoreAllMocks();
+  it('accounts twice then rejects two invalid completions', async () => {
+    completion.mockResolvedValue('{}');
+    const billing = vi.fn();
+    await expect(
+      service.generateContentIdeas([trend()], 1, billing),
+    ).rejects.toBeInstanceOf(LlmStructuredOutputError);
+    expect(completion).toHaveBeenCalledTimes(2);
+    expect(billing).toHaveBeenCalledTimes(2);
   });
-
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  it('does not look up pricing without billing callback', async () => {
+    await service.generateContentIdeas([trend()], 1);
+    expect(findOne).not.toHaveBeenCalled();
   });
-
-  describe('sanitizeForPrompt', () => {
-    it('removes angle brackets', () => {
-      expect(service.sanitizeForPrompt('<script>alert(1)</script>')).toBe(
-        'scriptalert(1)/script',
-      );
-    });
-
-    it('collapses 3+ consecutive newlines to 2', () => {
-      expect(service.sanitizeForPrompt('a\n\n\n\nb')).toBe('a\n\nb');
-    });
-
-    it('truncates strings longer than 2000 characters', () => {
-      const long = 'x'.repeat(2500);
-      expect(service.sanitizeForPrompt(long)).toHaveLength(2000);
-    });
-
-    it('converts numbers to strings', () => {
-      expect(service.sanitizeForPrompt(42)).toBe('42');
-    });
-
-    it('returns short strings unchanged', () => {
-      expect(service.sanitizeForPrompt('hello world')).toBe('hello world');
-    });
+  it.each(['transport', 'pricing', 'callback'])(
+    'propagates %s failure without another generation',
+    async (kind) => {
+      const error = new Error(kind);
+      const billing = vi.fn();
+      if (kind === 'transport') completion.mockRejectedValue(error);
+      if (kind === 'pricing') findOne.mockRejectedValue(error);
+      if (kind === 'callback')
+        billing.mockImplementation(() => {
+          throw error;
+        });
+      await expect(
+        service.generateContentIdeas([trend()], 1, billing),
+      ).rejects.toBe(error);
+      expect(completion).toHaveBeenCalledTimes(1);
+    },
+  );
+  it('never returns a partial map when a later platform fails', async () => {
+    const error = new Error('later platform');
+    completion.mockResolvedValueOnce(valid).mockRejectedValueOnce(error);
+    await expect(
+      service.generateContentIdeas([trend(), trend('youtube')], 2),
+    ).rejects.toBe(error);
+    expect(completion).toHaveBeenCalledTimes(2);
   });
-
-  describe('parseAIResponse', () => {
-    it('parses a valid JSON array from response', () => {
-      const ideas = service.parseAIResponse(validIdeasJson, 'tiktok');
-      expect(ideas).toHaveLength(1);
-      expect(ideas[0].title).toBe('Video Idea 1');
-    });
-
-    it('throws when no JSON array found', () => {
-      expect(() =>
-        service.parseAIResponse('No JSON here at all.', 'tiktok'),
-      ).toThrow('No JSON array found in response');
-    });
-
-    it('throws before the malformed-JSON graceful catch when no array exists', () => {
-      expect(() =>
-        service.parseAIResponse('Just some text', 'instagram'),
-      ).toThrow('No JSON array found in response');
-    });
-
-    it('returns empty array on malformed JSON', () => {
-      const result = service.parseAIResponse('[{broken json,,}]', 'twitter');
-      expect(result).toEqual([]);
-    });
-
-    it('returns empty array when ideas are missing required fields', () => {
-      const badIdeas = JSON.stringify([
-        { title: 'No description or contentType' },
-      ]);
-      const result = service.parseAIResponse(badIdeas, 'tiktok');
-      expect(result).toEqual([]);
-    });
+  it('returns valid empty ideas and does not call provider on empty input', async () => {
+    expect(await service.generateContentIdeas([])).toEqual(new Map());
+    expect(completion).not.toHaveBeenCalled();
+    completion.mockResolvedValue('{"ideas":[]}');
+    expect(await service.generateContentIdeas([trend()])).toEqual(
+      new Map([['tiktok', []]]),
+    );
   });
-
-  describe('callWithRetry', () => {
-    it('returns the result on first success', async () => {
-      const op = vi.fn().mockResolvedValue('done');
-      const result = await service.callWithRetry(op, 3, 0);
-      expect(result).toBe('done');
-      expect(op).toHaveBeenCalledTimes(1);
-    });
-
-    it('retries and succeeds on second attempt', async () => {
-      const op = vi
-        .fn()
-        .mockRejectedValueOnce(new Error('Transient'))
-        .mockResolvedValue('ok');
-
-      const result = await service.callWithRetry(op, 3, 0);
-      expect(result).toBe('ok');
-      expect(op).toHaveBeenCalledTimes(2);
-    }, 10000);
-
-    it('throws after all retries are exhausted', async () => {
-      const op = vi.fn().mockRejectedValue(new Error('Always fails'));
-
-      await expect(service.callWithRetry(op, 2, 0)).rejects.toThrow(
-        'Always fails',
-      );
-      expect(op).toHaveBeenCalledTimes(2);
-    }, 10000);
-  });
-
-  describe('generateContentIdeas', () => {
-    it('returns a map keyed by platform', async () => {
-      const trends = [makeTrend('tiktok', 'dance challenge', 90)];
-
-      const result = await service.generateContentIdeas(trends, 5);
-
-      expect(result).toBeInstanceOf(Map);
-      expect(result.has('tiktok')).toBe(true);
-    });
-
-    it('groups trends by platform and calls provider once per platform', async () => {
-      const trends = [
-        makeTrend('tiktok', 'trend-1'),
-        makeTrend('tiktok', 'trend-2'),
-        makeTrend('instagram', 'reel-trend'),
-      ];
-
-      await service.generateContentIdeas(trends, 6);
-
-      // Two platforms → two AI calls
-      expect(replicateService.generateTextCompletionSync).toHaveBeenCalledTimes(
-        2,
-      );
-    });
-
-    it('returns empty map and logs error when provider throws', async () => {
-      replicateService.generateTextCompletionSync.mockRejectedValue(
-        new Error('API down'),
-      );
-
-      const result = await service.generateContentIdeas(
-        [makeTrend('tiktok', 'test')],
-        5,
-      );
-
-      // generateContentIdeas catches top-level error → returns partial/empty
-      expect(result).toBeInstanceOf(Map);
-    });
-
-    it('returns empty map for empty trends input', async () => {
-      const result = await service.generateContentIdeas([], 10);
-      expect(result.size).toBe(0);
-      expect(
-        replicateService.generateTextCompletionSync,
-      ).not.toHaveBeenCalled();
-    });
-
-    it('calls replicate with correct model key', async () => {
-      await service.generateContentIdeas([makeTrend('youtube', 'shorts')], 3);
-
-      expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
-        DEFAULT_TEXT_MODEL,
-        expect.objectContaining({ prompt: expect.any(String) }),
-        undefined,
-      );
-    });
-
-    // #5375: BYOK — the resolved org key (when the guard granted a bypass)
-    // must reach the actual provider dispatch, not just the credit decision.
-    it('forwards a resolved BYOK key to replicate as apiKeyOverride', async () => {
-      await service.generateContentIdeas(
-        [makeTrend('youtube', 'shorts')],
-        3,
-        undefined,
-        undefined,
-        'org-openrouter-key',
-      );
-
-      expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
-        DEFAULT_TEXT_MODEL,
-        expect.objectContaining({ prompt: expect.any(String) }),
-        'org-openrouter-key',
-      );
-    });
-
-    it('dispatches with no key override when the org has no BYOK bypass', async () => {
-      await service.generateContentIdeas([makeTrend('youtube', 'shorts')], 3);
-
-      expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
-        DEFAULT_TEXT_MODEL,
-        expect.any(Object),
-        undefined,
-      );
-    });
-  });
-
-  describe('generateIdeasForPlatform (#5375 BYOK threading)', () => {
-    it('passes byokApiKeyOverride through to generateTextCompletionSync', async () => {
-      await service.generateIdeasForPlatform(
-        'tiktok',
-        [makeTrend('tiktok', 'dance challenge', 90)],
-        3,
-        undefined,
-        undefined,
-        'org-openrouter-key',
-      );
-
-      expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
-        DEFAULT_TEXT_MODEL,
-        expect.any(Object),
-        'org-openrouter-key',
-      );
-    });
+  it('retains prompt sanitization and count slicing', async () => {
+    expect(service.sanitizeForPrompt('<x>')).toBe('x');
+    expect(service.sanitizeForPrompt('x'.repeat(2100))).toHaveLength(2000);
+    completion.mockResolvedValue(JSON.stringify({ ideas: [idea, idea] }));
+    expect(
+      await service.generateIdeasForPlatform('tiktok', [trend()], 1),
+    ).toHaveLength(1);
   });
 });

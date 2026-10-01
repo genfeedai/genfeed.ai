@@ -1,3 +1,8 @@
+import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
+
+vi.mock('@api/helpers/utils/credits/finalize-deferred-credits.util', () => ({
+  finalizeDeferredTextCredits: vi.fn(),
+}));
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnBadRequest: vi.fn((response) => {
     throw { response, status: 400 };
@@ -615,6 +620,39 @@ describe('TrendsController', () => {
   });
 
   describe('getTrendIdeas', () => {
+    it.each([[2], [2, 3]])(
+      'finalizes successful completion accounting once: %j',
+      async (...amounts: number[]) => {
+        mockTrendsService.getTrends.mockResolvedValue([mockTrend]);
+        mockTrendsService.generateContentIdeas.mockImplementationOnce(
+          async (_trends, _limit, onBilling) => {
+            for (const amount of amounts) onBilling(amount);
+            return new Map([['twitter', []]]);
+          },
+        );
+        await controller.getTrendIdeas(mockReq, mockUser, { limit: 1 });
+        expect(finalizeDeferredTextCredits).toHaveBeenCalledExactlyOnceWith(
+          mockReq,
+          amounts.reduce((sum, amount) => sum + amount, 0),
+        );
+      },
+    );
+    it('propagates rejected generation without finalizing failed-operation credits', async () => {
+      const error = new Error('invalid structured output');
+      mockTrendsService.getTrends.mockResolvedValue([mockTrend]);
+      mockTrendsService.generateContentIdeas.mockImplementationOnce(
+        async (_trends, _limit, onBilling) => {
+          onBilling(2);
+          onBilling(3);
+          throw error;
+        },
+      );
+      await expect(
+        controller.getTrendIdeas(mockReq, mockUser, { limit: 1 }),
+      ).rejects.toBe(error);
+      expect(finalizeDeferredTextCredits).not.toHaveBeenCalled();
+    });
+
     it('should generate content ideas from trends', async () => {
       const query: GenerateTrendIdeasDto = {
         limit: 10,
