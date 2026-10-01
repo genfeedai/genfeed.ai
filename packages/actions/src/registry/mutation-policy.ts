@@ -129,6 +129,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   install_system_workflow: 'direct',
   manage_livestream_bot: 'direct',
   mark_social_conversation_resolved: 'direct',
+  open_in_editor: 'direct',
   pause_outreach_sequence: 'approval-required',
   post_social_reply: 'approval-required',
   prepare_ad_launch_review: 'direct',

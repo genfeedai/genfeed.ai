@@ -38,6 +38,7 @@ import {
   CLIP_PROJECTS_TOOL_NAMES,
   handleClipProjectsTool,
 } from '@mcp/tools/clip-projects.tool';
+import { EDITOR_TOOL_NAMES, handleEditorTool } from '@mcp/tools/editor.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import {
   approvalPendingToolResult,
@@ -180,6 +181,7 @@ type ExecutorKind =
   | 'account-management'
   | 'social-messages'
   | 'clip-projects'
+  | 'editor'
   | 'storyboard-capabilities'
   | 'remix'
   | 'scheduler'
@@ -383,12 +385,7 @@ export class ToolRegistryService implements OnModuleInit {
     }
   }
 
-  /**
-   * Classify a tool name to the executor that will run it, WITHOUT executing.
-   * Single source of truth for dispatch — used by {@link executeTool} and by the
-   * boot-time drift guard. Precedence is identical to the historical if/switch
-   * chain, so routing is behaviour-preserving.
-   */
+  /** Classify a tool name to its executor. Precedence matches the historical chain. */
   static classify(name: string): ExecutorKind {
     if (TOOL_DISCOVERY_TOOL_NAMES.has(name)) return 'tool-discovery';
     if (AGENT_CHAT_TOOL_NAMES.has(name)) return 'agent-chat';
@@ -402,6 +399,7 @@ export class ToolRegistryService implements OnModuleInit {
     if (ACCOUNT_MANAGEMENT_TOOL_NAMES.has(name)) return 'account-management';
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
     if (CLIP_PROJECTS_TOOL_NAMES.has(name)) return 'clip-projects';
+    if (EDITOR_TOOL_NAMES.has(name)) return 'editor';
     if (STORYBOARD_TOOL_NAMES.has(name)) return 'storyboard-capabilities';
     if (REMIX_TOOL_NAMES.has(name)) return 'remix';
     if (SCHEDULER_TOOL_NAMES.has(name)) return 'scheduler';
@@ -464,6 +462,8 @@ export class ToolRegistryService implements OnModuleInit {
         return handleSocialMessagesTool(this.clientService, name, args);
       case 'clip-projects':
         return handleClipProjectsTool(this.clientService, name, args);
+      case 'editor':
+        return handleEditorTool(this.clientService, name, args);
       case 'storyboard-capabilities':
         return handleStoryboardTool(this.clientService, name, args);
       case 'remix':

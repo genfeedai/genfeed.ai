@@ -173,6 +173,19 @@ describe('MCP tool annotations', () => {
     expect(tool?.mutationPolicy).toBe('approval-required');
   });
 
+  it('marks Open in Editor as a non-destructive draft create', () => {
+    const tool = getToolByName('open_in_editor');
+    expect(tool?.annotations).toMatchObject({
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+      readOnlyHint: false,
+    });
+    expect(tool?.mutationPolicy).toBe('direct');
+    expect(tool?.toolset).toBe('clips');
+    expect(tool?.creditCost).toBe(0);
+  });
+
   it('marks MCP create_post as a non-destructive draft', () => {
     const tool = getToolByName('create_post');
     expect(tool?.annotations).toMatchObject({

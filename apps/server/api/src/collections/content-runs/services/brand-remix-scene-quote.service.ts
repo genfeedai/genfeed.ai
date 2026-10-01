@@ -162,6 +162,10 @@ export class BrandRemixSceneQuoteService {
       organizationId,
       ByokProvider.HEYGEN,
     );
+    // A BYOK scene is zero credits and must not require a platform price row.
+    const avatarCredits = videoByok
+      ? 0
+      : await this.avatars.quotePlatformCredits();
     const scenes = config.concept?.storyboard ?? [];
     if (
       input.operation === 'repair' &&
@@ -177,6 +181,7 @@ export class BrandRemixSceneQuoteService {
         input,
         scene,
         quote.credits,
+        avatarCredits,
         imageByok,
         videoByok,
         item,
@@ -197,6 +202,7 @@ export class BrandRemixSceneQuoteService {
     input: QuoteBrandRemixScenes,
     scene: BrandRemixStoryboardScene,
     imageCredits: number,
+    avatarCredits: number,
     imageByok: boolean,
     videoByok: boolean,
     item: SceneQuoteItem,
@@ -270,7 +276,7 @@ export class BrandRemixSceneQuoteService {
       item(
         'video',
         MODEL_KEYS.HEYGEN_AVATAR,
-        await this.avatars.quotePlatformCredits(),
+        avatarCredits,
         (saved?.video.attempt ?? 0) + 1,
         scene.id,
         videoByok,

@@ -2374,6 +2374,10 @@
       "description": "The requested organization could not be confirmed. No tenant data was loaded.",
       "title": "Organization switch failed"
     },
+    "pending": {
+      "loading": "Loading your workspace",
+      "switching": "Switching organization"
+    },
     "unavailable": {
       "chooseOrganization": "Choose an organization you can access",
       "currentWorkspace": "Current workspace",

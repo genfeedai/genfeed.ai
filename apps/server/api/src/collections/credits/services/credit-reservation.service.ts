@@ -173,10 +173,14 @@ export class CreditReservationService {
           );
         }
 
-        // An even split of a fractional total can overshoot the pool by float
-        // dust; the last output takes exactly what is left.
-        const amount = Math.min(input.amount, pool.amount);
-        const remaining = pool.amount - amount;
+        // An even split can leave dust or overshoot the pool. A remainder
+        // within tolerance moves onto this output so the wallet hold matches
+        // the row amounts when the pool retires.
+        const requested = Math.min(input.amount, pool.amount);
+        const rawRemaining = pool.amount - requested;
+        const retiresPool = rawRemaining <= BIND_ROUNDING_TOLERANCE;
+        const amount = retiresPool ? pool.amount : requested;
+        const remaining = retiresPool ? 0 : rawRemaining;
         const shrunk = await tx.creditReservation.updateMany({
           data: {
             amount: remaining,

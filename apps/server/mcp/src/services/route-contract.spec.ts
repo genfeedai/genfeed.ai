@@ -143,6 +143,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/clip-projects/clip-projects.controller.ts',
     prefix: 'clip-projects',
   },
+  editorProjects: {
+    file: 'collections/editor-projects/editor-projects.controller.ts',
+    prefix: 'editor-projects',
+  },
   clipProjectGeneration: {
     file: 'collections/clip-projects/clip-project-generation.controller.ts',
     prefix: 'clip-projects',
@@ -590,6 +594,12 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     sub: '',
     controller: 'clipProjects',
     tools: ['list_clip_projects'],
+  },
+  {
+    method: 'Post',
+    sub: '',
+    controller: 'editorProjects',
+    tools: ['open_in_editor'],
   },
 
   // ── Scheduler releases ──
