@@ -147,7 +147,7 @@ export class LearningRunControlService {
         for (const cycle of cycles.filter((cycle) =>
           ['pending', 'running'].includes(cycle.status),
         )) {
-          const receipt = cycle.resultReferences;
+          const receipt: unknown = cycle.resultReferences;
           if (!validLearningRunDispatchReceipt(receipt))
             throw new ConflictException('dispatch_receipt_invalid');
           await tx.contentLearningOperation.updateMany({
