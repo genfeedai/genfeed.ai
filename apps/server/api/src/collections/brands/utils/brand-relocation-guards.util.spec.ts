@@ -1,5 +1,6 @@
 import {
   assertNoBrandedGenerationReceiptHistory,
+  assertNoCrunGenerationHistory,
   assertNoOpenVisualProjects,
   assertNoSecurityAuditHistory,
 } from '@api/collections/brands/utils/brand-relocation-guards.util';
@@ -257,6 +258,135 @@ describe('saved generation relocation history', () => {
       ).resolves.toBeUndefined();
       for (const delegate of Object.values(client))
         expect(delegate.findFirst).toHaveBeenCalledExactlyOnceWith(query);
+    },
+  );
+});
+
+describe('immutable Crun generation financial history', () => {
+  const ingredientQuery = {
+    where: {
+      organizationId: 'org',
+      brandId: 'brand',
+      isDeleted: { in: [false, true] },
+    },
+    select: { id: true },
+  };
+  const taskQuery = {
+    where: {
+      organizationId: 'org',
+      isDeleted: { in: [false, true] },
+      OR: [{ brandId: 'brand' }, { ingredientId: { in: ['ingredient'] } }],
+    },
+    select: { id: true },
+  };
+  for (const path of ['direct', 'ingredient'] as const) {
+    for (const state of [
+      'prepared',
+      'submitting',
+      'pending',
+      'running',
+      'provider-success',
+      'provider-failed',
+      'recovery-required',
+      'finalized',
+      'completed',
+      'failed',
+      'cancelled',
+    ]) {
+      it.each([false, true])(
+        `refuses ${path} ${state} financial history with deleted=%s`,
+        async (isDeleted) => {
+          const row = {
+            id: 'task',
+            organizationId: 'org',
+            brandId: path === 'direct' ? 'brand' : null,
+            ingredientId: 'ingredient',
+            isDeleted,
+            state,
+            fundingBinding: { kind: 'byok', organizationId: 'org' },
+            quoteSnapshot: { quoteId: 'immutable-quote' },
+          };
+          const before = JSON.stringify(row);
+          const client = {
+            ingredient: {
+              findMany: vi.fn().mockResolvedValue([{ id: 'ingredient' }]),
+            },
+            crunGenerationTask: {
+              findFirst: vi.fn().mockResolvedValue(row),
+              update: vi.fn(),
+              updateMany: vi.fn(),
+            },
+          };
+          await expect(
+            assertNoCrunGenerationHistory(
+              client as unknown as Prisma.TransactionClient,
+              'brand',
+              'org',
+            ),
+          ).rejects.toThrow(/retained Crun generation financial history/);
+          expect(client.ingredient.findMany).toHaveBeenCalledExactlyOnceWith(
+            ingredientQuery,
+          );
+          expect(
+            client.crunGenerationTask.findFirst,
+          ).toHaveBeenCalledExactlyOnceWith(taskQuery);
+          expect(client.crunGenerationTask.update).not.toHaveBeenCalled();
+          expect(client.crunGenerationTask.updateMany).not.toHaveBeenCalled();
+          expect(JSON.stringify(row)).toBe(before);
+        },
+      );
+    }
+  }
+  it.each(['none', 'foreign organization', 'foreign brand'] as const)(
+    'permits %s without crossing ownership scope',
+    async (scenario) => {
+      const rows =
+        scenario === 'none'
+          ? []
+          : [
+              {
+                id: 'foreign',
+                organizationId:
+                  scenario === 'foreign organization' ? 'other-org' : 'org',
+                brandId: scenario === 'foreign brand' ? 'other-brand' : 'brand',
+                ingredientId: 'foreign-ingredient',
+                isDeleted: true,
+              },
+            ];
+      const client = {
+        ingredient: {
+          findMany: vi.fn().mockResolvedValue([{ id: 'ingredient' }]),
+        },
+        crunGenerationTask: {
+          findFirst: vi.fn(
+            async (args: typeof taskQuery) =>
+              rows.find(
+                (row) =>
+                  row.organizationId === args.where.organizationId &&
+                  args.where.isDeleted.in.includes(row.isDeleted) &&
+                  args.where.OR.some(
+                    (scope) =>
+                      ('brandId' in scope && scope.brandId === row.brandId) ||
+                      ('ingredientId' in scope &&
+                        scope.ingredientId?.in.includes(row.ingredientId)),
+                  ),
+              ) ?? null,
+          ),
+        },
+      };
+      await expect(
+        assertNoCrunGenerationHistory(
+          client as unknown as Prisma.TransactionClient,
+          'brand',
+          'org',
+        ),
+      ).resolves.toBeUndefined();
+      expect(client.ingredient.findMany).toHaveBeenCalledExactlyOnceWith(
+        ingredientQuery,
+      );
+      expect(
+        client.crunGenerationTask.findFirst,
+      ).toHaveBeenCalledExactlyOnceWith(taskQuery);
     },
   );
 });

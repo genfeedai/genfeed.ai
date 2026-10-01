@@ -2,11 +2,11 @@ import type {
   CrunInputControls,
   CrunVideoDraft,
 } from '@genfeedai/contracts/interfaces';
-import { describe, expect, it } from 'vitest';
 import {
   createCrunVideoDraft,
   normalizeCrunVideoDraft,
-} from './crun-video-input.helper';
+} from '@genfeedai/helpers';
+import { describe, expect, it } from 'vitest';
 
 function controlsFor(endpoint = 'kling/v2-5-turbo-pro'): CrunInputControls {
   const kling = endpoint === 'kling/v2-5-turbo-pro';

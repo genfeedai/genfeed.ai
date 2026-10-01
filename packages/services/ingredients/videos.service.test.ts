@@ -12,6 +12,7 @@ import {
 } from '@services/__mocks__/http.mock';
 import { EnvironmentService } from '@services/core/environment.service';
 import { VideosService } from '@services/ingredients/videos.service';
+import axios from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('VideosService', () => {
@@ -316,15 +317,29 @@ describe('VideosService canonical Crun transport', () => {
   });
   it('keys same-token instances by endpoint and targets the new server', () => {
     const endpoint = vi.spyOn(EnvironmentService, 'apiEndpoint', 'get');
-    endpoint.mockReturnValue('https://first.example/api/');
-    const first = VideosService.getInstance('endpoint-video');
-    expect(VideosService.getInstance('endpoint-video')).toBe(first);
-    endpoint.mockReturnValue('https://second.example/api/');
-    const second = VideosService.getInstance('endpoint-video');
-    expect(second).not.toBe(first);
-    expect(VideosService.getInstance('endpoint-video')).toBe(second);
-    expect(first.baseURL).toBe('https://first.example/api/videos');
-    expect(second.baseURL).toBe('https://second.example/api/videos');
-    endpoint.mockRestore();
+    const create = vi.spyOn(axios, 'create');
+    create.mockClear();
+    try {
+      endpoint.mockReturnValue('https://first.example/api/');
+      const first = VideosService.getInstance('endpoint-video');
+      expect(VideosService.getInstance('endpoint-video')).toBe(first);
+      endpoint.mockReturnValue('https://second.example/api/');
+      const second = VideosService.getInstance('endpoint-video');
+      expect(second).not.toBe(first);
+      expect(VideosService.getInstance('endpoint-video')).toBe(second);
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseURL: 'https://first.example/api/videos',
+        }),
+      );
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseURL: 'https://second.example/api/videos',
+        }),
+      );
+    } finally {
+      create.mockRestore();
+      endpoint.mockRestore();
+    }
   });
 });

@@ -367,22 +367,21 @@ describe('reviewed Crun video capability projection', () => {
     (endpoint) => {
       const controls = controlsFor(endpoint);
       const kling = endpoint.startsWith('kling/');
-      expect(
-        getModelCapability(
-          createMockModel({
-            key: `crun/${endpoint}`,
-            category: ModelCategory.VIDEO,
-            provider: ModelProvider.CRUN,
-            inputControls: controls,
-            hasAudioToggle: true,
-            hasSpeech: true,
-            hasVideoReferences: true,
-            hasNativeExtend: true,
-            requiresFirstFrame: true,
-            maxReferences: 5,
-          }),
-        ),
-      ).toMatchObject({
+      const model = {
+        ...createMockModel({
+          key: `crun/${endpoint}`,
+          category: ModelCategory.VIDEO,
+          provider: ModelProvider.CRUN,
+          inputControls: controls,
+          hasAudioToggle: true,
+          hasSpeech: true,
+          maxReferences: 5,
+        }),
+        hasVideoReferences: true,
+        hasNativeExtend: true,
+        requiresFirstFrame: true,
+      };
+      expect(getModelCapabilityFromDoc(model)).toMatchObject({
         maxReferences: kling ? 1 : 0,
         hasEndFrame: kling,
         hasInterpolation: kling,

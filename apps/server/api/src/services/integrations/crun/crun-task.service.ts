@@ -7,12 +7,12 @@ import { generationUsageReceiptSchema } from '@api/helpers/utils/credits/generat
 import { modelBillableQuoteSnapshotSchema } from '@api/helpers/utils/credits/model-billable-quote.schema';
 import { scopedWhere } from '@api/index';
 import { ByokService } from '@api/services/byok/byok.service';
-import { CrunClient } from '@api/services/integrations/crun/crun-client.service';
+import {
+  CrunClient,
+  type CrunClientResult,
+} from '@api/services/integrations/crun/crun-client.service';
 import { getCrunMediaKind } from '@api/services/integrations/crun/crun-media-kind.util';
-import type {
-  CrunResponse,
-  CrunTaskStatusResponse,
-} from '@api/services/integrations/crun/crun-response.schema';
+import type { CrunTaskStatusResponse } from '@api/services/integrations/crun/crun-response.schema';
 import type {
   CrunPreparedTask,
   CrunProviderRequest,
@@ -606,7 +606,10 @@ export class CrunTaskService {
 
   private async handlePollFailure(
     task: CrunGenerationTask,
-    result: Extract<CrunResponse<CrunTaskStatusResponse>, { isValid: false }>,
+    result: Extract<
+      CrunClientResult<CrunTaskStatusResponse>,
+      { isValid: false }
+    >,
     now: Date,
   ): Promise<{ task: CrunGenerationTask } | null> {
     const terminal =

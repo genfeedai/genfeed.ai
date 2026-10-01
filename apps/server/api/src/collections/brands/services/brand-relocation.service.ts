@@ -7,6 +7,7 @@ import { RELOCATION_RESOURCE_LABELS } from '@api/collections/brands/constants/br
 import type { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import {
+  assertNoCrunGenerationHistory,
   assertNoKnowledgeHistory,
   assertNoOpenLiveSessions,
   assertNoOpenVisualProjects,
@@ -244,6 +245,7 @@ export class BrandRelocationService {
         reconcileResult = await this.prisma.$transaction(
           async (tx) => {
             await assertNoReceiptHistory(tx, brandId, sourceOrgId);
+            await assertNoCrunGenerationHistory(tx, brandId, sourceOrgId);
             await assertNoKnowledgeHistory(tx, brandId, sourceOrgId);
             await assertNoSecurityAuditHistory(tx, brandId, sourceOrgId);
             await assertNoOpenLiveSessions(tx, brandId, sourceOrgId);
@@ -343,6 +345,7 @@ export class BrandRelocationService {
 
     if (sourceOrgId !== destOrgId) {
       await assertNoReceiptHistory(this.prisma, brandId, sourceOrgId);
+      await assertNoCrunGenerationHistory(this.prisma, brandId, sourceOrgId);
       await assertNoKnowledgeHistory(this.prisma, brandId, sourceOrgId);
       await assertNoSecurityAuditHistory(this.prisma, brandId, sourceOrgId);
       await assertNoOpenLiveSessions(this.prisma, brandId, sourceOrgId);

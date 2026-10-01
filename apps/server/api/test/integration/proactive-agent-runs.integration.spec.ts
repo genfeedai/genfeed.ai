@@ -271,6 +271,9 @@ describe('proactive organization to strategy run and attributed draft integratio
       {} as never,
       schedules as never,
       {} as never,
+      { reconcile: vi.fn() } as unknown as ConstructorParameters<
+        typeof PlatformSchedulesProcessor
+      >[32],
     );
 
     await prisma.organization.create({

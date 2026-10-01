@@ -275,7 +275,7 @@ describe('shared video normalization and projection', () => {
     });
   });
   it('projects safe video metadata and independently copied arrays', () => {
-    const source = {
+    const source: CrunInputControls = {
       ...controlsFor(),
       serverOverrides: {},
       fields: {

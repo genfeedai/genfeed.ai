@@ -29,19 +29,24 @@ describe('Generation harness strict inputs', () => {
     },
   );
 
-  it.each([CreateImageDto, CreateVideoDto])(
-    'rejects string and null per-call overrides',
-    async (Dto) => {
+  it.each([
+    {
+      name: 'image',
+      create: (value: unknown) => plainToInstance(CreateImageDto, value),
+    },
+    {
+      name: 'video',
+      create: (value: unknown) => plainToInstance(CreateVideoDto, value),
+    },
+  ])(
+    'rejects string and null per-call overrides for $name',
+    async ({ create }) => {
       for (const harness of ['false', null, 1]) {
-        const errors = await validate(
-          plainToInstance(Dto, { text: 'prompt', harness }),
-        );
+        const errors = await validate(create({ text: 'prompt', harness }));
         expect(errors.some((error) => error.property === 'harness')).toBe(true);
       }
       for (const harness of [true, false, undefined]) {
-        const errors = await validate(
-          plainToInstance(Dto, { text: 'prompt', harness }),
-        );
+        const errors = await validate(create({ text: 'prompt', harness }));
         expect(errors.some((error) => error.property === 'harness')).toBe(
           false,
         );

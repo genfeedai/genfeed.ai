@@ -14,6 +14,7 @@ export * from './content/prompt-command.helper';
 export * from './content/schema-org.helper';
 export * from './content/skill-surface.helper';
 export * from './crun-input-contract.helper';
+export * from './crun-video-input.helper';
 export * from './deserializer.helper';
 export * from './email/system-email.helper';
 export * from './formatting/cn/cn.util';

@@ -610,7 +610,7 @@ export function useStudioGeneration({
         const controls = capturedCrunRequest.crunControls;
         recipe.modelKey = capturedCrunRequest.model;
         recipe.text = capturedCrunRequest.text;
-        recipe.outputs = capturedCrunRequest.outputs;
+        recipe.outputs = capturedCrunRequest.outputs ?? 1;
         recipe.references = [...(capturedCrunRequest.references ?? [])];
         recipe.aspectRatio = controls.aspectRatio;
         recipe.resolution = controls.resolution;

@@ -2208,7 +2208,6 @@
       "message": "Expected 1 arguments, but got 0.",
       "workspace": "api"
     },
-
     {
       "code": 2353,
       "count": 1,
@@ -3887,14 +3886,6 @@
       "file": "apps/server/api/src/services/pattern-matcher/pattern-matcher.service.spec.ts",
       "fingerprint": "d282d78676e0a0db2eba",
       "message": "Argument of type '{ brandId: string | null; id: string; organizationId: string; isDeleted: boolean; createdAt: Date; updatedAt: Date; data: JsonValue; }[]' is not assignable to parameter of type 'CreativePatternDocument[]'.   Type '{ brandId: string | null; id: string; organizationId: string; isDeleted: boolean; createdAt: Date; updatedAt: Date; data: JsonValue; }' is not assignable to type 'CreativePatternDocument'.     Types of property 'data' are incompatible.       Type 'JsonValue' is not assignable to type 'Record<string, unknown> | undefined'.         Type 'null' is not assignable to type 'Record<string, unknown> | undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/services/prompt-builder/builders/replicate/base-replicate.builder.spec.ts",
-      "fingerprint": "1a61ecfa6b9fb00661cf",
-      "message": "Type '{ prompt: string; }' is not assignable to type 'ReplicateInput'.   Type '{ prompt: string; }' is missing the following properties from type 'TrainedModelInput': aspect_ratio, disable_safety_checker, num_outputs, output_format, and 2 more.",
       "workspace": "api"
     },
     {
@@ -8095,14 +8086,6 @@
       "file": "packages/services/ingredients/images.service.test.ts",
       "fingerprint": "1011e589a2ae01f799ca",
       "message": "Object literal may only specify known properties, and 'url' does not exist in type 'ImageGenerationPayload | Partial<IImage>'.",
-      "workspace": "services"
-    },
-    {
-      "code": 2551,
-      "count": 1,
-      "file": "packages/services/ingredients/images.service.test.ts",
-      "fingerprint": "be5ffcff763519749e91",
-      "message": "Property 'imageInstances' does not exist on type 'typeof ImagesService'. Did you mean 'getInstance'?",
       "workspace": "services"
     },
     {
