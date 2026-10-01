@@ -57,10 +57,12 @@ function profile(
   id: string,
   modelKey: string,
   extras?: {
+    aspectRatioSupported?: boolean;
     aspectRatios?: readonly string[];
     audioSupported?: boolean;
     defaultAspectRatio?: string;
     defaultSeconds?: number;
+    durationSupported?: boolean;
     maxCharacters?: number;
     maxReferences?: number;
     maxVideoReferences?: number;
@@ -73,10 +75,12 @@ function profile(
   },
 ): RemainingVideoCapabilityProfile {
   return buildRemainingVideoCapabilityProfile({
+    aspectRatioSupported: extras?.aspectRatioSupported,
     aspectRatios: extras?.aspectRatios,
     audioSupported: extras?.audioSupported,
     defaultAspectRatio: extras?.defaultAspectRatio,
     defaultSeconds: extras?.defaultSeconds,
+    durationSupported: extras?.durationSupported,
     defaultResolution: getDefaultVideoResolution(modelKey),
     id,
     maxCharacters: extras?.maxCharacters,
@@ -644,6 +648,8 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
           'higgsfield-genjutsu-capability',
           MODEL_KEYS.HIGGSFIELD_GENJUTSU,
           {
+            aspectRatioSupported: false,
+            durationSupported: false,
             maxReferences: 8,
             maxVideoReferences: 1,
             nativeFields: ['image_url', 'image_urls', 'reference_video'],

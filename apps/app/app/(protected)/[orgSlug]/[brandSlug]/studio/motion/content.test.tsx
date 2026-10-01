@@ -11,6 +11,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   identity: { orgId: 'org', userId: 'user', sessionId: 'session' },
   brand: { id: 'brand' },
+  catalog: {
+    isAvailable: true,
+    defaultModelKey: 'model',
+    models: [
+      {
+        key: 'model',
+        label: 'Model',
+        isAvailable: true,
+        inspectionCapability: 'unknown',
+      },
+    ],
+  },
   quote: vi.fn(),
   submit: vi.fn(),
   replace: vi.fn(),
@@ -74,18 +86,7 @@ vi.mock('@hooks/data/content/use-visual-projects', () => ({
   useVisualProjects: () => ({
     library: { data: [] },
     catalog: {
-      data: {
-        isAvailable: true,
-        defaultModelKey: 'model',
-        models: [
-          {
-            key: 'model',
-            label: 'Model',
-            isAvailable: true,
-            inspectionCapability: 'unknown',
-          },
-        ],
-      },
+      data: mocks.catalog,
     },
     projects: { data: { pages: [] } },
     project: {},
@@ -109,6 +110,18 @@ const quote = {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.identity = { orgId: 'org', userId: 'user', sessionId: 'session' };
+  mocks.catalog = {
+    isAvailable: true,
+    defaultModelKey: 'model',
+    models: [
+      {
+        key: 'model',
+        label: 'Model',
+        isAvailable: true,
+        inspectionCapability: 'unknown',
+      },
+    ],
+  };
   mocks.quote.mockResolvedValue(quote);
   mocks.submit.mockResolvedValue({ id: 'project' });
 });
@@ -170,5 +183,10 @@ describe('Motion quote review', () => {
     expect(
       screen.queryByRole('button', { name: 'confirm' }),
     ).not.toBeInTheDocument();
+  });
+  it('renders when the catalog payload omits models', () => {
+    Reflect.deleteProperty(mocks.catalog, 'models');
+    expect(() => render(<MotionContent />)).not.toThrow();
+    expect(screen.getByRole('heading', { name: 'title' })).toBeVisible();
   });
 });

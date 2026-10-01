@@ -165,6 +165,107 @@ describe('AgentDock', () => {
     opener.remove();
   });
 
+  it('returns keyboard focus to the page promptbar after the overlay closes', () => {
+    const dock = buildDock({ isOpen: false });
+    const view = render(
+      <AgentDock
+        chrome="bubble"
+        dock={dock}
+        isCompact={false}
+        onOpenFullPage={vi.fn()}
+      >
+        <div contentEditable suppressContentEditableWarning>
+          composer
+        </div>
+      </AgentDock>,
+    );
+    const launcher = screen.getByTestId('agent-page-promptbar');
+    launcher.focus();
+    fireEvent.click(launcher);
+    expect(dock.open).toHaveBeenCalledTimes(1);
+
+    view.rerender(
+      <AgentDock
+        chrome="bubble"
+        dock={{ ...dock, isOpen: true }}
+        isCompact={false}
+        onOpenFullPage={vi.fn()}
+      >
+        <div contentEditable suppressContentEditableWarning>
+          composer
+        </div>
+      </AgentDock>,
+    );
+    view.rerender(
+      <AgentDock
+        chrome="bubble"
+        dock={{ ...dock, isOpen: false }}
+        isCompact={false}
+        onOpenFullPage={vi.fn()}
+      >
+        <div contentEditable suppressContentEditableWarning>
+          composer
+        </div>
+      </AgentDock>,
+    );
+
+    expect(document.activeElement).toBe(
+      screen.getByTestId('agent-page-promptbar'),
+    );
+  });
+
+  it('returns keyboard focus to the conversation bubble after the overlay closes', () => {
+    const dock = buildDock({ isOpen: false });
+    const view = render(
+      <AgentDock
+        chrome="bubble"
+        dock={dock}
+        hasMajorPromptBar
+        isCompact={false}
+        onOpenFullPage={vi.fn()}
+      >
+        <div contentEditable suppressContentEditableWarning>
+          composer
+        </div>
+      </AgentDock>,
+    );
+    const launcher = screen.getByTestId('agent-conversation-bubble');
+    launcher.focus();
+    fireEvent.click(launcher);
+    expect(dock.open).toHaveBeenCalledTimes(1);
+
+    view.rerender(
+      <AgentDock
+        chrome="bubble"
+        dock={{ ...dock, isOpen: true }}
+        hasMajorPromptBar
+        isCompact={false}
+        onOpenFullPage={vi.fn()}
+      >
+        <div contentEditable suppressContentEditableWarning>
+          composer
+        </div>
+      </AgentDock>,
+    );
+    view.rerender(
+      <AgentDock
+        chrome="bubble"
+        dock={{ ...dock, isOpen: false }}
+        hasMajorPromptBar
+        isCompact={false}
+        onOpenFullPage={vi.fn()}
+      >
+        <div contentEditable suppressContentEditableWarning>
+          composer
+        </div>
+      </AgentDock>,
+    );
+
+    expect(document.activeElement).toBe(
+      screen.getByTestId('agent-conversation-bubble'),
+    );
+  });
+
   it('moves focus into the composer when it opens', () => {
     vi.useFakeTimers({ toFake: ['requestAnimationFrame'] });
     try {

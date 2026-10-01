@@ -24,9 +24,9 @@ const remainingVideoDispatchDefaultsSchema = z
 
 export const remainingVideoCapabilityProfileSchema = z
   .object({
+    aspectRatio: generationCapabilityToggleSchema,
     aspectRatios: z
       .array(z.string().regex(/^[1-9]\d{0,3}:[1-9]\d{0,3}$/))
-      .min(1)
       .max(20),
     audio: generationCapabilityToggleSchema,
     defaultAspectRatio: z.string().regex(/^[1-9]\d{0,3}:[1-9]\d{0,3}$/),
@@ -47,7 +47,23 @@ export const remainingVideoCapabilityProfileSchema = z
     textRendering: generationCapabilityTextRenderingSchema,
     version: z.number().int().positive(),
   })
-  .strict();
+  .strict()
+  .superRefine((profile, ctx) => {
+    if (profile.aspectRatio.supported && profile.aspectRatios.length === 0) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'A supported aspect ratio needs at least one value.',
+        path: ['aspectRatios'],
+      });
+    }
+    if (!profile.aspectRatio.supported && profile.aspectRatios.length > 0) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'An unsupported aspect ratio must not advertise values.',
+        path: ['aspectRatios'],
+      });
+    }
+  });
 
 export type RemainingVideoCapabilityProfile = z.infer<
   typeof remainingVideoCapabilityProfileSchema
@@ -111,11 +127,13 @@ export function deriveRemainingVideoReferenceRoles(
 }
 
 export function buildRemainingVideoCapabilityProfile(input: {
+  aspectRatioSupported?: boolean;
   aspectRatios?: readonly string[];
   audioSupported?: boolean;
   defaultAspectRatio?: string;
   defaultResolution?: string;
   defaultSeconds?: number;
+  durationSupported?: boolean;
   id: string;
   maxReferences: number;
   maxVideoReferences?: number;
@@ -130,8 +148,12 @@ export function buildRemainingVideoCapabilityProfile(input: {
 }): RemainingVideoCapabilityProfile {
   const maxReferences = input.maxReferences;
   const nativeFields = input.nativeFields ?? [];
+  const isAspectRatioSupported = input.aspectRatioSupported !== false;
   return remainingVideoCapabilityProfileSchema.parse({
-    aspectRatios: [...(input.aspectRatios ?? REMAINING_VIDEO_ASPECT_RATIOS)],
+    aspectRatio: { supported: isAspectRatioSupported },
+    aspectRatios: isAspectRatioSupported
+      ? [...(input.aspectRatios ?? REMAINING_VIDEO_ASPECT_RATIOS)]
+      : [],
     audio: { supported: input.audioSupported === true },
     defaultAspectRatio: input.defaultAspectRatio ?? '16:9',
     defaults: input.defaultResolution
@@ -141,7 +163,7 @@ export function buildRemainingVideoCapabilityProfile(input: {
       defaultSeconds: input.defaultSeconds ?? 5,
       maxSeconds: input.maxSeconds ?? 15,
       minSeconds: input.minSeconds ?? 1,
-      supported: true,
+      supported: input.durationSupported !== false,
     },
     generationModes: input.requireImageToVideo
       ? ['image_to_video']

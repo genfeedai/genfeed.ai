@@ -149,4 +149,37 @@ describe('draft detail navigation', () => {
     expect(screen.getByText('Plan editor')).toBeInTheDocument();
     expect(mocks.push).not.toHaveBeenCalled();
   });
+  it('renders a migrated storyboard that has no plan without creating an outbox', () => {
+    render(
+      <StoryboardDraftPage
+        run={
+          {
+            ...run,
+            config: {
+              ...run.config,
+              origin: 'migrated',
+              importedPresentation: null,
+              migration: {
+                version: 1,
+                sourceContract: 'brand-remix-run',
+                sourceVersion: 1,
+                sourceConfigHash: 'b'.repeat(64),
+                migratedAt: run.updatedAt,
+                converterVersion: 1,
+              },
+              migrationReview: {
+                status: 'required',
+                issues: [{ code: 'LEGACY_PLAN_UNREPRESENTABLE', path: 'plan' }],
+              },
+              plan: null,
+            },
+          } satisfies StoryboardRun
+        }
+        savePlan={vi.fn()}
+        resetPlan={vi.fn()}
+        approvePlan={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('Plan editor')).toBeInTheDocument();
+  });
 });

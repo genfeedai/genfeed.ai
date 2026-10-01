@@ -43,6 +43,25 @@ function focusComposer(container: HTMLElement | null): void {
     ?.focus({ preventScroll: true });
 }
 
+function isPersistedReturnFocus(
+  element: Element | null,
+): element is HTMLElement {
+  return (
+    element instanceof HTMLElement &&
+    element.isConnected &&
+    element !== document.body &&
+    element !== document.documentElement
+  );
+}
+
+function resolveLauncherControl(host: HTMLElement | null): HTMLElement | null {
+  if (!host?.isConnected) {
+    return null;
+  }
+
+  return host.querySelector('button') ?? host;
+}
+
 function AgentDockHeader({
   onClose,
   onOpenFullPage,
@@ -153,6 +172,8 @@ export default function AgentDock({
   const translate = useTranslations('common.agentDock');
   const [region, setRegion] = useState<HTMLElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
+  const launcherHostRef = useRef<HTMLElement | null>(null);
+  const shouldReturnToLauncherRef = useRef(false);
   const [bodyNode] = useState<HTMLElement | null>(() => {
     if (typeof document === 'undefined') {
       return null;
@@ -173,41 +194,57 @@ export default function AgentDock({
   );
   const { close, height, isOpen, open, setHeight } = dock;
   const isBubbleChrome = chrome === 'bubble';
+  const bindLauncher = useCallback((node: HTMLDivElement | null) => {
+    launcherHostRef.current = node;
+  }, []);
+  const handleLauncherOpen = useCallback(() => {
+    shouldReturnToLauncherRef.current = true;
+    open();
+  }, [open]);
   const closedLauncher =
     isBubbleChrome && !isOpen ? (
-      hasMajorPromptBar ? (
-        <AgentConversationBubble onOpen={open} />
-      ) : (
-        <AgentPagePromptBar
-          onOpen={open}
-          onSelectSuggestedAction={onSelectSuggestedAction}
-          placeholder={pagePlaceholder}
-          suggestedActions={suggestedActions}
-        />
-      )
+      <div ref={bindLauncher}>
+        {hasMajorPromptBar ? (
+          <AgentConversationBubble onOpen={handleLauncherOpen} />
+        ) : (
+          <AgentPagePromptBar
+            onOpen={handleLauncherOpen}
+            onSelectSuggestedAction={onSelectSuggestedAction}
+            placeholder={pagePlaceholder}
+            suggestedActions={suggestedActions}
+          />
+        )}
+      </div>
     ) : null;
 
   // Opening moves focus into the composer and remembers where it came from;
   // any close (header, Esc, ⌘J, topbar) hands focus back if it was inside.
+  // The bubble/promptbar unmounts while the overlay is open, so the opener
+  // becomes document.body — restore to the remounted launcher instead.
   useEffect(() => {
     if (!isOpen) {
       const returnFocus = returnFocusRef.current;
       returnFocusRef.current = null;
       const activeElement = document.activeElement;
-      if (
-        returnFocus?.isConnected &&
-        (!activeElement ||
-          activeElement === document.body ||
-          isInsideDock(activeElement))
-      ) {
-        returnFocus.focus({ preventScroll: true });
-      }
+      const shouldRestore =
+        !activeElement ||
+        activeElement === document.body ||
+        isInsideDock(activeElement);
+      const launcher = shouldReturnToLauncherRef.current
+        ? resolveLauncherControl(launcherHostRef.current)
+        : null;
+      shouldReturnToLauncherRef.current = false;
+      const target = shouldRestore
+        ? (launcher ??
+          (isPersistedReturnFocus(returnFocus) ? returnFocus : null))
+        : null;
+      target?.focus({ preventScroll: true });
       return;
     }
 
     const activeElement = document.activeElement;
     returnFocusRef.current =
-      activeElement instanceof HTMLElement && !isInsideDock(activeElement)
+      isPersistedReturnFocus(activeElement) && !isInsideDock(activeElement)
         ? activeElement
         : null;
     const frame = window.requestAnimationFrame(() => {

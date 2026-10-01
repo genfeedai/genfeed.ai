@@ -183,6 +183,15 @@ export const videoGenerationBriefExemptionEvidenceSchema = z
   })
   .strict();
 
+export const remainingVideoCompileEvidenceOutputSchema = z
+  .object({
+    aspectRatio: aspectRatioSchema.optional(),
+    durationSeconds: z.number().positive().max(300).optional(),
+    hasSeed: z.boolean(),
+    resolution: z.string().trim().min(1).max(32).optional(),
+  })
+  .strict();
+
 export const remainingVideoCompileEvidenceSchema = z
   .object({
     actionVerb: videoActionVerbSchema.optional(),
@@ -195,7 +204,7 @@ export const remainingVideoCompileEvidenceSchema = z
     mediaKind: z.literal('video'),
     modelKey: z.string().trim().min(1).max(255),
     omittedSignals: z.array(generationBriefOmittedSignalSchema).max(50),
-    output: videoGenerationBriefCompileEvidenceOutputSchema,
+    output: remainingVideoCompileEvidenceOutputSchema,
     profileId: z.string().trim().min(1).max(255),
     profileVersion: z.number().int().positive(),
     referenceAssetIds: z.array(z.string().trim().min(1).max(255)).max(20),

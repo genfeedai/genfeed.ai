@@ -61,15 +61,29 @@ describe('visual scope authorization', () => {
       }),
     );
   });
-  it('denies revoked membership and a different active brand', async () => {
+  it('denies revoked membership', async () => {
     const { service, prisma } = fixture();
     prisma.member.findFirst.mockResolvedValueOnce(null);
     await expect(service.project(user, 'project')).rejects.toThrow(
       'active membership',
     );
+  });
+  it('denies a brand that is not assigned to a non-admin member', async () => {
+    const { service, prisma } = fixture();
+    prisma.member.findFirst.mockResolvedValueOnce({
+      brands: [{ id: 'brand' }],
+      role: { key: MemberRole.USER },
+    });
     await expect(service.authorizeBrand(user, 'other-brand')).rejects.toThrow(
       'not available',
     );
+  });
+  it('lets an owner catalog a different organization brand than the JWT current brand', async () => {
+    const { service, prisma } = fixture();
+    prisma.brand.findFirst.mockResolvedValueOnce({ id: 'other-brand' });
+    await expect(
+      service.authorizeBrand(user, 'other-brand'),
+    ).resolves.toBeUndefined();
   });
   it('does not disclose a foreign or deleted project through source history', async () => {
     const { service, prisma } = fixture();

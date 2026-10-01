@@ -2116,6 +2116,47 @@ export function buildUnhandledApiMockBody(url: string): unknown {
     return readiness;
   }
 
+  if (/\/visual-projects\/catalog\/?$/.test(pathname)) {
+    return wrapInJsonApi(
+      {
+        creditsPerSecond: null,
+        defaultModelKey: null,
+        defaultSettings: {
+          durationFrames: 30,
+          fps: 30,
+          height: 360,
+          width: 640,
+        },
+        isAvailable: true,
+        limits: {
+          allowedFps: [30],
+          maxAssets: 12,
+          maxDurationFrames: 30,
+          maxDurationSeconds: 1,
+          maxHeight: 360,
+          maxOutputs: 8,
+          maxPixels: 640 * 360,
+          maxPromptBytes: 1024,
+          maxPropsBytes: 1024,
+          maxRepairs: 2,
+          maxSourceBytes: 1024,
+          maxWidth: 640,
+          renderDeadlineSeconds: 120,
+        },
+        models: [],
+        outputFormats: ['mp4'],
+        rendererVersion: '0',
+        unavailableReason: null,
+      },
+      'visual-code-catalog',
+      'catalog',
+    );
+  }
+
+  if (/\/visual-projects\/projects\/?$/.test(pathname)) {
+    return { data: [], links: { cursor: { nextCursor: null } } };
+  }
+
   return { data: [], meta: { totalCount: 0 } };
 }
 

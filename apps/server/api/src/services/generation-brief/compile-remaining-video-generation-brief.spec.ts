@@ -785,12 +785,20 @@ describe('compileRemainingVideoGenerationBrief', () => {
   });
 
   it('compiles Genjutsu motion transfer without aspect ratio or duration', () => {
+    const family = familyFor(MODEL_KEYS.HIGGSFIELD_GENJUTSU);
+    const profile = family.profiles.find(
+      (item) => item.modelKey === MODEL_KEYS.HIGGSFIELD_GENJUTSU,
+    );
+    expect(profile?.aspectRatio.supported).toBe(false);
+    expect(profile?.aspectRatios).toEqual([]);
+    expect(profile?.duration.supported).toBe(false);
+
     const brief = videoGenerationBriefSchema.parse({
       constraints: [],
       fidelityMode: 'guided',
       intent: { objective: 'keep the walk and replace the person' },
       mediaKind: 'video',
-      output: { aspectRatio: '9:16', durationSeconds: 12, resolution: '720p' },
+      output: { resolution: '720p' },
       references: [
         { assetId: 'face-1', role: 'first_frame' },
         { assetId: 'face-2', role: 'subject' },
@@ -801,7 +809,7 @@ describe('compileRemainingVideoGenerationBrief', () => {
 
     const result = compileRemainingVideoGenerationBrief({
       brief,
-      family: familyFor(MODEL_KEYS.HIGGSFIELD_GENJUTSU),
+      family,
       modelKey: MODEL_KEYS.HIGGSFIELD_GENJUTSU,
     });
 
@@ -812,6 +820,54 @@ describe('compileRemainingVideoGenerationBrief', () => {
       reference_video: 'clip-1',
       resolution: '720p',
     });
+    expect(result.evidence.output).toEqual({
+      hasSeed: false,
+      resolution: '720p',
+    });
+    expect(result.evidence.appliedFields).not.toContain('output.aspectRatio');
+    expect(result.evidence.appliedFields).not.toContain(
+      'output.durationSeconds',
+    );
+  });
+
+  it('rejects a requested Genjutsu aspect ratio or duration instead of dropping it', () => {
+    const family = familyFor(MODEL_KEYS.HIGGSFIELD_GENJUTSU);
+    const references = [
+      { assetId: 'face-1', role: 'first_frame' as const },
+      { assetId: 'clip-1', role: 'reference_video' as const },
+    ];
+
+    expect(() =>
+      compileRemainingVideoGenerationBrief({
+        brief: videoGenerationBriefSchema.parse({
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: { objective: 'keep the walk' },
+          mediaKind: 'video',
+          output: { aspectRatio: '9:16' },
+          references,
+          version: 1,
+        }),
+        family,
+        modelKey: MODEL_KEYS.HIGGSFIELD_GENJUTSU,
+      }),
+    ).toThrow('does not support aspect ratio');
+
+    expect(() =>
+      compileRemainingVideoGenerationBrief({
+        brief: videoGenerationBriefSchema.parse({
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: { objective: 'keep the walk' },
+          mediaKind: 'video',
+          output: { durationSeconds: 12 },
+          references,
+          version: 1,
+        }),
+        family,
+        modelKey: MODEL_KEYS.HIGGSFIELD_GENJUTSU,
+      }),
+    ).toThrow('does not support duration');
   });
 
   it('rejects Genjutsu without a source video', () => {

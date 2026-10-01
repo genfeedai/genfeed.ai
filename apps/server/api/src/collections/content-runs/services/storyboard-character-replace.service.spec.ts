@@ -51,6 +51,7 @@ function serviceWith(config: object = uploadedConfig) {
     findMany,
     generateMotionTransfer,
     libraryAsset,
+    read,
     revalidate,
     save,
     service,
@@ -166,5 +167,70 @@ describe('StoryboardCharacterReplaceService', () => {
       }),
     ).rejects.toBeInstanceOf(NotFoundException);
     expect(harness.generateMotionTransfer).not.toHaveBeenCalled();
+  });
+
+  it('merges the accepted request onto the latest revision after a save conflict', async () => {
+    const harness = serviceWith();
+    harness.findMany.mockResolvedValue([{ id: 'img-a', s3Key: 'a.jpg' }]);
+    const latest = { ...uploadedConfig, revision: 5 };
+    harness.save
+      .mockRejectedValueOnce(
+        new ConflictException(
+          'The storyboard changed during this save. Reload before retrying.',
+        ),
+      )
+      .mockResolvedValueOnce({} as never);
+    harness.read.mockResolvedValueOnce({ config: uploadedConfig });
+    harness.read.mockResolvedValueOnce({ config: latest });
+
+    const replacement = await harness.service.replace(
+      'org-1',
+      'brand-1',
+      'run-1',
+      'shot-1',
+      { imageAssetIds: ['img-a'] },
+    );
+
+    expect(harness.generateMotionTransfer).toHaveBeenCalledTimes(1);
+    expect(harness.save).toHaveBeenNthCalledWith(
+      2,
+      'org-1',
+      'brand-1',
+      'run-1',
+      latest,
+      expect.objectContaining({
+        characterReplacements: [replacement],
+        revision: 5,
+      }),
+    );
+  });
+
+  it('returns the stored request instead of submitting the same intent again', async () => {
+    const stored = {
+      chargedCredits: 0 as const,
+      imageAssetIds: ['img-a'],
+      limitations: [...STORYBOARD_CHARACTER_REPLACE_LIMITATIONS],
+      modelKey: 'higgsfield/genjutsu/motion-transfer/v1.0' as const,
+      requestId: 'req-kept',
+      shotId: 'shot-1',
+      status: 'submitted' as const,
+      videoAssetId: 'video-1',
+    };
+    const harness = serviceWith({
+      ...uploadedConfig,
+      characterReplacements: [stored],
+    });
+
+    const replacement = await harness.service.replace(
+      'org-1',
+      'brand-1',
+      'run-1',
+      'shot-1',
+      { imageAssetIds: ['img-a'] },
+    );
+
+    expect(replacement).toEqual(stored);
+    expect(harness.generateMotionTransfer).not.toHaveBeenCalled();
+    expect(harness.save).not.toHaveBeenCalled();
   });
 });
