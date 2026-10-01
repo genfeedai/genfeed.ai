@@ -29,6 +29,7 @@ import {
   brandedGenerationInputV1Schema,
   brandedGenerationReceiptV1Schema,
   brandedGenerationResolutionV1Schema,
+  learningContractIdSchema,
 } from '@genfeedai/contracts/api-types/contracts';
 import type {
   BrandedGenerationInputV1,
@@ -46,10 +47,69 @@ import {
 } from '@nestjs/common';
 import { z } from 'zod';
 
+const RECEIPT_CURSOR_MAX_JSON_BYTES = 1584;
+const RECEIPT_CURSOR_MAX_ENCODED_CHARS = 2112;
 const cursorSchema = z.strictObject({
-  createdAt: z.iso.datetime(),
-  id: z.string().min(1).max(256),
+  createdAt: z.iso.datetime().refine((value) => {
+    try {
+      return value.length === 24 && new Date(value).toISOString() === value;
+    } catch {
+      return false;
+    }
+  }),
+  id: learningContractIdSchema,
 });
+function withPromptRetentionDiagnostic(
+  diagnostics: BrandedGenerationReceiptV1['diagnostics'],
+): BrandedGenerationReceiptV1['diagnostics'] {
+  const result = diagnostics.map((diagnostic) => ({
+    ...diagnostic,
+    ...(diagnostic.evidenceIds !== undefined
+      ? { evidenceIds: [...diagnostic.evidenceIds] }
+      : {}),
+  }));
+  const canonical = {
+    code: 'prompt_snapshot_unavailable',
+    severity: 'error' as const,
+    message: 'Prompt retention unavailable',
+  };
+  const existing = result.findIndex(
+    (diagnostic) => diagnostic.code === canonical.code,
+  );
+  if (existing >= 0) {
+    result[existing] = canonical;
+    return result;
+  }
+  if (result.length === 128) {
+    let index = -1;
+    for (const severity of ['info', 'warning', 'error'] as const) {
+      for (let candidate = result.length - 1; candidate >= 0; candidate -= 1) {
+        if (result[candidate].severity === severity) {
+          index = candidate;
+          break;
+        }
+      }
+      if (index >= 0) break;
+    }
+    const omitted = result[index];
+    const projection = {
+      code: omitted.code,
+      severity: omitted.severity,
+      message: omitted.message,
+      ...(omitted.ruleId !== undefined ? { ruleId: omitted.ruleId } : {}),
+      ...(omitted.evidenceIds !== undefined
+        ? { evidenceIds: omitted.evidenceIds }
+        : {}),
+    };
+    const hash = hashBrandedGenerationTextV1(
+      canonicalizeBrandedGenerationJsonV1(projection),
+    );
+    result.splice(index, 1);
+    canonical.message = `Prompt retention unavailable. One prior diagnostic was omitted: ${omitted.code} (${omitted.severity}); diagnostic hash ${hash}.`;
+  }
+  result.push(canonical);
+  return result;
+}
 const mutationSchema = z.strictObject({
   operationKey: z
     .string()
@@ -288,10 +348,24 @@ export class BrandedGenerationReceiptsService {
   ): Promise<BrandedGenerationReceiptPageV1> {
     this.limit(query.limit);
     let cursor: z.infer<typeof cursorSchema> | undefined;
-    if (query.cursor) {
+    if (query.cursor !== undefined) {
       try {
+        if (
+          typeof query.cursor !== 'string' ||
+          query.cursor.length < 1 ||
+          query.cursor.length > RECEIPT_CURSOR_MAX_ENCODED_CHARS
+        )
+          throw new Error('Invalid cursor');
+        if (
+          !/^[A-Za-z0-9_-]+$/.test(query.cursor) ||
+          query.cursor.length % 4 === 1
+        )
+          throw new Error('Invalid cursor');
+        const bytes = Buffer.from(query.cursor, 'base64url');
+        if (bytes.byteLength > RECEIPT_CURSOR_MAX_JSON_BYTES)
+          throw new Error('Invalid cursor');
         cursor = cursorSchema.parse(
-          JSON.parse(Buffer.from(query.cursor, 'base64url').toString('utf8')),
+          JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)),
         );
         if (
           Buffer.from(canonicalizeBrandedGenerationJsonV1(cursor)).toString(
@@ -329,18 +403,19 @@ export class BrandedGenerationReceiptsService {
         .slice(0, query.limit)
         .map((row) => this.parse(row.projection));
       const last = items.at(-1);
-      return {
-        items,
-        nextCursor:
-          rows.length > query.limit && last
-            ? Buffer.from(
-                canonicalizeBrandedGenerationJsonV1({
-                  createdAt: last.createdAt,
-                  id: last.id,
-                }),
-              ).toString('base64url')
-            : null,
-      };
+      let nextCursor: string | null = null;
+      if (rows.length > query.limit && last) {
+        const parsed = cursorSchema.safeParse({
+          createdAt: last.createdAt,
+          id: last.id,
+        });
+        if (!parsed.success)
+          throw new InternalServerErrorException('receipt_integrity_failed');
+        nextCursor = Buffer.from(
+          canonicalizeBrandedGenerationJsonV1(parsed.data),
+        ).toString('base64url');
+      }
+      return { items, nextCursor };
     });
   }
   async history(
@@ -608,18 +683,9 @@ export class BrandedGenerationReceiptsService {
             enhanced: enhanced?.reference ?? null,
             compiled: compiled?.reference ?? null,
           },
-          diagnostics: [
-            ...resolution.diagnostics,
-            ...(unavailable
-              ? [
-                  {
-                    code: 'prompt_snapshot_unavailable',
-                    severity: 'error' as const,
-                    message: 'Prompt retention unavailable',
-                  },
-                ]
-              : []),
-          ],
+          diagnostics: unavailable
+            ? withPromptRetentionDiagnostic(resolution.diagnostics)
+            : resolution.diagnostics,
           compliance: current.mode === 'raw' ? 'not_claimed' : 'unverified',
         };
       },

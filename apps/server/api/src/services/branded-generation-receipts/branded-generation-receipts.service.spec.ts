@@ -1,4 +1,8 @@
-import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+import {
+  canonicalizeBrandedGenerationJsonV1,
+  hashBrandedGenerationResolutionV1,
+  hashBrandedGenerationTextV1,
+} from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { BrandedGenerationPromptStoreService } from '@api/services/branded-generation-receipts/branded-generation-prompt-store.service';
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
 import { BrandedGenerationReceiptsService } from '@api/services/branded-generation-receipts/branded-generation-receipts.service';
@@ -471,4 +475,295 @@ it('encryption unavailable blocks resolution without consuming an attempt or fab
   expect(result.receipt.diagnostics).toContainEqual(
     expect.objectContaining({ code: 'prompt_snapshot_unavailable' }),
   );
+});
+
+describe('bounded diagnostic retention and cursor allocation', () => {
+  it.each(['info', 'warning', 'error'] as const)(
+    'discloses deterministic omission of last %s at 128 diagnostics',
+    async (severity) => {
+      const f = fixture();
+      const current = await saved(f);
+      const diagnostics = Array.from({ length: 128 }, (_, index) => ({
+        code: `diagnostic_${index}`,
+        severity: index === 37 || index === 93 ? severity : ('error' as const),
+        message: `private message ${index}`,
+        ruleId: 'rule',
+        evidenceIds: ['evidence'],
+      }));
+      const resolution: BrandedGenerationResolutionV1 = {
+        schemaVersion: 1,
+        mode: 'raw',
+        status: 'resolved',
+        snapshot: null,
+        layers: [],
+        learning: blockedResolution().learning,
+        diagnostics,
+        compiledPrompt: 'compiled',
+        originalPromptHash: current.prompts.original.contentHash,
+      };
+      const before = structuredClone(resolution);
+      vi.mocked(f.prompts.prepare).mockReturnValue({
+        reference: {
+          retention: 'unavailable',
+          reasonCode: 'prompt_snapshot_unavailable',
+          contentHash: hashBrandedGenerationTextV1('compiled'),
+        },
+        record: null,
+      });
+      const result = await f.service.recordResolution(
+        actor,
+        current.id,
+        { operationKey: 'bounded', expectedRevision: 0 },
+        resolution,
+      );
+      const index = severity === 'error' ? 127 : 93;
+      const omitted = diagnostics[index];
+      const digest = hashBrandedGenerationTextV1(
+        canonicalizeBrandedGenerationJsonV1(omitted),
+      );
+      expect(result.receipt.diagnostics).toEqual([
+        ...diagnostics.filter((_, position) => position !== index),
+        {
+          code: 'prompt_snapshot_unavailable',
+          severity: 'error',
+          message: `Prompt retention unavailable. One prior diagnostic was omitted: ${omitted.code} (${omitted.severity}); diagnostic hash ${digest}.`,
+        },
+      ]);
+      expect(result.receipt.state).toBe('blocked');
+      expect(result.receipt.resolutionHash).toBe(
+        hashBrandedGenerationResolutionV1(resolution),
+      );
+      expect(result.receipt.budget).toEqual(current.budget);
+      expect(resolution).toEqual(before);
+    },
+  );
+  it.each([127, 128])(
+    'replaces existing retention diagnostic without growth at %s',
+    async (length) => {
+      const f = fixture();
+      const current = await saved(f);
+      const diagnostics = Array.from({ length }, (_, index) => ({
+        code:
+          index === 3 ? 'prompt_snapshot_unavailable' : `diagnostic_${index}`,
+        severity: 'warning' as const,
+        message: 'original',
+      }));
+      const resolution: BrandedGenerationResolutionV1 = {
+        schemaVersion: 1,
+        mode: 'raw',
+        status: 'resolved',
+        snapshot: null,
+        layers: [],
+        learning: blockedResolution().learning,
+        diagnostics,
+        compiledPrompt: 'compiled',
+        originalPromptHash: current.prompts.original.contentHash,
+      };
+      vi.mocked(f.prompts.prepare).mockReturnValue({
+        reference: {
+          retention: 'unavailable',
+          reasonCode: 'prompt_snapshot_unavailable',
+          contentHash: hashBrandedGenerationTextV1('compiled'),
+        },
+        record: null,
+      });
+      const result = await f.service.recordResolution(
+        actor,
+        current.id,
+        { operationKey: 'replace', expectedRevision: 0 },
+        resolution,
+      );
+      expect(result.receipt.diagnostics).toHaveLength(length);
+      expect(result.receipt.diagnostics[3]).toEqual({
+        code: 'prompt_snapshot_unavailable',
+        severity: 'error',
+        message: 'Prompt retention unavailable',
+      });
+      expect(result.receipt.diagnostics[4]).toEqual(diagnostics[4]);
+    },
+  );
+  it.each([
+    '',
+    'a'.repeat(2113),
+    'a',
+    'abc=',
+    'ab+c',
+    'ab/c',
+    ' ab',
+    Buffer.from([255]).toString('base64url'),
+    Buffer.from(
+      JSON.stringify({ createdAt: '2026-10-01T17:00:00Z', id: 'id' }),
+    ).toString('base64url'),
+    Buffer.from(
+      JSON.stringify({
+        createdAt: '2026-10-01T17:00:00.000Z',
+        id: 'a'.repeat(257),
+      }),
+    ).toString('base64url'),
+    Buffer.from(
+      JSON.stringify({
+        createdAt: '2026-10-01T17:00:00.000Z',
+        id: 'id',
+        extra: 1,
+      }),
+    ).toString('base64url'),
+  ])('rejects malformed cursor before any query', async (cursor) => {
+    const f = fixture();
+    await expect(f.service.list(actor, { limit: 1, cursor })).rejects.toThrow(
+      'receipt_cursor_invalid',
+    );
+    expect(f.prisma.$transaction).not.toHaveBeenCalled();
+    expect(f.tx.brandedGenerationReceipt.findMany).not.toHaveBeenCalled();
+  });
+  it('rejects oversized and nonstring cursors before Buffer.from allocation or coercion', async () => {
+    const f = fixture();
+    const from = vi.spyOn(Buffer, 'from');
+    const coercion = vi.fn();
+    try {
+      for (const cursor of [
+        'a'.repeat(2113),
+        { toString: coercion },
+      ] as unknown as string[]) {
+        await expect(
+          f.service.list(actor, { limit: 1, cursor }),
+        ).rejects.toThrow('receipt_cursor_invalid');
+      }
+      expect(from).not.toHaveBeenCalled();
+      expect(coercion).not.toHaveBeenCalled();
+    } finally {
+      from.mockRestore();
+    }
+  });
+  it('roundtrips escaped opaque Unicode and lone-surrogate cursor IDs', async () => {
+    const f = fixture();
+    const current = await saved(f);
+    const id = `${'😀\ud800"\\'.repeat(51)}x`;
+    expect(id.length).toBe(256);
+    f.tx.brandedGenerationReceipt.findMany.mockResolvedValue([
+      { projection: { ...current, id } },
+      { projection: current },
+    ]);
+    const page = await f.service.list(actor, { limit: 1 });
+    expect(page.nextCursor).toBe(
+      Buffer.from(
+        canonicalizeBrandedGenerationJsonV1({
+          createdAt: current.createdAt,
+          id,
+        }),
+      ).toString('base64url'),
+    );
+    await f.service.list(actor, {
+      limit: 1,
+      cursor: page.nextCursor ?? undefined,
+    });
+    expect(
+      f.tx.brandedGenerationReceipt.findMany.mock.calls.at(-1)?.[0].where.OR[1]
+        .id.lt,
+    ).toBe(id);
+  });
+});
+
+it.each([true, false])(
+  'preserves retained diagnostics or appends only one below the cap (retained=%s)',
+  async (retained) => {
+    const f = fixture();
+    const current = await saved(f);
+    const diagnostics = Array.from(
+      { length: retained ? 128 : 127 },
+      (_, index) => ({
+        code: `diagnostic_${index}`,
+        severity: 'info' as const,
+        message: 'unchanged',
+      }),
+    );
+    const resolution: BrandedGenerationResolutionV1 = {
+      schemaVersion: 1,
+      mode: 'raw',
+      status: 'resolved',
+      snapshot: null,
+      layers: [],
+      learning: blockedResolution().learning,
+      diagnostics,
+      compiledPrompt: 'compiled',
+      originalPromptHash: current.prompts.original.contentHash,
+    };
+    if (!retained)
+      vi.mocked(f.prompts.prepare).mockReturnValue({
+        reference: {
+          retention: 'unavailable',
+          reasonCode: 'prompt_snapshot_unavailable',
+          contentHash: hashBrandedGenerationTextV1('compiled'),
+        },
+        record: null,
+      });
+    const mutation = { operationKey: 'bounded-replay', expectedRevision: 0 };
+    const result = await f.service.recordResolution(
+      actor,
+      current.id,
+      mutation,
+      resolution,
+    );
+    expect(result.receipt.diagnostics).toEqual(
+      retained
+        ? diagnostics
+        : [
+            ...diagnostics,
+            {
+              code: 'prompt_snapshot_unavailable',
+              severity: 'error',
+              message: 'Prompt retention unavailable',
+            },
+          ],
+    );
+    const event =
+      f.tx.brandedGenerationReceiptEvent.create.mock.calls.at(-1)?.[0].data;
+    if (!event) throw new Error('Missing event fixture');
+    f.tx.brandedGenerationReceipt.findFirst.mockResolvedValue({
+      projection: result.receipt,
+      isDeleted: false,
+    });
+    f.tx.brandedGenerationReceiptEvent.findFirst.mockResolvedValue(event);
+    f.tx.brandedGenerationReceipt.update.mockClear();
+    f.tx.brandedGenerationReceiptEvent.create.mockClear();
+    expect(
+      await f.service.recordResolution(actor, current.id, mutation, resolution),
+    ).toEqual({ receipt: result.receipt, replayed: true });
+    expect(f.tx.brandedGenerationReceipt.update).not.toHaveBeenCalled();
+    expect(f.tx.brandedGenerationReceiptEvent.create).not.toHaveBeenCalled();
+  },
+);
+it.each([
+  '2026-10-01T17:00:00Z',
+  '2026-10-01T17:00:00.0000Z',
+  '2026-10-01T17:00:00.000+00:00',
+])(
+  'does not emit unusable cursor for stored timestamp %s',
+  async (createdAt) => {
+    const f = fixture();
+    const current = await saved(f);
+    f.tx.brandedGenerationReceipt.findMany.mockResolvedValue([
+      { projection: { ...current, createdAt } },
+      { projection: current },
+    ]);
+    await expect(f.service.list(actor, { limit: 1 })).rejects.toThrow(
+      'receipt_integrity_failed',
+    );
+  },
+);
+it('rejects noncanonical cursor JSON and controlled IDs before queries', async () => {
+  const f = fixture();
+  for (const json of [
+    '{ "createdAt":"2026-10-01T17:00:00.000Z","id":"id"}',
+    '{"id":"id","createdAt":"2026-10-01T17:00:00.000Z"}',
+    JSON.stringify({ createdAt: '2026-10-01T17:00:00.000Z', id: 'id\n' }),
+    JSON.stringify({ createdAt: '2026-02-30T17:00:00.000Z', id: 'id' }),
+  ]) {
+    await expect(
+      f.service.list(actor, {
+        limit: 1,
+        cursor: Buffer.from(json).toString('base64url'),
+      }),
+    ).rejects.toThrow('receipt_cursor_invalid');
+  }
+  expect(f.prisma.$transaction).not.toHaveBeenCalled();
 });

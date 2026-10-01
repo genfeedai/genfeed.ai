@@ -22,16 +22,30 @@ import {
 } from '@nestjs/common';
 import { z } from 'zod';
 
+const PROMPT_TEXT_MAX_BYTES = 65536;
+const PROMPT_ENVELOPE_MAX_BYTES = 393245;
+const PROMPT_CIPHERTEXT_MAX_CHARS = 786556;
 const envelope = z.strictObject({
   schemaVersion: z.literal(1),
-  text: z.string().refine((text) => Buffer.byteLength(text, 'utf8') <= 65536),
+  text: z
+    .string()
+    .refine((text) => Buffer.byteLength(text, 'utf8') <= PROMPT_TEXT_MAX_BYTES),
 });
-const cipher = /^[0-9a-fA-F]{32}:[0-9a-fA-F]+:[0-9a-fA-F]{32}$/;
+function isBoundedPromptCiphertext(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.length <= PROMPT_CIPHERTEXT_MAX_CHARS &&
+    /^[0-9a-fA-F]{32}:(?:[0-9a-fA-F]{2})+:[0-9a-fA-F]{32}$/.test(value)
+  );
+}
 @Injectable()
 export class BrandedGenerationPromptStoreService {
   constructor(private readonly access: BrandedGenerationReceiptAccessService) {}
   prepare(text: string): BrandedGenerationPreparedPromptV1 {
-    if (typeof text !== 'string' || Buffer.byteLength(text, 'utf8') > 65536)
+    if (
+      typeof text !== 'string' ||
+      Buffer.byteLength(text, 'utf8') > PROMPT_TEXT_MAX_BYTES
+    )
       throw new BadRequestException('prompt_payload_out_of_range');
     const contentHash = hashBrandedGenerationTextV1(text);
     try {
@@ -39,11 +53,18 @@ export class BrandedGenerationPromptStoreService {
         schemaVersion: 1,
         text,
       });
+      if (Buffer.byteLength(plaintext, 'utf8') > PROMPT_ENVELOPE_MAX_BYTES)
+        throw new Error('Invalid envelope');
       const ciphertext = EncryptionUtil.encrypt(plaintext);
-      if (!cipher.test(ciphertext)) throw new Error('Invalid cipher');
-      const decoded = envelope.parse(
-        JSON.parse(EncryptionUtil.decrypt(ciphertext)),
-      );
+      if (!isBoundedPromptCiphertext(ciphertext))
+        throw new Error('Invalid cipher');
+      const roundtrip = EncryptionUtil.decrypt(ciphertext);
+      if (
+        typeof roundtrip !== 'string' ||
+        Buffer.byteLength(roundtrip, 'utf8') > PROMPT_ENVELOPE_MAX_BYTES
+      )
+        throw new Error('Invalid envelope');
+      const decoded = envelope.parse(JSON.parse(roundtrip));
       if (
         decoded.text !== text ||
         hashBrandedGenerationTextV1(decoded.text) !== contentHash
@@ -82,7 +103,7 @@ export class BrandedGenerationPromptStoreService {
       prepared.reference.retention !== 'retained' ||
       prepared.reference.snapshotId !== prepared.record.id ||
       prepared.reference.contentHash !== prepared.record.contentHash ||
-      !cipher.test(prepared.record.ciphertext)
+      !isBoundedPromptCiphertext(prepared.record.ciphertext)
     )
       throw new InternalServerErrorException('prompt_integrity_failed');
     await tx.generationPromptSnapshot.create({
@@ -137,7 +158,7 @@ export class BrandedGenerationPromptStoreService {
     if (
       row.format !== 'genfeed.branded-generation-prompt.v1' ||
       row.contentHash !== reference.contentHash ||
-      !cipher.test(row.ciphertext)
+      !isBoundedPromptCiphertext(row.ciphertext)
     )
       return { status: 'unavailable', reasonCode: 'prompt_integrity_failed' };
     try {
@@ -149,9 +170,13 @@ export class BrandedGenerationPromptStoreService {
       };
     }
     try {
-      const decoded = envelope.parse(
-        JSON.parse(EncryptionUtil.decrypt(row.ciphertext)),
-      );
+      const plaintext = EncryptionUtil.decrypt(row.ciphertext);
+      if (
+        typeof plaintext !== 'string' ||
+        Buffer.byteLength(plaintext, 'utf8') > PROMPT_ENVELOPE_MAX_BYTES
+      )
+        throw new Error('Invalid envelope');
+      const decoded = envelope.parse(JSON.parse(plaintext));
       if (hashBrandedGenerationTextV1(decoded.text) !== row.contentHash)
         throw new Error('Invalid hash');
       return {

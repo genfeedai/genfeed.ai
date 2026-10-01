@@ -1,8 +1,13 @@
-import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+import {
+  canonicalizeBrandedGenerationJsonV1,
+  hashBrandedGenerationTextV1,
+} from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { BrandedGenerationPromptStoreService } from '@api/services/branded-generation-receipts/branded-generation-prompt-store.service';
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
 import type { BrandedGenerationReceiptV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import type { Prisma } from '@genfeedai/prisma';
+import * as credentialCipher from '@libs/crypto/credential-cipher';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const actor = { organizationId: 'org', brandId: 'brand', actorId: 'user' };
@@ -179,5 +184,137 @@ describe('receipt-owned encrypted exact prompt envelopes', () => {
       },
       data: { ciphertext: '', retentionState: 'purged', isDeleted: true },
     });
+  });
+});
+
+describe('bounded text envelope and ciphertext guards', () => {
+  it('roundtrips exact maximum escaped NUL payload with the actual cipher', async () => {
+    vi.stubEnv('TOKEN_ENCRYPTION_KEY', 'branded-unit-test-secret');
+    const { store, tx, mock } = fixture();
+    const text = '\0'.repeat(65536);
+    const json = canonicalizeBrandedGenerationJsonV1({
+      schemaVersion: 1,
+      text,
+    });
+    expect(Buffer.byteLength(json, 'utf8')).toBe(393245);
+    const prepared = store.prepare(text);
+    if (!prepared.record) throw new Error('Missing encrypted boundary fixture');
+    expect(prepared.record.ciphertext).toHaveLength(786556);
+    expect(EncryptionUtil.decrypt(prepared.record.ciphertext)).toBe(json);
+    mock.generationPromptSnapshot.findFirst.mockResolvedValue({
+      ...prepared.record,
+      format: 'genfeed.branded-generation-prompt.v1',
+    });
+    expect(
+      await store.read(tx, actor, receipt(prepared.reference), 'original'),
+    ).toEqual({
+      status: 'retained',
+      text,
+      contentHash: hashBrandedGenerationTextV1(text),
+    });
+    expect(() => store.prepare('\0'.repeat(65537))).toThrow(
+      'prompt_payload_out_of_range',
+    );
+  });
+  it.each(['"\\Café😀', '', ' \t\n'])(
+    'preserves exact escaped text %j',
+    (text) => {
+      vi.stubEnv('TOKEN_ENCRYPTION_KEY', 'branded-unit-test-secret');
+      const prepared = fixture().store.prepare(text);
+      if (!prepared.record) throw new Error('Missing encrypted fixture');
+      expect(
+        JSON.parse(EncryptionUtil.decrypt(prepared.record.ciphertext)).text,
+      ).toBe(text);
+      expect(prepared.reference.contentHash).toBe(
+        hashBrandedGenerationTextV1(text),
+      );
+    },
+  );
+  it.each(['oversized', 'odd', 'object'] as const)(
+    'rejects %s ciphertext before key lookup, decryption, and persistence',
+    async (kind) => {
+      vi.stubEnv('TOKEN_ENCRYPTION_KEY', 'branded-unit-test-secret');
+      const { store, tx, mock } = fixture();
+      const prepared = store.prepare('exact');
+      if (!prepared.record) throw new Error('Missing encrypted fixture');
+      const coercion = vi.fn();
+      const ciphertext =
+        kind === 'oversized'
+          ? `${'a'.repeat(32)}:${'aa'.repeat(393246)}:${'b'.repeat(32)}`
+          : kind === 'odd'
+            ? `${'a'.repeat(32)}:a:${'b'.repeat(32)}`
+            : { toString: coercion };
+      const decrypt = vi.spyOn(EncryptionUtil, 'decrypt');
+      const key = vi.spyOn(credentialCipher, 'resolveTokenEncryptionKey');
+      mock.generationPromptSnapshot.findFirst.mockResolvedValue({
+        ...prepared.record,
+        ciphertext,
+        format: 'genfeed.branded-generation-prompt.v1',
+      });
+      expect(
+        await store.read(tx, actor, receipt(prepared.reference), 'original'),
+      ).toEqual({
+        status: 'unavailable',
+        reasonCode: 'prompt_integrity_failed',
+      });
+      await expect(
+        store.persist(tx, actor, 'receipt', 0, 'original', {
+          ...prepared,
+          record: { ...prepared.record, ciphertext: ciphertext as string },
+        }),
+      ).rejects.toThrow('prompt_integrity_failed');
+      expect(decrypt).not.toHaveBeenCalled();
+      expect(key).not.toHaveBeenCalled();
+      expect(coercion).not.toHaveBeenCalled();
+      expect(mock.generationPromptSnapshot.create).not.toHaveBeenCalled();
+    },
+  );
+  it('refuses oversized decrypted plaintext before JSON.parse', async () => {
+    vi.stubEnv('TOKEN_ENCRYPTION_KEY', 'branded-unit-test-secret');
+    const { store, tx, mock } = fixture();
+    const prepared = store.prepare('text');
+    if (!prepared.record) throw new Error('Missing encrypted fixture');
+    mock.generationPromptSnapshot.findFirst.mockResolvedValue({
+      ...prepared.record,
+      format: 'genfeed.branded-generation-prompt.v1',
+    });
+    vi.spyOn(EncryptionUtil, 'decrypt').mockReturnValue('a'.repeat(393246));
+    const parse = vi.spyOn(JSON, 'parse');
+    try {
+      expect(
+        await store.read(tx, actor, receipt(prepared.reference), 'original'),
+      ).toEqual({
+        status: 'unavailable',
+        reasonCode: 'prompt_integrity_failed',
+      });
+      expect(parse).not.toHaveBeenCalled();
+      expect(store.prepare('text')).toEqual({
+        reference: {
+          retention: 'unavailable',
+          reasonCode: 'prompt_snapshot_unavailable',
+          contentHash: hashBrandedGenerationTextV1('text'),
+        },
+        record: null,
+      });
+      expect(parse).not.toHaveBeenCalled();
+    } finally {
+      parse.mockRestore();
+    }
+  });
+  it('turns oversized encryption output into unavailable with the original hash before decrypt', () => {
+    const { store } = fixture();
+    vi.spyOn(EncryptionUtil, 'encrypt').mockReturnValue(
+      `${'a'.repeat(32)}:${'aa'.repeat(393246)}:${'b'.repeat(32)}`,
+    );
+    const decrypt = vi.spyOn(EncryptionUtil, 'decrypt');
+    expect(store.prepare(' exact ')).toEqual({
+      reference: {
+        retention: 'unavailable',
+        reasonCode: 'prompt_snapshot_unavailable',
+        contentHash: hashBrandedGenerationTextV1(' exact '),
+      },
+      record: null,
+    });
+    expect(decrypt).not.toHaveBeenCalled();
   });
 });
