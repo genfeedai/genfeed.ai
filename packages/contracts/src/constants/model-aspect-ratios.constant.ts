@@ -45,6 +45,7 @@ export const ASPECT_RATIOS = {
   H3_MAX: ['21:9', '16:9', '4:3', '1:1', '3:4', '9:16'] as const,
   H3_MAX_DIRECTOR: ['16:9', '9:16', '1:1'] as const,
   HEYGEN: ['16:9', '9:16', '1:1'] as const,
+  HEYGEN_VIDEO: ['21:9', '16:9', '4:3', '1:1', '3:4', '9:16'] as const,
   IDEOGRAM: [
     '1:3',
     '3:1',

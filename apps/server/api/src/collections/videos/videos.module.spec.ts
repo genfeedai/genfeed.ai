@@ -1,3 +1,4 @@
+import { HeyGenVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/heygen-video-generation-provider.adapter';
 import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/higgsfield-video-generation-provider.adapter';
 import { VideoMergeOrchestrationService } from '@api/collections/videos/services/video-merge-orchestration.service';
 import { VideosModule } from '@api/collections/videos/videos.module';
@@ -28,5 +29,6 @@ describe('VideosModule', () => {
       }),
     );
     expect(providers).not.toContain(HiggsFieldVideoGenerationProviderAdapter);
+    expect(providers).toContain(HeyGenVideoGenerationProviderAdapter);
   });
 });

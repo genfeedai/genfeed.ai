@@ -3,15 +3,16 @@ import { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 
 /**
- * Covers the hand-written `handleLegacyTool` switch — the REST-backed tools that
- * predate the canonical registry. Each case is exercised through the public
- * `handleToolCall` path so the classifier, the role check and the legacy
+ * Covers the MCP catalog REST handlers (generation, content, analytics,
+ * workflow-status, merge-videos). Each case is exercised through the public
+ * `handleToolCall` path so the classifier, the role check and the response
  * formatting all run together. `create_article` is approval-gated, so it is
  * reached through the `resolve_approval` execution path instead.
  */
-const LEGACY_NAMES = [
+const CATALOG_REST_NAMES = [
   'get_video_status',
   'list_videos',
+  'merge_videos',
   'get_video_analytics',
   'create_article',
   'search_articles',
@@ -53,7 +54,7 @@ const APPROVAL_GATED = new Set<string>(APPROVAL_GATED_NAMES);
 
 const MOCK_TOOLS = new Map(
   [
-    ...LEGACY_NAMES,
+    ...CATALOG_REST_NAMES,
     ...APPROVAL_GATED_NAMES,
     'generate_image',
     'resolve_approval',
@@ -150,6 +151,10 @@ function build() {
     listAvatars: vi.fn().mockResolvedValue([{ id: 'avatar-1' }]),
     listImages: vi.fn().mockResolvedValue([{ id: 'image-1' }]),
     listMusic: vi.fn().mockResolvedValue([{ id: 'track-1' }]),
+    mergeVideos: vi.fn().mockResolvedValue({
+      id: 'merged-1',
+      status: 'PROCESSING',
+    }),
     listWorkflowTemplates: vi.fn().mockResolvedValue([
       {
         category: 'content',
@@ -204,7 +209,7 @@ describe('ToolRegistryService — boot-time drift guard', () => {
   });
 });
 
-describe('handleLegacyTool — video', () => {
+describe('catalog REST handlers — video', () => {
   it('reports video analytics with the default time range', async () => {
     const { client, registry } = build();
 
@@ -238,7 +243,7 @@ describe('handleLegacyTool — video', () => {
   });
 });
 
-describe('handleLegacyTool — articles', () => {
+describe('catalog REST handlers — articles', () => {
   it('creates an article through the approval execution path', async () => {
     const { client, registry } = build();
     client.resolveApproval.mockResolvedValue({
@@ -349,7 +354,7 @@ describe('handleLegacyTool — articles', () => {
   });
 });
 
-describe('handleLegacyTool — media libraries', () => {
+describe('catalog REST handlers — media libraries', () => {
   it('lists images with pagination forwarded', async () => {
     const { client, registry } = build();
 
@@ -398,6 +403,40 @@ describe('handleLegacyTool — media libraries', () => {
     expect(result.content[0].text).toContain('Found 1 music tracks');
   });
 
+  it('starts a merge and forwards supported options', async () => {
+    const { client, registry } = build();
+
+    const result = await callTool(registry, 'merge_videos', {
+      ids: ['clip-1', 'clip-2'],
+      isResizeEnabled: true,
+      transition: 'fade',
+    });
+
+    expect(client.mergeVideos).toHaveBeenCalledWith({
+      ids: ['clip-1', 'clip-2'],
+      isResizeEnabled: true,
+      transition: 'fade',
+    });
+    expect(result.isError).toBeUndefined();
+    expect(result.content[0].text).toContain('merged-1');
+    expect(result.content[0].text).toContain('PROCESSING');
+  });
+
+  it('rejects zoom instead of starting a merge without it', async () => {
+    const { client, registry } = build();
+
+    const result = await callTool(registry, 'merge_videos', {
+      ids: ['clip-1', 'clip-2'],
+      zoomEaseCurve: 'easyinoutcubic',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain(
+      'Zoom effects are not supported when merging videos',
+    );
+    expect(client.mergeVideos).not.toHaveBeenCalled();
+  });
+
   it('reports an empty music library', async () => {
     const { client, registry } = build();
     client.listMusic.mockResolvedValue([]);
@@ -408,7 +447,7 @@ describe('handleLegacyTool — media libraries', () => {
   });
 });
 
-describe('handleLegacyTool — workflows', () => {
+describe('catalog REST handlers — workflows', () => {
   it('renders workflow status with its pinned version and node count', async () => {
     const { client, registry } = build();
 
@@ -485,7 +524,7 @@ describe('handleLegacyTool — workflows', () => {
   });
 });
 
-describe('handleLegacyTool — usage and LinkedIn', () => {
+describe('catalog REST handlers — usage and LinkedIn', () => {
   it('defaults usage stats to a 30d window', async () => {
     const { client, registry } = build();
 

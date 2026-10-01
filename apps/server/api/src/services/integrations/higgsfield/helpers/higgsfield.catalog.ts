@@ -67,3 +67,25 @@ const DOP_ENDPOINTS: ReadonlySet<string> = new Set([
 export function resolveDopEndpoint(modelKey: string): string | undefined {
   return DOP_ENDPOINTS.has(modelKey) ? modelKey : undefined;
 }
+
+/**
+ * Older Higgsfield docs spelled the org `higgsfiled`. The catalog key is the
+ * corrected endpoint id. A stored typo still dispatches there.
+ */
+export const HIGGSFIELD_GENJUTSU_LEGACY_ENDPOINT =
+  'higgsfiled/genjutsu/motion-transfer/v1.0';
+
+export const HIGGSFIELD_GENJUTSU_RESOLUTIONS = [
+  '480p',
+  '720p',
+  '1080p',
+] as const;
+
+export const HIGGSFIELD_GENJUTSU_DEFAULT_RESOLUTION = '720p';
+
+export function isGenjutsuModel(modelKey: string): boolean {
+  return (
+    modelKey === MODEL_KEYS.HIGGSFIELD_GENJUTSU ||
+    modelKey === HIGGSFIELD_GENJUTSU_LEGACY_ENDPOINT
+  );
+}

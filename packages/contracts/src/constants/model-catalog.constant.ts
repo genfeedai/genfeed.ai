@@ -28,6 +28,7 @@ import {
   LOWEST_COST_VIDEO_MODEL_KEY,
 } from './lowest-cost-models.constant';
 import { MODEL_OUTPUT_CAPABILITIES } from './model-capabilities.constant';
+import { MODEL_KEYS } from './model-keys.constant';
 import { SELF_HOSTED_MODELS } from './self-hosted-models.constant';
 
 /** Marker in `capabilities` so the agent picker can identify chat models. */
@@ -108,12 +109,23 @@ function labelFromKey(key: string): string {
     .trim();
 }
 
+const MEDIA_LABEL_OVERRIDES: Record<string, string> = {
+  [MODEL_KEYS.HEYGEN_VIDEO]: 'HeyGen Video',
+  [MODEL_KEYS.HIGGSFIELD_GENJUTSU]: 'Genjutsu',
+};
+
 function providerFromMediaKey(key: string): ModelProvider {
   if (key.startsWith('fal-ai/') || key.startsWith('fal/')) {
     return ModelProvider.FAL;
   }
   if (key.startsWith('genfeed-ai/')) {
     return ModelProvider.GENFEED_AI;
+  }
+  if (key.startsWith('heygen/')) {
+    return ModelProvider.HEYGEN;
+  }
+  if (key.startsWith('higgsfield-ai/') || key.startsWith('higgsfield/')) {
+    return ModelProvider.HIGGSFIELD;
   }
 
   return ModelProvider.REPLICATE;
@@ -141,7 +153,8 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
       category: capability.category,
       cost: curated?.cost ?? 0,
       description:
-        curated?.description ?? `${labelFromKey(key)} (${capability.category})`,
+        curated?.description ??
+        `${MEDIA_LABEL_OVERRIDES[key] ?? labelFromKey(key)} (${capability.category})`,
       ...(curated && 'endpoint' in curated && curated.endpoint
         ? { endpoint: curated.endpoint }
         : {}),
@@ -156,7 +169,7 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
             : ModelLifecycle.AVAILABLE,
       isPublic: isCurated,
       key,
-      label: curated?.label ?? labelFromKey(key),
+      label: curated?.label ?? MEDIA_LABEL_OVERRIDES[key] ?? labelFromKey(key),
       provider: curated?.provider ?? providerFromMediaKey(key),
     };
 

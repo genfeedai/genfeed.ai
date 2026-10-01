@@ -758,4 +758,79 @@ describe('compileRemainingVideoGenerationBrief', () => {
       resolution: '1080P',
     });
   });
+
+  it('compiles HeyGen Video text-to-video within the 5000 character schema', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'off',
+      intent: { objective: 'a presenter explains the product' },
+      mediaKind: 'video',
+      output: { aspectRatio: '9:16', durationSeconds: 2, resolution: '480p' },
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.HEYGEN_VIDEO),
+      modelKey: MODEL_KEYS.HEYGEN_VIDEO,
+    });
+
+    expect(result.dispatch).toMatchObject({
+      aspect_ratio: '9:16',
+      duration: 5,
+      prompt: 'a presenter explains the product',
+      resolution: '480p',
+    });
+    expect(result.dispatch).not.toHaveProperty('image');
+  });
+
+  it('compiles Genjutsu motion transfer without aspect ratio or duration', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'keep the walk and replace the person' },
+      mediaKind: 'video',
+      output: { aspectRatio: '9:16', durationSeconds: 12, resolution: '720p' },
+      references: [
+        { assetId: 'face-1', role: 'first_frame' },
+        { assetId: 'face-2', role: 'subject' },
+        { assetId: 'clip-1', role: 'reference_video' },
+      ],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.HIGGSFIELD_GENJUTSU),
+      modelKey: MODEL_KEYS.HIGGSFIELD_GENJUTSU,
+    });
+
+    expect(result.dispatch).toEqual({
+      image_url: 'face-1',
+      image_urls: ['face-2'],
+      prompt: 'keep the walk and replace the person',
+      reference_video: 'clip-1',
+      resolution: '720p',
+    });
+  });
+
+  it('rejects Genjutsu without a source video', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'replace the person' },
+      mediaKind: 'video',
+      output: {},
+      references: [{ assetId: 'face-1', role: 'first_frame' }],
+      version: 1,
+    });
+
+    expect(() =>
+      compileRemainingVideoGenerationBrief({
+        brief,
+        family: familyFor(MODEL_KEYS.HIGGSFIELD_GENJUTSU),
+        modelKey: MODEL_KEYS.HIGGSFIELD_GENJUTSU,
+      }),
+    ).toThrow('source video');
+  });
 });

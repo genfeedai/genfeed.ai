@@ -178,6 +178,53 @@ describe('ClientService (MCP)', () => {
     });
   });
 
+  describe('mergeVideos', () => {
+    it('posts a flat merge body and reads the JSON:API ingredient', async () => {
+      (mockAxiosInstance.post as Mock).mockResolvedValue({
+        data: {
+          data: {
+            attributes: { status: 'PROCESSING' },
+            id: 'merged-1',
+          },
+        },
+      });
+
+      const result = await service.mergeVideos({
+        ids: ['clip-1', 'clip-2'],
+        isMuteVideoAudio: true,
+        transition: 'fade',
+        transitionDuration: 0.5,
+      });
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/videos/merge', {
+        category: 'VIDEO',
+        ids: ['clip-1', 'clip-2'],
+        isMuteVideoAudio: true,
+        transition: 'fade',
+        transitionDuration: 0.5,
+      });
+      expect(result).toEqual({ id: 'merged-1', status: 'PROCESSING' });
+    });
+
+    it('surfaces the API error detail when merge is rejected', async () => {
+      (mockAxiosInstance.post as Mock).mockRejectedValue({
+        message: 'API Error',
+        response: {
+          data: {
+            errors: [
+              { detail: 'Zoom effects are not supported when merging videos' },
+            ],
+          },
+          status: 400,
+        },
+      });
+
+      await expect(
+        service.mergeVideos({ ids: ['clip-1', 'clip-2'] }),
+      ).rejects.toThrow('Zoom effects are not supported when merging videos');
+    });
+  });
+
   describe('listVideos', () => {
     it('should return list of videos', async () => {
       const mockResponse = {

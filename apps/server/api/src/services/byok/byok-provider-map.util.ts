@@ -27,6 +27,8 @@ export function modelProviderToByokProvider(
  */
 const AUTHORITATIVE_MODEL_KEY_PREFIX_TO_BYOK: Array<[string, ByokProvider]> = [
   ['higgsfield-ai/', ByokProvider.HIGGSFIELD],
+  ['higgsfield/', ByokProvider.HIGGSFIELD],
+  ['heygen/', ByokProvider.HEYGEN],
 ];
 
 const MODEL_KEY_PREFIX_TO_BYOK: Array<[string, ByokProvider]> = [
@@ -60,10 +62,11 @@ export function modelKeyToByokProvider(
 /**
  * Resolve the credential provider used by a concrete model route.
  *
- * Dedicated Higgsfield routes are authoritative because their catalog rows
- * currently retain Replicate as a fallback provider. Other routes preserve
- * catalog precedence so proxied keys such as `anthropic/*` through OpenRouter
- * do not get mistaken for direct-provider BYOK.
+ * Dedicated Higgsfield and HeyGen routes are authoritative. A catalog row
+ * that still says Replicate must not steal the org's Higgsfield or HeyGen
+ * key. Other routes preserve catalog precedence so proxied keys such as
+ * `anthropic/*` through OpenRouter do not get mistaken for direct-provider
+ * BYOK.
  */
 export function resolveModelByokProvider(
   modelKey?: string,

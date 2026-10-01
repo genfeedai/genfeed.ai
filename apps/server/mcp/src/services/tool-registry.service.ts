@@ -34,16 +34,28 @@ import { handleAccountManagementTool } from '@mcp/tools/account-management.tool'
 import { handleAdsGatewayTool } from '@mcp/tools/ads-gateway.tool';
 import { handleAgentChatTool } from '@mcp/tools/agent-chat.tool';
 import {
+  ANALYTICS_TOOL_NAMES,
+  handleAnalyticsTool,
+} from '@mcp/tools/analytics.tool';
+import {
   CLIP_PROJECTS_TOOL_NAMES,
   handleClipProjectsTool,
 } from '@mcp/tools/clip-projects.tool';
+import { CONTENT_TOOL_NAMES, handleContentTool } from '@mcp/tools/content.tool';
 import { EDITOR_TOOL_NAMES, handleEditorTool } from '@mcp/tools/editor.tool';
+import {
+  GENERATION_TOOL_NAMES,
+  handleGenerationTool,
+} from '@mcp/tools/generation.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
-import { handleLegacyTool, LEGACY_TOOL_NAMES } from '@mcp/tools/legacy.tool';
 import {
   approvalPendingToolResult,
   toMcpToolErrorResult,
 } from '@mcp/tools/mcp-tool-error';
+import {
+  handleMergeVideosTool,
+  MERGE_VIDEOS_TOOL_NAMES,
+} from '@mcp/tools/merge-videos';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
 import { handleRemixTool, REMIX_TOOL_NAMES } from '@mcp/tools/remix.tool';
 import {
@@ -65,6 +77,10 @@ import {
   TOOL_DISCOVERY_TOOL_NAMES,
 } from '@mcp/tools/tool-discovery.tool';
 import { handleWorkflowControlTool } from '@mcp/tools/workflow-control.tool';
+import {
+  handleWorkflowStatusTool,
+  WORKFLOW_STATUS_TOOL_NAMES,
+} from '@mcp/tools/workflow-status.tool';
 import { cardResource } from '@mcp/ui/card-app';
 import { MCP_CARD_RESOURCE_URI, withCardMetadata } from '@mcp/ui/card-data';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
@@ -137,16 +153,21 @@ const isAdsGatewayTool = (name: string): boolean => name.startsWith('get_ads_');
  * a registry/handler mismatch fails the boot health check instead of surfacing
  * as a runtime "Unknown tool" error. Order mirrors the historical dispatch
  * precedence exactly (tool-discovery → agent-chat → workflow-control →
- * agent-executor → legacy → external), so classification never changes which
- * handler runs. `tool-discovery` is checked first since its names (e.g.
- * `describe_tool`) are meta tools with no other executor to shadow.
+ * agent-executor → catalog REST handlers → ads/external), so classification
+ * never changes which handler runs. `tool-discovery` is checked first since
+ * its names (e.g. `describe_tool`) are meta tools with no other executor to
+ * shadow.
  */
 type ExecutorKind =
   | 'tool-discovery'
   | 'agent-chat'
   | 'workflow-control'
   | 'agent-executor'
-  | 'legacy'
+  | 'merge-videos'
+  | 'generation'
+  | 'content'
+  | 'analytics'
+  | 'workflow-status'
   | 'meta-ads'
   | 'google-ads'
   | 'tiktok-ads'
@@ -364,7 +385,11 @@ export class ToolRegistryService implements OnModuleInit {
     if (AGENT_CHAT_TOOL_NAMES.has(name)) return 'agent-chat';
     if (WORKFLOW_CONTROL_TOOL_NAMES.has(name)) return 'workflow-control';
     if (AGENT_EXECUTOR_TOOL_NAMES.has(name)) return 'agent-executor';
-    if (LEGACY_TOOL_NAMES.has(name)) return 'legacy';
+    if (MERGE_VIDEOS_TOOL_NAMES.has(name)) return 'merge-videos';
+    if (GENERATION_TOOL_NAMES.has(name)) return 'generation';
+    if (CONTENT_TOOL_NAMES.has(name)) return 'content';
+    if (ANALYTICS_TOOL_NAMES.has(name)) return 'analytics';
+    if (WORKFLOW_STATUS_TOOL_NAMES.has(name)) return 'workflow-status';
     if (isMetaAdsTool(name)) return 'meta-ads';
     if (isGoogleAdsTool(name)) return 'google-ads';
     if (isTikTokAdsTool(name)) return 'tiktok-ads';
@@ -420,8 +445,16 @@ export class ToolRegistryService implements OnModuleInit {
         );
         return this.toMcpResult(result);
       }
-      case 'legacy':
-        return handleLegacyTool(this.clientService, name, args);
+      case 'merge-videos':
+        return handleMergeVideosTool(this.clientService, args ?? {});
+      case 'generation':
+        return handleGenerationTool(this.clientService, name, args);
+      case 'content':
+        return handleContentTool(this.clientService, name, args);
+      case 'analytics':
+        return handleAnalyticsTool(this.clientService, name, args);
+      case 'workflow-status':
+        return handleWorkflowStatusTool(this.clientService, name, args);
       case 'meta-ads':
         return handleMetaAdsTool(this.clientService, name, args);
       case 'google-ads':

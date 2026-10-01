@@ -1,4 +1,5 @@
 import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
+import { HeyGenVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/heygen-video-generation-provider.adapter';
 import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/higgsfield-video-generation-provider.adapter';
 import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
 import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
@@ -20,7 +21,11 @@ describe('VideoGenerationProviderDispatchService', () => {
   };
   const higgsFieldService = {
     generateImageToVideo: vi.fn(),
+    generateMotionTransfer: vi.fn(),
     waitForVideoCompletion: vi.fn(),
+  };
+  const heyGenService = {
+    generateModelVideo: vi.fn(),
   };
 
   const service = new VideoGenerationProviderDispatchService(
@@ -28,6 +33,7 @@ describe('VideoGenerationProviderDispatchService', () => {
     new FalVideoGenerationProviderAdapter(falService as never),
     new ReplicateVideoGenerationProviderAdapter(replicateService as never),
     new HiggsFieldVideoGenerationProviderAdapter(higgsFieldService as never),
+    new HeyGenVideoGenerationProviderAdapter(heyGenService as never),
   );
 
   const buildParams = (
@@ -250,5 +256,24 @@ describe('VideoGenerationProviderDispatchService', () => {
     expect(falService.generateVideo).not.toHaveBeenCalled();
     expect(klingAIService.queueGenerateTextToVideo).not.toHaveBeenCalled();
     expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
+  });
+
+  it('routes HeyGen Video through HeyGen and not Replicate', async () => {
+    heyGenService.generateModelVideo.mockResolvedValue({
+      videoUrl: 'https://heygen.example.com/video.mp4',
+    });
+    const params = buildParams({
+      model: MODEL_KEYS.HEYGEN_VIDEO,
+      modelProvider: ModelProvider.REPLICATE,
+    });
+
+    await expect(service.dispatch(params)).resolves.toEqual({
+      completion: 'remote-output',
+      externalId: 'https://heygen.example.com/video.mp4',
+      provider: 'heygen',
+    });
+    expect(heyGenService.generateModelVideo).toHaveBeenCalled();
+    expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
+    expect(falService.generateVideo).not.toHaveBeenCalled();
   });
 });
