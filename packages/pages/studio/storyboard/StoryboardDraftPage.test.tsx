@@ -157,9 +157,9 @@ describe('draft detail navigation', () => {
             ...run,
             config: {
               ...run.config,
-              plan: null,
+              plan: undefined,
             },
-          } as StoryboardRun
+          } satisfies StoryboardRun
         }
         savePlan={vi.fn()}
         resetPlan={vi.fn()}
