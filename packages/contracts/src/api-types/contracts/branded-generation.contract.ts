@@ -338,6 +338,10 @@ export const brandedGenerationInputV1Schema = z
     )
       issue(ctx, 'Draft revision required only for provisional mode');
   });
+export const brandGenerationLayerVersionV1Schema = z.union([
+  version,
+  id.refine((value) => value.trim().length > 0, 'Version must not be blank'),
+]);
 export const brandGenerationLayerReceiptV1Schema = z
   .strictObject({
     kind: z.enum([
@@ -353,7 +357,7 @@ export const brandGenerationLayerReceiptV1Schema = z
       'account_policy',
     ]),
     id: id.optional(),
-    version: version.optional(),
+    version: brandGenerationLayerVersionV1Schema.optional(),
     contentHash: hash.optional(),
     status: z.enum([
       'applied',
@@ -1004,6 +1008,9 @@ export type BrandIdentitySnapshotV1 = z.infer<
 >;
 export type BrandedGenerationInputV1 = z.infer<
   typeof brandedGenerationInputV1Schema
+>;
+export type BrandGenerationLayerVersionV1 = z.infer<
+  typeof brandGenerationLayerVersionV1Schema
 >;
 export type BrandGenerationLayerReceiptV1 = z.infer<
   typeof brandGenerationLayerReceiptV1Schema

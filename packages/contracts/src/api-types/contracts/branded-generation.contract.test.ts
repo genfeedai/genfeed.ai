@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { BrandGenerationLayerVersionV1 } from '../../interfaces/content/branded-generation.interface';
 import type { GenerationHarnessReceipt } from '../../interfaces/content/generation-harness.interface';
 import type { IBrandKitDraft } from '../../interfaces/organization/brand-kit.interface';
 import {
@@ -11,6 +12,7 @@ import {
   brandedGenerationReceiptV1Schema,
   brandedGenerationResolutionV1Schema,
   brandGenerationLayerReceiptV1Schema,
+  brandGenerationLayerVersionV1Schema,
   brandGenerationRulesV1Schema,
   brandIdentitySnapshotV1Schema,
 } from './branded-generation.contract';
@@ -999,4 +1001,194 @@ it('rejects an oversized receipt projection without truncating lineage', () => {
     ),
   }));
   expect(brandedGenerationReceiptV1Schema.safeParse(v).success).toBe(false);
+});
+
+describe('lossless source layer versions', () => {
+  const layer = {
+    kind: 'pack',
+    id: 'brand-fidelity',
+    version: '1.0.0',
+    status: 'applied',
+    evidenceIds: [],
+    omittedIds: [],
+  };
+  it('accepts actual loaded pack version unchanged and retains numeric/string identity', () => {
+    expect(brandGenerationLayerReceiptV1Schema.parse(layer).version).toBe(
+      '1.0.0',
+    );
+    const numeric: BrandGenerationLayerVersionV1 = 1;
+    const opaque: BrandGenerationLayerVersionV1 = '1';
+    expect(brandGenerationLayerVersionV1Schema.parse(numeric)).toBe(1);
+    expect(brandGenerationLayerVersionV1Schema.parse(opaque)).toBe('1');
+    expect(
+      brandGenerationLayerReceiptV1Schema.parse({ ...layer, version: numeric })
+        .version,
+    ).toBe(1);
+    expect(
+      brandGenerationLayerReceiptV1Schema.parse({
+        ...layer,
+        version: Number.MAX_SAFE_INTEGER,
+      }).version,
+    ).toBe(Number.MAX_SAFE_INTEGER);
+  });
+  it.each([
+    '1',
+    '1.0.0',
+    'v1.0.0',
+    '1.0.0-beta.2',
+    '1.0.0+build.42',
+    'release 2026-10-01',
+    ' 1.0.0 ',
+    'x'.repeat(256),
+  ])('preserves bounded opaque version %s exactly', (value) => {
+    expect(brandGenerationLayerVersionV1Schema.parse(value)).toBe(value);
+    expect(
+      brandGenerationLayerReceiptV1Schema.parse({ ...layer, version: value })
+        .version,
+    ).toBe(value);
+  });
+  it.each([
+    '',
+    ' ',
+    '\t',
+    '\n',
+    '\u00a0',
+    '\u2003',
+    '\u0000version',
+    'version\u001f',
+    'version\u007f',
+    'version\u0085',
+    'version\u009f',
+    'x'.repeat(257),
+  ])('rejects blank/control/oversize version %j', (value) => {
+    expect(brandGenerationLayerVersionV1Schema.safeParse(value).success).toBe(
+      false,
+    );
+    expect(
+      brandGenerationLayerReceiptV1Schema.safeParse({
+        ...layer,
+        version: value,
+        contentHash: hash,
+      }).success,
+    ).toBe(false);
+  });
+  it.each([0, -1, 0.5, Number.MAX_SAFE_INTEGER + 1, NaN, Infinity, -Infinity])(
+    'rejects invalid numeric version %s',
+    (value) => {
+      expect(brandGenerationLayerVersionV1Schema.safeParse(value).success).toBe(
+        false,
+      );
+      expect(
+        brandGenerationLayerReceiptV1Schema.safeParse({
+          ...layer,
+          version: value,
+        }).success,
+      ).toBe(false);
+    },
+  );
+  it('keeps applied source ID and version-or-hash requirements', () => {
+    expect(
+      brandGenerationLayerReceiptV1Schema.safeParse({ ...layer, id: undefined })
+        .success,
+    ).toBe(false);
+    expect(
+      brandGenerationLayerReceiptV1Schema.safeParse({
+        ...layer,
+        version: undefined,
+      }).success,
+    ).toBe(false);
+    expect(
+      brandGenerationLayerReceiptV1Schema.safeParse({
+        ...layer,
+        version: undefined,
+        contentHash: hash,
+      }).success,
+    ).toBe(true);
+    expect(
+      brandGenerationLayerReceiptV1Schema.safeParse({
+        ...layer,
+        omittedIds: ['rule'],
+      }).success,
+    ).toBe(false);
+  });
+  it('retains semantic pack version in complete resolution and saved receipt fixtures', () => {
+    const saved = { ...receipt(), layers: [layer] };
+    const before = structuredClone(saved);
+    const parsed = brandedGenerationReceiptV1Schema.parse(saved);
+    expect(parsed.layers[0].version).toBe('1.0.0');
+    expect(parsed.snapshot).toEqual(saved.snapshot);
+    expect(parsed.learning).toEqual(saved.learning);
+    const resolved = brandedGenerationResolutionV1Schema.parse({
+      schemaVersion: 1,
+      status: 'resolved',
+      mode: 'approved_brand',
+      snapshot: snapshot(),
+      compiledPrompt: 'Acme',
+      originalPromptHash: hash,
+      layers: [layer],
+      learning,
+      diagnostics: [],
+    });
+    expect(resolved.layers[0].version).toBe('1.0.0');
+    expect(saved).toEqual(before);
+  });
+  it('leaves identity, evidence, evaluator, capability and learning counters numeric', () => {
+    expect(
+      brandIdentitySnapshotV1Schema.safeParse({
+        ...snapshot(),
+        revisionVersion: '1',
+      }).success,
+    ).toBe(false);
+    const guide = snapshot();
+    guide.generationRules.evidence = [
+      { ...guide.generationRules.evidence[0], sourceVersion: 1 },
+    ];
+    expect(
+      brandIdentitySnapshotV1Schema.safeParse({
+        ...guide,
+        generationRules: {
+          ...guide.generationRules,
+          evidence: [
+            { ...guide.generationRules.evidence[0], sourceVersion: '1.0.0' },
+          ],
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      brandArtifactValidationReportV1Schema.safeParse({
+        ...report(),
+        rubricVersion: '1',
+      }).success,
+    ).toBe(false);
+    expect(
+      brandArtifactValidationReportV1Schema.safeParse({
+        ...report(),
+        checks: [{ ...report().checks[0], evaluatorVersion: '1' }],
+      }).success,
+    ).toBe(false);
+    expect(
+      brandedGenerationReceiptV1Schema.safeParse({
+        ...receipt(),
+        execution: { ...receipt().execution, capabilityVersion: '1' },
+      }).success,
+    ).toBe(false);
+    expect(
+      brandedGenerationReceiptV1Schema.safeParse({
+        ...receipt(),
+        learning: {
+          ...learning,
+          privateAccount: { ...learning.privateAccount, accountRevision: '1' },
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      brandedGenerationReceiptV1Schema.safeParse({
+        ...receipt(),
+        learning: {
+          ...learning,
+          global: { ...learning.global, releaseRevision: '1' },
+        },
+      }).success,
+    ).toBe(false);
+  });
 });

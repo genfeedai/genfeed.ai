@@ -14,6 +14,7 @@ export type {
   BrandGenerationDiagnostic,
   BrandGenerationExecutionV1,
   BrandGenerationLayerReceiptV1,
+  BrandGenerationLayerVersionV1,
   BrandGenerationRulesV1,
   BrandIdentitySnapshotV1,
   BrandLearningApplicationV1,
