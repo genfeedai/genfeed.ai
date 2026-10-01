@@ -42,6 +42,17 @@ describe('bounded Crun image contract import', () => {
         CRUN_IMAGE_MANIFEST[index].sha256,
       );
     }
+    for (const capture of CRUN_RESPONSE_CAPTURES) {
+      expect(
+        createHash('sha256')
+          .update(
+            readFileSync(
+              new URL(`./fixtures/${capture.file}`, import.meta.url),
+            ),
+          )
+          .digest('hex'),
+      ).toBe(capture.sha256);
+    }
     expect(CRUN_IMAGE_MANIFEST.map((entry) => entry.key)).toEqual([
       'crun/google/nano-banana-pro',
       'crun/bytedance/seedream-4-5',

@@ -35,3 +35,18 @@ export const CRUN_IMAGE_MANIFEST = [
 ] as const;
 
 export type CrunManifestEntry = (typeof CRUN_IMAGE_MANIFEST)[number];
+
+export const CRUN_RESPONSE_CAPTURES = [
+  {
+    file: 'task-info.openapi.json',
+    schemaUrl: 'https://docs.crun.ai/models/common/get-task-info.json',
+    capturedAt: '2026-10-01T00:00:00.000Z',
+    sha256: '866607e881f63b0103efe041296c9fc71e46dff15329c6ee751029d6f638a6ca',
+  },
+  {
+    file: 'estimate-credits.openapi.json',
+    schemaUrl: 'https://docs.crun.ai/common-api/estimate-task-credits.json',
+    capturedAt: '2026-10-01T00:00:00.000Z',
+    sha256: 'e8d9d5491ffb8b34382386e5c098f4960ac0aa1037c624e0f35fca507647315d',
+  },
+] as const;

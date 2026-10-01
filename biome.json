@@ -264,6 +264,23 @@
           }
         }
       }
+    },
+    {
+      "includes": [
+        "apps/server/api/src/services/integrations/crun/contracts/fixtures/nano-banana-pro.openapi.json",
+        "apps/server/api/src/services/integrations/crun/contracts/fixtures/seedream-4-5.openapi.json",
+        "apps/server/api/src/services/integrations/crun/contracts/fixtures/task-info.openapi.json",
+        "apps/server/api/src/services/integrations/crun/contracts/fixtures/estimate-credits.openapi.json"
+      ],
+      "formatter": {
+        "enabled": false
+      },
+      "linter": {
+        "enabled": false
+      },
+      "assist": {
+        "enabled": false
+      }
     }
   ]
 }

@@ -30,7 +30,18 @@
         "properties": {
           "code": {
             "type": "integer",
-            "enum": [200, 401, 402, 404, 422, 429, 455, 500, 501, 505],
+            "enum": [
+              200,
+              401,
+              402,
+              404,
+              422,
+              429,
+              455,
+              500,
+              501,
+              505
+            ],
             "description": "Response status code\n\n- **200**: Success - Request has been processed successfully\n- **401**: Unauthorized - Authentication credentials are missing or invalid\n- **402**: Insufficient Credits - Account does not have enough credits to perform the operation\n- **404**: Not Found - The requested resource or endpoint does not exist\n- **422**: Validation Error - The request parameters failed validation checks\n- **429**: Rate Limited - Request limit has been exceeded for this resource\n- **455**: Service Unavailable - System is currently undergoing maintenance\n- **500**: Server Error - An unexpected error occurred while processing the request\n- **501**: Generation Failed - Content generation task failed\n- **505**: Feature Disabled - The requested feature is currently disabled"
           },
           "message": {
@@ -63,7 +74,10 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["model", "input"],
+                "required": [
+                  "model",
+                  "input"
+                ],
                 "properties": {
                   "model": {
                     "type": "string",
@@ -78,6 +92,7 @@
                     "format": "uri",
                     "description": "Optional. Callback URL for receiving task completion notifications.\n\n- System will POST task status and results to this URL when generation completes\n- Callback payloads structure is consistent with the `data` object returned by the task status query\n- Your callback endpoint should accept POST requests with JSON payload containing results\n- It returns an HTTP 200 status code upon successful receipt",
                     "example": "https://your-domain.com/api/callback"
+
                   },
                   "input": {
                     "type": "object",
@@ -99,19 +114,28 @@
                         },
                         "minItems": 1,
                         "maxItems": 8,
-                        "example": ["https://example.com/reference1.jpg"]
+                        "example": [
+                          "https://example.com/reference1.jpg"
+                        ]
                       },
                       "resolution": {
                         "type": "string",
                         "description": "Output image resolution.",
-                        "enum": ["1K", "2K", "4K"],
+                        "enum": [
+                          "1K",
+                          "2K",
+                          "4K"
+                        ],
                         "default": "1K",
                         "example": "2K"
                       },
                       "output_format": {
                         "type": "string",
                         "description": "Output image file format. Not supported by `google/nano-banana-pro-v2` and may be ignored.",
-                        "enum": ["png", "jpg"],
+                        "enum": [
+                          "png",
+                          "jpg"
+                        ],
                         "default": "png",
                         "example": "png"
                       },
@@ -135,7 +159,9 @@
                         "example": "16:9"
                       }
                     },
-                    "required": ["prompt"]
+                    "required": [
+                      "prompt"
+                    ]
                   }
                 }
               },
