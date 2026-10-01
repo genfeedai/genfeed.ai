@@ -139,7 +139,7 @@ async function quote(
     .parse(
       await f.controller.quote(f.request(actor.user), actor.user, {
         operation,
-        projectId,
+        ...(operation === 'create' ? {} : { projectId }),
         input: parameters,
       }),
     ).data.attributes.maximumCredits;
