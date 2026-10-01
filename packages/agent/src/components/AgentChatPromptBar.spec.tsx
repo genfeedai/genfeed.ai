@@ -1,5 +1,6 @@
 import { AgentChatPromptBar } from '@genfeedai/agent/components/AgentChatPromptBar';
 import type { AgentInputRequest } from '@genfeedai/agent/models/agent-chat.model';
+import { AgentThreadMode } from '@genfeedai/contracts';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -79,6 +80,7 @@ function renderPromptBar(
   render(
     <AgentChatPromptBar
       activeWorkEvent={null}
+      agentMode={AgentThreadMode.MANUAL}
       workEvents={[]}
       addFiles={vi.fn()}
       apiService={{} as never}
@@ -102,6 +104,7 @@ function renderPromptBar(
       isSubmittingInputRequest={false}
       latestProposedPlan={null}
       layoutMode="fixed"
+      onAgentModeChange={vi.fn()}
       onClearError={vi.fn()}
       onMoveFollowUp={extras.onMoveFollowUp}
       onRemoveFollowUp={extras.onRemoveFollowUp}
