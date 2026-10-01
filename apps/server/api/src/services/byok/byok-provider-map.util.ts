@@ -8,6 +8,7 @@ import { ByokProvider, ModelProvider } from '@genfeedai/contracts';
 const MODEL_PROVIDER_TO_BYOK: Record<string, ByokProvider> = {
   [ModelProvider.REPLICATE]: ByokProvider.REPLICATE,
   [ModelProvider.FAL]: ByokProvider.FAL,
+  [ModelProvider.CRUN]: ByokProvider.CRUN,
   [ModelProvider.OPENROUTER]: ByokProvider.OPENROUTER,
 };
 
@@ -32,6 +33,7 @@ const AUTHORITATIVE_MODEL_KEY_PREFIX_TO_BYOK: Array<[string, ByokProvider]> = [
 ];
 
 const MODEL_KEY_PREFIX_TO_BYOK: Array<[string, ByokProvider]> = [
+  ['crun/', ByokProvider.CRUN],
   ['argil/', ByokProvider.ARGIL],
   ['anthropic/', ByokProvider.ANTHROPIC],
   ['openai/', ByokProvider.OPENAI],

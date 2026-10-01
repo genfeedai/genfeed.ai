@@ -356,3 +356,66 @@ describe('ByokService saveKey validation (#5294)', () => {
     expect(tx.organizationSetting.updateMany).toHaveBeenCalledOnce();
   });
 });
+
+describe('ByokService Crun harmless credential verification', () => {
+  const http = { post: vi.fn() };
+  const service = new ByokService(
+    {} as never,
+    {} as never,
+    http as never,
+    { error: vi.fn() } as never,
+    {} as never,
+  );
+  beforeEach(() => vi.clearAllMocks());
+  it('only estimates the fixed harmless payload and accepts a valid fractional envelope', async () => {
+    http.post.mockReturnValue(
+      of({
+        status: 200,
+        data: {
+          code: 200,
+          message: 'ok',
+          data: { credits: 1.5, estimated: true },
+        },
+      }),
+    );
+    expect(await service.validateKey(ByokProvider.CRUN, 'fixture-key')).toEqual(
+      { isValid: true },
+    );
+    expect(http.post).toHaveBeenCalledTimes(1);
+    expect(http.post).toHaveBeenCalledWith(
+      'https://api.crun.ai/api/v1/client/job/estimate-credits',
+      {
+        model: 'google/nano-banana-pro',
+        input: {
+          prompt: 'Credential verification',
+          resolution: '1K',
+          aspect_ratio: '1:1',
+          output_format: 'png',
+        },
+      },
+      { headers: { 'X-API-KEY': 'fixture-key' }, timeout: 15000 },
+    );
+  });
+  it.each([
+    {},
+    { code: 402, message: 'secret', data: { credits: 8, estimated: false } },
+    { code: 200, message: 'ok', data: { credits: '8', estimated: false } },
+  ])(
+    'rejects invalid envelope without exposing upstream details',
+    async (data) => {
+      http.post.mockReturnValue(of({ status: 200, data }));
+      expect(
+        await service.validateKey(ByokProvider.CRUN, 'fixture-key'),
+      ).toEqual({
+        isValid: false,
+        error: 'Crun credential verification was refused',
+      });
+    },
+  );
+  it('redacts transport errors', async () => {
+    http.post.mockReturnValue(throwError(() => new Error('private api key')));
+    expect(await service.validateKey(ByokProvider.CRUN, 'fixture-key')).toEqual(
+      { isValid: false, error: 'Crun credential verification is unavailable' },
+    );
+  });
+});

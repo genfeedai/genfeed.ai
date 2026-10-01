@@ -3,6 +3,7 @@ import { OrganizationPaidAccessService } from '@api/common/subscriptions/organiz
 import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
 import { encodeJwtToken } from '@api/helpers/utils/jwt/jwt.util';
 import type { ResolvedByokCredential } from '@api/services/byok/byok-credential-identity.interface';
+import { parseCrunEstimate } from '@api/services/integrations/crun/crun-response.schema';
 import {
   HIGGSFIELD_API_BASE,
   HIGGSFIELD_CREDENTIAL_PROBE_PATH,
@@ -126,6 +127,11 @@ const BYOK_PROVIDER_LABELS: Record<
     description: '',
     docsUrl: 'https://replicate.com/account/api-tokens',
     label: 'Replicate',
+  },
+  [ByokProvider.CRUN]: {
+    description: '',
+    docsUrl: 'https://crun.ai/user-api-key',
+    label: 'Crun',
   },
   [ByokProvider.FAL]: {
     description: '',
@@ -553,6 +559,8 @@ export class ByokService {
           return await this.validateElevenLabs(apiKey);
         case ByokProvider.REPLICATE:
           return await this.validateReplicate(apiKey);
+        case ByokProvider.CRUN:
+          return await this.validateCrun(apiKey);
         case ByokProvider.FAL:
           return await this.validateFal(apiKey);
         case ByokProvider.ARGIL:
@@ -789,6 +797,39 @@ export class ByokService {
       return { isValid: true };
     } catch {
       return { error: 'Invalid Hedra API key', isValid: false };
+    }
+  }
+
+  private async validateCrun(
+    apiKey: string,
+  ): Promise<{ isValid: boolean; error?: string }> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post<unknown>(
+          'https://api.crun.ai/api/v1/client/job/estimate-credits',
+          {
+            model: 'google/nano-banana-pro',
+            input: {
+              prompt: 'Credential verification',
+              resolution: '1K',
+              aspect_ratio: '1:1',
+              output_format: 'png',
+            },
+          },
+          { headers: { 'X-API-KEY': apiKey }, timeout: 15000 },
+        ),
+      );
+      if (parseCrunEstimate(response.status, response.data).isValid)
+        return { isValid: true };
+      return {
+        isValid: false,
+        error: 'Crun credential verification was refused',
+      };
+    } catch {
+      return {
+        isValid: false,
+        error: 'Crun credential verification is unavailable',
+      };
     }
   }
 

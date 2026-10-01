@@ -13,6 +13,45 @@ describe('CacheService', () => {
   /** Flipped per test to exercise the client-unavailable gate. */
   let isClientReady: boolean;
 
+  it('uses one Redis-time sliding window for frozen credential requests', async () => {
+    mockRedisClient.eval
+      .mockResolvedValueOnce([1, 0])
+      .mockResolvedValueOnce([0, 250]);
+    const fingerprint = 'a'.repeat(64);
+    await expect(service.claimCrunRequestSlot(fingerprint)).resolves.toEqual({
+      isAdmitted: true,
+      retryAfterMs: 0,
+    });
+    await expect(service.claimCrunRequestSlot(fingerprint)).resolves.toEqual({
+      isAdmitted: false,
+      retryAfterMs: 250,
+    });
+    expect(mockRedisClient.eval).toHaveBeenCalledWith(
+      expect.stringContaining("redis.call('TIME')"),
+      1,
+      `crun:requests:${fingerprint}`,
+      expect.any(String),
+    );
+    expect(mockRedisClient.eval.mock.calls[0][0]).toContain('count >= 20');
+    expect(mockRedisClient.eval.mock.calls[0][0]).toContain('now - 10000');
+    expect(mockRedisClient.eval.mock.calls[0][0]).toContain(
+      "redis.call('EXPIRE', KEYS[1], 11)",
+    );
+  });
+
+  it('fails Crun requests closed when Redis is unavailable or malformed', async () => {
+    isClientReady = false;
+    await expect(
+      service.claimCrunRequestSlot('a'.repeat(64)),
+    ).resolves.toBeNull();
+    expect(mockRedisClient.eval).not.toHaveBeenCalled();
+    isClientReady = true;
+    mockRedisClient.eval.mockResolvedValueOnce('invalid');
+    await expect(
+      service.claimCrunRequestSlot('a'.repeat(64)),
+    ).resolves.toBeNull();
+  });
+
   beforeEach(async () => {
     isClientReady = true;
 
