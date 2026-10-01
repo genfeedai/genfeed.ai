@@ -1,9 +1,7 @@
 import { deriveBrandLearningCompatibility } from '@api/services/harness/branded-generation-compatibility';
 import { ContentLearningArm } from '@genfeedai/contracts/enums';
-import type {
-  BrandIdentitySnapshotV1,
-  LearningFormat,
-} from '@genfeedai/contracts/interfaces';
+import type { BrandIdentitySnapshotV1 } from '@genfeedai/contracts/interfaces';
+import type { LearningFormat } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { describe, expect, it } from 'vitest';
 
 const hash = `sha256:${'a'.repeat(64)}`;

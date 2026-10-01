@@ -2,9 +2,9 @@ import { brandIdentitySnapshotV1Schema } from '@genfeedai/contracts/api-types/co
 import { ContentLearningArm } from '@genfeedai/contracts/enums';
 import type {
   BrandIdentitySnapshotV1,
-  LearningFormat,
   LearningGenerationResolutionInputV1,
 } from '@genfeedai/contracts/interfaces';
+import type { LearningFormat } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 
 type Compatibility = readonly [
   LearningGenerationResolutionInputV1['hardConstraints'],
