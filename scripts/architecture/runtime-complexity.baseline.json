@@ -198,7 +198,7 @@
     "symbol": "AgentToolExecutorService.dispatch"
   },
   {
-    "actual": 1279,
+    "actual": 1266,
     "file": "apps/server/api/src/services/content-optimization/content-optimization.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/content-optimization/content-optimization.service.ts"

@@ -2216,14 +2216,7 @@
       "message": "Expected 1 arguments, but got 0.",
       "workspace": "api"
     },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/collections/trends/services/modules/trend-content-ideas.service.spec.ts",
-      "fingerprint": "cefd53ee7cd7deff53a3",
-      "message": "Conversion of type '(callback: TimerHandler) => ReturnType<typeof setTimeout>' to type 'typeof setTimeout' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Property '__promisify__' is missing in type '(callback: TimerHandler) => ReturnType<typeof setTimeout>' but required in type 'typeof setTimeout'.",
-      "workspace": "api"
-    },
+
     {
       "code": 2353,
       "count": 1,

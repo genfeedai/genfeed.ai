@@ -1,9 +1,23 @@
+import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
+import {
+  buildStructuredResponseFormat,
+  runStructuredCompletion,
+  toStructuredJsonSchema,
+} from '@api/services/integrations/llm/structured-output.util';
+import {
+  CLIP_HIGHLIGHT_DETECTION_SCHEMA_NAME,
+  clipHighlightDetectionSchema,
+  type HighlightResult,
+} from '@genfeedai/contracts/api-types/contracts';
+
+export type { HighlightResult } from '@genfeedai/contracts/api-types/contracts';
+
 /**
  * Clip Highlight Detector
  *
  * Shared highlight-detection action for clip analysis and generation workflows.
- * Owns the highlight prompt, OpenRouter call, and JSON
- * parse/validation/fallback behavior so workflow callers cannot drift.
+ * Owns the highlight prompt, OpenRouter call, schema validation and explicit
+ * deterministic fallback behavior so workflow callers cannot drift.
  */
 
 import { OPENROUTER_FIRST_PARTY_PROVIDER_POLICY } from '@api/services/integrations/openrouter/dto/openrouter.dto';
@@ -17,7 +31,7 @@ import { firstValueFrom } from 'rxjs';
 /** System prompt for highlight detection. */
 const HIGHLIGHT_SYSTEM_PROMPT = `You are a viral content analyst. Given a video transcript with timestamps, identify the best short-form clips for TikTok, Reels, and YouTube Shorts.
 
-For each clip return a JSON array of objects with these fields:
+The highlights field contains clips with these fields:
 - start_time: number (seconds from start)
 - end_time: number (seconds from start)
 - title: string (catchy hook, under 60 characters)
@@ -38,18 +52,7 @@ Rules:
 - Each clip must be a self-contained segment that makes sense without context
 - Clips should not overlap
 - Prefer clips with strong opening hooks
-- Return ONLY valid JSON array, no markdown or explanation`;
-
-/** A single highlight as returned by the LLM. */
-export interface HighlightResult {
-  start_time: number;
-  end_time: number;
-  title: string;
-  summary: string;
-  virality_score: number;
-  tags: string[];
-  clip_type: string;
-}
+- Clip durations must be between 15 and 90 seconds.`;
 
 /** Transcript segment produced by transcription (whisper). */
 export interface TranscriptSegment {
@@ -101,39 +104,62 @@ export class ClipHighlightDetector {
 Transcript with timestamps:
 ${formattedTranscript}
 
-Return a JSON array of clip objects sorted by virality_score descending.`;
+Select clips with the highest virality scores for the highlights field.`;
 
     const openRouterApiKey = this.configService.get('OPENROUTER_API_KEY') || '';
 
     try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          this.openRouterUrl,
-          {
-            max_tokens: 4096,
-            messages: [
-              { content: HIGHLIGHT_SYSTEM_PROMPT, role: 'system' },
-              { content: userPrompt, role: 'user' },
-            ],
-            model: options.model ?? LLM_DEFAULTS.highlighted,
-            provider: OPENROUTER_FIRST_PARTY_PROVIDER_POLICY,
-            stream: false,
-            temperature: 0.3,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${openRouterApiKey}`,
-              'Content-Type': 'application/json',
-              'HTTP-Referer': 'https://genfeed.ai',
-              'X-Title': 'GenFeed AI Clip Factory',
-            },
-            timeout: 60_000,
-          },
-        ),
-      );
-
-      const content = response.data?.choices?.[0]?.message?.content || '';
-      const highlights = this.parseHighlights(content, maxClips);
+      const messages = [
+        { content: HIGHLIGHT_SYSTEM_PROMPT, role: 'system' },
+        { content: userPrompt, role: 'user' },
+      ];
+      const result = await runStructuredCompletion({
+        schema: clipHighlightDetectionSchema,
+        schemaName: CLIP_HIGHLIGHT_DETECTION_SCHEMA_NAME,
+        attempt: async (repair) => {
+          const response = await firstValueFrom(
+            this.httpService.post(
+              this.openRouterUrl,
+              {
+                max_tokens: 4096,
+                messages: repair
+                  ? [
+                      ...messages,
+                      { role: 'assistant', content: repair.previousRaw },
+                      { role: 'user', content: repair.instruction },
+                    ]
+                  : messages,
+                model: options.model ?? LLM_DEFAULTS.highlighted,
+                provider: OPENROUTER_FIRST_PARTY_PROVIDER_POLICY,
+                response_format: buildStructuredResponseFormat(
+                  CLIP_HIGHLIGHT_DETECTION_SCHEMA_NAME,
+                  toStructuredJsonSchema(clipHighlightDetectionSchema),
+                ),
+                stream: false,
+                temperature: 0.3,
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${openRouterApiKey}`,
+                  'Content-Type': 'application/json',
+                  'HTTP-Referer': 'https://genfeed.ai',
+                  'X-Title': 'GenFeed AI Clip Factory',
+                },
+                timeout: 60_000,
+              },
+            ),
+          );
+          return response.data?.choices?.[0]?.message?.content ?? '';
+        },
+      });
+      const highlights = result.highlights
+        .sort((a, b) => b.virality_score - a.virality_score)
+        .slice(0, maxClips);
+      if (highlights.length === 0 && options.fallback === 'deterministic') {
+        this.logger.warn(`${this.logContext} using deterministic fallback`, {
+          code: 'clip_highlight_empty_result',
+        });
+      }
       return highlights.length > 0 || options.fallback !== 'deterministic'
         ? highlights
         : this.buildDeterministicFallback(segments, maxClips);
@@ -142,7 +168,10 @@ Return a JSON array of clip objects sorted by virality_score descending.`;
         throw error;
       }
       this.logger.warn(`${this.logContext} using deterministic fallback`, {
-        code: 'clip_highlight_provider_unavailable',
+        code:
+          error instanceof LlmStructuredOutputError
+            ? 'clip_highlight_invalid_output'
+            : 'clip_highlight_provider_unavailable',
       });
       return this.buildDeterministicFallback(segments, maxClips);
     }
@@ -193,43 +222,5 @@ Return a JSON array of clip objects sorted by virality_score descending.`;
     }
 
     return highlights;
-  }
-
-  /**
-   * Parse LLM JSON response into validated highlights.
-   */
-  private parseHighlights(
-    content: string,
-    maxClips: number,
-  ): HighlightResult[] {
-    try {
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) {
-        this.logger.error(
-          `${this.logContext} no JSON array found in LLM response`,
-        );
-        return [];
-      }
-
-      const parsed: HighlightResult[] = JSON.parse(jsonMatch[0]);
-
-      return parsed
-        .filter((h) => {
-          const duration = h.end_time - h.start_time;
-          return (
-            duration >= 15 &&
-            duration <= 90 &&
-            h.start_time >= 0 &&
-            h.end_time > h.start_time &&
-            h.virality_score >= 1 &&
-            h.virality_score <= 100
-          );
-        })
-        .sort((a, b) => b.virality_score - a.virality_score)
-        .slice(0, maxClips);
-    } catch (error: unknown) {
-      this.logger.error(`${this.logContext} failed to parse highlights`, error);
-      return [];
-    }
   }
 }
