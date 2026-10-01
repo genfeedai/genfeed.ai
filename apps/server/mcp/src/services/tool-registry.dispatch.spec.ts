@@ -77,6 +77,7 @@ describe('ToolRegistryService.classify', () => {
     ['import_source_post', 'remix'],
     ['create_remix_concept', 'remix'],
     ['get_remix_run', 'remix'],
+    ['open_in_editor', 'editor'],
     ['storyboard_run_capabilities', 'storyboard-capabilities'],
     ['update_remix_concept', 'remix'],
     ['attach_remix_analysis_source', 'remix'],

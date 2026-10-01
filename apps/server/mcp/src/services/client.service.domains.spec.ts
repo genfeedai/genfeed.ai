@@ -539,6 +539,31 @@ describe('ClientService (MCP) domain clients', () => {
     });
   });
 
+  describe('editor projects', () => {
+    it('creates a seeded Editor project and omits a blank name', async () => {
+      (mockAxiosInstance.post as Mock).mockResolvedValue({
+        data: { data: { id: 'editor-1', type: 'editor-project' } },
+      });
+
+      const result = await service.openInEditor({
+        name: 'Launch cut',
+        sourceVideoIds: ['video-2', 'video-1'],
+      });
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/editor-projects', {
+        name: 'Launch cut',
+        sourceVideoIds: ['video-2', 'video-1'],
+      });
+      expect(result).toEqual({ id: 'editor-1', type: 'editor-project' });
+
+      await service.openInEditor({ sourceVideoIds: ['video-1'] });
+      expect(mockAxiosInstance.post).toHaveBeenLastCalledWith(
+        '/editor-projects',
+        { sourceVideoIds: ['video-1'] },
+      );
+    });
+  });
+
   // ==================== WORKSPACE ====================
 
   describe('workspace reads', () => {
