@@ -36,7 +36,10 @@ import type {
 } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import type { BrandKnowledgeSelection } from '@genfeedai/props/content/knowledge-library.props';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
-import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio-generate.props';
+import type {
+  StudioGenerateComposerProps,
+  StudioGenerateFilter,
+} from '@genfeedai/props/studio/studio-generate.props';
 import type { AttachmentItem } from '@genfeedai/props/ui/attachments.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
@@ -74,16 +77,28 @@ import {
   settingsPatchFromRecipe,
 } from '@pages/studio/generate/utils/studio-generate-recipe';
 import { sanitizeStudioGenerateState } from '@pages/studio/generate/utils/studio-generate-storage';
-import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
+import {
+  getStudioGenerateTypeConfig,
+  isStudioGenerateType,
+  listStudioGenerateTypeConfigs,
+} from '@pages/studio/generate/utils/studio-generate-types';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import type { JSONContent } from '@tiptap/core';
+import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import Searchbar from '@ui/primitives/searchbar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import { usePromptCommandExtension } from '@ui/prompt-editor/use-prompt-command-extension';
 import { LayoutGrid, RotateCcw, Rows3 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -220,6 +235,8 @@ export default function StudioGenerateWorkspace(): ReactElement {
     resolveRequestedSkills: resolvePromptCommands,
   });
   const [search, setSearch] = useState('');
+  const [resultType, setResultType] = useState<StudioGenerateFilter>('all');
+  const [resultSort, setResultSort] = useState<'newest' | 'oldest'>('newest');
   const [resultsView, setResultsView] = useState<ViewType.GRID | ViewType.LIST>(
     ViewType.GRID,
   );
@@ -610,14 +627,16 @@ export default function StudioGenerateWorkspace(): ReactElement {
     rehydratePending(storedJobs);
   }, [rehydratePending, storedJobs]);
 
-  const visibleJobs = useMemo(
-    () =>
-      filterStudioGenerateJobs(mergeStudioGenerateJobs(jobs, storedJobs), {
+  const visibleJobs = useMemo(() => {
+    const filtered = filterStudioGenerateJobs(
+      mergeStudioGenerateJobs(jobs, storedJobs),
+      {
         search,
-        type: 'all',
-      }),
-    [jobs, search, storedJobs],
-  );
+        type: resultType,
+      },
+    );
+    return resultSort === 'oldest' ? [...filtered].reverse() : filtered;
+  }, [jobs, resultSort, resultType, search, storedJobs]);
   const selectedJob = useMemo(
     () => visibleJobs.find((job) => job.id === selectedJobId) ?? null,
     [selectedJobId, visibleJobs],
@@ -1256,14 +1275,54 @@ export default function StudioGenerateWorkspace(): ReactElement {
       <SectionTopbar
         actions={
           <div className="flex items-center gap-2">
-            <Searchbar
-              className="w-64"
-              onChange={(event) => setSearch(event.target.value)}
-              onClear={() => setSearch('')}
-              placeholder="Search generations"
-              size={ComponentSize.SM}
-              value={search}
-            />
+            <Select
+              onValueChange={(value) => {
+                if (value === 'all' || isStudioGenerateType(value)) {
+                  setResultType(value);
+                }
+              }}
+              value={resultType}
+            >
+              <SelectTrigger
+                aria-label={translate('filters.type')}
+                className="w-36"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  {translate('filters.allTypes')}
+                </SelectItem>
+                {listStudioGenerateTypeConfigs().map((config) => (
+                  <SelectItem key={config.type} value={config.type}>
+                    {config.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              onValueChange={(value) => {
+                if (value === 'newest' || value === 'oldest') {
+                  setResultSort(value);
+                }
+              }}
+              value={resultSort}
+            >
+              <SelectTrigger
+                aria-label={translate('filters.sort')}
+                className="w-40"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">
+                  {translate('filters.newest')}
+                </SelectItem>
+                <SelectItem value="oldest">
+                  {translate('filters.oldest')}
+                </SelectItem>
+              </SelectContent>
+            </Select>
             <ViewToggle
               activeView={resultsView}
               onChange={(view) => {
@@ -1285,7 +1344,19 @@ export default function StudioGenerateWorkspace(): ReactElement {
               ]}
               size={ComponentSize.SM}
             />
+            <ButtonRefresh isRefreshing={isLoadingGallery} onClick={refresh} />
           </div>
+        }
+        leading={
+          <Searchbar
+            ariaLabel={translate('searchPlaceholder')}
+            isCollapsible
+            onChange={(event) => setSearch(event.target.value)}
+            onClear={() => setSearch('')}
+            placeholder={translate('searchPlaceholder')}
+            size={ComponentSize.SM}
+            value={search}
+          />
         }
         subtitle={translate('description')}
         title={translate('title')}
@@ -1293,7 +1364,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
-          <div className="h-full overflow-auto px-6 py-6 pb-40">
+          <div className="relative z-0 h-full overflow-auto px-6 py-6 pb-40">
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
               {galleryError ? (
                 <Alert role="alert">
@@ -1350,7 +1421,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
             className="px-5 pb-5"
             layoutMode="surface-fixed"
             maxWidth="4xl"
-            showTopFade
+            zIndex={40}
           >
             <div {...(capabilities.hasReferences ? dragHandlers : {})}>
               {draftSaveStatus === 'idle' ? null : (

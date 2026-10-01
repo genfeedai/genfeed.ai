@@ -231,6 +231,21 @@ describe('AppLayout', () => {
     );
     expect(appRail).not.toHaveClass('border-r', 'bg-foreground/[0.04]');
     expect(appRail).toHaveStyle({ top: 'var(--desktop-titlebar-height)' });
+    expect(appRail).not.toHaveClass('pt-12');
+    const mark = screen.getByTestId('app-rail-mark');
+    const collapse = screen.getByRole('button', { name: 'Collapse sidebar' });
+    expect(mark).toContainElement(collapse);
+    expect(collapse.querySelector('img')?.getAttribute('src')).toContain(
+      'logo.svg',
+    );
+    expect(appRail).toContainElement(mark);
+    expect(screen.getByTestId('app-topbar-shell')).not.toContainElement(
+      collapse,
+    );
+    expect(
+      mark.compareDocumentPosition(screen.getAllByTestId('rail-component')[0]) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(appRail).toContainElement(
       screen.getAllByTestId('rail-component')[0],
     );
@@ -273,13 +288,16 @@ describe('AppLayout', () => {
       '[--shell-topbar-offset:3rem]',
     );
     expect(layoutRoot).not.toHaveClass('md:[--shell-edge:1px]');
-    // Shell starts after the rail. The inspector's width is reserved on the right.
+    // Shell starts after the rail. Inspector width is reserved on the panel,
+    // not the shell, so the topbar icons stay put.
     expect(contentShell).toHaveClass(
       'md:pl-[var(--desktop-rail-width)]',
       'md:pt-[var(--desktop-titlebar-height)]',
-      'xl:pr-[var(--workspace-inspector-width,0px)]',
       'md:h-dvh',
       'md:overflow-hidden',
+    );
+    expect(contentShell).not.toHaveClass(
+      'xl:pr-[var(--workspace-inspector-width,0px)]',
     );
     expect(contentShell).not.toHaveClass(
       'md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))]',
@@ -287,7 +305,9 @@ describe('AppLayout', () => {
     // Menu and page share the rounded block. The topbar stays outside it.
     expect(panel).toHaveClass(
       'bg-background',
-      'md:m-[var(--shell-inset)]',
+      'md:mb-[var(--shell-inset)]',
+      'md:ml-[var(--shell-inset)]',
+      'xl:mr-[calc(var(--shell-inset)+var(--workspace-inspector-width,0px))]',
       'md:flex-row',
       'md:overflow-hidden',
       'md:rounded-lg',
@@ -360,8 +380,10 @@ describe('AppLayout', () => {
     expect(screen.getByTestId('desktop-sidebar-rail')).not.toHaveClass(
       'border-r',
     );
-    expect(screen.getByTestId('desktop-app-rail')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Expand sidebar' })).toHaveStyle({
+    const appRail = screen.getByTestId('desktop-app-rail');
+    const expand = screen.getByRole('button', { name: 'Expand sidebar' });
+    expect(appRail).toContainElement(expand);
+    expect(expand).not.toHaveStyle({
       left: 'calc(var(--desktop-rail-width, 0px) + 0.75rem)',
     });
   });

@@ -41,7 +41,7 @@ test.describe('Shell — navigation interactions', () => {
       authenticatedPage.getByTestId('sidebar-shell').first(),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByTestId('sidebar-header-shell').first(),
+      authenticatedPage.getByRole('button', { name: 'Collapse sidebar' }),
     ).toBeVisible();
 
     await assertHealthy(authenticatedPage);
@@ -83,7 +83,7 @@ test.describe('Shell — navigation interactions', () => {
     });
     await settle(authenticatedPage);
 
-    // The collapse control is rendered in the sidebar header (toggles the rail).
+    // The collapse control lives in the rail mark.
     await tryClick(authenticatedPage, 'button[aria-label="Collapse sidebar"]');
     await settle(authenticatedPage);
     await tryClick(authenticatedPage, 'button[aria-label="Expand sidebar"]');

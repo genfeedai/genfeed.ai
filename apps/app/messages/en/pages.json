@@ -986,6 +986,14 @@
     "endFrame": "End Frame",
     "emptyDescription": "Write a prompt below and everything you generate lands here.",
     "emptyTitle": "Nothing here yet",
+    "filters": {
+      "allTypes": "All types",
+      "newest": "Newest first",
+      "oldest": "Oldest first",
+      "sort": "Sort",
+      "type": "Type"
+    },
+    "searchPlaceholder": "Search generations",
     "cancelEnhancingPrompt": "Cancel enhancing prompt",
     "enhancePrompt": "Enhance prompt",
     "estimatedCredits": "Estimated {credits} credits",

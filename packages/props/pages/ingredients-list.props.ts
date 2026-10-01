@@ -45,6 +45,8 @@ export interface IngredientsListHeaderProps {
   onDownload?: () => void;
   onMerge: () => void;
   onPublishCampaign?: () => void;
+  /** `subtopbar` joins the pinned library filters instead of floating. */
+  placement?: 'overlay' | 'subtopbar';
 }
 
 export interface IngredientsListSidebarProps {

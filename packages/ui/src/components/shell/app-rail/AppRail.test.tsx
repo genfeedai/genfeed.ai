@@ -146,6 +146,10 @@ vi.mock('@genfeedai/helpers/formatting/cn/cn.util', () => ({
 // Import after mocks are set up
 const { AppRail } = await import('./AppRail');
 
+function openMoreMenu() {
+  fireEvent.click(screen.getByRole('button', { name: 'More' }));
+}
+
 describe('AppRail', () => {
   it('keeps the web G-then-N shortcut in the palette, not the tooltip', () => {
     render(<AppRail orgSlug="acme" />);
@@ -172,26 +176,27 @@ describe('AppRail', () => {
     );
     const registered = commands.registerCommands.mock.lastCall?.[0] ?? [];
     expect(registered.map((entry) => entry.label)).toEqual([
-      'Go to Agent',
       'Go to Workspace',
-      'Go to Studio',
+      'Go to Agent',
       'Go to Library',
       'Go to Publishing',
+      'Go to Analytics',
+      'Go to Studio',
+      'Go to Automation',
       'Go to Messages',
       'Go to Discovery',
-      'Go to Analytics',
-      'Go to Automation',
     ]);
     expect(registered[2].shortcut).toEqual(['G', '3']);
+    expect(registered[5].shortcut).toBeUndefined();
     act(() => {
       registered[2].action();
     });
     expect(router.push).toHaveBeenCalledWith(
-      '/acme/selected/studio/generate?taskId=t1&thread=one',
+      '/acme/~/library/assets?taskId=t1&thread=one',
     );
     expect(onNavigationEvent).toHaveBeenCalledWith({
       from_app: 'analytics',
-      to_app: 'studio',
+      to_app: 'library',
       via: 'palette',
       surface: 'desktop',
     });
@@ -231,10 +236,13 @@ describe('AppRail', () => {
     );
     fireEvent.keyDown(document, { code: 'KeyG', key: 'g' });
     fireEvent.keyDown(document, { code: 'Digit9', key: '9' });
-    expect(router.push).toHaveBeenLastCalledWith('/acme/~/automation/overview');
+    expect(router.push).not.toHaveBeenCalled();
+    fireEvent.keyDown(document, { code: 'KeyG', key: 'g' });
+    fireEvent.keyDown(document, { code: 'Digit5', key: '5' });
+    expect(router.push).toHaveBeenLastCalledWith('/acme/~/analytics/overview');
     expect(onNavigationEvent).toHaveBeenLastCalledWith({
       from_app: null,
-      to_app: 'automation',
+      to_app: 'analytics',
       via: 'shortcut',
       surface: 'desktop',
     });
@@ -246,11 +254,10 @@ describe('AppRail', () => {
     clientSurface.isDesktop = true;
     rerender(<AppRail orgSlug="acme" showAdmin />);
     fireEvent.keyDown(document, { code: 'Digit1', key: '1', metaKey: true });
-    expect(router.push).toHaveBeenLastCalledWith('/acme/~/agent');
-    expect(screen.getAllByTestId('rail-tooltip')[0]).toHaveTextContent('⌘ 1');
-    expect(
-      screen.getAllByTestId('rail-tooltip')[9].querySelector('kbd'),
-    ).toBeNull();
+    expect(router.push).toHaveBeenLastCalledWith('/acme/~/workspace/overview');
+    const tooltips = screen.getAllByTestId('rail-tooltip');
+    expect(tooltips[0]).toHaveTextContent('⌘ 1');
+    expect(tooltips.at(-1)?.querySelector('kbd')).toBeNull();
   });
 
   it('has one keyboard and palette owner when desktop and drawer are both mounted', () => {
@@ -275,13 +282,11 @@ describe('AppRail', () => {
     expect(commands.registerCommands).toHaveBeenCalledTimes(1);
     fireEvent.keyDown(document, { code: 'KeyG', key: 'g' });
     fireEvent.keyDown(document, { code: 'Digit2', key: '2' });
-    expect(router.push).toHaveBeenCalledExactlyOnceWith(
-      '/acme/~/workspace/overview',
-    );
+    expect(router.push).toHaveBeenCalledExactlyOnceWith('/acme/~/agent');
     expect(onNavigate).toHaveBeenCalledOnce();
     expect(onNavigationEvent).toHaveBeenCalledExactlyOnceWith({
       from_app: null,
-      to_app: 'workspace',
+      to_app: 'agent',
       via: 'shortcut',
       surface: 'drawer',
     });
@@ -341,34 +346,53 @@ describe('AppRail', () => {
 
   it('never viewport-prefetches the rail destinations', () => {
     render(<AppRail orgSlug="acme" brandSlug="my-brand" showAdmin />);
+    openMoreMenu();
     for (const link of screen.getAllByRole('link')) {
       expect(link).toHaveAttribute('data-prefetch', 'false');
     }
   });
 
-  it('renders every app in rail order with Agent first', () => {
+  it('renders the daily loop, then More, in rail order', () => {
     render(<AppRail orgSlug="acme" />);
 
     expect(
       screen.getByRole('navigation', { name: 'Apps' }),
     ).toBeInTheDocument();
 
-    const labels = [
-      'Agent',
-      'Workspace',
-      'Studio',
-      'Library',
-      'Publishing',
-      'Messages',
-      'Discovery',
-      'Analytics',
-      'Automation',
-    ];
-    const links = screen.getAllByRole('link');
-
-    expect(links.map((link) => link.getAttribute('aria-label'))).toEqual(
-      labels,
+    const labels = ['Workspace', 'Agent', 'Library', 'Publishing', 'Analytics'];
+    expect(
+      screen
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('aria-label')),
+    ).toEqual(labels);
+    expect(
+      screen
+        .getByRole('link', { name: 'Publishing' })
+        .querySelector('svg')
+        ?.classList.toString(),
+    ).toMatch(/lucide-calendar/);
+    const analytics = screen.getByRole('link', { name: 'Analytics' });
+    const more = screen.getByRole('button', { name: 'More' });
+    expect(
+      analytics.compareDocumentPosition(more) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    openMoreMenu();
+    const overflow = ['Studio', 'Automation', 'Messages', 'Discovery'];
+    const overflowLinks = overflow.map((label) =>
+      screen.getByRole('link', { name: label }),
     );
+    for (let index = 0; index < overflowLinks.length - 1; index += 1) {
+      expect(
+        overflowLinks[index].compareDocumentPosition(overflowLinks[index + 1]) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+    const links = screen.getAllByRole('link');
+    expect(links.map((link) => link.getAttribute('aria-label'))).toEqual([
+      ...labels,
+      ...overflow,
+    ]);
     for (const label of labels) {
       expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
     }
@@ -473,7 +497,7 @@ describe('AppRail', () => {
       .map((link) => link.getAttribute('aria-label'));
 
     expect(labels.at(-1)).toBe('Admin');
-    expect(labels.at(-2)).toBe('Automation');
+    expect(labels.at(-2)).toBe('Analytics');
   });
 
   it('locks gated apps behind the first asset and routes them to the agent', () => {
@@ -490,6 +514,7 @@ describe('AppRail', () => {
       expect(link).toHaveAttribute('href', `/acme/my-brand/agent?locked=${id}`);
       expect(link).toHaveClass('opacity-60');
     }
+    openMoreMenu();
     expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
       'href',
       '/acme/my-brand/studio/generate',
@@ -514,6 +539,7 @@ describe('AppRail', () => {
     const onNavigate = vi.fn();
     render(<AppRail orgSlug="acme" onNavigate={onNavigate} />);
 
+    openMoreMenu();
     fireEvent.click(screen.getByRole('link', { name: 'Studio' }));
 
     expect(onNavigate).toHaveBeenCalledTimes(1);
@@ -530,43 +556,32 @@ describe('AppRail', () => {
     expect(icon?.classList.toString()).not.toMatch(/lucide-briefcase/);
   });
 
-  it('separates the daily loop from the secondary apps with one divider', () => {
-    render(<AppRail orgSlug="acme" />);
-
-    const divider = screen.getByTestId('app-rail-divider');
-    const messages = screen.getByRole('link', { name: 'Messages' });
-    const discovery = screen.getByRole('link', { name: 'Discovery' });
-
-    expect(screen.getAllByTestId('app-rail-divider')).toHaveLength(1);
-    expect(
-      messages.compareDocumentPosition(divider) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      divider.compareDocumentPosition(discovery) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-  });
-
-  it('drops the divider when every secondary app is hidden', () => {
-    featureFlags.discovery = false;
-    featureFlags.analytics = false;
+  it('hides More when every overflow app is switched off', () => {
+    featureFlags.studio = false;
     featureFlags.automation = false;
+    featureFlags.messages = false;
+    featureFlags.discovery = false;
 
     render(<AppRail orgSlug="acme" />);
 
+    expect(
+      screen.queryByRole('button', { name: 'More' }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByTestId('app-rail-divider')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Analytics' })).toBeInTheDocument();
   });
 
   it('hides Studio when its app-switcher discovery flag is disabled', () => {
     featureFlags.studio = false;
 
     render(<AppRail orgSlug="acme" />);
+    openMoreMenu();
 
     expect(
       screen.queryByRole('link', { name: 'Studio' }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Library' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Messages' })).toBeInTheDocument();
   });
 
   it('independently hides every module whose discovery flag is disabled', () => {
@@ -577,9 +592,8 @@ describe('AppRail', () => {
     featureFlags.analytics = false;
 
     render(<AppRail orgSlug="acme" />);
+    openMoreMenu();
 
-    // 'Discovery' is the tile's label — asserting on 'Research' passed
-    // vacuously because no tile carries that name any more.
     for (const label of [
       'Messages',
       'Automation',
@@ -606,6 +620,9 @@ describe('AppRail', () => {
     render(<AppRail orgSlug="acme" />);
 
     expect(screen.getAllByRole('link')).toHaveLength(1);
+    expect(
+      screen.queryByRole('button', { name: 'More' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Workspace' })).toBeInTheDocument();
   });
 
@@ -685,6 +702,7 @@ describe('AppRail', () => {
 
   it('routes the studio item to the selected brand when the current route is org-scoped (#4671)', () => {
     render(<AppRail orgSlug="acme" brandAwareSlug="moonrise" />);
+    openMoreMenu();
 
     expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
       'href',
@@ -694,6 +712,7 @@ describe('AppRail', () => {
 
   it('keeps the org studio fallback for an operator with no selected brand (#4671)', () => {
     render(<AppRail orgSlug="acme" />);
+    openMoreMenu();
 
     expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
       'href',
@@ -709,7 +728,12 @@ describe('AppRail', () => {
         currentPath="/acme/my-brand/messages"
       />,
     );
+    openMoreMenu();
 
+    expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute(
+      'data-active',
+      'false',
+    );
     expect(screen.getByRole('link', { name: 'Messages' })).toHaveAttribute(
       'aria-current',
       'page',
@@ -774,10 +798,12 @@ describe('AppRail', () => {
     act(() => {
       initial[0].action();
     });
-    expect(router.push).toHaveBeenLastCalledWith('/acme/brand-two/agent');
+    expect(router.push).toHaveBeenLastCalledWith(
+      '/acme/brand-two/workspace/overview',
+    );
     expect(onNavigationEvent).toHaveBeenLastCalledWith({
       from_app: 'workspace',
-      to_app: 'agent',
+      to_app: 'workspace',
       via: 'palette',
       surface: 'desktop',
     });
@@ -785,11 +811,11 @@ describe('AppRail', () => {
     fireEvent.keyDown(document, { code: 'KeyG', key: 'g' });
     fireEvent.keyDown(document, { code: 'Digit1', key: '&' });
     expect(router.push).toHaveBeenCalledExactlyOnceWith(
-      '/acme/brand-two/agent',
+      '/acme/brand-two/workspace/overview',
     );
     expect(onNavigationEvent).toHaveBeenLastCalledWith({
       from_app: 'workspace',
-      to_app: 'agent',
+      to_app: 'workspace',
       via: 'shortcut',
       surface: 'desktop',
     });
@@ -836,6 +862,8 @@ describe('AppRail', () => {
         badges={{ messages: { count: 120, label: '120 unread conversations' } }}
       />,
     );
+    expect(screen.getByTestId('app-rail-more-badge')).toHaveTextContent('99+');
+    openMoreMenu();
 
     expect(screen.getByTestId('app-rail-badge-messages')).toHaveTextContent(
       '99+',
@@ -856,6 +884,8 @@ describe('AppRail', () => {
         badges={{ messages: { count: 0, label: '0 unread conversations' } }}
       />,
     );
+    expect(screen.queryByTestId('app-rail-more-badge')).not.toBeInTheDocument();
+    openMoreMenu();
 
     expect(
       screen.queryByTestId('app-rail-badge-messages'),
@@ -865,6 +895,7 @@ describe('AppRail', () => {
 
   it('does not highlight a product app on settings routes', () => {
     render(<AppRail orgSlug="acme" currentPath="/acme/~/settings/brands" />);
+    openMoreMenu();
 
     for (const name of [
       'Workspace',
@@ -892,6 +923,7 @@ describe('AppRail', () => {
         currentPath="/acme/my-brand/studio/clips"
       />,
     );
+    openMoreMenu();
 
     expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
       'aria-current',
@@ -954,6 +986,7 @@ describe('AppRail', () => {
         currentPath="/acme/my-brand/studio/batch"
       />,
     );
+    openMoreMenu();
 
     expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
       'aria-current',
@@ -984,6 +1017,7 @@ describe('AppRail', () => {
         currentPath="/acme/my-brand/studio/editor/new"
       />,
     );
+    openMoreMenu();
 
     expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
       'aria-current',
@@ -997,6 +1031,7 @@ describe('AppRail', () => {
   describe('route generation', () => {
     it('links to studio URL with brandSlug when provided', () => {
       render(<AppRail orgSlug="acme" brandSlug="my-brand" />);
+      openMoreMenu();
       expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
         'href',
         '/acme/my-brand/studio/generate',
@@ -1005,6 +1040,7 @@ describe('AppRail', () => {
 
     it('links operate apps workspace, agent, messages, and automation', () => {
       render(<AppRail orgSlug="acme" brandSlug="my-brand" />);
+      openMoreMenu();
 
       expect(screen.getByRole('link', { name: 'Workspace' })).toHaveAttribute(
         'href',
@@ -1026,6 +1062,7 @@ describe('AppRail', () => {
 
     it('uses org-scoped operate fallbacks when brandSlug is absent', () => {
       render(<AppRail orgSlug="acme" />);
+      openMoreMenu();
 
       expect(screen.getByRole('link', { name: 'Workspace' })).toHaveAttribute(
         'href',
@@ -1039,6 +1076,7 @@ describe('AppRail', () => {
 
     it('links to org-scoped create fallbacks when brandSlug is absent', () => {
       render(<AppRail orgSlug="acme" />);
+      openMoreMenu();
       expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
         'href',
         '/acme/~/studio',
@@ -1047,6 +1085,7 @@ describe('AppRail', () => {
 
     it('routes brand apps to org views when brandSlug is absent', () => {
       render(<AppRail orgSlug="acme" />);
+      openMoreMenu();
 
       for (const [label, href] of [
         ['Studio', '/acme/~/studio'],
@@ -1066,6 +1105,7 @@ describe('AppRail', () => {
 
     it('links to correct route for workspace app', () => {
       render(<AppRail orgSlug="acme" />);
+      openMoreMenu();
       expect(screen.getByRole('link', { name: 'Discovery' })).toHaveAttribute(
         'href',
         '/acme/~/discovery/overview',
@@ -1074,6 +1114,7 @@ describe('AppRail', () => {
 
     it('links to brand-scoped workspace when a brand is selected', () => {
       render(<AppRail orgSlug="acme" brandSlug="my-brand" />);
+      openMoreMenu();
       expect(screen.getByRole('link', { name: 'Discovery' })).toHaveAttribute(
         'href',
         '/acme/my-brand/discovery/overview',
@@ -1100,6 +1141,7 @@ describe('AppRail', () => {
 
     it('links brand-scoped module surfaces to their canonical routes', () => {
       render(<AppRail orgSlug="acme" brandSlug="my-brand" />);
+      openMoreMenu();
 
       expect(screen.getByRole('link', { name: 'Discovery' })).toHaveAttribute(
         'href',
@@ -1117,6 +1159,7 @@ describe('AppRail', () => {
 
     it('falls brand-only module surfaces back to org-level defaults', () => {
       render(<AppRail orgSlug="acme" />);
+      openMoreMenu();
 
       expect(screen.getByRole('link', { name: 'Discovery' })).toHaveAttribute(
         'href',
@@ -1129,6 +1172,7 @@ describe('AppRail', () => {
 
     it('links to the brand-scoped Publishing module when a brand is selected', () => {
       render(<AppRail orgSlug="acme" brandSlug="my-brand" />);
+      openMoreMenu();
       expect(screen.getByRole('link', { name: 'Messages' })).toHaveAttribute(
         'href',
         '/acme/my-brand/messages',
@@ -1138,6 +1182,40 @@ describe('AppRail', () => {
         'href',
         '/acme/my-brand/publishing/overview',
       );
+    });
+
+    it('pins a More app onto the rail ahead of More', () => {
+      const onTogglePin = vi.fn();
+      render(
+        <AppRail
+          orgSlug="acme"
+          onTogglePin={onTogglePin}
+          pinnedAppIds={['studio']}
+        />,
+      );
+
+      const analytics = screen.getByRole('link', { name: 'Analytics' });
+      const separator = screen.getByTestId('app-rail-pins-separator');
+      const studio = screen.getByRole('link', { name: 'Studio' });
+      const more = screen.getByRole('button', { name: 'More' });
+      expect(
+        analytics.compareDocumentPosition(separator) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        separator.compareDocumentPosition(studio) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        analytics.compareDocumentPosition(studio) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        studio.compareDocumentPosition(more) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      openMoreMenu();
+      fireEvent.click(screen.getByRole('button', { name: 'Unpin Studio' }));
+      expect(onTogglePin).toHaveBeenCalledWith('studio');
     });
 
     it('preserves task context search params when switching apps', () => {

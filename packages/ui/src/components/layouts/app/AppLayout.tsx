@@ -110,13 +110,27 @@ export default function AppLayout({
           data-workspace-shell={isWorkspaceShell ? 'true' : undefined}
           style={layoutStyle}
         >
-          {railComponent ? <DesktopRail>{railComponent}</DesktopRail> : null}
+          {railComponent ? (
+            <DesktopRail
+              sidebarToggle={
+                menuComponent
+                  ? {
+                      isCollapsed: isDesktopCollapsed,
+                      onToggle: handleToggleDesktopSidebar,
+                    }
+                  : null
+              }
+            >
+              {railComponent}
+            </DesktopRail>
+          ) : null}
           {menuComponent ? (
             <>
               {/* Without a rail there is no rounded block, so the menu stays a
-                  fixed column. With a rail it renders inside the block. */}
+                  fixed column. With a rail it renders inside the block, and
+                  the rail mark is the only collapse control. */}
               {hasChrome ? null : desktopSidebar}
-              {isDesktopCollapsed && !topbarContent ? (
+              {isDesktopCollapsed && !topbarContent && !hasChrome ? (
                 <CollapsedSidebarToggle onClick={handleToggleDesktopSidebar} />
               ) : null}
             </>
@@ -165,8 +179,8 @@ export default function AppLayout({
                     </div>
                   ) : null}
                   {mobileMenuContent ? (
-                    // Below the fixed topbar, like the rail, so the header's
-                    // brand switcher stays reachable.
+                    // Below the fixed topbar, like the rail. The brand
+                    // switcher lives in that bar.
                     <div className="h-full min-w-0 flex-1 pt-12">
                       {mobileMenuContent}
                     </div>
@@ -185,7 +199,11 @@ export default function AppLayout({
                     // The shell starts after the rail. The topbar is the chrome
                     // band; the rounded block below it carries the menu and the
                     // page. The inspector reserves its width on the right.
-                    'bg-background md:bg-transparent md:pl-[var(--desktop-rail-width)] md:pt-[var(--desktop-titlebar-height)] xl:pr-[var(--workspace-inspector-width,0px)]',
+                    // Inspector width stays off this shell. The topbar is a child of
+                    // it, and padding here slides the topbar's right icons
+                    // whenever the details column opens. The panel reserves
+                    // that width instead.
+                    'bg-background md:bg-transparent md:pl-[var(--desktop-rail-width)] md:pt-[var(--desktop-titlebar-height)]',
                     lockViewportHeight
                       ? 'h-dvh overflow-hidden'
                       : 'min-h-screen md:h-dvh md:min-h-0 md:overflow-hidden',
@@ -225,7 +243,10 @@ export default function AppLayout({
                 // reads against the rail plane. The inspector squares the
                 // right corners and finishes the outer radius.
                 hasChrome &&
-                  'md:m-[var(--shell-inset)] md:min-h-0 md:flex-row md:overflow-hidden md:rounded-lg md:border md:border-border xl:[[data-inspector-open=true]_&]:rounded-r-none',
+                  // No top margin: the chips sit in the middle of the h-12 bar, so
+                  // an extra inset under the bar made the gap below them twice
+                  // the gap above. Left, right, and bottom stay inset.
+                  'md:mb-[var(--shell-inset)] md:ml-[var(--shell-inset)] md:mr-[var(--shell-inset)] md:min-h-0 md:flex-row md:overflow-hidden md:rounded-lg md:border md:border-border xl:mr-[calc(var(--shell-inset)+var(--workspace-inspector-width,0px))] xl:[[data-inspector-open=true]_&]:rounded-r-none',
               )}
             >
               {hasChrome ? desktopSidebar : null}

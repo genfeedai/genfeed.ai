@@ -8,7 +8,7 @@ export interface AppRailItemConfig {
   /** Translation keys relative to common.appRail. */
   label: string;
   description: string;
-  group: 'daily' | 'tools' | 'admin';
+  group: 'daily' | 'more' | 'admin';
   activePathRoots: readonly string[];
   visibilityFlagKey?: AppRailFeatureFlagKey;
   isBrandAware?: boolean;

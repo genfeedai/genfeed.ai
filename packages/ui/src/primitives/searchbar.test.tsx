@@ -146,3 +146,33 @@ describe('Searchbar with onSearch', () => {
     expect(input.value).toBe('echoes');
   });
 });
+
+describe('collapsible Searchbar', () => {
+  it('rests as an icon, opens on click, and closes on blur when empty', () => {
+    render(<Searchbar ariaLabel="Search generations" isCollapsible value="" />);
+    expect(
+      screen.queryByRole('textbox', { name: 'Search generations' }),
+    ).toBeNull();
+
+    fireEvent.click(screen.getByTestId('collapsible-search-trigger'));
+    const input = screen.getByRole('textbox', { name: 'Search generations' });
+    expect(input).toHaveFocus();
+
+    fireEvent.blur(input);
+    expect(
+      screen.queryByRole('textbox', { name: 'Search generations' }),
+    ).toBeNull();
+    expect(
+      screen.getByTestId('collapsible-search-trigger'),
+    ).toBeInTheDocument();
+  });
+
+  it('stays open while it holds a value', () => {
+    render(
+      <Searchbar ariaLabel="Search generations" isCollapsible value="coast" />,
+    );
+    const input = screen.getByRole('textbox', { name: 'Search generations' });
+    fireEvent.blur(input);
+    expect(input).toBeInTheDocument();
+  });
+});

@@ -109,6 +109,9 @@ const UI_TEST_MESSAGES = {
   common: {
     appRail: {
       apps: 'Apps',
+      more: 'More',
+      pin: 'Pin {app}',
+      unpin: 'Unpin {app}',
       navigation: 'App navigation',
       goTo: 'Go to {app}',
       opening: 'Opening app.',
@@ -158,6 +161,13 @@ const UI_TEST_MESSAGES = {
     },
     sidebar: {
       collapse: 'Collapse sidebar',
+      expand: 'Expand sidebar',
+    },
+    contextSidebar: {
+      close: 'Close details',
+      collapse: 'Collapse details',
+      expand: 'Expand details',
+      open: 'Open details',
     },
     oauth: {
       platformCallback: {
