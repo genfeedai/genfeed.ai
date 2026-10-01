@@ -61,7 +61,14 @@ function checkpoint(
 function fixture(rows: ContentLearningCheckpoint[]) {
   const row = checkpoint();
   const prisma = {
-    $queryRaw: vi.fn().mockResolvedValue([{ id: 'post' }]),
+    $queryRaw: vi.fn().mockImplementation((parts: TemplateStringsArray) => {
+      const sql = parts.join('');
+      if (sql.includes('pg_advisory_xact_lock')) return [];
+      if (sql.includes('FROM content_learning_accounts'))
+        return [{ id: 'account' }];
+      if (sql.includes('FROM posts')) return [{ id: 'post' }];
+      throw new Error(`Unexpected capture SQL: ${sql}`);
+    }),
     $transaction: vi.fn(),
     post: {
       findFirst: vi
@@ -69,13 +76,28 @@ function fixture(rows: ContentLearningCheckpoint[]) {
         .mockResolvedValue({ id: 'post', publishedAt: row.publishedAt }),
     },
     contentLearningAccount: {
-      findFirst: vi.fn().mockResolvedValue({ mode: 'shadow' }),
+      findFirst: vi.fn().mockResolvedValue({
+        id: 'account',
+        organizationId: 'org',
+        brandId: 'brand',
+        credentialId: 'credential',
+        mode: 'shadow',
+        epoch: 0,
+        evidenceRevision: 3,
+      }),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     credential: { findFirst: vi.fn().mockResolvedValue({ id: 'credential' }) },
     contentLearningCheckpoint: {
       findMany: vi.fn().mockResolvedValue(rows),
       findFirst: vi.fn(),
-      create: vi.fn(),
+      create: vi
+        .fn()
+        .mockImplementation(
+          ({ data }: { data: Partial<ContentLearningCheckpoint> }) =>
+            checkpoint(data),
+        ),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
   };
   prisma.$transaction.mockImplementation((callback) => callback(prisma));
@@ -83,14 +105,22 @@ function fixture(rows: ContentLearningCheckpoint[]) {
     credential: vi
       .fn()
       .mockResolvedValue({ brandId: 'brand', platform: 'TWITTER' }),
-    ensure: vi.fn().mockResolvedValue({ id: 'account', mode: 'shadow' }),
+    ensure: vi.fn().mockResolvedValue({
+      id: 'account',
+      mode: 'shadow',
+      epoch: 0,
+      evidenceRevision: 3,
+    }),
   };
+  const dependencies = { invalidate: vi.fn().mockResolvedValue(1) };
   return {
     prisma,
+    accounts,
+    dependencies,
     service: new LearningCheckpointService(
       prisma as unknown as PrismaService,
       accounts as unknown as LearningAccountService,
-      {} as LearningDependencyService,
+      dependencies as unknown as LearningDependencyService,
     ),
   };
 }
@@ -227,7 +257,7 @@ describe('fixed physical provider observation fulfillment', () => {
       ),
     });
     expect(result).toBe(original);
-    expect(f.prisma.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(f.prisma.$queryRaw).toHaveBeenCalledTimes(3);
     expect(f.prisma.contentLearningCheckpoint.create).not.toHaveBeenCalled();
   });
   it.each([
@@ -682,4 +712,270 @@ describe('exact descriptor frozen baseline', () => {
       f.service.freeze(scope, new Date('2026-10-01'), descriptor),
     ).rejects.toThrow();
   });
+});
+
+function captureInput() {
+  const row = checkpoint();
+  return {
+    organizationId: 'org',
+    postId: 'post',
+    credentialId: 'credential',
+    format: 'text',
+    objective: 'awareness' as const,
+    publishedAt: row.publishedAt,
+    requestStartedAt: row.requestStartedAt,
+    receivedAt: row.receivedAt,
+    sourceAttemptId: 'attempt',
+    learningMetrics: captureLearningMetrics(
+      { views: 1000 },
+      { views: 'views' },
+    ),
+  };
+}
+describe('capture account-before-publication locking', () => {
+  it('takes shared fence, exact account lock/reread, then publication lock/rereads before the first write', async () => {
+    const f = fixture([]),
+      input = captureInput();
+    const result = await f.service.capture(input);
+    expect(result).toMatchObject({
+      sourceAttemptId: 'attempt',
+      revision: 0,
+      windowId: '48h-v1',
+    });
+    const calls = f.prisma.$queryRaw.mock.calls;
+    expect(calls).toHaveLength(3);
+    expect(calls[0][0].join('')).toContain('pg_advisory_xact_lock_shared');
+    expect(calls[1][0].join('')).toContain('FROM content_learning_accounts');
+    expect(calls[1][0].join('')).toContain('ORDER BY id FOR UPDATE');
+    expect(calls[1].slice(1)).toEqual([
+      'account',
+      'org',
+      'brand',
+      'credential',
+    ]);
+    expect(calls[2][0].join('')).toContain('FROM posts');
+    expect(calls[2].slice(1)).toEqual(['post', 'org']);
+    const orders = f.prisma.$queryRaw.mock.invocationCallOrder;
+    expect(orders[0]).toBeLessThan(orders[1]);
+    expect(orders[1]).toBeLessThan(
+      f.prisma.contentLearningAccount.findFirst.mock.invocationCallOrder[0],
+    );
+    expect(
+      f.prisma.contentLearningAccount.findFirst.mock.invocationCallOrder[0],
+    ).toBeLessThan(orders[2]);
+    expect(orders[2]).toBeLessThan(
+      f.prisma.post.findFirst.mock.invocationCallOrder[1],
+    );
+    expect(f.prisma.post.findFirst.mock.invocationCallOrder[1]).toBeLessThan(
+      f.prisma.contentLearningCheckpoint.create.mock.invocationCallOrder[0],
+    );
+    expect(
+      f.prisma.credential.findFirst.mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      f.prisma.contentLearningCheckpoint.create.mock.invocationCallOrder[0],
+    );
+    expect(f.prisma.contentLearningAccount.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'account',
+        organizationId: 'org',
+        brandId: 'brand',
+        credentialId: 'credential',
+        isDeleted: false,
+      },
+    });
+    expect(f.prisma.post.findFirst).toHaveBeenLastCalledWith({
+      where: {
+        id: 'post',
+        organizationId: 'org',
+        brandId: 'brand',
+        credentialId: 'credential',
+        publishedAt: input.publishedAt,
+        isDeleted: false,
+      },
+    });
+    expect(f.prisma.credential.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'credential',
+        organizationId: 'org',
+        brandId: 'brand',
+        isDeleted: false,
+      },
+    });
+    expect(
+      f.prisma.contentLearningAccount.updateMany,
+    ).toHaveBeenCalledExactlyOnceWith({
+      where: { id: 'account', organizationId: 'org', isDeleted: false },
+      data: { evidenceRevision: { increment: 1 } },
+    });
+    expect(f.prisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+  it.each(['account-lock', 'current-account', 'disabled', 'post-lock'])(
+    'returns null without receipt/counter writes for missing %s',
+    async (kind) => {
+      const f = fixture([]);
+      if (kind === 'account-lock')
+        f.prisma.$queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+      if (kind === 'current-account')
+        f.prisma.contentLearningAccount.findFirst.mockResolvedValue(null);
+      if (kind === 'disabled')
+        f.prisma.contentLearningAccount.findFirst.mockResolvedValue({
+          id: 'account',
+          mode: 'disabled',
+        });
+      if (kind === 'post-lock')
+        f.prisma.$queryRaw
+          .mockResolvedValueOnce([])
+          .mockResolvedValueOnce([{ id: 'account' }])
+          .mockResolvedValueOnce([]);
+      expect(await f.service.capture(captureInput())).toBeNull();
+      expect(f.prisma.$queryRaw).toHaveBeenCalledTimes(
+        kind === 'post-lock' ? 3 : 2,
+      );
+      expect(f.prisma.contentLearningCheckpoint.create).not.toHaveBeenCalled();
+      expect(f.prisma.contentLearningAccount.updateMany).not.toHaveBeenCalled();
+      if (kind !== 'post-lock')
+        expect(f.prisma.post.findFirst).toHaveBeenCalledTimes(1);
+    },
+  );
+  it.each(['shadow', 'paused', 'live'])(
+    'retains a physical observation after current epoch/evidence drift in %s mode',
+    async (mode) => {
+      const f = fixture([]);
+      const current = {
+        id: 'account',
+        organizationId: 'org',
+        brandId: 'brand',
+        credentialId: 'credential',
+        mode,
+        epoch: 9,
+        evidenceRevision: 83,
+      };
+      f.prisma.contentLearningAccount.findFirst.mockResolvedValue(current);
+      expect(await f.service.capture(captureInput())).not.toBeNull();
+      expect(
+        f.prisma.contentLearningAccount.updateMany,
+      ).toHaveBeenCalledExactlyOnceWith({
+        where: { id: current.id, organizationId: 'org', isDeleted: false },
+        data: { evidenceRevision: { increment: 1 } },
+      });
+      expect(current.evidenceRevision).toBe(83);
+      expect(current.epoch).toBe(9);
+    },
+  );
+  it('returns fingerprint retry without creating or incrementing after account/Post locks', async () => {
+    const row = checkpoint(),
+      f = fixture([]);
+    f.prisma.contentLearningCheckpoint.findFirst.mockResolvedValueOnce(row);
+    expect(await f.service.capture(captureInput())).toBe(row);
+    expect(f.prisma.$queryRaw).toHaveBeenCalledTimes(3);
+    expect(f.prisma.contentLearningCheckpoint.create).not.toHaveBeenCalled();
+    expect(f.prisma.contentLearningAccount.updateMany).not.toHaveBeenCalled();
+  });
+  it('preserves the first fulfilled physical observation ahead of fingerprint retry', async () => {
+    const row = checkpoint(),
+      f = fixture([row]);
+    expect(await f.service.capture(captureInput())).toBe(row);
+    expect(f.prisma.contentLearningCheckpoint.findFirst).not.toHaveBeenCalled();
+    expect(f.prisma.contentLearningCheckpoint.create).not.toHaveBeenCalled();
+    expect(f.prisma.contentLearningAccount.updateMany).not.toHaveBeenCalled();
+  });
+  it('corrects the same immutable window under exclusive fence, supersedes/invalidate then increments exactly once', async () => {
+    const original = checkpoint({ revision: 2 }),
+      f = fixture([]),
+      input = { ...captureInput(), supersedesId: original.id };
+    f.prisma.contentLearningCheckpoint.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(original)
+      .mockResolvedValueOnce(original);
+    const result = await f.service.capture(input);
+    expect(f.prisma.$queryRaw.mock.calls[0][0].join('')).toContain(
+      'pg_advisory_xact_lock(',
+    );
+    expect(f.prisma.$queryRaw.mock.calls[0][0].join('')).not.toContain(
+      'lock_shared',
+    );
+    expect(result).toMatchObject({
+      revision: 3,
+      supersedesId: original.id,
+      requestStartedAt: original.requestStartedAt,
+      windowId: original.windowId,
+    });
+    expect(result?.sourceFingerprint).toBe(
+      learningHash([
+        input.postId,
+        input.credentialId,
+        '48h-v1',
+        input.requestStartedAt.toISOString(),
+        input.learningMetrics,
+      ]),
+    );
+    expect(result?.measurement).toMatchObject({
+      metricAvailability: input.learningMetrics.metrics,
+      profile: input.objective,
+      timeBasis: 'collection_time',
+    });
+    expect(
+      f.prisma.contentLearningCheckpoint.updateMany,
+    ).toHaveBeenCalledExactlyOnceWith({
+      where: { id: original.id, organizationId: 'org', isDeleted: false },
+      data: { validity: 'superseded' },
+    });
+    expect(f.dependencies.invalidate).toHaveBeenCalledExactlyOnceWith(
+      'checkpoint',
+      original.id,
+      f.prisma,
+    );
+    expect(
+      f.prisma.contentLearningCheckpoint.create.mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      f.prisma.contentLearningCheckpoint.updateMany.mock.invocationCallOrder[0],
+    );
+    expect(f.dependencies.invalidate.mock.invocationCallOrder[0]).toBeLessThan(
+      f.prisma.contentLearningAccount.updateMany.mock.invocationCallOrder[0],
+    );
+    expect(f.prisma.contentLearningAccount.updateMany).toHaveBeenCalledTimes(1);
+  });
+  it.each(['missing', 'window', 'request-time'])(
+    'keeps the existing wrong-window correction error for %s without writes',
+    async (kind) => {
+      const f = fixture([]),
+        original = checkpoint();
+      if (kind === 'window') original.windowId = 'wrong-window';
+      if (kind === 'request-time')
+        original.requestStartedAt = new Date('2026-09-30T12:01:00Z');
+      f.prisma.contentLearningCheckpoint.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(kind === 'missing' ? null : original);
+      await expect(
+        f.service.capture({ ...captureInput(), supersedesId: original.id }),
+      ).rejects.toThrow('Correction must identify the same observation window');
+      expect(f.prisma.contentLearningCheckpoint.create).not.toHaveBeenCalled();
+      expect(f.prisma.contentLearningAccount.updateMany).not.toHaveBeenCalled();
+    },
+  );
+  it.each(['write', 'invalidation'])(
+    'propagates %s failure without counter increment or nested transaction',
+    async (kind) => {
+      const f = fixture([]),
+        original = checkpoint(),
+        failure = new Error('capture failed');
+      if (kind === 'write')
+        f.prisma.contentLearningCheckpoint.create.mockRejectedValue(failure);
+      else {
+        f.prisma.contentLearningCheckpoint.findFirst
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce(original)
+          .mockResolvedValueOnce(original);
+        f.dependencies.invalidate.mockRejectedValue(failure);
+      }
+      await expect(
+        f.service.capture({
+          ...captureInput(),
+          ...(kind === 'invalidation' ? { supersedesId: original.id } : {}),
+        }),
+      ).rejects.toBe(failure);
+      expect(f.prisma.contentLearningAccount.updateMany).not.toHaveBeenCalled();
+      expect(f.prisma.$transaction).toHaveBeenCalledTimes(1);
+    },
+  );
 });

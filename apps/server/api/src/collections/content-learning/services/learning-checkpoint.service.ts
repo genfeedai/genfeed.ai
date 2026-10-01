@@ -29,6 +29,7 @@ import {
   weightedMeasurement,
 } from '@genfeedai/harness';
 import {
+  type ContentLearningAccount,
   type ContentLearningCheckpoint,
   type Prisma,
   toPrismaJson,
@@ -204,20 +205,9 @@ export class LearningCheckpointService {
       orderBy: [{ revision: 'desc' }, { id: 'desc' }],
     });
   }
-  async capture(input: {
-    organizationId: string;
-    postId: string;
-    credentialId: string;
-    format: string;
-    objective: LearningScope['objective'];
-    publishedAt: Date;
-    requestStartedAt: Date;
-    receivedAt: Date;
-    sourceAttemptId: string;
-    learningMetrics: LearningMetrics;
-    windowId?: string;
-    supersedesId?: string;
-  }) {
+  private async prepareCapture(
+    input: Parameters<LearningCheckpointService['capture']>[0],
+  ) {
     const credential = await this.accounts.credential(
       input.organizationId,
       input.credentialId,
@@ -313,157 +303,219 @@ export class LearningCheckpointService {
       input.requestStartedAt.toISOString(),
       input.learningMetrics,
     ]);
-    return this.prisma.$transaction(async (tx) => {
-      await learningFence(tx, input.supersedesId ? 'exclusive' : 'shared');
-      const locked = await tx.$queryRaw<
-        Array<{ id: string }>
-      >`SELECT id FROM posts WHERE id = ${input.postId} AND "organizationId" = ${input.organizationId} AND "isDeleted" = false FOR UPDATE`;
-      if (locked.length !== 1) return null;
-      const currentPost = await tx.post.findFirst({
-        where: {
-          id: input.postId,
-          organizationId: input.organizationId,
-          brandId: credential.brandId,
-          credentialId: input.credentialId,
-          publishedAt: input.publishedAt,
-          isDeleted: false,
-        },
-      });
-      const currentAccount = await tx.contentLearningAccount.findFirst({
-        where: {
-          id: account.id,
-          organizationId: input.organizationId,
-          brandId: credential.brandId,
-          credentialId: input.credentialId,
-          isDeleted: false,
-        },
-      });
-      const currentCredential = await tx.credential.findFirst({
-        where: {
-          id: input.credentialId,
-          organizationId: input.organizationId,
-          brandId: credential.brandId,
-          isDeleted: false,
-        },
-      });
-      if (
-        !currentPost ||
-        !currentAccount ||
-        currentAccount.mode === 'disabled' ||
-        !currentCredential
-      )
-        return null;
-      if (!input.supersedesId) {
-        const fulfilled = await this.fulfilledWindow(
-          input.organizationId,
-          input.postId,
-          input.credentialId,
-          input.publishedAt,
-          input.windowId ?? '48h-v1',
-          tx,
-        );
-        if (fulfilled) return fulfilled;
-      }
-      const existing = await tx.contentLearningCheckpoint.findFirst({
-        where: {
-          organizationId: input.organizationId,
-          sourceFingerprint: fingerprint,
-          isDeleted: false,
-        },
-      });
-      if (existing) return existing;
-      const original = input.supersedesId
-        ? await tx.contentLearningCheckpoint.findFirst({
-            where: {
-              id: input.supersedesId,
-              organizationId: input.organizationId,
-              postId: input.postId,
-              credentialId: input.credentialId,
-              isDeleted: false,
-            },
-          })
-        : null;
-      if (
-        input.supersedesId &&
-        (!original ||
-          original.windowId !== (input.windowId ?? '48h-v1') ||
-          original.requestStartedAt.getTime() !==
-            input.requestStartedAt.getTime())
-      )
-        throw new BadRequestException(
-          'Correction must identify the same observation window',
-        );
-      const latest = await tx.contentLearningCheckpoint.findFirst({
-        where: {
-          organizationId: input.organizationId,
-          postId: input.postId,
-          credentialId: input.credentialId,
-          windowId: input.windowId ?? '48h-v1',
-          isDeleted: false,
-        },
-        orderBy: { revision: 'desc' },
-      });
-      const checkpoint = await tx.contentLearningCheckpoint.create({
-        data: {
-          organizationId: input.organizationId,
-          brandId: credential.brandId,
-          credentialId: input.credentialId,
-          postId: input.postId,
-          windowId: input.windowId ?? '48h-v1',
-          revision: (latest?.revision ?? -1) + 1,
-          sourceAttemptId: input.sourceAttemptId,
-          dueAt: new Date(input.publishedAt.getTime() + 48 * 3600000),
-          requestStartedAt: input.requestStartedAt,
-          receivedAt: input.receivedAt,
-          providerAsOf,
-          measurement: toPrismaJson({
-            collection,
-            measurement: collection.outcome === 'observed' ? measurement : null,
-            metricAvailability: input.learningMetrics.metrics,
-            profiles:
-              collection.outcome === 'observed'
-                ? learningCheckpointProfiles(
-                    platform,
-                    input.format,
-                    input.learningMetrics,
-                  )
-                : [],
-            profile: input.objective,
-            mask: capability?.mask,
-            timeBasis: providerAsOf ? 'provider_as_of' : 'collection_time',
-          }),
-          format: input.format,
-          publishedAt: input.publishedAt,
-          organicProvenance: toPrismaJson({
-            isPaid: input.learningMetrics.isPaid,
-            isPinned: input.learningMetrics.isPinned,
-            source: 'provider',
-          }),
-          sourceFingerprint: fingerprint,
-          supersedesId: original?.id,
-          validity,
-        },
-      });
-      if (original) {
-        await tx.contentLearningCheckpoint.updateMany({
+    return {
+      credential,
+      account,
+      platform,
+      capability,
+      measurement,
+      providerAsOf,
+      collection,
+      validity,
+      fingerprint,
+    };
+  }
+  private async lockCaptureSources(
+    tx: Prisma.TransactionClient,
+    input: Parameters<LearningCheckpointService['capture']>[0],
+    accountId: string,
+    brandId: string,
+  ): Promise<ContentLearningAccount | null> {
+    const lockedAccount = await tx.$queryRaw<
+      Array<{ id: string }>
+    >`SELECT id FROM content_learning_accounts WHERE id = ${accountId} AND "organizationId" = ${input.organizationId} AND "brandId" = ${brandId} AND "credentialId" = ${input.credentialId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
+    if (lockedAccount.length !== 1) return null;
+    const currentAccount = await tx.contentLearningAccount.findFirst({
+      where: {
+        id: accountId,
+        organizationId: input.organizationId,
+        brandId,
+        credentialId: input.credentialId,
+        isDeleted: false,
+      },
+    });
+    if (!currentAccount || currentAccount.mode === 'disabled') return null;
+    const lockedPost = await tx.$queryRaw<
+      Array<{ id: string }>
+    >`SELECT id FROM posts WHERE id = ${input.postId} AND "organizationId" = ${input.organizationId} AND "isDeleted" = false FOR UPDATE`;
+    if (lockedPost.length !== 1) return null;
+    const currentPost = await tx.post.findFirst({
+      where: {
+        id: input.postId,
+        organizationId: input.organizationId,
+        brandId,
+        credentialId: input.credentialId,
+        publishedAt: input.publishedAt,
+        isDeleted: false,
+      },
+    });
+    const currentCredential = await tx.credential.findFirst({
+      where: {
+        id: input.credentialId,
+        organizationId: input.organizationId,
+        brandId,
+        isDeleted: false,
+      },
+    });
+    if (!currentPost || !currentCredential) return null;
+    return currentAccount;
+  }
+  private async persistCapture(
+    tx: Prisma.TransactionClient,
+    input: Parameters<LearningCheckpointService['capture']>[0],
+    prepared: NonNullable<
+      Awaited<ReturnType<LearningCheckpointService['prepareCapture']>>
+    >,
+    currentAccount: ContentLearningAccount,
+  ) {
+    const {
+      credential,
+      platform,
+      capability,
+      measurement,
+      providerAsOf,
+      collection,
+      validity,
+      fingerprint,
+    } = prepared;
+    if (!input.supersedesId) {
+      const fulfilled = await this.fulfilledWindow(
+        input.organizationId,
+        input.postId,
+        input.credentialId,
+        input.publishedAt,
+        input.windowId ?? '48h-v1',
+        tx,
+      );
+      if (fulfilled) return fulfilled;
+    }
+    const existing = await tx.contentLearningCheckpoint.findFirst({
+      where: {
+        organizationId: input.organizationId,
+        sourceFingerprint: fingerprint,
+        isDeleted: false,
+      },
+    });
+    if (existing) return existing;
+    const original = input.supersedesId
+      ? await tx.contentLearningCheckpoint.findFirst({
           where: {
-            id: original.id,
+            id: input.supersedesId,
             organizationId: input.organizationId,
+            postId: input.postId,
+            credentialId: input.credentialId,
             isDeleted: false,
           },
-          data: { validity: 'superseded' },
-        });
-        await this.dependencies.invalidate('checkpoint', original.id, tx);
-      }
-      await tx.contentLearningAccount.updateMany({
+        })
+      : null;
+    if (
+      input.supersedesId &&
+      (!original ||
+        original.windowId !== (input.windowId ?? '48h-v1') ||
+        original.requestStartedAt.getTime() !==
+          input.requestStartedAt.getTime())
+    )
+      throw new BadRequestException(
+        'Correction must identify the same observation window',
+      );
+    const latest = await tx.contentLearningCheckpoint.findFirst({
+      where: {
+        organizationId: input.organizationId,
+        postId: input.postId,
+        credentialId: input.credentialId,
+        windowId: input.windowId ?? '48h-v1',
+        isDeleted: false,
+      },
+      orderBy: { revision: 'desc' },
+    });
+    const checkpoint = await tx.contentLearningCheckpoint.create({
+      data: {
+        organizationId: input.organizationId,
+        brandId: credential.brandId,
+        credentialId: input.credentialId,
+        postId: input.postId,
+        windowId: input.windowId ?? '48h-v1',
+        revision: (latest?.revision ?? -1) + 1,
+        sourceAttemptId: input.sourceAttemptId,
+        dueAt: new Date(input.publishedAt.getTime() + 48 * 3600000),
+        requestStartedAt: input.requestStartedAt,
+        receivedAt: input.receivedAt,
+        providerAsOf,
+        measurement: toPrismaJson({
+          collection,
+          measurement: collection.outcome === 'observed' ? measurement : null,
+          metricAvailability: input.learningMetrics.metrics,
+          profiles:
+            collection.outcome === 'observed'
+              ? learningCheckpointProfiles(
+                  platform,
+                  input.format,
+                  input.learningMetrics,
+                )
+              : [],
+          profile: input.objective,
+          mask: capability?.mask,
+          timeBasis: providerAsOf ? 'provider_as_of' : 'collection_time',
+        }),
+        format: input.format,
+        publishedAt: input.publishedAt,
+        organicProvenance: toPrismaJson({
+          isPaid: input.learningMetrics.isPaid,
+          isPinned: input.learningMetrics.isPinned,
+          source: 'provider',
+        }),
+        sourceFingerprint: fingerprint,
+        supersedesId: original?.id,
+        validity,
+      },
+    });
+    if (original) {
+      await tx.contentLearningCheckpoint.updateMany({
         where: {
-          id: account.id,
+          id: original.id,
           organizationId: input.organizationId,
           isDeleted: false,
         },
-        data: { evidenceRevision: { increment: 1 } },
+        data: { validity: 'superseded' },
       });
-      return checkpoint;
+      await this.dependencies.invalidate('checkpoint', original.id, tx);
+    }
+    await tx.contentLearningAccount.updateMany({
+      where: {
+        id: currentAccount.id,
+        organizationId: input.organizationId,
+        isDeleted: false,
+      },
+      data: { evidenceRevision: { increment: 1 } },
+    });
+    return checkpoint;
+  }
+  async capture(input: {
+    organizationId: string;
+    postId: string;
+    credentialId: string;
+    format: string;
+    objective: LearningScope['objective'];
+    publishedAt: Date;
+    requestStartedAt: Date;
+    receivedAt: Date;
+    sourceAttemptId: string;
+    learningMetrics: LearningMetrics;
+    windowId?: string;
+    supersedesId?: string;
+  }) {
+    const prepared = await this.prepareCapture(input);
+    if (!prepared) return null;
+    return this.prisma.$transaction(async (tx) => {
+      await learningFence(tx, input.supersedesId ? 'exclusive' : 'shared');
+      const currentAccount = await this.lockCaptureSources(
+        tx,
+        input,
+        prepared.account.id,
+        prepared.credential.brandId,
+      );
+      if (!currentAccount) return null;
+      return this.persistCapture(tx, input, prepared, currentAccount);
     });
   }
   async freeze(

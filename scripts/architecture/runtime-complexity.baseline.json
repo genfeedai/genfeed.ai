@@ -48,12 +48,6 @@
     "symbol": "PublicYoutubeClipClaimService.claim"
   },
   {
-    "actual": 262,
-    "file": "apps/server/api/src/collections/content-learning/services/learning-checkpoint.service.ts",
-    "metric": "method-lines",
-    "symbol": "LearningCheckpointService.capture"
-  },
-  {
     "actual": 273,
     "file": "apps/server/api/src/collections/content-learning/services/learning-dataset.service.ts",
     "metric": "method-lines",
