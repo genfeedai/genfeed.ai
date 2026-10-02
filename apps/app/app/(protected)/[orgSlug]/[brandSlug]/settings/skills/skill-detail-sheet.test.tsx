@@ -7,7 +7,7 @@ import {
   openModal,
 } from '@genfeedai/helpers/ui/modal/modal.helper';
 import type { Skill } from '@services/content/skills.service';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import SkillDetailSheet from './skill-detail-sheet';
 
@@ -21,6 +21,8 @@ const selectedSkillFixture: Skill = {
   modalities: ['text'],
   name: 'YouTube Script Setup',
   organization: null,
+  canEdit: false,
+  canFork: true,
   requiredProviders: ['openai'],
   slug: 'youtube-script-setup',
   source: 'built_in',
@@ -58,9 +60,11 @@ describe('SkillDetailSheet', () => {
     render(
       <SkillDetailSheet
         customizing={false}
+        hasChanges={false}
+        draftErrors={[]}
         onClose={vi.fn()}
         onCustomize={vi.fn()}
-        onOpenTestInChat={vi.fn()}
+        onOpenSamplePrompt={vi.fn()}
         onSaveSkill={vi.fn()}
         onSkillDraftChange={vi.fn()}
         savingSkill={false}
@@ -76,7 +80,7 @@ describe('SkillDetailSheet', () => {
 
     expect(screen.getAllByText('YouTube Script Setup')[0]).toBeVisible();
     expect(
-      screen.getByRole('button', { name: /test with agent/i }),
+      screen.getByRole('button', { name: /open sample prompt/i }),
     ).toBeInTheDocument();
   });
 
@@ -84,9 +88,11 @@ describe('SkillDetailSheet', () => {
     render(
       <SkillDetailSheet
         customizing={false}
+        hasChanges={false}
+        draftErrors={[]}
         onClose={vi.fn()}
         onCustomize={vi.fn()}
-        onOpenTestInChat={vi.fn()}
+        onOpenSamplePrompt={vi.fn()}
         onSaveSkill={vi.fn()}
         onSkillDraftChange={vi.fn()}
         savingSkill={false}
@@ -110,9 +116,11 @@ describe('SkillDetailSheet', () => {
     render(
       <SkillDetailSheet
         customizing={false}
+        hasChanges={false}
+        draftErrors={[]}
         onClose={onClose}
         onCustomize={vi.fn()}
-        onOpenTestInChat={vi.fn()}
+        onOpenSamplePrompt={vi.fn()}
         onSaveSkill={vi.fn()}
         onSkillDraftChange={vi.fn()}
         savingSkill={false}
@@ -129,5 +137,39 @@ describe('SkillDetailSheet', () => {
     fireEvent.click(screen.getByRole('button', { name: /^close$/i }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+  it('announces the operation recovery error inside the open dialog while preserving the fork lock', () => {
+    const onFork = vi.fn();
+    const error =
+      'The fork was created, but its details could not be loaded. Refresh the catalog.';
+    render(
+      <SkillDetailSheet
+        customizing={false}
+        error={error}
+        hasChanges={false}
+        draftErrors={[]}
+        isForkBlocked
+        onClose={vi.fn()}
+        onCustomize={onFork}
+        onOpenSamplePrompt={vi.fn()}
+        onSaveSkill={vi.fn()}
+        onSkillDraftChange={vi.fn()}
+        savingSkill={false}
+        selectedSkill={selectedSkillFixture}
+        skillDraft={{
+          defaultInstructions: 'Base instructions',
+          description: 'Sets up long-form creator scripts.',
+          name: 'YouTube Script Setup',
+          systemPromptTemplate: '',
+        }}
+      />,
+    );
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByRole('alert')).toBeVisible();
+    expect(within(dialog).getByRole('alert')).toHaveTextContent(error);
+    const fork = within(dialog).getByRole('button', { name: 'Fork' });
+    expect(fork).toBeDisabled();
+    fireEvent.click(fork);
+    expect(onFork).not.toHaveBeenCalled();
   });
 });
