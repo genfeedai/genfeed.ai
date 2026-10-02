@@ -35,6 +35,8 @@ import {
 import {
   publicationCaptureAttemptAllowsUrl as allowsUrl,
   publicationCaptureComposeUrl as compose,
+  PUBLICATION_REPLY_ASSOCIATION_WINDOW_MS,
+  PUBLICATION_REPLY_INTENT_LIFETIME_MS,
   publicationCapturePageUrl as page,
 } from '~services/publication-capture-validation';
 
@@ -107,7 +109,7 @@ export function attachXPublicationObserver(): () => void {
         url.origin === page(intent.documentUrl)?.origin &&
         (url.href === intent.documentUrl || compose(url.href)) &&
         Date.now() >= intent.createdAt &&
-        Date.now() <= intent.createdAt + 30000 &&
+        Date.now() <= intent.createdAt + PUBLICATION_REPLY_INTENT_LIFETIME_MS &&
         context?.enabled &&
         context.scope &&
         JSON.stringify(context.scope) === JSON.stringify(intent.scope) &&
@@ -117,6 +119,13 @@ export function attachXPublicationObserver(): () => void {
   function associateModal() {
     if (!intent) return;
     if (!intentValid()) {
+      cancelIntent();
+      return;
+    }
+    if (
+      !modal &&
+      Date.now() > intent.createdAt + PUBLICATION_REPLY_ASSOCIATION_WINDOW_MS
+    ) {
       cancelIntent();
       return;
     }
@@ -171,12 +180,19 @@ export function attachXPublicationObserver(): () => void {
           if (intent === input) cancelIntent();
           return;
         }
+        if (disposed || intent !== input || intentGeneration !== version) {
+          void send({
+            event: 'publicationCaptureReplyIntentCancel',
+            intentId: response.data.intentId,
+          });
+          return;
+        }
         if (
-          disposed ||
-          intent !== input ||
-          intentGeneration !== version ||
+          Date.now() >
+            input.createdAt + PUBLICATION_REPLY_ASSOCIATION_WINDOW_MS ||
           !intentValid()
         ) {
+          cancelIntent();
           void send({
             event: 'publicationCaptureReplyIntentCancel',
             intentId: response.data.intentId,

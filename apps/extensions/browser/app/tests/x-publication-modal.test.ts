@@ -168,6 +168,40 @@ it('binds trusted original source through a new Reply modal to a distinct own pr
     url: 'https://x.com/author/status/456',
   });
 });
+it('retains the original reply binding after 45 seconds of composition and refresh', async () => {
+  await attach();
+  await openReply();
+  await vi.advanceTimersByTimeAsync(45000);
+  required('[data-testid="tweetTextarea_0"]').append(
+    document.createTextNode(''),
+  );
+  await flush();
+  window.dispatchEvent(new Event('focus'));
+  await flush();
+  const submittedAt = Date.now();
+  await submit();
+  expect(events('publicationCaptureReplyIntent')).toHaveLength(1);
+  expect(events('publicationCaptureBegin')).toHaveLength(1);
+  expect(
+    requestData(events('publicationCaptureBegin')[0][0])?.attempt,
+  ).toMatchObject({ startedAt: submittedAt });
+  required('[role="dialog"]').remove();
+  vi.stubGlobal('location', new URL('https://x.com/other/status/123'));
+  window.dispatchEvent(new Event('genfeed-publication-navigation'));
+  document.body.insertAdjacentHTML(
+    'beforeend',
+    ownReply.replace(
+      '2026-10-03T00:00:00Z',
+      new Date(submittedAt).toISOString(),
+    ),
+  );
+  await flush();
+  await vi.advanceTimersByTimeAsync(400);
+  expect(events('publicationCaptureComplete')).toHaveLength(1);
+  expect(
+    requestData(events('publicationCaptureComplete')[0][0])?.observation,
+  ).toMatchObject({ publicationDate: new Date(submittedAt).toISOString() });
+});
 it('records a standalone zero-article Post modal with exact return route and no reply intent', async () => {
   document.body.innerHTML =
     '<button data-testid="SideNav_AccountSwitcher_Button">@author</button>';
@@ -304,7 +338,7 @@ it.each(['actor', 'editor', 'close', 'expiry'])(
         required('[data-testid="tweetTextarea_0"]').cloneNode(true),
       );
     if (kind === 'close') trusted(required('[data-testid="app-bar-close"]'));
-    if (kind === 'expiry') await vi.advanceTimersByTimeAsync(31000);
+    if (kind === 'expiry') await vi.advanceTimersByTimeAsync(600001);
     await submit();
     expect(events('publicationCaptureBegin')).toHaveLength(0);
   },
@@ -384,3 +418,114 @@ it('resolves source permalinks against document base and rejects malformed links
     base.remove();
   }
 });
+
+it.each([600000, 600001])(
+  'keeps the absolute composition boundary at %i ms',
+  async (age) => {
+    await attach();
+    await openReply();
+    await vi.advanceTimersByTimeAsync(age);
+    await submit();
+    expect(events('publicationCaptureBegin')).toHaveLength(
+      age === 600000 ? 1 : 0,
+    );
+    expect(events('publicationCaptureReplyIntent')).toHaveLength(1);
+  },
+);
+it.each([30000, 30001])(
+  'requires first modal association within 30 seconds: %i ms',
+  async (age) => {
+    await attach();
+    trusted(required('article > [data-testid="reply"]'));
+    await flush();
+    await vi.advanceTimersByTimeAsync(age);
+    vi.stubGlobal('location', new URL('https://x.com/compose/post'));
+    document.body.insertAdjacentHTML('beforeend', replyModal);
+    window.dispatchEvent(new Event('genfeed-publication-navigation'));
+    await flush();
+    await submit();
+    expect(events('publicationCaptureBegin')).toHaveLength(
+      age === 30000 ? 1 : 0,
+    );
+    expect(events('publicationCaptureComplete')).toHaveLength(0);
+  },
+);
+it.each([30000, 30001])(
+  'requires ACK within 30 seconds even after modal binding: %i ms',
+  async (age) => {
+    let release: ((response: unknown) => void) | undefined;
+    const originalSend = send.getMockImplementation();
+    if (!originalSend) throw new Error('Missing sender implementation');
+    send.mockImplementation(async (request) => {
+      if (requestData(request)?.event === 'publicationCaptureReplyIntent')
+        return new Promise((resolve) => {
+          release = resolve;
+        });
+      return originalSend(request);
+    });
+    await attach();
+    trusted(required('article > [data-testid="reply"]'));
+    await flush();
+    vi.stubGlobal('location', new URL('https://x.com/compose/post'));
+    document.body.insertAdjacentHTML('beforeend', replyModal);
+    window.dispatchEvent(new Event('genfeed-publication-navigation'));
+    await flush();
+    await vi.advanceTimersByTimeAsync(age);
+    if (!release) throw new Error('Missing deferred ACK');
+    release({
+      success: true,
+      data: {
+        kind: 'reply-intent',
+        intentId: '22222222-2222-4222-8222-222222222222',
+      },
+    });
+    await flush();
+    await submit();
+    expect(events('publicationCaptureBegin')).toHaveLength(
+      age === 30000 ? 1 : 0,
+    );
+    expect(events('publicationCaptureComplete')).toHaveLength(0);
+    if (age === 30001)
+      expect(
+        requestData(events('publicationCaptureReplyIntentCancel')[0][0])
+          ?.intentId,
+      ).toBe('22222222-2222-4222-8222-222222222222');
+  },
+);
+it.each([1500, 60001])(
+  'uses the fresh submission window after 599 seconds of composition: observation +%i ms',
+  async (delay) => {
+    await attach();
+    await openReply();
+    await vi.advanceTimersByTimeAsync(599000);
+    const submittedAt = Date.now();
+    await submit();
+    expect(events('publicationCaptureBegin')).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(delay);
+    required('[role="dialog"]').remove();
+    vi.stubGlobal('location', new URL('https://x.com/other/status/123'));
+    window.dispatchEvent(new Event('genfeed-publication-navigation'));
+    document.body.insertAdjacentHTML(
+      'beforeend',
+      ownReply.replace(
+        '2026-10-03T00:00:00Z',
+        new Date(Date.now()).toISOString(),
+      ),
+    );
+    await flush();
+    await vi.advanceTimersByTimeAsync(400);
+    expect(events('publicationCaptureComplete')).toHaveLength(
+      delay === 1500 ? 1 : 0,
+    );
+    if (delay === 1500) {
+      expect(
+        requestData(events('publicationCaptureBegin')[0][0])?.attempt,
+      ).toMatchObject({ startedAt: submittedAt });
+      expect(
+        requestData(events('publicationCaptureComplete')[0][0])?.observation,
+      ).toMatchObject({
+        publicationDate: new Date(submittedAt + delay).toISOString(),
+      });
+    }
+  },
+);

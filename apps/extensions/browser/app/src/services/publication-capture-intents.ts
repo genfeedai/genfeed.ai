@@ -14,6 +14,7 @@ import {
   publicationCaptureHandle as handle,
   publicationCaptureKeys as keys,
   publicationCaptureRecord as object,
+  PUBLICATION_REPLY_INTENT_LIFETIME_MS,
   publicationCapturePageUrl as page,
   parsePublicationCaptureParent,
   parsePublicationCaptureScope,
@@ -117,7 +118,7 @@ export function matchesPublicationReplyIntent(
     surface.parent.externalId === intent.input.parent.externalId &&
     surface.parent.url === intent.input.parent.url &&
     now >= intent.input.createdAt &&
-    now <= intent.input.createdAt + 30000 &&
+    now <= intent.input.createdAt + PUBLICATION_REPLY_INTENT_LIFETIME_MS &&
     attempt.startedAt >= intent.input.createdAt
   );
 }

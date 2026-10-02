@@ -1215,7 +1215,7 @@ it.each(['expired', 'actor', 'parent', 'scope'])(
       const entries = await import(
         '~services/publication-capture-intents'
       ).then((module) => module.readPublicationReplyIntents());
-      entries['1'].input.createdAt = Date.now() - 31000;
+      entries['1'].input.createdAt = Date.now() - 600001;
       session[INTENTS] = entries;
     }
     if (mismatch === 'actor') original.authorHandle = 'other';
@@ -1290,4 +1290,165 @@ it('Complete cannot add or alter reply surface, parent, kind or source', async (
       ).success,
     ).toBe(false);
   expect(mocks.request).not.toHaveBeenCalled();
+});
+
+async function seedDurableTimingSentinels() {
+  const prior = { ...attempt(), id: crypto.randomUUID() };
+  const confirmed = {
+    binding: { tabId: 1, origin: 'https://x.com' },
+    attempt: prior,
+    observation: observation(prior),
+    observedAt: Date.now(),
+  };
+  const { publicationCaptureEntryFromConfirmed } = await import(
+    '~services/publication-capture-record'
+  );
+  session[CONFIRMED] = { [prior.id]: confirmed };
+  local[OUTBOX] = [publicationCaptureEntryFromConfirmed(confirmed)];
+  return {
+    confirmed: structuredClone(session[CONFIRMED]),
+    outbox: structuredClone(local[OUTBOX]),
+  };
+}
+async function flushTimingInitializer() {
+  await service.handlePublicationCaptureMessage(
+    { event: 'publicationCaptureList' },
+    extension,
+  );
+}
+it.each([45000, 599000, 600000])(
+  'retains original stored intent at %i ms through Context and initializer, then consumes once',
+  async (age) => {
+    const started = Date.now();
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(started);
+    let stop: (() => void) | undefined;
+    try {
+      const preserved = await seedDurableTimingSentinels();
+      const original = await registerReply();
+      const intent = structuredClone(session[INTENTS]);
+      clock.mockReturnValue(started + age);
+      original.startedAt = Date.now();
+      const sender = { ...source, url: 'https://x.com/compose/post' };
+      expect(
+        (
+          await service.handlePublicationCaptureMessage(
+            { event: 'publicationCaptureContext' },
+            sender,
+          )
+        ).success,
+      ).toBe(true);
+      expect(session[INTENTS]).toEqual(intent);
+      stop = service.initializePublicationCapture();
+      const cancel = mocks.subscribe.mock.calls.at(-1)?.[0];
+      if (!cancel) throw new Error('Missing initializer listener');
+      cancel();
+      await flushTimingInitializer();
+      expect(session[INTENTS]).toEqual(intent);
+      vi.mocked(chrome.storage.session.set).mockClear();
+      expect(
+        (
+          await service.handlePublicationCaptureMessage(
+            { event: 'publicationCaptureBegin', attempt: original },
+            sender,
+          )
+        ).success,
+      ).toBe(true);
+      expect(chrome.storage.session.set).toHaveBeenCalledTimes(1);
+      expect(chrome.storage.session.set).toHaveBeenCalledWith({
+        [INTENTS]: {},
+        [PENDING]: {
+          '1': { tabId: 1, origin: 'https://x.com', attempt: original },
+        },
+      });
+      expect(
+        (
+          await service.handlePublicationCaptureMessage(
+            {
+              event: 'publicationCaptureBegin',
+              attempt: { ...original, id: crypto.randomUUID() },
+            },
+            sender,
+          )
+        ).success,
+      ).toBe(false);
+      expect(mocks.request).not.toHaveBeenCalled();
+      expect(session[CONFIRMED]).toEqual(preserved.confirmed);
+      expect(local[OUTBOX]).toEqual(preserved.outbox);
+    } finally {
+      stop?.();
+      clock.mockRestore();
+    }
+  },
+);
+it.each(['context', 'begin', 'initializer'])(
+  'rejects or prunes expired unconfirmed intent after 600001 ms through %s',
+  async (path) => {
+    const started = Date.now();
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(started);
+    let stop: (() => void) | undefined;
+    try {
+      const preserved = await seedDurableTimingSentinels();
+      const original = await registerReply();
+      const registered = structuredClone(session[INTENTS]);
+      const writes = vi.mocked(chrome.storage.session.set).mock.calls.length;
+      clock.mockReturnValue(started + 600001);
+      original.startedAt = Date.now();
+      const sender = { ...source, url: 'https://x.com/compose/post' };
+      if (path === 'context')
+        expect(
+          (
+            await service.handlePublicationCaptureMessage(
+              { event: 'publicationCaptureContext' },
+              sender,
+            )
+          ).success,
+        ).toBe(true);
+      if (path === 'begin')
+        expect(
+          (
+            await service.handlePublicationCaptureMessage(
+              { event: 'publicationCaptureBegin', attempt: original },
+              sender,
+            )
+          ).success,
+        ).toBe(false);
+      if (path === 'initializer') {
+        stop = service.initializePublicationCapture();
+        const cancel = mocks.subscribe.mock.calls.at(-1)?.[0];
+        if (!cancel) throw new Error('Missing initializer listener');
+        cancel();
+        await flushTimingInitializer();
+      }
+      expect(session[INTENTS]).toEqual(path === 'begin' ? registered : {});
+      if (path === 'begin')
+        expect(chrome.storage.session.set).toHaveBeenCalledTimes(writes);
+      expect(session[PENDING] ?? {}).toEqual({});
+      expect(session[CONFIRMED]).toEqual(preserved.confirmed);
+      expect(local[OUTBOX]).toEqual(preserved.outbox);
+      expect(mocks.request).not.toHaveBeenCalled();
+    } finally {
+      stop?.();
+      clock.mockRestore();
+    }
+  },
+);
+it('a long-lived intent cannot authorize a stale submitted attempt', async () => {
+  const started = Date.now();
+  const clock = vi.spyOn(Date, 'now').mockReturnValue(started);
+  try {
+    const original = await registerReply();
+    clock.mockReturnValue(started + 45000);
+    expect(
+      (
+        await service.handlePublicationCaptureMessage(
+          { event: 'publicationCaptureBegin', attempt: original },
+          { ...source, url: 'https://x.com/compose/post' },
+        )
+      ).success,
+    ).toBe(false);
+    expect(mocks.request).not.toHaveBeenCalled();
+    expect(session[PENDING]).toBeUndefined();
+  } finally {
+    clock.mockRestore();
+  }
 });

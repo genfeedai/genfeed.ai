@@ -6,6 +6,8 @@ import type {
   PublicationCaptureSurface,
 } from '@genfeedai/contracts/interfaces/extension/extension-publication-observer.interface';
 
+export const PUBLICATION_REPLY_ASSOCIATION_WINDOW_MS = 30_000;
+export const PUBLICATION_REPLY_INTENT_LIFETIME_MS = 10 * 60_000;
 export function publicationCaptureRecord(
   value: unknown,
 ): Record<string, unknown> | null {

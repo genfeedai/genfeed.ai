@@ -27,6 +27,7 @@ import {
   publicationCaptureComposeUrl as compose,
   publicationCaptureKeys as keys,
   publicationCaptureRecord as object,
+  PUBLICATION_REPLY_INTENT_LIFETIME_MS,
   publicationCapturePageUrl as page,
   parsePublicationCaptureAttempt as parseAttempt,
   parsePublicationCaptureObservation as parseObservation,
@@ -417,7 +418,8 @@ export async function handlePublicationCaptureMessage(
           if (
             !isEnabled ||
             !same(intent.input.scope, s) ||
-            Date.now() > intent.input.createdAt + 30000 ||
+            Date.now() >
+              intent.input.createdAt + PUBLICATION_REPLY_INTENT_LIFETIME_MS ||
             (intent.binding.tabId === sender.tab?.id &&
               (!url ||
                 intent.binding.origin !== url.origin ||
@@ -586,7 +588,8 @@ export async function handlePublicationCaptureMessage(
         const intents = await readIntents();
         for (const [intentKey, intent] of Object.entries(intents))
           if (
-            Date.now() > intent.input.createdAt + 30000 ||
+            Date.now() >
+              intent.input.createdAt + PUBLICATION_REPLY_INTENT_LIFETIME_MS ||
             !same(intent.input.scope, s)
           )
             delete intents[intentKey];
@@ -724,7 +727,8 @@ export function initializePublicationCapture(): () => void {
           !isEnabled ||
           !active ||
           !same(intent.input.scope, active) ||
-          Date.now() > intent.input.createdAt + 30000
+          Date.now() >
+            intent.input.createdAt + PUBLICATION_REPLY_INTENT_LIFETIME_MS
         )
           delete intents[key];
       await chrome.storage.session.set({
