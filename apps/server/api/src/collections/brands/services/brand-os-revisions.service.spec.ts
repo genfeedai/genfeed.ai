@@ -197,6 +197,93 @@ function harness(initial: BrandOsRevision[] = [], legacyAgentConfig?: unknown) {
 }
 
 describe('BrandOsRevisionsService', () => {
+  it('projects an exact saved draft candidate on scoped reads without persistence or extra queries', async () => {
+    const { service, tx, prisma } = harness([reviewedRow()]);
+    const expected = hashBrandGenerationRulesReviewV1(rules());
+    expect(
+      (await service.get(ORG, BRAND, 'rev-1'))
+        .generationRulesReviewCandidateHash,
+    ).toBe(expected);
+    expect(
+      (await service.list(ORG, BRAND))[0].generationRulesReviewCandidateHash,
+    ).toBe(expected);
+    expect(tx.brandOsRevision.findFirst).toHaveBeenCalledOnce();
+    expect(tx.brandOsRevision.findMany).toHaveBeenCalledOnce();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(tx.brandOsRevision.update).not.toHaveBeenCalled();
+    expect(tx.brandOsRevision.create).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    undefined,
+    null,
+    {},
+    { ...rules(), unknown: true },
+    {
+      ...rules(),
+      evidence: [{ id: 'invalid', sourceType: 'bogus', label: 'Invalid' }],
+    },
+  ])(
+    'omits invalid/absent saved-rule candidates while leaving recoverable content readable: %j',
+    async (generationRules) => {
+      const content = { ...draft(), generationRules };
+      const saved = {
+        ...row(),
+        content: content as unknown as Prisma.JsonValue,
+      };
+      const { service, rows, tx } = harness([saved]);
+      const result = await service.get(ORG, BRAND, 'rev-1');
+      expect(result).not.toHaveProperty('generationRulesReviewCandidateHash');
+      expect(result.content).toEqual(content);
+      expect(rows).toEqual([saved]);
+      expect(tx.brandOsRevision.update).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([BrandOsRevisionStatus.APPROVED, BrandOsRevisionStatus.SUPERSEDED])(
+    'keeps approval evidence distinct and never projects terminal candidates: %s',
+    async (status) => {
+      const hash = hashBrandGenerationRulesReviewV1(rules());
+      const { service } = harness([
+        { ...reviewedRow(), status, generationRulesReviewHash: hash },
+      ]);
+      const result = await service.get(ORG, BRAND, 'rev-1');
+      expect(result.generationRulesReviewHash).toBe(hash);
+      expect(result).not.toHaveProperty('generationRulesReviewCandidateHash');
+    },
+  );
+
+  it('returns a fresh candidate after saving changed rules and no candidate after approval', async () => {
+    const { service } = harness([reviewedRow()]);
+    const content = draft();
+    content.generationRules = {
+      ...rules(),
+      evidence: [
+        { id: 'manual', sourceType: 'manual', label: 'New saved source' },
+      ],
+    };
+    const expected = hashBrandGenerationRulesReviewV1(content.generationRules);
+    const updated = await service.update(
+      ORG,
+      BRAND,
+      'rev-1',
+      content,
+      TIMESTAMP.toISOString(),
+    );
+    expect(updated.generationRulesReviewCandidateHash).toBe(expected);
+    expect(updated).not.toHaveProperty('generationRulesReviewHash');
+    const approved = await service.approve(
+      ORG,
+      BRAND,
+      'rev-1',
+      USER,
+      updated.updatedAt,
+      expected,
+    );
+    expect(approved).not.toHaveProperty('generationRulesReviewCandidateHash');
+    expect(approved.generationRulesReviewHash).toBe(expected);
+  });
+
   it('approves persisted canonical rules and commits their computed digest with actor and accepted content', async () => {
     const old = {
       ...row('old', 1, BrandOsRevisionStatus.APPROVED),
@@ -345,20 +432,23 @@ describe('BrandOsRevisionsService', () => {
     const content = draft();
     content.generationRules = {
       ...rules(),
+      evidence: [
+        { id: 'manual', sourceType: 'manual', label: 'Owner guidance' },
+      ],
       mandatory: [
         {
           id: 'first',
           text: 'First statement',
           match: 'literal',
           required: true,
-          evidenceIds: [],
+          evidenceIds: ['manual'],
         },
         {
           id: 'second',
           text: 'Second statement',
           match: 'literal',
           required: true,
-          evidenceIds: [],
+          evidenceIds: ['manual'],
         },
       ],
     };

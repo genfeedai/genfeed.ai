@@ -560,13 +560,30 @@ export class BrandOsRevisionsService {
   }
 
   private toRevision(row: BrandOsRevision): IBrandOsRevision {
+    const content = row.content as unknown as IBrandKitDraft;
+    let generationRulesReviewCandidateHash: string | undefined;
+    if (
+      row.status === BrandOsRevisionStatus.DRAFT &&
+      content?.generationRules !== undefined
+    ) {
+      try {
+        generationRulesReviewCandidateHash = hashBrandGenerationRulesReviewV1(
+          content.generationRules,
+        );
+      } catch {
+        // Invalid saved rules remain readable for recovery, without review authority.
+      }
+    }
     return {
       approvedAt: row.approvedAt?.toISOString() ?? null,
       approvedById: row.approvedById,
       brandId: row.brandId,
-      content: row.content as unknown as IBrandKitDraft,
+      content,
       createdAt: row.createdAt.toISOString(),
       exportSchemaVersion: row.exportSchemaVersion,
+      ...(generationRulesReviewCandidateHash
+        ? { generationRulesReviewCandidateHash }
+        : {}),
       ...(row.generationRulesReviewHash !== null
         ? { generationRulesReviewHash: row.generationRulesReviewHash }
         : {}),

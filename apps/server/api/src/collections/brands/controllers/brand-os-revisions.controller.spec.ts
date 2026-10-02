@@ -74,6 +74,27 @@ describe('BrandOsRevisionsController', () => {
     expect(serialize).toHaveBeenCalledWith(revision);
   });
 
+  it('serializes a candidate only through authenticated scoped revision delegation', async () => {
+    const { controller, service } = harness();
+    const candidate = {
+      ...revision,
+      generationRulesReviewCandidateHash: `sha256:${'b'.repeat(64)}`,
+    };
+    service.get.mockResolvedValue(candidate);
+    const output = await controller.get(request, user, 'brand-1', 'rev-1');
+    expect(service.get).toHaveBeenCalledExactlyOnceWith(
+      'org-1',
+      'brand-1',
+      'rev-1',
+    );
+    expect(JSON.stringify(output)).toContain(
+      candidate.generationRulesReviewCandidateHash,
+    );
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, BrandOsRevisionsController),
+    ).toContain(RolesGuard);
+  });
+
   it('forwards concurrency tokens and the canonical approval user ID', async () => {
     const { controller, service } = harness();
     await controller.update(request, user, 'brand-1', 'rev-1', {
@@ -132,9 +153,15 @@ describe('BrandOsRevisionsController', () => {
     const { controller, service } = harness();
     for (const context of [{ organizationId: 'org-1' }, { id: 'user-1' }]) {
       await expect(
-        controller.approve(request, context as User, 'brand-1', 'rev-1', {
-          updatedAt: revision.updatedAt,
-        }),
+        controller.approve(
+          request,
+          context as unknown as User,
+          'brand-1',
+          'rev-1',
+          {
+            updatedAt: revision.updatedAt,
+          },
+        ),
       ).rejects.toBeInstanceOf(ForbiddenException);
     }
     expect(service.approve).not.toHaveBeenCalled();
