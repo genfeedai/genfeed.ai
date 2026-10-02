@@ -8,6 +8,9 @@ import { PrismaClient, type SavedAd } from '@genfeedai/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+vi.unmock('@genfeedai/prisma');
+vi.unmock('@prisma/adapter-pg');
+
 const now = '2026-10-01T12:00:00.000Z';
 const cutoff = '2026-09-24T12:00:00.000Z';
 const scope = { organizationId: 'orgA', brandId: 'brandA' };
