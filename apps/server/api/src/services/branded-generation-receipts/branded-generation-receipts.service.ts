@@ -15,15 +15,22 @@ import type {
   BrandedGenerationActorV1,
   BrandedGenerationMutationResultV1,
   BrandedGenerationMutationV1,
+  BrandedGenerationPreparedPromptV1,
   BrandedGenerationPromptReadV1,
   BrandedGenerationPromptStageV1,
   BrandedGenerationReceiptHistoryV1,
   BrandedGenerationReceiptPageV1,
 } from '@api/services/branded-generation-receipts/branded-generation-receipts.types';
+import type { BrandedGenerationCompilerRecipeV1 } from '@api/services/branded-generation-receipts/branded-generation-recompile.types';
+import {
+  encodeBrandedGenerationCompilerRecipeV1,
+  parseBrandedGenerationCompilerRecipeV1,
+} from '@api/services/branded-generation-receipts/branded-generation-recompile-codec.util';
 import {
   type BrandedGenerationOperationKindV1,
   canTransitionBrandedGenerationStateV1,
 } from '@api/services/branded-generation-receipts/branded-generation-state.util';
+import { compileSnapshotBriefResolution } from '@api/services/harness/branded-generation-compiler';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
@@ -621,11 +628,13 @@ export class BrandedGenerationReceiptsService {
       resolution.status === 'resolved'
         ? this.prompts.prepare(resolution.compiledPrompt)
         : null;
-    return this.mutate(
+    return this.recordPreparedResolution(
       actor,
       id,
       mutation,
-      'resolve',
+      resolution,
+      enhanced,
+      compiled,
       {
         resolutionHash,
         enhancedPromptHash:
@@ -633,7 +642,127 @@ export class BrandedGenerationReceiptsService {
             ? null
             : hashBrandedGenerationTextV1(enhancedPrompt),
       },
+    );
+  }
+  async recordCompiledResolution(
+    actor: BrandedGenerationActorV1,
+    id: string,
+    mutation: BrandedGenerationMutationV1,
+    value: BrandedGenerationResolutionV1,
+    retainedInput: BrandedGenerationInputV1,
+    recipe: BrandedGenerationCompilerRecipeV1,
+    enhancedPrompt?: string,
+  ): Promise<BrandedGenerationMutationResultV1> {
+    const resolution = brandedGenerationResolutionV1Schema.parse(value);
+    if (resolution.status !== 'resolved')
+      throw new BadRequestException('compiler_recipe_invalid');
+    if (
+      resolution.snapshot &&
+      hashBrandIdentitySnapshotV1(resolution.snapshot) !==
+        resolution.snapshot.contentHash
+    )
+      throw new BadRequestException('brand_identity_snapshot_hash_mismatch');
+    const resolutionHash = hashBrandedGenerationResolutionV1(resolution);
+    const compiled = this.prompts.prepareCompiled(
+      resolution.compiledPrompt,
+      retainedInput,
+      recipe,
+    );
+    const input = JSON.parse(
+      JSON.stringify(brandedGenerationInputV1Schema.parse(retainedInput)),
+    ) as BrandedGenerationInputV1;
+    const canonicalRecipe = parseBrandedGenerationCompilerRecipeV1(
+      JSON.parse(encodeBrandedGenerationCompilerRecipeV1(recipe)),
+    );
+    const reproduced = compileSnapshotBriefResolution(
+      input,
+      resolution.snapshot,
+      canonicalRecipe[4],
+      canonicalRecipe[5],
+      canonicalRecipe[1],
+      canonicalRecipe[2],
+      canonicalRecipe[3],
+    );
+    if (
+      reproduced.status !== 'resolved' ||
+      reproduced.compiledPrompt !== resolution.compiledPrompt ||
+      hashBrandedGenerationResolutionV1(reproduced) !== resolutionHash
+    )
+      throw new ConflictException('compiler_recipe_mismatch');
+    const enhanced =
+      enhancedPrompt === undefined
+        ? null
+        : this.prompts.prepare(enhancedPrompt);
+    return this.recordPreparedResolution(
+      actor,
+      id,
+      mutation,
+      resolution,
+      enhanced,
+      compiled,
+      {
+        resolutionHash,
+        enhancedPromptHash:
+          enhancedPrompt === undefined
+            ? null
+            : hashBrandedGenerationTextV1(enhancedPrompt),
+        compilerRecipeHash: hashBrandedGenerationOperationV1('recompose', {
+          compilerRecipe: JSON.parse(
+            encodeBrandedGenerationCompilerRecipeV1(canonicalRecipe),
+          ),
+        }),
+        retainedInputHash: hashBrandedGenerationOperationV1('recompose', {
+          retainedInput: JSON.parse(
+            canonicalizeBrandedGenerationJsonV1(
+              input as unknown as BrandedGenerationJsonV1,
+            ),
+          ),
+        }),
+      },
+      input,
+    );
+  }
+  private recordPreparedResolution(
+    actor: BrandedGenerationActorV1,
+    id: string,
+    mutation: BrandedGenerationMutationV1,
+    resolution: BrandedGenerationResolutionV1,
+    enhanced: BrandedGenerationPreparedPromptV1 | null,
+    compiled: BrandedGenerationPreparedPromptV1 | null,
+    operationBody: BrandedGenerationJsonV1,
+    retainedInput?: BrandedGenerationInputV1,
+  ): Promise<BrandedGenerationMutationResultV1> {
+    const resolutionHash = hashBrandedGenerationResolutionV1(resolution);
+    return this.mutate(
+      actor,
+      id,
+      mutation,
+      'resolve',
+      operationBody,
       async (tx, current) => {
+        if (
+          retainedInput &&
+          (retainedInput.actorId !== current.actorId ||
+            retainedInput.organizationId !== current.organizationId ||
+            retainedInput.brandId !== current.brandId ||
+            retainedInput.requestKey !== current.requestKey ||
+            retainedInput.candidateIndex !== current.candidateIndex ||
+            hashBrandedGenerationRequestV1(retainedInput) !==
+              current.requestHash ||
+            hashBrandedGenerationTextV1(retainedInput.originalPrompt) !==
+              current.prompts.original.contentHash ||
+            [
+              'parentRequestId',
+              'runId',
+              'workflowExecutionId',
+              'generationId',
+            ].some(
+              (field) =>
+                Reflect.get(retainedInput, field) !==
+                Reflect.get(current, field),
+            ))
+        )
+          throw new ConflictException('request_payload_conflict');
         if (
           current.mode !== resolution.mode ||
           (resolution.snapshot &&
