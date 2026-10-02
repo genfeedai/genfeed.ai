@@ -7,7 +7,15 @@ import { IngredientsService } from '@genfeedai/services/content/ingredients.serv
 import { act, cleanup, renderHook } from '@testing-library/react';
 import type * as AxiosModule from 'axios';
 import type { ChangeEvent, DragEvent } from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mock,
+  vi,
+} from 'vitest';
 import { useModalUpload } from './useModalUpload';
 
 const boundary = vi.hoisted(() => ({
@@ -84,8 +92,8 @@ const jpegResult = {
   mimeType: 'image/jpeg',
 };
 let images: HTMLImageElement[] = [];
-let createObjectURL: ReturnType<typeof vi.fn>;
-let revokeObjectURL: ReturnType<typeof vi.fn>;
+let createObjectURL: Mock<typeof URL.createObjectURL>;
+let revokeObjectURL: Mock<typeof URL.revokeObjectURL>;
 
 function renderUpload(overrides: Partial<UploadParams> = {}) {
   const props: UploadParams = {
@@ -168,8 +176,10 @@ beforeEach(() => {
   Reflect.set(service, 'mapOne', boundary.mapOne);
   service.getPresignedUploadUrl = boundary.presigned;
   vi.spyOn(IngredientsService, 'getInstance').mockReturnValue(service);
-  createObjectURL = vi.fn(() => `blob:preview-${images.length}`);
-  revokeObjectURL = vi.fn();
+  createObjectURL = vi.fn<typeof URL.createObjectURL>(
+    () => `blob:preview-${images.length}`,
+  );
+  revokeObjectURL = vi.fn<typeof URL.revokeObjectURL>();
   vi.stubGlobal(
     'URL',
     class extends URL {
