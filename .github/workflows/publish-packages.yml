@@ -1,4 +1,4 @@
-name: Publish Packages
+name: Publish npm Packages
 
 # Reusable npm release lane. `release.yml` calls this for every stable release so
 # tagged releases publish whatever package versions merged to master, and the

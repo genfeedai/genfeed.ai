@@ -1,7 +1,11 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { getBrandOrganizationSlug } from '@contexts/user/brand-context/brand-context.helpers';
+import {
+  getBrandOrganizationId,
+  getBrandOrganizationSlug,
+} from '@contexts/user/brand-context/brand-context.helpers';
+import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
 import { ModalEnum } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
@@ -24,15 +28,9 @@ import Loading from '@ui/loading/default/Loading';
 import { Switch } from '@ui/primitives/switch';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import {
-  startTransition,
-  useCallback,
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef,
-} from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import SkillDetailSheet from './skill-detail-sheet';
+import { prepareSkillDraftPatch } from './skill-draft-patch';
 import SkillFilters from './skill-filters';
 import SkillsTable from './skills-table';
 
@@ -63,6 +61,8 @@ const initialState: PageState = {
   searchQuery: '',
   selectedSkillId: '',
   skillDraft: emptyDraft(),
+  originalSkillDraft: emptyDraft(),
+  forkCreatedForSkillId: '',
   skills: [],
   sourceFilter: 'all',
   stageFilter: 'all',
@@ -70,6 +70,24 @@ const initialState: PageState = {
 
 function pageReducer(state: PageState, action: PageAction): PageState {
   switch (action.type) {
+    case 'RESET':
+      return { ...initialState };
+    case 'FORK_CREATED':
+      return { ...state, forkCreatedForSkillId: action.sourceId };
+    case 'HYDRATE_SKILL':
+      return {
+        ...state,
+        error: null,
+        isSavingSkill: false,
+        isCustomizing: false,
+        selectedSkillId: action.skill.id,
+        skillDraft: draftFromSkill(action.skill),
+        originalSkillDraft: draftFromSkill(action.skill),
+        skills: [
+          ...state.skills.filter((skill) => skill.id !== action.skill.id),
+          action.skill,
+        ],
+      };
     case 'LOAD_START':
       return {
         ...state,
@@ -93,9 +111,21 @@ function pageReducer(state: PageState, action: PageAction): PageState {
         ...state,
         selectedSkillId: action.id,
         skillDraft: action.draft,
+        originalSkillDraft: action.draft,
+        error: null,
+        isCustomizing: false,
+        isSavingSkill: false,
       };
     case 'CLEAR_SELECTED_SKILL':
-      return { ...state, selectedSkillId: '', skillDraft: emptyDraft() };
+      return {
+        ...state,
+        selectedSkillId: '',
+        skillDraft: emptyDraft(),
+        originalSkillDraft: emptyDraft(),
+        error: null,
+        isCustomizing: false,
+        isSavingSkill: false,
+      };
     case 'SET_SOURCE_FILTER':
       return { ...state, sourceFilter: action.value };
     case 'SET_MODALITY_FILTER':
@@ -112,12 +142,6 @@ function pageReducer(state: PageState, action: PageAction): PageState {
       return { ...state, error: action.message, isSavingSkill: false };
     case 'CUSTOMIZE_START':
       return { ...state, error: null, isCustomizing: true };
-    case 'CUSTOMIZE_SUCCESS':
-      return {
-        ...state,
-        isCustomizing: false,
-        selectedSkillId: action.newSkillId,
-      };
     case 'CUSTOMIZE_ERROR':
       return { ...state, error: action.message, isCustomizing: false };
     case 'SET_SKILL_DRAFT':
@@ -132,10 +156,20 @@ export default function BrandSettingsSkillsPage() {
   const params = useParams<{ brandSlug: string; orgSlug: string }>();
   const { push } = useRouter();
   const { href } = useOrgUrl();
-  const { getToken } = useAuthIdentity();
+  const { getToken, userId, sessionId, isSignedIn } = useAuthIdentity();
+  const routedOrganization = useRoutedOrganization();
   const { brandId, isReady, selectedBrand } = useBrand();
 
   const catalogRequestIdRef = useRef(0);
+  const catalogScopeKeyRef = useRef('');
+  const lifecycleRef = useRef({
+    isActive: true,
+    epoch: 0,
+    scopeKey: '',
+    selectedId: '',
+    operationId: 0,
+    pendingId: 0,
+  });
 
   const [state, dispatch] = useReducer(pageReducer, initialState);
   const {
@@ -147,10 +181,49 @@ export default function BrandSettingsSkillsPage() {
     searchQuery,
     selectedSkillId,
     skillDraft,
-    skills,
+    originalSkillDraft,
+    forkCreatedForSkillId,
+    skills: catalogSkillsState,
     sourceFilter,
     stageFilter,
   } = state;
+
+  const organizationId = getBrandOrganizationId(selectedBrand);
+  const isScopeMatch = Boolean(
+    isReady &&
+      isSignedIn &&
+      userId &&
+      sessionId &&
+      organizationId &&
+      routedOrganization.status === 'matched' &&
+      routedOrganization.isRouteConfirmed &&
+      routedOrganization.confirmedOrganizationId === organizationId &&
+      routedOrganization.confirmedOrganizationSlug === params.orgSlug &&
+      brandId &&
+      selectedBrand?.id === brandId &&
+      selectedBrand.slug === params.brandSlug &&
+      getBrandOrganizationSlug(selectedBrand) === params.orgSlug,
+  );
+  const scopeKey = JSON.stringify([
+    organizationId,
+    brandId,
+    params.orgSlug,
+    params.brandSlug,
+    userId,
+    sessionId,
+    isSignedIn,
+    isScopeMatch,
+  ]);
+  // Render-time invalidation prevents an old await from committing before effects run.
+  if (lifecycleRef.current.scopeKey !== scopeKey) {
+    lifecycleRef.current.scopeKey = scopeKey;
+    lifecycleRef.current.epoch += 1;
+    lifecycleRef.current.pendingId = 0;
+    lifecycleRef.current.selectedId = '';
+  }
+
+  const skills =
+    catalogScopeKeyRef.current === scopeKey ? catalogSkillsState : [];
 
   const defaultSkillSlugs = useMemo(
     () => skills.filter((skill) => skill.isDefault).map((skill) => skill.slug),
@@ -165,70 +238,55 @@ export default function BrandSettingsSkillsPage() {
     toggleSkill,
   } = useBrandEnabledSkills({ defaultSlugs: defaultSkillSlugs });
 
-  const isScopeMatch = Boolean(
-    brandId &&
-      selectedBrand?.id === brandId &&
-      selectedBrand.slug === params.brandSlug &&
-      getBrandOrganizationSlug(selectedBrand) === params.orgSlug,
+  const acquireService = useCallback(
+    async (isCurrent: () => boolean) => {
+      const token = await resolveAuthToken(getToken);
+      if (!isCurrent()) return null;
+      if (!token)
+        throw new Error(translate('errors.authenticationUnavailable'));
+      return SkillsService.forOrganization(token, organizationId);
+    },
+    [getToken, organizationId, translate],
   );
-
-  const getSkillsService = useCallback(async () => {
-    const token = await resolveAuthToken(getToken);
-    if (!token) {
-      throw new Error(translate('errors.authenticationUnavailable'));
-    }
-    return SkillsService.getInstance(token);
-  }, [getToken, translate]);
 
   const refreshCatalog = useCallback(async () => {
+    const lifecycle = lifecycleRef.current;
+    const epoch = ++lifecycle.epoch;
     const requestId = ++catalogRequestIdRef.current;
-
-    if (!brandId || !isReady || !isScopeMatch) {
-      return;
-    }
-
-    dispatch({ type: 'LOAD_START' });
-
+    lifecycle.pendingId = 0;
+    lifecycle.selectedId = '';
+    dispatch({ type: 'RESET' });
+    closeModal(ModalEnum.SKILL);
+    if (!isScopeMatch) return;
+    const isCurrent = () =>
+      lifecycleRef.current.isActive &&
+      lifecycleRef.current.epoch === epoch &&
+      lifecycleRef.current.scopeKey === scopeKey &&
+      requestId === catalogRequestIdRef.current;
     try {
-      const service = await getSkillsService();
+      const service = await acquireService(isCurrent);
+      if (!isCurrent() || !service) return;
       const catalogSkills = await service.listSkills();
-
-      if (requestId !== catalogRequestIdRef.current) {
-        return;
-      }
-
-      startTransition(() => {
-        dispatch({ type: 'LOAD_SUCCESS', skills: catalogSkills });
-      });
+      if (!isCurrent()) return;
+      catalogScopeKeyRef.current = scopeKey;
+      dispatch({ type: 'LOAD_SUCCESS', skills: catalogSkills });
     } catch {
-      if (requestId !== catalogRequestIdRef.current) {
-        return;
-      }
-
-      closeModal(ModalEnum.SKILL);
-      dispatch({
-        type: 'LOAD_ERROR',
-        message: translate('errors.loadFailed'),
-      });
+      if (!isCurrent()) return;
+      catalogScopeKeyRef.current = scopeKey;
+      dispatch({ type: 'LOAD_ERROR', message: translate('errors.loadFailed') });
     }
-  }, [brandId, getSkillsService, isReady, isScopeMatch, translate]);
+  }, [acquireService, isScopeMatch, scopeKey, translate]);
 
   useEffect(() => {
+    lifecycleRef.current.isActive = true;
     void refreshCatalog();
-
     return () => {
-      catalogRequestIdRef.current += 1;
+      lifecycleRef.current.epoch += 1;
+      lifecycleRef.current.isActive = false;
+      lifecycleRef.current.pendingId = 0;
+      closeModal(ModalEnum.SKILL);
     };
   }, [refreshCatalog]);
-
-  // The skill modal lives in global UI state, so leaving the route while the
-  // detail sheet is open must not leave it active for the next visit.
-  useEffect(
-    () => () => {
-      closeModal(ModalEnum.SKILL);
-    },
-    [],
-  );
 
   const filteredSkills = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -263,85 +321,131 @@ export default function BrandSettingsSkillsPage() {
     [selectedSkillId, skills],
   );
 
-  // Derive skillDraft from selectedSkill when the user has not yet edited it.
-  const derivedDraft = useMemo(
-    () => draftFromSkill(selectedSkill),
-    [selectedSkill],
+  const effectiveSkillDraft = skillDraft;
+  const preparedPatch = prepareSkillDraftPatch(
+    originalSkillDraft,
+    effectiveSkillDraft,
   );
+  const isPending = isSavingSkill || isCustomizing;
 
-  const effectiveSkillDraft =
-    selectedSkillId === selectedSkill?.id ? skillDraft : derivedDraft;
+  const beginOperation = useCallback(() => {
+    const lifecycle = lifecycleRef.current;
+    if (
+      !isScopeMatch ||
+      !lifecycle.isActive ||
+      lifecycle.scopeKey !== scopeKey ||
+      lifecycle.pendingId ||
+      !selectedSkill ||
+      lifecycle.selectedId !== selectedSkill.id
+    )
+      return null;
+    const epoch = lifecycle.epoch;
+    const id = ++lifecycle.operationId;
+    const selectedId = selectedSkill.id;
+    lifecycle.pendingId = id;
+    const isCurrent = () =>
+      lifecycleRef.current.isActive &&
+      lifecycleRef.current.epoch === epoch &&
+      lifecycleRef.current.scopeKey === scopeKey &&
+      lifecycleRef.current.selectedId === selectedId &&
+      lifecycleRef.current.pendingId === id;
+    return {
+      isCurrent,
+      finish: () => {
+        if (isCurrent()) lifecycleRef.current.pendingId = 0;
+      },
+    };
+  }, [isScopeMatch, scopeKey, selectedSkill]);
 
   const handleSaveSkill = useCallback(async () => {
-    if (!isScopeMatch || !selectedSkill?.organization) {
+    if (
+      selectedSkill?.canEdit !== true ||
+      !preparedPatch.hasChanges ||
+      preparedPatch.errors.length
+    )
       return;
-    }
-
+    const operation = beginOperation();
+    if (!operation) return;
     dispatch({ type: 'SAVE_START' });
-
     try {
-      const service = await getSkillsService();
-      await service.updateSkill(selectedSkill.id, {
-        defaultInstructions:
-          effectiveSkillDraft.defaultInstructions.trim() || undefined,
-        description: effectiveSkillDraft.description.trim(),
-        name: effectiveSkillDraft.name.trim(),
-        systemPromptTemplate:
-          effectiveSkillDraft.systemPromptTemplate.trim() || undefined,
-      });
-      await refreshCatalog();
-      dispatch({ type: 'SAVE_SUCCESS' });
+      const service = await acquireService(operation.isCurrent);
+      if (!operation.isCurrent() || !service) return;
+      await service.updateSkill(selectedSkill.id, preparedPatch.patch);
+      if (!operation.isCurrent()) return;
+      const hydrated = await service.getSkill(selectedSkill.id);
+      if (!operation.isCurrent()) return;
+      if (hydrated.id !== selectedSkill.id)
+        throw new Error('Skill details unavailable');
+      const catalog = await service.listSkills();
+      if (!operation.isCurrent()) return;
+      dispatch({ type: 'LOAD_SUCCESS', skills: catalog });
+      dispatch({ type: 'HYDRATE_SKILL', skill: hydrated });
     } catch {
+      if (!operation.isCurrent()) return;
       dispatch({
         type: 'SAVE_ERROR',
         message: translate('errors.updateFailed'),
       });
+    } finally {
+      operation.finish();
     }
-  }, [
-    getSkillsService,
-    refreshCatalog,
-    selectedSkill,
-    effectiveSkillDraft.defaultInstructions,
-    effectiveSkillDraft.description,
-    effectiveSkillDraft.name,
-    effectiveSkillDraft.systemPromptTemplate,
-    isScopeMatch,
-    translate,
-  ]);
+  }, [acquireService, beginOperation, preparedPatch, selectedSkill, translate]);
 
   const handleCustomize = useCallback(async () => {
-    if (!isScopeMatch || !selectedSkill) {
+    if (
+      selectedSkill?.canFork !== true ||
+      forkCreatedForSkillId === selectedSkill.id
+    )
       return;
-    }
-
+    const operation = beginOperation();
+    if (!operation) return;
+    let isCreated = false;
     dispatch({ type: 'CUSTOMIZE_START' });
-
     try {
-      const service = await getSkillsService();
-      const customizedSkill = await service.customizeSkill(selectedSkill.id, {
-        name: `${selectedSkill.name} Custom`,
-      });
-      await refreshCatalog();
-      dispatch({ type: 'CUSTOMIZE_SUCCESS', newSkillId: customizedSkill.id });
+      const service = await acquireService(operation.isCurrent);
+      if (!operation.isCurrent() || !service) return;
+      const fork = await service.forkSkill(selectedSkill.id);
+      if (!operation.isCurrent()) return;
+      isCreated = true;
+      dispatch({ type: 'FORK_CREATED', sourceId: selectedSkill.id });
+      if (typeof fork.id !== 'string' || !fork.id)
+        throw new Error('Fork details unavailable');
+      const hydrated = await service.getSkill(fork.id);
+      if (!operation.isCurrent()) return;
+      if (hydrated.id !== fork.id) throw new Error('Fork details unavailable');
+      dispatch({ type: 'HYDRATE_SKILL', skill: hydrated });
+      operation.finish();
+      lifecycleRef.current.selectedId = hydrated.id;
+      lifecycleRef.current.epoch += 1;
     } catch {
+      if (!operation.isCurrent()) return;
       dispatch({
         type: 'CUSTOMIZE_ERROR',
-        message: translate('errors.customizeFailed'),
+        message: translate(
+          isCreated ? 'errors.forkDetailsFailed' : 'errors.forkFailed',
+        ),
       });
+    } finally {
+      operation.finish();
     }
   }, [
-    getSkillsService,
-    isScopeMatch,
-    refreshCatalog,
+    acquireService,
+    beginOperation,
+    forkCreatedForSkillId,
     selectedSkill,
     translate,
   ]);
 
   const handleExportSkill = useCallback(async () => {
-    if (!selectedSkill?.canExport) return;
+    if (selectedSkill?.canExport !== true) return;
+    const operation = beginOperation();
+    if (!operation) return;
+    dispatch({ type: 'SAVE_START' });
     try {
-      const service = await getSkillsService();
+      const service = await acquireService(operation.isCurrent);
+      if (!operation.isCurrent() || !service) return;
       const exported = await service.exportSkill(selectedSkill.id);
+      if (!operation.isCurrent()) return;
       const blob = new Blob([JSON.stringify(exported, null, 2)], {
         type: 'application/json',
       });
@@ -351,59 +455,82 @@ export default function BrandSettingsSkillsPage() {
       anchor.download = `${selectedSkill.slug}.skill.json`;
       anchor.click();
       URL.revokeObjectURL(url);
+      dispatch({ type: 'SAVE_SUCCESS' });
     } catch {
+      if (!operation.isCurrent()) return;
       dispatch({
         type: 'SAVE_ERROR',
         message: translate('errors.exportFailed'),
       });
+    } finally {
+      operation.finish();
     }
-  }, [getSkillsService, selectedSkill, translate]);
+  }, [acquireService, beginOperation, selectedSkill, translate]);
 
   const handleArchiveSkill = useCallback(async () => {
-    if (!isScopeMatch || !selectedSkill?.canEdit) return;
+    if (selectedSkill?.canEdit !== true) return;
+    const operation = beginOperation();
+    if (!operation) return;
     dispatch({ type: 'SAVE_START' });
     try {
-      const service = await getSkillsService();
+      const service = await acquireService(operation.isCurrent);
+      if (!operation.isCurrent() || !service) return;
       await service.archiveSkill(selectedSkill.id);
-      await refreshCatalog();
+      if (!operation.isCurrent()) return;
+      const catalog = await service.listSkills();
+      if (!operation.isCurrent()) return;
+      dispatch({ type: 'LOAD_SUCCESS', skills: catalog });
       dispatch({ type: 'CLEAR_SELECTED_SKILL' });
       closeModal(ModalEnum.SKILL);
+      operation.finish();
+      lifecycleRef.current.selectedId = '';
+      lifecycleRef.current.epoch += 1;
     } catch {
+      if (!operation.isCurrent()) return;
       dispatch({
         type: 'SAVE_ERROR',
         message: translate('errors.archiveFailed'),
       });
+    } finally {
+      operation.finish();
     }
-  }, [
-    getSkillsService,
-    isScopeMatch,
-    refreshCatalog,
-    selectedSkill,
-    translate,
-  ]);
+  }, [acquireService, beginOperation, selectedSkill, translate]);
 
-  const handleOpenTestInChat = useCallback(() => {
-    if (!selectedSkill) {
+  const handleOpenSamplePrompt = useCallback(() => {
+    if (
+      !isScopeMatch ||
+      !selectedSkill ||
+      isPending ||
+      lifecycleRef.current.pendingId !== 0 ||
+      lifecycleRef.current.scopeKey !== scopeKey ||
+      lifecycleRef.current.selectedId !== selectedSkill.id
+    )
       return;
-    }
-
-    const prompt = translate('testPrompt', {
+    const prompt = translate('samplePrompt', {
       channel: selectedSkill.channels[0] ?? translate('thisChannel'),
       name: selectedSkill.name,
     });
     push(href(`${APP_ROUTES.AGENT.NEW}?prompt=${encodeURIComponent(prompt)}`));
-  }, [href, push, selectedSkill, translate]);
+  }, [href, push, selectedSkill, isPending, isScopeMatch, scopeKey, translate]);
 
   const handleSkillSelect = useCallback(
     (id: string) => {
-      const skill = skills.find((s) => s.id === id) ?? null;
+      if (!isScopeMatch || lifecycleRef.current.scopeKey !== scopeKey) return;
+      const skill = skills.find((item) => item.id === id);
+      if (!skill) return;
+      lifecycleRef.current.epoch += 1;
+      lifecycleRef.current.pendingId = 0;
+      lifecycleRef.current.selectedId = id;
       dispatch({ type: 'SELECT_SKILL', id, draft: draftFromSkill(skill) });
       openModal(ModalEnum.SKILL);
     },
-    [skills],
+    [isScopeMatch, scopeKey, skills],
   );
 
   const handleCloseDetail = useCallback(() => {
+    lifecycleRef.current.epoch += 1;
+    lifecycleRef.current.pendingId = 0;
+    lifecycleRef.current.selectedId = '';
     dispatch({ type: 'CLEAR_SELECTED_SKILL' });
   }, []);
 
@@ -423,6 +550,9 @@ export default function BrandSettingsSkillsPage() {
       </div>
     );
   }
+
+  if (catalogScopeKeyRef.current !== scopeKey)
+    return <Loading isFullSize={false} />;
 
   return (
     <Container
@@ -452,7 +582,7 @@ export default function BrandSettingsSkillsPage() {
       }
       titleVisibility="sr-only"
     >
-      {error ? (
+      {error && !selectedSkill ? (
         <div
           className="mb-4 rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
           role="alert"
@@ -483,13 +613,21 @@ export default function BrandSettingsSkillsPage() {
 
       <SkillDetailSheet
         customizing={isCustomizing}
+        error={error}
+        hasChanges={preparedPatch.hasChanges}
+        draftErrors={preparedPatch.errors}
+        isForkBlocked={forkCreatedForSkillId === selectedSkillId}
         onArchiveSkill={() => void handleArchiveSkill()}
         onClose={handleCloseDetail}
         onExportSkill={() => void handleExportSkill()}
         onCustomize={() => void handleCustomize()}
-        onOpenTestInChat={handleOpenTestInChat}
+        onOpenSamplePrompt={handleOpenSamplePrompt}
         onSaveSkill={() => void handleSaveSkill()}
         onSkillDraftChange={(updater) =>
+          isScopeMatch &&
+          !isPending &&
+          lifecycleRef.current.pendingId === 0 &&
+          selectedSkill?.canEdit === true &&
           dispatch({
             type: 'SET_SKILL_DRAFT',
             draft: updater(effectiveSkillDraft),

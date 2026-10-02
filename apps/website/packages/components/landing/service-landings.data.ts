@@ -1,5 +1,8 @@
 import { serviceOffering } from '@web-components/landing/service-offering.data';
-import { socialGrowthLandingConfigs } from '@web-components/landing/social-growth-landings.data';
+import {
+  agentLandingProcess,
+  socialGrowthLandingConfigs,
+} from '@web-components/landing/social-growth-landings.data';
 import {
   BadgeCheck,
   CalendarRange,
@@ -35,6 +38,8 @@ export interface ServiceLandingBucket {
 }
 
 export interface ServiceLandingConfig {
+  /** Product acquisition pages connect an existing agent; service offers book calls. */
+  isAgentFirst?: boolean;
   slug: string;
   title: string;
   metaTitle: string;
@@ -192,9 +197,10 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
     title: 'Done-For-You Content',
   },
   {
+    isAgentFirst: true,
     badge: 'Founder Content',
     closingDescription:
-      'If founder-led content is bottlenecked by time, consistency, or execution, start free on Genfeed or book a call and we will run it for you.',
+      'Connect your agent and turn what you shipped into your next post. Review the draft in Genfeed before it publishes.',
     closingTitle: 'Founder-Led Content Without Founder-Led Production',
     deliverableBuckets: [
       {
@@ -218,7 +224,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
       {
         items: [
           'Publishing schedule management',
-          'Revision handling',
+          'Draft refinement with your agent',
           'Audience-response loop',
           'Iteration on themes that resonate',
         ],
@@ -226,39 +232,39 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
       },
     ],
     deliverablesDescription:
-      'Everything required to turn founder ideas into consistent published content without building an internal content function.',
-    deliverablesTitle: 'What The Engagement Covers',
-    faqDescription: 'What founders usually want to know before booking.',
+      'Give your connected agent the notes, customer insights, and product updates you already have. Genfeed supplies the brand context, content tools, scheduling, and analytics.',
+    deliverablesTitle: 'What Your Agent Can Create',
+    faqDescription: 'What solo founders ask before connecting.',
     faqs: [
       {
         answer:
-          'Founder-led companies, agencies, and service businesses where the founder has strong insights but no time to turn them into consistent content.',
-        question: 'Who is this best for?',
+          'Solo founders who already build with Codex, Claude, or another agent and want to turn what they ship into content without adding a content team.',
+        question: 'Who is this for?',
       },
       {
         answer:
-          'No. You provide raw material and final direction. We handle content shaping, production, and publishing coordination.',
+          'Yes. Connect your existing agent to Genfeed and authorize your workspace. Ask it to draft content from the product context you already work with.',
+        question: 'Can I use the agent I already work with?',
+      },
+      {
+        answer:
+          'Add your past posts, notes, and brand voice to Genfeed. Your agent uses that context, and you review the result before publishing.',
         question: 'Will this still sound like me?',
       },
       {
         answer:
-          'Voice notes, customer calls, podcast clips, product updates, sales conversations, rough bullet points, and previous content all work.',
-        question: 'What input do you need from me?',
+          'Product updates, customer insights, voice notes, rough bullet points, previous posts, and recorded conversations all work.',
+        question: 'What should I give my agent?',
       },
       {
         answer:
-          'The goal is consistent founder presence with low overhead. We design the workflow around limited founder availability.',
-        question: 'How much time does this take from me weekly?',
+          'You choose what goes out and when. Review the draft, connect your social account when ready, and approve the content before scheduling or publishing.',
+        question: 'Does it publish without my approval?',
       },
       {
         answer:
-          'Founder-content retainers start from the same done-for-you floor and scale with channel mix, production intensity, and revision load.',
-        question: 'How is pricing structured?',
-      },
-      {
-        answer:
-          'We assess whether founder-led content is actually the right growth lever, then scope cadence, channels, and operating model.',
-        question: 'What happens on the call?',
+          'Start for $0. Paid usage follows your Genfeed plan and credits. You can connect your agent and create a first draft without a sales call.',
+        question: 'How does pricing work?',
       },
     ],
     faqTitle: 'Common Questions',
@@ -270,23 +276,23 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
     ],
     heroAccent: 'founder content',
     heroDescription:
-      'We turn founder ideas, voice notes, customer conversations, and product updates into consistent published content.',
-    heroTitle: 'We run your',
+      'Turn product updates, customer insights, and notes into content with the agent you already use. Genfeed keeps it on brand and ready for your review.',
+    heroTitle: 'Your agent creates',
     includes: [
       'Founder voice positioning',
       'Topic extraction from source material',
       'LinkedIn-first content planning',
       'Video and text production',
       'Publishing coordination',
-      'Revision rounds',
+      'Draft review and refinement',
       'Feedback loop on audience response',
       'Monthly content planning',
     ],
     intro:
-      'Most founder-led brands do not lack ideas. They lack a reliable operator who can pull signal out of the founder’s brain and turn it into published content every week.',
+      'You already explain your product to your agent while you build. Connect it to Genfeed and ask it to turn that context into posts, visuals, or a launch thread. Keep building while the drafts land in your workspace for review.',
     metaDescription:
-      'Founder content service for high-end SMBs. Turn founder ideas, calls, and updates into consistent published content.',
-    metaTitle: 'Founder Content Service | Genfeed.ai',
+      'Founder content from your existing AI agent. Connect Codex, Claude, or another agent to Genfeed and turn product updates into drafts you approve.',
+    metaTitle: 'Founder Content With Your Agent | Genfeed.ai',
     outcomes: [
       {
         description:
@@ -296,7 +302,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
       },
       {
         description:
-          'Turn those inputs into posts, videos, hooks, and content systems that feel founder-led instead of agency-written.',
+          'Turn those inputs into posts, videos, hooks, and content systems that feel founder-led instead of generic.',
         icon: Users,
         title: 'Keep The Founder Voice',
       },
@@ -308,14 +314,16 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
       },
     ],
     outcomesDescription:
-      'This is for companies where the founder is the strongest content asset, but execution is inconsistent.',
+      'For solo founders who want to build their product and their audience from the same agent workflow.',
     outcomesTitle: 'What This Solves',
-    process: COMMON_SERVICE_PROCESS,
+    process: agentLandingProcess(
+      'Ask your agent to turn what you shipped into posts, visuals, or a launch thread in your voice.',
+    ),
     processDescription:
-      'We keep the operating model simple so the founder stays high-leverage.',
+      'Connect once, ask for a useful draft, review it, and publish on your terms.',
     processTitle: 'How It Works',
     slug: 'founder-content',
-    title: 'Founder Content Service',
+    title: 'Founder Content With Your Agent',
   },
   {
     badge: 'Podcast To Content',

@@ -1079,6 +1079,40 @@ async function sourceFixture() {
   };
 }
 describe('C1 current pinned publication and parent consumers', () => {
+  it('reads a newly reached immutable pin once while checking its edge version', async () => {
+    const f = await sourceFixture();
+    const edge = f.edges.find(
+      (item) => item.sourceKind === 'content_version_pin',
+    );
+    if (!edge) throw new Error('Missing immutable pin edge');
+    f.edges.splice(0, f.edges.length, edge);
+    expect(
+      await f.service.valid('checkpoint', f.checkpoint.id, f.tx, 'org'),
+    ).toBe(true);
+    expect(f.tx.contentVersionPin.findFirst).toHaveBeenCalledTimes(1);
+    expect(f.tx.contentVersionPin.findFirst).toHaveBeenCalledWith({
+      where: { id: edge.sourceId, organizationId: 'org' },
+    });
+    expect(f.blocked).not.toHaveBeenCalled();
+  });
+
+  it('rechecks a previously visited pin and rejects a changed version', async () => {
+    const f = await sourceFixture();
+    const edge = f.edges.find(
+      (item) => item.sourceKind === 'content_version_pin',
+    );
+    if (!edge) throw new Error('Missing immutable pin edge');
+    f.edges.splice(0, f.edges.length, edge, { ...edge, id: 'second-pin-edge' });
+    vi.mocked(f.tx.contentVersionPin.findFirst)
+      .mockResolvedValueOnce(f.pin)
+      .mockResolvedValueOnce({ ...f.pin, contentDigest: 'changed-version' });
+    expect(
+      await f.service.valid('checkpoint', f.checkpoint.id, f.tx, 'org'),
+    ).toBe(false);
+    expect(f.tx.contentVersionPin.findFirst).toHaveBeenCalledTimes(2);
+    expect(f.blocked).not.toHaveBeenCalled();
+  });
+
   it.each([null, '', '   '])(
     'refuses a credential parent with missing brand %j before querying a brand',
     async (brandId) => {

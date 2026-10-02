@@ -44,6 +44,7 @@ import {
   DEDICATED_BUDGETS,
   DELEGATED_API_FILES,
   databaseUrl,
+  datasetChildEnvironment,
   dedicatedChildEnvironment,
   ENVELOPE_LIMIT,
   encryptEvidence,
@@ -57,6 +58,8 @@ import {
   learningCiIdentity,
   learningRedisRunId,
   loadState,
+  PG_TITLES,
+  PUBLISHER_CONTRACTS,
   parseArguments,
   parseDatasetRecords,
   parseProtocolTotals,
@@ -85,6 +88,7 @@ import {
   superviseVisualCase,
   superviseVisualCases,
   VISUAL_CASES,
+  VISUAL_LIBRARY_CONTRACT,
   VISUAL_LIBRARY_LIMITS,
   VISUAL_RENDERLESS_TITLES,
   validateBrandOwnerContract,
@@ -196,8 +200,8 @@ function datasetRecord(kind, size, run, diagnostic = false) {
     decisionLockBatches: 1,
     maxBindParameters: 100,
     selectedRows: size + (kind === 'mixed' ? 1 : 0),
-    graphNodesMaxPass: kind === 'owned' ? 0 : 4 * size + 21,
-    graphEdgesMaxPass: kind === 'owned' ? 0 : 6 * size + 200,
+    graphNodesMaxPass: kind === 'owned' ? 0 : 7 * size + 36,
+    graphEdgesMaxPass: kind === 'owned' ? 0 : 12 * size + 210,
   };
 }
 const matrix = () =>
@@ -394,7 +398,7 @@ test('requires actual successful original exit, exact cases, and only permitted 
   );
 });
 
-test('dataset diagnostic cannot satisfy final matrix and matrix coverage is exact', () => {
+test('dataset diagnostic cannot satisfy weekly matrix and matrix coverage is exact', () => {
   const diagnostic = [
     datasetRecord('consented', 10000, 1, true),
     datasetRecord('consented', 100000, 1, true),
@@ -418,6 +422,72 @@ test('dataset diagnostic cannot satisfy final matrix and matrix coverage is exac
       `${lines(matrix())}\ndatasetDiagnostic malformed`,
       'matrix',
     ),
+  );
+});
+
+test('deployment requires exact 10k smoke evidence and never accepts the weekly matrix', () => {
+  const smoke = ['owned', 'consented', 'mixed'].map((kind) => ({
+    ...datasetRecord(kind, 10000, 1),
+    datasetBenchmark: false,
+    datasetSmoke: true,
+    samplePurpose: 'deployment-smoke',
+  }));
+  assert.equal(parseDatasetRecords(lines(smoke), 'smoke').length, 3);
+  assert.throws(() => parseDatasetRecords(lines(matrix()), 'smoke'));
+  assert.throws(() => parseDatasetRecords(lines(smoke), 'matrix'));
+  assert.throws(() => parseDatasetRecords(lines(smoke.slice(1)), 'smoke'));
+  for (const field of ['size', 'run', 'samplePurpose', 'datasetSmoke']) {
+    const wrong = structuredClone(smoke);
+    wrong[1][field] = {
+      size: 100000,
+      run: 0,
+      samplePurpose: 'matrix-measurement',
+      datasetSmoke: false,
+    }[field];
+    assert.throws(() => parseDatasetRecords(lines(wrong), 'smoke'));
+  }
+  const duplicated = structuredClone(smoke);
+  duplicated[1] = duplicated[0];
+  assert.throws(() => parseDatasetRecords(lines(duplicated), 'smoke'));
+  assert.throws(() =>
+    parseDatasetRecords(
+      `${lines(smoke)}\n{"datasetSmoke":true,broken`,
+      'smoke',
+    ),
+  );
+  const obsoleteGraph = structuredClone(smoke);
+  obsoleteGraph[1].graphNodesMaxPass = 4 * 10000 + 21;
+  obsoleteGraph[1].graphEdgesMaxPass = 6 * 10000 + 200;
+  assert.throws(() => parseDatasetRecords(lines(obsoleteGraph), 'smoke'));
+  const tooSlow = structuredClone(smoke);
+  tooSlow[1].elapsedMs = 60001;
+  assert.throws(() => parseDatasetRecords(lines(tooSlow), 'smoke'));
+});
+
+test('100k scale workflow is weekly/manual and separate from deployment acceptance', async () => {
+  const workflow = await readFile(
+    new URL('../../.github/workflows/dataset-scale.yml', import.meta.url),
+    'utf8',
+  );
+  assert.match(workflow, /schedule:\s*- cron: '17 3 \* \* 0'/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.doesNotMatch(workflow, /workflow_call:|workflow_run:|push:/);
+  assert.match(workflow, /timeout-minutes: 40/);
+  assert.match(workflow, /--group dataset-scale/);
+  assert.match(workflow, /node "\$CONTROL_RUNNER" dataset-scale/);
+  assert.match(
+    workflow,
+    /CANDIDATE_SHA: \$\{\{ inputs.candidate_sha \|\| github.sha \}\}/,
+  );
+  assert.match(workflow, /if-no-files-found: error/);
+  const controller = await readFile(CLI_PATH, 'utf8');
+  assert.match(
+    controller,
+    /final: \[\s*'learning-runtime',\s*'dataset-correctness',\s*'dataset-typecheck',\s*'dataset-smoke'/,
+  );
+  assert.match(
+    controller,
+    /'dataset-scale': \[\s*'dataset-correctness',\s*'dataset-typecheck',\s*'dataset-matrix'/,
   );
 });
 
@@ -931,6 +1001,8 @@ test('dataset marker-bearing extra records never disappear from coverage validat
     { datasetBenchmark: 'true' },
     { datasetDiagnostic: false },
     { datasetDiagnostic: 1 },
+    { datasetSmoke: false },
+    { datasetSmoke: 'true' },
   ])
     assert.throws(() =>
       parseDatasetRecords(
@@ -1059,6 +1131,8 @@ for (const relative of [
   });
 const QUALIFIED_GROUPS = [
   'dataset-diagnostic',
+  'dataset-smoke',
+  'dataset-scale',
   'final',
   'agent-production',
   'brand-acceptance',
@@ -1081,7 +1155,7 @@ async function persistFixtureIdentity(value, savedDirectory = value.state) {
     { mode: 0o600 },
   );
 }
-test('source qualification is exactly the six prepared fixed groups', async () => {
+test('source qualification is exactly the prepared fixed groups', async () => {
   const source = await readFile(CLI_PATH, 'utf8');
   const declaration = source.match(
     /const QUALIFIED_CLI_GROUPS = new Set\(\[([\s\S]*?)\]\)/,
@@ -1154,7 +1228,9 @@ for (const group of QUALIFIED_GROUPS) {
         {
           ...options,
           group,
-          ...(group === 'dataset-diagnostic'
+          ...(['dataset-diagnostic', 'dataset-smoke', 'dataset-scale'].includes(
+            group,
+          )
             ? { 'control-sha': CONTROL }
             : { 'candidate-sha': SHA }),
         },
@@ -2304,6 +2380,15 @@ test('actual scenario source verifier rejects missing, changed and unsafe retain
     (await verifyVisualScenarioSources(value, evidence, sources))[0].sha256,
     sources[0].sourceHash,
   );
+  await chmod(file, 0o644);
+  await assert.rejects(verifyVisualScenarioSources(value, evidence, sources), {
+    code: 'UNSAFE_EVIDENCE_FILE',
+  });
+  await chmod(file, 0o600);
+  assert.equal(
+    (await verifyVisualScenarioSources(value, evidence, sources))[0].sha256,
+    sources[0].sourceHash,
+  );
   await writeFile(file, 'changed source');
   await assert.rejects(verifyVisualScenarioSources(value, evidence, sources));
   await assert.rejects(
@@ -2314,6 +2399,36 @@ test('actual scenario source verifier rejects missing, changed and unsafe retain
   await rm(file);
   await symlink(path.join(value.state, 'identity.json'), file);
   await assert.rejects(verifyVisualScenarioSources(value, evidence, sources));
+});
+test('connected Library requires all seven exact passed titles and clean child success', () => {
+  assert.equal(VISUAL_LIBRARY_CONTRACT.count, 7);
+  assert.equal(VISUAL_LIBRARY_CONTRACT.titles.length, 7);
+  const rows = VISUAL_LIBRARY_CONTRACT.titles.map((title) => assertion(title));
+  const validate = (values, result = child, success = true) =>
+    validateReport(
+      {
+        ...report(values, `/fixture/${VISUAL_LIBRARY_CONTRACT.file}`),
+        success,
+      },
+      [VISUAL_LIBRARY_CONTRACT],
+      result,
+    );
+  assert.equal(validate(rows)[0].passedTitles.length, 7);
+  for (const invalid of [
+    rows.slice(0, 5),
+    rows.slice(0, 6),
+    [...rows, assertion('unexpected eighth case')],
+    [...rows.slice(0, 6), rows[0]],
+    [...rows.slice(0, 6), assertion('unknown seventh case')],
+    [...rows.slice(0, 6), assertion(rows[6].fullName, 'skipped')],
+    [...rows.slice(0, 6), assertion(rows[6].fullName, 'pending')],
+    [...rows.slice(0, 6), assertion(rows[6].fullName, 'failed')],
+  ])
+    assert.throws(() => validate(invalid));
+  assert.throws(() => validate(rows, { ...child, exitCode: 1 }));
+  assert.throws(() => validate(rows, { ...child, signal: 'SIGTERM' }));
+  assert.throws(() => validate(rows, { ...child, timedOut: true }));
+  assert.throws(() => validate(rows, child, false));
 });
 test('Library supervision retains 120s work plus 60s total cleanup inside unchanged 180s', async (t) => {
   assert.equal(VISUAL_LIBRARY_LIMITS.work, 120000);
@@ -2745,7 +2860,7 @@ test('prepared owner revisions retain only the exact approved source hashes', ()
   );
   assert.equal(
     AGENT_PRODUCTION_FILES[0].sha256,
-    'b60d8b353381924cd5732ce9186742b035c04650df96174767128ed43c4c4618',
+    '12571f679240c51920554aa0cb8ee50c4f503784de1560b99eafeb6ce4e85fbd',
   );
   assert.equal(
     AGENT_PRODUCTION_FILES[1].sha256,
@@ -2805,7 +2920,7 @@ test('migration diagnostics helper is an exact frozen dependency for learning an
     {
       path: 'apps/server/api/test/helpers/controller-owned-migration-database.ts',
       sha256:
-        '0ddb93b85b7e1fa9586e5c079f77a153aa8e19808f756f9db9b45b2ece2a3ddb',
+        '0f69ff1cb157b97265f44dc5ee73c1d8fe45574ac03b979d90e2defe7ec24aa8',
     },
   ]);
   assert.deepEqual(
@@ -4710,7 +4825,7 @@ async function finalQualifiedFixture() {
     'learning-runtime',
     'dataset-correctness',
     'dataset-typecheck',
-    'dataset-matrix',
+    'dataset-smoke',
     'brand-preparation',
     'brand-migration',
     'brand-units',
@@ -5833,8 +5948,16 @@ test('dataset diagnostic resolves setup action from the control revision', async
     .split('- name: Setup Bun environment')[1]
     ?.split('\n      - name:')[0];
   assert.ok(setup);
-  assert.match(setup, /uses: \$\/\.github\/actions\/setup-bun-env/u);
-  assert.doesNotMatch(setup, /uses: \.\//u);
+  assert.match(setup, /uses: \.\/\.control-actions\/setup-bun-env/u);
+  assert.match(
+    workflow,
+    /cp -R \.github\/actions\/setup-bun-env "\$RUNNER_TEMP\/setup-bun-env-control"/u,
+  );
+  assert.match(workflow, /test ! -e \.control-actions/u);
+  assert.match(
+    workflow,
+    /cp -R "\$RUNNER_TEMP\/setup-bun-env-control" \.control-actions\/setup-bun-env/u,
+  );
   assert.ok(
     workflow.indexOf('- name: Checkout exact dataset candidate') <
       workflow.indexOf('- name: Setup Bun environment'),
@@ -5954,7 +6077,7 @@ test('actual execution returns its persisted failure outcome after an expired wo
 test('learning fixture inventory freezes canonical persisted target execution state source', () => {
   assert.equal(
     LEARNING_SOURCE_CONTRACT.sourceInputs[0].sha256,
-    '9e3ca4943f5f86f6dd1c0a80369e10b33fcbf4c0f48dd498c1f0dcb540de7d10',
+    'ba2ac354c72e2d34ecea4c8b7c1552c027100198d764875d8c0fd55379f87754',
   );
 });
 
@@ -6145,3 +6268,94 @@ test('private dual reporters retain a real beforeAll error and cannot qualify it
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('dataset correctness requires all ten ordinary publication and graph cases', () => {
+  const url = 'postgresql://fixture@127.0.0.1:5432/genfeed_dataset_5781_test';
+  assert.deepEqual(datasetChildEnvironment(url), {
+    LEARNING_DATASET_TEST_DATABASE_URL: url,
+    LEARNING_DATASET_PROFILE: '',
+    LEARNING_DATASET_BENCHMARK: '',
+    LEARNING_DATASET_SMOKE: '',
+    LEARNING_DATASET_SEED_DIAGNOSTICS: '1',
+  });
+  assert.equal(PG_TITLES.length, 10);
+  const contract = {
+    file: 'src/collections/content-learning/services/learning-dataset.postgres.spec.ts',
+    count: 10,
+    titles: PG_TITLES,
+  };
+  const positive = report(
+    PG_TITLES.map((title) => assertion(title)),
+    `/fixture/${contract.file}`,
+  );
+  assert.equal(validateReport(positive, [contract], child)[0].passed, 10);
+  for (const kind of ['missing', 'duplicate', 'unknown', 'pending']) {
+    const negative = structuredClone(positive);
+    if (kind === 'missing') negative.testResults[0].assertionResults.pop();
+    if (kind === 'duplicate')
+      negative.testResults[0].assertionResults.push(
+        negative.testResults[0].assertionResults[0],
+      );
+    if (kind === 'unknown')
+      negative.testResults[0].assertionResults.push(
+        assertion('unknown publication case'),
+      );
+    if (kind === 'pending')
+      negative.testResults[0].assertionResults[0].status = 'pending';
+    assert.throws(() => validateReport(negative, [contract], child));
+  }
+});
+
+test('publisher requires both independent lock rows in addition to overlap and recovery', () => {
+  const contract = PUBLISHER_CONTRACTS[0];
+  assert.equal(contract.titles.length, 4);
+  const positive = report(
+    contract.titles.map((title) => assertion(title)),
+    `/fixture/${contract.file}`,
+  );
+  assert.equal(validateReport(positive, [contract], child)[0].passed, 4);
+  for (const kind of ['missing', 'duplicate', 'unknown']) {
+    const negative = structuredClone(positive);
+    if (kind === 'missing') negative.testResults[0].assertionResults.pop();
+    if (kind === 'duplicate')
+      negative.testResults[0].assertionResults.push(
+        negative.testResults[0].assertionResults[0],
+      );
+    if (kind === 'unknown')
+      negative.testResults[0].assertionResults.push(
+        assertion('random unbound lock row'),
+      );
+    assert.throws(() => validateReport(negative, [contract], child));
+  }
+});
+
+for (const name of [
+  'genfeed_dataset_5781_test',
+  'genfeed_dataset_5781_matrix_test',
+  'genfeed_dataset_5781_profile_test',
+])
+  test(`dataset invocation owns and independently disposes exact database ${name}`, async () => {
+    const value = finalDatabaseFixture();
+    const url = await createFinalOwnedDatabase(
+      value.identity,
+      name,
+      value.adapters,
+    );
+    assert.equal(new URL(url).pathname, `/${name}`);
+    await cleanupFinalOwnedDatabase(
+      value.identity,
+      value.identity.resources.databases[0],
+      value.adapters,
+      Date.now() + 1000,
+    );
+    assert.equal(value.identity.resources.databases[0].removed, true);
+    const unrelated = finalDatabaseFixture();
+    await assert.rejects(
+      createFinalOwnedDatabase(
+        unrelated.identity,
+        'unrelated_dataset_test',
+        unrelated.adapters,
+      ),
+    );
+    assert.deepEqual(unrelated.calls, []);
+  });

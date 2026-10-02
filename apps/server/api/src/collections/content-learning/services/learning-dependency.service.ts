@@ -553,16 +553,18 @@ export class LearningDependencyService {
     tx: Prisma.TransactionClient,
     visited: Set<string>,
     stack: Set<string>,
+    expectedVersion?: string,
   ): Promise<boolean> {
     const key = JSON.stringify([kind, id, organizationId]);
     if (stack.has(key)) return false;
+    const version = await this.pinned(kind, id, organizationId, tx);
+    if (
+      !version ||
+      (expectedVersion !== undefined && version !== expectedVersion)
+    )
+      return false;
     if (visited.has(key)) return true;
     stack.add(key);
-    const version = await this.pinned(kind, id, organizationId, tx);
-    if (!version) {
-      stack.delete(key);
-      return false;
-    }
     const edges = await tx.contentLearningDependency.findMany({
       where: {
         derivedKind: kind,
@@ -588,14 +590,7 @@ export class LearningDependencyService {
       const sourceOrg = isLearningGlobalDependencyKind(edge.sourceKind)
         ? null
         : edge.sourceOrganizationId;
-      const pinned = await this.pinned(
-        edge.sourceKind,
-        edge.sourceId,
-        sourceOrg,
-        tx,
-      );
       if (
-        pinned !== edge.sourceVersion ||
         !(await this.walk(
           edge.sourceKind,
           edge.sourceId,
@@ -603,6 +598,7 @@ export class LearningDependencyService {
           tx,
           visited,
           stack,
+          edge.sourceVersion,
         ))
       ) {
         stack.delete(key);

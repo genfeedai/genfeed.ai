@@ -1,4 +1,4 @@
-name: Security Scan
+name: Vulnerability Scan (Trivy)
 
 on:
   workflow_dispatch:
@@ -15,7 +15,17 @@ permissions:
   contents: read
 
 jobs:
+  server-image:
+    name: Server Image
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build-server-image.yml
+    secrets:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+
   trivy-container:
+    needs: server-image
     name: Trivy Container Scan
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -28,12 +38,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Build Docker image
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull and verify exact server image
+        env:
+          SERVER_IMAGE_DIGEST: ${{ needs.server-image.outputs.image_digest }}
+          SOURCE_SHA: ${{ github.sha }}
         run: |
-          docker build \
-            -f docker/Dockerfile.server \
-            -t genfeedai/server:scan \
-            .
+          bash scripts/ci/pull-server-image.sh
+          docker tag "ghcr.io/${GITHUB_REPOSITORY,,}/server@$SERVER_IMAGE_DIGEST" genfeedai/server:scan
 
       - name: Run Trivy vulnerability scanner
         # v-prefixed: upstream stopped publishing the bare "0.x.y" tag alias

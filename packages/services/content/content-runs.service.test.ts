@@ -610,3 +610,91 @@ describe('ContentRunsService canonical storyboard drafts', () => {
     ).rejects.toThrow();
   });
 });
+
+describe('character receipt read adapters', () => {
+  const receipt = {
+    operationId: 'f22c0c2f-59fa-41d8-b393-a808f65e0b52',
+    runId: 'run',
+    shotId: 'shot',
+    videoAssetId: 'video',
+    imageAssetIds: ['image'],
+    modelKey: 'higgsfield/genjutsu/motion-transfer/v1.0',
+    acceptedRequestIds: [],
+    association: 'detached',
+    status: 'reconciling',
+    chargedCredits: 0,
+    limitations: ['No audio'],
+  };
+  beforeEach(() => vi.clearAllMocks());
+  it('encodes collection paths, forwards cancellation and never POSTs', async () => {
+    const service = new ContentRunsService('token');
+    const signal = new AbortController().signal;
+    const data = { operations: [receipt], legacyReplacements: [] };
+    mockGet.mockResolvedValueOnce({ data });
+    expect(
+      await service.listStoryboardCharacterReplacements(
+        'brand/a',
+        'run b',
+        'shot?',
+        signal,
+      ),
+    ).toEqual(data);
+    expect(mockGet).toHaveBeenCalledWith(
+      '/brands/brand%2Fa/storyboard-runs/run%20b/shots/shot%3F/character-replacements',
+      { signal },
+    );
+    expect(mockPost).not.toHaveBeenCalled();
+  });
+  it('reads optional provider output without dropping canonical fields', async () => {
+    const service = new ContentRunsService('token');
+    const signal = new AbortController().signal;
+    const data = {
+      ...receipt,
+      requestId: 'real',
+      acceptedRequestIds: ['real', 'second'],
+      status: 'ready',
+      output: {
+        kind: 'provider_url',
+        url: 'https://fixture.invalid/result',
+        retained: false,
+      },
+    };
+    mockGet.mockResolvedValueOnce({ data });
+    expect(
+      await service.getStoryboardCharacterReplacementStatus(
+        'brand',
+        'run',
+        'shot',
+        'operation/a',
+        signal,
+      ),
+    ).toEqual(data);
+    expect(mockGet).toHaveBeenCalledWith(
+      '/brands/brand/storyboard-runs/run/shots/shot/character-replacements/operation%2Fa',
+      { signal },
+    );
+    expect(mockPost).not.toHaveBeenCalled();
+  });
+  it('rejects malformed or private read responses without fallback submission', async () => {
+    const service = new ContentRunsService('token');
+    mockGet.mockResolvedValueOnce({
+      data: {
+        operations: [{ ...receipt, credentialFingerprint: 'private' }],
+        legacyReplacements: [],
+      },
+    });
+    await expect(
+      service.listStoryboardCharacterReplacements('brand', 'run', 'shot'),
+    ).rejects.toThrow();
+    mockGet.mockResolvedValueOnce({ data: { ...receipt, status: 'invented' } });
+    await expect(
+      service.getStoryboardCharacterReplacementStatus(
+        'brand',
+        'run',
+        'shot',
+        receipt.operationId,
+      ),
+    ).rejects.toThrow();
+    expect(mockPost).not.toHaveBeenCalled();
+  });
+});

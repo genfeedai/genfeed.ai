@@ -1,7 +1,11 @@
 import * as dispatchLock from '@api/collections/workflows/services/agent-autopilot-dispatch-lock.util';
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
 import { getActionDefinition } from '@genfeedai/actions';
-import { AgentAutonomyMode, AgentThreadMode } from '@genfeedai/contracts';
+import {
+  AgentAutonomyMode,
+  AgentThreadMode,
+  AgentThreadStatus,
+} from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { compileActionContract } from '@genfeedai/workflows/engine';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -231,7 +235,12 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
       agentThread: {
         findFirst: vi.fn(async () => savedThread),
         create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
-          savedThread = { id: 'thread', isDeleted: false, ...data };
+          savedThread = {
+            id: 'thread',
+            contextVersion: 1,
+            isDeleted: false,
+            ...data,
+          };
           return savedThread;
         }),
       },
@@ -309,8 +318,29 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
       autonomyMode: AgentAutonomyMode.SUPERVISED,
       agentType: 'social',
       threadId: 'thread',
+      expectedContextVersion: 1,
     });
     expect(dispatch.metadata.performanceSnapshot).toEqual(snapshot);
+  });
+  it('uses the persisted revision of an existing scoped strategy thread', async () => {
+    const { service, runner, prisma, row } = setup({ dailyCreditBudget: 20 });
+    prisma.agentThread.findFirst.mockResolvedValue({
+      id: 'existing-thread',
+      contextVersion: 7,
+      organizationId: row.organizationId,
+      brandId: row.brandId,
+      userId: row.userId,
+      isDeleted: false,
+      status: AgentThreadStatus.ACTIVE,
+    });
+    await service.dispatchProactiveStrategy({ item: row });
+    expect(
+      runner.enqueueWorkflow.mock.calls[0][0].inputValues.request,
+    ).toMatchObject({
+      threadId: 'existing-thread',
+      expectedContextVersion: 7,
+    });
+    expect(prisma.agentThread.create).not.toHaveBeenCalled();
   });
   it.each([{ platforms: ['linkedin'] }, { platforms: [] }])(
     'uses canonical column platforms $platforms over legacy config and brand defaults',
@@ -510,12 +540,20 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
       nextRunAt: '2020-01-01T00:00:00Z',
     });
     const inputValues = {
-      request: { content: 'Frozen brief', threadId: 'original-thread' },
+      request: {
+        content: 'Frozen brief',
+        threadId: 'original-thread',
+        expectedContextVersion: 3,
+      },
     };
     const metadata = {
       strategyId: row.id,
       performanceSnapshot: { impressions: 4 },
     };
+    prisma.agentThread.findFirst.mockResolvedValue({
+      id: 'original-thread',
+      contextVersion: 4,
+    });
     prisma.workflowExecution.findFirst.mockResolvedValue({
       id: 'durable-run',
       idempotencyKey: `proactive:${'b'.repeat(64)}`,
@@ -534,6 +572,7 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
     );
     expect(performance.getPerformanceSnapshot).not.toHaveBeenCalled();
     expect(prisma.agentThread.create).not.toHaveBeenCalled();
+    expect(prisma.agentThread.findFirst).not.toHaveBeenCalled();
   });
   it('recovers accepted pending work after cadence advances without rewriting config or rebuilding its brief', async () => {
     const { service, runner, prisma, row, performance, credits, settings } =

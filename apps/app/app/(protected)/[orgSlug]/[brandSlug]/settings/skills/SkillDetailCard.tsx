@@ -15,6 +15,9 @@ import { useTranslations } from 'next-intl';
 
 export default function SkillDetailCard({
   customizing,
+  draftErrors,
+  hasChanges,
+  isForkBlocked,
   onCustomize,
   onSaveSkill,
   onSkillDraftChange,
@@ -24,6 +27,11 @@ export default function SkillDetailCard({
 }: SkillDetailCardProps) {
   const translate = useTranslations('common.settings.skills');
   const fieldIdPrefix = selectedSkill ? `skill-${selectedSkill.id}` : 'skill';
+
+  const isPending = customizing || savingSkill;
+  const canEdit = selectedSkill?.canEdit === true;
+  const errorFor = (field: keyof typeof skillDraft) =>
+    draftErrors.find((error) => error.field === field);
 
   if (!selectedSkill) {
     return (
@@ -71,16 +79,23 @@ export default function SkillDetailCard({
               {translate('detail.definitionDescription')}
             </p>
           </div>
-          {!selectedSkill.organization ? (
+          {selectedSkill.canFork === true ? (
             <Button
-              disabled={customizing}
+              disabled={isPending || isForkBlocked}
               icon={<Sparkles className="size-4" />}
               label={
                 customizing
-                  ? translate('actions.customizing')
-                  : translate('actions.customize')
+                  ? translate('actions.forking')
+                  : translate('actions.fork')
               }
-              onClick={onCustomize}
+              onClick={() => {
+                if (
+                  selectedSkill.canFork === true &&
+                  !isPending &&
+                  !isForkBlocked
+                )
+                  onCustomize();
+              }}
               variant={ButtonVariant.SECONDARY}
             />
           ) : null}
@@ -91,9 +106,15 @@ export default function SkillDetailCard({
             {translate('fields.name')}
           </Label>
           <Input
-            disabled={!selectedSkill.organization}
+            disabled={!canEdit || isPending}
+            aria-invalid={Boolean(errorFor('name'))}
+            aria-describedby={
+              errorFor('name') ? `${fieldIdPrefix}-name-error` : undefined
+            }
             id={`${fieldIdPrefix}-name`}
             onChange={(event) =>
+              canEdit &&
+              !isPending &&
               onSkillDraftChange((current) => ({
                 ...current,
                 name: event.target.value,
@@ -101,6 +122,18 @@ export default function SkillDetailCard({
             }
             value={skillDraft.name}
           />
+          {errorFor('name') ? (
+            <p
+              id={`${fieldIdPrefix}-name-error`}
+              role="alert"
+              className="text-sm text-destructive"
+            >
+              {translate('errors.fieldTooLong', {
+                field: translate('fields.name'),
+                maximum: errorFor('name')?.maximum ?? 0,
+              })}
+            </p>
+          ) : null}
         </div>
 
         <div className="grid gap-2 text-sm">
@@ -109,9 +142,17 @@ export default function SkillDetailCard({
           </Label>
           <Textarea
             className="min-h-24"
-            disabled={!selectedSkill.organization}
+            disabled={!canEdit || isPending}
+            aria-invalid={Boolean(errorFor('description'))}
+            aria-describedby={
+              errorFor('description')
+                ? `${fieldIdPrefix}-description-error`
+                : undefined
+            }
             id={`${fieldIdPrefix}-description`}
             onChange={(event) =>
+              canEdit &&
+              !isPending &&
               onSkillDraftChange((current) => ({
                 ...current,
                 description: event.target.value,
@@ -119,6 +160,18 @@ export default function SkillDetailCard({
             }
             value={skillDraft.description}
           />
+          {errorFor('description') ? (
+            <p
+              id={`${fieldIdPrefix}-description-error`}
+              role="alert"
+              className="text-sm text-destructive"
+            >
+              {translate('errors.fieldTooLong', {
+                field: translate('fields.description'),
+                maximum: errorFor('description')?.maximum ?? 0,
+              })}
+            </p>
+          ) : null}
         </div>
 
         <div className="grid gap-2 text-sm">
@@ -127,9 +180,17 @@ export default function SkillDetailCard({
           </Label>
           <Textarea
             className="min-h-28 font-mono text-sm"
-            disabled={!selectedSkill.organization}
+            disabled={!canEdit || isPending}
+            aria-invalid={Boolean(errorFor('defaultInstructions'))}
+            aria-describedby={
+              errorFor('defaultInstructions')
+                ? `${fieldIdPrefix}-default-instructions-error`
+                : undefined
+            }
             id={`${fieldIdPrefix}-default-instructions`}
             onChange={(event) =>
+              canEdit &&
+              !isPending &&
               onSkillDraftChange((current) => ({
                 ...current,
                 defaultInstructions: event.target.value,
@@ -137,6 +198,18 @@ export default function SkillDetailCard({
             }
             value={skillDraft.defaultInstructions}
           />
+          {errorFor('defaultInstructions') ? (
+            <p
+              id={`${fieldIdPrefix}-default-instructions-error`}
+              role="alert"
+              className="text-sm text-destructive"
+            >
+              {translate('errors.fieldTooLong', {
+                field: translate('fields.defaultInstructions'),
+                maximum: errorFor('defaultInstructions')?.maximum ?? 0,
+              })}
+            </p>
+          ) : null}
         </div>
 
         <Collapsible>
@@ -156,9 +229,17 @@ export default function SkillDetailCard({
               </p>
               <Textarea
                 className="min-h-32 w-full font-mono text-sm"
-                disabled={!selectedSkill.organization}
+                disabled={!canEdit || isPending}
+                aria-invalid={Boolean(errorFor('systemPromptTemplate'))}
+                aria-describedby={
+                  errorFor('systemPromptTemplate')
+                    ? `${fieldIdPrefix}-system-prompt-error`
+                    : undefined
+                }
                 id={`${fieldIdPrefix}-system-prompt`}
                 onChange={(event) =>
+                  canEdit &&
+                  !isPending &&
                   onSkillDraftChange((current) => ({
                     ...current,
                     systemPromptTemplate: event.target.value,
@@ -167,19 +248,39 @@ export default function SkillDetailCard({
                 placeholder={translate('fields.systemPromptPlaceholder')}
                 value={skillDraft.systemPromptTemplate}
               />
+              {errorFor('systemPromptTemplate') ? (
+                <p
+                  id={`${fieldIdPrefix}-system-prompt-error`}
+                  role="alert"
+                  className="text-sm text-destructive"
+                >
+                  {translate('errors.fieldTooLong', {
+                    field: translate('fields.systemPromptTemplate'),
+                    maximum: errorFor('systemPromptTemplate')?.maximum ?? 0,
+                  })}
+                </p>
+              ) : null}
             </div>
           </CollapsibleContent>
         </Collapsible>
 
-        {selectedSkill.organization ? (
+        {canEdit ? (
           <Button
-            disabled={savingSkill}
+            disabled={isPending || !hasChanges || draftErrors.length > 0}
             label={
               savingSkill
                 ? translate('actions.saving')
-                : translate('actions.saveVariant')
+                : translate('actions.saveSkill')
             }
-            onClick={onSaveSkill}
+            onClick={() => {
+              if (
+                canEdit &&
+                !isPending &&
+                hasChanges &&
+                draftErrors.length === 0
+              )
+                onSaveSkill();
+            }}
             variant={ButtonVariant.DEFAULT}
           />
         ) : null}

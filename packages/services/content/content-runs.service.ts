@@ -20,8 +20,12 @@ import type {
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import {
   type ReplaceStoryboardCharacter,
+  type StoryboardCharacterOperationReceipt,
   type StoryboardCharacterReplacement,
+  type StoryboardCharacterReplacements,
+  storyboardCharacterOperationReceiptSchema,
   storyboardCharacterReplacementSchema,
+  storyboardCharacterReplacementsSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
 import type { UpdateStoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type {
@@ -140,6 +144,34 @@ export class ContentRunsService extends HTTPBaseService {
       { signal },
     );
     return storyboardRunCapabilitiesSchema.parse(response.data);
+  }
+
+  async listStoryboardCharacterReplacements(
+    brandId: string,
+    runId: string,
+    shotId: string,
+    signal?: AbortSignal,
+  ): Promise<StoryboardCharacterReplacements> {
+    const response = await this.instance.get<StoryboardCharacterReplacements>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/shots/${encodeURIComponent(shotId)}/character-replacements`,
+      { signal },
+    );
+    return storyboardCharacterReplacementsSchema.parse(response.data);
+  }
+
+  async getStoryboardCharacterReplacementStatus(
+    brandId: string,
+    runId: string,
+    shotId: string,
+    operationId: string,
+    signal?: AbortSignal,
+  ): Promise<StoryboardCharacterOperationReceipt> {
+    const response =
+      await this.instance.get<StoryboardCharacterOperationReceipt>(
+        `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/shots/${encodeURIComponent(shotId)}/character-replacements/${encodeURIComponent(operationId)}`,
+        { signal },
+      );
+    return storyboardCharacterOperationReceiptSchema.parse(response.data);
   }
 
   async replaceStoryboardCharacter(
