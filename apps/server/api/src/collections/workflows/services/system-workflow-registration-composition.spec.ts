@@ -7,6 +7,7 @@ import { PostAnalyticsCollectionStateService } from '@api/analytics/services/pos
 import { BotActivitiesService } from '@api/collections/bot-activities/services/bot-activities.service';
 import { CampaignTargetsService } from '@api/collections/campaign-targets/services/campaign-targets.service';
 import { ContentLearningCoreModule } from '@api/collections/content-learning/content-learning-core.module';
+import { LearningBaselineMaterializationService } from '@api/collections/content-learning/services/learning-baseline-materialization.service';
 import { LearningCheckpointService } from '@api/collections/content-learning/services/learning-checkpoint.service';
 import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
 import { LearningPolicyService } from '@api/collections/content-learning/services/learning-policy.service';
@@ -130,6 +131,7 @@ describe('system workflow registration composition', () => {
         ReplyBotOrchestratorService,
         ...[
           PrismaService,
+          LearningBaselineMaterializationService,
           LearningCheckpointService,
           LearningDependencyService,
           LearningPolicyService,

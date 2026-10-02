@@ -3,6 +3,8 @@ import { AnalyticsSocialCollectionService } from '@api/analytics/services/analyt
 import { AnalyticsTwitterCollectionService } from '@api/analytics/services/analytics-twitter-collection.service';
 import { AnalyticsYouTubeCollectionService } from '@api/analytics/services/analytics-youtube-collection.service';
 import { PostAnalyticsCollectionStateService } from '@api/analytics/services/post-analytics-collection-state.service';
+import { ContentLearningCoreModule } from '@api/collections/content-learning/content-learning-core.module';
+import { LearningCheckpointService } from '@api/collections/content-learning/services/learning-checkpoint.service';
 import { AnalyticsSyncService } from '@api/collections/content-performance/services/analytics-sync.service';
 import { OutliersCoreModule } from '@api/collections/outliers/outliers-core.module';
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
@@ -12,6 +14,7 @@ import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/service
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { WorkersDomainModule } from '@api/workers-domain.module';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
 
@@ -43,12 +46,19 @@ describe('Outlier core dependency injection', () => {
     await module.close();
   });
   it('provides the awaited refresh dependency to direct analytics providers used by workers', async () => {
+    const workflowQueue: Pick<
+      WorkflowExecutionQueueService,
+      'queueSystemWorkflow'
+    > = {
+      queueSystemWorkflow: async () => 'fixture-workflow',
+    };
     const module = await Test.createTestingModule({
-      imports: [OutliersCoreModule],
+      imports: [OutliersCoreModule, ContentLearningCoreModule],
       providers: [
         PostAnalyticsService,
         { provide: PostsService, useValue: {} },
         { provide: LoggerService, useValue: {} },
+        { provide: WorkflowExecutionQueueService, useValue: workflowQueue },
       ],
     })
       .overrideProvider(PrismaService)
@@ -58,6 +68,29 @@ describe('Outlier core dependency injection', () => {
       PostAnalyticsService,
     );
     expect(module.get(OutliersService)).toBeInstanceOf(OutliersService);
+    expect(module.get(LearningCheckpointService)).toBeInstanceOf(
+      LearningCheckpointService,
+    );
     await module.close();
+  });
+  it('imports the real learning checkpoint chain once for direct worker analytics providers', () => {
+    const imports: unknown[] = Reflect.getMetadata(
+      'imports',
+      WorkersDomainModule,
+    );
+    const providers: unknown[] = Reflect.getMetadata(
+      'providers',
+      WorkersDomainModule,
+    );
+    const exports: unknown[] = Reflect.getMetadata(
+      'exports',
+      ContentLearningCoreModule,
+    );
+    expect(
+      imports.filter((entry) => entry === ContentLearningCoreModule),
+    ).toHaveLength(1);
+    expect(providers).toContain(PostAnalyticsService);
+    expect(providers).toContain(WorkflowExecutionQueueService);
+    expect(exports).toContain(LearningCheckpointService);
   });
 });
