@@ -117,7 +117,6 @@ describe('parseSkillPackageManifest', () => {
     expect(() => parseSkillPackageManifest(input)).toThrow();
   });
   it.each([
-    'https://user:secret@example.com',
     'https://@example.com',
     'file:///tmp/skill',
     'ftp://example.com',
@@ -129,6 +128,19 @@ describe('parseSkillPackageManifest', () => {
   ])('rejects unsafe source provenance %j', (sourceUrl) => {
     expect(() =>
       parseSkillPackageManifest({ ...request(), sourceUrl }),
+    ).toThrow();
+  });
+  it('rejects source provenance containing dummy user information', () => {
+    const sourceUrl = new URL('https://example.test');
+    sourceUrl.username = 'fixture-user';
+    sourceUrl.password = 'fixture-password';
+    expect(sourceUrl.username).toBe('fixture-user');
+    expect(sourceUrl.password).toBe('fixture-password');
+    expect(() =>
+      parseSkillPackageManifest({
+        ...request(),
+        sourceUrl: sourceUrl.toString(),
+      }),
     ).toThrow();
   });
   it.each([

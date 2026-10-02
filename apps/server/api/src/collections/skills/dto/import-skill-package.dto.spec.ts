@@ -74,11 +74,20 @@ describe('ImportSkillPackageDto through the actual ValidationPipe', () => {
         })),
       },
     },
-    { ...request(), sourceUrl: 'https://user:secret@example.com' },
     { ...request(), sourceUrl: 'file:///etc' },
     { ...request(), expectedPackageChecksum: 'g'.repeat(64) },
   ])('rejects malformed, mixed and unknown fields with 400', async (input) => {
     await expect(transform(input)).rejects.toMatchObject({ status: 400 });
+  });
+  it('rejects source provenance containing dummy user information with 400', async () => {
+    const sourceUrl = new URL('https://example.test');
+    sourceUrl.username = 'fixture-user';
+    sourceUrl.password = 'fixture-password';
+    expect(sourceUrl.username).toBe('fixture-user');
+    expect(sourceUrl.password).toBe('fixture-password');
+    await expect(
+      transform({ ...request(), sourceUrl: sourceUrl.toString() }),
+    ).rejects.toMatchObject({ status: 400 });
   });
   it('rejects raw prototype-related unknown keys before class-transformer can drop them', async () => {
     const top = JSON.parse(
