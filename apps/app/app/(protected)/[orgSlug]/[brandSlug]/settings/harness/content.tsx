@@ -16,6 +16,7 @@ import Loading from '@ui/loading/default/Loading';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Sparkles } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -120,6 +121,7 @@ function createDraft(
 
 export default function BrandSettingsHarnessPage() {
   const translate = useTranslations('pages.brandHarnessSettings');
+  const receiptTranslate = useTranslations('pages.generationReceipts');
   const { brand, brandId, hasBrandId, isLoading } = useBrandDetail();
   const { href } = useOrgUrl();
   const getHarnessProfilesService = useAuthedService((token: string) =>
@@ -310,6 +312,12 @@ export default function BrandSettingsHarnessPage() {
       label={translate('title')}
       right={
         <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={href('/settings/generation-receipts')}
+            className="text-sm"
+          >
+            {receiptTranslate('open')}
+          </Link>
           <Badge variant="outline">
             {translate('badges.scopePrefix', { scope: draft.scope ?? 'brand' })}
           </Badge>
