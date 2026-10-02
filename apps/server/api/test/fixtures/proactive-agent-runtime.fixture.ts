@@ -371,6 +371,7 @@ export class ProactiveAgentRuntimeFixture {
       {} as never,
       this.cache,
       this.logger as never,
+      { get: (key) => (key === 'DATABASE_URL' ? this.databaseUrl : undefined) },
     );
     this.schedules = new PlatformWorkflowSchedulesService(
       this.prisma as never,
@@ -712,6 +713,7 @@ export class ProactiveAgentRuntimeFixture {
       {} as never,
       this.cache,
       this.logger as never,
+      { get: (key) => (key === 'DATABASE_URL' ? this.databaseUrl : undefined) },
     );
     return this.autopilot;
   }

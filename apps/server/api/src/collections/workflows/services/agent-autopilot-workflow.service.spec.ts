@@ -1,9 +1,21 @@
+import * as dispatchLock from '@api/collections/workflows/services/agent-autopilot-dispatch-lock.util';
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
 import { getActionDefinition } from '@genfeedai/actions';
 import { AgentAutonomyMode, AgentThreadMode } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { compileActionContract } from '@genfeedai/workflows/engine';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+beforeEach(() => {
+  vi.spyOn(dispatchLock, 'withProactiveDispatchLock').mockImplementation(
+    async (_config, _organizationId, _strategyId, run) =>
+      run({
+        assertOwned: () => {},
+        verifyOwned: async () => {},
+      }),
+  );
+});
+afterEach(() => vi.restoreAllMocks());
 
 const PROVENANCE = {
   nodeId: 'discover-credit-resets',
@@ -76,6 +88,7 @@ describe('AgentAutopilotWorkflowService atomic actions', () => {
       {} as never,
       {} as never,
       {} as never,
+      { get: () => undefined },
     );
 
     const discovery = await service.discoverCreditResetStrategies('org-1', {
@@ -133,6 +146,7 @@ describe('AgentAutopilotWorkflowService.resetCreditWindow', () => {
       {} as never,
       {} as never,
       {} as never,
+      { get: () => undefined },
     );
     const result = await service.resetCreditWindow('org-1', {
       item: {
@@ -239,6 +253,7 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
       {} as never,
       {} as never,
       { error: vi.fn() } as never,
+      { get: () => undefined },
     );
     return {
       service,
@@ -415,11 +430,55 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
       expect(update.data.config).not.toHaveProperty('consecutiveFailures');
     }
   });
+  it('does not enqueue, create a thread, or account a failure when ownership is lost during preparation', async () => {
+    const { service, runner, prisma, row, performance, snapshot } = setup({
+      dailyCreditBudget: 20,
+    });
+    let lost = false;
+    const assertOwned = () => {
+      if (lost) throw new dispatchLock.ProactiveDispatchOwnershipError();
+    };
+    vi.mocked(dispatchLock.withProactiveDispatchLock).mockImplementationOnce(
+      async (_config, _organizationId, _strategyId, run) =>
+        run({
+          assertOwned,
+          verifyOwned: async () => assertOwned(),
+        }),
+    );
+    performance.getPerformanceSnapshot.mockImplementationOnce(async () => {
+      lost = true;
+      return snapshot;
+    });
+    await expect(
+      service.dispatchProactiveStrategy({ item: row }),
+    ).rejects.toBeInstanceOf(dispatchLock.ProactiveDispatchOwnershipError);
+    expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+    expect(prisma.agentThread.create).not.toHaveBeenCalled();
+    expect(prisma.agentStrategy.update).not.toHaveBeenCalled();
+  });
+
+  it('rechecks current manual disable before enqueue after slow preparation', async () => {
+    const { service, runner, prisma, row, performance, snapshot } = setup({
+      dailyCreditBudget: 20,
+    });
+    performance.getPerformanceSnapshot.mockImplementationOnce(async () => {
+      row.config.requiresManualReactivation = true;
+      return snapshot;
+    });
+    expect(await service.dispatchProactiveStrategy({ item: row })).toEqual({
+      status: 'skipped',
+    });
+    expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+    expect(prisma.agentStrategy.update).not.toHaveBeenCalled();
+  });
+
   it('skips lock contenders before inspecting or enqueueing paid work', async () => {
     const { service, runner, prisma, row, performance } = setup({
       dailyCreditBudget: 20,
     });
-    prisma.$queryRaw.mockResolvedValueOnce([{ acquired: false }]);
+    vi.mocked(dispatchLock.withProactiveDispatchLock).mockResolvedValueOnce(
+      null,
+    );
     expect(await service.dispatchProactiveStrategy({ item: row })).toEqual({
       status: 'skipped',
     });
@@ -677,6 +736,7 @@ describe('AgentAutopilotWorkflowService.discoverProactiveStrategies', () => {
       {} as never,
       {} as never,
       {} as never,
+      { get: () => undefined },
     );
 
     const result = await service.discoverProactiveStrategies('org-1', {
@@ -727,6 +787,7 @@ describe('AgentAutopilotWorkflowService.discoverProactiveStrategies', () => {
       {} as never,
       {} as never,
       {} as never,
+      { get: () => undefined },
     );
 
     const result = await service.discoverProactiveStrategies('org-1', {
@@ -769,6 +830,7 @@ describe('AgentAutopilotWorkflowService.discoverProactiveStrategies', () => {
       {} as never,
       {} as never,
       {} as never,
+      { get: () => undefined },
     );
 
     const result = await service.discoverProactiveStrategies('org-1', {
@@ -779,5 +841,167 @@ describe('AgentAutopilotWorkflowService.discoverProactiveStrategies', () => {
     // are used, and no second page is fetched to find more.
     expect(findMany).toHaveBeenCalledTimes(1);
     expect(result.items).toHaveLength(20);
+  });
+});
+
+function dispatchConnectionFixture() {
+  const listeners = new Set<(cause?: unknown) => void>();
+  const client = {
+    connect: vi.fn(async () => {}),
+    acquire: vi.fn(async (_key: string) => ({ acquired: true, pid: 41 })),
+    verify: vi.fn(async (_key: string, _pid: number) => true),
+    release: vi.fn(async (_key: string) => true),
+    end: vi.fn(async () => {}),
+    onFailure: (listener: (cause?: unknown) => void) => {
+      listeners.add(listener);
+    },
+    offFailure: (listener: (cause?: unknown) => void) => {
+      listeners.delete(listener);
+    },
+  } satisfies dispatchLock.ProactiveDispatchConnection;
+  return {
+    client,
+    lose: () => {
+      for (const listener of listeners) listener(new Error('connection ended'));
+    },
+    listeners,
+  };
+}
+
+function dispatchBarrier() {
+  let release: () => void = () => {
+    throw new Error('Barrier not initialized');
+  };
+  const promise = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  return { promise, release };
+}
+
+describe('proactive dispatch pinned connection lifetime', () => {
+  it('holds ownership until the callback settles and verifies the original backend before release', async () => {
+    const { client, listeners } = dispatchConnectionFixture();
+    const entered = dispatchBarrier();
+    const resume = dispatchBarrier();
+    const result = dispatchLock.withPinnedProactiveDispatchClient(
+      client,
+      'owned-key',
+      async (ownership) => {
+        await ownership.verifyOwned();
+        entered.release();
+        await resume.promise;
+        return 'durable-id';
+      },
+    );
+    await entered.promise;
+    expect(client.release).not.toHaveBeenCalled();
+    expect(client.end).not.toHaveBeenCalled();
+    resume.release();
+    await expect(result).resolves.toBe('durable-id');
+    expect(client.acquire).toHaveBeenCalledExactlyOnceWith('owned-key');
+    expect(client.verify).toHaveBeenCalledWith('owned-key', 41);
+    expect(client.release).toHaveBeenCalledExactlyOnceWith('owned-key');
+    expect(client.end).toHaveBeenCalledTimes(1);
+    expect(listeners.size).toBe(0);
+  });
+
+  it('closes a contended connection without running or unlocking another owner', async () => {
+    const { client } = dispatchConnectionFixture();
+    client.acquire.mockResolvedValueOnce({ acquired: false, pid: 41 });
+    const run = vi.fn(async () => 'unreachable');
+    await expect(
+      dispatchLock.withPinnedProactiveDispatchClient(client, 'key', run),
+    ).resolves.toBeNull();
+    expect(run).not.toHaveBeenCalled();
+    expect(client.release).not.toHaveBeenCalled();
+    expect(client.end).toHaveBeenCalledTimes(1);
+  });
+
+  it('makes loss irreversible while paused and never unlocks before the callback settles', async () => {
+    const { client, lose } = dispatchConnectionFixture();
+    const entered = dispatchBarrier();
+    const resume = dispatchBarrier();
+    const result = dispatchLock.withPinnedProactiveDispatchClient(
+      client,
+      'key',
+      async (ownership) => {
+        entered.release();
+        await resume.promise;
+        ownership.assertOwned();
+      },
+    );
+    const rejection = expect(result).rejects.toBeInstanceOf(
+      dispatchLock.ProactiveDispatchOwnershipError,
+    );
+    await entered.promise;
+    lose();
+    expect(client.end).not.toHaveBeenCalled();
+    resume.release();
+    await rejection;
+    expect(client.release).not.toHaveBeenCalled();
+    expect(client.acquire).toHaveBeenCalledTimes(1);
+    expect(client.end).toHaveBeenCalledTimes(1);
+  });
+
+  it('propagates a missing granted lock rather than reporting callback success', async () => {
+    const { client } = dispatchConnectionFixture();
+    client.verify.mockResolvedValueOnce(false);
+    await expect(
+      dispatchLock.withPinnedProactiveDispatchClient(
+        client,
+        'key',
+        async () => 'id',
+      ),
+    ).rejects.toBeInstanceOf(dispatchLock.ProactiveDispatchOwnershipError);
+    expect(client.release).not.toHaveBeenCalled();
+    expect(client.end).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['connect', 'acquire', 'verify', 'release', 'end'] as const)(
+    'propagates %s failure and closes without reconnecting',
+    async (phase) => {
+      const { client } = dispatchConnectionFixture();
+      const failure = new Error(`${phase} failed`);
+      client[phase].mockRejectedValueOnce(failure);
+      await expect(
+        dispatchLock.withPinnedProactiveDispatchClient(
+          client,
+          'key',
+          async () => 'id',
+        ),
+      ).rejects.toThrow();
+      expect(client.connect).toHaveBeenCalledTimes(1);
+      expect(client.end).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('preserves both callback and cleanup failure evidence', async () => {
+    const { client } = dispatchConnectionFixture();
+    const bodyError = new Error('body failed');
+    const closeError = new Error('close failed');
+    client.end.mockRejectedValueOnce(closeError);
+    await expect(
+      dispatchLock.withPinnedProactiveDispatchClient(
+        client,
+        'key',
+        async () => {
+          throw bodyError;
+        },
+      ),
+    ).rejects.toMatchObject({ errors: [bodyError, closeError] });
+    expect(client.release).toHaveBeenCalledExactlyOnceWith('key');
+  });
+
+  it('rejects a false unlock result instead of accepting cleanup', async () => {
+    const { client } = dispatchConnectionFixture();
+    client.release.mockResolvedValueOnce(false);
+    await expect(
+      dispatchLock.withPinnedProactiveDispatchClient(
+        client,
+        'key',
+        async () => 'id',
+      ),
+    ).rejects.toBeInstanceOf(dispatchLock.ProactiveDispatchOwnershipError);
+    expect(client.end).toHaveBeenCalledTimes(1);
   });
 });

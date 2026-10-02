@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { AgentGoalsService } from '@api/collections/agent-goals/services/agent-goals.service';
 import { lockAgentStrategy } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import type { AgentStrategyPerformanceSnapshot } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.types';
@@ -10,11 +9,16 @@ import {
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import {
+  executeDueProactiveStrategy,
+  type ProactiveDispatchDatabaseConfig,
+  type ProactiveDispatchOwnership,
+  withProactiveDispatchLock,
+} from '@api/collections/workflows/services/agent-autopilot-dispatch-lock.util';
+import {
   getNextDailyReset,
   getNextWeeklyReset,
 } from '@api/collections/workflows/services/agent-autopilot-time.util';
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
-import { PROACTIVE_AGENT_TURN_SOURCE } from '@api/collections/workflows/system-workflow-definition';
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { SYSTEM_WORKFLOW_RUNNER } from '@api/collections/workflows/workflows.tokens';
 import { scopedWhere } from '@api/index';
@@ -27,12 +31,12 @@ import {
   AgentThreadStatus,
   normalizeAgentAutonomyMode,
 } from '@genfeedai/contracts';
-import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import {
   type Prisma,
   WorkflowExecutionStatus as PrismaWorkflowExecutionStatus,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -45,7 +49,7 @@ type ContentMixConfig = {
   videoPercent: number;
 };
 
-type AgentStrategyConfig = {
+export type AgentStrategyConfig = {
   agentType?: string;
   autonomyMode?: AgentAutonomyMode;
   contentMix?: ContentMixConfig;
@@ -73,7 +77,7 @@ type AgentStrategyConfig = {
   weeklyResetAt?: string;
 };
 
-type AgentStrategySnapshot = {
+export type AgentStrategySnapshot = {
   brandId?: string;
   config: AgentStrategyConfig;
   goalId?: string;
@@ -138,6 +142,8 @@ export class AgentAutopilotWorkflowService {
     private readonly agentGoalsService: AgentGoalsService,
     private readonly cacheService: CacheService,
     private readonly logger: LoggerService,
+    @Inject(ConfigService)
+    private readonly dispatchDatabaseConfig: ProactiveDispatchDatabaseConfig,
   ) {}
 
   async beginProactiveStrategies(
@@ -341,155 +347,39 @@ export class AgentAutopilotWorkflowService {
     strategy: AgentStrategySnapshot,
     workflowHandoff?: AgentWorkflowHandoffContext,
   ): Promise<string | null> {
-    // Keep dispatch serialization separate from the strategy-config lock:
-    // queue failures can complete/account for a run and acquire that lock.
-    return this.prisma.$transaction(
-      async (transaction) => {
-        const lockKey = `agent-proactive-dispatch:${strategy.organizationId}:${strategy.id}`;
-        const locks = await transaction.$queryRaw<Array<{ acquired: boolean }>>`
-        SELECT pg_try_advisory_xact_lock(hashtextextended(${lockKey}, 0)) AS acquired
-      `;
-        if (locks[0]?.acquired !== true) return null;
-        return this.executeDueStrategy(strategy, workflowHandoff);
-      },
-      { maxWait: 5000, timeout: 30000 },
-    );
-  }
-
-  private async executeDueStrategy(
-    strategy: AgentStrategySnapshot,
-    workflowHandoff?: AgentWorkflowHandoffContext,
-  ): Promise<string | null> {
-    const organizationId = strategy.organizationId;
-    const strategyId = strategy.id;
-    const current = await this.prisma.agentStrategy.findFirst({
-      where: scopedWhere(organizationId, { id: strategyId, isActive: true }),
-    });
-    if (!current) return null;
-    strategy = this.readStrategySnapshot(current);
-    const userId = strategy.userId;
-    const config = strategy.config;
-    const now = new Date();
-    if (!isAgentStrategyDue({ ...config, nextRunAt: undefined }, now))
-      return null;
-    let recovery = await this.prisma.workflowExecution.findFirst({
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-      where: scopedWhere(
-        organizationId,
-        this.pendingDispatchWhere(organizationId, [strategyId]),
-      ),
-    });
-    if (recovery?.status !== PrismaWorkflowExecutionStatus.PENDING)
-      recovery = null;
-    if (!recovery && !isAgentStrategyDue(strategy.config, now)) return null;
-    const remainingBudget = recovery
-      ? null
-      : await this.resolveDispatchBudget(strategy, config);
-    if (!recovery && remainingBudget === null) return null;
-    const dueAt = this.parseDate(config.nextRunAt)?.toISOString() ?? 'initial';
-    const currentDispatchId = `proactive:${createHash('sha256')
-      .update(JSON.stringify([organizationId, strategyId, dueAt]))
-      .digest('hex')}`;
-    const dispatchId = recovery?.idempotencyKey ?? currentDispatchId;
-
-    try {
-      const existing =
-        recovery ??
-        (await this.prisma.workflowExecution.findFirst({
-          where: scopedWhere(organizationId, { idempotencyKey: dispatchId }),
-        }));
-      if (
-        existing &&
-        existing.status !== PrismaWorkflowExecutionStatus.PENDING
-      ) {
-        if (dispatchId === currentDispatchId)
-          await this.scheduleNextRun(strategyId, config.runFrequency);
-        return existing.id;
-      }
-      if (existing) {
-        const result = this.readRecord(existing.result);
-        await this.workflowRunner.enqueueWorkflow(
+    return withProactiveDispatchLock(
+      this.dispatchDatabaseConfig,
+      strategy.organizationId,
+      strategy.id,
+      (ownership) =>
+        executeDueProactiveStrategy(
           {
-            actionType: 'agent.turn.execute',
-            canonicalId: 'agent.turn.execute',
-            idempotencyKey: dispatchId,
-            inputValues: this.readRecord(result.inputValues),
-            metadata: this.readRecord(result.metadata),
-            organizationId,
-            source: PROACTIVE_AGENT_TURN_SOURCE,
-            userId: existing.userId,
+            prisma: this.prisma,
+            performanceService: this.performanceService,
+            workflowRunner: this.workflowRunner,
+            readStrategySnapshot: (value) => this.readStrategySnapshot(value),
+            readRecord: (value) => this.readRecord(value),
+            parseDate: (value) => this.parseDate(value),
+            pendingDispatchWhere: (org, ids) =>
+              this.pendingDispatchWhere(org, ids),
+            resolveDispatchBudget: (item, config, owner) =>
+              this.resolveDispatchBudget(item, config, owner),
+            buildSyntheticUserMessage: (item, budget, snapshot) =>
+              this.buildSyntheticUserMessage(item, budget, snapshot),
+            resolveStrategyThread: (item, owner) =>
+              this.resolveStrategyThread(item, owner),
+            scheduleNextRun: (id, frequency, retry, owner) =>
+              this.scheduleNextRun(id, frequency, retry, owner),
+            recordStrategyFailure: (item, config, error, id, owner) =>
+              this.recordStrategyFailure(item, config, error, id, owner),
+            buildExecutionMetadata: (item, handoff) =>
+              this.buildExecutionMetadata(item, handoff),
           },
-          { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
-        );
-        if (dispatchId === currentDispatchId)
-          await this.scheduleNextRun(strategyId, config.runFrequency);
-        return existing.id;
-      }
-      if (remainingBudget === null) return null;
-      const performanceSnapshot =
-        await this.performanceService.getPerformanceSnapshot(
-          strategyId,
-          organizationId,
-          'weekly',
-        );
-      const objective = await this.buildSyntheticUserMessage(
-        strategy,
-        remainingBudget,
-        performanceSnapshot,
-      );
-      const thread = await this.resolveStrategyThread(strategy);
-      const dispatchThreadId = thread.id;
-      const { executionId } = await this.workflowRunner.enqueueWorkflow(
-        {
-          actionType: 'agent.turn.execute',
-          canonicalId: 'agent.turn.execute',
-          idempotencyKey: dispatchId,
-          inputValues: {
-            request: {
-              content: objective,
-              source: 'proactive',
-              creditBudget: remainingBudget,
-              strategyId,
-              threadId: dispatchThreadId,
-              ...(config.agentType ? { agentType: config.agentType } : {}),
-              autonomyMode: normalizeAgentAutonomyMode(config.autonomyMode),
-              ...(strategy.brandId ? { brandId: strategy.brandId } : {}),
-              ...(config.model ? { model: config.model } : {}),
-            },
-          },
-          metadata: {
-            ...(this.buildExecutionMetadata(strategy, workflowHandoff) ?? {}),
-            label: `Proactive: ${strategy.label}`,
-            performanceSnapshot,
-            dispatchId,
-            ...(strategy.brandId ? { brandId: strategy.brandId } : {}),
-            source: 'proactive',
-            strategyId,
-            threadId: dispatchThreadId,
-          },
-          organizationId,
-          source: PROACTIVE_AGENT_TURN_SOURCE,
-          userId,
-        },
-        { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
-      );
-
-      if (dispatchId === currentDispatchId)
-        await this.scheduleNextRun(strategyId, config.runFrequency);
-      return executionId;
-    } catch (error) {
-      const durable = await this.prisma.workflowExecution.findFirst({
-        where: scopedWhere(organizationId, { idempotencyKey: dispatchId }),
-        select: { id: true },
-      });
-      if (durable) {
-        if (dispatchId === currentDispatchId)
-          await this.scheduleNextRun(strategyId, config.runFrequency);
-        return durable.id;
-      }
-      await this.recordStrategyFailure(strategy, config, error, dispatchId);
-      return null;
-    }
+          strategy,
+          ownership,
+          workflowHandoff,
+        ),
+    );
   }
 
   private pendingDispatchWhere(
@@ -509,6 +399,7 @@ export class AgentAutopilotWorkflowService {
   private async resolveDispatchBudget(
     strategy: AgentStrategySnapshot,
     config: AgentStrategyConfig,
+    ownership?: ProactiveDispatchOwnership,
   ): Promise<number | null> {
     const organizationId = strategy.organizationId;
     const strategyId = strategy.id;
@@ -517,6 +408,7 @@ export class AgentAutopilotWorkflowService {
         organizationId: organizationId,
       },
     );
+    ownership?.assertOwned();
     const orgAgentDailyCap =
       organizationSettings?.agentPolicy?.creditGovernance
         ?.agentDailyCreditCap ?? null;
@@ -538,13 +430,23 @@ export class AgentAutopilotWorkflowService {
     );
 
     if (dailyCreditsUsed >= effectiveDailyBudget) {
-      await this.scheduleNextRun(strategyId, config.runFrequency);
+      await this.scheduleNextRun(
+        strategyId,
+        config.runFrequency,
+        undefined,
+        ownership,
+      );
       return null;
     }
 
     const creditsUsedThisWeek = config.creditsUsedThisWeek ?? 0;
     if (creditsUsedThisWeek >= weeklyCreditBudget) {
-      await this.scheduleNextRun(strategyId, config.runFrequency);
+      await this.scheduleNextRun(
+        strategyId,
+        config.runFrequency,
+        undefined,
+        ownership,
+      );
       return null;
     }
 
@@ -555,9 +457,15 @@ export class AgentAutopilotWorkflowService {
         strategy.brandId,
       );
 
+      ownership?.assertOwned();
       brandRemainingBudget = brandDailyCap - brandCreditsUsedToday;
       if (brandCreditsUsedToday >= brandDailyCap) {
-        await this.scheduleNextRun(strategyId, config.runFrequency);
+        await this.scheduleNextRun(
+          strategyId,
+          config.runFrequency,
+          undefined,
+          ownership,
+        );
         return null;
       }
     }
@@ -567,8 +475,10 @@ export class AgentAutopilotWorkflowService {
         organizationId,
       );
 
+    ownership?.assertOwned();
     const minCreditThreshold = config.minCreditThreshold ?? 50;
     if (orgBalance < minCreditThreshold) {
+      await ownership?.verifyOwned();
       await this.prisma.agentStrategy.update({
         data: { isActive: false },
         where: scopedWhere(organizationId, { id: strategyId }),
@@ -583,7 +493,12 @@ export class AgentAutopilotWorkflowService {
       orgBalance,
     );
     if (!Number.isFinite(remainingBudget) || remainingBudget <= 0) {
-      await this.scheduleNextRun(strategyId, config.runFrequency);
+      await this.scheduleNextRun(
+        strategyId,
+        config.runFrequency,
+        undefined,
+        ownership,
+      );
       return null;
     }
     return remainingBudget;
@@ -594,9 +509,11 @@ export class AgentAutopilotWorkflowService {
     config: AgentStrategyConfig,
     error: unknown,
     dispatchId?: string,
+    ownership?: ProactiveDispatchOwnership,
   ): Promise<void> {
     await this.prisma.$transaction(async (transaction) => {
       await lockAgentStrategy(transaction, strategy.id);
+      ownership?.assertOwned();
       if (dispatchId) {
         const execution = await transaction.workflowExecution.findFirst({
           where: scopedWhere(strategy.organizationId, {
@@ -604,14 +521,17 @@ export class AgentAutopilotWorkflowService {
           }),
           select: { id: true },
         });
+        ownership?.assertOwned();
         if (execution) return;
       }
       const current = await transaction.agentStrategy.findFirst({
         where: scopedWhere(strategy.organizationId, { id: strategy.id }),
       });
+      ownership?.assertOwned();
       if (!current) return;
       const latest = this.readRecord(current.config) as AgentStrategyConfig;
       const newFailureCount = (latest.consecutiveFailures ?? 0) + 1;
+      await ownership?.verifyOwned();
       await transaction.agentStrategy.update({
         where: scopedWhere(strategy.organizationId, { id: strategy.id }),
         data: {
@@ -633,6 +553,7 @@ export class AgentAutopilotWorkflowService {
       strategy.id,
       config.runFrequency,
       FAILURE_RETRY_MINUTES,
+      ownership,
     );
     this.logger.error(`${this.logContext} strategy execution failed`, {
       error,
@@ -677,9 +598,11 @@ export class AgentAutopilotWorkflowService {
 
   private async resolveStrategyThread(
     strategy: AgentStrategySnapshot,
+    ownership?: ProactiveDispatchOwnership,
   ): Promise<{ id: string }> {
     return this.prisma.$transaction(async (transaction) => {
       await lockAgentStrategy(transaction, strategy.id);
+      ownership?.assertOwned();
       const current = await transaction.agentStrategy.findFirst({
         where: scopedWhere(strategy.organizationId, {
           id: strategy.id,
@@ -688,6 +611,7 @@ export class AgentAutopilotWorkflowService {
           userId: strategy.userId,
         }),
       });
+      ownership?.assertOwned();
       if (!current)
         throw new Error('Agent strategy is no longer active in this scope');
       // Deleted threads stay visible so a persistent identity is reactivated, not replaced.
@@ -700,6 +624,7 @@ export class AgentAutopilotWorkflowService {
           ],
         },
       });
+      ownership?.assertOwned();
       if (thread) {
         if (
           thread.isDeleted ||
@@ -713,6 +638,7 @@ export class AgentAutopilotWorkflowService {
         }
         return thread;
       }
+      await ownership?.verifyOwned();
       return transaction.agentThread.create({
         data: {
           agentStrategyId: strategy.id,
@@ -798,6 +724,7 @@ export class AgentAutopilotWorkflowService {
     strategyId: string,
     frequency: AgentRunFrequency | undefined,
     retryInMinutes?: number,
+    ownership?: ProactiveDispatchOwnership,
   ): Promise<void> {
     const now = new Date();
     let nextRun: Date;
@@ -820,12 +747,15 @@ export class AgentAutopilotWorkflowService {
 
     await this.prisma.$transaction(async (transaction) => {
       await lockAgentStrategy(transaction, strategyId);
+      ownership?.assertOwned();
       // tenant-scope-ignore: internal caller has resolved this opaque id in its tenant; resolve tenant again under the strategy lock
       const record = await transaction.agentStrategy.findFirst({
         where: { id: strategyId, isDeleted: false },
       });
+      ownership?.assertOwned();
       if (!record) return;
       const existingConfig = this.readRecord(record.config);
+      await ownership?.verifyOwned();
       await transaction.agentStrategy.update({
         data: {
           config: toPrismaJson({
