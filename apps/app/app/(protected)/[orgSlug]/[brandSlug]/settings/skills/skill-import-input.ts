@@ -1,38 +1,22 @@
-export type SkillImportInputErrorCode =
-  | 'SLUG'
-  | 'SOURCE_URL'
-  | 'CHECKSUM'
-  | 'COUNT'
-  | 'PATH'
-  | 'DIRECTORY'
-  | 'ROOT'
-  | 'SIZE'
-  | 'UTF8'
-  | 'READ';
+import type {
+  SkillImportInput,
+  SkillImportInputErrorCode,
+  SkillImportInputFile,
+  SkillImportInputOptions,
+} from '@props/settings/skills.props';
+
+export type {
+  SkillImportInput,
+  SkillImportInputErrorCode,
+  SkillImportInputFile,
+  SkillImportInputOptions,
+} from '@props/settings/skills.props';
 
 export class SkillImportInputError extends Error {
   constructor(readonly code: SkillImportInputErrorCode) {
     super('Invalid skill package input.');
     this.name = 'SkillImportInputError';
   }
-}
-
-export interface SkillImportInputOptions {
-  slug: string;
-  sourceUrl?: string;
-  checksum?: string;
-}
-export interface SkillImportInputFile {
-  content: string;
-  path: string;
-}
-export interface SkillImportInput {
-  slug: string;
-  sourceUrl?: string;
-  expectedPackageChecksum?: string;
-  package:
-    | { format: 'files'; files: SkillImportInputFile[] }
-    | { format: 'zip'; archiveBase64: string };
 }
 
 function invalid(code: SkillImportInputErrorCode): never {
