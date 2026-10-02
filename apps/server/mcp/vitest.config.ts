@@ -18,6 +18,10 @@ export default defineConfig({
   ],
   resolve: {
     alias: [
+      {
+        find: /^@genfeedai\/contracts\/(.*)$/,
+        replacement: path.resolve(mcpDir, '../../../packages/contracts/src/$1'),
+      },
       { find: '@', replacement: path.resolve(mcpDir, './src') },
       { find: '@config', replacement: path.resolve(mcpDir, './src/config') },
       {

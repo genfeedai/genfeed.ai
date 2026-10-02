@@ -104,6 +104,9 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'workflows',
   },
   { name: 'create_article', surfaces: ['mcp'], toolset: 'content' },
+  { name: 'create_article_draft', surfaces: ['mcp'], toolset: 'articles' },
+  { name: 'get_article_preview', surfaces: ['mcp'], toolset: 'articles' },
+  { name: 'publish_article', surfaces: ['mcp'], toolset: 'articles' },
   { name: 'create_brand', surfaces: ['agent'], toolset: 'onboarding' },
   { name: 'create_chat', surfaces: ['mcp'], toolset: 'agent-chat' },
   {

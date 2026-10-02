@@ -1,4 +1,6 @@
-'use client';
+import type { BeforeSendFn } from 'posthog-js';
+
+('use client');
 
 import type { PostHog } from 'posthog-js';
 import {
@@ -123,12 +125,42 @@ function handleTrackedCtaClick(event: Event): void {
   }
 }
 
+/** Signed previews carry a bearer token and are excluded from marketing analytics. */
+const protectArticlePreviews: BeforeSendFn = (event) => {
+  if (!event) return event;
+  if (new URLSearchParams(window.location.search).has('previewToken'))
+    return null;
+  const currentUrl = event.properties?.$current_url;
+  if (typeof currentUrl === 'string') {
+    try {
+      if (new URL(currentUrl).searchParams.has('previewToken')) return null;
+    } catch {
+      /* Ignore a malformed SDK URL. */
+    }
+  }
+  for (const key of ['$referrer', '$initial_referrer']) {
+    const value = event.properties?.[key];
+    if (typeof value !== 'string') continue;
+    try {
+      const url = new URL(value);
+      if (url.searchParams.has('previewToken')) {
+        url.searchParams.delete('previewToken');
+        event.properties[key] = url.toString();
+      }
+    } catch {
+      /* Not an absolute referrer URL. */
+    }
+  }
+  return event;
+};
+
 /** Pull in `posthog-js` and start it with the marketing configuration. */
 function loadWebsiteAnalyticsSdk(): void {
   void import('posthog-js')
     .then(({ default: posthog }) => {
       posthog.init(POSTHOG_KEY as string, {
         api_host: POSTHOG_HOST,
+        before_send: protectArticlePreviews,
         // Capture every semantic navigation/action control while avoiding
         // form values and copied text. Explicit CTA events below add the
         // stable conversion taxonomy on top of this journey-level signal.

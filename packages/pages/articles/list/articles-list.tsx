@@ -16,6 +16,7 @@ import {
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Article } from '@models/content/article.model';
+import ArticleTrafficDialog from '@pages/articles/analytics/article-traffic-dialog';
 import type { TableColumn, TableRowLink } from '@props/ui/display/table.props';
 import { ArticlesService } from '@services/content/articles.service';
 import { logger } from '@services/core/logger.service';
@@ -26,7 +27,7 @@ import AppTable from '@ui/display/table/Table';
 import { LazyModalArticle } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
-import { Newspaper, Plus } from 'lucide-react';
+import { ChartNoAxesCombined, Newspaper, Plus } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -48,6 +49,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
     useCallback((token: string) => ArticlesService.getInstance(token), []),
   );
 
+  const [trafficArticle, setTrafficArticle] = useState<Article | null>(null);
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
@@ -160,7 +162,13 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
         }
         items={articles}
         columns={columns}
-        actions={[]}
+        actions={[
+          {
+            icon: <ChartNoAxesCombined className="size-4" />,
+            tooltip: 'View website traffic',
+            onClick: setTrafficArticle,
+          },
+        ]}
         isLoading={isLoading && articles.length === 0}
         getRowKey={(item) => item.id}
         getRowLink={getRowLink}
@@ -181,6 +189,14 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
       <div className="mt-4">
         <AutoPagination showTotal totalLabel="articles" />
       </div>
+
+      {trafficArticle ? (
+        <ArticleTrafficDialog
+          key={`${organizationId}:${brandId}:${trafficArticle.id}`}
+          article={trafficArticle}
+          onClose={() => setTrafficArticle(null)}
+        />
+      ) : null}
 
       <LazyModalArticle onConfirm={handleArticleCreated} />
     </>
