@@ -104,11 +104,22 @@ describe('Crun durable PostgreSQL submission and leases', () => {
     );
   });
   afterAll(async () => {
-    await prisma?.$disconnect();
-    if (pool) {
-      await pool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
-      await pool.end();
+    const failures: unknown[] = [];
+    for (const close of [
+      () => prisma?.$disconnect(),
+      () => pool?.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`),
+      () => pool?.end(),
+    ]) {
+      try {
+        await close();
+      } catch (error) {
+        failures.push(error);
+      }
     }
+    if (failures.length)
+      throw new AggregateError(failures, 'Owned PostgreSQL cleanup failed', {
+        cause: failures[0],
+      });
   });
   function frozenQuote(outputs = 1) {
     const result = quoteModelBillablePricing(
@@ -435,19 +446,38 @@ describe('Crun durable PostgreSQL submission and leases', () => {
     const posted = new Promise<void>((resolve) => {
       reached = resolve;
     });
+    const gate = new Promise<void>((resolve) => {
+      accept = resolve;
+    });
     createTask.mockImplementationOnce(async () => {
       reached();
-      await new Promise<void>((resolve) => {
-        accept = resolve;
-      });
+      await gate;
       return { isValid: true, data: { taskId: randomUUID() } };
     });
-    const submission = byokTasks.submit(prepared, {
-      model: prepared.endpoint,
-      input: { prompt: 'fixture' },
-    });
-    await posted;
+    const submission = byokTasks
+      .submit(prepared, {
+        model: prepared.endpoint,
+        input: { prompt: 'fixture' },
+      })
+      .then(
+        (value) => ({ status: 'fulfilled' as const, value }),
+        (reason: unknown) => ({ status: 'rejected' as const, reason }),
+      );
+    let barrierTimer: ReturnType<typeof setTimeout> | undefined;
     try {
+      await Promise.race([
+        posted,
+        submission.then((outcome) => {
+          if (outcome.status === 'rejected') throw outcome.reason;
+          throw new Error('Submission finished before provider barrier');
+        }),
+        new Promise<never>((_resolve, reject) => {
+          barrierTimer = setTimeout(
+            () => reject(new Error('Provider submission barrier not reached')),
+            5000,
+          );
+        }),
+      ]);
       expect(
         await persistSubmissionFailure(
           prisma as unknown as PrismaService,
@@ -460,9 +490,13 @@ describe('Crun durable PostgreSQL submission and leases', () => {
         ),
       ).toEqual({ count: 0 });
     } finally {
+      clearTimeout(barrierTimer);
       accept();
+      await submission;
     }
-    expect((await submission).isSubmitted).toBe(true);
+    const outcome = await submission;
+    if (outcome.status === 'rejected') throw outcome.reason;
+    expect(outcome.value.isSubmitted).toBe(true);
     const saved = await prisma.ingredient.findFirst({
       where: {
         id: prepared.ingredientId,
@@ -555,6 +589,7 @@ describe('Crun shared Redis admission with two process-equivalent clients', () =
   let serviceB: import('@api/services/cache/cache.service').CacheService;
   const fingerprint = createHash('sha256').update(randomUUID()).digest('hex');
   const key = `crun:requests:${fingerprint}`;
+  const ownedKeys = new Set([key]);
   beforeAll(async () => {
     const url = process.env.CRUN_TEST_REDIS_URL;
     if (
@@ -591,9 +626,31 @@ describe('Crun shared Redis admission with two process-equivalent clients', () =
     serviceB = make(second);
   });
   afterAll(async () => {
-    if (first?.status === 'ready') await first.del(key);
-    first?.disconnect();
-    second?.disconnect();
+    const failures: unknown[] = [];
+    try {
+      const cleanup =
+        first?.status === 'ready'
+          ? first
+          : second?.status === 'ready'
+            ? second
+            : undefined;
+      if (cleanup) await cleanup.del(...ownedKeys);
+      else if (first || second)
+        throw new Error('Owned Redis cleanup connection unavailable');
+    } catch (error) {
+      failures.push(error);
+    }
+    for (const client of [first, second]) {
+      try {
+        client?.disconnect();
+      } catch (error) {
+        failures.push(error);
+      }
+    }
+    if (failures.length)
+      throw new AggregateError(failures, 'Owned Redis cleanup failed', {
+        cause: failures[0],
+      });
   });
   it('atomic gate admits exactly 20 across concurrent clients, isolates keys and expires old slots', async () => {
     const results = await Promise.all(
@@ -608,6 +665,7 @@ describe('Crun shared Redis admission with two process-equivalent clients', () =
     expect(await first.zcard(key)).toBe(20);
     expect(await first.ttl(key)).toBeGreaterThan(0);
     const other = createHash('sha256').update(randomUUID()).digest('hex');
+    ownedKeys.add(`crun:requests:${other}`);
     expect((await serviceB.claimCrunRequestSlot(other))?.isAdmitted).toBe(true);
     await first.del(`crun:requests:${other}`);
     const [seconds, micros] = await first.time();

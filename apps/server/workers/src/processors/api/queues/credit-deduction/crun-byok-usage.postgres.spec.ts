@@ -167,9 +167,14 @@ describe('Crun BYOK usage real Serializable ledger boundaries', () => {
       prisma?.$disconnect(),
       pool?.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`),
     ]);
-    await pool?.end();
-    const failure = results.find((result) => result.status === 'rejected');
-    if (failure?.status === 'rejected') throw failure.reason;
+    const closed = await Promise.allSettled([pool?.end()]);
+    const failures = [...results, ...closed].flatMap((result) =>
+      result.status === 'rejected' ? [result.reason] : [],
+    );
+    if (failures.length)
+      throw new AggregateError(failures, 'Owned PostgreSQL cleanup failed', {
+        cause: failures[0],
+      });
   });
   async function fixture(
     amount = 3,
@@ -448,13 +453,24 @@ describe('Crun BYOK usage real Serializable ledger boundaries', () => {
       reached();
       await gate;
     });
-    const consumer = f.run();
     const mutation = await pool.connect();
+    let consumer: Promise<void> | undefined;
+    const consumerErrors: unknown[] = [];
+    const mutationErrors: unknown[] = [];
+    let primaryFailure = false;
+    const cleanupErrors: unknown[] = [];
     let update: Promise<unknown> | undefined;
     let barrierTimer: ReturnType<typeof setTimeout> | undefined;
     try {
+      consumer = f.run().catch((error: unknown) => {
+        consumerErrors.push(error);
+      });
       await Promise.race([
         atBalance,
+        consumer.then(() => {
+          if (consumerErrors.length) throw consumerErrors[0];
+          throw new Error('Consumer finished before proof lock barrier');
+        }),
         new Promise<never>((_resolve, reject) => {
           barrierTimer = setTimeout(
             () => reject(new Error('Consumer proof lock barrier not reached')),
@@ -467,28 +483,51 @@ describe('Crun BYOK usage real Serializable ledger boundaries', () => {
         mutationApplication,
       ]);
       await mutation.query('BEGIN');
-      update = mutation.query(
-        `UPDATE "${schema}"."crun_generation_tasks" SET "recoveryCode"='CRUN_TERMINAL_RECEIPT_CONFLICT' WHERE "id"=$1 AND "organizationId"=$2`,
-        [f.task.id, f.org],
-      );
+      update = mutation
+        .query(
+          `UPDATE "${schema}"."crun_generation_tasks" SET "recoveryCode"='CRUN_TERMINAL_RECEIPT_CONFLICT' WHERE "id"=$1 AND "organizationId"=$2`,
+          [f.task.id, f.org],
+        )
+        .catch((error: unknown) => {
+          mutationErrors.push(error);
+        });
       await waitForBlocked(mutationApplication);
       resume();
       await consumer;
+      if (consumerErrors.length) throw consumerErrors[0];
       await update;
+      if (mutationErrors.length) throw mutationErrors[0];
       await mutation.query('COMMIT');
       await f.assertCount(1);
       await expect(f.run()).rejects.toThrow('CRUN_BYOK_USAGE_HELD');
       await f.assertCount(1);
+    } catch (error) {
+      primaryFailure = true;
+      throw error;
     } finally {
       clearTimeout(barrierTimer);
       resume();
-      await Promise.allSettled([consumer, update]);
+      const settled = await Promise.allSettled([consumer, update]);
+      cleanupErrors.push(
+        ...settled.flatMap((result) =>
+          result.status === 'rejected' ? [result.reason] : [],
+        ),
+      );
       try {
         await mutation.query('ROLLBACK');
-      } finally {
+      } catch (error) {
+        cleanupErrors.push(error);
+      }
+      try {
         mutation.release();
+      } catch (error) {
+        cleanupErrors.push(error);
       }
     }
+    if (!primaryFailure && cleanupErrors.length)
+      throw new AggregateError(cleanupErrors, 'Owned mutation cleanup failed', {
+        cause: cleanupErrors[0],
+      });
   });
   it.each([
     { endpoint: 'kling/v2-5-turbo-pro', amount: 0 },
