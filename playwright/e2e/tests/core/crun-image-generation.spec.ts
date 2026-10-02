@@ -4,7 +4,10 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { CrunImageQuoteRequest } from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
 import type { Page } from '@playwright/test';
-import { createPlaywrightApiRoutePattern } from '../../config/environment';
+import {
+  createPlaywrightMockApiRoutePattern,
+  playwrightApiEndpoint,
+} from '../../config/environment';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
@@ -147,7 +150,7 @@ async function installFixture(
   }
   await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
   await page.route(
-    createPlaywrightApiRoutePattern('models(?:\\?.*)?$'),
+    createPlaywrightMockApiRoutePattern('models(?:\\?.*)?$'),
     async (route) =>
       route.fulfill({
         json: {
@@ -172,7 +175,7 @@ async function installFixture(
       }),
   );
   await page.route(
-    createPlaywrightApiRoutePattern('auth/bootstrap(?:\\?.*)?$'),
+    createPlaywrightMockApiRoutePattern('auth/bootstrap(?:\\?.*)?$'),
     async (route) => {
       const bootstrap = buildProtectedAppBootstrapPayload();
       await route.fulfill({
@@ -187,7 +190,7 @@ async function installFixture(
     },
   );
   await page.route(
-    createPlaywrightApiRoutePattern(
+    createPlaywrightMockApiRoutePattern(
       'studio-generate-drafts/current(?:\\?.*)?$',
     ),
     async (route) => {
@@ -205,7 +208,7 @@ async function installFixture(
     },
   );
   await page.route(
-    createPlaywrightApiRoutePattern('ingredients(?:/.*|\\?.*)?$'),
+    createPlaywrightMockApiRoutePattern('ingredients(?:/.*|\\?.*)?$'),
     async (route) => {
       const url = new URL(route.request().url());
       const data =
@@ -224,7 +227,7 @@ async function installFixture(
     route.fulfill({ contentType: 'image/png', body: png }),
   );
   await page.route(
-    createPlaywrightApiRoutePattern('images(?:/.*|\\?.*)?$'),
+    createPlaywrightMockApiRoutePattern('images(?:/.*|\\?.*)?$'),
     async (route) => {
       const request = route.request();
       const pathname = new URL(request.url()).pathname;
@@ -328,6 +331,25 @@ async function selectValue(page: Page, label: string, value: string) {
   await page.getByRole('combobox', { name: label, exact: true }).click();
   await page.getByRole('option', { name: value, exact: true }).click();
 }
+
+test.beforeEach(() => {
+  const pattern = createPlaywrightMockApiRoutePattern('models(?:\\?.*)?$');
+  expect(pattern.test(`${playwrightApiEndpoint}/models?isActive=true`)).toBe(
+    true,
+  );
+  expect(pattern.test('https://api.genfeed.ai/v1/models?isActive=true')).toBe(
+    true,
+  );
+  expect(
+    pattern.test('https://api.genfeed.ai.attacker.invalid/v1/models'),
+  ).toBe(false);
+  expect(
+    pattern.test(
+      'https://attacker.invalid/?url=https://api.genfeed.ai/v1/models',
+    ),
+  ).toBe(false);
+  expect(pattern.test('https://api.genfeed.ai/v1/images')).toBe(false);
+});
 
 for (const key of [nanoKey, seedreamKey]) {
   test(`${key} quotes reviewed controls, completes and reopens owned media`, async ({

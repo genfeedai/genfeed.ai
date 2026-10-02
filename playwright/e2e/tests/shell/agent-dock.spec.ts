@@ -49,9 +49,11 @@ test.describe('Agent dock', () => {
       await page.keyboard.press(shortcut);
 
       await expect(dock).toBeVisible();
-      await expect(page.getByTestId('agent-conversation-bubble')).toHaveCount(
-        0,
-      );
+      const bubble = page.getByTestId('agent-conversation-bubble');
+      await expect(bubble).toHaveAttribute('tabindex', '-1');
+      await expect(
+        bubble.locator('xpath=ancestor::*[@inert][1]'),
+      ).toHaveAttribute('aria-hidden', 'true');
       // The conversation and its composer render in the overlay. (The mocked
       // agent stream is offline in E2E, so the composer is disabled and cannot
       // take focus; the unit tests cover focusing it.)
