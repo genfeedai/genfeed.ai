@@ -248,6 +248,7 @@ export function findXPublicationReplyTarget(
   if (
     !control ||
     !article ||
+    article.parentElement?.closest('article') ||
     !visible(control) ||
     control.hasAttribute('disabled') ||
     control.getAttribute('aria-disabled') === 'true' ||

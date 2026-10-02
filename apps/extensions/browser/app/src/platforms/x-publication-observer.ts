@@ -101,7 +101,7 @@ export function attachXPublicationObserver(): () => void {
     if (id)
       void send({ event: 'publicationCaptureReplyIntentCancel', intentId: id });
   }
-  function intentValid() {
+  function intentLocallyValid(): boolean {
     const url = page(location.href);
     return Boolean(
       intent &&
@@ -110,15 +110,24 @@ export function attachXPublicationObserver(): () => void {
         (url.href === intent.documentUrl || compose(url.href)) &&
         Date.now() >= intent.createdAt &&
         Date.now() <= intent.createdAt + PUBLICATION_REPLY_INTENT_LIFETIME_MS &&
+        readXPublicationAuthorHandle(document) === intent.authorHandle,
+    );
+  }
+  function intentValid(): boolean {
+    return Boolean(
+      intent &&
+        intentLocallyValid() &&
         context?.enabled &&
         context.scope &&
-        JSON.stringify(context.scope) === JSON.stringify(intent.scope) &&
-        readXPublicationAuthorHandle(document) === intent.authorHandle,
+        JSON.stringify(context.scope) === JSON.stringify(intent.scope),
     );
   }
   function associateModal() {
     if (!intent) return;
-    if (!intentValid()) {
+    if (
+      !intentLocallyValid() ||
+      (context === null ? !modal || !intentId : !intentValid())
+    ) {
       cancelIntent();
       return;
     }
@@ -232,7 +241,7 @@ export function attachXPublicationObserver(): () => void {
       ) {
         cancel();
       }
-      if (intent && !intentValid()) cancelIntent();
+      associateModal();
       if (
         frozenAttempt &&
         (!context.scope || !sameIdentity(frozenAttempt.scope, context.scope))
@@ -268,7 +277,7 @@ export function attachXPublicationObserver(): () => void {
         );
         scan();
       }
-    }
+    } else cancelIntent();
   }
   function sameIdentity(
     left: PublicationCaptureAttempt['scope'],

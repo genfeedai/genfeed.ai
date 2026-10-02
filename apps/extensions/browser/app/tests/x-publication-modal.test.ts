@@ -529,3 +529,344 @@ it.each([1500, 60001])(
     }
   },
 );
+
+function deferContexts() {
+  const resolves: Array<(response: unknown) => void> = [];
+  const rejects: Array<(error: Error) => void> = [];
+  const originalSend = send.getMockImplementation();
+  if (!originalSend) throw new Error('Missing sender implementation');
+  send.mockImplementation(async (request) => {
+    if (requestData(request)?.event === 'publicationCaptureContext')
+      return new Promise((resolve, reject) => {
+        resolves.push(resolve);
+        rejects.push(reject);
+      });
+    return originalSend(request);
+  });
+  return {
+    resolve(index: number, response: unknown) {
+      const resolve = resolves[index];
+      if (!resolve) throw new Error('Missing deferred Context');
+      resolve(response);
+    },
+    reject(index: number) {
+      const reject = rejects[index];
+      if (!reject) throw new Error('Missing deferred Context');
+      reject(new Error('Context transport failed'));
+    },
+  };
+}
+const verifiedContext = () => ({
+  success: true,
+  data: {
+    kind: 'context',
+    enabled: true,
+    scope: { ...scope },
+    pending: null,
+    confirmed: null,
+  },
+});
+it('retains the original acknowledged binding while deferred focus verification overlaps typing', async () => {
+  await attach();
+  await openReply();
+  const deferred = deferContexts();
+  window.dispatchEvent(new Event('focus'));
+  required('[data-testid="tweetTextarea_0"]').append(
+    document.createTextNode(' after focus'),
+  );
+  await flush();
+  expect(events('publicationCaptureReplyIntent')).toHaveLength(1);
+  expect(events('publicationCaptureReplyIntentCancel')).toHaveLength(0);
+  expect(events('publicationCaptureBegin')).toHaveLength(0);
+  deferred.resolve(0, verifiedContext());
+  await flush();
+  const submittedAt = Date.now();
+  await submit();
+  expect(events('publicationCaptureBegin')).toHaveLength(1);
+  expect(
+    requestData(events('publicationCaptureBegin')[0][0])?.attempt,
+  ).toMatchObject({
+    startedAt: submittedAt,
+    scope,
+    description: 'Own authored reply after focus',
+    surface: {
+      kind: 'x-reply-modal',
+      replyIntentId: '22222222-2222-4222-8222-222222222222',
+      parent: { externalId: '123', url: 'https://x.com/other/status/123' },
+    },
+  });
+  required('[role="dialog"]').remove();
+  vi.stubGlobal('location', new URL('https://x.com/other/status/123'));
+  window.dispatchEvent(new Event('genfeed-publication-navigation'));
+  document.body.insertAdjacentHTML(
+    'beforeend',
+    ownReply
+      .replace('Own authored reply', 'Own authored reply after focus')
+      .replace('2026-10-03T00:00:00Z', new Date(submittedAt).toISOString()),
+  );
+  await flush();
+  await vi.advanceTimersByTimeAsync(400);
+  expect(events('publicationCaptureComplete')).toHaveLength(1);
+});
+
+it.each([
+  'disabled',
+  'null-scope',
+  'user',
+  'organization',
+  'brand',
+  'revision',
+  'failure',
+  'rejection',
+  'wrong-kind',
+])(
+  'cancels current invalid deferred Context %s and cannot resurrect on a later valid refresh',
+  async (kind) => {
+    await attach();
+    await openReply();
+    const deferred = deferContexts();
+    window.dispatchEvent(new Event('focus'));
+    await flush();
+    const response = verifiedContext();
+    if (kind === 'disabled') response.data.enabled = false;
+    if (kind === 'user') response.data.scope.userId = 'other';
+    if (kind === 'organization') response.data.scope.organizationId = 'other';
+    if (kind === 'brand') response.data.scope.brandId = 'other';
+    if (kind === 'revision') response.data.scope.revision++;
+    if (kind === 'rejection') deferred.reject(0);
+    else
+      deferred.resolve(
+        0,
+        kind === 'null-scope'
+          ? { ...response, data: { ...response.data, scope: null } }
+          : kind === 'failure'
+            ? { success: false, error: 'Workspace unavailable' }
+            : kind === 'wrong-kind'
+              ? { success: true, data: { kind: 'queued' } }
+              : response,
+      );
+    await flush();
+    expect(events('publicationCaptureReplyIntentCancel')).toHaveLength(1);
+    window.dispatchEvent(new Event('focus'));
+    deferred.resolve(1, verifiedContext());
+    await flush();
+    await submit();
+    expect(events('publicationCaptureReplyIntent')).toHaveLength(1);
+    expect(events('publicationCaptureBegin')).toHaveLength(0);
+    expect(events('publicationCaptureComplete')).toHaveLength(0);
+  },
+);
+it('trusted submit with unknown Context cancels without automatic resubmission after verification', async () => {
+  await attach();
+  await openReply();
+  const deferred = deferContexts();
+  window.dispatchEvent(new Event('focus'));
+  await submit();
+  expect(events('publicationCaptureReplyIntentCancel')).toHaveLength(1);
+  expect(events('publicationCaptureBegin')).toHaveLength(0);
+  deferred.resolve(0, verifiedContext());
+  await flush();
+  await vi.advanceTimersByTimeAsync(400);
+  expect(events('publicationCaptureBegin')).toHaveLength(0);
+  expect(events('publicationCaptureComplete')).toHaveLength(0);
+  await submit();
+  expect(events('publicationCaptureBegin')).toHaveLength(0);
+});
+it.each(['actor', 'route', 'editor', 'submit', 'expiry'])(
+  'cancels locally invalid %s binding during unknown Context before resolution',
+  async (kind) => {
+    await attach();
+    await openReply();
+    const deferred = deferContexts();
+    window.dispatchEvent(new Event('focus'));
+    if (kind === 'actor')
+      required('[data-testid="SideNav_AccountSwitcher_Button"]').textContent =
+        '@other';
+    if (kind === 'route') {
+      vi.stubGlobal('location', new URL('https://x.com/notifications'));
+      window.dispatchEvent(new Event('genfeed-publication-navigation'));
+    }
+    if (kind === 'editor' || kind === 'submit') {
+      const selector =
+        kind === 'editor'
+          ? '[data-testid="tweetTextarea_0"]'
+          : '[data-testid="tweetButton"]';
+      required(selector).replaceWith(required(selector).cloneNode(true));
+    }
+    if (kind === 'expiry') {
+      await vi.advanceTimersByTimeAsync(600001);
+      required('[data-testid="tweetTextarea_0"]').append(
+        document.createTextNode(' expired'),
+      );
+    }
+    await flush();
+    expect(events('publicationCaptureReplyIntentCancel')).toHaveLength(1);
+    deferred.resolve(0, verifiedContext());
+    await flush();
+    if (kind === 'actor')
+      required('[data-testid="SideNav_AccountSwitcher_Button"]').textContent =
+        '@author';
+    vi.stubGlobal('location', new URL('https://x.com/compose/post'));
+    await submit();
+    expect(events('publicationCaptureBegin')).toHaveLength(0);
+    expect(events('publicationCaptureComplete')).toHaveLength(0);
+  },
+);
+it('current successful Context rechecks visibility even without a mutation callback', async () => {
+  await attach();
+  await openReply();
+  const deferred = deferContexts();
+  window.dispatchEvent(new Event('focus'));
+  required('[role="dialog"]').setAttribute('aria-hidden', 'true');
+  await flush();
+  expect(events('publicationCaptureReplyIntentCancel')).toHaveLength(0);
+  deferred.resolve(0, verifiedContext());
+  await flush();
+  expect(events('publicationCaptureReplyIntentCancel')).toHaveLength(1);
+  required('[role="dialog"]').removeAttribute('aria-hidden');
+  await submit();
+  expect(events('publicationCaptureBegin')).toHaveLength(0);
+});
+it.each(['disabled', 'failure'])(
+  'older enabled Context cannot override newer %s',
+  async (kind) => {
+    await attach();
+    await openReply();
+    const deferred = deferContexts();
+    window.dispatchEvent(new Event('focus'));
+    window.dispatchEvent(new Event('focus'));
+    const newer = verifiedContext();
+    newer.data.enabled = false;
+    deferred.resolve(
+      1,
+      kind === 'disabled'
+        ? newer
+        : { success: false, error: 'Newer verification failed' },
+    );
+    await flush();
+    deferred.resolve(0, verifiedContext());
+    await flush();
+    await submit();
+    expect(events('publicationCaptureReplyIntentCancel')).toHaveLength(1);
+    expect(events('publicationCaptureBegin')).toHaveLength(0);
+    expect(events('publicationCaptureComplete')).toHaveLength(0);
+  },
+);
+it.each(['failure', 'rejection'])(
+  'older %s Context cannot cancel binding verified by newer same-scope success',
+  async (kind) => {
+    await attach();
+    await openReply();
+    const deferred = deferContexts();
+    window.dispatchEvent(new Event('focus'));
+    window.dispatchEvent(new Event('focus'));
+    deferred.resolve(1, verifiedContext());
+    await flush();
+    if (kind === 'rejection') deferred.reject(0);
+    else
+      deferred.resolve(0, {
+        success: false,
+        error: 'Older verification failed',
+      });
+    await flush();
+    expect(events('publicationCaptureReplyIntentCancel')).toHaveLength(0);
+    await submit();
+    expect(events('publicationCaptureBegin')).toHaveLength(1);
+    expect(events('publicationCaptureReplyIntent')).toHaveLength(1);
+  },
+);
+it.each(['close', 'disposal'])(
+  'deferred Context after %s cannot restore binding',
+  async (kind) => {
+    await attach();
+    await openReply();
+    const deferred = deferContexts();
+    window.dispatchEvent(new Event('focus'));
+    if (kind === 'close') trusted(required('[data-testid="app-bar-close"]'));
+    else stop?.();
+    expect(events('publicationCaptureReplyIntentCancel')).toHaveLength(1);
+    deferred.resolve(0, verifiedContext());
+    await flush();
+    if (kind === 'close') await submit();
+    expect(events('publicationCaptureBegin')).toHaveLength(0);
+    expect(events('publicationCaptureComplete')).toHaveLength(0);
+  },
+);
+it.each(['unbound', 'unacknowledged'])(
+  'unknown Context never grants initial %s association or token authorization',
+  async (kind) => {
+    await attach();
+    let release: ((response: unknown) => void) | undefined;
+    const originalSend = send.getMockImplementation();
+    if (!originalSend) throw new Error('Missing sender implementation');
+    if (kind === 'unacknowledged')
+      send.mockImplementation(async (request) => {
+        if (requestData(request)?.event === 'publicationCaptureReplyIntent')
+          return new Promise((resolve) => {
+            release = resolve;
+          });
+        return originalSend(request);
+      });
+    trusted(required('article > [data-testid="reply"]'));
+    await flush();
+    if (kind === 'unacknowledged') {
+      vi.stubGlobal('location', new URL('https://x.com/compose/post'));
+      document.body.insertAdjacentHTML('beforeend', replyModal);
+      window.dispatchEvent(new Event('genfeed-publication-navigation'));
+      await flush();
+    }
+    const deferred = deferContexts();
+    window.dispatchEvent(new Event('focus'));
+    if (kind === 'unbound') {
+      vi.stubGlobal('location', new URL('https://x.com/compose/post'));
+      document.body.insertAdjacentHTML('beforeend', replyModal);
+    } else
+      required('[data-testid="tweetTextarea_0"]').append(
+        document.createTextNode(' pending'),
+      );
+    await flush();
+    deferred.resolve(0, verifiedContext());
+    await flush();
+    if (kind === 'unacknowledged') {
+      if (!release) throw new Error('Missing deferred ACK');
+      release({
+        success: true,
+        data: {
+          kind: 'reply-intent',
+          intentId: '22222222-2222-4222-8222-222222222222',
+        },
+      });
+      await flush();
+    }
+    await submit();
+    expect(events('publicationCaptureBegin')).toHaveLength(0);
+    expect(events('publicationCaptureComplete')).toHaveLength(0);
+    expect(events('publicationCaptureReplyIntentCancel')).toHaveLength(1);
+  },
+);
+it.each(['plain', 'tweet'])(
+  'rejects an original Reply inside a synthetic outer %s article and preserves the top-level target',
+  async (kind) => {
+    const inner = required('article');
+    const outer = document.createElement('article');
+    if (kind === 'tweet') {
+      outer.setAttribute('data-testid', 'tweet');
+      outer.setAttribute('role', 'article');
+    }
+    inner.replaceWith(outer);
+    outer.append(inner);
+    const control = required('article > [data-testid="reply"]');
+    expect(findXPublicationReplyTarget(control)).toBeNull();
+    await attach();
+    trusted(control);
+    await flush();
+    expect(events('publicationCaptureReplyIntent')).toHaveLength(0);
+    expect(events('publicationCaptureBegin')).toHaveLength(0);
+    expect(events('publicationCaptureComplete')).toHaveLength(0);
+    outer.replaceWith(inner);
+    expect(findXPublicationReplyTarget(control)?.parent).toEqual({
+      externalId: '123',
+      url: 'https://x.com/other/status/123',
+    });
+  },
+);

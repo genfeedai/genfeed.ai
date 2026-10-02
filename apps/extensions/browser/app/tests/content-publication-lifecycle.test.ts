@@ -243,7 +243,7 @@ describe('real content module publication observer ownership', () => {
     expect(mocks.attach).toHaveBeenCalledTimes(2);
   });
   it.each(['https://evil.example/home', 'http://x.com/home'])(
-    'never attaches outside the approved home predicate: %s',
+    'never attaches outside the approved X page predicate: %s',
     async (href) => {
       vi.stubGlobal('location', new URL(href));
       await import('../src/content');
