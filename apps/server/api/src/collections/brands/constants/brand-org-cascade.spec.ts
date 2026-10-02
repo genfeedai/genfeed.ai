@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  AUDITOR_IGNORED_TABLES,
   FIRST_ORDER_TARGETS,
   KNOWN_EXCLUDED_MODELS,
   SECOND_ORDER_TARGETS,
@@ -93,6 +94,31 @@ function parseDualKeyedModels(schema: string): ParsedModel[] {
 }
 
 describe('brand-org-cascade config', () => {
+  it.each([
+    [
+      'BrandedGenerationReceipt',
+      'brandedGenerationReceipt',
+      'branded_generation_receipts',
+    ],
+    [
+      'BrandedGenerationReceiptEvent',
+      'brandedGenerationReceiptEvent',
+      'branded_generation_receipt_events',
+    ],
+  ])(
+    'excludes immutable %s history from every relocation mutation list',
+    (model, delegate, table) => {
+      expect(KNOWN_EXCLUDED_MODELS).toContain(model);
+      expect(AUDITOR_IGNORED_TABLES).toContain(table);
+      expect(
+        FIRST_ORDER_TARGETS.some((target) => target.delegate === delegate),
+      ).toBe(false);
+      expect(
+        SECOND_ORDER_TARGETS.some((target) => target.delegate === delegate),
+      ).toBe(false);
+    },
+  );
+
   it('moves outlier snapshot ownership before measurements without moving org configuration', () => {
     const parent = FIRST_ORDER_TARGETS.findIndex(
       (target) => target.delegate === 'outlierBaselineSnapshot',

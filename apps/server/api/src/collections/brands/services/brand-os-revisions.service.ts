@@ -159,12 +159,16 @@ export class BrandOsRevisionsService {
     organizationId: string,
     brandId: string,
     content: IBrandKitDraft,
+    transaction?: Prisma.TransactionClient,
   ): Promise<IBrandOsRevision> {
     const normalized = this.normalize(content, organizationId, brandId);
-    return this.prisma.$transaction(async (tx) => {
+    const write = async (
+      tx: Prisma.TransactionClient,
+    ): Promise<IBrandOsRevision> => {
       await this.lockBrand(tx, organizationId, brandId);
       return this.createDraft(tx, organizationId, brandId, normalized);
-    });
+    };
+    return transaction ? write(transaction) : this.prisma.$transaction(write);
   }
 
   async update(

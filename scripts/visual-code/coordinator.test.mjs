@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -158,3 +158,78 @@ if (process.argv[2] === 'run') {
     }
   });
 }
+
+test('bounded runtime presence probe fails closed through actual subprocesses', {
+  concurrency: false,
+}, async (t) => {
+  const template = '{{if index .Runtimes "runsc"}}true{{else}}false{{end}}';
+  for (const [name, output, status, diagnostic] of [
+    ['registered', 'true', 0, null],
+    ['absent', 'false', 0, 'runsc_unavailable'],
+    ['quoted boolean', '"true"', 0, 'runsc_unavailable'],
+    ['nonzero status', 'true', 1, 'runsc_unavailable'],
+    ['oversized boolean probe', ' '.repeat(9000), 0, 'subprocess_output_limit'],
+  ])
+    await t.test(name, { concurrency: false }, async () => {
+      const directory = await mkdtemp(join(tmpdir(), 'visual-readiness-'));
+      const previousPath = process.env.PATH;
+      try {
+        const bin = join(directory, 'bin');
+        const state = join(directory, 'state');
+        await mkdir(bin, { mode: 0o700 });
+        await mkdir(state, { mode: 0o700 });
+        const log = join(directory, 'argv.jsonl');
+        await writeFile(
+          join(bin, 'docker'),
+          `#!${process.execPath}
+const fs=require('node:fs');const args=process.argv.slice(2);
+fs.appendFileSync(${JSON.stringify(log)},JSON.stringify(['docker',...args])+'\\n');
+if(JSON.stringify(args)===JSON.stringify(['info','--format',${JSON.stringify(template)}])){process.stdout.write(${JSON.stringify(output)});process.exitCode=${status};}
+else if(JSON.stringify(args)===JSON.stringify(['info','--format','{{json .Runtimes}}'])){process.stdout.write(JSON.stringify({runsc:{features:'x'.repeat(9000)}}));}
+else if(JSON.stringify(args)===JSON.stringify(['image','inspect','genfeed-visual-code:4.0.530'])){process.stdout.write('[]');}
+else process.exitCode=2;
+`,
+          { mode: 0o700 },
+        );
+        for (const [binary, argument] of [
+          ['runsc', '--version'],
+          ['ffprobe', '-version'],
+        ])
+          await writeFile(
+            join(bin, binary),
+            `#!${process.execPath}
+const fs=require('node:fs');const args=process.argv.slice(2);fs.appendFileSync(${JSON.stringify(log)},JSON.stringify([${JSON.stringify(binary)},...args])+'\\n');if(args.length!==1||args[0]!==${JSON.stringify(argument)})process.exitCode=2;else process.stdout.write('fixture-version');
+`,
+            { mode: 0o700 },
+          );
+        process.env.PATH = bin;
+        const coordinator = new Coordinator(state);
+        if (diagnostic)
+          await assert.rejects(
+            coordinator.initialize(),
+            new RegExp(diagnostic),
+          );
+        else await coordinator.initialize();
+        assert.equal(coordinator.isReady, diagnostic === null);
+        const calls = (await readFile(log, 'utf8'))
+          .trim()
+          .split('\n')
+          .map((line) => JSON.parse(line));
+        assert.deepEqual(calls[0], ['docker', 'info', '--format', template]);
+        assert.deepEqual(
+          calls.slice(1),
+          diagnostic
+            ? []
+            : [
+                ['docker', 'image', 'inspect', 'genfeed-visual-code:4.0.530'],
+                ['runsc', '--version'],
+                ['ffprobe', '-version'],
+              ],
+        );
+      } finally {
+        if (previousPath === undefined) delete process.env.PATH;
+        else process.env.PATH = previousPath;
+        await rm(directory, { recursive: true, force: true });
+      }
+    });
+});

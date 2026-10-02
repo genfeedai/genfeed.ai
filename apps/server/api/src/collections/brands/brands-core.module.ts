@@ -1,12 +1,14 @@
 import { BrandAssetAutofillListener } from '@api/collections/brands/listeners/brand-asset-autofill.listener';
 import { BrandAssetAutofillService } from '@api/collections/brands/services/brand-asset-autofill.service';
 import { BrandDataMapper } from '@api/collections/brands/services/brand-data.mapper';
+import { BrandFontAssetsService } from '@api/collections/brands/services/brand-font-assets.service';
 import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
 import { BrandLifecycleService } from '@api/collections/brands/services/brand-lifecycle.service';
 import { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
 import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
+import { BrandOsScanService } from '@api/collections/brands/services/brand-os-scan.service';
 import { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
 import { BrandVoiceCorpusService } from '@api/collections/brands/services/brand-voice-corpus.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
@@ -34,6 +36,8 @@ import { Module } from '@nestjs/common';
     BrandDataMapper,
     BrandOsPreviewService,
     BrandOsRevisionsService,
+    BrandOsScanService,
+    BrandFontAssetsService,
   ],
   imports: [
     CommonModule,
@@ -53,6 +57,8 @@ import { Module } from '@nestjs/common';
     BrandLifecycleService,
     BrandOsPreviewService,
     BrandOsRevisionsService,
+    BrandOsScanService,
+    BrandFontAssetsService,
     BrandRelocationService,
     BrandDataMapper,
     BrandVoiceCorpusService,

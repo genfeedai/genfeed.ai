@@ -1,5 +1,10 @@
 import { ContentHarnessService } from '@api/services/harness/harness.service';
-import type { ContentHarnessPack } from '@genfeedai/harness';
+import {
+  type ContentHarnessContribution,
+  type ContentHarnessInput,
+  type ContentHarnessPack,
+  ContentHarnessRegistry,
+} from '@genfeedai/harness';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 
@@ -191,5 +196,161 @@ describe('ContentHarnessService', () => {
     await expect(service.onModuleInit()).rejects.toThrow(
       'must name at least one package',
     );
+  });
+});
+
+function serviceWithPacks(packs: readonly ContentHarnessPack[]) {
+  const { service } = createService();
+  const registry = new ContentHarnessRegistry();
+  for (const pack of packs) registry.registerPack(pack);
+  const getRegistry = vi
+    .spyOn(
+      service as unknown as { getRegistry(): Promise<ContentHarnessRegistry> },
+      'getRegistry',
+    )
+    .mockResolvedValue(registry);
+  const list = vi.spyOn(registry, 'list');
+  return { service, registry, getRegistry, list };
+}
+
+describe('composeBriefLayers', () => {
+  const input: ContentHarnessInput = {
+    organizationId: 'org',
+    intent: { contentType: 'post', objective: 'engagement' },
+  };
+
+  it('awaits each sync/async contribution once in registry order with exact input and result references', async () => {
+    const events: string[] = [];
+    let release: (() => void) | undefined;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const firstResult: ContentHarnessContribution = {
+      styleDirectives: ['Exact first'],
+    };
+    const secondResult: ContentHarnessContribution = {
+      guardrails: ['Exact second'],
+    };
+    const first = vi.fn(async (supplied: ContentHarnessInput) => {
+      expect(supplied).toBe(input);
+      events.push('first start');
+      await pending;
+      events.push('first finish');
+      return firstResult;
+    });
+    const second = vi.fn((supplied: ContentHarnessInput) => {
+      expect(supplied).toBe(input);
+      events.push('second');
+      return secondResult;
+    });
+    const packs = [
+      { id: 'first', version: '1.2.3', contribute: first },
+      { id: 'second', version: 'opaque internal version', contribute: second },
+    ];
+    const { service, getRegistry, list } = serviceWithPacks(packs);
+    const legacy = vi.spyOn(service, 'composeBrief');
+    const result = service.composeBriefLayers(input);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(events).toEqual(['first start']);
+    expect(second).not.toHaveBeenCalled();
+    release?.();
+    const layers = await result;
+    expect(events).toEqual(['first start', 'first finish', 'second']);
+    expect(getRegistry).toHaveBeenCalledTimes(1);
+    expect(list).toHaveBeenCalledTimes(1);
+    expect(first).toHaveBeenCalledExactlyOnceWith(input);
+    expect(second).toHaveBeenCalledExactlyOnceWith(input);
+    expect(layers[0][1]).toBe(firstResult);
+    expect(layers[1][1]).toBe(secondResult);
+    expect(layers.map(([metadata]) => metadata)).toEqual([
+      { id: 'first', version: '1.2.3' },
+      { id: 'second', version: 'opaque internal version' },
+    ]);
+    expect(legacy).not.toHaveBeenCalled();
+  });
+
+  it('copies metadata before contribution mutations and keeps opaque versions and empty entries', async () => {
+    const empty: ContentHarnessContribution = {};
+    const mutated: ContentHarnessPack = {
+      id: 'mutable',
+      version: '  2.0 beta  ',
+    };
+    mutated.contribute = vi.fn(() => {
+      mutated.id = 'changed';
+      mutated.version = 'changed';
+      return empty;
+    });
+    const { service } = serviceWithPacks([
+      { id: 'absent', version: 'opaque' },
+      mutated,
+      { id: 'empty', version: '1.0.0', contribute: () => empty },
+    ]);
+    const layers = await service.composeBriefLayers(input);
+    expect(layers).toEqual([
+      [{ id: 'absent', version: 'opaque' }, {}],
+      [{ id: 'mutable', version: '  2.0 beta  ' }, {}],
+      [{ id: 'empty', version: '1.0.0' }, {}],
+    ]);
+    expect(layers[1][0]).not.toBe(mutated);
+    expect(layers[1][1]).toBe(empty);
+    expect(layers[2][1]).toBe(empty);
+    expect(layers[0][1]).not.toBe(empty);
+    const absentMetadata = layers[0][0];
+    const next = await service.composeBriefLayers(input);
+    expect(next[0][0]).not.toBe(absentMetadata);
+    expect(next[0][1]).not.toBe(layers[0][1]);
+  });
+
+  it.each(['throw', 'reject'])(
+    'propagates contribution %s unchanged and stops later packs',
+    async (mode) => {
+      const error = new Error('Exact failure');
+      const earlier = vi.fn(() => ({}));
+      const later = vi.fn(() => ({}));
+      const failed = vi.fn(() => {
+        if (mode === 'throw') throw error;
+        return Promise.reject(error);
+      });
+      const { service } = serviceWithPacks([
+        { id: 'earlier', version: '1', contribute: earlier },
+        { id: 'failed', version: '1', contribute: failed },
+        { id: 'later', version: '1', contribute: later },
+      ]);
+      await expect(service.composeBriefLayers(input)).rejects.toBe(error);
+      expect(earlier).toHaveBeenCalledTimes(1);
+      expect(failed).toHaveBeenCalledTimes(1);
+      expect(later).not.toHaveBeenCalled();
+    },
+  );
+
+  it('propagates registry rejection unchanged before listing or contributing', async () => {
+    const contribute = vi.fn(() => ({}));
+    const { service, getRegistry, list } = serviceWithPacks([
+      { id: 'pack', version: '1', contribute },
+    ]);
+    const error = new Error('Registry failed');
+    getRegistry.mockRejectedValue(error);
+    await expect(service.composeBriefLayers(input)).rejects.toBe(error);
+    expect(getRegistry).toHaveBeenCalledTimes(1);
+    expect(list).not.toHaveBeenCalled();
+    expect(contribute).not.toHaveBeenCalled();
+  });
+
+  it('leaves legacy merged composition and loaded version listing unchanged', async () => {
+    const contribution = { styleDirectives: ['Custom craft'] };
+    const contribute = vi.fn(() => contribution);
+    const { service } = serviceWithPacks([
+      { id: 'pack', version: '  opaque version  ', contribute },
+    ]);
+    const before = await service.composeBrief(input);
+    const layers = await service.composeBriefLayers(input);
+    const after = await service.composeBrief(input);
+    expect(after).toEqual(before);
+    expect(before.styleDirectives).toContain('Custom craft');
+    expect(layers[0][1]).toBe(contribution);
+    await expect(service.listLoadedPackVersions()).resolves.toEqual([
+      { id: 'pack', version: '  opaque version  ' },
+    ]);
   });
 });
