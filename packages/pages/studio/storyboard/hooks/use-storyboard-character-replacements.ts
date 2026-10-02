@@ -195,7 +195,7 @@ function useCharacterFence(
       scope,
       getService,
       isActive: true,
-      allowSaved: fence.current.getService === getService,
+      allowSaved: false,
       epoch: fence.current.epoch + 1,
       read: 0,
       submit: 0,

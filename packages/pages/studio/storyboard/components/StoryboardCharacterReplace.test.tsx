@@ -251,7 +251,7 @@ describe('saved receipt inspection', () => {
     );
     await waitFor(() =>
       expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe(
-        'New shot',
+        '',
       ),
     );
     expect(replaceStoryboardCharacter).not.toHaveBeenCalled();
@@ -302,3 +302,51 @@ it('clears auth-scoped form controls and rejects an old gallery callback after i
   ).toBe(true);
   expect(replaceStoryboardCharacter).not.toHaveBeenCalled();
 });
+
+it.each(['brandId', 'runId'] as const)(
+  'never rehydrates old saved inputs or gallery selections across same-shot %s ABA',
+  async (key) => {
+    const input = {
+      brandId: 'brand-1',
+      runId: 'run-1',
+      shotId: 'shot-1',
+      saved: { ...saved, prompt: 'Old context prompt' },
+    };
+    const { rerender } = render(<StoryboardCharacterReplace {...input} />);
+    await waitFor(() =>
+      expect(listStoryboardCharacterReplacements).toHaveBeenCalledTimes(1),
+    );
+    expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe(
+      'Old context prompt',
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Choose character images' }),
+    );
+    const oldSelection = openGallery.mock.calls[0][0].onSelect;
+    rerender(
+      <StoryboardCharacterReplace {...input} {...{ [key]: 'new-context' }} />,
+    );
+    expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe('');
+    expect(screen.queryByText(/req-saved/)).toBeNull();
+    expect(screen.queryByText(/character images selected/)).toBeNull();
+    await waitFor(() =>
+      expect(listStoryboardCharacterReplacements).toHaveBeenCalledTimes(2),
+    );
+    expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe('');
+    rerender(<StoryboardCharacterReplace {...input} />);
+    await waitFor(() =>
+      expect(listStoryboardCharacterReplacements).toHaveBeenCalledTimes(3),
+    );
+    oldSelection([{ id: 'old-image', brandId: 'brand-1', isDeleted: false }]);
+    expect(screen.queryByText(/character images selected/)).toBeNull();
+    expect(screen.queryByText(/req-saved/)).toBeNull();
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Replace character',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(replaceStoryboardCharacter).not.toHaveBeenCalled();
+  },
+);

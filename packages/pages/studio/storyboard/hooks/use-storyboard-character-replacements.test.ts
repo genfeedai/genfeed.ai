@@ -381,3 +381,41 @@ describe('same-scope authenticated service transitions', () => {
     },
   );
 });
+
+it.each(['brandId', 'runId'] as const)(
+  'suppresses unchanged saved fallback after same-shot %s transitions until scoped discovery',
+  async (key) => {
+    mocks.list.mockResolvedValue({ ...empty, operations: [receipt] });
+    const snapshots: ReturnType<typeof useStoryboardCharacterReplacements>[] =
+      [];
+    const initial = { ...props, saved };
+    const { result, rerender } = renderHook(
+      (input) => {
+        const state = useStoryboardCharacterReplacements(input);
+        snapshots.push(state);
+        return state;
+      },
+      { initialProps: initial },
+    );
+    await waitFor(() =>
+      expect(result.current.collection.operations).toHaveLength(1),
+    );
+    expect(result.current.fallback?.requestId).toBe('saved');
+    const fresh = deferred<typeof empty>();
+    mocks.list.mockReturnValueOnce(fresh.promise);
+    const index = snapshots.length;
+    rerender({ ...initial, [key]: 'new-context' });
+    expect(snapshots[index].collection).toEqual(empty);
+    expect(snapshots[index].fallback).toBeUndefined();
+    expect(snapshots[index].initialSaved).toBeUndefined();
+    await act(async () => fresh.resolve(empty));
+    expect(result.current.fallback).toBeUndefined();
+    expect(result.current.initialSaved).toBeUndefined();
+    mocks.list.mockResolvedValue(empty);
+    rerender(initial);
+    await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(3));
+    expect(result.current.fallback).toBeUndefined();
+    expect(result.current.initialSaved).toBeUndefined();
+    expect(mocks.post).not.toHaveBeenCalled();
+  },
+);
