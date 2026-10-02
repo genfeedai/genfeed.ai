@@ -558,7 +558,7 @@ export class BrandRelocationService {
     await invalidateLearningDependencySource(tx, 'brand', brandId, sourceOrgId);
     for (const account of scope.accounts) {
       const updated = await tx.contentLearningAccount.updateMany({
-        where: { ...account, isDeleted: false },
+        where: scopedWhere(account.organizationId, account),
         data: { evidenceRevision: { increment: 1 } },
       });
       if (updated.count !== 1)

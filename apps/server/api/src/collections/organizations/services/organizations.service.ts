@@ -339,7 +339,7 @@ export class OrganizationsService extends BaseService<
         await invalidateLearningDependencySource(tx, 'organization', id, id);
         for (const account of accounts) {
           const result = await tx.contentLearningAccount.updateMany({
-            where: { ...account, isDeleted: false },
+            where: scopedWhere(account.organizationId, account),
             data: { evidenceRevision: { increment: 1 } },
           });
           if (result.count !== 1)

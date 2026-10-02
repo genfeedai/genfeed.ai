@@ -56,6 +56,11 @@ import {
 import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 import { loadScheduledActionPost } from '@workers/services/scheduled-post-action-load.util';
+import {
+  readScheduledDeliveryRecord,
+  readScheduledDeliveryRequest,
+  readScheduledDeliveryResult,
+} from '@workers/services/scheduled-post-delivery-input.util';
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
 import {
   collectMediaGateAssetIds,
@@ -130,10 +135,10 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     input: Record<string, unknown>,
     workflowExecutionId: string,
   ): Promise<PublishResult> {
-    const request = this.readActionRequest(input.request);
-    const claim = this.readRecord(input.claim);
+    const request = readScheduledDeliveryRequest(input.request);
+    const claim = readScheduledDeliveryRecord(input.claim);
     if (claim.isAlreadyPublished === true) {
-      return this.readPublishResult(claim.publishedResult);
+      return readScheduledDeliveryResult(claim.publishedResult);
     }
     const post = await loadScheduledActionPost(this.prisma, request);
     if (!post) {
@@ -1158,60 +1163,5 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       platform,
       post,
     });
-  }
-
-  private readActionRequest(value: unknown): ScheduledPostWorkflowInput {
-    const request = this.readRecord(value);
-    const source = String(request.source ?? '');
-    if (
-      ![
-        'manual_retry',
-        'publish_now',
-        'scheduled_sweep',
-        'tiktok_app',
-      ].includes(source)
-    ) {
-      throw new Error(
-        `Scheduled post delivery received invalid source ${source}`,
-      );
-    }
-    const organizationId = String(request.organizationId ?? '');
-    const postId = String(request.postId ?? '');
-    if (!organizationId || !postId) {
-      throw new Error(
-        'Scheduled post delivery requires organizationId and postId',
-      );
-    }
-    return {
-      organizationId,
-      postId,
-      source: source as ScheduledPostWorkflowInput['source'],
-    };
-  }
-
-  private readRecord(value: unknown): Record<string, unknown> {
-    return value !== null && typeof value === 'object' && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : {};
-  }
-
-  private readPublishResult(value: unknown): PublishResult {
-    const result = this.readRecord(value);
-    const executionState = Object.values(TargetExecutionState).includes(
-      result.executionState as TargetExecutionState,
-    )
-      ? (result.executionState as TargetExecutionState)
-      : TargetExecutionState.FAILED;
-
-    return {
-      ...(typeof result.error === 'string' ? { error: result.error } : {}),
-      executionState,
-      externalId:
-        typeof result.externalId === 'string' ? result.externalId : null,
-      ...(result.isProviderDraft === true ? { isProviderDraft: true } : {}),
-      platform: typeof result.platform === 'string' ? result.platform : '',
-      success: result.success === true,
-      url: typeof result.url === 'string' ? result.url : '',
-    };
   }
 }

@@ -155,7 +155,7 @@ export type PostPatchServiceContext = {
   logger: Pick<LoggerService, 'log'>;
   prisma: Pick<PrismaService, 'credential' | 'post'>;
   transaction?: Prisma.TransactionClient;
-  organizationId?: string;
+  organizationId: string;
   childIds?: readonly string[];
   publishApprovalsService?: Pick<PublishApprovalsService, 'assertPostMutable'>;
 };
@@ -184,9 +184,7 @@ async function readPostPatchApprovalContext(
         where: {
           id,
           isDeleted: false,
-          ...(context.organizationId
-            ? { organizationId: context.organizationId }
-            : {}),
+          organizationId: context.organizationId,
         },
       })
     : null;
@@ -376,10 +374,10 @@ async function applyPreparedChildSchedule(
           : {}),
       },
       where: {
+        ...(context.childIds ? { id: { in: [...context.childIds] } } : {}),
         isDeleted: false,
         organizationId: currentPost.organizationId,
         parentId: id,
-        ...(context.childIds ? { id: { in: [...context.childIds] } } : {}),
         targetExecutionState: {
           not: TargetExecutionState.PUBLISHED,
         },

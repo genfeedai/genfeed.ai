@@ -193,85 +193,85 @@ async function assertNoDirectLearningHistory(
   brandId: string,
   organizationId: string,
 ): Promise<void> {
-  // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
   refuseLearningHistory(
+    // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
     await client.contentLearningConsent.findFirst({
       where: { organizationId, brandId },
       select: { id: true },
     }),
   );
-  // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
   refuseLearningHistory(
+    // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
     await client.contentLearningDecision.findFirst({
       where: { organizationId, brandId },
       select: { id: true },
     }),
   );
-  // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
   refuseLearningHistory(
+    // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
     await client.contentLearningCheckpoint.findFirst({
       where: { organizationId, brandId },
       select: { id: true },
     }),
   );
-  // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
   refuseLearningHistory(
+    // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
     await client.contentLearningBaseline.findFirst({
       where: { organizationId, brandId },
       select: { id: true },
     }),
   );
-  // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
   refuseLearningHistory(
+    // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
     await client.contentLearningReward.findFirst({
       where: { organizationId, brandId },
       select: { id: true },
     }),
   );
-  // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
   refuseLearningHistory(
+    // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
     await client.contentLearningPolicyVersion.findFirst({
       where: { organizationId, brandId },
       select: { id: true },
     }),
   );
-  // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
   refuseLearningHistory(
+    // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
     await client.contentLearningScopeState.findFirst({
       where: { organizationId, brandId },
       select: { id: true },
     }),
   );
-  // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
   refuseLearningHistory(
+    // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
     await client.contentLearningExperiment.findFirst({
       where: { organizationId, brandId },
       select: { id: true },
     }),
   );
-  // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
   refuseLearningHistory(
+    // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
     await client.contentLearningEnrollment.findFirst({
       where: { organizationId, brandId },
       select: { id: true },
     }),
   );
-  // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
   refuseLearningHistory(
+    // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
     await client.contentLearningOpportunity.findFirst({
       where: { organizationId, brandId },
       select: { id: true },
     }),
   );
-  // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
   refuseLearningHistory(
+    // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
     await client.contentLearningExperimentEvent.findFirst({
       where: { organizationId, brandId },
       select: { id: true },
     }),
   );
-  // tenant-scope-ignore: publication history has no soft-delete field; original tenant and brand are exact.
   refuseLearningHistory(
+    // tenant-scope-ignore: publication history has no soft-delete field; original tenant and brand are exact.
     await client.publishApproval.findFirst({
       where: { organizationId, brandId },
       select: { id: true },
@@ -283,8 +283,8 @@ async function assertNoBoundLearningConfiguration(
   brandId: string,
   organizationId: string,
 ): Promise<void> {
-  // tenant-scope-ignore: tombstoned configuration with historical bindings cannot move.
   refuseLearningHistory(
+    // tenant-scope-ignore: tombstoned configuration with historical bindings cannot move.
     await client.contentLearningAccount.findFirst({
       where: {
         organizationId,
@@ -306,8 +306,8 @@ async function assertNoBoundLearningConfiguration(
       select: { id: true },
     }),
   );
-  // tenant-scope-ignore: deleted preference retains its historical binding/revision.
   refuseLearningHistory(
+    // tenant-scope-ignore: deleted preference retains its historical binding/revision.
     await client.contentLearningBrandPreference.findFirst({
       where: {
         organizationId,

@@ -16,6 +16,7 @@ import { preparePostPatchWrite } from '@api/collections/posts/services/post-patc
 import type { PostUpdateInput } from '@api/collections/posts/services/posts.service';
 import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { scopedWhere } from '@api/index';
 import type { PopulateInput } from '@api/shared/services/base/base.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { TargetExecutionState } from '@genfeedai/contracts';
@@ -69,12 +70,15 @@ export type PostLearningMutationContext = {
   ) => Promise<PostDocument>;
   readPost: (
     tx: Prisma.TransactionClient,
-    where: Prisma.PostWhereInput,
+    where: Prisma.PostWhereInput & { organizationId: string; isDeleted: false },
     populate: PopulateInput,
   ) => Promise<PostDocument | null>;
   writePost: (
     tx: Prisma.TransactionClient,
-    where: Prisma.PostWhereUniqueInput,
+    where: Prisma.PostWhereUniqueInput & {
+      organizationId: string;
+      isDeleted: false;
+    },
     data: Record<string, unknown>,
     populate: PopulateInput,
   ) => Promise<PostDocument>;
@@ -134,8 +138,8 @@ async function discoverPostTargetScope(
     const credential = await tx.credential.findFirst({
       where: {
         id: credentialId,
-        organizationId: current.organizationId,
         ...(brandId ? { brandId } : {}),
+        organizationId: current.organizationId,
         isConnected: true,
         isDeleted: false,
       },
@@ -210,14 +214,14 @@ async function discoverPostMutation(
       !current.parentId)
       ? await tx.post.findMany({
           where: {
-            organizationId: current.organizationId,
             parentId: id,
-            isDeleted: false,
             ...(!remove
               ? {
                   targetExecutionState: { not: TargetExecutionState.PUBLISHED },
                 }
               : {}),
+            organizationId: current.organizationId,
+            isDeleted: false,
           },
           select: learningPublicationPostSelect,
           orderBy: { id: 'asc' },
@@ -279,7 +283,13 @@ async function discoverPostMutation(
     }));
   const accounts = accountScopes.length
     ? await tx.contentLearningAccount.findMany({
-        where: { isDeleted: false, OR: accountScopes },
+        where: {
+          OR: accountScopes,
+          organizationId: {
+            in: accountScopes.map((scope) => scope.organizationId),
+          },
+          isDeleted: false,
+        },
         select: accountSelect,
         orderBy: { id: 'asc' },
       })
@@ -479,7 +489,7 @@ async function invalidateChangedPostSources(
     ),
   )) {
     const result = await tx.contentLearningAccount.updateMany({
-      where: { ...account, isDeleted: false },
+      where: scopedWhere(account.organizationId, account),
       data: { evidenceRevision: { increment: 1 } },
     });
     if (result.count !== 1)

@@ -5,6 +5,7 @@ import {
 } from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningPublicationBrandSelect } from '@api/collections/content-learning/services/learning-publication-source.types';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { scopedWhere } from '@api/index';
 import { Prisma } from '@genfeedai/prisma';
 import {
   getTenantContext,
@@ -191,7 +192,7 @@ export async function finishBrandLearningMutation(
   );
   for (const account of scope.accounts) {
     const result = await tx.contentLearningAccount.updateMany({
-      where: { ...account, isDeleted: false },
+      where: scopedWhere(account.organizationId, account),
       data: { evidenceRevision: { increment: 1 } },
     });
     if (result.count !== 1)

@@ -1385,7 +1385,7 @@ export async function publishLearningRuntimePost(
       visibility: PostVisibility.PUBLIC,
       ...(legacy
         ? {
-            executionState: TargetExecutionState.PUBLISHED,
+            targetExecutionState: TargetExecutionState.PUBLISHED,
             externalId,
             publishedAt,
           }

@@ -2052,6 +2052,13 @@ describe('CredentialsService', () => {
             return (value as Record<string, unknown>[]).some((condition) =>
               matches(row, condition),
             );
+          if (
+            value &&
+            typeof value === 'object' &&
+            'in' in value &&
+            Array.isArray(value.in)
+          )
+            return value.in.includes(row[key]);
           if (value && typeof value === 'object' && 'not' in value)
             return row[key] !== value.not;
           return row[key] === value;
@@ -2186,6 +2193,18 @@ describe('CredentialsService', () => {
         { isConnected: false },
       );
       expect(result.modifiedCount).toBe(2);
+      expect(prisma.contentLearningAccount.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            OR: [
+              { organizationId: orgId, brandId, credentialId: 'bound' },
+              { organizationId: orgId, brandId, credentialId: 'bound' },
+            ],
+            organizationId: { in: [orgId, orgId] },
+            isDeleted: false,
+          },
+        }),
+      );
       expect(bound.isConnected).toBe(false);
       expect(unbound.isConnected).toBe(false);
       expect(learning.evidenceRevision).toBe(1);

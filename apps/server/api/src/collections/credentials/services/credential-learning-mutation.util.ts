@@ -7,6 +7,7 @@ import { learningPublicationCredentialSelect } from '@api/collections/content-le
 import type { CredentialDocument } from '@api/collections/credentials/credential.types';
 import { pickCarriedConnectionColumns } from '@api/collections/credentials/utils/credential-persistence.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { scopedWhere } from '@api/index';
 import { Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -150,7 +151,13 @@ async function discoverCredentialMutation(
   );
   const accounts = accountScopes.length
     ? await tx.contentLearningAccount.findMany({
-        where: { isDeleted: false, OR: accountScopes },
+        where: {
+          OR: accountScopes,
+          organizationId: {
+            in: accountScopes.map((scope) => scope.organizationId),
+          },
+          isDeleted: false,
+        },
         select: accountSelect,
         orderBy: { id: 'asc' },
       })
@@ -274,7 +281,7 @@ async function finishCredentialMutation(
     changed.has(row.credentialId),
   )) {
     const result = await tx.contentLearningAccount.updateMany({
-      where: { ...account, isDeleted: false },
+      where: scopedWhere(account.organizationId, account),
       data: { evidenceRevision: { increment: 1 } },
     });
     if (result.count !== 1)
@@ -352,9 +359,9 @@ export async function patchCredentialWithLearning(
   const before = await credentialSnapshots(tx, plan),
     row = plan.rows[0];
   const updated = await tx.credential.update({
+    ...(populate ? { include: populate } : {}),
     where: { id, organizationId: row.organizationId, isDeleted: false },
     data,
-    ...(populate ? { include: populate } : {}),
   });
   await finishCredentialMutation(tx, plan, before);
   return context.normalizeDocument(updated);

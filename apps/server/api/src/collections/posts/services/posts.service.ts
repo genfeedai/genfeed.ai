@@ -404,8 +404,8 @@ export class PostsService extends BaseService<
           | Prisma.PostInclude
           | undefined;
         const row = await tx.post.findFirst({
-          where,
           ...(include ? { include } : {}),
+          where: scopedWhere(where.organizationId, where),
         });
         return row ? this.normalizeDocument(row) : null;
       },
@@ -414,9 +414,9 @@ export class PostsService extends BaseService<
           | Prisma.PostInclude
           | undefined;
         const row = await tx.post.update({
-          where,
-          data: this.normalizeData(data) as Prisma.PostUncheckedUpdateInput,
           ...(include ? { include } : {}),
+          where: scopedWhere(where.organizationId, where),
+          data: this.normalizeData(data) as Prisma.PostUncheckedUpdateInput,
         });
         return this.normalizeDocument(row);
       },
