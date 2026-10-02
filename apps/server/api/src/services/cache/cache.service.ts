@@ -1,3 +1,9 @@
+import { randomUUID } from 'node:crypto';
+import {
+  CLAIM_CRUN_REQUEST_SLOT_SCRIPT,
+  RELEASE_OWNED_CLAIM_SCRIPT,
+  SET_OWNED_CLAIM_VALUE_SCRIPT,
+} from '@api/services/cache/cache-claim-scripts';
 import { CacheClientService } from '@api/services/cache/cache-client.service';
 import { CacheTagsService } from '@api/services/cache/cache-tags.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -8,25 +14,6 @@ export type ServiceCacheOptions = {
   tags?: string[];
   ttl?: number;
 };
-
-const SET_OWNED_CLAIM_VALUE_SCRIPT = `
-if redis.call('GET', KEYS[1]) ~= ARGV[1] then
-  return 0
-end
-redis.call('SETEX', KEYS[2], ARGV[3], ARGV[2])
-return 1
-`;
-
-const RELEASE_OWNED_CLAIM_SCRIPT = `
-if redis.call('GET', KEYS[1]) ~= ARGV[1] then
-  return 0
-end
-if #KEYS > 1 then
-  redis.call('DEL', KEYS[2])
-end
-redis.call('DEL', KEYS[1])
-return 1
-`;
 
 export type CounterBudgetReservationResult =
   | { status: 'reserved'; reserved: number; total: number }
@@ -893,6 +880,35 @@ export class CacheService {
    * @param ttlSeconds - How long the claim suppresses repeats
    * @param tags - Cache tags that own a successful claim
    */
+  async claimCrunRequestSlot(
+    fingerprint: string,
+  ): Promise<{ isAdmitted: boolean; retryAfterMs: number } | null> {
+    if (!this.isAvailable || !/^[a-f0-9]{64}$/.test(fingerprint)) return null;
+    try {
+      const result = await this.client.eval(
+        CLAIM_CRUN_REQUEST_SLOT_SCRIPT,
+        1,
+        `crun:requests:${fingerprint}`,
+        randomUUID(),
+      );
+      if (
+        !Array.isArray(result) ||
+        result.length !== 2 ||
+        ![0, 1].includes(Number(result[0])) ||
+        !Number.isFinite(Number(result[1]))
+      )
+        return null;
+      return {
+        isAdmitted: Number(result[0]) === 1,
+        retryAfterMs: Number(result[1]),
+      };
+    } catch {
+      // Fingerprints, secrets and signed URLs never enter ordinary logs.
+      this.logger.warn('Crun request gate is unavailable');
+      return null;
+    }
+  }
+
   async claimOnce(
     key: string,
     ttlSeconds: number,

@@ -6,6 +6,26 @@ import {
 import { ByokProvider, ModelProvider } from '@genfeedai/contracts';
 
 describe('byok-provider-map.util', () => {
+  it('routes both exact Crun launch keys through Crun credentials', () => {
+    expect(modelProviderToByokProvider(ModelProvider.CRUN)).toBe(
+      ByokProvider.CRUN,
+    );
+    expect(
+      resolveModelByokProvider(
+        'crun/google/nano-banana-pro',
+        ModelProvider.CRUN,
+      ),
+    ).toBe(ByokProvider.CRUN);
+    expect(
+      resolveModelByokProvider(
+        'crun/bytedance/seedream-4-5',
+        ModelProvider.CRUN,
+      ),
+    ).toBe(ByokProvider.CRUN);
+    expect(modelKeyToByokProvider('google/nano-banana-pro')).toBeUndefined();
+    expect(modelKeyToByokProvider('bytedance/seedream-4-5')).toBeUndefined();
+  });
+
   describe('modelProviderToByokProvider', () => {
     it('should map REPLICATE to REPLICATE', () => {
       expect(modelProviderToByokProvider(ModelProvider.REPLICATE)).toBe(

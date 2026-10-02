@@ -352,7 +352,7 @@ export function GenerationActionCardControls({
               </Select>
             </div>
           ) : null}
-          {!isImage && resolutionOptions.length > 0 ? (
+          {resolutionOptions.length > 0 ? (
             <div className="shrink-0">
               <Select
                 disabled={isDisabled}
@@ -360,7 +360,7 @@ export function GenerationActionCardControls({
                 value={resolution}
               >
                 <SelectTrigger
-                  aria-label="Video resolution"
+                  aria-label={isImage ? 'Image resolution' : 'Video resolution'}
                   className={cn('w-32', SHELL_CONTROL_HEIGHT_CLASS)}
                 >
                   <SelectValue placeholder="Resolution" />

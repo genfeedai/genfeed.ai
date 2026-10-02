@@ -25,6 +25,7 @@ const GENERATION_OPEN_WORLD_NAMES: ReadonlySet<string> = new Set([
   'import_source_post',
   'start_remix_generation',
   'control_remix_generation',
+  'edit_image',
   'reframe_image',
   'replace_storyboard_character',
   'upscale_image',
@@ -56,6 +57,7 @@ const READ_ONLY_HINT_NAMES: ReadonlySet<string> = new Set([
  * `create_post` is draft-only on MCP, so the draft write is not destructive.
  */
 const NON_DESTRUCTIVE_WRITE_NAMES: ReadonlySet<string> = new Set([
+  'edit_image',
   'cancel_visual_code_project',
   'import_source_post',
   'create_remix_concept',

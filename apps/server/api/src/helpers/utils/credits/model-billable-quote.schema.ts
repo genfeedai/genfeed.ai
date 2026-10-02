@@ -73,6 +73,40 @@ const profile = z.object({
     .optional(),
 });
 
+export const crunProviderQuoteSnapshotSchema = z
+  .object({
+    provider: z.literal('crun'),
+    estimated: z.literal(false),
+    providerCreditsPerTask: z.string().regex(/^\d+(?:\.\d+)?$/),
+    quoteHash: z.string().regex(/^[a-f0-9]{64}$/),
+    inputHash: z.string().regex(/^[a-f0-9]{64}$/),
+    contractVersion: z.string().min(1).max(128),
+    creditsPerUsd: z
+      .string()
+      .regex(/^\d+(?:\.\d+)?$/)
+      .refine((value) => Number.isFinite(Number(value)) && Number(value) > 0)
+      .nullable(),
+    acquisitionRateVersion: z.string().min(1).nullable(),
+    credentialSource: z.enum(['hosted', 'byok']),
+    credentialId: z.string().min(1).nullable(),
+    credentialFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+  })
+  .superRefine((value, context) => {
+    const valid =
+      value.credentialSource === 'byok'
+        ? value.creditsPerUsd === null &&
+          value.acquisitionRateVersion === null &&
+          value.credentialId === null
+        : value.creditsPerUsd !== null &&
+          value.acquisitionRateVersion !== null &&
+          value.credentialId === null;
+    if (!valid)
+      context.addIssue({
+        code: 'custom',
+        message: 'Frozen Crun credential/rate source is inconsistent',
+      });
+  });
+
 export const modelBillableQuoteSnapshotSchema = z.object({
   modelKey: z.string().min(1),
   provider: z.string().min(1),
@@ -91,4 +125,5 @@ export const modelBillableQuoteSnapshotSchema = z.object({
   allocationBasis: z.enum(['request', 'output']),
   allocatedCredits: z.array(z.number().int().nonnegative()),
   pricingProfile: profile,
+  providerQuote: crunProviderQuoteSnapshotSchema.optional(),
 });

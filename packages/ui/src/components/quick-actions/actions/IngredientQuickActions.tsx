@@ -7,13 +7,17 @@ import {
   IngredientCategory,
   IngredientFormat,
   IngredientStatus,
+  ModalEnum,
 } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IQuickAction } from '@genfeedai/contracts/interfaces/ui/quick-actions.interface';
 import {
   BG_BLUR,
   BORDER_WHITE_30,
   cn,
 } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useQuickActions } from '@genfeedai/hooks/ui/use-quick-actions/use-quick-actions';
 import { hasCleanExportAccess } from '@genfeedai/pricing';
 import type { StudioQuickActionsProps } from '@genfeedai/props/studio/studio.props';
@@ -25,6 +29,8 @@ import {
   QUICK_ACTION_TRIGGER_CLASS,
   QUICK_ACTION_TRIGGER_SIZE_CLASS,
 } from '@ui/quick-actions/quick-actions.constants';
+import { Pencil } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 import IngredientContextActions from './IngredientContextActions';
@@ -83,6 +89,8 @@ function IngredientQuickActionsContent(
   } = props;
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { push } = useRouter();
+  const { href } = useOrgUrl();
 
   const { settings } = useBrand();
   const storyboardEntry = useStoryboardEntry();
@@ -337,6 +345,31 @@ function IngredientQuickActionsContent(
       selectedIngredient,
     });
 
+  const editingActions: IQuickAction[] =
+    selectedIngredient?.category === IngredientCategory.IMAGE &&
+    [
+      IngredientStatus.GENERATED,
+      IngredientStatus.VALIDATED,
+      IngredientStatus.UPLOADED,
+    ].includes(selectedIngredient.status)
+      ? [
+          {
+            id: 'edit-image',
+            label: translate('editImage'),
+            icon: <Pencil className="size-4" />,
+            tooltip: translate('editImageDescription'),
+            onClick: () => {
+              closeModal(ModalEnum.INGREDIENT);
+              push(
+                href(
+                  `${APP_ROUTES.STUDIO.GENERATE}?editImage=${encodeURIComponent(selectedIngredient.id)}`,
+                ),
+              );
+            },
+          },
+        ]
+      : [];
+
   const handleActionClick = useCallback(
     async (action: IQuickAction) => {
       await action.onClick();
@@ -352,7 +385,8 @@ function IngredientQuickActionsContent(
   if (
     actions.length === 0 &&
     contextActions.length === 0 &&
-    !props.characterAction
+    !props.characterAction &&
+    editingActions.length === 0
   ) {
     return null;
   }
@@ -410,6 +444,7 @@ function IngredientQuickActionsContent(
           {downloadControl}
           <QuickActionsMenu
             actions={visibleActions([
+              ...editingActions,
               ...actions,
               ...(props.characterAction ? [props.characterAction] : []),
             ])}
@@ -457,9 +492,12 @@ function IngredientQuickActionsContent(
           />
         ))}
 
-        {(menuActions.length > 0 || props.characterAction) && (
+        {(menuActions.length > 0 ||
+          editingActions.length > 0 ||
+          props.characterAction) && (
           <QuickActionsMenu
             actions={visibleActions([
+              ...editingActions,
               ...menuActions,
               ...(props.characterAction ? [props.characterAction] : []),
             ])}

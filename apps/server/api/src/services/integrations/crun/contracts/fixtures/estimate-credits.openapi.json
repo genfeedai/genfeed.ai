@@ -1,0 +1,206 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Estimate Task Credits",
+    "description": "Estimate the credits required for a task from its model parameters without creating the task.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Technical Support",
+      "email": "support@crun.ai"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.crun.ai",
+      "description": "API Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "All APIs require authentication via API Key.\n\nGet API Key:\n1. Visit [API Key Management Page](https://crun.ai/user-api-key) to get your API Key\n\nUsage:\nAdd to request header:\n\nx-api-key: YOUR_API_KEY\n\nNote:\n- Keep your API Key secure and do not share it with others\n- If you suspect your API Key has been compromised, reset it immediately in the management page"
+      }
+    },
+    "schemas": {
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "enum": [
+              200,
+              401,
+              402,
+              404,
+              422,
+              429,
+              455,
+              500,
+              501,
+              505
+            ],
+            "description": "Response status code\n\n- **200**: Success - Request has been processed successfully\n- **401**: Unauthorized - Authentication credentials are missing or invalid\n- **402**: Insufficient Credits - Account does not have enough credits to perform the operation\n- **404**: Not Found - The requested resource or endpoint does not exist\n- **422**: Validation Error - The request parameters failed validation checks\n- **429**: Rate Limited - Request limit has been exceeded for this resource\n- **455**: Service Unavailable - System is currently undergoing maintenance\n- **500**: Server Error - An unexpected error occurred while processing the request\n- **501**: Generation Failed - Content generation task failed\n- **505**: Feature Disabled - The requested feature is currently disabled"
+          },
+          "message": {
+            "type": "string",
+            "description": "Response message, or error description when the request fails",
+            "example": "success"
+          }
+        }
+      },
+      "EstimateCreditsResult": {
+        "type": "object",
+        "properties": {
+          "credits": {
+            "type": "integer",
+            "description": "Estimated or actual number of credits the task will consume, as indicated by `estimated`.",
+            "example": 1.5
+          },
+          "estimated": {
+            "type": "boolean",
+            "description": "Whether `credits` is an estimate. When true, the final charge is reconciled after task completion; when false, `credits` is the actual charge.",
+            "example": false
+          }
+        },
+        "required": [
+          "credits",
+          "estimated"
+        ]
+      }
+    },
+    "responses": {
+      "Error": {
+        "description": "Server Error"
+      }
+    }
+  },
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "paths": {
+    "/api/v1/client/job/estimate-credits": {
+      "post": {
+        "operationId": "estimate-task-credits",
+        "summary": "Estimate credits for a task",
+        "description": "Accepts the same request parameters as `/api/v1/client/job/CreateTask`. Use the exact `model` and model-specific `input` payload documented for the task you want to estimate.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "model",
+                  "input"
+                ],
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "description": "Model name. Use the same value required by the corresponding CreateTask endpoint.",
+                    "example": "z-image"
+                  },
+                  "callback_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Optional callback URL accepted by CreateTask. It is not used because this endpoint does not create a task.",
+                    "example": "https://your-domain.com/api/callback"
+                  },
+                  "input": {
+                    "type": "object",
+                    "description": "Model-specific input parameters. Use the same fields and values as the corresponding CreateTask request.",
+                    "additionalProperties": true
+                  }
+                },
+                "additionalProperties": true
+              },
+              "example": {
+                "model": "z-image",
+                "input": {
+                  "prompt": "A futuristic laboratory with glowing blue holographic displays and a robotic assistant.",
+                  "aspect_ratio": "16:9",
+                  "seed": 12345678
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Request successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/EstimateCreditsResult"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 200,
+                  "message": "success",
+                  "data": {
+                    "credits": 1.5,
+                    "estimated": false
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "errors": {
+                          "type": "array",
+                          "description": "Detailed validation error messages",
+                          "items": {
+                            "type": "string"
+                          },
+                          "example": [
+                            "specific error field message"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 422,
+                  "message": "Missing Params or Type Error",
+                  "errors": [
+                    "specific error field message"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    }
+  }
+}

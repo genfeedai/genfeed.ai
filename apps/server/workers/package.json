@@ -21,7 +21,10 @@
   "description": "Genfeed background jobs and recurring platform schedules",
   "devDependencies": {
     "@nestjs/testing": "12.1.1",
+    "@prisma/adapter-pg": "7.10.0",
     "@types/multer": "2.3.0",
+    "@types/pg": "8.23.1",
+    "pg": "8.23.0",
     "unplugin-swc": "2.0.0"
   },
   "main": "../dist/apps/workers/main.js",

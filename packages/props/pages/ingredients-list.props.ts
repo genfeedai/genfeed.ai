@@ -19,6 +19,7 @@ import type {
   ISound,
   ITag,
 } from '@genfeedai/contracts/interfaces';
+import type { CrunVideoPromptBinding } from '@genfeedai/props/studio/prompt-bar.props';
 import type { IngredientsTypeProps } from '@props/content/ingredient.props';
 import type { Dispatch, SetStateAction } from 'react';
 
@@ -176,6 +177,7 @@ export interface UseIngredientsListReturn {
   openLightboxForIngredient: (ingredient: IIngredient) => boolean;
   closeLightbox: () => void;
   handleConvertToVideo?: (ingredient: IIngredient) => void;
+  imageToVideoCrunBinding?: CrunVideoPromptBinding;
   imageToVideoTarget?: IIngredient | null;
   imageToVideoPromptData?: ImageToVideoPromptDraft;
   isImageToVideoGenerating?: boolean;

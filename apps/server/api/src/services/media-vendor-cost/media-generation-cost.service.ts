@@ -3,6 +3,7 @@ import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
 import { MediaVendorCostLedgerService } from '@api/services/media-vendor-cost/media-vendor-cost-ledger.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { IMediaGenerationCostContext } from '@genfeedai/contracts/interfaces';
 import {
   computeMediaVendorCostMicros,
@@ -33,12 +34,25 @@ export class MediaGenerationCostService {
     private readonly byokService: ByokService,
     private readonly ledgerService: MediaVendorCostLedgerService,
     private readonly logger: LoggerService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async recordGenerationCost(
     context: IMediaGenerationCostContext,
   ): Promise<void> {
     try {
+      if (
+        context.organizationId &&
+        (await this.prisma.crunGenerationTask.findFirst({
+          where: {
+            ingredientId: context.ingredientId,
+            organizationId: context.organizationId,
+            isDeleted: false,
+          },
+          select: { id: true },
+        }))
+      )
+        return; // Crun finalizer records authenticated frozen receipts.
       if (!context.organizationId || !context.modelKey) {
         this.logger.debug(
           `${this.constructorName} skipping ledger row — missing org or model`,

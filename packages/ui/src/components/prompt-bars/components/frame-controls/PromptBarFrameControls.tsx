@@ -1,5 +1,6 @@
 'use client';
 
+import { PromptBarInternalContext } from '@genfeedai/contexts/ui/prompt-bar-internal-context';
 import { ButtonVariant, IngredientCategory } from '@genfeedai/contracts';
 import type { MediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
@@ -8,7 +9,7 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import { Button } from '@ui/primitives/button';
 import { ImageIcon, Tv, Upload, X } from 'lucide-react';
 import Image from 'next/image';
-import { type MouseEvent, memo } from 'react';
+import { type MouseEvent, memo, useContext } from 'react';
 
 function getImageUrl(
   asset: MediaReference,
@@ -142,7 +143,20 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
   showReference = true,
   triggerConfigChange,
 }: PromptBarFrameControlsProps) {
-  if (!showReference) {
+  const context = useContext(PromptBarInternalContext);
+  const selected =
+    context?.models.filter((model) =>
+      (form.getValues('models') ?? []).includes(model.key),
+    ) ?? [];
+  const isCrunVideo =
+    selected.length === 1 &&
+    selected[0]?.provider === 'crun' &&
+    selected[0]?.inputControls?.mediaKind === 'video';
+  if (
+    !showReference ||
+    (isCrunVideo &&
+      selected[0]?.inputControls?.videoRules?.referenceMode === 'none')
+  ) {
     return null;
   }
 
@@ -203,6 +217,11 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
     onReferencesChange([]);
     onReferenceSourceChange('');
     form.setValue('references', [], { shouldValidate: true });
+    if (isCrunVideo) {
+      onEndFrameChange(null);
+      form.setValue('endFrame', '', { shouldValidate: true });
+    }
+    triggerConfigChange();
   };
 
   const clearEndFrame = (e: MouseEvent) => {

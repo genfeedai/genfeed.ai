@@ -524,6 +524,8 @@ jobs:
       CI_BASE_SHA: ${{ needs.plan.outputs.base }}
       DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
       KNOWLEDGE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
+      WORKFLOW_BILLING_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
+      CRUN_TEST_REDIS_URL: redis://localhost:6379
       REDIS_URL: redis://localhost:6379
     needs: plan
     if: needs.plan.outputs.workspace_tests == 'true'
@@ -618,6 +620,8 @@ jobs:
     env:
       CI_BASE_SHA: ${{ needs.plan.outputs.base }}
       KNOWLEDGE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
+      WORKFLOW_BILLING_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
+      CRUN_TEST_REDIS_URL: redis://localhost:6379
       # Separate, fully-migrated databases on the same Postgres service
       # (#5217 / #5191): these run `prisma migrate deploy` for real, so the
       # billing-account-scope and credit-balance *.postgres.spec.ts suites get

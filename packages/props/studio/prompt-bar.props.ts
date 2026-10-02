@@ -27,8 +27,15 @@ import type {
   ITag,
   ITraining,
 } from '@genfeedai/contracts/interfaces';
+import type {
+  CrunGenerationQuoteResponse,
+  CrunImageQuoteRequest,
+  CrunQuoteReasonCode,
+  CrunVideoQuoteRequest,
+} from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
 import type { IGenerationItem } from '@genfeedai/contracts/interfaces/components/generation.interface';
 import type { MediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
+import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
 import type { GlobalModalGalleryConfig } from '@genfeedai/props/modals/global-modals.props';
 import type { PromptsService } from '@genfeedai/services/content/prompts.service';
 import type { PromptBarSuggestionItem } from '@props/prompt-bars/prompt-bar-suggestion-item.props';
@@ -52,7 +59,23 @@ export interface PromptBarFeatures {
   dragDrop?: boolean;
 }
 
+export interface CrunVideoPromptBinding {
+  prepareRequest: (draft: PromptTextareaSchema) => CrunVideoQuoteRequest | null;
+  submit: (
+    request: CrunVideoQuoteRequest & { crunQuoteId: string },
+  ) => Promise<void>;
+}
+
 export interface PromptBarProps {
+  crunVideoBinding?: CrunVideoPromptBinding;
+  crunBinding?: {
+    prepareRequest: (
+      draft: PromptTextareaSchema,
+    ) => CrunImageQuoteRequest | null;
+    submit: (
+      request: CrunImageQuoteRequest & { crunQuoteId: string },
+    ) => Promise<void>;
+  };
   models?: IModel[];
   trainings?: ITraining[];
   presets?: IPreset[];
@@ -249,10 +272,19 @@ export interface UploadModalOptions {
 }
 
 export interface PromptBarAttachedAsset {
+  ingredientId?: string;
+  isPrimary?: boolean;
   id: string;
   kind: 'image' | 'video' | 'audio';
   source: 'upload' | 'library';
-  role: 'reference' | 'startFrame' | 'endFrame' | 'videoReference' | 'input';
+  role:
+    | 'editSource'
+    | 'editMask'
+    | 'reference'
+    | 'startFrame'
+    | 'endFrame'
+    | 'videoReference'
+    | 'input';
   previewUrl?: string;
   name?: string;
 }
@@ -340,8 +372,8 @@ export interface UsePromptBarPricingReturn {
     width: number,
     height: number,
     duration: number,
-  ) => number;
-  selectedModelCost: number;
+  ) => number | null;
+  selectedModelCost: number | null;
 }
 
 export interface UsePromptBarFiltersOptions {
@@ -630,11 +662,40 @@ export interface PromptBarExpandedViewProps {
   isEnhancing: boolean;
   isGenerateDisabled: boolean;
   previousPrompt: string | null;
-  selectedModelCost: number;
+  selectedModelCost: number | null;
   activeGenerations: IGenerationItem[];
   generateLabel: string;
 
   /** For AVATAR category */
   avatars?: DropdownFieldOption[];
   voices?: DropdownFieldOption[];
+}
+
+export interface PromptBarCrunControlsProps {
+  controls: CrunInputControls;
+  value?: string;
+  onChange: (value: string) => void;
+  isDisabled?: boolean;
+  error?: string;
+}
+
+export type UseCrunGenerationQuoteOptions =
+  | {
+      mediaKind?: 'image';
+      request: CrunImageQuoteRequest | null;
+      isActive: boolean;
+    }
+  | {
+      mediaKind: 'video';
+      request: CrunVideoQuoteRequest | null;
+      isActive: boolean;
+    };
+export interface UseCrunGenerationQuoteReturn {
+  status: 'idle' | 'pending' | 'available' | 'unavailable' | 'error';
+  quote: CrunGenerationQuoteResponse | null;
+  reasonCode: CrunQuoteReasonCode | null;
+  getCurrentQuote: () => Extract<
+    CrunGenerationQuoteResponse,
+    { isAvailable: true }
+  > | null;
 }

@@ -35,6 +35,8 @@ type GenerationSetupView = 'customize' | 'front-door' | 'search';
 const GenerationSetupPopover = memo(function GenerationSetupPopover({
   buttonRef,
   capabilities,
+  inputControls,
+  referenceCount,
   className,
   creditQuoteLabel,
   creditsAvailable,
@@ -164,6 +166,8 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
 
             {view === 'search' ? (
               <GenerationSetupSearch
+                inputControls={inputControls}
+                referenceCount={referenceCount}
                 capabilities={capabilities}
                 lookOptions={lookOptions}
                 models={models}
@@ -176,6 +180,8 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
 
             {view === 'customize' ? (
               <GenerationSetupCustomizePanel
+                inputControls={inputControls}
+                referenceCount={referenceCount}
                 capabilities={capabilities}
                 creditQuoteLabel={creditQuoteLabel}
                 creditsAvailable={creditsAvailable}

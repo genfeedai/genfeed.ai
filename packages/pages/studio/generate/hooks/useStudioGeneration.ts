@@ -1,10 +1,23 @@
 'use client';
 
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import {
+  FLUX_3_EDIT_CONTRACT_VERSION,
+  getImageEditMaxSources,
+  IMAGE_EDIT_CONTRACT_VERSION,
+  IMAGE_EDIT_QUALITY,
+  isFlux3ImageModel,
+  isImageEditModel,
+} from '@genfeedai/contracts/constants';
 import type {
   IModel,
   KnowledgeSelection,
 } from '@genfeedai/contracts/interfaces';
+import type {
+  CrunGenerationQuoteResponse,
+  CrunImageQuoteRequest,
+  CrunVideoQuoteRequest,
+} from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
 import type {
   GenerationResponse,
   SocketResult,
@@ -50,6 +63,7 @@ import { VideosService } from '@services/ingredients/videos.service';
 import { VoicesService } from '@services/ingredients/voices.service';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { resolvePendingIds } from '@utils/network/generation.util';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export interface UseStudioGenerationParams {
@@ -76,6 +90,12 @@ export interface UseStudioGenerationReturn {
 }
 
 export interface StudioGenerationOptions {
+  crunRequest?: CrunImageQuoteRequest;
+  crunVideoRequest?: CrunVideoQuoteRequest;
+  getCurrentCrunQuote?: () => Extract<
+    CrunGenerationQuoteResponse,
+    { isAvailable: true }
+  > | null;
   requestedSkillSlugs?: string[];
   harness?: boolean;
   /** Explicit Knowledge pick from the Library picker; absent means Auto. */
@@ -84,6 +104,8 @@ export interface StudioGenerationOptions {
 }
 
 export interface StudioGenerationReferences {
+  editSourceIds?: string[];
+  editMaskId?: string;
   endFrameId?: string;
   imageReferenceIds?: string[];
   videoReferenceIds?: string[];
@@ -120,10 +142,12 @@ export function useStudioGeneration({
   settings,
   type,
 }: UseStudioGenerationParams): UseStudioGenerationReturn {
+  const translateCrun = useTranslations('pages.studioGenerate.crun');
   const { subscribe, connectionState } = useSocketManager();
   const activeBrandRef = useRef(brandId);
   activeBrandRef.current = brandId;
   const submittingRef = useRef(false);
+  const consumedCrunQuoteRef = useRef<string | null>(null);
   const cancellingIds = useRef(new Set<string>());
   const [jobs, setJobs] = useState<readonly StudioGenerateJob[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -215,6 +239,7 @@ export function useStudioGeneration({
         return await getIngredientsService();
       }
       switch (jobType) {
+        case 'image-edit':
         case 'image':
           return await getImagesService();
         case 'video':
@@ -568,16 +593,123 @@ export function useStudioGeneration({
         return false;
       }
 
+      if (
+        type === 'image-edit' &&
+        (!references.editSourceIds?.length ||
+          (settings.modelKey !== AUTO_MODEL_OPTION_VALUE &&
+            (!isImageEditModel(settings.modelKey) ||
+              !models.some((model) => model.key === settings.modelKey))))
+      ) {
+        notificationsService.error(
+          'Choose a source image and an available editing model.',
+        );
+        return false;
+      }
       const modelKey = resolveModelKey(
         settings,
         models,
         config.capabilities.hasModelSelection,
       );
+      const initialCrunQuote = modelKey.startsWith('crun/')
+        ? options?.getCurrentCrunQuote?.()
+        : null;
+      if (
+        modelKey.startsWith('crun/') &&
+        (!initialCrunQuote ||
+          !(type === 'video'
+            ? options?.crunVideoRequest
+            : options?.crunRequest) ||
+          consumedCrunQuoteRef.current === initialCrunQuote.quoteId)
+      )
+        return false;
       const jobDimensions = config.capabilities.hasAspectRatio
         ? { height: promptData.height, width: promptData.width }
         : {};
       const runId = crypto.randomUUID();
       const recipe = recipeFromPromptData(promptData, type, settings);
+      const capturedCrunRequest =
+        type === 'video' ? options?.crunVideoRequest : options?.crunRequest;
+      if (modelKey.startsWith('crun/') && capturedCrunRequest) {
+        const controls = capturedCrunRequest.crunControls;
+        recipe.modelKey = capturedCrunRequest.model;
+        recipe.text = capturedCrunRequest.text;
+        recipe.outputs = capturedCrunRequest.outputs ?? 1;
+        recipe.references = [...(capturedCrunRequest.references ?? [])];
+        recipe.aspectRatio = controls.aspectRatio;
+        recipe.resolution = controls.resolution;
+        recipe.duration =
+          'duration' in controls ? controls.duration : undefined;
+        recipe.endFrameId =
+          'endFrame' in capturedCrunRequest
+            ? capturedCrunRequest.endFrame
+            : undefined;
+        if (type === 'video') recipe.isAudioEnabled = false;
+        recipe.crunControls = {
+          modelKey: capturedCrunRequest.model,
+          contractVersion: controls.contractVersion,
+          ...(controls.aspectRatio !== undefined
+            ? { aspectRatio: controls.aspectRatio }
+            : {}),
+          ...('outputFormat' in controls && controls.outputFormat !== undefined
+            ? { outputFormat: controls.outputFormat }
+            : {}),
+          ...('negativePrompt' in controls &&
+          controls.negativePrompt !== undefined
+            ? { negativePrompt: controls.negativePrompt }
+            : {}),
+          ...('guidanceScale' in controls &&
+          controls.guidanceScale !== undefined
+            ? { guidanceScale: controls.guidanceScale }
+            : {}),
+          ...('translatePrompt' in controls &&
+          controls.translatePrompt !== undefined
+            ? { translatePrompt: controls.translatePrompt }
+            : {}),
+        };
+      }
+      const editingModelKey =
+        modelKey || models.find((model) => model.isDefault)?.key || '';
+      const flux = isFlux3ImageModel(
+        type === 'image-edit' ? editingModelKey : modelKey,
+      );
+      if (
+        type === 'image-edit' &&
+        (references.editSourceIds?.length ?? 0) >
+          getImageEditMaxSources(editingModelKey)
+      ) {
+        notificationsService.error(
+          `This editing model accepts at most ${getImageEditMaxSources(editingModelKey)} sources.`,
+        );
+        return false;
+      }
+      if (type === 'image-edit') {
+        recipe.imageEdit = flux
+          ? {
+              contractVersion: FLUX_3_EDIT_CONTRACT_VERSION,
+              operation: 'image-edit',
+              model: editingModelKey,
+              sourceIds: references.editSourceIds ?? [],
+              resolution: settings.resolution,
+              aspectRatio: settings.aspectRatio,
+              grounding: false,
+              outputs: 1,
+            }
+          : {
+              contractVersion: IMAGE_EDIT_CONTRACT_VERSION,
+              operation: 'image-edit',
+              model:
+                modelKey || models.find((model) => model.isDefault)?.key || '',
+              sourceIds: references.editSourceIds ?? [],
+              maskId: references.editMaskId,
+              size: references.editMaskId
+                ? 'source'
+                : (settings.editSize ?? 'source'),
+              quality: IMAGE_EDIT_QUALITY,
+              outputs: settings.outputs,
+              seed: settings.editSeed,
+            };
+        recipe.references = references.editSourceIds ?? [];
+      }
       const pendingContext = {
         ...jobDimensions,
         modelKey,
@@ -615,8 +747,57 @@ export function useStudioGeneration({
 
       try {
         switch (type) {
+          case 'image-edit': {
+            const service = await getImagesService();
+            const sources = references.editSourceIds ?? [];
+            const data = (await service.postEdit(sources[0], {
+              prompt: promptText.trim(),
+              brand: brandId,
+              ...(modelKey ? { model: modelKey } : {}),
+              references: sources.slice(1),
+              ...(flux
+                ? {
+                    resolution: settings.resolution,
+                    aspectRatio: settings.aspectRatio,
+                  }
+                : {
+                    maskId: references.editMaskId,
+                    size: references.editMaskId
+                      ? 'source'
+                      : (settings.editSize ?? 'source'),
+                    seed: settings.editSeed,
+                  }),
+              outputs: flux ? 1 : settings.outputs,
+              sourceActionId: runId,
+            })) as GenerationResponse;
+            trackPendingIds(resolvePendingIds(data), pendingContext);
+            isAccepted = true;
+            break;
+          }
           case 'image': {
             const service = await getImagesService();
+            if (modelKey.startsWith('crun/')) {
+              const request = options?.crunRequest;
+              const quote = options?.getCurrentCrunQuote?.();
+              if (
+                !request ||
+                !quote ||
+                quote.quoteId !== initialCrunQuote?.quoteId ||
+                request.model !== modelKey ||
+                request.text !== promptText.trim() ||
+                quote.modelKey !== modelKey ||
+                quote.contractVersion !== request.crunControls.contractVersion
+              )
+                throw new Error('CRUN_QUOTE_STALE');
+              consumedCrunQuoteRef.current = quote.quoteId;
+              const data = (await service.post({
+                ...request,
+                crunQuoteId: quote.quoteId,
+              })) as GenerationResponse;
+              trackPendingIds(resolvePendingIds(data), pendingContext);
+              isAccepted = true;
+              break;
+            }
             const payload = buildImagePayload(
               {
                 ...buildBaseGenerationPayload(promptData, modelKey, brandId),
@@ -631,6 +812,7 @@ export function useStudioGeneration({
               },
               promptData,
             );
+            if (flux) payload.aspectRatio = settings.aspectRatio;
             const data = (await service.post(payload)) as GenerationResponse;
             trackPendingIds(resolvePendingIds(data), pendingContext);
             isAccepted = true;
@@ -639,6 +821,29 @@ export function useStudioGeneration({
 
           case 'video': {
             const service = await getVideosService();
+            if (modelKey.startsWith('crun/')) {
+              const request = options?.crunVideoRequest;
+              const quote = options?.getCurrentCrunQuote?.();
+              if (
+                !request ||
+                !quote ||
+                quote.quoteId !== initialCrunQuote?.quoteId ||
+                request.model !== modelKey ||
+                request.text !== promptText.trim() ||
+                quote.modelKey !== modelKey ||
+                quote.contractVersion !== request.crunControls.contractVersion
+              )
+                throw new Error('CRUN_QUOTE_STALE');
+              consumedCrunQuoteRef.current = quote.quoteId;
+              const data = (await service.post({
+                ...request,
+                crunQuoteId: quote.quoteId,
+              })) as GenerationResponse;
+              trackPendingIds(resolvePendingIds(data), pendingContext);
+              isAccepted = true;
+              break;
+            }
+
             const videoPromptData = {
               ...promptData,
               endFrame: references.endFrameId,
@@ -757,10 +962,13 @@ export function useStudioGeneration({
       } catch (error) {
         if (activeBrandRef.current !== brandId) return false;
         logger.error('Studio generation failed', error);
-        const message = toErrorMessage(
-          error,
-          `Failed to generate ${config.label}`,
-        );
+        const message = modelKey.startsWith('crun/')
+          ? translateCrun(
+              error instanceof Error && error.message === 'CRUN_QUOTE_STALE'
+                ? 'quoteStale'
+                : 'reasons.CRUN_PROVIDER_UNAVAILABLE',
+            )
+          : toErrorMessage(error, `Failed to generate ${config.label}`);
 
         // A toast disappears. Leave a failed card so the operator can see what
         // died and reprompt it without retyping.
@@ -798,6 +1006,7 @@ export function useStudioGeneration({
       notificationsService,
       settings,
       trackPendingIds,
+      translateCrun,
       type,
     ],
   );

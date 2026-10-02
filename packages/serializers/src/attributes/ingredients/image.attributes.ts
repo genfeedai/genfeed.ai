@@ -46,3 +46,31 @@ export const imageEditAttributes = createEntityAttributes([
   'faceEnhancementCreativity',
   'outputs',
 ]);
+
+/** Allowlisted Crun preview/consume fields are request-only. */
+export const imageGenerationRequestAttributes = [
+  'model',
+  'text',
+  'brandId',
+  'folderId',
+  'promptId',
+  'references',
+  'outputs',
+  'crunControls',
+  'crunQuoteId',
+  'style',
+  'mood',
+  'camera',
+  'lens',
+  'scene',
+  'lighting',
+  'fontFamily',
+  'blacklist',
+  'brandingMode',
+  'isBrandingEnabled',
+  'promptTemplate',
+  'useTemplate',
+  'harness',
+  'requestedSkillSlugs',
+  'knowledge',
+];

@@ -1,5 +1,8 @@
 import { RouterPriority } from '@genfeedai/contracts';
-import { resolveAgentGenerationDimensions } from '@genfeedai/contracts/constants';
+import {
+  isFlux3ImageModel,
+  resolveAgentGenerationDimensions,
+} from '@genfeedai/contracts/constants';
 import type {
   AgentClipRunIdentity,
   GenerationExecutionDimensions,
@@ -68,6 +71,7 @@ export function buildAgentGenerationRequestBody({
     body.brandId = brandId;
   }
 
+  if (modelKey && isFlux3ImageModel(modelKey)) body.aspectRatio = aspectRatio;
   if (modelKey) {
     body.model = modelKey;
   }

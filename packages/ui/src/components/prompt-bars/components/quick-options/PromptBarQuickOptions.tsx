@@ -1,5 +1,6 @@
 'use client';
 
+import { PromptBarInternalContext } from '@genfeedai/contexts/ui/prompt-bar-internal-context';
 import {
   ButtonVariant,
   IngredientCategory,
@@ -13,7 +14,7 @@ import { Checkbox } from '@ui/primitives/checkbox';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import PromptBarFrameControls from '@ui/prompt-bars/components/frame-controls/PromptBarFrameControls';
 import { ChevronDown, ChevronUp, Tv } from 'lucide-react';
-import { type ChangeEvent, memo, useState } from 'react';
+import { type ChangeEvent, memo, useContext, useState } from 'react';
 
 function buildResolutionOptions(
   normalizedWatchedModels: string[],
@@ -74,6 +75,18 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
   showToggle = true,
   inlineContent,
 }: PromptBarQuickOptionsWrapperProps) {
+  const context = useContext(PromptBarInternalContext);
+  const selected =
+    context?.models.filter((model) =>
+      normalizedWatchedModels.includes(model.key),
+    ) ?? [];
+  const inputControls =
+    selected.length === 1 && selected[0]?.provider === 'crun'
+      ? selected[0].inputControls
+      : undefined;
+  const reviewedResolutions = inputControls?.fields.resolution?.enum
+    ?.filter((value): value is string => typeof value === 'string')
+    .map((key) => ({ key, label: key }));
   const [localExpanded, setLocalExpanded] = useState(false);
   const expanded = isExpanded ?? localExpanded;
 
@@ -124,8 +137,10 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
               {inlineContent}
 
               {isAdvancedControlsEnabled &&
-                categoryType === IngredientCategory.VIDEO &&
-                hasAnyResolutionOptionsValue && (
+                inputControls?.mediaKind !== 'video' &&
+                ((categoryType === IngredientCategory.VIDEO &&
+                  hasAnyResolutionOptionsValue) ||
+                  Boolean(inputControls)) && (
                   <FormDropdown
                     key="resolution"
                     name="resolution"
@@ -137,7 +152,10 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
                     isFullWidth={false}
                     className={controlClass}
                     dropdownDirection="up"
-                    options={buildResolutionOptions(normalizedWatchedModels)}
+                    options={
+                      reviewedResolutions ??
+                      buildResolutionOptions(normalizedWatchedModels)
+                    }
                     onChange={(e: ChangeEvent<HTMLSelectElement>) => {
                       form.setValue('resolution', e.target.value, {
                         shouldValidate: true,
@@ -149,6 +167,7 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
 
               {isAdvancedControlsEnabled &&
                 categoryType === IngredientCategory.VIDEO &&
+                inputControls?.mediaKind !== 'video' &&
                 hasAudioToggleValue && (
                   <Checkbox
                     key="isAudioEnabled"
@@ -190,7 +209,10 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
                   watchedHeight={watchedHeight}
                   disabled={isDisabledState}
                   iconButtonClass={iconButtonClass}
-                  showReference={true}
+                  showReference={
+                    inputControls?.mediaKind !== 'video' ||
+                    inputControls.videoRules?.referenceMode === 'start-end'
+                  }
                   triggerConfigChange={triggerConfigChange}
                 />
               )}

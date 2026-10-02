@@ -63,6 +63,7 @@ function isInspectorTab(value: string): value is InspectorTab {
 export default function StudioGenerateInspector({
   job,
   onRemix,
+  onEdit,
   onSelect,
   onUseInPost,
   onVary,
@@ -167,7 +168,7 @@ export default function StudioGenerateInspector({
     // reads a single asset through its category route; there is no generic
     // single-ingredient read.
     const getReceiptService =
-      job.type === 'image'
+      job.type === 'image' || job.type === 'image-edit'
         ? getImagesService
         : job.type === 'video' || job.type === 'avatar'
           ? getVideosService
@@ -274,7 +275,7 @@ export default function StudioGenerateInspector({
           label={job.prompt || label}
         />
       );
-    } else if (job.type === 'image') {
+    } else if (job.type === 'image' || job.type === 'image-edit') {
       preview = (
         <div className="relative aspect-video w-full overflow-hidden rounded-md bg-foreground/[0.04]">
           <Image
@@ -427,6 +428,18 @@ export default function StudioGenerateInspector({
         variant={ButtonVariant.SECONDARY}
         withWrapper={false}
       />
+      {ingredient &&
+      (job.type === 'image' || job.type === 'image-edit') &&
+      onEdit ? (
+        <Button
+          className="w-full"
+          label={translate('editImage.label')}
+          onClick={() => onEdit(job)}
+          size={ButtonSize.SM}
+          variant={ButtonVariant.SECONDARY}
+          withWrapper={false}
+        />
+      ) : null}
       {ingredient && job.type === 'image' ? (
         <Button
           className="w-full"

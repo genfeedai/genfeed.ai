@@ -1,9 +1,12 @@
 import { IngredientStatus } from '@genfeedai/contracts';
+import { isEntityId } from '@genfeedai/contracts/api-types';
+import { readImageEditingRecipe } from '@genfeedai/contracts/constants';
 import type {
   StudioGenerateJob,
   StudioGenerateRecipe,
   StudioGenerateType,
 } from '@pages/studio/generate/types';
+import { readStudioCrunRecipeControls } from './studio-generate-recipe';
 import { isStudioGenerateType } from './studio-generate-types';
 
 export const STUDIO_GENERATE_SESSION_KEY = 'genfeed.studio.generate.session.v1';
@@ -44,7 +47,62 @@ function sanitizeRecipe(
     return undefined;
   }
 
+  const recipeType = isStudioGenerateType(value.type) ? value.type : type;
+  const crunControls = readStudioCrunRecipeControls(
+    value.crunControls,
+    recipeType,
+    value.modelKey,
+  );
+  if (value.crunControls !== undefined && !crunControls) return undefined;
+  if (crunControls && recipeType === 'video') {
+    const kling = crunControls.modelKey === 'crun/kling/v2-5-turbo-pro';
+    if (
+      !Array.isArray(value.references) ||
+      value.references.some(
+        (id) => !isEntityId(id) || id !== String(id).trim(),
+      ) ||
+      value.references.length > (kling ? 1 : 0)
+    )
+      return undefined;
+    if (
+      value.endFrameId !== undefined &&
+      (!kling ||
+        !isEntityId(value.endFrameId) ||
+        value.endFrameId !== value.endFrameId.trim() ||
+        value.references.length !== 1 ||
+        value.endFrameId === value.references[0])
+    )
+      return undefined;
+    if (
+      value.duration !== undefined &&
+      (typeof value.duration !== 'number' ||
+        !(kling ? [5, 10] : [4, 6, 8]).includes(value.duration))
+    )
+      return undefined;
+    if (
+      value.resolution !== undefined &&
+      (kling ||
+        typeof value.resolution !== 'string' ||
+        !['720p', '1080p', '4k'].includes(value.resolution))
+    )
+      return undefined;
+    if (
+      value.aspectRatio !== undefined &&
+      (typeof value.aspectRatio !== 'string' ||
+        !(kling ? ['1:1', '16:9', '9:16'] : ['16:9', '9:16']).includes(
+          value.aspectRatio,
+        ) ||
+        (kling && value.references.length))
+    )
+      return undefined;
+  }
   return {
+    ...(crunControls ? { crunControls } : {}),
+    ...(crunControls &&
+    recipeType === 'video' &&
+    typeof value.endFrameId === 'string'
+      ? { endFrameId: value.endFrameId }
+      : {}),
     aspectRatio: pickOptionalString(value.aspectRatio),
     blacklist: pickStringList(value.blacklist),
     brandingMode: value.brandingMode === 'off' ? 'off' : 'brand',
@@ -65,6 +123,7 @@ function sanitizeRecipe(
         : 1,
     promptTemplate: pickOptionalString(value.promptTemplate),
     references: pickStringList(value.references),
+    imageEdit: readImageEditingRecipe(value.imageEdit),
     resolution: pickOptionalString(value.resolution),
     scene: pickOptionalString(value.scene),
     speech: pickOptionalString(value.speech),
@@ -159,7 +218,7 @@ export function serializeStudioGenerateSessionJob(
     ingredientId: job.ingredientId,
     modelKey: job.modelKey,
     prompt: job.prompt,
-    recipe: job.recipe,
+    recipe: sanitizeRecipe(job.recipe, job.type),
     runId: job.runId,
     status: job.status,
     type: job.type,

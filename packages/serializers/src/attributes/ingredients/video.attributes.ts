@@ -50,3 +50,33 @@ export const videoCaptionAttributes = createEntityAttributes([
   'language',
   'format',
 ]);
+
+/** Canonical request-only video controls; never included in public media responses. */
+export const videoGenerationRequestAttributes = [
+  'text',
+  'model',
+  'brandId',
+  'folderId',
+  'promptId',
+  'parentId',
+  'references',
+  'endFrame',
+  'outputs',
+  'crunControls',
+  'crunQuoteId',
+  'style',
+  'mood',
+  'camera',
+  'lens',
+  'scene',
+  'lighting',
+  'fontFamily',
+  'blacklist',
+  'brandingMode',
+  'isBrandingEnabled',
+  'promptTemplate',
+  'useTemplate',
+  'harness',
+  'requestedSkillSlugs',
+  'knowledge',
+];

@@ -1,11 +1,14 @@
 import { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
 import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
+import {
+  crunModelCatalogPatch,
+  projectReviewedCrunModelInputControls,
+  validateProviderApprovalAndResolveCrunContract,
+} from '@api/collections/models/services/crun-model-contract.util';
 import { findModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
-import { isFalSchemaFamilyCompatible } from '@api/collections/models/utils/model-schema-family.util';
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { ValidationException } from '@api/exceptions/validation.exception';
-import { isReplicateSchemaFamilyCompatible } from '@api/services/integrations/replicate/services/replicate-contract';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
@@ -15,12 +18,17 @@ import {
   ModelProvider,
 } from '@genfeedai/contracts';
 import type {
+  CrunInputControls,
   IModelProviderContractSnapshot,
   IModelProviderContracts,
   ModelBillablePricingProfile,
 } from '@genfeedai/contracts/interfaces';
 import { withLiveModelCreditPricing } from '@genfeedai/pricing';
-import type { Prisma, Model as PrismaModel } from '@genfeedai/prisma';
+import {
+  type Prisma,
+  type Model as PrismaModel,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -65,6 +73,8 @@ const PUBLIC_MODEL_CATALOG_SELECT = {
   pricingType: true,
   provider: true,
   providerCostUsd: true,
+  providerInputSchema: true,
+  reviewedProviderContractVersion: true,
   qualityTier: true,
   recommendedFor: true,
   speedTier: true,
@@ -96,7 +106,7 @@ export type PublicModelCatalogDocument = Pick<
   | 'recommendedFor'
   | 'speedTier'
   | 'supportsFeatures'
-> & { cost: number };
+> & { cost: number; inputControls?: CrunInputControls };
 
 type PublicModelCatalogFilters = {
   category?: ModelCategory;
@@ -120,6 +130,12 @@ type RegistryReviewPatch = Partial<UpdateModelDto> & {
   pricingType?: string;
   providerCostUsd?: number;
   succeededBy?: string;
+  aspectRatios?: string[];
+  defaultAspectRatio?: string;
+  maxOutputs?: number;
+  maxReferences?: number;
+  isBatchSupported?: boolean;
+  hasResolutionOptions?: boolean;
 };
 
 const SUCCESSOR_REQUIRED_LIFECYCLES = new Set<ModelLifecycle>([
@@ -166,6 +182,7 @@ export class ModelsService extends BaseService<
     const withProviderConfig = {
       ...model,
       providerConfig: this.getProviderConfig(document),
+      inputControls: projectReviewedCrunModelInputControls(document),
     };
     return withLiveModelCreditPricing(
       withProviderConfig,
@@ -343,6 +360,7 @@ export class ModelsService extends BaseService<
       description: priced.description,
       durations: priced.durations,
       id: priced.id,
+      inputControls: projectReviewedCrunModelInputControls(row),
       isDefault: priced.isDefault,
       isHighlighted: priced.isHighlighted,
       key: priced.key,
@@ -834,41 +852,11 @@ export class ModelsService extends BaseService<
         })
       : null;
 
-    if (
-      pendingVersion &&
-      (pendingContract?.mappingStatus !== 'supported' ||
-        !pendingContract.schemaFamily ||
-        !pendingContract.pricingType ||
-        pendingContract.unitPriceMicros === null)
-    ) {
-      throw new BadRequestException(
-        'The pending provider contract is quarantined and cannot be activated',
-      );
-    }
-    if (
-      pendingContract?.schemaFamily &&
-      existing.provider === ModelProvider.FAL &&
-      !isFalSchemaFamilyCompatible(
-        updateDto.category ?? existing.category,
-        pendingContract.schemaFamily,
-      )
-    ) {
-      throw new BadRequestException(
-        'The pending provider contract schema family does not match the model category',
-      );
-    }
-    if (
-      pendingContract?.schemaFamily &&
-      existing.provider === ModelProvider.REPLICATE &&
-      !isReplicateSchemaFamilyCompatible(
-        updateDto.category ?? existing.category,
-        pendingContract.schemaFamily,
-      )
-    ) {
-      throw new BadRequestException(
-        'The pending provider contract schema family does not match the model category',
-      );
-    }
+    const crunContract = validateProviderApprovalAndResolveCrunContract(
+      existing,
+      pendingContract,
+      updateDto.category,
+    );
 
     const patch: RegistryReviewPatch = {
       ...updateDto,
@@ -881,10 +869,14 @@ export class ModelsService extends BaseService<
 
     if (pendingContract) {
       patch.pendingProviderContractVersion = null;
-      patch.providerCostUsd =
-        Number(pendingContract.unitPriceMicros) / 1_000_000;
-      patch.providerInputSchema =
-        pendingContract.inputSchema as Prisma.InputJsonValue;
+      if (existing.provider !== ModelProvider.CRUN)
+        patch.providerCostUsd =
+          Number(pendingContract.unitPriceMicros) / 1_000_000;
+      if (crunContract)
+        Object.assign(patch, crunModelCatalogPatch(crunContract));
+      patch.providerInputSchema = crunContract
+        ? toPrismaJson(crunContract)
+        : (pendingContract.inputSchema as Prisma.InputJsonValue);
       patch.providerSchemaFamily = pendingContract.schemaFamily as string;
       patch.providerSyncStatus = 'fresh';
       patch.pricingType = pendingContract.pricingType as string;

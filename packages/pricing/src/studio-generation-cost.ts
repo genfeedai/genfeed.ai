@@ -6,6 +6,10 @@ import {
   RouterPriority,
 } from '@genfeedai/contracts';
 import {
+  FLUX_3_PROVIDER_COSTS,
+  isFlux3ImageModel,
+  isFlux3Resolution,
+  isImageEditModel,
   MODEL_KEYS,
   MODEL_OUTPUT_CAPABILITIES,
 } from '@genfeedai/contracts/constants';
@@ -23,6 +27,7 @@ import {
   calculateImageGenerationCredits,
   calculateVideoGenerationCredits,
 } from './generation-credit-calculator';
+import { applyMargin } from './plans-pricing';
 
 const UNAVAILABLE: StudioGenerationCostEstimate = {
   credits: null,
@@ -54,11 +59,13 @@ const AUTO_MODEL_KEY = '__auto_model__';
 
 const DEFAULT_ASPECT_RATIO = {
   image: '1:1',
+  'image-edit': '1:1',
   video: '16:9',
 } as const;
 
 const DEFAULT_RESOLUTION = {
   image: '1K',
+  'image-edit': '1K',
   video: '720p',
 } as const;
 
@@ -142,7 +149,7 @@ function resolveSubmittedVideoResolution(
 
 /** Composer defaults for the fields that change the estimate. Omitted tool inputs use these. */
 export function buildStudioGenerationCostSettings(
-  type: 'image' | 'video',
+  type: 'image' | 'image-edit' | 'video',
   overrides: {
     aspectRatio?: string;
     duration?: number;
@@ -178,7 +185,8 @@ export function resolveStudioGenerationCost({
   settings,
   type,
 }: StudioGenerationCostInput): StudioGenerationCostEstimate {
-  if (type !== 'image' && type !== 'video') return UNAVAILABLE;
+  if (type !== 'image' && type !== 'image-edit' && type !== 'video')
+    return UNAVAILABLE;
   if (isLoadingModels) return { credits: null, status: 'loading' };
   if (isAutoStudioModelKey(settings.modelKey))
     return { credits: null, status: 'auto' };
@@ -188,7 +196,11 @@ export function resolveStudioGenerationCost({
     !model.isActive ||
     model.lifecycle === ModelLifecycle.RETIRED ||
     model.category !==
-      (type === 'image' ? ModelCategory.IMAGE : ModelCategory.VIDEO) ||
+      (type === 'image-edit'
+        ? ModelCategory.IMAGE_EDIT
+        : type === 'image'
+          ? ModelCategory.IMAGE
+          : ModelCategory.VIDEO) ||
     model.reviewStatus === 'pending' ||
     model.reviewStatus === 'rejected' ||
     model.providerSyncStatus === 'quarantined' ||
@@ -249,6 +261,41 @@ export function resolveStudioGenerationCost({
   )
     return UNAVAILABLE;
 
+  if (isFlux3ImageModel(model.key)) {
+    if (
+      !isFlux3Resolution(settings.resolution) ||
+      settings.outputs !== 1 ||
+      pricingType !== PricingType.FLAT ||
+      !model.reviewedProviderContractVersion
+    )
+      return UNAVAILABLE;
+    return {
+      credits: applyMargin(FLUX_3_PROVIDER_COSTS[settings.resolution]),
+      status: 'estimated',
+    };
+  }
+  if (type === 'image-edit') {
+    if (
+      !isImageEditModel(model.key) ||
+      settings.outputs > 8 ||
+      pricingType !== PricingType.FLAT
+    )
+      return UNAVAILABLE;
+    return {
+      credits:
+        calculateImageGenerationCredits({
+          height: 1024,
+          width: 1024,
+          imageProvider: model.provider,
+          isBatchSupported: true,
+          modelKey: model.key,
+          outputs: 1,
+          pricing: model,
+          quality: 'medium',
+        }).credits * settings.outputs,
+      status: 'estimated',
+    };
+  }
   const size = resolveAspectDimensions(
     settings.aspectRatio,
     resolveLongEdge(settings.resolution),

@@ -5,6 +5,8 @@ import { BusinessLogicException } from '@api/exceptions/business-logic.exception
 import type { GenerationCreditReservationRequest } from '@api/helpers/utils/credits/generation-credit-reservation.util';
 import { hasGenerationLineProtocol } from '@api/helpers/utils/credits/generation-line-reservation.util';
 import {
+  crunGroupManifestMatches,
+  crunReceiptAllowsDisposition,
   generationQuoteGroupMetadataSchema as metadataSchema,
   generationQuoteGroupReceiptSchema as receiptSchema,
 } from '@api/helpers/utils/credits/generation-quote-group.schema';
@@ -125,7 +127,16 @@ export class GenerationQuoteGroupService {
         },
       });
       if (!hold || hold.status !== CreditReservationStatus.RESERVED) return;
+      const tasks = await tx.crunGenerationTask.findMany({
+        where: { reservationId, organizationId, isDeleted: false },
+      });
       const metadata = metadataSchema.parse(hold.metadata);
+      if (
+        metadata.modelQuote.providerQuote &&
+        (tasks.length > 0 || metadata.boundOutputIds.length > 0) &&
+        !crunGroupManifestMatches(hold, tasks)
+      )
+        return;
       await tx.creditReservation.updateMany({
         where: {
           id: reservationId,
@@ -144,6 +155,16 @@ export class GenerationQuoteGroupService {
     organizationId: string,
     confirmedFailure = false,
   ): Promise<boolean> {
+    const task = await this.prisma.crunGenerationTask.findFirst({
+      where: { ingredientId, organizationId, isDeleted: false },
+    });
+    if (
+      !crunReceiptAllowsDisposition(
+        task,
+        confirmedFailure ? 'release' : 'settle',
+      )
+    )
+      return true;
     const ingredient = await this.prisma.ingredient.findFirst({
       where: { id: ingredientId, organizationId, isDeleted: false },
       select: { generationBilling: true },

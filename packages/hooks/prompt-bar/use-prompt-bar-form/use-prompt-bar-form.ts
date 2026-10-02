@@ -24,6 +24,7 @@ export function usePromptBarForm(
       brandingMode: promptData?.brandingMode ?? 'off',
       camera: '',
       category: promptData?.category || IngredientCategory.VIDEO,
+      crunControls: promptData?.crunControls,
       duration: undefined,
       endFrame: '',
       folder: undefined,

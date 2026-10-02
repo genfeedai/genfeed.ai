@@ -311,6 +311,8 @@ const UI_TEST_MESSAGES = {
   },
   ui: {
     quickActions: {
+      editImage: 'Edit image',
+      editImageDescription: 'Change this image with an instruction',
       more: 'More',
       groups: { reframe: 'Reframe', convert: 'Convert', prompt: 'Prompt' },
     },

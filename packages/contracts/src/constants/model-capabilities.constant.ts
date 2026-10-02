@@ -1,4 +1,5 @@
 import { ModelCategory } from '..';
+import { FLUX_3_ASPECT_RATIOS } from './flux-3-image.constant';
 import { ASPECT_RATIOS } from './model-aspect-ratios.constant';
 import { MODEL_KEYS } from './model-keys.constant';
 
@@ -592,6 +593,29 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       isBatchSupported: true,
       maxOutputs: 4,
       maxReferences: 1,
+    },
+
+    [MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE]: {
+      category: ModelCategory.IMAGE,
+      aspectRatios: [...FLUX_3_ASPECT_RATIOS],
+      defaultAspectRatio: 'auto',
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 10,
+    },
+    [MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT]: {
+      category: ModelCategory.IMAGE_EDIT,
+      aspectRatios: [...FLUX_3_ASPECT_RATIOS],
+      defaultAspectRatio: 'auto',
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 10,
+    },
+    [MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5]: {
+      category: ModelCategory.IMAGE_EDIT,
+      isBatchSupported: true,
+      maxOutputs: 8,
+      maxReferences: 5,
     },
 
     [MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE]: {

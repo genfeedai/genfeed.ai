@@ -1,6 +1,7 @@
 import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import {
+  crunFailureKind,
   generationQuoteGroupMetadataSchema,
   generationQuoteGroupReceiptSchema,
 } from '@api/helpers/utils/credits/generation-quote-group.schema';
@@ -43,6 +44,17 @@ export async function persistQuoteGroupFailure(
           const metadata = generationQuoteGroupMetadataSchema.parse(
             hold.metadata,
           );
+          if (metadata.modelQuote.providerQuote) {
+            const task = await tx.crunGenerationTask.findFirst({
+              where: {
+                ingredientId,
+                organizationId,
+                isDeleted: false,
+                reservationId: hold.id,
+              },
+            });
+            if (!crunFailureKind(task)) return;
+          }
           if (!metadata.boundOutputIds.includes(ingredientId))
             throw new BusinessLogicException(
               'Failed output is absent from its funded manifest',

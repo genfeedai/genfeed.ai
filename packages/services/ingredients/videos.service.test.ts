@@ -1,3 +1,7 @@
+import type {
+  CrunVideoGenerationRequest,
+  CrunVideoQuoteRequest,
+} from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
 import { Caption } from '@genfeedai/models/content/caption.model';
 import {
   axiosResponse,
@@ -6,7 +10,9 @@ import {
   type MockHttpInstance,
   resourceDocument,
 } from '@services/__mocks__/http.mock';
+import { EnvironmentService } from '@services/core/environment.service';
 import { VideosService } from '@services/ingredients/videos.service';
+import axios from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('VideosService', () => {
@@ -202,5 +208,138 @@ describe('VideosService', () => {
       pairs: [{ endImageId: 'img_2', startImageId: 'img_1' }],
     });
     expect(result).toEqual(payload);
+  });
+});
+
+describe('VideosService canonical Crun transport', () => {
+  const request: CrunVideoQuoteRequest = {
+    model: 'crun/kling/v2-5-turbo-pro',
+    text: 'Camera moves',
+    brandId: 'brand-1',
+    references: ['start-1'],
+    endFrame: 'end-1',
+    parentId: 'start-1',
+    outputs: 4,
+    crunControls: {
+      contractVersion: 'reviewed-video',
+      duration: 10,
+      guidanceScale: 0,
+      negativePrompt: 'no blur',
+    },
+  };
+  const available = {
+    isAvailable: true,
+    quoteId: 'video-quote',
+    expiresAt: '2099-01-01T00:00:00.000Z',
+    modelKey: request.model,
+    contractVersion: 'reviewed-video',
+    credits: 11,
+    billingMode: 'credits',
+    reasonCode: null,
+  };
+  it('posts a plain preview body and forwards abort without serializing controls', async () => {
+    const service = new VideosService('crun-video');
+    const http = installMockHttp(service);
+    http.post.mockResolvedValue(
+      axiosResponse({
+        data: {
+          type: 'crun-generation-quote',
+          id: 'preview',
+          attributes: available,
+        },
+      }),
+    );
+    const signal = new AbortController().signal;
+    expect(await service.quoteCrun(request, signal)).toEqual(available);
+    expect(http.post).toHaveBeenCalledWith('/crun-quote', request, { signal });
+  });
+  it('posts canonical consume without generic dimensions and preserves the signal', async () => {
+    const service = new VideosService('consume-video');
+    const http = installMockHttp(service);
+    http.post.mockResolvedValue(
+      axiosResponse(
+        resourceDocument(
+          { label: 'Video', pendingIngredientIds: ['v1', 'v2', 'v3', 'v4'] },
+          { id: 'v1' },
+        ),
+      ),
+    );
+    const body: CrunVideoGenerationRequest = {
+      ...request,
+      crunQuoteId: 'video-quote',
+    };
+    const signal = new AbortController().signal;
+    const result = await service.post(body, signal);
+    expect(http.post).toHaveBeenCalledWith('', body, { signal });
+    expect(result).toMatchObject({
+      pendingIngredientIds: ['v1', 'v2', 'v3', 'v4'],
+    });
+  });
+  it('rejects an image response for a video request', async () => {
+    const service = new VideosService('wrong-model');
+    const http = installMockHttp(service);
+    http.post.mockResolvedValue(
+      axiosResponse({
+        data: {
+          type: 'crun-generation-quote',
+          id: 'preview',
+          attributes: { ...available, modelKey: 'crun/google/nano-banana-pro' },
+        },
+      }),
+    );
+    await expect(service.quoteCrun(request)).rejects.toThrow(
+      'CRUN_PROVIDER_UNAVAILABLE',
+    );
+  });
+  it('retains unavailable fields as null rather than zero', async () => {
+    const service = new VideosService('unavailable');
+    const http = installMockHttp(service);
+    const unavailable = {
+      isAvailable: false,
+      modelKey: request.model,
+      quoteId: null,
+      expiresAt: null,
+      contractVersion: null,
+      credits: null,
+      billingMode: null,
+      reasonCode: 'PRICING_UNAVAILABLE',
+    };
+    http.post.mockResolvedValue(
+      axiosResponse({
+        data: {
+          type: 'crun-generation-quote',
+          id: 'preview',
+          attributes: unavailable,
+        },
+      }),
+    );
+    expect(await service.quoteCrun(request)).toEqual(unavailable);
+  });
+  it('keys same-token instances by endpoint and targets the new server', () => {
+    const endpoint = vi.spyOn(EnvironmentService, 'apiEndpoint', 'get');
+    const create = vi.spyOn(axios, 'create');
+    create.mockClear();
+    try {
+      endpoint.mockReturnValue('https://first.example/api');
+      const first = VideosService.getInstance('endpoint-video');
+      expect(VideosService.getInstance('endpoint-video')).toBe(first);
+      endpoint.mockReturnValue('https://second.example/api');
+      const second = VideosService.getInstance('endpoint-video');
+      expect(second).not.toBe(first);
+      expect(VideosService.getInstance('endpoint-video')).toBe(second);
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseURL: 'https://first.example/api/videos',
+        }),
+      );
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseURL: 'https://second.example/api/videos',
+        }),
+      );
+    } finally {
+      create.mockRestore();
+      endpoint.mockRestore();
+    }
   });
 });

@@ -2,6 +2,7 @@ import type { ModelsService } from '@api/collections/models/services/models.serv
 import type { ByokService } from '@api/services/byok/byok.service';
 import { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
 import type { MediaVendorCostLedgerService } from '@api/services/media-vendor-cost/media-vendor-cost-ledger.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ByokProvider } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -32,6 +33,9 @@ describe('MediaGenerationCostService', () => {
       byokService as unknown as ByokService,
       ledgerService as unknown as MediaVendorCostLedgerService,
       logger as unknown as LoggerService,
+      {
+        crunGenerationTask: { findFirst: vi.fn().mockResolvedValue(null) },
+      } as unknown as PrismaService,
     );
   });
 

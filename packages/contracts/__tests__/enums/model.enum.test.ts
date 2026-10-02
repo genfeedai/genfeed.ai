@@ -11,11 +11,20 @@ import {
 
 describe('model.enum', () => {
   describe('ModelKey', () => {
-    it('should have 130 members', () => {
-      expect(Object.values(MODEL_KEYS)).toHaveLength(130);
+    it('should have 133 members', () => {
+      expect(Object.values(MODEL_KEYS)).toHaveLength(133);
     });
 
     it('should have correct values', () => {
+      expect(MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5).toBe(
+        'ideogram-ai/ideogram-4-5',
+      );
+      expect(MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE).toBe(
+        'black-forest-labs/flux-3-image',
+      );
+      expect(MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT).toBe(
+        'black-forest-labs/flux-3-image-edit',
+      );
       expect(MODEL_KEYS.REPLICATE_FAST_FLUX_TRAINER).toBe(
         'replicate/fast-flux-trainer',
       );
@@ -288,8 +297,8 @@ describe('model.enum', () => {
   });
 
   describe('ModelProvider', () => {
-    it('should have 7 members', () => {
-      expect(Object.values(ModelProvider)).toHaveLength(7);
+    it('should have 8 members', () => {
+      expect(Object.values(ModelProvider)).toHaveLength(8);
     });
 
     it('should have correct values', () => {
@@ -300,6 +309,7 @@ describe('model.enum', () => {
       expect(ModelProvider.MUREKA).toBe('mureka');
       expect(ModelProvider.HEYGEN).toBe('heygen');
       expect(ModelProvider.HIGGSFIELD).toBe('higgsfield');
+      expect(ModelProvider.CRUN).toBe('crun');
     });
   });
 

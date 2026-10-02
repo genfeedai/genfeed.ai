@@ -8801,6 +8801,56 @@ model ContentLearningScopeState {
  @@map("content_learning_scope_states")
 }
 
+/// Frozen authenticated Crun submissions. No API key, prompt or signed input URL is stored.
+model CrunGenerationTask {
+  id                    String   @id @default(cuid())
+  organizationId        String
+  userId                String
+  ingredientId          String
+  brandId               String?
+  reservationId         String?
+  fundingBinding        Json
+  modelKey              String
+  endpoint              String
+  contractVersion       String
+  quoteId               String
+  outputIndex           Int
+  inputHash             String
+  inputMetadata         Json
+  quoteSnapshot         Json
+  credentialSource      String
+  credentialId          String?
+  credentialFingerprint String
+  providerTaskId        String?
+  state                 String   @default("prepared")
+  submittedAt           DateTime?
+  deadlineAt            DateTime?
+  nextPollAt            DateTime?
+  nextMediaAttemptAt    DateTime?
+  nextAccountingAttemptAt DateTime?
+  pollCount             Int      @default(0)
+  leaseUntil            DateTime?
+  version               Int      @default(0)
+  terminalReceipt       Json?
+  failureCode           String?
+  recoveryCode          String?
+  cancelRequestedAt     DateTime?
+  mediaPersistedAt      DateTime?
+  billingRecordedAt     DateTime?
+  vendorCostRecordedAt  DateTime?
+  copyAttemptCount      Int      @default(0)
+  isDeleted             Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([organizationId, ingredientId], map: "crun_tasks_org_ingredient_key")
+  @@unique([organizationId, quoteId, outputIndex], map: "crun_tasks_org_quote_output_key")
+  @@unique([credentialFingerprint, providerTaskId], map: "crun_tasks_credential_provider_task_key")
+  @@index([isDeleted, state, nextPollAt], map: "crun_tasks_due_idx")
+  @@index([organizationId, reservationId, isDeleted], map: "crun_tasks_reservation_idx")
+  @@map("crun_generation_tasks")
+}
+
 model BrandedGenerationReceipt {
   id String @id @default(cuid())
   organizationId String

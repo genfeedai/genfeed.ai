@@ -30,6 +30,11 @@ export class ModelCreditQuoteService {
     );
     if (!profile)
       throw this.unavailable(modelKey, 'Exact model tariff is unavailable');
+    if (profile.provider === 'crun')
+      throw this.unavailable(
+        modelKey,
+        'Crun requires an effective-input account quote',
+      );
     const quote = quoteModelBillablePricing(
       profile,
       normalizeModelProviderQuoteRequest(profile, modelKey, input),

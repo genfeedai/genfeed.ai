@@ -1,7 +1,9 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   type GenerationBillingRequest,
   GenerationBillingService,
 } from '@api/collections/credits/services/generation-billing.service';
+import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import type {
   ImageGenerationCompletionPlan,
   ImageGenerationContext,
@@ -10,6 +12,10 @@ import type {
   ImageGenerationSavedIngredient,
   PreparedImageGenerationProvider,
 } from '@api/collections/images/services/image-generation.types';
+import {
+  completeImageGeneration,
+  type RealizedImageDimensions,
+} from '@api/collections/images/services/image-generation-completion.util';
 import {
   resolveImageDispatchExecutePath,
   shouldFailAdditionalActivity,
@@ -23,11 +29,12 @@ import {
 } from '@api/collections/images/services/image-generation-output.util';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
-import { persistImageProviderOutput } from '@api/collections/images/services/persist-image-provider-output.util';
+import { prepareImageGenerationProvider } from '@api/collections/images/services/prepare-image-generation-provider.util';
 import { isGenerationCancelledError } from '@api/collections/ingredients/errors/generation-cancelled.error';
 import { ProviderGenerationFailedError } from '@api/collections/ingredients/errors/provider-generation-failed.error';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
@@ -53,11 +60,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
-
-interface RealizedImageDimensions {
-  height?: number;
-  width?: number;
-}
 
 /**
  * Coordinates provider-neutral output persistence and completion behavior.
@@ -121,84 +123,39 @@ export class ImageGenerationProviderDispatchService {
     return this.providerRegistry.supports(model, provider);
   }
 
+  generateCrunQuoted(
+    user: AuthenticatedUser,
+    dto: CreateImageDto,
+    request: RequestWithContext,
+    hasUnsupportedContext: boolean,
+  ) {
+    return this.providerRegistry.generateCrunQuoted(
+      user,
+      dto,
+      request,
+      hasUnsupportedContext,
+    );
+  }
+
   async dispatch(
     context: ImageGenerationContext,
   ): Promise<ImageGenerationCompletionPlan | null> {
     const byokApiKeyOverride = (
       context.request as unknown as DeferredCreditsRequest | undefined
     )?.creditsConfig?.byokApiKeyOverride;
-    const provider = await this.providerRegistry.prepare({
-      abortSignal: context.abortSignal,
-      apiKeyOverride: byokApiKeyOverride,
-      brandPromptBranding: context.brandPromptBranding,
-      compiledDispatch: context.compiledDispatch,
-      createImageDto: context.createImageDto,
-      height: context.height,
-      model: context.model,
-      modelEndpoint: context.modelEndpoint,
-      modelInputSchema: context.modelInputSchema,
-      modelProvider: context.modelProvider,
-      modelSchemaFamily: context.modelSchemaFamily,
-      onProviderSubmissionStarted: () => {
-        const documents = this.batchDocuments.get(context);
-        const target = this.activeDocument.get(context);
-        this.beginSubmission(
-          context,
-          documents
-            ? documents.map(({ ingredientData }) => ingredientData.id)
-            : [target?.ingredientData.id ?? context.ingredientData.id],
-        );
+    const provider = await prepareImageGenerationProvider(
+      context,
+      {
+        providerRegistry: this.providerRegistry,
+        metadataService: this.metadataService,
+        getBatchDocuments: (current) => this.batchDocuments.get(current),
+        getActiveDocument: (current) => this.activeDocument.get(current),
+        beginSubmission: (current, ids) => this.beginSubmission(current, ids),
+        patchExternalId: (metadataId, result, current, ingredientId) =>
+          this.patchExternalId(metadataId, result, current, ingredientId),
       },
-      onProviderOutput: async (output) => {
-        const target = this.activeDocument.get(context) ?? {
-          metadataData: context.metadataData,
-        };
-        await persistImageProviderOutput(
-          this.metadataService,
-          target.metadataData.id,
-          output,
-          this.batchDocuments.get(context)?.length ?? 1,
-        );
-      },
-      onExternalJobCreated: async (externalId) => {
-        const documents = this.batchDocuments.get(context);
-        if (documents) {
-          await Promise.all(
-            documents.map(({ ingredientData, metadataData }, index) =>
-              this.patchExternalId(
-                metadataData.id,
-                { kind: 'external-id', externalId: `${externalId}_${index}` },
-                context,
-                ingredientData.id,
-              ),
-            ),
-          );
-        } else {
-          const target = this.activeDocument.get(context) ?? {
-            ingredientData: context.ingredientData,
-            metadataData: context.metadataData,
-          };
-          await this.patchExternalId(
-            target.metadataData.id,
-            { kind: 'external-id', externalId },
-            context,
-            target.ingredientData.id,
-          );
-        }
-      },
-      organizationId: context.user.organizationId,
-      outputs: context.outputs,
-      prompt:
-        context.generationHarness?.enhancedPrompt ??
-        context.promptData.original,
-      providerInput: context.providerInput,
-      promptBuilderBrand: context.promptBuilderBrand,
-      promptId: context.promptData.id,
-      referenceImageUrl: context.referenceImageUrl,
-      referenceImageUrls: context.referenceImageUrls,
-      style: context.style,
-      width: context.width,
-    });
+      byokApiKeyOverride,
+    );
 
     if (!provider || provider.completionKind === 'none') {
       return null;
@@ -225,6 +182,42 @@ export class ImageGenerationProviderDispatchService {
     let generationPromise: Promise<unknown>;
     try {
       await this.bindOutputCredits(context, context.ingredientData.id);
+      if (
+        context.editing &&
+        context.outputs > 1 &&
+        provider.outputStrategy === 'batch'
+      ) {
+        const documents: ImageGenerationSaveDocumentsResult[] = [
+          {
+            ingredientData: context.ingredientData,
+            metadataData: context.metadataData,
+          },
+        ];
+        this.batchDocuments.set(context, documents);
+        try {
+          for (let index = 1; index < context.outputs; index += 1) {
+            const output = await this.createAdditionalDocuments(context);
+            documents.push(output);
+            await this.bindOutputCredits(context, output.ingredientData.id);
+            context.pendingIngredientIds.push(
+              output.ingredientData.id.toString(),
+            );
+          }
+        } catch (error: unknown) {
+          await Promise.all(
+            documents.map(({ ingredientData }) =>
+              this.handleProviderFailure(
+                context,
+                error,
+                'Image editing batch admission failed',
+                ingredientData.id,
+              ).catch(() => undefined),
+            ),
+          );
+          this.batchDocuments.delete(context);
+          throw error;
+        }
+      }
       generationPromise = this.execute(context, provider, pollIds);
     } catch (error: unknown) {
       await this.generationBilling.releasePool(billing);
@@ -430,8 +423,21 @@ export class ImageGenerationProviderDispatchService {
     ];
     try {
       // Every batch output must exist and be funded before the provider accepts the batch.
+      const preallocated = context.editing
+        ? this.batchDocuments.get(context)
+        : undefined;
       const additionalDocuments: ImageGenerationSaveDocumentsResult[] = [];
-      for (let index = 1; index < context.outputs; index += 1) {
+      if (preallocated) {
+        for (const output of preallocated.slice(1)) {
+          additionalDocuments.push(output);
+          documents.push(output);
+        }
+      }
+      for (
+        let index = preallocated ? context.outputs : 1;
+        index < context.outputs;
+        index += 1
+      ) {
         const output = await this.createAdditionalDocuments(context);
         additionalDocuments.push(output);
         documents.push(output);
@@ -679,13 +685,19 @@ export class ImageGenerationProviderDispatchService {
       ...(context.generationSource
         ? { generationSource: context.generationSource }
         : {}),
-      ...(context.briefEvidence
+      ...(context.editing
         ? {
-            providerData: toRedactedGenerationBriefProviderData(
-              context.briefEvidence,
-            ),
+            providerData: { imageEdit: { ...context.editing.recipe } },
+            width: context.width,
+            height: context.height,
           }
-        : {}),
+        : context.briefEvidence
+          ? {
+              providerData: toRedactedGenerationBriefProviderData(
+                context.briefEvidence,
+              ),
+            }
+          : {}),
       model: context.model,
       negativePrompt: context.createImageDto.negativePrompt,
       organizationId: context.user.organizationId,
@@ -693,6 +705,9 @@ export class ImageGenerationProviderDispatchService {
       promptId: context.promptData.id,
       scope: context.createImageDto.scope,
       sourceIds: context.referenceIds,
+      ...(context.editing
+        ? { sourceActionId: context.createImageDto.sourceActionId }
+        : {}),
       status: IngredientStatus.PROCESSING,
       style: context.style,
       tagIds: context.createImageDto.tags,
@@ -932,23 +947,6 @@ export class ImageGenerationProviderDispatchService {
     });
   }
 
-  /** A finished image settles its hold; a miss is backstopped by the sweep. */
-  private async settleOutputCredits(
-    context: ImageGenerationContext,
-    ingredientId: ImageGenerationSavedIngredient['id'],
-  ): Promise<void> {
-    try {
-      await this.generationBilling.settleOutput(
-        ingredientId.toString(),
-        context.user.organizationId,
-      );
-    } catch (error: unknown) {
-      this.loggerService.error('Image credit settlement failed', error, {
-        ingredientId: ingredientId.toString(),
-      });
-    }
-  }
-
   private async releaseOutputCredits(
     context: ImageGenerationContext,
     ingredientId: ImageGenerationSavedIngredient['id'],
@@ -971,24 +969,17 @@ export class ImageGenerationProviderDispatchService {
     output: GenerationWebhookOutput,
     dimensions: RealizedImageDimensions,
   ): Promise<void> {
-    await this.settleOutputCredits(context, ingredientId);
-    await this.mediaGenerationCostService.recordGenerationCost({
-      brandId: context.brand.id?.toString() ?? null,
-      category: 'image',
-      height: dimensions.height ?? null,
-      ingredientId: ingredientId.toString(),
-      modelKey: context.model,
-      organizationId: context.user.organizationId,
-      width: dimensions.width ?? null,
-    });
-
-    await this.generationEventWebhookService.emitGenerationCompleted({
-      brandId: context.brand.id?.toString() ?? null,
-      generationId: ingredientId.toString(),
-      kind: 'image',
-      model: context.model,
-      organizationId: context.user.organizationId,
+    await completeImageGeneration(
+      {
+        generationBilling: this.generationBilling,
+        loggerService: this.loggerService,
+        mediaGenerationCostService: this.mediaGenerationCostService,
+        generationEventWebhookService: this.generationEventWebhookService,
+      },
+      context,
+      ingredientId,
       output,
-    });
+      dimensions,
+    );
   }
 }

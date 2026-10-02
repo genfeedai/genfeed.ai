@@ -18,6 +18,7 @@ import {
   ViewType,
 } from '@genfeedai/contracts';
 import {
+  getImageEditMaxSources,
   getModelMaxVideoReferences,
   hasEndFrame,
   hasInterpolation,
@@ -33,7 +34,9 @@ import type {
   StudioGenerateDraftPayload,
   StudioGenerateJob,
   StudioGenerateReferenceRole,
+  StudioGenerateType,
 } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
+import { normalizeCrunVideoDraft } from '@genfeedai/helpers/crun-video-input.helper';
 import type { BrandKnowledgeSelection } from '@genfeedai/props/content/knowledge-library.props';
 import type { PromptEditorDocumentSeed } from '@genfeedai/props/prompt-bars/prompt-editor.props';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
@@ -43,6 +46,7 @@ import type {
   StudioGenerateStarterSelection,
 } from '@genfeedai/props/studio/studio-generate.props';
 import type { AttachmentItem } from '@genfeedai/props/ui/attachments.props';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
@@ -53,6 +57,7 @@ import StudioGenerateComposer from '@pages/studio/generate/components/StudioGene
 import StudioGenerateInspector from '@pages/studio/generate/components/StudioGenerateInspector';
 import StudioGenerateResults from '@pages/studio/generate/components/StudioGenerateResults';
 import StudioGenerateStarterIdeas from '@pages/studio/generate/components/StudioGenerateStarterIdeas';
+import { useCrunGenerationQuote } from '@pages/studio/generate/hooks/useCrunGenerationQuote';
 import { useStudioGenerateAssetActions } from '@pages/studio/generate/hooks/useStudioGenerateAssetActions';
 import { useStudioGenerateDraft } from '@pages/studio/generate/hooks/useStudioGenerateDraft';
 import { useStudioGenerateGallery } from '@pages/studio/generate/hooks/useStudioGenerateGallery';
@@ -61,7 +66,12 @@ import { useStudioGenerateModels } from '@pages/studio/generate/hooks/useStudioG
 import { useStudioGenerateSettings } from '@pages/studio/generate/hooks/useStudioGenerateSettings';
 import { useStudioGeneration } from '@pages/studio/generate/hooks/useStudioGeneration';
 import { useStudioPromptEnhancement } from '@pages/studio/generate/hooks/useStudioPromptEnhancement';
-import { buildRepromptData } from '@pages/studio/generate/utils/generation-payloads';
+import {
+  buildRepromptData,
+  buildStudioCrunQuoteRequest,
+  buildStudioCrunVideoQuoteRequest,
+} from '@pages/studio/generate/utils/generation-payloads';
+import { prepareCrunGenerationIntent } from '@pages/studio/generate/utils/prepare-crun-generation-intent';
 import {
   filterStudioGenerateJobs,
   mergeStudioGenerateJobs,
@@ -76,6 +86,8 @@ import {
 } from '@pages/studio/generate/utils/studio-generate-handoff';
 import {
   groupStudioGenerateJobsByRun,
+  readStudioCrunRecipeControls,
+  recipeFromIngredient,
   recipeFromRepromptData,
   settingsPatchFromRecipe,
 } from '@pages/studio/generate/utils/studio-generate-recipe';
@@ -83,7 +95,10 @@ import {
   pickStarterCharacter,
   pickStarterProductReference,
 } from '@pages/studio/generate/utils/studio-generate-starter-ideas';
-import { sanitizeStudioGenerateState } from '@pages/studio/generate/utils/studio-generate-storage';
+import {
+  sanitizeStudioGenerateSettings,
+  sanitizeStudioGenerateState,
+} from '@pages/studio/generate/utils/studio-generate-storage';
 import {
   getStudioGenerateTypeConfig,
   isStudioGenerateType,
@@ -91,6 +106,7 @@ import {
 } from '@pages/studio/generate/utils/studio-generate-types';
 import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
 import { IngredientsService } from '@services/content/ingredients.service';
+import { EnvironmentService } from '@services/core/environment.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import type { JSONContent } from '@tiptap/core';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
@@ -103,6 +119,7 @@ import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import { Label } from '@ui/primitives/label';
 import Searchbar from '@ui/primitives/searchbar';
 import {
   Select,
@@ -113,6 +130,7 @@ import {
 } from '@ui/primitives/select';
 import { usePromptCommandExtension } from '@ui/prompt-editor/use-prompt-command-extension';
 import { LayoutGrid, RotateCcw, Rows3 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   type ReactElement,
@@ -181,6 +199,7 @@ function toRestoredAttachment(asset: IIngredient): AttachmentItem | null {
 }
 
 export default function StudioGenerateWorkspace(): ReactElement {
+  const editSourceQueryId = useSearchParams().get('editImage');
   const translate = useTranslations('pages.studioGenerate');
   const translateActions = useTranslations('ui.quickActions');
   const storyboardEntry = useStoryboardEntry();
@@ -220,6 +239,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     IngredientsService.getInstance(token),
   );
   const promptDocumentRef = useRef<JSONContent | null>(null);
+  const [quoteDocumentRevision, setQuoteDocumentRevision] = useState(0);
   const {
     applyTypeSettings,
     isHydrated,
@@ -232,6 +252,27 @@ export default function StudioGenerateWorkspace(): ReactElement {
     updateSettings,
   } = useStudioGenerateSettings();
 
+  const authIdentity = useAuthIdentity();
+  const crunRestoreScope = JSON.stringify([
+    brandId,
+    organizationId,
+    authIdentity.userId,
+    authIdentity.sessionId,
+    EnvironmentService.apiEndpoint,
+  ]);
+  const crunRestoreScopeRef = useRef(crunRestoreScope);
+  const crunRestoreEpochRef = useRef(0);
+  if (crunRestoreScopeRef.current !== crunRestoreScope) {
+    crunRestoreEpochRef.current += 1;
+    crunRestoreScopeRef.current = crunRestoreScope;
+  }
+  const [crunRestoreStatus, setCrunRestoreStatus] = useState<
+    'pending' | 'failed' | null
+  >(null);
+  const clearCrunRestore = useCallback(() => {
+    crunRestoreEpochRef.current += 1;
+    setCrunRestoreStatus(null);
+  }, []);
   const [prompt, setPrompt] = useState('');
   const [documentSeed, setDocumentSeed] =
     useState<PromptEditorDocumentSeed | null>(null);
@@ -382,6 +423,10 @@ export default function StudioGenerateWorkspace(): ReactElement {
   const { isLoadingModels, models } = useStudioGenerateModels(
     modelCategory,
     organizationId,
+  );
+  const editSourceLimit = getImageEditMaxSources(
+    models.find((model) => model.key === settings.modelKey)?.key ??
+      models.find((model) => model.isDefault)?.key,
   );
   const { galleryError, isLoadingGallery, refresh, storedJobs } =
     useStudioGenerateGallery({
@@ -700,7 +745,9 @@ export default function StudioGenerateWorkspace(): ReactElement {
             ? completed.kind === 'video'
               ? 'videoReference'
               : 'startFrame'
-            : 'reference');
+            : type === 'image-edit'
+              ? 'editSource'
+              : 'reference');
         return { id: completed.ingredientId, role };
       }),
       ...contentReferences.map((reference) => ({
@@ -710,6 +757,15 @@ export default function StudioGenerateWorkspace(): ReactElement {
     ];
 
     return {
+      editSourceIds: entries
+        .filter((entry) => entry.role === 'editSource')
+        .toSorted(
+          (left, right) =>
+            Number(right.id === settings.editPrimaryId) -
+            Number(left.id === settings.editPrimaryId),
+        )
+        .map((entry) => entry.id),
+      editMaskId: entries.find((entry) => entry.role === 'editMask')?.id,
       endFrameId: entries.find((entry) => entry.role === 'endFrame')?.id,
       imageReferenceIds: entries
         .filter(
@@ -726,6 +782,22 @@ export default function StudioGenerateWorkspace(): ReactElement {
     getAttachmentRole,
     getCompletedAttachments,
     type,
+    settings.editPrimaryId,
+  ]);
+
+  useEffect(() => {
+    if (type !== 'image-edit' || !resolvedReferences.editSourceIds.length)
+      return;
+    if (
+      !settings.editPrimaryId ||
+      !resolvedReferences.editSourceIds.includes(settings.editPrimaryId)
+    )
+      updateSettings({ editPrimaryId: resolvedReferences.editSourceIds[0] });
+  }, [
+    type,
+    resolvedReferences.editSourceIds,
+    settings.editPrimaryId,
+    updateSettings,
   ]);
 
   const rejectUnsupportedSkillSelection = useCallback(
@@ -743,11 +815,13 @@ export default function StudioGenerateWorkspace(): ReactElement {
 
   const handleEnhancePrompt = useCallback(() => {
     const { skillSlugs } = resolvePromptCommands(prompt);
-    if (rejectUnsupportedSkillSelection(skillSlugs)) return;
+    if (type === 'image-edit' || rejectUnsupportedSkillSelection(skillSlugs))
+      return;
     return enhancePrompt();
   }, [
     enhancePrompt,
     prompt,
+    type,
     rejectUnsupportedSkillSelection,
     resolvePromptCommands,
   ]);
@@ -814,20 +888,141 @@ export default function StudioGenerateWorkspace(): ReactElement {
     [brandId, setType],
   );
 
+  const crunModel =
+    type === 'image' || type === 'video'
+      ? models.find(
+          (model) =>
+            model.key === settings.modelKey && model.provider === 'crun',
+        )
+      : undefined;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: editor document revisions and character catalog changes alter resolver output even when the displayed prompt is unchanged.
+  const crunPreparedIntent = useMemo(
+    () =>
+      crunModel
+        ? prepareCrunGenerationIntent({
+            document: promptDocumentRef.current,
+            existingReferenceIds: resolvedReferences.imageReferenceIds,
+            prompt,
+            resolvePromptCommands,
+            resolveCharacterMentions,
+          })
+        : {
+            text: prompt,
+            referenceIds: resolvedReferences.imageReferenceIds,
+            notices: [],
+            skillSlugs: [],
+          },
+    [
+      crunModel,
+      prompt,
+      resolvedReferences.imageReferenceIds,
+      resolvePromptCommands,
+      resolveCharacterMentions,
+      quoteDocumentRevision,
+      characterMentions,
+    ],
+  );
+  const crunRequest = useMemo(
+    () =>
+      buildStudioCrunQuoteRequest({
+        model: type === 'image' ? crunModel : undefined,
+        settings,
+        promptText: crunPreparedIntent.text,
+        references: crunPreparedIntent.referenceIds,
+        brandId,
+        ...(enhancedPromptId && crunPreparedIntent.text === prompt
+          ? { promptId: enhancedPromptId }
+          : {
+              requestedSkillSlugs: crunPreparedIntent.skillSlugs,
+              ...(hasKnowledgeSelection
+                ? { knowledge: knowledgeSelection }
+                : {}),
+            }),
+        harness: false,
+      }),
+    [
+      crunModel,
+      type,
+      settings,
+      crunPreparedIntent,
+      brandId,
+      enhancedPromptId,
+      prompt,
+      hasKnowledgeSelection,
+      knowledgeSelection,
+    ],
+  );
+  const crunVideoRequest = useMemo(() => {
+    if (type !== 'video' || resolvedReferences.videoReferenceIds.length)
+      return null;
+    return buildStudioCrunVideoQuoteRequest({
+      model: crunModel,
+      settings,
+      promptText: crunPreparedIntent.text,
+      references: crunPreparedIntent.referenceIds,
+      endFrameId: resolvedReferences.endFrameId,
+      brandId,
+      ...(enhancedPromptId && crunPreparedIntent.text === prompt
+        ? { promptId: enhancedPromptId }
+        : {
+            requestedSkillSlugs: crunPreparedIntent.skillSlugs,
+            ...(hasKnowledgeSelection ? { knowledge: knowledgeSelection } : {}),
+          }),
+      harness: false,
+    });
+  }, [
+    type,
+    crunModel,
+    settings,
+    crunPreparedIntent,
+    resolvedReferences.endFrameId,
+    resolvedReferences.videoReferenceIds,
+    brandId,
+    enhancedPromptId,
+    prompt,
+    hasKnowledgeSelection,
+    knowledgeSelection,
+  ]);
+  const crunQuote = useCrunGenerationQuote(
+    type === 'video'
+      ? {
+          mediaKind: 'video',
+          request:
+            isEnhancingPrompt || isUploading || crunRestoreStatus
+              ? null
+              : crunVideoRequest,
+          isActive: Boolean(crunModel),
+        }
+      : {
+          request:
+            isEnhancingPrompt || isUploading || crunRestoreStatus
+              ? null
+              : crunRequest,
+          isActive: Boolean(crunModel),
+        },
+  );
+
   const handleSubmit = useCallback(() => {
-    if (isUploading || isListening || isTranscribing) {
+    if (crunRestoreStatus || isUploading || isListening || isTranscribing) {
+      return;
+    }
+    if (type === 'image-edit') {
+      void submit(prompt, resolvedReferences).then((accepted) => {
+        if (accepted) setPrompt('');
+      });
       return;
     }
     // Skills picked from `/` are literal tokens in the prompt. They steer the
     // enhancement pass, never the generator, so they come off first.
-    const { content, skillSlugs } = resolvePromptCommands(prompt);
-    if (rejectUnsupportedSkillSelection(skillSlugs)) return;
-
-    const prepared = resolveCharacterMentions({
+    const prepared = prepareCrunGenerationIntent({
       document: promptDocumentRef.current,
       existingReferenceIds: resolvedReferences.imageReferenceIds,
-      text: content,
+      prompt,
+      resolvePromptCommands,
+      resolveCharacterMentions,
     });
+    const { skillSlugs } = prepared;
+    if (rejectUnsupportedSkillSelection(skillSlugs)) return;
     for (const notice of prepared.notices) {
       notificationsService.warning(notice);
     }
@@ -837,21 +1032,29 @@ export default function StudioGenerateWorkspace(): ReactElement {
         ...resolvedReferences,
         imageReferenceIds: prepared.referenceIds,
       },
-      skillSlugs.length ||
-        hasKnowledgeSelection ||
-        (isHandoffAccepted && handoffPayload?.harness !== undefined) ||
-        (enhancedPromptId && prepared.text === prompt)
+      crunModel
         ? {
-            ...(skillSlugs.length ? { requestedSkillSlugs: skillSlugs } : {}),
-            ...(hasKnowledgeSelection ? { knowledge: knowledgeSelection } : {}),
-            ...(isHandoffAccepted && handoffPayload?.harness !== undefined
-              ? { harness: handoffPayload.harness }
-              : {}),
-            ...(enhancedPromptId && prepared.text === prompt
-              ? { promptId: enhancedPromptId }
-              : {}),
+            ...(crunRequest ? { crunRequest } : {}),
+            ...(crunVideoRequest ? { crunVideoRequest } : {}),
+            getCurrentCrunQuote: crunQuote.getCurrentQuote,
           }
-        : undefined,
+        : skillSlugs.length ||
+            hasKnowledgeSelection ||
+            (isHandoffAccepted && handoffPayload?.harness !== undefined) ||
+            (enhancedPromptId && prepared.text === prompt)
+          ? {
+              ...(skillSlugs.length ? { requestedSkillSlugs: skillSlugs } : {}),
+              ...(hasKnowledgeSelection
+                ? { knowledge: knowledgeSelection }
+                : {}),
+              ...(isHandoffAccepted && handoffPayload?.harness !== undefined
+                ? { harness: handoffPayload.harness }
+                : {}),
+              ...(enhancedPromptId && prepared.text === prompt
+                ? { promptId: enhancedPromptId }
+                : {}),
+            }
+          : undefined,
     ).then((isAccepted) => {
       // A sent generation leaves an empty composer (and draft) behind; the
       // model settings stay for the next one.
@@ -866,14 +1069,20 @@ export default function StudioGenerateWorkspace(): ReactElement {
     });
   }, [
     clearAttachments,
+    type,
     isHandoffAccepted,
     handoffPayload,
+    crunModel,
+    crunRequest,
+    crunVideoRequest,
+    crunQuote.getCurrentQuote,
     enhancedPromptId,
     hasKnowledgeSelection,
     knowledgeSelection,
     isListening,
     isTranscribing,
     isUploading,
+    crunRestoreStatus,
     notificationsService,
     prompt,
     resolvedReferences,
@@ -885,10 +1094,49 @@ export default function StudioGenerateWorkspace(): ReactElement {
 
   const handleSelectContentReference = useCallback(
     (item: ContentMentionItem) => {
+      clearCrunRestore();
       if (!item.thumbnailUrl) {
         return;
       }
-      const supportsInterpolation = hasInterpolation(settings.modelKey);
+      if (contentLibraryRole === 'editSource') {
+        const count =
+          contentReferences.filter(
+            (reference) => reference.role === 'editSource',
+          ).length +
+          attachments.filter(
+            (attachment) => getAttachmentRole(attachment) === 'editSource',
+          ).length;
+        if (
+          count >= editSourceLimit &&
+          !contentReferences.some((reference) => reference.item.id === item.id)
+        ) {
+          notificationsService.warning(
+            `Image editing accepts at most ${editSourceLimit} source images.`,
+          );
+          return;
+        }
+      }
+      if (contentLibraryRole === 'editMask') {
+        for (const attachment of attachments)
+          if (getAttachmentRole(attachment) === 'editMask')
+            removeAttachment(attachment.id);
+        setContentReferences((current) => [
+          ...current.filter(
+            (reference) =>
+              reference.role !== 'editMask' && reference.item.id !== item.id,
+          ),
+          { item, role: 'editMask' },
+        ]);
+        setIsContentLibraryOpen(false);
+        return;
+      }
+      const videoControls = models.find(
+        (model) => model.key === settings.modelKey && model.provider === 'crun',
+      )?.inputControls;
+      const supportsInterpolation =
+        videoControls?.mediaKind === 'video'
+          ? videoControls.videoRules?.referenceMode === 'start-end'
+          : hasInterpolation(settings.modelKey);
       const hasStartFrame =
         contentReferences.some(
           (reference) => reference.role === 'startFrame',
@@ -962,18 +1210,29 @@ export default function StudioGenerateWorkspace(): ReactElement {
     [
       attachments,
       contentLibraryRole,
+      clearCrunRestore,
+      models,
       contentReferences,
       getAttachmentRole,
       notificationsService,
+      editSourceLimit,
       settings.modelKey,
       settings.resolution,
       updateSettings,
+      removeAttachment,
     ],
   );
 
   const handleAddFiles = useCallback<StudioGenerateComposerProps['onAddFiles']>(
     (files: File[], role: StudioGenerateReferenceRole = 'reference') => {
-      const supportsInterpolation = hasInterpolation(settings.modelKey);
+      clearCrunRestore();
+      const videoControls = models.find(
+        (model) => model.key === settings.modelKey && model.provider === 'crun',
+      )?.inputControls;
+      const supportsInterpolation =
+        videoControls?.mediaKind === 'video'
+          ? videoControls.videoRules?.referenceMode === 'start-end'
+          : hasInterpolation(settings.modelKey);
       const hasStartFrame =
         contentReferences.some(
           (reference) => reference.role === 'startFrame',
@@ -1011,6 +1270,33 @@ export default function StudioGenerateWorkspace(): ReactElement {
         }
       }
       let acceptedFiles = files;
+      if (role === 'editSource') {
+        const count =
+          contentReferences.filter(
+            (reference) => reference.role === 'editSource',
+          ).length +
+          attachments.filter(
+            (attachment) => getAttachmentRole(attachment) === 'editSource',
+          ).length;
+        acceptedFiles = files
+          .filter((file) => file.type.startsWith('image/'))
+          .slice(0, Math.max(0, editSourceLimit - count));
+        if (acceptedFiles.length < files.length)
+          notificationsService.warning(
+            `Image editing accepts at most ${editSourceLimit} source images.`,
+          );
+      }
+      if (role === 'editMask') {
+        acceptedFiles = files
+          .filter((file) => file.type.startsWith('image/'))
+          .slice(0, 1);
+        setContentReferences((current) =>
+          current.filter((reference) => reference.role !== 'editMask'),
+        );
+        for (const attachment of attachments)
+          if (getAttachmentRole(attachment) === 'editMask')
+            removeAttachment(attachment.id);
+      }
       if (role === 'videoReference') {
         const selectedVideoReferences =
           contentReferences.filter(
@@ -1054,11 +1340,14 @@ export default function StudioGenerateWorkspace(): ReactElement {
     },
     [
       addFiles,
+      clearCrunRestore,
+      models,
       attachments,
       contentReferences,
       getAttachmentRole,
       notificationsService,
       removeAttachment,
+      editSourceLimit,
       settings.modelKey,
       settings.resolution,
       updateSettings,
@@ -1087,23 +1376,41 @@ export default function StudioGenerateWorkspace(): ReactElement {
       return;
     }
     const unsupportedRoles = new Set<StudioGenerateReferenceRole>();
-    const supportsInterpolation = hasInterpolation(settings.modelKey);
+    const videoControls = models.find(
+      (model) => model.key === settings.modelKey && model.provider === 'crun',
+    )?.inputControls;
+    const supportsInterpolation =
+      videoControls?.mediaKind === 'video'
+        ? videoControls.videoRules?.referenceMode === 'start-end'
+        : hasInterpolation(settings.modelKey);
     const hasStartFrame =
       contentReferences.some((reference) => reference.role === 'startFrame') ||
       attachments.some(
         (attachment: AttachmentItem) =>
           getAttachmentRole(attachment) === 'startFrame',
       );
-    if (!hasEndFrame(settings.modelKey)) {
+    if (
+      !(videoControls?.mediaKind === 'video'
+        ? videoControls.videoRules?.referenceMode === 'start-end'
+        : hasEndFrame(settings.modelKey))
+    ) {
       unsupportedRoles.add('endFrame');
     } else if (supportsInterpolation && !hasStartFrame) {
       unsupportedRoles.add('endFrame');
     } else if (!supportsInterpolation && hasStartFrame) {
       unsupportedRoles.add('endFrame');
     }
-    if (!hasVideoReferences(settings.modelKey)) {
+    if (
+      videoControls?.mediaKind === 'video' ||
+      !hasVideoReferences(settings.modelKey)
+    ) {
       unsupportedRoles.add('videoReference');
     }
+    if (
+      videoControls?.mediaKind === 'video' &&
+      videoControls.videoRules?.referenceMode === 'none'
+    )
+      unsupportedRoles.add('startFrame');
     const removedContentCount = contentReferences.filter((reference) =>
       unsupportedRoles.has(reference.role),
     ).length;
@@ -1137,6 +1444,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     pendingRestoredUploadIds,
     removeAttachment,
     settings.modelKey,
+    models,
     type,
   ]);
 
@@ -1147,38 +1455,53 @@ export default function StudioGenerateWorkspace(): ReactElement {
         ? attachment.kind === 'video'
           ? 'videoReference'
           : 'startFrame'
-        : 'reference'),
+        : type === 'image-edit'
+          ? 'editSource'
+          : 'reference'),
     [getAttachmentRole, type],
   );
 
   const attachedAssets = useMemo<PromptBarAttachedAsset[]>(
-    () => [
-      ...attachments.map((attachment: AttachmentItem) => ({
-        id: attachment.id,
-        kind: attachment.kind,
-        name: attachment.name,
-        previewUrl: attachment.previewUrl,
-        role: resolveAttachmentRole(attachment),
-        source: 'upload' as const,
-      })),
-      ...contentReferences.map((reference) => ({
-        id: reference.item.id,
-        kind: reference.item.contentType.toLowerCase().includes('video')
-          ? ('video' as const)
-          : ('image' as const),
-        name: reference.item.contentTitle,
-        previewUrl: reference.item.thumbnailUrl,
-        role: reference.role,
-        source: 'library' as const,
-      })),
+    () =>
+      [
+        ...attachments.map((attachment: AttachmentItem) => ({
+          id: attachment.id,
+          ingredientId: attachment.ingredientId,
+          isPrimary: attachment.ingredientId === settings.editPrimaryId,
+          kind: attachment.kind,
+          name: attachment.name,
+          previewUrl: attachment.previewUrl,
+          role: resolveAttachmentRole(attachment),
+          source: 'upload' as const,
+        })),
+        ...contentReferences.map((reference) => ({
+          id: reference.item.id,
+          ingredientId: reference.item.id,
+          isPrimary: reference.item.id === settings.editPrimaryId,
+          kind: reference.item.contentType.toLowerCase().includes('video')
+            ? ('video' as const)
+            : ('image' as const),
+          name: reference.item.contentTitle,
+          previewUrl: reference.item.thumbnailUrl,
+          role: reference.role,
+          source: 'library' as const,
+        })),
+      ].toSorted(
+        (left, right) => Number(right.isPrimary) - Number(left.isPrimary),
+      ),
+    [
+      attachments,
+      contentReferences,
+      resolveAttachmentRole,
+      settings.editPrimaryId,
     ],
-    [attachments, contentReferences, resolveAttachmentRole],
   );
 
   const handleRemoveAttachedAsset = useCallback<
     StudioGenerateComposerProps['onRemoveAttachedAsset']
   >(
     (assetId) => {
+      clearCrunRestore();
       if (
         attachments.some(
           (attachment: AttachmentItem) => attachment.id === assetId,
@@ -1191,8 +1514,20 @@ export default function StudioGenerateWorkspace(): ReactElement {
         current.filter((reference) => reference.item.id !== assetId),
       );
     },
-    [attachments, removeAttachment],
+    [attachments, removeAttachment, clearCrunRestore],
   );
+
+  const draftSettingsByType = useMemo(() => {
+    const copy = { ...settingsByType };
+    for (const key of Object.keys(copy) as StudioGenerateType[]) {
+      copy[key] = {
+        ...copy[key],
+        crunControls: sanitizeStudioGenerateSettings(key, copy[key])
+          .crunControls,
+      };
+    }
+    return copy;
+  }, [settingsByType]);
 
   const draftPayload = useMemo<StudioGenerateDraftPayload>(
     () => ({
@@ -1212,7 +1547,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
         id: reference.item.id,
         role: reference.role,
       })),
-      settingsByType,
+      settingsByType: draftSettingsByType,
       type,
     }),
     [
@@ -1221,7 +1556,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
       knowledgeSelection,
       prompt,
       resolveAttachmentRole,
-      settingsByType,
+      draftSettingsByType,
       type,
     ],
   );
@@ -1291,10 +1626,96 @@ export default function StudioGenerateWorkspace(): ReactElement {
     brandId,
     canRestore: isHydrated && !isHandoffLoading,
     isAutosaveEnabled: true,
-    isRestoreBlocked: Boolean(handoffPayload),
+    isRestoreBlocked:
+      Boolean(handoffPayload) ||
+      (typeof window !== 'undefined' && Boolean(editSourceQueryId)),
     onRestore: restoreDraft,
     payload: draftPayload,
   });
+
+  const handleEditJob = useCallback(
+    (job: StudioGenerateJob) => {
+      if (!job.ingredient) return;
+      const reference = toContentReference(job.ingredient, 'editSource');
+      if (!reference) return;
+      clearCrunRestore();
+      clearAttachments();
+      setRestoredAttachments(EMPTY_ATTACHMENTS);
+      restoredRolesRef.current.clear();
+      setContentReferences([reference]);
+      setPrompt('');
+      applyTypeSettings('image-edit', {
+        editSize: 'source',
+        editSeed: undefined,
+        editPrimaryId: reference.item.id,
+      });
+    },
+    [clearAttachments, clearCrunRestore, applyTypeSettings],
+  );
+
+  const editEntryRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isHydrated || !brandId) return;
+    const sourceId = editSourceQueryId;
+    if (!sourceId || editEntryRef.current === `${brandId}:${sourceId}`) return;
+    editEntryRef.current = `${brandId}:${sourceId}`;
+    clearCrunRestore();
+    const epoch = crunRestoreEpochRef.current;
+    const scope = crunRestoreScopeRef.current;
+    let cancelled = false;
+    const isCurrent = () =>
+      !cancelled &&
+      isMountedRef.current &&
+      epoch === crunRestoreEpochRef.current &&
+      scope === crunRestoreScopeRef.current;
+    void getIngredientsService()
+      .then(async (service) => {
+        if (!isCurrent()) return;
+        const ingredient = await service.findOne(sourceId, { brandId });
+        if (!isCurrent()) return;
+        if (
+          !ingredient ||
+          ingredient.brandId !== brandId ||
+          ingredient.category !== IngredientCategory.IMAGE
+        )
+          throw new Error('Editing source not found in this brand.');
+        const reference = toContentReference(ingredient, 'editSource');
+        if (!reference) throw new Error('Editing source has no preview.');
+        clearAttachments();
+        setRestoredAttachments(EMPTY_ATTACHMENTS);
+        restoredRolesRef.current.clear();
+        setContentReferences([reference]);
+        setType('image-edit');
+        setPrompt('');
+        applyTypeSettings('image-edit', {
+          editSize: 'source',
+          editSeed: undefined,
+          editPrimaryId: reference.item.id,
+        });
+      })
+      .catch((error: unknown) => {
+        if (isCurrent())
+          notificationsService.error(
+            error instanceof Error
+              ? error.message
+              : 'Editing source unavailable.',
+          );
+      });
+    return () => {
+      cancelled = true;
+      editEntryRef.current = null;
+    };
+  }, [
+    isHydrated,
+    brandId,
+    editSourceQueryId,
+    getIngredientsService,
+    clearAttachments,
+    clearCrunRestore,
+    setType,
+    applyTypeSettings,
+    notificationsService,
+  ]);
 
   const shouldShowVoiceInput = Boolean(
     agentApiService &&
@@ -1310,30 +1731,191 @@ export default function StudioGenerateWorkspace(): ReactElement {
   // retyping the raw box.
   const handleVaryRecipe = useCallback(
     (job: StudioGenerateJob) => {
-      const recipe = job.recipe
-        ? job.recipe
-        : job.ingredient
-          ? recipeFromRepromptData(
-              buildRepromptData(
-                job.ingredient,
-                getStudioGenerateTypeConfig(job.type).ingredientCategory,
-                brandId,
-                [...models],
-              ),
-              job.type,
-            )
-          : null;
+      const recipe =
+        job.type === 'image-edit' && job.ingredient
+          ? recipeFromIngredient(job.ingredient, job.type)
+          : job.recipe
+            ? job.recipe
+            : job.ingredient
+              ? recipeFromRepromptData(
+                  buildRepromptData(
+                    job.ingredient,
+                    getStudioGenerateTypeConfig(job.type).ingredientCategory,
+                    brandId,
+                    [...models],
+                  ),
+                  job.type,
+                )
+              : null;
 
+      clearCrunRestore();
       if (!recipe) {
         setType(job.type);
         setPrompt(job.prompt);
         return;
       }
 
+      if (
+        recipe.type === 'video' &&
+        recipe.modelKey?.startsWith('crun/') &&
+        recipe.crunControls
+      ) {
+        const epoch = crunRestoreEpochRef.current;
+        const scope = crunRestoreScopeRef.current;
+        const model = models.find(
+          (item) => item.key === recipe.modelKey && item.provider === 'crun',
+        );
+        const controls = model?.inputControls;
+        const residual = readStudioCrunRecipeControls(
+          recipe.crunControls,
+          'video',
+          recipe.modelKey,
+        );
+        if (controls?.mediaKind !== 'video' || !residual || !brandId) {
+          setCrunRestoreStatus('failed');
+          notificationsService.warning(translate('crun.videoQuoteStale'));
+          return;
+        }
+        const valid = normalizeCrunVideoDraft(controls, {
+          modelKey: residual.modelKey,
+          contractVersion: residual.contractVersion,
+          prompt: recipe.text,
+          duration: recipe.duration,
+          resolution: recipe.resolution,
+          aspectRatio: recipe.aspectRatio,
+          negativePrompt: residual.negativePrompt,
+          guidanceScale: residual.guidanceScale,
+          translatePrompt: residual.translatePrompt,
+          startFrameId: recipe.references[0],
+          endFrameId: recipe.endFrameId,
+        }).isValid;
+        if (!valid) {
+          setCrunRestoreStatus('failed');
+          notificationsService.warning(translate('crun.videoQuoteStale'));
+          return;
+        }
+        setCrunRestoreStatus('pending');
+        const isCurrent = () =>
+          isMountedRef.current &&
+          crunRestoreEpochRef.current === epoch &&
+          crunRestoreScopeRef.current === scope;
+        void (async () => {
+          try {
+            const ids = [
+              ...recipe.references,
+              ...(recipe.endFrameId ? [recipe.endFrameId] : []),
+            ];
+            const service = ids.length ? await getIngredientsService() : null;
+            if (!isCurrent()) return;
+            const assets = service ? await service.findByIds(ids) : [];
+            if (!isCurrent()) return;
+            const restored: StudioContentReference[] = [];
+            for (const id of ids) {
+              const asset = assets.find((item) => item.id === id);
+              const reference =
+                asset &&
+                asset.category === IngredientCategory.IMAGE &&
+                !asset.isDeleted &&
+                asset.brandId === brandId
+                  ? toContentReference(
+                      asset,
+                      id === recipe.endFrameId ? 'endFrame' : 'startFrame',
+                    )
+                  : null;
+              if (!reference) throw new Error('Unavailable frame');
+              restored.push(reference);
+            }
+            clearAttachments();
+            setContentReferences(restored);
+            applyTypeSettings('video', {
+              ...settingsPatchFromRecipe(recipe),
+              aspectRatio:
+                recipe.aspectRatio ??
+                (typeof controls.fields.aspect_ratio?.default === 'string'
+                  ? controls.fields.aspect_ratio.default
+                  : ''),
+              resolution: recipe.resolution ?? '',
+            });
+            setPrompt(recipe.text);
+            promptDocumentRef.current = null;
+            setDocumentSeed(null);
+            setCrunRestoreStatus(null);
+          } catch {
+            if (isCurrent()) {
+              setCrunRestoreStatus('failed');
+              notificationsService.warning(
+                translate('crun.referenceUnavailable'),
+              );
+            }
+          }
+        })();
+        return;
+      }
+      if (recipe.type === 'video' && recipe.modelKey?.startsWith('crun/')) {
+        clearAttachments();
+        setContentReferences([]);
+      }
+      if (recipe.imageEdit) {
+        const edit = recipe.imageEdit;
+        const epoch = crunRestoreEpochRef.current;
+        const scope = crunRestoreScopeRef.current;
+        const isCurrent = () =>
+          isMountedRef.current &&
+          epoch === crunRestoreEpochRef.current &&
+          scope === crunRestoreScopeRef.current;
+        clearAttachments();
+        setRestoredAttachments(EMPTY_ATTACHMENTS);
+        restoredRolesRef.current.clear();
+        setContentReferences([]);
+        const ids = [...edit.sourceIds, ...(edit.maskId ? [edit.maskId] : [])];
+        void getIngredientsService()
+          .then(async (service) => {
+            if (!isCurrent()) return;
+            const ingredients = await service.findByIds(ids);
+            if (!isCurrent()) return;
+            const byId = new Map(
+              ingredients.map((ingredient) => [ingredient.id, ingredient]),
+            );
+            const references = ids.flatMap((id) => {
+              const ingredient = byId.get(id);
+              const reference =
+                ingredient && ingredient.brandId === brandId
+                  ? toContentReference(
+                      ingredient,
+                      id === edit.maskId ? 'editMask' : 'editSource',
+                    )
+                  : null;
+              return reference ? [reference] : [];
+            });
+            setContentReferences(
+              references.length === ids.length ? references : [],
+            );
+            if (references.length !== ids.length)
+              notificationsService.warning(
+                'Some editing sources are unavailable. Choose replacement sources before submitting.',
+              );
+          })
+          .catch(() => {
+            if (isCurrent())
+              notificationsService.error(
+                'Editing sources could not be restored.',
+              );
+          });
+      }
       applyTypeSettings(job.type, settingsPatchFromRecipe(recipe));
       setPrompt(recipe.text);
     },
-    [applyTypeSettings, brandId, models, setType],
+    [
+      applyTypeSettings,
+      brandId,
+      models,
+      setType,
+      clearCrunRestore,
+      clearAttachments,
+      getIngredientsService,
+      notificationsService,
+      translate,
+    ],
   );
 
   const handleSelectJob = useCallback((job: StudioGenerateJob) => {
@@ -1562,8 +2144,18 @@ export default function StudioGenerateWorkspace(): ReactElement {
                     withWrapper={false}
                   />
                 ))}
+              {crunRestoreStatus === 'failed' ? (
+                <Label role="alert">
+                  {translate('crun.referenceUnavailable')}
+                </Label>
+              ) : null}
               <StudioGenerateComposer
                 attachedAssets={attachedAssets}
+                crunQuote={crunModel ? crunQuote : undefined}
+                isCrunRestoreBlocked={Boolean(crunRestoreStatus)}
+                crunReferenceCount={crunPreparedIntent.referenceIds.length}
+                crunStartFrameId={crunPreparedIntent.referenceIds[0]}
+                crunEndFrameId={resolvedReferences.endFrameId}
                 documentSeed={documentSeed}
                 extraExtensions={extraExtensions}
                 isDragActive={capabilities.hasReferences && dragState.isActive}
@@ -1578,17 +2170,34 @@ export default function StudioGenerateWorkspace(): ReactElement {
                 onCancelEnhancePrompt={cancelEnhance}
                 onEnhancePrompt={handleEnhancePrompt}
                 onOpenLibrary={handleOpenLibrary}
-                onPromptChange={setPrompt}
+                onPromptChange={(value) => {
+                  clearCrunRestore();
+                  setPrompt(value);
+                }}
                 onPromptDocumentChange={(document) => {
                   promptDocumentRef.current = document;
+                  setQuoteDocumentRevision((value) => value + 1);
                 }}
                 onRemoveAttachedAsset={handleRemoveAttachedAsset}
-                onResetSettings={resetSettings}
-                onSettingsChange={updateSettings}
+                onResetSettings={() => {
+                  clearCrunRestore();
+                  resetSettings();
+                }}
+                onSettingsChange={(patch) => {
+                  if (
+                    patch.modelKey !== undefined &&
+                    patch.modelKey !== settings.modelKey
+                  )
+                    clearCrunRestore();
+                  updateSettings(patch);
+                }}
                 onStartListening={startListening}
                 onStopListening={stopListening}
                 onSubmit={handleSubmit}
-                onTypeChange={setType}
+                onTypeChange={(value) => {
+                  clearCrunRestore();
+                  setType(value);
+                }}
                 onUndoEnhancePrompt={undoEnhance}
                 prompt={prompt}
                 previousPrompt={previousEnhancedPrompt}
@@ -1621,6 +2230,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
           <StudioGenerateInspector
             job={selectedJob}
             onRemix={handleRemixJob}
+            onEdit={handleEditJob}
             onSelect={handleSelectJob}
             onUseInPost={assetActions.onPublishIngredient}
             onVary={handleVaryRecipe}
@@ -1634,12 +2244,14 @@ export default function StudioGenerateWorkspace(): ReactElement {
         isOpen={isContentLibraryOpen}
         items={contentLibraryItems}
         knowledgeSection={
-          <KnowledgeReferenceSection
-            brandId={brandId || undefined}
-            key={brandId || 'no-brand'}
-            onChange={handleKnowledgeSelectionChange}
-            value={knowledgeSelection}
-          />
+          type !== 'image-edit' ? (
+            <KnowledgeReferenceSection
+              brandId={brandId || undefined}
+              key={brandId || 'no-brand'}
+              onChange={handleKnowledgeSelectionChange}
+              value={knowledgeSelection}
+            />
+          ) : null
         }
         onOpenChange={setIsContentLibraryOpen}
         onSelect={handleSelectContentReference}

@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
+import { CrunImageQuoteController } from '@api/collections/images/controllers/crun-image-quote.controller';
 import { ImagesController } from '@api/collections/images/controllers/images.controller';
 import { ImagesOperationsController } from '@api/collections/images/controllers/operations/images-operations.controller';
 import { ImagesRelationshipsController } from '@api/collections/images/controllers/relationships/images-relationships.controller';
@@ -88,6 +89,7 @@ describe('Images split controllers', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, ImagesModule),
     ).toEqual([
+      CrunImageQuoteController,
       ImagesController,
       ImagesOperationsController,
       ImagesRelationshipsController,

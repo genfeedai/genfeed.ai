@@ -29,6 +29,14 @@ type ImageProviderMatcher = {
  * adapter registry has always resolved it.
  */
 const IMAGE_PROVIDER_MATCHERS: readonly ImageProviderMatcher[] = [
+  {
+    matches: (model, provider) =>
+      provider === 'crun' &&
+      ['crun/google/nano-banana-pro', 'crun/bytedance/seedream-4-5'].includes(
+        model,
+      ),
+    provider: 'crun',
+  },
   { matches: (model) => isGenfeedAiDestination(model), provider: 'genfeedai' },
   { matches: (model) => model === MODEL_KEYS.KLINGAI_V2, provider: 'klingai' },
   {
@@ -89,5 +97,7 @@ export function resolveImageBillableOutputs(
       'Higgsfield image generation currently supports one funded output per request.',
     );
   }
-  return provider === 'fal' || provider === 'replicate' ? requested : 1;
+  return provider === 'fal' || provider === 'replicate' || provider === 'crun'
+    ? requested
+    : 1;
 }

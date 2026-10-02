@@ -142,7 +142,11 @@ export class AgentGenerationCostToolHandler {
   ): Promise<AgentToolResult> {
     const balance = await this.readBalance(ctx.organizationId);
     const type =
-      params.type === 'image' || params.type === 'video' ? params.type : null;
+      params.type === 'image' ||
+      params.type === 'image-edit' ||
+      params.type === 'video'
+        ? params.type
+        : null;
     const modelKey = readOptionalString(params.modelKey);
     const aspectRatio = readOptionalString(params.aspectRatio);
     const resolution = readOptionalString(params.resolution);

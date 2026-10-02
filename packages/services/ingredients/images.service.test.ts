@@ -1,9 +1,11 @@
+import { EnvironmentService } from '@services/core/environment.service';
 import { ImagesService } from '@services/ingredients/images.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock serializers to avoid complex build chain
 vi.mock('@genfeedai/serializers', () => ({
   AvatarSerializer: { serialize: vi.fn((data) => data) },
+  ImageEditingRequestSerializer: { serialize: vi.fn((data) => data) },
   ImageEditSerializer: { serialize: vi.fn((data) => data) },
   ImageGenerationSerializer: { serialize: vi.fn((data) => data) },
   ImageSerializer: { serialize: vi.fn((data) => data) },
@@ -78,6 +80,7 @@ vi.mock('@services/content/ingredients.service', () => {
   };
 
   class MockIngredientsService {
+    public capturedApiEndpoint = EnvironmentService.apiEndpoint;
     public instance = mockInstance;
     public endpoint: string;
     public token: string;
@@ -122,7 +125,6 @@ describe('ImagesService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    ImagesService.imageInstances = new Map();
     service = new ImagesService(mockToken);
   });
 
@@ -132,6 +134,21 @@ describe('ImagesService', () => {
 
   it('initializes correctly', () => {
     expect(service).toBeInstanceOf(ImagesService);
+  });
+
+  it('posts a dedicated editing request with source, mask and seed zero', async () => {
+    const payload = {
+      prompt: 'Change the sign',
+      brand: 'brand-1',
+      references: ['reference-1'],
+      maskId: 'mask-1',
+      size: 'source' as const,
+      outputs: 3,
+      seed: 0,
+    };
+    mockPost.mockResolvedValue({ data: { data: { id: 'edited-output' } } });
+    await service.postEdit('source-1', payload);
+    expect(mockPost).toHaveBeenCalledWith('/source-1/edit', payload);
   });
 
   it('has CRUD methods', () => {
@@ -202,5 +219,122 @@ describe('ImagesService', () => {
 
       expect(mockPost).toHaveBeenCalledWith(`/${imageId}/reframe`, params);
     });
+  });
+});
+
+describe('ImagesService scoped endpoint cache', () => {
+  it('creates a correctly targeted service after a same-token endpoint switch', () => {
+    const endpoint = vi.spyOn(EnvironmentService, 'apiEndpoint', 'get');
+    endpoint.mockReturnValue('https://first.example/api/');
+    const first = ImagesService.getInstance('scope-endpoint-test');
+    expect(ImagesService.getInstance('scope-endpoint-test')).toBe(first);
+    endpoint.mockReturnValue('https://second.example/api/');
+    const second = ImagesService.getInstance('scope-endpoint-test');
+    expect(second).not.toBe(first);
+    expect(
+      (second as unknown as { capturedApiEndpoint: string })
+        .capturedApiEndpoint,
+    ).toBe('https://second.example/api/');
+    expect(ImagesService.getInstance('scope-endpoint-test')).toBe(second);
+    endpoint.mockRestore();
+  });
+});
+
+describe('ImagesService Crun preview wire contract', () => {
+  const request = {
+    model: 'crun/google/nano-banana-pro',
+    text: 'A product',
+    crunControls: { contractVersion: 'reviewed-1' },
+  };
+  const available = {
+    isAvailable: true,
+    modelKey: request.model,
+    quoteId: 'quote-1',
+    expiresAt: '2099-01-01T00:00:00.000Z',
+    contractVersion: 'reviewed-1',
+    credits: 12,
+    billingMode: 'credits',
+    reasonCode: null,
+  };
+  function respond(attributes: unknown) {
+    mockPost.mockResolvedValue({
+      data: {
+        data: { type: 'crun-generation-quote', id: 'preview-1', attributes },
+      },
+    });
+  }
+  it('posts plain JSON with its abort signal and reads JSON:API credits', async () => {
+    respond(available);
+    const signal = new AbortController().signal;
+    expect(await new ImagesService('token').quoteCrun(request, signal)).toEqual(
+      available,
+    );
+    expect(mockPost).toHaveBeenCalledWith('/crun-quote', request, { signal });
+  });
+  it('accepts genuine BYOK zero credits', async () => {
+    const quote = { ...available, billingMode: 'byok', credits: 0 };
+    respond(quote);
+    expect(await new ImagesService('token').quoteCrun(request)).toEqual(quote);
+  });
+  it('keeps unavailable quote fields null', async () => {
+    const quote = {
+      isAvailable: false,
+      modelKey: request.model,
+      quoteId: null,
+      expiresAt: null,
+      contractVersion: null,
+      credits: null,
+      billingMode: null,
+      reasonCode: 'PRICING_UNAVAILABLE',
+    };
+    respond(quote);
+    expect(await new ImagesService('token').quoteCrun(request)).toEqual(quote);
+  });
+  it.each([
+    { ...available, credits: -1 },
+    { ...available, credits: 1.1 },
+    { ...available, contractVersion: 'wrong' },
+    { ...available, modelKey: 'wrong' },
+    { ...available, billingMode: null },
+    { ...available, expiresAt: 'not-a-date' },
+  ])(
+    'rejects malformed availability instead of displaying a fabricated estimate',
+    async (quote) => {
+      respond(quote);
+      await expect(
+        new ImagesService('token').quoteCrun(request),
+      ).rejects.toThrow('CRUN_PROVIDER_UNAVAILABLE');
+    },
+  );
+});
+
+describe('image parser extraction regression', () => {
+  it('rejects a video response instead of admitting it to image generation', async () => {
+    const request = {
+      model: 'crun/google/nano-banana-pro',
+      text: 'Bird',
+      crunControls: { contractVersion: 'reviewed-1' },
+    };
+    mockPost.mockResolvedValue({
+      data: {
+        data: {
+          type: 'crun-generation-quote',
+          id: 'preview',
+          attributes: {
+            isAvailable: true,
+            quoteId: 'quote',
+            expiresAt: '2099-01-01T00:00:00.000Z',
+            modelKey: 'crun/kling/v2-5-turbo-pro',
+            contractVersion: 'reviewed-1',
+            credits: 11,
+            billingMode: 'credits',
+            reasonCode: null,
+          },
+        },
+      },
+    });
+    await expect(
+      new ImagesService('image-only').quoteCrun(request),
+    ).rejects.toThrow('CRUN_PROVIDER_UNAVAILABLE');
   });
 });

@@ -95,6 +95,7 @@ function parseDualKeyedModels(schema: string): ParsedModel[] {
 
 describe('brand-org-cascade config', () => {
   it.each([
+    ['CrunGenerationTask', 'crunGenerationTask', 'crun_generation_tasks'],
     [
       'BrandedGenerationReceipt',
       'brandedGenerationReceipt',

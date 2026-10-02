@@ -1,6 +1,7 @@
 import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import {
+  crunFailureKind,
   generationQuoteGroupMetadataSchema,
   generationQuoteGroupReceiptSchema,
 } from '@api/helpers/utils/credits/generation-quote-group.schema';
@@ -23,8 +24,7 @@ export async function persistQuoteGroupDisposition(
     data.status === IngredientStatus.GENERATED &&
     typeof data.s3Key === 'string' &&
     Boolean(data.s3Key);
-  const isConfirmedFailure =
-    data.status === IngredientStatus.FAILED && isFailureConfirmed;
+  const isConfirmedFailure = data.status === IngredientStatus.FAILED;
   if (
     (!isCompletion && !isConfirmedFailure) ||
     typeof where.id !== 'string' ||
@@ -33,18 +33,18 @@ export async function persistQuoteGroupDisposition(
     return null;
   const ingredientId = where.id;
   const organizationId = where.organizationId;
-  const candidate = await prisma.ingredient.findFirst({
-    where: { id: ingredientId, organizationId, isDeleted: false },
-    select: { generationBilling: true },
-  });
-  const receipt = generationQuoteGroupReceiptSchema.safeParse(
-    candidate?.generationBilling,
-  );
-  if (!receipt.success) return null;
   for (let attempt = 0; ; attempt += 1) {
     try {
       return await prisma.$transaction(
         async (tx) => {
+          const candidate = await tx.ingredient.findFirst({
+            where: { id: ingredientId, organizationId, isDeleted: false },
+            select: { generationBilling: true },
+          });
+          const receipt = generationQuoteGroupReceiptSchema.safeParse(
+            candidate?.generationBilling,
+          );
+          if (!receipt.success) return null;
           const hold = await tx.creditReservation.findFirst({
             where: {
               id: receipt.data.reservationId,
@@ -60,6 +60,19 @@ export async function persistQuoteGroupDisposition(
           const metadata = generationQuoteGroupMetadataSchema.parse(
             hold.metadata,
           );
+          if (isConfirmedFailure) {
+            if (metadata.modelQuote.providerQuote) {
+              const task = await tx.crunGenerationTask.findFirst({
+                where: {
+                  ingredientId,
+                  organizationId,
+                  isDeleted: false,
+                  reservationId: hold.id,
+                },
+              });
+              if (!crunFailureKind(task)) return { count: 0 };
+            } else if (!isFailureConfirmed) return null;
+          }
           if (!metadata.boundOutputIds.includes(ingredientId))
             throw new BusinessLogicException(
               'Completed output is absent from its funded manifest',

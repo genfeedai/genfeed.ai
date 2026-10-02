@@ -13,6 +13,7 @@ import {
   LOWEST_COST_AGENT_CHAT_MODEL_KEY,
   LOWEST_COST_IMAGE_MODEL_KEY,
   LOWEST_COST_VIDEO_MODEL_KEY,
+  MODEL_KEYS,
   shouldUseLowestCostModelDefaults,
 } from '@genfeedai/contracts/constants';
 import type { IWebhookDeliveryStatus } from '@genfeedai/contracts/interfaces';
@@ -260,6 +261,7 @@ export class OrganizationSettingsService extends BaseService<
       LOWEST_COST_AGENT_CHAT_MODEL_KEY,
       LOWEST_COST_IMAGE_MODEL_KEY,
       LOWEST_COST_VIDEO_MODEL_KEY,
+      MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
     ]);
     const activeModels = await this.getModelsService().findAllActive({
       organizationId: null,

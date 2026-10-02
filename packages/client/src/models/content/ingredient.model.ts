@@ -11,6 +11,7 @@ import type {
   IFolder,
   IIngredient,
   IMetadata,
+  ImageEditingRecipe,
   IOrganization,
   IPrompt,
   ITag,
@@ -19,6 +20,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class Ingredient extends BaseEntity implements IIngredient {
+  declare public imageEdit?: ImageEditingRecipe;
   declare public userId?: string | null;
   declare public organizationId?: string | null;
   declare public brandId?: string | null;

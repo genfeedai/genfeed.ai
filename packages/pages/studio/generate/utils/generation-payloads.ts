@@ -5,8 +5,15 @@ import {
   IngredientFormat,
   RouterPriority,
 } from '@genfeedai/contracts';
-import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
+import {
+  isFlux3ImageModel,
+  normalizeMusicSettings,
+} from '@genfeedai/contracts/constants';
 import type { IIngredient, IModel } from '@genfeedai/contracts/interfaces';
+import type {
+  CrunImageQuoteRequest,
+  CrunVideoQuoteRequest,
+} from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
 import type {
   AvatarGenerationPayload,
   BaseGenerationPayload,
@@ -14,7 +21,14 @@ import type {
   MusicGenerationPayload,
   VideoGenerationPayload,
 } from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
+import type { StudioGenerateSettings } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
+import { normalizeCrunInput } from '@genfeedai/helpers/crun-input-contract.helper';
+import { normalizeCrunVideoDraft } from '@genfeedai/helpers/crun-video-input.helper';
 import { isImageQualitySupported } from '@genfeedai/helpers/media/image-quality/image-quality.helper';
+import type {
+  BuildStudioCrunQuoteRequestProps,
+  BuildStudioCrunVideoQuoteRequestProps,
+} from '@genfeedai/props/studio/studio-generate.props';
 
 /**
  * Also read by `useStudioGenerationSetupLookOptions` to build the Look tab's
@@ -100,6 +114,9 @@ export function buildImagePayload(
     ...basePayload,
     format:
       (promptData.format as IngredientFormat) || IngredientFormat.PORTRAIT,
+    ...(basePayload.model && isFlux3ImageModel(basePayload.model)
+      ? { resolution: promptData.resolution }
+      : {}),
     quality:
       basePayload.model &&
       isImageQualitySupported(basePayload.model, promptData.resolution)
@@ -234,5 +251,229 @@ export function buildRepromptData(
       : [],
     text: ingredient.promptText || '',
     width: ingredient.metadataWidth || ingredient.width || 1080,
+  };
+}
+
+/** Sends only the reviewed canonical input; legacy dimensions/seed/audio never leak. */
+export function buildStudioCrunQuoteRequest({
+  model,
+  settings,
+  promptText,
+  references,
+  brandId,
+  promptId,
+  requestedSkillSlugs,
+  knowledge,
+  harness = false,
+}: BuildStudioCrunQuoteRequestProps): CrunImageQuoteRequest | null {
+  const controls = model?.provider === 'crun' ? model.inputControls : undefined;
+  if (
+    !model ||
+    !controls ||
+    controls.mediaKind !== 'image' ||
+    !settings.crunControls
+  )
+    return null;
+  if (
+    !controls ||
+    settings.crunControls?.modelKey !== model?.key ||
+    settings.crunControls.contractVersion !== controls.version ||
+    !Number.isInteger(settings.outputs) ||
+    settings.outputs < 1 ||
+    settings.outputs > controls.maxOutputs ||
+    new Set(references).size !== references.length ||
+    (settings.crunControls.aspectRatio &&
+      settings.crunControls.aspectRatio !== settings.aspectRatio)
+  )
+    return null;
+  const clientControls = {
+    ...controls,
+    fields: Object.fromEntries(
+      Object.entries(controls.fields).map(([key, field]) => [
+        key,
+        controls.referenceRoles[key] ? { ...field, format: undefined } : field,
+      ]),
+    ),
+  };
+  const values: Record<string, unknown> = {
+    prompt: promptText.trim(),
+    aspect_ratio: settings.aspectRatio,
+    resolution: settings.resolution,
+  };
+  for (const field of Object.keys(controls.referenceRoles))
+    values[field] = references;
+  if (settings.crunControls.outputFormat)
+    values.output_format = settings.crunControls.outputFormat;
+  const normalized = normalizeCrunInput(clientControls, values);
+  if (!normalized.isValid) return null;
+  const resolution = normalized.input.resolution;
+  const outputFormat = normalized.input.output_format;
+  if (resolution !== '1K' && resolution !== '2K' && resolution !== '4K')
+    return null;
+  if (
+    outputFormat !== undefined &&
+    outputFormat !== 'png' &&
+    outputFormat !== 'jpg'
+  )
+    return null;
+  return {
+    model: model.key,
+    text: promptText.trim(),
+    brandId,
+    outputs: settings.outputs,
+    references,
+    crunControls: {
+      contractVersion: controls.version,
+      aspectRatio: settings.aspectRatio,
+      resolution,
+      ...(outputFormat ? { outputFormat } : {}),
+    },
+    brandingMode: settings.brandingMode,
+    isBrandingEnabled: settings.brandingMode === 'brand',
+    blacklist: settings.blacklist,
+    useTemplate: true,
+    harness,
+    ...(settings.folder ? { folderId: settings.folder } : {}),
+    ...(promptId ? { promptId } : {}),
+    ...(settings.promptTemplate
+      ? {
+          promptTemplate:
+            PRESET_TO_TEMPLATE_MAP[settings.promptTemplate] ??
+            settings.promptTemplate,
+        }
+      : {}),
+    ...Object.fromEntries(
+      ['camera', 'style', 'scene', 'lighting', 'mood', 'lens'].flatMap(
+        (field) => {
+          const value = settings[field as keyof StudioGenerateSettings];
+          return typeof value === 'string' && value.trim()
+            ? [[field, value.trim()]]
+            : [];
+        },
+      ),
+    ),
+    ...(requestedSkillSlugs?.length ? { requestedSkillSlugs } : {}),
+    ...(knowledge ? { knowledge } : {}),
+  };
+}
+
+export function buildStudioCrunVideoQuoteRequest({
+  model,
+  settings,
+  promptText,
+  references,
+  endFrameId,
+  parentId,
+  brandId,
+  promptId,
+  requestedSkillSlugs,
+  knowledge,
+  harness = false,
+}: BuildStudioCrunVideoQuoteRequestProps): CrunVideoQuoteRequest | null {
+  const controls = model?.provider === 'crun' ? model.inputControls : undefined;
+  const residual = settings.crunControls;
+  if (
+    !model ||
+    !controls ||
+    controls.mediaKind !== 'video' ||
+    !residual ||
+    references.length > 1 ||
+    !Number.isInteger(settings.outputs) ||
+    settings.outputs < 1 ||
+    settings.outputs > controls.maxOutputs ||
+    (parentId && parentId !== references[0])
+  )
+    return null;
+  if (
+    model.key !== 'crun/kling/v2-5-turbo-pro' &&
+    model.key !== 'crun/google/veo3-1-fast-t2v'
+  )
+    return null;
+  const normalized = normalizeCrunVideoDraft(controls, {
+    modelKey: residual.modelKey,
+    contractVersion: residual.contractVersion,
+    prompt: promptText,
+    duration: settings.duration,
+    aspectRatio: settings.aspectRatio || undefined,
+    resolution: settings.resolution || undefined,
+    negativePrompt: residual.negativePrompt,
+    guidanceScale: residual.guidanceScale,
+    translatePrompt: residual.translatePrompt,
+    startFrameId: references[0],
+    endFrameId,
+  });
+  if (!normalized.isValid) return null;
+  const {
+    duration,
+    resolution,
+    aspect_ratio,
+    negative_prompt,
+    cfg_scale,
+    translate_prompt,
+  } = normalized.input;
+  if (
+    duration !== 5 &&
+    duration !== 10 &&
+    duration !== 4 &&
+    duration !== 6 &&
+    duration !== 8
+  )
+    return null;
+  if (
+    resolution !== undefined &&
+    resolution !== '720p' &&
+    resolution !== '1080p' &&
+    resolution !== '4k'
+  )
+    return null;
+  return {
+    model: model.key,
+    text: promptText.trim(),
+    brandId,
+    outputs: settings.outputs,
+    references,
+    ...(endFrameId ? { endFrame: endFrameId } : {}),
+    ...(parentId ? { parentId } : {}),
+    crunControls: {
+      contractVersion: controls.version,
+      duration,
+      ...(typeof aspect_ratio === 'string'
+        ? { aspectRatio: aspect_ratio }
+        : {}),
+      ...(resolution ? { resolution } : {}),
+      ...(typeof negative_prompt === 'string'
+        ? { negativePrompt: negative_prompt }
+        : {}),
+      ...(typeof cfg_scale === 'number' ? { guidanceScale: cfg_scale } : {}),
+      ...(typeof translate_prompt === 'boolean'
+        ? { translatePrompt: translate_prompt }
+        : {}),
+    },
+    brandingMode: settings.brandingMode,
+    isBrandingEnabled: settings.brandingMode === 'brand',
+    blacklist: settings.blacklist,
+    useTemplate: true,
+    harness,
+    ...(settings.folder ? { folderId: settings.folder } : {}),
+    ...(promptId ? { promptId } : {}),
+    ...(settings.promptTemplate
+      ? {
+          promptTemplate:
+            PRESET_TO_TEMPLATE_MAP[settings.promptTemplate] ??
+            settings.promptTemplate,
+        }
+      : {}),
+    ...Object.fromEntries(
+      ['camera', 'style', 'scene', 'lighting', 'mood', 'lens'].flatMap(
+        (field) => {
+          const value = settings[field as keyof StudioGenerateSettings];
+          return typeof value === 'string' && value.trim()
+            ? [[field, value.trim()]]
+            : [];
+        },
+      ),
+    ),
+    ...(requestedSkillSlugs?.length ? { requestedSkillSlugs } : {}),
+    ...(knowledge ? { knowledge } : {}),
   };
 }

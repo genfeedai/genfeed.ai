@@ -17,6 +17,7 @@ export interface IMediaGenerationCostContext {
 }
 
 export interface IMediaVendorCostRecordInput {
+  pricingSnapshot?: Record<string, string | number | boolean | null>;
   realizedDurationSeconds?: number | null;
   realizedWidth?: number | null;
   realizedHeight?: number | null;

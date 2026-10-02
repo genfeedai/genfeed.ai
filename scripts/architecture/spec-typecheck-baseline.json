@@ -2208,7 +2208,6 @@
       "message": "Expected 1 arguments, but got 0.",
       "workspace": "api"
     },
-
     {
       "code": 2353,
       "count": 1,
@@ -3887,14 +3886,6 @@
       "file": "apps/server/api/src/services/pattern-matcher/pattern-matcher.service.spec.ts",
       "fingerprint": "d282d78676e0a0db2eba",
       "message": "Argument of type '{ brandId: string | null; id: string; organizationId: string; isDeleted: boolean; createdAt: Date; updatedAt: Date; data: JsonValue; }[]' is not assignable to parameter of type 'CreativePatternDocument[]'.   Type '{ brandId: string | null; id: string; organizationId: string; isDeleted: boolean; createdAt: Date; updatedAt: Date; data: JsonValue; }' is not assignable to type 'CreativePatternDocument'.     Types of property 'data' are incompatible.       Type 'JsonValue' is not assignable to type 'Record<string, unknown> | undefined'.         Type 'null' is not assignable to type 'Record<string, unknown> | undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/services/prompt-builder/builders/replicate/base-replicate.builder.spec.ts",
-      "fingerprint": "1a61ecfa6b9fb00661cf",
-      "message": "Type '{ prompt: string; }' is not assignable to type 'ReplicateInput'.   Type '{ prompt: string; }' is missing the following properties from type 'TrainedModelInput': aspect_ratio, disable_safety_checker, num_outputs, output_format, and 2 more.",
       "workspace": "api"
     },
     {
@@ -8098,14 +8089,6 @@
       "workspace": "services"
     },
     {
-      "code": 2551,
-      "count": 1,
-      "file": "packages/services/ingredients/images.service.test.ts",
-      "fingerprint": "be5ffcff763519749e91",
-      "message": "Property 'imageInstances' does not exist on type 'typeof ImagesService'. Did you mean 'getInstance'?",
-      "workspace": "services"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "packages/services/ingredients/videos.service.test.ts",
@@ -9831,30 +9814,6 @@
       "file": "packages/ui/src/components/prompt-bars/components/model-controls/PromptBarModelControls.test.tsx",
       "fingerprint": "37bfc5a22ea72e1990f6",
       "message": "Property 'lifecycle' is missing in type '{ category: ModelCategory.IMAGE; cost: number; createdAt: string; id: string; isActive: true; isDefault: true; isDeleted: false; key: \"google/imagen-3\"; label: string; provider: ModelProvider.REPLICATE; updatedAt: string; }' but required in type 'IModel'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2353,
-      "count": 1,
-      "file": "packages/ui/src/components/prompt-bars/components/quick-options/PromptBarQuickOptions.test.tsx",
-      "fingerprint": "336325139a6725b277de",
-      "message": "Object literal may only specify known properties, and 'hasAnyResolutionOptionsValue' does not exist in type 'PromptBarQuickOptionsProps'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "packages/ui/src/components/prompt-bars/components/quick-options/PromptBarQuickOptions.test.tsx",
-      "fingerprint": "749fc55673c4ae74abbc",
-      "message": "Property 'hasAnyResolutionOptionsValue' is missing in type '{ currentConfig: PromptBarConfig; pathname: string; categoryType?: IngredientCategory | undefined; currentModelCategory?: ModelCategory | null | undefined; ... 31 more ...; inlineContent?: ReactNode; }' but required in type 'PromptBarQuickOptionsWrapperProps'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2741,
-      "count": 2,
-      "file": "packages/ui/src/components/prompt-bars/components/quick-options/PromptBarQuickOptions.test.tsx",
-      "fingerprint": "8cc7f7b98a494c44546f",
-      "message": "Property 'hasAnyResolutionOptionsValue' is missing in type '{ currentConfig: PromptBarConfig; pathname: string; categoryType?: IngredientCategory | undefined; currentModelCategory?: ModelCategory | null | undefined; ... 31 more ...; inlineContent?: ReactNode; }' but required in type 'PromptBarQuickOptionsWrapperProps'.",
       "workspace": "ui"
     },
     {

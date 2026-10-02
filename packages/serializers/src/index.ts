@@ -10,3 +10,5 @@ export * from '@serializers/configs';
 export * from '@serializers/helpers';
 export * from '@serializers/interfaces';
 export * from '@serializers/server';
+
+export { CrunGenerationQuoteSerializer } from '@serializers/server/billing/crun-generation-quote.serializer';

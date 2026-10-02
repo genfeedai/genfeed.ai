@@ -95,6 +95,7 @@ const UNQUOTED_PAID_AGENT_TOOLS = new Set<string>([
   'generate_music',
   'generate_voice',
   'generate_as_identity',
+  'edit_image',
   'reframe_image',
   'upscale_image',
   'generate_onboarding_content',

@@ -1,4 +1,11 @@
-import type { IImage } from '@genfeedai/contracts/interfaces';
+import type {
+  IImage,
+  ImageEditingPayload,
+} from '@genfeedai/contracts/interfaces';
+import type {
+  CrunGenerationQuoteResponse,
+  CrunImageQuoteRequest,
+} from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
 import type { IImageEditParams } from '@genfeedai/contracts/interfaces/components/image-edit.interface';
 import type { ImageGenerationPayload } from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
 import type { Image } from '@genfeedai/models/ingredients/image.model';
@@ -7,12 +14,18 @@ import type {
   SplitResponse,
 } from '@genfeedai/props/studio/contact-sheet.props';
 import {
+  ImageEditingRequestSerializer,
   ImageEditSerializer,
   ImageGenerationSerializer,
 } from '@genfeedai/serializers';
 import { IngredientsService } from '@services/content/ingredients.service';
 import type { JsonApiResponseDocument } from '@services/core/base.service';
-import { ServiceInstanceManager } from '@services/core/service-instance-manager';
+import { parseCrunQuoteResponse } from '@services/core/crun-quote-response';
+import { EnvironmentService } from '@services/core/environment.service';
+import {
+  buildInstanceKey,
+  ServiceInstanceManager,
+} from '@services/core/service-instance-manager';
 
 const imageInstances = new ServiceInstanceManager<ImagesService>();
 
@@ -22,20 +35,43 @@ export class ImagesService extends IngredientsService<Image> {
   }
 
   static getInstance(token: string): ImagesService {
-    const cached = imageInstances.get(ImagesService, token);
+    const key = buildInstanceKey([token, EnvironmentService.apiEndpoint]);
+    const cached = imageInstances.get(ImagesService, key);
     if (cached) {
       return cached;
     }
 
     const instance = new ImagesService(token);
-    imageInstances.set(ImagesService, token, instance);
+    imageInstances.set(ImagesService, key, instance);
     return instance;
   }
 
-  public async post(body: Partial<IImage> | ImageGenerationPayload) {
+  public async post(
+    body:
+      | Partial<IImage>
+      | ImageGenerationPayload
+      | (CrunImageQuoteRequest & { crunQuoteId: string }),
+  ) {
     const data = ImageGenerationSerializer.serialize(body);
     return await this.instance
       .post<JsonApiResponseDocument>('', data) // Empty string for root path, data as second argument
+      .then((res) => this.mapOne(res.data));
+  }
+
+  public async quoteCrun(
+    body: CrunImageQuoteRequest,
+    signal?: AbortSignal,
+  ): Promise<CrunGenerationQuoteResponse> {
+    const response = await this.instance.post<unknown>('/crun-quote', body, {
+      signal,
+    });
+    return parseCrunQuoteResponse(response.data, body);
+  }
+
+  public async postEdit(id: string, body: ImageEditingPayload) {
+    const data = ImageEditingRequestSerializer.serialize(body);
+    return await this.instance
+      .post<JsonApiResponseDocument>(`/${id}/edit`, data)
       .then((res) => this.mapOne(res.data));
   }
 

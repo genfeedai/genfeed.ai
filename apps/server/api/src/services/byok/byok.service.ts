@@ -1,8 +1,11 @@
+import { createHash } from 'node:crypto';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationPaidAccessService } from '@api/common/subscriptions/organization-paid-access.service';
 import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
 import { encodeJwtToken } from '@api/helpers/utils/jwt/jwt.util';
 import type { ResolvedByokCredential } from '@api/services/byok/byok-credential-identity.interface';
+import { CacheService } from '@api/services/cache/cache.service';
+import { parseCrunEstimate } from '@api/services/integrations/crun/crun-response.schema';
 import {
   HIGGSFIELD_API_BASE,
   HIGGSFIELD_CREDENTIAL_PROBE_PATH,
@@ -127,6 +130,11 @@ const BYOK_PROVIDER_LABELS: Record<
     docsUrl: 'https://replicate.com/account/api-tokens',
     label: 'Replicate',
   },
+  [ByokProvider.CRUN]: {
+    description: '',
+    docsUrl: 'https://crun.ai/user-api-key',
+    label: 'Crun',
+  },
   [ByokProvider.FAL]: {
     description: '',
     docsUrl: 'https://fal.ai/dashboard/keys',
@@ -186,6 +194,7 @@ export class ByokService {
     private readonly httpService: HttpService,
     private readonly logger: LoggerService,
     private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
   ) {}
 
   /**
@@ -224,6 +233,19 @@ export class ByokService {
     return credential
       ? { apiKey: credential.apiKey, apiSecret: credential.apiSecret }
       : undefined;
+  }
+
+  /** Retained-key drain only; new admission still uses strict lookupApiKey. */
+  async lookupRetainedCrunApiKey(
+    orgId: string,
+  ): Promise<{ apiKey: string } | undefined> {
+    const settings = await this.organizationSettingsService.findOne({
+      organizationId: orgId,
+    });
+    if (!settings) return undefined;
+    const entry = this.getByokKeys(settings)[ByokProvider.CRUN];
+    if (!entry?.apiKey) return undefined;
+    return { apiKey: EncryptionUtil.decrypt(entry.apiKey) };
   }
 
   /** Strict lookup whose identity changes only with the encrypted credential version. */
@@ -553,6 +575,8 @@ export class ByokService {
           return await this.validateElevenLabs(apiKey);
         case ByokProvider.REPLICATE:
           return await this.validateReplicate(apiKey);
+        case ByokProvider.CRUN:
+          return await this.validateCrun(apiKey);
         case ByokProvider.FAL:
           return await this.validateFal(apiKey);
         case ByokProvider.ARGIL:
@@ -789,6 +813,47 @@ export class ByokService {
       return { isValid: true };
     } catch {
       return { error: 'Invalid Hedra API key', isValid: false };
+    }
+  }
+
+  private async validateCrun(
+    apiKey: string,
+  ): Promise<{ isValid: boolean; error?: string }> {
+    const slot = await this.cache.claimCrunRequestSlot(
+      createHash('sha256').update(apiKey).digest('hex'),
+    );
+    if (!slot?.isAdmitted)
+      return {
+        isValid: false,
+        error: 'Crun credential verification is unavailable',
+      };
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post<unknown>(
+          'https://api.crun.ai/api/v1/client/job/estimate-credits',
+          {
+            model: 'google/nano-banana-pro',
+            input: {
+              prompt: 'Credential verification',
+              resolution: '1K',
+              aspect_ratio: '1:1',
+              output_format: 'png',
+            },
+          },
+          { headers: { 'X-API-KEY': apiKey }, timeout: 15000 },
+        ),
+      );
+      if (parseCrunEstimate(response.status, response.data).isValid)
+        return { isValid: true };
+      return {
+        isValid: false,
+        error: 'Crun credential verification was refused',
+      };
+    } catch {
+      return {
+        isValid: false,
+        error: 'Crun credential verification is unavailable',
+      };
     }
   }
 

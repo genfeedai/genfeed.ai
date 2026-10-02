@@ -67,6 +67,7 @@ describe('ImageGenerationCreditsService parity with the Agent quote', () => {
           ...resolveAgentGenerationDimensions(parityCase.aspectRatio),
           outputs: parityCase.outputs,
           quality: parityCase.quality,
+          resolution: parityCase.resolution,
         } as never,
         parityCase.model.key,
         'org-1',

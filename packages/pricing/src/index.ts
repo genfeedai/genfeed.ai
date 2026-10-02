@@ -14,6 +14,7 @@
  */
 
 export * from './agent-chat-margin';
+export * from './crun-provider-credits';
 export * from './generation-credit-calculator';
 export * from './live-model-pricing';
 export * from './margin-conversions';

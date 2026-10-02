@@ -18,6 +18,10 @@ interface PromptBarAttachedAssetsTrayProps {
 
 function getAssetRoleLabel(asset: PromptBarAttachedAsset): string {
   switch (asset.role) {
+    case 'editSource':
+      return asset.isPrimary ? 'Editing target' : 'Editing source';
+    case 'editMask':
+      return 'Mask';
     case 'startFrame':
       return 'Start frame';
     case 'endFrame':

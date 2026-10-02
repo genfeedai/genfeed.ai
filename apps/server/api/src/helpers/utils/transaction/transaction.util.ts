@@ -3,10 +3,7 @@ import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
-export type PrismaTransactionClient = Omit<
-  PrismaService,
-  '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
->;
+export type PrismaTransactionClient = Prisma.TransactionClient;
 type PrismaTransactionOptions = {
   isolationLevel?: Prisma.TransactionIsolationLevel;
   maxWait?: number;
@@ -46,7 +43,7 @@ export class TransactionUtil {
   ): Promise<T> {
     try {
       return await this.prismaService.$transaction(
-        (tx) => fn(tx as unknown as PrismaTransactionClient),
+        (tx) => fn(tx),
         options
           ? {
               isolationLevel: options.isolationLevel,

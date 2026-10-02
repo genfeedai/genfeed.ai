@@ -38,10 +38,12 @@ import {
 } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
+  FLUX_3_RESOLUTIONS,
   getModelMaxVideoReferences,
   hasEndFrame,
   hasInterpolation,
   hasVideoReferences,
+  isFlux3ImageModel,
   MODEL_KEYS,
   requiresFirstFrame,
 } from '@genfeedai/contracts/constants';
@@ -430,12 +432,17 @@ export function useGenerationActionCard({
     : 0;
   const resolutionOptions = useMemo(
     () =>
-      generationType === 'video' && !isAutoMode
-        ? getVideoResolutionsByModel(modelKey).map((option) => ({
-            label: option.label,
-            value: option.value,
+      generationType === 'image' && !isAutoMode && isFlux3ImageModel(modelKey)
+        ? FLUX_3_RESOLUTIONS.map((value) => ({
+            label: value.toUpperCase(),
+            value,
           }))
-        : [],
+        : generationType === 'video' && !isAutoMode
+          ? getVideoResolutionsByModel(modelKey).map((option) => ({
+              label: option.label,
+              value: option.value,
+            }))
+          : [],
     [generationType, isAutoMode, modelKey],
   );
   const maxOutputs =
@@ -447,13 +454,14 @@ export function useGenerationActionCard({
 
   // Reset invalid values when model changes
   useEffect(() => {
+    if (pickerLoading) return;
     if (
       availableAspectRatios.length > 0 &&
       !availableAspectRatios.includes(aspectRatio)
     ) {
       setAspectRatio(defaultAspectRatio);
     }
-  }, [availableAspectRatios, aspectRatio, defaultAspectRatio]);
+  }, [availableAspectRatios, aspectRatio, defaultAspectRatio, pickerLoading]);
 
   useEffect(() => {
     if (showDuration && !durationOptions.includes(duration)) {
@@ -475,7 +483,9 @@ export function useGenerationActionCard({
 
     if (!resolutionOptions.some((option) => option.value === resolution)) {
       setResolution(
-        getDefaultVideoResolution(modelKey) ??
+        (isFlux3ImageModel(modelKey)
+          ? '1k'
+          : getDefaultVideoResolution(modelKey)) ??
           resolutionOptions[0]?.value ??
           '',
       );
