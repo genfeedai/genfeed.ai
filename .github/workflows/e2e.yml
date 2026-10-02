@@ -526,6 +526,9 @@ jobs:
           --health-retries 10
     env:
       TURBO_TOKEN: ''
+      RUNTIME_ACCEPTANCE_CI_RUN_ID: ${{ github.run_id }}
+      RUNTIME_ACCEPTANCE_CI_RUN_ATTEMPT: ${{ github.run_attempt }}
+      RUNTIME_ACCEPTANCE_CI_JOB: ${{ github.job }}
       RUNTIME_ACCEPTANCE_POSTGRES_USER: genfeed
       RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD: genfeed_local
       RUNTIME_ACCEPTANCE_PUBLIC_KEY: ${{ vars.RUNTIME_ACCEPTANCE_PUBLIC_KEY }}

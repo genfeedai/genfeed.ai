@@ -21,6 +21,7 @@ import {
   rm,
   statfs,
 } from 'node:fs/promises';
+import { createConnection } from 'node:net';
 import path from 'node:path';
 import { Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -225,18 +226,304 @@ export async function verifyBaselineSources(repo) {
 export const AGENT_PRODUCTION_FILES = [
   {
     path: 'apps/server/api/test/integration/proactive-agent-production-turn.integration.spec.ts',
-    sha256: 'd0a43718a8a8070935407048c44b05f760b168738cc7884c67a88683cb138b6a',
+    sha256: 'ca356d57acb604eaf18a15c56ab38d9328b32f08a2ebca42ab134be9d62e4e98',
   },
   {
     path: 'apps/server/api/test/integration/proactive-agent-production-turn.fixture.ts',
-    sha256: 'b92942818e228a2eefc0782732482add410ed3a80a9b83d3af7b979b80ce3efb',
+    sha256: 'e8d8910c10e33a2c34d7ff45df3cc1aaff1137ca9b78fc02678a7c276c1055c4',
   },
 ];
 export const AGENT_PRODUCTION_TITLES = [
-  'runs a paid text turn through the real worker and settles its actual reservation once',
-  'releases the real financial hold when the external inference call fails',
-  'requires the real authorizer to produce a strategy-attributed draft without fabricated confirmation',
-].map((title) => `proactive production turn acceptance ${title}`);
+  'proactive production turn acceptance runs a paid text turn through the real worker and settles its actual reservation once',
+  'proactive production turn acceptance releases the real financial hold when the external inference call fails',
+  'proactive production turn acceptance requires the real authorizer to produce a strategy-attributed draft without fabricated confirmation',
+  'proactive production turn acceptance holds the real dispatch backend beyond thirty seconds while a paid provider round is pending',
+  'proactive production turn acceptance rejects a terminated owned dispatch backend before admission without a reservation or failure increment',
+  'proactive production turn acceptance recovers an accepted enqueue after owned backend loss with one durable paid identity',
+];
+
+// Source-only freeze point. Populate from the writer's committed files and
+// exact collected cases before qualifying final; no environment override.
+export const LEARNING_SOURCE_CONTRACT = Object.freeze({
+  version: 1,
+  qualified: false,
+  sourceInputs: [
+    'apps/server/api/test/integration/content-learning/content-learning-runtime.fixture.ts',
+    'apps/server/api/test/integration/content-learning/content-learning-runtime.integration.spec.ts',
+    'apps/server/api/test/integration/content-learning/content-learning-publication-races.integration.spec.ts',
+    'apps/server/api/vitest.learning-runtime.config.ts',
+  ].map((sourcePath) => ({ path: sourcePath, sha256: null })),
+  suites: [
+    {
+      file: 'test/integration/content-learning/content-learning-runtime.integration.spec.ts',
+      count: 0,
+      titles: [],
+    },
+    {
+      file: 'test/integration/content-learning/content-learning-publication-races.integration.spec.ts',
+      count: 0,
+      titles: [],
+    },
+  ],
+  cleanupReceipts: 0,
+});
+export const FINAL_LEARNING_BUDGET = Object.freeze({
+  work: 540000,
+  cleanup: 60000,
+  total: 600000,
+});
+export function requireLearningSourceContract(
+  contract = LEARNING_SOURCE_CONTRACT,
+) {
+  requireThat(
+    contract?.version === 1 && contract.qualified === true,
+    'LEARNING_INVENTORY_UNQUALIFIED',
+  );
+  requireThat(
+    Array.isArray(contract.sourceInputs) &&
+      contract.sourceInputs.length === 4 &&
+      contract.sourceInputs.every(
+        (entry, index) =>
+          entry.path === LEARNING_SOURCE_CONTRACT.sourceInputs[index].path &&
+          HASH.test(entry.sha256 ?? ''),
+      ) &&
+      Array.isArray(contract.suites) &&
+      contract.suites.length === 2 &&
+      Number.isSafeInteger(contract.cleanupReceipts) &&
+      contract.cleanupReceipts > 0 &&
+      contract.cleanupReceipts <= 1000,
+    'INVALID_LEARNING_INVENTORY',
+  );
+  const titles = new Set();
+  for (const [index, suite] of contract.suites.entries()) {
+    requireThat(
+      suite.file === LEARNING_SOURCE_CONTRACT.suites[index].file &&
+        Number.isSafeInteger(suite.count) &&
+        suite.count > 0 &&
+        suite.count <= 1000 &&
+        Array.isArray(suite.titles) &&
+        suite.titles.length === suite.count,
+      'INVALID_LEARNING_INVENTORY',
+    );
+    for (const title of suite.titles) {
+      requireThat(
+        typeof title === 'string' &&
+          title.trim() === title &&
+          title.length > 0 &&
+          !titles.has(title),
+        'INVALID_LEARNING_INVENTORY',
+      );
+      titles.add(title);
+    }
+  }
+  return contract;
+}
+export function learningCiIdentity(env) {
+  const runId = env.RUNTIME_ACCEPTANCE_CI_RUN_ID;
+  const runAttempt = env.RUNTIME_ACCEPTANCE_CI_RUN_ATTEMPT;
+  const job = env.RUNTIME_ACCEPTANCE_CI_JOB;
+  requireThat(
+    env.GITHUB_ACTIONS === 'true' &&
+      /^\d+$/.test(runId ?? '') &&
+      /^[1-9]\d*$/.test(runAttempt ?? '') &&
+      /^[A-Za-z0-9_-]{1,100}$/.test(job ?? '') &&
+      runId === env.GITHUB_RUN_ID &&
+      runAttempt === env.GITHUB_RUN_ATTEMPT &&
+      job === env.GITHUB_JOB,
+    'LEARNING_CI_IDENTITY_REQUIRED',
+  );
+  return { runId, runAttempt, job };
+}
+export function learningRedisRunId(info) {
+  const entries = String(info)
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith('run_id:'));
+  requireThat(
+    entries.length === 1 && SHA.test(entries[0].slice(7)),
+    'LEARNING_REDIS_IDENTITY',
+  );
+  return entries[0].slice(7);
+}
+export function requireLearningRedisBlank(keyspace, sizes) {
+  requireThat(
+    String(keyspace)
+      .split(/\r?\n/)
+      .every((line) => !/^db\d+:/.test(line)) &&
+      Array.isArray(sizes) &&
+      sizes.length === 5 &&
+      sizes.every((size) => String(size).trim() === '0'),
+    'LEARNING_REDIS_NOT_EMPTY',
+  );
+}
+export function buildLearningRedisReceipt(
+  identity,
+  env,
+  inspected,
+  insideInfo,
+  endpointInfo,
+  now = Date.now(),
+) {
+  const ci = learningCiIdentity(env);
+  requireThat(
+    identity.group === 'final' &&
+      SHA.test(identity.candidateSHA ?? '') &&
+      JSON.stringify(identity.learningCi) === JSON.stringify(ci),
+    'LEARNING_CI_IDENTITY_REQUIRED',
+  );
+  const containerId = env.RUNTIME_ACCEPTANCE_REDIS_ID;
+  requireThat(
+    HASH.test(containerId ?? '') &&
+      containerId === identity.resources.redis &&
+      inspected?.Id === containerId &&
+      /^sha256:[a-f0-9]{64}$/.test(inspected.Image ?? '') &&
+      inspected.State?.Running === true &&
+      inspected.Config?.Image === 'redis:7',
+    'LEARNING_CONTAINER_IDENTITY',
+  );
+  const created = Date.parse(inspected.Created);
+  requireThat(
+    Number.isFinite(created) &&
+      created <= identity.startedAt &&
+      created >= identity.startedAt - 300000 &&
+      now >= identity.startedAt &&
+      now < identity.overallDeadline,
+    'LEARNING_CONTAINER_CREATION',
+  );
+  requireThat(
+    Array.isArray(inspected.Mounts) &&
+      inspected.Mounts.every(
+        (mount) =>
+          mount.Type === 'volume' &&
+          mount.Destination === '/data' &&
+          HASH.test(mount.Name ?? ''),
+      ),
+    'LEARNING_PERSISTENT_VOLUME',
+  );
+  const ports = inspected.NetworkSettings?.Ports?.['6379/tcp'];
+  requireThat(
+    Array.isArray(ports) &&
+      ports.some(
+        (port) =>
+          port.HostPort === '6379' &&
+          ['127.0.0.1', '0.0.0.0', '::'].includes(port.HostIp),
+      ),
+    'LEARNING_CONTAINER_ENDPOINT',
+  );
+  const redisRunId = learningRedisRunId(insideInfo);
+  requireThat(
+    redisRunId === learningRedisRunId(endpointInfo),
+    'LEARNING_ENDPOINT_IDENTITY',
+  );
+  return {
+    version: 1,
+    kind: 'ci-owned-redis-instance',
+    candidateSHA: identity.candidateSHA,
+    ...ci,
+    ownerNonce: randomUUID(),
+    containerId,
+    imageId: inspected.Image,
+    redisRunId,
+    endpoint: { hostname: '127.0.0.1', port: 6379 },
+    ownedDatabases: [0, 1, 2, 3, 4],
+    issuedAt: new Date(now).toISOString(),
+  };
+}
+async function learningEndpointInfo(timeout) {
+  requireThat(timeout > 0, 'LEARNING_PHASE_DEADLINE');
+  return new Promise((resolve, reject) => {
+    const socket = createConnection({ host: '127.0.0.1', port: 6379 });
+    let bytes = Buffer.alloc(0),
+      settled = false;
+    const finish = (error, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      socket.destroy();
+      if (error) reject(error);
+      else resolve(value);
+    };
+    const timer = setTimeout(
+      () => finish(new AcceptanceError('LEARNING_ENDPOINT_TIMEOUT')),
+      Math.min(5000, timeout),
+    );
+    socket.on('error', () =>
+      finish(new AcceptanceError('LEARNING_ENDPOINT_FAILED')),
+    );
+    socket.on('close', () => {
+      if (!settled) finish(new AcceptanceError('LEARNING_ENDPOINT_CLOSED'));
+    });
+    socket.on('connect', () =>
+      socket.write('*2\r\n$4\r\nINFO\r\n$6\r\nserver\r\n'),
+    );
+    socket.on('data', (chunk) => {
+      bytes = Buffer.concat([bytes, chunk]);
+      if (bytes.length > 16384)
+        return finish(new AcceptanceError('LEARNING_ENDPOINT_LIMIT'));
+      const headerEnd = bytes.indexOf('\r\n');
+      if (headerEnd < 0) return;
+      const header = bytes.subarray(0, headerEnd).toString();
+      if (!/^\$[0-9]+$/.test(header))
+        return finish(new AcceptanceError('LEARNING_ENDPOINT_PROTOCOL'));
+      const length = Number(header.slice(1));
+      if (!Number.isSafeInteger(length) || length > 16000)
+        return finish(new AcceptanceError('LEARNING_ENDPOINT_LIMIT'));
+      if (bytes.length < headerEnd + 2 + length + 2) return;
+      if (
+        bytes.length !== headerEnd + length + 4 ||
+        bytes.subarray(-2).toString() !== '\r\n'
+      )
+        return finish(new AcceptanceError('LEARNING_ENDPOINT_PROTOCOL'));
+      finish(
+        null,
+        bytes.subarray(headerEnd + 2, headerEnd + 2 + length).toString(),
+      );
+    });
+  });
+}
+export function learningChildEnvironment(env, identity, resource, url) {
+  requireThat(
+    identity.group === 'final' &&
+      resource === identity.resources.learning &&
+      resource.receipt?.candidateSHA === identity.candidateSHA &&
+      resource.receipt.containerId === identity.resources.redis &&
+      JSON.stringify(learningCiIdentity(env)) ===
+        JSON.stringify(identity.learningCi),
+    'LEARNING_RESOURCE_IDENTITY',
+  );
+  const result = {};
+  for (const key of [
+    'PATH',
+    'HOME',
+    'USER',
+    'TMPDIR',
+    'TMP',
+    'TEMP',
+    'SYSTEMROOT',
+    'WINDIR',
+    'COMSPEC',
+    'PATHEXT',
+  ])
+    if (typeof env[key] === 'string') result[key] = env[key];
+  Object.assign(result, {
+    NODE_ENV: 'test',
+    GENFEED_CLOUD: 'true',
+    NEXT_PUBLIC_GENFEED_CLOUD: 'true',
+    CI: 'true',
+    NO_COLOR: '1',
+    FORCE_COLOR: '0',
+    TURBO_TOKEN: '',
+    LEARNING_RUNTIME_TEST_DATABASE_URL: url,
+    LEARNING_RUNTIME_TEST_REDIS_URL: 'redis://127.0.0.1:6379/0',
+    LEARNING_RUNTIME_REDIS_OWNERSHIP_RECEIPT: resource.receiptPath,
+    LEARNING_RUNTIME_ACCEPTANCE_HEAD: identity.candidateSHA,
+    RUNTIME_ACCEPTANCE_CI_RUN_ID: identity.learningCi.runId,
+    RUNTIME_ACCEPTANCE_CI_RUN_ATTEMPT: identity.learningCi.runAttempt,
+    RUNTIME_ACCEPTANCE_CI_JOB: identity.learningCi.job,
+    RUNTIME_ACCEPTANCE_REDIS_ID: resource.receipt.containerId,
+  });
+  return result;
+}
+
 export const DELEGATED_API_FILES = [
   AGENT_PRODUCTION_FILES[0].path.slice('apps/server/api/'.length),
   BRAND_PATH.slice('apps/server/api/'.length),
@@ -423,6 +710,7 @@ const REQUIRED = {
     'dataset-diagnostic',
   ],
   final: [
+    'learning-runtime',
     'dataset-correctness',
     'dataset-typecheck',
     'dataset-matrix',
@@ -955,6 +1243,7 @@ export const FINAL_DATABASE_NAMES = [
   'genfeed_crun_test',
   'genfeed_agent_test',
   'genfeed_baseline_materialization_test',
+  'genfeed_learning_runtime_test',
 ];
 function validateFinalDatabase(identity, name, postgresId) {
   requireThat(
@@ -1289,6 +1578,255 @@ export async function runFinalCrunBounded({
     cleanupDeadline: cleanupEnd,
   };
 }
+export function hasFinalLearningTerminationProof(resource) {
+  const proof = resource?.terminationProof;
+  return (
+    resource?.spawnIssued === true &&
+    resource.streamsClosed === true &&
+    resource.terminationConfirmed === true &&
+    resource.terminationProofPersisted === true &&
+    Number.isSafeInteger(resource.pgid) &&
+    resource.pgid > 1 &&
+    proof?.pgid === resource.pgid &&
+    proof.ownerNonce === resource.receipt?.ownerNonce &&
+    proof.receiptHash === resource.receiptHash &&
+    proof.candidateSHA === resource.candidateSHA &&
+    proof.controlSHA === resource.controlSHA &&
+    proof.groupAbsent === true &&
+    proof.childClosed === true &&
+    proof.streamsClosed === true &&
+    Number.isSafeInteger(proof.checkedAt) &&
+    proof.checkedAt <= proof.deadline
+  );
+}
+
+export async function runFinalLearningBounded({
+  identity,
+  resource,
+  executable,
+  args,
+  cwd,
+  env,
+  stdoutPath,
+  stderrPath,
+  persistProof,
+  cleanupOwned,
+  clock = realClock,
+  start = startVisualProcess,
+  stop = stopVisualGroups,
+  probe = (pid) => process.kill(-pid, 0),
+  isCancelled = () => cancelled,
+  aggregateDeadline = identity.overallDeadline,
+}) {
+  requireThat(
+    identity.group === 'final' &&
+      identity.resources.learning === resource &&
+      resource?.receipt?.candidateSHA === identity.candidateSHA &&
+      resource.receipt.containerId === identity.resources.redis,
+    'LEARNING_OWNERSHIP',
+  );
+  const started = resource.startedAt,
+    workEnd = started + FINAL_LEARNING_BUDGET.work;
+  requireThat(
+    Number.isSafeInteger(started) &&
+      clock.now() < workEnd &&
+      started + FINAL_LEARNING_BUDGET.total <= aggregateDeadline,
+    'AGGREGATE_DEADLINE',
+  );
+  Object.assign(resource, {
+    candidateSHA: identity.candidateSHA,
+    controlSHA: identity.controlSHA,
+    terminationConfirmed: false,
+    streamsClosed: false,
+    terminationProofPersisted: false,
+    spawnIssued: false,
+    pgid: null,
+    terminationProof: undefined,
+    cleanupResult: undefined,
+  });
+  const result = {
+    exitCode: null,
+    signal: null,
+    timedOut: false,
+    outputLimit: false,
+    spawnError: null,
+    streamError: null,
+    cleanupError: null,
+  };
+  let handle, observed, firstError;
+  let spawnWindowOpen = true;
+  try {
+    requireThat(!isCancelled(), 'CANCELLED');
+    const pending = start({
+      executable,
+      args,
+      cwd,
+      env,
+      stdoutPath,
+      stderrPath,
+      beforeSpawn: () => {
+        requireThat(!isCancelled(), 'CANCELLED');
+        requireThat(
+          spawnWindowOpen && clock.now() < workEnd,
+          'LEARNING_WORK_TIMEOUT',
+        );
+      },
+      onSpawn: (pid) => {
+        resource.pgid = pid;
+        resource.spawnIssued = Number.isSafeInteger(pid) && pid > 1;
+      },
+    });
+    pending.then(
+      (value) => {
+        handle = value;
+        value.done.then((status) => {
+          observed = status;
+        });
+      },
+      () => {},
+    );
+    handle = await untilDeadline(
+      pending,
+      workEnd,
+      clock,
+      'LEARNING_WORK_TIMEOUT',
+    );
+    requireThat(
+      resource.spawnIssued && handle.pid === resource.pgid,
+      'LEARNING_PROCESS_OWNERSHIP',
+    );
+    await untilDeadline(
+      persistProof(identity, resource),
+      workEnd,
+      clock,
+      'LEARNING_JOURNAL_WRITE_FAILED',
+    );
+    observed = await untilDeadline(
+      handle.done,
+      workEnd,
+      clock,
+      'LEARNING_WORK_TIMEOUT',
+    );
+    requireThat(!isCancelled(), 'CANCELLED');
+  } catch (error) {
+    firstError = error.code ?? 'LEARNING_CONTROL_FAILED';
+    if (firstError === 'LEARNING_WORK_TIMEOUT') result.timedOut = true;
+    else result.spawnError = firstError;
+  } finally {
+    spawnWindowOpen = false;
+  }
+  const cleanupStarted = clock.now(),
+    cleanupEnd = Math.min(
+      cleanupStarted + FINAL_LEARNING_BUDGET.cleanup,
+      started + FINAL_LEARNING_BUDGET.total,
+      aggregateDeadline,
+    ),
+    terminationEnd = Math.min(cleanupStarted + 10000, cleanupEnd - 45000);
+  try {
+    requireThat(
+      resource.spawnIssued &&
+        Number.isSafeInteger(resource.pgid) &&
+        resource.pgid > 1,
+      'LEARNING_PROCESS_OWNERSHIP',
+    );
+    await untilDeadline(
+      stop([resource.pgid], {
+        term: 5000,
+        kill: 3000,
+        deadline: terminationEnd,
+      }),
+      terminationEnd,
+      clock,
+      'LEARNING_TERMINATION_UNCONFIRMED',
+    );
+    requireThat(
+      handle && handle.pid === resource.pgid,
+      'LEARNING_PROCESS_OWNERSHIP',
+    );
+    observed = await untilDeadline(
+      handle.done,
+      terminationEnd,
+      clock,
+      'LEARNING_STREAMS_UNCONFIRMED',
+    );
+    resource.streamsClosed = true;
+    let absent = false;
+    try {
+      probe(resource.pgid);
+    } catch (error) {
+      if (error.code === 'ESRCH') absent = true;
+      else throw error;
+    }
+    requireThat(absent, 'LEARNING_TERMINATION_UNCONFIRMED');
+    resource.terminationProof = {
+      pgid: resource.pgid,
+      ownerNonce: resource.receipt.ownerNonce,
+      receiptHash: resource.receiptHash,
+      candidateSHA: identity.candidateSHA,
+      controlSHA: identity.controlSHA,
+      fingerprint: identity.fingerprint,
+      groupAbsent: true,
+      childClosed: true,
+      streamsClosed: true,
+      checkedAt: clock.now(),
+      deadline: terminationEnd,
+    };
+    resource.terminationConfirmed = true;
+    try {
+      await untilDeadline(
+        persistProof(identity, resource),
+        terminationEnd,
+        clock,
+        'LEARNING_TERMINATION_PROOF_FAILED',
+      );
+      requireThat(
+        clock.now() < terminationEnd,
+        'LEARNING_TERMINATION_PROOF_FAILED',
+      );
+      resource.terminationProofPersisted = true;
+    } catch {
+      resource.terminationConfirmed = false;
+      resource.terminationProofPersisted = false;
+      throw new AcceptanceError('LEARNING_TERMINATION_PROOF_FAILED');
+    }
+    const ownedEnd = Math.min(cleanupEnd, clock.now() + 45000);
+    resource.cleanupResult = await untilDeadline(
+      cleanupOwned(ownedEnd),
+      ownedEnd,
+      clock,
+      'LEARNING_CLEANUP_DEADLINE',
+    );
+    requireThat(
+      resource.cleanupResult?.passed === true,
+      'LEARNING_RESOURCE_CLEANUP_FAILED',
+    );
+  } catch (error) {
+    result.cleanupError = error.code ?? 'LEARNING_TERMINATION_UNCONFIRMED';
+    if (!resource.cleanupResult)
+      resource.cleanupResult = {
+        passed: false,
+        operations: [{ name: 'termination-proof', passed: false }],
+        failures: [
+          { stage: 'learning-runtime-cleanup', code: result.cleanupError },
+        ],
+      };
+  }
+  if (observed)
+    Object.assign(result, {
+      exitCode: observed.exitCode,
+      signal: observed.signal,
+      outputLimit: observed.outputLimit ?? false,
+      streamError: observed.streamError ? 'STREAM_FAILED' : null,
+    });
+  return {
+    ...result,
+    workError: firstError,
+    elapsedMs: clock.now() - started,
+    terminationProof: resource.terminationProof,
+    cleanupDeadline: cleanupEnd,
+  };
+}
+
 export async function cleanupFinalCrunResources(resource, adapters, deadline) {
   const result = { passed: true, operations: [], failures: [] };
   const attempt = async (name, code, work) => {
@@ -1694,6 +2232,11 @@ export async function createState(options, env) {
   if (['agent-production', 'brand-acceptance'].includes(options.group))
     await verifyDedicatedSources(repo, options.group, env);
   if (options.group === 'final') {
+    learningCiIdentity(env);
+    await verifyFrozenSources(
+      repo,
+      requireLearningSourceContract().sourceInputs,
+    );
     await verifyBaselineSources(repo);
     const contract = validateOwnerContract(
       env.RUNTIME_ACCEPTANCE_OWNER_CONTRACT,
@@ -1713,6 +2256,9 @@ export async function createState(options, env) {
     group: options.group,
     fingerprint,
     phase: 'prepared',
+    ...(options.group === 'final'
+      ? { learningCi: learningCiIdentity(env) }
+      : {}),
     ...timing,
     device: metadata.dev,
     inode: metadata.ino,
@@ -3288,7 +3834,7 @@ async function executeDedicatedAcceptance(identity, env, baseline = false) {
       ? {
           file: DELEGATED_API_FILES[0],
           titles: AGENT_PRODUCTION_TITLES,
-          count: 3,
+          count: 6,
         }
       : {
           file: DELEGATED_API_FILES[1],
@@ -3662,6 +4208,14 @@ async function executeDedicatedAcceptance(identity, env, baseline = false) {
 async function execution(identity, env) {
   if (['agent-production', 'brand-acceptance'].includes(identity.group))
     return executeDedicatedAcceptance(identity, env);
+  if (identity.group === 'final') {
+    requireLearningSourceContract();
+    requireThat(
+      JSON.stringify(identity.learningCi) ===
+        JSON.stringify(learningCiIdentity(env)),
+      'LEARNING_CI_IDENTITY_REQUIRED',
+    );
+  }
   const credentials = readPostgresCredentials(env);
   requireThat(identity.phase === 'prepared', 'INVALID_PHASE');
   identity.phase = 'running';
@@ -3795,6 +4349,147 @@ async function execution(identity, env) {
       end,
     );
   };
+  const learningSnapshot = async (end) => {
+    const id = identity.resources.redis;
+    requireThat(HASH.test(id ?? ''), 'LEARNING_CONTAINER_IDENTITY');
+    const command = (...args) => {
+      requireThat(Date.now() < end, 'LEARNING_PHASE_DEADLINE');
+      return cleanupCapture(
+        'docker',
+        ['exec', id, 'redis-cli', ...args],
+        identity.repo,
+        privateEnv,
+        Math.min(5000, end - Date.now()),
+      );
+    };
+    requireThat(Date.now() < end, 'LEARNING_PHASE_DEADLINE');
+    const inspected = JSON.parse(
+      await cleanupCapture(
+        'docker',
+        ['inspect', id],
+        identity.repo,
+        privateEnv,
+        Math.min(5000, end - Date.now()),
+      ),
+    );
+    requireThat(
+      Array.isArray(inspected) && inspected.length === 1,
+      'LEARNING_CONTAINER_IDENTITY',
+    );
+    const inside = await command('INFO', 'server');
+    const endpoint = await learningEndpointInfo(end - Date.now());
+    const receipt = buildLearningRedisReceipt(
+      identity,
+      env,
+      inspected[0],
+      inside,
+      endpoint,
+    );
+    const keyspace = await command('INFO', 'keyspace');
+    const sizes = [];
+    for (const db of [0, 1, 2, 3, 4])
+      sizes.push(await command('-n', String(db), 'DBSIZE'));
+    requireLearningRedisBlank(keyspace, sizes);
+    return { receipt, inspected: inspected[0], keyspace, sizes };
+  };
+  const verifyLearningStoppedAndBlank = async (end) => {
+    const resource = identity.resources.learning;
+    requireThat(
+      hasFinalLearningTerminationProof(resource),
+      'LEARNING_TERMINATION_UNCONFIRMED',
+    );
+    const metadata = await lstat(resource.receiptPath);
+    const bytes = await safeFile(
+      identity.state,
+      resource.receiptRelative,
+      16384,
+    );
+    requireThat(
+      metadata.ino === resource.receiptMetadata.inode &&
+        metadata.dev === resource.receiptMetadata.device &&
+        sha256(bytes) === resource.receiptHash,
+      'LEARNING_RECEIPT_REPLACED',
+    );
+    const snapshot = await learningSnapshot(end);
+    requireThat(
+      snapshot.receipt.containerId === resource.receipt.containerId &&
+        snapshot.receipt.imageId === resource.receipt.imageId &&
+        snapshot.receipt.redisRunId === resource.receipt.redisRunId,
+      'LEARNING_RESOURCE_IDENTITY',
+    );
+    const directory = await lstat(resource.directory);
+    requireThat(
+      directory.isDirectory() &&
+        !directory.isSymbolicLink() &&
+        directory.ino === resource.directoryMetadata.inode &&
+        directory.dev === resource.directoryMetadata.device,
+      'LEARNING_DIRECTORY_REPLACED',
+    );
+    const names = await readdir(resource.directory);
+    const cleanupNames = names.filter((name) =>
+      /^learning-runtime-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}-cleanup\.json$/.test(
+        name,
+      ),
+    );
+    requireThat(
+      cleanupNames.length === requireLearningSourceContract().cleanupReceipts &&
+        names.every(
+          (name) =>
+            name === 'redis-ownership.json' || cleanupNames.includes(name),
+        ),
+      'LEARNING_CLEANUP_INVENTORY',
+    );
+    for (const name of cleanupNames) {
+      const relative = `raw/learning-runtime/${name}`;
+      const cleanup = JSON.parse(await safeFile(identity.state, relative));
+      requireThat(
+        cleanup.version === 1 &&
+          cleanup.success === true &&
+          cleanup.candidateSHA === identity.candidateSHA &&
+          cleanup.receiptHash === resource.receiptHash &&
+          cleanup.claimValue ===
+            `${resource.receipt.ownerNonce}:${cleanup.fixtureId}` &&
+          name === `learning-runtime-${cleanup.fixtureId}-cleanup.json` &&
+          Array.isArray(cleanup.inventories) &&
+          cleanup.inventories.length === 5,
+        'LEARNING_CLEANUP_INVENTORY',
+      );
+      let keys = 0;
+      for (const [db, inventory] of cleanup.inventories.entries()) {
+        requireThat(
+          inventory.db === db &&
+            Array.isArray(inventory.keys) &&
+            inventory.keys.every((key) => typeof key === 'string') &&
+            new Set(inventory.keys).size === inventory.keys.length,
+          'LEARNING_CLEANUP_INVENTORY',
+        );
+        keys += inventory.keys.length;
+      }
+      requireThat(keys <= 10000, 'LEARNING_CLEANUP_INVENTORY');
+      identity.evidence.push(relative);
+    }
+    resource.blankVerified = true;
+    resource.blankCheckedAt = Date.now();
+    resource.cleanupEvidence = cleanupNames.map(
+      (name) => `raw/learning-runtime/${name}`,
+    );
+    await save(
+      'raw/learning-runtime-blank.json',
+      JSON.stringify({
+        candidateSHA: identity.candidateSHA,
+        containerId: resource.receipt.containerId,
+        redisRunId: resource.receipt.redisRunId,
+        checkedAt: resource.blankCheckedAt,
+        keyspace: snapshot.keyspace,
+        sizes: snapshot.sizes,
+      }),
+    );
+    return {
+      passed: true,
+      operations: [{ name: 'learning-blank-instance', passed: true }],
+      failures: [],
+    };
+  };
   const run = async (
     stage,
     executable,
@@ -3829,36 +4524,52 @@ async function execution(identity, env) {
     const crunResource = mediaKind
       ? identity.resources.crun?.[mediaKind]
       : undefined;
+    const childEnv =
+      stage === 'learning-runtime' ? { ...extra } : { ...privateEnv, ...extra };
     const result =
-      identity.group === 'final' && mediaKind !== undefined
-        ? await runFinalCrunBounded({
+      stage === 'learning-runtime'
+        ? await runFinalLearningBounded({
             identity,
-            mediaKind,
-            resource: crunResource,
+            resource: identity.resources.learning,
             executable,
             args,
             cwd,
-            env: { ...privateEnv, ...extra },
+            env: childEnv,
             stdoutPath,
             stderrPath,
             persistProof: persistIdentity,
-            cleanupOwned: (end) =>
-              cleanupCrunOwned(mediaKind, crunResource, end),
+            cleanupOwned: verifyLearningStoppedAndBlank,
             aggregateDeadline: Math.min(deadline, phaseDeadline),
           })
-        : await runBounded({
-            executable,
-            args,
-            cwd,
-            env: { ...privateEnv, ...extra },
-            stdoutPath,
-            stderrPath,
-            timeoutMs: Math.min(
-              timeout,
-              Math.min(deadline, phaseDeadline) - Date.now(),
-            ),
-            graceMs: grace,
-          });
+        : identity.group === 'final' && mediaKind !== undefined
+          ? await runFinalCrunBounded({
+              identity,
+              mediaKind,
+              resource: crunResource,
+              executable,
+              args,
+              cwd,
+              env: childEnv,
+              stdoutPath,
+              stderrPath,
+              persistProof: persistIdentity,
+              cleanupOwned: (end) =>
+                cleanupCrunOwned(mediaKind, crunResource, end),
+              aggregateDeadline: Math.min(deadline, phaseDeadline),
+            })
+          : await runBounded({
+              executable,
+              args,
+              cwd,
+              env: childEnv,
+              stdoutPath,
+              stderrPath,
+              timeoutMs: Math.min(
+                timeout,
+                Math.min(deadline, phaseDeadline) - Date.now(),
+              ),
+              graceMs: grace,
+            });
     commands.push({ stage, ...result });
     requireThat(
       result.exitCode === 0 &&
@@ -4149,6 +4860,63 @@ async function execution(identity, env) {
         identity.repo,
         privateEnv,
       );
+    if (identity.group === 'final') {
+      const contract = requireLearningSourceContract();
+      await verifyFrozenSources(identity.repo, contract.sourceInputs);
+      const startedAt = Date.now();
+      requireThat(
+        startedAt + FINAL_LEARNING_BUDGET.total <= deadline,
+        'AGGREGATE_DEADLINE',
+      );
+      identity.resources.learning = {
+        startedAt,
+        candidateSHA: identity.candidateSHA,
+        controlSHA: identity.controlSHA,
+        directory: path.join(identity.state, 'raw/learning-runtime'),
+        receiptRelative: 'raw/learning-runtime/redis-ownership.json',
+      };
+      const resource = identity.resources.learning;
+      resource.receiptPath = path.join(
+        identity.state,
+        resource.receiptRelative,
+      );
+      await persistIdentity(identity);
+      await mkdir(resource.directory, { mode: 0o700 });
+      const directory = await lstat(resource.directory);
+      resource.directoryMetadata = {
+        inode: directory.ino,
+        device: directory.dev,
+      };
+      await persistIdentity(identity);
+      const snapshot = await learningSnapshot(startedAt + 30000);
+      resource.receipt = snapshot.receipt;
+      const serialized = JSON.stringify(resource.receipt);
+      await save(resource.receiptRelative, serialized);
+      resource.receiptHash = sha256(serialized);
+      const metadata = await lstat(resource.receiptPath);
+      resource.receiptMetadata = { inode: metadata.ino, device: metadata.dev };
+      await save(
+        'raw/learning-runtime-container.json',
+        JSON.stringify(snapshot.inspected),
+      );
+      await persistIdentity(identity);
+      const url = await database('genfeed_learning_runtime_test');
+      await vitest('learning-runtime', contract.suites, {
+        config: 'vitest.learning-runtime.config.ts',
+        pool: 'forks',
+        extra: learningChildEnvironment(env, identity, resource, url),
+        timeout: Math.max(
+          1,
+          startedAt + FINAL_LEARNING_BUDGET.work - Date.now(),
+        ),
+      });
+      requireThat(
+        resource.blankVerified &&
+          resource.cleanupResult?.passed &&
+          hasFinalLearningTerminationProof(resource),
+        'LEARNING_CLEANUP_REQUIRED',
+      );
+    }
     if (['final', 'dataset-diagnostic'].includes(identity.group))
       await attempt('dataset', async () => {
         const url = await database('genfeed_dataset_5781_test');
@@ -5165,6 +5933,22 @@ async function execution(identity, env) {
         activeGroups.delete(coordinator.pid);
       });
     if (identity.group === 'final') {
+      const learning = identity.resources.learning;
+      const learningClean =
+        learning?.cleanupResult?.passed === true &&
+        learning.blankVerified === true &&
+        hasFinalLearningTerminationProof(learning);
+      cleanupResult.operations.push({
+        name: 'learning-runtime',
+        passed: learningClean,
+      });
+      if (!learningClean) {
+        cleanupResult.passed = false;
+        failures.push({
+          stage: 'learning-runtime',
+          code: 'LEARNING_CLEANUP_REQUIRED',
+        });
+      }
       for (const mediaKind of ['image', 'video']) {
         const resource = identity.resources.crun?.[mediaKind];
         const result = resource?.cleanupResult ?? {
@@ -5344,6 +6128,44 @@ async function execution(identity, env) {
   }
   return outcome;
 }
+function validateFinalLearningOutcome(outcome, identity) {
+  const contract = requireLearningSourceContract();
+  const resource = identity.resources.learning;
+  requireThat(
+    resource?.candidateSHA === identity.candidateSHA &&
+      resource.controlSHA === identity.controlSHA &&
+      resource.cleanupResult?.passed === true &&
+      resource.blankVerified === true &&
+      hasFinalLearningTerminationProof(resource) &&
+      resource.cleanupEvidence?.length === contract.cleanupReceipts &&
+      Number.isSafeInteger(resource.blankCheckedAt) &&
+      resource.blankCheckedAt >= resource.terminationProof.checkedAt &&
+      outcome.completed[0]?.stage === 'learning-runtime' &&
+      outcome.commands[0]?.stage === 'learning-runtime',
+    'LEARNING_CLEANUP_REQUIRED',
+  );
+  const cases = outcome.completed.find(
+    (entry) => entry.stage === 'learning-runtime',
+  )?.cases;
+  requireThat(
+    Array.isArray(cases) && cases.length === contract.suites.length,
+    'SUCCESS_RECEIPT_REQUIRED',
+  );
+  for (const suite of contract.suites) {
+    const actual = cases.find((entry) => entry.file === suite.file);
+    requireThat(
+      actual?.passed === suite.count &&
+        actual.skipped === 0 &&
+        actual.skippedTitles?.length === 0 &&
+        Array.isArray(actual.passedTitles) &&
+        actual.passedTitles.length === suite.count &&
+        [...actual.passedTitles].sort().join('\n') ===
+          [...suite.titles].sort().join('\n'),
+      'SUCCESS_RECEIPT_REQUIRED',
+    );
+  }
+}
+
 function validateFinalCrunOutcome(outcome, identity) {
   requireThat(
     outcome.completed.length === REQUIRED.final.length &&
@@ -5413,8 +6235,10 @@ export function validateOutcome(outcome, receipt, identity) {
       'SUCCESS_RECEIPT_REQUIRED',
     );
   else requireThat(!receipt, 'FAILED_SUCCESS_RECEIPT');
-  if (outcome.status === 'passed' && identity.group === 'final')
+  if (outcome.status === 'passed' && identity.group === 'final') {
+    validateFinalLearningOutcome(outcome, identity);
     validateFinalCrunOutcome(outcome, identity);
+  }
   return outcome.status;
 }
 export async function collectConnectedEvidence(identity) {
@@ -5605,6 +6429,18 @@ export async function sealState(identity, env) {
   let total = 0;
   const allowlist = new Set(identity.evidence);
   if (status === 'passed' && identity.group === 'final') {
+    requireThat(
+      [
+        identity.resources.learning.receiptRelative,
+        'raw/learning-runtime-container.json',
+        'raw/learning-runtime-blank.json',
+        'raw/learning-runtime.report.json',
+        'raw/learning-runtime-0.stdout',
+        'raw/learning-runtime-0.stderr',
+        ...identity.resources.learning.cleanupEvidence,
+      ].every((relative) => allowlist.has(relative)),
+      'MISSING_LEARNING_EVIDENCE',
+    );
     for (const mediaKind of ['image', 'video']) {
       const stage = `crun-${mediaKind}`;
       const index = outcome.commands.findIndex(

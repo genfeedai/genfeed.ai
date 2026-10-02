@@ -32,6 +32,7 @@ import {
   BASELINE_SOURCE_CONTRACT,
   BRAND_PATH,
   BRAND_SOURCE_CONTRACT,
+  buildLearningRedisReceipt,
   CRUN_SOURCE_CONTRACT,
   cleanupFinalCrunResources,
   cleanupFinalOwnedDatabase,
@@ -45,7 +46,13 @@ import {
   dedicatedChildEnvironment,
   ENVELOPE_LIMIT,
   encryptEvidence,
+  FINAL_LEARNING_BUDGET,
   hasFinalCrunTerminationProof,
+  hasFinalLearningTerminationProof,
+  LEARNING_SOURCE_CONTRACT,
+  learningChildEnvironment,
+  learningCiIdentity,
+  learningRedisRunId,
   loadState,
   parseArguments,
   parseDatasetRecords,
@@ -57,8 +64,11 @@ import {
   readPostgresCredentials,
   removeValidatedVisualRenderers,
   rendererContainerNames,
+  requireLearningRedisBlank,
+  requireLearningSourceContract,
   runBounded,
   runFinalCrunBounded,
+  runFinalLearningBounded,
   STORAGE_PATHS,
   safeFile,
   sealState,
@@ -2558,7 +2568,7 @@ const focusedContracts = {
   'agent-production': {
     file: DELEGATED_API_FILES[0],
     titles: AGENT_PRODUCTION_TITLES,
-    count: 3,
+    count: 6,
   },
   'brand-acceptance': {
     file: DELEGATED_API_FILES[1],
@@ -2643,11 +2653,11 @@ test('frozen source verification rejects absent, changed and symlinked bytes bef
 test('prepared owner revisions retain only the exact approved source hashes', () => {
   assert.equal(
     AGENT_PRODUCTION_FILES[0].sha256,
-    'd0a43718a8a8070935407048c44b05f760b168738cc7884c67a88683cb138b6a',
+    'ca356d57acb604eaf18a15c56ab38d9328b32f08a2ebca42ab134be9d62e4e98',
   );
   assert.equal(
     AGENT_PRODUCTION_FILES[1].sha256,
-    'b92942818e228a2eefc0782732482add410ed3a80a9b83d3af7b979b80ce3efb',
+    'e8d8910c10e33a2c34d7ff45df3cc1aaff1137ca9b78fc02678a7c276c1055c4',
   );
   assert.equal(
     BRAND_SOURCE_CONTRACT.unitFiles.find(
@@ -4338,9 +4348,20 @@ test('a copied image proof cannot authorize the video slot or its owned cleaner'
 });
 
 async function finalQualifiedFixture() {
+  const learningContract = requireLearningSourceContract();
+  const learning = learningSupervisorFixture();
+  await runFinalLearningBounded(learning.options);
+  learning.resource.blankVerified = true;
+  learning.resource.blankCheckedAt =
+    learning.resource.terminationProof.checkedAt + 1;
+  learning.resource.cleanupEvidence = Array.from(
+    { length: learningContract.cleanupReceipts },
+    () => `raw/learning-runtime/learning-runtime-${randomUUID()}-cleanup.json`,
+  );
   const fixtures = ['image', 'video'].map(finalCrunSupervisorFixture);
   const value = fixtures[0].options.identity;
   value.resources.crun.video = fixtures[1].resource;
+  value.resources.learning = learning.resource;
   for (const fixture of fixtures) {
     fixture.options.identity = value;
     if (fixture.resource.mediaKind === 'video') {
@@ -4359,6 +4380,7 @@ async function finalQualifiedFixture() {
     assert.equal(result.cleanupError, null);
   }
   const stages = [
+    'learning-runtime',
     'dataset-correctness',
     'dataset-typecheck',
     'dataset-matrix',
@@ -4381,23 +4403,32 @@ async function finalQualifiedFixture() {
     status: 'passed',
     completed: stages.map((stage) => ({
       stage,
-      cases: stage.startsWith('crun-')
-        ? [
-            {
-              file: FROZEN_CRUN[stage.slice(5)].path.slice(
-                'apps/server/api/'.length,
-              ),
-              passed: FROZEN_CRUN[stage.slice(5)].count,
+      cases:
+        stage === 'learning-runtime'
+          ? learningContract.suites.map((suite) => ({
+              file: suite.file,
+              passed: suite.count,
               skipped: 0,
               skippedTitles: [],
-              passedTitles: [...FROZEN_CRUN[stage.slice(5)].passedTitles],
-            },
-          ]
-        : [],
+              passedTitles: [...suite.titles],
+            }))
+          : stage.startsWith('crun-')
+            ? [
+                {
+                  file: FROZEN_CRUN[stage.slice(5)].path.slice(
+                    'apps/server/api/'.length,
+                  ),
+                  passed: FROZEN_CRUN[stage.slice(5)].count,
+                  skipped: 0,
+                  skippedTitles: [],
+                  passedTitles: [...FROZEN_CRUN[stage.slice(5)].passedTitles],
+                },
+              ]
+            : [],
     })),
     failures: [],
     cleanup: { passed: true },
-    commands: ['crun-image', 'crun-video'].map((stage) => ({
+    commands: ['learning-runtime', 'crun-image', 'crun-video'].map((stage) => ({
       stage,
       elapsedMs: 1,
     })),
@@ -4502,8 +4533,8 @@ async function finalSealFixture(t) {
     for (const relative of [
       `raw/crun-${kind}.report.json`,
       `raw/crun-${kind}-manifest.json`,
-      `raw/crun-${kind}-${index}.stdout`,
-      `raw/crun-${kind}-${index}.stderr`,
+      `raw/crun-${kind}-${index + 1}.stdout`,
+      `raw/crun-${kind}-${index + 1}.stderr`,
     ]) {
       evidence.push(relative);
       await writeFile(
@@ -4512,6 +4543,26 @@ async function finalSealFixture(t) {
         { mode: 0o600 },
       );
     }
+  }
+  for (const relative of [
+    state.value.resources.learning.receiptRelative,
+    'raw/learning-runtime-container.json',
+    'raw/learning-runtime-blank.json',
+    'raw/learning-runtime.report.json',
+    'raw/learning-runtime-0.stdout',
+    'raw/learning-runtime-0.stderr',
+    ...state.value.resources.learning.cleanupEvidence,
+  ]) {
+    evidence.push(relative);
+    await mkdir(path.dirname(path.join(state.value.state, relative)), {
+      recursive: true,
+      mode: 0o700,
+    });
+    await writeFile(
+      path.join(state.value.state, relative),
+      'private synthetic evidence',
+      { mode: 0o600 },
+    );
   }
   state.value.evidence = evidence;
   for (const name of ['outcome.json', 'receipt.json'])
@@ -4526,7 +4577,14 @@ test('qualified final seal encrypts both media proofs and raw evidence using unc
   const { value, env } = await finalSealFixture(t);
   const receipt = await sealState(value, env);
   assert.equal(receipt.status, 'passed');
-  assert.equal(receipt.passed, 41);
+  assert.equal(
+    receipt.passed,
+    41 +
+      requireLearningSourceContract().suites.reduce(
+        (sum, suite) => sum + suite.count,
+        0,
+      ),
+  );
   assert.equal(receipt.cleanup, true);
   assert.deepEqual(
     Object.keys(receipt).sort(),
@@ -4550,7 +4608,10 @@ test('qualified final seal encrypts both media proofs and raw evidence using unc
     await readFile(path.join(value.state, 'public/evidence.encrypted.json')),
   );
   const privateEvidence = decrypt(encrypted);
-  assert.equal(privateEvidence.files.length, 8);
+  assert.equal(
+    privateEvidence.files.length,
+    14 + requireLearningSourceContract().cleanupReceipts,
+  );
   assert.equal(
     privateEvidence.outcome.completed.find((e) => e.stage === 'crun-video')
       .cases[0].passed,
@@ -4560,8 +4621,8 @@ test('qualified final seal encrypts both media proofs and raw evidence using unc
 for (const missing of [
   'raw/crun-video-manifest.json',
   'raw/crun-video.report.json',
-  'raw/crun-image-0.stdout',
-  'raw/crun-video-1.stderr',
+  'raw/crun-image-1.stdout',
+  'raw/crun-video-2.stderr',
 ])
   test(`final seal fails closed for missing or unregistered ${missing}`, async (t) => {
     const first = await finalSealFixture(t);
@@ -4619,4 +4680,389 @@ for (const failure of ['image-cleanup', 'image-proof', 'video-child'])
     );
     if (failure === 'video-child')
       assert.equal(value.resources.crun.image.cleanupResult.passed, true);
+  });
+
+function learningIssuerFixture() {
+  const env = {
+    GITHUB_ACTIONS: 'true',
+    GITHUB_RUN_ID: '123',
+    GITHUB_RUN_ATTEMPT: '2',
+    GITHUB_JOB: 'runtime-acceptance',
+    RUNTIME_ACCEPTANCE_CI_RUN_ID: '123',
+    RUNTIME_ACCEPTANCE_CI_RUN_ATTEMPT: '2',
+    RUNTIME_ACCEPTANCE_CI_JOB: 'runtime-acceptance',
+    RUNTIME_ACCEPTANCE_REDIS_ID: 'b'.repeat(64),
+  };
+  const value = {
+    ...identity,
+    group: 'final',
+    startedAt: 1000000,
+    overallDeadline: 4600000,
+    learningCi: learningCiIdentity(env),
+    resources: { redis: env.RUNTIME_ACCEPTANCE_REDIS_ID },
+  };
+  const inspected = {
+    Id: env.RUNTIME_ACCEPTANCE_REDIS_ID,
+    Image: `sha256:${'c'.repeat(64)}`,
+    Created: new Date(999000).toISOString(),
+    State: { Running: true },
+    Config: { Image: 'redis:7' },
+    Mounts: [{ Type: 'volume', Destination: '/data', Name: 'd'.repeat(64) }],
+    NetworkSettings: {
+      Ports: { '6379/tcp': [{ HostIp: '0.0.0.0', HostPort: '6379' }] },
+    },
+  };
+  const info = `# Server\r\nrun_id:${'e'.repeat(40)}\r\n`;
+  return { env, value, inspected, info };
+}
+function syntheticLearningContract() {
+  return {
+    version: 1,
+    qualified: true,
+    sourceInputs: LEARNING_SOURCE_CONTRACT.sourceInputs.map((entry) => ({
+      ...entry,
+      sha256: 'a'.repeat(64),
+    })),
+    suites: LEARNING_SOURCE_CONTRACT.suites.map((entry, index) => ({
+      file: entry.file,
+      count: 1,
+      titles: [`synthetic validator case ${index}`],
+    })),
+    cleanupReceipts: 2,
+  };
+}
+test('learning source qualification requires complete fixed inventory and cannot be enabled by environment', () => {
+  const pending = structuredClone(LEARNING_SOURCE_CONTRACT);
+  pending.qualified = false;
+  assert.throws(() => requireLearningSourceContract(pending), {
+    code: 'LEARNING_INVENTORY_UNQUALIFIED',
+  });
+  const valid = syntheticLearningContract();
+  assert.equal(requireLearningSourceContract(valid), valid);
+  for (const mutate of [
+    (value) => {
+      value.sourceInputs.pop();
+    },
+    (value) => {
+      value.sourceInputs[0].sha256 = null;
+    },
+    (value) => {
+      value.sourceInputs[0].path = 'another-fixture.ts';
+    },
+    (value) => {
+      value.suites[0].titles = [];
+    },
+    (value) => {
+      value.suites[1].titles = [...value.suites[0].titles];
+    },
+    (value) => {
+      value.suites[0].count = 0;
+    },
+    (value) => {
+      value.cleanupReceipts = 0;
+    },
+  ]) {
+    const copy = structuredClone(valid);
+    mutate(copy);
+    assert.throws(() => requireLearningSourceContract(copy), {
+      code: 'INVALID_LEARNING_INVENTORY',
+    });
+  }
+});
+test('learning issuer binds fresh exact CI service, image, endpoint, run and attempt', () => {
+  const { env, value, inspected, info } = learningIssuerFixture();
+  const receipt = buildLearningRedisReceipt(
+    value,
+    env,
+    inspected,
+    info,
+    info,
+    1000001,
+  );
+  assert.equal(receipt.candidateSHA, SHA);
+  assert.equal(receipt.kind, 'ci-owned-redis-instance');
+  assert.equal(receipt.runAttempt, '2');
+  assert.deepEqual(receipt.ownedDatabases, [0, 1, 2, 3, 4]);
+  assert.deepEqual(receipt.endpoint, { hostname: '127.0.0.1', port: 6379 });
+  for (const field of [
+    'GITHUB_ACTIONS',
+    'GITHUB_RUN_ID',
+    'GITHUB_RUN_ATTEMPT',
+    'GITHUB_JOB',
+  ]) {
+    assert.throws(() =>
+      buildLearningRedisReceipt(
+        value,
+        { ...env, [field]: 'other' },
+        inspected,
+        info,
+        info,
+        1000001,
+      ),
+    );
+  }
+  for (const mutate of [
+    (container) => {
+      container.Id = 'f'.repeat(64);
+    },
+    (container) => {
+      container.Image = 'redis:7';
+    },
+    (container) => {
+      container.Config.Image = 'redis:latest';
+    },
+    (container) => {
+      container.State.Running = false;
+    },
+    (container) => {
+      container.Created = new Date(1).toISOString();
+    },
+    (container) => {
+      container.Created = new Date(1000001).toISOString();
+    },
+    (container) => {
+      container.Mounts[0].Type = 'bind';
+    },
+    (container) => {
+      container.Mounts[0].Name = 'persistent-data';
+    },
+    (container) => {
+      container.NetworkSettings.Ports['6379/tcp'][0].HostPort = '6380';
+    },
+  ]) {
+    const copy = structuredClone(inspected);
+    mutate(copy);
+    assert.throws(() =>
+      buildLearningRedisReceipt(value, env, copy, info, info, 1000001),
+    );
+  }
+  assert.throws(
+    () =>
+      buildLearningRedisReceipt(
+        value,
+        env,
+        inspected,
+        info,
+        info.replaceAll('e', 'f'),
+        1000001,
+      ),
+    { code: 'LEARNING_ENDPOINT_IDENTITY' },
+  );
+  assert.throws(() => learningRedisRunId(`${info}${info}`), {
+    code: 'LEARNING_REDIS_IDENTITY',
+  });
+});
+test('learning exclusive instance requires every owned DB and unassigned keyspace blank', () => {
+  requireLearningRedisBlank('# Keyspace\r\n', [0, '0\n', 0, 0, 0]);
+  for (let db = 0; db < 5; db++) {
+    const sizes = [0, 0, 0, 0, 0];
+    sizes[db] = 1;
+    assert.throws(() => requireLearningRedisBlank('', sizes), {
+      code: 'LEARNING_REDIS_NOT_EMPTY',
+    });
+  }
+  assert.throws(
+    () =>
+      requireLearningRedisBlank(
+        'db8:keys=1,expires=0,avg_ttl=0',
+        [0, 0, 0, 0, 0],
+      ),
+    { code: 'LEARNING_REDIS_NOT_EMPTY' },
+  );
+});
+test('learning child receives exact authority while ambient credentials and workload overrides are excluded', () => {
+  const { env, value, inspected, info } = learningIssuerFixture();
+  const resource = {
+    receipt: buildLearningRedisReceipt(
+      value,
+      env,
+      inspected,
+      info,
+      info,
+      1000001,
+    ),
+    receiptPath: '/private/owned/redis-ownership.json',
+  };
+  value.resources.learning = resource;
+  const childEnv = learningChildEnvironment(
+    {
+      ...env,
+      PATH: '/bin',
+      HOME: '/home/runner',
+      OPENAI_API_KEY: 'forbidden',
+      STRIPE_SECRET_KEY: 'forbidden',
+      AWS_PROFILE: 'forbidden',
+      HTTP_PROXY: 'forbidden',
+      NODE_OPTIONS: 'forbidden',
+      REDIS_QUEUE_URL: 'redis://elsewhere:6379/1',
+    },
+    value,
+    resource,
+    'postgresql://genfeed:local@127.0.0.1:5432/genfeed_learning_runtime_test',
+  );
+  assert.equal(childEnv.LEARNING_RUNTIME_ACCEPTANCE_HEAD, SHA);
+  assert.equal(childEnv.RUNTIME_ACCEPTANCE_CI_RUN_ATTEMPT, '2');
+  assert.equal(
+    childEnv.LEARNING_RUNTIME_TEST_REDIS_URL,
+    'redis://127.0.0.1:6379/0',
+  );
+  assert.equal(childEnv.NODE_ENV, 'test');
+  assert.equal(childEnv.GENFEED_CLOUD, 'true');
+  for (const key of [
+    'OPENAI_API_KEY',
+    'STRIPE_SECRET_KEY',
+    'AWS_PROFILE',
+    'HTTP_PROXY',
+    'NODE_OPTIONS',
+    'REDIS_QUEUE_URL',
+  ])
+    assert.equal(childEnv[key], undefined);
+});
+function learningSupervisorFixture() {
+  let now = 1000,
+    alive = true;
+  const calls = [];
+  const resource = {
+    startedAt: now,
+    receipt: {
+      candidateSHA: SHA,
+      containerId: 'b'.repeat(64),
+      ownerNonce: randomUUID(),
+    },
+    receiptHash: 'c'.repeat(64),
+    receiptRelative: 'raw/learning-runtime/redis-ownership.json',
+  };
+  const value = {
+    ...identity,
+    group: 'final',
+    overallDeadline: 3600000,
+    resources: { redis: resource.receipt.containerId, learning: resource },
+  };
+  const options = {
+    identity: value,
+    resource,
+    aggregateDeadline: 3480000,
+    clock: { now: () => now, sleep: () => new Promise(() => {}) },
+    isCancelled: () => false,
+    start: async ({ beforeSpawn, onSpawn }) => {
+      beforeSpawn();
+      calls.push('spawn');
+      onSpawn(12345);
+      return { pid: 12345, done: Promise.resolve({ ...child }) };
+    },
+    stop: async (pids, limits) => {
+      assert.deepEqual(pids, [12345]);
+      assert.equal(limits.deadline, 11000);
+      calls.push('stop');
+      alive = false;
+      now += 20;
+    },
+    probe: () => {
+      calls.push('probe');
+      if (!alive) throw Object.assign(new Error('absent'), { code: 'ESRCH' });
+    },
+    persistProof: async () => {
+      calls.push(resource.terminationProof ? 'proof' : 'ack');
+    },
+    cleanupOwned: async (end) => {
+      assert.equal(hasFinalLearningTerminationProof(resource), true);
+      assert.equal(end, 46020);
+      calls.push('blank');
+      return { passed: true, operations: [], failures: [] };
+    },
+  };
+  return {
+    options,
+    resource,
+    calls,
+    setNow: (value) => {
+      now = value;
+    },
+  };
+}
+test('learning process streams and group absence must be persisted before blank-instance verification', async () => {
+  const fixture = learningSupervisorFixture();
+  const result = await runFinalLearningBounded(fixture.options);
+  assert.equal(result.cleanupError, null);
+  assert.equal(result.exitCode, 0);
+  assert.deepEqual(fixture.calls, [
+    'spawn',
+    'ack',
+    'stop',
+    'probe',
+    'proof',
+    'blank',
+  ]);
+  assert.equal(hasFinalLearningTerminationProof(fixture.resource), true);
+  for (const mutate of [
+    (value) => {
+      value.streamsClosed = false;
+    },
+    (value) => {
+      value.terminationProofPersisted = false;
+    },
+    (value) => {
+      value.terminationProof.ownerNonce = randomUUID();
+    },
+    (value) => {
+      value.terminationProof.receiptHash = 'f'.repeat(64);
+    },
+  ]) {
+    const copy = structuredClone(fixture.resource);
+    mutate(copy);
+    assert.equal(hasFinalLearningTerminationProof(copy), false);
+  }
+});
+for (const failure of ['alive', 'permission', 'proof', 'blank'])
+  test(`learning cleanup cannot grant success after ${failure}`, async () => {
+    const fixture = learningSupervisorFixture();
+    if (failure === 'alive') fixture.options.probe = () => {};
+    if (failure === 'permission')
+      fixture.options.probe = () => {
+        throw Object.assign(new Error('denied'), { code: 'EPERM' });
+      };
+    if (failure === 'proof')
+      fixture.options.persistProof = async () => {
+        if (fixture.resource.terminationProof)
+          throw Object.assign(new Error('disk'), { code: 'EIO' });
+      };
+    if (failure === 'blank')
+      fixture.options.cleanupOwned = async () => ({ passed: false });
+    const result = await runFinalLearningBounded(fixture.options);
+    assert.ok(result.cleanupError);
+    assert.equal(fixture.calls.includes('blank'), false);
+  });
+test('learning allocation and setup consume the same 540 second work window', async () => {
+  const fixture = learningSupervisorFixture();
+  fixture.setNow(541000);
+  await assert.rejects(runFinalLearningBounded(fixture.options), {
+    code: 'AGGREGATE_DEADLINE',
+  });
+  assert.deepEqual(fixture.calls, []);
+  assert.deepEqual(FINAL_LEARNING_BUDGET, {
+    work: 540000,
+    cleanup: 60000,
+    total: 600000,
+  });
+  assert.equal(
+    workBudget({ group: 'final', overallDeadline: 3600000 }, 1000),
+    3480000,
+  );
+});
+for (const missing of [
+  'raw/learning-runtime/redis-ownership.json',
+  'raw/learning-runtime-container.json',
+  'raw/learning-runtime-blank.json',
+  'raw/learning-runtime.report.json',
+  'raw/learning-runtime-0.stdout',
+  'raw/learning-runtime-0.stderr',
+])
+  test(`qualified final seal refuses missing learning proof ${missing}`, async (t) => {
+    const fixture = await finalSealFixture(t);
+    fixture.value.evidence = fixture.value.evidence.filter(
+      (name) => name !== missing,
+    );
+    await assert.rejects(sealState(fixture.value, fixture.env), {
+      code: 'MISSING_LEARNING_EVIDENCE',
+    });
   });
