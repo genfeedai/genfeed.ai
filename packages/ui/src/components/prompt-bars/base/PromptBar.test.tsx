@@ -1,5 +1,6 @@
 import { PromptBarInternalContext } from '@genfeedai/contexts/ui/prompt-bar-internal-context';
 import { IngredientCategory, IngredientFormat } from '@genfeedai/contracts';
+import type { CrunInputControls } from '@genfeedai/contracts/interfaces';
 import {
   getDefaultVideoResolution,
   hasResolutionOptions,
@@ -19,6 +20,11 @@ import { use } from 'react';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string, values?: Record<string, unknown>) =>
+    values?.credits !== undefined ? `${values.credits} credits` : key,
+}));
+
 // Mock ResizeObserver globally
 class MockResizeObserver {
   observe = vi.fn();
@@ -32,6 +38,7 @@ const mockPush = vi.fn();
 const mockUsePromptBarFilters = vi.fn();
 const mockUsePromptBarModels = vi.fn();
 const mockUsePromptBarPricing = vi.fn();
+const mockCrunQuote = vi.fn();
 const mockUsePromptBarReferences = vi.fn();
 const mockUsePromptBarSync = vi.fn();
 const mockUseSpeechRecording = vi.fn();
@@ -168,6 +175,14 @@ vi.mock(
   '@genfeedai/hooks/prompt-bar/use-prompt-bar-models/use-prompt-bar-models',
   () => ({
     usePromptBarModels: (...args: unknown[]) => mockUsePromptBarModels(...args),
+  }),
+);
+
+vi.mock(
+  '@genfeedai/hooks/prompt-bar/use-crun-generation-quote/use-crun-generation-quote',
+  () => ({
+    useCrunGenerationQuote: (...args: unknown[]) => mockCrunQuote(...args),
+    serializeCrunQuoteIntent: (value: unknown) => JSON.stringify(value),
   }),
 );
 
@@ -329,6 +344,13 @@ describe('PromptBar', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockForm.watch.mockReset().mockReturnValue(1);
+    mockCrunQuote.mockReturnValue({
+      quote: null,
+      status: 'idle',
+      reasonCode: null,
+      getCurrentQuote: () => null,
+    });
     collapsedViewProps = undefined;
     expandedViewProps = undefined;
     speechHandlers = {};
@@ -1560,4 +1582,266 @@ describe('PromptBar', () => {
       expect(container.firstChild).toHaveClass('relative');
     });
   });
+  describe('Crun legacy video binding admission', () => {
+    const key = 'crun/kling/v2-5-turbo-pro' as const;
+    function selectVideo() {
+      const priorWatch = mockForm.watch.getMockImplementation();
+      mockForm.watch.mockImplementation((name: string) =>
+        name === 'text' ? 'Motion' : priorWatch?.(name),
+      );
+      const model = {
+        key,
+        provider: 'crun',
+        category: 'video',
+        label: 'Kling',
+        inputControls: controlsFor(),
+      };
+      const flags = mockUsePromptBarModels();
+      mockUsePromptBarModels.mockReturnValue({
+        ...flags,
+        selectedModels: [model],
+      });
+      const watch = mockUseWatch.getMockImplementation();
+      mockUseWatch.mockImplementation((options: { name?: string }) =>
+        options.name === 'models'
+          ? [key]
+          : options.name === 'crunControls'
+            ? {
+                modelKey: key,
+                contractVersion: 'reviewed-video-v1',
+                guidanceScale: 0,
+              }
+            : options.name === 'duration'
+              ? 5
+              : watch?.(options),
+      );
+      return model;
+    }
+    it('blocks video without its matching binding even when an image callback exists', () => {
+      const model = selectVideo();
+      const oldSubmit = vi.fn();
+      render(
+        <PromptBar
+          {...defaultProps}
+          categoryType={IngredientCategory.VIDEO}
+          features={{ collapsible: false }}
+          models={[model] as unknown as PromptBarProps['models']}
+          crunBinding={{ prepareRequest: () => null, submit: oldSubmit }}
+        />,
+      );
+      fireEvent.click(screen.getByTestId('submit-button'));
+      expect(expandedViewProps?.isGenerateBlocked).toBe(true);
+      expect(oldSubmit).not.toHaveBeenCalled();
+      expect(defaultProps.onSubmit).not.toHaveBeenCalled();
+    });
+    it('uses the video quote transport and consumes the canonical request once', async () => {
+      const model = selectVideo();
+      const request = {
+        model: key,
+        text: 'Motion',
+        outputs: 4 as const,
+        crunControls: {
+          contractVersion: 'reviewed-video-v1',
+          duration: 5 as const,
+          guidanceScale: 0,
+        },
+      };
+      const quote = {
+        isAvailable: true as const,
+        modelKey: key,
+        contractVersion: 'reviewed-video-v1',
+        quoteId: 'video-quote',
+        expiresAt: '2099-01-01T00:00:00.000Z',
+        credits: 11,
+        billingMode: 'credits' as const,
+        reasonCode: null,
+      };
+      mockCrunQuote.mockReturnValue({
+        quote,
+        status: 'available',
+        reasonCode: null,
+        getCurrentQuote: () => quote,
+      });
+      const submit = vi.fn().mockResolvedValue(undefined);
+      render(
+        <PromptBar
+          {...defaultProps}
+          categoryType={IngredientCategory.VIDEO}
+          features={{ collapsible: false }}
+          models={[model] as unknown as PromptBarProps['models']}
+          crunVideoBinding={{ prepareRequest: () => request, submit }}
+        />,
+      );
+      expect(mockCrunQuote).toHaveBeenCalledWith({
+        mediaKind: 'video',
+        request,
+        isActive: true,
+      });
+      expect(expandedViewProps?.selectedModelCost).toBe(11);
+      fireEvent.click(screen.getByTestId('submit-button'));
+      fireEvent.click(screen.getByTestId('submit-button'));
+      await waitFor(() =>
+        expect(submit).toHaveBeenCalledExactlyOnceWith({
+          ...request,
+          crunQuoteId: quote.quoteId,
+        }),
+      );
+      expect(defaultProps.onSubmit).not.toHaveBeenCalled();
+    });
+  });
+  describe('Crun legacy binding admission and group meter', () => {
+    const model = {
+      key: 'crun/google/nano-banana-pro',
+      label: 'Nano',
+      provider: 'crun',
+      category: 'image',
+    };
+    const request = {
+      model: model.key,
+      text: 'Product',
+      outputs: 4 as const,
+      crunControls: { contractVersion: 'reviewed-1' },
+    };
+    const quote = {
+      isAvailable: true as const,
+      modelKey: model.key,
+      contractVersion: 'reviewed-1',
+      quoteId: 'quote-1',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      credits: 11,
+      billingMode: 'credits' as const,
+      reasonCode: null,
+    };
+    function selectCrun() {
+      const defaults = mockUsePromptBarModels();
+      mockUsePromptBarModels.mockReturnValue({
+        ...defaults,
+        selectedModels: [model],
+      });
+      const watch = mockUseWatch.getMockImplementation();
+      mockUseWatch.mockImplementation((options: { name?: string }) =>
+        options.name === 'models'
+          ? [model.key]
+          : options.name === 'outputs'
+            ? 4
+            : watch?.(options),
+      );
+    }
+    it('fails closed without a binding and never uses the static model estimate', () => {
+      selectCrun();
+      render(
+        <PromptBar
+          {...defaultProps}
+          features={{ collapsible: false }}
+          models={[model] as unknown as PromptBarProps['models']}
+        />,
+      );
+      fireEvent.click(screen.getByTestId('submit-button'));
+      expect(defaultProps.onSubmit).not.toHaveBeenCalled();
+      expect(expandedViewProps?.selectedModelCost).toBeNull();
+      expect(expandedViewProps?.isGenerateBlocked).toBe(true);
+    });
+    it('consumes one exact bound request and displays group total 11 for four outputs', async () => {
+      selectCrun();
+      mockCrunQuote.mockReturnValue({
+        quote,
+        status: 'available',
+        reasonCode: null,
+        getCurrentQuote: () => quote,
+      });
+      const submit = vi.fn().mockResolvedValue(undefined);
+      render(
+        <PromptBar
+          {...defaultProps}
+          features={{ collapsible: false }}
+          models={[model] as unknown as PromptBarProps['models']}
+          crunBinding={{ prepareRequest: () => request, submit }}
+        />,
+      );
+      expect(expandedViewProps?.selectedModelCost).toBe(11);
+      expect(expandedViewProps?.generationMeter).toMatchObject({ credits: 11 });
+      fireEvent.click(screen.getByTestId('submit-button'));
+      fireEvent.click(screen.getByTestId('submit-button'));
+      await waitFor(() =>
+        expect(submit).toHaveBeenCalledExactlyOnceWith({
+          ...request,
+          crunQuoteId: quote.quoteId,
+        }),
+      );
+      expect(defaultProps.onSubmit).not.toHaveBeenCalled();
+    });
+  });
 });
+
+function controlsFor(endpoint = 'kling/v2-5-turbo-pro'): CrunInputControls {
+  const kling = endpoint === 'kling/v2-5-turbo-pro';
+  return {
+    endpoint,
+    version: 'reviewed-video-v1',
+    mediaKind: 'video',
+    maxOutputs: 4,
+    isBatchSupported: false,
+    isAutoAspectReferenceRequired: false,
+    referenceRoles: kling ? { img_urls: 'image' } : {},
+    videoRules: {
+      referenceMode: kling ? 'start-end' : 'none',
+      omitAspectRatioWithReferences: kling,
+      availableDurations: kling ? [5, 10] : [8],
+    },
+    fields: {
+      prompt: {
+        type: 'string',
+        isRequired: true,
+        minLength: 1,
+        maxLength: kling ? 2500 : 5000,
+      },
+      duration: {
+        type: 'integer',
+        isRequired: false,
+        enum: kling ? [5, 10] : [4, 6, 8],
+        default: kling ? 5 : 8,
+      },
+      aspect_ratio: {
+        type: 'string',
+        isRequired: false,
+        enum: kling ? ['1:1', '16:9', '9:16'] : ['16:9', '9:16'],
+        default: '16:9',
+      },
+      ...(kling
+        ? {
+            negative_prompt: {
+              type: 'string' as const,
+              isRequired: false,
+              maxLength: 2000,
+            },
+            cfg_scale: {
+              type: 'number' as const,
+              isRequired: false,
+              minimum: 0,
+              maximum: 1,
+              default: 0.5,
+            },
+            img_urls: {
+              type: 'array' as const,
+              isRequired: false,
+              format: 'uri' as const,
+              minItems: 1,
+              maxItems: 2,
+            },
+          }
+        : {
+            resolution: {
+              type: 'string' as const,
+              isRequired: false,
+              enum: ['720p', '1080p', '4k'],
+              default: '720p',
+            },
+            translate_prompt: {
+              type: 'boolean' as const,
+              isRequired: false,
+              default: true,
+            },
+          }),
+    },
+  };
+}

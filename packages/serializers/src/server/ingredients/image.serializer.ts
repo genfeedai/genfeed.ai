@@ -1,6 +1,6 @@
-import { generationRequestAttributes } from '@serializers/attributes/ingredients/ingredient.attributes';
 import { buildSerializer } from '@serializers/builders';
 import { imageSerializerConfig } from '@serializers/configs';
+import { imageGenerationSerializerConfig } from '@serializers/configs/ingredients/image.config';
 
 export const { ImageSerializer } = buildSerializer(
   'server',
@@ -9,13 +9,7 @@ export const { ImageSerializer } = buildSerializer(
 
 export const { ImageSerializer: ImageGenerationSerializer } = buildSerializer(
   'server',
-  {
-    ...imageSerializerConfig,
-    attributes: [
-      ...imageSerializerConfig.attributes,
-      ...generationRequestAttributes,
-    ],
-  },
+  imageGenerationSerializerConfig,
 );
 
 const IMAGE_EDIT_CONFIG = {
@@ -43,3 +37,21 @@ export const { ImageEditSerializer } = buildSerializer(
   'server',
   IMAGE_EDIT_CONFIG,
 );
+
+export const { ImageEditingRequestSerializer } = buildSerializer('server', {
+  type: 'image-editing-request',
+  attributes: [
+    'prompt',
+    'brand',
+    'model',
+    'references',
+    'maskId',
+    'resolution',
+    'aspectRatio',
+    'size',
+    'outputs',
+    'seed',
+    'sourceActionId',
+    'waitForCompletion',
+  ],
+});

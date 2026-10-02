@@ -4,6 +4,8 @@ import { act, renderHook } from '@testing-library/react';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
+
 // ────────────────────────────────────────────────────────────
 // Mock every service boundary before importing the hook
 // ────────────────────────────────────────────────────────────
@@ -21,10 +23,15 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 }));
 
 const mockImagesPost = vi.fn();
+const mockImagesEdit = vi.fn();
 const mockImagesFindOne = vi.fn();
 vi.mock('@services/ingredients/images.service', () => ({
   ImagesService: {
-    getInstance: () => ({ findOne: mockImagesFindOne, post: mockImagesPost }),
+    getInstance: () => ({
+      findOne: mockImagesFindOne,
+      post: mockImagesPost,
+      postEdit: mockImagesEdit,
+    }),
   },
 }));
 
@@ -802,5 +809,372 @@ describe('authoritative generation completion', () => {
       status: IngredientStatus.FAILED,
       phase: 'cancelled',
     });
+  });
+});
+
+describe('Crun quote-bound submission', () => {
+  const model = 'crun/google/nano-banana-pro';
+  const request = {
+    model,
+    text: 'A product',
+    brandId: 'brand-1',
+    outputs: 2 as const,
+    references: ['ref-1'],
+    crunControls: {
+      contractVersion: 'reviewed-1',
+      aspectRatio: '16:9',
+      resolution: '2K' as const,
+      outputFormat: 'png' as const,
+    },
+  };
+  const quote = {
+    isAvailable: true as const,
+    modelKey: model,
+    quoteId: 'quote-1',
+    expiresAt: '2099-01-01T00:00:00.000Z',
+    contractVersion: 'reviewed-1',
+    credits: 12,
+    billingMode: 'credits' as const,
+    reasonCode: null,
+  };
+  function setup() {
+    return renderStudioGeneration({
+      models: [makeModel(model)],
+      settings: {
+        ...getDefaultStudioGenerateSettings('image'),
+        modelKey: model,
+        outputs: 2,
+      },
+    });
+  }
+  it('posts the canonical quote request once and retains accepted output tracking', async () => {
+    const { result } = setup();
+    await act(async () => {
+      expect(
+        await result.current.submit(
+          request.text,
+          {},
+          { crunRequest: request, getCurrentCrunQuote: () => quote },
+        ),
+      ).toBe(true);
+    });
+    expect(mockImagesPost).toHaveBeenCalledExactlyOnceWith({
+      ...request,
+      crunQuoteId: quote.quoteId,
+    });
+    expect(mockImagesPost.mock.calls[0]?.[0]).not.toHaveProperty('width');
+    expect(
+      result.current.jobs.some((job) => job.ingredientId === 'img-1'),
+    ).toBe(true);
+  });
+  it('does not send the same quote twice after an accepted request', async () => {
+    const { result } = setup();
+    await act(async () => {
+      await result.current.submit(
+        request.text,
+        {},
+        { crunRequest: request, getCurrentCrunQuote: () => quote },
+      );
+    });
+    await act(async () => {
+      expect(
+        await result.current.submit(
+          request.text,
+          {},
+          { crunRequest: request, getCurrentCrunQuote: () => quote },
+        ),
+      ).toBe(false);
+    });
+    expect(mockImagesPost).toHaveBeenCalledTimes(1);
+  });
+  it('blocks missing or expired quote admission before creating a job', async () => {
+    const { result } = setup();
+    await act(async () => {
+      expect(
+        await result.current.submit(
+          request.text,
+          {},
+          { crunRequest: request, getCurrentCrunQuote: () => null },
+        ),
+      ).toBe(false);
+    });
+    expect(mockImagesPost).not.toHaveBeenCalled();
+    expect(result.current.jobs).toHaveLength(0);
+  });
+  it('rejects quote invalidation during async service lookup', async () => {
+    const { result } = setup();
+    const current = vi.fn().mockReturnValueOnce(quote).mockReturnValue(null);
+    await act(async () => {
+      expect(
+        await result.current.submit(
+          request.text,
+          {},
+          { crunRequest: request, getCurrentCrunQuote: current },
+        ),
+      ).toBe(false);
+    });
+    expect(mockImagesPost).not.toHaveBeenCalled();
+  });
+  it('rejects a replacement quote after service lookup rather than consume a different intent', async () => {
+    const { result } = setup();
+    const current = vi
+      .fn()
+      .mockReturnValueOnce(quote)
+      .mockReturnValue({ ...quote, quoteId: 'quote-2' });
+    await act(async () => {
+      expect(
+        await result.current.submit(
+          request.text,
+          {},
+          { crunRequest: request, getCurrentCrunQuote: current },
+        ),
+      ).toBe(false);
+    });
+    expect(mockImagesPost).not.toHaveBeenCalled();
+  });
+});
+
+describe('canonical quote-bound Crun video submission', () => {
+  const model = 'crun/kling/v2-5-turbo-pro' as const;
+  const request = {
+    model,
+    text: 'Motion',
+    brandId: 'brand-1',
+    outputs: 4 as const,
+    references: ['00000000-0000-4000-8000-000000000001'],
+    endFrame: '00000000-0000-4000-8000-000000000002',
+    crunControls: {
+      contractVersion: 'video-v1',
+      duration: 10 as const,
+      guidanceScale: 0,
+    },
+  };
+  const quote = {
+    isAvailable: true as const,
+    modelKey: model,
+    contractVersion: 'video-v1',
+    quoteId: 'video-quote',
+    expiresAt: '2099-01-01T00:00:00.000Z',
+    credits: 11,
+    billingMode: 'credits' as const,
+    reasonCode: null,
+  };
+  function setup() {
+    return renderStudioGeneration({
+      type: 'video',
+      models: [makeModel(model)],
+      settings: {
+        ...getDefaultStudioGenerateSettings('video'),
+        modelKey: model,
+        outputs: 4,
+      },
+    });
+  }
+  it('posts one canonical body, tracks all accepted IDs and consumes no image endpoint', async () => {
+    mockVideosPost.mockResolvedValue({
+      id: 'video-1',
+      pendingIngredientIds: ['video-1', 'video-2', 'video-3', 'video-4'],
+    });
+    const { result } = setup();
+    await act(async () => {
+      expect(
+        await result.current.submit(
+          request.text,
+          { imageReferenceIds: ['start'], endFrameId: 'end' },
+          { crunVideoRequest: request, getCurrentCrunQuote: () => quote },
+        ),
+      ).toBe(true);
+    });
+    expect(mockVideosPost).toHaveBeenCalledExactlyOnceWith({
+      ...request,
+      crunQuoteId: quote.quoteId,
+    });
+    expect(mockImagesPost).not.toHaveBeenCalled();
+    expect(result.current.jobs[0]?.recipe).toMatchObject({
+      modelKey: model,
+      duration: 10,
+      outputs: 4,
+      references: request.references,
+      endFrameId: request.endFrame,
+      crunControls: {
+        modelKey: model,
+        contractVersion: 'video-v1',
+        guidanceScale: 0,
+      },
+      isAudioEnabled: false,
+    });
+    expect(result.current.jobs[0]?.recipe?.crunControls).not.toHaveProperty(
+      'duration',
+    );
+    expect(result.current.jobs[0]?.recipe).not.toHaveProperty('crunQuoteId');
+    for (const id of ['video-1', 'video-2', 'video-3', 'video-4'])
+      expect(mockSubscribe).toHaveBeenCalledWith(
+        `/videos/${id}`,
+        expect.anything(),
+      );
+    await act(async () => {
+      expect(
+        await result.current.submit(
+          request.text,
+          {},
+          { crunVideoRequest: request, getCurrentCrunQuote: () => quote },
+        ),
+      ).toBe(false);
+    });
+    expect(mockVideosPost).toHaveBeenCalledTimes(1);
+  });
+  it('rejects a changed quote after authentication without a fallback', async () => {
+    const current = vi.fn().mockReturnValueOnce(quote).mockReturnValue(null);
+    const { result } = setup();
+    await act(async () => {
+      expect(
+        await result.current.submit(
+          request.text,
+          {},
+          { crunVideoRequest: request, getCurrentCrunQuote: current },
+        ),
+      ).toBe(false);
+    });
+    expect(mockVideosPost).not.toHaveBeenCalled();
+    expect(mockImagesPost).not.toHaveBeenCalled();
+  });
+});
+
+describe('dedicated image editing submission', () => {
+  const modelKey = 'ideogram-ai/ideogram-4-5';
+  it('sends raw instructions, ordered sources, mask and seed to editing rather than generation', async () => {
+    mockImagesEdit.mockResolvedValue({
+      pendingIngredientIds: ['edited-1', 'edited-2'],
+    });
+    const { result } = renderStudioGeneration({
+      type: 'image-edit',
+      models: [makeModel(modelKey)],
+      settings: {
+        ...getDefaultStudioGenerateSettings('image-edit'),
+        modelKey,
+        outputs: 2,
+        editSize: '1536x640',
+        editSeed: 0,
+        brandingMode: 'brand',
+        style: 'cinematic',
+      },
+    });
+    await act(async () => {
+      expect(
+        await result.current.submit('Change only the sign', {
+          editSourceIds: ['source-1', 'source-2'],
+          editMaskId: 'mask-1',
+        }),
+      ).toBe(true);
+    });
+    expect(mockImagesEdit).toHaveBeenCalledWith(
+      'source-1',
+      expect.objectContaining({
+        prompt: 'Change only the sign',
+        references: ['source-2'],
+        maskId: 'mask-1',
+        size: 'source',
+        outputs: 2,
+        seed: 0,
+        model: modelKey,
+        brand: 'brand-1',
+      }),
+    );
+    expect(mockImagesPost).not.toHaveBeenCalled();
+    const payload = mockImagesEdit.mock.calls[0][1];
+    expect(payload).not.toHaveProperty('style');
+    expect(payload).not.toHaveProperty('harness');
+    expect(result.current.jobs).toHaveLength(2);
+    expect(result.current.jobs[0].recipe?.imageEdit?.sourceIds).toEqual([
+      'source-1',
+      'source-2',
+    ]);
+  });
+  it('blocks a missing source or unavailable explicit editing model without substituting a generation model', async () => {
+    const { result } = renderStudioGeneration({
+      type: 'image-edit',
+      models: [makeModel(modelKey)],
+      settings: {
+        ...getDefaultStudioGenerateSettings('image-edit'),
+        modelKey: 'flux-dev',
+      },
+    });
+    await act(async () => {
+      expect(
+        await result.current.submit('Change the sign', {
+          editSourceIds: ['source'],
+        }),
+      ).toBe(false);
+    });
+    expect(mockImagesEdit).not.toHaveBeenCalled();
+    expect(mockImagesPost).not.toHaveBeenCalled();
+  });
+});
+
+describe('FLUX.3 submission and reusable native recipe', () => {
+  it('posts native resolution/aspect ratio with ten ordered sources and no unsupported controls', async () => {
+    const modelKey = 'black-forest-labs/flux-3-image-edit';
+    mockImagesEdit.mockResolvedValue({ pendingIngredientIds: ['flux-edit'] });
+    const { result } = renderStudioGeneration({
+      type: 'image-edit',
+      models: [makeModel(modelKey)],
+      settings: {
+        ...getDefaultStudioGenerateSettings('image-edit'),
+        modelKey,
+        resolution: '2k',
+        aspectRatio: 'auto',
+      },
+    });
+    const sources = Array.from({ length: 10 }, (_, i) => `source-${i}`);
+    await act(async () => {
+      expect(
+        await result.current.submit('Change only the sign', {
+          editSourceIds: sources,
+        }),
+      ).toBe(true);
+    });
+    const [primary, payload] = mockImagesEdit.mock.calls[0];
+    expect(primary).toBe('source-0');
+    expect(payload).toMatchObject({
+      model: modelKey,
+      resolution: '2k',
+      aspectRatio: 'auto',
+      outputs: 1,
+      references: sources.slice(1),
+    });
+    for (const field of ['size', 'quality', 'maskId', 'seed'])
+      expect(payload).not.toHaveProperty(field);
+    expect(result.current.jobs[0].recipe?.imageEdit).toMatchObject({
+      sourceIds: sources,
+      resolution: '2k',
+      aspectRatio: 'auto',
+      grounding: false,
+      outputs: 1,
+    });
+  });
+  it('passes native resolution and aspect ratio on ordinary generation', async () => {
+    const modelKey = 'black-forest-labs/flux-3-image';
+    mockImagesPost.mockResolvedValue({ pendingIngredientIds: ['flux-gen'] });
+    const { result } = renderStudioGeneration({
+      type: 'image',
+      models: [makeModel(modelKey)],
+      settings: {
+        ...getDefaultStudioGenerateSettings('image'),
+        modelKey,
+        resolution: '4k',
+        aspectRatio: '21:9',
+      },
+    });
+    await act(async () => {
+      expect(await result.current.submit('A landscape', {})).toBe(true);
+    });
+    expect(mockImagesPost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: modelKey,
+        resolution: '4k',
+        aspectRatio: '21:9',
+        outputs: 1,
+      }),
+    );
   });
 });

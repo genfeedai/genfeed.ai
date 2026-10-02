@@ -1,4 +1,5 @@
 import type { ImageGenerationContext } from '@api/collections/images/services/image-generation.types';
+import { completeImageGeneration } from '@api/collections/images/services/image-generation-completion.util';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
@@ -120,6 +121,97 @@ describe('ImageGenerationProviderDispatchService', () => {
     websocketService as never,
   );
 
+  it('delegates frozen Crun generation through the existing registry with the original arguments', async () => {
+    const result = { data: { id: 'crun-output' } };
+    const delegate = vi
+      .spyOn(providerRegistry, 'generateCrunQuoted')
+      .mockResolvedValueOnce(result as never);
+    const user = { userId: 'user', organizationId: 'org' };
+    const dto = { model: 'crun/google/nano-banana-pro' };
+    const request = { user };
+    try {
+      await expect(
+        service.generateCrunQuoted(
+          user as never,
+          dto as never,
+          request as never,
+          false,
+        ),
+      ).resolves.toBe(result);
+      expect(delegate).toHaveBeenCalledWith(user, dto, request, false);
+    } finally {
+      delegate.mockRestore();
+    }
+  });
+  it('preserves Crun rejection status for missing adapter and unsupported context', () => {
+    const user = { userId: 'user', organizationId: 'org' };
+    const dto = { model: 'crun/google/nano-banana-pro' };
+    const request = {};
+    for (const [unsupported, status, code] of [
+      [false, 503, 'CRUN_MODEL_UNAVAILABLE'],
+      [true, 400, 'CRUN_INVALID_INPUT'],
+    ] as const) {
+      try {
+        service.generateCrunQuoted(
+          user as never,
+          dto as never,
+          request as never,
+          unsupported,
+        );
+        throw new Error('Expected rejection');
+      } catch (error: unknown) {
+        expect(error).toHaveProperty('status', status);
+        expect(error).toHaveProperty('response', { code });
+      }
+    }
+  });
+  it('continues settlement failure through ordered cost recording and the completion event', async () => {
+    const effects: string[] = [];
+    const error = new Error('settlement unavailable');
+    generationBilling.settleOutput.mockImplementationOnce(async () => {
+      effects.push('settle');
+      throw error;
+    });
+    mediaGenerationCostService.recordGenerationCost.mockImplementationOnce(
+      async () => {
+        effects.push('cost');
+      },
+    );
+    generationEventWebhookService.emitGenerationCompleted.mockImplementationOnce(
+      async () => {
+        effects.push('event');
+      },
+    );
+    const context = buildContext();
+    const output = {
+      storageKey: 'owned/image.png',
+      url: 'https://cdn.test/image.png',
+      mimeType: 'image/png',
+    };
+    await completeImageGeneration(
+      {
+        generationBilling: generationBilling as never,
+        loggerService,
+        mediaGenerationCostService: mediaGenerationCostService as never,
+        generationEventWebhookService: generationEventWebhookService as never,
+      },
+      context,
+      'ingredient-1',
+      output,
+      { width: 1280, height: 720 },
+    );
+    expect(effects).toEqual(['settle', 'cost', 'event']);
+    expect(loggerService.error).toHaveBeenCalledWith(
+      'Image credit settlement failed',
+      error,
+      { ingredientId: 'ingredient-1' },
+    );
+    expect(
+      generationEventWebhookService.emitGenerationCompleted,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ generationId: 'ingredient-1', output }),
+    );
+  });
   const buildContext = (
     overrides: Partial<ImageGenerationContext> = {},
   ): ImageGenerationContext =>
@@ -735,6 +827,114 @@ describe('ImageGenerationProviderDispatchService', () => {
     );
   });
 
+  it('reads live admitted edit documents in delayed submission and output callbacks', async () => {
+    const model = MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5;
+    replicateService.generateTextToImage.mockImplementation(
+      async (
+        _model: string,
+        _input: unknown,
+        _apiKey: unknown,
+        onSubmission?: () => void,
+      ) => {
+        expect(
+          generationBilling.bindOutput.mock.calls.map(
+            (call) => call[1].ingredientId,
+          ),
+        ).toEqual(['ingredient-1', 'ingredient-2', 'ingredient-3']);
+        onSubmission?.();
+        return 'replicate-job';
+      },
+    );
+    replicateService.getPrediction.mockResolvedValue({
+      output: [
+        'https://replicate.example.com/generated-1.png',
+        'https://replicate.example.com/generated-2.png',
+        'https://replicate.example.com/generated-3.png',
+      ],
+      status: 'succeeded',
+    });
+    sharedService.createMediaDocuments
+      .mockResolvedValueOnce({
+        ingredientData: { id: 'ingredient-2', parent: 'parent-1' },
+        metadataData: { id: 'metadata-2' },
+      })
+      .mockResolvedValueOnce({
+        ingredientData: { id: 'ingredient-3', parent: 'parent-1' },
+        metadataData: { id: 'metadata-3' },
+      });
+    const context = buildContext({
+      model,
+      outputs: 3,
+      editing: {
+        sourceIds: ['source'],
+        sourceUrls: ['https://cdn.example.com/source.png'],
+        size: 'source',
+        width: 1920,
+        height: 1080,
+        recipe: {
+          operation: 'image-edit',
+          contractVersion: 'ideogram-4-5-edit-2026-10-01',
+          model,
+          sourceIds: ['source'],
+          size: 'source',
+          quality: 'medium',
+          outputs: 3,
+        },
+      },
+    });
+
+    Object.assign(context.request, { creditsConfig: { amount: 60 } });
+    const plan = await service.dispatch(context);
+    await plan?.generationPromise;
+
+    expect(replicateService.generateTextToImage).toHaveBeenCalledWith(
+      model,
+      context.providerInput,
+      undefined,
+      expect.any(Function),
+    );
+    expect(replicateService.generateTextToImage).toHaveBeenCalledTimes(1);
+    expect(metadataService.patch.mock.calls).toEqual(
+      expect.arrayContaining([
+        [
+          'metadata-1',
+          expect.objectContaining({ externalId: 'replicate-job_0' }),
+        ],
+        [
+          'metadata-2',
+          expect.objectContaining({ externalId: 'replicate-job_1' }),
+        ],
+        [
+          'metadata-3',
+          expect.objectContaining({ externalId: 'replicate-job_2' }),
+        ],
+      ]),
+    );
+    expect(metadataService.patch).toHaveBeenCalledWith('metadata-1', {
+      result: JSON.stringify([
+        'https://replicate.example.com/generated-1.png',
+        'https://replicate.example.com/generated-2.png',
+        'https://replicate.example.com/generated-3.png',
+      ]),
+    });
+    expect(generationBilling.releasePool).toHaveBeenCalledOnce();
+    expect(plan?.pollIds).toEqual([
+      'ingredient-1',
+      'ingredient-2',
+      'ingredient-3',
+    ]);
+    expect(filesClientService.uploadToS3).toHaveBeenCalledTimes(3);
+    expect(imagesService.patchAll).toHaveBeenCalledWith(
+      {
+        id: 'ingredient-1',
+        organizationId: 'organization-1',
+        isDeleted: false,
+        status: IngredientStatus.PROCESSING,
+      },
+      expect.objectContaining({ status: IngredientStatus.GENERATED }),
+    );
+  });
+
   it('persists the Replicate job id before local polling so Stop can cancel it', async () => {
     const model = MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4;
     replicateService.generateTextToImage.mockResolvedValue('replicate-job');
@@ -890,6 +1090,55 @@ describe('ImageGenerationProviderDispatchService', () => {
       );
     },
   );
+
+  it('releases every edit document hold and its pool once when child admission fails', async () => {
+    const model = MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5;
+    sharedService.createMediaDocuments
+      .mockResolvedValueOnce({
+        ingredientData: { id: 'ingredient-2' },
+        metadataData: { id: 'metadata-2' },
+      })
+      .mockResolvedValueOnce({
+        ingredientData: { id: 'ingredient-3' },
+        metadataData: { id: 'metadata-3' },
+      });
+    const error = new Error('third hold rejected');
+    generationBilling.bindOutput
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(error);
+    const context = buildContext({
+      model,
+      outputs: 3,
+      editing: {
+        sourceIds: ['source'],
+        sourceUrls: ['https://cdn.example.com/source.png'],
+        size: 'source',
+        width: 1920,
+        height: 1080,
+        recipe: {
+          operation: 'image-edit',
+          contractVersion: 'ideogram-4-5-edit-2026-10-01',
+          model,
+          sourceIds: ['source'],
+          size: 'source',
+          quality: 'medium',
+          outputs: 3,
+        },
+      },
+    });
+
+    Object.assign(context.request, { creditsConfig: { amount: 60 } });
+
+    await expect(service.dispatch(context)).rejects.toBe(error);
+    expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
+    expect(generationBilling.releaseOutput.mock.calls).toEqual([
+      ['ingredient-1', 'organization-1'],
+      ['ingredient-2', 'organization-1'],
+      ['ingredient-3', 'organization-1'],
+    ]);
+    expect(generationBilling.releasePool).toHaveBeenCalledOnce();
+  });
 
   it('persists every surplus output URL and stops sequential fanout without charging beyond the quote', async () => {
     replicateService.generateTextToImage.mockResolvedValue('job-surplus');

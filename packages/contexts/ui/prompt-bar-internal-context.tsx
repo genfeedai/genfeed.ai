@@ -162,7 +162,7 @@ export interface PromptBarInternalContextValue {
   isEnhancing: boolean;
   isGenerateDisabled: boolean;
   previousPrompt: string | null;
-  selectedModelCost: number;
+  selectedModelCost: number | null;
   generationMeter: StudioGenerationMeter | null;
   activeGenerations: IGenerationItem[];
   generateLabel: string;

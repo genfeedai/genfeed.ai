@@ -1,8 +1,10 @@
 import { AiActionType } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { AgentMediaAssetGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-asset-generation.service';
 import { AgentMediaBatchGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-batch-generation.service';
+import { resolveGenerationReferences } from '@api/services/agent-orchestrator/tools/agent-media-generation-references';
 import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service';
 import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -20,6 +22,7 @@ function createHandler() {
     generateArticle: vi.fn(),
     generateAvatarVideo: vi.fn(),
     generateImage: vi.fn(),
+    editImage: vi.fn(),
     generateMusic: vi.fn(),
     generateVideo: vi.fn(),
     generateVoice: vi.fn(),
@@ -74,6 +77,43 @@ const context = {
   organizationId: 'organization-1',
   userId: 'user-1',
 };
+
+describe('FLUX generation source admission', () => {
+  it('rejects combined character and explicit references exceeding ten without truncating', async () => {
+    const result = await resolveGenerationReferences({
+      ctx: context,
+      modelKey: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
+      explicitReferences: Array.from({ length: 10 }, (_, i) => `image-${i}`),
+      handles: ['character'],
+      personasService: {
+        resolveCharacterHandles: async () => ({
+          resolvedIngredientIds: ['character-image'],
+          unresolvedHandles: [],
+        }),
+      },
+    });
+    expect(result.error).toMatchObject({ success: false, creditsUsed: 0 });
+    expect(result.references).toEqual([]);
+  });
+
+  it('keeps all ten unique sources when a character duplicates an explicit reference', async () => {
+    const references = Array.from({ length: 10 }, (_, i) => `image-${i}`);
+    const result = await resolveGenerationReferences({
+      ctx: context,
+      modelKey: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
+      explicitReferences: references,
+      handles: ['character'],
+      personasService: {
+        resolveCharacterHandles: async () => ({
+          resolvedIngredientIds: [references[0]],
+          unresolvedHandles: [],
+        }),
+      },
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.references).toEqual(references);
+  });
+});
 
 describe('AgentMediaGenerationToolHandler ownership', () => {
   it('routes each public media tool to exactly one family owner', async () => {
@@ -1391,4 +1431,53 @@ describe('media tool skill transport', () => {
       expect(gateway[method]).not.toHaveBeenCalled();
     },
   );
+});
+
+describe('dedicated image editing', () => {
+  it('forwards exact editing instructions and preserves every output id without inheriting generation settings', async () => {
+    const { gateway, handler } = createHandler();
+    gateway.editImage.mockResolvedValue({
+      data: {
+        id: 'edited-1',
+        attributes: {
+          status: 'GENERATED',
+          cdnUrl: 'https://cdn.example.com/edited.png',
+          pendingIngredientIds: ['edited-1', 'edited-2'],
+        },
+      },
+    });
+    const result = await handler.editImage(
+      {
+        imageId: 'source-1',
+        prompt: 'Change only the sign',
+        references: ['ref-1'],
+        maskId: 'mask-1',
+        outputs: 2,
+        seed: 0,
+      },
+      {
+        ...context,
+        generationSettings: { image: { model: 'generation-only-model' } },
+      } as never,
+    );
+    expect(gateway.editImage).toHaveBeenCalledWith({
+      principal: context,
+      resourceId: 'source-1',
+      body: {
+        brandId: context.brandId,
+        prompt: 'Change only the sign',
+        references: ['ref-1'],
+        maskId: 'mask-1',
+        outputs: 2,
+        seed: 0,
+        waitForCompletion: true,
+      },
+    });
+    expect(result).toMatchObject({
+      success: true,
+      isBillingDelegated: true,
+      creditsUsed: 0,
+      data: { sourceImageId: 'source-1', outputIds: ['edited-1', 'edited-2'] },
+    });
+  });
 });

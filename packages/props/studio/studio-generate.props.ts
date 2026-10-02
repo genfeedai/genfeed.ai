@@ -1,5 +1,9 @@
 import type { IngredientFormat, ViewType } from '@genfeedai/contracts';
-import type { IIngredient, IModel } from '@genfeedai/contracts/interfaces';
+import type {
+  IIngredient,
+  IModel,
+  KnowledgeSelection,
+} from '@genfeedai/contracts/interfaces';
 import type {
   StudioGenerateJob,
   StudioGenerateReferenceRole,
@@ -7,8 +11,12 @@ import type {
   StudioGenerateType,
   StudioGenerationCostEstimate,
 } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
+import type { CharacterMentionSubmitResult } from '@genfeedai/helpers/content/character-mention.util';
 import type { PromptEditorDocumentSeed } from '@genfeedai/props/prompt-bars/prompt-editor.props';
-import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
+import type {
+  PromptBarAttachedAsset,
+  UseCrunGenerationQuoteReturn,
+} from '@genfeedai/props/studio/prompt-bar.props';
 import type { AnyExtension, JSONContent } from '@tiptap/core';
 
 /** Results-grid filter: one asset type, or every type at once. */
@@ -22,6 +30,11 @@ export interface StudioIdentityFieldsProps {
 }
 
 export interface StudioGenerateComposerProps {
+  isCrunRestoreBlocked?: boolean;
+  crunQuote?: UseCrunGenerationQuoteReturn;
+  crunReferenceCount?: number;
+  crunStartFrameId?: string;
+  crunEndFrameId?: string;
   attachedAssets: PromptBarAttachedAsset[];
   documentSeed?: PromptEditorDocumentSeed | null;
   extraExtensions?: readonly AnyExtension[];
@@ -176,6 +189,7 @@ export interface StudioGenerateInspectorProps {
   job: StudioGenerateJob;
   /** Attaches a finished image to the composer as an image reference. */
   onRemix: (job: StudioGenerateJob) => void;
+  onEdit?: (job: StudioGenerateJob) => void;
   onSelect: (job: StudioGenerateJob) => void;
   onUseInPost: (ingredient: IIngredient) => void;
   onVary: (job: StudioGenerateJob) => void;
@@ -183,9 +197,43 @@ export interface StudioGenerateInspectorProps {
 }
 
 export interface StudioGenerationSummaryProps {
+  crunQuote?: UseCrunGenerationQuoteReturn;
   estimate: StudioGenerationCostEstimate;
   isLoadingModels: boolean;
   model?: IModel;
   settings: StudioGenerateSettings;
   type: StudioGenerateType;
+}
+
+export interface PrepareCrunGenerationIntentProps {
+  document: unknown;
+  existingReferenceIds: readonly string[];
+  prompt: string;
+  resolvePromptCommands: (prompt: string) => {
+    content: string;
+    skillSlugs: string[];
+  };
+  resolveCharacterMentions: (input: {
+    document: unknown;
+    existingReferenceIds: readonly string[];
+    text: string;
+  }) => CharacterMentionSubmitResult;
+}
+
+export interface BuildStudioCrunQuoteRequestProps {
+  model?: IModel;
+  settings: StudioGenerateSettings;
+  promptText: string;
+  references: string[];
+  brandId: string;
+  promptId?: string;
+  requestedSkillSlugs?: string[];
+  knowledge?: KnowledgeSelection;
+  harness?: boolean;
+}
+
+export interface BuildStudioCrunVideoQuoteRequestProps
+  extends BuildStudioCrunQuoteRequestProps {
+  endFrameId?: string;
+  parentId?: string;
 }

@@ -1,3 +1,4 @@
+import { ModelProvider } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import { usePromptBarPricing } from '@hooks/prompt-bar/use-prompt-bar-pricing/use-prompt-bar-pricing';
 import { renderHook } from '@testing-library/react';
@@ -379,5 +380,28 @@ describe('usePromptBarPricing', () => {
       // Total: 25
       expect(result.current.selectedModelCost).toBe(25);
     });
+  });
+});
+
+describe('Crun pricing cannot use static model costs', () => {
+  it('returns null for Crun even when catalog cost is populated and four outputs are selected', () => {
+    const model = createMockModel({ provider: ModelProvider.CRUN, cost: 3 });
+    const { result } = renderHook(() =>
+      usePromptBarPricing({ selectedModels: [model], watchedOutputs: 4 }),
+    );
+    expect(result.current.selectedModelCost).toBeNull();
+    expect(result.current.calculateModelCost(model, 1024, 1024, 8)).toBeNull();
+  });
+  it('keeps a mixed Crun selection unavailable rather than add an incumbent estimate', () => {
+    const { result } = renderHook(() =>
+      usePromptBarPricing({
+        selectedModels: [
+          createMockModel({ provider: ModelProvider.CRUN }),
+          createMockModel(),
+        ],
+        watchedOutputs: 4,
+      }),
+    );
+    expect(result.current.selectedModelCost).toBeNull();
   });
 });

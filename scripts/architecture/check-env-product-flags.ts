@@ -49,6 +49,8 @@ export const INFRASTRUCTURE_ENV_ALLOW_LIST: ReadonlySet<string> = new Set([
   'SENTRY_ENABLED',
   // Whether this deployment has an isolated renderer endpoint and can admit sandbox jobs.
   'VISUAL_CODE_RENDERER_ENABLED',
+  // Deployment transport admission; reviewed model registry owns product activation.
+  'CRUN_ENABLED',
 ]);
 
 /** A Joi schema key: `  KEY: Joi…` / `  KEY: conditionalRequired(…)`. */

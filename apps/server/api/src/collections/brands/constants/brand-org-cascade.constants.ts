@@ -919,6 +919,8 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
   // Saved generation receipts and events retain immutable tenant ownership.
   'BrandedGenerationReceipt',
   'BrandedGenerationReceiptEvent',
+  // Crun financial history blocks relocation and retains its funding tenant.
+  'CrunGenerationTask',
   // Retained security history blocks relocation, including indirect and deleted audits.
   'AgentPublishAudit',
   'AgentUntrustedContentAudit',
@@ -954,6 +956,7 @@ export const AUDITOR_IGNORED_TABLES: readonly string[] = [
   'api_keys',
   'branded_generation_receipts',
   'branded_generation_receipt_events',
+  'crun_generation_tasks',
   'agent_publish_audits',
   'agent_untrusted_content_audits',
   'agent_transfers',

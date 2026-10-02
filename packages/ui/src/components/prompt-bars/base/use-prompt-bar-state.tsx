@@ -18,6 +18,7 @@ import {
   getModelDefaultDuration,
   getModelDurations,
 } from '@genfeedai/contracts/constants';
+import { createCrunVideoDraft } from '@genfeedai/helpers/crun-video-input.helper';
 import {
   getDefaultVideoResolution,
   hasResolutionOptions,
@@ -28,6 +29,10 @@ import {
   resolveStudioGenerationCostModels,
   resolveStudioGenerationMeter,
 } from '@genfeedai/hooks/prompt-bar/resolve-studio-generation-meter/resolve-studio-generation-meter';
+import {
+  serializeCrunQuoteIntent,
+  useCrunGenerationQuote,
+} from '@genfeedai/hooks/prompt-bar/use-crun-generation-quote/use-crun-generation-quote';
 import { usePromptBarEnhancement } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-enhancement/use-prompt-bar-enhancement';
 import { usePromptBarFilters } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-filters/use-prompt-bar-filters';
 import { usePromptBarForm } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-form/use-prompt-bar-form';
@@ -50,6 +55,7 @@ import {
 } from '@ui-constants/media.constant';
 import { RectangleHorizontal, RectangleVertical, Square } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWatch } from 'react-hook-form';
@@ -107,9 +113,13 @@ type UsePromptBarStateParams = Pick<
   | 'extraExtensions'
   | 'onPromptDocumentChange'
   | 'onPrepareSubmit'
+  | 'crunBinding'
+  | 'crunVideoBinding'
 >;
 
 export function usePromptBarState({
+  crunBinding,
+  crunVideoBinding,
   isDisabled = false,
   models = EMPTY_ARRAY,
   trainings = EMPTY_ARRAY,
@@ -256,6 +266,11 @@ export function usePromptBarState({
     control: form.control,
     name: 'quality',
   }) as QualityTier | undefined;
+  const translateCrun = useTranslations('pages.studioGenerate.crun');
+  useWatch({ control: form.control });
+  const crunConsumedRef = useRef<string | null>(null);
+  const crunSubmittingRef = useRef(false);
+  const [, setCrunDocumentRevision] = useState(0);
   const subscriptionTier = settings?.subscriptionTier as
     | SubscriptionTier
     | undefined;
@@ -281,6 +296,16 @@ export function usePromptBarState({
     normalizedWatchedModels,
     trainings,
     watchedModel,
+  });
+
+  const crunModel =
+    selectedModels.length === 1 && selectedModels[0]?.provider === 'crun'
+      ? selectedModels[0]
+      : undefined;
+  const crunInputControls = crunModel?.inputControls;
+  const watchedCrunControls = useWatch({
+    control: form.control,
+    name: 'crunControls',
   });
 
   const currentModelCategory = useMemo(() => {
@@ -313,7 +338,7 @@ export function usePromptBarState({
     [currentConfig.defaultModel, models, selectedModels],
   );
 
-  const { selectedModelCost } = usePromptBarPricing({
+  const { selectedModelCost: staticSelectedModelCost } = usePromptBarPricing({
     selectedModels: pricedModels.models,
     watchedDuration,
     watchedHeight,
@@ -321,16 +346,9 @@ export function usePromptBarState({
     watchedWidth,
   });
 
-  const generationMeter = useMemo(
-    () =>
-      resolveStudioGenerationMeter({
-        credits: selectedModelCost,
-        isEstimate: pricedModels.isEstimate,
-        queuedCount: activeGenerations.length,
-      }),
-    [activeGenerations.length, pricedModels.isEstimate, selectedModelCost],
+  const hasCrunSelection = selectedModels.some(
+    (model) => model.provider === 'crun',
   );
-
   const {
     filteredStyles,
     filteredMoods,
@@ -445,6 +463,62 @@ export function usePromptBarState({
       watchedModel,
     });
 
+  const isCrunVideo = crunInputControls?.mediaKind === 'video';
+  const crunRequest =
+    crunModel && !isEnhancing
+      ? isCrunVideo
+        ? (crunVideoBinding?.prepareRequest(form.getValues()) ?? null)
+        : (crunBinding?.prepareRequest(form.getValues()) ?? null)
+      : null;
+  const crunQuote = useCrunGenerationQuote(
+    isCrunVideo
+      ? {
+          mediaKind: 'video',
+          request:
+            crunModel && !isEnhancing
+              ? (crunVideoBinding?.prepareRequest(form.getValues()) ?? null)
+              : null,
+          isActive: Boolean(crunModel && crunVideoBinding),
+        }
+      : {
+          request:
+            crunModel && !isEnhancing
+              ? (crunBinding?.prepareRequest(form.getValues()) ?? null)
+              : null,
+          isActive: Boolean(crunModel && crunBinding),
+        },
+  );
+  const selectedModelCost = hasCrunSelection
+    ? (crunQuote.getCurrentQuote()?.credits ?? null)
+    : staticSelectedModelCost;
+  const crunQuoteLabel = hasCrunSelection
+    ? crunQuote.quote?.isAvailable
+      ? crunQuote.quote.billingMode === 'byok'
+        ? translateCrun('byok')
+        : translateCrun('credits', { credits: crunQuote.quote.credits })
+      : crunQuote.status === 'pending'
+        ? translateCrun('quoteLoading')
+        : crunQuote.reasonCode
+          ? translateCrun(
+              `${isCrunVideo ? 'videoReasons' : 'reasons'}.${crunQuote.reasonCode}`,
+            )
+          : translateCrun(
+              isCrunVideo ? 'videoQuoteUnavailable' : 'quoteUnavailable',
+            )
+    : null;
+
+  const generationMeter = useMemo(
+    () =>
+      selectedModelCost === null
+        ? null
+        : resolveStudioGenerationMeter({
+            credits: selectedModelCost,
+            isEstimate: pricedModels.isEstimate,
+            queuedCount: activeGenerations.length,
+          }),
+    [activeGenerations.length, pricedModels.isEstimate, selectedModelCost],
+  );
+
   const {
     isRecording,
     isProcessing,
@@ -477,13 +551,131 @@ export function usePromptBarState({
   });
 
   useEffect(() => {
+    if (!crunInputControls || !crunModel) {
+      if (form.getValues('crunControls')) {
+        form.setValue('crunControls', undefined);
+        triggerConfigChange();
+      }
+      return;
+    }
+    const current = form.getValues('crunControls');
+    const identityChanged =
+      current?.modelKey !== crunModel.key ||
+      current?.contractVersion !== crunInputControls.version;
+    if (crunInputControls.mediaKind === 'video') {
+      const draft = createCrunVideoDraft(
+        crunInputControls,
+        form.getValues('text'),
+      );
+      if (!draft) return;
+      if (identityChanged) {
+        form.setValue('crunControls', {
+          modelKey: draft.modelKey,
+          contractVersion: draft.contractVersion,
+          aspectRatio: draft.aspectRatio,
+          guidanceScale: draft.guidanceScale,
+          translatePrompt: draft.translatePrompt,
+        });
+        form.setValue('duration', draft.duration);
+        form.setValue('resolution', draft.resolution ?? '');
+        form.setValue('endFrame', '');
+        form.setValue('videoReferences', []);
+        setEndFrame(null);
+        if (crunInputControls.videoRules?.referenceMode === 'none') {
+          form.setValue('references', []);
+          setReferences([]);
+        }
+        triggerConfigChange();
+      }
+      return;
+    }
+    const formatField = crunInputControls.fields.output_format;
+    const outputFormat = formatField?.enum?.includes(
+      current?.outputFormat ?? '',
+    )
+      ? current?.outputFormat
+      : typeof formatField?.default === 'string'
+        ? formatField.default
+        : undefined;
+    let changed = false;
+    if (identityChanged || current?.outputFormat !== outputFormat) {
+      form.setValue('crunControls', {
+        modelKey: crunModel.key,
+        contractVersion: crunInputControls.version,
+        ...(outputFormat ? { outputFormat } : {}),
+        ...(current?.aspectRatio &&
+        crunInputControls.fields.aspect_ratio?.enum?.includes(
+          current.aspectRatio,
+        ) &&
+        (current.aspectRatio !== 'auto' ||
+          references.length > 0 ||
+          !crunInputControls.isAutoAspectReferenceRequired)
+          ? { aspectRatio: current.aspectRatio }
+          : {}),
+      });
+      changed = true;
+    }
+    const resolution = crunInputControls.fields.resolution;
+    if (!resolution?.enum?.includes(form.getValues('resolution') ?? '')) {
+      form.setValue('resolution', String(resolution?.default ?? ''));
+      changed = true;
+    }
+    const aspect = crunInputControls.fields.aspect_ratio;
+    const ratio = current?.aspectRatio;
+    if (
+      !ratio ||
+      !aspect?.enum?.includes(ratio) ||
+      (ratio === 'auto' &&
+        references.length === 0 &&
+        crunInputControls.isAutoAspectReferenceRequired)
+    ) {
+      const envelope = form.getValues('crunControls');
+      if (envelope) {
+        form.setValue('crunControls', {
+          ...envelope,
+          aspectRatio: String(aspect?.default ?? '1:1'),
+        });
+        changed = true;
+      }
+    }
+    const outputs = form.getValues('outputs') ?? 1;
+    if (
+      !Number.isInteger(outputs) ||
+      outputs < 1 ||
+      outputs > crunInputControls.maxOutputs
+    ) {
+      form.setValue(
+        'outputs',
+        Math.min(
+          crunInputControls.maxOutputs,
+          Math.max(1, Math.floor(outputs) || 1),
+        ),
+      );
+      changed = true;
+    }
+    if (changed) triggerConfigChange();
+  }, [
+    crunInputControls,
+    crunModel,
+    form,
+    references.length,
+    triggerConfigChange,
+    setEndFrame,
+    setReferences,
+  ]);
+
+  useEffect(() => {
     if (speechError) {
       notificationsService.error(`Voice input error: ${speechError}`);
     }
   }, [speechError, notificationsService]);
 
   useEffect(() => {
-    if (normalizedWatchedModels.length > 0 && !watchedDuration) {
+    if (
+      !isCrunVideo &&
+      normalizedWatchedModels.length > 0 &&
+      !watchedDuration
+    ) {
       const defaultDuration = getModelDefaultDuration(watchedModel);
       if (defaultDuration) {
         form.setValue('duration', defaultDuration, { shouldValidate: true });
@@ -491,6 +683,7 @@ export function usePromptBarState({
       }
     }
   }, [
+    isCrunVideo,
     normalizedWatchedModels.length,
     watchedModel,
     watchedDuration,
@@ -499,7 +692,7 @@ export function usePromptBarState({
   ]);
 
   useEffect(() => {
-    if (watchedModel && hasResolutionOptions(watchedModel)) {
+    if (!isCrunVideo && watchedModel && hasResolutionOptions(watchedModel)) {
       const currentResolution = form.getValues('resolution');
       if (!currentResolution) {
         const defaultResolution = getDefaultVideoResolution(watchedModel);
@@ -511,7 +704,7 @@ export function usePromptBarState({
         }
       }
     }
-  }, [watchedModel, form, triggerConfigChange]);
+  }, [isCrunVideo, watchedModel, form, triggerConfigChange]);
 
   useEffect(() => {
     if (brandId) {
@@ -581,7 +774,15 @@ export function usePromptBarState({
     watchedAutoSelectModel !== true &&
     normalizedWatchedModels.length === 0;
   const isDisabledState = isDisabled;
-  const isGenerateBlocked = isDisabled || isModelNotSet;
+  const isGenerateBlocked =
+    isDisabled ||
+    isModelNotSet ||
+    (hasCrunSelection &&
+      (!crunModel ||
+        !(isCrunVideo ? crunVideoBinding : crunBinding) ||
+        !crunRequest ||
+        !crunQuote.getCurrentQuote() ||
+        crunConsumedRef.current === crunQuote.getCurrentQuote()?.quoteId));
 
   useEffect(() => {
     if (isModelNotSet && !isCollapsed) {
@@ -599,7 +800,11 @@ export function usePromptBarState({
   }, []);
 
   const openAttachedAssetsBrowser = useCallback(() => {
-    if (!currentConfig.buttons?.reference || isOnlyImagenModels) {
+    if (
+      !currentConfig.buttons?.reference ||
+      isOnlyImagenModels ||
+      (isCrunVideo && crunInputControls?.videoRules?.referenceMode === 'none')
+    ) {
       return;
     }
 
@@ -623,6 +828,8 @@ export function usePromptBarState({
   }, [
     currentConfig.buttons,
     currentModelCategory,
+    crunInputControls,
+    isCrunVideo,
     handleReferenceSelect,
     handleSelectAccountReference,
     isOnlyImagenModels,
@@ -639,6 +846,7 @@ export function usePromptBarState({
     (document: JSONContent) => {
       promptDocumentRef.current = document;
       onPromptDocumentChange?.(document);
+      setCrunDocumentRevision((value) => value + 1);
     },
     [onPromptDocumentChange],
   );
@@ -646,6 +854,62 @@ export function usePromptBarState({
   const handleSubmitForm = useCallback(
     (e?: FormEvent) => {
       e?.preventDefault();
+      if (hasCrunSelection) {
+        if (
+          isGenerateBlocked ||
+          isGenerateDisabled ||
+          isGenerating ||
+          crunSubmittingRef.current ||
+          !(isCrunVideo ? crunVideoBinding : crunBinding)
+        )
+          return;
+        const request = isCrunVideo
+          ? crunVideoBinding?.prepareRequest(form.getValues())
+          : crunBinding?.prepareRequest(form.getValues());
+        const quote = crunQuote.getCurrentQuote();
+        if (
+          !request ||
+          !quote ||
+          serializeCrunQuoteIntent(request) !==
+            serializeCrunQuoteIntent(crunRequest) ||
+          crunConsumedRef.current === quote.quoteId
+        )
+          return;
+        crunSubmittingRef.current = true;
+        crunConsumedRef.current = quote.quoteId;
+        const submission = isCrunVideo
+          ? (() => {
+              const video = crunVideoBinding?.prepareRequest(form.getValues());
+              return (
+                video &&
+                crunVideoBinding?.submit({
+                  ...video,
+                  crunQuoteId: quote.quoteId,
+                })
+              );
+            })()
+          : (() => {
+              const image = crunBinding?.prepareRequest(form.getValues());
+              return (
+                image &&
+                crunBinding?.submit({ ...image, crunQuoteId: quote.quoteId })
+              );
+            })();
+        if (!submission) {
+          crunSubmittingRef.current = false;
+          return;
+        }
+        void submission
+          .catch(() =>
+            notificationsService.error(
+              translateCrun(isCrunVideo ? 'videoQuoteStale' : 'quoteStale'),
+            ),
+          )
+          .finally(() => {
+            crunSubmittingRef.current = false;
+          });
+        return;
+      }
       if (
         onSubmit &&
         !isGenerateBlocked &&
@@ -674,6 +938,13 @@ export function usePromptBarState({
       }
     },
     [
+      crunBinding,
+      crunVideoBinding,
+      isCrunVideo,
+      crunQuote.getCurrentQuote,
+      crunRequest,
+      hasCrunSelection,
+      translateCrun,
       form,
       isGenerateBlocked,
       isGenerateDisabled,
@@ -686,6 +957,7 @@ export function usePromptBarState({
   );
 
   const videoDurations = useMemo(() => {
+    if (isCrunVideo) return [];
     if (normalizedWatchedModels.length === 0) {
       return [...getModelDurations(watchedModel as string)];
     }
@@ -693,7 +965,12 @@ export function usePromptBarState({
       const durations = getModelDurations(modelKey);
       return Array.from(durations);
     }) as (modelKey: string) => number[]);
-  }, [normalizedWatchedModels, watchedModel, getUnionFromAllModels]);
+  }, [
+    isCrunVideo,
+    normalizedWatchedModels,
+    watchedModel,
+    getUnionFromAllModels,
+  ]);
 
   const formatIcon = useMemo(() => {
     switch (watchedFormat) {
@@ -855,6 +1132,25 @@ export function usePromptBarState({
   });
 
   return {
+    crunQuoteLabel,
+    crunInputControls,
+    watchedCrunControls,
+    crunVideoDraft:
+      isCrunVideo && watchedCrunControls
+        ? {
+            modelKey: watchedCrunControls.modelKey,
+            contractVersion: watchedCrunControls.contractVersion,
+            prompt: form.watch('text') ?? '',
+            duration: watchedDuration,
+            aspectRatio: watchedCrunControls.aspectRatio,
+            resolution: form.watch('resolution') || undefined,
+            negativePrompt: watchedCrunControls.negativePrompt,
+            guidanceScale: watchedCrunControls.guidanceScale,
+            translatePrompt: watchedCrunControls.translatePrompt,
+            startFrameId: references[0]?.id,
+            endFrameId: endFrame?.id,
+          }
+        : null,
     // context value (consumed by PromptBarInternalContext.Provider)
     internalContextValue,
     // refs for JSX

@@ -1,3 +1,11 @@
+import { buildCrunContract } from '@api/services/integrations/crun/contracts/crun-contract-import.service';
+import {
+  CRUN_IMAGE_MANIFEST,
+  CRUN_PRICING_SNAPSHOT,
+  CRUN_VIDEO_MANIFEST,
+  getCrunPricingSnapshot,
+} from '@api/services/integrations/crun/contracts/crun-manifest';
+
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
     '@api/shared/testing/prisma-mock'
@@ -651,6 +659,138 @@ describe('ModelsService', () => {
 
     expect(result.id).toBe('trained-model');
     expect(modelDelegate.create).not.toHaveBeenCalled();
+  });
+
+  it('promotes exact Crun credit contracts without fabricating a USD rate', async () => {
+    const entry = CRUN_IMAGE_MANIFEST[1];
+    const contract = buildCrunContract(entry);
+    modelDelegate.findFirst.mockResolvedValue(
+      makeModel({
+        provider: ModelProvider.CRUN,
+        endpoint: entry.endpoint,
+        key: entry.key,
+        pendingProviderContractVersion: contract.version,
+      }),
+    );
+    providerContractDelegate.findUnique.mockResolvedValue({
+      id: 'crun-contract',
+      inputSchema: contract,
+      openapi: entry.openapi,
+      pricing: CRUN_PRICING_SNAPSHOT,
+      mappingStatus: 'supported',
+      pricingType: 'per-request',
+      schemaFamily: 'crun-image-v1',
+      unitPriceMicros: null,
+      version: contract.version,
+    });
+    modelDelegate.update.mockResolvedValue(
+      makeModel({
+        provider: ModelProvider.CRUN,
+        providerInputSchema: contract,
+        reviewedProviderContractVersion: contract.version,
+      }),
+    );
+    const result = await service.approveRegistryModel(
+      'model-1',
+      {},
+      'operator-1',
+    );
+    const patch = modelDelegate.update.mock.calls[0][0].data;
+    expect(patch).toMatchObject({
+      maxOutputs: 4,
+      maxReferences: 14,
+      isBatchSupported: false,
+      defaultAspectRatio: '16:9',
+      reviewedProviderContractVersion: contract.version,
+    });
+    expect(patch).not.toHaveProperty('providerCostUsd');
+    expect(result).toHaveProperty(
+      'inputControls.fields.resolution.default',
+      '2K',
+    );
+    expect(
+      (result as unknown as { inputControls: unknown })?.inputControls,
+    ).not.toHaveProperty('serverOverrides');
+  });
+
+  it.each(CRUN_VIDEO_MANIFEST)(
+    'promotes the reviewed video contract $endpoint with its safe projection',
+    async (entry) => {
+      const contract = buildCrunContract(entry);
+      modelDelegate.findFirst.mockResolvedValue(
+        makeModel({
+          provider: ModelProvider.CRUN,
+          category: ModelCategory.VIDEO,
+          endpoint: entry.endpoint,
+          key: entry.key,
+          pendingProviderContractVersion: contract.version,
+        }),
+      );
+      providerContractDelegate.findUnique.mockResolvedValue({
+        id: 'video-contract',
+        inputSchema: contract,
+        openapi: entry.openapi,
+        pricing: getCrunPricingSnapshot(entry),
+        mappingStatus: 'supported',
+        pricingType: 'per-request',
+        schemaFamily: entry.schemaFamily,
+        unitPriceMicros: null,
+        version: contract.version,
+      });
+      modelDelegate.update.mockResolvedValue(
+        makeModel({
+          provider: ModelProvider.CRUN,
+          category: ModelCategory.VIDEO,
+          providerInputSchema: contract,
+          reviewedProviderContractVersion: contract.version,
+        }),
+      );
+      const result = await service.approveRegistryModel(
+        'model-1',
+        {},
+        'operator-1',
+      );
+      expect(modelDelegate.update.mock.calls[0][0].data).toMatchObject({
+        maxOutputs: 4,
+        maxReferences: entry.videoRules.referenceMode === 'none' ? 0 : 2,
+        hasResolutionOptions: entry.endpoint === 'google/veo3-1-fast-t2v',
+        isBatchSupported: false,
+        reviewedProviderContractVersion: contract.version,
+      });
+      expect(result).toHaveProperty('inputControls.mediaKind', 'video');
+      expect(result).toHaveProperty(
+        'inputControls.videoRules.availableDurations',
+        entry.videoRules.availableDurations,
+      );
+      expect(
+        (result as unknown as { inputControls: unknown }).inputControls,
+      ).not.toHaveProperty('serverOverrides');
+    },
+  );
+
+  it('rejects a Crun candidate with a forged contract version', async () => {
+    const entry = CRUN_IMAGE_MANIFEST[0];
+    modelDelegate.findFirst.mockResolvedValue(
+      makeModel({
+        provider: ModelProvider.CRUN,
+        endpoint: entry.endpoint,
+        key: entry.key,
+        pendingProviderContractVersion: 'forged',
+      }),
+    );
+    providerContractDelegate.findUnique.mockResolvedValue({
+      id: 'crun-contract',
+      openapi: entry.openapi,
+      mappingStatus: 'supported',
+      pricingType: 'per-request',
+      schemaFamily: 'crun-image-v1',
+      unitPriceMicros: null,
+      version: 'forged',
+    });
+    await expect(
+      service.approveRegistryModel('model-1', {}, 'operator-1'),
+    ).rejects.toThrow('version is invalid');
+    expect(modelDelegate.update).not.toHaveBeenCalled();
   });
 
   it('promotes only a supported pending Fal contract into runtime fields', async () => {

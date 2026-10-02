@@ -1,5 +1,4 @@
 import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
-import { VideoCompletionService } from '@api/services/video-completion/video-completion.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
@@ -30,6 +29,7 @@ import { CronYoutubeMessagesService } from '@workers/crons/youtube/cron.youtube-
 import { CronYoutubeStatusService } from '@workers/crons/youtube/cron.youtube-status.service';
 import { QueueMetricsService } from '@workers/monitoring/queue-metrics.service';
 import { NotificationDeliveryRecoveryService } from '@workers/processors/api/queues/notification-delivery/notification-delivery-recovery.service';
+import { PlatformMediaSchedulesService } from '@workers/scheduling/platform-media-schedules.service';
 import {
   isPlatformScheduledTaskName,
   PLATFORM_SCHEDULE_QUEUE,
@@ -74,7 +74,7 @@ export class PlatformSchedulesProcessor extends WorkerHost {
     private readonly tiktok: CronTiktokStatusService,
     private readonly transcriptPurge: CronTranscriptPurgeService,
     private readonly trends: CronTrendsService,
-    private readonly videoCompletion: VideoCompletionService,
+    private readonly mediaSchedules: PlatformMediaSchedulesService,
     private readonly workflowArtifacts: CronWorkflowArtifactsService,
     private readonly youtubeMessages: CronYoutubeMessagesService,
     private readonly youtubeStatus: CronYoutubeStatusService,
@@ -87,6 +87,10 @@ export class PlatformSchedulesProcessor extends WorkerHost {
   ) {
     super();
     this.handlers = {
+      [PLATFORM_SCHEDULED_TASKS.CRUN_TASK_RECONCILE]: () =>
+        this.mediaSchedules.reconcileCrunTasks(),
+      [PLATFORM_SCHEDULED_TASKS.CRUN_CONTRACT_SYNC]: () =>
+        this.mediaSchedules.synchronizeCrunContracts(),
       [PLATFORM_SCHEDULED_TASKS.PROACTIVE_AGENT_STRATEGIES]: (job) =>
         this.workflowSchedules.sweep(
           'proactive-agent-strategies',
@@ -117,7 +121,7 @@ export class PlatformSchedulesProcessor extends WorkerHost {
       [PLATFORM_SCHEDULED_TASKS.CREDENTIAL_TOKEN_REFRESH]: () =>
         this.credentials.refreshExpiringTokens(),
       [PLATFORM_SCHEDULED_TASKS.EDITOR_RENDER_RECONCILE]: () =>
-        this.videoCompletion.reconcileEditorRenders(),
+        this.mediaSchedules.reconcileEditorRenders(),
       [PLATFORM_SCHEDULED_TASKS.ENGAGEMENT_TRIGGERS]: () =>
         this.engagementTriggers.processArmedRules(),
       [PLATFORM_SCHEDULED_TASKS.FAL_MODEL_DISCOVERY]: () =>
@@ -149,7 +153,7 @@ export class PlatformSchedulesProcessor extends WorkerHost {
       [PLATFORM_SCHEDULED_TASKS.QUEUE_METRICS_PUBLISH]: () =>
         this.queueMetrics.publishQueueMetrics(),
       [PLATFORM_SCHEDULED_TASKS.RAW_CUT_CLIP_RECONCILE]: () =>
-        this.videoCompletion.reconcileRawCutClips(),
+        this.mediaSchedules.reconcileRawCutClips(),
       [PLATFORM_SCHEDULED_TASKS.REFERRAL_REWARD_SETTLEMENT]: () =>
         this.referrals.settleDueRewards(),
       [PLATFORM_SCHEDULED_TASKS.REPLICATE_MODEL_DISCOVERY]: () =>

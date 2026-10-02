@@ -1,3 +1,4 @@
+import { PlatformMediaSchedulesService } from '@workers/scheduling/platform-media-schedules.service';
 import {
   PLATFORM_SCHEDULE_CATALOG,
   PLATFORM_SCHEDULED_TASKS,
@@ -57,10 +58,13 @@ describe('PlatformSchedulesProcessor', () => {
     reconcileContinuations: handler(),
     reconcilePendingExecutions: handler(),
   };
+  const crun = { reconcile: handler(), synchronizeContracts: handler() };
   const logger = { debug: vi.fn() };
 
   const cases: Array<[PlatformScheduledTaskName, ReturnType<typeof handler>]> =
     [
+      [PLATFORM_SCHEDULED_TASKS.CRUN_TASK_RECONCILE, crun.reconcile],
+      [PLATFORM_SCHEDULED_TASKS.CRUN_CONTRACT_SYNC, crun.synchronizeContracts],
       [
         PLATFORM_SCHEDULED_TASKS.PROACTIVE_AGENT_STRATEGIES,
         workflowSchedules.sweep,
@@ -233,7 +237,7 @@ describe('PlatformSchedulesProcessor', () => {
       tiktok as never,
       transcripts as never,
       trends as never,
-      video as never,
+      new PlatformMediaSchedulesService(video as never, crun as never),
       workflowArtifacts as never,
       youtubeMessages as never,
       youtubeStatus as never,
@@ -268,6 +272,64 @@ describe('PlatformSchedulesProcessor', () => {
       123456,
     );
   });
+
+  const mediaCases: Array<
+    [PlatformScheduledTaskName, ReturnType<typeof handler>]
+  > = [
+    [PLATFORM_SCHEDULED_TASKS.CRUN_TASK_RECONCILE, crun.reconcile],
+    [PLATFORM_SCHEDULED_TASKS.CRUN_CONTRACT_SYNC, crun.synchronizeContracts],
+    [
+      PLATFORM_SCHEDULED_TASKS.EDITOR_RENDER_RECONCILE,
+      video.reconcileEditorRenders,
+    ],
+    [
+      PLATFORM_SCHEDULED_TASKS.RAW_CUT_CLIP_RECONCILE,
+      video.reconcileRawCutClips,
+    ],
+  ];
+
+  it.each(mediaCases)(
+    'preserves underlying %s reconciliation failure',
+    async (taskName, owner) => {
+      const failure = new Error('owned reconciliation failed');
+      owner.mockRejectedValueOnce(failure);
+      await expect(processor.process({ name: taskName } as Job)).rejects.toBe(
+        failure,
+      );
+      expect(owner).toHaveBeenCalledOnce();
+    },
+  );
+
+  it('awaits the actual media owner before settling the schedule job', async () => {
+    let finish: (() => void) | undefined;
+    crun.reconcile.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    let settled = false;
+    const pending = processor
+      .process({ name: PLATFORM_SCHEDULED_TASKS.CRUN_TASK_RECONCILE } as Job)
+      .then(() => {
+        settled = true;
+      });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    expect(finish).toBeDefined();
+    finish?.();
+    await pending;
+    expect(settled).toBe(true);
+  });
+
+  it.each(mediaCases)(
+    'keeps %s disabled without calling either media owner',
+    async (taskName) => {
+      config.isDevSchedulersEnabled = false;
+      await processor.process({ name: taskName } as Job);
+      for (const [, owner] of mediaCases) expect(owner).not.toHaveBeenCalled();
+    },
+  );
 
   it('fails closed for unknown task names', async () => {
     await expect(

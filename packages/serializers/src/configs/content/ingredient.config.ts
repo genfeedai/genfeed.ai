@@ -2,11 +2,15 @@ import { ingredientAttributes } from '@serializers/attributes/ingredients/ingred
 import { metadataAttributes } from '@serializers/attributes/ingredients/metadata.attributes';
 import { rel, simpleConfig } from '@serializers/builders';
 import { serializeAgentWorkObject } from '@serializers/helpers/agent-work-object.helper';
+import { serializeImageEdit } from '@serializers/helpers/image-edit.helper';
 import { CONTENT_ENTITY_RELS } from '@serializers/relationships';
 
 export const ingredientSerializerConfig = {
   attributes: ingredientAttributes,
-  attributeDerivations: { agentWorkObject: serializeAgentWorkObject },
+  attributeDerivations: {
+    agentWorkObject: serializeAgentWorkObject,
+    imageEdit: serializeImageEdit,
+  },
   type: 'ingredient',
   ...CONTENT_ENTITY_RELS,
   metadata: rel('metadata', metadataAttributes),

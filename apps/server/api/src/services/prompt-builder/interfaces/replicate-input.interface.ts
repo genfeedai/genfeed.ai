@@ -221,7 +221,10 @@ export interface GenericImageInput extends BaseImageInput {
 }
 
 // Union of all image model inputs
+import type { Flux3ImageInput } from '@api/services/prompt-builder/builders/replicate/flux-3-image.builder';
+
 export type ReplicateImageInput =
+  | Flux3ImageInput
   | ImagenInput
   | NanoBananaInput
   | NanoBananaProInput
@@ -718,7 +721,12 @@ export interface TrainedModelInput extends Record<string, unknown> {
  * Union of all possible Replicate model input types.
  * Used as the return type of `buildPrompt()` across the builder hierarchy.
  */
+export interface CrunPromptInput extends Record<string, unknown> {
+  prompt: string;
+}
+
 export type ReplicateInput =
+  | CrunPromptInput
   | ReplicateImageInput
   | ReplicateVideoInput
   | ReplicateTextInput

@@ -9,16 +9,19 @@ import { resolveAspectRatioFromDimensions } from '@pages/studio/generate/utils/s
 import { listStudioGenerateTypeConfigs } from '@pages/studio/generate/utils/studio-generate-types';
 
 const CATEGORY_TO_TYPE = new Map<IngredientCategory, StudioGenerateType>([
-  ...listStudioGenerateTypeConfigs().map(
-    (config) => [config.ingredientCategory, config.type] as const,
-  ),
+  ...listStudioGenerateTypeConfigs()
+    .filter((config) => config.type !== 'image-edit')
+    .map((config) => [config.ingredientCategory, config.type] as const),
   // A GIF is produced from a Generate video and renders as an image card,
   // with the masonry's own GIF eligibility rules.
   [IngredientCategory.GIF, 'image'],
 ]);
 
-export const STUDIO_GENERATE_CATEGORIES: readonly IngredientCategory[] =
-  listStudioGenerateTypeConfigs().map((config) => config.ingredientCategory);
+export const STUDIO_GENERATE_CATEGORIES: readonly IngredientCategory[] = [
+  ...new Set(
+    listStudioGenerateTypeConfigs().map((config) => config.ingredientCategory),
+  ),
+];
 
 /**
  * Playable/renderable URL for a generated asset. Mirrors the fallback chain
@@ -139,7 +142,9 @@ function resolveStatus(value: unknown): IngredientStatus {
 export function toStudioGenerateJob(
   ingredient: IIngredient,
 ): StudioGenerateJob | null {
-  const type = resolveStudioTypeFromCategory(ingredient.category);
+  const type = ingredient.imageEdit
+    ? 'image-edit'
+    : resolveStudioTypeFromCategory(ingredient.category);
 
   if (!type) {
     return null;

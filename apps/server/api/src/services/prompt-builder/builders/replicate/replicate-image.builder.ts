@@ -1,4 +1,5 @@
 import { BaseReplicateBuilder } from '@api/services/prompt-builder/builders/replicate/base-replicate.builder';
+import { buildFlux3ImageInput } from '@api/services/prompt-builder/builders/replicate/flux-3-image.builder';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import type {
   Flux2DevInput,
@@ -71,6 +72,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
     MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4,
     MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4_5,
     MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_5_PRO,
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
     // Black Forest Labs FLUX
     MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO,
     MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
@@ -129,6 +131,13 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
     negativePrompt: string,
   ): ReplicateImageInput {
     switch (model) {
+      case MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE:
+        return buildFlux3ImageInput(
+          promptText,
+          params.references,
+          params.resolution ?? '1k',
+          params.aspectRatio ?? 'auto',
+        );
       // Google Imagen
       case MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3:
       case MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3_FAST:

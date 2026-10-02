@@ -9,9 +9,25 @@ import type { SharedService } from '@api/shared/services/shared/shared.service';
 import type { ModelProvider } from '@genfeedai/contracts';
 import type { ImageGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type { GenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
-import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces';
+import type { ImageEditSize } from '@genfeedai/contracts/constants';
+import type {
+  GenerationHarnessReceipt,
+  ImageEditingRecipe,
+} from '@genfeedai/contracts/interfaces';
+
+/** Server-owned admission result; public create requests cannot choose this operation. */
+export interface ImageEditingContext {
+  sourceIds: string[];
+  sourceUrls: string[];
+  maskUrl?: string;
+  size: ImageEditSize;
+  width: number;
+  height: number;
+  recipe: ImageEditingRecipe;
+}
 
 export type ImageGenerationProvider =
+  | 'crun'
   | 'genfeedai'
   | 'higgsfield'
   | 'klingai'
@@ -44,6 +60,7 @@ export type ImageGenerationSavedMetadata =
   ImageGenerationSaveDocumentsResult['metadataData'];
 
 export interface ImageGenerationContext {
+  editing?: ImageEditingContext;
   generationHarness?: GenerationHarnessReceipt;
   providerInput?: Record<string, unknown>;
   brand: ImageGenerationResolvedBrand;
@@ -90,6 +107,8 @@ export interface ImageGenerationCompletionPlan {
 }
 
 export interface ImageGenerationProviderRequest {
+  ingredientId?: string;
+  crunProviderRequest?: import('@api/services/integrations/crun/crun-task.schema').CrunProviderRequest;
   providerInput?: Record<string, unknown>;
   /**
    * The org's own resolved BYOK key (#5294), set only when the credits
@@ -151,4 +170,11 @@ export interface ImageGenerationProviderAdapter {
   prepare(
     request: ImageGenerationProviderRequest,
   ): Promise<PreparedImageGenerationProvider>;
+}
+
+export interface ImageGenerationPreparedInputs {
+  referenceIds: string[];
+  referenceImageUrls: string[];
+  referenceImageUrl: string | null;
+  generationHarness: GenerationHarnessReceipt;
 }

@@ -13,6 +13,7 @@ export const modelAttributes = createEntityAttributes([
   'lifecycle',
   'isHighlighted',
   'capabilities',
+  'inputControls',
   'costTier',
   'recommendedFor',
   'speedTier',

@@ -24,6 +24,10 @@ import { ByokService } from '@api/services/byok/byok.service';
 import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
 import type { ByokProvider } from '@genfeedai/contracts';
 import { ModelCategory } from '@genfeedai/contracts';
+import {
+  isFlux3ImageModel,
+  isImageEditModel,
+} from '@genfeedai/contracts/constants';
 import type { ModelBillableQuoteSnapshot } from '@genfeedai/contracts/interfaces';
 import { buildPricingAuditStamp } from '@genfeedai/pricing';
 import { ConflictException, Injectable } from '@nestjs/common';
@@ -50,7 +54,10 @@ export class ImageGenerationCreditsService {
       resolvedModelDoc.key !== model ||
       !resolvedModelDoc.isActive ||
       resolvedModelDoc.isDeleted ||
-      resolvedModelDoc.category !== ModelCategory.IMAGE ||
+      resolvedModelDoc.category !==
+        (isImageEditModel(model)
+          ? ModelCategory.IMAGE_EDIT
+          : ModelCategory.IMAGE) ||
       !this.providerRegistry.supports(model, resolvedModelDoc.provider)
     ) {
       throw new ConflictException(
@@ -134,7 +141,10 @@ export class ImageGenerationCreditsService {
         resolvedModelDoc.key !== model ||
         !resolvedModelDoc.isActive ||
         resolvedModelDoc.isDeleted ||
-        resolvedModelDoc.category !== ModelCategory.IMAGE ||
+        resolvedModelDoc.category !==
+          (isImageEditModel(model)
+            ? ModelCategory.IMAGE_EDIT
+            : ModelCategory.IMAGE) ||
         !this.providerRegistry.supports(model, resolvedModelDoc.provider) ||
         model !== approved.model ||
         requiredCredits !== approved.unitCredits ||
@@ -263,9 +273,11 @@ export class ImageGenerationCreditsService {
       width: createImageDto.width || 1920,
       outputs,
       requests: isNativeImageBatch(model, provider) ? 1 : outputs,
-      ...(createImageDto.quality !== undefined
-        ? { selectors: { quality: createImageDto.quality } }
-        : {}),
+      ...(isFlux3ImageModel(model)
+        ? { selectors: { resolution: createImageDto.resolution ?? '1k' } }
+        : createImageDto.quality !== undefined
+          ? { selectors: { quality: createImageDto.quality } }
+          : {}),
     });
     return {
       requiredCredits: modelQuote.credits,

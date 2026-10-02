@@ -1,6 +1,7 @@
 'use client';
 
-import type { ModelCategory } from '@genfeedai/contracts';
+import { ModelCategory } from '@genfeedai/contracts';
+import { isImageEditModel } from '@genfeedai/contracts/constants';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ModelsService } from '@services/ai/models.service';
@@ -62,7 +63,11 @@ export function useStudioGenerateModels(
           return;
         }
 
-        setModels(rows);
+        setModels(
+          category === ModelCategory.IMAGE_EDIT
+            ? rows.filter((row) => isImageEditModel(row.key))
+            : rows,
+        );
       } catch {
         if (!isCancelled) {
           setModels([]);

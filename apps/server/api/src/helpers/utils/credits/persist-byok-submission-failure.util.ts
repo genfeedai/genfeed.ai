@@ -1,6 +1,6 @@
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
+import { crunFailureKind } from '@api/helpers/utils/credits/generation-quote-group.schema';
 import { generationUsageReceiptSchema } from '@api/helpers/utils/credits/generation-submission-evidence.schema';
-import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IngredientStatus } from '@genfeedai/contracts';
 import type { IGenerationUsageReceipt } from '@genfeedai/contracts/interfaces/billing';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
@@ -8,7 +8,7 @@ import { z } from 'zod';
 
 /** Provider-negative proof and the BYOK receipt end with the same library CAS. */
 export async function persistByokSubmissionFailure(
-  prisma: PrismaService,
+  prisma: Prisma.TransactionClient,
   where: Prisma.IngredientWhereInput,
   data: Prisma.IngredientUpdateManyMutationInput,
 ): Promise<{ count: number } | null> {
@@ -22,7 +22,31 @@ export async function persistByokSubmissionFailure(
   const receipt = generationUsageReceiptSchema.safeParse(
     current?.generationBilling,
   );
-  if (!receipt.success || !receipt.data.submissionIntentProvider) return null;
+  const task = await prisma.crunGenerationTask.findFirst({
+    where: { ingredientId, organizationId, isDeleted: false },
+  });
+  const kind = crunFailureKind(task);
+  if (
+    (task ||
+      (receipt.success && receipt.data.submissionIntentProvider === 'crun')) &&
+    !kind
+  )
+    return { count: 0 };
+  if (!receipt.success || !receipt.data.submissionIntentProvider)
+    return task
+      ? prisma.ingredient.updateMany({
+          where: {
+            AND: [where],
+            id: ingredientId,
+            organizationId,
+            isDeleted: false,
+            status: {
+              notIn: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
+            },
+          },
+          data,
+        })
+      : null;
   if (receipt.data.state === 'recorded') return { count: 0 };
   const raw = z
     .record(z.string(), z.unknown())
@@ -42,7 +66,12 @@ export async function persistByokSubmissionFailure(
     data: {
       ...data,
       generationBilling: toPrismaJson(
-        failedReceipt(raw, receipt.data, ingredientId, 'provider-terminal'),
+        failedReceipt(
+          raw,
+          receipt.data,
+          ingredientId,
+          kind ?? 'provider-terminal',
+        ),
       ),
     },
   });
@@ -62,7 +91,13 @@ export async function recordByokSubmissionRejection(
     current?.generationBilling,
   );
   if (!receipt.success || !receipt.data.submissionIntentProvider) return;
-  if (receipt.data.submissionIntentProvider !== 'heygen')
+  if (receipt.data.submissionIntentProvider === 'crun') {
+    const task = await tx.crunGenerationTask.findFirst({
+      where: { ingredientId, organizationId, isDeleted: false },
+    });
+    if (crunFailureKind(task) !== 'submission-rejected') return;
+  }
+  if (!['heygen', 'crun'].includes(receipt.data.submissionIntentProvider))
     throw new BusinessLogicException('Submission rejection provider differs');
   if (
     receipt.data.state === 'failed' &&

@@ -1,11 +1,15 @@
+import type { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { currentWorkflowAccountingScope } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
+import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import {
   ActivityKey,
   ActivitySource,
   CreditTransactionCategory,
+  IngredientCategory,
 } from '@genfeedai/contracts';
 import type { CreditDeductionJobData } from '@genfeedai/contracts/queue';
+import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import { CreditDeductionProcessor } from '@workers/processors/api/queues/credit-deduction/credit-deduction.processor';
 import type { Job } from 'bullmq';
 import { UnrecoverableError } from 'bullmq';
@@ -35,6 +39,7 @@ describe('CreditDeductionProcessor', () => {
   };
   let prisma: {
     ingredient: { findFirst: ReturnType<typeof vi.fn> };
+    crunGenerationTask: { findFirst: ReturnType<typeof vi.fn> };
     metadata: { updateMany: ReturnType<typeof vi.fn> };
     workflowExecution: { findFirst: ReturnType<typeof vi.fn> };
   };
@@ -62,6 +67,7 @@ describe('CreditDeductionProcessor', () => {
     };
     prisma = {
       ingredient: { findFirst: vi.fn() },
+      crunGenerationTask: { findFirst: vi.fn().mockResolvedValue(null) },
       metadata: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
       workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) },
     };
@@ -515,5 +521,337 @@ describe('CreditDeductionProcessor', () => {
     );
 
     await expect(processor.process(buildJob({}))).rejects.toThrow('db timeout');
+  });
+});
+
+describe('Crun media BYOK consumer authority', () => {
+  function fixture(
+    amount = 3,
+    endpoint = 'google/nano-banana-pro',
+    category: IngredientCategory = IngredientCategory.IMAGE,
+  ) {
+    const modelKey = `crun/${endpoint}`;
+    const receipt = {
+      kind: 'byok',
+      state: 'pending',
+      amount,
+      description: 'Image generation',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      source:
+        category === IngredientCategory.VIDEO
+          ? ActivitySource.VIDEO_GENERATION
+          : ActivitySource.IMAGE_GENERATION,
+      userId: 'user-1',
+      submissionIntentProvider: 'crun',
+    };
+    const { kind: _kind, state: _state, ...immutable } = receipt;
+    const priced = quoteModelBillablePricing(
+      billableProfile({
+        key: modelKey,
+        provider: 'crun',
+        cost: amount,
+        isFree: amount === 0,
+      }),
+      {
+        modelKey,
+        provider: 'crun',
+        outputs: 1,
+        requests: 1,
+      },
+      1,
+      new Date().toISOString(),
+    );
+    if (priced.status !== 'priced') throw new Error('Invalid fixture quote');
+    const quote = {
+      ...priced.snapshot,
+      providerQuote: {
+        provider: 'crun',
+        estimated: false,
+        providerCreditsPerTask: '8',
+        quoteHash: 'a'.repeat(64),
+        inputHash: 'b'.repeat(64),
+        contractVersion: 'v1',
+        creditsPerUsd: null,
+        acquisitionRateVersion: null,
+        credentialSource: 'byok',
+        credentialId: null,
+        credentialFingerprint: 'c'.repeat(64),
+      },
+    };
+    const task = {
+      organizationId: 'org-1',
+      ingredientId: 'image',
+      userId: 'user-1',
+      credentialSource: 'byok',
+      reservationId: null,
+      fundingBinding: { kind: 'byok', receipt: immutable },
+      quoteSnapshot: quote,
+      modelKey: quote.modelKey,
+      endpoint,
+      contractVersion: 'v1',
+      inputHash: 'b'.repeat(64),
+      credentialId: null,
+      credentialFingerprint: 'c'.repeat(64),
+      outputIndex: 0,
+      state: 'provider-success',
+      terminalReceipt: { status: 'success', credits: '8' },
+      vendorCostRecordedAt: new Date(),
+      mediaPersistedAt: new Date(),
+      recoveryCode: null,
+      leaseUntil: new Date(Date.now() + 60000),
+      version: 7,
+    };
+    const ingredient = {
+      userId: 'user-1',
+      status: 'GENERATED',
+      category,
+      s3Key: 'owned/image.png',
+      generationBilling: receipt,
+    };
+    const state: {
+      task: Record<string, unknown> | null;
+      ingredient: Record<string, unknown> | null;
+      ledger: Record<string, unknown> | null;
+    } = { task, ingredient, ledger: null };
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      crunGenerationTask: { findFirst: vi.fn(async () => state.task) },
+      ingredient: { findFirst: vi.fn(async () => state.ingredient) },
+      creditTransaction: { findFirst: vi.fn(async () => state.ledger) },
+    };
+    const prisma = {
+      ...tx,
+      $transaction: vi.fn(
+        async (operation: (client: typeof tx) => Promise<void>) =>
+          operation(tx),
+      ),
+    };
+    const balance = vi.fn().mockResolvedValue(100);
+    const create = vi.fn(
+      async (
+        ...args: Parameters<CreditTransactionsService['createTransactionEntry']>
+      ) => {
+        const [, category, value, , , source, , , , options] = args;
+        if (!options) throw new Error('Missing ledger identity');
+        state.ledger = {
+          category,
+          amount: value,
+          source,
+          actorUserId: options.actorUserId,
+          metadata: options.metadata,
+        };
+      },
+    );
+    const logger = { log: vi.fn(), error: vi.fn() };
+    const processor = new CreditDeductionProcessor(
+      { getOrganizationCreditsBalance: balance } as never,
+      { createTransactionEntry: create } as never,
+      {} as never,
+      {} as never,
+      logger as never,
+      prisma as never,
+    );
+    const data: CreditDeductionJobData = {
+      type: 'record-byok-usage',
+      organizationId: 'org-1',
+      userId: 'user-1',
+      amount,
+      description: receipt.description,
+      source: receipt.source,
+      idempotencyKey: 'media-generation-usage:image',
+      metadata: { assetId: 'image', submissionIntentProvider: 'crun' },
+    };
+    const run = () =>
+      processor.process({
+        data,
+        id: 'usage',
+        attemptsMade: 0,
+        opts: { attempts: 3 },
+      } as Job<CreditDeductionJobData>);
+    return { task, ingredient, state, tx, prisma, balance, create, data, run };
+  }
+  it.each([0, 3])(
+    'records exact usage %s once in the proof transaction without altering an active lease',
+    async (amount) => {
+      const f = fixture(amount);
+      const lease = f.task.leaseUntil;
+      await f.run();
+      await f.run();
+      expect(f.create).toHaveBeenCalledTimes(1);
+      expect(f.balance).toHaveBeenCalledWith('org-1', f.tx);
+      expect(f.create.mock.calls[0]?.[8]).toBe(f.tx);
+      expect(f.create.mock.calls[0]?.[1]).toBe(
+        CreditTransactionCategory.BYOK_USAGE,
+      );
+      expect(f.create.mock.calls[0]?.slice(3, 5)).toEqual([100, 100]);
+      expect(f.prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+        isolationLevel: 'Serializable',
+      });
+      expect(f.tx.$queryRaw).toHaveBeenCalledTimes(4);
+      expect(f.task.leaseUntil).toBe(lease);
+      expect(f.task.version).toBe(7);
+    },
+  );
+  it.each(['kling/v2-5-turbo-pro', 'google/veo3-1-fast-t2v'])(
+    'records exact video usage for %s and rejects category/model mixing',
+    async (endpoint) => {
+      const f = fixture(3, endpoint, IngredientCategory.VIDEO);
+      await f.run();
+      await f.run();
+      expect(f.create).toHaveBeenCalledTimes(1);
+      expect(f.create.mock.calls[0]?.[5]).toBe(ActivitySource.VIDEO_GENERATION);
+      for (const wrong of [
+        fixture(3, endpoint),
+        fixture(3, 'google/nano-banana-pro', IngredientCategory.VIDEO),
+        fixture(3, 'unknown/video', IngredientCategory.VIDEO),
+      ]) {
+        await expect(wrong.run()).rejects.toThrow(
+          'CRUN_BYOK_USAGE_IDENTITY_INVALID',
+        );
+        expect(wrong.create).not.toHaveBeenCalled();
+      }
+      const mismatched = fixture(3, endpoint, IngredientCategory.VIDEO);
+      mismatched.task.modelKey = 'crun/google/nano-banana-pro';
+      await expect(mismatched.run()).rejects.toThrow(
+        'CRUN_BYOK_USAGE_IDENTITY_INVALID',
+      );
+    },
+  );
+  it('supports previously queued canonical media jobs without a new marker', async () => {
+    const f = fixture();
+    f.data.metadata = { assetId: 'image' };
+    await f.run();
+    expect(f.create).toHaveBeenCalledTimes(1);
+  });
+  it('retains ordinary incumbent media usage behavior', async () => {
+    const f = fixture();
+    f.state.task = null;
+    f.ingredient.generationBilling = {
+      ...f.ingredient.generationBilling,
+      submissionIntentProvider: 'heygen',
+    };
+    f.data.metadata = { assetId: 'image' };
+    await f.run();
+    expect(f.prisma.$transaction).not.toHaveBeenCalled();
+    expect(f.create.mock.calls[0]?.[8]).toBeUndefined();
+  });
+  it.each([
+    'actor',
+    'organization',
+    'amount',
+    'source',
+    'description',
+    'asset',
+    'key',
+    'missing-asset',
+    'missing-ingredient',
+    'deleted-ingredient',
+    'binding',
+    'free-binding',
+    'model',
+    'contract',
+    'input-hash',
+    'fingerprint',
+    'index',
+    'duplicate-category',
+    'duplicate-amount',
+  ])('rejects invalid %s without balance or ledger writes', async (field) => {
+    const f = fixture();
+    if (field === 'actor') f.data.userId = 'foreign';
+    if (field === 'organization') f.task.organizationId = 'foreign';
+    if (field === 'amount') f.data.amount++;
+    if (field === 'source') f.data.source = ActivitySource.VIDEO_GENERATION;
+    if (field === 'description') f.data.description = 'changed';
+    if (field === 'asset')
+      f.data.metadata = { assetId: 'other', submissionIntentProvider: 'crun' };
+    if (field === 'key') f.data.idempotencyKey = 'other';
+    if (field === 'missing-asset')
+      f.data.metadata = { submissionIntentProvider: 'crun' };
+    if (field === 'missing-ingredient' || field === 'deleted-ingredient')
+      f.state.ingredient = null;
+    if (field === 'binding' || field === 'free-binding')
+      f.state.task = {
+        ...f.task,
+        fundingBinding: { kind: field === 'binding' ? 'reservation' : 'free' },
+      };
+    if (field === 'model') f.task.modelKey = 'foreign';
+    if (field === 'contract') f.task.contractVersion = 'changed';
+    if (field === 'input-hash') f.task.inputHash = 'd'.repeat(64);
+    if (field === 'fingerprint') f.task.credentialFingerprint = 'd'.repeat(64);
+    if (field === 'index') f.task.outputIndex = 2;
+    if (field.startsWith('duplicate-'))
+      f.state.ledger = {
+        category:
+          field === 'duplicate-category'
+            ? CreditTransactionCategory.DEDUCT
+            : CreditTransactionCategory.BYOK_USAGE,
+        actorUserId: 'user-1',
+        amount: field === 'duplicate-amount' ? 4 : 3,
+        source: f.data.source,
+        metadata: { assetId: 'image' },
+      };
+    await expect(f.run()).rejects.toBeInstanceOf(UnrecoverableError);
+    expect(f.balance).not.toHaveBeenCalled();
+    expect(f.create).not.toHaveBeenCalled();
+  });
+  it.each([
+    'missing-task',
+    'deleted-task',
+    'altered-marker',
+    'missing-vendor',
+    'missing-media',
+    'missing-owned-key',
+    'nonterminal',
+    'failed',
+    'conflict',
+    'receipt-failed',
+    'missing-marker',
+  ])('holds %s proof without acknowledging consumption', async (field) => {
+    const f = fixture();
+    if (field === 'missing-task' || field === 'deleted-task')
+      f.state.task = null;
+    if (field === 'altered-marker')
+      f.ingredient.generationBilling.submissionIntentProvider = 'heygen';
+    if (field === 'missing-vendor')
+      f.state.task = { ...f.task, vendorCostRecordedAt: null };
+    if (field === 'missing-media')
+      f.state.task = { ...f.task, mediaPersistedAt: null };
+    if (field === 'missing-owned-key') f.ingredient.s3Key = '';
+    if (field === 'nonterminal') f.task.state = 'polling';
+    if (field === 'failed') f.task.state = 'provider-failed';
+    if (field === 'conflict')
+      f.state.task = {
+        ...f.task,
+        recoveryCode: 'CRUN_TERMINAL_RECEIPT_CONFLICT',
+      };
+    if (field === 'receipt-failed')
+      f.ingredient.generationBilling.state = 'failed';
+    if (field === 'missing-marker')
+      f.ingredient.generationBilling.submissionIntentProvider = '';
+    await expect(f.run()).rejects.toThrow();
+    expect(f.balance).not.toHaveBeenCalled();
+    expect(f.create).not.toHaveBeenCalled();
+  });
+  it.each(['idempotencyKey', 'organizationId', 'userId'] as const)(
+    'rejects a nonstring %s before classification reads',
+    async (field) => {
+      const f = fixture();
+      Object.assign(f.data, { [field]: 42 });
+      await expect(f.run()).rejects.toThrow('CRUN_BYOK_USAGE_IDENTITY_INVALID');
+      expect(f.tx.ingredient.findFirst).not.toHaveBeenCalled();
+      expect(f.tx.crunGenerationTask.findFirst).not.toHaveBeenCalled();
+      expect(f.balance).not.toHaveBeenCalled();
+      expect(f.create).not.toHaveBeenCalled();
+    },
+  );
+  it('retries serialization conflicts with fresh proof and propagates exhausted conflicts', async () => {
+    const f = fixture();
+    f.prisma.$transaction.mockRejectedValueOnce({ code: 'P2034' });
+    await f.run();
+    expect(f.prisma.$transaction).toHaveBeenCalledTimes(2);
+    const exhausted = fixture();
+    exhausted.prisma.$transaction.mockRejectedValue({ code: 'P2034' });
+    await expect(exhausted.run()).rejects.toMatchObject({ code: 'P2034' });
+    expect(exhausted.prisma.$transaction).toHaveBeenCalledTimes(3);
   });
 });

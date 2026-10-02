@@ -27,6 +27,8 @@ export const PLATFORM_SCHEDULED_TASKS = {
   BATCH_GENERATION_RECONCILE: 'batch-generation-reconcile',
   BATCH_PROJECT_RECONCILE: 'batch-project-reconcile',
   CREDENTIAL_TOKEN_REFRESH: 'credential-token-refresh',
+  CRUN_TASK_RECONCILE: 'crun-task-reconcile',
+  CRUN_CONTRACT_SYNC: 'crun-contract-sync',
   EDITOR_RENDER_RECONCILE: 'editor-render-reconcile',
   ENGAGEMENT_TRIGGERS: 'engagement-triggers',
   FAL_MODEL_DISCOVERY: 'fal-model-discovery',
@@ -69,6 +71,14 @@ export type PlatformSchedule = {
 };
 
 export const PLATFORM_SCHEDULE_CATALOG = {
+  [PLATFORM_SCHEDULED_TASKS.CRUN_TASK_RECONCILE]: {
+    pattern: '*/30 * * * * *',
+    timezone: 'UTC',
+  },
+  [PLATFORM_SCHEDULED_TASKS.CRUN_CONTRACT_SYNC]: {
+    pattern: '10 3 * * *',
+    timezone: 'UTC',
+  },
   [PLATFORM_SCHEDULED_TASKS.CONTENT_LEARNING_RECONCILE]: {
     pattern: '*/5 * * * *',
     timezone: 'UTC',

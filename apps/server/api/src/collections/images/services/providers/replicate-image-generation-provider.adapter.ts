@@ -18,7 +18,11 @@ import {
   canReceiveProviderWebhooks,
   isCloudDeployment,
 } from '@genfeedai/config';
-import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
+import {
+  isFlux3ImageModel,
+  isImageEditModel,
+  MODEL_OUTPUT_CAPABILITIES,
+} from '@genfeedai/contracts/constants';
 import { Injectable } from '@nestjs/common';
 
 const LOCAL_PREDICTION_POLL_INTERVAL_MS = 2_000;
@@ -147,14 +151,20 @@ export class ReplicateImageGenerationProviderAdapter
   ): Promise<PreparedImageGenerationProvider> {
     const isBatchSupported =
       MODEL_OUTPUT_CAPABILITIES[request.model]?.isBatchSupported ?? false;
-    const preparedInput = request.compiledDispatch ?? request.providerInput;
+    const preparedInput = isFlux3ImageModel(request.model)
+      ? request.providerInput
+      : (request.compiledDispatch ?? request.providerInput);
     if (!preparedInput)
       throw new Error('Image provider input was not prepared');
     const input = { ...preparedInput };
 
     // Compiled SeeDream dispatch omits request-scoped batch size. Overlay the
     // official Replicate fields so one provider call still asks for N images.
-    if (request.compiledDispatch && isBatchSupported) {
+    if (
+      request.compiledDispatch &&
+      isBatchSupported &&
+      !isImageEditModel(request.model)
+    ) {
       Object.assign(input, {
         max_images: request.outputs,
         ...(request.outputs > 1 ? { sequential_image_generation: 'auto' } : {}),
@@ -208,7 +218,7 @@ export class ReplicateImageGenerationProviderAdapter
         };
       },
       outputStrategy: replicateImageOutputStrategy(isBatchSupported),
-      trackAdditionalOutputsInResponse: false,
+      trackAdditionalOutputsInResponse: isImageEditModel(request.model),
     };
   }
 }

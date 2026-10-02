@@ -60,8 +60,32 @@ function reviewedRate(
 const REPLICATE = 'replicate';
 const FAL = 'fal';
 
+// Published FLUX.3 prices, rounded at the parity suite's margin of one.
+const FLUX_3_PARITY_CASES: readonly GenerationCreditParityCase[] = [
+  { resolution: '768sq', price: 0.0205, expectedCredits: 3 },
+  { resolution: '1k', price: 0.024, expectedCredits: 3 },
+  { resolution: '1.5k', price: 0.035, expectedCredits: 4 },
+  { resolution: '2k', price: 0.05, expectedCredits: 5 },
+  { resolution: '4k', price: 0.3035, expectedCredits: 31 },
+].map<GenerationCreditParityCase>(({ resolution, price, expectedCredits }) => ({
+  aspectRatio: 'auto',
+  category: ModelCategory.IMAGE,
+  expectedCredits,
+  model: {
+    cost: 8,
+    key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
+    provider: REPLICATE,
+    reviewedPricing: reviewedRate('output', price, { resolution }),
+    rateVersion: 'parity-fixture-v1',
+  },
+  name: `FLUX.3 ${resolution} quote and charge select the native resolution tariff`,
+  outputs: 1,
+  resolution,
+}));
+
 export const GENERATION_CREDIT_PARITY_CASES: readonly GenerationCreditParityCase[] =
   [
+    ...FLUX_3_PARITY_CASES,
     {
       aspectRatio: '1:1',
       category: ModelCategory.IMAGE,

@@ -6,6 +6,7 @@ import {
 } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { IIngredient, IModel } from '@genfeedai/contracts/interfaces';
+import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
 import { describe, expect, it } from 'vitest';
 import {
   buildAvatarPayload,
@@ -13,8 +14,11 @@ import {
   buildImagePayload,
   buildMusicPayload,
   buildRepromptData,
+  buildStudioCrunQuoteRequest,
+  buildStudioCrunVideoQuoteRequest,
   buildVideoPayload,
 } from './generation-payloads';
+import { getDefaultStudioGenerateSettings } from './studio-generate-settings';
 
 type PromptData = Parameters<typeof buildMusicPayload>[0];
 
@@ -360,5 +364,378 @@ describe('buildRepromptData', () => {
 
     expect(data.models).toEqual(['']);
     expect(data.format).toBe(IngredientFormat.PORTRAIT);
+  });
+});
+
+describe('reviewed Crun request projection', () => {
+  const controls: CrunInputControls = {
+    endpoint: 'google/nano-banana-pro',
+    version: 'reviewed-1',
+    mediaKind: 'image',
+    maxOutputs: 4,
+    isBatchSupported: false,
+    referenceRoles: { img_urls: 'image' },
+    isAutoAspectReferenceRequired: true,
+    fields: {
+      prompt: {
+        type: 'string',
+        isRequired: true,
+        minLength: 1,
+        maxLength: 20000,
+      },
+      aspect_ratio: {
+        type: 'string',
+        isRequired: false,
+        enum: ['1:1', '16:9', '21:9', 'auto'],
+        default: '1:1',
+      },
+      resolution: {
+        type: 'string',
+        isRequired: false,
+        enum: ['1K', '2K', '4K'],
+        default: '1K',
+      },
+      output_format: {
+        type: 'string',
+        isRequired: false,
+        enum: ['png', 'jpg'],
+        default: 'png',
+      },
+      img_urls: {
+        type: 'array',
+        isRequired: false,
+        maxItems: 8,
+        format: 'uri',
+      },
+    },
+  };
+  const model = {
+    key: 'crun/google/nano-banana-pro',
+    provider: 'crun',
+    inputControls: controls,
+  } as IModel;
+  function build(
+    overrides: Partial<Parameters<typeof buildStudioCrunQuoteRequest>[0]> = {},
+  ) {
+    return buildStudioCrunQuoteRequest({
+      model,
+      brandId: 'brand-1',
+      promptText: ' A product ',
+      references: ['image-1'],
+      settings: {
+        ...getDefaultStudioGenerateSettings('image'),
+        modelKey: model.key,
+        aspectRatio: '21:9',
+        resolution: '2K',
+        outputs: 4,
+        crunControls: {
+          modelKey: model.key,
+          contractVersion: controls.version,
+          outputFormat: 'jpg',
+        },
+      },
+      ...overrides,
+    });
+  }
+  it('carries reviewed ratio/count/format and canonical IDs without legacy provider defaults', () => {
+    const request = build();
+    expect(request).toMatchObject({
+      model: model.key,
+      text: 'A product',
+      brandId: 'brand-1',
+      outputs: 4,
+      references: ['image-1'],
+      harness: false,
+      crunControls: {
+        contractVersion: controls.version,
+        aspectRatio: '21:9',
+        resolution: '2K',
+        outputFormat: 'jpg',
+      },
+    });
+    for (const key of [
+      'width',
+      'height',
+      'format',
+      'quality',
+      'seed',
+      'duration',
+      'isAudioEnabled',
+      'brand',
+      'folder',
+    ])
+      expect(request).not.toHaveProperty(key);
+  });
+  it('preserves auto exactly when an authorized reference ID is selected', () => {
+    const settings = {
+      ...getDefaultStudioGenerateSettings('image'),
+      modelKey: model.key,
+      aspectRatio: 'auto',
+      resolution: '1K',
+      crunControls: {
+        modelKey: model.key,
+        contractVersion: controls.version,
+        aspectRatio: 'auto',
+      },
+    };
+    expect(build({ settings })?.crunControls.aspectRatio).toBe('auto');
+    expect(build({ settings, references: [] })).toBeNull();
+  });
+  it('rejects duplicate and excessive references before preview', () => {
+    expect(build({ references: ['one', 'one'] })).toBeNull();
+    expect(
+      build({ references: Array.from({ length: 9 }, (_, i) => `image-${i}`) }),
+    ).toBeNull();
+  });
+  it('rejects stale residual aspect and contract versions', () => {
+    const settings = {
+      ...getDefaultStudioGenerateSettings('image'),
+      modelKey: model.key,
+      resolution: '1K',
+      aspectRatio: '21:9',
+      crunControls: {
+        modelKey: model.key,
+        contractVersion: controls.version,
+        aspectRatio: '1:1',
+      },
+    };
+    expect(build({ settings })).toBeNull();
+    expect(
+      build({
+        settings: {
+          ...settings,
+          crunControls: { modelKey: model.key, contractVersion: 'old' },
+        },
+      }),
+    ).toBeNull();
+  });
+});
+
+function controlsFor(endpoint = 'kling/v2-5-turbo-pro'): CrunInputControls {
+  const kling = endpoint === 'kling/v2-5-turbo-pro';
+  return {
+    endpoint,
+    version: 'reviewed-video-v1',
+    mediaKind: 'video',
+    maxOutputs: 4,
+    isBatchSupported: false,
+    isAutoAspectReferenceRequired: false,
+    referenceRoles: kling ? { img_urls: 'image' } : {},
+    videoRules: {
+      referenceMode: kling ? 'start-end' : 'none',
+      omitAspectRatioWithReferences: kling,
+      availableDurations: kling ? [5, 10] : [8],
+    },
+    fields: {
+      prompt: {
+        type: 'string',
+        isRequired: true,
+        minLength: 1,
+        maxLength: kling ? 2500 : 5000,
+      },
+      duration: {
+        type: 'integer',
+        isRequired: false,
+        enum: kling ? [5, 10] : [4, 6, 8],
+        default: kling ? 5 : 8,
+      },
+      aspect_ratio: {
+        type: 'string',
+        isRequired: false,
+        enum: kling ? ['1:1', '16:9', '9:16'] : ['16:9', '9:16'],
+        default: '16:9',
+      },
+      ...(kling
+        ? {
+            negative_prompt: {
+              type: 'string' as const,
+              isRequired: false,
+              maxLength: 2000,
+            },
+            cfg_scale: {
+              type: 'number' as const,
+              isRequired: false,
+              minimum: 0,
+              maximum: 1,
+              default: 0.5,
+            },
+            img_urls: {
+              type: 'array' as const,
+              isRequired: false,
+              format: 'uri' as const,
+              minItems: 1,
+              maxItems: 2,
+            },
+          }
+        : {
+            resolution: {
+              type: 'string' as const,
+              isRequired: false,
+              enum: ['720p', '1080p', '4k'],
+              default: '720p',
+            },
+            translate_prompt: {
+              type: 'boolean' as const,
+              isRequired: false,
+              default: true,
+            },
+          }),
+    },
+  };
+}
+
+describe('canonical Studio Crun video requests', () => {
+  function request(
+    endpoint = 'kling/v2-5-turbo-pro',
+    overrides: Partial<
+      Parameters<typeof buildStudioCrunVideoQuoteRequest>[0]
+    > = {},
+  ) {
+    const controls = controlsFor(endpoint);
+    const model = {
+      key: `crun/${endpoint}`,
+      provider: 'crun',
+      inputControls: controls,
+    } as IModel;
+    return buildStudioCrunVideoQuoteRequest({
+      model,
+      settings: {
+        ...getDefaultStudioGenerateSettings('video'),
+        modelKey: model.key,
+        duration: endpoint.startsWith('kling/') ? 5 : 8,
+        aspectRatio: '16:9',
+        resolution: endpoint.startsWith('kling/') ? '' : '720p',
+        crunControls: {
+          modelKey: model.key,
+          contractVersion: controls.version,
+        },
+      },
+      promptText: '  bird in motion  ',
+      brandId: 'brand-1',
+      references: [],
+      ...overrides,
+    });
+  }
+  it('sends canonical text mode and never forwards legacy audio, size or tags', () => {
+    const body = request();
+    expect(body).toMatchObject({
+      model: 'crun/kling/v2-5-turbo-pro',
+      text: 'bird in motion',
+      outputs: 1,
+      crunControls: { duration: 5, aspectRatio: '16:9', guidanceScale: 0.5 },
+    });
+    for (const field of [
+      'height',
+      'width',
+      'format',
+      'tags',
+      'speech',
+      'sounds',
+      'isAudioEnabled',
+      'resolution',
+    ])
+      expect(body).not.toHaveProperty(field);
+  });
+  it('binds distinct frame IDs in order and omits aspect only when frames are present', () => {
+    expect(
+      request('kling/v2-5-turbo-pro', {
+        references: ['start-owned'],
+        endFrameId: 'end-owned',
+        parentId: 'start-owned',
+      }),
+    ).toMatchObject({
+      references: ['start-owned'],
+      endFrame: 'end-owned',
+      parentId: 'start-owned',
+      crunControls: { duration: 5 },
+    });
+    expect(
+      request('kling/v2-5-turbo-pro', {
+        references: ['start-owned'],
+        endFrameId: 'end-owned',
+      })?.crunControls,
+    ).not.toHaveProperty('aspectRatio');
+  });
+  it.each([
+    { references: ['one', 'two'] },
+    { references: [], endFrameId: 'end' },
+    { references: ['same'], endFrameId: 'same' },
+    { references: ['https://secret.example/image'] },
+    { references: ['start'], parentId: 'foreign' },
+  ])('rejects invalid frame preparation %j', (overrides) => {
+    expect(request('kling/v2-5-turbo-pro', overrides)).toBeNull();
+  });
+  it('rejects every Veo reference and keeps its reviewed text defaults', () => {
+    expect(request('google/veo3-1-fast-t2v')?.crunControls).toEqual({
+      contractVersion: 'reviewed-video-v1',
+      duration: 8,
+      aspectRatio: '16:9',
+      resolution: '720p',
+      translatePrompt: true,
+    });
+    expect(
+      request('google/veo3-1-fast-t2v', { references: ['start'] }),
+    ).toBeNull();
+  });
+  it.each([4, 6])(
+    'rejects unreviewed Veo %s seconds before quote',
+    (duration) => {
+      const controls = controlsFor('google/veo3-1-fast-t2v');
+      const modelKey = `crun/${controls.endpoint}`;
+      expect(
+        request(controls.endpoint, {
+          settings: {
+            ...getDefaultStudioGenerateSettings('video'),
+            modelKey,
+            duration,
+            resolution: '720p',
+            aspectRatio: '16:9',
+            crunControls: { modelKey, contractVersion: controls.version },
+          },
+        }),
+      ).toBeNull();
+    },
+  );
+  it('retains group output count, numeric zero and false without pricing arithmetic', () => {
+    const controls = controlsFor('google/veo3-1-fast-t2v');
+    const modelKey = `crun/${controls.endpoint}`;
+    const body = request(controls.endpoint, {
+      settings: {
+        ...getDefaultStudioGenerateSettings('video'),
+        modelKey,
+        duration: 8,
+        resolution: '4k',
+        aspectRatio: '9:16',
+        outputs: 4,
+        crunControls: {
+          modelKey,
+          contractVersion: controls.version,
+          translatePrompt: false,
+        },
+      },
+    });
+    expect(body).toMatchObject({
+      outputs: 4,
+      crunControls: { translatePrompt: false, resolution: '4k' },
+    });
+    const kling = controlsFor();
+    const key = `crun/${kling.endpoint}`;
+    expect(
+      request(kling.endpoint, {
+        settings: {
+          ...getDefaultStudioGenerateSettings('video'),
+          modelKey: key,
+          duration: 10,
+          resolution: '',
+          aspectRatio: '1:1',
+          crunControls: {
+            modelKey: key,
+            contractVersion: kling.version,
+            guidanceScale: 0,
+            negativePrompt: '  blur  ',
+          },
+        },
+      })?.crunControls,
+    ).toMatchObject({ duration: 10, guidanceScale: 0, negativePrompt: 'blur' });
   });
 });

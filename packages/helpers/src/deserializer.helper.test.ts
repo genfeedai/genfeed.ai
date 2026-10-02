@@ -570,3 +570,134 @@ describe('Deserializer Helper', () => {
     });
   });
 });
+
+describe('model inputControls opaque boundary', () => {
+  const controls = {
+    version: 'reviewed-1',
+    endpoint: 'google/nano-banana-pro',
+    mediaKind: 'image',
+    fields: {
+      aspect_ratio: {
+        type: 'string',
+        isRequired: false,
+        enum: ['1:1', '21:9', 'auto'],
+        default: '1:1',
+      },
+      output_format: {
+        type: 'string',
+        isRequired: false,
+        enum: ['png', 'jpg'],
+        default: 'png',
+      },
+      img_urls: {
+        type: 'array',
+        isRequired: false,
+        minItems: 1,
+        maxItems: 8,
+        nested_example: [{ raw_key: 'retained' }],
+      },
+    },
+    referenceRoles: { img_urls: 'image' },
+    maxOutputs: 4,
+    isBatchSupported: false,
+  };
+  for (const attribute of [
+    'inputControls',
+    'input-controls',
+    'input_controls',
+  ]) {
+    it(`preserves ${attribute} dictionary keys and clones nested data`, () => {
+      const result = getDeserializer<{
+        inputControls: typeof controls;
+        modelLabel: string;
+        otherSettings: { nestedKey: string };
+      }>({
+        data: {
+          id: 'model-1',
+          type: 'model',
+          attributes: {
+            [attribute]: controls,
+            model_label: 'Nano',
+            other_settings: { nested_key: 'converted' },
+          },
+        },
+      });
+      if (isDeserializerRuntime(result))
+        throw new Error(
+          'Expected a deserialized model fixture, received the runtime',
+        );
+      expect(result.inputControls).toEqual(controls);
+      expect(result.inputControls).not.toBe(controls);
+      expect(result.inputControls.fields).not.toBe(controls.fields);
+      expect(result.inputControls.fields.aspect_ratio.enum).not.toBe(
+        controls.fields.aspect_ratio.enum,
+      );
+      expect(result.inputControls.fields.img_urls.nested_example[0]).not.toBe(
+        controls.fields.img_urls.nested_example[0],
+      );
+      expect(result.modelLabel).toBe('Nano');
+      expect(result.otherSettings).toEqual({ nestedKey: 'converted' });
+    });
+  }
+  it('preserves the boundary on collection models and included models', () => {
+    const model = {
+      id: 'model-1',
+      type: 'model',
+      attributes: { inputControls: controls },
+    };
+    expect(getDeserializer({ data: [model] })).toEqual([
+      { id: 'model-1', inputControls: controls },
+    ]);
+    expect(
+      getDeserializer({
+        data: {
+          id: 'root',
+          type: 'ingredient',
+          relationships: {
+            model: { data: { id: model.id, type: model.type } },
+          },
+        },
+        included: [model],
+      }),
+    ).toEqual({ id: 'root', model: { id: model.id, inputControls: controls } });
+  });
+  it('keeps absent and null controls unchanged', () => {
+    expect(
+      getDeserializer({ data: { id: 'empty', type: 'model', attributes: {} } }),
+    ).toEqual({ id: 'empty' });
+    expect(
+      getDeserializer({
+        data: {
+          id: 'null',
+          type: 'model',
+          attributes: { input_controls: null },
+        },
+      }),
+    ).toEqual({ id: 'null', inputControls: null });
+  });
+  it('retains existing recursive casing outside the model top-level boundary', () => {
+    expect(
+      getDeserializer({
+        data: {
+          id: 'other',
+          type: 'ingredient',
+          attributes: { input_controls: { aspect_ratio: '1:1' } },
+        },
+      }),
+    ).toEqual({ id: 'other', inputControls: { aspectRatio: '1:1' } });
+    expect(
+      getDeserializer({
+        data: {
+          id: 'model',
+          type: 'model',
+          attributes: {
+            other_settings: { input_controls: { aspect_ratio: '1:1' } },
+          },
+        },
+      }),
+    ).toEqual({
+      id: 'model',
+      otherSettings: { inputControls: { aspectRatio: '1:1' } },
+    });
+  });
+});

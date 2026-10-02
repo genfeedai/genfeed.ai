@@ -22,6 +22,7 @@ import { useTranslations } from 'next-intl';
 
 export default function StudioGenerationSummary({
   estimate,
+  crunQuote,
   isLoadingModels,
   model,
   settings,
@@ -81,23 +82,40 @@ export default function StudioGenerationSummary({
       : isLoading
         ? translate('summary.balanceLoading')
         : translate('summary.balanceUnavailable');
-  const estimateLabel = !canSubmitStudioGeneration(runtime)
-    ? translate(
-        runtime.status === 'loading' || runtime.status === 'switching'
-          ? 'summary.costContextLoading'
-          : 'summary.costContextUnavailable',
-      )
-    : estimate.status === 'estimated' &&
-        estimate.credits !== null &&
-        canSubmitStudioGeneration(runtime)
-      ? translate('estimatedCredits', {
-          credits: formatCreditBalanceExact(estimate.credits),
-        })
-      : estimate.status === 'auto'
-        ? translate('summary.estimateAfterSelection')
-        : estimate.status === 'loading'
-          ? translate('summary.estimateLoading')
-          : translate('summary.estimateUnavailable');
+  const estimateLabel =
+    model?.provider === 'crun'
+      ? crunQuote?.quote?.isAvailable
+        ? crunQuote.quote.billingMode === 'byok'
+          ? translate('crun.byok')
+          : translate('crun.credits', { credits: crunQuote.quote.credits })
+        : crunQuote?.status === 'pending'
+          ? translate('crun.quoteLoading')
+          : crunQuote?.reasonCode
+            ? translate(
+                `crun.${type === 'video' ? 'videoReasons' : 'reasons'}.${crunQuote.reasonCode}`,
+              )
+            : translate(
+                type === 'video'
+                  ? 'crun.videoQuoteUnavailable'
+                  : 'crun.quoteUnavailable',
+              )
+      : !canSubmitStudioGeneration(runtime)
+        ? translate(
+            runtime.status === 'loading' || runtime.status === 'switching'
+              ? 'summary.costContextLoading'
+              : 'summary.costContextUnavailable',
+          )
+        : estimate.status === 'estimated' &&
+            estimate.credits !== null &&
+            canSubmitStudioGeneration(runtime)
+          ? translate('estimatedCredits', {
+              credits: formatCreditBalanceExact(estimate.credits),
+            })
+          : estimate.status === 'auto'
+            ? translate('summary.estimateAfterSelection')
+            : estimate.status === 'loading'
+              ? translate('summary.estimateLoading')
+              : translate('summary.estimateUnavailable');
 
   return (
     <div

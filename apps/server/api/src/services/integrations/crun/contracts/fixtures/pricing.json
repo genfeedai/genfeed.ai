@@ -1,0 +1,71 @@
+{
+  "sourceUrl": "https://crun.ai/pricing",
+  "verifiedAt": "2026-10-01T00:00:00.000Z",
+  "currency": "CRUN_CREDITS",
+  "rates": [
+    {
+      "endpoint": "google/nano-banana-pro",
+      "when": {
+        "resolution": "1K"
+      },
+      "providerCredits": "8"
+    },
+    {
+      "endpoint": "google/nano-banana-pro",
+      "when": {
+        "resolution": "2K"
+      },
+      "providerCredits": "8"
+    },
+    {
+      "endpoint": "google/nano-banana-pro",
+      "when": {
+        "resolution": "4K"
+      },
+      "providerCredits": "10"
+    },
+    {
+      "endpoint": "bytedance/seedream-4-5",
+      "when": {},
+      "providerCredits": "6"
+    },
+    {
+      "endpoint": "kling/v2-5-turbo-pro",
+      "when": {
+        "duration": 5
+      },
+      "providerCredits": "42"
+    },
+    {
+      "endpoint": "kling/v2-5-turbo-pro",
+      "when": {
+        "duration": 10
+      },
+      "providerCredits": "84"
+    },
+    {
+      "endpoint": "google/veo3-1-fast-t2v",
+      "when": {
+        "duration": 8,
+        "resolution": "720p"
+      },
+      "providerCredits": "30"
+    },
+    {
+      "endpoint": "google/veo3-1-fast-t2v",
+      "when": {
+        "duration": 8,
+        "resolution": "1080p"
+      },
+      "providerCredits": "37.5"
+    },
+    {
+      "endpoint": "google/veo3-1-fast-t2v",
+      "when": {
+        "duration": 8,
+        "resolution": "4k"
+      },
+      "providerCredits": "90"
+    }
+  ]
+}

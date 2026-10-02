@@ -1,5 +1,8 @@
 import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
-import { resolveMusicSettings } from '@genfeedai/contracts/constants';
+import {
+  isFlux3ImageModel,
+  resolveMusicSettings,
+} from '@genfeedai/contracts/constants';
 import type {
   StudioGenerateCapabilities,
   StudioGenerateType,
@@ -12,6 +15,7 @@ import type {
  */
 export const STUDIO_GENERATE_TYPES = [
   'image',
+  'image-edit',
   'video',
   'music',
   'avatar',
@@ -73,6 +77,28 @@ const STUDIO_GENERATE_TYPE_CONFIGS: Record<
     modelCategory: ModelCategory.IMAGE,
     resourceSegment: 'images',
     type: 'image',
+  },
+  'image-edit': {
+    capabilities: {
+      hasAspectRatio: false,
+      hasBrandEnrichment: false,
+      hasDuration: false,
+      hasIdentity: false,
+      hasInstrumentalToggle: false,
+      hasLook: false,
+      hasLyrics: false,
+      hasModelSelection: true,
+      hasOutputs: true,
+      hasReferences: true,
+      hasSpeech: false,
+      hasStyle: false,
+    },
+    elementsType: 'image',
+    ingredientCategory: IngredientCategory.IMAGE,
+    label: 'Edit image',
+    modelCategory: ModelCategory.IMAGE_EDIT,
+    resourceSegment: 'images',
+    type: 'image-edit',
   },
   music: {
     capabilities: {
@@ -164,6 +190,8 @@ export function resolveStudioGenerateCapabilities(
   modelKey: string | undefined,
 ): StudioGenerateCapabilities {
   const { capabilities } = getStudioGenerateTypeConfig(type);
+  if (modelKey && isFlux3ImageModel(modelKey))
+    return { ...capabilities, hasOutputs: false, hasAspectRatio: false };
   if (type !== 'music') return capabilities;
   const music = resolveMusicSettings(modelKey);
   return {

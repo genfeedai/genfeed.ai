@@ -10,6 +10,7 @@ import {
   BusinessLogicException,
   UnsettleableReservationException,
 } from '@api/exceptions/business-logic.exception';
+import { crunReservationCompletion } from '@api/helpers/utils/credits/generation-quote-group.schema';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { scopedWhere } from '@api/index';
@@ -255,6 +256,49 @@ export class CreditReservationService {
     return row ? this.toReservation(row) : null;
   }
 
+  private async assertCrunSettlementAmount(
+    tx: PrismaTransactionClient,
+    reservation: Awaited<
+      ReturnType<CreditReservationService['findReservation']>
+    >,
+    actualAmount: number,
+  ): Promise<void> {
+    const tasks = await tx.crunGenerationTask.findMany({
+      where: {
+        reservationId: reservation.id,
+        organizationId: reservation.organizationId,
+        isDeleted: false,
+      },
+    });
+    const ingredients = tasks.length
+      ? await tx.ingredient.findMany({
+          where: {
+            id: { in: tasks.map((task) => task.ingredientId) },
+            organizationId: reservation.organizationId,
+            isDeleted: false,
+          },
+          select: { id: true, s3Key: true },
+        })
+      : [];
+    const completion = crunReservationCompletion(
+      reservation,
+      tasks,
+      ingredients,
+    );
+    if (completion === null || completion === 0)
+      throw new BusinessLogicException(
+        'Crun settlement proof is incomplete',
+        {},
+        'CRUN_SETTLEMENT_NOT_READY',
+      );
+    if (completion !== undefined && completion !== actualAmount)
+      throw new BusinessLogicException(
+        'Settlement amount does not match frozen completion',
+        {},
+        'SETTLEMENT_AMOUNT_MISMATCH',
+      );
+  }
+
   async settle(
     input: ISettleCreditReservationInput,
   ): Promise<ICreditWalletSnapshot> {
@@ -295,6 +339,11 @@ export class CreditReservationService {
         );
       }
 
+      await this.assertCrunSettlementAmount(
+        tx,
+        reservation,
+        input.actualAmount,
+      );
       const claimed = await tx.creditReservation.updateMany({
         data: {
           settledAmount: input.actualAmount,
@@ -388,6 +437,31 @@ export class CreditReservationService {
       if (reservation.status !== CreditReservationStatus.RESERVED) {
         return this.walletSnapshot(reservation, tx);
       }
+
+      const tasks = await tx.crunGenerationTask.findMany({
+        where: {
+          reservationId: reservation.id,
+          organizationId: reservation.organizationId,
+          isDeleted: false,
+        },
+      });
+      const ingredients = tasks.length
+        ? await tx.ingredient.findMany({
+            where: {
+              id: { in: tasks.map((task) => task.ingredientId) },
+              organizationId: reservation.organizationId,
+              isDeleted: false,
+            },
+            select: { id: true, s3Key: true },
+          })
+        : [];
+      const completion = crunReservationCompletion(
+        reservation,
+        tasks,
+        ingredients,
+      );
+      if (completion === null || (completion !== undefined && completion !== 0))
+        return this.walletSnapshot(reservation, tx);
 
       const nextStatus =
         input.reason === 'expiry'

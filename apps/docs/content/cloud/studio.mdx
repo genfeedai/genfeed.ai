@@ -17,3 +17,40 @@ These docs intentionally avoid undocumented keyboard shortcuts and do not claim
 that every generated asset is automatically saved or publishable.
 
 See [Available Models](/models) and [Brands](/cloud/brands).
+
+## Edit an image
+
+In **Studio → Generate**, select **Edit image**, add a source from Library or
+upload an image, and describe the change. You can also choose **Edit image** on
+a ready image in Library to open Studio with that image selected and an empty
+instruction.
+
+Ideogram 4.5 on Replicate is the default for editing. Editing sends your
+instruction directly to the model. The original stays in Library; each result
+is a separate image linked to its source.
+
+- With Ideogram, add up to five source images. The target selector determines which image
+  receives the edit; additional sources provide visual context.
+- Optionally add one mask with the same dimensions as the target. Black areas
+  can change and white areas stay. A mask uses the source dimensions.
+- Choose source dimensions or a supported output size, one to eight outputs,
+  and an optional integer seed. Editing uses medium quality.
+- Choose **Edit image** on a result to start another edit using that result.
+  **Reuse** restores the original instruction, sources and model settings. If an
+  original input is unavailable, add the inputs again before submitting.
+
+You can also select **FLUX.3 Edit** for editing or **FLUX.3** for image generation.
+FLUX supports up to ten source images and produces one output. Choose a native
+resolution (`768sq`, `1K`, `1.5K`, `2K` or `4K`) and an aspect ratio; **Match source
+aspect ratio** uses the first editing source. FLUX does not support a mask or seed.
+The estimate updates with the selected resolution, and reused editing results
+restore those settings.
+
+In Agent chat, attach or identify a Library image and ask for a specific change,
+such as “Change the sign to OPEN.” The `edit_image` tool uses the same editing
+workflow and saves its results to Library.
+
+Organization model access still applies. Existing organizations with an explicit
+model allowlist must enable the desired editing and generation models. Configure Replicate through
+[AI Providers](/integrations/ai-providers); provider and credit availability
+determine whether an edit can run.

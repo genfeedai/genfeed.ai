@@ -1,3 +1,9 @@
+const crunCache = {
+  claimCrunRequestSlot: vi
+    .fn()
+    .mockResolvedValue({ isAdmitted: true, retryAfterMs: 0 }),
+};
+
 import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProvider } from '@genfeedai/contracts';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -25,6 +31,7 @@ describe('ByokService subscription entitlement', () => {
     {} as never,
     logger as never,
     {} as never,
+    crunCache as never,
   );
 
   beforeEach(() => {
@@ -40,6 +47,25 @@ describe('ByokService subscription entitlement', () => {
     });
   });
 
+  it('drains a retained disabled Crun key using the real OrganizationSetting scope without admission checks', async () => {
+    organizationSettingsService.findOne.mockResolvedValue({
+      byokKeys: {
+        [ByokProvider.CRUN]: {
+          apiKey: 'retained-key',
+          isEnabled: false,
+          provider: ByokProvider.CRUN,
+        },
+      },
+    });
+    subscriptionGate.mockResolvedValue(true);
+    await expect(service.lookupRetainedCrunApiKey('org-1')).resolves.toEqual({
+      apiKey: 'decrypted:retained-key',
+    });
+    expect(organizationSettingsService.findOne).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+    });
+    expect(subscriptionGate).not.toHaveBeenCalled();
+  });
   it('resolves a stored key for an entitled organization', async () => {
     organizationPaidAccessService.isSubscriptionGated.mockResolvedValue(false);
 
@@ -192,6 +218,7 @@ describe('ByokService Argil validation', () => {
     httpService as never,
     logger as never,
     {} as never,
+    crunCache as never,
   );
 
   beforeEach(() => {
@@ -230,6 +257,7 @@ describe('ByokService OpenRouter validation', () => {
     httpService as never,
     logger as never,
     {} as never,
+    crunCache as never,
   );
 
   beforeEach(() => {
@@ -320,6 +348,7 @@ describe('ByokService saveKey validation (#5294)', () => {
     {} as never,
     logger as never,
     prisma as never,
+    crunCache as never,
   );
 
   beforeEach(() => {
@@ -354,5 +383,88 @@ describe('ByokService saveKey validation (#5294)', () => {
       undefined,
     );
     expect(tx.organizationSetting.updateMany).toHaveBeenCalledOnce();
+  });
+});
+
+describe('ByokService Crun harmless credential verification', () => {
+  const http = { post: vi.fn() };
+  const service = new ByokService(
+    {} as never,
+    {} as never,
+    http as never,
+    { error: vi.fn() } as never,
+    {} as never,
+    crunCache as never,
+  );
+  beforeEach(() => {
+    vi.clearAllMocks();
+    crunCache.claimCrunRequestSlot.mockResolvedValue({
+      isAdmitted: true,
+      retryAfterMs: 0,
+    });
+  });
+  it('only estimates the fixed harmless payload and accepts a valid fractional envelope', async () => {
+    http.post.mockReturnValue(
+      of({
+        status: 200,
+        data: {
+          code: 200,
+          message: 'ok',
+          data: { credits: 1.5, estimated: true },
+        },
+      }),
+    );
+    expect(await service.validateKey(ByokProvider.CRUN, 'fixture-key')).toEqual(
+      { isValid: true },
+    );
+    expect(http.post).toHaveBeenCalledTimes(1);
+    expect(http.post).toHaveBeenCalledWith(
+      'https://api.crun.ai/api/v1/client/job/estimate-credits',
+      {
+        model: 'google/nano-banana-pro',
+        input: {
+          prompt: 'Credential verification',
+          resolution: '1K',
+          aspect_ratio: '1:1',
+          output_format: 'png',
+        },
+      },
+      { headers: { 'X-API-KEY': 'fixture-key' }, timeout: 15000 },
+    );
+  });
+  it.each([
+    {},
+    { code: 402, message: 'secret', data: { credits: 8, estimated: false } },
+    { code: 200, message: 'ok', data: { credits: '8', estimated: false } },
+  ])(
+    'rejects invalid envelope without exposing upstream details',
+    async (data) => {
+      http.post.mockReturnValue(of({ status: 200, data }));
+      expect(
+        await service.validateKey(ByokProvider.CRUN, 'fixture-key'),
+      ).toEqual({
+        isValid: false,
+        error: 'Crun credential verification was refused',
+      });
+    },
+  );
+  it('redacts transport errors', async () => {
+    http.post.mockReturnValue(throwError(() => new Error('private api key')));
+    expect(await service.validateKey(ByokProvider.CRUN, 'fixture-key')).toEqual(
+      { isValid: false, error: 'Crun credential verification is unavailable' },
+    );
+  });
+  it('shares the fingerprint account gate and makes no verification request when throttled', async () => {
+    crunCache.claimCrunRequestSlot.mockResolvedValueOnce({
+      isAdmitted: false,
+      retryAfterMs: 10000,
+    });
+    expect(await service.validateKey(ByokProvider.CRUN, 'fixture-key')).toEqual(
+      { isValid: false, error: 'Crun credential verification is unavailable' },
+    );
+    expect(http.post).not.toHaveBeenCalled();
+    expect(crunCache.claimCrunRequestSlot).toHaveBeenCalledWith(
+      expect.stringMatching(/^[a-f0-9]{64}$/),
+    );
   });
 });

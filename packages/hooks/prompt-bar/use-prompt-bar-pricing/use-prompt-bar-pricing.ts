@@ -34,7 +34,8 @@ export function usePromptBarPricing(
       width: number,
       height: number,
       duration: number,
-    ): number => {
+    ): number | null => {
+      if (model.provider === 'crun') return null;
       const pricingType = model.pricingType ?? 'flat';
       const fallbackCost = model.cost ?? 0;
 
@@ -68,18 +69,17 @@ export function usePromptBarPricing(
   );
 
   const selectedModelCost = useMemo(() => {
-    const totalBaseCost = selectedModels.reduce(
-      (sum, model) =>
-        sum +
-        calculateModelCost(
-          model,
-          watchedWidth ?? DEFAULT_WIDTH,
-          watchedHeight ?? DEFAULT_HEIGHT,
-          watchedDuration ?? DEFAULT_DURATION,
-        ),
-      0,
-    );
-
+    let totalBaseCost = 0;
+    for (const model of selectedModels) {
+      const cost = calculateModelCost(
+        model,
+        watchedWidth ?? DEFAULT_WIDTH,
+        watchedHeight ?? DEFAULT_HEIGHT,
+        watchedDuration ?? DEFAULT_DURATION,
+      );
+      if (cost === null) return null;
+      totalBaseCost += cost;
+    }
     return totalBaseCost * (watchedOutputs ?? 1);
   }, [
     selectedModels,

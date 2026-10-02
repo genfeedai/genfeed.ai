@@ -1,4 +1,7 @@
+import { buildCrunContract } from '@api/services/integrations/crun/contracts/crun-contract-import.service';
+import { CRUN_VIDEO_MANIFEST } from '@api/services/integrations/crun/contracts/crun-manifest';
 import { IngredientCategory } from '@genfeedai/contracts';
+import { projectCrunInputControls } from '@genfeedai/helpers';
 import { ModelSerializer } from '@genfeedai/serializers';
 
 function serializedAttributes(
@@ -39,6 +42,37 @@ describe('ModelSerializer', () => {
     expect(attributes).toHaveProperty('isDefault', false);
   });
 
+  it('serializes only the safe Crun projection, never provider input or terminal billing evidence', () => {
+    const result = ModelSerializer.serialize({
+      id: 'crun-model',
+      inputControls: {
+        version: 'reviewed',
+        fields: { resolution: { enum: ['2K', '4K'], default: '2K' } },
+      },
+      providerInputSchema: {
+        serverOverrides: { num_outputs: 1 },
+        raw: 'private',
+      },
+      openapi: { paths: 'private' },
+      pricing: { rates: 'private' },
+      credentialFingerprint: 'private',
+      providerCostUsd: 0.1,
+    });
+    const attributes = serializedAttributes(result);
+    expect(attributes.inputControls).toEqual({
+      version: 'reviewed',
+      fields: { resolution: { enum: ['2K', '4K'], default: '2K' } },
+    });
+    for (const key of [
+      'providerInputSchema',
+      'openapi',
+      'pricing',
+      'credentialFingerprint',
+      'providerCostUsd',
+    ])
+      expect(attributes).not.toHaveProperty(key);
+  });
+
   it('keeps raw provider commercial metadata private', () => {
     const now = new Date();
     const result = ModelSerializer.serialize({
@@ -75,4 +109,32 @@ describe('ModelSerializer', () => {
     expect(attributes).not.toHaveProperty('providerConfig');
     expect(attributes).not.toHaveProperty('providerCostUsd');
   });
+});
+
+describe('Reviewed video model serializer', () => {
+  it.each(CRUN_VIDEO_MANIFEST)(
+    'keeps safe controls for $endpoint and excludes raw evidence',
+    (entry) => {
+      const contract = buildCrunContract(entry);
+      const result = serializedAttributes(
+        ModelSerializer.serialize({
+          id: 'video-model',
+          inputControls: projectCrunInputControls(contract),
+          providerInputSchema: contract,
+          openapi: entry.openapi,
+          pricing: { private: true },
+        }),
+      );
+      expect(result).toHaveProperty('inputControls.mediaKind', 'video');
+      expect(result).toHaveProperty(
+        'inputControls.videoRules.availableDurations',
+        entry.videoRules.availableDurations,
+      );
+      if (entry.endpoint === 'google/veo3-1-fast-t2v')
+        expect(result).not.toHaveProperty('inputControls.fields.img_urls');
+      else expect(result).not.toHaveProperty('inputControls.fields.resolution');
+      for (const key of ['providerInputSchema', 'openapi', 'pricing'])
+        expect(result).not.toHaveProperty(key);
+    },
+  );
 });

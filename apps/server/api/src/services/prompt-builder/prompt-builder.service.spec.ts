@@ -1,4 +1,5 @@
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
+import { CrunPromptBuilder } from '@api/services/prompt-builder/builders/crun-prompt.builder';
 import { ReplicatePromptBuilder } from '@api/services/prompt-builder/builders/replicate-prompt.builder';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -54,6 +55,7 @@ describe('PromptBuilderService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PromptBuilderService,
+        CrunPromptBuilder,
         { provide: LoggerService, useValue: createMockLogger() },
         { provide: TemplatesService, useValue: templatesService },
         {

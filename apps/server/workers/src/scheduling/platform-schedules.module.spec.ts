@@ -6,12 +6,17 @@ vi.hoisted(() => {
   process.env.REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
 });
 
+import { CrunModule } from '@api/services/integrations/crun/crun.module';
+import { VideoCompletionService } from '@api/services/video-completion/video-completion.service';
+import { VideoCompletionCoreModule } from '@api/services/video-completion/video-completion-core.module';
 import type { DynamicModule, Provider } from '@nestjs/common';
 import {
   MODULE_METADATA,
   SELF_DECLARED_DEPS_METADATA,
 } from '@nestjs/common/constants';
+import { PlatformMediaSchedulesService } from '@workers/scheduling/platform-media-schedules.service';
 import { PlatformSchedulesModule } from '@workers/scheduling/platform-schedules.module';
+import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
 
 const QUEUE_TOKEN_PREFIX = 'BullQueue_';
 
@@ -20,6 +25,25 @@ function providerToken(provider: Provider): unknown {
 }
 
 describe('PlatformSchedulesModule', () => {
+  it('resolves the concrete media facade through the existing actual owners', () => {
+    const providers: Provider[] =
+      Reflect.getMetadata(MODULE_METADATA.PROVIDERS, PlatformSchedulesModule) ??
+      [];
+    expect(
+      providers
+        .map(providerToken)
+        .filter((token) => token === PlatformMediaSchedulesService),
+    ).toHaveLength(1);
+    expect(providers.map(providerToken)).toContain(CrunReconcileService);
+    const imports: unknown[] =
+      Reflect.getMetadata(MODULE_METADATA.IMPORTS, PlatformSchedulesModule) ??
+      [];
+    expect(imports).toContain(CrunModule);
+    expect(imports).toContain(VideoCompletionCoreModule);
+    expect(
+      Reflect.getMetadata(MODULE_METADATA.EXPORTS, VideoCompletionCoreModule),
+    ).toContain(VideoCompletionService);
+  });
   it('registers every BullMQ queue its providers inject', () => {
     const imports: unknown[] =
       Reflect.getMetadata(MODULE_METADATA.IMPORTS, PlatformSchedulesModule) ??

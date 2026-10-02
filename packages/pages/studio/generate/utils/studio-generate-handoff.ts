@@ -123,7 +123,7 @@ export function resolveHandoffSettingsOverrides(
   const droppedFields: string[] = [];
 
   if (payload.aspectRatio) {
-    const allowed = getStudioAspectRatios(payload.type);
+    const allowed = getStudioAspectRatios(payload.type, resolvedModelKey);
     if (!allowed.includes(payload.aspectRatio)) {
       patch.aspectRatio = defaults.aspectRatio;
       droppedFields.push('aspect ratio');

@@ -82,7 +82,9 @@ describe('CreateImageDto', () => {
       const referencesErrors = await referencesErrorsFor(11);
 
       expect(referencesErrors).toHaveLength(1);
-      expect(referencesErrors[0]?.constraints).toHaveProperty('arrayMaxSize');
+      expect(referencesErrors[0]?.constraints).toHaveProperty(
+        'imageReferenceCount',
+      );
     });
   });
 });

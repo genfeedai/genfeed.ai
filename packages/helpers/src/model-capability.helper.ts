@@ -27,6 +27,27 @@ function buildBaseFields(model: IModel) {
 }
 
 function buildImageCapability(model: IModel): ImageModelCapability {
+  const controls = model.inputControls;
+  if (model.provider === 'crun' && controls) {
+    return {
+      category: ModelCategory.IMAGE,
+      maxOutputs: controls.maxOutputs,
+      isBatchSupported: controls.isBatchSupported,
+      maxReferences: Math.max(
+        0,
+        ...Object.keys(controls.referenceRoles).map(
+          (field) => controls.fields[field]?.maxItems ?? 0,
+        ),
+      ),
+      aspectRatios: controls.fields.aspect_ratio?.enum?.filter(
+        (value): value is string => typeof value === 'string',
+      ),
+      defaultAspectRatio:
+        typeof controls.fields.aspect_ratio?.default === 'string'
+          ? controls.fields.aspect_ratio.default
+          : undefined,
+    };
+  }
   return {
     ...buildBaseFields(model),
     category: ModelCategory.IMAGE,
@@ -44,6 +65,38 @@ function buildImageCapability(model: IModel): ImageModelCapability {
 }
 
 function buildVideoCapability(model: IModel): VideoModelCapability {
+  const controls = model.provider === 'crun' ? model.inputControls : undefined;
+  if (controls?.mediaKind === 'video') {
+    const frames = controls.videoRules?.referenceMode === 'start-end';
+    return {
+      category: ModelCategory.VIDEO,
+      maxOutputs: controls.maxOutputs,
+      isBatchSupported: false,
+      maxReferences: frames ? 1 : 0,
+      hasEndFrame: frames,
+      hasInterpolation: frames,
+      hasSpeech: false,
+      hasAudioToggle: false,
+      requiresFirstFrame: false,
+      hasVideoReferences: false,
+      maxVideoReferences: 0,
+      hasNativeExtend: false,
+      hasDurationEditing: true,
+      hasResolutionOptions: !!controls.fields.resolution,
+      aspectRatios: controls.fields.aspect_ratio?.enum?.filter(
+        (value): value is string => typeof value === 'string',
+      ),
+      defaultAspectRatio:
+        typeof controls.fields.aspect_ratio?.default === 'string'
+          ? controls.fields.aspect_ratio.default
+          : undefined,
+      durations: [...(controls.videoRules?.availableDurations ?? [])],
+      defaultDuration:
+        typeof controls.fields.duration?.default === 'number'
+          ? controls.fields.duration.default
+          : undefined,
+    };
+  }
   return {
     ...buildBaseFields(model),
     category: ModelCategory.VIDEO,
@@ -191,7 +244,7 @@ const CATEGORY_BUILDERS: Record<
 export function getModelCapabilityFromDoc(
   model: IModel,
 ): ModelOutputCapability | null {
-  if (model.maxOutputs == null) {
+  if (model.maxOutputs == null && !model.inputControls) {
     return null;
   }
 

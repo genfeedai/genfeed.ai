@@ -8,6 +8,7 @@ import { AssetsModule } from '@api/collections/assets/assets.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { EvaluationReadModule } from '@api/collections/evaluations/evaluation-read.module';
+import { CrunImageQuoteController } from '@api/collections/images/controllers/crun-image-quote.controller';
 import { ImagesController } from '@api/collections/images/controllers/images.controller';
 import { ImagesOperationsController } from '@api/collections/images/controllers/operations/images-operations.controller';
 import { ImagesRelationshipsController } from '@api/collections/images/controllers/relationships/images-relationships.controller';
@@ -16,6 +17,7 @@ import { ImagesResizeController } from '@api/collections/images/controllers/tran
 import { ImagesUpscaleController } from '@api/collections/images/controllers/transformations/images-upscale.controller';
 import { ImagesUploadsController } from '@api/collections/images/controllers/upload/images-uploads.controller';
 import { ImagesCoreModule } from '@api/collections/images/images-core.module';
+import { CrunImageInputService } from '@api/collections/images/services/crun-image-input.service';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import { ImageGenerationAdmissionService } from '@api/collections/images/services/image-generation-admission.service';
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
@@ -24,6 +26,7 @@ import { ImageGenerationProviderRegistryService } from '@api/collections/images/
 import { ImageReframeService } from '@api/collections/images/services/image-reframe.service';
 import { ImageResizeService } from '@api/collections/images/services/image-resize.service';
 import { ImageUpscaleService } from '@api/collections/images/services/image-upscale.service';
+import { CrunImageGenerationProviderAdapter } from '@api/collections/images/services/providers/crun-image-generation-provider.adapter';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
 import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
 import { HiggsFieldImageGenerationProviderAdapter } from '@api/collections/images/services/providers/higgsfield-image-generation-provider.adapter';
@@ -49,6 +52,8 @@ import { FilesClientModule } from '@api/services/files-microservice/client/files
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { MediaPromptEnhancementModule } from '@api/services/harness/media-prompt-enhancement.module';
 import { ComfyUIModule } from '@api/services/integrations/comfyui/comfyui.module';
+import { CrunCoreModule } from '@api/services/integrations/crun/crun-core.module';
+import { CrunPreviewQuoteService } from '@api/services/integrations/crun/crun-preview-quote.service';
 import { FalModule } from '@api/services/integrations/fal/fal.module';
 import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
@@ -70,6 +75,7 @@ import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
+    CrunImageQuoteController,
     ImagesController,
     ImagesOperationsController,
     ImagesRelationshipsController,
@@ -86,6 +92,7 @@ import { Module } from '@nestjs/common';
     ImagesCoreModule,
   ],
   imports: [
+    CrunCoreModule,
     EvaluationReadModule,
     MediaPromptEnhancementModule,
     ImagesCoreModule,
@@ -125,6 +132,9 @@ import { Module } from '@nestjs/common';
     WebhookClientModule,
   ],
   providers: [
+    CrunImageInputService,
+    CrunImageGenerationProviderAdapter,
+    CrunPreviewQuoteService,
     FalImageGenerationProviderAdapter,
     GenfeedAiImageGenerationProviderAdapter,
     {

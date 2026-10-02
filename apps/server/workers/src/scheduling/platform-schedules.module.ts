@@ -5,6 +5,7 @@ import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { WebhooksCoreModule } from '@api/endpoints/webhooks/webhooks-core.module';
 import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-threading-core.module';
 import { ByokModule } from '@api/services/byok/byok.module';
+import { CrunModule } from '@api/services/integrations/crun/crun.module';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { VideoCompletionCoreModule } from '@api/services/video-completion/video-completion-core.module';
 import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/contracts/queue';
@@ -39,16 +40,19 @@ import { CronYoutubeModule } from '@workers/crons/youtube/cron.youtube.module';
 import { QueueMetricsModule } from '@workers/monitoring/queue-metrics.module';
 import { NotificationDeliveryRecoveryModule } from '@workers/processors/api/queues/notification-delivery/notification-delivery-recovery.module';
 import { PendingWorkflowExecutionReconcileService } from '@workers/scheduling/pending-workflow-execution-reconcile.service';
+import { PlatformMediaSchedulesService } from '@workers/scheduling/platform-media-schedules.service';
 import { PlatformScheduleRegistryService } from '@workers/scheduling/platform-schedule-registry.service';
 import { PLATFORM_SCHEDULE_QUEUE } from '@workers/scheduling/platform-schedules.constants';
 import { PlatformSchedulesProcessor } from '@workers/scheduling/platform-schedules.processor';
 import { PlatformWorkflowSchedulesService } from '@workers/scheduling/platform-workflow-schedules.service';
 import { WorkflowContinuationReconcileService } from '@workers/scheduling/workflow-continuation-reconcile.service';
+import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
 
 @Module({
   imports: [
     AgentThreadingCoreModule,
     ByokModule,
+    CrunModule,
     ConfigModule,
     LibsConfigModule,
     LoggerModule,
@@ -98,6 +102,8 @@ import { WorkflowContinuationReconcileService } from '@workers/scheduling/workfl
   ],
   providers: [
     ReplicateService,
+    CrunReconcileService,
+    PlatformMediaSchedulesService,
     PlatformScheduleRegistryService,
     PlatformSchedulesProcessor,
     PlatformWorkflowSchedulesService,

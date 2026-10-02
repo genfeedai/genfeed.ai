@@ -11,6 +11,7 @@ import {
   patchBrandWithLearning,
 } from '@api/collections/brands/services/brand-learning-mutation.util';
 import {
+  assertNoCrunGenerationHistory,
   assertNoKnowledgeHistory,
   assertNoLearningHistory,
   assertNoOpenLiveSessions,
@@ -351,6 +352,7 @@ export class BrandRelocationService {
     if (sourceOrgId !== destOrgId) {
       await assertNoLearningHistory(this.prisma, brandId, sourceOrgId);
       await assertNoReceiptHistory(this.prisma, brandId, sourceOrgId);
+      await assertNoCrunGenerationHistory(this.prisma, brandId, sourceOrgId);
       await assertNoKnowledgeHistory(this.prisma, brandId, sourceOrgId);
       await assertNoSecurityAuditHistory(this.prisma, brandId, sourceOrgId);
       await assertNoOpenLiveSessions(this.prisma, brandId, sourceOrgId);
@@ -547,6 +549,7 @@ export class BrandRelocationService {
     await this.assertCanRelocate(actingUser, sourceOrgId, destOrgId, tx);
     await this.assertHandleAvailable(brandId, slug, tx);
     await assertNoReceiptHistory(tx, brandId, sourceOrgId);
+    await assertNoCrunGenerationHistory(tx, brandId, sourceOrgId);
     await assertNoKnowledgeHistory(tx, brandId, sourceOrgId);
     await assertNoSecurityAuditHistory(tx, brandId, sourceOrgId);
     await assertNoOpenLiveSessions(tx, brandId, sourceOrgId);

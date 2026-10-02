@@ -1,4 +1,5 @@
 import { FleetReviewStatus, IngredientCategory } from '@genfeedai/contracts';
+import type { ModalImageToVideoProps } from '@genfeedai/props/modals/modal.props';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -97,8 +98,12 @@ vi.mock('@ui/ingredients/list/sidebar/IngredientsListSidebar', () => ({
   default: () => <div data-testid="ingredients-sidebar" />,
 }));
 
+let capturedConversionModal: ModalImageToVideoProps | undefined;
 vi.mock('@ui/lazy/modal/LazyModal', () => ({
-  LazyModalImageToVideo: () => null,
+  LazyModalImageToVideo: (props: ModalImageToVideoProps) => {
+    capturedConversionModal = props;
+    return null;
+  },
 }));
 
 vi.mock('next/navigation', () => ({
@@ -185,6 +190,25 @@ describe('IngredientsList', () => {
     mockHeaderContext.mockReturnValue({
       setHeaderMeta: mockSetHeaderMeta,
     });
+  });
+
+  it('forwards the real scoped Crun conversion binding into the library modal', () => {
+    const binding = {
+      prepareRequest: () => null,
+      submit: vi.fn().mockResolvedValue(undefined),
+    };
+    mockUseBrand.mockReturnValue({ selectedBrand: undefined });
+    mockUseIngredientsList.mockReturnValue(
+      buildIngredientsListReturn({
+        handleConvertToVideo: vi.fn(),
+        imageToVideoTarget: { id: 'source-owned' },
+        imageToVideoCrunBinding: binding,
+        imageToVideoPromptData: { text: 'Motion', isValid: true },
+      }),
+    );
+    render(<IngredientsList type="images" />);
+    expect(capturedConversionModal?.imageToVideoCrunBinding).toBe(binding);
+    expect(capturedConversionModal?.image?.id).toBe('source-owned');
   });
 
   it('renders the canonical empty content state', () => {

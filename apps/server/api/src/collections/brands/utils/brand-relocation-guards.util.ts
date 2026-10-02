@@ -356,3 +356,32 @@ export async function assertNoLearningHistory(
   await assertNoBoundLearningConfiguration(client, brandId, organizationId);
   await assertNoIndirectLearningHistory(client, brandId, organizationId);
 }
+
+/** Retained Crun funding and quote history keeps its original tenant. */
+export async function assertNoCrunGenerationHistory(
+  client: Prisma.TransactionClient,
+  brandId: string,
+  organizationId: string,
+): Promise<void> {
+  // tenant-scope-ignore: exact tenant and brand; tombstoned ingredients retain task attribution.
+  const ingredients = await client.ingredient.findMany({
+    where: { organizationId, brandId },
+    select: { id: true },
+  });
+  // tenant-scope-ignore: exact tenant and direct/indirect brand history, including tombstones.
+  const task = await client.crunGenerationTask.findFirst({
+    where: {
+      organizationId,
+      OR: [
+        { brandId },
+        { ingredientId: { in: ingredients.map(({ id }) => id) } },
+      ],
+    },
+    select: { id: true },
+  });
+  if (task) {
+    throw new ConflictException(
+      'Cannot move a brand with retained Crun generation financial history. Tasks, including deleted records, must remain in their original organization.',
+    );
+  }
+}

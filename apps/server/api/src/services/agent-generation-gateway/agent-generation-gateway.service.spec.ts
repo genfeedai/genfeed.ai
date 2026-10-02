@@ -67,6 +67,11 @@ const ROUTES: Record<string, RouteFixture> = {
     controller: ImagesOperationsController,
     methodName: 'create',
   },
+  editImage: {
+    bodyParamIndex: 2,
+    controller: ImagesOperationsController,
+    methodName: 'edit',
+  },
   generateMusic: {
     bodyParamIndex: 2,
     controller: MusicsOperationsController,
@@ -223,7 +228,7 @@ describe('AgentGenerationGatewayService decorator parity', () => {
     );
   });
 
-  /** Calls all 8 gateway methods in the exact order `ROUTES` declares them. */
+  /** Calls all 9 gateway methods in the exact order `ROUTES` declares them. */
   async function runAllRoutes(): Promise<
     Map<string, AgentEndpoint<object, unknown>>
   > {
@@ -237,6 +242,7 @@ describe('AgentGenerationGatewayService decorator parity', () => {
     await service.generateArticle({ body: {}, principal });
     await service.generateAvatarVideo({ body: {}, principal });
     await service.generateImage({ body: {}, principal });
+    await service.editImage(resourceInput);
     await service.generateMusic({ body: {}, principal });
     await service.generateVideo({ body: {}, principal });
     await service.generateVoice({ body: {}, principal });
@@ -251,7 +257,7 @@ describe('AgentGenerationGatewayService decorator parity', () => {
     );
   }
 
-  it('captures a descriptor for all 8 gateway methods', async () => {
+  it('captures a descriptor for all 9 gateway methods', async () => {
     const captured = await runAllRoutes();
     expect(invoke).toHaveBeenCalledTimes(ROUTE_ENTRIES.length);
     for (const [gatewayMethod] of ROUTE_ENTRIES) {

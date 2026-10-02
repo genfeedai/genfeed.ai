@@ -6,11 +6,14 @@ import type { ModalImageToVideoProps } from '@genfeedai/props/modals/modal.props
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import Modal from '@ui/modals/modal/Modal';
+import { Label } from '@ui/primitives/label';
 import PromptBar from '@ui/prompt-bars/base/PromptBar';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 
 export default function ModalImageToVideo({
   image,
+  imageToVideoCrunBinding,
   models,
   presets,
   moods,
@@ -26,6 +29,9 @@ export default function ModalImageToVideo({
   onSubmit,
   onClose,
 }: ModalImageToVideoProps) {
+  const translate = useTranslations('pages.studioGenerate.crun');
+  const isVeoConversion =
+    promptData.models?.includes('crun/google/veo3-1-fast-t2v') ?? false;
   const handleSubmit = () => {
     if (!promptData?.isValid || !image) {
       return;
@@ -78,7 +84,11 @@ export default function ModalImageToVideo({
                 maxWidth="full"
               >
                 <div data-testid="image-to-video-composer">
+                  {isVeoConversion ? (
+                    <Label role="alert">{translate('textOnlyMode')}</Label>
+                  ) : null}
                   <PromptBar
+                    crunVideoBinding={imageToVideoCrunBinding}
                     categoryType={IngredientCategory.VIDEO}
                     models={models}
                     presets={presets}
@@ -93,7 +103,9 @@ export default function ModalImageToVideo({
                     onDatasetChange={onPromptChange}
                     onSubmit={handleSubmit}
                     isGenerating={isGenerating}
-                    isGenerateDisabled={!promptData?.isValid || isGenerating}
+                    isGenerateDisabled={
+                      isVeoConversion || !promptData?.isValid || isGenerating
+                    }
                     generateLabel="Generate Video"
                   />
                 </div>

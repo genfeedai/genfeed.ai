@@ -57,6 +57,11 @@ export class ManagedInferenceService {
       throw new UnauthorizedException('Managed inference API key is invalid');
     }
 
+    if (dto.model.startsWith('crun/'))
+      throw new BadRequestException({
+        code: 'CRUN_BILLING_UNSUPPORTED',
+        detail: 'Crun is unavailable through managed inference',
+      });
     await this.assertOperationSupported(dto, organizationId);
 
     const hasCredits =

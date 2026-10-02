@@ -127,6 +127,21 @@ export interface ModelBillableQuoteRequest extends ProviderQuoteDimensions {
   provider: string;
 }
 
+/** Internal frozen provider acceptance tariff; never exposed by public serializers. */
+export interface CrunProviderQuoteSnapshot {
+  provider: 'crun';
+  estimated: false;
+  providerCreditsPerTask: string;
+  quoteHash: string;
+  inputHash: string;
+  contractVersion: string;
+  creditsPerUsd: string | null;
+  acquisitionRateVersion: string | null;
+  credentialSource: 'hosted' | 'byok';
+  credentialId: string | null;
+  credentialFingerprint: string;
+}
+
 export interface ModelBillableQuoteSnapshot {
   modelKey: string;
   provider: string;
@@ -146,6 +161,7 @@ export interface ModelBillableQuoteSnapshot {
   allocatedCredits: number[];
   /** Internal immutable rate inputs; public quote serializers must omit these. */
   pricingProfile: ModelBillablePricingProfile;
+  providerQuote?: CrunProviderQuoteSnapshot;
 }
 
 export type ModelBillableQuote =

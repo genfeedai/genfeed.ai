@@ -173,6 +173,7 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
       provider: curated?.provider ?? providerFromMediaKey(key),
     };
 
+    if (curated && 'endpoint' in curated) entry.endpoint = curated.endpoint;
     if (curated?.costTier) {
       entry.costTier = curated.costTier;
     }

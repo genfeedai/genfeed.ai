@@ -1,5 +1,8 @@
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
+import {
+  isFlux3ImageModel,
+  MODEL_OUTPUT_CAPABILITIES,
+} from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 
 type CharacterHandleLookup = {
@@ -39,7 +42,7 @@ export function capMediaReferences(
       : undefined;
   const cap =
     typeof catalogLimit === 'number' && catalogLimit > 0
-      ? Math.min(8, catalogLimit)
+      ? Math.min(modelKey && isFlux3ImageModel(modelKey) ? 10 : 8, catalogLimit)
       : 8;
   return references.slice(0, cap);
 }
@@ -53,7 +56,27 @@ export async function resolveGenerationReferences(params: {
   personasService?: CharacterHandleLookup;
 }): Promise<{ error?: AgentToolResult; references: string[] }> {
   const handles = readMediaReferenceStrings(params.handles, 4);
-  const explicit = readMediaReferenceStrings(params.explicitReferences, 8);
+  const flux = params.modelKey && isFlux3ImageModel(params.modelKey);
+  if (
+    flux &&
+    Array.isArray(params.explicitReferences) &&
+    (params.explicitReferences.length > 10 ||
+      params.explicitReferences.some(
+        (value) => typeof value !== 'string' || !value.trim(),
+      ))
+  )
+    return {
+      error: {
+        success: false,
+        creditsUsed: 0,
+        error: 'FLUX.3 accepts at most ten owned Library image IDs.',
+      },
+      references: [],
+    };
+  const explicit = readMediaReferenceStrings(
+    params.explicitReferences,
+    flux ? 10 : 8,
+  );
   const unresolved: string[] = [];
   const resolved: string[] = [];
 
@@ -104,5 +127,14 @@ export async function resolveGenerationReferences(params: {
     merged.push(id);
   }
 
+  if (flux && merged.length > 10)
+    return {
+      error: {
+        success: false,
+        creditsUsed: 0,
+        error: 'FLUX.3 accepts at most ten combined source images.',
+      },
+      references: [],
+    };
   return { references: capMediaReferences(merged, params.modelKey) };
 }

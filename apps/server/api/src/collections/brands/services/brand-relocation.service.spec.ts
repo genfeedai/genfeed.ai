@@ -251,6 +251,163 @@ describe('BrandRelocationService', () => {
     },
   );
 
+  for (const path of ['direct', 'ingredient'] as const) {
+    for (const state of [
+      'prepared',
+      'submitting',
+      'pending',
+      'running',
+      'provider-success',
+      'provider-failed',
+      'recovery-required',
+      'finalized',
+      'completed',
+      'failed',
+      'cancelled',
+    ]) {
+      it.each([false, true])(
+        `refuses preview and relocation with ${path} ${state} Crun history (deleted=%s)`,
+        async (isDeleted) => {
+          primeBrand();
+          getDelegate('ingredient').findMany.mockResolvedValue([
+            { id: 'historical-ingredient' },
+          ]);
+          const row = {
+            id: 'crun-history',
+            organizationId: SOURCE_ORG,
+            brandId: path === 'direct' ? BRAND_ID : null,
+            ingredientId: 'historical-ingredient',
+            isDeleted,
+            state,
+            fundingBinding: { kind: 'byok', organizationId: SOURCE_ORG },
+            quoteSnapshot: { quoteId: 'immutable-quote' },
+          };
+          const before = JSON.stringify(row);
+          getDelegate('crunGenerationTask').findFirst.mockResolvedValue(row);
+          const actor = { isSuperAdmin: true, userId: USER_ID };
+          await expect(
+            service.previewRelocation(BRAND_ID, DEST_ORG, actor),
+          ).rejects.toThrow(/retained Crun generation financial history/);
+          await expect(
+            service.relocateToOrganization(
+              BRAND_ID,
+              { organizationId: DEST_ORG },
+              actor,
+            ),
+          ).rejects.toThrow(/retained Crun generation financial history/);
+          expect(getDelegate('ingredient').findMany).toHaveBeenCalledWith({
+            where: {
+              organizationId: SOURCE_ORG,
+              brandId: BRAND_ID,
+            },
+            select: { id: true },
+          });
+          expect(
+            getDelegate('crunGenerationTask').findFirst,
+          ).toHaveBeenCalledWith({
+            where: {
+              organizationId: SOURCE_ORG,
+              OR: [
+                { brandId: BRAND_ID },
+                { ingredientId: { in: ['historical-ingredient'] } },
+              ],
+            },
+            select: { id: true },
+          });
+          expect(transactionSpy).toHaveBeenCalledWith(expect.any(Function), {
+            isolationLevel: 'Serializable',
+          });
+          for (const name of [
+            'creditBalance',
+            'creditReservation',
+            'creditTransaction',
+            'crunGenerationTask',
+            'ingredient',
+            'brand',
+          ])
+            getDelegate(name);
+          for (const delegate of delegates.values()) {
+            expect(delegate.update).not.toHaveBeenCalled();
+            expect(delegate.updateMany).not.toHaveBeenCalled();
+            expect(delegate.create).not.toHaveBeenCalled();
+          }
+          expect(JSON.stringify(row)).toBe(before);
+          expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
+        },
+      );
+    }
+  }
+
+  it('rechecks Crun history inside execution after an empty preview', async () => {
+    primeBrand();
+    const actor = { isSuperAdmin: true, userId: USER_ID };
+    await expect(
+      service.previewRelocation(BRAND_ID, DEST_ORG, actor),
+    ).resolves.toBeDefined();
+    transactionSpy.mockImplementation(
+      async (fn: (tx: unknown) => Promise<unknown>) => {
+        getDelegate('crunGenerationTask').findFirst.mockResolvedValue({
+          id: 'new-task',
+        });
+        return fn(prismaProxy);
+      },
+    );
+    await expect(
+      service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        actor,
+      ),
+    ).rejects.toThrow(/retained Crun generation financial history/);
+    expect(getDelegate('crunGenerationTask').findFirst).toHaveBeenCalledTimes(
+      2,
+    );
+    expect(getDelegate('brand').updateMany).not.toHaveBeenCalled();
+  });
+
+  it('does not bypass same-organization behavior or inspect Crun history before authorization', async () => {
+    primeBrand();
+    getDelegate('crunGenerationTask').findFirst.mockResolvedValue({
+      id: 'history',
+    });
+    await expect(
+      service.previewRelocation(BRAND_ID, SOURCE_ORG, {
+        isSuperAdmin: true,
+        userId: USER_ID,
+      }),
+    ).resolves.toBeDefined();
+    expect(getDelegate('crunGenerationTask').findFirst).not.toHaveBeenCalled();
+    getDelegate('member').findFirst.mockResolvedValue(null);
+    await expect(
+      service.previewRelocation(BRAND_ID, DEST_ORG, {
+        isSuperAdmin: false,
+        userId: USER_ID,
+      }),
+    ).rejects.toThrow(ForbiddenException);
+    expect(getDelegate('crunGenerationTask').findFirst).not.toHaveBeenCalled();
+  });
+
+  it('keeps same-organization ordinary patch unchanged despite Crun history', async () => {
+    primeBrand();
+    getDelegate('crunGenerationTask').findFirst.mockResolvedValue({
+      id: 'history',
+    });
+    const patch = vi
+      .fn()
+      .mockResolvedValue({ id: BRAND_ID, organizationId: SOURCE_ORG });
+    await expect(
+      service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: SOURCE_ORG, label: 'Renamed' },
+        { isSuperAdmin: true, userId: USER_ID },
+        patch,
+      ),
+    ).resolves.toBeDefined();
+    expect(patch).toHaveBeenCalledExactlyOnceWith({ label: 'Renamed' });
+    expect(getDelegate('crunGenerationTask').findFirst).not.toHaveBeenCalled();
+    expect(transactionSpy).not.toHaveBeenCalled();
+  });
+
   it('rechecks history inside execution after a successful preview', async () => {
     primeBrand();
     const actor = { isSuperAdmin: true, userId: USER_ID };

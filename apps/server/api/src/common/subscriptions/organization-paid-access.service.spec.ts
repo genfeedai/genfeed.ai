@@ -133,6 +133,7 @@ describe('OrganizationPaidAccessService', () => {
       {} as never,
       {} as never,
       prisma as unknown as PrismaService,
+      { claimCrunRequestSlot: vi.fn() } as never,
     );
     const routes = new WorkflowMediaCredentialRouteService(byok);
     await expect(

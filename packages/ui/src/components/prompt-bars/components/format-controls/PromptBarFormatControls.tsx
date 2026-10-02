@@ -1,5 +1,6 @@
 'use client';
 
+import { PromptBarInternalContext } from '@genfeedai/contexts/ui/prompt-bar-internal-context';
 import type { IngredientFormat } from '@genfeedai/contracts';
 import { isAspectRatioSupported } from '@genfeedai/helpers/aspect-ratio.helper';
 import { formatVideos } from '@genfeedai/helpers/data/data/data.helper';
@@ -9,7 +10,7 @@ import {
 } from '@genfeedai/helpers/generation-controls.helper';
 import type { PromptBarFormatControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
 import AspectRatioDropdown from '@ui/dropdowns/aspect-ratio/AspectRatioDropdown';
-import { memo } from 'react';
+import { memo, useContext } from 'react';
 
 const PromptBarFormatControls = memo(function PromptBarFormatControls({
   currentConfig,
@@ -24,7 +25,16 @@ const PromptBarFormatControls = memo(function PromptBarFormatControls({
   isDisabledState,
   controlClass,
 }: PromptBarFormatControlsProps) {
-  if (!currentConfig.buttons?.format) {
+  const context = useContext(PromptBarInternalContext);
+  const selected =
+    context?.models.filter((model) =>
+      normalizedWatchedModels.includes(model.key),
+    ) ?? [];
+  const controls =
+    selected.length === 1 && selected[0]?.provider === 'crun'
+      ? selected[0].inputControls
+      : undefined;
+  if (controls?.mediaKind === 'video' || !currentConfig.buttons?.format) {
     return null;
   }
 
@@ -33,33 +43,57 @@ const PromptBarFormatControls = memo(function PromptBarFormatControls({
       ? normalizedWatchedModels
       : [watchedModel];
 
-  const filteredRatios = formatVideos.reduce<string[]>((acc, format) => {
-    if (format.isDisabled) {
+  const reviewedRatios = controls?.fields.aspect_ratio?.enum?.filter(
+    (value): value is string =>
+      typeof value === 'string' &&
+      (value !== 'auto' ||
+        references.length > 0 ||
+        !controls.isAutoAspectReferenceRequired),
+  );
+  const filteredRatios =
+    reviewedRatios ??
+    formatVideos.reduce<string[]>((acc, format) => {
+      if (format.isDisabled) {
+        return acc;
+      }
+
+      const aspectRatio = getAspectRatioForFormat(format.id);
+      if (!aspectRatio) {
+        // Include format but no ratio string to add — skip per original logic
+        return acc;
+      }
+
+      const isSupported = modelsToCheck.some(
+        (modelKey: string) =>
+          modelKey && isAspectRatioSupported(modelKey, aspectRatio),
+      );
+
+      if (isSupported) {
+        acc.push(aspectRatio);
+      }
       return acc;
-    }
-
-    const aspectRatio = getAspectRatioForFormat(format.id);
-    if (!aspectRatio) {
-      // Include format but no ratio string to add — skip per original logic
-      return acc;
-    }
-
-    const isSupported = modelsToCheck.some(
-      (modelKey: string) =>
-        modelKey && isAspectRatioSupported(modelKey, aspectRatio),
-    );
-
-    if (isSupported) {
-      acc.push(aspectRatio);
-    }
-    return acc;
-  }, []);
+    }, []);
 
   const selectedFormatLabel =
-    getAspectRatioForFormat(form.getValues('format') as IngredientFormat) ??
-    'Format';
+    (controls
+      ? form.getValues('crunControls')?.aspectRatio
+      : getAspectRatioForFormat(
+          form.getValues('format') as IngredientFormat,
+        )) ?? 'Format';
 
   function handleFormatChange(_name: string, value: string): void {
+    if (controls) {
+      const current = form.getValues('crunControls');
+      if (current && filteredRatios.includes(value)) {
+        form.setValue(
+          'crunControls',
+          { ...current, aspectRatio: value },
+          { shouldValidate: true },
+        );
+        triggerConfigChange();
+      }
+      return;
+    }
     const nextFormatId = getFormatForAspectRatio(value);
     if (!nextFormatId) {
       return;
@@ -87,7 +121,7 @@ const PromptBarFormatControls = memo(function PromptBarFormatControls({
       shouldValidate: false,
     });
 
-    if (previousFormat !== nextFormatId && references.length > 0) {
+    if (!controls && previousFormat !== nextFormatId && references.length > 0) {
       setReferences([]);
       setReferenceSource('');
       form.setValue('references', [], { shouldValidate: true });
@@ -100,7 +134,11 @@ const PromptBarFormatControls = memo(function PromptBarFormatControls({
     <div className="flex flex-col gap-2">
       <AspectRatioDropdown
         name="format"
-        value={getAspectRatioForFormat(form.getValues('format')) ?? ''}
+        value={
+          (controls
+            ? form.getValues('crunControls')?.aspectRatio
+            : getAspectRatioForFormat(form.getValues('format'))) ?? ''
+        }
         ratios={filteredRatios}
         onChange={handleFormatChange}
         icon={formatIcon}

@@ -1,0 +1,456 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "title": "Cog",
+    "version": "0.23.0"
+  },
+  "components": {
+    "schemas": {
+      "Input": {
+        "type": "object",
+        "title": "Input",
+        "required": ["prompt"],
+        "properties": {
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            },
+            "title": "Images",
+            "default": [],
+            "x-order": 1,
+            "description": "Up to 10 reference images the prompt edits or draws from. When present, the request runs as an edit and the first image drives 'auto' aspect ratio. Each image must be at least 256x256 px and at most 16 MP. Must be jpeg, png, gif, or webp."
+          },
+          "prompt": {
+            "type": "string",
+            "title": "Prompt",
+            "x-order": 0,
+            "description": "Text description of the image to generate, or of the edit to apply to the reference images."
+          },
+          "grounding": {
+            "type": "boolean",
+            "title": "Grounding",
+            "default": true,
+            "x-order": 4,
+            "description": "Let the model research the prompt with web search and image search before generating."
+          },
+          "resolution": {
+            "enum": ["768sq", "1k", "1.5k", "2k", "4k"],
+            "type": "string",
+            "title": "resolution",
+            "description": "Resolution of the output image. Input images are resized to the closest bin, up to 2k.",
+            "default": "1k",
+            "x-order": 3
+          },
+          "aspect_ratio": {
+            "enum": [
+              "auto",
+              "21:9",
+              "2:1",
+              "16:9",
+              "3:2",
+              "7:5",
+              "4:3",
+              "5:4",
+              "1:1",
+              "4:5",
+              "3:4",
+              "5:7",
+              "2:3",
+              "9:16",
+              "1:2",
+              "9:21"
+            ],
+            "type": "string",
+            "title": "aspect_ratio",
+            "description": "Aspect ratio of the generated image. 'auto' picks the ratio from the prompt and the first reference image.",
+            "default": "auto",
+            "x-order": 2
+          },
+          "output_format": {
+            "enum": ["webp", "jpg", "png"],
+            "type": "string",
+            "title": "output_format",
+            "description": "Format of the output images.",
+            "default": "webp",
+            "x-order": 6
+          },
+          "output_quality": {
+            "type": "integer",
+            "title": "Output Quality",
+            "default": 80,
+            "maximum": 100,
+            "minimum": 0,
+            "x-order": 7,
+            "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs"
+          },
+          "safety_tolerance": {
+            "type": "integer",
+            "title": "Safety Tolerance",
+            "default": 2,
+            "maximum": 4,
+            "minimum": 0,
+            "x-order": 5,
+            "description": "Moderation tolerance for inputs and outputs. 0 is the strictest, 4 is the most permissive."
+          }
+        }
+      },
+      "Output": {
+        "type": "string",
+        "title": "Output",
+        "format": "uri"
+      },
+      "Status": {
+        "enum": ["starting", "processing", "succeeded", "canceled", "failed"],
+        "type": "string",
+        "title": "Status",
+        "description": "An enumeration."
+      },
+      "resolution": {
+        "enum": ["768sq", "1k", "1.5k", "2k", "4k"],
+        "type": "string",
+        "title": "resolution",
+        "description": "An enumeration."
+      },
+      "aspect_ratio": {
+        "enum": [
+          "auto",
+          "21:9",
+          "2:1",
+          "16:9",
+          "3:2",
+          "7:5",
+          "4:3",
+          "5:4",
+          "1:1",
+          "4:5",
+          "3:4",
+          "5:7",
+          "2:3",
+          "9:16",
+          "1:2",
+          "9:21"
+        ],
+        "type": "string",
+        "title": "aspect_ratio",
+        "description": "An enumeration."
+      },
+      "output_format": {
+        "enum": ["webp", "jpg", "png"],
+        "type": "string",
+        "title": "output_format",
+        "description": "An enumeration."
+      },
+      "ValidationError": {
+        "type": "object",
+        "title": "ValidationError",
+        "required": ["loc", "msg", "type"],
+        "properties": {
+          "loc": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        }
+      },
+      "PredictionRequest": {
+        "type": "object",
+        "title": "PredictionRequest",
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "input": {
+            "type": "object",
+            "title": "Input",
+            "required": ["prompt"],
+            "properties": {
+              "images": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "title": "Images",
+                "default": [],
+                "x-order": 1,
+                "description": "Up to 10 reference images the prompt edits or draws from. When present, the request runs as an edit and the first image drives 'auto' aspect ratio. Each image must be at least 256x256 px and at most 16 MP. Must be jpeg, png, gif, or webp."
+              },
+              "prompt": {
+                "type": "string",
+                "title": "Prompt",
+                "x-order": 0,
+                "description": "Text description of the image to generate, or of the edit to apply to the reference images."
+              },
+              "grounding": {
+                "type": "boolean",
+                "title": "Grounding",
+                "default": true,
+                "x-order": 4,
+                "description": "Let the model research the prompt with web search and image search before generating."
+              },
+              "resolution": {
+                "enum": ["768sq", "1k", "1.5k", "2k", "4k"],
+                "type": "string",
+                "title": "resolution",
+                "description": "Resolution of the output image. Input images are resized to the closest bin, up to 2k.",
+                "default": "1k",
+                "x-order": 3
+              },
+              "aspect_ratio": {
+                "enum": [
+                  "auto",
+                  "21:9",
+                  "2:1",
+                  "16:9",
+                  "3:2",
+                  "7:5",
+                  "4:3",
+                  "5:4",
+                  "1:1",
+                  "4:5",
+                  "3:4",
+                  "5:7",
+                  "2:3",
+                  "9:16",
+                  "1:2",
+                  "9:21"
+                ],
+                "type": "string",
+                "title": "aspect_ratio",
+                "description": "Aspect ratio of the generated image. 'auto' picks the ratio from the prompt and the first reference image.",
+                "default": "auto",
+                "x-order": 2
+              },
+              "output_format": {
+                "enum": ["webp", "jpg", "png"],
+                "type": "string",
+                "title": "output_format",
+                "description": "Format of the output images.",
+                "default": "webp",
+                "x-order": 6
+              },
+              "output_quality": {
+                "type": "integer",
+                "title": "Output Quality",
+                "default": 80,
+                "maximum": 100,
+                "minimum": 0,
+                "x-order": 7,
+                "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs"
+              },
+              "safety_tolerance": {
+                "type": "integer",
+                "title": "Safety Tolerance",
+                "default": 2,
+                "maximum": 4,
+                "minimum": 0,
+                "x-order": 5,
+                "description": "Moderation tolerance for inputs and outputs. 0 is the strictest, 4 is the most permissive."
+              }
+            }
+          }
+        }
+      },
+      "PredictionResponse": {
+        "type": "object",
+        "title": "PredictionResponse",
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "logs": {
+            "type": "string",
+            "title": "Logs"
+          },
+          "error": {
+            "type": "string",
+            "title": "Error"
+          },
+          "input": {
+            "type": "object",
+            "title": "Input",
+            "required": ["prompt"],
+            "properties": {
+              "images": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "title": "Images",
+                "default": [],
+                "x-order": 1,
+                "description": "Up to 10 reference images the prompt edits or draws from. When present, the request runs as an edit and the first image drives 'auto' aspect ratio. Each image must be at least 256x256 px and at most 16 MP. Must be jpeg, png, gif, or webp."
+              },
+              "prompt": {
+                "type": "string",
+                "title": "Prompt",
+                "x-order": 0,
+                "description": "Text description of the image to generate, or of the edit to apply to the reference images."
+              },
+              "grounding": {
+                "type": "boolean",
+                "title": "Grounding",
+                "default": true,
+                "x-order": 4,
+                "description": "Let the model research the prompt with web search and image search before generating."
+              },
+              "resolution": {
+                "enum": ["768sq", "1k", "1.5k", "2k", "4k"],
+                "type": "string",
+                "title": "resolution",
+                "description": "Resolution of the output image. Input images are resized to the closest bin, up to 2k.",
+                "default": "1k",
+                "x-order": 3
+              },
+              "aspect_ratio": {
+                "enum": [
+                  "auto",
+                  "21:9",
+                  "2:1",
+                  "16:9",
+                  "3:2",
+                  "7:5",
+                  "4:3",
+                  "5:4",
+                  "1:1",
+                  "4:5",
+                  "3:4",
+                  "5:7",
+                  "2:3",
+                  "9:16",
+                  "1:2",
+                  "9:21"
+                ],
+                "type": "string",
+                "title": "aspect_ratio",
+                "description": "Aspect ratio of the generated image. 'auto' picks the ratio from the prompt and the first reference image.",
+                "default": "auto",
+                "x-order": 2
+              },
+              "output_format": {
+                "enum": ["webp", "jpg", "png"],
+                "type": "string",
+                "title": "output_format",
+                "description": "Format of the output images.",
+                "default": "webp",
+                "x-order": 6
+              },
+              "output_quality": {
+                "type": "integer",
+                "title": "Output Quality",
+                "default": 80,
+                "maximum": 100,
+                "minimum": 0,
+                "x-order": 7,
+                "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs"
+              },
+              "safety_tolerance": {
+                "type": "integer",
+                "title": "Safety Tolerance",
+                "default": 2,
+                "maximum": 4,
+                "minimum": 0,
+                "x-order": 5,
+                "description": "Moderation tolerance for inputs and outputs. 0 is the strictest, 4 is the most permissive."
+              }
+            }
+          },
+          "output": {
+            "type": "string",
+            "title": "Output",
+            "format": "uri"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "metrics": {
+            "type": "object",
+            "title": "Metrics"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At",
+            "format": "date-time"
+          },
+          "started_at": {
+            "type": "string",
+            "title": "Started At",
+            "format": "date-time"
+          },
+          "completed_at": {
+            "type": "string",
+            "title": "Completed At",
+            "format": "date-time"
+          }
+        }
+      },
+      "HTTPValidationError": {
+        "type": "object",
+        "title": "HTTPValidationError",
+        "properties": {
+          "detail": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "title": "ValidationError",
+              "required": ["loc", "msg", "type"],
+              "properties": {
+                "loc": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "integer"
+                      }
+                    ]
+                  },
+                  "title": "Location"
+                },
+                "msg": {
+                  "type": "string",
+                  "title": "Message"
+                },
+                "type": {
+                  "type": "string",
+                  "title": "Error Type"
+                }
+              }
+            },
+            "title": "Detail"
+          }
+        }
+      }
+    }
+  },
+  "providerVersion": "ec84b8fbf178998c3d5a2c3a32b4fdd850caac711a5145a1ede36e307ade7ca9"
+}

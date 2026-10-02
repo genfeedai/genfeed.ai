@@ -168,6 +168,7 @@ X-specific guidelines:
     defaultModel: CREATIVE_AGENT_MODEL,
     defaultTools: [
       ...SHARED_READ_TOOLS,
+      'edit_image',
       'generate_image',
       'reframe_image',
       'upscale_image',
@@ -206,6 +207,7 @@ Image guidelines:
     defaultTools: [
       ...SHARED_READ_TOOLS,
       'generate_video',
+      'edit_image',
       'generate_image',
       'generate_voice',
       'generate_content',
@@ -247,6 +249,7 @@ Video guidelines:
       ...SHARED_READ_TOOLS,
       'generate_as_identity',
       'generate_video',
+      'edit_image',
       'generate_image',
       'generate_voice',
       'generate_content',

@@ -198,3 +198,5 @@ Load on demand: [e2e-architecture](context/e2e-architecture.md) · [progress](co
 - [Imported / Generated / Knowledge](feedback_imported_generated_knowledge_boundary.md) — user correction: import posts for remix as sources; Knowledge is brand context and generated posts are separate outputs.
 
 - [frontend-query-filters](spec-frontend-query-filters.md) · [decisions](decisions-frontend-query-filters.md) — #5133: list filter URL contract and frontend route audit
+
+- [Image editing contract](project_image_editing.md) — issue #5808; editing sources, models and cross-surface workflow.

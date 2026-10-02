@@ -6,6 +6,7 @@ import {
 import { ArticleGenerationCreditsService } from '@api/collections/articles/services/article-generation-credits.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
+import { EditImageDto } from '@api/collections/images/dto/edit-image.dto';
 import { ImageEditDto } from '@api/collections/images/dto/image-edit.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import { ImageReframeService } from '@api/collections/images/services/image-reframe.service';
@@ -423,6 +424,36 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
   }
 
   /** Mirrors `ImagesReframeController.reframeImage` — `POST /v1/images/:imageId/reframe`. */
+  async editImage(
+    input: AgentGenerationResourceInput,
+  ): Promise<JsonApiSingleResponse> {
+    return this.invoker.invoke<EditImageDto, JsonApiSingleResponse>(
+      {
+        creditsConfig: {
+          description: 'Image editing',
+          settlement: 'completion',
+          source: ActivitySource.IMAGE_GENERATION,
+        },
+        dto: EditImageDto,
+        handle: ({ dto, request, user }) =>
+          this.imageGenerationService.editImage(
+            user,
+            input.resourceId,
+            dto,
+            request,
+            input.onPlaceholderCreated,
+          ),
+        hasCreditsInterceptor: true,
+        hasRolesGuard: true,
+        modelValidation: { category: ModelCategory.IMAGE_EDIT },
+        originalUrl: `/v1/images/${input.resourceId}/edit`,
+        requiredRoles: GENERATION_ROLES,
+        shouldDeferCreditsUntilModelResolution: true,
+      },
+      input,
+    );
+  }
+
   async reframeImage(
     input: AgentGenerationResourceInput,
   ): Promise<JsonApiSingleResponse> {

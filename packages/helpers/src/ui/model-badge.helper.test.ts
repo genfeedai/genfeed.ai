@@ -28,6 +28,13 @@ describe('model-badge.helper', () => {
     expect(getModelProviderBadgeClass()).toContain('muted');
   });
 
+  it('uses the reviewed neutral Crun badge and exact provider label', () => {
+    expect(getModelProviderLabel(ModelProvider.CRUN)).toBe('Crun');
+    expect(getModelProviderBadgeClass(ModelProvider.CRUN)).toBe(
+      'bg-muted text-muted-foreground border-border',
+    );
+  });
+
   it('labels providers with their product names', () => {
     expect(getModelProviderLabel(ModelProvider.FAL)).toBe('fal.ai');
     expect(getModelProviderLabel(ModelProvider.REPLICATE)).toBe('Replicate');

@@ -61,6 +61,10 @@ function fixture(
     }),
   };
   const prisma = {
+    crunGenerationTask: {
+      findFirst: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
     creditReservation: {
       findFirst: vi.fn(async () => structuredClone(hold)),
       findMany: vi.fn(async () => [hold]),

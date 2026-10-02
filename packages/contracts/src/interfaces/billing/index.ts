@@ -4,6 +4,7 @@ export * from './billing-account.interface';
 export * from './cost-report.interface';
 export * from './credits.interface';
 export * from './credits-utils.contract';
+export * from './crun-generation-quote.interface';
 export * from './generation-credit-calculation.interface';
 export * from './generation-usage-receipt.interface';
 export * from './isubscription-attributions-service.contract';
