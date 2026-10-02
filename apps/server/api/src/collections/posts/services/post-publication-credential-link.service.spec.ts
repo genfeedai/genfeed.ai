@@ -159,6 +159,7 @@ describe('explicit own-account recovery', () => {
     await expect(
       conflict.service.linkExternalPublicationCredential(input, scope),
     ).rejects.toThrow(/already linked/);
+    expect(f.post.update).not.toHaveBeenCalled();
     expect(conflict.post.update).not.toHaveBeenCalled();
   });
   it('never falls back from a forged explicit author ID to matching handle', async () => {
@@ -202,6 +203,7 @@ describe('explicit own-account recovery', () => {
     const f = await fixture({
       platform: 'instagram',
       externalId: 'comment-id',
+      analyticsNextCollectAt: new Date('2099-01-01'),
       targetSettings: {
         extensionCapture: {
           version: 1,
@@ -217,6 +219,66 @@ describe('explicit own-account recovery', () => {
     expect(f.post.update.mock.calls[0][0].data).toMatchObject({
       isAnalyticsEnabled: false,
     });
+    expect(f.post.update.mock.calls[0][0].data).not.toHaveProperty(
+      'analyticsNextCollectAt',
+    );
+    expect(
+      f.post.update.mock.calls[0][0].data.analyticsCollectionError,
+    ).toMatchObject({ code: 'EXTENSION_CAPTURE_UNSUPPORTED_PUBLICATION_KIND' });
+    expect(f.post.update.mock.calls[0][0].data).not.toHaveProperty(
+      'analyticsCollectionState',
+    );
+  });
+  it.each([
+    null,
+    'EXTENSION_CAPTURE_MISSING_CREDENTIAL',
+    [],
+    { code: 'PROVIDER_FAILURE' },
+    { message: 'EXTENSION_CAPTURE_MISSING_CREDENTIAL' },
+  ])(
+    'preserves equal-credential state without recovery for %j',
+    async (error) => {
+      const future = new Date('2099-01-01');
+      const f = await fixture({
+        credentialId: 'credential',
+        analyticsCollectionError: error,
+        analyticsNextCollectAt: future,
+        isAnalyticsEnabled: false,
+        totalViews: 42,
+      });
+      const before = { ...f.current };
+      await expect(
+        f.service.linkExternalPublicationCredential(input, scope),
+      ).resolves.toMatchObject({ analyticsAvailability: 'eligible' });
+      expect(f.post.update).not.toHaveBeenCalled();
+      expect(f.current).toEqual(before);
+      expect(f.queue.enqueue).not.toHaveBeenCalled();
+    },
+  );
+  it('recovers an exact missing-credential error once and reads the cleared state on replay', async () => {
+    const f = await fixture({
+      credentialId: 'credential',
+      analyticsCollectionError: {
+        code: 'EXTENSION_CAPTURE_MISSING_CREDENTIAL',
+        message: 'missing',
+      },
+      analyticsNextCollectAt: new Date('2099-01-01'),
+      totalViews: 42,
+    });
+    f.post.update.mockImplementation(
+      async ({ data }: { data: Record<string, unknown> }) =>
+        Object.assign(f.current, data),
+    );
+    await f.service.linkExternalPublicationCredential(input, scope);
+    const recovered = { ...f.current };
+    await f.service.linkExternalPublicationCredential(input, scope);
+    expect(f.post.update).toHaveBeenCalledTimes(1);
+    expect(f.post.findFirst).toHaveBeenCalledTimes(4);
+    expect(f.current).toEqual(recovered);
+    expect(f.current.analyticsCollectionState).toBe('failed');
+    expect(f.post.update.mock.calls[0][0].data).not.toHaveProperty(
+      'totalViews',
+    );
     expect(f.post.update.mock.calls[0][0].data).not.toHaveProperty(
       'analyticsCollectionState',
     );

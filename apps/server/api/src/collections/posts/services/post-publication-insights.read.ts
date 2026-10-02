@@ -7,6 +7,7 @@ import {
   isExtensionPublicationCapture,
   normalizeExtensionPublication,
 } from '@api/collections/posts/services/post-publication-capture.util';
+import { publicationInsightLookupKind } from '@api/collections/posts/services/post-publication-insight-lookup.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
@@ -77,18 +78,10 @@ function lookupIdentity(
   platform: ExtensionPublicationPlatform,
   pageUrl: string,
 ): Prisma.PostWhereInput[] {
-  const parsed = new URL(pageUrl);
-  const reply =
-    ['commentUrn', 'lc', 'comment_id', 'reply_comment_id'].some((key) =>
-      parsed.searchParams.has(key),
-    ) ||
-    (platform === 'reddit' &&
-      /^\/(?:r\/[^/]+\/)?comments\/[^/]+\/[^/]+\/[^/]+\/?$/.test(
-        parsed.pathname,
-      ));
+  const publicationKind = publicationInsightLookupKind(platform, pageUrl);
   const normalized = normalizeExtensionPublication({
     platform,
-    publicationKind: reply ? 'reply' : 'post',
+    publicationKind,
     url: pageUrl,
   });
   if (!normalized.url)
@@ -111,7 +104,11 @@ function lookupIdentity(
       : `${url.pathname}/`;
     aliases.add(url.toString());
   }
-  if (platform === 'youtube' && !reply && normalized.externalId) {
+  if (
+    platform === 'youtube' &&
+    publicationKind === 'post' &&
+    normalized.externalId
+  ) {
     aliases.add(`https://youtu.be/${normalized.externalId}`);
     aliases.add(`https://youtu.be/${normalized.externalId}/`);
     aliases.add(`https://youtube.com/watch?v=${normalized.externalId}`);

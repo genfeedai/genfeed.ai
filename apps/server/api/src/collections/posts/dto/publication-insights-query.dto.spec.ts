@@ -107,4 +107,47 @@ describe('publication insight query boundary', () => {
       ).rejects.toThrow();
     },
   );
+  it.each([
+    ['twitter', 'https://x.com/alice/status/123?commentUrn=unrelated'],
+    ['instagram', 'https://instagram.com/p/abc?comment_id=unrelated'],
+    ['tiktok', 'https://tiktok.com/@alice/video/123?comment_id=unrelated'],
+    ['facebook', 'https://facebook.com/alice/posts/123?lc=unrelated'],
+  ] as const)(
+    'accepts unrelated query keys for %s',
+    async (platform, pageUrl) => {
+      await expect(
+        parse({ brandId, platform, pageUrl }),
+      ).resolves.toMatchObject({ platform });
+    },
+  );
+  it.each([
+    ['youtube', 'https://youtube.com/watch?v=abcdefghijk&lc='],
+    ['youtube', 'https://youtube.com/watch?v=abcdefghijk&lc=x&lc=y'],
+    [
+      'linkedin',
+      'https://linkedin.com/feed/update/urn:li:activity:123?commentUrn=',
+    ],
+    ['facebook', 'https://facebook.com/alice/posts/123?comment_id='],
+    ['reddit', 'https://reddit.com/comments/abc/slug/%ZZ'],
+  ] as const)(
+    'rejects invalid reply lookup for %s without fallback',
+    async (platform, pageUrl) => {
+      await expect(parse({ brandId, platform, pageUrl })).rejects.toThrow();
+    },
+  );
+  it.each([
+    ['youtube', 'https://youtube.com/watch?v=abcdefghijk&lc=Ugycomment'],
+    ['facebook', 'https://facebook.com/alice/posts/123?comment_id=456'],
+    ['facebook', 'https://facebook.com/alice/posts/123?reply_comment_id=456'],
+    ['reddit', 'https://reddit.com/r/sub/comments/abc/slug/def/'],
+    ['reddit', 'https://reddit.com/comments/abc/slug/def'],
+    ['reddit', 'https://reddit.com/%72/sub/%63omments/abc/slug/def'],
+  ] as const)(
+    'accepts canonical reply lookup for %s',
+    async (platform, pageUrl) => {
+      await expect(
+        parse({ brandId, platform, pageUrl }),
+      ).resolves.toMatchObject({ platform });
+    },
+  );
 });

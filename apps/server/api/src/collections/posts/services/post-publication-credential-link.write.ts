@@ -23,6 +23,16 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 
+function isMissingPublicationCredentialError(value: Prisma.JsonValue): boolean {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    Object.hasOwn(value, 'code') &&
+    value.code === 'EXTENSION_CAPTURE_MISSING_CREDENTIAL'
+  );
+}
+
 export async function linkExternalPublicationCredentialWrite(
   prisma: PrismaService,
   input: LinkExternalPublicationCredentialInput,
@@ -108,6 +118,15 @@ export async function linkExternalPublicationCredentialWrite(
         ...current,
         credentialId: credential.id,
       });
+    const recoveryAllowed =
+      current.credentialId === null ||
+      isMissingPublicationCredentialError(current.analyticsCollectionError);
+    if (current.credentialId === credential.id && !recoveryAllowed)
+      return {
+        postId: current.id,
+        credentialId: credential.id,
+        analyticsAvailability,
+      };
     await tx.post.update({
       where: scopedWhere(scope.organizationId, {
         id: current.id,

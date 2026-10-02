@@ -1,5 +1,6 @@
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
 import { PostsModule } from '@api/collections/posts/posts.module';
+import { BaseQueryNormalizationAdapter } from '@api/shared/services/base/base-query-normalization.adapter';
 import { MemberRole } from '@genfeedai/contracts';
 import { Controller, type ExecutionContext, Get } from '@nestjs/common';
 import { MODULE_METADATA } from '@nestjs/common/constants';
@@ -151,12 +152,60 @@ describe('PostsAnalyticsController', () => {
       organizationId: mockUser.organizationId,
       brandId: selected,
       isDeleted: false,
-      brand: { organizationId: mockUser.organizationId, isDeleted: false },
+      brand: {
+        is: { organizationId: mockUser.organizationId, isDeleted: false },
+      },
     });
     expect(
       mockPostAnalyticsService.getPostAnalyticsSummary,
     ).not.toHaveBeenCalled();
   });
+  it('retains the explicit active-brand relation through the real query adapter', () => {
+    const filter = {
+      id: testId('post'),
+      organizationId: mockUser.organizationId,
+      brandId: testId('selected-brand'),
+      isDeleted: false,
+      brand: {
+        is: { organizationId: mockUser.organizationId, isDeleted: false },
+      },
+    };
+    expect(
+      new BaseQueryNormalizationAdapter('post').normalizeWhere(filter),
+    ).toEqual(filter);
+  });
+  it.each(['getAnalytics', 'refreshAnalytics'] as const)(
+    'keeps selected-brand 404 fences for %s',
+    async (method) => {
+      mockPostsService.findOne.mockResolvedValue(null);
+      const selected = testId('selected-brand');
+      const result = await controller[method](mockUser, testId('post'), {
+        brandId: selected,
+      });
+      expect(result).toMatchObject({ statusCode: 404 });
+      expect(mockPostsService.findOne).toHaveBeenCalledWith({
+        id: testId('post'),
+        organizationId: mockUser.organizationId,
+        brandId: selected,
+        isDeleted: false,
+        brand: {
+          is: { organizationId: mockUser.organizationId, isDeleted: false },
+        },
+      });
+      expect(
+        mockPostAnalyticsService.getPostAnalyticsSummary,
+      ).not.toHaveBeenCalled();
+      expect(
+        mockPostAnalyticsService.getAnalyticsByDateRange,
+      ).not.toHaveBeenCalled();
+      expect(mockPostsService.getCachedData).not.toHaveBeenCalled();
+      expect(mockPostsService.setCachedData).not.toHaveBeenCalled();
+      expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
+      expect(
+        mockAnalyticsSyncWorkflowService.queuePostRefresh,
+      ).not.toHaveBeenCalled();
+    },
+  );
   it('blocks captured ineligible refresh before rate-limit read or queue', async () => {
     mockPostsService.findOne.mockResolvedValue({
       ...mockPost,

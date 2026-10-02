@@ -23,6 +23,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   CredentialPlatform,
   MemberRole,
@@ -161,13 +162,16 @@ export class PostsAnalyticsController {
       throw new BadRequestException(
         'An authenticated organization and selected brand are required',
       );
-    const post = await this.postsService.findOne({
-      id: postId,
-      organizationId: user.organizationId,
-      brandId: selectedBrandId,
-      isDeleted: false,
-      brand: { organizationId: user.organizationId, isDeleted: false },
-    });
+    const post = await this.postsService.findOne(
+      scopedWhere(user.organizationId, {
+        id: postId,
+        brandId: selectedBrandId,
+        isDeleted: false,
+        brand: {
+          is: { organizationId: user.organizationId, isDeleted: false },
+        },
+      }),
+    );
 
     if (!post) {
       return returnNotFound(this.constructorName, postId);
@@ -223,13 +227,16 @@ export class PostsAnalyticsController {
       throw new BadRequestException(
         'An authenticated organization and selected brand are required',
       );
-    const post = await this.postsService.findOne({
-      id: postId,
-      organizationId: user.organizationId,
-      brandId: selectedBrandId,
-      isDeleted: false,
-      brand: { organizationId: user.organizationId, isDeleted: false },
-    });
+    const post = await this.postsService.findOne(
+      scopedWhere(user.organizationId, {
+        id: postId,
+        brandId: selectedBrandId,
+        isDeleted: false,
+        brand: {
+          is: { organizationId: user.organizationId, isDeleted: false },
+        },
+      }),
+    );
 
     if (!post) {
       return returnNotFound(this.constructorName, postId);

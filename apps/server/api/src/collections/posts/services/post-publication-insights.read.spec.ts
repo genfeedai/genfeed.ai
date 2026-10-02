@@ -309,4 +309,66 @@ describe('publication insights scoped read model', () => {
     ).rejects.toThrow();
     expect(f.post.findMany).not.toHaveBeenCalled();
   });
+  it.each([
+    ['twitter', 'https://x.com/alice/status/123?commentUrn=unrelated'],
+    ['instagram', 'https://instagram.com/p/abc?comment_id=unrelated'],
+    ['tiktok', 'https://tiktok.com/@alice/video/123?comment_id=unrelated'],
+    ['facebook', 'https://facebook.com/alice/posts/123?lc=unrelated'],
+  ] as const)(
+    'accepts unrelated query keys for %s',
+    async (platform, pageUrl) => {
+      const f = fixture([]);
+      await listPublicationInsights(
+        f.prisma,
+        { brandId: 'brand', platform, pageUrl },
+        scope,
+      );
+      const serialized = JSON.stringify(f.post.findMany.mock.calls[0][0].where);
+      expect(serialized).not.toContain('unrelated');
+      if (platform === 'instagram')
+        expect(serialized).not.toContain('"externalId"');
+    },
+  );
+  it.each([
+    ['youtube', 'https://youtube.com/watch?v=abcdefghijk&lc='],
+    ['youtube', 'https://youtube.com/watch?v=abcdefghijk&lc=x&lc=y'],
+    [
+      'linkedin',
+      'https://linkedin.com/feed/update/urn:li:activity:123?commentUrn=',
+    ],
+    ['facebook', 'https://facebook.com/alice/posts/123?comment_id='],
+    ['reddit', 'https://reddit.com/comments/abc/slug/%ZZ'],
+  ] as const)(
+    'rejects invalid reply lookup for %s without fallback',
+    async (platform, pageUrl) => {
+      const f = fixture([]);
+      await expect(
+        listPublicationInsights(
+          f.prisma,
+          { brandId: 'brand', platform, pageUrl },
+          scope,
+        ),
+      ).rejects.toThrow();
+      expect(f.post.findMany).not.toHaveBeenCalled();
+    },
+  );
+  it.each([
+    ['youtube', 'https://youtube.com/watch?v=abcdefghijk&lc=Ugycomment'],
+    ['facebook', 'https://facebook.com/alice/posts/123?comment_id=456'],
+    ['facebook', 'https://facebook.com/alice/posts/123?reply_comment_id=456'],
+    ['reddit', 'https://reddit.com/r/sub/comments/abc/slug/def/'],
+    ['reddit', 'https://reddit.com/comments/abc/slug/def'],
+    ['reddit', 'https://reddit.com/%72/sub/%63omments/abc/slug/def'],
+  ] as const)(
+    'accepts canonical reply lookup for %s',
+    async (platform, pageUrl) => {
+      const f = fixture([]);
+      await listPublicationInsights(
+        f.prisma,
+        { brandId: 'brand', platform, pageUrl },
+        scope,
+      );
+      expect(f.post.findMany).toHaveBeenCalledTimes(1);
+    },
+  );
 });

@@ -1,4 +1,5 @@
 import { normalizeExtensionPublication } from '@api/collections/posts/services/post-publication-capture.util';
+import { publicationInsightLookupKind } from '@api/collections/posts/services/post-publication-insight-lookup.util';
 import { FORBID_NON_WHITELISTED } from '@api/helpers/pipes/validation.pipe';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { ExtensionPublicationPlatform } from '@genfeedai/contracts/interfaces/content/extension-publication.interface';
@@ -29,18 +30,12 @@ function validLookup(query: PublicationInsightsQueryDto): boolean {
   if (!query.platform) return false;
   if (!query.pageUrl) return true;
   try {
-    const url = new URL(query.pageUrl);
-    const reply =
-      ['commentUrn', 'lc', 'comment_id', 'reply_comment_id'].some((key) =>
-        url.searchParams.has(key),
-      ) ||
-      (query.platform === 'reddit' &&
-        /^\/(?:r\/[^/]+\/)?comments\/[^/]+\/[^/]+\/[^/]+\/?$/.test(
-          url.pathname,
-        ));
     normalizeExtensionPublication({
       platform: query.platform,
-      publicationKind: reply ? 'reply' : 'post',
+      publicationKind: publicationInsightLookupKind(
+        query.platform,
+        query.pageUrl,
+      ),
       url: query.pageUrl,
     });
     return true;
