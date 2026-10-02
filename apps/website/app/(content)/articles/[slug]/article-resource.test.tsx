@@ -20,7 +20,9 @@ it('copies a verified focused install command and records the successful resourc
   vi.mocked(copyText).mockResolvedValue(true);
   render(<ArticleResource slug="tested-guide" resource={resource} />);
   await act(async () => {
-    fireEvent.click(screen.getByRole('button', { name: 'Copy install command' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Copy install command' }),
+    );
   });
   expect(copyText).toHaveBeenCalledWith(
     'bunx skills add genfeedai/skills --skill cinematic-prompting',
@@ -42,7 +44,9 @@ it('does not report an install-command action when clipboard copying fails', asy
   vi.mocked(copyText).mockResolvedValue(false);
   render(<ArticleResource slug="tested-guide" resource={resource} />);
   await act(async () => {
-    fireEvent.click(screen.getByRole('button', { name: 'Copy install command' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Copy install command' }),
+    );
   });
   expect(captureWebsiteAnalyticsEvent).not.toHaveBeenCalled();
 });
