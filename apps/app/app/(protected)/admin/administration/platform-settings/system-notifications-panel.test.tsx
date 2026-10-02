@@ -100,6 +100,18 @@ describe('admin notification destinations', () => {
       ),
     );
   });
+  it('preserves the configured event filters when delivery is toggled', async () => {
+    mocks.configure.mockResolvedValue(overview);
+    render(<SystemNotificationsPanel />);
+    fireEvent.click(
+      await screen.findByRole('switch', {
+        name: 'Deliver system notifications',
+      }),
+    );
+    await waitFor(() =>
+      expect(mocks.configure).toHaveBeenCalledWith(false, ['user.created']),
+    );
+  });
   it('tests a saved destination and retries only the selected failed delivery', async () => {
     render(<SystemNotificationsPanel />);
     fireEvent.click(await screen.findByRole('button', { name: 'Send test' }));

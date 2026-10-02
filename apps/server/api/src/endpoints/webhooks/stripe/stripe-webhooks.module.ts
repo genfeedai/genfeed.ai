@@ -6,6 +6,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { CustomersModule } from '@api/collections/customers/customers.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { ReferralsModule } from '@api/collections/referrals/referrals.module';
 import { SubscriptionAttributionsModule } from '@api/collections/subscription-attributions/subscription-attributions.module';
 import { SubscriptionsModule } from '@api/collections/subscriptions/subscriptions.module';
@@ -37,6 +38,7 @@ import { Module, type Provider } from '@nestjs/common';
 
 const BaseModule = createServiceModule(StripeWebhookService, {
   additionalImports: [
+    PlatformSettingsModule,
     BillingAccountsModule,
     SystemEventsModule,
     ActivitiesModule,

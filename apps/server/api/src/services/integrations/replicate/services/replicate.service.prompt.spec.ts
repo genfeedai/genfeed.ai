@@ -1,3 +1,6 @@
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
+
 vi.mock('@genfeedai/config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/config')>();
 
@@ -49,6 +52,10 @@ describe('ReplicateService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ReplicateService,
+        {
+          provide: PlatformSettingsService,
+          useValue: runtimeSettingsMock(mockConfigService),
+        },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: LoggerService, useValue: mockLoggerService },
       ],

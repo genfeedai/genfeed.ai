@@ -14,11 +14,10 @@ export class SystemEventDeliveryService {
     private readonly notifications: NotificationsService,
   ) {}
 
-  /** Fanout is chosen once; retries use each destination's current configuration. */
-  async deliver(
+  private async resolveDestinations(
     row: SystemEventWebhook,
     eventLeaseToken: string,
-  ): Promise<'delivered' | 'skipped' | Date> {
+  ): Promise<Date | null> {
     if (!row.destinationsResolvedAt) {
       // tenant-scope-ignore: deployment-owned system event routes
       const destinations =
@@ -54,6 +53,17 @@ export class SystemEventDeliveryService {
         });
       });
     }
+
+    return null;
+  }
+
+  /** Fanout is chosen once; retries use each destination's current configuration. */
+  async deliver(
+    row: SystemEventWebhook,
+    eventLeaseToken: string,
+  ): Promise<'delivered' | 'skipped' | Date> {
+    const retryAt = await this.resolveDestinations(row, eventLeaseToken);
+    if (retryAt) return retryAt;
 
     const now = new Date();
     // tenant-scope-ignore: delivery history owned by the deployment operator
@@ -93,7 +103,6 @@ export class SystemEventDeliveryService {
             },
           });
           if (!claimed.count) return;
-          const where = { id: delivery.id, leaseToken, isDeleted: false };
           try {
             const destination = delivery.destination;
             if (
@@ -103,7 +112,7 @@ export class SystemEventDeliveryService {
             ) {
               // tenant-scope-ignore: an explicit operator disable is never replayed
               await this.prisma.systemEventDelivery.updateMany({
-                where,
+                where: { id: delivery.id, leaseToken, isDeleted: false },
                 data: {
                   skippedAt: new Date(),
                   leaseToken: null,
@@ -119,7 +128,7 @@ export class SystemEventDeliveryService {
             );
             // tenant-scope-ignore: provider acceptance belongs only to this destination
             await this.prisma.systemEventDelivery.updateMany({
-              where,
+              where: { id: delivery.id, leaseToken, isDeleted: false },
               data: {
                 deliveredAt: new Date(),
                 leaseToken: null,
@@ -130,7 +139,7 @@ export class SystemEventDeliveryService {
             // Never retain a provider error or destination URL in logs or history.
             // tenant-scope-ignore: destination failure cannot reset another destination
             await this.prisma.systemEventDelivery.updateMany({
-              where,
+              where: { id: delivery.id, leaseToken, isDeleted: false },
               data: {
                 nextAttemptAt: new Date(
                   Date.now() +

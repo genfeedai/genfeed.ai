@@ -3981,6 +3981,11 @@
       }
     },
     "notifications": {
+      "providers": {
+        "discord": "Discord",
+        "telegram": "Telegram",
+        "email": "Email"
+      },
       "title": "System notifications",
       "deliveryEnabled": "Deliver system notifications",
       "description": "Choose where new signup and billing notifications are sent. Destinations can be changed without a deploy. Provider credentials are configured on the server.",

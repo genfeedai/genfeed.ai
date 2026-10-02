@@ -138,7 +138,11 @@ export default function SystemNotificationsPanel() {
             isDisabled={isBusy}
             onCheckedChange={(isEnabled) =>
               void act(
-                (service) => service.configure(isEnabled, EVENTS),
+                (service) =>
+                  service.configure(
+                    isEnabled,
+                    overview.configuration.eventTypes,
+                  ),
                 t('saved'),
               )
             }
@@ -270,9 +274,13 @@ export default function SystemNotificationsPanel() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="discord">Discord</SelectItem>
-                  <SelectItem value="telegram">Telegram</SelectItem>
-                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="discord">
+                    {t('providers.discord')}
+                  </SelectItem>
+                  <SelectItem value="telegram">
+                    {t('providers.telegram')}
+                  </SelectItem>
+                  <SelectItem value="email">{t('providers.email')}</SelectItem>
                 </SelectContent>
               </Select>
             </Field>

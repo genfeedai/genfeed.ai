@@ -8,6 +8,7 @@ describe('admin runtime product settings', () => {
     expect(settings.generationMaxTokens).toBe(4000);
     expect(settings.trainingCreditsCost).toBe(500);
     expect(settings.customModelCreditsCost).toBe(5);
+    expect(settings.murekaModel).toBe('mureka-9');
     expect(settings.discordChannelIdUsers).toBeNull();
     expect(settings.emailFromAddress).toBeNull();
   });

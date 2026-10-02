@@ -284,6 +284,44 @@ export class ThreadContextCompressorService {
     );
   }
 
+  private buildCompressionMessages(
+    existingState: ThreadContextStateData | null,
+    messagesToCompress: AgentMessageDocument[],
+  ): OpenRouterMessage[] {
+    // Build conversation text for compression
+    const conversationText = messagesToCompress
+      .map((msg) => {
+        const role = msg.role === 'user' ? 'User' : 'Assistant';
+        return `${role}: ${msg.content || '[no content]'}`;
+      })
+      .join('\n\n');
+
+    // Include existing compressed state for incremental compression
+    let contextPrefix = '';
+    if (existingState?.accumulatedRequirements || existingState?.keyDecisions) {
+      contextPrefix =
+        'Previous compressed state:\n' +
+        (existingState.accumulatedRequirements
+          ? `Requirements: ${existingState.accumulatedRequirements}\n`
+          : '') +
+        (existingState.keyDecisions
+          ? `Decisions: ${existingState.keyDecisions}\n`
+          : '') +
+        (existingState.iterationHistory
+          ? `History: ${existingState.iterationHistory}\n`
+          : '') +
+        '\nNew messages to incorporate:\n';
+    }
+
+    return [
+      { content: COMPRESSION_PROMPT, role: 'system' },
+      {
+        content: `${contextPrefix}${conversationText}`,
+        role: 'user',
+      },
+    ];
+  }
+
   private async performCompression(
     threadId: string,
     organizationId: string,
@@ -328,41 +366,10 @@ export class ThreadContextCompressorService {
         return;
       }
 
-      // Build conversation text for compression
-      const conversationText = messagesToCompress
-        .map((msg) => {
-          const role = msg.role === 'user' ? 'User' : 'Assistant';
-          return `${role}: ${msg.content || '[no content]'}`;
-        })
-        .join('\n\n');
-
-      // Include existing compressed state for incremental compression
-      let contextPrefix = '';
-      if (
-        existingState?.accumulatedRequirements ||
-        existingState?.keyDecisions
-      ) {
-        contextPrefix =
-          'Previous compressed state:\n' +
-          (existingState.accumulatedRequirements
-            ? `Requirements: ${existingState.accumulatedRequirements}\n`
-            : '') +
-          (existingState.keyDecisions
-            ? `Decisions: ${existingState.keyDecisions}\n`
-            : '') +
-          (existingState.iterationHistory
-            ? `History: ${existingState.iterationHistory}\n`
-            : '') +
-          '\nNew messages to incorporate:\n';
-      }
-
-      const messages: OpenRouterMessage[] = [
-        { content: COMPRESSION_PROMPT, role: 'system' },
-        {
-          content: `${contextPrefix}${conversationText}`,
-          role: 'user',
-        },
-      ];
+      const messages = this.buildCompressionMessages(
+        existingState,
+        messagesToCompress,
+      );
 
       const response = await this.llmDispatcherService.chatCompletion(
         {

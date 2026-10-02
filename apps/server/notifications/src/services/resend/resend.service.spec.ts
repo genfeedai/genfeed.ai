@@ -27,7 +27,7 @@ vi.mock('resend', () => {
 describe('ResendService', () => {
   let service: ResendService;
   let configMock: {
-    get: ReturnType<typeof vi.fn>;
+    get: ReturnType<typeof vi.fn<(key: string) => string | undefined>>;
     isDevelopment: boolean;
     isResendEnabled: ReturnType<typeof vi.fn>;
   };
@@ -39,7 +39,7 @@ describe('ResendService', () => {
 
   beforeEach(async () => {
     configMock = {
-      get: vi.fn(),
+      get: vi.fn<(key: string) => string | undefined>(),
       isDevelopment: false,
       isResendEnabled: vi.fn().mockReturnValue(true),
     };
