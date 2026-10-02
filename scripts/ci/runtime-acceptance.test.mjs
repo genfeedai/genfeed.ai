@@ -4182,7 +4182,18 @@ test('Crun production routing leaves diagnostic and other stages on untouched ge
       '    for (const resource of [...identity.resources.databases].reverse())',
     ),
   );
-  assert.ok(outer.includes('resource?.cleanupResult'));
+  assert.match(
+    outer,
+    /selectFinalCrunCleanupResult\(\s*identity,\s*commands,\s*completed,\s*mediaKind,?\s*\)/,
+  );
+  const selector = source.slice(
+    source.indexOf('export function selectFinalCrunCleanupResult('),
+    source.indexOf('export async function runFinalCrunBounded('),
+  );
+  assert.ok(selector.includes('resource?.cleanupResult'));
+  assert.match(selector, /hasFinalCrunTerminationProof\(resource, mediaKind\)/);
+  assert.ok(!selector.includes('cleanupFinalCrunResources('));
+  assert.ok(!selector.includes('readFile('));
   assert.ok(!outer.includes('cleanupFinalCrunResources('));
   assert.ok(!outer.includes('readFile('));
   assert.equal(
