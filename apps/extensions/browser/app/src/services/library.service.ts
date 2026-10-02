@@ -1,27 +1,29 @@
 import type {
   AgentArtifactReference,
-  AgentContentMentionItem,
   IIngredient,
+  LibraryAsset,
+  LibraryDelivery,
+  LibraryHandoffOptions,
+  LibraryLoadOptions,
+  LibraryPage,
 } from '@genfeedai/contracts/interfaces';
 import {
   deserializeCollection,
   type JsonApiResponseDocument,
 } from '@genfeedai/helpers/data/json-api/json-api.helper';
+import { apiEndpoint } from '~services/environment.service';
 import {
   assertWorkspace,
   requireWorkspace,
   scopedWorkspaceRequest,
 } from '~services/workspace.service';
 
-export interface LibraryAsset extends AgentContentMentionItem {
-  reference: AgentArtifactReference;
-  kind: 'image' | 'video' | 'audio';
-}
+export type { LibraryAsset } from '@genfeedai/contracts/interfaces';
 
 export async function loadLibraryAssets(
   brandId: string,
-  options: { page?: number; search?: string; signal?: AbortSignal } = {},
-): Promise<{ items: LibraryAsset[]; hasMore: boolean }> {
+  options: LibraryLoadOptions = {},
+): Promise<LibraryPage> {
   if (!brandId.trim())
     throw new Error('Select a brand to browse your Library.');
   const workspace = await requireWorkspace();
@@ -40,7 +42,7 @@ export async function loadLibraryAssets(
   });
   for (const status of ['GENERATED', 'VALIDATED', 'UPLOADED'])
     query.append('status', status);
-  if (options.search) query.set('search', options.search);
+  if (options.search?.trim()) query.set('search', options.search.trim());
   const response = await scopedWorkspaceRequest(
     `/ingredients?${query}`,
     { signal: options.signal },
@@ -100,7 +102,7 @@ export async function loadLibraryAssets(
         recordId: record.id,
         organizationId: organization,
         brandId,
-        ...(record.version !== undefined
+        ...(record.version !== undefined && record.version !== null
           ? { recordVersion: String(record.version) }
           : {}),
       },
@@ -121,4 +123,78 @@ export function libraryArtifactReferences(
       (item) => item.brandId === brandId && item.reference.brandId === brandId,
     )
     .map((item) => item.reference);
+}
+
+export async function resolveLibraryAssetDelivery(
+  reference: AgentArtifactReference,
+  options: LibraryHandoffOptions = {},
+): Promise<LibraryDelivery> {
+  const workspace = await requireWorkspace();
+  const unavailable =
+    'This asset changed or is unavailable. Remove it and select its current Library version.';
+  if (
+    reference.kind !== 'ingredient' ||
+    reference.serializer !== 'ingredient' ||
+    !reference.recordId.trim() ||
+    !workspace.brandId ||
+    reference.organizationId !== workspace.organizationId ||
+    reference.brandId !== workspace.brandId
+  )
+    throw new Error(unavailable);
+  options.signal?.throwIfAborted();
+  const query = new URLSearchParams({ ids: reference.recordId });
+  const response = await scopedWorkspaceRequest(
+    `/ingredients/batch?${query}`,
+    { signal: options.signal },
+    workspace,
+  );
+  if (!response.ok)
+    throw new Error('Could not retrieve this asset. Retry in your Library.');
+  const document = (await response.json()) as JsonApiResponseDocument;
+  assertWorkspace(workspace);
+  options.signal?.throwIfAborted();
+  const records = deserializeCollection<IIngredient>(document);
+  const record = records[0];
+  const organization =
+    record?.organizationId ??
+    (typeof record?.organization === 'string'
+      ? record.organization
+      : record?.organization?.id);
+  const brand =
+    record?.brandId ??
+    (typeof record?.brand === 'string' ? record.brand : record?.brand?.id);
+  const version =
+    record?.version === undefined || record.version === null
+      ? undefined
+      : String(record.version);
+  if (
+    records.length !== 1 ||
+    !record ||
+    record.id !== reference.recordId ||
+    organization !== workspace.organizationId ||
+    brand !== workspace.brandId ||
+    record.isDeleted === true ||
+    !['GENERATED', 'VALIDATED', 'UPLOADED'].includes(record.status) ||
+    !['IMAGE', 'VIDEO', 'GIF', 'MUSIC', 'VOICE', 'AUDIO'].includes(
+      record.category?.toUpperCase(),
+    ) ||
+    version !== reference.recordVersion
+  )
+    throw new Error(unavailable);
+  let url: URL;
+  try {
+    url = new URL(record.cdnUrl ?? '');
+  } catch {
+    throw new Error(unavailable);
+  }
+  const api = new URL(apiEndpoint);
+  const localHttp =
+    url.protocol === 'http:' &&
+    url.origin === api.origin &&
+    ['localhost', '127.0.0.1', '[::1]', 'genfeed.localhost'].includes(
+      api.hostname,
+    );
+  if (url.username || url.password || (url.protocol !== 'https:' && !localHttp))
+    throw new Error(unavailable);
+  return { reference, url: url.href };
 }

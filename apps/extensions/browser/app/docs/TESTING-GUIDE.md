@@ -31,6 +31,16 @@
    - No paid generation is needed for session/Library acceptance. Capture save and Library browsing do not start generation.
    - Record the exact commit and observed outcomes without copying credentials. Source tests/build alone do not close #5858 or #4340; installed Brave acceptance and the parent release gates remain required.
 
+## Library search and manual attachment acceptance
+
+- Reload the same local unpacked folder; the new downloads permission may require approval in Brave.
+- In a ready workspace, search for metadata/prompt text absent from the asset title and for an asset beyond the first 24 items. Verify Load more, error Retry, and deduplication.
+- Select image, GIF, video and audio references. Search and close/reopen the picker; selections should remain. Same-workspace refresh pauses actions and retains the draft. A real workspace/brand change clears the scoped selections and draft.
+- Click Download for a current asset, choose its save location, and verify the message says only that the download started. Use the platform’s attachment button to manually attach the saved file to an authorized draft. Do not publish or start paid generation.
+- Click Open asset separately and verify it opens the refreshed current asset URL. Denied/cancelled downloads must never open a tab automatically. Changed/deleted asset versions require removing and selecting the current Library item.
+- Check narrow widths (320px/440px), dark/light themes, duplicate-click prevention and failure recovery. Record commit, selected workspace, asset kind, platform and observed outcome without URLs/credentials.
+- Fixtures and builds do not prove installed Brave download, native attachment or generation acceptance; #5857 and #4340 remain open until their remaining gates have evidence.
+
 ## Platform Testing Checklist
 
 ### Twitter/X (twitter.com, x.com)

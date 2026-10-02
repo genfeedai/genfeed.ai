@@ -1,10 +1,11 @@
 import { ContentLibraryPicker } from '@genfeedai/agent/components/ContentLibraryPicker';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
-import { Button } from '@ui/primitives/button';
-import { Textarea } from '@ui/primitives/textarea';
+import type { ExtensionWorkspaceSnapshot } from '@genfeedai/contracts/interfaces';
+import type { ChatInputProps } from '@genfeedai/props/extension/extension-library.props';
 import PromptBarAttachedAssetsTray from '@ui/components/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
 import PromptBarComposer from '@ui/components/prompt-bars/components/shell/PromptBarComposer';
+import { Button } from '@ui/primitives/button';
+import { Textarea } from '@ui/primitives/textarea';
 import { ArrowUp, FolderOpen } from 'lucide-react';
 import {
   type KeyboardEvent,
@@ -13,21 +14,13 @@ import {
   useRef,
   useState,
 } from 'react';
+import { LibraryAttachmentActions } from '~components/chat/LibraryAttachmentActions';
 import {
+  type LibraryAsset,
   libraryArtifactReferences,
   loadLibraryAssets,
-  type LibraryAsset,
 } from '~services/library.service';
-import { useBrandStore } from '~store/use-brand-store';
-
-interface ChatInputProps {
-  onSend: (
-    content: string,
-    references?: AgentArtifactReference[],
-  ) => Promise<boolean>;
-  disabled?: boolean;
-  suggestedPrompt?: string;
-}
+import { useWorkspaceStore } from '~store/use-workspace-store';
 
 export function ChatInput({
   onSend,
@@ -44,72 +37,155 @@ export function ChatInput({
   const [hasMore, setHasMore] = useState(false);
   const [reload, setReload] = useState(0);
   const [isSending, setIsSending] = useState(false);
-  const brandId = useBrandStore((s) => s.activeBrandId);
+  const workspaceState = useWorkspaceStore();
+  const verified = useRef<ExtensionWorkspaceSnapshot | null>(null);
+  const snapshot =
+    workspaceState.status === 'ready' || workspaceState.status === 'refreshing'
+      ? workspaceState.snapshot
+      : verified.current;
+  if (
+    workspaceState.status === 'ready' ||
+    workspaceState.status === 'refreshing'
+  )
+    verified.current = workspaceState.snapshot;
+  const brandId = snapshot?.brandId;
+  const scopeKey = snapshot
+    ? `${snapshot.userId}:${snapshot.organizationId}:${snapshot.brandId}:${snapshot.revision}`
+    : '';
+  const isReady = workspaceState.status === 'ready' && Boolean(brandId);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const scopeRef = useRef(brandId);
-  scopeRef.current = brandId;
-
+  const scopeRef = useRef(scopeKey);
+  scopeRef.current = isReady ? scopeKey : '';
+  const request = useRef<AbortController | null>(null);
+  const generation = useRef(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [isDebouncing, setIsDebouncing] = useState(false);
+  const previousScope = useRef(scopeKey);
+  const invalidates = () => {
+    request.current?.abort();
+    generation.current += 1;
+  };
   useEffect(() => {
     if (suggestedPrompt) {
       setValue(suggestedPrompt);
       textareaRef.current?.focus();
     }
   }, [suggestedPrompt]);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Brand changes must discard attachments and the previous Library scope.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Actual scope resets clear all drafts and references; refreshing retains them.
   useEffect(() => {
+    if (
+      previousScope.current === scopeKey &&
+      workspaceState.status !== 'loading'
+    )
+      return;
+    previousScope.current = scopeKey;
+    invalidates();
     setAssets([]);
+    setValue('');
     setItems([]);
     setPage(1);
+    setHasMore(false);
     setError(null);
     setIsOpen(false);
-  }, [brandId]);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Retry reloads the same Library page without changing the selection.
+    setSearchQuery('');
+    setDebouncedQuery('');
+    setIsDebouncing(false);
+  }, [scopeKey, workspaceState.status === 'loading']);
   useEffect(() => {
-    if (!isOpen || !brandId) return;
+    if (!isDebouncing) return;
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery.trim());
+      setIsDebouncing(false);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchQuery, isDebouncing]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Retry repeats the captured page and query; generation rejects obsolete results.
+  useEffect(() => {
+    if (!isOpen || !isReady || !brandId || isDebouncing) {
+      invalidates();
+      setIsLoading(false);
+      return;
+    }
     const controller = new AbortController();
+    request.current = controller;
+    const currentGeneration = ++generation.current;
+    const currentKey = scopeKey;
+    const current = () =>
+      !controller.signal.aborted &&
+      generation.current === currentGeneration &&
+      scopeRef.current === currentKey;
     setIsLoading(true);
     setError(null);
-    loadLibraryAssets(brandId, { page, signal: controller.signal })
+    loadLibraryAssets(brandId, {
+      page,
+      search: debouncedQuery,
+      signal: controller.signal,
+    })
       .then((result) => {
-        if (controller.signal.aborted) return;
-        setItems((current) =>
+        if (!current()) return;
+        setItems((previous) =>
           page === 1
             ? result.items
             : [
                 ...new Map(
-                  [...current, ...result.items].map((item) => [item.id, item]),
+                  [...previous, ...result.items].map((item) => [item.id, item]),
                 ).values(),
               ],
         );
         setHasMore(result.hasMore);
       })
-      .catch((reason) => {
-        if (!controller.signal.aborted)
-          setError(
-            reason instanceof Error
-              ? reason.message
-              : 'Could not load Library.',
-          );
+      .catch(() => {
+        if (current()) setError('Could not load Library. Retry.');
       })
       .finally(() => {
-        if (!controller.signal.aborted) setIsLoading(false);
+        if (current()) setIsLoading(false);
       });
     return () => controller.abort();
-  }, [isOpen, brandId, page, reload]);
+  }, [
+    isOpen,
+    isReady,
+    brandId,
+    scopeKey,
+    page,
+    reload,
+    debouncedQuery,
+    isDebouncing,
+  ]);
+  function closeLibrary(open: boolean) {
+    invalidates();
+    setIsOpen(open);
+    setSearchQuery('');
+    setDebouncedQuery('');
+    setIsDebouncing(false);
+    setPage(1);
+    setItems([]);
+    setHasMore(false);
+    setError(null);
+    setIsLoading(false);
+  }
+  function changeSearch(query: string) {
+    invalidates();
+    setSearchQuery(query);
+    setIsDebouncing(true);
+    setPage(1);
+    setItems([]);
+    setError(null);
+    setHasMore(false);
+    setIsLoading(false);
+  }
 
   async function handleSend() {
     const content = value.trim();
-    if (!content || disabled || isSending || !brandId) return;
-    const sentBrand = brandId;
+    if (!content || disabled || isSending || !isReady || !brandId) return;
+    const sentScope = scopeKey;
     setIsSending(true);
     try {
       const accepted = await onSend(
         content,
         libraryArtifactReferences(assets, brandId),
       );
-      if (accepted && scopeRef.current === sentBrand) {
+      if (accepted && scopeRef.current === sentScope) {
         setValue('');
         setAssets([]);
       }
@@ -128,11 +204,9 @@ export function ChatInput({
     }
   }
   function openLibrary() {
-    setPage(1);
-    setItems([]);
-    setIsOpen(true);
+    if (isReady) closeLibrary(true);
   }
-  const isDisabled = Boolean(disabled || isSending);
+  const isDisabled = Boolean(disabled || isSending || !isReady);
 
   return (
     <div className="min-w-0">
@@ -159,6 +233,10 @@ export function ChatInput({
                     current.filter((asset) => asset.id !== id),
                   )
                 }
+              />
+              <LibraryAttachmentActions
+                assets={assets}
+                isDisabled={isDisabled}
               />
             </div>
           ) : undefined
@@ -212,19 +290,22 @@ export function ChatInput({
         title="Your Library"
         description="Attach generated or uploaded assets as references for this message."
         isOpen={isOpen}
-        isLoading={isLoading && page === 1}
+        isLoading={(isLoading || isDebouncing) && page === 1}
         items={items}
         selectedIds={new Set(assets.map((asset) => asset.id))}
-        onOpenChange={setIsOpen}
+        searchMode="remote"
+        searchQuery={searchQuery}
+        onSearchQueryChange={changeSearch}
+        onOpenChange={closeLibrary}
         onSelect={(item) => {
           const asset = items.find((candidate) => candidate.id === item.id);
-          if (asset && asset.brandId === brandId) {
+          if (isReady && !isDebouncing && asset && asset.brandId === brandId) {
             setAssets((current) =>
               current.some((existing) => existing.id === asset.id)
                 ? current
                 : [...current, asset],
             );
-            setIsOpen(false);
+            closeLibrary(false);
             textareaRef.current?.focus();
           }
         }}
@@ -237,6 +318,7 @@ export function ChatInput({
               <span>{error}</span>
               <Button
                 variant={ButtonVariant.SECONDARY}
+                isDisabled={!isReady || isLoading}
                 onClick={() => setReload((current) => current + 1)}
               >
                 Retry
@@ -247,7 +329,7 @@ export function ChatInput({
               variant={ButtonVariant.SECONDARY}
               withWrapper={false}
               className="w-full justify-center"
-              isDisabled={isLoading}
+              isDisabled={isLoading || !isReady || isDebouncing}
               onClick={() => setPage((current) => current + 1)}
             >
               {isLoading ? 'Loading…' : 'Load more'}

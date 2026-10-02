@@ -74,6 +74,7 @@ const routes = [
   ['POST', 'videos'],
   ['GET', 'videos'],
   ['GET', 'ingredients'],
+  ['GET', 'ingredients/batch'],
   ['GET', 'videos/:id'],
   ['POST', 'agent/threads'],
   ['GET', 'agent/threads'],
