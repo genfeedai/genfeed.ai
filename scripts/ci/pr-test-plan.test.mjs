@@ -14,11 +14,11 @@ import {
   selectShardCount,
 } from './pr-test-plan.mjs';
 
-test('scopes surfaces by diff on pull requests only, forces them elsewhere', () => {
+test('scopes PR and merge-group surfaces by diff, forces them elsewhere', () => {
   // The master Full Suite and release dispatch have no diff base, so
   // they force every surface.
   assert.equal(isChangeRunEvent('pull_request'), true);
-  assert.equal(isChangeRunEvent('merge_group'), false);
+  assert.equal(isChangeRunEvent('merge_group'), true);
   assert.equal(isChangeRunEvent('schedule'), false);
   assert.equal(isChangeRunEvent('push'), false);
   assert.equal(isChangeRunEvent('workflow_dispatch'), false);
@@ -328,7 +328,8 @@ test('keeps the workflow wired to the planner matrices and outputs', () => {
     5,
     'static checks, workspace, app, API, and build jobs read the planned base',
   );
-  assert.doesNotMatch(workflow, /merge_group/);
+  assert.match(workflow, /merge_group:\n {4}types: \[checks_requested\]/);
+  assert.match(workflow, /git merge-base --is-ancestor "\$base" HEAD/);
   // PR runs carry no coverage instrumentation; full-repository coverage
   // stays in the weekly Coverage workflow.
   assert.doesNotMatch(workflow, /--coverage/);

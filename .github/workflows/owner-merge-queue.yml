@@ -1,0 +1,45 @@
+name: Owner Merge Queue
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [CI, PR Heavy CI, PR Title]
+    types: [completed]
+  pull_request_target:
+    branches: [master]
+    types: [opened, reopened, synchronize, ready_for_review, labeled, unlabeled, review_requested, review_request_removed]
+  schedule:
+    - cron: '*/10 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: owner-merge-queue
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    if: vars.OWNER_MERGE_MODE == 'strict'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # Privileged metadata controller: never checkout a PR, load artifacts,
+      # execute PR code, or interpolate event text into commands.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: refs/heads/master
+          persist-credentials: false
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          MERGE_MODE: ${{ vars.OWNER_MERGE_MODE }}
+          STRICT_RULESET_ID: ${{ vars.OWNER_MERGE_RULESET_ID }}
+          MERGE_TOKEN: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
+        with:
+          # A PAT merge/update emits native PR and master push events.
+          # Never fall back to GITHUB_TOKEN and suppress those validations.
+          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
+          script: |
+            if (!process.env.MERGE_TOKEN) throw new Error('Owner merge token is missing');
+            const { reconcile } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/ci/owner-merge-queue.mjs`);
+            await reconcile({ github, mode: process.env.MERGE_MODE, rulesetId: process.env.STRICT_RULESET_ID });
