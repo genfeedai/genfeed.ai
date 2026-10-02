@@ -1,5 +1,6 @@
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
+import * as dispatchLock from '@api/collections/workflows/services/agent-autopilot-dispatch-lock.util';
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
 import { AGENT_RUNTIME_WORKFLOW_DEFINITIONS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import {
@@ -11,6 +12,17 @@ import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-w
 import { buildWorkflowVersionDefinition } from '@api/collections/workflows/workflow-version-definition';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+beforeEach(() => {
+  vi.spyOn(dispatchLock, 'withProactiveDispatchLock').mockImplementation(
+    async (_config, _organizationId, _strategyId, run) =>
+      run({
+        assertOwned: () => {},
+        verifyOwned: async () => {},
+      }),
+  );
+});
+afterEach(() => vi.restoreAllMocks());
 
 type Row = Record<string, unknown>;
 
@@ -192,6 +204,7 @@ function setup() {
     {} as never,
     {} as never,
     logger as never,
+    { get: () => undefined },
   );
   const dispatch = () =>
     autopilot.dispatchProactiveStrategy({

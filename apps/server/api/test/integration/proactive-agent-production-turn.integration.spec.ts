@@ -382,4 +382,272 @@ describe('proactive production turn acceptance', () => {
       threadReads.mockRestore();
     }
   }, 40_000);
+
+  async function assertSinglePaidExecution(
+    actor: Parameters<Fixture['run']>[0],
+    executionId: string,
+  ) {
+    const { execution, outcome } = await fixture.waitForDispatch(
+      actor,
+      executionId,
+    );
+    expect(outcome.error).toBeNull();
+    expect(execution.status).toBe('COMPLETED');
+    expect(
+      await fixture.prisma.workflowExecution.count({
+        where: {
+          organizationId: actor.organizationId,
+          isDeleted: false,
+          idempotencyKey: { startsWith: 'proactive:' },
+        },
+      }),
+    ).toBe(1);
+    const reservations = await fixture.prisma.creditReservation.findMany({
+      where: {
+        organizationId: actor.organizationId,
+        isDeleted: false,
+        workloadType: 'agent-llm-round',
+      },
+    });
+    expect(reservations).toHaveLength(1);
+    const reservation = reservations[0];
+    const { AGENT_RUNTIME_ACTION_IDS } = await import(
+      '@api/collections/workflows/services/agent-runtime-workflow-definitions'
+    );
+    const { workflowGenerationOperationId } = await import(
+      '@api/helpers/utils/credits/workflow-generation-evidence.util'
+    );
+    const attribution = {
+      workflowExecutionId: executionId,
+      workflowNodeId: 'infer-turn',
+      workflowOperationId: workflowGenerationOperationId(
+        executionId,
+        'infer-turn',
+        AGENT_RUNTIME_ACTION_IDS.TURN_INFER,
+      ),
+    };
+    const cost = fixture.registry.toRoundCredits(PRODUCTION_TURN_COST_USD);
+    expect(reservation).toMatchObject({
+      ...attribution,
+      actorUserId: actor.userId,
+      status: 'SETTLED',
+      idempotencyKey: `${executionId}:agent-llm-round:1`,
+      workloadId: `${executionId}:agent-llm-round:1`,
+      settledAmount: cost,
+    });
+    const debits = await fixture.prisma.creditTransaction.findMany({
+      where: {
+        organizationId: actor.organizationId,
+        isDeleted: false,
+        category: CreditTransactionCategory.DEDUCT,
+      },
+    });
+    expect(debits).toHaveLength(1);
+    expect(debits[0]).toMatchObject({
+      ...attribution,
+      actorUserId: actor.userId,
+      reservationId: reservation.id,
+      category: CreditTransactionCategory.DEDUCT,
+      amount: cost,
+    });
+    expect(fixture.calls.reserve).toHaveBeenCalledTimes(1);
+    expect(fixture.calls.settle).toHaveBeenCalledTimes(1);
+    expect(fixture.calls.release).not.toHaveBeenCalled();
+    expect(fixture.observed).toHaveLength(1);
+    expect(fixture.heldReservationIds).toEqual([reservation.id]);
+    fixture.assertTransports();
+  }
+
+  it('holds the real dispatch backend beyond thirty seconds while a paid provider round is pending', async () => {
+    const actor = await fixture.seedActor('text');
+    const admission = await fixture.pauseDispatch('accepted');
+    const provider = fixture.pauseProvider();
+    const first = fixture.dispatch(actor).then(
+      (value) => ({ value, error: null }),
+      (error: unknown) => ({ value: null, error }),
+    );
+    try {
+      await waitForDispatchBarrier(admission.entered);
+      await waitForDispatchBarrier(provider.entered);
+      const owner = await fixture.observeDispatchLock(actor);
+      const started = Date.now();
+      await new Promise((resolve) => setTimeout(resolve, 31_000));
+      expect(Date.now() - started).toBeGreaterThanOrEqual(30_000);
+      expect(await fixture.observeDispatchLock(actor)).toEqual(owner);
+      expect(await fixture.contendDispatchLock(actor)).toBe(false);
+      expect(await fixture.dispatch(actor)).toEqual({ status: 'skipped' });
+      expect(fixture.calls.reserve).toHaveBeenCalledTimes(1);
+      expect(fixture.calls.settle).not.toHaveBeenCalled();
+      admission.resume();
+      provider.resume();
+      const result = await first;
+      expect(result.error).toBeNull();
+      expect(typeof result.value?.executionId).toBe('string');
+      await assertSinglePaidExecution(actor, String(result.value?.executionId));
+    } finally {
+      admission.resume();
+      provider.resume();
+      await first;
+      admission.restore();
+    }
+  }, 60_000);
+
+  it('rejects a terminated owned dispatch backend before admission without a reservation or failure increment', async () => {
+    const actor = await fixture.seedActor('text');
+    const original = await fixture.prisma.agentStrategy.findFirstOrThrow({
+      where: {
+        id: actor.strategyId,
+        organizationId: actor.organizationId,
+        isDeleted: false,
+      },
+    });
+    const preparation = await fixture.pauseDispatch('preparation');
+    const first = fixture.dispatch(actor).then(
+      (value) => ({ value, error: null }),
+      (error: unknown) => ({ value: null, error }),
+    );
+    try {
+      await waitForDispatchBarrier(preparation.entered);
+      const owner = await fixture.observeDispatchLock(actor);
+      await fixture.terminateDispatchOwner(actor, owner);
+      preparation.resume();
+      const result = await first;
+      expect(result.value).toBeNull();
+      expect(result.error).toMatchObject({
+        name: 'ProactiveDispatchOwnershipError',
+      });
+      expect(
+        await fixture.prisma.workflowExecution.count({
+          where: {
+            organizationId: actor.organizationId,
+            isDeleted: false,
+            idempotencyKey: { startsWith: 'proactive:' },
+          },
+        }),
+      ).toBe(0);
+      expect(
+        await fixture.prisma.creditReservation.count({
+          where: {
+            organizationId: actor.organizationId,
+            isDeleted: false,
+          },
+        }),
+      ).toBe(0);
+      expect(
+        await fixture.prisma.agentThread.count({
+          where: {
+            organizationId: actor.organizationId,
+            agentStrategyId: actor.strategyId,
+            isDeleted: false,
+          },
+        }),
+      ).toBe(0);
+      const unchanged = await fixture.prisma.agentStrategy.findFirstOrThrow({
+        where: {
+          id: actor.strategyId,
+          organizationId: actor.organizationId,
+          isDeleted: false,
+        },
+      });
+      expect(unchanged.config).toEqual(original.config);
+      expect(fixture.observed).toHaveLength(0);
+      preparation.restore();
+      const retry = await fixture.dispatch(actor);
+      expect(typeof retry.executionId).toBe('string');
+      await assertSinglePaidExecution(actor, String(retry.executionId));
+    } finally {
+      preparation.resume();
+      await first;
+      preparation.restore();
+    }
+  }, 60_000);
+
+  it('recovers an accepted enqueue after owned backend loss with one durable paid identity', async () => {
+    const actor = await fixture.seedActor('text');
+    await fixture.platformQueue.pause();
+    const admission = await fixture.pauseDispatch('accepted');
+    const first = fixture.dispatch(actor).then(
+      (value) => ({ value, error: null }),
+      (error: unknown) => ({ value: null, error }),
+    );
+    try {
+      await waitForDispatchBarrier(admission.entered);
+      const accepted = await fixture.prisma.workflowExecution.findMany({
+        where: {
+          organizationId: actor.organizationId,
+          isDeleted: false,
+          idempotencyKey: { startsWith: 'proactive:' },
+        },
+      });
+      expect(accepted).toHaveLength(1);
+      expect(accepted[0].status).toBe('PENDING');
+      const execution = accepted[0];
+      const jobId = `system-workflow-${execution.id}`;
+      const job = await fixture.platformQueue.getJob(jobId);
+      expect(job).toBeDefined();
+      const frozenJob = structuredClone(job?.data);
+      expect(fixture.calls.reserve).not.toHaveBeenCalled();
+      const owner = await fixture.observeDispatchLock(actor);
+      await fixture.terminateDispatchOwner(actor, owner);
+      admission.resume();
+      const result = await first;
+      expect(result.value).toBeNull();
+      expect(result.error).toMatchObject({
+        name: 'ProactiveDispatchOwnershipError',
+      });
+      admission.restore();
+      expect(await fixture.dispatch(actor)).toMatchObject({
+        executionId: execution.id,
+      });
+      const recovered = await fixture.prisma.workflowExecution.findFirstOrThrow(
+        {
+          where: {
+            id: execution.id,
+            organizationId: actor.organizationId,
+            isDeleted: false,
+          },
+        },
+      );
+      expect(recovered.idempotencyKey).toBe(execution.idempotencyKey);
+      expect(recovered.result).toEqual(execution.result);
+      expect((await fixture.platformQueue.getJob(jobId))?.data).toEqual(
+        frozenJob,
+      );
+      expect(
+        await fixture.platformQueue.getJobCounts(
+          'waiting',
+          'active',
+          'delayed',
+        ),
+      ).toMatchObject({ waiting: 1, active: 0, delayed: 0 });
+      expect(await fixture.platformQueue.isPaused()).toBe(true);
+      await fixture.platformQueue.resume();
+      await assertSinglePaidExecution(actor, execution.id);
+      expect(await fixture.dispatch(actor)).toEqual({ status: 'skipped' });
+      expect(fixture.calls.reserve).toHaveBeenCalledTimes(1);
+      expect(fixture.calls.settle).toHaveBeenCalledTimes(1);
+    } finally {
+      admission.resume();
+      await first;
+      admission.restore();
+      await fixture.platformQueue.resume();
+    }
+  }, 60_000);
 });
+
+async function waitForDispatchBarrier(entered: Promise<void>) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      entered,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error('Dispatch barrier was not reached')),
+          10_000,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}

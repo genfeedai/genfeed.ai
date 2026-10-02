@@ -1,5 +1,6 @@
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
+import * as dispatchLock from '@api/collections/workflows/services/agent-autopilot-dispatch-lock.util';
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
 import { BatchGenerationCreationService } from '@api/services/batch-generation/batch-generation-creation.service';
 import { BatchGenerationProcessingService } from '@api/services/batch-generation/batch-generation-processing.service';
@@ -25,7 +26,19 @@ type Row = Record<string, unknown>;
 // Real application services; deterministic in-memory persistence, queue and generation stubs.
 // PostgreSQL transaction/concurrency guarantees are verified separately in the opt-in database suite.
 describe('proactive organization to strategy run and attributed draft integration', () => {
-  afterEach(() => vi.useRealTimers());
+  beforeEach(() => {
+    vi.spyOn(dispatchLock, 'withProactiveDispatchLock').mockImplementation(
+      async (_config, _organizationId, _strategyId, run) =>
+        run({
+          assertOwned: () => {},
+          verifyOwned: async () => {},
+        }),
+    );
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
   it('dispatches the next minute, records exactly one consumed run and attributes generated drafts', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-09-24T08:00:00Z'));
@@ -247,6 +260,7 @@ describe('proactive organization to strategy run and attributed draft integratio
         releaseLock: vi.fn(),
       } as never,
       logger as never,
+      { get: () => undefined },
     );
     const schedules = new PlatformWorkflowSchedulesService(
       prisma as never,

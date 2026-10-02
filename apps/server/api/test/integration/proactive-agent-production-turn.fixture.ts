@@ -10,6 +10,7 @@ import type {
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { TestingModule } from '@nestjs/testing';
 import { Queue, QueueEvents } from 'bullmq';
+import type { Client } from 'pg';
 import { vi } from 'vitest';
 
 export const PRODUCTION_TURN_COST_USD = 0.001;
@@ -28,6 +29,31 @@ type Actor = {
   brandId: string;
   strategyId: string;
 };
+
+type DispatchLockProof = { pid: number; backendStart: string; key: string };
+type RuntimeBarrier = ReturnType<typeof runtimeBarrier>;
+function runtimeBarrier() {
+  let resume: () => void = () => {
+    throw new Error('Uninitialized barrier');
+  };
+  let signal: () => void = () => {
+    throw new Error('Uninitialized barrier');
+  };
+  const resumed = new Promise<void>((resolve) => {
+    resume = resolve;
+  });
+  const entered = new Promise<void>((resolve) => {
+    signal = resolve;
+  });
+  return {
+    entered,
+    resume,
+    wait: async () => {
+      signal();
+      await resumed;
+    },
+  };
+}
 
 function record(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -195,6 +221,11 @@ export async function createProactiveProductionTurnFixture() {
   const modelKey = `fixture/${namespace}`;
   const transports = await isolatedTransports(databaseUrl, redisUrl);
   let moduleRef: TestingModule | undefined;
+  let dispatchControl: Client | undefined;
+  const dispatchControlErrors: unknown[] = [];
+  const dispatchBarriers = new Set<RuntimeBarrier>();
+  const activeDispatches = new Set<Promise<Record<string, unknown>>>();
+  let providerBarrier: RuntimeBarrier | undefined;
   const queues = new Map<string, Queue>();
   const events = new Map<string, QueueEvents>();
   const actors: Actor[] = [];
@@ -621,6 +652,7 @@ export async function createProactiveProductionTurnFixture() {
             heldReservationIds.push(held[0].id);
             observed.push(structuredClone(params));
             scenarioCalls++;
+            if (providerBarrier) await providerBarrier.wait();
             if (scenario === 'provider-failure') {
               strictEqual(scenarioCalls, 1, 'Failed round was replayed');
               throw new Error('4959 scripted provider failure');
@@ -929,7 +961,7 @@ export async function createProactiveProductionTurnFixture() {
       );
       return actor;
     };
-    const run = async (actor: Actor) => {
+    const dispatch = async (actor: Actor) => {
       const strategy = await db.agentStrategy.findFirstOrThrow({
         where: {
           id: actor.strategyId,
@@ -937,17 +969,20 @@ export async function createProactiveProductionTurnFixture() {
           isDeleted: false,
         },
       });
-      const dispatched = await module
+      const pending = module
         .get(AgentAutopilotWorkflowService)
         .dispatchProactiveStrategy({
           organizationId: actor.organizationId,
           item: strategy,
         });
-      if (typeof dispatched.executionId !== 'string')
-        throw new Error(
-          `Actual proactive dispatch refused: ${JSON.stringify(dispatched)}`,
-        );
-      const executionId = dispatched.executionId;
+      activeDispatches.add(pending);
+      try {
+        return await pending;
+      } finally {
+        activeDispatches.delete(pending);
+      }
+    };
+    const waitForDispatch = async (actor: Actor, executionId: string) => {
       const queue = queues.get(queueNames.PLATFORM_SYSTEM_WORKFLOW_QUEUE);
       if (!queue) throw new Error('Missing actual platform queue');
       let queueEvent = events.get(queue.name);
@@ -991,6 +1026,177 @@ export async function createProactiveProductionTurnFixture() {
       transports.assertClean();
       return { execution, outcome, job };
     };
+    const run = async (actor: Actor) => {
+      const dispatched = await dispatch(actor);
+      if (typeof dispatched.executionId !== 'string')
+        throw new Error(
+          `Actual proactive dispatch refused: ${JSON.stringify(dispatched)}`,
+        );
+      return waitForDispatch(actor, dispatched.executionId);
+    };
+    const requireActor = (actor: Actor) => {
+      if (!actors.includes(actor) || !actor.strategyId)
+        throw new Error('Dispatch control refuses an unowned actor');
+      return `agent-proactive-dispatch:${actor.organizationId}:${actor.strategyId}`;
+    };
+    const control = async () => {
+      if (!dispatchControl) {
+        const { Client } = await import('pg');
+        dispatchControl = new Client({
+          connectionString: databaseUrl,
+          application_name: `${namespace}-dispatch-control`,
+        });
+        dispatchControl.on('error', (error) =>
+          dispatchControlErrors.push(error),
+        );
+        await dispatchControl.connect();
+      }
+      if (dispatchControlErrors.length)
+        throw new AggregateError(
+          dispatchControlErrors,
+          'Dispatch observer failed',
+        );
+      return dispatchControl;
+    };
+    const lockRows = async (actor: Actor) => {
+      const key = requireActor(actor);
+      return (
+        await (
+          await control()
+        ).query<{ pid: number; backendStart: string }>(
+          `
+        SELECT a.pid, a.backend_start::text AS "backendStart"
+        FROM pg_locks l JOIN pg_stat_activity a ON a.pid = l.pid
+        WHERE l.locktype = 'advisory' AND l.granted
+          AND l.database = (SELECT oid FROM pg_database WHERE datname = current_database())
+          AND l.classid = ((hashtextextended($1, 0) >> 32) & 4294967295)::oid
+          AND l.objid = (hashtextextended($1, 0) & 4294967295)::oid AND l.objsubid = 1
+          AND a.datname = current_database() AND a.usename = current_user
+          AND a.pid <> pg_backend_pid()`,
+          [key],
+        )
+      ).rows.map((row) => ({ ...row, key }));
+    };
+    const observeDispatchLock = async (
+      actor: Actor,
+    ): Promise<DispatchLockProof> => {
+      const rows = await lockRows(actor);
+      if (rows.length !== 1)
+        throw new Error(
+          `Expected one fixture dispatch owner, received ${rows.length}`,
+        );
+      return rows[0];
+    };
+    const contendDispatchLock = async (actor: Actor) => {
+      const key = requireActor(actor);
+      const client = await control();
+      const result = await client.query<{ acquired: boolean }>(
+        'SELECT pg_try_advisory_lock(hashtextextended($1, 0)) AS acquired',
+        [key],
+      );
+      const acquired = result.rows[0]?.acquired;
+      if (typeof acquired !== 'boolean')
+        throw new Error('Missing lock contender result');
+      if (acquired) {
+        const released = await client.query<{ released: boolean }>(
+          'SELECT pg_advisory_unlock(hashtextextended($1, 0)) AS released',
+          [key],
+        );
+        strictEqual(released.rows[0]?.released, true);
+      }
+      return acquired;
+    };
+    const terminateDispatchOwner = async (
+      actor: Actor,
+      proof: DispatchLockProof,
+    ) => {
+      strictEqual(proof.key, requireActor(actor));
+      deepStrictEqual(await observeDispatchLock(actor), proof);
+      const result = await (await control()).query<{ terminated: boolean }>(
+        `
+        SELECT pg_terminate_backend(a.pid) AS terminated
+        FROM pg_stat_activity a
+        WHERE a.pid = $2 AND a.backend_start::text = $3
+          AND a.datname = current_database() AND a.usename = current_user
+          AND a.pid <> pg_backend_pid() AND EXISTS (
+            SELECT 1 FROM pg_locks l WHERE l.pid = a.pid AND l.locktype = 'advisory'
+              AND l.granted AND l.objsubid = 1
+              AND l.database = (SELECT oid FROM pg_database WHERE datname = current_database())
+              AND l.classid = ((hashtextextended($1, 0) >> 32) & 4294967295)::oid
+              AND l.objid = (hashtextextended($1, 0) & 4294967295)::oid
+          )`,
+        [proof.key, proof.pid, proof.backendStart],
+      );
+      strictEqual(result.rows.length, 1);
+      strictEqual(result.rows[0].terminated, true);
+      const end = Date.now() + 5000;
+      while ((await lockRows(actor)).length) {
+        if (Date.now() >= end)
+          throw new Error('Owned dispatch backend did not release its lock');
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+    };
+    const pauseProvider = () => {
+      if (providerBarrier) throw new Error('Provider barrier already active');
+      const barrier = runtimeBarrier();
+      providerBarrier = barrier;
+      dispatchBarriers.add(barrier);
+      return {
+        entered: barrier.entered,
+        resume: () => {
+          barrier.resume();
+          providerBarrier = undefined;
+          dispatchBarriers.delete(barrier);
+        },
+      };
+    };
+    const pauseDispatch = async (phase: 'preparation' | 'accepted') => {
+      const barrier = runtimeBarrier();
+      dispatchBarriers.add(barrier);
+      if (phase === 'accepted') {
+        const runner = module.get(SystemWorkflowRunnerService);
+        const enqueue = runner.enqueueWorkflow.bind(runner);
+        const spy = vi
+          .spyOn(runner, 'enqueueWorkflow')
+          .mockImplementationOnce(async (...args) => {
+            const result = await enqueue(...args);
+            await barrier.wait();
+            return result;
+          });
+        providerSpies.push(spy);
+        return {
+          entered: barrier.entered,
+          resume: () => {
+            barrier.resume();
+            dispatchBarriers.delete(barrier);
+          },
+          restore: () => spy.mockRestore(),
+        };
+      }
+      const { AgentStrategyAutopilotPerformanceService } = await import(
+        '@api/collections/agent-strategies/services/agent-strategy-autopilot-performance.service'
+      );
+      const performance = module.get(AgentStrategyAutopilotPerformanceService);
+      const snapshot = performance.getPerformanceSnapshot.bind(performance);
+      const spy = vi
+        .spyOn(performance, 'getPerformanceSnapshot')
+        .mockImplementationOnce(async (...args) => {
+          const result = await snapshot(...args);
+          await barrier.wait();
+          return result;
+        });
+      providerSpies.push(spy);
+      return {
+        entered: barrier.entered,
+        resume: () => {
+          barrier.resume();
+          dispatchBarriers.delete(barrier);
+        },
+        restore: () => spy.mockRestore(),
+      };
+    };
+    const platformQueue = queues.get(queueNames.PLATFORM_SYSTEM_WORKFLOW_QUEUE);
+    if (!platformQueue) throw new Error('Missing actual platform queue');
     return {
       module,
       prisma: db,
@@ -1003,6 +1209,14 @@ export async function createProactiveProductionTurnFixture() {
       registry,
       seedActor,
       run,
+      dispatch,
+      waitForDispatch,
+      observeDispatchLock,
+      contendDispatchLock,
+      terminateDispatchOwner,
+      pauseDispatch,
+      pauseProvider,
+      platformQueue,
       assertTransports: transports.assertClean,
       close,
     };
@@ -1025,6 +1239,11 @@ export async function createProactiveProductionTurnFixture() {
         failures.push(error);
       }
     };
+    for (const barrier of dispatchBarriers) barrier.resume();
+    await Promise.allSettled([...activeDispatches]);
+    const controlClient = dispatchControl;
+    if (controlClient) await attempt(() => controlClient.end());
+    failures.push(...dispatchControlErrors);
     // Nest owns the real workers; pause/close them through its lifecycle first.
     await attempt(async () => moduleRef?.close());
     for (const event of events.values()) await attempt(() => event.close());
