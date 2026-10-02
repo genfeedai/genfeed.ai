@@ -1,14 +1,16 @@
 import { FleetReviewStatus, IngredientCategory } from '@genfeedai/contracts';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
+  mockHeaderContext,
   mockOpenPostBatchModal,
   mockSetHeaderMeta,
   mockUseBrand,
   mockUseIngredientsList,
 } = vi.hoisted(() => ({
+  mockHeaderContext: vi.fn(),
   mockOpenPostBatchModal: vi.fn(),
   mockSetHeaderMeta: vi.fn(),
   mockUseBrand: vi.fn(),
@@ -25,9 +27,7 @@ vi.mock('@contexts/content/ingredients-context/ingredients-context', () => ({
 vi.mock(
   '@contexts/content/ingredients-header-context/ingredients-header-context',
   () => ({
-    useIngredientsHeaderContext: vi.fn(() => ({
-      setHeaderMeta: mockSetHeaderMeta,
-    })),
+    useIngredientsHeaderContext: () => mockHeaderContext(),
   }),
 );
 
@@ -52,11 +52,13 @@ vi.mock('@ui/ingredients/list/header/IngredientsListHeader', () => ({
   default: ({
     canPublishCampaign,
     onPublishCampaign,
+    placement,
   }: {
     canPublishCampaign: boolean;
     onPublishCampaign: () => void;
+    placement?: string;
   }) => (
-    <div>
+    <div data-placement={placement ?? 'overlay'} data-testid="selection-header">
       <span data-testid="publish-campaign-state">
         {canPublishCampaign ? 'enabled' : 'disabled'}
       </span>
@@ -179,11 +181,17 @@ function buildIngredientsListReturn(overrides: Record<string, unknown> = {}) {
 }
 
 describe('IngredientsList', () => {
+  beforeEach(() => {
+    mockHeaderContext.mockReturnValue({
+      setHeaderMeta: mockSetHeaderMeta,
+    });
+  });
+
   it('renders the canonical empty content state', () => {
     mockUseBrand.mockReturnValue({ selectedBrand: undefined });
     mockUseIngredientsList.mockReturnValue(buildIngredientsListReturn());
 
-    render(<IngredientsList />);
+    render(<IngredientsList type="images" />);
 
     expect(screen.getByTestId('ingredients-content')).toHaveTextContent(
       '0 assets',
@@ -202,7 +210,7 @@ describe('IngredientsList', () => {
       }),
     );
 
-    render(<IngredientsList />);
+    render(<IngredientsList type="images" />);
 
     expect(screen.getByTestId('ingredients-content')).toHaveTextContent(
       '1 assets',
@@ -213,7 +221,7 @@ describe('IngredientsList', () => {
     mockUseBrand.mockReturnValue({ selectedBrand: undefined });
     mockUseIngredientsList.mockReturnValue(buildIngredientsListReturn());
 
-    render(<IngredientsList folderNavigation="shell" />);
+    render(<IngredientsList type="images" folderNavigation="shell" />);
 
     expect(screen.queryByTestId('ingredients-sidebar')).not.toBeInTheDocument();
     expect(screen.getByTestId('ingredients-content')).toBeInTheDocument();
@@ -233,7 +241,7 @@ describe('IngredientsList', () => {
       }),
     );
 
-    render(<IngredientsList />);
+    render(<IngredientsList type="images" />);
 
     expect(screen.getByText('Failed to load images')).toBeInTheDocument();
     expect(screen.queryByTestId('ingredients-content')).not.toBeInTheDocument();
@@ -269,7 +277,7 @@ describe('IngredientsList', () => {
       }),
     );
 
-    render(<IngredientsList />);
+    render(<IngredientsList type="images" />);
 
     expect(screen.getByTestId('publish-campaign-state')).toHaveTextContent(
       'enabled',
@@ -278,6 +286,48 @@ describe('IngredientsList', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Publish Campaign' }));
 
     expect(mockOpenPostBatchModal).toHaveBeenCalledWith(selectedIngredients);
+  });
+
+  it('keeps selection actions out of the pinned bar until something is selected', () => {
+    const slot = document.createElement('div');
+    document.body.appendChild(slot);
+    mockHeaderContext.mockReturnValue({
+      hostsSelectionActions: true,
+      selectionSlot: slot,
+      setHeaderMeta: mockSetHeaderMeta,
+    });
+    mockUseBrand.mockReturnValue({ selectedBrand: undefined });
+    mockUseIngredientsList.mockReturnValue(buildIngredientsListReturn());
+
+    render(<IngredientsList type="images" />);
+
+    expect(screen.queryByTestId('selection-header')).not.toBeInTheDocument();
+    expect(slot).toBeEmptyDOMElement();
+    slot.remove();
+  });
+
+  it('puts selection actions in the pinned library bar', () => {
+    const slot = document.createElement('div');
+    document.body.appendChild(slot);
+    mockHeaderContext.mockReturnValue({
+      hostsSelectionActions: true,
+      selectionSlot: slot,
+      setHeaderMeta: mockSetHeaderMeta,
+    });
+    mockUseBrand.mockReturnValue({ selectedBrand: undefined });
+    mockUseIngredientsList.mockReturnValue(
+      buildIngredientsListReturn({
+        filteredIngredients: [{ id: 'img-1' }],
+        selectedIngredientIds: ['img-1'],
+      }),
+    );
+
+    render(<IngredientsList type="images" />);
+
+    const header = screen.getByTestId('selection-header');
+    expect(header).toHaveAttribute('data-placement', 'subtopbar');
+    expect(slot).toContainElement(header);
+    slot.remove();
   });
 
   it('disables campaign publish when assets are from different campaigns', () => {
@@ -304,7 +354,7 @@ describe('IngredientsList', () => {
       }),
     );
 
-    render(<IngredientsList />);
+    render(<IngredientsList type="images" />);
 
     expect(screen.getByTestId('publish-campaign-state')).toHaveTextContent(
       'disabled',

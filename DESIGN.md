@@ -793,11 +793,20 @@ admins), Help, and the account avatar, whose menu carries the name, email and
 settings scopes; the sidebar has no profile row.
 
 The menu and the page share one block, inset from the window by `--shell-inset`
-(8px, desktop) on every side: `rounded-lg` and `border border-border`. The menu
+(8px, desktop) on the left, right, and bottom. The top of the block sits on the
+bottom of the topbar: `rounded-lg` and `border border-border`. The menu
 is `gray-100`, one step off the page (`bg-primary`; pure black in Dark), with
 `border-r border-border` while expanded. The page owns scrolling, so
 `sticky top-0` inside a page sticks under the block's top. The topbar sits on
-the rail plane, outside that block, in the band above it.
+the rail plane, outside that block, in the band above it. Its leading edge
+holds the organization switcher, then the brand switcher, then the breadcrumb.
+Credits, notifications, and sync stay at the trailing edge. The Genfeed mark
+lives in the rail, in a band the same height as this bar. The details toggle
+is the last control of the page sub-nav, and only when something is selected,
+because it opens the inspector inside the content. With nothing selected the
+column stays closed and the control is not shown. On desktop
+the menu has no header row, so a page without a brand (Help, personal
+settings) starts with its items.
 
 The workspace inspector attaches to the block's right side as one surface: the
 block squares its right corners and the inspector carries the outer right
@@ -814,22 +823,32 @@ Section labels are `caption` type, uppercase, `text-muted`.
 
 ### App Rail
 
-Persistent top-level navigation at the far left, 52px wide, the same `gray-100`
-plane as the topbar, with no divider. It picks the app; the sidebar to its right
+Persistent top-level navigation at the far left, 40px wide, the same `gray-100`
+plane as the topbar, with no divider. Rail width and topbar height share one
+dimension: a 32px control plus 4px padding on each side. Its 40px top band
+holds the Genfeed mark: the logo at rest, the sidebar collapse
+control on hover. It picks the app; the sidebar to its right
 holds that app's own menu, and collapsing the sidebar leaves the rail in place.
-Items are 36px `rounded-lg` icon-only links: `text-foreground/50` at rest,
+Items are 32px `rounded-lg` icon-only links with 16px icons: `text-foreground/50` at rest,
 `hover:bg-foreground/[0.06]`, and the active app a filled
 `bg-foreground/[0.12] text-foreground` tile.
 Each item carries a right-side tooltip (label, one-line description, and shortcut).
 The shared `app-rail.registry.ts` owns app order, groups, visibility flags, active
-roots, and scoped destinations for links, palette commands, and shortcuts. Order is
-Agent, Workspace, Studio, Library, Publishing, Messages; a short divider; then
-Discovery, Analytics, Automation. Role-gated Admin sits at the bottom. Unread
-counts render as an `info` pill on the item. On mobile the rail sits inside the
-navigation drawer beside the menu.
+roots, and scoped destinations for links, palette commands, and shortcuts. Order is Workspace, Agent, Library, Publishing, Analytics. Publishing uses a
+calendar icon. The last control of that section is More, a menu of Studio,
+Automation, Messages, and Discovery. Discovery stays there: it helps people
+find what to make, and it is not the measurement that follows a publish.
+Role-gated Admin sits at the bottom. A signed-in user can pin Studio,
+Automation, Messages, or Discovery onto the rail, ahead of More, in the order
+they pinned them. A short divider separates those pins from the daily pages.
+More never takes the active tile: the current page does, when it is pinned or
+in the daily list. Pins are stored on that user's settings. Unread counts
+render as an `info` pill on the item, and on More while an unpinned app has a
+count. On mobile the rail sits inside the navigation drawer beside the menu.
 
 Web shortcuts are `G` followed by `1`–`9` within one second; the desktop client
-uses `⌘1`–`⌘9`. Numbers follow the visible rail order; Admin is never numbered.
+uses `⌘1`–`⌘9`. Numbers follow the visible daily apps only. More, pinned apps,
+and Admin are never numbered.
 Typing into inputs, textareas, editable content, or menus/dialogs suppresses these
 shortcuts. The G prefix accepts physical `KeyG` or a key that types `g`. Digit
 shortcuts accept physical number-row and numpad keys across keyboard layouts.

@@ -1,7 +1,6 @@
 'use client';
 
 import type { GenerationHarnessReceiptProps } from '@genfeedai/props/ui/generation-setup/generation-harness.props';
-import Card from '@ui/card/Card';
 import KnowledgeReceiptList from '@ui/knowledge/KnowledgeReceiptList';
 import { useTranslations } from 'next-intl';
 
@@ -10,7 +9,7 @@ export default function GenerationHarnessReceipt({
 }: GenerationHarnessReceiptProps) {
   const translate = useTranslations('ui.generationHarness');
   return (
-    <Card bodyClassName="gap-3">
+    <section className="space-y-3 border-t border-border pt-5">
       <div className="space-y-1">
         <p className="text-sm font-semibold">
           {receipt.status === 'applied'
@@ -50,6 +49,6 @@ export default function GenerationHarnessReceipt({
       {receipt.knowledgeReceipts?.length ? (
         <KnowledgeReceiptList receipts={receipt.knowledgeReceipts} />
       ) : null}
-    </Card>
+    </section>
   );
 }

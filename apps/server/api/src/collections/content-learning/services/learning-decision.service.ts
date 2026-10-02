@@ -1,35 +1,50 @@
-import { randomInt } from 'node:crypto';
 import { LearningAccountService } from '@api/collections/content-learning/services/learning-account.service';
+import {
+  hasInsufficientBaselineLineage,
+  readReplayBaseline,
+} from '@api/collections/content-learning/services/learning-baseline-lineage.helper';
 import { LearningCheckpointService } from '@api/collections/content-learning/services/learning-checkpoint.service';
+import {
+  LearningDependencyService,
+  learningFence,
+} from '@api/collections/content-learning/services/learning-dependency.service';
 import {
   learningHash,
   learningScopeKey,
 } from '@api/collections/content-learning/services/learning-operation.service';
-import {
-  LearningPolicyService,
-  parseLearningPolicy,
-} from '@api/collections/content-learning/services/learning-policy.service';
+import { LearningPolicyService } from '@api/collections/content-learning/services/learning-policy.service';
+import { LearningScopeStateService } from '@api/collections/content-learning/services/learning-scope-state.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ContentLearningMode,
   fromPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
 import {
+  type LearningCellDescriptor,
   type LearningGenerationContext,
   type LearningGenerationReceipt,
   type LearningScope,
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import {
   type ContentHarnessContribution,
-  initializeLearningPolicy,
   LEARNING_ARMS,
   type LearningArmId,
-  learningContribution,
+  learningDescriptorTuple,
+  learningExecutionProbabilities,
   learningFeatures,
-  learningProbabilities,
-  sampleLearningArm,
+  learningRegisteredProfiles,
+  validLearningDescriptor,
 } from '@genfeedai/harness';
-import { type ContentLearningDecision, toPrismaJson } from '@genfeedai/prisma';
+import {
+  type ContentLearningAccount,
+  type ContentLearningBaseline,
+  type ContentLearningDecision,
+  type ContentLearningExperiment,
+  type ContentLearningPolicyVersion,
+  type ContentLearningScopeState,
+  type Prisma,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import {
   BadRequestException,
   ConflictException,
@@ -48,6 +63,28 @@ export interface LearningResolution {
   receipt: LearningGenerationReceipt;
   contribution: ContentHarnessContribution;
 }
+type LearningDistribution = Record<LearningArmId, number>;
+function distribution(value: unknown): LearningDistribution | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const values = value as Record<string, unknown>;
+  if (
+    Object.keys(values).length !== LEARNING_ARMS.length ||
+    LEARNING_ARMS.some(
+      (arm) =>
+        typeof values[arm] !== 'number' ||
+        !Number.isFinite(values[arm]) ||
+        Number(values[arm]) < 0 ||
+        Number(values[arm]) > 1,
+    )
+  )
+    return null;
+  const result = values as LearningDistribution;
+  return Math.abs(
+    LEARNING_ARMS.reduce((sum, arm) => sum + result[arm], 0) - 1,
+  ) <= 1e-12
+    ? result
+    : null;
+}
 @Injectable()
 export class LearningDecisionService {
   constructor(
@@ -55,22 +92,41 @@ export class LearningDecisionService {
     private readonly accounts: LearningAccountService,
     private readonly checkpoints: LearningCheckpointService,
     private readonly policies: LearningPolicyService,
+    private readonly scopes: LearningScopeStateService,
+    private readonly dependencies: LearningDependencyService,
   ) {}
   private receipt(
     decision: ContentLearningDecision,
   ): LearningGenerationReceipt {
+    const snapshot =
+      decision.contextSnapshot &&
+      typeof decision.contextSnapshot === 'object' &&
+      !Array.isArray(decision.contextSnapshot)
+        ? decision.contextSnapshot
+        : {};
     return {
       decisionId: decision.id,
       credentialId: decision.credentialId,
       mode: decision.mode as ContentLearningMode,
       accountRevision: decision.accountRevision,
       epoch: decision.epoch,
+      scopeRevision: decision.scopeRevision ?? undefined,
+      cellDescriptor: validLearningDescriptor(decision.cellDescriptor)
+        ? decision.cellDescriptor
+        : undefined,
+      descriptorHash: decision.descriptorHash ?? undefined,
       armId: decision.selectedArmId as LearningGenerationReceipt['armId'],
       probabilities: decision.probabilities as Record<string, number>,
       selectedProbability: decision.selectedProbability,
       assignment: decision.assignment as 'pilot' | 'control',
       assignmentProbability: decision.assignmentProbability,
       executionProbability: decision.executionProbability,
+      executionProbabilities:
+        distribution(decision.executionProbabilities) ?? undefined,
+      treatmentProbabilities:
+        distribution(snapshot.treatmentProbabilities) ?? undefined,
+      controlProbabilities:
+        distribution(snapshot.controlProbabilities) ?? undefined,
       policyVersionId: decision.accountPolicyId ?? undefined,
       sharedReleaseId: decision.sharedReleaseId ?? undefined,
       sharedReleaseRevision: decision.sharedReleaseRevision ?? undefined,
@@ -80,36 +136,43 @@ export class LearningDecisionService {
       reason: decision.censorshipReason ?? undefined,
     };
   }
+  private fallback(
+    reason: string,
+    mode: LearningGenerationReceipt['mode'] = 'unavailable',
+    configVersion = 'rl-reward-v1-experimental',
+  ): LearningResolution {
+    return {
+      receipt: { mode, reason, configVersion, synthetic: false },
+      contribution: {},
+    };
+  }
   async previewForContext(
     input: LearningGenerationInput,
   ): Promise<LearningResolution> {
     const credentialId = input.context?.credentialId;
-    const fallback = (
-      reason: string,
-      mode: LearningGenerationReceipt['mode'] = 'unavailable',
-    ): LearningResolution => ({
-      receipt: {
-        mode,
-        reason,
-        configVersion: 'rl-reward-v1-experimental',
-        synthetic: false,
-      },
-      contribution: {},
-    });
-    if (!credentialId) return fallback('no_destination', 'no_destination');
+    if (!credentialId) return this.fallback('no_destination', 'no_destination');
     await this.accounts.credential(
       input.organizationId,
       credentialId,
       input.brandId,
     );
-    const account = await this.accounts.read(
-      input.organizationId,
-      credentialId,
-    );
-    if (account.mode !== 'live')
-      return fallback(account.mode, account.mode as ContentLearningMode);
+    const account = await this.prisma.contentLearningAccount.findFirst({
+      where: {
+        organizationId: input.organizationId,
+        brandId: input.brandId,
+        credentialId,
+        isDeleted: false,
+      },
+    });
+    const mode = account
+      ? Object.values(ContentLearningMode).find(
+          (value) => value === account.mode,
+        )
+      : ContentLearningMode.SHADOW;
+    if (!mode) return this.fallback('account_state_unavailable');
+    if (mode !== ContentLearningMode.LIVE) return this.fallback(mode, mode);
     if (!input.harnessEnabled || !input.compatible)
-      return fallback(
+      return this.fallback(
         !input.harnessEnabled ? 'harness_off' : 'incompatible_intent',
         ContentLearningMode.LIVE,
       );
@@ -117,33 +180,467 @@ export class LearningDecisionService {
       receipt: {
         mode: ContentLearningMode.LIVE,
         credentialId,
-        accountRevision: account.revision,
-        epoch: account.epoch,
+        accountRevision: account?.revision ?? 0,
+        epoch: account?.epoch ?? 0,
         configVersion: 'rl-reward-v1-experimental',
         synthetic: false,
-        reason: 'preview_no_sampling',
+        reason: account?.failureReason ?? 'experiment_assignment_unavailable',
       },
-      contribution: {
-        guardrails: [
-          'Learning strategies may apply only in the authorized 10% pilot and remain subordinate to explicit instructions and approved voice.',
-        ],
-      },
+      contribution: {},
     };
+  }
+  private validReplayIdentity(
+    input: LearningGenerationInput,
+    decision: ContentLearningDecision,
+    account: ContentLearningAccount,
+    scope: ContentLearningScopeState,
+    destinationKey: string,
+    descriptor: LearningCellDescriptor,
+  ): boolean {
+    const context = input.context;
+    if (!context) return false;
+    if (
+      decision.isDeleted ||
+      decision.synthetic ||
+      decision.organizationId !== input.organizationId ||
+      decision.brandId !== input.brandId ||
+      decision.credentialId !== context.credentialId ||
+      decision.requestKey !== context.requestKey ||
+      decision.candidateIndex !== context.candidateIndex ||
+      decision.destinationKey !== destinationKey ||
+      account.brandId !== input.brandId ||
+      scope.brandId !== input.brandId ||
+      !decision.descriptorHash ||
+      !validLearningDescriptor(descriptor) ||
+      descriptor.format !== input.format ||
+      descriptor.objective !== (context.objective ?? 'awareness') ||
+      descriptor.configVersion !== decision.configVersion ||
+      learningHash(learningDescriptorTuple(descriptor)) !==
+        decision.descriptorHash ||
+      decision.descriptorHash !== scope.descriptorHash ||
+      !validLearningDescriptor(scope.cellDescriptor) ||
+      learningHash(learningDescriptorTuple(scope.cellDescriptor)) !==
+        decision.descriptorHash ||
+      learningScopeKey({
+        organizationId: input.organizationId,
+        brandId: input.brandId,
+        credentialId: decision.credentialId,
+        platform: descriptor.platform,
+        format: descriptor.format,
+        objective: descriptor.objective,
+        rewardProfileId: decision.descriptorHash,
+      }) !== decision.scopeKey ||
+      !LEARNING_ARMS.includes(decision.selectedArmId as LearningArmId)
+    )
+      return false;
+    return true;
+  }
+  private async replay(
+    tx: Prisma.TransactionClient,
+    input: LearningGenerationInput,
+    decision: ContentLearningDecision,
+    account: ContentLearningAccount | null,
+    destinationKey: string,
+    payloadHash: string,
+  ): Promise<LearningResolution> {
+    if (decision.payloadHash !== payloadHash)
+      throw new ConflictException('Learning request key payload conflict');
+    const suppressed = (reason: string): LearningResolution => ({
+      receipt: { ...this.receipt(decision), reason },
+      contribution: {},
+    });
+    if (!account) return suppressed('invalid_lineage');
+    if (['disabled', 'shadow', 'paused'].includes(account.mode))
+      return suppressed(account.mode);
+    if (
+      account.epoch !== decision.epoch ||
+      account.revision !== decision.accountRevision
+    )
+      return suppressed('account_changed');
+    const scope = await this.scopes.read(
+      tx,
+      input.organizationId,
+      decision.credentialId,
+      decision.scopeKey,
+      account.epoch,
+    );
+    if (!scope || scope.revision !== decision.scopeRevision)
+      return suppressed('scope_changed');
+    if (!input.harnessEnabled || !input.compatible)
+      return suppressed(
+        !input.harnessEnabled ? 'harness_off' : 'incompatible_intent',
+      );
+    if (account.failureReason) return suppressed(account.failureReason);
+    const context = input.context;
+    if (!context) return suppressed('invalid_lineage');
+    const descriptor = decision.cellDescriptor;
+    if (
+      !validLearningDescriptor(descriptor) ||
+      !this.validReplayIdentity(
+        input,
+        decision,
+        account,
+        scope,
+        destinationKey,
+        descriptor,
+      )
+    )
+      return suppressed('invalid_lineage');
+    const credential = await tx.credential.findFirst({
+      where: {
+        id: decision.credentialId,
+        organizationId: input.organizationId,
+        brandId: input.brandId,
+        isDeleted: false,
+      },
+    });
+    const brand = await tx.brand.findFirst({
+      where: {
+        id: input.brandId,
+        organizationId: input.organizationId,
+        isDeleted: false,
+      },
+    });
+    if (
+      !credential ||
+      !brand ||
+      fromPrismaCredentialPlatform(credential.platform) !== descriptor.platform
+    )
+      return suppressed('invalid_lineage');
+    const baseline = await readReplayBaseline(
+      tx,
+      input.organizationId,
+      input.brandId,
+      decision,
+    );
+    if (!baseline) return suppressed('invalid_lineage');
+    const receipt = this.receipt(decision),
+      qT = receipt.treatmentProbabilities,
+      qC = receipt.controlProbabilities,
+      marginal = receipt.executionProbabilities;
+    if (!qT || !qC || !marginal) return suppressed('invalid_lineage');
+    const isInsufficientControl =
+      decision.selectedArmId === 'baseline-v1' &&
+      decision.assignment === 'control' &&
+      decision.assignmentProbability === 1 &&
+      decision.selectedProbability === 1 &&
+      decision.executionProbability === 1 &&
+      !decision.accountPolicyId &&
+      !decision.sharedReleaseId &&
+      !decision.opportunityId &&
+      LEARNING_ARMS.every(
+        (arm) =>
+          qT[arm] === Number(arm === 'baseline-v1') &&
+          qC[arm] === Number(arm === 'baseline-v1') &&
+          marginal[arm] === Number(arm === 'baseline-v1'),
+      ) &&
+      baseline.count < 20;
+    if (isInsufficientControl)
+      return suppressed(
+        (await hasInsufficientBaselineLineage(
+          tx,
+          this.dependencies,
+          decision,
+          account,
+          baseline,
+        ))
+          ? 'insufficient_baseline'
+          : 'invalid_lineage',
+      );
+    if (
+      !(await this.dependencies.valid(
+        'decision',
+        decision.id,
+        tx,
+        input.organizationId,
+      )) ||
+      !(await this.dependencies.valid(
+        'baseline',
+        baseline.id,
+        tx,
+        input.organizationId,
+      ))
+    )
+      return suppressed('invalid_source');
+
+    if (decision.selectedArmId === 'baseline-v1')
+      return suppressed(
+        baseline.count < 20
+          ? 'insufficient_baseline'
+          : (decision.censorshipReason ?? 'experiment_assignment_unavailable'),
+      );
+    return this.replayTreatment(
+      tx,
+      input,
+      decision,
+      account,
+      scope,
+      destinationKey,
+      baseline,
+      descriptor,
+    );
+  }
+  private validTreatmentSpec(
+    experiment: ContentLearningExperiment,
+    policy: ContentLearningPolicyVersion,
+    decision: ContentLearningDecision,
+    descriptor: LearningCellDescriptor,
+  ): boolean {
+    const spec = experiment.spec;
+    if (
+      !spec ||
+      typeof spec !== 'object' ||
+      Array.isArray(spec) ||
+      spec.kind !== 'private_pilot' ||
+      spec.synthetic !== false ||
+      spec.cellKey !== decision.scopeKey ||
+      spec.rewardProfileId !== decision.descriptorHash ||
+      spec.format !== descriptor.format ||
+      spec.objective !== descriptor.objective ||
+      spec.configVersion !== decision.configVersion ||
+      spec.featureVersion !== descriptor.featureSchema ||
+      spec.treatmentProbability !== 0.1 ||
+      experiment.candidatePolicyId !== policy.id ||
+      spec.candidateId !== policy.id ||
+      spec.candidateHash !== policy.evidenceManifestHash ||
+      !Array.isArray(spec.approvedArmIds) ||
+      !spec.approvedArmIds.includes(decision.selectedArmId)
+    )
+      return false;
+    return true;
+  }
+  private async replayTreatment(
+    tx: Prisma.TransactionClient,
+    input: LearningGenerationInput,
+    decision: ContentLearningDecision,
+    account: ContentLearningAccount,
+    scope: ContentLearningScopeState,
+    destinationKey: string,
+    baseline: ContentLearningBaseline,
+    descriptor: LearningCellDescriptor,
+  ): Promise<LearningResolution> {
+    const suppressed = (reason: string): LearningResolution => ({
+      receipt: { ...this.receipt(decision), reason },
+      contribution: {},
+    });
+    const receipt = this.receipt(decision),
+      qT = receipt.treatmentProbabilities,
+      qC = receipt.controlProbabilities,
+      marginal = receipt.executionProbabilities;
+    if (!qT || !qC || !marginal) return suppressed('invalid_lineage');
+    if (
+      !decision.accountPolicyId ||
+      decision.sharedReleaseId ||
+      !account.approvedArmIds.includes(decision.selectedArmId) ||
+      (scope.pinnedPolicyId ?? scope.activePolicyId) !==
+        decision.accountPolicyId
+    )
+      return suppressed('invalid_source');
+    const policy = await this.policies.current(
+      input.organizationId,
+      decision.credentialId,
+      decision.scopeKey,
+      tx,
+    );
+    if (!policy || policy.id !== decision.accountPolicyId)
+      return suppressed(
+        scope.lastValidRewardAt &&
+          scope.lastValidRewardAt.getTime() < Date.now() - 30 * 86400000
+          ? 'expired_policy'
+          : 'invalid_source',
+      );
+    if (baseline.count < 20 || baseline.validity !== 'valid')
+      return suppressed('insufficient_baseline');
+    if (!decision.opportunityId)
+      return suppressed('experiment_assignment_unavailable');
+    const opportunity = await tx.contentLearningOpportunity.findFirst({
+      where: {
+        id: decision.opportunityId,
+        organizationId: input.organizationId,
+        brandId: input.brandId,
+        credentialId: decision.credentialId,
+        decisionId: decision.id,
+        requestKey: decision.requestKey,
+        destinationKey,
+        candidateIndex: decision.candidateIndex,
+        isDeleted: false,
+      },
+    });
+    if (!opportunity) return suppressed('experiment_assignment_unavailable');
+    const enrollment = await tx.contentLearningEnrollment.findFirst({
+      where: {
+        id: opportunity.enrollmentId,
+        experimentId: opportunity.experimentId,
+        organizationId: input.organizationId,
+        brandId: input.brandId,
+        credentialId: decision.credentialId,
+        accountEpoch: decision.epoch,
+        included: true,
+        withdrawnAt: null,
+        isDeleted: false,
+      },
+    });
+    const experiment = await tx.contentLearningExperiment.findFirst({
+      where: {
+        id: opportunity.experimentId,
+        organizationId: input.organizationId,
+        brandId: input.brandId,
+        credentialId: decision.credentialId,
+        synthetic: false,
+        isDeleted: false,
+      },
+    });
+    const now = Date.now(),
+      inWindow = (start: Date, end: Date, time: number) =>
+        Number.isFinite(start.getTime()) &&
+        Number.isFinite(end.getTime()) &&
+        start.getTime() <= time &&
+        time < end.getTime();
+    if (
+      !enrollment?.consentNoticeVersion ||
+      !enrollment.ownerOperationId ||
+      enrollment.consentAt.getTime() > opportunity.assignedAt.getTime() ||
+      !inWindow(enrollment.startAt, enrollment.endAt, now) ||
+      !inWindow(
+        enrollment.startAt,
+        enrollment.endAt,
+        opportunity.assignedAt.getTime(),
+      ) ||
+      !experiment ||
+      !experiment.sealedAt ||
+      experiment.status === 'cancelled' ||
+      !inWindow(experiment.startAt, experiment.endAt, now) ||
+      !inWindow(
+        experiment.startAt,
+        experiment.endAt,
+        opportunity.assignedAt.getTime(),
+      ) ||
+      opportunity.specHash !== experiment.specHash ||
+      learningHash(experiment.spec) !== experiment.specHash ||
+      opportunity.group !== 'treatment' ||
+      opportunity.groupProbability !== 0.1 ||
+      decision.assignment !== 'pilot' ||
+      decision.assignmentProbability !== 0.1
+    )
+      return suppressed('experiment_assignment_unavailable');
+    if (!this.validTreatmentSpec(experiment, policy, decision, descriptor))
+      return suppressed('experiment_assignment_unavailable');
+    const p = qT as LearningDistribution,
+      c = qC as LearningDistribution;
+    const expected = learningExecutionProbabilities(p, c, 0.1);
+    if (
+      LEARNING_ARMS.some(
+        (arm) => Math.abs(expected[arm] - marginal[arm]) > 1e-12,
+      ) ||
+      Math.abs(
+        decision.selectedProbability -
+          p[decision.selectedArmId as LearningArmId],
+      ) > 1e-12 ||
+      Math.abs(
+        decision.executionProbability -
+          expected[decision.selectedArmId as LearningArmId],
+      ) > 1e-12
+    )
+      return suppressed('invalid_source');
+    for (const [kind, id] of [
+      ['opportunity', opportunity.id],
+      ['enrollment', enrollment.id],
+      ['experiment', experiment.id],
+    ] as const)
+      if (!(await this.dependencies.valid(kind, id, tx, input.organizationId)))
+        return suppressed('experiment_assignment_unavailable');
+    // Existing assignment has no authoritative control/source projection writer.
+    // Until that lineage can be proved, selected history remains immutable and inert.
+    return suppressed('experiment_assignment_unavailable');
+  }
+  private async selectBaseline(
+    tx: Prisma.TransactionClient,
+    input: LearningGenerationInput,
+    credentialId: string,
+    platform: string,
+    objective: LearningScope['objective'],
+    decisionAt: Date,
+    profiles: ReturnType<typeof learningRegisteredProfiles>,
+  ) {
+    let descriptor = profiles[0].descriptor;
+    let scope: LearningScope = {
+      organizationId: input.organizationId,
+      brandId: input.brandId,
+      credentialId: credentialId,
+      platform,
+      format: input.format,
+      objective,
+      rewardProfileId: learningHash(learningDescriptorTuple(descriptor)),
+    };
+    let baseline = await this.checkpoints.freeze(
+      scope,
+      decisionAt,
+      descriptor,
+      tx,
+    );
+    for (const profile of profiles.slice(1)) {
+      if (baseline.count >= 20) break;
+      const candidateScope = {
+        ...scope,
+        rewardProfileId: learningHash(
+          learningDescriptorTuple(profile.descriptor),
+        ),
+      };
+      const candidate = await this.checkpoints.freeze(
+        candidateScope,
+        decisionAt,
+        profile.descriptor,
+        tx,
+      );
+      if (candidate.count >= 20) {
+        descriptor = profile.descriptor;
+        scope = candidateScope;
+        baseline = candidate;
+        break;
+      }
+    }
+    return { descriptor, scope, baseline };
+  }
+  private async linkBaselineDecisionSources(
+    tx: Prisma.TransactionClient,
+    decision: ContentLearningDecision,
+    account: ContentLearningAccount,
+    credentialId: string,
+    organizationId: string,
+    brandId: string,
+    baselineId: string,
+  ) {
+    const derived = await this.dependencies.resolve(
+      'decision',
+      decision.id,
+      organizationId,
+      tx,
+    );
+    for (const [kind, id] of [
+      ['account', account.id],
+      ['credential', credentialId],
+      ['brand', brandId],
+      ['baseline', baselineId],
+      ['config', account.activeConfigVersion],
+    ] as const)
+      await this.dependencies.link(
+        tx,
+        await this.dependencies.resolve(
+          kind,
+          id,
+          kind === 'config' ? null : organizationId,
+          tx,
+        ),
+        derived,
+      );
   }
   async resolveForGeneration(
     input: LearningGenerationInput,
   ): Promise<LearningResolution> {
     const context = input.context;
     if (!context?.credentialId)
-      return {
-        receipt: {
-          mode: 'no_destination',
-          reason: 'no_destination',
-          configVersion: 'rl-reward-v1-experimental',
-          synthetic: false,
-        },
-        contribution: {},
-      };
+      return this.fallback('no_destination', 'no_destination');
+    const credentialId = context.credentialId;
     if (
       !context.requestKey ||
       context.requestKey.length > 256 ||
@@ -151,120 +648,70 @@ export class LearningDecisionService {
       context.candidateIndex < 0
     )
       throw new BadRequestException('Invalid learning request identity');
-    const credential = await this.accounts.credential(
-      input.organizationId,
-      context.credentialId,
-      input.brandId,
-    );
-    const account = await this.accounts.ensure(
-      input.organizationId,
-      context.credentialId,
-    );
-    if (account.mode === 'disabled')
-      return {
-        receipt: {
-          mode: ContentLearningMode.DISABLED,
-          reason: 'disabled',
-          configVersion: account.activeConfigVersion,
-          synthetic: false,
-        },
-        contribution: {},
-      };
-    const objective = context.objective ?? 'awareness';
-    const scope: LearningScope = {
-      organizationId: input.organizationId,
-      brandId: input.brandId,
-      credentialId: context.credentialId,
-      platform: fromPrismaCredentialPlatform(credential.platform) ?? '',
-      format: input.format,
-      objective,
-      rewardProfileId: `${objective}-v1`,
-    };
-    const scopeKey = learningScopeKey(scope),
-      destinationKey = learningHash([credential.id, input.format, objective]);
-    const payloadHash = learningHash([
-      input.originalPrompt,
-      input.harnessEnabled,
-      input.compatible,
-      context,
-      input.format,
-    ]);
-    const existing = await this.prisma.contentLearningDecision.findFirst({
-      where: {
+    return this.prisma.$transaction(async (tx) => {
+      await learningFence(tx, 'shared');
+      const objective = context.objective ?? 'awareness',
+        destinationKey = learningHash([credentialId, input.format, objective]);
+      const payloadHash = learningHash([
+        input.originalPrompt,
+        input.harnessEnabled,
+        input.compatible,
+        context,
+        input.format,
+      ]);
+      const identity = {
         organizationId: input.organizationId,
         requestKey: context.requestKey,
         destinationKey,
         candidateIndex: context.candidateIndex,
         isDeleted: false,
-      },
-    });
-    if (existing) {
-      if (existing.payloadHash !== payloadHash)
-        throw new ConflictException('Learning request key payload conflict');
-      return {
-        receipt: this.receipt(existing),
-        contribution: learningContribution(existing.selectedArmId),
       };
-    }
-    const decisionAt = new Date(),
-      baseline = await this.checkpoints.freeze(scope, decisionAt);
-    const followers = await this.prisma.accountAnalyticsSnapshot.findFirst({
-      where: {
-        organizationId: input.organizationId,
-        brandId: input.brandId,
-        credentialId: credential.id,
-        date: { lte: decisionAt },
-        isDeleted: false,
-      },
-      orderBy: { date: 'desc' },
-    });
-    const features = learningFeatures({
-      followers: followers?.followers ?? followers?.subscribers,
-      baselineMedianExposure:
-        baseline.count >= 20 ? baseline.medianExposure : null,
-      decisionAt,
-    });
-    const policy = await this.policies.current(
-      input.organizationId,
-      credential.id,
-      scopeKey,
-    );
-    const state = policy
-      ? parseLearningPolicy(policy.armState)
-      : initializeLearningPolicy();
-    const eligible: LearningArmId[] = ['baseline-v1'];
-    const applicable =
-      account.mode === 'live' &&
-      baseline.validity === 'valid' &&
-      input.harnessEnabled &&
-      input.compatible &&
-      !account.failureReason;
-    if (applicable)
-      for (const arm of LEARNING_ARMS)
-        if (arm !== 'baseline-v1' && account.approvedArmIds.includes(arm))
-          eligible.push(arm);
-    const assignment =
-      applicable && randomInt(1000000) < 100000 ? 'pilot' : 'control';
-    const probabilities = learningProbabilities(
-      state ?? initializeLearningPolicy(),
-      features,
-      assignment === 'pilot' ? eligible : ['baseline-v1'],
-    );
-    const selectedArmId = sampleLearningArm(
-      probabilities,
-      randomInt(0, 2147483647) / 2147483647,
-    );
-    const assignmentProbability = applicable
-      ? assignment === 'pilot'
-        ? 0.1
-        : 0.9
-      : 1;
-    return this.prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM content_learning_accounts WHERE id = ${account.id} AND "organizationId" = ${input.organizationId} ORDER BY id FOR UPDATE`;
+      const existing = await tx.contentLearningDecision.findFirst({
+        where: identity,
+      });
+      if (existing) {
+        const currentAccount = await tx.contentLearningAccount.findFirst({
+          where: {
+            organizationId: input.organizationId,
+            brandId: input.brandId,
+            credentialId,
+            isDeleted: false,
+          },
+        });
+        return this.replay(
+          tx,
+          input,
+          existing,
+          currentAccount,
+          destinationKey,
+          payloadHash,
+        );
+      }
+      const credential = await this.accounts.credential(
+        input.organizationId,
+        credentialId,
+        input.brandId,
+        tx,
+      );
+      const account = await this.accounts.ensure(
+        input.organizationId,
+        credentialId,
+        tx,
+      );
+      const platform = fromPrismaCredentialPlatform(credential.platform) ?? '';
+      if (account.mode === 'disabled')
+        return this.fallback(
+          'disabled',
+          ContentLearningMode.DISABLED,
+          account.activeConfigVersion,
+        );
+      await tx.$queryRaw`SELECT id FROM content_learning_accounts WHERE id = ${account.id} AND "organizationId" = ${input.organizationId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
       const authoritative = await tx.contentLearningAccount.findFirst({
         where: {
           id: account.id,
           organizationId: input.organizationId,
+          brandId: input.brandId,
+          credentialId: credential.id,
           isDeleted: false,
         },
       });
@@ -277,22 +724,74 @@ export class LearningDecisionService {
           'Account changed during compilation; retry the request',
         );
       const retry = await tx.contentLearningDecision.findFirst({
+        where: identity,
+      });
+      if (retry)
+        return this.replay(
+          tx,
+          input,
+          retry,
+          authoritative,
+          destinationKey,
+          payloadHash,
+        );
+      const profiles = learningRegisteredProfiles(
+        platform,
+        input.format,
+        objective,
+      );
+      if (!profiles.length) return this.fallback('unsupported_cell');
+      const decisionAt = new Date();
+      const { descriptor, scope, baseline } = await this.selectBaseline(
+        tx,
+        input,
+        credential.id,
+        platform,
+        objective,
+        decisionAt,
+        profiles,
+      );
+      const scoped = await this.scopes.ensure(
+          tx,
+          scope,
+          descriptor,
+          account.epoch,
+        ),
+        scopeKey = learningScopeKey(scope);
+      const followers = await tx.accountAnalyticsSnapshot.findFirst({
         where: {
           organizationId: input.organizationId,
-          requestKey: context.requestKey,
-          destinationKey,
-          candidateIndex: context.candidateIndex,
+          brandId: input.brandId,
+          credentialId: credential.id,
+          date: { lte: decisionAt },
           isDeleted: false,
         },
+        orderBy: { date: 'desc' },
       });
-      if (retry) {
-        if (retry.payloadHash !== payloadHash)
-          throw new ConflictException('Learning request key payload conflict');
-        return {
-          receipt: this.receipt(retry),
-          contribution: learningContribution(retry.selectedArmId),
-        };
-      }
+      const features = learningFeatures({
+        followers: followers?.followers ?? followers?.subscribers,
+        baselineMedianExposure:
+          baseline.count >= 20 ? baseline.medianExposure : null,
+        decisionAt,
+      });
+      const probabilities = Object.fromEntries(
+        LEARNING_ARMS.map((arm) => [arm, Number(arm === 'baseline-v1')]),
+      ) as LearningDistribution;
+      const executionProbabilities = learningExecutionProbabilities(
+        probabilities,
+        probabilities,
+        0,
+      );
+      const reason = ['shadow', 'paused'].includes(account.mode)
+        ? account.mode
+        : !input.harnessEnabled
+          ? 'harness_off'
+          : !input.compatible
+            ? 'incompatible_intent'
+            : (account.failureReason ??
+              (baseline.count < 20
+                ? 'insufficient_baseline'
+                : 'experiment_assignment_unavailable'));
       const decision = await tx.contentLearningDecision.create({
         data: {
           organizationId: input.organizationId,
@@ -305,43 +804,48 @@ export class LearningDecisionService {
           scopeKey,
           epoch: account.epoch,
           accountRevision: account.revision,
+          scopeRevision: scoped.revision,
+          cellDescriptor: toPrismaJson(descriptor),
+          descriptorHash: scope.rewardProfileId,
           mode: account.mode,
           contextVector: features,
           contextSnapshot: toPrismaJson({
-            platform: scope.platform,
+            platform,
             format: input.format,
             objective,
             rewardProfileId: scope.rewardProfileId,
+            treatmentProbabilities: probabilities,
+            controlProbabilities: probabilities,
           }),
-          eligibleArmIds: eligible,
+          eligibleArmIds: ['baseline-v1'],
           probabilities: toPrismaJson(probabilities),
-          selectedArmId,
-          selectedProbability: probabilities[selectedArmId],
-          assignment,
-          assignmentProbability,
-          executionProbability:
-            assignmentProbability * probabilities[selectedArmId],
+          executionProbabilities: toPrismaJson(executionProbabilities),
+          selectedArmId: 'baseline-v1',
+          selectedProbability: 1,
+          assignment: 'control',
+          assignmentProbability: 1,
+          executionProbability: 1,
           configVersion: account.activeConfigVersion,
           baselineId: baseline.id,
-          accountPolicyId: policy?.id,
           parentRequestId: context.parentRequestId,
           runId: context.runId,
           workflowExecutionId: context.workflowExecutionId,
           generationId: context.generationId,
           originalPromptHash: learningHash(input.originalPrompt),
           createdAt: decisionAt,
-          censorshipReason:
-            baseline.count < 20
-              ? 'insufficient_baseline'
-              : !applicable
-                ? 'baseline_only'
-                : null,
+          censorshipReason: reason,
         },
       });
-      return {
-        receipt: this.receipt(decision),
-        contribution: learningContribution(selectedArmId),
-      };
+      await this.linkBaselineDecisionSources(
+        tx,
+        decision,
+        account,
+        credential.id,
+        input.organizationId,
+        input.brandId,
+        baseline.id,
+      );
+      return { receipt: this.receipt(decision), contribution: {} };
     });
   }
   async bindArtifact(
@@ -358,6 +862,7 @@ export class LearningDecisionService {
     const canonical = { ...payload, text: payload.text.replace(/\r\n/g, '\n') };
     const hash = learningHash(canonical);
     return this.prisma.$transaction(async (tx) => {
+      await learningFence(tx, 'shared');
       await tx.$queryRaw`SELECT id FROM content_learning_decisions WHERE id = ${decisionId} AND "organizationId" = ${organizationId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
       const decision = await tx.contentLearningDecision.findFirst({
         where: {
@@ -392,6 +897,7 @@ export class LearningDecisionService {
     payload: Parameters<LearningDecisionService['bindArtifact']>[2],
   ) {
     return this.prisma.$transaction(async (tx) => {
+      await learningFence(tx, 'shared');
       await tx.$queryRaw`SELECT id FROM content_learning_decisions WHERE id = ${decisionId} AND "organizationId" = ${organizationId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
       await tx.$queryRaw`SELECT id FROM posts WHERE id = ${postId} AND "organizationId" = ${organizationId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
       const decision = await tx.contentLearningDecision.findFirst({

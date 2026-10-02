@@ -1,3 +1,12 @@
+import {
+  LearningCheckpointService,
+  learningCheckpointCollection,
+} from '@api/collections/content-learning/services/learning-checkpoint.service';
+import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
+import {
+  parseLearningPublicationSourceV1,
+  resolveLearningPublicationSourceV1,
+} from '@api/collections/content-learning/services/learning-publication-source.helper';
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import { CreatePostAnalyticsDto } from '@api/collections/posts/dto/create-post-analytics.dto';
 import { PostAnalyticsEntity } from '@api/collections/posts/entities/post-analytics.entity';
@@ -11,12 +20,16 @@ import {
   type YouTubePostMetrics,
 } from '@api/collections/posts/services/post-analytics-platform-metrics';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { CONTENT_LEARNING_ACTION_IDS } from '@api/collections/workflows/templates/content-learning-workflows.template';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { fromPrismaCredentialPlatform } from '@genfeedai/contracts';
 import type { AnalyticsPersistenceContext } from '@genfeedai/contracts/interfaces';
 import { type LearningMetrics } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
+import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interfaces/analytics/outlier-persistence.interface';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { CredentialPlatform, Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -45,10 +58,137 @@ export class PostAnalyticsService extends BaseService<
 
     private readonly postsService: PostsService,
     private readonly outliersService: OutliersService,
+    private readonly checkpoints: LearningCheckpointService,
+    private readonly workflowQueue: WorkflowExecutionQueueService,
   ) {
     super(prisma, 'postAnalytics', logger);
   }
 
+  async prepareLearningObservation(
+    input: Pick<
+      LearningPublicationSourceV1,
+      | 'organizationId'
+      | 'brandId'
+      | 'credentialId'
+      | 'postId'
+      | 'platform'
+      | 'externalId'
+    >,
+  ): Promise<LearningPublicationSourceV1 | null> {
+    const source = await resolveLearningPublicationSourceV1(
+      this.prisma,
+      input.organizationId,
+      input.postId,
+    );
+    return source &&
+      source.organizationId === input.organizationId &&
+      source.brandId === input.brandId &&
+      source.credentialId === input.credentialId &&
+      source.postId === input.postId &&
+      source.platform === input.platform &&
+      source.externalId === input.externalId
+      ? source
+      : null;
+  }
+  private async persistLearningObservation(
+    postId: string,
+    platform: CredentialPlatform,
+    metrics: UpdateTodayAnalyticsMetrics,
+    context: AnalyticsPersistenceContext,
+  ): Promise<void> {
+    const observation = context.learningObservation;
+    const source = parseLearningPublicationSourceV1(
+      observation?.publicationSource,
+    );
+    if (
+      !metrics.learningMetrics ||
+      !observation ||
+      !source ||
+      source.organizationId !== context.organizationId ||
+      source.brandId !== context.brandId ||
+      source.credentialId !== context.credentialId ||
+      source.postId !== postId ||
+      source.platform !== fromPrismaCredentialPlatform(platform) ||
+      typeof observation.sourceAttemptId !== 'string' ||
+      !observation.sourceAttemptId.trim() ||
+      !(observation.requestStartedAt instanceof Date) ||
+      !Number.isFinite(observation.requestStartedAt.getTime()) ||
+      !(observation.receivedAt instanceof Date) ||
+      !Number.isFinite(observation.receivedAt.getTime())
+    )
+      return;
+    const checkpoint = await this.checkpoints.capture({
+      organizationId: context.organizationId,
+      postId,
+      credentialId: context.credentialId,
+      format: 'text',
+      objective: 'engagement',
+      publishedAt: new Date(source.publishedAt),
+      requestStartedAt: observation.requestStartedAt,
+      receivedAt: observation.receivedAt,
+      sourceAttemptId: observation.sourceAttemptId,
+      learningMetrics: metrics.learningMetrics,
+      publicationSource: source,
+    });
+    if (
+      checkpoint?.validity !== 'valid' ||
+      learningCheckpointCollection(checkpoint)?.outcome !== 'observed'
+    )
+      return;
+    await this.queueMaterializationRefresh(context);
+  }
+  private async queueMaterializationRefresh(
+    context: AnalyticsPersistenceContext,
+  ): Promise<void> {
+    try {
+      const account = await this.prisma.contentLearningAccount.findFirst({
+        where: {
+          organizationId: context.organizationId,
+          brandId: context.brandId,
+          credentialId: context.credentialId,
+          isDeleted: false,
+        },
+      });
+      if (
+        !account ||
+        account.mode === 'disabled' ||
+        ![account.epoch, account.evidenceRevision].every(
+          (value) =>
+            Number.isInteger(value) && value >= 0 && value <= 2147483647,
+        )
+      )
+        return;
+      const bucket = Math.floor(Date.now() / 300000);
+      await this.workflowQueue.queueSystemWorkflow(
+        {
+          organizationId: context.organizationId,
+          actionType: CONTENT_LEARNING_ACTION_IDS.RECONCILE,
+          canonicalId: CONTENT_LEARNING_ACTION_IDS.RECONCILE,
+          inputValues: {
+            credentialId: context.credentialId,
+            materializationOnly: true,
+            refreshBucket: bucket,
+          },
+          source: 'content-learning-analytics',
+        },
+        'learning-materialize-' +
+          learningHash([
+            context.organizationId,
+            context.credentialId,
+            account.epoch,
+            account.evidenceRevision,
+            bucket,
+          ]),
+        { attempts: 3, dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+      );
+    } catch {
+      this.logger.warn('learning_materialization_enqueue_failed', {
+        organizationId: context.organizationId,
+        brandId: context.brandId,
+        credentialId: context.credentialId,
+      });
+    }
+  }
   async refreshOutliers(context: AnalyticsPersistenceContext) {
     return this.outliersService.refresh({
       organizationId: context.organizationId,
@@ -190,6 +330,7 @@ export class PostAnalyticsService extends BaseService<
       },
     });
 
+    await this.persistLearningObservation(postId, platform, metrics, context);
     return result
       ? new PostAnalyticsEntity(result as PostAnalyticsDocument)
       : null;

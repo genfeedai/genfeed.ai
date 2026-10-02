@@ -1,3 +1,4 @@
+import { selectLearningBaseline } from '@api/collections/content-learning/services/learning-baseline-selection';
 import {
   LearningDependencyService,
   learningFence,
@@ -6,12 +7,44 @@ import {
   type LearningActor,
   LearningOperationService,
   learningHash,
+  learningScopeKey,
 } from '@api/collections/content-learning/services/learning-operation.service';
+import { LearningPolicyService } from '@api/collections/content-learning/services/learning-policy.service';
+import { LearningScopeStateService } from '@api/collections/content-learning/services/learning-scope-state.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { LEARNING_ARMS } from '@genfeedai/harness';
-import { toPrismaJson } from '@genfeedai/prisma';
+import {
+  ContentLearningMode,
+  fromPrismaCredentialPlatform,
+} from '@genfeedai/contracts';
+import {
+  learningContractIdSchema,
+  learningContractRevisionSchema,
+  learningContractVersionSchema,
+  learningFormatSchema,
+  learningGenerationReceiptSchema,
+  learningObjectiveSchema,
+  learningScopeViewSchema,
+} from '@genfeedai/contracts/api-types/contracts/content-learning-generation.contract';
+import type {
+  LearningAccountView,
+  LearningBrandReceivingView,
+  LearningFormat,
+  LearningObjective,
+  LearningScopeView,
+} from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
+import {
+  LEARNING_ARMS,
+  learningDescriptorTuple,
+  validLearningDescriptor,
+} from '@genfeedai/harness';
+import {
+  type ContentLearningAccount,
+  type ContentLearningScopeState,
+  type Prisma,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import {
   BadRequestException,
   ConflictException,
@@ -23,65 +56,425 @@ export class LearningAccountService {
     private readonly prisma: PrismaService,
     private readonly operations: LearningOperationService,
     private readonly dependencies: LearningDependencyService,
+    private readonly scopes: LearningScopeStateService,
+    private readonly policies: LearningPolicyService,
   ) {}
   async credential(
     organizationId: string,
     credentialId: string,
     brandId?: string,
+    tx: Prisma.TransactionClient = this.prisma,
   ) {
-    const credential = await this.prisma.credential.findFirst({
+    const credential = await tx.credential.findFirst({
       where: scopedWhere(organizationId, {
         id: credentialId,
         ...(brandId ? { brandId } : {}),
       }),
     });
     if (!credential?.brandId) throw new NotFoundException('Account not found');
-    const brand = await this.prisma.brand.findFirst({
+    const brand = await tx.brand.findFirst({
       where: { id: credential.brandId, organizationId, isDeleted: false },
     });
     if (!brand) throw new NotFoundException('Account not found');
     return { ...credential, brandId: credential.brandId };
   }
-  async ensure(organizationId: string, credentialId: string) {
-    const credential = await this.credential(organizationId, credentialId);
+  async ensure(
+    organizationId: string,
+    credentialId: string,
+    tx: Prisma.TransactionClient = this.prisma,
+  ) {
+    if (tx !== this.prisma)
+      return this.ensureInTransaction(organizationId, credentialId, tx);
+    return this.prisma.$transaction(async (client) => {
+      await learningFence(client, 'shared');
+      return this.ensureInTransaction(organizationId, credentialId, client);
+    });
+  }
+  private async ensureInTransaction(
+    organizationId: string,
+    credentialId: string,
+    tx: Prisma.TransactionClient,
+  ) {
+    const credential = await this.credential(
+      organizationId,
+      credentialId,
+      undefined,
+      tx,
+    );
     // tenant-scope-ignore: unique-key upsert; organizationId is part of the key
-    return this.prisma.contentLearningAccount.upsert({
+    return tx.contentLearningAccount.upsert({
       where: { organizationId_credentialId: { organizationId, credentialId } },
       create: { organizationId, credentialId, brandId: credential.brandId },
       update: {},
     });
   }
-  async read(organizationId: string, credentialId: string) {
-    await this.credential(organizationId, credentialId);
-    const account = await this.prisma.contentLearningAccount.findFirst({
-      where: { organizationId, credentialId, isDeleted: false },
-    });
-    if (!account)
-      return {
-        id: credentialId,
+  private accountConfiguration(
+    account: ContentLearningAccount,
+    organizationId: string,
+    brandId: string,
+    credentialId: string,
+  ) {
+    const mode = Object.values(ContentLearningMode).find(
+      (value) => value === account.mode,
+    );
+    const preference = (['automatic', 'disabled', 'pinned'] as const).find(
+      (value) => value === account.sharedReleasePreference,
+    );
+    if (
+      !mode ||
+      !preference ||
+      account.isDeleted ||
+      account.organizationId !== organizationId ||
+      account.brandId !== brandId ||
+      account.credentialId !== credentialId ||
+      ![
+        account.id,
         organizationId,
+        brandId,
         credentialId,
-        mode: 'shadow',
-        revision: 0,
-        epoch: 0,
-        baselineCount: 0,
-        approvedArmIds: [],
-        sharingConsentVersion: null,
-        sharedReleasePreference: 'automatic',
-        activePolicyId: null,
-        failureReason: null,
-        driftState: null,
-      };
-    const baselineCount = await this.prisma.contentLearningCheckpoint.count({
-      where: {
-        organizationId,
-        credentialId,
-        isDeleted: false,
-        validity: 'valid',
-        windowId: '48h-v1',
+        account.activeConfigVersion,
+      ].every((value) => learningContractIdSchema.safeParse(value).success) ||
+      !learningContractRevisionSchema.safeParse(account.revision).success ||
+      !learningContractRevisionSchema.safeParse(account.epoch).success ||
+      (account.sharingConsentVersion !== null &&
+        !learningContractVersionSchema.safeParse(account.sharingConsentVersion)
+          .success) ||
+      (account.pinnedReleaseId !== null &&
+        !learningContractIdSchema.safeParse(account.pinnedReleaseId).success) ||
+      (preference === 'pinned' && !account.pinnedReleaseId) ||
+      !Array.isArray(account.approvedArmIds) ||
+      account.approvedArmIds.some((arm) => typeof arm !== 'string') ||
+      (account.failureReason !== null &&
+        typeof account.failureReason !== 'string') ||
+      (account.driftState !== null && typeof account.driftState !== 'string')
+    )
+      throw new ConflictException('Learning account state unavailable');
+    return { mode, preference };
+  }
+  private scopeDescriptor(
+    account: ContentLearningAccount,
+    platform: ReturnType<typeof fromPrismaCredentialPlatform>,
+    scope: ContentLearningScopeState,
+  ) {
+    const descriptor = scope.cellDescriptor;
+    if (
+      !validLearningDescriptor(descriptor) ||
+      !/^[a-f0-9]{64}$/.test(scope.descriptorHash) ||
+      learningHash(learningDescriptorTuple(descriptor)) !==
+        scope.descriptorHash ||
+      descriptor.platform !== platform ||
+      scope.organizationId !== account.organizationId ||
+      scope.brandId !== account.brandId ||
+      scope.credentialId !== account.credentialId ||
+      scope.epoch !== account.epoch ||
+      scope.isDeleted ||
+      !learningContractRevisionSchema.safeParse(scope.epoch).success ||
+      !learningContractRevisionSchema.safeParse(scope.revision).success ||
+      learningScopeKey({
+        organizationId: account.organizationId,
+        brandId: account.brandId,
+        credentialId: account.credentialId,
+        platform: descriptor.platform,
+        format: descriptor.format,
+        objective: descriptor.objective,
+        rewardProfileId: scope.descriptorHash,
+      }) !== scope.scopeKey
+    )
+      throw new ConflictException('Learning scope state unavailable');
+    return descriptor;
+  }
+  private async projectScope(
+    tx: Prisma.TransactionClient,
+    account: ContentLearningAccount,
+    scope: ContentLearningScopeState,
+    descriptor: ReturnType<LearningAccountService['scopeDescriptor']>,
+    cutoff: Date,
+  ): Promise<LearningScopeView> {
+    const selected = await selectLearningBaseline(
+      tx,
+      {
+        organizationId: account.organizationId,
+        brandId: account.brandId,
+        credentialId: account.credentialId,
+        platform: descriptor.platform,
+        format: descriptor.format,
+        objective: descriptor.objective,
+        rewardProfileId: scope.descriptorHash,
       },
+      cutoff,
+      descriptor,
+      this.dependencies,
+    );
+    const current = await this.policies.current(
+      account.organizationId,
+      account.credentialId,
+      scope.scopeKey,
+      tx,
+    );
+    const baselineCount = selected.samples.length,
+      unavailableReasons: string[] = [];
+    if (account.mode !== 'live') unavailableReasons.push('account_not_live');
+    if (account.failureReason) unavailableReasons.push('account_failure');
+    if (baselineCount < 20) unavailableReasons.push('insufficient_baseline');
+    if (!current) unavailableReasons.push('policy_unavailable');
+    const at = scope.lastValidRewardAt;
+    const projection = {
+      scopeKey: scope.scopeKey,
+      epoch: scope.epoch,
+      revision: scope.revision,
+      descriptor,
+      descriptorHash: scope.descriptorHash,
+      baselineCount,
+      activePolicyId: current?.id ?? null,
+      pinnedPolicyId: scope.pinnedPolicyId,
+      lastValidRewardAt:
+        current &&
+        at &&
+        Number.isFinite(at.getTime()) &&
+        at.getTime() <= cutoff.getTime() &&
+        at.getTime() >= cutoff.getTime() - 30 * 86400000
+          ? at.toISOString()
+          : null,
+      unavailableReasons,
+    };
+    const parsed = learningScopeViewSchema.safeParse(projection);
+    if (!parsed.success)
+      throw new ConflictException('Learning scope state unavailable');
+    return parsed.data;
+  }
+  private async latestSelectedDecision(
+    tx: Prisma.TransactionClient,
+    account: ContentLearningAccount,
+    scopes: LearningScopeView[],
+  ) {
+    if (!scopes.length) return undefined;
+    const decision = await tx.contentLearningDecision.findFirst({
+      where: scopedWhere(account.organizationId, {
+        brandId: account.brandId,
+        credentialId: account.credentialId,
+        epoch: account.epoch,
+        accountRevision: account.revision,
+        synthetic: false,
+        OR: scopes.map((scope) => ({
+          scopeKey: scope.scopeKey,
+          descriptorHash: scope.descriptorHash,
+          scopeRevision: scope.revision,
+        })),
+      }),
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
     });
-    return { ...account, baselineCount };
+    if (
+      !decision ||
+      decision.isDeleted ||
+      decision.synthetic ||
+      decision.organizationId !== account.organizationId ||
+      decision.brandId !== account.brandId ||
+      decision.credentialId !== account.credentialId ||
+      decision.epoch !== account.epoch ||
+      decision.accountRevision !== account.revision
+    )
+      return undefined;
+    const scope = scopes.find(
+      (row) =>
+        row.scopeKey === decision.scopeKey &&
+        row.descriptorHash === decision.descriptorHash &&
+        row.revision === decision.scopeRevision,
+    );
+    if (
+      !scope ||
+      decision.mode !== account.mode ||
+      !validLearningDescriptor(decision.cellDescriptor) ||
+      learningHash(learningDescriptorTuple(decision.cellDescriptor)) !==
+        scope.descriptorHash ||
+      (decision.accountPolicyId !== null &&
+        decision.accountPolicyId !== scope.activePolicyId) ||
+      !(await this.dependencies.valid(
+        'decision',
+        decision.id,
+        tx,
+        account.organizationId,
+      ))
+    )
+      return undefined;
+    const receipt = {
+      decisionId: decision.id,
+      credentialId: decision.credentialId,
+      mode: decision.mode,
+      accountRevision: decision.accountRevision,
+      scopeRevision: decision.scopeRevision,
+      epoch: decision.epoch,
+      armId: decision.selectedArmId,
+      cellDescriptor: decision.cellDescriptor,
+      descriptorHash: decision.descriptorHash,
+      configVersion: decision.configVersion,
+      synthetic: false,
+      ...(decision.baselineId !== null
+        ? { baselineId: decision.baselineId }
+        : {}),
+      ...(decision.accountPolicyId !== null
+        ? { policyVersionId: decision.accountPolicyId }
+        : {}),
+    };
+    const parsed = learningGenerationReceiptSchema.safeParse(receipt);
+    return parsed.success ? parsed.data : undefined;
+  }
+  async read(
+    organizationId: string,
+    credentialId: string,
+    format?: LearningFormat,
+    objective?: LearningObjective,
+  ): Promise<LearningAccountView> {
+    if (
+      (format !== undefined &&
+        !learningFormatSchema.safeParse(format).success) ||
+      (objective !== undefined &&
+        !learningObjectiveSchema.safeParse(objective).success)
+    )
+      throw new BadRequestException('Invalid learning scope filter');
+    return this.prisma.$transaction(async (tx) => {
+      await learningFence(tx, 'shared');
+      const credential = await this.credential(
+        organizationId,
+        credentialId,
+        undefined,
+        tx,
+      );
+      const initial = await tx.contentLearningAccount.findFirst({
+        where: scopedWhere(organizationId, {
+          brandId: credential.brandId,
+          credentialId,
+        }),
+      });
+      if (!initial)
+        return {
+          id: credentialId,
+          organizationId,
+          brandId: credential.brandId,
+          credentialId,
+          mode: ContentLearningMode.SHADOW,
+          revision: 0,
+          epoch: 0,
+          sharingConsentVersion: null,
+          pinnedReleaseId: null,
+          activePolicyId: null,
+          failureReason: null,
+          driftState: null,
+          sharedReleasePreference: 'automatic',
+          approvedArmIds: [],
+          baselineCount: 0,
+          scopes: [],
+        };
+      await tx.$queryRaw`SELECT id FROM content_learning_accounts WHERE id = ${initial.id} AND "organizationId" = ${organizationId} AND "brandId" = ${credential.brandId} AND "credentialId" = ${credentialId} AND "isDeleted" = false ORDER BY id FOR SHARE`;
+      const account = await tx.contentLearningAccount.findFirst({
+        where: scopedWhere(organizationId, {
+          id: initial.id,
+          brandId: credential.brandId,
+          credentialId,
+        }),
+      });
+      if (
+        !account ||
+        account.id !== initial.id ||
+        account.organizationId !== organizationId ||
+        account.brandId !== credential.brandId ||
+        account.credentialId !== credentialId
+      )
+        throw new ConflictException('Learning account changed');
+      const configuration = this.accountConfiguration(
+        account,
+        organizationId,
+        credential.brandId,
+        credentialId,
+      );
+      await tx.$queryRaw`SELECT id FROM content_learning_scope_states WHERE "organizationId" = ${organizationId} AND "brandId" = ${credential.brandId} AND "credentialId" = ${credentialId} AND epoch = ${account.epoch} AND "isDeleted" = false ORDER BY "scopeKey", id FOR SHARE`;
+      const rows = await tx.contentLearningScopeState.findMany({
+        where: scopedWhere(organizationId, {
+          brandId: credential.brandId,
+          credentialId,
+          epoch: account.epoch,
+        }),
+        orderBy: [{ scopeKey: 'asc' }, { id: 'asc' }],
+      });
+      const currentCredential = await this.credential(
+        organizationId,
+        credentialId,
+        credential.brandId,
+        tx,
+      );
+      const cutoff = new Date();
+      const validated = rows.map((row) => ({
+        row,
+        descriptor: this.scopeDescriptor(
+          account,
+          fromPrismaCredentialPlatform(currentCredential.platform),
+          row,
+        ),
+      }));
+      const scopes: LearningScopeView[] = [];
+      for (const { row, descriptor } of validated
+        .filter(
+          ({ descriptor }) =>
+            (format === undefined || descriptor.format === format) &&
+            (objective === undefined || descriptor.objective === objective),
+        )
+        .sort((a, b) => a.row.scopeKey.localeCompare(b.row.scopeKey)))
+        scopes.push(
+          await this.projectScope(tx, account, row, descriptor, cutoff),
+        );
+      const latestDecision = await this.latestSelectedDecision(
+          tx,
+          account,
+          scopes,
+        ),
+        singleton = scopes.length === 1 ? scopes[0] : undefined;
+      return {
+        ...account,
+        mode: configuration.mode,
+        sharedReleasePreference: configuration.preference,
+        baselineCount: singleton?.baselineCount ?? 0,
+        activePolicyId: singleton?.activePolicyId ?? null,
+        scopes,
+        ...(latestDecision ? { latestDecision } : {}),
+      };
+    });
+  }
+  async readBrandReceiving(
+    actor: LearningActor,
+    brandId: string,
+  ): Promise<LearningBrandReceivingView> {
+    await this.operations.assertMember(actor);
+    return this.prisma.$transaction(async (tx) => {
+      await learningFence(tx, 'shared');
+      const brand = await tx.brand.findFirst({
+        where: scopedWhere(actor.organizationId, { id: brandId }),
+      });
+      if (!brand) throw new NotFoundException('Brand not found');
+      const row = await tx.contentLearningBrandPreference.findFirst({
+        where: scopedWhere(actor.organizationId, { brandId }),
+      });
+      const preference = row
+        ? (['automatic', 'disabled', 'pinned'] as const).find(
+            (value) => value === row.preference,
+          )
+        : 'automatic';
+      if (
+        !preference ||
+        (row &&
+          (!learningContractRevisionSchema.safeParse(row.revision).success ||
+            (row.pinnedReleaseId !== null &&
+              !learningContractIdSchema.safeParse(row.pinnedReleaseId)
+                .success) ||
+            (preference === 'pinned' && !row.pinnedReleaseId)))
+      )
+        throw new ConflictException('Brand receiving state unavailable');
+      return {
+        id: brandId,
+        brandId,
+        revision: row?.revision ?? 0,
+        preference,
+        pinnedReleaseId: row?.pinnedReleaseId ?? null,
+      };
+    });
   }
   async list(actor: LearningActor, brandId: string) {
     await this.operations.assertMember(actor);
@@ -160,7 +553,21 @@ export class LearningAccountService {
             ))
           )
             throw new ConflictException('No valid in-epoch predecessor');
+          await this.scopes.pin(
+            tx,
+            actor.organizationId,
+            credentialId,
+            policy.id,
+            account.epoch,
+          );
         }
+        if (body.action === 'live')
+          await this.scopes.clearPins(
+            tx,
+            actor.organizationId,
+            credentialId,
+            account.epoch,
+          );
         if (body.action === 'reset')
           await tx.contentLearningPolicyVersion.updateMany({
             where: {
@@ -193,9 +600,6 @@ export class LearningAccountService {
                   approvedArmIds: [],
                   failureReason: null,
                 }
-              : {}),
-            ...(body.action === 'rollback'
-              ? { activePolicyId: body.policyId }
               : {}),
           },
         });
@@ -243,7 +647,12 @@ export class LearningAccountService {
           },
         });
         if (!body.enabled && previous)
-          await this.dependencies.invalidate('consent', previous.id, tx);
+          await this.dependencies.invalidate(
+            'consent',
+            previous.id,
+            tx,
+            actor.organizationId,
+          );
         await tx.contentLearningAccount.updateMany({
           where: {
             id: account.id,
@@ -411,50 +820,45 @@ export class LearningAccountService {
       requestId: string;
     },
   ) {
-    await this.operations.assertMember(actor, true);
-    const brand = await this.prisma.brand.findFirst({
-      where: {
-        id: brandId,
-        organizationId: actor.organizationId,
-        isDeleted: false,
-      },
-    });
-    if (!brand) throw new NotFoundException('Brand not found');
-    if (body.preference === 'pinned') {
-      if (!body.releaseId?.trim())
-        throw new BadRequestException('Pinned receiving requires releaseId');
-      const release = await this.prisma.contentLearningRelease.findFirst({
+    return this.prisma.$transaction(async (tx) => {
+      await learningFence(tx, 'exclusive');
+      await this.operations.assertMember(actor, true, false, tx);
+      const brand = await tx.brand.findFirst({
         where: {
-          id: body.releaseId,
-          synthetic: false,
-          stage: { in: ['canary', 'limited', 'stable'] },
+          id: brandId,
+          organizationId: actor.organizationId,
           isDeleted: false,
         },
       });
-      if (
-        !release ||
-        !(await this.dependencies.valid(
-          'release',
-          release.id,
-          this.prisma,
-          null,
-        ))
-      )
-        throw new ConflictException('Valid pinned release required');
-    }
-    const scope = learningHash([
-        actor.organizationId,
-        brandId,
-        'brand-receiving',
-      ]),
-      payloadHash = learningHash([
-        'brand-receiving',
-        actor.organizationId,
-        brandId,
-        body,
-      ]);
-    return this.prisma.$transaction(async (tx) => {
-      await learningFence(tx, 'exclusive');
+      if (!brand) throw new NotFoundException('Brand not found');
+      if (body.preference === 'pinned') {
+        if (!body.releaseId?.trim())
+          throw new BadRequestException('Pinned receiving requires releaseId');
+        const release = await tx.contentLearningRelease.findFirst({
+          where: {
+            id: body.releaseId,
+            synthetic: false,
+            stage: { in: ['canary', 'limited', 'stable'] },
+            isDeleted: false,
+          },
+        });
+        if (
+          !release ||
+          !(await this.dependencies.valid('release', release.id, tx, null))
+        )
+          throw new ConflictException('Valid pinned release required');
+      }
+      const scope = learningHash([
+          actor.organizationId,
+          brandId,
+          'brand-receiving',
+        ]),
+        payloadHash = learningHash([
+          'brand-receiving',
+          actor.organizationId,
+          brandId,
+          body,
+        ]);
       // tenant-scope-ignore: unique-key upsert; organizationId is part of the key
       await tx.contentLearningBrandPreference.upsert({
         where: {

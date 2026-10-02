@@ -27,7 +27,10 @@ import {
   TIKTOK_STATUS_ACTION_IDS,
 } from '@workers/crons/tiktok/tiktok-status-workflow-definition';
 import { ScheduledPostWorkflowService } from '@workers/services/scheduled-post-workflow.service';
-import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
+import {
+  queueLearningPublicationRefreshV1,
+  SchedulerPublishStateService,
+} from '@workers/services/scheduler-publish-state.service';
 
 type TiktokError = {
   message?: string;
@@ -548,6 +551,7 @@ export class CronTiktokStatusService implements OnModuleInit {
           },
       detail,
       {
+        expectedExternalId: String(input.publishId ?? ''),
         expectedWorkflowExecutionId: provenance.executionId,
         priorExecutionStates: [TargetExecutionState.PUBLISHING],
       },
@@ -572,6 +576,11 @@ export class CronTiktokStatusService implements OnModuleInit {
         workflowExecutionId: provenance.executionId,
       });
     }
+    if (grouped)
+      await queueLearningPublicationRefreshV1(this.workflowQueue, this.logger, {
+        organizationId,
+        credentialId: post.credentialId ?? null,
+      });
     return grouped;
   }
 }

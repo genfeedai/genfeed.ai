@@ -7,6 +7,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaModule } from '@libs/prisma/prisma.module';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { forwardRef, Module } from '@nestjs/common';
+import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
 import { CronYoutubeMessagesService } from '@workers/crons/youtube/cron.youtube-messages.service';
 import { CronYoutubeStatusService } from '@workers/crons/youtube/cron.youtube-status.service';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
@@ -20,6 +21,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     forwardRef(() => SocialInboxModule),
     forwardRef(() => WorkersQueuesModule),
     forwardRef(() => WorkflowsModule),
+    CronPostsModule,
     SocialIntegrationsModule,
     PrismaModule,
   ],

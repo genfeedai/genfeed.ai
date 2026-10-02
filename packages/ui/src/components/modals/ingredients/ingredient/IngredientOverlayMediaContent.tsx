@@ -80,67 +80,65 @@ export default function IngredientOverlayMediaContent({
   onScopeChange,
 }: Props) {
   return (
-    <div className="rounded-3xl bg-secondary shadow-border p-4 md:p-6">
-      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
-        {isVideo ? (
-          <IngredientDetailVideo
-            video={localIngredient}
-            videoRef={videoRef}
-            credentials={credentials}
-            childIngredients={childIngredients}
-            onReload={onReload}
-            onShareVideo={onShareVideo}
-            onPublishVideo={onPublishVideo}
-            onDownloadVideo={onDownloadVideo}
-            onUpdateMetadata={onUpdateMetadata}
-            onUpdateSharing={onUpdateSharing}
-            isPublishing={isPublishing}
-            isDownloading={isDownloading}
-            isUpscaling={isUpscaling}
-            isCloning={isCloning}
-            isVoting={isVoting}
-            isReversing={isReversing}
-            isMirroring={isMirroring}
-            isPortraiting={isPortraiting}
-            isConverting={isConverting}
-            isGeneratingCaptions={isGeneratingCaptions}
-            isAddingTextOverlay={isAddingTextOverlay}
-            onUsePrompt={onUsePrompt}
-          />
-        ) : isImage ? (
-          <IngredientDetailImage
-            childIngredients={childIngredients}
-            image={localIngredient}
-            isCloning={isCloning}
-            isConvertingToVideo={isConvertingToVideo}
-            isDownloading={isDownloading}
-            isPublishing={isPublishing}
-            isUpdating={isUpdating}
-            isUpscaling={isUpscaling}
-            isVoting={isVoting}
-            onCreateVariation={onCreateVariation}
-            onDownloadImage={onDownloadImage}
-            onPublishImage={onPublishImage}
-            onShareImage={onShareImage}
-            onUpdateMetadata={onUpdateMetadata}
-            onUpdateSharing={onUpdateSharing}
-            onScopeChange={onScopeChange}
-            onUsePrompt={onUsePrompt}
-          />
-        ) : localIngredient.agentWorkObject ? (
-          <IngredientWorkObjectContent
-            material={localIngredient.agentWorkObject}
-          />
-        ) : (
-          <div className="col-span-full text-center">
-            <p className="text-lg mb-2">{metadataLabel}</p>
+    <div className="grid min-w-0 grid-cols-1 items-start gap-6 xl:grid-cols-2">
+      {isVideo ? (
+        <IngredientDetailVideo
+          video={localIngredient}
+          videoRef={videoRef}
+          credentials={credentials}
+          childIngredients={childIngredients}
+          onReload={onReload}
+          onShareVideo={onShareVideo}
+          onPublishVideo={onPublishVideo}
+          onDownloadVideo={onDownloadVideo}
+          onUpdateMetadata={onUpdateMetadata}
+          onUpdateSharing={onUpdateSharing}
+          isPublishing={isPublishing}
+          isDownloading={isDownloading}
+          isUpscaling={isUpscaling}
+          isCloning={isCloning}
+          isVoting={isVoting}
+          isReversing={isReversing}
+          isMirroring={isMirroring}
+          isPortraiting={isPortraiting}
+          isConverting={isConverting}
+          isGeneratingCaptions={isGeneratingCaptions}
+          isAddingTextOverlay={isAddingTextOverlay}
+          onUsePrompt={onUsePrompt}
+        />
+      ) : isImage ? (
+        <IngredientDetailImage
+          childIngredients={childIngredients}
+          image={localIngredient}
+          isCloning={isCloning}
+          isConvertingToVideo={isConvertingToVideo}
+          isDownloading={isDownloading}
+          isPublishing={isPublishing}
+          isUpdating={isUpdating}
+          isUpscaling={isUpscaling}
+          isVoting={isVoting}
+          onCreateVariation={onCreateVariation}
+          onDownloadImage={onDownloadImage}
+          onPublishImage={onPublishImage}
+          onShareImage={onShareImage}
+          onUpdateMetadata={onUpdateMetadata}
+          onUpdateSharing={onUpdateSharing}
+          onScopeChange={onScopeChange}
+          onUsePrompt={onUsePrompt}
+        />
+      ) : localIngredient.agentWorkObject ? (
+        <IngredientWorkObjectContent
+          material={localIngredient.agentWorkObject}
+        />
+      ) : (
+        <div className="col-span-full text-center">
+          <p className="text-lg mb-2">{metadataLabel}</p>
 
-            <p className="text-sm text-foreground/60">
-              {formatEnumLabel(localIngredient.category)}
-            </p>
-          </div>
-        )}
-      </div>
+          <p className="text-sm text-foreground/60">
+            {formatEnumLabel(localIngredient.category)}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

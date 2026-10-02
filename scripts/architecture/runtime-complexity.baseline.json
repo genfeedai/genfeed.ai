@@ -1,17 +1,5 @@
 [
   {
-    "actual": 165,
-    "file": "apps/server/api/src/analytics/services/analytics-social-collection.service.ts",
-    "metric": "method-lines",
-    "symbol": "AnalyticsSocialCollectionService.collectPost"
-  },
-  {
-    "actual": 154,
-    "file": "apps/server/api/src/analytics/services/analytics-twitter-collection.service.ts",
-    "metric": "method-lines",
-    "symbol": "AnalyticsTwitterCollectionService.collect"
-  },
-  {
     "actual": 156,
     "file": "apps/server/api/src/collections/agent-memories/services/agent-memories.service.ts",
     "metric": "method-lines",
@@ -48,28 +36,10 @@
     "symbol": "PublicYoutubeClipClaimService.claim"
   },
   {
-    "actual": 262,
-    "file": "apps/server/api/src/collections/content-learning/services/learning-checkpoint.service.ts",
-    "metric": "method-lines",
-    "symbol": "LearningCheckpointService.capture"
-  },
-  {
-    "actual": 273,
-    "file": "apps/server/api/src/collections/content-learning/services/learning-dataset.service.ts",
-    "metric": "method-lines",
-    "symbol": "LearningDatasetService.buildSnapshot"
-  },
-  {
     "actual": 214,
     "file": "apps/server/api/src/collections/content-learning/services/learning-decision.service.ts",
     "metric": "method-lines",
     "symbol": "LearningDecisionService.resolveForGeneration"
-  },
-  {
-    "actual": 261,
-    "file": "apps/server/api/src/collections/content-learning/services/learning-dependency.service.ts",
-    "metric": "method-lines",
-    "symbol": "LearningDependencyService.pinned"
   },
   {
     "actual": 219,
@@ -142,12 +112,6 @@
     "file": "apps/server/api/src/collections/videos/services/avatar-video-generation.service.ts",
     "metric": "method-lines",
     "symbol": "AvatarVideoGenerationService.resolveIdentityInputs"
-  },
-  {
-    "actual": 155,
-    "file": "apps/server/api/src/collections/workflows/services/content-learning-workflow.service.ts",
-    "metric": "method-lines",
-    "symbol": "ContentLearningWorkflowService.execute"
   },
   {
     "actual": 1186,

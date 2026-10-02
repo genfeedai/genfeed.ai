@@ -15,6 +15,7 @@ import {
 } from '@genfeedai/contracts';
 import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import type { IngredientTimeGroupHeadingProps } from '@genfeedai/props/content/ingredient.props';
 import type { IngredientsListContentProps } from '@genfeedai/props/pages/ingredients-list.props';
 import {
   getIngredientFailureReason,
@@ -38,6 +39,8 @@ import AppTable from '@ui/display/table/Table';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
+import IngredientTimeGroupHeading from '@ui/ingredients/list/media-grid/ingredient-time-group-heading';
+import { groupIngredientsByTime } from '@ui/ingredients/list/media-grid/ingredient-time-groups.util';
 import IngredientSound from '@ui/ingredients/sound/IngredientSound';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Button } from '@ui/primitives/button';
@@ -427,9 +430,10 @@ export default function IngredientsListContent({
     [onOpenIngredientModal, onOpenLightbox],
   );
 
-  // A brand Library shows the selected asset in the workspace sidebar, so a
-  // click inspects it there and the sidebar preview opens the lightbox. Other
-  // scopes have no sidebar and keep opening the preview straight away.
+  // A brand Library click selects the asset for the workspace sidebar.
+  // Clicking that asset again removes it. The sidebar preview opens the
+  // lightbox; the tile click never does. Other scopes have no sidebar and
+  // keep opening the preview straight away.
   const handleMediaClick = useCallback(
     (ingredient: IIngredient) => {
       if (scope === PageScope.SUPERADMIN) {
@@ -437,13 +441,17 @@ export default function IngredientsListContent({
       }
 
       if (scope === PageScope.BRAND) {
-        onSelectionChange([ingredient.id]);
+        onSelectionChange(
+          selectedIngredientIds.includes(ingredient.id)
+            ? selectedIngredientIds.filter((id) => id !== ingredient.id)
+            : [ingredient.id],
+        );
         return;
       }
 
       openIngredientPreview(ingredient);
     },
-    [onSelectionChange, openIngredientPreview, scope],
+    [onSelectionChange, openIngredientPreview, scope, selectedIngredientIds],
   );
 
   const handleToggleSelection = useCallback(
@@ -533,6 +541,24 @@ export default function IngredientsListContent({
     }
 
     if (viewMode === 'list') {
+      const timeGroups = groupIngredientsByTime(filteredIngredients);
+      const groupHeadingById = new Map<
+        string,
+        IngredientTimeGroupHeadingProps
+      >();
+
+      if (timeGroups) {
+        for (const group of timeGroups) {
+          const first = group.items[0];
+          if (first) {
+            groupHeadingById.set(first.id, {
+              count: group.items.length,
+              label: group.label,
+            });
+          }
+        }
+      }
+
       return (
         <AppTable
           items={filteredIngredients}
@@ -544,6 +570,28 @@ export default function IngredientsListContent({
           getItemId={(ingredient: IIngredient) => ingredient.id}
           actions={tableActions}
           onRowClick={scope === PageScope.BRAND ? handleMediaClick : undefined}
+          isHeaderPinned
+          getGroupHeading={
+            timeGroups
+              ? (ingredient) => {
+                  const heading = groupHeadingById.get(ingredient.id);
+                  if (!heading) {
+                    return null;
+                  }
+
+                  return {
+                    key: heading.label,
+                    content: (
+                      <IngredientTimeGroupHeading
+                        count={heading.count}
+                        label={heading.label}
+                        placement="under-column-header"
+                      />
+                    ),
+                  };
+                }
+              : undefined
+          }
         />
       );
     }
@@ -783,7 +831,7 @@ export default function IngredientsListContent({
 
   return (
     <div
-      className={`flex-1 min-w-0 overflow-hidden ${
+      className={`flex-1 min-w-0 ${
         isAudioCategory
           ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2'
           : ''

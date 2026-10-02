@@ -18,6 +18,7 @@ import type {
   IReplyBotCredentialData,
   ServerAnalyticsCollectionState,
 } from '@genfeedai/contracts/interfaces';
+import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interfaces/analytics/outlier-persistence.interface';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Inject, Injectable } from '@nestjs/common';
 import {
@@ -29,6 +30,12 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+type TwitterBatchOutcome = {
+  readyTargets: AnalyticsCollectionAttemptRef[];
+  delayedTargets: AnalyticsCollectionAttemptRef[];
+  failedTargets: AnalyticsCollectionAttemptRef[];
+  firstProcessingError: unknown;
+};
 @Injectable()
 export class AnalyticsTwitterCollectionService {
   constructor(
@@ -48,7 +55,7 @@ export class AnalyticsTwitterCollectionService {
   async collect(
     data: TwitterAnalyticsCollectionInput,
   ): Promise<AnalyticsPersistenceContext> {
-    const { posts, credentialId } = data;
+    const { posts } = data;
 
     this.logger.log(
       `Processing Twitter analytics batch for ${posts.length} posts`,
@@ -64,6 +71,22 @@ export class AnalyticsTwitterCollectionService {
 
       const credentialData = this.buildCredentialData(credential);
       const tweetIds = posts.map((post) => post.externalId);
+      const observations = new Map<
+        string,
+        LearningPublicationSourceV1 | null
+      >();
+      for (const post of posts)
+        observations.set(
+          post.id,
+          await this.postAnalyticsService.prepareLearningObservation({
+            organizationId: post.organizationId,
+            brandId: post.brandId,
+            credentialId: credential.id,
+            postId: post.id,
+            platform: CredentialPlatform.TWITTER,
+            externalId: post.externalId,
+          }),
+        );
       const sourceAttemptId = randomUUID(),
         requestStartedAt = new Date();
       const analyticsMap = await this.twitterService.getMediaAnalyticsBatch(
@@ -73,62 +96,21 @@ export class AnalyticsTwitterCollectionService {
       );
 
       const receivedAt = new Date();
-      const readyTargets: AnalyticsCollectionAttemptRef[] = [];
-      const delayedTargets: AnalyticsCollectionAttemptRef[] = [];
-      const failedTargets: AnalyticsCollectionAttemptRef[] = [];
-      let firstProcessingError: unknown;
-
-      for (const post of posts) {
-        const analytics = analyticsMap.get(post.externalId);
-        const target: AnalyticsCollectionAttemptRef = {
-          attemptKey: data.attemptKey,
-          brandId: post.brandId,
-          id: post.id,
-          organizationId: post.organizationId,
-          platform: CredentialPlatform.TWITTER,
-        };
-
-        if (!analytics) {
-          this.logger.warn(
-            `No analytics found for tweet ${post.externalId} (post ${post.id})`,
-          );
-          delayedTargets.push(target);
-          settledPostIds.add(post.id);
-          continue;
-        }
-
-        // Per-post isolation. Persistence runs inside the loop while the
-        // batch outcome is only written after it, so an unguarded throw on
-        // post N escaped to the outer catch and marked posts 1..N-1 FAILED
-        // even though their analytics had already been written — the retry
-        // then re-processed rows that had succeeded.
-        try {
-          await this.postAnalyticsService.processTwitterAnalytics(
-            post.id,
-            analytics,
-            {
-              learningObservation: {
-                sourceAttemptId,
-                requestStartedAt,
-                receivedAt,
-              },
-              organizationId: post.organizationId,
-              brandId: post.brandId,
-              credentialId: credentialId,
-            },
-          );
-          readyTargets.push(target);
-        } catch (error: unknown) {
-          firstProcessingError ??= error;
-          this.logger.error(
-            `Failed to process Twitter analytics for post ${post.id}`,
-            error,
-          );
-          failedTargets.push(target);
-        }
-        settledPostIds.add(post.id);
-      }
-
+      const {
+        readyTargets,
+        delayedTargets,
+        failedTargets,
+        firstProcessingError,
+      } = await this.persistTwitterBatch(
+        data,
+        analyticsMap,
+        observations,
+        credential.id,
+        sourceAttemptId,
+        requestStartedAt,
+        receivedAt,
+        settledPostIds,
+      );
       await this.analyticsCollectionState.markReadyBatch(readyTargets);
       if (delayedTargets.length > 0) {
         await this.analyticsCollectionState.markFailedBatch(
@@ -200,6 +182,85 @@ export class AnalyticsTwitterCollectionService {
     }
   }
 
+  private async persistTwitterBatch(
+    data: TwitterAnalyticsCollectionInput,
+    analyticsMap: Awaited<
+      ReturnType<ServerTwitterAnalytics['getMediaAnalyticsBatch']>
+    >,
+    observations: Map<string, LearningPublicationSourceV1 | null>,
+    credentialId: string,
+    sourceAttemptId: string,
+    requestStartedAt: Date,
+    receivedAt: Date,
+    settledPostIds: Set<string>,
+  ): Promise<TwitterBatchOutcome> {
+    const { posts } = data;
+    const readyTargets: AnalyticsCollectionAttemptRef[] = [];
+    const delayedTargets: AnalyticsCollectionAttemptRef[] = [];
+    const failedTargets: AnalyticsCollectionAttemptRef[] = [];
+    let firstProcessingError: unknown;
+
+    for (const post of posts) {
+      const analytics = analyticsMap.get(post.externalId);
+      const target: AnalyticsCollectionAttemptRef = {
+        attemptKey: data.attemptKey,
+        brandId: post.brandId,
+        id: post.id,
+        organizationId: post.organizationId,
+        platform: CredentialPlatform.TWITTER,
+      };
+
+      if (!analytics) {
+        this.logger.warn(
+          `No analytics found for tweet ${post.externalId} (post ${post.id})`,
+        );
+        delayedTargets.push(target);
+        settledPostIds.add(post.id);
+        continue;
+      }
+
+      // Per-post isolation. Persistence runs inside the loop while the
+      // batch outcome is only written after it, so an unguarded throw on
+      // post N escaped to the outer catch and marked posts 1..N-1 FAILED
+      // even though their analytics had already been written — the retry
+      // then re-processed rows that had succeeded.
+      try {
+        await this.postAnalyticsService.processTwitterAnalytics(
+          post.id,
+          analytics,
+          {
+            learningObservation: {
+              sourceAttemptId,
+              requestStartedAt,
+              receivedAt,
+              ...(observations.get(post.id)
+                ? { publicationSource: observations.get(post.id) ?? undefined }
+                : {}),
+            },
+            organizationId: post.organizationId,
+            brandId: post.brandId,
+            credentialId,
+          },
+        );
+        readyTargets.push(target);
+      } catch (error: unknown) {
+        firstProcessingError ??= error;
+        this.logger.error(
+          `Failed to process Twitter analytics for post ${post.id}`,
+          error,
+        );
+        failedTargets.push(target);
+      }
+      settledPostIds.add(post.id);
+    }
+
+    return {
+      readyTargets,
+      delayedTargets,
+      failedTargets,
+      firstProcessingError,
+    };
+  }
   private async resolveCollectionCredential(
     data: TwitterAnalyticsCollectionInput,
   ) {

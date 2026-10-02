@@ -72,3 +72,29 @@ and do not write a settlement marker. Cancellation and settlement do not consume
 admission attempt. A late queue response cannot clear cancellation or admit paid work.
 
 Credit holds expire after two hours, including time spent queued. Motion checks the existing hold before each paid stage and stops with `visual_reservation_unavailable` when it is no longer usable. Request a new explicit quoted retry after recovery; Motion never renews or duplicates the old hold. If the wallet releases an expired hold while an admitted call is pending, confirmed costs become operator liability, preserving actual usage without a second user debit.
+
+## Local acceptance evidence
+
+The API's opt-in local-runtime integration suite exercises the existing controllers,
+workflow engine, credit reservations and canonical Library using real PostgreSQL,
+BullMQ/Redis, disk storage and the Linux runsc renderer. Its scripted dispatcher avoids
+paid requests and labels provider usage as synthetic. Ordinary integration tests retain
+canned renderer/queue behavior and do not establish actual encoding or isolation.
+
+Use a fresh exclusively owned disposable database and Redis socket, an authenticated
+loopback coordinator, generated image/video/audio input files and a private artifact
+root. Follow `scripts/visual-code/README.md` for the six explicit environment values,
+the Node24/Linux prerequisites and strict `runtime-preflight.json` schema. Preflight
+must match the actual candidate Git SHA and remain unchanged during each case.
+
+The connected cases retain playable MP4, PNG/JPEG frames, previews, source snapshots,
+ffprobe and redacted settlement/queue evidence in separate UUID directories. The Linux
+isolation script accepts an absolute `VISUAL_CODE_ARTIFACT_DIR` and records runsc image
+and container security facts before removal. Copied-script runs additionally use
+`VISUAL_CODE_ACCEPTANCE_HEAD`; operators must compare script hashes to that commit.
+The script refuses reuse of existing evidence or media.
+
+Review actual saved media and current-head CI before making acceptance claims. These
+checks prove the selected local provider's bytes and admission, not production storage
+factory selection, HTTP serving of local URLs, paid model quality, login/browser or
+every agent invocation path. Keep incomplete entrypoint and deployment evidence explicit.

@@ -14,21 +14,28 @@ import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscrip
 import { getOrganizationLimitForTier } from '@genfeedai/pricing';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
+import {
+  SWITCHER_AVATAR_CLASSNAME,
+  SWITCHER_CHEVRON_CLASSNAME,
+  SWITCHER_TRIGGER_OPEN_CLASSNAME,
+} from '@ui/menus/switchers/switcher-trigger.classes';
 import { Modal } from '@ui/modals/compound/modal.compound';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
-import { Settings } from 'lucide-react';
+import { ChevronsUpDown, Settings } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 
 import { useCreateOrganizationModal } from './use-create-organization-modal';
 
 interface OrganizationSwitcherProps {
+  compactOnMobile?: boolean;
   subscriptionTier?: string | null;
 }
 
 export default function OrganizationSwitcher({
+  compactOnMobile = false,
   subscriptionTier,
 }: OrganizationSwitcherProps = {}) {
   const getOrgsService = useAuthedService((token: string) =>
@@ -98,8 +105,8 @@ export default function OrganizationSwitcher({
           },
         }))}
         renderTrigger={({ isOpen }) => (
-          // A native button (via the primitive) so Enter / Space open the
-          // menu; the rail shows the organization as a Slack-style tile.
+          // Same h-8 chip as the brand switcher. The old size-9 rail tile
+          // sat in the topbar band and made that row taller than its neighbors.
           <Button
             type="button"
             variant={ButtonVariant.UNSTYLED}
@@ -108,13 +115,30 @@ export default function OrganizationSwitcher({
             data-testid="organization-switcher-trigger"
             title={displayLabel}
             className={cn(
-              'flex size-9 cursor-pointer items-center justify-center rounded-lg bg-foreground/[0.12] text-sm font-semibold text-foreground transition-colors hover:bg-foreground/[0.18]',
+              'flex h-8 w-max max-w-52 min-w-0 cursor-pointer items-center gap-2 rounded-md px-1.5 text-left transition-colors duration-150 hover:bg-foreground/[0.06]',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+              compactOnMobile && 'gap-0 px-1 md:gap-2 md:px-1.5',
               isSwitching && 'cursor-not-allowed opacity-50',
-              isOpen && 'bg-foreground/[0.18]',
+              isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,
             )}
           >
-            {displayLabel.charAt(0).toUpperCase()}
+            <span className={SWITCHER_AVATAR_CLASSNAME}>
+              {displayLabel.charAt(0).toUpperCase()}
+            </span>
+            <span
+              className={cn(
+                'min-w-0 truncate text-sm font-medium leading-none text-foreground',
+                compactOnMobile && 'hidden md:inline',
+              )}
+            >
+              {isSwitching ? 'Switching…' : displayLabel}
+            </span>
+            <ChevronsUpDown
+              className={cn(
+                SWITCHER_CHEVRON_CLASSNAME,
+                compactOnMobile && 'hidden md:block',
+              )}
+            />
           </Button>
         )}
         onSelect={(id) => void handleSwitch(id)}

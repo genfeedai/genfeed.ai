@@ -57,17 +57,14 @@ export default function RailAccount() {
           <Link
             aria-label={translate('help')}
             className={cn(
-              'inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-foreground/50 transition-[background-color,color] duration-150',
+              'inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-foreground/50 transition-[background-color,color] duration-150',
               'hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
             )}
             data-testid="app-rail-help"
             href={APP_ROUTES.SETTINGS.HELP}
             prefetch={false}
           >
-            <CircleQuestionMark
-              aria-hidden="true"
-              className="size-[1.125rem]"
-            />
+            <CircleQuestionMark aria-hidden="true" className="size-4" />
           </Link>
         </TooltipTrigger>
         <TooltipContent side="right" sideOffset={10}>
@@ -75,7 +72,7 @@ export default function RailAccount() {
         </TooltipContent>
       </Tooltip>
       {user && isSignedIn ? (
-        <div className="flex size-9 items-center justify-center">
+        <div className="flex size-8 items-center justify-center">
           <UserDropdown
             imageUrl={user.imageUrl}
             side="right"

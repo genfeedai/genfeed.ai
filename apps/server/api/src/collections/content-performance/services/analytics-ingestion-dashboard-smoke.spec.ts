@@ -1,3 +1,35 @@
+import { LearningCheckpointService } from '@api/collections/content-learning/services/learning-checkpoint.service';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { Test } from '@nestjs/testing';
+
+async function persistenceDependencies() {
+  const capture = vi
+    .fn<LearningCheckpointService['capture']>()
+    .mockResolvedValue(null);
+  const queue = vi
+    .fn<WorkflowExecutionQueueService['queueSystemWorkflow']>()
+    .mockResolvedValue('job');
+  const module = await Test.createTestingModule({
+    providers: [
+      { provide: LearningCheckpointService, useValue: { capture } },
+      {
+        provide: WorkflowExecutionQueueService,
+        useValue: { queueSystemWorkflow: queue },
+      },
+    ],
+  }).compile();
+  return {
+    capture,
+    queue,
+    checkpoints: module.get<LearningCheckpointService>(
+      LearningCheckpointService,
+    ),
+    workflowQueue: module.get<WorkflowExecutionQueueService>(
+      WorkflowExecutionQueueService,
+    ),
+  };
+}
+
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import type { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import type { PostDocument } from '@api/collections/posts/post.schema';
@@ -368,6 +400,7 @@ describe('analytics ingestion to dashboard smoke path', () => {
   });
 
   it('stores provider analytics and exposes the same post in dashboard summaries', async () => {
+    const dependencies = await persistenceDependencies();
     const postAnalyticsService = new PostAnalyticsService(
       prisma as unknown as PrismaService,
       logger as unknown as LoggerService,
@@ -376,6 +409,8 @@ describe('analytics ingestion to dashboard smoke path', () => {
         authorize: vi.fn().mockResolvedValue({}),
         refresh: vi.fn().mockResolvedValue([]),
       } as unknown as OutliersService,
+      dependencies.checkpoints,
+      dependencies.workflowQueue,
     );
     const performanceSummaryService = new PerformanceSummaryService(
       prisma as unknown as ServerPrisma,
@@ -391,6 +426,8 @@ describe('analytics ingestion to dashboard smoke path', () => {
       { organizationId, brandId, credentialId: 'credential-smoke' },
     );
 
+    expect(dependencies.capture).not.toHaveBeenCalled();
+    expect(dependencies.queue).not.toHaveBeenCalled();
     await postAnalyticsService.refreshOutliers({
       organizationId,
       brandId,

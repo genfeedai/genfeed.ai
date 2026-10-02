@@ -1,3 +1,4 @@
+import { resolveLearningPublicationSourceV1 } from '@api/collections/content-learning/services/learning-publication-source.helper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   isLearningDerivedDependencyKind,
@@ -28,6 +29,119 @@ function scoped(
     ? { organizationId }
     : null;
 }
+export async function invalidateLearningDependencySource(
+  tx: Prisma.TransactionClient,
+  sourceKind: string,
+  sourceId: string,
+  organizationId?: string | null,
+): Promise<number> {
+  if (!validLearningDependencyKind(sourceKind)) return 0;
+  const queue = [{ kind: sourceKind, id: sourceId, organizationId }],
+    visited = new Set<string>();
+  while (queue.length) {
+    const current = queue.shift();
+    if (!current) break;
+    const key = JSON.stringify(current);
+    if (visited.has(key)) continue;
+    visited.add(key);
+    const edges = await tx.contentLearningDependency.findMany({
+      where: {
+        sourceKind: current.kind,
+        sourceId: current.id,
+        ...(current.organizationId !== undefined
+          ? { sourceOrganizationId: current.organizationId }
+          : {}),
+        isDeleted: false,
+      },
+      orderBy: { id: 'asc' },
+    });
+    for (const edge of edges) {
+      await tx.contentLearningDependency.updateMany({
+        where: { id: edge.id, isDeleted: false },
+        data: { valid: false, invalidatedAt: new Date() },
+      });
+      if (
+        edge.derivedKind === 'baseline' &&
+        typeof edge.derivedOrganizationId === 'string' &&
+        edge.derivedOrganizationId.trim() &&
+        (isLearningGlobalDependencyKind(sourceKind)
+          ? organizationId === null
+          : typeof organizationId === 'string' &&
+            organizationId.trim() &&
+            organizationId === edge.derivedOrganizationId) &&
+        (current.organizationId === edge.derivedOrganizationId ||
+          (isLearningGlobalDependencyKind(current.kind) &&
+            current.organizationId === null))
+      )
+        await tx.contentLearningBaseline.updateMany({
+          where: {
+            id: edge.derivedId,
+            organizationId: edge.derivedOrganizationId,
+            isDeleted: false,
+          },
+          data: { validity: 'invalid_source' },
+        });
+      if (edge.derivedKind === 'reward' && edge.derivedOrganizationId)
+        await tx.contentLearningReward.updateMany({
+          where: {
+            id: edge.derivedId,
+            organizationId: edge.derivedOrganizationId,
+            isDeleted: false,
+          },
+          data: {
+            status:
+              sourceKind === 'checkpoint'
+                ? 'invalid_baseline'
+                : 'invalid_source',
+          },
+        });
+      if (edge.derivedKind === 'policy' && edge.derivedOrganizationId)
+        await tx.contentLearningPolicyVersion.updateMany({
+          where: {
+            id: edge.derivedId,
+            organizationId: edge.derivedOrganizationId,
+            isDeleted: false,
+          },
+          data: { state: 'invalid' },
+        });
+      if (edge.derivedKind === 'dataset')
+        await tx.contentLearningDataset.updateMany({
+          where: { id: edge.derivedId, isDeleted: false },
+          data: {
+            status: 'invalidated',
+            invalidationRevision: { increment: 1 },
+          },
+        });
+      if (edge.derivedKind === 'run')
+        await tx.contentLearningRun.updateMany({
+          where: { id: edge.derivedId, isDeleted: false },
+          data: { status: 'invalidated' },
+        });
+      if (edge.derivedKind === 'shared-policy')
+        await tx.contentLearningSharedPolicy.updateMany({
+          where: { id: edge.derivedId, isDeleted: false },
+          data: { validity: 'invalid' },
+        });
+      if (edge.derivedKind === 'release')
+        await tx.contentLearningRelease.updateMany({
+          where: { id: edge.derivedId, isDeleted: false },
+          data: {
+            stage: 'invalid',
+            revision: { increment: 1 },
+            invalidationRevision: { increment: 1 },
+            activeCells: [],
+          },
+        });
+      if (!validLearningDependencyKind(edge.derivedKind)) continue;
+      queue.push({
+        kind: edge.derivedKind,
+        id: edge.derivedId,
+        organizationId: edge.derivedOrganizationId,
+      });
+    }
+  }
+  return visited.size;
+}
 @Injectable()
 export class LearningDependencyService {
   constructor(private readonly prisma: PrismaService) {}
@@ -37,50 +151,168 @@ export class LearningDependencyService {
     organizationId: string | null,
     tx: Prisma.TransactionClient,
   ): Promise<string | null> {
-    const scope = scoped(kind, organizationId);
-    if (!scope) return null;
-    if (kind === 'config')
-      return (
-        LEARNING_REGISTERED_CONFIG_VERSIONS as readonly string[]
-      ).includes(id)
-        ? id
-        : null;
-    if (kind === 'organization') {
-      const row = await tx.organization.findFirst({
-        where: { id, isDeleted: false },
-      });
-      return row && row.id === organizationId ? id : null;
-    }
+    if (!scoped(kind, organizationId)) return null;
+    if (kind === 'organization' || kind === 'brand' || kind === 'credential')
+      return this.pinnedParents(kind, id, organizationId, tx);
+    if (
+      kind === 'post' ||
+      kind === 'publish_approval' ||
+      kind === 'post_publish_finalization' ||
+      kind === 'content_version_pin'
+    )
+      return this.pinnedPublication(kind, id, organizationId, tx);
+    if (
+      kind === 'account' ||
+      kind === 'consent' ||
+      kind === 'checkpoint' ||
+      kind === 'baseline' ||
+      kind === 'decision' ||
+      kind === 'reward' ||
+      kind === 'policy'
+    )
+      return this.pinnedPrivateEvidence(kind, id, organizationId, tx);
+    if (
+      kind === 'config' ||
+      kind === 'dataset' ||
+      kind === 'run' ||
+      kind === 'shared-policy' ||
+      kind === 'release'
+    )
+      return this.pinnedGlobal(kind, id, organizationId, tx);
+    if (
+      kind === 'experiment' ||
+      kind === 'enrollment' ||
+      kind === 'opportunity' ||
+      kind === 'experiment-event' ||
+      kind === 'provider_attempt' ||
+      kind === 'llm_vendor_cost' ||
+      kind === 'media_vendor_cost'
+    )
+      return this.pinnedExperiment(kind, id, organizationId, tx);
+    return null;
+  }
+  private async pinnedParents(
+    kind: 'organization' | 'brand' | 'credential',
+    id: string,
+    organizationId: string | null,
+    tx: Prisma.TransactionClient,
+  ): Promise<string | null> {
+    if (!organizationId) return null;
+    const organization = await tx.organization.findFirst({
+      where: { id: organizationId, isDeleted: false },
+    });
+    if (
+      !organization ||
+      organization.id !== organizationId ||
+      organization.isDeleted
+    )
+      return null;
+    if (kind === 'organization') return id === organizationId ? id : null;
     if (kind === 'brand') {
       const row = await tx.brand.findFirst({
-        where: {
-          id,
-          organizationId: organizationId ?? undefined,
-          isDeleted: false,
-        },
+        where: { id, organizationId, isDeleted: false, isActive: true },
       });
-      return row ? id : null;
+      return row &&
+        row.id === id &&
+        row.organizationId === organizationId &&
+        !row.isDeleted &&
+        row.isActive
+        ? id
+        : null;
     }
-    if (kind === 'credential') {
-      const row = await tx.credential.findFirst({
-        where: {
-          id,
-          organizationId: organizationId ?? undefined,
-          isDeleted: false,
-        },
-      });
-      return row ? id : null;
-    }
+    const row = await tx.credential.findFirst({
+      where: { id, organizationId, isDeleted: false, isConnected: true },
+    });
+    if (
+      !row ||
+      row.id !== id ||
+      row.organizationId !== organizationId ||
+      row.isDeleted ||
+      !row.isConnected
+    )
+      return null;
+    const brand = await tx.brand.findFirst({
+      where: {
+        id: row.brandId,
+        organizationId,
+        isDeleted: false,
+        isActive: true,
+      },
+    });
+    return brand &&
+      brand.id === row.brandId &&
+      brand.organizationId === organizationId &&
+      !brand.isDeleted &&
+      brand.isActive
+      ? id
+      : null;
+  }
+  private async pinnedPublication(
+    kind:
+      | 'post'
+      | 'publish_approval'
+      | 'post_publish_finalization'
+      | 'content_version_pin',
+    id: string,
+    organizationId: string | null,
+    tx: Prisma.TransactionClient,
+  ): Promise<string | null> {
+    if (!organizationId) return null;
     if (kind === 'post') {
-      const row = await tx.post.findFirst({
-        where: {
-          id,
-          organizationId: organizationId ?? undefined,
-          isDeleted: false,
-        },
-      });
-      return row ? id : null;
+      const source = await resolveLearningPublicationSourceV1(
+        tx,
+        organizationId,
+        id,
+      );
+      return source?.postSourceVersion ?? null;
     }
+    if (kind === 'publish_approval') {
+      const row = await tx.publishApproval.findFirst({
+        where: { id, organizationId },
+      });
+      if (!row || row.id !== id || row.organizationId !== organizationId)
+        return null;
+      const source = await resolveLearningPublicationSourceV1(
+        tx,
+        organizationId,
+        row.postId,
+      );
+      return source?.approvalId === id ? source.approvalVersion : null;
+    }
+    if (kind === 'post_publish_finalization') {
+      const row = await tx.postPublishFinalization.findFirst({
+        where: { id, organizationId },
+      });
+      if (!row || row.id !== id || row.organizationId !== organizationId)
+        return null;
+      const source = await resolveLearningPublicationSourceV1(
+        tx,
+        organizationId,
+        row.postId,
+      );
+      return source?.finalizationId === id ? source.finalizationVersion : null;
+    }
+    if (kind === 'content_version_pin') {
+      const row = await tx.contentVersionPin.findFirst({
+        where: { id, organizationId: organizationId ?? undefined },
+      });
+      return row ? row.contentDigest : null;
+    }
+    return null;
+  }
+  private async pinnedPrivateEvidence(
+    kind:
+      | 'account'
+      | 'consent'
+      | 'checkpoint'
+      | 'baseline'
+      | 'decision'
+      | 'reward'
+      | 'policy',
+    id: string,
+    organizationId: string | null,
+    tx: Prisma.TransactionClient,
+  ): Promise<string | null> {
     if (kind === 'account') {
       const row = await tx.contentLearningAccount.findFirst({
         where: {
@@ -162,6 +394,20 @@ export class LearningDependencyService {
       });
       return row ? String(row.version) : null;
     }
+    return null;
+  }
+  private async pinnedGlobal(
+    kind: 'config' | 'dataset' | 'run' | 'shared-policy' | 'release',
+    id: string,
+    _organizationId: string | null,
+    tx: Prisma.TransactionClient,
+  ): Promise<string | null> {
+    if (kind === 'config')
+      return (
+        LEARNING_REGISTERED_CONFIG_VERSIONS as readonly string[]
+      ).includes(id)
+        ? id
+        : null;
     if (kind === 'dataset') {
       const row = await tx.contentLearningDataset.findFirst({
         where: { id, isDeleted: false, status: { not: 'invalidated' } },
@@ -186,6 +432,21 @@ export class LearningDependencyService {
       });
       return row ? String(row.revision) : null;
     }
+    return null;
+  }
+  private async pinnedExperiment(
+    kind:
+      | 'experiment'
+      | 'enrollment'
+      | 'opportunity'
+      | 'experiment-event'
+      | 'provider_attempt'
+      | 'llm_vendor_cost'
+      | 'media_vendor_cost',
+    id: string,
+    organizationId: string | null,
+    tx: Prisma.TransactionClient,
+  ): Promise<string | null> {
     if (kind === 'experiment') {
       const row = await tx.contentLearningExperiment.findFirst({
         where: {
@@ -258,37 +519,6 @@ export class LearningDependencyService {
       return row?.learningAttemptId
         ? `${row.learningAttemptId}:${row.id}:${row.updatedAt.toISOString()}`
         : null;
-    }
-    if (kind === 'publish_approval') {
-      const row = await tx.publishApproval.findFirst({
-        where: {
-          id,
-          organizationId: organizationId ?? undefined,
-          status: 'approved',
-          invalidatedAt: null,
-        },
-      });
-      return row ? row.artifactVersionPinId : null;
-    }
-    if (kind === 'post_publish_finalization') {
-      const row = await tx.postPublishFinalization.findFirst({
-        where: { id, organizationId: organizationId ?? undefined },
-      });
-      if (!row) return null;
-      const post = await tx.post.findFirst({
-        where: {
-          id: row.postId,
-          organizationId: row.organizationId,
-          isDeleted: false,
-        },
-      });
-      return post ? (row.completedAt?.toISOString() ?? row.source) : null;
-    }
-    if (kind === 'content_version_pin') {
-      const row = await tx.contentVersionPin.findFirst({
-        where: { id, organizationId: organizationId ?? undefined },
-      });
-      return row ? row.contentDigest : null;
     }
     return null;
   }
@@ -448,91 +678,12 @@ export class LearningDependencyService {
     sourceId: string,
     tx: Prisma.TransactionClient = this.prisma,
     organizationId?: string | null,
-  ) {
-    if (!validLearningDependencyKind(sourceKind)) return 0;
-    const queue = [{ kind: sourceKind, id: sourceId, organizationId }],
-      visited = new Set<string>();
-    while (queue.length) {
-      const current = queue.shift();
-      if (!current) break;
-      const key = JSON.stringify(current);
-      if (visited.has(key)) continue;
-      visited.add(key);
-      const edges = await tx.contentLearningDependency.findMany({
-        where: {
-          sourceKind: current.kind,
-          sourceId: current.id,
-          ...(current.organizationId !== undefined
-            ? { sourceOrganizationId: current.organizationId }
-            : {}),
-          isDeleted: false,
-        },
-        orderBy: { id: 'asc' },
-      });
-      for (const edge of edges) {
-        await tx.contentLearningDependency.updateMany({
-          where: { id: edge.id, isDeleted: false },
-          data: { valid: false, invalidatedAt: new Date() },
-        });
-        if (edge.derivedKind === 'reward' && edge.derivedOrganizationId)
-          await tx.contentLearningReward.updateMany({
-            where: {
-              id: edge.derivedId,
-              organizationId: edge.derivedOrganizationId,
-              isDeleted: false,
-            },
-            data: {
-              status:
-                sourceKind === 'checkpoint'
-                  ? 'invalid_baseline'
-                  : 'invalid_source',
-            },
-          });
-        if (edge.derivedKind === 'policy' && edge.derivedOrganizationId)
-          await tx.contentLearningPolicyVersion.updateMany({
-            where: {
-              id: edge.derivedId,
-              organizationId: edge.derivedOrganizationId,
-              isDeleted: false,
-            },
-            data: { state: 'invalid' },
-          });
-        if (edge.derivedKind === 'dataset')
-          await tx.contentLearningDataset.updateMany({
-            where: { id: edge.derivedId, isDeleted: false },
-            data: {
-              status: 'invalidated',
-              invalidationRevision: { increment: 1 },
-            },
-          });
-        if (edge.derivedKind === 'run')
-          await tx.contentLearningRun.updateMany({
-            where: { id: edge.derivedId, isDeleted: false },
-            data: { status: 'invalidated' },
-          });
-        if (edge.derivedKind === 'shared-policy')
-          await tx.contentLearningSharedPolicy.updateMany({
-            where: { id: edge.derivedId, isDeleted: false },
-            data: { validity: 'invalid' },
-          });
-        if (edge.derivedKind === 'release')
-          await tx.contentLearningRelease.updateMany({
-            where: { id: edge.derivedId, isDeleted: false },
-            data: {
-              stage: 'invalid',
-              revision: { increment: 1 },
-              invalidationRevision: { increment: 1 },
-              activeCells: [],
-            },
-          });
-        if (!validLearningDependencyKind(edge.derivedKind)) continue;
-        queue.push({
-          kind: edge.derivedKind,
-          id: edge.derivedId,
-          organizationId: edge.derivedOrganizationId,
-        });
-      }
-    }
-    return visited.size;
+  ): Promise<number> {
+    return invalidateLearningDependencySource(
+      tx,
+      sourceKind,
+      sourceId,
+      organizationId,
+    );
   }
 }

@@ -6,9 +6,15 @@ import IngredientWorkspacePanel from '@ui/ingredients/detail/shared/IngredientWo
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@ui/navigation/tabs/Tabs', () => ({
-  default: ({ children, contentClassName, fullWidth }: TabsEnhancedProps) => (
+  default: ({
+    children,
+    contentClassName,
+    fullWidth,
+    listClassName,
+  }: TabsEnhancedProps) => (
     <div
       data-content-class={contentClassName}
+      data-list-class={listClassName}
       data-full-width={String(fullWidth)}
       data-testid="workspace-tabs"
     >
@@ -41,6 +47,11 @@ describe('IngredientWorkspacePanel', () => {
       'data-content-class',
       'mt-5 space-y-5',
     );
+    expect(screen.getByTestId('workspace-tabs')).toHaveAttribute(
+      'data-list-class',
+      'mr-auto ml-0 max-w-full overflow-x-auto',
+    );
+    expect(screen.queryByText('Asset Workspace')).not.toBeInTheDocument();
     expect(screen.getByText('Details')).toBeInTheDocument();
   });
 });

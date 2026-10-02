@@ -13,6 +13,7 @@ export default function IngredientsListHeader({
   onDownload,
   onMerge,
   onPublishCampaign,
+  placement = 'overlay',
 }: IngredientsListHeaderProps) {
   return (
     <SelectionActionsBar
@@ -25,6 +26,7 @@ export default function IngredientsListHeader({
       onDownload={onDownload}
       onMerge={onMerge}
       onPublishCampaign={onPublishCampaign}
+      placement={placement}
     />
   );
 }

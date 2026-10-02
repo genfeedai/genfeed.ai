@@ -27,8 +27,10 @@ import {
 } from './app-layout.utils';
 
 const SIDEBAR_COLLAPSED_WIDTH = 0;
-/** App rail width: a 36px item plus 8px gutters. */
-export const APP_RAIL_WIDTH = 52;
+/** Window chrome: one 32px control with equal 4px padding on each side. */
+const SHELL_CONTROL_SIZE = 32;
+const SHELL_CONTROL_INSET = 4;
+export const APP_RAIL_WIDTH = SHELL_CONTROL_SIZE + SHELL_CONTROL_INSET * 2;
 const DESKTOP_TITLEBAR_HEIGHT = 32;
 const SIDEBAR_TRANSITION_DURATION_MS = 300;
 const SIDEBAR_TRANSITION_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
@@ -264,19 +266,14 @@ export function useAppLayout({
       brandSlug,
       currentApp,
       isMenuOpen: isSidebarOpen,
-      isSidebarCollapsed: menuComponent ? isDesktopCollapsed : undefined,
       onMenuToggle: handleToggleSidebar,
-      onSidebarToggle: menuComponent ? handleToggleDesktopSidebar : undefined,
       orgSlug,
     };
   }, [
     brandSlug,
     currentApp,
     handleToggleSidebar,
-    handleToggleDesktopSidebar,
-    isDesktopCollapsed,
     isSidebarOpen,
-    menuComponent,
     orgSlug,
     topbarComponent,
   ]);
@@ -297,6 +294,7 @@ export function useAppLayout({
       : desktopSidebarExpandedWidth
     : 0;
   const layoutStyle = {
+    '--shell-topbar-height': `${APP_RAIL_WIDTH}px`,
     '--desktop-rail-width': `${railComponent ? APP_RAIL_WIDTH : 0}px`,
     '--desktop-sidebar-width': `${desktopSidebarWidth}px`,
     '--desktop-titlebar-height': isDesktopClient()

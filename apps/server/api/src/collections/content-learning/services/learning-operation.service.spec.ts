@@ -6,6 +6,7 @@ import {
   learningScopeKey,
 } from '@api/collections/content-learning/services/learning-operation.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { Prisma } from '@genfeedai/prisma';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { describe, expect, it, vi } from 'vitest';
@@ -14,6 +15,8 @@ vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
   PrismaService: class {},
 }));
 function fixture(role = 'owner') {
+  const rootMember = { role: { key: role } },
+    transactionMember = { role: { key: role } };
   const account = {
     id: 'account',
     organizationId: 'org',
@@ -22,6 +25,7 @@ function fixture(role = 'owner') {
     revision: 3,
   };
   const transaction = {
+    member: { findFirst: vi.fn().mockResolvedValue(transactionMember) },
     $queryRaw: vi.fn().mockResolvedValue([]),
     contentLearningAccount: {
       findFirst: vi.fn().mockResolvedValue(account),
@@ -37,13 +41,15 @@ function fixture(role = 'owner') {
     },
   };
   const prisma = {
-    member: { findFirst: vi.fn().mockResolvedValue({ role: { key: role } }) },
+    member: { findFirst: vi.fn().mockResolvedValue(rootMember) },
     $transaction: vi.fn().mockImplementation((fn) => fn(transaction)),
   };
   return {
     service: new LearningOperationService(prisma as unknown as PrismaService),
     transaction,
     prisma,
+    rootMember,
+    transactionMember,
   };
 }
 describe('real roles and revision-locked mutation receipts', () => {
@@ -197,5 +203,81 @@ describe('HTTP learning mutation and pagination validation', () => {
         }),
       ),
     ).toHaveLength(0);
+  });
+});
+
+describe('membership lookup joins the explicit client without owning entry', () => {
+  const actor = { actorId: 'user', organizationId: 'org' };
+  const query = {
+    where: {
+      organizationId: 'org',
+      userId: 'user',
+      isDeleted: false,
+      isActive: true,
+    },
+    include: { role: true },
+  };
+  const message =
+    'Real organization membership and the required role are required';
+  it.each(['omitted', 'undefined'])(
+    'retains default root lookup for %s client and read permission for non-admin ownerOnly',
+    async (kind) => {
+      const f = fixture('member');
+      expect(
+        await (kind === 'omitted'
+          ? f.service.assertMember(actor, false, true)
+          : f.service.assertMember(actor, false, true, undefined)),
+      ).toBe(f.rootMember);
+      expect(f.prisma.member.findFirst).toHaveBeenCalledWith(query);
+      expect(f.transaction.member.findFirst).not.toHaveBeenCalled();
+      expect(f.prisma.$transaction).not.toHaveBeenCalled();
+      expect(f.transaction.$queryRaw).not.toHaveBeenCalled();
+    },
+  );
+  it.each([
+    { role: 'OWNER', ownerOnly: false, allowed: true },
+    { role: 'Admin', ownerOnly: false, allowed: true },
+    { role: 'owner', ownerOnly: true, allowed: true },
+    { role: 'admin', ownerOnly: true, allowed: false },
+    { role: 'member', ownerOnly: false, allowed: false },
+  ])(
+    'preserves real default role policy $role/$ownerOnly',
+    async ({ role, ownerOnly, allowed }) => {
+      const f = fixture(role),
+        result = f.service.assertMember(actor, true, ownerOnly);
+      if (allowed) expect(await result).toBe(f.rootMember);
+      else await expect(result).rejects.toThrow(message);
+      expect(f.prisma.member.findFirst).toHaveBeenCalledWith(query);
+      expect(f.prisma.$transaction).not.toHaveBeenCalled();
+      expect(f.transaction.$queryRaw).not.toHaveBeenCalled();
+    },
+  );
+  it.each(['owner', 'missing', 'admin-ownerOnly', 'member'])(
+    'uses distinct supplied client %s and never falls back to root owner',
+    async (kind) => {
+      const f = fixture('owner');
+      if (kind === 'missing')
+        f.transaction.member.findFirst.mockResolvedValue(null);
+      if (kind === 'admin-ownerOnly') f.transactionMember.role.key = 'admin';
+      if (kind === 'member') f.transactionMember.role.key = 'member';
+      const result = f.service.assertMember(
+        actor,
+        true,
+        kind === 'admin-ownerOnly',
+        f.transaction as unknown as Prisma.TransactionClient,
+      );
+      if (kind === 'owner') expect(await result).toBe(f.transactionMember);
+      else await expect(result).rejects.toThrow(message);
+      expect(f.transaction.member.findFirst).toHaveBeenCalledWith(query);
+      expect(f.prisma.member.findFirst).not.toHaveBeenCalled();
+      expect(f.prisma.$transaction).not.toHaveBeenCalled();
+      expect(f.transaction.$queryRaw).not.toHaveBeenCalled();
+    },
+  );
+  it('retains exact missing default membership rejection', async () => {
+    const f = fixture();
+    f.prisma.member.findFirst.mockResolvedValue(null);
+    await expect(f.service.assertMember(actor)).rejects.toThrow(message);
+    expect(f.transaction.member.findFirst).not.toHaveBeenCalled();
   });
 });

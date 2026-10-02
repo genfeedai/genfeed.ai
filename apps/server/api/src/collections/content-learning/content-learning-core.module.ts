@@ -1,4 +1,5 @@
 import { LearningAccountService } from '@api/collections/content-learning/services/learning-account.service';
+import { LearningBaselineMaterializationService } from '@api/collections/content-learning/services/learning-baseline-materialization.service';
 import { LearningCheckpointService } from '@api/collections/content-learning/services/learning-checkpoint.service';
 import { LearningDatasetService } from '@api/collections/content-learning/services/learning-dataset.service';
 import { LearningDecisionService } from '@api/collections/content-learning/services/learning-decision.service';
@@ -22,6 +23,7 @@ import { Module } from '@nestjs/common';
     LearningAccountService,
     LearningDecisionService,
     LearningCheckpointService,
+    LearningBaselineMaterializationService,
     LearningRewardService,
     LearningPolicyService,
     LearningDatasetService,
@@ -38,6 +40,7 @@ import { Module } from '@nestjs/common';
     LearningAccountService,
     LearningDecisionService,
     LearningCheckpointService,
+    LearningBaselineMaterializationService,
     LearningRewardService,
     LearningPolicyService,
     LearningDatasetService,

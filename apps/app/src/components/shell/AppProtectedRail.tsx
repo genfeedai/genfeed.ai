@@ -1,13 +1,11 @@
 'use client';
 
-import { isPersonalSettingsPage } from '@app-components/app-protected-layout.settings-scope';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { useWorkspaceInboxCount } from '@genfeedai/hooks/data/tasks/use-workspace-inbox-count';
 import type { AppProtectedRailProps } from '@genfeedai/props/ui/app-rail.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
 import { AppRail } from '@ui/shell/app-rail/AppRail';
 import RailAccount from '@ui/shell/app-rail/RailAccount';
 import { usePathname, useSearchParams } from 'next/navigation';
@@ -15,6 +13,7 @@ import { useTranslations } from 'next-intl';
 import { Suspense, useCallback } from 'react';
 import { resolveShellScope } from '@/components/shell/shell-scope';
 import { useMessagesUnreadCount } from '@/components/shell/use-messages-unread-count';
+import { usePinnedRailApps } from '@/components/shell/use-pinned-rail-apps';
 import { captureAppRailNavigation } from '@/lib/analytics/app-rail-analytics';
 import {
   appendSearchParamsToHref,
@@ -30,7 +29,7 @@ function AppProtectedRailContent({
 }: AppProtectedRailProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const { brandId, brands, selectedBrand, settings } = useBrand();
+  const { brandId, brands, selectedBrand } = useBrand();
   const { isAssetGateLocked, isSuperAdmin } = useAccessState();
   const { brandSlug: resolvedBrandSlug, orgSlug: resolvedOrgSlug } =
     useOrgUrl();
@@ -69,6 +68,7 @@ function AppProtectedRailContent({
     pathname,
     new URLSearchParams(searchParams.toString()),
   );
+  const { pinnedAppIds, togglePin } = usePinnedRailApps();
   const preservedTaskSearch = pickOperatorTaskContextSearchParams(
     new URLSearchParams(searchParams.toString()),
   ).toString();
@@ -97,13 +97,6 @@ function AppProtectedRailContent({
       surface={onNavigate ? 'drawer' : 'desktop'}
       onNavigationEvent={captureAppRailNavigation}
       footer={<RailAccount />}
-      header={
-        // Slack workspace icon. Personal-account settings pages have no org
-        // context to switch from (#4659).
-        isPersonalSettingsPage(pathname) ? undefined : (
-          <OrganizationSwitcher subscriptionTier={settings?.subscriptionTier} />
-        )
-      }
       badges={{
         workspace: {
           count: workspaceCount,
@@ -121,7 +114,9 @@ function AppProtectedRailContent({
       currentPath={pathname}
       isAssetGateLocked={isAssetGateLocked}
       onNavigate={onNavigate}
+      onTogglePin={togglePin}
       orgSlug={effectiveOrgSlug}
+      pinnedAppIds={pinnedAppIds}
       preservedSearch={preservedTaskSearch || undefined}
       resolveNavigation={resolveRailNavigation}
       showAdmin={isAdminChrome || isSuperAdmin}

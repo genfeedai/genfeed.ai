@@ -1,7 +1,17 @@
 import { deepStrictEqual } from 'node:assert';
-import { createHash } from 'node:crypto';
-import { readFile, writeFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { createHash, randomUUID } from 'node:crypto';
+import {
+  lstat,
+  mkdir,
+  readdir,
+  readFile,
+  realpath,
+  writeFile,
+} from 'node:fs/promises';
+import { dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 import { type AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
@@ -106,13 +116,16 @@ import {
   WORKFLOW_EXECUTION_QUEUE,
 } from '@genfeedai/contracts/queue';
 import type { Model } from '@genfeedai/prisma';
+import { LocalStorageProvider } from '@genfeedai/storage';
+import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { WorkflowExecutionProcessor } from '@workers/processors/api/collections/workflows/services/workflow-execution.processor';
-import type { Job, JobsOptions } from 'bullmq';
+import { type Job, type JobsOptions, Queue, Worker } from 'bullmq';
 import type { Request } from 'express';
 import sharp from 'sharp';
 import { vi } from 'vitest';
+import { z } from 'zod';
 
 const RENDERER_ORIGIN = 'https://visual-renderer.example.test';
 const PAID_MODEL = 'openai/visual-acceptance';
@@ -130,6 +143,8 @@ vi.mock('@genfeedai/storage', async (importOriginal) => ({
 export interface VisualCodeAcceptanceActor {
   user: AuthenticatedUser;
   sourceAssetId: string;
+  sourceAssetIds: string[];
+  assetsByKind: { image: string; video?: string; audio?: string };
   organizationId: string;
   brandId: string;
   userId: string;
@@ -181,6 +196,7 @@ interface VisualCodeFixtureSeedState {
   createdSystemOrganization: boolean;
 }
 export interface VisualCodeAcceptanceFixture {
+  runtime?: VisualCodeRuntimeFixture;
   moduleRef: TestingModule;
   prisma: PrismaService;
   controller: VisualProjectsController;
@@ -197,6 +213,182 @@ export interface VisualCodeAcceptanceFixture {
   replayLastWorkflowJob(): Promise<unknown>;
   resetExternalCalls(): void;
   close(): Promise<void>;
+}
+
+export interface VisualCodeCleanupStep {
+  stage: string;
+  run(): void | Promise<void>;
+}
+export interface VisualCodeCleanupLedgerEntry {
+  stage: string;
+  status: 'fulfilled' | 'rejected' | 'termination-unconfirmed';
+}
+export class VisualCodeCleanupStageError extends Error {
+  constructor(
+    readonly stage: string,
+    cause: unknown,
+  ) {
+    super(`Visual fixture cleanup failed: ${stage}`, { cause });
+  }
+}
+export class VisualCodeCleanupError extends AggregateError {
+  constructor(readonly failures: VisualCodeCleanupStageError[]) {
+    super(failures, 'Visual fixture cleanup failed');
+  }
+}
+export async function runVisualCodeCleanupSteps(
+  steps: VisualCodeCleanupStep[],
+  ledger: VisualCodeCleanupLedgerEntry[] = [],
+): Promise<void> {
+  const failures: VisualCodeCleanupStageError[] = [];
+  for (const step of steps) {
+    try {
+      await step.run();
+      ledger.push({ stage: step.stage, status: 'fulfilled' });
+    } catch (cause) {
+      ledger.push({ stage: step.stage, status: 'rejected' });
+      if (cause instanceof VisualCodeCleanupError)
+        failures.push(...cause.failures);
+      else failures.push(new VisualCodeCleanupStageError(step.stage, cause));
+    }
+  }
+  if (failures.length) throw new VisualCodeCleanupError(failures);
+}
+
+export type VisualCodeScriptedScenario =
+  | 'hybrid-success'
+  | 'compile-recovery'
+  | 'visual-rejection';
+export interface VisualCodeRuntimeOptions {
+  rendererUrl: string;
+  rendererToken: string;
+  redisUrl: string;
+  artifactDirectory: string;
+  mediaDirectory: string;
+  scenario: VisualCodeScriptedScenario;
+}
+export interface VisualCodeRuntimeFixture {
+  queues: Map<string, Queue<WorkflowExecutionJobData>>;
+  prefix: string;
+  workerErrors: string[];
+  receipts: IVisualSandboxReceipt[];
+  directory: string;
+  mediaDirectory: string;
+  assertions: string[];
+  outcome: string;
+  walletBaselines: Map<string, { settled: number; held: number }>;
+  startWorker(): Promise<void>;
+  waitForJob(jobId: string, timeoutMs?: number): Promise<void>;
+  redeliver(jobId: string): Promise<void>;
+  writeEvidence(label: string): Promise<void>;
+  close(): Promise<void>;
+}
+const versionLine = z
+  .string()
+  .min(1)
+  .max(512)
+  .refine((value) =>
+    [...value].every((character) => {
+      const code = character.charCodeAt(0);
+      return code >= 32 && code !== 127;
+    }),
+  )
+  .refine((value) => value.trim() === value);
+const runtimePreflightSchema = z.strictObject({
+  gitHead: z.string().regex(/^[a-f0-9]{40}$/),
+  platform: z.literal('linux'),
+  nodeVersion: z.string().regex(/^v24\.\d+\.\d+$/),
+  ffmpegVersion: versionLine,
+  ffprobeVersion: versionLine,
+  runscVersion: versionLine,
+  imageId: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+  dockerRuntime: z.literal('runsc'),
+  rendererVersion: z.literal(VISUAL_CODE_RENDERER_VERSION),
+});
+export async function readVisualRuntimePreflight(root: string) {
+  const path = join(root, 'runtime-preflight.json');
+  const stat = await lstat(path);
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 16384)
+    throw new Error('Unsafe runtime preflight file');
+  const bytes = await readFile(path);
+  const metadata = runtimePreflightSchema.parse(JSON.parse(bytes.toString()));
+  const head = (
+    await promisify(execFile)('git', ['rev-parse', 'HEAD'])
+  ).stdout.trim();
+  if (metadata.gitHead !== head)
+    throw new Error(
+      'Runtime preflight head differs from verification checkout',
+    );
+  return { metadata, sha256: createHash('sha256').update(bytes).digest('hex') };
+}
+const WORKFLOW_QUEUES = [
+  WORKFLOW_EXECUTION_QUEUE,
+  WORKFLOW_BACKGROUND_QUEUE,
+  PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+  AGENT_TURN_QUEUE,
+];
+const sha256 = (value: string | Buffer) =>
+  createHash('sha256').update(value).digest('hex');
+async function validateRuntimeOptions(options: VisualCodeRuntimeOptions) {
+  for (const value of Object.values(options))
+    if (!value)
+      throw new Error('Missing explicit local-runtime fixture option');
+  for (const [value, protocol] of [
+    [options.rendererUrl, 'http:'],
+    [options.redisUrl, 'redis:'],
+  ]) {
+    const url = new URL(value);
+    if (
+      url.protocol !== protocol ||
+      !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash ||
+      (protocol === 'http:'
+        ? url.pathname !== '/'
+        : !url.port || !/^\/\d+$/.test(url.pathname))
+    )
+      throw new Error(
+        'Local-runtime URL must be explicit loopback without credentials or extra URL fields',
+      );
+  }
+  if (options.rendererToken.length < 32)
+    throw new Error('Local-runtime token must be at least 32 characters');
+  for (const directory of [options.artifactDirectory, options.mediaDirectory]) {
+    if (
+      !isAbsolute(directory) ||
+      !(await lstat(directory)).isDirectory() ||
+      (await lstat(directory)).isSymbolicLink() ||
+      (await realpath(directory)) !== directory
+    )
+      throw new Error(
+        'Local-runtime paths must be existing absolute real directories without symlinks',
+      );
+  }
+  if ((await readdir(options.artifactDirectory)).length)
+    throw new Error('Local-runtime scenario directory must be empty');
+  for (const file of ['image.png', 'clip.mp4', 'audio.wav']) {
+    const path = join(options.mediaDirectory, file);
+    if (!(await lstat(path)).isFile() || (await lstat(path)).isSymbolicLink())
+      throw new Error('Generated hybrid media is missing or unsafe');
+  }
+  if (
+    !['hybrid-success', 'compile-recovery', 'visual-rejection'].includes(
+      options.scenario,
+    )
+  )
+    throw new Error('Unknown scripted scenario');
+  await writeFile(
+    join(options.artifactDirectory, 'owner.json'),
+    JSON.stringify({ scenario: options.scenario, id: randomUUID() }),
+    { flag: 'wx', mode: 0o600 },
+  );
+}
+function hybridSource(ids: string[]) {
+  if (ids.length !== 3)
+    throw new Error('Hybrid authoring requires exactly three local asset IDs');
+  return `import React from 'react'; import {AbsoluteFill,Img,OffthreadVideo,Audio,staticFile} from 'remotion'; export function VisualComposition({title='Hybrid acceptance'}) {return <AbsoluteFill><OffthreadVideo src={staticFile('assets/${ids[1]}')} style={{position:'absolute',left:0,top:0,width:320,height:360,objectFit:'fill'}}/><Img src={staticFile('assets/${ids[0]}')} style={{position:'absolute',left:320,top:0,width:320,height:360,objectFit:'fill'}}/><Audio src={staticFile('assets/${ids[2]}')}/><div style={{position:'absolute',top:24,left:24,color:'white',fontSize:28}}>{title}</div></AbsoluteFill>}`;
 }
 
 function createCapturedWorkflowQueue(name: string): CapturedWorkflowQueue {
@@ -356,12 +548,35 @@ function unusedPort(label: string): object {
 }
 
 export async function createVisualCodeAcceptanceFixture(
-  options: { rendererEnabled: string | undefined } = {
+  options: { rendererEnabled?: string; runtime?: VisualCodeRuntimeOptions } = {
     rendererEnabled: 'true',
   },
 ): Promise<VisualCodeAcceptanceFixture> {
   assertIsolatedDatabaseUrl();
-  vi.stubEnv('GENFEED_CLOUD', 'true');
+  const runtimeOptions = options.runtime;
+  const runtimePreflight = runtimeOptions
+    ? await readVisualRuntimePreflight(
+        dirname(runtimeOptions.artifactDirectory),
+      )
+    : undefined;
+  const originalFetch = globalThis.fetch;
+  const actualQueues = new Map<string, Queue<WorkflowExecutionJobData>>();
+  const receipts: IVisualSandboxReceipt[] = [];
+  const submissions: IVisualSandboxInput[] = [];
+  const dispatcherEvidence: {
+    kind: string;
+    promptHash: string;
+    sourceHash?: string;
+    diagnosticHash?: string;
+    syntheticUsage: boolean;
+  }[] = [];
+  let runtimeHandle: VisualCodeRuntimeFixture | undefined;
+  let worker: Worker<WorkflowExecutionJobData> | undefined;
+  let workerRun: Promise<void> | undefined;
+  let workerPause: Promise<void> | undefined;
+  const workerErrors: string[] = [];
+  const prefix = `visual5695-${randomUUID()}`;
+  let localStorage: LocalStorageProvider | undefined;
   const calls: VisualCodeExternalCalls = {
     routes: [],
     llm: [],
@@ -393,13 +608,200 @@ export async function createVisualCodeAcceptanceFixture(
       WORKFLOW_BACKGROUND_QUEUE,
       PLATFORM_SYSTEM_WORKFLOW_QUEUE,
       AGENT_TURN_QUEUE,
-    ].map((name) => [name, createCapturedWorkflowQueue(name)]),
+    ]
+      .filter(() => !runtimeOptions)
+      .map((name) => [name, createCapturedWorkflowQueue(name)]),
   );
   let moduleRef: TestingModule | undefined;
   let prisma: PrismaService | undefined;
-  let fixture: VisualCodeAcceptanceFixture | undefined;
-  let closed = false;
+  let ownsRuntimeDirectory = false;
+  let setupFailed = false;
+  const cleanupLedger: VisualCodeCleanupLedgerEntry[] = [];
+  let runtimeClosePromise: Promise<void> | undefined;
+  let fixtureClosePromise: Promise<void> | undefined;
+  const closeRuntime = (): Promise<void> => {
+    runtimeClosePromise ??= (async () => {
+      const failures: VisualCodeCleanupStageError[] = [];
+      const steps: VisualCodeCleanupStep[] = [];
+      if (worker) {
+        let workerCloseFulfilled = false;
+        try {
+          await runVisualCodeCleanupSteps(
+            [
+              {
+                stage: 'worker.close',
+                async run() {
+                  await worker?.close();
+                  workerCloseFulfilled = true;
+                },
+              },
+            ],
+            cleanupLedger,
+          );
+        } catch (error) {
+          if (!(error instanceof VisualCodeCleanupError)) throw error;
+          failures.push(...error.failures);
+        }
+        if (workerCloseFulfilled)
+          steps.push({
+            stage: 'worker.run',
+            async run() {
+              await workerRun;
+            },
+          });
+        else
+          cleanupLedger.push({
+            stage: 'worker.termination',
+            status: 'termination-unconfirmed',
+          });
+      }
+      for (const [name, queue] of actualQueues) {
+        steps.push({
+          stage: `queue.${name}.obliterate`,
+          async run() {
+            await queue.obliterate({ force: true });
+          },
+        });
+        steps.push({
+          stage: `queue.${name}.close`,
+          async run() {
+            await queue.close();
+          },
+        });
+      }
+      try {
+        await runVisualCodeCleanupSteps(steps, cleanupLedger);
+      } catch (error) {
+        if (!(error instanceof VisualCodeCleanupError)) throw error;
+        failures.push(...error.failures);
+      }
+      if (failures.length) throw new VisualCodeCleanupError(failures);
+    })();
+    return runtimeClosePromise;
+  };
+  const closeFixture = (): Promise<void> => {
+    fixtureClosePromise ??= (async () => {
+      const steps: VisualCodeCleanupStep[] = [];
+      if (setupFailed && runtimeOptions && ownsRuntimeDirectory)
+        steps.push({
+          stage: 'evidence.setup-failure',
+          async run() {
+            await writeFile(
+              join(runtimeOptions.artifactDirectory, 'setup-failure.json'),
+              JSON.stringify({
+                outcome: 'failed',
+                phase: 'fixture-setup',
+                scenario: runtimeOptions.scenario,
+              }),
+              { mode: 0o600 },
+            );
+          },
+        });
+      if (runtimeHandle)
+        steps.push({
+          stage: 'evidence.before-cleanup',
+          async run() {
+            await runtimeHandle?.writeEvidence('before-cleanup');
+          },
+        });
+      steps.push({ stage: 'runtime.close', run: closeRuntime });
+      if (prisma)
+        steps.push({
+          stage: 'seeds.cleanup',
+          async run() {
+            if (prisma) await cleanupVisualCodeSeedState(prisma, seeds);
+          },
+        });
+      if (moduleRef)
+        steps.push({
+          stage: 'module.close',
+          async run() {
+            await moduleRef?.close();
+          },
+        });
+      steps.push(
+        {
+          stage: 'storage.upload.reset',
+          run() {
+            storageTransport.upload.mockReset();
+          },
+        },
+        {
+          stage: 'storage.download.reset',
+          run() {
+            storageTransport.download.mockReset();
+          },
+        },
+        {
+          stage: 'globals.restore',
+          run() {
+            vi.unstubAllGlobals();
+          },
+        },
+        {
+          stage: 'environment.restore',
+          run() {
+            vi.unstubAllEnvs();
+          },
+        },
+      );
+      let failure: VisualCodeCleanupError | undefined;
+      try {
+        await runVisualCodeCleanupSteps(steps, cleanupLedger);
+      } catch (error) {
+        if (!(error instanceof VisualCodeCleanupError)) throw error;
+        failure = error;
+      }
+      if (failure && runtimeOptions && ownsRuntimeDirectory) {
+        try {
+          await writeFile(
+            join(runtimeOptions.artifactDirectory, 'cleanup-failure.json'),
+            JSON.stringify(
+              { schemaVersion: 1, outcome: 'failed', stages: cleanupLedger },
+              null,
+              2,
+            ),
+            { mode: 0o600 },
+          );
+        } catch (cause) {
+          cleanupLedger.push({
+            stage: 'evidence.cleanup-failure',
+            status: 'rejected',
+          });
+          failure = new VisualCodeCleanupError([
+            ...failure.failures,
+            new VisualCodeCleanupStageError('evidence.cleanup-failure', cause),
+          ]);
+          try {
+            process.stderr.write(
+              'visual-fixture-cleanup-ledger-write-failed\n',
+            );
+          } catch (diagnosticCause) {
+            cleanupLedger.push({
+              stage: 'diagnostic.stderr',
+              status: 'rejected',
+            });
+            failure = new VisualCodeCleanupError([
+              ...failure.failures,
+              new VisualCodeCleanupStageError(
+                'diagnostic.stderr',
+                diagnosticCause,
+              ),
+            ]);
+          }
+        }
+      }
+      if (failure) throw failure;
+    })();
+    return fixtureClosePromise;
+  };
+
   try {
+    if (runtimeOptions) {
+      await validateRuntimeOptions(runtimeOptions);
+      ownsRuntimeDirectory = true;
+    }
+    vi.stubEnv('GENFEED_CLOUD', 'true');
     const png = await sharp({
       create: { width: 640, height: 360, channels: 4, background: '#4466aa' },
     })
@@ -413,16 +815,115 @@ export async function createVisualCodeAcceptanceFixture(
         ),
       ),
     );
-    vi.stubGlobal('fetch', createVisualRendererTransport(calls, png, mp4));
+    if (runtimeOptions) {
+      await mkdir(join(runtimeOptions.artifactDirectory, 'storage'), {
+        mode: 0o700,
+      });
+      localStorage = new LocalStorageProvider(
+        join(runtimeOptions.artifactDirectory, 'storage'),
+      );
+      vi.stubGlobal(
+        'fetch',
+        async (
+          request: Parameters<typeof fetch>[0],
+          init?: Parameters<typeof fetch>[1],
+        ) => {
+          const url = new URL(
+            typeof request === 'string'
+              ? request
+              : request instanceof URL
+                ? request.href
+                : request.url,
+          );
+          if (
+            url.origin !== new URL(runtimeOptions.rendererUrl).origin ||
+            init?.redirect !== 'error'
+          )
+            throw new Error(
+              'Rejected nonlocal renderer request or redirect policy',
+            );
+          const method = init?.method ?? 'GET';
+          calls.renderer.push(`${method} ${url.pathname}`);
+          if (method === 'POST' && url.pathname === '/jobs') {
+            if (typeof init?.body !== 'string')
+              throw new Error('Expected actual renderer JSON input');
+            const input = JSON.parse(init.body) as IVisualSandboxInput;
+            submissions.push(input);
+            calls.rendererSubmissions.push(input.id);
+            await writeFile(
+              join(runtimeOptions.artifactDirectory, `${input.id}.tsx`),
+              input.sourceCode,
+            );
+          }
+          const response = await originalFetch(request, init);
+          if (/^\/jobs\/[^/]+$/.test(url.pathname) && response.ok)
+            receipts.push(
+              (await response.clone().json()) as IVisualSandboxReceipt,
+            );
+          if (url.pathname.endsWith('/result') && response.ok) {
+            const frame = Buffer.from(await response.clone().arrayBuffer());
+            const result = JSON.parse(
+              frame.subarray(4).toString(),
+            ) as IVisualSandboxResult;
+            for (const [index, media] of result.media.entries())
+              await writeFile(
+                join(
+                  runtimeOptions.artifactDirectory,
+                  `${url.pathname.split('/')[2]}-${index}.${media.format}`,
+                ),
+                Buffer.from(media.bytes, 'base64'),
+              );
+            await writeFile(
+              join(
+                runtimeOptions.artifactDirectory,
+                `${url.pathname.split('/')[2]}-diagnostics.json`,
+              ),
+              JSON.stringify(result.diagnostics),
+            );
+          }
+          return response;
+        },
+      );
+      const health = await fetch(
+        new URL('/health', runtimeOptions.rendererUrl),
+        {
+          headers: { authorization: `Bearer ${runtimeOptions.rendererToken}` },
+          redirect: 'error',
+          signal: AbortSignal.timeout(10000),
+        },
+      );
+      const healthData = (await health.json()) as {
+        isReady: boolean;
+        rendererVersion: string;
+      };
+      if (
+        !health.ok ||
+        !healthData.isReady ||
+        healthData.rendererVersion !== VISUAL_CODE_RENDERER_VERSION
+      )
+        throw new Error('Actual renderer is not ready');
+      for (const name of WORKFLOW_QUEUES) {
+        const queue = new Queue<WorkflowExecutionJobData>(name, {
+          connection: { url: runtimeOptions.redisUrl },
+          prefix,
+        });
+        actualQueues.set(name, queue);
+        queue.on('error', (error) => workerErrors.push(error.message));
+        await queue.waitUntilReady();
+      }
+    } else
+      vi.stubGlobal('fetch', createVisualRendererTransport(calls, png, mp4));
     storageTransport.upload.mockImplementation(
       async (bytes: Buffer, key: string) => {
         calls.uploads.push(key);
+        if (localStorage) return localStorage.upload(bytes, key);
         objects.set(key, Buffer.from(bytes));
         return `https://media.example.test/${key}`;
       },
     );
     storageTransport.download.mockImplementation(
-      async (key: string, target: string) => {
+      async (key: string, target: string, root: string) => {
+        if (localStorage) return localStorage.download(key, target, root);
         const bytes = objects.get(key);
         if (!bytes) throw new Error(`Fixture storage object absent: ${key}`);
         await writeFile(target, bytes);
@@ -462,6 +963,93 @@ export async function createVisualCodeAcceptanceFixture(
         calls.liveClaims.push(...live.map((claim) => claim.id));
         const inspection = params.max_tokens === 1024;
         calls.llm.push(inspection ? 'inspection' : 'authoring');
+        let content:
+          | { isAccepted: boolean; issues: string[] }
+          | { sourceCode: string; summary: string } = inspection
+          ? { isAccepted: true, issues: [] }
+          : { sourceCode: SOURCE, summary: 'A deterministic title animation' };
+        if (runtimeOptions) {
+          const sequence =
+            runtimeOptions.scenario === 'compile-recovery'
+              ? ['authoring', 'authoring', 'inspection']
+              : runtimeOptions.scenario === 'visual-rejection'
+                ? [
+                    'authoring',
+                    'inspection',
+                    'authoring',
+                    'inspection',
+                    'authoring',
+                    'inspection',
+                  ]
+                : ['authoring', 'inspection'];
+          const kind = inspection ? 'inspection' : 'authoring';
+          // Source-preserving revisions require only inspections after initial authoring.
+          if (
+            dispatcherEvidence.length < sequence.length
+              ? sequence[dispatcherEvidence.length] !== kind
+              : kind !== 'inspection' ||
+                runtimeOptions.scenario !== 'hybrid-success' ||
+                dispatcherEvidence.length >= 5
+          )
+            throw new Error(
+              'Unexpected or excessive scripted dispatcher invocation',
+            );
+          if (inspection) {
+            const images = params.messages
+              .flatMap((message) =>
+                Array.isArray(message.content) ? message.content : [],
+              )
+              .filter((item) => item.type === 'image_url');
+            if (
+              images.length !== 3 ||
+              images.some(
+                (item) =>
+                  !item.image_url?.url.startsWith('data:image/png;base64,'),
+              )
+            )
+              throw new Error(
+                'Inspection must receive three actual preview data URLs',
+              );
+            content = {
+              isAccepted: runtimeOptions.scenario !== 'visual-rejection',
+              issues:
+                runtimeOptions.scenario === 'visual-rejection'
+                  ? ['Scripted visual rejection: title requires repair']
+                  : [],
+            };
+            dispatcherEvidence.push({
+              kind,
+              promptHash: sha256(JSON.stringify(params.messages)),
+              syntheticUsage: true,
+            });
+          } else {
+            const message = params.messages.find(
+              (item) => item.role === 'user',
+            );
+            if (!message || typeof message.content !== 'string')
+              throw new Error('Actual authoring prompt absent');
+            const prompt = JSON.parse(message.content) as {
+              assetIds: string;
+              diagnostics: string;
+            };
+            const sourceCode =
+              runtimeOptions.scenario === 'compile-recovery' &&
+              dispatcherEvidence.length === 0
+                ? 'export const VisualComposition = () => <div'
+                : hybridSource(JSON.parse(prompt.assetIds) as string[]);
+            content = {
+              sourceCode,
+              summary: 'Scripted hybrid composition; synthetic provider usage',
+            };
+            dispatcherEvidence.push({
+              kind,
+              promptHash: sha256(message.content),
+              sourceHash: sha256(sourceCode),
+              diagnosticHash: sha256(prompt.diagnostics),
+              syntheticUsage: true,
+            });
+          }
+        }
         return {
           id: `fixture-completion-${calls.llm.length}`,
           model: PAID_MODEL,
@@ -470,14 +1058,7 @@ export async function createVisualCodeAcceptanceFixture(
               finish_reason: 'stop',
               message: {
                 role: 'assistant',
-                content: JSON.stringify(
-                  inspection
-                    ? { isAccepted: true, issues: [] }
-                    : {
-                        sourceCode: SOURCE,
-                        summary: 'A deterministic title animation',
-                      },
-                ),
+                content: JSON.stringify(content),
               },
             },
           ],
@@ -511,8 +1092,10 @@ export async function createVisualCodeAcceptanceFixture(
       useMockGuards: false,
       configOverrides: {
         VISUAL_CODE_RENDERER_ENABLED: options.rendererEnabled,
-        VISUAL_CODE_RENDERER_URL: RENDERER_ORIGIN,
-        VISUAL_CODE_RENDERER_TOKEN: 'fixture-renderer-token',
+        VISUAL_CODE_RENDERER_URL:
+          runtimeOptions?.rendererUrl ?? RENDERER_ORIGIN,
+        VISUAL_CODE_RENDERER_TOKEN:
+          runtimeOptions?.rendererToken ?? 'fixture-renderer-token',
         VISUAL_CODE_RENDER_CREDITS_PER_SECOND: '0.01',
       },
       providers: [
@@ -590,10 +1173,12 @@ export async function createVisualCodeAcceptanceFixture(
             invalidateForUser: async () => undefined,
           },
         },
-        ...[...queues].map(([name, queue]) => ({
-          provide: getQueueToken(name),
-          useValue: queue,
-        })),
+        ...[...(runtimeOptions ? actualQueues : queues)].map(
+          ([name, queue]) => ({
+            provide: getQueueToken(name),
+            useValue: queue,
+          }),
+        ),
         {
           provide: getQueueToken(WEBHOOK_CLIENT_QUEUE),
           useValue: outboundQueue,
@@ -696,6 +1281,294 @@ export async function createVisualCodeAcceptanceFixture(
     const controller = compiledModule.get(VisualProjectsController);
     const library = compiledModule.get(IngredientsController);
     const processor = compiledModule.get(WorkflowExecutionProcessor);
+    if (runtimeOptions) {
+      worker = new Worker<WorkflowExecutionJobData>(
+        WORKFLOW_EXECUTION_QUEUE,
+        (job) => processor.process(job),
+        {
+          connection: { url: runtimeOptions.redisUrl },
+          prefix,
+          ...withLongJobWorkerOptions({ concurrency: 1, autorun: false }),
+        },
+      );
+      worker.on('error', (error) => workerErrors.push(error.message));
+      worker.on('failed', (job, error) =>
+        workerErrors.push(`${job?.id}: ${error.message}`),
+      );
+      const observedCompletions = new Set<string>();
+      // Record the actual worker event only after its local pause completes.
+      // Broker state may become completed before this listener runs.
+      worker.on('completed', (job) => {
+        const id = job.id;
+        if (!id || !worker) {
+          workerErrors.push('Actual completion event has no worker or job ID');
+          return;
+        }
+        workerPause = worker.pause(true);
+        void workerPause
+          .then(() => observedCompletions.add(id))
+          .catch((error: unknown) => {
+            workerErrors.push(
+              error instanceof Error ? error.message : String(error),
+            );
+          });
+      });
+      const executionQueue = actualQueues.get(WORKFLOW_EXECUTION_QUEUE);
+      if (!executionQueue) throw new Error('Real execution queue absent');
+      runtimeHandle = {
+        queues: actualQueues,
+        prefix,
+        workerErrors,
+        receipts,
+        directory: runtimeOptions.artifactDirectory,
+        mediaDirectory: runtimeOptions.mediaDirectory,
+        assertions: [],
+        outcome: 'incomplete',
+        walletBaselines: new Map(),
+        async startWorker() {
+          for (const [name, queue] of actualQueues)
+            if (
+              name !== WORKFLOW_EXECUTION_QUEUE &&
+              (await queue.getJobCountByTypes(
+                'waiting',
+                'active',
+                'delayed',
+                'failed',
+                'completed',
+              ))
+            )
+              throw new Error('Unexpected work on another workflow queue');
+          await workerPause;
+          if (workerRun) worker?.resume();
+          if (!workerRun) {
+            if (!worker) throw new Error('Worker absent');
+            workerRun = worker.run();
+            void workerRun.catch((error: unknown) => {
+              workerErrors.push(
+                error instanceof Error ? error.message : String(error),
+              );
+            });
+          }
+        },
+        async waitForJob(jobId, timeoutMs = 660000) {
+          if (timeoutMs > 660000 || timeoutMs <= 0)
+            throw new Error('Invalid runtime wait bound');
+          const deadline = Date.now() + timeoutMs;
+          while (Date.now() < deadline) {
+            if (workerErrors.length) throw new Error(workerErrors.join('\n'));
+            const job = await executionQueue.getJob(jobId);
+            if (!job) throw new Error('Actual broker job absent');
+            const state = await job.getState();
+            if (state === 'completed' && observedCompletions.has(jobId)) return;
+            if (state === 'failed') throw new Error(job.failedReason);
+            await new Promise((accept) => setTimeout(accept, 100));
+          }
+          throw new Error(`Actual broker job timed out: ${jobId}`);
+        },
+        async redeliver(jobId) {
+          const original = await executionQueue.getJob(jobId);
+          if (!original) throw new Error('Saved broker delivery absent');
+          const duplicate = await executionQueue.add(
+            original.name,
+            original.data,
+            {
+              jobId: `redelivery-${randomUUID()}`,
+              removeOnComplete: false,
+              removeOnFail: false,
+            },
+          );
+          if (!duplicate.id) throw new Error('Actual redelivery ID absent');
+          await this.startWorker();
+          await this.waitForJob(duplicate.id);
+        },
+        async writeEvidence(label) {
+          const exec = promisify(execFile);
+          const gitHead = (
+            await exec('git', ['rev-parse', 'HEAD'])
+          ).stdout.trim();
+          const scope = {
+            organizationId: { in: seeds.organizationIds },
+            isDeleted: false,
+          };
+          const [
+            revisions,
+            ingredients,
+            reservations,
+            transactions,
+            executions,
+            claims,
+            jobs,
+          ] = await Promise.all([
+            connectedPrisma.visualRevision.findMany({ where: scope }),
+            connectedPrisma.ingredient.findMany({
+              where: scope,
+              include: { metadata: true },
+            }),
+            connectedPrisma.creditReservation.findMany({ where: scope }),
+            connectedPrisma.creditTransaction.findMany({ where: scope }),
+            connectedPrisma.workflowExecution.findMany({ where: scope }),
+            connectedPrisma.workflowNodeClaim.findMany({
+              where: { organizationId: scope.organizationId },
+            }),
+            executionQueue.getJobs([
+              'waiting',
+              'active',
+              'completed',
+              'failed',
+              'delayed',
+            ]),
+          ]);
+          for (const revision of revisions)
+            if (revision.sourceCode)
+              await writeFile(
+                join(runtimeOptions.artifactDirectory, `${revision.id}.tsx`),
+                revision.sourceCode,
+              );
+          const outputs = await Promise.all(
+            ingredients.map(async (row) => {
+              const bytes = row.s3Key
+                ? await readFile(
+                    join(
+                      runtimeOptions.artifactDirectory,
+                      'storage',
+                      row.s3Key,
+                    ),
+                  ).catch(() => undefined)
+                : undefined;
+              return {
+                id: row.id,
+                organizationId: row.organizationId,
+                brandId: row.brandId,
+                generationSource: row.generationSource,
+                sourceActionId: row.sourceActionId,
+                mimeType: row.mimeType,
+                size: row.fileSize,
+                fileHash: bytes ? sha256(bytes) : null,
+                provenance: row.providerData,
+                metadata: {
+                  id: row.metadataId,
+                  size: row.metadata?.size,
+                  width: row.metadata?.width,
+                  height: row.metadata?.height,
+                },
+              };
+            }),
+          );
+          await writeFile(
+            join(runtimeOptions.artifactDirectory, 'revision-snapshots.json'),
+            JSON.stringify(
+              revisions.map(({ sourceCode: _source, ...revision }) => revision),
+              null,
+              2,
+            ),
+          );
+          const preflight = await readVisualRuntimePreflight(
+            dirname(runtimeOptions.artifactDirectory),
+          );
+          if (preflight.sha256 !== runtimePreflight?.sha256)
+            throw new Error('Runtime preflight changed during run');
+          await writeFile(
+            join(runtimeOptions.artifactDirectory, 'evidence.json'),
+            JSON.stringify(
+              {
+                gitHead,
+                timestamp: new Date().toISOString(),
+                label,
+                scenario: runtimeOptions.scenario,
+                transportMode: 'local-runtime',
+                rendererVersion: VISUAL_CODE_RENDERER_VERSION,
+                runtimePreflight: preflight.metadata,
+                runtimePreflightSha256: preflight.sha256,
+                queuePrefix: prefix,
+                jobs: jobs.map((job) => ({
+                  id: job.id,
+                  executionId: job.data.systemRun?.priorExecution?.executionId,
+                  type: job.data.type,
+                })),
+                executions: executions.map((row) => ({
+                  id: row.id,
+                  workflowId: row.workflowId,
+                  workflowVersionId: row.workflowVersionId,
+                  status: row.status,
+                })),
+                claims: claims.map((row) => ({
+                  id: row.id,
+                  executionId: row.executionId,
+                  status: row.status,
+                })),
+                revisions: revisions.map((row) => ({
+                  id: row.id,
+                  projectId: row.projectId,
+                  status: row.status,
+                  sourceHash: row.sourceHash,
+                  sourceAssetIds: row.sourceAssetIds,
+                  outputs: row.outputs,
+                  receipts: row.receipts,
+                  consumedCredits: row.consumedCredits,
+                  maximumCredits: row.maximumCredits,
+                })),
+                outputs,
+                rendererSubmissions: submissions.map((input) => ({
+                  id: input.id,
+                  sourceHash: sha256(input.sourceCode),
+                  mode: input.mode,
+                  assetIds: input.assets.map((asset) => asset.id),
+                })),
+                rendererReceipts: receipts,
+                syntheticProvider: {
+                  invocations: dispatcherEvidence,
+                  usagePerInvocation: {
+                    promptTokens: 100,
+                    completionTokens: 100,
+                    cost: 0.0003,
+                  },
+                },
+                reservations: reservations.map((row) => ({
+                  id: row.id,
+                  amount: row.amount,
+                  settledAmount: row.settledAmount,
+                  status: row.status,
+                })),
+                transactions: transactions.map((row) => ({
+                  id: row.id,
+                  amount: row.amount,
+                  reservationId: row.reservationId,
+                })),
+                wallets: await Promise.all(
+                  seeds.actors.map(async (actor) => {
+                    const snapshot = await compiledModule
+                      .get(CreditsUtilsService)
+                      .getWalletSnapshot(actor.organizationId);
+                    const baseline = this.walletBaselines.get(
+                      actor.organizationId,
+                    );
+                    return {
+                      organizationId: actor.organizationId,
+                      snapshot,
+                      baseline,
+                      delta: baseline
+                        ? {
+                            settled: snapshot.settled - baseline.settled,
+                            held: snapshot.held - baseline.held,
+                          }
+                        : null,
+                    };
+                  }),
+                ),
+                assertions: this.assertions,
+                outcome: this.outcome,
+                workerErrors,
+              },
+              null,
+              2,
+            ),
+            { mode: 0o600 },
+          );
+        },
+        close: closeRuntime,
+      };
+    }
+
     let lastJob: CapturedWorkflowJob | undefined;
     const runJob = async (job: CapturedWorkflowJob) => {
       job.state = 'active';
@@ -711,6 +1584,7 @@ export async function createVisualCodeAcceptanceFixture(
       }
     };
     const createdFixture: VisualCodeAcceptanceFixture = {
+      runtime: runtimeHandle,
       moduleRef: compiledModule,
       prisma: connectedPrisma,
       controller,
@@ -731,6 +1605,8 @@ export async function createVisualCodeAcceptanceFixture(
         } as unknown as Request;
       },
       async drainNextWorkflowJob() {
+        if (runtimeHandle)
+          throw new Error('Use actual runtime worker transport');
         const job = [...queues.values()]
           .flatMap((queue) => [...queue.jobs.values()])
           .find((candidate) => candidate.state === 'waiting');
@@ -739,6 +1615,8 @@ export async function createVisualCodeAcceptanceFixture(
         return runJob(job);
       },
       async replayLastWorkflowJob() {
+        if (runtimeHandle)
+          throw new Error('Use actual runtime broker redelivery');
         if (!lastJob) throw new Error('No prior job');
         lastJob.attemptsMade++;
         return runJob(lastJob);
@@ -746,24 +1624,8 @@ export async function createVisualCodeAcceptanceFixture(
       resetExternalCalls() {
         for (const values of Object.values(calls)) values.length = 0;
       },
-      async close() {
-        if (closed) return;
-        closed = true;
-        try {
-          await cleanupVisualCodeFixture(createdFixture);
-        } finally {
-          try {
-            await compiledModule.close();
-          } finally {
-            storageTransport.upload.mockReset();
-            storageTransport.download.mockReset();
-            vi.unstubAllGlobals();
-            vi.unstubAllEnvs();
-          }
-        }
-      },
+      close: closeFixture,
     };
-    fixture = createdFixture;
     const registry = compiledModule.get(AgentChatModelRegistryService);
     await registry.refresh();
     const runner = compiledModule.get(SystemWorkflowRunnerService);
@@ -773,15 +1635,22 @@ export async function createVisualCodeAcceptanceFixture(
     runner.onApplicationBootstrap();
     return createdFixture;
   } catch (error) {
+    setupFailed = true;
     try {
-      if (fixture) await fixture.close();
-      else if (prisma) await cleanupVisualCodeSeedState(prisma, seeds);
-    } finally {
-      if (!closed) await moduleRef?.close();
-      storageTransport.upload.mockReset();
-      storageTransport.download.mockReset();
-      vi.unstubAllGlobals();
-      vi.unstubAllEnvs();
+      await closeFixture();
+    } catch (cleanupError) {
+      try {
+        process.stderr.write('visual-fixture-setup-cleanup-failed\n');
+      } catch (diagnosticCause) {
+        cleanupLedger.push({ stage: 'diagnostic.stderr', status: 'rejected' });
+        if (cleanupError instanceof VisualCodeCleanupError)
+          cleanupError.failures.push(
+            new VisualCodeCleanupStageError(
+              'diagnostic.stderr',
+              diagnosticCause,
+            ),
+          );
+      }
     }
     throw error;
   }
@@ -896,6 +1765,9 @@ export async function seedVisualCodeAcceptanceActor(
       'Visual acceptance starting balance',
       new Date(Date.now() + 30 * 24 * 3600_000),
     );
+  const sourceBytes = fixture.runtime
+    ? await readFile(join(fixture.runtime.mediaDirectory, 'image.png'))
+    : fixture.png;
   const metadataId = generateIdString();
   const sourceAssetId = generateIdString();
   const sourceKey = `visual-fixture/${organizationId}/${sourceAssetId}.png`;
@@ -904,10 +1776,12 @@ export async function seedVisualCodeAcceptanceActor(
       id: metadataId,
       label: 'Visual source',
       extension: MetadataExtension.PNG,
-      width: 640,
-      height: 360,
-      size: fixture.png.length,
-      result: `https://media.example.test/${sourceKey}`,
+      width: fixture.runtime ? 64 : 640,
+      height: fixture.runtime ? 64 : 360,
+      size: sourceBytes.length,
+      result: fixture.runtime
+        ? `/local/${sourceKey}`
+        : `https://media.example.test/${sourceKey}`,
     },
   });
   seeds.metadataIds.push(metadataId);
@@ -922,25 +1796,83 @@ export async function seedVisualCodeAcceptanceActor(
       status: IngredientStatus.GENERATED,
       s3Key: sourceKey,
       mimeType: 'image/png',
-      fileSize: fixture.png.length,
+      fileSize: sourceBytes.length,
     },
   });
-  fixture.objects.set(sourceKey, fixture.png);
+  // Seed through the same selected storage provider as canonical outputs.
+  await storageTransport.upload(sourceBytes, sourceKey);
+  const sourceAssetIds = [sourceAssetId];
+  const assetsByKind: VisualCodeAcceptanceActor['assetsByKind'] = {
+    image: sourceAssetId,
+  };
+  if (fixture.runtime)
+    for (const [kind, file, category, extension, mime] of [
+      [
+        'video',
+        'clip.mp4',
+        IngredientCategory.VIDEO,
+        MetadataExtension.MP4,
+        'video/mp4',
+      ],
+      [
+        'audio',
+        'audio.wav',
+        IngredientCategory.AUDIO,
+        MetadataExtension.WAV,
+        'audio/wav',
+      ],
+    ] as const) {
+      const id = generateIdString();
+      const metadataId = generateIdString();
+      const bytes = await readFile(join(fixture.runtime.mediaDirectory, file));
+      const key = `visual-fixture/${organizationId}/${id}.${file.split('.')[1]}`;
+      await storageTransport.upload(bytes, key);
+      await prisma.metadata.create({
+        data: {
+          id: metadataId,
+          label: `Visual source ${kind}`,
+          extension,
+          size: bytes.length,
+          duration: 1,
+          ...(kind === 'video' ? { width: 160, height: 90, fps: 30 } : {}),
+          result: `/local/${key}`,
+        },
+      });
+      seeds.metadataIds.push(metadataId);
+      await prisma.ingredient.create({
+        data: {
+          id,
+          organizationId,
+          brandId,
+          userId,
+          metadataId,
+          category,
+          status: IngredientStatus.GENERATED,
+          s3Key: key,
+          mimeType: mime,
+          fileSize: bytes.length,
+        },
+      });
+      sourceAssetIds.push(id);
+      assetsByKind[kind] = id;
+    }
   const actor: VisualCodeAcceptanceActor = {
     userId,
     organizationId,
     brandId,
     sourceAssetId,
+    sourceAssetIds,
+    assetsByKind,
     user: { id: userId, userId, organizationId, brandId, isSuperAdmin: false },
   };
   seeds.actors.push(actor);
+  if (fixture.runtime)
+    fixture.runtime.walletBaselines.set(
+      organizationId,
+      await fixture.credits.getWalletSnapshot(organizationId),
+    );
+  fixture.calls.uploads.length = 0;
   return actor;
-}
-
-async function cleanupVisualCodeFixture(
-  fixture: VisualCodeAcceptanceFixture,
-): Promise<void> {
-  await cleanupVisualCodeSeedState(fixture.prisma, fixture.seeds);
 }
 
 async function cleanupVisualCodeSeedState(
