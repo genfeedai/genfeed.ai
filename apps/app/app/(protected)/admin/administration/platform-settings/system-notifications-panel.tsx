@@ -133,6 +133,7 @@ export default function SystemNotificationsPanel() {
                   : t('ready')}
           </p>
           <Switch
+            aria-label={t('deliveryEnabled')}
             label={t('deliveryEnabled')}
             isChecked={overview.configuration.enabled}
             isDisabled={isBusy}
