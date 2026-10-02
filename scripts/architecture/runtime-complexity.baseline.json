@@ -204,7 +204,7 @@
     "symbol": "AgentPrepareToolHandler.prepareClipWorkflowRun"
   },
   {
-    "actual": 1137,
+    "actual": 1103,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts"

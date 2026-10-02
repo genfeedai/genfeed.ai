@@ -283,7 +283,7 @@ describe('AgentToolsController reported publication contract', () => {
       f.controller.execute(
         'record_external_publication',
         { parameters, context: { brandId: 'brand-1' } },
-        apiKeyUser([ApiKeyScope.POSTS_READ]),
+        apiKeyUser([ApiKeyScope.ANALYTICS_READ]),
         request,
       ),
     ).rejects.toThrow();
@@ -447,7 +447,7 @@ describe('POST /agent-tools/record_external_publication/execute', () => {
           parameters: { ...body.parameters, status: 'published' },
         })
         .expect(400);
-      user.scopes = [ApiKeyScope.POSTS_READ];
+      user.scopes = [ApiKeyScope.ANALYTICS_READ];
       await httpRequest(app.getHttpServer())
         .post('/agent-tools/record_external_publication/execute')
         .send(body)

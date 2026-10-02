@@ -20,11 +20,11 @@ describe('API key publishing scope policy', () => {
     },
   );
   it.each([
-    [],
-    [ApiKeyScope.POSTS_READ],
-    [ApiKeyScope.POSTS_PUBLISH],
-    [ApiKeyScope.POSTS_SCHEDULE],
-  ])('rejects recording without draft capability: %s', (scopes) => {
+    { scopes: [] },
+    { scopes: [ApiKeyScope.ANALYTICS_READ] },
+    { scopes: [ApiKeyScope.POSTS_PUBLISH] },
+    { scopes: [ApiKeyScope.POSTS_SCHEDULE] },
+  ])('rejects recording without draft capability: %j', ({ scopes }) => {
     expect(() =>
       assertApiKeyAgentPublishingScope(
         { isApiKey: true, scopes },

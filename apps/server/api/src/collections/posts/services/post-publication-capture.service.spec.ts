@@ -584,6 +584,18 @@ describe('PostsService reported publication capture', () => {
         scope,
       );
       expect(result.credentialId).toBe(expected);
+      if (author) {
+        expect(f.credential.findMany.mock.calls[0][0].where).toEqual({
+          organizationId: scope.organizationId,
+          brandId: scope.brandId,
+          platform: 'TWITTER',
+          isDeleted: false,
+          isConnected: true,
+          ...('externalId' in author && author.externalId
+            ? { externalId: author.externalId }
+            : {}),
+        });
+      }
       expect(result.analyticsAvailability).toBe(
         expected ? 'eligible' : 'missing-credential',
       );
@@ -629,6 +641,7 @@ describe('PostsService reported publication capture', () => {
     ]);
     expect(f.rows).toHaveLength(1);
     expect(f.post.create).toHaveBeenCalledOnce();
+    expect(f.cache.invalidateByTags).toHaveBeenCalledOnce();
   });
   it('persists complete text longer than 20000 without truncation', async () => {
     const f = await makeService();

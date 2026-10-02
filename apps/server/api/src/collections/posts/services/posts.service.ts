@@ -16,6 +16,7 @@ import {
   type PostBatchScheduleResult,
   type PostBatchScheduleTarget,
 } from '@api/collections/posts/services/post-batch-schedule.util';
+import { normalizePostDocument } from '@api/collections/posts/services/post-document-projection.util';
 import {
   createPostChildWithLearning,
   type PostLearningMutationContext,
@@ -23,15 +24,7 @@ import {
   removePostWithLearning,
 } from '@api/collections/posts/services/post-learning-mutation.util';
 import { POST_SCALAR_FIELDS } from '@api/collections/posts/services/post-patch-write.util';
-import {
-  extensionPublicationAnalyticsAvailability,
-  extensionPublicationAnalyticsError,
-  extensionPublicationCaptureResult,
-  isExtensionPublicationCapture,
-  normalizeExtensionPublication,
-  parseExtensionPublicationCaptureInput,
-  resolveExtensionPublicationObservedVisibility,
-} from '@api/collections/posts/services/post-publication-capture.util';
+import { recordExternalPublicationWrite } from '@api/collections/posts/services/post-publication-capture.write';
 import { bindScheduledPublishApproval } from '@api/collections/posts/services/post-schedule-approval.util';
 import { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
@@ -58,10 +51,8 @@ import {
   parsePlatform,
   TargetExecutionState,
   type TargetValidationState,
-  toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
 import {
-  projectLegacyPostStatus,
   resolveDefaultTargetExecutionState,
   resolvePostVisibility,
 } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
@@ -75,16 +66,10 @@ import type {
   ExtensionPublicationCaptureResult,
   ExtensionPublicationCaptureScope,
 } from '@genfeedai/contracts/interfaces/content/extension-publication.interface';
-import { PostCategory, Prisma } from '@genfeedai/prisma';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  Injectable,
-  Optional,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const DEFAULT_CONTENT_MENTION_LIMIT = 50;
 const MAX_CONTENT_MENTION_LIMIT = 100;
@@ -448,169 +433,11 @@ export class PostsService extends BaseService<
     input: ExtensionPublicationCaptureInput,
     scope: ExtensionPublicationCaptureScope,
   ): Promise<ExtensionPublicationCaptureResult> {
-    const capture = parseExtensionPublicationCaptureInput(input);
-    if (
-      !scope.organizationId?.trim() ||
-      !scope.userId?.trim() ||
-      !scope.brandId?.trim() ||
-      scope.brandId !== capture.brandId
-    ) {
-      throw new ForbiddenException(
-        'Reported publication requires its authenticated organization, user and matching brand',
-      );
-    }
-    const normalized = normalizeExtensionPublication(capture);
-    const credentialPlatform = toPrismaCredentialPlatform(capture.platform);
-    if (!credentialPlatform)
-      throw new BadRequestException('Unsupported publication platform');
-    const result = await this.prisma.$transaction(async (tx) => {
-      const brand = await tx.brand.findFirst({
-        where: {
-          id: scope.brandId,
-          organizationId: scope.organizationId,
-          isDeleted: false,
-        },
-        select: { id: true },
-      });
-      if (!brand)
-        throw new ForbiddenException(
-          'Publication brand is unavailable in this organization',
-        );
-      const key = JSON.stringify([
-        'extension-publication',
-        scope.organizationId,
-        scope.brandId,
-        capture.platform,
-      ]);
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key},0))::text`;
-      const identities: Prisma.PostWhereInput[] = [];
-      if (normalized.externalId)
-        identities.push({ externalId: normalized.externalId });
-      if (normalized.url) identities.push({ url: normalized.url });
-      const existing = await tx.post.findMany({
-        where: {
-          organizationId: scope.organizationId,
-          brandId: scope.brandId,
-          platform: capture.platform,
-          isDeleted: false,
-          OR: identities,
-        },
-        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-        take: 2,
-      });
-      if (existing.length > 1)
-        throw new ConflictException(
-          'Multiple active publications match the reported identity',
-        );
-      if (existing.length === 1) {
-        if (
-          existing[0].targetExecutionState !== TargetExecutionState.PUBLISHED
-        ) {
-          throw new ConflictException(
-            'The reported identity belongs to a post in another lifecycle state',
-          );
-        }
-        return extensionPublicationCaptureResult(existing[0], false);
-      }
-      let credentialId: string | null = null;
-      const author = capture.author;
-      const normalizeHandle = (handle: string | null | undefined) =>
-        handle?.trim().replace(/^@/, '').toLowerCase() ?? '';
-      if (author?.externalId || normalizeHandle(author?.handle)) {
-        const credentials = await tx.credential.findMany({
-          where: {
-            organizationId: scope.organizationId,
-            brandId: scope.brandId,
-            platform: credentialPlatform,
-            isDeleted: false,
-            isConnected: true,
-            ...(author?.externalId ? { externalId: author.externalId } : {}),
-          },
-          select: {
-            id: true,
-            externalId: true,
-            externalHandle: true,
-            username: true,
-            isConnected: true,
-          },
-        });
-        const matches = credentials.filter((credential) =>
-          author?.externalId
-            ? credential.externalId === author.externalId
-            : normalizeHandle(credential.externalHandle) ===
-                normalizeHandle(author?.handle) ||
-              normalizeHandle(credential.username) ===
-                normalizeHandle(author?.handle),
-        );
-        if (matches.length === 1) credentialId = matches[0].id;
-      }
-      const availability = extensionPublicationAnalyticsAvailability(
-        normalized.externalId,
-        credentialId,
-        capture.platform,
-        capture.publicationKind,
-        normalized.urlIdentity,
-      );
-      const observedVisibility = resolveExtensionPublicationObservedVisibility(
-        capture.observedVisibility,
-      );
-      const visibility =
-        observedVisibility === 'public'
-          ? PostVisibility.PUBLIC
-          : observedVisibility === 'private'
-            ? PostVisibility.PRIVATE
-            : observedVisibility === 'unlisted'
-              ? PostVisibility.UNLISTED
-              : null;
-      const data: Prisma.PostUncheckedCreateInput = {
-        userId: scope.userId,
-        organizationId: scope.organizationId,
-        brandId: scope.brandId,
-        platform: capture.platform,
-        credentialId,
-        description: capture.description,
-        label: capture.description.slice(0, 80) || 'Captured publication',
-        category: PostCategory.TEXT,
-        source: 'extension',
-        externalId: normalized.externalId,
-        url: normalized.url,
-        publicationDate: new Date(capture.publicationDate),
-        publishedAt: new Date(capture.publicationDate),
-        targetExecutionState: TargetExecutionState.PUBLISHED,
-        visibility,
-        status: projectLegacyPostStatus(
-          TargetExecutionState.PUBLISHED,
-          visibility ?? PostVisibility.PUBLIC,
-        ),
-        isDeleted: false,
-        targetSettings: {
-          extensionCapture: {
-            version: 1,
-            observedByUserId: scope.userId,
-            observedAt: new Date().toISOString(),
-            publicationDate: capture.publicationDate,
-            publicationKind: capture.publicationKind,
-            urlKind: normalized.urlKind,
-            contextUrl: normalized.contextUrl,
-            urlIdentity: normalized.urlIdentity
-              ? { ...normalized.urlIdentity }
-              : null,
-            author: capture.author ? { ...capture.author } : null,
-            evidence: 'client-reported-publication',
-            observedVisibility,
-          },
-        },
-        isAnalyticsEnabled: availability === 'eligible',
-        analyticsCollectionState: 'unavailable',
-        analyticsNextCollectAt: new Date(),
-        analyticsCollectionError:
-          extensionPublicationAnalyticsError(availability) ?? Prisma.DbNull,
-      };
-      return extensionPublicationCaptureResult(
-        await tx.post.create({ data }),
-        true,
-      );
-    });
+    const result = await recordExternalPublicationWrite(
+      this.prisma,
+      input,
+      scope,
+    );
     if (result.created) await this.invalidatePostMutationCache();
     return result;
   }
@@ -649,30 +476,7 @@ export class PostsService extends BaseService<
   }
 
   protected override normalizeDocument(document: unknown): PostDocument {
-    const post = document as PostDocument;
-    const persistedState = post.targetExecutionState as TargetExecutionState;
-    const targetExecutionState = Object.values(TargetExecutionState).includes(
-      persistedState,
-    )
-      ? persistedState
-      : TargetExecutionState.DRAFT;
-    const captureVisibility = resolveExtensionPublicationObservedVisibility(
-      post.visibility,
-    );
-    const visibility = isExtensionPublicationCapture(post)
-      ? captureVisibility === 'unknown'
-        ? null
-        : resolvePostVisibility(captureVisibility)
-      : resolvePostVisibility(post.visibility);
-    return {
-      ...post,
-      status: projectLegacyPostStatus(
-        targetExecutionState,
-        visibility ?? PostVisibility.PUBLIC,
-      ),
-      targetExecutionState,
-      visibility,
-    };
+    return normalizePostDocument(document);
   }
 
   /**
