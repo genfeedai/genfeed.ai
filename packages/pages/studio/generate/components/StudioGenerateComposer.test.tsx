@@ -1018,31 +1018,28 @@ describe('complete reviewed Studio video scalar composition', () => {
         />,
       );
       expect(
-        screen.getAllByRole('combobox', { name: 'Duration', exact: true }),
+        screen.getAllByRole('combobox', { name: 'Duration' }),
       ).toHaveLength(1);
       expect(
-        screen.getAllByRole('combobox', { name: 'Aspect ratio', exact: true }),
+        screen.getAllByRole('combobox', { name: 'Aspect ratio' }),
       ).toHaveLength(1);
-      expect(
-        screen.getByRole('button', { name: 'Generate', exact: true }),
-      ).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
       expect(screen.getByText('11 credits', { exact: true })).toBeVisible();
       if (kling) {
         expect(
-          screen.getByRole('spinbutton', { name: 'Guidance', exact: true }),
+          screen.getByRole('spinbutton', { name: 'Guidance' }),
         ).toHaveValue(0);
         expect(
-          screen.queryByRole('combobox', { name: 'Resolution', exact: true }),
+          screen.queryByRole('combobox', { name: 'Resolution' }),
         ).not.toBeInTheDocument();
       } else {
         expect(
           screen.getByRole('checkbox', {
             name: 'Translate prompt',
-            exact: true,
           }),
         ).not.toBeChecked();
         expect(
-          screen.queryByRole('button', { name: 'Start frame', exact: true }),
+          screen.queryByRole('button', { name: 'Start frame' }),
         ).not.toBeInTheDocument();
       }
     },

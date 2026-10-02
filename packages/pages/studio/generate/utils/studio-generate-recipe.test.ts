@@ -411,7 +411,12 @@ describe('Crun recipe residual preservation', () => {
       crunControls: kling,
     };
     const recipe = recipeFromPromptData(
-      buildStudioPromptData('video', 'Motion', settings, [], 'brand-1'),
+      buildStudioPromptData({
+        type: 'video',
+        promptText: 'Motion',
+        settings,
+        brandId: 'brand-1',
+      }),
       'video',
       settings,
     );

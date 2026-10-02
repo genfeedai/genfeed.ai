@@ -64,10 +64,10 @@ describe('Crun durable PostgreSQL submission and leases', () => {
         `CREATE TYPE "${schema}"."${name}" AS ENUM (${values.map((value) => `'${value}'`).join(',')})`,
       );
     await pool.query(
-      `CREATE TABLE "${schema}"."models" ("id" text PRIMARY KEY, "key" text, "isActive" boolean, "isDeleted" boolean, "reviewedProviderContractVersion" text, "pendingProviderContractVersion" text, "organizationId" text, "category" "${schema}"."ModelCategory" DEFAULT 'IMAGE')`,
+      `CREATE TABLE "${schema}"."models" ("id" text PRIMARY KEY, "key" text, "isActive" boolean, "isDeleted" boolean, "reviewedProviderContractVersion" text, "pendingProviderContractVersion" text, "organizationId" text, "category" "${schema}"."ModelCategory" DEFAULT '${ModelCategory.IMAGE}')`,
     );
     await pool.query(
-      `INSERT INTO "${schema}"."models" VALUES ('model', 'crun/google/nano-banana-pro', true, false, 'contract-v1', NULL, NULL, 'IMAGE')`,
+      `INSERT INTO "${schema}"."models" VALUES ('model', 'crun/google/nano-banana-pro', true, false, 'contract-v1', NULL, NULL, '${ModelCategory.IMAGE}')`,
     );
     await pool.query(
       `CREATE TYPE "${schema}"."IngredientStatus" AS ENUM (${Object.values(

@@ -13,6 +13,7 @@ import {
   getCrunPricingSnapshot,
 } from '@api/services/integrations/crun/contracts/crun-manifest';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ModelCategory } from '@genfeedai/contracts';
 import { normalizeCrunInput } from '@genfeedai/helpers';
 import type { Prisma } from '@genfeedai/prisma';
 
@@ -334,7 +335,7 @@ describe('Crun exact video candidates and preserved image versions', () => {
       } as unknown as PrismaService);
       await service.importModel(entry, undefined, true);
       expect(tx.model.upsert.mock.calls[0]?.[0].create).toMatchObject({
-        category: 'VIDEO',
+        category: ModelCategory.VIDEO,
         isActive: false,
         isDefault: false,
       });

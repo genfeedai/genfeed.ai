@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { VideosCaptionsController } from '@api/collections/videos/controllers/captions/videos-captions.controller';
+import { CrunVideoQuoteController } from '@api/collections/videos/controllers/crun-video-quote.controller';
 import { VideosLiveSessionsController } from '@api/collections/videos/controllers/live-sessions/videos-live-sessions.controller';
 import { VideosProvenanceController } from '@api/collections/videos/controllers/provenance/videos-provenance.controller';
 import { VideosMergeController } from '@api/collections/videos/controllers/relationships/videos-merge.controller';
@@ -69,6 +70,7 @@ describe('Videos split controllers', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, VideosModule),
     ).toEqual([
+      CrunVideoQuoteController,
       VideosCaptionsController,
       VideosProvenanceController,
       VideosController,

@@ -88,7 +88,10 @@ const request: CrunImageQuoteRequest = {
   },
   harness: false,
 };
-function available(): CrunGenerationQuoteResponse {
+function available(): Extract<
+  CrunGenerationQuoteResponse,
+  { isAvailable: true }
+> {
   return {
     isAvailable: true,
     quoteId: 'opaque',

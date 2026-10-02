@@ -206,7 +206,7 @@ describe('IngredientsList', () => {
         imageToVideoPromptData: { text: 'Motion', isValid: true },
       }),
     );
-    render(<IngredientsList />);
+    render(<IngredientsList type="images" />);
     expect(capturedConversionModal?.imageToVideoCrunBinding).toBe(binding);
     expect(capturedConversionModal?.image?.id).toBe('source-owned');
   });

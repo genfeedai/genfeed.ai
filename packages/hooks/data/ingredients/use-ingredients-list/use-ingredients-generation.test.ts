@@ -1,5 +1,6 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import {
+  IngredientCategory,
   IngredientFormat,
   IngredientStatus,
   ModelProvider,
@@ -381,7 +382,17 @@ describe('real quoted image-to-video binding', () => {
     };
     const hook = renderHook(() => useIngredientsGeneration(props));
     act(() => hook.result.current.handleConvertToVideo(createIngredient()));
-    const data = {
+    const data: PromptTextareaSchema = {
+      brand: 'brand-1',
+      category: IngredientCategory.VIDEO,
+      fontFamily: '',
+      format: IngredientFormat.PORTRAIT,
+      height: 1920,
+      width: 1080,
+      quality: 'premium',
+      sounds: [],
+      style: '',
+      tags: [],
       models: ['crun/kling/v2-5-turbo-pro'],
       text: 'Motion',
       references: ['img-1'],
@@ -398,7 +409,7 @@ describe('real quoted image-to-video binding', () => {
         guidanceScale: 0,
         negativePrompt: ' blur ',
       },
-    } as PromptTextareaSchema;
+    };
     return { ...hook, data, props };
   }
   it('locks parent/start, retains zero, omits dimensions/audio/tags and posts exact quoted body', async () => {

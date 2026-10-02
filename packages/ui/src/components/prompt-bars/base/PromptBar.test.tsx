@@ -344,6 +344,7 @@ describe('PromptBar', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockForm.watch.mockReset().mockReturnValue(1);
     mockCrunQuote.mockReturnValue({
       quote: null,
       status: 'idle',
@@ -1584,6 +1585,10 @@ describe('PromptBar', () => {
   describe('Crun legacy video binding admission', () => {
     const key = 'crun/kling/v2-5-turbo-pro' as const;
     function selectVideo() {
+      const priorWatch = mockForm.watch.getMockImplementation();
+      mockForm.watch.mockImplementation((name: string) =>
+        name === 'text' ? 'Motion' : priorWatch?.(name),
+      );
       const model = {
         key,
         provider: 'crun',

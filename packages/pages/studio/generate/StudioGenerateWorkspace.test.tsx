@@ -3,7 +3,7 @@ import {
   ContextSidebarProvider,
   useContextSidebar,
 } from '@contexts/ui/context-sidebar-context';
-import { IngredientStatus } from '@genfeedai/contracts';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
 import type { StudioGenerateJob } from '@pages/studio/generate/types';
@@ -2164,7 +2164,7 @@ describe('StudioGenerateWorkspace', () => {
     function frame(id: string) {
       return {
         id,
-        category: 'image',
+        category: IngredientCategory.IMAGE,
         brandId: 'brand-1',
         isDeleted: false,
         cdnUrl: `https://cdn.example/${id}.png`,
@@ -2263,7 +2263,7 @@ describe('StudioGenerateWorkspace', () => {
             : reason === 'foreign'
               ? { ...asset, brandId: 'brand-2' }
               : reason === 'nonimage'
-                ? { ...asset, category: 'video' }
+                ? { ...asset, category: IngredientCategory.VIDEO }
                 : reason === 'unusable'
                   ? { ...asset, cdnUrl: '' }
                   : null;

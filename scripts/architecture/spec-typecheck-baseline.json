@@ -9817,30 +9817,6 @@
       "workspace": "ui"
     },
     {
-      "code": 2353,
-      "count": 1,
-      "file": "packages/ui/src/components/prompt-bars/components/quick-options/PromptBarQuickOptions.test.tsx",
-      "fingerprint": "336325139a6725b277de",
-      "message": "Object literal may only specify known properties, and 'hasAnyResolutionOptionsValue' does not exist in type 'PromptBarQuickOptionsProps'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "packages/ui/src/components/prompt-bars/components/quick-options/PromptBarQuickOptions.test.tsx",
-      "fingerprint": "749fc55673c4ae74abbc",
-      "message": "Property 'hasAnyResolutionOptionsValue' is missing in type '{ currentConfig: PromptBarConfig; pathname: string; categoryType?: IngredientCategory | undefined; currentModelCategory?: ModelCategory | null | undefined; ... 31 more ...; inlineContent?: ReactNode; }' but required in type 'PromptBarQuickOptionsWrapperProps'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2741,
-      "count": 2,
-      "file": "packages/ui/src/components/prompt-bars/components/quick-options/PromptBarQuickOptions.test.tsx",
-      "fingerprint": "8cc7f7b98a494c44546f",
-      "message": "Property 'hasAnyResolutionOptionsValue' is missing in type '{ currentConfig: PromptBarConfig; pathname: string; categoryType?: IngredientCategory | undefined; currentModelCategory?: ModelCategory | null | undefined; ... 31 more ...; inlineContent?: ReactNode; }' but required in type 'PromptBarQuickOptionsWrapperProps'.",
-      "workspace": "ui"
-    },
-    {
       "code": 2614,
       "count": 1,
       "file": "packages/ui/src/components/providers/index.ts",

@@ -320,10 +320,10 @@ describe('VideosService canonical Crun transport', () => {
     const create = vi.spyOn(axios, 'create');
     create.mockClear();
     try {
-      endpoint.mockReturnValue('https://first.example/api/');
+      endpoint.mockReturnValue('https://first.example/api');
       const first = VideosService.getInstance('endpoint-video');
       expect(VideosService.getInstance('endpoint-video')).toBe(first);
-      endpoint.mockReturnValue('https://second.example/api/');
+      endpoint.mockReturnValue('https://second.example/api');
       const second = VideosService.getInstance('endpoint-video');
       expect(second).not.toBe(first);
       expect(VideosService.getInstance('endpoint-video')).toBe(second);

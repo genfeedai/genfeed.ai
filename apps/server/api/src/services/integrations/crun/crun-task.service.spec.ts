@@ -5,7 +5,7 @@ import type { ByokService } from '@api/services/byok/byok.service';
 import type { CrunClient } from '@api/services/integrations/crun/crun-client.service';
 import { CrunTaskService } from '@api/services/integrations/crun/crun-task.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { IngredientCategory } from '@genfeedai/contracts';
+import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
 import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import type { CrunGenerationTask } from '@genfeedai/prisma';
 import type { ConfigService } from '@libs/config/config.service';
@@ -308,7 +308,7 @@ describe('Crun durable credential and lease boundaries', () => {
       ).toMatchObject({ isSubmitted: true });
       expect(modelFind).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ category: 'VIDEO' }),
+          where: expect.objectContaining({ category: ModelCategory.VIDEO }),
         }),
       );
       expect(createTask).toHaveBeenCalledOnce();
