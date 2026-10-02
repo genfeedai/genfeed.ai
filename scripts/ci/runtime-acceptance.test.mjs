@@ -535,6 +535,41 @@ test('Crun manifest accepts owner atomic replacement content but refuses broad c
     assert.throws(() => validateCrunManifest(value, directory));
 });
 
+test('Crun video cache cleanup remains bound to the exact owned schema and physical keys', () => {
+  const schema = `crun_flow_${'a'.repeat(32)}`;
+  const directory = '/tmp/crun-owned-aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  const prefix = `crun:video:cache:${schema}:`;
+  const uuid = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  const manifest = {
+    version: 1,
+    schema,
+    ownedDirectory: directory,
+    redisKeys: [
+      `${prefix}tag:videos`,
+      `${prefix}probe:${uuid}`,
+      `${prefix}probe:${uuid}:control`,
+      `${prefix}crun:requests:${'b'.repeat(64)}`,
+      `${prefix}crun:video:quote:${uuid}:${uuid}:${uuid}`,
+      `${prefix}crun:video:quote:${uuid}:${uuid}:${uuid}:consumed`,
+    ],
+  };
+  assert.deepEqual(validateCrunManifest(manifest, directory), manifest);
+  for (const key of [
+    'tag:videos',
+    `${prefix}*`,
+    `${prefix}tag:other`,
+    `${prefix}probe:other`,
+    `${prefix}crun:video:quote:${uuid}:${uuid}:other`,
+    `crun:video:cache:crun_flow_${'b'.repeat(32)}:tag:videos`,
+  ])
+    assert.throws(() =>
+      validateCrunManifest({ ...manifest, redisKeys: [key] }, directory),
+    );
+  assert.throws(() =>
+    validateCrunManifest({ ...manifest, schema: null }, directory),
+  );
+});
+
 test('a failed outcome or incomplete coverage can never produce a successful receipt', () => {
   const outcome = {
     ...identity,

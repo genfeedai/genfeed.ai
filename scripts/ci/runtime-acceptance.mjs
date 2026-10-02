@@ -146,7 +146,7 @@ export const CRUN_SOURCE_CONTRACT = Object.freeze({
   }),
   video: Object.freeze({
     path: 'apps/server/api/src/services/integrations/crun/crun-video-flow.integration.spec.ts',
-    sha256: '6bbd5cbfd354e260898f5338cd2a05d534038ecbcd172f366138a41d3d5a345a',
+    sha256: '9d4e3110b38339041462190cb208cca8de2d223e91f3c85afff3f0ff18d080dc',
     count: 23,
     passedTitles: Object.freeze([
       'Crun video quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success variant default: frozen quote, restart, owned storage and exact accounting',
@@ -251,17 +251,17 @@ export const LEARNING_SOURCE_CONTRACT = Object.freeze({
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.fixture.ts',
       sha256:
-        '905a48689dac3570fb1f243922cf84b03f374d509cf920396c21c590b6261d17',
+        '3e87461f524d58e97e341dfb4c5b6a02dd96246c390b51610d955935e9dd3a7b',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.integration.spec.ts',
       sha256:
-        'a09dd0f9aab874a337438b8e409225f43e6a2f26f5f2cb5be68eae08fecd676a',
+        '5cf41eff212c23e2af7b0181530eb5a0d90edcf0b1fa3ba6b01d05f3a8c19055',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-publication-races.integration.spec.ts',
       sha256:
-        '8b2ed839446a764962fc1dd45cf9df9f388dce62db5d23f54bb25ad69de471c5',
+        '20e6f4e616af424fc2e4a19b4e0997814c6e047a30d7f8d04889b85da6ce269b',
     },
     {
       path: 'apps/server/api/vitest.learning-runtime.config.ts',
@@ -1210,6 +1210,10 @@ export function validateCrunManifest(manifest, directory) {
   const keyPattern = new RegExp(
     `^(?:crun:requests:[a-f0-9]{64}|crun:quote:${uuid}:${uuid}:${uuid}(?::consumed)?)$`,
   );
+  const videoPrefix = `crun:video:cache:${manifest.schema}:`;
+  const videoKeyPattern = new RegExp(
+    `^(?:crun:requests:[a-f0-9]{64}|crun:video:quote:${uuid}:${uuid}:${uuid}(?::consumed)?|probe:${uuid}(?::control)?|tag:videos)$`,
+  );
   requireThat(
     manifest.version === 1 &&
       manifest.ownedDirectory === directory &&
@@ -1219,7 +1223,13 @@ export function validateCrunManifest(manifest, directory) {
       manifest.redisKeys.length <= 1024 &&
       new Set(manifest.redisKeys).size === manifest.redisKeys.length &&
       manifest.redisKeys.every(
-        (key) => typeof key === 'string' && keyPattern.test(key),
+        (key) =>
+          typeof key === 'string' &&
+          (keyPattern.test(key) ||
+            (typeof manifest.schema === 'string' &&
+              /^crun_flow_[a-f0-9]{32}$/.test(manifest.schema) &&
+              key.startsWith(videoPrefix) &&
+              videoKeyPattern.test(key.slice(videoPrefix.length)))),
       ),
     'CRUN_OWNERSHIP',
   );
