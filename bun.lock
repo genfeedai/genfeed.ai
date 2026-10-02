@@ -267,6 +267,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@genfeedai/actions": "workspace:*",
+        "@genfeedai/agent": "workspace:*",
         "@genfeedai/auth-client": "workspace:*",
         "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "workspace:*",

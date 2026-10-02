@@ -24,6 +24,9 @@ import {
 
 export interface ContentLibraryPickerProps {
   isOpen: boolean;
+  title?: string;
+  description?: string;
+  footer?: ReactNode;
   isLoading?: boolean;
   items?: readonly ContentMentionItem[];
   selectedIds?: ReadonlySet<string>;
@@ -49,6 +52,9 @@ function contentTypeIcon(contentType: string): ReactElement {
 
 export function ContentLibraryPicker({
   isOpen,
+  title = 'Reference library content',
+  description = 'Pick posts or assets to attach as visual references, and choose the brand knowledge that grounds your message.',
+  footer,
   isLoading = false,
   items = EMPTY_ITEMS,
   selectedIds,
@@ -81,10 +87,9 @@ export function ContentLibraryPicker({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[min(80dvh,560px)] w-full max-w-lg flex-col gap-0 overflow-hidden border-border bg-popover p-0">
         <DialogHeader className="border-b border-border px-4 py-3">
-          <DialogTitle>Reference library content</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            Pick posts or assets to attach as visual references, and choose the
-            brand knowledge that grounds your message.
+            {description}
           </DialogDescription>
         </DialogHeader>
 
@@ -174,6 +179,9 @@ export function ContentLibraryPicker({
             </div>
           )}
         </div>
+        {footer ? (
+          <div className="border-t border-border px-4 py-3">{footer}</div>
+        ) : null}
       </DialogContent>
     </Dialog>
   );

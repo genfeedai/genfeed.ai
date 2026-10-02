@@ -14,7 +14,8 @@
     "react-dom": "19.3.0",
     "zustand": "5.0.15",
     "@genfeedai/contracts": "workspace:*",
-    "@genfeedai/actions": "workspace:*"
+    "@genfeedai/actions": "workspace:*",
+    "@genfeedai/agent": "workspace:*"
   },
   "description": "Genfeed.ai - Generate (good) AI content for your business",
   "devDependencies": {
@@ -89,5 +90,13 @@
     "test:cov": "vitest run --coverage",
     "test:watch": "vitest"
   },
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "alias": {
+    "react": "./node_modules/react/index.js",
+    "react/jsx-runtime": "./node_modules/react/jsx-runtime.js",
+    "react/jsx-dev-runtime": "./node_modules/react/jsx-dev-runtime.js",
+    "react-dom": "./node_modules/react-dom/index.js",
+    "react-dom/client": "./node_modules/react-dom/client.js",
+    "react-dom/server": "./node_modules/react-dom/server.js"
+  }
 }

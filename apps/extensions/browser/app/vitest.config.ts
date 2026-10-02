@@ -9,14 +9,29 @@ export default defineConfig({
   oxc: false,
   plugins: [react()],
   resolve: {
+    dedupe: ['react', 'react-dom'],
     alias: {
+      react: path.resolve(extensionAppDir, './node_modules/react'),
+      'react-dom': path.resolve(extensionAppDir, './node_modules/react-dom'),
       '@genfeedai/auth-client/react': path.resolve(
         extensionAppDir,
         '../../../../packages/auth-client/src/react.tsx',
       ),
+      '@genfeedai/helpers/formatting/cn/cn.util': path.resolve(
+        extensionAppDir,
+        '../../../../packages/helpers/src/formatting/cn/cn.util.ts',
+      ),
       '@genfeedai/helpers/formatting/cn': path.resolve(
         extensionAppDir,
         '../../../../packages/helpers/src/formatting/cn/index.ts',
+      ),
+      '@genfeedai/agent': path.resolve(
+        extensionAppDir,
+        '../../../../packages/agent/src',
+      ),
+      '@helpers': path.resolve(
+        extensionAppDir,
+        '../../../../packages/helpers/src',
       ),
       '@hooks': path.resolve(extensionAppDir, './src/hooks'),
       '@ui': path.resolve(extensionAppDir, '../../../../packages/ui/src'),
@@ -35,6 +50,21 @@ export default defineConfig({
     extensions: ['.tsx', '.ts', '.jsx', '.js', '.mjs', '.json'],
   },
   test: {
+    deps: {
+      optimizer: {
+        client: {
+          enabled: true,
+          include: [
+            'react',
+            'react-dom/client',
+            'lucide-react',
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-slot',
+          ],
+        },
+      },
+    },
+    server: { deps: { inline: [/react/, /@radix-ui/] } },
     coverage: {
       all: false,
       clean: true,

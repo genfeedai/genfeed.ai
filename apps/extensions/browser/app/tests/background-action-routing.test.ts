@@ -296,3 +296,46 @@ describe('background user action routing', () => {
     expect(response.message.content).toBe('Assistant answer');
   });
 });
+
+describe('Library references in agent turns', () => {
+  it('forwards scoped references to the real turn endpoint', async () => {
+    const reference = {
+      kind: 'ingredient',
+      serializer: 'ingredient',
+      recordId: 'image-1',
+      organizationId: 'org-1',
+      brandId: 'brand-1',
+    };
+    mocks.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ executionId: 'run-1' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [
+          {
+            runId: 'run-1',
+            sequence: 1,
+            type: 'assistant.finalized',
+            payload: { content: 'Done' },
+          },
+        ],
+      });
+    const response = await dispatch({
+      event: 'chatSendMessage',
+      payload: {
+        threadId: 'thread-1',
+        brandId: 'brand-1',
+        content: 'Use this artwork',
+        artifactReferences: [reference],
+      },
+    });
+    expect(response.success).toBe(true);
+    expect(JSON.parse(mocks.fetch.mock.calls[0][1].body)).toMatchObject({
+      brandId: 'brand-1',
+      artifactReferences: [reference],
+      content: 'Use this artwork',
+    });
+  });
+});

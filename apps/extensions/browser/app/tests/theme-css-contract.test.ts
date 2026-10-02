@@ -38,6 +38,8 @@ describe('browser extension theme CSS contract', () => {
         '.border-border',
         '.bg-elevated',
         '.z-50',
+        '.shadow-composer',
+        '.aspect-square',
         String.raw`.focus\:bg-hover`,
         String.raw`.hover\:bg-hover`,
       ]) {
@@ -69,7 +71,7 @@ describe('browser extension theme CSS contract', () => {
     expect(styles).toContain('@theme inline');
     expect(styles).toContain('@custom-variant dark');
     expect(runtimeStyles).toContain('@import "./style.generated.css"');
-    expect(styles).toContain('@import "tailwindcss" source(none)');
+    expect(styles).toMatch(/@import ['"]tailwindcss['"] source\(none\)/);
     expect(styles).toContain('@source "./"');
     expect(styles).toContain(
       '@source "../../../../../packages/ui/src/primitives"',

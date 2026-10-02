@@ -1,3 +1,8 @@
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Button } from '@ui/primitives/button';
+import { Plus } from 'lucide-react';
+import { BrandSelector } from '~components/settings/BrandSelector';
+import { useChatStore } from '~store/use-chat-store';
 import { useAuth } from '@genfeedai/auth-client/react';
 import { type ReactElement, useEffect, useReducer } from 'react';
 
@@ -7,8 +12,6 @@ import { ThreadList } from '~components/history/ThreadList';
 import { type ActiveTab, SidebarNav } from '~components/navigation/SidebarNav';
 import { IdeaDraftPage as ImportedPostsPage } from '~components/pages/IdeaDraftPage';
 import { KnowledgeCapturePage } from '~components/pages/KnowledgeCapturePage';
-import { RemixPage } from '~components/pages/RemixPage';
-import { ReplyPage } from '~components/pages/ReplyPage';
 import { SettingsPanel } from '~components/settings/SettingsPanel';
 import { useAccountThemeSync } from '~hooks/use-account-theme-sync';
 import { useExtensionTheme } from '~hooks/use-extension-theme';
@@ -81,7 +84,6 @@ function panelReducer(state: PanelState, action: PanelAction): PanelState {
 
 function SidePanelRoute({
   activeTab,
-  pendingAuthor,
   pendingContent,
   pendingUrl,
   captureMode,
@@ -96,14 +98,18 @@ function SidePanelRoute({
       return <ChatContainer />;
     case 'remix':
       return (
-        <RemixPage initialContent={pendingContent} initialUrl={pendingUrl} />
+        <ChatContainer
+          mode="remix"
+          initialContent={pendingContent}
+          initialUrl={pendingUrl}
+        />
       );
     case 'reply':
       return (
-        <ReplyPage
+        <ChatContainer
+          mode="reply"
           initialContent={pendingContent}
           initialUrl={pendingUrl}
-          initialAuthor={pendingAuthor}
         />
       );
     case 'idea':
@@ -133,6 +139,7 @@ function SidePanelRoute({
 }
 
 function SidePanelContent() {
+  const isGenerating = useChatStore((s) => s.isGenerating);
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const [authState, dispatchAuthState] = useReducer(authReducer, {
     error: null,
@@ -245,9 +252,28 @@ function SidePanelContent() {
     dispatchPanel({ activeTab, type: 'setActiveTab' });
 
   return (
-    <div className="flex h-screen bg-background text-foreground">
+    <div className="gf-app flex h-screen min-w-0 flex-col bg-background text-foreground">
+      <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border px-4">
+        <span className="text-sm font-semibold tracking-tight">Genfeed</span>
+        <div className="ml-auto min-w-0 w-40">
+          <BrandSelector />
+        </div>
+        <Button
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
+          withWrapper={false}
+          icon={<Plus className="size-4" />}
+          ariaLabel="New conversation"
+          isDisabled={isGenerating}
+          onClick={() => {
+            useChatStore.getState().clearMessages();
+            useChatStore.getState().setActiveThread(null);
+            setActiveTab('chat');
+          }}
+        />
+      </header>
       <SidebarNav activeTab={panelState.activeTab} onTabChange={setActiveTab} />
-      <main className="flex-1 overflow-hidden">
+      <main className="min-h-0 min-w-0 flex-1 overflow-hidden">
         <SidePanelRoute
           {...panelState}
           onActiveTabChange={setActiveTab}

@@ -53,6 +53,7 @@ const routes = [
   ['POST', 'images'],
   ['POST', 'videos'],
   ['GET', 'videos'],
+  ['GET', 'ingredients'],
   ['GET', 'videos/:id'],
   ['POST', 'agent/threads'],
   ['GET', 'agent/threads'],
@@ -94,6 +95,7 @@ describe('extension API route contract', () => {
       'background.ts',
       'services/auth.service.ts',
       'services/agent-tools.service.ts',
+      'services/library.service.ts',
       'services/theme-settings.service.ts',
       'services/social-post-import.service.ts',
       'components/settings/ConnectedAccounts.tsx',
@@ -102,7 +104,7 @@ describe('extension API route contract', () => {
       const source = readFileSync(resolve(extensionRoot, file), 'utf8');
       const endpoints = Array.from(
         source.matchAll(
-          /['"`](?:\$\{(?:API_BASE|apiEndpoint)\})?(\/(?:agent(?:-tools|\/threads)|auth|knowledge-sources|posts|prompts|images|videos|threads|brands|contexts|credentials|users|services|social-sources|source-posts|organizations)[^'"`]*)['"`]/g,
+          /['"`](?:\$\{(?:API_BASE|apiEndpoint)\})?(\/(?:agent(?:-tools|\/threads)|auth|knowledge-sources|posts|prompts|images|ingredients|videos|threads|brands|contexts|credentials|users|services|social-sources|source-posts|organizations)[^'"`]*)['"`]/g,
         ),
         (match) => normalizeRoute(match[1]),
       );

@@ -925,8 +925,7 @@ export function createAIReplyButton(
       if (response?.success && response?.reply) {
         // Find the reply textarea
         const replyBox = document.querySelector(replyTextareaSelector) as
-          | HTMLTextAreaElement
-          | HTMLElement;
+          HTMLTextAreaElement | HTMLElement;
 
         if (replyBox) {
           replyBox.focus();
@@ -1361,7 +1360,33 @@ export function createGenFeedDropdown(
     }
   });
 
-  // Add items to menu - Reply with Image first as it's the main feature
+  const replyItem = document.createElement('button');
+  replyItem.className = 'genfeed-menu-item';
+  replyItem.innerHTML = `${icons.sparkles}<span>Generate reply</span>`;
+  replyItem.addEventListener('click', async () => {
+    menu.classList.remove('active');
+    const context = extractPostContext();
+    try {
+      const result = await chrome.runtime.sendMessage({
+        event: 'SHORTCUT_REPLY',
+        payload: {
+          content: context.content,
+          platform,
+          url: options.postUrl || window.location.href,
+        },
+      });
+      if (!result?.success)
+        showGenfeedToast(
+          result?.error || 'Could not open the reply composer',
+          true,
+        );
+    } catch {
+      showGenfeedToast('Could not open the reply composer', true);
+    }
+  });
+  menu.appendChild(replyItem);
+
+  // Media generation actions remain available alongside the shared reply composer.
   menu.appendChild(replyWithImageItem);
   menu.appendChild(replyWithVideoItem);
   menu.appendChild(replyWithGifItem);

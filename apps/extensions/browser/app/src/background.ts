@@ -1,3 +1,4 @@
+import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import { IngredientStatus } from '@genfeedai/contracts';
 import type { CaptureMode } from '~models/knowledge-capture.model';
 import { AgentToolsService } from '~services/agent-tools.service';
@@ -1039,6 +1040,7 @@ async function handleChatCreateThread(
 }
 
 interface ChatSendMessagePayload {
+  artifactReferences?: AgentArtifactReference[];
   threadId: string;
   content: string;
   platform?: string;
@@ -1057,6 +1059,7 @@ async function handleChatSendMessage(
       `${API_BASE}/agent/threads/${payload.threadId}/turns`,
       {
         body: JSON.stringify({
+          artifactReferences: payload.artifactReferences,
           brandId: payload.brandId,
           clientRequestId: crypto.randomUUID(),
           content: payload.content,

@@ -8,12 +8,14 @@ import {
 import { type ReactElement, useEffect } from 'react';
 
 import { useBrandVoice } from '~hooks/use-brand-voice';
+import { useChatStore } from '~store/use-chat-store';
 import { useBrandStore } from '~store/use-brand-store';
 
 export function BrandSelector(): ReactElement {
   const brands = useBrandStore((s) => s.brands);
   const activeBrandId = useBrandStore((s) => s.activeBrandId);
   const setActiveBrand = useBrandStore((s) => s.setActiveBrand);
+  const isGenerating = useChatStore((s) => s.isGenerating);
   const { fetchBrands } = useBrandVoice();
 
   useEffect(() => {
@@ -21,6 +23,10 @@ export function BrandSelector(): ReactElement {
   }, [fetchBrands]);
 
   function handleChange(value: string) {
+    if (value !== activeBrandId) {
+      useChatStore.getState().clearMessages();
+      useChatStore.getState().setActiveThread(null);
+    }
     setActiveBrand(value || null);
     void chrome.runtime
       .sendMessage({ event: 'captureSetBrand', brandId: value })
@@ -36,8 +42,15 @@ export function BrandSelector(): ReactElement {
   }
 
   return (
-    <Select value={activeBrandId ?? ''} onValueChange={handleChange}>
-      <SelectTrigger className="w-full">
+    <Select
+      disabled={isGenerating}
+      value={activeBrandId ?? ''}
+      onValueChange={handleChange}
+    >
+      <SelectTrigger
+        aria-label="Active brand"
+        className="h-8 w-full border-0 bg-transparent text-xs shadow-none"
+      >
         <SelectValue placeholder="Select a brand..." />
       </SelectTrigger>
       <SelectContent>

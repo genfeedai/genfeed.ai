@@ -2,18 +2,37 @@
   "compilerOptions": {
     "paths": {
       "@genfeedai/contracts/api-types/*": [
-        "../../../../../packages/contracts/src/api-types/*"
+        "../../../../packages/contracts/src/api-types/*"
       ],
       "@genfeedai/contracts/types/*": [
-        "../../../packages/contracts/src/types/*"
+        "../../../../packages/contracts/src/types/*"
       ],
-      "@genfeedai/agent": ["../../../packages/agent/src/index.ts"],
-      "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
+      "@genfeedai/agent": ["../../../../packages/agent/src/index.ts"],
+      "@genfeedai/agent/*": ["../../../../packages/agent/src/*"],
       "@genfeedai/utils/*": ["../../../../packages/utils/*"],
-      "@ui/*": ["../../../../packages/ui/src/*"],
-      "~*": ["./src/*"]
+      "@ui/*": [
+        "../../../../packages/ui/src/*",
+        "../../../../packages/ui/src/components/*"
+      ],
+      "~*": ["./src/*"],
+      "@helpers/*": ["../../../../packages/helpers/src/*"],
+      "@genfeedai/helpers/*": ["../../../../packages/helpers/src/*"],
+      "@genfeedai/contracts/interfaces": [
+        "../../../../packages/contracts/src/interfaces/index.ts"
+      ],
+      "@genfeedai/props/*": ["../../../../packages/props/*"],
+      "@genfeedai/contracts/interfaces/*": [
+        "../../../../packages/contracts/src/interfaces/*"
+      ],
+      "@genfeedai/contracts/enums/*": [
+        "../../../../packages/contracts/src/enums/*"
+      ],
+      "@genfeedai/models/*": ["../../../../packages/models/*"],
+      "@props/*": ["../../../../packages/props/*"],
+      "@genfeedai/services/*": ["../../../../packages/services/*"]
     },
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "types": ["chrome", "node", "react", "react-dom"]
   },
   "exclude": ["node_modules"],
   "extends": "plasmo/templates/tsconfig.base",
