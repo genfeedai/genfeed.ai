@@ -120,7 +120,9 @@ describe('SkillImportForm', () => {
         },
       }),
     );
-    expect(screen.getByText('Use ZIP for nested folders.')).toBeVisible();
+    expect(
+      screen.getByText(`${labels.packageHint} ${labels.nestedHint}`),
+    ).toBeVisible();
     expect(
       screen.queryByText(/created|published|enabled|charged/i),
     ).not.toBeInTheDocument();

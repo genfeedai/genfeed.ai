@@ -174,7 +174,10 @@ export class SkillLibraryService {
               toolOverrides: [],
               defaultInstructions: parsed.instructions,
               systemPromptTemplate: parsed.instructions,
-              files: parsed.files,
+              files: parsed.files.map(({ content, path }) => ({
+                content,
+                path,
+              })),
               checksum: parsed.packageChecksum,
               ...(parsed.metadata.version !== undefined
                 ? { version: parsed.metadata.version }
@@ -190,7 +193,7 @@ export class SkillLibraryService {
                   ? { sourceUrl: parsed.sourceUrl }
                   : {}),
               },
-            } as Prisma.InputJsonValue,
+            } satisfies Prisma.InputJsonObject,
           },
         });
       },
