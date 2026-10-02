@@ -210,6 +210,21 @@ describe('hosted real production learning runtime', () => {
       '@api/collections/workflows/workflows.tokens'
     );
     const { SERVER_TOKENS } = await import('@api/server.dependencies');
+    const { AgentOrchestratorModule } = await import(
+      '@api/services/agent-orchestrator/agent-orchestrator.module'
+    );
+    const { AgentTurnWorkflowExecutionService } = await import(
+      '@api/services/agent-orchestrator/agent-turn-workflow-execution.service'
+    );
+    const { AGENT_RUNTIME_ACTION_IDS } = await import(
+      '@api/collections/workflows/services/agent-runtime-workflow-definitions'
+    );
+    const { SystemWorkflowRunnerService } = await import(
+      '@api/collections/workflows/system-workflow-runner.service'
+    );
+    const { WorkflowEngineAdapterService } = await import(
+      '@api/collections/workflows/services/workflow-engine-adapter.service'
+    );
     const { PostLifecycleModule } = await import(
       '@api/collections/posts/post-lifecycle.module'
     );
@@ -218,6 +233,31 @@ describe('hosted real production learning runtime', () => {
     );
     const { LoggerService } = await import('@libs/logger/logger.service');
     for (const application of [fixture.first, fixture.second]) {
+      const agentModule = application.module.select(AgentOrchestratorModule);
+      const turn = agentModule.get(AgentTurnWorkflowExecutionService, {
+        strict: true,
+      });
+      expect(turn.constructor).toBe(AgentTurnWorkflowExecutionService);
+      expect(application.module.get(AgentTurnWorkflowExecutionService)).toBe(
+        turn,
+      );
+      const runner = application.module.get(SystemWorkflowRunnerService);
+      const engine = application.module.get(WorkflowEngineAdapterService);
+      expect(application.module.get(SYSTEM_WORKFLOW_RUNNER)).toBe(runner);
+      expect(application.module.get(WORKFLOW_ENGINE_ADAPTER)).toBe(engine);
+      const registered = engine.getRegisteredActionIds();
+      for (const id of [
+        AGENT_RUNTIME_ACTION_IDS.TURN_PREPARE,
+        AGENT_RUNTIME_ACTION_IDS.TURN_INFER,
+        AGENT_RUNTIME_ACTION_IDS.TURN_FINALIZE,
+        AGENT_RUNTIME_ACTION_IDS.TURN_FAIL,
+        AGENT_RUNTIME_ACTION_IDS.UI_ACTION,
+        AGENT_RUNTIME_ACTION_IDS.INPUT_RESPONSE,
+        ...Object.values(CONTENT_LEARNING_ACTION_IDS),
+      ])
+        expect(registered.filter((candidate) => candidate === id)).toHaveLength(
+          1,
+        );
       const lifecycleModule = application.module.select(PostLifecycleModule);
       const lifecycle = lifecycleModule.get(PostLifecycleService, {
         strict: true,

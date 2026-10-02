@@ -238,7 +238,7 @@ export async function verifyBaselineSources(repo) {
 export const AGENT_PRODUCTION_FILES = [
   {
     path: 'apps/server/api/test/integration/proactive-agent-production-turn.integration.spec.ts',
-    sha256: 'b60d8b353381924cd5732ce9186742b035c04650df96174767128ed43c4c4618',
+    sha256: '12571f679240c51920554aa0cb8ee50c4f503784de1560b99eafeb6ce4e85fbd',
   },
   {
     path: 'apps/server/api/test/integration/proactive-agent-production-turn.fixture.ts',
@@ -267,12 +267,12 @@ export const LEARNING_SOURCE_CONTRACT = Object.freeze({
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.fixture.ts',
       sha256:
-        '4ee51cadbcc127882a2e875e9b857c14f4ba074dcc4907dbbfe7661f7df8acb9',
+        'e3e07650969ba99a6bba1dd70ad81f523237c96e08d5ba1d93ac5bf2b7ba2c10',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.integration.spec.ts',
       sha256:
-        '6664be249d4c46c28576dd3dc0642f5864fc119036ba0d2fb5f949a870e389ec',
+        '655f324987cfed46a4acca0f54ecb978d7659c15ac976bb4f60f07027af936bf',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-publication-races.integration.spec.ts',

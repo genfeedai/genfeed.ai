@@ -2785,7 +2785,7 @@ test('prepared owner revisions retain only the exact approved source hashes', ()
   );
   assert.equal(
     AGENT_PRODUCTION_FILES[0].sha256,
-    'b60d8b353381924cd5732ce9186742b035c04650df96174767128ed43c4c4618',
+    '12571f679240c51920554aa0cb8ee50c4f503784de1560b99eafeb6ce4e85fbd',
   );
   assert.equal(
     AGENT_PRODUCTION_FILES[1].sha256,
@@ -6002,7 +6002,7 @@ test('actual execution returns its persisted failure outcome after an expired wo
 test('learning fixture inventory freezes canonical persisted target execution state source', () => {
   assert.equal(
     LEARNING_SOURCE_CONTRACT.sourceInputs[0].sha256,
-    '4ee51cadbcc127882a2e875e9b857c14f4ba074dcc4907dbbfe7661f7df8acb9',
+    'e3e07650969ba99a6bba1dd70ad81f523237c96e08d5ba1d93ac5bf2b7ba2c10',
   );
 });
 

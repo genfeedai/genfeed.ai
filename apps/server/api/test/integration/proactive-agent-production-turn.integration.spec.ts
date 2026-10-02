@@ -368,6 +368,17 @@ describe('proactive production turn acceptance', () => {
           agentStrategyId: actor.strategyId,
         },
       });
+      expect(fixture.calls.prepare.mock.calls[0][0]).toMatchObject({
+        threadId: thread.id,
+        expectedContextVersion: thread.contextVersion,
+      });
+      expect(authorization?.[2].validatedScope).toMatchObject({
+        threadId: thread.id,
+        organizationId: actor.organizationId,
+        brandId: actor.brandId,
+        contextVersion: thread.contextVersion,
+        isVersionExplicit: true,
+      });
       const threadReadIndex = threadReads.mock.calls.findIndex(
         ([input]) =>
           input?.id === thread.id &&

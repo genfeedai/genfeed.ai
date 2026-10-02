@@ -1130,6 +1130,9 @@ export async function createLearningRuntimeApplication(
   const { PrismaService: LibsPrismaService } = await import(
     '@libs/prisma/prisma.service'
   );
+  const { AgentOrchestratorModule } = await import(
+    '@api/services/agent-orchestrator/agent-orchestrator.module'
+  );
   const { WorkflowsModule } = await import(
     '@api/collections/workflows/workflows.module'
   );
@@ -1170,6 +1173,7 @@ export async function createLearningRuntimeApplication(
         verboseMemoryLeak: true,
         wildcard: true,
       }),
+      AgentOrchestratorModule,
       WorkflowsModule,
       PostLifecycleModule,
     ],
