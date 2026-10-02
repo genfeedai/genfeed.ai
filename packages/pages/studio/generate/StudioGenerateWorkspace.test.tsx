@@ -2224,6 +2224,115 @@ describe('StudioGenerateWorkspace', () => {
         storedJobs: [recipeJob()],
       });
     });
+    it.each(['loading', 'missing-controls', 'wrong-media'] as const)(
+      'preserves saved Crun frames until the %s catalog resolves, then clears them for settled Veo',
+      async (state) => {
+        mocks.models.value = {
+          isLoadingModels: state === 'loading',
+          models:
+            state === 'loading'
+              ? []
+              : [
+                  {
+                    key,
+                    provider: 'crun',
+                    ...(state === 'wrong-media'
+                      ? {
+                          inputControls: {
+                            ...controlsFor(),
+                            mediaKind: 'image',
+                          },
+                        }
+                      : {}),
+                  },
+                ],
+        } as unknown as typeof mocks.models.value;
+        mocks.getDraft.mockResolvedValueOnce({
+          id: 'saved-crun-frames',
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
+          prompt: 'Saved motion',
+          type: 'video',
+          attachments: [],
+          references: [
+            { id: startId, role: 'startFrame' },
+            { id: endId, role: 'endFrame' },
+          ],
+          droppedReferenceIds: [],
+          knowledgeSelection: {},
+          settingsByType: { video: mocks.settings().settings },
+        });
+        mocks.findByIds.mockResolvedValueOnce([frame(endId), frame(startId)]);
+        const removeAttachment = mocks.attachments().removeAttachment;
+        const view = render(<StudioGenerateWorkspace />);
+        await waitFor(() =>
+          expect(composer().attachedAssets).toEqual([
+            expect.objectContaining({ id: startId, role: 'startFrame' }),
+            expect.objectContaining({ id: endId, role: 'endFrame' }),
+          ]),
+        );
+        expect(mocks.crunQuote.mock.calls.at(-1)?.[0].request).toBeNull();
+        expect(mocks.notify).not.toHaveBeenCalled();
+        expect(removeAttachment).not.toHaveBeenCalled();
+        expect(mocks.submit).not.toHaveBeenCalled();
+        mocks.models.value = {
+          isLoadingModels: false,
+          models: [{ key, provider: 'crun', inputControls: controlsFor() }],
+        } as unknown as typeof mocks.models.value;
+        view.rerender(<StudioGenerateWorkspace />);
+        await waitFor(() =>
+          expect(mocks.crunQuote.mock.calls.at(-1)?.[0].request).toMatchObject({
+            model: key,
+            text: 'Saved motion',
+            references: [startId],
+            endFrame: endId,
+          }),
+        );
+        expect(mocks.notify).not.toHaveBeenCalled();
+        const veoKey = 'crun/google/veo3-1-fast-t2v';
+        const veoControls = controlsFor('google/veo3-1-fast-t2v');
+        mocks.models.value = {
+          isLoadingModels: false,
+          models: [
+            { key: veoKey, provider: 'crun', inputControls: veoControls },
+          ],
+        } as unknown as typeof mocks.models.value;
+        mocks.settings.mockReturnValue({
+          settings: {
+            ...getDefaultStudioGenerateSettings('video'),
+            modelKey: veoKey,
+            duration: 8,
+            aspectRatio: '16:9',
+            resolution: '720p',
+            crunControls: {
+              modelKey: veoKey,
+              contractVersion: veoControls.version,
+              translatePrompt: true,
+            },
+          },
+        });
+        view.rerender(<StudioGenerateWorkspace />);
+        await waitFor(() => expect(composer().attachedAssets).toEqual([]));
+        await waitFor(() =>
+          expect(mocks.crunQuote.mock.calls.at(-1)?.[0].request).toMatchObject({
+            model: veoKey,
+            references: [],
+            crunControls: {
+              contractVersion: veoControls.version,
+              duration: 8,
+              aspectRatio: '16:9',
+              resolution: '720p',
+              translatePrompt: true,
+            },
+          }),
+        );
+        expect(
+          mocks.crunQuote.mock.calls.at(-1)?.[0].request,
+        ).not.toHaveProperty('endFrame');
+        expect(mocks.submit).not.toHaveBeenCalled();
+      },
+    );
     it('reloads the submitted recipe and restores ordered owned frames without submitting', async () => {
       window.sessionStorage.clear();
       writeStudioGenerateSessionJobs('brand-1', [recipeJob()]);

@@ -33,6 +33,7 @@ describe('proactive production turn acceptance', () => {
 
   it('runs a paid text turn through the real worker and settles its actual reservation once', async () => {
     fixture.assertConfiguration();
+    await fixture.assertPrismaProvider();
     const actor = await fixture.seedActor('text');
     const before = await fixture.credits.getOrganizationCreditsBalance(
       actor.organizationId,
