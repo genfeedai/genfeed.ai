@@ -190,6 +190,7 @@ export default function AnalyticsPlatformDetail({
             iconClassName: 'bg-foreground/10 text-foreground',
             analyticsMetric: 'views' as const,
             label: 'Avg Views/Post',
+            analyticsMetricVariant: 'perPost' as const,
             value: formatCompactNumberIntl(avgViewsPerPost),
           },
           {
