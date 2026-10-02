@@ -543,16 +543,14 @@ function useCreatePanelController(onStartChat: () => void) {
   }
 
   async function requireToolToken(): Promise<string> {
+    const authContext = await authService.getAuthContext(true);
     const token = await authService.getToken();
     if (!token) {
       throw new Error('Sign in from the extension popup first.');
     }
 
-    const authContext = await authService.getAuthContext(true);
     if (!authContext?.organization?.id) {
-      throw new Error(
-        'No organization context found. Open the web app and finish account setup.',
-      );
+      throw new Error('Open Genfeed, select a workspace, then retry.');
     }
 
     return token;

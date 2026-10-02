@@ -925,7 +925,8 @@ export function createAIReplyButton(
       if (response?.success && response?.reply) {
         // Find the reply textarea
         const replyBox = document.querySelector(replyTextareaSelector) as
-          HTMLTextAreaElement | HTMLElement;
+          | HTMLTextAreaElement
+          | HTMLElement;
 
         if (replyBox) {
           replyBox.focus();

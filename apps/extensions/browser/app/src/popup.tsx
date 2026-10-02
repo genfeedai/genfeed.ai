@@ -63,7 +63,10 @@ function PopupContent() {
       }
       setAuthState(nextState);
     }
-    syncAuth();
+    void syncAuth().catch((error: unknown) => {
+      logger.error('Failed to synchronize extension auth', error);
+      setAuthState('unauthenticated');
+    });
   }, [isLoaded, isSignedIn, getToken]);
 
   const handleLogout = async () => {

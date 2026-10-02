@@ -59,6 +59,18 @@ beforeEach(() => {
 });
 
 describe('canonical extension Knowledge capture', () => {
+  it('uses the refreshed credential after resolving the current workspace', async () => {
+    let credential = 'rejected-token';
+    mocks.getToken.mockImplementation(async () => credential);
+    mocks.getAuthContext.mockImplementationOnce(async () => {
+      credential = 'renewed-token';
+      return { user: { id: 'user-a' }, organization: { id: 'org-a' } };
+    });
+    await enqueueKnowledgeCapture(draft);
+    expect(
+      new Headers(mocks.fetch.mock.calls[0][1].headers).get('Authorization'),
+    ).toBe('Bearer renewed-token');
+  });
   it('saves a sanitized TEXT snapshot to the active brand Inbox with provenance', async () => {
     const result = await enqueueKnowledgeCapture({
       ...draft,

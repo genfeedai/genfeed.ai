@@ -47,7 +47,7 @@ describe('IndexPopup', () => {
 
     mockAuthService.getToken.mockResolvedValue(null);
     mockGetJWTToken.mockResolvedValue(null);
-    vi.mocked(chrome.storage.local.get).mockResolvedValue({});
+    vi.mocked(chrome.storage.local.get).mockResolvedValue({} as never);
   });
 
   it('renders without throwing', () => {
@@ -90,6 +90,14 @@ describe('IndexPopup', () => {
     await waitFor(() => {
       expect(screen.getByText('Login Page')).toBeInTheDocument();
     });
+  });
+
+  it('recovers from a session exchange connection failure without getting stuck loading', async () => {
+    mockAuthService.getToken.mockRejectedValueOnce(
+      new TypeError('Failed to fetch'),
+    );
+    render(React.createElement(IndexPopup));
+    expect(await screen.findByText('Login Page')).toBeInTheDocument();
   });
 
   it('shows side panel CTA when token exists', async () => {
@@ -147,7 +155,7 @@ describe('IndexPopup', () => {
   });
 
   it('follows the system color scheme on mount', async () => {
-    vi.mocked(chrome.storage.local.get).mockResolvedValue({});
+    vi.mocked(chrome.storage.local.get).mockResolvedValue({} as never);
     render(React.createElement(IndexPopup));
 
     await waitFor(() => {

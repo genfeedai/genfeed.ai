@@ -239,7 +239,8 @@ describe('UI Helpers', () => {
         removeEventListener: vi.fn(),
       } as unknown as MediaQueryList);
       let resolveRead:
-        ((settings: Record<string, unknown>) => void) | undefined;
+        | ((settings: Record<string, unknown>) => void)
+        | undefined;
       let storageListener:
         | ((
             changes: Record<string, chrome.storage.StorageChange>,

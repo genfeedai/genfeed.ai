@@ -56,6 +56,7 @@ export function ChatInput({
     }
   }, [suggestedPrompt]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Brand changes must discard attachments and the previous Library scope.
   useEffect(() => {
     setAssets([]);
     setItems([]);
@@ -64,6 +65,7 @@ export function ChatInput({
     setIsOpen(false);
   }, [brandId]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Retry reloads the same Library page without changing the selection.
   useEffect(() => {
     if (!isOpen || !brandId) return;
     const controller = new AbortController();

@@ -29,8 +29,8 @@ interface CaptureSession {
 }
 
 async function session(): Promise<CaptureSession> {
+  const context = await authService.getAuthContext();
   const token = await authService.getToken();
-  const context = token ? await authService.getAuthContext() : null;
   if (!token || !context?.organization?.id || !context.user?.id) {
     throw new Error(
       'Sign in to Genfeed and select your workspace before saving.',

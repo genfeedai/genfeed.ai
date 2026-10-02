@@ -41,6 +41,26 @@ const apiRoutes = new Set(
   }),
 );
 
+// Better Auth's JWT plugin mounts /token through its handler, not a Nest controller.
+const authFactory = readFileSync(
+  resolve(root, 'apps/server/api/src/auth/better-auth/better-auth.factory.ts'),
+  'utf8',
+);
+const authConstants = readFileSync(
+  resolve(
+    root,
+    'apps/server/api/src/auth/better-auth/better-auth.constants.ts',
+  ),
+  'utf8',
+);
+if (
+  /jwt\(\{/.test(authFactory) &&
+  authFactory.includes('basePath: BETTER_AUTH_BASE_PATH') &&
+  authConstants.includes("BETTER_AUTH_BASE_PATH = '/v1/auth'")
+) {
+  apiRoutes.add('GET auth/token');
+}
+
 const routes = [
   ['POST', 'agent-tools/:name/execute'],
   ['POST', 'knowledge-sources'],
@@ -65,6 +85,7 @@ const routes = [
   ['GET', 'credentials'],
   ['GET', 'users/me/settings'],
   ['GET', 'auth/whoami'],
+  ['GET', 'auth/token'],
   ['PATCH', 'users/me/settings'],
   ...[
     'twitter',

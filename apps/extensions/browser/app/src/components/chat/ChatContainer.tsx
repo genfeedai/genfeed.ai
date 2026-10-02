@@ -33,9 +33,11 @@ export function ChatContainer({
   const endRef = useRef<HTMLDivElement>(null);
   const [suggestedPrompt, setSuggestedPrompt] = useState('');
   usePlatformDetection();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Message and generation changes must scroll the conversation.
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length, isGenerating]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: A newly captured source resets the suggested prompt even in the same mode.
   useEffect(() => {
     setSuggestedPrompt(
       mode === 'reply'

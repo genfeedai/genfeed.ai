@@ -22,7 +22,7 @@ vi.mock('next/image', () => ({
     sizes?: string;
     src: string;
     alt: string;
-  }) => <img {...props} />,
+  }) => <img {...props} alt={props.alt} />,
 }));
 vi.mock('~services/library.service', async (importOriginal) => ({
   ...(await importOriginal()),

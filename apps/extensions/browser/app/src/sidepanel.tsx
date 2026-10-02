@@ -3,7 +3,6 @@ import { Button } from '@ui/primitives/button';
 import { Plus } from 'lucide-react';
 import { BrandSelector } from '~components/settings/BrandSelector';
 import { useChatStore } from '~store/use-chat-store';
-import { useAuth } from '@genfeedai/auth-client/react';
 import { type ReactElement, useEffect, useReducer } from 'react';
 
 import { ChatContainer } from '~components/chat/ChatContainer';
@@ -16,11 +15,11 @@ import { SettingsPanel } from '~components/settings/SettingsPanel';
 import { useAccountThemeSync } from '~hooks/use-account-theme-sync';
 import { useExtensionTheme } from '~hooks/use-extension-theme';
 import type { CaptureMode } from '~models/knowledge-capture.model';
-import { authService, getJWTToken } from '~services/auth.service';
+import { authService } from '~services/auth.service';
+import { appDomain } from '~services/environment.service';
 import { initializeErrorTracking } from '~services/error-tracking.service';
 import type { ExtensionMessage } from '~types/extension';
 import { extensionIdeaTab } from '~utils/extension-idea-tab.util';
-import { logger } from '~utils/logger.util';
 
 import '~style.css';
 import Spinner from '@ui/primitives/spinner';
@@ -140,7 +139,10 @@ function SidePanelRoute({
 
 function SidePanelContent() {
   const isGenerating = useChatStore((s) => s.isGenerating);
-  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const [authAttempt, retryAuth] = useReducer(
+    (attempt: number) => attempt + 1,
+    0,
+  );
   const [authState, dispatchAuthState] = useReducer(authReducer, {
     error: null,
     status: 'syncing',
@@ -169,68 +171,42 @@ function SidePanelContent() {
     return () => chrome.runtime.onMessage.removeListener(handleMessage);
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Retry explicitly reruns session validation.
   useEffect(() => {
+    let cancelled = false;
+    dispatchAuthState({ error: null, status: 'syncing' });
     async function syncAuth() {
-      if (!isLoaded) {
-        return;
-      }
-
-      const existingToken = await authService.getToken();
-      if (existingToken) {
-        const context = await authService.getAuthContext();
-        if (context?.organization?.id) {
-          dispatchAuthState({ error: null, status: 'authenticated' });
-        } else {
-          dispatchAuthState({
-            error:
-              'Organization context is missing. Complete account setup in the web app, then reopen the side panel.',
-            status: 'blocked',
-          });
+      try {
+        const context = await authService.getAuthContext(true);
+        if (!cancelled) {
+          dispatchAuthState(
+            context?.organization?.id
+              ? { error: null, status: 'authenticated' }
+              : {
+                  error: 'Open Genfeed, select a workspace, then retry.',
+                  status: 'blocked',
+                },
+          );
         }
-        return;
-      }
-
-      let nextAuthState: AuthPanelState = {
-        error: 'Sign in via the extension popup to get started.',
-        status: 'blocked',
-      };
-
-      if (isSignedIn) {
-        try {
-          const token = await getJWTToken(getToken);
-          if (token) {
-            await authService.setToken(token);
-            const context = await authService.getAuthContext(true);
-            if (context?.organization?.id) {
-              nextAuthState = { error: null, status: 'authenticated' };
-            } else {
-              nextAuthState = {
-                error:
-                  'Signed in, but organization context is unavailable. Open Genfeed web app to finish setup.',
-                status: 'blocked',
-              };
-            }
-          } else {
-            nextAuthState = {
-              error: 'No auth token found. Sign in from the extension popup.',
-              status: 'blocked',
-            };
-          }
-        } catch (error) {
-          logger.error('Error getting JWT token', error);
-          nextAuthState = {
-            error: 'Failed to synchronize auth. Try signing in again.',
-            status: 'blocked',
-          };
+      } catch (error) {
+        if (!cancelled) {
+          const message =
+            error instanceof Error &&
+            !(error instanceof TypeError) &&
+            error.name !== 'TimeoutError'
+              ? error.message
+              : 'Could not connect to Genfeed. Check your connection, then retry.';
+          dispatchAuthState({ error: message, status: 'blocked' });
         }
       }
-      dispatchAuthState(nextAuthState);
     }
+    void syncAuth();
+    return () => {
+      cancelled = true;
+    };
+  }, [authAttempt]);
 
-    syncAuth();
-  }, [isLoaded, isSignedIn, getToken]);
-
-  if (!isLoaded || authState.status === 'syncing') {
+  if (authState.status === 'syncing') {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <Spinner className="size-8 text-primary" />
@@ -241,9 +217,25 @@ function SidePanelContent() {
   if (authState.status !== 'authenticated') {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-3 bg-background p-6">
-        <p className="text-sm text-muted-foreground">
-          {authState.error || 'Sign in via the extension popup to get started.'}
+        <p role="alert" className="text-sm text-muted-foreground">
+          {authState.error}
         </p>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" onClick={retryAuth}>
+            Retry
+          </Button>
+          <Button
+            type="button"
+            variant={ButtonVariant.SECONDARY}
+            onClick={() => {
+              void chrome.tabs.create({ url: appDomain }).catch(() => {
+                window.open(appDomain, '_blank', 'noopener,noreferrer');
+              });
+            }}
+          >
+            Open Genfeed
+          </Button>
+        </div>
       </div>
     );
   }

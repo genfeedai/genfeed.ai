@@ -28,15 +28,13 @@ beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock);
   auth.getToken.mockResolvedValue('token');
   auth.getAuthContext.mockResolvedValue({ organization: { id: 'org-1' } });
-  fetchMock
-    .mockReset()
-    .mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        data: [asset()],
-        links: { pagination: { pages: 2 } },
-      }),
-    });
+  fetchMock.mockReset().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      data: [asset()],
+      links: { pagination: { pages: 2 } },
+    }),
+  });
 });
 describe('extension Library', () => {
   it('loads generated media from the unified Library in the selected brand scope', async () => {
@@ -66,6 +64,18 @@ describe('extension Library', () => {
         serializer: 'ingredient',
       },
     ]);
+  });
+  it('uses the renewed credential after validating workspace identity', async () => {
+    let credential = 'rejected-token';
+    auth.getToken.mockImplementation(async () => credential);
+    auth.getAuthContext.mockImplementationOnce(async () => {
+      credential = 'renewed-token';
+      return { organization: { id: 'org-1' } };
+    });
+    await loadLibraryAssets('brand-1');
+    expect(
+      new Headers(fetchMock.mock.calls[0][1].headers).get('Authorization'),
+    ).toBe('Bearer renewed-token');
   });
   it('rejects missing brand before making an unscoped request', async () => {
     await expect(loadLibraryAssets('')).rejects.toThrow('Select a brand');

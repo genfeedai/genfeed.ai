@@ -21,8 +21,8 @@ export async function loadLibraryAssets(
 ): Promise<{ items: LibraryAsset[]; hasMore: boolean }> {
   if (!brandId.trim())
     throw new Error('Select a brand to browse your Library.');
-  const token = await authService.getToken();
   const context = await authService.getAuthContext();
+  const token = await authService.getToken();
   if (!token || !context?.organization.id)
     throw new Error('Sign in to load your Library.');
   const page = options.page ?? 1;

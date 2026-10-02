@@ -88,9 +88,7 @@ export function ContentLibraryPicker({
       <DialogContent className="flex max-h-[min(80dvh,560px)] w-full max-w-lg flex-col gap-0 overflow-hidden border-border bg-popover p-0">
         <DialogHeader className="border-b border-border px-4 py-3">
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            {description}
-          </DialogDescription>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
         {knowledgeSection ? (

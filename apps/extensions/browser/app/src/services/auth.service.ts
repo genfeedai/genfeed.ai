@@ -50,6 +50,7 @@ class AuthService {
   private tokenCache: string | null = null;
   private refreshPromise: Promise<string | null> | null = null;
   private authContextCache: AuthContext | null = null;
+  private authContextCheckedAt = 0;
 
   private constructor() {}
 
@@ -61,87 +62,65 @@ class AuthService {
   }
 
   async getToken(): Promise<string | null> {
-    if (this.tokenCache) {
-      return this.tokenCache;
-    }
-
-    if (this.refreshPromise) {
-      return this.refreshPromise;
-    }
-
+    if (this.refreshPromise) return this.refreshPromise;
     this.refreshPromise = this.refreshToken();
-    const token = await this.refreshPromise;
-    this.refreshPromise = null;
-
-    return token;
+    try {
+      return await this.refreshPromise;
+    } finally {
+      this.refreshPromise = null;
+    }
   }
 
   private async refreshToken(): Promise<string | null> {
+    // Popup, panel and service worker have separate instances. Storage is the
+    // shared credential source so another surface's refresh/logout takes effect.
+    const storedToken = (await storage.get<string>(TOKEN_STORAGE_KEY)) ?? null;
+    if (storedToken !== this.tokenCache) {
+      this.tokenCache = storedToken;
+      this.authContextCache = null;
+    }
+    if (storedToken && !this.isExpiringJwt(storedToken)) return storedToken;
+    return (await this.exchangeSessionToken()) ?? storedToken;
+  }
+
+  private isExpiringJwt(token: string): boolean {
+    const parts = token.split('.');
+    if (parts.length !== 3) return false;
     try {
-      const storedToken = await storage.get<string>(TOKEN_STORAGE_KEY);
-      if (storedToken) {
-        this.tokenCache = storedToken;
-        return storedToken;
-      }
-
-      const cookieToken = await this.getTokenFromCookies();
-      if (cookieToken) {
-        await this.setToken(cookieToken);
-        return cookieToken;
-      }
-
-      return null;
-    } catch (error) {
-      logger.error('Error refreshing token', error);
-      return null;
+      const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const claims = JSON.parse(atob(payload)) as { exp?: unknown };
+      // This is only a refresh hint. Identity and workspace always come from
+      // the authenticated API, never from locally decoded JWT claims.
+      return (
+        typeof claims.exp === 'number' &&
+        claims.exp * 1000 <= Date.now() + 5_000
+      );
+    } catch {
+      return false;
     }
   }
 
-  private getTokenFromCookies(): Promise<string | null> {
-    return new Promise((resolve) => {
-      const origins = authCookieOrigins;
-      const cookieNames = [
-        'better-auth.session_token',
-        '__Secure-better-auth.session_token',
-        'session',
-        'jwt',
-        'token',
-      ];
-
-      const tryNextCookie = (originIndex: number, cookieIndex: number) => {
-        if (originIndex >= origins.length) {
-          resolve(null);
-          return;
-        }
-
-        const origin = origins[originIndex];
-        if (!origin) {
-          resolve(null);
-          return;
-        }
-
-        if (cookieIndex >= cookieNames.length) {
-          tryNextCookie(originIndex + 1, 0);
-          return;
-        }
-
-        chrome.cookies.get(
-          {
-            name: cookieNames[cookieIndex],
-            url: origin,
-          },
-          (cookie) => {
-            if (cookie?.value) {
-              resolve(cookie.value);
-            } else {
-              tryNextCookie(originIndex, cookieIndex + 1);
-            }
-          },
-        );
-      };
-
-      tryNextCookie(0, 0);
+  private async exchangeSessionToken(): Promise<string | null> {
+    // Better Auth's opaque session cookie is not an API Bearer credential.
+    // The browser sends the HttpOnly API cookie; /token mints the verified JWT.
+    const response = await fetch(`${apiEndpoint}/auth/token`, {
+      credentials: 'include',
+      method: 'GET',
+      signal: AbortSignal.timeout(15_000),
     });
+    if (response.status === 401 || response.status === 403) return null;
+    if (!response.ok)
+      throw new Error(
+        `Could not refresh your Genfeed session (HTTP ${response.status}). Retry in a moment.`,
+      );
+    const body = (await response.json()) as { token?: unknown };
+    if (typeof body.token !== 'string' || !body.token) {
+      throw new Error(
+        'Genfeed did not return an API token. Retry in a moment.',
+      );
+    }
+    await this.setToken(body.token);
+    return body.token;
   }
 
   async setToken(token: string): Promise<void> {
@@ -187,25 +166,34 @@ class AuthService {
     options: RequestInit = {},
   ): Promise<Response> {
     const token = await this.getToken();
+    if (!token)
+      throw new Error('Sign in to Genfeed in the web app, then retry.');
 
-    if (!token) {
-      throw new Error('No authentication token available');
-    }
-
-    const headers = new Headers(options.headers);
-    headers.set('Authorization', `Bearer ${token}`);
-    headers.set('Content-Type', 'application/json');
-
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
-
+    const request = (credential: string) => {
+      const headers = new Headers(options.headers);
+      headers.set('Authorization', `Bearer ${credential}`);
+      if (!headers.has('Content-Type'))
+        headers.set('Content-Type', 'application/json');
+      return fetch(url, { ...options, headers });
+    };
+    let response = await request(token);
     if (response.status === 401) {
-      await this.clearToken();
-      throw new Error('Authentication token expired');
+      if (token.startsWith('gf_')) {
+        throw new Error(
+          'This Genfeed API key was rejected. Update your API key or sign in from the extension popup.',
+        );
+      }
+      // Retry once after an expired JWT or legacy stored cookie is rejected.
+      // An API outage must not silently erase a working browser session.
+      const refreshed = await this.exchangeSessionToken();
+      if (refreshed) response = await request(refreshed);
+      if (!refreshed || response.status === 401) {
+        await this.clearToken();
+        throw new Error(
+          'Your Genfeed session expired. Sign in in the web app, then retry.',
+        );
+      }
     }
-
     return response;
   }
 
@@ -229,67 +217,58 @@ class AuthService {
   }
 
   async getAuthContext(forceRefresh = false): Promise<AuthContext | null> {
-    if (this.authContextCache && !forceRefresh) {
+    if (!(await this.getToken())) {
+      throw new Error('Sign in to Genfeed in the web app, then retry.');
+    }
+    if (
+      this.authContextCache &&
+      !forceRefresh &&
+      Date.now() - this.authContextCheckedAt < 30_000
+    ) {
       return this.authContextCache;
     }
-
-    if (!forceRefresh) {
-      const storedContext = await storage.get<AuthContext>(
-        AUTH_CONTEXT_STORAGE_KEY,
+    // Persisted context from an older token is not proof of current access.
+    const response = await this.makeAuthenticatedRequest(
+      `${apiEndpoint}/auth/whoami`,
+      { method: 'GET', signal: AbortSignal.timeout(15_000) },
+    );
+    if (response.status === 403) {
+      throw new Error(
+        'This credential does not have access to the selected workspace. Open Genfeed and check your workspace, then retry.',
       );
-      if (storedContext) {
-        this.authContextCache = storedContext;
-        return storedContext;
-      }
     }
-
-    try {
-      const response = await this.makeAuthenticatedRequest(
-        `${apiEndpoint}/auth/whoami`,
-        { method: 'GET' },
+    if (!response.ok) {
+      throw new Error(
+        `Could not load your Genfeed workspace (HTTP ${response.status}). Retry in a moment.`,
       );
-
-      if (!response.ok) {
-        return null;
-      }
-
-      const body = (await response.json()) as {
-        data?: {
-          user?: AuthIdentity;
-          organization?: AuthOrganization;
-          scopes?: string[];
-          isApiKey?: boolean;
-        };
+    }
+    const body = (await response.json()) as {
+      data?: {
+        user?: AuthIdentity;
+        organization?: AuthOrganization;
+        scopes?: string[];
+        isApiKey?: boolean;
       };
-
-      const data = body.data;
-      const context: AuthContext | null =
-        data?.user?.id && data?.organization?.id
-          ? {
-              isApiKey: Boolean(data.isApiKey),
-              organization: {
-                id: data.organization.id,
-                name: data.organization.name,
-              },
-              scopes: data.scopes ?? [],
-              user: {
-                email: data.user.email,
-                id: data.user.id,
-                name: data.user.name,
-              },
-            }
-          : null;
-
-      if (context) {
-        this.authContextCache = context;
-        await storage.set(AUTH_CONTEXT_STORAGE_KEY, context);
-      }
-
-      return context;
-    } catch (error) {
-      logger.error('Failed to fetch auth context', error);
-      return null;
+    };
+    const data = body.data;
+    if (!data?.user?.id)
+      throw new Error(
+        'Genfeed did not return your account identity. Retry in a moment.',
+      );
+    if (!data.organization?.id) {
+      throw new Error(
+        'Your session is valid, but Genfeed did not return an active workspace. Open Genfeed, select a workspace, then retry.',
+      );
     }
+    const context: AuthContext = {
+      isApiKey: Boolean(data.isApiKey),
+      organization: { id: data.organization.id, name: data.organization.name },
+      scopes: data.scopes ?? [],
+      user: { email: data.user.email, id: data.user.id, name: data.user.name },
+    };
+    this.authContextCache = context;
+    this.authContextCheckedAt = Date.now();
+    return context;
   }
 
   async hasOrganizationContext(forceRefresh = false): Promise<boolean> {
