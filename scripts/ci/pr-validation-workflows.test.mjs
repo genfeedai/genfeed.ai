@@ -476,8 +476,8 @@ test('runs desktop QA weekly and for release callers', () => {
 
   // The desktop shell boots the apps/app bundle, so an honest PR path filter
   // matched effectively every frontend PR — each paying a ~30 min
-  // macos-latest run while the desktop surface is dormant. Nightly bounds
-  // drift to one day; the release path keeps its mandatory run via
+  // macos-latest run while the desktop surface is dormant. Weekly QA bounds
+  // drift while dormant; the release path keeps its mandatory run via
   // workflow_call from desktop-release.yml.
   assert.doesNotMatch(
     workflow,
@@ -485,6 +485,7 @@ test('runs desktop QA weekly and for release callers', () => {
     'desktop-qa.yml must not run per pull request while the surface is dormant',
   );
   assert.match(workflow, /cron: '17 3 \* \* 1'/);
+  assert.match(workflow, /group: desktop-qa-\$\{\{ github.workflow \}\}-\$\{\{ github.ref \}\}-\$\{\{ github.event_name \}\}/);
   assert.match(workflow, /^ {2}workflow_dispatch:$/m);
   assert.match(workflow, /^ {2}workflow_call:$/m);
 });

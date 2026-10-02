@@ -11,9 +11,9 @@ permissions:
   contents: read
 
 concurrency:
-  # Weekly/dispatch/call runs key on the complete ref so distinct tags and
-  # branches cannot cancel each other; a fresh weekly run supersedes a stale one.
-  group: desktop-qa-${{ github.ref }}
+  # Callers and triggers remain isolated: weekly QA cannot cancel release QA.
+  # A fresh run replaces only an older run from the same lane and complete ref.
+  group: desktop-qa-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 env:
