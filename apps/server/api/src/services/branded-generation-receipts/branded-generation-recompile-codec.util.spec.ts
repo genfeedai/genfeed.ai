@@ -306,11 +306,14 @@ describe('lossless strict compiler recipe codec', () => {
       ],
       ['snapshot-brief-v1', [], [], [], baseline(), { unexpected: [] }],
     ].map((value) => ({ value })),
-  )('rejects strict shape, identity and catalogue mismatch', ({ value }) => {
-    expect(() => parseBrandedGenerationCompilerRecipeV1(value)).toThrow(
-      'compiler_recipe_invalid',
-    );
-  });
+  )(
+    'rejects strict shape, identity and catalogue mismatch (case %#)',
+    ({ value }) => {
+      expect(() => parseBrandedGenerationCompilerRecipeV1(value)).toThrow(
+        'compiler_recipe_invalid',
+      );
+    },
+  );
   it('rejects invalid stage state, content identity and omission rows', () => {
     const original = stage('skill');
     const bad = [

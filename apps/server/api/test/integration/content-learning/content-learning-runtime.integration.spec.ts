@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import {
   afterAll,
   afterEach,
@@ -10,9 +11,11 @@ import {
   vi,
 } from 'vitest';
 import {
+  assertLearningRuntimeMigrationScope,
   collectLearningRuntimePublications,
   type LearningRuntimeFixture,
   learningRuntimeMetrics,
+  learningRuntimeRedisDatabaseUrl,
   learningRuntimeScope,
   openLearningRuntimeFixture,
   publishLearningRuntimePost,
@@ -97,6 +100,91 @@ describe('hosted real production learning runtime', () => {
   }, 60000);
 
   it('mounts real cloud configuration, singleton runner, registrars, v2 graphs and owned routing without duplicate processors', async () => {
+    const initial = await readFile(
+      new URL(
+        '../../../../../../packages/prisma/prisma/migrations/20260417050332_init/migration.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    );
+    expect(() =>
+      assertLearningRuntimeMigrationScope('20260417050332_init', initial),
+    ).not.toThrow();
+    expect(() =>
+      assertLearningRuntimeMigrationScope('renamed_init', initial),
+    ).toThrow();
+    for (const suffix of [
+      'INSERT INTO public.example VALUES (1);',
+      'UPDATE "public".example SET value = 1;',
+      'CREATE TABLE public.example (id INT);',
+      'SET search_path TO public;',
+      'CREATE SCHEMA IF NOT EXISTS "public";',
+      'ALTER SCHEMA public RENAME TO other;',
+      'DROP SCHEMA public;',
+      'GRANT USAGE ON SCHEMA public TO owner;',
+      'REVOKE USAGE ON SCHEMA public FROM owner;',
+      "COMMENT ON SCHEMA public IS 'changed';",
+    ]) {
+      expect(() =>
+        assertLearningRuntimeMigrationScope(
+          '20260417050332_init',
+          `${initial}\n${suffix}`,
+        ),
+      ).toThrow();
+      expect(() =>
+        assertLearningRuntimeMigrationScope('ordinary', suffix),
+      ).toThrow();
+    }
+    expect(() =>
+      assertLearningRuntimeMigrationScope(
+        '20260417050332_init',
+        initial.replace('-- CreateSchema', '-- Altered'),
+      ),
+    ).toThrow();
+    expect(() =>
+      assertLearningRuntimeMigrationScope(
+        'ordinary',
+        'CREATE TABLE owned_example (id INT);',
+      ),
+    ).not.toThrow();
+    const base = new URL(fixture.resources.redisUrl);
+    base.pathname = '/0';
+    const original = base.toString();
+    const sentinelKey = `${fixture.resources.prefix}:db-isolation:${randomUUID()}`;
+    try {
+      for (const db of [0, 1, 2, 3, 4]) {
+        expect(
+          new URL(learningRuntimeRedisDatabaseUrl(base, db)).pathname,
+        ).toBe(`/${db}`);
+        const info = await fixture.resources.clients[db].call('CLIENT', 'INFO');
+        expect(typeof info).toBe('string');
+        const fields =
+          typeof info === 'string'
+            ? info
+                .trim()
+                .split(/\s+/)
+                .filter((field) => /^db=\d+$/.test(field))
+            : [];
+        expect(fields).toEqual([`db=${db}`]);
+        await fixture.resources.clients[db].set(
+          `${sentinelKey}:${db}`,
+          String(db),
+        );
+      }
+      for (const [db, client] of fixture.resources.clients.entries())
+        for (const other of [0, 1, 2, 3, 4])
+          expect(await client.get(`${sentinelKey}:${other}`)).toBe(
+            db === other ? String(db) : null,
+          );
+    } finally {
+      for (const client of fixture.resources.clients)
+        await client.unlink(
+          ...[0, 1, 2, 3, 4].map((db) => `${sentinelKey}:${db}`),
+        );
+    }
+    expect(base.toString()).toBe(original);
+    for (const db of [-1, 5, 1.5, NaN])
+      expect(() => learningRuntimeRedisDatabaseUrl(base, db)).toThrow();
     const { CONTENT_LEARNING_ACTION_IDS } = await import(
       '@api/collections/workflows/templates/content-learning-workflows.template'
     );

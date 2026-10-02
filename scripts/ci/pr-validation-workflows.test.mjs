@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
@@ -1077,14 +1078,85 @@ test('dedicated production agent and BRAND jobs preserve full-tier selection and
     'test/integration/proactive-agent-production-turn.integration.spec.ts',
     'test/integration/branded-generation/branded-generation-receipts.integration.spec.ts',
   ];
-  assert.equal((full.match(/--exclude /g) ?? []).length, 2);
+  assert.equal((full.match(/--exclude /g) ?? []).length, 4);
+  for (const file of [
+    'test/integration/content-learning/content-learning-runtime.integration.spec.ts',
+    'test/integration/content-learning/content-learning-publication-races.integration.spec.ts',
+  ])
+    assert.ok(full.includes(`--exclude ${file}`));
+  assert.ok(
+    full.includes('if [ "$RUNTIME_ACCEPTANCE_PARTITION_MODE" = final ]; then'),
+  );
+  assert.ok(full.includes('process.env.RUNTIME_ACCEPTANCE_PARTITION_MODE'));
+  const fullGate = jobBlock(workflow, 'e2e-api-full-gate', 'e2e.yml');
+  assert.ok(
+    fullGate.includes(
+      'PARTITION_MODE: ${{ needs.e2e-api-full.outputs.partition_mode }}',
+    ),
+  );
+  assert.ok(fullGate.includes('test "$PARTITION_MODE" = "$EXPECTED_MODE"'));
+  assert.ok(
+    fullGate.includes(
+      'if [ "$PARTITION_MODE" = final ]; then\n            test "$SERIAL_RESULT" = success',
+    ),
+  );
+  assert.ok(
+    fullGate.includes('SERIAL_RESULT: ${{ needs.runtime-acceptance.result }}'),
+  );
+
+  const gateScript = fullGate
+    .match(/ {8}run: \|\n((?: {10}.*\n)+)/)?.[1]
+    .replace(/^ {10}/gm, '');
+  assert.ok(gateScript);
+  const gateEnv = {
+    ...process.env,
+    EXPECTED_MODE: 'final',
+    PARTITION_MODE: 'final',
+    FULL_RESULT: 'success',
+    PARTITION: 'passed',
+    AGENT_RESULT: 'success',
+    AGENT_RECEIPT: 'passed',
+    BRAND_RESULT: 'success',
+    BRAND_RECEIPT: 'passed',
+  };
+  for (const serial of ['success', 'failure', 'skipped', 'cancelled', '']) {
+    const result = spawnSync('bash', ['-c', gateScript], {
+      encoding: 'utf8',
+      timeout: 5000,
+      env: { ...gateEnv, SERIAL_RESULT: serial },
+    });
+    assert.equal(result.error, undefined);
+    assert.equal(result.status === 0, serial === 'success');
+  }
+  const sharedResult = spawnSync('bash', ['-c', gateScript], {
+    encoding: 'utf8',
+    timeout: 5000,
+    env: {
+      ...gateEnv,
+      EXPECTED_MODE: 'shared',
+      PARTITION_MODE: 'shared',
+      SERIAL_RESULT: 'skipped',
+    },
+  });
+  assert.equal(sharedResult.error, undefined);
+  assert.equal(sharedResult.status, 0);
+  const wrongMode = spawnSync('bash', ['-c', gateScript], {
+    encoding: 'utf8',
+    timeout: 5000,
+    env: { ...gateEnv, PARTITION_MODE: 'shared', SERIAL_RESULT: 'success' },
+  });
+  assert.equal(wrongMode.status === 0, false);
   for (const file of delegated) assert.ok(full.includes(`--exclude ${file}`));
   assert.ok(
     full.includes(
       'env -u PROACTIVE_AGENT_PRODUCTION_TURN_EXCLUSIVE_DB -u BRANDED_GENERATION_TEST_DATABASE_URL',
     ),
   );
-  assert.ok(full.includes('verifySharedApiFullPartition(process.cwd())'));
+  assert.ok(
+    full.includes(
+      'verifySharedApiFullPartition(process.cwd(), process.env.RUNTIME_ACCEPTANCE_PARTITION_MODE)',
+    ),
+  );
   assert.ok(
     full.indexOf('Check exact shared full partition') >
       full.indexOf('Run API E2E full tier'),
@@ -1171,7 +1243,7 @@ test('dedicated production agent and BRAND jobs preserve full-tier selection and
   assert.doesNotMatch(gate, /if: .*run_runtime_acceptance/);
   assert.match(
     gate,
-    /needs: \[e2e-api-full, agent-production-acceptance, brand-acceptance\]/,
+    /needs: \[e2e-api-full, agent-production-acceptance, brand-acceptance, runtime-acceptance\]/,
   );
   for (const field of ['FULL_RESULT', 'AGENT_RESULT', 'BRAND_RESULT'])
     assert.ok(gate.includes(`test "$${field}" = success`));

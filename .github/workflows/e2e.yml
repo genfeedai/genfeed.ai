@@ -155,6 +155,7 @@ jobs:
     name: API E2E Full
     outputs:
       partition: ${{ steps.partition.outputs.partition }}
+      partition_mode: ${{ steps.partition.outputs.mode }}
     if: (github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -182,6 +183,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
+      RUNTIME_ACCEPTANCE_PARTITION_MODE: ${{ inputs.run_runtime_acceptance == true && 'final' || 'shared' }}
       NODE_ENV: test
       PORT: "3000"
       DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
@@ -205,13 +207,28 @@ jobs:
         working-directory: packages/prisma
 
       - name: Run API E2E full tier
-        run: env -u PROACTIVE_AGENT_PRODUCTION_TURN_EXCLUSIVE_DB -u BRANDED_GENERATION_TEST_DATABASE_URL bun run --cwd apps/server/api test:e2e:full --exclude test/integration/proactive-agent-production-turn.integration.spec.ts --exclude test/integration/branded-generation/branded-generation-receipts.integration.spec.ts
+        run: |
+          set -euo pipefail
+          excluded=(
+            --exclude test/integration/proactive-agent-production-turn.integration.spec.ts
+            --exclude test/integration/branded-generation/branded-generation-receipts.integration.spec.ts
+          )
+          if [ "$RUNTIME_ACCEPTANCE_PARTITION_MODE" = final ]; then
+            excluded+=(
+              --exclude test/integration/content-learning/content-learning-runtime.integration.spec.ts
+              --exclude test/integration/content-learning/content-learning-publication-races.integration.spec.ts
+            )
+          else
+            test "$RUNTIME_ACCEPTANCE_PARTITION_MODE" = shared
+          fi
+          env -u PROACTIVE_AGENT_PRODUCTION_TURN_EXCLUSIVE_DB -u BRANDED_GENERATION_TEST_DATABASE_URL bun run --cwd apps/server/api test:e2e:full "${excluded[@]}"
 
       - name: Check exact shared full partition
         id: partition
         run: |
-          node --input-type=module -e 'import { verifySharedApiFullPartition } from "./scripts/ci/runtime-acceptance.mjs"; await verifySharedApiFullPartition(process.cwd());'
+          node --input-type=module -e 'import { verifySharedApiFullPartition } from "./scripts/ci/runtime-acceptance.mjs"; await verifySharedApiFullPartition(process.cwd(), process.env.RUNTIME_ACCEPTANCE_PARTITION_MODE);'
           echo 'partition=passed' >> "$GITHUB_OUTPUT"
+          echo "mode=$RUNTIME_ACCEPTANCE_PARTITION_MODE" >> "$GITHUB_OUTPUT"
 
       - name: Upload API E2E full report
         if: always()
@@ -801,7 +818,7 @@ jobs:
   e2e-api-full-gate:
     name: API E2E Full Gate
     if: always() && ((github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true)
-    needs: [e2e-api-full, agent-production-acceptance, brand-acceptance]
+    needs: [e2e-api-full, agent-production-acceptance, brand-acceptance, runtime-acceptance]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -809,6 +826,9 @@ jobs:
     steps:
       - name: Require checked full partition and both dedicated receipts
         env:
+          EXPECTED_MODE: ${{ inputs.run_runtime_acceptance == true && 'final' || 'shared' }}
+          PARTITION_MODE: ${{ needs.e2e-api-full.outputs.partition_mode }}
+          SERIAL_RESULT: ${{ needs.runtime-acceptance.result }}
           FULL_RESULT: ${{ needs.e2e-api-full.result }}
           PARTITION: ${{ needs.e2e-api-full.outputs.partition }}
           AGENT_RESULT: ${{ needs.agent-production-acceptance.result }}
@@ -819,6 +839,12 @@ jobs:
           set -euo pipefail
           test "$FULL_RESULT" = success
           test "$PARTITION" = passed
+          test "$PARTITION_MODE" = "$EXPECTED_MODE"
+          if [ "$PARTITION_MODE" = final ]; then
+            test "$SERIAL_RESULT" = success
+          else
+            test "$PARTITION_MODE" = shared
+          fi
           test "$AGENT_RESULT" = success
           test "$AGENT_RECEIPT" = passed
           test "$BRAND_RESULT" = success

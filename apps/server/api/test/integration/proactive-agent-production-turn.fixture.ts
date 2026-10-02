@@ -1,8 +1,11 @@
 import { deepStrictEqual, strictEqual } from 'node:assert';
 import { randomUUID } from 'node:crypto';
+import { lstat } from 'node:fs/promises';
 import http from 'node:http';
 import https from 'node:https';
 import net from 'node:net';
+import { tmpdir } from 'node:os';
+import { resolve } from 'node:path';
 import type {
   OpenRouterChatCompletionParams,
   OpenRouterChatCompletionResponse,
@@ -12,6 +15,7 @@ import type { TestingModule } from '@nestjs/testing';
 import { Queue, QueueEvents } from 'bullmq';
 import type { Client } from 'pg';
 import { vi } from 'vitest';
+import { createProductionTurnCleanup } from './proactive-agent-production-turn-cleanup.util';
 
 export const PRODUCTION_TURN_COST_USD = 0.001;
 export const PRODUCTION_TURN_MEMORY =
@@ -221,6 +225,7 @@ export async function createProactiveProductionTurnFixture() {
   const modelKey = `fixture/${namespace}`;
   const transports = await isolatedTransports(databaseUrl, redisUrl);
   let moduleRef: TestingModule | undefined;
+  const cleanup = createProductionTurnCleanup();
   let dispatchControl: Client | undefined;
   const dispatchControlErrors: unknown[] = [];
   const dispatchBarriers = new Set<RuntimeBarrier>();
@@ -250,30 +255,158 @@ export async function createProactiveProductionTurnFixture() {
     db: Number(broker.pathname.slice(1) || 0),
     maxRetriesPerRequest: null,
   };
-  const setEnvironment = () => {
-    vi.stubEnv('NODE_ENV', 'test');
-    vi.stubEnv('GENFEED_CLOUD', 'true');
-    vi.stubEnv('REDIS_DRIVER', 'redis');
-    vi.stubEnv('PORT', '3001');
-    vi.stubEnv('OPENROUTER_API_KEY', 'test-production-turn-transport-only');
-    for (const workload of ['QUEUE', 'CACHE', 'RATELIMIT', 'SOCKET']) {
-      vi.stubEnv(`REDIS_${workload}_URL`, redisUrl);
-      vi.stubEnv(`REDIS_${workload}_DB`, String(connection.db));
+  const requiredStrings = [
+    'GOOGLE_OAUTH_CLIENT_ID',
+    'GOOGLE_OAUTH_CLIENT_SECRET',
+    'TIKTOK_CLIENT_KEY',
+    'TIKTOK_CLIENT_SECRET',
+    'INSTAGRAM_APP_ID',
+    'INSTAGRAM_APP_SECRET',
+    'FACEBOOK_APP_ID',
+    'FACEBOOK_APP_SECRET',
+    'TWITTER_BEARER_TOKEN',
+    'TWITTER_CLIENT_ID',
+    'TWITTER_CLIENT_SECRET',
+    'TWITTER_CONSUMER_KEY',
+    'TWITTER_CONSUMER_SECRET',
+    'REPLICATE_KEY',
+    'REPLICATE_WEBHOOK_SIGNING_SECRET',
+    'KLINGAI_KEY',
+    'KLINGAI_SECRET',
+    'ELEVENLABS_API_KEY',
+    'ELEVENLABS_MODEL',
+    'LEONARDO_KEY',
+    'HEYGEN_KEY',
+    'ARGIL_WEBHOOK_SECRET',
+    'NEWS_API_KEY',
+  ] as const;
+  const ownedUrlKeys = [
+    'GENFEEDAI_API_PUBLIC_URL',
+    'GENFEEDAI_API_URL',
+    'GENFEEDAI_APP_URL',
+    'GENFEEDAI_CDN_URL',
+    'GENFEEDAI_MCP_PUBLIC_URL',
+    'GENFEEDAI_WEBHOOKS_URL',
+    'GENFEEDAI_MICROSERVICES_FILES_URL',
+    'GENFEEDAI_MICROSERVICES_MCP_URL',
+    'GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL',
+    'YOUTUBE_REDIRECT_URI',
+    'INSTAGRAM_GRAPH_URL',
+    'INSTAGRAM_REDIRECT_URI',
+    'FACEBOOK_GRAPH_URL',
+    'FACEBOOK_REDIRECT_URI',
+    'TWITTER_REDIRECT_URI',
+    'NEWS_API_URL',
+  ] as const;
+  const inertStrings = {
+    TOKEN_ENCRYPTION_KEY: 'test-encryption-key-for-testing-only',
+    BETTER_AUTH_SECRET: 'production-turn-fixture-session-secret-only',
+    GENFEEDAI_API_KEY: 'production-turn-fixture-internal-only',
+    AWS_ACCESS_KEY_ID: 'production-turn-fixture-access',
+    AWS_SECRET_ACCESS_KEY: 'production-turn-fixture-secret',
+    AWS_REGION: 'us-east-1',
+    AWS_S3_BUCKET: 'production-turn-fixture-unused',
+    STRIPE_SECRET_KEY: 'sk_test_production_turn_unused',
+    STRIPE_PUBLISHABLE_KEY: 'pk_test_production_turn_unused',
+    STRIPE_WEBHOOK_SIGNING_SECRET: 'whsec_production_turn_unused',
+    STRIPE_PRICE_PAYG: 'price_productionturnunused',
+    SENTRY_ENVIRONMENT: 'test',
+    SENTRY_DSN: 'http://00000000000000000000000000000000@127.0.0.1:1/1',
+    INSTAGRAM_API_VERSION: 'v22.0',
+    FACEBOOK_API_VERSION: 'v22.0',
+    OPENROUTER_API_KEY: 'test-production-turn-transport-only',
+  } as const;
+  const setEnvironment = async () => {
+    const cwd = process.cwd();
+    const fromServer = cwd.endsWith('apps/server');
+    for (const filename of [
+      resolve(cwd, fromServer ? '../../.env.test' : '.env.test'),
+      resolve(cwd, fromServer ? 'api/.env.test' : 'apps/server/api/.env.test'),
+    ]) {
+      try {
+        await lstat(filename);
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          'code' in error &&
+          error.code === 'ENOENT'
+        )
+          continue;
+        throw error;
+      }
+      throw new Error('Production-turn refuses an existing configuration file');
     }
-    for (const peer of ['FILES', 'MCP', 'NOTIFICATIONS'])
-      vi.stubEnv(`GENFEEDAI_MICROSERVICES_${peer}_URL`, transports.peerOrigin);
-    for (const secret of [
-      'ANTHROPIC_API_KEY',
-      'OPENAI_API_KEY',
-      'STRIPE_SECRET_KEY',
-      'TELEGRAM_BOT_TOKEN',
-      'GENFEED_LICENSE_KEY',
-    ])
-      vi.stubEnv(secret, '');
+    const plumbing = new Set([
+      'PATH',
+      'HOME',
+      'USER',
+      'TMPDIR',
+      'TMP',
+      'TEMP',
+      'SYSTEMROOT',
+      'WINDIR',
+      'COMSPEC',
+      'PATHEXT',
+      'VITEST',
+      'VITEST_POOL_ID',
+      'VITEST_WORKER_ID',
+      'FORCE_COLOR',
+      'NO_COLOR',
+    ]);
+    for (const key of Object.keys(process.env))
+      if (!plumbing.has(key)) vi.stubEnv(key, undefined);
+    const environment: NodeJS.ProcessEnv = {
+      ...inertStrings,
+      CI: 'true',
+      NODE_ENV: 'test',
+      TZ: 'UTC',
+      GENFEED_CLOUD: 'true',
+      NEXT_PUBLIC_GENFEED_CLOUD: 'true',
+      PORT: '3001',
+      DATABASE_URL: databaseUrl,
+      REDIS_URL: redisUrl,
+      REDIS_DRIVER: 'redis',
+      REDIS_TLS: 'false',
+      BETTER_AUTH_ENABLED: 'true',
+      AWS_EC2_METADATA_DISABLED: 'true',
+      SENTRY_ENABLED: 'false',
+      AWS_SHARED_CREDENTIALS_FILE: resolve(
+        tmpdir(),
+        `${namespace}-absent-aws-credentials`,
+      ),
+      AWS_CONFIG_FILE: resolve(tmpdir(), `${namespace}-absent-aws-config`),
+      CRUN_ENABLED: 'false',
+      VISUAL_CODE_RENDERER_ENABLED: 'false',
+    };
+    for (const key of requiredStrings)
+      environment[key] = 'production-turn-fixture-unused';
+    for (const key of ownedUrlKeys) environment[key] = transports.peerOrigin;
+    for (const workload of ['QUEUE', 'CACHE', 'RATELIMIT', 'SOCKET']) {
+      environment[`REDIS_${workload}_URL`] = redisUrl;
+      environment[`REDIS_${workload}_DB`] = String(connection.db);
+    }
+    for (const [key, value] of Object.entries(environment))
+      vi.stubEnv(key, value);
+    for (const key of ['AWS_SHARED_CREDENTIALS_FILE', 'AWS_CONFIG_FILE']) {
+      const filename = environment[key];
+      if (!filename) throw new Error('Missing fixture AWS file boundary');
+      try {
+        await lstat(filename);
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          'code' in error &&
+          error.code === 'ENOENT'
+        )
+          continue;
+        throw error;
+      }
+      throw new Error('Production-turn AWS resource path already exists');
+    }
   };
-  setEnvironment();
-  vi.resetModules();
   try {
+    await setEnvironment();
+    vi.resetModules();
     const [
       { Test },
       { getQueueToken },
@@ -450,8 +583,79 @@ export async function createProactiveProductionTurnFixture() {
       queues.set(name, queue);
       builder.overrideProvider(getQueueToken(name)).useValue(queue);
     }
+    for (const [key, value] of [
+      ['GOOGLE_OAUTH_CLIENT_SECRET', undefined],
+      ['TOKEN_ENCRYPTION_KEY', 'short'],
+    ] as const) {
+      const original = process.env[key];
+      vi.stubEnv(key, value);
+      try {
+        let rejected = false;
+        try {
+          new ConfigService();
+        } catch (error) {
+          rejected =
+            error instanceof Error &&
+            error.message.startsWith('Config validation error:') &&
+            error.message.includes(key);
+        }
+        strictEqual(
+          rejected,
+          true,
+          `Real cloud configuration must reject invalid ${key}`,
+        );
+      } finally {
+        vi.stubEnv(key, original);
+      }
+    }
+    cleanup.beginConstruction();
     moduleRef = await builder.compile();
     const module = moduleRef;
+    cleanup.registerWriterStop(() => module.close());
+    const config = module.get(ConfigService);
+    const { isCloudTenantGuardEnabled } = await import(
+      '@libs/prisma/prisma.service'
+    );
+    const assertConfiguration = () => {
+      strictEqual(config.constructor, ConfigService);
+      strictEqual(config instanceof ConfigService, true);
+      strictEqual(module.get(ConfigService), config);
+      strictEqual(config.isTest, true);
+      strictEqual(config.get('PORT'), 3001);
+      for (const [key, value] of Object.entries(inertStrings))
+        strictEqual(config.get(key), value);
+      for (const key of requiredStrings)
+        strictEqual(config.get(key), 'production-turn-fixture-unused');
+      for (const key of ownedUrlKeys)
+        strictEqual(config.get(key), transports.peerOrigin);
+      strictEqual(
+        (config.get('TOKEN_ENCRYPTION_KEY') ?? '').length >= 32,
+        true,
+      );
+      strictEqual(
+        isCloudTenantGuardEnabled((key) => {
+          const value: unknown = config.get(key);
+          return typeof value === 'string' ? value : undefined;
+        }),
+        true,
+      );
+      strictEqual(config.mediaUrlConfig.signing, undefined);
+      for (const key of [
+        'OPENAI_API_KEY',
+        'ANTHROPIC_API_KEY',
+        'FAL_API_KEY',
+        'MUREKA_API_KEY',
+        'HEDRA_KEY',
+        'TYPESAFE_API_KEY',
+        'CONTENT_EVAL_GENFEED_API_KEY',
+        'REPLICATE_API_TOKEN',
+        'ARGIL_KEY',
+        'TELEGRAM_BOT_TOKEN',
+        'GENFEED_LICENSE_KEY',
+      ] as const)
+        strictEqual(process.env[key], undefined);
+    };
+    assertConfiguration();
     const db = module.get<PrismaService>(PrismaToken);
     if (!db) throw new Error('Production-turn Prisma provider is unavailable');
     prisma = db;
@@ -1218,6 +1422,7 @@ export async function createProactiveProductionTurnFixture() {
       pauseProvider,
       platformQueue,
       assertTransports: transports.assertClean,
+      assertConfiguration,
       close,
     };
   } catch (error) {
@@ -1231,97 +1436,130 @@ export async function createProactiveProductionTurnFixture() {
   }
 
   async function close() {
-    const failures: unknown[] = [];
-    const attempt = async (operation: () => Promise<unknown>) => {
-      try {
-        await operation();
-      } catch (error) {
-        failures.push(error);
-      }
-    };
-    for (const barrier of dispatchBarriers) barrier.resume();
-    await Promise.allSettled([...activeDispatches]);
-    const controlClient = dispatchControl;
-    if (controlClient) await attempt(() => controlClient.end());
-    failures.push(...dispatchControlErrors);
-    // Nest owns the real workers; pause/close them through its lifecycle first.
-    await attempt(async () => moduleRef?.close());
-    for (const event of events.values()) await attempt(() => event.close());
-    for (const queue of queues.values()) {
-      // Nest has already closed registered queues. A new real owner-scoped
-      // handle removes only the stopped fixture's namespace.
-      const cleanupQueue = new Queue(queue.name, {
-        connection,
-        prefix: namespace,
-      });
-      await attempt(() => cleanupQueue.obliterate({ force: false }));
-      await attempt(() => cleanupQueue.close());
-      await attempt(() => queue.close());
-    }
-    // Preserve durable rows for failed hosted runs. Soft-delete only the owned
-    // tenant identities. The database is discarded, never reused by a consumer.
-    // No global delete/flush or financial-row rewriting is performed.
-    if (prisma) {
-      const db = prisma;
-      await attempt(async () => {
-        await db.$connect();
-        const ids = actors.map((actor) => actor.organizationId);
-        await db.agentStrategy.updateMany({
-          where: { organizationId: { in: ids }, isDeleted: false },
-          data: { isActive: false, isDeleted: true },
-        });
-        await db.organization.updateMany({
-          where: { id: { in: ids }, isDeleted: false },
-          data: { isDeleted: true },
-        });
-        await db.user.updateMany({
-          where: {
-            id: { in: actors.map((actor) => actor.userId) },
-            isDeleted: false,
-          },
-          data: { isDeleted: true },
-        });
-        // Global seed rows are restored exactly; canonical mirrors remain real
-        // production records on the disposable database for diagnostic evidence.
-        if (originalPlatform)
-          await db.platformSetting.update({
-            where: { id: originalPlatform.id },
-            data: {
-              isAgentTokenStreamingEnabled:
-                originalPlatform.isAgentTokenStreamingEnabled,
-              marginMultiplierAgentChat:
-                originalPlatform.marginMultiplierAgentChat,
+    await cleanup.close({
+      beforeStop: [
+        () => {
+          for (const barrier of dispatchBarriers) barrier.resume();
+          providerBarrier?.resume();
+        },
+        async () => {
+          const settled = await Promise.allSettled([...activeDispatches]);
+          const rejected = settled.flatMap((result) =>
+            result.status === 'rejected' ? [result.reason] : [],
+          );
+          if (rejected.length)
+            throw new AggregateError(
+              rejected,
+              'Production-turn dispatch drain failed',
+            );
+        },
+      ],
+      closeHandles: [
+        async () => {
+          if (dispatchControl) await dispatchControl.end();
+        },
+        () => {
+          if (dispatchControlErrors.length)
+            throw new AggregateError(
+              dispatchControlErrors,
+              'Production-turn dispatch control failed',
+            );
+        },
+        ...[...events.values()].map((event) => () => event.close()),
+        ...[...queues.values()].map((queue) => () => queue.close()),
+        async () => {
+          if (prisma) await prisma.$disconnect();
+        },
+      ],
+      disposeOwned: [
+        ...[...queues.values()].map((queue) => async () => {
+          const handle = new Queue(queue.name, {
+            connection,
+            prefix: namespace,
+          });
+          const errors: unknown[] = [];
+          try {
+            await handle.obliterate({ force: false });
+          } catch (error) {
+            errors.push(error);
+          }
+          try {
+            await handle.close();
+          } catch (error) {
+            errors.push(error);
+          }
+          if (errors.length)
+            throw new AggregateError(
+              errors,
+              'Production-turn owned queue disposal failed',
+            );
+        }),
+        async () => {
+          if (!prisma) return;
+          const db = prisma;
+          await db.$connect();
+          const ids = actors.map((actor) => actor.organizationId);
+          await db.agentStrategy.updateMany({
+            where: { organizationId: { in: ids }, isDeleted: false },
+            data: { isActive: false, isDeleted: true },
+          });
+          await db.organization.updateMany({
+            where: { id: { in: ids }, isDeleted: false },
+            data: { isDeleted: true },
+          });
+          await db.user.updateMany({
+            where: {
+              id: { in: actors.map((actor) => actor.userId) },
+              isDeleted: false,
             },
+            data: { isDeleted: true },
           });
-        else if (createdGlobalIds.platform)
-          await db.platformSetting.delete({
-            where: { id: createdGlobalIds.platform },
-          });
-        if (createdGlobalIds.model)
-          await db.model.update({
-            where: { id: createdGlobalIds.model },
-            data: { isDeleted: true, isActive: false, isDefault: false },
-          });
-        // Retained fixture-global ownership is explicit; never delete another
-        // suite's shared principal, roles or workflow mirrors.
-        console.info('Production-turn retained disposable-database evidence', {
-          namespace,
-          organizationIds: ids,
-          roleIds,
-          initialMirrorIds: ownedMirrors,
-          createdSystemUser,
-          createdSystemOrganization,
-        });
-        await db.$disconnect();
-      });
-    }
-    for (const spy of providerSpies) spy.mockRestore();
-    await attempt(() => transports.close());
-    vi.unstubAllEnvs();
-    if (failures.length)
-      throw new AggregateError(
-        failures,
-        'Production-turn owned cleanup failed',
-      );
+          // Global seed rows are restored exactly; canonical mirrors remain real
+          // production records on the disposable database for diagnostic evidence.
+          if (originalPlatform)
+            await db.platformSetting.update({
+              where: { id: originalPlatform.id },
+              data: {
+                isAgentTokenStreamingEnabled:
+                  originalPlatform.isAgentTokenStreamingEnabled,
+                marginMultiplierAgentChat:
+                  originalPlatform.marginMultiplierAgentChat,
+              },
+            });
+          else if (createdGlobalIds.platform)
+            await db.platformSetting.delete({
+              where: { id: createdGlobalIds.platform },
+            });
+          if (createdGlobalIds.model)
+            await db.model.update({
+              where: { id: createdGlobalIds.model },
+              data: { isDeleted: true, isActive: false, isDefault: false },
+            });
+          // Retained fixture-global ownership is explicit; never delete another
+          // suite's shared principal, roles or workflow mirrors.
+          console.info(
+            'Production-turn retained disposable-database evidence',
+            {
+              namespace,
+              organizationIds: ids,
+              roleIds,
+              initialMirrorIds: ownedMirrors,
+              createdSystemUser,
+              createdSystemOrganization,
+            },
+          );
+        },
+        async () => {
+          if (prisma) await prisma.$disconnect();
+        },
+      ],
+      restoreGuards: [
+        ...providerSpies.map((spy) => () => {
+          spy.mockRestore();
+        }),
+        () => transports.close(),
+        () => vi.unstubAllEnvs(),
+      ],
+    });
   }
 }

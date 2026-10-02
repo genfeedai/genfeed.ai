@@ -106,6 +106,36 @@ function occupiedDatabases(info: string) {
   });
 }
 
+export function learningRuntimeRedisDatabaseUrl(base: URL, db: number): string {
+  ensure(Number.isInteger(db) && db >= 0 && db <= 4, 'OWNED_REDIS_DATABASE');
+  const url = new URL(base);
+  url.pathname = `/${db}`;
+  return url.toString();
+}
+
+export function assertLearningRuntimeMigrationScope(name: string, sql: string) {
+  let scanned = sql;
+  if (name === '20260417050332_init') {
+    const prefix = '-- CreateSchema\nCREATE SCHEMA IF NOT EXISTS "public";\n\n';
+    ensure(
+      createHash('sha256').update(sql, 'utf8').digest('hex') ===
+        'ec9a796c46bdf0df26204fa6e39d5d9352a4e55a190e2cc247abeec0777abf1c' &&
+        sql.startsWith(prefix),
+      'IMMUTABLE_INITIAL_MIGRATION',
+    );
+    scanned = sql.slice(prefix.length);
+  }
+  ensure(
+    !/\bpublic\s*\.|"public"\s*\.|(?:SET\s+search_path|CREATE\s+SCHEMA)\s*.*\bpublic\b/i.test(
+      scanned,
+    ) &&
+      !/(?:\b(?:CREATE|ALTER|DROP)\s+SCHEMA\b|\b(?:GRANT|REVOKE|COMMENT)\b[^;]*\b(?:ON\s+)?SCHEMA\b)[^;]*\bpublic\b/i.test(
+        scanned,
+      ),
+    'EXPLICIT_PUBLIC_MIGRATION',
+  );
+}
+
 export class LearningRuntimeResources {
   readonly fixtureId = randomUUID();
   readonly schema =
@@ -307,17 +337,32 @@ export class LearningRuntimeResources {
     );
     await this.inspectContainer();
     for (const db of this.receipt.ownedDatabases) {
-      const client = new Redis(this.redisUrl.toString(), {
-        db,
-        lazyConnect: true,
-        maxRetriesPerRequest: 0,
-        retryStrategy: () => null,
-      });
+      const client = new Redis(
+        learningRuntimeRedisDatabaseUrl(this.redisUrl, db),
+        {
+          lazyConnect: true,
+          maxRetriesPerRequest: 0,
+          retryStrategy: () => null,
+        },
+      );
       this.clients.push(client);
       await client.connect();
       ensure(
         serverIdentity(await client.info('server')) === this.receipt.redisRunId,
         'ENDPOINT_REDIS_IDENTITY',
+      );
+      const info = await client.call('CLIENT', 'INFO');
+      ensure(typeof info === 'string', 'REDIS_CLIENT_INFO');
+      const databases =
+        typeof info === 'string'
+          ? info
+              .trim()
+              .split(/\s+/)
+              .filter((field) => /^db=\d+$/.test(field))
+          : [];
+      ensure(
+        databases.length === 1 && Number(databases[0].slice(3)) === db,
+        'REDIS_SELECTED_DATABASE',
       );
       ensure((await client.dbsize()) === 0, 'NONEMPTY_ASSIGNED_DATABASE');
     }
@@ -881,12 +926,7 @@ export async function createLearningRuntimeDatabase(
       resolve(migrationsDirectory, name, 'migration.sql'),
       'utf8',
     );
-    ensure(
-      !/\bpublic\s*\.|"public"\s*\.|(?:SET\s+search_path|CREATE\s+SCHEMA)\s*.*\bpublic\b/i.test(
-        sql,
-      ),
-      'EXPLICIT_PUBLIC_MIGRATION',
-    );
+    assertLearningRuntimeMigrationScope(name, sql);
   }
   const control = new Client({
     connectionString: resources.databaseUrl,
@@ -900,6 +940,14 @@ export async function createLearningRuntimeDatabase(
   let created = false;
   try {
     await control.connect();
+    ensure(
+      (
+        await control.query(
+          "SELECT 1 FROM pg_namespace WHERE nspname = 'public'",
+        )
+      ).rowCount === 1,
+      'PREEXISTING_PUBLIC_SCHEMA',
+    );
     await control.query(`CREATE SCHEMA "${resources.schema}"`);
     created = true;
     const scoped = new URL(resources.databaseUrl);

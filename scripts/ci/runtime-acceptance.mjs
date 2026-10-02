@@ -98,14 +98,14 @@ export const BRAND_SOURCE_CONTRACT = {
     {
       path: 'apps/server/api/src/services/branded-generation-receipts/branded-generation-receipts.service.spec.ts',
       sha256:
-        '30abc0d90142cb882e9e397d07d23b7221efef5937616b31b87772d807410f13',
+        '7d9407f1613ddaf97a4d183bc9ae6d92bee37c3350bd8e741e56f7c1bbb45971',
       acceptance:
         'nonzero passed in this exact file; no failed/pending/skipped/todo',
     },
     {
       path: 'apps/server/api/src/services/branded-generation-receipts/branded-generation-recompile-codec.util.spec.ts',
       sha256:
-        '67ab6c33f3d30f80238dae5e1f3acfc2b9f175261c4a4e2120bbc605a1480f8b',
+        '48f411eef83cb5e5562ad5f073f5ccb6b1cba96a916b7668ad2829f6e5aab4aa',
       acceptance:
         'nonzero passed in this exact file; no failed/pending/skipped/todo',
     },
@@ -226,11 +226,15 @@ export async function verifyBaselineSources(repo) {
 export const AGENT_PRODUCTION_FILES = [
   {
     path: 'apps/server/api/test/integration/proactive-agent-production-turn.integration.spec.ts',
-    sha256: 'ca356d57acb604eaf18a15c56ab38d9328b32f08a2ebca42ab134be9d62e4e98',
+    sha256: 'f87ec933f4f9f8cc78f7e749eff1e88aa120586ec726e913438e84494d6b95fc',
   },
   {
     path: 'apps/server/api/test/integration/proactive-agent-production-turn.fixture.ts',
-    sha256: 'e8d8910c10e33a2c34d7ff45df3cc1aaff1137ca9b78fc02678a7c276c1055c4',
+    sha256: 'a19ccd15e87c3945c3a30c02734aed5fcba414803b87917ccf430d6fde6a678a',
+  },
+  {
+    path: 'apps/server/api/test/integration/proactive-agent-production-turn-cleanup.util.ts',
+    sha256: '96740275d53505cc99d8b3be00c2073d524af9aaee2ec69d1e6742db3f8b0778',
   },
 ];
 export const AGENT_PRODUCTION_TITLES = [
@@ -251,12 +255,12 @@ export const LEARNING_SOURCE_CONTRACT = Object.freeze({
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.fixture.ts',
       sha256:
-        'b25c84d3c7256947a2ca43a454095a8282c1df657be18fdf4b857909f7a0e7d9',
+        '76c90c697c50578b1db5f6ecf1ad3d6666ca6be6488f0cdc85f0b29c39c22819',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.integration.spec.ts',
       sha256:
-        '81a48669d18a8bcd08091a3f46339f6d24ede60e4c2a9f404bb7527a0e840327',
+        '7f0b9624401c86e4df006f31950bfdaae1f288f6360c57488e046880d400af01',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-publication-races.integration.spec.ts',
@@ -611,6 +615,18 @@ export const DELEGATED_API_FILES = [
   AGENT_PRODUCTION_FILES[0].path.slice('apps/server/api/'.length),
   BRAND_PATH.slice('apps/server/api/'.length),
 ];
+export const LEARNING_DELEGATED_API_FILES = LEARNING_SOURCE_CONTRACT.suites.map(
+  (entry) => entry.file,
+);
+function sharedApiDelegations(mode) {
+  requireThat(
+    mode === 'shared' || mode === 'final',
+    'INVALID_FULL_PARTITION_MODE',
+  );
+  return mode === 'final'
+    ? [...DELEGATED_API_FILES, ...LEARNING_DELEGATED_API_FILES]
+    : DELEGATED_API_FILES;
+}
 export const SERIAL_BRAND_UNITS = [
   'branded-generation-hash.util.spec.ts',
   'branded-generation-receipt-access.service.spec.ts',
@@ -666,7 +682,13 @@ export async function verifyDedicatedSources(repo, group, env) {
       : [BRAND_SOURCE_CONTRACT.brand, ...BRAND_SOURCE_CONTRACT.unitFiles];
   await verifyFrozenSources(repo, files);
 }
-export function validateSharedApiFullPartition(summary, report, apiRoot) {
+export function validateSharedApiFullPartition(
+  summary,
+  report,
+  apiRoot,
+  mode = 'shared',
+) {
+  const delegated = sharedApiDelegations(mode);
   requireThat(
     summary?.tier === 'full' &&
       summary.status === 'passed' &&
@@ -679,7 +701,7 @@ export function validateSharedApiFullPartition(summary, report, apiRoot) {
   );
   const selected = summary.selectedFiles;
   requireThat(
-    selected.length > 2 &&
+    selected.length > delegated.length &&
       new Set(selected).size === selected.length &&
       summary.selectedFileCount === selected.length &&
       selected.every(
@@ -690,7 +712,7 @@ export function validateSharedApiFullPartition(summary, report, apiRoot) {
             .split('/')
             .every((part) => part && part !== '.' && part !== '..'),
       ) &&
-      DELEGATED_API_FILES.every((file) => selected.includes(file)),
+      delegated.every((file) => selected.includes(file)),
     'INVALID_FULL_PARTITION',
   );
   const actual = report.testResults.map((file) => {
@@ -708,13 +730,11 @@ export function validateSharedApiFullPartition(summary, report, apiRoot) {
     );
     return relative;
   });
-  const expected = selected.filter(
-    (file) => !DELEGATED_API_FILES.includes(file),
-  );
+  const expected = selected.filter((file) => !delegated.includes(file));
   requireThat(
     new Set(actual).size === actual.length &&
       actual.length === summary.executedFileCount &&
-      actual.length === selected.length - 2 &&
+      actual.length === selected.length - delegated.length &&
       [...actual].sort().join('\n') === [...expected].sort().join('\n'),
     'INVALID_FULL_PARTITION',
   );
@@ -723,13 +743,15 @@ export function validateSharedApiFullPartition(summary, report, apiRoot) {
     status: 'passed',
     selectedFileCount: selected.length,
     executedFileCount: actual.length,
-    delegatedFiles: DELEGATED_API_FILES.map((file) => ({
+    mode,
+    delegatedFiles: delegated.map((file) => ({
       file,
       proof: 'REQUIRED',
     })),
   };
 }
-export async function verifySharedApiFullPartition(repo) {
+export async function verifySharedApiFullPartition(repo, mode = 'shared') {
+  sharedApiDelegations(mode);
   const apiRoot = path.join(await realpath(repo), 'apps/server/api');
   const read = async (file) => {
     const filename = path.join(apiRoot, 'test-results/api-e2e', file);
@@ -758,6 +780,7 @@ export async function verifySharedApiFullPartition(repo) {
     await read('full.json'),
     await read('vitest-full.json'),
     apiRoot,
+    mode,
   );
   partition.candidateSHA = validateSha(await head(repo));
   await atomicJson(
@@ -2213,6 +2236,29 @@ export async function runBounded({
     }
   }
   return { ...result, elapsedMs: Date.now() - started };
+}
+export function privateVitestReporterArguments(reportPath) {
+  return [
+    '--reporter=default',
+    '--reporter=json',
+    `--outputFile.json=${reportPath}`,
+  ];
+}
+export async function verifyVisualRuntimeProbe(capture, cwd, env, imageId) {
+  const available = await capture(
+    'docker',
+    [
+      'info',
+      '--format',
+      '{{if index .Runtimes "runsc"}}true{{else}}false{{end}}',
+    ],
+    cwd,
+    env,
+  );
+  requireThat(
+    available === 'true' && /^sha256:[a-f0-9]{64}$/.test(imageId),
+    'VISUAL_RUNTIME_PREREQUISITE',
+  );
 }
 async function captureCommand(executable, args, cwd, env, timeoutMs = 15000) {
   const child = spawn(executable, args, {
@@ -3961,9 +4007,8 @@ async function executeDedicatedAcceptance(identity, env, baseline = false) {
       config,
       `--maxWorkers=${maxWorkers}`,
       '--no-file-parallelism',
-      '--reporter=json',
+      ...privateVitestReporterArguments(path.join(identity.state, relative)),
       '--passWithNoTests=false',
-      `--outputFile=${path.join(identity.state, relative)}`,
       ...files,
     ];
     const handle = await processStart(
@@ -4718,9 +4763,8 @@ export async function execution(identity, env) {
       config,
       '--maxWorkers=1',
       '--no-file-parallelism',
-      '--reporter=json',
+      ...privateVitestReporterArguments(reportPath),
       '--passWithNoTests=false',
-      `--outputFile=${reportPath}`,
       ...contracts.map((entry) => entry.file),
     ];
     if (pattern) args.push('--testNamePattern', pattern);
@@ -5397,17 +5441,11 @@ export async function execution(identity, env) {
           dockerRuntime: 'runsc',
           rendererVersion: '4.0.530',
         };
-        const runtimes = JSON.parse(
-          await capture(
-            'docker',
-            ['info', '--format', '{{json .Runtimes}}'],
-            identity.repo,
-            privateEnv,
-          ),
-        );
-        requireThat(
-          runtimes.runsc && /^sha256:[a-f0-9]{64}$/.test(observed.imageId),
-          'VISUAL_RUNTIME_PREREQUISITE',
+        await verifyVisualRuntimeProbe(
+          capture,
+          identity.repo,
+          privateEnv,
+          observed.imageId,
         );
         await privateFile(
           path.join(visualRoot, 'runtime-preflight.json'),
@@ -5679,9 +5717,8 @@ export async function execution(identity, env) {
                 'vitest.config.e2e.ts',
                 '--maxWorkers=1',
                 '--no-file-parallelism',
-                '--reporter=json',
+                ...privateVitestReporterArguments(reportPath),
                 '--passWithNoTests=false',
-                `--outputFile=${reportPath}`,
                 file,
               ];
               if (!library) args.push('--testNamePattern', selection.pattern);
