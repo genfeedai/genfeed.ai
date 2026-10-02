@@ -3,6 +3,7 @@
 import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { TrendingHashtagsProps } from '@genfeedai/props/analytics/trends.props';
+import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import Badge from '@ui/display/badge/Badge';
@@ -131,11 +132,21 @@ export function TrendingHashtags({
             <Card
               key={hashtag.id}
               variant={CardVariant.DEFAULT}
-              onClick={
-                onHashtagClick ? () => onHashtagClick(hashtag) : undefined
+              className={
+                onHashtagClick ? 'hover:shadow-border-strong' : undefined
               }
               bodyClassName="p-4"
             >
+              {onHashtagClick ? (
+                <Button
+                  ariaLabel={`#${hashtag.hashtag}`}
+                  className="absolute inset-0 z-10 rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  onClick={() => onHashtagClick(hashtag)}
+                  type="button"
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                />
+              ) : null}
               <div className="flex items-start justify-between mb-2">
                 <span
                   className="text-lg font-bold truncate"
@@ -153,14 +164,22 @@ export function TrendingHashtags({
 
               <div className="space-y-1.5 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-foreground/60">Posts</span>
+                  <span className="text-foreground/60">
+                    <AnalyticsMetricLabel metric="posts">
+                      Posts
+                    </AnalyticsMetricLabel>
+                  </span>
                   <span className="font-medium tabular-nums">
                     {formatCompactNumber(hashtag.postCount)}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-foreground/60">Views</span>
+                  <span className="text-foreground/60">
+                    <AnalyticsMetricLabel metric="views">
+                      Views
+                    </AnalyticsMetricLabel>
+                  </span>
                   <span className="font-medium tabular-nums">
                     {formatCompactNumber(hashtag.viewCount)}
                   </span>

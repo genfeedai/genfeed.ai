@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsAccounts from './analytics-accounts';
@@ -16,8 +17,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
-  const translate = translateFromCatalog('pages.analytics.accounts');
-  return { useTranslations: () => translate };
+  return { useTranslations: translateFromCatalog };
 });
 
 vi.mock('@contexts/analytics/analytics-context', () => ({
@@ -125,5 +125,52 @@ describe('AnalyticsAccounts', () => {
       'Account analytics could not be loaded.',
     );
     expect(screen.queryByText('No connected accounts')).toBeNull();
+  });
+  it('keeps Posts metadata and updates the dynamic definition for views/posts/followers', async () => {
+    const user = userEvent.setup();
+    requestState.accounts = [
+      {
+        evaluation: null,
+        identity: {
+          credentialId: 'credential-1',
+          label: 'Acme',
+          platform: 'instagram',
+        },
+        metrics: [],
+        publishedPosts: 0,
+      },
+    ];
+    render(<AnalyticsAccounts />);
+    await screen.findByText('Acme');
+    expect(
+      screen.getByRole('button', { name: 'About Views' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'About Posts' }),
+    ).toBeInTheDocument();
+    const latestToolbar = () =>
+      mocks.setToolbarNode.mock.calls
+        .filter(([node]) => node !== null)
+        .at(-1)?.[0] as ReactNode;
+    const toolbar = render(latestToolbar());
+    await user.click(screen.getByRole('combobox', { name: 'Rank by metric' }));
+    await user.click(screen.getByRole('option', { name: 'Posts' }));
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole('button', { name: 'About Posts' }),
+      ).toHaveLength(2),
+    );
+    expect(screen.queryByRole('button', { name: 'About Views' })).toBeNull();
+    toolbar.rerender(latestToolbar());
+    await user.click(screen.getByRole('combobox', { name: 'Rank by metric' }));
+    await user.click(screen.getByRole('option', { name: 'Followers' }));
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole('button', { name: 'About Posts' }),
+      ).toHaveLength(1),
+    );
+    expect(
+      screen.queryByRole('button', { name: 'About Followers' }),
+    ).toBeNull();
   });
 });

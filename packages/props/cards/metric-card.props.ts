@@ -1,3 +1,4 @@
+import type { AnalyticsQueryMetric } from '@genfeedai/contracts/interfaces';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { ReactNode } from 'react';
 
@@ -11,6 +12,7 @@ export type MetricCardSize = 'sm' | 'md' | 'lg';
 export type MetricCardAppearance = 'tile' | 'inline';
 
 export type MetricCardProps = {
+  analyticsMetric?: AnalyticsQueryMetric;
   /**
    * Visual state. Prefer this over inventing a second metric component.
    * @default 'tile'

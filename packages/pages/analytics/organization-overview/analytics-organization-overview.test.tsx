@@ -262,4 +262,21 @@ describe('AnalyticsOrganizationOverview', () => {
     expect(surface).toHaveClass('border', 'border-border', 'rounded-card');
     expect(tableFrame).toHaveClass('border-0', 'rounded-none');
   });
+  it('annotates organization posts/views and canonical brand leaderboard metrics', async () => {
+    render(<AnalyticsOrganizationOverview />);
+    await screen.findByText('Acme');
+    expect(screen.getAllByRole('button', { name: 'About Posts' })).toHaveLength(
+      2,
+    );
+    expect(screen.getAllByRole('button', { name: 'About Views' })).toHaveLength(
+      2,
+    );
+    expect(
+      screen.getByRole('button', { name: 'About Engagement' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'About Engagement rate' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'About Brands' })).toBeNull();
+  });
 });

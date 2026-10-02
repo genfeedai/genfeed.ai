@@ -34,10 +34,12 @@ export default function PlatformPerformanceSection({ topPlatforms }: Props) {
                 {platformData ? (
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <MetricItem
+                      analyticsMetric="views"
                       label="Total Views"
                       value={formatCompactNumber(platformData.totalViews)}
                     />
                     <MetricItem
+                      analyticsMetric="engagement"
                       label="Total Engagement"
                       value={formatCompactNumber(platformData.totalEngagement)}
                     />

@@ -232,6 +232,7 @@ export function useAnalyticsOverview({
         },
         {
           description: 'Published posts',
+          analyticsMetric: 'posts' as const,
           label: 'Total Posts',
           value: analytics?.totalPosts || 0,
         },
@@ -251,11 +252,13 @@ export function useAnalyticsOverview({
       },
       {
         description: 'Published posts in the selected range',
+        analyticsMetric: 'posts' as const,
         label: 'Total Posts',
         value: analytics?.totalPosts || 0,
       },
       {
         description: 'Tracked views in the selected range',
+        analyticsMetric: 'views' as const,
         label: 'Total Views',
         trend:
           analytics?.totalViews && analytics?.viewsGrowth
@@ -266,6 +269,7 @@ export function useAnalyticsOverview({
       },
       {
         description: 'Likes, comments, shares, and saves combined',
+        analyticsMetric: 'engagement' as const,
         label: 'Total Engagement',
         trend:
           analytics?.totalEngagement && analytics?.engagementGrowth
@@ -276,6 +280,7 @@ export function useAnalyticsOverview({
       },
       {
         description: 'Average engagement rate across tracked posts',
+        analyticsMetric: 'engagementRate' as const,
         label: 'Avg Engagement Rate',
         value: `${(analytics?.avgEngagementRate || 0).toFixed(2)}%`,
         valueClassName: 'text-4xl',

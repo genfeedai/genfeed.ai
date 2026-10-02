@@ -5,6 +5,7 @@ import type { ITrendVideo } from '@genfeedai/contracts/interfaces';
 import { formatDate } from '@genfeedai/helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { ViralVideoLeaderboardProps } from '@genfeedai/props/analytics/trends.props';
+import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
@@ -173,7 +174,9 @@ export function ViralVideoLeaderboard({
           },
           {
             className: 'min-w-20',
-            header: 'Views',
+            header: (
+              <AnalyticsMetricLabel metric="views">Views</AnalyticsMetricLabel>
+            ),
             key: 'views',
             render: (video) => (
               <span className="font-semibold tabular-nums">
@@ -209,7 +212,11 @@ export function ViralVideoLeaderboard({
           },
           {
             className: 'min-w-24',
-            header: 'Engagement',
+            header: (
+              <AnalyticsMetricLabel metric="engagementRate">
+                Engagement
+              </AnalyticsMetricLabel>
+            ),
             key: 'engagement',
             render: (video) => (
               <span className="font-medium tabular-nums">
