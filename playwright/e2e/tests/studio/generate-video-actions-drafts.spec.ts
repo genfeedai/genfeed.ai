@@ -2,7 +2,7 @@ import path from 'node:path';
 import { brandPath } from '@e2e/utils/app-chrome';
 import { IngredientCategory } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { Page, Route } from '@playwright/test';
+import type { Locator, Page, Route } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
@@ -260,6 +260,16 @@ test.describe('Studio Generate — video results and composer drafts', () => {
     return { menu, sourceCard };
   }
 
+  async function openActionSubmenu(page: Page, parent: Locator, name: string) {
+    const trigger = parent.getByRole('menuitem', { exact: true, name });
+    await trigger.focus();
+    await trigger.press('ArrowRight');
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    const submenu = page.getByRole('menu', { exact: true, name });
+    await expect(submenu).toBeVisible();
+    return submenu;
+  }
+
   async function expectLinkedToSource(
     page: Page,
     childId: string,
@@ -282,23 +292,52 @@ test.describe('Studio Generate — video results and composer drafts', () => {
     await openGenerate(authenticatedPage);
 
     const { menu } = await openSourceActions(authenticatedPage);
+    const transform = await openActionSubmenu(
+      authenticatedPage,
+      menu,
+      'Transform',
+    );
+    for (const action of ['Extend', 'Upscale']) {
+      await expect(
+        transform.getByRole('menuitem', { exact: true, name: action }),
+      ).toBeVisible();
+    }
+    const reframe = await openActionSubmenu(
+      authenticatedPage,
+      transform,
+      'Reframe',
+    );
     for (const action of [
-      'Extend',
-      'Upscale',
       'Reframe to Square',
-      'Transform to GIF',
-      'Open in Editor',
       'Resize to Square',
       'Resize to Landscape',
     ]) {
       await expect(
-        menu.getByRole('menuitem', { name: new RegExp(action) }),
+        reframe.getByRole('menuitem', { exact: true, name: action }),
       ).toBeVisible();
     }
     // The clip is already portrait, so resizing to portrait is not offered.
     await expect(
-      menu.getByRole('menuitem', { name: /Resize to Portrait/ }),
+      reframe.getByRole('menuitem', { name: /Resize to Portrait/ }),
     ).toHaveCount(0);
+    await reframe.press('ArrowLeft');
+    await expect(reframe).toHaveCount(0);
+    const convert = await openActionSubmenu(
+      authenticatedPage,
+      transform,
+      'Convert',
+    );
+    await expect(
+      convert.getByRole('menuitem', { exact: true, name: 'Transform to GIF' }),
+    ).toBeVisible();
+    await convert.press('ArrowLeft');
+    await expect(convert).toHaveCount(0);
+    await transform.press('ArrowLeft');
+    await expect(transform).toHaveCount(0);
+    const library = await openActionSubmenu(authenticatedPage, menu, 'Library');
+    await expect(
+      library.getByRole('menuitem', { exact: true, name: 'Open in Editor' }),
+    ).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
   });
 
@@ -311,7 +350,14 @@ test.describe('Studio Generate — video results and composer drafts', () => {
     await openGenerate(authenticatedPage);
 
     const { menu } = await openSourceActions(authenticatedPage);
-    await menu.getByRole('menuitem', { name: /Extend/ }).click();
+    const transform = await openActionSubmenu(
+      authenticatedPage,
+      menu,
+      'Transform',
+    );
+    await transform
+      .getByRole('menuitem', { exact: true, name: 'Extend' })
+      .click();
     const dialog = authenticatedPage.getByRole('dialog');
     await expect(dialog.getByText('Extend Video')).toBeVisible();
     await dialog.getByRole('button', { exact: true, name: 'Extend' }).click();
@@ -331,7 +377,19 @@ test.describe('Studio Generate — video results and composer drafts', () => {
     await openGenerate(authenticatedPage);
 
     const { menu } = await openSourceActions(authenticatedPage);
-    await menu.getByRole('menuitem', { name: /Resize to Square/ }).click();
+    const transform = await openActionSubmenu(
+      authenticatedPage,
+      menu,
+      'Transform',
+    );
+    const reframe = await openActionSubmenu(
+      authenticatedPage,
+      transform,
+      'Reframe',
+    );
+    await reframe
+      .getByRole('menuitem', { exact: true, name: 'Resize to Square' })
+      .click();
 
     await expect
       .poll(() => resizeBodies)

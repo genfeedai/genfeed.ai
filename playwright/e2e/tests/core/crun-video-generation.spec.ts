@@ -5,7 +5,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { CrunVideoQuoteRequest } from '@genfeedai/contracts/interfaces/billing/crun-generation-quote.interface';
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
 import type { Page } from '@playwright/test';
-import { createPlaywrightApiRoutePattern } from '../../config/environment';
+import { createPlaywrightMockApiRoutePattern } from '../../config/environment';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
@@ -175,7 +175,7 @@ async function installFixture(
   }
   await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
   await page.route(
-    createPlaywrightApiRoutePattern('models(?:\\?.*)?$'),
+    createPlaywrightMockApiRoutePattern('models(?:\\?.*)?$'),
     async (route) =>
       route.fulfill({
         json: {
@@ -201,7 +201,7 @@ async function installFixture(
       }),
   );
   await page.route(
-    createPlaywrightApiRoutePattern('auth/bootstrap(?:\\?.*)?$'),
+    createPlaywrightMockApiRoutePattern('auth/bootstrap(?:\\?.*)?$'),
     async (route) => {
       const bootstrap = buildProtectedAppBootstrapPayload();
       await route.fulfill({
@@ -216,7 +216,7 @@ async function installFixture(
     },
   );
   await page.route(
-    createPlaywrightApiRoutePattern(
+    createPlaywrightMockApiRoutePattern(
       'studio-generate-drafts/current(?:\\?.*)?$',
     ),
     async (route) => {
@@ -234,7 +234,7 @@ async function installFixture(
     },
   );
   await page.route(
-    createPlaywrightApiRoutePattern('ingredients(?:/.*|\\?.*)?$'),
+    createPlaywrightMockApiRoutePattern('ingredients(?:/.*|\\?.*)?$'),
     async (route) => {
       const url = new URL(route.request().url());
       const data =
@@ -269,7 +269,7 @@ async function installFixture(
     });
   });
   await page.route(
-    createPlaywrightApiRoutePattern('videos(?:/.*|\\?.*)?$'),
+    createPlaywrightMockApiRoutePattern('videos(?:/.*|\\?.*)?$'),
     async (route) => {
       const request = route.request();
       const pathname = new URL(request.url()).pathname;
@@ -352,7 +352,7 @@ async function installFixture(
     },
   );
   await page.route(
-    createPlaywrightApiRoutePattern('ingredients/batch(?:\\?.*)?$'),
+    createPlaywrightMockApiRoutePattern('ingredients/batch(?:\\?.*)?$'),
     async (route) =>
       route.fulfill({
         json: {

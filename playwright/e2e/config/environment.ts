@@ -35,3 +35,13 @@ export function createPlaywrightApiRoutePattern(pathPattern = '.+'): RegExp {
     `${escapeRegExp(playwrightApiEndpoint)}/${pathPattern.replace(/^\/+/, '')}`,
   );
 }
+
+/** Mock both local runs and the API origin baked into the CI app build. */
+export function createPlaywrightMockApiRoutePattern(
+  pathPattern = '.+',
+): RegExp {
+  const endpoints = [playwrightApiEndpoint, 'https://api.genfeed.ai/v1'];
+  return new RegExp(
+    `^(?:${endpoints.map(escapeRegExp).join('|')})/${pathPattern.replace(/^\/+/, '')}`,
+  );
+}
