@@ -34,7 +34,7 @@ export const DONE_FOR_YOU_SCOPE_OPTIONS: readonly DoneForYouScopeOption[] = [
   },
 ];
 
-/** The focused done-for-you pages, each the same service for one need. */
+/** Content workflows and channels a done-for-you engagement can cover. */
 export const DONE_FOR_YOU_FOCUS_LINKS: readonly DoneForYouFocusLink[] = [
   { href: '/founder-content', label: 'Founder content' },
   { href: '/podcast-to-content', label: 'Podcast to content' },

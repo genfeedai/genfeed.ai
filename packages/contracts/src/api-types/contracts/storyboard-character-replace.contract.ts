@@ -1,19 +1,19 @@
 import { z } from 'zod';
 import { storyboardIdSchema } from './storyboard-source.contract';
 
-/** Higgsfield Genjutsu motion transfer. Inactive at cost 0 in the model catalog. */
+/** Higgsfield Genjutsu motion transfer. */
 export const STORYBOARD_CHARACTER_REPLACE_MODEL_KEY =
   'higgsfield/genjutsu/motion-transfer/v1.0' as const;
 
 /**
  * Honest limits. Genjutsu is motion transfer only: it does not keep the
- * source audio track and it does not guarantee lip-sync. The catalog row
- * stays inactive at cost 0, so this operation cannot charge credits.
+ * source audio track and it does not guarantee lip-sync. This operation
+ * records zero application credits.
  */
 export const STORYBOARD_CHARACTER_REPLACE_LIMITATIONS = [
   'Does not preserve the source audio track.',
   'Does not guarantee lip-sync.',
-  'Does not charge credits. Genjutsu stays inactive at cost 0.',
+  'This operation records zero application credits.',
 ] as const;
 
 export const replaceStoryboardCharacterSchema = z
@@ -77,4 +77,14 @@ export const storyboardCharacterOperationReceiptSchema =
     .strict();
 export type StoryboardCharacterOperationReceipt = z.infer<
   typeof storyboardCharacterOperationReceiptSchema
+>;
+
+export const storyboardCharacterReplacementsSchema = z
+  .object({
+    operations: z.array(storyboardCharacterOperationReceiptSchema).max(128),
+    legacyReplacements: z.array(storyboardCharacterReplacementSchema).max(12),
+  })
+  .strict();
+export type StoryboardCharacterReplacements = z.infer<
+  typeof storyboardCharacterReplacementsSchema
 >;

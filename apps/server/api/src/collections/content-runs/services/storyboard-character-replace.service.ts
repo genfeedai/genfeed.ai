@@ -25,7 +25,9 @@ import {
   replaceStoryboardCharacterSchema,
   STORYBOARD_CHARACTER_REPLACE_MODEL_KEY,
   type StoryboardCharacterReplacement,
+  type StoryboardCharacterReplacements,
   storyboardCharacterReplacementSchema,
+  storyboardCharacterReplacementsSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
 import type { Prisma } from '@genfeedai/prisma';
 import { readIngredientMediaUrl } from '@libs/media/media-url.util';
@@ -166,6 +168,105 @@ export class StoryboardCharacterReplaceService {
     );
     if (!op) throw new NotFoundException('Character replacement', opId);
     return { config, op };
+  }
+  async list(
+    org: string,
+    brand: string,
+    run: string,
+    shot: string,
+  ): Promise<StoryboardCharacterReplacements> {
+    const config = await this.read(org, brand, run);
+    const journal = (config.characterReplacementOperations ?? [])
+      .filter(
+        (op) =>
+          op.organizationId === org &&
+          op.brandId === brand &&
+          op.runId === run &&
+          op.shotId === shot,
+      )
+      .sort(
+        (a, b) =>
+          b.createdAt.localeCompare(a.createdAt) ||
+          a.operationId.localeCompare(b.operationId),
+      );
+    const current = await this.discoveryAssociations(
+      org,
+      brand,
+      config,
+      journal,
+    );
+    const operations = journal.map((op) =>
+      characterReceipt(op, current.has(op.operationId)),
+    );
+    const accepted = new Set(operations.flatMap((op) => op.acceptedRequestIds));
+    const legacyReplacements = (config.characterReplacements ?? [])
+      .filter((item) => item.shotId === shot && !accepted.has(item.requestId))
+      .map((item) =>
+        storyboardCharacterReplacementSchema.parse({
+          ...item,
+          association: 'detached',
+        }),
+      );
+    return storyboardCharacterReplacementsSchema.parse({
+      operations,
+      legacyReplacements,
+    });
+  }
+  private async discoveryAssociations(
+    org: string,
+    brand: string,
+    config: StoryboardStoredRunConfig,
+    journal: CharacterOperation[],
+  ): Promise<Set<string>> {
+    const candidates = journal.filter(
+      (op) => !op.legacy && characterStructuralAssociation(config, op),
+    );
+    const ids = [
+      ...new Set(
+        candidates.flatMap((op) => [op.videoAssetId, ...op.imageAssetIds]),
+      ),
+    ];
+    if (!ids.length) return new Set();
+    const where: Prisma.IngredientWhereInput = scopedWhere(org, {
+      brandId: brand,
+      id: { in: ids },
+      category: { in: ['IMAGE', 'VIDEO'] },
+      scope: AssetScope.USER,
+      status: {
+        in: [
+          IngredientStatus.UPLOADED,
+          IngredientStatus.GENERATED,
+          IngredientStatus.VALIDATED,
+        ],
+      },
+    } satisfies Prisma.IngredientWhereInput);
+    const rows = await this.prisma.ingredient.findMany({
+      where,
+      select: { id: true, category: true, updatedAt: true },
+    });
+    const versions = new Map(rows.map((row) => [row.id, row]));
+    const version = (id: string, category: 'IMAGE' | 'VIDEO') => {
+      const row = versions.get(id);
+      return row?.category === category && row.updatedAt
+        ? { id, updatedAt: row.updatedAt.toISOString() }
+        : undefined;
+    };
+    return new Set(
+      candidates
+        .filter((op) => {
+          const source = version(op.videoAssetId, 'VIDEO');
+          const refs = op.imageAssetIds.map((id) => version(id, 'IMAGE'));
+          return Boolean(
+            source &&
+              refs.every(Boolean) &&
+              storyboardConfigHash([source]) ===
+                storyboardConfigHash([op.sourceVersion]) &&
+              storyboardConfigHash(refs) ===
+                storyboardConfigHash(op.referenceVersions),
+          );
+        })
+        .map((op) => op.operationId),
+    );
   }
   async getStatus(
     org: string,

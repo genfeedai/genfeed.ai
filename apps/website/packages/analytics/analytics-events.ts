@@ -13,6 +13,7 @@ export const WEBSITE_ANALYTICS_EVENTS = {
   BRAND_OS_CTA_VIEWED: 'brand_os_cta_viewed',
   BRAND_OS_INTAKE_STARTED: 'brand_os_intake_started',
   BRAND_OS_PREVIEW_COMPLETED: 'brand_os_preview_completed',
+  ARTICLE_CTA_CLICKED: 'article_cta_clicked',
   BOOK_CALL: 'book_call',
   CALL_BOOKED: 'call_booked',
   CONNECT_AGENT: 'connect_agent',
@@ -47,6 +48,11 @@ export type WebsiteCtaPayload = Record<
 >;
 
 export interface WebsiteAnalyticsEventProperties {
+  [WEBSITE_ANALYTICS_EVENTS.ARTICLE_CTA_CLICKED]: {
+    readonly articleSlug: string;
+    readonly skillSlug: string;
+    readonly action: 'skill' | 'pro' | 'agent' | 'mcp' | 'copy_install';
+  };
   [WEBSITE_ANALYTICS_EVENTS.BRAND_OS_AUTH_HANDOFF]: {
     readonly authMode: 'sign_in' | 'sign_up';
   };

@@ -1,9 +1,15 @@
 import {
+  ArticleStatus,
   PostStatus,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type {
+  ArticleDraftInput,
+  ArticlePreviewLink,
+} from '@genfeedai/contracts/interfaces/content/article-publishing.interface';
+import type {
+  ApiResponse,
   ArticleResource,
   PostResource,
   TrendResource,
@@ -68,9 +74,95 @@ function countWords(content: string): number {
   return trimmed ? trimmed.split(/\s+/).length : 0;
 }
 
+function reviewedArticleResponse(
+  article: ArticleResource | undefined,
+): ArticleResponse {
+  if (
+    !article?.id ||
+    !article.attributes ||
+    !Object.values(ArticleStatus).some(
+      (status) => status === article.attributes?.status,
+    )
+  ) {
+    throw new Error('Invalid article response');
+  }
+  const content = article.attributes.content ?? '';
+  return {
+    id: article.id,
+    title: article.attributes.label ?? '',
+    content,
+    status: article.attributes.status as ArticleStatus,
+    wordCount: countWords(content),
+    createdAt: article.attributes.createdAt ?? new Date().toISOString(),
+    updatedAt: article.attributes.updatedAt,
+  };
+}
+
 /** Articles, social posts/publishing, and trending topics. */
 export class ContentClient {
   constructor(private readonly base: BaseApiClient) {}
+
+  createArticleDraft(params: ArticleDraftInput): Promise<ArticleResponse> {
+    return this.base.request(
+      'creating reviewed article draft',
+      async (http) => {
+        const response = await http.post<ApiResponse<ArticleResource>>(
+          '/articles',
+          {
+            data: {
+              type: 'articles',
+              attributes: {
+                label: params.label,
+                slug: params.slug,
+                summary: params.summary,
+                content: params.content,
+                ...(params.coverImageUrl
+                  ? { coverImageUrl: params.coverImageUrl }
+                  : {}),
+                status: ArticleStatus.DRAFT,
+              },
+            },
+          },
+        );
+        return reviewedArticleResponse(response.data.data);
+      },
+      this.base.failWithDetail('Failed to create article draft'),
+    );
+  }
+
+  getArticlePreview(articleId: string): Promise<ArticlePreviewLink> {
+    // Preview links are bearer credentials: do not log the response URL.
+    return this.base.request(
+      'getting article preview',
+      async (http) => {
+        const response = await http.get<ArticlePreviewLink>(
+          `/articles/${encodeURIComponent(articleId)}/preview-links`,
+        );
+        return response.data;
+      },
+      this.base.failWith('Failed to get article preview'),
+    );
+  }
+
+  publishArticle(articleId: string): Promise<ArticleResponse> {
+    return this.base.request(
+      'publishing reviewed article',
+      async (http) => {
+        const response = await http.patch<ApiResponse<ArticleResource>>(
+          `/articles/${encodeURIComponent(articleId)}`,
+          {
+            data: {
+              type: 'articles',
+              id: articleId,
+              attributes: { status: ArticleStatus.PUBLISHED },
+            },
+          },
+        );
+        return reviewedArticleResponse(response.data.data);
+      },
+      this.base.failWithDetail('Failed to publish article'),
+    );
+  }
 
   createArticle(params: ArticleCreationParams): Promise<ArticleResponse> {
     this.base.logger.debug('Creating article', { params });

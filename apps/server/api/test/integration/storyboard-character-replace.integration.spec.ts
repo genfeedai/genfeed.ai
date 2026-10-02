@@ -13,7 +13,11 @@ import {
   storyboardJson,
 } from '@api/collections/content-runs/services/storyboard-run-store.service';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import {
+  AssetScope,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/contracts';
 import { storyboardRunConfigSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { PrismaClient } from '@genfeedai/prisma';
 import { HttpService } from '@nestjs/axios';
@@ -905,4 +909,317 @@ describe('durable character replacement with real PostgreSQL, BullMQ and isolate
       expect(posts).toBe(before);
     },
   );
+  it('discovery reconstructs unknown-ID durable intent with zero provider, credential, queue or database writes', async () => {
+    const run = await fixture(),
+      a = client(prisma);
+    mode = 'drop';
+    await expect(replace(a, run)).rejects.toThrow();
+    const restarted = client(second);
+    const before = await second.contentRun.findUniqueOrThrow({
+      where: { id: run },
+    });
+    const startPosts = posts,
+      startGets = gets;
+    const credential = vi.spyOn(restarted.provider, 'getCredentialFingerprint');
+    const bound = vi.spyOn(restarted.provider, 'getBoundRequestStatus');
+    const generation = vi.spyOn(restarted.provider, 'generateMotionTransfer');
+    const save = vi.spyOn(restarted.store, 'save');
+    const update = vi.spyOn(second.contentRun, 'updateMany');
+    const add = vi.spyOn(Queue.prototype, 'add');
+    try {
+      const result = await restarted.service.list(
+        organizationId,
+        brandId,
+        run,
+        'shot',
+      );
+      expect(result.operations).toHaveLength(1);
+      expect(result.operations[0].requestId).toBeUndefined();
+      expect(result.operations[0].acceptedRequestIds).toEqual([]);
+      expect(result.operations[0].operationId).toBe(
+        (await a.store.read(organizationId, brandId, run)).config
+          .characterReplacementOperations?.[0].operationId,
+      );
+      await restarted.service.getStatus(
+        organizationId,
+        brandId,
+        run,
+        'shot',
+        result.operations[0].operationId,
+      );
+      expect(posts).toBe(startPosts);
+      expect(gets).toBe(startGets);
+      for (const spy of [credential, bound, generation, save, update, add])
+        expect(spy).not.toHaveBeenCalled();
+      expect(
+        (await second.contentRun.findUniqueOrThrow({ where: { id: run } }))
+          .config,
+      ).toEqual(before.config);
+      for (const privateKey of [
+        'body',
+        'credentialFingerprint',
+        'leaseToken',
+        'sourceFingerprint',
+        'intentHash',
+        'signature=',
+        'importedState',
+      ])
+        expect(JSON.stringify(result)).not.toContain(privateKey);
+    } finally {
+      for (const spy of [credential, bound, generation, save, update, add])
+        spy.mockRestore();
+    }
+  });
+  it('discovery returns all 128 durable operations through one bounded asset query and filters every journal identity', async () => {
+    const run = await fixture(),
+      a = client(prisma);
+    await replace(a, run);
+    const { config } = await a.store.read(organizationId, brandId, run);
+    const seed = config.characterReplacementOperations?.[0];
+    if (!seed) throw new Error('Missing operation');
+    const journal = Array.from({ length: 124 }, (_, index) => ({
+      ...seed,
+      operationId: randomUUID(),
+      createdAt: new Date(Date.UTC(2026, 9, 1, 0, 0, index)).toISOString(),
+    }));
+    const foreign = ['organizationId', 'brandId', 'runId', 'shotId'].map(
+      (key) => ({
+        ...seed,
+        operationId: randomUUID(),
+        [key]: 'foreign-scope',
+        receipts: [
+          {
+            requestId: 'foreign-request',
+            status: 'completed' as const,
+            outputUrl: 'https://foreign.invalid/output',
+          },
+        ],
+      }),
+    );
+    await a.store.save(organizationId, brandId, run, config, {
+      ...config,
+      characterReplacementOperations: [...journal, ...foreign],
+    });
+    const restarted = client(second),
+      startPosts = posts,
+      startGets = gets;
+    const query = vi.spyOn(second.ingredient, 'findMany');
+    try {
+      const result = await restarted.service.list(
+        organizationId,
+        brandId,
+        run,
+        'shot',
+      );
+      expect(result.operations).toHaveLength(124);
+      expect(result.operations[0].operationId).toBe(journal[123].operationId);
+      expect(
+        result.operations.every((op) => op.association === 'current'),
+      ).toBe(true);
+      expect(JSON.stringify(result)).not.toContain('foreign');
+      expect(query).toHaveBeenCalledTimes(1);
+      expect(query).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          organizationId,
+          brandId,
+          isDeleted: false,
+          scope: AssetScope.USER,
+          id: { in: [videoId, imageId] },
+        }),
+        select: { id: true, category: true, updatedAt: true },
+      });
+      query.mockClear();
+      const current = (await restarted.store.read(organizationId, brandId, run))
+        .config;
+      await restarted.store.save(organizationId, brandId, run, current, {
+        ...current,
+        characterReplacementOperations: Array.from({ length: 128 }, () => ({
+          ...seed,
+          operationId: randomUUID(),
+        })),
+      });
+      expect(
+        (await restarted.service.list(organizationId, brandId, run, 'shot'))
+          .operations,
+      ).toHaveLength(128);
+      expect(query).toHaveBeenCalledTimes(1);
+      expect(posts).toBe(startPosts);
+      expect(gets).toBe(startGets);
+      await expect(
+        restarted.service.list('foreign-org', brandId, run, 'shot'),
+      ).rejects.toThrow();
+      await expect(
+        restarted.service.list(organizationId, 'foreign-brand', run, 'shot'),
+      ).rejects.toThrow();
+      await second.contentRun.update({
+        where: { id: run },
+        data: { isDeleted: true },
+      });
+      await expect(
+        restarted.service.list(organizationId, brandId, run, 'shot'),
+      ).rejects.toThrow();
+    } finally {
+      query.mockRestore();
+    }
+  });
+  it('discovery detaches version, category, status, ownership and deleted assets mutated through a second database client', async () => {
+    const run = await fixture(),
+      a = client(prisma);
+    await replace(a, run);
+    const startPosts = posts,
+      startGets = gets;
+    const baseline = await second.ingredient.findUniqueOrThrow({
+      where: { id: imageId },
+    });
+    const mutations = [
+      { updatedAt: new Date(baseline.updatedAt.getTime() + 1000) },
+      { category: IngredientCategory.VIDEO },
+      { status: IngredientStatus.DRAFT },
+      { brandId: null },
+      { organizationId: null },
+      { scope: AssetScope.BRAND },
+      { isDeleted: true },
+    ];
+    try {
+      for (const data of mutations) {
+        await second.ingredient.update({ where: { id: imageId }, data });
+        expect(
+          (await a.service.list(organizationId, brandId, run, 'shot'))
+            .operations[0].association,
+        ).toBe('detached');
+        await second.ingredient.update({
+          where: { id: imageId },
+          data: {
+            updatedAt: baseline.updatedAt,
+            category: baseline.category,
+            status: baseline.status,
+            brandId: baseline.brandId,
+            organizationId: baseline.organizationId,
+            scope: baseline.scope,
+            isDeleted: baseline.isDeleted,
+          },
+        });
+        expect(
+          (await a.service.list(organizationId, brandId, run, 'shot'))
+            .operations[0].association,
+        ).toBe('current');
+      }
+      const video = await second.ingredient.findUniqueOrThrow({
+        where: { id: videoId },
+      });
+      await second.ingredient.update({
+        where: { id: videoId },
+        data: { updatedAt: new Date(video.updatedAt.getTime() + 1000) },
+      });
+      expect(
+        (await a.service.list(organizationId, brandId, run, 'shot'))
+          .operations[0].association,
+      ).toBe('detached');
+      await second.ingredient.update({
+        where: { id: videoId },
+        data: { updatedAt: video.updatedAt },
+      });
+      const editor = client(second);
+      const { config } = await editor.store.read(organizationId, brandId, run);
+      if (config.origin !== 'native' || !config.plan)
+        throw new Error('Missing native plan');
+      await editor.store.save(organizationId, brandId, run, config, {
+        ...config,
+        sourceSnapshot: { ...config.sourceSnapshot, title: 'Changed source' },
+      });
+      expect(
+        (await a.service.list(organizationId, brandId, run, 'shot'))
+          .operations[0].association,
+      ).toBe('detached');
+      const changed = (await editor.store.read(organizationId, brandId, run))
+        .config;
+      await editor.store.save(organizationId, brandId, run, changed, config);
+      const restored = (await editor.store.read(organizationId, brandId, run))
+        .config;
+      await editor.store.save(organizationId, brandId, run, restored, {
+        ...config,
+        plan: { ...config.plan, shots: [] },
+      });
+      expect(
+        (await a.service.list(organizationId, brandId, run, 'shot'))
+          .operations[0].association,
+      ).toBe('detached');
+      expect(posts).toBe(startPosts);
+      expect(gets).toBe(startGets);
+    } finally {
+      await second.ingredient.update({
+        where: { id: imageId },
+        data: {
+          updatedAt: baseline.updatedAt,
+          category: baseline.category,
+          status: baseline.status,
+          brandId: baseline.brandId,
+          organizationId: baseline.organizationId,
+          scope: baseline.scope,
+          isDeleted: baseline.isDeleted,
+        },
+      });
+    }
+  });
+  it('discovery preserves detached legacy output and real operation IDs without adoption or status dispatch', async () => {
+    const run = await fixture(),
+      a = client(prisma);
+    const durable = await replace(a, run);
+    const { config } = await a.store.read(organizationId, brandId, run);
+    const historical = {
+      ...durable,
+      requestId: 'historical-only',
+      operationId: randomUUID(),
+      status: 'ready' as const,
+      output: {
+        kind: 'provider_url' as const,
+        url: 'https://fixture.invalid/historical',
+        retained: false as const,
+      },
+    };
+    await a.store.save(organizationId, brandId, run, config, {
+      ...config,
+      characterReplacements: [durable, historical],
+    });
+    const before = await second.contentRun.findUniqueOrThrow({
+      where: { id: run },
+    });
+    const startPosts = posts,
+      startGets = gets;
+    const result = await client(second).service.list(
+      organizationId,
+      brandId,
+      run,
+      'shot',
+    );
+    expect(result.legacyReplacements).toEqual([
+      { ...historical, association: 'detached' },
+    ]);
+    expect(result.operations).toHaveLength(1);
+    expect(
+      (await second.contentRun.findUniqueOrThrow({ where: { id: run } }))
+        .config,
+    ).toEqual(before.config);
+    expect(posts).toBe(startPosts);
+    expect(gets).toBe(startGets);
+  });
+  it('discovery propagates database failure without fabricating empty history or current association', async () => {
+    const run = await fixture(),
+      a = client(prisma);
+    await replace(a, run);
+    const query = vi
+      .spyOn(second.ingredient, 'findMany')
+      .mockRejectedValueOnce(new Error('isolated database failure'));
+    const startPosts = posts,
+      startGets = gets;
+    try {
+      await expect(
+        client(second).service.list(organizationId, brandId, run, 'shot'),
+      ).rejects.toThrow('isolated database failure');
+      expect(posts).toBe(startPosts);
+      expect(gets).toBe(startGets);
+    } finally {
+      query.mockRestore();
+    }
+  });
 });

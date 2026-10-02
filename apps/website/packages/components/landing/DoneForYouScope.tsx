@@ -62,7 +62,7 @@ export default function DoneForYouScope(): React.ReactElement {
       <WebSection bg="bordered" maxWidth="md" className="gsap-section">
         <SectionHeader
           title="Pick your focus"
-          description="The same service, shaped around one channel or one kind of content."
+          description="Explore the channels and content workflows we can help you run."
           className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
         />
         <div className="grid grid-cols-1 gap-px bg-edge/5 sm:grid-cols-2">

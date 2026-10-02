@@ -24,6 +24,7 @@ export const TOOLSET_NAMES = [
   'ads',
   'agent-chat',
   'analytics',
+  'articles',
   'brand',
   'clips',
   'content',
@@ -76,6 +77,12 @@ export const TOOLSETS: readonly ToolsetDefinition[] = [
       'Performance, content, video, and LinkedIn analytics plus trend discovery.',
     isAlwaysOn: false,
     name: 'analytics',
+  },
+  {
+    description:
+      'Import reviewed full-body article drafts, obtain private previews, and publish after approval.',
+    isAlwaysOn: false,
+    name: 'articles',
   },
   {
     description:

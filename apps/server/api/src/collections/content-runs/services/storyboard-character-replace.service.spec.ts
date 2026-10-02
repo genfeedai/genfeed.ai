@@ -1,4 +1,10 @@
 import { StoryboardCharacterReplaceService } from '@api/collections/content-runs/services/storyboard-character-replace.service';
+import type { CharacterOperation } from '@api/collections/content-runs/services/storyboard-character-replace-state';
+import { storyboardConfigHash } from '@api/collections/content-runs/services/storyboard-config-hash';
+import {
+  STORYBOARD_CHARACTER_REPLACE_LIMITATIONS,
+  STORYBOARD_CHARACTER_REPLACE_MODEL_KEY,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
 import { ConflictException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -12,6 +18,7 @@ function harness() {
   const findMany = vi.fn(async (args: { where: { id: { in: string[] } } }) =>
     args.where.id.in.map((id) => ({
       id,
+      category: id.startsWith('video') ? 'VIDEO' : 'IMAGE',
       updatedAt: new Date('2026-10-01T00:00:00Z'),
       s3Key: `${id}.jpg`,
     })),
@@ -41,25 +48,33 @@ function harness() {
     request_id: 'real-1',
     status: 'queued' as const,
   }));
+  const credential = vi.fn(async () => 'binding');
+  const revalidate = vi.fn();
+  const libraryAsset = vi.fn(async () => ({
+    sourceAssetId: 'video-1',
+    url: 'https://fixture.invalid/video',
+  }));
+  const mediaUrl = vi.fn((key: string) => `https://fixture.invalid/${key}`);
   const service = new StoryboardCharacterReplaceService(
     { ingredient: { findMany } } as never,
     { read, save } as never,
-    { revalidate: vi.fn() } as never,
+    { revalidate } as never,
     {
-      libraryAsset: vi.fn(async () => ({
-        sourceAssetId: 'video-1',
-        url: 'https://fixture.invalid/video',
-      })),
+      libraryAsset,
     } as never,
     {
       generateMotionTransfer: generate,
-      getCredentialFingerprint: vi.fn(async () => 'binding'),
+      getCredentialFingerprint: credential,
       getBoundRequestStatus: status,
     } as never,
-    { buildUrl: (key: string) => `https://fixture.invalid/${key}` } as never,
+    { buildUrl: mediaUrl } as never,
   );
   return {
     service,
+    credential,
+    revalidate,
+    libraryAsset,
+    mediaUrl,
     findMany,
     read,
     save,
@@ -260,4 +275,260 @@ describe('durable character replacement', () => {
       expect(h.generate).toHaveBeenCalledTimes(1);
     },
   );
+});
+
+function discoveryOperation(
+  overrides: Partial<CharacterOperation> = {},
+): CharacterOperation {
+  return {
+    version: 1,
+    operationId: 'f22c0c2f-59fa-41d8-b393-a808f65e0b52',
+    intentHash: 'private-hash',
+    organizationId: 'org',
+    brandId: 'brand',
+    runId: 'run',
+    shotId: 'shot-1',
+    videoAssetId: 'video-1',
+    imageAssetIds: ['img-a'],
+    prompt: 'private-prompt',
+    modelKey: STORYBOARD_CHARACTER_REPLACE_MODEL_KEY,
+    sourceVersion: { id: 'video-1', updatedAt: '2026-10-01T00:00:00.000Z' },
+    referenceVersions: [{ id: 'img-a', updatedAt: '2026-10-01T00:00:00.000Z' }],
+    shotFingerprint: storyboardConfigHash(config().plan.shots[0]),
+    sourceFingerprint: storyboardConfigHash(config().sourceSnapshot),
+    createdAt: '2026-10-01T00:00:00.000Z',
+    updatedAt: '2026-10-01T00:00:00.000Z',
+    credentialFingerprint: 'private-credential',
+    leaseToken: 'private-lease',
+    leaseUntil: 123,
+    body: {
+      video_url: 'https://private.invalid/video',
+      image_urls: ['https://private.invalid/ref'],
+      prompt: '',
+      resolution: '720p',
+    },
+    state: 'reconciling',
+    receipts: [],
+    ...overrides,
+  };
+}
+function noDiscoverySideEffects(h: ReturnType<typeof harness>) {
+  for (const spy of [
+    h.save,
+    h.generate,
+    h.status,
+    h.credential,
+    h.revalidate,
+    h.libraryAsset,
+    h.mediaUrl,
+  ])
+    expect(spy).not.toHaveBeenCalled();
+}
+describe('database-only character discovery', () => {
+  it('discovers unknown IDs after reconstruction with one bounded version query and no writes', async () => {
+    const h = harness();
+    const journal = Array.from({ length: 128 }, (_, i) =>
+      discoveryOperation({
+        operationId: `f22c0c2f-59fa-41d8-b393-${String(i).padStart(12, '0')}`,
+      }),
+    );
+    h.set({ ...config(), characterReplacementOperations: journal });
+    const before = structuredClone(h.get());
+    const result = await h.service.list('org', 'brand', 'run', 'shot-1');
+    expect(result.operations).toHaveLength(128);
+    expect(
+      result.operations.every(
+        (op) => op.association === 'current' && !op.requestId,
+      ),
+    ).toBe(true);
+    expect(h.findMany).toHaveBeenCalledTimes(1);
+    expect(h.findMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        organizationId: 'org',
+        brandId: 'brand',
+        isDeleted: false,
+        scope: 'USER',
+        id: { in: ['video-1', 'img-a'] },
+        category: { in: ['IMAGE', 'VIDEO'] },
+        status: { in: ['UPLOADED', 'GENERATED', 'VALIDATED'] },
+      }),
+      select: { id: true, category: true, updatedAt: true },
+    });
+    expect(h.get()).toEqual(before);
+    for (const secret of [
+      'private-',
+      'body',
+      'lease',
+      'Fingerprint',
+      'intentHash',
+      'updatedAt',
+      'createdAt',
+    ])
+      expect(JSON.stringify(result)).not.toContain(secret);
+    noDiscoverySideEffects(h);
+  });
+  it('filters every identity, orders durable history and preserves detached legacy evidence', async () => {
+    const h = harness();
+    const old = discoveryOperation({
+      receipts: [{ requestId: 'accepted', status: 'queued' }],
+    });
+    const recent = discoveryOperation({
+      operationId: 'f22c0c2f-59fa-41d8-b393-a808f65e0b53',
+      createdAt: '2026-10-02T00:00:00.000Z',
+      legacy: true,
+    });
+    const foreign = ['organizationId', 'brandId', 'runId', 'shotId'].map(
+      (key) =>
+        discoveryOperation({
+          [key]: 'foreign',
+          receipts: [
+            {
+              requestId: 'foreign-output',
+              status: 'completed',
+              outputUrl: 'https://foreign.invalid/result',
+            },
+          ],
+        }),
+    );
+    const legacy = {
+      shotId: 'shot-1',
+      requestId: 'historical',
+      modelKey: STORYBOARD_CHARACTER_REPLACE_MODEL_KEY,
+      imageAssetIds: ['img-a'],
+      videoAssetId: 'video-1',
+      prompt: 'Old',
+      status: 'ready',
+      operationId: 'f22c0c2f-59fa-41d8-b393-a808f65e0b54',
+      output: {
+        kind: 'provider_url',
+        url: 'https://fixture.invalid/temporary',
+        retained: false,
+      },
+      chargedCredits: 0,
+      limitations: [...STORYBOARD_CHARACTER_REPLACE_LIMITATIONS],
+    };
+    h.set({
+      ...config(),
+      characterReplacementOperations: [old, ...foreign, recent],
+      characterReplacements: [
+        { ...legacy, requestId: 'accepted' },
+        legacy,
+        { ...legacy, shotId: 'foreign' },
+      ],
+    });
+    const result = await h.service.list('org', 'brand', 'run', 'shot-1');
+    expect(result.operations.map((op) => op.operationId)).toEqual([
+      recent.operationId,
+      old.operationId,
+    ]);
+    expect(result.operations[0].association).toBe('detached');
+    expect(result.legacyReplacements).toEqual([
+      { ...legacy, association: 'detached' },
+    ]);
+    expect(JSON.stringify(result)).not.toContain('foreign');
+    noDiscoverySideEffects(h);
+  });
+  it('missing shots and empty histories do not query assets', async () => {
+    const h = harness();
+    expect(await h.service.list('org', 'brand', 'run', 'missing')).toEqual({
+      operations: [],
+      legacyReplacements: [],
+    });
+    h.set({
+      ...config(),
+      plan: { shots: [] },
+      characterReplacementOperations: [discoveryOperation()],
+    });
+    expect(
+      (await h.service.list('org', 'brand', 'run', 'shot-1')).operations[0]
+        .association,
+    ).toBe('detached');
+    expect(h.findMany).not.toHaveBeenCalled();
+    noDiscoverySideEffects(h);
+  });
+  it.each(['missing', 'category', 'version', 'ordered'])(
+    'detaches %s authority consistently with status',
+    async (change) => {
+      const h = harness();
+      const op = discoveryOperation();
+      if (change === 'ordered') {
+        op.imageAssetIds = ['img-a', 'img-b'];
+        op.referenceVersions = [
+          { id: 'img-b', updatedAt: '2026-10-01T00:00:00.000Z' },
+          { id: 'img-a', updatedAt: '2026-10-01T00:00:00.000Z' },
+        ];
+      }
+      h.set({ ...config(), characterReplacementOperations: [op] });
+      const original = h.findMany.getMockImplementation();
+      if (!original) throw new Error('Missing query');
+      h.findMany.mockImplementation(async (args) => {
+        const rows = await original(args);
+        if (change === 'missing' || change === 'category')
+          return rows.filter((row) => row.id !== 'img-a');
+        if (change === 'version')
+          return rows.map((row) => ({
+            ...row,
+            updatedAt: new Date('2026-10-02T00:00:00Z'),
+          }));
+        return rows;
+      });
+      const discovered = (await h.service.list('org', 'brand', 'run', 'shot-1'))
+        .operations[0];
+      expect(discovered.association).toBe('detached');
+      noDiscoverySideEffects(h);
+      expect(
+        (
+          await h.service.getStatus(
+            'org',
+            'brand',
+            'run',
+            'shot-1',
+            op.operationId,
+          )
+        ).association,
+      ).toBe(discovered.association);
+    },
+  );
+  it('propagates scoped read and asset database failures instead of a fake empty or current receipt', async () => {
+    const h = harness();
+    h.read.mockRejectedValueOnce(new Error('unauthorized run'));
+    await expect(
+      h.service.list('foreign', 'brand', 'run', 'shot-1'),
+    ).rejects.toThrow('unauthorized run');
+    h.set({
+      ...config(),
+      characterReplacementOperations: [discoveryOperation()],
+    });
+    h.findMany.mockRejectedValueOnce(new Error('database unavailable'));
+    await expect(
+      h.service.list('org', 'brand', 'run', 'shot-1'),
+    ).rejects.toThrow('database unavailable');
+    noDiscoverySideEffects(h);
+  });
+  it('deduplicates no more than 1152 asset identities in one query for the full durable cap', async () => {
+    const h = harness();
+    const journal = Array.from({ length: 128 }, (_, i) => {
+      const video = `video-${i}`;
+      const images = Array.from({ length: 8 }, (_, j) => `img-${i}-${j}`);
+      return discoveryOperation({
+        operationId: `f22c0c2f-59fa-41d8-b393-${String(i).padStart(12, '0')}`,
+        videoAssetId: video,
+        imageAssetIds: images,
+        sourceVersion: { id: video, updatedAt: '2026-10-01T00:00:00.000Z' },
+        referenceVersions: images.map((id) => ({
+          id,
+          updatedAt: '2026-10-01T00:00:00.000Z',
+        })),
+      });
+    });
+    h.set({ ...config(), characterReplacementOperations: journal });
+    expect(
+      (await h.service.list('org', 'brand', 'run', 'shot-1')).operations.every(
+        (op) => op.association === 'current',
+      ),
+    ).toBe(true);
+    expect(h.findMany).toHaveBeenCalledTimes(1);
+    expect(h.findMany.mock.calls[0][0].where.id.in).toHaveLength(1152);
+    noDiscoverySideEffects(h);
+  });
 });
