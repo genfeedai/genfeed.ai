@@ -29,6 +29,17 @@ describe('CredentialsService', () => {
   let service: CredentialsService;
   let crypto: CredentialCryptoService;
   let prisma: {
+    $queryRaw: ReturnType<typeof vi.fn>;
+    contentLearningAccount: {
+      findFirst: ReturnType<typeof vi.fn>;
+      findMany: ReturnType<typeof vi.fn>;
+      updateMany: ReturnType<typeof vi.fn>;
+    };
+    contentLearningDependency: {
+      findFirst: ReturnType<typeof vi.fn>;
+      findMany: ReturnType<typeof vi.fn>;
+    };
+    brand: { findFirst: ReturnType<typeof vi.fn> };
     $transaction: ReturnType<typeof vi.fn>;
     credential: Record<string, ReturnType<typeof vi.fn>>;
     organizationSetting: Record<string, ReturnType<typeof vi.fn>>;
@@ -48,6 +59,17 @@ describe('CredentialsService', () => {
 
   beforeEach(() => {
     prisma = {
+      $queryRaw: vi.fn().mockResolvedValue([{ id: 'locked' }]),
+      contentLearningAccount: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([]),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      contentLearningDependency: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+      brand: { findFirst: vi.fn().mockResolvedValue({ id: brandId }) },
       $transaction: vi.fn(),
       credential: {
         count: vi.fn().mockResolvedValue(0),
@@ -286,6 +308,25 @@ describe('CredentialsService', () => {
 
   describe('access bootstrap invalidation', () => {
     beforeEach(() => {
+      const row = {
+        id: 'existing-id',
+        organizationId: orgId,
+        brandId,
+        platform: 'TWITTER',
+        isConnected: true,
+        isDeleted: false,
+      };
+      prisma.credential.findMany.mockResolvedValue([row]);
+      prisma.credential.findFirst.mockImplementation(async (args) =>
+        args.select
+          ? Object.fromEntries(
+              Object.keys(args.select).map((key) => [
+                key,
+                row[key as keyof typeof row],
+              ]),
+            )
+          : row,
+      );
       prisma.credential.update.mockImplementation(
         (args: { data: Record<string, unknown>; where?: { id?: string } }) =>
           Promise.resolve({
@@ -352,6 +393,7 @@ describe('CredentialsService', () => {
     });
 
     it('skips invalidation when a bulk write matched no rows', async () => {
+      prisma.credential.findMany.mockResolvedValue([]);
       prisma.credential.updateMany.mockResolvedValue({ count: 0 });
 
       await service.patchAll(
@@ -365,13 +407,26 @@ describe('CredentialsService', () => {
     });
 
     it('invalidates the organization bootstrap once a connection settles', async () => {
-      prisma.credential.findFirst.mockResolvedValue({
+      const row = {
         brandId,
         externalId: null,
         id: 'existing-id',
         organizationId: orgId,
         platform: 'TWITTER',
-      });
+        isConnected: false,
+        isDeleted: false,
+      };
+      prisma.credential.findMany.mockResolvedValue([row]);
+      prisma.credential.findFirst.mockImplementation(async ({ select }) =>
+        select
+          ? Object.fromEntries(
+              Object.keys(select).map((key) => [
+                key,
+                row[key as keyof typeof row],
+              ]),
+            )
+          : { ...row },
+      );
 
       await service.connectAccount(
         'existing-id',
@@ -387,6 +442,28 @@ describe('CredentialsService', () => {
   });
 
   describe('encrypt-on-write boundary', () => {
+    beforeEach(() => {
+      const row = {
+        id: 'existing-id',
+        organizationId: orgId,
+        brandId,
+        platform: 'TWITTER',
+        isConnected: true,
+        isDeleted: false,
+        externalId: null,
+      };
+      prisma.credential.findMany.mockResolvedValue([row]);
+      prisma.credential.findFirst.mockImplementation(async (args) =>
+        args.select
+          ? Object.fromEntries(
+              Object.keys(args.select).map((key) => [
+                key,
+                row[key as keyof typeof row],
+              ]),
+            )
+          : row,
+      );
+    });
     const SECRET = 'plaintext-access-token';
 
     it('encrypts every secret field on create, leaving non-secrets intact', async () => {
@@ -832,8 +909,7 @@ describe('CredentialsService', () => {
     };
 
     function loadPendingCredential(): void {
-      prisma.credential.findFirst.mockResolvedValueOnce(pendingCredential);
-      prisma.credential.findFirst.mockResolvedValueOnce(pendingCredential);
+      useStoredRows([{ ...pendingCredential, isDeleted: false }]);
     }
 
     function useStoredRows(rows: Array<Record<string, unknown>>) {
@@ -842,6 +918,10 @@ describe('CredentialsService', () => {
         where: Record<string, unknown>,
       ): boolean =>
         Object.entries(where).every(([key, value]) => {
+          if (key === 'AND')
+            return (value as Array<Record<string, unknown>>).every(
+              (condition) => matches(row, condition),
+            );
           if (key === 'OR')
             return (value as Array<Record<string, unknown>>).some((condition) =>
               matches(row, condition),
@@ -851,11 +931,41 @@ describe('CredentialsService', () => {
           return row[key] === value;
         });
       prisma.credential.findFirst.mockImplementation(
-        async ({ where }: { where: Record<string, unknown> }) =>
-          (() => {
-            const row = rows.find((candidate) => matches(candidate, where));
-            return row ? { ...row } : null;
-          })(),
+        async ({
+          where,
+          select,
+        }: {
+          where: Record<string, unknown>;
+          select?: Record<string, unknown>;
+        }) => {
+          const row = rows.find((candidate) => matches(candidate, where));
+          return row
+            ? select
+              ? Object.fromEntries(
+                  Object.keys(select).map((key) => [key, row[key]]),
+                )
+              : { ...row }
+            : null;
+        },
+      );
+      prisma.credential.findMany.mockImplementation(
+        async ({
+          where,
+          select,
+        }: {
+          where: Record<string, unknown>;
+          select?: Record<string, unknown>;
+        }) =>
+          rows
+            .filter((row) => matches(row, where))
+            .sort((a, b) => String(a.id).localeCompare(String(b.id)))
+            .map((row) =>
+              select
+                ? Object.fromEntries(
+                    Object.keys(select).map((key) => [key, row[key]]),
+                  )
+                : { ...row },
+            ),
       );
       prisma.credential.updateMany.mockImplementation(
         async ({
@@ -1159,7 +1269,6 @@ describe('CredentialsService', () => {
 
     it('claims the identity when the brand holds no account with it', async () => {
       loadPendingCredential();
-      prisma.credential.findFirst.mockResolvedValueOnce(null); // no incumbent
 
       await service.updateExternalProfile('pending-1', orgId, {
         handle: 'second_account',
@@ -1195,7 +1304,6 @@ describe('CredentialsService', () => {
       // race: updateMany matches zero rows because the first writer already
       // flipped isConnected/externalId.
       loadPendingCredential();
-      prisma.credential.findFirst.mockResolvedValueOnce(null); // no incumbent
       prisma.credential.updateMany.mockResolvedValueOnce({ count: 0 });
 
       await expect(
@@ -1213,7 +1321,15 @@ describe('CredentialsService', () => {
 
     it('merges into the incumbent and retires the pending row on reconnect', async () => {
       loadPendingCredential();
-      prisma.credential.findFirst.mockResolvedValueOnce({ id: 'incumbent-1' });
+      useStoredRows([
+        { ...pendingCredential, isDeleted: false },
+        {
+          ...pendingCredential,
+          id: 'incumbent-1',
+          externalId: 'account-1',
+          isDeleted: false,
+        },
+      ]);
 
       await service.updateExternalProfile('pending-1', orgId, {
         handle: 'same_account',
@@ -1260,13 +1376,24 @@ describe('CredentialsService', () => {
     });
 
     it('folds into the winner when a concurrent verify claimed the identity first', async () => {
-      loadPendingCredential();
-      prisma.credential.findFirst.mockResolvedValueOnce(null); // no incumbent yet
+      const rows: Array<Record<string, unknown>> = [
+        { ...pendingCredential, isDeleted: false },
+      ];
+      useStoredRows(rows);
+      const settle = prisma.$transaction.getMockImplementation();
+      prisma.$transaction.mockImplementation((callback) => {
+        if (prisma.$transaction.mock.calls.length === 2)
+          rows.push({
+            ...pendingCredential,
+            id: 'winner-1',
+            externalId: 'account-1',
+            isDeleted: false,
+          });
+        return settle?.(callback);
+      });
       prisma.credential.update.mockRejectedValueOnce(
         Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
       );
-      prisma.credential.findFirst.mockResolvedValueOnce(pendingCredential);
-      prisma.credential.findFirst.mockResolvedValueOnce({ id: 'winner-1' }); // retry finds it
 
       const survivor = await service.updateExternalProfile('pending-1', orgId, {
         id: 'account-1',
@@ -1291,12 +1418,9 @@ describe('CredentialsService', () => {
 
     it('rethrows a unique violation when no winner can be found', async () => {
       loadPendingCredential();
-      prisma.credential.findFirst.mockResolvedValueOnce(null);
       prisma.credential.update.mockRejectedValue(
         Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
       );
-      prisma.credential.findFirst.mockResolvedValueOnce(pendingCredential);
-      prisma.credential.findFirst.mockResolvedValueOnce(null);
 
       await expect(
         service.updateExternalProfile('pending-1', orgId, { id: 'account-1' }),
@@ -1305,25 +1429,20 @@ describe('CredentialsService', () => {
 
     it('reconnects a soft-deleted account without treating it as an incumbent', async () => {
       loadPendingCredential();
-      prisma.credential.findFirst.mockResolvedValueOnce(null); // soft-deleted row excluded
 
       await service.updateExternalProfile('pending-1', orgId, {
         id: 'account-1',
       });
 
-      const incumbentLookup = prisma.credential.findFirst.mock.calls.find(
-        (call) =>
-          (call[0] as { where?: Record<string, unknown> })?.where
-            ?.externalId === 'account-1',
+      const incumbentLookup = prisma.credential.findMany.mock.calls.find(
+        (call) => call[0].where.OR,
       )?.[0] as { where: Record<string, unknown> };
-
       expect(incumbentLookup.where.isDeleted).toBe(false);
       expect(incumbentLookup.where.organizationId).toBe(orgId);
     });
 
     it('persists encrypted connection fields with the settled identity', async () => {
       loadPendingCredential(); // updateExternalProfile reads the pending row
-      prisma.credential.findFirst.mockResolvedValueOnce(null); // no incumbent
 
       await service.connectAccount(
         'pending-1',
@@ -1393,14 +1512,26 @@ describe('CredentialsService', () => {
     });
 
     it('reuses a pending connection id instead of creating another credential', async () => {
-      prisma.credential.findFirst.mockResolvedValue({
+      const row = {
         brandId,
         id: 'pending-1',
         isConnected: false,
         organizationId: orgId,
         platform: 'TWITTER',
         userId: 'u1',
-      });
+        isDeleted: false,
+      };
+      prisma.credential.findMany.mockResolvedValue([row]);
+      prisma.credential.findFirst.mockImplementation(async ({ select }) =>
+        select
+          ? Object.fromEntries(
+              Object.keys(select).map((key) => [
+                key,
+                row[key as keyof typeof row],
+              ]),
+            )
+          : { ...row },
+      );
       prisma.credential.update.mockResolvedValue({
         brandId,
         id: 'pending-1',
@@ -1547,6 +1678,26 @@ describe('CredentialsService', () => {
     });
 
     it('stores the OAuth 1.0a request token encrypted with a lookup hash', async () => {
+      const row = {
+        id: 'credential-1',
+        organizationId: orgId,
+        brandId,
+        userId: 'u1',
+        platform: 'X_ADS',
+        isConnected: false,
+        isDeleted: false,
+      };
+      prisma.credential.findMany.mockResolvedValue([row]);
+      prisma.credential.findFirst.mockImplementation(async ({ select }) =>
+        select
+          ? Object.fromEntries(
+              Object.keys(select).map((key) => [
+                key,
+                row[key as keyof typeof row],
+              ]),
+            )
+          : { ...row },
+      );
       await service.attachOAuth1RequestToken(
         'credential-1',
         'x-ads' as never,
@@ -1558,12 +1709,17 @@ describe('CredentialsService', () => {
       const update = prisma.credential.updateMany.mock.calls[0][0];
       const data = update.data as Record<string, string>;
       expect(update.where).toEqual({
-        id: 'credential-1',
-        isConnected: false,
-        isDeleted: false,
-        organizationId: orgId,
-        platform: 'X_ADS',
-        userId: 'u1',
+        AND: [
+          {
+            id: 'credential-1',
+            isConnected: false,
+            isDeleted: false,
+            organizationId: orgId,
+            platform: 'X_ADS',
+            userId: 'u1',
+          },
+          { id: 'credential-1', organizationId: orgId, isDeleted: false },
+        ],
       });
       expect(data.oauthTokenHash).toBe(
         '3dc30238bf4b801c0cb801511cfdda3a9a9d767f737068df3f5f76c3a32a8eac',
@@ -1647,13 +1803,26 @@ describe('CredentialsService', () => {
 
   describe('updateExternalProfile', () => {
     beforeEach(() => {
-      prisma.credential.findFirst.mockResolvedValue({
+      const row = {
         brandId,
         externalId: 'provider-1',
         id: 'existing-id',
         organizationId: orgId,
         platform: 'TWITTER',
-      });
+        isConnected: true,
+        isDeleted: false,
+      };
+      prisma.credential.findMany.mockResolvedValue([row]);
+      prisma.credential.findFirst.mockImplementation(async (args) =>
+        args.select
+          ? Object.fromEntries(
+              Object.keys(args.select).map((key) => [
+                key,
+                row[key as keyof typeof row],
+              ]),
+            )
+          : row,
+      );
     });
 
     it('uploads a provider avatar to S3 and persists public identity', async () => {
@@ -1847,11 +2016,353 @@ describe('CredentialsService', () => {
         organizationId: orgId,
       });
 
+      prisma.credential.findMany.mockResolvedValue([
+        {
+          id: 'existing-id',
+          isConnected: true,
+          isDeleted: false,
+          organizationId: orgId,
+          brandId,
+          platform: 'TWITTER',
+        },
+      ]);
       await expect(
         service.patch('existing-id', { isConnected: true }),
       ).resolves.toMatchObject({ id: 'existing-id' });
       expect(prisma.organizationSetting.findUnique).not.toHaveBeenCalled();
       expect(prisma.credential.count).not.toHaveBeenCalled();
+    });
+  });
+  describe('atomic credential learning mutations', () => {
+    function storedRows(
+      rows: Record<string, unknown>[],
+      accounts: Record<string, unknown>[] = [],
+    ) {
+      const matches = (
+        row: Record<string, unknown>,
+        where: Record<string, unknown>,
+      ): boolean =>
+        Object.entries(where).every(([key, value]) => {
+          if (key === 'AND')
+            return (value as Record<string, unknown>[]).every((condition) =>
+              matches(row, condition),
+            );
+          if (key === 'OR')
+            return (value as Record<string, unknown>[]).some((condition) =>
+              matches(row, condition),
+            );
+          if (value && typeof value === 'object' && 'not' in value)
+            return row[key] !== value.not;
+          return row[key] === value;
+        });
+      const project = (
+        row: Record<string, unknown>,
+        select?: Record<string, unknown>,
+      ) =>
+        select
+          ? Object.fromEntries(
+              Object.keys(select).map((key) => [key, row[key]]),
+            )
+          : { ...row };
+      prisma.credential.findMany.mockImplementation(async ({ where, select }) =>
+        rows
+          .filter((row) => matches(row, where))
+          .sort((a, b) => String(a.id).localeCompare(String(b.id)))
+          .map((row) => project(row, select)),
+      );
+      prisma.credential.findFirst.mockImplementation(
+        async ({ where, select }) => {
+          const row = rows.find((row) => matches(row, where));
+          return row ? project(row, select) : null;
+        },
+      );
+      prisma.credential.update.mockImplementation(async ({ where, data }) => {
+        const row = rows.find((row) => matches(row, where));
+        if (!row) throw new Error('stale row');
+        Object.assign(row, data);
+        return { ...row };
+      });
+      prisma.credential.updateMany.mockImplementation(
+        async ({ where, data }) => {
+          const selected = rows.filter((row) => matches(row, where));
+          selected.forEach((row) => {
+            Object.assign(row, data);
+          });
+          return { count: selected.length };
+        },
+      );
+      prisma.contentLearningAccount.findMany.mockImplementation(
+        async ({ where, select }) =>
+          accounts
+            .filter((row) => matches(row, where))
+            .map((row) => project(row, select)),
+      );
+      prisma.contentLearningAccount.findFirst.mockImplementation(
+        async ({ where }) =>
+          accounts.find((row) => matches(row, where)) ?? null,
+      );
+      prisma.contentLearningAccount.updateMany.mockImplementation(
+        async ({ where, data }) => {
+          const row = accounts.find((row) => matches(row, where));
+          if (!row) return { count: 0 };
+          row.evidenceRevision =
+            Number(row.evidenceRevision) + data.evidenceRevision.increment;
+          return { count: 1 };
+        },
+      );
+      prisma.$transaction.mockImplementation(async (callback) => {
+        const before = structuredClone(rows),
+          priorAccounts = structuredClone(accounts);
+        try {
+          return await callback(prisma);
+        } catch (error) {
+          rows.forEach((row, index) => {
+            Object.assign(row, before[index]);
+          });
+          accounts.forEach((row, index) => {
+            Object.assign(row, priorAccounts[index]);
+          });
+          throw error;
+        }
+      });
+    }
+    function credential(
+      id: string,
+      organizationId: string | null = orgId,
+    ): Record<string, unknown> {
+      return {
+        id,
+        organizationId,
+        brandId,
+        isDeleted: false,
+        isConnected: true,
+        platform: 'TWITTER',
+        externalId: 'account',
+        accessToken: null,
+      };
+    }
+    function account(credentialId: string) {
+      return {
+        id: `learning-${credentialId}`,
+        organizationId: orgId,
+        brandId,
+        credentialId,
+        isDeleted: false,
+        evidenceRevision: 0,
+      };
+    }
+    it('encrypts unbound token patch and removes the exact null-org source without fabricated learning refs', async () => {
+      const row = credential('unbound', null);
+      storedRows([row]);
+      await service.patch('unbound', { accessToken: 'secret' });
+      expect(row.organizationId).toBeNull();
+      expect(crypto.decrypt(row.accessToken as string)).toBe('secret');
+      expect(prisma.credential.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'unbound', organizationId: null, isDeleted: false },
+        }),
+      );
+      const sql = prisma.$queryRaw.mock.calls.map((call) =>
+        Array.isArray(call[0]) ? call[0].join(' ') : call[0].strings.join(' '),
+      );
+      expect(sql[0]).toContain('pg_advisory_xact_lock');
+      expect(sql[1]).toContain('credentials');
+      expect(prisma.contentLearningDependency.findMany).not.toHaveBeenCalled();
+      expect(prisma.contentLearningAccount.updateMany).not.toHaveBeenCalled();
+      await service.remove('unbound');
+      expect(row.isDeleted).toBe(true);
+      expect(
+        accessBootstrapCache.invalidateForOrganization,
+      ).not.toHaveBeenCalled();
+    });
+    it('mixed bulk counts all selected rows but invalidates and advances only the bound account once', async () => {
+      const bound = credential('bound'),
+        unbound = credential('unbound', null),
+        learning = account('bound');
+      storedRows([bound, unbound], [learning]);
+      const result = await service.patchAll(
+        { OR: [{ id: 'bound' }, { id: 'unbound' }] },
+        { isConnected: false },
+      );
+      expect(result.modifiedCount).toBe(2);
+      expect(bound.isConnected).toBe(false);
+      expect(unbound.isConnected).toBe(false);
+      expect(learning.evidenceRevision).toBe(1);
+      expect(prisma.contentLearningDependency.findMany).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(prisma.contentLearningDependency.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            sourceKind: 'credential',
+            sourceId: 'bound',
+            sourceOrganizationId: orgId,
+            isDeleted: false,
+          },
+        }),
+      );
+      await service.patch('bound', {
+        isConnected: false,
+        refreshToken: 'token',
+      });
+      expect(learning.evidenceRevision).toBe(1);
+    });
+    it.each(['account', 'dependency'])(
+      'unbound retained %s anomaly refuses the entire mixed mutation before any source write',
+      async (anomaly) => {
+        const bound = credential('bound'),
+          unbound = credential('unbound', null);
+        storedRows([bound, unbound]);
+        if (anomaly === 'account')
+          prisma.contentLearningAccount.findFirst.mockResolvedValue({
+            id: 'foreign-binding',
+          });
+        else
+          prisma.contentLearningDependency.findFirst.mockResolvedValue({
+            id: 'deleted-invalid-edge',
+          });
+        await expect(
+          service.patchAll(
+            { OR: [{ id: 'bound' }, { id: 'unbound' }] },
+            { isConnected: false },
+          ),
+        ).rejects.toThrow(/retained learning attachments/);
+        expect(prisma.credential.updateMany).not.toHaveBeenCalled();
+        expect(
+          accessBootstrapCache.invalidateForOrganization,
+        ).not.toHaveBeenCalled();
+        expect(bound.isConnected).toBe(true);
+      },
+    );
+    it('rolls back source eligibility when actual dependency or revision mutation fails', async () => {
+      const row = credential('bound'),
+        learning = account('bound');
+      storedRows([row], [learning]);
+      prisma.contentLearningDependency.findMany.mockRejectedValue(
+        new Error('dependency failure'),
+      );
+      await expect(
+        service.patch('bound', { isConnected: false }),
+      ).rejects.toThrow('dependency failure');
+      expect(row.isConnected).toBe(true);
+      expect(learning.evidenceRevision).toBe(0);
+      expect(
+        accessBootstrapCache.invalidateForOrganization,
+      ).not.toHaveBeenCalled();
+    });
+    it('rejects stale null-org binding and effective foreign tenant retarget before mutation', async () => {
+      const row = credential('unbound', null);
+      storedRows([row]);
+      const read = prisma.credential.findMany.getMockImplementation();
+      let calls = 0;
+      prisma.credential.findMany.mockImplementation(async (args) => {
+        if (++calls === 2) row.organizationId = orgId;
+        return read?.(args);
+      });
+      await expect(
+        service.patch('unbound', { isConnected: false }),
+      ).rejects.toThrow(/discovery changed/);
+      expect(prisma.credential.update).not.toHaveBeenCalled();
+      expect(row.organizationId).toBeNull();
+      prisma.credential.findMany.mockReset();
+      storedRows([credential('bound')]);
+      await expect(
+        service.patch('bound', { organizationId: 'foreign' }),
+      ).rejects.toThrow(/authorized brand relocation/);
+      expect(prisma.credential.update).not.toHaveBeenCalled();
+    });
+    it.each(['second source', 'revision'])(
+      'mixed bulk rolls back every selected row on %s failure',
+      async (failure) => {
+        const first = credential('a-bound'),
+          last = credential('z-unbound', null),
+          learning = account('a-bound');
+        storedRows([first, last], [learning]);
+        if (failure === 'revision')
+          prisma.contentLearningAccount.updateMany.mockResolvedValue({
+            count: 0,
+          });
+        else {
+          const write = prisma.credential.updateMany.getMockImplementation();
+          prisma.credential.updateMany.mockImplementation(async (args) => {
+            if (prisma.credential.updateMany.mock.calls.length === 2)
+              throw new Error('second source failed');
+            return write?.(args);
+          });
+        }
+        await expect(
+          service.patchAll(
+            { OR: [{ id: 'a-bound' }, { id: 'z-unbound' }] },
+            { isConnected: false },
+          ),
+        ).rejects.toThrow(
+          failure === 'revision' ? /account changed/ : 'second source failed',
+        );
+        expect(first.isConnected).toBe(true);
+        expect(last.isConnected).toBe(true);
+        expect(learning.evidenceRevision).toBe(0);
+        expect(
+          accessBootstrapCache.invalidateForOrganization,
+        ).not.toHaveBeenCalled();
+      },
+    );
+    it('preserves explicit null organization on an ordinary same-scope patch', async () => {
+      const row = credential('unbound', null);
+      storedRows([row]);
+      await service.patch('unbound', {
+        organizationId: null,
+        description: 'legacy',
+      } as never);
+      expect(row.organizationId).toBeNull();
+      expect(prisma.credential.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'unbound', organizationId: null, isDeleted: false },
+        }),
+      );
+      expect(prisma.contentLearningDependency.findMany).not.toHaveBeenCalled();
+      expect(prisma.contentLearningAccount.updateMany).not.toHaveBeenCalled();
+    });
+    it('OAuth revival and connected-source retirement invalidate both original sources with one revision per existing account', async () => {
+      const source = credential('source'),
+        incumbent = credential('incumbent'),
+        sourceAccount = account('source'),
+        incumbentAccount = account('incumbent');
+      source.externalId = 'account';
+      incumbent.isConnected = false;
+      source.userId = 'user';
+      incumbent.userId = 'user';
+      storedRows([source, incumbent], [incumbentAccount, sourceAccount]);
+      const survivor = await service.updateExternalProfile('source', orgId, {
+        id: 'account',
+        bannerUrl: 'https://platform.example/banner.jpg',
+      });
+      expect(survivor.id).toBe('incumbent');
+      expect(source.isDeleted).toBe(true);
+      expect(source.isConnected).toBe(false);
+      expect(incumbent.isConnected).toBe(true);
+      expect(sourceAccount.evidenceRevision).toBe(1);
+      expect(incumbentAccount.evidenceRevision).toBe(1);
+      const refs = prisma.contentLearningDependency.findMany.mock.calls.map(
+        (call) => call[0].where.sourceId,
+      );
+      expect(refs).toEqual(['incumbent', 'source']);
+      expect(eventEmitter.emit).toHaveBeenCalledTimes(1);
+    });
+    it('OAuth token refresh of an already connected identity is a source no-op', async () => {
+      const source = credential('source'),
+        learning = account('source');
+      storedRows([source], [learning]);
+      await service.connectAccount(
+        'source',
+        orgId,
+        { id: 'account' },
+        { accessToken: 'replacement-token' },
+      );
+      expect(crypto.decrypt(source.accessToken as string)).toBe(
+        'replacement-token',
+      );
+      expect(learning.evidenceRevision).toBe(0);
+      expect(prisma.contentLearningDependency.findMany).not.toHaveBeenCalled();
     });
   });
 });

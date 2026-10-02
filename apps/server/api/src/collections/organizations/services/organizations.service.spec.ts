@@ -382,3 +382,92 @@ describe('OrganizationsService', () => {
     });
   });
 });
+
+describe('organization learning withdrawal', () => {
+  function fixture() {
+    let row = { id: 'org', isDeleted: false };
+    const accounts = [
+      {
+        id: 'a',
+        organizationId: 'org',
+        brandId: 'brand',
+        credentialId: 'credential',
+      },
+    ];
+    const order: string[] = [];
+    const tx = {
+      $queryRaw: vi.fn(async (sql) => {
+        order.push(Array.isArray(sql) ? sql.join(' ') : sql.strings.join(' '));
+        return [{ id: 'locked' }];
+      }),
+      organization: {
+        findFirst: vi.fn(async () => ({ ...row })),
+        update: vi.fn(async ({ data }) => {
+          row = { ...row, ...data };
+          return { ...row };
+        }),
+      },
+      contentLearningAccount: {
+        findMany: vi.fn().mockResolvedValue(accounts),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      contentLearningDependency: { findMany: vi.fn().mockResolvedValue([]) },
+    };
+    const transaction = vi.fn(async (callback) => {
+      const before = { ...row };
+      try {
+        return await callback(tx);
+      } catch (error) {
+        row = before;
+        throw error;
+      }
+    });
+    const service = new OrganizationsService(
+      { ...tx, $transaction: transaction } as never,
+      { debug: vi.fn(), error: vi.fn() } as never,
+    );
+    return { service, tx, order, row: () => row };
+  }
+  it('withdraws through the actor with F before disabled/shadow accounts and organization source locks', async () => {
+    const { service, tx, order } = fixture();
+    await service.patch('org', { isDeleted: true });
+    expect(order[0]).toContain('pg_advisory_xact_lock');
+    expect(order[1]).toContain('content_learning_accounts');
+    expect(order[2]).toContain('organizations');
+    expect(tx.contentLearningAccount.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { organizationId: 'org', isDeleted: false },
+      }),
+    );
+    expect(tx.contentLearningDependency.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          sourceKind: 'organization',
+          sourceId: 'org',
+          sourceOrganizationId: 'org',
+          isDeleted: false,
+        },
+      }),
+    );
+    expect(tx.contentLearningAccount.updateMany).toHaveBeenCalledTimes(1);
+    await service.patch('org', { isDeleted: true });
+    expect(tx.contentLearningAccount.updateMany).toHaveBeenCalledTimes(1);
+  });
+  it('internal remove shares the actor protocol and rolls back on dependency/revision failure', async () => {
+    const first = fixture();
+    first.tx.contentLearningDependency.findMany.mockRejectedValue(
+      new Error('dependency failure'),
+    );
+    await expect(first.service.remove('org')).rejects.toThrow(
+      'dependency failure',
+    );
+    expect(first.row().isDeleted).toBe(false);
+    expect(first.tx.contentLearningAccount.updateMany).not.toHaveBeenCalled();
+    const second = fixture();
+    second.tx.contentLearningAccount.updateMany.mockResolvedValue({ count: 0 });
+    await expect(second.service.remove('org')).rejects.toThrow(
+      /account changed during organization invalidation/,
+    );
+    expect(second.row().isDeleted).toBe(false);
+  });
+});

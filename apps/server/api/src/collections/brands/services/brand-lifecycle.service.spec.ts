@@ -25,6 +25,9 @@ describe('BrandLifecycleService', () => {
   let delegate: Record<string, ReturnType<typeof vi.fn>>;
   let memberDelegate: Record<string, ReturnType<typeof vi.fn>>;
   let txQueryRaw: ReturnType<typeof vi.fn>;
+  let transactionMock: ReturnType<typeof vi.fn>;
+  let learningAccounts: Record<string, ReturnType<typeof vi.fn>>;
+  let dependencies: Record<string, ReturnType<typeof vi.fn>>;
   let cacheInvalidationService: {
     invalidate: ReturnType<typeof vi.fn>;
     invalidateByTags: ReturnType<typeof vi.fn>;
@@ -47,7 +50,7 @@ describe('BrandLifecycleService', () => {
       findMany: vi.fn().mockResolvedValue([]),
       updateMany: vi.fn(),
     };
-    txQueryRaw = vi.fn().mockResolvedValue(undefined);
+    txQueryRaw = vi.fn().mockResolvedValue([{ id: 'locked' }]);
     cacheInvalidationService = {
       invalidate: vi.fn(),
       invalidateByTags: vi.fn(),
@@ -71,12 +74,19 @@ describe('BrandLifecycleService', () => {
     // FOR UPDATE lock query, so assertions read naturally against `delegate`/
     // `memberDelegate` regardless of whether the call went through `tx` or
     // the top-level client.
+    learningAccounts = {
+      findMany: vi.fn().mockResolvedValue([]),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    };
+    dependencies = { findMany: vi.fn().mockResolvedValue([]) };
     const txClient = {
       $queryRaw: txQueryRaw,
       brand: delegate,
       member: memberDelegate,
+      contentLearningAccount: learningAccounts,
+      contentLearningDependency: dependencies,
     };
-    const transactionMock = vi.fn(
+    transactionMock = vi.fn(
       async (callback: (tx: typeof txClient) => Promise<unknown>) =>
         callback(txClient),
     );
@@ -233,12 +243,12 @@ describe('BrandLifecycleService', () => {
       const movedUserOne = 'user_one';
       const movedUserTwo = 'user_two';
 
-      delegate.findFirst.mockResolvedValueOnce({
+      delegate.findFirst.mockResolvedValue({
         id: brandId,
         isDeleted: false,
         organizationId,
       });
-      delegate.findMany.mockResolvedValueOnce([
+      delegate.findMany.mockResolvedValue([
         { id: brandId },
         { id: fallbackBrandId },
       ]);
@@ -254,7 +264,14 @@ describe('BrandLifecycleService', () => {
       // Every transactional step runs before anything else, all inside the
       // one $transaction call this test's fake client hands the same tx —
       // including the FOR UPDATE lock query on the org's live brand rows.
-      expect(txQueryRaw).toHaveBeenCalledTimes(1);
+      expect(txQueryRaw).toHaveBeenCalledTimes(4);
+      expect(txQueryRaw.mock.calls[0][0].join(' ')).toContain(
+        'pg_advisory_xact_lock',
+      );
+      expect(txQueryRaw.mock.calls[1][0].strings.join(' ')).toContain(
+        'organizations',
+      );
+      expect(txQueryRaw.mock.calls[2][0].strings.join(' ')).toContain('brands');
       expect(delegate.findMany).toHaveBeenCalledWith({
         orderBy: { createdAt: 'asc' },
         select: { id: true },
@@ -290,12 +307,12 @@ describe('BrandLifecycleService', () => {
       const brandId = testId('brand');
       const organizationId = testId('org');
 
-      delegate.findFirst.mockResolvedValueOnce({
+      delegate.findFirst.mockResolvedValue({
         id: brandId,
         isDeleted: false,
         organizationId,
       });
-      delegate.findMany.mockResolvedValueOnce([{ id: brandId }]);
+      delegate.findMany.mockResolvedValue([{ id: brandId }]);
 
       const rejection = service.remove(brandId);
       await expect(rejection).rejects.toBeInstanceOf(ConflictException);
@@ -313,15 +330,22 @@ describe('BrandLifecycleService', () => {
       const otherLiveBrandId = testId('brand', 2);
       const organizationId = testId('org');
 
-      delegate.findFirst.mockResolvedValueOnce({
+      delegate.findFirst.mockResolvedValue({
         id: brandId,
         isDeleted: false,
         organizationId,
       });
+      delegate.findFirst
+        .mockResolvedValueOnce({
+          id: brandId,
+          isDeleted: false,
+          organizationId,
+        })
+        .mockResolvedValue(null);
       // A concurrent transaction committed the delete of `brandId` while this
       // one was blocked on the FOR UPDATE lock — the post-lock re-read no
       // longer includes it among the org's live brands.
-      delegate.findMany.mockResolvedValueOnce([{ id: otherLiveBrandId }]);
+      delegate.findMany.mockResolvedValue([{ id: otherLiveBrandId }]);
 
       await expect(service.remove(brandId)).rejects.toBeInstanceOf(
         NotFoundException,
@@ -335,12 +359,12 @@ describe('BrandLifecycleService', () => {
       const fallbackBrandId = testId('brand', 2);
       const organizationId = testId('org');
 
-      delegate.findFirst.mockResolvedValueOnce({
+      delegate.findFirst.mockResolvedValue({
         id: brandId,
         isDeleted: false,
         organizationId,
       });
-      delegate.findMany.mockResolvedValueOnce([
+      delegate.findMany.mockResolvedValue([
         { id: brandId },
         { id: fallbackBrandId },
       ]);
@@ -354,7 +378,7 @@ describe('BrandLifecycleService', () => {
     });
 
     it('throws NotFound when the brand does not exist at all', async () => {
-      delegate.findFirst.mockResolvedValueOnce(null);
+      delegate.findFirst.mockResolvedValue(null);
 
       await expect(service.remove('brand_missing')).rejects.toBeInstanceOf(
         NotFoundException,
@@ -362,5 +386,70 @@ describe('BrandLifecycleService', () => {
       expect(memberDelegate.updateMany).not.toHaveBeenCalled();
       expect(delegate.update).not.toHaveBeenCalled();
     });
+    it.each(['dependency', 'revision'])(
+      'a %s failure rolls back member reassignment and brand deletion before caches',
+      async (failure) => {
+        const brand = {
+          id: 'brand',
+          organizationId: 'org',
+          isDeleted: false,
+          isActive: true,
+        };
+        const member = { userId: 'member', currentBrandId: 'brand' };
+        delegate.findFirst.mockImplementation(async () => ({ ...brand }));
+        delegate.findMany.mockResolvedValue([
+          { id: 'brand' },
+          { id: 'fallback' },
+        ]);
+        delegate.update.mockImplementation(async ({ data }) => {
+          Object.assign(brand, data);
+          return { ...brand };
+        });
+        memberDelegate.findMany.mockResolvedValue([{ userId: member.userId }]);
+        memberDelegate.updateMany.mockImplementation(async ({ data }) => {
+          Object.assign(member, data);
+          return { count: 1 };
+        });
+        learningAccounts.findMany.mockResolvedValue([
+          {
+            id: 'account',
+            organizationId: 'org',
+            brandId: 'brand',
+            credentialId: 'credential',
+          },
+        ]);
+        if (failure === 'dependency')
+          dependencies.findMany.mockRejectedValue(
+            new Error('dependency failed'),
+          );
+        else learningAccounts.updateMany.mockResolvedValue({ count: 0 });
+        const callback = transactionMock.getMockImplementation();
+        transactionMock.mockImplementation(async (...args) => {
+          const beforeBrand = { ...brand },
+            beforeMember = { ...member };
+          try {
+            return await callback?.(...args);
+          } catch (error) {
+            Object.assign(brand, beforeBrand);
+            Object.assign(member, beforeMember);
+            throw error;
+          }
+        });
+        await expect(service.remove('brand')).rejects.toThrow(
+          failure === 'dependency'
+            ? 'dependency failed'
+            : /account scope changed/,
+        );
+        expect(memberDelegate.updateMany).toHaveBeenCalledTimes(1);
+        expect(delegate.update).toHaveBeenCalledTimes(1);
+        expect(brand.isDeleted).toBe(false);
+        expect(member.currentBrandId).toBe('brand');
+        expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
+        expect(
+          accessBootstrapCacheService.invalidateForOrganization,
+        ).not.toHaveBeenCalled();
+        expect(userAccessCacheService.invalidateAll).not.toHaveBeenCalled();
+      },
+    );
   });
 });

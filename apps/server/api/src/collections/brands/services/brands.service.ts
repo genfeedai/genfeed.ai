@@ -16,6 +16,7 @@ import type {
 import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
+import { patchBrandWithLearning } from '@api/collections/brands/services/brand-learning-mutation.util';
 import { BrandLifecycleService } from '@api/collections/brands/services/brand-lifecycle.service';
 import { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
 import {
@@ -54,10 +55,12 @@ import {
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { ValidationException } from '@api/exceptions/validation.exception';
 import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
 import type {
   BatchIdea,
   IBrandKitApplyResult,
@@ -349,12 +352,30 @@ export class BrandsService extends BaseService<
     id: string,
     updateBrandDto: Partial<UpdateBrandDto>,
   ): Promise<BrandDocument> {
-    const brand = await super.patch(
-      id,
-      omitUndefinedFields(
-        updateBrandDto as Record<string, unknown>,
-      ) as Partial<UpdateBrandDto>,
+    if (!id) throw new ValidationException('Document ID is required');
+    const data = this.normalizeData(
+      omitUndefinedFields(updateBrandDto as Record<string, unknown>),
     );
+    const sourceBearing = ['isActive', 'isDeleted', 'organizationId'].some(
+      (key) => updateBrandDto[key as keyof UpdateBrandDto] !== undefined,
+    );
+    const brand = sourceBearing
+      ? this.normalizeDocument(
+          await this.prisma.$transaction((tx) =>
+            patchBrandWithLearning(tx, {
+              brandId: id,
+              data: data as Prisma.BrandUncheckedUpdateInput,
+            }),
+          ),
+        )
+      : await super.patch(id, data as Partial<UpdateBrandDto>);
+    if (sourceBearing)
+      await this.cacheService?.invalidateByTags([
+        'brand',
+        'collection:brand',
+        'query:brand',
+        paginatedQueryCacheTag('brand'),
+      ]);
 
     if (!brand) {
       throw new NotFoundException('Brand', id);

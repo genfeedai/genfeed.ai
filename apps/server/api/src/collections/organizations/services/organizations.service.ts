@@ -1,3 +1,9 @@
+import { isDeepStrictEqual } from 'node:util';
+import {
+  invalidateLearningDependencySource,
+  learningFence,
+} from '@api/collections/content-learning/services/learning-dependency.service';
+import { learningPublicationOrganizationSelect } from '@api/collections/content-learning/services/learning-publication-source.types';
 import { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
 import { UpdateOrganizationDto } from '@api/collections/organizations/dto/update-organization.dto';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
@@ -11,13 +17,15 @@ import { CACHE_PATTERNS } from '@api/common/constants/cache-patterns.constants';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { ValidationException } from '@api/exceptions/validation.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
 import { OrganizationCategory } from '@genfeedai/contracts';
 import { applyExpertPublishApprovalDefault } from '@genfeedai/contracts/constants';
 import type { IBrandAgentAutoPublish } from '@genfeedai/contracts/interfaces';
-import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -248,7 +256,10 @@ export class OrganizationsService extends BaseService<
       updateDto as Record<string, unknown>,
     ) as Partial<UpdateOrganizationDto>;
 
-    const organization = await super.patch(id, normalizedDto, this.populate);
+    const organization =
+      normalizedDto.isDeleted === undefined
+        ? await super.patch(id, normalizedDto, this.populate)
+        : await this.patchOrganizationLearningSource(id, normalizedDto);
 
     if (normalizedDto.accountType !== undefined) {
       if (normalizedDto.accountType === OrganizationCategory.EXPERT) {
@@ -260,6 +271,96 @@ export class OrganizationsService extends BaseService<
     }
 
     return organization;
+  }
+
+  private async patchOrganizationLearningSource(
+    id: string,
+    data: Partial<UpdateOrganizationDto>,
+  ): Promise<OrganizationDocument> {
+    if (!id) throw new ValidationException('Document ID is required');
+    const organization = await this.prisma.$transaction(async (tx) => {
+      await learningFence(tx, 'exclusive');
+      // tenant-scope-ignore: authorized exact organization ID includes its own tombstone for the preexisting patch restoration semantics.
+      const before = await tx.organization.findFirst({
+        where: { id },
+        select: learningPublicationOrganizationSelect,
+      });
+      if (!before) throw new NotFoundException('Organization', id);
+      const where = { organizationId: id, isDeleted: false };
+      const select = {
+        id: true,
+        organizationId: true,
+        brandId: true,
+        credentialId: true,
+      } as const;
+      const accounts = await tx.contentLearningAccount.findMany({
+        where,
+        select,
+        orderBy: { id: 'asc' },
+      });
+      for (const account of accounts) {
+        const rows = await tx.$queryRaw<{ id: string }[]>(
+          Prisma.sql`SELECT "id" FROM "content_learning_accounts" WHERE "id" = ${account.id} AND "organizationId" = ${id} AND "brandId" = ${account.brandId} AND "credentialId" = ${account.credentialId} AND "isDeleted" = false FOR UPDATE`,
+        );
+        if (rows.length !== 1)
+          throw new ConflictException(
+            'Learning account changed during organization mutation.',
+          );
+      }
+      // tenant-scope-ignore: lock only the authorized organization's discovered current tombstone state.
+      const locked = await tx.$queryRaw<{ id: string }[]>(
+        Prisma.sql`SELECT "id" FROM "organizations" WHERE "id" = ${id} AND "isDeleted" = ${before.isDeleted} FOR UPDATE`,
+      );
+      const currentAccounts = await tx.contentLearningAccount.findMany({
+        where,
+        select,
+        orderBy: { id: 'asc' },
+      });
+      if (locked.length !== 1 || !isDeepStrictEqual(accounts, currentAccounts))
+        throw new ConflictException(
+          'Organization source discovery changed during mutation.',
+        );
+      const include = this.populateToInclude(this.populate) as
+        | Prisma.OrganizationInclude
+        | undefined;
+      const updated = await tx.organization.update({
+        where: { id, isDeleted: before.isDeleted },
+        data: this.normalizeData(
+          data,
+        ) as Prisma.OrganizationUncheckedUpdateInput,
+        ...(include ? { include } : {}),
+      });
+      if (
+        !isDeepStrictEqual(before, {
+          id: updated.id,
+          isDeleted: updated.isDeleted,
+        })
+      ) {
+        await invalidateLearningDependencySource(tx, 'organization', id, id);
+        for (const account of accounts) {
+          const result = await tx.contentLearningAccount.updateMany({
+            where: { ...account, isDeleted: false },
+            data: { evidenceRevision: { increment: 1 } },
+          });
+          if (result.count !== 1)
+            throw new ConflictException(
+              'Learning account changed during organization invalidation.',
+            );
+        }
+      }
+      return this.normalizeDocument(updated);
+    });
+    await this.cacheService?.invalidateByTags([
+      this.collectionName,
+      `collection:${this.collectionName}`,
+      `query:${this.collectionName}`,
+      paginatedQueryCacheTag(this.collectionName),
+    ]);
+    return organization;
+  }
+
+  override async remove(id: string): Promise<OrganizationDocument | null> {
+    return this.patch(id, { isDeleted: true });
   }
 
   /**

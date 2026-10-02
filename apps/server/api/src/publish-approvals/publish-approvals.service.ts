@@ -11,6 +11,10 @@ import {
 } from '@api/publish-approvals/publish-approval-contract.codec';
 import { digestPublishApprovalValue } from '@api/publish-approvals/publish-approval-integrity';
 import {
+  PUBLISH_EXECUTION_LEASE_MS,
+  resetExpiredPublishExecution,
+} from '@api/publish-approvals/publish-approval-lease.util';
+import {
   findPublishApprovalOrThrow,
   PublishApprovalNotFoundException,
 } from '@api/publish-approvals/publish-approval-lookup';
@@ -61,8 +65,6 @@ const ACTIVATABLE_APPROVAL_STATUSES = [
   PublishApprovalStatus.PUBLISHED,
 ] as const;
 
-const PUBLISH_EXECUTION_LEASE_MS = 15 * 60 * 1000;
-
 type PublishApprovalTransaction = Pick<
   Prisma.TransactionClient,
   'post' | 'publishApproval'
@@ -93,8 +95,11 @@ export class PublishApprovalsService {
   async assertPostMutable(
     organizationId: string,
     postId: string,
+    transaction?: Prisma.TransactionClient,
   ): Promise<void> {
-    const executing = (await this.prisma.publishApproval.findFirst({
+    const executing = (await (
+      transaction ?? this.prisma
+    ).publishApproval.findFirst({
       where: {
         organizationId,
         postId,
@@ -106,7 +111,7 @@ export class PublishApprovalsService {
         executing.updatedAt.getTime() + PUBLISH_EXECUTION_LEASE_MS <=
         Date.now()
       ) {
-        await this.resetExpiredExecution(executing);
+        await this.resetExpiredExecution(executing, transaction);
         return;
       }
       throw new ConflictException(
@@ -523,6 +528,7 @@ export class PublishApprovalsService {
     reason: string,
     actorId?: string,
     transaction?: Prisma.TransactionClient,
+    deferTelemetry?: (emit: () => void) => void,
   ): Promise<void> {
     const now = new Date();
     const invalidate = async (tx: Prisma.TransactionClient) => {
@@ -585,12 +591,15 @@ export class PublishApprovalsService {
     };
     if (transaction) await invalidate(transaction);
     else await this.prisma.$transaction(invalidate);
-    this.recordApprovalTelemetry(
-      'revoke',
-      'success',
-      'not_applicable',
-      organizationId,
-    );
+    const emit = () =>
+      this.recordApprovalTelemetry(
+        'revoke',
+        'success',
+        'not_applicable',
+        organizationId,
+      );
+    if (deferTelemetry) deferTelemetry(emit);
+    else emit();
   }
 
   private async completeClaimedExecution(
@@ -674,55 +683,14 @@ export class PublishApprovalsService {
     return this.contractCodec.toInterface(updated);
   }
 
-  private async resetExpiredExecution(
+  private resetExpiredExecution(
     approval: PublishApprovalRow,
+    transaction?: Prisma.TransactionClient,
   ): Promise<PublishApprovalRow> {
-    const expiresAt = approval.updatedAt.getTime() + PUBLISH_EXECUTION_LEASE_MS;
-    if (expiresAt > Date.now()) {
-      throw new ConflictException(
-        'Publish approval is already executing with an active lease.',
-      );
-    }
-
-    const resetAt = new Date();
-    const reason = 'Expired publish execution lease was reset for retry.';
-    const reset = await this.prisma.publishApproval.updateMany({
-      data: {
-        lastError: reason,
-        status: PublishApprovalStatus.QUEUED,
-        statusTransitions: this.contractCodec.toJson([
-          ...this.contractCodec.readTransitions(approval.statusTransitions),
-          this.contractCodec.transition(
-            PublishApprovalStatus.EXECUTING,
-            PublishApprovalStatus.FAILED,
-            undefined,
-            reason,
-          ),
-          this.contractCodec.transition(
-            PublishApprovalStatus.FAILED,
-            PublishApprovalStatus.QUEUED,
-            undefined,
-            'Retry queued after expired execution lease.',
-          ),
-        ]),
-        updatedAt: resetAt,
-      },
-      where: {
-        id: approval.id,
-        organizationId: approval.organizationId,
-        status: PublishApprovalStatus.EXECUTING,
-        updatedAt: approval.updatedAt,
-      },
-    });
-    if (reset.count !== 1) {
-      throw new ConflictException(
-        'Publish execution lease changed before it could be reset.',
-      );
-    }
-    return this.getApprovalOrThrow(
-      approval.organizationId,
-      approval.id,
-      approval.postId,
+    return resetExpiredPublishExecution(
+      transaction ?? this.prisma,
+      this.contractCodec,
+      approval,
     );
   }
 
@@ -969,9 +937,10 @@ export class PublishApprovalsService {
     organizationId: string,
     approvalId: string,
     postId?: string,
+    transaction?: Prisma.TransactionClient,
   ): Promise<PublishApprovalRow> {
     return findPublishApprovalOrThrow(
-      this.prisma.publishApproval,
+      (transaction ?? this.prisma).publishApproval,
       organizationId,
       approvalId,
       postId,

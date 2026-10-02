@@ -78,7 +78,14 @@ describe('BrandRelocationService', () => {
   beforeEach(() => {
     delegates = new Map();
     // information_schema scan → no unknown dual-keyed tables.
-    queryRaw = vi.fn().mockResolvedValue([]);
+    queryRaw = vi.fn(async (statement: TemplateStringsArray | Prisma.Sql) => {
+      const text = Array.isArray(statement)
+        ? statement.join('')
+        : (statement as Prisma.Sql).strings.join('');
+      if (text.includes('AS retained')) return [{ retained: false }];
+      if (text.includes('FOR UPDATE')) return [{ id: 'locked' }];
+      return [];
+    });
     transactionSpy = vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
       fn(prismaProxy),
     );
@@ -126,6 +133,10 @@ describe('BrandRelocationService', () => {
       isDeleted: false,
       organizationId: currentOrg,
     });
+    getDelegate('brand').findMany.mockResolvedValue([
+      { id: BRAND_ID },
+      { id: SOURCE_FALLBACK_BRAND_ID },
+    ]);
     getDelegate('organization').findFirst.mockResolvedValue({ id: DEST_ORG });
   }
 
@@ -137,9 +148,10 @@ describe('BrandRelocationService', () => {
   // resolves to a second, unrelated brand still in SOURCE_ORG — matched by
   // shape rather than call order, since the guard can run any number of times.
   function primeRelocatableBrand(): void {
-    let identityCalls = 0;
     getDelegate('brand').findFirst.mockImplementation(
-      async (args?: { where?: { id?: unknown } }) => {
+      async (args?: {
+        where?: { id?: unknown; organizationId?: string; isDeleted?: boolean };
+      }) => {
         const idFilter = args?.where?.id;
         if (idFilter && typeof idFilter === 'object' && 'not' in idFilter) {
           return {
@@ -148,12 +160,16 @@ describe('BrandRelocationService', () => {
             organizationId: SOURCE_ORG,
           };
         }
-        identityCalls += 1;
-        return identityCalls === 1
+        return args?.where?.isDeleted === false ||
+          args?.where?.organizationId === SOURCE_ORG
           ? { id: BRAND_ID, isDeleted: false, organizationId: SOURCE_ORG }
           : { id: BRAND_ID, organizationId: DEST_ORG };
       },
     );
+    getDelegate('brand').findMany.mockResolvedValue([
+      { id: BRAND_ID },
+      { id: SOURCE_FALLBACK_BRAND_ID },
+    ]);
     getDelegate('organization').findFirst.mockResolvedValue({ id: DEST_ORG });
   }
 
@@ -892,20 +908,28 @@ describe('BrandRelocationService', () => {
 
   it('blocks the move when an unhandled dual-keyed table would be orphaned', async () => {
     primeBrand();
-    queryRaw.mockImplementation((strings: TemplateStringsArray) => {
-      const sql = Array.from(strings).join('');
-      if (sql.includes('information_schema')) {
-        return Promise.resolve([
-          {
-            brand_col: 'brand_id',
-            org_col: 'organization_id',
-            table_name: 'future_table',
-          },
-        ]);
-      }
-      // Per-table orphan count for the unknown table.
-      return Promise.resolve([{ n: 5 }]);
-    });
+    queryRaw.mockImplementation(
+      (statement: TemplateStringsArray | Prisma.Sql) => {
+        const sql = Array.isArray(statement)
+          ? statement.join('')
+          : (statement as Prisma.Sql).strings.join('');
+        if (sql.includes('AS retained'))
+          return Promise.resolve([{ retained: false }]);
+        if (sql.includes('FOR UPDATE'))
+          return Promise.resolve([{ id: 'locked' }]);
+        if (sql.includes('information_schema')) {
+          return Promise.resolve([
+            {
+              brand_col: 'brand_id',
+              org_col: 'organization_id',
+              table_name: 'future_table',
+            },
+          ]);
+        }
+        // Per-table orphan count for the unknown table.
+        return Promise.resolve([{ n: 5 }]);
+      },
+    );
 
     await expect(
       service.relocateToOrganization(
@@ -919,5 +943,73 @@ describe('BrandRelocationService', () => {
   it('keeps first- and second-order target lists non-empty (guard against empty config)', () => {
     expect(FIRST_ORDER_TARGETS.length).toBeGreaterThan(40);
     expect(SECOND_ORDER_TARGETS.length).toBeGreaterThan(0);
+  });
+  it('retained publication-before-capture history blocks the actual relocation before any cascade or cache', async () => {
+    primeRelocatableBrand();
+    getDelegate('publishApproval').findFirst.mockResolvedValue({
+      id: 'publication-proof',
+    });
+    await expect(
+      service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        { isSuperAdmin: true, userId: USER_ID },
+      ),
+    ).rejects.toThrow(/saved learning or publication history/);
+    expect(getDelegate('brand').update).not.toHaveBeenCalled();
+    expect(getDelegate('member').updateMany).not.toHaveBeenCalled();
+    expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
+    expect(getDelegate('publishApproval').findFirst).toHaveBeenCalledWith({
+      where: { organizationId: SOURCE_ORG, brandId: BRAND_ID },
+      select: { id: true },
+    });
+  });
+  it('rechecks both elevated memberships inside the source transaction after the fence and refuses revocation', async () => {
+    primeRelocatableBrand();
+    getDelegate('member')
+      .findFirst.mockResolvedValueOnce({ roleKey: 'owner' })
+      .mockResolvedValueOnce({ roleKey: 'admin' })
+      .mockResolvedValue(null);
+    await expect(
+      service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        { isSuperAdmin: false, userId: USER_ID },
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(transactionSpy).toHaveBeenCalledTimes(1);
+    expect(getDelegate('brand').update).not.toHaveBeenCalled();
+    expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
+    expect(queryRaw.mock.calls[0][0].join(' ')).toContain(
+      'pg_advisory_xact_lock',
+    );
+  });
+  it('same-org deactivation without facade callback uses the learning source owner protocol', async () => {
+    primeBrand();
+    getDelegate('brand').update.mockResolvedValue({
+      id: BRAND_ID,
+      organizationId: SOURCE_ORG,
+      isDeleted: false,
+      isActive: false,
+    });
+    await service.relocateToOrganization(
+      BRAND_ID,
+      { organizationId: SOURCE_ORG, isActive: false },
+      { isSuperAdmin: true, userId: USER_ID },
+    );
+    expect(transactionSpy).toHaveBeenCalledTimes(1);
+    expect(
+      getDelegate('contentLearningDependency').findMany,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          sourceKind: 'brand',
+          sourceId: BRAND_ID,
+          sourceOrganizationId: SOURCE_ORG,
+          isDeleted: false,
+        },
+      }),
+    );
+    expect(getDelegate('publishApproval').findFirst).not.toHaveBeenCalled();
   });
 });

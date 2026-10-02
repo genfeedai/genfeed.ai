@@ -1294,3 +1294,98 @@ describe('PublishApprovalsService', () => {
     expect(approval.provenance.mediaReadinessWarnings).toBeUndefined();
   });
 });
+
+describe('post owner transaction lease and telemetry', () => {
+  it('routes expired lease read, CAS and reread exclusively through the supplied transaction', async () => {
+    const expired = makeApproval({
+      status: PublishApprovalStatus.EXECUTING,
+      updatedAt: new Date(0),
+    });
+    const publishApproval = {
+      findFirst: vi
+        .fn()
+        .mockResolvedValueOnce(expired)
+        .mockResolvedValueOnce(
+          makeApproval({ status: PublishApprovalStatus.QUEUED }),
+        ),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    };
+    const root = {
+      publishApproval: { findFirst: vi.fn(), updateMany: vi.fn() },
+    };
+    const service = new PublishApprovalsService(
+      root as never,
+      {} as AgentArtifactReferenceService,
+    );
+    const tx = { publishApproval };
+    await service.assertPostMutable('org-1', 'post-1', tx as never);
+    expect(publishApproval.findFirst).toHaveBeenCalledTimes(2);
+    expect(publishApproval.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: expired.id,
+          organizationId: expired.organizationId,
+          status: PublishApprovalStatus.EXECUTING,
+          updatedAt: expired.updatedAt,
+        },
+      }),
+    );
+    expect(root.publishApproval.findFirst).not.toHaveBeenCalled();
+    expect(root.publishApproval.updateMany).not.toHaveBeenCalled();
+  });
+  it('retains expired reset CAS conflict in the outer transaction', async () => {
+    const publishApproval = {
+      findFirst: vi.fn().mockResolvedValue(
+        makeApproval({
+          status: PublishApprovalStatus.EXECUTING,
+          updatedAt: new Date(0),
+        }),
+      ),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    };
+    const service = new PublishApprovalsService(
+      { publishApproval: { findFirst: vi.fn() } } as never,
+      {} as AgentArtifactReferenceService,
+    );
+    await expect(
+      service.assertPostMutable('org-1', 'post-1', {
+        publishApproval,
+      } as never),
+    ).rejects.toThrow(/changed before it could be reset/);
+    expect(publishApproval.findFirst).toHaveBeenCalledTimes(1);
+  });
+  it('defers successful invalidation telemetry until the post owner commits', async () => {
+    const log = vi.fn(),
+      callbacks: (() => void)[] = [];
+    const tx = {
+      publishApproval: { findMany: vi.fn().mockResolvedValue([]) },
+      post: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+    };
+    const transaction = vi.fn();
+    const service = new PublishApprovalsService(
+      { $transaction: transaction } as never,
+      {} as AgentArtifactReferenceService,
+      { log } as never,
+    );
+    await service.invalidatePost(
+      'org-1',
+      'post-1',
+      'changed',
+      undefined,
+      tx as never,
+      (emit) => callbacks.push(emit),
+    );
+    expect(log).not.toHaveBeenCalled();
+    expect(transaction).not.toHaveBeenCalled();
+    expect(callbacks).toHaveLength(1);
+    callbacks[0]();
+    expect(log).toHaveBeenCalledWith(
+      'conversation_shell_approval',
+      expect.objectContaining({
+        action: 'revoke',
+        outcome: 'success',
+        organizationId: 'org-1',
+      }),
+    );
+  });
+});
