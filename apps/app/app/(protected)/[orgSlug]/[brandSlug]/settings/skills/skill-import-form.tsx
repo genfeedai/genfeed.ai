@@ -1,5 +1,12 @@
 'use client';
 
+import type { SkillImportFormProps } from '@props/settings/skills.props';
+
+export type {
+  SkillImportFormLabels,
+  SkillImportFormProps,
+} from '@props/settings/skills.props';
+
 import { Button } from '@ui/primitives/button';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
@@ -7,42 +14,9 @@ import { Label } from '@ui/primitives/label';
 import { useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   buildSkillImportInput,
-  type SkillImportInput,
   SkillImportInputError,
   type SkillImportInputErrorCode,
 } from './skill-import-input';
-
-export interface SkillImportFormLabels {
-  files: string;
-  slug: string;
-  sourceUrl: string;
-  checksum: string;
-  submit: string;
-  submitting: string;
-  selectedFiles: string;
-  packageHint: string;
-  nestedHint: string;
-  failed: string;
-  errors: Record<SkillImportInputErrorCode, string>;
-}
-export interface SkillImportFormProps {
-  files: readonly File[];
-  slug: string;
-  sourceUrl: string;
-  checksum: string;
-  onFilesChange: (files: File[]) => void;
-  onSlugChange: (value: string) => void;
-  onSourceUrlChange: (value: string) => void;
-  onChecksumChange: (value: string) => void;
-  onImport: (input: SkillImportInput) => Promise<void>;
-  labels: SkillImportFormLabels;
-  isDisabled: boolean;
-  isSubmitting: boolean;
-  /** Parent must include current auth/organization identity, not just the selected brand. */
-  scopeKey: string;
-  resetKey?: string | number;
-  error?: string;
-}
 
 export default function SkillImportForm({
   files,

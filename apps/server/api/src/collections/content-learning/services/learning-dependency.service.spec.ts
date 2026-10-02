@@ -39,6 +39,7 @@ import type {
   ContentLearningBaseline,
   ContentLearningCheckpoint,
   ContentLearningDependency,
+  ContentVersionPin,
   Post,
   Prisma,
 } from '@genfeedai/prisma';
@@ -1103,9 +1104,17 @@ describe('C1 current pinned publication and parent consumers', () => {
     );
     if (!edge) throw new Error('Missing immutable pin edge');
     f.edges.splice(0, f.edges.length, edge, { ...edge, id: 'second-pin-edge' });
+    const pin: ContentVersionPin = {
+      ...f.pin,
+      createdAt: at,
+      recordVersion: null,
+      createdByUserId: 'actor',
+      idempotencyKey: 'pin-recheck-fixture',
+      provenance: {},
+    };
     vi.mocked(f.tx.contentVersionPin.findFirst)
-      .mockResolvedValueOnce(f.pin)
-      .mockResolvedValueOnce({ ...f.pin, contentDigest: 'changed-version' });
+      .mockResolvedValueOnce(pin)
+      .mockResolvedValueOnce({ ...pin, contentDigest: 'changed-version' });
     expect(
       await f.service.valid('checkpoint', f.checkpoint.id, f.tx, 'org'),
     ).toBe(false);

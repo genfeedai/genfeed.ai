@@ -9,11 +9,8 @@ import {
   type RollbackSkillDto,
   readOptionalAudience,
 } from '@api/collections/skills/dto/skill-library.dto';
-import { SkillVersionListQueryDto } from '@api/collections/skills/dto/skill-version-query.dto';
 import {
-  CLOSED_SKILL_SOURCE_POLICY,
   grantMatchesActor,
-  PUBLIC_FREE_SOURCE_POLICY,
   resolveSkillCapabilities,
   type SkillAudience,
   type SkillCapabilityActor,
@@ -23,7 +20,14 @@ import {
   type SkillSourcePolicy,
   skillGrantRecipientClauses,
 } from '@api/collections/skills/policy/skill-capabilities';
+import { resolveSkillSourcePolicy } from '@api/collections/skills/policy/skill-source-policy';
 import type { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
+import type {
+  PinnedSkillExecution,
+  SkillLibraryActor,
+  SkillRow,
+} from '@api/collections/skills/services/skill-library.types';
+import { importValidatedSkillPackage } from '@api/collections/skills/services/skill-package-import';
 import {
   type RecordedSkillExclusion,
   type RecordedSkillVersion,
@@ -33,18 +37,15 @@ import {
   applyAuthorizedVersionBody,
   loadAuthorizedSkillVersions,
 } from '@api/collections/skills/services/skill-version-loader';
+import { SkillVersionReader } from '@api/collections/skills/services/skill-version-reader';
 import { withSkillWriteSession } from '@api/collections/skills/services/skill-write-session';
-import { parseSkillPackageManifest } from '@api/collections/skills/utils/skill-package-manifest.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   SkillVersionListQueryV1,
-  SkillVersionMetadataV1,
   SkillVersionReadPageV1,
-  SkillVersionReadParentV1,
   SkillVersionReadV1,
-  SkillVersionSourceEvidenceV1,
 } from '@genfeedai/contracts/interfaces/ai/skill-version-read.interface';
 import type { Prisma } from '@genfeedai/prisma';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -54,198 +55,35 @@ import {
   Injectable,
 } from '@nestjs/common';
 
-export interface SkillLibraryActor {
-  brandId?: string | null;
-  organizationId: string;
-  userId: string;
-}
-
-export interface PinnedSkillExecution {
-  contentHash: string;
-  skillId: string;
-  skillVersionId: string;
-}
-
+export type {
+  PinnedSkillExecution,
+  SkillLibraryActor,
+} from '@api/collections/skills/services/skill-library.types';
 export type {
   RecordedSkillExclusion,
   RecordedSkillVersion,
 } from '@api/collections/skills/services/skill-resolution-evidence';
-
-interface SkillRow {
-  audience: string | null;
-  brandId: string | null;
-  config: Prisma.JsonValue;
-  currentVersionId: string | null;
-  id: string;
-  isDeleted: boolean;
-  isQuarantined: boolean;
-  label: string | null;
-  organizationId: string | null;
-  ownerKind: string | null;
-  ownerUserId: string | null;
-  publishedVersionId: string | null;
-  revision: number;
-  sharedVersionId: string | null;
-}
-
-const AUTHORED_POLICY: SkillSourcePolicy = {
-  allowsDerivatives: true,
-  allowsExport: true,
-  allowsPublicPublication: true,
-  allowsRead: true,
-  allowsShare: true,
-};
-
-function versionReadObject(value: unknown): Record<string, unknown> | null {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
-
-/** Immutable source evidence only; current governance and live scope are separate. */
-export function isVerifiedOrdinaryUploadVersionReadV1(
-  parent: SkillVersionReadParentV1,
-  genesis: SkillVersionSourceEvidenceV1,
-  candidate: SkillVersionSourceEvidenceV1,
-): boolean {
-  if (
-    parent.ownerKind !== 'user' ||
-    !parent.ownerUserId ||
-    parent.organizationId !== null ||
-    parent.brandId !== null ||
-    genesis.versionNumber !== 1
-  )
-    return false;
-  const evidence = (row: SkillVersionSourceEvidenceV1): string | null => {
-    if (
-      !isWellFormedSkillVersionReadV1(parent.id, row) ||
-      row.createdById !== parent.ownerUserId ||
-      row.format !== 'genfeed.skill.legacy-snapshot.v1'
-    )
-      return null;
-    const payload = versionReadObject(row.payload);
-    const config = versionReadObject(payload?.config);
-    const instructions = versionReadObject(payload?.instructions);
-    const provenance = versionReadObject(config?.importProvenance);
-    if (
-      !payload ||
-      !config ||
-      !instructions ||
-      !provenance ||
-      payload.format !== row.format ||
-      config.source !== 'imported' ||
-      config.isBuiltIn !== false ||
-      (config.sourceListingId !== undefined && config.sourceListingId !== null)
-    )
-      return null;
-    if (
-      provenance.format !== 'genfeed.skill.ordinary-upload.v1' ||
-      provenance.importedByUserId !== parent.ownerUserId ||
-      typeof provenance.packageChecksum !== 'string' ||
-      !/^[a-f0-9]{64}$/.test(provenance.packageChecksum) ||
-      config.checksum !== provenance.packageChecksum
-    )
-      return null;
-    // Mirror the existing capture's selection, including explicit empty and whitespace bodies.
-    const sourceField =
-      typeof config.systemPromptTemplate === 'string' &&
-      config.systemPromptTemplate.length > 0
-        ? 'systemPromptTemplate'
-        : typeof config.defaultInstructions === 'string' &&
-            config.defaultInstructions.length > 0
-          ? 'defaultInstructions'
-          : null;
-    const text = sourceField === null ? '' : config[sourceField];
-    if (
-      instructions.text !== row.instructionText ||
-      text !== row.instructionText ||
-      instructions.sourceField !== row.instructionSourceField ||
-      sourceField !== row.instructionSourceField ||
-      payload.instructionUsable !== row.instructionUsable ||
-      // PostgreSQL btrim removes only ASCII spaces; preserve every captured character.
-      row.instructionUsable !== /[^ ]/.test(row.instructionText)
-    )
-      return null;
-    return provenance.packageChecksum;
-  };
-  const originalChecksum = evidence(genesis);
-  return originalChecksum !== null && evidence(candidate) === originalChecksum;
-}
-
-function isWellFormedSkillVersionReadV1(
-  skillId: string,
-  row: SkillVersionSourceEvidenceV1,
-): boolean {
-  return (
-    row.skillId === skillId &&
-    Number.isInteger(row.versionNumber) &&
-    row.versionNumber > 0 &&
-    row.versionNumber <= 2147483647 &&
-    row.id === `sv1_${skillId}_${row.versionNumber}` &&
-    typeof row.instructionText === 'string' &&
-    typeof row.contentHash === 'string' &&
-    /^sha256:skill-v1:[a-f0-9]{64}$/.test(row.contentHash) &&
-    typeof row.instructionHash === 'string' &&
-    /^sha256:skill-instruction-v1:[a-f0-9]{64}$/.test(row.instructionHash) &&
-    row.createdAt instanceof Date &&
-    Number.isFinite(row.createdAt.getTime())
-  );
-}
+export { isVerifiedOrdinaryUploadVersionReadV1 } from '@api/collections/skills/services/skill-version-reader';
 
 @Injectable()
 export class SkillLibraryService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly versionReader: SkillVersionReader;
+
+  constructor(private readonly prisma: PrismaService) {
+    this.versionReader = new SkillVersionReader(prisma, {
+      decide: (actor, skill) => this.decide(actor, skill),
+      toDocument: (skill) => this.toDocument(skill),
+      loadAuthorizedVersions: (actor, documents, options) =>
+        this.loadAuthorizedVersions(actor, documents, options),
+    });
+  }
 
   async listVersions(
     actor: SkillLibraryActor,
     skillId: string,
     query: SkillVersionListQueryV1,
   ): Promise<SkillVersionReadPageV1> {
-    const parsed = SkillVersionListQueryDto.parse(query);
-    const { skill, governor } = await this.requireVersionReadScopeV1(
-      actor,
-      skillId,
-    );
-    if (!governor) {
-      const version = await this.requireAuthorizedReadSnapshotV1(actor, skill);
-      const items =
-        parsed.beforeVersionNumber !== undefined &&
-        version.versionNumber >= parsed.beforeVersionNumber
-          ? []
-          : [this.versionMetadataV1(version)];
-      return { items, limit: parsed.limit, hasMore: false, nextCursor: null };
-    }
-    const genesis = await this.requireOrdinaryGenesisV1(skill);
-    const rows = await this.prisma.skillVersion.findMany({
-      where: {
-        skillId,
-        ...(parsed.beforeVersionNumber !== undefined
-          ? { versionNumber: { lt: parsed.beforeVersionNumber } }
-          : {}),
-      },
-      orderBy: { versionNumber: 'desc' },
-      take: parsed.limit + 1,
-    });
-    let previous = parsed.beforeVersionNumber ?? 2147483648;
-    for (const row of rows) {
-      if (
-        !isVerifiedOrdinaryUploadVersionReadV1(skill, genesis, row) ||
-        row.versionNumber >= previous
-      )
-        throw new NotFoundException('Skill version');
-      previous = row.versionNumber;
-    }
-    const items = rows
-      .slice(0, parsed.limit)
-      .map((row) => this.versionMetadataV1(row));
-    const nextCursor =
-      rows.length > parsed.limit ? items[items.length - 1].versionNumber : null;
-    return {
-      items,
-      limit: parsed.limit,
-      hasMore: nextCursor !== null,
-      nextCursor,
-    };
+    return this.versionReader.listVersions(actor, skillId, query);
   }
 
   async getVersion(
@@ -253,257 +91,17 @@ export class SkillLibraryService {
     skillId: string,
     versionId: string,
   ): Promise<SkillVersionReadV1> {
-    const { skill, governor } = await this.requireVersionReadScopeV1(
-      actor,
-      skillId,
-    );
-    let version: SkillVersionSourceEvidenceV1;
-    if (governor) {
-      const genesis = await this.requireOrdinaryGenesisV1(skill);
-      const candidate = await this.prisma.skillVersion.findFirst({
-        where: { id: versionId, skillId },
-      });
-      if (
-        !candidate ||
-        !isVerifiedOrdinaryUploadVersionReadV1(skill, genesis, candidate)
-      )
-        throw new NotFoundException('Skill version');
-      version = candidate;
-    } else {
-      version = await this.requireAuthorizedReadSnapshotV1(actor, skill);
-      if (version.id !== versionId)
-        throw new NotFoundException('Skill version');
-    }
-    return {
-      ...this.versionMetadataV1(version),
-      instructionText: version.instructionText,
-    };
-  }
-
-  private async requireVersionReadScopeV1(
-    actor: SkillLibraryActor,
-    skillId: string,
-  ) {
-    if (
-      typeof actor.userId !== 'string' ||
-      !actor.userId ||
-      typeof actor.organizationId !== 'string' ||
-      !actor.organizationId ||
-      (actor.brandId !== undefined &&
-        actor.brandId !== null &&
-        (typeof actor.brandId !== 'string' || !actor.brandId))
-    )
-      throw new NotFoundException('Skill version');
-    const [user, organization, member] = await Promise.all([
-      this.prisma.user.findFirst({
-        where: { id: actor.userId, isDeleted: false },
-        select: { id: true },
-      }),
-      this.prisma.organization.findFirst({
-        where: { id: actor.organizationId, isDeleted: false },
-        select: { id: true },
-      }),
-      this.prisma.member.findFirst({
-        where: {
-          userId: actor.userId,
-          organizationId: actor.organizationId,
-          isActive: true,
-          isDeleted: false,
-        },
-        select: {
-          roleKey: true,
-          brands: {
-            where: { id: actor.brandId ?? '', isDeleted: false },
-            select: { id: true },
-          },
-        },
-      }),
-    ]);
-    if (!user || !organization || !member)
-      throw new NotFoundException('Skill version');
-    if (actor.brandId) {
-      const brand = await this.prisma.brand.findFirst({
-        where: {
-          id: actor.brandId,
-          organizationId: actor.organizationId,
-          isDeleted: false,
-        },
-        select: { id: true },
-      });
-      if (
-        !brand ||
-        (member.roleKey !== 'owner' &&
-          member.roleKey !== 'admin' &&
-          !member.brands.some((bound) => bound.id === actor.brandId))
-      )
-        throw new NotFoundException('Skill version');
-    }
-    // tenant-scope-ignore: personal/system parents lack organization; live capabilities below authorize the primary-key lookup
-    const row = await this.prisma.skill.findFirst({
-      where: { id: skillId, isDeleted: false, isQuarantined: false },
-    });
-    if (!row || row.isDeleted || row.isQuarantined)
-      throw new NotFoundException('Skill version');
-    const skill = row as unknown as SkillRow;
-    const capabilities = await this.decide(actor, skill);
-    if (!capabilities.canRead) throw new NotFoundException('Skill version');
-    return { skill, governor: capabilities.canEdit };
-  }
-
-  private async requireOrdinaryGenesisV1(
-    skill: SkillRow,
-  ): Promise<SkillVersionSourceEvidenceV1> {
-    const genesis = await this.prisma.skillVersion.findFirst({
-      where: { skillId: skill.id, versionNumber: 1 },
-    });
-    if (
-      !genesis ||
-      !isVerifiedOrdinaryUploadVersionReadV1(skill, genesis, genesis)
-    )
-      throw new NotFoundException('Skill version');
-    return genesis;
-  }
-
-  private async requireAuthorizedReadSnapshotV1(
-    actor: SkillLibraryActor,
-    skill: SkillRow,
-  ): Promise<SkillVersionSourceEvidenceV1> {
-    const authorized = (
-      await this.loadAuthorizedVersions(actor, [this.toDocument(skill)], {
-        purpose: 'read',
-      })
-    ).get(skill.id);
-    if (!authorized) throw new NotFoundException('Skill version');
-    const row = await this.prisma.skillVersion.findFirst({
-      where: { id: authorized.id, skillId: skill.id },
-    });
-    if (
-      !row ||
-      !isWellFormedSkillVersionReadV1(skill.id, row) ||
-      row.contentHash !== authorized.contentHash ||
-      row.instructionText !== authorized.instructionText
-    )
-      throw new NotFoundException('Skill version');
-    return row;
-  }
-
-  private versionMetadataV1(
-    version: SkillVersionSourceEvidenceV1,
-  ): SkillVersionMetadataV1 {
-    return {
-      id: version.id,
-      versionNumber: version.versionNumber,
-      createdAt: version.createdAt.toISOString(),
-      contentHash: version.contentHash,
-    };
+    return this.versionReader.getVersion(actor, skillId, versionId);
   }
 
   async importValidatedPackage(
     actor: SkillLibraryActor,
     input: unknown,
   ): Promise<SkillDocument> {
-    const parsed = parseSkillPackageManifest(input);
-    if (isReservedBuiltInSkillSlug(parsed.slug)) {
-      throw new ValidationException(
-        'This slug is reserved for the built-in skill catalog',
-        'slug',
-        parsed.slug,
-      );
-    }
-    const created = await withSkillWriteSession(
+    const created = await importValidatedSkillPackage(
       this.prisma,
-      { actorUserId: actor.userId, origin: 'authoring' },
-      async (tx) => {
-        const users = await tx.$queryRaw<{ id: string; isolation: string }[]>`
-          SELECT "id", current_setting('transaction_isolation') AS isolation
-          FROM "users" WHERE "id"=${actor.userId} AND "isDeleted"=false FOR UPDATE
-        `;
-        if (
-          users.length !== 1 ||
-          users[0]?.id !== actor.userId ||
-          users[0].isolation !== 'read committed'
-        ) {
-          throw new ForbiddenException(
-            'A live user and read committed transaction are required',
-          );
-        }
-        const organization = await tx.organization.findFirst({
-          where: { id: actor.organizationId, isDeleted: false },
-          select: { id: true },
-        });
-        const member = await tx.member.findFirst({
-          where: {
-            userId: actor.userId,
-            organizationId: actor.organizationId,
-            isActive: true,
-            isDeleted: false,
-          },
-          select: { id: true },
-        });
-        if (!organization || !member)
-          throw new ForbiddenException(
-            'Active organization membership is required',
-          );
-        // tenant-scope-ignore: personal import duplicates are scoped to canonical ownerUserId with null organization and brand, including across organizations
-        const duplicates = await tx.$queryRaw<{ id: string }[]>`
-          SELECT "id" FROM "skills" WHERE "ownerKind"='user'
-          AND "ownerUserId"=${actor.userId} AND "organizationId" IS NULL
-          AND "brandId" IS NULL AND "isDeleted"=false
-          AND lower(config->>'slug')=${parsed.slug}
-        `;
-        if (duplicates.length)
-          throw new ConflictException(
-            'A personal skill with this slug already exists',
-          );
-        return tx.skill.create({
-          data: {
-            audience: 'private',
-            brandId: null,
-            organizationId: null,
-            ownerKind: 'user',
-            ownerUserId: actor.userId,
-            isDeleted: false,
-            isQuarantined: false,
-            label: parsed.metadata.name,
-            config: {
-              slug: parsed.slug,
-              name: parsed.metadata.name,
-              description: parsed.metadata.description,
-              category: 'content',
-              channels: ['general'],
-              modalities: ['text'],
-              workflowStage: 'creation',
-              source: 'imported',
-              status: 'draft',
-              isBuiltIn: false,
-              isEnabled: true,
-              requiredProviders: [],
-              toolOverrides: [],
-              defaultInstructions: parsed.instructions,
-              systemPromptTemplate: parsed.instructions,
-              files: parsed.files.map(({ content, path }) => ({
-                content,
-                path,
-              })),
-              checksum: parsed.packageChecksum,
-              ...(parsed.metadata.version !== undefined
-                ? { version: parsed.metadata.version }
-                : {}),
-              importProvenance: {
-                format: 'genfeed.skill.ordinary-upload.v1',
-                importedByUserId: actor.userId,
-                packageChecksum: parsed.packageChecksum,
-                ...(parsed.archiveSha256 !== undefined
-                  ? { archiveSha256: parsed.archiveSha256 }
-                  : {}),
-                ...(parsed.sourceUrl !== undefined
-                  ? { sourceUrl: parsed.sourceUrl }
-                  : {}),
-              },
-            } satisfies Prisma.InputJsonObject,
-          },
-        });
-      },
+      actor,
+      input,
     );
     return this.toDocument(created as unknown as SkillRow);
   }
@@ -1311,48 +909,7 @@ export class SkillLibraryService {
     subject: SkillCapabilitySubject,
     document: SkillDocument,
   ): SkillSourcePolicy {
-    if (subject.ownerKind === 'system' || document.isBuiltIn === true) {
-      return {
-        ...PUBLIC_FREE_SOURCE_POLICY,
-        allowsDerivatives: true,
-        allowsExport: subject.ownerKind === 'system',
-        allowsPublicPublication: false,
-        allowsShare: false,
-      };
-    }
-    if (document.source === 'imported') {
-      if (
-        !document.config ||
-        typeof document.config !== 'object' ||
-        Array.isArray(document.config)
-      )
-        return CLOSED_SKILL_SOURCE_POLICY;
-      const config = document.config as Record<string, unknown>;
-      const provenance = config.importProvenance;
-      if (
-        subject.ownerKind === 'user' &&
-        subject.ownerUserId &&
-        !subject.organizationId &&
-        !subject.brandId &&
-        !config.sourceListingId &&
-        provenance &&
-        typeof provenance === 'object' &&
-        !Array.isArray(provenance)
-      ) {
-        const recorded = provenance as Record<string, unknown>;
-        if (
-          recorded.format === 'genfeed.skill.ordinary-upload.v1' &&
-          recorded.importedByUserId === subject.ownerUserId &&
-          typeof recorded.packageChecksum === 'string' &&
-          /^[a-f0-9]{64}$/.test(recorded.packageChecksum) &&
-          config.checksum === recorded.packageChecksum
-        ) {
-          return { ...AUTHORED_POLICY, allowsPublicPublication: false };
-        }
-      }
-      return CLOSED_SKILL_SOURCE_POLICY;
-    }
-    return AUTHORED_POLICY;
+    return resolveSkillSourcePolicy(subject, document);
   }
 
   private withCapabilities(
