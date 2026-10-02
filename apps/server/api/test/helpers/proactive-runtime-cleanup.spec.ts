@@ -1,5 +1,6 @@
 import {
   assertOwnedPinsUnchanged,
+  assertOwnedRetentionUsers,
   planOwnedPinRetention,
   runOwnedPinRetentionCleanup,
   runOwnedRuntimeCleanup,
@@ -288,5 +289,65 @@ describe('owned immutable pin retention', () => {
       errors: [dataFailure, proofFailure],
     });
     expect(caught.errors[1]).toBe(redisFailure);
+  });
+});
+
+describe('retained fixture user ownership', () => {
+  it('accepts empty retention and the exact fixture user', () => {
+    expect(() => assertOwnedRetentionUsers('fixture-user', [])).not.toThrow();
+    expect(() =>
+      assertOwnedRetentionUsers('fixture-user', ['fixture-user']),
+    ).not.toThrow();
+  });
+
+  it('blocks every mutation and independently closes handles for a foreign creator in an owned pin', async () => {
+    const attempted: string[] = [];
+    const ownedPin = {
+      ...pin('one', 'owned', null),
+      createdByUserId: 'foreign-user',
+    };
+    await expect(
+      runOwnedPinRetentionCleanup(
+        [
+          async () => {
+            attempted.push('writer.stop');
+          },
+        ],
+        async () => {
+          attempted.push('pins.read');
+          const retention = planOwnedPinRetention(['owned'], [ownedPin]);
+          assertOwnedRetentionUsers('fixture-user', retention.creatorIds);
+          return retention;
+        },
+        async () => {
+          attempted.push('queue.obliterate');
+          attempted.push('user.updateMany');
+        },
+        [
+          async () => {
+            attempted.push('redis.quit');
+          },
+          async () => {
+            attempted.push('prisma.disconnect');
+          },
+        ],
+      ),
+    ).rejects.toBeInstanceOf(AggregateError);
+    expect(attempted).toEqual([
+      'writer.stop',
+      'pins.read',
+      'redis.quit',
+      'prisma.disconnect',
+    ]);
+    expect(ownedPin.createdByUserId).toBe('foreign-user');
+  });
+
+  it('rejects foreign organization or brand owners as well as pin creators', () => {
+    expect(() =>
+      assertOwnedRetentionUsers('fixture-user', [
+        'fixture-user',
+        'foreign-owner',
+      ]),
+    ).toThrow();
   });
 });

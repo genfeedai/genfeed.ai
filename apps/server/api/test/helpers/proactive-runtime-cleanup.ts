@@ -1,4 +1,4 @@
-import { deepStrictEqual } from 'node:assert/strict';
+import { deepStrictEqual, strictEqual } from 'node:assert/strict';
 import type { PrismaClient } from '@genfeedai/prisma';
 
 export async function runOwnedRuntimeCleanup(
@@ -66,4 +66,11 @@ export function assertOwnedPinsUnchanged(
   after: OwnedPins,
 ): void {
   deepStrictEqual(after, before);
+}
+
+export function assertOwnedRetentionUsers(
+  fixtureUserId: string,
+  retainedUserIds: readonly string[],
+): void {
+  for (const id of retainedUserIds) strictEqual(id, fixtureUserId);
 }

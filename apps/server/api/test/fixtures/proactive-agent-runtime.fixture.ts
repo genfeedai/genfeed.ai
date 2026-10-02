@@ -52,6 +52,7 @@ import { BatchReviewLockService } from '@api/services/batch-generation/batch-rev
 import { CacheService } from '@api/services/cache/cache.service';
 import {
   assertOwnedPinsUnchanged,
+  assertOwnedRetentionUsers,
   planOwnedPinRetention,
   runOwnedPinRetentionCleanup,
   runOwnedRuntimeCleanup,
@@ -1084,6 +1085,9 @@ export class ProactiveAgentRuntimeFixture {
             ),
           ]),
         ];
+        // Every retained creator and parent owner must belong to this fixture.
+        // Fail before disposal rather than tombstoning a foreign user.
+        assertOwnedRetentionUsers(this.userId, userIds);
         const users = await this.workflowPrisma.user.findMany({
           where: { id: { in: userIds } },
           select: { id: true },
