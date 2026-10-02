@@ -275,7 +275,7 @@ export const LEARNING_SOURCE_CONTRACT = Object.freeze({
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.integration.spec.ts',
       sha256:
-        'd30c45f5d5903969b146a5f0c3b264b4c569fb7aa36ff5e3f950496ce11b4538',
+        'd252d5dfc382b160136dcb0ef0daa62ad9e7661f9139059c8b0ce07d64dbbe0b',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-publication-races.integration.spec.ts',
@@ -693,6 +693,14 @@ export const SERIAL_BRAND_UNITS = [
   'branded-generation-receipt-access.service.spec.ts',
   'branded-generation-state.util.spec.ts',
 ].map((file) => `src/services/branded-generation-receipts/${file}`);
+export function datasetChildEnvironment(url) {
+  return {
+    LEARNING_DATASET_TEST_DATABASE_URL: url,
+    LEARNING_DATASET_PROFILE: '',
+    LEARNING_DATASET_BENCHMARK: '',
+    LEARNING_DATASET_SEED_DIAGNOSTICS: '1',
+  };
+}
 export const PUBLISHER_CONTRACTS = [
   {
     file: 'test/integration/batch-review-lock.integration.spec.ts',
@@ -5206,11 +5214,7 @@ export async function execution(identity, env) {
     if (['final', 'dataset-diagnostic'].includes(identity.group))
       await attempt('dataset', async () => {
         const url = await database('genfeed_dataset_5781_test');
-        const datasetEnv = {
-          LEARNING_DATASET_TEST_DATABASE_URL: url,
-          LEARNING_DATASET_PROFILE: '',
-          LEARNING_DATASET_BENCHMARK: '',
-        };
+        const datasetEnv = datasetChildEnvironment(url);
         const correctnessDeadline = Date.now() + 330000;
         await vitest(
           'dataset-correctness',

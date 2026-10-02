@@ -371,6 +371,8 @@ describe('hosted real production learning runtime', () => {
       fixture.services,
       target,
     );
+    materialize.mockClear();
+    const { WorkflowExecutionStatus } = await import('@genfeedai/contracts');
     const row = await fixture.enqueue(
       'content-learning.reconcile',
       target.organizationId,
@@ -380,11 +382,29 @@ describe('hosted real production learning runtime', () => {
         refreshBucket: 0,
       },
     );
-    expect(row.status).toBe('COMPLETED');
-    expect(row.nodeResults.some((node) => node.status === 'completed')).toBe(
-      true,
+    expect(row.status).toBe(WorkflowExecutionStatus.COMPLETED);
+    const actions = row.nodeResults.filter(
+      (node) => node.nodeId === 'learning-action',
     );
-    expect(materialize).toHaveBeenCalled();
+    expect(actions).toHaveLength(1);
+    const action = actions[0];
+    expect(action).toMatchObject({
+      executionId: row.id,
+      organizationId: target.organizationId,
+      status: WorkflowExecutionStatus.COMPLETED,
+      error: null,
+    });
+    expect(action.completedAt).toBeInstanceOf(Date);
+    expect(record(action.output)).toMatchObject({
+      status: 'completed',
+      failed: 0,
+      queued: 0,
+    });
+    expect(materialize).toHaveBeenCalledWith(
+      scope.scope,
+      scope.descriptor,
+      expect.any(Date),
+    );
     const checkpoints =
       await fixture.first.prisma.contentLearningCheckpoint.findMany({
         where: {

@@ -44,6 +44,7 @@ import {
   DEDICATED_BUDGETS,
   DELEGATED_API_FILES,
   databaseUrl,
+  datasetChildEnvironment,
   dedicatedChildEnvironment,
   ENVELOPE_LIMIT,
   encryptEvidence,
@@ -6197,6 +6198,13 @@ test('private dual reporters retain a real beforeAll error and cannot qualify it
 });
 
 test('dataset correctness requires all ten ordinary publication and graph cases', () => {
+  const url = 'postgresql://fixture@127.0.0.1:5432/genfeed_dataset_5781_test';
+  assert.deepEqual(datasetChildEnvironment(url), {
+    LEARNING_DATASET_TEST_DATABASE_URL: url,
+    LEARNING_DATASET_PROFILE: '',
+    LEARNING_DATASET_BENCHMARK: '',
+    LEARNING_DATASET_SEED_DIAGNOSTICS: '1',
+  });
   assert.equal(PG_TITLES.length, 10);
   const contract = {
     file: 'src/collections/content-learning/services/learning-dataset.postgres.spec.ts',

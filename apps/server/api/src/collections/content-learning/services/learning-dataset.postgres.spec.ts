@@ -8,6 +8,8 @@ import { LearningDatasetGraph } from '@api/collections/content-learning/services
 import {
   createLearningDatasetPublicationEvidence,
   createLearningDatasetPublications,
+  type DatasetPublicationPhase,
+  type DatasetPublicationProgress,
   withdrawLearningDatasetPublication,
 } from '@api/collections/content-learning/services/learning-dataset-publication.fixture';
 import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
@@ -25,7 +27,16 @@ import { formatMigrationDeployDiagnostic } from '@api-test/helpers/migration-dep
 import { CredentialPlatform, Prisma, PrismaClient } from '@genfeedai/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 vi.unmock('@genfeedai/prisma');
 vi.unmock('@prisma/adapter-pg');
@@ -111,6 +122,73 @@ describe.skipIf(!explicitUrl)(
       prisma: PrismaClient<'query'>,
       service: LearningDatasetService;
     let queryCount = 0;
+    let diagnosticsOwned = false;
+    let diagnosticBytes = 0;
+    let diagnosticRecords = 0;
+    let caseOrdinal = 0;
+    let seedOrdinal = 0;
+    const diagnosticTimers = new Set<ReturnType<typeof setInterval>>();
+    type SeedCounter = {
+      started: number;
+      complete: number;
+      failed: number;
+      elapsedMs: number;
+    };
+    type SeedEvent =
+      | 'bootstrap-start'
+      | 'bootstrap-end'
+      | 'case-start'
+      | 'case-end'
+      | 'seed-start'
+      | 'seed-end'
+      | 'seed-failed'
+      | 'heartbeat'
+      | 'publication-end'
+      | 'evidence-end'
+      | 'rows-end';
+    function seedDiagnostic(
+      event: SeedEvent,
+      seed = 0,
+      size = 0,
+      started = performance.now(),
+      counters?: Partial<Record<DatasetPublicationPhase, SeedCounter>>,
+      ownerCase = caseOrdinal,
+    ) {
+      if (
+        !diagnosticsOwned ||
+        process.env.LEARNING_DATASET_SEED_DIAGNOSTICS !== '1' ||
+        diagnosticRecords >= 1024
+      )
+        return;
+      const line = `DATASET_SEED_PHASE ${JSON.stringify({
+        version: 1,
+        role: databaseRole,
+        event,
+        caseOrdinal: ownerCase,
+        seedOrdinal: seed,
+        requestedSize: size,
+        elapsedMs: Math.max(0, performance.now() - started),
+        queryCount,
+        pool: {
+          total: pool.totalCount,
+          idle: pool.idleCount,
+          waiting: pool.waitingCount,
+        },
+        counters: counters ?? {},
+      })}\n`;
+      const bytes = Buffer.byteLength(line);
+      if (diagnosticBytes + bytes > 256 * 1024) return;
+      diagnosticRecords++;
+      diagnosticBytes += bytes;
+      process.stderr.write(line);
+    }
+    beforeEach(() => {
+      caseOrdinal++;
+      seedDiagnostic('case-start');
+    });
+    afterEach(() => {
+      seedDiagnostic('case-end');
+    });
     let secondaryGraphBatches = 0;
     let queryObserverOverheadMs = 0;
     let phaseInstrumentationOverheadMs = 0;
@@ -309,6 +387,8 @@ describe.skipIf(!explicitUrl)(
         options: '-c search_path=public',
       });
       await assertControllerOwnedMigrationConnection(pool, databaseRole, true);
+      diagnosticsOwned = true;
+      seedDiagnostic('bootstrap-start');
       const migrationDirectory = new URL(
         '../../../../../../../packages/prisma/prisma/migrations/',
         import.meta.url,
@@ -534,8 +614,11 @@ describe.skipIf(!explicitUrl)(
           },
         });
       }
+      seedDiagnostic('bootstrap-end');
     }, 120000);
     afterAll(async () => {
+      for (const timer of diagnosticTimers) clearInterval(timer);
+      diagnosticTimers.clear();
       const failures: unknown[] = [];
       try {
         await prisma?.$disconnect();
@@ -575,6 +658,57 @@ describe.skipIf(!explicitUrl)(
     let checkpointIds: string[] = [];
     let baselineIds: string[] = [];
     async function seed(size: number) {
+      const ordinal = ++seedOrdinal;
+      const ownerCase = caseOrdinal;
+      const started = performance.now();
+      const counters: Partial<Record<DatasetPublicationPhase, SeedCounter>> =
+        {};
+      const progress: DatasetPublicationProgress | undefined =
+        diagnosticsOwned &&
+        process.env.LEARNING_DATASET_SEED_DIAGNOSTICS === '1'
+          ? (phase, event, elapsedMs) => {
+              const counter = counters[phase] ?? {
+                started: 0,
+                complete: 0,
+                failed: 0,
+                elapsedMs: 0,
+              };
+              counters[phase] = counter;
+              if (event === 'start') counter.started++;
+              else {
+                counter[event]++;
+                counter.elapsedMs += elapsedMs;
+              }
+            }
+          : undefined;
+      const emit = (event: SeedEvent) =>
+        seedDiagnostic(event, ordinal, size, started, counters, ownerCase);
+      emit('seed-start');
+      const timer = progress
+        ? setInterval(() => emit('heartbeat'), 10000)
+        : undefined;
+      if (timer) {
+        timer.unref();
+        diagnosticTimers.add(timer);
+      }
+      try {
+        await seedRows(size, progress, emit);
+        emit('seed-end');
+      } catch (error) {
+        emit('seed-failed');
+        throw error;
+      } finally {
+        if (timer) {
+          clearInterval(timer);
+          diagnosticTimers.delete(timer);
+        }
+      }
+    }
+    async function seedRows(
+      size: number,
+      progress: DatasetPublicationProgress | undefined,
+      emit: (event: SeedEvent) => void,
+    ) {
       assertBenchmarkDiskSpace();
       await clearOutputs();
       for (const table of [
@@ -596,11 +730,15 @@ describe.skipIf(!explicitUrl)(
         prisma,
         size,
         randomUUID(),
+        progress,
       );
+      emit('publication-end');
       const evidence = await createLearningDatasetPublicationEvidence(
         prisma,
         publications,
+        progress,
       );
+      emit('evidence-end');
       checkpointIds = publications.map(
         (publication, index) =>
           evidence.checkpoints[index]?.id ?? `checkpoint-${publication.index}`,
@@ -711,6 +849,7 @@ describe.skipIf(!explicitUrl)(
           })),
         });
       }
+      emit('rows-end');
       await pool.query('ANALYZE');
     }
     async function measure(
@@ -1012,17 +1151,68 @@ describe.skipIf(!explicitUrl)(
       const originalPin = await prisma.contentVersionPin.findUniqueOrThrow({
         where: { id: source.versionPinId },
       });
-      const malformedPin = await prisma.contentVersionPin.create({
+      const attemptedId = randomUUID();
+      const attemptedKey = `malformed-${randomUUID()}`;
+      const originalPinCount = await prisma.contentVersionPin.count({
+        where: { organizationId: originalPin.organizationId },
+      });
+      await expect(
+        pool.query(
+          `INSERT INTO content_version_pins
+           (id, "organizationId", "brandId", "createdByUserId", "recordKind", "recordId", "recordVersion", "contentDigest", "idempotencyKey", provenance)
+           SELECT $1, "organizationId", "brandId", "createdByUserId", "recordKind", "recordId", "recordVersion", $2, $3, provenance
+           FROM content_version_pins WHERE id=$4 AND "organizationId"=$5`,
+          [
+            attemptedId,
+            'legacy',
+            attemptedKey,
+            originalPin.id,
+            originalPin.organizationId,
+          ],
+        ),
+      ).rejects.toMatchObject({
+        code: '23514',
+        constraint: 'content_version_pins_digest_check',
+      });
+      expect(
+        await prisma.contentVersionPin.findUnique({
+          where: { id: attemptedId },
+        }),
+      ).toBeNull();
+      expect(
+        await prisma.contentVersionPin.findFirst({
+          where: {
+            organizationId: originalPin.organizationId,
+            idempotencyKey: attemptedKey,
+          },
+        }),
+      ).toBeNull();
+      expect(
+        await prisma.contentVersionPin.count({
+          where: { organizationId: originalPin.organizationId },
+        }),
+      ).toBe(originalPinCount);
+      expect(
+        await prisma.contentVersionPin.findUniqueOrThrow({
+          where: { id: originalPin.id },
+        }),
+      ).toEqual(originalPin);
+      expect(originalPin.contentDigest).toMatch(/^sha256:v1:[0-9a-f]{64}$/);
+      const wrongDigest = `${originalPin.contentDigest.slice(0, -1)}${originalPin.contentDigest.endsWith('0') ? '1' : '0'}`;
+      expect(wrongDigest).not.toBe(originalPin.contentDigest);
+      expect(wrongDigest).toMatch(/^sha256:v1:[0-9a-f]{64}$/);
+      const wrongPin = await prisma.contentVersionPin.create({
         data: {
+          id: randomUUID(),
           organizationId: originalPin.organizationId,
           brandId: originalPin.brandId,
           createdByUserId: originalPin.createdByUserId,
           recordKind: originalPin.recordKind,
           recordId: originalPin.recordId,
           recordVersion: originalPin.recordVersion,
-          contentDigest: 'legacy',
+          contentDigest: wrongDigest,
           provenance: originalPin.provenance as Prisma.InputJsonValue,
-          idempotencyKey: `legacy-${randomUUID()}`,
+          idempotencyKey: `wrong-digest-${randomUUID()}`,
         },
       });
       const cases: Array<{
@@ -1122,16 +1312,16 @@ describe.skipIf(!explicitUrl)(
             }),
         },
         {
-          name: 'malformed publication digest',
+          name: 'mismatched publication digest',
           corrupt: () =>
             prisma.$transaction([
               prisma.post.update({
                 where: { id: source.postId },
-                data: { reviewVersionPinId: malformedPin.id },
+                data: { reviewVersionPinId: wrongPin.id },
               }),
               prisma.publishApproval.update({
                 where: { id: source.approvalId },
-                data: { artifactVersionPinId: malformedPin.id },
+                data: { artifactVersionPinId: wrongPin.id },
               }),
             ]),
           restore: () =>
@@ -1181,8 +1371,8 @@ describe.skipIf(!explicitUrl)(
             await graph.pins(
               'content_version_pin',
               [
-                change.name === 'malformed publication digest'
-                  ? malformedPin.id
+                change.name === 'mismatched publication digest'
+                  ? wrongPin.id
                   : source.versionPinId,
               ],
               'org-0',
@@ -1191,11 +1381,11 @@ describe.skipIf(!explicitUrl)(
           ).toEqual(
             new Map([
               [
-                change.name === 'malformed publication digest'
-                  ? malformedPin.id
+                change.name === 'mismatched publication digest'
+                  ? wrongPin.id
                   : source.versionPinId,
-                change.name === 'malformed publication digest'
-                  ? 'legacy'
+                change.name === 'mismatched publication digest'
+                  ? wrongDigest
                   : source.contentDigest,
               ],
             ]),
@@ -1220,6 +1410,11 @@ describe.skipIf(!explicitUrl)(
             where: { id: originalPin.id },
           }),
         ).toEqual(originalPin);
+        expect(
+          await prisma.contentVersionPin.findUniqueOrThrow({
+            where: { id: wrongPin.id },
+          }),
+        ).toEqual(wrongPin);
       }
       for (const ref of publications[0].refs.filter((ref) =>
         ['post', 'publish_approval', 'post_publish_finalization'].includes(
