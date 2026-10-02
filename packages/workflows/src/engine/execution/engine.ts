@@ -12,6 +12,7 @@ import type {
   CreditCostConfig,
   ExecutableNode,
   ExecutableWorkflow,
+  ExecutionContext,
   ExecutionProgressEvent,
   ExecutionRunResult,
   NodeExecutionResult,
@@ -32,10 +33,7 @@ import {
 import {
   DEFAULT_VIDEO_GENERATION_GATE_CONFIG,
   type EngineExecutionOptions,
-  type EvaluateVideoPilotFn,
-  type VideoGenerationAcceptance,
   type VideoGenerationGateConfig,
-  type VideoGenerationLineage,
 } from '../video-generation-lineage';
 import { WorkflowExecutionError } from './execution-error';
 import {
@@ -57,21 +55,7 @@ export type NodeExecutor = (
   context: ExecutionContext,
 ) => Promise<unknown>;
 
-export interface ExecutionContext {
-  workflowId: string;
-  workflowVersionId: string;
-  runId: string;
-  organizationId: string;
-  userId: string;
-  brandId?: string;
-  isCustomerWorkflow?: boolean;
-  scheduledFireJobId?: string;
-  executionId?: string;
-  abortSignal?: AbortSignal;
-  videoGenerationLineage?: VideoGenerationLineage;
-  videoPilotAcceptance?: VideoGenerationAcceptance;
-  evaluateVideoPilot?: EvaluateVideoPilotFn;
-}
+export type { ExecutionContext } from '../types';
 
 export interface EngineConfig {
   maxConcurrency: number;

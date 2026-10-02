@@ -413,11 +413,17 @@ describe('WorkflowEngine', () => {
       });
       gatherEngine.registerExecutor('imageGen', sourceExecutor);
       gatherEngine.registerExecutor('upscale', targetExecutor);
+      gatherEngine.registerExecutor('workflowInput', async () => undefined);
 
-      await gatherEngine.execute(
+      const result = await gatherEngine.execute(
         makeWorkflow(
-          [makeNode('n1', 'imageGen'), makeNode('n2', 'upscale')],
           [
+            makeNode('n1', 'imageGen'),
+            makeNode('n2', 'upscale'),
+            makeNode('activation', 'workflowInput'),
+          ],
+          [
+            makeEdge('activation', 'n2'),
             makeEdge('n1', 'n2', {
               sourceHandle: 'failure',
               targetHandle: 'failure',
@@ -427,6 +433,10 @@ describe('WorkflowEngine', () => {
       );
 
       expect(capturedInputs[0]).toEqual(new Map());
+      expect(capturedInputs).toHaveLength(1);
+      expect(targetExecutor).toHaveBeenCalledTimes(1);
+      expect(sourceExecutor).toHaveBeenCalledTimes(1);
+      expect(result.status).toBe('completed');
     });
 
     it('collects repeated target handles into an ordered array', async () => {
@@ -1209,10 +1219,7 @@ describe('WorkflowEngine failure-controlled graphs', () => {
         expect(result.nodeResults.get(failedNode)?.error).toBe('boom');
         expect(result.error).toBe('boom');
         for (const skipped of sources.slice(sources.indexOf(failedNode) + 1))
-          expect(result.nodeResults.get(skipped)).toMatchObject({
-            status: 'skipped',
-            creditsUsed: 0,
-          });
+          expect(result.nodeResults.has(skipped)).toBe(false);
       } else
         expect(result.nodeResults.get('compensate')).toMatchObject({
           status: 'skipped',
@@ -1311,7 +1318,10 @@ describe('WorkflowEngine failure-controlled graphs', () => {
   });
 
   it('drains an inflight sibling, blocks new success work, and runs compensation', async () => {
-    const engine = new WorkflowEngine({ maxConcurrency: 2 });
+    const engine = new WorkflowEngine({
+      maxConcurrency: 2,
+      creditCosts: { workflowInput: 3 },
+    });
     let releaseSibling!: () => void;
     const siblingReady = new Promise<void>((resolve) => {
       releaseSibling = resolve;
@@ -1342,11 +1352,114 @@ describe('WorkflowEngine failure-controlled graphs', () => {
     expect(calls).toContain('compensate');
     expect(calls).not.toContain('pending');
     expect(result.nodeResults.get('sibling')?.status).toBe('completed');
-    expect(result.nodeResults.get('pending')).toMatchObject({
-      status: 'skipped',
-      creditsUsed: 0,
-    });
+    expect(result.nodeResults.has('pending')).toBe(false);
+    expect(result.error).toBe('first failure');
+    expect(result.nodeResults.get('failure')?.creditsUsed).toBe(0);
+    expect(result.totalCreditsUsed).toBe(6);
+    expect(
+      [...result.nodeResults.values()].reduce(
+        (sum, node) => sum + node.creditsUsed,
+        0,
+      ),
+    ).toBe(result.totalCreditsUsed);
   });
+
+  it.each([
+    { first: 'generate', abort: false },
+    { first: 'failure', abort: false },
+    { first: 'generate', abort: true },
+    { first: 'failure', abort: true },
+  ])(
+    'retains failure over suspension and cancellation priority ($first first, abort=$abort)',
+    async ({ first, abort }) => {
+      const engine = createTestEngine({
+        maxConcurrency: 2,
+        creditCosts: { imageGen: 7, workflowInput: 3, publish: 11 },
+      });
+      const controller = new AbortController();
+      let releaseGenerate!: () => void;
+      let releaseFailure!: () => void;
+      const generateGate = new Promise<void>((resolve) => {
+        releaseGenerate = resolve;
+      });
+      const failureGate = new Promise<void>((resolve) => {
+        releaseFailure = resolve;
+      });
+      let started = 0;
+      const markStarted = () => {
+        started++;
+        if (started === 2) {
+          if (first === 'generate') releaseGenerate();
+          else releaseFailure();
+        }
+      };
+      const imageExecutor = vi.fn(async () => {
+        markStarted();
+        await generateGate;
+        return {
+          id: 'ingredient-1',
+          model: 'flux',
+          provider: 'replicate',
+          status: 'PROCESSING',
+        };
+      });
+      const failureExecutor = vi.fn(async () => {
+        markStarted();
+        await failureGate;
+        throw new PermanentExecutionError('sibling failed');
+      });
+      const downstreamExecutor = vi.fn(async () =>
+        buildFixtureOutput('publish'),
+      );
+      engine.registerExecutor('imageGen', imageExecutor);
+      engine.registerExecutor('workflowInput', failureExecutor);
+      engine.registerExecutor('publish', downstreamExecutor);
+      const result = await engine.execute(
+        makeWorkflow(
+          [
+            makeNode('generate', 'imageGen'),
+            makeNode('failure', 'workflowInput'),
+            makeNode('downstream', 'publish'),
+          ],
+          [
+            makeEdge('generate', 'downstream'),
+            makeEdge('failure', 'downstream'),
+          ],
+        ),
+        {
+          executionId: 'execution-suspended-failed',
+          maxRetries: 0,
+          abortSignal: controller.signal,
+          onNodeStatusChange: (event) => {
+            const firstSettled =
+              event.nodeId === first &&
+              (event.newStatus === 'failed' || event.output !== undefined);
+            if (!firstSettled) return;
+            if (abort) controller.abort();
+            if (first === 'generate') releaseFailure();
+            else releaseGenerate();
+          },
+        },
+      );
+      expect(imageExecutor).toHaveBeenCalledTimes(1);
+      expect(failureExecutor).toHaveBeenCalledTimes(1);
+      expect(result.nodeResults.get('generate')?.status).toBe('running');
+      expect(result.nodeResults.get('failure')?.status).toBe('failed');
+      expect(result.status).toBe(abort ? 'cancelled' : 'failed');
+      expect(result.error).toBe('sibling failed');
+      expect(result.completedAt).toBeDefined();
+      expect(downstreamExecutor).not.toHaveBeenCalled();
+      expect(result.nodeResults.has('downstream')).toBe(false);
+      expect(result.nodeResults.get('failure')?.creditsUsed).toBe(0);
+      expect(result.totalCreditsUsed).toBe(7);
+      expect(
+        [...result.nodeResults.values()].reduce(
+          (sum, node) => sum + node.creditsUsed,
+          0,
+        ),
+      ).toBe(result.totalCreditsUsed);
+    },
+  );
 
   it('does not dispatch pending compensation after abort', async () => {
     const engine = new WorkflowEngine({ maxConcurrency: 1 });

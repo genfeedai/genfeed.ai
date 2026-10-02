@@ -15,6 +15,22 @@ export type {
 } from '../contracts';
 export { DEFAULT_RETRY_CONFIG } from '../contracts';
 
+export interface ExecutionContext {
+  workflowId: string;
+  workflowVersionId: string;
+  runId: string;
+  organizationId: string;
+  userId: string;
+  brandId?: string;
+  isCustomerWorkflow?: boolean;
+  scheduledFireJobId?: string;
+  executionId?: string;
+  abortSignal?: AbortSignal;
+  videoGenerationLineage?: import('./video-generation-lineage').VideoGenerationLineage;
+  videoPilotAcceptance?: import('./video-generation-lineage').VideoGenerationAcceptance;
+  evaluateVideoPilot?: import('./video-generation-lineage').EvaluateVideoPilotFn;
+}
+
 export interface NodeExecutionResult {
   nodeId: string;
   status: import('../contracts').NodeExecutionStatus;

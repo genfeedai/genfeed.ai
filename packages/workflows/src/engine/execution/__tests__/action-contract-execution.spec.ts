@@ -19,7 +19,20 @@ vi.mock('@genfeedai/actions', () => ({
         inputSchema: {
           additionalProperties: false,
           properties: {
-            failure: { type: 'object', additionalProperties: true },
+            failure: {
+              type: 'object',
+              additionalProperties: false,
+              properties: {
+                error: { type: 'string' },
+                failedNodeId: { type: 'string' },
+                nodeOutputs: {
+                  type: 'object',
+                  additionalProperties: false,
+                  properties: {},
+                },
+              },
+              required: ['error', 'failedNodeId', 'nodeOutputs'],
+            },
             prompt: { type: 'string' },
           },
           required: ['failure', 'prompt'],
@@ -218,9 +231,10 @@ describe('WorkflowEngine required failure contract activation', () => {
         return { article: 'Generated' };
       });
       engine.registerExecutor('contract.failure', async (_node, inputs) => {
-        expect(inputs.get('failure')).toMatchObject({
+        expect(inputs.get('failure')).toEqual({
           error: 'source failed',
           failedNodeId: 'source',
+          nodeOutputs: {},
         });
         return compensation();
       });

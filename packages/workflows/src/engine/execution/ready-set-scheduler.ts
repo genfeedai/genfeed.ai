@@ -3,6 +3,7 @@ import type {
   ExecutableEdge,
   ExecutableNode,
   ExecutableWorkflow,
+  ExecutionContext,
   ExecutionProgressEvent,
   ExecutionRunResult,
   ExecutionStatus,
@@ -10,7 +11,6 @@ import type {
   NodeStatusChangeEvent,
 } from '../types';
 import type { EngineExecutionOptions } from '../video-generation-lineage';
-import type { ExecutionContext } from './engine';
 import {
   isFailureControlledNode,
   isWorkflowEdgeActive,
@@ -174,14 +174,16 @@ export async function runReadySetScheduler(
           remaining.splice(index, 1);
           skippedNodes.add(nodeId);
           completedNodes.add(nodeId);
-          nodeResults.set(nodeId, {
-            nodeId,
-            status: 'skipped',
-            creditsUsed: 0,
-            retryCount: 0,
-            startedAt,
-            completedAt: new Date(),
-          });
+          if (isFailureControlledNode(node, workflow.edges)) {
+            nodeResults.set(nodeId, {
+              nodeId,
+              status: 'skipped',
+              creditsUsed: 0,
+              retryCount: 0,
+              startedAt,
+              completedAt: new Date(),
+            });
+          }
           index = 0;
           continue;
         }
@@ -320,7 +322,7 @@ export async function runReadySetScheduler(
   // the already-dispatched work was being drained.
   if (wasAborted || context.abortSignal?.aborted) {
     currentStatus = 'cancelled';
-  } else if (hasSuspendedNode) {
+  } else if (hasSuspendedNode && currentStatus !== 'failed') {
     currentStatus = 'running';
   } else if (currentStatus !== 'failed') {
     // Count only nodes that were in the execution list (not pre-skipped locked nodes)
