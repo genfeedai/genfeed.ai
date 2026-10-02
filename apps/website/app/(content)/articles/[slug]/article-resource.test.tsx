@@ -1,5 +1,4 @@
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { captureWebsiteAnalyticsEvent } from '../../../../packages/analytics/posthog-client';
 import ArticleResource from './article-resource';
@@ -20,9 +19,9 @@ beforeEach(() => {
 it('copies a verified focused install command and records the successful resource action', async () => {
   vi.mocked(copyText).mockResolvedValue(true);
   render(<ArticleResource slug="tested-guide" resource={resource} />);
-  await userEvent.click(
-    screen.getByRole('button', { name: 'Copy install command' }),
-  );
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Copy install command' }));
+  });
   expect(copyText).toHaveBeenCalledWith(
     'bunx skills add genfeedai/skills --skill cinematic-prompting',
   );
@@ -42,18 +41,18 @@ it('copies a verified focused install command and records the successful resourc
 it('does not report an install-command action when clipboard copying fails', async () => {
   vi.mocked(copyText).mockResolvedValue(false);
   render(<ArticleResource slug="tested-guide" resource={resource} />);
-  await userEvent.click(
-    screen.getByRole('button', { name: 'Copy install command' }),
-  );
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Copy install command' }));
+  });
   expect(captureWebsiteAnalyticsEvent).not.toHaveBeenCalled();
 });
 
-it('links to the public MCP setup page and records the resource action', async () => {
+it('links to the public MCP setup page and records the resource action', () => {
   render(<ArticleResource slug="tested-guide" resource={resource} />);
   const link = screen.getByRole('link', { name: 'Connect through MCP' });
   expect(link).toHaveAttribute('href', 'https://mcp.genfeed.ai');
   link.addEventListener('click', (event) => event.preventDefault());
-  await userEvent.click(link);
+  fireEvent.click(link);
   expect(captureWebsiteAnalyticsEvent).toHaveBeenCalledWith(
     'article_cta_clicked',
     {
