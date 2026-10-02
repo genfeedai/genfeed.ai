@@ -101,3 +101,45 @@ describe('buildArticleApplyHref', () => {
     );
   });
 });
+
+describe('Genfeed article resources', () => {
+  const article = {
+    id: 'article-1',
+    label: 'Prompt guide',
+    slug: 'how-to-prompt-ai-images-videos-and-audio',
+  } as Article;
+  it('offers a real free skill and public Pro offer on a Genfeed guide', () => {
+    render(<ArticleDetail article={article} isPreview={false} />);
+    expect(
+      screen.getByRole('link', { name: 'Get the free skill' }),
+    ).toHaveAttribute(
+      'href',
+      'https://github.com/genfeedai/skills/tree/master/cinematic-prompting',
+    );
+    expect(
+      screen.getByRole('link', { name: 'Explore Skills Pro' }),
+    ).toHaveAttribute('href', '/skills');
+  });
+  it('keeps promotion out of unpublished previews', () => {
+    render(<ArticleDetail article={article} isPreview />);
+    expect(
+      screen.queryByRole('link', { name: 'Get the free skill' }),
+    ).not.toBeInTheDocument();
+  });
+  it('keeps Genfeed promotion out of a customer publication with the same slug', () => {
+    render(
+      <ArticleDetail
+        article={
+          {
+            ...article,
+            brand: { label: 'Customer', slug: 'customer' },
+          } as Article
+        }
+        isPreview={false}
+      />,
+    );
+    expect(
+      screen.queryByRole('link', { name: 'Get the free skill' }),
+    ).not.toBeInTheDocument();
+  });
+});

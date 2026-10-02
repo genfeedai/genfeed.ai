@@ -15,6 +15,9 @@ const CATALOG_REST_NAMES = [
   'merge_videos',
   'get_video_analytics',
   'create_article',
+  'create_article_draft',
+  'get_article_preview',
+  'publish_article',
   'search_articles',
   'get_article',
   'list_images',
@@ -32,6 +35,8 @@ const CATALOG_REST_NAMES = [
 const APPROVAL_GATED_NAMES = [
   'create_post',
   'create_article',
+  'create_article_draft',
+  'publish_article',
   'generate_content_batch',
   'start_brand_interview',
   'submit_brand_interview_answer',
@@ -97,6 +102,20 @@ function build() {
       .mockImplementation((toolName: string) =>
         Promise.resolve({ id: 'apr-1', status: 'PENDING', toolName }),
       ),
+    createArticleDraft: vi.fn().mockResolvedValue({
+      id: 'article-2',
+      status: 'DRAFT',
+      title: 'Reviewed guide',
+    }),
+    getArticlePreview: vi.fn().mockResolvedValue({
+      url: 'https://genfeed.ai/articles/reviewed-guide?previewToken=private',
+      expiresInSeconds: 3600,
+    }),
+    publishArticle: vi.fn().mockResolvedValue({
+      id: 'article-2',
+      status: 'PUBLISHED',
+      title: 'Reviewed guide',
+    }),
     createArticle: vi.fn().mockResolvedValue({
       id: 'article-1',
       status: 'draft',
@@ -244,6 +263,78 @@ describe('catalog REST handlers — video', () => {
 });
 
 describe('catalog REST handlers — articles', () => {
+  it.each(['create_article_draft', 'publish_article'])(
+    'queues %s before any CMS write',
+    async (name) => {
+      const { client, registry } = build();
+      const args =
+        name === 'publish_article'
+          ? { articleId: 'article-2' }
+          : {
+              label: 'Reviewed guide',
+              slug: 'reviewed-guide',
+              summary: 'Verified',
+              content: '<p>Full content</p>',
+            };
+      const result = await callTool(registry, name, args);
+      expect(client.createApproval).toHaveBeenCalledWith(name, args);
+      expect(client.createArticleDraft).not.toHaveBeenCalled();
+      expect(client.publishArticle).not.toHaveBeenCalled();
+      expect(result.content[0].text).toContain('requires approval');
+    },
+  );
+
+  it('saves full reviewed HTML when draft creation is approved', async () => {
+    const { client, registry } = build();
+    const args = {
+      label: 'Reviewed guide',
+      slug: 'reviewed-guide',
+      summary: 'Verified',
+      content: '<p>Full content</p>',
+    };
+    client.resolveApproval.mockResolvedValue({
+      arguments: args,
+      id: 'apr-1',
+      status: 'APPROVED',
+      toolName: 'create_article_draft',
+    });
+    const result = await callTool(registry, 'resolve_approval', {
+      approvalId: 'apr-1',
+      decision: 'approve',
+    });
+    expect(client.createArticleDraft).toHaveBeenCalledWith(args);
+    expect(client.publishArticle).not.toHaveBeenCalled();
+    expect(result.content[0].text).toContain('saved as a draft');
+  });
+
+  it('publishes only after approval without forwarding new content', async () => {
+    const { client, registry } = build();
+    client.resolveApproval.mockResolvedValue({
+      arguments: { articleId: 'article-2' },
+      id: 'apr-1',
+      status: 'APPROVED',
+      toolName: 'publish_article',
+    });
+    const result = await callTool(registry, 'resolve_approval', {
+      approvalId: 'apr-1',
+      decision: 'approve',
+    });
+    expect(client.publishArticle).toHaveBeenCalledWith('article-2');
+    expect(result.content[0].text).toContain('PUBLISHED');
+  });
+
+  it('returns a private preview through the read handler', async () => {
+    const { client, registry } = build();
+    const result = await callTool(registry, 'get_article_preview', {
+      articleId: 'article-2',
+    });
+    expect(client.getArticlePreview).toHaveBeenCalledWith('article-2');
+    expect(client.createApproval).not.toHaveBeenCalled();
+    expect(result.structuredContent?.data).toMatchObject({
+      expiresInSeconds: 3600,
+    });
+  });
+
   it('creates an article through the approval execution path', async () => {
     const { client, registry } = build();
     client.resolveApproval.mockResolvedValue({

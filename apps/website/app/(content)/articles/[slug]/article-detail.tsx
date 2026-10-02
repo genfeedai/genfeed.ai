@@ -1,3 +1,4 @@
+import { getArticleResource } from '@data/article-resources.data';
 import type { IconType } from '@genfeedai/contracts/interfaces/ui/icon.interface';
 import { createMarkup } from '@genfeedai/helpers';
 import {
@@ -19,6 +20,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { resolvePublicArticleAuthor } from './article-author';
 import ArticleContent from './article-content';
+import ArticleResource from './article-resource';
 import ArticleShareButton from './article-share-button';
 
 /**
@@ -204,6 +206,10 @@ export default function ArticleDetail({
     );
   }
 
+  const resource =
+    !isPreview && (!article.brand || article.brand.slug === 'genfeed')
+      ? getArticleResource(article.slug)
+      : null;
   const brand = article.brand;
   const authorLabel = resolvePublicArticleAuthor(article);
 
@@ -295,7 +301,15 @@ export default function ArticleDetail({
               applyHref={buildArticleApplyHref(article.label)}
               sanitizedHtml={createMarkup(article.content || '').__html}
               slug={article.slug}
+              resource={resource}
             />
+            {resource ? (
+              <ArticleResource
+                key={article.slug}
+                slug={article.slug}
+                resource={resource}
+              />
+            ) : null}
           </div>
 
           <aside className="order-first lg:order-last lg:col-span-1">

@@ -89,6 +89,172 @@ test('a cancelled run never hides an earlier failure for the same SHA', () => {
   assert.equal(selected?.id, 1);
 });
 
+test('a newer completed failure blocks older qualified green evidence', async () => {
+  await assert.rejects(
+    resolveFullSuiteEvidence(
+      harness({
+        listRuns: async () => [
+          run({ id: 1 }),
+          run({
+            id: 2,
+            conclusion: 'failure',
+            created_at: '2026-09-01T12:53:47Z',
+          }),
+        ],
+      }),
+    ),
+    /concluded failure/,
+  );
+});
+
+test('a newer qualified success supersedes an earlier failure', async () => {
+  const result = await resolveFullSuiteEvidence(
+    harness({
+      listRuns: async () => [
+        run({ id: 1, conclusion: 'failure' }),
+        run({ id: 2, created_at: '2026-09-01T12:53:47Z' }),
+      ],
+    }),
+  );
+  assert.equal(result.kind, 'verified');
+  assert.equal(result.run.id, 2);
+});
+
+test('rerun verdict ordering uses attempt start rather than run creation', async () => {
+  await assert.rejects(
+    resolveFullSuiteEvidence(
+      harness({
+        listRuns: async () => [
+          run({ id: 1, created_at: '2026-09-02T11:00:00Z' }),
+          run({
+            id: 2,
+            run_attempt: 2,
+            conclusion: 'failure',
+            run_started_at: '2026-09-03T11:00:00Z',
+          }),
+        ],
+      }),
+    ),
+    /concluded failure/,
+  );
+});
+
+for (const status of ['in_progress', 'completed']) {
+  test(`${status} rerun cannot hide a prior failed attempt behind another green run`, async () => {
+    await assert.rejects(
+      resolveFullSuiteEvidence(
+        harness({
+          listRuns: async () => [
+            run({ id: 1 }),
+            run({
+              id: 2,
+              run_attempt: 3,
+              status,
+              conclusion: status === 'completed' ? 'cancelled' : null,
+            }),
+          ],
+          getAttempt: async (id, attempt) =>
+            run({
+              id,
+              run_attempt: attempt,
+              conclusion: attempt === 2 ? 'cancelled' : 'failure',
+              run_started_at: '2026-09-02T11:00:00Z',
+            }),
+        }),
+      ),
+      /concluded failure/,
+    );
+  });
+}
+
+test('a cancelled rerun can reuse its prior qualified successful attempt', async () => {
+  const result = await resolveFullSuiteEvidence(
+    harness({
+      listRuns: async () => [run({ run_attempt: 2, conclusion: 'cancelled' })],
+      getAttempt: async () => run(),
+    }),
+  );
+  assert.equal(result.kind, 'verified');
+  assert.equal(result.run.run_attempt, 1);
+});
+
+test('cancelled rerun job failures still block its prior green attempt', async () => {
+  await assert.rejects(
+    resolveFullSuiteEvidence(
+      harness({
+        listRuns: async () => [
+          run({ run_attempt: 2, conclusion: 'cancelled' }),
+        ],
+        getAttempt: async () => run(),
+        listJobs: async (_id, attempt) =>
+          attempt === 2 ? [gate({ conclusion: 'failure' })] : [gate()],
+      }),
+    ),
+    /Final Connected Acceptance concluded failure/,
+  );
+});
+
+test('a newer green supersedes an older cancelled attempt with failed jobs', async () => {
+  const result = await resolveFullSuiteEvidence(
+    harness({
+      listRuns: async () => [
+        run({ id: 1, conclusion: 'cancelled' }),
+        run({ id: 2, created_at: '2026-09-02T11:00:00Z' }),
+      ],
+      listJobs: async (id) => [
+        gate({ run_id: id, conclusion: id === 1 ? 'failure' : 'success' }),
+      ],
+    }),
+  );
+  assert.equal(result.kind, 'verified');
+  assert.equal(result.run.id, 2);
+});
+
+test('a failed job in an intermediate cancelled attempt cannot hide behind old green', async () => {
+  await assert.rejects(
+    resolveFullSuiteEvidence(
+      harness({
+        listRuns: async () => [
+          run({ run_attempt: 3, status: 'in_progress', conclusion: null }),
+        ],
+        getAttempt: async (_id, attempt) =>
+          run({
+            run_attempt: attempt,
+            conclusion: attempt === 2 ? 'cancelled' : 'success',
+          }),
+        listJobs: async (_id, attempt) => [
+          gate({
+            conclusion: attempt === 2 ? 'failure' : 'success',
+          }),
+        ],
+      }),
+    ),
+    /Final Connected Acceptance concluded failure/,
+  );
+});
+
+test('prior attempt recovery fails closed on wrong identity or unavailable history', async () => {
+  for (const getAttempt of [
+    async () => run({ head_sha: 'a'.repeat(40) }),
+    async () => run({ run_attempt: 2 }),
+    async () => {
+      throw new Error('HTTP 500 attempts');
+    },
+  ]) {
+    await assert.rejects(
+      resolveFullSuiteEvidence(
+        harness({
+          listRuns: async () => [
+            run({ run_attempt: 2, status: 'in_progress', conclusion: null }),
+          ],
+          getAttempt,
+        }),
+      ),
+      /identity|HTTP 500 attempts/,
+    );
+  }
+});
+
 test('a hard-red exact-SHA run blocks release even after a later cancel', async () => {
   await assert.rejects(
     resolveFullSuiteEvidence(

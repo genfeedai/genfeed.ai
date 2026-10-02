@@ -218,10 +218,25 @@ describe('ArticlesController', () => {
         id,
       );
 
+      expect(service.findOne).toHaveBeenCalledWith({
+        id,
+        isDeleted: false,
+        organizationId: mockPublicMetadata.organization,
+        brandId: mockPublicMetadata.brand,
+        OR: [{ userId: mockPublicMetadata.user }, { scope: 'ORGANIZATION' }],
+      });
       expect(result.expiresInSeconds).toBeGreaterThan(0);
       expect(result.url).toContain(
         'https://genfeed.ai/articles/test-article?previewToken=',
       );
+    });
+
+    it('rejects a preview when the scoped read finds no accessible article', async () => {
+      mockArticlesService.findOne.mockResolvedValue(null);
+      await expect(
+        controller.createPreviewLink(mockRequest, mockUser, id),
+      ).rejects.toThrow();
+      expect(mockConfigService.get).not.toHaveBeenCalled();
     });
 
     it('should reject minting when no signing key is configured', async () => {

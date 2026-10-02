@@ -6,6 +6,7 @@ Twitter thread conversion, virality analysis, and public link sharing.
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { ArticlesController } from '@api/collections/articles/controllers/articles.controller';
+import { ArticlesTrafficController } from '@api/collections/articles/controllers/articles-traffic.controller';
 import { ArticlesOperationsController } from '@api/collections/articles/controllers/operations/articles-operations.controller';
 import { ArticlesTransformationsController } from '@api/collections/articles/controllers/transformations/articles-transformations.controller';
 import { ArticleAnalyticsService } from '@api/collections/articles/services/article-analytics.service';
@@ -15,6 +16,7 @@ import { ArticleInsightsService } from '@api/collections/articles/services/artic
 import { ArticleRemixService } from '@api/collections/articles/services/article-remix.service';
 import { ArticleReviewService } from '@api/collections/articles/services/article-review.service';
 import { ArticleTextGenerationService } from '@api/collections/articles/services/article-text-generation.service';
+import { ArticleTrafficService } from '@api/collections/articles/services/article-traffic.service';
 import { ArticleVersionService } from '@api/collections/articles/services/article-version.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
@@ -52,10 +54,12 @@ import { Module } from '@nestjs/common';
   controllers: [
     ArticlesOperationsController,
     ArticlesTransformationsController,
+    ArticlesTrafficController,
     ArticlesController,
   ],
   exports: [
     ArticleAnalyticsService,
+    ArticleTrafficService,
     ArticleGenerationCreditsService,
     ArticlesContentService,
     ArticlesService,
@@ -89,6 +93,7 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     ArticleAnalyticsService,
+    ArticleTrafficService,
     ArticleContentPersistenceService,
     ArticleGenerationCreditsService,
     ArticleInsightsService,

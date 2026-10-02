@@ -28,6 +28,7 @@ const apiSrc = path.resolve(here, '../../../api/src');
 
 /** A tool that dispatches through the agent-executor to a single shared route. */
 const BASE_CRUD_LIST = '__BASE_CRUD_LIST__';
+const BASE_CRUD_CREATE = '__BASE_CRUD_CREATE__';
 
 /**
  * Controllers the MCP proxy depends on. `prefix` is the `@Controller(...)`
@@ -415,6 +416,24 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     tools: ['search_articles'],
   },
   { method: 'Get', sub: ':id', controller: 'articles', tools: ['get_article'] },
+  {
+    method: 'Post',
+    sub: BASE_CRUD_CREATE,
+    controller: 'articles',
+    tools: ['create_article_draft'],
+  },
+  {
+    method: 'Get',
+    sub: ':articleId/preview-links',
+    controller: 'articles',
+    tools: ['get_article_preview'],
+  },
+  {
+    method: 'Patch',
+    sub: ':articleId',
+    controller: 'articles',
+    tools: ['publish_article'],
+  },
   {
     method: 'Get',
     sub: 'usage',
@@ -842,9 +861,18 @@ describe('MCP → API route contract', () => {
     for (const route of ROUTE_CONTRACT) {
       const src = readController(route.controller);
       const mounted =
-        route.sub === BASE_CRUD_LIST
-          ? src.includes('extends BaseCRUDController')
-          : src.includes(decoratorFor(route));
+        route.sub === BASE_CRUD_CREATE
+          ? src.includes('extends BaseCRUDController') &&
+            readFileSync(
+              path.join(
+                apiSrc,
+                'shared/controllers/base-crud/base-crud.controller.ts',
+              ),
+              'utf8',
+            ).includes('@Post()')
+          : route.sub === BASE_CRUD_LIST
+            ? src.includes('extends BaseCRUDController')
+            : src.includes(decoratorFor(route));
       if (!mounted) {
         const shown =
           route.sub === BASE_CRUD_LIST
