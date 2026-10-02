@@ -15,7 +15,7 @@
 #
 # The script depends only on node: builtins, so this needs no `bun install` and
 # no monorepo build — checkout, extract the base copy, run.
-name: Curated action catalog
+name: Curated Action Catalog
 
 on:
   pull_request:

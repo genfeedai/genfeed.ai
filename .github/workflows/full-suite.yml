@@ -80,9 +80,9 @@ jobs:
       contents: read
       packages: write
     uses: ./.github/workflows/build-verify.yml
-    # No `secrets: inherit` — build-verify.yml only uses GITHUB_TOKEN (GHCR
-    # login), which every called workflow gets automatically. Inheriting the full
-    # secret set here would over-scope it (least-privilege).
+    secrets:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+    # Only the image-build sourcemap credential crosses this boundary.
 
   e2e:
     name: E2E Suite

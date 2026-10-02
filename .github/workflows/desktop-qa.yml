@@ -1,17 +1,9 @@
 name: Desktop QA
 
 on:
-  # The desktop shell boots the canonical `apps/app` bundle (#2371), so the
-  # honest blast radius of a desktop regression is nearly every frontend
-  # change — the old pull_request path filter matched apps/app/** plus 13
-  # bundled packages, i.e. effectively every PR, each paying a ~30 min
-  # macos-latest (10× Linux billing) run while the desktop surface is dormant
-  # (its heavy CI lanes are already disabled behind ENABLE_DESKTOP_CI). A
-  # nightly run keeps the binary honest with at most one day of drift; the
-  # desktop release path still runs this via workflow_call, and any PR that
-  # needs the signal can dispatch it manually.
+  # Keep the dormant desktop build checked weekly; releases always call QA.
   schedule:
-    - cron: '17 3 * * *' # nightly, 03:17 UTC — off the top-of-hour rush
+    - cron: '17 3 * * 1' # Monday, 03:17 UTC
   workflow_dispatch:
   workflow_call:
 
@@ -19,9 +11,9 @@ permissions:
   contents: read
 
 concurrency:
-  # Nightly/dispatch/call runs key on the complete ref so distinct tags and
-  # branches cannot cancel each other; a fresh nightly supersedes a stale one.
-  group: desktop-qa-${{ github.ref }}
+  # Callers and triggers remain isolated: weekly QA cannot cancel release QA.
+  # A fresh run replaces only an older run from the same lane and complete ref.
+  group: desktop-qa-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 env:
@@ -51,6 +43,21 @@ jobs:
         # script directly and skips the `^build` dependency, leaving the
         # workspace packages unbuilt for the type-check step.
         run: bunx turbo run qa:release --filter=@genfeedai/desktop
+
+      - name: Build app for Electron runtime acceptance
+        uses: ./.github/actions/setup-playwright-app
+
+      - name: Verify Electron runtime transitions
+        run: bunx playwright test --config playwright/configs/playwright-desktop-runtime-electron.config.ts
+
+      - name: Upload Electron runtime evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: desktop-electron-runtime
+          path: playwright/artifacts/electron-runtime/
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: QA summary
         if: always()

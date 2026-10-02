@@ -57,10 +57,8 @@ After that shared gate it ships both distribution lanes from the same commit:
 
 - community: self-hosted image, public install assets, and anonymous install
   smoke
-- SaaS: the default `monorepo` lane deploys the exact pinned public commit as
-  jobs on this public repository (free standard GitHub-hosted minutes). The
-  optional `operations` lane still dispatches the private operations workflow
-  and waits for its production checks
+- SaaS: public workflows deploy the exact pinned commit through migration,
+  boot checks, ECS rollout, Vercel deployment and production smoke checks.
 
 The workflow creates a draft release before the gates so a failed attempt can
 reuse the same version safely. It publishes the GitHub release and advances
@@ -70,7 +68,7 @@ alone is not evidence that production shipped.
 If a failed canonical `Release` already deployed hosted SaaS and pushed the
 versioned Community image, recover that same version through `Release` on
 `master`: enter the unchanged tag, the failed run's numeric ID in
-`recovery_run_id`, and the same `saas_lane` used by the failed run. Do not rerun
+`recovery_run_id`. Do not rerun
 the historical workflow and do not bump the version. Recovery fails closed
 unless GitHub proves that the prior run belongs to this repository, ran the
 canonical workflow from `master`, matches the requested tag and unpublished
@@ -147,20 +145,12 @@ public repository so GitHub bills free public Actions minutes. Do not
 clone `console.genfeed.ai` and do not dispatch its workflow to ship
 production. Fleet and LoRA stay in console.
 
-There are two hosted SaaS lanes:
-
-- **`monorepo` (default).** `Release` and the standalone `Deploy hosted SaaS`
-  workflow run entirely in this public repository: GHCR→ECR, migrate,
-  boot-smoke, ECS roll, Vercel, smoke. Production deployment requires explicit
-  approval of the exact reviewed SHA through the cut-release process. The
-  standalone deploy workflow is not the normal release entry point.
-- **`operations`.** Choose `saas_lane=operations` on `Release` only when
-  deploy logs must stay private. That lane still dispatches console and
-  consumes paid private Actions minutes.
-
-Both lanes require the pinned SHA to remain reachable from public `master`.
-Marketplace releases run independently in its own repository. Neither Genfeed
-release lane accepts a Marketplace source pin or checks out its private source.
+`Release` and the standalone `Deploy hosted SaaS` workflow run in this public
+repository: GHCR→ECR, migrate, boot-smoke, ECS roll, Vercel, smoke. Production
+deployment requires explicit approval of the exact reviewed SHA through the
+cut-release process. The standalone deploy is not the normal release entry point.
+The pinned SHA must remain reachable from public `master`. Marketplace releases
+run independently in their own repository.
 Hosted SaaS reusable-workflow
 calls map only the declared deploy secrets (`VERCEL_TOKEN`,
 `NEXT_PUBLIC_POSTHOG_KEY`, optional `TURBO_TOKEN`) and never inherit the
@@ -169,7 +159,7 @@ The engine deploys Vercel frontends after the API rollout and smokes the
 live estate. A missing, timed-out, cancelled, or failed SaaS deploy leaves
 the public release as a draft and prevents `latest` and npm promotion.
 
-The default `monorepo` lane does not use `CONSOLE_DEPLOY_TOKEN`. Site
+Hosted SaaS deployment does not use `CONSOLE_DEPLOY_TOKEN`. Site
 identity is **not** in the repo. Put it on the `production` GitHub
 environment and the workflow fails closed if a required value is empty.
 
@@ -194,15 +184,8 @@ Required secrets: `VERCEL_TOKEN`, `NEXT_PUBLIC_POSTHOG_KEY`.
 A fork can deploy its own hosted SaaS by filling that environment. There
 are no `genfeed.ai` / `genfeed-data` / VPC defaults in the apply path.
 
-`CONSOLE_DEPLOY_TOKEN` is only required for `saas_lane=operations`.
-
-The genfeedai org rejects fine-grained PATs whose lifetime is greater than
-366 days. Recreate `CONSOLE_DEPLOY_TOKEN` with expiration ≤ 366 days if a
-release preflight fails with that diagnosis. Authorize org SSO on the token
-when GitHub prompts. The Release workflow preflights this capability before
-dispatching and fails closed with a missing-capability message — it never
-prints the token. After rotating the secret, rerun the same release tag; do
-not burn a new version.
+`CONSOLE_DEPLOY_TOKEN` remains in use by CI issue/project reporters; retiring
+private deployment does not retire that reporting credential.
 
 ## Desktop Release
 
@@ -238,35 +221,47 @@ Required GitHub Actions secrets:
 
 ## Mobile Release
 
-Mobile releases are shipped separately from the main production release.
+Keep this lane available while frontend development takes priority. Manual
+`Mobile - Validate and EAS Build` runs default to validation and unit tests;
+leave `build=false` to avoid starting remote EAS jobs.
 
-1. Start from the `master` commit you want to ship.
-2. Create and push a mobile tag such as `mobile-v1.2.3`.
+Before a remote build, link the Expo project, set the repository variable
+`EXPO_PROJECT_ID` to its UUID, and configure the `EXPO_TOKEN` secret. The workflow
+writes that linkage into the CI copy of `app.json`. The native identifiers live
+in `app.json`; signing credentials must already be configured in EAS for
+non-interactive device/store builds. No App Store or Play Store submission is
+configured yet.
 
-```bash
-git checkout master
-git pull --ff-only origin master
-git tag mobile-v1.2.3
-git push origin mobile-v1.2.3
-```
-
-That tag triggers the Expo/EAS mobile build workflow.
+For a release, update both the mobile package and Expo app versions, then push
+`mobile-v<version>` from the approved `master` commit. Tags build both platforms
+with the production profile. Manual remote builds default to the preview profile
+and let you choose a platform. This lane still needs a successful signed EAS
+build before it can be considered release-ready.
 
 ## Browser Extension Release
 
-Browser extension releases are also shipped separately.
+Manual `Browser Extension - Package and Submit` runs default to tests, build,
+and a downloadable Chrome ZIP; leave `submit=false` while developing the frontend.
+The build uses Turbo so workspace dependencies build before Plasmo packages the
+extension. This lane still needs a successful packaging and store validation run
+before it can be considered release-ready.
 
-1. Start from the `master` commit you want to ship.
-2. Create and push a browser extension tag such as `extension-browser-v1.2.3`.
+Before submission, configure `EXTENSION_SUBMIT_KEYS` as Chrome-only Plasmo BPP
+JSON containing `chrome.clientId`, `clientSecret`, `refreshToken`, and `extId`.
+The extension ID is the 32-letter Chrome Web Store ID. Do not put credentials in
+source files. Obtain the OAuth credentials and create the store listing first.
 
-```bash
-git checkout master
-git pull --ff-only origin master
-git tag extension-browser-v1.2.3
-git push origin extension-browser-v1.2.3
-```
+Update the browser package version, then push `extension-browser-v<version>`
+from the approved `master` commit. The tag must match the package version and
+triggers store submission after tests and packaging succeed. Manual submission
+requires selecting that same release tag and setting `submit=true`; branch runs
+only package the extension.
 
-That tag triggers `.github/workflows/browser-extension-submit.yml`, which builds the extension, uploads the packaged zip artifact, and submits it to the Chrome Web Store.
+## IDE Extension Packaging
+
+`Package IDE Extension` (`package-ide-extension.yml`) remains manual. It runs
+lint, type checks, unit/E2E tests, build, and VSIX packaging, then uploads the
+VSIX for local installation. Marketplace publication is not configured.
 
 ## Shipping All Surfaces For One Version
 

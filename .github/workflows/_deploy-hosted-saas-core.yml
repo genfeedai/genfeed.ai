@@ -315,7 +315,7 @@ jobs:
             echo "sha=$REQUESTED_TAG" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          echo "::error::server:${HEAD_SHA} was not found, and server-image inputs changed after newest available ancestor ${ANCESTOR}. Wait for the Build Server Image workflow for ${HEAD_SHA}, then re-dispatch."
+          echo "::error::server:${HEAD_SHA} was not found, and server-image inputs changed after newest available ancestor ${ANCESTOR}. Wait for the Full Suite server image build for ${HEAD_SHA}, then re-dispatch."
           exit 1
 
       - name: Prepare hosted server image

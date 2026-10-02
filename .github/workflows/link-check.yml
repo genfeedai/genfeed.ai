@@ -16,7 +16,7 @@
 #     relative-file links. Root-relative app routes are excluded in lychee.toml
 #     (the crawler above owns those).
 #
-# A paths-filter detect job runs each guard only when its surface changed.
+# The workspace graph selects website consumers; path filters select docs.
 
 name: Link Check
 
@@ -46,23 +46,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     outputs:
-      website: ${{ steps.changes.outputs.website }}
+      website: ${{ steps.frontends.outputs.website }}
       docs: ${{ steps.changes.outputs.docs }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
+      - id: frontends
+        uses: ./.github/actions/detect-frontend-scope
+
       - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: changes
         with:
           filters: |
-            website:
-              - 'apps/website/**'
-              - 'packages/**'
-              - 'bun.lock'
-              - '.github/workflows/link-check.yml'
-              - '.github/actions/setup-bun-env/**'
             docs:
               - 'apps/docs/content/**'
               - 'lychee.toml'

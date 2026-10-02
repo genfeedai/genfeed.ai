@@ -1,0 +1,27 @@
+name: Detect Frontend Scope
+description: Select frontend consumers through the local workspace dependency graph.
+outputs:
+  apps:
+    description: JSON array of affected frontend names
+    value: ${{ steps.scope.outputs.apps }}
+  frontend:
+    description: Whether any frontend is affected
+    value: ${{ steps.scope.outputs.frontend }}
+  app:
+    description: Whether the app is affected
+    value: ${{ steps.scope.outputs.app }}
+  website:
+    description: Whether the website is affected
+    value: ${{ steps.scope.outputs.website }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version: '24.x'
+    - id: scope
+      shell: bash
+      env:
+        BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        EVENT_NAME: ${{ github.event_name }}
+      run: node scripts/ci/frontend-scope.mjs

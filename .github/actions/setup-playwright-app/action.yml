@@ -1,0 +1,38 @@
+name: Setup Playwright App
+description: Install the test toolchain and build the app with an explicit browser-test contract.
+inputs:
+  test-mode:
+    description: Inline the mocked test/auth bypass at build time
+    default: 'true'
+  api-endpoint:
+    description: API origin used by the selected browser test tier
+    default: https://api.genfeed.ai/v1
+  better-auth-secret:
+    description: Synthetic or explicitly supplied signing secret
+    default: test-better-auth-secret
+  better-auth-enabled:
+    description: Inline the Better Auth feature flag
+    default: 'true'
+  install-command:
+    description: Dependency installation command
+    default: bun install --frozen-lockfile
+runs:
+  using: composite
+  steps:
+    - name: Setup Bun environment
+      uses: ./.github/actions/setup-bun-env
+      with:
+        install-command: ${{ inputs.install-command }}
+        cache-playwright: 'true'
+    - name: Build app
+      shell: bash
+      env:
+        NEXT_PUBLIC_PLAYWRIGHT_TEST: ${{ inputs.test-mode }}
+        NEXT_PUBLIC_GENFEED_CLOUD: 'false'
+        NEXT_PUBLIC_API_ENDPOINT: ${{ inputs.api-endpoint }}
+        NEXT_PUBLIC_API_URL: ${{ inputs.api-endpoint }}
+        NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ inputs.better-auth-enabled }}
+        BETTER_AUTH_SECRET: ${{ inputs.better-auth-secret }}
+        E2E_COVERAGE: '1'
+      # Full-tier specs import helpers even though the app build does not.
+      run: bunx turbo run build --filter=@genfeedai/app --filter=@genfeedai/helpers
