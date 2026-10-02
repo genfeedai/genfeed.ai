@@ -267,6 +267,27 @@ describe('Saved-ad source reader', () => {
       expect(savedAd.findMany).not.toHaveBeenCalled();
     }
   });
+  it('bounds the native take argument including lookahead before persistence', async () => {
+    for (const pagination of [
+      { pageSize: 2_147_483_647, maxPageSize: 2_147_483_647 },
+      { pageSize: 1, maxPageSize: 2_147_483_647 },
+      { pageSize: 2_147_483_648, maxPageSize: 2_147_483_648 },
+    ]) {
+      const savedAd = delegate();
+      await expect(
+        readSavedAdSourcePage(savedAd, input({ pagination })),
+      ).rejects.toThrow();
+      expect(savedAd.findMany).not.toHaveBeenCalled();
+    }
+    const savedAd = delegate();
+    await readSavedAdSourcePage(
+      savedAd,
+      input({
+        pagination: { pageSize: 2_147_483_646, maxPageSize: 2_147_483_646 },
+      }),
+    );
+    expect(savedAd.findMany.mock.calls[0]?.[0]?.take).toBe(2_147_483_647);
+  });
   it('preserves persistence failures without claiming an empty eligible result', async () => {
     const savedAd = delegate();
     savedAd.findMany.mockRejectedValueOnce(new Error('unavailable'));

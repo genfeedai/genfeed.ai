@@ -1,15 +1,11 @@
 import {
-  type AgentSourceCandidate,
-  type AgentSourceScope,
   agentSourceIdSchema,
   agentSourceScopeSchema,
   agentSourceTimestampSchema,
+  type RankAgentSourcesInput,
   rankEligibleAgentSources,
 } from '@api/collections/agent-strategies/sources/agent-source-candidates';
-import {
-  type AgentSourcePolicy,
-  resolveAgentSourcePolicy,
-} from '@api/collections/agent-strategies/sources/agent-source-policy';
+import { resolveAgentSourcePolicy } from '@api/collections/agent-strategies/sources/agent-source-policy';
 import type { Prisma, PrismaClient } from '@genfeedai/prisma';
 import { z } from 'zod';
 
@@ -27,18 +23,13 @@ const cursorSchema = z
     id: agentSourceIdSchema,
   })
   .strict();
+// Keep take (including one-row lookahead) within the signed 32-bit Int range.
+// This is a representability limit; the caller still supplies its operational bound.
+const MAX_PAGE_SIZE = 2_147_483_647 - 1;
 const paginationSchema = z
   .object({
-    pageSize: z
-      .number()
-      .int()
-      .positive()
-      .max(Number.MAX_SAFE_INTEGER - 1),
-    maxPageSize: z
-      .number()
-      .int()
-      .positive()
-      .max(Number.MAX_SAFE_INTEGER - 1),
+    pageSize: z.number().int().positive().max(MAX_PAGE_SIZE),
+    maxPageSize: z.number().int().positive().max(MAX_PAGE_SIZE),
     after: cursorSchema.optional(),
   })
   .strict()
@@ -47,20 +38,20 @@ const paginationSchema = z
     'Page exceeds explicit bound',
   );
 export type SavedAdSourceCursor = Readonly<z.infer<typeof cursorSchema>>;
-export interface ReadSavedAdSourcesInput {
-  readonly scope: AgentSourceScope;
-  readonly policy: AgentSourcePolicy;
-  readonly now: string;
-  readonly blockedSourceKeys: ReadonlySet<string>;
-  readonly pagination: Readonly<z.infer<typeof paginationSchema>>;
-}
-export interface SavedAdSourcePage {
-  readonly candidates: readonly AgentSourceCandidate[];
-  /** Counts queried page rows before blocked-key filtering, excluding lookahead. */
-  readonly scannedCount: number;
-  readonly hasMore: boolean;
-  readonly nextCursor: SavedAdSourceCursor | null;
-}
+const readInputSchema = z
+  .object({
+    scope: agentSourceScopeSchema,
+    now: agentSourceTimestampSchema,
+    pagination: paginationSchema,
+  })
+  .strict();
+export type ReadSavedAdSourcesInput = Readonly<
+  z.infer<typeof readInputSchema>
+> &
+  Pick<RankAgentSourcesInput, 'policy' | 'blockedSourceKeys'>;
+export type SavedAdSourcePage = Awaited<
+  ReturnType<typeof readSavedAdSourcePage>
+>;
 
 /** Internal read-only page adapter. Continuations require the same scope, policy and now.
  * A page is not a global eligible snapshot or a reservation authorization. New or
@@ -69,15 +60,21 @@ export interface SavedAdSourcePage {
 export async function readSavedAdSourcePage(
   savedAd: Pick<PrismaClient['savedAd'], 'findMany'>,
   input: ReadSavedAdSourcesInput,
-): Promise<SavedAdSourcePage> {
-  const scope = agentSourceScopeSchema.parse(input.scope);
+) {
+  const {
+    scope,
+    now: nowString,
+    pagination,
+  } = readInputSchema.parse({
+    scope: input.scope,
+    now: input.now,
+    pagination: input.pagination,
+  });
   const policy = resolveAgentSourcePolicy(
     input.policy,
     input.policy.freshnessWindowMs,
   );
-  const nowString = agentSourceTimestampSchema.parse(input.now);
   const now = Date.parse(nowString);
-  const pagination = paginationSchema.parse(input.pagination);
   const lower = new Date(now - policy.freshnessWindowMs);
   if (!Number.isFinite(now) || !Number.isFinite(lower.getTime()))
     throw new Error('Invalid saved-ad freshness interval');
@@ -137,6 +134,7 @@ export async function readSavedAdSourcePage(
   });
   return Object.freeze({
     candidates,
+    // Counts query page rows before blocked filtering, excluding lookahead.
     scannedCount: pageRows.length,
     hasMore,
     nextCursor:
