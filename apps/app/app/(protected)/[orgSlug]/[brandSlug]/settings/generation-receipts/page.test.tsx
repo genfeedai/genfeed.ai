@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import type { ResolvingMetadata } from 'next';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('./content', () => ({
@@ -11,9 +12,14 @@ vi.mock('@helpers/media/metadata/page-metadata.helper', () => ({
 import GenerationReceiptsPage, { generateMetadata } from './page';
 
 describe('generation receipts route', () => {
-  it('mounts its client content and saved-details metadata', () => {
+  it('mounts its client content and saved-details metadata', async () => {
     render(<GenerationReceiptsPage />);
     expect(screen.getByText('mounted-receipt-content')).toBeDefined();
-    expect(generateMetadata()).toEqual({ title: 'Generation receipts' });
+    const parent = Promise.resolve({
+      openGraph: { images: [] },
+    }) as unknown as ResolvingMetadata;
+    expect(await generateMetadata({}, parent)).toEqual({
+      title: 'Generation receipts',
+    });
   });
 });

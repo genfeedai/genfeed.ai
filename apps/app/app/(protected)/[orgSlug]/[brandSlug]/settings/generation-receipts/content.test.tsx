@@ -124,7 +124,7 @@ function metadata() {
   };
 }
 function respond() {
-  http.get.mockImplementation(async (path: string) => {
+  const handler = async (path: string) => {
     const brandId = path.split('/')[0];
     const receiptId = path.split('/')[2] ?? 'receipt';
     const value = {
@@ -177,7 +177,9 @@ function respond() {
       ...collectionDocument([value], { type: 'branded-generation-receipt' }),
       links: { cursor: { hasMore: false, limit: 10, nextCursor: null } },
     });
-  });
+  };
+  http.get.mockImplementation(handler);
+  return handler;
 }
 describe('mounted saved receipt customer read flow', () => {
   beforeEach(() => {
@@ -405,7 +407,7 @@ describe('mounted saved receipt customer read flow', () => {
     );
   });
   function paginated(kind: 'list' | 'history', firstRevision = 1) {
-    const fallback = http.get.getMockImplementation();
+    const fallback = respond();
     http.get.mockImplementation(
       async (
         path: string,
@@ -415,7 +417,7 @@ describe('mounted saved receipt customer read flow', () => {
           kind === 'history'
             ? path.endsWith('/history')
             : path.endsWith('/generation-receipts');
-        if (!target) return fallback?.(path, options);
+        if (!target) return fallback(path);
         const continuation =
           kind === 'history'
             ? options.params?.afterRevision !== undefined

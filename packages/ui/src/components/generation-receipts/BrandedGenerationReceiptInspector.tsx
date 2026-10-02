@@ -164,6 +164,9 @@ function recordedLearning(
     BrandedGenerationReceiptInspectorState['receipt']
   >['learning'],
   unknown: string,
+  brandFeedback: string,
+  globalRelease: string,
+  accountPolicy: string,
 ) {
   return (
     <section className="space-y-2">
@@ -171,7 +174,7 @@ function recordedLearning(
       <ul className="space-y-3 text-sm">
         <li>
           <p>
-            brand_feedback · {learning?.brandFeedback.status ?? unknown} ·{' '}
+            {brandFeedback} · {learning?.brandFeedback.status ?? unknown} ·{' '}
             {learning?.brandFeedback.reasonCode}
           </p>
           <p className="break-words text-xs text-muted-foreground">
@@ -183,7 +186,7 @@ function recordedLearning(
         </li>
         <li>
           <p>
-            global_release · {learning?.global.status ?? unknown} ·{' '}
+            {globalRelease} · {learning?.global.status ?? unknown} ·{' '}
             {learning?.global.reasonCode}
           </p>
           <p className="break-words text-xs text-muted-foreground">
@@ -195,7 +198,7 @@ function recordedLearning(
         </li>
         <li>
           <p>
-            account_policy ·{' '}
+            {accountPolicy} ·{' '}
             {learning?.privateAccount.application?.status ?? unknown} ·{' '}
             {learning?.privateAccount.application?.appliedArmId} ·{' '}
             {learning?.privateAccount.application?.reasonCodes.join(', ')}
@@ -249,7 +252,14 @@ function SavedMetadata({
         </div>
       </dl>
       {recordedLayers(t('layers'), receipt.layers)}
-      {recordedLearning(t('learning'), receipt.learning, t('unknown'))}
+      {recordedLearning(
+        t('learning'),
+        receipt.learning,
+        t('unknown'),
+        t('brandFeedback'),
+        t('globalRelease'),
+        t('accountPolicy'),
+      )}
       <section className="space-y-2">
         <h3 className="text-sm font-medium">{t('artifact')}</h3>
         <p className="break-words text-sm">
