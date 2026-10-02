@@ -5,6 +5,14 @@ import {
 } from '@api/shared/testing/prisma-mock';
 
 describe('canonicalPrismaMock', () => {
+  it('exports the PostgreSQL transaction isolation levels', () => {
+    expect(canonicalPrismaMock().Prisma.TransactionIsolationLevel).toEqual({
+      ReadUncommitted: 'ReadUncommitted',
+      ReadCommitted: 'ReadCommitted',
+      RepeatableRead: 'RepeatableRead',
+      Serializable: 'Serializable',
+    });
+  });
   it('exports the production-compatible JSON serializer', () => {
     const createdAt = new Date('2026-08-20T10:00:00.000Z');
 

@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { AgentGoalsService } from '@api/collections/agent-goals/services/agent-goals.service';
 import { lockAgentStrategy } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import type { AgentStrategyPerformanceSnapshot } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.types';
@@ -9,6 +9,10 @@ import {
 } from '@api/collections/agent-strategies/services/agent-strategy-due.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import {
+  getNextDailyReset,
+  getNextWeeklyReset,
+} from '@api/collections/workflows/services/agent-autopilot-time.util';
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
 import { PROACTIVE_AGENT_TURN_SOURCE } from '@api/collections/workflows/system-workflow-definition';
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
@@ -24,7 +28,11 @@ import {
   normalizeAgentAutonomyMode,
 } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
-import { toPrismaJson } from '@genfeedai/prisma';
+import {
+  type Prisma,
+  WorkflowExecutionStatus as PrismaWorkflowExecutionStatus,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -66,7 +74,6 @@ type AgentStrategyConfig = {
 };
 
 type AgentStrategySnapshot = {
-  agentType?: string;
   brandId?: string;
   config: AgentStrategyConfig;
   goalId?: string;
@@ -97,6 +104,18 @@ export interface AgentWorkflowHandoffContext {
   workflowNodeType?: string;
   workflowRunId?: string;
 }
+
+const STRATEGY_SELECT = {
+  agentType: true,
+  brandId: true,
+  config: true,
+  goalId: true,
+  id: true,
+  label: true,
+  organizationId: true,
+  platforms: true,
+  userId: true,
+} as const satisfies Prisma.AgentStrategySelect;
 
 const MAX_STRATEGIES_PER_CYCLE = 20;
 /** Page size for the ordered, paginated active-strategy scan (#5252 review). */
@@ -146,22 +165,13 @@ export class AgentAutopilotWorkflowService {
     }
     const now = new Date();
     const strategies = await this.prisma.agentStrategy.findMany({
-      select: {
-        agentType: true,
-        brandId: true,
-        config: true,
-        goalId: true,
-        id: true,
-        label: true,
-        organizationId: true,
-        userId: true,
-      },
+      select: STRATEGY_SELECT,
       where: scopedWhere(organizationId, { isActive: true }),
     });
     return {
       baseInput: { now: now.toISOString(), organizationId },
       items: strategies
-        .map((strategy) => this.toStrategySnapshot(strategy))
+        .map((strategy) => this.readStrategySnapshot(strategy))
         .filter((strategy) => this.requiresCreditReset(strategy, now)),
     };
   }
@@ -183,7 +193,7 @@ export class AgentAutopilotWorkflowService {
 
       const dailyResetAt = this.parseDate(config.dailyResetAt);
       if (!dailyResetAt || dailyResetAt <= now) {
-        const nextDailyReset = this.getNextDailyReset();
+        const nextDailyReset = getNextDailyReset();
         updatedConfig.creditsUsedToday = 0;
         updatedConfig.dailyCreditsUsed = 0;
         updatedConfig.dailyResetAt = nextDailyReset.toISOString();
@@ -193,7 +203,7 @@ export class AgentAutopilotWorkflowService {
       const weeklyResetAt = this.parseDate(config.weeklyResetAt);
       if (!weeklyResetAt || weeklyResetAt <= now) {
         updatedConfig.creditsUsedThisWeek = 0;
-        updatedConfig.weeklyResetAt = this.getNextWeeklyReset().toISOString();
+        updatedConfig.weeklyResetAt = getNextWeeklyReset().toISOString();
       }
 
       await transaction.agentStrategy.update({
@@ -214,27 +224,13 @@ export class AgentAutopilotWorkflowService {
     }
     const now = new Date();
     const items: AgentStrategySnapshot[] = [];
-    // Paginate in stable `id` order rather than a single unordered
-    // `take: MAX_STRATEGIES_PER_CYCLE * 5` (#5252 review): without an
-    // explicit order, Postgres does not guarantee which rows a `LIMIT`
-    // returns, so an org with more active strategies than that cap could
-    // have some silently never scanned, cycle after cycle. Stop as soon as
-    // MAX_STRATEGIES_PER_CYCLE due strategies are found — that is the most
-    // this cycle will dispatch anyway.
+    // Stable pagination includes due strategies and accepted pending work.
+    // Stop at the cycle's dispatch cap without dropping later eligible rows.
     let cursor: string | undefined;
     while (items.length < MAX_STRATEGIES_PER_CYCLE) {
       const page = await this.prisma.agentStrategy.findMany({
         orderBy: { id: 'asc' },
-        select: {
-          agentType: true,
-          brandId: true,
-          config: true,
-          goalId: true,
-          id: true,
-          label: true,
-          organizationId: true,
-          userId: true,
-        },
+        select: STRATEGY_SELECT,
         take: STRATEGY_DISCOVERY_PAGE_SIZE,
         where: scopedWhere(organizationId, {
           isActive: true,
@@ -242,9 +238,33 @@ export class AgentAutopilotWorkflowService {
         }),
       });
       if (page.length === 0) break;
+      const pending = await this.prisma.workflowExecution.findMany({
+        select: { result: true },
+        where: scopedWhere(
+          organizationId,
+          this.pendingDispatchWhere(
+            organizationId,
+            page.map((strategy) => strategy.id),
+          ),
+        ),
+      });
+      const pendingIds = new Set(
+        pending.map(
+          (execution) =>
+            this.readRecord(this.readRecord(execution.result).metadata)
+              .strategyId,
+        ),
+      );
       for (const strategy of page) {
-        const snapshot = this.toStrategySnapshot(strategy);
-        if (this.isDueStrategy(snapshot, now)) {
+        const snapshot = this.readStrategySnapshot(strategy);
+        if (
+          isAgentStrategyDue(
+            { ...snapshot.config, nextRunAt: undefined },
+            now,
+          ) &&
+          (isAgentStrategyDue(snapshot.config, now) ||
+            pendingIds.has(snapshot.id))
+        ) {
           items.push(snapshot);
           if (items.length >= MAX_STRATEGIES_PER_CYCLE) break;
         }
@@ -317,11 +337,26 @@ export class AgentAutopilotWorkflowService {
     return { organizationId, released: state.acquired === true };
   }
 
-  private isDueStrategy(strategy: AgentStrategySnapshot, now: Date): boolean {
-    return isAgentStrategyDue(this.readConfig(strategy), now);
+  private async executeStrategy(
+    strategy: AgentStrategySnapshot,
+    workflowHandoff?: AgentWorkflowHandoffContext,
+  ): Promise<string | null> {
+    // Keep dispatch serialization separate from the strategy-config lock:
+    // queue failures can complete/account for a run and acquire that lock.
+    return this.prisma.$transaction(
+      async (transaction) => {
+        const lockKey = `agent-proactive-dispatch:${strategy.organizationId}:${strategy.id}`;
+        const locks = await transaction.$queryRaw<Array<{ acquired: boolean }>>`
+        SELECT pg_try_advisory_xact_lock(hashtextextended(${lockKey}, 0)) AS acquired
+      `;
+        if (locks[0]?.acquired !== true) return null;
+        return this.executeDueStrategy(strategy, workflowHandoff);
+      },
+      { maxWait: 5000, timeout: 30000 },
+    );
   }
 
-  private async executeStrategy(
+  private async executeDueStrategy(
     strategy: AgentStrategySnapshot,
     workflowHandoff?: AgentWorkflowHandoffContext,
   ): Promise<string | null> {
@@ -331,11 +366,152 @@ export class AgentAutopilotWorkflowService {
       where: scopedWhere(organizationId, { id: strategyId, isActive: true }),
     });
     if (!current) return null;
-    strategy = this.toStrategySnapshot(current);
+    strategy = this.readStrategySnapshot(current);
     const userId = strategy.userId;
-    const config = this.readConfig(strategy);
-    if (!this.isDueStrategy(strategy, new Date())) return null;
+    const config = strategy.config;
+    const now = new Date();
+    if (!isAgentStrategyDue({ ...config, nextRunAt: undefined }, now))
+      return null;
+    let recovery = await this.prisma.workflowExecution.findFirst({
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      where: scopedWhere(
+        organizationId,
+        this.pendingDispatchWhere(organizationId, [strategyId]),
+      ),
+    });
+    if (recovery?.status !== PrismaWorkflowExecutionStatus.PENDING)
+      recovery = null;
+    if (!recovery && !isAgentStrategyDue(strategy.config, now)) return null;
+    const remainingBudget = recovery
+      ? null
+      : await this.resolveDispatchBudget(strategy, config);
+    if (!recovery && remainingBudget === null) return null;
+    const dueAt = this.parseDate(config.nextRunAt)?.toISOString() ?? 'initial';
+    const currentDispatchId = `proactive:${createHash('sha256')
+      .update(JSON.stringify([organizationId, strategyId, dueAt]))
+      .digest('hex')}`;
+    const dispatchId = recovery?.idempotencyKey ?? currentDispatchId;
 
+    try {
+      const existing =
+        recovery ??
+        (await this.prisma.workflowExecution.findFirst({
+          where: scopedWhere(organizationId, { idempotencyKey: dispatchId }),
+        }));
+      if (
+        existing &&
+        existing.status !== PrismaWorkflowExecutionStatus.PENDING
+      ) {
+        if (dispatchId === currentDispatchId)
+          await this.scheduleNextRun(strategyId, config.runFrequency);
+        return existing.id;
+      }
+      if (existing) {
+        const result = this.readRecord(existing.result);
+        await this.workflowRunner.enqueueWorkflow(
+          {
+            actionType: 'agent.turn.execute',
+            canonicalId: 'agent.turn.execute',
+            idempotencyKey: dispatchId,
+            inputValues: this.readRecord(result.inputValues),
+            metadata: this.readRecord(result.metadata),
+            organizationId,
+            source: PROACTIVE_AGENT_TURN_SOURCE,
+            userId: existing.userId,
+          },
+          { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+        );
+        if (dispatchId === currentDispatchId)
+          await this.scheduleNextRun(strategyId, config.runFrequency);
+        return existing.id;
+      }
+      if (remainingBudget === null) return null;
+      const performanceSnapshot =
+        await this.performanceService.getPerformanceSnapshot(
+          strategyId,
+          organizationId,
+          'weekly',
+        );
+      const objective = await this.buildSyntheticUserMessage(
+        strategy,
+        remainingBudget,
+        performanceSnapshot,
+      );
+      const thread = await this.resolveStrategyThread(strategy);
+      const dispatchThreadId = thread.id;
+      const { executionId } = await this.workflowRunner.enqueueWorkflow(
+        {
+          actionType: 'agent.turn.execute',
+          canonicalId: 'agent.turn.execute',
+          idempotencyKey: dispatchId,
+          inputValues: {
+            request: {
+              content: objective,
+              source: 'proactive',
+              creditBudget: remainingBudget,
+              strategyId,
+              threadId: dispatchThreadId,
+              ...(config.agentType ? { agentType: config.agentType } : {}),
+              autonomyMode: normalizeAgentAutonomyMode(config.autonomyMode),
+              ...(strategy.brandId ? { brandId: strategy.brandId } : {}),
+              ...(config.model ? { model: config.model } : {}),
+            },
+          },
+          metadata: {
+            ...(this.buildExecutionMetadata(strategy, workflowHandoff) ?? {}),
+            label: `Proactive: ${strategy.label}`,
+            performanceSnapshot,
+            dispatchId,
+            ...(strategy.brandId ? { brandId: strategy.brandId } : {}),
+            source: 'proactive',
+            strategyId,
+            threadId: dispatchThreadId,
+          },
+          organizationId,
+          source: PROACTIVE_AGENT_TURN_SOURCE,
+          userId,
+        },
+        { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+      );
+
+      if (dispatchId === currentDispatchId)
+        await this.scheduleNextRun(strategyId, config.runFrequency);
+      return executionId;
+    } catch (error) {
+      const durable = await this.prisma.workflowExecution.findFirst({
+        where: scopedWhere(organizationId, { idempotencyKey: dispatchId }),
+        select: { id: true },
+      });
+      if (durable) {
+        if (dispatchId === currentDispatchId)
+          await this.scheduleNextRun(strategyId, config.runFrequency);
+        return durable.id;
+      }
+      await this.recordStrategyFailure(strategy, config, error, dispatchId);
+      return null;
+    }
+  }
+
+  private pendingDispatchWhere(
+    organizationId: string,
+    strategyIds: string[],
+  ): Prisma.WorkflowExecutionWhereInput {
+    return scopedWhere(organizationId, {
+      status: PrismaWorkflowExecutionStatus.PENDING,
+      idempotencyKey: { startsWith: 'proactive:' },
+      result: { path: ['metadata', 'source'], equals: 'proactive' },
+      OR: strategyIds.map((id) => ({
+        result: { path: ['metadata', 'strategyId'], equals: id },
+      })),
+    });
+  }
+
+  private async resolveDispatchBudget(
+    strategy: AgentStrategySnapshot,
+    config: AgentStrategyConfig,
+  ): Promise<number | null> {
+    const organizationId = strategy.organizationId;
+    const strategyId = strategy.id;
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
         organizationId: organizationId,
@@ -410,65 +586,7 @@ export class AgentAutopilotWorkflowService {
       await this.scheduleNextRun(strategyId, config.runFrequency);
       return null;
     }
-    let dispatchThreadId: string | undefined;
-    const dispatchId = randomUUID();
-
-    try {
-      const performanceSnapshot =
-        await this.performanceService.getPerformanceSnapshot(
-          strategyId,
-          organizationId,
-          'weekly',
-        );
-      const objective = await this.buildSyntheticUserMessage(
-        strategy,
-        remainingBudget,
-        performanceSnapshot,
-      );
-      const thread = await this.resolveStrategyThread(strategy);
-      dispatchThreadId = thread.id;
-      const { executionId } = await this.workflowRunner.enqueueWorkflow(
-        {
-          actionType: 'agent.turn.execute',
-          canonicalId: 'agent.turn.execute',
-          inputValues: {
-            request: {
-              content: objective,
-              source: 'proactive',
-              creditBudget: remainingBudget,
-              strategyId,
-              threadId: dispatchThreadId,
-              ...((config.agentType ?? strategy.agentType)
-                ? { agentType: config.agentType ?? strategy.agentType }
-                : {}),
-              autonomyMode: normalizeAgentAutonomyMode(config.autonomyMode),
-              ...(strategy.brandId ? { brandId: strategy.brandId } : {}),
-              ...(config.model ? { model: config.model } : {}),
-            },
-          },
-          metadata: {
-            ...(this.buildExecutionMetadata(strategy, workflowHandoff) ?? {}),
-            label: `Proactive: ${strategy.label}`,
-            performanceSnapshot,
-            dispatchId,
-            ...(strategy.brandId ? { brandId: strategy.brandId } : {}),
-            source: 'proactive',
-            strategyId,
-            threadId: dispatchThreadId,
-          },
-          organizationId,
-          source: PROACTIVE_AGENT_TURN_SOURCE,
-          userId,
-        },
-        { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
-      );
-
-      await this.scheduleNextRun(strategyId, config.runFrequency);
-      return executionId;
-    } catch (error) {
-      await this.recordStrategyFailure(strategy, config, error, dispatchId);
-      return null;
-    }
+    return remainingBudget;
   }
 
   private async recordStrategyFailure(
@@ -615,7 +733,7 @@ export class AgentAutopilotWorkflowService {
     remainingBudget: number,
     performanceSnapshot: AgentStrategyPerformanceSnapshot,
   ): Promise<string> {
-    const config = this.readConfig(strategy);
+    const config = strategy.config;
     const brand = strategy.brandId
       ? await this.prisma.brand.findFirst({
           where: scopedWhere(strategy.organizationId, { id: strategy.brandId }),
@@ -629,7 +747,7 @@ export class AgentAutopilotWorkflowService {
     const brandVoice = this.readRecord(brandConfig.voice);
     const platforms = config.platforms ?? brandStrategy.platforms ?? [];
     const brief = {
-      agentType: config.agentType ?? strategy.agentType,
+      agentType: config.agentType,
       label: strategy.label,
       strategyId: strategy.id,
       strategy: {
@@ -665,7 +783,7 @@ export class AgentAutopilotWorkflowService {
     strategy: AgentStrategySnapshot,
     now: Date,
   ): boolean {
-    const config = this.readConfig(strategy);
+    const config = strategy.config;
     const dailyResetAt = this.parseDate(config.dailyResetAt);
     const weeklyResetAt = this.parseDate(config.weeklyResetAt);
     return (
@@ -725,28 +843,17 @@ export class AgentAutopilotWorkflowService {
     brandId: string,
   ): Promise<number> {
     const strategies = await this.prisma.agentStrategy.findMany({
-      select: {
-        agentType: true,
-        brandId: true,
-        config: true,
-        goalId: true,
-        id: true,
-        label: true,
-        organizationId: true,
-        userId: true,
-      },
+      select: { config: true },
       where: scopedWhere(organizationId, { brandId }),
     });
 
-    return strategies
-      .map((strategy) => this.toStrategySnapshot(strategy))
-      .reduce((sum, strategy) => {
-        const config = this.readConfig(strategy);
-        return (
-          sum +
-          Math.max(config.creditsUsedToday ?? 0, config.dailyCreditsUsed ?? 0)
-        );
-      }, 0);
+    return strategies.reduce((sum, strategy) => {
+      const config = this.readRecord(strategy.config) as AgentStrategyConfig;
+      return (
+        sum +
+        Math.max(config.creditsUsedToday ?? 0, config.dailyCreditsUsed ?? 0)
+      );
+    }, 0);
   }
 
   private result(
@@ -819,17 +926,22 @@ export class AgentAutopilotWorkflowService {
     };
   }
 
-  private readConfig(strategy: AgentStrategySnapshot): AgentStrategyConfig {
-    return strategy.config ?? {};
-  }
-
   private readStrategySnapshot(value: unknown): AgentStrategySnapshot {
     const strategy = this.readRecord(value);
     return {
-      ...(typeof strategy.agentType === 'string'
-        ? { agentType: strategy.agentType }
-        : {}),
-      config: this.readRecord(strategy.config) as AgentStrategyConfig,
+      config: {
+        ...this.readRecord(strategy.config),
+        ...(typeof strategy.agentType === 'string'
+          ? { agentType: strategy.agentType }
+          : {}),
+        ...(Array.isArray(strategy.platforms)
+          ? {
+              platforms: strategy.platforms.filter(
+                (platform): platform is string => typeof platform === 'string',
+              ),
+            }
+          : {}),
+      },
       id: this.requiredString(strategy.id, 'strategy.id'),
       organizationId: this.requiredString(
         strategy.organizationId,
@@ -846,30 +958,6 @@ export class AgentAutopilotWorkflowService {
     };
   }
 
-  private toStrategySnapshot(strategy: {
-    agentType?: string | null;
-    brandId: string | null;
-    config: unknown;
-    goalId: string | null;
-    id: string;
-    label: string | null;
-    organizationId: string;
-    userId: string;
-  }): AgentStrategySnapshot {
-    return {
-      ...(typeof strategy.agentType === 'string'
-        ? { agentType: strategy.agentType }
-        : {}),
-      config: this.readRecord(strategy.config) as AgentStrategyConfig,
-      id: strategy.id,
-      organizationId: strategy.organizationId,
-      userId: strategy.userId,
-      ...(strategy.brandId ? { brandId: strategy.brandId } : {}),
-      ...(strategy.goalId ? { goalId: strategy.goalId } : {}),
-      ...(strategy.label ? { label: strategy.label } : {}),
-    };
-  }
-
   private parseDate(value: unknown): Date | null {
     if (typeof value !== 'string' && !(value instanceof Date)) {
       return null;
@@ -877,22 +965,6 @@ export class AgentAutopilotWorkflowService {
 
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? null : date;
-  }
-
-  private getNextDailyReset(): Date {
-    const next = new Date();
-    next.setDate(next.getDate() + 1);
-    next.setHours(0, 0, 0, 0);
-    return next;
-  }
-
-  private getNextWeeklyReset(): Date {
-    const next = new Date();
-    const dayOfWeek = next.getDay();
-    const daysUntilMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
-    next.setDate(next.getDate() + daysUntilMonday);
-    next.setHours(0, 0, 0, 0);
-    return next;
   }
 
   private lockKey(organizationId: string): string {
