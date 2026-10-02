@@ -1,6 +1,25 @@
+import { randomUUID } from 'node:crypto';
+import { LearningAccountService } from '@api/collections/content-learning/services/learning-account.service';
+import { LearningCheckpointService } from '@api/collections/content-learning/services/learning-checkpoint.service';
+import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
+import { LearningOperationService } from '@api/collections/content-learning/services/learning-operation.service';
+import { LearningPolicyService } from '@api/collections/content-learning/services/learning-policy.service';
+import { LearningScopeStateService } from '@api/collections/content-learning/services/learning-scope-state.service';
 import { OutlierConfigurationService } from '@api/collections/outliers/services/outlier-configuration.service';
 import { OutlierInputsService } from '@api/collections/outliers/services/outlier-inputs.service';
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
+import {
+  type WorkflowExecutionJobData,
+  WorkflowExecutionQueueService,
+} from '@api/collections/workflows/services/workflow-execution-queue.service';
+import {
+  AGENT_TURN_QUEUE,
+  PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+  WORKFLOW_BACKGROUND_QUEUE,
+  WORKFLOW_EXECUTION_QUEUE,
+} from '@genfeedai/contracts/queue';
+import { getQueueToken } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 /**
  * Real-Postgres proof for listening evidence -> content -> release -> outcome.
@@ -117,8 +136,47 @@ type AttributionDatabase = {
   };
 };
 
+function listeningRedisConnection() {
+  const configured = process.env.REDIS_URL;
+  if (!configured) throw new Error('Listening attribution requires REDIS_URL');
+  const broker = new URL(configured);
+  if (
+    broker.protocol !== 'redis:' ||
+    !['localhost', '127.0.0.1', '[::1]'].includes(broker.hostname)
+  )
+    throw new Error('Listening attribution refuses nonlocal Redis');
+  if (broker.pathname && !/^\/\d*$/.test(broker.pathname))
+    throw new Error('Listening attribution requires an integer Redis database');
+  const db = Number(broker.pathname.slice(1) || 0);
+  const port = Number(broker.port || 6379);
+  if (
+    !Number.isSafeInteger(db) ||
+    db < 0 ||
+    !Number.isSafeInteger(port) ||
+    port < 1 ||
+    port > 65535
+  )
+    throw new Error(
+      'Listening attribution refuses invalid Redis database or port',
+    );
+  return {
+    host: broker.hostname === '[::1]' ? '::1' : broker.hostname,
+    port,
+    db,
+    ...(broker.username
+      ? { username: decodeURIComponent(broker.username) }
+      : {}),
+    ...(broker.password
+      ? { password: decodeURIComponent(broker.password) }
+      : {}),
+    maxRetriesPerRequest: null,
+  };
+}
+
 describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
   let moduleRef: TestingModule;
+  const queuePrefix = `listening-attribution-${randomUUID()}`;
+  const ownedQueues: Queue<WorkflowExecutionJobData>[] = [];
   let dbHelper: TestDatabaseHelper;
   let prisma: PrismaService;
   let db: AttributionDatabase;
@@ -136,6 +194,7 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
   let enqueuePublish: ReturnType<typeof vi.fn>;
 
   beforeAll(async () => {
+    const connection = listeningRedisConnection();
     collectTimeline = vi.fn();
     publishOutbound = vi.fn<PublishOutbound>();
     enqueuePublish = vi.fn().mockResolvedValue('publish-job-1798');
@@ -149,6 +208,29 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
         TWITTER_REDIRECT_URI: 'https://app.example.test/oauth/twitter',
       },
       providers: [
+        LearningCheckpointService,
+        LearningAccountService,
+        LearningDependencyService,
+        LearningOperationService,
+        LearningScopeStateService,
+        LearningPolicyService,
+        WorkflowExecutionQueueService,
+        ...[
+          WORKFLOW_EXECUTION_QUEUE,
+          PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+          WORKFLOW_BACKGROUND_QUEUE,
+          AGENT_TURN_QUEUE,
+        ].map((name) => ({
+          provide: getQueueToken(name),
+          useFactory: () => {
+            const queue = new Queue<WorkflowExecutionJobData>(name, {
+              connection,
+              prefix: queuePrefix,
+            });
+            ownedQueues.push(queue);
+            return queue;
+          },
+        })),
         CredentialsService,
         ListeningTopicAnalysisService,
         ListeningTopicAttributionService,
@@ -171,6 +253,8 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
       imports: [moduleConfig],
     }).compile();
 
+    await Promise.all(ownedQueues.map((queue) => queue.waitUntilReady()));
+    expect(ownedQueues).toHaveLength(4);
     prisma = moduleRef.get(PrismaService);
     db = prisma as unknown as AttributionDatabase;
     dbHelper = createTestDatabaseHelper(moduleRef);
@@ -231,9 +315,33 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
   });
 
   afterAll(async () => {
-    if (moduleRef) {
-      await moduleRef.close();
+    const errors: unknown[] = [];
+    for (const queue of ownedQueues) {
+      try {
+        if (queue.opts.prefix !== queuePrefix)
+          throw new Error(
+            'Refusing cleanup outside the owned listening queue prefix',
+          );
+        await queue.obliterate({ force: true });
+      } catch (error) {
+        errors.push(error);
+      } finally {
+        try {
+          await queue.close();
+        } catch (error) {
+          errors.push(error);
+        }
+      }
     }
+    if (moduleRef) {
+      try {
+        await moduleRef.close();
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    if (errors.length)
+      throw new AggregateError(errors, 'Listening fixture cleanup failed');
   });
 
   it('keeps evidence, release, publication, and measurement identities stable', async () => {
@@ -485,6 +593,29 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
         credentialId: primary.credentialId,
       },
     );
+    expect(
+      await prisma.contentLearningCheckpoint.count({
+        where: { organizationId: primary.organizationId, isDeleted: false },
+      }),
+    ).toBe(0);
+    for (const queue of ownedQueues) {
+      const counts = await queue.getJobCounts(
+        'waiting',
+        'active',
+        'delayed',
+        'prioritized',
+        'completed',
+        'failed',
+      );
+      expect(counts).toEqual({
+        waiting: 0,
+        active: 0,
+        delayed: 0,
+        prioritized: 0,
+        completed: 0,
+        failed: 0,
+      });
+    }
     await postAnalyticsService.refreshOutliers({
       organizationId: primary.organizationId,
       brandId: primary.brandId,

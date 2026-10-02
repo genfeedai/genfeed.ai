@@ -362,10 +362,43 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
       );
       expect(generation).toContain('await this.enhanceGenerationPrompt(');
       expect(generation).toContain('await this.enhancementService.enhance(');
-      expect(generation).toContain(
-        'generationPrompt: generationHarness.enhancedPrompt',
-      );
     }
+    const videoPreparation = readSourceOf('VideoGenerationPreparationService', {
+      root: API_SRC,
+    });
+    expect(videoPreparation).toContain(
+      'generationPrompt: generationHarness.enhancedPrompt',
+    );
+    const imageGeneration = readSourceOf('ImageGenerationService', {
+      root: API_SRC,
+    });
+    expect(imageGeneration).toMatch(
+      /await this\.persistImageDocuments\(\{[^}]*\bgenerationHarness,/,
+    );
+    expect(imageGeneration).toMatch(
+      /private persistImageDocuments\([^)]*\): Promise<ImageGenerationPersistenceResult> \{\s*return persistImageDocuments\(params, \{[^}]*sharedService: this\.sharedService,/,
+    );
+    const persistence = readSourceOf('persistImageDocuments', {
+      root: API_SRC,
+    });
+    expect(persistence).toContain(
+      'await dependencies.sharedService.createMediaDocuments(user, {',
+    );
+    expect(persistence).toMatch(
+      /createMediaDocuments\(user, \{[^}]*generationPrompt: generationHarness\.enhancedPrompt,\s*generationHarness,/,
+    );
+    const compiledPrompt = persistence.indexOf(
+      'generationHarness.enhancedPrompt = compiledPrompt',
+    );
+    const providerPrompt = persistence.indexOf(
+      'providerInput.prompt = generationHarness.enhancedPrompt',
+    );
+    const mediaDocuments = persistence.indexOf(
+      'await dependencies.sharedService.createMediaDocuments',
+    );
+    expect(compiledPrompt).toBeGreaterThan(-1);
+    expect(providerPrompt).toBeGreaterThan(compiledPrompt);
+    expect(mediaDocuments).toBeGreaterThan(providerPrompt);
     expect(ads).toContain('resolveAdHarnessNotes');
     expect(ads).toContain("'ad-creative'");
   });
