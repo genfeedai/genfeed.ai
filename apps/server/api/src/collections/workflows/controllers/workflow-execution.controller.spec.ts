@@ -232,6 +232,23 @@ describe('WorkflowExecutionController', () => {
   });
 
   describe('resumeExecution', () => {
+    it('denies an unauthorized resumer before calling resumeFromFailed', async () => {
+      mockWorkflowExecutionAuthorizationService.authorize.mockRejectedValueOnce(
+        new Error('resumer denied'),
+      );
+      await expect(
+        controller.resumeExecution(
+          workflowId,
+          'exec-1',
+          { expectedContextVersion: 4, threadId: 'thread-1' },
+          mockUser,
+        ),
+      ).rejects.toThrow('resumer denied');
+      expect(
+        mockWorkflowRunControlService.resumeFromFailed,
+      ).not.toHaveBeenCalled();
+    });
+
     it('authorizes the connected thread before resuming a failed run', async () => {
       mockWorkflowRunControlService.resumeFromFailed.mockResolvedValue({
         message: 'Partial execution started',
