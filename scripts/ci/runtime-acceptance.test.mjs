@@ -3958,7 +3958,7 @@ test('Crun production routing leaves diagnostic and other stages on untouched ge
       '    for (const resource of [...identity.resources.databases].reverse())',
     ),
   );
-  assert.ok(outer.includes('resource.cleanupResult'));
+  assert.ok(outer.includes('resource?.cleanupResult'));
   assert.ok(!outer.includes('cleanupFinalCrunResources('));
   assert.ok(!outer.includes('readFile('));
   assert.equal(
@@ -4485,7 +4485,7 @@ test('final dispatcher awaits each supervised stage and blocks video after image
     loop,
     /await verifyFrozenSources\(identity.repo, \[contract\]\)/,
   );
-  assert.match(loop, /await vitest\(stage/);
+  assert.match(loop, /await vitest\(\s*stage/);
   assert.match(loop, /if \(failures.length !== priorFailures\) break/);
   assert.match(loop, /timeout: 60000/);
 });
