@@ -1243,7 +1243,7 @@ test('dedicated production agent and BRAND jobs preserve full-tier selection and
   assert.doesNotMatch(gate, /if: .*run_runtime_acceptance/);
   assert.match(
     gate,
-    /needs: \[e2e-api-full, agent-production-acceptance, brand-acceptance\]/,
+    /needs: \[e2e-api-full, agent-production-acceptance, brand-acceptance, runtime-acceptance\]/,
   );
   for (const field of ['FULL_RESULT', 'AGENT_RESULT', 'BRAND_RESULT'])
     assert.ok(gate.includes(`test "$${field}" = success`));

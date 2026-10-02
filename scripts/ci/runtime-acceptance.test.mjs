@@ -5709,7 +5709,7 @@ test('private dual reporters retain a real beforeAll error and cannot qualify it
     assert.equal(report.success, false);
     assert.equal(report.numPassedTests, 0);
     assert.equal(report.testResults[0].status, 'failed');
-    assert.equal(report.testResults[0].assertionResults[0].status, 'pending');
+    assert.equal(report.testResults[0].assertionResults[0].status, 'skipped');
     assert.equal((await lstat(reportPath)).mode & 0o777, 0o600);
   } finally {
     await rm(directory, { recursive: true, force: true });
