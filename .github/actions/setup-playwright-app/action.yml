@@ -30,6 +30,7 @@ runs:
         NEXT_PUBLIC_PLAYWRIGHT_TEST: ${{ inputs.test-mode }}
         NEXT_PUBLIC_GENFEED_CLOUD: 'false'
         NEXT_PUBLIC_API_ENDPOINT: ${{ inputs.api-endpoint }}
+        NEXT_PUBLIC_API_URL: ${{ inputs.api-endpoint }}
         NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ inputs.better-auth-enabled }}
         BETTER_AUTH_SECRET: ${{ inputs.better-auth-secret }}
         E2E_COVERAGE: '1'

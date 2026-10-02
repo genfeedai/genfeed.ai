@@ -50,7 +50,7 @@ jobs:
           node-version: "24.x"
 
       - name: Build the extension
-        run: bunx turbo run build --filter=@genfeedai/extension-browser
+        run: bunx turbo run build --force --filter=@genfeedai/extension-browser
 
       - name: Package the extension into a zip artifact
         run: bun run package

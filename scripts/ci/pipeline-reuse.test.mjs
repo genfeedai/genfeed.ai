@@ -117,6 +117,7 @@ test('Playwright tiers share build setup without enabling auth bypass for real s
     action,
     /NEXT_PUBLIC_API_ENDPOINT: \$\{\{ inputs.api-endpoint \}\}/,
   );
+  assert.match(action, /NEXT_PUBLIC_API_URL: \$\{\{ inputs.api-endpoint \}\}/);
   assert.match(action, /NEXT_PUBLIC_GENFEED_CLOUD: 'false'/);
   assert.match(action, /E2E_COVERAGE: '1'/);
   for (const file of [
@@ -156,6 +157,10 @@ test('future delivery workflows default to validation and fail on missing artifa
     browser,
     /if: startsWith\(github.ref, 'refs\/tags\/extension-browser-v'\) && \(github.event_name == 'push' \|\| inputs.submit\)/,
   );
+  assert.match(
+    browser,
+    /run: bunx turbo run build --force --filter=@genfeedai\/extension-browser/,
+  );
   assert.match(browser, /if-no-files-found: error/);
   const mobile = read('.github/workflows/mobile-build.yml');
   assert.match(mobile, /build:[\s\S]*?type: boolean\n {8}default: false/);
@@ -175,4 +180,49 @@ test('future delivery workflows default to validation and fail on missing artifa
   );
   assert.equal(eas.build.production.android.applicationId, undefined);
   assert.equal(eas.build.production.ios.bundleIdentifier, undefined);
+});
+
+test('builder normalizes one configured image identity before every registry use', (t) => {
+  const composite = read('.github/actions/build-unified-image/action.yml');
+  const step = composite
+    .split('    - name: Normalize server image identity\n')[1]
+    ?.split('    - name: Set up Docker Buildx')[0];
+  assert.ok(step);
+  const script = step
+    .split('      run: |\n')[1]
+    .split('\n')
+    .map((line) => (line.startsWith('        ') ? line.slice(8) : line))
+    .join('\n');
+  const temp = mkdtempSync(path.join(os.tmpdir(), 'canonical-image-'));
+  t.after(() => rmSync(temp, { recursive: true, force: true }));
+  const output = path.join(temp, 'outputs');
+  const result = spawnSync('bash', ['-euo', 'pipefail', '-c', script], {
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      REGISTRY: 'GHCR.IO',
+      IMAGE_PREFIX: 'Acme/Custom.Server',
+      GITHUB_REPOSITORY: 'Different/Repository',
+      GITHUB_OUTPUT: output,
+    },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(
+    readFileSync(output, 'utf8'),
+    'registry=ghcr.io\nrepository=ghcr.io/acme/custom.server/server\n',
+  );
+  for (const binding of [
+    'registry: ${{ steps.image.outputs.registry }}',
+    'SERVER_IMAGE_REPOSITORY: ${{ steps.image.outputs.repository }}',
+    'images: ${{ steps.image.outputs.repository }}',
+    'cache-from: type=registry,ref=${{ steps.image.outputs.repository }}:buildcache',
+    'cache-to: type=registry,ref=${{ steps.image.outputs.repository }}:buildcache,mode=max',
+    'IMAGE_REPOSITORY: ${{ steps.image.outputs.repository }}',
+  ])
+    assert.ok(composite.includes(binding), binding);
+  assert.doesNotMatch(
+    composite,
+    /\$\{\{ inputs.registry \}\}\/|\$\{\{ github.repository \}\}/,
+  );
+  assert.match(composite, /node scripts\/ci\/resolve-server-image.mjs/);
 });

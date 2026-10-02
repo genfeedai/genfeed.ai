@@ -110,9 +110,13 @@ if (
       process.env.EVENT_NAME === 'pull_request'
         ? `${base}...${head}`
         : `${base}..${head}`;
-    const changed = execFileSync('git', ['diff', '--name-only', '-z', range], {
-      encoding: 'utf8',
-    })
+    const changed = execFileSync(
+      'git',
+      ['diff', '--no-renames', '--name-only', '-z', range],
+      {
+        encoding: 'utf8',
+      },
+    )
       .split('\0')
       .filter(Boolean);
     apps = affectedFrontends(changed, loadWorkspaces(root));

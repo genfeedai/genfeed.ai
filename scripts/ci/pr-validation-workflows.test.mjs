@@ -613,7 +613,12 @@ test('ordinary labels do not restart CI and full-suite has an isolated dispatche
   assert.match(ci, /--run-heavy "\$\{\{ steps\.tier\.outputs\.heavy \}\}"/);
 
   assert.match(dispatcher, /^ {4}types: \[labeled\]$/m);
-  assert.match(dispatcher, /group: pr-heavy-ci-.*github.event.label.name/);
+  assert.ok(
+    dispatcher.includes(
+      "group: pr-heavy-ci-${{ github.event.pull_request.number }}-${{ (github.event.label.name == 'full-suite' || github.event.label.name == 'run-ci') && 'heavy' || format('label-{0}', github.event.label.name) }}",
+    ),
+    'both heavy labels share a per-PR group; unrelated skipped label events stay isolated',
+  );
   assert.match(dispatcher, /if: github\.event\.label\.name == 'full-suite'/);
   assert.match(dispatcher, /uses: \.\/\.github\/workflows\/ci\.yml/);
   assert.match(dispatcher, /^ {6}run_heavy_tests: true$/m);
