@@ -17,6 +17,11 @@ import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  authEpoch: 0,
+  tokenWait: null as Promise<void> | null,
+  search: '',
+  replace: vi.fn(),
+  useRealPanel: false,
   addSheetSubmit: null as null | ((request: unknown) => Promise<void>),
   archive: vi.fn(),
   detailArchive: null as null | (() => Promise<void>),
@@ -38,21 +43,41 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-vi.mock('@contexts/ui/context-sidebar-context', () => ({
-  useContextSidebar: () => ({ reveal: mocks.reveal }),
-}));
+vi.mock('@contexts/ui/context-sidebar-context', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('@contexts/ui/context-sidebar-context')
+    >();
+  return {
+    ...actual,
+    useContextSidebar: () => {
+      const context = actual.useContextSidebar();
+      return mocks.useRealPanel ? context : { reveal: mocks.reveal };
+    },
+  };
+});
 
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(''),
+  useSearchParams: () => new URLSearchParams(mocks.search),
+  usePathname: () => '/org/brand/settings/knowledge',
+  useRouter: () => ({ replace: mocks.replace }),
 }));
 
 vi.mock('@pages/library/knowledge/hooks/use-knowledge-library', () => ({
   useKnowledgeLibrary: (options: unknown) => mocks.useKnowledgeLibrary(options),
 }));
 
+const getters = new Map<string, () => Promise<unknown>>();
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: (factory: (token: string) => unknown) => async () =>
-    factory('token'),
+  useAuthedService: (factory: (token: string) => unknown) => {
+    const key = `${mocks.authEpoch}:${factory.toString()}`;
+    if (!getters.has(key))
+      getters.set(key, async () => {
+        await mocks.tokenWait;
+        return factory('token');
+      });
+    return getters.get(key);
+  },
 }));
 
 vi.mock('@services/content/knowledge-sources.service', () => ({
@@ -97,27 +122,28 @@ vi.mock('./knowledge-add-source-sheet', () => ({
   },
 }));
 
-vi.mock('./knowledge-source-detail-panel', () => ({
-  default: ({
-    row,
-    onArchive,
-    onClose,
-    onRefresh,
-  }: {
-    row: { source: { id: string; title: string } } | null;
-    onArchive: (source: { id: string; title: string }) => Promise<void>;
-    onClose: () => void;
-    onRefresh: (source: { id: string; title: string }) => Promise<void>;
-  }) => {
-    mocks.detailArchive = row ? () => onArchive(row.source) : null;
-    mocks.detailClose = row ? onClose : null;
-    mocks.detailRefresh = row ? () => onRefresh(row.source) : null;
-    return row ? (
-      <div data-testid="detail">Detail {row.source.title}</div>
-    ) : null;
-  },
-}));
+vi.mock('./knowledge-source-detail-panel', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('./knowledge-source-detail-panel')>();
+  return {
+    default: (props: Parameters<typeof actual.default>[0]) => {
+      if (mocks.useRealPanel) return <actual.default {...props} />;
+      const { row, onArchive, onClose, onRefresh } = props;
+      mocks.detailArchive = row ? () => onArchive(row.source) : null;
+      mocks.detailClose = row ? onClose : null;
+      mocks.detailRefresh =
+        row && onRefresh ? () => onRefresh(row.source) : null;
+      return row ? (
+        <div data-testid="detail">Detail {row.source.title}</div>
+      ) : null;
+    },
+  };
+});
 
+import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+} from '@contexts/ui/context-sidebar-context';
 import KnowledgeSourcesList from './knowledge-sources-list';
 
 function row(
@@ -128,6 +154,8 @@ function row(
   return {
     source: {
       id,
+      isVisible: true,
+      isRefreshEnabled: false,
       kind: KnowledgeSourceKind.URL,
       purpose: KnowledgeSourcePurpose.BRAND_TRUTH,
       title: `Source ${id}`,
@@ -163,6 +191,11 @@ function renderList(
 describe('KnowledgeSourcesList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getters.clear();
+    mocks.authEpoch = 0;
+    mocks.tokenWait = null;
+    mocks.search = '';
+    mocks.useRealPanel = false;
     mocks.refreshSource.mockReset().mockResolvedValue({});
     mocks.detailArchive = null;
     mocks.detailClose = null;
@@ -183,6 +216,7 @@ describe('KnowledgeSourcesList', () => {
     expect(mocks.useKnowledgeLibrary).toHaveBeenCalledWith({
       brandId: 'brand-1',
       page: 1,
+      selectedSourceId: undefined,
     });
     expect(screen.getByText('No knowledge sources yet')).toBeInTheDocument();
   });
@@ -439,6 +473,9 @@ describe('KnowledgeSourcesList', () => {
     act(() => {
       pendingArchive = mocks.detailArchive?.();
     });
+    await waitFor(() =>
+      expect(mocks.archive).toHaveBeenCalledWith('a', 'brand-1'),
+    );
     fireEvent.click(screen.getByText('Source b'));
     await act(async () => {
       finishArchive();
@@ -459,5 +496,368 @@ describe('KnowledgeSourcesList', () => {
     });
 
     expect(screen.queryByTestId('detail')).toBeNull();
+  });
+  it('mounts an offpage sourceId without changing the page and preserves unrelated parameters on close', () => {
+    mocks.search = 'page=3&view=all&sourceId=offpage';
+    mocks.useKnowledgeLibrary.mockReturnValue({
+      error: null,
+      selectionError: null,
+      isLoading: false,
+      refresh: mocks.refresh,
+      rows: [row('a', KnowledgeProcessingState.READY)],
+      spaces: [],
+      selectedRow: row('offpage', KnowledgeProcessingState.FAILED),
+    });
+    const view = renderList();
+    expect(mocks.useKnowledgeLibrary).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      page: 3,
+      selectedSourceId: 'offpage',
+    });
+    expect(screen.getByTestId('detail')).toHaveTextContent('Source offpage');
+    act(() => mocks.detailClose?.());
+    expect(mocks.replace).toHaveBeenCalledWith(
+      '/org/brand/settings/knowledge?page=3&view=all',
+      { scroll: false },
+    );
+    view.rerender(
+      <KnowledgeSourcesList
+        brandId="brand-1"
+        isAddOpen={false}
+        onAddClose={vi.fn()}
+      />,
+    );
+    expect(screen.queryByTestId('detail')).toBeNull();
+  });
+
+  it.each([
+    'sourceId=',
+    'sourceId=bad%2Fid',
+    'sourceId=a&sourceId=b',
+    `sourceId=${'a'.repeat(129)}`,
+  ])(
+    'renders generic invalid selection without requesting detail for %s',
+    (search) => {
+      mocks.search = search;
+      renderList();
+      expect(mocks.useKnowledgeLibrary).toHaveBeenLastCalledWith(
+        expect.objectContaining({ selectedSourceId: undefined }),
+      );
+      expect(
+        screen.getByText('Knowledge could not be loaded.'),
+      ).toBeInTheDocument();
+      expect(screen.queryByTestId('detail')).toBeNull();
+    },
+  );
+
+  it('keeps an offpage selected source inspectable outside the local space filter', () => {
+    mocks.search = 'page=3&sourceId=offpage';
+    mocks.useKnowledgeLibrary.mockReturnValue({
+      error: null,
+      selectionError: null,
+      isLoading: false,
+      refresh: mocks.refresh,
+      rows: [row('a', KnowledgeProcessingState.READY)],
+      spaces: [{ id: 'inbox', isInbox: true, title: 'Inbox' }],
+      selectedRow: row('offpage', KnowledgeProcessingState.READY),
+    });
+    renderList();
+    expect(screen.getByText('Source a')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Inbox' }));
+    expect(screen.queryByText('Source a')).toBeNull();
+    expect(screen.getByTestId('detail')).toHaveTextContent('Source offpage');
+    expect(mocks.useKnowledgeLibrary).toHaveBeenLastCalledWith({
+      brandId: 'brand-1',
+      page: 3,
+      selectedSourceId: 'offpage',
+    });
+  });
+
+  it('archives only the matching URL selection while preserving page and unrelated query parameters', async () => {
+    mocks.search = 'page=3&view=all&sourceId=offpage';
+    mocks.archive.mockResolvedValue(undefined);
+    mocks.useKnowledgeLibrary.mockReturnValue({
+      error: null,
+      selectionError: null,
+      isLoading: false,
+      refresh: mocks.refresh,
+      rows: [],
+      spaces: [],
+      selectedRow: row('offpage', KnowledgeProcessingState.READY),
+    });
+    renderList();
+    await act(async () => {
+      await mocks.detailArchive?.();
+    });
+    expect(mocks.archive).toHaveBeenCalledWith('offpage', 'brand-1');
+    expect(mocks.replace).toHaveBeenCalledWith(
+      '/org/brand/settings/knowledge?page=3&view=all',
+      { scroll: false },
+    );
+    expect(screen.queryByTestId('detail')).toBeNull();
+  });
+
+  it('renders denied selection separately from the page with a generic retry', () => {
+    mocks.search = 'sourceId=offpage';
+    mocks.useKnowledgeLibrary.mockReturnValue({
+      error: null,
+      selectionError: 'PRIVATE_DENIAL',
+      isLoading: false,
+      refresh: mocks.refresh,
+      rows: [row('a', KnowledgeProcessingState.READY)],
+      spaces: [],
+      selectedRow: null,
+    });
+    renderList();
+    expect(screen.getByText('Source a')).toBeInTheDocument();
+    expect(screen.queryByText('PRIVATE_DENIAL')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(mocks.refresh).toHaveBeenCalledOnce();
+  });
+
+  it('follows changed URL selection and never displays old details while loading', () => {
+    mocks.search = 'sourceId=a';
+    mocks.useKnowledgeLibrary.mockReturnValue({
+      error: null,
+      isLoading: false,
+      refresh: mocks.refresh,
+      rows: [],
+      spaces: [],
+      selectedRow: row('a', KnowledgeProcessingState.READY),
+    });
+    const view = renderList();
+    expect(screen.getByTestId('detail')).toHaveTextContent('Source a');
+    mocks.search = 'sourceId=b';
+    mocks.useKnowledgeLibrary.mockReturnValue({
+      error: null,
+      isLoading: true,
+      refresh: mocks.refresh,
+      rows: [],
+      spaces: [],
+      selectedRow: row('a', KnowledgeProcessingState.READY),
+    });
+    view.rerender(
+      <KnowledgeSourcesList
+        brandId="brand-1"
+        isAddOpen={false}
+        onAddClose={vi.fn()}
+      />,
+    );
+    expect(screen.queryByTestId('detail')).toBeNull();
+    mocks.useKnowledgeLibrary.mockReturnValue({
+      error: null,
+      isLoading: false,
+      refresh: mocks.refresh,
+      rows: [],
+      spaces: [],
+      selectedRow: row('b', KnowledgeProcessingState.READY),
+    });
+    view.rerender(
+      <KnowledgeSourcesList
+        brandId="brand-1"
+        isAddOpen={false}
+        onAddClose={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('detail')).toHaveTextContent('Source b');
+    mocks.search = 'sourceId=a';
+    mocks.useKnowledgeLibrary.mockReturnValue({
+      error: null,
+      isLoading: false,
+      refresh: mocks.refresh,
+      rows: [],
+      spaces: [],
+      selectedRow: row('a', KnowledgeProcessingState.READY),
+    });
+    view.rerender(
+      <KnowledgeSourcesList
+        brandId="brand-1"
+        isAddOpen={false}
+        onAddClose={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('detail')).toHaveTextContent('Source a');
+  });
+
+  it.each(['brand', 'identity', 'selection', 'unmount'])(
+    'does not dispatch a selected refresh after a delayed token and %s change',
+    async (change) => {
+      mocks.useKnowledgeLibrary.mockReturnValue({
+        error: null,
+        isLoading: false,
+        refresh: mocks.refresh,
+        rows: [
+          row('a', KnowledgeProcessingState.READY),
+          row('b', KnowledgeProcessingState.READY),
+        ],
+        spaces: [],
+      });
+      const view = renderList();
+      fireEvent.click(screen.getByText('Source a'));
+      let complete!: () => void;
+      mocks.tokenWait = new Promise<void>((resolve) => {
+        complete = resolve;
+      });
+      let pending: Promise<void> | undefined;
+      act(() => {
+        pending = mocks.detailRefresh?.();
+      });
+      if (change === 'selection') fireEvent.click(screen.getByText('Source b'));
+      else if (change === 'unmount') view.unmount();
+      else {
+        if (change === 'identity') mocks.authEpoch++;
+        view.rerender(
+          <KnowledgeSourcesList
+            brandId={change === 'brand' ? 'brand-2' : 'brand-1'}
+            isAddOpen={false}
+            onAddClose={vi.fn()}
+          />,
+        );
+      }
+      await act(async () => {
+        complete();
+        await pending;
+      });
+      expect(mocks.refreshSource).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['brand', 'actor', 'session', 'organization'])(
+    'ignores old selected-refresh completion after %s scope changes',
+    async (change) => {
+      mocks.useKnowledgeLibrary.mockReturnValue({
+        error: null,
+        isLoading: false,
+        refresh: mocks.refresh,
+        rows: [row('a', KnowledgeProcessingState.READY)],
+        spaces: [],
+      });
+      const view = renderList();
+      fireEvent.click(screen.getByText('Source a'));
+      let complete!: () => void;
+      mocks.refreshSource.mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            complete = resolve;
+          }),
+      );
+      let pending: Promise<void> | undefined;
+      act(() => {
+        pending = mocks.detailRefresh?.();
+      });
+      await waitFor(() => expect(mocks.refreshSource).toHaveBeenCalledOnce());
+      if (change !== 'brand') mocks.authEpoch++;
+      mocks.useKnowledgeLibrary.mockReturnValue({
+        error: null,
+        isLoading: false,
+        refresh: mocks.refresh,
+        rows: [],
+        spaces: [],
+        selectedRow: null,
+      });
+      view.rerender(
+        <KnowledgeSourcesList
+          brandId={change === 'brand' ? 'brand-2' : 'brand-1'}
+          isAddOpen={false}
+          onAddClose={vi.fn()}
+        />,
+      );
+      await act(async () => {
+        complete();
+        await pending;
+      });
+      expect(mocks.notificationSuccess).not.toHaveBeenCalled();
+      expect(mocks.refresh).not.toHaveBeenCalled();
+      expect(screen.queryByTestId('detail')).toBeNull();
+    },
+  );
+
+  it('does not dispatch a retained selected action after selected-read denial', async () => {
+    mocks.search = 'sourceId=offpage';
+    mocks.useKnowledgeLibrary.mockReturnValue({
+      error: null,
+      isLoading: false,
+      refresh: mocks.refresh,
+      rows: [],
+      spaces: [],
+      selectedRow: row('offpage', KnowledgeProcessingState.READY),
+    });
+    const view = renderList();
+    let complete!: () => void;
+    mocks.tokenWait = new Promise<void>((resolve) => {
+      complete = resolve;
+    });
+    let pending: Promise<void> | undefined;
+    act(() => {
+      pending = mocks.detailRefresh?.();
+    });
+    mocks.useKnowledgeLibrary.mockReturnValue({
+      error: null,
+      isLoading: false,
+      refresh: mocks.refresh,
+      rows: [],
+      spaces: [],
+      selectedRow: null,
+      selectionError: 'Knowledge could not be loaded.',
+    });
+    view.rerender(
+      <KnowledgeSourcesList
+        brandId="brand-1"
+        isAddOpen={false}
+        onAddClose={vi.fn()}
+      />,
+    );
+    expect(screen.queryByTestId('detail')).toBeNull();
+    await act(async () => {
+      complete();
+      await pending;
+    });
+    expect(mocks.refreshSource).not.toHaveBeenCalled();
+  });
+
+  it('uses the actual detail panel and provider for deep-linked Refresh and Retry', async () => {
+    mocks.useRealPanel = true;
+    mocks.search = 'sourceId=offpage';
+    const selected = {
+      ...row('offpage', KnowledgeProcessingState.FAILED),
+      version: {
+        ...row('offpage', KnowledgeProcessingState.FAILED).version,
+        payload: { text: 'Authorized offpage evidence' },
+        provenance: null,
+      },
+    };
+    mocks.useKnowledgeLibrary.mockReturnValue({
+      error: null,
+      isLoading: false,
+      refresh: mocks.refresh,
+      rows: [],
+      spaces: [],
+      selectedRow: selected,
+    });
+    render(
+      <ContextSidebarProvider>
+        <ContextSidebarOutlet testId="real-outlet" />
+        <KnowledgeSourcesList
+          brandId="brand-1"
+          isAddOpen={false}
+          onAddClose={vi.fn()}
+        />
+      </ContextSidebarProvider>,
+    );
+    expect(screen.getByTestId('real-outlet')).toHaveTextContent(
+      'Authorized offpage evidence',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Check now' }));
+    await waitFor(() =>
+      expect(mocks.refreshSource).toHaveBeenCalledWith(
+        'offpage',
+        'brand-1',
+        expect.stringMatching(/^refresh-offpage-/),
+      ),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Retry ingestion' }));
+    await waitFor(() =>
+      expect(mocks.retry).toHaveBeenCalledWith('offpage', 'brand-1'),
+    );
   });
 });
