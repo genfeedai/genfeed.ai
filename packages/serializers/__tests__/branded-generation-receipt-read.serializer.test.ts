@@ -109,7 +109,8 @@ describe('public read serializer round trips', () => {
     const value = { ...receipt(), ...lineage, revision: 3 };
     const before = structuredClone(value);
     const ordinary = BrandedGenerationReceiptSerializer.serialize(value);
-    const revision = BrandedGenerationReceiptRevisionSerializer.serialize(value);
+    const revision =
+      BrandedGenerationReceiptRevisionSerializer.serialize(value);
     const parsed = brandedGenerationReceiptReadV1Schema.parse(
       deserializeResource(ordinary),
     );

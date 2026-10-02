@@ -193,7 +193,8 @@ describe('historical receipt hook', () => {
         ...retained(),
         organizationId: next.organizationId,
         brandId: next.brandId,
-        id: next.revision === undefined ? next.receiptId : `${next.receiptId}:2`,
+        id:
+          next.revision === undefined ? next.receiptId : `${next.receiptId}:2`,
         ...(next.revision === undefined
           ? {}
           : { receiptId: next.receiptId, revision: 2 }),
