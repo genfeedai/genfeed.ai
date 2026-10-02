@@ -91,6 +91,8 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   control_scheduled_release: 'approval-required',
   create_ad_remix_workflow: 'approval-required',
   create_article: 'approval-required',
+  create_article_draft: 'approval-required',
+  publish_article: 'approval-required',
   create_brand: 'approval-required',
   create_chat: 'direct',
   create_clip_project_from_youtube: 'approval-required',

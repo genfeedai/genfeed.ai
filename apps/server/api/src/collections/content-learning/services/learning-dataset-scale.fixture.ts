@@ -354,7 +354,8 @@ export class LearningDatasetScaleFixture {
         serializer: 'post',
       },
     } satisfies Prisma.ContentVersionPinCreateManyInput;
-    if (!post.credentialId) throw new Error('Missing scale credential');
+    if (!post.credentialId || post.platform !== Platform.TWITTER)
+      throw new Error('Missing or incompatible scale publish target');
     const input = this.codec.parseCreateInput({
       policy: { id: PublishApprovalPolicyId.VERSION_BOUND_V1, version: 1 },
       postId: post.id,
@@ -363,6 +364,7 @@ export class LearningDatasetScaleFixture {
     const destinations = this.codec.canonicalDestinations({
       ...post,
       credentialId: post.credentialId,
+      platform: post.platform,
     });
     const id = randomUUID();
     const contextVersion = input.contextVersion ?? post.agentContextVersion;

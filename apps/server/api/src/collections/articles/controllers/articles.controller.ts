@@ -20,6 +20,7 @@ import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/colle
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { ArticleSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
@@ -154,9 +155,9 @@ export class ArticlesController extends BaseCRUDController<
   /**
    * Mint a shareable preview link for an unpublished article.
    *
-   * The link carries a signed, slug-bound, expiring token — the only thing the
+   * The link carries a signed, article-bound, expiring token — the only thing the
    * public articles endpoint accepts as authorisation to serve unpublished
-   * content. Minting is organization-scoped; reading the resulting link is not,
+   * content. Minting follows editor visibility; reading the resulting link is not,
    * so treat the returned URL as a bearer credential.
    */
   @Get(':articleId/preview-links')
@@ -166,9 +167,16 @@ export class ArticlesController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Param('articleId') articleId: string,
   ): Promise<{ expiresInSeconds: number; url: string }> {
-    const article = await this.articlesService.findOne({
-      id: articleId,
-    });
+    const isSuperAdmin = getIsSuperAdmin(user, request);
+    const article = await this.articlesService.findOne(
+      isSuperAdmin
+        ? { id: articleId, isDeleted: false }
+        : scopedWhere(user.organizationId.toString(), {
+            id: articleId,
+            ...(user.brandId ? { brandId: user.brandId } : {}),
+            OR: [{ userId: user.userId ?? user.id }, { scope: 'ORGANIZATION' }],
+          }),
+    );
 
     if (!article) {
       ErrorResponse.notFound(this.entityName, articleId);
@@ -192,7 +200,7 @@ export class ArticlesController extends BaseCRUDController<
     const slug = article.slug ? String(article.slug) : undefined;
 
     const token = slug
-      ? createArticlePreviewToken(slug, signingKey)
+      ? createArticlePreviewToken(slug, article.id, signingKey)
       : undefined;
 
     if (!slug || !publicUrl || !token) {

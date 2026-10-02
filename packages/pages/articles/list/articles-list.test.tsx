@@ -5,10 +5,37 @@ import { ModalEnum } from '@genfeedai/contracts';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
 import type { Article } from '@models/content/article.model';
 import ArticlesList from '@pages/articles/list/articles-list';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  render as rtlRender,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { NextIntlClientProvider } from 'next-intl';
+import type { PropsWithChildren, ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
+
+const pagesMessages = JSON.parse(
+  readFileSync(
+    join(
+      dirname(fileURLToPath(import.meta.url)),
+      '../../../../apps/app/messages/en/pages.json',
+    ),
+    'utf8',
+  ),
+);
+function IntlWrapper({ children }: PropsWithChildren) {
+  return (
+    <NextIntlClientProvider locale="en" messages={{ pages: pagesMessages }}>
+      {children}
+    </NextIntlClientProvider>
+  );
+}
+function render(ui: ReactElement) {
+  return rtlRender(ui, { wrapper: IntlWrapper });
+}
 
 const mockFindAll = vi.fn();
 

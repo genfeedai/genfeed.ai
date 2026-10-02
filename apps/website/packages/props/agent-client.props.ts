@@ -9,3 +9,7 @@ export interface AgentClientVisualProps {
   channelName?: string;
   client: AgentClient;
 }
+
+export interface AgentClientLogoProps {
+  client: Pick<AgentClient, 'logo'>;
+}
