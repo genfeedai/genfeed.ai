@@ -525,6 +525,8 @@ describe('KnowledgeSourcesList', () => {
         brandId="brand-1"
         isAddOpen={false}
         onAddClose={vi.fn()}
+        seedRequestId={0}
+        onSeedHandled={vi.fn()}
       />,
     );
     expect(screen.queryByTestId('detail')).toBeNull();
@@ -641,6 +643,8 @@ describe('KnowledgeSourcesList', () => {
         brandId="brand-1"
         isAddOpen={false}
         onAddClose={vi.fn()}
+        seedRequestId={0}
+        onSeedHandled={vi.fn()}
       />,
     );
     expect(screen.queryByTestId('detail')).toBeNull();
@@ -657,6 +661,8 @@ describe('KnowledgeSourcesList', () => {
         brandId="brand-1"
         isAddOpen={false}
         onAddClose={vi.fn()}
+        seedRequestId={0}
+        onSeedHandled={vi.fn()}
       />,
     );
     expect(screen.getByTestId('detail')).toHaveTextContent('Source b');
@@ -674,6 +680,8 @@ describe('KnowledgeSourcesList', () => {
         brandId="brand-1"
         isAddOpen={false}
         onAddClose={vi.fn()}
+        seedRequestId={0}
+        onSeedHandled={vi.fn()}
       />,
     );
     expect(screen.getByTestId('detail')).toHaveTextContent('Source a');
@@ -711,6 +719,8 @@ describe('KnowledgeSourcesList', () => {
             brandId={change === 'brand' ? 'brand-2' : 'brand-1'}
             isAddOpen={false}
             onAddClose={vi.fn()}
+            seedRequestId={0}
+            onSeedHandled={vi.fn()}
           />,
         );
       }
@@ -760,6 +770,8 @@ describe('KnowledgeSourcesList', () => {
           brandId={change === 'brand' ? 'brand-2' : 'brand-1'}
           isAddOpen={false}
           onAddClose={vi.fn()}
+          seedRequestId={0}
+          onSeedHandled={vi.fn()}
         />,
       );
       await act(async () => {
@@ -805,6 +817,8 @@ describe('KnowledgeSourcesList', () => {
         brandId="brand-1"
         isAddOpen={false}
         onAddClose={vi.fn()}
+        seedRequestId={0}
+        onSeedHandled={vi.fn()}
       />,
     );
     expect(screen.queryByTestId('detail')).toBeNull();
@@ -841,6 +855,8 @@ describe('KnowledgeSourcesList', () => {
           brandId="brand-1"
           isAddOpen={false}
           onAddClose={vi.fn()}
+          seedRequestId={0}
+          onSeedHandled={vi.fn()}
         />
       </ContextSidebarProvider>,
     );

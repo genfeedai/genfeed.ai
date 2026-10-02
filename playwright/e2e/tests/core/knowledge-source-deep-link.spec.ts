@@ -154,7 +154,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
           ?.searchParams.get('page'),
       ).toBe('3');
       await testInfo.attach(`knowledge-failed-${width}-${colorScheme}`, {
-        body: await page.screenshot({ fullPage: true }),
+        body: await page.screenshot({ animations: 'disabled', fullPage: true }),
         contentType: 'image/png',
       });
       const check = detail.getByRole('button', { name: 'Check now' });
@@ -194,8 +194,14 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(detail).toBeVisible();
       await expect(detail).toContainText('Ready');
       await expect(detail).toContainText('Authorized recovered evidence.');
+      await expect(
+        detail.getByText('Authorized recovered evidence.', { exact: true }),
+      ).toBeInViewport({ ratio: 1 });
+      await expect(
+        detail.getByRole('button', { name: 'Check now' }),
+      ).toBeInViewport({ ratio: 1 });
       await testInfo.attach(`knowledge-recovery-${width}-${colorScheme}`, {
-        body: await page.screenshot({ fullPage: true }),
+        body: await page.screenshot({ animations: 'disabled', fullPage: true }),
         contentType: 'image/png',
       });
       if (width === 390) await page.keyboard.press('Escape');
