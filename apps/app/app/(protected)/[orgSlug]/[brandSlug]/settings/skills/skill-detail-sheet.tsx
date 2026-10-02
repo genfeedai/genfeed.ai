@@ -3,17 +3,21 @@ import type { SkillDetailSheetProps } from '@props/settings/skills.props';
 import Badge from '@ui/display/badge/Badge';
 import EntityOverlayShell from '@ui/overlays/entity/EntityOverlayShell';
 import { Button } from '@ui/primitives/button';
-import { FlaskConical } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import SkillDetailCard from './SkillDetailCard';
 
 export default function SkillDetailSheet({
   customizing,
+  draftErrors,
+  error,
+  hasChanges,
+  isForkBlocked,
   onArchiveSkill,
   onClose,
   onCustomize,
   onExportSkill,
-  onOpenTestInChat,
+  onOpenSamplePrompt,
   onSaveSkill,
   onSkillDraftChange,
   savingSkill,
@@ -27,24 +31,41 @@ export default function SkillDetailSheet({
       actions={
         selectedSkill ? (
           <>
-            {selectedSkill.canExport && onExportSkill ? (
+            {selectedSkill.canExport === true && onExportSkill ? (
               <Button
                 label={translate('actions.export')}
-                onClick={onExportSkill}
+                disabled={savingSkill || customizing}
+                onClick={() => {
+                  if (
+                    selectedSkill.canExport === true &&
+                    !savingSkill &&
+                    !customizing
+                  )
+                    onExportSkill();
+                }}
                 variant={ButtonVariant.SECONDARY}
               />
             ) : null}
-            {selectedSkill.canEdit && onArchiveSkill ? (
+            {selectedSkill.canEdit === true && onArchiveSkill ? (
               <Button
                 label={translate('actions.archive')}
-                onClick={onArchiveSkill}
+                disabled={savingSkill || customizing}
+                onClick={() => {
+                  if (
+                    selectedSkill.canEdit === true &&
+                    !savingSkill &&
+                    !customizing
+                  )
+                    onArchiveSkill();
+                }}
                 variant={ButtonVariant.SECONDARY}
               />
             ) : null}
             <Button
-              icon={<FlaskConical className="size-4" />}
-              label={translate('actions.testWithAgent')}
-              onClick={onOpenTestInChat}
+              icon={<MessageSquare className="size-4" />}
+              label={translate('actions.openSamplePrompt')}
+              disabled={savingSkill || customizing}
+              onClick={onOpenSamplePrompt}
               variant={ButtonVariant.SECONDARY}
             />
           </>
@@ -71,8 +92,19 @@ export default function SkillDetailSheet({
       title={selectedSkill?.name ?? translate('heading')}
       width="lg"
     >
+      {selectedSkill && error ? (
+        <div
+          role="alert"
+          className="mb-4 rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
+          {error}
+        </div>
+      ) : null}
       <SkillDetailCard
         customizing={customizing}
+        draftErrors={draftErrors}
+        hasChanges={hasChanges}
+        isForkBlocked={isForkBlocked}
         onCustomize={onCustomize}
         onSaveSkill={onSaveSkill}
         onSkillDraftChange={onSkillDraftChange}

@@ -1130,6 +1130,9 @@ export async function createLearningRuntimeApplication(
   const { PrismaService: LibsPrismaService } = await import(
     '@libs/prisma/prisma.service'
   );
+  const { AgentOrchestratorModule } = await import(
+    '@api/services/agent-orchestrator/agent-orchestrator.module'
+  );
   const { WorkflowsModule } = await import(
     '@api/collections/workflows/workflows.module'
   );
@@ -1170,6 +1173,7 @@ export async function createLearningRuntimeApplication(
         verboseMemoryLeak: true,
         wildcard: true,
       }),
+      AgentOrchestratorModule,
       WorkflowsModule,
       PostLifecycleModule,
     ],
@@ -1601,7 +1605,10 @@ export async function collectLearningRuntimePublications(
     publications.length > 0 &&
       publications.length <= 24 &&
       publications.every(
-        (post) => post.target.credentialId === target.credentialId,
+        (post) =>
+          post.target.credentialId === target.credentialId &&
+          post.target.organizationId === target.organizationId &&
+          post.target.brandId === target.brandId,
       ),
     'BOUNDED_ACTUAL_ANALYTICS_BATCH',
   );
@@ -1617,16 +1624,30 @@ export async function collectLearningRuntimePublications(
       platform: CredentialPlatform.TWITTER,
     })),
   });
-  return services.analytics.collect({
-    credentialId: target.credentialId,
-    posts: publications.map((post) => ({
-      id: post.id,
-      externalId: post.externalId,
-      brandId: target.brandId,
+  let context:
+    | Awaited<ReturnType<RuntimeServices['analytics']['collect']>>
+    | undefined;
+  for (const post of publications) {
+    context = await services.analytics.collect({
+      credentialId: target.credentialId,
+      posts: [
+        {
+          id: post.id,
+          externalId: post.externalId,
+          brandId: target.brandId,
+          organizationId: target.organizationId,
+        },
+      ],
+      attemptKey,
+    });
+    deepStrictEqual(context, {
       organizationId: target.organizationId,
-    })),
-    attemptKey,
-  });
+      brandId: target.brandId,
+      credentialId: target.credentialId,
+    });
+  }
+  ensure(context, 'ACTUAL_ANALYTICS_CONTEXT_REQUIRED');
+  return context;
 }
 export async function learningRuntimeScope(
   application: RuntimeApplication,
@@ -1786,20 +1807,31 @@ export async function openLearningRuntimeFixture(
     const { SYSTEM_WORKFLOW_PRINCIPAL_ID } = await import(
       '@api/collections/workflows/system-workflow.contract'
     );
-    await first.prisma.user.create({
-      data: {
+    deepStrictEqual(
+      await first.prisma.user.findFirst({
+        select: { id: true, handle: true },
+        where: { id: SYSTEM_WORKFLOW_PRINCIPAL_ID, isDeleted: false },
+      }),
+      {
         id: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-        handle: `system-${resources.fixtureId}`,
+        handle: SYSTEM_WORKFLOW_PRINCIPAL_ID,
       },
-    });
-    await first.prisma.organization.create({
-      data: {
+    );
+    deepStrictEqual(
+      await first.prisma.organization.findFirst({
+        select: { id: true, userId: true, slug: true },
+        where: {
+          id: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+          userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+          isDeleted: false,
+        },
+      }),
+      {
         id: SYSTEM_WORKFLOW_PRINCIPAL_ID,
         userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-        label: 'Owned system principal',
-        slug: `system-${resources.fixtureId}`,
+        slug: SYSTEM_WORKFLOW_PRINCIPAL_ID,
       },
-    });
+    );
     const targets = await seedLearningRuntimeScenario(first, services);
     for (const application of applications) await application.module.init();
     applications.push(await createLearningRuntimeApplication(resources, 1));
@@ -2059,6 +2091,7 @@ export async function installLearningRuntimeBarrier(
   event: 'INSERT' | 'UPDATE',
 ) {
   ensure(/^[0-9a-f-]{36}$/.test(organizationId), 'BARRIER_SCOPE_IDENTIFIER');
+  const tenantColumn = table === 'organizations' ? 'id' : 'organizationId';
   const name = `barrier_${randomUUID().replaceAll('-', '')}`,
     key = Math.floor(Math.random() * 1000000000) + 1000000000;
   const controlPid = Number(
@@ -2069,7 +2102,7 @@ export async function installLearningRuntimeBarrier(
     key,
   ]);
   await fixture.database.control.query(
-    `CREATE FUNCTION "${name}"() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW."organizationId"='${organizationId}' THEN PERFORM pg_advisory_xact_lock(${key}::bigint); END IF; RETURN NEW; END $$`,
+    `CREATE FUNCTION "${name}"() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW."${tenantColumn}"='${organizationId}' THEN PERFORM pg_advisory_xact_lock(${key}::bigint); END IF; RETURN NEW; END $$`,
   );
   await fixture.database.control.query(
     `CREATE TRIGGER "${name}" AFTER ${event} ON "${table}" FOR EACH ROW EXECUTE FUNCTION "${name}"()`,
@@ -2085,6 +2118,9 @@ export async function installLearningRuntimeBarrier(
       );
       const deadline = Date.now() + 2000;
       while (Date.now() < deadline) {
+        await fixture.database.observer.query(
+          'SELECT pg_stat_clear_snapshot()',
+        );
         const row = await fixture.database.observer.query<{
           pid: number;
           query: string;
@@ -2124,6 +2160,7 @@ export async function waitLearningRuntimeContender(
 ) {
   const deadline = Date.now() + 2000;
   while (Date.now() < deadline) {
+    await fixture.database.observer.query('SELECT pg_stat_clear_snapshot()');
     const blocked = await fixture.database.observer.query<{
       pid: number;
       query: string;
