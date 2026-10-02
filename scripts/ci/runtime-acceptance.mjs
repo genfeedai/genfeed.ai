@@ -4205,6 +4205,106 @@ async function executeDedicatedAcceptance(identity, env, baseline = false) {
     );
   return outcome;
 }
+export async function verifyFinalLearningCleanup(
+  identity,
+  { snapshot: readSnapshot, save, clock = Date.now },
+  end,
+) {
+  const resource = identity.resources.learning;
+  requireThat(
+    hasFinalLearningTerminationProof(resource),
+    'LEARNING_TERMINATION_UNCONFIRMED',
+  );
+  const metadata = await lstat(resource.receiptPath);
+  const bytes = await safeFile(identity.state, resource.receiptRelative, 16384);
+  requireThat(
+    metadata.ino === resource.receiptMetadata.inode &&
+      metadata.dev === resource.receiptMetadata.device &&
+      sha256(bytes) === resource.receiptHash,
+    'LEARNING_RECEIPT_REPLACED',
+  );
+  const snapshot = await readSnapshot(end);
+  requireThat(
+    snapshot.receipt.containerId === resource.receipt.containerId &&
+      snapshot.receipt.imageId === resource.receipt.imageId &&
+      snapshot.receipt.redisRunId === resource.receipt.redisRunId,
+    'LEARNING_RESOURCE_IDENTITY',
+  );
+  const directory = await lstat(resource.directory);
+  requireThat(
+    directory.isDirectory() &&
+      !directory.isSymbolicLink() &&
+      directory.ino === resource.directoryMetadata.inode &&
+      directory.dev === resource.directoryMetadata.device,
+    'LEARNING_DIRECTORY_REPLACED',
+  );
+  const names = await readdir(resource.directory);
+  const cleanupNames = names.filter((name) =>
+    /^learning-runtime-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}-cleanup\.json$/.test(
+      name,
+    ),
+  );
+  requireThat(
+    cleanupNames.length === requireLearningSourceContract().cleanupReceipts &&
+      names.every(
+        (name) =>
+          name === 'redis-ownership.json' || cleanupNames.includes(name),
+      ),
+    'LEARNING_CLEANUP_INVENTORY',
+  );
+  for (const name of cleanupNames) {
+    const relative = `raw/learning-runtime/${name}`;
+    const cleanup = JSON.parse(await safeFile(identity.state, relative));
+    requireThat(
+      cleanup.version === 1 &&
+        cleanup.success === true &&
+        cleanup.candidateSHA === identity.candidateSHA &&
+        cleanup.receiptHash === resource.receiptHash &&
+        cleanup.claimValue ===
+          `${resource.receipt.ownerNonce}:${cleanup.fixtureId}` &&
+        name === `learning-runtime-${cleanup.fixtureId}-cleanup.json` &&
+        Array.isArray(cleanup.inventories) &&
+        cleanup.inventories.length === 5,
+      'LEARNING_CLEANUP_INVENTORY',
+    );
+    let keys = 0;
+    for (const [db, inventory] of cleanup.inventories.entries()) {
+      requireThat(
+        inventory.db === db &&
+          Array.isArray(inventory.keys) &&
+          inventory.keys.every((key) => typeof key === 'string') &&
+          new Set(inventory.keys).size === inventory.keys.length,
+        'LEARNING_CLEANUP_INVENTORY',
+      );
+      keys += inventory.keys.length;
+    }
+    requireThat(keys <= 10000, 'LEARNING_CLEANUP_INVENTORY');
+    identity.evidence.push(relative);
+  }
+  requireThat(clock() < end, 'LEARNING_CLEANUP_DEADLINE');
+  resource.blankVerified = true;
+  resource.blankCheckedAt = clock();
+  resource.cleanupEvidence = cleanupNames.map(
+    (name) => `raw/learning-runtime/${name}`,
+  );
+  await save(
+    'raw/learning-runtime-blank.json',
+    JSON.stringify({
+      candidateSHA: identity.candidateSHA,
+      containerId: resource.receipt.containerId,
+      redisRunId: resource.receipt.redisRunId,
+      checkedAt: resource.blankCheckedAt,
+      keyspace: snapshot.keyspace,
+      sizes: snapshot.sizes,
+    }),
+  );
+  return {
+    passed: true,
+    operations: [{ name: 'learning-blank-instance', passed: true }],
+    failures: [],
+  };
+}
+
 async function execution(identity, env) {
   if (['agent-production', 'brand-acceptance'].includes(identity.group))
     return executeDedicatedAcceptance(identity, env);
@@ -4392,104 +4492,12 @@ async function execution(identity, env) {
     requireLearningRedisBlank(keyspace, sizes);
     return { receipt, inspected: inspected[0], keyspace, sizes };
   };
-  const verifyLearningStoppedAndBlank = async (end) => {
-    const resource = identity.resources.learning;
-    requireThat(
-      hasFinalLearningTerminationProof(resource),
-      'LEARNING_TERMINATION_UNCONFIRMED',
+  const verifyLearningStoppedAndBlank = (end) =>
+    verifyFinalLearningCleanup(
+      identity,
+      { snapshot: learningSnapshot, save },
+      end,
     );
-    const metadata = await lstat(resource.receiptPath);
-    const bytes = await safeFile(
-      identity.state,
-      resource.receiptRelative,
-      16384,
-    );
-    requireThat(
-      metadata.ino === resource.receiptMetadata.inode &&
-        metadata.dev === resource.receiptMetadata.device &&
-        sha256(bytes) === resource.receiptHash,
-      'LEARNING_RECEIPT_REPLACED',
-    );
-    const snapshot = await learningSnapshot(end);
-    requireThat(
-      snapshot.receipt.containerId === resource.receipt.containerId &&
-        snapshot.receipt.imageId === resource.receipt.imageId &&
-        snapshot.receipt.redisRunId === resource.receipt.redisRunId,
-      'LEARNING_RESOURCE_IDENTITY',
-    );
-    const directory = await lstat(resource.directory);
-    requireThat(
-      directory.isDirectory() &&
-        !directory.isSymbolicLink() &&
-        directory.ino === resource.directoryMetadata.inode &&
-        directory.dev === resource.directoryMetadata.device,
-      'LEARNING_DIRECTORY_REPLACED',
-    );
-    const names = await readdir(resource.directory);
-    const cleanupNames = names.filter((name) =>
-      /^learning-runtime-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}-cleanup\.json$/.test(
-        name,
-      ),
-    );
-    requireThat(
-      cleanupNames.length === requireLearningSourceContract().cleanupReceipts &&
-        names.every(
-          (name) =>
-            name === 'redis-ownership.json' || cleanupNames.includes(name),
-        ),
-      'LEARNING_CLEANUP_INVENTORY',
-    );
-    for (const name of cleanupNames) {
-      const relative = `raw/learning-runtime/${name}`;
-      const cleanup = JSON.parse(await safeFile(identity.state, relative));
-      requireThat(
-        cleanup.version === 1 &&
-          cleanup.success === true &&
-          cleanup.candidateSHA === identity.candidateSHA &&
-          cleanup.receiptHash === resource.receiptHash &&
-          cleanup.claimValue ===
-            `${resource.receipt.ownerNonce}:${cleanup.fixtureId}` &&
-          name === `learning-runtime-${cleanup.fixtureId}-cleanup.json` &&
-          Array.isArray(cleanup.inventories) &&
-          cleanup.inventories.length === 5,
-        'LEARNING_CLEANUP_INVENTORY',
-      );
-      let keys = 0;
-      for (const [db, inventory] of cleanup.inventories.entries()) {
-        requireThat(
-          inventory.db === db &&
-            Array.isArray(inventory.keys) &&
-            inventory.keys.every((key) => typeof key === 'string') &&
-            new Set(inventory.keys).size === inventory.keys.length,
-          'LEARNING_CLEANUP_INVENTORY',
-        );
-        keys += inventory.keys.length;
-      }
-      requireThat(keys <= 10000, 'LEARNING_CLEANUP_INVENTORY');
-      identity.evidence.push(relative);
-    }
-    resource.blankVerified = true;
-    resource.blankCheckedAt = Date.now();
-    resource.cleanupEvidence = cleanupNames.map(
-      (name) => `raw/learning-runtime/${name}`,
-    );
-    await save(
-      'raw/learning-runtime-blank.json',
-      JSON.stringify({
-        candidateSHA: identity.candidateSHA,
-        containerId: resource.receipt.containerId,
-        redisRunId: resource.receipt.redisRunId,
-        checkedAt: resource.blankCheckedAt,
-        keyspace: snapshot.keyspace,
-        sizes: snapshot.sizes,
-      }),
-    );
-    return {
-      passed: true,
-      operations: [{ name: 'learning-blank-instance', passed: true }],
-      failures: [],
-    };
-  };
   const run = async (
     stage,
     executable,

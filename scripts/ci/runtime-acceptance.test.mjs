@@ -96,6 +96,7 @@ import {
   validateVisualSelection,
   verifyBaselineSources,
   verifyDedicatedSources,
+  verifyFinalLearningCleanup,
   verifyFrozenSources,
   verifyVisualScenarioSources,
   visualSelection,
@@ -5065,4 +5066,256 @@ for (const missing of [
     await assert.rejects(sealState(fixture.value, fixture.env), {
       code: 'MISSING_LEARNING_EVIDENCE',
     });
+  });
+
+test('learning rejects a delayed starter before it can spawn after its original work deadline', async () => {
+  const fixture = learningSupervisorFixture();
+  let invoke;
+  fixture.options.start = (options) =>
+    new Promise((resolve, reject) => {
+      invoke = () => {
+        try {
+          options.beforeSpawn();
+          options.onSpawn(12345);
+          resolve({ pid: 12345, done: Promise.resolve(child) });
+        } catch (error) {
+          reject(error);
+        }
+      };
+    });
+  fixture.options.clock.sleep = () =>
+    Promise.resolve().then(() => fixture.setNow(541000));
+  const result = await runFinalLearningBounded(fixture.options);
+  assert.equal(result.timedOut, true);
+  invoke();
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(fixture.resource.spawnIssued, false);
+  assert.equal(fixture.calls.includes('blank'), false);
+});
+test('learning unresolved child streams cannot authorize blank-instance verification', async () => {
+  const fixture = learningSupervisorFixture();
+  fixture.options.start = async ({ beforeSpawn, onSpawn }) => {
+    beforeSpawn();
+    onSpawn(12345);
+    return { pid: 12345, done: new Promise(() => {}) };
+  };
+  let waits = 0;
+  fixture.options.clock.sleep = () => {
+    waits++;
+    if (waits === 3 || waits === 5)
+      return Promise.resolve().then(() =>
+        fixture.setNow(waits === 3 ? 541000 : 551000),
+      );
+    return new Promise(() => {});
+  };
+  fixture.options.stop = async () => {
+    fixture.calls.push('stop');
+  };
+  const result = await runFinalLearningBounded(fixture.options);
+  assert.equal(result.timedOut, true);
+  assert.ok(result.cleanupError);
+  assert.equal(hasFinalLearningTerminationProof(fixture.resource), false);
+  assert.equal(fixture.calls.includes('blank'), false);
+});
+test('learning original nonzero exit remains failure even after owned cleanup succeeds', async () => {
+  const fixture = learningSupervisorFixture();
+  fixture.options.start = async ({ beforeSpawn, onSpawn }) => {
+    beforeSpawn();
+    onSpawn(12345);
+    return { pid: 12345, done: Promise.resolve({ ...child, exitCode: 9 }) };
+  };
+  const result = await runFinalLearningBounded(fixture.options);
+  assert.equal(result.exitCode, 9);
+  assert.equal(result.cleanupError, null);
+  const source = await readFile(CLI_PATH, 'utf8');
+  const run = source.slice(
+    source.indexOf('    commands.push({ stage, ...result });'),
+    source.indexOf(
+      '  const vitest = async (',
+      source.indexOf('async function execution'),
+    ),
+  );
+  assert.match(run, /result.exitCode === 0/);
+  assert.match(run, /'CHILD_FAILED'/);
+  const stage = source.slice(
+    source.indexOf(
+      '      const contract = requireLearningSourceContract();',
+      source.indexOf('async function execution'),
+    ),
+    source.indexOf(
+      "      await attempt('dataset'",
+      source.indexOf('async function execution'),
+    ),
+  );
+  assert.match(stage, /await vitest\(\s*'learning-runtime'/);
+  assert.doesNotMatch(stage, /await attempt\(\s*'learning-runtime'/);
+});
+async function learningCleanupFixture(t) {
+  const contract = requireLearningSourceContract();
+  const issuer = learningIssuerFixture();
+  const supervisor = learningSupervisorFixture();
+  await runFinalLearningBounded(supervisor.options);
+  const root = await fixture(t),
+    resource = supervisor.resource;
+  const value = { ...supervisor.options.identity, state: root, evidence: [] };
+  await mkdir(path.join(root, 'raw'), { mode: 0o700 });
+  resource.directory = path.join(root, 'raw/learning-runtime');
+  await mkdir(resource.directory, { mode: 0o700 });
+  const directory = await lstat(resource.directory);
+  resource.directoryMetadata = { inode: directory.ino, device: directory.dev };
+  resource.receiptPath = path.join(root, resource.receiptRelative);
+  const receiptBytes = JSON.stringify(resource.receipt);
+  resource.receiptHash = createHash('sha256')
+    .update(receiptBytes)
+    .digest('hex');
+  resource.terminationProof.receiptHash = resource.receiptHash;
+  await writeFile(resource.receiptPath, receiptBytes, { mode: 0o600 });
+  const metadata = await lstat(resource.receiptPath);
+  resource.receiptMetadata = { inode: metadata.ino, device: metadata.dev };
+  const cleanupPaths = [];
+  for (let index = 0; index < contract.cleanupReceipts; index++) {
+    const fixtureId = randomUUID(),
+      name = `learning-runtime-${fixtureId}-cleanup.json`;
+    const file = path.join(resource.directory, name);
+    cleanupPaths.push(file);
+    await writeFile(
+      file,
+      JSON.stringify({
+        version: 1,
+        fixtureId,
+        candidateSHA: SHA,
+        receiptHash: resource.receiptHash,
+        claimValue: `${resource.receipt.ownerNonce}:${fixtureId}`,
+        inventories: [0, 1, 2, 3, 4].map((db) => ({
+          db,
+          keys: db === 0 ? ['learning-runtime:owner'] : [],
+        })),
+        success: true,
+      }),
+      { mode: 0o600 },
+    );
+  }
+  const calls = [];
+  const adapters = {
+    clock: () => 2000,
+    snapshot: async () => {
+      calls.push('snapshot');
+      return {
+        receipt: resource.receipt,
+        inspected: issuer.inspected,
+        keyspace: '',
+        sizes: [0, 0, 0, 0, 0],
+      };
+    },
+    save: async () => {
+      calls.push('save');
+    },
+  };
+  return { value, resource, cleanupPaths, adapters, calls };
+}
+test('learning captured cleanup inventory and blank snapshot preserve exact receipt authority', async (t) => {
+  const fixture = await learningCleanupFixture(t);
+  const result = await verifyFinalLearningCleanup(
+    fixture.value,
+    fixture.adapters,
+    10000,
+  );
+  assert.equal(result.passed, true);
+  assert.equal(fixture.resource.blankVerified, true);
+  assert.equal(
+    fixture.value.evidence.length,
+    requireLearningSourceContract().cleanupReceipts,
+  );
+  assert.deepEqual(fixture.calls, ['snapshot', 'save']);
+});
+for (const failure of [
+  'receipt bytes',
+  'receipt inode',
+  'directory inode',
+  'missing cleanup',
+  'duplicate cleanup',
+  'wrong head',
+  'wrong nonce',
+  'wrong receipt hash',
+  'failed cleanup',
+  'duplicate inventory key',
+  'wrong database',
+  'redis restart',
+  'outside database',
+])
+  test(`learning cleanup refuses ${failure} before later runtime stages`, async (t) => {
+    const fixture = await learningCleanupFixture(t);
+    if (failure === 'receipt bytes')
+      await writeFile(fixture.resource.receiptPath, '{}', { mode: 0o600 });
+    if (failure === 'receipt inode') {
+      await rename(
+        fixture.resource.receiptPath,
+        `${fixture.resource.receiptPath}.original`,
+      );
+      await writeFile(
+        fixture.resource.receiptPath,
+        JSON.stringify(fixture.resource.receipt),
+        { mode: 0o600 },
+      );
+    }
+    if (failure === 'directory inode') {
+      await rename(
+        fixture.resource.directory,
+        `${fixture.resource.directory}.original`,
+      );
+      await mkdir(fixture.resource.directory, { mode: 0o700 });
+    }
+    if (failure === 'missing cleanup') await rm(fixture.cleanupPaths[0]);
+    if (failure === 'duplicate cleanup')
+      await writeFile(
+        path.join(
+          fixture.resource.directory,
+          `learning-runtime-${randomUUID()}-cleanup.json`,
+        ),
+        await readFile(fixture.cleanupPaths[0]),
+        { mode: 0o600 },
+      );
+    if (
+      [
+        'wrong head',
+        'wrong nonce',
+        'wrong receipt hash',
+        'failed cleanup',
+        'duplicate inventory key',
+        'wrong database',
+      ].includes(failure)
+    ) {
+      const cleanup = JSON.parse(
+        await readFile(fixture.cleanupPaths[0], 'utf8'),
+      );
+      if (failure === 'wrong head') cleanup.candidateSHA = CONTROL;
+      if (failure === 'wrong nonce')
+        cleanup.claimValue = `${randomUUID()}:${cleanup.fixtureId}`;
+      if (failure === 'wrong receipt hash')
+        cleanup.receiptHash = 'f'.repeat(64);
+      if (failure === 'failed cleanup') cleanup.success = false;
+      if (failure === 'duplicate inventory key')
+        cleanup.inventories[0].keys.push('learning-runtime:owner');
+      if (failure === 'wrong database') cleanup.inventories[4].db = 8;
+      await writeFile(fixture.cleanupPaths[0], JSON.stringify(cleanup), {
+        mode: 0o600,
+      });
+    }
+    if (failure === 'redis restart')
+      fixture.adapters.snapshot = async () => ({
+        receipt: { ...fixture.resource.receipt, redisRunId: 'f'.repeat(40) },
+      });
+    if (failure === 'outside database')
+      fixture.adapters.snapshot = async () => {
+        requireLearningRedisBlank(
+          'db8:keys=1,expires=0,avg_ttl=0',
+          [0, 0, 0, 0, 0],
+        );
+      };
+    await assert.rejects(
+      verifyFinalLearningCleanup(fixture.value, fixture.adapters, 10000),
+    );
+    assert.notEqual(fixture.resource.blankVerified, true);
+    assert.equal(fixture.calls.includes('save'), false);
   });
