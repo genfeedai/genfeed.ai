@@ -709,7 +709,7 @@ describe('bounded diagnostic retention and cursor allocation', () => {
         extra: 1,
       }),
     ).toString('base64url'),
-  ])('rejects malformed cursor before any query', async (cursor) => {
+  ])('rejects malformed cursor before any query (case %#)', async (cursor) => {
     const f = fixture();
     await expect(f.service.list(actor, { limit: 1, cursor })).rejects.toThrow(
       'receipt_cursor_invalid',

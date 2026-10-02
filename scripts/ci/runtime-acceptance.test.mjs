@@ -51,6 +51,7 @@ import {
   FINAL_LEARNING_BUDGET,
   hasFinalCrunTerminationProof,
   hasFinalLearningTerminationProof,
+  LEARNING_DELEGATED_API_FILES,
   LEARNING_SOURCE_CONTRACT,
   learningChildEnvironment,
   learningCiIdentity,
@@ -62,6 +63,7 @@ import {
   performDedicatedCleanup,
   persistVisualJournal,
   postgresClientInvocation,
+  privateVitestReporterArguments,
   RAW_LIMIT,
   readPostgresCredentials,
   removeValidatedVisualRenderers,
@@ -100,6 +102,7 @@ import {
   verifyDedicatedSources,
   verifyFinalLearningCleanup,
   verifyFrozenSources,
+  verifyVisualRuntimeProbe,
   verifyVisualScenarioSources,
   visualSelection,
   workBudget,
@@ -2700,16 +2703,20 @@ test('frozen source verification rejects absent, changed and symlinked bytes bef
   });
   assert.equal(BASELINE_SOURCE_CONTRACT.sourceInputs.length, 3);
   assert.equal(BASELINE_SOURCE_CONTRACT.expectedPostgresCases, 5);
-  assert.equal(AGENT_PRODUCTION_FILES.length, 2);
+  assert.equal(AGENT_PRODUCTION_FILES.length, 3);
 });
 test('prepared owner revisions retain only the exact approved source hashes', () => {
   assert.equal(
+    AGENT_PRODUCTION_FILES[2].sha256,
+    '96740275d53505cc99d8b3be00c2073d524af9aaee2ec69d1e6742db3f8b0778',
+  );
+  assert.equal(
     AGENT_PRODUCTION_FILES[0].sha256,
-    'ca356d57acb604eaf18a15c56ab38d9328b32f08a2ebca42ab134be9d62e4e98',
+    'f87ec933f4f9f8cc78f7e749eff1e88aa120586ec726e913438e84494d6b95fc',
   );
   assert.equal(
     AGENT_PRODUCTION_FILES[1].sha256,
-    'e8d8910c10e33a2c34d7ff45df3cc1aaff1137ca9b78fc02678a7c276c1055c4',
+    'a19ccd15e87c3945c3a30c02734aed5fcba414803b87917ccf430d6fde6a678a',
   );
   assert.equal(
     BRAND_SOURCE_CONTRACT.unitFiles.find(
@@ -2717,7 +2724,7 @@ test('prepared owner revisions retain only the exact approved source hashes', ()
         entry.path ===
         'apps/server/api/src/services/branded-generation-receipts/branded-generation-receipts.service.spec.ts',
     )?.sha256,
-    '30abc0d90142cb882e9e397d07d23b7221efef5937616b31b87772d807410f13',
+    '7d9407f1613ddaf97a4d183bc9ae6d92bee37c3350bd8e741e56f7c1bbb45971',
   );
   assert.equal(
     BRAND_SOURCE_CONTRACT.unitFiles.find(
@@ -2725,7 +2732,7 @@ test('prepared owner revisions retain only the exact approved source hashes', ()
         entry.path ===
         'apps/server/api/src/services/branded-generation-receipts/branded-generation-recompile-codec.util.spec.ts',
     )?.sha256,
-    '67ab6c33f3d30f80238dae5e1f3acfc2b9f175261c4a4e2120bbc605a1480f8b',
+    '48f411eef83cb5e5562ad5f073f5ccb6b1cba96a916b7668ad2829f6e5aab4aa',
   );
   assert.equal(
     BRAND_SOURCE_CONTRACT.unitFiles.find(
@@ -3085,12 +3092,14 @@ test('dedicated work timeout supervises a real child/grandchild and waits all pr
     0o600,
   );
 });
-function partitionFixture() {
-  const apiRoot = '/fixture/apps/server/api',
-    selected = [
-      ...DELEGATED_API_FILES,
-      'test/integration/ordinary.integration.spec.ts',
-    ];
+function partitionFixture(mode = 'shared') {
+  const apiRoot = '/fixture/apps/server/api';
+  const selected = [
+    ...DELEGATED_API_FILES,
+    ...LEARNING_DELEGATED_API_FILES,
+    'test/integration/ordinary.integration.spec.ts',
+  ];
+  const executed = mode === 'final' ? selected.slice(4) : selected.slice(2);
   return {
     apiRoot,
     summary: {
@@ -3099,14 +3108,15 @@ function partitionFixture() {
       vitestExitCode: 0,
       failedFileCount: 0,
       selectedFiles: selected,
-      selectedFileCount: 3,
-      executedFileCount: 1,
+      selectedFileCount: selected.length,
+      executedFileCount: executed.length,
     },
     report: {
       success: true,
-      testResults: [
-        { name: path.join(apiRoot, selected[2]), status: 'passed' },
-      ],
+      testResults: executed.map((file) => ({
+        name: path.join(apiRoot, file),
+        status: 'passed',
+      })),
     },
   };
 }
@@ -3117,8 +3127,9 @@ test('shared API partition delegates exactly two selected fixtures without manuf
       value.report,
       value.apiRoot,
     );
-  assert.equal(result.executedFileCount, 1);
-  assert.equal(result.selectedFileCount, 3);
+  assert.equal(result.executedFileCount, 3);
+  assert.equal(result.selectedFileCount, 5);
+  assert.equal(result.mode, 'shared');
   assert.deepEqual(
     result.delegatedFiles.map((entry) => entry.proof),
     ['REQUIRED', 'REQUIRED'],
@@ -3147,7 +3158,7 @@ test('shared API partition delegates exactly two selected fixtures without manuf
       v.summary.vitestExitCode = 1;
     },
     (v) => {
-      v.summary.executedFileCount = 3;
+      v.summary.executedFileCount = 2;
     },
   ]) {
     const negative = structuredClone(value);
@@ -5513,6 +5524,194 @@ test('actual execution returns its persisted failure outcome after an expired wo
 test('learning fixture inventory freezes canonical persisted target execution state source', () => {
   assert.equal(
     LEARNING_SOURCE_CONTRACT.sourceInputs[0].sha256,
-    'b25c84d3c7256947a2ca43a454095a8282c1df657be18fdf4b857909f7a0e7d9',
+    '76c90c697c50578b1db5f6ecf1ad3d6666ca6be6488f0cdc85f0b29c39c22819',
   );
+});
+
+test('visual preflight requests only bounded runsc availability and rejects invalid proof', async () => {
+  const imageId = `sha256:${'a'.repeat(64)}`;
+  const calls = [];
+  const capture = async (...args) => {
+    calls.push(args);
+    return 'true';
+  };
+  await verifyVisualRuntimeProbe(capture, '/repo', { CI: 'true' }, imageId);
+  assert.deepEqual(calls, [
+    [
+      'docker',
+      [
+        'info',
+        '--format',
+        '{{if index .Runtimes "runsc"}}true{{else}}false{{end}}',
+      ],
+      '/repo',
+      { CI: 'true' },
+    ],
+  ]);
+  for (const value of ['false', '', 'true extra', '{"runsc":{}}']) {
+    await assert.rejects(
+      verifyVisualRuntimeProbe(async () => value, '/repo', {}, imageId),
+      { code: 'VISUAL_RUNTIME_PREREQUISITE' },
+    );
+  }
+  await assert.rejects(
+    verifyVisualRuntimeProbe(capture, '/repo', {}, 'unverified-image'),
+    { code: 'VISUAL_RUNTIME_PREREQUISITE' },
+  );
+  await assert.rejects(
+    verifyVisualRuntimeProbe(
+      async () => {
+        throw new Error('probe failed');
+      },
+      '/repo',
+      {},
+      imageId,
+    ),
+    /probe failed/,
+  );
+});
+
+test('final API partition requires all four delegated files and rejects cross-mode proof', () => {
+  const value = partitionFixture('final');
+  const result = validateSharedApiFullPartition(
+    value.summary,
+    value.report,
+    value.apiRoot,
+    'final',
+  );
+  assert.equal(result.mode, 'final');
+  assert.equal(result.selectedFileCount, 5);
+  assert.equal(result.executedFileCount, 1);
+  assert.deepEqual(
+    result.delegatedFiles.map((entry) => entry.file),
+    [...DELEGATED_API_FILES, ...LEARNING_DELEGATED_API_FILES],
+  );
+  assert.deepEqual(
+    result.delegatedFiles.map((entry) => entry.proof),
+    Array(4).fill('REQUIRED'),
+  );
+  assert.throws(
+    () =>
+      validateSharedApiFullPartition(
+        value.summary,
+        value.report,
+        value.apiRoot,
+        'shared',
+      ),
+    { code: 'INVALID_FULL_PARTITION' },
+  );
+  assert.throws(
+    () =>
+      validateSharedApiFullPartition(
+        value.summary,
+        value.report,
+        value.apiRoot,
+        'unknown',
+      ),
+    { code: 'INVALID_FULL_PARTITION_MODE' },
+  );
+  const shared = partitionFixture('shared');
+  assert.throws(
+    () =>
+      validateSharedApiFullPartition(
+        shared.summary,
+        shared.report,
+        shared.apiRoot,
+        'final',
+      ),
+    { code: 'INVALID_FULL_PARTITION' },
+  );
+  for (const file of LEARNING_DELEGATED_API_FILES) {
+    const missing = partitionFixture('final');
+    missing.summary.selectedFiles = missing.summary.selectedFiles.filter(
+      (entry) => entry !== file,
+    );
+    missing.summary.selectedFileCount--;
+    assert.throws(
+      () =>
+        validateSharedApiFullPartition(
+          missing.summary,
+          missing.report,
+          missing.apiRoot,
+          'final',
+        ),
+      { code: 'INVALID_FULL_PARTITION' },
+    );
+  }
+  const absent = partitionFixture('final');
+  absent.report.testResults = [];
+  absent.summary.executedFileCount = 0;
+  assert.throws(
+    () =>
+      validateSharedApiFullPartition(
+        absent.summary,
+        absent.report,
+        absent.apiRoot,
+        'final',
+      ),
+    { code: 'INVALID_FULL_PARTITION' },
+  );
+});
+
+test('private dual reporters retain a real beforeAll error and cannot qualify its skipped cases', async () => {
+  const directory = await mkdtemp(
+    path.join(tmpdir(), 'acceptance-hook-report-'),
+  );
+  const reportPath = path.join(directory, 'report.json');
+  const config = path.join(directory, 'vitest.config.mjs');
+  const fixture = path.join(directory, 'hook.test.js');
+  const marker = 'PRIVATE_ACCEPTANCE_HOOK_REGRESSION';
+  try {
+    await writeFile(
+      config,
+      "export default { test: { globals: true, include: ['hook.test.js'], pool: 'threads', maxWorkers: 1, fileParallelism: false } };",
+      { mode: 0o600 },
+    );
+    await writeFile(
+      fixture,
+      `beforeAll(() => { throw new Error('${marker}'); }); it('must not pass after setup failure', () => { expect(true).toBe(true); });`,
+      { mode: 0o600 },
+    );
+    const args = privateVitestReporterArguments(reportPath);
+    assert.deepEqual(args, [
+      '--reporter=default',
+      '--reporter=json',
+      `--outputFile.json=${reportPath}`,
+    ]);
+    const vitest = new URL(
+      '../../node_modules/vitest/vitest.mjs',
+      import.meta.url,
+    );
+    const child = spawnSync(
+      process.execPath,
+      [
+        vitest.pathname,
+        'run',
+        '--root',
+        directory,
+        '--config',
+        config,
+        ...args,
+        '--passWithNoTests=false',
+      ],
+      {
+        encoding: 'utf8',
+        timeout: 20000,
+        maxBuffer: 1024 * 1024,
+        env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' },
+      },
+    );
+    assert.equal(child.error, undefined);
+    assert.notEqual(child.status, 0);
+    assert.ok(`${child.stdout}${child.stderr}`.includes(marker));
+    await chmod(reportPath, 0o600);
+    const report = JSON.parse(await readFile(reportPath, 'utf8'));
+    assert.equal(report.success, false);
+    assert.equal(report.numPassedTests, 0);
+    assert.equal(report.testResults[0].status, 'failed');
+    assert.equal(report.testResults[0].assertionResults[0].status, 'pending');
+    assert.equal((await lstat(reportPath)).mode & 0o777, 0o600);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });
