@@ -1471,6 +1471,44 @@ export function hasFinalCrunTerminationProof(
     proof.checkedAt <= proof.deadline
   );
 }
+export function selectFinalCrunCleanupResult(
+  identity,
+  commands,
+  completed,
+  mediaKind,
+) {
+  const stage = `crun-${mediaKind}`;
+  const resource = identity.resources.crun?.[mediaKind];
+  if (
+    resource == null &&
+    !commands.some((entry) => entry.stage === stage) &&
+    !completed.some((entry) => entry.stage === stage)
+  )
+    return null;
+  const result = resource?.cleanupResult ?? {
+    passed: false,
+    operations: [{ name: 'termination-proof', passed: false }],
+    failures: [
+      {
+        stage: `crun-${mediaKind}-cleanup`,
+        code: 'CRUN_TERMINATION_UNCONFIRMED',
+      },
+    ],
+  };
+  if (
+    result.passed &&
+    (resource.candidateSHA !== identity.candidateSHA ||
+      resource.controlSHA !== identity.controlSHA ||
+      !hasFinalCrunTerminationProof(resource, mediaKind))
+  ) {
+    result.passed = false;
+    result.failures.push({
+      stage: `crun-${mediaKind}-cleanup`,
+      code: 'CRUN_TERMINATION_PROOF_FAILED',
+    });
+  }
+  return result;
+}
 export async function runFinalCrunBounded({
   identity,
   mediaKind,
@@ -2543,7 +2581,7 @@ export function validateVisualSelection(report, index, child) {
     for (const assertion of file.assertionResults ?? [])
       if (selection.skipped.includes(assertion.fullName))
         requireThat(
-          assertion.status === 'pending',
+          assertion.status === 'pending' || assertion.status === 'skipped',
           'INVALID_SELECTION_EXCLUSION',
         );
   return validateReport(report, [selection], child);
@@ -6098,29 +6136,13 @@ export async function execution(identity, env) {
         });
       }
       for (const mediaKind of ['image', 'video']) {
-        const resource = identity.resources.crun?.[mediaKind];
-        const result = resource?.cleanupResult ?? {
-          passed: false,
-          operations: [{ name: 'termination-proof', passed: false }],
-          failures: [
-            {
-              stage: `crun-${mediaKind}-cleanup`,
-              code: 'CRUN_TERMINATION_UNCONFIRMED',
-            },
-          ],
-        };
-        if (
-          result.passed &&
-          (resource.candidateSHA !== identity.candidateSHA ||
-            resource.controlSHA !== identity.controlSHA ||
-            !hasFinalCrunTerminationProof(resource, mediaKind))
-        ) {
-          result.passed = false;
-          result.failures.push({
-            stage: `crun-${mediaKind}-cleanup`,
-            code: 'CRUN_TERMINATION_PROOF_FAILED',
-          });
-        }
+        const result = selectFinalCrunCleanupResult(
+          identity,
+          commands,
+          completed,
+          mediaKind,
+        );
+        if (result === null) continue;
         cleanupResult.operations.push(
           ...result.operations.map((operation) => ({
             ...operation,

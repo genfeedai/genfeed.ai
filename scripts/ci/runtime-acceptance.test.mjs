@@ -76,6 +76,7 @@ import {
   STORAGE_PATHS,
   safeFile,
   sealState,
+  selectFinalCrunCleanupResult,
   startDedicatedControlProcess,
   startRegisteredDedicatedProcess,
   startVisualProcess,
@@ -1729,7 +1730,7 @@ for (const kind of ['file', 'directory'])
     assert.ok(!value.evidence.includes(relative));
   });
 
-test('fixed visual selection requires each exact real title and pending exclusions', () => {
+test('fixed visual selection requires each exact real title and pending or skipped exclusions', () => {
   assert.equal(VISUAL_CASES.length, 5);
   assert.equal(VISUAL_RENDERLESS_TITLES.length, 6);
   for (const index of [0, 1, 2, 3, 4, 5]) {
@@ -1737,29 +1738,50 @@ test('fixed visual selection requires each exact real title and pending exclusio
     const titles = [...selection.titles, ...selection.skipped];
     assert.equal(titles.length, 11);
     assert.equal(new Set(titles).size, 11);
-    const assertions = titles.map((title) =>
-      assertion(title, selection.titles.includes(title) ? 'passed' : 'pending'),
-    );
-    const fixture = report(assertions, `/fixture/${selection.file}`);
-    assert.equal(
-      validateVisualSelection(fixture, index, child)[0].passed,
-      index === 0 ? 6 : 1,
-    );
-    for (const title of selection.titles)
-      assert.ok(new RegExp(selection.pattern).test(title));
-    for (const title of selection.skipped)
-      assert.ok(!new RegExp(selection.pattern).test(title));
-    for (const status of ['pending', 'skipped', 'failed', 'todo']) {
-      const changed = structuredClone(fixture);
-      changed.testResults[0].assertionResults[0].status = status;
-      assert.throws(() => validateVisualSelection(changed, index, child));
+    for (const excludedStatus of ['pending', 'skipped']) {
+      const assertions = titles.map((title) =>
+        assertion(
+          title,
+          selection.titles.includes(title) ? 'passed' : excludedStatus,
+        ),
+      );
+      const fixture = report(assertions, `/fixture/${selection.file}`);
+      assert.equal(
+        validateVisualSelection(fixture, index, child)[0].passed,
+        index === 0 ? 6 : 1,
+      );
+      for (const title of selection.titles)
+        assert.ok(new RegExp(selection.pattern).test(title));
+      for (const title of selection.skipped)
+        assert.ok(!new RegExp(selection.pattern).test(title));
+      for (const status of ['pending', 'skipped', 'failed', 'todo']) {
+        const changed = structuredClone(fixture);
+        changed.testResults[0].assertionResults[0].status = status;
+        assert.throws(() => validateVisualSelection(changed, index, child));
+      }
+      for (const status of ['passed', 'failed', 'todo', 'unknown']) {
+        const wrong = structuredClone(fixture);
+        wrong.testResults[0].assertionResults.at(-1).status = status;
+        assert.throws(() => validateVisualSelection(wrong, index, child));
+      }
+      const mixed = structuredClone(fixture);
+      mixed.testResults[0].assertionResults.at(-1).status =
+        excludedStatus === 'pending' ? 'skipped' : 'pending';
+      assert.equal(
+        validateVisualSelection(mixed, index, child)[0].passed,
+        index === 0 ? 6 : 1,
+      );
+      assert.throws(
+        () =>
+          validateVisualSelection(fixture, index, { ...child, exitCode: 1 }),
+        { code: 'CHILD_FAILED' },
+      );
+      assert.throws(
+        () =>
+          validateVisualSelection({ ...fixture, success: false }, index, child),
+        { code: 'INVALID_REPORT' },
+      );
     }
-    const wrong = structuredClone(fixture);
-    wrong.testResults[0].assertionResults.at(-1).status = 'passed';
-    assert.throws(() => validateVisualSelection(wrong, index, child));
-    const skipped = structuredClone(fixture);
-    skipped.testResults[0].assertionResults.at(-1).status = 'skipped';
-    assert.throws(() => validateVisualSelection(skipped, index, child));
   }
 });
 const tapSummary = (values = {}) =>
@@ -3749,6 +3771,135 @@ function finalCrunSupervisorFixture(mediaKind = 'image') {
     writes: () => writes,
   };
 }
+test('unallocated Crun stages omit cleanup without granting successful coverage', () => {
+  const value = {
+    ...identity,
+    group: 'final',
+    resources: { crun: { image: null, video: undefined } },
+  };
+  const commands = [],
+    completed = [];
+  for (const mediaKind of ['image', 'video'])
+    assert.equal(
+      selectFinalCrunCleanupResult(value, commands, completed, mediaKind),
+      null,
+    );
+  assert.deepEqual(commands, []);
+  assert.deepEqual(completed, []);
+  const outcome = {
+    ...value,
+    version: 1,
+    status: 'failed',
+    completed,
+    failures: [
+      { stage: 'learning-runtime', code: 'CHILD_FAILED' },
+      { stage: 'coverage', code: 'INCOMPLETE_GROUPS' },
+    ],
+    cleanup: { passed: true, operations: [] },
+  };
+  assert.equal(validateOutcome(outcome, undefined, value), 'failed');
+  const forged = { ...outcome, status: 'passed', failures: [] };
+  assert.throws(() => validateOutcome(forged, forged, value), {
+    code: 'SUCCESS_RECEIPT_REQUIRED',
+  });
+});
+for (const mediaKind of ['image', 'video']) {
+  for (const evidence of ['commands', 'completed'])
+    test(`missing Crun ${mediaKind} resource with ${evidence} claim remains unconfirmed`, () => {
+      const value = { ...identity, resources: { crun: {} } };
+      const entry = [{ stage: `crun-${mediaKind}` }];
+      const result = selectFinalCrunCleanupResult(
+        value,
+        evidence === 'commands' ? entry : [],
+        evidence === 'completed' ? entry : [],
+        mediaKind,
+      );
+      assert.equal(result.passed, false);
+      assert.deepEqual(result.operations, [
+        { name: 'termination-proof', passed: false },
+      ]);
+      assert.deepEqual(result.failures, [
+        {
+          stage: `crun-${mediaKind}-cleanup`,
+          code: 'CRUN_TERMINATION_UNCONFIRMED',
+        },
+      ]);
+    });
+  test(`allocated but unspawned Crun ${mediaKind} remains a cleanup failure`, () => {
+    const resource = { mediaKind, spawnIssued: false };
+    const value = {
+      ...identity,
+      resources: { crun: { [mediaKind]: resource } },
+    };
+    assert.equal(
+      selectFinalCrunCleanupResult(value, [], [], mediaKind).passed,
+      false,
+    );
+  });
+}
+test('allocated failed Crun image is retained while genuinely absent video is omitted', () => {
+  const resource = {
+    mediaKind: 'image',
+    cleanupResult: {
+      passed: false,
+      operations: [{ name: 'termination-proof', passed: false }],
+      failures: [
+        { stage: 'crun-image-cleanup', code: 'CRUN_TERMINATION_UNCONFIRMED' },
+      ],
+    },
+  };
+  const value = { ...identity, resources: { crun: { image: resource } } };
+  assert.equal(
+    selectFinalCrunCleanupResult(value, [], [], 'image'),
+    resource.cleanupResult,
+  );
+  assert.equal(
+    selectFinalCrunCleanupResult(value, [], [], 'image').passed,
+    false,
+  );
+  assert.equal(selectFinalCrunCleanupResult(value, [], [], 'video'), null);
+});
+test('both proven Crun cleanup results retain exact proof validation', async () => {
+  const image = finalCrunSupervisorFixture('image'),
+    video = finalCrunSupervisorFixture('video');
+  await runFinalCrunBounded(image.options);
+  await runFinalCrunBounded(video.options);
+  const value = {
+    ...identity,
+    resources: { crun: { image: image.resource, video: video.resource } },
+  };
+  for (const mediaKind of ['image', 'video']) {
+    const resource = value.resources.crun[mediaKind];
+    assert.equal(
+      selectFinalCrunCleanupResult(value, [], [], mediaKind),
+      resource.cleanupResult,
+    );
+    assert.equal(resource.cleanupResult.passed, true);
+    for (const kind of [
+      'wrong-head',
+      'wrong-control',
+      'missing-proof',
+      'pending-streams',
+      'unknown-pgid',
+    ]) {
+      const changed = structuredClone(value),
+        changedResource = changed.resources.crun[mediaKind];
+      if (kind === 'wrong-head') changedResource.candidateSHA = CONTROL;
+      if (kind === 'wrong-control') changedResource.controlSHA = SHA;
+      if (kind === 'unknown-pgid') delete changedResource.pgid;
+      if (kind === 'missing-proof') delete changedResource.terminationProof;
+      if (kind === 'pending-streams') changedResource.streamsClosed = false;
+      const result = selectFinalCrunCleanupResult(changed, [], [], mediaKind);
+      assert.equal(result.passed, false);
+      assert.deepEqual(result.failures, [
+        {
+          stage: `crun-${mediaKind}-cleanup`,
+          code: 'CRUN_TERMINATION_PROOF_FAILED',
+        },
+      ]);
+    }
+  }
+});
 for (const mediaKind of ['image', 'video'])
   test(`actual final Crun binding requires observed group absence, closed streams and acknowledged proof before owned cleanup (${mediaKind})`, async () => {
     const value = finalCrunSupervisorFixture(mediaKind),
@@ -4031,7 +4182,18 @@ test('Crun production routing leaves diagnostic and other stages on untouched ge
       '    for (const resource of [...identity.resources.databases].reverse())',
     ),
   );
-  assert.ok(outer.includes('resource?.cleanupResult'));
+  assert.match(
+    outer,
+    /selectFinalCrunCleanupResult\(\s*identity,\s*commands,\s*completed,\s*mediaKind,?\s*\)/,
+  );
+  const selector = source.slice(
+    source.indexOf('export function selectFinalCrunCleanupResult('),
+    source.indexOf('export async function runFinalCrunBounded('),
+  );
+  assert.ok(selector.includes('resource?.cleanupResult'));
+  assert.match(selector, /hasFinalCrunTerminationProof\(resource, mediaKind\)/);
+  assert.ok(!selector.includes('cleanupFinalCrunResources('));
+  assert.ok(!selector.includes('readFile('));
   assert.ok(!outer.includes('cleanupFinalCrunResources('));
   assert.ok(!outer.includes('readFile('));
   assert.equal(
