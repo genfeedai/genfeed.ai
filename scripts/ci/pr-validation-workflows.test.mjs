@@ -755,7 +755,13 @@ test('serializes reusable build verification without cancelling another caller',
 test('release waits for exact-SHA Full Suite evidence in the existing validation step', () => {
   const workflow = readWorkflow('release.yml');
   const validateRelease = jobBlock(workflow, 'validate-release', 'release.yml');
+  const verifySuite = jobBlock(workflow, 'verify-suite', 'release.yml');
 
+  assert.match(
+    verifySuite,
+    /^ {4}uses: \.\/\.github\/workflows\/full-suite\.yml$/m,
+  );
+  assert.match(verifySuite, /^ {4}with:\n {6}run_runtime_acceptance: true$/m);
   assert.match(validateRelease, /^ {4}timeout-minutes: 35$/m);
   assert.match(
     validateRelease,

@@ -444,14 +444,12 @@ jobs:
             echo "release_tag=${release_tag}"
           } >>"${GITHUB_OUTPUT}"
 
-      # full-suite.yml validates every master push (CI heavy matrix +
-      # build-verify + E2E) — the exact suite verify-suite would run. A green
-      # push (or manual master) run for the release SHA is
-      # content-addressed evidence for the identical tree. If that run is still
-      # queued or in progress, wait for it instead of launching the same matrix
-      # a second time. A hard-red run blocks release; a missing, superseded, or
-      # infrastructure-cancelled run falls back to verify-suite. Evidence lookup
-      # failures also fall back, never skip verification.
+      # Reuse exact-SHA qualified standalone Full Suite or prior successful
+      # normal Release evidence. Both require the latest final connected gate;
+      # routine push runs leave it disabled. Exclude this Release run, and wait
+      # for standalone in-flight evidence only within the bounded window;
+      # missing or unqualified evidence requests the connected fallback below.
+      # Hard-red evidence blocks release. Historical recovery uses its own proof.
       - name: Check for existing Full Suite evidence
         id: suite
         if: ${{ inputs.recovery_run_id == '' }}
@@ -472,6 +470,8 @@ jobs:
       pull-requests: write
       statuses: write
     uses: ./.github/workflows/full-suite.yml
+    with:
+      run_runtime_acceptance: true
     secrets: inherit
 
   publish-community:
