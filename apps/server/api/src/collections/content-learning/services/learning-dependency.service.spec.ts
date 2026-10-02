@@ -16,6 +16,7 @@ import {
 import type {
   LearningPublicationApprovalRow,
   LearningPublicationAssociationV1,
+  LearningPublicationCredentialRow,
   LearningPublicationFinalizationRow,
   LearningPublicationPinRow,
   LearningPublicationPostRow,
@@ -1015,7 +1016,7 @@ async function sourceFixture() {
       isDeleted: false,
       isActive: true,
     },
-    credential = {
+    credential: LearningPublicationCredentialRow = {
       id: 'credential',
       organizationId: 'org',
       brandId: 'brand',
@@ -1078,6 +1079,19 @@ async function sourceFixture() {
   };
 }
 describe('C1 current pinned publication and parent consumers', () => {
+  it.each([null, '', '   '])(
+    'refuses a credential parent with missing brand %j before querying a brand',
+    async (brandId) => {
+      const f = await sourceFixture();
+      f.credential.brandId = brandId;
+      await expect(
+        f.service.resolve('credential', 'credential', 'org', f.tx),
+      ).rejects.toThrow('Pinned dependency identity unavailable');
+      expect(f.tx.brand.findFirst).not.toHaveBeenCalled();
+      expect(f.blocked).not.toHaveBeenCalled();
+    },
+  );
+
   it('uses current canonical versions and preserves immutable pins/config under the actual resolver', async () => {
     const f = await sourceFixture();
     for (const kind of [

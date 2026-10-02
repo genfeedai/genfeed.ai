@@ -177,7 +177,7 @@ export class LearningDatasetPublicationPins {
               const row = this.credentials.get(
                 key(organizationId, 'credential', sourceId),
               );
-              return row ? [row.brandId] : [];
+              return row?.brandId?.trim() ? [row.brandId] : [];
             }),
             organizationId,
           );
@@ -197,7 +197,7 @@ export class LearningDatasetPublicationPins {
                 key(organizationId, kind, sourceId),
               );
               if (
-                row &&
+                row?.brandId?.trim() &&
                 this.brands.get(key(organizationId, 'brand', row.brandId))
               )
                 pin = sourceId;

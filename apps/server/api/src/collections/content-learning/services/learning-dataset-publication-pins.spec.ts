@@ -267,6 +267,31 @@ function expected(row: Rows) {
 }
 
 describe('batched current publication pins', () => {
+  it.each([null, '', '   '])(
+    'rejects missing credential brand %j in both parent pin readers',
+    async (brandId) => {
+      const row = fixture();
+      row.credential.brandId = brandId;
+      const { tx, raw } = delegates([row]);
+      const bulk = new LearningDatasetPublicationPins(tx, 1000);
+      expect(await bulk.pins('credential', ['credential'], 'org')).toEqual(
+        new Map(),
+      );
+      expect(raw.brand.findMany).not.toHaveBeenCalled();
+      const scalar = new LearningDependencyService(
+        tx as unknown as PrismaService,
+      );
+      await expect(
+        scalar.resolve('credential', 'credential', 'org', tx),
+      ).rejects.toThrow('Pinned dependency identity unavailable');
+      expect(raw.brand.findFirst).not.toHaveBeenCalled();
+      expect(await bulk.pins('credential', ['credential'], 'org')).toEqual(
+        new Map(),
+      );
+      expect(raw.credential.findMany).toHaveBeenCalledTimes(1);
+    },
+  );
+
   for (const first of [
     'post',
     'publish_approval',

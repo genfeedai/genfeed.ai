@@ -228,7 +228,8 @@ export class LearningDependencyService {
       row.id !== id ||
       row.organizationId !== organizationId ||
       row.isDeleted ||
-      !row.isConnected
+      !row.isConnected ||
+      !row.brandId?.trim()
     )
       return null;
     const brand = await tx.brand.findFirst({
