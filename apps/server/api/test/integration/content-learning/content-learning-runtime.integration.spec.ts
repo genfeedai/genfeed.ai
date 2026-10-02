@@ -192,6 +192,31 @@ describe('hosted real production learning runtime', () => {
       '@api/collections/workflows/workflows.tokens'
     );
     const { SERVER_TOKENS } = await import('@api/server.dependencies');
+    const { PostLifecycleModule } = await import(
+      '@api/collections/posts/post-lifecycle.module'
+    );
+    const { PostLifecycleService } = await import(
+      '@api/post-lifecycle/post-lifecycle.service'
+    );
+    const { LoggerService } = await import('@libs/logger/logger.service');
+    for (const application of [fixture.first, fixture.second]) {
+      const lifecycleModule = application.module.select(PostLifecycleModule);
+      const lifecycle = lifecycleModule.get(PostLifecycleService, {
+        strict: true,
+      });
+      const logger = application.module.get(LoggerService);
+      expect(lifecycle).toBeInstanceOf(PostLifecycleService);
+      expect(lifecycle.constructor).toBe(PostLifecycleService);
+      expect(application.module.get(PostLifecycleService)).toBe(lifecycle);
+      expect(logger).toBeInstanceOf(LoggerService);
+      expect(logger.constructor).toBe(LoggerService);
+      expect(lifecycleModule.get(SERVER_TOKENS.prisma, { strict: true })).toBe(
+        application.prisma,
+      );
+      expect(lifecycleModule.get(SERVER_TOKENS.logger, { strict: true })).toBe(
+        logger,
+      );
+    }
     expect(fixture.first.module.get(SYSTEM_WORKFLOW_RUNNER)).toBe(
       fixture.services.runner,
     );

@@ -1122,6 +1122,9 @@ export async function createLearningRuntimeApplication(
   const { SchedulerPublishStateService } = await import(
     '@workers/services/scheduler-publish-state.service'
   );
+  const { PostLifecycleModule } = await import(
+    '@api/collections/posts/post-lifecycle.module'
+  );
   const { PostLifecycleService } = await import(
     '@api/post-lifecycle/post-lifecycle.service'
   );
@@ -1134,8 +1137,7 @@ export async function createLearningRuntimeApplication(
   };
   await assertNoLearningRuntimeEnvFiles();
   await resources.check();
-  resources.beginApplicationConstruction();
-  const module = await Test.createTestingModule({
+  const builder = Test.createTestingModule({
     imports: [
       ConfigModule,
       LoggerModule,
@@ -1152,6 +1154,7 @@ export async function createLearningRuntimeApplication(
         wildcard: true,
       }),
       WorkflowsModule,
+      PostLifecycleModule,
     ],
     providers: [
       BackgroundSystemWorkflowProcessor,
@@ -1176,8 +1179,9 @@ export async function createLearningRuntimeApplication(
     .useValue({ connection, prefix: resources.prefix })
     // Installed @nestjs/bullmq 12 bull.constants.js; registrar remains real.
     .overrideProvider('BULLMQ_EXTRA_OPTIONS')
-    .useValue({ manualRegistration: true })
-    .compile();
+    .useValue({ manualRegistration: true });
+  resources.beginApplicationConstruction();
+  const module = await builder.compile();
   const queues = new Set<InstanceType<typeof Queue>>();
   async function closeApplication() {
     const errors: unknown[] = [];
