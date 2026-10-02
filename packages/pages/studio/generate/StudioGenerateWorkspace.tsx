@@ -1380,7 +1380,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     );
     const videoControls = selectedCrunModel?.inputControls;
     if (
-      settings.modelKey.startsWith('crun/') &&
+      settings.modelKey?.startsWith('crun/') &&
       (isLoadingModels ||
         !selectedCrunModel ||
         videoControls?.mediaKind !== 'video')

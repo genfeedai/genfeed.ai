@@ -82,6 +82,7 @@ async function assertRuntimeMediaExtension(
         data: {
           ...scope,
           id: parentId,
+          description: 'Owned media probe parent',
           ingredients: { connect: { id: ingredientId } },
         },
       });
@@ -89,6 +90,7 @@ async function assertRuntimeMediaExtension(
         data: {
           ...scope,
           id: childId,
+          description: 'Owned media probe child',
           parentId,
           ingredients: { connect: { id: ingredientId } },
         },
@@ -1142,22 +1144,6 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
     const current = await fixture.prisma.post.findUniqueOrThrow({
       where: { id: post.id },
     });
-    for (const [index, outcome] of outcomes.entries()) {
-      if (
-        outcome.status === 'rejected' &&
-        (index === 0 || !current.isDeleted)
-      ) {
-        const reason: unknown = outcome.reason;
-        console.error(
-          index === 0
-            ? 'Expiry operation rejected'
-            : 'Approval operation rejected',
-          reason instanceof Error
-            ? (reason.stack ?? reason.message)
-            : String(reason),
-        );
-      }
-    }
     expect([
       TargetExecutionState.CANCELLED,
       TargetExecutionState.SCHEDULED,
