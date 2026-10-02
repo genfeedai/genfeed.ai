@@ -256,7 +256,15 @@ describe('Library upload intake with real dropzone', () => {
       new File(['b'], 'b.heic'),
       new File(['c'], 'c.heic'),
     ]);
-    expect(hook.result.current.files).toHaveLength(0);
+    // react-dropzone 20 retains the accepted prefix and rejects only surplus files.
+    expect(hook.result.current.files.map((file) => file.name)).toEqual([
+      'a.heic',
+      'b.heic',
+    ]);
+    expect(
+      hook.result.current.files.some((file) => file.name === 'c.heic'),
+    ).toBe(false);
+    expect(hook.result.current.fileStatuses.size).toBe(2);
     expect(hook.result.current.error).toContain('rejected');
   });
 
