@@ -1,13 +1,11 @@
 'use client';
 
+import { AGENT_CONNECT_HREF } from '@data/agent-connect.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AgentFirstActionsProps } from '@props/website/agent-first-actions.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import Link from 'next/link';
-
-/** Where every "Connect your agent" action lands: the client setup list. */
-export const AGENT_CONNECT_HREF = '/agent#connect';
 
 /*
   The product pages sell one path: point the agent you already use at Genfeed,

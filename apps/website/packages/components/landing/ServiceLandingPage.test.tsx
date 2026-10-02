@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { serviceLandingSlugs } from '@web-components/landing/service-landings.data';
 import type { AnchorHTMLAttributes } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -35,20 +35,43 @@ vi.mock('@services/core/environment.service', () => ({
   },
 }));
 
+const AGENT_LANDING_SLUGS = [
+  'founder-content',
+  'x',
+  'linkedin',
+  'instagram',
+  'tiktok',
+  'youtube',
+  'threads',
+  'facebook',
+  'pinterest',
+];
 const LANDING_SLUGS = [...serviceLandingSlugs, 'fleet'];
+
+vi.mock('@ui/topbars/logo/TopbarLogo', () => ({
+  default: () => <span>Logo</span>,
+}));
 
 vi.mock('@web-components/landing/BookingSection', () => ({
   default: () => <section id="book">Booking calendar</section>,
 }));
 
 describe('ServiceLandingPage', () => {
-  it.each(LANDING_SLUGS.filter((slug) => slug !== 'done-for-you'))(
+  it.each(
+    LANDING_SLUGS.filter(
+      (slug) => slug !== 'done-for-you' && !AGENT_LANDING_SLUGS.includes(slug),
+    ),
+  )(
     'offers self-serve first and a call on /%s, in the hero and the closing CTA',
     (slug) => {
       render(<ServiceLandingPage slug={slug} />);
 
-      const startFree = screen.getAllByRole('link', { name: 'Start free' });
-      const bookCall = screen.getAllByRole('link', { name: 'Book a call' });
+      const startFree = within(screen.getByRole('main')).getAllByRole('link', {
+        name: 'Start free',
+      });
+      const bookCall = within(screen.getByRole('main')).getAllByRole('link', {
+        name: 'Book a call',
+      });
 
       expect(startFree).toHaveLength(2);
       expect(bookCall).toHaveLength(2);
@@ -102,17 +125,66 @@ describe('ServiceLandingPage', () => {
     expect(screen.queryByText('Smaller scopes')).not.toBeInTheDocument();
   });
 
-  it('renders the X growth page with both paths spelled out', () => {
-    render(<ServiceLandingPage slug="x" />);
+  it.each(AGENT_LANDING_SLUGS)(
+    'leads /%s with agent connection in the header, hero and closing CTA',
+    (slug) => {
+      render(<ServiceLandingPage slug={slug} />);
+      const header = within(screen.getByRole('banner'));
+      const connect = header.getByRole('link', { name: 'Connect your agent' });
+      expect(connect).toHaveAttribute('href', '/agent#connect');
+      expect(connect).not.toHaveAttribute('target', '_blank');
+      expect(
+        header.getByRole('link', { name: 'Start for $0' }),
+      ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
+      const body = within(screen.getByRole('main'));
+      const actions = body
+        .getAllByRole('link')
+        .filter((link) =>
+          ['Connect your agent', 'Start for $0'].includes(
+            link.textContent ?? '',
+          ),
+        );
+      expect(actions.map((link) => link.textContent)).toEqual([
+        'Connect your agent',
+        'Start for $0',
+        'Connect your agent',
+        'Start for $0',
+      ]);
+      for (const link of body.getAllByRole('link', {
+        name: 'Connect your agent',
+      })) {
+        expect(link).toHaveAttribute('href', '/agent#connect');
+      }
+      expect(
+        screen.queryByRole('link', { name: /book a call/i }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/scoped on a call|before booking|retainer/i),
+      ).not.toBeInTheDocument();
+      expect(body.getByText(/Connect Codex, Claude/)).toBeInTheDocument();
+      expect(body.getByText('01 / Connect')).toBeInTheDocument();
+      expect(body.getByText('03 / Review')).toBeInTheDocument();
+      expect(body.getByText('Approve before publishing')).toBeInTheDocument();
+    },
+  );
 
-    const heading = screen.getByRole('heading', { level: 1 });
-    expect(heading).toHaveTextContent('Grow your X account.');
-    expect(
-      within(document.body).getByText('Self-serve: start free'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Can I run it myself instead of hiring you?'),
-    ).toBeInTheDocument();
+  it('tracks agent connection with the landing page identity', () => {
+    const listener = vi.fn();
+    window.addEventListener('genfeed:marketing:button-click', listener);
+    render(<ServiceLandingPage slug="x" />);
+    const body = within(screen.getByRole('main'));
+    fireEvent.click(
+      body.getAllByRole('link', { name: 'Connect your agent' })[0],
+    );
+    expect(listener).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detail: {
+          trackingData: { action: 'connect_agent' },
+          trackingName: 'x_landing_click',
+        },
+      }),
+    );
+    window.removeEventListener('genfeed:marketing:button-click', listener);
   });
 
   it.each([

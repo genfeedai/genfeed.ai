@@ -1,6 +1,7 @@
+import { AGENT_CONNECT_HREF } from '@data/agent-connect.data';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import AgentFirstActions, { AGENT_CONNECT_HREF } from './AgentFirstActions';
+import AgentFirstActions from './AgentFirstActions';
 
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {

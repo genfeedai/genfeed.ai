@@ -1,9 +1,13 @@
+import { AGENT_CONNECT_HREF } from '@data/agent-connect.data';
 import { BOOKING_HREF, BOOKING_PAGE_SLUG } from '@data/booking.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ServiceLandingActionsProps } from '@props/website/service-landing.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import SectionHeader from '@ui/marketing/SectionHeader';
+import PublicShell from '@ui/shell/PublicShell';
+import LandingTopbar from '@ui/shell/topbars/LandingTopbar';
+import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import FaqGrid from '@web-components/content/FaqGrid';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
@@ -34,13 +38,14 @@ export interface ServiceLandingPageProps {
 
 const SIGN_UP_HREF = `${EnvironmentService.apps.app}/sign-up`;
 
-// Every landing page offers both paths: run it yourself on Genfeed, or have us
-// run it. Self-serve leads because it is the lower-friction first step, except
-// on the booking page itself, where the call is what the visitor came for.
-// Every "Book a call" goes to that page's calendar, never straight to Calendly.
+// Product acquisition pages lead with the connected agent. Service offers keep
+// self-serve and booking, with calls booked on the done-for-you page.
 function LandingActions({
   slug,
 }: ServiceLandingActionsProps): React.ReactElement {
+  if (serviceLandingConfigBySlug[slug]?.isAgentFirst) {
+    return <AgentFirstActions trackingName={`${slug}_landing_click`} />;
+  }
   const isBookingPage = slug === BOOKING_PAGE_SLUG;
 
   const bookCall = (
@@ -76,180 +81,203 @@ export default function ServiceLandingPage({
 }: ServiceLandingPageProps): React.ReactElement {
   const config = (serviceLandingConfigBySlug[slug] ??
     pitchLandingConfigBySlug[slug]) as ServiceLandingConfig;
+  const topbar = (
+    <LandingTopbar
+      ctaHref={config.isAgentFirst ? AGENT_CONNECT_HREF : SIGN_UP_HREF}
+      ctaLabel={config.isAgentFirst ? 'Connect your agent' : 'Start free'}
+      secondaryCtaHref={config.isAgentFirst ? SIGN_UP_HREF : BOOKING_HREF}
+      secondaryCtaLabel={config.isAgentFirst ? 'Start for $0' : 'Book a call'}
+    />
+  );
 
   return (
-    <MarketingEntrance cards={false}>
-      <PageLayout
-        heroMedia={<MarketingArtwork page={`/${slug}`} />}
-        badge={config.badge}
-        badgeIcon={Sparkles}
-        title={
-          <>
-            {config.heroTitle} <span>{config.heroAccent}</span>.
-          </>
-        }
-        description={config.heroDescription}
-        heroActions={<LandingActions slug={slug} />}
-        showFooter={false}
-      >
-        <WebSection maxWidth="md" className="pt-0">
-          <div className="gen-card-spotlight grid gap-8 p-8 md:grid-cols-[1.4fr_0.8fr] md:p-12">
-            <div>
-              <p className="mb-6 text-lg leading-relaxed text-surface/70">
-                {config.intro}
-              </p>
+    <PublicShell
+      overlay={
+        <div className="pointer-events-none fixed inset-0 z-0 bg-dots opacity-40" />
+      }
+      topbar={topbar}
+    >
+      <MarketingEntrance cards={false}>
+        <PageLayout
+          heroMedia={<MarketingArtwork page={`/${slug}`} />}
+          badge={config.badge}
+          badgeIcon={Sparkles}
+          title={
+            <>
+              {config.heroTitle} <span>{config.heroAccent}</span>.
+            </>
+          }
+          description={config.heroDescription}
+          heroActions={<LandingActions slug={slug} />}
+          showFooter={false}
+        >
+          <WebSection maxWidth="md" className="pt-0">
+            <div className="gen-card-spotlight grid gap-8 p-8 md:grid-cols-[1.4fr_0.8fr] md:p-12">
+              <div>
+                <p className="mb-6 text-lg leading-relaxed text-surface/70">
+                  {config.intro}
+                </p>
 
-              <div className="flex flex-wrap items-center gap-3 text-sm text-surface/65">
-                <span className="border border-edge/10 px-3 py-2 text-surface/70">
-                  Self-serve: start free
-                </span>
-                <span className="border border-edge/10 px-3 py-2 text-surface/70">
-                  {config.priceLabel ?? 'Custom, scoped on a call'}
-                </span>
-                {config.priceNote ? (
-                  <span className="border border-edge/10 px-3 py-2">
-                    {config.priceNote}
+                <div className="flex flex-wrap items-center gap-3 text-sm text-surface/65">
+                  <span className="border border-edge/10 px-3 py-2 text-surface/70">
+                    {config.isAgentFirst
+                      ? 'Start for $0'
+                      : 'Self-serve: start free'}
                   </span>
-                ) : null}
-                <span className="border border-edge/10 px-3 py-2">
-                  {config.priceCtaHint ?? 'Book a call to scope it'}
-                </span>
+                  <span className="border border-edge/10 px-3 py-2 text-surface/70">
+                    {config.priceLabel ??
+                      (config.isAgentFirst
+                        ? 'Use the agent you already have'
+                        : 'Custom, scoped on a call')}
+                  </span>
+                  {config.priceNote ? (
+                    <span className="border border-edge/10 px-3 py-2">
+                      {config.priceNote}
+                    </span>
+                  ) : null}
+                  <span className="border border-edge/10 px-3 py-2">
+                    {config.priceCtaHint ??
+                      (config.isAgentFirst
+                        ? 'Approve before publishing'
+                        : 'Book a call to scope it')}
+                  </span>
+                </div>
               </div>
-            </div>
 
-            <div className="bg-background/60 p-6">
-              <div className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-surface/65">
-                <CalendarRange className="size-4" />
-                {config.fitLabel}
-              </div>
-              <ul className="space-y-4">
-                {config.fitSignals.map((signal) => (
-                  <li
-                    key={signal}
-                    className="flex gap-3 text-sm text-surface/65"
-                  >
-                    <BadgeCheck className="mt-0.5 size-4 shrink-0 text-surface/50" />
-                    <span>{signal}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </WebSection>
-
-        <WebSection maxWidth="xl" className="gsap-section">
-          <SectionHeader
-            title={config.outcomesTitle}
-            description={config.outcomesDescription}
-            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
-          />
-
-          <NeuralGrid columns={3} className="gsap-grid">
-            {config.outcomes.map((outcome) => (
-              <NeuralGridItem
-                key={outcome.title}
-                icon={outcome.icon}
-                title={outcome.title}
-                description={outcome.description}
-                className="gsap-card"
-                padding="lg"
-              />
-            ))}
-          </NeuralGrid>
-        </WebSection>
-
-        <WebSection bg="bordered" maxWidth="xl" className="gsap-section">
-          <SectionHeader
-            title={config.deliverablesTitle}
-            description={config.deliverablesDescription}
-            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
-          />
-
-          <NeuralGrid columns={3}>
-            {config.deliverableBuckets.map((bucket) => (
-              <NeuralGridItem
-                key={bucket.title}
-                title={bucket.title}
-                padding="lg"
-              >
-                <ul className="space-y-3">
-                  {bucket.items.map((item) => (
+              <div className="bg-background/60 p-6">
+                <div className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-surface/65">
+                  <CalendarRange className="size-4" />
+                  {config.fitLabel}
+                </div>
+                <ul className="space-y-4">
+                  {config.fitSignals.map((signal) => (
                     <li
-                      key={item}
-                      className="border-b border-edge/5 pb-3 text-sm text-surface/60 last:border-b-0 last:pb-0"
+                      key={signal}
+                      className="flex gap-3 text-sm text-surface/65"
                     >
-                      {item}
+                      <BadgeCheck className="mt-0.5 size-4 shrink-0 text-surface/50" />
+                      <span>{signal}</span>
                     </li>
                   ))}
                 </ul>
-              </NeuralGridItem>
-            ))}
-          </NeuralGrid>
-
-          <div className="mt-8 grid gap-px bg-edge/5 sm:grid-cols-2 lg:grid-cols-4">
-            {config.includes.map((item) => (
-              <div
-                key={item}
-                className="bg-background p-4 text-sm text-surface/60"
-              >
-                {item}
               </div>
-            ))}
-          </div>
-        </WebSection>
+            </div>
+          </WebSection>
 
-        <WebSection maxWidth="xl" className="gsap-section">
-          <SectionHeader
-            title={config.processTitle}
-            description={config.processDescription}
-            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
-          />
+          <WebSection maxWidth="xl" className="gsap-section">
+            <SectionHeader
+              title={config.outcomesTitle}
+              description={config.outcomesDescription}
+              className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
+            />
 
-          <NeuralGrid columns={4}>
-            {config.process.map((step, index) => (
-              // Every step is one step. Tinting the first and last only marked
-              // the ends of a sequence the numbering already marks, and read as
-              // two cards being highlighted for a reason nobody could name.
-              <NeuralGridItem
-                key={step.step}
-                tierLabel={`0${index + 1} / ${step.step}`}
-                padding="lg"
-              >
-                <p className="text-sm leading-relaxed text-surface/60">
-                  {step.description}
-                </p>
-              </NeuralGridItem>
-            ))}
-          </NeuralGrid>
-        </WebSection>
+            <NeuralGrid columns={3} className="gsap-grid">
+              {config.outcomes.map((outcome) => (
+                <NeuralGridItem
+                  key={outcome.title}
+                  icon={outcome.icon}
+                  title={outcome.title}
+                  description={outcome.description}
+                  className="gsap-card"
+                  padding="lg"
+                />
+              ))}
+            </NeuralGrid>
+          </WebSection>
 
-        <WebSection bg="bordered" maxWidth="md" className="gsap-section">
-          <SectionHeader
-            title={config.faqTitle}
-            description={config.faqDescription}
-            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
-          />
+          <WebSection bg="bordered" maxWidth="xl" className="gsap-section">
+            <SectionHeader
+              title={config.deliverablesTitle}
+              description={config.deliverablesDescription}
+              className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
+            />
 
-          <FaqGrid items={config.faqs} />
-        </WebSection>
+            <NeuralGrid columns={3}>
+              {config.deliverableBuckets.map((bucket) => (
+                <NeuralGridItem
+                  key={bucket.title}
+                  title={bucket.title}
+                  padding="lg"
+                >
+                  <ul className="space-y-3">
+                    {bucket.items.map((item) => (
+                      <li
+                        key={item}
+                        className="border-b border-edge/5 pb-3 text-sm text-surface/60 last:border-b-0 last:pb-0"
+                      >
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </NeuralGridItem>
+              ))}
+            </NeuralGrid>
 
-        {slug === BOOKING_PAGE_SLUG ? (
-          <>
-            <DoneForYouScope />
-            <BookingSection />
-          </>
-        ) : (
-          <CtaSection
-            bg="subtle"
-            title={config.closingTitle}
-            description={config.closingDescription}
-          >
-            <LandingActions slug={slug} />
-          </CtaSection>
-        )}
-      </PageLayout>
+            <div className="mt-8 grid gap-px bg-edge/5 sm:grid-cols-2 lg:grid-cols-4">
+              {config.includes.map((item) => (
+                <div
+                  key={item}
+                  className="bg-background p-4 text-sm text-surface/60"
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+          </WebSection>
 
-      <LandingFooter />
-    </MarketingEntrance>
+          <WebSection maxWidth="xl" className="gsap-section">
+            <SectionHeader
+              title={config.processTitle}
+              description={config.processDescription}
+              className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
+            />
+
+            <NeuralGrid columns={4}>
+              {config.process.map((step, index) => (
+                // Every step is one step. Tinting the first and last only marked
+                // the ends of a sequence the numbering already marks, and read as
+                // two cards being highlighted for a reason nobody could name.
+                <NeuralGridItem
+                  key={step.step}
+                  tierLabel={`0${index + 1} / ${step.step}`}
+                  padding="lg"
+                >
+                  <p className="text-sm leading-relaxed text-surface/60">
+                    {step.description}
+                  </p>
+                </NeuralGridItem>
+              ))}
+            </NeuralGrid>
+          </WebSection>
+
+          <WebSection bg="bordered" maxWidth="md" className="gsap-section">
+            <SectionHeader
+              title={config.faqTitle}
+              description={config.faqDescription}
+              className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
+            />
+
+            <FaqGrid items={config.faqs} />
+          </WebSection>
+
+          {slug === BOOKING_PAGE_SLUG ? (
+            <>
+              <DoneForYouScope />
+              <BookingSection />
+            </>
+          ) : (
+            <CtaSection
+              bg="subtle"
+              title={config.closingTitle}
+              description={config.closingDescription}
+            >
+              <LandingActions slug={slug} />
+            </CtaSection>
+          )}
+        </PageLayout>
+
+        <LandingFooter />
+      </MarketingEntrance>
+    </PublicShell>
   );
 }

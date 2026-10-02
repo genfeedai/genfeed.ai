@@ -38,7 +38,7 @@ export default function LandingTopbar({
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.PUBLIC}
               asChild
-              className="h-11 px-3 text-sm tracking-[0.08em] max-[359px]:hidden sm:px-5 sm:tracking-[0.18em]"
+              className="h-11 px-2 text-xs tracking-[0.04em] max-[359px]:hidden sm:px-5 sm:text-sm sm:tracking-[0.18em]"
             >
               <Link href={secondaryCtaHref}>{secondaryCtaLabel}</Link>
             </Button>
@@ -47,9 +47,13 @@ export default function LandingTopbar({
           <Button
             size={ButtonSize.PUBLIC}
             asChild
-            className="h-11 px-3 text-sm tracking-[0.08em] sm:px-5 sm:tracking-[0.18em]"
+            className="h-11 px-2 text-xs tracking-[0.04em] sm:px-5 sm:text-sm sm:tracking-[0.18em]"
           >
-            <Link href={ctaHref} target="_blank" rel="noopener noreferrer">
+            <Link
+              href={ctaHref}
+              target={ctaHref.startsWith('/') ? undefined : '_blank'}
+              rel={ctaHref.startsWith('/') ? undefined : 'noopener noreferrer'}
+            >
               {ctaLabel}
             </Link>
           </Button>
