@@ -1,5 +1,6 @@
 import { WorkflowEngineConverterService } from '@api/collections/workflows/services/workflow-engine-converter.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import { WorkflowNodeGraphRuntimeService } from '@api/collections/workflows/services/workflow-node-graph-runtime.service';
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
@@ -720,10 +721,15 @@ describe('WorkflowExecutorService', () => {
 
   it('reuses the previous ETA duration when resuming after a delay', async () => {
     const startedAt = new Date();
+    const delayPass = vi.spyOn(
+      WorkflowNodeGraphRuntimeService.prototype,
+      'handleDelayNode',
+    );
     const executableWorkflow = {
       edges: [
         { source: 'completed-node', target: 'next-node' },
         { source: 'next-node', target: 'pause-node' },
+        { source: 'pause-node', target: 'after-pause' },
       ],
       id: 'workflow-1',
       nodes: [
@@ -744,6 +750,11 @@ describe('WorkflowExecutorService', () => {
           label: 'Pause',
           type: 'delay',
         },
+        createExecutableActionNode({
+          actionId: 'publish',
+          id: 'after-pause',
+          label: 'After pause',
+        }),
       ],
     };
 
@@ -755,7 +766,7 @@ describe('WorkflowExecutorService', () => {
     });
     prisma.workflowVersion.findFirst.mockResolvedValue(
       pinnedVersion({
-        edges: [],
+        edges: executableWorkflow.edges,
         id: 'workflow-1',
         label: 'Delayed workflow',
         nodes: [],
@@ -800,7 +811,7 @@ describe('WorkflowExecutorService', () => {
       },
     );
 
-    const result = await service.resumeAfterDelay({
+    await service.resumeAfterDelay({
       delayNodeId: 'delay-node',
       executionId: 'exec-1',
       nodeOutputCache: { 'completed-node': { value: 'done' } },
@@ -816,6 +827,9 @@ describe('WorkflowExecutorService', () => {
       userId: 'queued-top-level-actor',
       workflowId: 'workflow-1',
     });
+
+    const delayedResult = await delayPass.mock.results[0]?.value;
+    delayPass.mockRestore();
 
     // The version tuple is globally unique, so the pinned lookup is keyed on
     // it alone and tenant ownership is asserted against the loaded row.
@@ -859,9 +873,10 @@ describe('WorkflowExecutorService', () => {
       expect.objectContaining({ userId: 'recorded-delay-actor' }),
       expect.objectContaining({ executionId: 'exec-1' }),
     );
-    expect(result._delayJobData).toEqual(
+    expect(delayedResult?._delayJobData).toEqual(
       expect.objectContaining({
         userId: 'recorded-delay-actor',
+        remainingNodeIds: ['after-pause'],
         triggerEvent: expect.objectContaining({
           userId: 'recorded-delay-actor',
         }),
@@ -963,7 +978,7 @@ describe('WorkflowExecutorService', () => {
 
     expect(prisma.workflow.findFirst).not.toHaveBeenCalled();
     expect(scopeService.assertConsequentialBoundary).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 'recorded-scope-actor' }),
+      expect.objectContaining({ userId: 'user-1' }),
       'workflow',
     );
     expect(engineAdapter.executeNode).not.toHaveBeenCalled();

@@ -624,7 +624,7 @@ export class WorkflowReviewGateService {
     input: ApproveReviewGateInput,
     approvedOutput: Record<string, unknown>,
   ): { executableWorkflow: ExecutableWorkflow; remainingNodeIds: string[] } {
-    const workflowDoc: WorkflowDocument = {
+    const workflowDoc = {
       ...input.normalizedWorkflowDoc,
       userId: requireRecordedWorkflowActor(
         input.executionId,
