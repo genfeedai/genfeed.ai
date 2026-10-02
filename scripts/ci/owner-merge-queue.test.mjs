@@ -669,6 +669,7 @@ test('controller metadata cannot block itself or mask required and unrelated val
       id: 30,
       workflow_id: 30,
       path: '.github/workflows/owner-merge-queue.yml',
+      event: 'pull_request_target',
       check_suite_id: 30,
       status: conclusion ? 'completed' : 'in_progress',
       conclusion,
@@ -697,5 +698,121 @@ test('controller metadata cannot block itself or mask required and unrelated val
     ownRun.path = '.github/workflows/owner-merge-queue.yml';
     f.statuses.push({ id: 80, context: 'other', state: 'pending' });
     assert.equal(ready(), false);
+  }
+});
+
+test('unstable metadata permits merging only when actual validation and review gates pass', async () => {
+  for (const unrelated of [false, true]) {
+    const f = fixture();
+    f.pr.mergeable_state = 'unstable';
+    f.runs.push({
+      id: 50,
+      workflow_id: 50,
+      path: unrelated
+        ? '.github/workflows/other.yml'
+        : '.github/workflows/owner-merge-queue.yml',
+      event: 'pull_request_target',
+      check_suite_id: 50,
+      status: 'completed',
+      conclusion: 'failure',
+    });
+    f.checks.push({
+      id: 50,
+      name: 'metadata',
+      app: { id: 15368 },
+      check_suite: { id: 50 },
+      status: 'completed',
+      conclusion: 'failure',
+    });
+    const mock = client(f);
+    await reconcile({
+      github: mock.github,
+      mode: 'strict',
+      rulesetId: '123',
+      log: () => {},
+    });
+    assert.equal(
+      mock.calls.filter((call) => call.name === 'merge').length,
+      unrelated ? 0 : 1,
+    );
+  }
+  for (const state of ['blocked', 'dirty', 'behind', 'unknown', 'draft', '']) {
+    const f = fixture();
+    f.pr.mergeable_state = state;
+    const mock = client(f);
+    await reconcile({
+      github: mock.github,
+      mode: 'strict',
+      rulesetId: '123',
+      log: () => {},
+    });
+    assert.equal(
+      mock.calls.some((call) => call.name === 'merge'),
+      false,
+    );
+  }
+});
+
+test('controller exclusion rejects PR-executed and non-master dispatch workflows', () => {
+  for (const event of [
+    'pull_request',
+    'workflow_dispatch',
+    'push',
+    'merge_group',
+  ]) {
+    const f = fixture();
+    f.runs.push({
+      id: 60,
+      workflow_id: 60,
+      path: '.github/workflows/owner-merge-queue.yml',
+      event,
+      head_branch: 'untrusted',
+      check_suite_id: 60,
+      status: 'completed',
+      conclusion: 'failure',
+    });
+    f.checks.push({
+      id: 60,
+      name: 'metadata',
+      app: { id: 15368 },
+      check_suite: { id: 60 },
+      status: 'completed',
+      conclusion: 'failure',
+    });
+    assert.equal(
+      checksReady(f.checks, f.statuses, f.runs, { head: 'head', number: 1 }),
+      false,
+    );
+  }
+  for (const event of [
+    'workflow_run',
+    'status',
+    'check_run',
+    'schedule',
+    'workflow_dispatch',
+  ]) {
+    const f = fixture();
+    f.runs.push({
+      id: 60,
+      workflow_id: 60,
+      path: '.github/workflows/owner-merge-queue.yml',
+      event,
+      head_branch: 'master',
+      check_suite_id: 60,
+      status: 'completed',
+      conclusion: 'failure',
+    });
+    f.checks.push({
+      id: 60,
+      name: 'metadata',
+      app: { id: 15368 },
+      check_suite: { id: 60 },
+      status: 'completed',
+      conclusion: 'failure',
+    });
+    assert.equal(
+      checksReady(f.checks, f.statuses, f.runs, { head: 'head', number: 1 }),
+      true,
+    );
   }
 });

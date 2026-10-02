@@ -44,5 +44,7 @@ jobs:
           github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
           script: |
             if (!process.env.MERGE_TOKEN) throw new Error('Owner merge token is missing');
-            const { reconcile } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/ci/owner-merge-queue.mjs`);
+            const path = require('node:path');
+            const { pathToFileURL } = require('node:url');
+            const { reconcile } = await import(pathToFileURL(path.join(process.env.GITHUB_WORKSPACE, 'scripts/ci/owner-merge-queue.mjs')).href);
             await reconcile({ github, mode: process.env.MERGE_MODE, rulesetId: process.env.STRICT_RULESET_ID });

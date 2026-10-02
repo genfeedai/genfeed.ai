@@ -22,6 +22,9 @@ failures and status/check name collisions. It paginates reviews, requests,
 threads, checks, statuses and runs; old green results cannot mask a rerun.
 The controller's own workflow and authenticated check suites are operational
 metadata, excluded from optional-check readiness so it cannot block itself.
+The exclusion only covers trusted base/default-branch events; a PR-executed
+workflow at that path is still subject to validation. GitHub's `unstable`
+aggregate state is permitted only after the explicit checks/reviews gate passes.
 Required contexts, unrelated checks and commit statuses remain enforced.
 
 Drafts, requested reviewers, changes requests, pending reviews and unresolved
@@ -59,7 +62,8 @@ with Actions; the scheduled reconciliation remains necessary for those events.
 The workflow always checks out trusted master with persisted credentials off.
 It executes no PR code or artifacts and does not interpolate PR text into shell
 commands. `CONSOLE_DEPLOY_TOKEN` must permit repository reads, branch updates,
-PR merges and complete ruleset reads. An absent, expired or insufficient token
+PR merges, Actions read/write (including cancel and force-cancel), and complete
+ruleset reads. An absent, expired or insufficient token
 fails closed. PAT updates/merges emit ordinary PR/push events; no GITHUB_TOKEN
 fallback is allowed because that could suppress required follow-up validation.
 
@@ -70,6 +74,9 @@ fallback is allowed because that could suppress required follow-up validation.
    `gh api --method POST repos/genfeedai/genfeed.ai/rulesets --input scripts/ci/owner-merge-ruleset.json`.
    Read the created rule with an authorized credential and verify its full
    contents, including `bypass_actors: []`. Preserve the original rulesets.
+   Confirm the retained zero-approval/code-owner policy does not request a
+   self-approval from the sole code owner on an owner-authored PR. Do not enable
+   automation or silently remove review protections if that prerequisite fails.
 3. Set `OWNER_MERGE_RULESET_ID` to the new rule ID, then set
    `OWNER_MERGE_MODE=strict`. Dispatch `owner-merge-queue.yml` and inspect the run.
 4. Observe a real branch update, fresh exact-head required checks, merge, and

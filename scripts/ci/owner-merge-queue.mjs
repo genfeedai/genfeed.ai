@@ -142,7 +142,16 @@ export function checksReady(checks, statuses, runs, expected) {
       return false;
   }
   const controller = (run) =>
-    run.path?.split('@')[0] === '.github/workflows/owner-merge-queue.yml';
+    run.path?.split('@')[0] === '.github/workflows/owner-merge-queue.yml' &&
+    (run.event === 'pull_request_target' ||
+      ([
+        'workflow_run',
+        'status',
+        'check_run',
+        'schedule',
+        'workflow_dispatch',
+      ].includes(run.event) &&
+        run.head_branch === 'master'));
   const controllerSuites = new Set(
     runs.filter(controller).map((run) => run.check_suite_id),
   );
@@ -448,7 +457,10 @@ export async function reconcile({
         `#${candidate.number}: updated with master; waiting for fresh CI`,
       );
     }
-    if (fresh.pr.mergeable_state !== 'clean') continue;
+    // GitHub may call a head unstable because this controller's own metadata
+    // check is running/failed. The exact readiness gate above already rejects
+    // every required/unrelated failure; the strict server rule remains final.
+    if (!['clean', 'unstable'].includes(fresh.pr.mergeable_state)) continue;
     const result = await github.rest.pulls.merge({
       ...args,
       pull_number: candidate.number,
