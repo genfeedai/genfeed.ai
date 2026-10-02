@@ -7,6 +7,7 @@ import { ImportedSourcesModule } from '@api/collections/imported-sources/importe
 import { ImportedSourcesService } from '@api/collections/imported-sources/services/imported-sources.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
+import { AgentSourceIngestModule } from '@api/services/agent-source-ingest/agent-source-ingest.module';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import type { INestApplication } from '@nestjs/common';
 import {
@@ -103,7 +104,7 @@ beforeEach(async () => {
 afterEach(async () => {
   await app.close();
 });
-it('declares all four exact routes/statuses and organization membership guard, with only Prisma dependencies', () => {
+it('declares all four exact routes/statuses and organization membership guard, with canonical source and media dependencies', () => {
   expect(Reflect.getMetadata(PATH_METADATA, ImportedSourcesController)).toBe(
     'brands/:brandId/imported-sources',
   );
@@ -143,7 +144,7 @@ it('declares all four exact routes/statuses and organization membership guard, w
   ).toBe(201);
   expect(
     Reflect.getMetadata(MODULE_METADATA.IMPORTS, ImportedSourcesModule),
-  ).toEqual([PrismaModule]);
+  ).toEqual([PrismaModule, AgentSourceIngestModule]);
 });
 it('save and deduplicated save both return201 JSONAPI and forward only authenticated user/path brand', async () => {
   for (const deduplicated of [false, true]) {

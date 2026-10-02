@@ -1,8 +1,11 @@
 import { Readable } from 'node:stream';
 import type {
   AgentSourceArtifact,
-  AgentSourceIngestContext,
+  AgentSourceDownloadOptions,
+  AgentSourceDownloadScope,
   AgentSourceIngestInput,
+  AgentSourceJobEnvelopeObservation,
+  AgentSourceJobObservation,
 } from '@api/services/agent-source-ingest/agent-source-ingest.interface';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { CLIP_AUDIO_EXTRACTION_JOB_TIMEOUT_MS } from '@genfeedai/contracts/constants';
@@ -21,7 +24,7 @@ import {
 import { firstValueFrom } from 'rxjs';
 
 export class AgentSourceImportPendingError extends ServiceUnavailableException {}
-class SourceExtractionFailedError extends ServiceUnavailableException {}
+export class AgentSourceExtractionFailedError extends ServiceUnavailableException {}
 
 const SOURCE_HEADERS_TIMEOUT_MS = 60_000;
 const SOURCE_BODY_TIMEOUT_MS = 300_000;
@@ -50,6 +53,92 @@ function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
+}
+function normalizeJobObservation(
+  value: unknown,
+  storageId: string,
+  jobId: string,
+  scope: AgentSourceDownloadScope,
+  expectedSourceUrl: string,
+  strict: boolean,
+): AgentSourceJobEnvelopeObservation {
+  const envelope = record(value);
+  const job =
+    'state' in envelope || 'status' in envelope
+      ? envelope
+      : record(envelope.data);
+  const data = record(job.data);
+  if (
+    strict &&
+    (jobId !== `agent-source-${storageId}` ||
+      job.jobId !== jobId ||
+      data.id !== jobId ||
+      data.ingredientId !== storageId ||
+      data.organizationId !== scope.organizationId ||
+      data.userId !== scope.userId ||
+      data.type !== 'video-to-audio' ||
+      record(data.params).inputPath !== expectedSourceUrl)
+  )
+    return { state: 'uncertain' };
+  const state = strict ? job.state : (job.status ?? job.state);
+  if (state === 'failed' || (!strict && state === 'FAILED'))
+    return { state: 'failed' };
+  if (state === 'completed' || (!strict && state === 'COMPLETED')) {
+    const result = record(job.result ?? job);
+    if (
+      typeof result.sourceUrl !== 'string' ||
+      !result.sourceUrl.trim() ||
+      typeof result.sourceS3Key !== 'string' ||
+      !result.sourceS3Key.trim()
+    )
+      return { state: 'failed' };
+    if (strict) {
+      try {
+        const url = new URL(result.sourceUrl);
+        if (
+          url.protocol !== 'https:' ||
+          url.username ||
+          url.password ||
+          !url.hostname ||
+          result.sourceS3Key !== `ingredients/videos/${storageId}` ||
+          result.success === false
+        )
+          return { state: 'failed' };
+      } catch {
+        return { state: 'failed' };
+      }
+      if (
+        result.sourceDurationSeconds !== undefined &&
+        (typeof result.sourceDurationSeconds !== 'number' ||
+          !Number.isFinite(result.sourceDurationSeconds) ||
+          result.sourceDurationSeconds < 0)
+      )
+        return { state: 'uncertain' };
+    }
+    return {
+      state: 'completed',
+      sourceUrl: result.sourceUrl,
+      sourceS3Key: result.sourceS3Key,
+      sourceDurationSeconds:
+        typeof result.sourceDurationSeconds === 'number'
+          ? result.sourceDurationSeconds
+          : undefined,
+    };
+  }
+  return {
+    state:
+      !strict ||
+      [
+        'waiting',
+        'active',
+        'delayed',
+        'prioritized',
+        'waiting-children',
+        'paused',
+      ].includes(String(state))
+        ? 'pending'
+        : 'uncertain',
+  };
 }
 async function* boundedBody(
   body: ReadableStream<Uint8Array>,
@@ -120,9 +209,13 @@ export class AgentSourceDownloadService {
     url: string,
     ingredientId: string,
     kind: AgentSourceIngestInput['kind'],
-    context: AgentSourceIngestContext,
+    context: AgentSourceDownloadScope,
     pendingJobId?: string,
     onJobQueued?: (jobId: string) => Promise<void>,
+    options: AgentSourceDownloadOptions = {
+      requeueMissingJob: true,
+      requireJobIdentity: false,
+    },
   ): Promise<AgentSourceArtifact> {
     if (new URL(url).hostname === 'www.youtube.com') {
       if (kind && kind !== 'video')
@@ -140,9 +233,13 @@ export class AgentSourceDownloadService {
             await onJobQueued?.(jobId);
             extractionMayExist = true;
           },
+          options,
         );
       } catch (error) {
-        if (!extractionMayExist || error instanceof SourceExtractionFailedError)
+        if (
+          !extractionMayExist ||
+          error instanceof AgentSourceExtractionFailedError
+        )
           throw error;
         this.logger.error('Source extraction could not be observed', error, {
           service: AgentSourceDownloadService.name,
@@ -239,13 +336,14 @@ export class AgentSourceDownloadService {
   private async downloadYoutube(
     url: string,
     ingredientId: string,
-    context: AgentSourceIngestContext,
+    context: AgentSourceDownloadScope,
     pendingJobId?: string,
     onJobQueued?: (jobId: string) => Promise<void>,
+    options: AgentSourceDownloadOptions = {},
   ): Promise<AgentSourceArtifact> {
     const baseUrl = this.config.get('GENFEEDAI_MICROSERVICES_FILES_URL');
     if (typeof baseUrl !== 'string' || !baseUrl)
-      throw new SourceExtractionFailedError(
+      throw new AgentSourceExtractionFailedError(
         'Source import storage is not configured.',
       );
     const expectedJobId = `agent-source-${ingredientId}`;
@@ -268,60 +366,140 @@ export class AgentSourceDownloadService {
         envelope = record(observation.data);
       } catch (error) {
         if (
+          options.requeueMissingJob === false ||
           jobId !== expectedJobId ||
           requeuedMissingJob ||
           !this.isMissingJob(error)
         )
-          throw error;
+          throw options.requireJobIdentity
+            ? new AgentSourceImportPendingError(
+                'Source extraction could not be correlated.',
+              )
+            : error;
         requeuedMissingJob = true;
         await this.enqueueYoutube(url, ingredientId, context, baseUrl);
         continue;
       }
-      const job =
-        'state' in envelope || 'status' in envelope
-          ? envelope
-          : record(envelope.data);
-      const state = job.status ?? job.state;
-      if (state === 'failed' || state === 'FAILED')
-        throw new SourceExtractionFailedError('Source extraction failed.');
-      if (state === 'completed' || state === 'COMPLETED') {
-        const result = record(job.result ?? job);
-        if (
-          typeof result.sourceUrl !== 'string' ||
-          !result.sourceUrl.trim() ||
-          typeof result.sourceS3Key !== 'string' ||
-          !result.sourceS3Key.trim()
-        )
-          throw new SourceExtractionFailedError(
-            'Source extraction completed without a durable video.',
-          );
-        const metadata = await this.files.extractMetadataFromUrl(
-          result.sourceUrl,
+      const observation = normalizeJobObservation(
+        envelope,
+        ingredientId,
+        jobId,
+        context,
+        url,
+        options.requireJobIdentity === true,
+      );
+      if (observation.state === 'failed') {
+        const job =
+          'state' in envelope || 'status' in envelope
+            ? envelope
+            : record(envelope.data);
+        const state = job.status ?? job.state;
+        throw new AgentSourceExtractionFailedError(
+          !options.requireJobIdentity &&
+            ['completed', 'COMPLETED'].includes(String(state))
+            ? 'Source extraction completed without a durable video.'
+            : 'Source extraction failed.',
         );
-        return {
-          publicUrl: result.sourceUrl,
-          storageKey: result.sourceS3Key,
+      }
+      if (observation.state === 'uncertain' && options.requireJobIdentity)
+        throw new AgentSourceImportPendingError(
+          'Source extraction could not be correlated.',
+        );
+      if (observation.state === 'completed') {
+        const ready = await this.probeCompletedSource(
+          observation,
+          options.requireJobIdentity === true,
+        );
+        if (ready.state === 'ready') return ready.artifact;
+        throw new AgentSourceImportPendingError(
+          'Source metadata could not be observed.',
+        );
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2_000));
+    }
+    throw new AgentSourceImportPendingError(
+      'Source extraction is still running; reopen this import before retrying.',
+    );
+  }
+  async observeQueuedSource(
+    storageId: string,
+    jobId: string,
+    scope: AgentSourceDownloadScope,
+    expectedSourceUrl: string,
+  ): Promise<AgentSourceJobObservation> {
+    const baseUrl = this.config.get('GENFEEDAI_MICROSERVICES_FILES_URL');
+    if (typeof baseUrl !== 'string' || !baseUrl) return { state: 'uncertain' };
+    try {
+      const response = await firstValueFrom(
+        this.http.get<unknown>(
+          `${baseUrl}/v1/files/job/${encodeURIComponent(jobId)}`,
+          { timeout: 30_000 },
+        ),
+      );
+      const observation = normalizeJobObservation(
+        response.data,
+        storageId,
+        jobId,
+        scope,
+        expectedSourceUrl,
+        true,
+      );
+      return observation.state === 'completed'
+        ? this.probeCompletedSource(observation, true)
+        : observation;
+    } catch (error) {
+      return { state: this.isMissingJob(error) ? 'missing' : 'uncertain' };
+    }
+  }
+  private async probeCompletedSource(
+    observation: Extract<
+      AgentSourceJobEnvelopeObservation,
+      { state: 'completed' }
+    >,
+    strict: boolean,
+  ): Promise<AgentSourceJobObservation> {
+    try {
+      const metadata = await this.files.extractMetadataFromUrl(
+        observation.sourceUrl,
+      );
+      if (
+        strict &&
+        [
+          metadata.width,
+          metadata.height,
+          metadata.size,
+          observation.sourceDurationSeconds ?? metadata.duration,
+        ].some(
+          (value) =>
+            typeof value !== 'number' || !Number.isFinite(value) || value < 0,
+        )
+      )
+        return { state: 'uncertain' };
+      return {
+        state: 'ready',
+        artifact: {
+          publicUrl: observation.sourceUrl,
+          storageKey: observation.sourceS3Key,
           kind: 'video',
           extension: 'MP4',
           duration: finiteNonnegative(
-            result.sourceDurationSeconds ?? metadata.duration,
+            observation.sourceDurationSeconds ?? metadata.duration,
           ),
           width: finiteNonnegative(metadata.width),
           height: finiteNonnegative(metadata.height),
           size: finiteNonnegative(metadata.size),
           hasAudio: metadata.hasAudio === true,
-        };
-      }
-      await new Promise((resolve) => setTimeout(resolve, 2_000));
+        },
+      };
+    } catch (error) {
+      if (!strict) throw error;
+      return { state: 'uncertain' };
     }
-    throw new ServiceUnavailableException(
-      'Source extraction is still running; reopen this import before retrying.',
-    );
   }
   private async enqueueYoutube(
     url: string,
     ingredientId: string,
-    context: AgentSourceIngestContext,
+    context: AgentSourceDownloadScope,
     baseUrl: string,
   ): Promise<void> {
     const expectedJobId = `agent-source-${ingredientId}`;
