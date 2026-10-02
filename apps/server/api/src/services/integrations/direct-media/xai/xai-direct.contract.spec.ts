@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'bun:test';
 import type { DirectMediaInput } from '@api/services/integrations/direct-media/direct-media.types';
 import {
   compileXaiDirectRequest,
   XAI_DIRECT_MODELS,
 } from '@api/services/integrations/direct-media/xai/xai-direct.contract';
+import { describe, expect, it } from 'vitest';
 
 const image: DirectMediaInput = {
   model: 'grok-imagine-image-2.0',

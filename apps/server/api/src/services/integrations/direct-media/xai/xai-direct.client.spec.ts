@@ -1,10 +1,10 @@
-import { describe, expect, it, mock } from 'bun:test';
 import {
   DirectMediaProviderError,
   type DirectMediaTransport,
 } from '@api/services/integrations/direct-media/direct-media.types';
 import { XaiDirectClient } from '@api/services/integrations/direct-media/xai/xai-direct.client';
 import { compileXaiDirectRequest } from '@api/services/integrations/direct-media/xai/xai-direct.contract';
+import { describe, expect, it, vi } from 'vitest';
 
 const context = { apiKey: 'test-credential-do-not-log' };
 const image = compileXaiDirectRequest({
@@ -20,7 +20,7 @@ const video = compileXaiDirectRequest({
   references: [],
 });
 function fixture(body: unknown, status = 200) {
-  const transport = mock<DirectMediaTransport>(async () =>
+  const transport = vi.fn<DirectMediaTransport>(async () =>
     Response.json(body, { status }),
   );
   return { client: new XaiDirectClient(transport), transport };
@@ -31,7 +31,7 @@ describe('XaiDirectClient', () => {
     const { client, transport } = fixture({
       data: [{ url: 'https://outputs.example/a.jpg' }],
     });
-    const started = mock(() => undefined);
+    const started = vi.fn(() => undefined);
     transport.mockImplementation(async (_url, init) => {
       expect(started).toHaveBeenCalledTimes(1);
       expect(init?.redirect).toBe('error');
@@ -74,7 +74,7 @@ describe('XaiDirectClient', () => {
   });
   it('validates prepared request before invoking callback or paid network', async () => {
     const { client, transport } = fixture({});
-    const started = mock(() => undefined);
+    const started = vi.fn(() => undefined);
     for (const request of [
       { ...image, endpoint: 'https://evil.example' },
       { ...image, provider: 'google' as const },
@@ -220,7 +220,7 @@ describe('XaiDirectClient', () => {
     expect(transport).not.toHaveBeenCalled();
   });
   it('does not retry transport/HTTP/JSON failures or expose credentials', async () => {
-    const transport = mock<DirectMediaTransport>(async () => {
+    const transport = vi.fn<DirectMediaTransport>(async () => {
       throw new Error(context.apiKey);
     });
     const client = new XaiDirectClient(transport);
@@ -243,7 +243,7 @@ describe('XaiDirectClient', () => {
       expect(item.transport).toHaveBeenCalledTimes(1);
     }
     const invalidJson = new XaiDirectClient(
-      mock<DirectMediaTransport>(async () => new Response('invalid json')),
+      vi.fn<DirectMediaTransport>(async () => new Response('invalid json')),
     );
     await expect(invalidJson.submit(image, context)).rejects.toMatchObject({
       code: 'PROVIDER_RESPONSE_INVALID',
