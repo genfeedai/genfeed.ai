@@ -44,7 +44,8 @@ export class ImportedSourcesService {
         message: 'An interactive session is required.',
       });
     if (
-      !isEntityId(user.userId) ||
+      typeof user.userId !== 'string' ||
+      user.userId.trim().length === 0 ||
       !isEntityId(user.organizationId) ||
       !isEntityId(brandId)
     )

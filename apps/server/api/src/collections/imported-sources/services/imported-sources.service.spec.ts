@@ -360,3 +360,58 @@ it.each(['P2028', 'P2034', 'P1008', 'P2024'])(
     });
   },
 );
+
+it.each([
+  'LegacyUser7Qp2Rk9sX4N6b8',
+  '550e8400-e29b-41d4-a716-446655440000',
+  'cuser12345678',
+  ' LegacyUser7Qp2Rk9sX4N6b8 ',
+])(
+  'persists opaque canonical userId %s unchanged, never the legacy subject',
+  async (userId) => {
+    await service.save(
+      { ...user, id: 'different-provider-subject', userId },
+      user.brandId,
+      input,
+    );
+    expect(db.ingredient.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ userId }) }),
+    );
+    expect(db.ingredient.create.mock.calls[0]?.[0].data.userId).not.toBe(
+      'different-provider-subject',
+    );
+    expect(db.brand.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: user.brandId,
+        organizationId: user.organizationId,
+        isDeleted: false,
+      },
+      select: { id: true },
+    });
+  },
+);
+it.each(['', ' ', '\t\n'])(
+  'rejects blank canonical userId %j before persistence',
+  async (userId) => {
+    await expect(
+      service.save({ ...user, userId }, user.brandId, input),
+    ).rejects.toMatchObject({
+      status: 400,
+      response: { code: 'IMPORTED_SOURCE_SCOPE_INVALID' },
+    });
+    expect(db.ingredient.create).not.toHaveBeenCalled();
+  },
+);
+it('retains entity grammar for organization and brand while user IDs remain opaque', async () => {
+  await expect(
+    service.save(
+      { ...user, organizationId: 'invalid-org' },
+      user.brandId,
+      input,
+    ),
+  ).rejects.toMatchObject({ status: 400 });
+  await expect(
+    service.save(user, 'invalid-brand', input),
+  ).rejects.toMatchObject({ status: 400 });
+  expect(db.ingredient.create).not.toHaveBeenCalled();
+});
