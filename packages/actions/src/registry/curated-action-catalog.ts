@@ -465,6 +465,11 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'knowledge',
   },
+  {
+    name: 'record_external_publication',
+    surfaces: ['agent'],
+    toolset: 'content',
+  },
   { name: 'reframe_image', surfaces: ['agent', 'mcp'], toolset: 'generation' },
   { name: 'reject_social_draft', surfaces: ['mcp'], toolset: 'social-inbox' },
   { name: 'rename_brand', surfaces: ['agent'], toolset: 'onboarding' },

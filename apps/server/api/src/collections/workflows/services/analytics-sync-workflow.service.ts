@@ -11,6 +11,10 @@ import { PostAnalyticsCollectionStateService } from '@api/analytics/services/pos
 import { AnalyticsSyncService } from '@api/collections/content-performance/services/analytics-sync.service';
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
+import {
+  extensionPublicationCaptureAnalyticsAvailability,
+  isExtensionPublicationCapture,
+} from '@api/collections/posts/services/post-publication-capture.util';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import {
@@ -31,9 +35,11 @@ import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type { AnalyticsPersistenceContext } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import { Prisma } from '@genfeedai/prisma';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 type AnalyticsPost = PostEntity & {
+  source?: string | null;
   brandId: string;
   credentialId?: string | null;
   externalId: string;
@@ -199,6 +205,24 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
     const postId = this.readOptionalString(input.postId);
     const where = scopedWhere(organizationId, {
       externalId: { not: null },
+      AND: [
+        {
+          OR: [
+            { source: null },
+            { source: { not: 'extension' } },
+            {
+              targetSettings: {
+                path: ['extensionCapture', 'version'],
+                equals: Prisma.AnyNull,
+              },
+            },
+            {
+              targetSettings: { path: ['extensionCapture', 'version'], not: 1 },
+            },
+            { isAnalyticsEnabled: true },
+          ],
+        },
+      ],
       platform: platforms.length === 1 ? platforms[0] : { in: platforms },
       ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
       ...(analyticsEnabledOnly ? { isAnalyticsEnabled: { not: false } } : {}),
@@ -220,6 +244,15 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
     let skipped = 0;
     const posts = (result.docs as unknown as AnalyticsPost[]).flatMap(
       (post) => {
+        if (
+          isExtensionPublicationCapture(post) &&
+          (post.isAnalyticsEnabled !== true ||
+            extensionPublicationCaptureAnalyticsAvailability(post) !==
+              'eligible')
+        ) {
+          skipped++;
+          return [];
+        }
         const id = this.readOptionalString(post.id);
         const brandId = this.readOptionalString(post.brandId);
         const externalId = this.readOptionalString(post.externalId);

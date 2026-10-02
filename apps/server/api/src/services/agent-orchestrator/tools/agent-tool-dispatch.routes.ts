@@ -137,6 +137,8 @@ function dispatchWorkspaceFamily(
       return handlers.workspaceHandler.completeMediaUpload(params, ctx);
     case 'open_studio_handoff':
       return handlers.workspaceHandler.openStudioHandoff(params);
+    case 'record_external_publication':
+      return handlers.publishHandler.recordExternalPublication(params, ctx);
     case 'create_post':
       return handlers.publishHandler.createPost(params, ctx);
     case 'schedule_post':

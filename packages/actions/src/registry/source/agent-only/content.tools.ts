@@ -2,6 +2,69 @@ import type { SourceTool } from '../../../interfaces/source-tool.interface';
 
 export const AGENT_CONTENT_TOOLS: SourceTool[] = [
   {
+    name: 'record_external_publication',
+    description:
+      'Record a user’s reported already successful own publication. This never publishes, schedules or verifies provider success. Supply either its true publication permalink in url, or for a reply only its observed externalId and parent contextUrl with url omitted.',
+    creditCost: 0,
+    requiredRole: 'user',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      required: [
+        'brandId',
+        'platform',
+        'publicationKind',
+        'description',
+        'publicationDate',
+      ],
+      properties: {
+        brandId: { type: 'string', minLength: 1 },
+        platform: {
+          type: 'string',
+          enum: [
+            'twitter',
+            'linkedin',
+            'reddit',
+            'youtube',
+            'instagram',
+            'facebook',
+            'tiktok',
+          ],
+        },
+        publicationKind: { type: 'string', enum: ['post', 'reply'] },
+        observedVisibility: {
+          type: 'string',
+          enum: ['public', 'private', 'unlisted', 'unknown'],
+          description:
+            'Reported provider audience evidence; omit or use unknown when unavailable. Never infer public from a permalink.',
+        },
+        url: { type: 'string', minLength: 1, maxLength: 2048 },
+        contextUrl: { type: 'string', minLength: 1, maxLength: 2048 },
+        externalId: { type: 'string', minLength: 1, maxLength: 256 },
+        description: {
+          type: 'string',
+          maxLength: 1048576,
+          description:
+            'Complete reported publication text, at most 1048576 UTF-8 bytes. Never truncated.',
+        },
+        publicationDate: {
+          type: 'string',
+          format: 'date-time',
+          description:
+            'Strict ISO datetime of the observed publication; at most five minutes in the future.',
+        },
+        author: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            externalId: { type: 'string', minLength: 1, maxLength: 256 },
+            handle: { type: 'string', minLength: 1, maxLength: 256 },
+          },
+        },
+      },
+    },
+  },
+  {
     creditCost: 2,
     description:
       'Generate social media content or a newsletter draft for a given topic or brief.',

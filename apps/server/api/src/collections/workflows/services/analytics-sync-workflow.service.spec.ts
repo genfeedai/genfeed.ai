@@ -5,9 +5,12 @@ import {
   ANALYTICS_GENERIC_CHILD_WORKFLOWS,
   ANALYTICS_SYNC_WORKFLOW_TEMPLATES,
 } from '@api/collections/workflows/templates/analytics-sync-workflows.template';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { getActionDefinition } from '@genfeedai/actions';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
+import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import { Prisma } from '@genfeedai/prisma';
 import { compileActionContract } from '@genfeedai/workflows/engine';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -58,6 +61,215 @@ describe('AnalyticsSyncWorkflowService', () => {
       outliers as never,
     );
   });
+
+  it.each([undefined, 'captured-post'])(
+    'adds the capture fence before pagination while preserving the published-state predicate (postId %s)',
+    async (postId) => {
+      await service.discoverPosts('org-1', {
+        analyticsEnabledOnly: false,
+        platforms: ['twitter', 'youtube'],
+        postId,
+      });
+      expect(posts.findAll).toHaveBeenCalledWith(
+        {
+          orderBy: [{ analyticsNextCollectAt: 'asc' }, { id: 'asc' }],
+          where: expect.objectContaining({
+            organizationId: 'org-1',
+            isDeleted: false,
+            ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+            AND: [
+              {
+                OR: [
+                  { source: null },
+                  { source: { not: 'extension' } },
+                  {
+                    targetSettings: {
+                      path: ['extensionCapture', 'version'],
+                      equals: Prisma.AnyNull,
+                    },
+                  },
+                  {
+                    targetSettings: {
+                      path: ['extensionCapture', 'version'],
+                      not: 1,
+                    },
+                  },
+                  { isAnalyticsEnabled: true },
+                ],
+              },
+            ],
+            ...(postId
+              ? { id: postId }
+              : { analyticsNextCollectAt: { lte: expect.any(Date) } }),
+          }),
+        },
+        { customLabels, limit: 500, page: 1, pagination: true },
+        false,
+      );
+    },
+  );
+  it.each([
+    ['disabled X', 'twitter', '123', 'credential-1', false, 'post', null],
+    ['X without credential', 'twitter', '123', null, true, 'post', null],
+    [
+      'Instagram shortcode',
+      'instagram',
+      'shortcode',
+      'credential-1',
+      true,
+      'post',
+      { kind: 'instagram-shortcode', value: 'shortcode' },
+    ],
+    [
+      'Instagram without Graph ID',
+      'instagram',
+      null,
+      'credential-1',
+      true,
+      'post',
+      { kind: 'instagram-shortcode', value: 'shortcode' },
+    ],
+    [
+      'LinkedIn activity',
+      'linkedin',
+      '123',
+      'credential-1',
+      true,
+      'post',
+      { kind: 'linkedin-activity', value: 'urn:li:activity:123' },
+    ],
+    [
+      'Facebook pfbid',
+      'facebook',
+      'pfbidExample',
+      'credential-1',
+      true,
+      'post',
+      { kind: 'facebook-post-token', value: 'pfbidExample' },
+    ],
+    [
+      'YouTube comment',
+      'youtube',
+      'own-comment',
+      'credential-1',
+      true,
+      'reply',
+      null,
+    ],
+  ] as const)(
+    'omits %s capture before markPending even for forced/manual discovery',
+    async (_name, platform, externalId, credentialId, isAnalyticsEnabled, publicationKind, urlIdentity) => {
+      posts.findAll.mockResolvedValue({
+        docs: [
+          {
+            id: 'captured',
+            brandId: 'brand-1',
+            organizationId: 'org-1',
+            platform,
+            externalId,
+            credentialId,
+            source: 'extension',
+            isAnalyticsEnabled,
+            targetSettings: {
+              extensionCapture: { version: 1, publicationKind, urlIdentity },
+            },
+          },
+        ],
+      });
+      for (const postId of [undefined, 'captured']) {
+        const result = await service.discoverPosts('org-1', {
+          analyticsEnabledOnly: false,
+          platforms: [platform],
+          postId,
+        });
+        expect(result).toMatchObject({ requested: 0, skipped: 1, posts: [] });
+      }
+      expect(collectionState.markPending).not.toHaveBeenCalled();
+      expect(social.collect).not.toHaveBeenCalled();
+      expect(twitter.collect).not.toHaveBeenCalled();
+      expect(youtube.collect).not.toHaveBeenCalled();
+      expect(providerCollection.collectFacebook).not.toHaveBeenCalled();
+    },
+  );
+  it.each([
+    ['twitter', '123'],
+    ['youtube', 'video-id'],
+    ['instagram', '999'],
+    ['linkedin', 'urn:li:share:123'],
+    ['linkedin', 'urn:li:ugcPost:123'],
+    ['facebook', '123_456'],
+    ['tiktok', '123'],
+  ])(
+    'includes enabled capture with collector-compatible %s ID %s',
+    async (platform, externalId) => {
+      posts.findAll.mockResolvedValue({
+        docs: [
+          {
+            id: 'captured',
+            brandId: 'brand-1',
+            organizationId: 'org-1',
+            platform,
+            externalId,
+            credentialId: 'credential-1',
+            source: 'extension',
+            isAnalyticsEnabled: true,
+            targetSettings: {
+              extensionCapture: { version: 1, publicationKind: 'post' },
+            },
+          },
+        ],
+      });
+      const result = await service.discoverPosts('org-1', {
+        analyticsEnabledOnly: false,
+        platforms: [platform],
+      });
+      expect(result).toMatchObject({ requested: 1, skipped: 0 });
+      expect(collectionState.markPending).toHaveBeenCalledWith(
+        expect.objectContaining({
+          targets: [
+            expect.objectContaining({
+              id: 'captured',
+              organizationId: 'org-1',
+              platform,
+            }),
+          ],
+        }),
+      );
+    },
+  );
+  it.each([
+    ['api', {}],
+    [null, {}],
+    ['extension', {}],
+    ['extension', { extensionCapture: {} }],
+    ['extension', { extensionCapture: { version: null } }],
+    ['extension', { extensionCapture: { version: 2 } }],
+  ])(
+    'preserves forced refresh for ordinary/legacy records (%s, %j)',
+    async (source, targetSettings) => {
+      posts.findAll.mockResolvedValue({
+        docs: [
+          {
+            id: 'ordinary',
+            brandId: 'brand-1',
+            organizationId: 'org-1',
+            platform: 'twitter',
+            externalId: 'legacy-id',
+            isAnalyticsEnabled: false,
+            source,
+            targetSettings,
+          },
+        ],
+      });
+      const result = await service.discoverPosts('org-1', {
+        analyticsEnabledOnly: false,
+        platforms: ['twitter'],
+        postId: 'ordinary',
+      });
+      expect(result).toMatchObject({ requested: 1, skipped: 0 });
+      expect(collectionState.markPending).toHaveBeenCalledOnce();
+    },
+  );
 
   it('discovers a bounded tenant-scoped set and marks collection pending', async () => {
     posts.findAll.mockResolvedValue({

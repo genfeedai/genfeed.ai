@@ -1,4 +1,5 @@
 import {
+  assertApiKeyAgentPublishingScope,
   assertApiKeyPublishingScope,
   isPublishingMcpApprovalTool,
 } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
@@ -6,6 +7,32 @@ import { ApiKeyScope } from '@genfeedai/contracts';
 import { ForbiddenException } from '@nestjs/common';
 
 describe('API key publishing scope policy', () => {
+  it.each([ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_CREATE])(
+    'accepts %s for recording without publish capability',
+    (scope) => {
+      expect(() =>
+        assertApiKeyAgentPublishingScope(
+          { isApiKey: true, scopes: [scope] },
+          'record_external_publication',
+          {},
+        ),
+      ).not.toThrow();
+    },
+  );
+  it.each([
+    [],
+    [ApiKeyScope.POSTS_READ],
+    [ApiKeyScope.POSTS_PUBLISH],
+    [ApiKeyScope.POSTS_SCHEDULE],
+  ])('rejects recording without draft capability: %s', (scopes) => {
+    expect(() =>
+      assertApiKeyAgentPublishingScope(
+        { isApiKey: true, scopes },
+        'record_external_publication',
+        {},
+      ),
+    ).toThrow(ForbiddenException);
+  });
   it('accepts the canonical draft scope', () => {
     expect(() =>
       assertApiKeyPublishingScope(

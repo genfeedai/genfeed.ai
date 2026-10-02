@@ -60,6 +60,14 @@ describe('getAgentActionClass', () => {
   });
 
   it('leaves mundane direct writes unclassified', () => {
+    expect(getAgentActionClass('record_external_publication')).toBeUndefined();
+    expect(
+      resolveEffectiveMutationPolicy(
+        'record_external_publication',
+        'manual',
+        'direct',
+      ),
+    ).toBe('direct');
     expect(getAgentActionClass('create_chat')).toBeUndefined();
     expect(getAgentActionClass('tag_social_conversation')).toBeUndefined();
   });

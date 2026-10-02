@@ -80,6 +80,11 @@ export function assertApiKeyAgentPublishingScope(
   toolName: string,
   parameters: Record<string, unknown>,
 ): void {
+  if (toolName === 'record_external_publication') {
+    assertApiKeyPublishingScope(context, 'draft');
+    return;
+  }
+
   if (toolName === 'schedule_post') {
     assertApiKeyPublishingScope(context, 'schedule');
     return;

@@ -5,6 +5,7 @@ import type { CredentialsService } from '@api/collections/credentials/services/c
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
+import { parseExtensionPublicationCaptureInput } from '@api/collections/posts/services/post-publication-capture.util';
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AgentScopeContextService, SERVER_TOKENS } from '@api/index';
@@ -69,6 +70,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   ConflictException,
+  ForbiddenException,
   HttpException,
   Inject,
   Injectable,
@@ -119,6 +121,24 @@ export class AgentPublishToolHandler {
     @Optional()
     private readonly batchGenerationService?: BatchGenerationService,
   ) {}
+
+  async recordExternalPublication(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const input = parseExtensionPublicationCaptureInput(params);
+    if (!ctx.brandId || ctx.brandId !== input.brandId) {
+      throw new ForbiddenException(
+        'Reported publication must match the authenticated brand context',
+      );
+    }
+    const result = await this.postsService.recordExternalPublication(input, {
+      brandId: ctx.brandId,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+    });
+    return { success: true, creditsUsed: 0, data: { ...result } };
+  }
 
   async scheduleCanonicalPost(
     input: ScheduleCanonicalPostInput,

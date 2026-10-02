@@ -1,11 +1,19 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import type { UsersService } from '@api/collections/users/services/users.service';
+import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
+import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { UsersService } from '@api/collections/users/services/users.service';
 import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
-import type { AgentUntrustedContentGateService } from '@api/services/agent-orchestrator/agent-untrusted-content-gate.service';
-import type { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { AgentUntrustedContentGateService } from '@api/services/agent-orchestrator/agent-untrusted-content-gate.service';
+import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
+import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ApiKeyScope } from '@genfeedai/contracts';
-import type { LoggerService } from '@libs/logger/logger.service';
-import type { Request } from 'express';
+import type { Prisma } from '@genfeedai/prisma';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test } from '@nestjs/testing';
+import type { NextFunction, Request, Response } from 'express';
+import httpRequest from 'supertest';
 
 const request = {} as Request;
 
@@ -194,5 +202,259 @@ describe('AgentToolsController publishing scopes', () => {
       expect.anything(),
       expect.objectContaining({ approvalReviewerAuthorized: false }),
     );
+  });
+});
+
+describe('AgentToolsController reported publication contract', () => {
+  const parameters = {
+    brandId: 'brand-1',
+    platform: 'twitter',
+    publicationKind: 'post',
+    url: 'https://x.com/alice/status/123',
+    description: '',
+    publicationDate: '2026-01-01T00:00:00.000Z',
+  };
+  async function fixture() {
+    const posts = {
+      recordExternalPublication: vi.fn().mockResolvedValue({
+        postId: 'recorded',
+        created: true,
+        source: 'extension',
+        observedVisibility: 'unknown',
+      }),
+    };
+    const module = await Test.createTestingModule({
+      providers: [
+        AgentPublishToolHandler,
+        { provide: PostsService, useValue: posts },
+        { provide: PostGroupsService, useValue: { scheduleTarget: vi.fn() } },
+        {
+          provide: LoggerService,
+          useValue: {
+            log: vi.fn(),
+            error: vi.fn(),
+            warn: vi.fn(),
+            debug: vi.fn(),
+          },
+        },
+      ],
+    }).compile();
+    const handler = module.get(AgentPublishToolHandler);
+    const executor = {
+      executeTool: vi.fn((_name, params, context) =>
+        handler.recordExternalPublication(params, context),
+      ),
+    };
+    const controller = new AgentToolsController(
+      executor as unknown as AgentToolExecutorService,
+      {} as UsersService,
+      { error: vi.fn() } as unknown as LoggerService,
+      {
+        evaluateToolResult: vi.fn(async ({ content }) => ({
+          content,
+          outcome: 'allowed',
+        })),
+      } as unknown as AgentUntrustedContentGateService,
+    );
+    return { posts, executor, controller };
+  }
+  it('uses authenticated canonical identity through the controller and real recording handler', async () => {
+    const f = await fixture();
+    const result = await f.controller.execute(
+      'record_external_publication',
+      { parameters, context: { brandId: 'brand-1' } },
+      apiKeyUser([ApiKeyScope.POSTS_DRAFT]),
+      request,
+    );
+    expect(result).toMatchObject({
+      success: true,
+      creditsUsed: 0,
+      data: { postId: 'recorded', observedVisibility: 'unknown' },
+    });
+    expect(f.posts.recordExternalPublication).toHaveBeenCalledWith(parameters, {
+      organizationId: 'org-1',
+      userId: 'user-1',
+      brandId: 'brand-1',
+    });
+  });
+  it('rejects a read-only API key before execution', async () => {
+    const f = await fixture();
+    await expect(
+      f.controller.execute(
+        'record_external_publication',
+        { parameters, context: { brandId: 'brand-1' } },
+        apiKeyUser([ApiKeyScope.POSTS_READ]),
+        request,
+      ),
+    ).rejects.toThrow();
+    expect(f.executor.executeTool).not.toHaveBeenCalled();
+    expect(f.posts.recordExternalPublication).not.toHaveBeenCalled();
+  });
+  it.each(['other', undefined])(
+    'rejects missing or mismatched context brand %s',
+    async (brandId) => {
+      const f = await fixture();
+      await expect(
+        f.controller.execute(
+          'record_external_publication',
+          { parameters, context: { brandId } },
+          apiKeyUser([ApiKeyScope.POSTS_DRAFT]),
+          request,
+        ),
+      ).rejects.toThrow();
+      expect(f.posts.recordExternalPublication).not.toHaveBeenCalled();
+    },
+  );
+  it.each(['organizationId', 'userId', 'status'])(
+    'rejects forged input %s',
+    async (field) => {
+      const f = await fixture();
+      await expect(
+        f.controller.execute(
+          'record_external_publication',
+          {
+            parameters: { ...parameters, [field]: 'forged' },
+            context: { brandId: 'brand-1' },
+          },
+          apiKeyUser([ApiKeyScope.POSTS_DRAFT]),
+          request,
+        ),
+      ).rejects.toThrow();
+      expect(f.posts.recordExternalPublication).not.toHaveBeenCalled();
+    },
+  );
+});
+
+describe('POST /agent-tools/record_external_publication/execute', () => {
+  it('records and replays through the actual controller, handler and scoped persistence method', async () => {
+    const rows: unknown[] = [];
+    const post = {
+      findMany: vi.fn(async () => rows),
+      create: vi.fn(async ({ data }: Prisma.PostCreateArgs) => {
+        const captured = { ...data, id: 'http-captured' };
+        rows.push(captured);
+        return captured;
+      }),
+    };
+    const tx = {
+      brand: { findFirst: vi.fn().mockResolvedValue({ id: 'brand-1' }) },
+      credential: { findMany: vi.fn().mockResolvedValue([]) },
+      post,
+      $queryRaw: vi.fn().mockResolvedValue([]),
+    };
+    const prisma = {
+      $transaction: vi.fn((callback: (value: typeof tx) => Promise<unknown>) =>
+        callback(tx),
+      ),
+      post,
+    };
+    const executor = { executeTool: vi.fn() };
+    const module = await Test.createTestingModule({
+      controllers: [AgentToolsController],
+      providers: [
+        AgentPublishToolHandler,
+        PostsService,
+        { provide: PrismaService, useValue: prisma },
+        {
+          provide: OnboardingCreditGrantsService,
+          useValue: { completeMissions: vi.fn() },
+        },
+        { provide: PostGroupsService, useValue: { scheduleTarget: vi.fn() } },
+        { provide: AgentToolExecutorService, useValue: executor },
+        { provide: UsersService, useValue: {} },
+        {
+          provide: LoggerService,
+          useValue: {
+            log: vi.fn(),
+            debug: vi.fn(),
+            error: vi.fn(),
+            warn: vi.fn(),
+          },
+        },
+        {
+          provide: AgentUntrustedContentGateService,
+          useValue: {
+            evaluateToolResult: vi.fn(async ({ content }) => ({
+              content,
+              outcome: 'allowed',
+            })),
+          },
+        },
+      ],
+    }).compile();
+    const handler = module.get(AgentPublishToolHandler);
+    executor.executeTool.mockImplementation((_name, parameters, ctx) =>
+      handler.recordExternalPublication(parameters, ctx),
+    );
+    const app = module.createNestApplication();
+    const user = apiKeyUser([ApiKeyScope.POSTS_DRAFT]);
+    app.use((req: Request, _res: Response, next: NextFunction) => {
+      Object.assign(req, { user });
+      next();
+    });
+    await app.init();
+    try {
+      const body = {
+        parameters: {
+          brandId: 'brand-1',
+          platform: 'twitter',
+          publicationKind: 'post',
+          url: 'https://x.com/alice/status/123',
+          description: 'Reported publication',
+          publicationDate: '2026-01-01T00:00:00.000Z',
+        },
+        context: { brandId: 'brand-1' },
+      };
+      const first = await httpRequest(app.getHttpServer())
+        .post('/agent-tools/record_external_publication/execute')
+        .send({
+          ...body,
+          context: {
+            ...body.context,
+            organizationId: 'forged-organization',
+            userId: 'forged-user',
+          },
+        })
+        .expect(201);
+      expect(first.body).toMatchObject({
+        success: true,
+        creditsUsed: 0,
+        data: {
+          postId: 'http-captured',
+          created: true,
+          source: 'extension',
+          observedVisibility: 'unknown',
+        },
+      });
+      const replay = await httpRequest(app.getHttpServer())
+        .post('/agent-tools/record_external_publication/execute')
+        .send(body)
+        .expect(201);
+      expect(replay.body.data).toMatchObject({
+        postId: 'http-captured',
+        created: false,
+      });
+      expect(post.create).toHaveBeenCalledOnce();
+      expect(post.create.mock.calls[0][0].data).toMatchObject({
+        organizationId: 'org-1',
+        userId: 'user-1',
+        brandId: 'brand-1',
+      });
+      await httpRequest(app.getHttpServer())
+        .post('/agent-tools/record_external_publication/execute')
+        .send({
+          ...body,
+          parameters: { ...body.parameters, status: 'published' },
+        })
+        .expect(400);
+      user.scopes = [ApiKeyScope.POSTS_READ];
+      await httpRequest(app.getHttpServer())
+        .post('/agent-tools/record_external_publication/execute')
+        .send(body)
+        .expect(403);
+      expect(post.create).toHaveBeenCalledOnce();
+    } finally {
+      await app.close();
+    }
   });
 });

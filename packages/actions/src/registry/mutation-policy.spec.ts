@@ -237,3 +237,9 @@ describe('evaluateMutationPolicy', () => {
     ).toEqual({ kind: 'execute' });
   });
 });
+
+it('records external publication directly', () => {
+  expect(getDeclaredMutationPolicy('record_external_publication')).toBe(
+    'direct',
+  );
+});
