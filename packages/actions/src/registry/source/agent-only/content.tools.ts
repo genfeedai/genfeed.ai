@@ -2,6 +2,23 @@ import type { SourceTool } from '../../../interfaces/source-tool.interface';
 
 export const AGENT_CONTENT_TOOLS: SourceTool[] = [
   {
+    name: 'link_external_publication_credential',
+    description:
+      'Link an already recorded own publication to its matching connected account for analytics. This never publishes or schedules content.',
+    creditCost: 0,
+    requiredRole: 'user',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['brandId', 'postId', 'credentialId'],
+      properties: {
+        brandId: { type: 'string', minLength: 1 },
+        postId: { type: 'string', minLength: 1 },
+        credentialId: { type: 'string', minLength: 1 },
+      },
+    },
+  },
+  {
     name: 'record_external_publication',
     description:
       'Record a user’s reported already successful own publication. This never publishes, schedules or verifies provider success. Supply either its true publication permalink in url, or for a reply only its observed externalId and parent contextUrl with url omitted.',

@@ -117,3 +117,32 @@ describe('API key publishing scope policy', () => {
     expect(isPublishingMcpApprovalTool('schedule_post')).toBe(false);
   });
 });
+
+describe('publication credential link API-key policy', () => {
+  it.each([ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_CREATE])(
+    'accepts %s for linking without publish capability',
+    (scope) => {
+      expect(() =>
+        assertApiKeyAgentPublishingScope(
+          { isApiKey: true, scopes: [scope] },
+          'link_external_publication_credential',
+          {},
+        ),
+      ).not.toThrow();
+    },
+  );
+  it.each([
+    { scopes: [] },
+    { scopes: [ApiKeyScope.ANALYTICS_READ] },
+    { scopes: [ApiKeyScope.POSTS_PUBLISH] },
+    { scopes: [ApiKeyScope.POSTS_SCHEDULE] },
+  ])('rejects linking without draft capability: %j', ({ scopes }) => {
+    expect(() =>
+      assertApiKeyAgentPublishingScope(
+        { isApiKey: true, scopes },
+        'link_external_publication_credential',
+        {},
+      ),
+    ).toThrow(ForbiddenException);
+  });
+});

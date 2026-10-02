@@ -358,3 +358,29 @@ describe('curated action catalog', () => {
     }
   });
 });
+
+it('exposes explicit account recovery as a strict free agent-only direct action', () => {
+  const tool = getToolByName('link_external_publication_credential');
+  expect(tool).toMatchObject({
+    creditCost: 0,
+    requiredRole: 'user',
+    toolset: 'content',
+    mutationPolicy: 'direct',
+    surfaces: { agent: true, mcp: false },
+  });
+  expect(tool?.parameters.additionalProperties).toBe(false);
+  expect(tool?.parameters.required).toEqual([
+    'brandId',
+    'postId',
+    'credentialId',
+  ]);
+  expect(Object.keys(tool?.parameters.properties ?? {}).sort()).toEqual([
+    'brandId',
+    'credentialId',
+    'postId',
+  ]);
+  const entry = CURATED_ACTION_CATALOG.find(
+    (candidate) => candidate.name === 'link_external_publication_credential',
+  );
+  expect(entry && isPublishingApprovalRequired(entry)).toBe(false);
+});

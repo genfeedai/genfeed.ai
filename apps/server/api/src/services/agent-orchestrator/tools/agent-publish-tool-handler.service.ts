@@ -9,6 +9,7 @@ import { PostRepurposeService } from '@api/collections/posts/services/post-repur
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AgentScopeContextService, SERVER_TOKENS } from '@api/index';
 import {
+  linkExternalPublicationCredentialAction,
   recordExternalPublicationAction,
   scheduleCanonicalPostAction,
 } from '@api/services/agent-orchestrator/tools/agent-publish-canonical-actions';
@@ -31,6 +32,7 @@ import {
   buildAgentPublishTargetProposals,
   collectInvalidTargetBlockers,
   formatTargetBlockersError,
+  normalizePublishPlatforms,
   parseAgentPublishTargetPayloads,
   readCredentialId,
   readDomainPlatform,
@@ -127,6 +129,17 @@ export class AgentPublishToolHandler {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     return recordExternalPublicationAction(this.postsService, params, ctx);
+  }
+
+  async linkExternalPublicationCredential(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    return linkExternalPublicationCredentialAction(
+      this.postsService,
+      params,
+      ctx,
+    );
   }
 
   async scheduleCanonicalPost(
@@ -478,7 +491,7 @@ export class AgentPublishToolHandler {
             ? params.textContent.trim()
             : undefined;
     const requestedTargets = parseAgentPublishTargetPayloads(params.targets);
-    const platforms = this.normalizePlatforms(
+    const platforms = normalizePublishPlatforms(
       requestedTargets.length > 0
         ? requestedTargets.map((target) => target.platform)
         : Array.isArray(params.platforms)
@@ -524,23 +537,6 @@ export class AgentPublishToolHandler {
       error: 'sourceActionId does not match a persisted publish card.',
       success: false,
     };
-  }
-
-  private normalizePlatforms(value: unknown): string[] {
-    if (!Array.isArray(value)) {
-      return [];
-    }
-
-    return Array.from(
-      new Set(
-        value
-          .filter(
-            (platform): platform is string => typeof platform === 'string',
-          )
-          .map((platform) => platform.trim().toLowerCase())
-          .filter((platform) => platform.length > 0),
-      ),
-    );
   }
 
   private async resolveIngredientForContent(

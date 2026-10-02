@@ -199,3 +199,9 @@ describe('resolveEffectiveMutationPolicy — #4672 confirmation matrix', () => {
     ).toBe('approval-required');
   });
 });
+
+it('keeps credential linking outside native publication approval classes', () => {
+  expect(
+    getAgentActionClass('link_external_publication_credential'),
+  ).toBeUndefined();
+});

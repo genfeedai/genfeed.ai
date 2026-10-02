@@ -120,12 +120,6 @@
     "symbol": "apps/server/api/src/endpoints/ads-research/ads-research.service.ts"
   },
   {
-    "actual": 506,
-    "file": "apps/server/api/src/endpoints/analytics/analytics.controller.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/api/src/endpoints/analytics/analytics.controller.ts"
-  },
-  {
     "actual": 276,
     "file": "apps/server/api/src/endpoints/onboarding/proactive-onboarding.service.ts",
     "metric": "method-lines",
@@ -204,7 +198,7 @@
     "symbol": "AgentPrepareToolHandler.prepareClipWorkflowRun"
   },
   {
-    "actual": 1103,
+    "actual": 1099,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts"

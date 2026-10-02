@@ -3,11 +3,17 @@ import { parseExtensionPublicationCaptureInput } from '@api/collections/posts/se
 import type { PostsService } from '@api/collections/posts/services/posts.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { TargetExecutionState } from '@genfeedai/contracts';
+import { isEntityId } from '@genfeedai/contracts/api-types/helpers/entity-id';
 import type {
   AgentToolResult,
   ScheduleCanonicalPostInput,
 } from '@genfeedai/contracts/interfaces';
-import { ConflictException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
+import { z } from 'zod';
 
 export async function recordExternalPublicationAction(
   postsService: Pick<PostsService, 'recordExternalPublication'>,
@@ -76,4 +82,35 @@ export async function scheduleCanonicalPostAction(
     ],
     success: true,
   };
+}
+
+const linkPublicationSchema = z
+  .object({
+    brandId: z.string().refine(isEntityId),
+    postId: z.string().refine(isEntityId),
+    credentialId: z.string().refine(isEntityId),
+  })
+  .strict();
+
+export async function linkExternalPublicationCredentialAction(
+  postsService: Pick<PostsService, 'linkExternalPublicationCredential'>,
+  params: Record<string, unknown>,
+  ctx: ToolExecutionContext,
+): Promise<AgentToolResult> {
+  const parsed = linkPublicationSchema.safeParse(params);
+  if (!parsed.success)
+    throw new BadRequestException('Invalid publication account linking input');
+  if (!ctx.brandId || ctx.brandId !== parsed.data.brandId)
+    throw new ForbiddenException(
+      'Publication linking must match the authenticated brand context',
+    );
+  const result = await postsService.linkExternalPublicationCredential(
+    parsed.data,
+    {
+      brandId: ctx.brandId,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+    },
+  );
+  return { success: true, creditsUsed: 0, data: { ...result } };
 }

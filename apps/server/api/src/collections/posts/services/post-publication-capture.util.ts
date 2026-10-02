@@ -1,12 +1,13 @@
 import type {
   ExtensionPublicationAnalyticsAvailability,
+  ExtensionPublicationAuthor,
   ExtensionPublicationCaptureInput,
   ExtensionPublicationCaptureResult,
   ExtensionPublicationObservedVisibility,
   ExtensionPublicationPlatform,
   ExtensionPublicationUrlIdentity,
 } from '@genfeedai/contracts/interfaces/content/extension-publication.interface';
-import type { Post, Prisma } from '@genfeedai/prisma';
+import type { Credential, Post, Prisma } from '@genfeedai/prisma';
 import { BadRequestException } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -284,7 +285,10 @@ function parsePublicationUrl(
 }
 
 export function normalizeExtensionPublication(
-  input: ExtensionPublicationCaptureInput,
+  input: Pick<
+    ExtensionPublicationCaptureInput,
+    'platform' | 'publicationKind' | 'url' | 'contextUrl' | 'externalId'
+  >,
 ): NormalizedExtensionPublication {
   if (!input.url) {
     if (
@@ -547,4 +551,32 @@ export function extensionPublicationCaptureResult(
     analyticsAvailability:
       extensionPublicationCaptureAnalyticsAvailability(post),
   };
+}
+
+export function extensionPublicationAuthorMatchesCredential(
+  author: ExtensionPublicationAuthor | null | undefined,
+  credential: Pick<Credential, 'externalId' | 'externalHandle' | 'username'>,
+): boolean {
+  if (author?.externalId) return credential.externalId === author.externalId;
+  const normalizeHandle = (handle: string | null | undefined) =>
+    handle?.trim().replace(/^@/, '').toLowerCase() ?? '';
+  const handle = normalizeHandle(author?.handle);
+  return (
+    !!handle &&
+    (normalizeHandle(credential.externalHandle) === handle ||
+      normalizeHandle(credential.username) === handle)
+  );
+}
+
+export function extensionPublicationObservedAuthor(
+  targetSettings: unknown,
+): ExtensionPublicationAuthor | null {
+  const metadata = captureMetadata(targetSettings);
+  if (metadata?.version !== 1) return null;
+  const author = publicationCaptureSchema.shape.author.safeParse(
+    metadata.author,
+  );
+  return author.success && (author.data?.externalId || author.data?.handle)
+    ? author.data
+    : null;
 }

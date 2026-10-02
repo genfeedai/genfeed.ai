@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
 import {
   extensionPublicationAnalyticsAvailability,
+  extensionPublicationAuthorMatchesCredential,
   extensionPublicationCaptureResult,
+  extensionPublicationObservedAuthor,
   normalizeExtensionPublication,
   parseExtensionPublicationCaptureInput,
 } from '@api/collections/posts/services/post-publication-capture.util';
@@ -588,4 +590,64 @@ describe('truthful analytics and replay locations', () => {
       ),
     ).toMatchObject({ urlKind: 'permalink', contextUrl: null });
   });
+});
+
+describe('shared publication author proof', () => {
+  const credential = {
+    externalId: 'id',
+    externalHandle: ' @Alice ',
+    username: 'other',
+  };
+  it('requires ID match before any handle fallback', () => {
+    expect(
+      extensionPublicationAuthorMatchesCredential(
+        { externalId: 'different', handle: 'alice' },
+        credential,
+      ),
+    ).toBe(false);
+    expect(
+      extensionPublicationAuthorMatchesCredential(
+        { externalId: 'id' },
+        credential,
+      ),
+    ).toBe(true);
+    expect(
+      extensionPublicationAuthorMatchesCredential(
+        { handle: 'ALICE' },
+        credential,
+      ),
+    ).toBe(true);
+    expect(
+      extensionPublicationAuthorMatchesCredential(
+        { handle: 'other' },
+        credential,
+      ),
+    ).toBe(true);
+    expect(
+      extensionPublicationAuthorMatchesCredential({ handle: ' ' }, credential),
+    ).toBe(false);
+    expect(extensionPublicationAuthorMatchesCredential(null, credential)).toBe(
+      false,
+    );
+  });
+  it.each([
+    null,
+    {},
+    { extensionCapture: { version: 2, author: { handle: 'alice' } } },
+    { extensionCapture: { version: 1, author: {} } },
+    { extensionCapture: { version: 1, author: { handle: ' ' } } },
+    { extensionCapture: { version: 1, author: { externalId: 7 } } },
+    { extensionCapture: { version: 1, author: { handle: 'a'.repeat(257) } } },
+  ])('rejects malformed or missing stored author %j', (settings) =>
+    expect(extensionPublicationObservedAuthor(settings)).toBeNull(),
+  );
+  it('reads only bounded version-one author fields', () =>
+    expect(
+      extensionPublicationObservedAuthor({
+        extensionCapture: {
+          version: 1,
+          author: { handle: 'alice', externalId: 'id' },
+        },
+      }),
+    ).toEqual({ handle: 'alice', externalId: 'id' }));
 });

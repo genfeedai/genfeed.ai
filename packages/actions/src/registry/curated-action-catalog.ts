@@ -350,6 +350,11 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp'],
     toolset: 'workflows',
   },
+  {
+    name: 'link_external_publication_credential',
+    surfaces: ['agent'],
+    toolset: 'content',
+  },
   { name: 'list_ads_research', surfaces: ['agent', 'mcp'], toolset: 'ads' },
   {
     name: 'list_agent_conversations',

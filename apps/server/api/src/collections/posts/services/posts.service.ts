@@ -16,6 +16,7 @@ import {
   type PostBatchScheduleResult,
   type PostBatchScheduleTarget,
 } from '@api/collections/posts/services/post-batch-schedule.util';
+import { listPostContentMentions } from '@api/collections/posts/services/post-content-mentions.read';
 import { normalizePostDocument } from '@api/collections/posts/services/post-document-projection.util';
 import {
   createPostChildWithLearning,
@@ -25,6 +26,11 @@ import {
 } from '@api/collections/posts/services/post-learning-mutation.util';
 import { POST_SCALAR_FIELDS } from '@api/collections/posts/services/post-patch-write.util';
 import { recordExternalPublicationWrite } from '@api/collections/posts/services/post-publication-capture.write';
+import { linkExternalPublicationCredentialWrite } from '@api/collections/posts/services/post-publication-credential-link.write';
+import {
+  findPublicationInsight,
+  listPublicationInsights,
+} from '@api/collections/posts/services/post-publication-insights.read';
 import { bindScheduledPublishApproval } from '@api/collections/posts/services/post-schedule-approval.util';
 import { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
@@ -42,6 +48,7 @@ import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
 import { TimezoneUtil } from '@api/shared/utils/timezone/timezone.util';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   CredentialPlatform,
   fromPrismaCredentialPlatform,
@@ -66,29 +73,17 @@ import type {
   ExtensionPublicationCaptureResult,
   ExtensionPublicationCaptureScope,
 } from '@genfeedai/contracts/interfaces/content/extension-publication.interface';
+import type {
+  LinkExternalPublicationCredentialInput,
+  LinkExternalPublicationCredentialResult,
+  PublicationInsight,
+  PublicationInsightsQuery,
+  PublicationInsightsScope,
+} from '@genfeedai/contracts/interfaces/content/publication-insights.interface';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
-
-const DEFAULT_CONTENT_MENTION_LIMIT = 50;
-const MAX_CONTENT_MENTION_LIMIT = 100;
-
-type ContentMentionPostRecord = {
-  brandId: string | null;
-  category: string;
-  description: string;
-  entityArticle: {
-    coverImageUrl: string | null;
-    label: string;
-  } | null;
-  entityIngredient: {
-    cdnUrl: string | null;
-    sampleAudioUrl: string | null;
-  } | null;
-  id: string;
-  label: string | null;
-};
 
 export type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
   agentContextSource?: string;
@@ -303,62 +298,9 @@ export class PostsService extends BaseService<
   async listContentMentions(
     organizationId: string,
     brandId?: string,
-    limit: number = DEFAULT_CONTENT_MENTION_LIMIT,
+    limit = 50,
   ): Promise<AgentContentMentionItem[]> {
-    if (!organizationId) {
-      return [];
-    }
-
-    const safeLimit = Math.min(Math.max(limit, 1), MAX_CONTENT_MENTION_LIMIT);
-    const posts = (await this.prisma.post.findMany({
-      orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
-      select: {
-        brandId: true,
-        category: true,
-        description: true,
-        entityArticle: {
-          select: {
-            coverImageUrl: true,
-            label: true,
-          },
-        },
-        entityIngredient: {
-          select: {
-            cdnUrl: true,
-            sampleAudioUrl: true,
-          },
-        },
-        id: true,
-        label: true,
-      },
-      take: safeLimit,
-      where: scopedWhere(organizationId, brandId ? { brandId } : {}),
-    })) as unknown as ContentMentionPostRecord[];
-
-    return posts.map((post) => ({
-      brandId: post.brandId,
-      contentTitle: this.formatContentMentionTitle(post),
-      contentType: String(post.category).toLowerCase(),
-      id: post.id,
-      thumbnailUrl:
-        post.entityArticle?.coverImageUrl ??
-        post.entityIngredient?.cdnUrl ??
-        post.entityIngredient?.sampleAudioUrl ??
-        undefined,
-    }));
-  }
-
-  private formatContentMentionTitle(post: ContentMentionPostRecord): string {
-    const title =
-      post.label?.trim() ||
-      post.entityArticle?.label.trim() ||
-      post.description.trim();
-
-    if (title.length <= 80) {
-      return title;
-    }
-
-    return `${title.slice(0, 77)}...`;
+    return listPostContentMentions(this.prisma, organizationId, brandId, limit);
   }
 
   async patch(
@@ -439,6 +381,33 @@ export class PostsService extends BaseService<
       scope,
     );
     if (result.created) await this.invalidatePostMutationCache();
+    return result;
+  }
+
+  async getPublicationInsights(
+    query: PublicationInsightsQuery,
+    scope: PublicationInsightsScope,
+  ): Promise<AggregatePaginateResult<PublicationInsight>> {
+    return listPublicationInsights(this.prisma, query, scope);
+  }
+
+  async findPublicationInsightById(
+    postId: string,
+    scope: PublicationInsightsScope,
+  ): Promise<PublicationInsight | null> {
+    return findPublicationInsight(this.prisma, postId, scope);
+  }
+
+  async linkExternalPublicationCredential(
+    input: LinkExternalPublicationCredentialInput,
+    scope: PublicationInsightsScope,
+  ): Promise<LinkExternalPublicationCredentialResult> {
+    const result = await linkExternalPublicationCredentialWrite(
+      this.prisma,
+      input,
+      scope,
+    );
+    await this.invalidatePostMutationCache();
     return result;
   }
 

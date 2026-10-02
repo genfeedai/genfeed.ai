@@ -146,6 +146,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   prepare_voice_clone: 'direct',
   prepare_workflow_trigger: 'direct',
   publish_skill: 'direct',
+  link_external_publication_credential: 'direct',
   record_external_publication: 'direct',
   rate_content: 'direct',
   rate_ingredient: 'direct',

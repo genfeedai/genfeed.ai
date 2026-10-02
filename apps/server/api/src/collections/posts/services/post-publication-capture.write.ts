@@ -1,6 +1,7 @@
 import {
   extensionPublicationAnalyticsAvailability,
   extensionPublicationAnalyticsError,
+  extensionPublicationAuthorMatchesCredential,
   extensionPublicationCaptureResult,
   type NormalizedExtensionPublication,
   normalizeExtensionPublication,
@@ -141,12 +142,7 @@ async function findCaptureCredentialId(
       },
     });
     const matches = credentials.filter((credential) =>
-      author?.externalId
-        ? credential.externalId === author.externalId
-        : normalizeHandle(credential.externalHandle) ===
-            normalizeHandle(author?.handle) ||
-          normalizeHandle(credential.username) ===
-            normalizeHandle(author?.handle),
+      extensionPublicationAuthorMatchesCredential(author, credential),
     );
     if (matches.length === 1) credentialId = matches[0].id;
   }

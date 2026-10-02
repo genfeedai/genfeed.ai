@@ -137,6 +137,11 @@ function dispatchWorkspaceFamily(
       return handlers.workspaceHandler.completeMediaUpload(params, ctx);
     case 'open_studio_handoff':
       return handlers.workspaceHandler.openStudioHandoff(params);
+    case 'link_external_publication_credential':
+      return handlers.publishHandler.linkExternalPublicationCredential(
+        params,
+        ctx,
+      );
     case 'record_external_publication':
       return handlers.publishHandler.recordExternalPublication(params, ctx);
     case 'create_post':

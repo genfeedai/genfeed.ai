@@ -54,6 +54,19 @@ describe('PostsController.buildFindAllQuery', () => {
     });
   });
 
+  it('narrows persisted source without dropping tenant and brand predicates', () => {
+    const result = controller.buildFindAllQuery(makeUser(), {
+      source: 'extension',
+      brandId: 'brand-1',
+    } as PostsQueryDto);
+    expect(result.where).toMatchObject({
+      organizationId: 'org-1',
+      brandId: 'brand-1',
+      isDeleted: false,
+      source: 'extension',
+    });
+  });
+
   it('uses parentId (scalar FK) not parent (relation alias)', () => {
     const query: PostsQueryDto = {} as PostsQueryDto;
     const result = controller.buildFindAllQuery(makeUser(), query);

@@ -436,6 +436,27 @@ describe('AnalyticsService', () => {
       expect(mockPrismaService.$queryRaw).toHaveBeenCalled();
     });
 
+    it('binds source on the canonical tenant-matched active Post join', async () => {
+      const queries = captureQueryRawCalls();
+      await service.getTopContent(
+        undefined,
+        undefined,
+        10,
+        AnalyticsMetric.VIEWS,
+        'brand',
+        CredentialPlatform.TWITTER,
+        'org',
+        'extension',
+      );
+      expect(queries[0].sql).toContain('p.source = ?');
+      expect(queries[0].values).toContain('extension');
+      expect(queries[0].sql).toContain(
+        'p."organizationId" = pa."organizationId"',
+      );
+      expect(queries[0].sql).toContain('p."brandId" = pa."brandId"');
+      expect(queries[0].sql).toContain('p."isDeleted" = false');
+    });
+
     it('should enforce max limit of 100', async () => {
       mockPrismaService.$queryRaw.mockResolvedValue([]);
 

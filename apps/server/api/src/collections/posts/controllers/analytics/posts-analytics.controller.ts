@@ -1,6 +1,15 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { AnalyticsPublicationScopeQueryDto } from '@api/collections/posts/dto/analytics-publication-scope-query.dto';
+import {
+  PublicationInsightScopeQueryDto,
+  PublicationInsightsQueryDto,
+} from '@api/collections/posts/dto/publication-insights-query.dto';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
+import {
+  extensionPublicationCaptureAnalyticsAvailability,
+  isExtensionPublicationCapture,
+} from '@api/collections/posts/services/post-publication-capture.util';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
@@ -8,9 +17,21 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { returnNotFound } from '@api/helpers/utils/response/response.util';
-import { CredentialPlatform, MemberRole } from '@genfeedai/contracts';
-import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
+import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
+import {
+  returnNotFound,
+  serializeCollection,
+  serializeSingle,
+} from '@api/helpers/utils/response/response.util';
+import {
+  CredentialPlatform,
+  MemberRole,
+  toPrismaCredentialPlatform,
+} from '@genfeedai/contracts';
+import type {
+  JsonApiCollectionResponse,
+  JsonApiSingleResponse,
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -22,9 +43,13 @@ import {
   Param,
   Post,
   Query,
+  Req,
   SetMetadata,
   UseGuards,
+  UsePipes,
 } from '@nestjs/common';
+import { PublicationInsightSerializer } from '@serializers/server/content/publication-insight.serializer';
+import type { Request } from 'express';
 
 type PostAnalyticsSummary = Awaited<
   ReturnType<PostAnalyticsService['getPostAnalyticsSummary']>
@@ -70,7 +95,54 @@ export class PostsAnalyticsController {
     private readonly loggerService: LoggerService,
   ) {}
 
+  @Get('publication-insights')
+  @SetMetadata('roles', [
+    'superadmin',
+    MemberRole.OWNER,
+    MemberRole.ADMIN,
+    MemberRole.CREATOR,
+    MemberRole.ANALYTICS,
+  ])
+  @UsePipes(ValidationPipe)
+  async getPublicationInsights(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Query() query: PublicationInsightsQueryDto,
+  ): Promise<JsonApiCollectionResponse> {
+    const data = await this.postsService.getPublicationInsights(query, {
+      organizationId: user.organizationId,
+      userId: user.userId,
+      brandId: query.brandId,
+    });
+    return serializeCollection(request, PublicationInsightSerializer, data);
+  }
+
+  @Get(':postId/publication-insights')
+  @SetMetadata('roles', [
+    'superadmin',
+    MemberRole.OWNER,
+    MemberRole.ADMIN,
+    MemberRole.CREATOR,
+    MemberRole.ANALYTICS,
+  ])
+  @UsePipes(ValidationPipe)
+  async getPublicationInsight(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('postId') postId: string,
+    @Query() query: PublicationInsightScopeQueryDto,
+  ): Promise<JsonApiSingleResponse> {
+    const data = await this.postsService.findPublicationInsightById(postId, {
+      organizationId: user.organizationId,
+      userId: user.userId,
+      brandId: query.brandId,
+    });
+    if (!data) return returnNotFound(this.constructorName, postId);
+    return serializeSingle(request, PublicationInsightSerializer, data);
+  }
+
   @Get(':postId/analytics')
+  @UsePipes(ValidationPipe)
   @SetMetadata('roles', [
     'superadmin',
     MemberRole.OWNER,
@@ -82,16 +154,19 @@ export class PostsAnalyticsController {
   async getAnalytics(
     @CurrentUser() user: User,
     @Param('postId') postId: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Query() query: AnalyticsPublicationScopeQueryDto = {},
   ): Promise<JsonApiSingleResponse<PostAnalyticsWithRangeAttributes>> {
-    // Verify publication ownership
+    const selectedBrandId = query.brandId ?? user.brandId;
+    if (!selectedBrandId || !user.organizationId)
+      throw new BadRequestException(
+        'An authenticated organization and selected brand are required',
+      );
     const post = await this.postsService.findOne({
       id: postId,
-      OR: [
-        { userId: user.userId ?? user.id },
-        { organizationId: user.organizationId },
-      ],
+      organizationId: user.organizationId,
+      brandId: selectedBrandId,
+      isDeleted: false,
+      brand: { organizationId: user.organizationId, isDeleted: false },
     });
 
     if (!post) {
@@ -106,12 +181,12 @@ export class PostsAnalyticsController {
 
     // Get analytics by date range if provided
     let dateRangeAnalytics = null;
-    if (startDate && endDate) {
+    if (query.startDate && query.endDate) {
       dateRangeAnalytics =
         await this.postAnalyticsService.getAnalyticsByDateRange(
           postId,
-          new Date(startDate),
-          new Date(endDate),
+          new Date(query.startDate),
+          new Date(query.endDate),
           user.organizationId,
         );
     }
@@ -129,6 +204,7 @@ export class PostsAnalyticsController {
   }
 
   @Post(':postId/refresh-analytics')
+  @UsePipes(ValidationPipe)
   @SetMetadata('roles', [
     'superadmin',
     MemberRole.OWNER,
@@ -140,19 +216,32 @@ export class PostsAnalyticsController {
   async refreshAnalytics(
     @CurrentUser() user: User,
     @Param('postId') postId: string,
+    @Query() query: AnalyticsPublicationScopeQueryDto = {},
   ): Promise<JsonApiSingleResponse<PostAnalyticsRefreshAttributes>> {
-    // Verify publication ownership
+    const selectedBrandId = query.brandId ?? user.brandId;
+    if (!selectedBrandId || !user.organizationId)
+      throw new BadRequestException(
+        'An authenticated organization and selected brand are required',
+      );
     const post = await this.postsService.findOne({
       id: postId,
-      OR: [
-        { userId: user.userId ?? user.id },
-        { organizationId: user.organizationId },
-      ],
+      organizationId: user.organizationId,
+      brandId: selectedBrandId,
+      isDeleted: false,
+      brand: { organizationId: user.organizationId, isDeleted: false },
     });
 
     if (!post) {
       return returnNotFound(this.constructorName, postId);
     }
+
+    if (
+      isExtensionPublicationCapture(post) &&
+      extensionPublicationCaptureAnalyticsAvailability(post) !== 'eligible'
+    )
+      throw new BadRequestException(
+        'This captured publication is not eligible for analytics collection',
+      );
 
     // Check rate limiting - one refresh per hour per post
     const lastRefreshKey = `analytics_refresh:${postId}`;
@@ -193,10 +282,16 @@ export class PostsAnalyticsController {
       );
     }
 
+    const platform = toPrismaCredentialPlatform(post.platform);
+    if (!platform)
+      throw new BadRequestException('Unsupported publication platform');
     const credential = await this.credentialsService.findOne({
       id: credentialId,
       brandId,
       organizationId,
+      isDeleted: false,
+      isConnected: true,
+      platform,
     });
 
     if (!credential) {
@@ -213,7 +308,7 @@ export class PostsAnalyticsController {
       organizationId,
       platform: credential.platform as CredentialPlatform,
       postId,
-      userId: user.userId ?? user.id,
+      userId: user.userId,
     });
 
     // Set rate limit cache
@@ -275,7 +370,7 @@ export class PostsAnalyticsController {
       const refresh =
         await this.analyticsSyncWorkflowService.queueOrganizationRefresh({
           organizationId: user.organizationId,
-          userId: user.userId ?? user.id,
+          userId: user.userId,
         });
 
       // Set rate limit cache

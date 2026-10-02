@@ -210,6 +210,10 @@ export class AnalyticsExportQueryDto extends AnalyticsFilterQueryDto {
 }
 
 export class TopContentQueryDto extends AnalyticsDateRangeDto {
+  @IsOptional()
+  @IsIn(['extension'])
+  source?: 'extension';
+
   @ApiProperty({
     default: 10,
     description: 'Number of results to return',
