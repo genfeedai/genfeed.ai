@@ -171,7 +171,7 @@ describe('SchedulerPublishStateService', () => {
       }),
     );
     expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
-      isolationLevel: 'Serializable',
+      isolationLevel: 'ReadCommitted',
     });
   });
 

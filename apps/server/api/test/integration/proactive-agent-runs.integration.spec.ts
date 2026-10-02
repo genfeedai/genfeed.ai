@@ -28,6 +28,72 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Row = Record<string, unknown>;
 
+async function assertExpiredRuntimeReview(
+  fixture: ProactiveAgentRuntimeFixture,
+  postId: string,
+  batchId: string,
+  itemId: string,
+) {
+  const scope = { organizationId: fixture.organizationId, isDeleted: false };
+  const beforePins = await fixture.prisma.contentVersionPin.count({
+    where: {
+      organizationId: fixture.organizationId,
+      recordKind: 'post',
+      recordId: postId,
+    },
+  });
+  await fixture.review.approveItems(
+    batchId,
+    [itemId],
+    fixture.organizationId,
+    fixture.userId,
+  );
+  expect(
+    await fixture.prisma.batchItem.findFirstOrThrow({
+      where: { ...scope, id: itemId, batchId },
+    }),
+  ).toMatchObject({ status: 'SKIPPED', reviewDecision: 'REJECTED' });
+  expect(
+    await fixture.prisma.post.findFirstOrThrow({
+      where: {
+        id: postId,
+        organizationId: fixture.organizationId,
+        isDeleted: true,
+      },
+    }),
+  ).toMatchObject({
+    targetExecutionState: TargetExecutionState.CANCELLED,
+    publishApprovalId: null,
+  });
+  expect(
+    await fixture.prisma.publishApproval.count({
+      where: {
+        organizationId: fixture.organizationId,
+        postId,
+        status: 'approved',
+      },
+    }),
+  ).toBe(0);
+  expect(
+    await fixture.prisma.contentVersionPin.count({
+      where: {
+        organizationId: fixture.organizationId,
+        recordKind: 'post',
+        recordId: postId,
+      },
+    }),
+  ).toBe(beforePins);
+  await expect(
+    fixture.publish({
+      organizationId: fixture.organizationId,
+      postId,
+      userId: fixture.userId,
+      source: 'publish_now',
+    }),
+  ).rejects.toThrow();
+  expect(fixture.published).not.toHaveBeenCalled();
+}
+
 async function assertRuntimeMediaExtension(
   fixture: ProactiveAgentRuntimeFixture,
 ) {
@@ -737,7 +803,9 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
     expect(snapshot.topHooks).toEqual([winningHook]);
     expect(snapshot.impressions).toBe(200);
     expect(snapshot.clicks).toBe(2);
-    expect(snapshot.bestPlatformFormatPairs[0]?.platform).toBe('linkedin');
+    expect(snapshot.bestPlatformFormatPairs[0]?.platform).toBe(
+      CredentialPlatform.LINKEDIN,
+    );
     const current = await fixture.prisma.agentStrategy.findUniqueOrThrow({
       where: { id: agent.id },
     });
@@ -1177,7 +1245,17 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
     if (current.isDeleted) {
       expect(current.targetExecutionState).toBe(TargetExecutionState.CANCELLED);
       expect(current.publishApprovalId).toBeNull();
-      expect(outcomes[1].status).toBe('rejected');
+      expect(outcomes[0]).toMatchObject({
+        status: 'fulfilled',
+        value: [post.id],
+      });
+      expect(outcomes[1].status).toBe('fulfilled');
+      await assertExpiredRuntimeReview(
+        fixture,
+        post.id,
+        post.reviewBatchId,
+        post.reviewItemId,
+      );
       await expect(
         fixture.publish({
           organizationId: fixture.organizationId,
@@ -1192,5 +1270,31 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
       expect(outcomes[0]).toMatchObject({ status: 'fulfilled', value: [] });
     }
     expect(fixture.published).not.toHaveBeenCalled();
+    // Always execute the expiry-first path even when approval won the race.
+    const expiryFirst = await fixture.createAgent();
+    const expiryRun = await fixture.dispatch(expiryFirst.id);
+    await fixture.waitForExecution(String(expiryRun.executionId));
+    const expired = await fixture.prisma.post.findFirstOrThrow({
+      where: {
+        organizationId: fixture.organizationId,
+        agentStrategyId: expiryFirst.id,
+        isDeleted: false,
+      },
+    });
+    if (!expired.reviewBatchId || !expired.reviewItemId)
+      throw new Error('Expiry-first review attribution missing');
+    expect(
+      await fixture.review.expireAutonomousReviewBatch(
+        expired.reviewBatchId,
+        fixture.organizationId,
+        new Date(Date.now() + 25 * 3_600_000),
+      ),
+    ).toEqual([expired.id]);
+    await assertExpiredRuntimeReview(
+      fixture,
+      expired.id,
+      expired.reviewBatchId,
+      expired.reviewItemId,
+    );
   }, 60_000);
 });

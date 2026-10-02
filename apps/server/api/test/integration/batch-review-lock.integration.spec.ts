@@ -112,10 +112,14 @@ describe('Batch review advisory transactions (real Postgres)', () => {
     ).resolves.toBe('recovered');
   });
   it.each([
-    { batchId: 'c', organization: organizationId },
-    { batchId: 'a', organization: `${organizationId}-other` },
+    { label: 'independent batch', batchId: 'c', organization: organizationId },
+    {
+      label: 'independent organization',
+      batchId: 'a',
+      organization: `${organizationId}-other`,
+    },
   ])(
-    'does not block an independent batch/organization: %j',
+    'does not block an independent batch/organization: $label',
     async ({ batchId, organization }) => {
       const entered = deferred();
       const release = deferred();

@@ -1,28 +1,23 @@
-name: Dataset Diagnostic
+name: Dataset Scale
 on:
+  schedule:
+    - cron: '17 3 * * 0'
   workflow_dispatch:
     inputs:
-      mode:
-        description: 'Run bounded 10k smoke first; profile is the optional 10k/100k diagnostic.'
-        type: choice
-        default: smoke
-        options:
-          - smoke
-          - profile
       candidate_sha:
-        description: 'Exact inspected dataset candidate commit (40 lowercase hexadecimal characters).'
+        description: 'Optional exact candidate commit; weekly/manual default is the current master SHA.'
         type: string
-        required: true
+        required: false
 permissions:
   contents: read
 concurrency:
-  group: dataset-diagnostic-${{ github.ref }}
+  group: dataset-scale-${{ github.ref }}
   cancel-in-progress: false
 jobs:
-  diagnostic:
-    name: Bounded Dataset Diagnostic
+  scale:
+    name: Weekly 100k Dataset Scale
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     permissions:
       contents: read
     services:
@@ -45,14 +40,13 @@ jobs:
       RUNTIME_ACCEPTANCE_PUBLIC_KEY: ${{ vars.RUNTIME_ACCEPTANCE_PUBLIC_KEY }}
       ACCEPTANCE_REPO: ${{ github.workspace }}
       CONTROL_SHA: ${{ github.sha }}
-      DATASET_GROUP: ${{ inputs.mode == 'profile' && 'dataset-diagnostic' || 'dataset-smoke' }}
-      CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+      CANDIDATE_SHA: ${{ inputs.candidate_sha || github.sha }}
     steps:
       - name: Anchor acceptance job deadline
         run: |
           {
             echo "RUNTIME_ACCEPTANCE_JOB_STARTED_MS=$(date +%s%3N)"
-            echo "ACCEPTANCE_STATE=$RUNNER_TEMP/dataset-diagnostic"
+            echo "ACCEPTANCE_STATE=$RUNNER_TEMP/dataset-scale"
             echo "CONTROL_RUNNER=$RUNNER_TEMP/runtime-acceptance-control.mjs"
           } >> "$GITHUB_ENV"
       - name: Checkout inspected control source
@@ -68,7 +62,7 @@ jobs:
         id: preflight
         run: |
           set -euo pipefail
-          node scripts/ci/runtime-acceptance.mjs preflight --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA" --group "$DATASET_GROUP"
+          node scripts/ci/runtime-acceptance.mjs preflight --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA" --group dataset-scale
           test ! -e "$CONTROL_RUNNER"
           umask 077
           cp scripts/ci/runtime-acceptance.mjs "$CONTROL_RUNNER"
@@ -76,7 +70,7 @@ jobs:
       - name: Checkout exact dataset candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.candidate_sha }}
+          ref: ${{ inputs.candidate_sha || github.sha }}
           persist-credentials: false
       - name: Require exact candidate checkout
         run: |
@@ -96,21 +90,21 @@ jobs:
         uses: ./.control-actions/setup-bun-env
       - name: Build packages
         run: bunx turbo run build --filter="./packages/*"
-      - name: Run bounded dataset diagnostic with frozen controller
+      - name: Run bounded dataset scale with frozen controller
         env:
           RUNTIME_ACCEPTANCE_POSTGRES_ID: ${{ job.services.postgres.id }}
-        run: node "$CONTROL_RUNNER" "$DATASET_GROUP" --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
-      - name: Seal available diagnostic evidence
+        run: node "$CONTROL_RUNNER" dataset-scale --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
+      - name: Seal available scale evidence
         if: always() && steps.preflight.outputs.prepared == 'true'
         id: seal
         run: node "$CONTROL_RUNNER" seal --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
-      - name: Retain encrypted diagnostic evidence
+      - name: Retain encrypted scale evidence
         if: always() && steps.preflight.outputs.prepared == 'true' && steps.seal.outcome != 'skipped'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: dataset-diagnostic-${{ inputs.candidate_sha }}
+          name: dataset-scale-${{ inputs.candidate_sha || github.sha }}
           path: |
-            ${{ runner.temp }}/dataset-diagnostic/public/receipt.json
-            ${{ runner.temp }}/dataset-diagnostic/public/evidence.encrypted.json
+            ${{ runner.temp }}/dataset-scale/public/receipt.json
+            ${{ runner.temp }}/dataset-scale/public/evidence.encrypted.json
           retention-days: 7
           if-no-files-found: error

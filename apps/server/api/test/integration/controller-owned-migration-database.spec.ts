@@ -54,7 +54,14 @@ async function actualMigrationInventory() {
 }
 
 describe('controller-owned canonical-public migration database', () => {
-  it.each(['learning-runtime', 'learning-races', 'brand-acceptance'] as const)(
+  it.each([
+    'learning-runtime',
+    'learning-races',
+    'brand-acceptance',
+    'dataset-correctness',
+    'dataset-matrix',
+    'dataset-profile',
+  ] as const)(
     'accepts only the exact URL and fresh public connection for %s',
     async (role) => {
       expect(
@@ -66,7 +73,14 @@ describe('controller-owned canonical-public migration database', () => {
     },
   );
 
-  it.each(['learning-runtime', 'learning-races', 'brand-acceptance'] as const)(
+  it.each([
+    'learning-runtime',
+    'learning-races',
+    'brand-acceptance',
+    'dataset-correctness',
+    'dataset-matrix',
+    'dataset-profile',
+  ] as const)(
     'rejects missing, wrong-name, remote, hash and query URLs for %s',
     (role) => {
       for (const value of [
@@ -88,7 +102,14 @@ describe('controller-owned canonical-public migration database', () => {
     },
   );
 
-  it.each(['learning-runtime', 'learning-races', 'brand-acceptance'] as const)(
+  it.each([
+    'learning-runtime',
+    'learning-races',
+    'brand-acceptance',
+    'dataset-correctness',
+    'dataset-matrix',
+    'dataset-profile',
+  ] as const)(
     'rejects crossed database and schema identity for %s',
     async (role) => {
       await expect(
