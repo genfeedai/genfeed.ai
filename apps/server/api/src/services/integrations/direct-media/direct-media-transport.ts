@@ -8,9 +8,16 @@ async function requestDirectMediaResponse(
   transport: DirectMediaTransport,
   url: string,
   init: RequestInit,
+  timeoutMs = 30_000,
 ): Promise<Response> {
+  if (!Number.isInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 180_000) {
+    throw new DirectMediaProviderError(
+      'PROVIDER_TIMEOUT_INVALID',
+      'Provider request timeout is invalid.',
+    );
+  }
   const isSubmission = init.method === 'POST' && !url.endsWith('/cancel');
-  const timeout = AbortSignal.timeout(30_000);
+  const timeout = AbortSignal.timeout(timeoutMs);
   const signal = init.signal
     ? AbortSignal.any([init.signal, timeout])
     : timeout;
@@ -28,6 +35,7 @@ async function requestDirectMediaResponse(
     );
   }
   if (!response.ok) {
+    await response.body?.cancel().catch(() => undefined);
     const code =
       response.status === 401 || response.status === 403
         ? 'PROVIDER_ACCESS_DENIED'
@@ -54,15 +62,22 @@ export async function requestDirectMediaEmpty(
   url: string,
   init: RequestInit,
 ): Promise<void> {
-  await requestDirectMediaResponse(transport, url, init);
+  const response = await requestDirectMediaResponse(transport, url, init);
+  await response.body?.cancel().catch(() => undefined);
 }
 
 export async function requestDirectMediaJson(
   transport: DirectMediaTransport,
   url: string,
   init: RequestInit,
+  timeoutMs = 30_000,
 ): Promise<unknown> {
-  const response = await requestDirectMediaResponse(transport, url, init);
+  const response = await requestDirectMediaResponse(
+    transport,
+    url,
+    init,
+    timeoutMs,
+  );
   try {
     return await response.json();
   } catch {
