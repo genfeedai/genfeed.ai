@@ -1,7 +1,15 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import AnalyticsAccounts from './analytics-accounts';
 
 const requestState = vi.hoisted(() => ({
@@ -64,6 +72,32 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
 }));
 
 describe('AnalyticsAccounts', () => {
+  const scrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    'scrollIntoView',
+  );
+
+  beforeAll(() => {
+    // Radix focuses real Select options; jsdom does not implement scrolling.
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: vi.fn(),
+      writable: true,
+    });
+  });
+
+  afterAll(() => {
+    if (scrollIntoViewDescriptor) {
+      Object.defineProperty(
+        HTMLElement.prototype,
+        'scrollIntoView',
+        scrollIntoViewDescriptor,
+      );
+    } else {
+      Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
+    }
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     requestState.accounts = [];
