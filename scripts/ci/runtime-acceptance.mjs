@@ -2133,7 +2133,8 @@ const realClock = {
 };
 async function untilDeadline(promise, deadline, clock, code) {
   const remaining = deadline - clock.now();
-  requireThat(remaining > 0, code);
+  if (remaining <= 0)
+    return Promise.race([Promise.reject(new AcceptanceError(code)), promise]);
   let timer;
   // Custom short clocks are confined to synthetic adapter fixtures; CLI never
   // exposes a duration or adapter input.

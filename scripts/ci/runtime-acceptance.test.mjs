@@ -3561,6 +3561,24 @@ test('baseline external deadline includes allocation and terminates without fres
     ledger.failures.some((item) => item.code === 'DEDICATED_WORK_TIMEOUT'),
   );
 });
+for (const mode of ['reject', 'success', 'microtask-reject'])
+  test(`expired work deadline observes ${mode} without extending its budget`, async () => {
+    const value = dedicatedFixture('baseline-materialization-migration');
+    value.adapters.startWork = async (_ledger, end) => {
+      value.now(end + (mode === 'success' ? 1 : 0));
+      if (mode === 'success') return { done: Promise.resolve({ ...child }) };
+      if (mode === 'microtask-reject') await Promise.resolve();
+      throw new Error('late work rejection');
+    };
+    const ledger = await superviseDedicatedAcceptance(value);
+    assert.equal(ledger.status, 'failed');
+    assert.ok(
+      ledger.failures.some((item) => item.code === 'DEDICATED_WORK_TIMEOUT'),
+    );
+    assert.ok(value.calls.includes('drop'));
+    assert.ok(!value.calls.includes('validate'));
+    assert.ok(ledger.cleanupDeadline <= 61001);
+  });
 test('final-only database routing preserves the diagnostic created acknowledgement predicate', async () => {
   const source = await readFile(
     new URL('./runtime-acceptance.mjs', import.meta.url),
