@@ -89,7 +89,10 @@ export function loadWorkspaces(root) {
   );
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   const root = process.cwd();
   const base = process.env.BASE_SHA ?? '';
   const head = execFileSync('git', ['rev-parse', 'HEAD'], {

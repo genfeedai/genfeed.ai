@@ -485,7 +485,10 @@ test('runs desktop QA weekly and for release callers', () => {
     'desktop-qa.yml must not run per pull request while the surface is dormant',
   );
   assert.match(workflow, /cron: '17 3 \* \* 1'/);
-  assert.match(workflow, /group: desktop-qa-\$\{\{ github.workflow \}\}-\$\{\{ github.ref \}\}-\$\{\{ github.event_name \}\}/);
+  assert.match(
+    workflow,
+    /group: desktop-qa-\$\{\{ github.workflow \}\}-\$\{\{ github.ref \}\}-\$\{\{ github.event_name \}\}/,
+  );
   assert.match(workflow, /^ {2}workflow_dispatch:$/m);
   assert.match(workflow, /^ {2}workflow_call:$/m);
 });
@@ -731,7 +734,10 @@ test('keeps E2E workflow concurrency while queueing the full reporter job', () =
     '- name: Create or update bounded nightly-failure trackers',
   )[1];
   assert.match(step, /REPOSITORY_TOKEN: \$\{\{ github.token \}\}/u);
-  assert.match(step, /github-token: \$\{\{ secrets.CONSOLE_DEPLOY_TOKEN \|\| github\.token \}\}/u);
+  assert.match(
+    step,
+    /github-token: \$\{\{ secrets.CONSOLE_DEPLOY_TOKEN \|\| github\.token \}\}/u,
+  );
   assert.doesNotMatch(step, /continue-on-error:/u);
 });
 
@@ -766,12 +772,24 @@ test('pins mocked core E2E builds to Community mode', () => {
   const workflow = readWorkflow('e2e.yml');
   const frontendJob = jobBlock(workflow, 'e2e-frontend', 'e2e.yml');
 
-  assert.match(frontendJob, /uses: \.\/\.github\/actions\/setup-playwright-app/);
-  const setup = readFileSync(path.join(REPOSITORY_ROOT, '.github/actions/setup-playwright-app/action.yml'), 'utf8');
+  assert.match(
+    frontendJob,
+    /uses: \.\/\.github\/actions\/setup-playwright-app/,
+  );
+  const setup = readFileSync(
+    path.join(
+      REPOSITORY_ROOT,
+      '.github/actions/setup-playwright-app/action.yml',
+    ),
+    'utf8',
+  );
   assert.match(setup, /NEXT_PUBLIC_GENFEED_CLOUD: 'false'/);
   assert.match(setup, /default: https:\/\/api\.genfeed\.ai\/v1/);
   assert.match(setup, /test-mode:[\s\S]*?default: 'true'/);
-  assert.match(setup, /NEXT_PUBLIC_PLAYWRIGHT_TEST: \$\{\{ inputs.test-mode \}\}/);
+  assert.match(
+    setup,
+    /NEXT_PUBLIC_PLAYWRIGHT_TEST: \$\{\{ inputs.test-mode \}\}/,
+  );
   assert.match(setup, /E2E_COVERAGE: '1'/);
 });
 

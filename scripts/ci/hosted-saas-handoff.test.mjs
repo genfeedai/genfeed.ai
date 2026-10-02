@@ -106,7 +106,10 @@ function reusableCallBlock(yaml, workflowPath) {
 }
 
 test('hosted SaaS has one public deployment lane', () => {
-  assert.doesNotMatch(releaseWorkflow, /saas_lane:|deploy-saas-via-operations|CONSOLE_REPOSITORY/);
+  assert.doesNotMatch(
+    releaseWorkflow,
+    /saas_lane:|deploy-saas-via-operations|CONSOLE_REPOSITORY/,
+  );
 
   const deploy = jobBlock('deploy-saas');
   assertDeployGate(deploy);

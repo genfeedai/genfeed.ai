@@ -222,15 +222,27 @@ test('validates complete historical recovery evidence from fixture data', () => 
 
 test('requires public deploy receipts even when private operations succeeded', () => {
   const fixture = releaseRecoveryFixture();
-  fixture.jobs = fixture.jobs.filter(job => !PUBLIC_SAAS_JOBS.includes(job.name));
-  fixture.jobs.find(job => job.name === 'Deploy hosted SaaS through private operations').conclusion = 'success';
-  assert.throws(() => validateReleaseRecoveryEvidence(fixture), /requires exactly one Deploy hosted SaaS/);
+  fixture.jobs = fixture.jobs.filter(
+    (job) => !PUBLIC_SAAS_JOBS.includes(job.name),
+  );
+  fixture.jobs.find(
+    (job) => job.name === 'Deploy hosted SaaS through private operations',
+  ).conclusion = 'success';
+  assert.throws(
+    () => validateReleaseRecoveryEvidence(fixture),
+    /requires exactly one Deploy hosted SaaS/,
+  );
 });
 
 test('recovery accepts public-only runs with no retired operations job', () => {
   const fixture = releaseRecoveryFixture();
-  fixture.jobs = fixture.jobs.filter(job => job.name !== 'Deploy hosted SaaS through private operations');
-  assert.equal(validateReleaseRecoveryEvidence(fixture).releaseSha, RECOVERY_SHA);
+  fixture.jobs = fixture.jobs.filter(
+    (job) => job.name !== 'Deploy hosted SaaS through private operations',
+  );
+  assert.equal(
+    validateReleaseRecoveryEvidence(fixture).releaseSha,
+    RECOVERY_SHA,
+  );
 });
 
 test('rejects a recovery draft that already has versioned install assets', () => {

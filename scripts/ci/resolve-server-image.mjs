@@ -74,7 +74,10 @@ export function resolveServerImage({ repository, sha, execute }) {
   return { exists: true, digest };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   const result = resolveServerImage({
     repository: process.env.SERVER_IMAGE_REPOSITORY,
     sha: process.env.SOURCE_SHA,

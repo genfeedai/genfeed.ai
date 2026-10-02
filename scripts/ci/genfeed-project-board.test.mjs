@@ -269,17 +269,29 @@ test('triageCiFailureOnProject re-sends the existing P0 rather than treating it 
 
 test('optional project triage preserves the tracker when its credential is expired', async () => {
   const { github } = createGithubMock();
-  github.rest.issues.get = async () => { throw Object.assign(new Error('Bad credentials'), { status: 401 }); };
+  github.rest.issues.get = async () => {
+    throw Object.assign(new Error('Bad credentials'), { status: 401 });
+  };
   const warnings = [];
   const result = await triageCiFailureOnProject(github, {
-    owner: 'genfeedai', repo: 'genfeed.ai', issueNumber: 1, trackerName: 'nightly',
-    core: { warning: message => warnings.push(message) },
+    owner: 'genfeedai',
+    repo: 'genfeed.ai',
+    issueNumber: 1,
+    trackerName: 'nightly',
+    core: { warning: (message) => warnings.push(message) },
   });
   assert.equal(result.degraded, true);
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /CONSOLE_DEPLOY_TOKEN/);
-  await assert.rejects(triageCiFailureOnProject(github, {
-    owner: 'genfeedai', repo: 'genfeed.ai', issueNumber: 1, trackerName: 'strict', metadataRequired: true,
-    core: { warning() {} },
-  }), /Bad credentials/);
+  await assert.rejects(
+    triageCiFailureOnProject(github, {
+      owner: 'genfeedai',
+      repo: 'genfeed.ai',
+      issueNumber: 1,
+      trackerName: 'strict',
+      metadataRequired: true,
+      core: { warning() {} },
+    }),
+    /Bad credentials/,
+  );
 });

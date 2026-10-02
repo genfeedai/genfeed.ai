@@ -85,7 +85,10 @@ export function prepareMobileConfig({
   return result;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   const readJson = (file) => JSON.parse(readFileSync(file, 'utf8'));
   try {
     if (process.argv[2] === 'browser') {

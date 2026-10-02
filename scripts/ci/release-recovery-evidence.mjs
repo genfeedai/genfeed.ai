@@ -394,7 +394,7 @@ export function runReleaseRecoveryCli({
       releases: releasePages.flat(),
       requestedRepository: repository,
       requestedRunId: runId,
-          requestedTag,
+      requestedTag,
       run,
     });
 
