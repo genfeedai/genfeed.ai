@@ -208,10 +208,10 @@ describe('Harness Learning status and safety controls', () => {
     ])
       expect(screen.getAllByText(value).length).toBeGreaterThan(0);
     expect(
-      screen.getByText(
+      screen.getAllByText(
         'This selected strategy does not establish that it was applied to generation.',
       ),
-    ).toBeInTheDocument();
+    ).toHaveLength(2);
     expect(screen.getByText('likes: 1')).toBeInTheDocument();
     expect(screen.getByText('shares: 1')).toBeInTheDocument();
     expect(screen.getByText('20')).toBeInTheDocument();
