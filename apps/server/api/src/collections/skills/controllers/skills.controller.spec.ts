@@ -100,23 +100,6 @@ describe('SkillsController', () => {
         ),
     ],
     [
-      'import',
-      () =>
-        controller.importSkill(
-          mockReq,
-          { ...mockUser, organizationId: undefined } as unknown as User,
-          {
-            category: 'copywriting' as never,
-            channels: ['youtube'],
-            description: 'Writes hooks',
-            modalities: ['text'],
-            name: 'Hook Writer',
-            slug: 'hook-writer',
-            workflowStage: 'creation',
-          },
-        ),
-    ],
-    [
       'customize',
       () =>
         controller.customizeSkill(
@@ -233,5 +216,22 @@ describe('SkillsController', () => {
       'skill-1',
       { name: 'Hook Writer Custom' },
     );
+  });
+});
+
+describe('SkillsController legacy import bypass removal', () => {
+  it('has no legacy import method or POST skills/import metadata', () => {
+    const methods = Object.getOwnPropertyNames(
+      SkillsController.prototype,
+    ).filter((key) => key !== 'constructor');
+    expect(methods).not.toContain('importSkill');
+    expect(
+      methods.map((key) =>
+        Reflect.getMetadata(
+          PATH_METADATA,
+          Reflect.get(SkillsController.prototype, key),
+        ),
+      ),
+    ).not.toContain('skills/import');
   });
 });

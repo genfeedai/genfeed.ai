@@ -1,5 +1,7 @@
+import { BUILT_IN_SKILL_CATALOG } from '@api/collections/skills/constants/skill-validation.constant';
 import type { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
 import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
+import { parseSkillPackageManifest } from '@api/collections/skills/utils/skill-package-manifest.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -836,5 +838,346 @@ describe('SkillLibraryService authorized versions', () => {
       data: { revokedAt: expect.any(Date) },
       where: { id: 'grant-missing', revokedAt: null, skillId: 'skill-1' },
     });
+  });
+});
+
+describe('SkillLibraryService ordinary validated package import', () => {
+  function input(slug = 'Personal-Upload') {
+    return {
+      slug,
+      package: {
+        format: 'files',
+        files: [
+          {
+            path: 'SKILL.md',
+            content:
+              '---\nname: Personal upload\ndescription: Original package\nmetadata: {version: "v1"}\nrequiredProviders: [paid]\ntoolOverrides: [publish]\nownerKind: system\n---\nPrivate instructions',
+          },
+        ],
+      },
+    };
+  }
+  function fixture() {
+    const order: string[] = [];
+    const lock = [{ id: 'user-1', isolation: 'read committed' }];
+    const tx = {
+      $executeRaw: vi.fn(async () => 1),
+      $queryRaw: vi.fn(
+        async (strings: TemplateStringsArray, ..._values: unknown[]) => {
+          const sql = strings.join('?');
+          order.push(sql.includes('FOR UPDATE') ? 'lock' : 'duplicate');
+          return sql.includes('FOR UPDATE') ? lock : [];
+        },
+      ),
+      organization: {
+        findFirst: vi.fn(async () => {
+          order.push('organization');
+          return { id: 'org-1' };
+        }),
+      },
+      member: {
+        findFirst: vi.fn(async () => {
+          order.push('member');
+          return { id: 'member-1', brands: [], roleKey: 'member' };
+        }),
+      },
+      skill: {
+        create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
+          order.push('create');
+          return {
+            ...data,
+            id: 'new-import',
+            currentVersionId: 'captured-import',
+            publishedVersionId: null,
+            sharedVersionId: null,
+            isQuarantined: false,
+            revision: 1,
+          };
+        }),
+        findFirst: vi.fn(),
+        update: vi.fn(),
+      },
+      skillVersion: {
+        create: vi.fn(),
+        findMany: vi.fn(async () => [
+          {
+            id: 'captured-import',
+            skillId: 'new-import',
+            instructionText: 'Private instructions',
+            contentHash: 'captured-hash',
+          },
+        ]),
+      },
+      skillGrant: { findMany: vi.fn(async () => []) },
+      skillAssignment: { findMany: vi.fn(async () => []) },
+    };
+    const client = {
+      ...tx,
+      $transaction: vi.fn(async (fn: (value: typeof tx) => Promise<unknown>) =>
+        fn(tx),
+      ),
+    };
+    return {
+      order,
+      tx,
+      client,
+      lock,
+      service: new SkillLibraryService(client as unknown as PrismaService),
+    };
+  }
+  it('parses before opening capture transaction and rejects legacy/untrusted packages', async () => {
+    const f = fixture();
+    await expect(
+      f.service.importValidatedPackage(actor, {
+        slug: 'unsafe',
+        name: 'Legacy',
+        ownerKind: 'system',
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(f.client.$transaction).not.toHaveBeenCalled();
+    expect(f.tx.skill.create).not.toHaveBeenCalled();
+  });
+  it('locks the canonical user, verifies live context and normalized duplicate scope before one final private create', async () => {
+    const f = fixture();
+    const parsed = parseSkillPackageManifest(input());
+    const result = await f.service.importValidatedPackage(actor, input());
+    expect(f.order).toEqual([
+      'lock',
+      'organization',
+      'member',
+      'duplicate',
+      'create',
+    ]);
+    expect(f.tx.$queryRaw.mock.calls[0][0].join('?')).toContain(
+      'current_setting',
+    );
+    expect(f.tx.$queryRaw.mock.calls[0].slice(1)).toEqual(['user-1']);
+    expect(f.tx.organization.findFirst).toHaveBeenCalledWith({
+      where: { id: 'org-1', isDeleted: false },
+      select: { id: true },
+    });
+    expect(f.tx.member.findFirst).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-1',
+        organizationId: 'org-1',
+        isActive: true,
+        isDeleted: false,
+      },
+      select: { id: true },
+    });
+    expect(f.tx.$queryRaw.mock.calls[1][0].join('?')).toContain('lower');
+    expect(f.tx.$queryRaw.mock.calls[1].slice(1)).toEqual([
+      'user-1',
+      'personal-upload',
+    ]);
+    expect(f.tx.skill.create).toHaveBeenCalledTimes(1);
+    expect(f.tx.skill.create.mock.calls[0][0].data).toEqual({
+      audience: 'private',
+      brandId: null,
+      organizationId: null,
+      ownerKind: 'user',
+      ownerUserId: 'user-1',
+      isDeleted: false,
+      isQuarantined: false,
+      label: 'Personal upload',
+      config: {
+        category: 'content',
+        channels: ['general'],
+        modalities: ['text'],
+        workflowStage: 'creation',
+        slug: 'personal-upload',
+        name: 'Personal upload',
+        description: 'Original package',
+        version: 'v1',
+        source: 'imported',
+        status: 'draft',
+        isBuiltIn: false,
+        isEnabled: true,
+        requiredProviders: [],
+        toolOverrides: [],
+        defaultInstructions: 'Private instructions',
+        systemPromptTemplate: 'Private instructions',
+        files: parsed.files,
+        checksum: parsed.packageChecksum,
+        importProvenance: {
+          format: 'genfeed.skill.ordinary-upload.v1',
+          importedByUserId: 'user-1',
+          packageChecksum: parsed.packageChecksum,
+        },
+      },
+    });
+    expect(result.currentVersionId).toBe('captured-import');
+    expect(f.tx.skill.update).not.toHaveBeenCalled();
+    expect(f.tx.skillVersion.create).not.toHaveBeenCalled();
+  });
+  it.each([
+    'missing-user',
+    'wrong-user',
+    'multiple-users',
+    'deleted-organization',
+    'inactive-member',
+    'wrong-isolation',
+    'duplicate',
+  ])('fails closed for %s before creating', async (reason) => {
+    const f = fixture();
+    if (reason === 'missing-user') f.lock.splice(0);
+    if (reason === 'wrong-user') f.lock[0].id = 'legacy-auth-user';
+    if (reason === 'multiple-users') f.lock.push({ ...f.lock[0] });
+    if (reason === 'deleted-organization')
+      f.tx.organization.findFirst.mockResolvedValueOnce(null as never);
+    if (reason === 'inactive-member')
+      f.tx.member.findFirst.mockResolvedValueOnce(null as never);
+    if (reason === 'wrong-isolation') f.lock[0].isolation = 'repeatable read';
+    if (reason === 'duplicate')
+      f.tx.$queryRaw
+        .mockResolvedValueOnce(f.lock)
+        .mockResolvedValueOnce([{ id: 'existing' }] as never);
+    await expect(
+      f.service.importValidatedPackage(actor, input()),
+    ).rejects.toThrow();
+    expect(f.tx.skill.create).not.toHaveBeenCalled();
+    if (reason === 'missing-user' || reason === 'wrong-isolation')
+      expect(f.tx.member.findFirst).not.toHaveBeenCalled();
+  });
+  it('checks membership for the exact requested organization and refuses reserved catalog slugs', async () => {
+    const f = fixture();
+    f.tx.member.findFirst.mockResolvedValueOnce(null as never);
+    await expect(
+      f.service.importValidatedPackage(
+        { ...actor, organizationId: 'other-org' },
+        input(),
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+    expect(f.tx.member.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organizationId: 'other-org',
+          userId: 'user-1',
+        }),
+      }),
+    );
+    const reserved = fixture();
+    await expect(
+      reserved.service.importValidatedPackage(
+        actor,
+        input(BUILT_IN_SKILL_CATALOG[0].slug),
+      ),
+    ).rejects.toThrow();
+    expect(reserved.tx.skill.create).not.toHaveBeenCalled();
+  });
+  it('propagates transactional failure without repair, replacement or a manufactured version', async () => {
+    const f = fixture();
+    f.tx.skill.create.mockRejectedValueOnce(new Error('capture failure'));
+    await expect(
+      f.service.importValidatedPackage(actor, input()),
+    ).rejects.toThrow('capture failure');
+    expect(f.tx.skill.create).toHaveBeenCalledTimes(1);
+    expect(f.tx.skill.update).not.toHaveBeenCalled();
+    expect(f.tx.skillVersion.create).not.toHaveBeenCalled();
+  });
+  it('keeps use-only bodies hidden and uses only the granted immutable version for readable derivatives', async () => {
+    const f = fixture();
+    const imported = await f.service.importValidatedPackage(actor, input());
+    const recipient = { ...actor, userId: 'recipient' };
+    const grant = {
+      skillId: 'new-import',
+      skillVersionId: 'captured-import',
+      recipientKind: 'user',
+      recipientUserId: 'recipient',
+      revokedAt: null,
+      access: 'use',
+    };
+    f.tx.skillGrant.findMany.mockResolvedValue([grant] as never);
+    const [useOnly] = await f.service.present(recipient, [imported]);
+    expect(useOnly).toMatchObject({
+      canUse: true,
+      canRead: false,
+      canFork: false,
+      canExport: false,
+      canShare: false,
+      canPublish: false,
+    });
+    expect(useOnly.defaultInstructions).toBeUndefined();
+    expect(
+      (useOnly.config as Record<string, unknown>).defaultInstructions,
+    ).toBeUndefined();
+    f.tx.skillGrant.findMany.mockResolvedValue([
+      { ...grant, access: 'use_and_read' },
+    ] as never);
+    f.tx.skillVersion.findMany.mockResolvedValue([
+      {
+        id: 'captured-import',
+        skillId: 'new-import',
+        instructionText: 'Granted immutable instructions',
+        contentHash: 'captured-hash',
+      },
+    ]);
+    const [readable] = await f.service.present(recipient, [
+      {
+        ...imported,
+        defaultInstructions: 'Unshared live draft',
+      } as SkillDocument,
+    ]);
+    expect(readable).toMatchObject({
+      canRead: true,
+      canFork: true,
+      canExport: true,
+      canEdit: false,
+      canShare: false,
+      canPublish: false,
+      defaultInstructions: 'Granted immutable instructions',
+    });
+    const config = imported.config as Record<string, unknown>;
+    const [unknown] = await f.service.present(recipient, [
+      {
+        ...imported,
+        config: { ...config, importProvenance: undefined },
+      } as unknown as SkillDocument,
+    ]);
+    expect(unknown).toMatchObject({
+      canFork: false,
+      canExport: false,
+      canShare: false,
+      canPublish: false,
+    });
+  });
+  it('permits ordinary sharing but preserves public denial and paid/unknown provenance restrictions', async () => {
+    const f = fixture();
+    const imported = await f.service.importValidatedPackage(actor, input());
+    const [ordinary] = await f.service.present(actor, [imported]);
+    expect(ordinary).toMatchObject({
+      canRead: true,
+      canEdit: true,
+      canShare: true,
+      canPublish: false,
+    });
+    const config = imported.config as Record<string, unknown>;
+    for (const changes of [
+      { sourceListingId: 'skills-pro:paid' },
+      { isBuiltIn: true },
+      { importProvenance: undefined },
+      {
+        importProvenance: {
+          format: 'genfeed.skill.ordinary-upload.v1',
+          importedByUserId: 'somebody-else',
+          packageChecksum: config.checksum,
+        },
+      },
+      {
+        importProvenance: {
+          format: 'genfeed.skill.ordinary-upload.v1',
+          importedByUserId: 'user-1',
+          packageChecksum: '0'.repeat(64),
+        },
+      },
+    ]) {
+      const document = {
+        ...imported,
+        ...changes,
+        config: { ...config, ...changes },
+      } as unknown as SkillDocument;
+      const [visible] = await f.service.present(actor, [document]);
+      expect(visible).toMatchObject({ canShare: false, canPublish: false });
+    }
   });
 });
