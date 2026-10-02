@@ -154,72 +154,80 @@ export class ArticleTrafficService {
       );
       if (!response.ok) throw new Error('Query unavailable');
       const payload: unknown = await response.json();
-      if (
-        !payload ||
-        typeof payload !== 'object' ||
-        !('results' in payload) ||
-        !Array.isArray(payload.results)
-      )
-        throw new Error('Invalid query response');
-      const byDay = new Map<string, ArticleTrafficDay>();
-      for (const row of payload.results) {
-        if (
-          !Array.isArray(row) ||
-          row.length !== 3 ||
-          typeof row[0] !== 'string' ||
-          !/^\d{4}-\d{2}-\d{2}$/.test(row[0])
-        )
-          throw new Error('Invalid traffic row');
-        if (
-          row
-            .slice(1)
-            .some(
-              (value) =>
-                typeof value !== 'number' &&
-                (typeof value !== 'string' || !/^\d+$/.test(value)),
-            )
-        )
-          throw new Error('Invalid traffic counts');
-        const views = Number(row[1]);
-        const resourceClicks = Number(row[2]);
-        if (
-          !Number.isSafeInteger(views) ||
-          views < 0 ||
-          !Number.isSafeInteger(resourceClicks) ||
-          resourceClicks < 0
-        )
-          throw new Error('Invalid traffic counts');
-        if (
-          row[0] < base.startDate.slice(0, 10) ||
-          row[0] > endDate.slice(0, 10) ||
-          byDay.has(row[0])
-        )
-          throw new Error('Invalid traffic date');
-        byDay.set(row[0], { date: row[0], resourceClicks, views });
-      }
-      const history: ArticleTrafficDay[] = [];
-      for (
-        let cursor = Date.parse(`${base.startDate.slice(0, 10)}T00:00:00Z`);
-        cursor <= midnight;
-        cursor += DAY_MS
-      ) {
-        const date = new Date(cursor).toISOString().slice(0, 10);
-        history.push(byDay.get(date) ?? { date, resourceClicks: 0, views: 0 });
-      }
-      return {
-        ...base,
-        days: history,
-        status: 'available',
-        totalResourceClicks: history.reduce(
-          (sum, day) => sum + day.resourceClicks,
-          0,
-        ),
-        totalViews: history.reduce((sum, day) => sum + day.views, 0),
-      };
+      return this.buildReport(payload, base, midnight);
     } catch {
       // Do not log upstream bodies, query text, credentials or reader identities.
       this.logger.warn('Article website traffic query unavailable');
       return unavailable('upstream_error');
     }
+  }
+
+  private buildReport(
+    payload: unknown,
+    base: ArticleTraffic,
+    midnight: number,
+  ): ArticleTraffic {
+    if (
+      !payload ||
+      typeof payload !== 'object' ||
+      !('results' in payload) ||
+      !Array.isArray(payload.results)
+    )
+      throw new Error('Invalid query response');
+    const byDay = new Map<string, ArticleTrafficDay>();
+    for (const row of payload.results) {
+      if (
+        !Array.isArray(row) ||
+        row.length !== 3 ||
+        typeof row[0] !== 'string' ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(row[0])
+      )
+        throw new Error('Invalid traffic row');
+      if (
+        row
+          .slice(1)
+          .some(
+            (value) =>
+              typeof value !== 'number' &&
+              (typeof value !== 'string' || !/^\d+$/.test(value)),
+          )
+      )
+        throw new Error('Invalid traffic counts');
+      const views = Number(row[1]);
+      const resourceClicks = Number(row[2]);
+      if (
+        !Number.isSafeInteger(views) ||
+        views < 0 ||
+        !Number.isSafeInteger(resourceClicks) ||
+        resourceClicks < 0
+      )
+        throw new Error('Invalid traffic counts');
+      if (
+        row[0] < base.startDate.slice(0, 10) ||
+        row[0] > base.endDate.slice(0, 10) ||
+        byDay.has(row[0])
+      )
+        throw new Error('Invalid traffic date');
+      byDay.set(row[0], { date: row[0], resourceClicks, views });
+    }
+    const history: ArticleTrafficDay[] = [];
+    for (
+      let cursor = Date.parse(`${base.startDate.slice(0, 10)}T00:00:00Z`);
+      cursor <= midnight;
+      cursor += DAY_MS
+    ) {
+      const date = new Date(cursor).toISOString().slice(0, 10);
+      history.push(byDay.get(date) ?? { date, resourceClicks: 0, views: 0 });
+    }
+    return {
+      ...base,
+      days: history,
+      status: 'available',
+      totalResourceClicks: history.reduce(
+        (sum, day) => sum + day.resourceClicks,
+        0,
+      ),
+      totalViews: history.reduce((sum, day) => sum + day.views, 0),
+    };
   }
 }

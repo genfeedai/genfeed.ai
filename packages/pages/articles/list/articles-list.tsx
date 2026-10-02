@@ -29,6 +29,7 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Button } from '@ui/primitives/button';
 import { ChartNoAxesCombined, Newspaper, Plus } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface ArticlesListProps {
@@ -40,6 +41,7 @@ function openCreateArticleModal(): void {
 }
 
 export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
+  const translate = useTranslations('pages.articles.list');
   const { brandId, organizationId } = useCollectionScope();
   const { href } = useOrgUrl();
   const searchParams = useSearchParams();
@@ -56,14 +58,14 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
   const requestId = useRef(0);
 
   const columns: TableColumn<Article>[] = [
-    { header: 'Title', key: 'label' },
+    { header: translate('title'), key: 'label' },
     {
-      header: 'Author',
+      header: translate('author'),
       key: 'author',
       render: (article: Article) => article.author || '-',
     },
     {
-      header: 'Status',
+      header: translate('status'),
       key: 'status',
       render: (article: Article) => (
         <Badge status={article.status || status}>
@@ -72,13 +74,13 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
       ),
     },
     {
-      header: 'Words',
+      header: translate('words'),
       key: 'wordCount',
       render: (article: Article) =>
         article.wordCount ? String(article.wordCount) : '-',
     },
     {
-      header: 'Created',
+      header: translate('created'),
       key: 'createdAt',
       render: (article: Article) =>
         article.createdAt ? formatDate(article.createdAt) : '-',
@@ -112,11 +114,18 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
       if (currentRequest !== requestId.current) return;
       setIsError(true);
       logger.error('GET /articles failed', error);
-      NotificationsService.getInstance().error('Failed to load articles');
+      NotificationsService.getInstance().error(translate('loadError'));
     } finally {
       if (currentRequest === requestId.current) setIsLoading(false);
     }
-  }, [currentPage, getArticlesService, brandId, organizationId, status]);
+  }, [
+    translate,
+    currentPage,
+    getArticlesService,
+    brandId,
+    organizationId,
+    status,
+  ]);
 
   useEffect(() => {
     void findAllArticles();
@@ -129,7 +138,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
   function getRowLink(article: Article): TableRowLink {
     return {
       href: href(createArtifactEditorRoute('article', article.id)),
-      label: `Open ${article.label}`,
+      label: translate('open', { label: article.label }),
     };
   }
 
@@ -142,9 +151,9 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
       {articles.length > 0 ? (
         <div className="mb-4 flex justify-end">
           <Button
-            ariaLabel="Create Article"
+            ariaLabel={translate('create')}
             icon={<Plus className="size-4" />}
-            label="Create Article"
+            label={translate('create')}
             onClick={openCreateArticleModal}
             variant={ButtonVariant.DEFAULT}
           />
@@ -155,7 +164,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
         error={
           isError
             ? {
-                title: 'Failed to load articles',
+                title: translate('loadError'),
                 onRetry: () => findAllArticles(),
               }
             : undefined
@@ -165,21 +174,21 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
         actions={[
           {
             icon: <ChartNoAxesCombined className="size-4" />,
-            tooltip: 'View website traffic',
+            tooltip: translate('traffic'),
             onClick: setTrafficArticle,
           },
         ]}
         isLoading={isLoading && articles.length === 0}
         getRowKey={(item) => item.id}
         getRowLink={getRowLink}
-        emptyLabel="No articles found"
+        emptyLabel={translate('emptyLabel')}
         emptyState={
           <CardEmptyContent
             icon={Newspaper}
-            label="No articles yet"
-            description="Create your first article to start building your content library."
+            label={translate('emptyTitle')}
+            description={translate('emptyDescription')}
             action={{
-              label: 'Create Article',
+              label: translate('create'),
               onClick: openCreateArticleModal,
             }}
           />
@@ -187,7 +196,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
       />
 
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="articles" />
+        <AutoPagination showTotal totalLabel={translate('totalLabel')} />
       </div>
 
       {trafficArticle ? (

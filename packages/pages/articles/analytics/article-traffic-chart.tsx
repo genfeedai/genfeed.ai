@@ -2,6 +2,7 @@
 
 import type { ArticleTrafficChartProps } from '@props/content/article-traffic.props';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
+import { useTranslations } from 'next-intl';
 import {
   CartesianGrid,
   Line,
@@ -14,12 +15,13 @@ import {
 export default function ArticleTrafficChart({
   days,
 }: ArticleTrafficChartProps) {
+  const translate = useTranslations('pages.articles.traffic');
   return (
     <ChartContainer
       config={{
-        views: { label: 'Views', color: 'var(--foreground)' },
+        views: { label: translate('chartViews'), color: 'var(--foreground)' },
         resourceClicks: {
-          label: 'Resource actions',
+          label: translate('resourceActions'),
           color: 'var(--accent-rose)',
         },
       }}

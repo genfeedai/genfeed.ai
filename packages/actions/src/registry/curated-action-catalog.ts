@@ -105,8 +105,6 @@ export const CURATED_ACTION_CATALOG = [
   },
   { name: 'create_article', surfaces: ['mcp'], toolset: 'content' },
   { name: 'create_article_draft', surfaces: ['mcp'], toolset: 'articles' },
-  { name: 'get_article_preview', surfaces: ['mcp'], toolset: 'articles' },
-  { name: 'publish_article', surfaces: ['mcp'], toolset: 'articles' },
   { name: 'create_brand', surfaces: ['agent'], toolset: 'onboarding' },
   { name: 'create_chat', surfaces: ['mcp'], toolset: 'agent-chat' },
   {
@@ -217,6 +215,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'get_analytics', surfaces: ['agent', 'mcp'], toolset: 'analytics' },
   { name: 'get_approval_summary', surfaces: ['agent'], toolset: 'engagement' },
   { name: 'get_article', surfaces: ['mcp'], toolset: 'content' },
+  { name: 'get_article_preview', surfaces: ['mcp'], toolset: 'articles' },
   { name: 'get_brand', surfaces: ['mcp'], toolset: 'core' },
   {
     name: 'get_brand_completeness',
@@ -451,6 +450,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'prepare_workflow_trigger', surfaces: ['agent'], toolset: 'ui' },
   { name: 'present_payment_options', surfaces: ['agent'], toolset: 'ui' },
   { name: 'present_work_object', surfaces: ['agent'], toolset: 'ui' },
+  { name: 'publish_article', surfaces: ['mcp'], toolset: 'articles' },
   { name: 'publish_skill', surfaces: ['mcp'], toolset: 'skills-pro' },
   { name: 'quote_remix_generation', surfaces: ['mcp'], toolset: 'generation' },
   {

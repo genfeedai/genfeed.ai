@@ -1,8 +1,33 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { Article } from '@models/content/article.model';
-import { act, render, screen } from '@testing-library/react';
+import { act, render as rtlRender, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { NextIntlClientProvider } from 'next-intl';
+import type { PropsWithChildren, ReactElement } from 'react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import ArticleTrafficDialog from './article-traffic-dialog';
+
+const pagesMessages = JSON.parse(
+  readFileSync(
+    join(
+      dirname(fileURLToPath(import.meta.url)),
+      '../../../../apps/app/messages/en/pages.json',
+    ),
+    'utf8',
+  ),
+);
+function IntlWrapper({ children }: PropsWithChildren) {
+  return (
+    <NextIntlClientProvider locale="en" messages={{ pages: pagesMessages }}>
+      {children}
+    </NextIntlClientProvider>
+  );
+}
+function render(ui: ReactElement) {
+  return rtlRender(ui, { wrapper: IntlWrapper });
+}
 
 const getWebsiteTraffic = vi.fn();
 const getService = async () => ({ getWebsiteTraffic });

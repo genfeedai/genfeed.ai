@@ -103,6 +103,34 @@ describe('ArticlesService cache invalidation', () => {
     return { cacheInvalidationService, delegate, service };
   }
 
+  it('binds a preview read to the signed article even when slugs collide', async () => {
+    const { delegate, service } = buildService();
+    delegate.findFirst.mockResolvedValue(null);
+    await service.findPublicArticleBySlug('shared-slug', 'article_2');
+    expect(delegate.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'article_2',
+        isDeleted: false,
+        slug: 'shared-slug',
+      },
+    });
+  });
+
+  it('keeps ordinary slug reads restricted to published articles', async () => {
+    const { delegate, service } = buildService();
+    delegate.findFirst.mockResolvedValue(null);
+    await service.findPublicArticleBySlug('shared-slug');
+    expect(delegate.findFirst).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        isDeleted: false,
+        slug: 'shared-slug',
+        status: 'PUBLISHED',
+        publishedAt: { lte: expect.any(Date) },
+      }),
+    });
+    expect(delegate.findFirst.mock.calls[0][0].where).not.toHaveProperty('id');
+  });
+
   it('busts the org list key, the single key, and the articles tag on create', async () => {
     const { cacheInvalidationService, delegate, service } = buildService();
     delegate.create.mockResolvedValue({ id: 'article_1' });

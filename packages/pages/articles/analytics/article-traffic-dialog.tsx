@@ -7,10 +7,7 @@ import type {
 } from '@genfeedai/contracts/interfaces/content/article-traffic.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import type {
-  ArticleTrafficDialogProps,
-  ArticleTrafficPeriodOption,
-} from '@props/content/article-traffic.props';
+import type { ArticleTrafficDialogProps } from '@props/content/article-traffic.props';
 import { ArticlesService } from '@services/content/articles.service';
 import { Button } from '@ui/primitives/button';
 import {
@@ -21,32 +18,25 @@ import {
   DialogTitle,
 } from '@ui/primitives/dialog';
 import dynamic from 'next/dynamic';
+import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 
 const ArticleTrafficChart = dynamic(() => import('./article-traffic-chart'), {
   ssr: false,
 });
-const PERIODS: ReadonlyArray<ArticleTrafficPeriodOption> = [
-  { value: '7d', label: '7 days' },
-  { value: '30d', label: '30 days' },
-  { value: '90d', label: '90 days' },
-  { value: 'all', label: 'Since publication' },
+const PERIODS: ReadonlyArray<ArticleTrafficPeriod> = [
+  '7d',
+  '30d',
+  '90d',
+  'all',
 ];
-const UNAVAILABLE_MESSAGES = {
-  not_configured:
-    'Website traffic reporting is not configured for this workspace yet.',
-  not_published:
-    'Traffic is available after this article is published on the public website.',
-  not_canonical:
-    'This article does not own the public URL. Traffic is unavailable.',
-  upstream_error:
-    'Website traffic is temporarily unavailable. Try again shortly.',
-};
 
 export default function ArticleTrafficDialog({
   article,
   onClose,
 }: ArticleTrafficDialogProps) {
+  const translate = useTranslations('pages.articles.traffic');
+  const locale = useLocale();
   const { organizationId, brandId } = useCollectionScope();
   const getService = useAuthedService(
     useCallback((token: string) => ArticlesService.getInstance(token), []),
@@ -95,42 +85,44 @@ export default function ArticleTrafficDialog({
     >
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Article traffic</DialogTitle>
+          <DialogTitle>{translate('title')}</DialogTitle>
           <DialogDescription>{article.label}</DialogDescription>
         </DialogHeader>
         <div
           className="flex flex-wrap gap-2"
           role="group"
-          aria-label="Traffic period"
+          aria-label={translate('periodLabel')}
         >
           {PERIODS.map((option) => (
             <Button
-              key={option.value}
-              aria-pressed={period === option.value}
+              key={option}
+              aria-pressed={period === option}
               variant={
-                period === option.value
+                period === option
                   ? ButtonVariant.DEFAULT
                   : ButtonVariant.SECONDARY
               }
-              onClick={() => setPeriod(option.value)}
+              onClick={() => setPeriod(option)}
             >
-              {option.label}
+              {translate(`period.${option}`)}
             </Button>
           ))}
         </div>
-        {isLoading ? <p role="status">Loading website traffic…</p> : null}
+        {isLoading ? <p role="status">{translate('loading')}</p> : null}
         {isError || traffic?.status === 'unavailable' ? (
           <div className="space-y-3" role="status">
             <p>
               {isError
-                ? 'Unable to load article traffic.'
-                : UNAVAILABLE_MESSAGES[traffic?.reason ?? 'upstream_error']}
+                ? translate('loadError')
+                : translate(
+                    `unavailable.${traffic?.reason ?? 'upstream_error'}`,
+                  )}
             </p>
             <Button
               variant={ButtonVariant.SECONDARY}
               onClick={() => setReload((value) => value + 1)}
             >
-              Retry
+              {translate('retry')}
             </Button>
           </div>
         ) : null}
@@ -138,27 +130,25 @@ export default function ArticleTrafficDialog({
           <div className="space-y-4">
             <dl className="grid grid-cols-2 gap-4">
               <div>
-                <dt className="text-sm text-muted-foreground">Website views</dt>
+                <dt className="text-sm text-muted-foreground">
+                  {translate('views')}
+                </dt>
                 <dd className="text-2xl font-semibold">
-                  {traffic.totalViews?.toLocaleString()}
+                  {traffic.totalViews?.toLocaleString(locale)}
                 </dd>
               </div>
               <div>
                 <dt className="text-sm text-muted-foreground">
-                  Resource actions
+                  {translate('resourceActions')}
                 </dt>
                 <dd className="text-2xl font-semibold">
-                  {traffic.totalResourceClicks?.toLocaleString()}
+                  {traffic.totalResourceClicks?.toLocaleString(locale)}
                 </dd>
               </div>
             </dl>
             <ArticleTrafficChart days={traffic.days} />
             <p className="text-xs text-muted-foreground">
-              Recorded pageviews, including repeat visits, internal and
-              automated traffic. Resource actions include skill links, install
-              command copies, Skills Pro, agent and MCP setup. Daily totals use
-              UTC; today is partial. Data is limited by analytics retention and
-              collection.
+              {translate('methodology')}
             </p>
           </div>
         ) : null}
