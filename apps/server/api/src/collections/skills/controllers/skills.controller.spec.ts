@@ -4,7 +4,12 @@ import { SkillLibraryService } from '@api/collections/skills/services/skill-libr
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SkillSurface } from '@genfeedai/contracts';
-import { GUARDS_METADATA, PATH_METADATA } from '@nestjs/common/constants';
+import { RequestMethod } from '@nestjs/common';
+import {
+  GUARDS_METADATA,
+  METHOD_METADATA,
+  PATH_METADATA,
+} from '@nestjs/common/constants';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { describe, expect, it, vi } from 'vitest';
@@ -226,12 +231,20 @@ describe('SkillsController legacy import bypass removal', () => {
     ).filter((key) => key !== 'constructor');
     expect(methods).not.toContain('importSkill');
     expect(
-      methods.map((key) =>
-        Reflect.getMetadata(
-          PATH_METADATA,
-          Reflect.get(SkillsController.prototype, key),
-        ),
-      ),
-    ).not.toContain('skills/import');
+      methods.filter((key) => {
+        const handler = Reflect.get(SkillsController.prototype, key);
+        const path: unknown = Reflect.getMetadata(PATH_METADATA, handler);
+        const paths = Array.isArray(path) ? path : [path];
+        return (
+          Reflect.getMetadata(METHOD_METADATA, handler) ===
+            RequestMethod.POST &&
+          paths.some(
+            (route: unknown) =>
+              typeof route === 'string' &&
+              route.replace(/^\/+|\/+$/g, '') === 'import',
+          )
+        );
+      }),
+    ).toEqual([]);
   });
 });

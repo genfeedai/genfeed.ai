@@ -363,6 +363,13 @@ describe('parseSkillPackageArchive', () => {
 });
 
 describe('validateSkillPackageFiles', () => {
+  it('rejects NUL in decoded or direct file content before JSON persistence', () => {
+    const file = { path: 'SKILL.md', content: 'raw\0content' };
+    expect(() => validateSkillPackageFiles([file])).toThrow('NUL character');
+    expect(() => parseSkillPackageArchive(createSkillZip([file]))).toThrow(
+      'NUL character',
+    );
+  });
   it('exports frozen bounds and returns sorted fresh files without modifying content/path', () => {
     expect(SKILL_PACKAGE_LIMITS).toEqual({
       archiveBytes: 1_000_000,

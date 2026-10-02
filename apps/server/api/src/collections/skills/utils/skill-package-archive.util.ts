@@ -92,6 +92,7 @@ function assertPath(path: string): void {
 }
 
 function assertUnicode(value: string): void {
+  if (value.includes('\0')) invalid('NUL character');
   if (
     [...value].some(
       (char) =>

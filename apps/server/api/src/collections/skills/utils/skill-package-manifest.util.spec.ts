@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { crc32 } from 'node:zlib';
 import { parseSkillPackageManifest } from '@api/collections/skills/utils/skill-package-manifest.util';
+import { BadRequestException } from '@nestjs/common';
 
 function markdown(
   yaml = 'name: Example\ndescription: A useful skill\nmetadata:\n  version: "1.0"',
@@ -43,6 +44,57 @@ function storedZip(content: string): Buffer {
 }
 
 describe('parseSkillPackageManifest', () => {
+  it.each([
+    'name: "A\\0B"\ndescription: Valid',
+    'name: "A\\aB"\ndescription: Valid',
+    'name: Valid\ndescription: "D\\0B"',
+    'name: Valid\ndescription: "D\\aB"',
+  ])(
+    'rejects decoded metadata controls before persistence for files and ZIP: %s',
+    (yaml) => {
+      const content = markdown(yaml);
+      expect(() => parseSkillPackageManifest(request(content))).toThrow(
+        BadRequestException,
+      );
+      expect(() =>
+        parseSkillPackageManifest({
+          slug: 'example-skill',
+          package: {
+            format: 'zip',
+            archiveBase64: storedZip(content).toString('base64'),
+          },
+        }),
+      ).toThrow(BadRequestException);
+    },
+  );
+  it('preserves allowed description whitespace and rejects raw NUL in any retained file', () => {
+    const description = 'First\tline\nSecond\rline';
+    expect(
+      parseSkillPackageManifest(
+        request(
+          markdown('name: Valid\ndescription: "First\\tline\\nSecond\\rline"'),
+        ),
+      ).metadata.description,
+    ).toBe(description);
+    for (const path of ['SKILL.md', 'reference.md', 'metadata.json']) {
+      const input = request();
+      if (path === 'SKILL.md') input.package.files[0].content += '\0';
+      else input.package.files.push({ path, content: 'raw\0content' });
+      expect(() => parseSkillPackageManifest(input)).toThrow(
+        BadRequestException,
+      );
+    }
+    const content = markdown() + '\0';
+    expect(() =>
+      parseSkillPackageManifest({
+        slug: 'example-skill',
+        package: {
+          format: 'zip',
+          archiveBase64: storedZip(content).toString('base64'),
+        },
+      }),
+    ).toThrow(BadRequestException);
+  });
   it('preserves file bytes and untrimmed metadata, normalizes the slug and composes sorted markdown references', () => {
     const input = request(
       markdown(
