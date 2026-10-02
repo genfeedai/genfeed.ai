@@ -117,6 +117,7 @@ function approved(): BrandOsRevision {
     approvedById: null,
     exportSchemaVersion: '1',
     sourcePreviewTokenHash: null,
+    generationRulesReviewHash: null,
   };
 }
 function harness(initial: BrandOsRevision[] = []) {

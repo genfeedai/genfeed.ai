@@ -53,8 +53,11 @@ import {
   BrandedGenerationReceiptEmptyQueryDto,
   BrandedGenerationReceiptHistoryQueryDto,
   BrandedGenerationReceiptListQueryDto,
+  BrandIdentityPreviewQueryDto,
 } from '@api/collections/branded-generation-receipts/dto/branded-generation-receipt-query.dto';
+import type { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
 import type { BrandedGenerationReceiptsService } from '@api/services/branded-generation-receipts/branded-generation-receipts.service';
+import type { BrandIdentitySnapshotV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import {
   BadRequestException,
   ForbiddenException,
@@ -70,6 +73,31 @@ const user = {
   id: 'legacy',
 } as AuthenticatedUser;
 function setup() {
+  const snapshot: BrandIdentitySnapshotV1 = {
+    schemaVersion: 1,
+    organizationId: 'org',
+    brandId: 'brand',
+    revisionId: 'revision',
+    revisionVersion: 1,
+    approval: 'approved',
+    resolvedAt: time,
+    contentHash: hash,
+    identity: { name: 'Saved identity' },
+    voice: { audience: [], values: [], messagingPillars: [], avoid: [] },
+    generationRules: {
+      schemaVersion: 1,
+      evidence: [],
+      facts: [],
+      palette: [],
+      typography: [],
+      mandatory: [],
+      avoid: [],
+      examples: [],
+      assets: [],
+    },
+    diagnostics: [],
+  };
+  const identities = { preview: vi.fn().mockResolvedValue(snapshot) };
   const service = {
     list: vi
       .fn()
@@ -86,13 +114,112 @@ function setup() {
   };
   return {
     service,
+    identities,
+    snapshot,
     controller: new BrandedGenerationReceiptsController(
       service as unknown as BrandedGenerationReceiptsService,
+      identities as unknown as BrandIdentitySnapshotService,
     ),
   };
 }
 describe('receipt read controller', () => {
   beforeEach(() => vi.clearAllMocks());
+  it('mounts a real serialized identity preview with server-derived actor and exact current-versus-receipt source', async () => {
+    const { controller, identities, service, snapshot } = setup();
+    const current = await controller.identityPreview(
+      request,
+      user,
+      'brand',
+      {},
+    );
+    expect(identities.preview).toHaveBeenCalledExactlyOnceWith(
+      { organizationId: 'org', actorId: 'actor', brandId: 'brand' },
+      undefined,
+    );
+    expect(current.data).toMatchObject({
+      id: snapshot.contentHash,
+      type: 'brand-identity-preview',
+      attributes: { snapshot, source: 'current_approved_revision' },
+    });
+    const historical = await controller.identityPreview(
+      request,
+      user,
+      'brand',
+      { receiptId: 'receipt' },
+    );
+    expect(identities.preview).toHaveBeenLastCalledWith(
+      { organizationId: 'org', actorId: 'actor', brandId: 'brand' },
+      'receipt',
+    );
+    expect(historical.data).toMatchObject({
+      attributes: { source: 'receipt_snapshot' },
+    });
+    const attributes = historical.data?.attributes;
+    if (!attributes || typeof attributes !== 'object')
+      throw new Error('Expected preview attributes');
+    expect(Object.keys(attributes).sort()).toEqual(['snapshot', 'source']);
+    expect(service.readPrompt).not.toHaveBeenCalled();
+    expect(service.get).not.toHaveBeenCalled();
+  });
+  it('denies forged/missing scope and malformed receipt selection before identity lookup, preserving stable unavailable reasons', async () => {
+    const { controller, identities } = setup();
+    await expect(
+      controller.identityPreview(request, {} as AuthenticatedUser, 'brand', {}),
+    ).rejects.toThrow(ForbiddenException);
+    await expect(
+      controller.identityPreview(request, user, 'bad\u0080id', {}),
+    ).rejects.toThrow('receipt_query_invalid');
+    await expect(
+      controller.identityPreview(request, user, 'brand', {
+        receiptId: 'bad\u0000id',
+      }),
+    ).rejects.toThrow('receipt_query_invalid');
+    expect(identities.preview).not.toHaveBeenCalled();
+    const failure = new Error('brand_identity_snapshot_unavailable');
+    identities.preview.mockRejectedValueOnce(failure);
+    await expect(
+      controller.identityPreview(request, user, 'brand', {
+        receiptId: 'receipt',
+      }),
+    ).rejects.toBe(failure);
+  });
+  it('accepts only an optional canonical bounded scalar receiptId and rejects additional caller authority', async () => {
+    const pipe = new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    });
+    const metadata = {
+      type: 'query' as const,
+      metatype: BrandIdentityPreviewQueryDto,
+    };
+    expect(await pipe.transform({}, metadata)).toEqual({});
+    expect(
+      await pipe.transform({ receiptId: 'x'.repeat(256) }, metadata),
+    ).toMatchObject({ receiptId: 'x'.repeat(256) });
+    for (const receiptId of [
+      null,
+      '',
+      'x'.repeat(257),
+      'bad\u0000id',
+      'bad\u0080id',
+      ['receipt'],
+      { id: 'receipt' },
+    ])
+      await expect(pipe.transform({ receiptId }, metadata)).rejects.toThrow();
+    for (const key of [
+      'actorId',
+      'organizationId',
+      'brandId',
+      'snapshot',
+      'mode',
+      'source',
+      'revisionId',
+    ])
+      await expect(
+        pipe.transform({ [key]: 'forged' }, metadata),
+      ).rejects.toThrow();
+  });
   it('passes only authenticated actor and route brand and actual cursor links', async () => {
     const { service, controller } = setup();
     const result = await controller.list(request, user, 'brand', { limit: 10 });

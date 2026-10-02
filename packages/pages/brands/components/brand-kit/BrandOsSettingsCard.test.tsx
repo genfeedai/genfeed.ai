@@ -4,6 +4,7 @@ import type {
   IBrandOsExportState,
   IBrandOsRevision,
 } from '@genfeedai/contracts/interfaces';
+import type { BrandGenerationRulesV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import {
   act,
   fireEvent,
@@ -37,9 +38,16 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   const t = translateFromCatalog('pages.brandOsSettings');
   const common = translateFromCatalog('common.actions');
+  const review = translateFromCatalog(
+    'pages.brandOsSettings.generationRulesReview',
+  );
   return {
     useTranslations: (namespace: string) =>
-      namespace === 'common.actions' ? common : t,
+      namespace === 'common.actions'
+        ? common
+        : namespace === 'pages.brandOsSettings.generationRulesReview'
+          ? review
+          : t,
   };
 });
 vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
@@ -159,6 +167,11 @@ function draft(): IBrandKitDraft {
   };
 }
 function revision(overrides: Partial<IBrandOsRevision> = {}): IBrandOsRevision {
+  const content = overrides.content ?? {
+    ...draft(),
+    brandId: overrides.brandId ?? 'brand-1',
+    organizationId: overrides.organizationId ?? 'org-1',
+  };
   return {
     exportSchemaVersion: '1',
     id: 'revision-1',
@@ -166,7 +179,7 @@ function revision(overrides: Partial<IBrandOsRevision> = {}): IBrandOsRevision {
     organizationId: 'org-1',
     version: 1,
     status: 'DRAFT',
-    content: draft(),
+    content,
     createdAt: '2026-09-14T10:00:00.000Z',
     updatedAt: '2026-09-14T10:00:00.000Z',
     approvedAt: null,
@@ -361,7 +374,7 @@ describe('Brand OS revision settings', () => {
   });
 
   it('keeps member access read-only while downloading through the authenticated service', async () => {
-    mocks.role = MemberRole.MEMBER;
+    mocks.role = MemberRole.USER;
     mocks.getBrandOsExport.mockResolvedValue(
       exportState({ state: 'private', revisionId: 'revision-1' }),
     );
@@ -679,13 +692,16 @@ describe('Brand OS revision settings', () => {
 interface CardDeferred<T> {
   promise: Promise<T>;
   resolve: (value: T) => void;
+  reject: (reason: unknown) => void;
 }
 function cardDeferred<T>(): CardDeferred<T> {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((done) => {
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise<T>((done, fail) => {
     resolve = done;
+    reject = fail;
   });
-  return { promise, resolve };
+  return { promise, resolve, reject };
 }
 
 describe('saved callback epochs and native exit capture', () => {
@@ -918,5 +934,468 @@ describe('saved callback epochs and native exit capture', () => {
     fireEvent.click(screen.getByText('Navigate'));
     expect(confirm).toHaveBeenCalledTimes(1);
     confirm.mockRestore();
+  });
+});
+
+const acknowledgementLabel =
+  'I have reviewed the saved generation rules and their sources.';
+const candidateHash = `sha256:${'a'.repeat(64)}`;
+function savedRules(
+  label = 'Saved source for account one',
+): BrandGenerationRulesV1 {
+  return {
+    schemaVersion: 1,
+    evidence: [{ id: 'manual-source', sourceType: 'manual', label }],
+    facts: [],
+    palette: [],
+    typography: [],
+    mandatory: [],
+    avoid: [],
+    examples: [],
+    assets: [],
+  };
+}
+function reviewedRevision(
+  overrides: Partial<IBrandOsRevision> = {},
+): IBrandOsRevision {
+  const result = revision(overrides);
+  return {
+    ...result,
+    content: { ...result.content, generationRules: savedRules() },
+    generationRulesReviewCandidateHash: candidateHash,
+    ...overrides,
+  };
+}
+function cardProps() {
+  return {
+    brandId: 'brand-1',
+    onRefreshBrand: mocks.refresh,
+    onRevisionSaved: mocks.saved,
+  };
+}
+async function renderReviewed(saved = reviewedRevision()) {
+  mocks.listBrandOsRevisions.mockResolvedValue([saved]);
+  const view = render(<BrandOsSettingsCard {...cardProps()} />);
+  await screen.findByLabelText('Description');
+  return view;
+}
+function acknowledge() {
+  fireEvent.click(screen.getByRole('checkbox', { name: acknowledgementLabel }));
+}
+
+describe('saved generation rules acknowledgement and authority fences', () => {
+  it('requires explicit review of the saved candidate, submits exact captured values once and emits the actual approved revision', async () => {
+    const saved = reviewedRevision();
+    const approved = {
+      ...saved,
+      status: 'APPROVED' as const,
+      generationRulesReviewHash: candidateHash,
+      generationRulesReviewCandidateHash: undefined,
+    };
+    const gate = cardDeferred<IBrandOsRevision>();
+    mocks.approveBrandOsRevision.mockReturnValueOnce(gate.promise);
+    await renderReviewed(saved);
+    const button = screen.getByRole('button', { name: 'Approve revision' });
+    expect(button).toBeDisabled();
+    expect(
+      screen.getByRole('checkbox', { name: acknowledgementLabel }),
+    ).not.toBeChecked();
+    expect(mocks.saved).not.toHaveBeenCalled();
+    acknowledge();
+    expect(button).toBeEnabled();
+    fireEvent.click(button);
+    fireEvent.click(button);
+    await waitFor(() =>
+      expect(mocks.approveBrandOsRevision).toHaveBeenCalledExactlyOnceWith(
+        'brand-1',
+        saved.id,
+        saved.updatedAt,
+        candidateHash,
+      ),
+    );
+    await act(async () => gate.resolve(approved));
+    await waitFor(() =>
+      expect(mocks.saved).toHaveBeenCalledExactlyOnceWith(approved),
+    );
+    expect(
+      screen.queryByRole('checkbox', { name: acknowledgementLabel }),
+    ).not.toBeInTheDocument();
+    expect(mocks.publishBrandOsDesign).not.toHaveBeenCalled();
+    expect(mocks.downloadBrandOsDesign).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    'missing',
+    'malformed',
+    'null rules',
+    'invalid references',
+  ] as const)(
+    'fails closed for %s without treating present rules as legacy',
+    async (mode) => {
+      const saved = reviewedRevision();
+      if (mode === 'missing') delete saved.generationRulesReviewCandidateHash;
+      if (mode === 'malformed')
+        saved.generationRulesReviewCandidateHash = `sha256:${'A'.repeat(64)}`;
+      if (mode === 'null rules')
+        saved.content = {
+          ...saved.content,
+          generationRules: null,
+        } as unknown as IBrandKitDraft;
+      if (mode === 'invalid references')
+        saved.content.generationRules = {
+          ...savedRules(),
+          mandatory: [
+            {
+              id: 'bad-rule',
+              text: 'Invalid reference',
+              match: 'literal',
+              required: true,
+              evidenceIds: ['missing'],
+            },
+          ],
+        };
+      await renderReviewed(saved);
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'These saved rules cannot be acknowledged.',
+      );
+      expect(
+        screen.getByRole('button', { name: 'Approve revision' }),
+      ).toBeDisabled();
+      expect(
+        screen.queryByRole('checkbox', { name: acknowledgementLabel }),
+      ).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Approve revision' }));
+      expect(mocks.approveBrandOsRevision).not.toHaveBeenCalled();
+    },
+  );
+
+  it('never resurrects acknowledgement after editing then reverting, and displays only saved rules', async () => {
+    await renderReviewed();
+    acknowledge();
+    const field = screen.getByLabelText('Description');
+    fireEvent.change(field, { target: { value: 'Unsaved change' } });
+    expect(
+      screen.getByText('Saved source for account one'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('checkbox', { name: acknowledgementLabel }),
+    ).not.toBeChecked();
+    expect(
+      screen.getByRole('button', { name: 'Approve revision' }),
+    ).toBeDisabled();
+    fireEvent.change(field, { target: { value: 'Original voice' } });
+    expect(
+      screen.getByRole('checkbox', { name: acknowledgementLabel }),
+    ).not.toBeChecked();
+    expect(
+      screen.getByRole('button', { name: 'Approve revision' }),
+    ).toBeDisabled();
+  });
+
+  it('clears review on discard, revision selection and explicit history refresh', async () => {
+    const first = reviewedRevision();
+    const second = reviewedRevision({
+      id: 'revision-2',
+      version: 2,
+      generationRulesReviewCandidateHash: `sha256:${'b'.repeat(64)}`,
+    });
+    mocks.listBrandOsRevisions.mockResolvedValue([first, second]);
+    render(<BrandOsSettingsCard {...cardProps()} />);
+    await screen.findByLabelText('Description');
+    acknowledge();
+    fireEvent.change(screen.getByLabelText('Description'), {
+      target: { value: 'Dirty' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Discard unsaved edits' }),
+    );
+    expect(
+      screen.getByRole('checkbox', { name: acknowledgementLabel }),
+    ).not.toBeChecked();
+    acknowledge();
+    fireEvent.change(
+      screen.getByRole('combobox', { name: 'Revision history' }),
+      { target: { value: second.id } },
+    );
+    expect(
+      screen.getByRole('checkbox', { name: acknowledgementLabel }),
+    ).not.toBeChecked();
+    acknowledge();
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh history' }));
+    await screen.findByLabelText('Description');
+    expect(
+      screen.getByRole('checkbox', { name: acknowledgementLabel }),
+    ).not.toBeChecked();
+    expect(mocks.approveBrandOsRevision).not.toHaveBeenCalled();
+  });
+
+  it('loads the fresh server candidate after save and requires another acknowledgement', async () => {
+    const saved = reviewedRevision({
+      updatedAt: '2026-10-02T10:00:00.000Z',
+      generationRulesReviewCandidateHash: `sha256:${'b'.repeat(64)}`,
+    });
+    mocks.updateBrandOsRevision.mockResolvedValueOnce(saved);
+    await renderReviewed();
+    acknowledge();
+    fireEvent.change(screen.getByLabelText('Description'), {
+      target: { value: 'Edited guide' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
+    await screen.findByText('Revision 1 saved as a draft.');
+    expect(
+      screen.getByRole('checkbox', { name: acknowledgementLabel }),
+    ).not.toBeChecked();
+    expect(
+      screen.getByRole('button', { name: 'Approve revision' }),
+    ).toBeDisabled();
+    expect(mocks.saved).toHaveBeenCalledExactlyOnceWith(saved);
+    expect(mocks.approveBrandOsRevision).not.toHaveBeenCalled();
+  });
+
+  it.each(['Conflict 409: rules changed', 'Transport offline'])(
+    'clears acknowledgement and preserves recoverable content on %s without retry',
+    async (message) => {
+      mocks.approveBrandOsRevision.mockRejectedValueOnce(new Error(message));
+      await renderReviewed();
+      acknowledge();
+      fireEvent.click(screen.getByRole('button', { name: 'Approve revision' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent(message);
+      expect(screen.getByLabelText('Description')).toHaveValue(
+        'Original voice',
+      );
+      expect(
+        screen.getByText('Saved source for account one'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('checkbox', { name: acknowledgementLabel }),
+      ).not.toBeChecked();
+      expect(
+        screen.getByRole('button', { name: 'Approve revision' }),
+      ).toBeDisabled();
+      expect(mocks.approveBrandOsRevision).toHaveBeenCalledOnce();
+      expect(mocks.saved).not.toHaveBeenCalled();
+      expect(mocks.publishBrandOsDesign).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['actor', 'organization', 'session', 'role'] as const)(
+    'cancels approval after deferred service acquisition when same-brand %s changes and hides old evidence immediately',
+    async (change) => {
+      const view = await renderReviewed();
+      acknowledge();
+      const oldGate = cardDeferred<typeof mocks>();
+      mocks.getService.mockReturnValueOnce(oldGate.promise);
+      fireEvent.click(screen.getByRole('button', { name: 'Approve revision' }));
+      const newLoad = cardDeferred<IBrandOsRevision[]>();
+      mocks.listBrandOsRevisions.mockReturnValueOnce(newLoad.promise);
+      if (change === 'role') mocks.role = MemberRole.USER;
+      else mocks.getService = vi.fn().mockResolvedValue(mocks);
+      view.rerender(<BrandOsSettingsCard {...cardProps()} />);
+      expect(
+        screen.queryByText('Saved source for account one'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('checkbox', { name: acknowledgementLabel }),
+      ).not.toBeInTheDocument();
+      await act(async () => oldGate.resolve(mocks));
+      expect(mocks.approveBrandOsRevision).not.toHaveBeenCalled();
+      expect(mocks.saved).not.toHaveBeenCalled();
+      await act(async () =>
+        newLoad.resolve([
+          reviewedRevision({
+            organizationId: change === 'organization' ? 'org-2' : 'org-1',
+            content: {
+              ...draft(),
+              organizationId: change === 'organization' ? 'org-2' : 'org-1',
+              generationRules: savedRules('Current scope source'),
+            },
+          }),
+        ]),
+      );
+      expect(
+        await screen.findByText('Current scope source'),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('Saved source for account one'),
+      ).not.toBeInTheDocument();
+      if (change === 'role')
+        expect(
+          screen.queryByRole('button', { name: 'Approve revision' }),
+        ).not.toBeInTheDocument();
+      else
+        expect(
+          screen.getByRole('button', { name: 'Approve revision' }),
+        ).toBeDisabled();
+    },
+  );
+
+  it('cancels pre-POST approval when a refresh replaces the selected review during token acquisition', async () => {
+    const view = await renderReviewed();
+    acknowledge();
+    const gate = cardDeferred<typeof mocks>();
+    mocks.getService.mockReturnValueOnce(gate.promise);
+    fireEvent.click(screen.getByRole('button', { name: 'Approve revision' }));
+    mocks.listBrandOsRevisions.mockResolvedValue([
+      reviewedRevision({ updatedAt: '2026-10-02T12:00:00.000Z' }),
+    ]);
+    view.rerender(<BrandOsSettingsCard {...cardProps()} refreshKey={1} />);
+    await screen.findByLabelText('Description');
+    await act(async () => gate.resolve(mocks));
+    expect(mocks.approveBrandOsRevision).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('button', { name: 'Approve revision' }),
+    ).toBeDisabled();
+  });
+
+  it.each(['brand', 'organization', 'revision'] as const)(
+    'rejects a wrong saved %s without replacing recoverable edits',
+    async (scope) => {
+      const response = reviewedRevision({
+        ...(scope === 'brand'
+          ? { brandId: 'other-brand' }
+          : scope === 'organization'
+            ? { organizationId: 'other-org' }
+            : { id: 'other-revision' }),
+      });
+      mocks.updateBrandOsRevision.mockResolvedValueOnce(response);
+      await renderReviewed();
+      fireEvent.change(screen.getByLabelText('Description'), {
+        target: { value: 'Recoverable edited guide' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
+      await screen.findByRole('alert');
+      expect(screen.getByLabelText('Description')).toHaveValue(
+        'Recoverable edited guide',
+      );
+      expect(
+        screen.getByText('Saved source for account one'),
+      ).toBeInTheDocument();
+      expect(mocks.saved).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not dispatch a reviewed approval after unmount during token acquisition', async () => {
+    const view = await renderReviewed();
+    acknowledge();
+    const gate = cardDeferred<typeof mocks>();
+    mocks.getService.mockReturnValueOnce(gate.promise);
+    fireEvent.click(screen.getByRole('button', { name: 'Approve revision' }));
+    view.unmount();
+    await act(async () => gate.resolve(mocks));
+    expect(mocks.approveBrandOsRevision).not.toHaveBeenCalled();
+    expect(mocks.saved).not.toHaveBeenCalled();
+    expect(mocks.refresh).not.toHaveBeenCalled();
+  });
+
+  it.each(['brand', 'organization', 'revision'] as const)(
+    'rejects a wrong returned %s after approval without callback or replacement',
+    async (scope) => {
+      const response = reviewedRevision({
+        status: 'APPROVED',
+        ...(scope === 'brand'
+          ? { brandId: 'other-brand' }
+          : scope === 'organization'
+            ? { organizationId: 'other-org' }
+            : { id: 'other-revision' }),
+      });
+      mocks.approveBrandOsRevision.mockResolvedValueOnce(response);
+      await renderReviewed();
+      acknowledge();
+      fireEvent.click(screen.getByRole('button', { name: 'Approve revision' }));
+      await screen.findByRole('alert');
+      expect(mocks.saved).not.toHaveBeenCalled();
+      expect(mocks.refresh).not.toHaveBeenCalled();
+      expect(
+        screen.getByRole('option', { name: 'Revision 1 · draft' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('checkbox', { name: acknowledgementLabel }),
+      ).not.toBeChecked();
+    },
+  );
+
+  it.each(['success', 'failure'] as const)(
+    'ignores stale %s and finally without unlocking a newer scope approval',
+    async (completion) => {
+      const view = await renderReviewed();
+      const old = cardDeferred<IBrandOsRevision>();
+      const newer = cardDeferred<IBrandOsRevision>();
+      mocks.approveBrandOsRevision
+        .mockReturnValueOnce(old.promise)
+        .mockReturnValueOnce(newer.promise);
+      acknowledge();
+      fireEvent.click(screen.getByRole('button', { name: 'Approve revision' }));
+      await waitFor(() =>
+        expect(mocks.approveBrandOsRevision).toHaveBeenCalledTimes(1),
+      );
+      const current = reviewedRevision({
+        organizationId: 'org-2',
+        content: {
+          ...draft(),
+          organizationId: 'org-2',
+          generationRules: savedRules('Current scope source'),
+        },
+      });
+      mocks.listBrandOsRevisions.mockResolvedValue([current]);
+      mocks.getService = vi.fn().mockResolvedValue(mocks);
+      view.rerender(<BrandOsSettingsCard {...cardProps()} />);
+      await screen.findByText('Current scope source');
+      acknowledge();
+      fireEvent.click(screen.getByRole('button', { name: 'Approve revision' }));
+      await waitFor(() =>
+        expect(mocks.approveBrandOsRevision).toHaveBeenCalledTimes(2),
+      );
+      const exportReads = mocks.getBrandOsExport.mock.calls.length;
+      await act(async () => {
+        if (completion === 'success')
+          old.resolve(reviewedRevision({ status: 'APPROVED' }));
+        else old.reject(new Error('Stale failure'));
+      });
+      expect(
+        screen.queryByText('Saved source for account one'),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/Stale failure/)).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Approve revision' }),
+      ).toBeDisabled();
+      expect(mocks.saved).not.toHaveBeenCalled();
+      expect(mocks.refresh).not.toHaveBeenCalled();
+      expect(mocks.getBrandOsExport).toHaveBeenCalledTimes(exportReads);
+      const approved = {
+        ...current,
+        status: 'APPROVED' as const,
+        generationRulesReviewHash: candidateHash,
+        generationRulesReviewCandidateHash: undefined,
+      };
+      await act(async () => newer.resolve(approved));
+      await waitFor(() =>
+        expect(mocks.saved).toHaveBeenCalledExactlyOnceWith(approved),
+      );
+    },
+  );
+
+  it('forks an approved guide as a fresh unacknowledged draft instead of reusing persisted evidence', async () => {
+    const approved = reviewedRevision({
+      status: 'APPROVED',
+      generationRulesReviewHash: candidateHash,
+      generationRulesReviewCandidateHash: undefined,
+    });
+    const fork = reviewedRevision({ id: 'revision-2', version: 2 });
+    mocks.updateBrandOsRevision.mockResolvedValueOnce(fork);
+    await renderReviewed(approved);
+    expect(
+      screen.queryByRole('checkbox', { name: acknowledgementLabel }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Save as new draft' }));
+    await screen.findByText('Revision 2 saved as a draft.');
+    expect(
+      screen.getByRole('checkbox', { name: acknowledgementLabel }),
+    ).not.toBeChecked();
+    expect(
+      screen.getByRole('button', { name: 'Approve revision' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('option', { name: 'Revision 1 · approved' }),
+    ).toBeInTheDocument();
   });
 });

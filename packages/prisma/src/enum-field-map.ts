@@ -1543,6 +1543,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'content',
       'createdAt',
       'exportSchemaVersion',
+      'generationRulesReviewHash',
       'id',
       'isDeleted',
       'organization',
