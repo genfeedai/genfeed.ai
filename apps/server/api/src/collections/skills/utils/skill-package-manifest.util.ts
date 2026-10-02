@@ -147,7 +147,10 @@ function frontmatter(content: string): {
   const value: unknown = document.toJS({ maxAliasCount: 0 });
   const fields = record(value, 'frontmatter mapping');
   const name = boundedText(fields.name, 140, 'name');
+  if (hasControls(name)) invalid('name controls');
   const description = boundedText(fields.description, 2000, 'description');
+  if (hasControls(description.replace(/[\t\n\r]/g, '')))
+    invalid('description controls');
   let version: string | undefined;
   if (Object.hasOwn(fields, 'metadata')) {
     const metadata = record(fields.metadata, 'metadata mapping');
