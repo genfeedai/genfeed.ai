@@ -12,7 +12,17 @@ export type SkillDraft = {
   systemPromptTemplate: string;
 };
 
+export type SkillDraftError = { field: keyof SkillDraft; maximum: number };
+export type SkillDraftPatchResult = {
+  patch: Partial<SkillDraft>;
+  errors: SkillDraftError[];
+  hasChanges: boolean;
+};
+
 export type SkillDetailCardProps = {
+  draftErrors: SkillDraftError[];
+  hasChanges: boolean;
+  isForkBlocked?: boolean;
   customizing: boolean;
   onCustomize: () => void;
   onSaveSkill: () => void;
@@ -26,7 +36,7 @@ export type SkillDetailSheetProps = SkillDetailCardProps & {
   onArchiveSkill?: () => void;
   onClose: () => void;
   onExportSkill?: () => void;
-  onOpenTestInChat: () => void;
+  onOpenSamplePrompt: () => void;
 };
 
 export type SkillsPageState = {
@@ -41,9 +51,14 @@ export type SkillsPageState = {
   isCustomizing: boolean;
   error: string | null;
   skillDraft: SkillDraft;
+  originalSkillDraft: SkillDraft;
+  forkCreatedForSkillId: string;
 };
 
 export type SkillsPageAction =
+  | { type: 'RESET' }
+  | { type: 'HYDRATE_SKILL'; skill: Skill }
+  | { type: 'FORK_CREATED'; sourceId: string }
   | { type: 'LOAD_START' }
   | { type: 'LOAD_SUCCESS'; skills: Skill[] }
   | { type: 'LOAD_ERROR'; message: string }
@@ -57,7 +72,6 @@ export type SkillsPageAction =
   | { type: 'SAVE_SUCCESS' }
   | { type: 'SAVE_ERROR'; message: string }
   | { type: 'CUSTOMIZE_START' }
-  | { type: 'CUSTOMIZE_SUCCESS'; newSkillId: string }
   | { type: 'CUSTOMIZE_ERROR'; message: string }
   | { type: 'SET_SKILL_DRAFT'; draft: SkillDraft };
 

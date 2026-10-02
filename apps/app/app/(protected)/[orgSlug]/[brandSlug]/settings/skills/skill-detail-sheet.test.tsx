@@ -21,6 +21,8 @@ const selectedSkillFixture: Skill = {
   modalities: ['text'],
   name: 'YouTube Script Setup',
   organization: null,
+  canEdit: false,
+  canFork: true,
   requiredProviders: ['openai'],
   slug: 'youtube-script-setup',
   source: 'built_in',
@@ -58,9 +60,11 @@ describe('SkillDetailSheet', () => {
     render(
       <SkillDetailSheet
         customizing={false}
+        hasChanges={false}
+        draftErrors={[]}
         onClose={vi.fn()}
         onCustomize={vi.fn()}
-        onOpenTestInChat={vi.fn()}
+        onOpenSamplePrompt={vi.fn()}
         onSaveSkill={vi.fn()}
         onSkillDraftChange={vi.fn()}
         savingSkill={false}
@@ -76,7 +80,7 @@ describe('SkillDetailSheet', () => {
 
     expect(screen.getAllByText('YouTube Script Setup')[0]).toBeVisible();
     expect(
-      screen.getByRole('button', { name: /test with agent/i }),
+      screen.getByRole('button', { name: /open sample prompt/i }),
     ).toBeInTheDocument();
   });
 
@@ -84,9 +88,11 @@ describe('SkillDetailSheet', () => {
     render(
       <SkillDetailSheet
         customizing={false}
+        hasChanges={false}
+        draftErrors={[]}
         onClose={vi.fn()}
         onCustomize={vi.fn()}
-        onOpenTestInChat={vi.fn()}
+        onOpenSamplePrompt={vi.fn()}
         onSaveSkill={vi.fn()}
         onSkillDraftChange={vi.fn()}
         savingSkill={false}
@@ -110,9 +116,11 @@ describe('SkillDetailSheet', () => {
     render(
       <SkillDetailSheet
         customizing={false}
+        hasChanges={false}
+        draftErrors={[]}
         onClose={onClose}
         onCustomize={vi.fn()}
-        onOpenTestInChat={vi.fn()}
+        onOpenSamplePrompt={vi.fn()}
         onSaveSkill={vi.fn()}
         onSkillDraftChange={vi.fn()}
         savingSkill={false}
