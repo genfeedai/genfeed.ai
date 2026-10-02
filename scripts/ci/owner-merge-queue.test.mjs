@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   admission,
@@ -213,6 +214,17 @@ test('required successes bind authentic sources and latest attempts, optional fa
 });
 
 test('strict rule requires visible empty bypass list and exact master protections', () => {
+  assert.equal(
+    verifyRuleset(
+      JSON.parse(
+        readFileSync(
+          new URL('./owner-merge-ruleset.json', import.meta.url),
+          'utf8',
+        ),
+      ),
+    ),
+    true,
+  );
   assert.equal(verifyRuleset(fixture().rule), true);
   for (const mutate of [
     (x) => {

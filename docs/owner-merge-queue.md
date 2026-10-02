@@ -42,6 +42,8 @@ update or merge. Conflicts, changed heads, API failures or missing configuration
 leave the PR open. Workflow-completion and PR metadata events trigger sweeps;
 the ten-minute schedule reconciles delayed external checks and thread changes.
 GitHub schedules may be delayed, so ten minutes is not a merge latency promise.
+GitHub also suppresses some `check_run` triggers when the head is associated
+with Actions; the scheduled reconciliation remains necessary for those events.
 
 The workflow always checks out trusted master with persisted credentials off.
 It executes no PR code or artifacts and does not interpolate PR text into shell

@@ -168,6 +168,12 @@ async function connection(github, number, field, selection) {
     );
     const page = result.repository.pullRequest[field];
     nodes.push(...page.nodes);
+    if (
+      page.pageInfo.hasNextPage &&
+      (!page.pageInfo.endCursor || page.pageInfo.endCursor === cursor)
+    ) {
+      throw new Error(`Incomplete ${field} pagination`);
+    }
     cursor = page.pageInfo.hasNextPage ? page.pageInfo.endCursor : null;
   } while (cursor);
   return nodes;
