@@ -368,3 +368,91 @@ describe('publication detail and explicit recovery', () => {
     expect(handlers.retry).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('explicit recovery after the server shrinks publication pages', () => {
+  it.each([
+    [2, 1, 1, 1],
+    [3, 1, 1, 1],
+    [5, 1, 1, 1],
+    [2, 0, 0, 1],
+    [3, 0, 0, 1],
+    [5, 0, 0, 1],
+    [5, 11, 2, 2],
+    [3, 41, 5, 2],
+  ])(
+    'page%s total%s pages%s recovers to%s only on Previous',
+    (page, total, pages, target) => {
+      const view = show({
+        page,
+        selectedPostId: null,
+        insight: null,
+        pageData: { items: [], page, total, pages, limit: 10 },
+      });
+      for (const handler of Object.values(handlers))
+        expect(handler).not.toHaveBeenCalled();
+      const previous = screen.getByRole('button', { name: 'Previous' });
+      expect(previous).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty(
+        'disabled',
+        page >= pages,
+      );
+      expect(
+        screen.getByText(`Page ${page} / ${pages} · ${total} publications`),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', { name: /Post ·|Reply ·/ }),
+      ).toBeNull();
+      expect(screen.queryByText('0')).toBeNull();
+      expect(screen.queryByText(/Sample date:/)).toBeNull();
+      fireEvent.click(previous);
+      expect(handlers.selectPage).toHaveBeenCalledExactlyOnceWith(target);
+      for (const [name, handler] of Object.entries(handlers))
+        if (name !== 'selectPage') expect(handler).not.toHaveBeenCalled();
+      const returned =
+        total === 1
+          ? state({
+              page: 1,
+              insight: insight(),
+              pageData: {
+                items: [insight()],
+                page: 1,
+                total: 1,
+                pages: 1,
+                limit: 10,
+              },
+            })
+          : state({
+              page: 1,
+              selectedPostId: null,
+              insight: null,
+              pageData: { items: [], page: 1, total: 0, pages: 0, limit: 10 },
+            });
+      vi.mocked(usePublicationInsights).mockReturnValue(returned);
+      view.rerender(<PublicationInsightsPanel />);
+      expect(screen.queryByRole('button', { name: 'Previous' })).toBeNull();
+      if (total === 1)
+        expect(screen.getByText('Original reply')).toBeInTheDocument();
+      else
+        expect(
+          screen.getByText('No recorded publication was found for this page'),
+        ).toBeInTheDocument();
+      expect(handlers.selectPage).toHaveBeenCalledTimes(1);
+    },
+  );
+  it.each(['isBusy', 'isLoading'] as const)(
+    'disables recovery during%s',
+    (field) => {
+      show({
+        page: 5,
+        [field]: true,
+        insight: null,
+        selectedPostId: null,
+        pageData: { items: [], page: 5, total: 0, pages: 0, limit: 10 },
+      });
+      expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+      fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
+      expect(handlers.selectPage).not.toHaveBeenCalled();
+    },
+  );
+});

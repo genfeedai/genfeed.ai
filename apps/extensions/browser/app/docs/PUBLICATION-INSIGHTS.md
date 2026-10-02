@@ -4,7 +4,7 @@ Open a published post or reply on X, LinkedIn, Reddit, YouTube, Instagram, Faceb
 
 A parent page can match several recorded replies. Choose a publication explicitly and use Previous/Next to browse results. Each detail preserves its original source and audience; manual and agent publications are not relabeled as extension publications. Open parent post means the available link provides context, rather than a confirmed permalink for the selected reply.
 
-Observed zero is shown as zero. Missing or unavailable metrics show Unavailable. Sample date and Last saved describe the stored sample, not live platform data. Awaiting analytics means an eligible publication has no sample yet. Stale or failed collection can retain an older sample and its date.
+Observed zero is shown as zero. Missing or unavailable metrics show Unavailable. Sample date and Last saved describe the stored sample, not live platform data. Awaiting analytics means an eligible publication has no sample yet and collection is pending. Stale or failed collection can retain an older sample and its date.
 
 Refresh analytics requests server collection, then reads saved detail once. It does not promise a new sample immediately. Reload saved metrics only reads saved detail. Retry is explicit; focusing the window does not retry. If the server has not rolled out insights, the panel shows an unavailable message.
 

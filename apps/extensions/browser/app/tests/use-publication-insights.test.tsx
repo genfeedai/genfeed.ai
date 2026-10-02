@@ -412,3 +412,108 @@ describe('committed page identity round trips', () => {
     },
   );
 });
+
+describe('explicit known-empty pagination recovery', () => {
+  it('requests canonical page1 only after explicit recovery from empty page2', async () => {
+    let finish: (value: ReturnType<typeof pageData>) => void = () => undefined;
+    mocks.page
+      .mockResolvedValueOnce(pageData(11))
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve;
+          }),
+      )
+      .mockResolvedValue({ items: [], page: 1, limit: 10, pages: 0, total: 0 });
+    const view = renderHook(usePublicationInsights);
+    await waitFor(() => expect(view.result.current.isLoading).toBe(false));
+    act(() => view.result.current.selectPage(2));
+    await waitFor(() => expect(mocks.page).toHaveBeenCalledTimes(2));
+    await act(async () =>
+      finish({ items: [], page: 2, limit: 10, total: 0, pages: 0 }),
+    );
+    expect(view.result.current.page).toBe(2);
+    expect(view.result.current.pageData?.total).toBe(0);
+    expect(mocks.page).toHaveBeenCalledTimes(2);
+    act(() => view.result.current.selectPage(1));
+    await waitFor(() => expect(mocks.page).toHaveBeenCalledTimes(3));
+    expect(mocks.page.mock.calls[2][1]).toBe(1);
+    expect(mocks.page.mock.calls[2][2].snapshot).toBe(snapshot);
+    await waitFor(() => expect(view.result.current.isLoading).toBe(false));
+    expect(view.result.current.page).toBe(1);
+    expect(view.result.current.pageData?.total).toBe(0);
+    expect(view.result.current.selectedPostId).toBeNull();
+    expect(view.result.current.insight).toBeNull();
+    expect(mocks.detail).not.toHaveBeenCalled();
+    act(() => {
+      for (const next of [0, 1.5, 2, 5]) view.result.current.selectPage(next);
+    });
+    expect(mocks.page).toHaveBeenCalledTimes(3);
+  });
+  it.each([
+    [0, 0, 1],
+    [1, 1, 1],
+    [2, 11, 2],
+  ])(
+    'page5 shrinking to pages%s total%s explicitly requests%s',
+    async (pages, total, target) => {
+      let finish: (value: ReturnType<typeof pageData>) => void = () =>
+        undefined;
+      mocks.page
+        .mockResolvedValueOnce(pageData(41))
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              finish = resolve;
+            }),
+        )
+        .mockImplementation((_lookup, page) =>
+          Promise.resolve({
+            items: total === 1 ? [insight({ id: 'fresh' })] : [],
+            page,
+            limit: 10,
+            pages,
+            total,
+          }),
+        );
+      mocks.detail.mockResolvedValue(insight({ id: 'fresh' }));
+      const view = renderHook(usePublicationInsights);
+      await waitFor(() => expect(view.result.current.isLoading).toBe(false));
+      act(() => view.result.current.selectPage(5));
+      await waitFor(() => expect(mocks.page).toHaveBeenCalledTimes(2));
+      act(() => view.result.current.selectPage(1));
+      expect(mocks.page).toHaveBeenCalledTimes(2);
+      await act(async () =>
+        finish({ items: [], page: 5, limit: 10, pages, total }),
+      );
+      expect(view.result.current.page).toBe(5);
+      expect(mocks.page).toHaveBeenCalledTimes(2);
+      act(() =>
+        view.result.current.selectPage(
+          Math.max(1, Math.min(view.result.current.page - 1, pages)),
+        ),
+      );
+      expect(view.result.current.pageData).toBeNull();
+      expect(view.result.current.insight).toBeNull();
+      await waitFor(() => expect(mocks.page).toHaveBeenCalledTimes(3));
+      expect(mocks.page.mock.calls[2][1]).toBe(target);
+      expect(mocks.page.mock.calls[2][2].snapshot).toBe(snapshot);
+      await waitFor(() => expect(view.result.current.isLoading).toBe(false));
+      expect(view.result.current.page).toBe(target);
+      expect(view.result.current.pageData?.total).toBe(total);
+      if (total === 1) expect(view.result.current.insight?.id).toBe('fresh');
+      else expect(view.result.current.insight).toBeNull();
+      act(() => view.result.current.selectPage(Math.max(1, pages) + 1));
+      expect(mocks.page).toHaveBeenCalledTimes(3);
+    },
+  );
+  it('rejects navigation without known pageData even after loading fails', async () => {
+    mocks.page.mockRejectedValue(new Error('offline'));
+    const view = renderHook(usePublicationInsights);
+    await waitFor(() => expect(view.result.current.error).not.toBeNull());
+    act(() => {
+      for (const next of [0, 1, 2, 1.5]) view.result.current.selectPage(next);
+    });
+    expect(mocks.page).toHaveBeenCalledTimes(1);
+  });
+});

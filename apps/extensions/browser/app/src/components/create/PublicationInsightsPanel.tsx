@@ -214,7 +214,7 @@ export function PublicationInsightsPanel() {
               No recorded publication was found for this page
             </p>
           )}
-          {data && data.total > 1 && (
+          {data && (data.total > 1 || data.page > 1) && (
             <div className="min-w-0 space-y-2">
               <Select
                 value={state.selectedPostId ?? ''}
@@ -253,7 +253,11 @@ export function PublicationInsightsPanel() {
                   isDisabled={
                     state.page <= 1 || state.isLoading || state.isBusy
                   }
-                  onClick={() => state.selectPage(state.page - 1)}
+                  onClick={() =>
+                    state.selectPage(
+                      Math.max(1, Math.min(state.page - 1, data.pages)),
+                    )
+                  }
                 >
                   Previous
                 </Button>

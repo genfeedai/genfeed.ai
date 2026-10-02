@@ -166,7 +166,8 @@ export function usePublicationInsights() {
       !base ||
       !Number.isInteger(next) ||
       next < 1 ||
-      next > (visible.pageData?.pages ?? 0)
+      !visible.pageData ||
+      next > Math.max(1, visible.pageData.pages)
     )
       return;
     setPager({ key: base, page: next });
