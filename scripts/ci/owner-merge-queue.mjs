@@ -72,9 +72,31 @@ export function admission(pr, { requests, threads, reviews }) {
 }
 
 export function checksReady(checks, statuses, runs, expected) {
+  const controller = (run) =>
+    run.path?.split('@')[0] === '.github/workflows/owner-merge-queue.yml' &&
+    (run.event === 'pull_request_target' ||
+      ([
+        'workflow_run',
+        'status',
+        'check_run',
+        'schedule',
+        'workflow_dispatch',
+      ].includes(run.event) &&
+        run.head_branch === 'master'));
+  const controllerSuites = new Set(
+    runs.filter(controller).map((run) => run.check_suite_id),
+  );
   // REST check runs are newest first; use IDs to invalidate older green reruns.
+  // Exclude operational metadata before deduplication so it cannot hide an
+  // older PR-executed check at the same path/name. Required names stay enforced.
   const latest = new Map();
   for (const check of checks) {
+    if (
+      check.app?.id === 15368 &&
+      controllerSuites.has(check.check_suite?.id) &&
+      !REQUIRED.some((required) => required.context === check.name)
+    )
+      continue;
     const key = `${check.app?.id}:${check.name}`;
     if (!latest.has(key) || latest.get(key).id < check.id)
       latest.set(key, check);
@@ -89,6 +111,7 @@ export function checksReady(checks, statuses, runs, expected) {
   }
   const latestRuns = new Map();
   for (const run of runs) {
+    if (controller(run)) continue;
     if (
       !latestRuns.has(run.workflow_id) ||
       latestRuns.get(run.workflow_id).id < run.id
@@ -141,28 +164,11 @@ export function checksReady(checks, statuses, runs, expected) {
     )
       return false;
   }
-  const controller = (run) =>
-    run.path?.split('@')[0] === '.github/workflows/owner-merge-queue.yml' &&
-    (run.event === 'pull_request_target' ||
-      ([
-        'workflow_run',
-        'status',
-        'check_run',
-        'schedule',
-        'workflow_dispatch',
-      ].includes(run.event) &&
-        run.head_branch === 'master'));
-  const controllerSuites = new Set(
-    runs.filter(controller).map((run) => run.check_suite_id),
-  );
   if (
     [...latest.values()].some(
       (check) =>
-        !(
-          check.app?.id === 15368 && controllerSuites.has(check.check_suite?.id)
-        ) &&
-        (check.status !== 'completed' ||
-          !['success', 'neutral', 'skipped'].includes(check.conclusion)),
+        check.status !== 'completed' ||
+        !['success', 'neutral', 'skipped'].includes(check.conclusion),
     )
   )
     return false;
@@ -170,9 +176,8 @@ export function checksReady(checks, statuses, runs, expected) {
     return false;
   return ![...latestRuns.values()].some(
     (run) =>
-      !controller(run) &&
-      (run.status !== 'completed' ||
-        !['success', 'neutral', 'skipped'].includes(run.conclusion)),
+      run.status !== 'completed' ||
+      !['success', 'neutral', 'skipped'].includes(run.conclusion),
   );
 }
 

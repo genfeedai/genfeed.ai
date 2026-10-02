@@ -816,3 +816,55 @@ test('controller exclusion rejects PR-executed and non-master dispatch workflows
     );
   }
 });
+
+test('newer controller metadata cannot hide failing PR checks sharing its workflow and job name', async () => {
+  for (const conclusion of [null, 'success']) {
+    const f = fixture();
+    f.pr.mergeable_state = 'unstable';
+    for (const [id, event, outcome] of [
+      [40, 'pull_request', 'failure'],
+      [41, 'pull_request_target', conclusion],
+    ]) {
+      const status = outcome ? 'completed' : 'in_progress';
+      f.runs.push({
+        id,
+        workflow_id: 30,
+        path: '.github/workflows/owner-merge-queue.yml',
+        event,
+        check_suite_id: id,
+        status,
+        conclusion: outcome,
+      });
+      f.checks.push({
+        id,
+        name: 'reconcile',
+        app: { id: 15368 },
+        check_suite: { id },
+        status,
+        conclusion: outcome,
+      });
+    }
+    const ready = () =>
+      checksReady(f.checks, f.statuses, f.runs, { head: 'head', number: 1 });
+    assert.equal(ready(), false);
+    const mock = client(f);
+    await reconcile({
+      github: mock.github,
+      mode: 'strict',
+      rulesetId: '123',
+      log: () => {},
+    });
+    assert.equal(
+      mock.calls.some((call) => call.name === 'merge'),
+      false,
+    );
+    // Each namespace independently keeps the older PR failure visible.
+    f.runs.find((run) => run.id === 40).conclusion = 'success';
+    assert.equal(ready(), false);
+    f.checks.find((check) => check.id === 40).conclusion = 'success';
+    f.runs.find((run) => run.id === 40).conclusion = 'failure';
+    assert.equal(ready(), false);
+    f.runs.find((run) => run.id === 40).conclusion = 'success';
+    assert.equal(ready(), true);
+  }
+});
