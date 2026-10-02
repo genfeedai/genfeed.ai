@@ -27,6 +27,7 @@ export * from '@serializers/server/content/content-plan.serializer';
 export * from '@serializers/server/content/content-plan-item.serializer';
 export * from '@serializers/server/content/content-run.serializer';
 export * from '@serializers/server/content/content-skill.serializer';
+export * from '@serializers/server/content/content-skill-version.serializer';
 export * from '@serializers/server/content/context-base.serializer';
 export * from '@serializers/server/content/context-entry.serializer';
 export * from '@serializers/server/content/creator-analysis.serializer';

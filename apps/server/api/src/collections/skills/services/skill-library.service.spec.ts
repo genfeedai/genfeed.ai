@@ -5,6 +5,8 @@ import { parseSkillPackageManifest } from '@api/collections/skills/utils/skill-p
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { SkillVersionSourceEvidenceV1 } from '@genfeedai/contracts/interfaces/ai/skill-version-read.interface';
+import type { Prisma } from '@genfeedai/prisma';
 import { ForbiddenException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -1179,5 +1181,680 @@ describe('SkillLibraryService ordinary validated package import', () => {
       const [visible] = await f.service.present(actor, [document]);
       expect(visible).toMatchObject({ canShare: false, canPublish: false });
     }
+  });
+});
+
+/** Independent versions-read fixtures: never share import/pin/receipt hooks above. */
+describe('SkillLibraryService immutable versions read V1', () => {
+  const actor = { userId: 'opaque|canonical', organizationId: 'org' };
+  const checksum = 'a'.repeat(64);
+  function captured(
+    versionNumber: number,
+    text = `edited ${versionNumber}`,
+  ): SkillVersionSourceEvidenceV1 {
+    const sourceField = text.length ? 'systemPromptTemplate' : null;
+    return {
+      id: `sv1_skill_${versionNumber}`,
+      skillId: 'skill',
+      versionNumber,
+      format: 'genfeed.skill.legacy-snapshot.v1',
+      payload: {
+        format: 'genfeed.skill.legacy-snapshot.v1',
+        instructions: { text, sourceField },
+        instructionUsable: text.trim().length > 0,
+        config: {
+          source: 'imported',
+          isBuiltIn: false,
+          checksum,
+          defaultInstructions: text,
+          systemPromptTemplate: text,
+          importProvenance: {
+            format: 'genfeed.skill.ordinary-upload.v1',
+            importedByUserId: actor.userId,
+            packageChecksum: checksum,
+          },
+        },
+      },
+      instructionText: text,
+      instructionSourceField: sourceField,
+      instructionUsable: text.trim().length > 0,
+      contentHash: `sha256:skill-v1:${'b'.repeat(64)}`,
+      instructionHash: `sha256:skill-instruction-v1:${'c'.repeat(64)}`,
+      createdById: actor.userId,
+      createdAt: new Date('2026-10-02T14:00:00+02:00'),
+    };
+  }
+  function fixture() {
+    const parent = {
+      id: 'skill',
+      ownerKind: 'user',
+      ownerUserId: actor.userId,
+      organizationId: null as string | null,
+      brandId: null as string | null,
+      audience: 'private',
+      isDeleted: false,
+      isQuarantined: false,
+      label: 'Mutable',
+      revision: 4,
+      currentVersionId: 'sv1_skill_3',
+      publishedVersionId: null as string | null,
+      sharedVersionId: null as string | null,
+      config: { source: 'imported', isBuiltIn: false } as Record<
+        string,
+        unknown
+      >,
+    };
+    const rows = [captured(1, 'original'), captured(2), captured(3)];
+    const grants: Array<{
+      skillId: string;
+      skillVersionId: string;
+      access: string;
+      recipientKind: string;
+      recipientUserId: string | null;
+      recipientOrganizationId: string | null;
+      recipientBrandId: string | null;
+      revokedAt: Date | null;
+    }> = [];
+    const write = {
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      upsert: vi.fn(),
+      updateMany: vi.fn(),
+      deleteMany: vi.fn(),
+    };
+    const prisma = {
+      user: { findFirst: vi.fn().mockResolvedValue({ id: actor.userId }) },
+      organization: { findFirst: vi.fn().mockResolvedValue({ id: 'org' }) },
+      member: {
+        findFirst: vi
+          .fn()
+          .mockResolvedValue({ id: 'member', roleKey: 'member', brands: [] }),
+      },
+      brand: { findFirst: vi.fn().mockResolvedValue({ id: 'brand' }) },
+      skill: {
+        ...write,
+        findFirst: vi
+          .fn()
+          .mockImplementation(async () =>
+            parent.isDeleted || parent.isQuarantined ? null : parent,
+          ),
+      },
+      skillGrant: {
+        ...write,
+        findMany: vi.fn().mockImplementation(async () => grants),
+      },
+      skillAssignment: { ...write, findMany: vi.fn().mockResolvedValue([]) },
+      skillVersion: {
+        ...write,
+        findFirst: vi
+          .fn()
+          .mockImplementation(
+            async ({ where }: Prisma.SkillVersionFindFirstArgs) =>
+              rows.find(
+                (row) =>
+                  row.skillId === where?.skillId &&
+                  (where?.id === undefined || row.id === where.id) &&
+                  (where?.versionNumber === undefined ||
+                    row.versionNumber === where.versionNumber),
+              ) ?? null,
+          ),
+        findMany: vi
+          .fn()
+          .mockImplementation(
+            async ({ where, take }: Prisma.SkillVersionFindManyArgs) => {
+              const idFilter = where?.id;
+              const ids =
+                typeof idFilter === 'object' &&
+                idFilter !== null &&
+                'in' in idFilter
+                  ? idFilter.in
+                  : undefined;
+              const versionFilter = where?.versionNumber;
+              const before =
+                typeof versionFilter === 'object' &&
+                versionFilter !== null &&
+                'lt' in versionFilter
+                  ? versionFilter.lt
+                  : undefined;
+              return rows
+                .filter(
+                  (row) =>
+                    (where?.skillId === undefined ||
+                      row.skillId === where.skillId) &&
+                    (!Array.isArray(ids) || ids.includes(row.id)) &&
+                    (typeof before !== 'number' || row.versionNumber < before),
+                )
+                .sort((a, b) => b.versionNumber - a.versionNumber)
+                .slice(0, take ?? rows.length);
+            },
+          ),
+      },
+      skillResolutionReceipt: { ...write },
+      $transaction: vi.fn(),
+      $executeRaw: vi.fn(),
+      $queryRaw: vi.fn(),
+    };
+    const service = new SkillLibraryService(prisma as unknown as PrismaService);
+    const grant = (
+      versionNumber: number,
+      recipientKind = 'user',
+      access = 'use_and_read',
+    ) => {
+      grants.push({
+        skillId: 'skill',
+        skillVersionId: `sv1_skill_${versionNumber}`,
+        access,
+        recipientKind,
+        recipientUserId: 'reader',
+        recipientOrganizationId: 'org',
+        recipientBrandId: 'brand',
+        revokedAt: null,
+      });
+    };
+    return { service, prisma, parent, rows, grants, grant, write };
+  }
+  function immutableConfig(
+    row: SkillVersionSourceEvidenceV1,
+  ): Record<string, unknown> {
+    return (row.payload as { config: Record<string, unknown> }).config;
+  }
+  const reader = { ...actor, userId: 'reader' };
+
+  it('reads genesis/edited versions without using current config or original package as instruction checksum', async () => {
+    const f = fixture();
+    f.parent.config = { source: 'paid', importProvenance: 'untrusted mutable' };
+    const page = await f.service.listVersions(actor, 'skill', {});
+    expect(page).toEqual({
+      items: [3, 2, 1].map((number) => ({
+        id: `sv1_skill_${number}`,
+        versionNumber: number,
+        createdAt: '2026-10-02T12:00:00.000Z',
+        contentHash: f.rows[number - 1].contentHash,
+      })),
+      limit: 20,
+      hasMore: false,
+      nextCursor: null,
+    });
+    expect(await f.service.getVersion(actor, 'skill', 'sv1_skill_2')).toEqual({
+      ...page.items[1],
+      instructionText: 'edited 2',
+    });
+    expect(f.prisma.skillAssignment.findMany).not.toHaveBeenCalled();
+  });
+  it('continues a limit1 page at the last returned row and never skips lookahead', async () => {
+    const f = fixture();
+    const page = await f.service.listVersions(actor, 'skill', { limit: 1 });
+    expect(page).toMatchObject({
+      items: [{ versionNumber: 3 }],
+      limit: 1,
+      hasMore: true,
+      nextCursor: 3,
+    });
+    expect(f.prisma.skillVersion.findMany).toHaveBeenCalledWith({
+      where: { skillId: 'skill' },
+      orderBy: { versionNumber: 'desc' },
+      take: 2,
+    });
+    const older = await f.service.listVersions(actor, 'skill', {
+      limit: 1,
+      beforeVersionNumber: page.nextCursor ?? undefined,
+    });
+    expect(older).toMatchObject({
+      items: [{ versionNumber: 2 }],
+      hasMore: true,
+      nextCursor: 2,
+    });
+    expect(
+      await f.service.listVersions(actor, 'skill', {
+        limit: 1,
+        beforeVersionNumber: 2,
+      }),
+    ).toMatchObject({
+      items: [{ versionNumber: 1 }],
+      hasMore: false,
+      nextCursor: null,
+    });
+    expect(
+      await f.service.listVersions(actor, 'skill', {
+        limit: 50,
+        beforeVersionNumber: 1,
+      }),
+    ).toEqual({ items: [], limit: 50, hasMore: false, nextCursor: null });
+  });
+  it('preserves exact whitespace and explicit empty bodies, stored hash namespaces and UTC timestamp', async () => {
+    const f = fixture();
+    for (const text of ['', ' \n\t ']) {
+      f.rows[1] = captured(2, text);
+      expect(await f.service.getVersion(actor, 'skill', 'sv1_skill_2')).toEqual(
+        {
+          id: 'sv1_skill_2',
+          versionNumber: 2,
+          instructionText: text,
+          contentHash: f.rows[1].contentHash,
+          createdAt: '2026-10-02T12:00:00.000Z',
+        },
+      );
+    }
+  });
+  for (const source of [
+    'custom',
+    'customized',
+    'paid',
+    'unknown',
+    'built_in',
+  ]) {
+    it(`denies governed ${source} history with no nongovernor fallback`, async () => {
+      const f = fixture();
+      immutableConfig(f.rows[0]).source = source;
+      f.grant(2);
+      await expect(f.service.listVersions(actor, 'skill', {})).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(
+        f.service.getVersion(actor, 'skill', 'sv1_skill_2'),
+      ).rejects.toThrow(NotFoundException);
+      expect(f.prisma.skillAssignment.findMany).not.toHaveBeenCalled();
+    });
+  }
+  const corruptions: Array<
+    [string, (row: SkillVersionSourceEvidenceV1) => void]
+  > = [
+    [
+      'missing provenance',
+      (row) => {
+        delete immutableConfig(row).importProvenance;
+      },
+    ],
+    [
+      'frontmatter/nested-config spoof',
+      (row) => {
+        const config = immutableConfig(row);
+        config.configSchema = { importProvenance: config.importProvenance };
+        delete config.importProvenance;
+      },
+    ],
+    [
+      'wrong importer',
+      (row) => {
+        (
+          immutableConfig(row).importProvenance as Record<string, unknown>
+        ).importedByUserId = 'foreign';
+      },
+    ],
+    [
+      'wrong package checksum',
+      (row) => {
+        (
+          immutableConfig(row).importProvenance as Record<string, unknown>
+        ).packageChecksum = 'd'.repeat(64);
+      },
+    ],
+    [
+      'different candidate package identity',
+      (row) => {
+        const config = immutableConfig(row);
+        config.checksum = 'd'.repeat(64);
+        (config.importProvenance as Record<string, unknown>).packageChecksum =
+          config.checksum;
+      },
+    ],
+    [
+      'uppercase checksum',
+      (row) => {
+        immutableConfig(row).checksum = 'A'.repeat(64);
+      },
+    ],
+    [
+      'protected listing',
+      (row) => {
+        immutableConfig(row).sourceListingId = 'paid-listing';
+      },
+    ],
+    [
+      'built-in flag',
+      (row) => {
+        immutableConfig(row).isBuiltIn = true;
+      },
+    ],
+    [
+      'wrong attribution',
+      (row) => {
+        row.createdById = 'foreign';
+      },
+    ],
+    [
+      'missing attribution',
+      (row) => {
+        row.createdById = null;
+      },
+    ],
+    [
+      'foreign same-looking skill',
+      (row) => {
+        row.skillId = 'foreign';
+      },
+    ],
+    [
+      'wrong captured id',
+      (row) => {
+        row.id = 'sv1_foreign_2';
+      },
+    ],
+    [
+      'unsupported format',
+      (row) => {
+        row.format = 'unknown';
+      },
+    ],
+    [
+      'malformed payload',
+      (row) => {
+        row.payload = [];
+      },
+    ],
+    [
+      'malformed config',
+      (row) => {
+        (row.payload as Record<string, unknown>).config = null;
+      },
+    ],
+    [
+      'inconsistent instruction',
+      (row) => {
+        row.instructionText = 'contradiction';
+      },
+    ],
+    [
+      'inconsistent source field',
+      (row) => {
+        row.instructionSourceField = 'defaultInstructions';
+      },
+    ],
+    [
+      'inconsistent usability',
+      (row) => {
+        row.instructionUsable = false;
+      },
+    ],
+    [
+      'malformed content hash',
+      (row) => {
+        row.contentHash = 'unqualified';
+      },
+    ],
+    [
+      'malformed instruction hash',
+      (row) => {
+        row.instructionHash = 'unqualified';
+      },
+    ],
+    [
+      'malformed timestamp',
+      (row) => {
+        row.createdAt = new Date(NaN);
+      },
+    ],
+  ];
+  for (const [name, corrupt] of corruptions) {
+    it(`fails closed on candidate ${name} without silently skipping or scanning`, async () => {
+      const f = fixture();
+      corrupt(f.rows[1]);
+      if (f.rows[1].skillId !== 'skill')
+        f.prisma.skillVersion.findMany.mockResolvedValueOnce([f.rows[1]]);
+      await expect(
+        f.service.listVersions(actor, 'skill', {
+          limit: 1,
+          beforeVersionNumber: 3,
+        }),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        f.service.getVersion(actor, 'skill', 'sv1_skill_2'),
+      ).rejects.toThrow(NotFoundException);
+      expect(f.prisma.skillVersion.findMany).toHaveBeenCalledTimes(1);
+    });
+  }
+  it('accepts metadata-only edits retaining immutable package identity', async () => {
+    const f = fixture();
+    const config = immutableConfig(f.rows[1]);
+    config.name = 'new historical metadata';
+    config.description = 'changed description';
+    expect(
+      (await f.service.getVersion(actor, 'skill', 'sv1_skill_2'))
+        .instructionText,
+    ).toBe('edited 2');
+  });
+  it('denies inconsistent personal ownership and organization governors without read fallback', async () => {
+    for (const ownerKind of ['user', 'organization', 'brand']) {
+      const f = fixture();
+      f.parent.ownerKind = ownerKind;
+      f.parent.organizationId = 'org';
+      if (ownerKind === 'brand') f.parent.brandId = 'brand';
+      f.prisma.member.findFirst.mockResolvedValue({
+        roleKey: 'admin',
+        brands: [],
+      });
+      await expect(f.service.listVersions(actor, 'skill', {})).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(f.prisma.skillAssignment.findMany).not.toHaveBeenCalled();
+    }
+  });
+  it('validates malformed lookahead evidence instead of advertising its history', async () => {
+    const f = fixture();
+    immutableConfig(f.rows[1]).importProvenance = null;
+    await expect(
+      f.service.listVersions(actor, 'skill', { limit: 1 }),
+    ).rejects.toThrow(NotFoundException);
+  });
+  it('requires actual same-skill genesis1 and rejects mutable config certificates', async () => {
+    const f = fixture();
+    f.parent.config = immutableConfig(f.rows[0]);
+    f.rows[0].payload = { config: { source: 'custom' } };
+    await expect(f.service.listVersions(actor, 'skill', {})).rejects.toThrow(
+      NotFoundException,
+    );
+    f.rows.shift();
+    await expect(
+      f.service.getVersion(actor, 'skill', 'sv1_skill_2'),
+    ).rejects.toThrow(NotFoundException);
+  });
+  it('uses the actual ranked read loader singleton, never use-only/assignments/current draft/grant union', async () => {
+    const f = fixture();
+    f.grant(3, 'user', 'use');
+    f.grant(1, 'organization');
+    f.grant(2, 'user');
+    f.grant(3, 'brand');
+    f.prisma.skillAssignment.findMany.mockResolvedValue([
+      {
+        skillId: 'skill',
+        skillVersionId: 'sv1_skill_3',
+        targetKind: 'user',
+        userId: 'reader',
+      },
+    ]);
+    expect(await f.service.listVersions(reader, 'skill', {})).toMatchObject({
+      items: [{ id: 'sv1_skill_2' }],
+      hasMore: false,
+      nextCursor: null,
+    });
+    expect(f.prisma.skillAssignment.findMany).toHaveBeenCalled();
+    expect(f.prisma.skillVersion.findMany).toHaveBeenCalledWith({
+      where: { id: { in: ['sv1_skill_2'] } },
+    });
+    await expect(
+      f.service.getVersion(reader, 'skill', 'sv1_skill_1'),
+    ).rejects.toThrow(NotFoundException);
+    await expect(
+      f.service.getVersion(reader, 'skill', 'sv1_skill_3'),
+    ).rejects.toThrow(NotFoundException);
+    expect(
+      await f.service.listVersions(reader, 'skill', { beforeVersionNumber: 2 }),
+    ).toEqual({ items: [], limit: 20, hasMore: false, nextCursor: null });
+  });
+  it('retains organization and authenticated-brand read precedence with no inferred brand', async () => {
+    const f = fixture();
+    f.grant(1, 'organization');
+    f.grant(2, 'brand');
+    expect(
+      (await f.service.listVersions(reader, 'skill', {})).items[0].id,
+    ).toBe('sv1_skill_1');
+    f.prisma.member.findFirst.mockResolvedValue({
+      id: 'member',
+      roleKey: 'member',
+      brands: [{ id: 'brand' }],
+    });
+    expect(
+      (
+        await f.service.listVersions(
+          { ...reader, brandId: 'brand' },
+          'skill',
+          {},
+        )
+      ).items[0].id,
+    ).toBe('sv1_skill_2');
+  });
+  for (const denied of [
+    'use-only',
+    'revoked',
+    'wrong-user',
+    'wrong-org',
+    'brand-without-context',
+    'loader-missing-row',
+  ]) {
+    it(`denies nongovernor ${denied} even when cursor would exclude the snapshot`, async () => {
+      const f = fixture();
+      f.grant(2);
+      if (denied === 'use-only') f.grants[0].access = 'use';
+      if (denied === 'revoked') f.grants[0].revokedAt = new Date();
+      if (denied === 'wrong-user') f.grants[0].recipientUserId = 'foreign';
+      if (denied === 'wrong-org') {
+        f.grants[0].recipientKind = 'organization';
+        f.grants[0].recipientOrganizationId = 'foreign';
+      }
+      if (denied === 'brand-without-context')
+        f.grants[0].recipientKind = 'brand';
+      if (denied === 'loader-missing-row') f.rows.splice(1, 1);
+      await expect(
+        f.service.listVersions(reader, 'skill', { beforeVersionNumber: 1 }),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        f.service.getVersion(reader, 'skill', 'sv1_skill_2'),
+      ).rejects.toThrow(NotFoundException);
+    });
+  }
+  for (const pointer of ['public', 'shared', 'catalog']) {
+    it(`reads existing ${pointer} pinned body with newer draft present and no extra history`, async () => {
+      const f = fixture();
+      if (pointer === 'public') {
+        f.parent.audience = 'public';
+        f.parent.publishedVersionId = 'sv1_skill_1';
+      }
+      if (pointer === 'shared') {
+        f.parent.ownerKind = 'organization';
+        f.parent.organizationId = 'org';
+        f.parent.audience = 'organization';
+        f.parent.sharedVersionId = 'sv1_skill_1';
+      }
+      if (pointer === 'catalog') {
+        f.parent.ownerKind = 'system';
+        f.parent.config = { source: 'built_in', isBuiltIn: true };
+        f.parent.currentVersionId = 'sv1_skill_1';
+      }
+      if (pointer === 'public') f.parent.config = immutableConfig(f.rows[0]);
+      expect(
+        (await f.service.listVersions(reader, 'skill', {})).items,
+      ).toHaveLength(1);
+      expect(
+        (await f.service.getVersion(reader, 'skill', 'sv1_skill_1'))
+          .instructionText,
+      ).toBe('original');
+      await expect(
+        f.service.getVersion(reader, 'skill', 'sv1_skill_3'),
+      ).rejects.toThrow(NotFoundException);
+    });
+  }
+  for (const scope of [
+    'user',
+    'organization',
+    'member',
+    'brand',
+    'brand-access',
+    'deleted-parent',
+    'quarantined-parent',
+    'missing-parent',
+  ]) {
+    it(`reauthorizes live ${scope} on every list/read with uniform404`, async () => {
+      const f = fixture();
+      if (scope === 'user') f.prisma.user.findFirst.mockResolvedValue(null);
+      if (scope === 'organization')
+        f.prisma.organization.findFirst.mockResolvedValue(null);
+      if (scope === 'member') f.prisma.member.findFirst.mockResolvedValue(null);
+      if (scope === 'brand') f.prisma.brand.findFirst.mockResolvedValue(null);
+      if (scope === 'deleted-parent') f.parent.isDeleted = true;
+      if (scope === 'quarantined-parent') f.parent.isQuarantined = true;
+      if (scope === 'missing-parent')
+        f.prisma.skill.findFirst.mockResolvedValue(null);
+      const scoped = scope.startsWith('brand')
+        ? { ...actor, brandId: 'brand' }
+        : actor;
+      await expect(
+        f.service.listVersions(scoped, 'skill', {}),
+      ).rejects.toMatchObject({ status: 404 });
+      await expect(
+        f.service.getVersion(scoped, 'skill', 'sv1_skill_2'),
+      ).rejects.toMatchObject({ status: 404 });
+      expect(f.prisma.user.findFirst).toHaveBeenCalledWith({
+        where: { id: actor.userId, isDeleted: false },
+        select: { id: true },
+      });
+      expect(f.prisma.member.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            userId: actor.userId,
+            organizationId: 'org',
+            isDeleted: false,
+            isActive: true,
+          },
+        }),
+      );
+    });
+  }
+  it('rejects foreign IDs, malformed limits and no-read callers with the canonical error shape', async () => {
+    const f = fixture();
+    await expect(
+      f.service.getVersion(actor, 'skill', 'sv1_foreign_2'),
+    ).rejects.toMatchObject({
+      response: {
+        detail: 'Skill version not found',
+        title: 'Resource Not Found',
+      },
+    });
+    await expect(
+      f.service.listVersions(actor, 'skill', { limit: 51 }),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(
+      f.service.listVersions(reader, 'skill', {}),
+    ).rejects.toMatchObject({
+      response: {
+        detail: 'Skill version not found',
+        title: 'Resource Not Found',
+      },
+    });
+  });
+  it('reauthorizes successive pointer/grant/scope requests and performs no writes/capture/provider operations', async () => {
+    const f = fixture();
+    f.grant(2);
+    await f.service.listVersions(reader, 'skill', {});
+    await f.service.getVersion(reader, 'skill', 'sv1_skill_2');
+    f.grants[0].revokedAt = new Date();
+    await expect(
+      f.service.getVersion(reader, 'skill', 'sv1_skill_2'),
+    ).rejects.toThrow(NotFoundException);
+    for (const spy of Object.values(f.write))
+      expect(spy).not.toHaveBeenCalled();
+    expect(f.prisma.$transaction).not.toHaveBeenCalled();
+    expect(f.prisma.$executeRaw).not.toHaveBeenCalled();
+    expect(f.prisma.$queryRaw).not.toHaveBeenCalled();
   });
 });
