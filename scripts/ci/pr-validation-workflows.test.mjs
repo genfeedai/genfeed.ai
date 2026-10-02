@@ -22,8 +22,8 @@ const CANCELLABLE_PULL_REQUEST_WORKFLOWS = [
   'curated-action-catalog.yml',
   'link-check.yml',
   'playwright-coverage-policy.yml',
-  'pr-full-suite.yml',
-  'selfhosted-install-smoke.yml',
+  'pr-heavy-ci.yml',
+  'selfhosted-install-contract.yml',
   'server-image-pr.yml',
   'visual-code-isolation.yml',
 ];
@@ -150,7 +150,6 @@ test('enforces executable contracts through the aggregate suite', () => {
   );
   for (const contractTest of [
     'scripts/ci/hosted-saas-handoff.test.mjs',
-    'scripts/ci/dispatch-hosted-saas.test.mjs',
     'scripts/ci/pr-validation-workflows.test.mjs',
   ]) {
     assert.match(
@@ -363,7 +362,7 @@ test('reusable CI callers grant the failure tracker permission ceiling', () => {
   // schedule-only tracker would be skipped for that caller's event.
   for (const [fileName, jobId] of [
     ['full-suite.yml', 'ci'],
-    ['pr-full-suite.yml', 'full-suite'],
+    ['pr-heavy-ci.yml', 'full-suite'],
   ]) {
     const caller = jobBlock(readWorkflow(fileName), jobId, fileName);
 
@@ -472,20 +471,24 @@ test('reports curated action catalog changes on catalog pull requests', () => {
   assert.match(workflow, /--summary="\$GITHUB_STEP_SUMMARY"/m);
 });
 
-test('runs desktop QA nightly and for release callers', () => {
+test('runs desktop QA weekly and for release callers', () => {
   const workflow = readWorkflow('desktop-qa.yml');
 
   // The desktop shell boots the apps/app bundle, so an honest PR path filter
   // matched effectively every frontend PR — each paying a ~30 min
-  // macos-latest run while the desktop surface is dormant. Nightly bounds
-  // drift to one day; the release path keeps its mandatory run via
+  // macos-latest run while the desktop surface is dormant. Weekly QA bounds
+  // drift while dormant; the release path keeps its mandatory run via
   // workflow_call from desktop-release.yml.
   assert.doesNotMatch(
     workflow,
     /^ {2}pull_request:/m,
     'desktop-qa.yml must not run per pull request while the surface is dormant',
   );
-  assert.match(workflow, /^ {2}schedule:\n {4}- cron: /m);
+  assert.match(workflow, /cron: '17 3 \* \* 1'/);
+  assert.match(
+    workflow,
+    /group: desktop-qa-\$\{\{ github.workflow \}\}-\$\{\{ github.ref \}\}-\$\{\{ github.event_name \}\}/,
+  );
   assert.match(workflow, /^ {2}workflow_dispatch:$/m);
   assert.match(workflow, /^ {2}workflow_call:$/m);
 });
@@ -600,7 +603,7 @@ test('weekly dependency updates preserve one tracked pull request', () => {
 
 test('ordinary labels do not restart CI and full-suite has an isolated dispatcher', () => {
   const ci = readWorkflow('ci.yml');
-  const dispatcher = readWorkflow('pr-full-suite.yml');
+  const dispatcher = readWorkflow('pr-heavy-ci.yml');
 
   assert.match(
     ci,
@@ -610,6 +613,12 @@ test('ordinary labels do not restart CI and full-suite has an isolated dispatche
   assert.match(ci, /--run-heavy "\$\{\{ steps\.tier\.outputs\.heavy \}\}"/);
 
   assert.match(dispatcher, /^ {4}types: \[labeled\]$/m);
+  assert.ok(
+    dispatcher.includes(
+      "group: pr-heavy-ci-${{ github.event.pull_request.number }}-${{ (github.event.label.name == 'full-suite' || github.event.label.name == 'run-ci') && 'heavy' || format('label-{0}', github.event.label.name) }}",
+    ),
+    'both heavy labels share a per-PR group; unrelated skipped label events stay isolated',
+  );
   assert.match(dispatcher, /if: github\.event\.label\.name == 'full-suite'/);
   assert.match(dispatcher, /uses: \.\/\.github\/workflows\/ci\.yml/);
   assert.match(dispatcher, /^ {6}run_heavy_tests: true$/m);
@@ -697,7 +706,7 @@ test('reusable full-suite callers preserve planner applicability at the tests ga
     );
   }
 
-  for (const caller of ['full-suite.yml', 'pr-full-suite.yml']) {
+  for (const caller of ['full-suite.yml', 'pr-heavy-ci.yml']) {
     assert.match(
       readWorkflow(caller),
       /uses: \.\/\.github\/workflows\/ci\.yml/,
@@ -730,7 +739,10 @@ test('keeps E2E workflow concurrency while queueing the full reporter job', () =
     '- name: Create or update bounded nightly-failure trackers',
   )[1];
   assert.match(step, /REPOSITORY_TOKEN: \$\{\{ github.token \}\}/u);
-  assert.match(step, /github-token: \$\{\{ secrets.CONSOLE_DEPLOY_TOKEN \}\}/u);
+  assert.match(
+    step,
+    /github-token: \$\{\{ secrets.CONSOLE_DEPLOY_TOKEN \|\| github\.token \}\}/u,
+  );
   assert.doesNotMatch(step, /continue-on-error:/u);
 });
 
@@ -748,7 +760,13 @@ test('serializes reusable build verification without cancelling another caller',
 test('release waits for exact-SHA Full Suite evidence in the existing validation step', () => {
   const workflow = readWorkflow('release.yml');
   const validateRelease = jobBlock(workflow, 'validate-release', 'release.yml');
+  const verifySuite = jobBlock(workflow, 'verify-suite', 'release.yml');
 
+  assert.match(
+    verifySuite,
+    /^ {4}uses: \.\/\.github\/workflows\/full-suite\.yml$/m,
+  );
+  assert.match(verifySuite, /^ {4}with:\n {6}run_runtime_acceptance: true$/m);
   assert.match(validateRelease, /^ {4}timeout-minutes: 35$/m);
   assert.match(
     validateRelease,
@@ -767,8 +785,23 @@ test('pins mocked core E2E builds to Community mode', () => {
 
   assert.match(
     frontendJob,
-    /name: Build app[\s\S]*?NEXT_PUBLIC_PLAYWRIGHT_TEST: "true"[\s\S]*?NEXT_PUBLIC_GENFEED_CLOUD: "false"[\s\S]*?NEXT_PUBLIC_API_ENDPOINT: https:\/\/api\.genfeed\.ai\/v1/,
+    /uses: \.\/\.github\/actions\/setup-playwright-app/,
   );
+  const setup = readFileSync(
+    path.join(
+      REPOSITORY_ROOT,
+      '.github/actions/setup-playwright-app/action.yml',
+    ),
+    'utf8',
+  );
+  assert.match(setup, /NEXT_PUBLIC_GENFEED_CLOUD: 'false'/);
+  assert.match(setup, /default: https:\/\/api\.genfeed\.ai\/v1/);
+  assert.match(setup, /test-mode:[\s\S]*?default: 'true'/);
+  assert.match(
+    setup,
+    /NEXT_PUBLIC_PLAYWRIGHT_TEST: \$\{\{ inputs.test-mode \}\}/,
+  );
+  assert.match(setup, /E2E_COVERAGE: '1'/);
 });
 
 test('bundle report publishing isolates write credentials from PR build code', () => {
@@ -778,7 +811,7 @@ test('bundle report publishing isolates write credentials from PR build code', (
   assert.match(measure, /permissions:\n {6}contents: read\n {4}strategy:/);
   assert.doesNotMatch(measure, /: write/);
   assert.match(measure, /uses: actions\/upload-artifact@/);
-  assert.match(comment, /needs: measure/);
+  assert.match(comment, /needs: \[detect, measure\]/);
   assert.match(
     comment,
     /github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository/,
@@ -803,6 +836,7 @@ test('dataset diagnostic freezes inspected control before the exact candidate ch
     assert.ok(service && job);
     assert.equal(job, service);
   }
+  assert.match(workflow, /uses: \.\/\.control-actions\/setup-bun-env/);
   assert.match(workflow, /^ {2}workflow_dispatch:/m);
   assert.doesNotMatch(
     workflow,
@@ -1058,12 +1092,16 @@ test('final Full Suite forwards full API discovery only with explicit runtime ac
     e2e,
     /run_api_full:\n\s+description:[^\n]*\n\s+type: boolean\n\s+required: false\n\s+default: false/,
   );
-  for (const caller of ['pr-full-suite.yml', 'release.yml']) {
-    assert.doesNotMatch(
-      readWorkflow(caller),
-      /run_api_full: true|run_runtime_acceptance: true/,
-    );
-  }
+  assert.doesNotMatch(
+    readWorkflow('pr-heavy-ci.yml'),
+    /run_api_full: true|run_runtime_acceptance: true/,
+  );
+  const releaseSuite = jobBlock(
+    readWorkflow('release.yml'),
+    'verify-suite',
+    'release.yml',
+  );
+  assert.match(releaseSuite, /^ {4}with:\n {6}run_runtime_acceptance: true$/m);
 });
 
 test('dedicated production agent and BRAND jobs preserve full-tier selection and immutable receipt gates', () => {

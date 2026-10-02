@@ -5,10 +5,10 @@ on:
   pull_request:
     paths:
       - ".github/workflows/_publish-selfhosted-core.yml"
-      - ".github/workflows/docker-publish.yml"
+      - ".github/workflows/publish-selfhosted-recovery.yml"
       - ".github/workflows/e2e-selfhosted-release.yml"
       - ".github/workflows/release.yml"
-      - ".github/workflows/selfhosted-install-smoke.yml"
+      - ".github/workflows/selfhosted-install-contract.yml"
       - "docker/.env.example"
       - "docker/README.selfhosted-release.md"
       - "docker/docker-compose.selfhosted.yml"

@@ -5833,8 +5833,16 @@ test('dataset diagnostic resolves setup action from the control revision', async
     .split('- name: Setup Bun environment')[1]
     ?.split('\n      - name:')[0];
   assert.ok(setup);
-  assert.match(setup, /uses: \$\/\.github\/actions\/setup-bun-env/u);
-  assert.doesNotMatch(setup, /uses: \.\//u);
+  assert.match(setup, /uses: \.\/\.control-actions\/setup-bun-env/u);
+  assert.match(
+    workflow,
+    /cp -R \.github\/actions\/setup-bun-env "\$RUNNER_TEMP\/setup-bun-env-control"/u,
+  );
+  assert.match(workflow, /test ! -e \.control-actions/u);
+  assert.match(
+    workflow,
+    /cp -R "\$RUNNER_TEMP\/setup-bun-env-control" \.control-actions\/setup-bun-env/u,
+  );
   assert.ok(
     workflow.indexOf('- name: Checkout exact dataset candidate') <
       workflow.indexOf('- name: Setup Bun environment'),

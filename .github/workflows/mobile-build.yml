@@ -1,8 +1,12 @@
-name: Mobile - EAS Build
+name: Mobile - Validate and EAS Build
 
 on:
   workflow_dispatch:
     inputs:
+      build:
+        description: Start remote EAS builds (otherwise validate and test only)
+        type: boolean
+        default: false
       platform:
         description: 'Platform to build'
         required: true
@@ -24,8 +28,6 @@ on:
   push:
     tags:
       - 'mobile-v*'
-    paths:
-      - 'apps/mobile/**'
 
 concurrency:
   group: mobile-build-${{ github.ref }}
@@ -48,10 +50,17 @@ jobs:
         with:
           node-version: "24.x"
 
+      - name: Validate delivery version
+        run: node scripts/ci/delivery-readiness.mjs mobile
+
+      - name: Build workspace dependencies
+        run: bunx turbo run build --filter=@genfeedai/mobile^...
+
       - name: Run mobile tests
-        run: bun run test --filter="./apps/mobile/*"
+        run: bun run --cwd apps/mobile/app test
 
   build:
+    if: github.event_name == 'push' || inputs.build
     name: EAS Build
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -62,24 +71,31 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: "24.x"
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+
+      - name: Validate Expo project linkage
+        working-directory: .
+        env:
+          REMOTE_BUILD: 'true'
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PROJECT_ID: ${{ vars.EXPO_PROJECT_ID }}
+        run: node scripts/ci/delivery-readiness.mjs mobile
 
       - name: Setup EAS
         uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # 9.0.0
         with:
           eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Build iOS
         if: github.event.inputs.platform == 'ios' || github.event.inputs.platform == 'all' || github.event_name == 'push'
-        run: eas build --platform ios --profile ${{ github.event.inputs.profile || 'preview' }} --non-interactive
+        run: eas build --platform ios --profile ${{ github.event.inputs.profile || 'production' }} --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Build Android
         if: github.event.inputs.platform == 'android' || github.event.inputs.platform == 'all' || github.event_name == 'push'
-        run: eas build --platform android --profile ${{ github.event.inputs.profile || 'preview' }} --non-interactive
+        run: eas build --platform android --profile ${{ github.event.inputs.profile || 'production' }} --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}

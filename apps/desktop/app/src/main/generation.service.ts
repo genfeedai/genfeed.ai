@@ -10,7 +10,7 @@ import type {
   IDesktopWorkflowGenerationOptions,
   IDesktopWorkflowGenerationResult,
 } from '@genfeedai/contracts/desktop';
-import { sleep } from '@genfeedai/helpers';
+import { sleep } from '@genfeedai/helpers/async/sleep';
 import {
   buildWorkflowGenerationMessages,
   buildWorkflowGenerationNodeTypes,

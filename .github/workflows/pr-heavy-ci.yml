@@ -1,4 +1,4 @@
-name: PR Full Suite
+name: PR Heavy CI
 
 on:
   pull_request:
@@ -6,7 +6,7 @@ on:
     types: [labeled]
 
 concurrency:
-  group: pr-full-suite-${{ github.event.pull_request.number }}
+  group: pr-heavy-ci-${{ github.event.pull_request.number }}-${{ (github.event.label.name == 'full-suite' || github.event.label.name == 'run-ci') && 'heavy' || format('label-{0}', github.event.label.name) }}
   cancel-in-progress: true
 
 permissions:
@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   full-suite:
-    name: Dispatch Full Suite
+    name: Run Heavy CI
     if: github.event.label.name == 'full-suite' || github.event.label.name == 'run-ci'
     # GitHub validates nested permissions before evaluating job conditions.
     # Match the failure tracker's ceiling even though PRs skip that job.

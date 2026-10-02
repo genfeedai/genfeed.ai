@@ -1,10 +1,10 @@
-name: IDE Extension CI
+name: Package IDE Extension
 
 on:
   workflow_dispatch:
 
 concurrency:
-  group: ide-extension-ci-${{ github.ref }}
+  group: package-ide-extension-${{ github.ref }}
   cancel-in-progress: true
 
 # Least-privilege default token; jobs that need more request it explicitly.

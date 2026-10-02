@@ -12,7 +12,7 @@
 # the GitHub release becomes public. Building alone is not enough: v0.5.0 built
 # fine and still shipped a broken LOCAL-mode root, red for days, because nothing
 # booted the image before publish.
-name: Build Verify (Self-Hosted)
+name: Verify Self-Hosted Runtime
 
 on:
   workflow_dispatch:

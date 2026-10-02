@@ -54,11 +54,10 @@ const ENTRY_SECRETS = ENGINE_SECRETS;
 const VERIFY_SUITE_ACCEPTANCE =
   /\(needs\.verify-suite\.result == 'success' \|\|\n\s+\(needs\.verify-suite\.result == 'skipped' &&\n\s+needs\.validate-release\.outputs\.suite_verified == 'true'\)\)/;
 
-function assertDeployGate(jobYaml, laneCondition) {
+function assertDeployGate(jobYaml) {
   for (const condition of [
     /!cancelled\(\)/,
     /inputs\.recovery_run_id == ''/,
-    laneCondition,
     /needs\.validate-release\.result == 'success'/,
     VERIFY_SUITE_ACCEPTANCE,
   ]) {
@@ -106,12 +105,14 @@ function reusableCallBlock(yaml, workflowPath) {
   return match[1];
 }
 
-test('defaults hosted SaaS compute to the public monorepo reusable workflow', () => {
-  assert.match(releaseWorkflow, /default: monorepo/);
-  assert.match(releaseWorkflow, /saas_lane:/);
+test('hosted SaaS has one public deployment lane', () => {
+  assert.doesNotMatch(
+    releaseWorkflow,
+    /saas_lane:|deploy-saas-via-operations|CONSOLE_REPOSITORY/,
+  );
 
   const deploy = jobBlock('deploy-saas');
-  assertDeployGate(deploy, /inputs\.saas_lane != 'operations'/);
+  assertDeployGate(deploy);
   assert.match(
     deploy,
     /uses: \.\/\.github\/workflows\/deploy-hosted-saas\.yml/,
@@ -123,39 +124,6 @@ test('defaults hosted SaaS compute to the public monorepo reusable workflow', ()
   assert.deepEqual(jobSecretMapping(deploy), ENGINE_SECRETS);
   assert.doesNotMatch(deploy, /node scripts\/ci\/dispatch-hosted-saas\.mjs/);
   assert.doesNotMatch(deploy, /CONSOLE_DEPLOY_TOKEN/);
-});
-
-test('keeps the private operations dispatch as an explicit fallback lane', () => {
-  const deploy = jobBlock('deploy-saas-via-operations');
-
-  assertDeployGate(deploy, /inputs\.saas_lane == 'operations'/);
-  assert.match(deploy, /CONSOLE_REPOSITORY: genfeedai\/console\.genfeed\.ai/);
-  assert.match(deploy, /CONSOLE_WORKFLOW: deploy-hosted-saas\.yml/);
-  assert.match(deploy, /GH_TOKEN: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \}\}/);
-  assert.match(
-    deploy,
-    /RELEASE_SHA: \$\{\{ needs\.validate-release\.outputs\.release_sha \}\}/,
-  );
-  assert.match(
-    deploy,
-    /ref: \$\{\{ needs\.validate-release\.outputs\.release_sha \}\}/,
-  );
-  assert.match(deploy, /node scripts\/ci\/dispatch-hosted-saas\.mjs/);
-  assert.doesNotMatch(deploy, /inputs\[release_sha\]=/);
-  assert.doesNotMatch(deploy, /_deploy-ecs-core/);
-});
-
-test('fails closed while correlating and waiting for private deployment', () => {
-  const deploy = jobBlock('deploy-saas-via-operations');
-
-  assert.match(deploy, /display_title == \$title/);
-  assert.match(deploy, /event == "workflow_dispatch"/);
-  assert.match(deploy, /head_branch == "master"/);
-  assert.match(deploy, /Ambiguous private deploy handoff/);
-  assert.match(deploy, /No private deployment run matched/);
-  assert.match(deploy, /Private run identity changed/);
-  assert.match(deploy, /conclusion\}" != "success"/);
-  assert.match(deploy, /deployment timed out after 170 minutes/);
 });
 
 test('public deploy workflow runs the in-repo engine and never calls console', () => {
@@ -189,11 +157,6 @@ test('public deploy workflow runs the in-repo engine and never calls console', (
 });
 
 test('validates Genfeed against master without private Marketplace access', () => {
-  const dispatchScript = readFileSync(
-    fileURLToPath(new URL('./dispatch-hosted-saas.mjs', import.meta.url)),
-    'utf8',
-  );
-
   assert.match(
     publicDeployWorkflow,
     /source_sha must be an exact lowercase 40-character Git commit SHA/,
@@ -207,8 +170,6 @@ test('validates Genfeed against master without private Marketplace access', () =
     publicDeployWorkflow,
     /marketplace-source|MARKETPLACE_DEPLOY_TOKEN/,
   );
-  assert.doesNotMatch(dispatchScript, /marketplace/i);
-  assert.match(dispatchScript, /\/\^\[0-9a-f\]\{40\}\$\//);
 });
 
 test('maps only declared hosted SaaS secrets across each workflow boundary', () => {
@@ -607,19 +568,11 @@ test('blocks irreversible promotion until normal or recovered SaaS evidence is e
       /needs:[\s\S]*deploy-saas/,
       `${jobId} must wait for deploy-saas`,
     );
+    assert.match(block, /needs\.deploy-saas\.result == 'success'/);
+    assert.doesNotMatch(block, /deploy-saas-via-operations/);
     assert.match(
       block,
-      /deploy-saas-via-operations/,
-      `${jobId} must also depend on the operations lane job`,
-    );
-    assert.match(
-      block,
-      /needs\.deploy-saas\.result == 'success' \|\| needs\.deploy-saas-via-operations\.result == 'success'/,
-      `${jobId} must promote a normal release only when one SaaS lane succeeded`,
-    );
-    assert.match(
-      block,
-      /needs\.validate-release\.outputs\.recovery_mode == 'true'[\s\S]*needs\.validate-release\.outputs\.recovery_saas_verified == 'true'[\s\S]*needs\.deploy-saas\.result == 'skipped'[\s\S]*needs\.deploy-saas-via-operations\.result == 'skipped'/,
+      /needs\.validate-release\.outputs\.recovery_mode == 'true'[\s\S]*needs\.validate-release\.outputs\.recovery_saas_verified == 'true'[\s\S]*needs\.deploy-saas\.result == 'skipped'/,
       `${jobId} must promote a recovery only from validated historical SaaS evidence`,
     );
   }

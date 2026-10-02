@@ -64,6 +64,7 @@ jobs:
           test ! -e "$CONTROL_RUNNER"
           umask 077
           cp scripts/ci/runtime-acceptance.mjs "$CONTROL_RUNNER"
+          cp -R .github/actions/setup-bun-env "$RUNNER_TEMP/setup-bun-env-control"
       - name: Checkout exact dataset candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -77,8 +78,14 @@ jobs:
             test -f "apps/server/api/src/collections/content-learning/services/$file"
             test ! -L "apps/server/api/src/collections/content-learning/services/$file"
           done
+      - name: Restore inspected setup action
+        run: |
+          set -euo pipefail
+          test ! -e .control-actions
+          mkdir .control-actions
+          cp -R "$RUNNER_TEMP/setup-bun-env-control" .control-actions/setup-bun-env
       - name: Setup Bun environment
-        uses: $/.github/actions/setup-bun-env
+        uses: ./.control-actions/setup-bun-env
       - name: Build packages
         run: bunx turbo run build --filter="./packages/*"
       - name: Run bounded dataset diagnostic with frozen controller

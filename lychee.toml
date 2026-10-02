@@ -50,6 +50,9 @@ exclude_path = ["node_modules", ".next", "dist", "build", ".turbo"]
 #   pages, so our own published @genfeedai/* links read as dead).
 # - Badge CDNs are cosmetic and intermittently return 408 to non-browser checks.
 exclude = [
+  # This credential dashboard requires sign-in; anonymous checks return 403.
+  # Keep ElevenLabs public docs checked rather than excluding the whole host.
+  "^https://elevenlabs\\.io/app/settings/api-keys(?:[?#].*)?$",
   "^https://genfeed\\.ai",
   "^https?://localhost",
   "^https?://127\\.0\\.0\\.1",

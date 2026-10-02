@@ -218,7 +218,6 @@ export function validateReleaseRecoveryEvidence({
   releases,
   requestedRepository,
   requestedRunId,
-  requestedSaasLane,
   requestedTag,
   run,
 }) {
@@ -287,26 +286,8 @@ export function validateReleaseRecoveryEvidence({
     requireUniqueJob(jobs, jobName, 'success', releaseSha);
   }
 
-  if (requestedSaasLane === 'monorepo') {
-    for (const jobName of PUBLIC_SAAS_JOBS) {
-      requireUniqueJob(jobs, jobName, 'success', releaseSha);
-    }
-    requireUniqueJob(
-      jobs,
-      'Deploy hosted SaaS through private operations',
-      'skipped',
-      releaseSha,
-    );
-  } else if (requestedSaasLane === 'operations') {
-    requireUniqueJob(jobs, 'Deploy hosted SaaS', 'skipped', releaseSha);
-    requireUniqueJob(
-      jobs,
-      'Deploy hosted SaaS through private operations',
-      'success',
-      releaseSha,
-    );
-  } else {
-    fail(`Unsupported SaaS lane ${requestedSaasLane}.`);
+  for (const jobName of PUBLIC_SAAS_JOBS) {
+    requireUniqueJob(jobs, jobName, 'success', releaseSha);
   }
 
   requireUniqueJob(
@@ -376,7 +357,6 @@ export function runReleaseRecoveryCli({
   try {
     const runId = env.RECOVERY_RUN_ID ?? '';
     const repository = env.GITHUB_REPOSITORY ?? '';
-    const requestedSaasLane = env.REQUESTED_SAAS_LANE ?? '';
     const requestedTag = env.REQUESTED_TAG ?? '';
     if (!/^[1-9][0-9]*$/.test(runId)) {
       fail('recovery_run_id must be a positive numeric GitHub Actions run ID.');
@@ -386,9 +366,6 @@ export function runReleaseRecoveryCli({
     }
     if (!/^v[0-9]+\.[0-9]+\.[0-9]+$/.test(requestedTag)) {
       fail('Recovery requires an exact stable release tag.');
-    }
-    if (!['monorepo', 'operations'].includes(requestedSaasLane)) {
-      fail(`Unsupported SaaS lane ${requestedSaasLane}.`);
     }
     const run = runGhJson(
       ['api', `repos/${repository}/actions/runs/${runId}`],
@@ -417,7 +394,6 @@ export function runReleaseRecoveryCli({
       releases: releasePages.flat(),
       requestedRepository: repository,
       requestedRunId: runId,
-      requestedSaasLane,
       requestedTag,
       run,
     });
@@ -451,7 +427,7 @@ export function runReleaseRecoveryCli({
           `- Release: \`${requestedTag}\``,
           `- Pinned SHA: \`${evidence.releaseSha}\``,
           '- Full Suite: proved green from the prior run',
-          `- Hosted SaaS (${requestedSaasLane}): proved green from the prior run`,
+          '- Public hosted SaaS: proved green from the prior run',
           '- Community image: prior build/push proved green; the exact image will be reused and reverified',
           '- Bundle build, smoke, and exact-image verification: proved green; only draft attachment failed',
           `- Failed attachment job: ${evidence.artifactJobId}`,

@@ -403,21 +403,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
+      - name: Build app for Playwright
+        uses: ./.github/actions/setup-playwright-app
         with:
-          node-version: "24.x"
-          install-command: "bun install --frozen-lockfile"
-          cache-playwright: "true"
-
-      - name: Build app (Playwright test mode + browser source maps)
-        run: bunx turbo run build --filter=@genfeedai/app
-        env:
-          E2E_COVERAGE: "1"
-          NEXT_PUBLIC_PLAYWRIGHT_TEST: "true"
-          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
-          NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
-          NEXT_PUBLIC_API_URL: http://localhost:3010
+          better-auth-secret: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
+          better-auth-enabled: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
 
       - name: Run E2E coverage shard ${{ matrix.shard }}/4
         id: coverage
@@ -516,7 +506,7 @@ jobs:
           RUN_ATTEMPT: ${{ github.run_attempt }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
-          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
+          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN || github.token }}
           script: |
             const repositoryGithub = getOctokit(process.env.REPOSITORY_TOKEN);
             const path = require('node:path');

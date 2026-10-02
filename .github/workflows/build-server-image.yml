@@ -1,26 +1,9 @@
-# Build Server Image — builds + pushes the unified production server image
-# (docker/Dockerfile.server) so DEPLOYS PULL A PRE-BUILT IMAGE instead of
-# building inline.
-#
-# Why this exists: the deploy used to build the image inside the deploy run, and
-# the shared `server:buildcache` was only written by those deploy builds — so it
-# went stale between deploys and every deploy paid a near-cold ~30-min build.
-# This workflow builds on master-push (async, non-blocking) and writes
-# `server:buildcache` (mode=max) every run via the composite, keeping layers hot
-# so builds drop to ~5-10 min and `server:<sha>` is ready before any deploy.
-#
-# Triggers:
-#   push:master (input-policy-gated) — publish `server:<sha>` + warm the cache for every
-#     server-affecting commit, preparing deployable server revisions.
-#   workflow_dispatch — manual/test rebuild. Pick `environment: staging` when
-#     testing to also label the candidate :staging.
-#   workflow_call — let release/preview callers build on demand.
-
+# Canonical immutable server image builder. Verify Server Runtime calls it on
+# master/release validation; weekly vulnerability scans reuse the same digest.
+# Manual dispatch remains available for staging candidates and recovery.
 name: Build Server Image
 
 on:
-  push:
-    branches: [master]
   workflow_dispatch:
     inputs:
       environment:
@@ -29,6 +12,13 @@ on:
         options: [production, staging]
         default: production
   workflow_call:
+    outputs:
+      image_digest:
+        description: Verified immutable server image manifest digest
+        value: ${{ jobs.build.outputs.image_digest }}
+    secrets:
+      SENTRY_AUTH_TOKEN:
+        required: false
     inputs:
       force_build:
         description: Build explicitly requested images even when the caller inherited an unchanged push range.
@@ -74,6 +64,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.changed == 'true'
     name: Build & Push Server Image
+    outputs:
+      image_digest: ${{ steps.image.outputs.image_digest }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     permissions:
@@ -86,6 +78,7 @@ jobs:
           persist-credentials: false
 
       - name: Build & push unified server image
+        id: image
         uses: ./.github/actions/build-unified-image
         with:
           image_prefix: ${{ github.repository }}
