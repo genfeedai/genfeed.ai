@@ -1,9 +1,31 @@
 import type { StoryboardCharacterReplacement } from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StoryboardCharacterReplace from './StoryboardCharacterReplace';
 
-const replaceStoryboardCharacter = vi.hoisted(() => vi.fn());
+const {
+  replaceStoryboardCharacter,
+  listStoryboardCharacterReplacements,
+  getStoryboardCharacterReplacementStatus,
+  getService,
+} = vi.hoisted(() => ({
+  replaceStoryboardCharacter: vi.fn(),
+  listStoryboardCharacterReplacements: vi.fn(),
+  getStoryboardCharacterReplacementStatus: vi.fn(),
+  getService: vi.fn(),
+}));
+beforeEach(() => {
+  vi.resetAllMocks();
+  listStoryboardCharacterReplacements.mockResolvedValue({
+    operations: [],
+    legacyReplacements: [],
+  });
+  getService.mockResolvedValue({
+    replaceStoryboardCharacter,
+    listStoryboardCharacterReplacements,
+    getStoryboardCharacterReplacementStatus,
+  });
+});
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
@@ -16,7 +38,7 @@ vi.mock(
   }),
 );
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({ replaceStoryboardCharacter }),
+  useAuthedService: () => getService,
 }));
 
 const saved: StoryboardCharacterReplacement = {
@@ -25,7 +47,7 @@ const saved: StoryboardCharacterReplacement = {
   limitations: [
     'Does not preserve the source audio track.',
     'Does not guarantee lip-sync.',
-    'Does not charge credits. Genjutsu stays inactive at cost 0.',
+    'This operation records zero application credits.',
   ],
   modelKey: 'higgsfield/genjutsu/motion-transfer/v1.0',
   requestId: 'req-saved',
@@ -49,9 +71,9 @@ describe('StoryboardCharacterReplace', () => {
       screen.getByText(/Does not preserve the source audio track/i),
     ).toBeTruthy();
     expect(screen.getByText(/Does not guarantee lip-sync/i)).toBeTruthy();
-    expect(screen.getByText(/Does not charge credits/i)).toBeTruthy();
+    expect(screen.getByText(/records zero application credits/i)).toBeTruthy();
     expect(screen.getByText(/req-saved/)).toBeTruthy();
-    expect(screen.getByText(/Charged credits: 0/)).toBeTruthy();
+    expect(screen.getByText(/Application credits recorded: 0/)).toBeTruthy();
   });
 
   it('submits the selected images and reports a generic failure', async () => {
@@ -78,8 +100,155 @@ describe('StoryboardCharacterReplace', () => {
       );
     });
     expect(
-      screen.getByText('Character replace did not start. Nothing was charged.'),
+      screen.getByText(
+        'The request could not be confirmed. Refresh requests to check its status.',
+      ),
     ).toBeTruthy();
     expect(screen.queryByText(/provider\.example/)).toBeNull();
+  });
+});
+
+describe('saved receipt inspection', () => {
+  const operation = {
+    ...saved,
+    operationId: 'f22c0c2f-59fa-41d8-b393-a808f65e0b52',
+    runId: 'run-1',
+    acceptedRequestIds: ['req-saved', 'req-second'],
+    association: 'detached',
+  };
+  it('shows unknown IDs and allows saved-status reads while generation is disabled', async () => {
+    const { requestId: _id, ...unknown } = operation;
+    listStoryboardCharacterReplacements.mockResolvedValue({
+      operations: [{ ...unknown, acceptedRequestIds: [] }],
+      legacyReplacements: [],
+    });
+    getStoryboardCharacterReplacementStatus.mockResolvedValue({
+      ...unknown,
+      acceptedRequestIds: [],
+    });
+    render(
+      <StoryboardCharacterReplace
+        brandId="brand-1"
+        runId="run-1"
+        shotId="shot-1"
+        isDisabled
+      />,
+    );
+    expect(
+      await screen.findByText('Provider request ID not yet available'),
+    ).toBeTruthy();
+    expect(screen.getByText(`Operation ${operation.operationId}`)).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Refresh saved status' }),
+    );
+    await waitFor(() =>
+      expect(getStoryboardCharacterReplacementStatus).toHaveBeenCalledTimes(1),
+    );
+    expect(replaceStoryboardCharacter).not.toHaveBeenCalled();
+    expect(screen.queryByText(/undefined/)).toBeNull();
+  });
+  it.each([
+    'https://fixture.invalid/result',
+    'http://fixture.invalid/result',
+    'javascript:alert(1)',
+    'https://user:secret@fixture.invalid/result',
+  ])('inspects temporary result %s safely', async (url) => {
+    listStoryboardCharacterReplacements.mockResolvedValue({
+      operations: [
+        {
+          ...operation,
+          status: 'ready',
+          output: { kind: 'provider_url', url, retained: false },
+          errorCode: 'private https://provider.invalid/secret',
+        },
+      ],
+      legacyReplacements: [],
+    });
+    render(
+      <StoryboardCharacterReplace
+        brandId="brand-1"
+        runId="run-1"
+        shotId="shot-1"
+      />,
+    );
+    expect(await screen.findByText('Request req-second')).toBeTruthy();
+    expect(
+      screen.getByText('This result has not been saved to Library.'),
+    ).toBeTruthy();
+    expect(screen.getByText('This request needs attention.')).toBeTruthy();
+    expect(screen.queryByText(/provider.invalid/)).toBeNull();
+    const link = screen.queryByRole('link', {
+      name: 'Open temporary provider result',
+    });
+    if (url === 'https://fixture.invalid/result') {
+      expect(link?.getAttribute('href')).toBe(url);
+      expect(link?.getAttribute('target')).toBe('_blank');
+      expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
+    } else expect(link).toBeNull();
+    expect(replaceStoryboardCharacter).not.toHaveBeenCalled();
+  });
+  it('historical cache rows retain safe output without offering operation refresh', async () => {
+    listStoryboardCharacterReplacements.mockResolvedValue({
+      operations: [],
+      legacyReplacements: [
+        {
+          ...saved,
+          operationId: operation.operationId,
+          output: {
+            kind: 'provider_url',
+            url: 'https://fixture.invalid/result',
+            retained: false,
+          },
+        },
+      ],
+    });
+    render(
+      <StoryboardCharacterReplace
+        brandId="brand-1"
+        runId="run-1"
+        shotId="shot-1"
+      />,
+    );
+    expect(await screen.findByText('Historical request')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Refresh status' })).toBeNull();
+    expect(screen.queryByText(/Operation /)).toBeNull();
+  });
+  it('resets form on scope change and preserves user edits on same-scope saved updates', async () => {
+    const { rerender } = render(
+      <StoryboardCharacterReplace
+        brandId="brand-1"
+        runId="run-1"
+        shotId="shot-1"
+        saved={{ ...saved, prompt: 'Original' }}
+      />,
+    );
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'User edit' },
+    });
+    rerender(
+      <StoryboardCharacterReplace
+        brandId="brand-1"
+        runId="run-1"
+        shotId="shot-1"
+        saved={{ ...saved, prompt: 'Saved changed' }}
+      />,
+    );
+    expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe(
+      'User edit',
+    );
+    rerender(
+      <StoryboardCharacterReplace
+        brandId="brand-1"
+        runId="run-2"
+        shotId="shot-2"
+        saved={{ ...saved, shotId: 'shot-2', prompt: 'New shot' }}
+      />,
+    );
+    await waitFor(() =>
+      expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe(
+        'New shot',
+      ),
+    );
+    expect(replaceStoryboardCharacter).not.toHaveBeenCalled();
   });
 });
