@@ -217,17 +217,17 @@ describe('authenticated immutable identity preview', () => {
     expect(s.tx.brandOsRevision.findMany).not.toHaveBeenCalled();
     s.noSideEffects();
   });
-  it.each([[], [revision(), revision('B')]])(
-    'rejects absent or ambiguous current approval %j',
-    async (rows) => {
-      const s = setup();
-      s.tx.brandOsRevision.findMany.mockResolvedValue(rows);
-      await expect(s.service.preview(actor)).rejects.toThrow(
-        'brand_identity_unavailable',
-      );
-      s.noSideEffects();
-    },
-  );
+  it.each([
+    { scenario: 'absent', rows: [] },
+    { scenario: 'ambiguous', rows: [revision(), revision('B')] },
+  ])('rejects $scenario current approval', async ({ rows }) => {
+    const s = setup();
+    s.tx.brandOsRevision.findMany.mockResolvedValue(rows);
+    await expect(s.service.preview(actor)).rejects.toThrow(
+      'brand_identity_unavailable',
+    );
+    s.noSideEffects();
+  });
   it.each([
     { organizationId: 'foreign' },
     { brandId: 'foreign' },
