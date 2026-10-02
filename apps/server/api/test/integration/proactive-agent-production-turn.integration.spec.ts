@@ -616,11 +616,11 @@ describe('proactive production turn acceptance', () => {
       expect(
         await fixture.platformQueue.getJobCounts(
           'waiting',
-          'paused',
           'active',
           'delayed',
         ),
-      ).toMatchObject({ active: 0, delayed: 0 });
+      ).toMatchObject({ waiting: 1, active: 0, delayed: 0 });
+      expect(await fixture.platformQueue.isPaused()).toBe(true);
       await fixture.platformQueue.resume();
       await assertSinglePaidExecution(actor, execution.id);
       expect(await fixture.dispatch(actor)).toEqual({ status: 'skipped' });

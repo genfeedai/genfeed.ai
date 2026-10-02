@@ -125,7 +125,9 @@ function createPinnedDispatchConnection(
   client: Client,
 ): ProactiveDispatchConnection {
   return {
-    connect: () => client.connect(),
+    connect: async () => {
+      await client.connect();
+    },
     acquire: async (key) => {
       const result = await client.query<{ acquired: boolean; pid: number }>(
         'SELECT pg_try_advisory_lock(hashtextextended($1, 0)) AS acquired, pg_backend_pid() AS pid',
