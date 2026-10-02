@@ -513,6 +513,7 @@ async function fixture(count = 0, realDependency = false) {
   };
   async function transaction<T>(
     apply: (tx: Prisma.TransactionClient) => Promise<T>,
+    _options?: { maxWait: number; timeout: number },
   ): Promise<T> {
     const savedBaselines = structuredClone(baselines),
       savedEdges = structuredClone(baselineEdges);
@@ -1125,6 +1126,10 @@ describe('immutable materializer with real selector/publication proof and explic
   it('T1 uses Fs first then exact scoped account and scope UPDATE locks, with no Post lock', async () => {
     const f = await fixture();
     await f.service.materialize(f.scope, f.cell, cutoff);
+    expect(f.root.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+      maxWait: 5_000,
+      timeout: 30_000,
+    });
     expect(f.trace.slice(0, 10)).toEqual([
       'F',
       'account',
@@ -1677,6 +1682,8 @@ describe('immutable materializer with real selector/publication proof and explic
       winner,
     );
     expect(f.root.$transaction).toHaveBeenCalledTimes(2);
+    for (const call of f.root.$transaction.mock.calls)
+      expect(call[1]).toEqual({ maxWait: 5_000, timeout: 30_000 });
     expect(f.create).toHaveBeenCalledTimes(1);
     expect(f.boundary.link).not.toHaveBeenCalled();
     expect(f.transactions[0].client).not.toBe(f.transactions[1].client);
