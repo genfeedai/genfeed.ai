@@ -388,7 +388,17 @@ describe('proactive dispatch failure accounting across real services', () => {
       expect(fixture.strategy.config.runHistory).toHaveLength(count);
       expect(fixture.strategy.isActive).toBe(count < 3);
       expect(fixture.executions.get(`run-${count}`)?.status).toBe('FAILED');
-      vi.advanceTimersByTime(31 * 60 * 1000);
+      if (count < 3) {
+        const nextRunAt = new Date(String(fixture.strategy.config.nextRunAt));
+        expect(Number.isFinite(nextRunAt.getTime())).toBe(true);
+        expect(nextRunAt.getTime()).toBeGreaterThan(Date.now());
+        await fixture.dispatch();
+        expect(fixture.queue.queueSystemWorkflow).toHaveBeenCalledTimes(count);
+        expect(fixture.executions.size).toBe(count);
+        expect(fixture.strategy.config.consecutiveFailures).toBe(count);
+        expect(fixture.strategy.config.runHistory).toHaveLength(count);
+        vi.setSystemTime(nextRunAt);
+      }
     }
     expect(fixture.executions.size).toBe(3);
     expect(fixture.queue.queueSystemWorkflow).toHaveBeenCalledTimes(3);

@@ -1375,10 +1375,19 @@ export default function StudioGenerateWorkspace(): ReactElement {
     if (type !== 'video' || pendingRestoredUploadIds) {
       return;
     }
-    const unsupportedRoles = new Set<StudioGenerateReferenceRole>();
-    const videoControls = models.find(
+    const selectedCrunModel = models.find(
       (model) => model.key === settings.modelKey && model.provider === 'crun',
-    )?.inputControls;
+    );
+    const videoControls = selectedCrunModel?.inputControls;
+    if (
+      settings.modelKey?.startsWith('crun/') &&
+      (isLoadingModels ||
+        !selectedCrunModel ||
+        videoControls?.mediaKind !== 'video')
+    ) {
+      return;
+    }
+    const unsupportedRoles = new Set<StudioGenerateReferenceRole>();
     const supportsInterpolation =
       videoControls?.mediaKind === 'video'
         ? videoControls.videoRules?.referenceMode === 'start-end'
@@ -1445,6 +1454,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     removeAttachment,
     settings.modelKey,
     models,
+    isLoadingModels,
     type,
   ]);
 

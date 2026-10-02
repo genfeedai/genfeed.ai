@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import * as dispatchLock from '@api/collections/workflows/services/agent-autopilot-dispatch-lock.util';
@@ -14,7 +15,11 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { PLATFORM_SYSTEM_WORKFLOW_QUEUE } from '@genfeedai/contracts/queue';
-import { CredentialPlatform, toPrismaJson } from '@genfeedai/prisma';
+import {
+  CredentialPlatform,
+  IngredientCategory,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import { PLATFORM_SCHEDULE_CATALOG } from '@workers/scheduling/platform-schedules.constants';
 import { PlatformSchedulesProcessor } from '@workers/scheduling/platform-schedules.processor';
 import { PlatformWorkflowSchedulesService } from '@workers/scheduling/platform-workflow-schedules.service';
@@ -22,6 +27,115 @@ import type { Job } from 'bullmq';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Row = Record<string, unknown>;
+
+async function assertRuntimeMediaExtension(
+  fixture: ProactiveAgentRuntimeFixture,
+) {
+  const parentId = randomUUID();
+  const childId = randomUUID();
+  const ingredientId = randomUUID();
+  const scope = {
+    organizationId: fixture.organizationId,
+    brandId: fixture.brandId,
+    userId: fixture.userId,
+  };
+  const s3Key = `${fixture.namespace}/media-probe.png`;
+  const select = {
+    category: true,
+    cdnUrl: true,
+    fileSize: true,
+    id: true,
+    mimeType: true,
+    s3Key: true,
+    version: true,
+  } as const;
+  const query = {
+    where: {
+      id: parentId,
+      organizationId: fixture.organizationId,
+      isDeleted: false,
+    },
+    include: {
+      ingredients: { select },
+      children: {
+        where: { isDeleted: false },
+        include: { ingredients: { select } },
+      },
+    },
+  };
+  const rollback = new Error('Owned media probe rollback');
+  let rolledBack = false;
+  try {
+    await fixture.prisma.$transaction(async (transaction) => {
+      await transaction.ingredient.create({
+        data: {
+          ...scope,
+          id: ingredientId,
+          s3Key,
+          fileSize: 123,
+          mimeType: 'image/png',
+          version: 1,
+          category: IngredientCategory.IMAGE,
+        },
+      });
+      await transaction.post.create({
+        data: {
+          ...scope,
+          id: parentId,
+          description: 'Owned media probe parent',
+          ingredients: { connect: { id: ingredientId } },
+        },
+      });
+      await transaction.post.create({
+        data: {
+          ...scope,
+          id: childId,
+          description: 'Owned media probe child',
+          parentId,
+          ingredients: { connect: { id: ingredientId } },
+        },
+      });
+      const parent = await transaction.post.findFirstOrThrow(query);
+      const expected = {
+        id: ingredientId,
+        s3Key,
+        category: IngredientCategory.IMAGE,
+        cdnUrl: `http://127.0.0.1/${s3Key}`,
+        fileSize: 123,
+        mimeType: 'image/png',
+        version: 1,
+      };
+      expect(parent.ingredients).toEqual([expected]);
+      expect(parent.children).toHaveLength(1);
+      expect(parent.children[0].id).toBe(childId);
+      expect(parent.children[0].ingredients).toEqual([expected]);
+      throw rollback;
+    });
+  } catch (error) {
+    if (error !== rollback) throw error;
+    rolledBack = true;
+  }
+  expect(rolledBack).toBe(true);
+  expect(await fixture.prisma.post.findFirst(query)).toBeNull();
+  expect(
+    await fixture.prisma.post.count({
+      where: {
+        id: childId,
+        organizationId: fixture.organizationId,
+        isDeleted: false,
+      },
+    }),
+  ).toBe(0);
+  expect(
+    await fixture.prisma.ingredient.count({
+      where: {
+        id: ingredientId,
+        organizationId: fixture.organizationId,
+        isDeleted: false,
+      },
+    }),
+  ).toBe(0);
+}
 
 // Real application services; deterministic in-memory persistence, queue and generation stubs.
 // PostgreSQL transaction/concurrency guarantees are verified separately in the opt-in database suite.
@@ -445,6 +559,7 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
   });
 
   it('runs a native queued graph, requires approval, publishes, and learns its own measured hook in cycle two', async () => {
+    await assertRuntimeMediaExtension(fixture);
     const agent = await fixture.createAgent();
     const paused = await fixture.createAgent(20, false);
     const controls = await fixture.seedLearningScopeControls(

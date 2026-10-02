@@ -533,9 +533,19 @@ test('Kling binds ordered authorized frames and clears them on Veo switch before
 }) => {
   const fixture = await installFixture(page, klingKey, 'available', true);
   await expect
-    .poll(() => fixture.previews.at(-1)?.references)
-    .toEqual(['start-frame']);
-  expect(fixture.previews.at(-1)?.endFrame).toBe('end-frame');
+    .poll(() => {
+      const latest = fixture.previews.at(-1);
+      return {
+        model: latest?.model,
+        references: latest?.references,
+        endFrame: latest?.endFrame,
+      };
+    })
+    .toEqual({
+      model: klingKey,
+      references: ['start-frame'],
+      endFrame: 'end-frame',
+    });
   expect(fixture.previews.at(-1)?.crunControls).not.toHaveProperty(
     'aspectRatio',
   );
@@ -547,16 +557,28 @@ test('Kling binds ordered authorized frames and clears them on Veo switch before
   await openSettings(page, 'Model');
   await page.getByRole('option', { name: /Veo 3.1 Fast/ }).click();
   await page.keyboard.press('Escape');
-  await expect.poll(() => fixture.previews.at(-1)?.model).toBe(veoKey);
-  expect(fixture.previews.at(-1)?.references).toEqual([]);
-  expect(fixture.previews.at(-1)).not.toHaveProperty('endFrame');
-  expect(fixture.previews.at(-1)?.crunControls).toEqual({
-    contractVersion: controls(veoKey).version,
-    duration: 8,
-    aspectRatio: '16:9',
-    resolution: '720p',
-    translatePrompt: true,
-  });
+  await expect
+    .poll(() => {
+      const latest = fixture.previews.at(-1);
+      return {
+        model: latest?.model,
+        references: latest?.references,
+        endFrame: latest?.endFrame,
+        crunControls: latest?.crunControls,
+      };
+    })
+    .toEqual({
+      model: veoKey,
+      references: [],
+      endFrame: undefined,
+      crunControls: {
+        contractVersion: controls(veoKey).version,
+        duration: 8,
+        aspectRatio: '16:9',
+        resolution: '720p',
+        translatePrompt: true,
+      },
+    });
   expect(fixture.consumes).toHaveLength(0);
 });
 
@@ -582,11 +604,29 @@ test('expired video admission reports the error and never retries automatically'
     exact: true,
   });
   await expect(generate).toBeEnabled();
+  const rejection = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname.endsWith('/videos') &&
+      response.request().method() === 'POST' &&
+      response.status() === 409,
+  );
   await generate.click();
-  const dialog = page.getByRole('dialog', { name: 'Request failed' });
-  await expect(dialog).toBeVisible();
-  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+  await rejection;
+  const errorToast = page
+    .locator('[data-sonner-toast][data-type="error"]')
+    .filter({
+      has: page.getByText('The image provider could not be reached. failed', {
+        exact: true,
+      }),
+    });
+  await expect(errorToast).toHaveCount(1);
+  await expect(errorToast).toBeVisible();
   await expect(page.getByTestId(/^studio-asset-failed-/)).toBeVisible();
   await expect(fixture.editor).toHaveText('A ceramic bird on a desk');
+  await expect(
+    page
+      .getByTestId('studio-generate-results')
+      .getByTestId('studio-asset-crun-owned-kling'),
+  ).toHaveCount(0);
   expect(fixture.consumes).toHaveLength(1);
 });

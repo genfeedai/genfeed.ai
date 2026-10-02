@@ -464,9 +464,15 @@ test('expired server quote preserves the prompt and never resubmits automaticall
   );
   await generate.click();
   await rejection;
-  const errorDialog = page.getByRole('dialog', { name: 'Request failed' });
-  await expect(errorDialog).toBeVisible();
-  await errorDialog.getByRole('button', { name: 'Close', exact: true }).click();
+  const errorToast = page
+    .locator('[data-sonner-toast][data-type="error"]')
+    .filter({
+      has: page.getByText('The image provider could not be reached. failed', {
+        exact: true,
+      }),
+    });
+  await expect(errorToast).toHaveCount(1);
+  await expect(errorToast).toBeVisible();
   await expect(page.getByTestId(/^studio-asset-failed-/)).toBeVisible();
   await expect.poll(() => fixture.consumes.length).toBe(1);
   await expect(fixture.editor).toHaveText('A ceramic bird on a desk');

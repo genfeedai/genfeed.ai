@@ -69,6 +69,7 @@ import {
   toPrismaJson,
 } from '@genfeedai/prisma';
 import { WorkflowEngine } from '@genfeedai/workflows/engine';
+import { createMediaUrlExtension } from '@libs/prisma/media-url.extension';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PlatformWorkflowSchedulesService } from '@workers/scheduling/platform-workflow-schedules.service';
 import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
@@ -97,6 +98,18 @@ export function readRuntimeBrief(content: string): RecordValue {
 // Turn actions and the queue-processing bridge are replacements; messages and
 // a synthetic debit are fixture-written. This does not prove production turn,
 // context assembly, worker execution, or credit reservation/settlement.
+function createRuntimePrisma(databaseUrl: string) {
+  const base = new PrismaClient({
+    adapter: new PrismaPg({ connectionString: databaseUrl }),
+  });
+  return {
+    base,
+    prisma: base.$extends(
+      createMediaUrlExtension({ cdnUrl: 'http://127.0.0.1' }),
+    ),
+  };
+}
+
 export class ProactiveAgentRuntimeFixture {
   readonly namespace = `4959-runtime-${randomUUID()}`;
   readonly organizationId = `${this.namespace}-org`;
@@ -128,7 +141,8 @@ export class ProactiveAgentRuntimeFixture {
   readonly queues: Queue<WorkflowExecutionJobData>[] = [];
   readonly queueEvents: QueueEvents[] = [];
   readonly connection: { host: string; port: number; db: number };
-  readonly prisma: PrismaClient;
+  readonly prisma: ReturnType<typeof createRuntimePrisma>['prisma'];
+  private readonly workflowPrisma: PrismaClient;
   readonly redis: Redis;
   readonly strategies: AgentStrategiesService;
   readonly reports: AgentStrategyReportsService;
@@ -166,9 +180,9 @@ export class ProactiveAgentRuntimeFixture {
       port: Number(url.port || 6379),
     };
     this.redis = new Redis({ ...this.connection, maxRetriesPerRequest: null });
-    this.prisma = new PrismaClient({
-      adapter: new PrismaPg({ connectionString: this.databaseUrl }),
-    });
+    const runtimePrisma = createRuntimePrisma(this.databaseUrl);
+    this.prisma = runtimePrisma.prisma;
+    this.workflowPrisma = runtimePrisma.base;
     for (const name of [
       WORKFLOW_EXECUTION_QUEUE,
       PLATFORM_SYSTEM_WORKFLOW_QUEUE,
@@ -756,20 +770,21 @@ export class ProactiveAgentRuntimeFixture {
       },
       this.prisma as never,
     );
-    const pausedWorkflow = await this.prisma.$transaction((transaction) =>
-      createVersionedWorkflow(
-        transaction,
-        {
-          organizationId,
-          userId: this.userId,
-          brandId,
-          label: 'Paused proactive installation',
-          status: WorkflowStatus.DRAFT,
-          isScheduleEnabled: false,
-          metadata: { sourceTemplateId: 'proactive-agent-strategies' },
-        },
-        buildAgentProactiveWorkflowDefinition().definition,
-      ),
+    const pausedWorkflow = await this.workflowPrisma.$transaction(
+      (transaction) =>
+        createVersionedWorkflow(
+          transaction,
+          {
+            organizationId,
+            userId: this.userId,
+            brandId,
+            label: 'Paused proactive installation',
+            status: WorkflowStatus.DRAFT,
+            isScheduleEnabled: false,
+            metadata: { sourceTemplateId: 'proactive-agent-strategies' },
+          },
+          buildAgentProactiveWorkflowDefinition().definition,
+        ),
     );
     const otherBrandId = `${this.namespace}-other-brand`;
     await this.prisma.brand.create({
