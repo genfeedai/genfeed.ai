@@ -944,9 +944,13 @@ describe.skipIf(!explicitUrl)(
       );
       for (const ref of publication.refs) {
         expect(
-          (await graph.pins(ref.kind, [ref.id], ref.organizationId)).get(
-            ref.id,
-          ),
+          (
+            await graph.pins(
+              ref.kind,
+              [ref.id],
+              ref.organizationId ?? current.organizationId,
+            )
+          ).get(ref.id),
         ).toBe(ref.version);
         expect(
           await scalar.resolve(ref.kind, ref.id, ref.organizationId, prisma),
