@@ -827,7 +827,7 @@ function sourcePublication(index: number, cell: LearningCellDescriptor) {
     cutoff = new Date('2026-09-30T12:00:00Z');
   const postId = `post-${String(index).padStart(3, '0')}`;
   const post: LearningPublicationPostRow &
-    Pick<Post, 'learningAttemptId' | 'updatedAt'> = {
+    Pick<Post, 'learningDecisionId' | 'updatedAt'> = {
     id: postId,
     organizationId: 'org',
     brandId: 'brand',
@@ -868,7 +868,7 @@ function sourcePublication(index: number, cell: LearningCellDescriptor) {
     publishApprovalId: `approval-${index}`,
     reviewVersionPinId: `pin-${index}`,
     _count: { ingredients: 0, children: 0 },
-    learningAttemptId: null,
+    learningDecisionId: null,
     updatedAt: cutoff,
   };
   const pin: LearningPublicationPinRow = {

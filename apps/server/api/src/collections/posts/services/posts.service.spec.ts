@@ -308,7 +308,7 @@ describe('PostsService batchSchedule', () => {
 
   it('creates threads from canonical inputs and owns the parentId linkage', async () => {
     const { post, service } = makeService();
-    let root: Record<string, unknown> | undefined;
+    let root: (Record<string, unknown> & { id: string }) | undefined;
     let children = 0;
     post.findFirst.mockImplementation(async () =>
       root ? { ...root, _count: { children, ingredients: 0 } } : null,
@@ -323,7 +323,7 @@ describe('PostsService batchSchedule', () => {
           publishApprovalId: null,
           reviewVersionPinId: null,
         };
-        return { ...root };
+        return { ...root, id: 'root-post' };
       })
       .mockImplementationOnce(
         ({ data }: { data: Record<string, unknown> }) => ({
@@ -1892,10 +1892,11 @@ describe('PostsService child creation authority', () => {
       value.tx.credential.findFirst.mockResolvedValue(null);
     if (failure === 'retarget') {
       const read = value.tx.post.findFirst.getMockImplementation();
+      if (!read) throw new Error('Missing post read fixture');
       let reads = 0;
       value.tx.post.findFirst.mockImplementation(async (args) => {
         if (++reads === 2) value.parent.organizationId = 'foreign';
-        return read?.(args);
+        return read(args);
       });
     }
     await expect(
@@ -1935,7 +1936,7 @@ describe('PostsService child creation authority', () => {
         value.service.create(
           {
             ...value.dto,
-            scheduledDate: '2026-10-03T10:00:00',
+            scheduledDate: new Date('2026-10-03T10:00:00.000Z'),
             timezone: 'UTC',
           },
           [],
@@ -1967,7 +1968,7 @@ describe('PostsService child creation authority', () => {
       {
         ...value.dto,
         targetExecutionState: TargetExecutionState.SCHEDULED,
-        scheduledDate: '2026-10-03T10:00:00',
+        scheduledDate: new Date('2026-10-03T10:00:00.000Z'),
         timezone: 'UTC',
       },
       [],
@@ -1975,7 +1976,7 @@ describe('PostsService child creation authority', () => {
     expect(created.targetExecutionState).toBe(TargetExecutionState.SCHEDULED);
     expect(value.bind).toHaveBeenCalledExactlyOnceWith(created, 'user');
     expect(value.logger.log).toHaveBeenCalledWith(
-      'Converting scheduledDate from UTC to UTC: 2026-10-03T10:00:00 → 2026-10-03T10:00:00.000Z',
+      `Converting scheduledDate from UTC to UTC: ${new Date('2026-10-03T10:00:00.000Z')} → 2026-10-03T10:00:00.000Z`,
     );
     expect(value.order.slice(-4)).toEqual([
       'commit',

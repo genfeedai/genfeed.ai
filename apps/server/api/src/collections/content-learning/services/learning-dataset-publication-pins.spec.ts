@@ -197,7 +197,7 @@ function delegates(rows: Rows[]) {
         });
         return select(args);
       }),
-      findFirst: vi.fn(async (args: ReadArgs) => {
+      findFirst: vi.fn(async (args: ReadArgs): Promise<T | null> => {
         receipt.push({ model, method: 'findFirst', size: 1 });
         return select(args)[0] ?? null;
       }),

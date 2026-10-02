@@ -424,7 +424,7 @@ function workflowPublication(index: number, cell: LearningCellDescriptor) {
     cutoff = new Date(),
     published = new Date(cutoff.getTime() - 48 * 3600000);
   const post: LearningPublicationPostRow &
-    Pick<Post, 'learningAttemptId' | 'updatedAt'> = {
+    Pick<Post, 'learningDecisionId' | 'updatedAt'> = {
     id: postId,
     organizationId: 'org',
     brandId: 'brand',
@@ -465,7 +465,7 @@ function workflowPublication(index: number, cell: LearningCellDescriptor) {
     publishApprovalId: `approval-${index}`,
     reviewVersionPinId: `pin-${index}`,
     _count: { ingredients: 0, children: 0 },
-    learningAttemptId: null,
+    learningDecisionId: null,
     updatedAt: cutoff,
   };
   const pin: LearningPublicationPinRow = {

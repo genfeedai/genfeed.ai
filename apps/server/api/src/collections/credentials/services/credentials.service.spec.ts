@@ -1381,6 +1381,7 @@ describe('CredentialsService', () => {
       ];
       useStoredRows(rows);
       const settle = prisma.$transaction.getMockImplementation();
+      if (!settle) throw new Error('Missing settle fixture implementation');
       prisma.$transaction.mockImplementation((callback) => {
         if (prisma.$transaction.mock.calls.length === 2)
           rows.push({
@@ -1389,7 +1390,7 @@ describe('CredentialsService', () => {
             externalId: 'account-1',
             isDeleted: false,
           });
-        return settle?.(callback);
+        return Reflect.apply(settle, undefined, [callback]);
       });
       prisma.credential.update.mockRejectedValueOnce(
         Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
@@ -2254,10 +2255,11 @@ describe('CredentialsService', () => {
       const row = credential('unbound', null);
       storedRows([row]);
       const read = prisma.credential.findMany.getMockImplementation();
+      if (!read) throw new Error('Missing read fixture implementation');
       let calls = 0;
       prisma.credential.findMany.mockImplementation(async (args) => {
         if (++calls === 2) row.organizationId = orgId;
-        return read?.(args);
+        return Reflect.apply(read, undefined, [args]);
       });
       await expect(
         service.patch('unbound', { isConnected: false }),
@@ -2284,10 +2286,11 @@ describe('CredentialsService', () => {
           });
         else {
           const write = prisma.credential.updateMany.getMockImplementation();
+          if (!write) throw new Error('Missing write fixture implementation');
           prisma.credential.updateMany.mockImplementation(async (args) => {
             if (prisma.credential.updateMany.mock.calls.length === 2)
               throw new Error('second source failed');
-            return write?.(args);
+            return Reflect.apply(write, undefined, [args]);
           });
         }
         await expect(

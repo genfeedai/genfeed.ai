@@ -102,7 +102,7 @@ function capturePublication() {
     ?.descriptor;
   if (!cell) throw new Error('Missing capture descriptor');
   const post: LearningPublicationPostRow &
-    Pick<Post, 'learningAttemptId' | 'updatedAt'> = {
+    Pick<Post, 'learningDecisionId' | 'updatedAt'> = {
     id: postId,
     organizationId: 'org',
     brandId: 'brand',
@@ -143,7 +143,7 @@ function capturePublication() {
     publishApprovalId: `approval-${index}`,
     reviewVersionPinId: `pin-${index}`,
     _count: { ingredients: 0, children: 0 },
-    learningAttemptId: null,
+    learningDecisionId: null,
     updatedAt: cutoff,
   };
   const pin: LearningPublicationPinRow = {
@@ -1383,7 +1383,6 @@ describe('capture account-before-publication locking', () => {
         .mockResolvedValueOnce(kind === 'missing' ? null : original);
       await expect(
         f.service.capture({
-          publicationSource: capturePublication().source,
           ...captureInput(),
           supersedesId: original.id,
         }),
@@ -1410,7 +1409,6 @@ describe('capture account-before-publication locking', () => {
       }
       await expect(
         f.service.capture({
-          publicationSource: capturePublication().source,
           ...captureInput(),
           ...(kind === 'invalidation' ? { supersedesId: original.id } : {}),
         }),

@@ -424,11 +424,12 @@ describe('BrandLifecycleService', () => {
           );
         else learningAccounts.updateMany.mockResolvedValue({ count: 0 });
         const callback = transactionMock.getMockImplementation();
+        if (!callback) throw new Error('Missing transaction fixture');
         transactionMock.mockImplementation(async (...args) => {
           const beforeBrand = { ...brand },
             beforeMember = { ...member };
           try {
-            return await callback?.(...args);
+            return await Reflect.apply(callback, undefined, args);
           } catch (error) {
             Object.assign(brand, beforeBrand);
             Object.assign(member, beforeMember);

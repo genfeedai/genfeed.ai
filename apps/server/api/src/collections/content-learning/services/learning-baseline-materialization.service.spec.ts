@@ -39,6 +39,7 @@ import {
   PublishApprovalStatus,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { learningCellDescriptorSchema } from '@genfeedai/contracts/api-types/contracts';
 import type {
   LearningCellDescriptor,
   LearningDependencyRefV1,
@@ -159,7 +160,7 @@ function baseline(
 function publication(index: number, cell: LearningCellDescriptor) {
   const postId = `post-${String(index).padStart(3, '0')}`;
   const post: LearningPublicationPostRow &
-    Pick<Post, 'learningAttemptId' | 'updatedAt'> = {
+    Pick<Post, 'learningDecisionId' | 'updatedAt'> = {
     id: postId,
     organizationId: 'org',
     brandId: 'brand',
@@ -200,7 +201,7 @@ function publication(index: number, cell: LearningCellDescriptor) {
     publishApprovalId: `approval-${index}`,
     reviewVersionPinId: `pin-${index}`,
     _count: { ingredients: 0, children: 0 },
-    learningAttemptId: null,
+    learningDecisionId: null,
     updatedAt: cutoff,
   };
   const pin: LearningPublicationPinRow = {
@@ -427,6 +428,9 @@ async function fixture(count = 0, realDependency = false) {
           !Array.isArray(data.contributorRevisions)
         )
           throw new Error('Invalid typed baseline fixture input');
+        const descriptor = learningCellDescriptorSchema.parse(
+          data.cellDescriptor,
+        );
         const samples = data.samples.map((value) => {
           const parsed = parseLearningMeasurement(value);
           if (!parsed) throw new Error('Invalid fixture measurement');
@@ -443,7 +447,7 @@ async function fixture(count = 0, realDependency = false) {
           fingerprint: data.fingerprint,
           scopeKey: data.scopeKey,
           descriptorHash: data.descriptorHash ?? null,
-          cellDescriptor: { ...data.cellDescriptor },
+          cellDescriptor: { ...descriptor },
           cutoff:
             data.cutoff instanceof Date
               ? new Date(data.cutoff.getTime())
@@ -1227,7 +1231,7 @@ describe('immutable materializer with real selector/publication proof and explic
       expect(f.boundary.valid).not.toHaveBeenCalled();
     }
   });
-  it('C5 real Dependency and publication resolution materialize a genuine factual checkpoint with null attempt attribution', async () => {
+  it('C5 real Dependency and publication resolution materialize a genuine factual checkpoint without a learning decision', async () => {
     const f = await fixture(1, true);
     const row = await f.service.materialize(f.scope, f.cell, cutoff);
     expect(row?.count).toBe(1);
@@ -1239,7 +1243,7 @@ describe('immutable materializer with real selector/publication proof and explic
     ]);
     expect(row?.samples).toEqual(f.projection().samples);
     expect(f.publications[0].edges).toHaveLength(8);
-    expect(f.publications[0].post.learningAttemptId).toBeNull();
+    expect(f.publications[0].post.learningDecisionId).toBeNull();
     expect(f.boundary.valid).toHaveBeenCalled();
     expect(
       f.baselineEdges.filter(

@@ -25,6 +25,50 @@ function record(value: unknown): Record<string, unknown> {
     : {};
 }
 
+async function assertReadyPublications(
+  fixture: LearningRuntimeFixture,
+  publications: RuntimePublication[],
+) {
+  const { TargetAnalyticsCollectionState } = await import(
+    '@genfeedai/contracts'
+  );
+  const target = publications[0]?.target;
+  if (
+    !target ||
+    publications.some(
+      (post) => post.target.credentialId !== target.credentialId,
+    )
+  )
+    throw new Error('Expected one owned collection scope');
+  const rows = await fixture.first.prisma.post.findMany({
+    where: {
+      id: { in: publications.map((post) => post.id) },
+      organizationId: target.organizationId,
+      brandId: target.brandId,
+      credentialId: target.credentialId,
+      isDeleted: false,
+    },
+    select: {
+      id: true,
+      analyticsCollectionState: true,
+      analyticsCollectionAttemptKey: true,
+      analyticsCollectionError: true,
+      analyticsCollectedAt: true,
+    },
+  });
+  expect(rows.map((row) => row.id).sort()).toEqual(
+    publications.map((post) => post.id).sort(),
+  );
+  for (const row of rows) {
+    expect(row.analyticsCollectionState).toBe(
+      TargetAnalyticsCollectionState.READY,
+    );
+    expect(row.analyticsCollectionAttemptKey).toBeNull();
+    expect(row.analyticsCollectionError).toBeNull();
+    expect(row.analyticsCollectedAt).toBeInstanceOf(Date);
+  }
+}
+
 const trackedSpies: Array<{ mockRestore(): void }> = [];
 function track<T extends { mockRestore(): void }>(spy: T): T {
   trackedSpies.push(spy);
@@ -135,8 +179,13 @@ describe('hosted real production learning runtime', () => {
       target,
       publications,
     );
-    expect(collection.failedTargets).toHaveLength(0);
-    expect(collection.readyTargets).toHaveLength(20);
+    expect(collection).toEqual({
+      organizationId: target.organizationId,
+      brandId: target.brandId,
+      credentialId: target.credentialId,
+    });
+    expect(publications).toHaveLength(20);
+    await assertReadyPublications(fixture, publications);
     await fixture.drain();
     const scope = await learningRuntimeScope(
       fixture.first,
@@ -524,7 +573,12 @@ describe('hosted real production learning runtime', () => {
       victim,
       [post],
     );
-    expect(collection.failedTargets).toHaveLength(0);
+    expect(collection).toEqual({
+      organizationId: victim.organizationId,
+      brandId: victim.brandId,
+      credentialId: victim.credentialId,
+    });
+    await assertReadyPublications(fixture, [post]);
     const row = await fixture.enqueue(
       'content-learning.reconcile',
       victim.organizationId,

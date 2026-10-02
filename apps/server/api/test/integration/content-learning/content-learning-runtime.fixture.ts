@@ -5,6 +5,7 @@ import { constants as fsConstants } from 'node:fs';
 import { lstat, open, readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { promisify } from 'node:util';
+import type { WorkflowExecutionJobData } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { assertIsolatedDatabaseUrl } from '@api-test/../scripts/assert-isolated-db-url';
 import Redis from 'ioredis';
 import { z } from 'zod';
@@ -12,6 +13,22 @@ import { z } from 'zod';
 const command = promisify(execFile);
 const RAW_LIMIT = 50 * 1024 * 1024;
 const OWNER_KEY = 'learning-runtime:owner';
+
+const systemJobIdentitySchema = z.object({
+  systemRun: z
+    .object({
+      input: z.object({
+        canonicalId: z.string().min(1),
+        organizationId: z.string().min(1),
+      }),
+      priorExecution: z.object({ executionId: z.string().min(1) }).optional(),
+    })
+    .optional(),
+});
+function systemJobIdentity(data: unknown) {
+  return systemJobIdentitySchema.parse(data).systemRun;
+}
+
 const receiptSchema = z
   .object({
     version: z.literal(1),
@@ -572,7 +589,7 @@ export async function installLearningRuntimeEnvironment(
 ): Promise<FixtureEnvironment> {
   await assertNoLearningRuntimeEnvFiles();
   const original = { ...process.env };
-  const environment: NodeJS.ProcessEnv = {};
+  const environment: NodeJS.ProcessEnv = { NODE_ENV: 'test' };
   for (const key of runtimeEnvironmentKeys)
     if (original[key] !== undefined) environment[key] = original[key];
   const database = new URL(resources.databaseUrl);
@@ -1145,6 +1162,7 @@ export async function createLearningRuntimeApplication(
     const options = queue.opts.connection;
     ensure(
       options &&
+        typeof options === 'object' &&
         'host' in options &&
         options.host === connection.host &&
         'port' in options &&
@@ -1199,6 +1217,9 @@ export async function learningRuntimeServices(application: RuntimeApplication) {
   const { AnalyticsTwitterCollectionService } = await import(
     '@api/analytics/services/analytics-twitter-collection.service'
   );
+  const { PostAnalyticsCollectionStateService } = await import(
+    '@api/analytics/services/post-analytics-collection-state.service'
+  );
   const { PublishApprovalsService } = await import(
     '@api/publish-approvals/publish-approvals.service'
   );
@@ -1232,6 +1253,7 @@ export async function learningRuntimeServices(application: RuntimeApplication) {
     accounts: application.module.get(LearningAccountService),
     scopes: application.module.get(LearningScopeStateService),
     analytics: application.module.get(AnalyticsTwitterCollectionService),
+    analyticsState: application.module.get(PostAnalyticsCollectionStateService),
     approvals: application.module.get(PublishApprovalsService),
     posts: application.module.get(PostsService),
     credentials: application.module.get(CredentialsService),
@@ -1248,7 +1270,7 @@ export async function seedLearningRuntimeScenario(
   application: RuntimeApplication,
   services: RuntimeServices,
 ) {
-  const { CredentialPlatform } = await import('@genfeedai/contracts');
+  const { CredentialPlatform } = await import('@genfeedai/prisma');
   const actorId = randomUUID();
   const role = await application.prisma.role.upsert({
     where: { key: 'owner' },
@@ -1511,6 +1533,18 @@ export async function collectLearningRuntimePublications(
       ),
     'BOUNDED_ACTUAL_ANALYTICS_BATCH',
   );
+  const { CredentialPlatform } = await import('@genfeedai/contracts');
+  const attemptKey = randomUUID();
+  await services.analyticsState.markPending({
+    attemptKey,
+    requestedAt: new Date(),
+    targets: publications.map((post) => ({
+      id: post.id,
+      organizationId: target.organizationId,
+      brandId: target.brandId,
+      platform: CredentialPlatform.TWITTER,
+    })),
+  });
   return services.analytics.collect({
     credentialId: target.credentialId,
     posts: publications.map((post) => ({
@@ -1519,7 +1553,7 @@ export async function collectLearningRuntimePublications(
       brandId: target.brandId,
       organizationId: target.organizationId,
     })),
-    attemptKey: randomUUID(),
+    attemptKey,
   });
 }
 export async function learningRuntimeScope(
@@ -1719,24 +1753,26 @@ export async function openLearningRuntimeFixture() {
       );
     for (const application of applications)
       ensure(!('_worker' in application.processor), 'FRAMEWORK_WORKER_STARTED');
-    const background = [...first.queues].find(
+    const selectedBackground = [...first.queues].find(
       (queue) => queue.name === WORKFLOW_BACKGROUND_QUEUE,
     );
-    ensure(background, 'BACKGROUND_QUEUE');
+    ensure(selectedBackground, 'BACKGROUND_QUEUE');
+    const background = selectedBackground;
     events = new QueueEvents(WORKFLOW_BACKGROUND_QUEUE, {
       connection: first.connection,
       prefix: resources.prefix,
     });
     await events.waitUntilReady();
-    worker = new Worker(
+    worker = new Worker<WorkflowExecutionJobData>(
       WORKFLOW_BACKGROUND_QUEUE,
       async (job) => {
         await resources.check();
         const result = await first.processor.process(job);
         handledJobs.push({
           id: String(job.id),
-          executionId: job.data.systemRun?.priorExecution?.executionId ?? null,
-          canonicalId: job.data.systemRun?.input.canonicalId ?? '',
+          executionId:
+            systemJobIdentity(job.data)?.priorExecution?.executionId ?? null,
+          canonicalId: systemJobIdentity(job.data)?.input.canonicalId ?? '',
         });
         return result;
       },
@@ -1752,8 +1788,12 @@ export async function openLearningRuntimeFixture() {
     worker.on('failed', (job) => {
       failedJobs.push({
         id: job?.id ? String(job.id) : null,
-        executionId: job?.data.systemRun?.priorExecution?.executionId ?? null,
-        canonicalId: job?.data.systemRun?.input.canonicalId ?? '',
+        executionId:
+          (job
+            ? systemJobIdentity(job.data)?.priorExecution?.executionId
+            : null) ?? null,
+        canonicalId:
+          (job ? systemJobIdentity(job.data)?.input.canonicalId : '') ?? '',
       });
     });
     await worker.waitUntilReady();
@@ -1764,16 +1804,18 @@ export async function openLearningRuntimeFixture() {
         'FAILED_JOB_INVENTORY_BOUND',
       );
       for (const job of failures) {
-        const executionId = job.data.systemRun?.priorExecution?.executionId;
+        const executionId = systemJobIdentity(job.data)?.priorExecution
+          ?.executionId;
         const expected = executionId
           ? expectedFailureExecutions.get(executionId)
           : undefined;
         ensure(
           expected &&
             executionId &&
-            job.data.systemRun?.input.organizationId ===
+            systemJobIdentity(job.data)?.input.organizationId ===
               expected.organizationId &&
-            job.data.systemRun?.input.canonicalId === expected.canonicalId,
+            systemJobIdentity(job.data)?.input.canonicalId ===
+              expected.canonicalId,
           'UNEXPECTED_FAILED_BACKGROUND_JOB',
         );
         const row = await first.prisma.workflowExecution.findFirst({
@@ -1792,7 +1834,8 @@ export async function openLearningRuntimeFixture() {
         ensure(
           failures.filter(
             (job) =>
-              job.data.systemRun?.priorExecution?.executionId === executionId,
+              systemJobIdentity(job.data)?.priorExecution?.executionId ===
+              executionId,
           ).length === 1,
           'EXPECTED_FAILED_JOB_MISSING_OR_DUPLICATED',
         );
@@ -1884,7 +1927,7 @@ export async function openLearningRuntimeFixture() {
           ensure(
             !jobs.some(
               (job) =>
-                job.data?.systemRun?.priorExecution?.executionId ===
+                systemJobIdentity(job.data)?.priorExecution?.executionId ===
                 queued.executionId,
             ),
             'WRONG_DISPATCH_ROUTE',
