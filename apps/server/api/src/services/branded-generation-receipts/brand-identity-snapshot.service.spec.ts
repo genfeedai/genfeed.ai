@@ -15,8 +15,13 @@ import {
 } from '@genfeedai/prisma';
 import { ForbiddenException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 
 const actor = { actorId: 'actor', organizationId: 'org', brandId: 'brand' };
+function storedJson(value: unknown): BrandOsRevision['content'] {
+  return z.json().parse(toPrismaJson(value));
+}
+
 const time = '2026-10-02T00:00:00.000Z';
 function revision(id = 'A'): BrandOsRevision {
   const generationRules: BrandGenerationRulesV1 = {
@@ -36,7 +41,7 @@ function revision(id = 'A'): BrandOsRevision {
     brandId: 'brand',
     version: id === 'A' ? 1 : 2,
     status: BrandOsRevisionStatus.APPROVED,
-    content: toPrismaJson({
+    content: storedJson({
       brandId: 'brand',
       organizationId: 'org',
       fields: { label: { currentValue: id, proposedValue: 'Wrong' } },
@@ -135,7 +140,7 @@ describe('authenticated immutable identity preview', () => {
         ],
       },
     };
-    row.content = toPrismaJson(content);
+    row.content = storedJson(content);
     row.generationRulesReviewHash = hashBrandGenerationRulesReviewV1(
       content.generationRules,
     );
@@ -233,7 +238,7 @@ describe('authenticated immutable identity preview', () => {
     { brandId: 'foreign' },
     { generationRulesReviewHash: null },
     {
-      content: toPrismaJson({
+      content: storedJson({
         generationRulesReviewCandidateHash: 'candidate',
         fields: { label: { proposedValue: 'Wrong' } },
       }),

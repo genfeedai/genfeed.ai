@@ -11,6 +11,11 @@ import {
   toPrismaJson,
 } from '@genfeedai/prisma';
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
+
+function storedJson(value: unknown): BrandOsRevision['content'] {
+  return z.json().parse(toPrismaJson(value));
+}
 
 const time = '2026-10-02T00:00:00.000Z';
 const hash = `sha256:${'a'.repeat(64)}`;
@@ -82,7 +87,7 @@ function revision(fields: Record<string, unknown> = {}): BrandOsRevision {
     organizationId: 'org',
     version: 1,
     status: BrandOsRevisionStatus.APPROVED,
-    content: toPrismaJson({
+    content: storedJson({
       brandId: 'brand',
       organizationId: 'org',
       fields: {
@@ -229,7 +234,7 @@ describe('strict saved approved identity projection', () => {
     { generationRulesReviewHash: `sha256:${'b'.repeat(64)}` },
     { status: BrandOsRevisionStatus.DRAFT },
     { isDeleted: true },
-    { content: toPrismaJson({ fields: {} }) },
+    { content: { fields: {} } },
   ])('rejects missing approval or reviewed integrity %j', (patch) => {
     expect(() =>
       projectApprovedBrandIdentitySnapshot({ ...revision(), ...patch }, time),
