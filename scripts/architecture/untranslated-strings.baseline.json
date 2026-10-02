@@ -330,7 +330,7 @@
     "packages/agent/src/components/ClipWorkflowStatusFooter.tsx": 6,
     "packages/agent/src/components/ClipWorkflowStepsList.tsx": 1,
     "packages/agent/src/components/ContentCalendarCard.tsx": 2,
-    "packages/agent/src/components/ContentLibraryPicker.tsx": 6,
+    "packages/agent/src/components/ContentLibraryPicker.tsx": 4,
     "packages/agent/src/components/CredentialMentionList.tsx": 1,
     "packages/agent/src/components/CreditsBalanceCard.tsx": 2,
     "packages/agent/src/components/EngagementOpportunityCard.tsx": 5,
