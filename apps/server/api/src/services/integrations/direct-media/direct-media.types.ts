@@ -1,5 +1,10 @@
 /** Reviewed direct media routes. These identities never alias aggregator accounts. */
-export type DirectMediaProvider = 'google' | 'xai' | 'bfl' | 'runway' | 'openai';
+export type DirectMediaProvider =
+  | 'google'
+  | 'xai'
+  | 'bfl'
+  | 'runway'
+  | 'openai';
 export type DirectMediaMode =
   | 'text-to-image'
   | 'image-edit'

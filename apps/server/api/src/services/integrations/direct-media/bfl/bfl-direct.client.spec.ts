@@ -234,14 +234,12 @@ describe('BFL direct client', () => {
     expect(transport).toHaveBeenCalledTimes(1);
   });
   it('rejects redirect responses without exposing provider bodies', async () => {
-    const transport = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(
-        new Response(context.apiKey, {
-          status: 302,
-          headers: { Location: 'https://attacker.example' },
-        }),
-      );
+    const transport = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(context.apiKey, {
+        status: 302,
+        headers: { Location: 'https://attacker.example' },
+      }),
+    );
     const promise = new BflDirectClient(transport).poll(task, context);
     await expect(promise).rejects.toMatchObject({
       code: 'PROVIDER_REQUEST_REJECTED',
