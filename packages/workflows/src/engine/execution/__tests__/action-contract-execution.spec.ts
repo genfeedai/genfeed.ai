@@ -13,6 +13,25 @@ vi.mock('@genfeedai/actions', () => ({
         outputSchema: { type: 'null' },
       };
     }
+    if (actionId === 'contract.failure')
+      return {
+        id: actionId,
+        inputSchema: {
+          additionalProperties: false,
+          properties: {
+            failure: { type: 'object', additionalProperties: true },
+            prompt: { type: 'string' },
+          },
+          required: ['failure', 'prompt'],
+          type: 'object',
+        },
+        outputSchema: {
+          additionalProperties: false,
+          properties: { article: { type: 'string' } },
+          required: ['article'],
+          type: 'object',
+        },
+      };
     return actionId === 'contract.test'
       ? {
           id: actionId,
@@ -186,4 +205,62 @@ describe('WorkflowEngine action contracts', () => {
     expect(result.status).toBe('completed');
     expect(executor).toHaveBeenCalledTimes(1);
   });
+});
+
+describe('WorkflowEngine required failure contract activation', () => {
+  it.each([false, true])(
+    'validates real routed failure input before registered compensation (%s)',
+    async (failed) => {
+      const engine = new WorkflowEngine({ maxConcurrency: 1 });
+      const compensation = vi.fn(async () => ({ article: 'Compensated' }));
+      engine.registerExecutor('contract.test', async () => {
+        if (failed) throw new Error('source failed');
+        return { article: 'Generated' };
+      });
+      engine.registerExecutor('contract.failure', async (_node, inputs) => {
+        expect(inputs.get('failure')).toMatchObject({
+          error: 'source failed',
+          failedNodeId: 'source',
+        });
+        return compensation();
+      });
+      const source = {
+        ...makeNode({ prompt: 'raw', source: 'user' }),
+        id: 'source',
+      };
+      const sink: ExecutableNode = {
+        ...makeNode({ prompt: 'raw' }),
+        id: 'sink',
+        config: { actionId: 'contract.failure', parameters: { prompt: 'raw' } },
+      };
+      const graph: ExecutableWorkflow = {
+        ...makeWorkflow(source),
+        nodes: [source, sink],
+        edges: [
+          {
+            id: 'data',
+            source: 'source',
+            target: 'sink',
+            sourceHandle: 'article',
+            targetHandle: 'prompt',
+          },
+          {
+            id: 'failure',
+            source: 'source',
+            target: 'sink',
+            sourceHandle: 'failure',
+            targetHandle: 'failure',
+          },
+        ],
+      };
+      const result = await engine.execute(graph, { maxRetries: 0 });
+      expect(result.status).toBe(failed ? 'failed' : 'completed');
+      expect(compensation).toHaveBeenCalledTimes(failed ? 1 : 0);
+      if (!failed)
+        expect(result.nodeResults.get('sink')).toMatchObject({
+          status: 'skipped',
+          creditsUsed: 0,
+        });
+    },
+  );
 });

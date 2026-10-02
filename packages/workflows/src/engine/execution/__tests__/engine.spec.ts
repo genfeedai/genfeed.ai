@@ -1095,3 +1095,462 @@ describe('WorkflowEngine', () => {
     });
   });
 });
+
+describe('WorkflowEngine failure-controlled graphs', () => {
+  function turn(failedNode: string | null, failCompensation = false) {
+    const engine = new WorkflowEngine({ maxConcurrency: 1 });
+    const calls: string[] = [];
+    const failures: unknown[] = [];
+    for (const [id, actionId, output] of [
+      [
+        'prepare',
+        'agent.turn.prepare',
+        { contextVersion: 1, state: {}, threadId: 'thread' },
+      ],
+      [
+        'infer',
+        'agent.turn.infer',
+        { decision: 'final', final: {}, state: {}, toolItems: [] },
+      ],
+      [
+        'finalize',
+        'agent.turn.finalize',
+        {
+          content: 'Done',
+          creditsUsed: 0,
+          summary: 'Done',
+          threadId: 'thread',
+        },
+      ],
+      ['compensate', 'agent.turn.fail', { error: 'boom', threadId: 'thread' }],
+    ] as const) {
+      engine.registerExecutor(actionId, async (_node, inputs) => {
+        calls.push(id);
+        if (id === 'compensate') {
+          failures.push(inputs.get('failure'));
+          if (failCompensation)
+            throw new PermanentExecutionError('compensation failed');
+        }
+        if (id === failedNode) throw new PermanentExecutionError('boom');
+        return output;
+      });
+    }
+    const workflow = makeWorkflow(
+      [
+        createExecutableActionNode({
+          id: 'prepare',
+          actionId: 'agent.turn.prepare',
+          parameters: { request: {} },
+        }),
+        createExecutableActionNode({
+          id: 'infer',
+          actionId: 'agent.turn.infer',
+        }),
+        createExecutableActionNode({
+          id: 'finalize',
+          actionId: 'agent.turn.finalize',
+        }),
+        createExecutableActionNode({
+          id: 'compensate',
+          actionId: 'agent.turn.fail',
+          parameters: { request: {} },
+        }),
+      ],
+      [
+        makeEdge('prepare', 'infer', {
+          sourceHandle: 'state',
+          targetHandle: 'state',
+        }),
+        makeEdge('infer', 'finalize', {
+          sourceHandle: 'state',
+          targetHandle: 'state',
+        }),
+        makeEdge('infer', 'finalize', {
+          sourceHandle: 'final',
+          targetHandle: 'final',
+        }),
+        ...['prepare', 'infer', 'finalize'].map((source) =>
+          makeEdge(source, 'compensate', {
+            sourceHandle: 'failure',
+            targetHandle: 'failure',
+          }),
+        ),
+      ],
+    );
+    return { engine, workflow, calls, failures };
+  }
+
+  it.each([null, 'prepare', 'infer', 'finalize'])(
+    'routes exactly one actual failure to a shared sink (%s)',
+    async (failedNode) => {
+      const fixture = turn(failedNode);
+      const result = await fixture.engine.execute(fixture.workflow, {
+        maxRetries: 0,
+      });
+      const sources = ['prepare', 'infer', 'finalize'];
+      expect(fixture.calls).toEqual(
+        failedNode
+          ? [...sources.slice(0, sources.indexOf(failedNode) + 1), 'compensate']
+          : sources,
+      );
+      expect(result.status).toBe(failedNode ? 'failed' : 'completed');
+      expect(fixture.failures).toEqual(
+        failedNode
+          ? [
+              expect.objectContaining({
+                failedNodeId: failedNode,
+                error: 'boom',
+                nodeOutputs: expect.any(Object),
+              }),
+            ]
+          : [],
+      );
+      if (failedNode) {
+        expect(result.nodeResults.get(failedNode)?.error).toBe('boom');
+        expect(result.error).toBe('boom');
+        for (const skipped of sources.slice(sources.indexOf(failedNode) + 1))
+          expect(result.nodeResults.get(skipped)).toMatchObject({
+            status: 'skipped',
+            creditsUsed: 0,
+          });
+      } else
+        expect(result.nodeResults.get('compensate')).toMatchObject({
+          status: 'skipped',
+          creditsUsed: 0,
+        });
+    },
+  );
+
+  it('preserves original failure when compensation also fails', async () => {
+    const fixture = turn('infer', true);
+    const result = await fixture.engine.execute(fixture.workflow, {
+      maxRetries: 0,
+    });
+    expect(result.status).toBe('failed');
+    expect(result.error).toBe('boom');
+    expect(result.nodeResults.get('compensate')?.error).toBe(
+      'compensation failed',
+    );
+  });
+
+  it.each([false, true])(
+    'uses required failure as control while retaining begin state (failed: %s)',
+    async (failed) => {
+      const engine = new WorkflowEngine({ maxConcurrency: 1 });
+      const state = {
+        acquired: true,
+        lockKey: 'owned',
+        organizationId: 'org-1',
+      };
+      const release = vi.fn(async () => ({
+        organizationId: 'org-1',
+        released: true,
+      }));
+      engine.registerExecutor('agent.autopilot.begin', async () => state);
+      engine.registerExecutor('workflowInput', async () => {
+        if (failed) throw new PermanentExecutionError('dispatch failed');
+        return { failure: 'successful data is not a failure' };
+      });
+      engine.registerExecutor('agent.autopilot.fail', async (_node, inputs) => {
+        expect(inputs.get('state')).toEqual(state);
+        expect(inputs.get('failure')).toMatchObject({
+          failedNodeId: 'dispatch',
+          error: 'dispatch failed',
+        });
+        return release();
+      });
+      const graph = makeWorkflow(
+        [
+          createExecutableActionNode({
+            id: 'begin',
+            actionId: 'agent.autopilot.begin',
+          }),
+          makeNode('dispatch', 'workflowInput'),
+          createExecutableActionNode({
+            id: 'release',
+            actionId: 'agent.autopilot.fail',
+          }),
+        ],
+        [
+          makeEdge('begin', 'dispatch'),
+          makeEdge('begin', 'release', { targetHandle: 'state' }),
+          makeEdge('dispatch', 'release', {
+            sourceHandle: 'failure',
+            targetHandle: 'failure',
+          }),
+        ],
+      );
+      const result = await engine.execute(graph, { maxRetries: 0 });
+      expect(result.status).toBe(failed ? 'failed' : 'completed');
+      expect(release).toHaveBeenCalledTimes(failed ? 1 : 0);
+    },
+  );
+
+  it('keeps a generic mixed join reachable on its ordinary success edge', async () => {
+    const engine = new WorkflowEngine({ maxConcurrency: 1 });
+    const called: string[] = [];
+    engine.registerExecutor('workflowInput', async (node) => {
+      called.push(node.id);
+      return { value: node.id };
+    });
+    const result = await engine.execute(
+      makeWorkflow(
+        ['begin', 'work', 'join'].map((id) => makeNode(id, 'workflowInput')),
+        [
+          makeEdge('begin', 'work'),
+          makeEdge('begin', 'join'),
+          makeEdge('work', 'join', {
+            sourceHandle: 'failure',
+            targetHandle: 'failure',
+          }),
+        ],
+      ),
+    );
+    expect(result.status).toBe('completed');
+    expect(called).toEqual(['begin', 'work', 'join']);
+  });
+
+  it('drains an inflight sibling, blocks new success work, and runs compensation', async () => {
+    const engine = new WorkflowEngine({ maxConcurrency: 2 });
+    let releaseSibling!: () => void;
+    const siblingReady = new Promise<void>((resolve) => {
+      releaseSibling = resolve;
+    });
+    const calls: string[] = [];
+    engine.registerExecutor('workflowInput', async (node) => {
+      calls.push(node.id);
+      if (node.id === 'failure')
+        throw new PermanentExecutionError('first failure');
+      if (node.id === 'sibling') await siblingReady;
+      if (node.id === 'compensate') releaseSibling();
+      return { value: node.id };
+    });
+    const graph = makeWorkflow(
+      ['failure', 'sibling', 'pending', 'compensate'].map((id) =>
+        makeNode(id, 'workflowInput'),
+      ),
+      [
+        makeEdge('failure', 'compensate', {
+          sourceHandle: 'failure',
+          targetHandle: 'failure',
+        }),
+        makeEdge('sibling', 'pending'),
+      ],
+    );
+    const result = await engine.execute(graph, { maxRetries: 0 });
+    expect(result.status).toBe('failed');
+    expect(calls).toContain('compensate');
+    expect(calls).not.toContain('pending');
+    expect(result.nodeResults.get('sibling')?.status).toBe('completed');
+    expect(result.nodeResults.get('pending')).toMatchObject({
+      status: 'skipped',
+      creditsUsed: 0,
+    });
+  });
+
+  it('does not dispatch pending compensation after abort', async () => {
+    const engine = new WorkflowEngine({ maxConcurrency: 1 });
+    const abort = new AbortController();
+    const calls: string[] = [];
+    engine.registerExecutor('workflowInput', async (node) => {
+      calls.push(node.id);
+      abort.abort();
+      throw new PermanentExecutionError('failed during abort');
+    });
+    const result = await engine.execute(
+      makeWorkflow(
+        ['work', 'compensate'].map((id) => makeNode(id, 'workflowInput')),
+        [
+          makeEdge('work', 'compensate', {
+            sourceHandle: 'failure',
+            targetHandle: 'failure',
+          }),
+        ],
+      ),
+      { abortSignal: abort.signal, maxRetries: 0 },
+    );
+    expect(result.status).toBe('cancelled');
+    expect(calls).toEqual(['work']);
+  });
+  it('does not fabricate failure from a locked successful output or rerun cached compensation', async () => {
+    const engine = new WorkflowEngine({ maxConcurrency: 1 });
+    const called: string[] = [];
+    engine.registerExecutor('workflowInput', async (node) => {
+      called.push(node.id);
+      return {};
+    });
+    const source = makeNode('source', 'workflowInput', {
+      isLocked: true,
+      cachedOutput: { failure: { error: 'successful JSON data' } },
+    });
+    const sink = makeNode('sink', 'workflowInput', {
+      isLocked: true,
+      cachedOutput: { compensated: true },
+    });
+    const result = await engine.execute(
+      makeWorkflow(
+        [source, sink],
+        [
+          makeEdge('source', 'sink', {
+            sourceHandle: 'failure',
+            targetHandle: 'failure',
+          }),
+        ],
+        { lockedNodeIds: ['source', 'sink'] },
+      ),
+    );
+    expect(result.status).toBe('completed');
+    expect(called).toEqual([]);
+    expect(result.totalCreditsUsed).toBe(0);
+  });
+  it.each([false, true])(
+    'refuses resume after completed compensation, including undefined output (%s)',
+    async (undefinedOutput) => {
+      const engine = new WorkflowEngine({ maxConcurrency: 1 });
+      let shouldFail = true;
+      const calls: string[] = [];
+      engine.registerExecutor('workflowInput', async (node) => {
+        calls.push(node.id);
+        if (node.id === 'work' && shouldFail)
+          throw new PermanentExecutionError('boom');
+        return undefinedOutput ? undefined : { value: node.id };
+      });
+      const graph = makeWorkflow(
+        ['work', 'compensate'].map((id) => makeNode(id, 'workflowInput')),
+        [
+          makeEdge('work', 'compensate', {
+            sourceHandle: 'failure',
+            targetHandle: 'failure',
+          }),
+        ],
+      );
+      const previous = await engine.execute(graph, { maxRetries: 0 });
+      expect(previous.nodeResults.get('compensate')?.status).toBe('completed');
+      shouldFail = false;
+      calls.length = 0;
+      const before = structuredClone(graph);
+      const callback = vi.fn();
+      const resumed = await engine.resume(graph, previous, {
+        onNodeStatusChange: callback,
+        maxRetries: 0,
+      });
+      expect(resumed.error).toBe(
+        'RESUME_AFTER_COMPLETED_COMPENSATION: completed failure compensation requires a new execution',
+      );
+      expect(resumed.status).toBe('failed');
+      expect(resumed.nodeResults.size).toBe(0);
+      expect(resumed.totalCreditsUsed).toBe(0);
+      expect(calls).toEqual([]);
+      expect(callback).not.toHaveBeenCalled();
+      expect(graph).toEqual(before);
+    },
+  );
+
+  it('refuses recorded completed cleanup descendants of a failed compensation without mutating cache', async () => {
+    const engine = new WorkflowEngine({ maxConcurrency: 1 });
+    const called = vi.fn();
+    engine.registerExecutor('workflowInput', async (node) => {
+      called(node.id);
+      if (node.id !== 'cleanup') throw new PermanentExecutionError(node.id);
+      return undefined;
+    });
+    const graph = makeWorkflow(
+      ['work', 'compensate', 'cleanup'].map((id) =>
+        makeNode(id, 'workflowInput'),
+      ),
+      [
+        makeEdge('work', 'compensate', {
+          sourceHandle: 'failure',
+          targetHandle: 'failure',
+        }),
+        makeEdge('compensate', 'cleanup', {
+          sourceHandle: 'failure',
+          targetHandle: 'failure',
+        }),
+      ],
+    );
+    const previous = await engine.execute(graph, { maxRetries: 0 });
+    expect(previous.nodeResults.get('compensate')?.status).toBe('failed');
+    expect(previous.nodeResults.get('cleanup')?.status).toBe('completed');
+    called.mockClear();
+    const before = structuredClone(graph);
+    expect((await engine.resume(graph, previous)).error).toMatch(
+      /^RESUME_AFTER_COMPLETED_COMPENSATION:/,
+    );
+    expect(called).not.toHaveBeenCalled();
+    expect(graph).toEqual(before);
+  });
+
+  it('resumes an uncompensated chain with cached nonselected predecessor and recomputes selected stale output', async () => {
+    const engine = new WorkflowEngine({ maxConcurrency: 1 });
+    let failed = true;
+    const calls: string[] = [];
+    engine.registerExecutor('workflowInput', async (node, inputs) => {
+      calls.push(node.id);
+      if (node.id === 'source' && failed)
+        throw new PermanentExecutionError('boom');
+      if (node.id === 'source')
+        expect(inputs.get('input')).toEqual({ fresh: 'root' });
+      return { fresh: node.id };
+    });
+    const graph = makeWorkflow(
+      [
+        makeNode('root', 'workflowInput'),
+        makeNode('source', 'workflowInput'),
+        makeNode('descendant', 'workflowInput', {
+          cachedOutput: { stale: true },
+        }),
+      ],
+      [
+        makeEdge('root', 'source', { targetHandle: 'input' }),
+        makeEdge('source', 'descendant', { targetHandle: 'input' }),
+      ],
+    );
+    const previous = await engine.execute(graph, { maxRetries: 0 });
+    expect(previous.status).toBe('failed');
+    failed = false;
+    calls.length = 0;
+    const resumed = await engine.resume(graph, previous, { maxRetries: 0 });
+    expect(resumed.status).toBe('completed');
+    expect(calls).toEqual(['source', 'descendant']);
+    expect(resumed.nodeResults.get('descendant')?.output).toEqual({
+      fresh: 'descendant',
+    });
+  });
+
+  it('does not refuse resume for only-failed compensation or a completed ordinary state ancestor', async () => {
+    const engine = new WorkflowEngine({ maxConcurrency: 1 });
+    let first = true;
+    const calls: string[] = [];
+    engine.registerExecutor('workflowInput', async (node) => {
+      calls.push(node.id);
+      if (first && node.id !== 'begin')
+        throw new PermanentExecutionError('boom');
+      return { value: node.id };
+    });
+    const graph = makeWorkflow(
+      ['begin', 'work', 'compensate'].map((id) =>
+        makeNode(id, 'workflowInput'),
+      ),
+      [
+        makeEdge('begin', 'work'),
+        makeEdge('begin', 'compensate', { targetHandle: 'state' }),
+        makeEdge('work', 'compensate', {
+          sourceHandle: 'failure',
+          targetHandle: 'failure',
+        }),
+      ],
+    );
+    const previous = await engine.execute(graph, { maxRetries: 0 });
+    expect(previous.nodeResults.get('begin')?.status).toBe('completed');
+    expect(previous.nodeResults.get('compensate')?.status).toBe('failed');
+    first = false;
+    calls.length = 0;
+    const resumed = await engine.resume(graph, previous, { maxRetries: 0 });
+    expect(resumed.error ?? '').not.toMatch(
+      /RESUME_AFTER_COMPLETED_COMPENSATION/,
+    );
+    expect(resumed.status).toBe('completed');
+    expect(calls).toEqual(['work', 'compensate']);
+  });
+});

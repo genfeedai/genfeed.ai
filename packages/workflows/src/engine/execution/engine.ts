@@ -14,7 +14,6 @@ import type {
   ExecutableWorkflow,
   ExecutionProgressEvent,
   ExecutionRunResult,
-  ExecutionStatus,
   NodeExecutionResult,
   NodeStatusChangeEvent,
   RetryConfig,
@@ -39,7 +38,15 @@ import {
   type VideoGenerationLineage,
 } from '../video-generation-lineage';
 import { WorkflowExecutionError } from './execution-error';
-import { canExecuteNode, planPartialExecution } from './partial-execution';
+import {
+  isFailureControlledNode,
+  isWorkflowEdgeActive,
+} from './failure-routing';
+import { planPartialExecution } from './partial-execution';
+import {
+  type ReadySetInput,
+  runReadySetScheduler,
+} from './ready-set-scheduler';
 import { analyzeForResume, createCacheFromRun } from './resume-handler';
 import { withRetry } from './retry-handler';
 import { topologicalSort } from './topological-sort';
@@ -175,7 +182,7 @@ export class WorkflowEngine {
     const startedAt = new Date();
     const nodeResults = new Map<string, NodeExecutionResult>();
     const nodeCache = new Map<string, unknown>();
-    let totalCreditsUsed = 0;
+    const totalCreditsUsed = 0;
 
     // Pre-populate cache from nodes with cachedOutput (e.g. from resume)
     for (const node of workflow.nodes) {
@@ -301,222 +308,71 @@ export class WorkflowEngine {
       }
     }
 
-    if (options.dryRun) {
-      return {
-        completedAt: new Date(),
-        nodeResults,
-        runId,
-        startedAt,
-        status: 'completed',
-        totalCreditsUsed: 0,
-        workflowId: workflow.id,
-      };
-    }
-
-    const completedNodes = new Set<string>(
-      Array.from(nodeResults.entries())
-        .filter(([_, r]) => r.status === 'completed' || r.status === 'skipped')
-        .map(([id]) => id),
-    );
-    const failedNodes = new Set<string>();
-    let currentStatus: ExecutionStatus = 'running';
-    let lastError: string | undefined;
-    let wasAborted = false;
-    let hasSuspendedNode = false;
-
-    // Bounded ready-set scheduler. Dispatches nodes in `executionOrder`
-    // priority, never running more than `maxConcurrency` at once, and only
-    // dispatching a node once `canExecuteNode` confirms its dependencies are
-    // satisfied. A cooperative `abortSignal` halts further dispatch and yields
-    // a `cancelled` status. With `maxConcurrency` of 1 this degrades to the
-    // previous strictly-sequential behavior.
-    const maxConcurrency = Math.max(1, this.config.maxConcurrency);
-    const remaining = executionOrder.filter(
-      (id) => nodesToExecute.includes(id) && !completedNodes.has(id),
-    );
-    const inFlight = new Map<
-      string,
-      Promise<{
-        node: ExecutableNode;
-        nodeId: string;
-        result: NodeExecutionResult;
-      }>
-    >();
-
-    while (inFlight.size > 0 || remaining.length > 0) {
-      // Dispatch phase — fill free slots while running and not aborted.
-      if (currentStatus !== 'failed' && !wasAborted && !hasSuspendedNode) {
-        let index = 0;
-        while (index < remaining.length && inFlight.size < maxConcurrency) {
-          // Abort is checked before dispatching each node.
-          if (context.abortSignal?.aborted) {
-            wasAborted = true;
-            break;
-          }
-
-          const nodeId = remaining[index];
-          const node = workflow.nodes.find((n) => n.id === nodeId);
-          if (!node) {
-            lastError = `Node ${nodeId} not found`;
-            currentStatus = 'failed';
-            remaining.splice(index, 1);
-            break;
-          }
-
-          if (
-            !canExecuteNode(
-              nodeId,
-              workflow.nodes,
-              workflow.edges,
-              completedNodes,
-              nodeCache,
-            )
-          ) {
-            // Dependency still in flight — defer this node, try the next one.
-            index++;
-            continue;
-          }
-
-          remaining.splice(index, 1);
-          const inputs = this.gatherInputs(node, workflow.edges, nodeCache);
-
-          this.emitNodeStatusChange(options, {
-            newStatus: 'running',
-            nodeId,
-            previousStatus: 'pending',
-            runId,
-            timestamp: new Date(),
-            workflowId: workflow.id,
-          });
-
-          inFlight.set(
-            nodeId,
-            this.runNode(node, inputs, context, options).then((result) => ({
-              node,
-              nodeId,
-              result,
-            })),
-          );
-        }
-      }
-
-      if (inFlight.size === 0) {
-        if (currentStatus === 'failed' || wasAborted || hasSuspendedNode) {
-          break;
-        }
-        if (remaining.length === 0) {
-          break;
-        }
-        // Nothing in flight and nothing dispatchable: a dependency can never be
-        // satisfied. Fail the first stuck node rather than spin forever.
-        const stuckNodeId = remaining[0];
-        lastError = `Dependencies not satisfied for node ${stuckNodeId}`;
-        failedNodes.add(stuckNodeId);
-        currentStatus = 'failed';
-        break;
-      }
-
-      // Wait for the next in-flight node to settle, then record its result.
-      // Already-dispatched nodes are always drained even after a failure or
-      // abort so their promises never reject unobserved.
-      const settled = await Promise.race(inFlight.values());
-      inFlight.delete(settled.nodeId);
-
-      const { node, nodeId, result } = settled;
-      nodeResults.set(nodeId, result);
-      totalCreditsUsed += result.creditsUsed;
-
-      if (result.status === 'completed') {
-        completedNodes.add(nodeId);
-        if (result.output !== undefined) {
-          nodeCache.set(nodeId, result.output);
-        }
-
-        // In-flight siblings drained after a failure or abort are still
-        // recorded in nodeResults/completedNodes (for observability and cache
-        // correctness), but they must not emit user-facing progress/status
-        // events on a run that is no longer healthy.
-        if (currentStatus !== 'failed' && !wasAborted) {
-          const totalNodes = nodesToExecute.length || 1;
-          // Only count completed nodes that are in the execution list for progress
-          const executedCount = nodesToExecute.filter((id) =>
-            completedNodes.has(id),
-          ).length;
-          const progress = Math.round((executedCount / totalNodes) * 100);
-          this.emitProgress(options, {
-            completedNodes: Array.from(completedNodes),
-            currentNodeId: nodeId,
-            currentNodeLabel: node.label,
-            failedNodes: Array.from(failedNodes),
-            progress,
-            runId,
-            timestamp: new Date(),
-            workflowId: workflow.id,
-          });
-
-          this.emitNodeStatusChange(options, {
-            newStatus: result.status,
-            nodeId,
-            output: result.output,
-            previousStatus: 'running',
-            runId,
-            timestamp: new Date(),
-            workflowId: workflow.id,
-          });
-        }
-      } else if (result.status === 'failed') {
-        failedNodes.add(nodeId);
-        lastError = result.error;
-        currentStatus = 'failed';
-
-        this.emitNodeStatusChange(options, {
-          error: result.error,
-          newStatus: 'failed',
-          nodeId,
-          previousStatus: 'running',
-          runId,
-          timestamp: new Date(),
-          workflowId: workflow.id,
-        });
-      } else if (result.status === 'running') {
-        hasSuspendedNode = true;
-        this.emitNodeStatusChange(options, {
-          newStatus: 'running',
-          nodeId,
-          output: result.output,
-          previousStatus: 'running',
-          runId,
-          timestamp: new Date(),
-          workflowId: workflow.id,
-        });
-      }
-    }
-
-    // Abort takes priority over a concurrent in-flight failure: a run whose
-    // signal fired must report `cancelled`, even if a sibling node failed while
-    // the already-dispatched work was being drained.
-    if (wasAborted) {
-      currentStatus = 'cancelled';
-    } else if (hasSuspendedNode) {
-      currentStatus = 'running';
-    } else if (currentStatus !== 'failed') {
-      // Count only nodes that were in the execution list (not pre-skipped locked nodes)
-      const executedOrSkipped = nodesToExecute.every((id) =>
-        completedNodes.has(id),
-      );
-      currentStatus = executedOrSkipped ? 'completed' : 'failed';
-    }
-
-    return {
-      completedAt: currentStatus === 'running' ? undefined : new Date(),
-      error: lastError,
+    return this.executeReadySet({
+      workflow,
+      options,
+      context,
+      config: this.config,
+      executionOrder,
+      nodesToExecute,
+      nodeCache,
       nodeResults,
-      runId,
       startedAt,
-      status: currentStatus,
+      runId,
       totalCreditsUsed,
-      workflowId: workflow.id,
-    };
+    });
+  }
+
+  private executeReadySet(
+    input: Omit<ReadySetInput, 'callbacks'>,
+  ): Promise<ExecutionRunResult> {
+    return runReadySetScheduler({
+      ...input,
+      callbacks: {
+        gatherInputs: (node, edges, cache, results) =>
+          this.gatherInputs(node, edges, cache, results),
+        runNode: (node, inputs, executionContext, executionOptions) =>
+          this.runNode(node, inputs, executionContext, executionOptions),
+        emitNodeStatusChange: (executionOptions, event) =>
+          this.emitNodeStatusChange(executionOptions, event),
+        emitProgress: (executionOptions, event) =>
+          this.emitProgress(executionOptions, event),
+      },
+    });
+  }
+
+  private hasCompletedCompensation(
+    workflow: ExecutableWorkflow,
+    results: ReadonlyMap<string, NodeExecutionResult>,
+  ): boolean {
+    if (
+      workflow.nodes.some(
+        (node) =>
+          results.get(node.id)?.status === 'completed' &&
+          isFailureControlledNode(node, workflow.edges),
+      )
+    )
+      return true;
+    const pending = workflow.edges
+      .filter(
+        (edge) =>
+          edge.sourceHandle === 'failure' &&
+          results.get(edge.source)?.status === 'failed',
+      )
+      .map((edge) => edge.target);
+    const visited = new Set<string>();
+    while (pending.length) {
+      const id = pending.shift();
+      if (!id || visited.has(id)) continue;
+      visited.add(id);
+      const status = results.get(id)?.status;
+      if (status === 'completed') return true;
+      if (status !== 'failed') continue;
+      for (const edge of workflow.edges)
+        if (edge.source === id && isWorkflowEdgeActive(edge, results))
+          pending.push(edge.target);
+    }
+    return false;
   }
 
   resume(
@@ -524,6 +380,22 @@ export class WorkflowEngine {
     previousRunResult: ExecutionRunResult,
     options: EngineExecutionOptions = {},
   ): Promise<ExecutionRunResult> {
+    if (
+      previousRunResult.status === 'failed' &&
+      this.hasCompletedCompensation(workflow, previousRunResult.nodeResults)
+    ) {
+      return Promise.resolve({
+        completedAt: new Date(),
+        error:
+          'RESUME_AFTER_COMPLETED_COMPENSATION: completed failure compensation requires a new execution',
+        nodeResults: new Map(),
+        runId: uuidv4(),
+        startedAt: new Date(),
+        status: 'failed',
+        totalCreditsUsed: 0,
+        workflowId: workflow.id,
+      });
+    }
     const previousRun = {
       completedAt: previousRunResult.completedAt,
       creditsUsed: previousRunResult.totalCreditsUsed,
@@ -770,11 +642,12 @@ export class WorkflowEngine {
     node: ExecutableNode,
     edges: ExecutableWorkflow['edges'],
     cache: Map<string, unknown>,
+    results: ReadonlyMap<string, Pick<NodeExecutionResult, 'status'>>,
   ): Map<string, unknown> {
     const inputs = new Map<string, unknown>();
 
     for (const edge of edges) {
-      if (edge.target === node.id) {
+      if (edge.target === node.id && isWorkflowEdgeActive(edge, results)) {
         const sourceOutput = cache.get(edge.source);
         if (sourceOutput !== undefined) {
           const handleKey = edge.targetHandle ?? edge.source;

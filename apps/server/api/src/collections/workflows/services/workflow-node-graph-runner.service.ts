@@ -308,6 +308,7 @@ export class WorkflowNodeGraphRunnerService {
         state.completedNodes,
         state.skippedNodes,
         state.nodeResults,
+        node,
       )
     ) {
       state.skippedNodes.add(nodeId);
