@@ -4,6 +4,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  get: vi.fn<(route: string) => Promise<unknown>>(),
   handleError: vi.fn((error: unknown) => {
     throw error;
   }),
@@ -13,7 +14,7 @@ const mocks = vi.hoisted(() => ({
   requireAuth: vi.fn<() => Promise<string>>(),
 }));
 vi.mock('@/api/client', () => ({
-  get: vi.fn(),
+  get: mocks.get,
   patch: mocks.patch,
   post: mocks.post,
   requireAuth: mocks.requireAuth,
@@ -265,5 +266,309 @@ describe('skill edit command', () => {
     const help = edited.helpInformation();
     for (const text of ['140', '2000', '8000', 'defaultInstructions', 'systemPromptTemplate'])
       expect(help).toContain(text);
+  });
+});
+
+describe('skill versions read commands', () => {
+  const skillId = 'skill/with_underscore?';
+  const hash = `sha256:skill-v1:${'a'.repeat(64)}`;
+  const createdAt = '2026-10-02T12:00:00.000Z';
+  function row(versionNumber: number, instructionText?: string) {
+    return {
+      attributes: {
+        contentHash: hash,
+        createdAt,
+        versionNumber,
+        ...(instructionText !== undefined ? { instructionText } : {}),
+      },
+      id: `sv1_${skillId}_${versionNumber}`,
+      type: 'skill-version',
+    };
+  }
+  function page(
+    numbers: number[] = [3, 2],
+    limit = 20,
+    hasMore = false,
+    nextCursor: number | null = null
+  ) {
+    return {
+      data: numbers.map((number) => row(number)),
+      links: { cursor: { hasMore, limit, nextCursor }, self: 'inert:do-not-follow' },
+    };
+  }
+  function detail(text = '') {
+    return { data: row(3, text), links: { self: 'inert:do-not-follow' } };
+  }
+  async function read(args: string[]) {
+    return (await command()).parseAsync(args, { from: 'user' });
+  }
+  function noWrites() {
+    expect(mocks.post).not.toHaveBeenCalled();
+    expect(mocks.patch).not.toHaveBeenCalled();
+  }
+  beforeEach(() => {
+    mocks.get.mockReset();
+    mocks.get.mockResolvedValue(page());
+  });
+
+  it('registers both read commands and truthful bounded help', async () => {
+    const cmd = await command();
+    const list = cmd.commands.find((child) => child.name() === 'versions');
+    const one = cmd.commands.find((child) => child.name() === 'version');
+    expect(list?.helpInformation()).toContain('--before-version-number');
+    expect(list?.helpInformation()).toContain('1..50');
+    expect(list?.helpInformation()).toContain('20');
+    expect(one?.helpInformation()).toContain('<versionId>');
+    expect(cmd.helpInformation()).toContain('versions');
+  });
+  it('reads exactly one default page with an encoded skill ID and prints metadata only', async () => {
+    await read(['versions', skillId]);
+    expect(mocks.get).toHaveBeenCalledExactlyOnceWith(
+      '/skills/skill%2Fwith_underscore%3F/versions?limit=20'
+    );
+    expect(mocks.printJson).toHaveBeenCalledExactlyOnceWith({
+      hasMore: false,
+      items: [3, 2].map((versionNumber) => ({
+        contentHash: hash,
+        createdAt,
+        id: `sv1_${skillId}_${versionNumber}`,
+        versionNumber,
+      })),
+      limit: 20,
+      nextCursor: null,
+    });
+    noWrites();
+  });
+  it('accepts a full limit-one continuation without following links or auto-paging', async () => {
+    mocks.get.mockResolvedValue(page([4], 1, true, 4));
+    await read(['versions', skillId, '--limit', '1', '--before-version-number', '5']);
+    expect(mocks.get).toHaveBeenCalledExactlyOnceWith(
+      '/skills/skill%2Fwith_underscore%3F/versions?limit=1&beforeVersionNumber=5'
+    );
+    expect(mocks.printJson).toHaveBeenCalledExactlyOnceWith({
+      hasMore: true,
+      items: [{ contentHash: hash, createdAt, id: `sv1_${skillId}_4`, versionNumber: 4 }],
+      limit: 1,
+      nextCursor: 4,
+    });
+    noWrites();
+  });
+  it('accepts maximum bounds and empty terminal pages', async () => {
+    mocks.get.mockResolvedValue(page([], 50));
+    await read(['versions', skillId, '--limit', '50', '--before-version-number', '2147483647']);
+    expect(mocks.get).toHaveBeenCalledExactlyOnceWith(
+      '/skills/skill%2Fwith_underscore%3F/versions?limit=50&beforeVersionNumber=2147483647'
+    );
+    expect(mocks.printJson).toHaveBeenCalledExactlyOnceWith({
+      hasMore: false,
+      items: [],
+      limit: 50,
+      nextCursor: null,
+    });
+  });
+  it.each(['0', '51', '-1', '01', '+1', '1.0', '1e1', ' 1', '1 ', 'NaN', 'Infinity', '1\n', ''])(
+    'rejects noncanonical limit %s before GET',
+    async (value) => {
+      await expect(read(['versions', skillId, '--limit', value])).rejects.toThrow();
+      expect(mocks.get).not.toHaveBeenCalled();
+      expect(mocks.printJson).not.toHaveBeenCalled();
+      noWrites();
+    }
+  );
+  it.each(['0', '-1', '01', '+1', '2147483648', '1.1', '1e2', ' 2', '2 ', '2\n', ''])(
+    'rejects noncanonical cursor %s before GET',
+    async (value) => {
+      await expect(read(['versions', skillId, '--before-version-number', value])).rejects.toThrow();
+      expect(mocks.get).not.toHaveBeenCalled();
+      expect(mocks.printJson).not.toHaveBeenCalled();
+      noWrites();
+    }
+  );
+  it.each([
+    'sv1_other_3',
+    `sv1_${skillId}_03`,
+    `sv1_${skillId}_0`,
+    `sv1_${skillId}_2147483648`,
+    '3',
+    `sv1_${skillId}_3/extra`,
+    `sv1_${skillId}_3\n`,
+  ])('rejects mismatched or malformed full ID %s before GET', async (id) => {
+    await expect(read(['version', skillId, id])).rejects.toThrow();
+    expect(mocks.get).not.toHaveBeenCalled();
+    expect(mocks.printJson).not.toHaveBeenCalled();
+    noWrites();
+  });
+  it.each(['', ' \n\t ', '<script>literal</script>'])(
+    'prints exact instruction text %j and the full sv1 ID',
+    async (text) => {
+      mocks.get.mockResolvedValue(detail(text));
+      await read(['version', skillId, `sv1_${skillId}_3`]);
+      expect(mocks.get).toHaveBeenCalledExactlyOnceWith(
+        '/skills/skill%2Fwith_underscore%3F/versions/sv1_skill%2Fwith_underscore%3F_3'
+      );
+      expect(mocks.printJson).toHaveBeenCalledExactlyOnceWith({
+        contentHash: hash,
+        createdAt,
+        id: `sv1_${skillId}_3`,
+        instructionText: text,
+        versionNumber: 3,
+      });
+      noWrites();
+    }
+  );
+  it.each([
+    () => null,
+    () => ({ data: null, links: page().links }),
+    () => ({
+      ...page(),
+      links: { cursor: { ...page().links.cursor, hasMore: 'false' }, self: 'inert' },
+    }),
+    () => ({ ...page(), included: ['private-evidence'] }),
+    () => ({ ...page(), unknown: 'private-evidence' }),
+    () => ({ ...page(), data: [{ ...row(3), relationships: {} }] }),
+    () => ({ ...page(), data: [{ ...row(3), type: 'skill' }] }),
+    () => ({ ...page(), data: [{ ...row(3), id: 'sv1_other_3' }] }),
+    () => ({
+      ...page(),
+      data: [
+        { ...row(3), attributes: { ...row(3).attributes, instructionText: 'private-evidence' } },
+      ],
+    }),
+    () => ({
+      ...page(),
+      data: [{ ...row(3), attributes: { ...row(3).attributes, payload: 'private-evidence' } }],
+    }),
+    () => ({
+      ...page(),
+      data: [{ ...row(3), attributes: { ...row(3).attributes, contentHash: hash.toUpperCase() } }],
+    }),
+    () => ({
+      ...page(),
+      data: [{ ...row(3), attributes: { ...row(3).attributes, contentHash: 'sha256:skill-v1:a' } }],
+    }),
+    () => ({
+      ...page(),
+      data: [
+        { ...row(3), attributes: { ...row(3).attributes, createdAt: '2026-10-02T12:00:00Z' } },
+      ],
+    }),
+    () => ({
+      ...page(),
+      data: [
+        { ...row(3), attributes: { ...row(3).attributes, createdAt: 'invalid-private-evidence' } },
+      ],
+    }),
+    () => ({
+      ...page(),
+      data: [{ ...row(3), attributes: { ...row(3).attributes, versionNumber: '3' } }],
+    }),
+    () => ({ ...page(), links: { cursor: page().links.cursor, self: ' ' } }),
+    () => ({ ...page(), links: { ...page().links, related: 'private-evidence' } }),
+    () => page([2, 3]),
+    () => page([3, 3]),
+    () => page([1], 20, true, 1),
+    () => page([3, 2], 20, true, 2),
+    () => page([], 20, true, 2),
+    () => page([3, 2], 20, false, 2),
+    () => page([3, 2], 20, true, null),
+    () => page([3, 2], 19),
+  ])(
+    'rejects malformed metadata/envelopes/cursors without partial output or parser retry %#',
+    async (fixture) => {
+      mocks.get.mockResolvedValue(fixture());
+      await expect(read(['versions', skillId])).rejects.toThrow('Skill versions are unavailable.');
+      expect(mocks.get).toHaveBeenCalledTimes(1);
+      expect(mocks.printJson).not.toHaveBeenCalled();
+      noWrites();
+      expect(mocks.handleError.mock.calls[0]?.[0]).toMatchObject({
+        message: 'Skill versions are unavailable.',
+      });
+      expect(JSON.stringify(mocks.handleError.mock.calls)).not.toContain('private-evidence');
+    }
+  );
+  it.each([() => page([3], 1, true, 2), () => page([3, 2], 1), () => page([5], 1)])(
+    'rejects wrong last cursor, oversized page or nonadvancing requested cursor %#',
+    async (fixture) => {
+      mocks.get.mockResolvedValue(fixture());
+      await expect(
+        read(['versions', skillId, '--limit', '1', '--before-version-number', '5'])
+      ).rejects.toThrow('Skill versions are unavailable.');
+      expect(mocks.get).toHaveBeenCalledTimes(1);
+      expect(mocks.printJson).not.toHaveBeenCalled();
+    }
+  );
+  it.each([
+    () => ({ ...detail(), included: [] }),
+    () => ({ ...detail(), data: row(2, 'private-evidence') }),
+    () => ({ ...detail(), data: row(3) }),
+    () => ({
+      ...detail(),
+      data: { ...row(3), attributes: { ...row(3).attributes, instructionText: null } },
+    }),
+    () => ({ ...detail(), data: { ...row(3, ''), relationships: {} } }),
+    () => ({
+      ...detail(),
+      data: {
+        ...row(3, ''),
+        attributes: { ...row(3, '').attributes, instructionHash: 'private-evidence' },
+      },
+    }),
+  ])('rejects malformed/protected detail or mismatched requested version %#', async (fixture) => {
+    mocks.get.mockResolvedValue(fixture());
+    await expect(read(['version', skillId, `sv1_${skillId}_3`])).rejects.toThrow(
+      'Skill versions are unavailable.'
+    );
+    expect(mocks.get).toHaveBeenCalledTimes(1);
+    expect(mocks.printJson).not.toHaveBeenCalled();
+    noWrites();
+  });
+  it.each(['versions', 'version'])(
+    'propagates authoritative auth/HTTP errors for %s without success or feature retry',
+    async (action) => {
+      const args =
+        action === 'versions' ? [action, skillId] : [action, skillId, `sv1_${skillId}_3`];
+      const authError = new Error('Fixture authentication denied');
+      mocks.requireAuth.mockRejectedValueOnce(authError);
+      await expect(read(args)).rejects.toBe(authError);
+      expect(mocks.get).not.toHaveBeenCalled();
+      const apiError = new Error('Fixture generic 404');
+      mocks.get.mockRejectedValueOnce(apiError);
+      await expect(read(args)).rejects.toBe(apiError);
+      expect(mocks.get).toHaveBeenCalledTimes(1);
+      expect(mocks.printJson).not.toHaveBeenCalled();
+      expect(mocks.handleError).toHaveBeenLastCalledWith(apiError);
+      noWrites();
+    }
+  );
+  it.each(['versions', 'version'])(
+    'propagates denied reads for %s without fallback or write',
+    async (action) => {
+      const denied = new Error('Fixture access denied 403');
+      mocks.get.mockRejectedValueOnce(denied);
+      const args =
+        action === 'versions' ? [action, skillId] : [action, skillId, `sv1_${skillId}_3`];
+      await expect(read(args)).rejects.toBe(denied);
+      expect(mocks.get).toHaveBeenCalledTimes(1);
+      expect(mocks.handleError).toHaveBeenCalledExactlyOnceWith(denied);
+      expect(mocks.printJson).not.toHaveBeenCalled();
+      noWrites();
+    }
+  );
+  it('accepts the maximum canonical full version ID without shortening it', async () => {
+    const number = 2147483647;
+    const id = `sv1_${skillId}_${number}`;
+    mocks.get.mockResolvedValue({ data: row(number, ''), links: { self: 'inert' } });
+    await read(['version', skillId, id]);
+    expect(mocks.get).toHaveBeenCalledExactlyOnceWith(
+      `/skills/${encodeURIComponent(skillId)}/versions/${encodeURIComponent(id)}`
+    );
+    expect(mocks.printJson).toHaveBeenCalledExactlyOnceWith({
+      contentHash: hash,
+      createdAt,
+      id,
+      instructionText: '',
+      versionNumber: number,
+    });
+    noWrites();
   });
 });
