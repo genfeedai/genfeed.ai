@@ -22,7 +22,7 @@ import {
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 const ASSET_CACHE_TAGS = ['brands', 'links', 'assets', 'public'];
 
@@ -45,6 +45,16 @@ export class AssetIngestionService {
     file: Express.Multer.File,
     uploadDto: CreateAssetDto,
   ): Promise<AssetDocument> {
+    if (uploadDto.category === AssetCategory.FONT)
+      throw new BadRequestException('font_asset_dedicated_route_required');
+    if (
+      ![
+        AssetCategory.LOGO,
+        AssetCategory.BANNER,
+        AssetCategory.REFERENCE,
+      ].includes(uploadDto.category)
+    )
+      throw new BadRequestException('Invalid asset category');
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`, { category: uploadDto.category });
 
@@ -144,6 +154,8 @@ export class AssetIngestionService {
     user: User,
     createFromIngredientDto: CreateFromIngredientDto,
   ): Promise<AssetDocument> {
+    if (createFromIngredientDto.category === AssetCategory.FONT)
+      throw new BadRequestException('font_asset_dedicated_route_required');
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
 

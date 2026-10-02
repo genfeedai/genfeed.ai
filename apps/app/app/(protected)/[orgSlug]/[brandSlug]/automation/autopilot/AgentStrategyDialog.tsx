@@ -250,7 +250,11 @@ export default function AgentStrategyDialog({
 
           <AgentStrategyBudgetFields form={form} setForm={setForm} />
           <AgentStrategyScoreFields form={form} setForm={setForm} />
-          <AgentStrategyPublishToggles form={form} setForm={setForm} />
+          <AgentStrategyPublishToggles
+            form={form}
+            setForm={setForm}
+            publishPolicy={initialStrategy?.publishPolicy}
+          />
           <AgentStrategySourceToggles form={form} setForm={setForm} />
 
           <DialogFooter className="gap-2 sm:space-x-0">

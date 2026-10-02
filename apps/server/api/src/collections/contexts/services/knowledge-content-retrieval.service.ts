@@ -23,6 +23,8 @@ import type {
 import type { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 
+export const SELECTED_KNOWLEDGE_PASSAGE_BUDGET = 8;
+
 /**
  * Brand-, organization- and personal-scope Knowledge retrieval for
  * generation and chat grounding. Built on `ContextsService`'s shared
@@ -65,6 +67,68 @@ export class KnowledgeContentRetrievalService {
       },
     );
     return toBrandContentMemoryHits(entries, bases);
+  }
+
+  async retrieveSelectedBrandContentMemory(
+    params: BrandContentMemoryRetrievalParams,
+    sourceIds: readonly string[],
+  ): Promise<BrandContentMemoryHit[]> {
+    if (
+      !sourceIds.length ||
+      sourceIds.length > SELECTED_KNOWLEDGE_PASSAGE_BUDGET ||
+      sourceIds.some((id) => !id.trim()) ||
+      new Set(sourceIds).size !== sourceIds.length
+    ) {
+      throw new Error('knowledge_unavailable');
+    }
+    const query = params.query.trim();
+    const brandId = params.brandId?.trim();
+    if (!query || !brandId) throw new Error('knowledge_unavailable');
+    const rows = await this.prisma.contextBase.findMany({
+      select: { createdById: true, data: true, id: true, sourceBrandId: true },
+      where: scopedWhere(
+        params.organizationId,
+        buildBrandContentMemoryBaseWhere(brandId),
+      ),
+    });
+    const bases = rows.filter((row) => isContextBaseInBrandScope(row, brandId));
+    if (!bases.length) throw new Error('knowledge_unavailable');
+    // The vector belongs to this request; every selected source shares one paid embedding.
+    const embedding = await this.contextsService.generateEmbedding(query);
+    const baseIds = bases.map((base) => base.id);
+    const hits: BrandContentMemoryHit[] = [];
+    const baseQuota = Math.floor(
+      SELECTED_KNOWLEDGE_PASSAGE_BUDGET / sourceIds.length,
+    );
+    const remainder = SELECTED_KNOWLEDGE_PASSAGE_BUDGET % sourceIds.length;
+    for (const [index, sourceId] of sourceIds.entries()) {
+      const quota = baseQuota + (index < remainder ? 1 : 0);
+      const entries = await this.contextsService.findSimilarEntries(
+        params.organizationId,
+        baseIds,
+        embedding,
+        quota,
+        0,
+        {
+          knowledgeSourceIds: [sourceId],
+          isKnowledgeOnly: true,
+          knowledgeBrandId: brandId,
+          ...(params.knowledgePurposes?.length
+            ? { knowledgePurposes: params.knowledgePurposes }
+            : {}),
+        },
+      );
+      const selected = toBrandContentMemoryHits(entries, bases);
+      if (
+        !selected.length ||
+        selected.length > quota ||
+        selected.some((hit) => hit.citation?.sourceId !== sourceId)
+      ) {
+        throw new Error('knowledge_unavailable');
+      }
+      hits.push(...selected);
+    }
+    return hits;
   }
 
   /**

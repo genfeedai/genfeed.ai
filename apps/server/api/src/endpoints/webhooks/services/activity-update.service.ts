@@ -78,10 +78,12 @@ export class ActivityUpdateService {
 
     const { activityKey, processingKey, activitySource } = routing;
 
-    const existingActivity = await this.findProcessingActivity(
+    const existingActivity = await this.findLifecycleActivity(
       ingredientId,
       processingKey,
       dbUserId,
+      activityKey,
+      organizationId,
     );
 
     let activity: ActivityDocument;
@@ -98,7 +100,16 @@ export class ActivityUpdateService {
           key: activityKey,
           value: buildCompletionValue({
             activityKey,
-            existingValue: parsedValue,
+            existingValue: {
+              ...parsedValue,
+              startedAt:
+                parsedValue.startedAt ??
+                existingActivity.createdAt?.toISOString(),
+              completedAt:
+                existingActivity.key === activityKey
+                  ? (parsedValue.completedAt ?? new Date().toISOString())
+                  : new Date().toISOString(),
+            },
             ingredientId,
           }),
         })) ?? existingActivity;
@@ -111,7 +122,11 @@ export class ActivityUpdateService {
         organizationId: organizationId ? String(organizationId) : null,
         source: activitySource,
         userId: dbUserId,
-        value: buildCompletionValue({ activityKey, ingredientId }),
+        value: buildCompletionValue({
+          activityKey,
+          ingredientId,
+          existingValue: { completedAt: new Date().toISOString() },
+        }),
       });
     }
 
@@ -166,10 +181,12 @@ export class ActivityUpdateService {
 
     const { activityKey, processingKey, activitySource } = routing;
 
-    const existingActivity = await this.findProcessingActivity(
+    const existingActivity = await this.findLifecycleActivity(
       ingredientId,
       processingKey,
       dbUserId,
+      activityKey,
+      organizationId,
     );
 
     let activity: ActivityDocument;
@@ -187,7 +204,16 @@ export class ActivityUpdateService {
           value: buildFailureValue({
             activityKey,
             errorMessage,
-            existingValue: parsedValue,
+            existingValue: {
+              ...parsedValue,
+              startedAt:
+                parsedValue.startedAt ??
+                existingActivity.createdAt?.toISOString(),
+              completedAt:
+                existingActivity.key === activityKey
+                  ? (parsedValue.completedAt ?? new Date().toISOString())
+                  : new Date().toISOString(),
+            },
             ingredientId,
           }),
         })) ?? existingActivity;
@@ -200,7 +226,12 @@ export class ActivityUpdateService {
         organizationId: organizationId ? String(organizationId) : null,
         source: activitySource,
         userId: dbUserId,
-        value: buildFailureValue({ activityKey, errorMessage, ingredientId }),
+        value: buildFailureValue({
+          activityKey,
+          errorMessage,
+          ingredientId,
+          existingValue: { completedAt: new Date().toISOString() },
+        }),
       });
     }
 
@@ -220,17 +251,20 @@ export class ActivityUpdateService {
   }
 
   /**
-   * Finds an existing PROCESSING activity by ingredientId in the value field.
+   * Reuses the same lifecycle row, including a repeated terminal callback.
    */
-  private findProcessingActivity(
+  private findLifecycleActivity(
     ingredientId: string,
     processingKey: ActivityKey,
     dbUserId: string,
+    terminalKey: ActivityKey,
+    organizationId?: string,
   ): Promise<ActivityDocument | null> {
-    return this.activitiesService.findByActionValue(
-      processingKey,
+    return this.activitiesService.findGenerationActivity(
+      [processingKey, terminalKey],
       ingredientId,
       dbUserId,
+      organizationId,
     );
   }
 }

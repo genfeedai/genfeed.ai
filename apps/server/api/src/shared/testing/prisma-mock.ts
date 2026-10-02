@@ -83,6 +83,12 @@ export class MockPrismaClientValidationError extends Error {
 }
 
 export const mockPrismaNamespace = {
+  TransactionIsolationLevel: Object.freeze({
+    ReadUncommitted: 'ReadUncommitted',
+    ReadCommitted: 'ReadCommitted',
+    RepeatableRead: 'RepeatableRead',
+    Serializable: 'Serializable',
+  } as const),
   empty: createSql(''),
   AnyNull: Object.freeze({ __prismaNull: 'AnyNull' }),
   DbNull: Object.freeze({ __prismaNull: 'DbNull' }),

@@ -68,6 +68,7 @@ export * from '@serializers/configs/content/studio-generate-draft.config';
 export * from '@serializers/configs/content/studio-look.config';
 export * from '@serializers/configs/content/template.config';
 export * from '@serializers/configs/content/video.config';
+export * from './branded-generation-receipt.config';
 export * from './remotion-composition.config';
 export * from './remotion-render.config';
 export * from './visual-project.config';

@@ -1,5 +1,6 @@
 import { formatEnumLabel } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import Badge from '@ui/display/badge/Badge';
 
 type Props = {
   ingredient: IIngredient;
@@ -8,15 +9,13 @@ type Props = {
 export default function IngredientOverlayBadges({ ingredient }: Props) {
   return (
     <>
-      <span className="rounded-full border border-border bg-tertiary px-3 py-1 text-2xs uppercase tracking-[0.22em] text-muted-foreground">
+      <Badge variant="ghost" className="uppercase tracking-wide">
         Ingredient
-      </span>
-      <span className="rounded-full border border-border bg-tertiary px-3 py-1 text-xs text-muted-foreground">
-        {formatEnumLabel(ingredient.category)}
-      </span>
-      <span className="rounded-full border border-border bg-tertiary px-3 py-1 text-xs text-muted-foreground">
+      </Badge>
+      <Badge variant="ghost">{formatEnumLabel(ingredient.category)}</Badge>
+      <Badge status={ingredient.status}>
         {formatEnumLabel(ingredient.status)}
-      </span>
+      </Badge>
     </>
   );
 }

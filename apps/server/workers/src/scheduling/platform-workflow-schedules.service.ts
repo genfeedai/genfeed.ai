@@ -16,7 +16,7 @@ import { WorkflowContinuationReconcileService } from '@workers/scheduling/workfl
 
 /**
  * Templates whose sweep only makes sense for an organization with at least
- * one active strategy that is actually due right now (#4961 AC-1, #5162).
+ * one active strategy that is due or has accepted pending work to recover.
  * `analytics-sync` and `content-loop-autopilot` have no per-item due state —
  * they run on their own catalog cadence for every org regardless (AC-5).
  */
@@ -106,7 +106,7 @@ export class PlatformWorkflowSchedulesService {
           : null;
       for (const organization of organizations) {
         try {
-          // #4961 AC-1 / #5162: without a due active strategy, dispatching
+          // Without a due active strategy or accepted pending work, dispatching
           // this org's proactive-agent-strategies run does no useful work —
           // it only occupies a platform-sweep queue slot every minute, for
           // every org, forever. Skip before the installed-workflow lookup
@@ -200,9 +200,9 @@ export class PlatformWorkflowSchedulesService {
 
   /**
    * Organizations (within this sweep page) that have at least one active,
-   * non-deleted strategy due to run right now. One query for the whole page
-   * rather than one per organization — `isAgentStrategyDue` is evaluated in
-   * memory since "due" depends on parsing each strategy's JSON `config`.
+   * non-deleted strategy due now or eligible for pending transport recovery.
+   * Both strategy and execution reads cover the whole organization page;
+   * cadence and manual-reactivation eligibility are evaluated in memory.
    */
   private async findOrganizationIdsWithDueStrategy(
     organizationIds: string[],
@@ -215,9 +215,10 @@ export class PlatformWorkflowSchedulesService {
         isActive: true,
         isDeleted: false,
       },
-      select: { organizationId: true, config: true },
+      select: { id: true, organizationId: true, config: true },
     });
     const due = new Set<string>();
+    const recoveryCandidates: typeof strategies = [];
     for (const strategy of strategies) {
       if (due.has(strategy.organizationId)) continue;
       const config =
@@ -226,8 +227,26 @@ export class PlatformWorkflowSchedulesService {
           : {};
       if (isAgentStrategyDue(config, now)) {
         due.add(strategy.organizationId);
+      } else if (isAgentStrategyDue({ ...config, nextRunAt: undefined }, now)) {
+        recoveryCandidates.push(strategy);
       }
     }
+    if (recoveryCandidates.length === 0) return due;
+    const pending = await this.prisma.workflowExecution.findMany({
+      where: {
+        organizationId: { in: organizationIds },
+        isDeleted: false,
+        status: PrismaWorkflowExecutionStatus.PENDING,
+        idempotencyKey: { startsWith: 'proactive:' },
+        result: { path: ['metadata', 'source'], equals: 'proactive' },
+        OR: recoveryCandidates.map((strategy) => ({
+          organizationId: strategy.organizationId,
+          result: { path: ['metadata', 'strategyId'], equals: strategy.id },
+        })),
+      },
+      select: { organizationId: true },
+    });
+    for (const execution of pending) due.add(execution.organizationId);
     return due;
   }
 }

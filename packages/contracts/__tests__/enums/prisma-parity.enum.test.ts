@@ -138,7 +138,7 @@ const PRISMA_REQUIRED: Record<string, readonly string[]> = {
   ApiKeyCategory: ['GENFEEDAI', 'ELEVENLABS', 'HEDRA', 'HEYGEN', 'OPUS_PRO'],
   AppSource: ['GENFEED', 'GETSHAREABLE'],
   ArticleStatus: ['DRAFT', 'PUBLISHED', 'ARCHIVED'],
-  AssetCategory: ['LOGO', 'BANNER', 'REFERENCE'],
+  AssetCategory: ['LOGO', 'BANNER', 'REFERENCE', 'FONT'],
   AssetParent: ['ORGANIZATION', 'INGREDIENT', 'BRAND', 'ARTICLE'],
   AssetScope: ['USER', 'BRAND', 'ORGANIZATION', 'PUBLIC'],
   BatchItemStatus: ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'SKIPPED'],

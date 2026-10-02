@@ -67,6 +67,7 @@ export * from '@serializers/attributes/content/studio-generate-draft.attributes'
 export * from '@serializers/attributes/content/studio-look.attributes';
 export * from '@serializers/attributes/content/template.attributes';
 export * from '@serializers/attributes/content/template-metadata.attributes';
+export * from './branded-generation-receipt.attributes';
 export * from './remotion-composition.attributes';
 export * from './remotion-render.attributes';
 export * from './visual-project.attributes';

@@ -8,7 +8,6 @@ import type {
   ConversationComposerSendOptions,
 } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import type { AgentChatComposerOccupancy } from '@genfeedai/agent/utils/should-collapse-empty-surface-composer.util';
 import {
   AgentGenerationMode,
   AgentThreadMode,
@@ -30,11 +29,9 @@ import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import { BookOpen } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
-  type FocusEvent,
   type ReactElement,
   type ReactNode,
   useCallback,
-  useEffect,
   useMemo,
   useState,
 } from 'react';
@@ -84,8 +81,6 @@ interface AgentChatInputProps {
   isTopAttached?: boolean;
   /** Invite the first prompt in a new conversation. */
   highlightWhenEmpty?: boolean;
-  /** Lets the surface composer collapse when this prompt is empty and idle. */
-  onOccupancyChange?: (occupancy: AgentChatComposerOccupancy) => void;
   /** Unused by this component directly; forwarded by some hosts for parity. */
   creditsAvailable?: number | null;
   willQueueFollowUp?: boolean;
@@ -130,7 +125,6 @@ export function AgentChatInput({
   density = 'default',
   isTopAttached = false,
   highlightWhenEmpty = false,
-  onOccupancyChange,
   willQueueFollowUp = false,
   knowledgeSelection,
   knowledgeSection,
@@ -218,45 +212,6 @@ export function AgentChatInput({
     !isDragActive &&
     !isListening &&
     !isTranscribing;
-  const [isComposerFocused, setIsComposerFocused] = useState(false);
-
-  useEffect(() => {
-    if (!editor) {
-      setIsComposerFocused(false);
-      return;
-    }
-
-    setIsComposerFocused(editor.isFocused);
-  }, [editor]);
-
-  function handleComposerFocus(): void {
-    setIsComposerFocused(true);
-  }
-
-  function handleComposerBlur(event: FocusEvent<HTMLDivElement>): void {
-    const next = event.relatedTarget;
-    if (next instanceof Node && event.currentTarget.contains(next)) return;
-    setIsComposerFocused(false);
-  }
-
-  useEffect(() => {
-    onOccupancyChange?.({
-      hasContent:
-        promptText.trim().length > 0 ||
-        hasAttachments ||
-        references.length > 0 ||
-        Boolean(editor && !editor.isEmpty),
-      isFocused: isComposerFocused,
-    });
-  }, [
-    editor,
-    hasAttachments,
-    isComposerFocused,
-    onOccupancyChange,
-    promptText,
-    references.length,
-  ]);
-
   return (
     <div
       className="relative w-full min-w-0 max-w-full"
@@ -277,8 +232,6 @@ export function AgentChatInput({
       ) : null}
 
       <PromptBarComposer
-        onBlur={handleComposerBlur}
-        onFocus={handleComposerFocus}
         beforeBody={
           <>
             {showEmptyHighlight ? (

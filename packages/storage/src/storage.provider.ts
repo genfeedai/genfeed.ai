@@ -65,3 +65,12 @@ export interface StorageProvider {
   listObjects(prefix: string): Promise<StorageObject[]>;
   exists(path: string): Promise<boolean>;
 }
+
+export interface StorageReadOptions {
+  maxBytes: number;
+  timeoutMs: number;
+  signal?: AbortSignal;
+}
+export interface BoundedStorageProvider extends StorageProvider {
+  readBytes(path: string, options: StorageReadOptions): Promise<Buffer>;
+}

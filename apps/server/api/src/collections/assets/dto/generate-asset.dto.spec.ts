@@ -54,3 +54,23 @@ describe('GenerateAssetDto', () => {
     });
   });
 });
+
+describe('Dedicated font bypass admission', () => {
+  it('rejects FONT', async () => {
+    await expect(
+      new ValidationPipe().transform(
+        {
+          ...{
+            parentId: testId('brand'),
+            parentType: AssetParent.BRAND,
+            category: AssetCategory.LOGO,
+            model: 'model',
+            text: 'prompt',
+          },
+          category: AssetCategory.FONT,
+        },
+        { metatype: GenerateAssetDto, type: 'body' },
+      ),
+    ).rejects.toThrow();
+  });
+});

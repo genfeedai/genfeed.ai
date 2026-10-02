@@ -73,6 +73,7 @@ export * from '@serializers/server/content/studio-generate-draft.serializer';
 export * from '@serializers/server/content/studio-look.serializer';
 export * from '@serializers/server/content/template.serializer';
 export * from '@serializers/server/content/workspace-task-realtime.builder';
+export * from './branded-generation-receipt.serializer';
 export * from './remotion-composition.serializer';
 export * from './remotion-render.serializer';
 export * from './visual-project.serializer';

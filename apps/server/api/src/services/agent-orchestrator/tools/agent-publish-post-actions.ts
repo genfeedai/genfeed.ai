@@ -54,6 +54,22 @@ type PublishPolicy = {
   result: AgentPublishPolicyResult;
 };
 
+function restrictProactiveTextDraftPolicy(
+  policy: PublishPolicy,
+  ctx: ToolExecutionContext,
+): PublishPolicy {
+  return ctx.proactiveTextDraftOnly
+    ? {
+        autonomyMode: AgentAutonomyMode.SUPERVISED,
+        result: evaluateAgentPublishPolicy({
+          autonomyMode: AgentAutonomyMode.SUPERVISED,
+          brandAllowsAutoPublish: false,
+          channelAllowsAutoPublish: false,
+        }),
+      }
+    : policy;
+}
+
 export async function createProactiveAgentTextPost(
   params: Record<string, unknown>,
   ctx: ToolExecutionContext,
@@ -152,12 +168,15 @@ export async function createProactiveAgentTextPost(
       success: false,
       error: formatTargetBlockersError(blockers),
     };
-  const policy = await deps.resolvePublishPolicy({
+  const policy = restrictProactiveTextDraftPolicy(
+    await deps.resolvePublishPolicy({
+      ctx,
+      brandId,
+      targets: resolved.targets,
+      channelAllowsAutoPublish: true,
+    }),
     ctx,
-    brandId,
-    targets: resolved.targets,
-    channelAllowsAutoPublish: true,
-  });
+  );
   const requiresApproval =
     policy.result.decision === AgentPublishDecision.DENIED;
   const scheduledAt = requiresApproval ? undefined : requestedScheduledAt;
@@ -205,6 +224,13 @@ export async function createProactiveAgentTextPost(
       agentContextVersion: ctx.validatedScope?.contextVersion,
     },
   );
+  if (ctx.proactiveTextDraftOnly && release.status !== ReleaseStatus.DRAFT) {
+    return {
+      success: false,
+      creditsUsed: 0,
+      error: 'The existing release is not an unscheduled draft.',
+    };
+  }
   await deps.writePublishAudit({
     brandId,
     channels: platforms,

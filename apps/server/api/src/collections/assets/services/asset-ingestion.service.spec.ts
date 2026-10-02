@@ -116,6 +116,26 @@ describe('AssetIngestionService', () => {
     vi.clearAllMocks();
   });
 
+  it('rejects FONT direct callers before legacy upload or ingredient side effects', async () => {
+    await expect(
+      service.createUpload(user, file, {
+        ...uploadDto,
+        category: AssetCategory.FONT,
+      }),
+    ).rejects.toThrow('font_asset_dedicated_route_required');
+    await expect(
+      service.createFromIngredient(user, {
+        ...ingredientDto,
+        category: AssetCategory.FONT,
+      }),
+    ).rejects.toThrow('font_asset_dedicated_route_required');
+    expect(assetsService.patchAll).not.toHaveBeenCalled();
+    expect(assetsService.create).not.toHaveBeenCalled();
+    expect(cacheService.invalidateByTags).not.toHaveBeenCalled();
+    expect(filesClientService.uploadToS3).not.toHaveBeenCalled();
+    expect(ingredientsService.findOne).not.toHaveBeenCalled();
+    expect(websocketService.publishBrandRefresh).not.toHaveBeenCalled();
+  });
   it('uploads the asset after replacing the prior brand image and invalidating caches', async () => {
     await expect(service.createUpload(user, file, uploadDto)).resolves.toBe(
       asset,

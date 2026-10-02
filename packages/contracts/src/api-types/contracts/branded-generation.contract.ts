@@ -89,6 +89,16 @@ export const brandRuleEvidenceV1Schema = z.strictObject({
   contentHash: hash.optional(),
   confidence: z.number().min(0).max(1).optional(),
 });
+export const brandGenerationMediaKindV1Schema = z.enum([
+  'text',
+  'image',
+  'video',
+]);
+const applicableMediaKinds = z
+  .array(brandGenerationMediaKindV1Schema)
+  .min(1)
+  .max(3)
+  .refine((v) => new Set(v).size === v.length, 'Duplicate media kinds');
 export const brandFactRuleV1Schema = z
   .strictObject({
     id,
@@ -101,6 +111,7 @@ export const brandFactRuleV1Schema = z
     attributedTo: label.optional(),
     evidenceIds: refs,
     required: z.boolean(),
+    appliesToMediaKinds: applicableMediaKinds.optional(),
     match: z.enum(['literal', 'semantic']),
   })
   .superRefine((v, ctx) => {
@@ -114,6 +125,7 @@ export const brandPaletteRuleV1Schema = z.strictObject({
   color: z.string().regex(/^#[0-9A-F]{6}(?:[0-9A-F]{2})?$/),
   usage: label,
   required: z.boolean(),
+  appliesToMediaKinds: applicableMediaKinds.optional(),
   evidenceIds: refs,
 });
 export const brandTypographyRuleV1Schema = z
@@ -132,6 +144,7 @@ export const brandTypographyRuleV1Schema = z
       'unknown',
     ]),
     required: z.boolean(),
+    appliesToMediaKinds: applicableMediaKinds.optional(),
     evidenceIds: refs,
   })
   .superRefine((v, ctx) => {
@@ -145,6 +158,7 @@ export const brandTextRuleV1Schema = z.strictObject({
   text,
   match: z.enum(['literal', 'semantic']),
   required: z.boolean(),
+  appliesToMediaKinds: applicableMediaKinds.optional(),
   evidenceIds: refs,
 });
 export const brandExampleRuleV1Schema = z.strictObject({
@@ -153,15 +167,74 @@ export const brandExampleRuleV1Schema = z.strictObject({
   text,
   evidenceIds: refs,
 });
-export const brandAssetReferenceV1Schema = z.strictObject({
-  id,
-  assetId: id,
-  role: z.enum(['logo', 'banner', 'product', 'style', 'font']),
-  contentHash: hash.optional(),
-  mimeType: label.optional(),
-  required: z.boolean(),
-  evidenceIds: refs,
-});
+const literalId = id.refine(
+  (value) => value.startsWith('literal:') && value.length > 'literal:'.length,
+  'Literal ID requires literal: prefix and nonempty suffix',
+);
+const literalText = z
+  .string()
+  .min(1)
+  .max(4000)
+  .refine(
+    (value) => value.length <= 4000,
+    'Wording must not exceed 4000 UTF-16 code units',
+  )
+  .refine(
+    (value) =>
+      /\S/.test(value) &&
+      Array.from(value).every((char) => {
+        const point = char.codePointAt(0) ?? 0;
+        return (
+          [9, 10, 13].includes(point) ||
+          (point > 31 && (point < 127 || point > 159))
+        );
+      }),
+    'Wording must contain nonwhitespace and no forbidden controls',
+  );
+const literalCommon = { id: literalId, text: literalText, evidenceIds: refs };
+export const brandApprovedLiteralV1Schema = z.discriminatedUnion('kind', [
+  z.strictObject({ ...literalCommon, kind: z.literal('fact'), factRuleId: id }),
+  z.strictObject({ ...literalCommon, kind: z.literal('approved_copy') }),
+]);
+export const brandAssetTextCoverageV1Schema = z
+  .strictObject({
+    kind: z.enum(['none', 'approved_literals']),
+    literalIds: z
+      .array(literalId)
+      .max(128)
+      .refine(
+        (values) => new Set(values).size === values.length,
+        'Duplicate literal IDs',
+      ),
+    evidenceIds: refs,
+  })
+  .superRefine((value, ctx) => {
+    if (
+      value.kind === 'none'
+        ? value.literalIds.length !== 0
+        : value.literalIds.length === 0
+    )
+      issue(ctx, 'Text coverage kind must match literal inventory');
+  });
+export const brandAssetReferenceV1Schema = z
+  .strictObject({
+    id,
+    assetId: id,
+    role: z.enum(['logo', 'banner', 'product', 'style', 'font']),
+    contentHash: hash.optional(),
+    mimeType: label.optional(),
+    required: z.boolean(),
+    appliesToMediaKinds: applicableMediaKinds.optional(),
+    evidenceIds: refs,
+    textCoverage: brandAssetTextCoverageV1Schema.optional(),
+  })
+  .superRefine((asset, ctx) => {
+    if (asset.textCoverage && (asset.role === 'font' || !asset.contentHash))
+      issue(
+        ctx,
+        'Asset text coverage requires a nonfont asset with content hash',
+      );
+  });
 export const brandGenerationRulesV1Schema = bounded(
   z
     .strictObject({
@@ -174,6 +247,7 @@ export const brandGenerationRulesV1Schema = bounded(
       avoid: keyed(brandTextRuleV1Schema, 64),
       examples: keyed(brandExampleRuleV1Schema, 32),
       assets: keyed(brandAssetReferenceV1Schema, 64),
+      approvedLiterals: keyed(brandApprovedLiteralV1Schema, 128).optional(),
     })
     .superRefine((v, ctx) => {
       const allRules = [
@@ -196,9 +270,34 @@ export const brandGenerationRulesV1Schema = bounded(
         ...v.avoid,
         ...v.examples,
         ...v.assets,
+        ...(v.approvedLiterals ?? []),
       ])
         for (const ref of row.evidenceIds)
           if (!evidence.has(ref)) issue(ctx, `Unresolved evidence: ${ref}`);
+      const literalIds = new Set(
+        (v.approvedLiterals ?? []).map((literal) => literal.id),
+      );
+      const otherIds = new Set([
+        ...allRules.map((rule) => rule.id),
+        ...evidence,
+      ]);
+      for (const literal of v.approvedLiterals ?? []) {
+        if (otherIds.has(literal.id))
+          issue(ctx, 'Literal IDs must not collide with rule or evidence IDs');
+        if (literal.kind !== 'fact') continue;
+        const fact = v.facts.find((row) => row.id === literal.factRuleId);
+        if (!fact) issue(ctx, 'Unresolved literal fact');
+        else if (
+          fact.evidenceIds.some((ref) => !literal.evidenceIds.includes(ref))
+        )
+          issue(ctx, 'Literal must retain all linked fact evidence');
+      }
+      for (const asset of v.assets) {
+        for (const ref of asset.textCoverage?.literalIds ?? [])
+          if (!literalIds.has(ref)) issue(ctx, 'Unresolved asset text literal');
+        for (const ref of asset.textCoverage?.evidenceIds ?? [])
+          if (!evidence.has(ref)) issue(ctx, 'Unresolved asset text evidence');
+      }
       for (const font of v.typography)
         if (
           font.fontAssetReferenceId &&
@@ -235,6 +334,7 @@ export const brandIdentitySnapshotV1Schema = bounded(
         messagingPillars: z.array(text).max(128),
         avoid: z.array(text).max(64),
         sample: text.optional(),
+        guidelines: text.optional(),
       }),
       generationRules: brandGenerationRulesV1Schema,
       diagnostics,
@@ -338,6 +438,10 @@ export const brandedGenerationInputV1Schema = z
     )
       issue(ctx, 'Draft revision required only for provisional mode');
   });
+export const brandGenerationLayerVersionV1Schema = z.union([
+  version,
+  id.refine((value) => value.trim().length > 0, 'Version must not be blank'),
+]);
 export const brandGenerationLayerReceiptV1Schema = z
   .strictObject({
     kind: z.enum([
@@ -353,7 +457,7 @@ export const brandGenerationLayerReceiptV1Schema = z
       'account_policy',
     ]),
     id: id.optional(),
-    version: version.optional(),
+    version: brandGenerationLayerVersionV1Schema.optional(),
     contentHash: hash.optional(),
     status: z.enum([
       'applied',
@@ -584,7 +688,7 @@ export const brandGenerationArtifactV1Schema = z.strictObject({
   id,
   version: id,
   contentHash: hash,
-  mediaKind: z.enum(['text', 'image', 'video']),
+  mediaKind: brandGenerationMediaKindV1Schema,
   parts: keyed(brandGenerationArtifactPartV1Schema, 256),
 });
 export const brandArtifactValidationCheckV1Schema = z
@@ -893,11 +997,32 @@ export const brandedGenerationReceiptV1Schema = bounded(
                     : 'asset_reference',
           })),
         ];
+        const applicable = (rule: (typeof mapped)[number]['rule']) =>
+          rule.appliesToMediaKinds === undefined ||
+          (v.artifact !== null &&
+            rule.appliesToMediaKinds.includes(v.artifact.mediaKind));
         for (const check of v.validation.checks) {
           const origin = mapped.find((row) => row.rule.id === check.ruleId);
           if (!origin) continue;
           if (check.category !== origin.category)
             issue(ctx, 'Check category must match canonical rule origin');
+          if (!v.artifact) {
+            issue(ctx, 'Validation must bind immutable snapshot/artifact');
+            continue;
+          }
+          if (!applicable(origin.rule)) {
+            if (
+              check.result !== 'not_applicable' ||
+              check.method !== 'capability' ||
+              check.reasonCode !== 'rule_media_not_applicable' ||
+              check.severity !== (origin.rule.required ? 'hard' : 'soft')
+            )
+              issue(
+                ctx,
+                'Excluded rule requires canonical media applicability check',
+              );
+            continue;
+          }
           if (
             check.severity === 'hard' &&
             check.result === 'pass' &&
@@ -932,7 +1057,7 @@ export const brandedGenerationReceiptV1Schema = bounded(
             ['unknown', 'unsupported'].includes(check.result),
         );
         const pass = mapped
-          .filter((row) => row.rule.required)
+          .filter((row) => row.rule.required && applicable(row.rule))
           .every((row) =>
             v.validation?.checks.some(
               (check) =>
@@ -990,11 +1115,20 @@ export type BrandGenerationDiagnostic = z.infer<
   typeof brandGenerationDiagnosticSchema
 >;
 export type BrandRuleEvidenceV1 = z.infer<typeof brandRuleEvidenceV1Schema>;
+export type BrandGenerationMediaKindV1 = z.infer<
+  typeof brandGenerationMediaKindV1Schema
+>;
 export type BrandFactRuleV1 = z.infer<typeof brandFactRuleV1Schema>;
 export type BrandPaletteRuleV1 = z.infer<typeof brandPaletteRuleV1Schema>;
 export type BrandTypographyRuleV1 = z.infer<typeof brandTypographyRuleV1Schema>;
 export type BrandTextRuleV1 = z.infer<typeof brandTextRuleV1Schema>;
 export type BrandExampleRuleV1 = z.infer<typeof brandExampleRuleV1Schema>;
+export type BrandApprovedLiteralV1 = z.infer<
+  typeof brandApprovedLiteralV1Schema
+>;
+export type BrandAssetTextCoverageV1 = z.infer<
+  typeof brandAssetTextCoverageV1Schema
+>;
 export type BrandAssetReferenceV1 = z.infer<typeof brandAssetReferenceV1Schema>;
 export type BrandGenerationRulesV1 = z.infer<
   typeof brandGenerationRulesV1Schema
@@ -1004,6 +1138,9 @@ export type BrandIdentitySnapshotV1 = z.infer<
 >;
 export type BrandedGenerationInputV1 = z.infer<
   typeof brandedGenerationInputV1Schema
+>;
+export type BrandGenerationLayerVersionV1 = z.infer<
+  typeof brandGenerationLayerVersionV1Schema
 >;
 export type BrandGenerationLayerReceiptV1 = z.infer<
   typeof brandGenerationLayerReceiptV1Schema

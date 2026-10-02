@@ -15,6 +15,9 @@ describe('Brand OS transport boundaries', () => {
       content,
       approvedById: 'owner',
       approvedAt: '2026-09-14T10:00:00.000Z',
+      generationRulesReviewHash: `sha256:${'a'.repeat(64)}`,
+      rawRecipe: 'PRIVATE_RAW_RECIPE',
+      internalEvidence: 'PRIVATE_INTERNAL_EVIDENCE',
       sourcePreviewTokenHash: 'PRIVATE_CLAIM_TOKEN',
       redisKey: 'PRIVATE_REDIS_KEY',
     });
@@ -26,9 +29,21 @@ describe('Brand OS transport boundaries', () => {
         status: 'APPROVED',
         content,
         brandId: 'brand',
+        generationRulesReviewHash: `sha256:${'a'.repeat(64)}`,
       },
     });
     expect(JSON.stringify(output)).not.toContain('PRIVATE_');
+  });
+  it('keeps an absent optional review hash absent in the serialized revision', () => {
+    const output = BrandOsRevisionSerializer.serialize({
+      id: 'legacy',
+      version: 1,
+      status: 'APPROVED',
+      content: { fields: {} },
+    });
+    expect(output.data).not.toHaveProperty(
+      'attributes.generationRulesReviewHash',
+    );
   });
   it('exports publication metadata without artifact content or private internals', () => {
     const output = BrandOsExportSerializer.serialize({

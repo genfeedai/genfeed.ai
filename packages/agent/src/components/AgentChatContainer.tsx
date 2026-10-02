@@ -21,19 +21,9 @@ import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { getGenfeedDesktopBridge } from '@genfeedai/agent/utils/desktop-bridge.util';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { resolveComposerTranscriptPaddingPx } from '@genfeedai/agent/utils/resolve-composer-transcript-padding.util';
-import {
-  type AgentChatComposerOccupancy,
-  shouldCollapseEmptySurfaceComposer,
-} from '@genfeedai/agent/utils/should-collapse-empty-surface-composer.util';
 import { AlertCategory } from '@genfeedai/contracts';
 import Alert from '@ui/feedback/alert/Alert';
-import {
-  type ReactElement,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { type ReactElement, useCallback, useMemo, useState } from 'react';
 
 export type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
 
@@ -68,23 +58,6 @@ export function AgentChatContainer({
   const composerShell = useConversationComposerShell();
   const [composerOverlayElement, setComposerOverlayElement] =
     useState<HTMLElement | null>(null);
-  const [composerOccupancy, setComposerOccupancy] =
-    useState<AgentChatComposerOccupancy>({
-      hasContent: false,
-      isFocused: false,
-    });
-  const [isForceExpanded, setIsForceExpanded] = useState(false);
-  const handleComposerOccupancyChange = useCallback(
-    (next: AgentChatComposerOccupancy) => {
-      setComposerOccupancy((current) =>
-        current.hasContent === next.hasContent &&
-        current.isFocused === next.isFocused
-          ? current
-          : next,
-      );
-    },
-    [],
-  );
   // The surface portal target contains the prompt stack, while its parent owns
   // the dock's bottom inset. Measure the whole dock so the final timeline row
   // can scroll clear of it instead of stopping flush against its top edge.
@@ -236,69 +209,10 @@ export function AgentChatContainer({
   const isArchivedThread = Boolean(isReadOnly && archivedNotice);
   const shouldShowDockedComposer = isComposerDocked || isArchivedThread;
   const shouldShowArchivedComposer = isArchivedThread && Boolean(onUnarchive);
-  const isCollapsed = shouldCollapseEmptySurfaceComposer({
-    hasAttachments: container.chatAttachments.length > 0,
-    hasError: Boolean(container.error),
-    hasFollowUps: container.followUpQueue.queue.length > 0,
-    hasPendingInput: Boolean(container.pendingInputRequest),
-    isEmptyConversation: container.isEmpty,
-    isForceExpanded,
-    isRunActive: container.isRunActive,
-    isScrolledToBottom: container.isAtBottom,
-    occupancy: composerOccupancy,
-    placement: composerShell?.placement,
-  });
-
-  useEffect(() => {
-    if (container.isAtBottom || composerOccupancy.hasContent) {
-      setIsForceExpanded(false);
-    }
-  }, [composerOccupancy.hasContent, container.isAtBottom]);
-
-  useEffect(() => {
-    if (!isCollapsed) {
-      return;
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (
-        event.defaultPrevented ||
-        event.metaKey ||
-        event.ctrlKey ||
-        event.altKey
-      ) {
-        return;
-      }
-
-      const target = event.target;
-      if (target instanceof HTMLElement) {
-        const tagName = target.tagName;
-        if (
-          tagName === 'INPUT' ||
-          tagName === 'TEXTAREA' ||
-          target.isContentEditable
-        ) {
-          return;
-        }
-      }
-
-      if (event.key.length !== 1) {
-        return;
-      }
-
-      useAgentChatStore.getState().seedComposer(event.key, activeThreadId);
-      setIsForceExpanded(true);
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeThreadId, isCollapsed]);
-
   const composerTranscriptPaddingPx = resolveComposerTranscriptPaddingPx({
     hasFollowUpChips:
       showSuggestedActionsWhenNotEmpty && Boolean(promptBarSuggestions),
-    isComposerVisible:
-      composerShell?.isComposerVisible !== false && !isCollapsed,
+    isComposerVisible: composerShell?.isComposerVisible !== false,
     overlayHeightPx: composerOverlayHeightPx,
   });
 
@@ -417,9 +331,7 @@ export function AgentChatContainer({
             onSelectCreditPack={onSelectCreditPack}
             onSubmitInputRequest={container.handleSubmitInputRequest}
             onUiAction={container.handleUiAction}
-            padBottomForComposer={
-              composerShell?.isComposerVisible !== false && !isCollapsed
-            }
+            padBottomForComposer={composerShell?.isComposerVisible !== false}
             composerTranscriptPaddingPx={composerTranscriptPaddingPx}
             pendingInputRequest={container.pendingInputRequest}
             pendingUiActions={container.streamState.pendingUiActions}
@@ -451,10 +363,11 @@ export function AgentChatContainer({
           ) : (
             <AgentChatPromptBar
               highlightWhenEmpty={
-                container.isEmpty && !activeThreadId && !onboardingMode
+                container.isEmpty &&
+                !activeThreadId &&
+                !onboardingMode &&
+                !isShellHostedComposer
               }
-              isCollapsed={isCollapsed}
-              onOccupancyChange={handleComposerOccupancyChange}
               composerBanner={
                 onboardingMode && container.isEmpty ? (
                   <OnboardingConversationCard />

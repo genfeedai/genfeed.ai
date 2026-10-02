@@ -35,10 +35,49 @@ function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
 
+function useBrandOsDirtyNavigation(
+  brandId: string,
+  dirty: boolean,
+  t: (key: 'confirmLeave') => string,
+) {
+  useEffect(() => {
+    if (!dirty) return;
+    function preventUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
+    function confirmNavigation(event: MouseEvent) {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const link = target.closest('a[href]');
+      const button = target.closest('button[data-brand-os-navigation]');
+      const navigation =
+        (link &&
+          link.getAttribute('target') !== '_blank' &&
+          !link.hasAttribute('download')) ||
+        (button instanceof HTMLButtonElement &&
+          !button.disabled &&
+          button.getAttribute('data-brand-os-navigation') === brandId);
+      if (navigation && !window.confirm(t('confirmLeave'))) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+      }
+    }
+    window.addEventListener('beforeunload', preventUnload);
+    document.addEventListener('click', confirmNavigation, true);
+    return () => {
+      window.removeEventListener('beforeunload', preventUnload);
+      document.removeEventListener('click', confirmNavigation, true);
+    };
+  }, [brandId, dirty, t]);
+}
+
 export default function BrandOsSettingsCard({
   brandId,
   refreshKey = 0,
   onRefreshBrand,
+  onRevisionSaved,
 }: BrandOsSettingsCardProps) {
   const t = useTranslations('pages.brandOsSettings');
   const common = useTranslations('common.actions');
@@ -60,6 +99,21 @@ export default function BrandOsSettingsCard({
   const [notice, setNotice] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
   const mounted = useRef(true);
+  const epoch = useRef(0);
+  const currentBrand = useRef(brandId);
+  const pendingRef = useRef(false);
+  if (currentBrand.current !== brandId) {
+    currentBrand.current = brandId;
+    epoch.current += 1;
+    pendingRef.current = false;
+  }
+  function isCurrent(operationEpoch: number) {
+    return (
+      mounted.current &&
+      currentBrand.current === brandId &&
+      epoch.current === operationEpoch
+    );
+  }
   const dirtyRef = useRef(false);
   const selected = revisions.find((revision) => revision.id === selectedId);
   const dirty = Boolean(
@@ -76,19 +130,34 @@ export default function BrandOsSettingsCard({
     };
   }, []);
 
+  useEffect(() => {
+    if (currentBrand.current !== brandId) return;
+    dirtyRef.current = false;
+    setRevisions([]);
+    setSelectedId('');
+    setContent(null);
+    setPending(null);
+    setNotice(null);
+    setError(null);
+    setExportError(null);
+    setExportState(null);
+  }, [brandId]);
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: revision events and explicit refresh reload server history
   useEffect(() => {
     const controller = new AbortController();
+    const operationEpoch = epoch.current;
     async function load() {
       setLoading(true);
       setError(null);
       try {
         const service = await getService();
+        if (!isCurrent(operationEpoch) || controller.signal.aborted) return;
         const [revisionResult, exportResult] = await Promise.allSettled([
           service.listBrandOsRevisions(brandId, controller.signal),
           service.getBrandOsExport(brandId, controller.signal),
         ]);
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted || !isCurrent(operationEpoch)) return;
         if (revisionResult.status === 'rejected') throw revisionResult.reason;
         if (exportResult.status === 'fulfilled') {
           setExportState(exportResult.value);
@@ -108,42 +177,18 @@ export default function BrandOsSettingsCard({
         setSelectedId(nextRevisions[0]?.id ?? '');
         setContent(nextRevisions[0]?.content ?? null);
       } catch (loadError) {
-        if (!controller.signal.aborted)
+        if (!controller.signal.aborted && isCurrent(operationEpoch))
           setError(errorMessage(loadError, t('operationFailed')));
       } finally {
-        if (!controller.signal.aborted) setLoading(false);
+        if (!controller.signal.aborted && isCurrent(operationEpoch))
+          setLoading(false);
       }
     }
     void load();
     return () => controller.abort();
   }, [brandId, getService, refreshKey, reload, t]);
 
-  useEffect(() => {
-    if (!dirty) return;
-    function preventUnload(event: BeforeUnloadEvent) {
-      event.preventDefault();
-      event.returnValue = '';
-    }
-    function confirmNavigation(event: MouseEvent) {
-      const target = event.target;
-      const link = target instanceof Element ? target.closest('a[href]') : null;
-      if (
-        link &&
-        link.getAttribute('target') !== '_blank' &&
-        !link.hasAttribute('download') &&
-        !window.confirm(t('confirmLeave'))
-      ) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-    }
-    window.addEventListener('beforeunload', preventUnload);
-    document.addEventListener('click', confirmNavigation, true);
-    return () => {
-      window.removeEventListener('beforeunload', preventUnload);
-      document.removeEventListener('click', confirmNavigation, true);
-    };
-  }, [dirty, t]);
+  useBrandOsDirtyNavigation(brandId, dirty, t);
 
   function changeField(
     key: BrandKitFieldKey,
@@ -175,19 +220,29 @@ export default function BrandOsSettingsCard({
 
   async function perform(
     action: string,
-    operation: (service: BrandsService) => Promise<void>,
+    operation: (
+      service: BrandsService,
+      operationEpoch: number,
+    ) => Promise<void>,
   ) {
-    if (pending) return;
+    if (pendingRef.current) return;
+    const operationEpoch = epoch.current;
+    pendingRef.current = true;
     setPending(action);
     setError(null);
     setNotice(null);
     try {
-      await operation(await getService());
+      const service = await getService();
+      if (!isCurrent(operationEpoch)) return;
+      await operation(service, operationEpoch);
     } catch (operationError) {
-      if (mounted.current)
+      if (isCurrent(operationEpoch))
         setError(errorMessage(operationError, t('operationFailed')));
     } finally {
-      if (mounted.current) setPending(null);
+      if (isCurrent(operationEpoch)) {
+        pendingRef.current = false;
+        setPending(null);
+      }
     }
   }
 
@@ -203,12 +258,12 @@ export default function BrandOsSettingsCard({
       setError(t('listLimit'));
       return;
     }
-    void perform(t('saving'), async (service) => {
+    void perform(t('saving'), async (service, operationEpoch) => {
       const saved = await service.updateBrandOsRevision(brandId, selected.id, {
         content,
         updatedAt: selected.updatedAt,
       });
-      if (!mounted.current) return;
+      if (!isCurrent(operationEpoch)) return;
       setRevisions((current) => [
         saved,
         ...current.filter((revision) => revision.id !== saved.id),
@@ -216,17 +271,19 @@ export default function BrandOsSettingsCard({
       setSelectedId(saved.id);
       setContent(saved.content);
       setNotice(t('saved', { version: saved.version }));
+      onRevisionSaved?.(saved);
     });
   }
 
-  async function refreshExport(service: BrandsService) {
+  async function refreshExport(service: BrandsService, operationEpoch: number) {
+    if (!isCurrent(operationEpoch)) return;
     try {
       const state = await service.getBrandOsExport(brandId);
-      if (!mounted.current) return;
+      if (!isCurrent(operationEpoch)) return;
       setExportState(state);
       setExportError(null);
     } catch (exportLoadError) {
-      if (!mounted.current) return;
+      if (!isCurrent(operationEpoch)) return;
       setExportState(null);
       setExportError(errorMessage(exportLoadError, t('operationFailed')));
     }
@@ -234,13 +291,13 @@ export default function BrandOsSettingsCard({
 
   function approve() {
     if (!selected || dirty || !canManage) return;
-    void perform(t('approving'), async (service) => {
+    void perform(t('approving'), async (service, operationEpoch) => {
       const approved = await service.approveBrandOsRevision(
         brandId,
         selected.id,
         selected.updatedAt,
       );
-      if (!mounted.current) return;
+      if (!isCurrent(operationEpoch)) return;
       setRevisions((current) =>
         current.map((revision) =>
           revision.id === approved.id
@@ -252,15 +309,17 @@ export default function BrandOsSettingsCard({
       );
       setContent(approved.content);
       setNotice(t('approved', { version: approved.version }));
-      await refreshExport(service);
+      onRevisionSaved?.(approved);
+      await refreshExport(service, operationEpoch);
+      if (!isCurrent(operationEpoch)) return;
       await onRefreshBrand();
     });
   }
 
   function download() {
-    void perform(t('downloading'), async (service) => {
+    void perform(t('downloading'), async (service, operationEpoch) => {
       const blob = await service.downloadBrandOsDesign(brandId);
-      if (!mounted.current) return;
+      if (!isCurrent(operationEpoch)) return;
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -504,16 +563,19 @@ export default function BrandOsSettingsCard({
                     onClick={() => {
                       const revisionId = exportState.revisionId;
                       if (!revisionId) return;
-                      void perform(t('publishing'), async (service) => {
-                        const state = await service.publishBrandOsDesign(
-                          brandId,
-                          revisionId,
-                        );
-                        if (mounted.current) {
-                          setExportState(state);
-                          setNotice(t('published'));
-                        }
-                      });
+                      void perform(
+                        t('publishing'),
+                        async (service, operationEpoch) => {
+                          const state = await service.publishBrandOsDesign(
+                            brandId,
+                            revisionId,
+                          );
+                          if (isCurrent(operationEpoch)) {
+                            setExportState(state);
+                            setNotice(t('published'));
+                          }
+                        },
+                      );
                     }}
                   />
                 )}
@@ -523,13 +585,17 @@ export default function BrandOsSettingsCard({
                   variant={ButtonVariant.SECONDARY}
                   isDisabled={busy}
                   onClick={() =>
-                    void perform(t('revoking'), async (service) => {
-                      const state = await service.revokeBrandOsDesign(brandId);
-                      if (mounted.current) {
-                        setExportState(state);
-                        setNotice(t('revoked'));
-                      }
-                    })
+                    void perform(
+                      t('revoking'),
+                      async (service, operationEpoch) => {
+                        const state =
+                          await service.revokeBrandOsDesign(brandId);
+                        if (isCurrent(operationEpoch)) {
+                          setExportState(state);
+                          setNotice(t('revoked'));
+                        }
+                      },
+                    )
                   }
                 />
               )}

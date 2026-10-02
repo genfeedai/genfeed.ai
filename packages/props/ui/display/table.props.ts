@@ -1,6 +1,11 @@
 import type { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { Key, ReactNode } from 'react';
 
+export interface TableGroupHeading {
+  key: string;
+  content: ReactNode;
+}
+
 export interface TableColumn<T> {
   key: keyof T | string;
   header: ReactNode;
@@ -84,6 +89,19 @@ export interface TableProps<T> {
 
   // Visually hide column headers (sr-only for accessibility)
   hideHeader?: boolean;
+
+  /**
+   * Stick the column header, and any group heading, under a pinned section
+   * topbar. The table frame must not be its own scrollport, or `position:
+   * sticky` never reaches that bar.
+   */
+  isHeaderPinned?: boolean;
+
+  /**
+   * Full-width row emitted before the first item of a group. Return null for
+   * items that continue the previous group. `key` decides where a new row starts.
+   */
+  getGroupHeading?: (item: T) => TableGroupHeading | null;
 
   // Controlled sorting support
   sortKey?: string;

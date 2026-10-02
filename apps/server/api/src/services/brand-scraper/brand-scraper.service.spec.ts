@@ -181,6 +181,113 @@ describe('BrandScraperService', () => {
       vi.useFakeTimers();
       vi.spyOn(performance, 'now').mockImplementation(() => Date.now());
     }
+    it.each([NaN, Infinity, -Infinity, -1, 0])(
+      'rejects an invalid or expired caller deadline %s without fetching',
+      async (deadlineAt) => {
+        vi.spyOn(performance, 'now').mockReturnValue(10);
+        await expect(
+          service.scrapeWebsiteWithEvidence('https://acme.com', { deadlineAt }),
+        ).rejects.toThrow('deadline_exceeded');
+        expect(fetchMock).not.toHaveBeenCalled();
+      },
+    );
+    it('uses the shorter caller budget across stalled body and fallback without mutating it', async () => {
+      fakeClock();
+      const cancel = vi.fn();
+      fetchMock.mockImplementation(() =>
+        Promise.resolve(
+          new Response(new ReadableStream<Uint8Array>({ cancel }), {
+            headers: { 'content-type': 'text/html' },
+          }),
+        ),
+      );
+      const budget = { deadlineAt: performance.now() + 25 };
+      const original = budget.deadlineAt;
+      const pending = service
+        .scrapeWebsiteWithEvidence('https://acme.com', budget)
+        .catch((error) => error);
+      await vi.advanceTimersByTimeAsync(25);
+      expect(await pending).toBeInstanceOf(Error);
+      expect(fetchMock).toHaveBeenCalledOnce();
+      expect(cancel).toHaveBeenCalledOnce();
+      expect(budget.deadlineAt).toBe(original);
+      expect(vi.getTimerCount()).toBe(0);
+    });
+    it('caps a longer caller deadline at the existing sixty seconds across slow CSS redirects', async () => {
+      fakeClock();
+      fetchMock.mockResolvedValueOnce(pageWithSheets(2));
+      fetchMock.mockImplementation(
+        () =>
+          new Promise<Response>((resolve) =>
+            setTimeout(() => resolve(makeRedirect('/next.css')), 9999),
+          ),
+      );
+      const budget = { deadlineAt: performance.now() + 120000 };
+      const original = budget.deadlineAt;
+      const pending = service.scrapeWebsiteWithEvidence(
+        'https://acme.com',
+        budget,
+      );
+      await vi.advanceTimersByTimeAsync(60000);
+      expect(codes(await pending)).toContain('brand_scrape.deadline_exceeded');
+      expect(budget.deadlineAt).toBe(original);
+    });
+    it('uses the shorter caller deadline for stylesheet reads after useful HTML', async () => {
+      fakeClock();
+      const cancel = vi.fn();
+      fetchMock
+        .mockResolvedValueOnce(pageWithSheets())
+        .mockResolvedValueOnce(
+          cssResponse(new ReadableStream<Uint8Array>({ cancel })),
+        );
+      const pending = service.scrapeWebsiteWithEvidence('https://acme.com', {
+        deadlineAt: performance.now() + 25,
+      });
+      await vi.advanceTimersByTimeAsync(25);
+      expect(codes(await pending)).toContain('brand_scrape.deadline_exceeded');
+      expect(cancel).toHaveBeenCalledOnce();
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('uses the caller remainder for 429 waits while retaining later usable stylesheet data', async () => {
+      fakeClock();
+      fetchMock
+        .mockResolvedValueOnce(pageWithSheets(2))
+        .mockResolvedValueOnce(make429Response('1'))
+        .mockResolvedValueOnce(cssResponse("a{font-family:'Next Face'}"));
+      const result = await service.scrapeWebsiteWithEvidence(
+        'https://acme.com',
+        { deadlineAt: performance.now() + 25 },
+      );
+      expect(codes(result)).toContain('brand_scrape.stylesheet_failed');
+      expect(result.data.fontFamily).toBe('Next Face');
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(vi.getTimerCount()).toBe(0);
+    });
+    it('shares a shorter deadline across redirected CSS headers and body consumption', async () => {
+      fakeClock();
+      const cancel = vi.fn();
+      fetchMock
+        .mockResolvedValueOnce(pageWithSheets())
+        .mockImplementationOnce(
+          () =>
+            new Promise<Response>((resolve) =>
+              setTimeout(() => resolve(makeRedirect('/final.css')), 20),
+            ),
+        )
+        .mockResolvedValueOnce(
+          cssResponse(new ReadableStream<Uint8Array>({ cancel })),
+        );
+      const pending = service.scrapeWebsiteWithEvidence('https://acme.com', {
+        deadlineAt: performance.now() + 25,
+      });
+      await vi.advanceTimersByTimeAsync(25);
+      expect(codes(await pending)).toContain('brand_scrape.deadline_exceeded');
+      expect(cancel).toHaveBeenCalledOnce();
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
     it('enriches existing callers and exposes variable-font evidence without fetching nested assets', async () => {
       fetchMock
         .mockResolvedValueOnce(pageWithSheets())

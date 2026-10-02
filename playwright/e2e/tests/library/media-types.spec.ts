@@ -172,6 +172,7 @@ test.describe('Library Media Types', () => {
         .poll(() => currentRoute(authenticatedPage))
         .toBe(brandPath(APP_ROUTES.LIBRARY.VIDEOS));
 
+      await authenticatedPage.getByTestId('collapsible-search-trigger').click();
       const search = authenticatedPage.getByRole('textbox', {
         name: 'Search',
       });

@@ -465,10 +465,16 @@ export class BrandsService extends BaseService<Brand> {
     id: string,
     revisionId: string,
     updatedAt: string,
+    reviewedGenerationRulesHash?: string,
   ): Promise<IBrandOsRevision> {
     const response = await this.instance.post<JsonApiResponseDocument>(
       `/${id}/brand-os/revisions/${revisionId}/approve`,
-      { updatedAt },
+      {
+        updatedAt,
+        ...(reviewedGenerationRulesHash !== undefined
+          ? { reviewedGenerationRulesHash }
+          : {}),
+      },
     );
     return deserializeResource<IBrandOsRevision>(response.data);
   }

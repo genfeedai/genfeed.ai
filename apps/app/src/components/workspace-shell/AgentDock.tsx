@@ -18,11 +18,20 @@ import {
   DrawerDescription,
   DrawerTitle,
 } from '@ui/primitives/drawer';
-import { Maximize2, X } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@ui/primitives/dropdown-menu';
+import { Check, ChevronDown, Maximize2, SquarePen, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
+  type TransitionEvent as ReactTransitionEvent,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -31,7 +40,20 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import AgentConversationBubble from './AgentConversationBubble';
-import AgentPagePromptBar from './AgentPagePromptBar';
+
+const BUBBLE_MORPH_MS = 320;
+// Matches the closed launcher's size-12. The panel scales onto that box so
+// its top-right and bottom-left start on the bubble's corners.
+const BUBBLE_SIZE_PX = 48;
+type BubbleMorph = 'closed' | 'from' | 'open';
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
 
 const RESIZE_STEP = 16;
 const RESIZE_STEP_LARGE = 48;
@@ -63,18 +85,91 @@ function resolveLauncherControl(host: HTMLElement | null): HTMLElement | null {
 }
 
 function AgentDockHeader({
+  activeThreadId,
+  isThreadListLoading = false,
   onClose,
+  onNewThread,
   onOpenFullPage,
+  onSelectThread,
   threadTitle,
+  threads = [],
   title,
 }: AgentDockHeaderProps) {
   const translate = useTranslations('common.agentDock');
+  const hasThreadMenu = Boolean(onNewThread && onSelectThread);
+  const selectedThreadLabel =
+    threadTitle ||
+    threads.find((thread) => thread.id === activeThreadId)?.title ||
+    translate('untitledThread');
 
   return (
     <div className="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-border px-3">
-      <div className="flex min-w-0 items-baseline gap-2">
+      <div className="flex min-w-0 items-center gap-2">
         {title}
-        {threadTitle ? (
+        {hasThreadMenu ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                className="h-6 min-w-0 max-w-[14rem] px-1.5 text-xs font-normal text-muted-foreground"
+                data-testid="agent-dock-thread-title"
+                size={ButtonSize.SM}
+                textTransform="none"
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              >
+                <span className="truncate">{selectedThreadLabel}</span>
+                <ChevronDown aria-hidden="true" className="size-3 shrink-0" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              className="max-h-72 w-64 overflow-y-auto"
+            >
+              <DropdownMenuItem
+                data-testid="agent-dock-new-thread"
+                onSelect={() => onNewThread?.()}
+              >
+                <SquarePen aria-hidden="true" className="size-4 shrink-0" />
+                {translate('newThread')}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {isThreadListLoading ? (
+                <DropdownMenuLabel>
+                  {translate('threadsLoading')}
+                </DropdownMenuLabel>
+              ) : threads.length === 0 ? (
+                <DropdownMenuLabel>{translate('noThreads')}</DropdownMenuLabel>
+              ) : (
+                threads.map((thread) => {
+                  const isCurrent = thread.id === activeThreadId;
+
+                  return (
+                    <DropdownMenuItem
+                      data-testid={`agent-dock-thread-${thread.id}`}
+                      key={thread.id}
+                      onSelect={() => onSelectThread?.(thread.id)}
+                    >
+                      <span className="min-w-0 flex-1 truncate">
+                        {thread.title}
+                      </span>
+                      {isCurrent ? (
+                        <Check
+                          aria-hidden="true"
+                          className="size-3.5 shrink-0"
+                        />
+                      ) : (
+                        <span
+                          aria-hidden="true"
+                          className="size-3.5 shrink-0"
+                        />
+                      )}
+                    </DropdownMenuItem>
+                  );
+                })
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : threadTitle ? (
           <p
             className="truncate text-xs text-muted-foreground"
             data-testid="agent-dock-thread-title"
@@ -146,9 +241,9 @@ function AgentDockBodyOutlet({ body }: AgentDockBodyOutletProps) {
 }
 
 /**
- * The agent conversation docked under the canvas on product routes, like an
- * editor's bottom panel. Collapsed by default; the topbar toggle and ⌘J open
- * it, Esc inside it closes it. Below `xl` the same content is a bottom sheet.
+ * The agent conversation on product routes. Closed, it is a chat bubble with
+ * the page's shortcuts fanned beside it. The topbar toggle and ⌘J open it,
+ * Esc inside it closes it. Below `xl` the open conversation is a bottom sheet.
  *
  * The conversation renders once, into a body node owned by the dock, and the
  * section or the sheet only hosts that node. Closing the sheet or crossing the
@@ -162,12 +257,16 @@ export default function AgentDock({
   dock,
   hasMajorPromptBar = false,
   isCompact,
+  activeThreadId,
+  isThreadListLoading = false,
+  onNewThread,
   onOpenFullPage,
   onSelectSuggestedAction,
-  pagePlaceholder,
+  onSelectThread,
   scopeControls,
   suggestedActions,
   threadTitle,
+  threads,
 }: AgentDockProps) {
   const translate = useTranslations('common.agentDock');
   const [region, setRegion] = useState<HTMLElement | null>(null);
@@ -201,28 +300,83 @@ export default function AgentDock({
     shouldReturnToLauncherRef.current = true;
     open();
   }, [open]);
-  const closedLauncher =
-    isBubbleChrome && !isOpen ? (
-      <div ref={bindLauncher}>
-        {hasMajorPromptBar ? (
-          <AgentConversationBubble onOpen={handleLauncherOpen} />
-        ) : (
-          <AgentPagePromptBar
-            onOpen={handleLauncherOpen}
-            onSelectSuggestedAction={onSelectSuggestedAction}
-            placeholder={pagePlaceholder}
-            suggestedActions={suggestedActions}
-          />
-        )}
-      </div>
-    ) : null;
+  // The overlay stays mounted so it can grow out of the bubble. `from` is
+  // the circle; the next frame eases it to the panel. Closing reverses that.
+  const [bubbleMorph, setBubbleMorph] = useState<BubbleMorph>(
+    isOpen ? 'open' : 'closed',
+  );
+  useLayoutEffect(() => {
+    if (!isBubbleChrome || isCompact) {
+      return;
+    }
+    if (prefersReducedMotion()) {
+      setBubbleMorph(isOpen ? 'open' : 'closed');
+      return;
+    }
+    if (isOpen) {
+      setBubbleMorph((current) => (current === 'open' ? current : 'from'));
+      const frame = window.requestAnimationFrame(() => {
+        setBubbleMorph('open');
+      });
+      return () => window.cancelAnimationFrame(frame);
+    }
+    setBubbleMorph((current) => (current === 'closed' ? current : 'from'));
+  }, [isBubbleChrome, isCompact, isOpen]);
+  useLayoutEffect(() => {
+    if (!isBubbleChrome || !region || bubbleMorph === 'closed') {
+      return;
+    }
+    const width = region.offsetWidth;
+    const height = region.offsetHeight;
+    if (width <= 0 || height <= 0) {
+      return;
+    }
+    region.style.setProperty('--bubble-from-x', String(BUBBLE_SIZE_PX / width));
+    region.style.setProperty(
+      '--bubble-from-y',
+      String(BUBBLE_SIZE_PX / height),
+    );
+  }, [bubbleMorph, isBubbleChrome, region]);
+  useEffect(() => {
+    if (!isBubbleChrome || isOpen || bubbleMorph !== 'from') {
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      setBubbleMorph('closed');
+    }, BUBBLE_MORPH_MS + 40);
+    return () => window.clearTimeout(timeout);
+  }, [bubbleMorph, isBubbleChrome, isOpen]);
+  const handleBubbleMorphEnd = (event: ReactTransitionEvent<HTMLElement>) => {
+    if (
+      event.target !== event.currentTarget ||
+      event.propertyName !== 'transform' ||
+      isOpen
+    ) {
+      return;
+    }
+    setBubbleMorph('closed');
+  };
+  // Studio and edit already have a major prompt bar, so the bubble stays a
+  // single control there. Everywhere else the page shortcuts fan off it.
+  const closedLauncher = isBubbleChrome ? (
+    <div ref={bindLauncher}>
+      <AgentConversationBubble
+        isDismissed={isOpen || (!isCompact && bubbleMorph !== 'closed')}
+        onOpen={handleLauncherOpen}
+        onSelectSuggestedAction={
+          hasMajorPromptBar ? undefined : onSelectSuggestedAction
+        }
+        suggestedActions={hasMajorPromptBar ? [] : suggestedActions}
+      />
+    </div>
+  ) : null;
 
   // Opening moves focus into the composer and remembers where it came from;
   // any close (header, Esc, ⌘J, topbar) hands focus back if it was inside.
-  // The bubble/promptbar unmounts while the overlay is open, so the opener
-  // becomes document.body — restore to the remounted launcher instead.
+  // Restore focus once the closing morph makes the launcher available again.
   useEffect(() => {
     if (!isOpen) {
+      if (isBubbleChrome && !isCompact && bubbleMorph !== 'closed') return;
       const returnFocus = returnFocusRef.current;
       returnFocusRef.current = null;
       const activeElement = document.activeElement;
@@ -243,16 +397,15 @@ export default function AgentDock({
     }
 
     const activeElement = document.activeElement;
-    returnFocusRef.current =
-      isPersistedReturnFocus(activeElement) && !isInsideDock(activeElement)
-        ? activeElement
-        : null;
+    if (isPersistedReturnFocus(activeElement) && !isInsideDock(activeElement)) {
+      returnFocusRef.current = activeElement;
+    }
     const frame = window.requestAnimationFrame(() => {
       focusComposer(bodyNode);
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [bodyNode, isInsideDock, isOpen]);
+  }, [bodyNode, bubbleMorph, isBubbleChrome, isCompact, isInsideDock, isOpen]);
 
   // Short windows cap the dock below its stored height; resizing works from
   // what is actually on screen.
@@ -343,15 +496,13 @@ export default function AgentDock({
           >
             {scopeControls}
           </div>
-          {/* The transcript always keeps a readable strip. In a short dock the
-              composer stack (task panel, prompt) shrinks and scrolls instead
-              of pushing the conversation out; column-reverse keeps the prompt
-              itself anchored in view and lets the task panel scroll away. */}
-          <div className="flex min-h-12 min-w-0 flex-1 flex-col overflow-hidden">
+          {/* The transcript shrinks and scrolls. The composer keeps its own
+              height so the overlay's max height cannot slice the prompt. */}
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             {children}
           </div>
           <div
-            className="flex min-h-0 shrink flex-col-reverse overflow-y-auto overscroll-contain px-3 pb-2 empty:hidden"
+            className="flex shrink-0 flex-col px-3 pb-2 empty:hidden"
             data-testid="agent-dock-composer-slot"
             ref={composerSlotRef}
           />
@@ -382,9 +533,14 @@ export default function AgentDock({
             id="workspace-agent-dock"
           >
             <AgentDockHeader
+              activeThreadId={activeThreadId}
+              isThreadListLoading={isThreadListLoading}
               onClose={close}
+              onNewThread={onNewThread}
               onOpenFullPage={onOpenFullPage}
+              onSelectThread={onSelectThread}
               threadTitle={threadTitle}
+              threads={threads}
               title={
                 <DrawerTitle className="text-sm font-medium">
                   {translate('title')}
@@ -407,21 +563,41 @@ export default function AgentDock({
       {closedLauncher}
       <section
         aria-label={translate('label')}
+        aria-hidden={isBubbleChrome && !isOpen}
         className={cn(
           'flex flex-col bg-background',
           isBubbleChrome
-            ? 'absolute bottom-4 right-4 z-30 w-[min(28rem,calc(100%-2rem))] max-h-[min(70vh,40rem)] overflow-hidden rounded-[var(--radius-workspace-overlay)] border border-border shadow-xl'
+            ? 'absolute bottom-5 right-5 z-30 w-[min(28rem,calc(100%-2.5rem))] max-h-[min(70vh,40rem)] origin-bottom-right overflow-hidden border border-border shadow-xl transition-[transform,border-radius,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none'
             : 'relative shrink-0 border-t border-border',
+          isBubbleChrome && bubbleMorph === 'open'
+            ? 'rounded-[var(--radius-workspace-overlay)] opacity-100'
+            : null,
+          isBubbleChrome && bubbleMorph !== 'open' ? 'rounded-full' : null,
+          isBubbleChrome && bubbleMorph === 'closed' ? 'opacity-0' : null,
+          isBubbleChrome && bubbleMorph === 'from' ? 'opacity-100' : null,
         )}
         data-chrome={chrome}
+        data-morph={isBubbleChrome ? bubbleMorph : undefined}
         data-testid="agent-dock"
-        hidden={!isOpen}
+        hidden={isBubbleChrome ? bubbleMorph === 'closed' : !isOpen}
         id="workspace-agent-dock"
+        inert={isBubbleChrome && !isOpen}
         onKeyDown={handleKeyDown}
+        onTransitionEnd={isBubbleChrome ? handleBubbleMorphEnd : undefined}
         ref={setRegion}
         // Short windows and half-height panels: the canvas keeps at least
         // 40% of the column, whatever height was stored.
-        style={isBubbleChrome ? undefined : { height, maxHeight: '60%' }}
+        style={
+          isBubbleChrome
+            ? {
+                transform:
+                  bubbleMorph === 'open'
+                    ? 'scale(1, 1)'
+                    : 'scale(var(--bubble-from-x, 0.12), var(--bubble-from-y, 0.12))',
+                transformOrigin: 'bottom right',
+              }
+            : { height, maxHeight: '60%' }
+        }
       >
         {isBubbleChrome ? null : (
           <Button
@@ -438,17 +614,34 @@ export default function AgentDock({
             withWrapper={false}
           />
         )}
-        <AgentDockHeader
-          onClose={close}
-          onOpenFullPage={onOpenFullPage}
-          threadTitle={threadTitle}
-          title={
-            <p className="text-sm font-medium text-foreground">
-              {translate('title')}
-            </p>
-          }
-        />
-        {bodyNode ? <AgentDockBodyOutlet body={bodyNode} /> : null}
+        <div
+          className={cn(
+            'flex min-h-0 min-w-0 flex-1 flex-col',
+            isBubbleChrome &&
+              'transition-opacity duration-200 motion-reduce:transition-none',
+            isBubbleChrome && bubbleMorph === 'open'
+              ? 'opacity-100 delay-150'
+              : null,
+            isBubbleChrome && bubbleMorph !== 'open' ? 'opacity-0' : null,
+          )}
+        >
+          <AgentDockHeader
+            activeThreadId={activeThreadId}
+            isThreadListLoading={isThreadListLoading}
+            onClose={close}
+            onNewThread={onNewThread}
+            onOpenFullPage={onOpenFullPage}
+            onSelectThread={onSelectThread}
+            threadTitle={threadTitle}
+            threads={threads}
+            title={
+              <p className="text-sm font-medium text-foreground">
+                {translate('title')}
+              </p>
+            }
+          />
+          {bodyNode ? <AgentDockBodyOutlet body={bodyNode} /> : null}
+        </div>
       </section>
     </>
   );

@@ -6,6 +6,7 @@ export const activityAttributes = createEntityAttributes([
   'brandId',
   'entityModel',
   'entityId',
+  'ingredient',
   'key',
   'value',
   'source',

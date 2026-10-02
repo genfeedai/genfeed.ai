@@ -59,6 +59,7 @@ TooltipContent.displayName = TooltipPrimitive.Content.displayName;
 function SimpleTooltip({
   label,
   children,
+  contentClassName,
   position = 'top',
   isDisabled = false,
 }: SimpleTooltipProps) {
@@ -71,7 +72,9 @@ function SimpleTooltip({
   const tooltip = (
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent side={position}>{label}</TooltipContent>
+      <TooltipContent className={contentClassName} side={position}>
+        {label}
+      </TooltipContent>
     </Tooltip>
   );
 

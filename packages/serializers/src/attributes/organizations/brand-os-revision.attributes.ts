@@ -7,6 +7,7 @@ export const brandOsRevisionAttributes = createEntityAttributes([
   'exportSchemaVersion',
   'status',
   'content',
+  'generationRulesReviewHash',
   'approvedById',
   'approvedAt',
 ]);

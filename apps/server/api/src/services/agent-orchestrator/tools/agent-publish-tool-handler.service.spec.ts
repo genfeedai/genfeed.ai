@@ -1082,3 +1082,221 @@ it('creates proactive text as canonical channel targets and review items, never 
   );
   expect(f.postGroupsService.publishNow).not.toHaveBeenCalled();
 });
+
+describe('authorized proactive text draft constraint', () => {
+  function constrainedHandler() {
+    const f = createHandler();
+    f.credentialsService.find.mockResolvedValue([
+      { id: 'credential', isConnected: true, platform: 'LINKEDIN' },
+    ]);
+    return {
+      ...f,
+      ctx: {
+        ...scopedContext('brand-1'),
+        isProactive: true,
+        proactiveTextDraftOnly: true as const,
+      },
+    };
+  }
+
+  it('keeps canonical targets unscheduled and review-bound when current policy permits publishing', async () => {
+    const f = constrainedHandler();
+    const result = await f.handler.createPost(
+      {
+        content: 'Draft under the admitted supervised run.',
+        platforms: ['linkedin'],
+        scheduledAt: '2099-01-01T10:00:00Z',
+      },
+      f.ctx,
+    );
+    expect(result).toMatchObject({
+      success: true,
+      data: { requiredAction: 'approval', postIds: ['target-1'] },
+    });
+    expect(f.autonomousPolicy.resolveForTarget).toHaveBeenCalledOnce();
+    const release = f.postGroupsService.create.mock.calls[0][2];
+    expect(release.status).toBe(ReleaseStatus.DRAFT);
+    expect(release).not.toHaveProperty('scheduledDate');
+    expect(release.targets[0].scheduledDate).toBeUndefined();
+    expect(
+      f.batchGenerationService.createManualReviewBatch,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        agentStrategyId: 'strategy-1',
+        items: [
+          expect.objectContaining({
+            postId: 'target-1',
+            platform: 'linkedin',
+            workflowExecutionId: 'run-1',
+          }),
+        ],
+      }),
+      'user-1',
+      'org-1',
+      expect.any(String),
+    );
+    expect(f.agentPublishAuditsService.createAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        autonomyMode: AgentAutonomyMode.SUPERVISED,
+        decision: AgentPublishDecision.DENIED,
+        workflowExecutionId: 'run-1',
+      }),
+    );
+    expect(f.postGroupsService.publishNow).not.toHaveBeenCalled();
+    expect(f.postsService.create).not.toHaveBeenCalled();
+  });
+
+  it.each([ReleaseStatus.SCHEDULED, ReleaseStatus.PUBLISHED])(
+    'refuses an incompatible idempotent %s release',
+    async (status) => {
+      const f = constrainedHandler();
+      f.postGroupsService.create.mockResolvedValue({
+        id: 'release-1',
+        organizationId: 'org-1',
+        status,
+        targets: [
+          { executionState: 'scheduled', id: 'target-1', platform: 'linkedin' },
+        ],
+      });
+      const result = await f.handler.createPost(
+        { content: 'Draft', platforms: ['linkedin'] },
+        f.ctx,
+      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('existing release');
+      expect(f.agentPublishAuditsService.createAudit).not.toHaveBeenCalled();
+      expect(
+        f.batchGenerationService.createManualReviewBatch,
+      ).not.toHaveBeenCalled();
+      expect(f.postGroupsService.publishNow).not.toHaveBeenCalled();
+    },
+  );
+
+  it('retains release and review idempotency keys across same-run retries', async () => {
+    const f = constrainedHandler();
+    const params = {
+      content: 'Same authorized draft',
+      platforms: ['linkedin'],
+    };
+    await f.handler.createPost(params, f.ctx);
+    await f.handler.createPost(params, f.ctx);
+    const releaseKeys = f.postGroupsService.create.mock.calls.map(
+      (call) => call[2].idempotencyKey,
+    );
+    const reviewKeys =
+      f.batchGenerationService.createManualReviewBatch.mock.calls.map(
+        (call) => call[3],
+      );
+    expect(releaseKeys[0]).toMatch(/^[a-f0-9]{64}$/);
+    expect(releaseKeys[1]).toBe(releaseKeys[0]);
+    expect(reviewKeys).toEqual([
+      `agent-review:${releaseKeys[0]}`,
+      `agent-review:${releaseKeys[0]}`,
+    ]);
+    expect(f.postGroupsService.publishNow).not.toHaveBeenCalled();
+  });
+
+  it('preserves the unflagged policy path', async () => {
+    const f = constrainedHandler();
+    const { proactiveTextDraftOnly: _constraint, ...ctx } = f.ctx;
+    expect(
+      (
+        await f.handler.createPost(
+          { content: 'Unconstrained existing path', platforms: ['linkedin'] },
+          ctx,
+        )
+      ).success,
+    ).toBe(true);
+    expect(f.postGroupsService.publishNow).toHaveBeenCalledOnce();
+    expect(
+      f.batchGenerationService.createManualReviewBatch,
+    ).not.toHaveBeenCalled();
+  });
+
+  const invalidInputs: Array<[string, Record<string, unknown>]> = [
+    ['blank text', { content: '   ', platforms: ['linkedin'] }],
+    ['no platforms', { content: 'Draft' }],
+    ['unsupported platform', { content: 'Draft', platforms: ['unsupported'] }],
+    ['unconnected platform', { content: 'Draft', platforms: ['twitter'] }],
+    [
+      'invalid schedule',
+      { content: 'Draft', platforms: ['linkedin'], scheduledAt: 'tomorrow' },
+    ],
+    [
+      'past schedule',
+      {
+        content: 'Draft',
+        platforms: ['linkedin'],
+        scheduledAt: '2000-01-01T10:00:00Z',
+      },
+    ],
+    [
+      'invalid visibility',
+      { content: 'Draft', platforms: ['linkedin'], visibility: 'corrupt' },
+    ],
+    [
+      'foreign selected credential',
+      {
+        content: 'Draft',
+        targets: [{ platform: 'linkedin', credentialId: 'foreign' }],
+      },
+    ],
+  ];
+  it.each(invalidInputs)(
+    'rejects %s before draft/review/publish writes',
+    async (_name, params) => {
+      const f = constrainedHandler();
+      expect((await f.handler.createPost(params, f.ctx)).success).toBe(false);
+      expect(f.postGroupsService.create).not.toHaveBeenCalled();
+      expect(
+        f.batchGenerationService.createManualReviewBatch,
+      ).not.toHaveBeenCalled();
+      expect(f.postGroupsService.publishNow).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects a connected platform that cannot accept text-only content', async () => {
+    const f = constrainedHandler();
+    f.credentialsService.find.mockResolvedValue([
+      { id: 'instagram-credential', isConnected: true, platform: 'INSTAGRAM' },
+    ]);
+    expect(
+      (
+        await f.handler.createPost(
+          { content: 'Text only', platforms: ['instagram'] },
+          f.ctx,
+        )
+      ).success,
+    ).toBe(false);
+    expect(f.postGroupsService.create).not.toHaveBeenCalled();
+    expect(
+      f.batchGenerationService.createManualReviewBatch,
+    ).not.toHaveBeenCalled();
+    expect(f.postGroupsService.publishNow).not.toHaveBeenCalled();
+  });
+  it('requires a connected credential within the current tenant and brand', async () => {
+    const f = constrainedHandler();
+    f.credentialsService.find.mockResolvedValue([]);
+    expect(
+      (
+        await f.handler.createPost(
+          { content: 'Draft', platforms: ['linkedin'] },
+          f.ctx,
+        )
+      ).success,
+    ).toBe(false);
+    expect(f.credentialsService.find).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      isDeleted: false,
+      isConnected: true,
+      platform: { in: ['linkedin'] },
+    });
+    expect(f.postGroupsService.create).not.toHaveBeenCalled();
+    expect(
+      f.batchGenerationService.createManualReviewBatch,
+    ).not.toHaveBeenCalled();
+    expect(f.postGroupsService.publishNow).not.toHaveBeenCalled();
+  });
+});

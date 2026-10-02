@@ -5,7 +5,6 @@ import {
   IngredientStatus,
 } from '@genfeedai/contracts';
 import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 
@@ -33,12 +32,6 @@ export default function IngredientOverlayAlerts({
       {localIngredient.status === IngredientStatus.ARCHIVED && (
         <Alert type={AlertCategory.WARNING}>
           <p>This ingredient is archived.</p>
-        </Alert>
-      )}
-
-      {EnvironmentService.isDevelopment && (
-        <Alert type={AlertCategory.INFO}>
-          <p>Ingredient ID: {localIngredient.id}</p>
         </Alert>
       )}
 
