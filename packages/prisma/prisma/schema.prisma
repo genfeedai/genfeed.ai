@@ -7981,6 +7981,7 @@ model BrandOsRevision {
   content Json
   exportSchemaVersion String @default("1")
   sourcePreviewTokenHash String? @unique
+  generationRulesReviewHash String?
   approvedById String?
   approvedBy User? @relation("BrandOsApprover", fields: [approvedById], references: [id], onDelete: Restrict)
   approvedAt DateTime?

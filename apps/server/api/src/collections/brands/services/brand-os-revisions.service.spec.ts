@@ -1,8 +1,10 @@
 import type { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { hashBrandGenerationRulesReviewV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { IBrandKitDraft } from '@genfeedai/contracts/interfaces';
+import type { BrandGenerationRulesV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import { buildBrandKitDraftFromBrand } from '@genfeedai/helpers';
 import {
   type BrandOsRevision,
@@ -24,6 +26,29 @@ function draft(): IBrandKitDraft {
   });
 }
 
+function rules(): BrandGenerationRulesV1 {
+  return {
+    schemaVersion: 1,
+    evidence: [],
+    facts: [],
+    palette: [],
+    typography: [],
+    mandatory: [],
+    avoid: [],
+    examples: [],
+    assets: [],
+  };
+}
+
+function reviewedRow(id = 'rev-1', version = 1): BrandOsRevision {
+  const content = draft();
+  content.generationRules = rules();
+  return {
+    ...row(id, version),
+    content: content as unknown as Prisma.JsonValue,
+  };
+}
+
 function row(
   id = 'rev-1',
   version = 1,
@@ -36,6 +61,7 @@ function row(
     content: draft() as unknown as Prisma.JsonValue,
     createdAt: TIMESTAMP,
     exportSchemaVersion: '1',
+    generationRulesReviewHash: null,
     id,
     isDeleted: false,
     organizationId: ORG,
@@ -139,7 +165,17 @@ function harness(initial: BrandOsRevision[] = [], legacyAgentConfig?: unknown) {
   const prisma = {
     ...tx,
     $transaction: vi.fn((callback: (client: typeof tx) => Promise<unknown>) => {
-      const task = pending.then(() => callback(tx));
+      const task = pending.then(async () => {
+        const before = structuredClone(rows);
+        const previousCounter = counter;
+        try {
+          return await callback(tx);
+        } catch (error) {
+          rows.splice(0, rows.length, ...before);
+          counter = previousCounter;
+          throw error;
+        }
+      });
       pending = task.then(
         () => undefined,
         () => undefined,
@@ -161,6 +197,368 @@ function harness(initial: BrandOsRevision[] = [], legacyAgentConfig?: unknown) {
 }
 
 describe('BrandOsRevisionsService', () => {
+  it('approves persisted canonical rules and commits their computed digest with actor and accepted content', async () => {
+    const old = {
+      ...row('old', 1, BrandOsRevisionStatus.APPROVED),
+      generationRulesReviewHash: `sha256:${'b'.repeat(64)}`,
+    };
+    const candidate = reviewedRow('candidate', 2);
+    const { service, rows, tx } = harness([old, candidate]);
+    // Reordered keys are semantically identical; the submitted hash still binds saved rules.
+    const reordered = Object.fromEntries(
+      Object.entries(rules()).reverse(),
+    ) as unknown as BrandGenerationRulesV1;
+    const hash = hashBrandGenerationRulesReviewV1(reordered);
+    const result = await service.approve(
+      ORG,
+      BRAND,
+      'candidate',
+      USER,
+      TIMESTAMP.toISOString(),
+      hash,
+    );
+    expect(result).toMatchObject({
+      generationRulesReviewHash: hash,
+      approvedById: USER,
+      status: BrandOsRevisionStatus.APPROVED,
+      content: { status: 'accepted', generationRules: rules() },
+    });
+    expect(result.approvedAt).toEqual(expect.any(String));
+    expect(rows[1]).toMatchObject({
+      generationRulesReviewHash: hash,
+      approvedById: USER,
+      approvedAt: expect.any(Date),
+    });
+    expect(rows[0]).toEqual({
+      ...old,
+      status: BrandOsRevisionStatus.SUPERSEDED,
+    });
+    expect(tx.brandOsRevision.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          generationRulesReviewHash: hash,
+          approvedById: USER,
+          status: BrandOsRevisionStatus.APPROVED,
+        }),
+      }),
+    );
+    expect(tx.brand.update).not.toHaveBeenCalled();
+    expect((await service.list(ORG, BRAND))[0].generationRulesReviewHash).toBe(
+      hash,
+    );
+    expect(
+      (await service.get(ORG, BRAND, 'candidate')).generationRulesReviewHash,
+    ).toBe(hash);
+  });
+
+  it.each([
+    undefined,
+    null,
+    '',
+    'sha256:bad',
+    `sha256:${'A'.repeat(64)}`,
+    `sha256:${'a'.repeat(64)}\n`,
+    7,
+    [],
+  ])(
+    'rejects missing or malformed direct acknowledgement without mutation: %j',
+    async (hash) => {
+      const initial = [
+        row('old', 1, BrandOsRevisionStatus.APPROVED),
+        reviewedRow('candidate', 2),
+      ];
+      const { service, rows, tx } = harness(initial);
+      await expect(
+        service.approve(
+          ORG,
+          BRAND,
+          'candidate',
+          USER,
+          TIMESTAMP.toISOString(),
+          hash as string | undefined,
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(rows).toEqual(initial);
+      expect(tx.brandOsRevision.updateMany).not.toHaveBeenCalled();
+      expect(tx.brandOsRevision.update).not.toHaveBeenCalled();
+      expect(tx.brandOsRevision.create).not.toHaveBeenCalled();
+      expect(tx.brand.update).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    null,
+    {},
+    { ...rules(), unknown: true },
+    { ...rules(), schemaVersion: 2 },
+  ])(
+    'rejects malformed persisted rules before supersession: %j',
+    async (generationRules) => {
+      const candidate = reviewedRow('candidate', 2);
+      const content = { ...draft(), generationRules };
+      candidate.content = content as unknown as Prisma.JsonValue;
+      const initial = [
+        row('old', 1, BrandOsRevisionStatus.APPROVED),
+        candidate,
+      ];
+      const { service, rows, tx } = harness(initial);
+      await expect(
+        service.approve(
+          ORG,
+          BRAND,
+          'candidate',
+          USER,
+          TIMESTAMP.toISOString(),
+          hashBrandGenerationRulesReviewV1(rules()),
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(rows).toEqual(initial);
+      expect(tx.brandOsRevision.updateMany).not.toHaveBeenCalled();
+      expect(tx.brandOsRevision.update).not.toHaveBeenCalled();
+      expect(tx.brand.update).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects a well formed mismatch and preserves approval, content, digest and version history', async () => {
+    const initial = [
+      row('old', 1, BrandOsRevisionStatus.APPROVED),
+      reviewedRow('candidate', 2),
+    ];
+    const { service, rows, tx } = harness(initial);
+    await expect(
+      service.approve(
+        ORG,
+        BRAND,
+        'candidate',
+        USER,
+        TIMESTAMP.toISOString(),
+        `sha256:${'0'.repeat(64)}`,
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(rows).toEqual(initial);
+    expect(tx.brandOsRevision.updateMany).not.toHaveBeenCalled();
+    expect(tx.brandOsRevision.update).not.toHaveBeenCalled();
+    expect(tx.brand.update).not.toHaveBeenCalled();
+  });
+
+  it('requires renewed review after rules edits and ordered array changes even with a fresh timestamp', async () => {
+    const content = draft();
+    content.generationRules = {
+      ...rules(),
+      mandatory: [
+        {
+          id: 'first',
+          text: 'First statement',
+          match: 'literal',
+          required: true,
+          evidenceIds: [],
+        },
+        {
+          id: 'second',
+          text: 'Second statement',
+          match: 'literal',
+          required: true,
+          evidenceIds: [],
+        },
+      ],
+    };
+    const oldHash = hashBrandGenerationRulesReviewV1(content.generationRules);
+    const { service, rows, tx } = harness([row()]);
+    await service.update(ORG, BRAND, 'rev-1', content, TIMESTAMP.toISOString());
+    content.generationRules.mandatory.reverse();
+    content.generationRules.mandatory[0].text += ' revised';
+    const updated = await service.update(
+      ORG,
+      BRAND,
+      'rev-1',
+      content,
+      rows[0].updatedAt.toISOString(),
+    );
+    const before = structuredClone(rows);
+    tx.brandOsRevision.update.mockClear();
+    await expect(
+      service.approve(ORG, BRAND, 'rev-1', USER, updated.updatedAt, oldHash),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(rows).toEqual(before);
+    expect(tx.brandOsRevision.updateMany).not.toHaveBeenCalled();
+    expect(tx.brandOsRevision.update).not.toHaveBeenCalled();
+    const newHash = hashBrandGenerationRulesReviewV1(content.generationRules);
+    expect(newHash).not.toBe(oldHash);
+    await expect(
+      service.approve(ORG, BRAND, 'rev-1', USER, updated.updatedAt, newHash),
+    ).resolves.toMatchObject({ generationRulesReviewHash: newHash });
+  });
+
+  it('keeps rules-absent legacy approval uncertified and does not recertify an already approved row', async () => {
+    const { service, rows, tx } = harness([row()]);
+    const hash = hashBrandGenerationRulesReviewV1(rules());
+    const approved = await service.approve(
+      ORG,
+      BRAND,
+      'rev-1',
+      USER,
+      TIMESTAMP.toISOString(),
+      hash,
+    );
+    expect(rows[0].generationRulesReviewHash).toBeNull();
+    expect(approved).not.toHaveProperty('generationRulesReviewHash');
+    tx.brandOsRevision.update.mockClear();
+    tx.brandOsRevision.updateMany.mockClear();
+    expect(
+      await service.approve(
+        ORG,
+        BRAND,
+        'rev-1',
+        'another-user',
+        'stale',
+        'malformed',
+      ),
+    ).toEqual(approved);
+    expect(await service.get(ORG, BRAND, 'rev-1')).not.toHaveProperty(
+      'generationRulesReviewHash',
+    );
+    expect((await service.list(ORG, BRAND))[0]).not.toHaveProperty(
+      'generationRulesReviewHash',
+    );
+    expect(tx.brandOsRevision.update).not.toHaveBeenCalled();
+    expect(tx.brandOsRevision.updateMany).not.toHaveBeenCalled();
+  });
+
+  it.each([null, hashBrandGenerationRulesReviewV1(rules())])(
+    'never recertifies an already approved rules-bearing row: %s',
+    async (generationRulesReviewHash) => {
+      const approved = {
+        ...reviewedRow(),
+        status: BrandOsRevisionStatus.APPROVED,
+        approvedAt: TIMESTAMP,
+        approvedById: USER,
+        generationRulesReviewHash,
+      };
+      const { service, rows, tx } = harness([approved]);
+      const result = await service.approve(
+        ORG,
+        BRAND,
+        'rev-1',
+        'another-user',
+        'stale',
+        `sha256:${'c'.repeat(64)}`,
+      );
+      if (generationRulesReviewHash === null)
+        expect(result).not.toHaveProperty('generationRulesReviewHash');
+      else
+        expect(result.generationRulesReviewHash).toBe(
+          generationRulesReviewHash,
+        );
+      expect(rows).toEqual([approved]);
+      expect(tx.brandOsRevision.updateMany).not.toHaveBeenCalled();
+      expect(tx.brandOsRevision.update).not.toHaveBeenCalled();
+      expect(tx.brand.update).not.toHaveBeenCalled();
+    },
+  );
+
+  it('forks digest-bearing approved revisions into uncertified drafts and retains approved audit history', async () => {
+    const hash = hashBrandGenerationRulesReviewV1(rules());
+    const approved = {
+      ...reviewedRow(),
+      status: BrandOsRevisionStatus.APPROVED,
+      approvedAt: TIMESTAMP,
+      approvedById: USER,
+      generationRulesReviewHash: hash,
+    };
+    const { service, rows } = harness([approved]);
+    const created = await service.update(
+      ORG,
+      BRAND,
+      'rev-1',
+      draft(),
+      TIMESTAMP.toISOString(),
+    );
+    expect(created).not.toHaveProperty('generationRulesReviewHash');
+    expect(rows[1].generationRulesReviewHash).toBeNull();
+    expect(rows[0]).toEqual(approved);
+  });
+
+  it('rejects stale tokens before digest validation and rejects foreign or deleted approval scope without writes', async () => {
+    const candidate = reviewedRow();
+    const { service, rows, tx } = harness([candidate]);
+    await expect(
+      service.approve(ORG, BRAND, 'rev-1', USER, 'stale'),
+    ).rejects.toBeInstanceOf(ConflictException);
+    for (const [org, brand, id] of [
+      ['foreign-org', BRAND, 'rev-1'],
+      [ORG, 'foreign-brand', 'rev-1'],
+      [ORG, BRAND, 'missing'],
+    ]) {
+      await expect(
+        service.approve(org, brand, id, USER, TIMESTAMP.toISOString()),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    }
+    rows[0].organizationId = 'foreign-org';
+    await expect(
+      service.approve(ORG, BRAND, 'rev-1', USER, TIMESTAMP.toISOString()),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    rows[0].organizationId = ORG;
+    rows[0].isDeleted = true;
+    await expect(
+      service.approve(ORG, BRAND, 'rev-1', USER, TIMESTAMP.toISOString()),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    tx.brand.findFirst.mockResolvedValue(null);
+    await expect(
+      service.approve(ORG, BRAND, 'rev-1', USER, TIMESTAMP.toISOString()),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(tx.brandOsRevision.update).not.toHaveBeenCalled();
+    expect(tx.brandOsRevision.updateMany).not.toHaveBeenCalled();
+    expect(tx.brand.update).not.toHaveBeenCalled();
+  });
+
+  it('keeps supersession and digest persistence in the same transaction when the final write fails', async () => {
+    const initial = [
+      {
+        ...row('old', 1, BrandOsRevisionStatus.APPROVED),
+        generationRulesReviewHash: `sha256:${'b'.repeat(64)}`,
+      },
+      reviewedRow('candidate', 2),
+    ];
+    const { service, rows, tx, prisma } = harness(initial);
+    tx.brandOsRevision.update.mockRejectedValueOnce(new Error('write failed'));
+    await expect(
+      service.approve(
+        ORG,
+        BRAND,
+        'candidate',
+        USER,
+        TIMESTAMP.toISOString(),
+        hashBrandGenerationRulesReviewV1(rules()),
+      ),
+    ).rejects.toThrow('write failed');
+    expect(tx.brandOsRevision.updateMany).toHaveBeenCalledOnce();
+    expect(prisma.$transaction).toHaveBeenCalledOnce();
+    expect(rows).toEqual(initial);
+    expect(tx.brand.update).not.toHaveBeenCalled();
+  });
+
+  it('serializes competing digest-bearing approvals and preserves the superseded digest', async () => {
+    const hash = hashBrandGenerationRulesReviewV1(rules());
+    const { service, rows } = harness([
+      reviewedRow('a', 1),
+      reviewedRow('b', 2),
+    ]);
+    await Promise.all(
+      ['a', 'b'].map((id) =>
+        service.approve(ORG, BRAND, id, USER, TIMESTAMP.toISOString(), hash),
+      ),
+    );
+    expect(
+      rows.map((revision) => [
+        revision.status,
+        revision.generationRulesReviewHash,
+      ]),
+    ).toEqual([
+      [BrandOsRevisionStatus.SUPERSEDED, hash],
+      [BrandOsRevisionStatus.APPROVED, hash],
+    ]);
+  });
+
   it('uses a supplied caller transaction without nesting and leaves commit/rollback to its caller', async () => {
     const { service, prisma, rows, tx } = harness();
     const created = await service.create(
@@ -173,6 +571,8 @@ describe('BrandOsRevisionsService', () => {
     expect(created.status).toBe('DRAFT');
     expect(created.version).toBe(1);
     expect(rows).toHaveLength(1);
+    expect(rows[0].generationRulesReviewHash).toBeNull();
+    expect(created).not.toHaveProperty('generationRulesReviewHash');
     expect(tx.$queryRaw).toHaveBeenCalledOnce();
     expect(tx.brand.update).toHaveBeenCalledOnce();
   });

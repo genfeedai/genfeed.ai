@@ -96,7 +96,48 @@ describe('BrandOsRevisionsController', () => {
       'rev-1',
       'canonical-user-1',
       revision.updatedAt,
+      undefined,
     );
+  });
+
+  it('forwards the exact digest with authenticated org and canonical actor, ignoring body authority', async () => {
+    const { controller, service } = harness();
+    const reviewedGenerationRulesHash = `sha256:${'a'.repeat(64)}`;
+    const dto = {
+      updatedAt: revision.updatedAt,
+      reviewedGenerationRulesHash,
+      organizationId: 'attacker-org',
+      userId: 'attacker-user',
+      content: { injected: true },
+      approved: true,
+    };
+    await controller.approve(
+      request,
+      { ...user, userId: 'canonical-database-user', id: 'auth-provider-id' },
+      'brand-1',
+      'rev-1',
+      dto,
+    );
+    expect(service.approve).toHaveBeenCalledWith(
+      'org-1',
+      'brand-1',
+      'rev-1',
+      'canonical-database-user',
+      revision.updatedAt,
+      reviewedGenerationRulesHash,
+    );
+  });
+
+  it('rejects missing actor or tenant before approval delegation', async () => {
+    const { controller, service } = harness();
+    for (const context of [{ organizationId: 'org-1' }, { id: 'user-1' }]) {
+      await expect(
+        controller.approve(request, context as User, 'brand-1', 'rev-1', {
+          updatedAt: revision.updatedAt,
+        }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    }
+    expect(service.approve).not.toHaveBeenCalled();
   });
 
   it('rejects missing tenant context before any service access', async () => {

@@ -1,5 +1,6 @@
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { hashBrandGenerationRulesReviewV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   IBrandKitDraft,
@@ -217,6 +218,7 @@ export class BrandOsRevisionsService {
         await tx.brandOsRevision.update({
           data: {
             content: toPrismaJson(normalized),
+            generationRulesReviewHash: null,
             updatedAt: new Date(
               Math.max(Date.now(), row.updatedAt.getTime() + 1),
             ),
@@ -233,6 +235,7 @@ export class BrandOsRevisionsService {
     id: string,
     userId: string,
     updatedAt: string,
+    reviewedGenerationRulesHash?: string,
   ): Promise<IBrandOsRevision> {
     return this.prisma.$transaction(async (tx) => {
       await this.lockBrand(tx, organizationId, brandId);
@@ -255,6 +258,31 @@ export class BrandOsRevisionsService {
         organizationId,
         brandId,
       );
+      if (
+        reviewedGenerationRulesHash !== undefined &&
+        (typeof reviewedGenerationRulesHash !== 'string' ||
+          reviewedGenerationRulesHash.length !== 71 ||
+          !/^sha256:[0-9a-f]{64}$/.test(reviewedGenerationRulesHash))
+      )
+        throw new BadRequestException('Invalid generation rules review hash');
+      let generationRulesReviewHash: string | null = null;
+      if (content.generationRules !== undefined) {
+        try {
+          generationRulesReviewHash = hashBrandGenerationRulesReviewV1(
+            content.generationRules,
+          );
+        } catch {
+          throw new BadRequestException('Invalid Brand OS generation rules');
+        }
+        if (reviewedGenerationRulesHash === undefined)
+          throw new BadRequestException(
+            'A valid generation rules review hash is required',
+          );
+        if (reviewedGenerationRulesHash !== generationRulesReviewHash)
+          throw new ConflictException(
+            'These generation rules changed. Reload and review them before approving.',
+          );
+      }
       for (const [key, field] of Object.entries(content.fields)) {
         if (!field) continue;
         if (field.applyActionDefault === 'reject') {
@@ -284,6 +312,7 @@ export class BrandOsRevisionsService {
           data: {
             approvedAt: new Date(),
             approvedById: userId,
+            generationRulesReviewHash,
             content: toPrismaJson(content),
             status: BrandOsRevisionStatus.APPROVED,
           },
@@ -538,6 +567,9 @@ export class BrandOsRevisionsService {
       content: row.content as unknown as IBrandKitDraft,
       createdAt: row.createdAt.toISOString(),
       exportSchemaVersion: row.exportSchemaVersion,
+      ...(row.generationRulesReviewHash !== null
+        ? { generationRulesReviewHash: row.generationRulesReviewHash }
+        : {}),
       id: row.id,
       organizationId: row.organizationId,
       status: row.status,
