@@ -1,8 +1,6 @@
-import type { BeforeSendFn } from 'posthog-js';
+'use client';
 
-('use client');
-
-import type { PostHog } from 'posthog-js';
+import type { BeforeSendFn, PostHog } from 'posthog-js';
 import {
   deriveWebsiteEventsFromCta,
   type WebsiteAnalyticsEvent,
