@@ -567,16 +567,19 @@ describe('S3StorageProvider', () => {
         ETag: 'etag',
         code: 'storage_read_invalid_response',
       },
-    ])('rejects invalid HEAD before GET %#', async ({ code, ...head }) => {
-      mockSend.mockResolvedValueOnce(head);
-      await expect(
-        new S3StorageProvider().readBytes('key', {
-          maxBytes: 2,
-          timeoutMs: 1000,
-        }),
-      ).rejects.toThrow(code);
-      expect(mockSend).toHaveBeenCalledTimes(1);
-    });
+    ])(
+      'rejects invalid HEAD before GET (case %#)',
+      async ({ code, ...head }) => {
+        mockSend.mockResolvedValueOnce(head);
+        await expect(
+          new S3StorageProvider().readBytes('key', {
+            maxBytes: 2,
+            timeoutMs: 1000,
+          }),
+        ).rejects.toThrow(code);
+        expect(mockSend).toHaveBeenCalledTimes(1);
+      },
+    );
     it('maps 412 to changed without another HEAD or GET', async () => {
       mockSend
         .mockResolvedValueOnce({ ContentLength: 1, ETag: 'etag' })

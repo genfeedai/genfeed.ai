@@ -198,6 +198,7 @@ describe('workspace shell trusted registry', () => {
     ['/:orgSlug/:brandSlug/library/assets', 'canvas'],
     ['/:orgSlug/:brandSlug/settings/skills', 'canvas'],
     ['/:orgSlug/:brandSlug/settings/knowledge', 'canvas'],
+    ['/:orgSlug/:brandSlug/settings/generation-receipts', 'canvas'],
     ['/:orgSlug/:brandSlug/settings/characters', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/batch', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/batch/new', 'canvas'],

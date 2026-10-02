@@ -197,6 +197,9 @@ describe('projectGenerationReceiptForInspection', () => {
     expect(Object.keys(view ?? {}).sort()).toEqual(
       [
         'id',
+        'revision',
+        'execution',
+        'resolutionHash',
         'state',
         'mode',
         'surface',
@@ -390,4 +393,49 @@ describe('projectGenerationReceiptForInspection', () => {
       projectGenerationReceiptForInspection(canonical(receipt()))?.costs,
     ).toEqual([]);
   });
+});
+
+it('preserves public null optionals and pinned revision/execution/hash without private fields', () => {
+  const internal = receipt();
+  const {
+    actorId: _actorId,
+    requestKey: _requestKey,
+    ...publicFields
+  } = internal;
+  const publicRead = {
+    ...publicFields,
+    platform: null,
+    generationId: null,
+    runId: null,
+    parentRequestId: null,
+    workflowExecutionId: null,
+  };
+  const projected = projectGenerationReceiptForInspection(publicRead);
+  expect(projected).toMatchObject({
+    revision: internal.revision,
+    execution: internal.execution,
+    resolutionHash: internal.resolutionHash,
+    platform: null,
+  });
+  expect(projected).not.toHaveProperty('actorId');
+  expect(projected).not.toHaveProperty('requestKey');
+  expect(projected?.prompts).not.toBe(publicRead.prompts);
+});
+
+it('projects an exact public history revision with a detached execution and resolution hash', () => {
+  const { actorId: _actorId, requestKey: _requestKey, ...fields } = receipt();
+  const historical = {
+    ...fields,
+    id: 'receipt:7',
+    receiptId: 'receipt',
+    revision: 7,
+  };
+  const result = projectGenerationReceiptForInspection(historical);
+  expect(result).toMatchObject({
+    id: 'receipt:7',
+    revision: 7,
+    execution: fields.execution,
+    resolutionHash: fields.resolutionHash,
+  });
+  expect(result?.execution).not.toBe(historical.execution);
 });
