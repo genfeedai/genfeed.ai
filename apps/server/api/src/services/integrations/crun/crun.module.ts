@@ -13,6 +13,6 @@ import { Module } from '@nestjs/common';
     MediaVendorCostModule,
   ],
   providers: [CrunTaskFinalizationService],
-  exports: [CrunTaskFinalizationService],
+  exports: [CrunCoreModule, CrunTaskFinalizationService],
 })
 export class CrunModule {}
