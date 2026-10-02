@@ -1,4 +1,7 @@
-import { runWithActionOrigin } from '@api/index';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { runWithActionOrigin, SERVER_TOKENS } from '@api/index';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import {
@@ -12,6 +15,8 @@ import {
 } from '@genfeedai/contracts';
 import { evaluateAgentPublishPolicy } from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
 import type { CreateReleaseGroupInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test } from '@nestjs/testing';
 
 import { describe, expect, it, vi } from 'vitest';
 
@@ -175,6 +180,33 @@ function createHandler() {
     postsService,
   };
 }
+
+describe('AgentPublishToolHandler runtime injection', () => {
+  it('resolves optional typed stores through their real exported Nest tokens', async () => {
+    const f = createHandler();
+    const module = await Test.createTestingModule({
+      providers: [
+        AgentPublishToolHandler,
+        { provide: PostGroupsService, useValue: f.postGroupsService },
+        { provide: PostsService, useValue: f.postsService },
+        { provide: LoggerService, useValue: { error: vi.fn(), log: vi.fn() } },
+        { provide: IngredientsService, useValue: f.ingredientsService },
+        { provide: SERVER_TOKENS.credentials, useValue: f.credentialsService },
+      ],
+    }).compile();
+    try {
+      const handler = module.get(AgentPublishToolHandler);
+      expect(Reflect.get(handler, 'ingredientsService')).toBe(
+        f.ingredientsService,
+      );
+      expect(Reflect.get(handler, 'credentialsService')).toBe(
+        f.credentialsService,
+      );
+    } finally {
+      await module.close();
+    }
+  });
+});
 
 describe('AgentPublishToolHandler per-channel review', () => {
   it('rejects another brand before preparing connected account details', async () => {

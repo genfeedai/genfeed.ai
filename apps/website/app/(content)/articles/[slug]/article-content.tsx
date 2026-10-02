@@ -1,12 +1,15 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { ArticleContentProps } from '@props/content/public-article.props';
 import { Button } from '@ui/primitives/button';
 import { ArrowUpRight, Check, Copy, ListTree } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { WEBSITE_ANALYTICS_EVENTS } from '../../../../packages/analytics/analytics-events';
+import { captureWebsiteAnalyticsEvent } from '../../../../packages/analytics/posthog-client';
 import { hasArticleExperience } from './article-experience-slugs';
 import { copyText } from './copy-text';
 
@@ -78,13 +81,8 @@ export default function ArticleContent({
   applyHref,
   sanitizedHtml,
   slug,
-}: {
-  /** The agent link for this guide, built on the server. */
-  applyHref: string;
-  /** Already sanitized on the server — this component never sanitizes. */
-  sanitizedHtml: string;
-  slug?: string;
-}): React.ReactElement {
+  resource,
+}: ArticleContentProps): React.ReactElement {
   const containerRef = useRef<HTMLDivElement>(null);
   const [actions, setActions] = useState<CodeBlockAction[]>([]);
   const [headings, setHeadings] = useState<ArticleHeading[]>([]);
@@ -190,11 +188,26 @@ export default function ArticleContent({
           <Button asChild variant={ButtonVariant.SECONDARY} withWrapper={false}>
             <a
               className="shrink-0"
-              href={applyHref}
+              href={
+                resource
+                  ? `https://github.com/genfeedai/skills/tree/master/${resource.skill}`
+                  : applyHref
+              }
+              onClick={() => {
+                if (resource && slug)
+                  captureWebsiteAnalyticsEvent(
+                    WEBSITE_ANALYTICS_EVENTS.ARTICLE_CTA_CLICKED,
+                    {
+                      articleSlug: slug,
+                      skillSlug: resource.skill,
+                      action: 'skill',
+                    },
+                  );
+              }}
               rel="noopener noreferrer"
               target="_blank"
             >
-              Apply this guide
+              {resource ? 'Get the free skill' : 'Apply this guide'}
               <ArrowUpRight className="size-4" aria-hidden="true" />
             </a>
           </Button>

@@ -70,6 +70,8 @@ export interface AgentClient {
   faq: readonly AgentClientFaq[];
   helperClient: ConnectGenfeedClient;
   installation: AgentInstallation;
+  /** First-party application mark, served locally instead of hotlinked. */
+  logo: string;
   /** Chat agents only take OAuth; a pasted key would land in the chat log. */
   manualKey?: ConnectGenfeedInstructions;
   name: string;
@@ -106,6 +108,20 @@ const HELPER_CLIENT: Record<AgentClientSlug, ConnectGenfeedClient> = {
   muse: 'generic',
   openclaw: 'generic',
 };
+
+const CLIENT_LOGOS = {
+  chatgpt: '/agent-logos/openai.svg',
+  claude: '/agent-logos/claude.svg',
+  'claude-code': '/agent-logos/claude.svg',
+  'claude-cowork': '/agent-logos/claude.svg',
+  codex: '/agent-logos/openai.svg',
+  cursor: '/agent-logos/cursor.svg',
+  gemini: '/agent-logos/gemini.png',
+  grok: '/agent-logos/grok.svg',
+  'grok-bot': '/agent-logos/grok.svg',
+  muse: '/agent-logos/meta.svg',
+  openclaw: '/agent-logos/openclaw.svg',
+} as const satisfies Record<AgentClientSlug, string>;
 
 interface AgentClientCopy {
   about: string;
@@ -146,6 +162,7 @@ function buildClient(copy: AgentClientCopy): AgentClient {
     connectInstruction,
     connectUrl: GENFEED_PUBLIC_MCP_URL,
     description: copy.description,
+    logo: CLIENT_LOGOS[copy.slug],
     faq: [
       {
         answer: connectInstruction,

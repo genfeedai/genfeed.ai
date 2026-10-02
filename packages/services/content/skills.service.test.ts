@@ -10,6 +10,10 @@ import {
   AgentCampaignsService,
 } from '@services/automation/agent-campaigns.service';
 import { Skill, SkillsService } from '@services/content/skills.service';
+import {
+  clearRequestOrganizationId,
+  setRequestOrganizationId,
+} from '@services/core/interceptor.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const skillInput = {
@@ -238,5 +242,41 @@ describe('SkillsService.exportSkill', () => {
 
     await expect(service.exportSkill('skill-1')).resolves.toEqual(body);
     expect(http.get).toHaveBeenCalledWith('/skill-1/export');
+  });
+});
+
+describe('SkillsService canonical fork and scoped acquisition', () => {
+  it('POSTs an empty payload to an encoded canonical fork route and maps JSONAPI', async () => {
+    const service = new SkillsService('fork-fixture');
+    const http = installMockHttp(service);
+    http.post.mockResolvedValue(
+      axiosResponse(resourceDocument({ name: 'Own fork' }, { id: 'fork-1' })),
+    );
+    expect(await service.forkSkill('skill/one')).toBeInstanceOf(Skill);
+    expect(http.post).toHaveBeenCalledWith('/skill%2Fone/fork', {});
+    expect(http.post).not.toHaveBeenCalledWith(
+      expect.stringContaining('/customize'),
+      expect.anything(),
+    );
+  });
+  it('creates fresh instances and rejects a previously bound organization after A to B to A', () => {
+    setRequestOrganizationId('org-a');
+    try {
+      const service = SkillsService.forOrganization('scope-fixture', 'org-a');
+      const headers = service as unknown as {
+        requestOrganizationHeaders: () => Record<string, string>;
+      };
+      expect(headers.requestOrganizationHeaders()).toBeTruthy();
+      expect(SkillsService.forOrganization('scope-fixture', 'org-a')).not.toBe(
+        service,
+      );
+      setRequestOrganizationId('org-b');
+      setRequestOrganizationId('org-a');
+      expect(() => headers.requestOrganizationHeaders()).toThrow(
+        'no longer confirmed',
+      );
+    } finally {
+      clearRequestOrganizationId();
+    }
   });
 });

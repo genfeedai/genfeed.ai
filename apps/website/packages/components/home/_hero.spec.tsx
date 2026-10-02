@@ -89,7 +89,9 @@ describe('HomeHero', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/— on brand —/)).not.toBeInTheDocument();
     expect(
-      screen.getAllByRole('link').map((link) => link.textContent?.trim()),
+      [...document.querySelectorAll('button, a')].map((link) =>
+        link.textContent?.trim(),
+      ),
     ).toEqual(['Connect your agent', 'Start for $0']);
 
     const actions = screen.getByTestId('home-hero-actions');
@@ -154,8 +156,8 @@ describe('HomeHero', () => {
     render(<HomeHero />);
 
     expect(
-      screen.getByRole('link', { name: /connect your agent/i }),
-    ).toHaveAttribute('href', '/agent#connect');
+      screen.getByRole('button', { name: /connect your agent/i }),
+    ).toHaveAttribute('aria-haspopup', 'dialog');
     expect(
       screen.getByRole('link', { name: /start for \$0/i }),
     ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
@@ -172,7 +174,9 @@ describe('HomeHero', () => {
     window.addEventListener('genfeed:marketing:button-click', listener);
     render(<HomeHero />);
 
-    fireEvent.click(screen.getByRole('link', { name: /connect your agent/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /connect your agent/i }),
+    );
     fireEvent.click(screen.getByRole('link', { name: /start for \$0/i }));
 
     expect(listener).toHaveBeenNthCalledWith(

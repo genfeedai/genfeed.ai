@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import HarnessDeliveryTab from './harness-delivery-tab';
 import HarnessExamplesTab from './harness-examples-tab';
 import HarnessIdentityTab from './harness-identity-tab';
+import HarnessLearningTab from './harness-learning-tab';
 import HarnessPositioningScorecard from './harness-positioning-scorecard';
 import HarnessStructureTab from './harness-structure-tab';
 import HarnessThesisTab from './harness-thesis-tab';
@@ -53,6 +54,7 @@ const HARNESS_TABS = [
   'delivery',
   'thesis',
   'examples',
+  'learning',
 ] as const;
 
 type HarnessTabId = (typeof HARNESS_TABS)[number];
@@ -318,36 +320,48 @@ export default function BrandSettingsHarnessPage() {
           >
             {receiptTranslate('open')}
           </Link>
-          <Badge variant="outline">
-            {translate('badges.scopePrefix', { scope: draft.scope ?? 'brand' })}
-          </Badge>
-          <Badge variant={draft.status === 'active' ? 'success' : 'warning'}>
-            {draft.status ?? 'active'}
-          </Badge>
-          <Button
-            disabled={isPromoting || isSaving}
-            onClick={handlePromoteWinners}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-          >
-            {isPromoting ? translate('promoting') : translate('promote')}
-          </Button>
-          <Button
-            disabled={isSaving}
-            onClick={handleSave}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DEFAULT}
-          >
-            {isSaving ? translate('saving') : translate('save')}
-          </Button>
+          {activeTab !== 'learning' ? (
+            <>
+              <Badge variant="outline">
+                {translate('badges.scopePrefix', {
+                  scope: draft.scope ?? 'brand',
+                })}
+              </Badge>
+              <Badge
+                variant={draft.status === 'active' ? 'success' : 'warning'}
+              >
+                {draft.status ?? 'active'}
+              </Badge>
+              <Button
+                disabled={isPromoting || isSaving}
+                onClick={handlePromoteWinners}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
+              >
+                {isPromoting ? translate('promoting') : translate('promote')}
+              </Button>
+              <Button
+                disabled={isSaving}
+                onClick={handleSave}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.DEFAULT}
+              >
+                {isSaving ? translate('saving') : translate('save')}
+              </Button>
+            </>
+          ) : null}
         </div>
       }
     >
-      {draft.positioning ? (
+      {activeTab !== 'learning' && draft.positioning ? (
         <HarnessPositioningScorecard
           interviewHref={href('/settings/interview')}
           positioning={draft.positioning}
         />
+      ) : null}
+
+      {activeTab === 'learning' ? (
+        <HarnessLearningTab brandId={brandId} />
       ) : null}
 
       {activeTab === 'identity' ? (

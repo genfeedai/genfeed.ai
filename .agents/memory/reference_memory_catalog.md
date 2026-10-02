@@ -201,3 +201,4 @@ Load on demand: [e2e-architecture](context/e2e-architecture.md) · [progress](co
 - [frontend-query-filters](spec-frontend-query-filters.md) · [decisions](decisions-frontend-query-filters.md) — #5133: list filter URL contract and frontend route audit
 
 - [Image editing contract](project_image_editing.md) — issue #5808; editing sources, models and cross-surface workflow.
+- [Agent connection acquisition](feedback_agent_connection_acquisition.md) — `/agent` explains Genfeed's own agent; connection CTAs open setup in place.

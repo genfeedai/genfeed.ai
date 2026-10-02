@@ -2,6 +2,7 @@ import { ArticlesQueryDto } from '@api/collections/articles/dto/articles-query.d
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { PublicArticlesController } from '@api/endpoints/public/controllers/articles/public.articles.controller';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { createArticlePreviewToken } from '@api/helpers/utils/article-preview/article-preview-token.util';
 import {
   ArticleCategory,
   ArticleStatus,
@@ -104,6 +105,7 @@ describe('PublicArticlesController', () => {
   };
 
   beforeEach(async () => {
+    mockConfigService.get.mockReturnValue(undefined);
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PublicArticlesController],
       providers: [
@@ -306,7 +308,7 @@ describe('PublicArticlesController', () => {
 
       expect(articlesService.findPublicArticleBySlug).toHaveBeenCalledWith(
         slug,
-        false,
+        null,
       );
       expect(result).toEqual(mockArticle);
     });
@@ -321,6 +323,28 @@ describe('PublicArticlesController', () => {
       expect(result).toBeDefined();
     });
 
+    it('passes the exact signed article identity to the public reader', async () => {
+      const secret = 'test-signing-key';
+      mockConfigService.get.mockReturnValue(secret);
+      mockArticlesService.findPublicArticleBySlug.mockResolvedValue(
+        mockArticle,
+      );
+      const token = createArticlePreviewToken(
+        mockArticle.slug,
+        mockArticle.id,
+        secret,
+      );
+      await controller.findPublicArticleBySlug(
+        {} as Request,
+        mockArticle.slug,
+        token,
+      );
+      expect(articlesService.findPublicArticleBySlug).toHaveBeenCalledWith(
+        mockArticle.slug,
+        mockArticle.id,
+      );
+    });
+
     it('should not grant preview access for an unsigned token', async () => {
       const request = {} as Request;
       const slug = 'public-article';
@@ -332,7 +356,7 @@ describe('PublicArticlesController', () => {
 
       expect(articlesService.findPublicArticleBySlug).toHaveBeenCalledWith(
         slug,
-        false,
+        null,
       );
     });
   });

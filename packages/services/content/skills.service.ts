@@ -101,6 +101,15 @@ export class SkillsService extends BaseService<
     super('/skills', token, Skill, skillSerializer);
   }
 
+  public static forOrganization(
+    token: string,
+    organizationId: string,
+  ): SkillsService {
+    const service = new SkillsService(token);
+    service.bindRequestOrganization(organizationId);
+    return service;
+  }
+
   public static getInstance(token: string): SkillsService {
     return BaseService.getDataServiceInstance(SkillsService, token);
   }
@@ -124,6 +133,12 @@ export class SkillsService extends BaseService<
   async importSkill(input: SkillInput): Promise<Skill> {
     return this.instance
       .post<JsonApiResponseDocument>('/import', input)
+      .then((response) => this.mapOne(response.data));
+  }
+
+  async forkSkill(id: string): Promise<Skill> {
+    return this.instance
+      .post<JsonApiResponseDocument>(`/${encodeURIComponent(id)}/fork`, {})
       .then((response) => this.mapOne(response.data));
   }
 

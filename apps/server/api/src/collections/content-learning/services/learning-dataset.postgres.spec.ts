@@ -1,26 +1,45 @@
 import { execFileSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { readdirSync, readFileSync, statfsSync } from 'node:fs';
 import { PerformanceObserver } from 'node:perf_hooks';
 import { fileURLToPath } from 'node:url';
 import { LearningDatasetService } from '@api/collections/content-learning/services/learning-dataset.service';
 import { LearningDatasetGraph } from '@api/collections/content-learning/services/learning-dataset-graph.service';
 import {
+  createLearningDatasetPublication,
   createLearningDatasetPublicationEvidence,
   createLearningDatasetPublications,
+  type DatasetFixtureAdmission,
+  type DatasetPublicationPhase,
+  type DatasetPublicationProgress,
   withdrawLearningDatasetPublication,
 } from '@api/collections/content-learning/services/learning-dataset-publication.fixture';
+import { LearningDatasetScaleFixture } from '@api/collections/content-learning/services/learning-dataset-scale.fixture';
 import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
 import {
   learningPublicationDependencyRefsV1,
   resolveLearningPublicationSourceV1,
 } from '@api/collections/content-learning/services/learning-publication-source.helper';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { assertIsolatedDatabaseUrl } from '@api-test/../scripts/assert-isolated-db-url';
+import {
+  assertControllerOwnedMigrationConnection,
+  assertControllerOwnedMigrationInventory,
+  readControllerOwnedMigrationDatabaseUrl,
+} from '@api-test/helpers/controller-owned-migration-database';
+import { formatMigrationDeployDiagnostic } from '@api-test/helpers/migration-deploy-diagnostics';
 import { CredentialPlatform, Prisma, PrismaClient } from '@genfeedai/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 vi.unmock('@genfeedai/prisma');
 vi.unmock('@prisma/adapter-pg');
@@ -31,6 +50,16 @@ vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
 const explicitUrl = process.env.LEARNING_DATASET_TEST_DATABASE_URL;
 const benchmark = process.env.LEARNING_DATASET_BENCHMARK === '1';
 const diagnostic = process.env.LEARNING_DATASET_PROFILE === '1';
+const smoke = process.env.LEARNING_DATASET_SMOKE === '1';
+if ([benchmark, diagnostic, smoke].filter(Boolean).length > 1)
+  throw new Error(
+    'Dataset benchmark, profile and smoke modes are mutually exclusive',
+  );
+const databaseRole = diagnostic
+  ? 'dataset-profile'
+  : benchmark || smoke
+    ? 'dataset-matrix'
+    : 'dataset-correctness';
 type TimingMetric = {
   calls: number;
   wallMs: number;
@@ -99,6 +128,99 @@ describe.skipIf(!explicitUrl)(
       prisma: PrismaClient<'query'>,
       service: LearningDatasetService;
     let queryCount = 0;
+    let diagnosticsOwned = false;
+    let diagnosticBytes = 0;
+    let diagnosticRecords = 0;
+    let caseOrdinal = 0;
+    let seedOrdinal = 0;
+    const diagnosticTimers = new Set<ReturnType<typeof setInterval>>();
+    type SeedCounter = {
+      started: number;
+      complete: number;
+      failed: number;
+      elapsedMs: number;
+    };
+    type SeedEvent =
+      | 'bootstrap-start'
+      | 'bootstrap-end'
+      | 'case-start'
+      | 'case-end'
+      | 'seed-start'
+      | 'seed-end'
+      | 'seed-failed'
+      | 'heartbeat'
+      | 'publication-end'
+      | 'evidence-end'
+      | 'rows-end';
+    function seedDiagnostic(
+      event: SeedEvent,
+      seed = 0,
+      size = 0,
+      started = performance.now(),
+      counters?: Partial<Record<DatasetPublicationPhase, SeedCounter>>,
+      ownerCase = caseOrdinal,
+    ) {
+      if (
+        !diagnosticsOwned ||
+        process.env.LEARNING_DATASET_SEED_DIAGNOSTICS !== '1' ||
+        diagnosticRecords >= 1024
+      )
+        return;
+      const line = `DATASET_SEED_PHASE ${JSON.stringify({
+        version: 1,
+        role: databaseRole,
+        event,
+        caseOrdinal: ownerCase,
+        seedOrdinal: seed,
+        requestedSize: size,
+        elapsedMs: Math.max(0, performance.now() - started),
+        queryCount,
+        pool: {
+          total: pool.totalCount,
+          idle: pool.idleCount,
+          waiting: pool.waitingCount,
+        },
+        counters: counters ?? {},
+      })}\n`;
+      const bytes = Buffer.byteLength(line);
+      if (diagnosticBytes + bytes > 256 * 1024) return;
+      diagnosticRecords++;
+      diagnosticBytes += bytes;
+      process.stderr.write(line);
+    }
+    let caseSignal: AbortSignal;
+    let closedAdmission = true;
+    let poisoned: unknown;
+    let seedActive: Promise<void> | undefined;
+    let cohort:
+      | Promise<
+          Awaited<ReturnType<typeof createLearningDatasetPublicationEvidence>>
+        >
+      | undefined;
+    let scale: LearningDatasetScaleFixture;
+    const admission: DatasetFixtureAdmission = {
+      assertOpen() {
+        if (poisoned) throw poisoned;
+        if (closedAdmission || caseSignal.aborted)
+          throw new Error('Dataset case admission is closed');
+      },
+    };
+    beforeEach((context) => {
+      if (poisoned || seedActive)
+        throw poisoned ?? new Error('Previous dataset actor is still active');
+      caseSignal = context.signal;
+      closedAdmission = false;
+      caseOrdinal++;
+      seedDiagnostic('case-start');
+    });
+    afterEach(async () => {
+      closedAdmission = true;
+      if (seedActive) {
+        poisoned ??= new Error('Dataset test ended with an active seed');
+        await seedActive.catch(() => undefined);
+      }
+      seedDiagnostic('case-end');
+    }, 30000);
     let secondaryGraphBatches = 0;
     let queryObserverOverheadMs = 0;
     let phaseInstrumentationOverheadMs = 0;
@@ -130,7 +252,7 @@ describe.skipIf(!explicitUrl)(
       decisionLockBatches = 0;
     let beforeDecisionLock: (() => Promise<void>) | undefined;
     let afterDatasetCreate: (() => Promise<void>) | undefined;
-    const schema = `dataset_5781_${process.pid}_${Date.now()}`;
+    const schema = 'public';
     const input = {
       organizationId: 'org-0',
       actorId: 'actor',
@@ -287,15 +409,18 @@ describe.skipIf(!explicitUrl)(
       };
     }
     beforeAll(async () => {
-      const url = assertIsolatedDatabaseUrl(explicitUrl);
+      const url = readControllerOwnedMigrationDatabaseUrl(
+        databaseRole,
+        explicitUrl,
+      );
       pool = new Pool({
         connectionString: url,
         max: 5,
-        options: `-c search_path=${schema}`,
+        options: '-c search_path=public',
       });
-      await pool.query(`CREATE SCHEMA "${schema}"`);
-      if (!/^[a-z][a-z0-9_]+$/.test(schema))
-        throw new Error('Invalid owned fixture schema');
+      await assertControllerOwnedMigrationConnection(pool, databaseRole, true);
+      diagnosticsOwned = true;
+      seedDiagnostic('bootstrap-start');
       const migrationDirectory = new URL(
         '../../../../../../../packages/prisma/prisma/migrations/',
         import.meta.url,
@@ -306,58 +431,46 @@ describe.skipIf(!explicitUrl)(
         .filter((entry) => entry.isDirectory())
         .map((entry) => entry.name)
         .sort();
-      for (const name of migrationNames) {
-        const sql = readFileSync(
-          new URL(`${name}/migration.sql`, migrationDirectory),
-          'utf8',
-        );
-        if (/(?:"public"|\bpublic)\s*\./i.test(sql))
-          throw new Error(
-            'Fixture migration scope requires planner revalidation',
-          );
+      const expected = migrationNames.map((migration_name) => ({
+        migration_name,
+        checksum: createHash('sha256')
+          .update(
+            readFileSync(
+              new URL(`${migration_name}/migration.sql`, migrationDirectory),
+            ),
+          )
+          .digest('hex'),
+      }));
+      try {
+        execFileSync('bun', ['x', 'prisma', 'migrate', 'deploy'], {
+          cwd: fileURLToPath(
+            new URL('../../../../../../../packages/prisma', import.meta.url),
+          ),
+          env: { ...process.env, DATABASE_URL: url },
+          timeout: 120000,
+          maxBuffer: 8 * 1024 * 1024,
+          stdio: 'pipe',
+        });
+      } catch (error) {
+        console.error(formatMigrationDeployDiagnostic(error, url));
+        throw new Error('Owned dataset migration deployment failed');
       }
-      const scoped = new URL(url);
-      scoped.searchParams.set('schema', schema);
-      execFileSync('bun', ['x', 'prisma', 'migrate', 'deploy'], {
-        cwd: fileURLToPath(
-          new URL('../../../../../../../packages/prisma', import.meta.url),
-        ),
-        env: { ...process.env, DATABASE_URL: scoped.toString() },
-        timeout: 120000,
-        maxBuffer: 8 * 1024 * 1024,
-        stdio: 'pipe',
-      });
-      pool.on('connect', (connection) => {
-        connection.query(
-          'SELECT current_schema() AS schema',
-          (error, result) => {
-            if (error) throw error;
-            expect(result.rows[0].schema).toBe(schema);
-          },
-        );
-      });
       const connections = await Promise.all(
         Array.from({ length: 5 }, () => pool.connect()),
       );
       try {
         for (const connection of connections)
-          expect(
-            (await connection.query('SELECT current_schema() AS schema'))
-              .rows[0].schema,
-          ).toBe(schema);
+          await assertControllerOwnedMigrationConnection(
+            connection,
+            databaseRole,
+          );
       } finally {
         for (const connection of connections) connection.release();
       }
       const applied = await pool.query(
-        'SELECT migration_name, finished_at, rolled_back_at FROM _prisma_migrations ORDER BY migration_name',
+        'SELECT migration_name, checksum, finished_at, rolled_back_at FROM _prisma_migrations ORDER BY migration_name',
       );
-      expect(applied.rows.map((row) => row.migration_name)).toEqual(
-        migrationNames,
-      );
-      for (const row of applied.rows) {
-        expect(row.finished_at).not.toBeNull();
-        expect(row.rolled_back_at).toBeNull();
-      }
+      assertControllerOwnedMigrationInventory(applied.rows, expected);
       prisma = new PrismaClient({
         adapter: new PrismaPg(pool, { schema }),
         log: [{ emit: 'event', level: 'query' }],
@@ -533,13 +646,30 @@ describe.skipIf(!explicitUrl)(
           },
         });
       }
+      scale = new LearningDatasetScaleFixture(prisma, pool, databaseRole);
+      seedDiagnostic('bootstrap-end');
     }, 120000);
     afterAll(async () => {
-      await prisma?.$disconnect();
-      if (pool) {
-        await pool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
-        await pool.end();
+      closedAdmission = true;
+      await seedActive?.catch(() => undefined);
+      for (const timer of diagnosticTimers) clearInterval(timer);
+      diagnosticTimers.clear();
+      const failures: unknown[] = [];
+      try {
+        await prisma?.$disconnect();
+      } catch (error) {
+        failures.push(error);
       }
+      try {
+        await pool?.end();
+      } catch (error) {
+        failures.push(error);
+      }
+      if (failures.length)
+        throw new AggregateError(
+          failures,
+          'Owned dataset connection cleanup failed',
+        );
     });
     async function clearOutputs() {
       await pool.query(
@@ -550,7 +680,7 @@ describe.skipIf(!explicitUrl)(
       await prisma.contentLearningDataset.deleteMany();
     }
     function assertBenchmarkDiskSpace() {
-      if (!benchmark && !diagnostic) return;
+      if (!benchmark && !diagnostic && !smoke) return;
       const { bavail, bsize } = statfsSync(process.cwd());
       if (bavail * bsize < 10 * 1024 ** 3)
         throw new Error(
@@ -562,35 +692,104 @@ describe.skipIf(!explicitUrl)(
     > = [];
     let checkpointIds: string[] = [];
     let baselineIds: string[] = [];
-    async function seed(size: number) {
+    function seed(size: number): Promise<void> {
+      admission.assertOpen();
+      if (seedActive) throw new Error('Concurrent dataset seed refused');
+      const running = seedOwned(size)
+        .catch((error: unknown) => {
+          poisoned = error;
+          throw error;
+        })
+        .finally(() => {
+          if (seedActive === running) seedActive = undefined;
+        });
+      seedActive = running;
+      return running;
+    }
+    async function seedOwned(size: number) {
+      const ordinal = ++seedOrdinal;
+      const ownerCase = caseOrdinal;
+      const started = performance.now();
+      const counters: Partial<Record<DatasetPublicationPhase, SeedCounter>> =
+        {};
+      const progress: DatasetPublicationProgress | undefined =
+        diagnosticsOwned &&
+        process.env.LEARNING_DATASET_SEED_DIAGNOSTICS === '1'
+          ? (phase, event, elapsedMs) => {
+              const counter = counters[phase] ?? {
+                started: 0,
+                complete: 0,
+                failed: 0,
+                elapsedMs: 0,
+              };
+              counters[phase] = counter;
+              if (event === 'start') counter.started++;
+              else {
+                counter[event]++;
+                counter.elapsedMs += elapsedMs;
+              }
+            }
+          : undefined;
+      const emit = (event: SeedEvent) =>
+        seedDiagnostic(event, ordinal, size, started, counters, ownerCase);
+      emit('seed-start');
+      const timer = progress
+        ? setInterval(() => emit('heartbeat'), 10000)
+        : undefined;
+      if (timer) {
+        timer.unref();
+        diagnosticTimers.add(timer);
+      }
+      try {
+        await seedRows(size, progress, emit);
+        emit('seed-end');
+      } catch (error) {
+        emit('seed-failed');
+        throw error;
+      } finally {
+        if (timer) {
+          clearInterval(timer);
+          diagnosticTimers.delete(timer);
+        }
+      }
+    }
+    async function seedRows(
+      size: number,
+      progress: DatasetPublicationProgress | undefined,
+      emit: (event: SeedEvent) => void,
+    ) {
       assertBenchmarkDiskSpace();
-      await clearOutputs();
-      for (const table of [
-        'content_learning_dependencys',
-        'content_learning_rewards',
-        'content_learning_decisions',
-        'content_learning_baselines',
-        'content_learning_checkpoints',
-        'content_learning_scope_states',
-      ])
-        await pool.query(`DELETE FROM "${table}"`);
-      await prisma.post.updateMany({
-        data: { publishApprovalId: null, reviewVersionPinId: null },
-      });
-      await prisma.postPublishFinalization.deleteMany();
-      await prisma.publishApproval.deleteMany();
-      await prisma.contentVersionPin.deleteMany();
-      await prisma.post.deleteMany();
-      publications = await createLearningDatasetPublications(prisma, size);
-      const evidence = await createLearningDatasetPublicationEvidence(
-        prisma,
-        publications,
-      );
+      admission.assertOpen();
+      cohort ??= (async () => {
+        const genuine = await createLearningDatasetPublications(
+          prisma,
+          200,
+          randomUUID(),
+          progress,
+          admission,
+        );
+        const evidence = await createLearningDatasetPublicationEvidence(
+          prisma,
+          genuine,
+          progress,
+          admission,
+        );
+        await scale.initialize(genuine, evidence);
+        return evidence;
+      })();
+      const evidence = await cohort;
+      admission.assertOpen();
+      await scale.restore(admission);
+      await scale.grow(size, admission);
+      publications = scale.publications(size);
+      emit('publication-end');
+      emit('evidence-end');
       checkpointIds = publications.map(
         (publication, index) =>
           evidence.checkpoints[index]?.id ?? `checkpoint-${publication.index}`,
       );
       for (let start = 200; start < size; start += 1000) {
+        admission.assertOpen();
         const end = Math.min(size, start + 1000);
         await prisma.contentLearningCheckpoint.createMany({
           data: publications.slice(start, end).map(({ source, index }) => ({
@@ -643,6 +842,7 @@ describe.skipIf(!explicitUrl)(
       baselineIds = evidence.baselines.map((row) => row.id);
       const baselineVersions = evidence.baselines.map((row) => row.fingerprint);
       for (let start = 0; start < size; start += 1000) {
+        admission.assertOpen();
         const end = Math.min(size, start + 1000);
         await pool.query(
           `INSERT INTO content_learning_decisions (id,"organizationId","brandId","credentialId","requestKey","destinationKey","candidateIndex","payloadHash","scopeKey",epoch,"accountRevision",mode,"contextVector","contextSnapshot","eligibleArmIds",probabilities,"selectedArmId","selectedProbability",assignment,"assignmentProbability","executionProbability","configVersion","baselineId",state,"createdAt","updatedAt") SELECT 'decision-'||i,'org-'||(i%10%2),'brand-'||(i%10%2),'credential-'||(i%10),'request-'||i,'destination',0,'payload-'||i,'scope-'||(i%10),0,0,'shadow',ARRAY[1,0,1,0,1,0,1,0,1]::float8[],'{}',ARRAY['baseline-v1'],'{"baseline-v1":1,"question-example-v1":0,"proof-steps-v1":0}','baseline-v1',1,'fixture',1,1,'ridge-epsilon-v1',($3::text[])[(i%10)+1],'published',TIMESTAMP '2026-09-01'+(i%100)*INTERVAL '1 second',NOW() FROM generate_series($2::int,$1::int-1) i`,
@@ -696,6 +896,8 @@ describe.skipIf(!explicitUrl)(
           })),
         });
       }
+      admission.assertOpen();
+      emit('rows-end');
       await pool.query('ANALYZE');
     }
     async function measure(
@@ -793,12 +995,15 @@ describe.skipIf(!explicitUrl)(
       );
       console.log(
         JSON.stringify({
-          datasetBenchmark: !profile,
+          datasetBenchmark: !profile && !smoke,
+          ...(smoke ? { datasetSmoke: true } : {}),
           samplePurpose: profile
             ? 'diagnostic-only-not-matrix-acceptance'
-            : run === 0
-              ? 'matrix-warmup'
-              : 'matrix-measurement',
+            : smoke
+              ? 'deployment-smoke'
+              : run === 0
+                ? 'matrix-warmup'
+                : 'matrix-measurement',
           ...(profile
             ? {
                 datasetDiagnostic: true,
@@ -893,7 +1098,54 @@ describe.skipIf(!explicitUrl)(
       assertBenchmarkDiskSpace();
     }
     it('creates genuine publication/capture/materializer lineage and exact scalar/bulk dataset pins', async () => {
+      const retainedPublication = await createLearningDatasetPublication(
+        prisma,
+        0,
+        randomUUID(),
+        undefined,
+        admission,
+      );
+      const retainedPin = await prisma.contentVersionPin.findUniqueOrThrow({
+        where: { id: retainedPublication.source.versionPinId },
+      });
       await seed(1000);
+      expect(
+        await prisma.contentVersionPin.findUniqueOrThrow({
+          where: { id: retainedPin.id },
+        }),
+      ).toEqual(retainedPin);
+      expect(publications[0].source.postId).not.toBe(
+        retainedPublication.source.postId,
+      );
+      expect(publications[0].source.versionPinId).not.toBe(retainedPin.id);
+      const savedCohort = publications.slice(0, 200).map((row) => row.source);
+      const savedCheckpoint =
+        await prisma.contentLearningCheckpoint.findUniqueOrThrow({
+          where: { id: checkpointIds[0] },
+        });
+      const savedBaseline =
+        await prisma.contentLearningBaseline.findUniqueOrThrow({
+          where: { id: baselineIds[0] },
+        });
+      await seed(1000);
+      expect(publications.slice(0, 200).map((row) => row.source)).toEqual(
+        savedCohort,
+      );
+      expect(
+        await prisma.contentLearningCheckpoint.findUniqueOrThrow({
+          where: { id: savedCheckpoint.id },
+        }),
+      ).toEqual(savedCheckpoint);
+      expect(
+        await prisma.contentLearningBaseline.findUniqueOrThrow({
+          where: { id: savedBaseline.id },
+        }),
+      ).toEqual(savedBaseline);
+      expect(
+        await prisma.contentVersionPin.findUniqueOrThrow({
+          where: { id: retainedPin.id },
+        }),
+      ).toEqual(retainedPin);
       const publication = publications[0];
       const current = await resolveLearningPublicationSourceV1(
         prisma,
@@ -980,6 +1232,73 @@ describe.skipIf(!explicitUrl)(
         await prisma.postPublishFinalization.findUniqueOrThrow({
           where: { id: source.finalizationId },
         });
+      const originalPin = await prisma.contentVersionPin.findUniqueOrThrow({
+        where: { id: source.versionPinId },
+      });
+      const attemptedId = randomUUID();
+      const attemptedKey = `malformed-${randomUUID()}`;
+      const originalPinCount = await prisma.contentVersionPin.count({
+        where: { organizationId: originalPin.organizationId },
+      });
+      await expect(
+        pool.query(
+          `INSERT INTO content_version_pins
+           (id, "organizationId", "brandId", "createdByUserId", "recordKind", "recordId", "recordVersion", "contentDigest", "idempotencyKey", provenance)
+           SELECT $1, "organizationId", "brandId", "createdByUserId", "recordKind", "recordId", "recordVersion", $2, $3, provenance
+           FROM content_version_pins WHERE id=$4 AND "organizationId"=$5`,
+          [
+            attemptedId,
+            'legacy',
+            attemptedKey,
+            originalPin.id,
+            originalPin.organizationId,
+          ],
+        ),
+      ).rejects.toMatchObject({
+        code: '23514',
+        constraint: 'content_version_pins_digest_check',
+      });
+      expect(
+        await prisma.contentVersionPin.findUnique({
+          where: { id: attemptedId },
+        }),
+      ).toBeNull();
+      expect(
+        await prisma.contentVersionPin.findFirst({
+          where: {
+            organizationId: originalPin.organizationId,
+            idempotencyKey: attemptedKey,
+          },
+        }),
+      ).toBeNull();
+      expect(
+        await prisma.contentVersionPin.count({
+          where: { organizationId: originalPin.organizationId },
+        }),
+      ).toBe(originalPinCount);
+      expect(
+        await prisma.contentVersionPin.findUniqueOrThrow({
+          where: { id: originalPin.id },
+        }),
+      ).toEqual(originalPin);
+      expect(originalPin.contentDigest).toMatch(/^sha256:v1:[0-9a-f]{64}$/);
+      const wrongDigest = `${originalPin.contentDigest.slice(0, -1)}${originalPin.contentDigest.endsWith('0') ? '1' : '0'}`;
+      expect(wrongDigest).not.toBe(originalPin.contentDigest);
+      expect(wrongDigest).toMatch(/^sha256:v1:[0-9a-f]{64}$/);
+      const wrongPin = await prisma.contentVersionPin.create({
+        data: {
+          id: randomUUID(),
+          organizationId: originalPin.organizationId,
+          brandId: originalPin.brandId,
+          createdByUserId: originalPin.createdByUserId,
+          recordKind: originalPin.recordKind,
+          recordId: originalPin.recordId,
+          recordVersion: originalPin.recordVersion,
+          contentDigest: wrongDigest,
+          provenance: originalPin.provenance as Prisma.InputJsonValue,
+          idempotencyKey: `wrong-digest-${randomUUID()}`,
+        },
+      });
       const cases: Array<{
         name: string;
         corrupt: () => Promise<unknown>;
@@ -1077,17 +1396,29 @@ describe.skipIf(!explicitUrl)(
             }),
         },
         {
-          name: 'malformed publication digest',
+          name: 'mismatched publication digest',
           corrupt: () =>
-            prisma.contentVersionPin.update({
-              where: { id: source.versionPinId },
-              data: { contentDigest: 'legacy' },
-            }),
+            prisma.$transaction([
+              prisma.post.update({
+                where: { id: source.postId },
+                data: { reviewVersionPinId: wrongPin.id },
+              }),
+              prisma.publishApproval.update({
+                where: { id: source.approvalId },
+                data: { artifactVersionPinId: wrongPin.id },
+              }),
+            ]),
           restore: () =>
-            prisma.contentVersionPin.update({
-              where: { id: source.versionPinId },
-              data: { contentDigest: source.contentDigest },
-            }),
+            prisma.$transaction([
+              prisma.post.update({
+                where: { id: source.postId },
+                data: { reviewVersionPinId: source.versionPinId },
+              }),
+              prisma.publishApproval.update({
+                where: { id: source.approvalId },
+                data: { artifactVersionPinId: source.versionPinId },
+              }),
+            ]),
         },
         {
           name: 'legacy finalization result',
@@ -1123,16 +1454,22 @@ describe.skipIf(!explicitUrl)(
           expect(
             await graph.pins(
               'content_version_pin',
-              [source.versionPinId],
+              [
+                change.name === 'mismatched publication digest'
+                  ? wrongPin.id
+                  : source.versionPinId,
+              ],
               'org-0',
             ),
             change.name,
           ).toEqual(
             new Map([
               [
-                source.versionPinId,
-                change.name === 'malformed publication digest'
-                  ? 'legacy'
+                change.name === 'mismatched publication digest'
+                  ? wrongPin.id
+                  : source.versionPinId,
+                change.name === 'mismatched publication digest'
+                  ? wrongDigest
                   : source.contentDigest,
               ],
             ]),
@@ -1152,6 +1489,16 @@ describe.skipIf(!explicitUrl)(
         } finally {
           await change.restore();
         }
+        expect(
+          await prisma.contentVersionPin.findUniqueOrThrow({
+            where: { id: originalPin.id },
+          }),
+        ).toEqual(originalPin);
+        expect(
+          await prisma.contentVersionPin.findUniqueOrThrow({
+            where: { id: wrongPin.id },
+          }),
+        ).toEqual(wrongPin);
       }
       for (const ref of publications[0].refs.filter((ref) =>
         ['post', 'publish_approval', 'post_publish_finalization'].includes(
@@ -1269,6 +1616,15 @@ describe.skipIf(!explicitUrl)(
       });
       expect((excluded.counts as { total: number }).total).toBe(900);
     }, 120000);
+    it.skipIf(!smoke)(
+      'checks one 10k owned, consented and mixed snapshot for deployment',
+      async () => {
+        await seed(10000);
+        for (const kind of ['owned', 'consented', 'mixed'] as const)
+          await measure(10000, kind, 1);
+      },
+      330000,
+    );
     it.skipIf(!benchmark)(
       'measures 1k/10k/100k owned and consented three times after warmup plus mixed',
       async () => {
@@ -1351,7 +1707,13 @@ describe.skipIf(!explicitUrl)(
         await seed(1000);
         await pool.query(
           change,
-          change.includes('$1') ? [checkpointIds[0]] : [],
+          change.includes('$1')
+            ? [
+                change.startsWith('UPDATE posts')
+                  ? publications[0].source.postId
+                  : checkpointIds[0],
+              ]
+            : [],
         );
         await expect(
           service.create({
@@ -1390,13 +1752,19 @@ describe.skipIf(!explicitUrl)(
         `UPDATE content_learning_decisions SET "credentialId"='credential-2' WHERE id='decision-0'`,
         `UPDATE content_learning_decisions SET "createdAt"=TIMESTAMP '2026-07-01' WHERE id='decision-0'`,
         `UPDATE content_learning_checkpoints SET revision=1 WHERE id=$1`,
-        `UPDATE posts SET "isDeleted"=true WHERE id='post-0'`,
+        `UPDATE posts SET "isDeleted"=true WHERE id=$1`,
         `UPDATE content_learning_dependencys SET valid=false WHERE id='edge-0-checkpoint'`,
       ]) {
         await seed(1000);
         await pool.query(
           change,
-          change.includes('$1') ? [checkpointIds[0]] : [],
+          change.includes('$1')
+            ? [
+                change.startsWith('UPDATE posts')
+                  ? publications[0].source.postId
+                  : checkpointIds[0],
+              ]
+            : [],
         );
         const dataset = await service.create({
           ...input,

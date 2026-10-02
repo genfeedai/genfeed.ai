@@ -853,6 +853,7 @@ export async function createVisualCodeAcceptanceFixture(
             await writeFile(
               join(runtimeOptions.artifactDirectory, `${input.id}.tsx`),
               input.sourceCode,
+              { mode: 0o600 },
             );
           }
           const response = await originalFetch(request, init);
@@ -1423,6 +1424,7 @@ export async function createVisualCodeAcceptanceFixture(
               await writeFile(
                 join(runtimeOptions.artifactDirectory, `${revision.id}.tsx`),
                 revision.sourceCode,
+                { mode: 0o600 },
               );
           const outputs = await Promise.all(
             ingredients.map(async (row) => {
