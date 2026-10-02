@@ -538,11 +538,12 @@ jobs:
       - name: Run workspace tests
         env:
           FORCE_FULL: ${{ needs.plan.outputs.force_full }}
+          WORKSPACE_GROUP: ${{ matrix.group }}
           WORKSPACE_FILTERS: ${{ matrix.filters }}
         run: |
           set -euo pipefail
           # shellcheck disable=SC2086 # intentional word-splitting of --filter args
-          if [ "${FORCE_FULL}" = "true" ] || [ -z "${CI_BASE_SHA}" ]; then
+          if [ "${WORKSPACE_GROUP}" = "browser-extension" ] || [ "${FORCE_FULL}" = "true" ] || [ -z "${CI_BASE_SHA}" ]; then
             bunx turbo run test --continue ${WORKSPACE_FILTERS}
           else
             TURBO_SCM_BASE="${CI_BASE_SHA}" bunx turbo run test --continue --affected ${WORKSPACE_FILTERS}

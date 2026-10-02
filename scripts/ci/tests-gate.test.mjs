@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { createPrTestPlan } from './pr-test-plan.mjs';
+
 import {
   createTestsGateJobs,
   evaluateTestsGate,
@@ -117,7 +119,7 @@ test('labels a paused surface as dormant rather than merely out of scope', () =>
 
   assert.equal(result.passed, true);
   assert.equal(
-    classificationOf(result, 'Extension tests'),
+    classificationOf(result, 'IDE extension tests'),
     'dormant (paused surface)',
   );
 });
@@ -129,7 +131,7 @@ test('names paused surfaces in the summary of an otherwise passing run', () => {
   assert.match(result.stdout, /All applicable test and build jobs passed\./);
   assert.match(
     result.stdout,
-    /Not covered by this run — paused surfaces: Extension tests\./,
+    /Not covered by this run — paused surfaces: IDE extension tests\./,
   );
   assert.match(result.stdout, /stay skipped even with the `full-suite` label/);
 });
@@ -339,4 +341,41 @@ test('keeps the workflow contract stable', () => {
     workflow,
     /^ {8}shell: bash\n {8}run: node scripts\/ci\/tests-gate\.mjs \| tee -a "\$GITHUB_STEP_SUMMARY"$/m,
   );
+});
+
+test('browser-planned workspace failures, cancellations and skips fail the aggregate gate', () => {
+  const plan = createPrTestPlan({
+    base: 'base-sha',
+    changedFiles: ['apps/extensions/browser/app/package.json'],
+  });
+  assert.deepEqual(
+    plan.workspaceMatrix.include.map(({ group }) => group),
+    ['browser-extension'],
+  );
+  for (const result of ['failure', 'cancelled', 'skipped']) {
+    const evaluation = evaluate({
+      PLAN_WORKSPACE_TESTS: String(plan.workspaceMatrix.include.length > 0),
+      TEST_WORKSPACES_RESULT: result,
+    });
+    assert.equal(evaluation.passed, false, result);
+    assert.equal(evaluation.failures.length, 1, result);
+  }
+});
+
+test('unrelated inapplicable workspace skips remain distinct from IDE dormancy', () => {
+  const plan = createPrTestPlan({
+    base: 'base-sha',
+    changedFiles: ['docs/testing.md'],
+  });
+  const result = evaluate({
+    PLAN_WORKSPACE_TESTS: String(plan.workspaceMatrix.include.length > 0),
+    TEST_WORKSPACES_RESULT: 'skipped',
+  });
+  assert.equal(result.passed, true);
+  assert.equal(classificationOf(result, 'Workspace tests'), 'not applicable');
+  assert.deepEqual(
+    result.rows.filter(({ dormant }) => dormant).map(({ name }) => name),
+    ['IDE extension tests'],
+  );
+  assert.equal(classificationOf(result, 'Extension tests'), undefined);
 });
