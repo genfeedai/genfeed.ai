@@ -1,19 +1,104 @@
 import {
+  buildArtifactContentDigest,
+  projectPostArtifactMaterial,
+} from '@api/agent-artifacts/agent-artifact-material.util';
+import { CONTENT_LEARNING_ACTION_IDS } from '@api/collections/workflows/templates/content-learning-workflows.template';
+import type { PostLifecycleTransitionInput } from '@api/post-lifecycle/post-lifecycle.service';
+import {
+  PostCategory,
+  PostFormat,
   PostVisibility,
+  PublishApprovalStatus,
   ReleaseStatus,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
+import {
+  queueLearningPublicationRefreshV1,
+  SchedulerPublishStateService,
+} from '@workers/services/scheduler-publish-state.service';
 
 function createLifecycleService(
   kind: 'stale' | 'transitioned' = 'transitioned',
 ) {
   return {
-    transition: vi
-      .fn()
-      .mockResolvedValue(
-        kind === 'stale' ? { kind } : { kind, target: { id: 'target-1' } },
-      ),
+    transition: vi.fn(async (input, tx) => {
+      if (kind === 'stale') return { kind };
+      const row = await tx.post.findFirst({
+        where: { id: input.postId, organizationId: input.organizationId },
+      });
+      tx.post.applyMutation(input);
+      return { kind, target: row };
+    }),
+  };
+}
+
+function transactionFixture(parts: Record<string, unknown> = {}) {
+  let current: Record<string, unknown> | undefined;
+  const post = (parts.post ?? {}) as Record<string, unknown>;
+  const findFirst = vi.fn(
+    async ({ where }: { where: { id: string; organizationId: string } }) => {
+      current ??= publicationPost({
+        id: where.id,
+        organizationId: where.organizationId,
+      });
+      return structuredClone(current);
+    },
+  );
+  const applyMutation = (input: PostLifecycleTransitionInput) => {
+    Object.assign(
+      current ?? {},
+      input.mutation,
+      { targetExecutionState: input.nextState },
+      input.visibility ? { visibility: input.visibility } : {},
+    );
+  };
+  Object.assign(post, { findFirst, applyMutation });
+  return {
+    $queryRaw: vi.fn().mockResolvedValue([]),
+    contentLearningAccount: {
+      findMany: vi.fn().mockResolvedValue([]),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
+    contentLearningDependency: { findMany: vi.fn().mockResolvedValue([]) },
+    postPublishFinalization: {
+      findUnique: vi.fn().mockResolvedValue(null),
+      create: vi.fn().mockResolvedValue({ id: 'finalization-1' }),
+    },
+    ...parts,
+    post: post as typeof post & {
+      findFirst: typeof findFirst;
+      applyMutation: typeof applyMutation;
+    },
+    organization: { findFirst: vi.fn().mockResolvedValue(null) },
+  };
+}
+
+function publicationPost(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'post-1',
+    organizationId: 'org-1',
+    brandId: 'brand-1',
+    credentialId: 'cred-1',
+    targetExecutionState: TargetExecutionState.PUBLISHING,
+    visibility: PostVisibility.PUBLIC,
+    externalId: null,
+    publishedAt: null,
+    description: 'Approved text',
+    category: PostCategory.TEXT,
+    format: PostFormat.STANDARD,
+    isDeleted: false,
+    workflowExecutionId: 'execution-current',
+    publishApprovalId: null,
+    reviewVersionPinId: null,
+    platform: 'twitter',
+    parentId: null,
+    targetAttachments: [],
+    quoteTweetId: null,
+    entityArticleId: null,
+    entityIngredientId: null,
+    entityModel: null,
+    _count: { ingredients: 0, children: 0 },
+    ...overrides,
   };
 }
 
@@ -38,7 +123,9 @@ describe('SchedulerPublishStateService', () => {
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     };
     const prisma = {
-      $transaction: vi.fn(async (callback) => callback({ post, postGroup })),
+      $transaction: vi.fn(async (callback) =>
+        callback(transactionFixture({ post, postGroup })),
+      ),
     };
     const postLifecycleService = createLifecycleService();
     const service = new SchedulerPublishStateService(
@@ -112,7 +199,7 @@ describe('SchedulerPublishStateService', () => {
         .fn()
         .mockRejectedValueOnce({ code: 'P2034' })
         .mockImplementationOnce(async (callback) =>
-          callback({ post, postGroup }),
+          callback(transactionFixture({ post, postGroup })),
         ),
     };
     const logger = { warn: vi.fn() };
@@ -157,7 +244,9 @@ describe('SchedulerPublishStateService', () => {
       updateMany: vi.fn(),
     };
     const prisma = {
-      $transaction: vi.fn(async (callback) => callback({ post, postGroup })),
+      $transaction: vi.fn(async (callback) =>
+        callback(transactionFixture({ post, postGroup })),
+      ),
     };
     const logger = { warn: vi.fn() };
     const service = new SchedulerPublishStateService(
@@ -225,11 +314,14 @@ describe('SchedulerPublishStateService', () => {
     const post = { findMany: vi.fn(), updateMany: vi.fn() };
     const postGroup = { findFirst: vi.fn(), updateMany: vi.fn() };
     const postPublishFinalization = {
+      findUnique: vi.fn().mockResolvedValue(null),
       create: vi.fn().mockResolvedValue({ id: 'finalization-1' }),
     };
     const prisma = {
       $transaction: vi.fn(async (callback) =>
-        callback({ post, postGroup, postPublishFinalization }),
+        callback(
+          transactionFixture({ post, postGroup, postPublishFinalization }),
+        ),
       ),
     };
     const service = new SchedulerPublishStateService(
@@ -242,6 +334,7 @@ describe('SchedulerPublishStateService', () => {
       { id: 'post-1', organizationId: 'org-1' },
       {
         executionState: TargetExecutionState.PUBLISHED,
+        externalId: 'provider-1',
         visibility: PostVisibility.PUBLIC,
       },
       'Provider confirmed publication',
@@ -251,7 +344,8 @@ describe('SchedulerPublishStateService', () => {
       {
         result: {
           executionState: TargetExecutionState.PUBLISHED,
-          platform: 'tiktok',
+          platform: 'twitter',
+          externalId: 'provider-1',
           success: true,
         },
         source: 'CronTiktokStatusService.applyStatusTransition',
@@ -277,7 +371,9 @@ describe('SchedulerPublishStateService', () => {
       updateMany: vi.fn(),
     };
     const prisma = {
-      $transaction: vi.fn(async (callback) => callback({ post, postGroup })),
+      $transaction: vi.fn(async (callback) =>
+        callback(transactionFixture({ post, postGroup })),
+      ),
     };
     const postLifecycleService = createLifecycleService();
     const service = new SchedulerPublishStateService(
@@ -317,7 +413,9 @@ describe('SchedulerPublishStateService', () => {
       updateMany: vi.fn(),
     };
     const prisma = {
-      $transaction: vi.fn(async (callback) => callback({ post, postGroup })),
+      $transaction: vi.fn(async (callback) =>
+        callback(transactionFixture({ post, postGroup })),
+      ),
     };
     const logger = { warn: vi.fn() };
     const postLifecycleService = createLifecycleService('stale');
@@ -458,7 +556,7 @@ describe('SchedulerPublishStateService', () => {
         postGroup,
         prisma: {
           $transaction: vi.fn(async (callback: (tx: unknown) => unknown) =>
-            callback({ post, postGroup }),
+            callback(transactionFixture({ post, postGroup })),
           ),
         },
       };
@@ -574,7 +672,7 @@ describe('SchedulerPublishStateService', () => {
     };
     const prisma = {
       $transaction: vi.fn(async (callback: (tx: unknown) => unknown) =>
-        callback({ post, postGroup }),
+        callback(transactionFixture({ post, postGroup })),
       ),
     };
     const postLifecycleService = createLifecycleService();
@@ -616,5 +714,420 @@ describe('SchedulerPublishStateService', () => {
       expect.objectContaining({ post, postGroup }),
     );
     expect(postGroup.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('learning publication transaction boundary', () => {
+  function harness(overrides: Record<string, unknown> = {}) {
+    const initial = publicationPost(overrides);
+    let row = structuredClone(initial);
+    const trace: string[] = [];
+    const tx = transactionFixture();
+    tx.post.findFirst = vi.fn(async () => {
+      trace.push('post.read');
+      return structuredClone(row);
+    });
+    tx.$queryRaw.mockImplementation(async (sql: TemplateStringsArray) => {
+      trace.push(sql.join('?'));
+      return [];
+    });
+    tx.contentLearningAccount.findMany.mockResolvedValue([{ id: 'account-1' }]);
+    const lifecycle = {
+      transition: vi.fn(async (input) => {
+        trace.push('lifecycle');
+        Object.assign(
+          row,
+          input.mutation,
+          { targetExecutionState: input.nextState },
+          input.visibility ? { visibility: input.visibility } : {},
+        );
+        return { kind: 'transitioned', target: row };
+      }),
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback) => {
+        const prior = structuredClone(row);
+        try {
+          return await callback(tx);
+        } catch (error) {
+          row = prior;
+          throw error;
+        }
+      }),
+    };
+    const logger = { warn: vi.fn() };
+    const service = new SchedulerPublishStateService(
+      prisma as never,
+      logger as never,
+      lifecycle as never,
+    );
+    const input = {
+      organizationId: 'org-1',
+      postId: 'post-1',
+      guard: { priorExecutionStates: [TargetExecutionState.PUBLISHING] },
+      update: {
+        executionState: TargetExecutionState.PUBLISHED,
+        visibility: PostVisibility.PUBLIC,
+        externalId: 'provider-1',
+        publishedAt: new Date('2026-10-01T01:00:00Z'),
+      },
+      finalization: {
+        result: {
+          success: true,
+          executionState: TargetExecutionState.PUBLISHED,
+          externalId: 'provider-1',
+          platform: 'twitter',
+          url: 'https://example.com/1',
+          learningPublication: { invented: true },
+        },
+        source: 'provider',
+      },
+    };
+    return { tx, trace, lifecycle, service, input, read: () => row };
+  }
+
+  function eligibleContext(h: ReturnType<typeof harness>) {
+    const approved = publicationPost({
+      publishApprovalId: 'approval-1',
+      reviewVersionPinId: 'pin-1',
+      externalId: 'provider-1',
+      publishedAt: h.input.update.publishedAt,
+      targetExecutionState: TargetExecutionState.PUBLISHED,
+    });
+    const pin = {
+      id: 'pin-1',
+      organizationId: 'org-1',
+      brandId: 'brand-1',
+      recordKind: 'post',
+      recordId: 'post-1',
+      contentDigest: buildArtifactContentDigest({
+        ...projectPostArtifactMaterial(approved),
+        children: [],
+      }),
+    };
+    const sources = {
+      organization: {
+        findFirst: vi.fn().mockResolvedValue({ id: 'org-1', isDeleted: false }),
+      },
+      brand: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'brand-1',
+          organizationId: 'org-1',
+          isDeleted: false,
+          isActive: true,
+        }),
+      },
+      credential: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'cred-1',
+          organizationId: 'org-1',
+          brandId: 'brand-1',
+          isDeleted: false,
+          isConnected: true,
+          platform: 'twitter',
+        }),
+      },
+      publishApproval: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'approval-1',
+          organizationId: 'org-1',
+          brandId: 'brand-1',
+          postId: 'post-1',
+          artifactVersionPinId: 'pin-1',
+          operationId: 'operation-1',
+          scopeDigest: 'scope',
+          status: PublishApprovalStatus.EXECUTING,
+          invalidatedAt: null,
+        }),
+      },
+      contentVersionPin: { findFirst: vi.fn().mockResolvedValue(pin) },
+    };
+    Object.assign(h.tx, sources);
+    return { sources, pin };
+  }
+
+  it('takes F first, then existing accounts before scoped source locks and lifecycle', async () => {
+    const h = harness();
+    await h.service.transition(h.input);
+    expect(h.trace[0]).toContain('pg_advisory_xact_lock(5728, 1)');
+    const locks = h.trace.filter((value) => value.includes('SELECT id'));
+    expect(locks.map((value) => value.match(/FROM (\w+)/)?.[1])).toEqual([
+      'content_learning_accounts',
+      'organizations',
+      'brands',
+      'credentials',
+      'posts',
+      'post_publish_finalizations',
+    ]);
+    expect(h.trace.indexOf('lifecycle')).toBeGreaterThan(
+      h.trace.findIndex((value) =>
+        value.includes('post_publish_finalizations'),
+      ),
+    );
+    expect(h.tx.contentLearningAccount.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'account-1',
+        organizationId: 'org-1',
+        brandId: 'brand-1',
+        credentialId: 'cred-1',
+        isDeleted: false,
+      },
+      data: { evidenceRevision: { increment: 1 } },
+    });
+    expect(h.tx.contentLearningDependency.findMany).toHaveBeenCalledOnce();
+    expect(
+      h.tx.postPublishFinalization.create.mock.calls[0]?.[0].data.result,
+    ).not.toHaveProperty('learningPublication');
+  });
+
+  it.each(['wrong', ''])(
+    'rejects queried external target %s before lifecycle',
+    async (expectedExternalId) => {
+      const h = harness({ externalId: 'queried-1' });
+      expect(
+        await h.service.transition({
+          ...h.input,
+          guard: { expectedExternalId },
+        }),
+      ).toBe(false);
+      expect(h.lifecycle.transition).not.toHaveBeenCalled();
+      expect(h.tx.postPublishFinalization.create).not.toHaveBeenCalled();
+      expect(h.tx.contentLearningAccount.updateMany).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects same-state polling under a prior-state guard before timestamp mutation', async () => {
+    const publishedAt = new Date('2026-09-01T00:00:00Z');
+    const h = harness({
+      targetExecutionState: TargetExecutionState.PUBLISHED,
+      publishedAt,
+      externalId: 'provider-1',
+    });
+    expect(await h.service.transition(h.input)).toBe(false);
+    expect(h.lifecycle.transition).not.toHaveBeenCalled();
+    expect(h.read().publishedAt).toEqual(publishedAt);
+  });
+
+  it.each([
+    {},
+    { learningPublication: { old: true } },
+    { learningPublication: { different: true } },
+  ])(
+    'never enriches or rewrites an existing immutable outbox %j',
+    async (result) => {
+      const h = harness();
+      h.tx.postPublishFinalization.findUnique.mockResolvedValue({
+        id: 'existing',
+        result,
+        completedAt: new Date(),
+      });
+      await h.service.transition(h.input);
+      expect(h.tx.postPublishFinalization.create).not.toHaveBeenCalled();
+      expect(h.tx.contentLearningAccount.updateMany).toHaveBeenCalledOnce();
+    },
+  );
+
+  it('does zero evidence writes on factual no-op and operational changes', async () => {
+    const h = harness();
+    await h.service.transition({
+      organizationId: 'org-1',
+      postId: 'post-1',
+      update: {
+        executionState: TargetExecutionState.PUBLISHING,
+        retryCount: 1,
+        url: 'https://example.com/changed',
+      },
+    });
+    expect(h.tx.contentLearningDependency.findMany).not.toHaveBeenCalled();
+    expect(h.tx.contentLearningAccount.updateMany).not.toHaveBeenCalled();
+    expect(h.tx.postPublishFinalization.create).not.toHaveBeenCalled();
+  });
+
+  it.each(['invalidation', 'counter', 'outbox'])(
+    'rolls back lifecycle when required %s bookkeeping fails',
+    async (failure) => {
+      const h = harness();
+      if (failure === 'invalidation')
+        h.tx.contentLearningDependency.findMany.mockRejectedValue(
+          new Error('invalidation failed'),
+        );
+      if (failure === 'counter')
+        h.tx.contentLearningAccount.updateMany.mockRejectedValue(
+          new Error('counter failed'),
+        );
+      if (failure === 'outbox')
+        h.tx.postPublishFinalization.create.mockRejectedValue(
+          new Error('outbox failed'),
+        );
+      await expect(h.service.transition(h.input)).rejects.toThrow(
+        `${failure} failed`,
+      );
+      expect(h.read().targetExecutionState).toBe(
+        TargetExecutionState.PUBLISHING,
+      );
+    },
+  );
+
+  it('fails closed if discovered ownership changes instead of expanding account locks', async () => {
+    const h = harness();
+    h.tx.post.findFirst
+      .mockResolvedValueOnce(publicationPost())
+      .mockResolvedValueOnce(publicationPost({ brandId: 'foreign-brand' }));
+    await expect(h.service.transition(h.input)).rejects.toThrow(
+      'Publication source identity changed',
+    );
+    expect(h.lifecycle.transition).not.toHaveBeenCalled();
+  });
+
+  it('creates a real supported text association through the canonical DB loader', async () => {
+    const h = harness({
+      publishApprovalId: 'approval-1',
+      reviewVersionPinId: 'pin-1',
+    });
+    const { pin } = eligibleContext(h);
+    await h.service.transition(h.input);
+    expect(
+      h.tx.postPublishFinalization.create.mock.calls[0]?.[0].data.result
+        .learningPublication,
+    ).toEqual(
+      expect.objectContaining({
+        version: 1,
+        postId: 'post-1',
+        approvalId: 'approval-1',
+        versionPinId: 'pin-1',
+        contentDigest: pin.contentDigest,
+      }),
+    );
+    expect(h.tx.contentLearningAccount.updateMany).toHaveBeenCalledOnce();
+  });
+  it.each([
+    'organization',
+    'brand',
+    'credential',
+    'publishApproval',
+    'contentVersionPin',
+  ] as const)('does not manufacture authority for missing %s', async (kind) => {
+    const h = harness({
+      publishApprovalId: 'approval-1',
+      reviewVersionPinId: 'pin-1',
+    });
+    const { sources } = eligibleContext(h);
+    sources[kind].findFirst.mockResolvedValue(null);
+    await h.service.transition(h.input);
+    expect(h.tx.postPublishFinalization.create).toHaveBeenCalledOnce();
+    expect(
+      h.tx.postPublishFinalization.create.mock.calls[0]?.[0].data.result,
+    ).not.toHaveProperty('learningPublication');
+  });
+
+  it('rejects a foreign credential returned by the source loader without failing genuine publication', async () => {
+    const h = harness({
+      publishApprovalId: 'approval-1',
+      reviewVersionPinId: 'pin-1',
+    });
+    const { sources } = eligibleContext(h);
+    sources.credential.findFirst.mockResolvedValue({
+      id: 'cred-1',
+      organizationId: 'foreign-org',
+      brandId: 'brand-1',
+      isDeleted: false,
+      isConnected: true,
+      platform: 'twitter',
+    });
+    await h.service.transition(h.input);
+    expect(h.tx.postPublishFinalization.create).toHaveBeenCalledOnce();
+    expect(
+      h.tx.postPublishFinalization.create.mock.calls[0]?.[0].data.result,
+    ).not.toHaveProperty('learningPublication');
+  });
+
+  it('rejects a replaced workflow before lifecycle even when the state still matches', async () => {
+    const h = harness({ workflowExecutionId: 'new-workflow' });
+    expect(
+      await h.service.transition({
+        ...h.input,
+        guard: {
+          expectedWorkflowExecutionId: 'old-workflow',
+          priorExecutionStates: [TargetExecutionState.PUBLISHING],
+        },
+      }),
+    ).toBe(false);
+    expect(h.lifecycle.transition).not.toHaveBeenCalled();
+    expect(h.tx.contentLearningDependency.findMany).not.toHaveBeenCalled();
+  });
+
+  it('preserves ordinary unsupported video finalization without learning authority', async () => {
+    const h = harness({ category: PostCategory.VIDEO });
+    await h.service.transition(h.input);
+    expect(h.tx.postPublishFinalization.create).toHaveBeenCalledOnce();
+    expect(
+      h.tx.postPublishFinalization.create.mock.calls[0]?.[0].data.result,
+    ).not.toHaveProperty('learningPublication');
+    expect(h.read().targetExecutionState).toBe(TargetExecutionState.PUBLISHED);
+  });
+
+  it('does not backfill an already-public legacy post under an explicitly allowed same-state reconcile', async () => {
+    const h = harness({
+      targetExecutionState: TargetExecutionState.PUBLISHED,
+      externalId: 'provider-1',
+      publishedAt: new Date('2026-10-01T01:00:00Z'),
+    });
+    await h.service.transition({
+      ...h.input,
+      guard: { priorExecutionStates: [TargetExecutionState.PUBLISHED] },
+    });
+    expect(h.tx.postPublishFinalization.create).not.toHaveBeenCalled();
+    expect(h.tx.contentLearningAccount.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('increments a disabled existing account exactly once on a visibility withdrawal', async () => {
+    const h = harness({
+      targetExecutionState: TargetExecutionState.PUBLISHED,
+      externalId: 'provider-1',
+      publishedAt: new Date('2026-10-01T01:00:00Z'),
+    });
+    h.tx.contentLearningAccount.findMany.mockResolvedValue([
+      { id: 'disabled-account' },
+    ]);
+    await h.service.transition({
+      organizationId: 'org-1',
+      postId: 'post-1',
+      update: {
+        executionState: TargetExecutionState.PUBLISHED,
+        visibility: PostVisibility.PRIVATE,
+      },
+    });
+    expect(h.tx.contentLearningAccount.updateMany).toHaveBeenCalledOnce();
+    expect(h.tx.contentLearningDependency.findMany).toHaveBeenCalledOnce();
+    expect(h.tx.postPublishFinalization.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('after-commit publication refresh', () => {
+  it('coalesces bounded org/credential refreshes and catches queue failure', async () => {
+    const queue = {
+      queueSystemWorkflow: vi.fn().mockRejectedValue(new Error('Redis down')),
+    };
+    const logger = { warn: vi.fn() };
+    await queueLearningPublicationRefreshV1(queue as never, logger as never, {
+      organizationId: 'org-1',
+      credentialId: 'cred-1',
+    });
+    expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        canonicalId: CONTENT_LEARNING_ACTION_IDS.RECONCILE,
+        organizationId: 'org-1',
+        inputValues: { credentialId: 'cred-1' },
+        source: 'publication-learning-refresh',
+      }),
+      expect.stringMatching(/^learning-materialize-[0-9a-f]{64}$/),
+      expect.objectContaining({ attempts: 3 }),
+    );
+    expect(logger.warn).toHaveBeenCalledOnce();
+    await queueLearningPublicationRefreshV1(queue as never, logger as never, {
+      organizationId: 'org-1',
+      credentialId: null,
+    });
+    expect(queue.queueSystemWorkflow).toHaveBeenCalledOnce();
   });
 });

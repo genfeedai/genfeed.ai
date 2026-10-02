@@ -7,13 +7,19 @@ import { RELOCATION_RESOURCE_LABELS } from '@api/collections/brands/constants/br
 import type { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import {
+  lockBrandLearningMutation,
+  patchBrandWithLearning,
+} from '@api/collections/brands/services/brand-learning-mutation.util';
+import {
   assertNoCrunGenerationHistory,
   assertNoKnowledgeHistory,
+  assertNoLearningHistory,
   assertNoOpenLiveSessions,
   assertNoOpenVisualProjects,
   assertNoBrandedGenerationReceiptHistory as assertNoReceiptHistory,
   assertNoSecurityAuditHistory,
 } from '@api/collections/brands/utils/brand-relocation-guards.util';
+import { invalidateLearningDependencySource } from '@api/collections/content-learning/services/learning-dependency.service';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
@@ -190,14 +196,12 @@ export class BrandRelocationService {
 
     // Same org → not a relocation; apply the other fields via the normal patch.
     if (sourceOrgId === destOrgId) {
-      const updates = this.stripRelocationField(updateBrandDto);
-      const patched = patchSameOrganization
-        ? await patchSameOrganization(updates)
-        : ((await this.prisma.brand.update({
-            data: updates as Prisma.BrandUpdateInput,
-            where: { id: brandId },
-          })) as unknown as BrandDocument);
-      return { brand: patched, summary: { ...EMPTY_RELOCATION_SUMMARY } };
+      return this.patchWithinSameOrganization(
+        brandId,
+        sourceOrgId,
+        updateBrandDto,
+        patchSameOrganization,
+      );
     }
 
     await this.assertDestinationOrganizationExists(destOrgId);
@@ -244,12 +248,14 @@ export class BrandRelocationService {
       try {
         reconcileResult = await this.prisma.$transaction(
           async (tx) => {
-            await assertNoReceiptHistory(tx, brandId, sourceOrgId);
-            await assertNoCrunGenerationHistory(tx, brandId, sourceOrgId);
-            await assertNoKnowledgeHistory(tx, brandId, sourceOrgId);
-            await assertNoSecurityAuditHistory(tx, brandId, sourceOrgId);
-            await assertNoOpenLiveSessions(tx, brandId, sourceOrgId);
-            await assertNoOpenVisualProjects(tx, brandId, sourceOrgId);
+            await this.prepareLearningRelocation(
+              tx,
+              brandId,
+              sourceOrgId,
+              destOrgId,
+              actingUser,
+              updateBrandDto.slug,
+            );
             const result = await this.runBrandOrgCascade(
               tx,
               brandId,
@@ -344,6 +350,7 @@ export class BrandRelocationService {
     await this.assertCanRelocate(actingUser, sourceOrgId, destOrgId);
 
     if (sourceOrgId !== destOrgId) {
+      await assertNoLearningHistory(this.prisma, brandId, sourceOrgId);
       await assertNoReceiptHistory(this.prisma, brandId, sourceOrgId);
       await assertNoCrunGenerationHistory(this.prisma, brandId, sourceOrgId);
       await assertNoKnowledgeHistory(this.prisma, brandId, sourceOrgId);
@@ -493,6 +500,74 @@ export class BrandRelocationService {
     };
   }
 
+  private async patchWithinSameOrganization(
+    brandId: string,
+    organizationId: string,
+    dto: Partial<UpdateBrandDto>,
+    patchSameOrganization?: BrandSameOrganizationPatch,
+  ): Promise<BrandRelocationResult> {
+    const updates = this.stripRelocationField(dto);
+    if (patchSameOrganization)
+      return {
+        brand: await patchSameOrganization(updates),
+        summary: { ...EMPTY_RELOCATION_SUMMARY },
+      };
+    const sourceBearing =
+      updates.isActive !== undefined || updates.isDeleted !== undefined;
+    const brand = sourceBearing
+      ? await this.prisma.$transaction((tx) =>
+          patchBrandWithLearning(tx, {
+            brandId,
+            organizationId,
+            data: updates as Prisma.BrandUncheckedUpdateInput,
+          }),
+        )
+      : await this.prisma.brand.update({
+          where: { id: brandId, organizationId, isDeleted: false },
+          data: updates as Prisma.BrandUncheckedUpdateInput,
+        });
+    return {
+      brand: brand as unknown as BrandDocument,
+      summary: { ...EMPTY_RELOCATION_SUMMARY },
+    };
+  }
+
+  private async prepareLearningRelocation(
+    tx: Prisma.TransactionClient,
+    brandId: string,
+    sourceOrgId: string,
+    destOrgId: string,
+    actingUser: { userId: string; isSuperAdmin: boolean },
+    slug: string | undefined,
+  ): Promise<void> {
+    const scope = await lockBrandLearningMutation(tx, {
+      brandId,
+      organizationId: sourceOrgId,
+      destinationOrganizationId: destOrgId,
+      lockAllSourceBrands: true,
+    });
+    await this.assertCanRelocate(actingUser, sourceOrgId, destOrgId, tx);
+    await this.assertHandleAvailable(brandId, slug, tx);
+    await assertNoReceiptHistory(tx, brandId, sourceOrgId);
+    await assertNoCrunGenerationHistory(tx, brandId, sourceOrgId);
+    await assertNoKnowledgeHistory(tx, brandId, sourceOrgId);
+    await assertNoSecurityAuditHistory(tx, brandId, sourceOrgId);
+    await assertNoOpenLiveSessions(tx, brandId, sourceOrgId);
+    await assertNoOpenVisualProjects(tx, brandId, sourceOrgId);
+    await assertNoLearningHistory(tx, brandId, sourceOrgId);
+    await invalidateLearningDependencySource(tx, 'brand', brandId, sourceOrgId);
+    for (const account of scope.accounts) {
+      const updated = await tx.contentLearningAccount.updateMany({
+        where: scopedWhere(account.organizationId, account),
+        data: { evidenceRevision: { increment: 1 } },
+      });
+      if (updated.count !== 1)
+        throw new ConflictException(
+          'Learning account changed during brand relocation.',
+        );
+    }
+  }
+
   private stripRelocationField<T extends { organizationId?: string }>(
     dto: T,
   ): Omit<T, 'organizationId'> {
@@ -531,12 +606,13 @@ export class BrandRelocationService {
   private async assertHandleAvailable(
     brandId: string,
     slug: string | undefined,
+    transaction?: Prisma.TransactionClient,
   ): Promise<void> {
     if (slug === undefined) {
       return;
     }
     // tenant-scope-ignore: handle uniqueness spans every organization and deleted brands, matching the global unique constraint.
-    const holder = await this.prisma.brand.findFirst({
+    const holder = await (transaction ?? this.prisma).brand.findFirst({
       select: { id: true },
       where: { id: { not: brandId }, slug },
     });
@@ -549,6 +625,7 @@ export class BrandRelocationService {
     actingUser: { userId: string; isSuperAdmin: boolean },
     sourceOrgId: string,
     destOrgId: string,
+    transaction?: Prisma.TransactionClient,
   ): Promise<void> {
     if (actingUser.isSuperAdmin) {
       return;
@@ -559,8 +636,8 @@ export class BrandRelocationService {
       );
     }
     const [sourceElevated, destElevated] = await Promise.all([
-      this.hasElevatedMembership(actingUser.userId, sourceOrgId),
-      this.hasElevatedMembership(actingUser.userId, destOrgId),
+      this.hasElevatedMembership(actingUser.userId, sourceOrgId, transaction),
+      this.hasElevatedMembership(actingUser.userId, destOrgId, transaction),
     ]);
     if (!sourceElevated || !destElevated) {
       throw new ForbiddenException(
@@ -572,8 +649,9 @@ export class BrandRelocationService {
   private async hasElevatedMembership(
     userId: string,
     organizationId: string,
+    transaction?: Prisma.TransactionClient,
   ): Promise<boolean> {
-    const member = await this.prisma.member.findFirst({
+    const member = await (transaction ?? this.prisma).member.findFirst({
       select: { role: { select: { key: true } }, roleKey: true },
       where: scopedWhere(organizationId, { isActive: true, userId }),
     });

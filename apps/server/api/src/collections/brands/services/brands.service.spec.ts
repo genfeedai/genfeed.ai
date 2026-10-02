@@ -2307,3 +2307,112 @@ describe('BrandsService', () => {
     });
   });
 });
+
+describe('brand learning source mutation', () => {
+  async function fixture() {
+    const { patchBrandWithLearning } = await import(
+      '@api/collections/brands/services/brand-learning-mutation.util'
+    );
+    let row = {
+      id: 'brand',
+      organizationId: 'org',
+      isDeleted: false,
+      isActive: true,
+    };
+    const accounts = [
+      { id: 'a', organizationId: 'org', brandId: 'brand', credentialId: 'c-a' },
+      { id: 'z', organizationId: 'org', brandId: 'brand', credentialId: 'c-z' },
+    ];
+    const order: string[] = [];
+    const tx = {
+      $queryRaw: vi.fn(async (sql) => {
+        order.push(Array.isArray(sql) ? sql.join(' ') : sql.sql);
+        return [{ id: 'locked' }];
+      }),
+      brand: {
+        findFirst: vi.fn(async () => ({ ...row })),
+        update: vi.fn(async ({ data }) => {
+          row = { ...row, ...data };
+          return { ...row };
+        }),
+      },
+      contentLearningAccount: {
+        findMany: vi.fn().mockResolvedValue(accounts),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      contentLearningDependency: { findMany: vi.fn().mockResolvedValue([]) },
+    };
+    return { patchBrandWithLearning, tx, order };
+  }
+  it('locks disabled/shadow account scopes before sources and advances each once for actual deactivation only', async () => {
+    const { patchBrandWithLearning, tx, order } = await fixture();
+    await patchBrandWithLearning(tx as never, {
+      brandId: 'brand',
+      data: { isActive: false },
+    });
+    expect(order[0]).toContain('pg_advisory_xact_lock');
+    expect(order[1]).toContain('content_learning_accounts');
+    expect(order[2]).toContain('content_learning_accounts');
+    expect(order[3]).toContain('organizations');
+    expect(order[4]).toContain('brands');
+    expect(tx.contentLearningAccount.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          organizationId: { in: ['org'] },
+          brandId: 'brand',
+          isDeleted: false,
+        },
+      }),
+    );
+    expect(
+      tx.contentLearningAccount.updateMany.mock.calls.map(
+        (call) => call[0].where.id,
+      ),
+    ).toEqual(['a', 'z']);
+    expect(tx.contentLearningDependency.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          sourceKind: 'brand',
+          sourceId: 'brand',
+          sourceOrganizationId: 'org',
+          isDeleted: false,
+        },
+      }),
+    );
+    await patchBrandWithLearning(tx as never, {
+      brandId: 'brand',
+      data: { isActive: false },
+    });
+    expect(tx.contentLearningAccount.updateMany).toHaveBeenCalledTimes(2);
+    expect(tx.contentLearningDependency.findMany).toHaveBeenCalledTimes(1);
+  });
+  it('rejects generic cross-tenant retarget and propagates invalidation/revision failure to the owner transaction', async () => {
+    const first = await fixture();
+    await expect(
+      first.patchBrandWithLearning(first.tx as never, {
+        brandId: 'brand',
+        data: { organizationId: 'foreign' },
+      }),
+    ).rejects.toThrow(/authorized brand relocation/);
+    expect(first.tx.brand.update).not.toHaveBeenCalled();
+    const second = await fixture();
+    second.tx.contentLearningDependency.findMany.mockRejectedValue(
+      new Error('dependency failure'),
+    );
+    await expect(
+      second.patchBrandWithLearning(second.tx as never, {
+        brandId: 'brand',
+        data: { isActive: false },
+      }),
+    ).rejects.toThrow('dependency failure');
+    expect(second.tx.contentLearningAccount.updateMany).not.toHaveBeenCalled();
+    const third = await fixture();
+    third.tx.contentLearningAccount.updateMany.mockResolvedValue({ count: 0 });
+    await expect(
+      third.patchBrandWithLearning(third.tx as never, {
+        brandId: 'brand',
+        data: { isActive: false },
+      }),
+    ).rejects.toThrow(/account scope changed/);
+  });
+});

@@ -1,5 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
+import {
+  LearningDependencyService,
+  learningFence,
+} from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -44,24 +47,25 @@ export class LearningExperimentEvidenceService {
     payload: LearningExperimentPayloadV1;
     supersedesId?: string;
   }) {
-    const opportunity = await this.prisma.contentLearningOpportunity.findFirst({
-      where: {
-        id: input.opportunityId,
-        organizationId: input.organizationId,
-        isDeleted: false,
-      },
-    });
-    if (!opportunity)
-      throw new BadRequestException('Opportunity scope mismatch');
-    const fingerprint = learningHash([
-      input.eventKey,
-      input.sourceKind,
-      input.sourceId,
-      input.sourceRevision,
-      input.occurredAt.toISOString(),
-      input.payload,
-    ]);
     return this.prisma.$transaction(async (tx) => {
+      await learningFence(tx, input.supersedesId ? 'exclusive' : 'shared');
+      const opportunity = await tx.contentLearningOpportunity.findFirst({
+        where: {
+          id: input.opportunityId,
+          organizationId: input.organizationId,
+          isDeleted: false,
+        },
+      });
+      if (!opportunity)
+        throw new BadRequestException('Opportunity scope mismatch');
+      const fingerprint = learningHash([
+        input.eventKey,
+        input.sourceKind,
+        input.sourceId,
+        input.sourceRevision,
+        input.occurredAt.toISOString(),
+        input.payload,
+      ]);
       const previous = await tx.contentLearningExperimentEvent.findFirst({
         where: {
           experimentId: opportunity.experimentId,
@@ -86,7 +90,12 @@ export class LearningExperimentEvidenceService {
         });
         if (!original)
           throw new BadRequestException('Correction scope mismatch');
-        await this.dependencies.invalidate('experiment-event', original.id, tx);
+        await this.dependencies.invalidate(
+          'experiment-event',
+          original.id,
+          tx,
+          input.organizationId,
+        );
       }
       const event = await tx.contentLearningExperimentEvent.create({
         data: {

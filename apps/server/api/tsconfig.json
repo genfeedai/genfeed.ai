@@ -10,6 +10,7 @@
         "../../../packages/contracts/src/api-types/*"
       ],
       "@api/*": ["./src/*"],
+      "@workers/*": ["../workers/src/*"],
       "@genfeedai/agent": ["../../../packages/agent/src/index.ts"],
       "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
       "@genfeedai/auth-client": ["../../../packages/auth-client/src/index.ts"],

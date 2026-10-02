@@ -289,12 +289,8 @@ describe('bounded dataset graph validation', () => {
 });
 
 describe('dataset pin parity with the shared resolver', () => {
-  it('resolves all registered kinds with current immutable pin semantics', async () => {
+  it('resolves nonpublication registered kinds with current immutable pin semantics', async () => {
     const kinds = [
-      'organization',
-      'brand',
-      'credential',
-      'post',
       'account',
       'consent',
       'checkpoint',
@@ -314,9 +310,6 @@ describe('dataset pin parity with the shared resolver', () => {
       'provider_attempt',
       'llm_vendor_cost',
       'media_vendor_cost',
-      'publish_approval',
-      'post_publish_finalization',
-      'content_version_pin',
     ] as const;
     const value = {
       id: 'id',

@@ -76,4 +76,19 @@ describe('BrandsService relocation facade', () => {
       }),
     ).resolves.toBe(preview);
   });
+  it('same-org source fields remain on the existing facade patch callback without forwarding a tenant retarget', async () => {
+    relocationService.relocateToOrganization.mockImplementation(
+      async (_id, _dto, _user, patchSameOrganization) => ({
+        brand: await patchSameOrganization({ isActive: false }),
+        summary,
+      }),
+    );
+    await service.relocateToOrganization(
+      'brand-1',
+      { organizationId: 'org-1', isActive: false },
+      { isSuperAdmin: true, userId: 'user-1' },
+    );
+    expect(patch).toHaveBeenCalledWith('brand-1', { isActive: false });
+    expect(patch.mock.calls[0][1]).not.toHaveProperty('organizationId');
+  });
 });

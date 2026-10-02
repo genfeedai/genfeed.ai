@@ -141,6 +141,10 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: '@workers',
+        replacement: path.resolve(serviceDir, '../workers/src'),
+      },
+      {
         find: '@api',
         replacement: path.resolve(serviceDir, './src'),
       },
@@ -182,6 +186,13 @@ export default defineConfig({
         replacement: path.resolve(
           serviceDir,
           '../../../packages/contracts/src/constants',
+        ),
+      },
+      {
+        find: '@genfeedai/contracts/enums',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/contracts/src/enums',
         ),
       },
       {

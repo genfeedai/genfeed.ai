@@ -31,6 +31,7 @@ import { HighlightRewriteService } from '@api/collections/clip-projects/services
 import { HookClipApprovalService } from '@api/collections/clip-projects/services/hook-clip-approval.service';
 import { RawCutClipService } from '@api/collections/clip-projects/services/raw-cut-clip.service';
 import { RawCutClipCompletionService } from '@api/collections/clip-projects/services/raw-cut-clip-completion.service';
+import { ContentLearningCoreModule } from '@api/collections/content-learning/content-learning-core.module';
 import { AnalyticsSyncService } from '@api/collections/content-performance/services/analytics-sync.service';
 import { AttributionService } from '@api/collections/content-performance/services/attribution.service';
 import { EmailDigestService } from '@api/collections/content-performance/services/email-digest.service';
@@ -447,6 +448,7 @@ const WORKER_DOMAIN_SERVICES = [
     WORKFLOW_EXECUTOR,
   ],
   imports: [
+    ContentLearningCoreModule,
     OutliersCoreModule,
     CacheModule,
     ConfigModule,

@@ -1,4 +1,9 @@
 import type { SocialAnalyticsCollectionInput } from '@api/analytics/analytics-collection-action.types';
+import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
+import {
+  learningPublicationFinalizationVersionV1,
+  learningPublicationPostVersionV1,
+} from '@api/collections/content-learning/services/learning-publication-source.helper';
 import type {
   ServerCredentialStore,
   ServerLogger,
@@ -6,8 +11,9 @@ import type {
   ServerPosts,
   ServerSocialAnalytics,
 } from '@api/server.dependencies';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform, Platform } from '@genfeedai/contracts';
 import type { ServerAnalyticsCollectionState } from '@genfeedai/contracts/interfaces';
+import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interfaces/analytics/outlier-persistence.interface';
 import { AnalyticsSocialCollectionService } from './analytics-social-collection.service';
 
 function createHarness() {
@@ -15,6 +21,9 @@ function createHarness() {
     getMediaAnalytics: vi.fn().mockResolvedValue({ views: 42 }),
   } satisfies ServerSocialAnalytics;
   const postAnalytics = {
+    prepareLearningObservation: vi
+      .fn<ServerPostAnalytics['prepareLearningObservation']>()
+      .mockResolvedValue(null),
     processInstagramAnalytics: vi.fn().mockResolvedValue(undefined),
     processLinkedInAnalytics: vi.fn().mockResolvedValue(undefined),
     processMastodonAnalytics: vi.fn().mockResolvedValue(undefined),
@@ -125,6 +134,10 @@ describe('AnalyticsSocialCollectionService', () => {
         organizationId: 'org-1',
       },
     );
+    expect(
+      harness.postAnalytics.processInstagramAnalytics.mock.calls[0]?.[2]
+        ?.learningObservation,
+    ).not.toHaveProperty('publicationSource');
     expect(harness.collectionState.markReady).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'post-1', organizationId: 'org-1' }),
     );
@@ -166,5 +179,118 @@ describe('AnalyticsSocialCollectionService', () => {
     await expect(harness.service.collect(batch)).rejects.toThrow(
       'requires exactly one post',
     );
+  });
+});
+
+function collectionSource(
+  platform: Platform,
+  organizationId: string,
+  brandId: string,
+  credentialId: string,
+  postId: string,
+  externalId: string,
+): LearningPublicationSourceV1 {
+  const association = {
+    version: 1 as const,
+    organizationId,
+    brandId,
+    credentialId,
+    postId,
+    externalId,
+    platform,
+    approvalId: 'approval',
+    approvalOperationId: 'operation',
+    versionPinId: 'pin',
+    publishedAt: '2026-09-28T12:00:00.000Z',
+    contentDigest: `sha256:v1:${'a'.repeat(64)}`,
+    postSourceVersion: learningPublicationPostVersionV1({
+      organizationId,
+      brandId,
+      credentialId,
+      postId,
+      externalId,
+      platform,
+      publishedAt: '2026-09-28T12:00:00.000Z',
+      description: 'text',
+    }),
+  };
+  return {
+    ...association,
+    finalizationId: 'finalization',
+    finalizationVersion: learningPublicationFinalizationVersionV1(association),
+    approvalVersion: learningHash(['approval']),
+  };
+}
+
+describe('C3 social source preparation', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+  it('prepares exact resolved attribution before provider and transports canonical proof', async () => {
+    const h = createHarness(),
+      data = input(),
+      post = data.posts[0];
+    if (!post) throw new Error('Missing fixture post');
+    const source = collectionSource(
+        Platform.INSTAGRAM,
+        post.organizationId,
+        post.brandId,
+        'cred-1',
+        post.id,
+        post.externalId,
+      ),
+      trace: string[] = [];
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-30T11:59:59Z'));
+    h.postAnalytics.prepareLearningObservation.mockImplementation(async () => {
+      trace.push('prepare');
+      vi.setSystemTime(new Date('2026-09-30T12:00:00Z'));
+      return source;
+    });
+    h.socialAnalytics.getMediaAnalytics.mockImplementation(async () => {
+      trace.push('provider');
+      vi.setSystemTime(new Date('2026-09-30T12:00:01Z'));
+      return { views: 42 };
+    });
+    h.postAnalytics.processInstagramAnalytics.mockImplementation(async () => {
+      trace.push('persist');
+    });
+    await h.service.collect(data);
+    expect(trace).toEqual(['prepare', 'provider', 'persist']);
+    expect(
+      h.postAnalytics.prepareLearningObservation,
+    ).toHaveBeenCalledExactlyOnceWith({
+      organizationId: post.organizationId,
+      brandId: post.brandId,
+      credentialId: 'cred-1',
+      postId: post.id,
+      platform: post.platform,
+      externalId: post.externalId,
+    });
+    expect(h.postAnalytics.processInstagramAnalytics).toHaveBeenCalledWith(
+      post.id,
+      expect.objectContaining({ views: 42 }),
+      expect.objectContaining({
+        learningObservation: expect.objectContaining({
+          publicationSource: source,
+        }),
+      }),
+    );
+    expect(
+      h.postAnalytics.processInstagramAnalytics.mock.calls[0]?.[2]
+        ?.learningObservation,
+    ).toMatchObject({
+      requestStartedAt: new Date('2026-09-30T12:00:00Z'),
+      receivedAt: new Date('2026-09-30T12:00:01Z'),
+    });
+    expect(h.socialAnalytics.getMediaAnalytics).toHaveBeenCalledOnce();
+  });
+  it('preparation failure prevents provider IO', async () => {
+    const h = createHarness(),
+      error = new Error('preparation DB');
+    h.postAnalytics.prepareLearningObservation.mockRejectedValue(error);
+    await expect(h.service.collect(input())).rejects.toBe(error);
+    expect(h.socialAnalytics.getMediaAnalytics).not.toHaveBeenCalled();
   });
 });

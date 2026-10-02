@@ -235,14 +235,6 @@
     {
       "delegate": "brand",
       "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
-      "fingerprint": "56eaabd58df6bb0f0263",
-      "method": "update",
-      "model": "Brand",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "brand",
-      "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
       "fingerprint": "acb82238c7c98f48acca",
       "method": "update",
       "model": "Brand",
@@ -252,14 +244,6 @@
       "delegate": "brand",
       "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
       "fingerprint": "4049e9c8b0b65d158103",
-      "method": "update",
-      "model": "Brand",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "brand",
-      "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
-      "fingerprint": "b547747b9faad9e47188",
       "method": "update",
       "model": "Brand",
       "reason": "missing-organization-id"
@@ -918,14 +902,6 @@
       "fingerprint": "393e0fd8356b9517f93f",
       "method": "upsert",
       "model": "MoodBoard",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "post",
-      "file": "apps/server/api/src/collections/posts/services/post-patch-write.util.ts",
-      "fingerprint": "4b95740a24f15605c19c",
-      "method": "findFirst",
-      "model": "Post",
       "reason": "missing-organization-id"
     },
     {

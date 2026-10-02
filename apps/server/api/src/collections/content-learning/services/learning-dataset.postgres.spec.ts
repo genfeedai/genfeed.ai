@@ -1,11 +1,20 @@
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { readFileSync, statfsSync } from 'node:fs';
+import { readdirSync, readFileSync, statfsSync } from 'node:fs';
 import { PerformanceObserver } from 'node:perf_hooks';
 import { fileURLToPath } from 'node:url';
 import { LearningDatasetService } from '@api/collections/content-learning/services/learning-dataset.service';
 import { LearningDatasetGraph } from '@api/collections/content-learning/services/learning-dataset-graph.service';
+import {
+  createLearningDatasetPublicationEvidence,
+  createLearningDatasetPublications,
+  withdrawLearningDatasetPublication,
+} from '@api/collections/content-learning/services/learning-dataset-publication.fixture';
 import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
+import {
+  learningPublicationDependencyRefsV1,
+  resolveLearningPublicationSourceV1,
+} from '@api/collections/content-learning/services/learning-publication-source.helper';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { assertIsolatedDatabaseUrl } from '@api-test/../scripts/assert-isolated-db-url';
 import { CredentialPlatform, Prisma, PrismaClient } from '@genfeedai/prisma';
@@ -75,23 +84,6 @@ const numericRow = (index: number) => ({
   reward: 0.5,
   synthetic: false,
 });
-const tables = new Set([
-  'users',
-  'organizations',
-  'brands',
-  'credentials',
-  'posts',
-  'content_learning_accounts',
-  'content_learning_consents',
-  'content_learning_decisions',
-  'content_learning_checkpoints',
-  'content_learning_baselines',
-  'content_learning_rewards',
-  'content_learning_datasets',
-  'content_learning_dataset_entries',
-  'content_learning_operations',
-  'content_learning_dependencys',
-]);
 function deferred() {
   let resolve!: () => void;
   const promise = new Promise<void>((done) => {
@@ -302,74 +294,69 @@ describe.skipIf(!explicitUrl)(
         options: `-c search_path=${schema}`,
       });
       await pool.query(`CREATE SCHEMA "${schema}"`);
-      // Generate exact current table definitions/indexes/FKs from the canonical schema.
-      // Only this lane's tables are installed; unrelated tables/providers are unnecessary.
-      const schemaFile = fileURLToPath(
-        new URL(
-          '../../../../../../../packages/prisma/prisma/schema.prisma',
-          import.meta.url,
-        ),
+      if (!/^[a-z][a-z0-9_]+$/.test(schema))
+        throw new Error('Invalid owned fixture schema');
+      const migrationDirectory = new URL(
+        '../../../../../../../packages/prisma/prisma/migrations/',
+        import.meta.url,
       );
-      const ddl = execFileSync(
-        'bun',
-        [
-          'x',
-          'prisma',
-          'migrate',
-          'diff',
-          '--from-empty',
-          '--to-schema',
-          schemaFile,
-          '--script',
-        ],
-        {
-          cwd: fileURLToPath(
-            new URL('../../../../../../../packages/prisma', import.meta.url),
-          ),
-          env: { ...process.env, DATABASE_URL: url },
-          encoding: 'utf8',
-          maxBuffer: 16 * 1024 * 1024,
-        },
-      );
-      for (const statement of ddl.split(';')) {
-        const clean = statement.replace(/^\s*--[^\n]*\n/gm, '').trim();
-        if (!clean) continue;
-        if (/^CREATE TYPE /.test(clean)) {
-          await pool.query(clean);
-          continue;
-        }
-        const create = clean.match(/^CREATE TABLE "(?:public"\.")?([^".]+)"/);
-        const index = clean.match(
-          /^CREATE (?:UNIQUE )?INDEX .* ON "(?:public"\.")?([^".]+)"/,
-        );
-        const foreign = clean.match(
-          /^ALTER TABLE "(?:public"\.")?([^".]+)".*REFERENCES "(?:public"\.")?([^".]+)"/s,
-        );
-        if (
-          (create && tables.has(create[1])) ||
-          (index && tables.has(index[1])) ||
-          (foreign && tables.has(foreign[1]) && tables.has(foreign[2]))
-        )
-          await pool.query(clean.replaceAll('"public".', `"${schema}".`));
-      }
-      for (const migration of [
-        '20260930180000_content_learning',
-        '20260930223000_content_learning_scope_guards',
-      ]) {
-        const checks = readFileSync(
-          new URL(
-            `../../../../../../../packages/prisma/prisma/migrations/${migration}/migration.sql`,
-            import.meta.url,
-          ),
+      const migrationNames = readdirSync(migrationDirectory, {
+        withFileTypes: true,
+      })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name)
+        .sort();
+      for (const name of migrationNames) {
+        const sql = readFileSync(
+          new URL(`${name}/migration.sql`, migrationDirectory),
           'utf8',
         );
-        for (const statement of checks.split(';')) {
-          const clean = statement.replace(/^\s*--[^\n]*\n/gm, '').trim();
-          const check = clean.match(
-            /^ALTER TABLE "([^".]+)".*ADD CONSTRAINT.*CHECK/s,
+        if (/(?:"public"|\bpublic)\s*\./i.test(sql))
+          throw new Error(
+            'Fixture migration scope requires planner revalidation',
           );
-          if (check && tables.has(check[1])) await pool.query(clean);
-        }
+      }
+      const scoped = new URL(url);
+      scoped.searchParams.set('schema', schema);
+      execFileSync('bun', ['x', 'prisma', 'migrate', 'deploy'], {
+        cwd: fileURLToPath(
+          new URL('../../../../../../../packages/prisma', import.meta.url),
+        ),
+        env: { ...process.env, DATABASE_URL: scoped.toString() },
+        timeout: 120000,
+        maxBuffer: 8 * 1024 * 1024,
+        stdio: 'pipe',
+      });
+      pool.on('connect', (connection) => {
+        connection.query(
+          'SELECT current_schema() AS schema',
+          (error, result) => {
+            if (error) throw error;
+            expect(result.rows[0].schema).toBe(schema);
+          },
+        );
+      });
+      const connections = await Promise.all(
+        Array.from({ length: 5 }, () => pool.connect()),
+      );
+      try {
+        for (const connection of connections)
+          expect(
+            (await connection.query('SELECT current_schema() AS schema'))
+              .rows[0].schema,
+          ).toBe(schema);
+      } finally {
+        for (const connection of connections) connection.release();
+      }
+      const applied = await pool.query(
+        'SELECT migration_name, finished_at, rolled_back_at FROM _prisma_migrations ORDER BY migration_name',
+      );
+      expect(applied.rows.map((row) => row.migration_name)).toEqual(
+        migrationNames,
+      );
+      for (const row of applied.rows) {
+        expect(row.finished_at).not.toBeNull();
+        expect(row.rolled_back_at).toBeNull();
       }
       prisma = new PrismaClient({
         adapter: new PrismaPg(pool, { schema }),
@@ -466,6 +453,18 @@ describe.skipIf(!explicitUrl)(
         instrumented as unknown as PrismaService,
         new LearningDependencyService(prisma as unknown as PrismaService),
       );
+      expect(
+        (
+          await prisma.$queryRaw<
+            Array<{ schema: string }>
+          >`SELECT current_schema() AS schema`
+        )[0].schema,
+      ).toBe(schema);
+      await prisma.role.upsert({
+        where: { key: 'owner' },
+        create: { id: 'fixture-owner', key: 'owner', label: 'Owner' },
+        update: {},
+      });
       await prisma.user.create({
         data: { id: 'actor', handle: 'dataset-fixture' },
       });
@@ -488,6 +487,20 @@ describe.skipIf(!explicitUrl)(
           },
         });
       }
+      for (let i = 0; i < 2; i++) {
+        const role = await prisma.role.findUniqueOrThrow({
+          where: { key: 'owner' },
+        });
+        await prisma.member.create({
+          data: {
+            organizationId: `org-${i}`,
+            userId: 'actor',
+            roleId: role.id,
+            currentBrandId: `brand-${i}`,
+            isActive: true,
+          },
+        });
+      }
       for (let i = 0; i < 10; i++) {
         const scope = {
           organizationId: `org-${i % 2}`,
@@ -501,6 +514,7 @@ describe.skipIf(!explicitUrl)(
             brandId: scope.brandId,
             userId: 'actor',
             platform: CredentialPlatform.TWITTER,
+            isConnected: true,
           },
         });
         await prisma.contentLearningAccount.create({
@@ -543,6 +557,11 @@ describe.skipIf(!explicitUrl)(
           'Dataset benchmark stopped: fewer than 10 GiB of free disk space',
         );
     }
+    let publications: Awaited<
+      ReturnType<typeof createLearningDatasetPublications>
+    > = [];
+    let checkpointIds: string[] = [];
+    let baselineIds: string[] = [];
     async function seed(size: number) {
       assertBenchmarkDiskSpace();
       await clearOutputs();
@@ -552,43 +571,131 @@ describe.skipIf(!explicitUrl)(
         'content_learning_decisions',
         'content_learning_baselines',
         'content_learning_checkpoints',
-        'posts',
+        'content_learning_scope_states',
       ])
         await pool.query(`DELETE FROM "${table}"`);
-      await pool.query(
-        `INSERT INTO posts (id,description,"userId","organizationId","brandId","credentialId","updatedAt") SELECT 'post-'||i,'fixture','actor','org-'||(i%10%2),'brand-'||(i%10%2),'credential-'||(i%10),NOW() FROM generate_series(0,$1::int-1) i`,
-        [size],
+      await prisma.post.updateMany({
+        data: { publishApprovalId: null, reviewVersionPinId: null },
+      });
+      await prisma.postPublishFinalization.deleteMany();
+      await prisma.publishApproval.deleteMany();
+      await prisma.contentVersionPin.deleteMany();
+      await prisma.post.deleteMany();
+      publications = await createLearningDatasetPublications(prisma, size);
+      const evidence = await createLearningDatasetPublicationEvidence(
+        prisma,
+        publications,
       );
-      await pool.query(
-        `INSERT INTO content_learning_checkpoints (id,"organizationId","brandId","credentialId","postId","sourceAttemptId","dueAt","requestStartedAt","receivedAt",measurement,format,"publishedAt","organicProvenance","sourceFingerprint",validity,"updatedAt") SELECT 'checkpoint-'||i,'org-'||(i%10%2),'brand-'||(i%10%2),'credential-'||(i%10),'post-'||i,'attempt-'||i,NOW(),NOW(),NOW(),'{}','text',TIMESTAMP '2026-09-01','{}','checkpoint-fingerprint-'||i,'valid',NOW() FROM generate_series(0,$1::int-1) i`,
-        [size],
+      checkpointIds = publications.map(
+        (publication, index) =>
+          evidence.checkpoints[index]?.id ?? `checkpoint-${publication.index}`,
       );
-      await pool.query(
-        `INSERT INTO content_learning_baselines (id,"organizationId","brandId","credentialId",fingerprint,"scopeKey",cutoff,"configVersion","contributorCheckpointIds","contributorRevisions",count,"medianExposure",samples,validity,"updatedAt") SELECT 'baseline-'||i,'org-'||(i%2),'brand-'||(i%2),'credential-'||i,'baseline-fingerprint-'||i,'scope-'||i,TIMESTAMP '2026-09-01','rl-reward-v1-experimental',ARRAY(SELECT 'checkpoint-'||(i+k*10) FROM generate_series(0,19) k),array_fill(0,ARRAY[20]),20,1,'[]','valid',NOW() FROM generate_series(0,9) i`,
-      );
-      await pool.query(
-        `INSERT INTO content_learning_decisions (id,"organizationId","brandId","credentialId","requestKey","destinationKey","candidateIndex","payloadHash","scopeKey",epoch,"accountRevision",mode,"contextVector","contextSnapshot","eligibleArmIds",probabilities,"selectedArmId","selectedProbability",assignment,"assignmentProbability","executionProbability","configVersion","baselineId",state,"createdAt","updatedAt") SELECT 'decision-'||i,'org-'||(i%10%2),'brand-'||(i%10%2),'credential-'||(i%10),'request-'||i,'destination',0,'payload-'||i,'scope-'||(i%10),0,0,'shadow',ARRAY[1,0,1,0,1,0,1,0,1]::float8[],'{}',ARRAY['baseline-v1'],'{"baseline-v1":1,"question-example-v1":0,"proof-steps-v1":0}','baseline-v1',1,'fixture',1,1,'ridge-epsilon-v1','baseline-'||(i%10),'published',TIMESTAMP '2026-09-01'+(i%100)*INTERVAL '1 second',NOW() FROM generate_series(0,$1::int-1) i`,
-        [size],
-      );
-      await pool.query(
-        `INSERT INTO content_learning_rewards (id,"organizationId","brandId","credentialId","decisionId",version,"checkpointId","baselineId","rawComponents","boundedComponents",composite,confidence,status,reasons,"sourceFingerprint","createdAt","updatedAt") SELECT 'reward-'||lpad(i::text,7,'0'),'org-'||(i%10%2),'brand-'||(i%10%2),'credential-'||(i%10),'decision-'||i,1,'checkpoint-'||i,'baseline-'||(i%10),'{}','{}',0.5,'{}','valid',ARRAY[]::text[],'reward-fingerprint-'||i,TIMESTAMP '2026-09-03',NOW() FROM generate_series(0,$1::int-1) i`,
-        [size],
-      );
-      await pool.query(
-        `INSERT INTO content_learning_dependencys (id,"sourceKind","sourceId","sourceVersion","sourceOrganizationId","derivedKind","derivedId","derivedOrganizationId","updatedAt") SELECT 'edge-'||i||'-'||e.kind,e.kind,CASE e.kind WHEN 'checkpoint' THEN 'checkpoint-'||i WHEN 'baseline' THEN 'baseline-'||(i%10) ELSE 'decision-'||i END,CASE e.kind WHEN 'checkpoint' THEN '0' WHEN 'baseline' THEN 'baseline-fingerprint-'||(i%10) ELSE 'payload-'||i END,'org-'||(i%10%2),'reward','reward-'||lpad(i::text,7,'0'),'org-'||(i%10%2),NOW() FROM generate_series(0,$1::int-1) i CROSS JOIN (VALUES ('checkpoint'),('baseline'),('decision')) e(kind)`,
-        [size],
-      );
-      await pool.query(
-        `INSERT INTO content_learning_dependencys (id,"sourceKind","sourceId","sourceVersion","sourceOrganizationId","derivedKind","derivedId","derivedOrganizationId","updatedAt") SELECT 'checkpoint-post-'||i,'post','post-'||i,'post-'||i,'org-'||(i%10%2),'checkpoint','checkpoint-'||i,'org-'||(i%10%2),NOW() FROM generate_series(0,$1::int-1) i`,
-        [size],
-      );
-      await pool.query(
-        `INSERT INTO content_learning_dependencys (id,"sourceKind","sourceId","sourceVersion","sourceOrganizationId","derivedKind","derivedId","derivedOrganizationId","updatedAt") SELECT 'config-'||k.kind||'-'||i,'config','numeric-nine-v1','numeric-nine-v1',NULL,k.kind,k.kind||'-'||i,'org-'||(i%10%2),NOW() FROM generate_series(0,$1::int-1) i CROSS JOIN (VALUES ('checkpoint'),('decision')) k(kind)`,
-        [size],
-      );
-      await pool.query(
-        `INSERT INTO content_learning_dependencys (id,"sourceKind","sourceId","sourceVersion","sourceOrganizationId","derivedKind","derivedId","derivedOrganizationId","updatedAt") SELECT 'baseline-contributor-'||i,'checkpoint','checkpoint-'||i,'0','org-'||(i%10%2),'baseline','baseline-'||(i%10),'org-'||(i%10%2),NOW() FROM generate_series(0,199) i`,
-      );
+      for (let start = 200; start < size; start += 1000) {
+        const end = Math.min(size, start + 1000);
+        await prisma.contentLearningCheckpoint.createMany({
+          data: publications.slice(start, end).map(({ source, index }) => ({
+            id: checkpointIds[index],
+            organizationId: source.organizationId,
+            brandId: source.brandId,
+            credentialId: source.credentialId,
+            postId: source.postId,
+            sourceAttemptId: `attempt-${index}`,
+            dueAt: new Date('2026-09-03T00:00:00.000Z'),
+            requestStartedAt: new Date('2026-09-03T00:00:00.000Z'),
+            receivedAt: new Date('2026-09-03T00:01:00.000Z'),
+            publishedAt: new Date(source.publishedAt),
+            measurement: {
+              collection: {
+                version: 1,
+                outcome: 'observed',
+                reasonCode: null,
+              },
+              measurement: { exposure: 1000, weightedActions: 10 },
+            },
+            format: 'text',
+            organicProvenance: {
+              isPaid: false,
+              isPinned: false,
+              source: 'provider',
+            },
+            sourceFingerprint: `checkpoint-fingerprint-${index}`,
+            validity: 'valid',
+          })),
+        });
+        const edges = publications
+          .slice(start, end)
+          .flatMap(({ refs, source, index }) =>
+            refs.map((ref) => ({
+              sourceKind: ref.kind,
+              sourceId: ref.id,
+              sourceVersion: ref.version,
+              sourceOrganizationId: ref.organizationId,
+              derivedKind: 'checkpoint',
+              derivedId: checkpointIds[index],
+              derivedOrganizationId: source.organizationId,
+            })),
+          );
+        for (let offset = 0; offset < edges.length; offset += 1000)
+          await prisma.contentLearningDependency.createMany({
+            data: edges.slice(offset, offset + 1000),
+          });
+      }
+      baselineIds = evidence.baselines.map((row) => row.id);
+      const baselineVersions = evidence.baselines.map((row) => row.fingerprint);
+      for (let start = 0; start < size; start += 1000) {
+        const end = Math.min(size, start + 1000);
+        await pool.query(
+          `INSERT INTO content_learning_decisions (id,"organizationId","brandId","credentialId","requestKey","destinationKey","candidateIndex","payloadHash","scopeKey",epoch,"accountRevision",mode,"contextVector","contextSnapshot","eligibleArmIds",probabilities,"selectedArmId","selectedProbability",assignment,"assignmentProbability","executionProbability","configVersion","baselineId",state,"createdAt","updatedAt") SELECT 'decision-'||i,'org-'||(i%10%2),'brand-'||(i%10%2),'credential-'||(i%10),'request-'||i,'destination',0,'payload-'||i,'scope-'||(i%10),0,0,'shadow',ARRAY[1,0,1,0,1,0,1,0,1]::float8[],'{}',ARRAY['baseline-v1'],'{"baseline-v1":1,"question-example-v1":0,"proof-steps-v1":0}','baseline-v1',1,'fixture',1,1,'ridge-epsilon-v1',($3::text[])[(i%10)+1],'published',TIMESTAMP '2026-09-01'+(i%100)*INTERVAL '1 second',NOW() FROM generate_series($2::int,$1::int-1) i`,
+          [end, start, baselineIds],
+        );
+        await pool.query(
+          `INSERT INTO content_learning_rewards (id,"organizationId","brandId","credentialId","decisionId",version,"checkpointId","baselineId","rawComponents","boundedComponents",composite,confidence,status,reasons,"sourceFingerprint","createdAt","updatedAt") SELECT 'reward-'||lpad(i::text,7,'0'),'org-'||(i%10%2),'brand-'||(i%10%2),'credential-'||(i%10),'decision-'||i,1,($4::text[])[i-$2+1],($3::text[])[(i%10)+1],'{}','{}',0.5,'{}','valid',ARRAY[]::text[],'reward-fingerprint-'||i,TIMESTAMP '2026-09-03',NOW() FROM generate_series($2::int,$1::int-1) i`,
+          [end, start, baselineIds, checkpointIds.slice(start, end)],
+        );
+        const edges = publications
+          .slice(start, end)
+          .flatMap(({ source, index }) =>
+            [
+              {
+                sourceKind: 'checkpoint',
+                sourceId: checkpointIds[index],
+                sourceVersion: '0',
+              },
+              {
+                sourceKind: 'baseline',
+                sourceId: baselineIds[index % 10],
+                sourceVersion: baselineVersions[index % 10],
+              },
+              {
+                sourceKind: 'decision',
+                sourceId: `decision-${index}`,
+                sourceVersion: `payload-${index}`,
+              },
+            ].map((ref) => ({
+              ...ref,
+              id: `edge-${index}-${ref.sourceKind}`,
+              sourceOrganizationId: source.organizationId,
+              derivedKind: 'reward',
+              derivedId: `reward-${String(index).padStart(7, '0')}`,
+              derivedOrganizationId: source.organizationId,
+            })),
+          );
+        for (let offset = 0; offset < edges.length; offset += 1000)
+          await prisma.contentLearningDependency.createMany({
+            data: edges.slice(offset, offset + 1000),
+          });
+        await prisma.contentLearningDependency.createMany({
+          data: publications.slice(start, end).map(({ source, index }) => ({
+            sourceKind: 'config',
+            sourceId: 'numeric-nine-v1',
+            sourceVersion: 'numeric-nine-v1',
+            sourceOrganizationId: null,
+            derivedKind: 'decision',
+            derivedId: `decision-${index}`,
+            derivedOrganizationId: source.organizationId,
+          })),
+        });
+      }
       await pool.query('ANALYZE');
     }
     async function measure(
@@ -747,8 +854,8 @@ describe.skipIf(!explicitUrl)(
       );
       expect(counts.total).toBe(size + (kind === 'mixed' ? 1 : 0));
       expect(maxBindParameters).toBeLessThanOrEqual(32767);
-      expect(graphNodesMaxPass).toBe(kind === 'owned' ? 0 : 4 * size + 21);
-      expect(graphEdgesMaxPass).toBe(kind === 'owned' ? 0 : 6 * size + 200);
+      expect(graphNodesMaxPass).toBe(kind === 'owned' ? 0 : 7 * size + 36);
+      expect(graphEdgesMaxPass).toBe(kind === 'owned' ? 0 : 12 * size + 210);
       const queryBound =
         kind === 'owned'
           ? 8 + Math.ceil(size / 1000)
@@ -785,6 +892,383 @@ describe.skipIf(!explicitUrl)(
       await clearOutputs();
       assertBenchmarkDiskSpace();
     }
+    it('creates genuine publication/capture/materializer lineage and exact scalar/bulk dataset pins', async () => {
+      await seed(1000);
+      const publication = publications[0];
+      const current = await resolveLearningPublicationSourceV1(
+        prisma,
+        'org-0',
+        publication.source.postId,
+      );
+      expect(current).toEqual(publication.source);
+      if (!current) throw new Error('Missing production current publication');
+      expect(learningPublicationDependencyRefsV1(current)).toEqual(
+        publication.refs,
+      );
+      const edges = await prisma.contentLearningDependency.findMany({
+        where: {
+          derivedKind: 'checkpoint',
+          derivedId: checkpointIds[0],
+          derivedOrganizationId: 'org-0',
+          isDeleted: false,
+        },
+      });
+      expect(
+        edges
+          .map((edge) => ({
+            kind: edge.sourceKind,
+            id: edge.sourceId,
+            version: edge.sourceVersion,
+            organizationId: edge.sourceOrganizationId,
+          }))
+          .sort((a, b) => a.kind.localeCompare(b.kind)),
+      ).toEqual(
+        [...publication.refs].sort((a, b) => a.kind.localeCompare(b.kind)),
+      );
+      const checkpoint =
+        await prisma.contentLearningCheckpoint.findUniqueOrThrow({
+          where: { id: checkpointIds[0] },
+        });
+      expect(checkpoint.validity).toBe('valid');
+      expect(checkpoint.dueAt.getTime()).toBe(
+        checkpoint.publishedAt.getTime() + 48 * 3600000,
+      );
+      const baseline = await prisma.contentLearningBaseline.findUniqueOrThrow({
+        where: { id: baselineIds[0] },
+      });
+      expect(baseline.count).toBe(20);
+      expect(baseline.contributorCheckpointIds).toContain(checkpoint.id);
+      const graph = new LearningDatasetGraph(prisma);
+      const scalar = new LearningDependencyService(
+        prisma as unknown as PrismaService,
+      );
+      for (const ref of publication.refs) {
+        expect(
+          (
+            await graph.pins(
+              ref.kind,
+              [ref.id],
+              ref.organizationId ?? current.organizationId,
+            )
+          ).get(ref.id),
+        ).toBe(ref.version);
+        expect(
+          await scalar.resolve(ref.kind, ref.id, ref.organizationId, prisma),
+        ).toEqual(ref);
+      }
+      const dataset = await service.create({
+        ...input,
+        requestId: randomUUID(),
+        sourceAccounts: sources,
+      });
+      expect((dataset.counts as { total: number }).total).toBe(1000);
+      const datasetEdges = await prisma.contentLearningDependency.findMany({
+        where: { derivedKind: 'dataset', derivedId: dataset.id },
+      });
+      expect(
+        datasetEdges.filter((edge) => edge.sourceKind === 'reward'),
+      ).toHaveLength(1000);
+      expect(
+        datasetEdges.filter((edge) => edge.sourceKind === 'consent'),
+      ).toHaveLength(10);
+    }, 120000);
+
+    it('excludes publication authority corruption while standalone pin digest remains independent', async () => {
+      await seed(1000);
+      const source = publications[0].source;
+      const finalization =
+        await prisma.postPublishFinalization.findUniqueOrThrow({
+          where: { id: source.finalizationId },
+        });
+      const cases: Array<{
+        name: string;
+        corrupt: () => Promise<unknown>;
+        restore: () => Promise<unknown>;
+      }> = [
+        {
+          name: 'inactive brand',
+          corrupt: () =>
+            prisma.brand.update({
+              where: { id: source.brandId },
+              data: { isActive: false },
+            }),
+          restore: () =>
+            prisma.brand.update({
+              where: { id: source.brandId },
+              data: { isActive: true },
+            }),
+        },
+        {
+          name: 'disconnected credential',
+          corrupt: () =>
+            prisma.credential.update({
+              where: { id: source.credentialId },
+              data: { isConnected: false },
+            }),
+          restore: () =>
+            prisma.credential.update({
+              where: { id: source.credentialId },
+              data: { isConnected: true },
+            }),
+        },
+        {
+          name: 'deleted organization',
+          corrupt: () =>
+            prisma.organization.update({
+              where: { id: source.organizationId },
+              data: { isDeleted: true },
+            }),
+          restore: () =>
+            prisma.organization.update({
+              where: { id: source.organizationId },
+              data: { isDeleted: false },
+            }),
+        },
+        {
+          name: 'private publication',
+          corrupt: () =>
+            prisma.post.update({
+              where: { id: source.postId },
+              data: { visibility: 'private' },
+            }),
+          restore: () =>
+            prisma.post.update({
+              where: { id: source.postId },
+              data: { visibility: 'public' },
+            }),
+        },
+        {
+          name: 'draft publication',
+          corrupt: () =>
+            prisma.post.update({
+              where: { id: source.postId },
+              data: { targetExecutionState: 'draft' },
+            }),
+          restore: () =>
+            prisma.post.update({
+              where: { id: source.postId },
+              data: { targetExecutionState: 'published' },
+            }),
+        },
+        {
+          name: 'changed published text',
+          corrupt: () =>
+            prisma.post.update({
+              where: { id: source.postId },
+              data: { description: 'corrupt' },
+            }),
+          restore: () =>
+            prisma.post.update({
+              where: { id: source.postId },
+              data: { description: 'Fixture publication 0' },
+            }),
+        },
+        {
+          name: 'nonserving approved state',
+          corrupt: () =>
+            prisma.publishApproval.update({
+              where: { id: source.approvalId },
+              data: { status: 'approved' },
+            }),
+          restore: () =>
+            prisma.publishApproval.update({
+              where: { id: source.approvalId },
+              data: { status: 'published' },
+            }),
+        },
+        {
+          name: 'malformed publication digest',
+          corrupt: () =>
+            prisma.contentVersionPin.update({
+              where: { id: source.versionPinId },
+              data: { contentDigest: 'legacy' },
+            }),
+          restore: () =>
+            prisma.contentVersionPin.update({
+              where: { id: source.versionPinId },
+              data: { contentDigest: source.contentDigest },
+            }),
+        },
+        {
+          name: 'legacy finalization result',
+          corrupt: () =>
+            prisma.postPublishFinalization.update({
+              where: { id: source.finalizationId },
+              data: { result: {} },
+            }),
+          restore: () =>
+            prisma.postPublishFinalization.update({
+              where: { id: source.finalizationId },
+              data: { result: finalization.result as Prisma.InputJsonValue },
+            }),
+        },
+      ];
+      for (const change of cases) {
+        await clearOutputs();
+        await change.corrupt();
+        try {
+          expect(
+            await resolveLearningPublicationSourceV1(
+              prisma,
+              'org-0',
+              source.postId,
+            ),
+            change.name,
+          ).toBeNull();
+          const graph = new LearningDatasetGraph(prisma);
+          expect(
+            await graph.pins('post', [source.postId], 'org-0'),
+            change.name,
+          ).toEqual(new Map());
+          expect(
+            await graph.pins(
+              'content_version_pin',
+              [source.versionPinId],
+              'org-0',
+            ),
+            change.name,
+          ).toEqual(
+            new Map([
+              [
+                source.versionPinId,
+                change.name === 'malformed publication digest'
+                  ? 'legacy'
+                  : source.contentDigest,
+              ],
+            ]),
+          );
+          const dataset = await service.create({
+            ...input,
+            requestId: randomUUID(),
+            sourceAccounts: sources,
+          });
+          expect((dataset.counts as { total: number }).total, change.name).toBe(
+            change.name === 'deleted organization'
+              ? 500
+              : change.name === 'inactive brand'
+                ? 500
+                : 900,
+          );
+        } finally {
+          await change.restore();
+        }
+      }
+      for (const ref of publications[0].refs.filter((ref) =>
+        ['post', 'publish_approval', 'post_publish_finalization'].includes(
+          ref.kind,
+        ),
+      )) {
+        await clearOutputs();
+        const legacy =
+          ref.kind === 'post'
+            ? source.postId
+            : ref.kind === 'publish_approval'
+              ? source.versionPinId
+              : '2026-09-01T00:00:00.000Z';
+        await prisma.contentLearningDependency.updateMany({
+          where: {
+            derivedKind: 'checkpoint',
+            derivedId: checkpointIds[0],
+            sourceKind: ref.kind,
+          },
+          data: { sourceVersion: legacy },
+        });
+        try {
+          const dataset = await service.create({
+            ...input,
+            requestId: randomUUID(),
+            sourceAccounts: sources,
+          });
+          expect((dataset.counts as { total: number }).total).toBe(900);
+        } finally {
+          await prisma.contentLearningDependency.updateMany({
+            where: {
+              derivedKind: 'checkpoint',
+              derivedId: checkpointIds[0],
+              sourceKind: ref.kind,
+            },
+            data: { sourceVersion: ref.version },
+          });
+        }
+      }
+      await expect(
+        prisma.contentVersionPin.update({
+          where: { id: source.versionPinId },
+          data: { organizationId: 'org-1' },
+        }),
+      ).rejects.toThrow();
+    }, 120000);
+
+    it('actual exclusive publication writer waits behind snapshot F and invalidates after commit; inverse order excludes', async () => {
+      await seed(1000);
+      const held = deferred(),
+        release = deferred();
+      let once = false;
+      beforeDecisionLock = async () => {
+        if (!once) {
+          once = true;
+          held.resolve();
+          await release.promise;
+        }
+      };
+      const snapshot = service.create({
+        ...input,
+        requestId: randomUUID(),
+        sourceAccounts: sources,
+      });
+      let withdrawal: Promise<unknown> | undefined;
+      try {
+        await Promise.race([
+          held.promise,
+          snapshot.then(() => {
+            throw new Error('Snapshot finished before publication barrier');
+          }),
+        ]);
+        withdrawal = withdrawLearningDatasetPublication(
+          prisma,
+          publications[0].source.postId,
+          'org-0',
+        );
+        await expect
+          .poll(async () =>
+            Number(
+              (
+                await pool.query(
+                  "SELECT count(*) FROM pg_locks WHERE locktype='advisory' AND NOT granted",
+                )
+              ).rows[0].count,
+            ),
+          )
+          .toBeGreaterThan(0);
+        release.resolve();
+        const dataset = await snapshot;
+        await withdrawal;
+        expect(
+          (
+            await prisma.contentLearningDataset.findUniqueOrThrow({
+              where: { id: dataset.id },
+            })
+          ).status,
+        ).toBe('invalidated');
+      } finally {
+        beforeDecisionLock = undefined;
+        release.resolve();
+        await snapshot.catch(() => undefined);
+        await withdrawal?.catch(() => undefined);
+      }
+      await seed(1000);
+      await withdrawLearningDatasetPublication(
+        prisma,
+        publications[0].source.postId,
+        'org-0',
+      );
+      const excluded = await service.create({
+        ...input,
+        requestId: randomUUID(),
+        sourceAccounts: sources,
+      });
+      expect((excluded.counts as { total: number }).total).toBe(900);
+    }, 120000);
     it.skipIf(!benchmark)(
       'measures 1k/10k/100k owned and consented three times after warmup plus mixed',
       async () => {
@@ -865,7 +1349,10 @@ describe.skipIf(!explicitUrl)(
         `UPDATE content_learning_consents SET "isDeleted"=true WHERE id='consent-0'`,
       ]) {
         await seed(1000);
-        await pool.query(change);
+        await pool.query(
+          change,
+          change.includes('$1') ? [checkpointIds[0]] : [],
+        );
         await expect(
           service.create({
             ...input,
@@ -902,12 +1389,15 @@ describe.skipIf(!explicitUrl)(
         `UPDATE content_learning_decisions SET state='pending' WHERE id='decision-0'`,
         `UPDATE content_learning_decisions SET "credentialId"='credential-2' WHERE id='decision-0'`,
         `UPDATE content_learning_decisions SET "createdAt"=TIMESTAMP '2026-07-01' WHERE id='decision-0'`,
-        `UPDATE content_learning_checkpoints SET revision=1 WHERE id='checkpoint-0'`,
+        `UPDATE content_learning_checkpoints SET revision=1 WHERE id=$1`,
         `UPDATE posts SET "isDeleted"=true WHERE id='post-0'`,
         `UPDATE content_learning_dependencys SET valid=false WHERE id='edge-0-checkpoint'`,
       ]) {
         await seed(1000);
-        await pool.query(change);
+        await pool.query(
+          change,
+          change.includes('$1') ? [checkpointIds[0]] : [],
+        );
         const dataset = await service.create({
           ...input,
           requestId: randomUUID(),
@@ -927,8 +1417,12 @@ describe.skipIf(!explicitUrl)(
       brandId: 'brand-0',
       credentialId: 'credential-0',
       decisionId: 'decision-0',
-      checkpointId: 'checkpoint-0',
-      baselineId: 'baseline-0',
+      get checkpointId() {
+        return checkpointIds[0];
+      },
+      get baselineId() {
+        return baselineIds[0];
+      },
       version: 2,
       rawComponents: {},
       boundedComponents: {},

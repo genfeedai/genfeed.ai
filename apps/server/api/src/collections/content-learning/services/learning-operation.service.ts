@@ -36,8 +36,13 @@ export function learningScopeKey(scope: {
 @Injectable()
 export class LearningOperationService {
   constructor(private readonly prisma: PrismaService) {}
-  async assertMember(actor: LearningActor, write = false, ownerOnly = false) {
-    const member = await this.prisma.member.findFirst({
+  async assertMember(
+    actor: LearningActor,
+    write = false,
+    ownerOnly = false,
+    tx: Prisma.TransactionClient = this.prisma,
+  ) {
+    const member = await tx.member.findFirst({
       where: {
         organizationId: actor.organizationId,
         userId: actor.actorId,

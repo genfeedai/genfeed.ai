@@ -26,6 +26,7 @@ import type {
   AnalyticsPersistenceContext,
   ServerAnalyticsCollectionState,
 } from '@genfeedai/contracts/interfaces';
+import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interfaces/analytics/outlier-persistence.interface';
 import { Inject, Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -96,165 +97,269 @@ export class AnalyticsSocialCollectionService {
   ): Promise<AnalyticsPersistenceContext> {
     const resolution = await this.resolveCollectionCredential(post);
     const credentialId = resolution.credentialId;
+    const publicationSource =
+      await this.postAnalyticsService.prepareLearningObservation({
+        organizationId: post.organizationId,
+        brandId: post.brandId,
+        credentialId,
+        postId: post.id,
+        platform: post.platform,
+        externalId: post.externalId,
+      });
     const sourceAttemptId = randomUUID(),
       requestStartedAt = new Date();
-    const context = {
-      organizationId: post.organizationId,
-      brandId: post.brandId,
-      credentialId,
-    };
 
     switch (post.platform) {
-      case CredentialPlatform.INSTAGRAM: {
-        const analytics = await this.instagramService.getMediaAnalytics(
-          post.organizationId,
-          post.brandId,
-          post.externalId,
+      case CredentialPlatform.INSTAGRAM:
+        return this.collectInstagram(
+          post,
           credentialId,
+          publicationSource,
+          sourceAttemptId,
+          requestStartedAt,
         );
-        const mediaTypes = {
-          CAROUSEL_ALBUM: 'carousel',
-          IMAGE: 'image',
-          REELS: 'reel',
-          VIDEO: 'video',
-        } as const;
-        await this.postAnalyticsService.processInstagramAnalytics(
-          post.id,
-          {
-            ...analytics,
-            mediaType: analytics.mediaType
-              ? mediaTypes[analytics.mediaType as keyof typeof mediaTypes]
-              : undefined,
-          },
-          {
-            learningObservation: {
-              sourceAttemptId,
-              requestStartedAt,
-              receivedAt: new Date(),
-            },
-            organizationId: post.organizationId,
-            brandId: post.brandId,
-            credentialId: credentialId,
-          },
-        );
-        await this.recordSnapshot(post, credentialId, analytics);
-        return context;
-      }
-      case CredentialPlatform.TIKTOK: {
-        const analytics = await this.tiktokService.getMediaAnalytics(
-          post.organizationId,
-          post.brandId,
-          post.externalId,
+      case CredentialPlatform.TIKTOK:
+        return this.collectTikTok(
+          post,
           credentialId,
+          publicationSource,
+          sourceAttemptId,
+          requestStartedAt,
         );
-        await this.postAnalyticsService.processTikTokAnalytics(
-          post.id,
-          {
-            ...analytics,
-            shares: analytics.shares ?? 0,
-          },
-          {
-            learningObservation: {
-              sourceAttemptId,
-              requestStartedAt,
-              receivedAt: new Date(),
-            },
-            organizationId: post.organizationId,
-            brandId: post.brandId,
-            credentialId: credentialId,
-          },
-        );
-        await this.recordSnapshot(post, credentialId, analytics);
-        return context;
-      }
-      case CredentialPlatform.PINTEREST: {
-        const analytics = await this.pinterestService.getMediaAnalytics(
-          post.organizationId,
-          post.brandId,
-          post.externalId,
+      case CredentialPlatform.PINTEREST:
+        return this.collectPinterest(
+          post,
           credentialId,
+          publicationSource,
+          sourceAttemptId,
+          requestStartedAt,
         );
-        await this.postAnalyticsService.processPinterestAnalytics(
-          post.id,
-          analytics,
-          {
-            learningObservation: {
-              sourceAttemptId,
-              requestStartedAt,
-              receivedAt: new Date(),
-            },
-            organizationId: post.organizationId,
-            brandId: post.brandId,
-            credentialId: credentialId,
-          },
-        );
-        await this.recordSnapshot(post, credentialId, analytics);
-        return context;
-      }
-      case CredentialPlatform.LINKEDIN: {
-        const analytics = await this.linkedInService.getMediaAnalytics(
-          post.organizationId,
-          post.brandId,
-          post.externalId,
+      case CredentialPlatform.LINKEDIN:
+        return this.collectLinkedIn(
+          post,
           credentialId,
+          publicationSource,
+          sourceAttemptId,
+          requestStartedAt,
         );
-        await this.postAnalyticsService.processLinkedInAnalytics(
-          post.id,
-          {
-            clicks: analytics.clicks,
-            learningMetrics: analytics.learningMetrics,
-            comments: analytics.comments,
-            engagementRate: analytics.engagementRate,
-            impressions: analytics.impressions,
-            likes: analytics.likes,
-            mediaType: analytics.mediaType,
-            reach: analytics.reach,
-            shares: analytics.shares,
-            views: analytics.views,
-          },
-          {
-            learningObservation: {
-              sourceAttemptId,
-              requestStartedAt,
-              receivedAt: new Date(),
-            },
-            organizationId: post.organizationId,
-            brandId: post.brandId,
-            credentialId: credentialId,
-          },
-        );
-        await this.recordSnapshot(post, credentialId, analytics);
-        return context;
-      }
-      case CredentialPlatform.MASTODON: {
-        const analytics = await this.mastodonService.getMediaAnalytics(
-          post.organizationId,
-          post.brandId,
-          post.externalId,
+      case CredentialPlatform.MASTODON:
+        return this.collectMastodon(
+          post,
           credentialId,
+          publicationSource,
+          sourceAttemptId,
+          requestStartedAt,
         );
-        await this.postAnalyticsService.processMastodonAnalytics(
-          post.id,
-          analytics,
-          {
-            learningObservation: {
-              sourceAttemptId,
-              requestStartedAt,
-              receivedAt: new Date(),
-            },
-            organizationId: post.organizationId,
-            brandId: post.brandId,
-            credentialId: credentialId,
-          },
-        );
-        await this.recordSnapshot(post, credentialId, analytics);
-        return context;
-      }
       default:
         throw new Error(
           `Unsupported social analytics platform: ${post.platform}`,
         );
     }
+  }
+  private async collectInstagram(
+    post: AnalyticsCollectionPost,
+    credentialId: string,
+    publicationSource: LearningPublicationSourceV1 | null,
+    sourceAttemptId: string,
+    requestStartedAt: Date,
+  ): Promise<AnalyticsPersistenceContext> {
+    const analytics = await this.instagramService.getMediaAnalytics(
+      post.organizationId,
+      post.brandId,
+      post.externalId,
+      credentialId,
+    );
+    const receivedAt = new Date();
+    const mediaTypes = {
+      CAROUSEL_ALBUM: 'carousel',
+      IMAGE: 'image',
+      REELS: 'reel',
+      VIDEO: 'video',
+    } as const;
+    await this.postAnalyticsService.processInstagramAnalytics(
+      post.id,
+      {
+        ...analytics,
+        mediaType: analytics.mediaType
+          ? mediaTypes[analytics.mediaType as keyof typeof mediaTypes]
+          : undefined,
+      },
+      {
+        learningObservation: {
+          sourceAttemptId,
+          requestStartedAt,
+          receivedAt,
+          ...(publicationSource ? { publicationSource } : {}),
+        },
+        organizationId: post.organizationId,
+        brandId: post.brandId,
+        credentialId: credentialId,
+      },
+    );
+    await this.recordSnapshot(post, credentialId, analytics);
+    return {
+      organizationId: post.organizationId,
+      brandId: post.brandId,
+      credentialId,
+    };
+  }
+  private async collectTikTok(
+    post: AnalyticsCollectionPost,
+    credentialId: string,
+    publicationSource: LearningPublicationSourceV1 | null,
+    sourceAttemptId: string,
+    requestStartedAt: Date,
+  ): Promise<AnalyticsPersistenceContext> {
+    const analytics = await this.tiktokService.getMediaAnalytics(
+      post.organizationId,
+      post.brandId,
+      post.externalId,
+      credentialId,
+    );
+    const receivedAt = new Date();
+    await this.postAnalyticsService.processTikTokAnalytics(
+      post.id,
+      {
+        ...analytics,
+        shares: analytics.shares ?? 0,
+      },
+      {
+        learningObservation: {
+          sourceAttemptId,
+          requestStartedAt,
+          receivedAt,
+          ...(publicationSource ? { publicationSource } : {}),
+        },
+        organizationId: post.organizationId,
+        brandId: post.brandId,
+        credentialId: credentialId,
+      },
+    );
+    await this.recordSnapshot(post, credentialId, analytics);
+    return {
+      organizationId: post.organizationId,
+      brandId: post.brandId,
+      credentialId,
+    };
+  }
+  private async collectPinterest(
+    post: AnalyticsCollectionPost,
+    credentialId: string,
+    publicationSource: LearningPublicationSourceV1 | null,
+    sourceAttemptId: string,
+    requestStartedAt: Date,
+  ): Promise<AnalyticsPersistenceContext> {
+    const analytics = await this.pinterestService.getMediaAnalytics(
+      post.organizationId,
+      post.brandId,
+      post.externalId,
+      credentialId,
+    );
+    const receivedAt = new Date();
+    await this.postAnalyticsService.processPinterestAnalytics(
+      post.id,
+      analytics,
+      {
+        learningObservation: {
+          sourceAttemptId,
+          requestStartedAt,
+          receivedAt,
+          ...(publicationSource ? { publicationSource } : {}),
+        },
+        organizationId: post.organizationId,
+        brandId: post.brandId,
+        credentialId: credentialId,
+      },
+    );
+    await this.recordSnapshot(post, credentialId, analytics);
+    return {
+      organizationId: post.organizationId,
+      brandId: post.brandId,
+      credentialId,
+    };
+  }
+  private async collectLinkedIn(
+    post: AnalyticsCollectionPost,
+    credentialId: string,
+    publicationSource: LearningPublicationSourceV1 | null,
+    sourceAttemptId: string,
+    requestStartedAt: Date,
+  ): Promise<AnalyticsPersistenceContext> {
+    const analytics = await this.linkedInService.getMediaAnalytics(
+      post.organizationId,
+      post.brandId,
+      post.externalId,
+      credentialId,
+    );
+    const receivedAt = new Date();
+    await this.postAnalyticsService.processLinkedInAnalytics(
+      post.id,
+      {
+        clicks: analytics.clicks,
+        learningMetrics: analytics.learningMetrics,
+        comments: analytics.comments,
+        engagementRate: analytics.engagementRate,
+        impressions: analytics.impressions,
+        likes: analytics.likes,
+        mediaType: analytics.mediaType,
+        reach: analytics.reach,
+        shares: analytics.shares,
+        views: analytics.views,
+      },
+      {
+        learningObservation: {
+          sourceAttemptId,
+          requestStartedAt,
+          receivedAt,
+          ...(publicationSource ? { publicationSource } : {}),
+        },
+        organizationId: post.organizationId,
+        brandId: post.brandId,
+        credentialId: credentialId,
+      },
+    );
+    await this.recordSnapshot(post, credentialId, analytics);
+    return {
+      organizationId: post.organizationId,
+      brandId: post.brandId,
+      credentialId,
+    };
+  }
+  private async collectMastodon(
+    post: AnalyticsCollectionPost,
+    credentialId: string,
+    publicationSource: LearningPublicationSourceV1 | null,
+    sourceAttemptId: string,
+    requestStartedAt: Date,
+  ): Promise<AnalyticsPersistenceContext> {
+    const analytics = await this.mastodonService.getMediaAnalytics(
+      post.organizationId,
+      post.brandId,
+      post.externalId,
+      credentialId,
+    );
+    const receivedAt = new Date();
+    await this.postAnalyticsService.processMastodonAnalytics(
+      post.id,
+      analytics,
+      {
+        learningObservation: {
+          sourceAttemptId,
+          requestStartedAt,
+          receivedAt,
+          ...(publicationSource ? { publicationSource } : {}),
+        },
+        organizationId: post.organizationId,
+        brandId: post.brandId,
+        credentialId: credentialId,
+      },
+    );
+    await this.recordSnapshot(post, credentialId, analytics);
+    return {
+      organizationId: post.organizationId,
+      brandId: post.brandId,
+      credentialId,
+    };
   }
 
   private async resolveCollectionCredential(post: AnalyticsCollectionPost) {

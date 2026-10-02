@@ -1,6 +1,6 @@
 import { scopedWhere } from '@api/index';
 import { LiveSessionStatus, VisualCodeStatus } from '@genfeedai/contracts';
-import type { Prisma } from '@genfeedai/prisma';
+import { Prisma } from '@genfeedai/prisma';
 import { ConflictException } from '@nestjs/common';
 
 /** Saved generation history, including tombstones, retains its original tenant. */
@@ -181,6 +181,180 @@ export async function assertNoOpenVisualProjects(
     throw new ConflictException(
       'Cannot move a brand with unfinished visual work. Finish or cancel and settle it first; its credit hold belongs to the current organization.',
     );
+}
+
+const LEARNING_HISTORY_MESSAGE =
+  'Cannot move a brand with saved learning or publication history. This history must remain in its original organization.';
+function refuseLearningHistory(found: unknown): void {
+  if (found) throw new ConflictException(LEARNING_HISTORY_MESSAGE);
+}
+async function assertNoDirectLearningHistory(
+  client: Prisma.TransactionClient,
+  brandId: string,
+  organizationId: string,
+): Promise<void> {
+  refuseLearningHistory(
+    // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
+    await client.contentLearningConsent.findFirst({
+      where: { organizationId, brandId },
+      select: { id: true },
+    }),
+  );
+  refuseLearningHistory(
+    // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
+    await client.contentLearningDecision.findFirst({
+      where: { organizationId, brandId },
+      select: { id: true },
+    }),
+  );
+  refuseLearningHistory(
+    // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
+    await client.contentLearningCheckpoint.findFirst({
+      where: { organizationId, brandId },
+      select: { id: true },
+    }),
+  );
+  refuseLearningHistory(
+    // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
+    await client.contentLearningBaseline.findFirst({
+      where: { organizationId, brandId },
+      select: { id: true },
+    }),
+  );
+  refuseLearningHistory(
+    // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
+    await client.contentLearningReward.findFirst({
+      where: { organizationId, brandId },
+      select: { id: true },
+    }),
+  );
+  refuseLearningHistory(
+    // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
+    await client.contentLearningPolicyVersion.findFirst({
+      where: { organizationId, brandId },
+      select: { id: true },
+    }),
+  );
+  refuseLearningHistory(
+    // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
+    await client.contentLearningScopeState.findFirst({
+      where: { organizationId, brandId },
+      select: { id: true },
+    }),
+  );
+  refuseLearningHistory(
+    // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
+    await client.contentLearningExperiment.findFirst({
+      where: { organizationId, brandId },
+      select: { id: true },
+    }),
+  );
+  refuseLearningHistory(
+    // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
+    await client.contentLearningEnrollment.findFirst({
+      where: { organizationId, brandId },
+      select: { id: true },
+    }),
+  );
+  refuseLearningHistory(
+    // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
+    await client.contentLearningOpportunity.findFirst({
+      where: { organizationId, brandId },
+      select: { id: true },
+    }),
+  );
+  refuseLearningHistory(
+    // tenant-scope-ignore: exact org/brand historical attribution includes tombstones.
+    await client.contentLearningExperimentEvent.findFirst({
+      where: { organizationId, brandId },
+      select: { id: true },
+    }),
+  );
+  refuseLearningHistory(
+    // tenant-scope-ignore: publication history has no soft-delete field; original tenant and brand are exact.
+    await client.publishApproval.findFirst({
+      where: { organizationId, brandId },
+      select: { id: true },
+    }),
+  );
+}
+async function assertNoBoundLearningConfiguration(
+  client: Prisma.TransactionClient,
+  brandId: string,
+  organizationId: string,
+): Promise<void> {
+  refuseLearningHistory(
+    // tenant-scope-ignore: tombstoned configuration with historical bindings cannot move.
+    await client.contentLearningAccount.findFirst({
+      where: {
+        organizationId,
+        brandId,
+        OR: [
+          { epoch: { not: 0 } },
+          { revision: { not: 0 } },
+          { evidenceRevision: { not: 0 } },
+          { resetAt: { not: null } },
+          { sharingConsentVersion: { not: null } },
+          { activePolicyId: { not: null } },
+          { pinnedReleaseId: { not: null } },
+          { pilotStartedAt: { not: null } },
+          { prePilotReleaseId: { not: null } },
+          { mode: { not: 'shadow' } },
+          { activeConfigVersion: { not: 'rl-reward-v1-experimental' } },
+        ],
+      },
+      select: { id: true },
+    }),
+  );
+  refuseLearningHistory(
+    // tenant-scope-ignore: deleted preference retains its historical binding/revision.
+    await client.contentLearningBrandPreference.findFirst({
+      where: {
+        organizationId,
+        brandId,
+        OR: [{ pinnedReleaseId: { not: null } }, { revision: { not: 0 } }],
+      },
+      select: { id: true },
+    }),
+  );
+}
+async function assertNoIndirectLearningHistory(
+  client: Prisma.TransactionClient,
+  brandId: string,
+  organizationId: string,
+): Promise<void> {
+  // tenant-scope-ignore: correlated exact tenant/brand attribution intentionally retains deleted posts, credentials, pins, operations and edges.
+  const rows = await client.$queryRaw<{ retained: boolean }[]>(Prisma.sql`
+    SELECT (
+      EXISTS (SELECT 1 FROM "content_learning_operations" o WHERE o."organizationId" = ${organizationId} AND
+        (o."brandId" = ${brandId} OR (o."brandId" IS NULL AND EXISTS
+          (SELECT 1 FROM "credentials" c WHERE c."id" = o."credentialId" AND c."organizationId" = ${organizationId} AND c."brandId" = ${brandId}))))
+      OR EXISTS (SELECT 1 FROM "content_version_pins" p WHERE p."organizationId" = ${organizationId} AND
+        (p."brandId" = ${brandId} OR (p."recordKind" = 'post' AND EXISTS
+          (SELECT 1 FROM "posts" s WHERE s."id" = p."recordId" AND s."organizationId" = ${organizationId} AND s."brandId" = ${brandId}))))
+      OR EXISTS (SELECT 1 FROM "post_publish_finalizations" f WHERE f."organizationId" = ${organizationId} AND EXISTS
+        (SELECT 1 FROM "posts" p WHERE p."id" = f."postId" AND p."organizationId" = ${organizationId} AND p."brandId" = ${brandId}))
+      OR EXISTS (SELECT 1 FROM "content_learning_dependencys" d WHERE d."sourceOrganizationId" = ${organizationId} AND (
+        (d."sourceKind" = 'brand' AND d."sourceId" = ${brandId})
+        OR (d."sourceKind" = 'account' AND EXISTS (SELECT 1 FROM "content_learning_accounts" a WHERE a."id" = d."sourceId" AND a."organizationId" = ${organizationId} AND a."brandId" = ${brandId}))
+        OR (d."sourceKind" = 'credential' AND EXISTS (SELECT 1 FROM "credentials" c WHERE c."id" = d."sourceId" AND c."organizationId" = ${organizationId} AND c."brandId" = ${brandId}))
+        OR (d."sourceKind" = 'post' AND EXISTS (SELECT 1 FROM "posts" p WHERE p."id" = d."sourceId" AND p."organizationId" = ${organizationId} AND p."brandId" = ${brandId}))
+      ))
+    ) AS retained`);
+  if (rows.length !== 1 || typeof rows[0].retained !== 'boolean')
+    throw new ConflictException(
+      'Learning history attribution could not be confirmed.',
+    );
+  refuseLearningHistory(rows[0].retained);
+}
+export async function assertNoLearningHistory(
+  client: Prisma.TransactionClient,
+  brandId: string,
+  organizationId: string,
+): Promise<void> {
+  await assertNoDirectLearningHistory(client, brandId, organizationId);
+  await assertNoBoundLearningConfiguration(client, brandId, organizationId);
+  await assertNoIndirectLearningHistory(client, brandId, organizationId);
 }
 
 /** Retained Crun funding and quote history keeps its original tenant. */
