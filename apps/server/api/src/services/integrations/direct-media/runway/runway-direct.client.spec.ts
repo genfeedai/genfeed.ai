@@ -78,7 +78,7 @@ describe('Runway direct client', () => {
   it.each(credentialForms)(
     'rejects reflected returned result IDs before state handling: %s',
     async (credential) => {
-      const transport = vi.fn<typeof fetch>().mockResolvedValue(
+      const transport = vi.fn<typeof fetch>().mockImplementation(async () =>
         json({
           id: credential,
           status: 'RUNNING',
