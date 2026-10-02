@@ -7,9 +7,10 @@ const mocks = vi.hoisted(() => ({
   status: vi.fn(),
   post: vi.fn(),
   auth: vi.fn(),
+  useService: vi.fn(),
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => mocks.auth,
+  useAuthedService: () => mocks.useService(),
 }));
 const props = { brandId: 'brand', runId: 'run', shotId: 'shot' };
 const receipt = {
@@ -38,6 +39,7 @@ function deferred<T>() {
 }
 beforeEach(() => {
   vi.resetAllMocks();
+  mocks.useService.mockReturnValue(mocks.auth);
   mocks.auth.mockResolvedValue({
     listStoryboardCharacterReplacements: mocks.list,
     getStoryboardCharacterReplacementStatus: mocks.status,
@@ -222,4 +224,160 @@ describe('scoped character receipt lifecycle', () => {
     unmount();
     expect(signal.aborted).toBe(true);
   });
+});
+
+describe('same-scope authenticated service transitions', () => {
+  function service() {
+    return {
+      listStoryboardCharacterReplacements: mocks.list,
+      getStoryboardCharacterReplacementStatus: mocks.status,
+      replaceStoryboardCharacter: mocks.post,
+    };
+  }
+  it('hides old receipts, fallback and errors synchronously and never re-exposes unchanged saved props', async () => {
+    mocks.list.mockResolvedValue({ ...empty, operations: [receipt] });
+    const snapshots: ReturnType<typeof useStoryboardCharacterReplacements>[] =
+      [];
+    const { result, rerender } = renderHook(() => {
+      const state = useStoryboardCharacterReplacements({ ...props, saved });
+      snapshots.push(state);
+      return state;
+    });
+    await waitFor(() =>
+      expect(result.current.collection.operations).toHaveLength(1),
+    );
+    mocks.list.mockRejectedValueOnce(new Error('old read failure'));
+    await act(async () => {
+      await result.current.refreshRequests();
+    });
+    expect(result.current.fallback?.requestId).toBe('saved');
+    expect(result.current.hasReadFailed).toBe(true);
+    const fresh = deferred<typeof empty>();
+    const actorB = vi.fn(async () => service());
+    mocks.useService.mockReturnValue(actorB);
+    mocks.list.mockReturnValueOnce(fresh.promise);
+    const index = snapshots.length;
+    rerender();
+    expect(snapshots[index].collection).toEqual(empty);
+    expect(snapshots[index].fallback).toBeUndefined();
+    expect(snapshots[index].hasReadFailed).toBe(false);
+    expect(result.current.initialSaved).toBeUndefined();
+    expect(result.current.isReading).toBe(true);
+    await act(async () => fresh.resolve(empty));
+    expect(result.current.fallback).toBeUndefined();
+    expect(mocks.post).not.toHaveBeenCalled();
+  });
+  it('fences deferred tokens and obsolete controls across monotonic A to B to A identities', async () => {
+    const oldReadToken = deferred<ReturnType<typeof service>>();
+    const oldPostToken = deferred<ReturnType<typeof service>>();
+    mocks.auth
+      .mockReturnValueOnce(oldReadToken.promise)
+      .mockReturnValueOnce(oldPostToken.promise);
+    const { result, rerender } = renderHook(() =>
+      useStoryboardCharacterReplacements(props),
+    );
+    const old = result.current;
+    let pending: Promise<void> = Promise.resolve();
+    act(() => {
+      pending = old.submit({ imageAssetIds: ['image'] });
+    });
+    await waitFor(() => expect(mocks.auth).toHaveBeenCalledTimes(2));
+    const actorB = vi.fn(async () => service());
+    mocks.useService.mockReturnValue(actorB);
+    rerender();
+    const epochB = result.current.contextEpoch;
+    expect(epochB).toBeGreaterThan(old.contextEpoch);
+    await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(1));
+    mocks.useService.mockReturnValue(mocks.auth);
+    rerender();
+    expect(result.current.contextEpoch).toBeGreaterThan(epochB);
+    await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(2));
+    const calls = mocks.auth.mock.calls.length;
+    await act(async () => {
+      await old.refreshRequests();
+      await old.refreshStatus(receipt.operationId);
+      await old.submit({ imageAssetIds: ['image'] });
+    });
+    expect(mocks.auth).toHaveBeenCalledTimes(calls);
+    await act(async () => {
+      oldReadToken.resolve(service());
+      oldPostToken.resolve(service());
+      await pending;
+    });
+    expect(mocks.list).toHaveBeenCalledTimes(2);
+    expect(mocks.post).not.toHaveBeenCalled();
+    expect(mocks.status).not.toHaveBeenCalled();
+    expect(result.current.hasSubmitFailed).toBe(false);
+  });
+  it.each(['resolve', 'reject'] as const)(
+    'ignores old authenticated GET %s, including finally, while the new actor reads',
+    async (outcome) => {
+      const old = deferred<{
+        operations: (typeof receipt)[];
+        legacyReplacements: never[];
+      }>();
+      const fresh = deferred<typeof empty>();
+      mocks.list
+        .mockReturnValueOnce(old.promise)
+        .mockReturnValueOnce(fresh.promise);
+      const { result, rerender } = renderHook(() =>
+        useStoryboardCharacterReplacements(props),
+      );
+      await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(1));
+      mocks.useService.mockReturnValue(vi.fn(async () => service()));
+      rerender();
+      await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(2));
+      await act(async () => {
+        if (outcome === 'resolve')
+          old.resolve({ ...empty, operations: [receipt] });
+        else old.reject(new Error('old auth failure'));
+      });
+      expect(result.current.collection).toEqual(empty);
+      expect(result.current.isReading).toBe(true);
+      expect(result.current.hasReadFailed).toBe(false);
+      await act(async () => fresh.resolve(empty));
+    },
+  );
+  it.each(['resolve', 'reject'] as const)(
+    'ignores old authenticated POST %s and finally while the new actor submits',
+    async (outcome) => {
+      const old = deferred<typeof saved>();
+      const fresh = deferred<typeof saved>();
+      mocks.post
+        .mockReturnValueOnce(old.promise)
+        .mockReturnValueOnce(fresh.promise);
+      const { result, rerender } = renderHook(() =>
+        useStoryboardCharacterReplacements(props),
+      );
+      await waitFor(() => expect(result.current.isReading).toBe(false));
+      let first: Promise<void> = Promise.resolve(),
+        next: Promise<void> = Promise.resolve();
+      act(() => {
+        first = result.current.submit({ imageAssetIds: ['image'] });
+      });
+      await waitFor(() => expect(mocks.post).toHaveBeenCalledTimes(1));
+      mocks.useService.mockReturnValue(vi.fn(async () => service()));
+      rerender();
+      await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(2));
+      act(() => {
+        next = result.current.submit({ imageAssetIds: ['image'] });
+      });
+      await waitFor(() => expect(mocks.post).toHaveBeenCalledTimes(2));
+      await act(async () => {
+        if (outcome === 'resolve') old.resolve(saved);
+        else old.reject(new Error('old auth failure'));
+        await first;
+      });
+      expect(result.current.isSubmitting).toBe(true);
+      expect(result.current.fallback).toBeUndefined();
+      expect(result.current.hasSubmitFailed).toBe(false);
+      expect(mocks.list).toHaveBeenCalledTimes(2);
+      await act(async () => {
+        fresh.resolve(saved);
+        await next;
+      });
+      expect(result.current.fallback?.requestId).toBe('saved');
+      expect(mocks.list).toHaveBeenCalledTimes(3);
+    },
+  );
 });

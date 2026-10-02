@@ -8,14 +8,19 @@ const {
   listStoryboardCharacterReplacements,
   getStoryboardCharacterReplacementStatus,
   getService,
+  useService,
+  openGallery,
 } = vi.hoisted(() => ({
   replaceStoryboardCharacter: vi.fn(),
   listStoryboardCharacterReplacements: vi.fn(),
   getStoryboardCharacterReplacementStatus: vi.fn(),
   getService: vi.fn(),
+  useService: vi.fn(),
+  openGallery: vi.fn(),
 }));
 beforeEach(() => {
   vi.resetAllMocks();
+  useService.mockReturnValue(getService);
   listStoryboardCharacterReplacements.mockResolvedValue({
     operations: [],
     legacyReplacements: [],
@@ -34,11 +39,11 @@ vi.mock('next-intl', async () => {
 vi.mock(
   '@genfeedai/contexts/providers/global-modals/global-modals.provider',
   () => ({
-    useGalleryModal: () => ({ openGallery: vi.fn() }),
+    useGalleryModal: () => ({ openGallery }),
   }),
 );
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => getService,
+  useAuthedService: () => useService(),
 }));
 
 const saved: StoryboardCharacterReplacement = {
@@ -251,4 +256,49 @@ describe('saved receipt inspection', () => {
     );
     expect(replaceStoryboardCharacter).not.toHaveBeenCalled();
   });
+});
+
+it('clears auth-scoped form controls and rejects an old gallery callback after identity A to B to A', async () => {
+  const input = {
+    brandId: 'brand-1',
+    runId: 'run-1',
+    shotId: 'shot-1',
+    saved: { ...saved, prompt: 'Actor A prompt' },
+  };
+  const { rerender } = render(<StoryboardCharacterReplace {...input} />);
+  await waitFor(() =>
+    expect(listStoryboardCharacterReplacements).toHaveBeenCalledTimes(1),
+  );
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Choose character images' }),
+  );
+  const oldSelection = openGallery.mock.calls[0][0].onSelect;
+  const actorB = vi.fn(async () => ({
+    replaceStoryboardCharacter,
+    listStoryboardCharacterReplacements,
+    getStoryboardCharacterReplacementStatus,
+  }));
+  useService.mockReturnValue(actorB);
+  rerender(<StoryboardCharacterReplace {...input} />);
+  expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe('');
+  expect(screen.queryByText(/req-saved/)).toBeNull();
+  expect(
+    (
+      screen.getByRole('button', {
+        name: 'Replace character',
+      }) as HTMLButtonElement
+    ).disabled,
+  ).toBe(true);
+  useService.mockReturnValue(getService);
+  rerender(<StoryboardCharacterReplace {...input} />);
+  oldSelection([{ id: 'old-image', brandId: 'brand-1', isDeleted: false }]);
+  expect(screen.queryByText(/character images selected/)).toBeNull();
+  expect(
+    (
+      screen.getByRole('button', {
+        name: 'Replace character',
+      }) as HTMLButtonElement
+    ).disabled,
+  ).toBe(true);
+  expect(replaceStoryboardCharacter).not.toHaveBeenCalled();
 });

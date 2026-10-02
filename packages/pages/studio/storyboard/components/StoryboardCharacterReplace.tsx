@@ -24,26 +24,33 @@ export default function StoryboardCharacterReplace({
 }: StoryboardCharacterReplaceProps) {
   const translate = useTranslations('pages.studioStoryboard.plan');
   const { openGallery } = useGalleryModal();
-  const scope = JSON.stringify([brandId, runId, shotId]);
-  const currentScope = useRef(scope);
-  currentScope.current = scope;
-  const matchingSaved = saved?.shotId === shotId ? saved : undefined;
-  const [imageAssetIds, setImageAssetIds] = useState<string[]>(
-    matchingSaved?.imageAssetIds ?? [],
-  );
-  const [prompt, setPrompt] = useState(matchingSaved?.prompt ?? '');
   const lifecycle = useStoryboardCharacterReplacements({
     brandId,
     runId,
     shotId,
     saved,
   });
+  const contextEpoch = lifecycle.contextEpoch;
+  const currentEpoch = useRef(contextEpoch);
+  currentEpoch.current = contextEpoch;
+  const matchingSaved =
+    lifecycle.initialSaved?.shotId === shotId
+      ? lifecycle.initialSaved
+      : undefined;
+  const [storedImageAssetIds, setImageAssetIds] = useState<string[]>(
+    matchingSaved?.imageAssetIds ?? [],
+  );
+  const [storedPrompt, setPrompt] = useState(matchingSaved?.prompt ?? '');
+  const [formEpoch, setFormEpoch] = useState(contextEpoch);
+  const imageAssetIds = formEpoch === contextEpoch ? storedImageAssetIds : [];
+  const prompt = formEpoch === contextEpoch ? storedPrompt : '';
   const { collection, fallback, isReading, isSubmitting } = lifecycle;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: only a new scope initializes form inputs; saved changes must preserve user edits.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only a new context initializes form inputs; same-context saved changes preserve user edits.
   useEffect(() => {
+    setFormEpoch(contextEpoch);
     setImageAssetIds(matchingSaved?.imageAssetIds ?? []);
     setPrompt(matchingSaved?.prompt ?? '');
-  }, [scope]);
+  }, [contextEpoch]);
 
   const isSubmitDisabled =
     isDisabled ||
@@ -71,7 +78,7 @@ export default function StoryboardCharacterReplace({
           disabled={isDisabled || isSubmitting}
           onClick={() =>
             pickImages(openGallery, brandId, translate, (ids) => {
-              if (currentScope.current === scope) setImageAssetIds(ids);
+              if (currentEpoch.current === contextEpoch) setImageAssetIds(ids);
             })
           }
         />
