@@ -2,7 +2,7 @@ import { Command } from 'commander';
 
 import { get, patch, post, requireAuth } from '@/api/client';
 import { printJson } from '@/ui/theme';
-import { handleError } from '@/utils/errors';
+import { GenfeedError, handleError } from '@/utils/errors';
 import { readSkillPackageInput, type SkillPackageInputOptions } from '@/utils/skill-package-input';
 
 async function run(action: () => Promise<unknown>): Promise<void> {
@@ -99,24 +99,38 @@ skillCommand
 
 skillCommand
   .command('edit')
+  .description('Update only supplied fields; supply at least one edit option')
   .argument('<id>')
-  .option('--name <name>')
-  .option('--description <description>')
-  .option('--instructions <instructions>')
+  .option('--name <name>', 'Name (maximum 140 characters)')
+  .option('--description <description>', 'Description (maximum 2000 characters; may be empty)')
+  .option(
+    '--instructions <instructions>',
+    'Set both defaultInstructions and systemPromptTemplate (maximum 8000 characters; may be empty)'
+  )
   .action(
     async (id: string, options: { description?: string; instructions?: string; name?: string }) => {
-      await run(() =>
-        patch(`/skills/${id}`, {
-          ...(options.description ? { description: options.description } : {}),
-          ...(options.instructions
+      await run(async () => {
+        if (
+          options.description === undefined &&
+          options.instructions === undefined &&
+          options.name === undefined
+        ) {
+          throw new GenfeedError(
+            'Supply at least one edit option',
+            'Use --name, --description or --instructions with skill edit <id>'
+          );
+        }
+        return patch(`/skills/${encodeURIComponent(id)}`, {
+          ...(options.description !== undefined ? { description: options.description } : {}),
+          ...(options.instructions !== undefined
             ? {
                 defaultInstructions: options.instructions,
                 systemPromptTemplate: options.instructions,
               }
             : {}),
-          ...(options.name ? { name: options.name } : {}),
-        })
-      );
+          ...(options.name !== undefined ? { name: options.name } : {}),
+        });
+      });
     }
   );
 

@@ -7,18 +7,22 @@ const mocks = vi.hoisted(() => ({
   handleError: vi.fn((error: unknown) => {
     throw error;
   }),
+  patch: vi.fn<(route: string, body: unknown) => Promise<unknown>>(),
   post: vi.fn<(route: string, body: unknown) => Promise<unknown>>(),
   printJson: vi.fn(),
   requireAuth: vi.fn<() => Promise<string>>(),
 }));
 vi.mock('@/api/client', () => ({
   get: vi.fn(),
-  patch: vi.fn(),
+  patch: mocks.patch,
   post: mocks.post,
   requireAuth: mocks.requireAuth,
 }));
 vi.mock('@/ui/theme', () => ({ printJson: mocks.printJson }));
-vi.mock('@/utils/errors', () => ({ handleError: mocks.handleError }));
+vi.mock('@/utils/errors', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/utils/errors')>()),
+  handleError: mocks.handleError,
+}));
 let directory: string;
 const content = '---\nname: Example\ndescription: Private imported skill\n---\n\nInstructions.\n';
 beforeEach(async () => {
@@ -152,5 +156,114 @@ describe('skill import command', () => {
     expect(mocks.post).toHaveBeenCalledTimes(1);
     expect(mocks.handleError).toHaveBeenLastCalledWith(rejected);
     expect(mocks.printJson).not.toHaveBeenCalled();
+  });
+});
+
+describe('skill edit command', () => {
+  beforeEach(() => {
+    mocks.patch.mockReset();
+    mocks.patch.mockResolvedValue({ authoritative: true, id: 'edited-skill' });
+  });
+
+  async function edit(args: string[]) {
+    return (await command()).parseAsync(['edit', ...args], { from: 'user' });
+  }
+
+  async function expectNoOtherRequests() {
+    const { get } = await import('@/api/client');
+    expect(get).not.toHaveBeenCalled();
+    expect(mocks.post).not.toHaveBeenCalled();
+  }
+
+  it('preserves explicit empty description and both empty instruction fields', async () => {
+    await edit(['skill-id', '--description', '', '--instructions', '']);
+    expect(mocks.patch).toHaveBeenCalledExactlyOnceWith('/skills/skill-id', {
+      defaultInstructions: '',
+      description: '',
+      systemPromptTemplate: '',
+    });
+    await expectNoOtherRequests();
+  });
+
+  it('preserves exact whitespace in every supplied field', async () => {
+    await edit([
+      'skill-id',
+      '--name',
+      '  Name  ',
+      '--description',
+      ' \n ',
+      '--instructions',
+      ' \nInstructions.\t ',
+    ]);
+    expect(mocks.patch).toHaveBeenCalledExactlyOnceWith('/skills/skill-id', {
+      defaultInstructions: ' \nInstructions.\t ',
+      description: ' \n ',
+      name: '  Name  ',
+      systemPromptTemplate: ' \nInstructions.\t ',
+    });
+    await expectNoOtherRequests();
+  });
+
+  it.each([
+    ['--name', 'Updated', { name: 'Updated' }],
+    ['--name', '', { name: '' }],
+    ['--description', 'Metadata only', { description: 'Metadata only' }],
+  ] as const)('sends only supplied metadata for %s %s', async (option, value, body) => {
+    await edit(['skill-id', option, value]);
+    expect(mocks.patch).toHaveBeenCalledExactlyOnceWith('/skills/skill-id', body);
+    await expectNoOtherRequests();
+  });
+
+  it('rejects no-option edits through the existing error handler with zero HTTP', async () => {
+    await expect(edit(['skill-id'])).rejects.toThrow('Supply at least one');
+    expect(mocks.handleError).toHaveBeenCalledTimes(1);
+    expect(mocks.patch).not.toHaveBeenCalled();
+    expect(mocks.printJson).not.toHaveBeenCalled();
+    await expectNoOtherRequests();
+  });
+
+  it('encodes the entire ID as one path segment and prints authoritative success exactly once', async () => {
+    await edit(['folder/id?query#fragment% space', '--name', 'Changed']);
+    expect(mocks.requireAuth).toHaveBeenCalledTimes(1);
+    expect(mocks.patch).toHaveBeenCalledExactlyOnceWith(
+      '/skills/folder%2Fid%3Fquery%23fragment%25%20space',
+      { name: 'Changed' }
+    );
+    expect(mocks.printJson).toHaveBeenCalledExactlyOnceWith({
+      authoritative: true,
+      id: 'edited-skill',
+    });
+    await expectNoOtherRequests();
+  });
+
+  it('propagates authentication failure without a PATCH, fallback or success', async () => {
+    const denied = new Error('Fixture edit authentication denied');
+    mocks.requireAuth.mockRejectedValueOnce(denied);
+    await expect(edit(['skill-id', '--name', 'Changed'])).rejects.toBe(denied);
+    expect(mocks.patch).not.toHaveBeenCalled();
+    expect(mocks.handleError).toHaveBeenCalledExactlyOnceWith(denied);
+    expect(mocks.printJson).not.toHaveBeenCalled();
+    await expectNoOtherRequests();
+  });
+
+  it('propagates the authoritative API error after exactly one PATCH without retry or success', async () => {
+    const rejected = new Error('Fixture edit rejected by API');
+    mocks.patch.mockRejectedValueOnce(rejected);
+    await expect(edit(['skill-id', '--instructions', 'Changed'])).rejects.toBe(rejected);
+    expect(mocks.patch).toHaveBeenCalledExactlyOnceWith('/skills/skill-id', {
+      defaultInstructions: 'Changed',
+      systemPromptTemplate: 'Changed',
+    });
+    expect(mocks.handleError).toHaveBeenCalledExactlyOnceWith(rejected);
+    expect(mocks.printJson).not.toHaveBeenCalled();
+    await expectNoOtherRequests();
+  });
+
+  it('documents sparse edit limits and the two instruction fields', async () => {
+    const edited = (await command()).commands.find((child) => child.name() === 'edit');
+    if (!edited) throw new Error('Edit command missing');
+    const help = edited.helpInformation();
+    for (const text of ['140', '2000', '8000', 'defaultInstructions', 'systemPromptTemplate'])
+      expect(help).toContain(text);
   });
 });
