@@ -3,6 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useDeferredIsSignedIn } from '@genfeedai/hooks/auth/use-deferred-is-signed-in/use-deferred-is-signed-in';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import ConnectAgentButton from '@ui/buttons/connect-agent/ConnectAgentButton';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import TopbarPublic from '@ui/topbars/public/TopbarPublic';
 import {
@@ -146,10 +147,6 @@ const SOLUTIONS_LINKS = [
   },
 ];
 
-// The site's second path is agent-first: connect the agent you already use,
-// then open the app. There is no sales demo; calls are for done-for-you work.
-const AGENT_CONNECT_HREF = '/agent#connect';
-
 const NAV_LINKS = [
   { href: '/pricing', label: 'Pricing' },
   { href: '/articles', label: 'Blog' },
@@ -182,16 +179,13 @@ export default function WebsiteTopbar() {
       >
         <a href={`${EnvironmentService.apps.app}/login`}>Log in</a>
       </ButtonTracked>
-      <ButtonTracked
-        asChild
-        size={ButtonSize.PUBLIC}
+      <ConnectAgentButton
+        label="Connect your agent"
         variant={ButtonVariant.SECONDARY}
         className="h-12 w-full text-sm uppercase"
-        trackingData={{ action: 'connect_agent_mobile_menu' }}
+        trackingAction="connect_agent_mobile_menu"
         trackingName="topbar_cta_click"
-      >
-        <a href={AGENT_CONNECT_HREF}>Connect your agent</a>
-      </ButtonTracked>
+      />
     </div>
   );
 
@@ -239,16 +233,13 @@ export default function WebsiteTopbar() {
               >
                 Log in
               </a>
-              <ButtonTracked
-                asChild
-                size={ButtonSize.PUBLIC}
+              <ConnectAgentButton
+                label="Connect your agent"
                 variant={ButtonVariant.SECONDARY}
                 className="hidden h-9 px-5 text-sm uppercase xl:inline-flex"
-                trackingData={{ action: 'connect_agent_topbar' }}
+                trackingAction="connect_agent_topbar"
                 trackingName="topbar_cta_click"
-              >
-                <a href={AGENT_CONNECT_HREF}>Connect your agent</a>
-              </ButtonTracked>
+              />
               <ButtonTracked
                 asChild
                 size={ButtonSize.PUBLIC}

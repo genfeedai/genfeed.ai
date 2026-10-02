@@ -1,4 +1,3 @@
-import { AGENT_CONNECT_HREF } from '@data/agent-connect.data';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import AgentFirstActions from './AgentFirstActions';
@@ -13,12 +12,12 @@ describe('AgentFirstActions', () => {
   it('puts the agent action before the SaaS sign-up', () => {
     render(<AgentFirstActions trackingName="research_hero_click" />);
 
-    const links = screen.getAllByRole('link');
+    const links = [...document.querySelectorAll('button, a')];
     expect(links.map((link) => link.textContent)).toEqual([
       'Connect your agent',
       'Start for $0',
     ]);
-    expect(links[0]).toHaveAttribute('href', AGENT_CONNECT_HREF);
+    expect(links[0]).toHaveAttribute('aria-haspopup', 'dialog');
     expect(links[1]).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
   });
 
@@ -48,7 +47,7 @@ describe('AgentFirstActions', () => {
     window.addEventListener('genfeed:marketing:button-click', listener);
 
     render(<AgentFirstActions trackingName="research_hero_click" />);
-    fireEvent.click(screen.getByRole('link', { name: 'Connect your agent' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Connect your agent' }));
 
     expect(listener).toHaveBeenCalledWith(
       expect.objectContaining({

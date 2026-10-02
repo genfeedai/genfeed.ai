@@ -130,30 +130,30 @@ describe('ServiceLandingPage', () => {
     (slug) => {
       render(<ServiceLandingPage slug={slug} />);
       const header = within(screen.getByRole('banner'));
-      const connect = header.getByRole('link', { name: 'Connect your agent' });
-      expect(connect).toHaveAttribute('href', '/agent#connect');
+      const connect = header.getByRole('button', {
+        name: 'Connect your agent',
+      });
+      expect(connect).toHaveAttribute('aria-haspopup', 'dialog');
       expect(connect).not.toHaveAttribute('target', '_blank');
       expect(
         header.getByRole('link', { name: 'Start for $0' }),
       ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
       const body = within(screen.getByRole('main'));
-      const actions = body
-        .getAllByRole('link')
-        .filter((link) =>
-          ['Connect your agent', 'Start for $0'].includes(
-            link.textContent ?? '',
-          ),
-        );
+      const actions = [
+        ...screen.getByRole('main').querySelectorAll('button, a'),
+      ].filter((link) =>
+        ['Connect your agent', 'Start for $0'].includes(link.textContent ?? ''),
+      );
       expect(actions.map((link) => link.textContent)).toEqual([
         'Connect your agent',
         'Start for $0',
         'Connect your agent',
         'Start for $0',
       ]);
-      for (const link of body.getAllByRole('link', {
+      for (const link of body.getAllByRole('button', {
         name: 'Connect your agent',
       })) {
-        expect(link).toHaveAttribute('href', '/agent#connect');
+        expect(link).toHaveAttribute('aria-haspopup', 'dialog');
       }
       expect(
         screen.queryByRole('link', { name: /book a call/i }),
@@ -174,7 +174,7 @@ describe('ServiceLandingPage', () => {
     render(<ServiceLandingPage slug="x" />);
     const body = within(screen.getByRole('main'));
     fireEvent.click(
-      body.getAllByRole('link', { name: 'Connect your agent' })[0],
+      body.getAllByRole('button', { name: 'Connect your agent' })[0],
     );
     expect(listener).toHaveBeenCalledWith(
       expect.objectContaining({

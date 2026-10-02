@@ -1,11 +1,10 @@
 'use client';
 
-import { AGENT_CONNECT_HREF } from '@data/agent-connect.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AgentFirstActionsProps } from '@props/website/agent-first-actions.props';
 import { EnvironmentService } from '@services/core/environment.service';
+import ConnectAgentButton from '@ui/buttons/connect-agent/ConnectAgentButton';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import Link from 'next/link';
 
 /*
   The product pages sell one path: point the agent you already use at Genfeed,
@@ -19,14 +18,10 @@ export default function AgentFirstActions({
 }: AgentFirstActionsProps): React.ReactElement {
   return (
     <>
-      <ButtonTracked
-        asChild
-        size={ButtonSize.PUBLIC}
-        trackingData={{ action: 'connect_agent' }}
+      <ConnectAgentButton
+        label="Connect your agent"
         trackingName={trackingName}
-      >
-        <Link href={AGENT_CONNECT_HREF}>Connect your agent</Link>
-      </ButtonTracked>
+      />
       <ButtonTracked
         asChild
         size={ButtonSize.PUBLIC}

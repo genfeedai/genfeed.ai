@@ -1,8 +1,8 @@
-import { AGENT_CONNECT_HREF } from '@data/agent-connect.data';
 import { BOOKING_HREF, BOOKING_PAGE_SLUG } from '@data/booking.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ServiceLandingActionsProps } from '@props/website/service-landing.props';
 import { EnvironmentService } from '@services/core/environment.service';
+import ConnectAgentButton from '@ui/buttons/connect-agent/ConnectAgentButton';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import SectionHeader from '@ui/marketing/SectionHeader';
 import PublicShell from '@ui/shell/PublicShell';
@@ -83,10 +83,19 @@ export default function ServiceLandingPage({
     pitchLandingConfigBySlug[slug]) as ServiceLandingConfig;
   const topbar = (
     <LandingTopbar
-      ctaHref={config.isAgentFirst ? AGENT_CONNECT_HREF : SIGN_UP_HREF}
+      ctaHref={SIGN_UP_HREF}
       ctaLabel={config.isAgentFirst ? 'Connect your agent' : 'Start free'}
       secondaryCtaHref={config.isAgentFirst ? SIGN_UP_HREF : BOOKING_HREF}
       secondaryCtaLabel={config.isAgentFirst ? 'Start for $0' : 'Book a call'}
+      primaryAction={
+        config.isAgentFirst ? (
+          <ConnectAgentButton
+            label="Connect your agent"
+            className="h-11 px-2 text-xs tracking-[0.04em] sm:px-5 sm:text-sm sm:tracking-[0.18em]"
+            trackingName={`${slug}_landing_click`}
+          />
+        ) : undefined
+      }
     />
   );
 

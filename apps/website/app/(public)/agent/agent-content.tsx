@@ -1,13 +1,8 @@
-import { agentClients, getAgentClient } from '@data/agent-clients.data';
 import { AGENT_PROMPTS } from '@data/agent-prompts.data';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { EnvironmentService } from '@services/core/environment.service';
-import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import EditorialPoster from '@ui/marketing/EditorialPoster';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
-import AgentClientLogo from '@web-components/content/AgentClientLogo';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
@@ -15,7 +10,6 @@ import { Blocks, BookOpen, Plug, Terminal } from 'lucide-react';
 import Link from 'next/link';
 
 const DOCS_URL = 'https://docs.genfeed.ai';
-const MCP_DOCS_URL = 'https://docs.genfeed.ai/api-reference/mcp';
 const SKILLS_DOCS_URL = 'https://docs.genfeed.ai/skills';
 
 const SURFACES = [
@@ -59,11 +53,6 @@ const CLI_STEPS = [
   },
 ];
 
-const MCP_SNIPPETS = (['claude-code', 'codex'] as const).map((slug) => {
-  const client = getAgentClient(slug);
-  return { code: client.oauth.primaryCommand ?? '', title: client.name };
-});
-
 const CAPABILITIES = [
   'Generate images and video',
   'Draft and edit posts',
@@ -102,8 +91,6 @@ const HERO_VISUAL = (
 );
 
 export default function AgentContent() {
-  const signUpHref = `${EnvironmentService.apps.app}/sign-up`;
-
   return (
     <MarketingEntrance>
       <PageLayout
@@ -111,73 +98,12 @@ export default function AgentContent() {
           <MarketingArtwork page="/agent" isCompact kind="integration" />
         }
         compact
-        description="Tell it what you want. It makes the content, keeps it on brand, and schedules it — and shows you everything before it goes out."
+        description="Give the Genfeed agent a brief. It creates images, videos, and posts with your brand context, holds drafts for review, and schedules the content you approve."
         heroActions={<AgentFirstActions trackingName="agent_hero_click" />}
         heroVisual={HERO_VISUAL}
         title="Genfeed Agent"
       >
-        {/*
-          The first thing on the page is the connection itself: every CTA on
-          the site that says "Connect your agent" lands here. The agent is the
-          front door; the app is where the work gets reviewed and published.
-        */}
-        <section
-          className="gsap-section max-w-6xl mx-auto scroll-mt-24 pb-20 px-6"
-          id="connect"
-        >
-          <Heading as="h2" className="text-2xl font-bold mb-2 text-surface">
-            Connect your agent
-          </Heading>
-          <Text as="p" className="text-surface/65 mb-8">
-            Pick the agent you already use. Approve Genfeed once in the browser
-            and it can make, schedule, and publish for you. No API key.
-          </Text>
-          <div className="gsap-grid grid grid-cols-2 gap-1.5 md:grid-cols-4">
-            {agentClients.map((client) => (
-              <Link
-                className="flex flex-col gap-3 rounded-card border border-edge/[0.08] bg-fill/5 p-5 transition-colors hover:border-edge/20 hover:bg-fill/10"
-                href={`/${client.slug}`}
-                key={client.slug}
-              >
-                <AgentClientLogo client={client} />
-                <Heading as="h3" className="font-semibold text-surface">
-                  {client.name}
-                </Heading>
-                <Text className="mt-auto text-[13px] font-semibold text-surface/50">
-                  Setup guide
-                </Text>
-              </Link>
-            ))}
-          </div>
-          <Text as="p" className="mt-8 text-surface/65">
-            Anything else that speaks Streamable HTTP connects to{' '}
-            <span className="text-surface">https://mcp.genfeed.ai/mcp</span>.
-            Clients without OAuth can use a scoped key from{' '}
-            <span className="text-surface">
-              genfeed keys create -n &quot;my agent&quot; -p mcp
-            </span>
-            .
-          </Text>
-          <div className="mt-6 grid grid-cols-1 gap-1.5 md:grid-cols-2">
-            {MCP_SNIPPETS.map((snippet) => (
-              <div key={snippet.title} className="gen-card-spotlight p-8">
-                <Heading as="h3" className="font-semibold mb-4 text-surface">
-                  {snippet.title}
-                </Heading>
-                <pre className="overflow-x-auto rounded-sm border gen-border bg-card p-4 text-sm text-surface">
-                  {snippet.code}
-                </pre>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/*
-          What people actually ask for, before any of the developer detail.
-          A reader arriving from an article wants to know what the agent will
-          do for them; the CLI and skills material below answers a different
-          question and used to be the only thing on this page.
-        */}
+        {/* Lead with what Genfeed’s own agent does with a brief. */}
         <section className="gsap-section max-w-6xl mx-auto pb-20 px-6">
           <Heading as="h2" className="text-2xl font-bold mb-2 text-surface">
             What people ask it for
@@ -204,21 +130,35 @@ export default function AgentContent() {
           </div>
         </section>
 
-        {/*
-          Everything below is the developer surface. It stays on this page
-          because it is shipped and documented, but it is banded off so the
-          reader who does not want a terminal knows to stop here.
-        */}
+        {/* What the agent can do */}
+        <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
+          <Heading as="h2" className="text-2xl font-bold text-center mb-8">
+            What the agent can do
+          </Heading>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5">
+            {CAPABILITIES.map((capability) => (
+              <div
+                key={capability}
+                className="gen-contact-sheet flex items-center justify-center rounded-card p-6 bg-fill/[0.02]"
+              >
+                <Text className="text-center text-sm font-semibold tracking-[-0.01em] text-surface/70">
+                  {capability}
+                </Text>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Optional ways to use Genfeed’s agent and tools. */}
         <section className="gsap-section max-w-6xl mx-auto border-t border-edge/[0.08] pb-10 px-6 pt-16">
           <Heading as="h2" className="text-2xl font-bold mb-2 text-surface">
-            Connect it to your own tools
+            Use Genfeed where you already work
           </Heading>
           <Text as="p" className="text-surface/65">
-            The rest of this page is for developers. There is a fuller tour on{' '}
-            <Link className="link" href="/developers">
-              the developers page
-            </Link>
-            , and the full reference in{' '}
+            Run Genfeed’s agent in your terminal, or give the agent you already
+            use access to Genfeed’s tools. Connect directly from this page, then
+            sign in or create your Genfeed account when your agent requests
+            approval. Developers can find the full reference in{' '}
             <a
               className="link"
               href={DOCS_URL}
@@ -229,6 +169,9 @@ export default function AgentContent() {
             </a>
             .
           </Text>
+          <div className="mt-6 flex flex-wrap gap-4">
+            <AgentFirstActions trackingName="agent_integrations_click" />
+          </div>
         </section>
 
         {/* Three surfaces */}
@@ -315,25 +258,6 @@ export default function AgentContent() {
           </div>
         </section>
 
-        {/* What the agent can do */}
-        <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <Heading as="h2" className="text-2xl font-bold text-center mb-8">
-            What the agent can do
-          </Heading>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5">
-            {CAPABILITIES.map((capability) => (
-              <div
-                key={capability}
-                className="gen-contact-sheet flex items-center justify-center p-6 bg-fill/[0.02]"
-              >
-                <Text className="text-center text-sm font-semibold tracking-[-0.01em] text-surface/70">
-                  {capability}
-                </Text>
-              </div>
-            ))}
-          </div>
-        </section>
-
         {/* CTA */}
         <section className="max-w-4xl mx-auto pb-16 px-6">
           <div className="gen-card-spotlight p-6 sm:p-12 text-center">
@@ -341,38 +265,15 @@ export default function AgentContent() {
               <Terminal className="size-8 text-surface" />
             </div>
             <Heading as="h2" className="text-2xl font-bold mb-2 text-surface">
-              Start from the terminal
+              Put the Genfeed agent to work
             </Heading>
             <Text as="p" className="text-surface/70 mb-6 max-w-lg mx-auto">
-              Create an account, mint a key, and the CLI and MCP server are both
-              live on the same workspace.
+              Start with a free account. Use Genfeed’s agent or connect the one
+              you already have. Generation uses your Genfeed credits; you review
+              the results before publishing.
             </Text>
             <div className="flex flex-row items-center flex-wrap gap-4 justify-center">
-              <ButtonTracked
-                asChild
-                size={ButtonSize.PUBLIC}
-                trackingData={{ action: 'create_now' }}
-                trackingName="agent_cta_click"
-              >
-                <a href={signUpHref} rel="noopener noreferrer" target="_blank">
-                  Get an API key
-                </a>
-              </ButtonTracked>
-              <ButtonTracked
-                asChild
-                size={ButtonSize.PUBLIC}
-                trackingData={{ action: 'read_mcp_docs' }}
-                trackingName="agent_cta_click"
-                variant={ButtonVariant.SECONDARY}
-              >
-                <a
-                  href={MCP_DOCS_URL}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  MCP setup guide
-                </a>
-              </ButtonTracked>
+              <AgentFirstActions trackingName="agent_cta_click" />
             </div>
             <Text as="p" className="mt-6 text-sm text-surface/65">
               <a

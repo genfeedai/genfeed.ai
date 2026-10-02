@@ -1,4 +1,3 @@
-import { agentClients } from '@data/agent-clients.data';
 import { AGENT_PROMPTS } from '@data/agent-prompts.data';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -52,38 +51,12 @@ describe('AgentContent', () => {
     ).toBeInTheDocument();
   });
 
-  it('gives Claude Code and Codex the hosted MCP endpoint', () => {
-    render(<AgentContent />);
-
-    const claudeCommand = screen.getByText(/claude mcp add --transport http/);
-    const codexCommand = screen.getByText(/codex mcp add genfeed/);
-
-    expect(claudeCommand).toHaveTextContent('https://mcp.genfeed.ai/mcp');
-    expect(codexCommand).toHaveTextContent('https://mcp.genfeed.ai/mcp');
-    expect(claudeCommand).not.toHaveTextContent('Bearer');
-  });
-
-  it('links a setup guide for every agent client, including Meta Muse', () => {
-    render(<AgentContent />);
-
-    for (const [name, href] of [
-      ['Meta Muse', '/muse'],
-      ['Grok Bot', '/grok-bot'],
-      ['ChatGPT', '/chatgpt'],
-    ]) {
-      const hrefs = screen
-        .getAllByRole('link', { name: new RegExp(`^${name}`) })
-        .map((link) => link.getAttribute('href'));
-      expect(hrefs).toContain(href);
-    }
-  });
-
   it('leads the hero with the agent connection, then sign-up', () => {
     render(<AgentContent />);
 
     expect(
-      screen.getByRole('link', { name: /connect your agent/i }),
-    ).toHaveAttribute('href', '/agent#connect');
+      screen.getAllByRole('button', { name: /connect your agent/i })[0],
+    ).toHaveAttribute('aria-haspopup', 'dialog');
     const [heroKeyLink] = screen.getAllByRole('link', {
       name: /start for \$0/i,
     });
@@ -94,30 +67,9 @@ describe('AgentContent', () => {
     );
   });
 
-  it('shows a local application mark on every named setup link', () => {
-    const { container } = render(<AgentContent />);
+  it('uses the shared card radius for prompt cards', () => {
+    render(<AgentContent />);
 
-    for (const client of agentClients) {
-      const link = container.querySelector(
-        `#connect a[href="/${client.slug}"]`,
-      );
-      const logo = link?.querySelector('img');
-
-      expect(link).toHaveAccessibleName(`${client.name} Setup guide`);
-      expect(logo).toHaveAttribute('src', client.logo);
-      expect(logo).toHaveAttribute('alt', '');
-      expect(logo).toHaveAttribute('width', '32');
-    }
-  });
-
-  it('uses the shared card radius for setup and prompt cards', () => {
-    const { container } = render(<AgentContent />);
-
-    for (const client of agentClients) {
-      expect(
-        container.querySelector(`#connect a[href="/${client.slug}"]`),
-      ).toHaveClass('rounded-card');
-    }
     for (const prompt of AGENT_PROMPTS) {
       const link = screen.getByRole('link', {
         name: new RegExp(prompt.hrefLabel),
@@ -126,19 +78,33 @@ describe('AgentContent', () => {
     }
   });
 
-  it('puts the connect section, which every agent CTA targets, first', () => {
+  it('leads with Genfeed’s examples and capabilities before optional integration details', () => {
     const { container } = render(<AgentContent />);
-
-    const connect = container.querySelector('#connect');
     const asks = screen.getByRole('heading', {
-      level: 2,
-      name: /what people ask it for/i,
+      name: 'What people ask it for',
+    });
+    const capabilities = screen.getByRole('heading', {
+      name: 'What the agent can do',
+    });
+    const integrations = screen.getByRole('heading', {
+      name: 'Use Genfeed where you already work',
     });
 
-    expect(connect).not.toBeNull();
     expect(
-      connect?.compareDocumentPosition(asks) & Node.DOCUMENT_POSITION_FOLLOWING,
+      asks.compareDocumentPosition(capabilities) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    expect(
+      capabilities.compareDocumentPosition(integrations) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(container.querySelector('#connect')).toBeNull();
+    expect(
+      screen.queryByRole('link', { name: /setup guide/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Give the Genfeed agent a brief/),
+    ).toBeInTheDocument();
   });
 
   it('tracks hero and closing CTAs under separate page-scoped names', () => {
@@ -150,7 +116,11 @@ describe('AgentContent', () => {
       name: /start for \$0/i,
     });
     fireEvent.click(heroKeyLink);
-    fireEvent.click(screen.getByRole('link', { name: /mcp setup guide/i }));
+    fireEvent.click(
+      screen
+        .getAllByRole('button', { name: /connect your agent/i })
+        .slice(-1)[0],
+    );
 
     expect(listener).toHaveBeenNthCalledWith(
       1,
@@ -165,7 +135,7 @@ describe('AgentContent', () => {
       2,
       expect.objectContaining({
         detail: {
-          trackingData: { action: 'read_mcp_docs' },
+          trackingData: { action: 'connect_agent' },
           trackingName: 'agent_cta_click',
         },
       }),
