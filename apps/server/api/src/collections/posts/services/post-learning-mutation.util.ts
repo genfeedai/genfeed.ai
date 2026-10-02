@@ -58,6 +58,11 @@ export type PostLearningMutationContext = {
     PublishApprovalsService,
     'assertPostMutable' | 'invalidatePost'
   >;
+  createPost: (
+    tx: Prisma.TransactionClient,
+    data: Record<string, unknown>,
+    populate: PopulateInput,
+  ) => Promise<PostDocument>;
   readPost: (
     tx: Prisma.TransactionClient,
     where: Prisma.PostWhereInput,
@@ -139,12 +144,42 @@ async function discoverPostTargetScope(
   }
   return { organizationId: current.organizationId, brandId, credentialId };
 }
+async function assertChildCreateScope(
+  tx: Prisma.TransactionClient,
+  parent: PostRow,
+  scope: Scope,
+): Promise<void> {
+  if (
+    parent.organizationId !== scope.organizationId ||
+    parent.brandId !== scope.brandId
+  )
+    throw new BadRequestException(
+      'A child post must retain its parent organization and brand.',
+    );
+  if (scope.credentialId && scope.credentialId !== parent.credentialId) {
+    const credential = await tx.credential.findFirst({
+      where: {
+        id: scope.credentialId,
+        organizationId: scope.organizationId,
+        brandId: scope.brandId,
+        isConnected: true,
+        isDeleted: false,
+      },
+      select: { id: true },
+    });
+    if (!credential)
+      throw new BadRequestException(
+        'The selected child credential is unavailable for this brand.',
+      );
+  }
+}
 async function discoverPostMutation(
   tx: Prisma.TransactionClient,
   id: string,
   dto: PostUpdateInput,
   remove: boolean,
   organizationId?: string,
+  createScope?: Scope,
 ): Promise<PostPlan | null> {
   // tenant-scope-ignore: authorized opaque ID discovery pins subsequent source queries and writes to the original tenant.
   const current = await tx.post.findFirst({
@@ -156,6 +191,7 @@ async function discoverPostMutation(
     select: learningPublicationPostSelect,
   });
   if (!current) return null;
+  if (createScope) await assertChildCreateScope(tx, current, createScope);
   const { brandId, credentialId } = await discoverPostTargetScope(
     tx,
     current,
@@ -217,6 +253,7 @@ async function discoverPostMutation(
       credentialId: row.credentialId,
     })),
     { organizationId: current.organizationId, brandId, credentialId },
+    ...(createScope ? [createScope] : []),
   ];
   if (!remove)
     scopes.push(
@@ -296,6 +333,7 @@ async function lockPostMutationSources(
   plan: PostPlan,
   dto: PostUpdateInput,
   remove: boolean,
+  createScope?: Scope,
 ): Promise<void> {
   await tx.$queryRaw(
     Prisma.sql`SELECT "id" FROM "organizations" WHERE "id" = ${plan.organizationId} AND "isDeleted" = false FOR UPDATE`,
@@ -340,6 +378,7 @@ async function lockPostMutationSources(
     dto,
     remove,
     plan.organizationId,
+    createScope,
   );
   const identities = (value: PostPlan) => ({
     rows: value.rows.map((row) => ({
@@ -350,6 +389,7 @@ async function lockPostMutationSources(
       targetExecutionState: row.targetExecutionState,
     })),
     childIds: value.childIds,
+    scopes: value.scopes,
     accounts: value.accounts,
     approvals: value.approvals.map((row) => row.id),
     pins: value.pins,
@@ -574,4 +614,95 @@ export async function removePostWithLearning(
   );
   await invalidateChangedPostSources(tx, plan, before, plan.approvals);
   return { deletedPost, childrenDeleted: children.count };
+}
+
+export async function createPostChildWithLearning(
+  tx: Prisma.TransactionClient,
+  context: PostLearningMutationContext,
+  preparedData: Record<string, unknown>,
+  populate: PopulateInput,
+): Promise<{ createdPost: PostDocument; afterCommit: (() => void)[] }> {
+  await learningFence(tx, 'exclusive');
+  const { parentId, organizationId, brandId, credentialId } = preparedData;
+  if (
+    typeof parentId !== 'string' ||
+    !parentId ||
+    typeof organizationId !== 'string' ||
+    !organizationId
+  )
+    throw new BadRequestException(
+      'Child creation requires an exact parent and organization.',
+    );
+  if (
+    (brandId !== undefined &&
+      brandId !== null &&
+      typeof brandId !== 'string') ||
+    (credentialId !== undefined &&
+      credentialId !== null &&
+      typeof credentialId !== 'string')
+  )
+    throw new BadRequestException(
+      'Child creation requires canonical brand and credential identities.',
+    );
+  const scope: Scope = {
+    organizationId,
+    brandId: brandId ?? null,
+    credentialId: credentialId ?? null,
+  };
+  const plan = await discoverPostMutation(
+    tx,
+    parentId,
+    {},
+    false,
+    organizationId,
+    scope,
+  );
+  if (!plan) throw new NotFoundException('Post', parentId);
+  await lockPostMutationAccounts(tx, plan);
+  await lockPostMutationSources(tx, plan, {}, false, scope);
+  const before = await readPostMutationSnapshots(tx, plan),
+    afterCommit: (() => void)[] = [];
+  const parent = plan.rows.find((row) => row.id === parentId);
+  if (!parent)
+    throw new ConflictException('Parent post vanished during child creation.');
+  const protectedParent =
+    plan.approvals.some((row) => row.postId === parentId) ||
+    !!parent.publishApprovalId ||
+    !!parent.reviewVersionPinId;
+  if (protectedParent) {
+    if (!context.publishApprovalsService)
+      throw new ConflictException(
+        'Publish approval authority is required for this parent post.',
+      );
+    await context.publishApprovalsService.assertPostMutable(
+      organizationId,
+      parentId,
+      tx,
+    );
+  }
+  const createdPost = await context.createPost(tx, preparedData, populate);
+  const after = await readPostMutationSnapshots(tx, plan);
+  const original = before.find((value) => value.row.id === parentId),
+    current = after.find((value) => value.row.id === parentId);
+  if (!original || !current)
+    throw new ConflictException('Parent post vanished after child creation.');
+  if (
+    original.row._count.children !== current.row._count.children &&
+    protectedParent
+  ) {
+    if (!context.publishApprovalsService)
+      throw new ConflictException(
+        'Publish approval authority is required for this parent post.',
+      );
+    await context.publishApprovalsService.invalidatePost(
+      organizationId,
+      parentId,
+      'Post thread membership changed.',
+      undefined,
+      tx,
+      (emit) => afterCommit.push(emit),
+    );
+  }
+  await invalidateChangedPostSources(tx, plan, before, plan.approvals);
+  return { createdPost, afterCommit };
 }

@@ -17,6 +17,7 @@ import {
   type PostBatchScheduleTarget,
 } from '@api/collections/posts/services/post-batch-schedule.util';
 import {
+  createPostChildWithLearning,
   type PostLearningMutationContext,
   patchPostWithLearning,
   removePostWithLearning,
@@ -172,6 +173,10 @@ export class PostsService extends BaseService<
       }),
     };
 
+    const isChild =
+      typeof prismaWriteData.parentId === 'string' &&
+      prismaWriteData.parentId.length > 0;
+    let childTimezoneLog: string | undefined;
     const executionState = resolveDefaultTargetExecutionState({
       scheduledDate: dto.scheduledDate,
       targetExecutionState: dto.targetExecutionState,
@@ -207,19 +212,39 @@ export class PostsService extends BaseService<
         dto.timezone,
       );
 
-      this.logger.log(
-        `Converting scheduledDate from ${dto.timezone} to UTC: ${dto.scheduledDate} → ${convertedDate.toISOString()}`,
-      );
+      const message = `Converting scheduledDate from ${dto.timezone} to UTC: ${dto.scheduledDate} → ${convertedDate.toISOString()}`;
+      if (isChild) childTimezoneLog = message;
+      else this.logger.log(message);
 
       prismaWriteData.scheduledDate = convertedDate;
     }
 
-    const created = await super.create(
-      prismaWriteData as unknown as CreatePostDto,
-      populate,
-    );
+    const created = isChild
+      ? await this.createChildPost(prismaWriteData, populate)
+      : await super.create(
+          prismaWriteData as unknown as CreatePostDto,
+          populate,
+        );
+    if (childTimezoneLog) this.logger.log(childTimezoneLog);
     await this.bindScheduledPublish(created, dto.userId);
     return created;
+  }
+
+  private async createChildPost(
+    data: Record<string, unknown>,
+    populate: PopulateInput,
+  ): Promise<PostDocument> {
+    const result = await this.prisma.$transaction((tx) =>
+      createPostChildWithLearning(
+        tx,
+        this.postLearningContext(),
+        data,
+        populate,
+      ),
+    );
+    await this.invalidatePostMutationCache();
+    for (const emit of result.afterCommit) emit();
+    return result.createdPost;
   }
 
   findOne(
@@ -364,6 +389,16 @@ export class PostsService extends BaseService<
     return {
       logger: this.logger,
       publishApprovalsService: this.publishApprovalsService,
+      createPost: async (tx, data, populate) => {
+        const include = this.populateToInclude(populate) as
+          | Prisma.PostInclude
+          | undefined;
+        const row = await tx.post.create({
+          data: this.normalizeData(data) as Prisma.PostCreateArgs['data'],
+          ...(include ? { include } : {}),
+        });
+        return this.normalizeDocument(row);
+      },
       readPost: async (tx, where, populate) => {
         const include = this.populateToInclude(populate) as
           | Prisma.PostInclude

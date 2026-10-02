@@ -308,17 +308,28 @@ describe('PostsService batchSchedule', () => {
 
   it('creates threads from canonical inputs and owns the parentId linkage', async () => {
     const { post, service } = makeService();
+    let root: Record<string, unknown> | undefined;
+    let children = 0;
+    post.findFirst.mockImplementation(async () =>
+      root ? { ...root, _count: { children, ingredients: 0 } } : null,
+    );
     post.create
-      .mockImplementationOnce(
-        ({ data }: { data: Record<string, unknown> }) => ({
+      .mockImplementationOnce(({ data }: { data: Record<string, unknown> }) => {
+        root = {
           ...data,
           id: 'root-post',
-        }),
-      )
+          isDeleted: false,
+          parentId: null,
+          publishApprovalId: null,
+          reviewVersionPinId: null,
+        };
+        return { ...root };
+      })
       .mockImplementationOnce(
         ({ data }: { data: Record<string, unknown> }) => ({
           ...data,
-          id: 'child-post',
+          id: `child-${++children === 1 ? 'post' : children}`,
+          isDeleted: false,
         }),
       );
 
@@ -1565,5 +1576,451 @@ describe('post owner learning mutation protocol', () => {
     );
     expect(value.rows[1].targetExecutionState).toBe(TargetExecutionState.DRAFT);
     expect(value.revision).not.toHaveBeenCalled();
+  });
+});
+
+describe('PostsService child creation authority', () => {
+  type Row = Record<string, unknown>;
+  type Binding = {
+    bindScheduledPublish: (post: unknown, userId?: string) => Promise<void>;
+  };
+  function matches(row: Row, where: Row): boolean {
+    return Object.entries(where).every(([key, value]) => {
+      if (key === 'OR')
+        return (value as Row[]).some((condition) => matches(row, condition));
+      if (value && typeof value === 'object' && 'in' in value)
+        return (value.in as unknown[]).includes(row[key]);
+      return row[key] === value;
+    });
+  }
+  function fixture() {
+    const parent: Row = {
+      id: 'parent',
+      organizationId: 'org',
+      brandId: 'brand',
+      credentialId: 'parent-credential',
+      parentId: null,
+      isDeleted: false,
+      description: 'published parent',
+      category: 'TEXT',
+      platform: CredentialPlatform.TWITTER,
+      targetExecutionState: TargetExecutionState.PUBLISHED,
+      visibility: PostVisibility.PUBLIC,
+      publishApprovalId: 'approval',
+      reviewVersionPinId: 'pin',
+      ingredients: [],
+    };
+    const rows: Row[] = [parent],
+      order: string[] = [];
+    const accounts: Row[] = ['parent-credential', 'child-credential'].map(
+      (credentialId, index) => ({
+        id: index ? 'z-child-account' : 'a-parent-account',
+        organizationId: 'org',
+        brandId: 'brand',
+        credentialId,
+        isDeleted: false,
+        evidenceRevision: 0,
+      }),
+    );
+    const approvals: Row[] = [
+      {
+        id: 'approval',
+        organizationId: 'org',
+        brandId: 'brand',
+        postId: 'parent',
+        artifactVersionPinId: 'pin',
+        status: 'published',
+        invalidatedAt: null,
+      },
+    ];
+    const project = (row: Row, select?: Row) => {
+      const current: Row = {
+        ...row,
+        _count: {
+          children: rows.filter(
+            (child) => child.parentId === row.id && !child.isDeleted,
+          ).length,
+          ingredients: (row.ingredients as unknown[]).length,
+        },
+      };
+      return select
+        ? Object.fromEntries(
+            Object.keys(select).map((key) => [key, current[key]]),
+          )
+        : current;
+    };
+    const tx = {
+      $queryRaw: vi.fn(async (sql) => {
+        order.push(
+          Array.isArray(sql)
+            ? sql.join(' ')
+            : `${sql.strings.join(' ')} ${sql.values.join(' ')}`,
+        );
+        return [{ id: 'locked' }];
+      }),
+      post: {
+        findFirst: vi.fn(async ({ where, select }) => {
+          const row = rows.find((row) => matches(row, where));
+          return row ? project(row, select) : null;
+        }),
+        findMany: vi.fn(async ({ where, select }) =>
+          rows
+            .filter((row) => matches(row, where))
+            .map((row) => project(row, select)),
+        ),
+        create: vi.fn(async ({ data, include }) => {
+          order.push('insert');
+          const row = {
+            ...data,
+            id: 'child',
+            isDeleted: data.isDeleted ?? false,
+            ingredients: data.ingredients?.connect ?? [],
+            tags: data.tags?.connect ?? [],
+          };
+          rows.push(row);
+          return include ? { ...row } : row;
+        }),
+      },
+      credential: {
+        findFirst: vi.fn(async ({ where }) =>
+          where.organizationId === 'org' &&
+          where.brandId === 'brand' &&
+          where.id === 'child-credential'
+            ? { id: where.id }
+            : null,
+        ),
+      },
+      publishApproval: {
+        findMany: vi.fn(async ({ select }) =>
+          approvals.map((row) =>
+            select
+              ? Object.fromEntries(
+                  Object.keys(select).map((key) => [key, row[key]]),
+                )
+              : { ...row },
+          ),
+        ),
+      },
+      contentVersionPin: {
+        findMany: vi.fn().mockResolvedValue([{ id: 'pin' }]),
+      },
+      postPublishFinalization: {
+        findMany: vi.fn().mockResolvedValue([{ id: 'finalization' }]),
+      },
+      contentLearningAccount: {
+        findMany: vi.fn(async ({ where, select }) =>
+          accounts
+            .filter((row) => matches(row, where))
+            .map((row) =>
+              Object.fromEntries(
+                Object.keys(select).map((key) => [key, row[key]]),
+              ),
+            ),
+        ),
+        updateMany: vi.fn(async ({ where }) => {
+          const row = accounts.find((row) => matches(row, where));
+          if (!row) return { count: 0 };
+          row.evidenceRevision = Number(row.evidenceRevision) + 1;
+          return { count: 1 };
+        }),
+      },
+      contentLearningDependency: { findMany: vi.fn().mockResolvedValue([]) },
+    };
+    const approvalService = {
+      assertPostMutable: vi.fn(async (_org, _id, transaction) => {
+        expect(transaction).toBe(tx);
+        order.push('guard');
+      }),
+      invalidatePost: vi.fn(
+        async (_org, _id, _reason, _actor, transaction, defer) => {
+          expect(transaction).toBe(tx);
+          order.push('invalidate');
+          parent.publishApprovalId = null;
+          parent.reviewVersionPinId = null;
+          defer(() => order.push('telemetry'));
+        },
+      ),
+    };
+    const transaction = vi.fn(async (callback) => {
+      const before = structuredClone({ rows, accounts, approvals });
+      try {
+        const result = await callback(tx);
+        order.push('commit');
+        return result;
+      } catch (error) {
+        Object.assign(parent, before.rows[0]);
+        rows.splice(0, rows.length, parent, ...before.rows.slice(1));
+        accounts.forEach((row, index) => {
+          Object.assign(row, before.accounts[index]);
+        });
+        approvals.forEach((row, index) => {
+          Object.assign(row, before.approvals[index]);
+        });
+        throw error;
+      }
+    });
+    const cache = {
+        invalidateByTags: vi.fn(async () => {
+          order.push('cache');
+        }),
+      },
+      logger = {
+        log: vi.fn(() => order.push('log')),
+        debug: vi.fn(),
+        error: vi.fn(),
+        warn: vi.fn(),
+      };
+    const prisma = { ...tx, $transaction: transaction };
+    const make = (protectedService = true) =>
+      new PostsService(
+        prisma as never,
+        logger as never,
+        {} as never,
+        cache as never,
+        undefined,
+        protectedService ? (approvalService as never) : undefined,
+      );
+    const service = make(),
+      bind = vi.spyOn(service as unknown as Binding, 'bindScheduledPublish');
+    const dto = {
+      parentId: 'parent',
+      organizationId: 'org',
+      brandId: 'brand',
+      credentialId: 'child-credential',
+      description: 'new child',
+      label: 'child',
+      category: PostCategory.TEXT,
+      platform: CredentialPlatform.TWITTER,
+      targetExecutionState: TargetExecutionState.DRAFT,
+      userId: 'user',
+      ingredients: [],
+      tags: [],
+    };
+    return {
+      service,
+      make,
+      dto,
+      tx,
+      parent,
+      rows,
+      accounts,
+      approvals,
+      order,
+      transaction,
+      cache,
+      logger,
+      approvalService,
+      bind,
+    };
+  }
+  it('direct child create fences first and locks parent/prospective accounts before sources, revising only the factual changed parent once', async () => {
+    const value = fixture();
+    const created = await value.service.create(value.dto, []);
+    expect(created.id).toBe('child');
+    expect(value.order[0]).toContain('pg_advisory_xact_lock');
+    expect(value.order[1]).toContain('a-parent-account');
+    expect(value.order[2]).toContain('z-child-account');
+    expect(value.order[3]).toContain('organizations');
+    expect(
+      value.order
+        .slice(3)
+        .filter((entry) => entry.includes('content_learning_accounts')),
+    ).toEqual([]);
+    expect(
+      value.approvalService.assertPostMutable,
+    ).toHaveBeenCalledExactlyOnceWith('org', 'parent', value.tx);
+    expect(
+      value.approvalService.invalidatePost.mock.calls[0].slice(0, 5),
+    ).toEqual([
+      'org',
+      'parent',
+      'Post thread membership changed.',
+      undefined,
+      value.tx,
+    ]);
+    expect(value.tx.contentLearningDependency.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          sourceKind: 'post',
+          sourceId: 'parent',
+          sourceOrganizationId: 'org',
+          isDeleted: false,
+        },
+      }),
+    );
+    expect(value.accounts.map((row) => row.evidenceRevision)).toEqual([1, 0]);
+    expect(value.order.slice(-3)).toEqual(['commit', 'cache', 'telemetry']);
+    expect(value.bind).toHaveBeenCalledTimes(1);
+    expect(value.tx.post.create.mock.calls[0][0].data).toMatchObject({
+      ingredients: { connect: [] },
+      tags: { connect: [] },
+      parentId: 'parent',
+    });
+  });
+  it('guards an executing parent approval despite a null post pointer before inserting or emitting anything', async () => {
+    const value = fixture();
+    value.parent.publishApprovalId = null;
+    value.parent.reviewVersionPinId = null;
+    value.approvals[0].status = 'executing';
+    value.approvalService.assertPostMutable.mockRejectedValue(
+      new Error('provider execution in flight'),
+    );
+    await expect(value.service.create(value.dto, [])).rejects.toThrow(
+      'provider execution in flight',
+    );
+    expect(value.tx.post.create).not.toHaveBeenCalled();
+    expect(value.cache.invalidateByTags).not.toHaveBeenCalled();
+    expect(value.bind).not.toHaveBeenCalled();
+    expect(value.tx.contentLearningAccount.updateMany).not.toHaveBeenCalled();
+    expect(value.order).not.toContain('telemetry');
+  });
+  it.each([
+    'missing',
+    'deleted',
+    'foreign org',
+    'foreign brand',
+    'credential',
+    'retarget',
+    'service',
+  ])('rejects %s parent authority before insertion', async (failure) => {
+    const value = fixture();
+    if (failure === 'missing') value.rows.splice(0);
+    if (failure === 'deleted') value.parent.isDeleted = true;
+    if (failure === 'foreign org') value.parent.organizationId = 'foreign';
+    if (failure === 'foreign brand') value.parent.brandId = 'other-brand';
+    if (failure === 'credential')
+      value.tx.credential.findFirst.mockResolvedValue(null);
+    if (failure === 'retarget') {
+      const read = value.tx.post.findFirst.getMockImplementation();
+      let reads = 0;
+      value.tx.post.findFirst.mockImplementation(async (args) => {
+        if (++reads === 2) value.parent.organizationId = 'foreign';
+        return read?.(args);
+      });
+    }
+    await expect(
+      (failure === 'service' ? value.make(false) : value.service).create(
+        value.dto,
+        [],
+      ),
+    ).rejects.toThrow();
+    expect(value.tx.post.create).not.toHaveBeenCalled();
+    expect(value.cache.invalidateByTags).not.toHaveBeenCalled();
+    expect(value.tx.contentLearningAccount.updateMany).not.toHaveBeenCalled();
+  });
+  it.each(['insert', 'approval', 'dependency', 'revision'])(
+    '%s failure rolls back child, parent markers and revisions with no child aftercommit effects',
+    async (failure) => {
+      const value = fixture(),
+        before = structuredClone({
+          rows: value.rows,
+          accounts: value.accounts,
+          approvals: value.approvals,
+        });
+      if (failure === 'insert')
+        value.tx.post.create.mockRejectedValue(new Error('insert failed'));
+      if (failure === 'approval')
+        value.approvalService.invalidatePost.mockRejectedValue(
+          new Error('approval failed'),
+        );
+      if (failure === 'dependency')
+        value.tx.contentLearningDependency.findMany.mockRejectedValue(
+          new Error('dependency failed'),
+        );
+      if (failure === 'revision')
+        value.tx.contentLearningAccount.updateMany.mockResolvedValue({
+          count: 0,
+        });
+      await expect(
+        value.service.create(
+          {
+            ...value.dto,
+            scheduledDate: '2026-10-03T10:00:00',
+            timezone: 'UTC',
+          },
+          [],
+        ),
+      ).rejects.toThrow();
+      expect({
+        rows: value.rows,
+        accounts: value.accounts,
+        approvals: value.approvals,
+      }).toEqual(before);
+      expect(value.cache.invalidateByTags).not.toHaveBeenCalled();
+      expect(value.bind).not.toHaveBeenCalled();
+      expect(value.logger.log).not.toHaveBeenCalled();
+      expect(value.order).not.toContain('telemetry');
+    },
+  );
+  it('a tombstoned child insert leaves actual parent live-child count and learning unchanged', async () => {
+    const value = fixture();
+    await value.service.create({ ...value.dto, isDeleted: true } as never, []);
+    expect(value.rows[1].isDeleted).toBe(true);
+    expect(value.parent.publishApprovalId).toBe('approval');
+    expect(value.approvalService.invalidatePost).not.toHaveBeenCalled();
+    expect(value.tx.contentLearningDependency.findMany).not.toHaveBeenCalled();
+    expect(value.tx.contentLearningAccount.updateMany).not.toHaveBeenCalled();
+  });
+  it('scheduled child validation, original timezone log and binder occur once after committed source invalidation', async () => {
+    const value = fixture();
+    const created = await value.service.create(
+      {
+        ...value.dto,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+        scheduledDate: '2026-10-03T10:00:00',
+        timezone: 'UTC',
+      },
+      [],
+    );
+    expect(created.targetExecutionState).toBe(TargetExecutionState.SCHEDULED);
+    expect(value.bind).toHaveBeenCalledExactlyOnceWith(created, 'user');
+    expect(value.logger.log).toHaveBeenCalledWith(
+      'Converting scheduledDate from UTC to UTC: 2026-10-03T10:00:00 → 2026-10-03T10:00:00.000Z',
+    );
+    expect(value.order.slice(-4)).toEqual([
+      'commit',
+      'cache',
+      'telemetry',
+      'log',
+    ]);
+  });
+  it('missing child organization is refused under F without inheriting the parent tenant', async () => {
+    const value = fixture();
+    await expect(
+      value.service.create({ ...value.dto, organizationId: undefined }, []),
+    ).rejects.toThrow('exact parent and organization');
+    expect(value.order[0]).toContain('pg_advisory_xact_lock');
+    expect(value.tx.post.create).not.toHaveBeenCalled();
+    expect(value.cache.invalidateByTags).not.toHaveBeenCalled();
+  });
+  it('omitted child brand uses exact null equality and never inherits the parent credential', async () => {
+    const value = fixture();
+    value.parent.brandId = null;
+    await value.service.create(
+      { ...value.dto, brandId: undefined, credentialId: undefined },
+      [],
+    );
+    const data = value.tx.post.create.mock.calls[0][0].data;
+    expect(data).not.toHaveProperty('brandId');
+    expect(data).not.toHaveProperty('credentialId');
+    expect(value.tx.credential.findFirst).not.toHaveBeenCalled();
+    expect(value.tx.contentLearningAccount.updateMany).not.toHaveBeenCalled();
+  });
+  it('scheduled child retains channel validation before opening a transaction', async () => {
+    const value = fixture();
+    await expect(
+      value.service.create(
+        {
+          ...value.dto,
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+          platform: CredentialPlatform.YOUTUBE,
+          category: PostCategory.IMAGE,
+          ingredients: [],
+        },
+        [],
+      ),
+    ).rejects.toBeInstanceOf(InvalidChannelTargetScheduleException);
+    expect(value.transaction).not.toHaveBeenCalled();
+    expect(value.bind).not.toHaveBeenCalled();
   });
 });
