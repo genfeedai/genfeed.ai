@@ -267,14 +267,12 @@ describe('immutable Crun generation financial history', () => {
     where: {
       organizationId: 'org',
       brandId: 'brand',
-      isDeleted: { in: [false, true] },
     },
     select: { id: true },
   };
   const taskQuery = {
     where: {
       organizationId: 'org',
-      isDeleted: { in: [false, true] },
       OR: [{ brandId: 'brand' }, { ingredientId: { in: ['ingredient'] } }],
     },
     select: { id: true },
@@ -363,7 +361,6 @@ describe('immutable Crun generation financial history', () => {
               rows.find(
                 (row) =>
                   row.organizationId === args.where.organizationId &&
-                  args.where.isDeleted.in.includes(row.isDeleted) &&
                   args.where.OR.some(
                     (scope) =>
                       ('brandId' in scope && scope.brandId === row.brandId) ||

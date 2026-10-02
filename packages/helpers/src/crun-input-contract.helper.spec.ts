@@ -1,7 +1,4 @@
-import type {
-  CrunInputControls,
-  CrunModelInputContract,
-} from '@genfeedai/contracts/interfaces';
+import type { CrunModelInputContract } from '@genfeedai/contracts/interfaces';
 import {
   normalizeCrunInput,
   projectCrunInputControls,
@@ -168,14 +165,15 @@ describe('reviewed Crun input admission', () => {
   });
 });
 
-function controlsFor(endpoint = 'kling/v2-5-turbo-pro'): CrunInputControls {
+function controlsFor(
+  endpoint = 'kling/v2-5-turbo-pro',
+): CrunModelInputContract {
   const kling = endpoint === 'kling/v2-5-turbo-pro';
   return {
     endpoint,
     version: 'reviewed-video-v1',
+    serverOverrides: {},
     mediaKind: 'video',
-    maxOutputs: 4,
-    isBatchSupported: false,
     isAutoAspectReferenceRequired: false,
     referenceRoles: kling ? { img_urls: 'image' } : {},
     videoRules: {
@@ -275,7 +273,7 @@ describe('shared video normalization and projection', () => {
     });
   });
   it('projects safe video metadata and independently copied arrays', () => {
-    const source: CrunInputControls = {
+    const source: CrunModelInputContract = {
       ...controlsFor(),
       serverOverrides: {},
       fields: {

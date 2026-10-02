@@ -167,6 +167,21 @@ describe('Crun reviewed video preparation', () => {
       expect(f.builder.buildPrompt).not.toHaveBeenCalled();
     },
   );
+  it.each([null, 42, {}, ['invalid']])(
+    'rejects malformed compiled prompt %j before credential admission',
+    async (prompt) => {
+      const f = fixture();
+      f.builder.buildPrompt.mockResolvedValue({
+        input: { prompt },
+        templateUsed: 'image-default',
+        templateVersion: 1,
+      } as never);
+      await expect(f.service.prepare(f.raw, user)).rejects.toMatchObject({
+        response: { code: 'CRUN_INVALID_INPUT' },
+      });
+      expect(f.tasks.resolveCredential).not.toHaveBeenCalled();
+    },
+  );
   it('preserves zero guidance and false translation in exact provider input', async () => {
     for (const index of [0, 1]) {
       const f = fixture(index);

@@ -111,6 +111,9 @@ export class CrunVideoInputService {
       },
       user.organizationId,
     );
+    if (typeof built.input.prompt !== 'string') {
+      throw new BadRequestException({ code: 'CRUN_INVALID_INPUT' });
+    }
     const normalized = normalizeCrunVideoDraft(
       projectCrunInputControls(contract),
       {

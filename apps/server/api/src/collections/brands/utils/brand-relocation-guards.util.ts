@@ -191,14 +191,13 @@ export async function assertNoCrunGenerationHistory(
 ): Promise<void> {
   // tenant-scope-ignore: exact tenant and brand; tombstoned ingredients retain task attribution.
   const ingredients = await client.ingredient.findMany({
-    where: { organizationId, brandId, isDeleted: { in: [false, true] } },
+    where: { organizationId, brandId },
     select: { id: true },
   });
   // tenant-scope-ignore: exact tenant and direct/indirect brand history, including tombstones.
   const task = await client.crunGenerationTask.findFirst({
     where: {
       organizationId,
-      isDeleted: { in: [false, true] },
       OR: [
         { brandId },
         { ingredientId: { in: ingredients.map(({ id }) => id) } },
