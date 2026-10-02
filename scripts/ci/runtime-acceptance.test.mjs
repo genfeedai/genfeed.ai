@@ -32,6 +32,7 @@ import {
   BASELINE_SOURCE_CONTRACT,
   BRAND_PATH,
   BRAND_SOURCE_CONTRACT,
+  CRUN_SOURCE_CONTRACT,
   cleanupFinalCrunResources,
   cleanupFinalOwnedDatabase,
   collectConnectedEvidence,
@@ -1021,9 +1022,9 @@ function assertCliFailure(result, code) {
   );
   assert.doesNotMatch(result.stdout, /prepared|passed|result=passed/);
 }
-async function persistFixtureIdentity(value) {
+async function persistFixtureIdentity(value, savedDirectory = value.state) {
   await writeFile(
-    path.join(value.state, 'identity.json'),
+    path.join(savedDirectory, 'identity.json'),
     JSON.stringify(value),
     { mode: 0o600 },
   );
@@ -1310,7 +1311,7 @@ for (const [field, replacement, code] of [
   test(`actual saved ${field} mismatch rejects sealing without mutation`, async (t) => {
     const { value, options, env } = await stateFixture(t);
     value[field] = replacement;
-    await persistFixtureIdentity(value);
+    await persistFixtureIdentity(value, options.state);
     const before = await snapshotState(options.state);
     assertCliFailure(actualCli('seal', options, env), code);
     assert.deepEqual(await snapshotState(options.state), before);
@@ -1930,6 +1931,7 @@ for (const status of ['passed', 'failed'])
       group: value.group,
       fingerprint: value.fingerprint,
       status,
+      commands: [],
       completed: [
         'visual-preparation',
         'visual-renderless',
@@ -3227,7 +3229,7 @@ test('final cleanup rejects wrong service, unknown absence, expired deadline and
     assert.equal(resource.removed === true, kind === 'journal');
   }
 });
-async function crunCleanupFixture(t) {
+async function crunCleanupFixture(t, mediaKind = 'image') {
   const uuid = randomUUID(),
     directory = `/tmp/crun-owned-${uuid}`,
     manifest = `/tmp/crun-run-${uuid}.json`,
@@ -3247,7 +3249,7 @@ async function crunCleanupFixture(t) {
     await rm(manifest, { force: true });
     await rm(`${manifest}.tmp`, { force: true });
   });
-  const resource = { uuid, directory, manifest };
+  const resource = { mediaKind, uuid, directory, manifest };
   for (const [name, file] of [
     ['directory', directory],
     ['manifest', manifest],
@@ -3286,8 +3288,11 @@ async function crunCleanupFixture(t) {
       ...identity,
       group: 'final',
       overallDeadline: Date.now() + 100000,
-      resources: { crun: resource },
+      resources: {
+        crun: { image: null, video: null, [resource.mediaKind]: resource },
+      },
     },
+    mediaKind: resource.mediaKind,
     resource,
     start: async ({ onSpawn }) => {
       onSpawn(12345);
@@ -3303,91 +3308,92 @@ async function crunCleanupFixture(t) {
   assert.equal(hasFinalCrunTerminationProof(resource), true);
   return { resource, adapters, calls };
 }
-for (const kind of [
-  'success',
-  'evidence',
-  'schema',
-  'directory-replacement',
-  'manifest-replacement',
-  'invalid',
-  'unterminated',
-])
-  test(`actual Crun cleanup ${kind} preserves ownership and independently disposes valid resources`, async (t) => {
-    const value = await crunCleanupFixture(t),
-      original = new Error('original fixture failure');
-    if (kind === 'evidence')
-      value.adapters.save = async () => {
-        value.calls.push('evidence');
-        throw Object.assign(new Error('disk'), { code: 'EIO' });
-      };
-    if (kind === 'schema')
-      value.adapters.dropSchema = async () => {
-        value.calls.push('schema');
-        throw new Error('schema failure');
-      };
-    if (kind === 'directory-replacement') {
-      const backup = `${value.resource.directory}.original`;
-      await rename(value.resource.directory, backup);
-      t.after(() => rm(backup, { recursive: true, force: true }));
-      await mkdir(value.resource.directory, { mode: 0o700 });
-    }
-    if (kind === 'manifest-replacement')
-      value.adapters.save = async () => {
+for (const mediaKind of ['image', 'video'])
+  for (const kind of [
+    'success',
+    'evidence',
+    'schema',
+    'directory-replacement',
+    'manifest-replacement',
+    'invalid',
+    'unterminated',
+  ])
+    test(`actual Crun ${mediaKind} cleanup ${kind} preserves ownership and independently disposes valid resources`, async (t) => {
+      const value = await crunCleanupFixture(t, mediaKind),
+        original = new Error('original fixture failure');
+      if (kind === 'evidence')
+        value.adapters.save = async () => {
+          value.calls.push('evidence');
+          throw Object.assign(new Error('disk'), { code: 'EIO' });
+        };
+      if (kind === 'schema')
+        value.adapters.dropSchema = async () => {
+          value.calls.push('schema');
+          throw new Error('schema failure');
+        };
+      if (kind === 'directory-replacement') {
+        const backup = `${value.resource.directory}.original`;
+        await rename(value.resource.directory, backup);
+        t.after(() => rm(backup, { recursive: true, force: true }));
+        await mkdir(value.resource.directory, { mode: 0o700 });
+      }
+      if (kind === 'manifest-replacement')
+        value.adapters.save = async () => {
+          await writeFile(
+            `${value.resource.manifest}.replacement`,
+            'replacement',
+            { mode: 0o600 },
+          );
+          await rename(
+            `${value.resource.manifest}.replacement`,
+            value.resource.manifest,
+          );
+        };
+      if (kind === 'invalid')
         await writeFile(
-          `${value.resource.manifest}.replacement`,
-          'replacement',
+          value.resource.manifest,
+          JSON.stringify({
+            version: 1,
+            schema: 'public',
+            ownedDirectory: value.resource.directory,
+            redisKeys: [],
+          }),
           { mode: 0o600 },
         );
-        await rename(
-          `${value.resource.manifest}.replacement`,
-          value.resource.manifest,
-        );
-      };
-    if (kind === 'invalid')
-      await writeFile(
-        value.resource.manifest,
-        JSON.stringify({
-          version: 1,
-          schema: 'public',
-          ownedDirectory: value.resource.directory,
-          redisKeys: [],
-        }),
-        { mode: 0o600 },
+      if (kind === 'unterminated') value.resource.terminationConfirmed = false;
+      const result = await cleanupFinalCrunResources(
+        value.resource,
+        value.adapters,
+        Date.now() + 2000,
       );
-    if (kind === 'unterminated') value.resource.terminationConfirmed = false;
-    const result = await cleanupFinalCrunResources(
-      value.resource,
-      value.adapters,
-      Date.now() + 2000,
-    );
-    assert.equal(result.passed, kind === 'success');
-    assert.equal(original.message, 'original fixture failure');
-    if (['invalid', 'unterminated'].includes(kind)) {
-      assert.deepEqual(value.calls, []);
-      assert.ok((await lstat(value.resource.directory)).isDirectory());
-    } else {
-      assert.ok(value.calls.includes('redis'));
-      assert.ok(value.calls.includes('keys-absence'));
-      if (kind === 'directory-replacement')
+      assert.equal(result.passed, kind === 'success');
+      assert.equal(original.message, 'original fixture failure');
+      if (['invalid', 'unterminated'].includes(kind)) {
+        assert.deepEqual(value.calls, []);
         assert.ok((await lstat(value.resource.directory)).isDirectory());
-      else
-        await assert.rejects(lstat(value.resource.directory), {
+      } else {
+        assert.ok(value.calls.includes('redis'));
+        assert.ok(value.calls.includes('keys-absence'));
+        if (kind === 'directory-replacement')
+          assert.ok((await lstat(value.resource.directory)).isDirectory());
+        else
+          await assert.rejects(lstat(value.resource.directory), {
+            code: 'ENOENT',
+          });
+        if (kind === 'manifest-replacement')
+          assert.equal(
+            await readFile(value.resource.manifest, 'utf8'),
+            'replacement',
+          );
+        else
+          await assert.rejects(lstat(value.resource.manifest), {
+            code: 'ENOENT',
+          });
+        await assert.rejects(lstat(`${value.resource.manifest}.tmp`), {
           code: 'ENOENT',
         });
-      if (kind === 'manifest-replacement')
-        assert.equal(
-          await readFile(value.resource.manifest, 'utf8'),
-          'replacement',
-        );
-      else
-        await assert.rejects(lstat(value.resource.manifest), {
-          code: 'ENOENT',
-        });
-      await assert.rejects(lstat(`${value.resource.manifest}.tmp`), {
-        code: 'ENOENT',
-      });
-    }
-  });
+      }
+    });
 
 test('actual registered allocation helper distinguishes pre-spawn failure from post-spawn lost acknowledgement', async () => {
   for (const kind of ['pre-spawn', 'post-spawn', 'success']) {
@@ -3477,29 +3483,30 @@ test('baseline strict allocation intent rejects before spawn and failed cleanup 
   assert.equal(ledger.resources.database.removed, true);
   assert.equal(ledger.status, 'failed');
 });
-test('final Crun unsafe committed symlink does not authorize schema or key deletion, expired deadline does not restart', async (t) => {
-  const value = await crunCleanupFixture(t),
-    backup = `${value.resource.manifest}.original`;
-  await rename(value.resource.manifest, backup);
-  t.after(() => rm(backup, { force: true }));
-  await symlink(backup, value.resource.manifest);
-  const result = await cleanupFinalCrunResources(
-    value.resource,
-    value.adapters,
-    Date.now() + 1000,
-  );
-  assert.equal(result.passed, false);
-  assert.deepEqual(value.calls, []);
-  assert.equal((await lstat(value.resource.manifest)).isSymbolicLink(), true);
-  const expired = await cleanupFinalCrunResources(
-    value.resource,
-    value.adapters,
-    Date.now() - 1,
-  );
-  assert.equal(expired.passed, false);
-  assert.equal(expired.failures[0].code, 'CLEANUP_DEADLINE');
-  assert.deepEqual(value.calls, []);
-});
+for (const mediaKind of ['image', 'video'])
+  test(`final Crun unsafe committed symlink does not authorize schema or key deletion, expired deadline does not restart (${mediaKind})`, async (t) => {
+    const value = await crunCleanupFixture(t, mediaKind),
+      backup = `${value.resource.manifest}.original`;
+    await rename(value.resource.manifest, backup);
+    t.after(() => rm(backup, { force: true }));
+    await symlink(backup, value.resource.manifest);
+    const result = await cleanupFinalCrunResources(
+      value.resource,
+      value.adapters,
+      Date.now() + 1000,
+    );
+    assert.equal(result.passed, false);
+    assert.deepEqual(value.calls, []);
+    assert.equal((await lstat(value.resource.manifest)).isSymbolicLink(), true);
+    const expired = await cleanupFinalCrunResources(
+      value.resource,
+      value.adapters,
+      Date.now() - 1,
+    );
+    assert.equal(expired.passed, false);
+    assert.equal(expired.failures[0].code, 'CLEANUP_DEADLINE');
+    assert.deepEqual(value.calls, []);
+  });
 
 test('baseline frozen input verification checks fixture plus target and predecessor SQL independently', async (t) => {
   const root = await fixture(t);
@@ -3587,21 +3594,26 @@ test('final-only database routing preserves the diagnostic created acknowledgeme
   );
 });
 
-function finalCrunSupervisorFixture() {
+function finalCrunSupervisorFixture(mediaKind = 'image') {
   let now = 1000,
     writes = 0,
     alive = true;
   const calls = [],
-    resource = { uuid: randomUUID() },
+    resource = { mediaKind, uuid: randomUUID() },
     value = {
       ...identity,
       group: 'final',
       overallDeadline: 100000,
-      resources: { crun: resource },
+      resources: {
+        crun: { image: null, video: null, [resource.mediaKind]: resource },
+      },
     };
+  resource.manifest = `/tmp/crun-run-${resource.uuid}.json`;
+  resource.directory = `/tmp/crun-owned-${resource.uuid}`;
   const clock = { now: () => now, sleep: () => new Promise(() => {}) };
   const options = {
     identity: value,
+    mediaKind,
     resource,
     clock,
     start: async ({ onSpawn }) => {
@@ -3646,254 +3658,270 @@ function finalCrunSupervisorFixture() {
     writes: () => writes,
   };
 }
-test('actual final Crun binding requires observed group absence, closed streams and acknowledged proof before owned cleanup', async () => {
-  const value = finalCrunSupervisorFixture(),
-    result = await runFinalCrunBounded(value.options);
-  assert.equal(result.exitCode, 0);
-  assert.equal(result.cleanupError, null);
-  assert.equal(result.spawnError, null);
-  assert.deepEqual(value.calls, [
-    'spawn',
-    'ack',
-    'stop',
-    'probe',
-    'proof',
-    'cleanup',
-  ]);
-  assert.equal(result.cleanupDeadline, 16000);
-  assert.equal(hasFinalCrunTerminationProof(value.resource), true);
-  assert.equal(value.resource.cleanupResult.passed, true);
-  assert.equal(value.resource.terminationProof.candidateSHA, SHA);
-  assert.equal(value.resource.terminationProof.controlSHA, CONTROL);
-});
-for (const kind of [
-  'failed-child',
-  'output-error',
-  'stream-error',
-  'postspawn-ack',
-  'postspawn-setup',
-  'alive',
-  'EPERM',
-  'missing-pid',
-  'proof-write',
-  'owned-cleanup',
-])
-  test(`final Crun ${kind} preserves failure and never substitutes direct close for durable proof`, async () => {
-    const value = finalCrunSupervisorFixture();
-    if (['failed-child', 'output-error', 'stream-error'].includes(kind))
-      value.options.start = async ({ onSpawn }) => {
-        onSpawn(12345);
-        return {
-          pid: 12345,
-          done: Promise.resolve({
-            ...child,
-            exitCode: kind === 'failed-child' ? 7 : 0,
-            outputLimit: kind === 'output-error',
-            streamError: kind === 'stream-error',
-          }),
+for (const mediaKind of ['image', 'video'])
+  test(`actual final Crun binding requires observed group absence, closed streams and acknowledged proof before owned cleanup (${mediaKind})`, async () => {
+    const value = finalCrunSupervisorFixture(mediaKind),
+      result = await runFinalCrunBounded(value.options);
+    assert.equal(result.exitCode, 0);
+    assert.equal(result.cleanupError, null);
+    assert.equal(result.spawnError, null);
+    assert.deepEqual(value.calls, [
+      'spawn',
+      'ack',
+      'stop',
+      'probe',
+      'proof',
+      'cleanup',
+    ]);
+    assert.equal(result.cleanupDeadline, 16000);
+    assert.equal(hasFinalCrunTerminationProof(value.resource), true);
+    assert.equal(value.resource.cleanupResult.passed, true);
+    assert.equal(value.resource.terminationProof.candidateSHA, SHA);
+    assert.equal(value.resource.terminationProof.controlSHA, CONTROL);
+  });
+for (const mediaKind of ['image', 'video'])
+  for (const kind of [
+    'failed-child',
+    'output-error',
+    'stream-error',
+    'postspawn-ack',
+    'postspawn-setup',
+    'alive',
+    'EPERM',
+    'missing-pid',
+    'proof-write',
+    'owned-cleanup',
+  ])
+    test(`final Crun ${mediaKind} ${kind} preserves failure and never substitutes direct close for durable proof`, async () => {
+      const value = finalCrunSupervisorFixture(mediaKind);
+      if (['failed-child', 'output-error', 'stream-error'].includes(kind))
+        value.options.start = async ({ onSpawn }) => {
+          onSpawn(12345);
+          return {
+            pid: 12345,
+            done: Promise.resolve({
+              ...child,
+              exitCode: kind === 'failed-child' ? 7 : 0,
+              outputLimit: kind === 'output-error',
+              streamError: kind === 'stream-error',
+            }),
+          };
         };
-      };
-    if (kind === 'postspawn-ack')
-      value.options.persistProof = async () => {
-        if (!value.resource.terminationProof)
-          throw Object.assign(new Error('disk'), { code: 'EIO' });
-      };
-    if (kind === 'postspawn-setup')
-      value.options.start = async ({ onSpawn }) => {
-        onSpawn(12345);
-        throw Object.assign(new Error('pipeline setup'), { code: 'EIO' });
-      };
-    if (kind === 'alive') value.options.probe = () => 0;
-    if (kind === 'EPERM')
-      value.options.probe = () => {
-        throw Object.assign(new Error('permission'), { code: 'EPERM' });
-      };
-    if (kind === 'missing-pid')
-      value.options.start = async ({ onSpawn }) => {
-        onSpawn(undefined);
-        return { done: Promise.resolve({ ...child }) };
-      };
-    if (kind === 'proof-write')
-      value.options.persistProof = async () => {
-        if (value.resource.terminationProof)
-          throw Object.assign(new Error('disk'), { code: 'ENOSPC' });
-      };
-    if (kind === 'owned-cleanup')
-      value.options.cleanupOwned = async () => ({
-        passed: false,
-        operations: [{ name: 'schema', passed: false }],
-        failures: [{ code: 'CRUN_SCHEMA_REMOVAL_FAILED' }],
-      });
+      if (kind === 'postspawn-ack')
+        value.options.persistProof = async () => {
+          if (!value.resource.terminationProof)
+            throw Object.assign(new Error('disk'), { code: 'EIO' });
+        };
+      if (kind === 'postspawn-setup')
+        value.options.start = async ({ onSpawn }) => {
+          onSpawn(12345);
+          throw Object.assign(new Error('pipeline setup'), { code: 'EIO' });
+        };
+      if (kind === 'alive') value.options.probe = () => 0;
+      if (kind === 'EPERM')
+        value.options.probe = () => {
+          throw Object.assign(new Error('permission'), { code: 'EPERM' });
+        };
+      if (kind === 'missing-pid')
+        value.options.start = async ({ onSpawn }) => {
+          onSpawn(undefined);
+          return { done: Promise.resolve({ ...child }) };
+        };
+      if (kind === 'proof-write')
+        value.options.persistProof = async () => {
+          if (value.resource.terminationProof)
+            throw Object.assign(new Error('disk'), { code: 'ENOSPC' });
+        };
+      if (kind === 'owned-cleanup')
+        value.options.cleanupOwned = async () => ({
+          passed: false,
+          operations: [{ name: 'schema', passed: false }],
+          failures: [{ code: 'CRUN_SCHEMA_REMOVAL_FAILED' }],
+        });
+      const result = await runFinalCrunBounded(value.options);
+      if (kind === 'failed-child') {
+        assert.equal(result.exitCode, 7);
+        assert.ok(value.calls.includes('cleanup'));
+      }
+      if (kind === 'output-error') {
+        assert.equal(result.outputLimit, true);
+        assert.ok(value.calls.includes('cleanup'));
+      }
+      if (kind === 'stream-error') {
+        assert.equal(result.streamError, 'STREAM_FAILED');
+        assert.ok(value.calls.includes('cleanup'));
+      }
+      if (kind === 'postspawn-ack') {
+        assert.equal(result.spawnError, 'EIO');
+        assert.ok(value.calls.includes('cleanup'));
+      }
+      if (
+        [
+          'postspawn-setup',
+          'alive',
+          'EPERM',
+          'missing-pid',
+          'proof-write',
+        ].includes(kind)
+      ) {
+        assert.ok(result.cleanupError);
+        assert.equal(value.calls.includes('cleanup'), false);
+        assert.equal(hasFinalCrunTerminationProof(value.resource), false);
+      }
+      if (kind === 'owned-cleanup') {
+        assert.equal(result.cleanupError, 'CRUN_RESOURCE_CLEANUP_FAILED');
+        assert.equal(value.resource.cleanupResult.passed, false);
+      }
+    });
+for (const mediaKind of ['image', 'video'])
+  test(`Crun work timeout and unresolved pipelines cannot reset sixty plus fifteen seconds (${mediaKind})`, async () => {
+    const value = finalCrunSupervisorFixture(mediaKind);
+    let waits = 0;
+    value.options.clock.sleep = () => {
+      waits++;
+      if (waits === 3 || waits === 5)
+        return Promise.resolve().then(() =>
+          value.now(waits === 3 ? 61000 : 71000),
+        );
+      return new Promise(() => {});
+    };
+    value.options.start = async ({ onSpawn }) => {
+      onSpawn(12345);
+      return { pid: 12345, done: new Promise(() => {}) };
+    };
+    value.options.stop = async (_pids, limits) => {
+      value.calls.push('stop');
+      assert.equal(limits.deadline, 71000);
+    };
     const result = await runFinalCrunBounded(value.options);
-    if (kind === 'failed-child') {
-      assert.equal(result.exitCode, 7);
-      assert.ok(value.calls.includes('cleanup'));
-    }
-    if (kind === 'output-error') {
-      assert.equal(result.outputLimit, true);
-      assert.ok(value.calls.includes('cleanup'));
-    }
-    if (kind === 'stream-error') {
-      assert.equal(result.streamError, 'STREAM_FAILED');
-      assert.ok(value.calls.includes('cleanup'));
-    }
-    if (kind === 'postspawn-ack') {
-      assert.equal(result.spawnError, 'EIO');
-      assert.ok(value.calls.includes('cleanup'));
-    }
-    if (
-      [
-        'postspawn-setup',
-        'alive',
-        'EPERM',
-        'missing-pid',
-        'proof-write',
-      ].includes(kind)
-    ) {
-      assert.ok(result.cleanupError);
-      assert.equal(value.calls.includes('cleanup'), false);
-      assert.equal(hasFinalCrunTerminationProof(value.resource), false);
-    }
-    if (kind === 'owned-cleanup') {
-      assert.equal(result.cleanupError, 'CRUN_RESOURCE_CLEANUP_FAILED');
-      assert.equal(value.resource.cleanupResult.passed, false);
-    }
+    assert.equal(result.timedOut, true);
+    assert.equal(result.cleanupDeadline, 76000);
+    assert.ok(result.cleanupError);
+    assert.equal(value.calls.includes('cleanup'), false);
+    assert.equal(hasFinalCrunTerminationProof(value.resource), false);
   });
-test('Crun work timeout and unresolved pipelines cannot reset sixty plus fifteen seconds', async () => {
-  const value = finalCrunSupervisorFixture();
-  let waits = 0;
-  value.options.clock.sleep = () => {
-    waits++;
-    if (waits === 3 || waits === 5)
-      return Promise.resolve().then(() =>
-        value.now(waits === 3 ? 61000 : 71000),
-      );
-    return new Promise(() => {});
-  };
-  value.options.start = async ({ onSpawn }) => {
-    onSpawn(12345);
-    return { pid: 12345, done: new Promise(() => {}) };
-  };
-  value.options.stop = async (_pids, limits) => {
-    value.calls.push('stop');
-    assert.equal(limits.deadline, 71000);
-  };
-  const result = await runFinalCrunBounded(value.options);
-  assert.equal(result.timedOut, true);
-  assert.equal(result.cleanupDeadline, 76000);
-  assert.ok(result.cleanupError);
-  assert.equal(value.calls.includes('cleanup'), false);
-  assert.equal(hasFinalCrunTerminationProof(value.resource), false);
-});
-test('timed out Crun proof persistence cannot grant delayed authority or read a manifest', async () => {
-  const value = finalCrunSupervisorFixture();
-  let complete;
-  value.options.persistProof = async () => {
-    if (value.resource.terminationProof) {
-      value.options.clock.sleep = () =>
-        Promise.resolve().then(() => value.now(11000));
-      await new Promise((resolve) => {
-        complete = resolve;
-      });
-    }
-  };
-  const result = await runFinalCrunBounded(value.options);
-  assert.equal(result.cleanupError, 'CRUN_TERMINATION_PROOF_FAILED');
-  assert.equal(hasFinalCrunTerminationProof(value.resource), false);
-  assert.equal(value.calls.includes('cleanup'), false);
-  complete();
-  await Promise.resolve();
-  assert.equal(value.resource.terminationProofPersisted, false);
-  assert.equal(value.resource.terminationConfirmed, false);
-});
-test('actual starter hook records the real pid before child streams or postspawn journal failure', async (t) => {
-  const directory = await fixture(t),
-    resource = { uuid: randomUUID() },
-    value = {
-      ...identity,
-      group: 'final',
-      overallDeadline: Date.now() + 100000,
-      resources: { crun: resource },
+for (const mediaKind of ['image', 'video'])
+  test(`timed out Crun proof persistence cannot grant delayed authority or read a manifest (${mediaKind})`, async () => {
+    const value = finalCrunSupervisorFixture(mediaKind);
+    let complete;
+    value.options.persistProof = async () => {
+      if (value.resource.terminationProof) {
+        value.options.clock.sleep = () =>
+          Promise.resolve().then(() => value.now(11000));
+        await new Promise((resolve) => {
+          complete = resolve;
+        });
+      }
     };
-  let actual, stopped;
-  const result = await runFinalCrunBounded({
-    identity: value,
-    resource,
-    executable: process.execPath,
-    args: ['-e', 'setInterval(()=>{},1000)'],
-    cwd: directory,
-    env: process.env,
-    stdoutPath: path.join(directory, 'stdout'),
-    stderrPath: path.join(directory, 'stderr'),
-    persistProof: async () => {
-      assert.ok(resource.pgid > 1);
-      actual = resource.pgid;
-      if (!resource.terminationProof)
-        throw Object.assign(new Error('disk'), { code: 'EIO' });
-    },
-    stop: async (pids, limits) => {
-      stopped = pids;
-      await stopVisualGroups(pids, { ...limits, term: 10, kill: 1000 });
-    },
-    cleanupOwned: async () => ({ passed: true, operations: [], failures: [] }),
+    const result = await runFinalCrunBounded(value.options);
+    assert.equal(result.cleanupError, 'CRUN_TERMINATION_PROOF_FAILED');
+    assert.equal(hasFinalCrunTerminationProof(value.resource), false);
+    assert.equal(value.calls.includes('cleanup'), false);
+    complete();
+    await Promise.resolve();
+    assert.equal(value.resource.terminationProofPersisted, false);
+    assert.equal(value.resource.terminationConfirmed, false);
   });
-  assert.deepEqual(stopped, [actual]);
-  assert.equal(result.spawnError, 'EIO');
-  assert.equal(resource.streamsClosed, true);
-  assert.equal(hasFinalCrunTerminationProof(resource), true);
-  assert.ok(result.signal);
-  assert.equal(
-    (await lstat(path.join(directory, 'stdout'))).mode & 0o777,
-    0o600,
-  );
-});
-test('direct child close with surviving same-group descendant still requires actual group termination', async (t) => {
-  const directory = await fixture(t),
-    resource = { uuid: randomUUID() },
-    value = {
-      ...identity,
-      group: 'final',
-      overallDeadline: Date.now() + 100000,
-      resources: { crun: resource },
-    };
-  let beforeStopAlive = false,
-    cleanup = 0;
-  const result = await runFinalCrunBounded({
-    identity: value,
-    resource,
-    executable: process.execPath,
-    args: [
-      '-e',
-      `const {spawn}=require('node:child_process');const child=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'});child.unref();process.stdout.write('descendant:'+child.pid);`,
-    ],
-    cwd: directory,
-    env: process.env,
-    stdoutPath: path.join(directory, 'stdout'),
-    stderrPath: path.join(directory, 'stderr'),
-    persistProof: async () => {},
-    stop: async (pids, limits) => {
-      try {
-        process.kill(-pids[0], 0);
-        beforeStopAlive = true;
-      } catch {}
-      assert.equal(resource.terminationConfirmed, false);
-      await stopVisualGroups(pids, { ...limits, term: 10, kill: 1000 });
-    },
-    cleanupOwned: async () => {
-      cleanup++;
-      assert.equal(hasFinalCrunTerminationProof(resource), true);
-      return { passed: true, operations: [], failures: [] };
-    },
+for (const mediaKind of ['image', 'video'])
+  test(`actual starter hook records the real pid before child streams or postspawn journal failure (${mediaKind})`, async (t) => {
+    const directory = await fixture(t),
+      resource = { mediaKind, uuid: randomUUID() },
+      value = {
+        ...identity,
+        group: 'final',
+        overallDeadline: Date.now() + 100000,
+        resources: {
+          crun: { image: null, video: null, [resource.mediaKind]: resource },
+        },
+      };
+    let actual, stopped;
+    const result = await runFinalCrunBounded({
+      identity: value,
+      mediaKind: resource.mediaKind,
+      resource,
+      executable: process.execPath,
+      args: ['-e', 'setInterval(()=>{},1000)'],
+      cwd: directory,
+      env: process.env,
+      stdoutPath: path.join(directory, 'stdout'),
+      stderrPath: path.join(directory, 'stderr'),
+      persistProof: async () => {
+        assert.ok(resource.pgid > 1);
+        actual = resource.pgid;
+        if (!resource.terminationProof)
+          throw Object.assign(new Error('disk'), { code: 'EIO' });
+      },
+      stop: async (pids, limits) => {
+        stopped = pids;
+        await stopVisualGroups(pids, { ...limits, term: 10, kill: 1000 });
+      },
+      cleanupOwned: async () => ({
+        passed: true,
+        operations: [],
+        failures: [],
+      }),
+    });
+    assert.deepEqual(stopped, [actual]);
+    assert.equal(result.spawnError, 'EIO');
+    assert.equal(resource.streamsClosed, true);
+    assert.equal(hasFinalCrunTerminationProof(resource), true);
+    assert.ok(result.signal);
+    assert.equal(
+      (await lstat(path.join(directory, 'stdout'))).mode & 0o777,
+      0o600,
+    );
   });
-  assert.equal(beforeStopAlive, true);
-  assert.equal(result.exitCode, 0);
-  assert.equal(cleanup, 1);
-  assert.equal(result.cleanupError, null);
-  assert.match(
-    await readFile(path.join(directory, 'stdout'), 'utf8'),
-    /^descendant:\d+$/,
-  );
-});
+for (const mediaKind of ['image', 'video'])
+  test(`direct child close with surviving same-group descendant still requires actual group termination (${mediaKind})`, async (t) => {
+    const directory = await fixture(t),
+      resource = { mediaKind, uuid: randomUUID() },
+      value = {
+        ...identity,
+        group: 'final',
+        overallDeadline: Date.now() + 100000,
+        resources: {
+          crun: { image: null, video: null, [resource.mediaKind]: resource },
+        },
+      };
+    let beforeStopAlive = false,
+      cleanup = 0;
+    const result = await runFinalCrunBounded({
+      identity: value,
+      mediaKind: resource.mediaKind,
+      resource,
+      executable: process.execPath,
+      args: [
+        '-e',
+        `const {spawn}=require('node:child_process');const child=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'});child.unref();process.stdout.write('descendant:'+child.pid);`,
+      ],
+      cwd: directory,
+      env: process.env,
+      stdoutPath: path.join(directory, 'stdout'),
+      stderrPath: path.join(directory, 'stderr'),
+      persistProof: async () => {},
+      stop: async (pids, limits) => {
+        try {
+          process.kill(-pids[0], 0);
+          beforeStopAlive = true;
+        } catch {}
+        assert.equal(resource.terminationConfirmed, false);
+        await stopVisualGroups(pids, { ...limits, term: 10, kill: 1000 });
+      },
+      cleanupOwned: async () => {
+        cleanup++;
+        assert.equal(hasFinalCrunTerminationProof(resource), true);
+        return { passed: true, operations: [], failures: [] };
+      },
+    });
+    assert.equal(beforeStopAlive, true);
+    assert.equal(result.exitCode, 0);
+    assert.equal(cleanup, 1);
+    assert.equal(result.cleanupError, null);
+    assert.match(
+      await readFile(path.join(directory, 'stdout'), 'utf8'),
+      /^descendant:\d+$/,
+    );
+  });
 test('Crun production routing leaves diagnostic and other stages on untouched generic helper and consumes recorded cleanup once', async () => {
   const source = await readFile(
     new URL('./runtime-acceptance.mjs', import.meta.url),
@@ -3901,11 +3929,11 @@ test('Crun production routing leaves diagnostic and other stages on untouched ge
   );
   assert.match(
     source,
-    /identity\.group === 'final' && stage === 'crun'[\s\S]*runFinalCrunBounded[\s\S]*: await runBounded/,
+    /identity\.group === 'final' && mediaKind !== undefined[\s\S]*runFinalCrunBounded[\s\S]*: await runBounded/,
   );
   const outer = source.slice(
     source.indexOf(
-      '    if (identity.resources.crun) {',
+      "    if (identity.group === 'final') {",
       source.indexOf('    const clean = async'),
     ),
     source.indexOf(
@@ -3982,73 +4010,77 @@ test('actual starter checks the exact absolute work boundary after private file 
     }
   }
 });
-for (const kind of ['deadline', 'cancelled', 'closed-window'])
-  test(`actual final Crun ${kind} preparation cannot allocate a late process or replace the first error`, async (t) => {
-    const value = await spawnMarkerInvocation(t),
-      resource = { uuid: randomUUID() },
-      calls = [];
-    let now = 1000,
-      cancelled = false,
-      pending,
-      lateError;
-    const clock = { now: () => now, sleep: () => new Promise(() => {}) };
-    const result = await runFinalCrunBounded({
-      identity: {
-        ...identity,
-        group: 'final',
-        overallDeadline: 100000,
-        resources: { crun: resource },
-      },
-      resource,
-      ...value.options,
-      clock,
-      isCancelled: () => cancelled,
-      start: (options) => {
-        pending = startVisualProcess(options);
-        pending.catch((error) => {
-          lateError = error.code;
-        });
-        if (kind === 'deadline') now = 61000;
-        if (kind === 'cancelled') cancelled = true;
-        if (kind === 'closed-window')
-          throw Object.assign(new Error('fixed original control error'), {
-            code: 'SYNTHETIC_CONTROL_FAILED',
+for (const mediaKind of ['image', 'video'])
+  for (const kind of ['deadline', 'cancelled', 'closed-window'])
+    test(`actual final Crun ${mediaKind} ${kind} preparation cannot allocate a late process or replace the first error`, async (t) => {
+      const value = await spawnMarkerInvocation(t),
+        resource = { mediaKind, uuid: randomUUID() },
+        calls = [];
+      let now = 1000,
+        cancelled = false,
+        pending,
+        lateError;
+      const clock = { now: () => now, sleep: () => new Promise(() => {}) };
+      const result = await runFinalCrunBounded({
+        identity: {
+          ...identity,
+          group: 'final',
+          overallDeadline: 100000,
+          resources: {
+            crun: { image: null, video: null, [resource.mediaKind]: resource },
+          },
+        },
+        mediaKind: resource.mediaKind,
+        resource,
+        ...value.options,
+        clock,
+        isCancelled: () => cancelled,
+        start: (options) => {
+          pending = startVisualProcess(options);
+          pending.catch((error) => {
+            lateError = error.code;
           });
-        return pending;
-      },
-      stop: async () => {
-        calls.push('stop');
-      },
-      persistProof: async () => {
-        calls.push('persist');
-      },
-      cleanupOwned: async () => {
-        calls.push('manifest');
-        return { passed: true };
-      },
+          if (kind === 'deadline') now = 61000;
+          if (kind === 'cancelled') cancelled = true;
+          if (kind === 'closed-window')
+            throw Object.assign(new Error('fixed original control error'), {
+              code: 'SYNTHETIC_CONTROL_FAILED',
+            });
+          return pending;
+        },
+        stop: async () => {
+          calls.push('stop');
+        },
+        persistProof: async () => {
+          calls.push('persist');
+        },
+        cleanupOwned: async () => {
+          calls.push('manifest');
+          return { passed: true };
+        },
+      });
+      await assert.rejects(pending, {
+        code: kind === 'cancelled' ? 'CANCELLED' : 'CRUN_WORK_TIMEOUT',
+      });
+      assert.equal(
+        lateError,
+        kind === 'cancelled' ? 'CANCELLED' : 'CRUN_WORK_TIMEOUT',
+      );
+      assert.equal(resource.spawnIssued, false);
+      assert.equal(resource.pgid, null);
+      assert.equal(resource.terminationConfirmed, false);
+      assert.equal(resource.terminationProofPersisted, false);
+      assert.equal(resource.streamsClosed, false);
+      assert.deepEqual(calls, []);
+      await assert.rejects(lstat(value.marker), { code: 'ENOENT' });
+      if (kind === 'deadline') assert.equal(result.timedOut, true);
+      if (kind === 'cancelled') assert.equal(result.spawnError, 'CANCELLED');
+      if (kind === 'closed-window') {
+        assert.equal(result.spawnError, 'SYNTHETIC_CONTROL_FAILED');
+        assert.equal(result.timedOut, false);
+        assert.ok(now < 61000);
+      }
     });
-    await assert.rejects(pending, {
-      code: kind === 'cancelled' ? 'CANCELLED' : 'CRUN_WORK_TIMEOUT',
-    });
-    assert.equal(
-      lateError,
-      kind === 'cancelled' ? 'CANCELLED' : 'CRUN_WORK_TIMEOUT',
-    );
-    assert.equal(resource.spawnIssued, false);
-    assert.equal(resource.pgid, null);
-    assert.equal(resource.terminationConfirmed, false);
-    assert.equal(resource.terminationProofPersisted, false);
-    assert.equal(resource.streamsClosed, false);
-    assert.deepEqual(calls, []);
-    await assert.rejects(lstat(value.marker), { code: 'ENOENT' });
-    if (kind === 'deadline') assert.equal(result.timedOut, true);
-    if (kind === 'cancelled') assert.equal(result.spawnError, 'CANCELLED');
-    if (kind === 'closed-window') {
-      assert.equal(result.spawnError, 'SYNTHETIC_CONTROL_FAILED');
-      assert.equal(result.timedOut, false);
-      assert.ok(now < 61000);
-    }
-  });
 test('actual spawn guard is synchronous and immediately precedes spawn, while existing callers remain optional', async () => {
   const source = await readFile(
       new URL('./runtime-acceptance.mjs', import.meta.url),
@@ -4073,3 +4105,500 @@ test('actual spawn guard is synchronous and immediately precedes spawn, while ex
   assert.ok(!generic.includes('beforeSpawn'));
   assert.ok(!generic.includes('onSpawn'));
 });
+
+const FROZEN_CRUN = {
+  image: {
+    path: 'apps/server/api/src/services/integrations/crun/crun-image-flow.integration.spec.ts',
+    sha256: 'e6a3414e20e2fcd48e3aa71681d8f717881bbce6abe7daef5893a30c1b21f99f',
+    count: 18,
+    passedTitles: [
+      'Crun image quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 0 outputs 1 funding byok scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 0 outputs 1 funding free scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 0 outputs 4 funding byok scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 0 outputs 4 funding free scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 1 outputs 1 funding hosted scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 1 outputs 1 funding byok scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 1 outputs 1 funding free scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 1 outputs 4 funding hosted scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 1 outputs 4 funding byok scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 1 outputs 4 funding free scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario mixed: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 1 outputs 4 funding hosted scenario failed: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario refused: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario deferred: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario disabled: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario ambiguous: frozen quote, restart, owned storage and exact accounting',
+    ],
+  },
+  video: {
+    path: 'apps/server/api/src/services/integrations/crun/crun-video-flow.integration.spec.ts',
+    sha256: '6bbd5cbfd354e260898f5338cd2a05d534038ecbcd172f366138a41d3d5a345a',
+    count: 23,
+    passedTitles: [
+      'Crun video quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 1 funding byok scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 1 funding free scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 4 funding byok scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 4 funding free scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 1 outputs 1 funding hosted scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 1 outputs 1 funding byok scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 1 outputs 1 funding free scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 1 outputs 4 funding hosted scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 1 outputs 4 funding byok scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 1 outputs 4 funding free scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario mixed variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 1 outputs 4 funding hosted scenario failed variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario refused variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario deferred variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario disabled variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario ambiguous variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success variant 10s: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success variant start: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success variant end: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 1 outputs 1 funding hosted scenario success variant 1080p: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 1 outputs 1 funding hosted scenario success variant 4k: frozen quote, restart, owned storage and exact accounting',
+    ],
+  },
+};
+
+function crunReport(mediaKind) {
+  const entry = FROZEN_CRUN[mediaKind];
+  return {
+    success: true,
+    testResults: [
+      {
+        name: `/repo/${entry.path}`,
+        assertionResults: entry.passedTitles.map((fullName) => ({
+          fullName,
+          status: 'passed',
+        })),
+      },
+    ],
+  };
+}
+function crunReportContract(mediaKind) {
+  const entry = CRUN_SOURCE_CONTRACT[mediaKind];
+  return {
+    file: entry.path.slice('apps/server/api/'.length),
+    count: entry.count,
+    titles: entry.passedTitles,
+  };
+}
+test('Crun source qualification freezes the exact independent image18/video23 inventories', () => {
+  assert.deepEqual(CRUN_SOURCE_CONTRACT, FROZEN_CRUN);
+  assert.equal(Object.isFrozen(CRUN_SOURCE_CONTRACT), true);
+  for (const mediaKind of ['image', 'video']) {
+    assert.equal(Object.isFrozen(CRUN_SOURCE_CONTRACT[mediaKind]), true);
+    assert.equal(
+      new Set(CRUN_SOURCE_CONTRACT[mediaKind].passedTitles).size,
+      CRUN_SOURCE_CONTRACT[mediaKind].count,
+    );
+    const cases = validateReport(
+      crunReport(mediaKind),
+      [crunReportContract(mediaKind)],
+      child,
+    );
+    assert.equal(cases[0].passed, mediaKind === 'image' ? 18 : 23);
+  }
+});
+for (const mediaKind of ['image', 'video'])
+  for (const kind of [
+    'wrong-file',
+    'duplicate',
+    'extra',
+    'failed',
+    'skipped',
+    'pending',
+    'todo',
+    'aggregate41',
+    'missing',
+  ])
+    test(`Crun ${mediaKind} report refuses ${kind} rather than qualifying a partial or combined result`, () => {
+      const report = crunReport(mediaKind),
+        rows = report.testResults[0].assertionResults;
+      if (kind === 'wrong-file')
+        report.testResults[0].name = '/repo/wrong.spec.ts';
+      if (kind === 'duplicate') rows[1].fullName = rows[0].fullName;
+      if (kind === 'extra')
+        rows.push({ fullName: 'unfrozen extra case', status: 'passed' });
+      if (['failed', 'skipped', 'pending', 'todo'].includes(kind))
+        rows[0].status = kind;
+      if (kind === 'aggregate41')
+        rows.push(
+          ...crunReport(mediaKind === 'image' ? 'video' : 'image')
+            .testResults[0].assertionResults,
+        );
+      if (kind === 'missing') report.testResults = [];
+      assert.throws(() =>
+        validateReport(report, [crunReportContract(mediaKind)], child),
+      );
+    });
+test('each independent Crun source requires its frozen hash and actual safe file', async (t) => {
+  const root = await fixture(t),
+    entries = [];
+  for (const mediaKind of ['image', 'video']) {
+    const entry = CRUN_SOURCE_CONTRACT[mediaKind],
+      bytes = `synthetic ${mediaKind} source`;
+    await mkdir(path.dirname(path.join(root, entry.path)), { recursive: true });
+    await writeFile(path.join(root, entry.path), bytes);
+    entries.push({
+      ...entry,
+      sha256: createHash('sha256').update(bytes).digest('hex'),
+    });
+  }
+  await verifyFrozenSources(root, entries);
+  for (const entry of entries) {
+    const file = path.join(root, entry.path),
+      bytes = await readFile(file);
+    await writeFile(file, 'stale source');
+    await assert.rejects(verifyFrozenSources(root, entries), {
+      code: 'SOURCE_HASH_MISMATCH',
+    });
+    await rm(file);
+    await assert.rejects(verifyFrozenSources(root, entries), {
+      code: 'ENOENT',
+    });
+    await writeFile(file, bytes);
+  }
+});
+for (const kind of [
+  'wrong-kind',
+  'wrong-slot',
+  'shared-resource',
+  'shared-uuid',
+  'shared-manifest',
+  'shared-directory',
+  'foreign-candidate',
+  'foreign-control',
+])
+  test(`Crun rejects ${kind} before allocating a process or cleanup authority`, async () => {
+    const value = finalCrunSupervisorFixture('video'),
+      resource = value.resource;
+    Object.assign(resource, {
+      manifest: '/tmp/video-manifest',
+      directory: '/tmp/video-directory',
+    });
+    const other = {
+      mediaKind: 'image',
+      uuid: randomUUID(),
+      manifest: '/tmp/image-manifest',
+      directory: '/tmp/image-directory',
+    };
+    value.options.identity.resources.crun.image = other;
+    if (kind === 'wrong-kind') value.options.mediaKind = 'audio';
+    if (kind === 'wrong-slot')
+      value.options.identity.resources.crun.video = other;
+    if (kind === 'shared-resource')
+      value.options.identity.resources.crun.image = resource;
+    if (kind === 'shared-uuid') other.uuid = resource.uuid;
+    if (kind === 'shared-manifest') other.manifest = resource.manifest;
+    if (kind === 'shared-directory') other.directory = resource.directory;
+    if (kind === 'foreign-candidate') resource.candidateSHA = 'e'.repeat(40);
+    if (kind === 'foreign-control') resource.controlSHA = 'e'.repeat(40);
+    await assert.rejects(runFinalCrunBounded(value.options), {
+      code: 'CRUN_OWNERSHIP',
+    });
+    assert.deepEqual(value.calls, []);
+  });
+test('a copied image proof cannot authorize the video slot or its owned cleaner', async (t) => {
+  const image = await crunCleanupFixture(t, 'image'),
+    video = await crunCleanupFixture(t, 'video');
+  video.resource.terminationProof = structuredClone(
+    image.resource.terminationProof,
+  );
+  assert.equal(hasFinalCrunTerminationProof(video.resource, 'video'), false);
+  const result = await cleanupFinalCrunResources(
+    video.resource,
+    video.adapters,
+    Date.now() + 1000,
+  );
+  assert.equal(result.passed, false);
+  assert.deepEqual(video.calls, []);
+});
+
+async function finalQualifiedFixture() {
+  const fixtures = ['image', 'video'].map(finalCrunSupervisorFixture);
+  const value = fixtures[0].options.identity;
+  value.resources.crun.video = fixtures[1].resource;
+  for (const fixture of fixtures) {
+    fixture.options.identity = value;
+    if (fixture.resource.mediaKind === 'video') {
+      const start = fixture.options.start;
+      fixture.options.start = async (options) => {
+        assert.equal(
+          hasFinalCrunTerminationProof(value.resources.crun.image, 'image'),
+          true,
+        );
+        assert.equal(value.resources.crun.image.cleanupResult.passed, true);
+        assert.equal(fixtures[0].calls.at(-1), 'cleanup');
+        return start(options);
+      };
+    }
+    const result = await runFinalCrunBounded(fixture.options);
+    assert.equal(result.cleanupError, null);
+  }
+  const stages = [
+    'dataset-correctness',
+    'dataset-typecheck',
+    'dataset-matrix',
+    'brand-preparation',
+    'brand-migration',
+    'brand-units',
+    'brand-contracts',
+    'brand-serializers',
+    'baseline-materialization-migration',
+    'storage',
+    'crun-image',
+    'crun-video',
+    'agent-preparation',
+    'agent',
+    'publisher',
+  ];
+  const outcome = {
+    ...identity,
+    group: 'final',
+    status: 'passed',
+    completed: stages.map((stage) => ({
+      stage,
+      cases: stage.startsWith('crun-')
+        ? [
+            {
+              file: FROZEN_CRUN[stage.slice(5)].path.slice(
+                'apps/server/api/'.length,
+              ),
+              passed: FROZEN_CRUN[stage.slice(5)].count,
+              skipped: 0,
+              skippedTitles: [],
+              passedTitles: [...FROZEN_CRUN[stage.slice(5)].passedTitles],
+            },
+          ]
+        : [],
+    })),
+    failures: [],
+    cleanup: { passed: true },
+    commands: ['crun-image', 'crun-video'].map((stage) => ({
+      stage,
+      elapsedMs: 1,
+    })),
+  };
+  return { value, outcome, fixtures };
+}
+test('independent image cleanup acknowledgement precedes video spawn and final receipt requires both inventories', async () => {
+  const { value, outcome, fixtures } = await finalQualifiedFixture();
+  assert.equal(validateOutcome(outcome, outcome, value), 'passed');
+  assert.equal(fixtures[0].calls.at(-1), 'cleanup');
+  assert.equal(fixtures[1].calls[0], 'spawn');
+  assert.notEqual(
+    value.resources.crun.image.uuid,
+    value.resources.crun.video.uuid,
+  );
+  for (const mutate of [
+    (o) => {
+      o.completed.find((e) => e.stage === 'crun-image').stage = 'crun';
+    },
+    (o) => {
+      o.completed = o.completed.filter((e) => e.stage !== 'crun-video');
+    },
+    (o) => {
+      o.completed.find((e) => e.stage === 'crun-image').cases[0].passed = 41;
+    },
+    (o) => {
+      o.completed.find((e) => e.stage === 'crun-video').cases[0].file =
+        FROZEN_CRUN.image.path;
+    },
+    (o) => {
+      o.completed.find(
+        (e) => e.stage === 'crun-video',
+      ).cases[0].passedTitles[0] = 'extra';
+    },
+    (o) => {
+      o.completed.push(o.completed[0]);
+    },
+  ]) {
+    const copy = structuredClone(outcome);
+    mutate(copy);
+    assert.throws(() => validateOutcome(copy, copy, value));
+  }
+  for (const mutate of [
+    (r) => {
+      r.video = null;
+    },
+    (r) => {
+      r.video.terminationProof = { ...r.image.terminationProof };
+    },
+    (r) => {
+      r.video.controlSHA = SHA;
+    },
+    (r) => {
+      r.image.cleanupResult.passed = false;
+    },
+    (r) => {
+      r.video.cleanupResult = undefined;
+    },
+    (r) => {
+      r.video.manifest = r.image.manifest;
+    },
+  ]) {
+    const copy = structuredClone(value);
+    mutate(copy.resources.crun);
+    assert.throws(() => validateOutcome(outcome, outcome, copy));
+  }
+});
+test('final dispatcher awaits each supervised stage and blocks video after image failure within unchanged budgets', async () => {
+  const source = await readFile(
+    new URL('./runtime-acceptance.mjs', import.meta.url),
+    'utf8',
+  );
+  const loop = source.slice(
+    source.indexOf(
+      "for (const mediaKind of ['image', 'video'])",
+      source.indexOf('identity.resources.crun = { image: null, video: null }'),
+    ),
+    source.indexOf(
+      "await attempt('agent'",
+      source.indexOf('identity.resources.crun = { image: null, video: null }'),
+    ),
+  );
+  assert.match(loop, /await attempt\(stage/);
+  assert.match(
+    loop,
+    /await verifyFrozenSources\(identity.repo, \[contract\]\)/,
+  );
+  assert.match(loop, /await vitest\(stage/);
+  assert.match(loop, /if \(failures.length !== priorFailures\) break/);
+  assert.match(loop, /timeout: 60000/);
+});
+async function finalSealFixture(t) {
+  const state = await stateFixture(t),
+    qualified = await finalQualifiedFixture();
+  Object.assign(state.value, {
+    group: 'final',
+    phase: 'finished',
+    resources: qualified.value.resources,
+  });
+  const evidence = [];
+  for (const [index, kind] of ['image', 'video'].entries()) {
+    for (const relative of [
+      `raw/crun-${kind}.report.json`,
+      `raw/crun-${kind}-manifest.json`,
+      `raw/crun-${kind}-${index}.stdout`,
+      `raw/crun-${kind}-${index}.stderr`,
+    ]) {
+      evidence.push(relative);
+      await writeFile(
+        path.join(state.value.state, relative),
+        'private synthetic evidence',
+        { mode: 0o600 },
+      );
+    }
+  }
+  state.value.evidence = evidence;
+  for (const name of ['outcome.json', 'receipt.json'])
+    await writeFile(
+      path.join(state.value.state, name),
+      JSON.stringify(qualified.outcome),
+      { mode: 0o600 },
+    );
+  return { ...state, outcome: qualified.outcome };
+}
+test('qualified final seal encrypts both media proofs and raw evidence using unchanged public allowlist', async (t) => {
+  const { value, env } = await finalSealFixture(t);
+  const receipt = await sealState(value, env);
+  assert.equal(receipt.status, 'passed');
+  assert.equal(receipt.passed, 41);
+  assert.equal(receipt.cleanup, true);
+  assert.deepEqual(
+    Object.keys(receipt).sort(),
+    [
+      'version',
+      'candidateSHA',
+      'controlSHA',
+      'group',
+      'fingerprint',
+      'status',
+      'passed',
+      'skipped',
+      'groups',
+      'elapsedMs',
+      'cleanup',
+      'evidenceBytes',
+      'envelopeSHA256',
+    ].sort(),
+  );
+  const encrypted = JSON.parse(
+    await readFile(path.join(value.state, 'public/evidence.encrypted.json')),
+  );
+  const privateEvidence = decrypt(encrypted);
+  assert.equal(privateEvidence.files.length, 8);
+  assert.equal(
+    privateEvidence.outcome.completed.find((e) => e.stage === 'crun-video')
+      .cases[0].passed,
+    23,
+  );
+});
+for (const missing of [
+  'raw/crun-video-manifest.json',
+  'raw/crun-video.report.json',
+  'raw/crun-image-0.stdout',
+  'raw/crun-video-1.stderr',
+])
+  test(`final seal fails closed for missing or unregistered ${missing}`, async (t) => {
+    const first = await finalSealFixture(t);
+    first.value.evidence = first.value.evidence.filter(
+      (relative) => relative !== missing,
+    );
+    await assert.rejects(sealState(first.value, first.env), {
+      code: 'MISSING_CRUN_EVIDENCE',
+    });
+    const second = await finalSealFixture(t);
+    await rm(path.join(second.value.state, missing));
+    await assert.rejects(sealState(second.value, second.env));
+  });
+
+for (const failure of ['image-cleanup', 'image-proof', 'video-child'])
+  test(`sequential Crun supervision fails final acceptance after ${failure}`, async () => {
+    const fixtures = ['image', 'video'].map(finalCrunSupervisorFixture);
+    const value = fixtures[0].options.identity;
+    value.resources.crun.video = fixtures[1].resource;
+    if (failure === 'image-cleanup')
+      fixtures[0].options.cleanupOwned = async () => ({
+        passed: false,
+        operations: [],
+        failures: [{ stage: 'cleanup', code: 'EIO' }],
+      });
+    if (failure === 'image-proof')
+      fixtures[0].options.persistProof = async () => {
+        if (fixtures[0].resource.terminationProof)
+          throw Object.assign(new Error('proof write'), { code: 'EIO' });
+      };
+    if (failure === 'video-child')
+      fixtures[1].options.start = async ({ onSpawn }) => {
+        fixtures[1].calls.push('spawn');
+        onSpawn(12345);
+        return { pid: 12345, done: Promise.resolve({ ...child, exitCode: 7 }) };
+      };
+    let failed = false;
+    for (const fixture of fixtures) {
+      fixture.options.identity = value;
+      const result = await runFinalCrunBounded(fixture.options);
+      if (
+        result.exitCode !== 0 ||
+        result.cleanupError ||
+        result.spawnError ||
+        result.terminationError
+      ) {
+        failed = true;
+        break;
+      }
+    }
+    assert.equal(failed, true);
+    assert.equal(
+      fixtures[1].calls.includes('spawn'),
+      failure === 'video-child',
+    );
+    if (failure === 'video-child')
+      assert.equal(value.resources.crun.image.cleanupResult.passed, true);
+  });

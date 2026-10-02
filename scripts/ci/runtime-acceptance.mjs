@@ -117,6 +117,67 @@ export const BRAND_SOURCE_CONTRACT = {
     },
   ],
 };
+export const CRUN_SOURCE_CONTRACT = Object.freeze({
+  image: Object.freeze({
+    path: 'apps/server/api/src/services/integrations/crun/crun-image-flow.integration.spec.ts',
+    sha256: 'e6a3414e20e2fcd48e3aa71681d8f717881bbce6abe7daef5893a30c1b21f99f',
+    count: 18,
+    passedTitles: Object.freeze([
+      'Crun image quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 0 outputs 1 funding byok scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 0 outputs 1 funding free scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 0 outputs 4 funding byok scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 0 outputs 4 funding free scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 1 outputs 1 funding hosted scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 1 outputs 1 funding byok scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 1 outputs 1 funding free scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 1 outputs 4 funding hosted scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 1 outputs 4 funding byok scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 1 outputs 4 funding free scenario success: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario mixed: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 1 outputs 4 funding hosted scenario failed: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario refused: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario deferred: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario disabled: frozen quote, restart, owned storage and exact accounting',
+      'Crun image quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario ambiguous: frozen quote, restart, owned storage and exact accounting',
+    ]),
+  }),
+  video: Object.freeze({
+    path: 'apps/server/api/src/services/integrations/crun/crun-video-flow.integration.spec.ts',
+    sha256: '6bbd5cbfd354e260898f5338cd2a05d534038ecbcd172f366138a41d3d5a345a',
+    count: 23,
+    passedTitles: Object.freeze([
+      'Crun video quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 1 funding byok scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 1 funding free scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 4 funding byok scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 4 funding free scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 1 outputs 1 funding hosted scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 1 outputs 1 funding byok scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 1 outputs 1 funding free scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 1 outputs 4 funding hosted scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 1 outputs 4 funding byok scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 1 outputs 4 funding free scenario success variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario mixed variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 1 outputs 4 funding hosted scenario failed variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario refused variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario deferred variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario disabled variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 4 funding hosted scenario ambiguous variant default: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success variant 10s: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success variant start: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success variant end: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 1 outputs 1 funding hosted scenario success variant 1080p: frozen quote, restart, owned storage and exact accounting',
+      'Crun video quote through durable owned output and accounting model 1 outputs 1 funding hosted scenario success variant 4k: frozen quote, restart, owned storage and exact accounting',
+    ]),
+  }),
+});
+const CRUN_STAGE_MEDIA = Object.freeze({
+  'crun-image': 'image',
+  'crun-video': 'video',
+});
 export const BASELINE_SOURCE_CONTRACT = {
   sourceCommit: 'ec218e3b73e32f2d64813496d63d3d1998c2ca1e',
   sourceInputs: [
@@ -372,7 +433,8 @@ const REQUIRED = {
     'brand-serializers',
     'baseline-materialization-migration',
     'storage',
-    'crun',
+    'crun-image',
+    'crun-video',
     'agent-preparation',
     'agent',
     'publisher',
@@ -968,9 +1030,15 @@ export async function cleanupFinalOwnedDatabase(
   }
   return { eligible: true, removed: true };
 }
-export function hasFinalCrunTerminationProof(resource) {
-  const proof = resource.terminationProof;
+export function hasFinalCrunTerminationProof(
+  resource,
+  mediaKind = resource?.mediaKind,
+) {
+  const proof = resource?.terminationProof;
   return (
+    ['image', 'video'].includes(mediaKind) &&
+    resource?.mediaKind === mediaKind &&
+    resource?.terminationProof?.mediaKind === mediaKind &&
     Number.isSafeInteger(resource.pgid) &&
     resource.pgid > 1 &&
     resource.spawnIssued === true &&
@@ -992,6 +1060,7 @@ export function hasFinalCrunTerminationProof(resource) {
 }
 export async function runFinalCrunBounded({
   identity,
+  mediaKind,
   resource,
   executable,
   args,
@@ -1009,7 +1078,24 @@ export async function runFinalCrunBounded({
   aggregateDeadline = identity.overallDeadline,
 }) {
   requireThat(
-    identity.group === 'final' && identity.resources.crun === resource,
+    ['image', 'video'].includes(mediaKind) &&
+      identity.group === 'final' &&
+      identity.resources.crun?.[mediaKind] === resource &&
+      resource?.mediaKind === mediaKind &&
+      (!resource.candidateSHA ||
+        resource.candidateSHA === identity.candidateSHA) &&
+      (!resource.controlSHA || resource.controlSHA === identity.controlSHA),
+    'CRUN_OWNERSHIP',
+  );
+  exactKeys(identity.resources.crun, ['image', 'video'], 'CRUN_OWNERSHIP');
+  const other =
+    identity.resources.crun[mediaKind === 'image' ? 'video' : 'image'];
+  requireThat(
+    !other ||
+      (other !== resource &&
+        other.uuid !== resource.uuid &&
+        other.manifest !== resource.manifest &&
+        other.directory !== resource.directory),
     'CRUN_OWNERSHIP',
   );
   const started = clock.now(),
@@ -1136,6 +1222,7 @@ export async function runFinalCrunBounded({
     }
     requireThat(absent, 'CRUN_TERMINATION_UNCONFIRMED');
     resource.terminationProof = {
+      mediaKind,
       pgid: resource.pgid,
       uuid: resource.uuid,
       candidateSHA: identity.candidateSHA,
@@ -1182,7 +1269,9 @@ export async function runFinalCrunBounded({
       resource.cleanupResult = {
         passed: false,
         operations: [{ name: 'termination-proof', passed: false }],
-        failures: [{ stage: 'crun-cleanup', code: result.cleanupError }],
+        failures: [
+          { stage: `crun-${mediaKind}-cleanup`, code: result.cleanupError },
+        ],
       };
   }
   if (observed)
@@ -3638,7 +3727,13 @@ async function execution(identity, env) {
     identity.evidence.push(relative);
     await persistIdentity(identity);
   };
-  const cleanupCrunOwned = async (end) => {
+  const cleanupCrunOwned = async (mediaKind, resource, end) => {
+    requireThat(
+      ['image', 'video'].includes(mediaKind) &&
+        identity.resources.crun?.[mediaKind] === resource &&
+        resource.mediaKind === mediaKind,
+      'CRUN_OWNERSHIP',
+    );
     const pgCleanup = (args) => {
       const invocation = postgresClientInvocation(
         serviceId(identity.resources.postgres),
@@ -3673,10 +3768,10 @@ async function execution(identity, env) {
         Math.max(1, end - Date.now()),
       );
     return cleanupFinalCrunResources(
-      identity.resources.crun,
+      resource,
       {
         save: (manifest) =>
-          save('raw/crun-manifest.json', JSON.stringify(manifest)),
+          save(`raw/crun-${mediaKind}-manifest.json`, JSON.stringify(manifest)),
         dropSchema: (schema) =>
           pgCleanup([
             '-d',
@@ -3727,11 +3822,18 @@ async function execution(identity, env) {
       path.relative(identity.state, stderrPath),
     );
     await persistIdentity(identity);
+    const mediaKind = Object.hasOwn(CRUN_STAGE_MEDIA, stage)
+      ? CRUN_STAGE_MEDIA[stage]
+      : undefined;
+    const crunResource = mediaKind
+      ? identity.resources.crun?.[mediaKind]
+      : undefined;
     const result =
-      identity.group === 'final' && stage === 'crun'
+      identity.group === 'final' && mediaKind !== undefined
         ? await runFinalCrunBounded({
             identity,
-            resource: identity.resources.crun,
+            mediaKind,
+            resource: crunResource,
             executable,
             args,
             cwd,
@@ -3739,7 +3841,8 @@ async function execution(identity, env) {
             stdoutPath,
             stderrPath,
             persistProof: persistIdentity,
-            cleanupOwned: cleanupCrunOwned,
+            cleanupOwned: (end) =>
+              cleanupCrunOwned(mediaKind, crunResource, end),
             aggregateDeadline: Math.min(deadline, phaseDeadline),
           })
         : await runBounded({
@@ -4222,57 +4325,77 @@ async function execution(identity, env) {
           { cwd: 'packages/storage', timeout: 165000 },
         ),
       );
-      await attempt('crun', async () => {
-        const url = await database('genfeed_crun_test');
-        const redis = 'redis://127.0.0.1:6379/11';
-        validateUrl(redis, 'redis');
-        const uuid = randomUUID();
-        const manifest = `/tmp/crun-run-${uuid}.json`;
-        const directory = `/tmp/crun-owned-${uuid}`;
-        identity.resources.crun = { uuid, manifest, directory };
-        await persistIdentity(identity);
-        await mkdir(directory, { mode: 0o700 });
-        await privateFile(
-          manifest,
-          JSON.stringify({
-            version: 1,
-            schema: null,
-            ownedDirectory: directory,
-            redisKeys: [],
-          }),
-        );
-        for (const [key, target] of [
-          ['manifest', manifest],
-          ['directory', directory],
-        ]) {
-          const metadata = await lstat(target);
-          identity.resources.crun[`${key}Metadata`] = {
-            device: metadata.dev,
-            inode: metadata.ino,
-            realpath: await realpath(target),
-          };
-        }
-        await persistIdentity(identity);
-        await vitest(
-          'crun',
-          [
+      identity.resources.crun = { image: null, video: null };
+      await persistIdentity(identity);
+      for (const mediaKind of ['image', 'video']) {
+        const stage = `crun-${mediaKind}`;
+        const priorFailures = failures.length;
+        await attempt(stage, async () => {
+          const contract = CRUN_SOURCE_CONTRACT[mediaKind];
+          await verifyFrozenSources(identity.repo, [contract]);
+          const url = await database('genfeed_crun_test');
+          const redis = 'redis://127.0.0.1:6379/11';
+          validateUrl(redis, 'redis');
+          const uuid = randomUUID();
+          const manifest = `/tmp/crun-run-${uuid}.json`;
+          const directory = `/tmp/crun-owned-${uuid}`;
+          const resource = { mediaKind, uuid, manifest, directory };
+          const other =
+            identity.resources.crun[mediaKind === 'image' ? 'video' : 'image'];
+          requireThat(
+            !other ||
+              (other.uuid !== uuid &&
+                other.manifest !== manifest &&
+                other.directory !== directory),
+            'CRUN_OWNERSHIP',
+          );
+          identity.resources.crun[mediaKind] = resource;
+          await persistIdentity(identity);
+          await mkdir(directory, { mode: 0o700 });
+          await privateFile(
+            manifest,
+            JSON.stringify({
+              version: 1,
+              schema: null,
+              ownedDirectory: directory,
+              redisKeys: [],
+            }),
+          );
+          for (const [key, target] of [
+            ['manifest', manifest],
+            ['directory', directory],
+          ]) {
+            const metadata = await lstat(target);
+            resource[`${key}Metadata`] = {
+              device: metadata.dev,
+              inode: metadata.ino,
+              realpath: await realpath(target),
+            };
+          }
+          await persistIdentity(identity);
+          await vitest(
+            stage,
+            [
+              {
+                file: contract.path.slice('apps/server/api/'.length),
+                count: contract.count,
+                titles: contract.passedTitles,
+              },
+            ],
             {
-              file: 'src/services/integrations/crun/crun-image-flow.integration.spec.ts',
-              count: 18,
+              pool: 'forks',
+              extra: {
+                WORKFLOW_BILLING_TEST_DATABASE_URL: url,
+                CRUN_TEST_REDIS_URL: redis,
+                CRUN_TEST_RUN_MANIFEST: manifest,
+                CRUN_TEST_OWNED_DIRECTORY: directory,
+              },
+              timeout: 60000,
             },
-          ],
-          {
-            pool: 'forks',
-            extra: {
-              WORKFLOW_BILLING_TEST_DATABASE_URL: url,
-              CRUN_TEST_REDIS_URL: redis,
-              CRUN_TEST_RUN_MANIFEST: manifest,
-              CRUN_TEST_OWNED_DIRECTORY: directory,
-            },
-            timeout: 60000,
-          },
-        );
-      });
+          );
+        });
+        if (failures.length !== priorFailures) break;
+      }
       await attempt('agent', async () => {
         const url = await database('genfeed_agent_test');
         const redis = 'redis://127.0.0.1:6379/12';
@@ -5040,31 +5163,48 @@ async function execution(identity, env) {
         }
         activeGroups.delete(coordinator.pid);
       });
-    if (identity.resources.crun) {
-      const resource = identity.resources.crun;
-      const result = resource.cleanupResult ?? {
-        passed: false,
-        operations: [{ name: 'termination-proof', passed: false }],
-        failures: [
-          { stage: 'crun-cleanup', code: 'CRUN_TERMINATION_UNCONFIRMED' },
-        ],
-      };
-      if (result.passed && !hasFinalCrunTerminationProof(resource)) {
-        result.passed = false;
-        result.failures.push({
-          stage: 'crun-cleanup',
-          code: 'CRUN_TERMINATION_PROOF_FAILED',
-        });
-      }
-      cleanupResult.operations.push(
-        ...result.operations.map((operation) => ({
-          ...operation,
-          name: `crun-${operation.name}`,
-        })),
-      );
-      if (!result.passed) {
-        cleanupResult.passed = false;
-        failures.push(...result.failures);
+    if (identity.group === 'final') {
+      for (const mediaKind of ['image', 'video']) {
+        const resource = identity.resources.crun?.[mediaKind];
+        const result = resource?.cleanupResult ?? {
+          passed: false,
+          operations: [{ name: 'termination-proof', passed: false }],
+          failures: [
+            {
+              stage: `crun-${mediaKind}-cleanup`,
+              code: 'CRUN_TERMINATION_UNCONFIRMED',
+            },
+          ],
+        };
+        if (
+          result.passed &&
+          (resource.candidateSHA !== identity.candidateSHA ||
+            resource.controlSHA !== identity.controlSHA ||
+            !hasFinalCrunTerminationProof(resource, mediaKind))
+        ) {
+          result.passed = false;
+          result.failures.push({
+            stage: `crun-${mediaKind}-cleanup`,
+            code: 'CRUN_TERMINATION_PROOF_FAILED',
+          });
+        }
+        cleanupResult.operations.push(
+          ...result.operations.map((operation) => ({
+            ...operation,
+            name: `crun-${mediaKind}-${operation.name}`,
+          })),
+        );
+        if (!result.passed) {
+          cleanupResult.passed = false;
+          failures.push(
+            ...result.failures.map((failure) => ({
+              ...failure,
+              stage: failure.stage.startsWith(`crun-${mediaKind}-`)
+                ? failure.stage
+                : `crun-${mediaKind}-${failure.stage}`,
+            })),
+          );
+        }
       }
     }
     for (const resource of [...identity.resources.databases].reverse()) {
@@ -5203,6 +5343,52 @@ async function execution(identity, env) {
   }
   return outcome;
 }
+function validateFinalCrunOutcome(outcome, identity) {
+  requireThat(
+    outcome.completed.length === REQUIRED.final.length &&
+      [...outcome.completed.map((entry) => entry.stage)].sort().join('|') ===
+        [...REQUIRED.final].sort().join('|'),
+    'SUCCESS_RECEIPT_REQUIRED',
+  );
+  exactKeys(identity.resources.crun, ['image', 'video'], 'CRUN_OWNERSHIP');
+  const image = identity.resources.crun.image,
+    video = identity.resources.crun.video;
+  requireThat(
+    image &&
+      video &&
+      image !== video &&
+      image.uuid !== video.uuid &&
+      image.manifest !== video.manifest &&
+      image.directory !== video.directory,
+    'CRUN_OWNERSHIP',
+  );
+  for (const mediaKind of ['image', 'video']) {
+    const resource = identity.resources.crun[mediaKind],
+      contract = CRUN_SOURCE_CONTRACT[mediaKind];
+    requireThat(
+      resource.candidateSHA === identity.candidateSHA &&
+        resource.controlSHA === identity.controlSHA &&
+        hasFinalCrunTerminationProof(resource, mediaKind) &&
+        resource.cleanupResult?.passed === true,
+      'CRUN_TERMINATION_PROOF_FAILED',
+    );
+    const cases = outcome.completed.find(
+      (entry) => entry.stage === `crun-${mediaKind}`,
+    )?.cases;
+    requireThat(
+      cases?.length === 1 &&
+        cases[0].file === contract.path.slice('apps/server/api/'.length) &&
+        cases[0].passed === contract.count &&
+        cases[0].skipped === 0 &&
+        cases[0].skippedTitles?.length === 0 &&
+        Array.isArray(cases[0].passedTitles) &&
+        cases[0].passedTitles.length === contract.count &&
+        [...cases[0].passedTitles].sort().join('\n') ===
+          [...contract.passedTitles].sort().join('\n'),
+      'SUCCESS_RECEIPT_REQUIRED',
+    );
+  }
+}
 export function validateOutcome(outcome, receipt, identity) {
   requireThat(
     outcome?.version === 1 &&
@@ -5226,6 +5412,8 @@ export function validateOutcome(outcome, receipt, identity) {
       'SUCCESS_RECEIPT_REQUIRED',
     );
   else requireThat(!receipt, 'FAILED_SUCCESS_RECEIPT');
+  if (outcome.status === 'passed' && identity.group === 'final')
+    validateFinalCrunOutcome(outcome, identity);
   return outcome.status;
 }
 export async function collectConnectedEvidence(identity) {
@@ -5415,6 +5603,25 @@ export async function sealState(identity, env) {
   const files = [];
   let total = 0;
   const allowlist = new Set(identity.evidence);
+  if (status === 'passed' && identity.group === 'final') {
+    for (const mediaKind of ['image', 'video']) {
+      const stage = `crun-${mediaKind}`;
+      const index = outcome.commands.findIndex(
+        (command) => command.stage === stage,
+      );
+      requireThat(
+        index >= 0 &&
+          [
+            `raw/${stage}.report.json`,
+            `raw/${stage}-manifest.json`,
+            `raw/${stage}-${index}.stdout`,
+            `raw/${stage}-${index}.stderr`,
+          ].every((relative) => allowlist.has(relative)),
+        'MISSING_CRUN_EVIDENCE',
+      );
+    }
+  }
+
   requireThat(
     allowlist.size === identity.evidence.length,
     'DUPLICATE_EVIDENCE',
