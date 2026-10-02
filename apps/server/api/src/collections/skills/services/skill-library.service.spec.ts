@@ -1201,7 +1201,7 @@ describe('SkillLibraryService immutable versions read V1', () => {
       payload: {
         format: 'genfeed.skill.legacy-snapshot.v1',
         instructions: { text, sourceField },
-        instructionUsable: text.trim().length > 0,
+        instructionUsable: /[^ ]/.test(text),
         config: {
           source: 'imported',
           isBuiltIn: false,
@@ -1217,7 +1217,7 @@ describe('SkillLibraryService immutable versions read V1', () => {
       },
       instructionText: text,
       instructionSourceField: sourceField,
-      instructionUsable: text.trim().length > 0,
+      instructionUsable: /[^ ]/.test(text),
       contentHash: `sha256:skill-v1:${'b'.repeat(64)}`,
       instructionHash: `sha256:skill-instruction-v1:${'c'.repeat(64)}`,
       createdById: actor.userId,
@@ -1424,8 +1424,19 @@ describe('SkillLibraryService immutable versions read V1', () => {
   });
   it('preserves exact whitespace and explicit empty bodies, stored hash namespaces and UTC timestamp', async () => {
     const f = fixture();
-    for (const text of ['', ' \n\t ']) {
+    const cases: Array<[string, boolean]> = [
+      ['', false],
+      ['   ', false],
+      ['\n\t', true],
+      [' \n\t ', true],
+      ['\u00a0', true],
+    ];
+    for (const [text, expectedUsable] of cases) {
       f.rows[1] = captured(2, text);
+      expect(f.rows[1].instructionUsable).toBe(expectedUsable);
+      expect(
+        (f.rows[1].payload as { instructionUsable: boolean }).instructionUsable,
+      ).toBe(expectedUsable);
       expect(await f.service.getVersion(actor, 'skill', 'sv1_skill_2')).toEqual(
         {
           id: 'sv1_skill_2',

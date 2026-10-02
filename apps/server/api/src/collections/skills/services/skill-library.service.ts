@@ -162,7 +162,8 @@ export function isVerifiedOrdinaryUploadVersionReadV1(
       instructions.sourceField !== row.instructionSourceField ||
       sourceField !== row.instructionSourceField ||
       payload.instructionUsable !== row.instructionUsable ||
-      row.instructionUsable !== row.instructionText.trim().length > 0
+      // PostgreSQL btrim removes only ASCII spaces; preserve every captured character.
+      row.instructionUsable !== /[^ ]/.test(row.instructionText)
     )
       return null;
     return provenance.packageChecksum;
