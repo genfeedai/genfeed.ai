@@ -17,6 +17,21 @@ on:
         type: boolean
         required: false
         default: false
+      run_runtime_acceptance:
+        description: 'Run the final combined-source serial runtime acceptance.'
+        type: boolean
+        required: false
+        default: false
+    outputs:
+      agent_production_result:
+        description: 'Passed only after the dedicated production receipt and encrypted upload.'
+        value: ${{ jobs.agent-production-acceptance.outputs.result }}
+      brand_acceptance_result:
+        description: 'Passed only after the dedicated BRAND receipt and encrypted upload.'
+        value: ${{ jobs.brand-acceptance.outputs.result }}
+      runtime_acceptance_result:
+        description: 'Passed only after the checked private receipt and encrypted upload.'
+        value: ${{ jobs.runtime-acceptance.outputs.result }}
   schedule:
     - cron: "17 2 * * *" # Nightly 02:17 UTC
 
@@ -138,6 +153,8 @@ jobs:
   # production workflow_call path, so release deploys remain gated by core.
   e2e-api-full:
     name: API E2E Full
+    outputs:
+      partition: ${{ steps.partition.outputs.partition }}
     if: (github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -188,7 +205,13 @@ jobs:
         working-directory: packages/prisma
 
       - name: Run API E2E full tier
-        run: bun run --cwd apps/server/api test:e2e:full
+        run: env -u PROACTIVE_AGENT_PRODUCTION_TURN_EXCLUSIVE_DB -u BRANDED_GENERATION_TEST_DATABASE_URL bun run --cwd apps/server/api test:e2e:full --exclude test/integration/proactive-agent-production-turn.integration.spec.ts --exclude test/integration/branded-generation/branded-generation-receipts.integration.spec.ts
+
+      - name: Check exact shared full partition
+        id: partition
+        run: |
+          node --input-type=module -e 'import { verifySharedApiFullPartition } from "./scripts/ci/runtime-acceptance.mjs"; await verifySharedApiFullPartition(process.cwd());'
+          echo 'partition=passed' >> "$GITHUB_OUTPUT"
 
       - name: Upload API E2E full report
         if: always()
@@ -467,13 +490,347 @@ jobs:
           if-no-files-found: error
 
   # Gate aggregator — the single job that represents the E2E suite's pass/fail.
+  runtime-acceptance:
+    name: Serial Runtime Acceptance
+    if: inputs.run_runtime_acceptance == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    outputs:
+      result: ${{ steps.complete.outputs.result }}
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: test
+          POSTGRES_USER: genfeed
+          POSTGRES_PASSWORD: genfeed_local
+        ports:
+          - 5432:5432
+        # Gate job start on container readiness so the first DB touch can
+        # never race container startup (deferred CodeRabbit finding on #1615).
+        options: >-
+          --health-cmd "pg_isready -U genfeed -d test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TURBO_TOKEN: ''
+      RUNTIME_ACCEPTANCE_CI_RUN_ID: ${{ github.run_id }}
+      RUNTIME_ACCEPTANCE_CI_RUN_ATTEMPT: ${{ github.run_attempt }}
+      RUNTIME_ACCEPTANCE_CI_JOB: ${{ github.job }}
+      RUNTIME_ACCEPTANCE_POSTGRES_USER: genfeed
+      RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD: genfeed_local
+      RUNTIME_ACCEPTANCE_PUBLIC_KEY: ${{ vars.RUNTIME_ACCEPTANCE_PUBLIC_KEY }}
+      RUNTIME_ACCEPTANCE_OWNER_CONTRACT: ${{ vars.RUNTIME_ACCEPTANCE_OWNER_CONTRACT }}
+      ACCEPTANCE_REPO: ${{ github.workspace }}
+      CANDIDATE_SHA: ${{ github.sha }}
+      CONTROL_SHA: ${{ github.sha }}
+    steps:
+      - name: Anchor acceptance job deadline
+        run: |
+          {
+            echo "RUNTIME_ACCEPTANCE_JOB_STARTED_MS=$(date +%s%3N)"
+            echo "ACCEPTANCE_STATE=$RUNNER_TEMP/runtime-acceptance"
+          } >> "$GITHUB_ENV"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Setup preflight Node.js 24.x
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.x'
+      - name: Validate final prerequisites before dependency setup
+        id: preflight
+        run: node scripts/ci/runtime-acceptance.mjs preflight --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA" --group final
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+      - name: Build packages
+        run: bunx turbo run build --filter="./packages/*"
+      - name: Run serial runtime acceptance
+        env:
+          RUNTIME_ACCEPTANCE_POSTGRES_ID: ${{ job.services.postgres.id }}
+          RUNTIME_ACCEPTANCE_REDIS_ID: ${{ job.services.redis.id }}
+        run: node scripts/ci/runtime-acceptance.mjs final --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
+      - name: Seal available runtime evidence
+        id: seal
+        if: always() && steps.preflight.outputs.prepared == 'true'
+        run: node scripts/ci/runtime-acceptance.mjs seal --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
+      - name: Retain encrypted runtime evidence
+        id: upload
+        if: always() && steps.preflight.outputs.prepared == 'true' && steps.seal.outcome != 'skipped'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: runtime-acceptance-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/runtime-acceptance/public/receipt.json
+            ${{ runner.temp }}/runtime-acceptance/public/evidence.encrypted.json
+          retention-days: 7
+          if-no-files-found: error
+      - name: Confirm checked receipt and encrypted upload
+        id: complete
+        if: steps.seal.outputs.result == 'passed' && steps.upload.outcome == 'success'
+        run: echo 'result=passed' >> "$GITHUB_OUTPUT"
+
+  agent-production-acceptance:
+    name: Proactive Production Turn Acceptance
+    if: (github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true || inputs.run_runtime_acceptance == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    outputs:
+      result: ${{ steps.complete.outputs.result }}
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: test
+          POSTGRES_USER: genfeed
+          POSTGRES_PASSWORD: genfeed_local
+        ports:
+          - 5432:5432
+        # Gate job start on container readiness so the first DB touch can
+        # never race container startup (deferred CodeRabbit finding on #1615).
+        options: >-
+          --health-cmd "pg_isready -U genfeed -d test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TURBO_TOKEN: ''
+      RUNTIME_ACCEPTANCE_POSTGRES_USER: genfeed
+      RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD: genfeed_local
+      RUNTIME_ACCEPTANCE_PUBLIC_KEY: ${{ vars.RUNTIME_ACCEPTANCE_PUBLIC_KEY }}
+      ACCEPTANCE_REPO: ${{ github.workspace }}
+      CANDIDATE_SHA: ${{ github.sha }}
+      CONTROL_SHA: ${{ github.sha }}
+    steps:
+      - name: Anchor acceptance job deadline
+        run: |
+          {
+            echo "RUNTIME_ACCEPTANCE_JOB_STARTED_MS=$(date +%s%3N)"
+            echo "ACCEPTANCE_STATE=$RUNNER_TEMP/agent-production"
+          } >> "$GITHUB_ENV"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Setup preflight Node.js 24.x
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.x'
+      - name: Validate final prerequisites before dependency setup
+        id: preflight
+        run: node scripts/ci/runtime-acceptance.mjs preflight --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA" --group agent-production
+      - name: Require remaining dedicated setup budget
+        id: agent-setup-budget
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RUNTIME_ACCEPTANCE_JOB_STARTED_MS" =~ ^[0-9]+$ ]]
+          remaining_ms=$((RUNTIME_ACCEPTANCE_JOB_STARTED_MS + 300000 - $(date +%s%3N)))
+          remaining_minutes=$((remaining_ms / 60000))
+          test "$remaining_ms" -ge 60000
+          test "$remaining_minutes" -ge 1
+          echo "minutes=$remaining_minutes" >> "$GITHUB_OUTPUT"
+      - name: Setup Bun environment
+        timeout-minutes: ${{ fromJSON(steps.agent-setup-budget.outputs.minutes) }}
+        uses: ./.github/actions/setup-bun-env
+      - name: Generate Prisma and build within dedicated setup budget
+        shell: bash
+        run: |
+          set -euo pipefail
+          remaining=$(((300000 + RUNTIME_ACCEPTANCE_JOB_STARTED_MS - $(date +%s%3N)) / 1000))
+          test "$remaining" -gt 0
+          timeout "${remaining}s" bash <<'BUILD'
+            set -euo pipefail
+            export DATABASE_URL="$(node --input-type=module -e 'import { databaseUrl, readPostgresCredentials } from "./scripts/ci/runtime-acceptance.mjs"; process.stdout.write(databaseUrl("test", readPostgresCredentials(process.env)))')"
+            bun run --cwd packages/prisma db:generate
+            bunx turbo run build --filter="./packages/*"
+          BUILD
+          test "$((300000 + RUNTIME_ACCEPTANCE_JOB_STARTED_MS - $(date +%s%3N)))" -gt 0
+      - name: Run serial runtime acceptance
+        env:
+          RUNTIME_ACCEPTANCE_POSTGRES_ID: ${{ job.services.postgres.id }}
+          RUNTIME_ACCEPTANCE_REDIS_ID: ${{ job.services.redis.id }}
+        run: node scripts/ci/runtime-acceptance.mjs agent-production --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
+      - name: Seal available runtime evidence
+        id: seal
+        if: always() && steps.preflight.outputs.prepared == 'true'
+        run: node scripts/ci/runtime-acceptance.mjs seal --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
+      - name: Retain encrypted runtime evidence
+        id: upload
+        if: always() && steps.preflight.outputs.prepared == 'true' && steps.seal.outcome != 'skipped'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: agent-production-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/agent-production/public/receipt.json
+            ${{ runner.temp }}/agent-production/public/evidence.encrypted.json
+          retention-days: 7
+          if-no-files-found: error
+      - name: Confirm checked receipt and encrypted upload
+        id: complete
+        if: steps.seal.outputs.result == 'passed' && steps.upload.outcome == 'success'
+        run: echo 'result=passed' >> "$GITHUB_OUTPUT"
+
+  brand-acceptance:
+    name: BRAND Receipt and Relocation Acceptance
+    if: (github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true || inputs.run_runtime_acceptance == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      result: ${{ steps.complete.outputs.result }}
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: test
+          POSTGRES_USER: genfeed
+          POSTGRES_PASSWORD: genfeed_local
+        ports:
+          - 5432:5432
+        # Gate job start on container readiness so the first DB touch can
+        # never race container startup (deferred CodeRabbit finding on #1615).
+        options: >-
+          --health-cmd "pg_isready -U genfeed -d test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TURBO_TOKEN: ''
+      RUNTIME_ACCEPTANCE_POSTGRES_USER: genfeed
+      RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD: genfeed_local
+      RUNTIME_ACCEPTANCE_PUBLIC_KEY: ${{ vars.RUNTIME_ACCEPTANCE_PUBLIC_KEY }}
+      RUNTIME_ACCEPTANCE_OWNER_CONTRACT: ${{ vars.RUNTIME_ACCEPTANCE_OWNER_CONTRACT }}
+      ACCEPTANCE_REPO: ${{ github.workspace }}
+      CANDIDATE_SHA: ${{ github.sha }}
+      CONTROL_SHA: ${{ github.sha }}
+    steps:
+      - name: Anchor acceptance job deadline
+        run: |
+          {
+            echo "RUNTIME_ACCEPTANCE_JOB_STARTED_MS=$(date +%s%3N)"
+            echo "ACCEPTANCE_STATE=$RUNNER_TEMP/brand-acceptance"
+          } >> "$GITHUB_ENV"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Setup preflight Node.js 24.x
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.x'
+      - name: Validate final prerequisites before dependency setup
+        id: preflight
+        run: node scripts/ci/runtime-acceptance.mjs preflight --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA" --group brand-acceptance
+      - name: Require remaining dedicated setup budget
+        id: brand-setup-budget
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RUNTIME_ACCEPTANCE_JOB_STARTED_MS" =~ ^[0-9]+$ ]]
+          remaining_ms=$((RUNTIME_ACCEPTANCE_JOB_STARTED_MS + 300000 - $(date +%s%3N)))
+          remaining_minutes=$((remaining_ms / 60000))
+          test "$remaining_ms" -ge 60000
+          test "$remaining_minutes" -ge 1
+          echo "minutes=$remaining_minutes" >> "$GITHUB_OUTPUT"
+      - name: Setup Bun environment
+        timeout-minutes: ${{ fromJSON(steps.brand-setup-budget.outputs.minutes) }}
+        uses: ./.github/actions/setup-bun-env
+      - name: Generate Prisma and build within dedicated setup budget
+        shell: bash
+        run: |
+          set -euo pipefail
+          remaining=$(((300000 + RUNTIME_ACCEPTANCE_JOB_STARTED_MS - $(date +%s%3N)) / 1000))
+          test "$remaining" -gt 0
+          timeout "${remaining}s" bash <<'BUILD'
+            set -euo pipefail
+            export DATABASE_URL="$(node --input-type=module -e 'import { databaseUrl, readPostgresCredentials } from "./scripts/ci/runtime-acceptance.mjs"; process.stdout.write(databaseUrl("test", readPostgresCredentials(process.env)))')"
+            bun run --cwd packages/prisma db:generate
+            bunx turbo run build --filter="./packages/*"
+          BUILD
+          test "$((300000 + RUNTIME_ACCEPTANCE_JOB_STARTED_MS - $(date +%s%3N)))" -gt 0
+      - name: Run serial runtime acceptance
+        env:
+          RUNTIME_ACCEPTANCE_POSTGRES_ID: ${{ job.services.postgres.id }}
+        run: node scripts/ci/runtime-acceptance.mjs brand-acceptance --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
+      - name: Seal available runtime evidence
+        id: seal
+        if: always() && steps.preflight.outputs.prepared == 'true'
+        run: node scripts/ci/runtime-acceptance.mjs seal --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
+      - name: Retain encrypted runtime evidence
+        id: upload
+        if: always() && steps.preflight.outputs.prepared == 'true' && steps.seal.outcome != 'skipped'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: brand-acceptance-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/brand-acceptance/public/receipt.json
+            ${{ runner.temp }}/brand-acceptance/public/evidence.encrypted.json
+          retention-days: 7
+          if-no-files-found: error
+      - name: Confirm checked receipt and encrypted upload
+        id: complete
+        if: steps.seal.outputs.result == 'passed' && steps.upload.outcome == 'success'
+        run: echo 'result=passed' >> "$GITHUB_OUTPUT"
+
+  e2e-api-full-gate:
+    name: API E2E Full Gate
+    if: always() && ((github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true)
+    needs: [e2e-api-full, agent-production-acceptance, brand-acceptance]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Require checked full partition and both dedicated receipts
+        env:
+          FULL_RESULT: ${{ needs.e2e-api-full.result }}
+          PARTITION: ${{ needs.e2e-api-full.outputs.partition }}
+          AGENT_RESULT: ${{ needs.agent-production-acceptance.result }}
+          AGENT_RECEIPT: ${{ needs.agent-production-acceptance.outputs.result }}
+          BRAND_RESULT: ${{ needs.brand-acceptance.result }}
+          BRAND_RECEIPT: ${{ needs.brand-acceptance.outputs.result }}
+        run: |
+          set -euo pipefail
+          test "$FULL_RESULT" = success
+          test "$PARTITION" = passed
+          test "$AGENT_RESULT" = success
+          test "$AGENT_RECEIPT" = passed
+          test "$BRAND_RESULT" = success
+          test "$BRAND_RECEIPT" = passed
+
   # All applicable jobs must finish successfully; skipped and cancelled jobs
   # do not provide browser/API evidence or a complete inventory.
   e2e-gate:
     name: E2E Gate (all shards)
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [e2e-route-coverage, e2e-frontend, e2e-api]
+    needs: [e2e-route-coverage, e2e-frontend, e2e-api, runtime-acceptance]
     if: always()
     steps:
       - name: Check shard results
@@ -489,6 +846,12 @@ jobs:
           fi
           if [[ "${{ needs.e2e-api.result }}" != "success" ]]; then
             echo "API E2E boot gate did not pass" && exit 1
+          fi
+          if [[ "${{ inputs.run_runtime_acceptance == true }}" == "true" ]]; then
+            test "${{ needs.runtime-acceptance.result }}" = success
+            test "${{ needs.runtime-acceptance.outputs.result }}" = passed
+          else
+            test "${{ needs.runtime-acceptance.result }}" = skipped
           fi
           echo "All required E2E checks passed."
 
@@ -654,7 +1017,7 @@ jobs:
   # 2026-08-01 the full tier failed and this job was skipped.
   nightly-failure-report:
     name: Report nightly E2E failure
-    needs: [e2e-gate, e2e-frontend-authed, e2e-api-full, e2e-isolated-publish]
+    needs: [e2e-gate, e2e-frontend-authed, e2e-api-full, e2e-isolated-publish, agent-production-acceptance, brand-acceptance, e2e-api-full-gate]
     # `!cancelled()` rather than `always()`: both keep the reporter eligible when
     # an upstream job goes red, but `always()` also fires when the whole run is
     # cancelled — which marks every job 'cancelled' and would file a phantom
@@ -668,7 +1031,10 @@ jobs:
         || needs.e2e-api-full.result == 'failure'
         || needs.e2e-api-full.result == 'cancelled'
         || needs.e2e-isolated-publish.result == 'failure'
-        || needs.e2e-isolated-publish.result == 'cancelled')
+        || needs.e2e-isolated-publish.result == 'cancelled'
+        || needs.agent-production-acceptance.result != 'success'
+        || needs.brand-acceptance.result != 'success'
+        || needs.e2e-api-full-gate.result != 'success')
     # Serialize the complete label lookup + issue lookup/mutation path across
     # scheduled runs and rerun attempts. Keep all pending reporters queued.
     concurrency:
@@ -726,19 +1092,24 @@ jobs:
                 per_page: 100,
               },
             );
-            const sourceName = /^(?:E2E Route Reference Inventory|API E2E Tests|API E2E Full|Isolated Publish E2E|Frontend E2E \(Shard \d+\/4\)|Frontend Authed E2E \(real Better Auth\)|E2E Gate \(all shards\))$/;
+            const sourceName = /^(?:E2E Route Reference Inventory|API E2E Tests|API E2E Full|Isolated Publish E2E|Proactive Production Turn Acceptance|BRAND Receipt and Relocation Acceptance|API E2E Full Gate|Frontend E2E \(Shard \d+\/4\)|Frontend Authed E2E \(real Better Auth\)|E2E Gate \(all shards\))$/;
             const failedJobs = jobs.filter(
               (job) =>
                 sourceName.test(job.name) &&
                 ['failure', 'cancelled', 'timed_out'].includes(job.conclusion),
             );
             const specificJobs = failedJobs.filter(
-              (job) => job.name !== 'E2E Gate (all shards)',
+              (job) =>
+                job.name !== 'E2E Gate (all shards)' &&
+                job.name !== 'API E2E Full Gate',
             );
             const selectedJobs = specificJobs.length > 0 ? specificJobs : failedJobs;
             const trackerJob = (name) => {
               if (/^Frontend E2E \(Shard/u.test(name)) return 'e2e-frontend';
               if (name === 'Frontend Authed E2E (real Better Auth)') return 'e2e-frontend-authed';
+              if (name === 'Proactive Production Turn Acceptance') return 'agent-production-acceptance';
+              if (name === 'BRAND Receipt and Relocation Acceptance') return 'brand-acceptance';
+              if (name === 'API E2E Full Gate') return 'e2e-api-full';
               if (name === 'API E2E Full') return 'e2e-api-full';
               if (name === 'API E2E Tests') return 'e2e-api';
               if (name === 'Isolated Publish E2E') return 'e2e-isolated-publish';
@@ -774,7 +1145,7 @@ jobs:
 
   nightly-recovery-report:
     name: Record nightly E2E recovery
-    needs: [e2e-gate, e2e-frontend-authed, e2e-api-full, e2e-isolated-publish]
+    needs: [e2e-gate, e2e-frontend-authed, e2e-api-full, e2e-isolated-publish, agent-production-acceptance, brand-acceptance, e2e-api-full-gate]
     if: >-
       !cancelled()
       && (github.event_name == 'schedule' && github.workflow == 'E2E Tests')
@@ -783,6 +1154,9 @@ jobs:
         || needs.e2e-frontend-authed.result == 'skipped')
       && needs.e2e-api-full.result == 'success'
       && needs.e2e-isolated-publish.result == 'success'
+      && needs.agent-production-acceptance.result == 'success'
+      && needs.brand-acceptance.result == 'success'
+      && needs.e2e-api-full-gate.result == 'success'
     concurrency:
       group: nightly-e2e-failure-reporter
       cancel-in-progress: false

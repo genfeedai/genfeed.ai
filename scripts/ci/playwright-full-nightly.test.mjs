@@ -123,7 +123,10 @@ test('e2e.yml core and authed jobs remain the production deploy gates', () => {
   const frontend = jobBlock(workflow, 'e2e-frontend', 'e2e.yml');
   const authed = jobBlock(workflow, 'e2e-frontend-authed', 'e2e.yml');
 
-  assert.match(gate, /needs: \[e2e-route-coverage, e2e-frontend, e2e-api\]/);
+  assert.match(
+    gate,
+    /needs: \[e2e-route-coverage, e2e-frontend, e2e-api, runtime-acceptance\]/,
+  );
   assert.doesNotMatch(gate, /playwright-full|e2e-frontend-full|test:e2e:full/);
   assert.doesNotMatch(
     gate,

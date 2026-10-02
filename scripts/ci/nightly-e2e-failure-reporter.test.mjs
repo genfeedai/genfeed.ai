@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { runInNewContext } from 'node:vm';
 
 import {
   NIGHTLY_E2E_FAILURE_LABEL,
@@ -108,3 +109,38 @@ for (const workflowName of ['e2e.yml', 'playwright-full-nightly.yml']) {
     );
   });
 }
+
+test('nightly E2E reports specific failures and preserves aggregate-only fallback', () => {
+  const report = WORKFLOW.split('  nightly-failure-report:')[1].split(
+    '  nightly-recovery-report:',
+  )[0];
+  const selection = report.match(
+    /const specificJobs = failedJobs\.filter\([\s\S]*?const selectedJobs = [^;]+;/u,
+  )?.[0];
+  assert.ok(selection);
+  const select = (names) => {
+    const selected = runInNewContext(`${selection} selectedJobs;`, {
+      failedJobs: names.map((name) => ({ name })),
+    });
+    return Array.from(selected, (job) => job.name);
+  };
+  for (const specific of [
+    'BRAND Receipt and Relocation Acceptance',
+    'Proactive Production Turn Acceptance',
+    'API E2E Full',
+  ]) {
+    assert.deepEqual(
+      select([specific, 'API E2E Full Gate', 'E2E Gate (all shards)']),
+      [specific],
+    );
+  }
+  assert.deepEqual(select(['API E2E Full Gate']), ['API E2E Full Gate']);
+  assert.deepEqual(select(['E2E Gate (all shards)']), [
+    'E2E Gate (all shards)',
+  ]);
+  assert.deepEqual(select([]), []);
+  assert.match(
+    report,
+    /if \(name === 'API E2E Full Gate'\) return 'e2e-api-full'/u,
+  );
+});

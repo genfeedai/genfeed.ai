@@ -6,8 +6,22 @@ on:
       - 'docker/Dockerfile.visual-code'
       - '.github/workflows/visual-code-isolation.yml'
       - '.dockerignore'
+  workflow_call:
+    inputs:
+      run_connected:
+        description: 'Run the final connected Linux/runsc acceptance.'
+        type: boolean
+        required: false
+        default: false
+    outputs:
+      isolation_acceptance_result:
+        description: 'Passed only after checked isolation receipt and encrypted upload.'
+        value: ${{ jobs.isolation.outputs.result }}
+      connected_acceptance_result:
+        description: 'Passed only after checked connected receipt and encrypted upload.'
+        value: ${{ jobs.connected.outputs.result }}
 concurrency:
-  group: visual-code-isolation-${{ github.event.pull_request.number }}
+  group: visual-code-isolation-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 permissions:
   contents: read
@@ -16,11 +30,40 @@ jobs:
     name: Actual runsc rendering and isolation
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    permissions:
+      contents: read
+    outputs:
+      result: ${{ steps.complete.outputs.result }}
+    env:
+      RUNTIME_ACCEPTANCE_POSTGRES_USER: genfeed
+      RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD: genfeed_local
+      RUNTIME_ACCEPTANCE_PUBLIC_KEY: ${{ vars.RUNTIME_ACCEPTANCE_PUBLIC_KEY }}
+      ACCEPTANCE_REPO: ${{ github.workspace }}
+      CANDIDATE_SHA: ${{ github.sha }}
+      CONTROL_SHA: ${{ github.sha }}
     steps:
+      - name: Anchor acceptance job deadline
+        if: inputs.run_connected == true
+        run: |
+          {
+            echo "RUNTIME_ACCEPTANCE_JOB_STARTED_MS=$(date +%s%3N)"
+            echo "ACCEPTANCE_STATE=$RUNNER_TEMP/visual-isolation"
+          } >> "$GITHUB_ENV"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
+      - name: Setup preflight Node.js 24.x
+        if: inputs.run_connected == true
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.x'
+      - name: Validate final prerequisites before setup
+        if: inputs.run_connected == true
+        id: preflight
+        run: node scripts/ci/runtime-acceptance.mjs preflight --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA" --group visual-isolation
       - name: Install verified gVisor runtime
+        if: inputs.run_connected != true
         shell: bash
         run: |
           set -euo pipefail
@@ -35,16 +78,179 @@ jobs:
           sudo systemctl restart docker
           runsc --version
           docker info --format '{{json .Runtimes}}'
+      - name: Install verified final gVisor runtime
+        if: inputs.run_connected == true
+        shell: bash
+        run: |
+          set -euo pipefail
+          remaining=$(((300000 + RUNTIME_ACCEPTANCE_JOB_STARTED_MS - $(date +%s%3N)) / 1000))
+          test "$remaining" -gt 0
+          timeout "${remaining}s" bash <<'RUNSC'
+            set -euo pipefail
+            cd "$RUNNER_TEMP"
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg zstd
+            curl -fsSLO https://storage.googleapis.com/gvisor/releases/release/latest/x86_64/gvisor.tar.zstd
+            curl -fsSLO https://storage.googleapis.com/gvisor/releases/release/latest/x86_64/gvisor.tar.zstd.sha512
+            sha512sum -c gvisor.tar.zstd.sha512
+            sudo tar --zstd -xf gvisor.tar.zstd -C /usr/local/bin
+            sudo runsc install
+            sudo systemctl restart docker
+            runsc --version
+            docker info --format '{{json .Runtimes}}'
+          RUNSC
+      - name: Build final fixed renderer image
+        if: inputs.run_connected == true
+        run: |
+          set -euo pipefail
+          remaining=$(((300000 + RUNTIME_ACCEPTANCE_JOB_STARTED_MS - $(date +%s%3N)) / 1000))
+          test "$remaining" -gt 0
+          timeout "${remaining}s" docker build -f docker/Dockerfile.visual-code -t genfeed-visual-code:4.0.530 .
       - name: Build fixed renderer image
+        if: inputs.run_connected != true
         run: docker build -f docker/Dockerfile.visual-code -t genfeed-visual-code:4.0.530 .
       - name: Protocol and actual isolation acceptance
+        if: inputs.run_connected != true
         run: |
           node --test scripts/visual-code/*.test.mjs
           node scripts/visual-code/isolation-acceptance.mjs
       - name: Retain inspected media and runtime evidence
-        if: always()
+        if: always() && inputs.run_connected != true
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: visual-code-isolation-${{ github.sha }}
           path: visual-code-artifacts/
           if-no-files-found: warn
+      - name: Run visual-isolation acceptance
+        if: inputs.run_connected == true && steps.preflight.outputs.prepared == 'true'
+        run: node scripts/ci/runtime-acceptance.mjs visual-isolation --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
+      - name: Seal available final evidence
+        id: seal
+        if: always() && inputs.run_connected == true && steps.preflight.outputs.prepared == 'true'
+        run: node scripts/ci/runtime-acceptance.mjs seal --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
+      - name: Retain encrypted final evidence
+        id: upload
+        if: always() && inputs.run_connected == true && steps.preflight.outputs.prepared == 'true' && steps.seal.outcome != 'skipped'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: visual-isolation-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/visual-isolation/public/receipt.json
+            ${{ runner.temp }}/visual-isolation/public/evidence.encrypted.json
+          retention-days: 7
+          if-no-files-found: error
+      - name: Confirm checked receipt and encrypted upload
+        id: complete
+        if: inputs.run_connected == true && steps.seal.outputs.result == 'passed' && steps.upload.outcome == 'success'
+        run: echo 'result=passed' >> "$GITHUB_OUTPUT"
+
+  connected:
+    name: Connected runsc rendering and Library acceptance
+    if: inputs.run_connected == true
+    needs: [isolation]
+    runs-on: ubuntu-latest
+    timeout-minutes: 105
+    permissions:
+      contents: read
+    outputs:
+      result: ${{ steps.complete.outputs.result }}
+    env:
+      RUNTIME_ACCEPTANCE_POSTGRES_USER: genfeed
+      RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD: genfeed_local
+      RUNTIME_ACCEPTANCE_PUBLIC_KEY: ${{ vars.RUNTIME_ACCEPTANCE_PUBLIC_KEY }}
+      ACCEPTANCE_REPO: ${{ github.workspace }}
+      CANDIDATE_SHA: ${{ github.sha }}
+      CONTROL_SHA: ${{ github.sha }}
+    steps:
+      - name: Anchor acceptance job deadline
+        run: |
+          {
+            echo "RUNTIME_ACCEPTANCE_JOB_STARTED_MS=$(date +%s%3N)"
+            echo "ACCEPTANCE_STATE=$RUNNER_TEMP/visual-connected"
+          } >> "$GITHUB_ENV"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Setup preflight Node.js 24.x
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.x'
+      - name: Validate final prerequisites before setup
+        id: preflight
+        run: node scripts/ci/runtime-acceptance.mjs preflight --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA" --group visual-connected
+      - name: Install verified final gVisor runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          remaining=$(((720000 + RUNTIME_ACCEPTANCE_JOB_STARTED_MS - $(date +%s%3N)) / 1000))
+          test "$remaining" -gt 0
+          timeout "${remaining}s" bash <<'RUNSC'
+            set -euo pipefail
+            cd "$RUNNER_TEMP"
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg zstd
+            curl -fsSLO https://storage.googleapis.com/gvisor/releases/release/latest/x86_64/gvisor.tar.zstd
+            curl -fsSLO https://storage.googleapis.com/gvisor/releases/release/latest/x86_64/gvisor.tar.zstd.sha512
+            sha512sum -c gvisor.tar.zstd.sha512
+            sudo tar --zstd -xf gvisor.tar.zstd -C /usr/local/bin
+            sudo runsc install
+            sudo systemctl restart docker
+            runsc --version
+            docker info --format '{{json .Runtimes}}'
+          RUNSC
+      - name: Build final fixed renderer image
+        run: |
+          set -euo pipefail
+          remaining=$(((720000 + RUNTIME_ACCEPTANCE_JOB_STARTED_MS - $(date +%s%3N)) / 1000))
+          test "$remaining" -gt 0
+          timeout "${remaining}s" docker build -f docker/Dockerfile.visual-code -t genfeed-visual-code:4.0.530 .
+      - name: Require remaining shared setup budget
+        id: connected-setup-budget
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RUNTIME_ACCEPTANCE_JOB_STARTED_MS" =~ ^[0-9]+$ ]]
+          remaining_ms=$((RUNTIME_ACCEPTANCE_JOB_STARTED_MS + 720000 - $(date +%s%3N)))
+          remaining_minutes=$((remaining_ms / 60000))
+          test "$remaining_ms" -ge 60000
+          test "$remaining_minutes" -ge 1
+          echo "minutes=$remaining_minutes" >> "$GITHUB_OUTPUT"
+      - name: Setup connected Bun environment
+        timeout-minutes: ${{ fromJSON(steps.connected-setup-budget.outputs.minutes) }}
+        uses: ./.github/actions/setup-bun-env
+      - name: Restore actual connected ffmpeg
+        run: |
+          set -euo pipefail
+          test "$((720000 + RUNTIME_ACCEPTANCE_JOB_STARTED_MS - $(date +%s%3N)))" -gt 0
+          test -x /usr/bin/ffmpeg
+          test -x /usr/bin/ffprobe
+          echo 'FFMPEG_BIN=/usr/bin/ffmpeg' >> "$GITHUB_ENV"
+      - name: Build connected packages within shared setup budget
+        run: |
+          set -euo pipefail
+          remaining=$(((720000 + RUNTIME_ACCEPTANCE_JOB_STARTED_MS - $(date +%s%3N)) / 1000))
+          test "$remaining" -gt 0
+          timeout "${remaining}s" bunx turbo run build --filter="./packages/*"
+      - name: Run visual-connected acceptance
+        if: steps.preflight.outputs.prepared == 'true'
+        run: node scripts/ci/runtime-acceptance.mjs visual-connected --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
+      - name: Seal available final evidence
+        id: seal
+        if: always() && steps.preflight.outputs.prepared == 'true'
+        run: node scripts/ci/runtime-acceptance.mjs seal --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
+      - name: Retain encrypted final evidence
+        id: upload
+        if: always() && steps.preflight.outputs.prepared == 'true' && steps.seal.outcome != 'skipped'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: visual-connected-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/visual-connected/public/receipt.json
+            ${{ runner.temp }}/visual-connected/public/evidence.encrypted.json
+          retention-days: 7
+          if-no-files-found: error
+      - name: Confirm checked receipt and encrypted upload
+        id: complete
+        if: steps.seal.outputs.result == 'passed' && steps.upload.outcome == 'success'
+        run: echo 'result=passed' >> "$GITHUB_OUTPUT"

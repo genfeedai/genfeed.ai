@@ -496,25 +496,57 @@ test('required E2E gate rejects skipped and cancelled evidence as well as failur
     .map((line) => line.replace(/^ {10}/, ''))
     .join('\n');
   const jobs = ['e2e-route-coverage', 'e2e-frontend', 'e2e-api'];
-  function run(results) {
-    const resolved = script.replace(
-      /\$\{\{ needs\.([a-z0-9-]+)\.result \}\}/g,
-      (_, job) => results[job],
-    );
+  function run(
+    results,
+    runtimeEnabled = false,
+    runtime = { result: 'skipped', output: '' },
+  ) {
+    const resolved = script
+      .replace(
+        /\$\{\{ inputs\.run_runtime_acceptance == true \}\}/g,
+        runtimeEnabled ? 'true' : 'false',
+      )
+      .replace(
+        /\$\{\{ needs\.runtime-acceptance\.outputs\.result \}\}/g,
+        runtime.output ?? '',
+      )
+      .replace(
+        /\$\{\{ needs\.runtime-acceptance\.result \}\}/g,
+        runtime.result ?? '',
+      )
+      .replace(
+        /\$\{\{ needs\.([a-z0-9-]+)\.result \}\}/g,
+        (_, job) => results[job] ?? '',
+      );
+    assert.doesNotMatch(resolved, /\$\{\{/);
     return spawnSync('bash', ['-e', '-o', 'pipefail', '-c', resolved], {
       encoding: 'utf8',
     });
   }
   const success = Object.fromEntries(jobs.map((job) => [job, 'success']));
-  assert.equal(run(success).status, 0);
-  for (const job of jobs) {
-    for (const result of ['failure', 'cancelled', 'skipped']) {
-      assert.equal(
-        run({ ...success, [job]: result }).status,
-        1,
-        `${job}: ${result}`,
-      );
+  for (const enabled of [false, true]) {
+    const runtime = enabled
+      ? { result: 'success', output: 'passed' }
+      : { result: 'skipped', output: '' };
+    assert.equal(run(success, enabled, runtime).status, 0);
+    for (const job of jobs) {
+      for (const result of ['failure', 'cancelled', 'skipped']) {
+        assert.equal(
+          run({ ...success, [job]: result }, enabled, runtime).status,
+          1,
+          `${job}: ${result}, runtime enabled: ${enabled}`,
+        );
+      }
     }
+  }
+  for (const result of ['failure', 'cancelled', 'skipped', undefined]) {
+    assert.equal(run(success, true, { result, output: 'passed' }).status, 1);
+  }
+  for (const output of ['failed', 'skipped', '', undefined]) {
+    assert.equal(run(success, true, { result: 'success', output }).status, 1);
+  }
+  for (const result of ['success', 'failure', 'cancelled', undefined]) {
+    assert.equal(run(success, false, { result, output: '' }).status, 1);
   }
 });
 
