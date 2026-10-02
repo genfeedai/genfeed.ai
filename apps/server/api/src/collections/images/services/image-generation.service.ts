@@ -39,6 +39,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import {
   GenerationBriefCompileError,
+  type ImageGenerationBriefDispatch,
   runImageGenerationBrief,
 } from '@api/services/generation-brief';
 import { rawPromptBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
@@ -54,7 +55,10 @@ import type {
   ImageGenerationBrief,
   ImageGenerationBriefReference,
 } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
-import { buildGenerationBriefExemptionSource } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
+import {
+  buildGenerationBriefExemptionSource,
+  type GenerationBriefPersistedEvidence,
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import {
   isFlux3ImageModel,
   isImageEditModel,
