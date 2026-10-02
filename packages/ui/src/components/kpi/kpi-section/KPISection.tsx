@@ -51,6 +51,7 @@ export default function KPISection({
         <MetricCard
           key={item.label}
           analyticsMetric={item.analyticsMetric}
+          analyticsMetricVariant={item.analyticsMetricVariant}
           className={item.className}
           description={item.description}
           icon={item.icon}

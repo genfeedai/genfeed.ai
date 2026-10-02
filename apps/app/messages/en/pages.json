@@ -77,7 +77,8 @@
       "posts": "Published posts included in the visible scoped query.",
       "saves": "Saves recorded across the selected published content.",
       "shares": "Shares recorded across the selected published content.",
-      "views": "Platform-reported views for the selected published content."
+      "views": "Platform-reported views for the selected published content.",
+      "viewsPerPost": "Platform-reported views divided by the number of selected published posts."
     },
     "metricLabels": {
       "comments": "Comments",
@@ -87,7 +88,8 @@
       "posts": "Posts",
       "saves": "Saves",
       "shares": "Shares",
-      "views": "Views"
+      "views": "Views",
+      "viewsPerPost": "Average views per post"
     },
     "metricDefinitionLabel": "About {metric}",
     "scopedExport": {

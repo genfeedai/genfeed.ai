@@ -98,6 +98,7 @@ function resolveValueContent(
  */
 const MetricCard = memo(function MetricCard({
   analyticsMetric,
+  analyticsMetricVariant,
   appearance = 'tile',
   className,
   description,
@@ -169,7 +170,10 @@ const MetricCard = memo(function MetricCard({
         </span>
         <span className="text-foreground/55">
           {analyticsMetric ? (
-            <AnalyticsMetricLabel metric={analyticsMetric}>
+            <AnalyticsMetricLabel
+              metric={analyticsMetric}
+              variant={analyticsMetricVariant}
+            >
               {label}
             </AnalyticsMetricLabel>
           ) : (
@@ -202,7 +206,10 @@ const MetricCard = memo(function MetricCard({
         ) : null}
         <p className={LABEL_CLASS}>
           {analyticsMetric ? (
-            <AnalyticsMetricLabel metric={analyticsMetric}>
+            <AnalyticsMetricLabel
+              metric={analyticsMetric}
+              variant={analyticsMetricVariant}
+            >
               {label}
             </AnalyticsMetricLabel>
           ) : (

@@ -55,6 +55,22 @@ function renderMetric(metric: string) {
 }
 
 describe('AnalyticsMetricInfo with real translated primitives', () => {
+  it('distinguishes the per-post view definition without accepting a new query metric', async () => {
+    render(
+      <NextIntlClientProvider locale="en" messages={{ pages }}>
+        <AnalyticsMetricInfo metric="views" variant="perPost" />
+        <AnalyticsMetricInfo metric="viewsPerPost" />
+      </NextIntlClientProvider>,
+    );
+    const trigger = screen.getByRole('button', {
+      name: 'About Average views per post',
+    });
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+    act(() => trigger.focus());
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'Platform-reported views divided by the number of selected published posts.',
+    );
+  });
   it.each(cases)(
     'opens the %s definition on focus and dismisses on Escape',
     async (metric, label, definition) => {
