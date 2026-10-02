@@ -22,6 +22,11 @@ import {
 } from '@api/collections/skills/policy/skill-capabilities';
 import { resolveSkillSourcePolicy } from '@api/collections/skills/policy/skill-source-policy';
 import type { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
+import type {
+  PinnedSkillExecution,
+  SkillLibraryActor,
+  SkillRow,
+} from '@api/collections/skills/services/skill-library.types';
 import { importValidatedSkillPackage } from '@api/collections/skills/services/skill-package-import';
 import {
   type RecordedSkillExclusion,
@@ -44,39 +49,15 @@ import {
   Injectable,
 } from '@nestjs/common';
 
-export interface SkillLibraryActor {
-  brandId?: string | null;
-  organizationId: string;
-  userId: string;
-}
-
-export interface PinnedSkillExecution {
-  contentHash: string;
-  skillId: string;
-  skillVersionId: string;
-}
+export type {
+  PinnedSkillExecution,
+  SkillLibraryActor,
+} from '@api/collections/skills/services/skill-library.types';
 
 export type {
   RecordedSkillExclusion,
   RecordedSkillVersion,
 } from '@api/collections/skills/services/skill-resolution-evidence';
-
-interface SkillRow {
-  audience: string | null;
-  brandId: string | null;
-  config: Prisma.JsonValue;
-  currentVersionId: string | null;
-  id: string;
-  isDeleted: boolean;
-  isQuarantined: boolean;
-  label: string | null;
-  organizationId: string | null;
-  ownerKind: string | null;
-  ownerUserId: string | null;
-  publishedVersionId: string | null;
-  revision: number;
-  sharedVersionId: string | null;
-}
 
 @Injectable()
 export class SkillLibraryService {
