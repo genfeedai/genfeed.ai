@@ -40,7 +40,20 @@ export type SkillDetailSheetProps = SkillDetailCardProps & {
   onOpenSamplePrompt: () => void;
 };
 
+export type SkillImportFields = {
+  files: File[];
+  slug: string;
+  sourceUrl: string;
+  checksum: string;
+};
+
 export type SkillsPageState = {
+  importFields: SkillImportFields;
+  isImportOpen: boolean;
+  isImporting: boolean;
+  isImportLocked: boolean;
+  importError: string | null;
+  importResetKey: number;
   skills: Skill[];
   selectedSkillId: string;
   sourceFilter: SourceFilterValue;
@@ -57,7 +70,14 @@ export type SkillsPageState = {
 };
 
 export type SkillsPageAction =
-  | { type: 'RESET' }
+  | { type: 'RESET'; importLocked?: boolean }
+  | { type: 'IMPORT_RECOVERED' }
+  | { type: 'IMPORT_OPEN' }
+  | { type: 'IMPORT_FIELDS'; fields: Partial<SkillImportFields> }
+  | { type: 'IMPORT_START' }
+  | { type: 'IMPORT_SENT' }
+  | { type: 'IMPORT_DONE' }
+  | { type: 'IMPORT_ERROR'; message: string; locked: boolean }
   | { type: 'HYDRATE_SKILL'; skill: Skill }
   | { type: 'FORK_CREATED'; sourceId: string }
   | { type: 'LOAD_START' }

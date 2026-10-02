@@ -610,6 +610,42 @@
       }
     },
     "skills": {
+      "import": {
+        "action": "Import package",
+        "title": "Import a skill",
+        "description": "Import a personal, private skill from Markdown files or a ZIP package.",
+        "files": "Package files",
+        "slug": "Skill slug",
+        "sourceUrl": "Source URL",
+        "checksum": "Package checksum",
+        "submit": "Import skill",
+        "submitting": "Importing…",
+        "selectedFiles": "Selected files",
+        "packageHint": "Choose root SKILL.md and Markdown references, or one ZIP.",
+        "nestedHint": "Use ZIP for nested folders.",
+        "reset": "Refresh imported skills",
+        "failed": "The import could not be confirmed. Refresh the catalog before importing again.",
+        "detailsUnavailable": "The skill was imported, but its details could not be loaded. Refresh the catalog.",
+        "rejected": {
+          "validation": "The package was rejected. Correct the skill package and try again.",
+          "authentication": "Sign in again before importing a skill.",
+          "forbidden": "You do not have permission to import this package.",
+          "rateLimit": "Too many imports. Wait before trying again.",
+          "duplicate": "A personal skill already uses this slug. Choose another slug."
+        },
+        "errors": {
+          "SLUG": "Use a slug containing letters, numbers and hyphens, up to 160 characters.",
+          "SOURCE_URL": "Use an HTTP or HTTPS source URL without sign-in information.",
+          "CHECKSUM": "Enter a SHA-256 package checksum.",
+          "COUNT": "Choose no more than 128 files.",
+          "PATH": "Choose Markdown files with safe, unique filenames.",
+          "DIRECTORY": "Use a ZIP package for nested folders.",
+          "ROOT": "Choose one root SKILL.md, or one ZIP package.",
+          "SIZE": "The package exceeds the size limit or its archive is empty.",
+          "UTF8": "Markdown files must use UTF-8 text.",
+          "READ": "The package files could not be read. Select them again."
+        }
+      },
       "actions": {
         "archive": "Uninstall",
         "customize": "Customize",

@@ -4,6 +4,7 @@ import {
   BaseService,
   type JsonApiResponseDocument,
 } from '@services/core/base.service';
+import type { AxiosResponse } from 'axios';
 
 const skillSerializer: IServiceSerializer<Skill> = {
   serialize: (data) => data,
@@ -38,6 +39,96 @@ export interface SkillInput {
   systemPromptTemplate?: string;
   toolOverrides?: string[];
   workflowStage: SkillWorkflowStage;
+}
+
+export interface SkillPackageImportInput {
+  slug: string;
+  sourceUrl?: string;
+  expectedPackageChecksum?: string;
+  package:
+    | { format: 'files'; files: { content: string; path: string }[] }
+    | { format: 'zip'; archiveBase64: string };
+}
+
+export class SkillImportCreatedUnavailableError extends Error {
+  constructor() {
+    super(
+      'Skill import was created, but details are unavailable. Refresh the skill library.',
+    );
+    this.name = 'SkillImportCreatedUnavailableError';
+  }
+}
+export type SkillImportRejection =
+  | 'validation'
+  | 'authentication'
+  | 'forbidden'
+  | 'rateLimit'
+  | 'duplicate';
+export class SkillImportRejectedError extends Error {
+  constructor(readonly reason: SkillImportRejection) {
+    super('Skill package import was rejected before creation.');
+    this.name = 'SkillImportRejectedError';
+  }
+}
+
+/** Classify only endpoint status and its exact canonical post-write marker; never return raw error data. */
+export function classifySkillImportFailure(
+  failure: unknown,
+): SkillImportCreatedUnavailableError | SkillImportRejectedError | null {
+  if (
+    failure instanceof SkillImportCreatedUnavailableError ||
+    failure instanceof SkillImportRejectedError
+  )
+    return failure;
+  if (!failure || typeof failure !== 'object') return null;
+  const record = failure as Record<string, unknown>;
+  const response =
+    record.response && typeof record.response === 'object'
+      ? (record.response as Record<string, unknown>)
+      : null;
+  const body =
+    response?.data && typeof response.data === 'object'
+      ? (response.data as Record<string, unknown>)
+      : record;
+  const errors = Array.isArray(body.errors) ? body.errors : [];
+  const first =
+    errors[0] && typeof errors[0] === 'object'
+      ? (errors[0] as Record<string, unknown>)
+      : null;
+  const status =
+    response?.status ??
+    record.status ??
+    body.statusCode ??
+    first?.status ??
+    (record.isAuthError === true ? 401 : undefined);
+  const canonicalCreated =
+    'Skill import was created, but details are unavailable. Refresh the skill library.';
+  if (
+    (status === 403 || status === '403') &&
+    (body.message === canonicalCreated || first?.detail === canonicalCreated)
+  )
+    return new SkillImportCreatedUnavailableError();
+  const statusKey =
+    typeof status === 'number'
+      ? String(status)
+      : typeof status === 'string'
+        ? status
+        : undefined;
+  switch (statusKey) {
+    case '400':
+    case '422':
+      return new SkillImportRejectedError('validation');
+    case '401':
+      return new SkillImportRejectedError('authentication');
+    case '403':
+      return new SkillImportRejectedError('forbidden');
+    case '409':
+      return new SkillImportRejectedError('duplicate');
+    case '429':
+      return new SkillImportRejectedError('rateLimit');
+    default:
+      return null;
+  }
 }
 
 export interface ListSkillsOptions {
@@ -130,10 +221,34 @@ export class SkillsService extends BaseService<
     return this.post(input);
   }
 
-  async importSkill(input: SkillInput): Promise<Skill> {
-    return this.instance
-      .post<JsonApiResponseDocument>('/import', input)
-      .then((response) => this.mapOne(response.data));
+  async importSkill(input: SkillPackageImportInput): Promise<Skill> {
+    let response: AxiosResponse<JsonApiResponseDocument>;
+    try {
+      response = await this.instance.post<JsonApiResponseDocument>(
+        '/import',
+        input,
+      );
+    } catch (failure) {
+      throw classifySkillImportFailure(failure) ?? failure;
+    }
+    try {
+      const imported = await this.mapOne(response.data);
+      if (
+        typeof imported.id !== 'string' ||
+        !imported.id ||
+        imported.id !== imported.id.trim() ||
+        /[\\/?#]/.test(imported.id) ||
+        [...imported.id].some(
+          (character) =>
+            character.charCodeAt(0) <= 32 ||
+            (character.charCodeAt(0) >= 127 && character.charCodeAt(0) <= 159),
+        )
+      )
+        throw new SkillImportCreatedUnavailableError();
+      return imported;
+    } catch {
+      throw new SkillImportCreatedUnavailableError();
+    }
   }
 
   async forkSkill(id: string): Promise<Skill> {
