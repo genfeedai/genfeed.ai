@@ -1,5 +1,9 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import {
+  finishBrandLearningMutation,
+  lockBrandLearningMutation,
+} from '@api/collections/brands/services/brand-learning-mutation.util';
+import {
   CACHE_PATTERNS,
   SCOPED_CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
@@ -57,22 +61,11 @@ export class BrandLifecycleService {
 
     const { brand, movedMemberUserIds } = await this.prisma.$transaction(
       async (tx) => {
-        // tenant-scope-ignore: the collection controller authorizes the opaque brand id; resolve its organization before the scoped lock and writes below
-        const existing = await tx.brand.findFirst({
-          where: { id, isDeleted: false },
+        const scope = await lockBrandLearningMutation(tx, {
+          brandId: id,
+          lockAllSourceBrands: true,
         });
-        if (!existing) {
-          throw new NotFoundException('Brand', id);
-        }
-        const organizationId = existing.organizationId;
-
-        // Lock every live brand of the org before deciding anything. A
-        // concurrent transaction targeting any of these same rows (another
-        // delete, or a brand-switch lock in selectBrandForUser) blocks here
-        // until this transaction commits or rolls back.
-        await tx.$queryRaw(
-          Prisma.sql`SELECT "id" FROM "brands" WHERE "organizationId" = ${organizationId} AND "isDeleted" = false ORDER BY "id" FOR UPDATE`,
-        );
+        const organizationId = scope.organizationId;
 
         // Re-read under the lock: a transaction that committed first while we
         // were blocked may have already deleted this brand, or consumed the
@@ -120,6 +113,7 @@ export class BrandLifecycleService {
           where: { id, isDeleted: false, organizationId },
         });
 
+        await finishBrandLearningMutation(tx, scope, deleted);
         return {
           brand: deleted as unknown as BrandDocument,
           movedMemberUserIds: membersToMove.map((member) => member.userId),

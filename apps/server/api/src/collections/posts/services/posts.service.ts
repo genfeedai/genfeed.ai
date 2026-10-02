@@ -17,12 +17,15 @@ import {
   type PostBatchScheduleTarget,
 } from '@api/collections/posts/services/post-batch-schedule.util';
 import {
-  POST_SCALAR_FIELDS,
-  preparePostPatchWrite,
-} from '@api/collections/posts/services/post-patch-write.util';
+  type PostLearningMutationContext,
+  patchPostWithLearning,
+  removePostWithLearning,
+} from '@api/collections/posts/services/post-learning-mutation.util';
+import { POST_SCALAR_FIELDS } from '@api/collections/posts/services/post-patch-write.util';
 import { bindScheduledPublishApproval } from '@api/collections/posts/services/post-schedule-approval.util';
 import { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
+import { ValidationException } from '@api/exceptions/validation.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
@@ -337,43 +340,61 @@ export class PostsService extends BaseService<
       PopulatePatterns.brandMinimal,
     ],
   ): Promise<PostDocument> {
-    const { approvalContext, currentPost, isPublishingPost, prismaWriteData } =
-      await preparePostPatchWrite(
-        {
-          findOne: (params) => this.findOne(params),
-          logger: this.logger,
-          prisma: this.prisma,
-          publishApprovalsService: this.publishApprovalsService,
-        },
-        id,
-        dto,
-      );
-
-    const updatedPost = await super.patch(
-      id,
-      prismaWriteData as unknown as UpdatePostDto,
-      populate,
+    if (!id) throw new ValidationException('Document ID is required');
+    if (!dto || typeof dto !== 'object')
+      throw new ValidationException('Update data is required');
+    const result = await this.prisma.$transaction((tx) =>
+      patchPostWithLearning(tx, this.postLearningContext(), id, dto, populate),
     );
-
-    if (approvalContext?.publishApprovalId && this.publishApprovalsService) {
-      await this.publishApprovalsService.invalidatePost(
-        approvalContext.organizationId,
-        id,
-        'Canonical Post material or protected schedule intent changed.',
-      );
-    }
-
+    const { updatedPost, currentPost, isPublishingPost } = result;
+    await this.invalidatePostMutationCache();
+    for (const args of result.logs) this.logger.log(...args);
+    for (const emit of result.afterCommit) emit();
     if (
       isPublishingPost &&
-      updatedPost &&
       updatedPost.targetExecutionState === TargetExecutionState.PUBLISHED &&
       currentPost?.targetExecutionState !== TargetExecutionState.PUBLISHED
-    ) {
+    )
       await this.completePublishFirstPostMission(updatedPost);
-    }
-
     await this.bindScheduledPublish(updatedPost, dto.userId);
     return updatedPost;
+  }
+
+  private postLearningContext(): PostLearningMutationContext {
+    return {
+      logger: this.logger,
+      publishApprovalsService: this.publishApprovalsService,
+      readPost: async (tx, where, populate) => {
+        const include = this.populateToInclude(populate) as
+          | Prisma.PostInclude
+          | undefined;
+        const row = await tx.post.findFirst({
+          where,
+          ...(include ? { include } : {}),
+        });
+        return row ? this.normalizeDocument(row) : null;
+      },
+      writePost: async (tx, where, data, populate) => {
+        const include = this.populateToInclude(populate) as
+          | Prisma.PostInclude
+          | undefined;
+        const row = await tx.post.update({
+          where,
+          data: this.normalizeData(data) as Prisma.PostUncheckedUpdateInput,
+          ...(include ? { include } : {}),
+        });
+        return this.normalizeDocument(row);
+      },
+    };
+  }
+
+  private async invalidatePostMutationCache(): Promise<void> {
+    await this.cacheService?.invalidateByTags([
+      this.collectionName,
+      `collection:${this.collectionName}`,
+      `query:${this.collectionName}`,
+      paginatedQueryCacheTag(this.collectionName),
+    ]);
   }
 
   private async assertCampaignMembership(dto: PostCreateInput): Promise<void> {
@@ -912,57 +933,18 @@ export class PostsService extends BaseService<
       throw new Error('Post ID is required');
     }
 
-    this.logger.log('Soft deleting post with cascade deletion', { id });
-
-    const post = await this.findOne({ id: id });
-    if (!post) {
+    const result = await this.prisma.$transaction((tx) =>
+      removePostWithLearning(tx, this.postLearningContext(), id),
+    );
+    if (!result) {
       this.logger.warn(`Post ${id} not found for deletion`);
       return null;
     }
-
-    // Cascade soft delete all children
-    const childrenUpdateResult = await this.prisma.post.updateMany({
-      data: { isDeleted: true },
-      where: scopedWhere(post.organizationId, {
-        parentId: id,
-      }),
+    await this.invalidatePostMutationCache();
+    this.logger.log('Post soft deleted successfully', {
+      childrenDeleted: result.childrenDeleted,
+      id,
     });
-
-    if (childrenUpdateResult.count > 0) {
-      this.logger.log(
-        `Cascade soft deleted ${childrenUpdateResult.count} child posts`,
-        {
-          childrenDeleted: childrenUpdateResult.count,
-          parentId: id,
-        },
-      );
-    }
-
-    // Soft delete the parent post
-    const result = await this.prisma.post.update({
-      data: { isDeleted: true },
-      where: scopedWhere(post.organizationId, { id }),
-    });
-
-    if (result) {
-      this.logger.log('Post soft deleted successfully', {
-        childrenDeleted: childrenUpdateResult.count,
-        id,
-      });
-
-      if (this.cacheService) {
-        const collectionName = this.collectionName;
-        await this.cacheService.invalidateByTags([
-          collectionName,
-          `collection:${collectionName}`,
-          `query:${collectionName}`,
-          paginatedQueryCacheTag(collectionName),
-        ]);
-      }
-    } else {
-      this.logger.warn(`Post ${id} not found for deletion`);
-    }
-
-    return result;
+    return result.deletedPost;
   }
 }

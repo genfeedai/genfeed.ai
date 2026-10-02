@@ -202,6 +202,167 @@ describe('KnowledgeContentRetrievalService', () => {
     });
   });
 
+  describe('retrieveSelectedBrandContentMemory', () => {
+    const params = {
+      brandId: BRAND_A,
+      organizationId: 'org-1',
+      query: 'pricing',
+    };
+    const base = {
+      data: { knowledgeScope: 'brand', purpose: 'knowledge-base' },
+      id: 'ctx-knowledge-a',
+      sourceBrandId: BRAND_A,
+    };
+
+    it.each([1, 2, 3, 4, 5, 6, 7, 8])(
+      'shares one embedding across %s bounded source queries',
+      async (count) => {
+        const { contextBase, embeddings, queryRaw, service } = buildService();
+        contextBase.findMany.mockResolvedValue([base]);
+        const sourceIds = Array.from(
+          { length: count },
+          (_, index) => `source-${index}`,
+        );
+        const quotas = sourceIds.map(
+          (_, index) => Math.floor(8 / count) + (index < 8 % count ? 1 : 0),
+        );
+        for (const [index, sourceId] of sourceIds.entries()) {
+          queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce(
+            Array.from({ length: quotas[index] }, () =>
+              knowledgeRow({
+                knowledgeSourceId: sourceId,
+                similarity: index ? 0.1 : 0.99,
+              }),
+            ),
+          );
+        }
+        const hits = await service.retrieveSelectedBrandContentMemory(
+          {
+            ...params,
+            limit: 999,
+            minRelevance: 1,
+            knowledgeSourceIds: ['ignored'],
+          },
+          sourceIds,
+        );
+        expect(contextBase.findMany).toHaveBeenCalledTimes(1);
+        expect(embeddings).toHaveBeenCalledTimes(1);
+        expect(hits).toHaveLength(8);
+        expect(
+          sourceIds.map(
+            (sourceId) =>
+              hits.filter((hit) => hit.citation?.sourceId === sourceId).length,
+          ),
+        ).toEqual(quotas);
+        const statements = queryRaw.mock.calls
+          .filter((_, index) => index % 2 === 1)
+          .map(([statement]) => statement as MockSql);
+        expect(statements).toHaveLength(count);
+        for (const [index, statement] of statements.entries()) {
+          expect(statement.values).toContain(sourceIds[index]);
+          expect(statement.values).not.toContain('ignored');
+          expect(statement.values).toContain('org-1');
+          expect(statement.values).toContain(BRAND_A);
+          expect(statement.sql).toContain(
+            'AND e."knowledgeSourceId" IS NOT NULL',
+          );
+          expect(statement.sql).toContain('AND s."brandId" = ?');
+          expect(statement.sql).toContain('"isDeleted"');
+        }
+      },
+    );
+
+    it('does not share vectors or scoped bases between requests', async () => {
+      const { contextBase, embeddings, queryRaw, service } = buildService();
+      contextBase.findMany.mockResolvedValue([base]);
+      for (let index = 0; index < 2; index++)
+        queryRaw
+          .mockResolvedValueOnce([])
+          .mockResolvedValueOnce([knowledgeRow()]);
+      await service.retrieveSelectedBrandContentMemory(params, [
+        'source-truth',
+      ]);
+      await service.retrieveSelectedBrandContentMemory(
+        { ...params, query: 'different query', organizationId: 'org-2' },
+        ['source-truth'],
+      );
+      expect(embeddings).toHaveBeenCalledTimes(2);
+      expect(contextBase.findMany).toHaveBeenCalledTimes(2);
+      expect(lastSimilarityQuery(queryRaw).values).toContain('org-2');
+      expect(lastSimilarityQuery(queryRaw).values).not.toContain('org-1');
+    });
+
+    it.each(
+      [[], ['duplicate', 'duplicate'], [' '], Array(9).fill('source')].map(
+        (sourceIds) => ({ sourceIds }),
+      ),
+    )(
+      'rejects invalid selection %j before database or embedding work',
+      async ({ sourceIds }) => {
+        const { contextBase, embeddings, service } = buildService();
+        await expect(
+          service.retrieveSelectedBrandContentMemory(params, sourceIds),
+        ).rejects.toThrow('knowledge_unavailable');
+        expect(contextBase.findMany).not.toHaveBeenCalled();
+        expect(embeddings).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(['query', 'brand', 'bases'])(
+      'rejects missing %s before any embedding',
+      async (kind) => {
+        const { contextBase, embeddings, service } = buildService();
+        contextBase.findMany.mockResolvedValue([
+          { ...base, sourceBrandId: BRAND_B },
+        ]);
+        await expect(
+          service.retrieveSelectedBrandContentMemory(
+            {
+              ...params,
+              ...(kind === 'query' ? { query: ' ' } : {}),
+              ...(kind === 'brand' ? { brandId: ' ' } : {}),
+            },
+            ['source-truth'],
+          ),
+        ).rejects.toThrow('knowledge_unavailable');
+        expect(embeddings).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(['empty', 'foreign', 'overquota'])(
+      'fails closed on %s passages without another embedding or fallback',
+      async (kind) => {
+        const { contextBase, embeddings, queryRaw, service } = buildService();
+        contextBase.findMany.mockResolvedValue([base]);
+        queryRaw
+          .mockResolvedValueOnce([])
+          .mockResolvedValueOnce(
+            kind === 'empty'
+              ? []
+              : kind === 'foreign'
+                ? [knowledgeRow({ knowledgeSourceId: 'other' })]
+                : Array.from({ length: 9 }, () => knowledgeRow()),
+          );
+        await expect(
+          service.retrieveSelectedBrandContentMemory(params, ['source-truth']),
+        ).rejects.toThrow('knowledge_unavailable');
+        expect(embeddings).toHaveBeenCalledTimes(1);
+        expect(queryRaw).toHaveBeenCalledTimes(2);
+      },
+    );
+
+    it('propagates one embedding failure without searching or retrying', async () => {
+      const { contextBase, embeddings, queryRaw, service } = buildService();
+      contextBase.findMany.mockResolvedValue([base]);
+      embeddings.mockRejectedValue(new Error('embedding unavailable'));
+      await expect(
+        service.retrieveSelectedBrandContentMemory(params, ['source-truth']),
+      ).rejects.toThrow();
+      expect(embeddings).toHaveBeenCalledTimes(1);
+      expect(queryRaw).not.toHaveBeenCalled();
+    });
+  });
+
   describe('retrieveOrgAndPersonalContentMemory', () => {
     const USER_A = 'user-a';
     const USER_C = 'user-c';

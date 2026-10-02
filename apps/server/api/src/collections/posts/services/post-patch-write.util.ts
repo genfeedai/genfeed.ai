@@ -13,8 +13,9 @@ import {
   fromPrismaCredentialPlatform,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import type { Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 
 export const POST_SCALAR_FIELDS = [
   'agentContextSource',
@@ -138,6 +139,7 @@ const PUBLISH_APPROVAL_MATERIAL_FIELDS = new Set<string>([
   'repeatInterval',
   'scheduledDate',
   'tags',
+  'targetExecutionState',
   'timezone',
   'visibility',
 ]);
@@ -152,6 +154,9 @@ export type PostPatchServiceContext = {
   findOne: (params: Record<string, unknown>) => Promise<PostDocument | null>;
   logger: Pick<LoggerService, 'log'>;
   prisma: Pick<PrismaService, 'credential' | 'post'>;
+  transaction?: Prisma.TransactionClient;
+  organizationId?: string;
+  childIds?: readonly string[];
   publishApprovalsService?: Pick<PublishApprovalsService, 'assertPostMutable'>;
 };
 
@@ -167,6 +172,33 @@ export type PreparedPostPatch = {
   prismaWriteData: Record<string, unknown>;
   requestedExecutionState: TargetExecutionState | undefined;
 };
+
+async function readPostPatchApprovalContext(
+  context: PostPatchServiceContext,
+  id: string,
+  changesApprovalScope: boolean,
+): Promise<PatchApprovalContext> {
+  const approvalContext = changesApprovalScope
+    ? await context.prisma.post.findFirst({
+        select: { organizationId: true, publishApprovalId: true },
+        where: {
+          id,
+          isDeleted: false,
+          ...(context.organizationId
+            ? { organizationId: context.organizationId }
+            : {}),
+        },
+      })
+    : null;
+  if (approvalContext?.publishApprovalId && context.publishApprovalsService) {
+    await context.publishApprovalsService.assertPostMutable(
+      approvalContext.organizationId,
+      id,
+      context.transaction,
+    );
+  }
+  return approvalContext;
+}
 
 /**
  * Resolve every piece of state `patch()` needs before it writes — the
@@ -188,18 +220,11 @@ export async function preparePostPatchWrite(
   const changesApprovalScope = Object.keys(dto).some((key) =>
     PUBLISH_APPROVAL_MATERIAL_FIELDS.has(key),
   );
-  const approvalContext: PatchApprovalContext = changesApprovalScope
-    ? await context.prisma.post.findFirst({
-        select: { organizationId: true, publishApprovalId: true },
-        where: { id, isDeleted: false },
-      })
-    : null;
-  if (approvalContext?.publishApprovalId && context.publishApprovalsService) {
-    await context.publishApprovalsService.assertPostMutable(
-      approvalContext.organizationId,
-      id,
-    );
-  }
+  const approvalContext = await readPostPatchApprovalContext(
+    context,
+    id,
+    changesApprovalScope,
+  );
 
   let resolvedPlatform: string | undefined;
   if (dto.credentialId && approvalContext) {
@@ -305,20 +330,36 @@ export async function preparePostPatchWrite(
     prismaWriteData.visibility = requestedVisibility;
   }
 
-  // Convert scheduledDate from user timezone to UTC if timezone is provided
-  if (dto.scheduledDate && dto.timezone) {
-    const convertedDate = TimezoneUtil.convertToUTC(
-      new Date(dto.scheduledDate),
-      dto.timezone,
-    );
+  applyPreparedTimezone(context, dto, prismaWriteData);
 
-    context.logger.log(
-      `Converting scheduledDate from ${dto.timezone} to UTC: ${dto.scheduledDate} → ${convertedDate.toISOString()}`,
-    );
+  await applyPreparedChildSchedule(
+    context,
+    id,
+    dto,
+    currentPost,
+    requestedExecutionState,
+    resolvedPlatform,
+    prismaWriteData,
+  );
 
-    prismaWriteData.scheduledDate = convertedDate;
-  }
+  return {
+    approvalContext,
+    currentPost,
+    isPublishingPost,
+    prismaWriteData,
+    requestedExecutionState,
+  };
+}
 
+async function applyPreparedChildSchedule(
+  context: PostPatchServiceContext,
+  id: string,
+  dto: PostUpdateInput,
+  currentPost: PostDocument | null,
+  requestedExecutionState: TargetExecutionState | undefined,
+  resolvedPlatform: string | undefined,
+  prismaWriteData: Record<string, unknown>,
+): Promise<void> {
   // If parent post is being scheduled, automatically schedule all children
   if (
     requestedExecutionState === TargetExecutionState.SCHEDULED &&
@@ -338,24 +379,41 @@ export async function preparePostPatchWrite(
         isDeleted: false,
         organizationId: currentPost.organizationId,
         parentId: id,
+        ...(context.childIds ? { id: { in: [...context.childIds] } } : {}),
         targetExecutionState: {
           not: TargetExecutionState.PUBLISHED,
         },
       },
     });
 
+    if (context.childIds && updateResult.count !== context.childIds.length)
+      throw new ConflictException(
+        'Post child schedule selection changed during mutation.',
+      );
     context.logger.log(`Auto-scheduled children for parent post ${id}`, {
       childrenUpdated: updateResult.count,
       parentId: id,
       executionState: TargetExecutionState.SCHEDULED,
     });
   }
+}
 
-  return {
-    approvalContext,
-    currentPost,
-    isPublishingPost,
-    prismaWriteData,
-    requestedExecutionState,
-  };
+function applyPreparedTimezone(
+  context: PostPatchServiceContext,
+  dto: PostUpdateInput,
+  prismaWriteData: Record<string, unknown>,
+): void {
+  // Convert scheduledDate from user timezone to UTC if timezone is provided
+  if (dto.scheduledDate && dto.timezone) {
+    const convertedDate = TimezoneUtil.convertToUTC(
+      new Date(dto.scheduledDate),
+      dto.timezone,
+    );
+
+    context.logger.log(
+      `Converting scheduledDate from ${dto.timezone} to UTC: ${dto.scheduledDate} → ${convertedDate.toISOString()}`,
+    );
+
+    prismaWriteData.scheduledDate = convertedDate;
+  }
 }

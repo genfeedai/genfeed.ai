@@ -10,10 +10,15 @@ import type { ServerCredentialStore } from '@api/collections/credentials/credent
 import { CreateCredentialDto } from '@api/collections/credentials/dto/create-credential.dto';
 import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
+import {
+  patchCredentialsWithLearning,
+  patchCredentialWithLearning,
+  reconcileCredentialWithLearning,
+  removeCredentialWithLearning,
+} from '@api/collections/credentials/services/credential-learning-mutation.util';
 import { ProviderAccountPurgeService } from '@api/collections/credentials/services/provider-account-purge.service';
 import {
   hashOAuthRequestToken,
-  pickCarriedConnectionColumns,
   requireCredentialRelationId,
 } from '@api/collections/credentials/utils/credential-persistence.util';
 import { emitCredentialProfileSynced } from '@api/collections/credentials/utils/credential-profile-event.util';
@@ -30,6 +35,7 @@ import {
   BaseService,
   type PopulateInput,
 } from '@api/shared/services/base/base.service';
+import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
 import {
   CredentialPlatform,
   FileInputType,
@@ -37,9 +43,10 @@ import {
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
 import { isReservedExternalConnectionOAuthState } from '@genfeedai/helpers/integrations/external-connection-request.helper';
+import type { Prisma } from '@genfeedai/prisma';
 import { TagCategory as PrismaTagCategory } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 export type { ResolveBrandAccountOptions } from '@api/collections/credentials/credential.types';
@@ -200,21 +207,51 @@ export class CredentialsService
     return created;
   }
 
+  private learningMutationContext() {
+    return {
+      normalizeDocument: (row: unknown) => this.normalizeDocument(row),
+      normalizeData: (data: unknown) => this.normalizeData(data),
+      logger: this.logger,
+    };
+  }
+
+  private async invalidateCredentialMutationCache(): Promise<void> {
+    await this.cacheService?.invalidateByTags([
+      this.collectionName,
+      `collection:${this.collectionName}`,
+      `query:${this.collectionName}`,
+      paginatedQueryCacheTag(this.collectionName),
+    ]);
+  }
+
   override async patch(
     id: string,
     updateDto: Partial<UpdateCredentialDto> | Record<string, unknown>,
     populate: PopulateInput = [],
   ): Promise<CredentialDocument> {
-    const updated = await super.patch(
-      id,
+    if (!id) throw new ValidationException('Document ID is required');
+    if (!updateDto || typeof updateDto !== 'object')
+      throw new ValidationException('Update data is required');
+    const data = this.normalizeData(
       this.cryptoService.encryptSecretFields(
         updateDto as Record<string, unknown>,
       ),
-      populate,
     );
-    if (isBootstrapCredentialWrite(updateDto)) {
+    const include = this.populateToInclude(populate) as
+      | Prisma.CredentialInclude
+      | undefined;
+    const updated = await this.prisma.$transaction((tx) =>
+      patchCredentialWithLearning(
+        tx,
+        this.learningMutationContext(),
+        id,
+        data as Prisma.CredentialUncheckedUpdateInput,
+        include,
+      ),
+    );
+    await this.invalidateCredentialMutationCache();
+    if (isBootstrapCredentialWrite(updateDto))
       await this.invalidateAccessBootstrap(updated.organizationId);
-    }
     return updated;
   }
 
@@ -222,18 +259,40 @@ export class CredentialsService
     filter: Record<string, unknown>,
     update: Record<string, unknown>,
   ): Promise<{ modifiedCount: number }> {
-    const result = await super.patchAll(
-      filter,
+    if (!filter || typeof filter !== 'object')
+      throw new ValidationException('Filter criteria are required');
+    if (!update || typeof update !== 'object')
+      throw new ValidationException('Update data is required');
+    const data = this.normalizeData(
       this.cryptoService.encryptSecretFields(update),
     );
-    if (result.modifiedCount > 0 && isBootstrapCredentialWrite(update)) {
-      await this.invalidateAccessBootstrap(filter.organizationId);
+    const where = this.withSoftDeleteFilter(
+      this.normalizeWhere(filter),
+      filter,
+    ) as Prisma.CredentialWhereInput;
+    const result = await this.prisma.$transaction((tx) =>
+      patchCredentialsWithLearning(
+        tx,
+        this.learningMutationContext(),
+        where,
+        data as Prisma.CredentialUncheckedUpdateInput,
+      ),
+    );
+    if (result.modifiedCount > 0) {
+      await this.invalidateCredentialMutationCache();
+      if (isBootstrapCredentialWrite(update))
+        for (const organizationId of result.affectedOrganizationIds)
+          await this.invalidateAccessBootstrap(organizationId);
     }
-    return result;
+    return { modifiedCount: result.modifiedCount };
   }
 
   override async remove(id: string): Promise<CredentialDocument | null> {
-    const removed = await super.remove(id);
+    if (!id) throw new ValidationException('Document ID is required');
+    const removed = await this.prisma.$transaction((tx) =>
+      removeCredentialWithLearning(tx, this.learningMutationContext(), id),
+    );
+    if (removed) await this.invalidateCredentialMutationCache();
     await this.invalidateAccessBootstrap(removed?.organizationId);
     return removed;
   }
@@ -897,92 +956,15 @@ export class CredentialsService
       'organizationId',
     );
     const settle = () =>
-      this.prisma.$transaction(async (tx) => {
-        // Lock the live source before looking up or mutating an incumbent. A
-        // conflicting selection cannot replace the identity of the first writer.
-        const { count } = await tx.credential.updateMany({
-          data: { oauthState: null },
-          where: {
-            id: credential.id,
-            organizationId,
-            isDeleted: false,
-            OR: [{ externalId: null }, { externalId }],
-          },
-        });
-        if (count === 0) {
-          throw new HttpException(
-            {
-              detail:
-                'This credential is already connected to an account. Disconnect and reconnect to choose a different one.',
-              title: 'Already Connected',
-            },
-            HttpStatus.BAD_REQUEST,
-          );
-        }
-        const source = await tx.credential.findFirst({
-          where: scopedWhere(organizationId, { id: credential.id }),
-        });
-        if (!source) {
-          throw new Error(`Credential ${credential.id} not found`);
-        }
-        const clearedOAuth = {
-          oauthState: null,
-          oauthToken: null,
-          oauthTokenHash: null,
-          oauthTokenSecret: null,
-        };
-        const data = {
-          ...pickCarriedConnectionColumns(
-            this.normalizeDocument({ ...source }),
-          ),
-          ...connectionUpdate,
-          ...profileUpdate,
-          ...clearedOAuth,
+      this.prisma.$transaction((tx) =>
+        reconcileCredentialWithLearning(tx, this.learningMutationContext(), {
+          id: credential.id,
+          organizationId,
           externalId,
-          isConnected: true,
-          // A choice made at this connect wins; without one, an incumbent
-          // keeps the preference it already has.
-          ...(typeof source.isHistoryImportRequested === 'boolean'
-            ? { isHistoryImportRequested: source.isHistoryImportRequested }
-            : {}),
-        };
-        const incumbent =
-          source.brandId && source.platform
-            ? await tx.credential.findFirst({
-                select: { id: true },
-                where: scopedWhere(organizationId, {
-                  brandId: source.brandId,
-                  externalId,
-                  id: { not: source.id },
-                  platform: source.platform,
-                }),
-              })
-            : null;
-        const survivor = await tx.credential.update({
-          data,
-          where: scopedWhere(organizationId, {
-            id: incumbent?.id ?? source.id,
-          }),
-        });
-        if (incumbent) {
-          await tx.credential.update({
-            data: {
-              ...clearedOAuth,
-              accessToken: null,
-              accessTokenSecret: null,
-              accessTokenExpiry: null,
-              refreshToken: null,
-              refreshTokenExpiry: null,
-              grantedScopes: [],
-              grantedScopesCapturedAt: null,
-              isConnected: false,
-              isDeleted: true,
-            },
-            where: scopedWhere(organizationId, { id: source.id }),
-          });
-        }
-        return this.normalizeDocument(survivor);
-      });
+          profileUpdate,
+          connectionUpdate,
+        }),
+      );
     try {
       return await settle();
     } catch (error: unknown) {
