@@ -3,11 +3,13 @@
 import '@testing-library/jest-dom/vitest';
 import {
   ActivityKey,
+  CredentialPlatform,
   ReleaseStatus,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
 import type {
   IActivity,
+  ICredential,
   IReleaseGroup,
   IWorkflowExecution,
 } from '@genfeedai/contracts/interfaces';
@@ -68,7 +70,7 @@ const mocks = vi.hoisted(() => ({
       organizationId?: string;
       slug?: string;
     }>;
-    credentials: [];
+    credentials: ICredential[];
     credentialsError: Error | null;
     credentialsLoading: boolean;
     organizationId: string;
@@ -98,9 +100,7 @@ const mocks = vi.hoisted(() => ({
   overviewIsError: false,
   overviewIsLoading: false,
   reviewInboxRecentItems: [] as ReviewInboxItem[],
-  translate: vi.fn((id: string, params?: Record<string, string>) =>
-    params ? `catalog:${id}:${params.subject}` : `catalog:${id}`,
-  ),
+  translate: vi.fn(),
   // `null` keeps the upcoming-schedule fetch pending so synchronous tests see
   // a stable loading panel with no post-test state updates.
   upcomingReleases: null as unknown[] | null,
@@ -164,9 +164,20 @@ vi.mock('@hooks/data/activities/use-activities/use-activities', () => ({
   }),
 }));
 
-vi.mock('next-intl', () => ({
-  useTranslations: () => mocks.translate,
-}));
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  const { createTranslator } =
+    await vi.importActual<typeof import('next-intl')>('next-intl');
+  const { default: common } = await import('../../../messages/en/common.json');
+  const translateCommon = createTranslator({ locale: 'en', messages: common });
+  mocks.translate.mockImplementation(translateCommon);
+  return {
+    useTranslations: (namespace: string) =>
+      namespace === 'common'
+        ? mocks.translate
+        : translateFromCatalog(namespace),
+  };
+});
 
 vi.mock('@hooks/data/overview/use-overview-bootstrap', () => ({
   useOverviewBootstrap: () => ({
@@ -267,6 +278,7 @@ describe('OperationalHomeContent', () => {
       },
     ];
     mocks.brandState.organizationId = 'org_1';
+    mocks.brandState.credentials = [];
     mocks.brandState.credentialsError = null;
     mocks.brandState.credentialsLoading = false;
     mocks.brandState.refreshBrands = mocks.brandRefresh;
@@ -388,9 +400,7 @@ describe('OperationalHomeContent', () => {
 
     render(<OperationalHomeContent />);
 
-    expect(
-      screen.getByText('catalog:activity.lifecycle.processing:image'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Generating an image...')).toBeInTheDocument();
     expect(mocks.translate).toHaveBeenCalledWith(
       'activity.lifecycle.processing',
       expect.objectContaining({
@@ -456,9 +466,10 @@ describe('OperationalHomeContent', () => {
         'status',
       ),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'catalog:home.credentials.addBrand' }),
-    ).toHaveAttribute('href', '/acme/~/settings/brands');
+    expect(screen.getByRole('link', { name: 'Add a brand' })).toHaveAttribute(
+      'href',
+      '/acme/~/settings/brands',
+    );
 
     for (const name of [
       'Attention queue',
@@ -489,7 +500,7 @@ describe('OperationalHomeContent', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Retry status' }));
     for (const button of screen.getAllByRole('button', {
-      name: 'catalog:actions.retry',
+      name: 'Retry',
     })) {
       fireEvent.click(button);
     }
@@ -553,7 +564,7 @@ describe('OperationalHomeContent', () => {
     render(<OperationalHomeContent />);
     const accounts = screen.getByTestId('operational-home-credentials');
     expect(
-      within(accounts).getByRole('link', { name: 'catalog:connectAccount' }),
+      within(accounts).getByRole('link', { name: 'Connect account' }),
     ).toHaveAttribute('href', '/acme/moonrise/settings/integrations');
   });
 
@@ -584,9 +595,7 @@ describe('OperationalHomeContent', () => {
     expect(
       within(publishing).getByText(/Publishing state could not be loaded/),
     ).toBeInTheDocument();
-    fireEvent.click(
-      within(publishing).getByRole('button', { name: 'catalog:actions.retry' }),
-    );
+    fireEvent.click(within(publishing).getByRole('button', { name: 'Retry' }));
     expect(mocks.publicationsRefresh).toHaveBeenCalledTimes(1);
     expect(mocks.overviewRefresh).not.toHaveBeenCalled();
   });
@@ -644,13 +653,13 @@ describe('OperationalHomeContent', () => {
 
     const credentials = screen.getByTestId('operational-home-credentials');
     expect(within(credentials).getByRole('status')).toHaveAccessibleName(
-      'catalog:home.credentials.loading',
+      'Loading credential health...',
     );
     expect(
       within(credentials).getByTestId('skeleton-card'),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText('catalog:home.credentials.empty'),
+      screen.queryByText('No accounts are connected yet.'),
     ).not.toBeInTheDocument();
   });
 
@@ -662,12 +671,10 @@ describe('OperationalHomeContent', () => {
     expect(
       screen.getByText(/Credential health is temporarily unavailable/),
     ).toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'catalog:actions.retry' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(mocks.brandRefresh).toHaveBeenCalledOnce();
     expect(
-      screen.queryByText('catalog:home.credentials.empty'),
+      screen.queryByText('No accounts are connected yet.'),
     ).not.toBeInTheDocument();
   });
 
@@ -742,7 +749,7 @@ describe('OperationalHomeContent', () => {
     expect(
       within(needsYou).queryByRole('button', { name: 'Approve' }),
     ).not.toBeInTheDocument();
-    expect(needsYou).toHaveTextContent('catalog:home.approvals.empty');
+    expect(needsYou).toHaveTextContent('Nothing is waiting for review.');
   });
 
   it('caps the attention queue at five rows and links to the rest', () => {
@@ -761,12 +768,68 @@ describe('OperationalHomeContent', () => {
         name: 'Attention queue',
       }),
     ).toHaveAttribute('href', '/acme/moonrise/publishing/review');
-    expect(needsYou).not.toHaveTextContent('catalog:home.approvals.overflow');
+    expect(needsYou).not.toHaveTextContent('{count} more waiting');
     expect(
       within(needsYou).queryByRole('link', {
-        name: 'catalog:home.approvals.open',
+        name: 'Open queue',
       }),
     ).not.toBeInTheDocument();
+  });
+
+  it('opens a post from its title and uses a compact approve control', () => {
+    mocks.reviewInboxRecentItems = [buildReviewItem('item_1')];
+    render(<OperationalHomeContent />);
+    const queue = within(screen.getByTestId('operational-home-needs-you'));
+    expect(
+      queue.getByRole('link', { name: 'Open Review item_1' }),
+    ).toHaveAttribute(
+      'href',
+      '/acme/moonrise/publishing/review?batch=batch_1&item=item_1',
+    );
+    expect(queue.getByRole('button', { name: 'Approve' })).toHaveClass(
+      'size-8',
+    );
+    expect(queue.queryByText('Open')).not.toBeInTheDocument();
+  });
+
+  it('uses the shared account identity with a handle and one platform badge', () => {
+    mocks.brandState.credentials = [
+      {
+        id: 'cred_1',
+        platform: CredentialPlatform.TWITTER,
+        externalName: 'Vincent',
+        externalHandle: '@VincentShipsIt',
+        externalAvatar: 'https://cdn.example.com/profile.jpg',
+        externalId: 'profile_1',
+        isConnected: true,
+      } as ICredential,
+    ];
+    render(<OperationalHomeContent />);
+    const accounts = within(screen.getByTestId('operational-home-credentials'));
+    expect(accounts.getByText('Vincent')).toBeInTheDocument();
+    expect(accounts.getByText('@VincentShipsIt')).toBeInTheDocument();
+    expect(accounts.queryByText('twitter')).not.toBeInTheDocument();
+    expect(accounts.getByText('X')).toHaveClass('sr-only');
+  });
+
+  it('renders review video media with a paused video thumbnail', () => {
+    mocks.reviewInboxRecentItems = [
+      {
+        ...buildReviewItem('item_video'),
+        format: 'video',
+        mediaUrl: 'https://cdn.example.com/review.mp4',
+      },
+    ];
+    render(<OperationalHomeContent />);
+    const row = screen.getByTestId('operational-home-needs-you-row');
+    const video = row.querySelector('video');
+    expect(video).toHaveAttribute(
+      'src',
+      'https://cdn.example.com/review.mp4#t=0.001',
+    );
+    expect(video).toHaveAttribute('preload', 'metadata');
+    expect(video).not.toHaveAttribute('autoplay');
+    expect(row.querySelector('img')).toBeNull();
   });
 
   it('approves a review item and refreshes the overview on success', async () => {

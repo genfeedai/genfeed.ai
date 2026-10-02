@@ -9,8 +9,8 @@ import { expect, test } from '../../fixtures/auth.fixture';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
 /**
- * Product-page agent chrome is a compact page promptbar (or a chat bubble on
- * studio/edit) that expands into a floating overlay. ⌘J / Ctrl+J still toggles
+ * Product-page agent chrome is a chat bubble, with page shortcuts fanned
+ * beside it, that expands into a floating overlay. ⌘J / Ctrl+J still toggles
  * it. `/agent` is the conversation itself, so the overlay closes there. The
  * split dock remains in the tree behind a hidden-chrome flag.
  *
@@ -21,7 +21,7 @@ async function openLibrary(page: Page): Promise<void> {
   await page.goto(brandPath(APP_ROUTES.LIBRARY.IMAGES), {
     waitUntil: 'domcontentloaded',
   });
-  await expect(page.getByTestId('agent-page-promptbar')).toBeVisible();
+  await expect(page.getByTestId('agent-conversation-bubble')).toBeVisible();
 }
 
 test.describe('Agent dock', () => {
@@ -49,7 +49,9 @@ test.describe('Agent dock', () => {
       await page.keyboard.press(shortcut);
 
       await expect(dock).toBeVisible();
-      await expect(page.getByTestId('agent-page-promptbar')).toHaveCount(0);
+      await expect(page.getByTestId('agent-conversation-bubble')).toHaveCount(
+        0,
+      );
       // The conversation and its composer render in the overlay. (The mocked
       // agent stream is offline in E2E, so the composer is disabled and cannot
       // take focus; the unit tests cover focusing it.)
@@ -68,9 +70,9 @@ test.describe('Agent dock', () => {
       await dock.getByRole('button', { name: 'Open full page' }).focus();
       await page.keyboard.press('Escape');
       await expect(dock).toHaveCount(0);
-      await expect(page.getByTestId('agent-page-promptbar')).toBeVisible();
+      await expect(page.getByTestId('agent-conversation-bubble')).toBeVisible();
 
-      await page.getByTestId('agent-page-promptbar').click();
+      await page.getByTestId('agent-conversation-bubble').click();
       await expect(dock).toBeVisible();
       await page.keyboard.press(shortcut);
       await expect(dock).toHaveCount(0);
@@ -88,7 +90,7 @@ test.describe('Agent dock', () => {
 
     await page.reload({ waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByTestId('agent-page-promptbar')).toBeVisible();
+    await expect(page.getByTestId('agent-conversation-bubble')).toBeVisible();
     await expect(page.getByRole('region', { name: 'Agent' })).toHaveCount(0);
   });
 
@@ -97,7 +99,7 @@ test.describe('Agent dock', () => {
   }) => {
     await page.setViewportSize({ height: 900, width: 1440 });
     await openLibrary(page);
-    await page.getByTestId('agent-page-promptbar').click();
+    await page.getByTestId('agent-conversation-bubble').click();
 
     const dock = page.getByRole('region', { name: 'Agent' });
     await dock.getByRole('button', { name: 'Open full page' }).click();
@@ -105,11 +107,11 @@ test.describe('Agent dock', () => {
     await expect(page).toHaveURL(/\/agent(\/|$)/);
     await expect(dock).toHaveCount(0);
     await expect(page.getByTestId('topbar-agent-dock-toggle')).toHaveCount(0);
-    await expect(page.getByTestId('agent-page-promptbar')).toHaveCount(0);
+    await expect(page.getByTestId('agent-conversation-bubble')).toHaveCount(0);
 
     await openLibrary(page);
     await expect(dock).toHaveCount(0);
-    await expect(page.getByTestId('agent-page-promptbar')).toBeVisible();
+    await expect(page.getByTestId('agent-conversation-bubble')).toBeVisible();
   });
 
   test('opens as a bottom sheet on mobile', async ({
@@ -118,7 +120,7 @@ test.describe('Agent dock', () => {
     await page.setViewportSize({ height: 844, width: 390 });
     await openLibrary(page);
 
-    await page.getByTestId('agent-page-promptbar').click();
+    await page.getByTestId('agent-conversation-bubble').click();
 
     const sheet = page.getByRole('dialog', { name: 'Agent' });
     await expect(sheet).toBeVisible();

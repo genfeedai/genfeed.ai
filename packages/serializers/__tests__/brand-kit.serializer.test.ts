@@ -1,3 +1,4 @@
+import type { BrandGenerationRulesV1 } from '@genfeedai/contracts/api-types/contracts/branded-generation.contract';
 import {
   BrandKitApplySerializer,
   BrandKitAssetImportSerializer,
@@ -5,6 +6,7 @@ import {
   BrandOsDraftHandoffSerializer,
   BrandOsPreviewSerializer,
 } from '@serializers/server/organizations/brand-kit.serializer';
+import { BrandOsRevisionSerializer } from '@serializers/server/organizations/brand-os-revision.serializer';
 import { describe, expect, it } from 'vitest';
 
 describe('Brand Kit JSON:API contract', () => {
@@ -25,6 +27,39 @@ describe('Brand Kit JSON:API contract', () => {
     sourceType: 'manual',
     status: 'missing',
   } as const;
+
+  it('retains optional generation rules through kit and revision serialization', () => {
+    const generationRules: BrandGenerationRulesV1 = {
+      schemaVersion: 1,
+      evidence: [{ id: 'manual', sourceType: 'manual', label: 'Approved' }],
+      facts: [],
+      palette: [],
+      typography: [
+        {
+          id: 'font',
+          role: 'body',
+          family: 'Custom Approved Family',
+          weight: 400,
+          style: 'normal',
+          availability: 'unknown',
+          required: true,
+          evidenceIds: ['manual'],
+        },
+      ],
+      mandatory: [],
+      avoid: [],
+      examples: [],
+      assets: [],
+    };
+    const content = { ...previewDraft, generationRules };
+    expect(
+      BrandKitSerializer.serialize(content).data.attributes.generationRules,
+    ).toEqual(generationRules);
+    expect(
+      BrandOsRevisionSerializer.serialize({ id: 'revision-1', content }).data
+        .attributes.content,
+    ).toEqual(content);
+  });
 
   it('serializes the anonymous handoff without leaking storage or tenant metadata', () => {
     const output = BrandOsPreviewSerializer.serialize({

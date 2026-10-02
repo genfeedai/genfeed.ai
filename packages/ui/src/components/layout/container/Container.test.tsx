@@ -126,6 +126,33 @@ describe('Container', () => {
     ).not.toBe(0);
   });
 
+  it('pins the module bar and keeps a footer row inside it', () => {
+    navigationState.hasCanonicalBreadcrumb = true;
+
+    render(
+      <Container
+        isTopbarPinned
+        label="Library"
+        leading={<span>Search</span>}
+        right={<span>Newest first</span>}
+        titleVisibility="sr-only"
+        topbarFooter={<span>3 selected</span>}
+      >
+        content
+      </Container>,
+    );
+
+    const pinned = screen.getByTestId('pinned-section-topbar');
+    expect(pinned.className).toContain('sticky');
+    expect(pinned).toContainElement(screen.getByTestId('section-topbar'));
+    expect(pinned).toContainElement(screen.getByText('3 selected'));
+    expect(
+      screen
+        .getByTestId('container')
+        .style.getPropertyValue('--pinned-topbar-height'),
+    ).toBe(`${pinned.offsetHeight}px`);
+  });
+
   it('keeps Help immediately left of chrome-only refresh actions', () => {
     navigationState.hasCanonicalBreadcrumb = true;
 

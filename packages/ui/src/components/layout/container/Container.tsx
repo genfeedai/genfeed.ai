@@ -11,7 +11,14 @@ import HelpPopover from '@ui/layout/help-popover/HelpPopover';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import type { ReactNode } from 'react';
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 
 const ContainerInsetContext = createContext(false);
 
@@ -44,6 +51,8 @@ export default function Container({
   left,
   leading,
   right,
+  isTopbarPinned = false,
+  topbarFooter,
   help,
   children,
   bodyClassName,
@@ -108,6 +117,8 @@ export default function Container({
   // `moduleChrome` to lock it. `null` marks "no render observed yet" so the
   // very first render never warns.
   const previousModuleChromeRef = useRef<boolean | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const pinnedBarRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (process.env.NODE_ENV !== 'development') {
       return;
@@ -122,6 +133,34 @@ export default function Container({
     }
     previousModuleChromeRef.current = usesModuleLocalChrome;
   }, [usesModuleLocalChrome]);
+
+  useLayoutEffect(() => {
+    if (!isTopbarPinned) {
+      return;
+    }
+
+    const bar = pinnedBarRef.current;
+    const host = containerRef.current;
+    if (!bar || !host) {
+      return;
+    }
+
+    const publishHeight = () => {
+      host.style.setProperty('--pinned-topbar-height', `${bar.offsetHeight}px`);
+    };
+    publishHeight();
+    if (typeof ResizeObserver === 'undefined') {
+      return () => {
+        host.style.removeProperty('--pinned-topbar-height');
+      };
+    }
+    const observer = new ResizeObserver(publishHeight);
+    observer.observe(bar);
+    return () => {
+      observer.disconnect();
+      host.style.removeProperty('--pinned-topbar-height');
+    };
+  }, [isTopbarPinned]);
 
   // When SectionTopbar owns the chrome title, skip a second sr-only h1 here.
   const needsStandaloneScreenReaderTitle =
@@ -159,9 +198,33 @@ export default function Container({
     ? 'mx-0 max-w-none py-5 sm:py-6'
     : 'mx-auto max-w-[1280px] px-5 py-5 sm:px-6 sm:py-6';
 
+  const moduleSectionTopbar = (
+    <SectionTopbar
+      title={sectionTitle}
+      subtitle={sectionSubtitle}
+      icon={sectionIcon}
+      titleVisibility={hasVisibleTitle ? 'visible' : 'sr-only'}
+      leading={leading}
+      actions={
+        right ? (
+          <div
+            data-testid="container-header-actions"
+            className="flex min-w-0 flex-wrap items-center justify-end gap-2.5"
+          >
+            {right}
+          </div>
+        ) : undefined
+      }
+      help={resolvedHelp}
+      tabs={moduleTabsNode ?? undefined}
+      forceVisible={moduleChrome === true}
+    />
+  );
+
   return (
     <ContainerInsetContext.Provider value={true}>
       <div
+        ref={containerRef}
         data-testid="container"
         data-nested={isNested || undefined}
         className={cn(
@@ -200,26 +263,18 @@ export default function Container({
             {moduleTabsNode}
           </div>
         ) : usesModuleLocalChrome ? (
-          <SectionTopbar
-            title={sectionTitle}
-            subtitle={sectionSubtitle}
-            icon={sectionIcon}
-            titleVisibility={hasVisibleTitle ? 'visible' : 'sr-only'}
-            leading={leading}
-            actions={
-              right ? (
-                <div
-                  data-testid="container-header-actions"
-                  className="flex min-w-0 flex-wrap items-center justify-end gap-2.5"
-                >
-                  {right}
-                </div>
-              ) : undefined
-            }
-            help={resolvedHelp}
-            tabs={moduleTabsNode ?? undefined}
-            forceVisible={moduleChrome === true}
-          />
+          isTopbarPinned ? (
+            <div
+              ref={pinnedBarRef}
+              className="sticky top-0 z-30 bg-background"
+              data-testid="pinned-section-topbar"
+            >
+              {moduleSectionTopbar}
+              {topbarFooter}
+            </div>
+          ) : (
+            moduleSectionTopbar
+          )
         ) : null}
 
         {usesTitleActionToolbar ? (

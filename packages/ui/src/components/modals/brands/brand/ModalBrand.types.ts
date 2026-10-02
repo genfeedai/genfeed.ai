@@ -1,4 +1,8 @@
-import type { IBrand, ILink } from '@genfeedai/contracts/interfaces';
+import type {
+  IBrand,
+  ICredential,
+  ILink,
+} from '@genfeedai/contracts/interfaces';
 import { SocialUrlHelper } from '@genfeedai/helpers';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
@@ -127,6 +131,29 @@ export function getAccountConnectionStatus(
   return 'connected';
 }
 
+export function credentialToSocialConnection(
+  credential: ICredential,
+): BrandDetailSocialConnection {
+  return {
+    accessTokenExpiry: credential.accessTokenExpiry,
+    accountHealth: credential.accountHealth,
+    avatarUrl: credential.externalAvatar,
+    credentialId: credential.id,
+    externalId: credential.externalId,
+    handle: credential.externalHandle,
+    isConnected: credential.isConnected,
+    label: credential.label,
+    name: credential.externalName,
+    platform: credential.platform,
+    postingTimes: credential.postingTimes,
+    url: SocialUrlHelper.buildProfileUrl(
+      credential.platform,
+      credential.externalHandle,
+      credential.externalId,
+    ),
+  };
+}
+
 export function buildSocialConnections(
   brand: Pick<BrandOverlayRecord, 'credentials'> | null,
 ): BrandDetailSocialConnection[] {
@@ -136,24 +163,7 @@ export function buildSocialConnections(
 
   return (brand.credentials ?? [])
     .filter((credential) => isVisibleCredentialRow(credential))
-    .map((credential) => ({
-      accessTokenExpiry: credential.accessTokenExpiry,
-      accountHealth: credential.accountHealth,
-      avatarUrl: credential.externalAvatar,
-      credentialId: credential.id,
-      externalId: credential.externalId,
-      handle: credential.externalHandle,
-      isConnected: credential.isConnected,
-      label: credential.label,
-      name: credential.externalName,
-      platform: credential.platform,
-      postingTimes: credential.postingTimes,
-      url: SocialUrlHelper.buildProfileUrl(
-        credential.platform,
-        credential.externalHandle,
-        credential.externalId,
-      ),
-    }));
+    .map(credentialToSocialConnection);
 }
 
 export type BrandFormValues = {

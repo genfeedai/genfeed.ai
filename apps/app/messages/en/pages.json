@@ -1031,6 +1031,14 @@
         "lead": "Meet the product. One line on the problem, one line on the result."
       }
     },
+    "filters": {
+      "allTypes": "All types",
+      "newest": "Newest first",
+      "oldest": "Oldest first",
+      "sort": "Sort",
+      "type": "Type"
+    },
+    "searchPlaceholder": "Search generations",
     "cancelEnhancingPrompt": "Cancel enhancing prompt",
     "enhancePrompt": "Enhance prompt",
     "estimatedCredits": "Estimated {credits} credits",
@@ -2169,6 +2177,42 @@
   },
   "onboarding": {
     "brand": {
+      "scan": {
+        "title": "Review your brand guide",
+        "pending": "Your website scan is waiting to start.",
+        "running": "Reading your website for brand details…",
+        "slow": "Your website is taking longer to respond. You can review saved details or keep waiting.",
+        "ready": "Website details are ready to review.",
+        "partial": "Some website details were found. Review missing information before approving.",
+        "failed": "We couldn't finish reading your website. Your saved guide is unchanged.",
+        "timedOut": "Your website scan timed out. Try again or add details manually.",
+        "retry": "Try scanning again",
+        "reviewExisting": "Review saved details",
+        "manual": "Add details manually",
+        "wait": "Keep waiting",
+        "rescan": "Scan website again"
+      },
+      "review": {
+        "title": "Review and approve your brand guide",
+        "description": "Check the source evidence, correct the details and approve the version you want to reuse.",
+        "saved": "Your brand guide has been saved.",
+        "approved": "Your brand guide is approved.",
+        "conflict": "This guide changed while you were editing. Your unsaved edits are still here.",
+        "reload": "Reload saved revision"
+      },
+      "preview": {
+        "title": "Your first content",
+        "generate": "Create first preview",
+        "regenerate": "Generate a new preview",
+        "needsReview": "Needs review",
+        "unverified": "This preview has not passed brand validation. Review it before use.",
+        "partial": "Part of your preview is ready. You can review it while recovering the missing content.",
+        "failed": "We couldn't finish your preview. Your saved brand guide is still available.",
+        "approvedGuide": "Approved guide",
+        "provisionalGuide": "Draft guide",
+        "continue": "Continue to your workspace",
+        "connectionOptional": "Connect publishing accounts when you're ready."
+      },
       "actions": {
         "continue": "Continue",
         "skip": "Skip for now"
@@ -3397,7 +3441,7 @@
     "saving": "Saving draft",
     "saved": "Revision {version} saved as a draft.",
     "approving": "Approving revision",
-    "approved": "Revision {version} approved. Generation now uses this Brand OS identity; legacy voice values outside it no longer apply. Public access changes only when you publish.",
+    "approved": "Revision {version} approved. New supported brand generation can use this version. Public access changes only when you publish.",
     "downloading": "Downloading design.md",
     "downloaded": "Your approved design.md has been downloaded.",
     "errorPreserved": "{error} Your unsaved edits have been kept.",

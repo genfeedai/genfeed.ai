@@ -1,4 +1,30 @@
-import type { IScrapedImageCandidate } from '@genfeedai/contracts/interfaces';
+import type {
+  IBrandKitDiagnostic,
+  IBrandKitSourceEvidence,
+  IScrapedBrandData,
+  IScrapedImageCandidate,
+} from '@genfeedai/contracts/interfaces';
+
+export interface WebsiteStylesheetEvidence {
+  url: string;
+  cssText: string;
+}
+export interface WebsiteFontCandidate {
+  family: string;
+  sourceUrl: string;
+  weight?: string;
+  style?: string;
+  availability: 'unknown';
+}
+export interface WebsiteBrandScrapeEvidence {
+  data: IScrapedBrandData;
+  evidence: IBrandKitSourceEvidence[];
+  diagnostics: IBrandKitDiagnostic[];
+  fontCandidates: WebsiteFontCandidate[];
+}
+export interface WebsiteFetchBudget {
+  deadlineAt: number;
+}
 
 /**
  * LinkedIn company page data extracted from scraping
@@ -103,6 +129,10 @@ export interface MetaTagFallbackData {
  * Website content extracted from scraping
  */
 export interface WebsiteScrapingResult {
+  stylesheetUrls?: string[];
+  evidence?: IBrandKitSourceEvidence[];
+  diagnostics?: IBrandKitDiagnostic[];
+  fontDetails?: WebsiteFontCandidate[];
   // Meta information
   title?: string;
   description?: string;
@@ -155,4 +185,15 @@ export interface WebsiteScrapingResult {
   technologies?: string[];
   scrapedAt: Date;
   sourceUrl: string;
+}
+
+export interface WebsiteResponseState {
+  deadlineAt: number;
+  controller: AbortController;
+  timeout: ReturnType<typeof setTimeout>;
+  url: string;
+}
+
+export interface WebsiteStylesheetByteBudget {
+  bytes: number;
 }

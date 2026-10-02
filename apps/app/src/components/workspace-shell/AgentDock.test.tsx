@@ -3,7 +3,14 @@ import {
   AGENT_DOCK_MIN_HEIGHT,
 } from '@contexts/ui/agent-dock-context';
 import type { AgentDockContextValue } from '@genfeedai/props/ui/agent-dock.props';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { useEffect, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import AgentDock from './AgentDock';
@@ -165,7 +172,7 @@ describe('AgentDock', () => {
     opener.remove();
   });
 
-  it('returns keyboard focus to the page promptbar after the overlay closes', () => {
+  it('returns keyboard focus to the page bubble after the overlay closes', async () => {
     const dock = buildDock({ isOpen: false });
     const view = render(
       <AgentDock
@@ -179,7 +186,7 @@ describe('AgentDock', () => {
         </div>
       </AgentDock>,
     );
-    const launcher = screen.getByTestId('agent-page-promptbar');
+    const launcher = screen.getByTestId('agent-conversation-bubble');
     launcher.focus();
     fireEvent.click(launcher);
     expect(dock.open).toHaveBeenCalledTimes(1);
@@ -196,6 +203,7 @@ describe('AgentDock', () => {
         </div>
       </AgentDock>,
     );
+    screen.getByText('composer').focus();
     view.rerender(
       <AgentDock
         chrome="bubble"
@@ -209,12 +217,14 @@ describe('AgentDock', () => {
       </AgentDock>,
     );
 
-    expect(document.activeElement).toBe(
-      screen.getByTestId('agent-page-promptbar'),
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByTestId('agent-conversation-bubble'),
+      ),
     );
   });
 
-  it('returns keyboard focus to the conversation bubble after the overlay closes', () => {
+  it('returns keyboard focus to the conversation bubble after the overlay closes', async () => {
     const dock = buildDock({ isOpen: false });
     const view = render(
       <AgentDock
@@ -247,6 +257,7 @@ describe('AgentDock', () => {
         </div>
       </AgentDock>,
     );
+    screen.getByText('composer').focus();
     view.rerender(
       <AgentDock
         chrome="bubble"
@@ -261,8 +272,10 @@ describe('AgentDock', () => {
       </AgentDock>,
     );
 
-    expect(document.activeElement).toBe(
-      screen.getByTestId('agent-conversation-bubble'),
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByTestId('agent-conversation-bubble'),
+      ),
     );
   });
 
@@ -350,14 +363,56 @@ describe('AgentDock', () => {
     opener.remove();
   });
 
-  it('shows a compact page promptbar while bubble chrome is closed', () => {
+  it('switches threads and starts a new one from the header menu', async () => {
+    const onNewThread = vi.fn();
+    const onSelectThread = vi.fn();
+    render(
+      <AgentDock
+        activeThreadId="thread-1"
+        dock={buildDock()}
+        isCompact={false}
+        onNewThread={onNewThread}
+        onOpenFullPage={vi.fn()}
+        onSelectThread={onSelectThread}
+        threads={[
+          { id: 'thread-1', title: 'Spring launch plan' },
+          { id: 'thread-2', title: 'Make three stronger variations' },
+        ]}
+      >
+        <p>Conversation transcript</p>
+      </AgentDock>,
+    );
+
+    fireEvent.keyDown(
+      screen.getByRole('button', { name: 'Spring launch plan' }),
+      { key: 'Enter' },
+    );
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'New thread' }),
+    );
+    expect(onNewThread).toHaveBeenCalledTimes(1);
+
+    fireEvent.keyDown(
+      screen.getByRole('button', { name: 'Spring launch plan' }),
+      { key: 'Enter' },
+    );
+    fireEvent.click(
+      await screen.findByRole('menuitem', {
+        name: 'Make three stronger variations',
+      }),
+    );
+    expect(onSelectThread).toHaveBeenCalledWith('thread-2');
+  });
+
+  it('shows a chat bubble and radial shortcuts while bubble chrome is closed', () => {
+    const onSelectSuggestedAction = vi.fn();
     render(
       <AgentDock
         chrome="bubble"
         dock={buildDock({ isOpen: false })}
         isCompact={false}
         onOpenFullPage={vi.fn()}
-        pagePlaceholder="Ask about this page..."
+        onSelectSuggestedAction={onSelectSuggestedAction}
         suggestedActions={[
           {
             id: 'summarize',
@@ -370,15 +425,28 @@ describe('AgentDock', () => {
       </AgentDock>,
     );
 
-    expect(screen.getByTestId('agent-page-promptbar')).toBeVisible();
-    expect(screen.queryByTestId('agent-conversation-bubble')).toBeNull();
+    expect(screen.getByTestId('agent-conversation-bubble')).toBeVisible();
+    expect(screen.queryByTestId('agent-page-promptbar')).toBeNull();
+    const shortcut = screen.getByTestId('agent-conversation-radial');
+    expect(shortcut).toHaveAttribute('tabindex', '-1');
+    expect(shortcut.parentElement).toHaveAttribute('inert');
+    expect(shortcut.parentElement).toHaveClass('opacity-0');
+    expect(shortcut.parentElement).toHaveClass('pointer-events-none');
+    fireEvent.pointerEnter(screen.getByTestId('agent-conversation-bubble'));
+    expect(shortcut.parentElement).toHaveClass('opacity-100');
+    expect(shortcut).toHaveAttribute('tabindex', '0');
+    expect(shortcut.parentElement).not.toHaveAttribute('inert');
+    expect(shortcut.parentElement).not.toHaveClass('pointer-events-none');
+    expect(shortcut).toHaveTextContent('Summarize');
+    fireEvent.click(shortcut);
+    expect(onSelectSuggestedAction).toHaveBeenCalledWith('Summarize this page');
     expect(screen.queryByRole('region', { name: 'Agent' })).toBeNull();
     expect(
       screen.queryByRole('separator', { name: 'Resize agent' }),
     ).toBeNull();
   });
 
-  it('shows a chat bubble on major prompt-bar pages and an overlay when open', () => {
+  it('shows a chat bubble on major prompt-bar pages and an overlay when open', async () => {
     const dock = buildDock({ isOpen: false, open: vi.fn() });
     const { rerender } = render(
       <AgentDock
@@ -412,8 +480,26 @@ describe('AgentDock', () => {
 
     const overlay = screen.getByRole('region', { name: 'Agent' });
     expect(overlay).toHaveAttribute('data-chrome', 'bubble');
+    expect(overlay).toHaveAttribute('data-morph', 'from');
+    expect(overlay).toHaveStyle({ transformOrigin: 'bottom right' });
+    expect(overlay.style.transform).toContain('--bubble-from-x');
     expect(overlay).toHaveTextContent('Conversation transcript');
-    expect(screen.queryByTestId('agent-conversation-bubble')).toBeNull();
+    expect(screen.getByTestId('agent-conversation-bubble')).toHaveAttribute(
+      'tabindex',
+      '-1',
+    );
+    expect(
+      screen.getByTestId('agent-conversation-bubble').closest('[inert]'),
+    ).toHaveAttribute('aria-hidden', 'true');
+
+    await act(async () => {
+      await new Promise((resolve) => {
+        requestAnimationFrame(() => resolve(undefined));
+      });
+    });
+    const openOverlay = screen.getByRole('region', { name: 'Agent' });
+    expect(openOverlay).toHaveAttribute('data-morph', 'open');
+    expect(openOverlay.style.transform).toBe('scale(1, 1)');
     expect(
       screen.queryByRole('separator', { name: 'Resize agent' }),
     ).toBeNull();

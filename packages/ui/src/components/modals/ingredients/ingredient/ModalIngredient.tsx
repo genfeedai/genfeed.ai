@@ -28,7 +28,6 @@ export default function IngredientOverlay({
     error,
     metadataLabel,
     ingredientTitle,
-    ingredientDescription,
     isVideo,
     isImage,
     childIngredients,
@@ -48,9 +47,7 @@ export default function IngredientOverlay({
       <EntityOverlayShell
         id={ModalEnum.INGREDIENT}
         title={ingredientTitle}
-        description={ingredientDescription}
         width="2xl"
-        bodyClassName="px-0 py-0"
         onClose={handleModalClose}
         badges={
           localIngredient ? (
@@ -61,7 +58,7 @@ export default function IngredientOverlay({
         {!localIngredient ? (
           <Loading isFullSize={false} />
         ) : (
-          <div className="mx-auto flex h-auto max-w-[1520px] flex-col gap-4 p-4 md:p-6">
+          <div className="flex min-w-0 flex-col gap-6">
             <IngredientOverlayAlerts
               error={error}
               localIngredient={localIngredient}

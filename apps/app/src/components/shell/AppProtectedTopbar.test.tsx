@@ -5,7 +5,7 @@ vi.mock('@/components/shell/GenerationToasts', () => ({
   default: () => null,
 }));
 
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -179,6 +179,9 @@ vi.mock('next-intl', () => ({
           open: 'Open agent',
           unavailable: 'Agent is the main view here',
         },
+        'common.sidebar': {
+          collapse: 'Collapse sidebar',
+        },
         'common.contextSidebar': {
           close: 'Close details',
           collapse: 'Collapse details',
@@ -188,6 +191,14 @@ vi.mock('next-intl', () => ({
         },
       }) as Record<string, Record<string, string>>
     )[namespace]?.[key] ?? key,
+}));
+
+vi.mock('@ui/menus/organization-switcher/OrganizationSwitcher', () => ({
+  default: () => (
+    <button type="button" data-testid="organization-switcher">
+      Organization
+    </button>
+  ),
 }));
 
 vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
@@ -295,9 +306,16 @@ describe('AppProtectedTopbar', () => {
     });
   });
 
-  it('carries only the page identity and actions, never the brand or org', () => {
-    render(<AppProtectedTopbar orgSlug="acme" currentApp="studio" />);
+  it('leads with the brand switcher and a left-aligned breadcrumb', () => {
+    render(
+      <AppProtectedTopbar
+        orgSlug="acme"
+        brandSlug="brand"
+        currentApp="studio"
+      />,
+    );
 
+    const brand = screen.getByTestId('brand-switcher');
     const breadcrumbs = screen.getByRole('navigation', {
       name: 'Breadcrumb',
     });
@@ -306,10 +324,13 @@ describe('AppProtectedTopbar', () => {
     const credits = screen.getByTestId('topbar-credits-bar');
     const topbarInner = screen.getByTestId('app-protected-topbar-inner');
 
-    // The brand switcher is the sidebar header; the org is on the app rail.
-    expect(screen.queryByTestId('brand-switcher')).not.toBeInTheDocument();
-    expect(topbarInner).toHaveClass('gap-3', 'px-3');
+    expect(topbarInner).toHaveClass('gap-1', 'px-2', 'md:gap-3', 'md:px-3');
+    expect(topbarInner).not.toHaveClass('justify-center');
     expect(breadcrumbs).toHaveTextContent('Studio');
+    expect(
+      brand.compareDocumentPosition(breadcrumbs) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(
       breadcrumbs.compareDocumentPosition(credits) &
         Node.DOCUMENT_POSITION_FOLLOWING,
@@ -379,57 +400,45 @@ describe('AppProtectedTopbar', () => {
     expect(screen.queryByTitle('Settings')).not.toBeInTheDocument();
   });
 
-  it('renders separate mobile and desktop navigation controls', () => {
-    const onSidebarToggle = vi.fn();
-
-    render(
-      <AppProtectedTopbar
-        isMenuOpen
-        isSidebarCollapsed
-        onMenuToggle={vi.fn()}
-        onSidebarToggle={onSidebarToggle}
-      />,
-    );
+  it('keeps the mobile menu in the topbar and the mark out of it', () => {
+    render(<AppProtectedTopbar isMenuOpen onMenuToggle={vi.fn()} />);
 
     expect(
       screen.getByRole('button', { name: 'Close navigation menu' }),
     ).toBeInTheDocument();
-    const expandToggle = screen.getByRole('button', {
-      name: 'Expand sidebar',
-    });
-    const logo = expandToggle.querySelector('img');
-
-    expect(expandToggle).toBeInTheDocument();
-    expect(logo?.getAttribute('src')).toContain('logo.svg');
-    expect(logo?.parentElement).toHaveClass('group-hover:opacity-0');
-    expect(expandToggle.querySelector('svg')?.parentElement).toHaveClass(
-      'opacity-0',
-      'group-hover:opacity-100',
-    );
+    expect(
+      screen.queryByRole('button', { name: 'Expand sidebar' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Collapse sidebar' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId('app-protected-topbar-inner')).not.toHaveClass(
       'pl-14',
     );
-
-    fireEvent.click(expandToggle);
-    expect(onSidebarToggle).toHaveBeenCalledTimes(1);
   });
 
-  it('leaves the expanded sidebar control in the unified sidebar header', () => {
-    render(<AppProtectedTopbar onSidebarToggle={vi.fn()} />);
+  it('puts organization, brand, then the breadcrumb', () => {
+    render(<AppProtectedTopbar brandSlug="brand" orgSlug="acme" />);
 
+    const organization = screen.getByTestId('organization-switcher');
+    const brand = screen.getByTestId('brand-switcher');
+    const breadcrumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
+
+    expect(
+      organization.compareDocumentPosition(brand) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      brand.compareDocumentPosition(breadcrumbs) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(
       screen.queryByRole('button', { name: 'Collapse sidebar' }),
     ).not.toBeInTheDocument();
   });
 
   it('does not mount a topbar account menu when the sidebar is collapsed', () => {
-    const { container } = render(
-      <AppProtectedTopbar
-        isSidebarCollapsed
-        onMenuToggle={vi.fn()}
-        onSidebarToggle={vi.fn()}
-      />,
-    );
+    const { container } = render(<AppProtectedTopbar onMenuToggle={vi.fn()} />);
 
     expect(screen.queryByTestId('topbar-account-menu')).toBeNull();
     expect(
@@ -456,105 +465,13 @@ describe('AppProtectedTopbar', () => {
     return state;
   }
 
-  it('exposes the details toggle as a controlled disclosure', () => {
-    const { toggle } = selectAsset();
+  it('keeps the details toggle out of the window topbar', () => {
+    selectAsset();
 
     render(<AppProtectedTopbar />);
 
-    const railToggle = screen.getByTestId('topbar-inspector-toggle');
-    expect(railToggle).toHaveAccessibleName('Collapse details');
-    expect(railToggle).toHaveAttribute(
-      'aria-controls',
-      'workspace-context-inspector',
-    );
-    expect(railToggle).toHaveAttribute('aria-expanded', 'true');
-    expect(railToggle.closest('[tabindex="0"]')).toBeNull();
-
-    fireEvent.focus(railToggle);
-    expect(screen.queryByRole('tooltip')).toBeNull();
-    fireEvent.click(railToggle);
-    expect(toggle).toHaveBeenCalledTimes(1);
-  });
-
-  it('expands collapsed details from the rail toggle', () => {
-    selectAsset({ isOpen: false });
-
-    render(<AppProtectedTopbar />);
-
-    const railToggle = screen.getByTestId('topbar-inspector-toggle');
-    expect(railToggle).toHaveAccessibleName('Expand details');
-    expect(railToggle).toHaveAttribute('aria-expanded', 'false');
-  });
-
-  it('opens the details drawer from the below-xl toggle variant', () => {
-    const { setIsMobileOpen } = selectAsset();
-
-    render(<AppProtectedTopbar />);
-
-    const drawerToggle = screen.getByTestId('topbar-inspector-drawer-toggle');
-    expect(drawerToggle).toHaveAccessibleName('Open details');
-    expect(drawerToggle).toHaveAttribute(
-      'aria-controls',
-      'workspace-context-inspector-drawer',
-    );
-    expect(drawerToggle).toHaveAttribute('aria-expanded', 'false');
-    // The two variants split by viewport: rail toggle at xl+, drawer below.
-    expect(screen.getByTestId('topbar-inspector-toggle').className).toContain(
-      'xl:inline-flex',
-    );
-    expect(drawerToggle.className).toContain('xl:hidden');
-    expect(drawerToggle.closest('[tabindex="0"]')).toBeNull();
-
-    fireEvent.click(drawerToggle);
-    expect(setIsMobileOpen).toHaveBeenCalledWith(true);
-  });
-
-  it('toggles the details drawer closed when it is already open', () => {
-    const { setIsMobileOpen } = selectAsset({ isMobileOpen: true });
-
-    render(<AppProtectedTopbar />);
-
-    const drawerToggle = screen.getByTestId('topbar-inspector-drawer-toggle');
-    expect(drawerToggle).toHaveAccessibleName('Close details');
-    expect(drawerToggle).toHaveAttribute('aria-expanded', 'true');
-
-    fireEvent.click(drawerToggle);
-    expect(setIsMobileOpen).toHaveBeenCalledWith(false);
-  });
-
-  it('keeps the details toggles in the bar, disabled, when nothing is selected', async () => {
-    const toggle = vi.fn();
-    contextSidebarState.value = {
-      isMobileOpen: false,
-      isOpen: false,
-      selection: null,
-      setIsMobileOpen: vi.fn(),
-      toggle,
-    };
-
-    render(<AppProtectedTopbar />);
-
-    const railToggle = screen.getByTestId('topbar-inspector-toggle');
-    const drawerToggle = screen.getByTestId('topbar-inspector-drawer-toggle');
-    const reason = 'Select an item to see details';
-    for (const toggleButton of [railToggle, drawerToggle]) {
-      const wrapper = toggleButton.closest('[tabindex="0"]');
-      expect(wrapper).toHaveAccessibleName(reason);
-      const reasonId = wrapper?.getAttribute('aria-describedby');
-      const reasonText = document.getElementById(reasonId ?? '');
-      expect(reasonText).toHaveTextContent(reason);
-      expect(wrapper).toContainElement(reasonText);
-      expect(toggleButton).toBeDisabled();
-      expect(toggleButton).toHaveAccessibleName(reason);
-    }
-
-    const railWrapper = railToggle.closest('[tabindex="0"]') as HTMLElement;
-    fireEvent.focus(railWrapper);
-    expect(await screen.findByRole('tooltip')).toHaveTextContent(reason);
-    fireEvent.keyDown(railWrapper, { key: 'Enter' });
-    fireEvent.keyDown(railWrapper, { key: ' ' });
-    fireEvent.click(railToggle);
-    expect(toggle).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('topbar-inspector-toggle')).toBeNull();
+    expect(screen.queryByTestId('topbar-inspector-drawer-toggle')).toBeNull();
   });
 
   it('hides the agent dock toggle while split chrome is hidden', () => {

@@ -97,6 +97,23 @@ export const LOW_CREDITS_BANNER_FEATURE_FLAG =
 /** Batch idea projects (brand data → content ideas) in Studio batches (#5463). */
 export const BATCH_IDEAS_FEATURE_FLAG = 'batch_ideas' satisfies PlatformFlagKey;
 
+/**
+ * Apps that start in the rail's More menu. A user can pin these onto the
+ * rail; the daily loop is always visible and is not pinnable.
+ */
+export const PINNABLE_APP_IDS = [
+  'studio',
+  'automation',
+  'messages',
+  'discovery',
+] as const;
+
+export type PinnableAppId = (typeof PINNABLE_APP_IDS)[number];
+
+export function isPinnableAppId(value: string): value is PinnableAppId {
+  return (PINNABLE_APP_IDS as readonly string[]).includes(value);
+}
+
 export type AppRailFeatureFlagApp = keyof typeof APP_RAIL_FEATURE_FLAGS;
 
 export type AppRailFeatureFlagKey =

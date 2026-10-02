@@ -21,7 +21,7 @@ export function resolveTargetCaption(
   const override = target.settings?.caption;
   return typeof override === 'string' && override.trim().length > 0
     ? override
-    : release.baseContent;
+    : (release.baseContent ?? '');
 }
 
 function attachmentAppliesToTarget(
@@ -139,7 +139,7 @@ export function buildTargetPreview({
     caption: signature ? `${caption}\n\n${signature}` : caption,
     firstComment: resolveFirstComment(release, target),
     id: target.id,
-    media: [...release.media]
+    media: [...(release.media ?? [])]
       .sort((left, right) => (left.order ?? 0) - (right.order ?? 0))
       .map((item) => ({
         id: item.assetId,

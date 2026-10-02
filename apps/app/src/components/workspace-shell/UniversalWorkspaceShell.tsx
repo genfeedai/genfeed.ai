@@ -33,6 +33,10 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import {
+  InspectorToggleFallback,
+  InspectorToggleHost,
+} from '@ui/layout/context-inspector-toggle/ContextInspectorToggle';
 import { Button } from '@ui/primitives/button';
 import { Drawer, DrawerContent } from '@ui/primitives/drawer';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -99,6 +103,7 @@ import {
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
 import AgentDock from './AgentDock';
 import { isMajorPromptBarHost } from './is-major-prompt-bar-host';
+import { useAgentDockThreads } from './use-agent-dock-threads';
 import { useIsCompactViewport } from './use-compact-viewport';
 import { useConversationScopeControls } from './use-conversation-scope-controls';
 import {
@@ -599,6 +604,7 @@ function UniversalWorkspaceShellContent({
   // on the way back until the operator reopens it.
   const isAgentDockHost =
     Boolean(agentDock) && !isAgentRoute && !isFocusedOnboardingRoute;
+  const dockThreads = useAgentDockThreads(agentApiService, isAgentDockHost);
   const hasMajorPromptBar = isMajorPromptBarHost(normalizedPathname);
   const setIsAgentDockAvailable = agentDock?.setIsAvailable;
   const closeAgentDock = agentDock?.close;
@@ -1012,7 +1018,10 @@ function UniversalWorkspaceShellContent({
                 <WorkspaceShellActionsProvider
                   openOverlay={launchWorkspaceOverlay}
                 >
-                  {children}
+                  <InspectorToggleHost>
+                    <InspectorToggleFallback />
+                    {children}
+                  </InspectorToggleHost>
                 </WorkspaceShellActionsProvider>
               </ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider>
             </section>
@@ -1052,12 +1061,17 @@ function UniversalWorkspaceShellContent({
                 dock={agentDock}
                 hasMajorPromptBar={hasMajorPromptBar}
                 isCompact={isCompactViewport}
+                activeThreadId={dockThreads.activeThreadId}
+                isThreadListLoading={dockThreads.isThreadListLoading}
+                onNewThread={dockThreads.startThread}
                 onOpenFullPage={handleOpenFullConversation}
+                onSelectThread={(threadId) => {
+                  void dockThreads.selectThread(threadId);
+                }}
                 onSelectSuggestedAction={(prompt) => {
                   seedComposer(prompt, effectiveThreadId ?? activeThreadId);
                   openAgentDock?.();
                 }}
-                pagePlaceholder={pageContext?.placeholder}
                 // Organization and brand are switched from the shell chrome;
                 // the dock only surfaces scope notices and page context.
                 scopeControls={
@@ -1069,6 +1083,7 @@ function UniversalWorkspaceShellContent({
                 }
                 suggestedActions={pageContext?.suggestedActions}
                 threadTitle={activeThread?.title}
+                threads={dockThreads.threads}
               >
                 {hasOpenedAgentDock ? (
                   <ConversationDockPanel apiService={agentApiService} />
@@ -1100,7 +1115,7 @@ function UniversalWorkspaceShellContent({
                 bottom: 'var(--shell-inset, 0px)',
                 minWidth: inspectorRailWidth,
                 right: 'var(--shell-inset, 0px)',
-                top: 'calc(var(--desktop-titlebar-height) + var(--shell-topbar-offset, 0px) + var(--shell-inset, 0px))',
+                top: 'calc(var(--desktop-titlebar-height) + var(--shell-topbar-offset, 0px))',
                 transition: INSPECTOR_RAIL_TRANSITION,
                 width: inspectorRailWidth,
               }}

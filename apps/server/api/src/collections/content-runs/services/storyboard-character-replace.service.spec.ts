@@ -1,236 +1,263 @@
 import { StoryboardCharacterReplaceService } from '@api/collections/content-runs/services/storyboard-character-replace.service';
-import type { StoryboardRunStoreService } from '@api/collections/content-runs/services/storyboard-run-store.service';
-import { NotFoundException } from '@api/exceptions/not-found.exception';
-import type { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
-import type { MediaUrlService } from '@api/services/media-urls/media-url.service';
-import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { STORYBOARD_CHARACTER_REPLACE_LIMITATIONS } from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
 import { ConflictException } from '@nestjs/common';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-const uploadedConfig = {
+const config = () => ({
   revision: 4,
-  plan: { shots: [{ id: 'shot-1' }, { id: 'shot-2' }] },
-  sourceSnapshot: {
-    assetId: 'video-1',
-    selector: { kind: 'uploaded_video', assetId: 'video-1' },
-  },
-};
-
-function serviceWith(config: object = uploadedConfig) {
-  const findMany = vi.fn();
-  const read = vi.fn(async () => ({ config }));
-  const save = vi.fn<StoryboardRunStoreService['save']>();
-  const revalidate = vi.fn(async () => undefined);
-  const libraryAsset = vi.fn(async () => ({
-    durationSeconds: 8,
-    sizeBytes: 1000,
-    sourceAssetId: 'video-1',
-    url: 'https://cdn.example/source.mp4',
+  plan: { shots: [{ id: 'shot-1', title: 'Walk' }] },
+  sourceSnapshot: { selector: { kind: 'uploaded_video', assetId: 'video-1' } },
+});
+function harness() {
+  let stored: object = config();
+  const findMany = vi.fn(async (args: { where: { id: { in: string[] } } }) =>
+    args.where.id.in.map((id) => ({
+      id,
+      updatedAt: new Date('2026-10-01T00:00:00Z'),
+      s3Key: `${id}.jpg`,
+    })),
+  );
+  const read = vi.fn(async () => ({ config: structuredClone(stored) }));
+  const save = vi.fn(
+    async (
+      _org: string,
+      _brand: string,
+      _run: string,
+      previous: object,
+      next: object,
+    ) => {
+      if (JSON.stringify(previous) !== JSON.stringify(stored))
+        throw new ConflictException();
+      stored = structuredClone(next);
+      return {} as never;
+    },
+  );
+  const generate = vi.fn(
+    async (params: { onProviderSubmissionStarted?: () => void }) => {
+      params.onProviderSubmissionStarted?.();
+      return { requestId: 'real-1', status: 'queued' as const };
+    },
+  );
+  const status = vi.fn(async () => ({
+    request_id: 'real-1',
+    status: 'queued' as const,
   }));
-  const generateMotionTransfer = vi.fn<
-    HiggsFieldService['generateMotionTransfer']
-  >(async () => ({ requestId: 'req-1' }));
-  const buildUrl = vi.fn((key: string) => `https://cdn.example/${key}`);
   const service = new StoryboardCharacterReplaceService(
-    { ingredient: { findMany } } as unknown as PrismaService,
-    { read, save } as unknown as ConstructorParameters<
-      typeof StoryboardCharacterReplaceService
-    >[1],
-    { revalidate } as unknown as ConstructorParameters<
-      typeof StoryboardCharacterReplaceService
-    >[2],
-    { libraryAsset } as unknown as ConstructorParameters<
-      typeof StoryboardCharacterReplaceService
-    >[3],
-    { generateMotionTransfer } as unknown as HiggsFieldService,
-    { buildUrl } as unknown as MediaUrlService,
+    { ingredient: { findMany } } as never,
+    { read, save } as never,
+    { revalidate: vi.fn() } as never,
+    {
+      libraryAsset: vi.fn(async () => ({
+        sourceAssetId: 'video-1',
+        url: 'https://fixture.invalid/video',
+      })),
+    } as never,
+    {
+      generateMotionTransfer: generate,
+      getCredentialFingerprint: vi.fn(async () => 'binding'),
+      getBoundRequestStatus: status,
+    } as never,
+    { buildUrl: (key: string) => `https://fixture.invalid/${key}` } as never,
   );
   return {
-    buildUrl,
-    findMany,
-    generateMotionTransfer,
-    libraryAsset,
-    read,
-    revalidate,
-    save,
     service,
+    findMany,
+    read,
+    save,
+    generate,
+    status,
+    get: () => stored,
+    set: (value: object) => {
+      stored = value;
+    },
   };
 }
-
-describe('StoryboardCharacterReplaceService', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('submits Genjutsu motion transfer without charging or storing an output URL', async () => {
-    const harness = serviceWith();
-    harness.findMany.mockResolvedValue([
-      { id: 'img-a', s3Key: 'a.jpg' },
-      { id: 'img-b', s3Key: 'b.jpg' },
-    ]);
-
-    const replacement = await harness.service.replace(
-      'org-1',
-      'brand-1',
-      'run-1',
-      'shot-1',
-      { imageAssetIds: ['img-b', 'img-a'], prompt: 'Keep the walk' },
-    );
-
-    expect(harness.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          brandId: 'brand-1',
-          isDeleted: false,
-          organizationId: 'org-1',
-        }),
-      }),
-    );
-    expect(harness.generateMotionTransfer).toHaveBeenCalledWith({
-      imageUrls: ['https://cdn.example/b.jpg', 'https://cdn.example/a.jpg'],
-      organizationId: 'org-1',
-      prompt: 'Keep the walk',
-      videoUrl: 'https://cdn.example/source.mp4',
+const replace = (
+  h: ReturnType<typeof harness>,
+  body: object = { imageAssetIds: ['img-a'] },
+) => h.service.replace('org', 'brand', 'run', 'shot-1', body);
+describe('durable character replacement', () => {
+  it('commits immutable identity before HTTP and deduplicates concurrent callers', async () => {
+    const h = harness();
+    let release: () => void = () => undefined;
+    const barrier = new Promise<void>((r) => {
+      release = r;
     });
-    expect(replacement).toMatchObject({
-      chargedCredits: 0,
-      limitations: [...STORYBOARD_CHARACTER_REPLACE_LIMITATIONS],
-      modelKey: 'higgsfield/genjutsu/motion-transfer/v1.0',
-      requestId: 'req-1',
-      shotId: 'shot-1',
-      status: 'submitted',
-      videoAssetId: 'video-1',
+    h.generate.mockImplementationOnce(async (p) => {
+      expect(h.get()).toHaveProperty('characterReplacementOperations');
+      p.onProviderSubmissionStarted?.();
+      await barrier;
+      return { requestId: 'real-1', status: 'queued' };
     });
-    expect(replacement).not.toHaveProperty('videoUrl');
-    expect(harness.save).toHaveBeenCalledWith(
-      'org-1',
-      'brand-1',
-      'run-1',
-      uploadedConfig,
-      expect.objectContaining({
-        characterReplacements: [replacement],
-        revision: 4,
-      }),
-    );
-    expect(JSON.stringify(harness.save.mock.calls[0]?.[4])).not.toContain(
-      'videoUrl',
-    );
+    const first = replace(h);
+    await vi.waitFor(() => expect(h.generate).toHaveBeenCalledTimes(1));
+    await expect(replace(h)).rejects.toBeInstanceOf(ConflictException);
+    release();
+    expect((await first).requestId).toBe('real-1');
+    expect(h.generate).toHaveBeenCalledTimes(1);
   });
-
-  it('marks the record ready when submit already returned a video and still drops that URL', async () => {
-    const harness = serviceWith();
-    harness.findMany.mockResolvedValue([{ id: 'img-a', s3Key: 'a.jpg' }]);
-    harness.generateMotionTransfer.mockResolvedValue({
-      requestId: 'req-2',
-      videoUrl: 'https://provider.example/out.mp4',
+  it('normalizes duplicate refs and submits stable key with committed body', async () => {
+    const h = harness();
+    const result = await replace(h, { imageAssetIds: ['img-a', 'img-a'] });
+    expect(result.imageAssetIds).toEqual(['img-a']);
+    expect(h.generate.mock.calls[0]?.[0]).toMatchObject({
+      idempotencyKey: result.operationId,
+      expectedCredentialFingerprint: 'binding',
+      prompt: '',
     });
-
-    const replacement = await harness.service.replace(
-      'org-1',
-      'brand-1',
-      'run-1',
-      'shot-1',
-      { imageAssetIds: ['img-a'] },
-    );
-
-    expect(replacement.status).toBe('ready');
-    expect(replacement).not.toHaveProperty('videoUrl');
-    expect(JSON.stringify(harness.save.mock.calls[0]?.[4])).not.toContain(
-      'provider.example',
-    );
+    await replace(h);
+    expect(h.generate).toHaveBeenCalledTimes(1);
   });
-
-  it('refuses a storyboard that has no owned source video', async () => {
-    const harness = serviceWith({
-      plan: { shots: [{ id: 'shot-1' }] },
-      revision: 1,
-      sourceSnapshot: { selector: { kind: 'brief', brief: 'Idea' } },
+  it('keeps editor changes and an accepted handle', async () => {
+    const h = harness();
+    h.generate.mockImplementationOnce(async (p) => {
+      p.onProviderSubmissionStarted?.();
+      h.set({ ...h.get(), revision: 5 });
+      return { requestId: 'real-1', status: 'queued' };
     });
-
-    await expect(
-      harness.service.replace('org-1', 'brand-1', 'run-1', 'shot-1', {
-        imageAssetIds: ['img-a'],
-      }),
-    ).rejects.toBeInstanceOf(ConflictException);
-    expect(harness.revalidate).not.toHaveBeenCalled();
-    expect(harness.generateMotionTransfer).not.toHaveBeenCalled();
+    await replace(h);
+    expect(h.get()).toMatchObject({
+      revision: 5,
+      characterReplacementOperations: [{ receipts: [{ requestId: 'real-1' }] }],
+    });
   });
-
-  it('refuses when a character image is missing from the brand library', async () => {
-    const harness = serviceWith();
-    harness.findMany.mockResolvedValue([]);
-
-    await expect(
-      harness.service.replace('org-1', 'brand-1', 'run-1', 'shot-1', {
-        imageAssetIds: ['img-a'],
-      }),
-    ).rejects.toBeInstanceOf(NotFoundException);
-    expect(harness.generateMotionTransfer).not.toHaveBeenCalled();
-  });
-
-  it('merges the accepted request onto the latest revision after a save conflict', async () => {
-    const harness = serviceWith();
-    harness.findMany.mockResolvedValue([{ id: 'img-a', s3Key: 'a.jpg' }]);
-    const latest = { ...uploadedConfig, revision: 5 };
-    harness.save
-      .mockRejectedValueOnce(
-        new ConflictException(
-          'The storyboard changed during this save. Reload before retrying.',
-        ),
-      )
-      .mockResolvedValueOnce({} as never);
-    harness.read.mockResolvedValueOnce({ config: uploadedConfig });
-    harness.read.mockResolvedValueOnce({ config: latest });
-
-    const replacement = await harness.service.replace(
-      'org-1',
-      'brand-1',
-      'run-1',
-      'shot-1',
-      { imageAssetIds: ['img-a'] },
-    );
-
-    expect(harness.generateMotionTransfer).toHaveBeenCalledTimes(1);
-    expect(harness.save).toHaveBeenNthCalledWith(
-      2,
-      'org-1',
-      'brand-1',
-      'run-1',
-      latest,
-      expect.objectContaining({
-        characterReplacements: [replacement],
-        revision: 5,
-      }),
-    );
-  });
-
-  it('returns the stored request instead of submitting the same intent again', async () => {
-    const stored = {
-      chargedCredits: 0 as const,
-      imageAssetIds: ['img-a'],
-      limitations: [...STORYBOARD_CHARACTER_REPLACE_LIMITATIONS],
-      modelKey: 'higgsfield/genjutsu/motion-transfer/v1.0' as const,
-      requestId: 'req-kept',
-      shotId: 'shot-1',
-      status: 'submitted' as const,
-      videoAssetId: 'video-1',
+  it('recovers a lost acknowledgement with exact body/key after lease expiry', async () => {
+    const h = harness();
+    h.generate.mockImplementationOnce(async (p) => {
+      p.onProviderSubmissionStarted?.();
+      throw new Error('socket');
+    });
+    await expect(replace(h)).rejects.toBeInstanceOf(ConflictException);
+    const stored = h.get() as {
+      characterReplacementOperations: { leaseUntil: number }[];
     };
-    const harness = serviceWith({
-      ...uploadedConfig,
-      characterReplacements: [stored],
+    stored.characterReplacementOperations[0].leaseUntil = 0;
+    h.set(stored);
+    await replace(h);
+    expect(h.generate.mock.calls[1]?.[0]).toMatchObject({
+      idempotencyKey: (
+        h.generate.mock.calls[0]?.[0] as { idempotencyKey?: string }
+      )?.idempotencyKey,
     });
-
-    const replacement = await harness.service.replace(
-      'org-1',
-      'brand-1',
-      'run-1',
-      'shot-1',
-      { imageAssetIds: ['img-a'] },
-    );
-
-    expect(replacement).toEqual(stored);
-    expect(harness.generateMotionTransfer).not.toHaveBeenCalled();
-    expect(harness.save).not.toHaveBeenCalled();
   });
+  it('never succeeds with a missing request id', async () => {
+    const h = harness();
+    h.generate.mockResolvedValueOnce({ requestId: '', status: 'queued' });
+    await expect(replace(h)).rejects.toMatchObject({
+      response: expect.objectContaining({
+        operationId: expect.any(String),
+        errorCode: 'CHARACTER_REPLACEMENT_RECEIPT_UNKNOWN',
+      }),
+    });
+  });
+  it('imports legacy without polling or resubmitting after a source edit', async () => {
+    const h = harness();
+    h.set({
+      ...config(),
+      characterReplacements: [
+        {
+          shotId: 'shot-1',
+          imageAssetIds: ['img-a'],
+          videoAssetId: 'historical-video',
+          requestId: 'historical',
+          status: 'ready',
+        },
+      ],
+    });
+    const result = await replace(h);
+    expect(result).toMatchObject({
+      requestId: 'historical',
+      videoAssetId: 'historical-video',
+      status: 'blocked',
+    });
+    expect(h.generate).not.toHaveBeenCalled();
+    expect(h.status).not.toHaveBeenCalled();
+  });
+  it('scopes status and never submits through GET', async () => {
+    const h = harness();
+    const result = await replace(h);
+    await expect(
+      h.service.getStatus(
+        'org',
+        'brand',
+        'run',
+        'foreign',
+        result.operationId ?? 'missing',
+      ),
+    ).rejects.toThrow();
+    expect(h.status).not.toHaveBeenCalled();
+    await h.service.getStatus(
+      'org',
+      'brand',
+      'run',
+      'shot-1',
+      result.operationId ?? 'missing',
+    );
+    expect(h.generate).toHaveBeenCalledTimes(1);
+  });
+  it('status rejects mismatched identities without appending an invented handle', async () => {
+    const h = harness(),
+      result = await replace(h);
+    h.status.mockResolvedValueOnce({
+      request_id: 'different',
+      status: 'queued',
+    });
+    const status = await h.service.getStatus(
+      'org',
+      'brand',
+      'run',
+      'shot-1',
+      result.operationId ?? 'missing',
+    );
+    expect(status.acceptedRequestIds).toEqual(['real-1']);
+    expect(status.status).toBe('reconciling');
+    expect(status.errorCode).toBe(
+      'CHARACTER_REPLACEMENT_STATUS_IDENTITY_MISMATCH',
+    );
+  });
+  it('a definite-beforeHTTP blocked retry revalidates after claiming', async () => {
+    const h = harness();
+    h.generate.mockRejectedValueOnce(new Error('before HTTP'));
+    await expect(replace(h)).rejects.toThrow();
+    const save = h.save.getMockImplementation();
+    if (!save) throw new Error('Missing save');
+    h.save.mockImplementationOnce(async (...args) => {
+      const result = await save(...args);
+      const value = h.get() as { plan: { shots: object[] } };
+      h.set({ ...value, plan: { shots: [] } });
+      return result;
+    });
+    await expect(replace(h)).rejects.toThrow();
+    expect(h.generate).toHaveBeenCalledTimes(1);
+  });
+  it.each([undefined, 123, 'undocumented'])(
+    'persists known ID with malformed acceptance status %s and never resubmits',
+    async (status) => {
+      const h = harness();
+      h.generate.mockResolvedValueOnce({
+        requestId: 'accepted',
+        status,
+      } as never);
+      const result = await replace(h);
+      expect(result).toMatchObject({
+        requestId: 'accepted',
+        status: 'reconciling',
+      });
+      const stored = h.get() as {
+        characterReplacementOperations: {
+          receipts: { requestId: string; status: string }[];
+          errorCode: string;
+        }[];
+      };
+      expect(stored.characterReplacementOperations[0]).toMatchObject({
+        receipts: [{ requestId: 'accepted', status: 'unknown' }],
+        errorCode: 'CHARACTER_REPLACEMENT_PROVIDER_STATUS_UNKNOWN',
+      });
+      h.status.mockResolvedValueOnce({
+        request_id: 'accepted',
+        status: 'queued',
+      });
+      await replace(h);
+      expect(h.generate).toHaveBeenCalledTimes(1);
+    },
+  );
 });

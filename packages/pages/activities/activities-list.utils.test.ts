@@ -14,9 +14,12 @@ import {
   getActivityDescription,
   getActivityDestinationPath,
   getActivityDetailText,
+  getActivityIngredientPreviewUrl,
+  getActivityLifecycleText,
   getActivityMediaPreviewUrl,
   getActivitySourceLabel,
   getActivityTypeKind,
+  getActivityVideoUrl,
   getGenerationCreditAmount,
 } from './activities-list.utils';
 
@@ -198,5 +201,51 @@ describe('generation credit amounts', () => {
         value: '{"credits":12}',
       }),
     ).toBeNull();
+  });
+});
+
+describe('activity output and timing', () => {
+  it('provides a completed video source even when its thumbnail is absent', () => {
+    expect(
+      getActivityVideoUrl({
+        key: ActivityKey.VIDEO_GENERATED,
+        entityId: 'video-1',
+      } as IActivity),
+    ).toBe(`${EnvironmentService.ingredientsEndpoint}/videos/video-1`);
+    expect(
+      getActivityVideoUrl({
+        key: ActivityKey.VIDEO_PROCESSING,
+        entityId: 'video-1',
+      } as IActivity),
+    ).toBeUndefined();
+    expect(
+      getActivityIngredientPreviewUrl(
+        { id: 'video-1', thumbnailUrl: '/placeholders/portrait.jpg' },
+        IngredientCategory.VIDEO,
+      ),
+    ).toBe(`${EnvironmentService.ingredientsEndpoint}/thumbnails/video-1`);
+  });
+  it('shows start and finish together and does not invent a finish for running work', () => {
+    const activity = {
+      key: ActivityKey.IMAGE_GENERATED,
+      value: JSON.stringify({
+        startedAt: '2026-09-08T18:52:06Z',
+        completedAt: '2026-09-08T18:52:19Z',
+      }),
+    } as IActivity;
+    expect(getActivityLifecycleText(activity)).toBe(
+      'Started 9/8/2026, 6:52:06 PM UTC · Finished 9/8/2026, 6:52:19 PM UTC',
+    );
+    expect(
+      getActivityLifecycleText({
+        ...activity,
+        value: JSON.stringify({ startedAt: '2026-09-08T18:52:06Z' }),
+      }),
+    ).not.toContain('Finished');
+    expect(
+      getActivityLifecycleText({
+        key: ActivityKey.CREDITS_REMOVE,
+      } as IActivity),
+    ).toBeUndefined();
   });
 });

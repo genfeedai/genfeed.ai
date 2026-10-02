@@ -1,3 +1,7 @@
+import {
+  characterJournalSchema,
+  characterStructuralAssociation,
+} from '@api/collections/content-runs/services/storyboard-character-replace-state';
 import { storyboardConfigHash } from '@api/collections/content-runs/services/storyboard-config-hash';
 import { brandRemixRunConfigSchema } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { brandRemixScenePipelineSchema } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
@@ -53,8 +57,12 @@ export const storyboardStoredRunConfigSchema = z
       });
       return z.NEVER;
     }
-    const { importedState, migrationRecovery, ...publicValue } =
-      value as Record<string, unknown>;
+    const {
+      importedState,
+      migrationRecovery,
+      characterReplacementOperations,
+      ...publicValue
+    } = value as Record<string, unknown>;
     const config = storyboardRunConfigSchema.safeParse(publicValue);
     if (!config.success) {
       for (const issue of config.error.issues)
@@ -63,6 +71,17 @@ export const storyboardStoredRunConfigSchema = z
           message: issue.message,
           path: issue.path,
         });
+      return z.NEVER;
+    }
+    const journal =
+      characterReplacementOperations === undefined
+        ? undefined
+        : characterJournalSchema.safeParse(characterReplacementOperations);
+    if (journal && !journal.success) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Invalid character recovery journal',
+      });
       return z.NEVER;
     }
     const archive =
@@ -108,6 +127,9 @@ export const storyboardStoredRunConfigSchema = z
     }
     return {
       ...config.data,
+      ...(journal?.success
+        ? { characterReplacementOperations: journal.data }
+        : {}),
       ...(archive?.success ? { importedState: archive.data } : {}),
       ...(recovery?.success ? { migrationRecovery: recovery.data } : {}),
     };
@@ -118,11 +140,20 @@ export type StoryboardStoredRunConfig = z.infer<
 
 export function storyboardPublicConfig(config: StoryboardStoredRunConfig) {
   const {
+    characterReplacementOperations: journal,
     importedState: _archive,
     migrationRecovery: _recovery,
     ...publicValue
   } = config;
-  return storyboardRunConfigSchema.parse(publicValue);
+  return storyboardRunConfigSchema.parse({
+    ...publicValue,
+    characterReplacements: publicValue.characterReplacements?.filter((item) => {
+      const op = journal?.find((op) =>
+        op.receipts.some((r) => r.requestId === item.requestId),
+      );
+      return !op || characterStructuralAssociation(config, op);
+    }),
+  });
 }
 export function parseStoryboardLegacyConfig(
   value: unknown,

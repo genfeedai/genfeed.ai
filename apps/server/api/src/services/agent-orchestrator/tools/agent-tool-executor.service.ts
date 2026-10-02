@@ -125,6 +125,8 @@ export function agentToolCreditEstimate(
 
 export interface ToolExecutionContext {
   isProactive?: boolean;
+  /** Transient constraint issued by mutation authorization; stripped from incoming contexts. */
+  proactiveTextDraftOnly?: true;
   creditBudget?: number;
   apiKeyContext?: ApiKeyPublishingContext;
   /** URLs of user-attached images from the chat message */
@@ -468,6 +470,8 @@ export class AgentToolExecutorService implements OnModuleInit {
     parameters: Record<string, unknown>,
     context: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    context = { ...context };
+    delete context.proactiveTextDraftOnly;
     const startTime = Date.now();
     let executionApprovalId: string | undefined;
     let executionResult: AgentToolResult;
@@ -508,6 +512,14 @@ export class AgentToolExecutorService implements OnModuleInit {
         return policyResult.result;
       }
       executionApprovalId = policyResult.approvalId;
+      if (policyResult.constraint) {
+        if (toolName !== 'create_post') {
+          throw new Error(
+            'Draft-only authorization is limited to create_post.',
+          );
+        }
+        context = { ...context, proactiveTextDraftOnly: true };
+      }
 
       const result = this.instagramInspirationHandler.handles(toolName)
         ? await this.instagramInspirationHandler.execute(

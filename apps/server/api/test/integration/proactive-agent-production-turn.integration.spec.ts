@@ -1,4 +1,11 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import {
+  AgentAutonomyMode,
+  AgentPublishDecision,
+  CreditTransactionCategory,
+  ReleaseStatus,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   createProactiveProductionTurnFixture,
   PRODUCTION_TURN_COST_USD,
@@ -57,6 +64,21 @@ describe('proactive production turn acceptance', () => {
     expect(reservations).toHaveLength(1);
     expect(fixture.heldReservationIds).toEqual([reservations[0].id]);
     const reservation = reservations[0];
+    const { AGENT_RUNTIME_ACTION_IDS } = await import(
+      '@api/collections/workflows/services/agent-runtime-workflow-definitions'
+    );
+    const { workflowGenerationOperationId } = await import(
+      '@api/helpers/utils/credits/workflow-generation-evidence.util'
+    );
+    const attribution = {
+      workflowExecutionId: execution.id,
+      workflowNodeId: 'infer-turn',
+      workflowOperationId: workflowGenerationOperationId(
+        execution.id,
+        'infer-turn',
+        AGENT_RUNTIME_ACTION_IDS.TURN_INFER,
+      ),
+    };
     const cost = fixture.registry.toRoundCredits(PRODUCTION_TURN_COST_USD);
     expect(cost).toBeGreaterThan(0);
     expect(reservation).toMatchObject({
@@ -65,19 +87,24 @@ describe('proactive production turn acceptance', () => {
       idempotencyKey: `${execution.id}:agent-llm-round:1`,
       workloadId: `${execution.id}:agent-llm-round:1`,
       settledAmount: cost,
+      ...attribution,
     });
     const debits = await fixture.prisma.creditTransaction.findMany({
       where: {
         organizationId: actor.organizationId,
         isDeleted: false,
-        amount: { lt: 0 },
+        category: CreditTransactionCategory.DEDUCT,
+        reservationId: reservation.id,
+        workflowExecutionId: execution.id,
       },
     });
     expect(debits).toHaveLength(1);
     expect(debits[0]).toMatchObject({
       actorUserId: actor.userId,
       reservationId: reservation.id,
-      amount: -cost,
+      amount: cost,
+      category: CreditTransactionCategory.DEDUCT,
+      ...attribution,
     });
     expect(
       await fixture.credits.getOrganizationCreditsBalance(actor.organizationId),
@@ -185,6 +212,7 @@ describe('proactive production turn acceptance', () => {
       },
     });
     expect(reservations).toHaveLength(1);
+    expect(fixture.heldReservationIds).toEqual([reservations[0].id]);
     expect(reservations[0]).toMatchObject({
       status: 'RELEASED',
       idempotencyKey: `${execution.id}:agent-llm-round:1`,
@@ -195,7 +223,9 @@ describe('proactive production turn acceptance', () => {
         where: {
           organizationId: actor.organizationId,
           isDeleted: false,
-          amount: { lt: 0 },
+          category: CreditTransactionCategory.DEDUCT,
+          reservationId: reservations[0].id,
+          workflowExecutionId: execution.id,
         },
       }),
     ).toBe(0);
@@ -207,36 +237,149 @@ describe('proactive production turn acceptance', () => {
 
   it('requires the real authorizer to produce a strategy-attributed draft without fabricated confirmation', async () => {
     const actor = await fixture.seedActor('draft');
-    const { execution, outcome } = await fixture.run(actor);
-    expect(outcome.error).toBeNull();
-    expect(execution.status).toBe('COMPLETED');
-    expect(fixture.calls.tools).toHaveBeenCalled();
-    expect(fixture.calls.authorize).toHaveBeenCalled();
-    const authorization = fixture.calls.authorize.mock.calls.find(
-      (call) => call[0] === 'create_post',
+    const { AgentThreadsService } = await import(
+      '@api/collections/agent-threads/services/agent-threads.service'
     );
-    expect(authorization).toBeDefined();
-    expect(authorization?.[1]).not.toHaveProperty('confirmed');
-    expect(authorization?.[2]).not.toHaveProperty('approvedApprovalId');
-    expect(authorization?.[2]).not.toHaveProperty(
-      'confirmationOrigin',
-      'thread-ui-action',
+    const threadReads = vi.spyOn(
+      fixture.module.get(AgentThreadsService),
+      'findOne',
     );
-    const posts = await fixture.prisma.post.findMany({
-      where: {
-        organizationId: actor.organizationId,
-        isDeleted: false,
+    try {
+      const { execution, outcome } = await fixture.run(actor);
+      expect(outcome.error).toBeNull();
+      expect(execution.status).toBe('COMPLETED');
+      expect(fixture.calls.tools).toHaveBeenCalled();
+      expect(fixture.calls.authorize).toHaveBeenCalled();
+      const authorization = fixture.calls.authorize.mock.calls.find(
+        (call) => call[0] === 'create_post',
+      );
+      expect(authorization).toBeDefined();
+      const authorizationIndex = fixture.calls.authorize.mock.calls.findIndex(
+        (call) => call[0] === 'create_post',
+      );
+      const authorizationResult =
+        fixture.calls.authorize.mock.results[authorizationIndex];
+      expect(authorizationResult.type).toBe('return');
+      expect(await authorizationResult.value).toEqual({
+        kind: 'execute',
+        constraint: 'proactive-text-draft-only',
+      });
+      expect(authorization?.[1]).not.toHaveProperty('confirmed');
+      expect(authorization?.[2]).not.toHaveProperty('approvedApprovalId');
+      expect(authorization?.[2]).not.toHaveProperty(
+        'confirmationOrigin',
+        'thread-ui-action',
+      );
+      const posts = await fixture.prisma.post.findMany({
+        where: {
+          organizationId: actor.organizationId,
+          isDeleted: false,
+          agentStrategyId: actor.strategyId,
+        },
+      });
+      expect(
+        posts,
+        'An approval preview is a production acceptance blocker, not a fixture-created draft',
+      ).toHaveLength(1);
+      expect(posts[0]).toMatchObject({
+        brandId: actor.brandId,
+        workflowExecutionId: execution.id,
+        status: ReleaseStatus.DRAFT,
+        targetExecutionState: TargetExecutionState.DRAFT,
+        scheduledDate: null,
+        publishedAt: null,
+        publishApprovalId: null,
+      });
+      expect(posts[0].groupId).toBeTruthy();
+      const group = await fixture.prisma.postGroup.findFirstOrThrow({
+        where: {
+          id: posts[0].groupId ?? '',
+          organizationId: actor.organizationId,
+          isDeleted: false,
+        },
+      });
+      expect(group).toMatchObject({
+        status: ReleaseStatus.DRAFT,
+        scheduledAt: null,
+        publishedAt: null,
+        brandId: actor.brandId,
+      });
+      const batches = await fixture.prisma.batch.findMany({
+        where: {
+          organizationId: actor.organizationId,
+          isDeleted: false,
+          brandId: actor.brandId,
+          agentStrategyId: actor.strategyId,
+        },
+      });
+      expect(batches).toHaveLength(1);
+      const items = await fixture.prisma.batchItem.findMany({
+        where: {
+          organizationId: actor.organizationId,
+          isDeleted: false,
+          brandId: actor.brandId,
+          batchId: batches[0].id,
+        },
+      });
+      expect(items).toHaveLength(1);
+      expect(items[0].data).toMatchObject({
+        postId: posts[0].id,
+        workflowExecutionId: execution.id,
+        platform: 'linkedin',
+      });
+      const audits = await fixture.prisma.agentPublishAudit.findMany({
+        where: {
+          organizationId: actor.organizationId,
+          isDeleted: false,
+          workflowExecutionId: execution.id,
+          postGroupId: group.id,
+        },
+      });
+      expect(audits).toHaveLength(1);
+      expect(audits[0]).toMatchObject({
+        autonomyMode: AgentAutonomyMode.SUPERVISED,
+        decision: AgentPublishDecision.DENIED,
         agentStrategyId: actor.strategyId,
-      },
-    });
-    expect(
-      posts,
-      'An approval preview is a production acceptance blocker, not a fixture-created draft',
-    ).toHaveLength(1);
-    expect(posts[0]).toMatchObject({
-      brandId: actor.brandId,
-      workflowExecutionId: execution.id,
-    });
-    fixture.assertTransports();
+      });
+      expect(
+        await fixture.prisma.mcpApproval.count({
+          where: {
+            organizationId: actor.organizationId,
+            isDeleted: false,
+            toolName: 'create_post',
+          },
+        }),
+      ).toBe(0);
+      // PublishApproval has no soft-delete column; the tenant and target are explicit.
+      expect(
+        await fixture.prisma.publishApproval.count({
+          where: {
+            organizationId: actor.organizationId,
+            postId: posts[0].id,
+          },
+        }),
+      ).toBe(0);
+      const thread = await fixture.prisma.agentThread.findFirstOrThrow({
+        where: {
+          organizationId: actor.organizationId,
+          isDeleted: false,
+          agentStrategyId: actor.strategyId,
+        },
+      });
+      const threadReadIndex = threadReads.mock.calls.findIndex(
+        ([input]) =>
+          input?.id === thread.id &&
+          input.organizationId === actor.organizationId &&
+          input.userId === actor.userId &&
+          input.isDeleted === false,
+      );
+      expect(threadReadIndex).toBeGreaterThanOrEqual(0);
+      const threadRead = threadReads.mock.results[threadReadIndex];
+      expect(threadRead.type).toBe('return');
+      expect(thread.mode).toBe((await threadRead.value)?.mode);
+      fixture.assertTransports();
+    } finally {
+      threadReads.mockRestore();
+    }
   }, 40_000);
 });
