@@ -4,11 +4,11 @@ import {
 } from '@api/services/integrations/direct-media/direct-media.types';
 
 /** No automatic POST retries or redirects: either can duplicate spend or disclose keys. */
-export async function requestDirectMediaJson(
+async function requestDirectMediaResponse(
   transport: DirectMediaTransport,
   url: string,
   init: RequestInit,
-): Promise<unknown> {
+): Promise<Response> {
   const isSubmission = init.method === 'POST' && !url.endsWith('/cancel');
   const timeout = AbortSignal.timeout(30_000);
   const signal = init.signal
@@ -45,13 +45,31 @@ export async function requestDirectMediaJson(
       response.status,
     );
   }
+  return response;
+}
+
+/** Runway task deletion documents no JSON result. */
+export async function requestDirectMediaEmpty(
+  transport: DirectMediaTransport,
+  url: string,
+  init: RequestInit,
+): Promise<void> {
+  await requestDirectMediaResponse(transport, url, init);
+}
+
+export async function requestDirectMediaJson(
+  transport: DirectMediaTransport,
+  url: string,
+  init: RequestInit,
+): Promise<unknown> {
+  const response = await requestDirectMediaResponse(transport, url, init);
   try {
     return await response.json();
   } catch {
     throw new DirectMediaProviderError(
       'PROVIDER_RESPONSE_INVALID',
       'Provider returned an unreadable response.',
-      isSubmission,
+      init.method === 'POST' && !url.endsWith('/cancel'),
     );
   }
 }

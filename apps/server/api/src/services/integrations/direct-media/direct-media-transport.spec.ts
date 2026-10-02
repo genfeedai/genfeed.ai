@@ -1,8 +1,22 @@
 import { DirectMediaProviderError } from '@api/services/integrations/direct-media/direct-media.types';
-import { requestDirectMediaJson } from '@api/services/integrations/direct-media/direct-media-transport';
+import {
+  requestDirectMediaEmpty,
+  requestDirectMediaJson,
+} from '@api/services/integrations/direct-media/direct-media-transport';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('direct media transport', () => {
+  it('supports documented no-content cancellation responses', async () => {
+    const transport = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    await expect(
+      requestDirectMediaEmpty(transport, 'https://provider.example/jobs/id', {
+        method: 'DELETE',
+      }),
+    ).resolves.toBeUndefined();
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
   it('does not retry an uncertain submission or retain secret-bearing errors', async () => {
     const transport = vi
       .fn<typeof fetch>()
