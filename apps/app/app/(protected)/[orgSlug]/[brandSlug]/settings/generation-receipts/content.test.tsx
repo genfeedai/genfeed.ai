@@ -125,11 +125,18 @@ function metadata() {
 }
 function respond() {
   http.get.mockImplementation(async (path: string) => {
-    const value = metadata();
+    const brandId = path.split('/')[0];
+    const receiptId = path.split('/')[2] ?? 'receipt';
+    const value = {
+      ...metadata(),
+      organizationId: mocks.org,
+      brandId,
+      id: receiptId,
+    };
     if (path.endsWith('/prompts/original')) {
       const prompt = {
-        id: 'receipt:1:original',
-        receiptId: 'receipt',
+        id: `${receiptId}:1:original`,
+        receiptId,
         receiptRevision: 1,
         stage: 'original',
         status: 'retained',
@@ -147,7 +154,7 @@ function respond() {
     if (path.endsWith('/history'))
       return axiosResponse({
         ...collectionDocument(
-          [{ ...value, id: 'receipt:1', receiptId: 'receipt', revision: 1 }],
+          [{ ...value, id: `${receiptId}:1`, receiptId, revision: 1 }],
           { type: 'branded-generation-receipt-revision' },
         ),
         links: { cursor: { hasMore: false, limit: 10, nextCursor: null } },
@@ -155,14 +162,14 @@ function respond() {
     if (path.endsWith('/revisions/1'))
       return axiosResponse(
         resourceDocument(
-          { ...value, id: 'receipt:1', receiptId: 'receipt', revision: 1 },
-          { id: 'receipt:1', type: 'branded-generation-receipt-revision' },
+          { ...value, id: `${receiptId}:1`, receiptId, revision: 1 },
+          { id: `${receiptId}:1`, type: 'branded-generation-receipt-revision' },
         ),
       );
-    if (path.endsWith('/receipt'))
+    if (path === `${brandId}/generation-receipts/${receiptId}`)
       return axiosResponse(
         resourceDocument(value, {
-          id: 'receipt',
+          id: receiptId,
           type: 'branded-generation-receipt',
         }),
       );
@@ -414,7 +421,11 @@ describe('mounted saved receipt customer read flow', () => {
             ? options.params?.afterRevision !== undefined
             : options.params?.cursor !== undefined;
         const revision = continuation ? firstRevision + 1 : firstRevision;
-        const value = { ...metadata(), brandId: path.split('/')[0] };
+        const value = {
+          ...metadata(),
+          organizationId: mocks.org,
+          brandId: path.split('/')[0],
+        };
         const historyReceiptId = path.split('/')[2];
         const items =
           kind === 'history'

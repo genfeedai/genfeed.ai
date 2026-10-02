@@ -1082,6 +1082,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/settings',
       '/:orgSlug/:brandSlug/settings/kit',
       '/:orgSlug/:brandSlug/settings/knowledge',
+      '/:orgSlug/:brandSlug/settings/generation-receipts',
       // Redirect-only alias kept for saved links.
       '/:orgSlug/:brandSlug/library/knowledge',
       '/:orgSlug/:brandSlug/settings/characters',
