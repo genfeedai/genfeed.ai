@@ -6,7 +6,15 @@ import { lstat, open, readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import type { WorkflowExecutionJobData } from '@api/collections/workflows/services/workflow-execution-queue.service';
-import { assertIsolatedDatabaseUrl } from '@api-test/../scripts/assert-isolated-db-url';
+import {
+  assertControllerOwnedMigrationConnection,
+  assertControllerOwnedMigrationIdentity,
+  assertControllerOwnedMigrationInventory,
+  type ControllerOwnedMigrationRole,
+  type ControllerOwnedMigrationRow,
+  readControllerOwnedMigrationDatabaseUrl,
+} from '@api-test/helpers/controller-owned-migration-database';
+import { formatMigrationDeployDiagnostic } from '@api-test/helpers/migration-deploy-diagnostics';
 import Redis from 'ioredis';
 import { z } from 'zod';
 
@@ -91,6 +99,20 @@ function required(name: string) {
 function ensure(value: unknown, code: string): asserts value {
   if (!value) throw new Error(`Learning runtime resource gate: ${code}`);
 }
+export function learningRuntimeApplicationName(
+  namespace: string,
+  index: number,
+) {
+  ensure(
+    /^learning_runtime_test_[0-9a-f]{32}$/.test(namespace) &&
+      (index === 0 || index === 1),
+    'APPLICATION_NAME_IDENTITY',
+  );
+  const name = `${namespace}_app${index}`;
+  ensure(Buffer.byteLength(name, 'utf8') <= 63, 'APPLICATION_NAME_LENGTH');
+  return name;
+}
+
 function serverIdentity(info: string) {
   const runId = info
     .split('\r\n')
@@ -137,6 +159,7 @@ export function assertLearningRuntimeMigrationScope(name: string, sql: string) {
 }
 
 export class LearningRuntimeResources {
+  readonly sqlSchema = 'public';
   readonly fixtureId = randomUUID();
   readonly schema =
     `learning_runtime_test_${this.fixtureId.replaceAll('-', '')}`;
@@ -174,13 +197,21 @@ export class LearningRuntimeResources {
   private cancelled = false;
   private claimed = false;
 
-  constructor() {
-    const database = new URL(required('LEARNING_RUNTIME_TEST_DATABASE_URL'));
+  constructor(
+    readonly role: Exclude<ControllerOwnedMigrationRole, 'brand-acceptance'>,
+  ) {
     ensure(
-      !database.search && /test/i.test(database.pathname),
-      'EXPLICIT_TEST_DATABASE',
+      role === 'learning-runtime' || role === 'learning-races',
+      'LEARNING_DATABASE_ROLE',
     );
-    this.databaseUrl = assertIsolatedDatabaseUrl(database.toString());
+    this.databaseUrl = readControllerOwnedMigrationDatabaseUrl(
+      role,
+      required(
+        role === 'learning-runtime'
+          ? 'LEARNING_RUNTIME_TEST_DATABASE_URL'
+          : 'LEARNING_RUNTIME_RACES_TEST_DATABASE_URL',
+      ),
+    );
     this.redisUrl = new URL(required('LEARNING_RUNTIME_TEST_REDIS_URL'));
     this.receiptPath = resolve(
       required('LEARNING_RUNTIME_REDIS_OWNERSHIP_RECEIPT'),
@@ -638,7 +669,7 @@ export async function installLearningRuntimeEnvironment(
   for (const key of runtimeEnvironmentKeys)
     if (original[key] !== undefined) environment[key] = original[key];
   const database = new URL(resources.databaseUrl);
-  database.searchParams.set('schema', resources.schema);
+  database.searchParams.set('schema', resources.sqlSchema);
   Object.assign(environment, {
     CI: 'true',
     NODE_ENV: 'test',
@@ -701,7 +732,12 @@ export async function installLearningRuntimeEnvironment(
   ] as const)
     environment[key] = required(key);
   environment.LEARNING_RUNTIME_REDIS_OWNERSHIP_RECEIPT = resources.receiptPath;
-  environment.LEARNING_RUNTIME_TEST_DATABASE_URL = resources.databaseUrl;
+  environment.LEARNING_RUNTIME_TEST_DATABASE_URL = required(
+    'LEARNING_RUNTIME_TEST_DATABASE_URL',
+  );
+  environment.LEARNING_RUNTIME_RACES_TEST_DATABASE_URL = required(
+    'LEARNING_RUNTIME_RACES_TEST_DATABASE_URL',
+  );
   environment.LEARNING_RUNTIME_TEST_REDIS_URL = resources.redisUrl.toString();
   replaceEnvironment(environment);
   try {
@@ -901,11 +937,6 @@ export async function installLearningRuntimeTransports(
   };
 }
 
-type MigrationRow = {
-  migration_name: string;
-  finished_at: Date | null;
-  rolled_back_at: Date | null;
-};
 export async function createLearningRuntimeDatabase(
   resources: LearningRuntimeResources,
 ) {
@@ -921,12 +952,17 @@ export async function createLearningRuntimeDatabase(
     .map((entry) => entry.name)
     .sort();
   ensure(names.length > 0, 'NO_MIGRATIONS');
+  const expectedMigrations = [];
   for (const name of names) {
     const sql = await readFile(
       resolve(migrationsDirectory, name, 'migration.sql'),
       'utf8',
     );
     assertLearningRuntimeMigrationScope(name, sql);
+    expectedMigrations.push({
+      migration_name: name,
+      checksum: createHash('sha256').update(sql, 'utf8').digest('hex'),
+    });
   }
   const control = new Client({
     connectionString: resources.databaseUrl,
@@ -935,23 +971,25 @@ export async function createLearningRuntimeDatabase(
   const observer = new Client({
     connectionString: resources.databaseUrl,
     application_name: `${resources.schema}_observer`,
-    options: `-c search_path=${resources.schema},public`,
+    options: `-c search_path=${resources.sqlSchema}`,
   });
-  let created = false;
+  const close = async () => {
+    const results = await Promise.allSettled([observer.end(), control.end()]);
+    const errors = results.flatMap((result) =>
+      result.status === 'rejected' ? [result.reason] : [],
+    );
+    if (errors.length > 0)
+      throw new AggregateError(errors, 'Learning database disconnect failed');
+  };
   try {
     await control.connect();
-    ensure(
-      (
-        await control.query(
-          "SELECT 1 FROM pg_namespace WHERE nspname = 'public'",
-        )
-      ).rowCount === 1,
-      'PREEXISTING_PUBLIC_SCHEMA',
+    await assertControllerOwnedMigrationConnection(
+      control,
+      resources.role,
+      true,
     );
-    await control.query(`CREATE SCHEMA "${resources.schema}"`);
-    created = true;
     const scoped = new URL(resources.databaseUrl);
-    scoped.searchParams.set('schema', resources.schema);
+    scoped.searchParams.set('schema', resources.sqlSchema);
     try {
       await command('bun', ['x', 'prisma', 'migrate', 'deploy'], {
         cwd: prismaDirectory,
@@ -959,54 +997,37 @@ export async function createLearningRuntimeDatabase(
         timeout: 120000,
         maxBuffer: 8 * 1024 * 1024,
       });
-    } catch {
+    } catch (error) {
+      process.stderr.write(
+        `${formatMigrationDeployDiagnostic(error, scoped.toString())}\n`,
+      );
       throw new Error('Learning runtime full migration deployment failed');
     }
-    await control.query(`SET search_path TO "${resources.schema}", public`);
     await observer.connect();
     for (const client of [control, observer])
-      ensure(
-        (
-          await client.query<{ schema: string }>(
-            'SELECT current_schema() AS schema',
-          )
-        ).rows[0].schema === resources.schema,
-        'PG_CONNECTION_SCHEMA',
-      );
-    const applied = await control.query<MigrationRow>(
-      'SELECT migration_name, finished_at, rolled_back_at FROM _prisma_migrations ORDER BY migration_name',
+      await assertControllerOwnedMigrationConnection(client, resources.role);
+    const applied = await control.query<ControllerOwnedMigrationRow>(
+      'SELECT migration_name, checksum, finished_at, rolled_back_at FROM _prisma_migrations ORDER BY migration_name',
     );
     deepStrictEqual(
       applied.rows.map((row) => row.migration_name),
       names,
     );
-    ensure(
-      applied.rows.every((row) => row.finished_at && !row.rolled_back_at),
-      'INCOMPLETE_MIGRATION',
-    );
-    return {
-      control,
-      observer,
-      async close() {
-        await observer.end();
-        try {
-          await control.query(`DROP SCHEMA "${resources.schema}" CASCADE`);
-        } finally {
-          await control.end();
-        }
-      },
-    };
+    assertControllerOwnedMigrationInventory(applied.rows, expectedMigrations);
+    return { control, observer, close };
   } catch (error) {
-    await observer.end();
     try {
-      if (created)
-        await control.query(`DROP SCHEMA "${resources.schema}" CASCADE`);
-    } finally {
-      await control.end();
+      await close();
+    } catch (closeError) {
+      throw new AggregateError(
+        [error, closeError],
+        'Learning database setup and disconnect failed',
+      );
     }
     throw error;
   }
 }
+
 async function createLearningRuntimePrisma(
   config: import('@libs/config/config.service').ConfigService,
   resources: LearningRuntimeResources,
@@ -1052,11 +1073,14 @@ async function createLearningRuntimePrisma(
     adapter: new PrismaPg(
       {
         ...createPrismaPgConfig(resources.databaseUrl),
-        application_name: `${resources.schema}_application_${index}`,
-        options: `-c search_path=${resources.schema},public`,
+        application_name: learningRuntimeApplicationName(
+          resources.schema,
+          index,
+        ),
+        options: `-c search_path=${resources.sqlSchema}`,
         max: 2,
       },
-      { schema: resources.schema },
+      { schema: resources.sqlSchema },
     ),
   });
   const extended = client
@@ -1078,14 +1102,10 @@ async function createLearningRuntimePrisma(
   });
   resources.applicationClients.push(extended);
   await client.$connect();
-  ensure(
-    (
-      await extended.$queryRaw<
-        Array<{ schema: string }>
-      >`SELECT current_schema() AS schema`
-    )[0].schema === resources.schema,
-    'EXTENDED_PRISMA_SCHEMA',
-  );
+  const current = await extended.$queryRaw<
+    Array<{ database: string; schema: string }>
+  >`SELECT current_database() AS database, current_schema() AS schema`;
+  assertControllerOwnedMigrationIdentity(current[0], resources.role);
   return extended;
 }
 export async function createLearningRuntimeApplication(
@@ -1110,6 +1130,9 @@ export async function createLearningRuntimeApplication(
   const { PrismaService: LibsPrismaService } = await import(
     '@libs/prisma/prisma.service'
   );
+  const { AgentOrchestratorModule } = await import(
+    '@api/services/agent-orchestrator/agent-orchestrator.module'
+  );
   const { WorkflowsModule } = await import(
     '@api/collections/workflows/workflows.module'
   );
@@ -1118,6 +1141,9 @@ export async function createLearningRuntimeApplication(
   );
   const { SchedulerPublishStateService } = await import(
     '@workers/services/scheduler-publish-state.service'
+  );
+  const { PostLifecycleModule } = await import(
+    '@api/collections/posts/post-lifecycle.module'
   );
   const { PostLifecycleService } = await import(
     '@api/post-lifecycle/post-lifecycle.service'
@@ -1131,8 +1157,7 @@ export async function createLearningRuntimeApplication(
   };
   await assertNoLearningRuntimeEnvFiles();
   await resources.check();
-  resources.beginApplicationConstruction();
-  const module = await Test.createTestingModule({
+  const builder = Test.createTestingModule({
     imports: [
       ConfigModule,
       LoggerModule,
@@ -1148,7 +1173,9 @@ export async function createLearningRuntimeApplication(
         verboseMemoryLeak: true,
         wildcard: true,
       }),
+      AgentOrchestratorModule,
       WorkflowsModule,
+      PostLifecycleModule,
     ],
     providers: [
       BackgroundSystemWorkflowProcessor,
@@ -1173,8 +1200,9 @@ export async function createLearningRuntimeApplication(
     .useValue({ connection, prefix: resources.prefix })
     // Installed @nestjs/bullmq 12 bull.constants.js; registrar remains real.
     .overrideProvider('BULLMQ_EXTRA_OPTIONS')
-    .useValue({ manualRegistration: true })
-    .compile();
+    .useValue({ manualRegistration: true });
+  resources.beginApplicationConstruction();
+  const module = await builder.compile();
   const queues = new Set<InstanceType<typeof Queue>>();
   async function closeApplication() {
     const errors: unknown[] = [];
@@ -1577,7 +1605,10 @@ export async function collectLearningRuntimePublications(
     publications.length > 0 &&
       publications.length <= 24 &&
       publications.every(
-        (post) => post.target.credentialId === target.credentialId,
+        (post) =>
+          post.target.credentialId === target.credentialId &&
+          post.target.organizationId === target.organizationId &&
+          post.target.brandId === target.brandId,
       ),
     'BOUNDED_ACTUAL_ANALYTICS_BATCH',
   );
@@ -1593,16 +1624,30 @@ export async function collectLearningRuntimePublications(
       platform: CredentialPlatform.TWITTER,
     })),
   });
-  return services.analytics.collect({
-    credentialId: target.credentialId,
-    posts: publications.map((post) => ({
-      id: post.id,
-      externalId: post.externalId,
-      brandId: target.brandId,
+  let context:
+    | Awaited<ReturnType<RuntimeServices['analytics']['collect']>>
+    | undefined;
+  for (const post of publications) {
+    context = await services.analytics.collect({
+      credentialId: target.credentialId,
+      posts: [
+        {
+          id: post.id,
+          externalId: post.externalId,
+          brandId: target.brandId,
+          organizationId: target.organizationId,
+        },
+      ],
+      attemptKey,
+    });
+    deepStrictEqual(context, {
       organizationId: target.organizationId,
-    })),
-    attemptKey,
-  });
+      brandId: target.brandId,
+      credentialId: target.credentialId,
+    });
+  }
+  ensure(context, 'ACTUAL_ANALYTICS_CONTEXT_REQUIRED');
+  return context;
 }
 export async function learningRuntimeScope(
   application: RuntimeApplication,
@@ -1643,8 +1688,10 @@ export async function learningRuntimeScope(
   );
   return { scope, descriptor };
 }
-export async function openLearningRuntimeFixture() {
-  const resources = new LearningRuntimeResources();
+export async function openLearningRuntimeFixture(
+  role: Exclude<ControllerOwnedMigrationRole, 'brand-acceptance'>,
+) {
+  const resources = new LearningRuntimeResources(role);
   const transports = await installLearningRuntimeTransports(resources);
   let environment: FixtureEnvironment | undefined;
   let database:
@@ -1760,20 +1807,31 @@ export async function openLearningRuntimeFixture() {
     const { SYSTEM_WORKFLOW_PRINCIPAL_ID } = await import(
       '@api/collections/workflows/system-workflow.contract'
     );
-    await first.prisma.user.create({
-      data: {
+    deepStrictEqual(
+      await first.prisma.user.findFirst({
+        select: { id: true, handle: true },
+        where: { id: SYSTEM_WORKFLOW_PRINCIPAL_ID, isDeleted: false },
+      }),
+      {
         id: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-        handle: `system-${resources.fixtureId}`,
+        handle: SYSTEM_WORKFLOW_PRINCIPAL_ID,
       },
-    });
-    await first.prisma.organization.create({
-      data: {
+    );
+    deepStrictEqual(
+      await first.prisma.organization.findFirst({
+        select: { id: true, userId: true, slug: true },
+        where: {
+          id: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+          userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+          isDeleted: false,
+        },
+      }),
+      {
         id: SYSTEM_WORKFLOW_PRINCIPAL_ID,
         userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-        label: 'Owned system principal',
-        slug: `system-${resources.fixtureId}`,
+        slug: SYSTEM_WORKFLOW_PRINCIPAL_ID,
       },
-    });
+    );
     const targets = await seedLearningRuntimeScenario(first, services);
     for (const application of applications) await application.module.init();
     applications.push(await createLearningRuntimeApplication(resources, 1));
@@ -2033,6 +2091,7 @@ export async function installLearningRuntimeBarrier(
   event: 'INSERT' | 'UPDATE',
 ) {
   ensure(/^[0-9a-f-]{36}$/.test(organizationId), 'BARRIER_SCOPE_IDENTIFIER');
+  const tenantColumn = table === 'organizations' ? 'id' : 'organizationId';
   const name = `barrier_${randomUUID().replaceAll('-', '')}`,
     key = Math.floor(Math.random() * 1000000000) + 1000000000;
   const controlPid = Number(
@@ -2043,7 +2102,7 @@ export async function installLearningRuntimeBarrier(
     key,
   ]);
   await fixture.database.control.query(
-    `CREATE FUNCTION "${name}"() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW."organizationId"='${organizationId}' THEN PERFORM pg_advisory_xact_lock(${key}::bigint); END IF; RETURN NEW; END $$`,
+    `CREATE FUNCTION "${name}"() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW."${tenantColumn}"='${organizationId}' THEN PERFORM pg_advisory_xact_lock(${key}::bigint); END IF; RETURN NEW; END $$`,
   );
   await fixture.database.control.query(
     `CREATE TRIGGER "${name}" AFTER ${event} ON "${table}" FOR EACH ROW EXECUTE FUNCTION "${name}"()`,
@@ -2053,9 +2112,15 @@ export async function installLearningRuntimeBarrier(
     key,
     controlPid,
     async wait(index: number) {
-      const applicationName = `${fixture.resources.schema}_application_${index}`;
+      const applicationName = learningRuntimeApplicationName(
+        fixture.resources.schema,
+        index,
+      );
       const deadline = Date.now() + 2000;
       while (Date.now() < deadline) {
+        await fixture.database.observer.query(
+          'SELECT pg_stat_clear_snapshot()',
+        );
         const row = await fixture.database.observer.query<{
           pid: number;
           query: string;
@@ -2095,18 +2160,59 @@ export async function waitLearningRuntimeContender(
 ) {
   const deadline = Date.now() + 2000;
   while (Date.now() < deadline) {
+    await fixture.database.observer.query('SELECT pg_stat_clear_snapshot()');
     const blocked = await fixture.database.observer.query<{
       pid: number;
       query: string;
     }>(
       `SELECT pid,query FROM pg_stat_activity WHERE application_name=$1 AND $2::int=ANY(pg_blocking_pids(pid))`,
-      [`${fixture.resources.schema}_application_${index}`, holderPid],
+      [
+        learningRuntimeApplicationName(fixture.resources.schema, index),
+        holderPid,
+      ],
     );
     if (blocked.rows.length === 1) return blocked.rows[0];
     await new Promise<void>((accept) => setImmediate(accept));
   }
   throw new Error('Real source contender did not block on the selected holder');
 }
+type LearningRuntimeApplicationSession = {
+  pid: number;
+  name: string;
+};
+
+export async function assertLearningRuntimeApplicationNames(
+  fixture: LearningRuntimeFixture,
+) {
+  const applications = [fixture.first, fixture.second];
+  const pids = new Set<number>();
+  const names = new Set<string>();
+  for (const [index, application] of applications.entries()) {
+    const expected = learningRuntimeApplicationName(
+      fixture.resources.schema,
+      index,
+    );
+    const rows = await application.prisma.$queryRaw<
+      LearningRuntimeApplicationSession[]
+    >`SELECT pg_backend_pid() AS pid, current_setting('application_name') AS name`;
+    ensure(rows.length === 1, 'APPLICATION_NAME_SESSION');
+    const row = rows[0];
+    ensure(
+      Number.isSafeInteger(row.pid) && row.pid > 0 && row.name === expected,
+      'APPLICATION_NAME_SESSION',
+    );
+    const observed =
+      await fixture.database.observer.query<LearningRuntimeApplicationSession>(
+        'SELECT pid, application_name AS name FROM pg_stat_activity WHERE pid=$1 AND application_name=$2 AND datname=current_database()',
+        [row.pid, expected],
+      );
+    deepStrictEqual(observed.rows, [{ pid: row.pid, name: expected }]);
+    pids.add(row.pid);
+    names.add(row.name);
+  }
+  ensure(pids.size === 2 && names.size === 2, 'APPLICATION_NAME_DISTINCT');
+}
+
 export async function assertLearningRuntimeFence(
   fixture: LearningRuntimeFixture,
   pid: number,

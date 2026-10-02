@@ -61,6 +61,9 @@ interface ApiEnvConfig extends IEnvConfig {
   GENERATION_BRIEF_LIVE_EVAL?: '0' | '1';
   POSTHOG_HOST?: string;
   POSTHOG_PROJECT_API_KEY?: string;
+  POSTHOG_QUERY_API_KEY?: string;
+  POSTHOG_PROJECT_ID?: string;
+  POSTHOG_QUERY_HOST?: string;
   GF_DEV_ENABLE_OPTIONAL_INIT?: 'true' | 'false';
   GF_DEV_ENABLE_SCHEDULERS?: 'true' | 'false';
   GF_DEV_ENABLE_TELEGRAM_POLLING?: 'true' | 'false';
@@ -104,6 +107,15 @@ const apiSpecificSchema = {
   GENERATION_BRIEF_LIVE_EVAL: Joi.string().valid('0', '1').optional().allow(''),
   POSTHOG_HOST: Joi.string().uri().optional().allow(''),
   POSTHOG_PROJECT_API_KEY: Joi.string().optional().allow(''),
+  POSTHOG_QUERY_API_KEY: Joi.string().optional().allow(''),
+  POSTHOG_PROJECT_ID: Joi.string()
+    .pattern(/^[1-9]\d*$/)
+    .optional()
+    .allow(''),
+  POSTHOG_QUERY_HOST: Joi.string()
+    .valid('https://eu.posthog.com', 'https://us.posthog.com')
+    .optional()
+    .allow(''),
   GF_DEV_ENABLE_OPTIONAL_INIT: Joi.string()
     .valid('true', 'false')
     .optional()

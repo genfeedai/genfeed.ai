@@ -1,13 +1,14 @@
-# Build Verification — builds the server image + boots the EE/SaaS bundle.
-# Trunk model: runs on master pushes (post-merge gate) + manual dispatch (used
-# at release cut), NOT on every PR — keeps PRs fast; heavy gates run at
-# merge/release. The boot step is the #574 circular-dep regression guard.
-name: Build Verify
+# Verify Server Runtime — verify source upgrades and boot the exact published
+# server image. Full Suite calls it on master/release; dispatch remains available.
+name: Verify Server Runtime
 
 # Full Suite calls this after merge and before release publication.
 on:
   workflow_dispatch:
   workflow_call:
+    secrets:
+      SENTRY_AUTH_TOKEN:
+        required: false
 
 concurrency:
   # Every caller on a ref writes the same Docker build cache. Queue those
@@ -24,6 +25,15 @@ env:
   IMAGE_NAME: genfeed-server-verify
 
 jobs:
+  server-image:
+    name: Server Image
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build-server-image.yml
+    secrets:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+
   # Release-cut boot gate — builds the COMPILED api and workers bundles and
   # loads their compiled module graphs with BOOT_CHECK=1, which exits before
   # NestFactory connects to external services (no live DB or Redis). Kept out of
@@ -85,10 +95,10 @@ jobs:
     name: Build & Boot Check
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: api-boot-check
+    needs: [api-boot-check, server-image]
     permissions:
       contents: read
-      packages: write
+      packages: read
 
     steps:
       - name: Checkout code
@@ -96,29 +106,20 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Log in to GHCR (for build cache)
+      - name: Log in to GHCR (for immutable image)
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-
-      - name: Build unified server image (no push)
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
-        with:
-          context: .
-          file: docker/Dockerfile.server
-          push: false
-          load: true
-          tags: ${{ env.IMAGE_NAME }}:test
-          cache-from: |
-            type=registry,ref=ghcr.io/${{ github.repository }}/server:buildcache
-            type=registry,ref=ghcr.io/${{ github.repository }}/server:buildcache-verify
-          platforms: linux/amd64
-          # No Sentry secrets needed — verify-only build, sourcemaps not deployed
+      - name: Pull and verify exact published server image
+        env:
+          SERVER_IMAGE_DIGEST: ${{ needs.server-image.outputs.image_digest }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          bash scripts/ci/pull-server-image.sh
+          docker tag "ghcr.io/${GITHUB_REPOSITORY,,}/server@$SERVER_IMAGE_DIGEST" "$IMAGE_NAME:test"
 
       - name: Verify build outputs exist
         run: |
@@ -172,5 +173,5 @@ jobs:
           {
             echo "## ✅ Build Verification Passed"
             echo ""
-            echo "Docker image built + all 11 bundles verified; EE api and workers bundles loaded without module-init errors (#574 guard)."
+            echo "Published server image pulled by digest + all 8 bundles verified; EE api and workers bundles loaded without module-init errors (#574 guard)."
           } >> "$GITHUB_STEP_SUMMARY"

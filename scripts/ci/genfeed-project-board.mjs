@@ -8,7 +8,7 @@
  *
  * Project membership and metadata triage are independent writes, so either can
  * land when the other service boundary fails. A permissions rejection on
- * either write ("Resource not accessible by personal access token", HTTP 403,
+ * either write ("Resource not accessible by personal access token", HTTP 401/403,
  * or a GraphQL `FORBIDDEN` error) is degraded, not fatal: the reporter token
  * (`CONSOLE_DEPLOY_TOKEN`) may lack org-level scopes (issue types, custom
  * properties, Project #12) without that blocking the tracker itself, which is
@@ -30,7 +30,7 @@ const PRIORITY_FIELD_NAME = 'Priority';
 /**
  * True when `error` came from a credential that is not authorized for the
  * write, rather than a genuine bug in the request. Covers the REST shape
- * (`error.status === 403`), the GraphQL shape (`errors[].type === 'FORBIDDEN'`),
+ * (`error.status === 401/403`), the GraphQL shape (`errors[].type === 'FORBIDDEN'`),
  * and the plain message GitHub sends for both
  * (`Resource not accessible by personal access token` / `by integration`).
  */
@@ -39,7 +39,7 @@ function isPermissionDeniedError(error) {
   if (/resource not accessible/iu.test(message)) {
     return true;
   }
-  if (error?.status === 403) {
+  if (error?.status === 401 || error?.status === 403) {
     return true;
   }
   const graphqlErrors = Array.isArray(error?.errors) ? error.errors : [];
@@ -256,6 +256,12 @@ export async function triageCiFailureOnProject(
       degraded: skippedPermissions.length > 0,
     };
   } catch (error) {
+    if (error?.status === 401 && !metadataRequired) {
+      core.warning?.(
+        `Skipped optional native triage for ${trackerName} #${issueNumber}: CONSOLE_DEPLOY_TOKEN was rejected (401). Rotate that credential to restore Project #12 metadata. The repository tracker and occurrence data were already persisted.`,
+      );
+      return { ok: true, degraded: true };
+    }
     const message = error instanceof Error ? error.message : String(error);
     core.warning?.(
       `Could not triage ${trackerName} #${issueNumber} with native issue metadata and Project #12 membership: ${message}`,

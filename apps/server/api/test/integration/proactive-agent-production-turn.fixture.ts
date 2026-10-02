@@ -1,4 +1,4 @@
-import { deepStrictEqual, strictEqual } from 'node:assert';
+import { deepStrictEqual, rejects, strictEqual } from 'node:assert';
 import { randomUUID } from 'node:crypto';
 import { lstat } from 'node:fs/promises';
 import http from 'node:http';
@@ -784,11 +784,65 @@ export async function createProactiveProductionTurnFixture() {
         ),
       ),
     ];
+    const assertPrismaProvider = async () => {
+      const [
+        { PrismaService: LibsPrismaToken },
+        { getTenantContext, runWithTenantContext },
+        { TenantIsolationError },
+      ] = await Promise.all([
+        import('@libs/prisma/prisma.service'),
+        import('@libs/prisma/tenant-context'),
+        import('@libs/prisma/tenant-guard'),
+      ]);
+      strictEqual(module.get(PrismaToken), db);
+      strictEqual(module.get(LibsPrismaToken), db);
+      const prismaModules = [...module.get(ModulesContainer).values()].filter(
+        (entry) => entry.metatype === PrismaModule,
+      );
+      strictEqual(prismaModules.length, 1);
+      const provider = prismaModules[0].providers.get(PrismaToken);
+      if (!provider) throw new Error('Missing actual Prisma module provider');
+      strictEqual(provider.metatype, PrismaToken);
+      strictEqual(provider.isAlias, false);
+      strictEqual(provider.instance, db);
+      assertConfiguration();
+      const organizationId = randomUUID();
+      const differentOrganizationId = randomUUID();
+      await rejects(
+        async () =>
+          runWithTenantContext({ organizationId }, async () => {
+            strictEqual(getTenantContext()?.organizationId, organizationId);
+            await db.post.findMany({
+              where: {
+                organizationId: differentOrganizationId,
+                isDeleted: false,
+              },
+              take: 1,
+            });
+          }),
+        (error: unknown) =>
+          error instanceof TenantIsolationError &&
+          error.reason === 'organization-id-mismatch',
+      );
+      const identity = await db.$queryRaw<
+        { name: string }[]
+      >`SELECT current_database() AS name`;
+      strictEqual(identity.length, 1);
+      strictEqual(
+        identity[0].name,
+        decodeURIComponent(database.pathname.slice(1)),
+      );
+    };
     strictEqual(dependencyTokens.length, 18);
     for (const token of dependencyTokens) {
       if (typeof token !== 'function')
         throw new Error('Missing production dependency token');
       const instance = module.get<unknown>(token);
+      if (token === PrismaToken) {
+        strictEqual(instance, db);
+        await assertPrismaProvider();
+        continue;
+      }
       strictEqual(
         instance instanceof token,
         true,
@@ -1423,6 +1477,7 @@ export async function createProactiveProductionTurnFixture() {
       platformQueue,
       assertTransports: transports.assertClean,
       assertConfiguration,
+      assertPrismaProvider,
       close,
     };
   } catch (error) {

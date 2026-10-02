@@ -5,14 +5,16 @@
         "backgroundColor": "#000000",
         "foregroundImage": "./assets/images/adaptive-icon.png"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "ai.genfeed.mobile"
     },
     "experiments": {
       "typedRoutes": true
     },
     "icon": "./assets/images/icon.png",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "ai.genfeed.mobile"
     },
     "name": "Genfeed",
     "newArchEnabled": true,

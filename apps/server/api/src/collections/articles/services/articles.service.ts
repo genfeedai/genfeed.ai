@@ -696,16 +696,16 @@ export class ArticlesService
 
   async findPublicArticleBySlug(
     slug: string,
-    isPreview: boolean = false,
+    previewArticleId: string | null = null,
   ): Promise<Article | null> {
     const where: Record<string, unknown> = {
       isDeleted: false,
       slug,
     };
-
-    // In preview mode, allow any status/scope
-    // In normal mode, only show published articles (PUBLISHED = public)
-    if (!isPreview) {
+    // A verified preview names an exact record; slugs can overlap across tenants.
+    if (previewArticleId) {
+      where.id = previewArticleId;
+    } else {
       Object.assign(
         where,
         ArticleFilterUtil.buildPublicArticleVisibilityFilter(),

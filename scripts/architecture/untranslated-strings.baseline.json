@@ -409,7 +409,6 @@
     "packages/pages/analytics/trends/trend-detail/trend-detail-header.tsx": 2,
     "packages/pages/analytics/trends/trend-detail/trend-detail-related-table.tsx": 7,
     "packages/pages/analytics/trends/trend-detail/trend-detail.tsx": 32,
-    "packages/pages/articles/list/articles-list.tsx": 12,
     "packages/pages/brands/components/banner/BrandDetailBanner.tsx": 2,
     "packages/pages/brands/components/brand-kit/BrandKitReviewCard.tsx": 15,
     "packages/pages/brands/components/sidebar/AgentProfilePlatformOverride.tsx": 1,

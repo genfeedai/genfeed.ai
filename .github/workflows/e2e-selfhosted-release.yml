@@ -293,7 +293,7 @@ jobs:
           # This trusted release job reuses the existing maintainer PAT so
           # Native org issue-field and Project #12 writes are possible;
           # GITHUB_TOKEN is repository-scoped and owns issue lifecycle writes.
-          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
+          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN || github.token }}
           script: |
             const path = require('node:path');
             const { pathToFileURL } = require('node:url');

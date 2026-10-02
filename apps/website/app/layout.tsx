@@ -8,6 +8,7 @@ import type { LayoutProps } from '@props/layout/layout.props';
 import AppProviders from '@ui/providers/AppProviders';
 import AppHtmlDocument from '@ui/shell/AppHtmlDocument';
 import { createAppMetadata } from '@ui/shell/metadata';
+import AgentConnectDialog from '@web-components/agent-connect/AgentConnectDialog';
 import type { Viewport } from 'next';
 
 const { name, description, url, cards } = metadataHelper;
@@ -124,7 +125,10 @@ export default function RootLayout({ children }: LayoutProps) {
       bodyClassName="gf-app flex flex-col"
       head={layoutHead}
     >
-      <AppProviders>{children}</AppProviders>
+      <AppProviders>
+        {children}
+        <AgentConnectDialog />
+      </AppProviders>
     </AppHtmlDocument>
   );
 }

@@ -1,3 +1,4 @@
+import { deepStrictEqual } from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { AgentArtifactReferenceService } from '@api/agent-artifacts/agent-artifact-reference.service';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
@@ -49,7 +50,13 @@ import { BatchGenerationReviewService } from '@api/services/batch-generation/bat
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
 import { BatchReviewLockService } from '@api/services/batch-generation/batch-review-lock';
 import { CacheService } from '@api/services/cache/cache.service';
-import { runOwnedRuntimeCleanup } from '@api-test/helpers/proactive-runtime-cleanup';
+import {
+  assertOwnedPinsUnchanged,
+  assertOwnedRetentionUsers,
+  planOwnedPinRetention,
+  runOwnedPinRetentionCleanup,
+  runOwnedRuntimeCleanup,
+} from '@api-test/helpers/proactive-runtime-cleanup';
 import {
   AgentAutonomyMode,
   AgentType,
@@ -69,6 +76,7 @@ import {
   toPrismaJson,
 } from '@genfeedai/prisma';
 import { WorkflowEngine } from '@genfeedai/workflows/engine';
+import { createMediaUrlExtension } from '@libs/prisma/media-url.extension';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PlatformWorkflowSchedulesService } from '@workers/scheduling/platform-workflow-schedules.service';
 import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
@@ -97,6 +105,18 @@ export function readRuntimeBrief(content: string): RecordValue {
 // Turn actions and the queue-processing bridge are replacements; messages and
 // a synthetic debit are fixture-written. This does not prove production turn,
 // context assembly, worker execution, or credit reservation/settlement.
+function createRuntimePrisma(databaseUrl: string) {
+  const base = new PrismaClient({
+    adapter: new PrismaPg({ connectionString: databaseUrl }),
+  });
+  return {
+    base,
+    prisma: base.$extends(
+      createMediaUrlExtension({ cdnUrl: 'http://127.0.0.1' }),
+    ),
+  };
+}
+
 export class ProactiveAgentRuntimeFixture {
   readonly namespace = `4959-runtime-${randomUUID()}`;
   readonly organizationId = `${this.namespace}-org`;
@@ -128,7 +148,8 @@ export class ProactiveAgentRuntimeFixture {
   readonly queues: Queue<WorkflowExecutionJobData>[] = [];
   readonly queueEvents: QueueEvents[] = [];
   readonly connection: { host: string; port: number; db: number };
-  readonly prisma: PrismaClient;
+  readonly prisma: ReturnType<typeof createRuntimePrisma>['prisma'];
+  private readonly workflowPrisma: PrismaClient;
   readonly redis: Redis;
   readonly strategies: AgentStrategiesService;
   readonly reports: AgentStrategyReportsService;
@@ -166,9 +187,9 @@ export class ProactiveAgentRuntimeFixture {
       port: Number(url.port || 6379),
     };
     this.redis = new Redis({ ...this.connection, maxRetriesPerRequest: null });
-    this.prisma = new PrismaClient({
-      adapter: new PrismaPg({ connectionString: this.databaseUrl }),
-    });
+    const runtimePrisma = createRuntimePrisma(this.databaseUrl);
+    this.prisma = runtimePrisma.prisma;
+    this.workflowPrisma = runtimePrisma.base;
     for (const name of [
       WORKFLOW_EXECUTION_QUEUE,
       PLATFORM_SYSTEM_WORKFLOW_QUEUE,
@@ -756,20 +777,21 @@ export class ProactiveAgentRuntimeFixture {
       },
       this.prisma as never,
     );
-    const pausedWorkflow = await this.prisma.$transaction((transaction) =>
-      createVersionedWorkflow(
-        transaction,
-        {
-          organizationId,
-          userId: this.userId,
-          brandId,
-          label: 'Paused proactive installation',
-          status: WorkflowStatus.DRAFT,
-          isScheduleEnabled: false,
-          metadata: { sourceTemplateId: 'proactive-agent-strategies' },
-        },
-        buildAgentProactiveWorkflowDefinition().definition,
-      ),
+    const pausedWorkflow = await this.workflowPrisma.$transaction(
+      (transaction) =>
+        createVersionedWorkflow(
+          transaction,
+          {
+            organizationId,
+            userId: this.userId,
+            brandId,
+            label: 'Paused proactive installation',
+            status: WorkflowStatus.DRAFT,
+            isScheduleEnabled: false,
+            metadata: { sourceTemplateId: 'proactive-agent-strategies' },
+          },
+          buildAgentProactiveWorkflowDefinition().definition,
+        ),
     );
     const otherBrandId = `${this.namespace}-other-brand`;
     await this.prisma.brand.create({
@@ -839,7 +861,10 @@ export class ProactiveAgentRuntimeFixture {
   }
 
   async stopWorkers() {
-    await Promise.all(this.workers.splice(0).map((worker) => worker.close()));
+    await runOwnedRuntimeCleanup(
+      this.workers.map((worker) => () => worker.close()),
+    );
+    this.workers.splice(0);
   }
 
   async makeDue(
@@ -1015,46 +1040,181 @@ export class ProactiveAgentRuntimeFixture {
   }
 
   async close() {
-    // Scope every cleanup write to this unique fixture organization; never clear a shared DB.
-    const where = { organizationId: { in: [...this.ownedOrganizationIds] } };
-    await runOwnedRuntimeCleanup([
-      ...this.workers.map((worker) => () => worker.close()),
-      ...this.queueEvents.map((events) => () => events.close()),
-      ...this.queues.flatMap((queue) => [
-        () => queue.obliterate({ force: true }),
-        () => queue.close(),
-      ]),
-      () => this.reviewLocks.onModuleDestroy(),
-      () =>
-        this.prisma.post.updateMany({
-          where,
-          data: { publishApprovalId: null, reviewVersionPinId: null },
-        }),
-      () => this.prisma.publishApproval.deleteMany({ where }),
-      () => this.prisma.contentVersionPin.deleteMany({ where }),
-      () => this.prisma.batchItem.deleteMany({ where }),
-      () => this.prisma.batch.deleteMany({ where }),
-      () => this.prisma.contentPerformance.deleteMany({ where }),
-      () => this.prisma.postAnalytics.deleteMany({ where }),
-      () => this.prisma.agentPublishAudit.deleteMany({ where }),
-      () => this.prisma.activity.deleteMany({ where }),
-      () => this.prisma.post.deleteMany({ where }),
-      () => this.prisma.creditTransaction.deleteMany({ where }),
-      () => this.prisma.agentStrategyReport.deleteMany({ where }),
-      () => this.prisma.agentMessage.deleteMany({ where }),
-      () => this.prisma.agentThread.deleteMany({ where }),
-      () => this.prisma.agentStrategy.deleteMany({ where }),
-      () => this.prisma.workflowExecution.deleteMany({ where }),
-      () => this.prisma.workflow.deleteMany({ where }),
-      () => this.prisma.credential.deleteMany({ where }),
-      () => this.prisma.brand.deleteMany({ where }),
-      () =>
-        this.prisma.organization.deleteMany({
-          where: { id: { in: [...this.ownedOrganizationIds] } },
-        }),
-      () => this.prisma.user.deleteMany({ where: { id: this.userId } }),
-      () => this.redis.quit(),
-      () => this.prisma.$disconnect(),
-    ]);
+    const ownedOrganizationIds = [...this.ownedOrganizationIds];
+    const where = { organizationId: { in: ownedOrganizationIds } };
+    // Base Prisma returns the immutable scalar payload without result extensions.
+    const readPins = () =>
+      this.workflowPrisma.contentVersionPin.findMany({
+        where,
+        orderBy: { id: 'asc' },
+      });
+    await runOwnedPinRetentionCleanup(
+      [
+        ...this.workers.map((worker) => () => worker.close()),
+        () => this.reviewLocks.onModuleDestroy(),
+      ],
+      async () => {
+        const retention = planOwnedPinRetention(
+          ownedOrganizationIds,
+          await readPins(),
+        );
+        const organizations = await this.workflowPrisma.organization.findMany({
+          where: { id: { in: retention.organizationIds } },
+          select: { id: true, userId: true },
+          orderBy: { id: 'asc' },
+        });
+        const brands = await this.workflowPrisma.brand.findMany({
+          where: { ...where, id: { in: retention.brandIds } },
+          select: { id: true, organizationId: true, userId: true },
+          orderBy: { id: 'asc' },
+        });
+        deepStrictEqual(
+          organizations.map((row) => row.id).sort(),
+          [...retention.organizationIds].sort(),
+        );
+        deepStrictEqual(
+          brands.map((row) => row.id).sort(),
+          [...retention.brandIds].sort(),
+        );
+        const userIds = [
+          ...new Set([
+            ...retention.creatorIds,
+            ...organizations.map((row) => row.userId),
+            ...brands.flatMap((row) =>
+              row.userId === null ? [] : [row.userId],
+            ),
+          ]),
+        ];
+        // Every retained creator and parent owner must belong to this fixture.
+        // Fail before disposal rather than tombstoning a foreign user.
+        assertOwnedRetentionUsers(this.userId, userIds);
+        const users = await this.workflowPrisma.user.findMany({
+          where: { id: { in: userIds } },
+          select: { id: true },
+          orderBy: { id: 'asc' },
+        });
+        deepStrictEqual(users.map((row) => row.id).sort(), [...userIds].sort());
+        return { ...retention, organizations, brands, users, userIds };
+      },
+      async (retention) => {
+        await runOwnedRuntimeCleanup([
+          ...this.queues.map(
+            (queue) => () => queue.obliterate({ force: true }),
+          ),
+          () =>
+            this.prisma.post.updateMany({
+              where,
+              data: { publishApprovalId: null, reviewVersionPinId: null },
+            }),
+          () => this.prisma.publishApproval.deleteMany({ where }),
+          () => this.prisma.batchItem.deleteMany({ where }),
+          () => this.prisma.batch.deleteMany({ where }),
+          () => this.prisma.contentPerformance.deleteMany({ where }),
+          () => this.prisma.postAnalytics.deleteMany({ where }),
+          () => this.prisma.agentPublishAudit.deleteMany({ where }),
+          () => this.prisma.activity.deleteMany({ where }),
+          () => this.prisma.post.deleteMany({ where }),
+          () => this.prisma.creditTransaction.deleteMany({ where }),
+          () => this.prisma.agentStrategyReport.deleteMany({ where }),
+          () => this.prisma.agentMessage.deleteMany({ where }),
+          () => this.prisma.agentThread.deleteMany({ where }),
+          () => this.prisma.agentStrategy.deleteMany({ where }),
+          () => this.prisma.workflowExecution.deleteMany({ where }),
+          () => this.prisma.workflow.deleteMany({ where }),
+          () => this.prisma.credential.deleteMany({ where }),
+          () =>
+            this.prisma.brand.deleteMany({
+              where: { ...where, id: { notIn: retention.brandIds } },
+            }),
+          () =>
+            this.prisma.organization.deleteMany({
+              where: {
+                id: {
+                  in: ownedOrganizationIds,
+                  notIn: retention.organizationIds,
+                },
+              },
+            }),
+          () =>
+            this.prisma.user.deleteMany({
+              where: { id: { equals: this.userId, notIn: retention.userIds } },
+            }),
+          () =>
+            this.prisma.brand.updateMany({
+              where: { ...where, id: { in: retention.brandIds } },
+              data: { isDeleted: true, isActive: false },
+            }),
+          () =>
+            this.prisma.organization.updateMany({
+              where: { id: { in: retention.organizationIds } },
+              data: { isDeleted: true },
+            }),
+          () =>
+            this.prisma.user.updateMany({
+              where: { id: { in: retention.userIds } },
+              data: { isDeleted: true },
+            }),
+          async () => {
+            assertOwnedPinsUnchanged(retention.pins, await readPins());
+            deepStrictEqual(
+              await this.workflowPrisma.organization.findMany({
+                where: { id: { in: retention.organizationIds } },
+                select: { id: true, userId: true, isDeleted: true },
+                orderBy: { id: 'asc' },
+              }),
+              retention.organizations.map((row) => ({
+                ...row,
+                isDeleted: true,
+              })),
+            );
+            deepStrictEqual(
+              await this.workflowPrisma.brand.findMany({
+                where: { ...where, id: { in: retention.brandIds } },
+                select: {
+                  id: true,
+                  organizationId: true,
+                  userId: true,
+                  isDeleted: true,
+                  isActive: true,
+                },
+                orderBy: { id: 'asc' },
+              }),
+              retention.brands.map((row) => ({
+                ...row,
+                isDeleted: true,
+                isActive: false,
+              })),
+            );
+            deepStrictEqual(
+              await this.workflowPrisma.user.findMany({
+                where: { id: { in: retention.userIds } },
+                select: { id: true, isDeleted: true },
+                orderBy: { id: 'asc' },
+              }),
+              retention.users.map((row) => ({ ...row, isDeleted: true })),
+            );
+            const activeWhere = { ...where, isDeleted: false };
+            deepStrictEqual(
+              await this.prisma.agentStrategy.count({ where: activeWhere }),
+              0,
+            );
+            deepStrictEqual(
+              await this.prisma.post.count({ where: activeWhere }),
+              0,
+            );
+            deepStrictEqual(
+              await this.prisma.credential.count({ where: activeWhere }),
+              0,
+            );
+          },
+        ]);
+      },
+      [
+        ...this.queueEvents.map((events) => () => events.close()),
+        ...this.queues.map((queue) => () => queue.close()),
+        () => this.redis.quit(),
+        () => this.workflowPrisma.$disconnect(),
+      ],
+    );
   }
 }

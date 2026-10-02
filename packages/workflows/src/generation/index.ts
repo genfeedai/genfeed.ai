@@ -4,7 +4,7 @@ import {
   type WorkflowGeneration,
   workflowGenerationSchema,
 } from '@genfeedai/contracts/api-types/contracts';
-import { unwrapFencedJson } from '@genfeedai/helpers';
+import { unwrapFencedJson } from '@genfeedai/helpers/content/fenced-json.helper';
 import { ENGINE_NATIVE_NODE_TYPES } from '../engine/utils/action-node';
 import { getNodeDefinition } from '../nodes/registry/merged-registry';
 

@@ -22,6 +22,7 @@
 # verification lives in build-verify-selfhosted.yml and runs independently.
 
 name: Full Suite (CI + Release Gates + E2E)
+run-name: Master SHA · ${{ github.sha }}
 
 on:
   push:
@@ -80,9 +81,9 @@ jobs:
       contents: read
       packages: write
     uses: ./.github/workflows/build-verify.yml
-    # No `secrets: inherit` — build-verify.yml only uses GITHUB_TOKEN (GHCR
-    # login), which every called workflow gets automatically. Inheriting the full
-    # secret set here would over-scope it (least-privilege).
+    secrets:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+    # Only the image-build sourcemap credential crosses this boundary.
 
   e2e:
     name: E2E Suite
@@ -142,3 +143,33 @@ jobs:
           test "$RUNTIME_RECEIPT" = passed
           test "$ISOLATION_RECEIPT" = passed
           test "$VISUAL_RECEIPT" = passed
+
+  master-sha-verdict:
+    name: Master SHA Verdict
+    if: always()
+    needs: [ci, build-verify, e2e, visual-connected, runtime-acceptance-gate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    steps:
+      - name: Require complete verification for this SHA
+        env:
+          CI_RESULT: ${{ needs.ci.result }}
+          BUILD_RESULT: ${{ needs.build-verify.result }}
+          E2E_RESULT: ${{ needs.e2e.result }}
+          VISUAL_RESULT: ${{ needs.visual-connected.result }}
+          CONNECTED_RESULT: ${{ needs.runtime-acceptance-gate.result }}
+          RUN_CONNECTED: ${{ inputs.run_runtime_acceptance == true }}
+        run: |
+          set -euo pipefail
+          test "$CI_RESULT" = success
+          test "$BUILD_RESULT" = success
+          test "$E2E_RESULT" = success
+          if [ "$RUN_CONNECTED" = true ]; then
+            test "$VISUAL_RESULT" = success
+            test "$CONNECTED_RESULT" = success
+          else
+            test "$VISUAL_RESULT" = skipped
+            test "$CONNECTED_RESULT" = skipped
+          fi

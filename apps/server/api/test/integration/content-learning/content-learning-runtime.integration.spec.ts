@@ -11,9 +11,11 @@ import {
   vi,
 } from 'vitest';
 import {
+  assertLearningRuntimeApplicationNames,
   assertLearningRuntimeMigrationScope,
   collectLearningRuntimePublications,
   type LearningRuntimeFixture,
+  learningRuntimeApplicationName,
   learningRuntimeMetrics,
   learningRuntimeRedisDatabaseUrl,
   learningRuntimeScope,
@@ -82,7 +84,7 @@ describe('hosted real production learning runtime', () => {
   let fixture: LearningRuntimeFixture;
   const publications: RuntimePublication[] = [];
   beforeAll(async () => {
-    fixture = await openLearningRuntimeFixture();
+    fixture = await openLearningRuntimeFixture('learning-runtime');
   }, 180000);
   beforeEach(async () => {
     await fixture.resources.check();
@@ -100,6 +102,22 @@ describe('hosted real production learning runtime', () => {
   }, 60000);
 
   it('mounts real cloud configuration, singleton runner, registrars, v2 graphs and owned routing without duplicate processors', async () => {
+    await assertLearningRuntimeApplicationNames(fixture);
+    for (const index of [0, 1]) {
+      const name = learningRuntimeApplicationName(
+        fixture.resources.schema,
+        index,
+      );
+      expect(name).toBe(`${fixture.resources.schema}_app${index}`);
+      expect(Buffer.byteLength(name, 'utf8')).toBe(59);
+    }
+    for (const index of [-1, 2, 0.5, Number.NaN])
+      expect(() =>
+        learningRuntimeApplicationName(fixture.resources.schema, index),
+      ).toThrow();
+    expect(() =>
+      learningRuntimeApplicationName(`${fixture.resources.schema}x`, 0),
+    ).toThrow();
     const initial = await readFile(
       new URL(
         '../../../../../../packages/prisma/prisma/migrations/20260417050332_init/migration.sql',
@@ -192,6 +210,71 @@ describe('hosted real production learning runtime', () => {
       '@api/collections/workflows/workflows.tokens'
     );
     const { SERVER_TOKENS } = await import('@api/server.dependencies');
+    const { AgentOrchestratorModule } = await import(
+      '@api/services/agent-orchestrator/agent-orchestrator.module'
+    );
+    const { AgentTurnWorkflowExecutionService } = await import(
+      '@api/services/agent-orchestrator/agent-turn-workflow-execution.service'
+    );
+    const { AGENT_RUNTIME_ACTION_IDS } = await import(
+      '@api/collections/workflows/services/agent-runtime-workflow-definitions'
+    );
+    const { SystemWorkflowRunnerService } = await import(
+      '@api/collections/workflows/system-workflow-runner.service'
+    );
+    const { WorkflowEngineAdapterService } = await import(
+      '@api/collections/workflows/services/workflow-engine-adapter.service'
+    );
+    const { PostLifecycleModule } = await import(
+      '@api/collections/posts/post-lifecycle.module'
+    );
+    const { PostLifecycleService } = await import(
+      '@api/post-lifecycle/post-lifecycle.service'
+    );
+    const { LoggerService } = await import('@libs/logger/logger.service');
+    for (const application of [fixture.first, fixture.second]) {
+      const agentModule = application.module.select(AgentOrchestratorModule);
+      const turn = agentModule.get(AgentTurnWorkflowExecutionService, {
+        strict: true,
+      });
+      expect(turn.constructor).toBe(AgentTurnWorkflowExecutionService);
+      expect(application.module.get(AgentTurnWorkflowExecutionService)).toBe(
+        turn,
+      );
+      const runner = application.module.get(SystemWorkflowRunnerService);
+      const engine = application.module.get(WorkflowEngineAdapterService);
+      expect(application.module.get(SYSTEM_WORKFLOW_RUNNER)).toBe(runner);
+      expect(application.module.get(WORKFLOW_ENGINE_ADAPTER)).toBe(engine);
+      const registered = engine.getRegisteredActionIds();
+      for (const id of [
+        AGENT_RUNTIME_ACTION_IDS.TURN_PREPARE,
+        AGENT_RUNTIME_ACTION_IDS.TURN_INFER,
+        AGENT_RUNTIME_ACTION_IDS.TURN_FINALIZE,
+        AGENT_RUNTIME_ACTION_IDS.TURN_FAIL,
+        AGENT_RUNTIME_ACTION_IDS.UI_ACTION,
+        AGENT_RUNTIME_ACTION_IDS.INPUT_RESPONSE,
+        ...Object.values(CONTENT_LEARNING_ACTION_IDS),
+      ])
+        expect(registered.filter((candidate) => candidate === id)).toHaveLength(
+          1,
+        );
+      const lifecycleModule = application.module.select(PostLifecycleModule);
+      const lifecycle = lifecycleModule.get(PostLifecycleService, {
+        strict: true,
+      });
+      const logger = application.module.get(LoggerService);
+      expect(lifecycle).toBeInstanceOf(PostLifecycleService);
+      expect(lifecycle.constructor).toBe(PostLifecycleService);
+      expect(application.module.get(PostLifecycleService)).toBe(lifecycle);
+      expect(logger).toBeInstanceOf(LoggerService);
+      expect(logger.constructor).toBe(LoggerService);
+      expect(lifecycleModule.get(SERVER_TOKENS.prisma, { strict: true })).toBe(
+        application.prisma,
+      );
+      expect(lifecycleModule.get(SERVER_TOKENS.logger, { strict: true })).toBe(
+        logger,
+      );
+    }
     expect(fixture.first.module.get(SYSTEM_WORKFLOW_RUNNER)).toBe(
       fixture.services.runner,
     );
@@ -234,19 +317,27 @@ describe('hosted real production learning runtime', () => {
       where: { id: fixture.targets[0].organizationId, isDeleted: false },
     });
     expect(sentinel?.id).toBe(fixture.targets[0].organizationId);
-    const publicTable = await fixture.database.observer.query(
-      "SELECT to_regclass('public.organizations') AS name",
+    const { CONTROLLER_OWNED_MIGRATION_DATABASES } = await import(
+      '@api-test/helpers/controller-owned-migration-database'
     );
-    if (publicTable.rows[0].name !== null) {
-      expect(
-        (
-          await fixture.database.observer.query(
-            'SELECT count(*)::int AS count FROM public.organizations WHERE id=$1',
-            [sentinel?.id],
-          )
-        ).rows[0].count,
-      ).toBe(0);
-    } else expect(publicTable.rows[0].name).toBeNull();
+    const identity = await fixture.database.observer.query(
+      "SELECT current_database() AS database, current_schema() AS schema, to_regclass('public.organizations') AS organizations",
+    );
+    expect(identity.rows).toEqual([
+      {
+        database: CONTROLLER_OWNED_MIGRATION_DATABASES[fixture.resources.role],
+        schema: 'public',
+        organizations: 'organizations',
+      },
+    ]);
+    expect(
+      (
+        await fixture.database.observer.query(
+          'SELECT count(*)::int AS count FROM public.organizations WHERE id=$1',
+          [sentinel?.id],
+        )
+      ).rows[0].count,
+    ).toBe(1);
   });
 
   it('collects twenty genuine approved publications and materializes a twenty-contributor baseline through the actual background engine', async () => {
@@ -280,6 +371,8 @@ describe('hosted real production learning runtime', () => {
       fixture.services,
       target,
     );
+    materialize.mockClear();
+    const { WorkflowExecutionStatus } = await import('@genfeedai/contracts');
     const row = await fixture.enqueue(
       'content-learning.reconcile',
       target.organizationId,
@@ -289,11 +382,29 @@ describe('hosted real production learning runtime', () => {
         refreshBucket: 0,
       },
     );
-    expect(row.status).toBe('COMPLETED');
-    expect(row.nodeResults.some((node) => node.status === 'completed')).toBe(
-      true,
+    expect(row.status).toBe(WorkflowExecutionStatus.COMPLETED);
+    const actions = row.nodeResults.filter(
+      (node) => node.nodeId === 'learning-action',
     );
-    expect(materialize).toHaveBeenCalled();
+    expect(actions).toHaveLength(1);
+    const action = actions[0];
+    expect(action).toMatchObject({
+      executionId: row.id,
+      organizationId: target.organizationId,
+      status: WorkflowExecutionStatus.COMPLETED,
+      error: null,
+    });
+    expect(action.completedAt).toBeInstanceOf(Date);
+    expect(record(action.output)).toMatchObject({
+      status: 'completed',
+      failed: 0,
+      queued: 0,
+    });
+    expect(materialize).toHaveBeenCalledWith(
+      scope.scope,
+      scope.descriptor,
+      expect.any(Date),
+    );
     const checkpoints =
       await fixture.first.prisma.contentLearningCheckpoint.findMany({
         where: {
@@ -447,6 +558,18 @@ describe('hosted real production learning runtime', () => {
     )
       .map((row) => row.id)
       .sort();
+    expect(checkpointIds).toHaveLength(20);
+    expect(
+      await fixture.first.prisma.contentLearningBaseline.count({
+        where: {
+          organizationId: target.organizationId,
+          credentialId: target.credentialId,
+          isDeleted: false,
+          validity: 'valid',
+          count: 20,
+        },
+      }),
+    ).toBeGreaterThan(0);
     const associations =
       await fixture.first.prisma.postPublishFinalization.findMany({
         where: { organizationId: target.organizationId, postId: post.id },
@@ -630,20 +753,29 @@ describe('hosted real production learning runtime', () => {
 
   it('rejects cross-tenant credential authority and independently executes the second tenant', async () => {
     const [first, victim] = fixture.targets;
-    const { runWithTenantContext } = await import(
+    const { getTenantContext, runWithTenantContext } = await import(
       '@libs/prisma/tenant-context'
     );
-    await expect(
-      runWithTenantContext({ organizationId: first.organizationId }, () =>
-        fixture.first.prisma.credential.findFirst({
-          where: {
-            id: victim.credentialId,
-            organizationId: victim.organizationId,
-            isDeleted: false,
-          },
-        }),
-      ),
-    ).rejects.toThrow();
+    const { TenantIsolationError } = await import('@libs/prisma/tenant-guard');
+    await runWithTenantContext(
+      { organizationId: first.organizationId },
+      async () => {
+        expect(getTenantContext()?.organizationId).toBe(first.organizationId);
+        try {
+          await fixture.first.prisma.credential.findFirst({
+            where: {
+              id: victim.credentialId,
+              organizationId: victim.organizationId,
+              isDeleted: false,
+            },
+          });
+          throw new Error('Foreign credential authority was accepted');
+        } catch (error) {
+          expect(error).toBeInstanceOf(TenantIsolationError);
+          expect(error).toMatchObject({ reason: 'organization-id-mismatch' });
+        }
+      },
+    );
     const before = await runtimeCounts(fixture, victim.organizationId);
     await fixture.enqueue('content-learning.reconcile', first.organizationId, {
       credentialId: victim.credentialId,

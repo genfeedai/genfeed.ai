@@ -112,14 +112,17 @@ export class LearningBaselineMaterializationService {
     cutoff: Date,
   ): Promise<ContentLearningBaseline | null> {
     const request = this.validateRequest(scope, descriptor, cutoff);
+    const options = { maxWait: 5000, timeout: 30000 };
     try {
-      return await this.prisma.$transaction((tx) =>
-        this.materializeInTransaction(tx, request),
+      return await this.prisma.$transaction(
+        (tx) => this.materializeInTransaction(tx, request),
+        options,
       );
     } catch (error) {
       if (!(error instanceof FingerprintCreateCollision)) throw error;
-      return this.prisma.$transaction((tx) =>
-        this.materializeInTransaction(tx, request, error.fingerprint),
+      return this.prisma.$transaction(
+        (tx) => this.materializeInTransaction(tx, request, error.fingerprint),
+        options,
       );
     }
   }

@@ -7,6 +7,7 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 
 - [product_switches_in_platform_settings](rules/product_switches_in_platform_settings.md) — product feature switches are typed Admin platform settings read through the cached `getFeatureSettings()`; env holds only secrets and infrastructure (#5407)
 - [never_lose_code](never_lose_code.md) — branch+push WIP before destructive git ops
+- [Keep future delivery workflows](feedback_keep_future_delivery_workflows.md) — browser/mobile/IDE lanes remain available; manual browser/mobile runs default to validation, with release readiness verified separately
 - [trunk_pr_workflow](trunk_pr_workflow.md) — short-lived branches → PR; `master` is PR-only; secret-scan every commit
 - [feedback_explicit_immediate_pr_merge](feedback_explicit_immediate_pr_merge.md) — explicit merge-without-checks orders use a per-PR admin bypass; never aggregate first
 - [feedback_deps_update_canonical](feedback_deps_update_canonical.md) — `bun run deps:update` owns package + Action pins; Dependabot is retired
@@ -200,3 +201,4 @@ Load on demand: [e2e-architecture](context/e2e-architecture.md) · [progress](co
 - [frontend-query-filters](spec-frontend-query-filters.md) · [decisions](decisions-frontend-query-filters.md) — #5133: list filter URL contract and frontend route audit
 
 - [Image editing contract](project_image_editing.md) — issue #5808; editing sources, models and cross-surface workflow.
+- [Agent connection acquisition](feedback_agent_connection_acquisition.md) — `/agent` explains Genfeed's own agent; connection CTAs open setup in place.

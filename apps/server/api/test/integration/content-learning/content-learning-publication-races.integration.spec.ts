@@ -9,6 +9,7 @@ import {
   it,
 } from 'vitest';
 import {
+  assertLearningRuntimeApplicationNames,
   assertLearningRuntimeFence,
   captureLearningRuntimePublication,
   disposeLearningRuntimeScenario,
@@ -115,7 +116,7 @@ async function mutate(
             target.credentialId,
             target.organizationId,
             {
-              id: `owned-reconnected-${randomUUID()}`,
+              id: `owned-account-${target.credentialId}`,
               handle: 'owned-reconnected',
             },
             {
@@ -202,7 +203,34 @@ describe('hosted actual learning publication contention and atomicity', () => {
   let fixture: LearningRuntimeFixture;
   let scenario: RuntimeTarget[] = [];
   beforeAll(async () => {
-    fixture = await openLearningRuntimeFixture();
+    fixture = await openLearningRuntimeFixture('learning-races');
+    await assertLearningRuntimeApplicationNames(fixture);
+    const { SERVER_TOKENS } = await import('@api/server.dependencies');
+    const { PostLifecycleModule } = await import(
+      '@api/collections/posts/post-lifecycle.module'
+    );
+    const { PostLifecycleService } = await import(
+      '@api/post-lifecycle/post-lifecycle.service'
+    );
+    const { LoggerService } = await import('@libs/logger/logger.service');
+    for (const application of [fixture.first, fixture.second]) {
+      const lifecycleModule = application.module.select(PostLifecycleModule);
+      const lifecycle = lifecycleModule.get(PostLifecycleService, {
+        strict: true,
+      });
+      const logger = application.module.get(LoggerService);
+      expect(lifecycle).toBeInstanceOf(PostLifecycleService);
+      expect(lifecycle.constructor).toBe(PostLifecycleService);
+      expect(application.module.get(PostLifecycleService)).toBe(lifecycle);
+      expect(logger).toBeInstanceOf(LoggerService);
+      expect(logger.constructor).toBe(LoggerService);
+      expect(lifecycleModule.get(SERVER_TOKENS.prisma, { strict: true })).toBe(
+        application.prisma,
+      );
+      expect(lifecycleModule.get(SERVER_TOKENS.logger, { strict: true })).toBe(
+        logger,
+      );
+    }
   }, 180000);
   beforeEach(async () => {
     await fixture.resources.check();
@@ -226,6 +254,57 @@ describe('hosted actual learning publication contention and atomicity', () => {
         victim = scenario[1];
       const setup = await seedProjection(fixture, projection, target),
         publication = setup.publications[0];
+      // OAuth refresh retains source validity; withdrawal actors invalidate it.
+      const sourcePreserving = actor === 'credential-oauth';
+      const credentialWhere = {
+        id: target.credentialId,
+        organizationId: target.organizationId,
+        isDeleted: false,
+      };
+      const originalCredential =
+        await fixture.first.prisma.credential.findFirstOrThrow({
+          where: credentialWhere,
+        });
+      const retainedDependencies = sourcePreserving
+        ? await fixture.first.prisma.contentLearningDependency.findMany({
+            where: {
+              sourceKind: 'credential',
+              sourceId: target.credentialId,
+              sourceOrganizationId: target.organizationId,
+              isDeleted: false,
+            },
+            select: { id: true, valid: true },
+          })
+        : [];
+      if (sourcePreserving) {
+        const previous = await snapshotLearningRuntimeTarget(fixture, target);
+        const { runWithTenantContext } = await import(
+          '@libs/prisma/tenant-context'
+        );
+        await expect(
+          runWithTenantContext(
+            { organizationId: target.organizationId },
+            async () =>
+              fixture.secondServices.credentials.connectAccount(
+                target.credentialId,
+                target.organizationId,
+                {
+                  id: `owned-different-${randomUUID()}`,
+                  handle: 'refused-account',
+                },
+                { accessToken: 'refused-token', isConnected: true },
+              ),
+          ),
+        ).rejects.toMatchObject({ response: { title: 'Already Connected' } });
+        expect(await snapshotLearningRuntimeTarget(fixture, target)).toEqual(
+          previous,
+        );
+        expect(
+          await fixture.first.prisma.credential.findFirstOrThrow({
+            where: credentialWhere,
+          }),
+        ).toEqual(originalCredential);
+      }
       const before =
         await fixture.first.prisma.contentLearningAccount.findFirstOrThrow({
           where: {
@@ -372,6 +451,7 @@ describe('hosted actual learning publication contention and atomicity', () => {
           try {
             result = await reader;
           } catch (error) {
+            if (sourcePreserving) throw error;
             ensure(
               error instanceof Error &&
                 [
@@ -387,7 +467,14 @@ describe('hosted actual learning publication contention and atomicity', () => {
           await Promise.allSettled([writer, ...(reader ? [reader] : [])]);
           await barrier.close();
         }
-        if (projection === 'capture') expect(result).toBeFalsy();
+        if (sourcePreserving) {
+          if (projection === 'capture')
+            expect(
+              result && 'validity' in result ? result.validity : null,
+            ).toBe('valid');
+          else
+            expect(result && 'count' in result ? result.count : null).toBe(20);
+        } else if (projection === 'capture') expect(result).toBeFalsy();
         else
           expect(result && 'count' in result ? result.count : 0).toBeLessThan(
             20,
@@ -407,7 +494,13 @@ describe('hosted actual learning publication contention and atomicity', () => {
         });
       expect(account.evidenceRevision).toBe(
         before.evidenceRevision +
-          (projection === 'capture' && ordering === 'projection-first' ? 2 : 1),
+          (sourcePreserving
+            ? projection === 'capture'
+              ? 1
+              : 0
+            : projection === 'capture' && ordering === 'projection-first'
+              ? 2
+              : 1),
       );
       const {
         validLearningCheckpointPublicationV1,
@@ -429,10 +522,19 @@ describe('hosted actual learning publication contention and atomicity', () => {
             fixture.first.prisma,
             checkpoint,
           ),
-        ).toBe(false);
-      if (ordering === 'source-first' && projection === 'capture')
+        ).toBe(sourcePreserving);
+      if (sourcePreserving && projection === 'capture')
+        expect(checkpoints).toHaveLength(1);
+      if (
+        !sourcePreserving &&
+        ordering === 'source-first' &&
+        projection === 'capture'
+      )
         expect(checkpoints).toHaveLength(0);
-      if (projection === 'materializer' && ordering === 'projection-first') {
+      if (
+        projection === 'materializer' &&
+        (ordering === 'projection-first' || sourcePreserving)
+      ) {
         ensure(
           result && 'contributorCheckpointIds' in result,
           'Missing real baseline result',
@@ -449,7 +551,55 @@ describe('hosted actual learning publication contention and atomicity', () => {
               },
             )
           ).validity,
-        ).toBe('invalid_source');
+        ).toBe(sourcePreserving ? 'valid' : 'invalid_source');
+      }
+      if (sourcePreserving) {
+        const refreshed =
+          await fixture.first.prisma.credential.findFirstOrThrow({
+            where: credentialWhere,
+          });
+        expect(refreshed).toMatchObject({
+          id: originalCredential.id,
+          externalId: originalCredential.externalId,
+          organizationId: originalCredential.organizationId,
+          brandId: originalCredential.brandId,
+          platform: originalCredential.platform,
+          isConnected: true,
+          isDeleted: false,
+          externalHandle: 'owned-reconnected',
+        });
+        expect(refreshed.accessToken).not.toBe(originalCredential.accessToken);
+        expect(refreshed.accessTokenSecret).not.toBe(
+          originalCredential.accessTokenSecret,
+        );
+        expect(
+          fixture.secondServices.crypto.decrypt(refreshed.accessToken ?? ''),
+        ).toBe('owned-reconnected-token');
+        expect(
+          fixture.secondServices.crypto.decrypt(
+            refreshed.accessTokenSecret ?? '',
+          ),
+        ).toBe('owned-reconnected-secret');
+        expect(
+          await resolveLearningPublicationSourceV1(
+            fixture.first.prisma,
+            target.organizationId,
+            publication.id,
+          ),
+        ).toEqual(publication.source);
+        for (const edge of retainedDependencies)
+          expect(
+            await fixture.first.prisma.contentLearningDependency.findFirstOrThrow(
+              {
+                where: {
+                  id: edge.id,
+                  sourceOrganizationId: target.organizationId,
+                  isDeleted: false,
+                },
+                select: { id: true, valid: true },
+              },
+            ),
+          ).toEqual(edge);
       }
       if (actor === 'child-create') {
         expect(

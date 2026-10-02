@@ -388,11 +388,21 @@ describe('proactive dispatch failure accounting across real services', () => {
       expect(fixture.strategy.config.runHistory).toHaveLength(count);
       expect(fixture.strategy.isActive).toBe(count < 3);
       expect(fixture.executions.get(`run-${count}`)?.status).toBe('FAILED');
-      vi.advanceTimersByTime(31 * 60 * 1000);
+      if (count < 3) {
+        const nextRunAt = new Date(String(fixture.strategy.config.nextRunAt));
+        expect(Number.isFinite(nextRunAt.getTime())).toBe(true);
+        expect(nextRunAt.getTime()).toBeGreaterThan(Date.now());
+        await fixture.dispatch();
+        expect(fixture.queue.queueSystemWorkflow).toHaveBeenCalledTimes(count);
+        expect(fixture.executions.size).toBe(count);
+        expect(fixture.strategy.config.consecutiveFailures).toBe(count);
+        expect(fixture.strategy.config.runHistory).toHaveLength(count);
+        vi.setSystemTime(nextRunAt);
+      }
     }
     expect(fixture.executions.size).toBe(3);
     expect(fixture.queue.queueSystemWorkflow).toHaveBeenCalledTimes(3);
-    // #5136: the idempotency guard now keys off a fresh per-attempt dispatchId
+    // #5136: the persisted idempotencyKey is the fresh per-attempt dispatchId
     // rather than the (now-reused) agent thread id. Assert the exact value
     // the third attempt dispatched with, not just its shape, so the guard
     // stays tied to that specific attempt's execution.
@@ -405,10 +415,7 @@ describe('proactive dispatch failure accounting across real services', () => {
       where: {
         organizationId: 'org',
         isDeleted: false,
-        result: {
-          path: ['metadata', 'dispatchId'],
-          equals: thirdDispatchId,
-        },
+        idempotencyKey: thirdDispatchId,
       },
       select: { id: true },
     });

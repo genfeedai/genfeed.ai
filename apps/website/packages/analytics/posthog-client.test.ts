@@ -270,3 +270,35 @@ describe('tracked CTA bridge', () => {
     expect(mocks.posthogCapture).not.toHaveBeenCalled();
   });
 });
+
+describe('article preview analytics boundary', () => {
+  it('drops preview events and strips bearer tokens from referrers', async () => {
+    const client = await loadClient();
+    client.initWebsiteAnalytics();
+    await flushInit();
+    const beforeSend = mocks.posthogInit.mock.calls[0][1].before_send;
+    expect(
+      beforeSend({
+        event: '$pageview',
+        properties: {
+          $current_url: 'https://genfeed.ai/articles/test?previewToken=private',
+        },
+      }),
+    ).toBeNull();
+    window.history.replaceState({}, '', '/articles/test?previewToken=private');
+    expect(beforeSend({ event: '$autocapture', properties: {} })).toBeNull();
+    window.history.replaceState({}, '', '/articles/test');
+    const result = beforeSend({
+      event: '$pageview',
+      properties: {
+        $current_url: 'https://genfeed.ai/articles/test',
+        $referrer:
+          'https://genfeed.ai/articles/test?previewToken=private&source=review',
+      },
+    });
+    expect(result.properties.$referrer).toBe(
+      'https://genfeed.ai/articles/test?source=review',
+    );
+    expect(JSON.stringify(result)).not.toContain('private');
+  });
+});

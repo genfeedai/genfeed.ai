@@ -32,6 +32,7 @@ import {
   normalizeAgentAutonomyMode,
 } from '@genfeedai/contracts';
 import {
+  type AgentThread,
   type Prisma,
   WorkflowExecutionStatus as PrismaWorkflowExecutionStatus,
   toPrismaJson,
@@ -599,7 +600,7 @@ export class AgentAutopilotWorkflowService {
   private async resolveStrategyThread(
     strategy: AgentStrategySnapshot,
     ownership?: ProactiveDispatchOwnership,
-  ): Promise<{ id: string }> {
+  ): Promise<Pick<AgentThread, 'id' | 'contextVersion'>> {
     return this.prisma.$transaction(async (transaction) => {
       await lockAgentStrategy(transaction, strategy.id);
       ownership?.assertOwned();

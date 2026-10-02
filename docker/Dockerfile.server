@@ -368,7 +368,9 @@ RUN mkdir -p /usr/src/app/public/tmp \
 # without the file every Prisma query fails with
 # "self-signed certificate in certificate chain".
 RUN mkdir -p /certs && \
-    curl -fsSL https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem -o /certs/rds-ca.pem && \
+    curl -fsSL --retry 3 --retry-all-errors --retry-delay 2 \
+        --retry-max-time 120 --connect-timeout 10 --max-time 30 \
+        https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem -o /certs/rds-ca.pem && \
     chmod 444 /certs/rds-ca.pem
 
 # Switch to non-root user

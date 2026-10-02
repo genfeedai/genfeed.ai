@@ -726,7 +726,7 @@ test('a red master gate files the tracker and a green one resolves it', () => {
   assert.match(report, /master-ci-failure-reporter\.mjs/);
   assert.match(
     report,
-    /github-token: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \}\}/,
+    /github-token: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \|\| github\.token \}\}/,
     'Project #12 writes must use the existing PAT, not repository GITHUB_TOKEN',
   );
 

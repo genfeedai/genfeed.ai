@@ -619,7 +619,11 @@
         "refresh": "Refresh",
         "saveVariant": "Save variant",
         "saving": "Saving\u2026",
-        "testWithAgent": "Test with Agent"
+        "testWithAgent": "Test with Agent",
+        "fork": "Fork",
+        "forking": "Forking…",
+        "saveSkill": "Save skill",
+        "openSamplePrompt": "Open sample prompt"
       },
       "catalog": {
         "description": "Browse built-in, imported, and organization-owned content skills.",
@@ -634,7 +638,7 @@
         "coverage": "Coverage",
         "coverageDescription": "{modalities} across {channels}.",
         "definition": "Skill definition",
-        "definitionDescription": "Built-in and imported skills can be customized into an organization-owned variant. Organization-owned variants can be edited here directly and may be used by other brands in this organization.",
+        "definitionDescription": "Edit skills you can manage, or fork a permitted skill into your personal library.",
         "empty": "Select a skill from the catalog to inspect its detail.",
         "generalChannels": "general channels",
         "stage": "Stage",
@@ -648,7 +652,10 @@
         "customizeFailed": "Failed to create an organization-owned skill variant.",
         "exportFailed": "Failed to export the selected skill.",
         "loadFailed": "Failed to load the agent skill catalog.",
-        "updateFailed": "Failed to update the selected skill variant."
+        "updateFailed": "Failed to update the selected skill.",
+        "forkFailed": "Failed to fork the selected skill.",
+        "forkDetailsFailed": "The fork was created, but its details could not be loaded. Refresh the catalog.",
+        "fieldTooLong": "{field} must contain no more than {maximum} characters."
       },
       "fields": {
         "defaultInstructions": "Default instructions",
@@ -701,7 +708,8 @@
         "name": "Name",
         "source": "Source",
         "stage": "Stage"
-      }
+      },
+      "samplePrompt": "Help me explore a small {channel} example for the skill named {name}."
     }
   },
   "workspaceOverlay": {

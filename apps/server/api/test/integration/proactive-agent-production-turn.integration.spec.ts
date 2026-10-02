@@ -33,6 +33,7 @@ describe('proactive production turn acceptance', () => {
 
   it('runs a paid text turn through the real worker and settles its actual reservation once', async () => {
     fixture.assertConfiguration();
+    await fixture.assertPrismaProvider();
     const actor = await fixture.seedActor('text');
     const before = await fixture.credits.getOrganizationCreditsBalance(
       actor.organizationId,
@@ -366,6 +367,17 @@ describe('proactive production turn acceptance', () => {
           isDeleted: false,
           agentStrategyId: actor.strategyId,
         },
+      });
+      expect(fixture.calls.prepare.mock.calls[0][0]).toMatchObject({
+        threadId: thread.id,
+        expectedContextVersion: thread.contextVersion,
+      });
+      expect(authorization?.[2].validatedScope).toMatchObject({
+        threadId: thread.id,
+        organizationId: actor.organizationId,
+        brandId: actor.brandId,
+        contextVersion: thread.contextVersion,
+        isVersionExplicit: true,
       });
       const threadReadIndex = threadReads.mock.calls.findIndex(
         ([input]) =>

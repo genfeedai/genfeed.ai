@@ -7,6 +7,10 @@ import type {
   IPublishingProviderReadiness,
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
+import type {
+  ArticleDraftInput,
+  ArticlePreviewLink,
+} from '@genfeedai/contracts/interfaces/content/article-publishing.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { AdsClient } from '@mcp/services/client/ads.client';
@@ -317,6 +321,18 @@ export class ClientService {
   }
 
   // ── Content (articles / posts / trends) ──
+
+  createArticleDraft(params: ArticleDraftInput): Promise<ArticleResponse> {
+    return this.content.createArticleDraft(params);
+  }
+
+  getArticlePreview(articleId: string): Promise<ArticlePreviewLink> {
+    return this.content.getArticlePreview(articleId);
+  }
+
+  publishArticle(articleId: string): Promise<ArticleResponse> {
+    return this.content.publishArticle(articleId);
+  }
 
   createArticle(params: ArticleCreationParams): Promise<ArticleResponse> {
     return this.content.createArticle(params);

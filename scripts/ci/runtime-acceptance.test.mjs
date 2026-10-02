@@ -44,6 +44,7 @@ import {
   DEDICATED_BUDGETS,
   DELEGATED_API_FILES,
   databaseUrl,
+  datasetChildEnvironment,
   dedicatedChildEnvironment,
   ENVELOPE_LIMIT,
   encryptEvidence,
@@ -57,6 +58,8 @@ import {
   learningCiIdentity,
   learningRedisRunId,
   loadState,
+  PG_TITLES,
+  PUBLISHER_CONTRACTS,
   parseArguments,
   parseDatasetRecords,
   parseProtocolTotals,
@@ -85,6 +88,7 @@ import {
   superviseVisualCase,
   superviseVisualCases,
   VISUAL_CASES,
+  VISUAL_LIBRARY_CONTRACT,
   VISUAL_LIBRARY_LIMITS,
   VISUAL_RENDERLESS_TITLES,
   validateBrandOwnerContract,
@@ -196,8 +200,8 @@ function datasetRecord(kind, size, run, diagnostic = false) {
     decisionLockBatches: 1,
     maxBindParameters: 100,
     selectedRows: size + (kind === 'mixed' ? 1 : 0),
-    graphNodesMaxPass: kind === 'owned' ? 0 : 4 * size + 21,
-    graphEdgesMaxPass: kind === 'owned' ? 0 : 6 * size + 200,
+    graphNodesMaxPass: kind === 'owned' ? 0 : 7 * size + 36,
+    graphEdgesMaxPass: kind === 'owned' ? 0 : 12 * size + 210,
   };
 }
 const matrix = () =>
@@ -394,7 +398,7 @@ test('requires actual successful original exit, exact cases, and only permitted 
   );
 });
 
-test('dataset diagnostic cannot satisfy final matrix and matrix coverage is exact', () => {
+test('dataset diagnostic cannot satisfy weekly matrix and matrix coverage is exact', () => {
   const diagnostic = [
     datasetRecord('consented', 10000, 1, true),
     datasetRecord('consented', 100000, 1, true),
@@ -418,6 +422,72 @@ test('dataset diagnostic cannot satisfy final matrix and matrix coverage is exac
       `${lines(matrix())}\ndatasetDiagnostic malformed`,
       'matrix',
     ),
+  );
+});
+
+test('deployment requires exact 10k smoke evidence and never accepts the weekly matrix', () => {
+  const smoke = ['owned', 'consented', 'mixed'].map((kind) => ({
+    ...datasetRecord(kind, 10000, 1),
+    datasetBenchmark: false,
+    datasetSmoke: true,
+    samplePurpose: 'deployment-smoke',
+  }));
+  assert.equal(parseDatasetRecords(lines(smoke), 'smoke').length, 3);
+  assert.throws(() => parseDatasetRecords(lines(matrix()), 'smoke'));
+  assert.throws(() => parseDatasetRecords(lines(smoke), 'matrix'));
+  assert.throws(() => parseDatasetRecords(lines(smoke.slice(1)), 'smoke'));
+  for (const field of ['size', 'run', 'samplePurpose', 'datasetSmoke']) {
+    const wrong = structuredClone(smoke);
+    wrong[1][field] = {
+      size: 100000,
+      run: 0,
+      samplePurpose: 'matrix-measurement',
+      datasetSmoke: false,
+    }[field];
+    assert.throws(() => parseDatasetRecords(lines(wrong), 'smoke'));
+  }
+  const duplicated = structuredClone(smoke);
+  duplicated[1] = duplicated[0];
+  assert.throws(() => parseDatasetRecords(lines(duplicated), 'smoke'));
+  assert.throws(() =>
+    parseDatasetRecords(
+      `${lines(smoke)}\n{"datasetSmoke":true,broken`,
+      'smoke',
+    ),
+  );
+  const obsoleteGraph = structuredClone(smoke);
+  obsoleteGraph[1].graphNodesMaxPass = 4 * 10000 + 21;
+  obsoleteGraph[1].graphEdgesMaxPass = 6 * 10000 + 200;
+  assert.throws(() => parseDatasetRecords(lines(obsoleteGraph), 'smoke'));
+  const tooSlow = structuredClone(smoke);
+  tooSlow[1].elapsedMs = 60001;
+  assert.throws(() => parseDatasetRecords(lines(tooSlow), 'smoke'));
+});
+
+test('100k scale workflow is weekly/manual and separate from deployment acceptance', async () => {
+  const workflow = await readFile(
+    new URL('../../.github/workflows/dataset-scale.yml', import.meta.url),
+    'utf8',
+  );
+  assert.match(workflow, /schedule:\s*- cron: '17 3 \* \* 0'/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.doesNotMatch(workflow, /workflow_call:|workflow_run:|push:/);
+  assert.match(workflow, /timeout-minutes: 40/);
+  assert.match(workflow, /--group dataset-scale/);
+  assert.match(workflow, /node "\$CONTROL_RUNNER" dataset-scale/);
+  assert.match(
+    workflow,
+    /CANDIDATE_SHA: \$\{\{ inputs.candidate_sha \|\| github.sha \}\}/,
+  );
+  assert.match(workflow, /if-no-files-found: error/);
+  const controller = await readFile(CLI_PATH, 'utf8');
+  assert.match(
+    controller,
+    /final: \[\s*'learning-runtime',\s*'dataset-correctness',\s*'dataset-typecheck',\s*'dataset-smoke'/,
+  );
+  assert.match(
+    controller,
+    /'dataset-scale': \[\s*'dataset-correctness',\s*'dataset-typecheck',\s*'dataset-matrix'/,
   );
 });
 
@@ -931,6 +1001,8 @@ test('dataset marker-bearing extra records never disappear from coverage validat
     { datasetBenchmark: 'true' },
     { datasetDiagnostic: false },
     { datasetDiagnostic: 1 },
+    { datasetSmoke: false },
+    { datasetSmoke: 'true' },
   ])
     assert.throws(() =>
       parseDatasetRecords(
@@ -1059,6 +1131,8 @@ for (const relative of [
   });
 const QUALIFIED_GROUPS = [
   'dataset-diagnostic',
+  'dataset-smoke',
+  'dataset-scale',
   'final',
   'agent-production',
   'brand-acceptance',
@@ -1081,7 +1155,7 @@ async function persistFixtureIdentity(value, savedDirectory = value.state) {
     { mode: 0o600 },
   );
 }
-test('source qualification is exactly the six prepared fixed groups', async () => {
+test('source qualification is exactly the prepared fixed groups', async () => {
   const source = await readFile(CLI_PATH, 'utf8');
   const declaration = source.match(
     /const QUALIFIED_CLI_GROUPS = new Set\(\[([\s\S]*?)\]\)/,
@@ -1154,7 +1228,9 @@ for (const group of QUALIFIED_GROUPS) {
         {
           ...options,
           group,
-          ...(group === 'dataset-diagnostic'
+          ...(['dataset-diagnostic', 'dataset-smoke', 'dataset-scale'].includes(
+            group,
+          )
             ? { 'control-sha': CONTROL }
             : { 'candidate-sha': SHA }),
         },
@@ -1750,10 +1826,21 @@ test('fixed visual selection requires each exact real title and pending or skipp
         validateVisualSelection(fixture, index, child)[0].passed,
         index === 0 ? 6 : 1,
       );
-      for (const title of selection.titles)
-        assert.ok(new RegExp(selection.pattern).test(title));
+      const taskName = (title) => {
+        const suite = VISUAL_RENDERLESS_TITLES.includes(title)
+          ? 'visual-code cleanup rejection isolation (renderless)'
+          : 'visual-code local-runtime acceptance (explicit owned DB/Redis and Linux runsc prerequisites)';
+        return `${suite} > ${title.slice(suite.length + 1)}`;
+      };
+      const pattern = new RegExp(selection.pattern);
+      for (const title of selection.titles) {
+        assert.ok(pattern.test(taskName(title)));
+        assert.ok(!pattern.test(title));
+        assert.ok(!pattern.test(`${taskName(title)} extra`));
+        assert.ok(!pattern.test(`extra ${taskName(title)}`));
+      }
       for (const title of selection.skipped)
-        assert.ok(!new RegExp(selection.pattern).test(title));
+        assert.ok(!pattern.test(taskName(title)));
       for (const status of ['pending', 'skipped', 'failed', 'todo']) {
         const changed = structuredClone(fixture);
         changed.testResults[0].assertionResults[0].status = status;
@@ -2293,6 +2380,15 @@ test('actual scenario source verifier rejects missing, changed and unsafe retain
     (await verifyVisualScenarioSources(value, evidence, sources))[0].sha256,
     sources[0].sourceHash,
   );
+  await chmod(file, 0o644);
+  await assert.rejects(verifyVisualScenarioSources(value, evidence, sources), {
+    code: 'UNSAFE_EVIDENCE_FILE',
+  });
+  await chmod(file, 0o600);
+  assert.equal(
+    (await verifyVisualScenarioSources(value, evidence, sources))[0].sha256,
+    sources[0].sourceHash,
+  );
   await writeFile(file, 'changed source');
   await assert.rejects(verifyVisualScenarioSources(value, evidence, sources));
   await assert.rejects(
@@ -2303,6 +2399,36 @@ test('actual scenario source verifier rejects missing, changed and unsafe retain
   await rm(file);
   await symlink(path.join(value.state, 'identity.json'), file);
   await assert.rejects(verifyVisualScenarioSources(value, evidence, sources));
+});
+test('connected Library requires all seven exact passed titles and clean child success', () => {
+  assert.equal(VISUAL_LIBRARY_CONTRACT.count, 7);
+  assert.equal(VISUAL_LIBRARY_CONTRACT.titles.length, 7);
+  const rows = VISUAL_LIBRARY_CONTRACT.titles.map((title) => assertion(title));
+  const validate = (values, result = child, success = true) =>
+    validateReport(
+      {
+        ...report(values, `/fixture/${VISUAL_LIBRARY_CONTRACT.file}`),
+        success,
+      },
+      [VISUAL_LIBRARY_CONTRACT],
+      result,
+    );
+  assert.equal(validate(rows)[0].passedTitles.length, 7);
+  for (const invalid of [
+    rows.slice(0, 5),
+    rows.slice(0, 6),
+    [...rows, assertion('unexpected eighth case')],
+    [...rows.slice(0, 6), rows[0]],
+    [...rows.slice(0, 6), assertion('unknown seventh case')],
+    [...rows.slice(0, 6), assertion(rows[6].fullName, 'skipped')],
+    [...rows.slice(0, 6), assertion(rows[6].fullName, 'pending')],
+    [...rows.slice(0, 6), assertion(rows[6].fullName, 'failed')],
+  ])
+    assert.throws(() => validate(invalid));
+  assert.throws(() => validate(rows, { ...child, exitCode: 1 }));
+  assert.throws(() => validate(rows, { ...child, signal: 'SIGTERM' }));
+  assert.throws(() => validate(rows, { ...child, timedOut: true }));
+  assert.throws(() => validate(rows, child, false));
 });
 test('Library supervision retains 120s work plus 60s total cleanup inside unchanged 180s', async (t) => {
   assert.equal(VISUAL_LIBRARY_LIMITS.work, 120000);
@@ -2734,11 +2860,11 @@ test('prepared owner revisions retain only the exact approved source hashes', ()
   );
   assert.equal(
     AGENT_PRODUCTION_FILES[0].sha256,
-    'f87ec933f4f9f8cc78f7e749eff1e88aa120586ec726e913438e84494d6b95fc',
+    '12571f679240c51920554aa0cb8ee50c4f503784de1560b99eafeb6ce4e85fbd',
   );
   assert.equal(
     AGENT_PRODUCTION_FILES[1].sha256,
-    'a19ccd15e87c3945c3a30c02734aed5fcba414803b87917ccf430d6fde6a678a',
+    'b3fbf523ffa0192a7518f75768998741063dd849e298b472133a062c1462d12a',
   );
   assert.equal(
     BRAND_SOURCE_CONTRACT.unitFiles.find(
@@ -2770,8 +2896,99 @@ test('prepared owner revisions retain only the exact approved source hashes', ()
   );
   assert.equal(
     BRAND_SOURCE_CONTRACT.brand.sha256,
-    '3d696f88f314892edbc8f0a05ca6fd702c92a0df7f84ea36f3e2bb5ae3222a4a',
+    '132cb7ddab81acf2d70150e7425aaf4a9d1bc7465747bb4b2c9549a367cb37b8',
   );
+});
+test('migration diagnostics helper is an exact frozen dependency for learning and brand', () => {
+  assert.deepEqual(
+    LEARNING_SOURCE_CONTRACT.sourceInputs.map((entry) => entry.path),
+    [
+      'apps/server/api/test/integration/content-learning/content-learning-runtime.fixture.ts',
+      'apps/server/api/test/integration/content-learning/content-learning-runtime.integration.spec.ts',
+      'apps/server/api/test/integration/content-learning/content-learning-publication-races.integration.spec.ts',
+      'apps/server/api/vitest.learning-runtime.config.ts',
+      'apps/server/api/test/helpers/migration-deploy-diagnostics.ts',
+      'apps/server/api/test/helpers/controller-owned-migration-database.ts',
+    ],
+  );
+  assert.deepEqual(BRAND_SOURCE_CONTRACT.sourceInputs, [
+    {
+      path: 'apps/server/api/test/helpers/migration-deploy-diagnostics.ts',
+      sha256:
+        'c0f748ea4ca648200c9803e21f765fbbff7ffead28af26c4caf85cc0d2e269f0',
+    },
+    {
+      path: 'apps/server/api/test/helpers/controller-owned-migration-database.ts',
+      sha256:
+        '0f69ff1cb157b97265f44dc5ee73c1d8fe45574ac03b979d90e2defe7ec24aa8',
+    },
+  ]);
+  assert.deepEqual(
+    LEARNING_SOURCE_CONTRACT.sourceInputs[4],
+    BRAND_SOURCE_CONTRACT.sourceInputs[0],
+  );
+  assert.equal(BRAND_SOURCE_CONTRACT.sourceInputs.length, 2);
+  assert.deepEqual(
+    LEARNING_SOURCE_CONTRACT.sourceInputs[5],
+    BRAND_SOURCE_CONTRACT.sourceInputs[1],
+  );
+  for (const input of BRAND_SOURCE_CONTRACT.sourceInputs)
+    assert.ok(
+      !BRAND_SOURCE_CONTRACT.unitFiles.some(
+        (entry) => entry.path === input.path,
+      ),
+    );
+});
+test('changed, missing or symlinked diagnostics helper fails learning and dedicated brand frozen verification', async (t) => {
+  const root = await fixture(t);
+  const entries = [
+    ...LEARNING_SOURCE_CONTRACT.sourceInputs,
+    BRAND_SOURCE_CONTRACT.brand,
+    ...BRAND_SOURCE_CONTRACT.unitFiles,
+  ];
+  for (const entry of entries) {
+    const target = path.join(root, entry.path);
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(
+      target,
+      await readFile(new URL(`../../${entry.path}`, import.meta.url)),
+    );
+  }
+  const contract = ownerContract();
+  contract.brand = structuredClone(BRAND_SOURCE_CONTRACT.brand);
+  const env = { RUNTIME_ACCEPTANCE_OWNER_CONTRACT: JSON.stringify(contract) };
+  await verifyFrozenSources(root, LEARNING_SOURCE_CONTRACT.sourceInputs);
+  await verifyDedicatedSources(root, 'brand-acceptance', env);
+  for (const dependency of BRAND_SOURCE_CONTRACT.sourceInputs) {
+    const helper = path.join(root, dependency.path);
+    const original = await readFile(helper);
+    for (const kind of ['changed', 'missing', 'symlinked']) {
+      await rm(helper);
+      if (kind === 'changed')
+        await writeFile(helper, 'changed diagnostics helper');
+      if (kind === 'symlinked') {
+        const target = path.join(root, 'diagnostics-target.ts');
+        await writeFile(target, original);
+        await symlink(target, helper);
+      }
+      const code =
+        kind === 'missing'
+          ? 'ENOENT'
+          : kind === 'changed'
+            ? 'SOURCE_HASH_MISMATCH'
+            : 'UNSAFE_SOURCE';
+      await assert.rejects(
+        verifyFrozenSources(root, LEARNING_SOURCE_CONTRACT.sourceInputs),
+        { code },
+      );
+      await assert.rejects(
+        verifyDedicatedSources(root, 'brand-acceptance', env),
+        { code },
+      );
+      if (kind !== 'missing') await rm(helper);
+      await writeFile(helper, original);
+    }
+  }
 });
 test('dedicated BRAND requires frozen integration hash and exact title inventory', () => {
   const value = ownerContract();
@@ -4608,7 +4825,7 @@ async function finalQualifiedFixture() {
     'learning-runtime',
     'dataset-correctness',
     'dataset-typecheck',
-    'dataset-matrix',
+    'dataset-smoke',
     'brand-preparation',
     'brand-migration',
     'brand-units',
@@ -4976,6 +5193,15 @@ test('learning source qualification requires complete fixed inventory and cannot
       value.sourceInputs.pop();
     },
     (value) => {
+      [value.sourceInputs[0], value.sourceInputs[5]] = [
+        value.sourceInputs[5],
+        value.sourceInputs[0],
+      ];
+    },
+    (value) => {
+      value.sourceInputs[5] = { ...value.sourceInputs[0] };
+    },
+    (value) => {
       value.sourceInputs[0].sha256 = null;
     },
     (value) => {
@@ -5102,8 +5328,11 @@ test('learning exclusive instance requires every owned DB and unassigned keyspac
     { code: 'LEARNING_REDIS_NOT_EMPTY' },
   );
 });
-test('learning child receives exact authority while ambient credentials and workload overrides are excluded', () => {
+async function learningDatabaseAuthorityFixture() {
   const { env, value, inspected, info } = learningIssuerFixture();
+  const allocation = finalDatabaseFixture();
+  value.resources.postgres = allocation.identity.resources.postgres;
+  value.resources.databases = allocation.identity.resources.databases;
   const resource = {
     receipt: buildLearningRedisReceipt(
       value,
@@ -5116,6 +5345,33 @@ test('learning child receives exact authority while ambient credentials and work
     receiptPath: '/private/owned/redis-ownership.json',
   };
   value.resources.learning = resource;
+  const runtimeUrl = await createFinalOwnedDatabase(
+    value,
+    'genfeed_learning_runtime_test',
+    allocation.adapters,
+  );
+  const racesUrl = await createFinalOwnedDatabase(
+    value,
+    'genfeed_learning_races_test',
+    allocation.adapters,
+  );
+  return {
+    env: {
+      ...env,
+      RUNTIME_ACCEPTANCE_POSTGRES_USER:
+        allocation.adapters.credentials.username,
+      RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD:
+        allocation.adapters.credentials.password,
+    },
+    value,
+    resource,
+    urls: { runtimeUrl, racesUrl },
+    allocation,
+  };
+}
+test('learning child receives exact authority while ambient credentials and workload overrides are excluded', async () => {
+  const { env, value, resource, urls } =
+    await learningDatabaseAuthorityFixture();
   const childEnv = learningChildEnvironment(
     {
       ...env,
@@ -5130,12 +5386,13 @@ test('learning child receives exact authority while ambient credentials and work
     },
     value,
     resource,
-    'postgresql://genfeed@127.0.0.1:5432/genfeed_learning_runtime_test',
+    urls,
   );
   assert.equal(childEnv.HOME, path.join(tmpdir(), 'acceptance-synthetic-home'));
+  assert.equal(childEnv.LEARNING_RUNTIME_TEST_DATABASE_URL, urls.runtimeUrl);
   assert.equal(
-    childEnv.LEARNING_RUNTIME_TEST_DATABASE_URL,
-    'postgresql://genfeed@127.0.0.1:5432/genfeed_learning_runtime_test',
+    childEnv.LEARNING_RUNTIME_RACES_TEST_DATABASE_URL,
+    urls.racesUrl,
   );
   assert.equal(childEnv.LEARNING_RUNTIME_ACCEPTANCE_HEAD, SHA);
   assert.equal(childEnv.RUNTIME_ACCEPTANCE_CI_RUN_ATTEMPT, '2');
@@ -5155,6 +5412,132 @@ test('learning child receives exact authority while ambient credentials and work
   ])
     assert.equal(childEnv[key], undefined);
 });
+test('learning role URLs refuse crossed, omitted, duplicate and unrecorded ownership', async () => {
+  const { env, value, resource, urls } =
+    await learningDatabaseAuthorityFixture();
+  for (const changed of [
+    { runtimeUrl: urls.racesUrl, racesUrl: urls.runtimeUrl },
+    { runtimeUrl: urls.runtimeUrl },
+    { runtimeUrl: urls.runtimeUrl, racesUrl: urls.runtimeUrl },
+    { ...urls, racesUrl: urls.racesUrl.replace('127.0.0.1', 'localhost') },
+  ])
+    assert.throws(() =>
+      learningChildEnvironment(env, value, resource, changed),
+    );
+  for (const kind of [
+    'unrecorded',
+    'duplicate-record',
+    'wrong-container',
+    'uncreated',
+    'unpersisted',
+    'unissued',
+  ]) {
+    const changed = structuredClone(value),
+      owned = changed.resources.databases.find(
+        (entry) => entry.name === 'genfeed_learning_races_test',
+      );
+    if (kind === 'unrecorded') changed.resources.databases.pop();
+    if (kind === 'duplicate-record')
+      changed.resources.databases.push({ ...owned });
+    if (kind === 'wrong-container') owned.postgresId = 'f'.repeat(64);
+    if (kind === 'uncreated') owned.created = false;
+    if (kind === 'unpersisted') owned.intentPersisted = false;
+    if (kind === 'unissued') owned.creationIssued = false;
+    assert.throws(
+      () =>
+        learningChildEnvironment(
+          env,
+          changed,
+          changed.resources.learning,
+          urls,
+        ),
+      { code: 'LEARNING_DATABASE_OWNERSHIP' },
+    );
+  }
+});
+test('learning allocates two distinct owned databases before its sole child and second allocation failure blocks spawn', async () => {
+  const { value, urls } = await learningDatabaseAuthorityFixture();
+  assert.notEqual(urls.runtimeUrl, urls.racesUrl);
+  assert.deepEqual(
+    value.resources.databases.map((entry) => entry.name),
+    ['genfeed_learning_runtime_test', 'genfeed_learning_races_test'],
+  );
+  const source = await readFile(
+    new URL('./runtime-acceptance.mjs', import.meta.url),
+    'utf8',
+  );
+  assert.match(
+    source,
+    /const runtimeUrl = await database\('genfeed_learning_runtime_test'\);\s*const racesUrl = await database\('genfeed_learning_races_test'\);\s*await vitest\('learning-runtime'/,
+  );
+  const allocation = finalDatabaseFixture();
+  let spawned = false;
+  allocation.adapters.create = async (name) => {
+    if (name === 'genfeed_learning_races_test')
+      throw new Error('second allocation failed');
+  };
+  await assert.rejects(
+    (async () => {
+      await createFinalOwnedDatabase(
+        allocation.identity,
+        'genfeed_learning_runtime_test',
+        allocation.adapters,
+      );
+      await createFinalOwnedDatabase(
+        allocation.identity,
+        'genfeed_learning_races_test',
+        allocation.adapters,
+      );
+      spawned = true;
+    })(),
+    /second allocation failed/,
+  );
+  assert.equal(spawned, false);
+  assert.equal(allocation.identity.resources.databases[1].creationIssued, true);
+});
+for (const leaked of [
+  'genfeed_learning_runtime_test',
+  'genfeed_learning_races_test',
+])
+  test(`owned ${leaked} removal and absence remain required despite clean Redis`, async () => {
+    const { value, allocation } = await learningDatabaseAuthorityFixture();
+    value.resources.learning.blankVerified = true;
+    value.resources.learning.cleanupResult = { passed: true };
+    const dropped = [];
+    const adapters = {
+      ...allocation.adapters,
+      drop: async (name) => {
+        dropped.push(name);
+      },
+      absent: async (name) => (name === leaked ? '1' : ''),
+    };
+    const results = await Promise.allSettled(
+      value.resources.databases.map((entry) =>
+        cleanupFinalOwnedDatabase(value, entry, adapters, Date.now() + 60000),
+      ),
+    );
+    assert.deepEqual(dropped.sort(), [
+      'genfeed_learning_races_test',
+      'genfeed_learning_runtime_test',
+    ]);
+    assert.equal(
+      results.filter((result) => result.status === 'rejected').length,
+      1,
+    );
+    assert.equal(
+      value.resources.databases.find((entry) => entry.name === leaked).removed,
+      undefined,
+    );
+    assert.equal(
+      value.resources.databases.find((entry) => entry.name !== leaked).removed,
+      true,
+    );
+    const { outcome } = await finalQualifiedFixture();
+    outcome.cleanup.passed = false;
+    assert.throws(() => validateOutcome(outcome, outcome, value), {
+      code: 'SUCCESS_RECEIPT_REQUIRED',
+    });
+  });
 function learningSupervisorFixture() {
   let now = 1000,
     alive = true;
@@ -5565,8 +5948,16 @@ test('dataset diagnostic resolves setup action from the control revision', async
     .split('- name: Setup Bun environment')[1]
     ?.split('\n      - name:')[0];
   assert.ok(setup);
-  assert.match(setup, /uses: \$\/\.github\/actions\/setup-bun-env/u);
-  assert.doesNotMatch(setup, /uses: \.\//u);
+  assert.match(setup, /uses: \.\/\.control-actions\/setup-bun-env/u);
+  assert.match(
+    workflow,
+    /cp -R \.github\/actions\/setup-bun-env "\$RUNNER_TEMP\/setup-bun-env-control"/u,
+  );
+  assert.match(workflow, /test ! -e \.control-actions/u);
+  assert.match(
+    workflow,
+    /cp -R "\$RUNNER_TEMP\/setup-bun-env-control" \.control-actions\/setup-bun-env/u,
+  );
   assert.ok(
     workflow.indexOf('- name: Checkout exact dataset candidate') <
       workflow.indexOf('- name: Setup Bun environment'),
@@ -5686,7 +6077,7 @@ test('actual execution returns its persisted failure outcome after an expired wo
 test('learning fixture inventory freezes canonical persisted target execution state source', () => {
   assert.equal(
     LEARNING_SOURCE_CONTRACT.sourceInputs[0].sha256,
-    '76c90c697c50578b1db5f6ecf1ad3d6666ca6be6488f0cdc85f0b29c39c22819',
+    'ba2ac354c72e2d34ecea4c8b7c1552c027100198d764875d8c0fd55379f87754',
   );
 });
 
@@ -5877,3 +6268,94 @@ test('private dual reporters retain a real beforeAll error and cannot qualify it
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('dataset correctness requires all ten ordinary publication and graph cases', () => {
+  const url = 'postgresql://fixture@127.0.0.1:5432/genfeed_dataset_5781_test';
+  assert.deepEqual(datasetChildEnvironment(url), {
+    LEARNING_DATASET_TEST_DATABASE_URL: url,
+    LEARNING_DATASET_PROFILE: '',
+    LEARNING_DATASET_BENCHMARK: '',
+    LEARNING_DATASET_SMOKE: '',
+    LEARNING_DATASET_SEED_DIAGNOSTICS: '1',
+  });
+  assert.equal(PG_TITLES.length, 10);
+  const contract = {
+    file: 'src/collections/content-learning/services/learning-dataset.postgres.spec.ts',
+    count: 10,
+    titles: PG_TITLES,
+  };
+  const positive = report(
+    PG_TITLES.map((title) => assertion(title)),
+    `/fixture/${contract.file}`,
+  );
+  assert.equal(validateReport(positive, [contract], child)[0].passed, 10);
+  for (const kind of ['missing', 'duplicate', 'unknown', 'pending']) {
+    const negative = structuredClone(positive);
+    if (kind === 'missing') negative.testResults[0].assertionResults.pop();
+    if (kind === 'duplicate')
+      negative.testResults[0].assertionResults.push(
+        negative.testResults[0].assertionResults[0],
+      );
+    if (kind === 'unknown')
+      negative.testResults[0].assertionResults.push(
+        assertion('unknown publication case'),
+      );
+    if (kind === 'pending')
+      negative.testResults[0].assertionResults[0].status = 'pending';
+    assert.throws(() => validateReport(negative, [contract], child));
+  }
+});
+
+test('publisher requires both independent lock rows in addition to overlap and recovery', () => {
+  const contract = PUBLISHER_CONTRACTS[0];
+  assert.equal(contract.titles.length, 4);
+  const positive = report(
+    contract.titles.map((title) => assertion(title)),
+    `/fixture/${contract.file}`,
+  );
+  assert.equal(validateReport(positive, [contract], child)[0].passed, 4);
+  for (const kind of ['missing', 'duplicate', 'unknown']) {
+    const negative = structuredClone(positive);
+    if (kind === 'missing') negative.testResults[0].assertionResults.pop();
+    if (kind === 'duplicate')
+      negative.testResults[0].assertionResults.push(
+        negative.testResults[0].assertionResults[0],
+      );
+    if (kind === 'unknown')
+      negative.testResults[0].assertionResults.push(
+        assertion('random unbound lock row'),
+      );
+    assert.throws(() => validateReport(negative, [contract], child));
+  }
+});
+
+for (const name of [
+  'genfeed_dataset_5781_test',
+  'genfeed_dataset_5781_matrix_test',
+  'genfeed_dataset_5781_profile_test',
+])
+  test(`dataset invocation owns and independently disposes exact database ${name}`, async () => {
+    const value = finalDatabaseFixture();
+    const url = await createFinalOwnedDatabase(
+      value.identity,
+      name,
+      value.adapters,
+    );
+    assert.equal(new URL(url).pathname, `/${name}`);
+    await cleanupFinalOwnedDatabase(
+      value.identity,
+      value.identity.resources.databases[0],
+      value.adapters,
+      Date.now() + 1000,
+    );
+    assert.equal(value.identity.resources.databases[0].removed, true);
+    const unrelated = finalDatabaseFixture();
+    await assert.rejects(
+      createFinalOwnedDatabase(
+        unrelated.identity,
+        'unrelated_dataset_test',
+        unrelated.adapters,
+      ),
+    );
+    assert.deepEqual(unrelated.calls, []);
+  });

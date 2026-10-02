@@ -299,9 +299,11 @@ export class PostLifecycleService {
       userId: input.actorId ?? null,
     });
 
-    const persisted = await transaction.post.findFirst({
-      where: scopedWhere(input.organizationId, { id: input.postId }),
-    });
+    const persisted = await this.readPersistedTarget(
+      transaction,
+      target,
+      input,
+    );
     if (!persisted) {
       throw new PostLifecycleTargetNotFoundException(input.postId);
     }
@@ -347,8 +349,29 @@ export class PostLifecycleService {
       return null;
     }
 
+    return this.readPersistedTarget(transaction, target, input);
+  }
+
+  private readPersistedTarget(
+    transaction: PostLifecycleTransaction,
+    target: Post,
+    input: PostLifecycleTransitionInput,
+  ): Promise<Post | null> {
+    const deletion = input.mutation?.isDeleted;
+    const isDeleted =
+      typeof deletion === 'boolean'
+        ? deletion
+        : (deletion?.set ?? target.isDeleted);
+    // Read only the exact state just committed by the tenant-scoped CAS,
+    // including its tombstone when cancellation soft-deletes the target.
     return transaction.post.findFirst({
-      where: scopedWhere(input.organizationId, { id: input.postId }),
+      where: {
+        ...(input.groupId ? { groupId: input.groupId } : {}),
+        id: input.postId,
+        isDeleted,
+        organizationId: input.organizationId,
+        targetExecutionState: input.nextState,
+      },
     });
   }
 

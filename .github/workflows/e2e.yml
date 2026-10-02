@@ -3,6 +3,12 @@ name: E2E Tests
 on:
   workflow_dispatch:
     inputs:
+      acceptance_diagnostic:
+        description: 'Diagnostic only: run one encrypted acceptance group; does not establish full-suite or release readiness.'
+        type: choice
+        required: false
+        default: none
+        options: [none, final, brand-acceptance]
       run_api_full:
         description: 'Run the discovery-based full API E2E tier.'
         type: boolean
@@ -46,7 +52,7 @@ on:
 # (0 jobs) and failed the deploy. The prefix keeps E2E dedup while never matching
 # a caller group.
 concurrency:
-  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  group: e2e-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && inputs.acceptance_diagnostic || 'none' }}
   cancel-in-progress: true
 
 permissions:
@@ -60,6 +66,7 @@ jobs:
   # Static source-reference inventory. Browser/API execution owns QA pass/fail.
   # This job validates inventory generation, not a route-coverage percentage.
   e2e-route-coverage:
+    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) }}
     name: E2E Route Reference Inventory
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -80,6 +87,7 @@ jobs:
   # files client mock, API E2E resolves the OSS billing provider alias, and the
   # payment integration spec uses the canonical subscription DI token.
   e2e-api:
+    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) }}
     name: API E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -156,7 +164,7 @@ jobs:
     outputs:
       partition: ${{ steps.partition.outputs.partition }}
       partition_mode: ${{ steps.partition.outputs.mode }}
-    if: (github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true
+    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && ((github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true) }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
@@ -243,7 +251,7 @@ jobs:
   # or the production workflow_call path (#3836).
   e2e-isolated-publish:
     name: Isolated Publish E2E
-    if: (github.event_name == 'schedule' && github.workflow == 'E2E Tests') || github.event_name == 'workflow_dispatch'
+    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && ((github.event_name == 'schedule' && github.workflow == 'E2E Tests') || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
@@ -313,6 +321,7 @@ jobs:
   # sources from the deploy AND-gate. Each shard is independent (fail-fast:false),
   # so "Re-run failed jobs" carries the green shards forward unchanged.
   e2e-frontend:
+    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) }}
     name: Frontend E2E (Shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -324,34 +333,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
+      - name: Build app for Playwright
+        uses: ./.github/actions/setup-playwright-app
         with:
-          cache-playwright: "true"
-
-      - name: Build app
-        run: bunx turbo run build --filter=@genfeedai/app
-        env:
-          # Build the app in Playwright test mode. This NEXT_PUBLIC_* flag is
-          # inlined at build time and is the master switch for the proxy.ts auth
-          # bypass (middleware can't read a plain server env at request time on
-          # edge) and disables live sockets (use-socket-manager).
-          NEXT_PUBLIC_PLAYWRIGHT_TEST: "true"
-          # The mocked core suite exercises the clean Community routes below
-          # (for example /studio/clips). Explicitly pin that deployment mode so
-          # the hosted mock API endpoint cannot make getDeployment() select the
-          # SaaS shell and remove Community-only rewrites at build time.
-          NEXT_PUBLIC_GENFEED_CLOUD: "false"
-          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
-          NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
-          # Correct var name (app reads NEXT_PUBLIC_API_ENDPOINT, not _API_URL).
-          # NEXT_PUBLIC_* is inlined at build time. Point at the prod host the
-          # api-interceptor mocks; localhost:3010 is NOT intercepted.
-          NEXT_PUBLIC_API_ENDPOINT: https://api.genfeed.ai/v1
-          # Browser source maps (next.config gates on this): the network guard
-          # symbolicates uncaught page errors so a production-build crash names
-          # its real source file instead of a minified chunk position.
-          E2E_COVERAGE: "1"
+          better-auth-secret: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
+          better-auth-enabled: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
 
       - name: Run core E2E shard ${{ matrix.shard }}/4
         # --reporter=blob (passed inline, overriding the config reporter) so the
@@ -397,7 +383,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [e2e-frontend]
-    if: always()
+    if: ${{ always() && !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) }}
     permissions:
       actions: read
       contents: read
@@ -509,7 +495,7 @@ jobs:
   # Gate aggregator — the single job that represents the E2E suite's pass/fail.
   runtime-acceptance:
     name: Serial Runtime Acceptance
-    if: inputs.run_runtime_acceptance == true
+    if: ${{ (!(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && inputs.run_runtime_acceptance == true) || (github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance') && inputs.acceptance_diagnostic == 'final') }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
@@ -597,12 +583,12 @@ jobs:
           if-no-files-found: error
       - name: Confirm checked receipt and encrypted upload
         id: complete
-        if: steps.seal.outputs.result == 'passed' && steps.upload.outcome == 'success'
+        if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && steps.seal.outputs.result == 'passed' && steps.upload.outcome == 'success' }}
         run: echo 'result=passed' >> "$GITHUB_OUTPUT"
 
   agent-production-acceptance:
     name: Proactive Production Turn Acceptance
-    if: (github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true || inputs.run_runtime_acceptance == true
+    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && ((github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true || inputs.run_runtime_acceptance == true) }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -714,7 +700,7 @@ jobs:
 
   brand-acceptance:
     name: BRAND Receipt and Relocation Acceptance
-    if: (github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true || inputs.run_runtime_acceptance == true
+    if: ${{ (!(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && ((github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true || inputs.run_runtime_acceptance == true)) || (github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance') && inputs.acceptance_diagnostic == 'brand-acceptance') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -812,12 +798,12 @@ jobs:
           if-no-files-found: error
       - name: Confirm checked receipt and encrypted upload
         id: complete
-        if: steps.seal.outputs.result == 'passed' && steps.upload.outcome == 'success'
+        if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && steps.seal.outputs.result == 'passed' && steps.upload.outcome == 'success' }}
         run: echo 'result=passed' >> "$GITHUB_OUTPUT"
 
   e2e-api-full-gate:
     name: API E2E Full Gate
-    if: always() && ((github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true)
+    if: ${{ always() && !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && ((github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true) }}
     needs: [e2e-api-full, agent-production-acceptance, brand-acceptance, runtime-acceptance]
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -857,7 +843,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [e2e-route-coverage, e2e-frontend, e2e-api, runtime-acceptance]
-    if: always()
+    if: ${{ always() && !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) }}
     steps:
       - name: Check shard results
         run: |
@@ -897,7 +883,7 @@ jobs:
   # nightly.
   e2e-frontend-authed:
     name: Frontend Authed E2E (real Better Auth)
-    if: ${{ vars.E2E_AUTHED_ENABLED == 'true' }}
+    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && (vars.E2E_AUTHED_ENABLED == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     continue-on-error: ${{ !(github.event_name == 'schedule' && github.workflow == 'E2E Tests') }}
@@ -936,22 +922,12 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
+      - name: Build app with real Better Auth (bypass off)
+        uses: ./.github/actions/setup-playwright-app
         with:
-          install-command: "bun install"
-          cache-playwright: "true"
-
-      - name: Build app (real Better Auth client, bypass OFF)
-        run: bunx turbo run build --filter=@genfeedai/app
-        env:
-          # CRUCIAL: build with the bypass flag OFF so the app uses the real
-          # Better Auth browser session path. NEXT_PUBLIC_* is inlined at build
-          # time, so this MUST be set here — not just at runtime.
-          NEXT_PUBLIC_PLAYWRIGHT_TEST: "false"
-          NEXT_PUBLIC_BETTER_AUTH_ENABLED: "true"
-          # Point the app (client + proxy.ts) at the job-local API.
-          NEXT_PUBLIC_API_ENDPOINT: http://localhost:3010/v1
+          test-mode: 'false'
+          api-endpoint: http://localhost:3010/v1
+          better-auth-secret: ${{ env.BETTER_AUTH_SECRET }}
 
       - name: Build API (compiled bundle)
         run: bunx turbo run build --filter=@genfeedai/api
@@ -1091,7 +1067,7 @@ jobs:
           RUN_ATTEMPT: ${{ github.run_attempt }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
-          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
+          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN || github.token }}
           script: |
             const repositoryGithub = getOctokit(process.env.REPOSITORY_TOKEN);
             const path = require('node:path');

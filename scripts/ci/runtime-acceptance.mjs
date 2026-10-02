@@ -33,6 +33,8 @@ const SHA = /^[a-f0-9]{40}$/;
 const HASH = /^[a-f0-9]{64}$/;
 const GROUPS = [
   'dataset-diagnostic',
+  'dataset-smoke',
+  'dataset-scale',
   'final',
   'visual-isolation',
   'visual-connected',
@@ -44,8 +46,12 @@ const DATASET_UNIT = `${DATASET_DIRECTORY}learning-dataset.service.spec.ts`;
 const DATASET_PG = `${DATASET_DIRECTORY}learning-dataset.postgres.spec.ts`;
 const DATASET_SUITE = 'dataset atomic scalability on isolated PostgreSQL';
 const MATRIX_TITLE = `${DATASET_SUITE} measures 1k/10k/100k owned and consented three times after warmup plus mixed`;
+const SMOKE_TITLE = `${DATASET_SUITE} checks one 10k owned, consented and mixed snapshot for deployment`;
 const DIAGNOSTIC_TITLE = `${DATASET_SUITE} profiles one 10k and one 100k consented snapshot without replacing acceptance matrix`;
-const PG_TITLES = [
+export const PG_TITLES = [
+  'creates genuine publication/capture/materializer lineage and exact scalar/bulk dataset pins',
+  'excludes publication authority corruption while standalone pin digest remains independent',
+  'actual exclusive publication writer waits behind snapshot F and invalidates after commit; inverse order excludes',
   'serializes identical requests, rejects conflicts and rolls back entry/edge failures',
   'rejects source/consent identity changes and owned/consented fingerprint collisions',
   'excludes deleted, synthetic, wrong-account, pre-consent and invalid-pinned observations',
@@ -65,9 +71,21 @@ export const STORAGE_PATHS = [
   'packages/storage/src/path-containment.spec.ts',
 ];
 export const BRAND_SOURCE_CONTRACT = {
+  sourceInputs: [
+    {
+      path: 'apps/server/api/test/helpers/migration-deploy-diagnostics.ts',
+      sha256:
+        'c0f748ea4ca648200c9803e21f765fbbff7ffead28af26c4caf85cc0d2e269f0',
+    },
+    {
+      path: 'apps/server/api/test/helpers/controller-owned-migration-database.ts',
+      sha256:
+        '0f69ff1cb157b97265f44dc5ee73c1d8fe45574ac03b979d90e2defe7ec24aa8',
+    },
+  ],
   brand: {
     path: 'apps/server/api/test/integration/branded-generation/branded-generation-receipts.integration.spec.ts',
-    sha256: '3d696f88f314892edbc8f0a05ca6fd702c92a0df7f84ea36f3e2bb5ae3222a4a',
+    sha256: '132cb7ddab81acf2d70150e7425aaf4a9d1bc7465747bb4b2c9549a367cb37b8',
     passedTitles: [
       'branded receipt full-migration service and relocation acceptance serializes same-input create, rejects changed payloads, and isolates other scopes',
       'branded receipt full-migration service and relocation acceptance commits one competing revision and replays immutable event projections',
@@ -226,11 +244,11 @@ export async function verifyBaselineSources(repo) {
 export const AGENT_PRODUCTION_FILES = [
   {
     path: 'apps/server/api/test/integration/proactive-agent-production-turn.integration.spec.ts',
-    sha256: 'f87ec933f4f9f8cc78f7e749eff1e88aa120586ec726e913438e84494d6b95fc',
+    sha256: '12571f679240c51920554aa0cb8ee50c4f503784de1560b99eafeb6ce4e85fbd',
   },
   {
     path: 'apps/server/api/test/integration/proactive-agent-production-turn.fixture.ts',
-    sha256: 'a19ccd15e87c3945c3a30c02734aed5fcba414803b87917ccf430d6fde6a678a',
+    sha256: 'b3fbf523ffa0192a7518f75768998741063dd849e298b472133a062c1462d12a',
   },
   {
     path: 'apps/server/api/test/integration/proactive-agent-production-turn-cleanup.util.ts',
@@ -255,22 +273,32 @@ export const LEARNING_SOURCE_CONTRACT = Object.freeze({
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.fixture.ts',
       sha256:
-        '76c90c697c50578b1db5f6ecf1ad3d6666ca6be6488f0cdc85f0b29c39c22819',
+        'ba2ac354c72e2d34ecea4c8b7c1552c027100198d764875d8c0fd55379f87754',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.integration.spec.ts',
       sha256:
-        '7f0b9624401c86e4df006f31950bfdaae1f288f6360c57488e046880d400af01',
+        'd252d5dfc382b160136dcb0ef0daa62ad9e7661f9139059c8b0ce07d64dbbe0b',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-publication-races.integration.spec.ts',
       sha256:
-        '20e6f4e616af424fc2e4a19b4e0997814c6e047a30d7f8d04889b85da6ce269b',
+        '64a72190aa29dfbe3335923615757bc29203ac23eeb7f46640e64fbe2ef30319',
     },
     {
       path: 'apps/server/api/vitest.learning-runtime.config.ts',
       sha256:
         '503ce881f32b01c51fdb8fc3712ac711ecd52154b145791c8c49322df4e4bd89',
+    },
+    {
+      path: 'apps/server/api/test/helpers/migration-deploy-diagnostics.ts',
+      sha256:
+        'c0f748ea4ca648200c9803e21f765fbbff7ffead28af26c4caf85cc0d2e269f0',
+    },
+    {
+      path: 'apps/server/api/test/helpers/controller-owned-migration-database.ts',
+      sha256:
+        '0f69ff1cb157b97265f44dc5ee73c1d8fe45574ac03b979d90e2defe7ec24aa8',
     },
   ],
   suites: [
@@ -368,7 +396,7 @@ export function requireLearningSourceContract(
   );
   requireThat(
     Array.isArray(contract.sourceInputs) &&
-      contract.sourceInputs.length === 4 &&
+      contract.sourceInputs.length === 6 &&
       contract.sourceInputs.every(
         (entry, index) =>
           entry.path === LEARNING_SOURCE_CONTRACT.sourceInputs[index].path &&
@@ -567,7 +595,12 @@ async function learningEndpointInfo(timeout) {
     });
   });
 }
-export function learningChildEnvironment(env, identity, resource, url) {
+export function learningChildEnvironment(
+  env,
+  identity,
+  resource,
+  { runtimeUrl, racesUrl },
+) {
   requireThat(
     identity.group === 'final' &&
       resource === identity.resources.learning &&
@@ -576,6 +609,36 @@ export function learningChildEnvironment(env, identity, resource, url) {
       JSON.stringify(learningCiIdentity(env)) ===
         JSON.stringify(identity.learningCi),
     'LEARNING_RESOURCE_IDENTITY',
+  );
+  const credentials = readPostgresCredentials(env);
+  const urls = [
+    ['genfeed_learning_runtime_test', runtimeUrl],
+    ['genfeed_learning_races_test', racesUrl],
+  ];
+  for (const [name, url] of urls) {
+    validateUrl(url, 'postgres', name, credentials);
+    const records = identity.resources.databases.filter(
+      (entry) => entry.name === name,
+    );
+    requireThat(
+      records.length === 1 &&
+        records[0].created === true &&
+        records[0].creationIntent === true &&
+        records[0].intentPersisted === true &&
+        records[0].creationIssued === true &&
+        records[0].postgresId === serviceId(identity.resources.postgres),
+      'LEARNING_DATABASE_OWNERSHIP',
+    );
+  }
+  const runtime = new URL(runtimeUrl),
+    races = new URL(racesUrl);
+  requireThat(
+    runtime.hostname === races.hostname &&
+      runtime.port === races.port &&
+      runtime.username === races.username &&
+      runtime.password === races.password &&
+      runtime.pathname !== races.pathname,
+    'LEARNING_DATABASE_IDENTITY',
   );
   const result = {};
   for (const key of [
@@ -599,7 +662,8 @@ export function learningChildEnvironment(env, identity, resource, url) {
     NO_COLOR: '1',
     FORCE_COLOR: '0',
     TURBO_TOKEN: '',
-    LEARNING_RUNTIME_TEST_DATABASE_URL: url,
+    LEARNING_RUNTIME_TEST_DATABASE_URL: runtimeUrl,
+    LEARNING_RUNTIME_RACES_TEST_DATABASE_URL: racesUrl,
     LEARNING_RUNTIME_TEST_REDIS_URL: 'redis://127.0.0.1:6379/0',
     LEARNING_RUNTIME_REDIS_OWNERSHIP_RECEIPT: resource.receiptPath,
     LEARNING_RUNTIME_ACCEPTANCE_HEAD: identity.candidateSHA,
@@ -632,12 +696,23 @@ export const SERIAL_BRAND_UNITS = [
   'branded-generation-receipt-access.service.spec.ts',
   'branded-generation-state.util.spec.ts',
 ].map((file) => `src/services/branded-generation-receipts/${file}`);
+export function datasetChildEnvironment(url) {
+  return {
+    LEARNING_DATASET_TEST_DATABASE_URL: url,
+    LEARNING_DATASET_PROFILE: '',
+    LEARNING_DATASET_BENCHMARK: '',
+    LEARNING_DATASET_SMOKE: '',
+    LEARNING_DATASET_SEED_DIAGNOSTICS: '1',
+  };
+}
 export const PUBLISHER_CONTRACTS = [
   {
     file: 'test/integration/batch-review-lock.integration.spec.ts',
     titles: [
       'serializes overlapping batches on one connection and unlocks after the complete operation',
       'releases every lock after a failed operation so another worker can recover',
+      'does not block an independent batch/organization: independent batch',
+      'does not block an independent batch/organization: independent organization',
     ].map(
       (title) => `Batch review advisory transactions (real Postgres) ${title}`,
     ),
@@ -679,7 +754,11 @@ export async function verifyDedicatedSources(repo, group, env) {
   const files =
     group === 'agent-production'
       ? AGENT_PRODUCTION_FILES
-      : [BRAND_SOURCE_CONTRACT.brand, ...BRAND_SOURCE_CONTRACT.unitFiles];
+      : [
+          BRAND_SOURCE_CONTRACT.brand,
+          ...BRAND_SOURCE_CONTRACT.unitFiles,
+          ...BRAND_SOURCE_CONTRACT.sourceInputs,
+        ];
   await verifyFrozenSources(repo, files);
 }
 export function validateSharedApiFullPartition(
@@ -815,11 +894,21 @@ const REQUIRED = {
     'dataset-typecheck',
     'dataset-diagnostic',
   ],
+  'dataset-smoke': [
+    'dataset-correctness',
+    'dataset-typecheck',
+    'dataset-smoke',
+  ],
+  'dataset-scale': [
+    'dataset-correctness',
+    'dataset-typecheck',
+    'dataset-matrix',
+  ],
   final: [
     'learning-runtime',
     'dataset-correctness',
     'dataset-typecheck',
-    'dataset-matrix',
+    'dataset-smoke',
     'brand-preparation',
     'brand-migration',
     'brand-units',
@@ -1123,12 +1212,15 @@ export function validateReport(report, contracts, child) {
   return result;
 }
 export function parseDatasetRecords(output, mode) {
-  requireThat(['diagnostic', 'matrix'].includes(mode), 'INVALID_DATASET_MODE');
+  requireThat(
+    ['diagnostic', 'matrix', 'smoke'].includes(mode),
+    'INVALID_DATASET_MODE',
+  );
   const records = output.split('\n').flatMap((line) => {
     const start = line.indexOf('{');
     if (start < 0) {
       requireThat(
-        !/dataset(?:Benchmark|Diagnostic)/.test(line),
+        !/dataset(?:Benchmark|Diagnostic|Smoke)/.test(line),
         'MALFORMED_DATASET_RECORD',
       );
       return [];
@@ -1138,12 +1230,13 @@ export function parseDatasetRecords(output, mode) {
       return value &&
         typeof value === 'object' &&
         (Object.hasOwn(value, 'datasetDiagnostic') ||
-          Object.hasOwn(value, 'datasetBenchmark'))
+          Object.hasOwn(value, 'datasetBenchmark') ||
+          Object.hasOwn(value, 'datasetSmoke'))
         ? [value]
         : [];
     } catch {
       requireThat(
-        !/dataset(?:Benchmark|Diagnostic)/.test(line),
+        !/dataset(?:Benchmark|Diagnostic|Smoke)/.test(line),
         'MALFORMED_DATASET_RECORD',
       );
       return [];
@@ -1152,13 +1245,15 @@ export function parseDatasetRecords(output, mode) {
   const expected =
     mode === 'diagnostic'
       ? ['consented:10000:1', 'consented:100000:1']
-      : [1000, 10000, 100000]
-          .flatMap((size) =>
-            ['owned', 'consented'].flatMap((kind) =>
-              [0, 1, 2, 3].map((run) => `${kind}:${size}:${run}`),
-            ),
-          )
-          .concat('mixed:10000:1');
+      : mode === 'smoke'
+        ? ['owned:10000:1', 'consented:10000:1', 'mixed:10000:1']
+        : [1000, 10000, 100000]
+            .flatMap((size) =>
+              ['owned', 'consented'].flatMap((kind) =>
+                [0, 1, 2, 3].map((run) => `${kind}:${size}:${run}`),
+              ),
+            )
+            .concat('mixed:10000:1');
   requireThat(records.length === expected.length, 'DATASET_RECORD_COUNT');
   const seen = new Set();
   for (const record of records) {
@@ -1172,8 +1267,15 @@ export function parseDatasetRecords(output, mode) {
       mode === 'diagnostic'
         ? record.datasetDiagnostic === true &&
             record.datasetBenchmark === false &&
+            !record.datasetSmoke &&
             record.samplePurpose === 'diagnostic-only-not-matrix-acceptance'
-        : record.datasetBenchmark === true &&
+        : mode === 'smoke'
+          ? record.datasetSmoke === true &&
+            record.datasetBenchmark === false &&
+            !record.datasetDiagnostic &&
+            record.samplePurpose === 'deployment-smoke'
+          : record.datasetBenchmark === true &&
+            !record.datasetSmoke &&
             !record.datasetDiagnostic &&
             record.samplePurpose ===
               (record.run === 0 ? 'matrix-warmup' : 'matrix-measurement'),
@@ -1215,9 +1317,9 @@ export function parseDatasetRecords(output, mode) {
         record.maxBindParameters <= 32767 &&
         record.selectedRows === rows &&
         record.graphNodesMaxPass ===
-          (record.kind === 'owned' ? 0 : 4 * record.size + 21) &&
+          (record.kind === 'owned' ? 0 : 7 * record.size + 36) &&
         record.graphEdgesMaxPass ===
-          (record.kind === 'owned' ? 0 : 6 * record.size + 200),
+          (record.kind === 'owned' ? 0 : 12 * record.size + 210),
       'DATASET_LIMIT',
     );
   }
@@ -1355,11 +1457,14 @@ async function verifySource(repo, entry) {
 
 export const FINAL_DATABASE_NAMES = [
   'genfeed_dataset_5781_test',
+  'genfeed_dataset_5781_matrix_test',
+  'genfeed_dataset_5781_profile_test',
   'genfeed_4617_ed1f_test',
   'genfeed_crun_test',
   'genfeed_agent_test',
   'genfeed_baseline_materialization_test',
   'genfeed_learning_runtime_test',
+  'genfeed_learning_races_test',
 ];
 function validateFinalDatabase(identity, name, postgresId) {
   requireThat(
@@ -2344,6 +2449,8 @@ export function validateTiming(group, value, now = Date.now()) {
   const wall = {
     final: 3600000,
     'dataset-diagnostic': 1200000,
+    'dataset-scale': 2400000,
+    'dataset-smoke': 1200000,
     'visual-isolation': 1500000,
     'visual-connected': 6300000,
     'agent-production': 1200000,
@@ -2411,7 +2518,11 @@ export async function createState(options, env) {
   const controlSHA = options['control-sha'];
   requireThat(
     (await head(repo)) ===
-      (options.group === 'dataset-diagnostic' ? controlSHA : candidateSHA),
+      (['dataset-diagnostic', 'dataset-smoke', 'dataset-scale'].includes(
+        options.group,
+      )
+        ? controlSHA
+        : candidateSHA),
     'CHECKOUT_MISMATCH',
   );
   if (['agent-production', 'brand-acceptance'].includes(options.group))
@@ -2567,12 +2678,19 @@ export function visualSelection(index) {
       ? VISUAL_RENDERLESS_TITLES
       : [VISUAL_CASES.find((item) => item.index === index)?.title];
   requireThat(selected.every(Boolean), 'INVALID_VISUAL_CASE');
+  const suite =
+    index === 0
+      ? 'visual-code cleanup rejection isolation (renderless)'
+      : VISUAL_SUITE;
+  const taskNames = selected.map(
+    (title) => `${suite} > ${title.slice(suite.length + 1)}`,
+  );
   return {
     file: VISUAL_SPEC,
     count: selected.length,
     titles: selected,
     skipped: VISUAL_ALL_TITLES.filter((title) => !selected.includes(title)),
-    pattern: `^(?:${selected.map((title) => title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})$`,
+    pattern: `^(?:${taskNames.map((title) => title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})$`,
   };
 }
 export function validateVisualSelection(report, index, child) {
@@ -2848,6 +2966,19 @@ export async function verifyVisualScenarioSources(identity, evidence, sources) {
   }
   return hashes;
 }
+export const VISUAL_LIBRARY_CONTRACT = Object.freeze({
+  file: 'test/integration/visual-code/visual-code-library.integration.spec.ts',
+  count: 7,
+  titles: [
+    'visual-code connected backend and canonical Library acceptance reserves, executes a pinned workflow with a real lease, settles once and exposes the same canonical outputs on replay',
+    'visual-code connected backend and canonical Library acceptance cleans the real persisted mirror when tenant execution creation fails after mirror insertion',
+    'visual-code connected backend and canonical Library acceptance rejects explicit paid-model quote and create for a free actor before reservation or dispatch',
+    'visual-code connected backend and canonical Library acceptance rejects cross-tenant and same-tenant cross-brand source assets before any external read or hold',
+    'visual-code connected backend and canonical Library acceptance rejects actual insufficient credits without queued generation, output admission or an active hold',
+    'visual-code connected backend and canonical Library acceptance keeps the renderer unavailable with enabled=undefined and creates no generation effects',
+    'visual-code connected backend and canonical Library acceptance keeps the renderer unavailable with enabled=false and creates no generation effects',
+  ],
+});
 export const VISUAL_LIBRARY_LIMITS = {
   work: 120000,
   cleanup: 60000,
@@ -5092,11 +5223,15 @@ export async function execution(identity, env) {
         JSON.stringify(snapshot.inspected),
       );
       await persistIdentity(identity);
-      const url = await database('genfeed_learning_runtime_test');
+      const runtimeUrl = await database('genfeed_learning_runtime_test');
+      const racesUrl = await database('genfeed_learning_races_test');
       await vitest('learning-runtime', contract.suites, {
         config: 'vitest.learning-runtime.config.ts',
         pool: 'forks',
-        extra: learningChildEnvironment(env, identity, resource, url),
+        extra: learningChildEnvironment(env, identity, resource, {
+          runtimeUrl,
+          racesUrl,
+        }),
         timeout: Math.max(
           1,
           startedAt + FINAL_LEARNING_BUDGET.work - Date.now(),
@@ -5109,14 +5244,17 @@ export async function execution(identity, env) {
         'LEARNING_CLEANUP_REQUIRED',
       );
     }
-    if (['final', 'dataset-diagnostic'].includes(identity.group))
+    if (
+      [
+        'final',
+        'dataset-diagnostic',
+        'dataset-smoke',
+        'dataset-scale',
+      ].includes(identity.group)
+    )
       await attempt('dataset', async () => {
         const url = await database('genfeed_dataset_5781_test');
-        const datasetEnv = {
-          LEARNING_DATASET_TEST_DATABASE_URL: url,
-          LEARNING_DATASET_PROFILE: '',
-          LEARNING_DATASET_BENCHMARK: '',
-        };
+        const datasetEnv = datasetChildEnvironment(url);
         const correctnessDeadline = Date.now() + 330000;
         await vitest(
           'dataset-correctness',
@@ -5124,9 +5262,9 @@ export async function execution(identity, env) {
             { file: DATASET_UNIT, count: 23 },
             {
               file: DATASET_PG,
-              count: 7,
+              count: 10,
               titles: PG_TITLES,
-              skipped: [MATRIX_TITLE, DIAGNOSTIC_TITLE],
+              skipped: [MATRIX_TITLE, DIAGNOSTIC_TITLE, SMOKE_TITLE],
             },
           ],
           {
@@ -5180,17 +5318,34 @@ export async function execution(identity, env) {
           await rm(config, { force: true });
         }
         const diagnostic = identity.group === 'dataset-diagnostic';
-        const stage = diagnostic ? 'dataset-diagnostic' : 'dataset-matrix';
+        const smoke = ['final', 'dataset-smoke'].includes(identity.group);
+        const stage = diagnostic
+          ? 'dataset-diagnostic'
+          : smoke
+            ? 'dataset-smoke'
+            : 'dataset-matrix';
+        const selectedTitle = diagnostic
+          ? DIAGNOSTIC_TITLE
+          : smoke
+            ? SMOKE_TITLE
+            : MATRIX_TITLE;
+        const measuredUrl = await database(
+          diagnostic
+            ? 'genfeed_dataset_5781_profile_test'
+            : 'genfeed_dataset_5781_matrix_test',
+        );
         const stdout = await vitest(
           stage,
           [
             {
               file: DATASET_PG,
               count: 1,
-              titles: [diagnostic ? DIAGNOSTIC_TITLE : MATRIX_TITLE],
+              titles: [selectedTitle],
               skipped: [
                 ...PG_TITLES,
-                diagnostic ? MATRIX_TITLE : DIAGNOSTIC_TITLE,
+                ...[MATRIX_TITLE, DIAGNOSTIC_TITLE, SMOKE_TITLE].filter(
+                  (title) => title !== selectedTitle,
+                ),
               ],
             },
           ],
@@ -5198,19 +5353,24 @@ export async function execution(identity, env) {
             heap: 4096,
             extra: {
               ...datasetEnv,
+              LEARNING_DATASET_TEST_DATABASE_URL: measuredUrl,
               ...(diagnostic
                 ? { LEARNING_DATASET_PROFILE: '1' }
-                : { LEARNING_DATASET_BENCHMARK: '1' }),
+                : smoke
+                  ? { LEARNING_DATASET_SMOKE: '1' }
+                  : { LEARNING_DATASET_BENCHMARK: '1' }),
             },
-            timeout: diagnostic ? 330000 : 1170000,
+            timeout: diagnostic || smoke ? 330000 : 1170000,
             pattern: diagnostic
               ? 'profiles one 10k and one 100k consented snapshot'
-              : 'measures 1k/10k/100k',
+              : smoke
+                ? 'checks one 10k owned, consented and mixed'
+                : 'measures 1k/10k/100k',
           },
         );
         const records = parseDatasetRecords(
           stdout,
-          diagnostic ? 'diagnostic' : 'matrix',
+          diagnostic ? 'diagnostic' : smoke ? 'smoke' : 'matrix',
         );
         await save(`raw/${stage}.records.json`, JSON.stringify(records));
       });
@@ -5920,10 +6080,7 @@ export async function execution(identity, env) {
               );
               await chmod(reportPath, 0o600);
               const contract = library
-                ? {
-                    file: 'test/integration/visual-code/visual-code-library.integration.spec.ts',
-                    count: 5,
-                  }
+                ? VISUAL_LIBRARY_CONTRACT
                 : visualSelection(caseInfo.index);
               const report = JSON.parse(
                 await safeFile(identity.state, reportRelative),
@@ -6253,7 +6410,14 @@ export async function execution(identity, env) {
             privateEnv,
           ),
         );
-    if (['final', 'dataset-diagnostic'].includes(identity.group))
+    if (
+      [
+        'final',
+        'dataset-diagnostic',
+        'dataset-smoke',
+        'dataset-scale',
+      ].includes(identity.group)
+    )
       for (const kind of ['redis', 'postgres'])
         if (identity.resources[kind])
           await clean('service-container', () =>
@@ -6692,6 +6856,8 @@ export async function sealState(identity, env) {
 }
 const QUALIFIED_CLI_GROUPS = new Set([
   'dataset-diagnostic',
+  'dataset-smoke',
+  'dataset-scale',
   'final',
   'agent-production',
   'brand-acceptance',

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import * as dispatchLock from '@api/collections/workflows/services/agent-autopilot-dispatch-lock.util';
@@ -14,7 +15,11 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { PLATFORM_SYSTEM_WORKFLOW_QUEUE } from '@genfeedai/contracts/queue';
-import { CredentialPlatform, toPrismaJson } from '@genfeedai/prisma';
+import {
+  CredentialPlatform,
+  IngredientCategory,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import { PLATFORM_SCHEDULE_CATALOG } from '@workers/scheduling/platform-schedules.constants';
 import { PlatformSchedulesProcessor } from '@workers/scheduling/platform-schedules.processor';
 import { PlatformWorkflowSchedulesService } from '@workers/scheduling/platform-workflow-schedules.service';
@@ -22,6 +27,207 @@ import type { Job } from 'bullmq';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Row = Record<string, unknown>;
+
+async function assertExpiredRuntimeReview(
+  fixture: ProactiveAgentRuntimeFixture,
+  postId: string,
+  batchId: string,
+  itemId: string,
+) {
+  const scope = { organizationId: fixture.organizationId, isDeleted: false };
+  const beforePins = await fixture.prisma.contentVersionPin.count({
+    where: {
+      organizationId: fixture.organizationId,
+      recordKind: 'post',
+      recordId: postId,
+    },
+  });
+  await fixture.review.approveItems(
+    batchId,
+    [itemId],
+    fixture.organizationId,
+    fixture.userId,
+  );
+  expect(
+    await fixture.prisma.batchItem.findFirstOrThrow({
+      where: { ...scope, id: itemId, batchId },
+    }),
+  ).toMatchObject({ status: 'SKIPPED', reviewDecision: 'REJECTED' });
+  expect(
+    await fixture.prisma.post.findFirstOrThrow({
+      where: {
+        id: postId,
+        organizationId: fixture.organizationId,
+        isDeleted: true,
+      },
+    }),
+  ).toMatchObject({
+    targetExecutionState: TargetExecutionState.CANCELLED,
+    publishApprovalId: null,
+  });
+  expect(
+    await fixture.prisma.publishApproval.count({
+      where: {
+        organizationId: fixture.organizationId,
+        postId,
+        status: 'approved',
+      },
+    }),
+  ).toBe(0);
+  expect(
+    await fixture.prisma.contentVersionPin.count({
+      where: {
+        organizationId: fixture.organizationId,
+        recordKind: 'post',
+        recordId: postId,
+      },
+    }),
+  ).toBe(beforePins);
+  await expect(
+    fixture.publish({
+      organizationId: fixture.organizationId,
+      postId,
+      userId: fixture.userId,
+      source: 'publish_now',
+    }),
+  ).rejects.toThrow();
+  expect(fixture.published).not.toHaveBeenCalled();
+}
+
+async function assertRuntimeMediaExtension(
+  fixture: ProactiveAgentRuntimeFixture,
+) {
+  const parentId = randomUUID();
+  const childId = randomUUID();
+  const ingredientId = randomUUID();
+  const scope = {
+    organizationId: fixture.organizationId,
+    brandId: fixture.brandId,
+    userId: fixture.userId,
+  };
+  const s3Key = `${fixture.namespace}/media-probe.png`;
+  const select = {
+    category: true,
+    cdnUrl: true,
+    fileSize: true,
+    id: true,
+    mimeType: true,
+    s3Key: true,
+    version: true,
+  } as const;
+  const query = {
+    where: {
+      id: parentId,
+      organizationId: fixture.organizationId,
+      isDeleted: false,
+    },
+    include: {
+      ingredients: { select },
+      children: {
+        where: { isDeleted: false },
+        include: { ingredients: { select } },
+      },
+    },
+  };
+  const rollback = new Error('Owned media probe rollback');
+  let rolledBack = false;
+  try {
+    await fixture.prisma.$transaction(async (transaction) => {
+      await transaction.ingredient.create({
+        data: {
+          ...scope,
+          id: ingredientId,
+          s3Key,
+          fileSize: 123,
+          mimeType: 'image/png',
+          version: 1,
+          category: IngredientCategory.IMAGE,
+        },
+      });
+      await transaction.post.create({
+        data: {
+          ...scope,
+          id: parentId,
+          description: 'Owned media probe parent',
+          ingredients: { connect: { id: ingredientId } },
+        },
+      });
+      await transaction.post.create({
+        data: {
+          ...scope,
+          id: childId,
+          description: 'Owned media probe child',
+          parentId,
+          ingredients: { connect: { id: ingredientId } },
+        },
+      });
+      const parent = await transaction.post.findFirstOrThrow(query);
+      const expected = {
+        id: ingredientId,
+        s3Key,
+        category: IngredientCategory.IMAGE,
+        cdnUrl: `http://127.0.0.1/${s3Key}`,
+        fileSize: 123,
+        mimeType: 'image/png',
+        version: 1,
+      };
+      expect(parent.ingredients).toHaveLength(1);
+      expect(
+        parent.ingredients.map(
+          ({ category, cdnUrl, fileSize, id, mimeType, s3Key, version }) => ({
+            category,
+            cdnUrl,
+            fileSize,
+            id,
+            mimeType,
+            s3Key,
+            version,
+          }),
+        ),
+      ).toEqual([expected]);
+      expect(parent.children).toHaveLength(1);
+      expect(parent.children[0].id).toBe(childId);
+      expect(parent.children[0].ingredients).toHaveLength(1);
+      expect(
+        parent.children[0].ingredients.map(
+          ({ category, cdnUrl, fileSize, id, mimeType, s3Key, version }) => ({
+            category,
+            cdnUrl,
+            fileSize,
+            id,
+            mimeType,
+            s3Key,
+            version,
+          }),
+        ),
+      ).toEqual([expected]);
+      throw rollback;
+    });
+  } catch (error) {
+    if (error !== rollback) throw error;
+    rolledBack = true;
+  }
+  expect(rolledBack).toBe(true);
+  expect(await fixture.prisma.post.findFirst(query)).toBeNull();
+  expect(
+    await fixture.prisma.post.count({
+      where: {
+        id: childId,
+        organizationId: fixture.organizationId,
+        isDeleted: false,
+      },
+    }),
+  ).toBe(0);
+  expect(
+    await fixture.prisma.ingredient.count({
+      where: {
+        id: ingredientId,
+        organizationId: fixture.organizationId,
+        isDeleted: false,
+      },
+    }),
+  ).toBe(0);
+}
 
 // Real application services; deterministic in-memory persistence, queue and generation stubs.
 // PostgreSQL transaction/concurrency guarantees are verified separately in the opt-in database suite.
@@ -445,6 +651,7 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
   });
 
   it('runs a native queued graph, requires approval, publishes, and learns its own measured hook in cycle two', async () => {
+    await assertRuntimeMediaExtension(fixture);
     const agent = await fixture.createAgent();
     const paused = await fixture.createAgent(20, false);
     const controls = await fixture.seedLearningScopeControls(
@@ -596,7 +803,9 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
     expect(snapshot.topHooks).toEqual([winningHook]);
     expect(snapshot.impressions).toBe(200);
     expect(snapshot.clicks).toBe(2);
-    expect(snapshot.bestPlatformFormatPairs[0]?.platform).toBe('linkedin');
+    expect(snapshot.bestPlatformFormatPairs[0]?.platform).toBe(
+      CredentialPlatform.LINKEDIN,
+    );
     const current = await fixture.prisma.agentStrategy.findUniqueOrThrow({
       where: { id: agent.id },
     });
@@ -661,8 +870,13 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
     });
     expect(runtimeRecord(settled.config)).toMatchObject({
       creditsUsedToday: 2,
-      totalRuns: 2,
     });
+    const history = runtimeRecord(settled.config).runHistory;
+    expect(history).toHaveLength(2);
+    expect(history).toEqual([
+      expect.objectContaining({ executionId: first.id }),
+      expect.objectContaining({ executionId: secondId }),
+    ]);
     expect(
       await fixture.prisma.agentStrategy.findUnique({
         where: { id: paused.id },
@@ -1036,7 +1250,17 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
     if (current.isDeleted) {
       expect(current.targetExecutionState).toBe(TargetExecutionState.CANCELLED);
       expect(current.publishApprovalId).toBeNull();
-      expect(outcomes[1].status).toBe('rejected');
+      expect(outcomes[0]).toMatchObject({
+        status: 'fulfilled',
+        value: [post.id],
+      });
+      expect(outcomes[1].status).toBe('fulfilled');
+      await assertExpiredRuntimeReview(
+        fixture,
+        post.id,
+        post.reviewBatchId,
+        post.reviewItemId,
+      );
       await expect(
         fixture.publish({
           organizationId: fixture.organizationId,
@@ -1051,5 +1275,31 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
       expect(outcomes[0]).toMatchObject({ status: 'fulfilled', value: [] });
     }
     expect(fixture.published).not.toHaveBeenCalled();
+    // Always execute the expiry-first path even when approval won the race.
+    const expiryFirst = await fixture.createAgent();
+    const expiryRun = await fixture.dispatch(expiryFirst.id);
+    await fixture.waitForExecution(String(expiryRun.executionId));
+    const expired = await fixture.prisma.post.findFirstOrThrow({
+      where: {
+        organizationId: fixture.organizationId,
+        agentStrategyId: expiryFirst.id,
+        isDeleted: false,
+      },
+    });
+    if (!expired.reviewBatchId || !expired.reviewItemId)
+      throw new Error('Expiry-first review attribution missing');
+    expect(
+      await fixture.review.expireAutonomousReviewBatch(
+        expired.reviewBatchId,
+        fixture.organizationId,
+        new Date(Date.now() + 25 * 3_600_000),
+      ),
+    ).toEqual([expired.id]);
+    await assertExpiredRuntimeReview(
+      fixture,
+      expired.id,
+      expired.reviewBatchId,
+      expired.reviewItemId,
+    );
   }, 60_000);
 });

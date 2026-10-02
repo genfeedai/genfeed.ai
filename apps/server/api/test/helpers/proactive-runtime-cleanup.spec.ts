@@ -1,4 +1,10 @@
-import { runOwnedRuntimeCleanup } from '@api-test/helpers/proactive-runtime-cleanup';
+import {
+  assertOwnedPinsUnchanged,
+  assertOwnedRetentionUsers,
+  planOwnedPinRetention,
+  runOwnedPinRetentionCleanup,
+  runOwnedRuntimeCleanup,
+} from '@api-test/helpers/proactive-runtime-cleanup';
 import { describe, expect, it } from 'vitest';
 
 const resourceOrder = [
@@ -108,5 +114,240 @@ describe('runOwnedRuntimeCleanup', () => {
 
   it('accepts an empty cleanup list', async () => {
     await expect(runOwnedRuntimeCleanup([])).resolves.toBeUndefined();
+  });
+});
+
+function pin(id: string, organizationId: string, brandId: string | null) {
+  return {
+    id,
+    organizationId,
+    brandId,
+    createdByUserId: `creator-${id}`,
+    recordKind: 'post',
+    recordId: `post-${id}`,
+    recordVersion: '1',
+    contentDigest: `digest-${id}`,
+    idempotencyKey: `key-${id}`,
+    provenance: { fixture: id },
+    createdAt: new Date('2026-10-01T00:00:00Z'),
+  };
+}
+
+describe('owned immutable pin retention', () => {
+  it('retains no ancestors when no owned pins exist', () => {
+    expect(planOwnedPinRetention(['owned'], [])).toEqual({
+      pins: [],
+      organizationIds: [],
+      brandIds: [],
+      creatorIds: [],
+    });
+  });
+
+  it('retains one pin and its exact ancestor identities', () => {
+    const ownedPin = pin('one', 'owned', 'brand-one');
+    expect(planOwnedPinRetention(['owned'], [ownedPin])).toEqual({
+      pins: [ownedPin],
+      organizationIds: ['owned'],
+      brandIds: ['brand-one'],
+      creatorIds: ['creator-one'],
+    });
+  });
+
+  it('retains multiple owned organizations, excludes foreign pins and handles nullable brands', () => {
+    const first = pin('one', 'owned-a', 'brand-one');
+    const second = pin('two', 'owned-b', null);
+    const foreign = pin('foreign', 'foreign', 'foreign-brand');
+    expect(
+      planOwnedPinRetention(['owned-a', 'owned-b'], [first, second, foreign]),
+    ).toEqual({
+      pins: [first, second],
+      organizationIds: ['owned-a', 'owned-b'],
+      brandIds: ['brand-one'],
+      creatorIds: ['creator-one', 'creator-two'],
+    });
+  });
+
+  it('checks every immutable field and row identity before connections close', () => {
+    const original = pin('one', 'owned', 'brand-one');
+    expect(() =>
+      assertOwnedPinsUnchanged([original], [{ ...original }]),
+    ).not.toThrow();
+    for (const change of [
+      { id: 'other' },
+      { organizationId: 'other' },
+      { brandId: null },
+      { createdByUserId: 'other' },
+      { recordKind: 'newsletter' },
+      { recordId: 'other' },
+      { recordVersion: '2' },
+      { contentDigest: 'other' },
+      { idempotencyKey: 'other' },
+      { provenance: { fixture: 'other' } },
+      { createdAt: new Date('2026-10-02T00:00:00Z') },
+    ])
+      expect(() =>
+        assertOwnedPinsUnchanged([original], [{ ...original, ...change }]),
+      ).toThrow();
+    expect(() => assertOwnedPinsUnchanged([original], [])).toThrow();
+  });
+
+  it.each(['writer', 'pin-read'])(
+    'does not authorize queue or data disposal after %s failure',
+    async (phase) => {
+      const attempted: string[] = [];
+      const failure = new Error(phase);
+      await expect(
+        runOwnedPinRetentionCleanup(
+          [
+            async () => {
+              attempted.push('writer.stop');
+              if (phase === 'writer') throw failure;
+            },
+          ],
+          async () => {
+            attempted.push('pins.read');
+            throw failure;
+          },
+          async () => {
+            attempted.push('queue.obliterate');
+            attempted.push('post.deleteMany');
+          },
+          [
+            async () => {
+              attempted.push('redis.quit');
+            },
+            async () => {
+              attempted.push('prisma.disconnect');
+            },
+          ],
+        ),
+      ).rejects.toBeInstanceOf(AggregateError);
+      expect(attempted).toEqual([
+        'writer.stop',
+        ...(phase === 'pin-read' ? ['pins.read'] : []),
+        'redis.quit',
+        'prisma.disconnect',
+      ]);
+    },
+  );
+
+  it('attempts independent Redis and Prisma closes after disposal and proof failures', async () => {
+    const attempted: string[] = [];
+    const dataFailure = new Error('post deletion failed');
+    const proofFailure = new Error('pin changed');
+    const redisFailure = new Error('redis close failed');
+    let caught: unknown;
+    try {
+      await runOwnedPinRetentionCleanup(
+        [
+          async () => {
+            attempted.push('writer.stop');
+          },
+        ],
+        async () => {
+          attempted.push('pins.read');
+          return planOwnedPinRetention(['owned'], [pin('one', 'owned', null)]);
+        },
+        async (retention) => {
+          expect(retention.organizationIds).toEqual(['owned']);
+          await runOwnedRuntimeCleanup([
+            async () => {
+              attempted.push('post.deleteMany');
+              throw dataFailure;
+            },
+            async () => {
+              attempted.push('pins.prove');
+              throw proofFailure;
+            },
+          ]);
+        },
+        [
+          async () => {
+            attempted.push('redis.quit');
+            throw redisFailure;
+          },
+          async () => {
+            attempted.push('prisma.disconnect');
+          },
+        ],
+      );
+    } catch (error) {
+      caught = error;
+    }
+    expect(attempted).toEqual([
+      'writer.stop',
+      'pins.read',
+      'post.deleteMany',
+      'pins.prove',
+      'redis.quit',
+      'prisma.disconnect',
+    ]);
+    expect(caught).toBeInstanceOf(AggregateError);
+    if (!(caught instanceof AggregateError))
+      throw new Error('Expected cleanup failure');
+    expect(caught.errors[0]).toMatchObject({
+      errors: [dataFailure, proofFailure],
+    });
+    expect(caught.errors[1]).toBe(redisFailure);
+  });
+});
+
+describe('retained fixture user ownership', () => {
+  it('accepts empty retention and the exact fixture user', () => {
+    expect(() => assertOwnedRetentionUsers('fixture-user', [])).not.toThrow();
+    expect(() =>
+      assertOwnedRetentionUsers('fixture-user', ['fixture-user']),
+    ).not.toThrow();
+  });
+
+  it('blocks every mutation and independently closes handles for a foreign creator in an owned pin', async () => {
+    const attempted: string[] = [];
+    const ownedPin = {
+      ...pin('one', 'owned', null),
+      createdByUserId: 'foreign-user',
+    };
+    await expect(
+      runOwnedPinRetentionCleanup(
+        [
+          async () => {
+            attempted.push('writer.stop');
+          },
+        ],
+        async () => {
+          attempted.push('pins.read');
+          const retention = planOwnedPinRetention(['owned'], [ownedPin]);
+          assertOwnedRetentionUsers('fixture-user', retention.creatorIds);
+          return retention;
+        },
+        async () => {
+          attempted.push('queue.obliterate');
+          attempted.push('user.updateMany');
+        },
+        [
+          async () => {
+            attempted.push('redis.quit');
+          },
+          async () => {
+            attempted.push('prisma.disconnect');
+          },
+        ],
+      ),
+    ).rejects.toBeInstanceOf(AggregateError);
+    expect(attempted).toEqual([
+      'writer.stop',
+      'pins.read',
+      'redis.quit',
+      'prisma.disconnect',
+    ]);
+    expect(ownedPin.createdByUserId).toBe('foreign-user');
+  });
+
+  it('rejects foreign organization or brand owners as well as pin creators', () => {
+    expect(() =>
+      assertOwnedRetentionUsers('fixture-user', [
+        'fixture-user',
+        'foreign-owner',
+      ]),
+    ).toThrow();
   });
 });
