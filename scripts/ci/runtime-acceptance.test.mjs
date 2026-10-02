@@ -1249,6 +1249,18 @@ for (const group of ['visual-isolation', 'visual-connected'])
     assert.doesNotMatch(await readFile(output, 'utf8'), /result=passed/);
   });
 
+function frozenSourcePreflightCiEnvironment(group) {
+  if (group !== 'final') return {};
+  return {
+    GITHUB_ACTIONS: 'true',
+    GITHUB_RUN_ID: '123',
+    GITHUB_RUN_ATTEMPT: '2',
+    GITHUB_JOB: 'runtime-acceptance',
+    RUNTIME_ACCEPTANCE_CI_RUN_ID: '123',
+    RUNTIME_ACCEPTANCE_CI_RUN_ATTEMPT: '2',
+    RUNTIME_ACCEPTANCE_CI_JOB: 'runtime-acceptance',
+  };
+}
 for (const group of ['final', 'agent-production', 'brand-acceptance'])
   test(`actual ${group} preflight requires exact frozen source before private state`, async (t) => {
     const { options, env } = await preflightFixture(t);
@@ -1263,6 +1275,7 @@ for (const group of ['final', 'agent-production', 'brand-acceptance'])
         { ...options, group },
         {
           ...env,
+          ...frozenSourcePreflightCiEnvironment(group),
           GITHUB_OUTPUT: output,
           RUNTIME_ACCEPTANCE_OWNER_CONTRACT: JSON.stringify(contract),
         },
@@ -1279,7 +1292,7 @@ for (const group of ['final', 'agent-production', 'brand-acceptance'])
     contract.brand = structuredClone(BRAND_SOURCE_CONTRACT.brand);
     const entry =
       group === 'final'
-        ? BASELINE_SOURCE_CONTRACT.sourceInputs[0]
+        ? LEARNING_SOURCE_CONTRACT.sourceInputs[0]
         : group === 'agent-production'
           ? AGENT_PRODUCTION_FILES[0]
           : BRAND_SOURCE_CONTRACT.brand;
@@ -1295,6 +1308,7 @@ for (const group of ['final', 'agent-production', 'brand-acceptance'])
         { ...options, group },
         {
           ...env,
+          ...frozenSourcePreflightCiEnvironment(group),
           GITHUB_OUTPUT: output,
           RUNTIME_ACCEPTANCE_OWNER_CONTRACT: JSON.stringify(contract),
         },
@@ -4198,7 +4212,7 @@ const FROZEN_CRUN = {
   },
   video: {
     path: 'apps/server/api/src/services/integrations/crun/crun-video-flow.integration.spec.ts',
-    sha256: '6bbd5cbfd354e260898f5338cd2a05d534038ecbcd172f366138a41d3d5a345a',
+    sha256: '9d4e3110b38339041462190cb208cca8de2d223e91f3c85afff3f0ff18d080dc',
     count: 23,
     passedTitles: [
       'Crun video quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success variant default: frozen quote, restart, owned storage and exact accounting',
