@@ -4,6 +4,8 @@ import {
   type ExecutableNode,
   type ExecutionRunResult,
   getExecutableNodeOperationId,
+  isWorkflowEdgeActive,
+  isWorkflowNodeReachable,
   type NodeExecutionResult,
   topologicalSort,
 } from '@genfeedai/workflows/engine';
@@ -117,18 +119,16 @@ export class WorkflowExecutionGraphService {
     completedNodes: Set<string>,
     skippedNodes: Set<string>,
     results: NodeExecutionStates,
+    node?: ExecutableNode,
   ): boolean {
-    const incoming = edges.filter((edge) => edge.target === nodeId);
-    if (incoming.length === 0) {
-      return true;
-    }
-
-    return incoming.some((edge) => {
-      if (!completedNodes.has(edge.source) || skippedNodes.has(edge.source)) {
-        return false;
-      }
-      return this.isEdgeActive(edge, results);
-    });
+    return isWorkflowNodeReachable(
+      nodeId,
+      edges,
+      completedNodes,
+      skippedNodes,
+      results,
+      node,
+    );
   }
 
   extractBranch(output: unknown): string {
@@ -283,10 +283,7 @@ export class WorkflowExecutionGraphService {
     edge: ExecutableEdge,
     results: NodeExecutionStates,
   ): boolean {
-    const failed = results.get(edge.source)?.status === 'failed';
-    return edge.sourceHandle === WORKFLOW_FAILURE_EDGE_HANDLE
-      ? failed
-      : !failed;
+    return isWorkflowEdgeActive(edge, results);
   }
 
   private addInput(

@@ -228,6 +228,86 @@ describe('WorkflowNodeGraphRunnerService — lost-lease catch path (#4307)', () 
   );
 
   it.each([false, true])(
+    'routes mixed begin data and dispatch failure through actual compensation classification (%s)',
+    async (failed) => {
+      const called: string[] = [];
+      const beginState = { acquired: true, organizationId: 'org-1' };
+      engineAdapter.executeNode.mockImplementation(
+        async (
+          current: ExecutableNode,
+          inputs: Map<string, unknown>,
+        ): Promise<NodeExecutionResult> => {
+          called.push(current.id);
+          if (current.id === 'release') {
+            expect(inputs.get('state')).toEqual(beginState);
+            expect(inputs.get('failure')).toMatchObject({
+              failedNodeId: 'dispatch',
+              error: 'boom',
+            });
+          }
+          return {
+            nodeId: current.id,
+            status:
+              current.id === 'dispatch' && failed ? 'failed' : 'completed',
+            error: current.id === 'dispatch' && failed ? 'boom' : undefined,
+            output: current.id === 'begin' ? beginState : {},
+            creditsUsed: 0,
+            retryCount: 0,
+            startedAt: new Date(),
+          };
+        },
+      );
+      const graph: ExecutableWorkflow = {
+        ...workflow,
+        nodes: [
+          createExecutableActionNode({
+            id: 'begin',
+            actionId: 'agent.autopilot.begin',
+          }),
+          createExecutableActionNode({ id: 'dispatch', actionId: 'publish' }),
+          createExecutableActionNode({
+            id: 'release',
+            actionId: 'agent.autopilot.fail',
+          }),
+        ],
+        edges: [
+          { id: 'work', source: 'begin', target: 'dispatch' },
+          {
+            id: 'state',
+            source: 'begin',
+            target: 'release',
+            targetHandle: 'state',
+          },
+          {
+            id: 'failure',
+            source: 'dispatch',
+            target: 'release',
+            sourceHandle: 'failure',
+            targetHandle: 'failure',
+          },
+        ],
+      };
+      const graphRunner = new WorkflowNodeGraphRunnerService(
+        engineAdapter as never,
+        new WorkflowExecutionGraphService(),
+        progressService as never,
+        nodeProgressTracker as never,
+        reviewGateService as never,
+      );
+      const result = await graphRunner.executeNodeGraph(
+        graph,
+        triggerEvent,
+        'execution-1',
+        { startedAt: new Date(), workflowLabel: 'Mixed sweep' },
+      );
+      expect(called).toEqual(
+        failed ? ['begin', 'dispatch', 'release'] : ['begin', 'dispatch'],
+      );
+      expect(result.status).toBe(failed ? 'failed' : 'completed');
+    },
+  );
+
+  it.each([false, true])(
     'restores failed status after delay resume (cached failure: %s)',
     async (cachedFailure) => {
       const failure = { error: 'boom', failedNodeId: 'work', nodeOutputs: {} };

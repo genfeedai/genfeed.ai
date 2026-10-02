@@ -1,8 +1,9 @@
 import { WorkflowExecutionGraphService } from '@api/collections/workflows/services/workflow-execution-graph.service';
-import type {
-  ExecutableEdge,
-  ExecutableNode,
-  NodeExecutionResult,
+import {
+  createExecutableActionNode,
+  type ExecutableEdge,
+  type ExecutableNode,
+  type NodeExecutionResult,
 } from '@genfeedai/workflows/engine';
 import { describe, expect, it } from 'vitest';
 
@@ -258,4 +259,71 @@ describe('WorkflowExecutionGraphService', () => {
     );
     expect(failureSkipped).toEqual(new Set());
   });
+});
+
+describe('WorkflowExecutionGraphService mixed data/control paths', () => {
+  it.each([false, true])(
+    'requires actual failed source despite successful begin state (%s)',
+    (failed) => {
+      const service = new WorkflowExecutionGraphService();
+      const node = createExecutableActionNode({
+        id: 'release',
+        actionId: 'agent.autopilot.fail',
+      });
+      const edges: ExecutableEdge[] = [
+        {
+          id: 'state',
+          source: 'begin',
+          target: 'release',
+          targetHandle: 'state',
+        },
+        {
+          id: 'failure',
+          source: 'dispatch',
+          target: 'release',
+          sourceHandle: 'failure',
+          targetHandle: 'failure',
+        },
+      ];
+      const results = new Map<string, Pick<NodeExecutionResult, 'status'>>([
+        ['begin', { status: 'completed' }],
+        ['dispatch', { status: failed ? 'failed' : 'completed' }],
+      ]);
+      expect(
+        service.isNodeReachable(
+          'release',
+          edges,
+          new Set(['begin', 'dispatch']),
+          new Set(),
+          results,
+          node,
+        ),
+      ).toBe(failed);
+      const inputs = service.gatherInputs(
+        node,
+        edges,
+        new Map<string, unknown>([
+          ['begin', { acquired: true }],
+          [
+            'dispatch',
+            failed ? { failure: { error: 'boom' } } : { failure: 'data only' },
+          ],
+        ]),
+        results,
+      );
+      expect(inputs.get('state')).toEqual({ acquired: true });
+      expect(inputs.has('failure')).toBe(failed);
+      const generic = { ...node, type: 'workflowInput', config: {} };
+      expect(
+        service.isNodeReachable(
+          'release',
+          edges,
+          new Set(['begin', 'dispatch']),
+          new Set(),
+          results,
+          generic,
+        ),
+      ).toBe(true);
+    },
+  );
 });
