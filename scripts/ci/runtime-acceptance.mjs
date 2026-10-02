@@ -33,6 +33,8 @@ const SHA = /^[a-f0-9]{40}$/;
 const HASH = /^[a-f0-9]{64}$/;
 const GROUPS = [
   'dataset-diagnostic',
+  'dataset-smoke',
+  'dataset-scale',
   'final',
   'visual-isolation',
   'visual-connected',
@@ -44,6 +46,7 @@ const DATASET_UNIT = `${DATASET_DIRECTORY}learning-dataset.service.spec.ts`;
 const DATASET_PG = `${DATASET_DIRECTORY}learning-dataset.postgres.spec.ts`;
 const DATASET_SUITE = 'dataset atomic scalability on isolated PostgreSQL';
 const MATRIX_TITLE = `${DATASET_SUITE} measures 1k/10k/100k owned and consented three times after warmup plus mixed`;
+const SMOKE_TITLE = `${DATASET_SUITE} checks one 10k owned, consented and mixed snapshot for deployment`;
 const DIAGNOSTIC_TITLE = `${DATASET_SUITE} profiles one 10k and one 100k consented snapshot without replacing acceptance matrix`;
 export const PG_TITLES = [
   'creates genuine publication/capture/materializer lineage and exact scalar/bulk dataset pins',
@@ -698,6 +701,7 @@ export function datasetChildEnvironment(url) {
     LEARNING_DATASET_TEST_DATABASE_URL: url,
     LEARNING_DATASET_PROFILE: '',
     LEARNING_DATASET_BENCHMARK: '',
+    LEARNING_DATASET_SMOKE: '',
     LEARNING_DATASET_SEED_DIAGNOSTICS: '1',
   };
 }
@@ -890,11 +894,21 @@ const REQUIRED = {
     'dataset-typecheck',
     'dataset-diagnostic',
   ],
+  'dataset-smoke': [
+    'dataset-correctness',
+    'dataset-typecheck',
+    'dataset-smoke',
+  ],
+  'dataset-scale': [
+    'dataset-correctness',
+    'dataset-typecheck',
+    'dataset-matrix',
+  ],
   final: [
     'learning-runtime',
     'dataset-correctness',
     'dataset-typecheck',
-    'dataset-matrix',
+    'dataset-smoke',
     'brand-preparation',
     'brand-migration',
     'brand-units',
@@ -1198,12 +1212,15 @@ export function validateReport(report, contracts, child) {
   return result;
 }
 export function parseDatasetRecords(output, mode) {
-  requireThat(['diagnostic', 'matrix'].includes(mode), 'INVALID_DATASET_MODE');
+  requireThat(
+    ['diagnostic', 'matrix', 'smoke'].includes(mode),
+    'INVALID_DATASET_MODE',
+  );
   const records = output.split('\n').flatMap((line) => {
     const start = line.indexOf('{');
     if (start < 0) {
       requireThat(
-        !/dataset(?:Benchmark|Diagnostic)/.test(line),
+        !/dataset(?:Benchmark|Diagnostic|Smoke)/.test(line),
         'MALFORMED_DATASET_RECORD',
       );
       return [];
@@ -1213,12 +1230,13 @@ export function parseDatasetRecords(output, mode) {
       return value &&
         typeof value === 'object' &&
         (Object.hasOwn(value, 'datasetDiagnostic') ||
-          Object.hasOwn(value, 'datasetBenchmark'))
+          Object.hasOwn(value, 'datasetBenchmark') ||
+          Object.hasOwn(value, 'datasetSmoke'))
         ? [value]
         : [];
     } catch {
       requireThat(
-        !/dataset(?:Benchmark|Diagnostic)/.test(line),
+        !/dataset(?:Benchmark|Diagnostic|Smoke)/.test(line),
         'MALFORMED_DATASET_RECORD',
       );
       return [];
@@ -1227,13 +1245,15 @@ export function parseDatasetRecords(output, mode) {
   const expected =
     mode === 'diagnostic'
       ? ['consented:10000:1', 'consented:100000:1']
-      : [1000, 10000, 100000]
-          .flatMap((size) =>
-            ['owned', 'consented'].flatMap((kind) =>
-              [0, 1, 2, 3].map((run) => `${kind}:${size}:${run}`),
-            ),
-          )
-          .concat('mixed:10000:1');
+      : mode === 'smoke'
+        ? ['owned:10000:1', 'consented:10000:1', 'mixed:10000:1']
+        : [1000, 10000, 100000]
+            .flatMap((size) =>
+              ['owned', 'consented'].flatMap((kind) =>
+                [0, 1, 2, 3].map((run) => `${kind}:${size}:${run}`),
+              ),
+            )
+            .concat('mixed:10000:1');
   requireThat(records.length === expected.length, 'DATASET_RECORD_COUNT');
   const seen = new Set();
   for (const record of records) {
@@ -1247,8 +1267,15 @@ export function parseDatasetRecords(output, mode) {
       mode === 'diagnostic'
         ? record.datasetDiagnostic === true &&
             record.datasetBenchmark === false &&
+            !record.datasetSmoke &&
             record.samplePurpose === 'diagnostic-only-not-matrix-acceptance'
-        : record.datasetBenchmark === true &&
+        : mode === 'smoke'
+          ? record.datasetSmoke === true &&
+            record.datasetBenchmark === false &&
+            !record.datasetDiagnostic &&
+            record.samplePurpose === 'deployment-smoke'
+          : record.datasetBenchmark === true &&
+            !record.datasetSmoke &&
             !record.datasetDiagnostic &&
             record.samplePurpose ===
               (record.run === 0 ? 'matrix-warmup' : 'matrix-measurement'),
@@ -1290,9 +1317,9 @@ export function parseDatasetRecords(output, mode) {
         record.maxBindParameters <= 32767 &&
         record.selectedRows === rows &&
         record.graphNodesMaxPass ===
-          (record.kind === 'owned' ? 0 : 4 * record.size + 21) &&
+          (record.kind === 'owned' ? 0 : 7 * record.size + 36) &&
         record.graphEdgesMaxPass ===
-          (record.kind === 'owned' ? 0 : 6 * record.size + 200),
+          (record.kind === 'owned' ? 0 : 12 * record.size + 210),
       'DATASET_LIMIT',
     );
   }
@@ -2422,6 +2449,8 @@ export function validateTiming(group, value, now = Date.now()) {
   const wall = {
     final: 3600000,
     'dataset-diagnostic': 1200000,
+    'dataset-scale': 2400000,
+    'dataset-smoke': 1200000,
     'visual-isolation': 1500000,
     'visual-connected': 6300000,
     'agent-production': 1200000,
@@ -2489,7 +2518,11 @@ export async function createState(options, env) {
   const controlSHA = options['control-sha'];
   requireThat(
     (await head(repo)) ===
-      (options.group === 'dataset-diagnostic' ? controlSHA : candidateSHA),
+      (['dataset-diagnostic', 'dataset-smoke', 'dataset-scale'].includes(
+        options.group,
+      )
+        ? controlSHA
+        : candidateSHA),
     'CHECKOUT_MISMATCH',
   );
   if (['agent-production', 'brand-acceptance'].includes(options.group))
@@ -5211,7 +5244,14 @@ export async function execution(identity, env) {
         'LEARNING_CLEANUP_REQUIRED',
       );
     }
-    if (['final', 'dataset-diagnostic'].includes(identity.group))
+    if (
+      [
+        'final',
+        'dataset-diagnostic',
+        'dataset-smoke',
+        'dataset-scale',
+      ].includes(identity.group)
+    )
       await attempt('dataset', async () => {
         const url = await database('genfeed_dataset_5781_test');
         const datasetEnv = datasetChildEnvironment(url);
@@ -5224,7 +5264,7 @@ export async function execution(identity, env) {
               file: DATASET_PG,
               count: 10,
               titles: PG_TITLES,
-              skipped: [MATRIX_TITLE, DIAGNOSTIC_TITLE],
+              skipped: [MATRIX_TITLE, DIAGNOSTIC_TITLE, SMOKE_TITLE],
             },
           ],
           {
@@ -5278,7 +5318,17 @@ export async function execution(identity, env) {
           await rm(config, { force: true });
         }
         const diagnostic = identity.group === 'dataset-diagnostic';
-        const stage = diagnostic ? 'dataset-diagnostic' : 'dataset-matrix';
+        const smoke = ['final', 'dataset-smoke'].includes(identity.group);
+        const stage = diagnostic
+          ? 'dataset-diagnostic'
+          : smoke
+            ? 'dataset-smoke'
+            : 'dataset-matrix';
+        const selectedTitle = diagnostic
+          ? DIAGNOSTIC_TITLE
+          : smoke
+            ? SMOKE_TITLE
+            : MATRIX_TITLE;
         const measuredUrl = await database(
           diagnostic
             ? 'genfeed_dataset_5781_profile_test'
@@ -5290,10 +5340,12 @@ export async function execution(identity, env) {
             {
               file: DATASET_PG,
               count: 1,
-              titles: [diagnostic ? DIAGNOSTIC_TITLE : MATRIX_TITLE],
+              titles: [selectedTitle],
               skipped: [
                 ...PG_TITLES,
-                diagnostic ? MATRIX_TITLE : DIAGNOSTIC_TITLE,
+                ...[MATRIX_TITLE, DIAGNOSTIC_TITLE, SMOKE_TITLE].filter(
+                  (title) => title !== selectedTitle,
+                ),
               ],
             },
           ],
@@ -5304,17 +5356,21 @@ export async function execution(identity, env) {
               LEARNING_DATASET_TEST_DATABASE_URL: measuredUrl,
               ...(diagnostic
                 ? { LEARNING_DATASET_PROFILE: '1' }
-                : { LEARNING_DATASET_BENCHMARK: '1' }),
+                : smoke
+                  ? { LEARNING_DATASET_SMOKE: '1' }
+                  : { LEARNING_DATASET_BENCHMARK: '1' }),
             },
-            timeout: diagnostic ? 330000 : 1170000,
+            timeout: diagnostic || smoke ? 330000 : 1170000,
             pattern: diagnostic
               ? 'profiles one 10k and one 100k consented snapshot'
-              : 'measures 1k/10k/100k',
+              : smoke
+                ? 'checks one 10k owned, consented and mixed'
+                : 'measures 1k/10k/100k',
           },
         );
         const records = parseDatasetRecords(
           stdout,
-          diagnostic ? 'diagnostic' : 'matrix',
+          diagnostic ? 'diagnostic' : smoke ? 'smoke' : 'matrix',
         );
         await save(`raw/${stage}.records.json`, JSON.stringify(records));
       });
@@ -6354,7 +6410,14 @@ export async function execution(identity, env) {
             privateEnv,
           ),
         );
-    if (['final', 'dataset-diagnostic'].includes(identity.group))
+    if (
+      [
+        'final',
+        'dataset-diagnostic',
+        'dataset-smoke',
+        'dataset-scale',
+      ].includes(identity.group)
+    )
       for (const kind of ['redis', 'postgres'])
         if (identity.resources[kind])
           await clean('service-container', () =>
@@ -6793,6 +6856,8 @@ export async function sealState(identity, env) {
 }
 const QUALIFIED_CLI_GROUPS = new Set([
   'dataset-diagnostic',
+  'dataset-smoke',
+  'dataset-scale',
   'final',
   'agent-production',
   'brand-acceptance',

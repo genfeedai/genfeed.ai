@@ -200,8 +200,8 @@ function datasetRecord(kind, size, run, diagnostic = false) {
     decisionLockBatches: 1,
     maxBindParameters: 100,
     selectedRows: size + (kind === 'mixed' ? 1 : 0),
-    graphNodesMaxPass: kind === 'owned' ? 0 : 4 * size + 21,
-    graphEdgesMaxPass: kind === 'owned' ? 0 : 6 * size + 200,
+    graphNodesMaxPass: kind === 'owned' ? 0 : 7 * size + 36,
+    graphEdgesMaxPass: kind === 'owned' ? 0 : 12 * size + 210,
   };
 }
 const matrix = () =>
@@ -398,7 +398,7 @@ test('requires actual successful original exit, exact cases, and only permitted 
   );
 });
 
-test('dataset diagnostic cannot satisfy final matrix and matrix coverage is exact', () => {
+test('dataset diagnostic cannot satisfy weekly matrix and matrix coverage is exact', () => {
   const diagnostic = [
     datasetRecord('consented', 10000, 1, true),
     datasetRecord('consented', 100000, 1, true),
@@ -422,6 +422,72 @@ test('dataset diagnostic cannot satisfy final matrix and matrix coverage is exac
       `${lines(matrix())}\ndatasetDiagnostic malformed`,
       'matrix',
     ),
+  );
+});
+
+test('deployment requires exact 10k smoke evidence and never accepts the weekly matrix', () => {
+  const smoke = ['owned', 'consented', 'mixed'].map((kind) => ({
+    ...datasetRecord(kind, 10000, 1),
+    datasetBenchmark: false,
+    datasetSmoke: true,
+    samplePurpose: 'deployment-smoke',
+  }));
+  assert.equal(parseDatasetRecords(lines(smoke), 'smoke').length, 3);
+  assert.throws(() => parseDatasetRecords(lines(matrix()), 'smoke'));
+  assert.throws(() => parseDatasetRecords(lines(smoke), 'matrix'));
+  assert.throws(() => parseDatasetRecords(lines(smoke.slice(1)), 'smoke'));
+  for (const field of ['size', 'run', 'samplePurpose', 'datasetSmoke']) {
+    const wrong = structuredClone(smoke);
+    wrong[1][field] = {
+      size: 100000,
+      run: 0,
+      samplePurpose: 'matrix-measurement',
+      datasetSmoke: false,
+    }[field];
+    assert.throws(() => parseDatasetRecords(lines(wrong), 'smoke'));
+  }
+  const duplicated = structuredClone(smoke);
+  duplicated[1] = duplicated[0];
+  assert.throws(() => parseDatasetRecords(lines(duplicated), 'smoke'));
+  assert.throws(() =>
+    parseDatasetRecords(
+      `${lines(smoke)}\n{"datasetSmoke":true,broken`,
+      'smoke',
+    ),
+  );
+  const obsoleteGraph = structuredClone(smoke);
+  obsoleteGraph[1].graphNodesMaxPass = 4 * 10000 + 21;
+  obsoleteGraph[1].graphEdgesMaxPass = 6 * 10000 + 200;
+  assert.throws(() => parseDatasetRecords(lines(obsoleteGraph), 'smoke'));
+  const tooSlow = structuredClone(smoke);
+  tooSlow[1].elapsedMs = 60001;
+  assert.throws(() => parseDatasetRecords(lines(tooSlow), 'smoke'));
+});
+
+test('100k scale workflow is weekly/manual and separate from deployment acceptance', async () => {
+  const workflow = await readFile(
+    new URL('../../.github/workflows/dataset-scale.yml', import.meta.url),
+    'utf8',
+  );
+  assert.match(workflow, /schedule:\s*- cron: '17 3 \* \* 0'/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.doesNotMatch(workflow, /workflow_call:|workflow_run:|push:/);
+  assert.match(workflow, /timeout-minutes: 40/);
+  assert.match(workflow, /--group dataset-scale/);
+  assert.match(workflow, /node "\$CONTROL_RUNNER" dataset-scale/);
+  assert.match(
+    workflow,
+    /CANDIDATE_SHA: \$\{\{ inputs.candidate_sha \|\| github.sha \}\}/,
+  );
+  assert.match(workflow, /if-no-files-found: error/);
+  const controller = await readFile(CLI_PATH, 'utf8');
+  assert.match(
+    controller,
+    /final: \[\s*'learning-runtime',\s*'dataset-correctness',\s*'dataset-typecheck',\s*'dataset-smoke'/,
+  );
+  assert.match(
+    controller,
+    /'dataset-scale': \[\s*'dataset-correctness',\s*'dataset-typecheck',\s*'dataset-matrix'/,
   );
 });
 
@@ -935,6 +1001,8 @@ test('dataset marker-bearing extra records never disappear from coverage validat
     { datasetBenchmark: 'true' },
     { datasetDiagnostic: false },
     { datasetDiagnostic: 1 },
+    { datasetSmoke: false },
+    { datasetSmoke: 'true' },
   ])
     assert.throws(() =>
       parseDatasetRecords(
@@ -1063,6 +1131,8 @@ for (const relative of [
   });
 const QUALIFIED_GROUPS = [
   'dataset-diagnostic',
+  'dataset-smoke',
+  'dataset-scale',
   'final',
   'agent-production',
   'brand-acceptance',
@@ -1085,7 +1155,7 @@ async function persistFixtureIdentity(value, savedDirectory = value.state) {
     { mode: 0o600 },
   );
 }
-test('source qualification is exactly the six prepared fixed groups', async () => {
+test('source qualification is exactly the prepared fixed groups', async () => {
   const source = await readFile(CLI_PATH, 'utf8');
   const declaration = source.match(
     /const QUALIFIED_CLI_GROUPS = new Set\(\[([\s\S]*?)\]\)/,
@@ -1158,7 +1228,9 @@ for (const group of QUALIFIED_GROUPS) {
         {
           ...options,
           group,
-          ...(group === 'dataset-diagnostic'
+          ...(['dataset-diagnostic', 'dataset-smoke', 'dataset-scale'].includes(
+            group,
+          )
             ? { 'control-sha': CONTROL }
             : { 'candidate-sha': SHA }),
         },
@@ -4753,7 +4825,7 @@ async function finalQualifiedFixture() {
     'learning-runtime',
     'dataset-correctness',
     'dataset-typecheck',
-    'dataset-matrix',
+    'dataset-smoke',
     'brand-preparation',
     'brand-migration',
     'brand-units',
@@ -6203,6 +6275,7 @@ test('dataset correctness requires all ten ordinary publication and graph cases'
     LEARNING_DATASET_TEST_DATABASE_URL: url,
     LEARNING_DATASET_PROFILE: '',
     LEARNING_DATASET_BENCHMARK: '',
+    LEARNING_DATASET_SMOKE: '',
     LEARNING_DATASET_SEED_DIAGNOSTICS: '1',
   });
   assert.equal(PG_TITLES.length, 10);

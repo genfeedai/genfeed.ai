@@ -863,7 +863,14 @@ test('dataset diagnostic freezes inspected control before the exact candidate ch
   );
   assert.match(workflow, /ref: \$\{\{ inputs\.candidate_sha \}\}/);
   assert.match(workflow, /test "\$\(git rev-parse HEAD\)" = "\$CANDIDATE_SHA"/);
-  assert.match(workflow, /node "\$CONTROL_RUNNER" dataset-diagnostic/);
+  assert.match(workflow, /default: smoke/);
+  assert.match(workflow, /options:\s*- smoke\s*- profile/);
+  assert.match(
+    workflow,
+    /DATASET_GROUP: \$\{\{ inputs\.mode == 'profile' && 'dataset-diagnostic' \|\| 'dataset-smoke' \}\}/,
+  );
+  assert.match(workflow, /--group "\$DATASET_GROUP"/);
+  assert.match(workflow, /node "\$CONTROL_RUNNER" "\$DATASET_GROUP"/);
   assert.match(
     workflow,
     /RUNTIME_ACCEPTANCE_PUBLIC_KEY: \$\{\{ vars\.RUNTIME_ACCEPTANCE_PUBLIC_KEY \}\}/,

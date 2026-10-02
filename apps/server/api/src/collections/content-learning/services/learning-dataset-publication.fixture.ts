@@ -45,6 +45,19 @@ import { SchedulerPublishStateService } from '@workers/services/scheduler-publis
 const logger: ServerLogger = { error: () => {}, log: () => {}, warn: () => {} };
 const publishedAt = new Date('2026-09-01T00:00:00.000Z');
 
+export type DatasetFixtureAdmission = { assertOpen(): void };
+
+function admissionProgress(
+  progress: DatasetPublicationProgress | undefined,
+  admission: DatasetFixtureAdmission | undefined,
+): DatasetPublicationProgress | undefined {
+  if (!admission) return progress;
+  return (phase, event, elapsedMs) => {
+    if (event === 'start') admission.assertOpen();
+    progress?.(phase, event, elapsedMs);
+  };
+}
+
 export type DatasetPublicationPhase =
   | 'post-create'
   | 'approve'
@@ -130,7 +143,9 @@ export async function createLearningDatasetPublication(
   index: number,
   namespace: string,
   progress?: DatasetPublicationProgress,
+  admission?: DatasetFixtureAdmission,
 ) {
+  progress = admissionProgress(progress, admission);
   const { organizationId, postId } = await createPublicationPost(
     prisma,
     index,
@@ -164,6 +179,7 @@ export async function createLearningDatasetPublication(
     throw new Error(
       'Fixture publication did not acquire actual execution lease',
     );
+  const executionStartedAt = claim.executionStartedAt;
   const lifecycle = new PostLifecycleService(prisma, logger);
   const scheduler = new SchedulerPublishStateService(
     prisma as unknown as PrismaService,
@@ -216,7 +232,7 @@ export async function createLearningDatasetPublication(
       operationId: approval.operationId,
       organizationId,
       versionPinId: approval.artifactVersionPinId,
-      executionStartedAt: claim.executionStartedAt,
+      executionStartedAt,
       isSuccessful: true,
     }),
   );
@@ -235,6 +251,7 @@ export async function createLearningDatasetPublications(
   size: number,
   namespace: string,
   progress?: DatasetPublicationProgress,
+  admission?: DatasetFixtureAdmission,
 ) {
   const publications: Awaited<
     ReturnType<typeof createLearningDatasetPublication>
@@ -242,17 +259,35 @@ export async function createLearningDatasetPublications(
   for (let batch = 0; batch < size; batch += 1000) {
     const end = Math.min(size, batch + 1000);
     for (let start = batch; start < end; start += 4) {
-      const group = await Promise.all(
+      admission?.assertOpen();
+      let failed = false;
+      let failure: unknown;
+      const groupAdmission = {
+        assertOpen() {
+          admission?.assertOpen();
+          if (failed) throw failure;
+        },
+      };
+      const settled = await Promise.allSettled(
         Array.from({ length: Math.min(4, end - start) }, (_, offset) =>
           createLearningDatasetPublication(
             prisma,
             start + offset,
             namespace,
             progress,
-          ),
+            groupAdmission,
+          ).catch((error: unknown) => {
+            if (!failed) failure = error;
+            failed = true;
+            throw error;
+          }),
         ),
       );
-      publications.push(...group);
+      if (failed) throw failure;
+      for (const result of settled) {
+        if (result.status === 'rejected') throw result.reason;
+        publications.push(result.value);
+      }
     }
   }
   return publications;
@@ -262,7 +297,9 @@ export async function createLearningDatasetPublicationEvidence(
   prisma: PrismaClient<'query'>,
   publications: Awaited<ReturnType<typeof createLearningDatasetPublications>>,
   progress?: DatasetPublicationProgress,
+  admission?: DatasetFixtureAdmission,
 ) {
+  progress = admissionProgress(progress, admission);
   const servicePrisma = prisma as unknown as ApiPrismaService;
   const dependencies = new LearningDependencyService(servicePrisma);
   const scopes = new LearningScopeStateService(servicePrisma, dependencies);
