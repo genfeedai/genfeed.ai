@@ -267,17 +267,17 @@ export const LEARNING_SOURCE_CONTRACT = Object.freeze({
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.fixture.ts',
       sha256:
-        '269a5dc3c2a20e2ba90cf8528acb46f690abcccc39fd514908a0a22c15673021',
+        'd1a5a5985efdf27d6c4b859be3381768e121f3b472cebfe8a3cc8ed1c92c3855',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.integration.spec.ts',
       sha256:
-        '9a93f3798442897115699f5ea37998526fa844cf5db8cc05d75211850eb4d046',
+        '28713769ea4b51726272ad2b5a77adffa0abca0e9e3db768c1db0a778a621077',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-publication-races.integration.spec.ts',
       sha256:
-        'f5d5e805e67191452909dfdc7663edb0e5125e98633fb77712e82728e7a0bf0d',
+        'af8ae152ddbd8cdaac9fefb4a95450cb31578d18b25c2fcf5b6a2c170c945251',
     },
     {
       path: 'apps/server/api/vitest.learning-runtime.config.ts',
