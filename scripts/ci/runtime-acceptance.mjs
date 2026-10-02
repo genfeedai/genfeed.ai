@@ -251,7 +251,7 @@ export const LEARNING_SOURCE_CONTRACT = Object.freeze({
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.fixture.ts',
       sha256:
-        'afb3cef726e87dc87c5b42dacf9efa675ac0dcf4a23f4bc78dcb9cfb19f36ecb',
+        'b25c84d3c7256947a2ca43a454095a8282c1df657be18fdf4b857909f7a0e7d9',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.integration.spec.ts',
@@ -1371,6 +1371,14 @@ export async function createFinalOwnedDatabase(identity, name, adapters) {
   resource.created = true;
   await adapters.persist(identity);
   return url;
+}
+// Scoped to one final execution; image and video use the same owned database.
+export function createFinalCrunDatabaseAllocator(database) {
+  let url;
+  return async () => {
+    url ??= await database('genfeed_crun_test');
+    return url;
+  };
 }
 export async function cleanupFinalOwnedDatabase(
   identity,
@@ -4398,7 +4406,7 @@ export async function verifyFinalLearningCleanup(
   };
 }
 
-async function execution(identity, env) {
+export async function execution(identity, env) {
   if (['agent-production', 'brand-acceptance'].includes(identity.group))
     return executeDedicatedAcceptance(identity, env);
   if (identity.group === 'final') {
@@ -4853,6 +4861,7 @@ async function execution(identity, env) {
     }
   };
   let coordinator;
+  let outcome;
   const visualRetry = new Map();
   const cleanupResult = { passed: true, operations: [] };
   try {
@@ -5197,13 +5206,14 @@ async function execution(identity, env) {
       );
       identity.resources.crun = { image: null, video: null };
       await persistIdentity(identity);
+      const crunDatabase = createFinalCrunDatabaseAllocator(database);
       for (const mediaKind of ['image', 'video']) {
         const stage = `crun-${mediaKind}`;
         const priorFailures = failures.length;
         await attempt(stage, async () => {
           const contract = CRUN_SOURCE_CONTRACT[mediaKind];
           await verifyFrozenSources(identity.repo, [contract]);
-          const url = await database('genfeed_crun_test');
+          const url = await crunDatabase();
           const redis = 'redis://127.0.0.1:6379/11';
           validateUrl(redis, 'redis');
           const uuid = randomUUID();

@@ -38,6 +38,7 @@ import {
   cleanupFinalOwnedDatabase,
   collectConnectedEvidence,
   collectIsolationEvidence,
+  createFinalCrunDatabaseAllocator,
   createFinalOwnedDatabase,
   createState,
   DEDICATED_BUDGETS,
@@ -46,6 +47,7 @@ import {
   dedicatedChildEnvironment,
   ENVELOPE_LIMIT,
   encryptEvidence,
+  execution,
   FINAL_LEARNING_BUDGET,
   hasFinalCrunTerminationProof,
   hasFinalLearningTerminationProof,
@@ -4562,6 +4564,13 @@ test('final dispatcher awaits each supervised stage and blocks video after image
     ),
   );
   assert.match(loop, /await attempt\(stage/);
+  const allocation = source.indexOf(
+    'const crunDatabase = createFinalCrunDatabaseAllocator(database)',
+    source.indexOf('identity.resources.crun = { image: null, video: null }'),
+  );
+  assert.ok(allocation >= 0 && allocation < source.indexOf(loop));
+  assert.match(loop, /const url = await crunDatabase\(\)/);
+  assert.doesNotMatch(loop, /await database\('genfeed_crun_test'\)/);
   assert.match(
     loop,
     /await verifyFrozenSources\(identity.repo, \[contract\]\)/,
@@ -5390,4 +5399,120 @@ test('dataset diagnostic resolves setup action from the control revision', async
       workflow.indexOf('- name: Setup Bun environment'),
   );
   assert.match(workflow, /ref: \$\{\{ inputs\.candidate_sha \}\}/u);
+});
+
+test('final Crun stages allocate one owned database and retain one outer cleanup journal entry', async () => {
+  const value = finalDatabaseFixture();
+  let exists = false;
+  value.adapters.absent = async () => (exists ? '1' : '');
+  value.adapters.create = async () => {
+    exists = true;
+    value.calls.push('create');
+  };
+  value.adapters.drop = async () => {
+    exists = false;
+    value.calls.push('drop');
+  };
+  const allocate = createFinalCrunDatabaseAllocator((name) =>
+    createFinalOwnedDatabase(value.identity, name, value.adapters),
+  );
+  const imageUrl = await allocate();
+  const videoUrl = await allocate();
+  assert.equal(videoUrl, imageUrl);
+  assert.equal(new URL(imageUrl).pathname, '/genfeed_crun_test');
+  assert.equal(value.calls.filter((call) => call === 'create').length, 1);
+  assert.equal(value.identity.resources.databases.length, 1);
+  assert.equal(value.identity.resources.databases[0].created, true);
+  assert.equal(exists, true);
+  await cleanupFinalOwnedDatabase(
+    value.identity,
+    value.identity.resources.databases[0],
+    value.adapters,
+    Date.now() + 60000,
+  );
+  assert.equal(exists, false);
+  assert.equal(value.calls.filter((call) => call === 'drop').length, 1);
+  assert.equal(value.identity.resources.databases[0].removed, true);
+});
+
+test('final Crun allocator preserves a lost creation response for exact owned cleanup', async () => {
+  const value = finalDatabaseFixture();
+  const original = new Error('owned creation response lost');
+  let exists = false;
+  value.adapters.absent = async () => (exists ? '1' : '');
+  value.adapters.create = async () => {
+    exists = true;
+    throw original;
+  };
+  value.adapters.drop = async () => {
+    exists = false;
+    value.calls.push('drop');
+  };
+  const allocate = createFinalCrunDatabaseAllocator((name) =>
+    createFinalOwnedDatabase(value.identity, name, value.adapters),
+  );
+  await assert.rejects(allocate(), (error) => error === original);
+  const [resource] = value.identity.resources.databases;
+  assert.equal(value.identity.resources.databases.length, 1);
+  assert.equal(resource.created, false);
+  assert.equal(resource.intentPersisted, true);
+  assert.equal(resource.creationIssued, true);
+  await cleanupFinalOwnedDatabase(
+    value.identity,
+    resource,
+    value.adapters,
+    Date.now() + 60000,
+  );
+  assert.equal(exists, false);
+  assert.equal(resource.removed, true);
+});
+
+test('a fresh Crun allocator does not adopt an existing database', async () => {
+  const value = finalDatabaseFixture();
+  value.adapters.absent = async () => '1';
+  const allocate = createFinalCrunDatabaseAllocator((name) =>
+    createFinalOwnedDatabase(value.identity, name, value.adapters),
+  );
+  await assert.rejects(allocate(), { code: 'DATABASE_ALREADY_EXISTS' });
+  assert.deepEqual(value.identity.resources.databases, []);
+  assert.equal(value.calls.includes('create'), false);
+});
+
+test('actual execution returns its persisted failure outcome after an expired work budget', async (t) => {
+  const { value } = await stateFixture(t);
+  value.overallDeadline = Date.now();
+  const result = await execution(value, credentialEnv());
+  assert.equal(result.status, 'failed');
+  assert.ok(
+    result.failures.some(
+      (failure) =>
+        failure.stage === 'preparation' &&
+        failure.code === 'AGGREGATE_DEADLINE',
+    ),
+  );
+  assert.ok(
+    result.failures.some((failure) => failure.code === 'INCOMPLETE_GROUPS'),
+  );
+  assert.equal(value.phase, 'finished');
+  assert.deepEqual(result.commands, []);
+  assert.deepEqual(value.resources, { databases: [], containers: [] });
+  assert.deepEqual(
+    JSON.parse(await readFile(path.join(value.state, 'outcome.json'), 'utf8')),
+    result,
+  );
+  assert.equal(
+    JSON.parse(await readFile(path.join(value.state, 'identity.json'), 'utf8'))
+      .phase,
+    'finished',
+  );
+  await assert.rejects(readFile(path.join(value.state, 'receipt.json')), {
+    code: 'ENOENT',
+  });
+});
+
+test('learning fixture inventory freezes canonical persisted target execution state source', () => {
+  assert.equal(
+    LEARNING_SOURCE_CONTRACT.sourceInputs[0].sha256,
+    'b25c84d3c7256947a2ca43a454095a8282c1df657be18fdf4b857909f7a0e7d9',
+  );
 });
