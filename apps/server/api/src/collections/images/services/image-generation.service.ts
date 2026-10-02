@@ -560,11 +560,7 @@ export class ImageGenerationService {
       modelCategory,
     );
 
-    if (modelCategory === ModelCategory.IMAGE_EDIT && !isImageEditModel(model))
-      throw new HttpException(
-        'The configured editing model is unavailable. Select a supported editing model.',
-        HttpStatus.BAD_REQUEST,
-      );
+    this.assertSupportedEditingModel(model, modelCategory);
 
     // Validate resolved model against org (catches default-resolution bypassing
     // ModelsGuard). Prefer the verified token org so validation still runs when
@@ -646,6 +642,17 @@ export class ImageGenerationService {
       modelSchemaFamily,
       promptOriginalText,
     };
+  }
+
+  private assertSupportedEditingModel(
+    model: string,
+    modelCategory: ModelCategory,
+  ): void {
+    if (modelCategory === ModelCategory.IMAGE_EDIT && !isImageEditModel(model))
+      throw new HttpException(
+        'The configured editing model is unavailable. Select a supported editing model.',
+        HttpStatus.BAD_REQUEST,
+      );
   }
 
   /**
