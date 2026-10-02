@@ -1,14 +1,29 @@
+import {
+  invalidateLearningDependencySource,
+  learningFence,
+} from '@api/collections/content-learning/services/learning-dependency.service';
+import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
+import { loadLearningPublicationAssociationV1 } from '@api/collections/content-learning/services/learning-publication-source.helper';
+import {
+  type LearningPublicationPostRow,
+  learningPublicationPostSelect,
+} from '@api/collections/content-learning/services/learning-publication-source.types';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { CONTENT_LEARNING_ACTION_IDS } from '@api/collections/workflows/templates/content-learning-workflows.template';
 import { PostLifecycleService } from '@api/index';
 import {
+  fromPrismaCredentialPlatform,
   PostVisibility,
   ReleaseStatus,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { deriveReleaseStatusProjectionFromTargets } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type { IChannelTargetError } from '@genfeedai/contracts/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import type { Post, Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
+import { ConflictException } from '@nestjs/common';
 
 const MAX_SERIALIZABLE_ATTEMPTS = 3;
 
@@ -27,6 +42,7 @@ export type SchedulerPublishTargetUpdate = {
 };
 
 export type SchedulerPublishTransitionGuard = {
+  expectedExternalId?: string;
   expectedWorkflowExecutionId?: string;
   priorExecutionStates?: readonly TargetExecutionState[];
 };
@@ -51,6 +67,9 @@ type SchedulerPublishStateInput = {
   reason?: string;
   update: SchedulerPublishTargetUpdate;
 };
+
+type SchedulerPublicationSourceRow = LearningPublicationPostRow &
+  Pick<Post, 'workflowExecutionId'>;
 
 type SchedulerGroupRow = {
   id: string;
@@ -120,45 +139,49 @@ export class SchedulerPublishStateService {
     input: SchedulerPublishStateInput,
     tx: Prisma.TransactionClient,
   ): Promise<boolean> {
-    const transition = await this.postLifecycleService.transition(
-      {
-        error: input.update.error,
-        groupId: input.groupId,
-        guard: input.guard,
-        mutation: {
-          ...(input.update.externalId !== undefined && {
-            externalId: input.update.externalId,
-          }),
-          ...(input.update.externalShortcode !== undefined && {
-            externalShortcode: input.update.externalShortcode,
-          }),
-          ...(input.update.lastAttemptAt !== undefined && {
-            lastAttemptAt: input.update.lastAttemptAt,
-          }),
-          ...(input.update.publicationDate !== undefined && {
-            publicationDate: input.update.publicationDate,
-          }),
-          ...(input.update.publishedAt !== undefined && {
-            publishedAt: input.update.publishedAt,
-          }),
-          ...(input.update.retryCount !== undefined && {
-            retryCount: input.update.retryCount,
-          }),
-          ...(input.update.url !== undefined && {
-            url: input.update.url,
-          }),
-          ...(input.update.workflowExecutionId !== undefined && {
-            workflowExecutionId: input.update.workflowExecutionId,
-          }),
-        },
-        nextState: input.update.executionState,
-        organizationId: input.organizationId,
+    await learningFence(tx, 'exclusive');
+    const request = this.buildTransitionRequest(input);
+
+    const where = {
+      id: input.postId,
+      organizationId: input.organizationId,
+      isDeleted: false,
+    };
+    const discovered = await tx.post.findFirst({
+      where,
+      select: { ...learningPublicationPostSelect, workflowExecutionId: true },
+    });
+    if (!discovered) {
+      const unavailable = await this.postLifecycleService.transition(
+        request,
+        tx,
+      );
+      if (unavailable.kind === 'stale') return false;
+      if (input.groupId)
+        await this.rollUpRelease({ ...input, groupId: input.groupId }, tx);
+      return true;
+    }
+    const { before, lockedAccounts, accountWhere } =
+      await this.lockPublicationSource(input, tx, discovered);
+
+    if (
+      (input.guard?.expectedExternalId !== undefined &&
+        before.externalId !== input.guard.expectedExternalId) ||
+      (input.guard?.expectedWorkflowExecutionId !== undefined &&
+        before.workflowExecutionId !==
+          input.guard.expectedWorkflowExecutionId) ||
+      (input.guard?.priorExecutionStates &&
+        !input.guard.priorExecutionStates.includes(
+          before.targetExecutionState as TargetExecutionState,
+        ))
+    ) {
+      this.logger.warn(`${this.logContext} ignored stale publish transition`, {
         postId: input.postId,
-        reason: input.reason,
-        visibility: input.update.visibility,
-      },
-      tx,
-    );
+        ...input.guard,
+      });
+      return false;
+    }
+    const transition = await this.postLifecycleService.transition(request, tx);
     if (transition.kind === 'stale') {
       this.logger.warn(`${this.logContext} ignored stale publish transition`, {
         expectedWorkflowExecutionId: input.guard?.expectedWorkflowExecutionId,
@@ -169,21 +192,240 @@ export class SchedulerPublishStateService {
       return false;
     }
 
-    if (input.finalization) {
-      await tx.postPublishFinalization.create({
-        data: {
-          organizationId: input.organizationId,
-          postId: input.postId,
-          result: input.finalization.result,
-          source: input.finalization.source,
+    const after = await tx.post.findFirst({
+      where,
+      select: learningPublicationPostSelect,
+    });
+    if (!after)
+      throw new ConflictException(
+        'Publication source disappeared after transition.',
+      );
+    const newPublic =
+      after.targetExecutionState === TargetExecutionState.PUBLISHED &&
+      after.visibility === PostVisibility.PUBLIC &&
+      !(
+        before.targetExecutionState === TargetExecutionState.PUBLISHED &&
+        before.visibility === PostVisibility.PUBLIC
+      );
+    let associationInserted = false;
+    if (newPublic && input.finalization) {
+      const result = this.publicationResult(input.finalization.result);
+      const existing = await tx.postPublishFinalization.findUnique({
+        where: {
+          organizationId_postId: {
+            organizationId: input.organizationId,
+            postId: input.postId,
+          },
         },
       });
+      if (
+        !existing &&
+        result &&
+        result.externalId === after.externalId &&
+        result.platform === fromPrismaCredentialPlatform(after.platform ?? '')
+      ) {
+        const association = await loadLearningPublicationAssociationV1(
+          tx,
+          input.organizationId,
+          input.postId,
+        );
+        await tx.postPublishFinalization.create({
+          data: {
+            organizationId: input.organizationId,
+            postId: input.postId,
+            result: {
+              ...result,
+              ...(association ? { learningPublication: association } : {}),
+            },
+            source: input.finalization.source,
+          },
+        });
+        associationInserted = association !== null;
+      }
+    }
+    if (
+      associationInserted ||
+      this.factualTuple(before) !== this.factualTuple(after)
+    ) {
+      await invalidateLearningDependencySource(
+        tx,
+        'post',
+        input.postId,
+        input.organizationId,
+      );
+      for (const account of lockedAccounts) {
+        const updated = await tx.contentLearningAccount.updateMany({
+          where: { ...accountWhere, id: account.id },
+          data: { evidenceRevision: { increment: 1 } },
+        });
+        if (updated.count !== 1)
+          throw new ConflictException(
+            'Publication account changed during transition.',
+          );
+      }
     }
 
     if (input.groupId) {
       await this.rollUpRelease({ ...input, groupId: input.groupId }, tx);
     }
     return true;
+  }
+
+  private buildTransitionRequest(
+    input: SchedulerPublishStateInput,
+  ): Parameters<PostLifecycleService['transition']>[0] {
+    return {
+      error: input.update.error,
+      groupId: input.groupId,
+      guard: input.guard,
+      mutation: {
+        ...(input.update.externalId !== undefined && {
+          externalId: input.update.externalId,
+        }),
+        ...(input.update.externalShortcode !== undefined && {
+          externalShortcode: input.update.externalShortcode,
+        }),
+        ...(input.update.lastAttemptAt !== undefined && {
+          lastAttemptAt: input.update.lastAttemptAt,
+        }),
+        ...(input.update.publicationDate !== undefined && {
+          publicationDate: input.update.publicationDate,
+        }),
+        ...(input.update.publishedAt !== undefined && {
+          publishedAt: input.update.publishedAt,
+        }),
+        ...(input.update.retryCount !== undefined && {
+          retryCount: input.update.retryCount,
+        }),
+        ...(input.update.url !== undefined && {
+          url: input.update.url,
+        }),
+        ...(input.update.workflowExecutionId !== undefined && {
+          workflowExecutionId: input.update.workflowExecutionId,
+        }),
+      },
+      nextState: input.update.executionState,
+      organizationId: input.organizationId,
+      postId: input.postId,
+      reason: input.reason,
+      visibility: input.update.visibility,
+    };
+  }
+
+  private async lockPublicationSource(
+    input: SchedulerPublishStateInput,
+    tx: Prisma.TransactionClient,
+    discovered: SchedulerPublicationSourceRow,
+  ) {
+    const where = {
+      id: input.postId,
+      organizationId: input.organizationId,
+      isDeleted: false,
+    };
+    const accountWhere = {
+      organizationId: input.organizationId,
+      brandId: discovered.brandId,
+      credentialId: discovered.credentialId ?? '',
+      isDeleted: false,
+    };
+    const accounts = await tx.contentLearningAccount.findMany({
+      where: accountWhere,
+      select: { id: true },
+      orderBy: { id: 'asc' },
+    });
+    for (const account of accounts) {
+      await tx.$queryRaw`SELECT id FROM content_learning_accounts WHERE id = ${account.id} AND "organizationId" = ${input.organizationId} AND "brandId" = ${discovered.brandId} AND "credentialId" = ${discovered.credentialId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
+    }
+    const lockedAccounts = await tx.contentLearningAccount.findMany({
+      where: {
+        ...accountWhere,
+        id: { in: accounts.map((account) => account.id) },
+      },
+      select: { id: true },
+      orderBy: { id: 'asc' },
+    });
+    await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${input.organizationId} AND "isDeleted" = false ORDER BY id FOR SHARE`;
+    await tx.$queryRaw`SELECT id FROM brands WHERE id = ${discovered.brandId} AND "organizationId" = ${input.organizationId} AND "isDeleted" = false ORDER BY id FOR SHARE`;
+    if (discovered.credentialId)
+      await tx.$queryRaw`SELECT id FROM credentials WHERE id = ${discovered.credentialId} AND "organizationId" = ${input.organizationId} AND "brandId" = ${discovered.brandId} AND "isDeleted" = false ORDER BY id FOR SHARE`;
+    await tx.$queryRaw`SELECT id FROM posts WHERE id = ${input.postId} AND "organizationId" = ${input.organizationId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
+    const before = await tx.post.findFirst({
+      where,
+      select: { ...learningPublicationPostSelect, workflowExecutionId: true },
+    });
+    if (
+      !before ||
+      before.organizationId !== discovered.organizationId ||
+      before.brandId !== discovered.brandId ||
+      before.credentialId !== discovered.credentialId
+    )
+      throw new ConflictException(
+        'Publication source identity changed during discovery.',
+      );
+    if (before.publishApprovalId)
+      await tx.$queryRaw`SELECT id FROM publish_approvals WHERE id = ${before.publishApprovalId} AND "organizationId" = ${input.organizationId} AND "brandId" = ${before.brandId} AND "postId" = ${before.id} ORDER BY id FOR SHARE`;
+    const approval = before.publishApprovalId
+      ? await tx.publishApproval.findFirst({
+          where: {
+            id: before.publishApprovalId,
+            organizationId: input.organizationId,
+            brandId: before.brandId,
+            postId: before.id,
+          },
+          select: { artifactVersionPinId: true },
+        })
+      : null;
+    const pinId = approval?.artifactVersionPinId;
+    if (pinId)
+      await tx.$queryRaw`SELECT id FROM content_version_pins WHERE id = ${pinId} AND "organizationId" = ${input.organizationId} AND "brandId" = ${before.brandId} AND "recordKind" = 'post' AND "recordId" = ${before.id} ORDER BY id FOR SHARE`;
+    await tx.$queryRaw`SELECT id FROM post_publish_finalizations WHERE "organizationId" = ${input.organizationId} AND "postId" = ${before.id} ORDER BY id FOR UPDATE`;
+    return { before, lockedAccounts, accountWhere };
+  }
+
+  private factualTuple(post: LearningPublicationPostRow): string {
+    return JSON.stringify([
+      post.organizationId,
+      post.brandId,
+      post.credentialId,
+      post.id,
+      post.targetExecutionState,
+      post.visibility,
+      post.externalId,
+      post.publishedAt?.toISOString() ?? null,
+      post.description,
+      post.category,
+      post.format,
+      post.isDeleted,
+    ]);
+  }
+
+  private publicationResult(
+    value: Prisma.InputJsonValue,
+  ): Prisma.InputJsonObject | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value))
+      return null;
+    const result = value as Prisma.InputJsonObject;
+    if (
+      result.success !== true ||
+      result.executionState !== TargetExecutionState.PUBLISHED ||
+      result.isProviderDraft === true ||
+      typeof result.externalId !== 'string' ||
+      !result.externalId.trim() ||
+      typeof result.platform !== 'string'
+    )
+      return null;
+    return {
+      success: true,
+      executionState: TargetExecutionState.PUBLISHED,
+      externalId: result.externalId,
+      platform: result.platform,
+      url: typeof result.url === 'string' ? result.url : '',
+      ...(typeof result.externalShortcode === 'string'
+        ? { externalShortcode: result.externalShortcode }
+        : {}),
+      ...(typeof result.error === 'string' ? { error: result.error } : {}),
+      ...(result.isProviderDraft === false ? { isProviderDraft: false } : {}),
+    };
   }
 
   private async rollUpRelease(
@@ -283,5 +525,41 @@ export class SchedulerPublishStateService {
       'code' in error &&
       (error as { code?: unknown }).code === 'P2034'
     );
+  }
+}
+
+export async function queueLearningPublicationRefreshV1(
+  queue: WorkflowExecutionQueueService,
+  logger: LoggerService,
+  post: Pick<Post, 'organizationId' | 'credentialId'>,
+): Promise<void> {
+  const { organizationId, credentialId } = post;
+  if (
+    !credentialId ||
+    !organizationId ||
+    organizationId.length > 256 ||
+    credentialId.length > 256 ||
+    !organizationId.trim() ||
+    !credentialId.trim()
+  )
+    return;
+  try {
+    await queue.queueSystemWorkflow(
+      {
+        actionType: CONTENT_LEARNING_ACTION_IDS.RECONCILE,
+        canonicalId: CONTENT_LEARNING_ACTION_IDS.RECONCILE,
+        organizationId,
+        inputValues: { credentialId },
+        source: 'publication-learning-refresh',
+      },
+      `learning-materialize-${learningHash(['publication-refresh-v1', organizationId, credentialId, Math.floor(Date.now() / 300000)])}`,
+      { attempts: 3, dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+    );
+  } catch (error: unknown) {
+    logger.warn('Failed to queue publication learning refresh', {
+      organizationId,
+      credentialId,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }

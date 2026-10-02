@@ -77,6 +77,7 @@ function createHarness() {
 
   return {
     credentialsService,
+    workflowQueue,
     postsService,
     publishEventWebhookService,
     registeredActions,
@@ -95,6 +96,7 @@ function makeTiktokPost(overrides: Record<string, unknown> = {}) {
       id: 'cred-1',
       isConnected: true,
     },
+    credentialId: 'cred-1',
     externalId: 'publish-1',
     id: 'post-1',
     organizationId: 'org-1',
@@ -157,6 +159,7 @@ describe('CronTiktokStatusService', () => {
       }),
       expect.any(String),
       expect.objectContaining({
+        expectedExternalId: 'publish-1',
         priorExecutionStates: [TargetExecutionState.PUBLISHING],
       }),
       expect.objectContaining({
@@ -199,6 +202,7 @@ describe('CronTiktokStatusService', () => {
       expect.objectContaining({ executionState: TargetExecutionState.FAILED }),
       expect.any(String),
       expect.objectContaining({
+        expectedExternalId: 'publish-1',
         priorExecutionStates: [TargetExecutionState.PUBLISHING],
       }),
       undefined,
@@ -238,5 +242,26 @@ describe('CronTiktokStatusService', () => {
     expect(
       harness.publishEventWebhookService.emitLegacyPostPublished,
     ).toHaveBeenCalledTimes(1);
+    expect(harness.workflowQueue.queueSystemWorkflow).toHaveBeenCalledOnce();
   });
+});
+
+it('queues only committed TikTok confirmation and preserves success after queue failure', async () => {
+  const h = createHarness();
+  h.postsService.findOne.mockResolvedValue(makeTiktokPost());
+  h.tiktokService.getPublishStatus.mockResolvedValue({
+    publicly_available_post_id: ['confirmed-1'],
+    status: 'PUBLISH_COMPLETE',
+  });
+  h.schedulerPublishStateService.transitionPost.mockResolvedValue(true);
+  h.workflowQueue.queueSystemWorkflow.mockRejectedValue(
+    new Error('Redis unavailable'),
+  );
+  await reconcile(h.registeredActions);
+  expect(
+    h.publishEventWebhookService.emitLegacyPostPublished,
+  ).toHaveBeenCalledOnce();
+  expect(
+    h.scheduledPostWorkflowService.processPendingPublishedFinalization,
+  ).toHaveBeenCalledOnce();
 });

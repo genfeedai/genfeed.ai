@@ -138,11 +138,24 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
       versionPinId: this.requiredString(request.versionPinId, 'versionPinId'),
     });
 
-    await this.finalizePublishedPost(
-      post,
-      result,
-      'ScheduledPostWorkflowService.finalize',
-    );
+    const finalization = await this.prisma.postPublishFinalization.findUnique({
+      where: {
+        organizationId_postId: {
+          organizationId: request.organizationId,
+          postId: request.postId,
+        },
+      },
+      select: { id: true },
+    });
+    if (finalization) {
+      await this.processPendingPublishedFinalization(post);
+    } else {
+      await this.finalizePublishedPost(
+        post,
+        result,
+        'ScheduledPostWorkflowService.finalize',
+      );
+    }
     return result;
   }
 
