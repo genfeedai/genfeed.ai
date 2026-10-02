@@ -242,7 +242,7 @@ export const AGENT_PRODUCTION_FILES = [
   },
   {
     path: 'apps/server/api/test/integration/proactive-agent-production-turn.fixture.ts',
-    sha256: '3fe90c24fb3972055ded7e5ce06b1ad944c6be9b47d560f325812d0303a9ec6d',
+    sha256: 'b3fbf523ffa0192a7518f75768998741063dd849e298b472133a062c1462d12a',
   },
   {
     path: 'apps/server/api/test/integration/proactive-agent-production-turn-cleanup.util.ts',
@@ -267,17 +267,17 @@ export const LEARNING_SOURCE_CONTRACT = Object.freeze({
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.fixture.ts',
       sha256:
-        '269a5dc3c2a20e2ba90cf8528acb46f690abcccc39fd514908a0a22c15673021',
+        '9e3ca4943f5f86f6dd1c0a80369e10b33fcbf4c0f48dd498c1f0dcb540de7d10',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.integration.spec.ts',
       sha256:
-        '9a93f3798442897115699f5ea37998526fa844cf5db8cc05d75211850eb4d046',
+        '6664be249d4c46c28576dd3dc0642f5864fc119036ba0d2fb5f949a870e389ec',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-publication-races.integration.spec.ts',
       sha256:
-        'f5d5e805e67191452909dfdc7663edb0e5125e98633fb77712e82728e7a0bf0d',
+        'b60ab824699cfb3c24e8e036b94d637a5f87f57175948f8dc83c7b1aadbe5ca2',
     },
     {
       path: 'apps/server/api/vitest.learning-runtime.config.ts',
@@ -2630,12 +2630,19 @@ export function visualSelection(index) {
       ? VISUAL_RENDERLESS_TITLES
       : [VISUAL_CASES.find((item) => item.index === index)?.title];
   requireThat(selected.every(Boolean), 'INVALID_VISUAL_CASE');
+  const suite =
+    index === 0
+      ? 'visual-code cleanup rejection isolation (renderless)'
+      : VISUAL_SUITE;
+  const taskNames = selected.map(
+    (title) => `${suite} > ${title.slice(suite.length + 1)}`,
+  );
   return {
     file: VISUAL_SPEC,
     count: selected.length,
     titles: selected,
     skipped: VISUAL_ALL_TITLES.filter((title) => !selected.includes(title)),
-    pattern: `^(?:${selected.map((title) => title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})$`,
+    pattern: `^(?:${taskNames.map((title) => title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})$`,
   };
 }
 export function validateVisualSelection(report, index, child) {

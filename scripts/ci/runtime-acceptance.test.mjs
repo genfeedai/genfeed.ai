@@ -1750,10 +1750,21 @@ test('fixed visual selection requires each exact real title and pending or skipp
         validateVisualSelection(fixture, index, child)[0].passed,
         index === 0 ? 6 : 1,
       );
-      for (const title of selection.titles)
-        assert.ok(new RegExp(selection.pattern).test(title));
+      const taskName = (title) => {
+        const suite = VISUAL_RENDERLESS_TITLES.includes(title)
+          ? 'visual-code cleanup rejection isolation (renderless)'
+          : 'visual-code local-runtime acceptance (explicit owned DB/Redis and Linux runsc prerequisites)';
+        return `${suite} > ${title.slice(suite.length + 1)}`;
+      };
+      const pattern = new RegExp(selection.pattern);
+      for (const title of selection.titles) {
+        assert.ok(pattern.test(taskName(title)));
+        assert.ok(!pattern.test(title));
+        assert.ok(!pattern.test(`${taskName(title)} extra`));
+        assert.ok(!pattern.test(`extra ${taskName(title)}`));
+      }
       for (const title of selection.skipped)
-        assert.ok(!new RegExp(selection.pattern).test(title));
+        assert.ok(!pattern.test(taskName(title)));
       for (const status of ['pending', 'skipped', 'failed', 'todo']) {
         const changed = structuredClone(fixture);
         changed.testResults[0].assertionResults[0].status = status;
@@ -2738,7 +2749,7 @@ test('prepared owner revisions retain only the exact approved source hashes', ()
   );
   assert.equal(
     AGENT_PRODUCTION_FILES[1].sha256,
-    '3fe90c24fb3972055ded7e5ce06b1ad944c6be9b47d560f325812d0303a9ec6d',
+    'b3fbf523ffa0192a7518f75768998741063dd849e298b472133a062c1462d12a',
   );
   assert.equal(
     BRAND_SOURCE_CONTRACT.unitFiles.find(
@@ -5943,7 +5954,7 @@ test('actual execution returns its persisted failure outcome after an expired wo
 test('learning fixture inventory freezes canonical persisted target execution state source', () => {
   assert.equal(
     LEARNING_SOURCE_CONTRACT.sourceInputs[0].sha256,
-    '269a5dc3c2a20e2ba90cf8528acb46f690abcccc39fd514908a0a22c15673021',
+    '9e3ca4943f5f86f6dd1c0a80369e10b33fcbf4c0f48dd498c1f0dcb540de7d10',
   );
 });
 

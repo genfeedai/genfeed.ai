@@ -11,9 +11,11 @@ import {
   vi,
 } from 'vitest';
 import {
+  assertLearningRuntimeApplicationNames,
   assertLearningRuntimeMigrationScope,
   collectLearningRuntimePublications,
   type LearningRuntimeFixture,
+  learningRuntimeApplicationName,
   learningRuntimeMetrics,
   learningRuntimeRedisDatabaseUrl,
   learningRuntimeScope,
@@ -100,6 +102,22 @@ describe('hosted real production learning runtime', () => {
   }, 60000);
 
   it('mounts real cloud configuration, singleton runner, registrars, v2 graphs and owned routing without duplicate processors', async () => {
+    await assertLearningRuntimeApplicationNames(fixture);
+    for (const index of [0, 1]) {
+      const name = learningRuntimeApplicationName(
+        fixture.resources.schema,
+        index,
+      );
+      expect(name).toBe(`${fixture.resources.schema}_app${index}`);
+      expect(Buffer.byteLength(name, 'utf8')).toBe(59);
+    }
+    for (const index of [-1, 2, 0.5, Number.NaN])
+      expect(() =>
+        learningRuntimeApplicationName(fixture.resources.schema, index),
+      ).toThrow();
+    expect(() =>
+      learningRuntimeApplicationName(`${fixture.resources.schema}x`, 0),
+    ).toThrow();
     const initial = await readFile(
       new URL(
         '../../../../../../packages/prisma/prisma/migrations/20260417050332_init/migration.sql',
@@ -192,6 +210,31 @@ describe('hosted real production learning runtime', () => {
       '@api/collections/workflows/workflows.tokens'
     );
     const { SERVER_TOKENS } = await import('@api/server.dependencies');
+    const { PostLifecycleModule } = await import(
+      '@api/collections/posts/post-lifecycle.module'
+    );
+    const { PostLifecycleService } = await import(
+      '@api/post-lifecycle/post-lifecycle.service'
+    );
+    const { LoggerService } = await import('@libs/logger/logger.service');
+    for (const application of [fixture.first, fixture.second]) {
+      const lifecycleModule = application.module.select(PostLifecycleModule);
+      const lifecycle = lifecycleModule.get(PostLifecycleService, {
+        strict: true,
+      });
+      const logger = application.module.get(LoggerService);
+      expect(lifecycle).toBeInstanceOf(PostLifecycleService);
+      expect(lifecycle.constructor).toBe(PostLifecycleService);
+      expect(application.module.get(PostLifecycleService)).toBe(lifecycle);
+      expect(logger).toBeInstanceOf(LoggerService);
+      expect(logger.constructor).toBe(LoggerService);
+      expect(lifecycleModule.get(SERVER_TOKENS.prisma, { strict: true })).toBe(
+        application.prisma,
+      );
+      expect(lifecycleModule.get(SERVER_TOKENS.logger, { strict: true })).toBe(
+        logger,
+      );
+    }
     expect(fixture.first.module.get(SYSTEM_WORKFLOW_RUNNER)).toBe(
       fixture.services.runner,
     );

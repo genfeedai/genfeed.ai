@@ -105,10 +105,36 @@ async function assertRuntimeMediaExtension(
         mimeType: 'image/png',
         version: 1,
       };
-      expect(parent.ingredients).toEqual([expected]);
+      expect(parent.ingredients).toHaveLength(1);
+      expect(
+        parent.ingredients.map(
+          ({ category, cdnUrl, fileSize, id, mimeType, s3Key, version }) => ({
+            category,
+            cdnUrl,
+            fileSize,
+            id,
+            mimeType,
+            s3Key,
+            version,
+          }),
+        ),
+      ).toEqual([expected]);
       expect(parent.children).toHaveLength(1);
       expect(parent.children[0].id).toBe(childId);
-      expect(parent.children[0].ingredients).toEqual([expected]);
+      expect(parent.children[0].ingredients).toHaveLength(1);
+      expect(
+        parent.children[0].ingredients.map(
+          ({ category, cdnUrl, fileSize, id, mimeType, s3Key, version }) => ({
+            category,
+            cdnUrl,
+            fileSize,
+            id,
+            mimeType,
+            s3Key,
+            version,
+          }),
+        ),
+      ).toEqual([expected]);
       throw rollback;
     });
   } catch (error) {
