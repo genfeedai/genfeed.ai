@@ -13,7 +13,10 @@ import { ContentLearningService } from '@genfeedai/services/analytics/content-le
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import type { HarnessLearningTabProps } from '@props/settings/harness.props';
+import type {
+  HarnessLearningStatusProps,
+  HarnessLearningTabProps,
+} from '@props/settings/harness.props';
 import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
@@ -44,21 +47,49 @@ export default function HarnessLearningTab({
   brandId,
 }: HarnessLearningTabProps) {
   const scope = useCollectionScope();
-  // Remount before rendering any evidence when organization, brand or readiness changes.
+  const role = useUserRole();
+  const getService = useAuthedService((token: string) =>
+    ContentLearningService.getInstance(token),
+  );
+  const scopeKey = JSON.stringify([
+    scope.organizationId,
+    scope.brandId,
+    scope.isReady,
+    brandId,
+    role,
+  ]);
+  const previousService = useRef(getService);
+  const previousScope = useRef(scopeKey);
+  const generation = useRef(0);
+  if (
+    previousService.current !== getService ||
+    previousScope.current !== scopeKey
+  ) {
+    generation.current += 1;
+    previousService.current = getService;
+    previousScope.current = scopeKey;
+  }
+  const capturedGeneration = generation.current;
+  const isCurrent = useCallback(
+    () => generation.current === capturedGeneration,
+    [capturedGeneration],
+  );
+  // A new actor/session or scope clears evidence during render and invalidates old continuations before effects run.
   return (
     <LearningStatus
-      key={JSON.stringify([
-        scope.organizationId,
-        scope.brandId,
-        scope.isReady,
-        brandId,
-      ])}
+      key={capturedGeneration}
       brandId={brandId}
+      getService={getService}
+      isCurrent={isCurrent}
     />
   );
 }
 
-function LearningStatus({ brandId }: HarnessLearningTabProps) {
+function LearningStatus({
+  brandId,
+  getService,
+  isCurrent,
+}: HarnessLearningStatusProps) {
   const translate = useTranslations('pages.brandHarnessSettings.learning');
   const scope = useCollectionScope();
   const role = useUserRole();
@@ -66,9 +97,6 @@ function LearningStatus({ brandId }: HarnessLearningTabProps) {
   const isReady =
     scope.isReady && Boolean(scope.organizationId) && scope.brandId === brandId;
   const organizationId = scope.organizationId;
-  const getService = useAuthedService((token: string) =>
-    ContentLearningService.getInstance(token),
-  );
   const [accounts, setAccounts] = useState<LearningAccountView[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasReadError, setHasReadError] = useState(false);
@@ -93,11 +121,12 @@ function LearningStatus({ brandId }: HarnessLearningTabProps) {
       setHasReadError(false);
       try {
         const service = await getService();
-        if (signal.aborted || !isMounted.current) return false;
+        if (signal.aborted || !isMounted.current || !isCurrent()) return false;
         const data = await service.accounts(brandId, signal);
         if (
           signal.aborted ||
           !isMounted.current ||
+          !isCurrent() ||
           sequence !== readSequence.current
         )
           return false;
@@ -116,6 +145,7 @@ function LearningStatus({ brandId }: HarnessLearningTabProps) {
         if (
           !signal.aborted &&
           isMounted.current &&
+          isCurrent() &&
           sequence === readSequence.current
         ) {
           setAccounts(null);
@@ -126,12 +156,13 @@ function LearningStatus({ brandId }: HarnessLearningTabProps) {
         if (
           !signal.aborted &&
           isMounted.current &&
+          isCurrent() &&
           sequence === readSequence.current
         )
           setIsLoading(false);
       }
     },
-    [brandId, organizationId, getService],
+    [brandId, organizationId, getService, isCurrent],
   );
 
   useEffect(() => {
@@ -144,7 +175,12 @@ function LearningStatus({ brandId }: HarnessLearningTabProps) {
     readController.current = controller;
     const sequence = ++readSequence.current;
     void load(controller.signal, sequence).then((isLoaded) => {
-      if (isLoaded && !controller.signal.aborted && isMounted.current)
+      if (
+        isLoaded &&
+        !controller.signal.aborted &&
+        isMounted.current &&
+        isCurrent()
+      )
         setHasCompleted(false);
     });
     return () => {
@@ -152,10 +188,16 @@ function LearningStatus({ brandId }: HarnessLearningTabProps) {
       controller.abort();
       readController.current?.abort();
     };
-  }, [isReady, load, refresh]);
+  }, [isReady, load, refresh, isCurrent]);
 
   async function execute(credentialId: string, body: LearningControlInput) {
-    if (!canManage || !isReady || pendingRef.current || !isMounted.current)
+    if (
+      !canManage ||
+      !isReady ||
+      pendingRef.current ||
+      !isMounted.current ||
+      !isCurrent()
+    )
       return;
     pendingRef.current = true;
     setIsPending(true);
@@ -163,9 +205,9 @@ function LearningStatus({ brandId }: HarnessLearningTabProps) {
     setNotice(null);
     try {
       const service = await getService();
-      if (!isMounted.current) return;
+      if (!isMounted.current || !isCurrent()) return;
       const operation = await service.control(credentialId, body);
-      if (!isMounted.current) return;
+      if (!isMounted.current || !isCurrent()) return;
       if (operation.status !== 'completed') {
         setNotice('operationIncomplete');
         setHasRetry(
@@ -181,11 +223,11 @@ function LearningStatus({ brandId }: HarnessLearningTabProps) {
       const controller = new AbortController();
       readController.current = controller;
       const isLoaded = await load(controller.signal, ++readSequence.current);
-      if (!isMounted.current) return;
+      if (!isMounted.current || !isCurrent()) return;
       if (!isLoaded) setNotice('completedRefreshFailed');
       else setHasCompleted(false);
     } catch (error) {
-      if (!isMounted.current) return;
+      if (!isMounted.current || !isCurrent()) return;
       const status = statusCode(error);
       if (status === 409) {
         setIntent(null);
@@ -207,7 +249,7 @@ function LearningStatus({ brandId }: HarnessLearningTabProps) {
         }
       }
     } finally {
-      if (isMounted.current) {
+      if (isMounted.current && isCurrent()) {
         pendingRef.current = false;
         setIsPending(false);
       }

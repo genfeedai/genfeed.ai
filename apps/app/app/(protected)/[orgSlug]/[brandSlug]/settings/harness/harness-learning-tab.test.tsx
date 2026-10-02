@@ -13,6 +13,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import HarnessLearningTab from './harness-learning-tab';
 
 const mocks = vi.hoisted(() => ({
+  authEpoch: 0,
   accounts: vi.fn(),
   control: vi.fn(),
   role: 'owner' as string | undefined,
@@ -33,12 +34,11 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
 vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
   useUserRole: () => mocks.role,
 }));
-const getService = async () => ({
-  accounts: mocks.accounts,
-  control: mocks.control,
-});
+const service = { accounts: mocks.accounts, control: mocks.control };
+const getService = vi.fn(async () => service);
+const getNextService = vi.fn(async () => service);
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => getService,
+  useAuthedService: () => (mocks.authEpoch === 0 ? getService : getNextService),
 }));
 
 function account(
@@ -83,6 +83,9 @@ function pause() {
 describe('Harness Learning status and safety controls', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.authEpoch = 0;
+    getService.mockReset().mockResolvedValue(service);
+    getNextService.mockReset().mockResolvedValue(service);
     mocks.role = MemberRole.OWNER;
     mocks.scope = {
       brandId: 'brand-1',
@@ -400,4 +403,96 @@ describe('Harness Learning status and safety controls', () => {
       ).not.toBeInTheDocument();
     },
   );
+  it.each(['actor', 'session', 'role'])(
+    'invalidates a deferred service before POST on same-scope %s change',
+    async (change) => {
+      const token = deferred<typeof service>();
+      const view = render(<HarnessLearningTab brandId="brand-1" />);
+      await loaded();
+      getService.mockReturnValueOnce(token.promise);
+      pause();
+      await waitFor(() => expect(getService).toHaveBeenCalledTimes(2));
+      mocks.accounts.mockResolvedValueOnce([]);
+      if (change === 'role') mocks.role = MemberRole.USER;
+      else mocks.authEpoch = 1;
+      view.rerender(<HarnessLearningTab brandId="brand-1" />);
+      expect(screen.queryByText('credential-1')).not.toBeInTheDocument();
+      await screen.findByText('No connected accounts.');
+      await act(async () => token.resolve(service));
+      expect(mocks.control).not.toHaveBeenCalled();
+      expect(mocks.accounts).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it.each(
+    ['actor', 'session', 'role'].flatMap((change) =>
+      ['completed', 'conflict', 'unauthorized', 'transport'].map((outcome) => [
+        change,
+        outcome,
+      ]),
+    ),
+  )(
+    'ignores an old control after same-scope %s change and %s outcome',
+    async (change, outcome) => {
+      const write = deferred<{ status: string }>();
+      mocks.control.mockReturnValueOnce(write.promise);
+      const view = render(<HarnessLearningTab brandId="brand-1" />);
+      await loaded();
+      pause();
+      await waitFor(() => expect(mocks.control).toHaveBeenCalledTimes(1));
+      if (change === 'role') mocks.role = MemberRole.USER;
+      else mocks.authEpoch = 1;
+      mocks.accounts.mockResolvedValueOnce([]);
+      view.rerender(<HarnessLearningTab brandId="brand-1" />);
+      expect(screen.queryByText('credential-1')).not.toBeInTheDocument();
+      await screen.findByText('No connected accounts.');
+      await act(async () => {
+        if (outcome === 'completed') write.resolve({ status: 'completed' });
+        else
+          write.reject(
+            outcome === 'transport'
+              ? new Error('network')
+              : { response: { status: outcome === 'conflict' ? 409 : 403 } },
+          );
+      });
+      expect(mocks.accounts).toHaveBeenCalledTimes(2);
+      expect(screen.queryByText('Action completed.')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Retry same action' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Refresh status' }),
+      ).toBeEnabled();
+    },
+  );
+
+  it('ignores a deferred account read after a same-scope actor change', async () => {
+    const read = deferred<LearningAccountView[]>();
+    mocks.accounts.mockReturnValueOnce(read.promise).mockResolvedValueOnce([]);
+    const view = render(<HarnessLearningTab brandId="brand-1" />);
+    await waitFor(() => expect(mocks.accounts).toHaveBeenCalledTimes(1));
+    mocks.authEpoch = 1;
+    view.rerender(<HarnessLearningTab brandId="brand-1" />);
+    await screen.findByText('No connected accounts.');
+    await act(async () => read.resolve([account()]));
+    expect(screen.queryByText('credential-1')).not.toBeInTheDocument();
+  });
+
+  it('keeps generation monotonic when an old callback identity returns', async () => {
+    const token = deferred<typeof service>();
+    const view = render(<HarnessLearningTab brandId="brand-1" />);
+    await loaded();
+    getService.mockReturnValueOnce(token.promise);
+    pause();
+    await waitFor(() => expect(getService).toHaveBeenCalledTimes(2));
+    mocks.accounts.mockResolvedValue([]);
+    mocks.authEpoch = 1;
+    view.rerender(<HarnessLearningTab brandId="brand-1" />);
+    await screen.findByText('No connected accounts.');
+    mocks.authEpoch = 0;
+    view.rerender(<HarnessLearningTab brandId="brand-1" />);
+    await waitFor(() => expect(mocks.accounts).toHaveBeenCalledTimes(3));
+    await act(async () => token.resolve(service));
+    expect(mocks.control).not.toHaveBeenCalled();
+  });
 });
