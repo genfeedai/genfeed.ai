@@ -4,8 +4,9 @@ import {
   type ReadSavedAdSourcesInput,
   readSavedAdSourcePage,
 } from '@api/collections/agent-strategies/sources/agent-source-saved-ad-reader';
-import type { PrismaClient, SavedAd } from '@genfeedai/prisma';
-import { describe, expect, it, vi } from 'vitest';
+import { PrismaClient, type SavedAd } from '@genfeedai/prisma';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const now = '2026-10-01T12:00:00.000Z';
 const cutoff = '2026-09-24T12:00:00.000Z';
@@ -59,11 +60,22 @@ function ad(id: string, extra: Partial<SavedAd> = {}): SavedAd {
     ...extra,
   };
 }
+const clients: PrismaClient[] = [];
+afterEach(async () => {
+  vi.restoreAllMocks();
+  await Promise.all(clients.splice(0).map((client) => client.$disconnect()));
+});
 function delegate(rows: SavedAd[] = []) {
-  const findMany = vi
-    .fn<PrismaClient['savedAd']['findMany']>()
-    .mockResolvedValue(rows);
-  return { findMany } satisfies Pick<PrismaClient['savedAd'], 'findMany'>;
+  // Construct the native generic delegate without connecting. All reads are stubbed.
+  const client = new PrismaClient({
+    adapter: new PrismaPg({
+      connectionString: 'postgresql://127.0.0.1:1/fixture-only',
+    }),
+  });
+  clients.push(client);
+  const savedAd = client.savedAd;
+  const findMany = vi.spyOn(savedAd, 'findMany').mockResolvedValue(rows);
+  return { savedAd, findMany };
 }
 
 describe('Saved-ad source reader', () => {
@@ -71,7 +83,7 @@ describe('Saved-ad source reader', () => {
     const savedAd = delegate([
       ad('internal', { capturedAt: new Date(cutoff) }),
     ]);
-    const page = await readSavedAdSourcePage(savedAd, input());
+    const page = await readSavedAdSourcePage(savedAd.savedAd, input());
     expect(savedAd.findMany).toHaveBeenCalledExactlyOnceWith({
       select: {
         id: true,
@@ -106,7 +118,8 @@ describe('Saved-ad source reader', () => {
       hasMore: false,
       nextCursor: null,
     });
-    expect(Object.keys(savedAd)).toEqual(['findMany']);
+    // Only the reader's findMany call executes; the fixture never connects.
+    expect(savedAd.findMany).toHaveBeenCalledTimes(1);
   });
   it('reuses canonical filtering for foreign, deleted, stale and disallowed persisted rows', async () => {
     const rows = [
@@ -119,7 +132,7 @@ describe('Saved-ad source reader', () => {
       ad('allowed', { capturedAt: new Date(cutoff) }),
     ];
     const page = await readSavedAdSourcePage(
-      delegate(rows),
+      delegate(rows).savedAd,
       input({ pagination: { pageSize: 10, maxPageSize: 10 } }),
     );
     expect(page.candidates.map((candidate) => candidate.sourceId)).toEqual([
@@ -129,7 +142,8 @@ describe('Saved-ad source reader', () => {
   it('rejects a future row from a broken delegate instead of yielding an eligible source', async () => {
     await expect(
       readSavedAdSourcePage(
-        delegate([ad('future', { capturedAt: new Date(Date.parse(now) + 1) })]),
+        delegate([ad('future', { capturedAt: new Date(Date.parse(now) + 1) })])
+          .savedAd,
         input(),
       ),
     ).rejects.toThrow('Future source timestamp');
@@ -137,7 +151,7 @@ describe('Saved-ad source reader', () => {
   it('skips persistence when saved ads are disabled and filters blocked membership', async () => {
     const savedAd = delegate([ad('blocked')]);
     const disabled = await readSavedAdSourcePage(
-      savedAd,
+      savedAd.savedAd,
       input({ policy: resolveAgentSourcePolicy({ enabledKinds: [] }, 1000) }),
     );
     expect(disabled).toEqual({
@@ -148,7 +162,7 @@ describe('Saved-ad source reader', () => {
     });
     expect(savedAd.findMany).not.toHaveBeenCalled();
     const page = await readSavedAdSourcePage(
-      savedAd,
+      savedAd.savedAd,
       input({
         blockedSourceKeys: new Set([
           agentSourceKey({ sourceKind: 'saved_ad', sourceId: 'blocked' }),
@@ -165,14 +179,14 @@ describe('Saved-ad source reader', () => {
     const request = input({
       blockedSourceKeys: new Set(['["saved_ad","a"]', '["saved_ad","b"]']),
     });
-    const first = await readSavedAdSourcePage(savedAd, request);
+    const first = await readSavedAdSourcePage(savedAd.savedAd, request);
     expect(first).toEqual({
       candidates: [],
       scannedCount: 2,
       hasMore: true,
       nextCursor: { capturedAt: now, id: 'b' },
     });
-    const second = await readSavedAdSourcePage(savedAd, {
+    const second = await readSavedAdSourcePage(savedAd.savedAd, {
       ...request,
       pagination: {
         ...request.pagination,
@@ -200,7 +214,7 @@ describe('Saved-ad source reader', () => {
     const savedAd = delegate([ad('a'), ad('b'), ad('c')]);
     const blocks = new Set<string>();
     const request = input({ scope: { ...scope }, blockedSourceKeys: blocks });
-    const pending = readSavedAdSourcePage(savedAd, request);
+    const pending = readSavedAdSourcePage(savedAd.savedAd, request);
     Reflect.set(request.scope, 'brandId', 'evil');
     Reflect.set(request, 'now', 'invalid');
     blocks.add('["saved_ad","a"]');
@@ -259,7 +273,7 @@ describe('Saved-ad source reader', () => {
     for (const extra of bad) {
       const savedAd = delegate();
       await expect(
-        readSavedAdSourcePage(savedAd, {
+        readSavedAdSourcePage(savedAd.savedAd, {
           ...input(),
           ...(extra as Partial<ReadSavedAdSourcesInput>),
         }),
@@ -275,13 +289,13 @@ describe('Saved-ad source reader', () => {
     ]) {
       const savedAd = delegate();
       await expect(
-        readSavedAdSourcePage(savedAd, input({ pagination })),
+        readSavedAdSourcePage(savedAd.savedAd, input({ pagination })),
       ).rejects.toThrow();
       expect(savedAd.findMany).not.toHaveBeenCalled();
     }
     const savedAd = delegate();
     await readSavedAdSourcePage(
-      savedAd,
+      savedAd.savedAd,
       input({
         pagination: { pageSize: 2_147_483_646, maxPageSize: 2_147_483_646 },
       }),
@@ -291,8 +305,8 @@ describe('Saved-ad source reader', () => {
   it('preserves persistence failures without claiming an empty eligible result', async () => {
     const savedAd = delegate();
     savedAd.findMany.mockRejectedValueOnce(new Error('unavailable'));
-    await expect(readSavedAdSourcePage(savedAd, input())).rejects.toThrow(
-      'unavailable',
-    );
+    await expect(
+      readSavedAdSourcePage(savedAd.savedAd, input()),
+    ).rejects.toThrow('unavailable');
   });
 });
