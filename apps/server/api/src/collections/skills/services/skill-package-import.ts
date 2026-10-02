@@ -1,5 +1,5 @@
 import { isReservedBuiltInSkillSlug } from '@api/collections/skills/constants/skill-validation.constant';
-import type { SkillLibraryActor } from '@api/collections/skills/services/skill-library.service';
+import type { SkillLibraryActor } from '@api/collections/skills/services/skill-library.types';
 import { withSkillWriteSession } from '@api/collections/skills/services/skill-write-session';
 import { parseSkillPackageManifest } from '@api/collections/skills/utils/skill-package-manifest.util';
 import { ValidationException } from '@api/exceptions/validation.exception';
