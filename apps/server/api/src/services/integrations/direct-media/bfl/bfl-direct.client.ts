@@ -43,11 +43,28 @@ function requireCredential(context: DirectMediaRequestContext): void {
   }
 }
 
-function validatePollingUrl(task: DirectMediaTask): string {
+// Provider metadata must never persist or expose the ephemeral account credential.
+function hasCredentialReflection(value: string, apiKey: string): boolean {
+  if (!apiKey) return false;
+  let decoded = value;
+  for (let pass = 0; pass < 3; pass++) {
+    if (decoded.includes(apiKey)) return true;
+    const next = decoded.replace(/%[0-9a-f]{2}/gi, (encoded: string) =>
+      String.fromCharCode(Number.parseInt(encoded.slice(1), 16)),
+    );
+    if (next === decoded) return false;
+    decoded = next;
+  }
+  return decoded.includes(apiKey);
+}
+
+function validatePollingUrl(task: DirectMediaTask, apiKey: string): string {
   if (
     typeof task.externalId !== 'string' ||
     !task.externalId.trim() ||
-    typeof task.pollingUrl !== 'string'
+    typeof task.pollingUrl !== 'string' ||
+    hasCredentialReflection(task.externalId, apiKey) ||
+    hasCredentialReflection(task.pollingUrl, apiKey)
   ) {
     throw new DirectMediaProviderError(
       'PROVIDER_POLL_URL_INVALID',
@@ -155,8 +172,9 @@ function validatePreparedRequest(
   return compiled;
 }
 
-function validateSampleUrl(value: unknown): string {
-  if (typeof value !== 'string') invalidResponse();
+function validateSampleUrl(value: unknown, apiKey: string): string {
+  if (typeof value !== 'string' || hasCredentialReflection(value, apiKey))
+    invalidResponse();
   let url: URL;
   try {
     url = new URL(value);
@@ -220,7 +238,7 @@ export class BflDirectClient implements DirectMediaClient {
       model: prepared.model,
     };
     try {
-      validatePollingUrl(task);
+      validatePollingUrl(task, context.apiKey);
     } catch {
       invalidResponse(true);
     }
@@ -232,7 +250,7 @@ export class BflDirectClient implements DirectMediaClient {
     context: DirectMediaRequestContext,
   ): Promise<DirectMediaPollResult> {
     requireCredential(context);
-    const pollingUrl = validatePollingUrl(task);
+    const pollingUrl = validatePollingUrl(task, context.apiKey);
     const response = await requestDirectMediaJson(this.transport, pollingUrl, {
       method: 'GET',
       headers: { accept: 'application/json', 'x-key': context.apiKey },
@@ -248,7 +266,10 @@ export class BflDirectClient implements DirectMediaClient {
         return { status: 'running' };
       case 'Ready': {
         if (!isRecord(response.result)) invalidResponse();
-        const sample = validateSampleUrl(response.result.sample);
+        const sample = validateSampleUrl(
+          response.result.sample,
+          context.apiKey,
+        );
         return {
           status: 'succeeded',
           outputs: [{ url: sample, mimeType: 'image/jpeg' }],

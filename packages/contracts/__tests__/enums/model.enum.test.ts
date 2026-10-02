@@ -297,8 +297,8 @@ describe('model.enum', () => {
   });
 
   describe('ModelProvider', () => {
-    it('should have 8 members', () => {
-      expect(Object.values(ModelProvider)).toHaveLength(8);
+    it('should have 13 members', () => {
+      expect(Object.values(ModelProvider)).toHaveLength(13);
     });
 
     it('should have correct values', () => {
@@ -310,6 +310,11 @@ describe('model.enum', () => {
       expect(ModelProvider.HEYGEN).toBe('heygen');
       expect(ModelProvider.HIGGSFIELD).toBe('higgsfield');
       expect(ModelProvider.CRUN).toBe('crun');
+      expect(ModelProvider.GOOGLE).toBe('google');
+      expect(ModelProvider.XAI).toBe('xai');
+      expect(ModelProvider.BFL).toBe('bfl');
+      expect(ModelProvider.RUNWAY).toBe('runway');
+      expect(ModelProvider.OPENAI).toBe('openai');
     });
   });
 

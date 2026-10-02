@@ -66,9 +66,25 @@ function validateContext(context: DirectMediaRequestContext): void {
     );
   }
 }
-function validateTask(task: DirectMediaTask): void {
+// Provider metadata must never persist or expose the ephemeral account credential.
+function hasCredentialReflection(value: string, apiKey: string): boolean {
+  if (!apiKey) return false;
+  let decoded = value;
+  for (let pass = 0; pass < 3; pass++) {
+    if (decoded.includes(apiKey)) return true;
+    const next = decoded.replace(/%[0-9a-f]{2}/gi, (encoded: string) =>
+      String.fromCharCode(Number.parseInt(encoded.slice(1), 16)),
+    );
+    if (next === decoded) return false;
+    decoded = next;
+  }
+  return decoded.includes(apiKey);
+}
+
+function validateTask(task: DirectMediaTask, apiKey: string): void {
   if (
     !isSafeId(task.externalId) ||
+    hasCredentialReflection(task.externalId, apiKey) ||
     task.pollingUrl !== undefined ||
     (task.model !== undefined && task.model !== 'grok-imagine-video-1.5')
   )
@@ -219,7 +235,7 @@ export class XaiDirectClient implements DirectMediaClient {
     if (prepared.model === 'grok-imagine-video-1.5') {
       if (
         !isSafeId(response.request_id) ||
-        response.request_id.includes(context.apiKey)
+        hasCredentialReflection(response.request_id, context.apiKey)
       )
         invalidResponse(true);
       return {
@@ -233,7 +249,10 @@ export class XaiDirectClient implements DirectMediaClient {
     const outputs: DirectMediaOutput[] = response.data.map((value: unknown) => {
       const item = record(value);
       if (!item) invalidResponse(true);
-      if (isHttpsUrl(item.url) && !item.url.includes(context.apiKey))
+      if (
+        isHttpsUrl(item.url) &&
+        !hasCredentialReflection(item.url, context.apiKey)
+      )
         return { url: item.url, mimeType: 'image/jpeg' };
       if (
         typeof item.b64_json === 'string' &&
@@ -254,7 +273,7 @@ export class XaiDirectClient implements DirectMediaClient {
     context: DirectMediaRequestContext,
   ): Promise<DirectMediaPollResult> {
     validateContext(context);
-    validateTask(task);
+    validateTask(task, context.apiKey);
     const response = record(
       await this.get(`https://api.x.ai/v1/videos/${task.externalId}`, context),
     );
@@ -267,7 +286,7 @@ export class XaiDirectClient implements DirectMediaClient {
         if (
           video?.respect_moderation !== true ||
           !isHttpsUrl(video.url) ||
-          video.url.includes(context.apiKey)
+          hasCredentialReflection(video.url, context.apiKey)
         )
           invalidResponse();
         return {
@@ -297,7 +316,7 @@ export class XaiDirectClient implements DirectMediaClient {
     context: DirectMediaRequestContext,
   ): Promise<DirectMediaCancellation> {
     validateContext(context);
-    validateTask(task);
+    validateTask(task, context.apiKey);
     return { status: 'unsupported' };
   }
 

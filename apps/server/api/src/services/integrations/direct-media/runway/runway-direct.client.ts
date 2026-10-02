@@ -29,10 +29,26 @@ function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) invalid();
   return value as Record<string, unknown>;
 }
-function taskUrl(task: DirectMediaTask): string {
+// Provider metadata must never persist or expose the ephemeral account credential.
+function hasCredentialReflection(value: string, apiKey: string): boolean {
+  if (!apiKey) return false;
+  let decoded = value;
+  for (let pass = 0; pass < 3; pass++) {
+    if (decoded.includes(apiKey)) return true;
+    const next = decoded.replace(/%[0-9a-f]{2}/gi, (encoded: string) =>
+      String.fromCharCode(Number.parseInt(encoded.slice(1), 16)),
+    );
+    if (next === decoded) return false;
+    decoded = next;
+  }
+  return decoded.includes(apiKey);
+}
+
+function taskUrl(task: DirectMediaTask, apiKey: string): string {
   if (
     typeof task.externalId !== 'string' ||
     !UUID.test(task.externalId) ||
+    hasCredentialReflection(task.externalId, apiKey) ||
     (task.model !== undefined &&
       !['gen4.5', 'gen4_image_turbo'].includes(task.model))
   )
@@ -41,7 +57,11 @@ function taskUrl(task: DirectMediaTask): string {
       'Invalid Runway task identity.',
     );
   const url = `${ORIGIN}/v1/tasks/${task.externalId}`;
-  if (task.pollingUrl !== undefined && task.pollingUrl !== url)
+  if (
+    task.pollingUrl !== undefined &&
+    (task.pollingUrl !== url ||
+      hasCredentialReflection(task.pollingUrl, apiKey))
+  )
     throw new DirectMediaProviderError(
       'RUNWAY_TASK_INVALID',
       'Invalid Runway task identity.',
@@ -146,14 +166,19 @@ export class RunwayDirectClient implements DirectMediaClient {
     if (!response || typeof response !== 'object' || Array.isArray(response))
       invalid(true);
     const id = (response as Record<string, unknown>).id;
-    if (typeof id !== 'string' || !UUID.test(id)) invalid(true);
+    if (
+      typeof id !== 'string' ||
+      !UUID.test(id) ||
+      hasCredentialReflection(id, context.apiKey)
+    )
+      invalid(true);
     return { kind: 'task', externalId: id, model: request.model };
   }
   async poll(
     task: DirectMediaTask,
     context: DirectMediaRequestContext,
   ): Promise<DirectMediaPollResult> {
-    const url = taskUrl(task);
+    const url = taskUrl(task, context.apiKey);
     const response = record(
       await requestDirectMediaJson(this.transport, url, {
         method: 'GET',
@@ -161,6 +186,11 @@ export class RunwayDirectClient implements DirectMediaClient {
         signal: context.signal,
       }),
     );
+    if (
+      typeof response.id === 'string' &&
+      hasCredentialReflection(response.id, context.apiKey)
+    )
+      invalid();
     switch (response.status) {
       case 'PENDING':
       case 'THROTTLED':
@@ -181,7 +211,11 @@ export class RunwayDirectClient implements DirectMediaClient {
         if (!Array.isArray(response.output) || response.output.length === 0)
           invalid();
         const outputs = response.output.map((value) => {
-          if (typeof value !== 'string') invalid();
+          if (
+            typeof value !== 'string' ||
+            hasCredentialReflection(value, context.apiKey)
+          )
+            invalid();
           let url: URL;
           try {
             url = new URL(value);
@@ -202,7 +236,7 @@ export class RunwayDirectClient implements DirectMediaClient {
     task: DirectMediaTask,
     context: DirectMediaRequestContext,
   ): Promise<DirectMediaCancellation> {
-    const url = taskUrl(task);
+    const url = taskUrl(task, context.apiKey);
     const state = record(
       await requestDirectMediaJson(this.transport, url, {
         method: 'GET',
@@ -210,6 +244,11 @@ export class RunwayDirectClient implements DirectMediaClient {
         signal: context.signal,
       }),
     );
+    if (
+      typeof state.id === 'string' &&
+      hasCredentialReflection(state.id, context.apiKey)
+    )
+      invalid();
     if (state.status === 'CANCELLED') return { status: 'confirmed' };
     if (state.status === 'FAILED' || state.status === 'SUCCEEDED')
       return { status: 'unsupported' };

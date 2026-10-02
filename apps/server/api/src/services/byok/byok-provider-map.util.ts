@@ -10,6 +10,11 @@ const MODEL_PROVIDER_TO_BYOK: Record<string, ByokProvider> = {
   [ModelProvider.FAL]: ByokProvider.FAL,
   [ModelProvider.CRUN]: ByokProvider.CRUN,
   [ModelProvider.OPENROUTER]: ByokProvider.OPENROUTER,
+  [ModelProvider.GOOGLE]: ByokProvider.GOOGLE,
+  [ModelProvider.XAI]: ByokProvider.XAI,
+  [ModelProvider.BFL]: ByokProvider.BFL,
+  [ModelProvider.RUNWAY]: ByokProvider.RUNWAY,
+  [ModelProvider.OPENAI]: ByokProvider.OPENAI,
 };
 
 /**
