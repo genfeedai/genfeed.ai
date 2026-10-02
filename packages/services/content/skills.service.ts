@@ -1,4 +1,10 @@
 import type { SkillSurface } from '@genfeedai/contracts';
+import type {
+  SkillVersionListQueryV1,
+  SkillVersionMetadataV1,
+  SkillVersionReadPageV1,
+  SkillVersionReadV1,
+} from '@genfeedai/contracts/interfaces/ai/skill-version-read.interface';
 import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import {
   BaseService,
@@ -183,6 +189,175 @@ export class Skill {
   }
 }
 
+export class SkillVersionReadUnavailableError extends Error {
+  constructor() {
+    super('Skill versions are unavailable.');
+    this.name = 'SkillVersionReadUnavailableError';
+  }
+}
+function versionReadInvalid(): never {
+  throw new SkillVersionReadUnavailableError();
+}
+function versionObject(
+  input: unknown,
+  keys: readonly string[],
+): Record<string, unknown> {
+  if (!input || typeof input !== 'object' || Array.isArray(input))
+    return versionReadInvalid();
+  const record = input as Record<string, unknown>;
+  const actual = Reflect.ownKeys(record);
+  if (
+    actual.length !== keys.length ||
+    actual.some((key) => typeof key !== 'string' || !keys.includes(key))
+  )
+    return versionReadInvalid();
+  return record;
+}
+function versionInteger(input: unknown, maximum = 2147483647): number {
+  if (
+    typeof input !== 'number' ||
+    !Number.isInteger(input) ||
+    input < 1 ||
+    input > maximum
+  )
+    return versionReadInvalid();
+  return input;
+}
+function versionSkillIdentity(skillId: string): void {
+  if (typeof skillId !== 'string' || !skillId || skillId !== skillId.trim())
+    versionReadInvalid();
+}
+function versionQuery(
+  query: SkillVersionListQueryV1,
+): Required<Pick<SkillVersionListQueryV1, 'limit'>> & SkillVersionListQueryV1 {
+  if (
+    !query ||
+    typeof query !== 'object' ||
+    Array.isArray(query) ||
+    Reflect.ownKeys(query).some(
+      (key) => key !== 'limit' && key !== 'beforeVersionNumber',
+    )
+  )
+    return versionReadInvalid();
+  return {
+    limit: Object.hasOwn(query, 'limit') ? versionInteger(query.limit, 50) : 20,
+    ...(Object.hasOwn(query, 'beforeVersionNumber')
+      ? { beforeVersionNumber: versionInteger(query.beforeVersionNumber) }
+      : {}),
+  };
+}
+function versionLinks(
+  input: unknown,
+  collection: boolean,
+): Record<string, unknown> {
+  const links = versionObject(
+    input,
+    collection ? ['self', 'cursor'] : ['self'],
+  );
+  if (typeof links.self !== 'string' || !links.self.trim())
+    versionReadInvalid();
+  return links;
+}
+function versionMetadata(
+  input: unknown,
+  skillId: string,
+  detail: boolean,
+): SkillVersionMetadataV1 {
+  const row = versionObject(input, ['type', 'id', 'attributes']);
+  const attributes = versionObject(
+    row.attributes,
+    detail
+      ? ['versionNumber', 'createdAt', 'contentHash', 'instructionText']
+      : ['versionNumber', 'createdAt', 'contentHash'],
+  );
+  const versionNumber = versionInteger(attributes.versionNumber);
+  if (
+    row.type !== 'skill-version' ||
+    typeof row.id !== 'string' ||
+    row.id !== `sv1_${skillId}_${versionNumber}` ||
+    typeof attributes.contentHash !== 'string' ||
+    attributes.contentHash.length !== 80 ||
+    !/^sha256:skill-v1:[a-f0-9]{64}$/.test(attributes.contentHash) ||
+    typeof attributes.createdAt !== 'string'
+  )
+    return versionReadInvalid();
+  const createdAt = new Date(attributes.createdAt);
+  if (
+    !Number.isFinite(createdAt.getTime()) ||
+    createdAt.toISOString() !== attributes.createdAt
+  )
+    return versionReadInvalid();
+  return {
+    id: row.id,
+    versionNumber,
+    contentHash: attributes.contentHash,
+    createdAt: attributes.createdAt,
+  };
+}
+export function parseSkillVersionReadPageV1(
+  input: unknown,
+  skillId: string,
+  query: SkillVersionListQueryV1 = {},
+): SkillVersionReadPageV1 {
+  versionSkillIdentity(skillId);
+  const requested = versionQuery(query);
+  const wire = versionObject(input, ['data', 'links']);
+  const links = versionLinks(wire.links, true);
+  const cursor = versionObject(links.cursor, [
+    'limit',
+    'hasMore',
+    'nextCursor',
+  ]);
+  if (
+    !Array.isArray(wire.data) ||
+    wire.data.length > requested.limit ||
+    cursor.limit !== requested.limit ||
+    typeof cursor.hasMore !== 'boolean'
+  )
+    return versionReadInvalid();
+  const items = wire.data.map((row) => versionMetadata(row, skillId, false));
+  let previous = requested.beforeVersionNumber ?? 2147483648;
+  for (const item of items) {
+    if (item.versionNumber >= previous) versionReadInvalid();
+    previous = item.versionNumber;
+  }
+  if (cursor.hasMore !== (cursor.nextCursor !== null))
+    return versionReadInvalid();
+  const nextCursor =
+    cursor.nextCursor === null ? null : versionInteger(cursor.nextCursor);
+  if (
+    cursor.hasMore &&
+    (items.length !== requested.limit ||
+      nextCursor !== items[items.length - 1]?.versionNumber ||
+      nextCursor === 1)
+  )
+    return versionReadInvalid();
+  return { items, limit: requested.limit, hasMore: cursor.hasMore, nextCursor };
+}
+export function parseSkillVersionReadV1(
+  input: unknown,
+  skillId: string,
+  versionId: string,
+): SkillVersionReadV1 {
+  versionSkillIdentity(skillId);
+  const wire = versionObject(input, ['data', 'links']);
+  versionLinks(wire.links, false);
+  const metadata = versionMetadata(wire.data, skillId, true);
+  const row = versionObject(wire.data, ['type', 'id', 'attributes']);
+  const attributes = versionObject(row.attributes, [
+    'versionNumber',
+    'createdAt',
+    'contentHash',
+    'instructionText',
+  ]);
+  if (
+    metadata.id !== versionId ||
+    typeof attributes.instructionText !== 'string'
+  )
+    return versionReadInvalid();
+  return { ...metadata, instructionText: attributes.instructionText };
+}
+
 export class SkillsService extends BaseService<
   Skill,
   SkillInput,
@@ -217,6 +392,48 @@ export class SkillsService extends BaseService<
       .then((response) => this.mapOne(response.data));
   }
 
+  async listSkillVersions(
+    skillId: string,
+    query: SkillVersionListQueryV1 = {},
+  ): Promise<SkillVersionReadPageV1> {
+    try {
+      versionSkillIdentity(skillId);
+      const requested = versionQuery(query);
+      const response = await this.instance.get<unknown>(
+        `/${encodeURIComponent(skillId)}/versions`,
+        { params: requested },
+      );
+      return parseSkillVersionReadPageV1(response.data, skillId, requested);
+    } catch {
+      throw new SkillVersionReadUnavailableError();
+    }
+  }
+  async getSkillVersion(
+    skillId: string,
+    versionId: string,
+  ): Promise<SkillVersionReadV1> {
+    try {
+      versionSkillIdentity(skillId);
+      const prefix = `sv1_${skillId}_`;
+      if (
+        typeof versionId !== 'string' ||
+        !versionId.startsWith(prefix) ||
+        !/^[1-9][0-9]*$/.test(versionId.slice(prefix.length))
+      )
+        versionReadInvalid();
+      const requestedNumber = versionInteger(
+        Number(versionId.slice(prefix.length)),
+      );
+      if (versionId !== `${prefix}${requestedNumber}`) versionReadInvalid();
+      const response = await this.instance.get<unknown>(
+        `/${encodeURIComponent(skillId)}/versions/${encodeURIComponent(versionId)}`,
+      );
+      return parseSkillVersionReadV1(response.data, skillId, versionId);
+    } catch {
+      throw new SkillVersionReadUnavailableError();
+    }
+  }
+
   async createSkill(input: SkillInput): Promise<Skill> {
     return this.post(input);
   }
@@ -249,12 +466,6 @@ export class SkillsService extends BaseService<
     } catch {
       throw new SkillImportCreatedUnavailableError();
     }
-  }
-
-  async forkSkill(id: string): Promise<Skill> {
-    return this.instance
-      .post<JsonApiResponseDocument>(`/${encodeURIComponent(id)}/fork`, {})
-      .then((response) => this.mapOne(response.data));
   }
 
   async forkSkill(id: string): Promise<Skill> {
