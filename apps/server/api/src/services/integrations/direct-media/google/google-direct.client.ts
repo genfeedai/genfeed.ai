@@ -45,11 +45,28 @@ function requireKey(context: DirectMediaRequestContext): void {
     );
   }
 }
-function operationUrl(task: DirectMediaTask): string {
+// Provider metadata must never persist or expose the ephemeral account credential.
+function hasCredentialReflection(value: string, apiKey: string): boolean {
+  if (!apiKey) return false;
+  let decoded = value;
+  for (let pass = 0; pass < 3; pass++) {
+    if (decoded.includes(apiKey)) return true;
+    const next = decoded.replace(/%[0-9a-f]{2}/gi, (encoded: string) =>
+      String.fromCharCode(Number.parseInt(encoded.slice(1), 16)),
+    );
+    if (next === decoded) return false;
+    decoded = next;
+  }
+  return decoded.includes(apiKey);
+}
+
+function operationUrl(task: DirectMediaTask, apiKey: string): string {
   if (
+    typeof task.externalId !== 'string' ||
     !/^models\/veo-3\.1-generate-preview\/operations\/[A-Za-z0-9_-]+$/.test(
       task.externalId,
     ) ||
+    hasCredentialReflection(task.externalId, apiKey) ||
     (task.model !== undefined && task.model !== GOOGLE_DIRECT_VEO_MODEL)
   ) {
     throw new DirectMediaProviderError(
@@ -58,7 +75,11 @@ function operationUrl(task: DirectMediaTask): string {
     );
   }
   const url = `${GOOGLE_DIRECT_ORIGIN}/v1beta/${task.externalId}`;
-  if (task.pollingUrl !== undefined && task.pollingUrl !== url) {
+  if (
+    task.pollingUrl !== undefined &&
+    (task.pollingUrl !== url ||
+      hasCredentialReflection(task.pollingUrl, apiKey))
+  ) {
     throw new DirectMediaProviderError(
       'GOOGLE_TASK_INVALID',
       'Google polling URL does not match the recorded operation.',
@@ -74,7 +95,7 @@ function protectedOutput(
   mimeType: string,
   isSubmissionUncertain = false,
 ): DirectMediaOutput {
-  if (typeof uri !== 'string' || uri.includes(context.apiKey))
+  if (typeof uri !== 'string' || hasCredentialReflection(uri, context.apiKey))
     responseInvalid(isSubmissionUncertain);
   let url: URL;
   try {
@@ -146,13 +167,13 @@ export class GoogleDirectClient implements DirectMediaClient {
     if (model === GOOGLE_DIRECT_VEO_MODEL) {
       if (
         typeof response.name !== 'string' ||
-        response.name.includes(context.apiKey)
+        hasCredentialReflection(response.name, context.apiKey)
       )
         responseInvalid(true);
       const task = { externalId: response.name, model };
       let pollingUrl: string;
       try {
-        pollingUrl = operationUrl(task);
+        pollingUrl = operationUrl(task, context.apiKey);
       } catch {
         return responseInvalid(true);
       }
@@ -210,7 +231,7 @@ export class GoogleDirectClient implements DirectMediaClient {
     task: DirectMediaTask,
     context: DirectMediaRequestContext,
   ): Promise<DirectMediaPollResult> {
-    const url = operationUrl(task);
+    const url = operationUrl(task, context.apiKey);
     requireKey(context);
     const response = record(await this.request(url, 'GET', context));
     if (response.name !== undefined && response.name !== task.externalId)
