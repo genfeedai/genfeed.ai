@@ -189,6 +189,13 @@ export default defineConfig({
         ),
       },
       {
+        find: '@genfeedai/contracts/enums',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/contracts/src/enums',
+        ),
+      },
+      {
         find: /^@genfeedai\/contracts$/,
         replacement: path.resolve(
           serviceDir,
