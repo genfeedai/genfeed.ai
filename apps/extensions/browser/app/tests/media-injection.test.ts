@@ -368,7 +368,7 @@ describe('UI Helpers', () => {
     it('opens a brand-aware reply composer from the web page', async () => {
       vi.mocked(chrome.runtime.sendMessage).mockResolvedValue({
         success: true,
-      });
+      } as never);
       const dropdown = createGenFeedDropdown('123', 'twitter', {
         postUrl: 'https://x.com/author/status/123',
       });
