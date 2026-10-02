@@ -13,7 +13,7 @@ vi.mock('next-intl', async () => {
   const translate = translateFromCatalog('common.settings.skills');
   return { useTranslations: () => translate };
 });
-const skill = {
+const skill: Skill = {
   id: 'personal',
   name: 'Name',
   description: 'Definition',
@@ -23,7 +23,14 @@ const skill = {
   channels: [],
   modalities: ['text'],
   workflowStage: 'creation',
-} as Skill;
+  category: 'content',
+  isBuiltIn: false,
+  isEnabled: true,
+  requiredProviders: [],
+  slug: 'personal',
+  source: 'custom',
+  status: 'draft',
+};
 const original: SkillDraft = {
   name: 'Name',
   description: 'Definition',

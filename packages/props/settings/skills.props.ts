@@ -33,6 +33,7 @@ export type SkillDetailCardProps = {
 };
 
 export type SkillDetailSheetProps = SkillDetailCardProps & {
+  error?: string | null;
   onArchiveSkill?: () => void;
   onClose: () => void;
   onExportSkill?: () => void;

@@ -582,7 +582,7 @@ export default function BrandSettingsSkillsPage() {
       }
       titleVisibility="sr-only"
     >
-      {error ? (
+      {error && !selectedSkill ? (
         <div
           className="mb-4 rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
           role="alert"
@@ -613,6 +613,7 @@ export default function BrandSettingsSkillsPage() {
 
       <SkillDetailSheet
         customizing={isCustomizing}
+        error={error}
         hasChanges={preparedPatch.hasChanges}
         draftErrors={preparedPatch.errors}
         isForkBlocked={forkCreatedForSkillId === selectedSkillId}

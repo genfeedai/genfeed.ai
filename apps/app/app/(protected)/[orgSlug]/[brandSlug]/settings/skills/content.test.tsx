@@ -9,6 +9,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandSettingsSkillsPage from './content';
@@ -347,12 +348,23 @@ describe('BrandSettingsSkillsPage', () => {
       modalities: ['text'],
       workflowStage: 'creation',
       slug: 'fresh-fork',
+      source: 'custom',
+      category: 'content',
+      isBuiltIn: false,
+      isEnabled: true,
+      requiredProviders: [],
+      status: 'draft',
+      defaultInstructions: 'Fresh fork instructions',
+      systemPromptTemplate: '',
     });
     render(<BrandSettingsSkillsPage />);
     fireEvent.click(await screen.findByText('YouTube Script Setup'));
     fireEvent.click(screen.getByRole('button', { name: 'Fork' }));
     await waitFor(() => expect(getSkillMock).toHaveBeenCalledWith('fork-1'));
     expect(await screen.findByDisplayValue('Fresh fork')).toBeEnabled();
+    expect(
+      screen.getByRole('textbox', { name: 'Default instructions' }),
+    ).toHaveValue('Fresh fork instructions');
     expect(
       screen.queryByRole('button', { name: 'Fork' }),
     ).not.toBeInTheDocument();
@@ -369,7 +381,13 @@ describe('BrandSettingsSkillsPage', () => {
         'The fork was created, but its details could not be loaded. Refresh the catalog.',
       ),
     ).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: 'Fork' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByRole('alert')).toHaveTextContent(
+      'The fork was created, but its details could not be loaded. Refresh the catalog.',
+    );
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    expect(within(dialog).getByRole('button', { name: 'Fork' })).toBeDisabled();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Fork' }));
     expect(forkSkillMock).toHaveBeenCalledTimes(1);
   });
   it('does not dispatch a mutation when a deferred token resolves after session change', async () => {

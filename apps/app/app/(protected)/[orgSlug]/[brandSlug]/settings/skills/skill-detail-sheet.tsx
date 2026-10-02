@@ -10,6 +10,7 @@ import SkillDetailCard from './SkillDetailCard';
 export default function SkillDetailSheet({
   customizing,
   draftErrors,
+  error,
   hasChanges,
   isForkBlocked,
   onArchiveSkill,
@@ -91,6 +92,14 @@ export default function SkillDetailSheet({
       title={selectedSkill?.name ?? translate('heading')}
       width="lg"
     >
+      {selectedSkill && error ? (
+        <div
+          role="alert"
+          className="mb-4 rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
+          {error}
+        </div>
+      ) : null}
       <SkillDetailCard
         customizing={customizing}
         draftErrors={draftErrors}
