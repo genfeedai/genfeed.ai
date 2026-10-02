@@ -21,6 +21,10 @@ import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
+import {
+  getTenantContext,
+  isCrossOrgUnsafe,
+} from '@libs/prisma/tenant-context';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 
 type PostRow = Prisma.PostGetPayload<{
@@ -181,7 +185,10 @@ async function discoverPostMutation(
   organizationId?: string,
   createScope?: Scope,
 ): Promise<PostPlan | null> {
-  // tenant-scope-ignore: authorized opaque ID discovery pins subsequent source queries and writes to the original tenant.
+  organizationId ??= isCrossOrgUnsafe()
+    ? undefined
+    : getTenantContext()?.organizationId;
+  // tenant-scope-ignore: no-context system callers retain exact ID discovery; active request tenants are explicitly fenced below.
   const current = await tx.post.findFirst({
     where: {
       id,

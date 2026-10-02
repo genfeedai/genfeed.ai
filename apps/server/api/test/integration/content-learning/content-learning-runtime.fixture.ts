@@ -1,6 +1,7 @@
 import { deepStrictEqual } from 'node:assert';
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
+import { constants as fsConstants } from 'node:fs';
 import { lstat, open, readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { promisify } from 'node:util';
@@ -95,6 +96,21 @@ export class LearningRuntimeResources {
   readonly prefix = `learning-runtime-${this.fixtureId}`;
   readonly clients: Redis[] = [];
   readonly applicationClients: Array<{ $disconnect(): Promise<void> }> = [];
+  readonly applicationClosers: Array<() => Promise<void>> = [];
+  private pendingApplicationConstructions = 0;
+  beginApplicationConstruction() {
+    this.pendingApplicationConstructions++;
+  }
+  registerApplicationCloser(close: () => Promise<void>) {
+    this.applicationClosers.push(close);
+    this.pendingApplicationConstructions--;
+  }
+  assertApplicationConstructionClosed() {
+    ensure(
+      this.pendingApplicationConstructions === 0,
+      'PARTIAL_APPLICATION_OWNERSHIP',
+    );
+  }
   readonly workDeadline = Date.now() + 540000;
   private stopping = false;
   beginCleanup() {
@@ -133,28 +149,67 @@ export class LearningRuntimeResources {
   }
 
   private async readReceipt() {
-    const metadata = await lstat(this.receiptPath);
-    ensure(
-      metadata.isFile() &&
-        !metadata.isSymbolicLink() &&
-        metadata.size <= 16384 &&
-        metadata.uid === process.getuid?.() &&
-        (metadata.mode & 0o777) === 0o600,
-      'PRIVATE_REGULAR_RECEIPT',
+    const file = await open(
+      this.receiptPath,
+      fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW,
     );
-    const bytes = await readFile(this.receiptPath);
-    const hash = createHash('sha256').update(bytes).digest('hex');
-    if (this.receiptHash)
+    try {
+      const metadata = await file.stat();
       ensure(
-        hash === this.receiptHash &&
-          metadata.ino === this.receiptInode &&
-          metadata.dev === this.receiptDevice,
-        'RECEIPT_REPLACED',
+        metadata.isFile() &&
+          metadata.size > 0 &&
+          metadata.size <= 16384 &&
+          metadata.uid === process.getuid?.() &&
+          (metadata.mode & 0o777) === 0o600,
+        'PRIVATE_REGULAR_RECEIPT',
       );
-    this.receiptHash = hash;
-    this.receiptInode = metadata.ino;
-    this.receiptDevice = metadata.dev;
-    return receiptSchema.parse(JSON.parse(bytes.toString('utf8')));
+      const buffer = Buffer.alloc(16385);
+      let length = 0;
+      while (length < buffer.length) {
+        const { bytesRead } = await file.read(
+          buffer,
+          length,
+          buffer.length - length,
+          length,
+        );
+        if (bytesRead === 0) break;
+        length += bytesRead;
+      }
+      const after = await file.stat(),
+        pathname = await lstat(this.receiptPath);
+      ensure(
+        length === metadata.size &&
+          after.size === metadata.size &&
+          after.mtimeMs === metadata.mtimeMs &&
+          after.ctimeMs === metadata.ctimeMs &&
+          after.mode === metadata.mode &&
+          pathname.isFile() &&
+          !pathname.isSymbolicLink() &&
+          pathname.ino === metadata.ino &&
+          pathname.dev === metadata.dev &&
+          pathname.size === metadata.size &&
+          pathname.mode === metadata.mode &&
+          pathname.uid === metadata.uid &&
+          pathname.mtimeMs === metadata.mtimeMs &&
+          pathname.ctimeMs === metadata.ctimeMs,
+        'RECEIPT_CHANGED_DURING_READ',
+      );
+      const bytes = buffer.subarray(0, length);
+      const hash = createHash('sha256').update(bytes).digest('hex');
+      if (this.receiptHash)
+        ensure(
+          hash === this.receiptHash &&
+            metadata.ino === this.receiptInode &&
+            metadata.dev === this.receiptDevice,
+          'RECEIPT_REPLACED',
+        );
+      this.receiptHash = hash;
+      this.receiptInode = metadata.ino;
+      this.receiptDevice = metadata.dev;
+      return receiptSchema.parse(JSON.parse(bytes.toString('utf8')));
+    } finally {
+      await file.close();
+    }
   }
 
   private async inspectContainer() {
@@ -1011,6 +1066,7 @@ export async function createLearningRuntimeApplication(
   };
   await assertNoLearningRuntimeEnvFiles();
   await resources.check();
+  resources.beginApplicationConstruction();
   const module = await Test.createTestingModule({
     imports: [
       ConfigModule,
@@ -1054,6 +1110,23 @@ export async function createLearningRuntimeApplication(
     .overrideProvider('BULLMQ_EXTRA_OPTIONS')
     .useValue({ manualRegistration: true })
     .compile();
+  const queues = new Set<InstanceType<typeof Queue>>();
+  async function closeApplication() {
+    const errors: unknown[] = [];
+    for (const close of [
+      ...[...queues].map((queue) => () => queue.close()),
+      () => module.close(),
+    ]) {
+      try {
+        await close();
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    if (errors.length)
+      throw new AggregateError(errors, 'Learning application shutdown failed');
+  }
+  resources.registerApplicationCloser(closeApplication);
   const prisma = module.get(PrismaService),
     config = module.get(ConfigService);
   ensure(
@@ -1064,7 +1137,6 @@ export async function createLearningRuntimeApplication(
   deepStrictEqual(module.get('BULLMQ_EXTRA_OPTIONS'), {
     manualRegistration: true,
   });
-  const queues = new Set<InstanceType<typeof Queue>>();
   for (const container of module.get(ModulesContainer).values())
     for (const provider of container.providers.values())
       if (provider.instance instanceof Queue) queues.add(provider.instance);
@@ -1092,10 +1164,7 @@ export async function createLearningRuntimeApplication(
     connection,
     scheduler: module.get(SchedulerPublishStateService),
     processor: module.get(BackgroundSystemWorkflowProcessor),
-    async close() {
-      await Promise.all([...queues].map((queue) => queue.close()));
-      await module.close();
-    },
+    close: closeApplication,
   };
 }
 
@@ -1508,6 +1577,15 @@ export async function openLearningRuntimeFixture() {
       >
     | undefined;
   let events: import('bullmq').QueueEvents | undefined;
+  const failedJobs: Array<{
+    id: string | null;
+    executionId: string | null;
+    canonicalId: string;
+  }> = [];
+  const expectedFailureExecutions = new Map<
+    string,
+    { organizationId: string; canonicalId: string }
+  >();
   const workerErrors: string[] = [],
     handledJobs: Array<{
       id: string;
@@ -1524,15 +1602,10 @@ export async function openLearningRuntimeFixture() {
       async () => {
         if (events) await events.close();
       },
-      ...applications.map((application) => () => application.close()),
+      ...[...resources.applicationClosers].reverse(),
       ...resources.applicationClients.map(
         (client) => () => client.$disconnect(),
       ),
-      async () => {
-        if (database) await database.close();
-      },
-      () => resources.cleanup(),
-      async () => transports.assertNoViolations(),
     ]) {
       try {
         await closeResource();
@@ -1540,11 +1613,26 @@ export async function openLearningRuntimeFixture() {
         errors.push(error);
       }
     }
+    try {
+      resources.assertApplicationConstructionClosed();
+    } catch (error) {
+      errors.push(error);
+    }
+    if (errors.length) {
+      for (const client of resources.clients) client.disconnect();
+      throw new AggregateError(
+        errors,
+        'Learning writer shutdown unproven; owned data and transport gates retained',
+      );
+    }
+    // Destructive cleanup is reachable only after every known writer closed,
+    // and no failed compilation can have left untracked production providers.
+    if (database) await database.close();
+    await resources.cleanup();
+    transports.assertNoViolations();
     restoreAnalytics?.();
     environment?.restore();
     await transports.close();
-    if (errors.length)
-      throw new AggregateError(errors, 'Learning runtime cleanup failed');
   }
   try {
     await resources.acquire();
@@ -1661,7 +1749,63 @@ export async function openLearningRuntimeFixture() {
     worker.on('error', () => {
       workerErrors.push('BACKGROUND_WORKER_ERROR');
     });
+    worker.on('failed', (job) => {
+      failedJobs.push({
+        id: job?.id ? String(job.id) : null,
+        executionId: job?.data.systemRun?.priorExecution?.executionId ?? null,
+        canonicalId: job?.data.systemRun?.input.canonicalId ?? '',
+      });
+    });
     await worker.waitUntilReady();
+    async function assertExpectedJobFailures() {
+      const failures = await background.getJobs(['failed'], 0, 999);
+      ensure(
+        (await background.getJobCounts('failed')).failed === failures.length,
+        'FAILED_JOB_INVENTORY_BOUND',
+      );
+      for (const job of failures) {
+        const executionId = job.data.systemRun?.priorExecution?.executionId;
+        const expected = executionId
+          ? expectedFailureExecutions.get(executionId)
+          : undefined;
+        ensure(
+          expected &&
+            executionId &&
+            job.data.systemRun?.input.organizationId ===
+              expected.organizationId &&
+            job.data.systemRun?.input.canonicalId === expected.canonicalId,
+          'UNEXPECTED_FAILED_BACKGROUND_JOB',
+        );
+        const row = await first.prisma.workflowExecution.findFirst({
+          where: {
+            id: executionId,
+            organizationId: expected.organizationId,
+            isDeleted: false,
+          },
+        });
+        ensure(
+          row?.status === 'FAILED',
+          'FAILED_JOB_WITHOUT_EXPECTED_EXECUTION',
+        );
+      }
+      for (const executionId of expectedFailureExecutions.keys())
+        ensure(
+          failures.filter(
+            (job) =>
+              job.data.systemRun?.priorExecution?.executionId === executionId,
+          ).length === 1,
+          'EXPECTED_FAILED_JOB_MISSING_OR_DUPLICATED',
+        );
+      for (const failure of failedJobs)
+        ensure(
+          failure.id &&
+            failure.executionId &&
+            expectedFailureExecutions.get(failure.executionId)?.canonicalId ===
+              failure.canonicalId &&
+            failures.some((job) => String(job.id) === failure.id),
+          'UNEXPECTED_FAILED_JOB_EVENT',
+        );
+    }
     async function drain() {
       const deadline = Date.now() + 45000;
       while (Date.now() < deadline) {
@@ -1674,6 +1818,7 @@ export async function openLearningRuntimeFixture() {
         );
         if (Object.values(counts).every((count) => count === 0)) {
           ensure(workerErrors.length === 0, 'WORKER_ERRORS');
+          await assertExpectedJobFailures();
           return;
         }
         await new Promise<void>((accept) => setImmediate(accept));
@@ -1684,6 +1829,7 @@ export async function openLearningRuntimeFixture() {
       canonicalId: string,
       organizationId: string,
       inputValues: Record<string, unknown> = {},
+      expectedStatus: 'COMPLETED' | 'FAILED' = 'COMPLETED',
     ) {
       const { SystemWorkflowDispatchClass } = await import(
         '@genfeedai/contracts/queue'
@@ -1700,13 +1846,18 @@ export async function openLearningRuntimeFixture() {
         },
         { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
       );
+      if (expectedStatus === 'FAILED')
+        expectedFailureExecutions.set(queued.executionId, {
+          organizationId,
+          canonicalId,
+        });
       await drain();
       const row = await first.prisma.workflowExecution.findFirst({
         where: { id: queued.executionId, organizationId, isDeleted: false },
         include: { nodeResults: true },
       });
       ensure(
-        row && ['COMPLETED', 'FAILED'].includes(row.status),
+        row && row.status === expectedStatus,
         'PERSISTED_WORKFLOW_TERMINAL',
       );
       for (const queue of first.queues)
@@ -1755,6 +1906,7 @@ export async function openLearningRuntimeFixture() {
       events,
       background,
       handledJobs,
+      failedJobs,
       workerErrors,
       drain,
       enqueue,

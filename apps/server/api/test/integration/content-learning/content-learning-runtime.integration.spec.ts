@@ -449,6 +449,7 @@ describe('hosted real production learning runtime', () => {
         'content-learning.reconcile',
         target.organizationId,
         { credentialId: target.credentialId, ...invalid },
+        'FAILED',
       );
       expect(row.status).toBe('FAILED');
       expect(row.nodeResults.some((node) => node.error)).toBe(true);
@@ -483,6 +484,8 @@ describe('hosted real production learning runtime', () => {
     const row = await fixture.enqueue(
       definition.canonicalId,
       fixture.targets[0].organizationId,
+      {},
+      'FAILED',
     );
     expect(row.status).toBe('FAILED');
     expect(execute).not.toHaveBeenCalled();

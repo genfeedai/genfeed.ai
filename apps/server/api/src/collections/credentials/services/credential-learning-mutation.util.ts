@@ -10,6 +10,10 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import {
+  getTenantContext,
+  isCrossOrgUnsafe,
+} from '@libs/prisma/tenant-context';
+import {
   BadRequestException,
   ConflictException,
   HttpException,
@@ -85,8 +89,15 @@ async function discoverCredentialMutation(
   where: Prisma.CredentialWhereInput,
   data: Prisma.CredentialUncheckedUpdateInput,
 ): Promise<CredentialMutationPlan> {
-  // tenant-scope-ignore: original authorized bulk filter is retained; every selected row pins subsequent locks and writes to its original organization.
-  const rows = await tx.credential.findMany({ where, orderBy: { id: 'asc' } });
+  const tenant = isCrossOrgUnsafe() ? undefined : getTenantContext();
+  const discoveryWhere: Prisma.CredentialWhereInput = tenant
+    ? { AND: [where, { organizationId: tenant.organizationId }] }
+    : where;
+  // tenant-scope-ignore: no-context system callers retain their original bulk filter and null-org behavior; active request tenants are intersected with it.
+  const rows = await tx.credential.findMany({
+    where: discoveryWhere,
+    orderBy: { id: 'asc' },
+  });
   const scopes: CredentialMutationPlan['scopes'] = [];
   for (const row of rows) {
     const organizationId =

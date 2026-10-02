@@ -235,6 +235,24 @@ describe('hosted actual learning publication contention and atomicity', () => {
           },
         });
       const victimBefore = await snapshotLearningRuntimeTarget(fixture, victim);
+      const { CacheService } = await import(
+        '@api/services/cache/cache.service'
+      );
+      const cache = fixture.second.module.get(CacheService);
+      const cacheKey = `${fixture.resources.prefix}:post-commit:${randomUUID()}`;
+      const controlKey = `${cacheKey}:control`;
+      if (actor === 'post-patch') {
+        expect(await cache.set(controlKey, publication.id, { ttl: 300 })).toBe(
+          true,
+        );
+        expect(
+          await cache.set(cacheKey, publication.id, {
+            tags: ['post'],
+            ttl: 300,
+          }),
+        ).toBe(true);
+        expect(await cache.get(cacheKey)).toBe(publication.id);
+      }
       let result: Awaited<ReturnType<typeof runProjection>> | undefined;
       if (ordering === 'projection-first') {
         if (projection === 'capture') {
@@ -263,6 +281,8 @@ describe('hosted actual learning publication contention and atomicity', () => {
               held.pid,
             );
             expect(blocked.query).toContain('pg_advisory_xact_lock');
+            if (actor === 'post-patch')
+              expect(await cache.get(cacheKey)).toBe(publication.id);
             await barrier.release();
             const completed = await Promise.all([reader, writer]);
             result = completed[0];
@@ -312,6 +332,8 @@ describe('hosted actual learning publication contention and atomicity', () => {
               held.pid,
             );
             expect(blocked.query).toContain('pg_advisory_xact_lock');
+            if (actor === 'post-patch')
+              expect(await cache.get(cacheKey)).toBe(publication.id);
             await fixture.database.control.query('COMMIT');
             const completed = await Promise.all([reader, writer]);
             result = completed[0];
@@ -343,6 +365,8 @@ describe('hosted actual learning publication contention and atomicity', () => {
             held.pid,
           );
           expect(blocked.query).toContain('pg_advisory_xact_lock');
+          if (actor === 'post-patch')
+            expect(await cache.get(cacheKey)).toBe(publication.id);
           await barrier.release();
           await writer;
           try {
@@ -368,6 +392,11 @@ describe('hosted actual learning publication contention and atomicity', () => {
           expect(result && 'count' in result ? result.count : 0).toBeLessThan(
             20,
           );
+      }
+      if (actor === 'post-patch') {
+        expect(await cache.get(cacheKey)).toBeNull();
+        expect(await fixture.resources.clients[2].exists(cacheKey)).toBe(0);
+        expect(await cache.get(controlKey)).toBe(publication.id);
       }
       const account =
         await fixture.first.prisma.contentLearningAccount.findFirstOrThrow({
@@ -463,6 +492,15 @@ describe('hosted actual learning publication contention and atomicity', () => {
           ?.validity,
       ).toBe('valid');
       const before = await snapshotLearningRuntimeTarget(fixture, target);
+      const { CacheService } = await import(
+        '@api/services/cache/cache.service'
+      );
+      const cache = fixture.second.module.get(CacheService);
+      const cacheKey = `${fixture.resources.prefix}:post-rollback:${randomUUID()}`;
+      expect(
+        await cache.set(cacheKey, publication.id, { tags: ['post'], ttl: 300 }),
+      ).toBe(true);
+      expect(await cache.get(cacheKey)).toBe(publication.id);
       const trigger = await installLearningRuntimeFailure(
         fixture,
         table,
@@ -479,6 +517,7 @@ describe('hosted actual learning publication contention and atomicity', () => {
       expect(await snapshotLearningRuntimeTarget(fixture, target)).toEqual(
         before,
       );
+      expect(await cache.get(cacheKey)).toBe(publication.id);
     },
   );
 
@@ -787,7 +826,44 @@ describe('hosted actual learning publication contention and atomicity', () => {
         fixture.services,
         target,
       );
+    const victimPublication = await publishLearningRuntimePost(
+      fixture.first,
+      fixture.services,
+      victim,
+    );
     const victimBefore = await snapshotLearningRuntimeTarget(fixture, victim);
+    const { runWithTenantContext } = await import(
+      '@libs/prisma/tenant-context'
+    );
+    await runWithTenantContext(
+      { organizationId: target.organizationId },
+      async () => {
+        await expect(
+          fixture.secondServices.posts.patch(victimPublication.id, {
+            description: 'Denied foreign edit',
+          }),
+        ).rejects.toThrow();
+        await expect(
+          fixture.secondServices.posts.remove(victimPublication.id),
+        ).resolves.toBeNull();
+        await expect(
+          fixture.secondServices.credentials.patch(victim.credentialId, {
+            isConnected: false,
+          }),
+        ).rejects.toThrow();
+        await expect(
+          fixture.secondServices.credentials.remove(victim.credentialId),
+        ).resolves.toBeNull();
+        await expect(
+          fixture.secondServices.brands.patch(victim.brandId, {
+            isActive: false,
+          }),
+        ).rejects.toThrow();
+        await expect(
+          fixture.secondServices.brandLifecycle.remove(victim.brandId),
+        ).rejects.toThrow();
+      },
+    );
     await mutate(fixture, 'post-patch', publication);
     const account =
       await fixture.first.prisma.contentLearningAccount.findFirstOrThrow({
@@ -823,7 +899,7 @@ describe('hosted actual learning publication contention and atomicity', () => {
           await import('./content-learning-runtime.fixture')
         ).learningRuntimeMetrics(),
       }),
-    ).rejects.toThrow();
+    ).resolves.toBeNull();
     expect(await snapshotLearningRuntimeTarget(fixture, victim)).toEqual(
       victimBefore,
     );

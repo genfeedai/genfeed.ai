@@ -6,6 +6,10 @@ import {
 import { learningPublicationBrandSelect } from '@api/collections/content-learning/services/learning-publication-source.types';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { Prisma } from '@genfeedai/prisma';
+import {
+  getTenantContext,
+  isCrossOrgUnsafe,
+} from '@libs/prisma/tenant-context';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 
 type BrandRow = Prisma.BrandGetPayload<{
@@ -39,12 +43,15 @@ async function discoverBrandLearningMutation(
   tx: Prisma.TransactionClient,
   input: BrandMutationInput,
 ): Promise<BrandLearningScope> {
-  // tenant-scope-ignore: authorized opaque brand ID discovery pins all following writes to its original organization.
+  const organizationId =
+    input.organizationId ??
+    (isCrossOrgUnsafe() ? undefined : getTenantContext()?.organizationId);
+  // tenant-scope-ignore: no-context system callers retain exact ID discovery; active request tenants are explicitly fenced below.
   const brand = await tx.brand.findFirst({
     where: {
       id: input.brandId,
       isDeleted: false,
-      ...(input.organizationId ? { organizationId: input.organizationId } : {}),
+      ...(organizationId ? { organizationId } : {}),
     },
     select: learningPublicationBrandSelect,
   });
