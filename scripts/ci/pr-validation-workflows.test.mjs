@@ -1087,12 +1087,16 @@ test('final Full Suite forwards full API discovery only with explicit runtime ac
     e2e,
     /run_api_full:\n\s+description:[^\n]*\n\s+type: boolean\n\s+required: false\n\s+default: false/,
   );
-  for (const caller of ['pr-heavy-ci.yml', 'release.yml']) {
-    assert.doesNotMatch(
-      readWorkflow(caller),
-      /run_api_full: true|run_runtime_acceptance: true/,
-    );
-  }
+  assert.doesNotMatch(
+    readWorkflow('pr-heavy-ci.yml'),
+    /run_api_full: true|run_runtime_acceptance: true/,
+  );
+  const releaseSuite = jobBlock(
+    readWorkflow('release.yml'),
+    'verify-suite',
+    'release.yml',
+  );
+  assert.match(releaseSuite, /^ {4}with:\n {6}run_runtime_acceptance: true$/m);
 });
 
 test('dedicated production agent and BRAND jobs preserve full-tier selection and immutable receipt gates', () => {
