@@ -80,6 +80,23 @@ function assertPath(path: string): void {
   }
 }
 
+function assertFileParents(paths: string[]): void {
+  const keys = paths.map((path) => path.normalize('NFC').toLowerCase()).sort();
+  for (const key of keys) {
+    // Directory entries remain in the search set, but cannot be file parents.
+    if (key.endsWith('/')) continue;
+    const prefix = `${key}/`;
+    let low = 0;
+    let high = keys.length;
+    while (low < high) {
+      const middle = low + Math.floor((high - low) / 2);
+      if (keys[middle] < prefix) low = middle + 1;
+      else high = middle;
+    }
+    if (keys[low]?.startsWith(prefix)) invalid('file used as directory');
+  }
+}
+
 function readEntries(archive: Buffer): {
   entries: ArchiveEntry[];
   centralOffset: number;
@@ -182,18 +199,7 @@ function readEntries(archive: Buffer): {
     offset += 46 + nameSize + extraSize + commentSize;
   }
   if (offset !== end) invalid('central directory size');
-  const files = new Set(
-    entries
-      .filter((entry) => !entry.isDirectory)
-      .map((entry) => entry.path.normalize('NFC').toLowerCase()),
-  );
-  for (const entry of entries) {
-    const segments = entry.path.normalize('NFC').toLowerCase().split('/');
-    for (let i = 1; i < segments.length; i++) {
-      if (files.has(segments.slice(0, i).join('/')))
-        invalid('file used as directory');
-    }
-  }
+  assertFileParents(entries.map((entry) => entry.path));
   return { centralOffset, entries };
 }
 

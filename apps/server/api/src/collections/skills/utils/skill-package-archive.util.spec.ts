@@ -109,6 +109,108 @@ describe('parseSkillPackageArchive', () => {
       ).packageChecksum,
     );
   });
+  it('reads a valid deeply nested ZIP path at the 65,535-byte filename bound', () => {
+    const directory = 'd/'.repeat(32_764);
+    const reference = {
+      content: 'Deep reference',
+      path: `${directory}leaf.md`,
+    };
+    expect(Buffer.byteLength(reference.path)).toBe(65_535);
+    const zip = createSkillZip([
+      skill,
+      { content: '', path: directory },
+      reference,
+    ]);
+    const result = parseSkillPackageArchive(zip);
+    expect(result.files).toEqual([skill, reference]);
+    expect(result.archiveSha256).toBe(
+      createHash('sha256').update(zip).digest('hex'),
+    );
+    expect(result.packageChecksum).toBe(
+      createHash('sha256')
+        .update(JSON.stringify([skill, reference]))
+        .digest('hex'),
+    );
+  });
+
+  it('rejects a deeply nested file used as a parent without changing the ZIP path bound', () => {
+    const parent = `${'d/'.repeat(32_760)}a.md`;
+    const child = `${parent}/child.md`;
+    expect(Buffer.byteLength(child)).toBeLessThanOrEqual(65_535);
+    expect(() =>
+      parseSkillPackageArchive(
+        createSkillZip([
+          skill,
+          { content: 'Parent file', path: parent },
+          { content: 'Child file', path: child },
+        ]),
+      ),
+    ).toThrow('file used as directory');
+  });
+
+  it('accepts lexical neighbors but finds a descendant beyond the adjacent neighbor', () => {
+    const neighbors = [
+      skill,
+      { content: 'A', path: 'a.md' },
+      { content: 'Neighbor', path: 'a.md-copy.md' },
+    ];
+    expect(parseSkillPackageArchive(createSkillZip(neighbors)).files).toEqual(
+      neighbors,
+    );
+    expect(() =>
+      parseSkillPackageArchive(
+        createSkillZip([
+          ...neighbors,
+          { content: 'Child', path: 'a.md/child.md' },
+        ]),
+      ),
+    ).toThrow('file used as directory');
+  });
+
+  it.each(['a.md/nested/', 'A.MD/nested/', 'a.md/nested/child.md'])(
+    'retains directory descendants in normalized parent collision lookup: %s',
+    (path) => {
+      expect(() =>
+        parseSkillPackageArchive(
+          createSkillZip([
+            skill,
+            { content: 'Parent', path: 'a.md' },
+            { content: path.endsWith('/') ? '' : 'Child', path },
+          ]),
+        ),
+      ).toThrow('file used as directory');
+    },
+  );
+
+  it('normalizes Unicode when a file is a parent of a directory descendant', () => {
+    expect(() =>
+      parseSkillPackageArchive(
+        createSkillZip([
+          skill,
+          { content: 'Parent', path: 'é.md' },
+          { content: '', path: 'e\u0301.md/nested/' },
+        ]),
+      ),
+    ).toThrow('file used as directory');
+  });
+
+  it('skips directories as file candidates while retaining their child files', () => {
+    const child = { content: 'Child', path: 'folder.md/child.md' };
+    expect(
+      parseSkillPackageArchive(
+        createSkillZip([skill, { content: '', path: 'folder.md/' }, child]),
+      ).files,
+    ).toEqual([skill, child]);
+    expect(
+      parseSkillPackageArchive(
+        createSkillZip([{ content: '', path: 'folder.md/' }]),
+      ).files,
+    ).toEqual([]);
+    expect(() => parseSkillPackageArchive(createSkillZip([]))).toThrow(
+      'directory bounds or multidisk',
+    );
+  });
+
   it.each([
     '../x.md',
     '/x.md',
