@@ -413,6 +413,24 @@ test('refuses unconfirmed merge responses', async () => {
   );
 });
 
+test('does not update a conflicting or unknown branch', async () => {
+  for (const mergeable of [false, null]) {
+    const f = fixture();
+    f.pr.mergeable = mergeable;
+    const mock = client(f, { behind: true });
+    await reconcile({
+      github: mock.github,
+      mode: 'strict',
+      rulesetId: '123',
+      log: () => {},
+    });
+    assert.equal(
+      mock.calls.some((call) => ['update', 'merge'].includes(call.name)),
+      false,
+    );
+  }
+});
+
 test('waits for an active current-base CI lane before updating another green behind PR', async () => {
   const f = fixture(),
     mock = client(f);

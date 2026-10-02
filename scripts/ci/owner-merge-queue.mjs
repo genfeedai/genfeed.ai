@@ -304,6 +304,9 @@ export async function reconcile({
       !ready(fresh)
     )
       continue;
+    // A conflicting oldest PR must not starve later eligible PRs with repeated
+    // update-branch errors. Unknown mergeability also waits for GitHub's result.
+    if (fresh.pr.mergeable !== true) continue;
     await verify();
     if (!fresh.current) {
       if (active) {
@@ -319,8 +322,7 @@ export async function reconcile({
         `#${candidate.number}: updated with master; waiting for fresh CI`,
       );
     }
-    if (fresh.pr.mergeable !== true || fresh.pr.mergeable_state !== 'clean')
-      continue;
+    if (fresh.pr.mergeable_state !== 'clean') continue;
     const result = await github.rest.pulls.merge({
       ...args,
       pull_number: candidate.number,
