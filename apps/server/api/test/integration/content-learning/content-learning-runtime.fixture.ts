@@ -1605,7 +1605,10 @@ export async function collectLearningRuntimePublications(
     publications.length > 0 &&
       publications.length <= 24 &&
       publications.every(
-        (post) => post.target.credentialId === target.credentialId,
+        (post) =>
+          post.target.credentialId === target.credentialId &&
+          post.target.organizationId === target.organizationId &&
+          post.target.brandId === target.brandId,
       ),
     'BOUNDED_ACTUAL_ANALYTICS_BATCH',
   );
@@ -1621,16 +1624,30 @@ export async function collectLearningRuntimePublications(
       platform: CredentialPlatform.TWITTER,
     })),
   });
-  return services.analytics.collect({
-    credentialId: target.credentialId,
-    posts: publications.map((post) => ({
-      id: post.id,
-      externalId: post.externalId,
-      brandId: target.brandId,
+  let context:
+    | Awaited<ReturnType<RuntimeServices['analytics']['collect']>>
+    | undefined;
+  for (const post of publications) {
+    context = await services.analytics.collect({
+      credentialId: target.credentialId,
+      posts: [
+        {
+          id: post.id,
+          externalId: post.externalId,
+          brandId: target.brandId,
+          organizationId: target.organizationId,
+        },
+      ],
+      attemptKey,
+    });
+    deepStrictEqual(context, {
       organizationId: target.organizationId,
-    })),
-    attemptKey,
-  });
+      brandId: target.brandId,
+      credentialId: target.credentialId,
+    });
+  }
+  ensure(context, 'ACTUAL_ANALYTICS_CONTEXT_REQUIRED');
+  return context;
 }
 export async function learningRuntimeScope(
   application: RuntimeApplication,
@@ -2074,6 +2091,7 @@ export async function installLearningRuntimeBarrier(
   event: 'INSERT' | 'UPDATE',
 ) {
   ensure(/^[0-9a-f-]{36}$/.test(organizationId), 'BARRIER_SCOPE_IDENTIFIER');
+  const tenantColumn = table === 'organizations' ? 'id' : 'organizationId';
   const name = `barrier_${randomUUID().replaceAll('-', '')}`,
     key = Math.floor(Math.random() * 1000000000) + 1000000000;
   const controlPid = Number(
@@ -2084,7 +2102,7 @@ export async function installLearningRuntimeBarrier(
     key,
   ]);
   await fixture.database.control.query(
-    `CREATE FUNCTION "${name}"() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW."organizationId"='${organizationId}' THEN PERFORM pg_advisory_xact_lock(${key}::bigint); END IF; RETURN NEW; END $$`,
+    `CREATE FUNCTION "${name}"() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW."${tenantColumn}"='${organizationId}' THEN PERFORM pg_advisory_xact_lock(${key}::bigint); END IF; RETURN NEW; END $$`,
   );
   await fixture.database.control.query(
     `CREATE TRIGGER "${name}" AFTER ${event} ON "${table}" FOR EACH ROW EXECUTE FUNCTION "${name}"()`,
@@ -2100,6 +2118,9 @@ export async function installLearningRuntimeBarrier(
       );
       const deadline = Date.now() + 2000;
       while (Date.now() < deadline) {
+        await fixture.database.observer.query(
+          'SELECT pg_stat_clear_snapshot()',
+        );
         const row = await fixture.database.observer.query<{
           pid: number;
           query: string;
@@ -2139,6 +2160,7 @@ export async function waitLearningRuntimeContender(
 ) {
   const deadline = Date.now() + 2000;
   while (Date.now() < deadline) {
+    await fixture.database.observer.query('SELECT pg_stat_clear_snapshot()');
     const blocked = await fixture.database.observer.query<{
       pid: number;
       query: string;

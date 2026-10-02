@@ -38,6 +38,7 @@ import type {
   PrismaClient,
 } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { createMediaUrlExtension } from '@libs/prisma/media-url.extension';
 import type { PrismaService } from '@libs/prisma/prisma.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
@@ -47,9 +48,10 @@ const publishedAt = new Date('2026-09-01T00:00:00.000Z');
 export async function createLearningDatasetPublication(
   prisma: PrismaClient<'query'>,
   index: number,
+  namespace: string,
 ) {
   const organizationId = `org-${(index % 10) % 2}`;
-  const postId = `post-${index}`;
+  const postId = `post-${namespace}-${index}`;
   await prisma.post.create({
     data: {
       id: postId,
@@ -67,8 +69,11 @@ export async function createLearningDatasetPublication(
       targetSettings: {},
     },
   });
-  const artifacts = new AgentArtifactReferenceService(prisma, logger);
-  const approvals = new PublishApprovalsService(prisma, artifacts, logger);
+  const mediaPrisma = prisma.$extends(
+    createMediaUrlExtension({ cdnUrl: 'http://127.0.0.1' }),
+  );
+  const artifacts = new AgentArtifactReferenceService(mediaPrisma, logger);
+  const approvals = new PublishApprovalsService(mediaPrisma, artifacts, logger);
   const approval = await approvals.createForCurrentPost({
     actorUserId: 'actor',
     mode: 'immediate',
@@ -146,6 +151,7 @@ export async function createLearningDatasetPublication(
 export async function createLearningDatasetPublications(
   prisma: PrismaClient<'query'>,
   size: number,
+  namespace: string,
 ) {
   const publications: Awaited<
     ReturnType<typeof createLearningDatasetPublication>
@@ -155,7 +161,7 @@ export async function createLearningDatasetPublications(
     for (let start = batch; start < end; start += 4) {
       const group = await Promise.all(
         Array.from({ length: Math.min(4, end - start) }, (_, offset) =>
-          createLearningDatasetPublication(prisma, start + offset),
+          createLearningDatasetPublication(prisma, start + offset, namespace),
         ),
       );
       publications.push(...group);

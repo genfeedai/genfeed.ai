@@ -3,12 +3,18 @@ import { assertIsolatedDatabaseUrl } from '@api-test/../scripts/assert-isolated-
 export type ControllerOwnedMigrationRole =
   | 'learning-runtime'
   | 'learning-races'
-  | 'brand-acceptance';
+  | 'brand-acceptance'
+  | 'dataset-correctness'
+  | 'dataset-matrix'
+  | 'dataset-profile';
 
 export const CONTROLLER_OWNED_MIGRATION_DATABASES = {
   'learning-runtime': 'genfeed_learning_runtime_test',
   'learning-races': 'genfeed_learning_races_test',
   'brand-acceptance': 'genfeed_branded_acceptance_test',
+  'dataset-correctness': 'genfeed_dataset_5781_test',
+  'dataset-matrix': 'genfeed_dataset_5781_matrix_test',
+  'dataset-profile': 'genfeed_dataset_5781_profile_test',
 } as const;
 
 export interface ControllerOwnedMigrationQueryResult {

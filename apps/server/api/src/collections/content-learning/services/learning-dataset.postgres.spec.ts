@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { readdirSync, readFileSync, statfsSync } from 'node:fs';
 import { PerformanceObserver } from 'node:perf_hooks';
 import { fileURLToPath } from 'node:url';
@@ -16,7 +16,12 @@ import {
   resolveLearningPublicationSourceV1,
 } from '@api/collections/content-learning/services/learning-publication-source.helper';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { assertIsolatedDatabaseUrl } from '@api-test/../scripts/assert-isolated-db-url';
+import {
+  assertControllerOwnedMigrationConnection,
+  assertControllerOwnedMigrationInventory,
+  readControllerOwnedMigrationDatabaseUrl,
+} from '@api-test/helpers/controller-owned-migration-database';
+import { formatMigrationDeployDiagnostic } from '@api-test/helpers/migration-deploy-diagnostics';
 import { CredentialPlatform, Prisma, PrismaClient } from '@genfeedai/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
@@ -31,6 +36,13 @@ vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
 const explicitUrl = process.env.LEARNING_DATASET_TEST_DATABASE_URL;
 const benchmark = process.env.LEARNING_DATASET_BENCHMARK === '1';
 const diagnostic = process.env.LEARNING_DATASET_PROFILE === '1';
+if (benchmark && diagnostic)
+  throw new Error('Dataset benchmark and profile modes are mutually exclusive');
+const databaseRole = diagnostic
+  ? 'dataset-profile'
+  : benchmark
+    ? 'dataset-matrix'
+    : 'dataset-correctness';
 type TimingMetric = {
   calls: number;
   wallMs: number;
@@ -130,7 +142,7 @@ describe.skipIf(!explicitUrl)(
       decisionLockBatches = 0;
     let beforeDecisionLock: (() => Promise<void>) | undefined;
     let afterDatasetCreate: (() => Promise<void>) | undefined;
-    const schema = `dataset_5781_${process.pid}_${Date.now()}`;
+    const schema = 'public';
     const input = {
       organizationId: 'org-0',
       actorId: 'actor',
@@ -287,15 +299,16 @@ describe.skipIf(!explicitUrl)(
       };
     }
     beforeAll(async () => {
-      const url = assertIsolatedDatabaseUrl(explicitUrl);
+      const url = readControllerOwnedMigrationDatabaseUrl(
+        databaseRole,
+        explicitUrl,
+      );
       pool = new Pool({
         connectionString: url,
         max: 5,
-        options: `-c search_path=${schema}`,
+        options: '-c search_path=public',
       });
-      await pool.query(`CREATE SCHEMA "${schema}"`);
-      if (!/^[a-z][a-z0-9_]+$/.test(schema))
-        throw new Error('Invalid owned fixture schema');
+      await assertControllerOwnedMigrationConnection(pool, databaseRole, true);
       const migrationDirectory = new URL(
         '../../../../../../../packages/prisma/prisma/migrations/',
         import.meta.url,
@@ -306,58 +319,46 @@ describe.skipIf(!explicitUrl)(
         .filter((entry) => entry.isDirectory())
         .map((entry) => entry.name)
         .sort();
-      for (const name of migrationNames) {
-        const sql = readFileSync(
-          new URL(`${name}/migration.sql`, migrationDirectory),
-          'utf8',
-        );
-        if (/(?:"public"|\bpublic)\s*\./i.test(sql))
-          throw new Error(
-            'Fixture migration scope requires planner revalidation',
-          );
+      const expected = migrationNames.map((migration_name) => ({
+        migration_name,
+        checksum: createHash('sha256')
+          .update(
+            readFileSync(
+              new URL(`${migration_name}/migration.sql`, migrationDirectory),
+            ),
+          )
+          .digest('hex'),
+      }));
+      try {
+        execFileSync('bun', ['x', 'prisma', 'migrate', 'deploy'], {
+          cwd: fileURLToPath(
+            new URL('../../../../../../../packages/prisma', import.meta.url),
+          ),
+          env: { ...process.env, DATABASE_URL: url },
+          timeout: 120000,
+          maxBuffer: 8 * 1024 * 1024,
+          stdio: 'pipe',
+        });
+      } catch (error) {
+        console.error(formatMigrationDeployDiagnostic(error, url));
+        throw new Error('Owned dataset migration deployment failed');
       }
-      const scoped = new URL(url);
-      scoped.searchParams.set('schema', schema);
-      execFileSync('bun', ['x', 'prisma', 'migrate', 'deploy'], {
-        cwd: fileURLToPath(
-          new URL('../../../../../../../packages/prisma', import.meta.url),
-        ),
-        env: { ...process.env, DATABASE_URL: scoped.toString() },
-        timeout: 120000,
-        maxBuffer: 8 * 1024 * 1024,
-        stdio: 'pipe',
-      });
-      pool.on('connect', (connection) => {
-        connection.query(
-          'SELECT current_schema() AS schema',
-          (error, result) => {
-            if (error) throw error;
-            expect(result.rows[0].schema).toBe(schema);
-          },
-        );
-      });
       const connections = await Promise.all(
         Array.from({ length: 5 }, () => pool.connect()),
       );
       try {
         for (const connection of connections)
-          expect(
-            (await connection.query('SELECT current_schema() AS schema'))
-              .rows[0].schema,
-          ).toBe(schema);
+          await assertControllerOwnedMigrationConnection(
+            connection,
+            databaseRole,
+          );
       } finally {
         for (const connection of connections) connection.release();
       }
       const applied = await pool.query(
-        'SELECT migration_name, finished_at, rolled_back_at FROM _prisma_migrations ORDER BY migration_name',
+        'SELECT migration_name, checksum, finished_at, rolled_back_at FROM _prisma_migrations ORDER BY migration_name',
       );
-      expect(applied.rows.map((row) => row.migration_name)).toEqual(
-        migrationNames,
-      );
-      for (const row of applied.rows) {
-        expect(row.finished_at).not.toBeNull();
-        expect(row.rolled_back_at).toBeNull();
-      }
+      assertControllerOwnedMigrationInventory(applied.rows, expected);
       prisma = new PrismaClient({
         adapter: new PrismaPg(pool, { schema }),
         log: [{ emit: 'event', level: 'query' }],
@@ -535,11 +536,22 @@ describe.skipIf(!explicitUrl)(
       }
     }, 120000);
     afterAll(async () => {
-      await prisma?.$disconnect();
-      if (pool) {
-        await pool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
-        await pool.end();
+      const failures: unknown[] = [];
+      try {
+        await prisma?.$disconnect();
+      } catch (error) {
+        failures.push(error);
       }
+      try {
+        await pool?.end();
+      } catch (error) {
+        failures.push(error);
+      }
+      if (failures.length)
+        throw new AggregateError(
+          failures,
+          'Owned dataset connection cleanup failed',
+        );
     });
     async function clearOutputs() {
       await pool.query(
@@ -579,9 +591,12 @@ describe.skipIf(!explicitUrl)(
       });
       await prisma.postPublishFinalization.deleteMany();
       await prisma.publishApproval.deleteMany();
-      await prisma.contentVersionPin.deleteMany();
       await prisma.post.deleteMany();
-      publications = await createLearningDatasetPublications(prisma, size);
+      publications = await createLearningDatasetPublications(
+        prisma,
+        size,
+        randomUUID(),
+      );
       const evidence = await createLearningDatasetPublicationEvidence(
         prisma,
         publications,
@@ -894,6 +909,20 @@ describe.skipIf(!explicitUrl)(
     }
     it('creates genuine publication/capture/materializer lineage and exact scalar/bulk dataset pins', async () => {
       await seed(1000);
+      const retainedPublication = publications[0];
+      const retainedPin = await prisma.contentVersionPin.findUniqueOrThrow({
+        where: { id: retainedPublication.source.versionPinId },
+      });
+      await seed(1000);
+      expect(
+        await prisma.contentVersionPin.findUniqueOrThrow({
+          where: { id: retainedPin.id },
+        }),
+      ).toEqual(retainedPin);
+      expect(publications[0].source.postId).not.toBe(
+        retainedPublication.source.postId,
+      );
+      expect(publications[0].source.versionPinId).not.toBe(retainedPin.id);
       const publication = publications[0];
       const current = await resolveLearningPublicationSourceV1(
         prisma,
@@ -980,6 +1009,22 @@ describe.skipIf(!explicitUrl)(
         await prisma.postPublishFinalization.findUniqueOrThrow({
           where: { id: source.finalizationId },
         });
+      const originalPin = await prisma.contentVersionPin.findUniqueOrThrow({
+        where: { id: source.versionPinId },
+      });
+      const malformedPin = await prisma.contentVersionPin.create({
+        data: {
+          organizationId: originalPin.organizationId,
+          brandId: originalPin.brandId,
+          createdByUserId: originalPin.createdByUserId,
+          recordKind: originalPin.recordKind,
+          recordId: originalPin.recordId,
+          recordVersion: originalPin.recordVersion,
+          contentDigest: 'legacy',
+          provenance: originalPin.provenance as Prisma.InputJsonValue,
+          idempotencyKey: `legacy-${randomUUID()}`,
+        },
+      });
       const cases: Array<{
         name: string;
         corrupt: () => Promise<unknown>;
@@ -1079,15 +1124,27 @@ describe.skipIf(!explicitUrl)(
         {
           name: 'malformed publication digest',
           corrupt: () =>
-            prisma.contentVersionPin.update({
-              where: { id: source.versionPinId },
-              data: { contentDigest: 'legacy' },
-            }),
+            prisma.$transaction([
+              prisma.post.update({
+                where: { id: source.postId },
+                data: { reviewVersionPinId: malformedPin.id },
+              }),
+              prisma.publishApproval.update({
+                where: { id: source.approvalId },
+                data: { artifactVersionPinId: malformedPin.id },
+              }),
+            ]),
           restore: () =>
-            prisma.contentVersionPin.update({
-              where: { id: source.versionPinId },
-              data: { contentDigest: source.contentDigest },
-            }),
+            prisma.$transaction([
+              prisma.post.update({
+                where: { id: source.postId },
+                data: { reviewVersionPinId: source.versionPinId },
+              }),
+              prisma.publishApproval.update({
+                where: { id: source.approvalId },
+                data: { artifactVersionPinId: source.versionPinId },
+              }),
+            ]),
         },
         {
           name: 'legacy finalization result',
@@ -1123,14 +1180,20 @@ describe.skipIf(!explicitUrl)(
           expect(
             await graph.pins(
               'content_version_pin',
-              [source.versionPinId],
+              [
+                change.name === 'malformed publication digest'
+                  ? malformedPin.id
+                  : source.versionPinId,
+              ],
               'org-0',
             ),
             change.name,
           ).toEqual(
             new Map([
               [
-                source.versionPinId,
+                change.name === 'malformed publication digest'
+                  ? malformedPin.id
+                  : source.versionPinId,
                 change.name === 'malformed publication digest'
                   ? 'legacy'
                   : source.contentDigest,
@@ -1152,6 +1215,11 @@ describe.skipIf(!explicitUrl)(
         } finally {
           await change.restore();
         }
+        expect(
+          await prisma.contentVersionPin.findUniqueOrThrow({
+            where: { id: originalPin.id },
+          }),
+        ).toEqual(originalPin);
       }
       for (const ref of publications[0].refs.filter((ref) =>
         ['post', 'publish_approval', 'post_publish_finalization'].includes(
@@ -1351,7 +1419,13 @@ describe.skipIf(!explicitUrl)(
         await seed(1000);
         await pool.query(
           change,
-          change.includes('$1') ? [checkpointIds[0]] : [],
+          change.includes('$1')
+            ? [
+                change.startsWith('UPDATE posts')
+                  ? publications[0].source.postId
+                  : checkpointIds[0],
+              ]
+            : [],
         );
         await expect(
           service.create({
@@ -1390,13 +1464,19 @@ describe.skipIf(!explicitUrl)(
         `UPDATE content_learning_decisions SET "credentialId"='credential-2' WHERE id='decision-0'`,
         `UPDATE content_learning_decisions SET "createdAt"=TIMESTAMP '2026-07-01' WHERE id='decision-0'`,
         `UPDATE content_learning_checkpoints SET revision=1 WHERE id=$1`,
-        `UPDATE posts SET "isDeleted"=true WHERE id='post-0'`,
+        `UPDATE posts SET "isDeleted"=true WHERE id=$1`,
         `UPDATE content_learning_dependencys SET valid=false WHERE id='edge-0-checkpoint'`,
       ]) {
         await seed(1000);
         await pool.query(
           change,
-          change.includes('$1') ? [checkpointIds[0]] : [],
+          change.includes('$1')
+            ? [
+                change.startsWith('UPDATE posts')
+                  ? publications[0].source.postId
+                  : checkpointIds[0],
+              ]
+            : [],
         );
         const dataset = await service.create({
           ...input,

@@ -45,7 +45,10 @@ const DATASET_PG = `${DATASET_DIRECTORY}learning-dataset.postgres.spec.ts`;
 const DATASET_SUITE = 'dataset atomic scalability on isolated PostgreSQL';
 const MATRIX_TITLE = `${DATASET_SUITE} measures 1k/10k/100k owned and consented three times after warmup plus mixed`;
 const DIAGNOSTIC_TITLE = `${DATASET_SUITE} profiles one 10k and one 100k consented snapshot without replacing acceptance matrix`;
-const PG_TITLES = [
+export const PG_TITLES = [
+  'creates genuine publication/capture/materializer lineage and exact scalar/bulk dataset pins',
+  'excludes publication authority corruption while standalone pin digest remains independent',
+  'actual exclusive publication writer waits behind snapshot F and invalidates after commit; inverse order excludes',
   'serializes identical requests, rejects conflicts and rolls back entry/edge failures',
   'rejects source/consent identity changes and owned/consented fingerprint collisions',
   'excludes deleted, synthetic, wrong-account, pre-consent and invalid-pinned observations',
@@ -74,7 +77,7 @@ export const BRAND_SOURCE_CONTRACT = {
     {
       path: 'apps/server/api/test/helpers/controller-owned-migration-database.ts',
       sha256:
-        '0ddb93b85b7e1fa9586e5c079f77a153aa8e19808f756f9db9b45b2ece2a3ddb',
+        '0f69ff1cb157b97265f44dc5ee73c1d8fe45574ac03b979d90e2defe7ec24aa8',
     },
   ],
   brand: {
@@ -267,17 +270,17 @@ export const LEARNING_SOURCE_CONTRACT = Object.freeze({
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.fixture.ts',
       sha256:
-        'e3e07650969ba99a6bba1dd70ad81f523237c96e08d5ba1d93ac5bf2b7ba2c10',
+        'ba2ac354c72e2d34ecea4c8b7c1552c027100198d764875d8c0fd55379f87754',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.integration.spec.ts',
       sha256:
-        '655f324987cfed46a4acca0f54ecb978d7659c15ac976bb4f60f07027af936bf',
+        'd30c45f5d5903969b146a5f0c3b264b4c569fb7aa36ff5e3f950496ce11b4538',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-publication-races.integration.spec.ts',
       sha256:
-        'b60ab824699cfb3c24e8e036b94d637a5f87f57175948f8dc83c7b1aadbe5ca2',
+        '64a72190aa29dfbe3335923615757bc29203ac23eeb7f46640e64fbe2ef30319',
     },
     {
       path: 'apps/server/api/vitest.learning-runtime.config.ts',
@@ -292,7 +295,7 @@ export const LEARNING_SOURCE_CONTRACT = Object.freeze({
     {
       path: 'apps/server/api/test/helpers/controller-owned-migration-database.ts',
       sha256:
-        '0ddb93b85b7e1fa9586e5c079f77a153aa8e19808f756f9db9b45b2ece2a3ddb',
+        '0f69ff1cb157b97265f44dc5ee73c1d8fe45574ac03b979d90e2defe7ec24aa8',
     },
   ],
   suites: [
@@ -696,6 +699,8 @@ export const PUBLISHER_CONTRACTS = [
     titles: [
       'serializes overlapping batches on one connection and unlocks after the complete operation',
       'releases every lock after a failed operation so another worker can recover',
+      'does not block an independent batch/organization: independent batch',
+      'does not block an independent batch/organization: independent organization',
     ].map(
       (title) => `Batch review advisory transactions (real Postgres) ${title}`,
     ),
@@ -1417,6 +1422,8 @@ async function verifySource(repo, entry) {
 
 export const FINAL_DATABASE_NAMES = [
   'genfeed_dataset_5781_test',
+  'genfeed_dataset_5781_matrix_test',
+  'genfeed_dataset_5781_profile_test',
   'genfeed_4617_ed1f_test',
   'genfeed_crun_test',
   'genfeed_agent_test',
@@ -5211,7 +5218,7 @@ export async function execution(identity, env) {
             { file: DATASET_UNIT, count: 23 },
             {
               file: DATASET_PG,
-              count: 7,
+              count: 10,
               titles: PG_TITLES,
               skipped: [MATRIX_TITLE, DIAGNOSTIC_TITLE],
             },
@@ -5268,6 +5275,11 @@ export async function execution(identity, env) {
         }
         const diagnostic = identity.group === 'dataset-diagnostic';
         const stage = diagnostic ? 'dataset-diagnostic' : 'dataset-matrix';
+        const measuredUrl = await database(
+          diagnostic
+            ? 'genfeed_dataset_5781_profile_test'
+            : 'genfeed_dataset_5781_matrix_test',
+        );
         const stdout = await vitest(
           stage,
           [
@@ -5285,6 +5297,7 @@ export async function execution(identity, env) {
             heap: 4096,
             extra: {
               ...datasetEnv,
+              LEARNING_DATASET_TEST_DATABASE_URL: measuredUrl,
               ...(diagnostic
                 ? { LEARNING_DATASET_PROFILE: '1' }
                 : { LEARNING_DATASET_BENCHMARK: '1' }),

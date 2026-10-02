@@ -317,19 +317,27 @@ describe('hosted real production learning runtime', () => {
       where: { id: fixture.targets[0].organizationId, isDeleted: false },
     });
     expect(sentinel?.id).toBe(fixture.targets[0].organizationId);
-    const publicTable = await fixture.database.observer.query(
-      "SELECT to_regclass('public.organizations') AS name",
+    const { CONTROLLER_OWNED_MIGRATION_DATABASES } = await import(
+      '@api-test/helpers/controller-owned-migration-database'
     );
-    if (publicTable.rows[0].name !== null) {
-      expect(
-        (
-          await fixture.database.observer.query(
-            'SELECT count(*)::int AS count FROM public.organizations WHERE id=$1',
-            [sentinel?.id],
-          )
-        ).rows[0].count,
-      ).toBe(0);
-    } else expect(publicTable.rows[0].name).toBeNull();
+    const identity = await fixture.database.observer.query(
+      "SELECT current_database() AS database, current_schema() AS schema, to_regclass('public.organizations') AS organizations",
+    );
+    expect(identity.rows).toEqual([
+      {
+        database: CONTROLLER_OWNED_MIGRATION_DATABASES[fixture.resources.role],
+        schema: 'public',
+        organizations: 'organizations',
+      },
+    ]);
+    expect(
+      (
+        await fixture.database.observer.query(
+          'SELECT count(*)::int AS count FROM public.organizations WHERE id=$1',
+          [sentinel?.id],
+        )
+      ).rows[0].count,
+    ).toBe(1);
   });
 
   it('collects twenty genuine approved publications and materializes a twenty-contributor baseline through the actual background engine', async () => {
@@ -530,6 +538,18 @@ describe('hosted real production learning runtime', () => {
     )
       .map((row) => row.id)
       .sort();
+    expect(checkpointIds).toHaveLength(20);
+    expect(
+      await fixture.first.prisma.contentLearningBaseline.count({
+        where: {
+          organizationId: target.organizationId,
+          credentialId: target.credentialId,
+          isDeleted: false,
+          validity: 'valid',
+          count: 20,
+        },
+      }),
+    ).toBeGreaterThan(0);
     const associations =
       await fixture.first.prisma.postPublishFinalization.findMany({
         where: { organizationId: target.organizationId, postId: post.id },
@@ -713,20 +733,29 @@ describe('hosted real production learning runtime', () => {
 
   it('rejects cross-tenant credential authority and independently executes the second tenant', async () => {
     const [first, victim] = fixture.targets;
-    const { runWithTenantContext } = await import(
+    const { getTenantContext, runWithTenantContext } = await import(
       '@libs/prisma/tenant-context'
     );
-    await expect(
-      runWithTenantContext({ organizationId: first.organizationId }, () =>
-        fixture.first.prisma.credential.findFirst({
-          where: {
-            id: victim.credentialId,
-            organizationId: victim.organizationId,
-            isDeleted: false,
-          },
-        }),
-      ),
-    ).rejects.toThrow();
+    const { TenantIsolationError } = await import('@libs/prisma/tenant-guard');
+    await runWithTenantContext(
+      { organizationId: first.organizationId },
+      async () => {
+        expect(getTenantContext()?.organizationId).toBe(first.organizationId);
+        try {
+          await fixture.first.prisma.credential.findFirst({
+            where: {
+              id: victim.credentialId,
+              organizationId: victim.organizationId,
+              isDeleted: false,
+            },
+          });
+          throw new Error('Foreign credential authority was accepted');
+        } catch (error) {
+          expect(error).toBeInstanceOf(TenantIsolationError);
+          expect(error).toMatchObject({ reason: 'organization-id-mismatch' });
+        }
+      },
+    );
     const before = await runtimeCounts(fixture, victim.organizationId);
     await fixture.enqueue('content-learning.reconcile', first.organizationId, {
       credentialId: victim.credentialId,

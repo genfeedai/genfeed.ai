@@ -57,6 +57,8 @@ import {
   learningCiIdentity,
   learningRedisRunId,
   loadState,
+  PG_TITLES,
+  PUBLISHER_CONTRACTS,
   parseArguments,
   parseDatasetRecords,
   parseProtocolTotals,
@@ -2845,7 +2847,7 @@ test('migration diagnostics helper is an exact frozen dependency for learning an
     {
       path: 'apps/server/api/test/helpers/controller-owned-migration-database.ts',
       sha256:
-        '0ddb93b85b7e1fa9586e5c079f77a153aa8e19808f756f9db9b45b2ece2a3ddb',
+        '0f69ff1cb157b97265f44dc5ee73c1d8fe45574ac03b979d90e2defe7ec24aa8',
     },
   ]);
   assert.deepEqual(
@@ -6002,7 +6004,7 @@ test('actual execution returns its persisted failure outcome after an expired wo
 test('learning fixture inventory freezes canonical persisted target execution state source', () => {
   assert.equal(
     LEARNING_SOURCE_CONTRACT.sourceInputs[0].sha256,
-    'e3e07650969ba99a6bba1dd70ad81f523237c96e08d5ba1d93ac5bf2b7ba2c10',
+    'ba2ac354c72e2d34ecea4c8b7c1552c027100198d764875d8c0fd55379f87754',
   );
 });
 
@@ -6193,3 +6195,86 @@ test('private dual reporters retain a real beforeAll error and cannot qualify it
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('dataset correctness requires all ten ordinary publication and graph cases', () => {
+  assert.equal(PG_TITLES.length, 10);
+  const contract = {
+    file: 'src/collections/content-learning/services/learning-dataset.postgres.spec.ts',
+    count: 10,
+    titles: PG_TITLES,
+  };
+  const positive = report(
+    PG_TITLES.map((title) => assertion(title)),
+    `/fixture/${contract.file}`,
+  );
+  assert.equal(validateReport(positive, [contract], child)[0].passed, 10);
+  for (const kind of ['missing', 'duplicate', 'unknown', 'pending']) {
+    const negative = structuredClone(positive);
+    if (kind === 'missing') negative.testResults[0].assertionResults.pop();
+    if (kind === 'duplicate')
+      negative.testResults[0].assertionResults.push(
+        negative.testResults[0].assertionResults[0],
+      );
+    if (kind === 'unknown')
+      negative.testResults[0].assertionResults.push(
+        assertion('unknown publication case'),
+      );
+    if (kind === 'pending')
+      negative.testResults[0].assertionResults[0].status = 'pending';
+    assert.throws(() => validateReport(negative, [contract], child));
+  }
+});
+
+test('publisher requires both independent lock rows in addition to overlap and recovery', () => {
+  const contract = PUBLISHER_CONTRACTS[0];
+  assert.equal(contract.titles.length, 4);
+  const positive = report(
+    contract.titles.map((title) => assertion(title)),
+    `/fixture/${contract.file}`,
+  );
+  assert.equal(validateReport(positive, [contract], child)[0].passed, 4);
+  for (const kind of ['missing', 'duplicate', 'unknown']) {
+    const negative = structuredClone(positive);
+    if (kind === 'missing') negative.testResults[0].assertionResults.pop();
+    if (kind === 'duplicate')
+      negative.testResults[0].assertionResults.push(
+        negative.testResults[0].assertionResults[0],
+      );
+    if (kind === 'unknown')
+      negative.testResults[0].assertionResults.push(
+        assertion('random unbound lock row'),
+      );
+    assert.throws(() => validateReport(negative, [contract], child));
+  }
+});
+
+for (const name of [
+  'genfeed_dataset_5781_test',
+  'genfeed_dataset_5781_matrix_test',
+  'genfeed_dataset_5781_profile_test',
+])
+  test(`dataset invocation owns and independently disposes exact database ${name}`, async () => {
+    const value = finalDatabaseFixture();
+    const url = await createFinalOwnedDatabase(
+      value.identity,
+      name,
+      value.adapters,
+    );
+    assert.equal(new URL(url).pathname, `/${name}`);
+    await cleanupFinalOwnedDatabase(
+      value.identity,
+      value.identity.resources.databases[0],
+      value.adapters,
+      Date.now() + 1000,
+    );
+    assert.equal(value.identity.resources.databases[0].removed, true);
+    const unrelated = finalDatabaseFixture();
+    await assert.rejects(
+      createFinalOwnedDatabase(
+        unrelated.identity,
+        'unrelated_dataset_test',
+        unrelated.adapters,
+      ),
+    );
+    assert.deepEqual(unrelated.calls, []);
+  });
