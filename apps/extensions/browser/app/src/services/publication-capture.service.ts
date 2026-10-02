@@ -1,7 +1,6 @@
 import type { ExtensionWorkspaceSnapshot } from '@genfeedai/contracts/interfaces';
 import type { ExtensionPublicationCaptureResult } from '@genfeedai/contracts/interfaces/content/extension-publication.interface';
 import type {
-  PublicationCaptureAttempt,
   PublicationCaptureConfirmed,
   PublicationCaptureObservation,
   PublicationCaptureOutboxEntry,
@@ -11,6 +10,21 @@ import type {
   PublicationCaptureSenderBinding,
 } from '@genfeedai/contracts/interfaces/extension/extension-publication-observer.interface';
 import { apiEndpoint } from '~services/environment.service';
+import {
+  publicationCaptureBody as body,
+  publicationCaptureHandle as handle,
+  publicationCaptureHomeUrl as home,
+  publicationCaptureKeys as keys,
+  publicationCaptureNumericId as numeric,
+  publicationCaptureRecord as object,
+  parsePublicationCaptureAttempt as parseAttempt,
+  parsePublicationCaptureObservation as parseObservation,
+  samePublicationCaptureScope as same,
+  parsePublicationCaptureScope as scope,
+  publicationCaptureText as text,
+  publicationCaptureUuid as uuid,
+  validPublicationCaptureObservation as validObservation,
+} from '~services/publication-capture-validation';
 import {
   assertWorkspace,
   getWorkspaceState,
@@ -35,194 +49,6 @@ function serial<T>(operation: () => Promise<T>): Promise<T> {
   const next = queue.then(operation);
   queue = next.catch(() => undefined);
   return next;
-}
-function object(value: unknown): Record<string, unknown> | null {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
-function keys(
-  value: Record<string, unknown>,
-  allowed: readonly string[],
-): boolean {
-  return Object.keys(value).every((key) => allowed.includes(key));
-}
-function text(value: unknown, maximum = 2048): value is string {
-  return (
-    typeof value === 'string' && value.length > 0 && value.length <= maximum
-  );
-}
-function uuid(value: unknown): value is string {
-  return (
-    typeof value === 'string' &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      value,
-    )
-  );
-}
-function handle(value: unknown): value is string {
-  return typeof value === 'string' && /^[a-z0-9_]{1,15}$/i.test(value);
-}
-function numeric(value: unknown): value is string {
-  return (
-    typeof value === 'string' && /^\d+$/.test(value) && value.length <= 255
-  );
-}
-function body(value: unknown): value is string {
-  return (
-    text(value, 1048576) && new TextEncoder().encode(value).length <= 1048576
-  );
-}
-function scope(value: unknown): PublicationCaptureScope | null {
-  const v = object(value);
-  if (
-    !v ||
-    !keys(v, ['userId', 'organizationId', 'brandId', 'revision']) ||
-    !text(v.userId, 255) ||
-    !text(v.organizationId, 255) ||
-    !text(v.brandId, 255) ||
-    typeof v.revision !== 'number' ||
-    !Number.isSafeInteger(v.revision) ||
-    v.revision < 0
-  )
-    return null;
-  return {
-    userId: v.userId,
-    organizationId: v.organizationId,
-    brandId: v.brandId,
-    revision: v.revision,
-  };
-}
-function same(
-  left: PublicationCaptureScope,
-  right: PublicationCaptureScope,
-  revision = true,
-): boolean {
-  return (
-    left.userId === right.userId &&
-    left.organizationId === right.organizationId &&
-    left.brandId === right.brandId &&
-    (!revision || left.revision === right.revision)
-  );
-}
-function home(value: unknown): URL | null {
-  try {
-    if (!text(value)) return null;
-    const url = new URL(value);
-    return url.protocol === 'https:' &&
-      ['x.com', 'www.x.com', 'twitter.com', 'www.twitter.com'].includes(
-        url.hostname,
-      ) &&
-      /^\/home\/?$/.test(url.pathname) &&
-      !url.username &&
-      !url.password
-      ? url
-      : null;
-  } catch {
-    return null;
-  }
-}
-function parseAttempt(value: unknown): PublicationCaptureAttempt | null {
-  const v = object(value);
-  if (
-    !v ||
-    !keys(v, [
-      'id',
-      'scope',
-      'startedAt',
-      'documentUrl',
-      'authorHandle',
-      'description',
-      'baselineIds',
-    ])
-  )
-    return null;
-  const s = scope(v.scope);
-  if (
-    !uuid(v.id) ||
-    !s ||
-    typeof v.startedAt !== 'number' ||
-    !Number.isFinite(v.startedAt) ||
-    !home(v.documentUrl) ||
-    !text(v.documentUrl) ||
-    !handle(v.authorHandle) ||
-    !body(v.description) ||
-    !Array.isArray(v.baselineIds) ||
-    v.baselineIds.length > 10000 ||
-    !v.baselineIds.every(numeric) ||
-    new Set(v.baselineIds).size !== v.baselineIds.length
-  )
-    return null;
-  return {
-    id: v.id,
-    scope: s,
-    startedAt: v.startedAt,
-    documentUrl: v.documentUrl,
-    authorHandle: v.authorHandle.toLowerCase(),
-    description: v.description,
-    baselineIds: v.baselineIds,
-  };
-}
-function parseObservation(
-  value: unknown,
-): PublicationCaptureObservation | null {
-  const v = object(value);
-  if (
-    !v ||
-    !keys(v, [
-      'attemptId',
-      'externalId',
-      'url',
-      'authorHandle',
-      'description',
-      'publicationDate',
-    ]) ||
-    !uuid(v.attemptId) ||
-    !numeric(v.externalId) ||
-    !text(v.url) ||
-    !handle(v.authorHandle) ||
-    !body(v.description) ||
-    !text(v.publicationDate, 64) ||
-    !Number.isFinite(Date.parse(v.publicationDate))
-  )
-    return null;
-  return {
-    attemptId: v.attemptId,
-    externalId: v.externalId,
-    url: v.url,
-    authorHandle: v.authorHandle.toLowerCase(),
-    description: v.description,
-    publicationDate: v.publicationDate,
-  };
-}
-function validObservation(
-  attempt: PublicationCaptureAttempt,
-  observation: PublicationCaptureObservation,
-  observedAt = Date.now(),
-): boolean {
-  try {
-    const url = new URL(observation.url);
-    const source = home(attempt.documentUrl);
-    const time = Date.parse(observation.publicationDate);
-    return (
-      observation.attemptId === attempt.id &&
-      observation.authorHandle === attempt.authorHandle &&
-      observation.description === attempt.description &&
-      !attempt.baselineIds.includes(observation.externalId) &&
-      url.origin === source?.origin &&
-      !url.username &&
-      !url.password &&
-      url.pathname.toLowerCase() ===
-        `/${attempt.authorHandle}/status/${observation.externalId}` &&
-      !url.search &&
-      !url.hash &&
-      time >= Math.floor(attempt.startedAt / 1000) * 1000 &&
-      time <= attempt.startedAt + 60000 &&
-      time <= observedAt + 5000
-    );
-  } catch {
-    return false;
-  }
 }
 async function enabled(): Promise<boolean> {
   const result = await chrome.storage.local.get(SETTINGS);
