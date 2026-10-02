@@ -1117,6 +1117,25 @@ describe('WorkflowExecutorService', () => {
       },
     );
 
+    it('rejects a mismatched provider version before hydration or node execution', async () => {
+      executionsService.findOne.mockResolvedValue({
+        id: 'exec-provider',
+        userId: 'recorded-provider-actor',
+        workflowId: 'workflow-1',
+        workflowVersionId: WORKFLOW_VERSION_ID,
+      });
+      await expect(
+        service.continueProviderCallbackExecution({
+          executionId: 'exec-provider',
+          organizationId: 'org-1',
+          workflowVersionId: 'wrong-version',
+        }),
+      ).rejects.toThrow('does not match its immutable workflow version');
+      expect(prisma.workflowVersion.findFirst).not.toHaveBeenCalled();
+      expect(engineAdapter.executeNode).not.toHaveBeenCalled();
+      expect(executionsService.findOne).toHaveBeenCalledTimes(1);
+    });
+
     it.each([undefined, null, 42, {}, '', '  \t'])(
       'blocks continuation with invalid recorded actor %j before hydration',
       async (actor) => {
