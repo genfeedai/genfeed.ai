@@ -1,9 +1,21 @@
+import * as dispatchLock from '@api/collections/workflows/services/agent-autopilot-dispatch-lock.util';
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
 import { getActionDefinition } from '@genfeedai/actions';
 import { AgentAutonomyMode, AgentThreadMode } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { compileActionContract } from '@genfeedai/workflows/engine';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+beforeEach(() => {
+  vi.spyOn(dispatchLock, 'withProactiveDispatchLock').mockImplementation(
+    async (_config, _organizationId, _strategyId, run) =>
+      run({
+        assertOwned: () => {},
+        verifyOwned: async () => {},
+      }),
+  );
+});
+afterEach(() => vi.restoreAllMocks());
 
 const PROVENANCE = {
   nodeId: 'discover-credit-resets',
@@ -36,6 +48,8 @@ describe('AgentAutopilotWorkflowService atomic actions', () => {
     const strategyRow = {
       brandId: null,
       config,
+      agentType: 'social',
+      platforms: ['linkedin'],
       goalId: null,
       id: 'strategy-1',
       isActive: true,
@@ -44,13 +58,18 @@ describe('AgentAutopilotWorkflowService atomic actions', () => {
       userId: 'user-1',
     };
     const strategySnapshot = {
-      config,
+      config: { ...config, agentType: 'social', platforms: ['linkedin'] },
       id: 'strategy-1',
       organizationId: 'org-1',
       userId: 'user-1',
     };
     const prisma = {
-      $queryRaw: vi.fn().mockResolvedValue([]),
+      $queryRaw: vi.fn(async (query: unknown) =>
+        Array.isArray(query) &&
+        String(query[0]).includes('pg_try_advisory_xact_lock')
+          ? [{ acquired: true }]
+          : [],
+      ),
       $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
         fn(prisma),
       ),
@@ -69,6 +88,7 @@ describe('AgentAutopilotWorkflowService atomic actions', () => {
       {} as never,
       {} as never,
       {} as never,
+      { get: () => undefined },
     );
 
     const discovery = await service.discoverCreditResetStrategies('org-1', {
@@ -106,7 +126,12 @@ describe('AgentAutopilotWorkflowService atomic actions', () => {
 describe('AgentAutopilotWorkflowService.resetCreditWindow', () => {
   it('reports a strategy that vanished after discovery as skipped, within the output contract', async () => {
     const prisma = {
-      $queryRaw: vi.fn().mockResolvedValue([]),
+      $queryRaw: vi.fn(async (query: unknown) =>
+        Array.isArray(query) &&
+        String(query[0]).includes('pg_try_advisory_xact_lock')
+          ? [{ acquired: true }]
+          : [],
+      ),
       $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
         fn(prisma),
       ),
@@ -121,6 +146,7 @@ describe('AgentAutopilotWorkflowService.resetCreditWindow', () => {
       {} as never,
       {} as never,
       {} as never,
+      { get: () => undefined },
     );
     const result = await service.resetCreditWindow('org-1', {
       item: {
@@ -177,11 +203,19 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
       getOrganizationCreditsBalance: vi.fn().mockResolvedValue(1000),
     };
     const prisma = {
-      $queryRaw: vi.fn().mockResolvedValue([]),
+      $queryRaw: vi.fn(async (query: unknown) =>
+        Array.isArray(query) &&
+        String(query[0]).includes('pg_try_advisory_xact_lock')
+          ? [{ acquired: true }]
+          : [],
+      ),
       $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
         fn(prisma),
       ),
-      workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) },
+      workflowExecution: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([]),
+      },
       brand: {
         findFirst: vi.fn().mockResolvedValue({
           agentConfig: {
@@ -219,6 +253,7 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
       {} as never,
       {} as never,
       { error: vi.fn() } as never,
+      { get: () => undefined },
     );
     return {
       service,
@@ -277,6 +312,28 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
     });
     expect(dispatch.metadata.performanceSnapshot).toEqual(snapshot);
   });
+  it.each([{ platforms: ['linkedin'] }, { platforms: [] }])(
+    'uses canonical column platforms $platforms over legacy config and brand defaults',
+    async ({ platforms }) => {
+      const { service, prisma, runner, row } = setup({
+        dailyCreditBudget: 20,
+        platforms: ['instagram'],
+      });
+      const canonical = { ...row, platforms };
+      prisma.agentStrategy.findFirst.mockResolvedValue(canonical);
+      await service.dispatchProactiveStrategy({ item: canonical });
+      const input = runner.enqueueWorkflow.mock.calls[0][0].inputValues.request;
+      const content = String(input.content);
+      const brief = JSON.parse(
+        content
+          .split('<agent_brief_json>\n')[1]
+          .split('\n</agent_brief_json>')[0],
+      );
+      expect(brief.strategy.platforms).toEqual(platforms);
+      expect(brief.agentType).toBe(row.agentType);
+    },
+  );
+
   it('preserves explicitly empty platforms instead of silently choosing a network', async () => {
     const { service, runner, row } = setup({
       dailyCreditBudget: 20,
@@ -354,9 +411,10 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
   });
   it('does not double-record a failure after the current dispatch has persisted', async () => {
     const { service, runner, prisma, row } = setup({ dailyCreditBudget: 20 });
-    prisma.workflowExecution.findFirst.mockResolvedValue({
-      id: 'current-run',
-    } as never);
+    prisma.workflowExecution.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValue({ id: 'current-run' } as never);
     runner.enqueueWorkflow.mockRejectedValue(new Error('acknowledgement lost'));
     await service.dispatchProactiveStrategy({ item: row });
     const dispatchId =
@@ -364,7 +422,7 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
     expect(prisma.workflowExecution.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          result: { path: ['metadata', 'dispatchId'], equals: dispatchId },
+          idempotencyKey: dispatchId,
         }),
       }),
     );
@@ -372,6 +430,198 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
       expect(update.data.config).not.toHaveProperty('consecutiveFailures');
     }
   });
+  it('does not enqueue, create a thread, or account a failure when ownership is lost during preparation', async () => {
+    const { service, runner, prisma, row, performance, snapshot } = setup({
+      dailyCreditBudget: 20,
+    });
+    let lost = false;
+    const assertOwned = () => {
+      if (lost) throw new dispatchLock.ProactiveDispatchOwnershipError();
+    };
+    vi.mocked(dispatchLock.withProactiveDispatchLock).mockImplementationOnce(
+      async (_config, _organizationId, _strategyId, run) =>
+        run({
+          assertOwned,
+          verifyOwned: async () => assertOwned(),
+        }),
+    );
+    performance.getPerformanceSnapshot.mockImplementationOnce(async () => {
+      lost = true;
+      return snapshot;
+    });
+    await expect(
+      service.dispatchProactiveStrategy({ item: row }),
+    ).rejects.toBeInstanceOf(dispatchLock.ProactiveDispatchOwnershipError);
+    expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+    expect(prisma.agentThread.create).not.toHaveBeenCalled();
+    expect(prisma.agentStrategy.update).not.toHaveBeenCalled();
+  });
+
+  it('rechecks current manual disable before enqueue after slow preparation', async () => {
+    const { service, runner, prisma, row, performance, snapshot } = setup({
+      dailyCreditBudget: 20,
+    });
+    performance.getPerformanceSnapshot.mockImplementationOnce(async () => {
+      row.config.requiresManualReactivation = true;
+      return snapshot;
+    });
+    expect(await service.dispatchProactiveStrategy({ item: row })).toEqual({
+      status: 'skipped',
+    });
+    expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+    expect(prisma.agentStrategy.update).not.toHaveBeenCalled();
+  });
+
+  it('skips lock contenders before inspecting or enqueueing paid work', async () => {
+    const { service, runner, prisma, row, performance } = setup({
+      dailyCreditBudget: 20,
+    });
+    vi.mocked(dispatchLock.withProactiveDispatchLock).mockResolvedValueOnce(
+      null,
+    );
+    expect(await service.dispatchProactiveStrategy({ item: row })).toEqual({
+      status: 'skipped',
+    });
+    expect(prisma.agentStrategy.findFirst).not.toHaveBeenCalled();
+    expect(performance.getPerformanceSnapshot).not.toHaveBeenCalled();
+    expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+  });
+  it.each(['RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED'])(
+    'never requeues a durable %s due slot',
+    async (status) => {
+      const { service, runner, prisma, row, performance } = setup({
+        dailyCreditBudget: 20,
+      });
+      prisma.workflowExecution.findFirst.mockResolvedValue({
+        id: 'durable-run',
+        status,
+      } as never);
+      expect(await service.dispatchProactiveStrategy({ item: row })).toEqual({
+        executionId: 'durable-run',
+        status: 'enqueued',
+      });
+      expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+      expect(performance.getPerformanceSnapshot).not.toHaveBeenCalled();
+    },
+  );
+  it('recovers pending transport with its frozen request and stable key', async () => {
+    const { service, runner, prisma, row, performance } = setup({
+      dailyCreditBudget: 20,
+      nextRunAt: '2020-01-01T00:00:00Z',
+    });
+    const inputValues = {
+      request: { content: 'Frozen brief', threadId: 'original-thread' },
+    };
+    const metadata = {
+      strategyId: row.id,
+      performanceSnapshot: { impressions: 4 },
+    };
+    prisma.workflowExecution.findFirst.mockResolvedValue({
+      id: 'durable-run',
+      idempotencyKey: `proactive:${'b'.repeat(64)}`,
+      status: 'PENDING',
+      userId: row.userId,
+      result: { inputValues, metadata },
+    } as never);
+    await service.dispatchProactiveStrategy({ item: row });
+    expect(runner.enqueueWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inputValues,
+        metadata,
+        idempotencyKey: expect.stringMatching(/^proactive:[a-f0-9]{64}$/),
+      }),
+      expect.anything(),
+    );
+    expect(performance.getPerformanceSnapshot).not.toHaveBeenCalled();
+    expect(prisma.agentThread.create).not.toHaveBeenCalled();
+  });
+  it('recovers accepted pending work after cadence advances without rewriting config or rebuilding its brief', async () => {
+    const { service, runner, prisma, row, performance, credits, settings } =
+      setup({
+        dailyCreditBudget: 0,
+        nextRunAt: '2099-01-01T00:00:00.000Z',
+        topics: ['Changed after acceptance'],
+      });
+    const idempotencyKey = `proactive:${'a'.repeat(64)}`;
+    const inputValues = {
+      request: {
+        content: 'Original accepted brief',
+        threadId: 'accepted-thread',
+      },
+    };
+    const metadata = {
+      source: 'proactive',
+      strategyId: row.id,
+      original: 'handoff',
+      dispatchId: idempotencyKey,
+    };
+    prisma.workflowExecution.findFirst.mockResolvedValue({
+      id: 'accepted',
+      status: 'PENDING',
+      idempotencyKey,
+      userId: 'original-user',
+      result: { inputValues, metadata },
+    } as never);
+    expect(
+      await service.dispatchProactiveStrategy(
+        { item: row },
+        { workflowExecutionId: 'new-parent' },
+      ),
+    ).toEqual({ status: 'enqueued', executionId: 'accepted' });
+    expect(prisma.workflowExecution.findFirst).toHaveBeenCalledExactlyOnceWith({
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      where: {
+        organizationId: 'org',
+        isDeleted: false,
+        status: 'PENDING',
+        idempotencyKey: { startsWith: 'proactive:' },
+        result: { path: ['metadata', 'source'], equals: 'proactive' },
+        OR: [{ result: { path: ['metadata', 'strategyId'], equals: row.id } }],
+      },
+    });
+    expect(runner.enqueueWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        idempotencyKey,
+        inputValues,
+        metadata,
+        userId: 'original-user',
+      }),
+      expect.anything(),
+    );
+    expect(prisma.agentStrategy.update).not.toHaveBeenCalled();
+    expect(performance.getPerformanceSnapshot).not.toHaveBeenCalled();
+    expect(credits.getOrganizationCreditsBalance).not.toHaveBeenCalled();
+    expect(settings.findOne).not.toHaveBeenCalled();
+    expect(prisma.agentThread.findFirst).not.toHaveBeenCalled();
+    expect(prisma.agentThread.create).not.toHaveBeenCalled();
+  });
+
+  it.each([{ consecutiveFailures: 5 }, { requiresManualReactivation: true }])(
+    'preserves the manual/failure opt-out before pending recovery: %j',
+    async (gate) => {
+      const { service, runner, prisma, row } = setup({
+        dailyCreditBudget: 20,
+        ...gate,
+      });
+      expect(await service.dispatchProactiveStrategy({ item: row })).toEqual({
+        status: 'skipped',
+      });
+      expect(prisma.workflowExecution.findFirst).not.toHaveBeenCalled();
+      expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+    },
+  );
+
+  it('keeps initial-slot identity stable when legacy cadence is missing', async () => {
+    const { service, runner, row } = setup({ dailyCreditBudget: 20 });
+    await service.dispatchProactiveStrategy({ item: row });
+    await service.dispatchProactiveStrategy({ item: row });
+    const calls = runner.enqueueWorkflow.mock.calls.map(([input]) => input);
+    expect(calls).toHaveLength(2);
+    expect(calls[0].idempotencyKey).toMatch(/^proactive:[a-f0-9]{64}$/);
+    expect(calls[1].idempotencyKey).toBe(calls[0].idempotencyKey);
+    expect(calls[0].metadata.dispatchId).toBe(calls[0].idempotencyKey);
+  });
+
   it('dispatches legacy missing weekly budget using daily times five', async () => {
     const { service, runner, row } = setup({ dailyCreditBudget: 10 });
     expect(
@@ -473,7 +723,10 @@ describe('AgentAutopilotWorkflowService.discoverProactiveStrategies', () => {
       .fn()
       .mockResolvedValueOnce(pageOne)
       .mockResolvedValueOnce(pageTwo);
-    const prisma = { agentStrategy: { findMany } };
+    const prisma = {
+      agentStrategy: { findMany },
+      workflowExecution: { findMany: vi.fn().mockResolvedValue([]) },
+    };
     const service = new AgentAutopilotWorkflowService(
       prisma as never,
       {} as never,
@@ -483,6 +736,7 @@ describe('AgentAutopilotWorkflowService.discoverProactiveStrategies', () => {
       {} as never,
       {} as never,
       {} as never,
+      { get: () => undefined },
     );
 
     const result = await service.discoverProactiveStrategies('org-1', {
@@ -502,12 +756,28 @@ describe('AgentAutopilotWorkflowService.discoverProactiveStrategies', () => {
     ).toEqual(['strategy-100', 'strategy-101', 'strategy-102']);
   });
 
-  it('stops paging once MAX_STRATEGIES_PER_CYCLE due strategies are found', async () => {
-    const dueRows = Array.from({ length: 25 }, (_, index) =>
-      buildStrategyRow(`strategy-${String(index).padStart(3, '0')}`),
-    );
-    const findMany = vi.fn().mockResolvedValueOnce(dueRows);
-    const prisma = { agentStrategy: { findMany } };
+  it('discovers accepted future-cadence work while retaining strategy opt-outs', async () => {
+    const nextRunAt = '2099-01-01T00:00:00.000Z';
+    const rows = [
+      buildStrategyRow('eligible', { nextRunAt }),
+      buildStrategyRow('manual', {
+        nextRunAt,
+        requiresManualReactivation: true,
+      }),
+      buildStrategyRow('failed', { nextRunAt, consecutiveFailures: 5 }),
+      buildStrategyRow('future-without-pending', { nextRunAt }),
+    ];
+    const pending = vi
+      .fn()
+      .mockResolvedValue(
+        rows
+          .slice(0, 3)
+          .map((row) => ({ result: { metadata: { strategyId: row.id } } })),
+      );
+    const prisma = {
+      agentStrategy: { findMany: vi.fn().mockResolvedValue(rows) },
+      workflowExecution: { findMany: pending },
+    };
     const service = new AgentAutopilotWorkflowService(
       prisma as never,
       {} as never,
@@ -517,6 +787,50 @@ describe('AgentAutopilotWorkflowService.discoverProactiveStrategies', () => {
       {} as never,
       {} as never,
       {} as never,
+      { get: () => undefined },
+    );
+
+    const result = await service.discoverProactiveStrategies('org-1', {
+      state: { acquired: true },
+    });
+
+    expect(pending).toHaveBeenCalledExactlyOnceWith({
+      select: { result: true },
+      where: {
+        organizationId: 'org-1',
+        isDeleted: false,
+        status: 'PENDING',
+        idempotencyKey: { startsWith: 'proactive:' },
+        result: { path: ['metadata', 'source'], equals: 'proactive' },
+        OR: rows.map((row) => ({
+          result: { path: ['metadata', 'strategyId'], equals: row.id },
+        })),
+      },
+    });
+    expect(
+      (result.items as Array<{ id: string }>).map((item) => item.id),
+    ).toEqual(['eligible']);
+  });
+
+  it('stops paging once MAX_STRATEGIES_PER_CYCLE due strategies are found', async () => {
+    const dueRows = Array.from({ length: 25 }, (_, index) =>
+      buildStrategyRow(`strategy-${String(index).padStart(3, '0')}`),
+    );
+    const findMany = vi.fn().mockResolvedValueOnce(dueRows);
+    const prisma = {
+      agentStrategy: { findMany },
+      workflowExecution: { findMany: vi.fn().mockResolvedValue([]) },
+    };
+    const service = new AgentAutopilotWorkflowService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      { get: () => undefined },
     );
 
     const result = await service.discoverProactiveStrategies('org-1', {
@@ -527,5 +841,167 @@ describe('AgentAutopilotWorkflowService.discoverProactiveStrategies', () => {
     // are used, and no second page is fetched to find more.
     expect(findMany).toHaveBeenCalledTimes(1);
     expect(result.items).toHaveLength(20);
+  });
+});
+
+function dispatchConnectionFixture() {
+  const listeners = new Set<(cause?: unknown) => void>();
+  const client = {
+    connect: vi.fn(async () => {}),
+    acquire: vi.fn(async (_key: string) => ({ acquired: true, pid: 41 })),
+    verify: vi.fn(async (_key: string, _pid: number) => true),
+    release: vi.fn(async (_key: string) => true),
+    end: vi.fn(async () => {}),
+    onFailure: (listener: (cause?: unknown) => void) => {
+      listeners.add(listener);
+    },
+    offFailure: (listener: (cause?: unknown) => void) => {
+      listeners.delete(listener);
+    },
+  } satisfies dispatchLock.ProactiveDispatchConnection;
+  return {
+    client,
+    lose: () => {
+      for (const listener of listeners) listener(new Error('connection ended'));
+    },
+    listeners,
+  };
+}
+
+function dispatchBarrier() {
+  let release: () => void = () => {
+    throw new Error('Barrier not initialized');
+  };
+  const promise = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  return { promise, release };
+}
+
+describe('proactive dispatch pinned connection lifetime', () => {
+  it('holds ownership until the callback settles and verifies the original backend before release', async () => {
+    const { client, listeners } = dispatchConnectionFixture();
+    const entered = dispatchBarrier();
+    const resume = dispatchBarrier();
+    const result = dispatchLock.withPinnedProactiveDispatchClient(
+      client,
+      'owned-key',
+      async (ownership) => {
+        await ownership.verifyOwned();
+        entered.release();
+        await resume.promise;
+        return 'durable-id';
+      },
+    );
+    await entered.promise;
+    expect(client.release).not.toHaveBeenCalled();
+    expect(client.end).not.toHaveBeenCalled();
+    resume.release();
+    await expect(result).resolves.toBe('durable-id');
+    expect(client.acquire).toHaveBeenCalledExactlyOnceWith('owned-key');
+    expect(client.verify).toHaveBeenCalledWith('owned-key', 41);
+    expect(client.release).toHaveBeenCalledExactlyOnceWith('owned-key');
+    expect(client.end).toHaveBeenCalledTimes(1);
+    expect(listeners.size).toBe(0);
+  });
+
+  it('closes a contended connection without running or unlocking another owner', async () => {
+    const { client } = dispatchConnectionFixture();
+    client.acquire.mockResolvedValueOnce({ acquired: false, pid: 41 });
+    const run = vi.fn(async () => 'unreachable');
+    await expect(
+      dispatchLock.withPinnedProactiveDispatchClient(client, 'key', run),
+    ).resolves.toBeNull();
+    expect(run).not.toHaveBeenCalled();
+    expect(client.release).not.toHaveBeenCalled();
+    expect(client.end).toHaveBeenCalledTimes(1);
+  });
+
+  it('makes loss irreversible while paused and never unlocks before the callback settles', async () => {
+    const { client, lose } = dispatchConnectionFixture();
+    const entered = dispatchBarrier();
+    const resume = dispatchBarrier();
+    const result = dispatchLock.withPinnedProactiveDispatchClient(
+      client,
+      'key',
+      async (ownership) => {
+        entered.release();
+        await resume.promise;
+        ownership.assertOwned();
+      },
+    );
+    const rejection = expect(result).rejects.toBeInstanceOf(
+      dispatchLock.ProactiveDispatchOwnershipError,
+    );
+    await entered.promise;
+    lose();
+    expect(client.end).not.toHaveBeenCalled();
+    resume.release();
+    await rejection;
+    expect(client.release).not.toHaveBeenCalled();
+    expect(client.acquire).toHaveBeenCalledTimes(1);
+    expect(client.end).toHaveBeenCalledTimes(1);
+  });
+
+  it('propagates a missing granted lock rather than reporting callback success', async () => {
+    const { client } = dispatchConnectionFixture();
+    client.verify.mockResolvedValueOnce(false);
+    await expect(
+      dispatchLock.withPinnedProactiveDispatchClient(
+        client,
+        'key',
+        async () => 'id',
+      ),
+    ).rejects.toBeInstanceOf(dispatchLock.ProactiveDispatchOwnershipError);
+    expect(client.release).not.toHaveBeenCalled();
+    expect(client.end).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['connect', 'acquire', 'verify', 'release', 'end'] as const)(
+    'propagates %s failure and closes without reconnecting',
+    async (phase) => {
+      const { client } = dispatchConnectionFixture();
+      const failure = new Error(`${phase} failed`);
+      client[phase].mockRejectedValueOnce(failure);
+      await expect(
+        dispatchLock.withPinnedProactiveDispatchClient(
+          client,
+          'key',
+          async () => 'id',
+        ),
+      ).rejects.toThrow();
+      expect(client.connect).toHaveBeenCalledTimes(1);
+      expect(client.end).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('preserves both callback and cleanup failure evidence', async () => {
+    const { client } = dispatchConnectionFixture();
+    const bodyError = new Error('body failed');
+    const closeError = new Error('close failed');
+    client.end.mockRejectedValueOnce(closeError);
+    await expect(
+      dispatchLock.withPinnedProactiveDispatchClient(
+        client,
+        'key',
+        async () => {
+          throw bodyError;
+        },
+      ),
+    ).rejects.toMatchObject({ errors: [bodyError, closeError] });
+    expect(client.release).toHaveBeenCalledExactlyOnceWith('key');
+  });
+
+  it('rejects a false unlock result instead of accepting cleanup', async () => {
+    const { client } = dispatchConnectionFixture();
+    client.release.mockResolvedValueOnce(false);
+    await expect(
+      dispatchLock.withPinnedProactiveDispatchClient(
+        client,
+        'key',
+        async () => 'id',
+      ),
+    ).rejects.toBeInstanceOf(dispatchLock.ProactiveDispatchOwnershipError);
+    expect(client.end).toHaveBeenCalledTimes(1);
   });
 });

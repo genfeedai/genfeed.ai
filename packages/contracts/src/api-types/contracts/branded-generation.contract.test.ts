@@ -1580,7 +1580,14 @@ describe('approved literal and asset text catalogue', () => {
     value.assets = [];
     value.approvedLiterals = [{ ...copy, evidenceIds: ['missing'] }];
     expect(brandGenerationRulesV1Schema.safeParse(value).success).toBe(false);
-    value.approvedLiterals = [{ ...copy, kind: 'fact', factRuleId: 'missing' }];
+    value.approvedLiterals = [
+      {
+        ...copy,
+        kind: 'fact',
+        factRuleId: 'missing',
+        evidenceIds: [...copy.evidenceIds],
+      },
+    ];
     expect(brandGenerationRulesV1Schema.safeParse(value).success).toBe(false);
     value.evidence.push({
       id: 'second',
@@ -1588,10 +1595,18 @@ describe('approved literal and asset text catalogue', () => {
       label: 'Additional owner evidence',
     });
     value.facts[0].evidenceIds.push('second');
-    value.approvedLiterals = [{ ...copy, kind: 'fact', factRuleId: 'fact' }];
+    value.approvedLiterals = [
+      {
+        ...copy,
+        kind: 'fact',
+        factRuleId: 'fact',
+        evidenceIds: [...copy.evidenceIds],
+      },
+    ];
     expect(brandGenerationRulesV1Schema.safeParse(value).success).toBe(false);
     value.approvedLiterals[0].evidenceIds.push('second');
     expect(brandGenerationRulesV1Schema.safeParse(value).success).toBe(true);
+    expect(copy.evidenceIds).toEqual(['evidence']);
   });
   it.each(['evidence', 'fact', 'example'] as const)(
     'rejects literal ID collision with %s',

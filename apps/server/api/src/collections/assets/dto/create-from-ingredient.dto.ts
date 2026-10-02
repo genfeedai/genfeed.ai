@@ -1,7 +1,7 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AssetCategory } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
+import { IsIn, IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateFromIngredientDto {
   @IsEntityId()
@@ -13,11 +13,11 @@ export class CreateFromIngredientDto {
   readonly ingredientId!: string;
 
   @IsString()
-  @IsEnum(AssetCategory)
+  @IsIn([AssetCategory.LOGO, AssetCategory.BANNER, AssetCategory.REFERENCE])
   @IsNotEmpty()
   @ApiProperty({
     description: 'Asset category (logo or banner)',
-    enum: AssetCategory,
+    enum: [AssetCategory.LOGO, AssetCategory.BANNER, AssetCategory.REFERENCE],
     enumName: 'AssetCategory',
     required: true,
   })

@@ -4,6 +4,7 @@ import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strate
 import { AnalyticsSyncService } from '@api/collections/content-performance/services/analytics-sync.service';
 import { ContentPerformanceService } from '@api/collections/content-performance/services/content-performance.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import * as dispatchLock from '@api/collections/workflows/services/agent-autopilot-dispatch-lock.util';
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import {
@@ -11,7 +12,18 @@ import {
   PostCategory,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+beforeEach(() => {
+  vi.spyOn(dispatchLock, 'withProactiveDispatchLock').mockImplementation(
+    async (_config, _organizationId, _strategyId, run) =>
+      run({
+        assertOwned: () => {},
+        verifyOwned: async () => {},
+      }),
+  );
+});
+afterEach(() => vi.restoreAllMocks());
 
 type StoredRow = Record<string, unknown>;
 type RowQuery = { where?: StoredRow };
@@ -82,7 +94,12 @@ function setup(dailyCreditBudget = 20) {
           )),
     );
   const prisma = {
-    $queryRaw: vi.fn(async () => []),
+    $queryRaw: vi.fn(async (query: unknown) =>
+      Array.isArray(query) &&
+      String(query[0]).includes('pg_try_advisory_xact_lock')
+        ? [{ acquired: true }]
+        : [],
+    ),
     $transaction: vi.fn(async (operation: (tx: unknown) => Promise<unknown>) =>
       operation(prisma),
     ),
@@ -109,7 +126,10 @@ function setup(dailyCreditBudget = 20) {
         },
       })),
     },
-    workflowExecution: { findFirst: vi.fn(async () => null) },
+    workflowExecution: {
+      findFirst: vi.fn(async () => null),
+      findMany: vi.fn(async () => []),
+    },
     post: {
       create: vi.fn(async ({ data }: RowWrite) => {
         const row = {
@@ -234,6 +254,7 @@ function setup(dailyCreditBudget = 20) {
     {} as never,
     {} as never,
     logger as never,
+    { get: () => undefined },
   );
   async function ingest() {
     const discovered = await sync.discoverItems({

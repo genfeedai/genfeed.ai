@@ -1,4 +1,7 @@
-import type { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
+import {
+  type KnowledgeContentRetrievalService,
+  SELECTED_KNOWLEDGE_PASSAGE_BUDGET,
+} from '@api/collections/contexts/services/knowledge-content-retrieval.service';
 
 export { SELECTED_KNOWLEDGE_PASSAGE_BUDGET } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
 
@@ -18,5 +21,12 @@ export async function retrieveSelectedKnowledge(
   input: RetrievalInput,
   sourceIds: readonly string[],
 ): Promise<RetrievalHits> {
-  return provider.retrieveSelectedBrandContentMemory(input, sourceIds);
+  const hits = await provider.retrieveSelectedBrandContentMemory(
+    input,
+    sourceIds,
+  );
+  if (hits.length > SELECTED_KNOWLEDGE_PASSAGE_BUDGET) {
+    throw new Error('knowledge_unavailable');
+  }
+  return hits;
 }

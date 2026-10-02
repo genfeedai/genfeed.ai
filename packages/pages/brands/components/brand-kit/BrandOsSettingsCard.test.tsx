@@ -4,9 +4,15 @@ import type {
   IBrandOsExportState,
   IBrandOsRevision,
 } from '@genfeedai/contracts/interfaces';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import { Button } from '@ui/primitives/button';
 import type {
-  ButtonHTMLAttributes,
   InputHTMLAttributes,
   ReactNode,
   TextareaHTMLAttributes,
@@ -25,6 +31,7 @@ const mocks = vi.hoisted(() => ({
   publishBrandOsDesign: vi.fn(),
   revokeBrandOsDesign: vi.fn(),
   refresh: vi.fn(),
+  saved: vi.fn(),
 }));
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
@@ -55,21 +62,6 @@ vi.mock('@ui/card/Card', () => ({
       <h2>{label}</h2>
       {children}
     </section>
-  ),
-}));
-vi.mock('@ui/primitives/button', () => ({
-  Button: ({
-    label,
-    isDisabled,
-    onClick,
-  }: {
-    label: string;
-    isDisabled?: boolean;
-    onClick?: ButtonHTMLAttributes<HTMLButtonElement>['onClick'];
-  }) => (
-    <button disabled={isDisabled} onClick={onClick} type="button">
-      {label}
-    </button>
   ),
 }));
 vi.mock('@ui/primitives/input', () => ({
@@ -203,7 +195,11 @@ function exportState(
 }
 async function renderSettings() {
   render(
-    <BrandOsSettingsCard brandId="brand-1" onRefreshBrand={mocks.refresh} />,
+    <BrandOsSettingsCard
+      brandId="brand-1"
+      onRefreshBrand={mocks.refresh}
+      onRevisionSaved={mocks.saved}
+    />,
   );
   await screen.findByLabelText('Description');
 }
@@ -240,6 +236,7 @@ describe('Brand OS revision settings', () => {
       'This draft changed',
     );
     expect(screen.getByLabelText('Description')).toHaveValue('Edited voice');
+    expect(mocks.saved).not.toHaveBeenCalled();
     expect(mocks.updateBrandOsRevision).toHaveBeenCalledWith(
       'brand-1',
       'revision-1',
@@ -287,6 +284,9 @@ describe('Brand OS revision settings', () => {
         saved.updatedAt,
       ),
     );
+    await waitFor(() => expect(mocks.saved).toHaveBeenCalledTimes(2));
+    expect(mocks.saved.mock.calls[0][0]).toEqual(saved);
+    expect(mocks.saved.mock.calls[1][0].status).toBe('APPROVED');
     expect(mocks.publishBrandOsDesign).not.toHaveBeenCalled();
     expect(
       await screen.findByText(
@@ -396,7 +396,11 @@ describe('Brand OS revision settings', () => {
 
   it('keeps edits when another draft arrives and loads history only after discard', async () => {
     const view = render(
-      <BrandOsSettingsCard brandId="brand-1" onRefreshBrand={mocks.refresh} />,
+      <BrandOsSettingsCard
+        brandId="brand-1"
+        onRefreshBrand={mocks.refresh}
+        onRevisionSaved={mocks.saved}
+      />,
     );
     await screen.findByLabelText('Description');
     fireEvent.change(screen.getByLabelText('Description'), {
@@ -523,7 +527,11 @@ describe('Brand OS revision settings', () => {
       new Error('Revision history unavailable.'),
     );
     render(
-      <BrandOsSettingsCard brandId="brand-1" onRefreshBrand={mocks.refresh} />,
+      <BrandOsSettingsCard
+        brandId="brand-1"
+        onRefreshBrand={mocks.refresh}
+        onRevisionSaved={mocks.saved}
+      />,
     );
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Revision history unavailable.',
@@ -665,5 +673,250 @@ describe('Brand OS revision settings', () => {
     expect(
       screen.queryByRole('link', { name: 'Open immutable revision design.md' }),
     ).not.toBeInTheDocument();
+  });
+});
+
+interface CardDeferred<T> {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+}
+function cardDeferred<T>(): CardDeferred<T> {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
+describe('saved callback epochs and native exit capture', () => {
+  it('notifies approval before auxiliary export/brand failures while retaining persisted approval', async () => {
+    mocks.approveBrandOsRevision.mockResolvedValue(
+      revision({ status: 'APPROVED' }),
+    );
+    await renderSettings();
+    mocks.getBrandOsExport.mockRejectedValueOnce(new Error('export offline'));
+    mocks.refresh.mockRejectedValueOnce(new Error('brand refresh offline'));
+    fireEvent.click(screen.getByRole('button', { name: 'Approve revision' }));
+    await waitFor(() =>
+      expect(mocks.saved).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ status: 'APPROVED' }),
+      ),
+    );
+    expect(
+      await screen.findByRole('button', { name: 'Save as new draft' }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole('option', { name: 'Revision 1 · approved' }),
+    ).toBeInTheDocument();
+    expect(mocks.saved.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.refresh.mock.invocationCallOrder[0],
+    );
+  });
+
+  it.each(['acquiring', 'responding', 'unmounted'] as const)(
+    'does not dispatch or notify stale save when %s',
+    async (stage) => {
+      const view = render(
+        <BrandOsSettingsCard
+          brandId="brand-1"
+          onRefreshBrand={mocks.refresh}
+          onRevisionSaved={mocks.saved}
+        />,
+      );
+      await screen.findByLabelText('Description');
+      const serviceGate = cardDeferred<typeof mocks>();
+      const responseGate = cardDeferred<IBrandOsRevision>();
+      if (stage === 'acquiring')
+        mocks.getService.mockReturnValueOnce(serviceGate.promise);
+      else
+        mocks.updateBrandOsRevision.mockReturnValueOnce(responseGate.promise);
+      fireEvent.change(screen.getByLabelText('Description'), {
+        target: { value: 'Old edit' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
+      if (stage !== 'acquiring')
+        await waitFor(() =>
+          expect(mocks.updateBrandOsRevision).toHaveBeenCalledTimes(1),
+        );
+      if (stage === 'unmounted') view.unmount();
+      else {
+        mocks.listBrandOsRevisions.mockResolvedValue([
+          revision({ id: 'new-brand-revision', brandId: 'brand-2' }),
+        ]);
+        view.rerender(
+          <BrandOsSettingsCard
+            brandId="brand-2"
+            onRefreshBrand={mocks.refresh}
+            onRevisionSaved={mocks.saved}
+          />,
+        );
+        await screen.findByLabelText('Description');
+      }
+      await act(async () => {
+        serviceGate.resolve(mocks);
+        responseGate.resolve(revision({ id: 'old-save' }));
+      });
+      expect(mocks.saved).not.toHaveBeenCalled();
+      if (stage === 'acquiring')
+        expect(mocks.updateBrandOsRevision).not.toHaveBeenCalled();
+      if (stage !== 'unmounted')
+        expect(screen.getByLabelText('Description')).toHaveValue(
+          'Original voice',
+        );
+    },
+  );
+
+  it.each(['acquiring', 'responding', 'unmounted'] as const)(
+    'fences stale approval and auxiliary refresh when %s',
+    async (stage) => {
+      const view = render(
+        <BrandOsSettingsCard
+          brandId="brand-1"
+          onRefreshBrand={mocks.refresh}
+          onRevisionSaved={mocks.saved}
+        />,
+      );
+      await screen.findByLabelText('Description');
+      const serviceGate = cardDeferred<typeof mocks>();
+      const responseGate = cardDeferred<IBrandOsRevision>();
+      if (stage === 'acquiring')
+        mocks.getService.mockReturnValueOnce(serviceGate.promise);
+      else
+        mocks.approveBrandOsRevision.mockReturnValueOnce(responseGate.promise);
+      fireEvent.click(screen.getByRole('button', { name: 'Approve revision' }));
+      if (stage !== 'acquiring')
+        await waitFor(() =>
+          expect(mocks.approveBrandOsRevision).toHaveBeenCalledTimes(1),
+        );
+      if (stage === 'unmounted') view.unmount();
+      else {
+        mocks.listBrandOsRevisions.mockResolvedValue([
+          revision({ brandId: 'brand-2', id: 'new-revision' }),
+        ]);
+        view.rerender(
+          <BrandOsSettingsCard
+            brandId="brand-2"
+            onRefreshBrand={mocks.refresh}
+            onRevisionSaved={mocks.saved}
+          />,
+        );
+        await screen.findByLabelText('Description');
+      }
+      const exportReads = mocks.getBrandOsExport.mock.calls.length;
+      await act(async () => {
+        serviceGate.resolve(mocks);
+        responseGate.resolve(revision({ status: 'APPROVED' }));
+      });
+      expect(mocks.saved).not.toHaveBeenCalled();
+      expect(mocks.refresh).not.toHaveBeenCalled();
+      expect(mocks.getBrandOsExport).toHaveBeenCalledTimes(exportReads);
+      if (stage === 'acquiring')
+        expect(mocks.approveBrandOsRevision).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not notify reads, export actions or a rejected approval', async () => {
+    mocks.approveBrandOsRevision.mockRejectedValueOnce(new Error('conflict'));
+    await renderSettings();
+    expect(mocks.saved).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh history' }));
+    await waitFor(() =>
+      expect(mocks.listBrandOsRevisions).toHaveBeenCalledTimes(2),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Approve revision' }));
+    await screen.findByRole('alert');
+    expect(mocks.saved).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])(
+    'real native button child click with dirty confirmation=%s runs exit only when accepted',
+    async (accept) => {
+      const exit = vi.fn();
+      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(accept);
+      const view = render(
+        <>
+          <BrandOsSettingsCard
+            brandId="brand-1"
+            onRefreshBrand={mocks.refresh}
+          />
+          <Button data-brand-os-navigation="brand-1" onClick={exit}>
+            <span>Wizard exit</span>
+          </Button>
+        </>,
+      );
+      await screen.findByLabelText('Description');
+      fireEvent.change(screen.getByLabelText('Description'), {
+        target: { value: 'Unsaved' },
+      });
+      fireEvent.click(screen.getByText('Wizard exit'));
+      expect(confirm).toHaveBeenCalledTimes(1);
+      expect(exit).toHaveBeenCalledTimes(accept ? 1 : 0);
+      view.unmount();
+      confirm.mockRestore();
+    },
+  );
+
+  it('ignores clean, unmarked, other-brand and disabled native buttons and preserves anchor exceptions', async () => {
+    const exit = vi.fn();
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    render(
+      <>
+        <BrandOsSettingsCard brandId="brand-1" onRefreshBrand={mocks.refresh} />
+        <Button
+          data-brand-os-navigation="brand-1"
+          label="Clean exit"
+          onClick={exit}
+        />
+        <Button label="Unmarked" onClick={exit} />
+        <Button
+          data-brand-os-navigation="brand-2"
+          label="Other brand"
+          onClick={exit}
+        />
+        <Button
+          data-brand-os-navigation="brand-1"
+          label="Disabled"
+          isDisabled
+          onClick={exit}
+        />
+        <a href="/next" onClick={(event) => event.preventDefault()}>
+          Navigate
+        </a>
+        <a
+          href="/download"
+          download
+          onClick={(event) => event.preventDefault()}
+        >
+          Download
+        </a>
+        <a
+          href="/blank"
+          target="_blank"
+          onClick={(event) => event.preventDefault()}
+          rel="noopener"
+        >
+          New tab
+        </a>
+      </>,
+    );
+    await screen.findByLabelText('Description');
+    fireEvent.click(screen.getByText('Clean exit'));
+    expect(confirm).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('Description'), {
+      target: { value: 'Unsaved' },
+    });
+    for (const name of [
+      'Unmarked',
+      'Other brand',
+      'Disabled',
+      'Download',
+      'New tab',
+    ])
+      fireEvent.click(screen.getByText(name));
+    expect(confirm).not.toHaveBeenCalled();
+    expect(exit).toHaveBeenCalledTimes(3);
+    fireEvent.click(screen.getByText('Navigate'));
+    expect(confirm).toHaveBeenCalledTimes(1);
+    confirm.mockRestore();
   });
 });

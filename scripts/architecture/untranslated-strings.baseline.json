@@ -41,7 +41,6 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/agents/new/AgentWizardStepType.tsx": 2,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/autopilot/AgentStrategyBudgetFields.tsx": 4,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/autopilot/AgentStrategyDialog.tsx": 9,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/autopilot/AgentStrategyPublishToggles.tsx": 6,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/autopilot/AgentStrategyScoreFields.tsx": 3,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/autopilot/AgentStrategySourceToggles.tsx": 10,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/overview/AutomationOverviewPage.tsx": 9,

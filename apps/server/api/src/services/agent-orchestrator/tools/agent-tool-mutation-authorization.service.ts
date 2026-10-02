@@ -1,7 +1,15 @@
+import { getActionOriginContext } from '@api/action-origin/action-origin.context';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
+import { AGENT_RUNTIME_WORKFLOW_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
+import {
+  getSystemWorkflowMetadata,
+  isHiddenSystemWorkflowMetadata,
+  SYSTEM_WORKFLOW_PRINCIPAL_ID,
+} from '@api/collections/workflows/system-workflow.contract';
 import type { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
+import { readPublishContentId } from '@api/services/agent-orchestrator/tools/agent-publish-mcp-draft-only.util';
 import type { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import type { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
@@ -11,6 +19,7 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-approval.util';
 import type { AgentMutationAuthorization } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-policy.types';
 import { buildMutationApprovalCard } from '@api/services/agent-orchestrator/tools/mutation-approval-card';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   AgentThreadModeValue,
   CuratedActionName,
@@ -22,8 +31,17 @@ import {
   VISUAL_GENERATION_REVIEW_TOOL_NAMES,
 } from '@genfeedai/actions';
 import { buildLogicalWriteKey } from '@genfeedai/actions/server';
+import {
+  ActionOrigin,
+  AgentAutonomyMode,
+  normalizeAgentAutonomyMode,
+} from '@genfeedai/contracts';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
-import { McpApprovalStatus } from '@genfeedai/prisma';
+import {
+  McpApprovalStatus,
+  Prisma,
+  WorkflowExecutionStatus,
+} from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { toPlainJson } from '@serializers/helpers/plain-json.helper';
@@ -61,6 +79,8 @@ export class AgentToolMutationAuthorizationService {
     private readonly mcpApprovalsService?: McpApprovalsService,
     @Optional()
     private readonly agentThreadsService?: AgentThreadsService,
+    @Optional()
+    private readonly prisma?: PrismaService,
   ) {}
 
   /**
@@ -112,6 +132,12 @@ export class AgentToolMutationAuthorizationService {
       agentMode,
       definition?.mutationPolicy,
     );
+    const proactiveDraft = await this.resolveProactiveTextDraftConstraint(
+      toolName,
+      parameters,
+      context,
+    );
+    if (proactiveDraft) return proactiveDraft;
     if (
       isAvailableOnSurface &&
       !context.approvedApprovalId &&
@@ -139,6 +165,182 @@ export class AgentToolMutationAuthorizationService {
       effectivePolicy,
       isAvailableOnSurface,
     );
+  }
+
+  private async resolveProactiveTextDraftConstraint(
+    toolName: CuratedActionName,
+    parameters: Record<string, unknown>,
+    context: ToolExecutionContext,
+  ): Promise<AgentMutationAuthorization | null> {
+    if (
+      toolName !== 'create_post' ||
+      !context.isProactive ||
+      context.autonomyMode !== AgentAutonomyMode.SUPERVISED ||
+      context.approvedApprovalId ||
+      context.confirmationOrigin ||
+      readPublishContentId(parameters) ||
+      getActionOriginContext().origin !== ActionOrigin.AGENT
+    )
+      return null;
+    const denied: AgentMutationAuthorization = {
+      kind: 'return',
+      result: {
+        success: false,
+        creditsUsed: 0,
+        error: 'Proactive text drafts require a trusted supervised execution.',
+      },
+    };
+    const scope = context.validatedScope;
+    if (
+      !context.runId ||
+      !context.strategyId ||
+      !context.threadId ||
+      !scope?.brandId ||
+      scope.organizationId !== context.organizationId ||
+      scope.userId !== context.userId ||
+      scope.threadId !== context.threadId ||
+      (context.brandId !== undefined && context.brandId !== scope.brandId)
+    )
+      return denied;
+    if (!this.prisma)
+      throw new Error('Proactive draft authorization storage is unavailable.');
+    const trusted = await this.prisma.$transaction(
+      (tx) => this.hasTrustedProactiveDraftSnapshot(tx, context),
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
+    return trusted
+      ? { kind: 'execute', constraint: 'proactive-text-draft-only' }
+      : denied;
+  }
+
+  private async hasTrustedProactiveDraftSnapshot(
+    tx: Prisma.TransactionClient,
+    context: ToolExecutionContext,
+  ): Promise<boolean> {
+    const [execution, thread, strategy] = await Promise.all([
+      tx.workflowExecution.findFirst({
+        where: {
+          id: context.runId,
+          organizationId: context.organizationId,
+          userId: context.userId,
+          isDeleted: false,
+          status: WorkflowExecutionStatus.RUNNING,
+        },
+        select: {
+          result: true,
+          workflowId: true,
+          workflowVersionId: true,
+          workflow: {
+            select: {
+              id: true,
+              organizationId: true,
+              userId: true,
+              isDeleted: true,
+              metadata: true,
+            },
+          },
+          workflowVersion: {
+            select: { workflowId: true, organizationId: true, userId: true },
+          },
+        },
+      }),
+      tx.agentThread.findFirst({
+        where: {
+          id: context.threadId,
+          organizationId: context.organizationId,
+          userId: context.userId,
+          isDeleted: false,
+        },
+        select: {
+          brandId: true,
+          agentStrategyId: true,
+          contextVersion: true,
+          status: true,
+          mode: true,
+        },
+      }),
+      tx.agentStrategy.findFirst({
+        where: {
+          id: context.strategyId,
+          organizationId: context.organizationId,
+          userId: context.userId,
+          brandId: context.validatedScope?.brandId,
+          isDeleted: false,
+          isActive: true,
+          organization: { isDeleted: false },
+          brand: { organizationId: context.organizationId, isDeleted: false },
+        },
+        select: { config: true },
+      }),
+    ]);
+    if (!execution || !thread || !strategy) return false;
+    const workflow = execution.workflow;
+    const version = execution.workflowVersion;
+    const config = this.readProactiveDraftRecord(strategy.config);
+    const mode = config?.autonomyMode;
+    return Boolean(
+      config &&
+        config.isEnabled !== false &&
+        (mode === undefined ||
+          (typeof mode === 'string' &&
+            Object.values(AgentAutonomyMode).some(
+              (value) => value === mode.trim().toUpperCase(),
+            ))) &&
+        normalizeAgentAutonomyMode(mode) === AgentAutonomyMode.SUPERVISED &&
+        thread.brandId === context.validatedScope?.brandId &&
+        thread.agentStrategyId === context.strategyId &&
+        thread.contextVersion === context.validatedScope?.contextVersion &&
+        thread.status?.toLowerCase() !== 'archived' &&
+        (thread.mode === 'manual' || thread.mode === 'auto') &&
+        !workflow.isDeleted &&
+        workflow.id === execution.workflowId &&
+        workflow.organizationId === SYSTEM_WORKFLOW_PRINCIPAL_ID &&
+        workflow.userId === SYSTEM_WORKFLOW_PRINCIPAL_ID &&
+        isHiddenSystemWorkflowMetadata(workflow.metadata) &&
+        getSystemWorkflowMetadata(workflow.metadata)?.canonicalId ===
+          AGENT_RUNTIME_WORKFLOW_IDS.TURN &&
+        version.workflowId === execution.workflowId &&
+        version.organizationId === SYSTEM_WORKFLOW_PRINCIPAL_ID &&
+        version.userId === SYSTEM_WORKFLOW_PRINCIPAL_ID &&
+        this.hasTrustedProactiveDraftEnvelope(execution.result, context),
+    );
+  }
+
+  private hasTrustedProactiveDraftEnvelope(
+    result: unknown,
+    context: ToolExecutionContext,
+  ): boolean {
+    const envelope = this.readProactiveDraftRecord(result);
+    const inputs = this.readProactiveDraftRecord(envelope?.inputValues);
+    const request = this.readProactiveDraftRecord(inputs?.request);
+    const metadata = this.readProactiveDraftRecord(envelope?.metadata);
+    return Boolean(
+      request &&
+        metadata &&
+        request.source === 'proactive' &&
+        request.strategyId === context.strategyId &&
+        request.threadId === context.threadId &&
+        request.brandId === context.validatedScope?.brandId &&
+        request.autonomyMode === AgentAutonomyMode.SUPERVISED &&
+        typeof request.creditBudget === 'number' &&
+        Number.isFinite(request.creditBudget) &&
+        request.creditBudget > 0 &&
+        metadata.source === 'proactive' &&
+        metadata.isSystemAction === true &&
+        metadata.canonicalId === AGENT_RUNTIME_WORKFLOW_IDS.TURN &&
+        metadata.actionType === AGENT_RUNTIME_WORKFLOW_IDS.TURN &&
+        metadata.strategyId === context.strategyId &&
+        metadata.threadId === context.threadId &&
+        metadata.brandId === context.validatedScope?.brandId,
+    );
+  }
+
+  private readProactiveDraftRecord(
+    value: unknown,
+  ): Record<string, unknown> | null {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : null;
   }
 
   /**

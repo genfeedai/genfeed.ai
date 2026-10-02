@@ -33,6 +33,7 @@ export interface IOnboardingContextValue {
   handleStepComplete: (
     stepKey: OnboardingStepKey,
     extraPayload?: Partial<IOnboardingStepPayload>,
+    shouldContinue?: () => boolean,
   ) => Promise<void>;
   handleSkip: (stepKey: OnboardingStepKey) => Promise<void>;
   handleBack: () => void;
