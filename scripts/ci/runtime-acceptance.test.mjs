@@ -1750,10 +1750,21 @@ test('fixed visual selection requires each exact real title and pending or skipp
         validateVisualSelection(fixture, index, child)[0].passed,
         index === 0 ? 6 : 1,
       );
-      for (const title of selection.titles)
-        assert.ok(new RegExp(selection.pattern).test(title));
+      const taskName = (title) => {
+        const suite = VISUAL_RENDERLESS_TITLES.includes(title)
+          ? 'visual-code cleanup rejection isolation (renderless)'
+          : 'visual-code local-runtime acceptance (explicit owned DB/Redis and Linux runsc prerequisites)';
+        return `${suite} > ${title.slice(suite.length + 1)}`;
+      };
+      const pattern = new RegExp(selection.pattern);
+      for (const title of selection.titles) {
+        assert.ok(pattern.test(taskName(title)));
+        assert.ok(!pattern.test(title));
+        assert.ok(!pattern.test(`${taskName(title)} extra`));
+        assert.ok(!pattern.test(`extra ${taskName(title)}`));
+      }
       for (const title of selection.skipped)
-        assert.ok(!new RegExp(selection.pattern).test(title));
+        assert.ok(!pattern.test(taskName(title)));
       for (const status of ['pending', 'skipped', 'failed', 'todo']) {
         const changed = structuredClone(fixture);
         changed.testResults[0].assertionResults[0].status = status;

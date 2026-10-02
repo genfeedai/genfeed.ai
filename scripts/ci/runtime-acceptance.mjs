@@ -2630,12 +2630,19 @@ export function visualSelection(index) {
       ? VISUAL_RENDERLESS_TITLES
       : [VISUAL_CASES.find((item) => item.index === index)?.title];
   requireThat(selected.every(Boolean), 'INVALID_VISUAL_CASE');
+  const suite =
+    index === 0
+      ? 'visual-code cleanup rejection isolation (renderless)'
+      : VISUAL_SUITE;
+  const taskNames = selected.map(
+    (title) => `${suite} > ${title.slice(suite.length + 1)}`,
+  );
   return {
     file: VISUAL_SPEC,
     count: selected.length,
     titles: selected,
     skipped: VISUAL_ALL_TITLES.filter((title) => !selected.includes(title)),
-    pattern: `^(?:${selected.map((title) => title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})$`,
+    pattern: `^(?:${taskNames.map((title) => title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})$`,
   };
 }
 export function validateVisualSelection(report, index, child) {
