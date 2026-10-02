@@ -407,3 +407,19 @@ it('routes publication capture only once through the strict handler with the act
   expect(mocks.execute).not.toHaveBeenCalled();
   expect(mocks.generateText).not.toHaveBeenCalled();
 });
+
+it.each([
+  'publicationCaptureReplyIntent',
+  'publicationCaptureReplyIntentCancel',
+])(
+  'routes %s through the existing asynchronous capture delegate',
+  async (event) => {
+    const request = { event };
+    const sender = { id: 'ext', frameId: 0, url: 'https://x.com/compose/post' };
+    const respond = vi.fn();
+    expect(backgroundListener(request, sender, respond)).toBe(true);
+    await vi.waitFor(() => expect(respond).toHaveBeenCalled());
+    expect(mocks.publication).toHaveBeenCalledWith(request, sender);
+    expect(mocks.execute).not.toHaveBeenCalled();
+  },
+);

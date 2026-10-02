@@ -76,6 +76,7 @@ const attempt = (): PublicationCaptureAttempt => ({
   scope: { ...mocks.snapshot },
   startedAt: Date.now(),
   documentUrl: 'https://x.com/home',
+  surface: { kind: 'x-home' },
   authorHandle: 'author',
   description: 'Own authored text',
   baselineIds: ['123'],
@@ -165,13 +166,54 @@ async function begin(original = attempt()) {
   ).toBe(true);
   return original;
 }
+it('allows dormant HTTPS context without arming a home publication', async () => {
+  const sender = { ...source, url: 'https://x.com/other' };
+  expect(
+    await service.handlePublicationCaptureMessage(
+      { event: 'publicationCaptureContext' },
+      sender,
+    ),
+  ).toEqual({
+    success: true,
+    data: {
+      kind: 'context',
+      enabled: true,
+      scope: { ...mocks.snapshot },
+      pending: null,
+      confirmed: null,
+    },
+  });
+  const original = attempt();
+  expect(
+    (
+      await service.handlePublicationCaptureMessage(
+        { event: 'publicationCaptureBegin', attempt: original },
+        sender,
+      )
+    ).success,
+  ).toBe(false);
+  expect(
+    (
+      await service.handlePublicationCaptureMessage(
+        {
+          event: 'publicationCaptureComplete',
+          observation: observation(original),
+        },
+        sender,
+      )
+    ).success,
+  ).toBe(false);
+  expect(mocks.request).not.toHaveBeenCalled();
+  expect(session['genfeed-publication-pending-v1']).toBeUndefined();
+  expect(local[OUTBOX]).toBeUndefined();
+});
 it('rejects forged sender, subframe, origin, body scope and content outbox access', async () => {
   for (const sender of [
     { ...source, id: 'other' },
     { ...source, frameId: 1 },
     { ...source, tab: tab(-1) },
     { ...source, url: 'https://evil.example/home' },
-    { ...source, url: 'https://x.com/other' },
+    { ...source, url: 'http://x.com/other' },
   ])
     expect(
       (
@@ -905,3 +947,347 @@ it.each(['loading', 'refreshing'])(
     stop();
   },
 );
+
+const INTENTS = 'genfeed-publication-reply-intents-v1';
+
+const replyInput = () => ({
+  scope: { ...mocks.snapshot },
+  createdAt: Date.now(),
+  documentUrl: source.url,
+  authorHandle: 'author',
+  parent: { externalId: '123', url: 'https://x.com/other/status/123' },
+});
+async function registerReply() {
+  const intent = replyInput();
+  const reply = await service.handlePublicationCaptureMessage(
+    { event: 'publicationCaptureReplyIntent', intent },
+    source,
+  );
+  if (!reply.success || reply.data.kind !== 'reply-intent')
+    throw new Error('Expected reply intent');
+  const original: PublicationCaptureAttempt = {
+    ...attempt(),
+    documentUrl: 'https://x.com/compose/post',
+    surface: {
+      kind: 'x-reply-modal',
+      returnUrl: intent.documentUrl,
+      replyIntentId: reply.data.intentId,
+      parent: intent.parent,
+    },
+  };
+  return original;
+}
+it('consumes one exact reply intent and pending attempt in one atomic session mutation', async () => {
+  const original = await registerReply();
+  vi.mocked(chrome.storage.session.set).mockClear();
+  const armed = await service.handlePublicationCaptureMessage(
+    { event: 'publicationCaptureBegin', attempt: original },
+    { ...source, url: 'https://x.com/compose/post' },
+  );
+  expect(armed.success).toBe(true);
+  expect(chrome.storage.session.set).toHaveBeenCalledTimes(1);
+  expect(chrome.storage.session.set).toHaveBeenCalledWith({
+    [INTENTS]: {},
+    [PENDING]: {
+      '1': { tabId: 1, origin: 'https://x.com', attempt: original },
+    },
+  });
+  expect(mocks.request).not.toHaveBeenCalled();
+  expect(
+    (
+      await service.handlePublicationCaptureMessage(
+        {
+          event: 'publicationCaptureBegin',
+          attempt: { ...original, id: crypto.randomUUID() },
+        },
+        source,
+      )
+    ).success,
+  ).toBe(false);
+});
+it('failed atomic consumption preserves intent and never arms or calls the API', async () => {
+  const original = await registerReply();
+  const before = structuredClone(session);
+  failSession = true;
+  expect(
+    (
+      await service.handlePublicationCaptureMessage(
+        { event: 'publicationCaptureBegin', attempt: original },
+        source,
+      )
+    ).success,
+  ).toBe(false);
+  expect(session).toEqual(before);
+  expect(mocks.request).not.toHaveBeenCalled();
+});
+it.each([
+  { id: 'other' },
+  { frameId: 1 },
+  { tab: tab(2) },
+  { url: 'https://twitter.com/home' },
+])(
+  'rejects wrong runtime/frame/tab/origin for reply Begin: %j',
+  async (change) => {
+    const original = await registerReply();
+    expect(
+      (
+        await service.handlePublicationCaptureMessage(
+          { event: 'publicationCaptureBegin', attempt: original },
+          { ...source, ...change },
+        )
+      ).success,
+    ).toBe(false);
+    expect(mocks.request).not.toHaveBeenCalled();
+  },
+);
+it.each([
+  { createdAt: Date.now() - 31000 },
+  { authorHandle: 'bad handle' },
+  {
+    scope: {
+      userId: 'other',
+      organizationId: 'org',
+      brandId: 'brand',
+      revision: 1,
+    },
+  },
+  { parent: { externalId: '999', url: 'https://x.com/other/status/123' } },
+])('rejects malformed/stale/foreign reply registration: %j', async (change) => {
+  expect(
+    (
+      await service.handlePublicationCaptureMessage(
+        {
+          event: 'publicationCaptureReplyIntent',
+          intent: { ...replyInput(), ...change },
+        },
+        source,
+      )
+    ).success,
+  ).toBe(false);
+  expect(session[INTENTS]).toBeUndefined();
+});
+it('replacement and explicit cancellation invalidate only the exact tab-bound intent', async () => {
+  const old = await registerReply();
+  const fresh = await registerReply();
+  expect(
+    (
+      await service.handlePublicationCaptureMessage(
+        { event: 'publicationCaptureBegin', attempt: old },
+        source,
+      )
+    ).success,
+  ).toBe(false);
+  if (fresh.surface.kind !== 'x-reply-modal') throw new Error('reply expected');
+  await service.handlePublicationCaptureMessage(
+    {
+      event: 'publicationCaptureReplyIntentCancel',
+      intentId: fresh.surface.replyIntentId,
+    },
+    { ...source, tab: tab(2) },
+  );
+  expect(session[INTENTS]).not.toEqual({});
+  await service.handlePublicationCaptureMessage(
+    {
+      event: 'publicationCaptureReplyIntentCancel',
+      intentId: fresh.surface.replyIntentId,
+    },
+    source,
+  );
+  expect(session[INTENTS]).toEqual({});
+});
+it('corrupt intent storage is rejected without overwrite', async () => {
+  session[INTENTS] = { '1': { id: 'bad' } };
+  const before = structuredClone(session);
+  expect(
+    (
+      await service.handlePublicationCaptureMessage(
+        { event: 'publicationCaptureReplyIntent', intent: replyInput() },
+        source,
+      )
+    ).success,
+  ).toBe(false);
+  expect(session).toEqual(before);
+});
+it('reply retains its own ID/kind/date in durable retry and rejects a parent Complete', async () => {
+  const original = await registerReply();
+  await service.handlePublicationCaptureMessage(
+    { event: 'publicationCaptureBegin', attempt: original },
+    source,
+  );
+  expect(
+    (
+      await service.handlePublicationCaptureMessage(
+        {
+          event: 'publicationCaptureComplete',
+          observation: {
+            ...observation(original),
+            externalId: '123',
+            url: 'https://x.com/author/status/123',
+          },
+        },
+        source,
+      )
+    ).success,
+  ).toBe(false);
+  mocks.request.mockResolvedValue({
+    ok: false,
+    status: 503,
+    json: async () => ({}),
+  });
+  await service.handlePublicationCaptureMessage(
+    { event: 'publicationCaptureComplete', observation: observation(original) },
+    source,
+  );
+  expect(local[OUTBOX]).toMatchObject([
+    {
+      input: {
+        publicationKind: 'reply',
+        externalId: '456',
+        publicationDate: observation(original).publicationDate,
+      },
+    },
+  ]);
+  const clock = vi
+    .spyOn(Date, 'now')
+    .mockReturnValue(original.startedAt + 90000);
+  try {
+    mocks.request.mockClear();
+    await service.handlePublicationCaptureMessage(
+      {
+        event: 'publicationCaptureComplete',
+        observation: observation(original),
+      },
+      { ...source, url: 'https://x.com/notifications' },
+    );
+    expect(mocks.request).not.toHaveBeenCalled();
+    await service.handlePublicationCaptureMessage(
+      { event: 'publicationCaptureRetry', id: original.id },
+      extension,
+    );
+    expect(
+      JSON.parse(String(mocks.request.mock.calls[0][1].body)).parameters,
+    ).toMatchObject({
+      publicationKind: 'reply',
+      publicationDate: observation(original).publicationDate,
+      externalId: '456',
+    });
+  } finally {
+    clock.mockRestore();
+  }
+});
+it('restores legacy home pending without erasing malformed or modal-missing-surface storage', async () => {
+  const { surface: _surface, ...legacy } = attempt();
+  session[PENDING] = {
+    '1': { tabId: 1, origin: 'https://x.com', attempt: legacy },
+  };
+  const response = await service.handlePublicationCaptureMessage(
+    { event: 'publicationCaptureContext' },
+    source,
+  );
+  expect(response).toMatchObject({
+    success: true,
+    data: { pending: { surface: { kind: 'x-home' } } },
+  });
+  session[PENDING] = {
+    '1': {
+      tabId: 1,
+      origin: 'https://x.com',
+      attempt: { ...legacy, documentUrl: 'https://x.com/compose/post' },
+    },
+  };
+  const before = structuredClone(session);
+  expect(
+    (
+      await service.handlePublicationCaptureMessage(
+        { event: 'publicationCaptureContext' },
+        source,
+      )
+    ).success,
+  ).toBe(false);
+  expect(session).toEqual(before);
+});
+
+it.each(['expired', 'actor', 'parent', 'scope'])(
+  'rejects a validly parsed reply intent whose %s binding no longer matches',
+  async (mismatch) => {
+    const original = await registerReply();
+    if (mismatch === 'expired') {
+      const entries = await import(
+        '~services/publication-capture-intents'
+      ).then((module) => module.readPublicationReplyIntents());
+      entries['1'].input.createdAt = Date.now() - 31000;
+      session[INTENTS] = entries;
+    }
+    if (mismatch === 'actor') original.authorHandle = 'other';
+    if (mismatch === 'parent' && original.surface.kind === 'x-reply-modal') {
+      original.surface.parent = {
+        externalId: '999',
+        url: 'https://x.com/other/status/999',
+      };
+      original.baselineIds.push('999');
+    }
+    if (mismatch === 'scope') original.scope.revision++;
+    expect(
+      (
+        await service.handlePublicationCaptureMessage(
+          { event: 'publicationCaptureBegin', attempt: original },
+          source,
+        )
+      ).success,
+    ).toBe(false);
+    expect(session[PENDING]).toBeUndefined();
+    expect(mocks.request).not.toHaveBeenCalled();
+  },
+);
+it('tab updates retain compose/exact return pending and cancel unrelated routes without erasing durable recovery', async () => {
+  const original = await registerReply();
+  await service.handlePublicationCaptureMessage(
+    { event: 'publicationCaptureBegin', attempt: original },
+    source,
+  );
+  const dispose = service.initializePublicationCapture();
+  const update = vi.mocked(chrome.tabs.onUpdated.addListener).mock
+    .calls[0]?.[0];
+  if (!update) throw new Error('Missing tab listener');
+  update(1, { url: 'https://x.com/compose/post' }, tab(1));
+  await service.handlePublicationCaptureMessage(
+    { event: 'publicationCaptureContext' },
+    { ...source, url: 'https://x.com/compose/post' },
+  );
+  expect(session[PENDING]).toMatchObject({
+    '1': { attempt: { id: original.id } },
+  });
+  update(1, { url: 'https://x.com/home?different=1' }, tab(1));
+  await service.handlePublicationCaptureMessage(
+    { event: 'publicationCaptureContext' },
+    source,
+  );
+  expect(session[PENDING]).toEqual({});
+  dispose();
+});
+it('Complete cannot add or alter reply surface, parent, kind or source', async () => {
+  const original = await registerReply();
+  await service.handlePublicationCaptureMessage(
+    { event: 'publicationCaptureBegin', attempt: original },
+    source,
+  );
+  for (const forged of [
+    { surface: { kind: 'x-home' } },
+    { parent: { externalId: '123' } },
+    { publicationKind: 'post' },
+    { source: 'manual' },
+  ])
+    expect(
+      (
+        await service.handlePublicationCaptureMessage(
+          {
+            event: 'publicationCaptureComplete',
+            observation: observation(original),
+            ...forged,
+          },
+          source,
+        )
+      ).success,
+    ).toBe(false);
+  expect(mocks.request).not.toHaveBeenCalled();
+});

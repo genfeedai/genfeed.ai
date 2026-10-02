@@ -125,11 +125,12 @@ describe('real content module publication observer ownership', () => {
       window.dispatchEvent(new PopStateEvent('popstate'));
       expect(mocks.attach).toHaveBeenCalledTimes(1);
       expect(mocks.cleanups[0]).not.toHaveBeenCalled();
-      originalPush.call(history, null, '', '/notifications');
+      const savedLocation = location;
+      vi.stubGlobal('location', new URL('https://example.invalid/home'));
       window.dispatchEvent(new PopStateEvent('popstate'));
       expect(removed).toHaveBeenCalledWith('click', oldClick, true);
       expect(mocks.cleanups[0]).toHaveBeenCalledTimes(1);
-      originalPush.call(history, null, '', '/home');
+      vi.stubGlobal('location', savedLocation);
       window.dispatchEvent(new PopStateEvent('popstate'));
       for (let index = 0; index < 12; index++) await Promise.resolve();
       expect(mocks.attach).toHaveBeenCalledTimes(2);
@@ -154,6 +155,59 @@ describe('real content module publication observer ownership', () => {
     }
   });
 
+  it('keeps the real dormant observer and click listener during rapid same-X departure and return', async () => {
+    const actual = await vi.importActual<
+      typeof import('~platforms/x-publication-observer')
+    >('~platforms/x-publication-observer');
+    document.body.innerHTML = readFileSync(
+      resolve(process.cwd(), 'tests/fixtures/publication-capture/x-home.html'),
+      'utf8',
+    );
+    const removed = vi.spyOn(document, 'removeEventListener');
+    mocks.detected.mockResolvedValue({
+      success: true,
+      data: {
+        kind: 'context',
+        enabled: false,
+        scope: null,
+        pending: null,
+        confirmed: null,
+      },
+    });
+    mocks.attach.mockImplementation(() => {
+      const stop = actual.attachXPublicationObserver();
+      const cleanup = vi.fn<() => void>(() => stop());
+      mocks.cleanups.push(cleanup);
+      return cleanup;
+    });
+    try {
+      await import('../src/content');
+      for (let index = 0; index < 12; index++) await Promise.resolve();
+      const click = documentListeners.mock.calls.find(
+        ([event]) => event === 'click',
+      )?.[1];
+      expect(click).toBeDefined();
+      originalPush.call(history, null, '', '/notifications');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+      originalPush.call(history, null, '', '/home');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+      await vi.advanceTimersByTimeAsync(100);
+      expect(mocks.attach).toHaveBeenCalledTimes(1);
+      expect(mocks.cleanups[0]).not.toHaveBeenCalled();
+      expect(removed).not.toHaveBeenCalledWith('click', click, true);
+      expect(
+        mocks.detected.mock.calls.filter(
+          ([request]) => request?.event === 'publicationCaptureContext',
+        ),
+      ).toHaveLength(1);
+      window.dispatchEvent(new Event('pagehide'));
+      expect(removed).toHaveBeenCalledWith('click', click, true);
+    } finally {
+      window.dispatchEvent(new Event('pagehide'));
+      for (const cleanup of mocks.cleanups) cleanup();
+      document.body.innerHTML = '';
+    }
+  });
   it('retains one observer across same-home pushState, replaceState and popstate', async () => {
     await import('../src/content');
     expect(mocks.attach).toHaveBeenCalledTimes(1);
@@ -165,18 +219,18 @@ describe('real content module publication observer ownership', () => {
     expect(mocks.cleanups[0]).not.toHaveBeenCalled();
     expect(mocks.detected).toHaveBeenCalledTimes(4);
   });
-  it('disposes exactly once on departure and attaches anew only on return', async () => {
+  it('retains the dormant observer across all same-X history routes', async () => {
     await import('../src/content');
     await navigate('/author/status/123');
-    expect(mocks.cleanups[0]).toHaveBeenCalledTimes(1);
+    expect(mocks.cleanups[0]).not.toHaveBeenCalled();
     await navigate('/notifications', true);
     window.dispatchEvent(new PopStateEvent('popstate'));
     await vi.advanceTimersByTimeAsync(100);
     expect(mocks.attach).toHaveBeenCalledTimes(1);
-    expect(mocks.cleanups[0]).toHaveBeenCalledTimes(1);
+    expect(mocks.cleanups[0]).not.toHaveBeenCalled();
     await navigate('/home');
-    expect(mocks.attach).toHaveBeenCalledTimes(2);
-    expect(mocks.cleanups[1]).not.toHaveBeenCalled();
+    expect(mocks.attach).toHaveBeenCalledTimes(1);
+    expect(mocks.cleanups[0]).not.toHaveBeenCalled();
   });
   it('pagehide disposes and clears its reference only once', async () => {
     await import('../src/content');
@@ -188,16 +242,14 @@ describe('real content module publication observer ownership', () => {
     await navigate('/home');
     expect(mocks.attach).toHaveBeenCalledTimes(2);
   });
-  it.each([
-    'https://evil.example/home',
-    'https://x.com/compose/post',
-    'https://x.com/author/status/123',
-    'http://x.com/home',
-  ])('never attaches outside the approved home predicate: %s', async (href) => {
-    vi.stubGlobal('location', new URL(href));
-    await import('../src/content');
-    expect(mocks.attach).not.toHaveBeenCalled();
-    window.dispatchEvent(new Event('pagehide'));
-    expect(mocks.cleanups).toEqual([]);
-  });
+  it.each(['https://evil.example/home', 'http://x.com/home'])(
+    'never attaches outside the approved home predicate: %s',
+    async (href) => {
+      vi.stubGlobal('location', new URL(href));
+      await import('../src/content');
+      expect(mocks.attach).not.toHaveBeenCalled();
+      window.dispatchEvent(new Event('pagehide'));
+      expect(mocks.cleanups).toEqual([]);
+    },
+  );
 });

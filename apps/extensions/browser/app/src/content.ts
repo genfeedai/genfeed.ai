@@ -1,6 +1,6 @@
 import {
   attachXPublicationObserver,
-  isXHome,
+  isXPublicationPage,
 } from '~platforms/x-publication-observer';
 // Multi-platform content script for Genfeed Extension
 
@@ -190,7 +190,7 @@ function cleanup(): void {
 }
 
 function synchronizePublicationObserver(): void {
-  if (isXHome(location.href)) {
+  if (isXPublicationPage(location.href)) {
     if (!stopPublicationObserver)
       stopPublicationObserver = attachXPublicationObserver();
   } else if (stopPublicationObserver) {
@@ -200,6 +200,7 @@ function synchronizePublicationObserver(): void {
 }
 
 function checkAndReinitialize(): void {
+  window.dispatchEvent(new Event('genfeed-publication-navigation'));
   synchronizePublicationObserver();
   const newPlatform = getCurrentPlatform();
   // Re-initialize if platform changed or if we need to re-check

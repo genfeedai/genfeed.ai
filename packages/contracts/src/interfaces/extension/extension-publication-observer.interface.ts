@@ -8,7 +8,33 @@ export interface PublicationCaptureScope {
   brandId: string;
   revision: number;
 }
+export interface PublicationCaptureParent {
+  externalId: string;
+  url: string;
+}
+export type PublicationCaptureSurface =
+  | { kind: 'x-home' }
+  | { kind: 'x-post-modal'; returnUrl: string | null }
+  | {
+      kind: 'x-reply-modal';
+      returnUrl: string;
+      replyIntentId: string;
+      parent: PublicationCaptureParent;
+    };
+export interface PublicationCaptureReplyIntentInput {
+  scope: PublicationCaptureScope;
+  createdAt: number;
+  documentUrl: string;
+  authorHandle: string;
+  parent: PublicationCaptureParent;
+}
+export interface PublicationCaptureReplyIntent {
+  id: string;
+  binding: PublicationCaptureSenderBinding;
+  input: PublicationCaptureReplyIntentInput;
+}
 export interface PublicationCaptureAttempt {
+  surface: PublicationCaptureSurface;
   id: string;
   scope: PublicationCaptureScope;
   startedAt: number;
@@ -69,6 +95,8 @@ export type PublicationCaptureResponseData =
       pending: PublicationCaptureAttempt | null;
       confirmed: PublicationCaptureConfirmed | null;
     }
+  | { kind: 'reply-intent'; intentId: string }
+  | { kind: 'reply-intent-cancelled'; intentId: string }
   | { kind: 'armed'; attemptId: string }
   | {
       kind: 'recorded';
@@ -83,6 +111,11 @@ export type PublicationCaptureReply =
   | { success: true; data: PublicationCaptureResponseData }
   | { success: false; error: string };
 export type PublicationCaptureRequest =
+  | {
+      event: 'publicationCaptureReplyIntent';
+      intent: PublicationCaptureReplyIntentInput;
+    }
+  | { event: 'publicationCaptureReplyIntentCancel'; intentId: string }
   | { event: 'publicationCaptureContext' }
   | { event: 'publicationCaptureBegin'; attempt: PublicationCaptureAttempt }
   | {
@@ -104,4 +137,20 @@ export interface XPublicationComposer {
   root: Element;
   editor: HTMLElement;
   submit: HTMLElement;
+}
+
+export interface XPublicationIdentity {
+  externalId: string;
+  url: string;
+  authorHandle: string;
+  publicationDate: string;
+}
+export interface XPublicationModalComposer extends XPublicationComposer {
+  kind: 'post' | 'reply';
+  dialog: HTMLElement;
+}
+export interface XPublicationReplyTarget {
+  control: HTMLElement;
+  article: Element;
+  parent: PublicationCaptureParent;
 }

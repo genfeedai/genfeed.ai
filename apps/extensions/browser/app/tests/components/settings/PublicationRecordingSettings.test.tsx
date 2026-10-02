@@ -54,7 +54,9 @@ it('shows default-on preference, boundedcoverage and explicitlyrecoverable recor
     screen.getByRole('switch', { name: 'Record my published posts' }),
   ).toHaveAttribute('aria-checked', 'true');
   expect(
-    screen.getByText(/Currently observing text posts from the X home composer/),
+    screen.getByText(
+      /Currently observing X home text posts, text posts from the Post dialog/,
+    ),
   ).toBeInTheDocument();
   expect(
     await screen.findByText('Own pending publication'),

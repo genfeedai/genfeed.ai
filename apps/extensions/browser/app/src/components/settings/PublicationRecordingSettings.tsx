@@ -148,7 +148,8 @@ export function PublicationRecordingSettings(): ReactElement {
         </Button>
       </div>
       <p className="text-2xs text-muted-foreground">
-        Currently observing text posts from the X home composer. More publishing
+        Currently observing X home text posts, text posts from the Post dialog,
+        and text replies opened from a post's Reply button. Other publishing
         surfaces are being added.
       </p>
       <p

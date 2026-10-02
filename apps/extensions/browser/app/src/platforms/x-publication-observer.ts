@@ -1,178 +1,48 @@
+import {
+  extractXPublicationIdentity,
+  findXPublicationComposer,
+  findXPublicationModalComposer,
+  findXPublicationReplyTarget,
+  isTrustedXSubmission,
+  isXHome,
+  isXPublicationPage,
+  matchingXPublicationCandidates,
+  readXPublicationAuthorHandle,
+} from '~platforms/x-publication-dom';
+
+export {
+  extractXPublicationCandidate,
+  findXPublicationComposer,
+  isTrustedXSubmission,
+  isXHome,
+  isXPublicationPage,
+  matchingXPublicationCandidates,
+} from '~platforms/x-publication-dom';
+
 import type {
   PublicationCaptureAttempt,
   PublicationCaptureObservation,
   PublicationCaptureReply,
+  PublicationCaptureReplyIntentInput,
   PublicationCaptureResponseData,
-  XPublicationCandidate,
-  XPublicationComposer,
+  XPublicationModalComposer,
+  XPublicationReplyTarget,
 } from '@genfeedai/contracts/interfaces/extension/extension-publication-observer.interface';
 import {
   removePublicationStatus,
   showPublicationStatus,
 } from '~platforms/publication-status';
+import {
+  publicationCaptureAttemptAllowsUrl as allowsUrl,
+  publicationCaptureComposeUrl as compose,
+  publicationCapturePageUrl as page,
+} from '~services/publication-capture-validation';
 
 const normalize = (text: string) => text.replace(/\r\n/g, '\n').trim();
 const textOf = (element: HTMLElement) =>
   normalize(element.innerText ?? element.textContent ?? '');
-export function isXHome(url: string): boolean {
-  try {
-    const value = new URL(url);
-    return (
-      value.protocol === 'https:' &&
-      ['x.com', 'www.x.com', 'twitter.com', 'www.twitter.com'].includes(
-        value.hostname,
-      ) &&
-      /^\/home\/?$/.test(value.pathname)
-    );
-  } catch {
-    return false;
-  }
-}
-export function findXPublicationComposer(
-  document: Document,
-): XPublicationComposer | null {
-  const buttons = [
-    ...document.querySelectorAll<HTMLElement>(
-      '[data-testid="tweetButtonInline"]',
-    ),
-  ];
-  const editors = [
-    ...document.querySelectorAll<HTMLElement>(
-      '[data-testid="tweetTextarea_0"][role="textbox"][contenteditable="true"]',
-    ),
-  ];
-  if (buttons.length !== 1 || editors.length !== 1) return null;
-  const submit = buttons[0];
-  const editor = editors[0];
-  for (let root = submit.parentElement; root; root = root.parentElement) {
-    if (root.closest('article,[role="dialog"]')) return null;
-    if (
-      root.contains(editor) &&
-      root.querySelectorAll('[data-testid="tweetButtonInline"]').length === 1 &&
-      root.querySelectorAll(
-        '[data-testid="tweetTextarea_0"][role="textbox"][contenteditable="true"]',
-      ).length === 1
-    )
-      return { root, editor, submit };
-  }
-  return null;
-}
-export function isTrustedXSubmission(
-  isTrusted: boolean,
-  target: EventTarget | null,
-  composer: XPublicationComposer,
-): boolean {
-  return (
-    isTrusted &&
-    target instanceof Node &&
-    composer.submit.contains(target) &&
-    !composer.submit.hasAttribute('disabled') &&
-    composer.submit.getAttribute('aria-disabled') !== 'true'
-  );
-}
-export function extractXPublicationCandidate(
-  article: Element,
-): XPublicationCandidate | null {
-  if (!article.matches('article[data-testid="tweet"][role="article"]'))
-    return null;
-  const header = article.querySelector('[data-testid="User-Name"]');
-  if (!header) return null;
-  const anchors = [...header.querySelectorAll<HTMLAnchorElement>('a[href]')];
-  const profiles = anchors.filter((anchor) =>
-    /^\/[a-z0-9_]{1,15}$/i.test(new URL(anchor.href).pathname),
-  );
-  if (!profiles.length) return null;
-  const authorHandle = new URL(profiles[0].href).pathname
-    .slice(1)
-    .toLowerCase();
-  if (
-    profiles.some(
-      (anchor) =>
-        new URL(anchor.href).pathname.toLowerCase() !== `/${authorHandle}`,
-    )
-  )
-    return null;
-  const statuses = anchors.filter(
-    (anchor) =>
-      new RegExp(`^/${authorHandle}/status/\\d+$`, 'i').test(
-        new URL(anchor.href).pathname,
-      ) && anchor.querySelector('time[datetime]'),
-  );
-  if (statuses.length !== 1) return null;
-  const anchor = statuses[0];
-  const url = new URL(anchor.href);
-  if (
-    url.protocol !== 'https:' ||
-    !['x.com', 'www.x.com', 'twitter.com', 'www.twitter.com'].includes(
-      url.hostname,
-    ) ||
-    url.username ||
-    url.password ||
-    url.search ||
-    url.hash
-  )
-    return null;
-  const time = anchor.querySelector('time[datetime]')?.getAttribute('datetime');
-  if (!time || !Number.isFinite(Date.parse(time))) return null;
-  const bodies = [
-    ...article.querySelectorAll<HTMLElement>('[data-testid="tweetText"]'),
-  ].filter((element) => {
-    if (
-      !(
-        header.compareDocumentPosition(element) &
-        Node.DOCUMENT_POSITION_FOLLOWING
-      )
-    )
-      return false;
-    for (
-      let parent = element.parentElement;
-      parent && parent !== article;
-      parent = parent.parentElement
-    )
-      if (parent.tagName === 'A' || parent.getAttribute('role') === 'link')
-        return false;
-    return true;
-  });
-  if (bodies.length !== 1) return null;
-  const description = textOf(bodies[0]);
-  if (!description) return null;
-  return {
-    externalId: url.pathname.split('/').at(-1) ?? '',
-    url: url.href,
-    authorHandle,
-    description,
-    publicationDate: time,
-  };
-}
-export function matchingXPublicationCandidates(
-  document: Document,
-  attempt: PublicationCaptureAttempt,
-  now = Date.now(),
-): XPublicationCandidate[] {
-  return [
-    ...new Map(
-      [
-        ...document.querySelectorAll(
-          'article[data-testid="tweet"][role="article"]',
-        ),
-      ].flatMap((article) => {
-        const candidate = extractXPublicationCandidate(article);
-        if (!candidate) return [];
-        const time = Date.parse(candidate.publicationDate);
-        return candidate.authorHandle === attempt.authorHandle &&
-          candidate.description === attempt.description &&
-          !attempt.baselineIds.includes(candidate.externalId) &&
-          time >= Math.floor(attempt.startedAt / 1000) * 1000 &&
-          time <= attempt.startedAt + 60000 &&
-          time <= now + 5000
-          ? [[candidate.externalId, candidate] as const]
-          : [];
-      }),
-    ).values(),
-  ];
-}
 export function attachXPublicationObserver(): () => void {
-  if (!isXHome(location.href)) return () => undefined;
+  if (!isXPublicationPage(location.href)) return () => undefined;
   let context: Extract<
     PublicationCaptureResponseData,
     { kind: 'context' }
@@ -185,6 +55,15 @@ export function attachXPublicationObserver(): () => void {
   let disposed = false;
   let completing = false;
   let armed = false;
+  let intent: PublicationCaptureReplyIntentInput | null = null;
+  let intentId: string | null = null;
+  let intentGeneration = 0;
+  let replyTarget: XPublicationReplyTarget | null = null;
+  let modal: XPublicationModalComposer | null = null;
+  let oldModals = new Set<Element>();
+  let returnUrl: string | null = compose(location.href)
+    ? null
+    : (page(location.href)?.href ?? null);
   let scanTimer: ReturnType<typeof setTimeout> | undefined;
   let confirmTimer: ReturnType<typeof setTimeout> | undefined;
   let expiryTimer: ReturnType<typeof setTimeout> | undefined;
@@ -210,6 +89,112 @@ export function attachXPublicationObserver(): () => void {
       void send({ event: 'publicationCaptureCancel', attemptId: old.id });
     if (message) showPublicationStatus(message);
   }
+  function cancelIntent() {
+    const id = intentId;
+    intent = null;
+    intentId = null;
+    replyTarget = null;
+    modal = null;
+    intentGeneration++;
+    if (id)
+      void send({ event: 'publicationCaptureReplyIntentCancel', intentId: id });
+  }
+  function intentValid() {
+    const url = page(location.href);
+    return Boolean(
+      intent &&
+        url &&
+        url.origin === page(intent.documentUrl)?.origin &&
+        (url.href === intent.documentUrl || compose(url.href)) &&
+        Date.now() >= intent.createdAt &&
+        Date.now() <= intent.createdAt + 30000 &&
+        context?.enabled &&
+        context.scope &&
+        JSON.stringify(context.scope) === JSON.stringify(intent.scope) &&
+        readXPublicationAuthorHandle(document) === intent.authorHandle,
+    );
+  }
+  function associateModal() {
+    if (!intent) return;
+    if (!intentValid()) {
+      cancelIntent();
+      return;
+    }
+    const found = findXPublicationModalComposer(document);
+    if (
+      modal &&
+      (!found ||
+        found.dialog !== modal.dialog ||
+        found.editor !== modal.editor ||
+        found.submit !== modal.submit)
+    ) {
+      cancelIntent();
+      return;
+    }
+    if (
+      !modal &&
+      found &&
+      found.kind === 'reply' &&
+      !oldModals.has(found.dialog) &&
+      compose(location.href) &&
+      replyTarget
+    )
+      modal = found;
+  }
+  function beginIntent(target: XPublicationReplyTarget) {
+    cancel();
+    cancelIntent();
+    if (!context?.enabled || !context.scope) return;
+    const authorHandle = readXPublicationAuthorHandle(document);
+    const url = page(location.href);
+    if (
+      !authorHandle ||
+      !url ||
+      compose(url.href) ||
+      page(target.parent.url)?.origin !== url.origin
+    )
+      return;
+    const input: PublicationCaptureReplyIntentInput = {
+      scope: context.scope,
+      createdAt: Date.now(),
+      documentUrl: url.href,
+      authorHandle,
+      parent: target.parent,
+    };
+    intent = input;
+    replyTarget = target;
+    oldModals = new Set(document.querySelectorAll('[role="dialog"]'));
+    const version = ++intentGeneration;
+    void send({ event: 'publicationCaptureReplyIntent', intent: input }).then(
+      (response) => {
+        if (!response.success || response.data.kind !== 'reply-intent') {
+          if (intent === input) cancelIntent();
+          return;
+        }
+        if (
+          disposed ||
+          intent !== input ||
+          intentGeneration !== version ||
+          !intentValid()
+        ) {
+          void send({
+            event: 'publicationCaptureReplyIntentCancel',
+            intentId: response.data.intentId,
+          });
+          return;
+        }
+        associateModal();
+        if (intent !== input) {
+          void send({
+            event: 'publicationCaptureReplyIntentCancel',
+            intentId: response.data.intentId,
+          });
+          return;
+        }
+        intentId = response.data.intentId;
+      },
+    );
+  }
   async function refresh() {
     context = null;
     if (frozenObservation) removePublicationStatus();
@@ -222,6 +207,7 @@ export function attachXPublicationObserver(): () => void {
         frozenAttempt = null;
         frozenObservation = null;
         cancel();
+        cancelIntent();
         removePublicationStatus();
       } else if (
         active &&
@@ -230,6 +216,7 @@ export function attachXPublicationObserver(): () => void {
       ) {
         cancel();
       }
+      if (intent && !intentValid()) cancelIntent();
       if (
         frozenAttempt &&
         (!context.scope || !sameIdentity(frozenAttempt.scope, context.scope))
@@ -332,8 +319,15 @@ export function attachXPublicationObserver(): () => void {
   }
   function scan() {
     if (disposed || !active || completing || !armed) return;
-    if (!isXHome(location.href)) {
+    if (!isXPublicationPage(location.href)) {
       cleanup();
+      return;
+    }
+    if (
+      !allowsUrl(active, location.href) ||
+      readXPublicationAuthorHandle(document) !== active.authorHandle
+    ) {
+      cancel('Could not confirm publication');
       return;
     }
     if (Date.now() > active.startedAt + 60000) {
@@ -347,6 +341,13 @@ export function attachXPublicationObserver(): () => void {
       confirmTimer = setTimeout(async () => {
         confirmTimer = undefined;
         if (disposed || active !== captured || version !== generation) return;
+        if (
+          !allowsUrl(captured, location.href) ||
+          readXPublicationAuthorHandle(document) !== captured.authorHandle
+        ) {
+          cancel('Could not confirm publication');
+          return;
+        }
         const matches = matchingXPublicationCandidates(document, captured);
         if (matches.length !== 1) {
           if (matches.length > 1)
@@ -367,10 +368,17 @@ export function attachXPublicationObserver(): () => void {
     }
   }
   const observer = new MutationObserver(() => {
-    if (!isXHome(location.href)) {
+    if (!isXPublicationPage(location.href)) {
       cleanup();
       return;
     }
+    associateModal();
+    if (
+      active &&
+      (!allowsUrl(active, location.href) ||
+        readXPublicationAuthorHandle(document) !== active.authorHandle)
+    )
+      cancel('Could not confirm publication');
     if (!scanTimer)
       scanTimer = setTimeout(() => {
         scanTimer = undefined;
@@ -383,12 +391,47 @@ export function attachXPublicationObserver(): () => void {
     characterData: true,
   });
   const click = (event: MouseEvent) => {
-    const composer = findXPublicationComposer(document);
+    if (!event.isTrusted) return;
+    if (
+      event.target instanceof Element &&
+      event.target.closest('[data-testid="app-bar-close"]')
+    ) {
+      cancelIntent();
+      if (active) cancel('Could not confirm publication');
+      return;
+    }
+    const target = findXPublicationReplyTarget(event.target);
+    if (target) {
+      beginIntent(target);
+      return;
+    }
+    associateModal();
+    const dialog = compose(location.href)
+      ? findXPublicationModalComposer(document)
+      : null;
+    const composer =
+      dialog ??
+      (isXHome(location.href) ? findXPublicationComposer(document) : null);
     if (
       !composer ||
       !isTrustedXSubmission(event.isTrusted, event.target, composer)
     )
       return;
+    if (
+      dialog?.kind === 'reply' &&
+      (!intent ||
+        !intentId ||
+        !modal ||
+        modal.dialog !== dialog.dialog ||
+        modal.editor !== dialog.editor ||
+        modal.submit !== dialog.submit ||
+        !intentValid())
+    ) {
+      cancelIntent();
+      showPublicationStatus('Could not confirm publication');
+      return;
+    }
+    if (dialog?.kind === 'post') cancelIntent();
     if (active) {
       showPublicationStatus('Could not identify one published post');
       return;
@@ -406,13 +449,9 @@ export function attachXPublicationObserver(): () => void {
       );
       return;
     }
-    const account = document.querySelector(
-      '[data-testid="SideNav_AccountSwitcher_Button"]',
-    );
-    const handles =
-      (account?.textContent ?? '').match(/@[a-z0-9_]{1,15}(?![a-z0-9_])/gi) ??
-      [];
-    if (handles.length !== 1) {
+    const authorHandle = readXPublicationAuthorHandle(document);
+    if (!authorHandle) {
+      cancelIntent();
       showPublicationStatus('Could not confirm publication');
       return;
     }
@@ -437,11 +476,17 @@ export function attachXPublicationObserver(): () => void {
             'article[data-testid="tweet"][role="article"]',
           ),
         ].flatMap((article) => {
-          const candidate = extractXPublicationCandidate(article);
+          const candidate = extractXPublicationIdentity(article);
           return candidate ? [candidate.externalId] : [];
         }),
       ),
     ];
+    if (
+      dialog?.kind === 'reply' &&
+      intent &&
+      !baselineIds.includes(intent.parent.externalId)
+    )
+      baselineIds.push(intent.parent.externalId);
     if (baselineIds.length > 10000) {
       showPublicationStatus('Could not confirm publication');
       return;
@@ -451,14 +496,31 @@ export function attachXPublicationObserver(): () => void {
       scope: context.scope,
       startedAt: Date.now(),
       documentUrl: location.href,
-      authorHandle: handles[0].slice(1).toLowerCase(),
+      authorHandle,
       description,
       baselineIds,
+      surface:
+        dialog?.kind === 'reply' && intent && intentId
+          ? {
+              kind: 'x-reply-modal',
+              returnUrl: intent.documentUrl,
+              replyIntentId: intentId,
+              parent: intent.parent,
+            }
+          : dialog
+            ? { kind: 'x-post-modal', returnUrl }
+            : { kind: 'x-home' },
     };
     frozenAttempt = null;
     frozenObservation = null;
     completing = false;
     active = attempt;
+    // Begin owns atomic token consumption; clear only local node-bound state here.
+    intent = null;
+    intentId = null;
+    modal = null;
+    replyTarget = null;
+    intentGeneration++;
     const version = ++generation;
     expiryTimer = setTimeout(
       () => cancel('Could not confirm publication'),
@@ -482,6 +544,7 @@ export function attachXPublicationObserver(): () => void {
     if (changes['genfeed-settings'] || changes.extension_workspace_changed) {
       context = null;
       cancel();
+      cancelIntent();
       frozenAttempt = null;
       frozenObservation = null;
       removePublicationStatus();
@@ -493,6 +556,7 @@ export function attachXPublicationObserver(): () => void {
     disposed = true;
     contextVersion++;
     cancel();
+    cancelIntent();
     frozenAttempt = null;
     frozenObservation = null;
     observer.disconnect();
@@ -502,16 +566,29 @@ export function attachXPublicationObserver(): () => void {
     document.removeEventListener('click', click, true);
     window.removeEventListener('focus', focus);
     window.removeEventListener('popstate', navigation);
+    window.removeEventListener('genfeed-publication-navigation', navigation);
     window.removeEventListener('pagehide', cleanup);
     chrome.storage.onChanged.removeListener(changed);
     removePublicationStatus();
   }
   const navigation = () => {
-    if (!isXHome(location.href)) cleanup();
+    if (!isXPublicationPage(location.href)) {
+      cleanup();
+      return;
+    }
+    if (
+      active &&
+      (!allowsUrl(active, location.href) ||
+        readXPublicationAuthorHandle(document) !== active.authorHandle)
+    )
+      cancel('Could not confirm publication');
+    associateModal();
+    if (!compose(location.href)) returnUrl = page(location.href)?.href ?? null;
   };
   document.addEventListener('click', click, true);
   window.addEventListener('focus', focus);
   window.addEventListener('popstate', navigation);
+  window.addEventListener('genfeed-publication-navigation', navigation);
   window.addEventListener('pagehide', cleanup);
   chrome.storage.onChanged.addListener(changed);
   void refresh();

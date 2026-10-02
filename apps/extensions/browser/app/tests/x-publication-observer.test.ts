@@ -33,6 +33,7 @@ const attempt: PublicationCaptureAttempt = {
   },
   startedAt,
   documentUrl: 'https://x.com/home',
+  surface: { kind: 'x-home' },
   authorHandle: 'author',
   description: 'Own authored text',
   baselineIds: [],
@@ -381,4 +382,28 @@ it('changed scope hides recovery and removes stale retry listeners', async () =>
       ([request]) => eventOf(request) === 'publicationCaptureComplete',
     ),
   ).toHaveLength(1);
+});
+
+it('unsupported same-X route cancels the active home attempt while keeping the dormant listener alive', async () => {
+  send.mockImplementation(async (request) =>
+    eventOf(request) === 'publicationCaptureContext'
+      ? context()
+      : { success: true, data: { kind: 'armed', attemptId: attempt.id } },
+  );
+  await trustedFixtureSubmission();
+  vi.stubGlobal('location', { href: 'https://x.com/notifications' });
+  window.dispatchEvent(new PopStateEvent('popstate'));
+  await flush();
+  expect(
+    send.mock.calls.some(
+      ([request]) => eventOf(request) === 'publicationCaptureCancel',
+    ),
+  ).toBe(true);
+  document.body.insertAdjacentHTML('beforeend', post);
+  await vi.advanceTimersByTimeAsync(500);
+  expect(
+    send.mock.calls.some(
+      ([request]) => eventOf(request) === 'publicationCaptureComplete',
+    ),
+  ).toBe(false);
 });

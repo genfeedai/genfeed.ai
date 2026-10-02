@@ -1,26 +1,36 @@
 import type { ExtensionWorkspaceSnapshot } from '@genfeedai/contracts/interfaces';
-import type { ExtensionPublicationCaptureResult } from '@genfeedai/contracts/interfaces/content/extension-publication.interface';
 import type {
   PublicationCaptureConfirmed,
-  PublicationCaptureObservation,
   PublicationCaptureOutboxEntry,
   PublicationCapturePending,
   PublicationCaptureReply,
   PublicationCaptureScope,
-  PublicationCaptureSenderBinding,
 } from '@genfeedai/contracts/interfaces/extension/extension-publication-observer.interface';
 import { apiEndpoint } from '~services/environment.service';
 import {
-  publicationCaptureBody as body,
-  publicationCaptureHandle as handle,
-  publicationCaptureHomeUrl as home,
+  createPublicationReplyIntent,
+  PUBLICATION_REPLY_INTENTS_KEY as INTENTS,
+  matchesPublicationReplyIntent,
+  readPublicationReplyIntents as readIntents,
+} from '~services/publication-capture-intents';
+import {
+  samePublicationCaptureSenderBinding as bound,
+  publicationCaptureEntryFromConfirmed as entryFromConfirmed,
+  publicationCaptureEntryMatches as entryMatches,
+  samePublicationCaptureObservation as equalObservation,
+  parsePublicationCaptureOutbox,
+  parsePublicationCaptureResult as result,
+  parsePublicationCaptureSenderBinding as senderBinding,
+} from '~services/publication-capture-record';
+import {
+  publicationCaptureAttemptAllowsUrl as allowsUrl,
+  publicationCaptureComposeUrl as compose,
   publicationCaptureKeys as keys,
-  publicationCaptureNumericId as numeric,
   publicationCaptureRecord as object,
+  publicationCapturePageUrl as page,
   parsePublicationCaptureAttempt as parseAttempt,
   parsePublicationCaptureObservation as parseObservation,
   samePublicationCaptureScope as same,
-  parsePublicationCaptureScope as scope,
   publicationCaptureText as text,
   publicationCaptureUuid as uuid,
   validPublicationCaptureObservation as validObservation,
@@ -97,7 +107,7 @@ async function pendingEntries(): Promise<
       v.tabId !== Number(id) ||
       !text(v.origin) ||
       !attempt ||
-      home(attempt.documentUrl)?.origin !== v.origin
+      page(attempt.documentUrl)?.origin !== v.origin
     )
       throw new Error(
         'Could not read publication recordings. Existing storage has been preserved.',
@@ -105,40 +115,6 @@ async function pendingEntries(): Promise<
     entries[id] = { tabId: Number(id), origin: v.origin, attempt };
   }
   return entries;
-}
-function senderBinding(value: unknown): PublicationCaptureSenderBinding | null {
-  const v = object(value);
-  if (
-    !v ||
-    !keys(v, ['tabId', 'origin']) ||
-    typeof v.tabId !== 'number' ||
-    !Number.isSafeInteger(v.tabId) ||
-    v.tabId < 0 ||
-    !text(v.origin)
-  )
-    return null;
-  const origin = home(`${v.origin}/home`);
-  if (!origin || origin.origin !== v.origin) return null;
-  return { tabId: v.tabId, origin: v.origin };
-}
-function bound(
-  left: PublicationCaptureSenderBinding,
-  right: PublicationCaptureSenderBinding,
-): boolean {
-  return left.tabId === right.tabId && left.origin === right.origin;
-}
-function equalObservation(
-  left: PublicationCaptureObservation,
-  right: PublicationCaptureObservation,
-): boolean {
-  return (
-    left.attemptId === right.attemptId &&
-    left.externalId === right.externalId &&
-    left.url === right.url &&
-    left.authorHandle === right.authorHandle &&
-    left.description === right.description &&
-    left.publicationDate === right.publicationDate
-  );
 }
 async function confirmedEntries(): Promise<
   Record<string, PublicationCaptureConfirmed>
@@ -162,7 +138,7 @@ async function confirmedEntries(): Promise<
       !attempt ||
       !observation ||
       id !== attempt.id ||
-      home(attempt.documentUrl)?.origin !== binding.origin ||
+      page(attempt.documentUrl)?.origin !== binding.origin ||
       typeof v.observedAt !== 'number' ||
       !Number.isFinite(v.observedAt) ||
       v.observedAt < attempt.startedAt ||
@@ -178,41 +154,6 @@ async function confirmedEntries(): Promise<
   for (const [id, item] of Object.entries(entries))
     confirmedMemory.set(id, item);
   return entries;
-}
-function entryFromConfirmed(
-  item: PublicationCaptureConfirmed,
-): PublicationCaptureOutboxEntry {
-  return {
-    id: item.attempt.id,
-    sourceBinding: item.binding,
-    scope: item.attempt.scope,
-    input: {
-      brandId: item.attempt.scope.brandId,
-      platform: 'twitter',
-      publicationKind: 'post',
-      description: item.attempt.description,
-      publicationDate: item.observation.publicationDate,
-      url: item.observation.url,
-      externalId: item.observation.externalId,
-      author: { handle: item.attempt.authorHandle },
-      observedVisibility: 'unknown',
-    },
-    createdAt: item.observedAt,
-    status: 'queued',
-  };
-}
-function entryMatches(
-  entry: PublicationCaptureOutboxEntry,
-  observation: PublicationCaptureObservation,
-): boolean {
-  return (
-    entry.id === observation.attemptId &&
-    entry.input.externalId === observation.externalId &&
-    entry.input.url === observation.url &&
-    entry.input.description === observation.description &&
-    entry.input.publicationDate === observation.publicationDate &&
-    entry.input.author?.handle === observation.authorHandle
-  );
 }
 async function removeConfirmed(id: string): Promise<void> {
   const entries = await confirmedEntries();
@@ -254,156 +195,11 @@ async function promote(
   return next;
 }
 async function outboxEntries(): Promise<PublicationCaptureOutboxEntry[]> {
-  const result = await chrome.storage.local.get(OUTBOX);
-  if (result[OUTBOX] === undefined) return [];
-  if (!Array.isArray(result[OUTBOX]))
-    throw new Error(
-      'Could not read publication recordings. Existing storage has been preserved.',
-    );
-  const entries: PublicationCaptureOutboxEntry[] = [];
-  for (const value of result[OUTBOX]) {
-    const v = object(value);
-    const s = scope(v?.scope);
-    const input = object(v?.input);
-    const author = object(input?.author);
-    if (
-      !v ||
-      !keys(v, [
-        'id',
-        'scope',
-        'input',
-        'createdAt',
-        'status',
-        'error',
-        'sourceBinding',
-      ]) ||
-      !senderBinding(v.sourceBinding) ||
-      !uuid(v.id) ||
-      !s ||
-      !input ||
-      !keys(input, [
-        'brandId',
-        'platform',
-        'publicationKind',
-        'url',
-        'externalId',
-        'description',
-        'publicationDate',
-        'author',
-        'observedVisibility',
-      ]) ||
-      input.brandId !== s.brandId ||
-      input.platform !== 'twitter' ||
-      input.publicationKind !== 'post' ||
-      !text(input.url) ||
-      !numeric(input.externalId) ||
-      !body(input.description) ||
-      !text(input.publicationDate, 64) ||
-      !Number.isFinite(Date.parse(input.publicationDate)) ||
-      !author ||
-      !keys(author, ['handle']) ||
-      !handle(author.handle) ||
-      input.observedVisibility !== 'unknown' ||
-      !validObservation(
-        {
-          id: v.id,
-          scope: s,
-          startedAt: Date.parse(String(input.publicationDate)),
-          documentUrl: `${senderBinding(v.sourceBinding)?.origin}/home`,
-          authorHandle: String(author.handle).toLowerCase(),
-          description: String(input.description),
-          baselineIds: [],
-        },
-        {
-          attemptId: v.id,
-          externalId: String(input.externalId),
-          url: String(input.url),
-          authorHandle: String(author.handle).toLowerCase(),
-          description: String(input.description),
-          publicationDate: String(input.publicationDate),
-        },
-        Date.parse(String(input.publicationDate)),
-      ) ||
-      typeof v.createdAt !== 'number' ||
-      !Number.isFinite(v.createdAt) ||
-      !['queued', 'recording', 'failed'].includes(String(v.status)) ||
-      (v.error !== undefined && !text(v.error, 512)) ||
-      entries.some((entry) => entry.id === v.id)
-    )
-      throw new Error(
-        'Could not read publication recordings. Existing storage has been preserved.',
-      );
-    const status =
-      v.status === 'recording' && !inFlight.has(v.id) ? 'queued' : v.status;
-    if (status !== 'queued' && status !== 'recording' && status !== 'failed')
-      throw new Error('Invalid recording storage.');
-    entries.push({
-      id: v.id,
-      sourceBinding: senderBinding(
-        v.sourceBinding,
-      ) as PublicationCaptureSenderBinding,
-      scope: s,
-      input: {
-        brandId: s.brandId,
-        platform: 'twitter',
-        publicationKind: 'post',
-        url: input.url,
-        externalId: input.externalId,
-        description: input.description,
-        publicationDate: input.publicationDate,
-        author: { handle: author.handle },
-        observedVisibility: 'unknown',
-      },
-      createdAt: v.createdAt,
-      status,
-      ...(typeof v.error === 'string' ? { error: v.error } : {}),
-    });
-  }
-  return entries;
-}
-function result(value: unknown): ExtensionPublicationCaptureResult | null {
-  const v = object(value);
-  if (
-    !v ||
-    !text(v.postId, 255) ||
-    typeof v.created !== 'boolean' ||
-    !['permalink', 'context-only', 'unavailable'].includes(String(v.urlKind)) ||
-    ![
-      'eligible',
-      'missing-external-id',
-      'missing-credential',
-      'unsupported-platform',
-      'unsupported-publication-kind',
-      'provider-id-unresolved',
-    ].includes(String(v.analyticsAvailability)) ||
-    !['public', 'private', 'unlisted', 'unknown'].includes(
-      String(v.observedVisibility),
-    )
-  )
-    return null;
-  for (const key of [
-    'source',
-    'externalId',
-    'url',
-    'contextUrl',
-    'credentialId',
-  ])
-    if (v[key] !== null && typeof v[key] !== 'string') return null;
-  const identity = object(v.urlIdentity);
-  if (
-    v.urlIdentity !== null &&
-    (!identity ||
-      ![
-        'instagram-shortcode',
-        'linkedin-activity',
-        'facebook-post-token',
-        'platform-publication-id',
-      ].includes(String(identity.kind)) ||
-      !text(identity.value))
-  )
-    return null;
-  // Every API field has been structurally validated; retain the original source on replay.
-  return v as unknown as ExtensionPublicationCaptureResult;
+  const stored = await chrome.storage.local.get(OUTBOX);
+  return parsePublicationCaptureOutbox(
+    stored[OUTBOX],
+    new Set(inFlight.keys()),
+  );
 }
 async function record(
   entry: PublicationCaptureOutboxEntry,
@@ -521,7 +317,7 @@ export async function handlePublicationCaptureMessage(
       'publicationCaptureRetry',
       'publicationCaptureDismiss',
     ].includes(r.event);
-    const url = home(sender.url);
+    const url = page(sender.url);
     if (isExtension) {
       if (
         sender.tab ||
@@ -538,17 +334,22 @@ export async function handlePublicationCaptureMessage(
     )
       throw new Error('Publication recording request was rejected.');
     const allowed =
-      r.event === 'publicationCaptureBegin'
-        ? ['event', 'attempt']
-        : r.event === 'publicationCaptureComplete'
-          ? ['event', 'observation']
-          : r.event === 'publicationCaptureCancel'
-            ? ['event', 'attemptId']
-            : ['publicationCaptureRetry', 'publicationCaptureDismiss'].includes(
-                  r.event,
-                )
-              ? ['event', 'id']
-              : ['event'];
+      r.event === 'publicationCaptureReplyIntent'
+        ? ['event', 'intent']
+        : r.event === 'publicationCaptureReplyIntentCancel'
+          ? ['event', 'intentId']
+          : r.event === 'publicationCaptureBegin'
+            ? ['event', 'attempt']
+            : r.event === 'publicationCaptureComplete'
+              ? ['event', 'observation']
+              : r.event === 'publicationCaptureCancel'
+                ? ['event', 'attemptId']
+                : [
+                      'publicationCaptureRetry',
+                      'publicationCaptureDismiss',
+                    ].includes(r.event)
+                  ? ['event', 'id']
+                  : ['event'];
     if (!keys(r, allowed))
       throw new Error('Publication recording request was rejected.');
     const snapshot = await current();
@@ -600,7 +401,8 @@ export async function handlePublicationCaptureMessage(
           (!isEnabled ||
             !same(found.attempt.scope, s) ||
             Date.now() - found.attempt.startedAt > 60000 ||
-            found.origin !== url?.origin)
+            found.origin !== url?.origin ||
+            !allowsUrl(found.attempt, sender.url))
         ) {
           delete entries[key];
           await chrome.storage.session.set({ [PENDING]: entries });
@@ -608,6 +410,21 @@ export async function handlePublicationCaptureMessage(
         }
         if (found && (await confirmedEntries())[found.attempt.id]) return null;
         return found?.attempt ?? null;
+      });
+      await serial(async () => {
+        const intents = await readIntents();
+        for (const [key, intent] of Object.entries(intents))
+          if (
+            !isEnabled ||
+            !same(intent.input.scope, s) ||
+            Date.now() > intent.input.createdAt + 30000 ||
+            (intent.binding.tabId === sender.tab?.id &&
+              (!url ||
+                intent.binding.origin !== url.origin ||
+                (url.href !== intent.input.documentUrl && !compose(url.href))))
+          )
+            delete intents[key];
+        await chrome.storage.session.set({ [INTENTS]: intents });
       });
       const recovery = await serial(confirmedEntries);
       assertWorkspace(snapshot);
@@ -653,7 +470,8 @@ export async function handlePublicationCaptureMessage(
     if (!isEnabled) {
       await serial(async () => {
         await pendingEntries(); // Refuse to overwrite malformed storage.
-        await chrome.storage.session.set({ [PENDING]: {} });
+        await readIntents();
+        await chrome.storage.session.set({ [PENDING]: {}, [INTENTS]: {} });
       });
       throw new Error('Publication recording is disabled.');
     }
@@ -678,6 +496,47 @@ export async function handlePublicationCaptureMessage(
     }
     const tabId = sender.tab?.id ?? -1;
     const key = String(tabId);
+    if (
+      r.event === 'publicationCaptureReplyIntent' ||
+      r.event === 'publicationCaptureReplyIntentCancel'
+    ) {
+      const binding = { tabId, origin: url?.origin ?? '' };
+      const intentId = await serial(async () => {
+        assertWorkspace(snapshot);
+        if (!(await enabled()))
+          throw new Error('Publication recording is disabled.');
+        const entries = await readIntents();
+        if (r.event === 'publicationCaptureReplyIntentCancel') {
+          if (!uuid(r.intentId)) throw new Error('Invalid recording.');
+          const found = entries[key];
+          if (found && found.id === r.intentId && bound(found.binding, binding))
+            delete entries[key];
+          await chrome.storage.session.set({ [INTENTS]: entries });
+          return r.intentId;
+        }
+        const intent = createPublicationReplyIntent(
+          r.intent,
+          binding,
+          s,
+          Date.now(),
+        );
+        if (!intent)
+          throw new Error('Publication recording request was rejected.');
+        entries[key] = intent;
+        await chrome.storage.session.set({ [INTENTS]: entries });
+        return intent.id;
+      });
+      return {
+        success: true,
+        data: {
+          kind:
+            r.event === 'publicationCaptureReplyIntent'
+              ? 'reply-intent'
+              : 'reply-intent-cancelled',
+          intentId,
+        },
+      };
+    }
     if (r.event === 'publicationCaptureCancel') {
       if (!uuid(r.attemptId)) throw new Error('Invalid recording.');
       await serial(async () => {
@@ -702,7 +561,8 @@ export async function handlePublicationCaptureMessage(
       if (
         !attempt ||
         !same(attempt.scope, s) ||
-        home(attempt.documentUrl)?.origin !== url?.origin ||
+        page(attempt.documentUrl)?.origin !== url?.origin ||
+        !allowsUrl(attempt, sender.url) ||
         attempt.startedAt < Date.now() - 5000 ||
         attempt.startedAt > Date.now() + 1000
       )
@@ -723,8 +583,32 @@ export async function handlePublicationCaptureMessage(
           (await outboxEntries()).some((entry) => entry.id === attempt.id)
         )
           throw new Error('Recording already exists.');
+        const intents = await readIntents();
+        for (const [intentKey, intent] of Object.entries(intents))
+          if (
+            Date.now() > intent.input.createdAt + 30000 ||
+            !same(intent.input.scope, s)
+          )
+            delete intents[intentKey];
+        if (attempt.surface.kind === 'x-reply-modal') {
+          const intent = intents[key];
+          if (
+            !intent ||
+            !matchesPublicationReplyIntent(
+              intent,
+              attempt,
+              { tabId, origin: url?.origin ?? '' },
+              Date.now(),
+            )
+          )
+            throw new Error('Publication recording request was rejected.');
+          delete intents[key];
+        }
         entries[key] = { tabId, origin: url?.origin ?? '', attempt };
-        await chrome.storage.session.set({ [PENDING]: entries });
+        await chrome.storage.session.set({
+          [PENDING]: entries,
+          [INTENTS]: intents,
+        });
       });
       return { success: true, data: { kind: 'armed', attemptId: attempt.id } };
     }
@@ -772,6 +656,7 @@ export async function handlePublicationCaptureMessage(
             !original ||
             original.origin !== binding.origin ||
             !same(original.attempt.scope, s) ||
+            !allowsUrl(original.attempt, sender.url) ||
             observedAt < original.attempt.startedAt ||
             observedAt > original.attempt.startedAt + 60000 ||
             !validObservation(original.attempt, observation, observedAt)
@@ -814,6 +699,7 @@ export function initializePublicationCapture(): () => void {
   const cancel = () => {
     void serial(async () => {
       const entries = await pendingEntries();
+      const intents = await readIntents();
       const state = getWorkspaceState();
       const active =
         state.status === 'ready' && state.snapshot.brandId
@@ -833,7 +719,18 @@ export function initializePublicationCapture(): () => void {
           Date.now() - entry.attempt.startedAt > 60000
         )
           delete entries[key];
-      await chrome.storage.session.set({ [PENDING]: entries });
+      for (const [key, intent] of Object.entries(intents))
+        if (
+          !isEnabled ||
+          !active ||
+          !same(intent.input.scope, active) ||
+          Date.now() > intent.input.createdAt + 30000
+        )
+          delete intents[key];
+      await chrome.storage.session.set({
+        [PENDING]: entries,
+        [INTENTS]: intents,
+      });
     }).catch(() => undefined);
   };
   void serial(async () => {
@@ -851,12 +748,37 @@ export function initializePublicationCapture(): () => void {
   const removed = (id: number) => {
     void serial(async () => {
       const entries = await pendingEntries();
+      const intents = await readIntents();
       delete entries[String(id)];
-      await chrome.storage.session.set({ [PENDING]: entries });
+      delete intents[String(id)];
+      await chrome.storage.session.set({
+        [PENDING]: entries,
+        [INTENTS]: intents,
+      });
     }).catch(() => undefined);
   };
   const updated = (id: number, change: chrome.tabs.OnUpdatedInfo) => {
-    if (change.url && !home(change.url)) removed(id);
+    if (!change.url) return;
+    void serial(async () => {
+      const entries = await pendingEntries();
+      const intents = await readIntents();
+      const key = String(id);
+      if (entries[key] && !allowsUrl(entries[key].attempt, change.url))
+        delete entries[key];
+      const intent = intents[key];
+      const url = page(change.url);
+      if (
+        intent &&
+        (!url ||
+          intent.binding.origin !== url.origin ||
+          (url.href !== intent.input.documentUrl && !compose(url.href)))
+      )
+        delete intents[key];
+      await chrome.storage.session.set({
+        [PENDING]: entries,
+        [INTENTS]: intents,
+      });
+    }).catch(() => undefined);
   };
   chrome.storage.onChanged.addListener(storage);
   chrome.tabs.onRemoved.addListener(removed);
