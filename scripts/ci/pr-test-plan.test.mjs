@@ -329,7 +329,7 @@ test('keeps the workflow wired to the planner matrices and outputs', () => {
     'static checks, workspace, app, API, and build jobs read the planned base',
   );
   assert.match(workflow, /merge_group:\n {4}types: \[checks_requested\]/);
-  assert.match(workflow, /git merge-base --is-ancestor "\$base" HEAD/);
+  assert.match(workflow, /git merge-base --is-ancestor "\$\{base\}" HEAD/);
   // PR runs carry no coverage instrumentation; full-repository coverage
   // stays in the weekly Coverage workflow.
   assert.doesNotMatch(workflow, /--coverage/);

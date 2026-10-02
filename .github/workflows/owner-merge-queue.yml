@@ -5,6 +5,9 @@ on:
   workflow_run:
     workflows: [CI, PR Heavy CI, PR Title]
     types: [completed]
+  status:
+  check_run:
+    types: [completed]
   pull_request_target:
     branches: [master]
     types: [opened, reopened, synchronize, ready_for_review, labeled, unlabeled, review_requested, review_request_removed]
@@ -20,7 +23,7 @@ concurrency:
 
 jobs:
   reconcile:
-    if: vars.OWNER_MERGE_MODE == 'strict'
+    if: vars.OWNER_MERGE_MODE == 'strict' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

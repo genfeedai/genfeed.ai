@@ -44,6 +44,9 @@ function fixture() {
     workflow_id: index + 1,
     check_suite_id: index + 1,
     path: `.github/workflows/${name}.yml`,
+    head_sha: 'head',
+    event: name === 'pr-title' ? 'pull_request_target' : 'pull_request',
+    pull_requests: [{ number: 1 }],
     status: 'completed',
     conclusion: 'success',
   }));
@@ -136,7 +139,10 @@ test('owner admission rejects foreign identity, forks, drafts and every review b
 
 test('required successes bind authentic sources and latest attempts, optional failures block', () => {
   const f = fixture();
-  assert.equal(checksReady(f.checks, f.statuses, f.runs), true);
+  assert.equal(
+    checksReady(f.checks, f.statuses, f.runs, { head: 'head', number: 1 }),
+    true,
+  );
   for (const mutate of [
     (x) => {
       x.checks.shift();
@@ -152,6 +158,15 @@ test('required successes bind authentic sources and latest attempts, optional fa
     },
     (x) => {
       x.runs[0].path = '.github/workflows/fake.yml';
+    },
+    (x) => {
+      x.runs[0].head_sha = 'stale';
+    },
+    (x) => {
+      x.runs[0].event = 'workflow_dispatch';
+    },
+    (x) => {
+      x.runs[0].pull_requests = [{ number: 99 }];
     },
     (x) => {
       x.runs.push({ ...x.runs[0], id: 99, status: 'queued', conclusion: null });
@@ -182,12 +197,18 @@ test('required successes bind authentic sources and latest attempts, optional fa
   ]) {
     const x = fixture();
     mutate(x);
-    assert.equal(checksReady(x.checks, x.statuses, x.runs), false);
+    assert.equal(
+      checksReady(x.checks, x.statuses, x.runs, { head: 'head', number: 1 }),
+      false,
+    );
   }
   for (const result of ['skipped', 'neutral', 'cancelled', null]) {
     const x = fixture();
     x.checks[0].conclusion = result;
-    assert.equal(checksReady(x.checks, x.statuses, x.runs), false);
+    assert.equal(
+      checksReady(x.checks, x.statuses, x.runs, { head: 'head', number: 1 }),
+      false,
+    );
   }
 });
 
@@ -259,7 +280,9 @@ function client(
           },
         })),
         updateBranch: operation('update', () => ({})),
-        merge: operation('merge', () => ({})),
+        merge: operation('merge', () => ({
+          data: { merged: true, sha: 'merged' },
+        })),
       },
     },
     paginate: async (method) =>
@@ -346,6 +369,73 @@ test('controller serializes expected-head mutations, revalidates, paginates and 
   );
   assert.equal(
     mock.calls.some((call) => call.name === 'merge'),
+    false,
+  );
+});
+
+test('refuses unconfirmed merge responses', async () => {
+  const mock = client(fixture());
+  mock.github.rest.pulls.merge = async () => ({
+    data: { merged: false, message: 'blocked' },
+  });
+  await assert.rejects(
+    reconcile({
+      github: mock.github,
+      mode: 'strict',
+      rulesetId: '123',
+      log: () => {},
+    }),
+    /Merge not confirmed/,
+  );
+  mock.github.rest.pulls.merge = async () => {
+    throw new Error('head race');
+  };
+  await assert.rejects(
+    reconcile({
+      github: mock.github,
+      mode: 'strict',
+      rulesetId: '123',
+      log: () => {},
+    }),
+    /head race/,
+  );
+});
+
+test('waits for an active current-base CI lane before updating another green behind PR', async () => {
+  const f = fixture(),
+    mock = client(f);
+  // Candidate 1 is behind and green; candidate 2 already contains master but
+  // its fresh CI is queued. Candidate order must not affect the backoff.
+  const other = { ...f.pr, number: 2, head: { ...f.pr.head, sha: 'active' } };
+  const paginate = mock.github.paginate;
+  mock.github.paginate = async (method, args) => {
+    if (method.operation === 'pulls') return [f.pr, other];
+    if (method.operation === 'runs' && args.head_sha === 'active')
+      return [
+        {
+          ...f.runs[0],
+          head_sha: 'active',
+          status: 'queued',
+          conclusion: null,
+        },
+      ];
+    return paginate(method, args);
+  };
+  mock.github.rest.pulls.get = async ({ pull_number }) => ({
+    data: pull_number === 2 ? other : f.pr,
+  });
+  mock.github.rest.repos.compareCommits = async ({ head }) => ({
+    data: { status: head === 'active' ? 'ahead' : 'diverged' },
+  });
+  for (let sweep = 0; sweep < 2; sweep++)
+    await reconcile({
+      github: mock.github,
+      mode: 'strict',
+      rulesetId: '123',
+      log: () => {},
+    });
+  assert.equal(
+    mock.calls.some((call) => ['merge', 'update'].includes(call.name)),
     false,
   );
 });

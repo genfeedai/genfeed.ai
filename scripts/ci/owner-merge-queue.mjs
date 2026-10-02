@@ -71,7 +71,7 @@ export function admission(pr, { requests, threads, reviews }) {
   return null;
 }
 
-export function checksReady(checks, statuses, runs) {
+export function checksReady(checks, statuses, runs, expected) {
   // REST check runs are newest first; use IDs to invalidate older green reruns.
   const latest = new Map();
   for (const check of checks) {
@@ -116,6 +116,11 @@ export function checksReady(checks, statuses, runs) {
             : ['.github/workflows/ci.yml', '.github/workflows/pr-heavy-ci.yml'];
         if (
           !run ||
+          run.head_sha !== expected?.head ||
+          !run.pull_requests?.some((pr) => pr.number === expected?.number) ||
+          !(required.context === 'PR Title'
+            ? run.event === 'pull_request_target'
+            : run.event === 'pull_request') ||
           !allowed.includes(run.path?.split('@')[0]) ||
           latestRuns.get(run.workflow_id)?.id !== run.id ||
           run.status !== 'completed' ||
@@ -254,11 +259,34 @@ export async function reconcile({
     direction: 'asc',
     per_page: 100,
   });
+  const snapshots = [];
   for (const candidate of pulls) {
-    if (candidate.user?.id !== OWNER_ID || candidate.draft) continue;
-    const first = await snapshot(github, candidate.number);
+    if (candidate.user?.id === OWNER_ID && !candidate.draft)
+      snapshots.push(await snapshot(github, candidate.number));
+  }
+  // Serializing requests alone still refreshes every waiting PR. Hold branch
+  // updates while a current-base owner PR occupies the active CI lane.
+  const active = snapshots.some(
+    (value) =>
+      value.current &&
+      !admission(value.pr, value.reviews) &&
+      value.runs.some(
+        (run) =>
+          [
+            '.github/workflows/ci.yml',
+            '.github/workflows/pr-heavy-ci.yml',
+          ].includes(run.path?.split('@')[0]) && run.status !== 'completed',
+      ),
+  );
+  const ready = (value) =>
+    checksReady(value.checks, value.statuses, value.runs, {
+      head: value.pr.head.sha,
+      number: value.pr.number,
+    });
+  for (const first of snapshots) {
+    const candidate = first.pr;
     const reason = admission(first.pr, first.reviews);
-    if (reason || !checksReady(first.checks, first.statuses, first.runs)) {
+    if (reason || !ready(first)) {
       log(`#${candidate.number}: waiting (${reason ?? 'checks'})`);
       continue;
     }
@@ -267,11 +295,15 @@ export async function reconcile({
       first.pr.head.sha !== fresh.pr.head.sha ||
       first.base !== fresh.base ||
       admission(fresh.pr, fresh.reviews) ||
-      !checksReady(fresh.checks, fresh.statuses, fresh.runs)
+      !ready(fresh)
     )
       continue;
     await verify();
     if (!fresh.current) {
+      if (active) {
+        log(`#${candidate.number}: waiting for active current-base CI`);
+        continue;
+      }
       await github.rest.pulls.updateBranch({
         ...args,
         pull_number: candidate.number,
@@ -283,13 +315,17 @@ export async function reconcile({
     }
     if (fresh.pr.mergeable !== true || fresh.pr.mergeable_state !== 'clean')
       continue;
-    await github.rest.pulls.merge({
+    const result = await github.rest.pulls.merge({
       ...args,
       pull_number: candidate.number,
       sha: fresh.pr.head.sha,
       merge_method: 'squash',
     });
-    return log(`#${candidate.number}: merged exact head ${fresh.pr.head.sha}`);
+    if (result.data?.merged !== true || !result.data.sha)
+      throw new Error(`Merge not confirmed for #${candidate.number}`);
+    return log(
+      `#${candidate.number}: merged ${fresh.pr.head.sha} as ${result.data.sha}`,
+    );
   }
   log('No eligible green owner PR');
 }

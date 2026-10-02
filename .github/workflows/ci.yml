@@ -48,7 +48,7 @@ env:
   # The diff base for every "changed since base" step (turbo `--affected`,
   # vitest `--changed`, the PR test plan) is CI_BASE_SHA, resolved once by the
   # Plan job and passed to each job through `needs.plan.outputs.base`. Only
-  # pull requests have one; every other event runs the full paths.
+  # PRs and merge groups have one; other events run the full paths.
   CI_IS_CHANGE_RUN: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
@@ -133,7 +133,10 @@ jobs:
           set -euo pipefail
           heavy=false
           reason='affected tier'
-          if [ "${RUN_HEAVY_INPUT}" = "true" ]; then
+          if [ "${GITHUB_EVENT_NAME}" = "merge_group" ]; then
+            heavy=true
+            reason='merge group (preserve all member escalations)'
+          elif [ "${RUN_HEAVY_INPUT}" = "true" ]; then
             heavy=true
             reason='run_heavy_tests input'
           elif [ "${FULL_SUITE_LABEL}" = "true" ]; then

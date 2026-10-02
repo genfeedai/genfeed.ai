@@ -9,7 +9,7 @@ does not enforce an author allowlist; this controller supplies that restriction.
 `OWNER_MERGE_MODE` is absent or `off` by default. `strict` is the operating mode.
 Native `queue` mode is deliberately rejected until Socket, CLA and PR title
 validation report authentic results for real combined merge-group commits.
-CI already supports affected-scope validation of a merge group, but that alone
+CI validates merge groups at the full tier until member escalation is authenticated, but that alone
 does not make these external integrations queue-compatible.
 
 ## Admission and current-master safety

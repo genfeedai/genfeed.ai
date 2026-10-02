@@ -116,6 +116,9 @@ test('keeps privileged PR triggers limited to metadata and trusted master code',
   const controller = readWorkflow('owner-merge-queue.yml');
   assert.match(controller, /ref: refs\/heads\/master/);
   assert.match(controller, /persist-credentials: false/);
+  assert.match(controller, /github.ref == 'refs\/heads\/master'/);
+  assert.match(controller, /^ {2}status:/m);
+  assert.match(controller, /^ {2}check_run:/m);
   assert.match(
     controller,
     /github-token: \$\{\{ secrets.CONSOLE_DEPLOY_TOKEN \}\}/,
