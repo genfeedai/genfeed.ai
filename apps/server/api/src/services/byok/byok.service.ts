@@ -6,6 +6,10 @@ import { encodeJwtToken } from '@api/helpers/utils/jwt/jwt.util';
 import type { ResolvedByokCredential } from '@api/services/byok/byok-credential-identity.interface';
 import { CacheService } from '@api/services/cache/cache.service';
 import { parseCrunEstimate } from '@api/services/integrations/crun/crun-response.schema';
+import { BflDirectClient } from '@api/services/integrations/direct-media/bfl/bfl-direct.client';
+import { GoogleDirectClient } from '@api/services/integrations/direct-media/google/google-direct.client';
+import { RunwayDirectClient } from '@api/services/integrations/direct-media/runway/runway-direct.client';
+import { XaiDirectClient } from '@api/services/integrations/direct-media/xai/xai-direct.client';
 import {
   HIGGSFIELD_API_BASE,
   HIGGSFIELD_CREDENTIAL_PROBE_PATH,
@@ -176,6 +180,26 @@ const BYOK_PROVIDER_LABELS: Record<
     description: '',
     docsUrl: 'https://console.apify.com/account/integrations',
     label: 'Apify',
+  },
+  [ByokProvider.GOOGLE]: {
+    description: '',
+    docsUrl: 'https://aistudio.google.com/apikey',
+    label: 'Google Gemini API',
+  },
+  [ByokProvider.XAI]: {
+    description: '',
+    docsUrl: 'https://console.x.ai',
+    label: 'xAI',
+  },
+  [ByokProvider.BFL]: {
+    description: '',
+    docsUrl: 'https://api.bfl.ai',
+    label: 'Black Forest Labs',
+  },
+  [ByokProvider.RUNWAY]: {
+    description: '',
+    docsUrl: 'https://dev.runwayml.com',
+    label: 'Runway',
   },
 };
 
@@ -565,6 +589,14 @@ export class ByokService {
   ): Promise<{ isValid: boolean; error?: string }> {
     try {
       switch (provider) {
+        case ByokProvider.GOOGLE:
+          return await new GoogleDirectClient().validateCredential({ apiKey });
+        case ByokProvider.XAI:
+          return await new XaiDirectClient().validateCredential({ apiKey });
+        case ByokProvider.BFL:
+          return await new BflDirectClient().validateCredential({ apiKey });
+        case ByokProvider.RUNWAY:
+          return await new RunwayDirectClient().validateCredential({ apiKey });
         case ByokProvider.ANTHROPIC:
           return await this.validateAnthropic(apiKey);
         case ByokProvider.OPENAI:
