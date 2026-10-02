@@ -251,12 +251,12 @@ export const LEARNING_SOURCE_CONTRACT = Object.freeze({
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.fixture.ts',
       sha256:
-        '3e87461f524d58e97e341dfb4c5b6a02dd96246c390b51610d955935e9dd3a7b',
+        'afb3cef726e87dc87c5b42dacf9efa675ac0dcf4a23f4bc78dcb9cfb19f36ecb',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.integration.spec.ts',
       sha256:
-        '5cf41eff212c23e2af7b0181530eb5a0d90edcf0b1fa3ba6b01d05f3a8c19055',
+        '81a48669d18a8bcd08091a3f46339f6d24ede60e4c2a9f404bb7527a0e840327',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-publication-races.integration.spec.ts',
