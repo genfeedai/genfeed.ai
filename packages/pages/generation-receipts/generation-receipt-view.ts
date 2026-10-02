@@ -1,9 +1,15 @@
-import type { BrandedGenerationReceiptV1 } from '@genfeedai/contracts/interfaces';
+import type {
+  BrandedGenerationReceiptReadV1,
+  BrandedGenerationReceiptRevisionReadV1,
+} from '@genfeedai/contracts/interfaces/content/branded-generation-receipt-read.interface';
 
 export type GenerationReceiptInspection = Readonly<
   Pick<
-    BrandedGenerationReceiptV1,
+    BrandedGenerationReceiptReadV1,
     | 'id'
+    | 'revision'
+    | 'execution'
+    | 'resolutionHash'
     | 'state'
     | 'mode'
     | 'surface'
@@ -25,13 +31,19 @@ export type GenerationReceiptInspection = Readonly<
   >
 >;
 
-/** Historical internal projection; caller must authorize the supplied receipt. */
+/** Historical read projection; preserves recorded facts without deriving readiness. */
 export function projectGenerationReceiptForInspection(
-  receipt: BrandedGenerationReceiptV1 | null,
+  receipt:
+    | BrandedGenerationReceiptReadV1
+    | BrandedGenerationReceiptRevisionReadV1
+    | null,
 ): GenerationReceiptInspection | null {
   if (!receipt) return null;
   const {
     id,
+    revision,
+    execution,
+    resolutionHash,
     state,
     mode,
     surface,
@@ -53,6 +65,9 @@ export function projectGenerationReceiptForInspection(
   } = receipt;
   return structuredClone({
     id,
+    revision,
+    execution,
+    resolutionHash,
     state,
     mode,
     surface,

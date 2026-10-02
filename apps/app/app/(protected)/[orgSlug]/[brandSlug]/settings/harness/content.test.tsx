@@ -233,4 +233,10 @@ describe('BrandSettingsHarnessPage', () => {
       expect.objectContaining({ brandId: 'brand-1', scope: 'brand' }),
     );
   });
+  it('links the brand harness to scoped saved generation receipt inspection', async () => {
+    render(<BrandSettingsHarnessPage />);
+    expect(
+      await screen.findByRole('link', { name: 'Generation receipts' }),
+    ).toHaveAttribute('href', '/acme/moonrise/settings/generation-receipts');
+  });
 });

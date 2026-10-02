@@ -1,4 +1,5 @@
 import { BatchProjectsModule } from '@api/collections/batch-projects/batch-projects.module';
+import { BrandedGenerationReceiptsHttpModule } from '@api/collections/branded-generation-receipts/branded-generation-receipts-http.module';
 import { ContentLearningModule } from '@api/collections/content-learning/content-learning.module';
 import { OutliersModule } from '@api/collections/outliers/outliers.module';
 import { VisualProjectsModule } from '@api/collections/visual-projects/visual-projects.module';
@@ -127,6 +128,7 @@ import { Module } from '@nestjs/common';
 
 @Module({
   imports: [
+    BrandedGenerationReceiptsHttpModule,
     ContentLearningModule,
     VisualProjectsModule,
     AgentCampaignsModule,
