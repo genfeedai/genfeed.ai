@@ -107,6 +107,7 @@ function assertUnicode(value: string): void {
 function assertFileParents(paths: string[]): void {
   const keys = paths.map((path) => path.normalize('NFC').toLowerCase()).sort();
   for (const key of keys) {
+    // Directory entries remain in the search set, but cannot be file parents.
     if (key.endsWith('/')) continue;
     const prefix = `${key}/`;
     let low = 0;
