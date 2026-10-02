@@ -202,7 +202,7 @@ describe('hosted actual learning publication contention and atomicity', () => {
   let fixture: LearningRuntimeFixture;
   let scenario: RuntimeTarget[] = [];
   beforeAll(async () => {
-    fixture = await openLearningRuntimeFixture();
+    fixture = await openLearningRuntimeFixture('learning-races');
   }, 180000);
   beforeEach(async () => {
     await fixture.resources.check();
