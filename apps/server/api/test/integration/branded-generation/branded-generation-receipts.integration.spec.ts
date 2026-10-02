@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { execFileSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
@@ -12,6 +12,14 @@ import type { BrandedGenerationActorV1 } from '@api/services/branded-generation-
 import type { BrandedGenerationCompilerRecipeV1 } from '@api/services/branded-generation-receipts/branded-generation-recompile.types';
 import { compileSnapshotBriefResolution } from '@api/services/harness/branded-generation-compiler';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  assertControllerOwnedMigrationConnection,
+  assertControllerOwnedMigrationIdentity,
+  assertControllerOwnedMigrationInventory,
+  type ControllerOwnedMigrationRow,
+  readControllerOwnedMigrationDatabaseUrl,
+} from '@api-test/helpers/controller-owned-migration-database';
+import { formatMigrationDeployDiagnostic } from '@api-test/helpers/migration-deploy-diagnostics';
 import type {
   BrandedGenerationInputV1,
   BrandedGenerationReceiptV1,
@@ -23,19 +31,12 @@ import { ConflictException } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Client } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { assertIsolatedDatabaseUrl } from '../../../scripts/assert-isolated-db-url';
 
-const configured = process.env.BRANDED_GENERATION_TEST_DATABASE_URL;
-let baseUrl: string;
-try {
-  if (!configured) throw new Error();
-  const parsed = new URL(configured);
-  if (parsed.search || !/test/i.test(decodeURIComponent(parsed.pathname)))
-    throw new Error();
-  baseUrl = assertIsolatedDatabaseUrl(configured);
-} catch {
-  throw new Error('BRANDED_GENERATION_TEST_DATABASE_URL required');
-}
+const baseUrl = readControllerOwnedMigrationDatabaseUrl(
+  'brand-acceptance',
+  process.env.BRANDED_GENERATION_TEST_DATABASE_URL,
+);
+const sqlSchema = 'public';
 const schema = `branded_receipts_test_${randomUUID().replaceAll('-', '')}`;
 if (!/^branded_receipts_test_[0-9a-f]{32}$/.test(schema))
   throw new Error('Invalid fixture schema');
@@ -47,7 +48,7 @@ const migrationNames = readdirSync(migrationDirectory, { withFileTypes: true })
   .sort();
 const applicationNames = [0, 1].map((index) => `${schema}_${index}`);
 const scoped = new URL(baseUrl);
-scoped.searchParams.set('schema', schema);
+scoped.searchParams.set('schema', sqlSchema);
 let control: Client;
 let observer: Client;
 const clients: PrismaClient[] = [];
@@ -56,7 +57,6 @@ const relocations: BrandRelocationService[] = [];
 const outstanding = new Set<Promise<unknown>>();
 const barriers = new Set<number>();
 const originalKey = process.env.TOKEN_ENCRYPTION_KEY;
-let schemaCreated = false;
 function track<T>(operation: Promise<T>): Promise<T> {
   outstanding.add(operation);
   void operation.then(
@@ -334,6 +334,7 @@ async function holdBarrier(key: number) {
 // Missing relocation history guard is an active acceptance failure, never a skip.
 describe('branded receipt full-migration service and relocation acceptance', () => {
   beforeAll(async () => {
+    const expectedMigrations = [];
     for (const name of migrationNames) {
       const sql = readFileSync(
         resolve(migrationDirectory, name, 'migration.sql'),
@@ -343,14 +344,26 @@ describe('branded receipt full-migration service and relocation acceptance', () 
         throw new Error(
           'Fixture migration scope requires planner revalidation',
         );
+      expectedMigrations.push({
+        migration_name: name,
+        checksum: createHash('sha256').update(sql, 'utf8').digest('hex'),
+      });
     }
     control = new Client({
       connectionString: baseUrl,
       application_name: `${schema}_control`,
     });
+    observer = new Client({
+      connectionString: baseUrl,
+      application_name: `${schema}_observer`,
+      options: `-c search_path=${sqlSchema}`,
+    });
     await control.connect();
-    await control.query(`CREATE SCHEMA "${schema}"`);
-    schemaCreated = true;
+    await assertControllerOwnedMigrationConnection(
+      control,
+      'brand-acceptance',
+      true,
+    );
     try {
       execFileSync('bun', ['x', 'prisma', 'migrate', 'deploy'], {
         cwd: prismaDirectory,
@@ -359,27 +372,25 @@ describe('branded receipt full-migration service and relocation acceptance', () 
         maxBuffer: 8 * 1024 * 1024,
         stdio: 'pipe',
       });
-    } catch {
+    } catch (error) {
+      process.stderr.write(
+        `${formatMigrationDeployDiagnostic(error, scoped.toString())}\n`,
+      );
       throw new Error('Fixture full migration deployment failed');
     }
-    await control.query(`SET search_path TO "${schema}", public`);
-    observer = new Client({
-      connectionString: baseUrl,
-      application_name: `${schema}_observer`,
-      options: `-c search_path=${schema},public`,
-    });
     await observer.connect();
     for (const connection of [control, observer])
-      expect(
-        (await connection.query('SELECT current_schema() AS schema')).rows[0]
-          .schema,
-      ).toBe(schema);
-    const applied = await control.query(
-      'SELECT migration_name, finished_at, rolled_back_at FROM _prisma_migrations ORDER BY migration_name',
+      await assertControllerOwnedMigrationConnection(
+        connection,
+        'brand-acceptance',
+      );
+    const applied = await control.query<ControllerOwnedMigrationRow>(
+      'SELECT migration_name, checksum, finished_at, rolled_back_at FROM _prisma_migrations ORDER BY migration_name',
     );
     expect(applied.rows.map((row) => row.migration_name)).toEqual(
       migrationNames,
     );
+    assertControllerOwnedMigrationInventory(applied.rows, expectedMigrations);
     expect(migrationNames).toContain(
       '20261001170000_branded_generation_receipts',
     );
@@ -397,18 +408,18 @@ describe('branded receipt full-migration service and relocation acceptance', () 
         adapter: new PrismaPg(
           {
             connectionString: scoped.toString(),
-            options: `-c search_path=${schema},public`,
+            options: `-c search_path=${sqlSchema}`,
             application_name,
             max: 2,
           },
-          { schema },
+          { schema: sqlSchema },
         ),
       });
       clients.push(prisma);
       const current = await prisma.$queryRaw<
-        Array<{ schema: string }>
-      >`SELECT current_schema() AS schema`;
-      expect(current[0].schema).toBe(schema);
+        Array<{ database: string; schema: string }>
+      >`SELECT current_database() AS database, current_schema() AS schema`;
+      assertControllerOwnedMigrationIdentity(current[0], 'brand-acceptance');
       const access = new BrandedGenerationReceiptAccessService();
       services.push(
         new BrandedGenerationReceiptsService(
@@ -435,29 +446,20 @@ describe('branded receipt full-migration service and relocation acceptance', () 
     }
   }, 180000);
   afterAll(async () => {
-    try {
-      try {
-        await Promise.allSettled([...barriers].map((key) => release(key)));
-        await Promise.allSettled([...outstanding]);
-      } finally {
-        try {
-          await Promise.all(clients.map((client) => client.$disconnect()));
-        } finally {
-          await observer?.end();
-        }
-      }
-    } finally {
-      if (originalKey === undefined) delete process.env.TOKEN_ENCRYPTION_KEY;
-      else process.env.TOKEN_ENCRYPTION_KEY = originalKey;
-      if (control) {
-        try {
-          if (schemaCreated)
-            await control.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
-        } finally {
-          await control.end();
-        }
-      }
-    }
+    await Promise.allSettled([...barriers].map((key) => release(key)));
+    await Promise.allSettled([...outstanding]);
+    const closed = await Promise.allSettled([
+      ...clients.map((client) => client.$disconnect()),
+      observer?.end(),
+      control?.end(),
+    ]);
+    if (originalKey === undefined) delete process.env.TOKEN_ENCRYPTION_KEY;
+    else process.env.TOKEN_ENCRYPTION_KEY = originalKey;
+    const errors = closed.flatMap((result) =>
+      result.status === 'rejected' ? [result.reason] : [],
+    );
+    if (errors.length > 0)
+      throw new AggregateError(errors, 'Brand fixture disconnect failed');
   });
 
   it('serializes same-input create, rejects changed payloads, and isolates other scopes', async () => {

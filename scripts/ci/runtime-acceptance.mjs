@@ -65,9 +65,21 @@ export const STORAGE_PATHS = [
   'packages/storage/src/path-containment.spec.ts',
 ];
 export const BRAND_SOURCE_CONTRACT = {
+  sourceInputs: [
+    {
+      path: 'apps/server/api/test/helpers/migration-deploy-diagnostics.ts',
+      sha256:
+        'c0f748ea4ca648200c9803e21f765fbbff7ffead28af26c4caf85cc0d2e269f0',
+    },
+    {
+      path: 'apps/server/api/test/helpers/controller-owned-migration-database.ts',
+      sha256:
+        '0ddb93b85b7e1fa9586e5c079f77a153aa8e19808f756f9db9b45b2ece2a3ddb',
+    },
+  ],
   brand: {
     path: 'apps/server/api/test/integration/branded-generation/branded-generation-receipts.integration.spec.ts',
-    sha256: '3d696f88f314892edbc8f0a05ca6fd702c92a0df7f84ea36f3e2bb5ae3222a4a',
+    sha256: '132cb7ddab81acf2d70150e7425aaf4a9d1bc7465747bb4b2c9549a367cb37b8',
     passedTitles: [
       'branded receipt full-migration service and relocation acceptance serializes same-input create, rejects changed payloads, and isolates other scopes',
       'branded receipt full-migration service and relocation acceptance commits one competing revision and replays immutable event projections',
@@ -255,22 +267,32 @@ export const LEARNING_SOURCE_CONTRACT = Object.freeze({
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.fixture.ts',
       sha256:
-        '76c90c697c50578b1db5f6ecf1ad3d6666ca6be6488f0cdc85f0b29c39c22819',
+        '269a5dc3c2a20e2ba90cf8528acb46f690abcccc39fd514908a0a22c15673021',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.integration.spec.ts',
       sha256:
-        '7f0b9624401c86e4df006f31950bfdaae1f288f6360c57488e046880d400af01',
+        '9a93f3798442897115699f5ea37998526fa844cf5db8cc05d75211850eb4d046',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-publication-races.integration.spec.ts',
       sha256:
-        '20e6f4e616af424fc2e4a19b4e0997814c6e047a30d7f8d04889b85da6ce269b',
+        'f5d5e805e67191452909dfdc7663edb0e5125e98633fb77712e82728e7a0bf0d',
     },
     {
       path: 'apps/server/api/vitest.learning-runtime.config.ts',
       sha256:
         '503ce881f32b01c51fdb8fc3712ac711ecd52154b145791c8c49322df4e4bd89',
+    },
+    {
+      path: 'apps/server/api/test/helpers/migration-deploy-diagnostics.ts',
+      sha256:
+        'c0f748ea4ca648200c9803e21f765fbbff7ffead28af26c4caf85cc0d2e269f0',
+    },
+    {
+      path: 'apps/server/api/test/helpers/controller-owned-migration-database.ts',
+      sha256:
+        '0ddb93b85b7e1fa9586e5c079f77a153aa8e19808f756f9db9b45b2ece2a3ddb',
     },
   ],
   suites: [
@@ -368,7 +390,7 @@ export function requireLearningSourceContract(
   );
   requireThat(
     Array.isArray(contract.sourceInputs) &&
-      contract.sourceInputs.length === 4 &&
+      contract.sourceInputs.length === 6 &&
       contract.sourceInputs.every(
         (entry, index) =>
           entry.path === LEARNING_SOURCE_CONTRACT.sourceInputs[index].path &&
@@ -567,7 +589,12 @@ async function learningEndpointInfo(timeout) {
     });
   });
 }
-export function learningChildEnvironment(env, identity, resource, url) {
+export function learningChildEnvironment(
+  env,
+  identity,
+  resource,
+  { runtimeUrl, racesUrl },
+) {
   requireThat(
     identity.group === 'final' &&
       resource === identity.resources.learning &&
@@ -576,6 +603,36 @@ export function learningChildEnvironment(env, identity, resource, url) {
       JSON.stringify(learningCiIdentity(env)) ===
         JSON.stringify(identity.learningCi),
     'LEARNING_RESOURCE_IDENTITY',
+  );
+  const credentials = readPostgresCredentials(env);
+  const urls = [
+    ['genfeed_learning_runtime_test', runtimeUrl],
+    ['genfeed_learning_races_test', racesUrl],
+  ];
+  for (const [name, url] of urls) {
+    validateUrl(url, 'postgres', name, credentials);
+    const records = identity.resources.databases.filter(
+      (entry) => entry.name === name,
+    );
+    requireThat(
+      records.length === 1 &&
+        records[0].created === true &&
+        records[0].creationIntent === true &&
+        records[0].intentPersisted === true &&
+        records[0].creationIssued === true &&
+        records[0].postgresId === serviceId(identity.resources.postgres),
+      'LEARNING_DATABASE_OWNERSHIP',
+    );
+  }
+  const runtime = new URL(runtimeUrl),
+    races = new URL(racesUrl);
+  requireThat(
+    runtime.hostname === races.hostname &&
+      runtime.port === races.port &&
+      runtime.username === races.username &&
+      runtime.password === races.password &&
+      runtime.pathname !== races.pathname,
+    'LEARNING_DATABASE_IDENTITY',
   );
   const result = {};
   for (const key of [
@@ -599,7 +656,8 @@ export function learningChildEnvironment(env, identity, resource, url) {
     NO_COLOR: '1',
     FORCE_COLOR: '0',
     TURBO_TOKEN: '',
-    LEARNING_RUNTIME_TEST_DATABASE_URL: url,
+    LEARNING_RUNTIME_TEST_DATABASE_URL: runtimeUrl,
+    LEARNING_RUNTIME_RACES_TEST_DATABASE_URL: racesUrl,
     LEARNING_RUNTIME_TEST_REDIS_URL: 'redis://127.0.0.1:6379/0',
     LEARNING_RUNTIME_REDIS_OWNERSHIP_RECEIPT: resource.receiptPath,
     LEARNING_RUNTIME_ACCEPTANCE_HEAD: identity.candidateSHA,
@@ -679,7 +737,11 @@ export async function verifyDedicatedSources(repo, group, env) {
   const files =
     group === 'agent-production'
       ? AGENT_PRODUCTION_FILES
-      : [BRAND_SOURCE_CONTRACT.brand, ...BRAND_SOURCE_CONTRACT.unitFiles];
+      : [
+          BRAND_SOURCE_CONTRACT.brand,
+          ...BRAND_SOURCE_CONTRACT.unitFiles,
+          ...BRAND_SOURCE_CONTRACT.sourceInputs,
+        ];
   await verifyFrozenSources(repo, files);
 }
 export function validateSharedApiFullPartition(
@@ -1360,6 +1422,7 @@ export const FINAL_DATABASE_NAMES = [
   'genfeed_agent_test',
   'genfeed_baseline_materialization_test',
   'genfeed_learning_runtime_test',
+  'genfeed_learning_races_test',
 ];
 function validateFinalDatabase(identity, name, postgresId) {
   requireThat(
@@ -5092,11 +5155,15 @@ export async function execution(identity, env) {
         JSON.stringify(snapshot.inspected),
       );
       await persistIdentity(identity);
-      const url = await database('genfeed_learning_runtime_test');
+      const runtimeUrl = await database('genfeed_learning_runtime_test');
+      const racesUrl = await database('genfeed_learning_races_test');
       await vitest('learning-runtime', contract.suites, {
         config: 'vitest.learning-runtime.config.ts',
         pool: 'forks',
-        extra: learningChildEnvironment(env, identity, resource, url),
+        extra: learningChildEnvironment(env, identity, resource, {
+          runtimeUrl,
+          racesUrl,
+        }),
         timeout: Math.max(
           1,
           startedAt + FINAL_LEARNING_BUDGET.work - Date.now(),

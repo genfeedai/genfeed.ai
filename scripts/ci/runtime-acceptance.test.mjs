@@ -2770,8 +2770,99 @@ test('prepared owner revisions retain only the exact approved source hashes', ()
   );
   assert.equal(
     BRAND_SOURCE_CONTRACT.brand.sha256,
-    '3d696f88f314892edbc8f0a05ca6fd702c92a0df7f84ea36f3e2bb5ae3222a4a',
+    '132cb7ddab81acf2d70150e7425aaf4a9d1bc7465747bb4b2c9549a367cb37b8',
   );
+});
+test('migration diagnostics helper is an exact frozen dependency for learning and brand', () => {
+  assert.deepEqual(
+    LEARNING_SOURCE_CONTRACT.sourceInputs.map((entry) => entry.path),
+    [
+      'apps/server/api/test/integration/content-learning/content-learning-runtime.fixture.ts',
+      'apps/server/api/test/integration/content-learning/content-learning-runtime.integration.spec.ts',
+      'apps/server/api/test/integration/content-learning/content-learning-publication-races.integration.spec.ts',
+      'apps/server/api/vitest.learning-runtime.config.ts',
+      'apps/server/api/test/helpers/migration-deploy-diagnostics.ts',
+      'apps/server/api/test/helpers/controller-owned-migration-database.ts',
+    ],
+  );
+  assert.deepEqual(BRAND_SOURCE_CONTRACT.sourceInputs, [
+    {
+      path: 'apps/server/api/test/helpers/migration-deploy-diagnostics.ts',
+      sha256:
+        'c0f748ea4ca648200c9803e21f765fbbff7ffead28af26c4caf85cc0d2e269f0',
+    },
+    {
+      path: 'apps/server/api/test/helpers/controller-owned-migration-database.ts',
+      sha256:
+        '0ddb93b85b7e1fa9586e5c079f77a153aa8e19808f756f9db9b45b2ece2a3ddb',
+    },
+  ]);
+  assert.deepEqual(
+    LEARNING_SOURCE_CONTRACT.sourceInputs[4],
+    BRAND_SOURCE_CONTRACT.sourceInputs[0],
+  );
+  assert.equal(BRAND_SOURCE_CONTRACT.sourceInputs.length, 2);
+  assert.deepEqual(
+    LEARNING_SOURCE_CONTRACT.sourceInputs[5],
+    BRAND_SOURCE_CONTRACT.sourceInputs[1],
+  );
+  for (const input of BRAND_SOURCE_CONTRACT.sourceInputs)
+    assert.ok(
+      !BRAND_SOURCE_CONTRACT.unitFiles.some(
+        (entry) => entry.path === input.path,
+      ),
+    );
+});
+test('changed, missing or symlinked diagnostics helper fails learning and dedicated brand frozen verification', async (t) => {
+  const root = await fixture(t);
+  const entries = [
+    ...LEARNING_SOURCE_CONTRACT.sourceInputs,
+    BRAND_SOURCE_CONTRACT.brand,
+    ...BRAND_SOURCE_CONTRACT.unitFiles,
+  ];
+  for (const entry of entries) {
+    const target = path.join(root, entry.path);
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(
+      target,
+      await readFile(new URL(`../../${entry.path}`, import.meta.url)),
+    );
+  }
+  const contract = ownerContract();
+  contract.brand = structuredClone(BRAND_SOURCE_CONTRACT.brand);
+  const env = { RUNTIME_ACCEPTANCE_OWNER_CONTRACT: JSON.stringify(contract) };
+  await verifyFrozenSources(root, LEARNING_SOURCE_CONTRACT.sourceInputs);
+  await verifyDedicatedSources(root, 'brand-acceptance', env);
+  for (const dependency of BRAND_SOURCE_CONTRACT.sourceInputs) {
+    const helper = path.join(root, dependency.path);
+    const original = await readFile(helper);
+    for (const kind of ['changed', 'missing', 'symlinked']) {
+      await rm(helper);
+      if (kind === 'changed')
+        await writeFile(helper, 'changed diagnostics helper');
+      if (kind === 'symlinked') {
+        const target = path.join(root, 'diagnostics-target.ts');
+        await writeFile(target, original);
+        await symlink(target, helper);
+      }
+      const code =
+        kind === 'missing'
+          ? 'ENOENT'
+          : kind === 'changed'
+            ? 'SOURCE_HASH_MISMATCH'
+            : 'UNSAFE_SOURCE';
+      await assert.rejects(
+        verifyFrozenSources(root, LEARNING_SOURCE_CONTRACT.sourceInputs),
+        { code },
+      );
+      await assert.rejects(
+        verifyDedicatedSources(root, 'brand-acceptance', env),
+        { code },
+      );
+      if (kind !== 'missing') await rm(helper);
+      await writeFile(helper, original);
+    }
+  }
 });
 test('dedicated BRAND requires frozen integration hash and exact title inventory', () => {
   const value = ownerContract();
@@ -4976,6 +5067,15 @@ test('learning source qualification requires complete fixed inventory and cannot
       value.sourceInputs.pop();
     },
     (value) => {
+      [value.sourceInputs[0], value.sourceInputs[5]] = [
+        value.sourceInputs[5],
+        value.sourceInputs[0],
+      ];
+    },
+    (value) => {
+      value.sourceInputs[5] = { ...value.sourceInputs[0] };
+    },
+    (value) => {
       value.sourceInputs[0].sha256 = null;
     },
     (value) => {
@@ -5102,8 +5202,11 @@ test('learning exclusive instance requires every owned DB and unassigned keyspac
     { code: 'LEARNING_REDIS_NOT_EMPTY' },
   );
 });
-test('learning child receives exact authority while ambient credentials and workload overrides are excluded', () => {
+async function learningDatabaseAuthorityFixture() {
   const { env, value, inspected, info } = learningIssuerFixture();
+  const allocation = finalDatabaseFixture();
+  value.resources.postgres = allocation.identity.resources.postgres;
+  value.resources.databases = allocation.identity.resources.databases;
   const resource = {
     receipt: buildLearningRedisReceipt(
       value,
@@ -5116,6 +5219,33 @@ test('learning child receives exact authority while ambient credentials and work
     receiptPath: '/private/owned/redis-ownership.json',
   };
   value.resources.learning = resource;
+  const runtimeUrl = await createFinalOwnedDatabase(
+    value,
+    'genfeed_learning_runtime_test',
+    allocation.adapters,
+  );
+  const racesUrl = await createFinalOwnedDatabase(
+    value,
+    'genfeed_learning_races_test',
+    allocation.adapters,
+  );
+  return {
+    env: {
+      ...env,
+      RUNTIME_ACCEPTANCE_POSTGRES_USER:
+        allocation.adapters.credentials.username,
+      RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD:
+        allocation.adapters.credentials.password,
+    },
+    value,
+    resource,
+    urls: { runtimeUrl, racesUrl },
+    allocation,
+  };
+}
+test('learning child receives exact authority while ambient credentials and workload overrides are excluded', async () => {
+  const { env, value, resource, urls } =
+    await learningDatabaseAuthorityFixture();
   const childEnv = learningChildEnvironment(
     {
       ...env,
@@ -5130,12 +5260,13 @@ test('learning child receives exact authority while ambient credentials and work
     },
     value,
     resource,
-    'postgresql://genfeed@127.0.0.1:5432/genfeed_learning_runtime_test',
+    urls,
   );
   assert.equal(childEnv.HOME, path.join(tmpdir(), 'acceptance-synthetic-home'));
+  assert.equal(childEnv.LEARNING_RUNTIME_TEST_DATABASE_URL, urls.runtimeUrl);
   assert.equal(
-    childEnv.LEARNING_RUNTIME_TEST_DATABASE_URL,
-    'postgresql://genfeed@127.0.0.1:5432/genfeed_learning_runtime_test',
+    childEnv.LEARNING_RUNTIME_RACES_TEST_DATABASE_URL,
+    urls.racesUrl,
   );
   assert.equal(childEnv.LEARNING_RUNTIME_ACCEPTANCE_HEAD, SHA);
   assert.equal(childEnv.RUNTIME_ACCEPTANCE_CI_RUN_ATTEMPT, '2');
@@ -5155,6 +5286,132 @@ test('learning child receives exact authority while ambient credentials and work
   ])
     assert.equal(childEnv[key], undefined);
 });
+test('learning role URLs refuse crossed, omitted, duplicate and unrecorded ownership', async () => {
+  const { env, value, resource, urls } =
+    await learningDatabaseAuthorityFixture();
+  for (const changed of [
+    { runtimeUrl: urls.racesUrl, racesUrl: urls.runtimeUrl },
+    { runtimeUrl: urls.runtimeUrl },
+    { runtimeUrl: urls.runtimeUrl, racesUrl: urls.runtimeUrl },
+    { ...urls, racesUrl: urls.racesUrl.replace('127.0.0.1', 'localhost') },
+  ])
+    assert.throws(() =>
+      learningChildEnvironment(env, value, resource, changed),
+    );
+  for (const kind of [
+    'unrecorded',
+    'duplicate-record',
+    'wrong-container',
+    'uncreated',
+    'unpersisted',
+    'unissued',
+  ]) {
+    const changed = structuredClone(value),
+      owned = changed.resources.databases.find(
+        (entry) => entry.name === 'genfeed_learning_races_test',
+      );
+    if (kind === 'unrecorded') changed.resources.databases.pop();
+    if (kind === 'duplicate-record')
+      changed.resources.databases.push({ ...owned });
+    if (kind === 'wrong-container') owned.postgresId = 'f'.repeat(64);
+    if (kind === 'uncreated') owned.created = false;
+    if (kind === 'unpersisted') owned.intentPersisted = false;
+    if (kind === 'unissued') owned.creationIssued = false;
+    assert.throws(
+      () =>
+        learningChildEnvironment(
+          env,
+          changed,
+          changed.resources.learning,
+          urls,
+        ),
+      { code: 'LEARNING_DATABASE_OWNERSHIP' },
+    );
+  }
+});
+test('learning allocates two distinct owned databases before its sole child and second allocation failure blocks spawn', async () => {
+  const { value, urls } = await learningDatabaseAuthorityFixture();
+  assert.notEqual(urls.runtimeUrl, urls.racesUrl);
+  assert.deepEqual(
+    value.resources.databases.map((entry) => entry.name),
+    ['genfeed_learning_runtime_test', 'genfeed_learning_races_test'],
+  );
+  const source = await readFile(
+    new URL('./runtime-acceptance.mjs', import.meta.url),
+    'utf8',
+  );
+  assert.match(
+    source,
+    /const runtimeUrl = await database\('genfeed_learning_runtime_test'\);\s*const racesUrl = await database\('genfeed_learning_races_test'\);\s*await vitest\('learning-runtime'/,
+  );
+  const allocation = finalDatabaseFixture();
+  let spawned = false;
+  allocation.adapters.create = async (name) => {
+    if (name === 'genfeed_learning_races_test')
+      throw new Error('second allocation failed');
+  };
+  await assert.rejects(
+    (async () => {
+      await createFinalOwnedDatabase(
+        allocation.identity,
+        'genfeed_learning_runtime_test',
+        allocation.adapters,
+      );
+      await createFinalOwnedDatabase(
+        allocation.identity,
+        'genfeed_learning_races_test',
+        allocation.adapters,
+      );
+      spawned = true;
+    })(),
+    /second allocation failed/,
+  );
+  assert.equal(spawned, false);
+  assert.equal(allocation.identity.resources.databases[1].creationIssued, true);
+});
+for (const leaked of [
+  'genfeed_learning_runtime_test',
+  'genfeed_learning_races_test',
+])
+  test(`owned ${leaked} removal and absence remain required despite clean Redis`, async () => {
+    const { value, allocation } = await learningDatabaseAuthorityFixture();
+    value.resources.learning.blankVerified = true;
+    value.resources.learning.cleanupResult = { passed: true };
+    const dropped = [];
+    const adapters = {
+      ...allocation.adapters,
+      drop: async (name) => {
+        dropped.push(name);
+      },
+      absent: async (name) => (name === leaked ? '1' : ''),
+    };
+    const results = await Promise.allSettled(
+      value.resources.databases.map((entry) =>
+        cleanupFinalOwnedDatabase(value, entry, adapters, Date.now() + 60000),
+      ),
+    );
+    assert.deepEqual(dropped.sort(), [
+      'genfeed_learning_races_test',
+      'genfeed_learning_runtime_test',
+    ]);
+    assert.equal(
+      results.filter((result) => result.status === 'rejected').length,
+      1,
+    );
+    assert.equal(
+      value.resources.databases.find((entry) => entry.name === leaked).removed,
+      undefined,
+    );
+    assert.equal(
+      value.resources.databases.find((entry) => entry.name !== leaked).removed,
+      true,
+    );
+    const { outcome } = await finalQualifiedFixture();
+    outcome.cleanup.passed = false;
+    assert.throws(() => validateOutcome(outcome, outcome, value), {
+      code: 'SUCCESS_RECEIPT_REQUIRED',
+    });
+  });
 function learningSupervisorFixture() {
   let now = 1000,
     alive = true;
@@ -5686,7 +5943,7 @@ test('actual execution returns its persisted failure outcome after an expired wo
 test('learning fixture inventory freezes canonical persisted target execution state source', () => {
   assert.equal(
     LEARNING_SOURCE_CONTRACT.sourceInputs[0].sha256,
-    '76c90c697c50578b1db5f6ecf1ad3d6666ca6be6488f0cdc85f0b29c39c22819',
+    '269a5dc3c2a20e2ba90cf8528acb46f690abcccc39fd514908a0a22c15673021',
   );
 });
 

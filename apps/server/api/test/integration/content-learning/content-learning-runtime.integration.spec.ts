@@ -82,7 +82,7 @@ describe('hosted real production learning runtime', () => {
   let fixture: LearningRuntimeFixture;
   const publications: RuntimePublication[] = [];
   beforeAll(async () => {
-    fixture = await openLearningRuntimeFixture();
+    fixture = await openLearningRuntimeFixture('learning-runtime');
   }, 180000);
   beforeEach(async () => {
     await fixture.resources.check();

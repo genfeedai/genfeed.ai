@@ -3,6 +3,12 @@ name: E2E Tests
 on:
   workflow_dispatch:
     inputs:
+      acceptance_diagnostic:
+        description: 'Diagnostic only: run one encrypted acceptance group; does not establish full-suite or release readiness.'
+        type: choice
+        required: false
+        default: none
+        options: [none, final, brand-acceptance]
       run_api_full:
         description: 'Run the discovery-based full API E2E tier.'
         type: boolean
@@ -46,7 +52,7 @@ on:
 # (0 jobs) and failed the deploy. The prefix keeps E2E dedup while never matching
 # a caller group.
 concurrency:
-  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  group: e2e-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && inputs.acceptance_diagnostic || 'none' }}
   cancel-in-progress: true
 
 permissions:
@@ -60,6 +66,7 @@ jobs:
   # Static source-reference inventory. Browser/API execution owns QA pass/fail.
   # This job validates inventory generation, not a route-coverage percentage.
   e2e-route-coverage:
+    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) }}
     name: E2E Route Reference Inventory
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -80,6 +87,7 @@ jobs:
   # files client mock, API E2E resolves the OSS billing provider alias, and the
   # payment integration spec uses the canonical subscription DI token.
   e2e-api:
+    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) }}
     name: API E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -156,7 +164,7 @@ jobs:
     outputs:
       partition: ${{ steps.partition.outputs.partition }}
       partition_mode: ${{ steps.partition.outputs.mode }}
-    if: (github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true
+    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && ((github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true) }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
@@ -243,7 +251,7 @@ jobs:
   # or the production workflow_call path (#3836).
   e2e-isolated-publish:
     name: Isolated Publish E2E
-    if: (github.event_name == 'schedule' && github.workflow == 'E2E Tests') || github.event_name == 'workflow_dispatch'
+    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && ((github.event_name == 'schedule' && github.workflow == 'E2E Tests') || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
@@ -313,6 +321,7 @@ jobs:
   # sources from the deploy AND-gate. Each shard is independent (fail-fast:false),
   # so "Re-run failed jobs" carries the green shards forward unchanged.
   e2e-frontend:
+    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) }}
     name: Frontend E2E (Shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -397,7 +406,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [e2e-frontend]
-    if: always()
+    if: ${{ always() && !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) }}
     permissions:
       actions: read
       contents: read
@@ -509,7 +518,7 @@ jobs:
   # Gate aggregator — the single job that represents the E2E suite's pass/fail.
   runtime-acceptance:
     name: Serial Runtime Acceptance
-    if: inputs.run_runtime_acceptance == true
+    if: ${{ (!(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && inputs.run_runtime_acceptance == true) || (github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance') && inputs.acceptance_diagnostic == 'final') }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
@@ -597,12 +606,12 @@ jobs:
           if-no-files-found: error
       - name: Confirm checked receipt and encrypted upload
         id: complete
-        if: steps.seal.outputs.result == 'passed' && steps.upload.outcome == 'success'
+        if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && steps.seal.outputs.result == 'passed' && steps.upload.outcome == 'success' }}
         run: echo 'result=passed' >> "$GITHUB_OUTPUT"
 
   agent-production-acceptance:
     name: Proactive Production Turn Acceptance
-    if: (github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true || inputs.run_runtime_acceptance == true
+    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && ((github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true || inputs.run_runtime_acceptance == true) }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -714,7 +723,7 @@ jobs:
 
   brand-acceptance:
     name: BRAND Receipt and Relocation Acceptance
-    if: (github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true || inputs.run_runtime_acceptance == true
+    if: ${{ (!(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && ((github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true || inputs.run_runtime_acceptance == true)) || (github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance') && inputs.acceptance_diagnostic == 'brand-acceptance') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -812,12 +821,12 @@ jobs:
           if-no-files-found: error
       - name: Confirm checked receipt and encrypted upload
         id: complete
-        if: steps.seal.outputs.result == 'passed' && steps.upload.outcome == 'success'
+        if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && steps.seal.outputs.result == 'passed' && steps.upload.outcome == 'success' }}
         run: echo 'result=passed' >> "$GITHUB_OUTPUT"
 
   e2e-api-full-gate:
     name: API E2E Full Gate
-    if: always() && ((github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true)
+    if: ${{ always() && !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && ((github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true) }}
     needs: [e2e-api-full, agent-production-acceptance, brand-acceptance, runtime-acceptance]
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -857,7 +866,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [e2e-route-coverage, e2e-frontend, e2e-api, runtime-acceptance]
-    if: always()
+    if: ${{ always() && !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) }}
     steps:
       - name: Check shard results
         run: |
@@ -897,7 +906,7 @@ jobs:
   # nightly.
   e2e-frontend-authed:
     name: Frontend Authed E2E (real Better Auth)
-    if: ${{ vars.E2E_AUTHED_ENABLED == 'true' }}
+    if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && (vars.E2E_AUTHED_ENABLED == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     continue-on-error: ${{ !(github.event_name == 'schedule' && github.workflow == 'E2E Tests') }}

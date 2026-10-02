@@ -4,6 +4,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { runInNewContext } from 'node:vm';
 
 import './coverage-failure-reporter.test.mjs';
 import './full-suite-evidence.test.mjs';
@@ -710,7 +711,7 @@ test('keeps E2E workflow concurrency while queueing the full reporter job', () =
 
   assert.match(
     topLevelConcurrencyBlock(workflow, 'e2e.yml'),
-    /^ {2}group: e2e-\$\{\{ github\.workflow \}\}-\$\{\{ github\.ref \}\}\n {2}cancel-in-progress: true$/m,
+    /^ {2}group: e2e-\$\{\{ github\.workflow \}\}-\$\{\{ github\.ref \}\}-\$\{\{ github\.event_name == 'workflow_dispatch' && github\.workflow == 'E2E Tests' && inputs\.acceptance_diagnostic \|\| 'none' \}\}\n {2}cancel-in-progress: true$/m,
   );
   assert.match(
     workflow,
@@ -894,7 +895,7 @@ test('serial runtime acceptance preserves ordinary E2E routing and requires rece
     .split('  workflow_call:\n')[0];
   assert.doesNotMatch(dispatch, /run_runtime_acceptance/);
   const runtime = jobBlock(workflow, 'runtime-acceptance', 'e2e.yml');
-  assert.match(runtime, /if: inputs\.run_runtime_acceptance == true/);
+  assert.match(runtime, /inputs\.run_runtime_acceptance == true/);
   assert.match(runtime, /timeout-minutes: 60/);
   assert.match(runtime, /TURBO_TOKEN: ''/);
   assert.match(
@@ -1071,7 +1072,7 @@ test('dedicated production agent and BRAND jobs preserve full-tier selection and
   const full = jobBlock(workflow, 'e2e-api-full', 'e2e.yml');
   assert.match(
     full,
-    /if: \(github.event_name == 'schedule' && github.workflow == 'E2E Tests'\) \|\| inputs\.run_api_full == true/,
+    /\(github.event_name == 'schedule' && github.workflow == 'E2E Tests'\) \|\| inputs\.run_api_full == true/,
   );
   assert.doesNotMatch(full, /if: .*run_runtime_acceptance/);
   const delegated = [
@@ -1239,7 +1240,7 @@ test('dedicated production agent and BRAND jobs preserve full-tier selection and
     );
   }
   const gate = jobBlock(workflow, 'e2e-api-full-gate', 'e2e.yml');
-  assert.match(gate, /if: always\(\) && .*inputs\.run_api_full == true/);
+  assert.match(gate, /if: \$\{\{ always\(\) && .*inputs\.run_api_full == true/);
   assert.doesNotMatch(gate, /if: .*run_runtime_acceptance/);
   assert.match(
     gate,
@@ -1271,4 +1272,208 @@ test('dedicated production agent and BRAND jobs preserve full-tier selection and
     ['API E2E Full Gate', 'e2e-api-full'],
   ])
     assert.ok(workflow.includes(`if (name === '${display}') return '${job}';`));
+});
+
+function e2eExpression(expression, context) {
+  return runInNewContext(
+    expression.replace(/needs\.([\w-]+)/g, 'needs["$1"]'),
+    {
+      ...context,
+      always: () => true,
+      cancelled: () => false,
+    },
+  );
+}
+
+function diagnosticContext(
+  event,
+  workflow,
+  diagnostic,
+  full = true,
+  runtime = false,
+) {
+  return {
+    github: { event_name: event, workflow, ref: 'refs/heads/master' },
+    inputs: {
+      acceptance_diagnostic: diagnostic,
+      run_api_full: full,
+      run_runtime_acceptance: runtime,
+    },
+    vars: { E2E_AUTHED_ENABLED: 'true' },
+    steps: {
+      seal: { outputs: { result: 'passed' } },
+      upload: { outcome: 'success' },
+    },
+    needs: {
+      'e2e-gate': { result: 'success' },
+      'e2e-frontend-authed': { result: 'success' },
+      'e2e-api-full': { result: 'success' },
+      'e2e-isolated-publish': { result: 'success' },
+      'agent-production-acceptance': { result: 'success' },
+      'brand-acceptance': { result: 'success' },
+      'e2e-api-full-gate': { result: 'success' },
+    },
+  };
+}
+
+function e2eJobCondition(workflow, job) {
+  const block = jobBlock(workflow, job, 'e2e.yml');
+  const expression = block.match(/^ {4}if: \$\{\{ (.+) \}\}$/m)?.[1];
+  assert.ok(expression, `${job} must explicitly guard diagnostic routing`);
+  return expression;
+}
+
+test('dispatch diagnostics select exactly one acceptance job without exporting release evidence', () => {
+  const workflow = readWorkflow('e2e.yml');
+  const jobs = [
+    'e2e-route-coverage',
+    'e2e-api',
+    'e2e-api-full',
+    'e2e-isolated-publish',
+    'e2e-frontend',
+    'e2e-merge-reports',
+    'runtime-acceptance',
+    'agent-production-acceptance',
+    'brand-acceptance',
+    'e2e-api-full-gate',
+    'e2e-gate',
+    'e2e-frontend-authed',
+  ];
+  for (const [diagnostic, selected] of [
+    ['final', 'runtime-acceptance'],
+    ['brand-acceptance', 'brand-acceptance'],
+  ]) {
+    const context = diagnosticContext(
+      'workflow_dispatch',
+      'E2E Tests',
+      diagnostic,
+    );
+    assert.deepEqual(
+      jobs.filter((job) =>
+        e2eExpression(e2eJobCondition(workflow, job), context),
+      ),
+      [selected],
+      `${diagnostic} must override the default run_api_full=true`,
+    );
+    for (const job of ['runtime-acceptance', 'brand-acceptance']) {
+      const block = jobBlock(workflow, job, 'e2e.yml');
+      const complete = block.split('        id: complete\n')[1];
+      const condition = complete.match(/^ {8}if: \$\{\{ (.+) \}\}$/m)?.[1];
+      assert.ok(condition);
+      assert.equal(e2eExpression(condition, context), false);
+      assert.equal(
+        e2eExpression(
+          condition,
+          diagnosticContext('workflow_dispatch', 'E2E Tests', 'none'),
+        ),
+        true,
+      );
+      assert.match(block, /CONTROL_SHA: \$\{\{ github\.sha \}\}/);
+      assert.match(block, /CANDIDATE_SHA: \$\{\{ github\.sha \}\}/);
+      assert.match(
+        block,
+        /RUNTIME_ACCEPTANCE_PUBLIC_KEY: \$\{\{ vars\.RUNTIME_ACCEPTANCE_PUBLIC_KEY \}\}/,
+      );
+      assert.match(
+        block,
+        /seal --repo "\$ACCEPTANCE_REPO" --state "\$ACCEPTANCE_STATE" --candidate-sha "\$CANDIDATE_SHA" --control-sha "\$CONTROL_SHA"/,
+      );
+      const state = job === 'runtime-acceptance' ? 'runtime-acceptance' : job;
+      assert.ok(block.includes(`/${state}/public/receipt.json`));
+      assert.ok(block.includes(`/${state}/public/evidence.encrypted.json`));
+      assert.doesNotMatch(block, /path:.*private|continue-on-error/);
+    }
+    for (const job of ['nightly-failure-report', 'nightly-recovery-report']) {
+      const block = jobBlock(workflow, job, 'e2e.yml');
+      const condition = block.match(/^ {4}if: >-\n((?: {6}.*\n)+)/m)?.[1];
+      assert.ok(condition);
+      assert.equal(e2eExpression(condition, context), false);
+    }
+  }
+});
+
+test('normal E2E defaults and callers retain every original selection predicate', () => {
+  const workflow = readWorkflow('e2e.yml');
+  const original = {
+    'e2e-route-coverage': () => true,
+    'e2e-api': () => true,
+    'e2e-frontend': () => true,
+    'e2e-merge-reports': () => true,
+    'e2e-gate': () => true,
+    'runtime-acceptance': (c) => c.inputs.run_runtime_acceptance === true,
+    'e2e-frontend-authed': (c) => c.vars.E2E_AUTHED_ENABLED === 'true',
+    'e2e-isolated-publish': (c) =>
+      (c.github.event_name === 'schedule' &&
+        c.github.workflow === 'E2E Tests') ||
+      c.github.event_name === 'workflow_dispatch',
+    'e2e-api-full': (c) =>
+      (c.github.event_name === 'schedule' &&
+        c.github.workflow === 'E2E Tests') ||
+      c.inputs.run_api_full === true,
+  };
+  original['e2e-api-full-gate'] = original['e2e-api-full'];
+  original['agent-production-acceptance'] = (c) =>
+    original['e2e-api-full'](c) || c.inputs.run_runtime_acceptance === true;
+  original['brand-acceptance'] = original['agent-production-acceptance'];
+  const cases = [
+    ['workflow_dispatch', 'E2E Tests', undefined, true, false],
+    ['workflow_dispatch', 'E2E Tests', 'none', true, false],
+    ['workflow_dispatch', 'E2E Tests', 'unknown', true, false],
+    ['workflow_dispatch', 'E2E Tests', 'none', false, false],
+    ['schedule', 'E2E Tests', undefined, false, false],
+    ['workflow_call', 'Full Suite', undefined, true, true],
+    ['workflow_dispatch', 'Full Suite', 'final', true, true],
+    ['schedule', 'Full Suite', 'brand-acceptance', false, false],
+  ];
+  for (const row of cases) {
+    const context = diagnosticContext(...row);
+    for (const [job, expected] of Object.entries(original)) {
+      assert.equal(
+        e2eExpression(e2eJobCondition(workflow, job), context),
+        expected(context),
+        `${row.join('/')} ${job}`,
+      );
+    }
+  }
+});
+
+test('diagnostic inputs stay dispatch-only and isolate concurrency from ordinary E2E', () => {
+  const workflow = readWorkflow('e2e.yml');
+  const dispatch = workflow
+    .split('  workflow_dispatch:\n')[1]
+    .split('  workflow_call:\n')[0];
+  assert.match(
+    dispatch,
+    /acceptance_diagnostic:[\s\S]*type: choice[\s\S]*default: none[\s\S]*options: \[none, final, brand-acceptance\]/,
+  );
+  assert.doesNotMatch(
+    workflow.split('  workflow_call:\n')[1].split('  schedule:\n')[0],
+    /acceptance_diagnostic/,
+  );
+  assert.doesNotMatch(readWorkflow('full-suite.yml'), /acceptance_diagnostic/);
+  const group = topLevelConcurrencyBlock(workflow, 'e2e.yml').match(
+    /^ {2}group: (.+)$/m,
+  )?.[1];
+  assert.ok(group);
+  const render = (context) =>
+    group.replace(/\$\{\{ (.+?) \}\}/g, (_match, expression) =>
+      e2eExpression(expression, context),
+    );
+  const normal = render(
+    diagnosticContext('workflow_dispatch', 'E2E Tests', 'none'),
+  );
+  assert.equal(
+    render(diagnosticContext('workflow_dispatch', 'E2E Tests', undefined)),
+    normal,
+  );
+  const final = render(
+    diagnosticContext('workflow_dispatch', 'E2E Tests', 'final'),
+  );
+  const brand = render(
+    diagnosticContext('workflow_dispatch', 'E2E Tests', 'brand-acceptance'),
+  );
+  assert.equal(new Set([normal, final, brand]).size, 3);
+  assert.ok(normal.endsWith('-none'));
+  assert.ok(final.endsWith('-final'));
+  assert.ok(brand.endsWith('-brand-acceptance'));
 });
