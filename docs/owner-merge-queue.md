@@ -38,9 +38,17 @@ between the controller's read and merge request.
 Otherwise green PRs behind master receive one normal branch update with
 `expected_head_sha`, then wait for fresh CI. Up-to-date PRs are read again and
 merged with the expected head SHA. Each serialized sweep makes at most one
-update or merge. Conflicts, changed heads, API failures or missing configuration
-leave the PR open. Workflow-completion and PR metadata events trigger sweeps;
+update or merge. A current-base PR with active CI pauses further branch updates.
+Conflicts, changed heads, API failures or missing configuration
+leave the PR open. Workflow-completion, external status/check and PR metadata events trigger sweeps;
 the ten-minute schedule reconciles delayed external checks and thread changes.
+Before admission, the controller cleans up at most five verified obsolete
+owner PR CI runs. It re-reads head identity and run associations and preserves
+any run still needed by another open PR. Ordinary cancellation handles queued
+runs; force cancellation handles obsolete running runs or cancelled workers
+with a stranded queued Tests Gate. Push, merge-group, release, dispatch and
+scheduled runs are never cancelled. Current-head gates remain unchanged.
+
 GitHub schedules may be delayed, so ten minutes is not a merge latency promise.
 GitHub also suppresses some `check_run` triggers when the head is associated
 with Actions; the scheduled reconciliation remains necessary for those events.

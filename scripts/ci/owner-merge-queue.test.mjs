@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   admission,
+  cancelSuperseded,
   checksReady,
   OWNER_ID,
   REPOSITORY,
@@ -468,4 +469,195 @@ test('waits for an active current-base CI lane before updating another green beh
     mock.calls.some((call) => ['merge', 'update'].includes(call.name)),
     false,
   );
+});
+
+function cleanupClient({
+  queued = false,
+  stranded = false,
+  reusable = false,
+  restore = false,
+  completed = false,
+  shared = false,
+  runs = 1,
+  mutate = () => {},
+} = {}) {
+  const pr = fixture().pr;
+  pr.head.ref = 'owner-branch';
+  const stale = {
+    id: 10,
+    event: 'pull_request',
+    path: reusable
+      ? '.github/workflows/pr-heavy-ci.yml'
+      : '.github/workflows/ci.yml',
+    status: queued ? 'queued' : 'in_progress',
+    head_branch: pr.head.ref,
+    head_sha: 'obsolete',
+    repository: { id: REPOSITORY.id },
+    head_repository: { id: REPOSITORY.id },
+    pull_requests: [{ number: 1 }],
+  };
+  mutate(pr, stale);
+  const pulls = shared
+    ? [pr, { ...pr, number: 2, head: { ...pr.head, sha: 'obsolete' } }]
+    : [pr];
+  const calls = [];
+  let prReads = 0,
+    runReads = 0;
+  const operation = (name) =>
+    Object.assign(
+      async (args) => {
+        calls.push({ name, args });
+        return {};
+      },
+      { operation: name },
+    );
+  const github = {
+    rest: {
+      actions: {
+        listWorkflowRunsForRepo: { operation: 'runs' },
+        listJobsForWorkflowRun: { operation: 'jobs' },
+        getWorkflowRun: async ({ run_id }) => ({
+          data: {
+            ...stale,
+            id: run_id,
+            status: completed && ++runReads > 1 ? 'completed' : stale.status,
+          },
+        }),
+        cancelWorkflowRun: operation('cancel'),
+        forceCancelWorkflowRun: operation('force'),
+      },
+      pulls: {
+        get: async () => ({
+          data: {
+            ...pr,
+            head: {
+              ...pr.head,
+              sha: restore && ++prReads > 1 ? 'obsolete' : pr.head.sha,
+            },
+          },
+        }),
+      },
+    },
+    paginate: async (method, args) =>
+      method.operation === 'jobs'
+        ? stranded
+          ? [
+              { conclusion: 'cancelled' },
+              {
+                name: reusable ? 'Run Heavy CI / Tests Gate' : 'Tests Gate',
+                status: 'queued',
+              },
+            ]
+          : []
+        : args.status === stale.status
+          ? Array.from({ length: runs }, (_, index) => ({
+              ...stale,
+              id: stale.id + index,
+            }))
+          : [],
+  };
+  return { github, pulls, calls };
+}
+
+test('cancels stale running CI and stranded gates but ordinarily cancels queued CI', async () => {
+  for (const options of [
+    {},
+    { queued: true },
+    { queued: true, stranded: true },
+    { queued: true, stranded: true, reusable: true },
+  ]) {
+    const mock = cleanupClient(options);
+    await cancelSuperseded({ ...mock, log: () => {} });
+    assert.equal(mock.calls.length, 1);
+    assert.equal(
+      mock.calls[0].name,
+      options.queued && !options.stranded ? 'cancel' : 'force',
+    );
+  }
+});
+
+test('superseded cleanup preserves current, shared, restored, foreign and non-PR verification', async () => {
+  const cases = [
+    { restore: true },
+    { completed: true },
+    { shared: true },
+    {
+      mutate: (pr, run) => {
+        run.head_sha = pr.head.sha;
+      },
+    },
+    {
+      mutate: (pr) => {
+        pr.user.id++;
+      },
+    },
+    {
+      mutate: (pr) => {
+        pr.head.repo.id++;
+      },
+    },
+    {
+      mutate: (_pr, run) => {
+        run.head_repository.id++;
+      },
+    },
+    {
+      mutate: (_pr, run) => {
+        run.repository.id++;
+      },
+    },
+    {
+      mutate: (_pr, run) => {
+        run.event = 'push';
+      },
+    },
+    {
+      mutate: (_pr, run) => {
+        run.event = 'merge_group';
+      },
+    },
+    {
+      mutate: (_pr, run) => {
+        run.path = '.github/workflows/release.yml';
+      },
+    },
+    {
+      mutate: (_pr, run) => {
+        run.pull_requests = [];
+      },
+    },
+    {
+      mutate: (_pr, run) => {
+        run.head_branch = 'other';
+      },
+    },
+  ];
+  for (const options of cases) {
+    const mock = cleanupClient(options);
+    await cancelSuperseded({ ...mock, log: () => {} });
+    assert.equal(mock.calls.length, 0);
+  }
+});
+
+test('bounds cleanup to five cancellation requests per sweep', async () => {
+  const mock = cleanupClient({ runs: 9 });
+  await cancelSuperseded({ ...mock, log: () => {} });
+  assert.equal(mock.calls.length, 5);
+});
+
+test('counts completed-between-reads errors against the cancellation budget', async () => {
+  const mock = cleanupClient({ runs: 9 });
+  const get = mock.github.rest.actions.getWorkflowRun;
+  const attempted = new Set();
+  mock.github.rest.actions.forceCancelWorkflowRun = async ({ run_id }) => {
+    attempted.add(run_id);
+    throw new Error('already completed');
+  };
+  mock.github.rest.actions.getWorkflowRun = async (args) => {
+    const value = await get(args);
+    if (attempted.has(args.run_id)) value.data.status = 'completed';
+    return value;
+  };
+  await cancelSuperseded({ ...mock, log: () => {} });
+  assert.equal(attempted.size, 5);
 });

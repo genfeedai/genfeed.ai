@@ -234,6 +234,122 @@ async function snapshot(github, number) {
   };
 }
 
+export async function cancelSuperseded({ github, pulls, log = console.log }) {
+  const args = { owner: REPOSITORY.owner, repo: REPOSITORY.repo };
+  const active = (
+    await Promise.all(
+      ['queued', 'in_progress'].map((status) =>
+        github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
+          ...args,
+          event: 'pull_request',
+          status,
+          per_page: 100,
+        }),
+      ),
+    )
+  ).flat();
+  let count = 0;
+  for (const run of active) {
+    if (count >= 5) break;
+    const belongs = (value, pr) =>
+      value.event === 'pull_request' &&
+      value.repository?.id === REPOSITORY.id &&
+      value.head_repository?.id === REPOSITORY.id &&
+      [
+        '.github/workflows/ci.yml',
+        '.github/workflows/pr-heavy-ci.yml',
+      ].includes(value.path?.split('@')[0]) &&
+      value.head_branch === pr.head.ref &&
+      value.pull_requests?.some(
+        (association) => association.number === pr.number,
+      );
+    const identity = (pr) =>
+      pr.state === 'open' &&
+      pr.user?.id === OWNER_ID &&
+      pr.base?.ref === 'master' &&
+      pr.base.repo?.id === REPOSITORY.id &&
+      pr.head.repo?.id === REPOSITORY.id;
+    const candidate = pulls.find(
+      (pr) => identity(pr) && belongs(run, pr) && pr.head.sha !== run.head_sha,
+    );
+    if (!candidate || pulls.some((pr) => pr.head.sha === run.head_sha))
+      continue;
+    const [{ data: fresh }, { data: pr }] = await Promise.all([
+      github.rest.actions.getWorkflowRun({ ...args, run_id: run.id }),
+      github.rest.pulls.get({ ...args, pull_number: candidate.number }),
+    ]);
+    if (
+      !identity(pr) ||
+      !belongs(fresh, pr) ||
+      fresh.head_sha === pr.head.sha ||
+      fresh.head_sha !== run.head_sha ||
+      !['queued', 'in_progress'].includes(fresh.status)
+    )
+      continue;
+    // Another PR can share this commit; re-read all associations before cancelling.
+    let needed = false;
+    for (const association of fresh.pull_requests) {
+      const { data: associated } = await github.rest.pulls.get({
+        ...args,
+        pull_number: association.number,
+      });
+      if (associated.state === 'open' && associated.head.sha === fresh.head_sha)
+        needed = true;
+    }
+    if (needed) continue;
+    let force = fresh.status === 'in_progress';
+    if (!force) {
+      const jobs = await github.paginate(
+        github.rest.actions.listJobsForWorkflowRun,
+        { ...args, run_id: fresh.id, per_page: 100 },
+      );
+      force =
+        jobs.some((job) => job.conclusion === 'cancelled') &&
+        jobs.some(
+          (job) =>
+            ['Tests Gate', 'Run Heavy CI / Tests Gate'].includes(job.name) &&
+            job.status === 'queued',
+        );
+    }
+    // Last read: the cancellation API has no expected-head option. Cancellation
+    // can only leave checks blocking if an old head is concurrently restored.
+    const [{ data: lastPr }, { data: lastRun }] = await Promise.all([
+      github.rest.pulls.get({ ...args, pull_number: candidate.number }),
+      github.rest.actions.getWorkflowRun({ ...args, run_id: fresh.id }),
+    ]);
+    if (
+      !identity(lastPr) ||
+      !belongs(lastRun, lastPr) ||
+      lastPr.head.sha === lastRun.head_sha ||
+      lastRun.head_sha !== fresh.head_sha ||
+      !['queued', 'in_progress'].includes(lastRun.status)
+    )
+      continue;
+    count++;
+    try {
+      if (force)
+        await github.rest.actions.forceCancelWorkflowRun({
+          ...args,
+          run_id: fresh.id,
+        });
+      else
+        await github.rest.actions.cancelWorkflowRun({
+          ...args,
+          run_id: fresh.id,
+        });
+      log(
+        `#${candidate.number}: requested ${force ? 'force ' : ''}cancellation of obsolete CI ${fresh.id} (${fresh.head_sha} → ${lastPr.head.sha})`,
+      );
+    } catch (error) {
+      const { data: final } = await github.rest.actions.getWorkflowRun({
+        ...args,
+        run_id: fresh.id,
+      });
+      if (final.status !== 'completed') throw error;
+    }
+  }
+}
+
 export async function reconcile({
   github,
   mode,
@@ -265,6 +381,7 @@ export async function reconcile({
     direction: 'asc',
     per_page: 100,
   });
+  await cancelSuperseded({ github, pulls, log });
   const snapshots = [];
   for (const candidate of pulls) {
     if (candidate.user?.id === OWNER_ID && !candidate.draft)
