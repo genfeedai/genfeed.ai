@@ -84,6 +84,8 @@ describe('AnalyticsMetricInfo with real translated primitives', () => {
     await user.hover(trigger);
     expect(await screen.findByRole('tooltip')).toHaveTextContent(cases[7][2]);
     await user.unhover(trigger);
+    // Leave Radix's hoverable-content grace area as well as the trigger.
+    fireEvent.pointerMove(document.body, { clientX: 1000, clientY: 1000 });
     await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
     act(() => trigger.focus());
     await screen.findByRole('tooltip');

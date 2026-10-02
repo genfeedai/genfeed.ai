@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -153,8 +153,10 @@ describe('AnalyticsAccounts', () => {
         .filter(([node]) => node !== null)
         .at(-1)?.[0] as ReactNode;
     const toolbar = render(latestToolbar());
-    await user.click(screen.getByRole('combobox', { name: 'Rank by metric' }));
-    await user.click(screen.getByRole('option', { name: 'Posts' }));
+    act(() => screen.getByRole('combobox', { name: 'Rank by metric' }).focus());
+    await user.keyboard('{ArrowDown}');
+    await screen.findByRole('option', { name: 'Posts' });
+    await user.keyboard('{End}{Enter}');
     await waitFor(() =>
       expect(
         screen.getAllByRole('button', { name: 'About Posts' }),
@@ -162,8 +164,10 @@ describe('AnalyticsAccounts', () => {
     );
     expect(screen.queryByRole('button', { name: 'About Views' })).toBeNull();
     toolbar.rerender(latestToolbar());
-    await user.click(screen.getByRole('combobox', { name: 'Rank by metric' }));
-    await user.click(screen.getByRole('option', { name: 'Followers' }));
+    act(() => screen.getByRole('combobox', { name: 'Rank by metric' }).focus());
+    await user.keyboard('{ArrowDown}');
+    await screen.findByRole('option', { name: 'Followers' });
+    await user.keyboard('{Home}{ArrowDown}{Enter}');
     await waitFor(() =>
       expect(
         screen.getAllByRole('button', { name: 'About Posts' }),
