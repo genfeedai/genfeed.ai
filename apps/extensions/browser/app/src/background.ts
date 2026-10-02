@@ -26,6 +26,10 @@ import {
   setCaptureBrand,
 } from '~services/knowledge-capture.service';
 import {
+  handlePublicationCaptureMessage,
+  initializePublicationCapture,
+} from '~services/publication-capture.service';
+import {
   assertWorkspace,
   loadWorkspace,
   requireWorkspace,
@@ -47,6 +51,7 @@ type SendResponse = (response?: Record<string, unknown>) => void;
 const API_BASE = apiEndpoint;
 
 initializeErrorTracking('background');
+initializePublicationCapture();
 
 // Open side panel on action click
 chrome.sidePanel
@@ -285,7 +290,14 @@ async function executeAuthenticatedRequest<T>(
 
 // Listen for messages from content scripts and popup
 // Returning true keeps Chrome's response channel open for asynchronous handlers.
-chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (
+    typeof request?.event === 'string' &&
+    request.event.startsWith('publicationCapture')
+  ) {
+    void handlePublicationCaptureMessage(request, sender).then(sendResponse);
+    return true;
+  }
   const captureHandlers: Record<string, () => Promise<unknown>> = {
     captureBrand: () => getCaptureBrand(),
     captureSetBrand: () => setCaptureBrand(request.brandId),

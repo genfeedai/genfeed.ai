@@ -1,3 +1,4 @@
+import { attachXPublicationObserver } from '~platforms/x-publication-observer';
 // Multi-platform content script for Genfeed Extension
 
 import {
@@ -25,6 +26,7 @@ const DEBOUNCE_DELAY_MS = 300;
 const NAVIGATION_DELAY_MS = 100;
 const TOAST_DURATION_MS = 3200;
 
+let stopPublicationObserver: (() => void) | null = null;
 let currentPlatform: PlatformConfig | null = null;
 let observer: MutationObserver | null = null;
 let injectTimeout: NodeJS.Timeout | null = null;
@@ -185,6 +187,8 @@ function cleanup(): void {
 }
 
 function checkAndReinitialize(): void {
+  stopPublicationObserver?.();
+  stopPublicationObserver = attachXPublicationObserver();
   const newPlatform = getCurrentPlatform();
   // Re-initialize if platform changed or if we need to re-check
   if (newPlatform !== currentPlatform) {
@@ -373,6 +377,8 @@ document.addEventListener('keydown', (event: KeyboardEvent) => {
 });
 
 // Initial setup
+stopPublicationObserver = attachXPublicationObserver();
+window.addEventListener('pagehide', () => stopPublicationObserver?.());
 watchContentTheme();
 setupNavigationListeners();
 initializePlatformIntegration();

@@ -1,6 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  publication: vi.fn().mockResolvedValue({ success: false, error: 'Rejected' }),
   workspaceBrand: 'brand-1' as string | null,
   execute: vi.fn(),
   generateText: vi.fn(),
@@ -8,6 +9,10 @@ const mocks = vi.hoisted(() => ({
   fetch: vi.fn(),
   addListener: vi.fn(),
   openPanel: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('~services/publication-capture.service', () => ({
+  initializePublicationCapture: vi.fn(),
+  handlePublicationCaptureMessage: mocks.publication,
 }));
 vi.mock('~services/auth.service', () => ({
   authService: { getToken: mocks.getToken },
@@ -385,4 +390,20 @@ vi.mock('~services/workspace.service', async () => {
       });
     },
   };
+});
+
+it('routes publication capture only once through the strict handler with the actual sender', async () => {
+  const respond = vi.fn();
+  const sender = {
+    id: 'test',
+    tab: { id: 1 },
+    frameId: 0,
+    url: 'https://x.com/home',
+  };
+  const request = { event: 'publicationCaptureContext' };
+  expect(backgroundListener(request, sender, respond)).toBe(true);
+  await vi.waitFor(() => expect(respond).toHaveBeenCalled());
+  expect(mocks.publication).toHaveBeenCalledWith(request, sender);
+  expect(mocks.execute).not.toHaveBeenCalled();
+  expect(mocks.generateText).not.toHaveBeenCalled();
 });

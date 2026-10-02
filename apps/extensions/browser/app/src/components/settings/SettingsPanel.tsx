@@ -1,9 +1,9 @@
 import type { ReactElement } from 'react';
-
 import { AutoFillToggle } from '~components/settings/AutoFillToggle';
 import { BrandSelector } from '~components/settings/BrandSelector';
 import { ConnectedAccounts } from '~components/settings/ConnectedAccounts';
 import { OrganizationSelector } from '~components/settings/OrganizationSelector';
+import { PublicationRecordingSettings } from '~components/settings/PublicationRecordingSettings';
 import { ThemeSelector } from '~components/settings/ThemeSelector';
 import { useSettingsStore } from '~store/use-settings-store';
 import { useWorkspaceStore } from '~store/use-workspace-store';
@@ -25,7 +25,6 @@ export function SettingsPanel(): ReactElement {
           </h3>
           {workspace.status === 'ready' && (
             <p className="text-xs text-muted-foreground">
-              {workspace.snapshot.userId} ·{' '}
               {workspace.snapshot.organizationLabel}
             </p>
           )}
@@ -53,6 +52,7 @@ export function SettingsPanel(): ReactElement {
             <div className="space-y-3">
               <ThemeSelector />
               <AutoFillToggle />
+              <PublicationRecordingSettings />
             </div>
           ) : (
             <p className="text-xs text-muted-foreground" role="status">

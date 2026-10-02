@@ -22,6 +22,7 @@ function normalizeRoute(route: string): string {
     .replace(/\$\{[^}]+\}/g, ':param')
     .split('?')[0]
     .replace(/:[^/]+/g, ':param')
+    .replace(/agent-tools\/[^/]+\/execute$/, 'agent-tools/:param/execute')
     .replace(/^\/|\/$/g, '');
 }
 
@@ -118,6 +119,7 @@ describe('extension API route contract', () => {
       'services/auth.service.ts',
       'services/agent-tools.service.ts',
       'services/library.service.ts',
+      'services/publication-capture.service.ts',
       'services/theme-settings.service.ts',
       'services/social-post-import.service.ts',
       'components/settings/ConnectedAccounts.tsx',
