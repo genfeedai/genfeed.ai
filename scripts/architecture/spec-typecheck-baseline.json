@@ -7121,14 +7121,6 @@
       "workspace": "pages"
     },
     {
-      "code": 2339,
-      "count": 1,
-      "file": "packages/pages/brands/components/brand-kit/BrandOsSettingsCard.test.tsx",
-      "fingerprint": "0311756a005225ea03ce",
-      "message": "Property 'MEMBER' does not exist on type 'typeof MemberRole'.",
-      "workspace": "pages"
-    },
-    {
       "code": 2769,
       "count": 1,
       "file": "packages/pages/brands/components/brand-kit/BrandOsSettingsCard.test.tsx",
