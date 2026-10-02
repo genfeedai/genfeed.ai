@@ -870,8 +870,13 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
     });
     expect(runtimeRecord(settled.config)).toMatchObject({
       creditsUsedToday: 2,
-      totalRuns: 2,
     });
+    const history = runtimeRecord(settled.config).runHistory;
+    expect(history).toHaveLength(2);
+    expect(history).toEqual([
+      expect.objectContaining({ executionId: first.id }),
+      expect.objectContaining({ executionId: secondId }),
+    ]);
     expect(
       await fixture.prisma.agentStrategy.findUnique({
         where: { id: paused.id },
