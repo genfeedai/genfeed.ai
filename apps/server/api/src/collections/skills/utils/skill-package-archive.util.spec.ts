@@ -119,6 +119,7 @@ describe('parseSkillPackageArchive', () => {
     'a/../b.md',
     'a\u0000.md',
     'a\n.md',
+    'a\u0085.md',
     'script.sh',
     'image.png',
     'metadata.JSON',
