@@ -333,34 +333,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
+      - name: Build app for Playwright
+        uses: ./.github/actions/setup-playwright-app
         with:
-          cache-playwright: "true"
-
-      - name: Build app
-        run: bunx turbo run build --filter=@genfeedai/app
-        env:
-          # Build the app in Playwright test mode. This NEXT_PUBLIC_* flag is
-          # inlined at build time and is the master switch for the proxy.ts auth
-          # bypass (middleware can't read a plain server env at request time on
-          # edge) and disables live sockets (use-socket-manager).
-          NEXT_PUBLIC_PLAYWRIGHT_TEST: "true"
-          # The mocked core suite exercises the clean Community routes below
-          # (for example /studio/clips). Explicitly pin that deployment mode so
-          # the hosted mock API endpoint cannot make getDeployment() select the
-          # SaaS shell and remove Community-only rewrites at build time.
-          NEXT_PUBLIC_GENFEED_CLOUD: "false"
-          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
-          NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
-          # Correct var name (app reads NEXT_PUBLIC_API_ENDPOINT, not _API_URL).
-          # NEXT_PUBLIC_* is inlined at build time. Point at the prod host the
-          # api-interceptor mocks; localhost:3010 is NOT intercepted.
-          NEXT_PUBLIC_API_ENDPOINT: https://api.genfeed.ai/v1
-          # Browser source maps (next.config gates on this): the network guard
-          # symbolicates uncaught page errors so a production-build crash names
-          # its real source file instead of a minified chunk position.
-          E2E_COVERAGE: "1"
+          better-auth-secret: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
+          better-auth-enabled: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
 
       - name: Run core E2E shard ${{ matrix.shard }}/4
         # --reporter=blob (passed inline, overriding the config reporter) so the
@@ -945,22 +922,12 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
+      - name: Build app with real Better Auth (bypass off)
+        uses: ./.github/actions/setup-playwright-app
         with:
-          install-command: "bun install"
-          cache-playwright: "true"
-
-      - name: Build app (real Better Auth client, bypass OFF)
-        run: bunx turbo run build --filter=@genfeedai/app
-        env:
-          # CRUCIAL: build with the bypass flag OFF so the app uses the real
-          # Better Auth browser session path. NEXT_PUBLIC_* is inlined at build
-          # time, so this MUST be set here — not just at runtime.
-          NEXT_PUBLIC_PLAYWRIGHT_TEST: "false"
-          NEXT_PUBLIC_BETTER_AUTH_ENABLED: "true"
-          # Point the app (client + proxy.ts) at the job-local API.
-          NEXT_PUBLIC_API_ENDPOINT: http://localhost:3010/v1
+          test-mode: 'false'
+          api-endpoint: http://localhost:3010/v1
+          better-auth-secret: ${{ env.BETTER_AUTH_SECRET }}
 
       - name: Build API (compiled bundle)
         run: bunx turbo run build --filter=@genfeedai/api
@@ -1100,7 +1067,7 @@ jobs:
           RUN_ATTEMPT: ${{ github.run_attempt }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
-          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
+          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN || github.token }}
           script: |
             const repositoryGithub = getOctokit(process.env.REPOSITORY_TOKEN);
             const path = require('node:path');

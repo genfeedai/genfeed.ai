@@ -1,4 +1,4 @@
-name: Deploy hosted SaaS Vercel frontends
+name: Deploy hosted SaaS Vercel frontends (reusable)
 
 # Canonical production deploy path for Vercel-hosted frontends.
 # Vercel Git auto-deploy is disabled in each app's vercel.json; production

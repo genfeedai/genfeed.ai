@@ -1,5 +1,4 @@
 {
-  "_status": "DISABLED - Not actively developed",
   "build": {
     "development": {
       "android": {
@@ -28,7 +27,6 @@
     },
     "production": {
       "android": {
-        "applicationId": "ai.genfeed.mobile",
         "buildType": "app-bundle"
       },
       "channel": "production",
@@ -37,36 +35,11 @@
         "NODE_ENV": "production"
       },
       "ios": {
-        "bundleIdentifier": "ai.genfeed.mobile",
         "simulator": false
       }
     }
   },
   "cli": {
     "version": ">= 5.9.0"
-  },
-  "submit": {
-    "preview": {
-      "android": {
-        "serviceAccountKeyPath": "./google-service-account.json",
-        "track": "internal"
-      },
-      "ios": {
-        "appleId": "your-apple-id@example.com",
-        "appleTeamId": "your-apple-team-id",
-        "ascAppId": "your-app-store-connect-app-id"
-      }
-    },
-    "production": {
-      "android": {
-        "serviceAccountKeyPath": "./google-service-account.json",
-        "track": "production"
-      },
-      "ios": {
-        "appleId": "your-apple-id@example.com",
-        "appleTeamId": "your-apple-team-id",
-        "ascAppId": "your-app-store-connect-app-id"
-      }
-    }
   }
 }

@@ -25,6 +25,12 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [];
 /** Specs owned by other execution lanes, not broken-test quarantines. */
 export const PLAYWRIGHT_E2E_LANE_EXCLUSIONS = [
   {
+    lane: 'desktop-runtime',
+    file: 'playwright/e2e/tests/desktop/desktop-runtime-electron.spec.ts',
+    reason:
+      'Requires the built Electron app and isolated loopback shell. Desktop QA executes playwright-desktop-runtime-electron.config.ts weekly, manually, and before desktop releases.',
+  },
+  {
     lane: 'authed',
     file: 'playwright/e2e/tests/smoke/all-app-pages.authed.spec.ts',
     reason:

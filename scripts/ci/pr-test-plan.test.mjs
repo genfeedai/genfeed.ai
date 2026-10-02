@@ -63,7 +63,7 @@ test('classifies docs, workflows, and CI scripts as out of the product test matr
   for (const file of [
     '.agents/memory/MEMORY.md',
     '.github/workflows/ci.yml',
-    '.github/workflows/pr-full-suite.yml',
+    '.github/workflows/pr-heavy-ci.yml',
     'package.json',
     'scripts/ci/executable-contracts.test.ts',
     'scripts/ci/ci-concurrency.test.ts',
