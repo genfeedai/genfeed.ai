@@ -8,6 +8,7 @@ import { CrunQuoteService } from '@api/services/integrations/crun/crun-quote.ser
 import type { CrunFrozenVideoQuote } from '@api/services/integrations/crun/crun-task.schema';
 import { CrunTaskService } from '@api/services/integrations/crun/crun-task.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ModelCategory } from '@genfeedai/contracts';
 import type {
   CrunGenerationQuoteResponse,
   CrunQuoteReasonCode,
@@ -207,7 +208,7 @@ export class CrunVideoPreviewQuoteService {
       !model?.isActive ||
       model.isDeleted ||
       model.provider !== 'crun' ||
-      model.category !== 'VIDEO' ||
+      model.category !== ModelCategory.VIDEO ||
       model.pendingProviderContractVersion ||
       model.reviewedProviderContractVersion !== frozen.contractVersion
     )

@@ -139,7 +139,7 @@ describe('Crun deterministic image preparation', () => {
       parentArticleId: null,
     });
     const result = await f.service.prepare(
-      { ...f.raw, references: [imageId, assetId, imageId] },
+      { ...f.raw, references: [imageId, assetId] },
       user,
     );
     expect(result.isAvailable).toBe(true);
@@ -147,7 +147,6 @@ describe('Crun deterministic image preparation', () => {
     expect(result.data.preparation.request.input.img_urls).toEqual([
       `https://owned.fixture.test/images/${imageId}`,
       `https://cdn.fixture.test/references/${assetId}`,
-      `https://owned.fixture.test/images/${imageId}`,
     ]);
     expect(f.assets.findOne).toHaveBeenCalledWith({
       id: assetId,
@@ -163,6 +162,17 @@ describe('Crun deterministic image preparation', () => {
       },
       select: { id: true },
     });
+  });
+  it('rejects duplicate selected references before resolving or rendering', async () => {
+    const f = fixture();
+    const imageId = 'c2345678901234567890123456';
+    await expect(
+      f.service.prepare({ ...f.raw, references: [imageId, imageId] }, user),
+    ).rejects.toMatchObject({ response: { code: 'CRUN_INVALID_INPUT' } });
+    expect(f.ingredients.findOne).not.toHaveBeenCalled();
+    expect(f.assets.findOne).not.toHaveBeenCalled();
+    expect(f.builder.buildPrompt).not.toHaveBeenCalled();
+    expect(f.tasks.resolveCredential).not.toHaveBeenCalled();
   });
   it.each([0, 1])(
     'prepares exact reviewed controls for launch model %s with one deterministic render',

@@ -1,6 +1,7 @@
 import { CrunVideoPreviewQuoteService } from '@api/collections/videos/services/crun-video-preview-quote.service';
 import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
+import { ModelCategory } from '@genfeedai/contracts';
 import {
   getRuntimeMarginMultiplier,
   quoteModelBillablePricing,
@@ -185,7 +186,7 @@ describe('Crun scoped video preview freshness', () => {
       isActive: true,
       isDeleted: false,
       provider: 'crun',
-      category: 'VIDEO',
+      category: ModelCategory.VIDEO,
       reviewedProviderContractVersion: 'reviewed',
       pendingProviderContractVersion: null,
     });
@@ -239,7 +240,7 @@ describe('Crun scoped video preview freshness', () => {
       if (reason === 'disabled')
         f.tasks.isAdmissionEnabled.mockReturnValue(false);
       if (reason === 'category')
-        f.models.findOne.mockResolvedValue({ category: 'IMAGE' });
+        f.models.findOne.mockResolvedValue({ category: ModelCategory.IMAGE });
       if (reason === 'pending')
         f.models.findOne.mockResolvedValue({
           pendingProviderContractVersion: 'new',
