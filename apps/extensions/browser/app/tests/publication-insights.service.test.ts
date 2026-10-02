@@ -317,3 +317,166 @@ describe('canonical scoped transport', () => {
     );
   });
 });
+
+describe('HTTP status before body decoding', () => {
+  it.each([401, 403, 404, 429, 500])(
+    'keeps list status%s for empty/HTML bodies without decoding',
+    async (status) => {
+      for (const body of ['', '<html>private provider error</html>']) {
+        const response = new Response(body, { status });
+        const decode = vi.spyOn(response, 'json');
+        transport.request.mockResolvedValue(response);
+        await expect(
+          loadPublicationInsightPage(lookup, 1, options),
+        ).rejects.toMatchObject({
+          code:
+            status === 401 || status === 403
+              ? 'forbidden'
+              : status === 404
+                ? 'unavailable'
+                : 'request-failed',
+          status,
+          message:
+            status === 401 || status === 403
+              ? 'Your account or workspace changed. Retry after workspace synchronization.'
+              : status === 404
+                ? 'Insights are not available on this server yet. Retry after Genfeed is updated.'
+                : 'Could not load this publication. Retry.',
+        });
+        expect(decode).not.toHaveBeenCalled();
+      }
+    },
+  );
+  it.each(['', '<html>private provider error</html>'])(
+    'preserves detail404, link409 and refresh429 for nonJSON %s',
+    async (body) => {
+      const deleted = new Response(body, { status: 404 });
+      const deletedDecode = vi.spyOn(deleted, 'json');
+      transport.request.mockResolvedValue(deleted);
+      await expect(
+        loadPublicationInsight('post-1', options),
+      ).rejects.toMatchObject({
+        code: 'not-found',
+        status: 404,
+        message: 'This publication is no longer available.',
+      });
+      expect(deletedDecode).not.toHaveBeenCalled();
+      const conflict = new Response(body, { status: 409 });
+      const conflictDecode = vi.spyOn(conflict, 'json');
+      transport.request.mockResolvedValue(conflict);
+      await expect(
+        linkPublicationInsightCredential(insight(), 'account-1', options),
+      ).rejects.toMatchObject({
+        code: 'request-failed',
+        status: 409,
+        message:
+          'Could not link this account. Reload this publication and choose a matching account.',
+      });
+      expect(conflictDecode).not.toHaveBeenCalled();
+      const limited = new Response(body, { status: 429 });
+      const limitedDecode = vi.spyOn(limited, 'json');
+      transport.request.mockResolvedValue(limited);
+      await expect(
+        refreshPublicationInsight(insight(), options),
+      ).rejects.toMatchObject({
+        code: 'rate-limited',
+        status: 429,
+        message:
+          'Analytics can only be refreshed once per hour. Try again later.',
+      });
+      expect(limitedDecode).toHaveBeenCalledTimes(1);
+    },
+  );
+  it.each([1, 60])(
+    'accepts finite nested canonical429 detail%s',
+    async (minutes) => {
+      respond(
+        {
+          errors: [
+            {
+              detail: `Analytics can only be refreshed once per hour. Please try again in ${minutes} minutes.`,
+            },
+          ],
+        },
+        429,
+      );
+      await expect(
+        refreshPublicationInsight(insight(), options),
+      ).rejects.toThrow(`Please try again in ${minutes} minutes.`);
+    },
+  );
+  it.each([0, 61])(
+    'does not trust out-of-range429 minutes%s',
+    async (minutes) => {
+      respond(
+        {
+          detail: `Analytics can only be refreshed once per hour. Please try again in ${minutes} minutes.`,
+        },
+        429,
+      );
+      await expect(
+        refreshPublicationInsight(insight(), options),
+      ).rejects.toThrow(
+        'Analytics can only be refreshed once per hour. Try again later.',
+      );
+    },
+  );
+  it.each(['', '<html>private provider error</html>'])(
+    'rejects malformed200 for all operations without manufacturing success: %s',
+    async (body) => {
+      for (const call of [
+        () => loadPublicationInsightPage(lookup, 1, options),
+        () => loadPublicationInsight('post-1', options),
+        () => refreshPublicationInsight(insight(), options),
+        () => linkPublicationInsightCredential(insight(), 'account-1', options),
+      ]) {
+        transport.request.mockResolvedValue(
+          new Response(body, { status: 200 }),
+        );
+        await expect(call()).rejects.toMatchObject({
+          code: 'request-failed',
+          status: null,
+        });
+      }
+    },
+  );
+  it.each([
+    ['abort', 'reject'],
+    ['abort', 'resolve'],
+    ['scope', 'reject'],
+    ['scope', 'resolve'],
+  ] as const)(
+    'preserves %s fencing when optional429 decoding %s',
+    async (mode, settlement) => {
+      const controller = new AbortController();
+      let fail: (error: Error) => void = () => undefined;
+      let finish: (value: unknown) => void = () => undefined;
+      transport.request.mockResolvedValue({
+        ok: false,
+        status: 429,
+        json: () =>
+          new Promise((resolve, reject) => {
+            fail = reject;
+            finish = resolve;
+          }),
+      });
+      const pending = refreshPublicationInsight(insight(), {
+        snapshot,
+        signal: controller.signal,
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+      if (mode === 'abort') controller.abort();
+      else
+        transport.assert.mockImplementation(() => {
+          throw new Error('scope changed');
+        });
+      if (settlement === 'reject') fail(new Error('untrusted decode'));
+      else finish({ detail: 'untrusted provider body' });
+      await expect(pending).rejects.toThrow(
+        mode === 'scope' ? 'scope changed' : undefined,
+      );
+      expect(transport.request).toHaveBeenCalledTimes(1);
+    },
+  );
+});

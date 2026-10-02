@@ -286,3 +286,129 @@ describe('publication scope and explicit selection', () => {
     expect(view.result.current.insight).toBeNull();
   });
 });
+
+describe('committed page identity round trips', () => {
+  it.each([11, 1, 0])(
+    'A2 -> B -> A returns to fresh page1 with total%s and rejects old A2',
+    async (total) => {
+      const a = 'https://x.com/a/status/123';
+      const b = 'https://x.com/b/status/456';
+      let aReads = 0;
+      let oldFinish: (value: ReturnType<typeof pageData>) => void = () =>
+        undefined;
+      let newFinish: (value: ReturnType<typeof pageData>) => void = () =>
+        undefined;
+      mocks.detail.mockImplementation((id: string) =>
+        Promise.resolve(insight({ id })),
+      );
+      mocks.page.mockImplementation((lookup, page) => {
+        if (lookup.pageUrl === b)
+          return Promise.resolve({
+            ...pageData(),
+            items: [insight({ id: 'B' })],
+          });
+        if (page === 2)
+          return new Promise((resolve) => {
+            oldFinish = resolve;
+          });
+        if (++aReads === 1)
+          return Promise.resolve({
+            ...pageData(11),
+            items: [insight({ id: 'A' })],
+          });
+        return new Promise((resolve) => {
+          newFinish = resolve;
+        });
+      });
+      const view = renderHook(usePublicationInsights);
+      await waitFor(() => expect(view.result.current.pageData?.total).toBe(11));
+      act(() => view.result.current.select('A'));
+      await waitFor(() => expect(view.result.current.insight?.id).toBe('A'));
+      act(() => view.result.current.selectPage(2));
+      await waitFor(() => expect(mocks.page).toHaveBeenCalledTimes(2));
+      act(() => usePlatformStore.setState({ pageContext: { url: b } }));
+      await waitFor(() => expect(view.result.current.insight?.id).toBe('B'));
+      act(() => usePlatformStore.setState({ pageContext: { url: a } }));
+      expect(view.result.current.page).toBe(1);
+      expect(view.result.current.selectedPostId).toBeNull();
+      expect(view.result.current.insight).toBeNull();
+      expect(mocks.page.mock.calls.at(-1)?.slice(0, 2)).toEqual([
+        { platform: 'twitter', pageUrl: a },
+        1,
+      ]);
+      expect(
+        mocks.page.mock.calls.filter(
+          ([lookup, page]) => lookup.pageUrl === a && page === 2,
+        ),
+      ).toHaveLength(1);
+      await act(async () =>
+        oldFinish({ ...pageData(11, 2), items: [insight({ id: 'old-A2' })] }),
+      );
+      expect(view.result.current.pageData).toBeNull();
+      await act(async () =>
+        newFinish({
+          ...pageData(total),
+          items: total ? [insight({ id: 'new-A' })] : [],
+        }),
+      );
+      await waitFor(() => expect(view.result.current.isLoading).toBe(false));
+      expect(view.result.current.pageData?.total).toBe(total);
+      if (total === 1) {
+        expect(view.result.current.insight?.id).toBe('new-A');
+        expect(
+          mocks.detail.mock.calls.filter(([id]) => id === 'new-A'),
+        ).toHaveLength(1);
+      } else {
+        expect(view.result.current.selectedPostId).toBeNull();
+        expect(view.result.current.insight).toBeNull();
+        expect(
+          mocks.detail.mock.calls.filter(([id]) => id === 'new-A'),
+        ).toHaveLength(0);
+      }
+    },
+  );
+  it.each(['neutral', 'refreshing'] as const)(
+    'A2 -> %s -> A resets page1',
+    async (transition) => {
+      mocks.page.mockImplementation((_lookup, page) =>
+        Promise.resolve({
+          ...pageData(11, page),
+          items: [insight({ id: `A${page}` })],
+        }),
+      );
+      const view = renderHook(usePublicationInsights);
+      await waitFor(() => expect(view.result.current.isLoading).toBe(false));
+      act(() => view.result.current.selectPage(2));
+      await waitFor(() => expect(view.result.current.pageData?.page).toBe(2));
+      if (transition === 'neutral')
+        act(() =>
+          usePlatformStore.setState({
+            pageContext: { url: 'https://x.com/home' },
+          }),
+        );
+      else
+        act(() =>
+          useWorkspaceStore.setState({ status: 'refreshing', snapshot }, true),
+        );
+      expect(
+        view.result.current.lookup === null ||
+          view.result.current.snapshot === null,
+      ).toBe(true);
+      if (transition === 'neutral')
+        act(() =>
+          usePlatformStore.setState({
+            pageContext: { url: 'https://x.com/a/status/123' },
+          }),
+        );
+      else
+        act(() =>
+          useWorkspaceStore.setState({ status: 'ready', snapshot }, true),
+        );
+      expect(view.result.current.page).toBe(1);
+      expect(view.result.current.insight).toBeNull();
+      await waitFor(() => expect(view.result.current.isLoading).toBe(false));
+      expect(view.result.current.pageData?.page).toBe(1);
+      expect(mocks.page.mock.calls.map(([, page]) => page)).toEqual([1, 2, 1]);
+    },
+  );
+});

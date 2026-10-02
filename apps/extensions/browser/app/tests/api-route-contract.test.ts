@@ -123,6 +123,7 @@ describe('extension API route contract', () => {
       'services/agent-tools.service.ts',
       'services/library.service.ts',
       'services/publication-capture.service.ts',
+      'services/publication-insights.service.ts',
       'services/theme-settings.service.ts',
       'services/social-post-import.service.ts',
       'components/settings/ConnectedAccounts.tsx',

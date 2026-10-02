@@ -47,6 +47,7 @@ export function usePublicationInsights() {
   const [pager, setPager] = useState<
     Pick<ExtensionPublicationInsightsState, 'key' | 'page'>
   >({ key: '', page: 1 });
+  if (pager.key !== base) setPager({ key: base, page: 1 });
   const page = pager.key === base ? pager.page : 1;
   const key = base ? JSON.stringify([base, page]) : '';
   const [state, setState] = useState<ExtensionPublicationInsightsState>(() =>

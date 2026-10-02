@@ -71,7 +71,9 @@ async function request(
       { ...init, signal: options.signal },
       options.snapshot,
     );
-    body = await response.json();
+    if (response.ok) body = await response.json();
+    else if (response.status === 429 && operation === 'refresh')
+      body = await response.json().catch(() => undefined);
   } catch (error) {
     options.signal?.throwIfAborted();
     assertWorkspace(options.snapshot);
