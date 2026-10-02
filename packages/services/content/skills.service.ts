@@ -257,6 +257,12 @@ export class SkillsService extends BaseService<
       .then((response) => this.mapOne(response.data));
   }
 
+  async forkSkill(id: string): Promise<Skill> {
+    return this.instance
+      .post<JsonApiResponseDocument>(`/${encodeURIComponent(id)}/fork`, {})
+      .then((response) => this.mapOne(response.data));
+  }
+
   async customizeSkill(id: string, input: SkillCustomizeInput): Promise<Skill> {
     return this.instance
       .post<JsonApiResponseDocument>(`/${id}/customize`, input)

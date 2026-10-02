@@ -1,6 +1,10 @@
 import { type ArticleCategory, ArticleStatus } from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type { ScoreSeoRequest } from '@genfeedai/contracts/interfaces';
+import type {
+  ArticleTraffic,
+  ArticleTrafficPeriod,
+} from '@genfeedai/contracts/interfaces/content/article-traffic.interface';
 import { Article } from '@genfeedai/models/content/article.model';
 import { ArticleSerializer } from '@genfeedai/serializers';
 import {
@@ -105,6 +109,18 @@ export class ArticlesService extends BaseService<Article> {
       publishedAt: new Date(),
       status: ArticleStatus.PUBLISHED,
     } as Record<string, unknown>);
+  }
+
+  public async getWebsiteTraffic(
+    id: string,
+    period: ArticleTrafficPeriod,
+    signal?: AbortSignal,
+  ): Promise<ArticleTraffic> {
+    const response = await this.instance.get<ArticleTraffic>(
+      `${id}/website-traffic`,
+      { params: { period }, signal },
+    );
+    return response.data;
   }
 
   /**

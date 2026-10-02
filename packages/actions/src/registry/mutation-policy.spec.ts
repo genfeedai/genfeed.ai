@@ -19,6 +19,8 @@ const MCP_QUEUED_WRITES = [
   'control_scheduled_release',
   'create_ad_remix_workflow',
   'create_article',
+  'create_article_draft',
+  'publish_article',
   'create_clip_project_from_youtube',
   'create_instagram_remix_workflow',
   'create_post',

@@ -16,6 +16,7 @@ import {
 } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import {
+  type AgentThread,
   type Prisma,
   WorkflowExecutionStatus as PrismaWorkflowExecutionStatus,
 } from '@genfeedai/prisma';
@@ -63,7 +64,7 @@ type ProactiveDispatchContext = {
   resolveStrategyThread(
     strategy: AgentStrategySnapshot,
     ownership: ProactiveDispatchOwnership,
-  ): Promise<{ id: string }>;
+  ): Promise<Pick<AgentThread, 'id' | 'contextVersion'>>;
   scheduleNextRun(
     strategyId: string,
     frequency: AgentRunFrequency | undefined,
@@ -305,6 +306,7 @@ async function enqueueNewProactiveDispatch(
           creditBudget: remainingBudget,
           strategyId,
           threadId: dispatchThreadId,
+          expectedContextVersion: thread.contextVersion,
           ...(config.agentType ? { agentType: config.agentType } : {}),
           autonomyMode: normalizeAgentAutonomyMode(config.autonomyMode),
           ...(strategy.brandId ? { brandId: strategy.brandId } : {}),

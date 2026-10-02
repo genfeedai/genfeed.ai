@@ -40,8 +40,15 @@ function exactReleaseRun(run, releaseSha, currentRunId) {
 }
 
 function newestFirst(left, right) {
-  return String(right?.created_at ?? '').localeCompare(
-    String(left?.created_at ?? ''),
+  return String(right?.run_started_at ?? right?.created_at ?? '').localeCompare(
+    String(left?.run_started_at ?? left?.created_at ?? ''),
+  );
+}
+
+function hasVerdict(run) {
+  return (
+    run?.status === 'completed' &&
+    (run.conclusion === 'success' || hardFailure(run.conclusion))
   );
 }
 
@@ -58,7 +65,7 @@ export function selectFullSuiteRun(runs, releaseSha, currentRunId) {
   // A cancelled run (for example a manual re-run cancelled mid-flight) never
   // outranks a real verdict for the same SHA: it would hide that failure.
   return (
-    matching.find((run) => run.conclusion === 'success') ??
+    matching.find(hasVerdict) ??
     matching.find((run) => ACTIVE_STATUSES.has(run.status)) ??
     matching.find((run) => run.conclusion !== 'cancelled') ??
     matching[0] ??
@@ -91,31 +98,40 @@ function requireRunIdentity(run, expected, currentRunId) {
   }
 }
 
-async function classifyTerminalRun(run, { getRun, listJobs, currentRunId }) {
-  if (hardFailure(run?.conclusion)) {
+async function attemptJobs(run, { getRun, listJobs, currentRunId }) {
+  requireRunIdentity(run, run, currentRunId);
+  // Attempt-specific jobs exclude successful jobs left over from earlier attempts.
+  const jobs = await listJobs(run.id, run.run_attempt);
+  if (!Array.isArray(jobs)) {
+    throw new Error('Full Suite jobs response is invalid.');
+  }
+  const latest = await getRun(run.id);
+  const observed = run.observedRun ?? run;
+  requireRunIdentity(latest, observed, currentRunId);
+  if (
+    latest.run_attempt !== observed.run_attempt ||
+    latest.status !== observed.status ||
+    latest.conclusion !== observed.conclusion
+  ) {
     throw new Error(
-      `Full Suite ${runUrl(run)} concluded ${run.conclusion}; repair the failed surface and release a new SHA.`,
+      `Full Suite ${runUrl(run)} changed during qualification; refusing to reuse stale evidence or start a duplicate run.`,
+    );
+  }
+  return jobs;
+}
+
+async function classifyTerminalRun(run, options) {
+  if (hardFailure(run?.conclusion)) {
+    const detail = run.failedJob
+      ? `contains ${run.failedJob.name ?? 'a job'} concluded ${run.failedJob.conclusion}`
+      : `concluded ${run.conclusion}`;
+    throw new Error(
+      `Full Suite ${runUrl(run)} ${detail}; repair the failed surface and release a new SHA.`,
     );
   }
 
   if (run?.conclusion === 'success' || run?.conclusion === 'cancelled') {
-    requireRunIdentity(run, run, currentRunId);
-    // Attempt-specific jobs exclude successful jobs left over from earlier attempts.
-    const jobs = await listJobs(run.id, run.run_attempt);
-    if (!Array.isArray(jobs)) {
-      throw new Error('Full Suite jobs response is invalid.');
-    }
-    const latest = await getRun(run.id);
-    requireRunIdentity(latest, run, currentRunId);
-    if (
-      latest.run_attempt !== run.run_attempt ||
-      latest.status !== 'completed' ||
-      latest.conclusion !== run.conclusion
-    ) {
-      throw new Error(
-        `Full Suite ${runUrl(run)} changed during qualification; refusing to reuse stale evidence or start a duplicate run.`,
-      );
-    }
+    const jobs = await attemptJobs(run, options);
     const failedJob = jobs.find((job) => hardFailure(job?.conclusion));
     if (failedJob) {
       throw new Error(
@@ -152,6 +168,33 @@ async function classifyTerminalRun(run, { getRun, listJobs, currentRunId }) {
     reason: `Full Suite ${runUrl(run)} concluded ${run?.conclusion ?? run?.status ?? 'without reusable evidence'}.`,
     run,
   };
+}
+
+async function restoreVerdictAttempt(run, options) {
+  let verdict = run;
+  for (let attempt = run.run_attempt; attempt >= 1; attempt -= 1) {
+    if (attempt !== run.run_attempt) {
+      const previous = await options.getAttempt(run.id, attempt);
+      requireRunIdentity(previous, run, options.currentRunId);
+      if (previous.run_attempt !== attempt || previous.status !== 'completed') {
+        throw new Error(
+          'Full Suite prior attempt identity or status is invalid.',
+        );
+      }
+      verdict = {
+        ...previous,
+        evidence_kind: run.evidence_kind,
+        observedRun: run,
+      };
+    }
+    if (hasVerdict(verdict)) return verdict;
+    if (verdict.conclusion === 'cancelled') {
+      const jobs = await attemptJobs(verdict, options);
+      const failedJob = jobs.find((job) => hardFailure(job?.conclusion));
+      if (failedJob) return { ...verdict, conclusion: 'failure', failedJob };
+    }
+  }
+  return run;
 }
 
 async function waitForTerminalRun(
@@ -191,6 +234,7 @@ export async function resolveFullSuiteEvidence({
   currentRunId,
   listRuns,
   getRun,
+  getAttempt,
   listJobs,
   sleep,
   discoveryAttempts = DEFAULT_DISCOVERY_ATTEMPTS,
@@ -218,7 +262,19 @@ export async function resolveFullSuiteEvidence({
       };
     }
 
-    candidates = runs;
+    candidates = [];
+    for (const candidate of runs ?? []) {
+      if (exactReleaseRun(candidate, releaseSha, currentRunId)) {
+        candidates.push(
+          await restoreVerdictAttempt(candidate, {
+            getRun,
+            getAttempt,
+            listJobs,
+            currentRunId,
+          }),
+        );
+      }
+    }
     run = selectFullSuiteRun(candidates, releaseSha, currentRunId);
     if (run) {
       break;
@@ -350,6 +406,8 @@ export async function runCli({
         ).map((run) => ({ ...run, evidence_kind: 'release' })),
       ],
       getRun: async (id) => api(`repos/${repository}/actions/runs/${id}`),
+      getAttempt: async (id, attempt) =>
+        api(`repos/${repository}/actions/runs/${id}/attempts/${attempt}`),
       listJobs: async (id, attempt) =>
         paginatedCollection(
           api,

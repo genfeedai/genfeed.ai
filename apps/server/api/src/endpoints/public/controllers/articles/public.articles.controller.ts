@@ -131,19 +131,21 @@ export class PublicArticlesController {
   ): Promise<JsonApiSingleResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    // Unpublished articles are only readable with a signed, slug-bound,
+    // Unpublished articles are only readable with a signed, article-bound,
     // expiring preview token. An unsigned request always sees published-only.
-    const isPreview = verifyArticlePreviewToken(
+    const previewArticleId = verifyArticlePreviewToken(
       previewToken,
       slug,
       this.configService.get('TOKEN_ENCRYPTION_KEY') as string | undefined,
     );
 
-    this.logger.log(url, { params: { isPreview, slug } });
+    this.logger.log(url, {
+      params: { isPreview: Boolean(previewArticleId), slug },
+    });
 
     const article = await this.articlesService.findPublicArticleBySlug(
       slug,
-      isPreview,
+      previewArticleId,
     );
 
     if (!article) {

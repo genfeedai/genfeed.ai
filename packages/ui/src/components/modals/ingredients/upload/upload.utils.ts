@@ -85,9 +85,17 @@ export function getAcceptedTypes(
   isImageLike: boolean,
   isVideoLike: boolean,
   isAudioLike: boolean,
+  isLibraryImage = false,
 ): string[] {
   if (isImageLike) {
-    return ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+    return [
+      '.jpg',
+      '.jpeg',
+      '.png',
+      '.webp',
+      '.gif',
+      ...(isLibraryImage ? ['.heic', '.heif'] : []),
+    ];
   }
   if (isVideoLike) {
     return ['.mp4', '.avi', '.mov', '.mkv', '.webm'];
@@ -112,4 +120,20 @@ export function getDimensionText(width?: number, height?: number): string {
     return `Recommended height: ${height}px`;
   }
   return '';
+}
+
+/** Upload declarations only: byte validation and conversion belong to the server. */
+export function normalizeUploadFile(file: File, isLibraryImage: boolean): File {
+  const name = file.name.replace(/\.[^.]+$/, (extension) =>
+    extension.toLowerCase(),
+  );
+  const suffix = /\.(heic|heif)$/i.exec(file.name)?.[1]?.toLowerCase();
+  const type = file.type || (isLibraryImage && suffix ? `image/${suffix}` : '');
+  return name === file.name && type === file.type
+    ? file
+    : new File([file], name, { lastModified: file.lastModified, type });
+}
+
+export function isHeicUpload(file: File): boolean {
+  return /^image\/hei[cf]$/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
 }

@@ -387,6 +387,75 @@ test('the full suite runs on every master push and never cancels a run', () => {
   );
 });
 
+test('master SHA verdict fails closed for incomplete required verification', () => {
+  const workflow = readWorkflow('full-suite.yml');
+  assert.match(workflow, /^run-name: Master SHA · \$\{\{ github\.sha \}\}$/m);
+  const verdict = jobBlock(workflow, 'master-sha-verdict', 'full-suite.yml');
+  assert.match(verdict, /^ {4}name: Master SHA Verdict$/m);
+  assert.match(verdict, /^ {4}if: always\(\)$/m);
+  assert.match(
+    verdict,
+    /needs: \[ci, build-verify, e2e, visual-connected, runtime-acceptance-gate\]/,
+  );
+  const script = verdict
+    .split('        run: |\n')[1]
+    .split('\n')
+    .map((line) => line.slice(10))
+    .join('\n');
+  const ordinary = {
+    CI_RESULT: 'success',
+    BUILD_RESULT: 'success',
+    E2E_RESULT: 'success',
+    VISUAL_RESULT: 'skipped',
+    CONNECTED_RESULT: 'skipped',
+    RUN_CONNECTED: 'false',
+  };
+  const connected = {
+    ...ordinary,
+    RUN_CONNECTED: 'true',
+    VISUAL_RESULT: 'success',
+    CONNECTED_RESULT: 'success',
+  };
+  for (const green of [ordinary, connected]) {
+    assert.equal(spawnSync('bash', ['-c', script], { env: green }).status, 0);
+    const required = [
+      'CI_RESULT',
+      'BUILD_RESULT',
+      'E2E_RESULT',
+      ...(green.RUN_CONNECTED === 'true'
+        ? ['VISUAL_RESULT', 'CONNECTED_RESULT']
+        : []),
+    ];
+    for (const key of required) {
+      for (const result of [
+        'failure',
+        'cancelled',
+        'skipped',
+        'abandoned',
+        '',
+      ]) {
+        assert.notEqual(
+          spawnSync('bash', ['-c', script], {
+            env: { ...green, [key]: result },
+          }).status,
+          0,
+          `${key}=${result} cannot verify a SHA`,
+        );
+      }
+    }
+  }
+  for (const key of ['VISUAL_RESULT', 'CONNECTED_RESULT']) {
+    for (const result of ['success', 'failure', 'cancelled']) {
+      assert.notEqual(
+        spawnSync('bash', ['-c', script], {
+          env: { ...ordinary, [key]: result },
+        }).status,
+        0,
+      );
+    }
+  }
+});
+
 test('e2e nightly-only lanes never fire under a cron-triggered caller', () => {
   // A called workflow inherits the caller's event, so under a cron-triggered
   // caller a bare `github.event_name == 'schedule'` would file nightly
@@ -863,7 +932,14 @@ test('dataset diagnostic freezes inspected control before the exact candidate ch
   );
   assert.match(workflow, /ref: \$\{\{ inputs\.candidate_sha \}\}/);
   assert.match(workflow, /test "\$\(git rev-parse HEAD\)" = "\$CANDIDATE_SHA"/);
-  assert.match(workflow, /node "\$CONTROL_RUNNER" dataset-diagnostic/);
+  assert.match(workflow, /default: smoke/);
+  assert.match(workflow, /options:\s*- smoke\s*- profile/);
+  assert.match(
+    workflow,
+    /DATASET_GROUP: \$\{\{ inputs\.mode == 'profile' && 'dataset-diagnostic' \|\| 'dataset-smoke' \}\}/,
+  );
+  assert.match(workflow, /--group "\$DATASET_GROUP"/);
+  assert.match(workflow, /node "\$CONTROL_RUNNER" "\$DATASET_GROUP"/);
   assert.match(
     workflow,
     /RUNTIME_ACCEPTANCE_PUBLIC_KEY: \$\{\{ vars\.RUNTIME_ACCEPTANCE_PUBLIC_KEY \}\}/,

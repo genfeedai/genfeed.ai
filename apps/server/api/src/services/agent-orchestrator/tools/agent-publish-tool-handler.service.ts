@@ -1,11 +1,13 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { AgentPublishAuditsService } from '@api/collections/agent-publish-audits/services/agent-publish-audits.service';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
+import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { AgentScopeContextService } from '@api/index';
+import { AgentScopeContextService, SERVER_TOKENS } from '@api/index';
 import { resolveConfirmedPublishTargets } from '@api/services/agent-orchestrator/tools/agent-publish-confirmed-targets.util';
 import {
   blockMcpCreatePost,
@@ -75,13 +77,9 @@ import {
 } from '@nestjs/common';
 import { z } from 'zod';
 
-type IngredientsServiceLike = {
-  findOne: (query: Record<string, unknown>) => Promise<unknown>;
-};
+type IngredientsServiceLike = Pick<IngredientsService, 'findOne'>;
 
-type CredentialsServiceLike = {
-  find: (filter: Record<string, unknown>) => Promise<unknown[]>;
-};
+type CredentialsServiceLike = Pick<CredentialsService, 'find'>;
 /**
  * Agent publishing tools: confirmed content publish, schedule, create_post, schedule_post.
  * Extracted/extended from AgentToolExecutorService per #519/#520.
@@ -95,8 +93,10 @@ export class AgentPublishToolHandler {
     private readonly postsService: PostsService,
     private readonly loggerService: LoggerService,
     @Optional()
+    @Inject(IngredientsService)
     private readonly ingredientsService?: IngredientsServiceLike,
     @Optional()
+    @Inject(SERVER_TOKENS.credentials)
     private readonly credentialsService?: CredentialsServiceLike,
     @Optional()
     private readonly agentScopeContextService?: AgentScopeContextService,

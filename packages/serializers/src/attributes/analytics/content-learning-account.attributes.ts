@@ -16,4 +16,6 @@ export const contentLearningAccountAttributes = createEntityAttributes([
   'pilotStartedAt',
   'failureReason',
   'driftState',
+  'scopes',
+  'latestDecision',
 ]);

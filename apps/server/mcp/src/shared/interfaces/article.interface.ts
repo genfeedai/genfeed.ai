@@ -1,3 +1,5 @@
+import type { ArticleStatus } from '@genfeedai/contracts';
+
 export interface ArticleCreationParams {
   topic: string;
   tone?: 'professional' | 'casual' | 'humorous' | 'technical' | 'storytelling';
@@ -10,7 +12,7 @@ export interface ArticleResponse {
   id: string;
   title: string;
   content: string;
-  status: 'draft' | 'published' | 'processing';
+  status: ArticleStatus | 'draft' | 'published' | 'processing';
   wordCount: number;
   createdAt: string;
   updatedAt?: string;
