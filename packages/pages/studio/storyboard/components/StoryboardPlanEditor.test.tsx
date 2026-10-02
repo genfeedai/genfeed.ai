@@ -20,10 +20,19 @@ vi.mock(
     useGalleryModal: () => ({ openGallery: vi.fn() }),
   }),
 );
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({
+const getCharacterService = vi.hoisted(() => {
+  const service = {
     replaceStoryboardCharacter: vi.fn(),
-  }),
+    listStoryboardCharacterReplacements: vi.fn(async () => ({
+      operations: [],
+      legacyReplacements: [],
+    })),
+    getStoryboardCharacterReplacementStatus: vi.fn(),
+  };
+  return vi.fn(async () => service);
+});
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => getCharacterService,
 }));
 vi.mock('@pages/studio/storyboard/hooks/use-storyboard-voices', () => ({
   useStoryboardVoices: () => ({ voices: [], status: 'loaded', retry: vi.fn() }),
