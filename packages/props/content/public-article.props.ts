@@ -28,3 +28,20 @@ export interface PublicArticlePreviewRouteProps
   extends PublicArticleRouteProps {
   searchParams: Promise<PublicArticlePreviewSearchParams>;
 }
+
+export interface ArticleResource {
+  skill: string;
+  label: string;
+}
+
+export interface ArticleResourceProps {
+  slug: string;
+  resource: ArticleResource;
+}
+
+export interface ArticleContentProps {
+  applyHref: string;
+  sanitizedHtml: string;
+  slug?: string;
+  resource?: ArticleResource | null;
+}

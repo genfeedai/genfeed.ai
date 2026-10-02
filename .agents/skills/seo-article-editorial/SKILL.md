@@ -2,7 +2,7 @@
 name: seo-article-editorial
 description: Write, schedule, and wire a Genfeed SEO article from a researched search intent. Use for new public articles, article seed briefs, two-per-week publishing plans, and revisions to scheduled SEO content.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
   tags: "articles, seo, editorial, seeds, scheduling"
 ---
 
@@ -77,9 +77,21 @@ Apply these editorial gates:
 
 Every article needs a distinct thesis. Reject a draft if changing only the title would make it fit another keyword.
 
-### 5. Schedule and wire
+### 5. Choose the reader handoff
+
+Use `blog-content-creator` to draft, `content-reviewer` to validate evidence and usefulness, and `content-seo-optimizer` to check search presentation. Use `content-atomizer` only to distribute the approved article. Do not duplicate those stages with more article-writing skills.
+
+For Genfeed-owned articles, map one existing public skill in `apps/website/packages/data/article-resources.data.ts`. Verify it exists in `genfeedai/skills`; use `bunx skills add genfeedai/skills --skill <skill-name>` for a focused install. The article resource component links Skills Pro at `/skills` and agent/plugin/MCP setup at `/agent`. Never send public readers to the private skills-pro repository. Promotion belongs to Genfeed-owned articles, not customer publications or previews.
+
+Record model version and check date for volatile workflows. Improve the canonical guide after a model release when the reader's task is unchanged; create a release article only for distinct intent and new evidence. Never fabricate outputs, screenshots, benchmarks, or model availability to fill a calendar slot. Verify the model in Genfeed's actual deployed catalog, even when a provider announcement exists.
+
+### 6. Schedule and wire
 
 Place the brief in the appropriate wave file and export it through the catalog. Use future `publishedAt` timestamps for scheduled posts; public article and RSS paths already gate future-dated records.
+
+Source catalog entries do not publish themselves. Production articles come from the API database, not Git. The article seed refreshes existing bodies and metadata, so review its target owner, organization, brand and plan before a live run. Always use the seed's dry run first with the same production scope. Do not guess the account from an email or copy development records into production.
+
+The MCP `create_article` tool generates from a brief. To preserve reviewed full HTML, connect with `?toolsets=content,articles`, use `create_article_draft`, inspect `get_article_preview`, then request `publish_article`. Draft creation and publication follow existing approval policy. The authenticated Article API is also available. Preserve the published slug and original publication date on updates.
 
 For a two-per-week cadence, leave several days between posts and avoid publishing two articles that target the same intent in one week. Preserve the canonical slug after publication.
 
@@ -92,6 +104,9 @@ Assign the next permanent `card-####` value in `ARTICLE_ARTWORK_IDS`. The builde
 ## Completion criteria
 
 - The query, reader decision, and article thesis are each explicit.
+- The resource CTA uses a verified public skill and working install command.
+- The model/version claims are sourced and tested examples are distinguished from instructions.
+- Production database scope and preview are verified before publication.
 - Every brief field is populated with article-specific content.
 - Volatile claims were checked against current primary sources.
 - No unearned first-person or launch claim remains.

@@ -41,6 +41,8 @@ import {
   getAcceptedTypes,
   getDimensionText,
   getMaxFileSize,
+  isHeicUpload,
+  normalizeUploadFile,
   updateFileStatus,
 } from './upload.utils';
 
@@ -61,16 +63,6 @@ type UseModalUploadParams = Pick<
 > & {
   formRef: RefObject<HTMLFormElement | null>;
 };
-
-function normalizeFileName(fileName: string): string {
-  const lastDotIndex = fileName.lastIndexOf('.');
-  if (lastDotIndex === -1) {
-    return fileName;
-  }
-  const nameWithoutExt = fileName.substring(0, lastDotIndex);
-  const ext = fileName.substring(lastDotIndex).toLowerCase();
-  return nameWithoutExt + ext;
-}
 
 export function useModalUpload({
   category,
@@ -103,6 +95,19 @@ export function useModalUpload({
 
   const hasAutoQueuedInitialFilesRef = useRef(false);
   const hasAutoSubmittedRef = useRef(false);
+  const filesRef = useRef(files);
+  const cancelDimensionProbeRef = useRef<(() => void) | null>(null);
+
+  const cancelDimensionProbe = useCallback(() => {
+    cancelDimensionProbeRef.current?.();
+    cancelDimensionProbeRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    cancelDimensionProbe();
+    setDimensionWarning(null);
+    return cancelDimensionProbe;
+  }, [cancelDimensionProbe, isOpen, openKey]);
 
   const getAssetsService = useAuthedService((token: string) =>
     AssetsService.getInstance(token),
@@ -156,6 +161,8 @@ export function useModalUpload({
     category === AssetCategory.LOGO ||
     category === AssetCategory.REFERENCE;
 
+  const isLibraryImage = category === IngredientCategory.IMAGE;
+
   const isVideoLike = category === IngredientCategory.VIDEO;
 
   const isAudioLike =
@@ -182,75 +189,120 @@ export function useModalUpload({
 
       clearRecordedFile();
 
-      const existingNames = new Set(files.map((file) => file.name));
-      const remaining = maxFiles - files.length;
+      const existingNames = new Set(filesRef.current.map((file) => file.name));
+      const remaining = maxFiles - filesRef.current.length;
+      const queuedFiles: File[] = [];
+      for (const originalFile of acceptedFiles) {
+        if (queuedFiles.length >= remaining) {
+          break;
+        }
+        const newFile = normalizeUploadFile(originalFile, isLibraryImage);
+        if (existingNames.has(newFile.name)) {
+          continue;
+        }
+        existingNames.add(newFile.name);
+        queuedFiles.push(newFile);
+      }
+      if (queuedFiles.length === 0) {
+        return;
+      }
+      filesRef.current = [...filesRef.current, ...queuedFiles];
+      setError(null);
+      setFiles(filesRef.current);
+      setFileStatuses((prev) => {
+        const newMap = new Map(prev);
+        for (const file of queuedFiles) {
+          const id = `${file.name}-${Date.now()}-${Math.random()}`;
+          newMap.set(id, {
+            file,
+            id,
+            progress: 0,
+            status: UploadStatus.PENDING,
+          });
+        }
+        return newMap;
+      });
 
-      if (remaining <= 0) {
+      // Recommendations describe the latest selection; never delay its upload queue.
+      cancelDimensionProbe();
+      setDimensionWarning(null);
+      const newFile = queuedFiles[queuedFiles.length - 1];
+      if (
+        isHeicUpload(newFile) ||
+        !newFile.type.startsWith('image/') ||
+        !((width && width > 0) || (height && height > 0))
+      ) {
         return;
       }
 
-      acceptedFiles.slice(0, remaining).forEach((originalFile) => {
-        const normalizedName = normalizeFileName(originalFile.name);
-        const newFile =
-          normalizedName !== originalFile.name
-            ? new File([originalFile], normalizedName, {
-                type: originalFile.type,
-              })
-            : originalFile;
-
-        if (existingNames.has(newFile.name)) {
+      let image: HTMLImageElement | undefined;
+      let objectUrl: string | undefined;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      let isActive = true;
+      const cleanup = () => {
+        isActive = false;
+        if (image) {
+          image.onload = null;
+          image.onerror = null;
+        }
+        if (timer !== undefined) {
+          clearTimeout(timer);
+        }
+        if (objectUrl !== undefined) {
+          URL.revokeObjectURL(objectUrl);
+          objectUrl = undefined;
+        }
+      };
+      cancelDimensionProbeRef.current = cleanup;
+      const settle = (hasDimensions: boolean) => {
+        if (!isActive) {
           return;
         }
-
-        const appendFile = () => {
-          setError(null);
-          setFiles((prev) => [...prev, newFile]);
-          const fileId = `${newFile.name}-${Date.now()}-${Math.random()}`;
-          setFileStatuses((prev) => {
-            const newMap = new Map(prev);
-            newMap.set(fileId, {
-              file: newFile,
-              id: fileId,
-              progress: 0,
-              status: UploadStatus.PENDING,
-            });
-            return newMap;
-          });
-        };
-
         if (
-          newFile.type.startsWith('image') &&
-          ((width && width > 0) || (height && height > 0))
+          hasDimensions &&
+          image &&
+          ((width && image.width !== width) ||
+            (height && image.height !== height))
         ) {
-          const img = new Image();
-          img.onload = () => {
-            if (
-              (width && img.width !== width) ||
-              (height && img.height !== height)
-            ) {
-              setDimensionWarning(
-                `Uploaded image is ${img.width}x${img.height}px; recommended ${width || 'any'}x${height || 'any'}px.`,
-              );
-            } else {
-              setDimensionWarning(null);
-            }
-            appendFile();
-          };
-          img.src = URL.createObjectURL(newFile);
-          return;
+          setDimensionWarning(
+            `Uploaded image is ${image.width}x${image.height}px; recommended ${width || 'any'}x${height || 'any'}px.`,
+          );
+        } else {
+          setDimensionWarning(null);
         }
-
-        setDimensionWarning(null);
-        appendFile();
-      });
+        cleanup();
+      };
+      try {
+        image = new Image();
+        objectUrl = URL.createObjectURL(newFile);
+        image.onload = () => settle(true);
+        image.onerror = () => settle(false);
+        timer = setTimeout(() => settle(false), 5_000);
+        image.src = objectUrl;
+      } catch {
+        settle(false);
+      }
     },
-    [clearRecordedFile, files, height, maxFiles, width],
+    [
+      cancelDimensionProbe,
+      clearRecordedFile,
+      height,
+      isLibraryImage,
+      maxFiles,
+      width,
+    ],
   );
 
-  const normalizedInitialFiles = useMemo(
-    () => (initialFiles ?? []).slice(0, maxFiles),
-    [initialFiles, maxFiles],
-  );
+  const normalizedInitialFiles = useMemo(() => {
+    const uniqueFiles = new Map<string, File>();
+    for (const file of initialFiles ?? []) {
+      const normalized = normalizeUploadFile(file, isLibraryImage);
+      if (!uniqueFiles.has(normalized.name)) {
+        uniqueFiles.set(normalized.name, normalized);
+      }
+    }
+    return Array.from(uniqueFiles.values()).slice(0, maxFiles);
+  }, [initialFiles, isLibraryImage, maxFiles]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: A new modal open key resets the upload session.
   useEffect(() => {
@@ -305,6 +357,9 @@ export function useModalUpload({
   const closeModalUpload = (
     uploadedIngredients: (IIngredient | IAsset)[] = [],
   ) => {
+    cancelDimensionProbe();
+    setDimensionWarning(null);
+    filesRef.current = [];
     closeModal(ModalEnum.UPLOAD);
     setFiles([]);
     setUrlValue('');
@@ -329,13 +384,16 @@ export function useModalUpload({
       try {
         const response = await fetch(urlValue);
         const blob = await response.blob();
-        let name = urlValue.split('/').pop()?.split('?')[0] || 'upload';
-        name = normalizeFileName(name);
+        const name = urlValue.split('/').pop()?.split('?')[0] || 'upload';
         selectedFiles = [new File([blob], name, { type: blob.type })];
       } catch (err) {
         return logger.error(`GET ${urlValue} failed`, err);
       }
     }
+
+    selectedFiles = selectedFiles.map((file) =>
+      normalizeUploadFile(file, isLibraryImage),
+    );
 
     if (selectedFiles.length === 0) {
       return;
@@ -460,9 +518,12 @@ export function useModalUpload({
             }
           }
 
-          if (uploaded) {
-            completedUploads.push(uploaded);
+          if (!uploaded) {
+            throw new Error(
+              'Upload did not return a result. Please try again.',
+            );
           }
+          completedUploads.push(uploaded);
 
           updateFileStatus(setFileStatuses, fileId, {
             progress: 100,
@@ -535,7 +596,11 @@ export function useModalUpload({
   const { getRootProps, getInputProps } = useDropzone({
     accept: {
       ...(isImageLike && {
-        'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.gif'],
+        'image/*': getAcceptedTypes(true, false, false, isLibraryImage),
+        ...(isLibraryImage && {
+          'image/heic': ['.heic'],
+          'image/heif': ['.heif'],
+        }),
       }),
       ...(isVideoLike && {
         'video/*': ['.mp4', '.avi', '.mov', '.mkv', '.webm'],
@@ -563,7 +628,12 @@ export function useModalUpload({
     },
   });
 
-  const acceptedTypes = getAcceptedTypes(isImageLike, isVideoLike, isAudioLike);
+  const acceptedTypes = getAcceptedTypes(
+    isImageLike,
+    isVideoLike,
+    isAudioLike,
+    isLibraryImage,
+  );
   const dimensionText = getDimensionText(width, height);
   const selectedFileList = recordedFile ? [recordedFile] : files;
 

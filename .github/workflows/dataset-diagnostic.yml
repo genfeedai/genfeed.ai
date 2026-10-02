@@ -2,6 +2,13 @@ name: Dataset Diagnostic
 on:
   workflow_dispatch:
     inputs:
+      mode:
+        description: 'Run bounded 10k smoke first; profile is the optional 10k/100k diagnostic.'
+        type: choice
+        default: smoke
+        options:
+          - smoke
+          - profile
       candidate_sha:
         description: 'Exact inspected dataset candidate commit (40 lowercase hexadecimal characters).'
         type: string
@@ -38,6 +45,7 @@ jobs:
       RUNTIME_ACCEPTANCE_PUBLIC_KEY: ${{ vars.RUNTIME_ACCEPTANCE_PUBLIC_KEY }}
       ACCEPTANCE_REPO: ${{ github.workspace }}
       CONTROL_SHA: ${{ github.sha }}
+      DATASET_GROUP: ${{ inputs.mode == 'profile' && 'dataset-diagnostic' || 'dataset-smoke' }}
       CANDIDATE_SHA: ${{ inputs.candidate_sha }}
     steps:
       - name: Anchor acceptance job deadline
@@ -60,7 +68,7 @@ jobs:
         id: preflight
         run: |
           set -euo pipefail
-          node scripts/ci/runtime-acceptance.mjs preflight --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA" --group dataset-diagnostic
+          node scripts/ci/runtime-acceptance.mjs preflight --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA" --group "$DATASET_GROUP"
           test ! -e "$CONTROL_RUNNER"
           umask 077
           cp scripts/ci/runtime-acceptance.mjs "$CONTROL_RUNNER"
@@ -74,7 +82,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
-          for file in learning-dataset.service.ts learning-dataset-graph.service.ts learning-dataset.service.spec.ts learning-dataset.postgres.spec.ts; do
+          for file in learning-dataset.service.ts learning-dataset-graph.service.ts learning-dataset.service.spec.ts learning-dataset.postgres.spec.ts learning-dataset-publication.fixture.ts learning-dataset-scale.fixture.ts; do
             test -f "apps/server/api/src/collections/content-learning/services/$file"
             test ! -L "apps/server/api/src/collections/content-learning/services/$file"
           done
@@ -91,7 +99,7 @@ jobs:
       - name: Run bounded dataset diagnostic with frozen controller
         env:
           RUNTIME_ACCEPTANCE_POSTGRES_ID: ${{ job.services.postgres.id }}
-        run: node "$CONTROL_RUNNER" dataset-diagnostic --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
+        run: node "$CONTROL_RUNNER" "$DATASET_GROUP" --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
       - name: Seal available diagnostic evidence
         if: always() && steps.preflight.outputs.prepared == 'true'
         id: seal

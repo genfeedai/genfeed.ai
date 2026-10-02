@@ -1,0 +1,110 @@
+name: Dataset Scale
+on:
+  schedule:
+    - cron: '17 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: 'Optional exact candidate commit; weekly/manual default is the current master SHA.'
+        type: string
+        required: false
+permissions:
+  contents: read
+concurrency:
+  group: dataset-scale-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  scale:
+    name: Weekly 100k Dataset Scale
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: test
+          POSTGRES_USER: genfeed
+          POSTGRES_PASSWORD: genfeed_local
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U genfeed -d test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      RUNTIME_ACCEPTANCE_POSTGRES_USER: genfeed
+      RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD: genfeed_local
+      RUNTIME_ACCEPTANCE_PUBLIC_KEY: ${{ vars.RUNTIME_ACCEPTANCE_PUBLIC_KEY }}
+      ACCEPTANCE_REPO: ${{ github.workspace }}
+      CONTROL_SHA: ${{ github.sha }}
+      CANDIDATE_SHA: ${{ inputs.candidate_sha || github.sha }}
+    steps:
+      - name: Anchor acceptance job deadline
+        run: |
+          {
+            echo "RUNTIME_ACCEPTANCE_JOB_STARTED_MS=$(date +%s%3N)"
+            echo "ACCEPTANCE_STATE=$RUNNER_TEMP/dataset-scale"
+            echo "CONTROL_RUNNER=$RUNNER_TEMP/runtime-acceptance-control.mjs"
+          } >> "$GITHUB_ENV"
+      - name: Checkout inspected control source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Setup preflight Node.js 24.x
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.x'
+      - name: Validate control identity and freeze controller
+        id: preflight
+        run: |
+          set -euo pipefail
+          node scripts/ci/runtime-acceptance.mjs preflight --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA" --group dataset-scale
+          test ! -e "$CONTROL_RUNNER"
+          umask 077
+          cp scripts/ci/runtime-acceptance.mjs "$CONTROL_RUNNER"
+          cp -R .github/actions/setup-bun-env "$RUNNER_TEMP/setup-bun-env-control"
+      - name: Checkout exact dataset candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.candidate_sha || github.sha }}
+          persist-credentials: false
+      - name: Require exact candidate checkout
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          for file in learning-dataset.service.ts learning-dataset-graph.service.ts learning-dataset.service.spec.ts learning-dataset.postgres.spec.ts learning-dataset-publication.fixture.ts learning-dataset-scale.fixture.ts; do
+            test -f "apps/server/api/src/collections/content-learning/services/$file"
+            test ! -L "apps/server/api/src/collections/content-learning/services/$file"
+          done
+      - name: Restore inspected setup action
+        run: |
+          set -euo pipefail
+          test ! -e .control-actions
+          mkdir .control-actions
+          cp -R "$RUNNER_TEMP/setup-bun-env-control" .control-actions/setup-bun-env
+      - name: Setup Bun environment
+        uses: ./.control-actions/setup-bun-env
+      - name: Build packages
+        run: bunx turbo run build --filter="./packages/*"
+      - name: Run bounded dataset scale with frozen controller
+        env:
+          RUNTIME_ACCEPTANCE_POSTGRES_ID: ${{ job.services.postgres.id }}
+        run: node "$CONTROL_RUNNER" dataset-scale --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
+      - name: Seal available scale evidence
+        if: always() && steps.preflight.outputs.prepared == 'true'
+        id: seal
+        run: node "$CONTROL_RUNNER" seal --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
+      - name: Retain encrypted scale evidence
+        if: always() && steps.preflight.outputs.prepared == 'true' && steps.seal.outcome != 'skipped'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dataset-scale-${{ inputs.candidate_sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/dataset-scale/public/receipt.json
+            ${{ runner.temp }}/dataset-scale/public/evidence.encrypted.json
+          retention-days: 7
+          if-no-files-found: error

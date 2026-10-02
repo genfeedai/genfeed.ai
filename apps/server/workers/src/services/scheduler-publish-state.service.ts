@@ -115,7 +115,9 @@ export class SchedulerPublishStateService {
       try {
         const applied = await this.prisma.$transaction(
           (tx) => this.applyTransition(input, tx),
-          { isolationLevel: 'Serializable' },
+          // Read after exclusive F is granted: a pre-fence snapshot can miss
+          // a projection's newly committed dependencies during invalidation.
+          { isolationLevel: 'ReadCommitted' },
         );
         return applied;
       } catch (error: unknown) {
@@ -519,11 +521,23 @@ export class SchedulerPublishStateService {
   }
 
   private isSerializationFailure(error: unknown): boolean {
+    if (!error || typeof error !== 'object' || !('code' in error)) return false;
+    if (error.code === 'P2034') return true;
+    if (error.code !== 'P2010' || !('meta' in error)) return false;
+    const meta = error.meta;
+    if (!meta || typeof meta !== 'object') return false;
+    if ('code' in meta && (meta.code === '40001' || meta.code === '40P01'))
+      return true;
+    if (!('driverAdapterError' in meta)) return false;
+    const adapter = meta.driverAdapterError;
+    if (!adapter || typeof adapter !== 'object' || !('cause' in adapter))
+      return false;
+    const cause = adapter.cause;
     return (
-      error !== null &&
-      typeof error === 'object' &&
-      'code' in error &&
-      (error as { code?: unknown }).code === 'P2034'
+      !!cause &&
+      typeof cause === 'object' &&
+      'originalCode' in cause &&
+      (cause.originalCode === '40001' || cause.originalCode === '40P01')
     );
   }
 }
