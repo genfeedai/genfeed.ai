@@ -593,6 +593,32 @@ describe('membership-scoped saved guide wizard', () => {
   it('uses the selected authorized brand and matching org instead of either first record', async () => {
     selectBrand('brand-2', 'org-2');
     mocks.scope.brands.unshift(brand('brand-1', 'org-1'));
+    mocks.listBrandOsRevisions.mockResolvedValue([
+      revision({
+        brandId: 'brand-2',
+        organizationId: 'org-2',
+        content: {
+          ...draft(),
+          brandId: 'brand-2',
+          organizationId: 'org-2',
+        },
+      }),
+    ]);
+    const unavailable: IBrandOsExportState = {
+      id: 'brand-2',
+      brandId: 'brand-2',
+      state: 'unavailable',
+      revisionId: null,
+      schemaVersion: '1',
+      digest: null,
+      generatedAt: null,
+      publishedRevisionId: null,
+      publicUrl: null,
+      revisionUrl: null,
+      publishedAt: null,
+      canPublish: false,
+    };
+    mocks.getBrandOsExport.mockResolvedValue(unavailable);
     await show();
     expect(mocks.getBrandOsScan).toHaveBeenCalledWith(
       'brand-2',

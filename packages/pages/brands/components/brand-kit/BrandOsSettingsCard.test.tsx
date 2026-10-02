@@ -374,7 +374,7 @@ describe('Brand OS revision settings', () => {
   });
 
   it('keeps member access read-only while downloading through the authenticated service', async () => {
-    mocks.role = MemberRole.MEMBER;
+    mocks.role = MemberRole.USER;
     mocks.getBrandOsExport.mockResolvedValue(
       exportState({ state: 'private', revisionId: 'revision-1' }),
     );
@@ -1188,7 +1188,7 @@ describe('saved generation rules acknowledgement and authority fences', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Approve revision' }));
       const newLoad = cardDeferred<IBrandOsRevision[]>();
       mocks.listBrandOsRevisions.mockReturnValueOnce(newLoad.promise);
-      if (change === 'role') mocks.role = MemberRole.MEMBER;
+      if (change === 'role') mocks.role = MemberRole.USER;
       else mocks.getService = vi.fn().mockResolvedValue(mocks);
       view.rerender(<BrandOsSettingsCard {...cardProps()} />);
       expect(
