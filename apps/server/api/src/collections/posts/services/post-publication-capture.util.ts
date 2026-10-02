@@ -297,6 +297,8 @@ export function normalizeExtensionPublication(
       !input.externalId
     )
       return invalidUrl();
+    if (input.platform === 'twitter' && !/^\d+$/.test(input.externalId))
+      return invalidUrl();
     const parent = parsePublicationUrl(
       input.contextUrl,
       input.platform,

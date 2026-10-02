@@ -11,6 +11,7 @@ import { PostAnalyticsCollectionStateService } from '@api/analytics/services/pos
 import { AnalyticsSyncService } from '@api/collections/content-performance/services/analytics-sync.service';
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
+import { extensionPublicationAnalyticsDiscoveryFilter } from '@api/collections/posts/services/post-publication-capture.filters';
 import {
   extensionPublicationCaptureAnalyticsAvailability,
   isExtensionPublicationCapture,
@@ -35,7 +36,6 @@ import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type { AnalyticsPersistenceContext } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
-import { Prisma } from '@genfeedai/prisma';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 type AnalyticsPost = PostEntity & {
@@ -205,24 +205,7 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
     const postId = this.readOptionalString(input.postId);
     const where = scopedWhere(organizationId, {
       externalId: { not: null },
-      AND: [
-        {
-          OR: [
-            { source: null },
-            { source: { not: 'extension' } },
-            {
-              targetSettings: {
-                path: ['extensionCapture', 'version'],
-                equals: Prisma.AnyNull,
-              },
-            },
-            {
-              targetSettings: { path: ['extensionCapture', 'version'], not: 1 },
-            },
-            { isAnalyticsEnabled: true },
-          ],
-        },
-      ],
+      AND: [extensionPublicationAnalyticsDiscoveryFilter()],
       platform: platforms.length === 1 ? platforms[0] : { in: platforms },
       ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
       ...(analyticsEnabledOnly ? { isAnalyticsEnabled: { not: false } } : {}),

@@ -115,9 +115,9 @@ describe('reported publication input', () => {
         url: undefined,
         publicationKind: 'reply',
         contextUrl: parents.twitter,
-        externalId: 'comment-1',
+        externalId: '456',
       }),
-    ).toMatchObject({ externalId: 'comment-1' });
+    ).toMatchObject({ externalId: '456' });
   });
 });
 
@@ -449,10 +449,10 @@ describe('publication URL identities', () => {
         url: undefined,
         contextUrl: parents[platform],
         publicationKind: 'reply',
-        externalId: 'own-comment',
+        externalId: platform === 'twitter' ? '456' : 'own-comment',
       };
       expect(normalizeExtensionPublication(reply)).toEqual({
-        externalId: 'own-comment',
+        externalId: reply.externalId,
         url: null,
         contextUrl: parents[platform],
         urlKind: 'context-only',
@@ -650,4 +650,33 @@ describe('shared publication author proof', () => {
         },
       }),
     ).toEqual({ handle: 'alice', externalId: 'id' }));
+});
+
+describe('Twitter context-only reply numeric identity', () => {
+  const context = {
+    ...input,
+    url: undefined,
+    publicationKind: 'reply' as const,
+    contextUrl: parents.twitter,
+  };
+  it('retains distinct observed numeric ID without manufacturing a permalink', () =>
+    expect(
+      normalizeExtensionPublication({ ...context, externalId: '456' }),
+    ).toMatchObject({ externalId: '456', url: null, urlKind: 'context-only' }));
+  it.each([
+    'letters',
+    ' 456',
+    '456 ',
+    '+456',
+    '-456',
+    '4.56',
+    '4e5',
+    'urn:comment:456',
+    '456letters',
+    '123',
+  ])('rejects nonnumeric or parent identity %s', (externalId) =>
+    expect(() =>
+      normalizeExtensionPublication({ ...context, externalId }),
+    ).toThrow(),
+  );
 });

@@ -1,3 +1,4 @@
+import { publicYoutubeInboxPostFilter } from '@api/collections/posts/services/post-publication-capture.filters';
 import { TWITTER_DM_REASON } from '@api/collections/social-inbox/services/social-inbox.helpers';
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import { SocialInboxProviderError } from '@api/collections/social-inbox/services/social-inbox.types';
@@ -2070,6 +2071,19 @@ describe('SocialInboxService', () => {
         { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
         { limit: 50 },
       );
+
+      expect(context.prisma.post.findMany).toHaveBeenCalledWith({
+        orderBy: { publishedAt: 'desc' },
+        take: 20,
+        where: {
+          organizationId: 'org-1',
+          isDeleted: false,
+          ...publicYoutubeInboxPostFilter({
+            id: 'credential-1',
+            brandId: 'brand-1',
+          }),
+        },
+      });
 
       // thread-1 counted once despite two comments; thread-2 once.
       expect(result).toEqual({ conversationsCreated: 2, messagesCreated: 3 });

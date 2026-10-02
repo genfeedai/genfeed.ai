@@ -1,3 +1,4 @@
+import { extensionPublicationAnalyticsDiscoveryFilter } from '@api/collections/posts/services/post-publication-capture.filters';
 import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
 import { executeAwaitedForEach } from '@api/collections/workflows/system-workflow-for-each.util';
 import {
@@ -223,6 +224,9 @@ describe('AnalyticsSyncWorkflowService', () => {
         analyticsEnabledOnly: false,
         platforms: [platform],
       });
+      expect(posts.findAll.mock.calls[0][0].where.AND).toEqual([
+        extensionPublicationAnalyticsDiscoveryFilter(),
+      ]);
       expect(result).toMatchObject({ requested: 1, skipped: 0 });
       expect(collectionState.markPending).toHaveBeenCalledWith(
         expect.objectContaining({
