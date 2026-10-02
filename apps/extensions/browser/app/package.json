@@ -97,6 +97,11 @@
     "react/jsx-dev-runtime": "./node_modules/react/jsx-dev-runtime.js",
     "react-dom": "./node_modules/react-dom/index.js",
     "react-dom/client": "./node_modules/react-dom/client.js",
-    "react-dom/server": "./node_modules/react-dom/server.js"
+    "react-dom/server": "./node_modules/react-dom/server.js",
+    "@genfeedai/helpers": "../../../../packages/helpers/src/index.ts",
+    "@genfeedai/helpers/*": "../../../../packages/helpers/src/$1",
+    "@genfeedai/contracts": "../../../../packages/contracts/src/index.ts",
+    "@genfeedai/contracts/*": "../../../../packages/contracts/src/$1",
+    "@genfeedai/auth-client/react": "../../../../packages/auth-client/src/react.tsx"
   }
 }

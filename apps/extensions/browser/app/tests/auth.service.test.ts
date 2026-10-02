@@ -202,3 +202,188 @@ describe('extension API authentication', () => {
     );
   });
 });
+
+describe('authoritative cookie refresh on focus', () => {
+  it.each([401, 403])(
+    'clears the old user JWT after confirmed cookie rejection %s',
+    async (status) => {
+      mocks.values.set('genfeed_token', 'old-user-jwt');
+      mocks.fetch.mockResolvedValue(response({}, status));
+      const { authService } = await import('../src/services/auth.service');
+      expect(await authService.refreshSessionToken()).toBeNull();
+      expect(mocks.values.has('genfeed_token')).toBe(false);
+    },
+  );
+  it('preserves the old credential on server failure', async () => {
+    mocks.values.set('genfeed_token', 'old-user-jwt');
+    mocks.fetch.mockResolvedValue(response({}, 503));
+    const { authService } = await import('../src/services/auth.service');
+    await expect(authService.refreshSessionToken()).rejects.toThrow('503');
+    expect(mocks.values.get('genfeed_token')).toBe('old-user-jwt');
+  });
+  it('never exchanges an explicit API key for the cookie account', async () => {
+    mocks.values.set('genfeed_token', 'gf_fixture_key');
+    const { authService } = await import('../src/services/auth.service');
+    expect(await authService.refreshSessionToken()).toBe('gf_fixture_key');
+    expect(mocks.fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('scoped authenticated send and replay fence', () => {
+  it('does not send a mutation after another surface changes to a different user in the same organization', async () => {
+    mocks.values.set('genfeed_token', 'different-account-token');
+    mocks.fetch.mockResolvedValueOnce(
+      response({ data: { ...context, user: { id: 'different-user' } } }),
+    );
+    const { authService } = await import('../src/services/auth.service');
+    await expect(
+      authService.makeAuthenticatedRequest(
+        `${endpoint}mutation`,
+        { method: 'POST' },
+        (verified) => {
+          if (verified.user.id !== context.user.id)
+            throw new Error('Account changed');
+        },
+      ),
+    ).rejects.toThrow('Account changed');
+    expect(mocks.fetch).toHaveBeenCalledTimes(1);
+    expect(
+      mocks.fetch.mock.calls.filter((call) => call[1].method === 'POST'),
+    ).toHaveLength(0);
+  });
+  it('does not replay a mutation as a different user in the same organization', async () => {
+    mocks.values.set('genfeed_token', 'old');
+    mocks.fetch
+      .mockResolvedValueOnce(response({ data: context }))
+      .mockResolvedValueOnce(response({}, 401))
+      .mockResolvedValueOnce(response({ token: 'new' }))
+      .mockResolvedValueOnce(
+        response({ data: { ...context, user: { id: 'different-user' } } }),
+      );
+    const { authService } = await import('../src/services/auth.service');
+    await expect(
+      authService.makeAuthenticatedRequest(
+        `${endpoint}mutation`,
+        { method: 'POST' },
+        (verified) => {
+          if (verified.user.id !== context.user.id)
+            throw new Error('Account changed');
+        },
+      ),
+    ).rejects.toThrow('Account changed');
+    expect(mocks.fetch).toHaveBeenCalledTimes(4);
+    expect(
+      mocks.fetch.mock.calls.filter((call) => call[1].method === 'POST'),
+    ).toHaveLength(1);
+    expect(mocks.values.get('genfeed_token')).toBe('new');
+  });
+  it('verifies the exact captured token before initial send and a single same-scope replay', async () => {
+    mocks.values.set('genfeed_token', 'old');
+    mocks.fetch
+      .mockResolvedValueOnce(response({ data: context }))
+      .mockResolvedValueOnce(response({}, 401))
+      .mockResolvedValueOnce(response({ token: 'new' }))
+      .mockResolvedValueOnce(response({ data: context }))
+      .mockResolvedValueOnce(response({ success: true }));
+    const guard = vi.fn();
+    const { authService } = await import('../src/services/auth.service');
+    expect(
+      (
+        await authService.makeAuthenticatedRequest(
+          `${endpoint}mutation`,
+          { method: 'POST' },
+          guard,
+        )
+      ).ok,
+    ).toBe(true);
+    expect(guard).toHaveBeenCalledTimes(2);
+    expect(mocks.fetch).toHaveBeenCalledTimes(5);
+    expect(
+      mocks.fetch.mock.calls.filter((call) => call[1].method === 'POST'),
+    ).toHaveLength(2);
+  });
+  it.each([401, 403])(
+    'blocks replay after refreshed identity rejection %s',
+    async (status) => {
+      mocks.values.set('genfeed_token', 'old');
+      mocks.fetch
+        .mockResolvedValueOnce(response({ data: context }))
+        .mockResolvedValueOnce(response({}, 401))
+        .mockResolvedValueOnce(response({ token: 'new' }))
+        .mockResolvedValueOnce(response({}, status));
+      const { authService } = await import('../src/services/auth.service');
+      await expect(
+        authService.makeAuthenticatedRequest(
+          `${endpoint}mutation`,
+          { method: 'POST' },
+          vi.fn(),
+        ),
+      ).rejects.toThrow('no longer has access');
+      expect(
+        mocks.fetch.mock.calls.filter((call) => call[1].method === 'POST'),
+      ).toHaveLength(1);
+    },
+  );
+  it('refreshes initial identity401 once before sending the mutation', async () => {
+    mocks.values.set('genfeed_token', 'old');
+    mocks.fetch
+      .mockResolvedValueOnce(response({}, 401))
+      .mockResolvedValueOnce(response({ token: 'new' }))
+      .mockResolvedValueOnce(response({ data: context }))
+      .mockResolvedValueOnce(response({ success: true }));
+    const { authService } = await import('../src/services/auth.service');
+    expect(
+      (
+        await authService.makeAuthenticatedRequest(
+          `${endpoint}mutation`,
+          { method: 'POST' },
+          vi.fn(),
+        )
+      ).ok,
+    ).toBe(true);
+    expect(
+      mocks.fetch.mock.calls.filter((call) => call[1].method === 'POST'),
+    ).toHaveLength(1);
+    expect(
+      mocks.fetch.mock.calls.filter((call) =>
+        String(call[0]).endsWith('/auth/token'),
+      ),
+    ).toHaveLength(1);
+  });
+  it('does not refresh again when the protected request rejects the initially refreshed identity', async () => {
+    mocks.values.set('genfeed_token', 'old');
+    mocks.fetch
+      .mockResolvedValueOnce(response({}, 401))
+      .mockResolvedValueOnce(response({ token: 'new' }))
+      .mockResolvedValueOnce(response({ data: context }))
+      .mockResolvedValueOnce(response({}, 401));
+    const { authService } = await import('../src/services/auth.service');
+    await expect(
+      authService.makeAuthenticatedRequest(
+        `${endpoint}mutation`,
+        { method: 'POST' },
+        vi.fn(),
+      ),
+    ).rejects.toThrow('expired');
+    expect(mocks.fetch).toHaveBeenCalledTimes(4);
+    expect(
+      mocks.fetch.mock.calls.filter((call) =>
+        String(call[0]).endsWith('/auth/token'),
+      ),
+    ).toHaveLength(1);
+  });
+  it('does not cookie-refresh an initial identity403', async () => {
+    mocks.values.set('genfeed_token', 'old');
+    mocks.fetch.mockResolvedValueOnce(response({}, 403));
+    const { authService } = await import('../src/services/auth.service');
+    await expect(
+      authService.makeAuthenticatedRequest(
+        `${endpoint}mutation`,
+        { method: 'POST' },
+        vi.fn(),
+      ),
+    ).rejects.toThrow('no longer has access');
+    expect(mocks.fetch).toHaveBeenCalledTimes(1);
+    expect(mocks.values.get('genfeed_token')).toBe('old');
+  });
+});

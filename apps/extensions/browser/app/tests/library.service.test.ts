@@ -1,9 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  loadLibraryAssets,
   libraryArtifactReferences,
+  loadLibraryAssets,
 } from '~services/library.service';
-const auth = vi.hoisted(() => ({ getToken: vi.fn(), getAuthContext: vi.fn() }));
+
+const auth = vi.hoisted(() => ({
+  getToken: vi.fn(),
+  getAuthContext: vi.fn(),
+  revision: 1,
+}));
 vi.mock('~services/auth.service', () => ({ authService: auth }));
 const fetchMock = vi.fn();
 const asset = (
@@ -25,6 +30,7 @@ const asset = (
   },
 });
 beforeEach(() => {
+  auth.revision = 1;
   vi.stubGlobal('fetch', fetchMock);
   auth.getToken.mockResolvedValue('token');
   auth.getAuthContext.mockResolvedValue({ organization: { id: 'org-1' } });
@@ -44,6 +50,11 @@ describe('extension Library', () => {
     });
     const url = new URL(fetchMock.mock.calls[0][0]);
     expect(url.pathname).toBe('/v1/ingredients');
+    expect(
+      new Headers(fetchMock.mock.calls[0][1].headers).get(
+        'x-genfeed-organization-id',
+      ),
+    ).toBe('org-1');
     expect(url.searchParams.get('brandId')).toBe('brand-1');
     expect(url.searchParams.get('search')).toBe('launch');
     expect(url.searchParams.getAll('status')).toContain('GENERATED');
@@ -120,4 +131,60 @@ describe('extension Library', () => {
     });
     await expect(loadLibraryAssets('brand-1')).rejects.toThrow();
   });
+});
+
+// Unit boundary: identity/bootstrap reconciliation is covered by workspace.service.test.ts.
+vi.mock('~services/workspace.service', async () => {
+  const { authService } = await import('~services/auth.service');
+  const { apiEndpoint } = await import('~services/environment.service');
+  const snapshot = async () => {
+    const context =
+      'getAuthContext' in authService
+        ? await authService.getAuthContext()
+        : null;
+    return {
+      userId: context?.user?.id ?? 'user-1',
+      organizationId: context?.organization?.id ?? 'org-1',
+      brandId: 'brand-1',
+      brands: [{ id: 'brand-1' }],
+      revision: auth.revision,
+    };
+  };
+  return {
+    requireWorkspace: snapshot,
+    assertWorkspace: (expected: { revision: number }) => {
+      if (expected.revision !== auth.revision)
+        throw new Error('Your workspace changed.');
+    },
+    loadWorkspace: snapshot,
+    scopedWorkspaceRequest: async (
+      path: string,
+      options: RequestInit,
+      expected: { organizationId: string },
+    ) => {
+      const token = await authService.getToken();
+      const headers = new Headers(options.headers);
+      headers.set('Authorization', `Bearer ${token}`);
+      headers.set('x-genfeed-organization-id', expected.organizationId);
+      return fetch(path.startsWith('http') ? path : `${apiEndpoint}${path}`, {
+        ...options,
+        headers,
+      });
+    },
+  };
+});
+
+it('discards a pending Library response when workspace revision changes', async () => {
+  let finish!: (value: unknown) => void;
+  fetchMock.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const pending = loadLibraryAssets('brand-1');
+  await vi.waitFor(() => expect(finish).toBeDefined());
+  auth.revision += 1;
+  finish({ ok: true, json: async () => ({ data: [asset()] }) });
+  await expect(pending).rejects.toThrow('workspace changed');
 });

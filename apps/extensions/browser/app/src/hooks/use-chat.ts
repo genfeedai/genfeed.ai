@@ -1,7 +1,7 @@
 import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import { useCallback } from 'react';
-
 import type { ChatMessage } from '~models/chat.model';
+import { getWorkspaceState } from '~services/workspace.service';
 import { useBrandStore } from '~store/use-brand-store';
 import { useChatStore } from '~store/use-chat-store';
 import { usePlatformStore } from '~store/use-platform-store';
@@ -31,6 +31,25 @@ export function useChat(): UseChatReturn {
       artifactReferences?: AgentArtifactReference[],
       displayContent = content,
     ) => {
+      const expected = getWorkspaceState();
+      if (
+        expected.status !== 'ready' ||
+        expected.snapshot.brandId !== activeBrandId
+      )
+        return false;
+      const isSameScope = () => {
+        const current = getWorkspaceState();
+        return (
+          (current.status === 'ready' || current.status === 'refreshing') &&
+          current.snapshot.revision === expected.snapshot.revision &&
+          current.snapshot.userId === expected.snapshot.userId &&
+          current.snapshot.organizationId ===
+            expected.snapshot.organizationId &&
+          current.snapshot.brandId === expected.snapshot.brandId
+        );
+      };
+      const isCurrent = () =>
+        getWorkspaceState().status === 'ready' && isSameScope();
       if (!activeBrandId || useChatStore.getState().isGenerating) return false;
       const userMessage: ChatMessage = {
         content: displayContent,
@@ -61,7 +80,10 @@ export function useChat(): UseChatReturn {
               },
               (response) => {
                 if (response?.success && response.threadId) {
-                  if (useBrandStore.getState().activeBrandId === activeBrandId)
+                  if (
+                    isCurrent() &&
+                    useBrandStore.getState().activeBrandId === activeBrandId
+                  )
                     setActiveThread(response.threadId);
                   resolve(response.threadId);
                 } else {
@@ -75,7 +97,10 @@ export function useChat(): UseChatReturn {
 
       try {
         const threadId = await ensureThread;
-        if (useBrandStore.getState().activeBrandId !== activeBrandId)
+        if (
+          !isCurrent() ||
+          useBrandStore.getState().activeBrandId !== activeBrandId
+        )
           return false;
         const response = await new Promise<{
           success?: boolean;
@@ -100,6 +125,7 @@ export function useChat(): UseChatReturn {
         if (!response?.success || !response.message)
           throw new Error(response?.error ?? 'Failed to generate response');
         if (
+          !isCurrent() ||
           useBrandStore.getState().activeBrandId !== activeBrandId ||
           useChatStore.getState().activeThreadId !== threadId
         )
@@ -113,11 +139,12 @@ export function useChat(): UseChatReturn {
         });
         return true;
       } catch (err) {
+        if (!isCurrent()) return false;
         setError(err instanceof Error ? err.message : 'Failed to send message');
         logger.error('Failed to send message', err);
         return false;
       } finally {
-        setIsGenerating(false);
+        if (isSameScope()) setIsGenerating(false);
       }
     },
     [

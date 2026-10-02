@@ -97,7 +97,7 @@ describe('canonical extension Knowledge capture', () => {
     });
     expect(options.body).not.toContain('secret');
     expect(options.body).not.toContain('auth-token');
-    expect(options.headers['Idempotency-Key']).toBe(result.id);
+    expect(new Headers(options.headers).get('Idempotency-Key')).toBe(result.id);
     expect(result.draft).toBeUndefined();
   });
 
@@ -249,4 +249,42 @@ describe('canonical extension Knowledge capture', () => {
       scope: 'brand',
     });
   });
+});
+
+// Unit boundary: identity/bootstrap reconciliation is covered by workspace.service.test.ts.
+vi.mock('~services/workspace.service', async () => {
+  const { authService } = await import('~services/auth.service');
+  const { apiEndpoint } = await import('~services/environment.service');
+  const snapshot = async () => {
+    const context =
+      'getAuthContext' in authService
+        ? await authService.getAuthContext()
+        : null;
+    return {
+      userId: context?.user?.id ?? 'user-1',
+      organizationId: context?.organization?.id ?? 'org-1',
+      brandId: 'brand-a',
+      brands: [{ id: 'brand-a' }],
+      revision: 1,
+    };
+  };
+  return {
+    requireWorkspace: snapshot,
+    assertWorkspace: vi.fn(),
+    loadWorkspace: snapshot,
+    scopedWorkspaceRequest: async (
+      path: string,
+      options: RequestInit,
+      expected: { organizationId: string },
+    ) => {
+      const token = await authService.getToken();
+      const headers = new Headers(options.headers);
+      headers.set('Authorization', `Bearer ${token}`);
+      headers.set('x-genfeed-organization-id', expected.organizationId);
+      return fetch(path.startsWith('http') ? path : `${apiEndpoint}${path}`, {
+        ...options,
+        headers,
+      });
+    },
+  };
 });

@@ -45,6 +45,22 @@ export interface AuthContext {
   isApiKey: boolean;
 }
 
+interface AuthContextResponse {
+  data?: AuthContext;
+}
+
+export type AuthenticatedRequestGuard = (
+  verifiedContext: AuthContext,
+) => void | Promise<void>;
+
+class AuthIdentityRequestError extends Error {
+  constructor(public readonly status: number) {
+    super(
+      'Your refreshed credential no longer has access. Open Genfeed, then retry.',
+    );
+  }
+}
+
 class AuthService {
   private static instance: AuthService;
   private tokenCache: string | null = null;
@@ -100,13 +116,17 @@ class AuthService {
     }
   }
 
-  private async exchangeSessionToken(): Promise<string | null> {
+  private async exchangeSessionToken(
+    signal?: AbortSignal,
+  ): Promise<string | null> {
     // Better Auth's opaque session cookie is not an API Bearer credential.
     // The browser sends the HttpOnly API cookie; /token mints the verified JWT.
     const response = await fetch(`${apiEndpoint}/auth/token`, {
       credentials: 'include',
       method: 'GET',
-      signal: AbortSignal.timeout(15_000),
+      signal: signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(15_000)])
+        : AbortSignal.timeout(15_000),
     });
     if (response.status === 401 || response.status === 403) return null;
     if (!response.ok)
@@ -121,6 +141,20 @@ class AuthService {
     }
     await this.setToken(body.token);
     return body.token;
+  }
+
+  invalidateAuthContext(): void {
+    this.authContextCache = null;
+    this.authContextCheckedAt = 0;
+  }
+
+  async refreshSessionToken(signal?: AbortSignal): Promise<string | null> {
+    const stored = await storage.get<string>(TOKEN_STORAGE_KEY);
+    if (stored?.startsWith('gf_')) return stored;
+    const token = await this.exchangeSessionToken(signal);
+    if (!token) await this.clearToken();
+    this.invalidateAuthContext();
+    return token;
   }
 
   async setToken(token: string): Promise<void> {
@@ -164,17 +198,51 @@ class AuthService {
   async makeAuthenticatedRequest(
     url: string,
     options: RequestInit = {},
+    beforeAuthenticatedSend?: AuthenticatedRequestGuard,
   ): Promise<Response> {
-    const token = await this.getToken();
+    let token = await this.getToken();
+    let isRefreshConsumed = false;
     if (!token)
       throw new Error('Sign in to Genfeed in the web app, then retry.');
+    if (beforeAuthenticatedSend) {
+      let context: AuthContext;
+      try {
+        context = await this.readAuthContextWithToken(
+          token,
+          options.signal ?? undefined,
+        );
+      } catch (error) {
+        if (
+          !(error instanceof AuthIdentityRequestError) ||
+          error.status !== 401 ||
+          token.startsWith('gf_')
+        )
+          throw error;
+        isRefreshConsumed = true;
+        const renewed = await this.exchangeSessionToken(
+          options.signal ?? undefined,
+        );
+        if (!renewed) {
+          await this.clearToken();
+          throw new Error(
+            'Your Genfeed session expired. Sign in in the web app, then retry.',
+          );
+        }
+        token = renewed;
+        context = await this.readAuthContextWithToken(
+          token,
+          options.signal ?? undefined,
+        );
+      }
+      await beforeAuthenticatedSend(context);
+    }
 
     const request = (credential: string) => {
       const headers = new Headers(options.headers);
       headers.set('Authorization', `Bearer ${credential}`);
       if (!headers.has('Content-Type'))
         headers.set('Content-Type', 'application/json');
-      return fetch(url, { ...options, headers });
+      return fetch(url, { ...options, headers, redirect: 'error' });
     };
     let response = await request(token);
     if (response.status === 401) {
@@ -183,10 +251,27 @@ class AuthService {
           'This Genfeed API key was rejected. Update your API key or sign in from the extension popup.',
         );
       }
+      if (isRefreshConsumed) {
+        await this.clearToken();
+        throw new Error(
+          'Your Genfeed session expired. Sign in in the web app, then retry.',
+        );
+      }
       // Retry once after an expired JWT or legacy stored cookie is rejected.
       // An API outage must not silently erase a working browser session.
-      const refreshed = await this.exchangeSessionToken();
-      if (refreshed) response = await request(refreshed);
+      const refreshed = await this.exchangeSessionToken(
+        options.signal ?? undefined,
+      );
+      if (refreshed) {
+        if (beforeAuthenticatedSend)
+          await beforeAuthenticatedSend(
+            await this.readAuthContextWithToken(
+              refreshed,
+              options.signal ?? undefined,
+            ),
+          );
+        response = await request(refreshed);
+      }
       if (!refreshed || response.status === 401) {
         await this.clearToken();
         throw new Error(
@@ -195,6 +280,37 @@ class AuthService {
       }
     }
     return response;
+  }
+
+  private async readAuthContextWithToken(
+    token: string,
+    signal?: AbortSignal,
+  ): Promise<AuthContext> {
+    const response = await fetch(`${apiEndpoint}/auth/whoami`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+      signal,
+      redirect: 'error',
+    });
+    if (response.status === 401 || response.status === 403)
+      throw new AuthIdentityRequestError(response.status);
+    if (!response.ok)
+      throw new Error(
+        `Could not verify the refreshed session (HTTP ${response.status}). Retry.`,
+      );
+    const body = (await response.json()) as AuthContextResponse;
+    const context = body.data;
+    if (
+      !context ||
+      typeof context.user?.id !== 'string' ||
+      typeof context.organization?.id !== 'string' ||
+      !context.user.id ||
+      !context.organization.id
+    )
+      throw new Error(
+        'Genfeed did not confirm the refreshed account and workspace. Retry.',
+      );
+    return context;
   }
 
   async validateToken(): Promise<boolean> {
@@ -216,7 +332,10 @@ class AuthService {
     }
   }
 
-  async getAuthContext(forceRefresh = false): Promise<AuthContext | null> {
+  async getAuthContext(
+    forceRefresh = false,
+    signal?: AbortSignal,
+  ): Promise<AuthContext | null> {
     if (!(await this.getToken())) {
       throw new Error('Sign in to Genfeed in the web app, then retry.');
     }
@@ -230,7 +349,12 @@ class AuthService {
     // Persisted context from an older token is not proof of current access.
     const response = await this.makeAuthenticatedRequest(
       `${apiEndpoint}/auth/whoami`,
-      { method: 'GET', signal: AbortSignal.timeout(15_000) },
+      {
+        method: 'GET',
+        signal: signal
+          ? AbortSignal.any([signal, AbortSignal.timeout(15_000)])
+          : AbortSignal.timeout(15_000),
+      },
     );
     if (response.status === 403) {
       throw new Error(

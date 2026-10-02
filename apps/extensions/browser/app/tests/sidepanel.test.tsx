@@ -63,6 +63,7 @@ vi.mock('~services/error-tracking.service', () => ({
 }));
 vi.mock('~store/use-chat-store', () => ({ useChatStore: () => false }));
 vi.mock('~style.css', () => ({}));
+
 import SidePanel from '../src/sidepanel';
 
 beforeEach(() => {
@@ -157,3 +158,60 @@ describe('SidePanel', () => {
     expect(source).not.toContain("event: 'savePost'");
   });
 });
+
+vi.mock('~hooks/use-workspace', async () => {
+  const React = await import('react');
+  const { loadWorkspace, subscribeWorkspace, getWorkspaceState } = await import(
+    '~services/workspace.service'
+  );
+  return {
+    useWorkspace: () => {
+      const state = React.useSyncExternalStore(
+        subscribeWorkspace,
+        getWorkspaceState,
+      );
+      React.useEffect(() => {
+        void loadWorkspace({ forceRefresh: true }).catch(() => undefined);
+      }, []);
+      return state;
+    },
+  };
+});
+vi.mock('~services/workspace.service', () => {
+  let state: unknown = { status: 'loading' };
+  const listeners = new Set<() => void>();
+  return {
+    getWorkspaceState: () => state,
+    subscribeWorkspace: (listener: () => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    loadWorkspace: async () => {
+      try {
+        await auth.getAuthContext(true);
+        state = {
+          status: 'ready',
+          snapshot: {
+            organizationId: 'org-1',
+            organizationLabel: 'Demo',
+            organizations: [],
+            brands: [],
+            revision: 1,
+          },
+        };
+      } catch (error) {
+        state = {
+          status: 'blocked',
+          error:
+            error instanceof TypeError
+              ? 'Could not connect to Genfeed. Retry.'
+              : (error as Error).message,
+        };
+      }
+      for (const listener of listeners) listener();
+    },
+  };
+});
+vi.mock('~components/settings/OrganizationSelector', () => ({
+  OrganizationSelector: () => <div>Workspace selector</div>,
+}));

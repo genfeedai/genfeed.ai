@@ -10,10 +10,9 @@ import { normalizeCrunInput } from './crun-input-contract.helper';
 function acceptsVideoContract(controls: CrunInputControls): boolean {
   if (controls.mediaKind !== 'video') return false;
   const result = normalizeCrunInput(controls, { prompt: 'x' });
-  return (
-    result.isValid ||
-    !result.errors.some((error) => error.code === 'contract_mismatch')
-  );
+  if (result.isValid === false)
+    return !result.errors.some((error) => error.code === 'contract_mismatch');
+  return true;
 }
 
 export function createCrunVideoDraft(
@@ -133,6 +132,6 @@ export function normalizeCrunVideoDraft(
         }
       : controls;
   const result = normalizeCrunInput(contract, values);
-  if (!result.isValid) errors.push(...result.errors);
+  if (result.isValid === false) errors.push(...result.errors);
   return errors.length ? { isValid: false, errors } : result;
 }

@@ -202,6 +202,7 @@ export * from './elements/mood.interface';
 export * from './elements/preset.interface';
 export * from './elements/scene.interface';
 export * from './elements/style.interface';
+export * from './extension';
 export * from './fanvue-chatbot/creator-persona.interface';
 export * from './fanvue-chatbot/fanvue-webhook.interface';
 export * from './hook-performance.interface';

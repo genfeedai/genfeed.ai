@@ -29,7 +29,13 @@
       ],
       "@genfeedai/models/*": ["../../../../packages/models/*"],
       "@props/*": ["../../../../packages/props/*"],
-      "@genfeedai/services/*": ["../../../../packages/services/*"]
+      "@genfeedai/services/*": ["../../../../packages/services/*"],
+      "@genfeedai/helpers": ["../../../../packages/helpers/src/index.ts"],
+      "@genfeedai/contracts": ["../../../../packages/contracts/src/index.ts"],
+      "@genfeedai/contracts/*": ["../../../../packages/contracts/src/*"],
+      "@genfeedai/auth-client/react": [
+        "../../../../packages/auth-client/src/react.tsx"
+      ]
     },
     "moduleResolution": "bundler",
     "types": ["chrome", "node", "react", "react-dom"]

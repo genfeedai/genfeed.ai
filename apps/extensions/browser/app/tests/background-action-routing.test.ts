@@ -1,6 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  workspaceBrand: 'brand-1' as string | null,
   execute: vi.fn(),
   generateText: vi.fn(),
   getToken: vi.fn(),
@@ -13,6 +14,7 @@ vi.mock('~services/auth.service', () => ({
 }));
 vi.mock('~services/error-tracking.service', () => ({
   initializeErrorTracking: vi.fn(),
+  captureExtensionError: vi.fn(),
 }));
 vi.mock('~services/agent-tools.service', () => ({
   AgentToolsService: class {
@@ -54,6 +56,7 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
+  mocks.workspaceBrand = 'brand-1';
   mocks.getToken.mockResolvedValue('token');
   mocks.generateText.mockReset().mockResolvedValue('Generated text');
   mocks.execute.mockReset().mockResolvedValue({
@@ -67,6 +70,11 @@ beforeEach(() => {
 });
 
 async function dispatch(request: Record<string, unknown>) {
+  const payload = request.payload as Record<string, unknown> | undefined;
+  if (typeof request.brandId === 'string')
+    mocks.workspaceBrand = request.brandId;
+  else if (typeof payload?.brandId === 'string')
+    mocks.workspaceBrand = payload.brandId;
   const respond = vi.fn();
   expect(backgroundListener(request, {}, respond)).toBe(true);
   await vi.waitFor(() => expect(respond).toHaveBeenCalled());
@@ -207,6 +215,7 @@ describe('background user action routing', () => {
   });
 
   it('asks for a brand instead of importing into another brand', async () => {
+    mocks.workspaceBrand = null;
     const result = await dispatch({
       event: 'savePost',
       url: 'https://x.com/author/status/123',
@@ -338,4 +347,42 @@ describe('Library references in agent turns', () => {
       content: 'Use this artwork',
     });
   });
+});
+
+// Unit boundary: identity/bootstrap reconciliation is covered by workspace.service.test.ts.
+vi.mock('~services/workspace.service', async () => {
+  const { authService } = await import('~services/auth.service');
+  const { apiEndpoint } = await import('~services/environment.service');
+  const snapshot = async () => {
+    const context =
+      'getAuthContext' in authService
+        ? await authService.getAuthContext()
+        : null;
+    return {
+      userId: context?.user?.id ?? 'user-1',
+      organizationId: context?.organization?.id ?? 'org-1',
+      brandId: mocks.workspaceBrand,
+      brands: [{ id: 'brand-1' }],
+      revision: 1,
+    };
+  };
+  return {
+    requireWorkspace: snapshot,
+    assertWorkspace: vi.fn(),
+    loadWorkspace: snapshot,
+    scopedWorkspaceRequest: async (
+      path: string,
+      options: RequestInit,
+      expected: { organizationId: string },
+    ) => {
+      const token = await authService.getToken();
+      const headers = new Headers(options.headers);
+      headers.set('Authorization', `Bearer ${token}`);
+      headers.set('x-genfeed-organization-id', expected.organizationId);
+      return fetch(path.startsWith('http') ? path : `${apiEndpoint}${path}`, {
+        ...options,
+        headers,
+      });
+    },
+  };
 });

@@ -3,13 +3,15 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import Image from 'next/image';
-import { useEffect, useReducer } from 'react';
+import { useEffect } from 'react';
 import LoginPage from '~components/pages/LoginPage';
 import { useAccountThemeSync } from '~hooks/use-account-theme-sync';
 import { useExtensionTheme } from '~hooks/use-extension-theme';
-import { authService, getJWTToken } from '~services/auth.service';
-import { logoURL } from '~services/environment.service';
+import { useWorkspace } from '~hooks/use-workspace';
+import { authService } from '~services/auth.service';
+import { appDomain, logoURL } from '~services/environment.service';
 import { initializeErrorTracking } from '~services/error-tracking.service';
+import { loadWorkspace } from '~services/workspace.service';
 import { logger } from '~utils/logger.util';
 import '~style.css';
 
@@ -26,53 +28,20 @@ function handleOpenSidePanel() {
 }
 
 function PopupContent() {
-  const { isLoaded, isSignedIn, getToken, signOut } = useAuth();
-  const [authState, setAuthState] = useReducer(
-    (
-      _state: 'syncing' | 'authenticated' | 'unauthenticated',
-      nextState: 'syncing' | 'authenticated' | 'unauthenticated',
-    ) => nextState,
-    'syncing',
-  );
-  useAccountThemeSync(authState === 'authenticated');
-
-  useEffect(() => {
-    async function syncAuth() {
-      if (!isLoaded) {
-        return;
-      }
-
-      const existingToken = await authService.getToken();
-      if (existingToken) {
-        setAuthState('authenticated');
-        return;
-      }
-
-      let nextState: 'authenticated' | 'unauthenticated' = 'unauthenticated';
-
-      if (isSignedIn) {
-        try {
-          const token = await getJWTToken(getToken);
-          if (token) {
-            await authService.setToken(token);
-            nextState = 'authenticated';
-          }
-        } catch (error) {
-          logger.error('Error getting JWT token', error);
-        }
-      }
-      setAuthState(nextState);
-    }
-    void syncAuth().catch((error: unknown) => {
-      logger.error('Failed to synchronize extension auth', error);
-      setAuthState('unauthenticated');
-    });
-  }, [isLoaded, isSignedIn, getToken]);
+  const { isLoaded, signOut } = useAuth();
+  const workspace = useWorkspace();
+  const authState =
+    workspace.status === 'ready'
+      ? 'authenticated'
+      : workspace.status === 'loading'
+        ? 'syncing'
+        : 'unauthenticated';
+  useAccountThemeSync(workspace.status === 'ready');
 
   const handleLogout = async () => {
     await signOut();
     await authService.clearToken();
-    setAuthState('unauthenticated');
+    void loadWorkspace({ forceRefresh: true }).catch(() => undefined);
   };
 
   if (!isLoaded || authState === 'syncing') {
@@ -97,6 +66,25 @@ function PopupContent() {
             />
             <h1 className="text-xl font-semibold text-foreground">Genfeed</h1>
           </div>
+          <p role="alert">
+            {workspace.status === 'blocked'
+              ? workspace.error
+              : 'Sign in to Genfeed.'}
+          </p>
+          <Button
+            onClick={() => {
+              void loadWorkspace({ forceRefresh: true }).catch(() => undefined);
+            }}
+          >
+            Retry
+          </Button>
+          <Button
+            onClick={() => {
+              void chrome.tabs.create({ url: appDomain });
+            }}
+          >
+            Open Genfeed
+          </Button>
           <LoginPage />
         </div>
       </div>
@@ -129,6 +117,9 @@ function PopupContent() {
 
         <div className="flex flex-col items-center gap-4 py-8">
           <p className="text-sm text-muted-foreground text-center">
+            {workspace.status === 'ready'
+              ? `${workspace.snapshot.organizationLabel} · ${workspace.snapshot.brands.find((brand) => brand.id === workspace.snapshot.brandId)?.label ?? 'Select a brand'} · ${workspace.snapshot.userId}`
+              : ''}
             Open the side panel to chat with your AI content assistant.
           </p>
           <Button

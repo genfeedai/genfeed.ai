@@ -7,8 +7,11 @@ import {
   deserializeCollection,
   type JsonApiResponseDocument,
 } from '@genfeedai/helpers/data/json-api/json-api.helper';
-import { authService } from '~services/auth.service';
-import { apiEndpoint } from '~services/environment.service';
+import {
+  assertWorkspace,
+  requireWorkspace,
+  scopedWorkspaceRequest,
+} from '~services/workspace.service';
 
 export interface LibraryAsset extends AgentContentMentionItem {
   reference: AgentArtifactReference;
@@ -21,10 +24,12 @@ export async function loadLibraryAssets(
 ): Promise<{ items: LibraryAsset[]; hasMore: boolean }> {
   if (!brandId.trim())
     throw new Error('Select a brand to browse your Library.');
-  const context = await authService.getAuthContext();
-  const token = await authService.getToken();
-  if (!token || !context?.organization.id)
-    throw new Error('Sign in to load your Library.');
+  const workspace = await requireWorkspace();
+  if (
+    brandId !== workspace.brandId ||
+    !workspace.brands.some((brand) => brand.id === brandId)
+  )
+    throw new Error('Select an accessible brand to load your Library.');
   const page = options.page ?? 1;
   const query = new URLSearchParams({
     brandId,
@@ -36,15 +41,17 @@ export async function loadLibraryAssets(
   for (const status of ['GENERATED', 'VALIDATED', 'UPLOADED'])
     query.append('status', status);
   if (options.search) query.set('search', options.search);
-  const response = await fetch(`${apiEndpoint}/ingredients?${query}`, {
-    headers: { Authorization: `Bearer ${token}` },
-    signal: options.signal,
-  });
+  const response = await scopedWorkspaceRequest(
+    `/ingredients?${query}`,
+    { signal: options.signal },
+    workspace,
+  );
   const document = (await response.json()) as JsonApiResponseDocument & {
     message?: string;
   };
   if (!response.ok)
     throw new Error(document.message || 'Could not load your Library.');
+  assertWorkspace(workspace);
   const records = deserializeCollection<IIngredient>(document);
   const items: LibraryAsset[] = [];
   for (const record of records) {
@@ -59,7 +66,7 @@ export async function loadLibraryAssets(
     const category = record.category?.toUpperCase();
     if (
       recordBrand !== brandId ||
-      organization !== context.organization.id ||
+      organization !== workspace.organizationId ||
       record.isDeleted ||
       !['GENERATED', 'VALIDATED', 'UPLOADED'].includes(record.status) ||
       !['IMAGE', 'VIDEO', 'GIF', 'MUSIC', 'VOICE', 'AUDIO'].includes(category)

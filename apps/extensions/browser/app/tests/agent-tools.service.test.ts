@@ -37,6 +37,7 @@ describe('AgentToolsService', () => {
       expect(post).toHaveBeenCalledTimes(1);
       expect(post).toHaveBeenCalledWith(`/agent-tools/${tool}/execute`, {
         parameters,
+        context: { brandId: 'brand-1' },
       });
     },
   );
@@ -50,7 +51,13 @@ describe('AgentToolsService', () => {
       ),
     ).resolves.toBe('generated');
     expect(post).toHaveBeenCalledWith('/agent-tools/generate_content/execute', {
-      parameters: { platform: 'tiktok', topic: 'Remix this', type: 'script' },
+      parameters: {
+        brandId: 'brand-1',
+        platform: 'tiktok',
+        topic: 'Remix this',
+        type: 'script',
+      },
+      context: { brandId: 'brand-1' },
     });
   });
 
@@ -99,10 +106,10 @@ describe('AgentToolsService', () => {
       'Idea',
       'twitter',
       'Title',
-      'brand-id',
+      'brand-1',
     );
     expect(get).toHaveBeenCalledWith('/credentials', {
-      params: { brandId: 'brand-id', limit: 100 },
+      params: { brandId: 'brand-1', limit: 100 },
     });
     expect(post).toHaveBeenCalledWith('/posts', {
       credentialId: 'credential-twitter',
@@ -143,7 +150,7 @@ describe('AgentToolsService', () => {
           'Idea',
           'twitter',
           'Title',
-          'brand',
+          'brand-1',
         ),
       ).rejects.toThrow();
       expect(post).not.toHaveBeenCalled();
@@ -167,8 +174,17 @@ describe('AgentToolsService', () => {
         'Idea',
         'twitter',
         'Title',
-        'brand',
+        'brand-1',
       ),
     ).rejects.toThrow('Account is unavailable');
   });
 });
+
+vi.mock('~services/workspace.service', () => ({
+  requireWorkspace: async () => ({
+    brandId: 'brand-1',
+    organizationId: 'org-1',
+    revision: 1,
+  }),
+  assertWorkspace: vi.fn(),
+}));

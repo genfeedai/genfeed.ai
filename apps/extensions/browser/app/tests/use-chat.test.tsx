@@ -1,8 +1,21 @@
+const workspace = vi.hoisted(() => ({
+  state: {
+    status: 'ready',
+    snapshot: {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+      revision: 1,
+    },
+  },
+}));
+
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useChat } from '~hooks/use-chat';
 import { useBrandStore } from '~store/use-brand-store';
 import { useChatStore } from '~store/use-chat-store';
+
 const reference = {
   kind: 'ingredient',
   serializer: 'ingredient',
@@ -11,6 +24,15 @@ const reference = {
   recordId: 'image-1',
 } as const;
 beforeEach(() => {
+  workspace.state = {
+    status: 'ready',
+    snapshot: {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+      revision: 1,
+    },
+  };
   useBrandStore.setState({ activeBrandId: 'brand-1' });
   useChatStore.setState({
     activeThreadId: null,
@@ -79,4 +101,34 @@ describe('extension reference turns', () => {
     );
     expect(chrome.runtime.sendMessage).not.toHaveBeenCalled();
   });
+});
+
+vi.mock('~services/workspace.service', () => ({
+  getWorkspaceState: () => workspace.state,
+}));
+
+it('discards a late reply after switching away and back to the same brand id', async () => {
+  useChatStore.setState({ activeThreadId: 'thread-1' });
+  let respond!: (response: unknown) => void;
+  vi.mocked(chrome.runtime.sendMessage).mockImplementation(
+    (_request, callback) => {
+      respond = callback as unknown as typeof respond;
+    },
+  );
+  const { result } = renderHook(useChat);
+  let pending!: Promise<boolean>;
+  act(() => {
+    pending = result.current.sendMessage('Old request', [reference]);
+  });
+  await vi.waitFor(() => expect(respond).toBeDefined());
+  workspace.state = {
+    ...workspace.state,
+    snapshot: { ...workspace.state.snapshot, revision: 3 },
+  };
+  useChatStore.setState({ messages: [], activeThreadId: 'thread-1' });
+  await act(async () => {
+    respond({ success: true, message: { content: 'Late reply' } });
+    expect(await pending).toBe(false);
+  });
+  expect(useChatStore.getState().messages).toEqual([]);
 });

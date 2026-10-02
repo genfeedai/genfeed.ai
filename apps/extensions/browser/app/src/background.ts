@@ -1,5 +1,8 @@
-import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import { IngredientStatus } from '@genfeedai/contracts';
+import type {
+  AgentArtifactReference,
+  ExtensionWorkspaceSnapshot,
+} from '@genfeedai/contracts/interfaces';
 import type { CaptureMode } from '~models/knowledge-capture.model';
 import { AgentToolsService } from '~services/agent-tools.service';
 import { authService } from '~services/auth.service';
@@ -22,6 +25,12 @@ import {
   retryKnowledgeCapture,
   setCaptureBrand,
 } from '~services/knowledge-capture.service';
+import {
+  assertWorkspace,
+  loadWorkspace,
+  requireWorkspace,
+  scopedWorkspaceRequest,
+} from '~services/workspace.service';
 import type { ExtensionMessage } from '~types/extension';
 import {
   extractKnowledgeSnapshot,
@@ -119,6 +128,17 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     .catch((err) => logger.error('Failed to open side panel', err));
 });
 
+chrome.storage.onChanged.addListener((changes) => {
+  if (
+    changes.extension_workspace_changed ||
+    (changes.genfeed_token && !changes.genfeed_token.newValue)
+  )
+    void loadWorkspace({
+      forceRefresh: true,
+      isStoredSelectionPreferred: Boolean(changes.extension_workspace_changed),
+    }).catch(() => undefined);
+});
+
 // Request types for background handlers
 interface ImagePromptRequest {
   prompt?: string;
@@ -149,15 +169,69 @@ interface BookmarkData {
 /**
  * Create authenticated headers for API requests
  */
+const requestScopes = new WeakMap<Headers, ExtensionWorkspaceSnapshot>();
+
+async function workspaceFetch(
+  url: string,
+  options: RequestInit = {},
+): Promise<Response> {
+  const workspace =
+    options.headers instanceof Headers
+      ? (requestScopes.get(options.headers) ?? (await requireWorkspace()))
+      : await requireWorkspace();
+  const parsedUrl = new URL(url);
+  let requestedBrand =
+    parsedUrl.searchParams.get('brandId') ??
+    parsedUrl.searchParams.get('brand');
+  if (typeof options.body === 'string') {
+    const body = JSON.parse(options.body) as Record<string, unknown>;
+    const context =
+      typeof body.context === 'object' && body.context !== null
+        ? (body.context as Record<string, unknown>)
+        : null;
+    if (typeof body.brandId === 'string') requestedBrand = body.brandId;
+    else if (typeof context?.brandId === 'string')
+      requestedBrand = context.brandId;
+    if (
+      Array.isArray(body.artifactReferences) &&
+      body.artifactReferences.some((item: unknown) => {
+        if (typeof item !== 'object' || item === null) return true;
+        const reference = item as Record<string, unknown>;
+        return (
+          reference.organizationId !== workspace.organizationId ||
+          reference.brandId !== workspace.brandId
+        );
+      })
+    )
+      throw new Error(
+        'These Library assets belong to another workspace or brand.',
+      );
+  }
+  if (requestedBrand && requestedBrand !== workspace.brandId)
+    throw new Error('Select the original brand before running this action.');
+  const response = await scopedWorkspaceRequest(url, options, workspace);
+  const parse = response.json.bind(response);
+  response.json = async () => {
+    const value = await parse();
+    assertWorkspace(workspace);
+    return value;
+  };
+  return response;
+}
+
 async function getAuthHeaders(): Promise<Headers | null> {
   const token = await authService.getToken();
   if (!token) {
     return null;
   }
-  return new Headers({
+  const workspace = await requireWorkspace();
+  const headers = new Headers({
+    'x-genfeed-organization-id': workspace.organizationId,
     Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json',
   });
+  requestScopes.set(headers, workspace);
+  return headers;
 }
 
 /**
@@ -189,7 +263,7 @@ async function executeAuthenticatedRequest<T>(
       return;
     }
 
-    const response = await fetch(`${API_BASE}${endpoint}`, {
+    const response = await workspaceFetch(`${API_BASE}${endpoint}`, {
       ...options,
       headers,
     });
@@ -678,7 +752,7 @@ async function generateReplyText(
     tweetUrl: request.url || '',
   });
 
-  const response = await fetch(`${API_BASE}/prompts/tweet`, {
+  const response = await workspaceFetch(`${API_BASE}/prompts/tweet`, {
     body: replyBody,
     headers,
     method: 'POST',
@@ -727,7 +801,7 @@ async function generateReplyWithMedia(
       request.imagePrompt ||
       `Create a visually engaging image that complements this reply: "${reply.substring(0, 200)}"`;
 
-    const imageResponse = await fetch(`${API_BASE}/images`, {
+    const imageResponse = await workspaceFetch(`${API_BASE}/images`, {
       body: JSON.stringify({
         height: 1024,
         model: 'gpt-image-1',
@@ -795,12 +869,18 @@ async function fetchBlobAsDataUrl(
       headers.Authorization = `Bearer ${token}`;
     }
 
-    const response = await fetch(url, { headers });
+    const workspace = await requireWorkspace();
+    const response =
+      new URL(url).origin === new URL(API_BASE).origin
+        ? await scopedWorkspaceRequest(url, {}, workspace)
+        : await fetch(url, { credentials: 'omit' });
+    assertWorkspace(workspace);
     if (!response.ok) {
       return null;
     }
 
     const blob = await response.blob();
+    assertWorkspace(workspace);
 
     if (maxSizeBytes && blob.size > maxSizeBytes) {
       logger.warn('File too large for data URL, returning null');
@@ -809,7 +889,14 @@ async function fetchBlobAsDataUrl(
 
     return new Promise((resolve) => {
       const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
+      reader.onloadend = () => {
+        try {
+          assertWorkspace(workspace);
+          resolve(reader.result as string);
+        } catch {
+          resolve(null);
+        }
+      };
       reader.onerror = () => resolve(null);
       reader.readAsDataURL(blob);
     });
@@ -891,7 +978,7 @@ async function generateReplyWithVideo(
       request.videoPrompt ||
       `Create a short engaging video that complements this reply: "${reply.substring(0, 200)}"`;
 
-    const videoResponse = await fetch(`${API_BASE}/videos`, {
+    const videoResponse = await workspaceFetch(`${API_BASE}/videos`, {
       body: JSON.stringify({
         duration: request.duration || 5,
         text: videoPrompt,
@@ -972,7 +1059,7 @@ async function pollForVideoCompletion(
   while (Date.now() - startTime < VIDEO_MAX_WAIT_MS) {
     await new Promise((resolve) => setTimeout(resolve, VIDEO_POLL_INTERVAL_MS));
 
-    const response = await fetch(`${API_BASE}/videos/${videoId}`, {
+    const response = await workspaceFetch(`${API_BASE}/videos/${videoId}`, {
       headers: new Headers({ Authorization: `Bearer ${token}` }),
       method: 'GET',
     });
@@ -1055,7 +1142,7 @@ async function handleChatSendMessage(
   try {
     const headers = await getAuthHeaders();
     if (!headers) throw new Error('Not authenticated');
-    const response = await fetch(
+    const response = await workspaceFetch(
       `${API_BASE}/agent/threads/${payload.threadId}/turns`,
       {
         body: JSON.stringify({
@@ -1082,7 +1169,7 @@ async function handleChatSendMessage(
     let afterSequence = 0;
     const startedAt = Date.now();
     while (Date.now() - startedAt < 120_000) {
-      const eventsResponse = await fetch(
+      const eventsResponse = await workspaceFetch(
         `${API_BASE}/agent/threads/${payload.threadId}/events?afterSequence=${afterSequence}`,
         { headers },
       );
@@ -1196,24 +1283,18 @@ async function handleChatGetMessages(
 }
 
 async function handleGetBrands(sendResponse: SendResponse): Promise<void> {
-  await executeAuthenticatedRequest<{
-    data?: Array<{ id: string; attributes: Record<string, unknown> }>;
-  }>(
-    '/brands',
-    { method: 'GET' },
-    sendResponse,
-    (data) => {
-      const brands = (data.data ?? []).map((item) => ({
-        description: item.attributes.description,
-        handle: item.attributes.handle,
-        id: item.id,
-        label: item.attributes.label,
-        logoUrl: item.attributes.logoUrl,
-      }));
-      sendResponse({ brands, success: true });
-    },
-    'get brands',
-  );
+  try {
+    const workspace = await requireWorkspace();
+    sendResponse({
+      success: true,
+      brands: workspace.brands.map((brand) => ({
+        ...brand,
+        handle: brand.slug,
+      })),
+    });
+  } catch (error) {
+    sendError(sendResponse, 'Could not load brands', error);
+  }
 }
 
 interface GetBrandVoicePayload {
@@ -1224,25 +1305,35 @@ async function handleGetBrandVoice(
   payload: GetBrandVoicePayload,
   sendResponse: SendResponse,
 ): Promise<void> {
-  await executeAuthenticatedRequest<{
-    data?: Array<{ attributes: { branding?: Record<string, unknown> } }>;
-  }>(
-    `/contexts?brand=${payload.brandId}`,
-    { method: 'GET' },
-    sendResponse,
-    (data) => {
-      const knowledgeBase = data.data?.[0];
-      if (knowledgeBase?.attributes?.branding) {
-        sendResponse({
-          brandVoice: knowledgeBase.attributes.branding,
-          success: true,
-        });
-      } else {
-        sendResponse({ brandVoice: null, success: true });
-      }
-    },
-    'get brand voice',
-  );
+  try {
+    const workspace = await requireWorkspace();
+    if (payload.brandId !== workspace.brandId) {
+      sendError(sendResponse, 'Select an accessible brand first.');
+      return;
+    }
+    await executeAuthenticatedRequest<{
+      data?: Array<{ attributes: { branding?: Record<string, unknown> } }>;
+    }>(
+      `/contexts?brand=${payload.brandId}`,
+      { method: 'GET' },
+      sendResponse,
+      (data) => {
+        assertWorkspace(workspace);
+        const knowledgeBase = data.data?.[0];
+        if (knowledgeBase?.attributes?.branding) {
+          sendResponse({
+            brandVoice: knowledgeBase.attributes.branding,
+            success: true,
+          });
+        } else {
+          sendResponse({ brandVoice: null, success: true });
+        }
+      },
+      'get brand voice',
+    );
+  } catch (error) {
+    sendError(sendResponse, 'Could not load brand voice', error);
+  }
 }
 
 interface GetCredentialsPayload {
@@ -1289,11 +1380,14 @@ async function handleStartOAuth(
       return;
     }
 
-    const response = await fetch(`${API_BASE}${payload.connectEndpoint}`, {
-      body: JSON.stringify({ brandId: payload.brandId }),
-      headers,
-      method: 'POST',
-    });
+    const response = await workspaceFetch(
+      `${API_BASE}${payload.connectEndpoint}`,
+      {
+        body: JSON.stringify({ brandId: payload.brandId }),
+        headers,
+        method: 'POST',
+      },
+    );
 
     const data = await response.json();
     if (!response.ok || !data.url) {

@@ -2,24 +2,34 @@
 
 ## Pre-Testing Setup
 
-1. **Build the Extension**
+1. **Build from this repository** (MacBook builds only; tests/typechecks use Mac Studio)
 
    ```bash
-   cd extension.genfeed.ai
-   pnpm run build
+   cd apps/extensions/browser/app
+   bun run css:build
+   env PLASMO_PUBLIC_ENV=production \
+     PLASMO_PUBLIC_APP_ENDPOINT=https://app.genfeed.ai \
+     PLASMO_PUBLIC_API_ENDPOINT=https://api.genfeed.ai/v1 \
+     PLASMO_PUBLIC_ASSETS_ENDPOINT=https://cdn.genfeed.ai/assets \
+     PLASMO_PUBLIC_WEBSITE_ENDPOINT=https://genfeed.ai \
+     PLASMO_PUBLIC_WS_ENDPOINT=https://notifications.genfeed.ai \
+     npm exec -- plasmo build --tag=dev --target=chrome-mv3 --with-source-maps
    ```
 
-2. **Load in Browser**
-   - Open Chrome/Edge
-   - Navigate to `chrome://extensions/`
-   - Enable "Developer mode"
-   - Click "Load unpacked"
-   - Select `build/chrome-mv3-prod` folder
+2. **Load in Brave manually**
+   - Use the local Genfeed Brave profile already signed into Genfeed.
+   - Open Brave's extensions page, enable Developer mode and load `apps/extensions/browser/app/build/chrome-mv3-dev`.
+   - For an existing installation, reload the same unpacked folder to preserve its extension ID and storage.
+   - Browser automation cannot open the extensions management page; installation requires this manual handoff.
 
-3. **Authenticate**
-   - Click the extension icon
-   - Log in with your Genfeed account
-   - Verify authentication is successful
+3. **Verify the signed-in session and workspace**
+   - Open the side panel from the existing web session; verify the account and active organization.
+   - Use the visible organization and brand selectors. Same-label organizations show their slug to distinguish them.
+   - Confirm Library assets belong to the selected brand. An empty Library is valid; real-asset acceptance requires an existing accessible asset.
+   - Switching organization/brand clears conversation, voice, attachments and scoped capture/import state. A same-scope focus refresh pauses actions and retains drafts.
+   - Test cookie logout, an expired JWT, 403 denial, offline/503 recovery and Retry without reinstalling. API keys remain pinned to their verified organization.
+   - No paid generation is needed for session/Library acceptance. Capture save and Library browsing do not start generation.
+   - Record the exact commit and observed outcomes without copying credentials. Source tests/build alone do not close #5858 or #4340; installed Brave acceptance and the parent release gates remain required.
 
 ## Platform Testing Checklist
 
