@@ -212,6 +212,7 @@ function checkAndReinitialize(): void {
 
 function setupNavigationListeners(): void {
   window.addEventListener('popstate', () => {
+    synchronizePublicationObserver();
     setTimeout(checkAndReinitialize, NAVIGATION_DELAY_MS);
   });
 

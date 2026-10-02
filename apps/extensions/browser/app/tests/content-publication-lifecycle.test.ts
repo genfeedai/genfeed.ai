@@ -1,4 +1,6 @@
 // @vitest-environment-options {"url":"https://x.com/home"}
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -9,11 +11,10 @@ import {
   vi,
 } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
-  attach: vi.fn(),
-  cleanups: [] as ReturnType<typeof vi.fn>[],
-  detected: vi.fn(),
-}));
+const mocks = vi.hoisted(() => {
+  const cleanups: Array<ReturnType<typeof vi.fn<() => void>>> = [];
+  return { attach: vi.fn(), cleanups, detected: vi.fn() };
+});
 vi.mock('~platforms/x-publication-observer', async (importOriginal) => {
   const actual =
     await importOriginal<typeof import('~platforms/x-publication-observer')>();
@@ -56,7 +57,7 @@ beforeEach(() => {
   windowListeners = vi.spyOn(window, 'addEventListener');
   documentListeners = vi.spyOn(document, 'addEventListener');
   mocks.attach.mockImplementation(() => {
-    const cleanup = vi.fn();
+    const cleanup = vi.fn<() => void>();
     mocks.cleanups.push(cleanup);
     return cleanup;
   });
@@ -82,6 +83,77 @@ const navigate = async (path: string, replace = false) => {
   await vi.advanceTimersByTimeAsync(100);
 };
 describe('real content module publication observer ownership', () => {
+  it('replaces the real self-disposed observer on rapid popstate departure and return', async () => {
+    const actual = await vi.importActual<
+      typeof import('~platforms/x-publication-observer')
+    >('~platforms/x-publication-observer');
+    document.body.innerHTML = readFileSync(
+      resolve(process.cwd(), 'tests/fixtures/publication-capture/x-home.html'),
+      'utf8',
+    );
+    const removed = vi.spyOn(document, 'removeEventListener');
+    mocks.detected.mockResolvedValue({
+      success: true,
+      data: {
+        kind: 'context',
+        enabled: false,
+        scope: null,
+        pending: null,
+        confirmed: null,
+      },
+    });
+    mocks.attach.mockImplementation(() => {
+      const stop = actual.attachXPublicationObserver();
+      const cleanup = vi.fn<() => void>(() => stop());
+      mocks.cleanups.push(cleanup);
+      return cleanup;
+    });
+    const contextRequests = () =>
+      mocks.detected.mock.calls.filter(
+        ([request]) => request?.event === 'publicationCaptureContext',
+      ).length;
+    try {
+      await import('../src/content');
+      for (let index = 0; index < 12; index++) await Promise.resolve();
+      expect(mocks.attach).toHaveBeenCalledTimes(1);
+      expect(contextRequests()).toBe(1);
+      const oldClick = documentListeners.mock.calls.find(
+        ([event]) => event === 'click',
+      )?.[1];
+      expect(oldClick).toBeDefined();
+      originalPush.call(history, null, '', '/home?tab=following#compose');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+      expect(mocks.attach).toHaveBeenCalledTimes(1);
+      expect(mocks.cleanups[0]).not.toHaveBeenCalled();
+      originalPush.call(history, null, '', '/notifications');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+      expect(removed).toHaveBeenCalledWith('click', oldClick, true);
+      expect(mocks.cleanups[0]).toHaveBeenCalledTimes(1);
+      originalPush.call(history, null, '', '/home');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+      for (let index = 0; index < 12; index++) await Promise.resolve();
+      expect(mocks.attach).toHaveBeenCalledTimes(2);
+      expect(contextRequests()).toBe(2);
+      const replacementClick = documentListeners.mock.calls.filter(
+        ([event]) => event === 'click',
+      )[1]?.[1];
+      expect(replacementClick).toBeDefined();
+      expect(replacementClick).not.toBe(oldClick);
+      await vi.advanceTimersByTimeAsync(100);
+      expect(mocks.attach).toHaveBeenCalledTimes(2);
+      expect(mocks.cleanups[0]).toHaveBeenCalledTimes(1);
+      expect(mocks.cleanups[1]).not.toHaveBeenCalled();
+      expect(removed).not.toHaveBeenCalledWith('click', replacementClick, true);
+      window.dispatchEvent(new Event('pagehide'));
+      expect(mocks.cleanups[1]).toHaveBeenCalledTimes(1);
+      expect(removed).toHaveBeenCalledWith('click', replacementClick, true);
+    } finally {
+      window.dispatchEvent(new Event('pagehide'));
+      for (const cleanup of mocks.cleanups) cleanup();
+      document.body.innerHTML = '';
+    }
+  });
+
   it('retains one observer across same-home pushState, replaceState and popstate', async () => {
     await import('../src/content');
     expect(mocks.attach).toHaveBeenCalledTimes(1);

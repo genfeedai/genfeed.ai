@@ -440,11 +440,7 @@ describe('PostsService reported publication capture', () => {
     },
   );
   it.each([
-    [
-      'twitter',
-      'https://twitter.com/alice/status/123',
-      'provider-id-unresolved',
-    ],
+    ['twitter', 'https://twitter.com/alice/status/123', 'missing-credential'],
     [
       'linkedin',
       'https://linkedin.com/feed/update/urn:li:activity:123',
@@ -479,26 +475,27 @@ describe('PostsService reported publication capture', () => {
     'persists an observed own %s comment as context-only without replacing its ID',
     async (platform, contextUrl, availability) => {
       const f = await makeService();
+      const externalId = platform === 'twitter' ? '456' : 'own-comment';
       const result = await f.service.recordExternalPublication(
         {
           ...input,
           platform,
           url: undefined,
           contextUrl,
-          externalId: 'own-comment',
+          externalId,
           publicationKind: 'reply',
         },
         scope,
       );
       expect(result).toMatchObject({
-        externalId: 'own-comment',
+        externalId,
         url: null,
         urlKind: 'context-only',
         contextUrl,
         analyticsAvailability: availability,
       });
       expect(f.post.create.mock.calls[0][0].data).toMatchObject({
-        externalId: 'own-comment',
+        externalId,
         url: null,
         platform,
         isAnalyticsEnabled: false,
@@ -519,7 +516,7 @@ describe('PostsService reported publication capture', () => {
         ...input,
         url: undefined,
         contextUrl: input.url,
-        externalId: 'comment-1',
+        externalId: '456',
         publicationKind: 'reply',
       },
       scope,
@@ -528,7 +525,7 @@ describe('PostsService reported publication capture', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           isDeleted: false,
-          OR: [{ externalId: 'comment-1' }],
+          OR: [{ externalId: '456' }],
         }),
       }),
     );
