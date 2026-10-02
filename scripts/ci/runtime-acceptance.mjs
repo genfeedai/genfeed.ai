@@ -65,9 +65,16 @@ export const STORAGE_PATHS = [
   'packages/storage/src/path-containment.spec.ts',
 ];
 export const BRAND_SOURCE_CONTRACT = {
+  sourceInputs: [
+    {
+      path: 'apps/server/api/test/helpers/migration-deploy-diagnostics.ts',
+      sha256:
+        'c0f748ea4ca648200c9803e21f765fbbff7ffead28af26c4caf85cc0d2e269f0',
+    },
+  ],
   brand: {
     path: 'apps/server/api/test/integration/branded-generation/branded-generation-receipts.integration.spec.ts',
-    sha256: '3d696f88f314892edbc8f0a05ca6fd702c92a0df7f84ea36f3e2bb5ae3222a4a',
+    sha256: '242d3a31d581a225d9f9984eabca1ecee655792a87c3b2792ccdd02f1145f6ab',
     passedTitles: [
       'branded receipt full-migration service and relocation acceptance serializes same-input create, rejects changed payloads, and isolates other scopes',
       'branded receipt full-migration service and relocation acceptance commits one competing revision and replays immutable event projections',
@@ -255,7 +262,7 @@ export const LEARNING_SOURCE_CONTRACT = Object.freeze({
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.fixture.ts',
       sha256:
-        '76c90c697c50578b1db5f6ecf1ad3d6666ca6be6488f0cdc85f0b29c39c22819',
+        '1d8981cf6bd9ed513087baf417c5d13d48341f282554a969fab05ef714902bd8',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.integration.spec.ts',
@@ -271,6 +278,11 @@ export const LEARNING_SOURCE_CONTRACT = Object.freeze({
       path: 'apps/server/api/vitest.learning-runtime.config.ts',
       sha256:
         '503ce881f32b01c51fdb8fc3712ac711ecd52154b145791c8c49322df4e4bd89',
+    },
+    {
+      path: 'apps/server/api/test/helpers/migration-deploy-diagnostics.ts',
+      sha256:
+        'c0f748ea4ca648200c9803e21f765fbbff7ffead28af26c4caf85cc0d2e269f0',
     },
   ],
   suites: [
@@ -368,7 +380,7 @@ export function requireLearningSourceContract(
   );
   requireThat(
     Array.isArray(contract.sourceInputs) &&
-      contract.sourceInputs.length === 4 &&
+      contract.sourceInputs.length === 5 &&
       contract.sourceInputs.every(
         (entry, index) =>
           entry.path === LEARNING_SOURCE_CONTRACT.sourceInputs[index].path &&
@@ -679,7 +691,11 @@ export async function verifyDedicatedSources(repo, group, env) {
   const files =
     group === 'agent-production'
       ? AGENT_PRODUCTION_FILES
-      : [BRAND_SOURCE_CONTRACT.brand, ...BRAND_SOURCE_CONTRACT.unitFiles];
+      : [
+          BRAND_SOURCE_CONTRACT.brand,
+          ...BRAND_SOURCE_CONTRACT.unitFiles,
+          ...BRAND_SOURCE_CONTRACT.sourceInputs,
+        ];
   await verifyFrozenSources(repo, files);
 }
 export function validateSharedApiFullPartition(

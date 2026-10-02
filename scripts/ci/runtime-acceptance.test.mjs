@@ -2748,8 +2748,86 @@ test('prepared owner revisions retain only the exact approved source hashes', ()
   );
   assert.equal(
     BRAND_SOURCE_CONTRACT.brand.sha256,
-    '3d696f88f314892edbc8f0a05ca6fd702c92a0df7f84ea36f3e2bb5ae3222a4a',
+    '242d3a31d581a225d9f9984eabca1ecee655792a87c3b2792ccdd02f1145f6ab',
   );
+});
+test('migration diagnostics helper is an exact frozen dependency for learning and brand', () => {
+  assert.deepEqual(
+    LEARNING_SOURCE_CONTRACT.sourceInputs.map((entry) => entry.path),
+    [
+      'apps/server/api/test/integration/content-learning/content-learning-runtime.fixture.ts',
+      'apps/server/api/test/integration/content-learning/content-learning-runtime.integration.spec.ts',
+      'apps/server/api/test/integration/content-learning/content-learning-publication-races.integration.spec.ts',
+      'apps/server/api/vitest.learning-runtime.config.ts',
+      'apps/server/api/test/helpers/migration-deploy-diagnostics.ts',
+    ],
+  );
+  assert.deepEqual(BRAND_SOURCE_CONTRACT.sourceInputs, [
+    {
+      path: 'apps/server/api/test/helpers/migration-deploy-diagnostics.ts',
+      sha256:
+        'c0f748ea4ca648200c9803e21f765fbbff7ffead28af26c4caf85cc0d2e269f0',
+    },
+  ]);
+  assert.deepEqual(
+    LEARNING_SOURCE_CONTRACT.sourceInputs[4],
+    BRAND_SOURCE_CONTRACT.sourceInputs[0],
+  );
+  assert.equal(BRAND_SOURCE_CONTRACT.sourceInputs.length, 1);
+  assert.ok(
+    !BRAND_SOURCE_CONTRACT.unitFiles.some(
+      (entry) => entry.path === BRAND_SOURCE_CONTRACT.sourceInputs[0].path,
+    ),
+  );
+});
+test('changed, missing or symlinked diagnostics helper fails learning and dedicated brand frozen verification', async (t) => {
+  const root = await fixture(t);
+  const entries = [
+    ...LEARNING_SOURCE_CONTRACT.sourceInputs,
+    BRAND_SOURCE_CONTRACT.brand,
+    ...BRAND_SOURCE_CONTRACT.unitFiles,
+  ];
+  for (const entry of entries) {
+    const target = path.join(root, entry.path);
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(
+      target,
+      await readFile(new URL(`../../${entry.path}`, import.meta.url)),
+    );
+  }
+  const contract = ownerContract();
+  contract.brand = structuredClone(BRAND_SOURCE_CONTRACT.brand);
+  const env = { RUNTIME_ACCEPTANCE_OWNER_CONTRACT: JSON.stringify(contract) };
+  await verifyFrozenSources(root, LEARNING_SOURCE_CONTRACT.sourceInputs);
+  await verifyDedicatedSources(root, 'brand-acceptance', env);
+  const helper = path.join(root, BRAND_SOURCE_CONTRACT.sourceInputs[0].path);
+  const original = await readFile(helper);
+  for (const kind of ['changed', 'missing', 'symlinked']) {
+    await rm(helper);
+    if (kind === 'changed')
+      await writeFile(helper, 'changed diagnostics helper');
+    if (kind === 'symlinked') {
+      const target = path.join(root, 'diagnostics-target.ts');
+      await writeFile(target, original);
+      await symlink(target, helper);
+    }
+    const code =
+      kind === 'missing'
+        ? 'ENOENT'
+        : kind === 'changed'
+          ? 'SOURCE_HASH_MISMATCH'
+          : 'UNSAFE_SOURCE';
+    await assert.rejects(
+      verifyFrozenSources(root, LEARNING_SOURCE_CONTRACT.sourceInputs),
+      { code },
+    );
+    await assert.rejects(
+      verifyDedicatedSources(root, 'brand-acceptance', env),
+      { code },
+    );
+    if (kind !== 'missing') await rm(helper);
+    await writeFile(helper, original);
+  }
 });
 test('dedicated BRAND requires frozen integration hash and exact title inventory', () => {
   const value = ownerContract();
@@ -4814,6 +4892,15 @@ test('learning source qualification requires complete fixed inventory and cannot
       value.sourceInputs.pop();
     },
     (value) => {
+      [value.sourceInputs[0], value.sourceInputs[4]] = [
+        value.sourceInputs[4],
+        value.sourceInputs[0],
+      ];
+    },
+    (value) => {
+      value.sourceInputs[4] = { ...value.sourceInputs[0] };
+    },
+    (value) => {
       value.sourceInputs[0].sha256 = null;
     },
     (value) => {
@@ -5524,7 +5611,7 @@ test('actual execution returns its persisted failure outcome after an expired wo
 test('learning fixture inventory freezes canonical persisted target execution state source', () => {
   assert.equal(
     LEARNING_SOURCE_CONTRACT.sourceInputs[0].sha256,
-    '76c90c697c50578b1db5f6ecf1ad3d6666ca6be6488f0cdc85f0b29c39c22819',
+    '1d8981cf6bd9ed513087baf417c5d13d48341f282554a969fab05ef714902bd8',
   );
 });
 
