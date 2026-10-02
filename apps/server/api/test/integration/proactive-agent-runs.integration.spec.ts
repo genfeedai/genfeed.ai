@@ -261,7 +261,14 @@ describe('proactive organization to strategy run and attributed draft integratio
       {} as never,
       {} as never,
       {} as never,
-      {} as never,
+      {
+        reconcileCrunTasks: vi.fn(),
+        synchronizeCrunContracts: vi.fn(),
+        reconcileEditorRenders: vi.fn(),
+        reconcileRawCutClips: vi.fn(),
+      } as unknown as ConstructorParameters<
+        typeof PlatformSchedulesProcessor
+      >[22],
       {} as never,
       {} as never,
       {} as never,
@@ -271,9 +278,6 @@ describe('proactive organization to strategy run and attributed draft integratio
       {} as never,
       schedules as never,
       {} as never,
-      { reconcile: vi.fn() } as unknown as ConstructorParameters<
-        typeof PlatformSchedulesProcessor
-      >[32],
     );
 
     await prisma.organization.create({

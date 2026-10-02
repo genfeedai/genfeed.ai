@@ -40,6 +40,7 @@ import { CronYoutubeModule } from '@workers/crons/youtube/cron.youtube.module';
 import { QueueMetricsModule } from '@workers/monitoring/queue-metrics.module';
 import { NotificationDeliveryRecoveryModule } from '@workers/processors/api/queues/notification-delivery/notification-delivery-recovery.module';
 import { PendingWorkflowExecutionReconcileService } from '@workers/scheduling/pending-workflow-execution-reconcile.service';
+import { PlatformMediaSchedulesService } from '@workers/scheduling/platform-media-schedules.service';
 import { PlatformScheduleRegistryService } from '@workers/scheduling/platform-schedule-registry.service';
 import { PLATFORM_SCHEDULE_QUEUE } from '@workers/scheduling/platform-schedules.constants';
 import { PlatformSchedulesProcessor } from '@workers/scheduling/platform-schedules.processor';
@@ -102,6 +103,7 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
   providers: [
     ReplicateService,
     CrunReconcileService,
+    PlatformMediaSchedulesService,
     PlatformScheduleRegistryService,
     PlatformSchedulesProcessor,
     PlatformWorkflowSchedulesService,
