@@ -3,8 +3,8 @@ run-name: Release ${{ inputs.tag }}
 
 # Canonical stable-release entry point. A maintainer chooses the version and
 # dispatches this workflow from master. The workflow pins that master SHA,
-# verifies it once — waiting for or reusing the master-push Full Suite run when
-# it covers that SHA — publishes community and SaaS from the same commit,
+# verifies it once — reusing exact-SHA connected acceptance when qualified,
+# otherwise requesting that connected suite — publishes community and SaaS from the same commit,
 # and only then makes the GitHub release public.
 on:
   workflow_dispatch:
@@ -34,9 +34,9 @@ jobs:
   validate-release:
     name: Validate release and create draft
     runs-on: ubuntu-latest
-    # Includes the bounded wait for the exact-SHA master Full Suite. That suite
-    # normally finishes in ~14 minutes; the previous 10-minute ceiling forced
-    # release validation to race it instead of consuming its result.
+    # Includes bounded discovery and waiting for existing exact-SHA evidence.
+    # A still-active suite exhausts this validation window without starting
+    # a duplicate; retry release validation after that suite completes.
     timeout-minutes: 35
     permissions:
       actions: read
