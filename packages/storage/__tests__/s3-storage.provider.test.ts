@@ -567,7 +567,7 @@ describe('S3StorageProvider', () => {
         ETag: 'etag',
         code: 'storage_read_invalid_response',
       },
-    ])('rejects invalid HEAD before GET', async ({ code, ...head }) => {
+    ])('rejects invalid HEAD before GET %#', async ({ code, ...head }) => {
       mockSend.mockResolvedValueOnce(head);
       await expect(
         new S3StorageProvider().readBytes('key', {

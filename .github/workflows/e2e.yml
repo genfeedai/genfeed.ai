@@ -1099,7 +1099,9 @@ jobs:
                 ['failure', 'cancelled', 'timed_out'].includes(job.conclusion),
             );
             const specificJobs = failedJobs.filter(
-              (job) => job.name !== 'E2E Gate (all shards)',
+              (job) =>
+                job.name !== 'E2E Gate (all shards)' &&
+                job.name !== 'API E2E Full Gate',
             );
             const selectedJobs = specificJobs.length > 0 ? specificJobs : failedJobs;
             const trackerJob = (name) => {

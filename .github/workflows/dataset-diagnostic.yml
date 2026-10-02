@@ -78,7 +78,7 @@ jobs:
             test ! -L "apps/server/api/src/collections/content-learning/services/$file"
           done
       - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
+        uses: $/.github/actions/setup-bun-env
       - name: Build packages
         run: bunx turbo run build --filter="./packages/*"
       - name: Run bounded dataset diagnostic with frozen controller

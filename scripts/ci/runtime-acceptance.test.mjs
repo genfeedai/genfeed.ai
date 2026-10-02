@@ -4924,7 +4924,7 @@ test('learning child receives exact authority while ambient credentials and work
     {
       ...env,
       PATH: '/bin',
-      HOME: '/home/runner',
+      HOME: path.join(tmpdir(), 'acceptance-synthetic-home'),
       OPENAI_API_KEY: 'forbidden',
       STRIPE_SECRET_KEY: 'forbidden',
       AWS_PROFILE: 'forbidden',
@@ -4934,7 +4934,12 @@ test('learning child receives exact authority while ambient credentials and work
     },
     value,
     resource,
-    'postgresql://genfeed:local@127.0.0.1:5432/genfeed_learning_runtime_test',
+    'postgresql://genfeed@127.0.0.1:5432/genfeed_learning_runtime_test',
+  );
+  assert.equal(childEnv.HOME, path.join(tmpdir(), 'acceptance-synthetic-home'));
+  assert.equal(
+    childEnv.LEARNING_RUNTIME_TEST_DATABASE_URL,
+    'postgresql://genfeed@127.0.0.1:5432/genfeed_learning_runtime_test',
   );
   assert.equal(childEnv.LEARNING_RUNTIME_ACCEPTANCE_HEAD, SHA);
   assert.equal(childEnv.RUNTIME_ACCEPTANCE_CI_RUN_ATTEMPT, '2');
@@ -5354,3 +5359,21 @@ for (const failure of [
     assert.notEqual(fixture.resource.blankVerified, true);
     assert.equal(fixture.calls.includes('save'), false);
   });
+
+test('dataset diagnostic resolves setup action from the control revision', async () => {
+  const workflow = await readFile(
+    new URL('../../.github/workflows/dataset-diagnostic.yml', import.meta.url),
+    'utf8',
+  );
+  const setup = workflow
+    .split('- name: Setup Bun environment')[1]
+    ?.split('\n      - name:')[0];
+  assert.ok(setup);
+  assert.match(setup, /uses: \$\/\.github\/actions\/setup-bun-env/u);
+  assert.doesNotMatch(setup, /uses: \.\//u);
+  assert.ok(
+    workflow.indexOf('- name: Checkout exact dataset candidate') <
+      workflow.indexOf('- name: Setup Bun environment'),
+  );
+  assert.match(workflow, /ref: \$\{\{ inputs\.candidate_sha \}\}/u);
+});
