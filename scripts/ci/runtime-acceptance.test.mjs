@@ -85,6 +85,7 @@ import {
   superviseVisualCase,
   superviseVisualCases,
   VISUAL_CASES,
+  VISUAL_LIBRARY_CONTRACT,
   VISUAL_LIBRARY_LIMITS,
   VISUAL_RENDERLESS_TITLES,
   validateBrandOwnerContract,
@@ -2304,6 +2305,15 @@ test('actual scenario source verifier rejects missing, changed and unsafe retain
     (await verifyVisualScenarioSources(value, evidence, sources))[0].sha256,
     sources[0].sourceHash,
   );
+  await chmod(file, 0o644);
+  await assert.rejects(verifyVisualScenarioSources(value, evidence, sources), {
+    code: 'UNSAFE_EVIDENCE_FILE',
+  });
+  await chmod(file, 0o600);
+  assert.equal(
+    (await verifyVisualScenarioSources(value, evidence, sources))[0].sha256,
+    sources[0].sourceHash,
+  );
   await writeFile(file, 'changed source');
   await assert.rejects(verifyVisualScenarioSources(value, evidence, sources));
   await assert.rejects(
@@ -2314,6 +2324,36 @@ test('actual scenario source verifier rejects missing, changed and unsafe retain
   await rm(file);
   await symlink(path.join(value.state, 'identity.json'), file);
   await assert.rejects(verifyVisualScenarioSources(value, evidence, sources));
+});
+test('connected Library requires all seven exact passed titles and clean child success', () => {
+  assert.equal(VISUAL_LIBRARY_CONTRACT.count, 7);
+  assert.equal(VISUAL_LIBRARY_CONTRACT.titles.length, 7);
+  const rows = VISUAL_LIBRARY_CONTRACT.titles.map((title) => assertion(title));
+  const validate = (values, result = child, success = true) =>
+    validateReport(
+      {
+        ...report(values, `/fixture/${VISUAL_LIBRARY_CONTRACT.file}`),
+        success,
+      },
+      [VISUAL_LIBRARY_CONTRACT],
+      result,
+    );
+  assert.equal(validate(rows)[0].passedTitles.length, 7);
+  for (const invalid of [
+    rows.slice(0, 5),
+    rows.slice(0, 6),
+    [...rows, assertion('unexpected eighth case')],
+    [...rows.slice(0, 6), rows[0]],
+    [...rows.slice(0, 6), assertion('unknown seventh case')],
+    [...rows.slice(0, 6), assertion(rows[6].fullName, 'skipped')],
+    [...rows.slice(0, 6), assertion(rows[6].fullName, 'pending')],
+    [...rows.slice(0, 6), assertion(rows[6].fullName, 'failed')],
+  ])
+    assert.throws(() => validate(invalid));
+  assert.throws(() => validate(rows, { ...child, exitCode: 1 }));
+  assert.throws(() => validate(rows, { ...child, signal: 'SIGTERM' }));
+  assert.throws(() => validate(rows, { ...child, timedOut: true }));
+  assert.throws(() => validate(rows, child, false));
 });
 test('Library supervision retains 120s work plus 60s total cleanup inside unchanged 180s', async (t) => {
   assert.equal(VISUAL_LIBRARY_LIMITS.work, 120000);
@@ -5962,7 +6002,7 @@ test('actual execution returns its persisted failure outcome after an expired wo
 test('learning fixture inventory freezes canonical persisted target execution state source', () => {
   assert.equal(
     LEARNING_SOURCE_CONTRACT.sourceInputs[0].sha256,
-    '9e3ca4943f5f86f6dd1c0a80369e10b33fcbf4c0f48dd498c1f0dcb540de7d10',
+    '4ee51cadbcc127882a2e875e9b857c14f4ba074dcc4907dbbfe7661f7df8acb9',
   );
 });
 

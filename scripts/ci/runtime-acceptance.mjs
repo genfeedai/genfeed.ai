@@ -267,7 +267,7 @@ export const LEARNING_SOURCE_CONTRACT = Object.freeze({
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.fixture.ts',
       sha256:
-        '9e3ca4943f5f86f6dd1c0a80369e10b33fcbf4c0f48dd498c1f0dcb540de7d10',
+        '4ee51cadbcc127882a2e875e9b857c14f4ba074dcc4907dbbfe7661f7df8acb9',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.integration.spec.ts',
@@ -2918,6 +2918,19 @@ export async function verifyVisualScenarioSources(identity, evidence, sources) {
   }
   return hashes;
 }
+export const VISUAL_LIBRARY_CONTRACT = Object.freeze({
+  file: 'test/integration/visual-code/visual-code-library.integration.spec.ts',
+  count: 7,
+  titles: [
+    'visual-code connected backend and canonical Library acceptance reserves, executes a pinned workflow with a real lease, settles once and exposes the same canonical outputs on replay',
+    'visual-code connected backend and canonical Library acceptance cleans the real persisted mirror when tenant execution creation fails after mirror insertion',
+    'visual-code connected backend and canonical Library acceptance rejects explicit paid-model quote and create for a free actor before reservation or dispatch',
+    'visual-code connected backend and canonical Library acceptance rejects cross-tenant and same-tenant cross-brand source assets before any external read or hold',
+    'visual-code connected backend and canonical Library acceptance rejects actual insufficient credits without queued generation, output admission or an active hold',
+    'visual-code connected backend and canonical Library acceptance keeps the renderer unavailable with enabled=undefined and creates no generation effects',
+    'visual-code connected backend and canonical Library acceptance keeps the renderer unavailable with enabled=false and creates no generation effects',
+  ],
+});
 export const VISUAL_LIBRARY_LIMITS = {
   work: 120000,
   cleanup: 60000,
@@ -5994,10 +6007,7 @@ export async function execution(identity, env) {
               );
               await chmod(reportPath, 0o600);
               const contract = library
-                ? {
-                    file: 'test/integration/visual-code/visual-code-library.integration.spec.ts',
-                    count: 5,
-                  }
+                ? VISUAL_LIBRARY_CONTRACT
                 : visualSelection(caseInfo.index);
               const report = JSON.parse(
                 await safeFile(identity.state, reportRelative),

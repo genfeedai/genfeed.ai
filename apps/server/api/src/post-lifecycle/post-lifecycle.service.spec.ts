@@ -12,6 +12,7 @@ import {
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import type { Prisma } from '@genfeedai/prisma';
 import { ConflictException, HttpStatus } from '@nestjs/common';
 
 const target = {
@@ -342,6 +343,96 @@ describe('PostLifecycleService', () => {
     expect(transaction.post.updateMany).not.toHaveBeenCalled();
     expect(transaction.activity.create).not.toHaveBeenCalled();
   });
+
+  it.each([
+    { state: TargetExecutionState.DRAFT, deletion: true, kind: 'transitioned' },
+    {
+      state: TargetExecutionState.DRAFT,
+      deletion: { set: true },
+      kind: 'transitioned',
+    },
+    {
+      state: TargetExecutionState.CANCELLED,
+      deletion: { set: true },
+      kind: 'idempotent',
+    },
+    {
+      state: TargetExecutionState.DRAFT,
+      deletion: undefined,
+      kind: 'transitioned',
+    },
+  ])(
+    'reads the exact persisted cancellation for $state with $deletion',
+    async ({ state, deletion, kind }) => {
+      let row = { ...target, targetExecutionState: state };
+      const transaction = {
+        activity: { create: vi.fn().mockResolvedValue({ id: 'audit-1' }) },
+        post: {
+          findFirst: vi.fn(
+            async ({
+              where,
+            }: {
+              where: {
+                id: string;
+                organizationId: string;
+                isDeleted: boolean;
+                groupId?: string;
+                targetExecutionState?: TargetExecutionState;
+              };
+            }) =>
+              where.id === row.id &&
+              where.organizationId === row.organizationId &&
+              where.isDeleted === row.isDeleted &&
+              (!where.groupId || where.groupId === row.groupId) &&
+              (!where.targetExecutionState ||
+                where.targetExecutionState === row.targetExecutionState)
+                ? row
+                : null,
+          ),
+          updateMany: vi.fn(async ({ data }: Prisma.PostUpdateManyArgs) => {
+            const flag = data.isDeleted;
+            row = {
+              ...row,
+              isDeleted:
+                typeof flag === 'boolean' ? flag : (flag?.set ?? row.isDeleted),
+              targetExecutionState: TargetExecutionState.CANCELLED,
+            };
+            return { count: 1 };
+          }),
+        },
+      };
+      const service = new PostLifecycleService(
+        {} as never,
+        { warn: vi.fn() } as never,
+      );
+      const result = await service.transition(
+        {
+          groupId: 'group-1',
+          nextState: TargetExecutionState.CANCELLED,
+          organizationId: 'org-1',
+          postId: 'post-1',
+          mutation:
+            deletion === undefined ? undefined : { isDeleted: deletion },
+        },
+        transaction as never,
+      );
+      expect(result).toEqual({ kind, target: row });
+      expect(row.isDeleted).toBe(deletion !== undefined);
+      expect(transaction.post.findFirst).toHaveBeenLastCalledWith({
+        where: {
+          groupId: 'group-1',
+          id: 'post-1',
+          organizationId: 'org-1',
+          isDeleted: row.isDeleted,
+          targetExecutionState: TargetExecutionState.CANCELLED,
+        },
+      });
+      expect(transaction.post.updateMany).toHaveBeenCalledTimes(1);
+      expect(transaction.activity.create).toHaveBeenCalledTimes(
+        kind === 'transitioned' ? 1 : 0,
+      );
+    },
+  );
 
   it('treats a repeated cancellation of a soft-deleted review target as idempotent', async () => {
     const tombstone = {

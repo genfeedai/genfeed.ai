@@ -1786,20 +1786,31 @@ export async function openLearningRuntimeFixture(
     const { SYSTEM_WORKFLOW_PRINCIPAL_ID } = await import(
       '@api/collections/workflows/system-workflow.contract'
     );
-    await first.prisma.user.create({
-      data: {
+    deepStrictEqual(
+      await first.prisma.user.findFirst({
+        select: { id: true, handle: true },
+        where: { id: SYSTEM_WORKFLOW_PRINCIPAL_ID, isDeleted: false },
+      }),
+      {
         id: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-        handle: `system-${resources.fixtureId}`,
+        handle: SYSTEM_WORKFLOW_PRINCIPAL_ID,
       },
-    });
-    await first.prisma.organization.create({
-      data: {
+    );
+    deepStrictEqual(
+      await first.prisma.organization.findFirst({
+        select: { id: true, userId: true, slug: true },
+        where: {
+          id: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+          userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+          isDeleted: false,
+        },
+      }),
+      {
         id: SYSTEM_WORKFLOW_PRINCIPAL_ID,
         userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-        label: 'Owned system principal',
-        slug: `system-${resources.fixtureId}`,
+        slug: SYSTEM_WORKFLOW_PRINCIPAL_ID,
       },
-    });
+    );
     const targets = await seedLearningRuntimeScenario(first, services);
     for (const application of applications) await application.module.init();
     applications.push(await createLearningRuntimeApplication(resources, 1));
