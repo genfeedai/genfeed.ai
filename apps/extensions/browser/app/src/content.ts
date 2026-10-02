@@ -1,4 +1,7 @@
-import { attachXPublicationObserver } from '~platforms/x-publication-observer';
+import {
+  attachXPublicationObserver,
+  isXHome,
+} from '~platforms/x-publication-observer';
 // Multi-platform content script for Genfeed Extension
 
 import {
@@ -186,9 +189,18 @@ function cleanup(): void {
   // They'll be replaced when new buttons are injected
 }
 
+function synchronizePublicationObserver(): void {
+  if (isXHome(location.href)) {
+    if (!stopPublicationObserver)
+      stopPublicationObserver = attachXPublicationObserver();
+  } else if (stopPublicationObserver) {
+    stopPublicationObserver();
+    stopPublicationObserver = null;
+  }
+}
+
 function checkAndReinitialize(): void {
-  stopPublicationObserver?.();
-  stopPublicationObserver = attachXPublicationObserver();
+  synchronizePublicationObserver();
   const newPlatform = getCurrentPlatform();
   // Re-initialize if platform changed or if we need to re-check
   if (newPlatform !== currentPlatform) {
@@ -377,8 +389,11 @@ document.addEventListener('keydown', (event: KeyboardEvent) => {
 });
 
 // Initial setup
-stopPublicationObserver = attachXPublicationObserver();
-window.addEventListener('pagehide', () => stopPublicationObserver?.());
+synchronizePublicationObserver();
+window.addEventListener('pagehide', () => {
+  stopPublicationObserver?.();
+  stopPublicationObserver = null;
+});
 watchContentTheme();
 setupNavigationListeners();
 initializePlatformIntegration();

@@ -58,11 +58,8 @@ async function enabled(): Promise<boolean> {
     : true;
 }
 async function current(): Promise<ExtensionWorkspaceSnapshot> {
-  if (getWorkspaceState().status !== 'ready')
-    throw new Error(
-      'Select a verified Genfeed workspace to record this publication',
-    );
   const snapshot = await requireWorkspace();
+  assertWorkspace(snapshot);
   if (!snapshot.brandId)
     throw new Error(
       'Select a verified Genfeed workspace to record this publication',
@@ -823,7 +820,11 @@ export function initializePublicationCapture(): () => void {
           ? currentScope(state.snapshot)
           : null;
       const isEnabled = await enabled();
-      if (state.status === 'refreshing') return;
+      if (
+        isEnabled &&
+        (state.status === 'loading' || state.status === 'refreshing')
+      )
+        return;
       for (const [key, entry] of Object.entries(entries))
         if (
           !isEnabled ||

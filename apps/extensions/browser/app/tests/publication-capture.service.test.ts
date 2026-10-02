@@ -10,11 +10,12 @@ const mocks = vi.hoisted(() => ({
   },
   status: 'ready',
   request: vi.fn(),
-  subscribe: vi.fn(() => () => undefined),
+  requireWorkspace: vi.fn(),
+  subscribe: vi.fn((_listener: () => void) => () => undefined),
 }));
 vi.mock('~services/workspace.service', () => ({
   getWorkspaceState: () => ({ status: mocks.status, snapshot: mocks.snapshot }),
-  requireWorkspace: async () => mocks.snapshot,
+  requireWorkspace: mocks.requireWorkspace,
   assertWorkspace: (expected: typeof mocks.snapshot) => {
     if (
       mocks.status !== 'ready' ||
@@ -90,6 +91,14 @@ const observation = (original: PublicationCaptureAttempt) => ({
 beforeEach(async () => {
   vi.resetModules();
   mocks.status = 'ready';
+  mocks.requireWorkspace.mockReset().mockImplementation(async () => {
+    if (mocks.status === 'ready') return mocks.snapshot;
+    throw new Error(
+      mocks.status === 'refreshing'
+        ? 'Workspace verification pending'
+        : 'Workspace blocked',
+    );
+  });
   mocks.snapshot = {
     userId: 'user',
     organizationId: 'org',
@@ -721,3 +730,178 @@ it('unknown-tool 400 retains rollout guidance while validation errors remain ord
   });
   expect(local[OUTBOX]).toHaveLength(1);
 });
+
+const PENDING = 'genfeed-publication-pending-v1';
+function coldVerification() {
+  mocks.status = 'loading';
+  let ready!: () => void;
+  let reject!: (error: Error) => void;
+  const shared = new Promise<typeof mocks.snapshot>((resolve, fail) => {
+    ready = () => {
+      mocks.status = 'ready';
+      resolve(mocks.snapshot);
+    };
+    reject = fail;
+  });
+  mocks.requireWorkspace.mockImplementation(() => shared);
+  return { ready, reject };
+}
+it('cold Context and List await one shared verification before accessing current scope', async () => {
+  const cold = coldVerification();
+  let settled = 0;
+  const context = service
+    .handlePublicationCaptureMessage(
+      { event: 'publicationCaptureContext' },
+      source,
+    )
+    .then((value) => {
+      settled++;
+      return value;
+    });
+  const list = service
+    .handlePublicationCaptureMessage(
+      { event: 'publicationCaptureList' },
+      extension,
+    )
+    .then((value) => {
+      settled++;
+      return value;
+    });
+  await Promise.resolve();
+  expect(mocks.requireWorkspace).toHaveBeenCalledTimes(2);
+  expect(settled).toBe(0);
+  expect(mocks.request).not.toHaveBeenCalled();
+  expect(chrome.storage.session.set).not.toHaveBeenCalled();
+  cold.ready();
+  expect(await context).toMatchObject({
+    success: true,
+    data: { kind: 'context', scope: mocks.snapshot },
+  });
+  expect(await list).toMatchObject({
+    success: true,
+    data: { kind: 'list', entries: [] },
+  });
+});
+it('rejected cold verification makes no API or journal mutation and preserves observations', async () => {
+  const original = await begin();
+  failSave = true;
+  await service.handlePublicationCaptureMessage(
+    { event: 'publicationCaptureComplete', observation: observation(original) },
+    source,
+  );
+  const savedLocal = structuredClone(local);
+  const savedSession = structuredClone(session);
+  mocks.request.mockClear();
+  vi.mocked(chrome.storage.session.set).mockClear();
+  vi.mocked(chrome.storage.local.set).mockClear();
+  const cold = coldVerification();
+  const response = service.handlePublicationCaptureMessage(
+    { event: 'publicationCaptureRetry', id: original.id },
+    extension,
+  );
+  cold.reject(new Error('Verification rejected'));
+  expect(await response).toMatchObject({ success: false });
+  expect(local).toEqual(savedLocal);
+  expect(session).toEqual(savedSession);
+  expect(mocks.request).not.toHaveBeenCalled();
+  expect(chrome.storage.session.set).not.toHaveBeenCalled();
+  expect(chrome.storage.local.set).not.toHaveBeenCalled();
+});
+it('refreshing rejects immediately and never automatically resumes recording after ready', async () => {
+  const original = await begin();
+  mocks.status = 'refreshing';
+  const before = structuredClone(session);
+  expect(
+    await service.handlePublicationCaptureMessage(
+      {
+        event: 'publicationCaptureComplete',
+        observation: observation(original),
+      },
+      source,
+    ),
+  ).toMatchObject({ success: false });
+  mocks.status = 'ready';
+  await Promise.resolve();
+  expect(session).toEqual(before);
+  expect(mocks.request).not.toHaveBeenCalled();
+});
+it.each(['loading', 'refreshing'])(
+  'enabled startup preserves pending and confirmed recovery during %s',
+  async (status) => {
+    const original = await begin();
+    failSave = true;
+    await service.handlePublicationCaptureMessage(
+      {
+        event: 'publicationCaptureComplete',
+        observation: observation(original),
+      },
+      source,
+    );
+    const confirmed = structuredClone(session[CONFIRMED]);
+    const prior = structuredClone(session[PENDING]);
+    mocks.status = status;
+    const stop = service.initializePublicationCapture();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(session[PENDING]).toEqual(prior);
+    expect(session[CONFIRMED]).toEqual(confirmed);
+    expect(mocks.request).not.toHaveBeenCalled();
+    mocks.status = 'ready';
+    mocks.snapshot = { ...mocks.snapshot, organizationId: 'other' };
+    const cancel = mocks.subscribe.mock.calls.at(-1)?.[0];
+    if (typeof cancel !== 'function')
+      throw new Error('Missing workspace listener');
+    cancel();
+    await vi.waitFor(() => expect(session[PENDING]).toEqual({}));
+    expect(original.scope.organizationId).toBe('org');
+    stop();
+  },
+);
+it('blocked verified state removes pending attempts after cold startup', async () => {
+  await begin();
+  mocks.status = 'loading';
+  const stop = service.initializePublicationCapture();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(session[PENDING]).not.toEqual({});
+  mocks.status = 'blocked';
+  const cancel = mocks.subscribe.mock.calls.at(-1)?.[0];
+  if (typeof cancel !== 'function')
+    throw new Error('Missing workspace listener');
+  cancel();
+  await vi.waitFor(() => expect(session[PENDING]).toEqual({}));
+  stop();
+});
+it.each(['loading', 'refreshing'])(
+  'toggle off cancels pending immediately during %s without discarding durable outbox',
+  async (status) => {
+    const original = await begin();
+    mocks.request.mockResolvedValueOnce({
+      ok: false,
+      status: 503,
+      json: async () => ({}),
+    });
+    await service.handlePublicationCaptureMessage(
+      {
+        event: 'publicationCaptureComplete',
+        observation: observation(original),
+      },
+      source,
+    );
+    await begin({ ...attempt(), id: '22222222-2222-4222-8222-222222222222' });
+    const outbox = structuredClone(local[OUTBOX]);
+    mocks.status = status;
+    const stop = service.initializePublicationCapture();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    local['genfeed-settings'] = { recordOwnPublications: false };
+    const storage = vi
+      .mocked(chrome.storage.onChanged.addListener)
+      .mock.calls.at(-1)?.[0];
+    if (!storage) throw new Error('Missing settings listener');
+    storage(
+      { 'genfeed-settings': { newValue: { recordOwnPublications: false } } },
+      'local',
+    );
+    await vi.waitFor(() => expect(session[PENDING]).toEqual({}));
+    expect(local[OUTBOX]).toEqual(outbox);
+    stop();
+  },
+);
