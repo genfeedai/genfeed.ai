@@ -1,7 +1,7 @@
 # Weekly `bun run deps:update`. Replaces Dependabot so package bumps honor the
 # ncu rejects (typescript, better-auth, @types/node, …) and Action pins move
 # in the same PR.
-name: Deps Update
+name: Update Dependencies
 
 on:
   workflow_dispatch:

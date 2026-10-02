@@ -185,7 +185,6 @@ function releaseRecoveryFixture() {
     ],
     requestedRepository: 'genfeedai/genfeed.ai',
     requestedRunId: RECOVERY_RUN_ID,
-    requestedSaasLane: 'monorepo',
     requestedTag: RECOVERY_TAG,
     run: {
       conclusion: 'failure',
@@ -221,21 +220,17 @@ test('validates complete historical recovery evidence from fixture data', () => 
   assert.equal(result.changelogAssetSize, '255112');
 });
 
-test('validates only the selected historical hosted SaaS lane', () => {
+test('requires public deploy receipts even when private operations succeeded', () => {
   const fixture = releaseRecoveryFixture();
-  fixture.requestedSaasLane = 'operations';
-  fixture.jobs = fixture.jobs.filter(
-    (job) => !PUBLIC_SAAS_JOBS.includes(job.name),
-  );
-  fixture.jobs.find(
-    (job) => job.name === 'Deploy hosted SaaS through private operations',
-  ).conclusion = 'success';
-  fixture.jobs.push(recoveryJob('Deploy hosted SaaS', 'skipped'));
+  fixture.jobs = fixture.jobs.filter(job => !PUBLIC_SAAS_JOBS.includes(job.name));
+  fixture.jobs.find(job => job.name === 'Deploy hosted SaaS through private operations').conclusion = 'success';
+  assert.throws(() => validateReleaseRecoveryEvidence(fixture), /requires exactly one Deploy hosted SaaS/);
+});
 
-  assert.equal(
-    validateReleaseRecoveryEvidence(fixture).releaseSha,
-    RECOVERY_SHA,
-  );
+test('recovery accepts public-only runs with no retired operations job', () => {
+  const fixture = releaseRecoveryFixture();
+  fixture.jobs = fixture.jobs.filter(job => job.name !== 'Deploy hosted SaaS through private operations');
+  assert.equal(validateReleaseRecoveryEvidence(fixture).releaseSha, RECOVERY_SHA);
 });
 
 test('rejects a recovery draft that already has versioned install assets', () => {
@@ -626,11 +621,6 @@ test('recovery skips proved-green gates and reuses the exact immutable image', (
     'release.yml',
   );
   const deploySaas = jobBlock(releaseWorkflow, 'deploy-saas', 'release.yml');
-  const deployOperations = jobBlock(
-    releaseWorkflow,
-    'deploy-saas-via-operations',
-    'release.yml',
-  );
   const imageBuild = jobBlock(
     selfHostedWorkflow,
     'build-and-push',
@@ -639,7 +629,6 @@ test('recovery skips proved-green gates and reuses the exact immutable image', (
 
   assert.match(verifySuite, /inputs\.recovery_run_id == ''/);
   assert.match(deploySaas, /inputs\.recovery_run_id == ''/);
-  assert.match(deployOperations, /inputs\.recovery_run_id == ''/);
   assert.match(publishCommunity, /recovery_suite_verified == 'true'/);
   assert.match(publishCommunity, /reuse_existing_image:/);
 

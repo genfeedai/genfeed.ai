@@ -65,20 +65,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
+      - name: Build app for Playwright
+        uses: ./.github/actions/setup-playwright-app
         with:
-          cache-playwright: "true"
-
-      - name: Build app
-        run: bunx turbo run build --filter=@genfeedai/app
-        env:
-          NEXT_PUBLIC_PLAYWRIGHT_TEST: "true"
-          NEXT_PUBLIC_GENFEED_CLOUD: "false"
-          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
-          NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
-          NEXT_PUBLIC_API_ENDPOINT: https://api.genfeed.ai/v1
-          E2E_COVERAGE: "1"
+          better-auth-secret: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
+          better-auth-enabled: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
 
       - name: Run full E2E shard ${{ matrix.shard }}/8
         # Do not pass `--reporter=blob` here — that CLI flag replaces the
@@ -273,7 +264,7 @@ jobs:
           RUN_ATTEMPT: ${{ github.run_attempt }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
-          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
+          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN || github.token }}
           script: |
             const repositoryGithub = getOctokit(process.env.REPOSITORY_TOKEN);
             const fs = require('node:fs');

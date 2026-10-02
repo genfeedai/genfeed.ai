@@ -5,7 +5,7 @@ name: CI
 #     once when the PR is marked ready (`ready_for_review`) and on every push
 #     after that.
 #   - workflow_call: full-suite.yml (master validation on push and the release
-#     QA path) and pr-full-suite.yml (the `full-suite` PR label) pass
+#     QA path) and pr-heavy-ci.yml (the `full-suite` PR label) pass
 #     `run_heavy_tests: true` for the complete matrix.
 #
 # There is no push or merge-queue trigger of its own. Master is validated by
@@ -831,7 +831,7 @@ jobs:
           # This trusted master-only job reuses the existing maintainer PAT so
           # Native org issue-field and Project #12 writes are possible;
           # GITHUB_TOKEN is repository-scoped.
-          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
+          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN || github.token }}
           script: |
             const path = require('node:path');
             const { pathToFileURL } = require('node:url');

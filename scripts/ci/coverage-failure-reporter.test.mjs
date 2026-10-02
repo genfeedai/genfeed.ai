@@ -38,7 +38,7 @@ test('coverage reporter step separates repository and project credentials', () =
     '- name: Create, update, or recover bounded coverage trackers',
   )[1];
   assert.match(step, /REPOSITORY_TOKEN: \$\{\{ github.token \}\}/u);
-  assert.match(step, /github-token: \$\{\{ secrets.CONSOLE_DEPLOY_TOKEN \}\}/u);
+  assert.match(step, /github-token: \$\{\{ secrets.CONSOLE_DEPLOY_TOKEN \|\| github\.token \}\}/u);
   assert.match(
     step,
     /const repositoryGithub = getOctokit\(process.env.REPOSITORY_TOKEN\)/u,

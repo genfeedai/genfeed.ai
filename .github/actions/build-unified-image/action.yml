@@ -1,13 +1,9 @@
 name: 'Build and Push Unified Server Image'
-description: 'Builds and pushes the single Docker image containing all NestJS server services'
+description: 'Reuse a verified exact-SHA server image or build and publish it once.'
 
-# Restored after the cloud -> genfeed.ai migration dropped this composite
-# action while _deploy.yml kept referencing it (Deploy Staging failed at
-# "Can't find action.yml"). Ported from
-# genfeedai/cloud with three adaptations: GitHub-hosted buildx instead of
-# Blacksmith, a single SENTRY_AUTH_TOKEN secret (matching the current
-# Dockerfile.server secret mount and _deploy.yml input), and a disk-space
-# step (cold builds without the registry cache exhaust ubuntu-latest disks).
+# Canonical GHCR builder used by runtime verification and vulnerability scans.
+# Reuse is allowed only after inspecting the immutable digest and OCI revision;
+# registry/auth failures fail closed rather than overwriting a SHA tag.
 
 inputs:
   registry:
@@ -35,7 +31,7 @@ outputs:
     value: ${{ steps.meta.outputs.tags }}
   image_digest:
     description: 'Image digest'
-    value: ${{ steps.build.outputs.digest }}
+    value: ${{ steps.existing.outputs.digest || steps.build.outputs.digest }}
   image_tag:
     description: 'Immutable image tag for this workflow run'
     value: ${{ github.sha }}
@@ -43,15 +39,6 @@ outputs:
 runs:
   using: 'composite'
   steps:
-    - name: Free runner disk space
-      shell: bash
-      run: |
-        # Uncached unified-image builds need >20 GB; ubuntu-latest ships with
-        # ~14 GB free. Drop preinstalled toolchains we never use.
-        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
-        sudo docker image prune --all --force >/dev/null 2>&1 || true
-        df -h / | tail -1
-
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
@@ -61,6 +48,27 @@ runs:
         registry: ${{ inputs.registry }}
         username: ${{ github.actor }}
         password: ${{ inputs.github_token }}
+
+    - name: Resolve exact server image
+      id: existing
+      shell: bash
+      env:
+        SERVER_IMAGE_REPOSITORY: ${{ inputs.registry }}/${{ inputs.image_prefix }}/server
+        SOURCE_SHA: ${{ github.sha }}
+      run: |
+        set -euo pipefail
+        test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+        node scripts/ci/resolve-server-image.mjs
+
+    - name: Free runner disk space
+      if: steps.existing.outputs.exists != 'true'
+      shell: bash
+      run: |
+        # Uncached unified-image builds need >20 GB; ubuntu-latest ships with
+        # ~14 GB free. Drop preinstalled toolchains we never use.
+        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+        sudo docker image prune --all --force >/dev/null 2>&1 || true
+        df -h / | tail -1
 
     - name: Extract metadata
       id: meta
@@ -79,6 +87,7 @@ runs:
           org.opencontainers.image.vendor=GenFeedAI
 
     - name: Build and push image
+      if: steps.existing.outputs.exists != 'true'
       id: build
       uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
       with:
@@ -87,8 +96,7 @@ runs:
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-        # Shared with build-verify.yml — repopulating this ref also un-breaks
-        # its cache-from (the tag has been missing since the migration).
+        # Runtime verification and scanning consume this exact image digest.
         cache-from: type=registry,ref=${{ inputs.registry }}/${{ github.repository }}/server:buildcache
         cache-to: type=registry,ref=${{ inputs.registry }}/${{ github.repository }}/server:buildcache,mode=max
         secrets: |
@@ -96,6 +104,14 @@ runs:
         platforms: linux/amd64
         provenance: true
         sbom: true
+
+    - name: Label reused staging candidate
+      if: steps.existing.outputs.exists == 'true' && inputs.environment == 'staging'
+      shell: bash
+      env:
+        IMAGE_REPOSITORY: ${{ inputs.registry }}/${{ inputs.image_prefix }}/server
+        IMAGE_DIGEST: ${{ steps.existing.outputs.digest }}
+      run: docker buildx imagetools create --prefer-index=false --tag "$IMAGE_REPOSITORY:staging" "$IMAGE_REPOSITORY@$IMAGE_DIGEST"
 
     - name: Generate build summary
       shell: bash
@@ -106,4 +122,4 @@ runs:
         echo '```' >> $GITHUB_STEP_SUMMARY
         echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
         echo '```' >> $GITHUB_STEP_SUMMARY
-        echo "**Digest:** \`${{ steps.build.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "**Digest:** \`${{ steps.existing.outputs.digest || steps.build.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY

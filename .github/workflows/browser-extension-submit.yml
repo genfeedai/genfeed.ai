@@ -1,12 +1,15 @@
-name: Browser Extension - Submit to Web Store
+name: Browser Extension - Package and Submit
 
 on:
   workflow_dispatch:
+    inputs:
+      submit:
+        description: Submit the matching release tag to Chrome Web Store (otherwise package only)
+        type: boolean
+        default: false
   push:
     tags:
       - "extension-browser-v*"
-    paths:
-      - "apps/extensions/browser/**"
 
 concurrency:
   group: browser-extension-submit-${{ github.ref }}
@@ -27,8 +30,11 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
 
+      - name: Validate delivery version
+        run: node scripts/ci/delivery-readiness.mjs browser
+
       - name: Run extension tests
-        run: bun run test --filter="./apps/extensions/browser/*"
+        run: bunx turbo run test --filter=@genfeedai/extension-browser
 
   build:
     name: Build Extension
@@ -44,8 +50,7 @@ jobs:
           node-version: "24.x"
 
       - name: Build the extension
-        run: bun run build
-        working-directory: apps/extensions/browser/app
+        run: bunx turbo run build --filter=@genfeedai/extension-browser
 
       - name: Package the extension into a zip artifact
         run: bun run package
@@ -56,13 +61,31 @@ jobs:
         with:
           name: browser-extension-build
           path: apps/extensions/browser/app/build/chrome-mv3-prod.zip
+          if-no-files-found: error
+          retention-days: 14
 
   submit:
+    if: startsWith(github.ref, 'refs/tags/extension-browser-v') && (github.event_name == 'push' || inputs.submit)
     name: Submit Extension
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [build]
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.x'
+
+      - name: Validate store prerequisites
+        env:
+          SUBMIT: 'true'
+          EXTENSION_SUBMIT_KEYS: ${{ secrets.EXTENSION_SUBMIT_KEYS }}
+        run: node scripts/ci/delivery-readiness.mjs browser
+
       - name: Download build artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:

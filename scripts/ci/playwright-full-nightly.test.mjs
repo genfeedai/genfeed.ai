@@ -11,7 +11,7 @@ const PRODUCTION_CONTROL_WORKFLOWS = [
   'full-suite.yml',
   'daily-production-deploy.yml',
   'release.yml',
-  'docker-publish.yml',
+  'publish-selfhosted-recovery.yml',
 ];
 
 function readWorkflow(fileName) {
@@ -80,7 +80,7 @@ test('Playwright full-tier nightly workflow exists as a standalone reporter', ()
   assert.match(workflow, /REPOSITORY_TOKEN: \$\{\{ github\.token \}\}/);
   assert.match(
     workflow,
-    /github-token: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \}\}/,
+    /github-token: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \|\| github\.token \}\}/,
   );
 });
 
