@@ -11,9 +11,11 @@ import {
   vi,
 } from 'vitest';
 import {
+  assertLearningRuntimeApplicationNames,
   assertLearningRuntimeMigrationScope,
   collectLearningRuntimePublications,
   type LearningRuntimeFixture,
+  learningRuntimeApplicationName,
   learningRuntimeMetrics,
   learningRuntimeRedisDatabaseUrl,
   learningRuntimeScope,
@@ -100,6 +102,22 @@ describe('hosted real production learning runtime', () => {
   }, 60000);
 
   it('mounts real cloud configuration, singleton runner, registrars, v2 graphs and owned routing without duplicate processors', async () => {
+    await assertLearningRuntimeApplicationNames(fixture);
+    for (const index of [0, 1]) {
+      const name = learningRuntimeApplicationName(
+        fixture.resources.schema,
+        index,
+      );
+      expect(name).toBe(`${fixture.resources.schema}_app${index}`);
+      expect(Buffer.byteLength(name, 'utf8')).toBe(59);
+    }
+    for (const index of [-1, 2, 0.5, Number.NaN])
+      expect(() =>
+        learningRuntimeApplicationName(fixture.resources.schema, index),
+      ).toThrow();
+    expect(() =>
+      learningRuntimeApplicationName(`${fixture.resources.schema}x`, 0),
+    ).toThrow();
     const initial = await readFile(
       new URL(
         '../../../../../../packages/prisma/prisma/migrations/20260417050332_init/migration.sql',

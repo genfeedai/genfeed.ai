@@ -99,6 +99,20 @@ function required(name: string) {
 function ensure(value: unknown, code: string): asserts value {
   if (!value) throw new Error(`Learning runtime resource gate: ${code}`);
 }
+export function learningRuntimeApplicationName(
+  namespace: string,
+  index: number,
+) {
+  ensure(
+    /^learning_runtime_test_[0-9a-f]{32}$/.test(namespace) &&
+      (index === 0 || index === 1),
+    'APPLICATION_NAME_IDENTITY',
+  );
+  const name = `${namespace}_app${index}`;
+  ensure(Buffer.byteLength(name, 'utf8') <= 63, 'APPLICATION_NAME_LENGTH');
+  return name;
+}
+
 function serverIdentity(info: string) {
   const runId = info
     .split('\r\n')
@@ -1059,7 +1073,10 @@ async function createLearningRuntimePrisma(
     adapter: new PrismaPg(
       {
         ...createPrismaPgConfig(resources.databaseUrl),
-        application_name: `${resources.schema}_application_${index}`,
+        application_name: learningRuntimeApplicationName(
+          resources.schema,
+          index,
+        ),
         options: `-c search_path=${resources.sqlSchema}`,
         max: 2,
       },
@@ -2062,7 +2079,10 @@ export async function installLearningRuntimeBarrier(
     key,
     controlPid,
     async wait(index: number) {
-      const applicationName = `${fixture.resources.schema}_application_${index}`;
+      const applicationName = learningRuntimeApplicationName(
+        fixture.resources.schema,
+        index,
+      );
       const deadline = Date.now() + 2000;
       while (Date.now() < deadline) {
         const row = await fixture.database.observer.query<{
@@ -2109,13 +2129,53 @@ export async function waitLearningRuntimeContender(
       query: string;
     }>(
       `SELECT pid,query FROM pg_stat_activity WHERE application_name=$1 AND $2::int=ANY(pg_blocking_pids(pid))`,
-      [`${fixture.resources.schema}_application_${index}`, holderPid],
+      [
+        learningRuntimeApplicationName(fixture.resources.schema, index),
+        holderPid,
+      ],
     );
     if (blocked.rows.length === 1) return blocked.rows[0];
     await new Promise<void>((accept) => setImmediate(accept));
   }
   throw new Error('Real source contender did not block on the selected holder');
 }
+type LearningRuntimeApplicationSession = {
+  pid: number;
+  name: string;
+};
+
+export async function assertLearningRuntimeApplicationNames(
+  fixture: LearningRuntimeFixture,
+) {
+  const applications = [fixture.first, fixture.second];
+  const pids = new Set<number>();
+  const names = new Set<string>();
+  for (const [index, application] of applications.entries()) {
+    const expected = learningRuntimeApplicationName(
+      fixture.resources.schema,
+      index,
+    );
+    const rows = await application.prisma.$queryRaw<
+      LearningRuntimeApplicationSession[]
+    >`SELECT pg_backend_pid() AS pid, current_setting('application_name') AS name`;
+    ensure(rows.length === 1, 'APPLICATION_NAME_SESSION');
+    const row = rows[0];
+    ensure(
+      Number.isSafeInteger(row.pid) && row.pid > 0 && row.name === expected,
+      'APPLICATION_NAME_SESSION',
+    );
+    const observed =
+      await fixture.database.observer.query<LearningRuntimeApplicationSession>(
+        'SELECT pid, application_name AS name FROM pg_stat_activity WHERE pid=$1 AND application_name=$2 AND datname=current_database()',
+        [row.pid, expected],
+      );
+    deepStrictEqual(observed.rows, [{ pid: row.pid, name: expected }]);
+    pids.add(row.pid);
+    names.add(row.name);
+  }
+  ensure(pids.size === 2 && names.size === 2, 'APPLICATION_NAME_DISTINCT');
+}
+
 export async function assertLearningRuntimeFence(
   fixture: LearningRuntimeFixture,
   pid: number,

@@ -9,6 +9,7 @@ import {
   it,
 } from 'vitest';
 import {
+  assertLearningRuntimeApplicationNames,
   assertLearningRuntimeFence,
   captureLearningRuntimePublication,
   disposeLearningRuntimeScenario,
@@ -203,6 +204,7 @@ describe('hosted actual learning publication contention and atomicity', () => {
   let scenario: RuntimeTarget[] = [];
   beforeAll(async () => {
     fixture = await openLearningRuntimeFixture('learning-races');
+    await assertLearningRuntimeApplicationNames(fixture);
     const { SERVER_TOKENS } = await import('@api/server.dependencies');
     const { PostLifecycleModule } = await import(
       '@api/collections/posts/post-lifecycle.module'
