@@ -7,6 +7,7 @@ import { dirname, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import type { WorkflowExecutionJobData } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { assertIsolatedDatabaseUrl } from '@api-test/../scripts/assert-isolated-db-url';
+import { formatMigrationDeployDiagnostic } from '@api-test/helpers/migration-deploy-diagnostics';
 import Redis from 'ioredis';
 import { z } from 'zod';
 
@@ -959,7 +960,10 @@ export async function createLearningRuntimeDatabase(
         timeout: 120000,
         maxBuffer: 8 * 1024 * 1024,
       });
-    } catch {
+    } catch (error) {
+      process.stderr.write(
+        `${formatMigrationDeployDiagnostic(error, scoped.toString())}\n`,
+      );
       throw new Error('Learning runtime full migration deployment failed');
     }
     await control.query(`SET search_path TO "${resources.schema}", public`);

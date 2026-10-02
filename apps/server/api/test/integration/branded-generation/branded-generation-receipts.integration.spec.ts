@@ -12,6 +12,7 @@ import type { BrandedGenerationActorV1 } from '@api/services/branded-generation-
 import type { BrandedGenerationCompilerRecipeV1 } from '@api/services/branded-generation-receipts/branded-generation-recompile.types';
 import { compileSnapshotBriefResolution } from '@api/services/harness/branded-generation-compiler';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { formatMigrationDeployDiagnostic } from '@api-test/helpers/migration-deploy-diagnostics';
 import type {
   BrandedGenerationInputV1,
   BrandedGenerationReceiptV1,
@@ -359,7 +360,10 @@ describe('branded receipt full-migration service and relocation acceptance', () 
         maxBuffer: 8 * 1024 * 1024,
         stdio: 'pipe',
       });
-    } catch {
+    } catch (error) {
+      process.stderr.write(
+        `${formatMigrationDeployDiagnostic(error, scoped.toString())}\n`,
+      );
       throw new Error('Fixture full migration deployment failed');
     }
     await control.query(`SET search_path TO "${schema}", public`);
