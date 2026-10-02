@@ -141,11 +141,19 @@ export function checksReady(checks, statuses, runs, expected) {
     )
       return false;
   }
+  const controller = (run) =>
+    run.path?.split('@')[0] === '.github/workflows/owner-merge-queue.yml';
+  const controllerSuites = new Set(
+    runs.filter(controller).map((run) => run.check_suite_id),
+  );
   if (
     [...latest.values()].some(
       (check) =>
-        check.status !== 'completed' ||
-        !['success', 'neutral', 'skipped'].includes(check.conclusion),
+        !(
+          check.app?.id === 15368 && controllerSuites.has(check.check_suite?.id)
+        ) &&
+        (check.status !== 'completed' ||
+          !['success', 'neutral', 'skipped'].includes(check.conclusion)),
     )
   )
     return false;
@@ -153,8 +161,9 @@ export function checksReady(checks, statuses, runs, expected) {
     return false;
   return ![...latestRuns.values()].some(
     (run) =>
-      run.status !== 'completed' ||
-      !['success', 'neutral', 'skipped'].includes(run.conclusion),
+      !controller(run) &&
+      (run.status !== 'completed' ||
+        !['success', 'neutral', 'skipped'].includes(run.conclusion)),
   );
 }
 

@@ -20,6 +20,9 @@ Security: Project Report from Socket, and license/cla from the existing CLA
 status publisher. The controller checks newer reruns, pending checks, optional
 failures and status/check name collisions. It paginates reviews, requests,
 threads, checks, statuses and runs; old green results cannot mask a rerun.
+The controller's own workflow and authenticated check suites are operational
+metadata, excluded from optional-check readiness so it cannot block itself.
+Required contexts, unrelated checks and commit statuses remain enforced.
 
 Drafts, requested reviewers, changes requests, pending reviews and unresolved
 threads (including outdated ones) block admission. Add `hold-merge` while an

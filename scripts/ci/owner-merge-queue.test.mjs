@@ -661,3 +661,41 @@ test('counts completed-between-reads errors against the cancellation budget', as
   await cancelSuperseded({ ...mock, log: () => {} });
   assert.equal(attempted.size, 5);
 });
+
+test('controller metadata cannot block itself or mask required and unrelated validation', () => {
+  for (const conclusion of [null, 'failure']) {
+    const f = fixture();
+    const ownRun = {
+      id: 30,
+      workflow_id: 30,
+      path: '.github/workflows/owner-merge-queue.yml',
+      check_suite_id: 30,
+      status: conclusion ? 'completed' : 'in_progress',
+      conclusion,
+    };
+    const ownCheck = {
+      id: 30,
+      name: 'reconcile',
+      app: { id: 15368 },
+      check_suite: { id: 30 },
+      status: ownRun.status,
+      conclusion,
+    };
+    f.runs.push(ownRun);
+    f.checks.push(ownCheck);
+    const ready = () =>
+      checksReady(f.checks, f.statuses, f.runs, { head: 'head', number: 1 });
+    assert.equal(ready(), true);
+    ownCheck.app.id = 99;
+    assert.equal(ready(), false);
+    ownCheck.app.id = 15368;
+    ownCheck.name = 'Tests Gate';
+    assert.equal(ready(), false);
+    ownCheck.name = 'reconcile';
+    ownRun.path = '.github/workflows/other.yml';
+    assert.equal(ready(), false);
+    ownRun.path = '.github/workflows/owner-merge-queue.yml';
+    f.statuses.push({ id: 80, context: 'other', state: 'pending' });
+    assert.equal(ready(), false);
+  }
+});

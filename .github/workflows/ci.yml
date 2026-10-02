@@ -170,8 +170,14 @@ jobs:
             base="$(git rev-parse HEAD^1)"
           elif [ "${GITHUB_EVENT_NAME}" = "merge_group" ]; then
             base="${MERGE_GROUP_BASE_SHA}"
-            [[ "${base}" =~ ^[0-9a-f]{40}$ ]]
-            git merge-base --is-ancestor "${base}" HEAD
+            if ! [[ "${base}" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "::error::Invalid merge group base SHA"
+              exit 1
+            fi
+            if ! git merge-base --is-ancestor "${base}" HEAD; then
+              echo "::error::Merge group base is not an ancestor of HEAD"
+              exit 1
+            fi
           fi
           echo "sha=${base}" >>"${GITHUB_OUTPUT}"
           echo "CI_BASE_SHA=${base}" >>"${GITHUB_ENV}"
