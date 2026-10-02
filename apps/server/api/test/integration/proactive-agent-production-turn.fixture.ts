@@ -787,7 +787,7 @@ export async function createProactiveProductionTurnFixture() {
     const assertPrismaProvider = async () => {
       const [
         { PrismaService: LibsPrismaToken },
-        { runWithTenantContext },
+        { getTenantContext, runWithTenantContext },
         { TenantIsolationError },
       ] = await Promise.all([
         import('@libs/prisma/prisma.service'),
@@ -810,15 +810,16 @@ export async function createProactiveProductionTurnFixture() {
       const differentOrganizationId = randomUUID();
       await rejects(
         async () =>
-          runWithTenantContext({ organizationId }, () =>
-            db.post.findMany({
+          runWithTenantContext({ organizationId }, async () => {
+            strictEqual(getTenantContext()?.organizationId, organizationId);
+            await db.post.findMany({
               where: {
                 organizationId: differentOrganizationId,
                 isDeleted: false,
               },
               take: 1,
-            }),
-          ),
+            });
+          }),
         (error: unknown) =>
           error instanceof TenantIsolationError &&
           error.reason === 'organization-id-mismatch',

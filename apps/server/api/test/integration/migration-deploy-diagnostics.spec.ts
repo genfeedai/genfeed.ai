@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 function syntheticDatabaseUrl(): URL {
   const url = new URL('postgresql://fixture.invalid/test_database');
   url.username = 'fixture-user';
-  url.password = 'fixture-secret with spaces/%';
+  url.password = encodeURIComponent('fixture-secret with spaces/%');
   url.searchParams.set('schema', 'owned_fixture');
   return url;
 }
@@ -170,11 +170,19 @@ describe('migration deployment diagnostics', () => {
 
   it('retains the diagnostic with a malformed percent-encoded password', () => {
     const url = syntheticDatabaseUrl();
-    url.password = 'fixture%ZZ';
+    const rawPassword = 'fixture%ZZ';
+    url.password = rawPassword;
     const output = formatMigrationDeployDiagnostic(
-      { code: 1, stderr: `${url.password} ${url.toString()} migration failed` },
+      {
+        code: 1,
+        stderr: `${url.password} ${rawPassword} ${url.toString()} migration failed`,
+      },
       url.toString(),
     );
+    expect(() =>
+      formatMigrationDeployDiagnostic({ stderr: rawPassword }, url.toString()),
+    ).not.toThrow();
+    expect(output).not.toContain(rawPassword);
     expect(output).not.toContain(url.password);
     expect(output).not.toContain(url.toString());
     expect(output).toContain('migration failed');
