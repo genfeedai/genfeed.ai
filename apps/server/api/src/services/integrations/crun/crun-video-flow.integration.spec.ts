@@ -23,6 +23,8 @@ import { modelBillableQuoteSnapshotSchema } from '@api/helpers/utils/credits/mod
 import { persistQuoteGroupDisposition } from '@api/helpers/utils/credits/persist-quote-group-completion.util';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { CacheService } from '@api/services/cache/cache.service';
+import type { CacheClientService } from '@api/services/cache/cache-client.service';
+import { CacheTagsService } from '@api/services/cache/cache-tags.service';
 import { buildCrunContract } from '@api/services/integrations/crun/contracts/crun-contract-import.service';
 import {
   CRUN_VIDEO_MANIFEST,
@@ -45,6 +47,7 @@ import {
 } from '@genfeedai/contracts';
 import { quoteModelBillableCompletion } from '@genfeedai/pricing';
 import { Prisma, PrismaClient } from '@genfeedai/prisma';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { PrismaPg } from '@prisma/adapter-pg';
 import Redis from 'ioredis';
 import { Pool } from 'pg';
@@ -148,6 +151,8 @@ describe('Crun video quote through durable owned output and accounting', () => {
   let pool: Pool;
   let prisma: PrismaClient;
   let redis: Redis;
+  let cacheRedis: Redis;
+  const cachePrefix = `crun:video:cache:${schema}:`;
   let ownedDirectory: string;
   let transport: Awaited<ReturnType<typeof createCrunTestTransport>>;
   const cleanupKeys: string[] = [];
@@ -168,7 +173,7 @@ describe('Crun video quote through durable owned output and accounting', () => {
     renameSync(temporary, manifestPath);
   };
   const registerRedisKeys = (...keys: string[]) => {
-    cleanupKeys.push(...keys);
+    cleanupKeys.push(...keys.map((key) => `${cachePrefix}${key}`));
     persistManifest();
   };
   let currentOrganizationId: string | undefined;
@@ -253,6 +258,8 @@ describe('Crun video quote through durable owned output and accounting', () => {
       lazyConnect: true,
     });
     await redis.connect();
+    cacheRedis = redis.duplicate({ keyPrefix: cachePrefix, lazyConnect: true });
+    await cacheRedis.connect();
     if (!ownedDirectory)
       ownedDirectory = await mkdtemp(join(tmpdir(), 'crun-owned-'));
     transport = await createCrunTestTransport(
@@ -284,6 +291,8 @@ describe('Crun video quote through durable owned output and accounting', () => {
       [
         'redis-keys-and-client',
         async () => {
+          if (cacheRedis?.status === 'ready') await cacheRedis.quit();
+          else cacheRedis?.disconnect();
           if (redis?.status === 'ready') {
             try {
               if (cleanupKeys.length) await redis.del(...new Set(cleanupKeys));
@@ -476,10 +485,20 @@ describe('Crun video quote through durable owned output and accounting', () => {
         logger as never,
         groups,
       );
+      const cacheClient = {
+        instance: cacheRedis,
+        get isReady() {
+          return cacheRedis.status === 'ready';
+        },
+      } as unknown as CacheClientService;
+      const tags = new CacheTagsService(
+        cacheClient,
+        logger as unknown as LoggerService,
+      );
       const cache = new CacheService(
-        { instance: redis, isReady: true } as never,
-        { setTags: async () => undefined } as never,
-        logger as never,
+        cacheClient,
+        tags,
+        logger as unknown as LoggerService,
       );
       const originalSet = cache.set.bind(cache);
       vi.spyOn(cache, 'set').mockImplementation(async (key, value, options) => {
@@ -816,11 +835,25 @@ describe('Crun video quote through durable owned output and accounting', () => {
       const createdBefore = transport.requests.filter((item) =>
         item.route.endsWith('/CreateTask'),
       ).length;
+      const cachedVideoKey = `probe:${randomUUID()}`;
+      const cacheControlKey = `${cachedVideoKey}:control`;
+      expect(await cacheRedis.exists('tag:videos')).toBe(0);
+      registerRedisKeys('tag:videos');
+      expect(
+        await cache.set(cachedVideoKey, org, { tags: ['videos'], ttl: 300 }),
+      ).toBe(true);
+      expect(await cache.set(cacheControlKey, org, { ttl: 300 })).toBe(true);
+      expect(await cache.get(cachedVideoKey)).toBe(org);
+      expect(await cacheRedis.smembers('tag:videos')).toEqual([cachedVideoKey]);
       const generated = await adapter.generate(
         user as never,
         { ...intent, crunQuoteId: attributes.quoteId } as never,
         request as never,
       );
+      expect(await cache.get(cachedVideoKey)).toBeNull();
+      expect(await redis.exists(`${cachePrefix}${cachedVideoKey}`)).toBe(0);
+      expect(await cacheRedis.exists('tag:videos')).toBe(0);
+      expect(await cache.get(cacheControlKey)).toBe(org);
       if (!generated.data || Array.isArray(generated.data))
         throw new Error('Generation must return one JSON API resource');
       const ids = (
@@ -855,7 +888,7 @@ describe('Crun video quote through durable owned output and accounting', () => {
         ).toBe(true);
       // Advance only the owned fixture's gate window so status reads can drain; no CreateTask is retried.
       if (scenario === 'deferred')
-        await redis.del(`crun:requests:${fixtureFingerprint}`);
+        await cacheRedis.del(`crun:requests:${fixtureFingerprint}`);
       if (funding === 'hosted') {
         const hold = await prisma.creditReservation.findFirstOrThrow({
           where: { organizationId: org, isDeleted: false },
@@ -1136,7 +1169,7 @@ describe('Crun video quote through durable owned output and accounting', () => {
           request as never,
         ),
       ).rejects.toMatchObject({ response: { code: 'CRUN_QUOTE_STALE' } });
-      await redis.del(
+      await cacheRedis.del(
         `crun:video:quote:${org}:${user.userId}:${attributes.quoteId}`,
         `crun:video:quote:${org}:${user.userId}:${attributes.quoteId}:consumed`,
       );
