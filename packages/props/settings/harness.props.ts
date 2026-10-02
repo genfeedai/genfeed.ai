@@ -56,3 +56,7 @@ export interface HarnessPositioningScorecardProps {
   /** Brand-scoped href to the positioning interview (`/settings/interview`). */
   interviewHref: string;
 }
+
+export interface HarnessLearningTabProps {
+  brandId: string;
+}
