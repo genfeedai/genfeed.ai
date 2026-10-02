@@ -395,12 +395,12 @@ describe('retained learning/publication relocation history', () => {
         assertNoLearningHistory(fixture.client, 'brand', 'org'),
       ).rejects.toThrow(/publication history/);
       const sql = fixture.query.mock.calls[0][0];
-      expect(sql.strings.join(' ')).toContain(branch);
-      expect(sql.strings.join(' ')).toContain('o."brandId" IS NULL');
-      expect(sql.strings.join(' ')).toContain('p."recordKind" = \'post\'');
+      expect(sql.sql).toContain(branch);
+      expect(sql.sql).toContain('o."brandId" IS NULL');
+      expect(sql.sql).toContain('p."recordKind" = \'post\'');
       expect(sql.values).toContain('org');
       expect(sql.values).toContain('brand');
-      expect(sql.strings.join(' ')).not.toContain('"isDeleted"');
+      expect(sql.sql).not.toContain('"isDeleted"');
     });
   it('does not attribute another tenant or brand through organization alone', async () => {
     const fixture = historyClient();
@@ -414,7 +414,7 @@ describe('retained learning/publication relocation history', () => {
     await expect(
       assertNoLearningHistory(fixture.client, 'brand', 'org'),
     ).resolves.toBeUndefined();
-    const sql = fixture.query.mock.calls[0][0].strings.join(' ');
+    const sql = fixture.query.mock.calls[0][0].sql;
     expect(sql).toContain('d."sourceOrganizationId" =');
     expect(sql).toContain('a."organizationId" =');
     expect(sql).toContain('c."organizationId" =');

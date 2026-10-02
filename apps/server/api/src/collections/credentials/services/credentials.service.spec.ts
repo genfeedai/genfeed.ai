@@ -2164,7 +2164,7 @@ describe('CredentialsService', () => {
         }),
       );
       const sql = prisma.$queryRaw.mock.calls.map((call) =>
-        Array.isArray(call[0]) ? call[0].join(' ') : call[0].strings.join(' '),
+        Array.isArray(call[0]) ? call[0].join(' ') : call[0].sql,
       );
       expect(sql[0]).toContain('pg_advisory_xact_lock');
       expect(sql[1]).toContain('credentials');

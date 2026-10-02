@@ -268,10 +268,8 @@ describe('BrandLifecycleService', () => {
       expect(txQueryRaw.mock.calls[0][0].join(' ')).toContain(
         'pg_advisory_xact_lock',
       );
-      expect(txQueryRaw.mock.calls[1][0].strings.join(' ')).toContain(
-        'organizations',
-      );
-      expect(txQueryRaw.mock.calls[2][0].strings.join(' ')).toContain('brands');
+      expect(txQueryRaw.mock.calls[1][0].sql).toContain('organizations');
+      expect(txQueryRaw.mock.calls[2][0].sql).toContain('brands');
       expect(delegate.findMany).toHaveBeenCalledWith({
         orderBy: { createdAt: 'asc' },
         select: { id: true },

@@ -397,7 +397,7 @@ describe('organization learning withdrawal', () => {
     const order: string[] = [];
     const tx = {
       $queryRaw: vi.fn(async (sql) => {
-        order.push(Array.isArray(sql) ? sql.join(' ') : sql.strings.join(' '));
+        order.push(Array.isArray(sql) ? sql.join(' ') : sql.sql);
         return [{ id: 'locked' }];
       }),
       organization: {

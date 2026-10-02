@@ -1357,9 +1357,11 @@ describe('capture account-before-publication locking', () => {
     expect(f.dependencies.invalidate).toHaveBeenCalledExactlyOnceWith(
       'checkpoint',
       original.id,
-      f.prisma,
+      f.tx,
       input.organizationId,
     );
+    expect(f.tx).not.toBe(f.prisma);
+    expect(f.tx.$transaction).not.toHaveBeenCalled();
     expect(
       f.prisma.contentLearningCheckpoint.create.mock.invocationCallOrder[0],
     ).toBeLessThan(

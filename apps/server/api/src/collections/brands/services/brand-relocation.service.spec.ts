@@ -81,7 +81,7 @@ describe('BrandRelocationService', () => {
     queryRaw = vi.fn(async (statement: TemplateStringsArray | Prisma.Sql) => {
       const text = Array.isArray(statement)
         ? statement.join('')
-        : (statement as Prisma.Sql).strings.join('');
+        : (statement as Prisma.Sql).sql;
       if (text.includes('AS retained')) return [{ retained: false }];
       if (text.includes('FOR UPDATE')) return [{ id: 'locked' }];
       return [];
@@ -1069,7 +1069,7 @@ describe('BrandRelocationService', () => {
       (statement: TemplateStringsArray | Prisma.Sql) => {
         const sql = Array.isArray(statement)
           ? statement.join('')
-          : (statement as Prisma.Sql).strings.join('');
+          : (statement as Prisma.Sql).sql;
         if (sql.includes('AS retained'))
           return Promise.resolve([{ retained: false }]);
         if (sql.includes('FOR UPDATE'))

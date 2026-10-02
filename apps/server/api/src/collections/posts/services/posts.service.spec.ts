@@ -11,6 +11,7 @@ import {
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import type { Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 async function captureChannelTargetError(
@@ -166,6 +167,34 @@ describe('PostsService batchSchedule', () => {
 
   it('writes canonical scalar IDs and converts public arrays to Prisma relations', async () => {
     const { post, service } = makeService();
+    const parent = {
+      id: 'parent-1',
+      organizationId: 'org-1',
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
+      parentId: null,
+      isDeleted: false,
+      ingredients: [],
+      _count: { children: 0, ingredients: 0 },
+      publishApprovalId: null,
+      reviewVersionPinId: null,
+      category: PostCategory.TEXT,
+      platform: CredentialPlatform.TWITTER,
+      targetExecutionState: TargetExecutionState.DRAFT,
+      visibility: PostVisibility.PUBLIC,
+    };
+    post.findFirst.mockImplementation(
+      async ({ where }: Prisma.PostFindFirstArgs) =>
+        where?.id === parent.id &&
+        where.organizationId === parent.organizationId &&
+        (where.isDeleted === undefined || where.isDeleted === false)
+          ? structuredClone(parent)
+          : null,
+    );
+    post.create.mockImplementation(({ data }) => {
+      parent._count.children++;
+      return { ...data, id: 'post-created' };
+    });
 
     await service.create(
       {
@@ -195,6 +224,12 @@ describe('PostsService batchSchedule', () => {
       [],
     );
 
+    expect(parent._count.children).toBe(1);
+    expect(post.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'parent-1', organizationId: 'org-1', isDeleted: false },
+      }),
+    );
     const writeData = post.create.mock.calls[0]?.[0].data;
     expect(writeData).toMatchObject({
       brandId: 'brand-1',
@@ -1256,7 +1291,7 @@ describe('post owner learning mutation protocol', () => {
     };
     const tx = {
       $queryRaw: vi.fn(async (sql) => {
-        order.push(Array.isArray(sql) ? sql.join(' ') : sql.strings.join(' '));
+        order.push(Array.isArray(sql) ? sql.join(' ') : sql.sql);
         return [{ id: 'locked' }];
       }),
       post: {
@@ -1654,7 +1689,7 @@ describe('PostsService child creation authority', () => {
         order.push(
           Array.isArray(sql)
             ? sql.join(' ')
-            : `${sql.strings.join(' ')} ${sql.values.join(' ')}`,
+            : `${sql.sql} ${sql.values.join(' ')}`,
         );
         return [{ id: 'locked' }];
       }),

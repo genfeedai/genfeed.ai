@@ -1184,6 +1184,11 @@ describe('immutable materializer with real selector/publication proof and explic
     const f = await fixture(3);
     const duplicate = structuredClone(f.publications[0]);
     duplicate.checkpoint.id = 'checkpoint-duplicate';
+    duplicate.edges = duplicate.edges.map((edge) => ({
+      ...edge,
+      id: `${edge.id}-duplicate`,
+      derivedId: duplicate.checkpoint.id,
+    }));
     f.publications.push(duplicate);
     const variant = learningRegisteredProfiles(
       'twitter',
