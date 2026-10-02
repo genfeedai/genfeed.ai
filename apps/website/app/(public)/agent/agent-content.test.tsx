@@ -1,3 +1,5 @@
+import { agentClients } from '@data/agent-clients.data';
+import { AGENT_PROMPTS } from '@data/agent-prompts.data';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -90,6 +92,38 @@ describe('AgentContent', () => {
       'href',
       'https://app.genfeed.ai/sign-up',
     );
+  });
+
+  it('shows a local application mark on every named setup link', () => {
+    const { container } = render(<AgentContent />);
+
+    for (const client of agentClients) {
+      const link = container.querySelector(
+        `#connect a[href="/${client.slug}"]`,
+      );
+      const logo = link?.querySelector('img');
+
+      expect(link).toHaveAccessibleName(`${client.name} Setup guide`);
+      expect(logo).toHaveAttribute('src', client.logo);
+      expect(logo).toHaveAttribute('alt', '');
+      expect(logo).toHaveAttribute('width', '32');
+    }
+  });
+
+  it('uses the shared card radius for setup and prompt cards', () => {
+    const { container } = render(<AgentContent />);
+
+    for (const client of agentClients) {
+      expect(
+        container.querySelector(`#connect a[href="/${client.slug}"]`),
+      ).toHaveClass('rounded-card');
+    }
+    for (const prompt of AGENT_PROMPTS) {
+      const link = screen.getByRole('link', {
+        name: new RegExp(prompt.hrefLabel),
+      });
+      expect(link).toHaveClass('rounded-card');
+    }
   });
 
   it('puts the connect section, which every agent CTA targets, first', () => {

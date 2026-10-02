@@ -7,6 +7,7 @@ import EditorialPoster from '@ui/marketing/EditorialPoster';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
+import AgentClientLogo from '@web-components/content/AgentClientLogo';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
@@ -134,10 +135,11 @@ export default function AgentContent() {
           <div className="gsap-grid grid grid-cols-2 gap-1.5 md:grid-cols-4">
             {agentClients.map((client) => (
               <Link
-                className="flex flex-col gap-2 border border-edge/[0.08] bg-fill/5 p-5 transition-colors hover:border-edge/20 hover:bg-fill/10"
+                className="flex flex-col gap-3 rounded-card border border-edge/[0.08] bg-fill/5 p-5 transition-colors hover:border-edge/20 hover:bg-fill/10"
                 href={`/${client.slug}`}
                 key={client.slug}
               >
+                <AgentClientLogo client={client} />
                 <Heading as="h3" className="font-semibold text-surface">
                   {client.name}
                 </Heading>
@@ -162,7 +164,7 @@ export default function AgentContent() {
                 <Heading as="h3" className="font-semibold mb-4 text-surface">
                   {snippet.title}
                 </Heading>
-                <pre className="overflow-x-auto border gen-border bg-card p-4 text-sm text-surface">
+                <pre className="overflow-x-auto rounded-sm border gen-border bg-card p-4 text-sm text-surface">
                   {snippet.code}
                 </pre>
               </div>
@@ -186,7 +188,7 @@ export default function AgentContent() {
           <div className="gsap-grid grid grid-cols-1 gap-1.5 md:grid-cols-2">
             {AGENT_PROMPTS.map((prompt) => (
               <Link
-                className="flex flex-col gap-3 border border-edge/[0.08] bg-fill/5 p-6 transition-colors hover:border-edge/20 hover:bg-fill/10"
+                className="flex flex-col gap-3 rounded-card border border-edge/[0.08] bg-fill/5 p-6 transition-colors hover:border-edge/20 hover:bg-fill/10"
                 href={prompt.href}
                 key={prompt.ask}
               >
@@ -240,7 +242,7 @@ export default function AgentContent() {
                   className="gsap-card gen-card-spotlight p-8"
                 >
                   <div className="mb-4 flex">
-                    <div className="size-12 flex items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
+                    <div className="size-12 flex items-center justify-center rounded-md border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
                       <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                     </div>
                   </div>
@@ -271,7 +273,7 @@ export default function AgentContent() {
                   <Text className="text-lg font-bold text-surface">
                     {step.label}
                   </Text>
-                  <pre className="overflow-x-auto border gen-border bg-card p-4 text-sm text-surface">
+                  <pre className="overflow-x-auto rounded-sm border gen-border bg-card p-4 text-sm text-surface">
                     {step.code}
                   </pre>
                   <Text className="text-sm text-surface/65">
@@ -291,7 +293,7 @@ export default function AgentContent() {
           <div className="gen-card-spotlight p-8">
             <div className="flex flex-row flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
-                <div className="flex size-20 items-center justify-center bg-card shadow-border">
+                <div className="flex size-20 items-center justify-center rounded-md bg-card shadow-border">
                   <Blocks className="size-10 text-surface" />
                 </div>
               </div>
@@ -305,7 +307,7 @@ export default function AgentContent() {
                   encode a repeatable content discipline. They work in any agent
                   that reads the convention, with or without a Genfeed account.
                 </Text>
-                <pre className="overflow-x-auto border gen-border bg-card p-4 text-sm text-surface">
+                <pre className="overflow-x-auto rounded-sm border gen-border bg-card p-4 text-sm text-surface">
                   bunx skills add genfeedai/skills
                 </pre>
               </div>
