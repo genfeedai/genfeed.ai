@@ -1,3 +1,4 @@
+import { LearningDatasetPublicationPins } from '@api/collections/content-learning/services/learning-dataset-publication-pins';
 import {
   isLearningDerivedDependencyKind,
   isLearningGlobalDependencyKind,
@@ -79,10 +80,16 @@ export class LearningDatasetGraph {
   get metrics() {
     return { nodes: this.nodes.size, edges: this.edgeCount };
   }
+  private readonly publicationPins: LearningDatasetPublicationPins;
   constructor(
     private readonly tx: Prisma.TransactionClient,
     private readonly limits = GRAPH_LIMITS,
-  ) {}
+  ) {
+    this.publicationPins = new LearningDatasetPublicationPins(
+      tx,
+      DATASET_BATCH_SIZE,
+    );
+  }
   async pins(
     kind: LearningDependencyKindV1,
     ids: string[],
@@ -96,6 +103,10 @@ export class LearningDatasetGraph {
       case 'brand':
       case 'credential':
       case 'post':
+      case 'publish_approval':
+      case 'post_publish_finalization':
+      case 'content_version_pin':
+        return this.publicationPins.pins(kind, ids, organizationId);
       case 'account':
         return this.identityPins(kind, ids, organizationId);
       case 'checkpoint':
@@ -112,13 +123,9 @@ export class LearningDatasetGraph {
       case 'provider_attempt':
       case 'llm_vendor_cost':
       case 'media_vendor_cost':
-      case 'publish_approval':
-      case 'content_version_pin':
         return this.provenancePins(kind, ids, organizationId);
       case 'consent':
         return this.consentPins(kind, ids, organizationId);
-      case 'post_publish_finalization':
-        return this.finalizationPins(kind, ids, organizationId);
       default:
         return new Map();
     }
@@ -195,50 +202,6 @@ export class LearningDatasetGraph {
     const globalWhere = { id: { in: ids }, isDeleted: false };
     const tenantWhere = { ...globalWhere, organizationId };
     switch (kind) {
-      case 'organization': {
-        const rows = await this.tx.organization.findMany({
-          select: { id: true },
-          where: { id: { in: ids }, isDeleted: false },
-        });
-        for (const row of rows) {
-          const pin = row.id === organizationId ? row.id : null;
-          if (pin) result.set(row.id, pin);
-        }
-        break;
-      }
-      case 'brand': {
-        const rows = await this.tx.brand.findMany({
-          select: { id: true },
-          where: { ...tenantWhere },
-        });
-        for (const row of rows) {
-          const pin = row.id;
-          if (pin) result.set(row.id, pin);
-        }
-        break;
-      }
-      case 'credential': {
-        const rows = await this.tx.credential.findMany({
-          select: { id: true },
-          where: { ...tenantWhere },
-        });
-        for (const row of rows) {
-          const pin = row.id;
-          if (pin) result.set(row.id, pin);
-        }
-        break;
-      }
-      case 'post': {
-        const rows = await this.tx.post.findMany({
-          select: { id: true },
-          where: { ...tenantWhere },
-        });
-        for (const row of rows) {
-          const pin = row.id;
-          if (pin) result.set(row.id, pin);
-        }
-        break;
-      }
       case 'account': {
         const rows = await this.tx.contentLearningAccount.findMany({
           select: { epoch: true, id: true },
@@ -425,36 +388,6 @@ export class LearningDatasetGraph {
         }
         break;
       }
-      case 'publish_approval': {
-        const rows = await this.tx.publishApproval.findMany({
-          select: { artifactVersionPinId: true, id: true },
-          where: {
-            id: { in: ids },
-            organizationId: organizationId ?? undefined,
-            status: 'approved',
-            invalidatedAt: null,
-          },
-        });
-        for (const row of rows) {
-          const pin = row.artifactVersionPinId;
-          if (pin) result.set(row.id, pin);
-        }
-        break;
-      }
-      case 'content_version_pin': {
-        const rows = await this.tx.contentVersionPin.findMany({
-          select: { contentDigest: true, id: true },
-          where: {
-            id: { in: ids },
-            organizationId: organizationId ?? undefined,
-          },
-        });
-        for (const row of rows) {
-          const pin = row.contentDigest;
-          if (pin) result.set(row.id, pin);
-        }
-        break;
-      }
     }
     return result;
   }
@@ -490,43 +423,6 @@ export class LearningDatasetGraph {
         for (const row of rows)
           if (accounts.get(row.accountId) === row.version)
             result.set(row.id, String(row.version));
-        break;
-      }
-    }
-    return result;
-  }
-  private async finalizationPins(
-    kind: LearningDependencyKindV1,
-    ids: string[],
-    organizationId: string,
-  ): Promise<Map<string, string>> {
-    const result = new Map<string, string>();
-    switch (kind) {
-      case 'post_publish_finalization': {
-        const rows = await this.tx.postPublishFinalization.findMany({
-          select: { id: true, postId: true, completedAt: true, source: true },
-          where: {
-            id: { in: ids },
-            organizationId: organizationId ?? undefined,
-          },
-        });
-        const posts = new Set<string>();
-        for (const ids of batches([
-          ...new Set(rows.map((row) => row.postId)),
-        ])) {
-          const values = await this.tx.post.findMany({
-            select: { id: true },
-            where: {
-              id: { in: ids },
-              organizationId: organizationId ?? undefined,
-              isDeleted: false,
-            },
-          });
-          for (const post of values) posts.add(post.id);
-        }
-        for (const row of rows)
-          if (posts.has(row.postId))
-            result.set(row.id, row.completedAt?.toISOString() ?? row.source);
         break;
       }
     }

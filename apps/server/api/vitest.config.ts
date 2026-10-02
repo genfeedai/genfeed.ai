@@ -141,6 +141,10 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: '@workers',
+        replacement: path.resolve(serviceDir, '../workers/src'),
+      },
+      {
         find: '@api',
         replacement: path.resolve(serviceDir, './src'),
       },
