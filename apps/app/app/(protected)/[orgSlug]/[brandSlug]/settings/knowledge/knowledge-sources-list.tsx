@@ -31,9 +31,9 @@ import AppTable from '@ui/display/table/Table';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 import { RotateCcw } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import KnowledgeAddSourceSheet from './knowledge-add-source-sheet';
 import KnowledgeSourceDetailPanel from './knowledge-source-detail-panel';
 import KnowledgeStateBadge from './knowledge-state-badge';
@@ -58,10 +58,73 @@ export default function KnowledgeSourcesList({
   const notifications = NotificationsService.getInstance();
   const revealDetails = useContextSidebar()?.reveal;
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
   const currentPage = Number(searchParams.get('page')) || 1;
-  const { error, isLoading, refresh, rows, spaces } = useKnowledgeLibrary({
+  const sourceIds = searchParams.getAll('sourceId');
+  const isInvalidSelection =
+    sourceIds.length > 0 &&
+    (sourceIds.length !== 1 ||
+      !sourceIds[0] ||
+      sourceIds[0].length > 128 ||
+      /[^A-Za-z0-9_-]/.test(sourceIds[0]));
+  const routeSourceId = isInvalidSelection ? null : (sourceIds[0] ?? null);
+  const [localSelectedSourceId, setSelectedSourceId] = useState<string | null>(
+    routeSourceId,
+  );
+  const appliedRouteRef = useRef(routeSourceId);
+  const selectedSourceId =
+    appliedRouteRef.current === routeSourceId
+      ? localSelectedSourceId
+      : routeSourceId;
+  const selectionRef = useRef(selectedSourceId);
+  selectionRef.current = selectedSourceId;
+  const navigationRef = useRef({
+    pathname,
+    router,
+    search: searchParams.toString(),
+  });
+  navigationRef.current = { pathname, router, search: searchParams.toString() };
+  const changeSelection = useCallback(
+    (sourceId: string | null, archivedId?: string) => {
+      selectionRef.current = sourceId;
+      setSelectedSourceId(sourceId);
+      const navigation = navigationRef.current;
+      const params = new URLSearchParams(navigation.search);
+      const incomingIds = params.getAll('sourceId');
+      if (
+        archivedId &&
+        (incomingIds.length !== 1 || incomingIds[0] !== archivedId)
+      )
+        return;
+      params.delete('sourceId');
+      if (sourceId) params.set('sourceId', sourceId);
+      const query = params.toString();
+      navigation.router.replace(
+        `${navigation.pathname}${query ? `?${query}` : ''}`,
+        { scroll: false },
+      );
+    },
+    [],
+  );
+  // Only incoming navigation changes selection; polling/rerenders cannot reopen a closed panel.
+  useEffect(() => {
+    appliedRouteRef.current = routeSourceId;
+    selectionRef.current = routeSourceId;
+    setSelectedSourceId(routeSourceId);
+  }, [routeSourceId]);
+  const {
+    error,
+    isLoading,
+    refresh,
+    rows,
+    spaces,
+    selectedRow: loadedSelectedRow,
+    selectionError,
+  } = useKnowledgeLibrary({
     brandId,
     page: currentPage,
+    selectedSourceId: selectedSourceId ?? undefined,
   });
   const getSourcesService = useAuthedService((token: string) =>
     KnowledgeSourcesService.getInstance(token),
@@ -69,10 +132,31 @@ export default function KnowledgeSourcesList({
   const getSpacesService = useAuthedService((token: string) =>
     KnowledgeSpacesService.getInstance(token),
   );
+  const actionScope = useMemo(
+    () => ({ brandId, getSourcesService, getSpacesService, pathname }),
+    [brandId, getSourcesService, getSpacesService, pathname],
+  );
+  const actionScopeRef = useRef(actionScope);
+  actionScopeRef.current = actionScope;
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+  const isCurrentScope = useCallback(
+    () => isMountedRef.current && actionScopeRef.current === actionScope,
+    [actionScope],
+  );
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
-  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [handledSeedId, setHandledSeedId] = useState(0);
+  const refreshRef = useRef(refresh);
+  refreshRef.current = refresh;
+  useEffect(() => {
+    if (actionScopeRef.current === actionScope) setIsSubmitting(false);
+  }, [actionScope]);
 
   const visibleRows = useMemo(
     () =>
@@ -82,54 +166,118 @@ export default function KnowledgeSourcesList({
     [rows, selectedSpaceId],
   );
   const selectedRow =
-    rows.find((row) => row.source.id === selectedSourceId) ?? null;
+    !isLoading && !selectionError && !isInvalidSelection
+      ? loadedSelectedRow?.source.id === selectedSourceId
+        ? loadedSelectedRow
+        : (rows.find((row) => row.source.id === selectedSourceId) ?? null)
+      : null;
+
+  const actionableRef = useRef({
+    isLoading,
+    rowIds: new Set(rows.map((row) => row.source.id)),
+    selectedId: selectedRow?.source.id,
+  });
+  actionableRef.current = {
+    isLoading,
+    rowIds: new Set(rows.map((row) => row.source.id)),
+    selectedId: selectedRow?.source.id,
+  };
+  const isActionableSource = useCallback((sourceId: string) => {
+    const current = actionableRef.current;
+    return (
+      !current.isLoading &&
+      (selectionRef.current === sourceId
+        ? current.selectedId === sourceId
+        : current.rowIds.has(sourceId))
+    );
+  }, []);
 
   const capture = useCallback(
     async (request: KnowledgeSourceCaptureRequest) => {
+      if (!isCurrentScope() || !brandId) return;
       setIsSubmitting(true);
       try {
         const service = await getSourcesService();
+        if (!isCurrentScope()) return;
         await service.capture(request, brandId);
+        if (!isCurrentScope()) return;
         notifications.success(translate('addSuccess'));
         onAddClose();
-        await refresh();
+        await refreshRef.current();
       } catch (captureError) {
+        if (!isCurrentScope()) return;
         logger.error('Failed to add knowledge source', captureError);
         notifications.error(translate('addError'));
       } finally {
-        setIsSubmitting(false);
+        if (isCurrentScope()) setIsSubmitting(false);
       }
     },
-    [brandId, getSourcesService, notifications, onAddClose, refresh, translate],
+    [
+      isCurrentScope,
+      brandId,
+      getSourcesService,
+      notifications,
+      onAddClose,
+      translate,
+    ],
   );
 
   const retry = useCallback(
     async (source: KnowledgeSource) => {
+      if (!isCurrentScope() || !brandId || !isActionableSource(source.id))
+        return;
+      const selectionAtStart = selectionRef.current;
       try {
         const service = await getSourcesService();
+        if (
+          !isCurrentScope() ||
+          selectionRef.current !== selectionAtStart ||
+          !isActionableSource(source.id)
+        )
+          return;
         await service.retry(source.id, brandId);
+        if (!isCurrentScope()) return;
         notifications.success(translate('retrySuccess'));
-        await refresh();
+        await refreshRef.current();
       } catch (retryError) {
+        if (!isCurrentScope()) return;
         logger.error('Failed to retry knowledge ingestion', retryError);
         notifications.error(translate('retryError'));
       }
     },
-    [brandId, getSourcesService, notifications, refresh, translate],
+    [
+      isActionableSource,
+      isCurrentScope,
+      brandId,
+      getSourcesService,
+      notifications,
+      translate,
+    ],
   );
 
   const refreshNow = useCallback(
     async (source: KnowledgeSource) => {
+      if (!isCurrentScope() || !brandId || !isActionableSource(source.id))
+        return;
+      const selectionAtStart = selectionRef.current;
       try {
         const service = await getSourcesService();
+        if (
+          !isCurrentScope() ||
+          selectionRef.current !== selectionAtStart ||
+          !isActionableSource(source.id)
+        )
+          return;
         await service.refresh(
           source.id,
           brandId,
           `refresh-${source.id}-${Date.now()}`,
         );
+        if (!isCurrentScope()) return;
         notifications.success(translate('refreshSuccess'));
-        await refresh();
+        await refreshRef.current();
       } catch (refreshError) {
+        if (!isCurrentScope()) return;
         if (
           isServiceOperationError(refreshError) &&
           refreshError.status === 422 &&
@@ -138,61 +286,122 @@ export default function KnowledgeSourcesList({
           notifications.error(
             translate('refreshUnavailable', { title: source.title }),
           );
-          await refresh();
+          await refreshRef.current();
           return;
         }
         logger.error('Failed to refresh knowledge source', refreshError);
         notifications.error(translate('refreshError'));
       }
     },
-    [brandId, getSourcesService, notifications, refresh, translate],
+    [
+      isActionableSource,
+      isCurrentScope,
+      brandId,
+      getSourcesService,
+      notifications,
+      translate,
+    ],
   );
 
   const updateRefreshPolicy = useCallback(
     async (source: KnowledgeSource, policy: { isEnabled: boolean }) => {
+      if (!isCurrentScope() || !brandId || !isActionableSource(source.id))
+        return;
+      const selectionAtStart = selectionRef.current;
       try {
         const service = await getSourcesService();
+        if (
+          !isCurrentScope() ||
+          selectionRef.current !== selectionAtStart ||
+          !isActionableSource(source.id)
+        )
+          return;
         await service.setRefreshPolicy(source.id, policy, brandId);
-        await refresh();
+        if (!isCurrentScope()) return;
+        await refreshRef.current();
       } catch (policyError) {
+        if (!isCurrentScope()) return;
         logger.error('Failed to update knowledge refresh policy', policyError);
         notifications.error(translate('updateError'));
       }
     },
-    [brandId, getSourcesService, notifications, refresh, translate],
+    [
+      isActionableSource,
+      isCurrentScope,
+      brandId,
+      getSourcesService,
+      notifications,
+      translate,
+    ],
   );
 
   const update = useCallback(
     async (source: KnowledgeSource, body: KnowledgeSourceUpdateRequest) => {
+      if (!isCurrentScope() || !brandId || !isActionableSource(source.id))
+        return;
+      const selectionAtStart = selectionRef.current;
       try {
         const service = await getSourcesService();
+        if (
+          !isCurrentScope() ||
+          selectionRef.current !== selectionAtStart ||
+          !isActionableSource(source.id)
+        )
+          return;
         await service.update(source.id, body, brandId);
-        await refresh();
+        if (!isCurrentScope()) return;
+        await refreshRef.current();
       } catch (updateError) {
+        if (!isCurrentScope()) return;
         logger.error('Failed to update knowledge source', updateError);
         notifications.error(translate('updateError'));
       }
     },
-    [brandId, getSourcesService, notifications, refresh, translate],
+    [
+      isActionableSource,
+      isCurrentScope,
+      brandId,
+      getSourcesService,
+      notifications,
+      translate,
+    ],
   );
 
   const archive = useCallback(
     async (source: KnowledgeSource) => {
+      if (!isCurrentScope() || !brandId || !isActionableSource(source.id))
+        return;
+      const selectionAtStart = selectionRef.current;
       try {
         const service = await getSourcesService();
+        if (
+          !isCurrentScope() ||
+          selectionRef.current !== selectionAtStart ||
+          !isActionableSource(source.id)
+        )
+          return;
         await service.archive(source.id, brandId);
+        if (!isCurrentScope()) return;
         notifications.success(translate('archiveSuccess'));
         // The row may have changed while the archive was in flight.
-        setSelectedSourceId((current) =>
-          current === source.id ? null : current,
-        );
-        await refresh();
+        if (selectionRef.current === source.id)
+          changeSelection(null, source.id);
+        await refreshRef.current();
       } catch (archiveError) {
+        if (!isCurrentScope()) return;
         logger.error('Failed to archive knowledge source', archiveError);
         notifications.error(translate('archiveError'));
       }
     },
-    [brandId, getSourcesService, notifications, refresh, translate],
+    [
+      changeSelection,
+      isActionableSource,
+      isCurrentScope,
+      brandId,
+      getSourcesService,
+      notifications,
+      translate,
+    ],
   );
 
   // Re-clicking the selected source reopens details the user collapsed.
@@ -202,23 +411,41 @@ export default function KnowledgeSourcesList({
         revealDetails?.();
         return;
       }
-      setSelectedSourceId(sourceId);
+      changeSelection(sourceId);
     },
-    [revealDetails, selectedSourceId],
+    [changeSelection, revealDetails, selectedSourceId],
   );
 
   const moveToSpace = useCallback(
     async (source: KnowledgeSource, spaceId: string) => {
+      if (!isCurrentScope() || !brandId || !isActionableSource(source.id))
+        return;
+      const selectionAtStart = selectionRef.current;
       try {
         const service = await getSpacesService();
+        if (
+          !isCurrentScope() ||
+          selectionRef.current !== selectionAtStart ||
+          !isActionableSource(source.id)
+        )
+          return;
         await service.addMember(spaceId, source.id, brandId);
-        await refresh();
+        if (!isCurrentScope()) return;
+        await refreshRef.current();
       } catch (moveError) {
+        if (!isCurrentScope()) return;
         logger.error('Failed to add knowledge source to space', moveError);
         notifications.error(translate('moveError'));
       }
     },
-    [brandId, getSpacesService, notifications, refresh, translate],
+    [
+      isActionableSource,
+      isCurrentScope,
+      brandId,
+      getSpacesService,
+      notifications,
+      translate,
+    ],
   );
 
   // Brand Kit seed: capture the brand website as Brand Truth exactly once per
@@ -309,6 +536,21 @@ export default function KnowledgeSourcesList({
         </nav>
       ) : null}
 
+      {(selectionError || isInvalidSelection) && !isLoading ? (
+        <Alert type={AlertCategory.ERROR}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>{translate('loadError')}</span>
+            <Button
+              label={translate('retry')}
+              onClick={() => {
+                void refresh();
+              }}
+              variant={ButtonVariant.SECONDARY}
+            />
+          </div>
+        </Alert>
+      ) : null}
+
       {error && !isLoading ? (
         <Alert type={AlertCategory.ERROR}>
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -355,7 +597,7 @@ export default function KnowledgeSourcesList({
       <KnowledgeSourceDetailPanel
         brandId={brandId}
         onArchive={archive}
-        onClose={() => setSelectedSourceId(null)}
+        onClose={() => changeSelection(null)}
         onMoveToSpace={moveToSpace}
         onRefresh={refreshNow}
         onRetry={retry}

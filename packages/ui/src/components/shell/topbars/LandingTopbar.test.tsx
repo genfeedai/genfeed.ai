@@ -30,6 +30,28 @@ describe('LandingTopbar', () => {
     );
   });
 
+  it('keeps internal agent connection in the current tab', () => {
+    render(
+      <LandingTopbar ctaHref="/agent#connect" ctaLabel="Connect your agent" />,
+    );
+    expect(
+      screen.getByRole('link', { name: 'Connect your agent' }),
+    ).not.toHaveAttribute('target', '_blank');
+  });
+
+  it('opens external signup separately', () => {
+    render(
+      <LandingTopbar
+        ctaHref="https://app.genfeed.ai/sign-up"
+        ctaLabel="Start free"
+      />,
+    );
+    expect(screen.getByRole('link', { name: 'Start free' })).toHaveAttribute(
+      'target',
+      '_blank',
+    );
+  });
+
   it('renders the secondary CTA alongside the primary one', () => {
     render(
       <LandingTopbar

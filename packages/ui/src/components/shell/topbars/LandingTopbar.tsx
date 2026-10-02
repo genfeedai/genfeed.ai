@@ -4,11 +4,13 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import TopbarLogo from '@ui/topbars/logo/TopbarLogo';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 
 export interface LandingTopbarProps {
   ctaHref: string;
   ctaLabel: string;
   logoHref?: string;
+  primaryAction?: ReactNode;
   /**
    * Optional second action, opened in the same tab and rendered before the
    * primary CTA from 360px up:
@@ -24,6 +26,7 @@ export default function LandingTopbar({
   ctaHref,
   ctaLabel,
   logoHref = '/',
+  primaryAction,
   secondaryCtaHref,
   secondaryCtaLabel,
 }: LandingTopbarProps): React.ReactElement {
@@ -38,21 +41,29 @@ export default function LandingTopbar({
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.PUBLIC}
               asChild
-              className="h-11 px-3 text-sm tracking-[0.08em] max-[359px]:hidden sm:px-5 sm:tracking-[0.18em]"
+              className="h-11 px-2 text-xs tracking-[0.04em] max-[359px]:hidden sm:px-5 sm:text-sm sm:tracking-[0.18em]"
             >
               <Link href={secondaryCtaHref}>{secondaryCtaLabel}</Link>
             </Button>
           ) : null}
 
-          <Button
-            size={ButtonSize.PUBLIC}
-            asChild
-            className="h-11 px-3 text-sm tracking-[0.08em] sm:px-5 sm:tracking-[0.18em]"
-          >
-            <Link href={ctaHref} target="_blank" rel="noopener noreferrer">
-              {ctaLabel}
-            </Link>
-          </Button>
+          {primaryAction ?? (
+            <Button
+              size={ButtonSize.PUBLIC}
+              asChild
+              className="h-11 px-2 text-xs tracking-[0.04em] sm:px-5 sm:text-sm sm:tracking-[0.18em]"
+            >
+              <Link
+                href={ctaHref}
+                target={ctaHref.startsWith('/') ? undefined : '_blank'}
+                rel={
+                  ctaHref.startsWith('/') ? undefined : 'noopener noreferrer'
+                }
+              >
+                {ctaLabel}
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
     </header>
