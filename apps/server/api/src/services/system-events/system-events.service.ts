@@ -6,7 +6,9 @@ import type {
   SystemEvent,
   SystemEventRecording,
 } from '@api/services/system-events/system-event.types';
+import { SystemEventDeliveryService } from '@api/services/system-events/system-event-delivery.service';
 import { projectStripeSystemEvent } from '@api/services/system-events/system-event-projection';
+import { SystemNotificationDestinationsService } from '@api/services/system-events/system-notification-destinations.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SYSTEM_EVENT_TYPES } from '@libs/interfaces/system-event.interface';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -16,6 +18,8 @@ import type Stripe from 'stripe';
 @Injectable()
 export class SystemEventsService {
   constructor(
+    private readonly destinationDelivery: SystemEventDeliveryService,
+    private readonly destinations: SystemNotificationDestinationsService,
     private readonly prisma: PrismaService,
     private readonly featureSettings: PlatformSettingsService,
     private readonly logger: LoggerService,
@@ -54,17 +58,17 @@ export class SystemEventsService {
   }
 
   async overview() {
-    const [settings, transport, rows, observedSignups, first] =
+    const [settings, transport, rows, observedSignups, first, destinations] =
       await Promise.all([
         this.settings(),
         this.notifications.systemNotificationStatus().catch(() => ({
-          webhookConfigured: false,
           transportConfigured: false,
         })),
         // tenant-scope-ignore: super-admin delivery history; payloads excluded from the response
-        this.prisma.systemEventWebhook.findMany({
+        this.prisma.systemEventDelivery.findMany({
+          include: { event: true },
           where: { isDeleted: false },
-          orderBy: { occurredAt: 'desc' },
+          orderBy: { createdAt: 'desc' },
           take: 50,
         }),
         // tenant-scope-ignore: deployment-wide signup observation count
@@ -77,9 +81,11 @@ export class SystemEventsService {
           orderBy: { occurredAt: 'asc' },
           select: { occurredAt: true },
         }),
+        this.destinations.list(),
       ]);
     return {
       id: 'system-notifications',
+      destinations,
       configuration: {
         ...settings,
         ...transport,
@@ -89,8 +95,10 @@ export class SystemEventsService {
       signupObservationStart: first?.occurredAt.toISOString() ?? null,
       deliveries: rows.map((row) => ({
         id: row.id,
-        type: row.type,
-        occurredAt: row.occurredAt.toISOString(),
+        eventId: row.eventId,
+        destinationId: row.destinationId,
+        type: row.event.type,
+        occurredAt: row.event.occurredAt.toISOString(),
         status: row.deliveredAt
           ? 'delivered'
           : row.skippedAt
@@ -101,7 +109,6 @@ export class SystemEventsService {
                 ? 'failed'
                 : 'pending',
         attempts: row.attempts,
-        lastStatusCode: row.lastStatusCode,
         deliveredAt: row.deliveredAt?.toISOString() ?? null,
       })),
     };
@@ -131,6 +138,7 @@ export class SystemEventsService {
   }
 
   async retry(id: string): Promise<void> {
+    if (await this.destinationDelivery.retry(id)) return;
     // tenant-scope-ignore: super-admin retries a single non-deleted event
     const row = await this.prisma.systemEventWebhook.findFirst({
       where: { id, isDeleted: false },
@@ -233,7 +241,7 @@ export class SystemEventsService {
           },
         });
         if (!claimed.count) return;
-        let status: number | null = null;
+        const status: number | null = null;
         try {
           const settings = await this.settings();
           const event = JSON.parse(row.payload) as SystemEvent;
@@ -245,6 +253,20 @@ export class SystemEventsService {
             !settings.enabled ||
             !settings.eventTypes.includes(row.type)
           ) {
+            // tenant-scope-ignore: resolve pending destination history when the operator disables delivery
+            await this.prisma.systemEventDelivery.updateMany({
+              where: {
+                eventId: row.id,
+                isDeleted: false,
+                deliveredAt: null,
+                skippedAt: null,
+              },
+              data: {
+                skippedAt: new Date(),
+                leaseToken: null,
+                leaseUntil: null,
+              },
+            });
             // tenant-scope-ignore: lease owner records an explicit operator filter decision
             await this.prisma.systemEventWebhook.updateMany({
               where: { id: row.id, leaseToken, isDeleted: false },
@@ -256,16 +278,21 @@ export class SystemEventsService {
             });
             return;
           }
-          await this.notifications.deliverSystemNotification(event);
-          status = 200;
-          // tenant-scope-ignore: lease owner alone may finish this delivery
+          const outcome = await this.destinationDelivery.deliver(
+            row,
+            leaseToken,
+          );
+          // tenant-scope-ignore: only the event lease owner may publish aggregate state
           await this.prisma.systemEventWebhook.updateMany({
             where: { id: row.id, leaseToken, isDeleted: false },
             data: {
-              deliveredAt: new Date(),
+              ...(outcome === 'delivered'
+                ? { deliveredAt: new Date(), lastStatusCode: 200 }
+                : outcome === 'skipped'
+                  ? { skippedAt: new Date() }
+                  : { nextAttemptAt: outcome }),
               leaseUntil: null,
               leaseToken: null,
-              lastStatusCode: status,
             },
           });
         } catch {

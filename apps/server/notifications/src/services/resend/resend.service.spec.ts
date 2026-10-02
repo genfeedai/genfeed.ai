@@ -1,3 +1,4 @@
+import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@notifications/config/config.service';
@@ -8,6 +9,7 @@ import {
   ResendService,
   resolveResendFromAddress,
 } from '@notifications/services/resend/resend.service';
+import { NotificationRuntimeSettingsService } from '@notifications/services/runtime-settings/notification-runtime-settings.service';
 import { Resend } from 'resend';
 
 const mockSend = vi.fn();
@@ -52,6 +54,17 @@ describe('ResendService', () => {
       providers: [
         ResendService,
         { provide: ConfigService, useValue: configMock },
+        {
+          provide: NotificationRuntimeSettingsService,
+          useValue: {
+            get: async () => ({
+              ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+              emailFromAddress: configMock.get('RESEND_FROM_EMAIL') || null,
+              emailReplyToAddress:
+                configMock.get('RESEND_REPLY_TO_EMAIL') || null,
+            }),
+          },
+        },
         { provide: LoggerService, useValue: loggerMock },
       ],
     }).compile();

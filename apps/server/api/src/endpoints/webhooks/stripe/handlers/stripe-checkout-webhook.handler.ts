@@ -202,7 +202,7 @@ export class StripeCheckoutWebhookHandler {
       session.id,
       'organization-payment',
       async () => {
-        const creditsToAdd = this.supportService.resolveCheckoutCredits(
+        const creditsToAdd = await this.supportService.resolveCheckoutCredits(
           session.metadata,
         );
 
@@ -299,7 +299,7 @@ export class StripeCheckoutWebhookHandler {
       grossAmountCents,
       netAmountCents,
       organizationId: subscription.organizationId,
-      purchasedCredits: this.supportService.resolveCheckoutCredits(
+      purchasedCredits: await this.supportService.resolveCheckoutCredits(
         session.metadata,
       ),
       stripeCheckoutSessionId: session.id,
@@ -462,7 +462,7 @@ export class StripeCheckoutWebhookHandler {
     const { brand, organization, orgSetting } =
       await this.resolveManagedCheckoutResources(dbUser);
 
-    const creditsToAdd = this.supportService.resolveCheckoutCredits(
+    const creditsToAdd = await this.supportService.resolveCheckoutCredits(
       session.metadata,
       0,
     );
@@ -857,7 +857,7 @@ export class StripeCheckoutWebhookHandler {
       'user-credit',
       async () => {
         // Calculate credits from payment
-        const creditsToAdd = this.supportService.resolveCheckoutCredits(
+        const creditsToAdd = await this.supportService.resolveCheckoutCredits(
           session.metadata,
           1,
         );

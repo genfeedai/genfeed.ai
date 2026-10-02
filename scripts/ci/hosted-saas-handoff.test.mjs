@@ -378,10 +378,10 @@ test('scopes public ECS tasks to service-required secrets and IAM', () => {
   const notificationsAllowlist = allowlist.slice(
     allowlist.indexOf('notifications = toset'),
   );
-  assert.match(
+  assert.doesNotMatch(
     notificationsAllowlist,
     /"SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL"/,
-    'notifications must receive the signup and billing Discord webhook',
+    'signup and billing destinations belong in encrypted admin configuration',
   );
   for (const forbidden of [
     'DATABASE_URL',

@@ -48,6 +48,7 @@ import { useTranslations } from 'next-intl';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import PlatformFeatureSettingsFields from './platform-feature-settings-fields';
+import SystemNotificationsPanel from './system-notifications-panel';
 
 /** Percent an operator would type for a multiplier, in the given input mode. */
 function percentInputFor(multiplier: number, mode: MarginInputMode): string {
@@ -365,6 +366,7 @@ export default function PlatformSettingsPage() {
       description="Platform-wide business and infrastructure controls for operators"
       icon={Banknote}
     >
+      <SystemNotificationsPanel />
       {isLoading ? (
         <SkeletonCard showImage={false} />
       ) : (

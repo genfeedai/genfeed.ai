@@ -1,5 +1,6 @@
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { SocialSourceHistoryImportModule } from '@api/collections/social-sources/social-source-history-import.module';
 import { SocialWarmupEnrollmentsModule } from '@api/collections/social-warmup-enrollments/social-warmup-enrollments.module';
 import { SERVER_TOKENS } from '@api/server.dependencies';
@@ -34,6 +35,7 @@ const BaseModule = createServiceModule(LinkedInService, {
   controllers: [LinkedInController],
   exports: [...(BaseModule.exports ?? []), LinkedInAuthorizedSignalsService],
   imports: [
+    PlatformSettingsModule,
     ...(BaseModule.imports ?? []),
     SocialWarmupEnrollmentsModule,
     SocialSourceHistoryImportModule,

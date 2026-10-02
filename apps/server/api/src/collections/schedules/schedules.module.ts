@@ -1,3 +1,4 @@
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 /**
  * Schedules Module
  * AI-powered scheduling: optimal posting time calculation, bulk content scheduling,
@@ -19,6 +20,7 @@ import { Module } from '@nestjs/common';
   controllers: [SchedulesController],
   exports: [SchedulesService],
   imports: [
+    PlatformSettingsModule,
     ByokModule,
     ConfigModule,
     CreditsModule,

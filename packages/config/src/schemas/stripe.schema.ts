@@ -7,11 +7,8 @@ import { conditionalRequired } from '../helpers';
  */
 export const stripeSchema = {
   STRIPE_API_VERSION: Joi.string().default('2026-01-28.clover'),
-  STRIPE_PAYG_CREDITS: Joi.number().default(1_000),
   STRIPE_PRICE_PAYG: conditionalRequired(),
   STRIPE_PRICE_SKILLS_PRO: Joi.string().optional(),
-  STRIPE_PROMOTION_CODE_LAUNCH: Joi.string().optional().allow(''),
-  STRIPE_PROMOTION_CODE_SKILLS_PRO: Joi.string().optional().allow(''),
   STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: Joi.string().optional(),
   STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: Joi.string()
     .pattern(/^price_[A-Za-z0-9]+$/)

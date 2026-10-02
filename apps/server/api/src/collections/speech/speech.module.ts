@@ -1,5 +1,6 @@
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ModelsModule } from '@api/collections/models/models.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { SpeechController } from '@api/collections/speech/controllers/speech.controller';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
@@ -14,7 +15,13 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [SpeechController],
   exports: [],
-  imports: [ByokModule, CreditsModule, ModelsModule, ReplicateModule],
+  imports: [
+    PlatformSettingsModule,
+    ByokModule,
+    CreditsModule,
+    ModelsModule,
+    ReplicateModule,
+  ],
   providers: [CreditsGuard, CreditsInterceptor],
 })
 export class SpeechModule {}

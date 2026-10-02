@@ -8,7 +8,6 @@ import { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/ope
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { type ThreadContextState, toPrismaJson } from '@genfeedai/prisma';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -18,7 +17,7 @@ const CACHE_TTL_SECONDS = 300; // 5 minutes
 /**
  * Compression is a mechanical summarisation pass that runs on every long
  * thread, so it defaults to the cheapest catalogued model rather than whatever
- * the thread itself is chatting with. Override via AGENT_CONTEXT_COMPRESSION_MODEL.
+ * the thread itself is chatting with. Override in Admin platform settings.
  */
 const COMPRESSION_FALLBACK_MODEL = LLM_DEFAULTS.volumeAgent;
 
@@ -63,7 +62,6 @@ export class ThreadContextCompressorService {
     private readonly agentMessagesService: AgentMessagesService,
     private readonly llmDispatcherService: LlmDispatcherService,
     private readonly cacheService: CacheService,
-    private readonly configService: ConfigService,
     private readonly platformSettingsService: PlatformSettingsService,
     private readonly logger: LoggerService,
   ) {}
@@ -72,17 +70,6 @@ export class ThreadContextCompressorService {
   private async isEnabled(): Promise<boolean> {
     const settings = await this.platformSettingsService.getFeatureSettings();
     return settings.isAgentContextCompressionEnabled;
-  }
-
-  private get windowSize(): number {
-    return Number(this.configService.get('AGENT_CONTEXT_WINDOW_SIZE')) || 5;
-  }
-
-  private get compressionModel(): string {
-    return (
-      (this.configService.get('AGENT_CONTEXT_COMPRESSION_MODEL') as string) ||
-      COMPRESSION_FALLBACK_MODEL
-    );
   }
 
   private lockKey(threadId: string): string {
@@ -110,7 +97,11 @@ export class ThreadContextCompressorService {
       // Check if thread has enough messages to warrant compression
       const totalMessages =
         await this.agentMessagesService.countMessages(threadId);
-      if (totalMessages > this.windowSize) {
+      if (
+        totalMessages >
+        (await this.platformSettingsService.getFeatureSettings())
+          .agentContextWindowSize
+      ) {
         await this.compress(threadId, organizationId);
         return this.getState(threadId);
       }
@@ -128,7 +119,11 @@ export class ThreadContextCompressorService {
       threadId,
       lastIncorporatedMessageId,
     );
-    if (uncompactedCount > this.windowSize) {
+    if (
+      uncompactedCount >
+      (await this.platformSettingsService.getFeatureSettings())
+        .agentContextWindowSize
+    ) {
       await this.compress(threadId, organizationId);
       return this.getState(threadId);
     }
@@ -152,7 +147,11 @@ export class ThreadContextCompressorService {
     const totalMessages =
       await this.agentMessagesService.countMessages(threadId);
 
-    if (totalMessages <= this.windowSize) {
+    if (
+      totalMessages <=
+      (await this.platformSettingsService.getFeatureSettings())
+        .agentContextWindowSize
+    ) {
       return;
     }
 
@@ -167,7 +166,11 @@ export class ThreadContextCompressorService {
         threadId,
         lastIncorporatedMessageId,
       );
-      if (uncompacted <= this.windowSize) {
+      if (
+        uncompacted <=
+        (await this.platformSettingsService.getFeatureSettings())
+          .agentContextWindowSize
+      ) {
         return;
       }
     }
@@ -232,7 +235,8 @@ export class ThreadContextCompressorService {
     return this.agentMessagesService.getMessagesAfter(
       threadId,
       afterMessageId,
-      this.windowSize,
+      (await this.platformSettingsService.getFeatureSettings())
+        .agentContextWindowSize,
     );
   }
 
@@ -303,12 +307,19 @@ export class ThreadContextCompressorService {
           )
         : await this.agentMessagesService.getAllMessages(threadId);
 
-      if (allMessages.length <= this.windowSize) {
+      if (
+        allMessages.length <=
+        (await this.platformSettingsService.getFeatureSettings())
+          .agentContextWindowSize
+      ) {
         return;
       }
 
       // Messages to compress = everything except the last windowSize
-      const compressBoundary = allMessages.length - this.windowSize;
+      const compressBoundary =
+        allMessages.length -
+        (await this.platformSettingsService.getFeatureSettings())
+          .agentContextWindowSize;
       const messagesToCompress = allMessages.slice(0, compressBoundary);
       const lastCompressedMessage =
         messagesToCompress[messagesToCompress.length - 1];
@@ -357,7 +368,9 @@ export class ThreadContextCompressorService {
         {
           max_tokens: 2048,
           messages,
-          model: this.compressionModel,
+          model:
+            (await this.platformSettingsService.getFeatureSettings())
+              .agentContextCompressionModel || COMPRESSION_FALLBACK_MODEL,
           temperature: 0.1,
         },
         organizationId,

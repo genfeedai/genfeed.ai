@@ -9,6 +9,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { VotesModule } from '@api/collections/votes/votes.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -27,6 +28,7 @@ import { Module } from '@nestjs/common';
   controllers: [AvatarsController],
   exports: [AvatarsService],
   imports: [
+    PlatformSettingsModule,
     ByokModule,
     CreditsModule,
     IngredientsModule,
