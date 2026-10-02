@@ -283,7 +283,6 @@ describe('BrandRelocationService', () => {
             where: {
               organizationId: SOURCE_ORG,
               brandId: BRAND_ID,
-              isDeleted: { in: [false, true] },
             },
             select: { id: true },
           });
@@ -292,7 +291,6 @@ describe('BrandRelocationService', () => {
           ).toHaveBeenCalledWith({
             where: {
               organizationId: SOURCE_ORG,
-              isDeleted: { in: [false, true] },
               OR: [
                 { brandId: BRAND_ID },
                 { ingredientId: { in: ['historical-ingredient'] } },
