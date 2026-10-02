@@ -27,6 +27,7 @@ import {
   readControllerOwnedMigrationDatabaseUrl,
 } from '@api-test/helpers/controller-owned-migration-database';
 import { formatMigrationDeployDiagnostic } from '@api-test/helpers/migration-deploy-diagnostics';
+import { isLearningGlobalDependencyKind } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { CredentialPlatform, Prisma, PrismaClient } from '@genfeedai/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
@@ -1196,14 +1197,19 @@ describe.skipIf(!explicitUrl)(
       );
       for (const ref of publication.refs) {
         expect(
-          (
-            await graph.pins(
-              ref.kind,
-              [ref.id],
-              ref.organizationId ?? current.organizationId,
-            )
-          ).get(ref.id),
+          (await graph.pins(ref.kind, [ref.id], ref.organizationId)).get(
+            ref.id,
+          ),
         ).toBe(ref.version);
+        if (isLearningGlobalDependencyKind(ref.kind)) {
+          expect(ref.organizationId).toBeNull();
+          expect(
+            (await graph.pins(ref.kind, [ref.id], current.organizationId)).size,
+          ).toBe(0);
+          await expect(
+            scalar.resolve(ref.kind, ref.id, current.organizationId, prisma),
+          ).rejects.toThrow();
+        }
         expect(
           await scalar.resolve(ref.kind, ref.id, ref.organizationId, prisma),
         ).toEqual(ref);
