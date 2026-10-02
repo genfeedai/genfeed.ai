@@ -40,6 +40,12 @@ export class SkillPackageImportController {
     const actor = { organizationId, userId: user.userId };
     const created = await this.library.importValidatedPackage(actor, body);
     const visible = await this.library.present(actor, [created]);
-    return serializeSingle(request, SkillSerializer, visible[0] ?? created);
+    const presented = visible[0];
+    if (!presented) {
+      throw new ForbiddenException(
+        'Skill import was created, but details are unavailable. Refresh the skill library.',
+      );
+    }
+    return serializeSingle(request, SkillSerializer, presented);
   }
 }

@@ -137,8 +137,7 @@ export class SkillLibraryService {
           throw new ForbiddenException(
             'Active organization membership is required',
           );
-        // Personal imports intentionally ignore tenant scope: the owner is the user,
-        // and organization/brand columns are null, including across organizations.
+        // tenant-scope-ignore: personal import duplicates are scoped to canonical ownerUserId with null organization and brand, including across organizations
         const duplicates = await tx.$queryRaw<{ id: string }[]>`
           SELECT "id" FROM "skills" WHERE "ownerKind"='user'
           AND "ownerUserId"=${actor.userId} AND "organizationId" IS NULL

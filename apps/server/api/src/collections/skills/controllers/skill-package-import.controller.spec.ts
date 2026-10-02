@@ -100,6 +100,62 @@ describe('SkillPackageImportController validated HTTP admission', () => {
     ).toEqual(RateLimitPresets.uploads);
     expect(RateLimitPresets.uploads.scope).toBe('user');
   });
+  it('returns only the authoritative presented metadata and capabilities', async () => {
+    present.mockResolvedValueOnce([
+      {
+        id: 'new-skill',
+        name: 'Presented skill',
+        slug: 'upload',
+        canRead: true,
+        canShare: true,
+        canPublish: false,
+      },
+    ]);
+    const response = await request(app.getHttpServer())
+      .post('/skills/import')
+      .send(payload())
+      .expect(201);
+    expect(response.body.data.attributes).toMatchObject({
+      name: 'Presented skill',
+      canRead: true,
+      canShare: true,
+      canPublish: false,
+    });
+    expect(importValidatedPackage).toHaveBeenCalledTimes(1);
+    expect(present).toHaveBeenCalledTimes(1);
+  });
+  it('reports created but unavailable details without serializing the raw record or retrying the write', async () => {
+    const raw = {
+      id: 'foreign-private-id',
+      name: 'Private raw name',
+      slug: 'upload',
+      defaultInstructions: 'RAW_PRIVATE_INSTRUCTIONS',
+      config: {
+        defaultInstructions: 'RAW_PRIVATE_CONFIG',
+        importProvenance: { importedByUserId: 'RAW_PRIVATE_PROVENANCE' },
+      },
+    };
+    importValidatedPackage.mockResolvedValueOnce(raw);
+    present.mockResolvedValueOnce([]);
+    const response = await request(app.getHttpServer())
+      .post('/skills/import')
+      .send(payload())
+      .expect(403);
+    expect(response.body.message).toBe(
+      'Skill import was created, but details are unavailable. Refresh the skill library.',
+    );
+    for (const secret of [
+      'foreign-private-id',
+      'Private raw name',
+      'RAW_PRIVATE_INSTRUCTIONS',
+      'RAW_PRIVATE_CONFIG',
+      'RAW_PRIVATE_PROVENANCE',
+    ])
+      expect(response.text).not.toContain(secret);
+    expect(response.body).not.toHaveProperty('data');
+    expect(importValidatedPackage).toHaveBeenCalledTimes(1);
+    expect(present).toHaveBeenCalledTimes(1);
+  });
   it.each([
     { slug: 'legacy', name: 'Unvalidated' },
     { ...payload(), ownerKind: 'system' },
