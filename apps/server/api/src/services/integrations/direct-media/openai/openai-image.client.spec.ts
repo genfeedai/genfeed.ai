@@ -88,6 +88,69 @@ describe('OpenAI image client', () => {
     );
     expect(timeout).toHaveBeenCalledExactlyOnceWith(30_000);
   });
+  it.each([
+    null,
+    'private-response',
+    [],
+    {},
+    { data: null },
+    { data: {} },
+    { data: 'private-response' },
+  ])('rejects a malformed models-list HTTP 200 envelope', async (body) => {
+    const transport = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(Response.json(body));
+    const result = await new OpenAIImageClient(transport).validateCredential({
+      apiKey: KEY,
+    });
+    expect(result).toEqual({
+      isValid: false,
+      error: 'PROVIDER_RESPONSE_INVALID',
+    });
+    expect(JSON.stringify(result)).not.toContain('private-response');
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+  it.each(['', '   ', '\t', `bad\r${KEY}`, `bad\n${KEY}`, null, undefined, 42])(
+    'rejects an invalid ephemeral key before GET or paid callback',
+    async (apiKey) => {
+      const transport = vi.fn<typeof fetch>();
+      const callback = vi.fn();
+      const client = new OpenAIImageClient(transport);
+      expect(
+        await client.validateCredential({ apiKey: apiKey as string }),
+      ).toEqual({ isValid: false, error: 'PROVIDER_CREDENTIAL_INVALID' });
+      const result = client.submit(request(), {
+        apiKey: apiKey as string,
+        onProviderSubmissionStarted: callback,
+      });
+      await expect(result).rejects.toMatchObject({
+        code: 'PROVIDER_CREDENTIAL_INVALID',
+        isSubmissionUncertain: false,
+      });
+      await expect(result).rejects.not.toThrow(KEY);
+      expect(transport).not.toHaveBeenCalled();
+      expect(callback).not.toHaveBeenCalled();
+    },
+  );
+  it('redacts synchronous preparation callback failure without submission or retry', async () => {
+    const transport = vi.fn<typeof fetch>();
+    const callback = vi.fn(() => {
+      throw new Error(`private database failure: ${KEY}`);
+    });
+    const result = new OpenAIImageClient(transport).submit(request(), {
+      apiKey: KEY,
+      onProviderSubmissionStarted: callback,
+    });
+    await expect(result).rejects.toBeInstanceOf(DirectMediaProviderError);
+    await expect(result).rejects.toMatchObject({
+      code: 'PROVIDER_PREPARATION_FAILED',
+      isSubmissionUncertain: false,
+    });
+    await expect(result).rejects.not.toThrow(KEY);
+    await expect(result).rejects.not.toThrow('private database failure');
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(transport).not.toHaveBeenCalled();
+  });
   it.each([401, 403])(
     'returns safe invalid credential on %i',
     async (status) => {
@@ -175,6 +238,39 @@ describe('OpenAI image client', () => {
     ).rejects.toBeInstanceOf(DirectMediaProviderError);
     expect(transport).not.toHaveBeenCalled();
     expect(callback).not.toHaveBeenCalled();
+  });
+  it('rejects deeply nested controls and excessive edit references before callback or transport', async () => {
+    let deep: unknown = KEY;
+    for (let index = 0; index < 10000; index++) deep = { nested: deep };
+    const forged = [
+      { ...request(), body: { ...request().body, unknownControl: deep } },
+      { ...request(), body: { ...request().body, quality: deep } },
+      {
+        ...request('image-edit'),
+        body: {
+          ...request('image-edit').body,
+          images: Array.from({ length: 17 }, () => ({
+            image_url: 'https://assets.example/a.png',
+          })),
+        },
+      },
+    ];
+    for (const prepared of forged) {
+      const transport = vi.fn<typeof fetch>();
+      const callback = vi.fn();
+      const result = new OpenAIImageClient(transport).submit(prepared, {
+        apiKey: KEY,
+        onProviderSubmissionStarted: callback,
+      });
+      await expect(result).rejects.toBeInstanceOf(DirectMediaProviderError);
+      await expect(result).rejects.toMatchObject({
+        code: 'PROVIDER_REQUEST_INVALID',
+        isSubmissionUncertain: false,
+      });
+      await expect(result).rejects.not.toThrow(KEY);
+      expect(transport).not.toHaveBeenCalled();
+      expect(callback).not.toHaveBeenCalled();
+    }
   });
   it('rejects body accessors without invoking them', async () => {
     const prepared = request();
