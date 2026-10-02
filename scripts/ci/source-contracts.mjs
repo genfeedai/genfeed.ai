@@ -21,6 +21,26 @@ const FS_MODULES = new Set([
   'graceful-fs',
 ]);
 
+// These readers exercise real PostgreSQL/Redis behavior. The existing API
+// test job owns their execution and fixtures; Static still traverses their
+// entire source graph before classifying the selected roots below.
+export const CONNECTED_SOURCE_CONTRACT_FILES = Object.freeze([
+  'apps/server/api/src/services/integrations/crun/crun-image-flow.integration.spec.ts',
+  'apps/server/api/src/services/integrations/crun/crun-video-flow.integration.spec.ts',
+  'apps/server/api/src/services/integrations/crun/crun-task.postgres.spec.ts',
+]);
+
+export function partitionSourceContracts(files, root = ROOT) {
+  const connectedPaths = new Set(CONNECTED_SOURCE_CONTRACT_FILES);
+  const sourceOnly = [],
+    connected = [];
+  for (const file of files) {
+    const relative = path.relative(root, file).split(path.sep).join('/');
+    (connectedPaths.has(relative) ? connected : sourceOnly).push(file);
+  }
+  return { sourceOnly, connected };
+}
+
 function inside(root, file) {
   const relative = path.relative(root, file);
   return (
@@ -180,9 +200,19 @@ export function runSourceContracts({ listOnly = false } = {}) {
   const results = [];
   for (const surface of SURFACES) {
     const directory = path.join(ROOT, surface.directory);
-    const files = discoverSourceContracts(surface);
+    const discovered = discoverSourceContracts(surface);
+    const { sourceOnly: files, connected } =
+      partitionSourceContracts(discovered);
     const relativeFiles = files.map((file) => path.relative(directory, file));
-    results.push({ surface: surface.directory, files: relativeFiles });
+    results.push({
+      surface: surface.directory,
+      files: relativeFiles,
+      connectedFiles: connected.map((file) => path.relative(directory, file)),
+    });
+    if (!listOnly && connected.length)
+      console.log(
+        `Retaining ${connected.length} connected source contracts in the API test job`,
+      );
     if (!listOnly && files.length) {
       console.log(
         `Running ${files.length} filesystem source contracts in ${surface.directory}`,

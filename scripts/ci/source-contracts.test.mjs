@@ -9,9 +9,13 @@ import {
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
+import ts from 'typescript';
 import {
+  CONNECTED_SOURCE_CONTRACT_FILES,
   createResolver,
   isTestSupport,
+  partitionSourceContracts,
   selectSourceContracts,
   sourceImports,
 } from './source-contracts.mjs';
@@ -132,5 +136,124 @@ test('resolves aliased helpers with tsconfig inheritance without executing their
     );
   } finally {
     rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('classifies only the three exact connected roots after traversing their complete source graph', () => {
+  const root = '/repo';
+  const connected = path.join(root, CONNECTED_SOURCE_CONTRACT_FILES[0]);
+  const guard = path.join(root, 'tests/source-guard.test.ts');
+  const helper = path.join(root, 'tests/reader.ts');
+  const pure = path.join(root, 'tests/pure.test.ts');
+  const sources = new Map([
+    [connected, "import './reader'"],
+    [guard, "import './reader'"],
+    [helper, "import fs from 'node:fs'"],
+    [pure, 'export const value = 1;'],
+  ]);
+  const visited = new Set();
+  const selected = selectSourceContracts([connected, guard, pure], {
+    readSource: (file) => {
+      visited.add(file);
+      return sources.get(file);
+    },
+    resolveImport: (specifier) =>
+      specifier === './reader' ? helper : undefined,
+  });
+  assert.deepEqual(visited, new Set([connected, guard, helper, pure]));
+  assert.deepEqual(partitionSourceContracts(selected, root), {
+    sourceOnly: [guard],
+    connected: [connected],
+  });
+  const sameName = path.join(root, 'tests/crun-image-flow.integration.spec.ts');
+  const otherPostgres = path.join(root, 'tests/source.postgres.spec.ts');
+  assert.deepEqual(partitionSourceContracts([sameName, otherPostgres], root), {
+    sourceOnly: [sameName, otherPostgres],
+    connected: [],
+  });
+});
+
+test('connected classification cannot hide an unreadable selected source or transitive dependency', () => {
+  const root = '/repo';
+  const connected = path.join(root, CONNECTED_SOURCE_CONTRACT_FILES[1]);
+  const helper = path.join(root, 'tests/reader.ts');
+  for (const unreadable of [connected, helper])
+    assert.throws(
+      () =>
+        partitionSourceContracts(
+          selectSourceContracts([connected], {
+            readSource: (file) => {
+              if (file === unreadable)
+                throw new Error('unreadable connected graph');
+              return "import './reader'";
+            },
+            resolveImport: (specifier) =>
+              specifier === './reader' ? helper : undefined,
+          }),
+          root,
+        ),
+      /unreadable connected graph/,
+    );
+});
+
+function literalCaseCount(source, file) {
+  const ast = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
+  assert.equal(ast.parseDiagnostics.length, 0);
+  let count = 0;
+  function visit(node) {
+    if (ts.isCallExpression(node)) {
+      if (ts.isIdentifier(node.expression) && node.expression.text === 'it')
+        count++;
+      if (
+        ts.isPropertyAccessExpression(node.expression) &&
+        node.expression.expression.getText(ast) === 'it' &&
+        node.expression.name.text === 'each'
+      ) {
+        let cases = node.arguments[0];
+        while (ts.isAsExpression(cases)) cases = cases.expression;
+        assert.ok(
+          ts.isArrayLiteralExpression(cases),
+          'Connected case rows must remain explicit',
+        );
+        count += cases.elements.length;
+      }
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(ast);
+  return count;
+}
+
+test('retains all connected Crun cases and their real fixture-owning API job', () => {
+  const root = fileURLToPath(new URL('../..', import.meta.url));
+  const workflow = readFileSync(
+    path.join(root, '.github/workflows/ci.yml'),
+    'utf8',
+  );
+  const apiJob = workflow.split('  test-api:')[1]?.split('  build:')[0];
+  assert.ok(apiJob);
+  assert.match(apiJob, /postgres:[\s\S]*redis:/);
+  assert.match(apiJob, /WORKFLOW_BILLING_TEST_DATABASE_URL: postgresql:/);
+  assert.match(apiJob, /CRUN_TEST_REDIS_URL: redis:/);
+  assert.match(
+    apiJob,
+    /cd apps\/server\/api && bunx vitest run --config vitest\.config\.ts/,
+  );
+  const config = readFileSync(
+    path.join(root, 'apps/server/api/vitest.config.ts'),
+    'utf8',
+  );
+  assert.match(config, /include: \[.*'src\/\*\*\/\*\.spec\.ts'/);
+  for (const [index, file] of CONNECTED_SOURCE_CONTRACT_FILES.entries()) {
+    const source = readFileSync(path.join(root, file), 'utf8');
+    assert.equal(literalCaseCount(source, file), [18, 23, 10][index]);
+    assert.doesNotMatch(
+      source,
+      /\b(?:it|describe)\.(?:skip|todo|only|skipIf|runIf)\b/,
+    );
+    assert.match(source, /WORKFLOW_BILLING_TEST_DATABASE_URL/);
+    assert.match(source, /CRUN_TEST_REDIS_URL/);
+    assert.match(source, /throw new Error\(\s*'Dedicated /);
+    assert.equal(config.includes(path.basename(file)), false);
   }
 });
