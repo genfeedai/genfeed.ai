@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
+import { EditImageDto } from '@api/collections/images/dto/edit-image.dto';
 import { SplitImageDto } from '@api/collections/images/dto/split-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
@@ -104,6 +105,32 @@ export class ImagesOperationsController {
       createImageDto,
       request,
     );
+  }
+
+  @Post(':id/edit')
+  @SetMetadata('roles', [
+    'superadmin',
+    MemberRole.OWNER,
+    MemberRole.ADMIN,
+    MemberRole.CREATOR,
+  ])
+  @Credits({
+    description: 'Image editing',
+    settlement: 'completion',
+    source: ActivitySource.IMAGE_GENERATION,
+  })
+  @DeferCreditsUntilModelResolution()
+  @ValidateModel({ category: ModelCategory.IMAGE_EDIT })
+  @UseGuards(SubscriptionGuard, CreditsGuard, ModelsGuard)
+  @UseInterceptors(CreditsInterceptor)
+  @RateLimit({ limit: 30, scope: 'organization', windowMs: 60 * 1000 })
+  async edit(
+    @Req() request: Request,
+    @Param('id') id: string,
+    @Body() dto: EditImageDto,
+    @CurrentUser() user: User,
+  ): Promise<JsonApiSingleResponse> {
+    return this.imageGenerationService.editImage(user, id, dto, request);
   }
 
   /**

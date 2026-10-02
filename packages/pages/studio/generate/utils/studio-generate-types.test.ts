@@ -14,6 +14,7 @@ describe('STUDIO_GENERATE_TYPES', () => {
   it('covers every asset kind the playground generates', () => {
     expect([...STUDIO_GENERATE_TYPES]).toEqual([
       'image',
+      'image-edit',
       'video',
       'music',
       'avatar',

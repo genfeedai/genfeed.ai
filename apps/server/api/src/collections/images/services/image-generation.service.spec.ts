@@ -87,11 +87,12 @@ const baseDto = (overrides: Partial<CreateImageDto> = {}): CreateImageDto =>
 const createService = () => {
   let savedDocCount = 0;
   const sharedService = {
-    createMediaDocuments: vi.fn().mockImplementation(() => {
+    createMediaDocuments: vi.fn().mockImplementation((_user, params) => {
       const n = savedDocCount++;
       return Promise.resolve({
         ingredientData: {
           id: `ing-${n}`,
+          parentId: params.parentId,
           toString: () => `ing-${n}`,
         },
         metadataData: { id: `meta-${n}` },
@@ -119,7 +120,14 @@ const createService = () => {
         (
           model: string,
           organizationId: string,
-        ) => Promise<{ endpoint: string; provider: ModelProvider } | undefined>
+        ) => Promise<
+          | {
+              endpoint: string;
+              provider: ModelProvider;
+              category?: ModelCategory;
+            }
+          | undefined
+        >
       >()
       .mockResolvedValue(undefined),
   };
@@ -128,6 +136,27 @@ const createService = () => {
       key,
       provider: resolveImageGenerationProvider(key),
       cost: 10,
+      ...(key === MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5
+        ? {
+            rateVersion: 'edit-test-rate',
+            requiredSelectorKeys: ['quality'],
+            reviewedPricing: {
+              version: 'edit-test-rate',
+              currency: 'USD',
+              reviewStatus: 'approved',
+              sourceUrl: 'https://replicate.com/ideogram-ai/ideogram-4-5',
+              verifiedAt: new Date().toISOString(),
+              rates: [
+                {
+                  component: 'edited-image',
+                  unit: 'output',
+                  unitPriceUsd: 0.06,
+                  when: { quality: 'medium' },
+                },
+              ],
+            },
+          }
+        : {}),
     })),
   };
   const creditsUtilsService = {
@@ -186,6 +215,7 @@ const createService = () => {
   };
   const metadataService = { patch: vi.fn().mockResolvedValue(undefined) };
   const imagesService = {
+    findAll: vi.fn().mockResolvedValue({ docs: [] }),
     findOne: vi.fn().mockResolvedValue({
       id: 'ing-0',
       status: IngredientStatus.PROCESSING,
@@ -780,6 +810,7 @@ describe('ImageGenerationService', () => {
       const selectionKey = 'fal/google/nano-banana-2-lite';
       const endpoint = 'google/nano-banana-2-lite';
       modelRegistrationService.validateModelForOrg.mockResolvedValue({
+        category: ModelCategory.IMAGE,
         endpoint,
         provider: ModelProvider.FAL,
       });
@@ -1439,4 +1470,306 @@ describe('Crun unsupported caller context admission', () => {
       ).not.toHaveBeenCalled();
     },
   );
+});
+
+describe('instruction-based image editing lifecycle', () => {
+  const editingModel = MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5;
+  const sourceId = testId('editsource');
+  it('resolves the editing default, preserves raw instructions and funds one native batch of outputs', async () => {
+    const {
+      service,
+      imagesService,
+      routerService,
+      replicateService,
+      sharedService,
+      enhancementService,
+      promptBuilderService,
+    } = createService();
+    routerService.resolveModelKey.mockResolvedValue({
+      key: editingModel,
+      source: 'registry-default',
+    });
+    imagesService.findOne.mockImplementation(async (query: { id?: string }) =>
+      query.id === sourceId
+        ? {
+            id: sourceId,
+            status: IngredientStatus.GENERATED,
+            s3Key: 'images/source.png',
+            metadata: { width: 1024, height: 768 },
+          }
+        : null,
+    );
+    const response = await service.editImage(
+      buildUser(),
+      sourceId,
+      {
+        prompt: 'Change only the sign to OPEN',
+        brandId: RESOLVED_BRAND,
+        outputs: 3,
+        seed: 0,
+      },
+      buildRequest({ creditsConfig: { deferred: true, amount: 0 } }),
+    );
+    expect(routerService.resolveModelKey).toHaveBeenCalledWith({
+      category: ModelCategory.IMAGE_EDIT,
+      organizationId: ORG,
+    });
+    expect(enhancementService.enhance).not.toHaveBeenCalled();
+    expect(promptBuilderService.buildPrompt).not.toHaveBeenCalled();
+    expect(response.data?.attributes).toMatchObject({
+      pendingIngredientIds: [
+        expect.any(String),
+        expect.any(String),
+        expect.any(String),
+      ],
+    });
+    // Background execution starts only after all native batch outputs have durable funded placeholders.
+    await vi.waitFor(() =>
+      expect(replicateService.generateTextToImage).toHaveBeenCalledTimes(1),
+    );
+    expect(sharedService.createMediaDocuments).toHaveBeenCalledTimes(3);
+    for (const [, params] of sharedService.createMediaDocuments.mock.calls) {
+      expect(params).toMatchObject({
+        category: 'IMAGE',
+        parentId: sourceId,
+        sourceIds: [sourceId],
+        providerData: {
+          imageEdit: {
+            operation: 'image-edit',
+            model: editingModel,
+            outputs: 3,
+            seed: 0,
+          },
+        },
+      });
+    }
+    expect(replicateService.generateTextToImage.mock.calls[0]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          prompt: 'Change only the sign to OPEN',
+          num_images: 3,
+          quality: 'medium',
+          size: 'source',
+          seed: 0,
+        }),
+      ]),
+    );
+  });
+  it('rejects a foreign source before creating documents or checking funding', async () => {
+    const {
+      service,
+      imagesService,
+      sharedService,
+      creditsUtilsService,
+      replicateService,
+    } = createService();
+    imagesService.findOne.mockResolvedValue(null);
+    await expect(
+      service.editImage(
+        buildUser(),
+        sourceId,
+        { prompt: 'Change the sign', brandId: RESOLVED_BRAND },
+        buildRequest(),
+      ),
+    ).rejects.toThrow();
+    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+    expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
+  });
+  it('rejects generation-only models before admitting an edit', async () => {
+    const { service, imagesService, sharedService } = createService();
+    await expect(
+      service.editImage(
+        buildUser(),
+        sourceId,
+        {
+          prompt: 'Change the sign',
+          brandId: RESOLVED_BRAND,
+          model: NON_BATCH_REPLICATE_MODEL,
+        },
+        buildRequest(),
+      ),
+    ).rejects.toThrow('does not support');
+    expect(imagesService.findOne).not.toHaveBeenCalled();
+    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+  });
+});
+
+describe('editing retry output lineage', () => {
+  it('returns every accepted native output without submitting the provider again', async () => {
+    const {
+      service,
+      imagesService,
+      routerService,
+      replicateService,
+      sharedService,
+    } = createService();
+    const model = MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5;
+    const sourceId = testId('editsource');
+    const prompt = 'Change the sign';
+    const sourceActionId = 'edit-retry';
+    routerService.resolveModelKey.mockResolvedValue({
+      key: model,
+      source: 'registry-default',
+    });
+    const recipe = {
+      contractVersion: 'ideogram-4-5-edit-2026-10-01',
+      operation: 'image-edit',
+      model,
+      sourceIds: [sourceId],
+      size: 'source',
+      quality: 'medium',
+      outputs: 2,
+    };
+    const accepted = {
+      id: 'accepted-1',
+      brandId: RESOLVED_BRAND,
+      parentId: sourceId,
+      generationPrompt: prompt,
+      generationSource: 'image-edit',
+      status: IngredientStatus.GENERATED,
+      metadata: { model, providerData: { imageEdit: recipe } },
+    };
+    imagesService.findOne.mockImplementation(
+      async (query: { sourceActionId?: string }) =>
+        query.sourceActionId
+          ? accepted
+          : {
+              id: sourceId,
+              status: IngredientStatus.GENERATED,
+              s3Key: 'source.png',
+              metadata: { width: 1024, height: 768 },
+            },
+    );
+    imagesService.findAll.mockResolvedValue({
+      docs: [accepted, { ...accepted, id: 'accepted-2' }],
+    });
+    const response = await service.editImage(
+      buildUser(),
+      sourceId,
+      { prompt, brandId: RESOLVED_BRAND, sourceActionId, outputs: 2 },
+      buildRequest(),
+    );
+    expect(response.data?.attributes).toMatchObject({
+      pendingIngredientIds: ['accepted-1', 'accepted-2'],
+    });
+    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
+    expect(imagesService.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: ORG,
+        brandId: RESOLVED_BRAND,
+        isDeleted: false,
+        sourceActionId,
+      }),
+      expect.any(Object),
+      false,
+    );
+  });
+});
+
+describe('FLUX.3 editing default and exact alias dispatch', () => {
+  it('resolves the editing model before admission and dispatches one URI output to the real endpoint', async () => {
+    const {
+      service,
+      routerService,
+      imagesService,
+      modelRegistrationService,
+      replicateService,
+      sharedService,
+      enhancementService,
+      promptBuilderService,
+    } = createService();
+    const model = MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT;
+    const endpoint = MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE;
+    const sourceId = testId('fluxsource');
+    routerService.resolveModelKey.mockResolvedValue({
+      key: model,
+      source: 'registry-default',
+    });
+    modelRegistrationService.validateModelForOrg.mockResolvedValue({
+      endpoint,
+      provider: ModelProvider.REPLICATE,
+      category: ModelCategory.IMAGE_EDIT,
+    });
+    imagesService.findOne.mockImplementation(async (query: { id?: string }) =>
+      query.id === sourceId
+        ? {
+            id: sourceId,
+            status: IngredientStatus.GENERATED,
+            s3Key: 'images/source.png',
+            metadata: { width: 1024, height: 768, extension: 'png' },
+          }
+        : null,
+    );
+    replicateService.getPrediction.mockResolvedValue({
+      status: 'succeeded',
+      output: 'https://replicate/flux-output.jpg',
+    } as never);
+    await service.editImage(
+      buildUser(),
+      sourceId,
+      {
+        prompt: 'Change only the sign',
+        brandId: RESOLVED_BRAND,
+        resolution: '1.5k',
+        aspectRatio: 'auto',
+      },
+      buildRequest(),
+    );
+    await vi.waitFor(() =>
+      expect(replicateService.generateTextToImage).toHaveBeenCalledTimes(1),
+    );
+    expect(replicateService.generateTextToImage).toHaveBeenCalledWith(
+      endpoint,
+      {
+        prompt: 'Change only the sign',
+        images: [expect.stringContaining(sourceId)],
+        resolution: '1.5k',
+        aspect_ratio: 'auto',
+        grounding: false,
+        output_format: 'jpg',
+        output_quality: 80,
+      },
+      undefined,
+      expect.any(Function),
+    );
+    expect(sharedService.createMediaDocuments).toHaveBeenCalledTimes(1);
+    expect(sharedService.createMediaDocuments.mock.calls[0][1]).toMatchObject({
+      parentId: sourceId,
+      sourceIds: [sourceId],
+      model,
+      providerData: {
+        imageEdit: {
+          model,
+          sourceIds: [sourceId],
+          resolution: '1.5k',
+          aspectRatio: 'auto',
+          grounding: false,
+          outputs: 1,
+        },
+      },
+    });
+    expect(enhancementService.enhance).not.toHaveBeenCalled();
+    expect(promptBuilderService.buildPrompt).not.toHaveBeenCalled();
+  });
+  it('rejects a multi-output FLUX generation before placeholders or prompt enhancement', async () => {
+    const { service, sharedService, enhancementService, replicateService } =
+      createService();
+    await expect(
+      service.generateImage(
+        buildUser(),
+        baseDto({
+          model: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
+          outputs: 2,
+        }),
+        buildRequest(),
+      ),
+    ).rejects.toThrow('FLUX.3');
+    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    expect(enhancementService.enhance).not.toHaveBeenCalled();
+    expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
+  });
 });

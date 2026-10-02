@@ -1,5 +1,8 @@
 import { RouterPriority } from '@genfeedai/contracts';
-import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
+import {
+  isImageEditSize,
+  normalizeMusicSettings,
+} from '@genfeedai/contracts/constants';
 import type {
   StudioGenerateSettings,
   StudioGenerateType,
@@ -175,9 +178,18 @@ export function sanitizeStudioGenerateSettings(
               : {}),
           }
         : undefined,
+    editPrimaryId: pickFreeText(value.editPrimaryId),
+    editSize: isImageEditSize(value.editSize) ? value.editSize : 'source',
+    editSeed:
+      typeof value.editSeed === 'number' &&
+      Number.isInteger(value.editSeed) &&
+      value.editSeed >= 0 &&
+      value.editSeed <= 2147483647
+        ? value.editSeed
+        : undefined,
     aspectRatio: pickString(
       aspectRatio,
-      getStudioAspectRatios(type),
+      getStudioAspectRatios(type, resolvedModelKey),
       defaults.aspectRatio,
     ),
     avatarPhotoUrl: pickFreeText(avatarPhotoUrl),

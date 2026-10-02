@@ -1,4 +1,8 @@
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import {
+  IMAGE_EDIT_CONTRACT_VERSION,
+  MODEL_KEYS,
+} from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { StudioGenerateJob } from '@pages/studio/generate/types';
 import { describe, expect, it } from 'vitest';
@@ -429,5 +433,48 @@ describe('Crun recipe residual preservation', () => {
     expect(
       readStudioCrunRecipeControls(kling, 'image', kling.modelKey),
     ).toBeUndefined();
+  });
+});
+
+describe('saved image editing recipes', () => {
+  it('restores the original target, mask, output count and seed rather than the edited result', () => {
+    const imageEdit = {
+      contractVersion: IMAGE_EDIT_CONTRACT_VERSION,
+      operation: 'image-edit' as const,
+      model: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+      sourceIds: ['original', 'reference'],
+      maskId: 'mask',
+      size: 'source' as const,
+      quality: 'medium' as const,
+      outputs: 3,
+      seed: 0,
+    };
+    const recipe = recipeFromIngredient(
+      {
+        id: 'edited-result',
+        category: IngredientCategory.IMAGE,
+        imageEdit,
+        promptText: 'Change the sign',
+        metadataModel: imageEdit.model,
+      } as IIngredient,
+      'image-edit',
+    );
+    expect(recipe).toMatchObject({
+      text: 'Change the sign',
+      imageEdit,
+      references: ['original', 'reference'],
+      outputs: 3,
+      brandingMode: 'off',
+    });
+    expect(settingsPatchFromRecipe(recipe)).toMatchObject({
+      modelKey: imageEdit.model,
+      editPrimaryId: 'original',
+      editSize: 'source',
+      editSeed: 0,
+      outputs: 3,
+    });
+    expect(formatStudioRecipePrompt(recipe)).toContain(
+      'Mask: black changes, white stays',
+    );
   });
 });

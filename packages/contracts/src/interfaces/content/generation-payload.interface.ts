@@ -53,6 +53,8 @@ export interface VideoGenerationPayload extends BaseGenerationPayload {
 export interface ImageGenerationPayload extends BaseGenerationPayload {
   crunQuoteId?: string;
   crunControls?: CrunImageQuoteControls;
+  resolution?: string;
+  aspectRatio?: string;
   format: IngredientFormat;
   quality?: string;
 }

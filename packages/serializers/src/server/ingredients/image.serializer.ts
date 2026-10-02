@@ -37,3 +37,21 @@ export const { ImageEditSerializer } = buildSerializer(
   'server',
   IMAGE_EDIT_CONFIG,
 );
+
+export const { ImageEditingRequestSerializer } = buildSerializer('server', {
+  type: 'image-editing-request',
+  attributes: [
+    'prompt',
+    'brand',
+    'model',
+    'references',
+    'maskId',
+    'resolution',
+    'aspectRatio',
+    'size',
+    'outputs',
+    'seed',
+    'sourceActionId',
+    'waitForCompletion',
+  ],
+});

@@ -18,7 +18,7 @@ describe('character generation tool params (#3441)', () => {
       aspectRatio: { type: 'string' },
       characterHandles: { maxItems: 4, type: 'array' },
       outputs: { maximum: 8, minimum: 1, type: 'integer' },
-      references: { maxItems: 8, type: 'array' },
+      references: { maxItems: 10, type: 'array' },
     });
   });
 

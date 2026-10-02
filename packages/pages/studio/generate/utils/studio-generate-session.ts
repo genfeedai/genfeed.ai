@@ -1,5 +1,6 @@
 import { IngredientStatus } from '@genfeedai/contracts';
 import { isEntityId } from '@genfeedai/contracts/api-types';
+import { readImageEditingRecipe } from '@genfeedai/contracts/constants';
 import type {
   StudioGenerateJob,
   StudioGenerateRecipe,
@@ -122,6 +123,7 @@ function sanitizeRecipe(
         : 1,
     promptTemplate: pickOptionalString(value.promptTemplate),
     references: pickStringList(value.references),
+    imageEdit: readImageEditingRecipe(value.imageEdit),
     resolution: pickOptionalString(value.resolution),
     scene: pickOptionalString(value.scene),
     speech: pickOptionalString(value.speech),

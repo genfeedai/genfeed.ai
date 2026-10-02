@@ -324,6 +324,7 @@ export * from './studio/batch-project.interface';
 export * from './studio/camera-movement.interface';
 export * from './studio/conversation-canvas.interface';
 export * from './studio/conversation-sidebar.interface';
+export * from './studio/image-editing.interface';
 export * from './studio/recent-asset.interface';
 export * from './studio/storyboard-run.interface';
 export * from './studio/studio-edit.interface';

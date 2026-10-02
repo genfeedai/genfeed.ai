@@ -345,7 +345,10 @@ export function recipeFromIngredient(
   const height = ingredient.metadataHeight || ingredient.height || 0;
 
   return {
-    aspectRatio: resolveAspectRatioFromDimensions(width, height),
+    imageEdit: ingredient.imageEdit,
+    aspectRatio:
+      ingredient.imageEdit?.aspectRatio ??
+      resolveAspectRatioFromDimensions(width, height),
     blacklist: stringList(metadata.blacklist),
     brandingMode: resolveRecipeBrandingMode(
       type,
@@ -364,14 +367,16 @@ export function recipeFromIngredient(
       optional('model') ||
       optionalText(ingredient.model),
     mood: optional('mood'),
-    outputs: 1,
+    outputs: ingredient.imageEdit?.outputs ?? 1,
     promptTemplate: optional('promptTemplate') || optional('prompt_template'),
-    references: Array.isArray(ingredient.references)
-      ? ingredient.references.filter(
-          (reference): reference is string => typeof reference === 'string',
-        )
-      : [],
-    resolution: optional('resolution'),
+    references:
+      ingredient.imageEdit?.sourceIds ??
+      (Array.isArray(ingredient.references)
+        ? ingredient.references.filter(
+            (reference): reference is string => typeof reference === 'string',
+          )
+        : []),
+    resolution: ingredient.imageEdit?.resolution ?? optional('resolution'),
     scene: optional('scene'),
     speech: optional('speech'),
     style: optional('style') ?? '',
@@ -475,6 +480,18 @@ export function formatStudioRecipePrompt(recipe: StudioGenerateRecipe): string {
     }
   }
 
+  if (recipe.imageEdit) {
+    if (recipe.imageEdit.resolution)
+      details.push(
+        `Resolution: ${recipe.imageEdit.resolution}`,
+        `Aspect ratio: ${recipe.imageEdit.aspectRatio}`,
+      );
+    else details.push(`Edit size: ${recipe.imageEdit.size}`, `Quality: Medium`);
+    if (recipe.imageEdit.maskId)
+      details.push('Mask: black changes, white stays');
+    if (recipe.imageEdit.seed !== undefined)
+      details.push(`Seed: ${recipe.imageEdit.seed}`);
+  }
   if (recipe.references.length > 0) {
     details.push(`References: ${recipe.references.length}`);
   }
@@ -503,6 +520,13 @@ export function settingsPatchFromRecipe(
             recipe.type,
             modelKey,
           ),
+        }
+      : {}),
+    ...(recipe.imageEdit
+      ? {
+          editSize: recipe.imageEdit.size,
+          editPrimaryId: recipe.imageEdit.sourceIds[0],
+          editSeed: recipe.imageEdit.seed,
         }
       : {}),
     ...(recipe.aspectRatio ? { aspectRatio: recipe.aspectRatio } : {}),

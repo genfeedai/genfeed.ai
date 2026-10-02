@@ -2,8 +2,15 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
+  FLUX_3_ASPECT_RATIOS,
+  FLUX_3_RESOLUTIONS,
+  getImageEditMaxSources,
   hasEndFrame,
   hasVideoReferences,
+  IMAGE_EDIT_SIZES,
+  isFlux3ImageModel,
+  isFlux3Resolution,
+  isImageEditSize,
   MODEL_KEYS,
   normalizeMusicSettings,
   requiresFirstFrame,
@@ -52,7 +59,15 @@ import {
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { useModelFavorites } from '@ui/dropdowns/model-selector/useModelFavorites';
 import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import Spinner from '@ui/primitives/spinner';
 import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
 import PromptBarCrunControls from '@ui/prompt-bars/components/crun-controls/PromptBarCrunControls';
@@ -64,7 +79,7 @@ import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import { ArrowUp, WandSparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 /** Types whose prompt is spoken aloud rather than described to a renderer. */
 const SCRIPT_PLACEHOLDER = 'Write the script you want spoken…';
@@ -130,10 +145,47 @@ export default function StudioGenerateComposer({
   // Narrowed against the selected model's own registry capability — the
   // static per-type config is only the widest case across every music
   // model (see `resolveStudioGenerateCapabilities`).
+  const effectiveModelKey =
+    settings.modelKey === AUTO_MODEL_OPTION_VALUE && type === 'image-edit'
+      ? models.find((model) => model.isDefault)?.key
+      : settings.modelKey;
+  const isFlux = isFlux3ImageModel(effectiveModelKey ?? '');
+  const editSourceLimit = getImageEditMaxSources(effectiveModelKey);
   const capabilities = resolveStudioGenerateCapabilities(
     type,
-    settings.modelKey,
+    effectiveModelKey,
   );
+  const unsupportedEditingControls =
+    isFlux &&
+    type === 'image-edit' &&
+    (settings.editSeed !== undefined ||
+      attachedAssets.some((asset) => asset.role === 'editMask'));
+  const [droppedEditingControls, setDroppedEditingControls] = useState(false);
+  useEffect(() => {
+    if (!isFlux) {
+      setDroppedEditingControls(false);
+      return;
+    }
+    if (unsupportedEditingControls) setDroppedEditingControls(true);
+    const patch: Partial<typeof settings> = {};
+    if (settings.outputs !== 1) patch.outputs = 1;
+    if (!isFlux3Resolution(settings.resolution)) patch.resolution = '1k';
+    if (settings.editSeed !== undefined) patch.editSeed = undefined;
+    if (settings.editSize !== undefined) patch.editSize = undefined;
+    for (const asset of attachedAssets)
+      if (asset.role === 'editMask') onRemoveAttachedAsset(asset.id);
+    if (Object.keys(patch).length) onSettingsChange(patch);
+  }, [
+    isFlux,
+    unsupportedEditingControls,
+    settings.outputs,
+    settings.resolution,
+    settings.editSeed,
+    settings.editSize,
+    attachedAssets,
+    onRemoveAttachedAsset,
+    onSettingsChange,
+  ]);
   useEffect(() => {
     if (type !== 'music') return;
     const normalized = normalizeMusicSettings(settings.modelKey, {
@@ -159,7 +211,15 @@ export default function StudioGenerateComposer({
 
   const isPromptEmpty = prompt.trim().length === 0;
   const isAutoMode = settings.modelKey === AUTO_MODEL_OPTION_VALUE;
-  const selectedModel = models.find((model) => model.key === settings.modelKey);
+  const selectedModel = models.find((model) =>
+    type === 'image-edit' && isAutoMode
+      ? model.isDefault
+      : model.key === settings.modelKey,
+  );
+  const displaySettings =
+    type === 'image-edit' && isAutoMode && selectedModel
+      ? { ...settings, modelKey: selectedModel.key }
+      : settings;
   const isFirstFrameMissing =
     type === 'video' &&
     !isAutoMode &&
@@ -181,9 +241,22 @@ export default function StudioGenerateComposer({
   // Submitting mid-catalog-load would resolve the model against an empty or
   // stale list, so the send button waits for the type's models to land.
   const isAwaitingModels = capabilities.hasModelSelection && isLoadingModels;
+  const editSources = attachedAssets.filter(
+    (asset) => asset.role === 'editSource',
+  );
+  const hasEditMask = attachedAssets.some((asset) => asset.role === 'editMask');
+  const isEditSourceMissing =
+    type === 'image-edit' &&
+    (editSources.length < 1 || editSources.length > editSourceLimit);
+  const isEditingModelUnavailable =
+    type === 'image-edit' &&
+    !isLoadingModels &&
+    (isAutoMode ? !models.some((model) => model.isDefault) : !selectedModel);
   const isSubmitBlocked =
     isCrunRestoreBlocked ||
     (selectedModel?.provider === 'crun' && !crunQuote?.getCurrentQuote()) ||
+    isEditSourceMissing ||
+    isEditingModelUnavailable ||
     isRuntimeBlocked ||
     isGenerating ||
     isPromptEmpty ||
@@ -197,7 +270,7 @@ export default function StudioGenerateComposer({
   const estimate = resolveStudioGenerationCost({
     isLoadingModels,
     model: selectedModel,
-    settings,
+    settings: displaySettings,
     type,
   });
 
@@ -244,6 +317,7 @@ export default function StudioGenerateComposer({
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `recommendGenerationSetup` only reads the type-level capability flags (aspect ratio, duration, model selection, outputs, brand) that stay constant for a given `type`, which is already a dep. `capabilities.hasInstrumentalToggle`/`hasLyrics` do vary with `settings.modelKey`, but nothing this effect reads depends on them, so omitting `settings.modelKey` here doesn't skip a real update — and including capabilities'/defaults' fresh-per-render object identities would re-run this on every render and defeat the debounce.
   useEffect(() => {
+    if (type === 'image-edit') return;
     const recommendation = recommendGenerationSetup({
       capabilities,
       lockedType: type,
@@ -259,6 +333,15 @@ export default function StudioGenerateComposer({
       value: GenerationSetupValues[K],
     ) => {
       setGenerationSetupField(scope, key, value, defaults);
+      if (
+        key === 'modelKey' &&
+        typeof value === 'string' &&
+        isFlux3ImageModel(value)
+      ) {
+        setGenerationSetupField(scope, 'resolution', '1k', defaults);
+        setGenerationSetupField(scope, 'aspectRatio', 'auto', defaults);
+        setGenerationSetupField(scope, 'outputs', 1, defaults);
+      }
       if (
         key === 'modelKey' &&
         type === 'video' &&
@@ -322,7 +405,11 @@ export default function StudioGenerateComposer({
             <PromptBarAttachedAssetsTray
               assets={attachedAssets}
               isDisabled={isGenerating}
-              onBrowseAssets={() => onOpenLibrary('reference')}
+              onBrowseAssets={() =>
+                onOpenLibrary(
+                  type === 'image-edit' ? 'editSource' : 'reference',
+                )
+              }
               onRemoveAttachedAsset={onRemoveAttachedAsset}
             />
           </div>
@@ -335,7 +422,7 @@ export default function StudioGenerateComposer({
         ariaLabel={translate('prompt')}
         className="min-h-9 w-full"
         documentSeed={documentSeed}
-        extraExtensions={extraExtensions}
+        extraExtensions={type === 'image-edit' ? undefined : extraExtensions}
         isDisabled={isGenerating}
         onDocumentChange={onPromptDocumentChange}
         onSubmit={() => {
@@ -347,20 +434,180 @@ export default function StudioGenerateComposer({
         placeholder={
           isDragActive
             ? 'drop it here?'
-            : capabilities.hasSpeech
-              ? SCRIPT_PLACEHOLDER
-              : PROMPT_PLACEHOLDER
+            : type === 'image-edit'
+              ? translate('editImage.promptPlaceholder')
+              : capabilities.hasSpeech
+                ? SCRIPT_PLACEHOLDER
+                : PROMPT_PLACEHOLDER
         }
         testId="studio-generate-prompt"
         value={prompt}
       />
 
+      {isFlux ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <Select
+            value={settings.resolution}
+            disabled={isGenerating}
+            onValueChange={(resolution) => onSettingsChange({ resolution })}
+          >
+            <SelectTrigger
+              aria-label={translate('editImage.fluxResolution')}
+              className="w-40"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {FLUX_3_RESOLUTIONS.map((value) => (
+                <SelectItem key={value} value={value}>
+                  {value.toUpperCase()}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={settings.aspectRatio}
+            disabled={isGenerating}
+            onValueChange={(aspectRatio) => onSettingsChange({ aspectRatio })}
+          >
+            <SelectTrigger
+              aria-label={translate('editImage.fluxAspectRatio')}
+              className="w-52"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {FLUX_3_ASPECT_RATIOS.map((value) => (
+                <SelectItem key={value} value={value}>
+                  {value === 'auto'
+                    ? type === 'image-edit'
+                      ? translate('editImage.matchSourceAspectRatio')
+                      : translate('editImage.autoAspectRatio')
+                    : value}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {droppedEditingControls ? (
+            <p role="status" className="text-xs text-muted-foreground">
+              {translate('editImage.removedFluxControls')}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+      {type === 'image-edit' ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {editSources.length > 1 ? (
+            <Select
+              value={
+                settings.editPrimaryId ??
+                editSources[0].ingredientId ??
+                editSources[0].id
+              }
+              disabled={isGenerating}
+              onValueChange={(editPrimaryId) =>
+                onSettingsChange({ editPrimaryId })
+              }
+            >
+              <SelectTrigger
+                aria-label={translate('editImage.targetAria')}
+                className="w-44"
+              >
+                <SelectValue
+                  placeholder={translate('editImage.targetPlaceholder')}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {editSources.map((asset, index) => (
+                  <SelectItem
+                    key={asset.id}
+                    value={asset.ingredientId ?? asset.id}
+                  >
+                    {translate('editImage.target', {
+                      name:
+                        asset.name ||
+                        translate('editImage.sourceFallback', {
+                          index: index + 1,
+                        }),
+                    })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : null}
+          {!isFlux ? (
+            <>
+              <Select
+                disabled={isGenerating || hasEditMask}
+                value={hasEditMask ? 'source' : (settings.editSize ?? 'source')}
+                onValueChange={(value) => {
+                  if (isImageEditSize(value))
+                    onSettingsChange({ editSize: value });
+                }}
+              >
+                <SelectTrigger
+                  aria-label={translate('editImage.outputSize')}
+                  className="w-40"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {IMAGE_EDIT_SIZES.map((size) => (
+                    <SelectItem key={size} value={size}>
+                      {size === 'source'
+                        ? translate('editImage.sourceDimensions')
+                        : size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                aria-label={translate('editImage.seedAria')}
+                className="w-36"
+                type="number"
+                min={0}
+                max={2147483647}
+                step={1}
+                placeholder={translate('editImage.seedPlaceholder')}
+                value={settings.editSeed ?? ''}
+                isDisabled={isGenerating}
+                onChange={(event) =>
+                  onSettingsChange({
+                    editSeed:
+                      event.target.value === ''
+                        ? undefined
+                        : Number(event.target.value),
+                  })
+                }
+              />
+            </>
+          ) : null}
+          <p className="text-xs text-muted-foreground">
+            {translate('editImage.firstSource', {
+              count: editSources.length,
+              limit: editSourceLimit,
+            })}
+            {isFlux
+              ? translate('editImage.fluxSemantics')
+              : translate('editImage.maskSemantics')}
+          </p>
+          {isEditSourceMissing || isEditingModelUnavailable ? (
+            <p role="status" className="text-xs text-destructive">
+              {isEditSourceMissing
+                ? editSources.length > editSourceLimit
+                  ? translate('editImage.overLimit', { limit: editSourceLimit })
+                  : translate('editImage.chooseSource')
+                : translate('editImage.modelUnavailable')}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <StudioGenerationSummary
         crunQuote={crunQuote}
         estimate={estimate}
         isLoadingModels={isLoadingModels}
         model={selectedModel}
-        settings={settings}
+        settings={displaySettings}
         type={type}
       />
 
@@ -534,6 +781,34 @@ export default function StudioGenerateComposer({
             />
           ) : null}
 
+          {type === 'image-edit' ? (
+            <>
+              <PromptBarReferenceControls
+                accept="image/*"
+                label={translate('editImage.sourceImages')}
+                isAttachmentDisabled={
+                  isGenerating ||
+                  isUploading ||
+                  editSources.length >= editSourceLimit
+                }
+                isLibraryDisabled={
+                  isGenerating || editSources.length >= editSourceLimit
+                }
+                onAddFiles={(files) => onAddFiles(files, 'editSource')}
+                onOpenLibrary={() => onOpenLibrary('editSource')}
+              />
+              {!isFlux ? (
+                <PromptBarReferenceControls
+                  accept="image/*"
+                  label={translate('editImage.maskOptional')}
+                  isAttachmentDisabled={isGenerating || isUploading}
+                  isLibraryDisabled={isGenerating}
+                  onAddFiles={(files) => onAddFiles(files, 'editMask')}
+                  onOpenLibrary={() => onOpenLibrary('editMask')}
+                />
+              ) : null}
+            </>
+          ) : null}
           {type === 'video' &&
           (inputControls?.mediaKind !== 'video' ||
             inputControls.videoRules?.referenceMode === 'start-end') ? (
@@ -588,7 +863,7 @@ export default function StudioGenerateComposer({
               variant={ButtonVariant.GHOST}
             />
           ) : null}
-          {onEnhancePrompt ? (
+          {onEnhancePrompt && type !== 'image-edit' ? (
             <Button
               ariaLabel={
                 isEnhancingPrompt

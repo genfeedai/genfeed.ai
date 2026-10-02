@@ -118,6 +118,11 @@ export const OVERLAP_TOOLS: SourceTool[] = [
           description:
             'Override saved prompt enhancement for this generation only. False preserves prompt text exactly.',
         },
+        resolution: {
+          type: 'string',
+          description:
+            'FLUX.3 native resolution: 768sq, 1k (default), 1.5k, 2k or 4k.',
+        },
         aspectRatio: {
           description: 'Aspect ratio of the generated image',
           type: 'string',
@@ -146,9 +151,9 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         },
         references: {
           description:
-            'Asset/ingredient ids or URLs used as visual references, not the prompt. Max 8.',
+            'Asset/ingredient ids or URLs used as visual references, not the prompt. Max 10 for FLUX.3; use owned Library image IDs for FLUX.3.',
           items: { type: 'string' },
-          maxItems: 8,
+          maxItems: 10,
           type: 'array',
         },
         selectedContext: {

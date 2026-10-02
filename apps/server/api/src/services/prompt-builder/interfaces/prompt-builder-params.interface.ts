@@ -39,6 +39,7 @@ export interface PromptBuilderParams {
   outputs?: number;
   quality?: string;
   resolution?: string;
+  aspectRatio?: string;
 
   // References
   references?: string[];

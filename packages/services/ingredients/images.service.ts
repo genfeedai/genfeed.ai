@@ -1,4 +1,7 @@
-import type { IImage } from '@genfeedai/contracts/interfaces';
+import type {
+  IImage,
+  ImageEditingPayload,
+} from '@genfeedai/contracts/interfaces';
 import type {
   CrunGenerationQuoteResponse,
   CrunImageQuoteRequest,
@@ -11,6 +14,7 @@ import type {
   SplitResponse,
 } from '@genfeedai/props/studio/contact-sheet.props';
 import {
+  ImageEditingRequestSerializer,
   ImageEditSerializer,
   ImageGenerationSerializer,
 } from '@genfeedai/serializers';
@@ -62,6 +66,13 @@ export class ImagesService extends IngredientsService<Image> {
       signal,
     });
     return parseCrunQuoteResponse(response.data, body);
+  }
+
+  public async postEdit(id: string, body: ImageEditingPayload) {
+    const data = ImageEditingRequestSerializer.serialize(body);
+    return await this.instance
+      .post<JsonApiResponseDocument>(`/${id}/edit`, data)
+      .then((res) => this.mapOne(res.data));
   }
 
   public async postUpscale(id: string, data: IImageEditParams) {

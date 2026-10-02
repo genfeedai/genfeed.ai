@@ -116,6 +116,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   generate_clips: 'approval-required',
   generate_content: 'direct',
   generate_content_batch: 'approval-required',
+  edit_image: 'direct',
   generate_image: 'direct',
   generate_linkedin_content: 'direct',
   generate_monthly_content: 'direct',

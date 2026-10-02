@@ -84,6 +84,8 @@
     }
   },
   "quickActions": {
+    "editImage": "Edit image",
+    "editImageDescription": "Change this image with an instruction",
     "creationFailed": "Storyboard couldn’t be created. Try again.",
     "remixThisVideo": "Remix this video",
     "remixThisVideoTooltip": "Remix this video",

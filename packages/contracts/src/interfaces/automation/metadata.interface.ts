@@ -1,6 +1,8 @@
 import type { IBaseEntity, IPrompt, ITag } from '../index';
+import type { ImageEditingRecipe } from '../studio/image-editing.interface';
 
 export interface IMetadata extends IBaseEntity {
+  imageEdit?: ImageEditingRecipe;
   prompt?: IPrompt;
   label: string;
   description?: string;

@@ -237,6 +237,8 @@ function dispatchMediaFamily(
       return handlers.mediaGenerationHandler.generateContent(params, ctx);
     case 'generate_image':
       return handlers.mediaGenerationHandler.generateImage(params, ctx);
+    case 'edit_image':
+      return handlers.mediaGenerationHandler.editImage(params, ctx);
     case 'reframe_image':
       return handlers.mediaGenerationHandler.reframeImage(params, ctx);
     case 'upscale_image':

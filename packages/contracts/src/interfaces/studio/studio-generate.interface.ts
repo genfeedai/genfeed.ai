@@ -5,8 +5,10 @@ import type {
   ModelCategory,
   RouterPriority,
 } from '../..';
+import type { ImageEditSize } from '../../constants/image-edit-models.constant';
 import type { IBaseEntity, IIngredient, IModel, IQueryParams } from '../index';
 import type { KnowledgeSelection } from '../knowledge-base/knowledge-retrieval.interface';
+import type { ImageEditingRecipe } from './image-editing.interface';
 
 export type StudioLookAssetType = 'image' | 'video';
 
@@ -97,6 +99,7 @@ export type ProviderVariant = 'secondary' | 'accent';
  */
 export type StudioGenerateType =
   | 'image'
+  | 'image-edit'
   | 'video'
   | 'music'
   | 'avatar'
@@ -163,6 +166,9 @@ export interface StudioCrunControls {
 
 export interface StudioGenerateSettings {
   crunControls?: StudioCrunControls;
+  editSize?: ImageEditSize;
+  editSeed?: number;
+  editPrimaryId?: string;
   aspectRatio: string;
   /** Public URL of the chosen portrait, posted as `photoUrl`. */
   avatarPhotoUrl?: string;
@@ -199,6 +205,7 @@ export interface StudioGenerateSettings {
 export interface StudioGenerateRecipe {
   crunControls?: StudioCrunControls;
   endFrameId?: string;
+  imageEdit?: ImageEditingRecipe;
   aspectRatio?: string;
   blacklist: string[];
   /**
@@ -293,6 +300,8 @@ export interface StudioGenerateAssetFacts {
 /** How a composer reference feeds the generation request. */
 export type StudioGenerateReferenceRole =
   | 'reference'
+  | 'editSource'
+  | 'editMask'
   | 'startFrame'
   | 'endFrame'
   | 'videoReference';

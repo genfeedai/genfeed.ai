@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // Mock serializers to avoid complex build chain
 vi.mock('@genfeedai/serializers', () => ({
   AvatarSerializer: { serialize: vi.fn((data) => data) },
+  ImageEditingRequestSerializer: { serialize: vi.fn((data) => data) },
   ImageEditSerializer: { serialize: vi.fn((data) => data) },
   ImageGenerationSerializer: { serialize: vi.fn((data) => data) },
   ImageSerializer: { serialize: vi.fn((data) => data) },
@@ -133,6 +134,21 @@ describe('ImagesService', () => {
 
   it('initializes correctly', () => {
     expect(service).toBeInstanceOf(ImagesService);
+  });
+
+  it('posts a dedicated editing request with source, mask and seed zero', async () => {
+    const payload = {
+      prompt: 'Change the sign',
+      brand: 'brand-1',
+      references: ['reference-1'],
+      maskId: 'mask-1',
+      size: 'source' as const,
+      outputs: 3,
+      seed: 0,
+    };
+    mockPost.mockResolvedValue({ data: { data: { id: 'edited-output' } } });
+    await service.postEdit('source-1', payload);
+    expect(mockPost).toHaveBeenCalledWith('/source-1/edit', payload);
   });
 
   it('has CRUD methods', () => {

@@ -4,7 +4,10 @@ import {
   useContextSidebar,
 } from '@contexts/ui/context-sidebar-context';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import {
+  IMAGE_EDIT_CONTRACT_VERSION,
+  MODEL_KEYS,
+} from '@genfeedai/contracts/constants';
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
 import type { StudioGenerateJob } from '@pages/studio/generate/types';
 import {
@@ -97,6 +100,7 @@ const mocks = vi.hoisted(() => ({
   composer: vi.fn(),
   crunQuote: vi.fn(),
   findByIds: vi.fn().mockResolvedValue([]),
+  findOne: vi.fn().mockResolvedValue(null),
   gallery: vi.fn(),
   // #4716 review — the Agent -> Studio handoff pipeline (apply, model
   // validation/fallback, param validation, reference attachment, brand
@@ -331,7 +335,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 
 vi.mock('@services/content/ingredients.service', () => ({
   IngredientsService: {
-    getInstance: () => ({ findByIds: mocks.findByIds }),
+    getInstance: () => ({ findByIds: mocks.findByIds, findOne: mocks.findOne }),
   },
 }));
 
@@ -536,6 +540,7 @@ describe('StudioGenerateWorkspace', () => {
     mocks.handoff.value = { isLoading: false, payload: null };
     mocks.models.value = { isLoadingModels: false, models: [] };
     mocks.findByIds.mockResolvedValue([]);
+    mocks.findOne.mockReset().mockResolvedValue(null);
     window.localStorage.clear();
     mocks.outbox.current = createStudioGenerateDraftOutbox();
     mocks.getDraft.mockResolvedValue(null);
@@ -1013,6 +1018,8 @@ describe('StudioGenerateWorkspace', () => {
     expect(mocks.submit).toHaveBeenCalledWith(
       'Use this composition',
       {
+        editMaskId: undefined,
+        editSourceIds: [],
         endFrameId: undefined,
         imageReferenceIds: ['ingredient-1', 'img-anna'],
         videoReferenceIds: [],
@@ -1037,6 +1044,8 @@ describe('StudioGenerateWorkspace', () => {
     expect(mocks.submit).toHaveBeenCalledWith(
       'Anna walking',
       {
+        editMaskId: undefined,
+        editSourceIds: [],
         endFrameId: undefined,
         imageReferenceIds: ['ingredient-1', 'img-anna'],
         videoReferenceIds: [],
@@ -2347,6 +2356,96 @@ describe('StudioGenerateWorkspace', () => {
         expect(composer().prompt).not.toBe('Submitted motion');
       },
     );
+    it('keeps a newer Crun recipe when an earlier image-edit restore completes', async () => {
+      const editId = '33333333-3333-4333-8333-333333333333';
+      const pending = Promise.withResolvers<ReturnType<typeof frame>[]>();
+      mocks.findByIds.mockReturnValueOnce(pending.promise);
+      mocks.findByIds.mockResolvedValueOnce([frame(startId), frame(endId)]);
+      const editingJob = recipeJob();
+      if (!editingJob.recipe) throw new Error('Expected recipe');
+      editingJob.type = 'image-edit';
+      editingJob.recipe = {
+        ...editingJob.recipe,
+        type: 'image-edit',
+        text: 'Exact editing instructions',
+        modelKey: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+        references: [editId],
+        endFrameId: undefined,
+        crunControls: undefined,
+        imageEdit: {
+          contractVersion: IMAGE_EDIT_CONTRACT_VERSION,
+          operation: 'image-edit',
+          model: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+          sourceIds: [editId],
+          size: 'source',
+          quality: 'medium',
+          outputs: 1,
+        },
+      };
+      render(<StudioGenerateWorkspace />);
+      vary(editingJob);
+      await waitFor(() => expect(mocks.findByIds).toHaveBeenCalledOnce());
+      vary();
+      await waitFor(() => expect(composer().prompt).toBe('Submitted motion'));
+      await act(async () => pending.resolve([frame(editId)]));
+      expect(composer()).toMatchObject({
+        prompt: 'Submitted motion',
+        crunStartFrameId: startId,
+        crunEndFrameId: endId,
+        isCrunRestoreBlocked: false,
+      });
+      expect(composer().attachedAssets).not.toContainEqual(
+        expect.objectContaining({ id: editId }),
+      );
+      expect(mocks.submit).not.toHaveBeenCalled();
+    });
+    it('keeps a newer Crun recipe when an earlier Library source lookup completes', async () => {
+      const editId = '33333333-3333-4333-8333-333333333333';
+      const pending = Promise.withResolvers<ReturnType<typeof frame>>();
+      mocks.searchParams.value = `editImage=${editId}`;
+      mocks.findOne.mockReturnValueOnce(pending.promise);
+      mocks.findByIds.mockResolvedValueOnce([frame(startId), frame(endId)]);
+      render(<StudioGenerateWorkspace />);
+      await waitFor(() => expect(mocks.findOne).toHaveBeenCalledOnce());
+      vary();
+      await waitFor(() => expect(composer().prompt).toBe('Submitted motion'));
+      mocks.applyTypeSettings.mockClear();
+      await act(async () => pending.resolve(frame(editId)));
+      expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
+      expect(composer()).toMatchObject({
+        prompt: 'Submitted motion',
+        crunStartFrameId: startId,
+        crunEndFrameId: endId,
+        isCrunRestoreBlocked: false,
+      });
+      expect(mocks.submit).not.toHaveBeenCalled();
+    });
+    it('keeps a newer Library editing source when an earlier Crun restore completes', async () => {
+      const editId = '33333333-3333-4333-8333-333333333333';
+      const pending = Promise.withResolvers<ReturnType<typeof frame>[]>();
+      mocks.findByIds.mockReturnValueOnce(pending.promise);
+      const view = render(<StudioGenerateWorkspace />);
+      vary();
+      await waitFor(() => expect(mocks.findByIds).toHaveBeenCalledOnce());
+      mocks.findOne.mockResolvedValueOnce(frame(editId));
+      mocks.searchParams.value = `editImage=${editId}`;
+      view.rerender(<StudioGenerateWorkspace />);
+      await waitFor(() =>
+        expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+          'image-edit',
+          expect.objectContaining({ editPrimaryId: editId }),
+        ),
+      );
+      mocks.applyTypeSettings.mockClear();
+      await act(async () => pending.resolve([frame(startId), frame(endId)]));
+      expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
+      expect(composer().prompt).toBe('');
+      expect(composer().isCrunRestoreBlocked).toBe(false);
+      expect(composer().attachedAssets).toContainEqual(
+        expect.objectContaining({ id: editId, role: 'editSource' }),
+      );
+      expect(mocks.submit).not.toHaveBeenCalled();
+    });
     it('loads a legacy recipe with cleared residuals and obtains a fresh current quote', () => {
       const job = recipeJob();
       if (!job.recipe) throw new Error('Expected recipe');
@@ -2405,6 +2504,61 @@ describe('StudioGenerateWorkspace', () => {
       expect(settings.crunControls.negativePrompt).toBe(
         'private current negative',
       );
+    });
+  });
+
+  describe('Library image editing entry', () => {
+    it('opens a source-only draft and reacts to changing the source query on the same route', async () => {
+      mocks.searchParams.value = 'editImage=source-1';
+      mocks.findOne.mockImplementation(async (id: string) => ({
+        id,
+        brandId: 'brand-1',
+        category: 'IMAGE',
+        status: 'GENERATED',
+        cdnUrl: 'https://example.com/source.png',
+        promptText: 'Old generation prompt',
+      }));
+      const { rerender } = render(<StudioGenerateWorkspace />);
+      await waitFor(() =>
+        expect(mocks.applyTypeSettings).toHaveBeenCalledWith('image-edit', {
+          editSize: 'source',
+          editSeed: undefined,
+          editPrimaryId: 'source-1',
+        }),
+      );
+      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe('');
+      expect(
+        mocks.composer.mock.calls.at(-1)?.[0].attachedAssets,
+      ).toContainEqual(
+        expect.objectContaining({ id: 'source-1', role: 'editSource' }),
+      );
+      mocks.searchParams.value = 'editImage=source-2';
+      rerender(<StudioGenerateWorkspace />);
+      await waitFor(() =>
+        expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+          'image-edit',
+          expect.objectContaining({ editPrimaryId: 'source-2' }),
+        ),
+      );
+      expect(
+        mocks.composer.mock.calls.at(-1)?.[0].attachedAssets,
+      ).not.toContainEqual(expect.objectContaining({ id: 'source-1' }));
+    });
+    it('sends editing instructions without parsing skills or character mentions', async () => {
+      mocks.type.value = 'image-edit';
+      mocks.submit.mockResolvedValue(true);
+      render(<StudioGenerateWorkspace />);
+      const props = mocks.composer.mock.calls.at(-1)?.[0];
+      act(() => props.onPromptChange('/cinema keep @anna unchanged'));
+      act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+      await waitFor(() =>
+        expect(mocks.submit).toHaveBeenCalledWith(
+          '/cinema keep @anna unchanged',
+          expect.any(Object),
+        ),
+      );
+      expect(mocks.resolvePromptCommands).not.toHaveBeenCalled();
+      expect(characterMentionMocks.resolveSubmit).not.toHaveBeenCalled();
     });
   });
 });

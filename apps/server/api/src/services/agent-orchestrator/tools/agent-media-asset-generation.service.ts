@@ -8,6 +8,10 @@ import {
 } from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
 import { AgentGenerationScopeService } from '@api/services/agent-orchestrator/tools/agent-generation-scope.service';
 import {
+  buildImageGenerationResult,
+  buildMediaAssetData,
+} from '@api/services/agent-orchestrator/tools/agent-image-generation-result';
+import {
   readMediaReferenceStrings,
   resolveGenerationReferences,
 } from '@api/services/agent-orchestrator/tools/agent-media-generation-references';
@@ -246,7 +250,7 @@ export class AgentMediaAssetGenerationService {
     const onboardingNextActions = cdnUrl
       ? (await this.onboardingHandler.checkOnboardingStatus(ctx)).nextActions
       : undefined;
-    const result = this.buildImageGenerationResult(
+    const result = buildImageGenerationResult(
       id,
       cdnUrl,
       promptPreview,
@@ -307,6 +311,12 @@ export class AgentMediaAssetGenerationService {
       input.params.model.trim().length > 0
         ? input.params.model.trim()
         : input.ctx.generationModelOverride);
+    const resolution =
+      input.ctx.generationSettings?.resolution ?? input.params.resolution;
+    const aspectRatio =
+      input.ctx.generationSettings?.aspectRatio ?? input.params.aspectRatio;
+    if (typeof resolution === 'string') body.resolution = resolution;
+    if (typeof aspectRatio === 'string') body.aspectRatio = aspectRatio;
     if (requestedModel) {
       body.model = requestedModel;
     } else {
@@ -316,39 +326,96 @@ export class AgentMediaAssetGenerationService {
     return body;
   }
 
-  private buildImageGenerationResult(
-    id: string,
-    cdnUrl: string | undefined,
-    promptPreview: string,
-    onboardingNextActions: AgentToolResult['nextActions'],
-  ): AgentToolResult {
-    const status = cdnUrl ? Status.GENERATED : Status.PROCESSING;
-
-    return {
-      creditsUsed: 0,
-      data: buildMediaAssetData(id, status, cdnUrl),
-      isBillingDelegated: true,
-      nextActions: [
-        {
-          ctas: [
-            {
-              href: createLibraryAssetRoute(IngredientCategory.IMAGE, id),
-              label: 'View in Library',
-            },
-          ],
-          assetId: id,
-          assetKind: 'image',
-          description: `Image ${cdnUrl ? 'generated' : 'is generating'} from: "${promptPreview}"`,
-          id: `image-gen-${id}`,
-          images: cdnUrl ? [cdnUrl] : [],
-          status: cdnUrl ? 'completed' : 'processing',
-          title: cdnUrl ? 'Image generated' : 'Image generating',
-          type: 'content_preview_card',
+  async editImage(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const scoped = await this.resolveMediaBrandContext(params, ctx);
+    if ('error' in scoped) return scoped.error;
+    ctx = scoped.context;
+    if (
+      typeof params.imageId !== 'string' ||
+      typeof params.prompt !== 'string' ||
+      !params.prompt.trim()
+    )
+      return {
+        success: false,
+        creditsUsed: 0,
+        error: 'Provide a source image id and an editing instruction.',
+      };
+    try {
+      const body: Record<string, unknown> = {
+        prompt: params.prompt,
+        brandId: ctx.brandId,
+        waitForCompletion: true,
+      };
+      for (const key of [
+        'model',
+        'references',
+        'maskId',
+        'size',
+        'outputs',
+        'seed',
+        'resolution',
+        'aspectRatio',
+      ])
+        if (params[key] !== undefined) body[key] = params[key];
+      if (ctx.sourceActionId) body.sourceActionId = ctx.sourceActionId;
+      const response = toMediaResponseRecord(
+        await this.generationGateway.editImage({
+          resourceId: params.imageId,
+          body,
+          principal: this.toPrincipal(ctx),
+        }),
+      );
+      const id = readMediaResponseString(response, 'id');
+      const url = readUsableCdnAssetUrl(
+        response,
+        this.configService.ingredientsEndpoint,
+      );
+      if (!id)
+        return {
+          success: false,
+          isBillingDelegated: true,
+          creditsUsed: 0,
+          error: 'Image editing returned no asset id.',
+        };
+      const status = readMediaResponseString(response, 'status')?.toLowerCase();
+      if (!url && status !== Status.PROCESSING)
+        return {
+          success: false,
+          isBillingDelegated: true,
+          creditsUsed: 0,
+          error: 'Image editing did not produce a usable image.',
+        };
+      const result = buildImageGenerationResult(
+        id,
+        url,
+        params.prompt.substring(0, 80),
+        undefined,
+      );
+      const outputIds = readMediaReferenceStrings(
+        readMediaResponseValue(response, 'pendingIngredientIds'),
+        8,
+      );
+      return {
+        ...result,
+        data: {
+          ...(typeof result.data === 'object' && result.data !== null
+            ? result.data
+            : {}),
+          sourceImageId: params.imageId,
+          outputIds: outputIds.length ? outputIds : [id],
         },
-        ...(onboardingNextActions ?? []),
-      ],
-      success: true,
-    };
+      };
+    } catch (error: unknown) {
+      return {
+        success: false,
+        isBillingDelegated: true,
+        creditsUsed: 0,
+        error: error instanceof Error ? error.message : 'Image editing failed',
+      };
+    }
   }
 
   async reframeImage(
@@ -912,14 +979,6 @@ export class AgentMediaAssetGenerationService {
         ),
       );
   }
-}
-
-function buildMediaAssetData(
-  id: string,
-  status: Status,
-  url?: string,
-): Record<string, unknown> {
-  return url ? { id, status, url } : { id, status };
 }
 
 function mediaAssetLibraryCategory(
