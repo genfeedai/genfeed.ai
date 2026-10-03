@@ -13,7 +13,7 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@genfeedai/helpers/data/json-api/json-api.helper';
-import { z } from 'zod';
+import * as z from 'zod';
 import { parsePublicationInsight } from '~services/publication-insights-validation';
 import {
   assertWorkspace,

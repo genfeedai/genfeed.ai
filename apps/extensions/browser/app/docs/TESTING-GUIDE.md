@@ -16,6 +16,15 @@
      npm exec -- plasmo build --tag=dev --target=chrome-mv3 --with-source-maps
    ```
 
+After building, transfer the exact built folder to the assigned Mac Studio checkout and run the compiled startup probe there:
+
+```bash
+cd apps/extensions/browser/app
+node scripts/verify-compiled-startup.mjs --build-dir <absolute-built-folder> --output <absolute-result.json>
+```
+
+Use the approved existing verification runtime. The probe executes the actual popup and sidepanel bundles with empty storage and synthetic signed-out auth responses, requires real Retry/Open Genfeed controls and working cached Zod constructors, and rejects unexpected network or runtime errors. Preserve the JSON and artifact hashes. This checks compiled startup; installed Brave, CSP, session and live backend acceptance remain separate.
+
 2. **Load in Brave manually**
    - Use the local Genfeed Brave profile already signed into Genfeed.
    - Open Brave's extensions page, enable Developer mode and load `apps/extensions/browser/app/build/chrome-mv3-dev`.

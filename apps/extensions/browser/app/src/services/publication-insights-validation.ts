@@ -4,7 +4,7 @@ import type { ExtensionPublicationPlatform } from '@genfeedai/contracts/interfac
 import type { PublicationInsight } from '@genfeedai/contracts/interfaces/content/publication-insights.interface';
 import type { ExtensionPublicationPageLookup } from '@genfeedai/contracts/interfaces/extension/extension-publication-insights.interface';
 import type { ExtensionWorkspaceSnapshot } from '@genfeedai/contracts/interfaces/extension/extension-workspace.interface';
-import { z } from 'zod';
+import * as z from 'zod';
 
 const hosts: Record<ExtensionPublicationPlatform, readonly string[]> = {
   twitter: ['x.com', 'twitter.com'],
