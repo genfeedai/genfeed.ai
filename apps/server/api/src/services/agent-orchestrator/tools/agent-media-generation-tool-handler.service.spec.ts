@@ -4,6 +4,7 @@ import { AgentMediaBatchGenerationService } from '@api/services/agent-orchestrat
 import { resolveGenerationReferences } from '@api/services/agent-orchestrator/tools/agent-media-generation-references';
 import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service';
 import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
+import { AgentMediaTransformService } from '@api/services/agent-orchestrator/tools/agent-media-transform.service';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { describe, expect, it, vi } from 'vitest';
@@ -26,6 +27,7 @@ function createHandler() {
     generateMusic: vi.fn(),
     generateVideo: vi.fn(),
     generateVoice: vi.fn(),
+    mergeVideos: vi.fn(),
     reframeImage: vi.fn(),
     upscaleImage: vi.fn(),
   };
@@ -37,6 +39,13 @@ function createHandler() {
     findOne: vi.fn().mockResolvedValue({ id: 'brand-selected' }),
   };
   const logger = { error: vi.fn(), warn: vi.fn() };
+  const assetGeneration = new AgentMediaAssetGenerationService(
+    logger as never,
+    { ingredientsEndpoint: 'https://cdn.example.com/ingredients' } as never,
+    gateway as never,
+    onboardingHandler as never,
+    brandsService as never,
+  );
   const handler = new AgentMediaGenerationToolHandler(
     new AgentMediaTextGenerationService(
       aiActionsService as never,
@@ -46,19 +55,14 @@ function createHandler() {
       brandsService as never,
       { findOne: vi.fn().mockResolvedValue(null) } as never,
     ),
-    new AgentMediaAssetGenerationService(
-      logger as never,
-      { ingredientsEndpoint: 'https://cdn.example.com/ingredients' } as never,
-      gateway as never,
-      onboardingHandler as never,
-      brandsService as never,
-    ),
+    assetGeneration,
     new AgentMediaBatchGenerationService(
       logger as never,
       {} as never,
       { findOne: vi.fn().mockResolvedValue(null) } as never,
       { queueBatch: vi.fn().mockResolvedValue('job-1') } as never,
     ),
+    new AgentMediaTransformService(assetGeneration, gateway as never),
   );
 
   return {
@@ -125,24 +129,25 @@ describe('AgentMediaGenerationToolHandler ownership', () => {
     const assetGeneration = {
       generateAsIdentity: vi.fn().mockResolvedValue(result),
       generateImage: vi.fn().mockResolvedValue(result),
-      reframeImage: vi.fn().mockResolvedValue(result),
-      upscaleImage: vi.fn().mockResolvedValue(result),
     };
     const batchGeneration = {
       generateContentBatch: vi.fn().mockResolvedValue(result),
+    };
+    const transformGeneration = {
+      transformMedia: vi.fn().mockResolvedValue(result),
     };
     const handler = new AgentMediaGenerationToolHandler(
       textGeneration as never,
       assetGeneration as never,
       batchGeneration as never,
+      transformGeneration as never,
     );
     const params = { prompt: 'A launch visual' };
 
     await handler.aiAction(params, context);
     await handler.generateContent(params, context);
     await handler.generate({ ...params, type: 'image' }, context);
-    await handler.reframeImage(params, context);
-    await handler.upscaleImage(params, context);
+    await handler.transformMedia(params, context);
     await handler.generateAsIdentity(params, context);
     await handler.generateContentBatch(params, context);
 
@@ -152,8 +157,10 @@ describe('AgentMediaGenerationToolHandler ownership', () => {
       context,
     );
     expect(assetGeneration.generateImage).toHaveBeenCalledWith(params, context);
-    expect(assetGeneration.reframeImage).toHaveBeenCalledWith(params, context);
-    expect(assetGeneration.upscaleImage).toHaveBeenCalledWith(params, context);
+    expect(transformGeneration.transformMedia).toHaveBeenCalledWith(
+      params,
+      context,
+    );
     expect(assetGeneration.generateAsIdentity).toHaveBeenCalledWith(
       params,
       context,
@@ -162,7 +169,12 @@ describe('AgentMediaGenerationToolHandler ownership', () => {
       params,
       context,
     );
-    for (const owner of [textGeneration, assetGeneration, batchGeneration]) {
+    for (const owner of [
+      textGeneration,
+      assetGeneration,
+      batchGeneration,
+      transformGeneration,
+    ]) {
       for (const method of Object.values(owner)) {
         expect(method).toHaveBeenCalledOnce();
       }
@@ -182,6 +194,7 @@ describe('AgentMediaGenerationToolHandler generate', () => {
     const handler = new AgentMediaGenerationToolHandler(
       {} as never,
       assetGeneration as never,
+      {} as never,
       {} as never,
     );
     return { assetGeneration, handler, result };
@@ -696,6 +709,199 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
   });
 });
 
+describe('AgentMediaGenerationToolHandler saved article drafts', () => {
+  it('persists the article through the generations endpoint and returns its id', async () => {
+    const { gateway, handler } = createHandler();
+    gateway.generateArticle.mockResolvedValue({
+      data: [
+        {
+          attributes: {
+            content: '# Durable agents',
+            label: 'Durable agents',
+            summary: 'Make the output observable.',
+          },
+          id: 'article-saved-1',
+        },
+      ],
+    });
+
+    const result = await handler.generateContent(
+      { topic: 'agent architecture', type: 'article' },
+      context,
+    );
+
+    expect(gateway.generateArticle).toHaveBeenCalledWith({
+      body: expect.objectContaining({ count: 1, type: 'standard' }),
+      principal: {
+        brandId: context.brandId,
+        organizationId: context.organizationId,
+        userId: context.userId,
+      },
+    });
+    expect(result).toMatchObject({
+      creditsUsed: 0,
+      data: {
+        articleId: 'article-saved-1',
+        content: '# Durable agents',
+        title: 'Durable agents',
+        type: 'standard',
+      },
+      isBillingDelegated: true,
+      success: true,
+    });
+    expect(result.nextActions?.[0]).toMatchObject({
+      ctas: [
+        { href: '/content/articles/article-saved-1', label: 'Open article' },
+      ],
+    });
+  });
+
+  it('forwards keywords and tone, and folds audience and length into the prompt like create_article did', async () => {
+    const { gateway, handler } = createHandler();
+    gateway.generateArticle.mockResolvedValue({ data: [] });
+
+    await handler.generateContent(
+      {
+        keywords: ['agents', 'evals'],
+        length: 'long',
+        targetAudience: 'platform engineers',
+        tone: 'technical',
+        topic: 'agent architecture',
+        type: 'article',
+      },
+      context,
+    );
+
+    expect(gateway.generateArticle).toHaveBeenCalledWith({
+      body: expect.objectContaining({
+        keywords: ['agents', 'evals'],
+        prompt:
+          'agent architecture\n\nWrite it for this audience: platform engineers. Length: long.',
+        tone: 'technical',
+        type: 'standard',
+      }),
+      principal: context,
+    });
+  });
+
+  it('keeps the article prompt within the 500 character endpoint limit', async () => {
+    const { gateway, handler } = createHandler();
+    gateway.generateArticle.mockResolvedValue({ data: [] });
+
+    await handler.generateContent(
+      { length: 'short', topic: 'a'.repeat(600), type: 'article' },
+      context,
+    );
+
+    const body = gateway.generateArticle.mock.calls[0][0].body as {
+      prompt: string;
+    };
+    expect(body.prompt).toHaveLength(500);
+  });
+
+  it('returns no article id when generation yields no resource', async () => {
+    const { gateway, handler } = createHandler();
+    gateway.generateArticle.mockResolvedValue({ data: [] });
+
+    const result = await handler.generateContent(
+      { topic: 'agent architecture', type: 'article' },
+      context,
+    );
+
+    expect(result.data?.articleId).toBeUndefined();
+    expect(result.nextActions).toEqual([]);
+  });
+});
+
+describe('AgentMediaGenerationToolHandler social variations', () => {
+  const variation = (content: string) => ({
+    body: `${content} body`,
+    content,
+    cta: 'Reply below',
+    hashtags: ['#launch'],
+    hook: `${content} hook`,
+    patternUsed: 'story',
+  });
+
+  it('returns every LinkedIn variation when more than one is requested', async () => {
+    const { contentGeneratorService, handler } = createHandler();
+    contentGeneratorService.generateContent.mockResolvedValue([
+      variation('one'),
+      variation('two'),
+      variation('three'),
+    ]);
+
+    const result = await handler.generateContent(
+      {
+        platform: 'linkedin',
+        topic: 'a sales objection',
+        type: 'post',
+        variationsCount: 3,
+      },
+      context,
+    );
+
+    expect(contentGeneratorService.generateContent).toHaveBeenCalledWith(
+      context.organizationId,
+      expect.objectContaining({
+        brandId: 'brand-selected',
+        platform: 'linkedin',
+        variationsCount: 3,
+      }),
+    );
+    expect(result.data).toMatchObject({
+      content: 'one',
+      variations: [
+        {
+          body: 'one body',
+          content: 'one',
+          cta: 'Reply below',
+          hook: 'one hook',
+        },
+        { content: 'two' },
+        { content: 'three' },
+      ],
+    });
+  });
+
+  it('defaults to one variation and leaves the single-result shape unchanged', async () => {
+    const { contentGeneratorService, handler } = createHandler();
+    contentGeneratorService.generateContent.mockResolvedValue([
+      variation('one'),
+    ]);
+
+    const result = await handler.generateContent(
+      { platform: 'linkedin', topic: 'a sales objection', type: 'post' },
+      context,
+    );
+
+    expect(contentGeneratorService.generateContent).toHaveBeenCalledWith(
+      context.organizationId,
+      expect.objectContaining({ variationsCount: 1 }),
+    );
+    expect(result.data).not.toHaveProperty('variations');
+  });
+
+  it.each([0, 6, 2.5, '3'])(
+    'rejects variationsCount %s without generating',
+    async (variationsCount) => {
+      const { contentGeneratorService, handler } = createHandler();
+
+      const result = await handler.generateContent(
+        { topic: 'a sales objection', type: 'post', variationsCount },
+        context,
+      );
+
+      expect(result).toEqual({
+        creditsUsed: 0,
+        error: 'variationsCount must be an integer from 1 to 5',
+        success: false,
+      });
+      expect(contentGeneratorService.generateContent).not.toHaveBeenCalled();
+    },
+  );
+});
+
 describe('AgentMediaGenerationToolHandler generateImage', () => {
   it('refuses image generation from an unscoped thread without an explicit brand', async () => {
     const { gateway, handler } = createHandler();
@@ -1156,8 +1362,8 @@ describe('AgentMediaGenerationToolHandler direct asset families', () => {
     {
       method: 'reframeImage' as const,
       invoke: (handler: AgentMediaGenerationToolHandler) =>
-        handler.reframeImage(
-          { aspectRatio: '9:16', imageId: 'image-1' },
+        handler.transformMedia(
+          { aspectRatio: '9:16', imageId: 'image-1', operation: 'reframe' },
           context,
         ),
       response: {
@@ -1167,15 +1373,18 @@ describe('AgentMediaGenerationToolHandler direct asset families', () => {
         },
       },
       result: {
-        data: { id: 'image-2', sourceImageId: 'image-1' },
+        data: { id: 'image-2', kind: 'image', sourceImageId: 'image-1' },
         preview: { images: ['https://cdn.example.com/reframed.png'] },
       },
     },
     {
       method: 'generateImage' as const,
       invoke: (handler: AgentMediaGenerationToolHandler) =>
-        handler.upscaleImage(
-          { imageUrl: 'https://cdn.example.com/source.png' },
+        handler.transformMedia(
+          {
+            imageUrl: 'https://cdn.example.com/source.png',
+            operation: 'upscale',
+          },
           context,
         ),
       response: {
@@ -1185,7 +1394,7 @@ describe('AgentMediaGenerationToolHandler direct asset families', () => {
         },
       },
       result: {
-        data: { id: 'image-upscaled-1' },
+        data: { id: 'image-upscaled-1', kind: 'image' },
         preview: { images: ['https://cdn.example.com/upscaled.png'] },
       },
     },
@@ -1296,6 +1505,7 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
       {} as never,
       {} as never,
       batchOwner,
+      {} as never,
     );
 
     return {
@@ -1565,6 +1775,7 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
       {} as never,
       {} as never,
       batchOwner,
+      {} as never,
     );
 
     const result = await handler.generateContentBatch(
@@ -1615,6 +1826,7 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
       {} as never,
       {} as never,
       batchOwner,
+      {} as never,
     );
 
     await handler.generateContentBatch(
@@ -1716,8 +1928,9 @@ describe('dedicated image editing', () => {
         },
       },
     });
-    const result = await handler.editImage(
+    const result = await handler.transformMedia(
       {
+        operation: 'edit',
         imageId: 'source-1',
         prompt: 'Change only the sign',
         references: ['ref-1'],
@@ -1747,7 +1960,11 @@ describe('dedicated image editing', () => {
       success: true,
       isBillingDelegated: true,
       creditsUsed: 0,
-      data: { sourceImageId: 'source-1', outputIds: ['edited-1', 'edited-2'] },
+      data: {
+        kind: 'image',
+        sourceImageId: 'source-1',
+        outputIds: ['edited-1', 'edited-2'],
+      },
     });
   });
 });

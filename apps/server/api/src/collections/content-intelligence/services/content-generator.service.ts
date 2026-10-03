@@ -39,7 +39,7 @@ import type { ZodType } from 'zod';
 
 export const CONTENT_INTELLIGENCE_GENERATION_ACTION_ID =
   'content-intelligence.generate';
-export const LINKEDIN_CONTENT_GENERATION_TOOL_ID = 'generate_linkedin_content';
+export const LINKEDIN_CONTENT_GENERATION_TOOL_ID = 'generate_content';
 const LINKEDIN_PATTERN_GENERATION_ACTION_ID =
   'content-intelligence.generate-linkedin-pattern';
 const CONTENT_INTELLIGENCE_WORKFLOW_ID = 'content-intelligence.generation';

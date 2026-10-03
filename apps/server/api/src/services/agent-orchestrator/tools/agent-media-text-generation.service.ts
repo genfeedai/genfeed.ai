@@ -112,6 +112,44 @@ function readStringList(value: unknown): string[] | undefined {
   return items.length > 0 ? items : undefined;
 }
 
+/** Mirrors `MaxLength(500)` on `GenerateArticlesDto.prompt`. */
+const ARTICLE_PROMPT_MAX_LENGTH = 500;
+const MAX_VARIATIONS = 5;
+
+/**
+ * The tool speaks `topic` plus `targetAudience` and `length`; the article DTO
+ * has only a free-text `prompt`. Fold the framing into it, as `create_article`
+ * did, rather than inventing DTO fields.
+ */
+function buildArticlePrompt(params: Record<string, unknown>): string {
+  const topic =
+    readOptionalString(params.topic) ?? readOptionalString(params.prompt) ?? '';
+  const audience = readOptionalString(params.targetAudience);
+  const length = readOptionalString(params.length);
+  const framing = [
+    audience ? `Write it for this audience: ${audience}.` : undefined,
+    length ? `Length: ${length}.` : undefined,
+  ]
+    .filter(Boolean)
+    .join(' ');
+  return (framing ? `${topic}\n\n${framing}` : topic).slice(
+    0,
+    ARTICLE_PROMPT_MAX_LENGTH,
+  );
+}
+
+function readVariationsCount(
+  value: unknown,
+): { ok: true; count: number } | { ok: false } {
+  if (value === undefined || value === null) return { ok: true, count: 1 };
+  return typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value >= 1 &&
+    value <= MAX_VARIATIONS
+    ? { ok: true, count: value }
+    : { ok: false };
+}
+
 @Injectable()
 export class AgentMediaTextGenerationService {
   constructor(
@@ -174,7 +212,20 @@ export class AgentMediaTextGenerationService {
     ) {
       return this.generateArticle(params, ctx, normalizedType);
     }
-    return this.generateSocialContent(params, ctx, normalizedType);
+    const variations = readVariationsCount(params.variationsCount);
+    if (!variations.ok) {
+      return {
+        creditsUsed: 0,
+        error: `variationsCount must be an integer from 1 to ${MAX_VARIATIONS}`,
+        success: false,
+      };
+    }
+    return this.generateSocialContent(
+      params,
+      ctx,
+      normalizedType,
+      variations.count,
+    );
   }
 
   private async generateNewsletter(
@@ -251,15 +302,12 @@ export class AgentMediaTextGenerationService {
           ...(ctx.generationModelOverride
             ? { model: ctx.generationModelOverride }
             : {}),
-          prompt: (params.topic as string) || (params.prompt as string) || '',
+          prompt: buildArticlePrompt(params),
           targetWordCount:
             articleType === 'x-article'
               ? (params.targetWordCount as number | undefined)
               : undefined,
-          tone:
-            articleType === 'x-article'
-              ? (params.tone as string | undefined)
-              : undefined,
+          tone: readOptionalString(params.tone),
           type: articleType,
         },
         principal: {
@@ -321,6 +369,7 @@ export class AgentMediaTextGenerationService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
     normalizedType: string,
+    variationsCount: number,
   ): Promise<AgentToolResult> {
     const platform =
       (readOptionalString(params.platform) as ContentIntelligencePlatform) ??
@@ -350,7 +399,7 @@ export class AgentMediaTextGenerationService {
         ...(knowledge ? { knowledge } : {}),
         platform,
         topic: params.topic as string,
-        variationsCount: 1,
+        variationsCount,
       } satisfies GenerateContentDto,
     );
     const generated = results[0];
@@ -368,6 +417,18 @@ export class AgentMediaTextGenerationService {
         hook: generated?.hook,
         knowledgeReceipts,
         patternUsed: generated?.patternUsed,
+        ...(variationsCount > 1
+          ? {
+              variations: results.map((variation) => ({
+                body: variation.body,
+                content: variation.content,
+                cta: variation.cta,
+                hashtags: variation.hashtags,
+                hook: variation.hook,
+                patternUsed: variation.patternUsed,
+              })),
+            }
+          : {}),
       },
       nextActions: generated?.content
         ? [

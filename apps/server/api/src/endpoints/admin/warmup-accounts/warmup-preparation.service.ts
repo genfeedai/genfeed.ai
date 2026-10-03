@@ -461,7 +461,7 @@ export class WarmupPreparationService {
     const execution = await this.workflows.enqueueWorkflow(
       {
         canonicalId: 'article.generation',
-        actionType: 'create_article',
+        actionType: 'generate_content',
         organizationId,
         userId: actorUserId,
         source: 'WarmupPreparationService',

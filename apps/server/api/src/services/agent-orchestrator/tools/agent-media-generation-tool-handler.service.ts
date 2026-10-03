@@ -1,6 +1,7 @@
 import { AgentMediaAssetGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-asset-generation.service';
 import { AgentMediaBatchGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-batch-generation.service';
 import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
+import { AgentMediaTransformService } from '@api/services/agent-orchestrator/tools/agent-media-transform.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import {
   findInapplicableMediaGenerationParameters,
@@ -35,6 +36,7 @@ export class AgentMediaGenerationToolHandler {
     private readonly textGeneration: AgentMediaTextGenerationService,
     private readonly assetGeneration: AgentMediaAssetGenerationService,
     private readonly batchGeneration: AgentMediaBatchGenerationService,
+    private readonly transform: AgentMediaTransformService,
   ) {}
 
   async aiAction(
@@ -118,25 +120,11 @@ export class AgentMediaGenerationToolHandler {
     }
   }
 
-  async editImage(
+  async transformMedia(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    return this.assetGeneration.editImage(params, ctx);
-  }
-
-  async reframeImage(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    return this.assetGeneration.reframeImage(params, ctx);
-  }
-
-  async upscaleImage(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    return this.assetGeneration.upscaleImage(params, ctx);
+    return this.transform.transformMedia(params, ctx);
   }
 
   async generateContentBatch(

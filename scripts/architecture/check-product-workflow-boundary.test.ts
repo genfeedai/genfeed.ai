@@ -127,7 +127,7 @@ describe('check-product-workflow-boundary', () => {
     writeFixture(
       'apps/server/api/src/collections/articles/articles.service.ts',
       `
-        const ARTICLE_GENERATION_TOOL_ID = 'create_article';
+        const ARTICLE_GENERATION_TOOL_ID = 'generate_content';
         runner.registerAction(ARTICLE_GENERATION_TOOL_ID, persistDraft);
       `,
     );
@@ -135,7 +135,7 @@ describe('check-product-workflow-boundary', () => {
       'apps/server/api/src/collections/content-intelligence/content-generator.service.ts',
       `
         createGenfeedActionNode({
-          actionId: 'generate_linkedin_content',
+          actionId: 'generate_content',
           id: 'persist-pattern',
         });
       `,

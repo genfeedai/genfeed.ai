@@ -74,6 +74,12 @@ export interface AgentEndpoint<TDto, TResult> {
   hasCreditsInterceptor: boolean;
   /** `@UseGuards(RolesGuard)` on the controller class. */
   hasRolesGuard: boolean;
+  /**
+   * The route declares no `SubscriptionGuard`. The invoker otherwise applies
+   * it to every call, so a route that is open to unsubscribed members (such as
+   * the local video merge) must opt out to keep the same contract in-process.
+   */
+  isSubscriptionCheckSkipped?: boolean;
   /** `@ValidateModel(...)`. Omitted when the route has no `ModelsGuard`. */
   modelValidation?: ModelValidationOptions;
   /** Route the response serializer reports as the resource link. */

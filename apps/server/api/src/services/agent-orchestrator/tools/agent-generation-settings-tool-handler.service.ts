@@ -17,9 +17,7 @@ export class AgentGenerationSettingsToolHandler {
 
   handles(toolName: string): boolean {
     return (
-      toolName === 'get_generation_settings' ||
-      toolName === 'set_generation_settings' ||
-      toolName === 'enhance_prompt'
+      toolName === 'set_generation_settings' || toolName === 'enhance_prompt'
     );
   }
 
@@ -33,8 +31,6 @@ export class AgentGenerationSettingsToolHandler {
         return this.enhance(params, ctx);
       case 'set_generation_settings':
         return this.set(params, ctx);
-      case 'get_generation_settings':
-        return this.get(params, ctx);
       default:
         throw new BadRequestException(
           `Unknown generation settings tool: ${toolName}`,

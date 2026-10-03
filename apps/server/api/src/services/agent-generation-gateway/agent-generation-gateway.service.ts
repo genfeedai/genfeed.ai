@@ -17,9 +17,13 @@ import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
 import { MusicGenerationService } from '@api/collections/musics/services/music-generation.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { CreateAvatarVideoDto } from '@api/collections/videos/dto/create-avatar-video.dto';
-import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import {
+  CreateMergedVideoDto,
+  CreateVideoDto,
+} from '@api/collections/videos/dto/create-video.dto';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
+import { VideoMergeOrchestrationService } from '@api/collections/videos/services/video-merge-orchestration.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { GenerateVoiceDto } from '@api/collections/voices/dto/generate-voice.dto';
 import { VoiceGenerationService } from '@api/collections/voices/services/voice-generation.service';
@@ -97,6 +101,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
     private readonly videosService: VideosService,
     private readonly voiceGenerationService: VoiceGenerationService,
     private readonly websocketService: NotificationsPublisherService,
+    private readonly videoMergeOrchestrationService: VideoMergeOrchestrationService,
   ) {}
 
   /** Mirrors `ArticlesOperationsController.generateArticles` — `POST /v1/articles/generations`. */
@@ -393,6 +398,32 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
         originalUrl: '/v1/videos',
         requiredRoles: GENERATION_ROLES,
         shouldDeferCreditsUntilModelResolution: true,
+      },
+      input,
+    );
+  }
+
+  /**
+   * Mirrors `VideosMergeController.mergeVideos` — `POST /v1/videos/merge`.
+   * Intentionally uncredited, as on the controller: the merge runs on the
+   * internal files queue with no provider call.
+   */
+  async mergeVideos(
+    input: AgentGenerationInput,
+  ): Promise<JsonApiSingleResponse> {
+    return this.invoker.invoke<CreateMergedVideoDto, JsonApiSingleResponse>(
+      {
+        dto: CreateMergedVideoDto,
+        handle: async ({ dto, request, user }) => {
+          const ingredient =
+            await this.videoMergeOrchestrationService.mergeVideos(user, dto);
+
+          return serializeSingle(request, IngredientSerializer, ingredient);
+        },
+        hasCreditsInterceptor: false,
+        hasRolesGuard: true,
+        isSubscriptionCheckSkipped: true,
+        originalUrl: '/v1/videos/merge',
       },
       input,
     );
