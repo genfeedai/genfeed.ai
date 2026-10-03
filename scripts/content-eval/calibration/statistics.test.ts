@@ -83,11 +83,39 @@ describe('cohensKappa', () => {
     expect(cohensKappa(pairs, 4, 'quadratic')).toBeNull();
     expect(cohensKappa(pairs, 4, 'unweighted')).toBeNull();
   });
+
+  it('KV-4: is null for fewer than two categories or an out-of-range band', () => {
+    expect(cohensKappa([[0, 0]], 1, 'quadratic')).toBeNull();
+    expect(
+      cohensKappa(
+        [
+          [0, 1],
+          [4, 2],
+        ],
+        4,
+        'quadratic',
+      ),
+    ).toBeNull();
+    expect(
+      cohensKappa(
+        [
+          [0, 1],
+          [1, -1],
+        ],
+        2,
+        'unweighted',
+      ),
+    ).toBeNull();
+  });
 });
 
 describe('meanAbsoluteError', () => {
   it('MV-1: measures error against human band midpoints', () => {
     expect(meanAbsoluteError([0.2, 0.9], [0.125, 0.875])).toBe(0.05);
+  });
+
+  it('MV-2: is null when the series lengths differ', () => {
+    expect(meanAbsoluteError([0.2, 0.9], [0.125])).toBeNull();
   });
 });
 

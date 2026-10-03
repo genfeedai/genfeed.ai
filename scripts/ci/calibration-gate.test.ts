@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type {
+  ArmRecord,
   CalibrationSummary,
+  MetricRow,
   ScoringSurface,
 } from '../content-eval/calibration/contracts';
 import {
@@ -61,6 +63,50 @@ function input(
   };
 }
 
+function arm(profileId: ArmRecord['profileId']): ArmRecord {
+  return {
+    armId: `${profileId}@test-model`,
+    family: 'test',
+    isPrimary: true,
+    model: 'test-model',
+    modelVersions: ['test-model'],
+    profileId,
+    promptSource: 'production-code',
+    providers: ['test'],
+  };
+}
+
+function pooledMetric(armId: string, scoredRows = 32): MetricRow {
+  return {
+    armId,
+    bandKappa: 0.8,
+    bandKappaUnweighted: 0.7,
+    bandRows: 32,
+    contentKind: '*',
+    decisionKappa: 0.8,
+    decisionRows: 32,
+    distribution: {
+      bandCounts: [8, 8, 8, 8],
+      ceilingRate: 0.25,
+      dominantBandShare: 0.25,
+      floorRate: 0.25,
+      isCompressed: false,
+      mean: 0.5,
+      standardDeviation: 0.3,
+    },
+    maeToBandMidpoint: 0.1,
+    rows: 32,
+    scoredBandRows: scoredRows,
+    scoredDecisionRows: scoredRows,
+    scoredRows,
+    spearmanRho: 0.8,
+    voidCount: 0,
+    voidRate: 0,
+  };
+}
+
+const ARMS = [arm('content-quality'), arm('evaluations')];
+
 function summary(
   overrides: Partial<CalibrationSummary> = {},
 ): CalibrationSummary {
@@ -70,10 +116,10 @@ function summary(
   };
   return {
     calibration: {
-      arms: [],
+      arms: ARMS,
       crossFamily: [],
       injection: null,
-      metrics: [],
+      metrics: ARMS.map((entry) => pooledMetric(entry.armId)),
       pointwisePositionBias: 'not-applicable-pointwise',
       positionBias: [],
       rubricAlignment: {
@@ -100,7 +146,7 @@ function summary(
     schemaVersion: CALIBRATION_SCHEMA_VERSION,
     scoringSurface,
     sourceRevision: '0'.repeat(40),
-    spend: { callCount: 0, spentCredits: 0, spentUsd: 0 },
+    spend: { callCount: 64, spentCredits: 90, spentUsd: 0.9 },
     thresholdChecks: [],
     thresholdsVersion: 'thresholds-v2',
     workingTreeDirty: false,
@@ -227,6 +273,59 @@ describe('judge calibration gate', () => {
       isPassing: true,
       warning: 'linked calibration report failed its thresholds',
     });
+  });
+
+  it('G15 rejects a live summary that lacks complete calibration evidence', () => {
+    const live = summary();
+    const gate = (value: CalibrationSummary) =>
+      evaluateCalibrationGate(
+        input({
+          prBody: PR_BODY,
+          readSummary: () => ({ isPresent: true, value }),
+        }),
+      );
+    const incomplete: Array<[CalibrationSummary, string]> = [
+      [
+        summary({ spend: { callCount: 0, spentCredits: 0, spentUsd: 0 } }),
+        'it records no judge calls',
+      ],
+      [
+        summary({ fixture: { ...live.fixture, rowCount: 29 } }),
+        'its fixture has 29 rows, below 30',
+      ],
+      [
+        summary({ thresholdsVersion: 'thresholds-v1' }),
+        'it used thresholds-v1, not thresholds-v2',
+      ],
+      [summary({ workingTreeDirty: true }), 'it ran from a dirty working tree'],
+      [
+        summary({
+          calibration: {
+            ...live.calibration,
+            metrics: [pooledMetric(ARMS[0]?.armId ?? '')],
+          },
+        }),
+        'it has no scored pooled metrics for evaluations',
+      ],
+      [
+        summary({
+          calibration: {
+            ...live.calibration,
+            metrics: ARMS.map((entry) => pooledMetric(entry.armId, 0)),
+          },
+        }),
+        'it has no scored pooled metrics for content-quality; it has no scored pooled metrics for evaluations',
+      ],
+    ];
+    for (const [value, gap] of incomplete) {
+      expect(calibrationSummarySchema.safeParse(value).success).toBe(true);
+      expect(gate(value)).toEqual({
+        code: 'report-incomplete',
+        isPassing: false,
+        reason: `linked calibration report ${REPORT_PATH} is not complete live evidence: ${gap}`,
+        warning: null,
+      });
+    }
   });
 
   it('G11 passes a text change in a merge group without a PR body', () => {

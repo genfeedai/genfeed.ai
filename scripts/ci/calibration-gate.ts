@@ -1,12 +1,18 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { ScoringSurface } from '../content-eval/calibration/contracts';
+import type {
+  CalibrationSummary,
+  ScoringSurface,
+} from '../content-eval/calibration/contracts';
 import {
   calibrationSummarySchema,
+  POOLED_KIND,
+  PRODUCTION_PROFILE_IDS,
   SCORING_SURFACE_LOCK_PATH,
   scoringSurfaceSchema,
 } from '../content-eval/calibration/contracts';
+import { CONTENT_EVAL_THRESHOLDS } from '../content-eval/contracts';
 import { readRepoRoot } from '../content-eval/provenance';
 
 export const CALIBRATION_REPORT_LINK_PATTERN =
@@ -25,6 +31,7 @@ export const CALIBRATION_GATE_CODES = [
   'report-invalid',
   'report-stub',
   'report-stale',
+  'report-incomplete',
   'linked',
 ] as const;
 export type CalibrationGateCode = (typeof CALIBRATION_GATE_CODES)[number];
@@ -46,6 +53,42 @@ export interface CalibrationGateResult {
   isPassing: boolean;
   reason: string;
   warning: string | null;
+}
+
+// A live label and a matching digest are not enough on their own: the summary
+// must also show paid calls over a calibration-sized fixture, a clean tree,
+// the current thresholds and a pooled metric row for each production judge.
+export function summaryEvidenceGaps(summary: CalibrationSummary): string[] {
+  const gaps: string[] = [];
+  if (summary.spend.callCount === 0) {
+    gaps.push('it records no judge calls');
+  }
+  if (summary.fixture.rowCount < CONTENT_EVAL_THRESHOLDS.calibrationMinRows) {
+    gaps.push(
+      `its fixture has ${summary.fixture.rowCount} rows, below ${CONTENT_EVAL_THRESHOLDS.calibrationMinRows}`,
+    );
+  }
+  if (summary.thresholdsVersion !== CONTENT_EVAL_THRESHOLDS.version) {
+    gaps.push(
+      `it used ${summary.thresholdsVersion}, not ${CONTENT_EVAL_THRESHOLDS.version}`,
+    );
+  }
+  if (summary.workingTreeDirty) {
+    gaps.push('it ran from a dirty working tree');
+  }
+  for (const profileId of PRODUCTION_PROFILE_IDS) {
+    const arm = summary.calibration.arms.find(
+      (entry) => entry.isPrimary && entry.profileId === profileId,
+    );
+    const pooled = summary.calibration.metrics.find(
+      (entry) =>
+        entry.armId === arm?.armId && entry.contentKind === POOLED_KIND,
+    );
+    if (pooled === undefined || pooled.scoredRows === 0) {
+      gaps.push(`it has no scored pooled metrics for ${profileId}`);
+    }
+  }
+  return gaps;
 }
 
 export function evaluateCalibrationGate(
@@ -175,6 +218,15 @@ export function evaluateCalibrationGate(
       code: 'report-stale',
       isPassing: false,
       reason: `linked calibration report ${reportPath} measured text digest ${reportText}, but this revision's text digest is ${headText}`,
+      warning: null,
+    };
+  }
+  const gaps = summaryEvidenceGaps(summary);
+  if (gaps.length > 0) {
+    return {
+      code: 'report-incomplete',
+      isPassing: false,
+      reason: `linked calibration report ${reportPath} is not complete live evidence: ${gaps.join('; ')}`,
       warning: null,
     };
   }

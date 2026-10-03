@@ -657,6 +657,43 @@ describe('position bias and provenance', () => {
     expect(pooledPositionBiasRate([])).toBeNull();
   });
 
+  it('fails the position-bias check for a judge with no measured pair', () => {
+    const fixtures = rows();
+    const kinds = fixtureKinds(fixtures);
+    const unmeasured: PairJudgement[] = [
+      {
+        approveFirstPreferred: null,
+        contentKind: 'social-post',
+        judgeRegistryKey: JUDGE,
+        rejectFirstPreferred: true,
+      },
+    ];
+    for (const pairs of [[], unmeasured]) {
+      const checks = buildCalibrationChecks(
+        [CONTENT_QUALITY],
+        buildMetricRows(
+          CONTENT_QUALITY,
+          scoresFor(CONTENT_QUALITY, fixtures),
+          fixtures,
+          kinds,
+        ),
+        buildPositionBiasRows(pairs, [JUDGE], kinds),
+        fixtures,
+        kinds,
+      );
+      expect(
+        checks.find((check) => check.id === 'judge-position-bias'),
+      ).toEqual({
+        actual: null,
+        comparator: '<=',
+        id: 'judge-position-bias',
+        passed: false,
+        subject: JUDGE,
+        threshold: 0.05,
+      });
+    }
+  });
+
   it('records sorted unique model versions and providers only for linked calls', () => {
     const fixtures = rows(4);
     const scores = scoresFor(CONTENT_QUALITY, fixtures);
