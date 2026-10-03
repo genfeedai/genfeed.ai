@@ -20,7 +20,12 @@ import {
   learningDescriptorTuple,
   validLearningDescriptor,
 } from '@genfeedai/harness';
-import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
+import {
+  type ContentLearningCheckpoint,
+  type ContentLearningDecision,
+  type Prisma,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 export type LearningRewardCommitResult =
   | {
@@ -157,67 +162,13 @@ export class LearningRewardService {
       learningPostArtifactHashV1(post, decision) !== decision.finalArtifactHash
     )
       return unavailable('artifact_changed');
-    const raw = checkpoint.measurement;
-    const profile =
-      raw &&
-      typeof raw === 'object' &&
-      !Array.isArray(raw) &&
-      Array.isArray(raw.profiles)
-        ? raw.profiles.find(
-            (value) =>
-              value &&
-              typeof value === 'object' &&
-              !Array.isArray(value) &&
-              value.profileId === decision.descriptorHash &&
-              validLearningDescriptor(value.descriptor) &&
-              learningHash(learningDescriptorTuple(value.descriptor)) ===
-                decision.descriptorHash,
-          )
-        : undefined;
-    const measurement =
-      profile && typeof profile === 'object' && !Array.isArray(profile)
-        ? parseLearningMeasurement(profile.measurement)
-        : null;
-    if (
-      !measurement ||
-      (descriptor.retention &&
-        measurement.averageWatchTimeSeconds === undefined)
-    )
-      return unavailable('profile_unavailable');
-    const baseline = await tx.contentLearningBaseline.findFirst({
-      where: {
-        id: decision.baselineId,
-        organizationId,
-        brandId: decision.brandId,
-        credentialId: decision.credentialId,
-        isDeleted: false,
-      },
-    });
-    if (
-      !baseline ||
-      baseline.descriptorHash !== decision.descriptorHash ||
-      baseline.scopeKey !== decision.scopeKey ||
-      baseline.configVersion !== descriptor.configVersion ||
-      baseline.cutoff.getTime() !== decision.createdAt.getTime() ||
-      baseline.validity !== 'valid' ||
-      baseline.count < 20
-    )
-      return unavailable('insufficient_baseline');
-    const rawSamples = Array.isArray(baseline.samples) ? baseline.samples : [];
-    const samples = rawSamples.map((value) => parseLearningMeasurement(value));
-    if (
-      !Array.isArray(baseline.samples) ||
-      samples.some((sample) => !sample) ||
-      samples.length !== baseline.count ||
-      baseline.contributorCheckpointIds.length !== baseline.count
-    )
-      return unavailable('invalid_baseline');
+    const measurement = this.profileMeasurement(checkpoint, decision);
+    if (!measurement) return unavailable('profile_unavailable');
+    const frozen = await this.frozenBaseline(tx, organizationId, decision);
+    if ('reason' in frozen) return frozen;
+    const { baseline, samples } = frozen;
     const objective = descriptor.objective;
-    const result = computeLearningReward(
-      measurement,
-      samples as NonNullable<(typeof samples)[number]>[],
-      objective,
-    );
+    const result = computeLearningReward(measurement, samples, objective);
     const status = !(await this.dependencies.valid(
       'baseline',
       baseline.id,
@@ -246,6 +197,86 @@ export class LearningRewardService {
       sourceFingerprint,
       objective,
     };
+  }
+  /** The checkpoint measurement of the decision's exact descriptor profile. */
+  private profileMeasurement(
+    checkpoint: ContentLearningCheckpoint,
+    decision: ContentLearningDecision,
+  ) {
+    const raw = checkpoint.measurement,
+      descriptor = decision.cellDescriptor;
+    if (
+      !validLearningDescriptor(descriptor) ||
+      !raw ||
+      typeof raw !== 'object' ||
+      Array.isArray(raw) ||
+      !Array.isArray(raw.profiles)
+    )
+      return null;
+    const profile = raw.profiles.find(
+      (value) =>
+        value &&
+        typeof value === 'object' &&
+        !Array.isArray(value) &&
+        value.profileId === decision.descriptorHash &&
+        validLearningDescriptor(value.descriptor) &&
+        learningHash(learningDescriptorTuple(value.descriptor)) ===
+          decision.descriptorHash,
+    );
+    const measurement =
+      profile && typeof profile === 'object' && !Array.isArray(profile)
+        ? parseLearningMeasurement(profile.measurement)
+        : null;
+    return !measurement ||
+      (descriptor.retention &&
+        measurement.averageWatchTimeSeconds === undefined)
+      ? null
+      : measurement;
+  }
+  /** The baseline frozen at decision time, with every sample parsed. */
+  private async frozenBaseline(
+    tx: Prisma.TransactionClient,
+    organizationId: string,
+    decision: ContentLearningDecision,
+  ) {
+    const descriptor = decision.cellDescriptor;
+    const baseline =
+      decision.baselineId && validLearningDescriptor(descriptor)
+        ? await tx.contentLearningBaseline.findFirst({
+            where: {
+              id: decision.baselineId,
+              organizationId,
+              brandId: decision.brandId,
+              credentialId: decision.credentialId,
+              isDeleted: false,
+            },
+          })
+        : null;
+    if (
+      !baseline ||
+      !validLearningDescriptor(descriptor) ||
+      baseline.descriptorHash !== decision.descriptorHash ||
+      baseline.scopeKey !== decision.scopeKey ||
+      baseline.configVersion !== descriptor.configVersion ||
+      baseline.cutoff.getTime() !== decision.createdAt.getTime() ||
+      baseline.validity !== 'valid' ||
+      baseline.count < 20
+    )
+      return { reason: 'insufficient_baseline' };
+    const samples = [];
+    for (const value of Array.isArray(baseline.samples)
+      ? baseline.samples
+      : []) {
+      const sample = parseLearningMeasurement(value);
+      if (!sample) return { reason: 'invalid_baseline' };
+      samples.push(sample);
+    }
+    if (
+      samples.length !== baseline.count ||
+      baseline.contributorCheckpointIds.length !== baseline.count
+    )
+      return { reason: 'invalid_baseline' };
+    return { baseline, samples };
   }
   private async persistReward(
     tx: Prisma.TransactionClient,

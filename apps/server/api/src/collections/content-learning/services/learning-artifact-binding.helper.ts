@@ -6,6 +6,7 @@ import {
   validLearningDescriptor,
 } from '@genfeedai/harness';
 import type { ContentLearningDecision, Prisma } from '@genfeedai/prisma';
+import { ConflictException } from '@nestjs/common';
 
 export interface LearningArtifactMaterialV1 {
   text: string;
@@ -96,6 +97,58 @@ export function learningPostArtifactHashV1(
   });
 }
 
+/** Binds the persisted draft artifact to the decision that generated it. */
+export async function bindLearningArtifactV1(
+  client: LearningBindingClient,
+  organizationId: string,
+  decisionId: string,
+  postId: string,
+): Promise<string> {
+  return client.$transaction(async (tx) => {
+    await learningFence(tx, 'shared');
+    await tx.$queryRaw`SELECT id FROM content_learning_decisions WHERE id = ${decisionId} AND "organizationId" = ${organizationId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
+    const decision = await tx.contentLearningDecision.findFirst({
+      where: {
+        id: decisionId,
+        organizationId,
+        isDeleted: false,
+        synthetic: false,
+      },
+    });
+    if (
+      !decision ||
+      decision.generationId !== postId ||
+      !learningDecisionDescriptorValid(decision)
+    )
+      throw new ConflictException('Decision artifact mismatch');
+    const post = await tx.post.findFirst({
+      where: {
+        id: postId,
+        organizationId,
+        brandId: decision.brandId,
+        credentialId: decision.credentialId,
+        isDeleted: false,
+      },
+      select: learningArtifactPostSelect,
+    });
+    const hash = post ? learningPostArtifactHashV1(post, decision) : null;
+    if (!hash) throw new ConflictException('Decision artifact mismatch');
+    if (decision.finalArtifactHash && decision.finalArtifactHash !== hash)
+      throw new ConflictException('Decision already bound to another artifact');
+    if (!['pending', 'generated'].includes(decision.state))
+      throw new ConflictException('Decision is no longer bindable');
+    await tx.contentLearningDecision.updateMany({
+      where: {
+        id: decisionId,
+        organizationId,
+        isDeleted: false,
+        finalArtifactHash: null,
+      },
+      data: { finalArtifactHash: hash, state: 'generated' },
+    });
+    return hash;
+  });
+}
 async function censor(
   tx: Prisma.TransactionClient,
   organizationId: string,

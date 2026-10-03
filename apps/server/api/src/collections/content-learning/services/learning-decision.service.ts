@@ -1,15 +1,20 @@
 import { LearningAccountService } from '@api/collections/content-learning/services/learning-account.service';
 import {
+  bindLearningArtifactV1,
   bindLearningPublicationV1,
-  learningArtifactPostSelect,
-  learningDecisionDescriptorValid,
-  learningPostArtifactHashV1,
 } from '@api/collections/content-learning/services/learning-artifact-binding.helper';
 import {
   hasInsufficientBaselineLineage,
   readReplayBaseline,
 } from '@api/collections/content-learning/services/learning-baseline-lineage.helper';
 import { LearningCheckpointService } from '@api/collections/content-learning/services/learning-checkpoint.service';
+import {
+  type LearningBatchGenerationInput,
+  type LearningCandidateInput,
+  type LearningGenerationInput,
+  learningBatchCandidateInputs,
+  learningCandidateIdentity,
+} from '@api/collections/content-learning/services/learning-decision-batch.helper';
 import {
   LearningDependencyService,
   learningFence,
@@ -27,7 +32,6 @@ import {
 } from '@genfeedai/contracts';
 import {
   type LearningCellDescriptor,
-  type LearningGenerationContext,
   type LearningGenerationReceipt,
   type LearningScope,
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
@@ -56,26 +60,11 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
-export interface LearningGenerationInput {
-  organizationId: string;
-  brandId: string;
-  format: LearningScope['format'];
-  context?: LearningGenerationContext;
-  harnessEnabled: boolean;
-  compatible: boolean;
-  originalPrompt: string;
-}
-export interface LearningBatchGenerationInput
-  extends Omit<LearningGenerationInput, 'context'> {
-  context: Omit<
-    LearningGenerationContext,
-    'candidateIndex' | 'generationId'
-  > & {
-    credentialId: string;
-  };
-  candidates: Array<{ candidateIndex: number; generationId?: string }>;
-  replayOnly?: boolean;
-}
+
+export type {
+  LearningBatchGenerationInput,
+  LearningGenerationInput,
+} from '@api/collections/content-learning/services/learning-decision-batch.helper';
 export interface LearningResolution {
   receipt: LearningGenerationReceipt;
   contribution: ContentHarnessContribution;
@@ -667,11 +656,12 @@ export class LearningDecisionService {
     const credentialId = context.credentialId;
     return this.prisma.$transaction(async (tx) => {
       await learningFence(tx, 'shared');
+      const candidate = { ...input, context };
       const [resolution] = await this.resolveCandidates(
         tx,
-        input,
+        candidate,
         credentialId,
-        [input],
+        [candidate],
         false,
       );
       return resolution;
@@ -685,34 +675,8 @@ export class LearningDecisionService {
   async resolveBatchForGeneration(
     input: LearningBatchGenerationInput,
   ): Promise<LearningResolution[]> {
-    const { candidates, context, replayOnly = false, ...shared } = input;
-    const indexes = candidates.map(({ candidateIndex }) => candidateIndex);
-    if (
-      !candidates.length ||
-      candidates.length > 50 ||
-      new Set(indexes).size !== indexes.length ||
-      indexes.some((index) => !Number.isInteger(index) || index < 0) ||
-      candidates.some(
-        ({ generationId }) =>
-          generationId !== undefined &&
-          (!generationId || generationId.length > 256),
-      ) ||
-      !context.requestKey ||
-      context.requestKey.length > 256 ||
-      !context.credentialId
-    )
-      throw new BadRequestException('Invalid learning request identity');
-    const inputs = candidates.map(
-      ({ candidateIndex, generationId }): LearningGenerationInput => ({
-        ...shared,
-        context: {
-          ...context,
-          candidateIndex,
-          ...(generationId === undefined ? {} : { generationId }),
-        },
-      }),
-    );
-    const credentialId = context.credentialId;
+    const { inputs, credentialId, replayOnly } =
+      learningBatchCandidateInputs(input);
     return this.prisma.$transaction(
       async (tx) => {
         await learningFence(tx, 'shared');
@@ -727,37 +691,15 @@ export class LearningDecisionService {
       { maxWait: 5000, timeout: 30000 },
     );
   }
-  private candidateIdentity(
-    input: LearningGenerationInput,
-    credentialId: string,
-  ) {
-    const context = input.context as LearningGenerationContext;
-    const objective = context.objective ?? 'awareness',
-      destinationKey = learningHash([credentialId, input.format, objective]);
-    const payloadHash = learningHash([
-      input.originalPrompt,
-      input.harnessEnabled,
-      input.compatible,
-      context,
-      input.format,
-    ]);
-    return {
-      objective,
-      destinationKey,
-      payloadHash,
-      requestKey: context.requestKey,
-      candidateIndex: context.candidateIndex,
-    };
-  }
   private async resolveCandidates(
     tx: Prisma.TransactionClient,
-    base: LearningGenerationInput,
+    base: LearningCandidateInput,
     credentialId: string,
-    inputs: LearningGenerationInput[],
+    inputs: LearningCandidateInput[],
     replayOnly: boolean,
   ): Promise<LearningResolution[]> {
     const identities = inputs.map((input) =>
-      this.candidateIdentity(input, credentialId),
+      learningCandidateIdentity(input, credentialId),
     );
     const results: Array<LearningResolution | undefined> = [];
     const existing = await Promise.all(
@@ -865,6 +807,37 @@ export class LearningDecisionService {
       else create.push(index);
     }
     if (!create.length) return results as LearningResolution[];
+    return this.createBaselineDecisions(tx, {
+      base,
+      inputs,
+      identities,
+      create,
+      results,
+      credentialId: credential.id,
+      account,
+      platform,
+    });
+  }
+  private async createBaselineDecisions(
+    tx: Prisma.TransactionClient,
+    batch: {
+      base: LearningCandidateInput;
+      inputs: LearningCandidateInput[];
+      identities: Array<ReturnType<typeof learningCandidateIdentity>>;
+      create: number[];
+      results: Array<LearningResolution | undefined>;
+      credentialId: string;
+      account: ContentLearningAccount;
+      platform: string;
+    },
+  ): Promise<LearningResolution[]> {
+    const { base, inputs, identities, create, results, account, platform } =
+      batch;
+    const credential = { id: batch.credentialId };
+    const fill = (resolution: () => LearningResolution) => {
+      for (const index of create) results[index] ??= resolution();
+      return results as LearningResolution[];
+    };
     const objective = identities[create[0]].objective;
     const profiles = learningRegisteredProfiles(
       platform,
@@ -924,7 +897,7 @@ export class LearningDecisionService {
               ? 'insufficient_baseline'
               : 'experiment_assignment_unavailable'));
     for (const index of create) {
-      const context = inputs[index].context as LearningGenerationContext;
+      const context = inputs[index].context;
       const decision = await tx.contentLearningDecision.create({
         data: {
           organizationId: base.organizationId,
@@ -982,57 +955,13 @@ export class LearningDecisionService {
     }
     return results as LearningResolution[];
   }
-  async bindArtifact(
-    organizationId: string,
-    decisionId: string,
-    postId: string,
-  ): Promise<string> {
-    return this.prisma.$transaction(async (tx) => {
-      await learningFence(tx, 'shared');
-      await tx.$queryRaw`SELECT id FROM content_learning_decisions WHERE id = ${decisionId} AND "organizationId" = ${organizationId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
-      const decision = await tx.contentLearningDecision.findFirst({
-        where: {
-          id: decisionId,
-          organizationId,
-          isDeleted: false,
-          synthetic: false,
-        },
-      });
-      if (
-        !decision ||
-        decision.generationId !== postId ||
-        !learningDecisionDescriptorValid(decision)
-      )
-        throw new ConflictException('Decision artifact mismatch');
-      const post = await tx.post.findFirst({
-        where: {
-          id: postId,
-          organizationId,
-          brandId: decision.brandId,
-          credentialId: decision.credentialId,
-          isDeleted: false,
-        },
-        select: learningArtifactPostSelect,
-      });
-      const hash = post ? learningPostArtifactHashV1(post, decision) : null;
-      if (!hash) throw new ConflictException('Decision artifact mismatch');
-      if (decision.finalArtifactHash && decision.finalArtifactHash !== hash)
-        throw new ConflictException(
-          'Decision already bound to another artifact',
-        );
-      if (!['pending', 'generated'].includes(decision.state))
-        throw new ConflictException('Decision is no longer bindable');
-      await tx.contentLearningDecision.updateMany({
-        where: {
-          id: decisionId,
-          organizationId,
-          isDeleted: false,
-          finalArtifactHash: null,
-        },
-        data: { finalArtifactHash: hash, state: 'generated' },
-      });
-      return hash;
-    });
+  bindArtifact(organizationId: string, decisionId: string, postId: string) {
+    return bindLearningArtifactV1(
+      this.prisma,
+      organizationId,
+      decisionId,
+      postId,
+    );
   }
   bindPublication(organizationId: string, postId: string) {
     return bindLearningPublicationV1(this.prisma, organizationId, postId);
