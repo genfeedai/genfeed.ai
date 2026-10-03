@@ -273,6 +273,12 @@ export class BatchGenerationReconcileService {
     } catch (error: unknown) {
       this.logger.error('Generation hold reconciliation failed', error);
     }
+    // Charge outputs that completed after their hold expired (#5886).
+    try {
+      await this.generationBilling.reconcileLateCompletions();
+    } catch (error: unknown) {
+      this.logger.error('Generation late charge reconciliation failed', error);
+    }
     await this.reservationService.expireDue();
   }
 
