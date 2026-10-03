@@ -212,33 +212,36 @@ describe('ArticlesService public slug uniqueness', () => {
     expect(delegate.update).toHaveBeenCalled();
   });
 
-  it.each([
-    ['create', 'create'],
-    ['update', 'update'],
-  ] as const)(
-    'maps a lost race on the unique index to 409 on %s',
-    async (operation) => {
+  describe('a lost race on the unique index', () => {
+    const violation = Object.assign(new Error('Unique constraint failed'), {
+      code: 'P2002',
+      meta: { target: ['slug'] },
+    });
+
+    it('maps to 409 on create', async () => {
       const { delegate, service } = buildService({ holder: null });
-      const violation = Object.assign(new Error('Unique constraint failed'), {
-        code: 'P2002',
-        meta: { target: ['slug'] },
-      });
-      delegate[operation].mockRejectedValue(violation);
+      delegate.create.mockRejectedValue(violation);
 
-      const attempt =
-        operation === 'create'
-          ? service.createArticle(publishedDto, userId, organizationId, brandId)
-          : service.update(
-              articleId,
-              { status: ArticleStatus.PUBLISHED } as UpdateArticleDto,
-              userId,
-              organizationId,
-              brandId,
-            );
+      await expect(
+        service.createArticle(publishedDto, userId, organizationId, brandId),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
 
-      await expect(attempt).rejects.toBeInstanceOf(ConflictException);
-    },
-  );
+    it('maps to 409 on update', async () => {
+      const { delegate, service } = buildService({ holder: null });
+      delegate.update.mockRejectedValue(violation);
+
+      await expect(
+        service.update(
+          articleId,
+          { status: ArticleStatus.PUBLISHED } as UpdateArticleDto,
+          userId,
+          organizationId,
+          brandId,
+        ),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
 
   it('does not mask unrelated database errors', async () => {
     const { delegate, service } = buildService({ holder: null });
