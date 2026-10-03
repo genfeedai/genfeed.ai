@@ -8,7 +8,7 @@
     "@electric-sql/pglite": "0.5.8",
     "@prisma/client": "7.10.0",
     "@prisma/driver-adapter-utils": "7.10.0",
-    "prisma-pglite": "3.0.1"
+    "prisma-pglite": "3.0.2"
   },
   "devDependencies": {
     "@genfeedai/tsconfig": "workspace:*",

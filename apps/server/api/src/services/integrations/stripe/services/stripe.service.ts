@@ -72,7 +72,7 @@ type StripeWebhookEvent = Awaited<
 export type { UpcomingInvoicePreview } from '@api/services/integrations/stripe/services/stripe-upcoming-invoice-lines.util';
 
 const STRIPE_PINNED_API_VERSION: StripeConstructor.LatestApiVersion =
-  '2026-08-26.dahlia';
+  '2026-09-30.endive';
 
 function resolveStripeApiVersion(
   configured: string | undefined,
@@ -453,7 +453,7 @@ export class StripeService {
           userId,
         },
         mode,
-        payment_method_types: ['card'],
+        allowed_payment_method_types: ['card'],
         saved_payment_method_options: {
           payment_method_remove: 'enabled',
           payment_method_save: 'enabled',
@@ -553,7 +553,7 @@ export class StripeService {
         ],
         metadata,
         mode: 'payment',
-        payment_method_types: ['card'],
+        allowed_payment_method_types: ['card'],
         success_url:
           successUrl ||
           `${this.configService.get('GENFEEDAI_APP_URL')}/credits/success?session_id={CHECKOUT_SESSION_ID}`,
@@ -810,7 +810,7 @@ export class StripeService {
             },
           ],
           mode: 'subscription',
-          payment_method_types: ['card'],
+          allowed_payment_method_types: ['card'],
           saved_payment_method_options: {
             payment_method_remove: 'enabled',
             payment_method_save: 'enabled',
@@ -851,7 +851,7 @@ export class StripeService {
             plan_type: 'payg',
           },
           mode: 'payment',
-          payment_method_types: ['card'],
+          allowed_payment_method_types: ['card'],
           saved_payment_method_options: {
             payment_method_remove: 'enabled',
             payment_method_save: 'enabled',
@@ -882,7 +882,7 @@ export class StripeService {
             },
           ],
           mode: isRecurring ? 'subscription' : 'payment',
-          payment_method_types: ['card'],
+          allowed_payment_method_types: ['card'],
           saved_payment_method_options: {
             payment_method_remove: 'enabled',
             payment_method_save: 'enabled',
