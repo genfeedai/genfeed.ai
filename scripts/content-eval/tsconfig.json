@@ -63,7 +63,8 @@
       "@serializers/*": ["../../packages/serializers/src/*"]
     },
     "target": "ES2022",
-    "types": ["node"]
+    "types": ["node"],
+    "useDefineForClassFields": false
   },
   "include": ["**/*.ts"]
 }
