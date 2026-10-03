@@ -3707,6 +3707,18 @@
         "confidence": "Confidence"
       }
     },
+    "identityPreview": {
+      "title": "Approved identity preview",
+      "open": "View current approved identity",
+      "savedVersion": "Save or discard your changes to view the current approved identity.",
+      "loading": "Loading the current approved identity…",
+      "refresh": "Reload approved identity",
+      "close": "Close preview",
+      "unavailable": "The current approved identity cannot be shown. This does not mean the brand guide is missing or unapproved.",
+      "integrityFailed": "The saved identity did not match its recorded details, so it is not shown.",
+      "assetsUnavailable": "A saved brand asset for this identity is unavailable.",
+      "loadFailed": "Could not load the current approved identity. Try again."
+    },
     "approvedContent": {
       "title": "Approved wording and asset text",
       "description": "Review the complete wording and the text visible in each saved asset before approving this revision.",
@@ -4645,6 +4657,42 @@
     "promptNotRecorded": "No prompt was recorded for this stage.",
     "promptPending": "Prompt retention is pending.",
     "noValidation": "No artifact validation has been recorded.",
-    "details": "Saved details"
+    "details": "Saved details",
+    "identitySnapshot": {
+      "currentTitle": "Current approved identity",
+      "recordedTitle": "Recorded brand identity",
+      "receiptTitle": "Identity recorded for receipt revision {revision}",
+      "recordedApproved": "Approved when recorded.",
+      "recordedProvisional": "Provisional when recorded. This identity was not approved at the time.",
+      "recordedNote": "Shown exactly as saved. This does not verify facts, asset availability, font rendering or readiness to generate.",
+      "unavailable": "The saved brand identity is unavailable.",
+      "identity": "Identity",
+      "voice": "Voice",
+      "diagnostics": "Recorded diagnostics",
+      "fields": {
+        "revisionId": "Brand revision ID",
+        "revisionVersion": "Brand revision",
+        "resolvedAt": "Resolved at",
+        "contentHash": "Content hash",
+        "schemaVersion": "Schema version",
+        "name": "Name",
+        "description": "Description",
+        "positioning": "Positioning",
+        "language": "Language",
+        "tone": "Tone",
+        "style": "Style",
+        "audience": "Audience",
+        "values": "Values",
+        "messagingPillars": "Messaging pillars",
+        "avoid": "Avoid",
+        "sample": "Sample",
+        "guidelines": "Guidelines",
+        "code": "Code",
+        "severity": "Severity",
+        "message": "Message",
+        "ruleId": "Rule ID",
+        "evidenceIds": "Evidence IDs"
+      }
+    }
   }
 }

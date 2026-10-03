@@ -103,7 +103,7 @@ function click(key: string) {
     }),
   );
 }
-describe('unmounted current saved identity panel with real hook and SDK', () => {
+describe('current saved identity panel with real hook and SDK', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     mocks.getToken.mockReset().mockResolvedValue('token');
