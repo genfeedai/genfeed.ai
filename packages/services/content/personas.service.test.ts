@@ -78,6 +78,19 @@ describe('PersonasService', () => {
     });
   });
 
+  it('moves the owning brand through the ownership route', async () => {
+    const patch = vi.fn().mockResolvedValue({
+      data: { attributes: { label: 'Anna' }, id: 'p1', type: 'personas' },
+    });
+    (service as unknown as { instance: { patch: typeof patch } }).instance = {
+      patch,
+    };
+
+    await service.moveOwnership('p1', 'b2');
+
+    expect(patch).toHaveBeenCalledWith('/p1/owner', { brandId: 'b2' });
+  });
+
   it('maps availability fields onto character list items', async () => {
     vi.spyOn(service, 'findAll').mockResolvedValue([
       new Persona({
