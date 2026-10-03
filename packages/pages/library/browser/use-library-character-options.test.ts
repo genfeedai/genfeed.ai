@@ -6,9 +6,11 @@ const { listAllCharacters } = vi.hoisted(() => ({
   listAllCharacters: vi.fn(),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => () => Promise.resolve({ listAllCharacters }),
-}));
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => {
+  // Stable identity, as the real hook returns.
+  const getService = () => Promise.resolve({ listAllCharacters });
+  return { useAuthedService: () => getService };
+});
 
 vi.mock('@genfeedai/services/content/personas.service', () => ({
   PersonasService: { getInstance: vi.fn() },
