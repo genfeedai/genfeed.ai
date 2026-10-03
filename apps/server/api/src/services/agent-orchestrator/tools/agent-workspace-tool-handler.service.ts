@@ -6,6 +6,7 @@ import type { IngredientDocument } from '@api/collections/ingredients/schemas/in
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
 import { resolvePublishValidationMedia } from '@api/services/agent-orchestrator/tools/agent-publish-target.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
@@ -13,6 +14,7 @@ import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import {
   categoryToPlural,
   IngredientCategory,
+  MemberRole,
   parseIngredientOrigin,
   TargetExecutionState,
 } from '@genfeedai/contracts';
@@ -45,6 +47,12 @@ type AgentMembersServiceLike = {
     role?: { key?: unknown } | null;
   } | null>;
 };
+
+const MEMBER_ROLES: ReadonlySet<string> = new Set(Object.values(MemberRole));
+
+function isMemberRole(value: string): value is MemberRole {
+  return MEMBER_ROLES.has(value);
+}
 
 /**
  * Workspace read tools: credits, brands, posts list, studio handoff.
@@ -136,7 +144,12 @@ export class AgentWorkspaceToolHandler {
         },
         [PopulateBuilder.withFields('role', ['id', 'key', 'label'])],
       );
-      return typeof member?.role?.key === 'string' ? member.role.key : '';
+      const key = typeof member?.role?.key === 'string' ? member.role.key : '';
+      // An API key never inherits its issuer's org-admin role without an
+      // explicit admin scope — the same cap `/auth/whoami` applies.
+      return ctx.apiKeyContext && isMemberRole(key)
+        ? resolveApiKeyEffectiveMemberRole(ctx.apiKeyContext, key)
+        : key;
     } catch {
       return '';
     }
@@ -222,7 +235,9 @@ export class AgentWorkspaceToolHandler {
       );
     }
 
+    const brandId = ctx.brandId ?? ctx.validatedScope?.brandId;
     const assets = await this.ingredientsService.listLibraryAssets({
+      ...(brandId ? { brandId } : {}),
       category: ASSET_TYPE_CATEGORY[type],
       limit: clampInteger(params.limit, 10, 1, 50),
       offset: clampInteger(params.offset, 0, 0, Number.MAX_SAFE_INTEGER),

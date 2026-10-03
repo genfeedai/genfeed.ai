@@ -497,6 +497,25 @@ describe('IngredientsService', () => {
       );
     });
 
+    it('adds the brand filter for a brand-scoped caller', async () => {
+      await service.listLibraryAssets({
+        brandId: 'brand-1',
+        category: IngredientCategory.IMAGE,
+        limit: 10,
+        offset: 0,
+        organizationId,
+      });
+
+      const arg = ingredientDelegate.findMany.mock.calls.at(-1)?.[0] as {
+        where: Record<string, unknown>;
+      };
+      expect(arg.where).toMatchObject({
+        brandId: 'brand-1',
+        isDeleted: false,
+        organizationId,
+      });
+    });
+
     it('omits the origin filter when none is given', async () => {
       await service.listLibraryAssets({
         category: IngredientCategory.VIDEO,

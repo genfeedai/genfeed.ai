@@ -277,7 +277,7 @@ describe('AgentWorkspaceToolHandler.listAssets library assets', () => {
     cdnUrl: 'https://cdn.example.test/img-1.png',
   };
 
-  it('scopes the listing to the caller organization with defaults', async () => {
+  it('scopes the listing to the caller organization and brand with defaults', async () => {
     const ingredients = {
       listLibraryAssets: vi.fn().mockResolvedValue([row]),
     };
@@ -287,6 +287,7 @@ describe('AgentWorkspaceToolHandler.listAssets library assets', () => {
     );
 
     expect(ingredients.listLibraryAssets).toHaveBeenCalledWith({
+      brandId: 'brand-b',
       category: IngredientCategory.IMAGE,
       limit: 10,
       offset: 0,
@@ -334,6 +335,18 @@ describe('AgentWorkspaceToolHandler.listAssets library assets', () => {
     await handler.listAssets({ type: 'avatar' }, baseCtx);
     expect(ingredients.listLibraryAssets).toHaveBeenLastCalledWith(
       expect.objectContaining({ category: IngredientCategory.AVATAR }),
+    );
+  });
+
+  it('lists across the organization when the caller has no brand scope', async () => {
+    const ingredients = { listLibraryAssets: vi.fn().mockResolvedValue([]) };
+    await buildHandler({ ingredients }).listAssets({ type: 'image' }, {
+      organizationId: 'org-1',
+      userId: 'user-1',
+    } as ToolExecutionContext);
+
+    expect(ingredients.listLibraryAssets.mock.calls[0][0]).not.toHaveProperty(
+      'brandId',
     );
   });
 
@@ -424,6 +437,26 @@ describe('AgentWorkspaceToolHandler.getAccount', () => {
     expect(credits.getOrganizationCreditsBalance).toHaveBeenCalledWith('org-1');
     expect(transactions.getUsageMetrics).not.toHaveBeenCalled();
     expect(members.findOne).not.toHaveBeenCalled();
+  });
+
+  it('caps an API key at user unless it carries the admin scope', async () => {
+    const { handler } = accountHandler();
+    const apiKeyCtx = {
+      ...baseCtx,
+      apiKeyContext: { isApiKey: true, scopes: [] },
+    } as ToolExecutionContext;
+    const capped = await handler.getAccount(
+      { include: ['profile'] },
+      apiKeyCtx,
+    );
+    expect((capped.data as { profile: { role: string } }).profile.role).toBe(
+      'user',
+    );
+
+    const session = await handler.getAccount({ include: ['profile'] }, baseCtx);
+    expect((session.data as { profile: { role: string } }).profile.role).toBe(
+      'admin',
+    );
   });
 
   it('fails closed to an empty role and rejects unknown sections', async () => {

@@ -256,10 +256,12 @@ export class IngredientsService extends BaseService<
 
   /**
    * One page of an organization's Library assets of a single category, newest
-   * first. Scoped by `organizationId` and `isDeleted: false`; training
-   * ingredients are not Library assets, matching the Library list endpoints.
+   * first. Scoped by `organizationId` and `isDeleted: false`, and by `brandId`
+   * when the caller is brand-scoped; training ingredients are not Library
+   * assets, matching the Library list endpoints.
    */
   async listLibraryAssets(params: {
+    brandId?: string;
     category: IngredientCategory;
     limit: number;
     offset: number;
@@ -272,6 +274,7 @@ export class IngredientsService extends BaseService<
       skip: params.offset,
       take: params.limit,
       where: scopedWhere(params.organizationId, {
+        ...(params.brandId ? { brandId: params.brandId } : {}),
         category: params.category,
         trainingId: null,
         ...(params.origin ? { origin: params.origin } : {}),
