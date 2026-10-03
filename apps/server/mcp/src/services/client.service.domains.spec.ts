@@ -101,10 +101,10 @@ describe('ClientService (MCP) domain clients', () => {
     const gated = { content, outcome: 'shadow_flagged', confidence: 0.99 };
     mockAxiosInstance.post.mockResolvedValue({ data: gated });
     expect(
-      await service.evaluateMcpToolResult('search_articles', content),
+      await service.evaluateMcpToolResult('get_articles', content),
     ).toEqual(gated);
     expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-      '/agent-tools/search_articles/result-gate',
+      '/agent-tools/get_articles/result-gate',
       { content },
     );
   });
@@ -114,7 +114,7 @@ describe('ClientService (MCP) domain clients', () => {
     async (response) => {
       mockAxiosInstance.post.mockResolvedValue(response);
       await expect(
-        service.evaluateMcpToolResult('search_articles', 'RAW_SECRET'),
+        service.evaluateMcpToolResult('get_articles', 'RAW_SECRET'),
       ).rejects.toThrow('MCP result classification unavailable');
       expect(JSON.stringify(mockLoggerService.error.mock.calls)).not.toContain(
         'RAW_SECRET',
@@ -127,7 +127,7 @@ describe('ClientService (MCP) domain clients', () => {
       response: { data: { errors: [{ detail: 'RAW_SECRET' }] } },
     });
     await expect(
-      service.evaluateMcpToolResult('search_articles', 'RAW_SECRET'),
+      service.evaluateMcpToolResult('get_articles', 'RAW_SECRET'),
     ).rejects.toThrow('MCP result classification unavailable');
     expect(JSON.stringify(mockLoggerService.error.mock.calls)).not.toContain(
       'RAW_SECRET',

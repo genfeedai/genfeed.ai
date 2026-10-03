@@ -23,11 +23,9 @@ function tool(overrides: Partial<McpToolOutput> = {}): McpToolOutput {
   };
 }
 
-/** The nine `core` tools a plain `user` can see (everything but `resolve_approval`). */
+/** The seven `core` tools a plain `user` can see (everything but `resolve_approval`). */
 const USER_VISIBLE_CORE_TOOL_NAMES = [
-  'list_toolsets',
-  'search_tools',
-  'describe_tool',
+  'find_tools',
   'get_account_info',
   'list_brands',
   'get_brand',
@@ -75,7 +73,7 @@ function expectError(
 }
 
 describe('handleToolDiscoveryTool', () => {
-  describe('list_toolsets', () => {
+  describe('find_tools with no arguments (list toolsets)', () => {
     it('summarizes every toolset visible to the caller with counts, ordered and described by the static catalog', () => {
       const registry: ToolDiscoverySource = {
         getDiscoverableTools: () => [
@@ -84,7 +82,7 @@ describe('handleToolDiscoveryTool', () => {
         ],
       };
 
-      const result = handleToolDiscoveryTool(registry, 'list_toolsets', {});
+      const result = handleToolDiscoveryTool(registry, 'find_tools', {});
       expectSuccess(result);
 
       expect(result.content[0].text).toContain(
@@ -97,7 +95,7 @@ describe('handleToolDiscoveryTool', () => {
         toolCount: number;
         toolNames: string[];
       }>;
-      // TOOLSETS lists `content` before `core` alphabetically — `list_toolsets`
+      // TOOLSETS lists `content` before `core` alphabetically — `find_tools`
       // must follow the static catalog's order, not discovery order.
       expect(toolsets.map((toolset) => toolset.name)).toEqual([
         'content',
@@ -110,7 +108,7 @@ describe('handleToolDiscoveryTool', () => {
         getDiscoverableTools: () => [tool({ name: 'create_post' })],
       };
 
-      const result = handleToolDiscoveryTool(registry, 'list_toolsets', {});
+      const result = handleToolDiscoveryTool(registry, 'find_tools', {});
       expectSuccess(result);
 
       const toolsets = result.structuredContent?.toolsets as Array<{
@@ -119,7 +117,7 @@ describe('handleToolDiscoveryTool', () => {
       expect(toolsets.map((toolset) => toolset.name)).toEqual(['content']);
     });
 
-    it('is role-aware: a plain user sees core with 9 tools and never sees resolve_approval', () => {
+    it('is role-aware: a plain user sees core with 7 tools and never sees resolve_approval', () => {
       // `getDiscoverableTools` is the registry's job to pre-filter by role —
       // this fixture simulates what a `user`-scoped registry returns: every
       // core tool except the superadmin-gated `resolve_approval`.
@@ -127,7 +125,7 @@ describe('handleToolDiscoveryTool', () => {
         getDiscoverableTools: () => USER_VISIBLE_CORE_TOOL_NAMES.map(coreTool),
       };
 
-      const result = handleToolDiscoveryTool(registry, 'list_toolsets', {});
+      const result = handleToolDiscoveryTool(registry, 'find_tools', {});
       expectSuccess(result);
 
       const toolsets = result.structuredContent?.toolsets as Array<{
@@ -137,7 +135,7 @@ describe('handleToolDiscoveryTool', () => {
       }>;
       const core = toolsets.find((toolset) => toolset.name === 'core');
 
-      expect(core?.toolCount).toBe(9);
+      expect(core?.toolCount).toBe(7);
       expect(core?.toolNames).not.toContain('resolve_approval');
     });
 
@@ -147,7 +145,7 @@ describe('handleToolDiscoveryTool', () => {
         getIgnoredEmptyToolsets: () => ['goals'],
       };
 
-      const result = handleToolDiscoveryTool(registry, 'list_toolsets', {});
+      const result = handleToolDiscoveryTool(registry, 'find_tools', {});
       expectSuccess(result);
 
       expect(result.content[0].text).toContain(
@@ -157,7 +155,7 @@ describe('handleToolDiscoveryTool', () => {
     });
   });
 
-  describe('search_tools', () => {
+  describe('find_tools with query or toolset (search)', () => {
     const registry: ToolDiscoverySource = {
       getDiscoverableTools: () => [
         tool({ description: 'Create a post', name: 'create_post' }),
@@ -178,18 +176,20 @@ describe('handleToolDiscoveryTool', () => {
       ],
     };
 
-    it('rejects a search with neither query nor toolset', () => {
-      const result = handleToolDiscoveryTool(registry, 'search_tools', {});
-      expectError(result);
+    it('lists toolsets rather than erroring when query and toolset are both empty', () => {
+      const result = handleToolDiscoveryTool(registry, 'find_tools', {
+        query: '  ',
+        toolset: '',
+      });
+      expectSuccess(result);
 
-      expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain(
-        'requires at least one of "query" or "toolset"',
-      );
+      expect(result.content[0].text).toContain('Available toolsets:');
+      expect(result.structuredContent?.toolsets).toBeDefined();
+      expect(result.structuredContent?.tools).toBeUndefined();
     });
 
     it('matches case-insensitively across name, description, and toolset', () => {
-      const result = handleToolDiscoveryTool(registry, 'search_tools', {
+      const result = handleToolDiscoveryTool(registry, 'find_tools', {
         query: 'IMAGE',
       });
       expectSuccess(result);
@@ -200,7 +200,7 @@ describe('handleToolDiscoveryTool', () => {
     });
 
     it('filters by toolset', () => {
-      const result = handleToolDiscoveryTool(registry, 'search_tools', {
+      const result = handleToolDiscoveryTool(registry, 'find_tools', {
         toolset: 'generation',
       });
       expectSuccess(result);
@@ -214,7 +214,7 @@ describe('handleToolDiscoveryTool', () => {
     });
 
     it('lowercases and trims the toolset filter before matching', () => {
-      const result = handleToolDiscoveryTool(registry, 'search_tools', {
+      const result = handleToolDiscoveryTool(registry, 'find_tools', {
         toolset: '  Generation  ',
       });
       expectSuccess(result);
@@ -225,7 +225,7 @@ describe('handleToolDiscoveryTool', () => {
     });
 
     it('returns an isError result naming the valid MCP toolsets for an unknown toolset filter', () => {
-      const result = handleToolDiscoveryTool(registry, 'search_tools', {
+      const result = handleToolDiscoveryTool(registry, 'find_tools', {
         toolset: 'not-a-real-toolset',
       });
       expectError(result);
@@ -239,7 +239,7 @@ describe('handleToolDiscoveryTool', () => {
     });
 
     it('reports mutationPolicy, creditCost, and requiredRole per hit', () => {
-      const result = handleToolDiscoveryTool(registry, 'search_tools', {
+      const result = handleToolDiscoveryTool(registry, 'find_tools', {
         query: 'generate',
       });
       expectSuccess(result);
@@ -257,7 +257,7 @@ describe('handleToolDiscoveryTool', () => {
     });
 
     it('caps results at the provided limit', () => {
-      const result = handleToolDiscoveryTool(registry, 'search_tools', {
+      const result = handleToolDiscoveryTool(registry, 'find_tools', {
         limit: 1,
         query: 'tool',
       });
@@ -267,7 +267,7 @@ describe('handleToolDiscoveryTool', () => {
     });
 
     it('returns a "no matches" message rather than an error for zero hits', () => {
-      const result = handleToolDiscoveryTool(registry, 'search_tools', {
+      const result = handleToolDiscoveryTool(registry, 'find_tools', {
         query: 'nothing-matches-this',
       });
       expectSuccess(result);
@@ -276,7 +276,7 @@ describe('handleToolDiscoveryTool', () => {
     });
 
     it('respects whatever the caller-role filter already excluded upstream', () => {
-      const result = handleToolDiscoveryTool(registry, 'search_tools', {
+      const result = handleToolDiscoveryTool(registry, 'find_tools', {
         query: 'admin',
       });
       expectSuccess(result);
@@ -293,7 +293,7 @@ describe('handleToolDiscoveryTool', () => {
     });
   });
 
-  describe('describe_tool', () => {
+  describe('find_tools with name (describe)', () => {
     const registry: ToolDiscoverySource = {
       getDiscoverableTools: () => [
         tool({ description: 'Create a post', name: 'create_post' }),
@@ -301,16 +301,31 @@ describe('handleToolDiscoveryTool', () => {
       ],
     };
 
-    it('requires a name', () => {
-      const result = handleToolDiscoveryTool(registry, 'describe_tool', {});
-      expectError(result);
+    it('treats a blank name as no name and lists toolsets', () => {
+      const result = handleToolDiscoveryTool(registry, 'find_tools', {
+        name: '   ',
+      });
+      expectSuccess(result);
 
-      expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('requires "name"');
+      expect(result.content[0].text).toContain('Available toolsets:');
+    });
+
+    it('prefers name over query and toolset', () => {
+      const result = handleToolDiscoveryTool(registry, 'find_tools', {
+        name: 'create_post',
+        query: 'article',
+        toolset: 'content',
+      });
+      expectSuccess(result);
+
+      expect(result.structuredContent?.tool).toMatchObject({
+        name: 'create_post',
+      });
+      expect(result.structuredContent?.tools).toBeUndefined();
     });
 
     it('returns the full tool output for a known tool', () => {
-      const result = handleToolDiscoveryTool(registry, 'describe_tool', {
+      const result = handleToolDiscoveryTool(registry, 'find_tools', {
         name: 'create_post',
       });
       expectSuccess(result);
@@ -322,7 +337,7 @@ describe('handleToolDiscoveryTool', () => {
     });
 
     it('suggests the closest matches for an unknown tool name', () => {
-      const result = handleToolDiscoveryTool(registry, 'describe_tool', {
+      const result = handleToolDiscoveryTool(registry, 'find_tools', {
         name: 'create_post_typo',
       });
       expectError(result);
@@ -335,7 +350,7 @@ describe('handleToolDiscoveryTool', () => {
     });
 
     it('says so when nothing is close', () => {
-      const result = handleToolDiscoveryTool(registry, 'describe_tool', {
+      const result = handleToolDiscoveryTool(registry, 'find_tools', {
         name: 'zzzzzzzzzzzzzzzzzzzz',
       });
 

@@ -34,9 +34,7 @@ describe('ToolRegistryService.classify', () => {
   it.each([
     // Tool discovery meta tools are handled entirely in-process (no API
     // call); they classify first so nothing else can shadow them.
-    ['list_toolsets', 'tool-discovery'],
-    ['search_tools', 'tool-discovery'],
-    ['describe_tool', 'tool-discovery'],
+    ['find_tools', 'tool-discovery'],
     ['send_chat_message', 'agent-chat'],
     // inspect_workflow is BOTH an CuratedActionName and a workflow-control tool;
     // precedence must keep it on workflow-control (checked first).
@@ -61,12 +59,14 @@ describe('ToolRegistryService.classify', () => {
     ['get_generation_cost', 'agent-executor'],
     ['get_generation_settings', 'agent-executor'],
     ['set_generation_settings', 'agent-executor'],
-    ['get_video_status', 'generation'],
+    ['get_job_status', 'account-management'],
+    // Removed in favour of get_job_status: no executor claims it any more.
+    ['get_video_status', 'unknown'],
     ['list_videos', 'generation'],
     ['list_images', 'generation'],
     ['merge_videos', 'merge-videos'],
     ['create_article', 'content'],
-    ['search_articles', 'content'],
+    ['get_articles', 'content'],
     ['get_video_analytics', 'analytics'],
     ['get_usage_stats', 'analytics'],
     ['get_workflow_status', 'workflow-status'],
@@ -86,8 +86,7 @@ describe('ToolRegistryService.classify', () => {
     // agent-executor to /agent-tools/:name/execute (re-surfaced in PR 5/6).
     ['generate_content_batch', 'agent-executor'],
     ['list_instagram_inspiration', 'agent-executor'],
-    ['search_x_posts', 'agent-executor'],
-    ['fetch_x_post', 'agent-executor'],
+    ['get_x_posts', 'agent-executor'],
     ['list_x_account_activity', 'agent-executor'],
     ['create_instagram_remix_workflow', 'agent-executor'],
     ['create_ad_remix_workflow', 'agent-executor'],
@@ -107,9 +106,8 @@ describe('ToolRegistryService.classify', () => {
     ['start_remix_generation', 'remix'],
     ['control_remix_generation', 'remix'],
     ['get_scheduled_release', 'scheduler'],
-    ['get_scheduler_capability', 'scheduler'],
+    ['get_scheduler_capabilities', 'scheduler'],
     ['list_brand_publishing_readiness', 'scheduler'],
-    ['list_scheduler_capabilities', 'scheduler'],
     ['update_scheduled_release', 'scheduler'],
     ['validate_scheduler_target', 'scheduler'],
     ['verify_skills_pro_entitlement', 'skills-pro'],
@@ -137,11 +135,11 @@ describe('ToolRegistryService.validateDispatchCoverage', () => {
       { name: 'generate' },
       { name: 'create_brand_from_url' },
       { name: 'get_brand_scan_status' },
-      { name: 'get_video_status' },
+      { name: 'get_job_status' },
       { name: 'list_meta_campaigns' },
       { name: 'resolve_approval' },
       { name: 'create_post' },
-      { name: 'list_toolsets' },
+      { name: 'find_tools' },
     ];
     expect(() => ToolRegistryService.validateDispatchCoverage()).not.toThrow();
   });

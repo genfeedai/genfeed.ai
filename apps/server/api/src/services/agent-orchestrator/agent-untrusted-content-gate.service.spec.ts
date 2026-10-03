@@ -313,7 +313,7 @@ describe('AgentUntrustedContentGateService', () => {
         origin: 'mcp',
         threadId: null,
         toolCallId: 'native',
-        toolName: 'search_articles',
+        toolName: 'get_articles',
       });
 
       expect(result.outcome).toBe('withheld');
@@ -519,7 +519,7 @@ describe('AgentUntrustedContentGateService', () => {
       threadId: null,
       brandId: null,
       toolCallId: 'native',
-      toolName: 'search_articles',
+      toolName: 'get_articles',
     });
     expect(result.outcome).toBe('withheld');
     expect(createAudit).toHaveBeenCalledWith(

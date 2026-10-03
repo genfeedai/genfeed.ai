@@ -12,13 +12,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 const MOCK_TOOLS = [
   { name: 'generate', requiredRole: undefined, surfaces: { mcp: true } },
   {
-    name: 'get_video_status',
+    name: 'get_articles',
     requiredRole: undefined,
     surfaces: { mcp: true },
   },
   { name: 'list_videos', requiredRole: undefined, surfaces: { mcp: true } },
   { name: 'list_images', requiredRole: undefined, surfaces: { mcp: true } },
-  { name: 'search_articles', requiredRole: undefined, surfaces: { mcp: true } },
   { name: 'list_avatars', requiredRole: undefined, surfaces: { mcp: true } },
   { name: 'list_music', requiredRole: undefined, surfaces: { mcp: true } },
   {
@@ -79,6 +78,11 @@ const MOCK_TOOLS = [
   {
     name: 'get_workflow_status',
     requiredRole: 'admin',
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'get_video_analytics',
+    requiredRole: undefined,
     surfaces: { mcp: true },
   },
   {
@@ -172,7 +176,6 @@ describe('ToolRegistryService', () => {
   let service: ToolRegistryService;
   let clientService: {
     executeAgentTool: ReturnType<typeof vi.fn>;
-    getVideoStatus: ReturnType<typeof vi.fn>;
     listVideos: ReturnType<typeof vi.fn>;
     getVideoAnalytics: ReturnType<typeof vi.fn>;
     listImages: ReturnType<typeof vi.fn>;
@@ -252,9 +255,6 @@ describe('ToolRegistryService', () => {
               messages: [{ id: 'msg-1', status: 'received' }],
             }),
             getVideoAnalytics: vi.fn().mockResolvedValue({ views: 1000 }),
-            getVideoStatus: vi
-              .fn()
-              .mockResolvedValue({ progress: 100, status: 'completed' }),
             getWorkflowStatus: vi.fn().mockResolvedValue({
               currentStepIndex: 0,
               id: 'wf-1',
@@ -376,22 +376,10 @@ describe('ToolRegistryService', () => {
     ).toContain('generate');
   });
 
-  it('handleToolCall get_video_status returns status info via generation handler', async () => {
-    const result = await service.handleToolCall({
-      arguments: { videoId: 'vid-1' },
-      name: 'get_video_status',
-    });
-
-    expect(clientService.getVideoStatus).toHaveBeenCalledWith('vid-1');
-    expect(
-      (result as { content: { text: string }[] }).content[0].text,
-    ).toContain('completed');
-  });
-
-  it('handleToolCall get_video_status returns validation details when videoId missing', async () => {
+  it('handleToolCall get_video_analytics returns validation details when videoId missing', async () => {
     const result = await service.handleToolCall({
       arguments: {},
-      name: 'get_video_status',
+      name: 'get_video_analytics',
     });
 
     expect((result as { isError: boolean }).isError).toBe(true);
@@ -569,7 +557,7 @@ describe('ToolRegistryService', () => {
     ['list_images', 'listImages', 'images', ''],
     ['list_avatars', 'listAvatars', 'avatars', ''],
     ['list_music', 'listMusic', 'music tracks', ''],
-    ['search_articles', 'searchArticles', 'articles', ' matching "AI"'],
+    ['get_articles', 'searchArticles', 'articles', ' matching "AI"'],
   ] as const)(
     '%s preserves list and empty result text',
     async (name, method, noun, qualifier) => {

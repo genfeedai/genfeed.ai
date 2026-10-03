@@ -387,12 +387,6 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   { method: 'Post', sub: ':id/result', controller: 'approvals', tools: [] },
 
   // ── Legacy media / content ──
-  {
-    method: 'Get',
-    sub: ':videoId',
-    controller: 'videos',
-    tools: ['get_video_status'],
-  },
   { method: 'Get', sub: '', controller: 'videos', tools: ['list_videos'] },
   {
     method: 'Post',
@@ -413,9 +407,14 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Get',
     sub: BASE_CRUD_LIST,
     controller: 'articles',
-    tools: ['search_articles'],
+    tools: ['get_articles'],
   },
-  { method: 'Get', sub: ':id', controller: 'articles', tools: ['get_article'] },
+  {
+    method: 'Get',
+    sub: ':id',
+    controller: 'articles',
+    tools: ['get_articles'],
+  },
   {
     method: 'Post',
     sub: BASE_CRUD_CREATE,
@@ -661,7 +660,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Get',
     sub: 'channel-capabilities',
     controller: 'schedules',
-    tools: ['list_scheduler_capabilities'],
+    tools: ['get_scheduler_capabilities'],
   },
   {
     method: 'Get',
@@ -673,7 +672,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Get',
     sub: 'channel-capabilities/:platform',
     controller: 'schedules',
-    tools: ['get_scheduler_capability'],
+    tools: ['get_scheduler_capabilities'],
   },
   {
     method: 'Post',
@@ -893,10 +892,9 @@ describe('MCP → API route contract', () => {
         !agentExecutorNames.has(name) &&
         !contractTools.has(name) &&
         name !== 'resolve_approval' &&
-        // Tool discovery meta tools (`list_toolsets`, `search_tools`,
-        // `describe_tool`) are handled entirely in-process against the
-        // registry's own catalog — they never call out to the API, so they
-        // have no mounted route to cover.
+        // The tool discovery meta tool (`find_tools`) is handled entirely
+        // in-process against the registry's own catalog — it never calls out
+        // to the API, so it has no mounted route to cover.
         !TOOL_DISCOVERY_TOOL_NAMES.has(name),
     );
     expect(uncovered).toEqual([]);

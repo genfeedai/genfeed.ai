@@ -163,30 +163,6 @@ describe('ClientService (MCP)', () => {
     });
   });
 
-  describe('getVideoStatus', () => {
-    it('should return video status', async () => {
-      const mockResponse = {
-        data: {
-          data: {
-            attributes: {
-              message: 'Processing',
-              progress: 50,
-              status: 'processing',
-            },
-          },
-        },
-      };
-
-      (mockAxiosInstance.get as Mock).mockResolvedValue(mockResponse);
-
-      const result = await service.getVideoStatus('video-123');
-
-      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/videos/video-123');
-      expect(result.status).toBe('processing');
-      expect(result.progress).toBe(50);
-    });
-  });
-
   describe('mergeVideos', () => {
     it.each([undefined, {}, { id: '' }, { id: '  ' }, { id: 123 }])(
       'refuses to report a merge without a usable output id: %j',

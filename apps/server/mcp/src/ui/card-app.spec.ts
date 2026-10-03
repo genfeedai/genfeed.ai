@@ -148,7 +148,7 @@ it('replaces content on empty, error and approval results', () => {
 });
 
 it('shows long article text, usage zeroes, and truncated list counts', () => {
-  result('get_article', { title: 'Article', content: 'a'.repeat(900) });
+  result('get_articles', { title: 'Article', content: 'a'.repeat(900) });
   expect(document.querySelector('summary')?.textContent).toBe('Read more');
   result('get_usage_stats', { contentCreated: { images: 0 } });
   expect(document.querySelector('.metric')?.textContent).toBe('0');

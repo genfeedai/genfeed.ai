@@ -11,7 +11,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const routes = [
   {
-    name: 'search_articles',
+    name: 'get_articles',
     args: { query: 'article' },
     method: 'searchArticles',
   },
@@ -119,7 +119,7 @@ describe('native MCP untrusted-result integration', () => {
       const observed = JSON.parse(content);
       expect(result).toEqual(withCardResult(name, observed));
       expect(observed).not.toHaveProperty('_meta');
-      if (name === 'search_articles')
+      if (name === 'get_articles')
         expect(observed.structuredContent).toEqual({ data: [raw] });
     },
   );
@@ -137,7 +137,7 @@ describe('native MCP untrusted-result integration', () => {
       content: 'untrusted adapter content',
     });
     const result = await registry().handleToolCall({
-      name: 'search_articles',
+      name: 'get_articles',
       arguments: { query: 'article' },
     });
     expect(result).toEqual({
@@ -156,7 +156,7 @@ describe('native MCP untrusted-result integration', () => {
       new Error('RAW_SECRET transport failure'),
     );
     const result = await registry().handleToolCall({
-      name: 'search_articles',
+      name: 'get_articles',
       arguments: { query: 'article' },
     });
     expect(JSON.stringify(result)).toContain('RAW_SECRET');

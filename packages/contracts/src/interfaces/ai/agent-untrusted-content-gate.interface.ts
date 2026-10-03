@@ -115,6 +115,7 @@ export const WEB_FETCH_TOOLS: ReadonlySet<string> = new Set<string>([
   'capture_knowledge',
   'create_clip_project_from_youtube',
   'get_ad_research_detail',
+  'get_articles',
   'get_instagram_inspiration_detail',
   'get_trends',
   'get_x_posts',
@@ -123,7 +124,6 @@ export const WEB_FETCH_TOOLS: ReadonlySet<string> = new Set<string>([
   'list_outlier_posts',
   'read_knowledge_source',
   'resolve_handle',
-  'get_articles',
   'search_knowledge',
 ]);
 

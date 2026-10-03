@@ -147,7 +147,7 @@ describe('ToolRegistryService toolset-aware listing (getTools / getToolsForRoleA
     _meta: {},
     description: 'core discovery tool',
     inputSchema: { properties: {}, type: 'object' },
-    name: 'list_toolsets',
+    name: 'find_tools',
     requiredRole: 'user',
   } as McpToolOutput;
 
@@ -184,19 +184,19 @@ describe('ToolRegistryService toolset-aware listing (getTools / getToolsForRoleA
   it('still applies the role filter on top of whatever the toolset selection returns', () => {
     expect(names(build('user', ['content']).getTools())).toEqual([
       'create_post',
-      'list_toolsets',
+      'find_tools',
     ]);
     expect(names(build('admin', ['content']).getTools())).toEqual([
       'admin_only_generation_tool',
       'create_post',
-      'list_toolsets',
+      'find_tools',
     ]);
   });
 
   it('an empty selection defers to the shared catalog for "every tool"', () => {
     expect(names(build('user', []).getTools())).toEqual([
       'create_post',
-      'list_toolsets',
+      'find_tools',
     ]);
   });
 
@@ -212,7 +212,7 @@ describe('ToolRegistryService toolset-aware listing (getTools / getToolsForRoleA
 
     expect(
       names(registry.getToolsForRoleAndToolsets('user', ['content'])),
-    ).toEqual(['create_post', 'list_toolsets']);
+    ).toEqual(['create_post', 'find_tools']);
   });
 });
 

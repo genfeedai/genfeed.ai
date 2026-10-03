@@ -10,7 +10,6 @@ import { ToolRegistryService } from '@mcp/services/tool-registry.service';
  * reached through the `resolve_approval` execution path instead.
  */
 const CATALOG_REST_NAMES = [
-  'get_video_status',
   'list_videos',
   'merge_videos',
   'get_video_analytics',
@@ -18,8 +17,7 @@ const CATALOG_REST_NAMES = [
   'create_article_draft',
   'get_article_preview',
   'publish_article',
-  'search_articles',
-  'get_article',
+  'get_articles',
   'list_images',
   'list_avatars',
   'list_music',
@@ -385,7 +383,7 @@ describe('catalog REST handlers — articles', () => {
   it('searches articles and links the result list', async () => {
     const { client, registry } = build();
 
-    const result = await callTool(registry, 'search_articles', {
+    const result = await callTool(registry, 'get_articles', {
       category: 'news',
       limit: 5,
       query: 'ai video',
@@ -407,7 +405,7 @@ describe('catalog REST handlers — articles', () => {
     const { client, registry } = build();
     client.searchArticles.mockResolvedValue([]);
 
-    const result = await callTool(registry, 'search_articles', {
+    const result = await callTool(registry, 'get_articles', {
       query: 'nothing',
     });
 
@@ -416,34 +414,53 @@ describe('catalog REST handlers — articles', () => {
     );
   });
 
-  it('requires a search query', async () => {
-    const { registry } = build();
+  it('requires exactly one of articleId or query', async () => {
+    const { client, registry } = build();
 
-    const result = await callTool(registry, 'search_articles', {});
+    const neither = await callTool(registry, 'get_articles', {});
+    const both = await callTool(registry, 'get_articles', {
+      articleId: 'article-1',
+      query: 'ai video',
+    });
 
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain('query required');
+    for (const result of [neither, both]) {
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain(
+        'Pass exactly one of articleId or query',
+      );
+    }
+    expect(client.getArticle).not.toHaveBeenCalled();
+    expect(client.searchArticles).not.toHaveBeenCalled();
   });
 
   it('renders a single article with a content preview', async () => {
     const { client, registry } = build();
 
-    const result = await callTool(registry, 'get_article', {
+    const result = await callTool(registry, 'get_articles', {
       articleId: 'article-1',
     });
 
     expect(client.getArticle).toHaveBeenCalledWith('article-1');
+    expect(client.searchArticles).not.toHaveBeenCalled();
     expect(result.content[0].text).toContain('Article: AI News');
     expect(result.content[0].text).toContain('Long form body');
   });
 
-  it('requires an articleId', async () => {
-    const { registry } = build();
+  it('rejects search-only fields when fetching one article', async () => {
+    const { client, registry } = build();
 
-    const result = await callTool(registry, 'get_article', {});
+    for (const extra of [{ category: 'news' }, { limit: 5 }]) {
+      const result = await callTool(registry, 'get_articles', {
+        articleId: 'article-1',
+        ...extra,
+      });
 
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain('articleId required');
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain(
+        'category and limit apply only to a query search',
+      );
+    }
+    expect(client.getArticle).not.toHaveBeenCalled();
   });
 });
 

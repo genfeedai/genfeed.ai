@@ -18,7 +18,7 @@ describe('MCP Apps card contract', () => {
       'list_images',
       'list_videos',
       'generate',
-      'get_article',
+      'get_articles',
       'get_usage_stats',
     ]) {
       const tool = tools.find((item) => item.name === name);
@@ -122,6 +122,23 @@ describe('MCP Apps card contract', () => {
   ])('no longer builds cards for the removed %s tool', (name) => {
     expect(buildCardView(name, { id: 'asset' })).toBeUndefined();
   });
+
+  it('builds article cards for both get_articles modes', () => {
+    expect(
+      buildCardView('get_articles', { id: 'a1', title: 'One' })?.cards[0].kind,
+    ).toBe('article');
+    expect(
+      buildCardView('get_articles', [{ id: 'a1', title: 'One' }])?.cards[0]
+        .kind,
+    ).toBe('article');
+  });
+
+  it.each(['get_article', 'search_articles', 'get_video_status'])(
+    'no longer builds cards for the removed %s tool',
+    (name) => {
+      expect(buildCardView(name, { id: 'a1' })).toBeUndefined();
+    },
+  );
 
   it('maps job category and usage zeroes; bounds lists and user text', () => {
     expect(
