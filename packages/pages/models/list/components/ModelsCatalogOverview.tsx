@@ -2,6 +2,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { TabItem } from '@genfeedai/props/ui/navigation/tabs.props';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Layers } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type {
   ModelCatalogOverviewCard,
   ModelCategoryGroupKey,
@@ -37,13 +38,14 @@ export default function ModelsCatalogOverview({
   selectedKey = null,
   total,
 }: ModelsCatalogOverviewProps) {
+  const translate = useTranslations('pages.models');
   const formatCount = (count: number) => (isLoading ? '–' : String(count));
   const items: TabItem[] = [
     {
       badge: <CountBadge count={formatCount(total)} />,
       icon: Layers,
       id: ALL_KEY,
-      label: 'All',
+      label: translate('categoryAll'),
     },
     ...cards.map((card) => ({
       badge: <CountBadge count={formatCount(card.count)} />,
@@ -58,7 +60,7 @@ export default function ModelsCatalogOverview({
       <div className="mb-4 overflow-x-auto pb-1">
         <Tabs
           activeTab={selectedKey ?? ALL_KEY}
-          ariaLabel="Model category"
+          ariaLabel={translate('categoryFilterLabel')}
           className="ml-0 justify-start"
           items={items}
           listClassName="mr-auto"

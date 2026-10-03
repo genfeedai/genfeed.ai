@@ -10,16 +10,18 @@ import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Upload } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 
 /** Organization name, handle and logo — the logo also drives the org switcher. */
 export default function OrganizationIdentityCard({
   organizationId,
 }: OrganizationIdentityCardProps) {
+  const translate = useTranslations('common.settings.organizationIdentity');
   const { organizations, refreshOrganizations } = useRoutedOrganization();
   const { openUpload } = useUploadModal();
   const organization = organizations.find((org) => org.id === organizationId);
-  const label = organization?.label ?? 'Organization';
+  const label = organization?.label ?? translate('title');
   const logoUrl = organization?.logoUrl ?? null;
 
   const handleUploadLogo = useCallback(() => {
@@ -43,13 +45,13 @@ export default function OrganizationIdentityCard({
   }, [openUpload, organizationId, refreshOrganizations]);
 
   return (
-    <Card label="Organization" bodyClassName="p-4">
+    <Card label={translate('title')} bodyClassName="p-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-4">
           <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-muted text-2xl font-semibold text-foreground">
             {logoUrl ? (
               <Image
-                alt={`${label} logo`}
+                alt={translate('logoAlt', { label })}
                 className="size-full object-cover"
                 height={64}
                 sizes="64px"
@@ -71,7 +73,7 @@ export default function OrganizationIdentityCard({
               </p>
             ) : null}
             <p className="mt-1 text-xs text-muted-foreground">
-              Square PNG, JPG or WebP. Shown in the organization switcher.
+              {translate('logoHint')}
             </p>
           </div>
         </div>
@@ -79,7 +81,7 @@ export default function OrganizationIdentityCard({
           className="shrink-0"
           icon={<Upload className="size-3.5" />}
           isDisabled={!organizationId}
-          label={logoUrl ? 'Replace logo' : 'Upload logo'}
+          label={translate(logoUrl ? 'replaceLogo' : 'uploadLogo')}
           onClick={handleUploadLogo}
           variant={ButtonVariant.SECONDARY}
         />

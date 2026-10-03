@@ -547,6 +547,7 @@ describe('BrandsController', () => {
         hasPrevPage: false,
         limit: 20,
         page: 1,
+        pagingCounter: 1,
         totalDocs: 1,
         totalPages: 1,
       };
