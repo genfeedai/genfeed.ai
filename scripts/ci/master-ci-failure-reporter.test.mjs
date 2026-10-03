@@ -694,7 +694,7 @@ test('tests-gate runs on the master suite as well as pull requests', () => {
   const gate = ciJob('tests-gate');
   assert.match(
     gate,
-    /github\.event_name == 'pull_request' \|\| github\.event_name == 'push'/,
+    /github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group' \|\| github\.event_name == 'push'/,
     'tests-gate must produce a conclusive result on the master push run (#2510)',
   );
 });

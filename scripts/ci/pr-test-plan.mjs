@@ -31,11 +31,9 @@ const FORCE_FULL_PATTERNS = [
 // escalates every other group but cannot revive this one.
 export const TEMPORARILY_DISABLED_TEST_GROUPS = new Set(['extensions']);
 
-// Events whose checkout is a proposed change diffed against a known base: only
-// the pull request. Only it may narrow the app/API surfaces by classification;
-// every other event (the master Full Suite, release dispatch) forces
-// both surfaces on.
-const CHANGE_RUN_EVENTS = new Set(['pull_request']);
+// A queue checkout includes all proposed changes above its frozen base.
+// Master/release validation still forces both surfaces on.
+const CHANGE_RUN_EVENTS = new Set(['pull_request', 'merge_group']);
 
 export function isChangeRunEvent(eventName) {
   return CHANGE_RUN_EVENTS.has(eventName);
