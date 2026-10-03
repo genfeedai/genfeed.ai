@@ -394,6 +394,11 @@ async function startMockApiServer(): Promise<Server | null> {
       return;
     }
 
+    if (url.startsWith('/v1/admin/system-notifications')) {
+      jsonResponse(response, buildUnhandledApiMockBody(url));
+      return;
+    }
+
     if (url.includes('/settings')) {
       jsonResponse(response, {
         data: { attributes: bootstrapPayload().settings },
