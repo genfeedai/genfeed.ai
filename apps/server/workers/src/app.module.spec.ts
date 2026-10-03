@@ -8,6 +8,7 @@ vi.hoisted(() => {
 
 import { CacheModule } from '@api/services/cache/cache.module';
 import { MODULE_METADATA } from '@nestjs/common/constants';
+import { NestFactory } from '@nestjs/core';
 import { AppModule } from '@workers/app.module';
 
 describe('AppModule', () => {
@@ -16,5 +17,24 @@ describe('AppModule', () => {
       Reflect.getMetadata(MODULE_METADATA.IMPORTS, AppModule) ?? [];
 
     expect(imports).toContain(CacheModule);
+  });
+
+  // Nest's preview mode resolves every provider's constructor dependencies and
+  // module export boundary without instantiating anything, so a missing
+  // provider or hidden export (v0.2.0: CrunModule hid CrunTaskService) throws
+  // here with no Postgres/Redis or external clients. It is the PR-time
+  // counterpart of the release-time bundle boot check.
+  it('resolves the full dependency graph without instantiating providers', async () => {
+    const app = await NestFactory.createApplicationContext(AppModule, {
+      abortOnError: false,
+      logger: false,
+      preview: true,
+    });
+
+    try {
+      expect(app).toBeDefined();
+    } finally {
+      await app.close();
+    }
   });
 });
