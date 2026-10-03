@@ -66,7 +66,7 @@ const ENTRY_POINTS: readonly GenerationEntryPoint[] = [
     surface: 'lip-sync',
   },
   {
-    file: 'collections/videos/services/avatar-video-generation.service.ts',
+    file: 'collections/videos/services/avatar-video-reference.service.ts',
     path: 'avatar-video',
     surface: 'avatar video (also reached by workflows, batch and Storyboard)',
   },
@@ -142,7 +142,7 @@ const DTO_ENTRY_POINTS: Readonly<Record<string, readonly string[]>> = {
     'collections/videos/controllers/transformations/extend/videos-extend.controller.ts',
   ],
   'collections/videos/dto/create-avatar-video.dto.ts': [
-    'collections/videos/services/avatar-video-generation.service.ts',
+    'collections/videos/services/avatar-video-reference.service.ts',
   ],
 };
 

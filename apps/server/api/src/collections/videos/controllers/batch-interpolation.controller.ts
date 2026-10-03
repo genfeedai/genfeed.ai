@@ -275,7 +275,6 @@ export class BatchInterpolationController {
     return serializeSingle(req, BatchInterpolationSerializer, result);
   }
 
-  /** The requested pairs, plus the loop-back pair when loop mode is on. */
   private buildPairs(dto: BatchInterpolationDto): InterpolationPairDto[] {
     const pairs: InterpolationPairDto[] = [...dto.pairs];
 
@@ -283,7 +282,6 @@ export class BatchInterpolationController {
       const lastPair = pairs[pairs.length - 1];
       const firstPair = pairs[0];
 
-      // Last frame's end to first frame's start closes the loop.
       pairs.push({
         endImageId: firstPair.startImageId,
         prompt: dto.cameraPrompt || 'smooth transition back to start',

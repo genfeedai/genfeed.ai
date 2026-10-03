@@ -8,6 +8,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { PersonasController } from '@api/collections/personas/controllers/personas.controller';
+import { CharacterOwnershipService } from '@api/collections/personas/services/character-ownership.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { brandAvailabilityWhere } from '@api/collections/personas/utils/persona-availability.util';
 import { ValidationException } from '@api/exceptions/validation.exception';
@@ -50,6 +51,8 @@ describe('PersonasController', () => {
     withAvailabilitySummary: vi.fn(),
   };
 
+  const ownershipMethods = { moveOwnership: vi.fn() };
+
   beforeEach(async () => {
     mockServiceMethods.withAvailabilitySummary.mockImplementation(
       async (docs: unknown[]) => docs,
@@ -59,6 +62,7 @@ describe('PersonasController', () => {
       controllers: [PersonasController],
       providers: [
         { provide: PersonasService, useValue: mockServiceMethods },
+        { provide: CharacterOwnershipService, useValue: ownershipMethods },
         {
           provide: LoggerService,
           useValue: {
@@ -422,6 +426,24 @@ describe('PersonasController', () => {
         mode: PersonaAvailabilityMode.ALL_BRANDS,
         organizationId,
         personaId,
+      });
+    });
+
+    it('moves ownership for the active brand and organization', async () => {
+      ownershipMethods.moveOwnership.mockResolvedValue(sharedPersona);
+
+      await controller.moveOwnership(request, mockUser, personaId, {
+        brandId: otherBrandId,
+      });
+
+      expect(ownershipMethods.moveOwnership).toHaveBeenCalledWith({
+        actorUserId: userId,
+        apiKeyContext: mockUser,
+        brandId,
+        isSuperAdmin: false,
+        organizationId,
+        personaId,
+        targetBrandId: otherBrandId,
       });
     });
 
