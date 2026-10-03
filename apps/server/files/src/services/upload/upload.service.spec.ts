@@ -482,6 +482,28 @@ describe('UploadService', () => {
       expect(mockStorage.uploadFromFile).not.toHaveBeenCalled();
     });
 
+    it('aborts the download when spool setup fails before piping', async () => {
+      safeFetchMock.mockResolvedValue(
+        remoteResponse('video-content', { 'content-type': 'video/mp4' }),
+      );
+      (fs.existsSync as Mock).mockReturnValue(false);
+      (fs.mkdirSync as Mock).mockImplementationOnce(() => {
+        throw new Error('EACCES');
+      });
+
+      const status = await rejectionStatus(
+        service.uploadToS3('test-key', 'videos', {
+          type: 'url',
+          url: 'https://example.com/video.mp4',
+        }),
+      );
+
+      const init = safeFetchMock.mock.calls[0]?.[1] as RequestInit;
+      expect(status).toBe(HttpStatus.BAD_REQUEST);
+      expect(init.signal?.aborted).toBe(true);
+      expect(pipelineMock).not.toHaveBeenCalled();
+    });
+
     it('should throw error for invalid URL', async () => {
       await expect(
         service.uploadToS3('test-key', 'images', {

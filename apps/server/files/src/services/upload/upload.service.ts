@@ -335,6 +335,9 @@ export class UploadService {
 
       return { contentType, tmpPath };
     } catch (error: unknown) {
+      // Release the upstream socket on every failed exit, including setup
+      // failures before the body was piped anywhere.
+      abort.abort();
       this.loggerService.error(
         'Failed to download file directly from URL',
         error,

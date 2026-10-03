@@ -161,6 +161,25 @@ describe('remote upload destination guard with real HTTP', () => {
     },
   );
 
+  it('rejects an out-of-range upstream status with 400 instead of crashing', async () => {
+    const origin = createServer((_request, response) => {
+      response.writeHead(600, { 'Content-Type': 'application/octet-stream' });
+      response.end(payload);
+    });
+    servers.push(origin);
+    cdnUrl = await listen(origin);
+
+    const status = await rejectionStatus(
+      service.uploadToS3('fixture', 'files', {
+        type: 'url',
+        url: `${cdnUrl}/status-600`,
+      }),
+    );
+
+    expect(status).toBe(HttpStatus.BAD_REQUEST);
+    expect(uploadFromFile).not.toHaveBeenCalled();
+  });
+
   it('rejects an unconfigured loopback origin with 400 before connecting', async () => {
     const loopbackRequest = vi.fn();
     const loopback = createServer((_request, response) => {
