@@ -171,7 +171,8 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   },
   tiktok: {
     bgColor: 'bg-platform-tiktok/10',
-    solidBgColor: 'bg-platform-tiktok',
+    // TikTok's mark is black; #fe2c55 is only its accent and reads as an error.
+    solidBgColor: 'bg-black',
     icon: TiktokIcon,
     iconColor: 'text-platform-tiktok',
     label: 'TikTok',
