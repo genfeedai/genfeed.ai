@@ -1,11 +1,13 @@
 import type {
   BrandOsScanApprovedBaseline,
+  BrandOsScanCollection,
   BrandOsScanFailureCode,
   BrandOsScanInput,
   BrandOsScanMarker,
   BrandOsScanPreparation,
 } from '@api/collections/brands/interfaces/brand-os-scan.interface';
 import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
+import { normalizeBrandScanUrl } from '@api/collections/brands/utils/normalize-brand-scan-url.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import type { WebsiteBrandScrapeEvidence } from '@api/services/brand-scraper/interfaces/brand-scraper.interfaces';
@@ -60,6 +62,12 @@ export class BrandOsScanService {
   ) {}
 
   async start(input: BrandOsScanInput): Promise<IBrandOnboardingScan> {
+    return (await this.startAndCollect(input)).scan;
+  }
+
+  async startAndCollect(
+    input: BrandOsScanInput,
+  ): Promise<BrandOsScanCollection> {
     const normalized = this.normalizeInput(input);
     const preparation = await this.prepareScan(normalized);
     if (!preparation.shouldScrape) {
@@ -67,14 +75,17 @@ export class BrandOsScanService {
         throw new ConflictException('Another scan is in progress');
       if (preparation.scan.url !== normalized.url)
         throw new ConflictException('Scan request URL does not match');
-      return preparation.scan;
+      return { scan: preparation.scan, scrapedData: null };
     }
     const rules = preparation.baseline?.content.generationRules;
     if (
       rules !== undefined &&
       !brandGenerationRulesV1Schema.safeParse(rules).success
     )
-      return this.failScan(normalized, 'brand_scan.invalid_baseline');
+      return {
+        scan: await this.failScan(normalized, 'brand_scan.invalid_baseline'),
+        scrapedData: null,
+      };
     try {
       this.assertDeadline(preparation.scan.startedAt);
       const remaining =
@@ -84,12 +95,18 @@ export class BrandOsScanService {
         { deadlineAt: performance.now() + remaining },
       );
       if (!this.hasUsableEvidence(evidence.data))
-        return this.failScan(normalized, 'brand_scan.no_evidence');
-      return await this.completeScan(
-        normalized,
-        evidence,
-        preparation.baseline,
-      );
+        return {
+          scan: await this.failScan(normalized, 'brand_scan.no_evidence'),
+          scrapedData: null,
+        };
+      return {
+        scan: await this.completeScan(
+          normalized,
+          evidence,
+          preparation.baseline,
+        ),
+        scrapedData: evidence.data,
+      };
     } catch (error: unknown) {
       if (
         error instanceof NotFoundException ||
@@ -104,7 +121,7 @@ export class BrandOsScanService {
             : error instanceof BadRequestException
               ? 'brand_scan.invalid_content'
               : 'brand_scan.failed';
-      return this.failScan(normalized, code);
+      return { scan: await this.failScan(normalized, code), scrapedData: null };
     }
   }
 
@@ -142,48 +159,7 @@ export class BrandOsScanService {
       input.url.length > 2048
     )
       throw new BadRequestException('Invalid scan input');
-    const value = input.url.trim();
-    if (
-      [...input.url].some(
-        (character) =>
-          character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127,
-      )
-    )
-      throw new BadRequestException('Invalid scan URL');
-    let url: URL;
-    try {
-      let canonical = value;
-      if (!/^https?:\/\//i.test(value)) {
-        const authority = value.split(/[/?#]/)[0] ?? '';
-        const hostPort =
-          /^(?:[^:/?#@\s]+\.[^:/?#@\s]+|localhost|\[[0-9a-f:.]+\]):[0-9]+$/i.test(
-            authority,
-          );
-        if (/^[a-z][a-z\d+.-]*:/i.test(value) && !hostPort)
-          throw new Error('Unsupported scheme');
-        canonical = `https://${value}`;
-      }
-      url = new URL(canonical);
-    } catch {
-      throw new BadRequestException('Invalid scan URL');
-    }
-    if (
-      !['https:', 'http:'].includes(url.protocol) ||
-      url.username ||
-      url.password ||
-      url.hash ||
-      value.includes('#')
-    )
-      throw new BadRequestException('Invalid scan URL');
-    for (const key of url.searchParams.keys()) {
-      if (
-        /(?:token|secret|signature|credential|password|api[-_]?key|authorization|x-amz|x-goog)|^(?:key|sig|auth)$|^(?:awsaccesskeyid|googleaccessid)/i.test(
-          key,
-        )
-      )
-        throw new BadRequestException('Invalid scan URL');
-    }
-    return { ...input, url: url.href };
+    return { ...input, url: normalizeBrandScanUrl(input.url) };
   }
 
   private async prepareScan(

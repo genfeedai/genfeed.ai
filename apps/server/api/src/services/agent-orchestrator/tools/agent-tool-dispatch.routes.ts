@@ -61,6 +61,12 @@ export function dispatchRegisteredAgentTool(
   params: Record<string, unknown>,
   ctx: ToolExecutionContext,
 ): Promise<AgentToolResult> {
+  switch (toolName) {
+    case 'create_brand_from_url':
+      return handlers.brandContentHandler.createBrandFromUrl(params, ctx);
+    case 'get_brand_scan_status':
+      return handlers.brandContentHandler.getBrandScanStatus(params, ctx);
+  }
   return Promise.resolve(
     dispatchCatalogAndTransfer(handlers, toolName, params, ctx) ??
       dispatchWorkspaceFamily(handlers, toolName, params, ctx) ??
@@ -137,6 +143,13 @@ function dispatchWorkspaceFamily(
       return handlers.workspaceHandler.completeMediaUpload(params, ctx);
     case 'open_studio_handoff':
       return handlers.workspaceHandler.openStudioHandoff(params);
+    case 'link_external_publication_credential':
+      return handlers.publishHandler.linkExternalPublicationCredential(
+        params,
+        ctx,
+      );
+    case 'record_external_publication':
+      return handlers.publishHandler.recordExternalPublication(params, ctx);
     case 'create_post':
       return handlers.publishHandler.createPost(params, ctx);
     case 'schedule_post':

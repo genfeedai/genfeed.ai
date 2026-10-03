@@ -503,3 +503,18 @@ export function collectInvalidTargetBlockers(params: {
 
   return invalid;
 }
+
+export function normalizePublishPlatforms(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(
+      value
+        .filter((platform): platform is string => typeof platform === 'string')
+        .map((platform) => platform.trim().toLowerCase())
+        .filter((platform) => platform.length > 0),
+    ),
+  );
+}

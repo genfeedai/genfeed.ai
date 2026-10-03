@@ -2,24 +2,75 @@
 
 ## Pre-Testing Setup
 
-1. **Build the Extension**
+1. **Build from this repository**
 
    ```bash
-   cd extension.genfeed.ai
-   pnpm run build
+   cd apps/extensions/browser/app
+   bun run css:build
+   env PLASMO_PUBLIC_ENV=production \
+     PLASMO_PUBLIC_APP_ENDPOINT=https://app.genfeed.ai \
+     PLASMO_PUBLIC_API_ENDPOINT=https://api.genfeed.ai/v1 \
+     PLASMO_PUBLIC_ASSETS_ENDPOINT=https://cdn.genfeed.ai/assets \
+     PLASMO_PUBLIC_WEBSITE_ENDPOINT=https://genfeed.ai \
+     PLASMO_PUBLIC_WS_ENDPOINT=https://notifications.genfeed.ai \
+     npm exec -- plasmo build --tag=dev --target=chrome-mv3 --with-source-maps
    ```
 
-2. **Load in Browser**
-   - Open Chrome/Edge
-   - Navigate to `chrome://extensions/`
-   - Enable "Developer mode"
-   - Click "Load unpacked"
-   - Select `build/chrome-mv3-prod` folder
+After building, run the compiled startup probe against the exact built folder:
 
-3. **Authenticate**
-   - Click the extension icon
-   - Log in with your Genfeed account
-   - Verify authentication is successful
+```bash
+cd apps/extensions/browser/app
+node scripts/verify-compiled-startup.mjs --build-dir <absolute-built-folder> --output <absolute-result.json>
+```
+
+The probe executes the actual popup and sidepanel bundles with empty storage and synthetic signed-out auth responses, requires real Retry/Open Genfeed controls and working cached Zod constructors, and rejects unexpected network or runtime errors. Preserve the JSON and artifact hashes. This checks compiled startup; installed Brave, CSP, session and live backend acceptance remain separate.
+
+2. **Load in Brave manually**
+   - Use the local Genfeed Brave profile already signed into Genfeed.
+   - Open Brave's extensions page, enable Developer mode and load `apps/extensions/browser/app/build/chrome-mv3-dev`.
+   - For an existing installation, reload the same unpacked folder to preserve its extension ID and storage.
+   - Browser automation cannot open the extensions management page; installation requires this manual handoff.
+
+3. **Verify the signed-in session and workspace**
+   - Open the side panel from the existing web session; verify the account and active organization.
+   - Use the visible organization and brand selectors. Same-label organizations show their slug to distinguish them.
+   - Confirm Library assets belong to the selected brand. An empty Library is valid; real-asset acceptance requires an existing accessible asset.
+   - Switching organization/brand clears conversation, voice, attachments and scoped capture/import state. A same-scope focus refresh pauses actions and retains drafts.
+   - Test cookie logout, an expired JWT, 403 denial, offline/503 recovery and Retry without reinstalling. API keys remain pinned to their verified organization.
+   - No paid generation is needed for session/Library acceptance. Capture save and Library browsing do not start generation.
+   - Record the exact commit and observed outcomes without copying credentials. Source tests/build alone do not close #5858 or #4340; installed Brave acceptance and the parent release gates remain required.
+
+## Library search and manual attachment acceptance
+
+- Reload the same local unpacked folder; the new downloads permission may require approval in Brave.
+- In a ready workspace, search for metadata/prompt text absent from the asset title and for an asset beyond the first 24 items. Verify Load more, error Retry, and deduplication.
+- Select image, GIF, video and audio references. Search and close/reopen the picker; selections should remain. Same-workspace refresh pauses actions and retains the draft. A real workspace/brand change clears the scoped selections and draft.
+- Click Download for a current asset, choose its save location, and verify the message says only that the download started. Use the platform’s attachment button to manually attach the saved file to an authorized draft. Do not publish or start paid generation.
+- Click Open asset separately and verify it opens the refreshed current asset URL. Denied/cancelled downloads must never open a tab automatically. Changed/deleted asset versions require removing and selecting the current Library item.
+- Check narrow widths (320px/440px), dark/light themes, duplicate-click prevention and failure recovery. Record commit, selected workspace, asset kind, platform and observed outcome without URLs/credentials.
+- Fixtures and builds do not prove installed Brave download, native attachment or generation acceptance; #5857 and #4340 remain open until their remaining gates have evidence.
+
+## Own publication recording: bounded X home, Post dialog and Reply dialog acceptance
+
+- Reload the same unpacked build. In Settings, confirm **Record my published posts** starts on, the selected organization/brand is correct, and the account label displays the organization without an opaque user ID. Existing explicit off preferences stay off.
+- The observer covers the X `/home` inline text composer, a standalone zero-article Post dialog, and a text Reply dialog opened by the user's trusted click on an exactly identified article's Reply button. A direct-loaded Reply dialog has no parent intent and stays unconfirmed. Media-only posts, inline/detail reply editors, quote composers, keyboard-only submit, other X entry points and other platform adapters remain open under #4344. The extension records the user's publication; it does not publish it.
+- Reply modal and acknowledgement must bind within 30 seconds. Compose for up to 10 minutes from clicking Reply; publication correlation runs for 60 seconds after submit. Expiry never resubmits or edits the native draft.
+- When the user chooses to publish an authorized text post themselves, observe **Waiting for publication**, then **Recording published post**. Within 60 seconds, one newly appeared own post must match the exact full text, own handle, new status ID, timestamp and primary permalink. For Reply, bind the original article's numeric permalink before the dialog opens; the dialog's parent article and Replying-to labels do not establish identity. The own successful reply must have a different new ID. Quotes must contribute none of the parent post's identity/text. Own actor changes, ambiguous dialogs/headers, changed nodes, delayed intent acknowledgement or a submit race fail closed. Closing before submit cancels the intent; allowed return navigation after submit retains the original correlation window. A transformed/truncated or ambiguous post stays unconfirmed.
+- After the backend is deployed, verify exactly one scoped Genfeed post with the original full text, date, URL and own external ID. Check original source on replay and honest missing-credential/analytics state. **Already in Genfeed** is a valid idempotent replay; no provider-verified badge or parent linkage is implied by client observation. Audience remains unknown for all three surfaces, even if Everyone is visible.
+- Before backend rollout or during offline/server failure, confirm the recording stays in Settings with Retry/Dismiss and its original date. Retry is explicit, uses the original organization/brand and a fresh verified session, and never resubmits the native post. A duplicate content callback does not retry a failed record.
+- For local storage failure, the visible **Retry recording** button resends the exact frozen observation even after 60 seconds. Focus does not retry. If session recovery succeeds, Settings can recover it after worker suspension or tab closure. The warning states that it is not saved for durable retry; both storage writes failing leave only memory while the tab/runtime remain alive. Browser shutdown may lose session-only recovery.
+- Toggle off disables Retry and cancels unconfirmed discovery while preserving confirmed recovery. Switch scope/logout: old previews/actions disappear immediately; another tab/scope cannot join an in-flight callback. Switch back to recover the original scoped record. Dismiss is explicit; confirmed observations have no age cutoff.
+- Fixtures are reconstructed sanitized structures from read-only DOM inspection. Mocked trust classification, storage and API tests do not prove a browser-trusted click, an installed publication or production persistence. Record exact installed commit and genuine user-originated outcome separately. Independent other-lab review, current-head CI, merge/deployment and installed acceptance remain delivery gates; source completion does not close #4344/#4340.
+
+Run the tests and typecheck from the extension directory:
+
+```bash
+cd apps/extensions/browser/app
+bunx vitest run
+bunx tsc --noEmit -p tsconfig.json
+```
+
+The change must not add TypeScript diagnostics compared with `master`; CI is the gate for the typecheck result.
 
 ## Platform Testing Checklist
 

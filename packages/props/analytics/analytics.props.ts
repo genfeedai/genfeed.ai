@@ -18,6 +18,8 @@ export interface AnalyticsTool {
 
 export interface PostAnalyticsDashboardProps {
   publicationId?: string;
+  /** Brand that owns the publication; the API otherwise defaults to the session brand. */
+  brandId?: string;
   className?: string;
 }
 

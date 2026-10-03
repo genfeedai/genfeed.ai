@@ -335,6 +335,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     brandId?: string,
     platform?: CredentialPlatform,
     organizationId?: string,
+    source?: 'extension',
   ): Promise<unknown[]> {
     // Enforce maximum limit to prevent excessive data fetching
     const safeLimit = Math.min(Math.max(1, limit), 100);
@@ -367,6 +368,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       brandFilter,
       platformFilter,
       orgFilter,
+      source,
     );
 
     return analyticsResponseProjection.buildTopContent(results);
@@ -380,7 +382,14 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     brandFilter: PrismaSql,
     platformFilter: PrismaSql,
     orgFilter: PrismaSql,
+    source?: 'extension',
   ): Promise<RawAnalyticsRow[]> {
+    const postJoin = source
+      ? Prisma.sql`INNER JOIN "posts" p ON p.id = pa."postId" AND p."organizationId" = pa."organizationId" AND p."brandId" = pa."brandId" AND p."isDeleted" = false`
+      : Prisma.sql`LEFT JOIN "posts" p ON p.id = pa."postId"`;
+    const brandJoin = source
+      ? Prisma.sql`INNER JOIN "brands" b ON b.id = pa."brandId" AND b."organizationId" = pa."organizationId" AND b."isDeleted" = false`
+      : Prisma.sql`LEFT JOIN "brands" b ON b.id = pa."brandId"`;
     const results = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
       SELECT
         pa.id,
@@ -399,14 +408,15 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         b.label AS brand_name,
         NULL AS brand_logo
       FROM "post_analytics" pa
-      LEFT JOIN "posts" p ON p.id = pa."postId"
-      LEFT JOIN "brands" b ON b.id = pa."brandId"
+      ${postJoin}
+      ${brandJoin}
       WHERE pa."isDeleted" = false
         AND pa."date" >= ${startDate}
         AND pa."date" <= ${endDate}
         ${brandFilter}
         ${platformFilter}
         ${orgFilter}
+        ${source ? Prisma.sql`AND p.source = ${source}` : Prisma.empty}
       ORDER BY ${sortExpr}
       LIMIT ${safeLimit}
     `;

@@ -12,7 +12,7 @@ vi.mock('@api/helpers/utils/response/response.util', async (importOriginal) => {
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OrganizationsController } from '@api/collections/organizations/controllers/organizations.controller';
-import type { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
+import type { CreateOrganizationRequestDto } from '@api/collections/organizations/dto/create-organization-request.dto';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { OrganizationsOperationsService } from '@api/collections/organizations/services/organizations-operations.service';
@@ -114,7 +114,7 @@ describe('OrganizationsController', () => {
     const dto = {
       description: 'Description',
       label: 'New Org',
-    } as unknown as CreateOrganizationDto;
+    } as CreateOrganizationRequestDto;
 
     await expect(controller.create(request, user, dto)).resolves.toBe(result);
     expect(operationsService.createOrganization).toHaveBeenCalledWith(

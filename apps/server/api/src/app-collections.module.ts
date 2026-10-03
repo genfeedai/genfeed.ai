@@ -59,6 +59,7 @@ import { GifsModule } from '@api/collections/gifs/gifs.module';
 import { GoalsModule } from '@api/collections/goals/goals.module';
 import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness-profiles.module';
 import { ImagesModule } from '@api/collections/images/images.module';
+import { ImportedSourcesModule } from '@api/collections/imported-sources/imported-sources.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { InsightsModule } from '@api/collections/insights/insights.module';
 import { LaunchCopyModule } from '@api/collections/launch-copy/launch-copy.module';
@@ -229,6 +230,7 @@ import { Module } from '@nestjs/common';
     SocialSourcesModule,
     SocialWarmupEnrollmentsModule,
     SourcePostsModule,
+    ImportedSourcesModule,
     StreaksModule,
     StudioGenerateDraftsModule,
     StudioLooksModule,

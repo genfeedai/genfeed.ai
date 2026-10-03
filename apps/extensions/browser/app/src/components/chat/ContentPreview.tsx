@@ -2,7 +2,12 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { type ReactElement, useState } from 'react';
 
+import { useChat } from '~hooks/use-chat';
 import type { ChatMessage } from '~models/chat.model';
+import { authService } from '~services/auth.service';
+import { AgentToolsService } from '~services/agent-tools.service';
+import { useBrandStore } from '~store/use-brand-store';
+import { useChatStore } from '~store/use-chat-store';
 import { usePlatformStore } from '~store/use-platform-store';
 
 interface ContentPreviewProps {
@@ -23,6 +28,13 @@ type InsertStatus = 'idle' | 'inserting' | 'inserted' | 'failed';
 
 export function ContentPreview({ message }: ContentPreviewProps): ReactElement {
   const [copied, setCopied] = useState(false);
+  const [draftStatus, setDraftStatus] = useState<'idle' | 'saving' | 'saved'>(
+    'idle',
+  );
+  const [draftError, setDraftError] = useState<string | null>(null);
+  const brandId = useBrandStore((s) => s.activeBrandId);
+  const isGenerating = useChatStore((s) => s.isGenerating);
+  const { sendMessage } = useChat();
   const [insertStatus, setInsertStatus] = useState<InsertStatus>('idle');
   const currentPlatform = usePlatformStore((s) => s.currentPlatform);
   const composeBoxAvailable = usePlatformStore((s) => s.composeBoxAvailable);
@@ -62,18 +74,46 @@ export function ContentPreview({ message }: ContentPreviewProps): ReactElement {
   }
 
   function handleRegenerate() {
-    chrome.runtime.sendMessage({
-      event: 'chatSendMessage',
-      payload: {
-        content: 'Regenerate the previous response with a different approach',
-        threadId: message.threadId,
-      },
-    });
+    const messages = useChatStore.getState().messages;
+    const previous = messages
+      .slice(
+        0,
+        messages.findIndex((item) => item.id === message.id),
+      )
+      .findLast((item) => item.role === 'user');
+    void sendMessage(
+      'Regenerate the previous response with a different approach',
+      previous?.metadata?.artifactReferences,
+    );
+  }
+
+  async function handleSaveDraft() {
+    if (!currentPlatform || !brandId) return;
+    setDraftStatus('saving');
+    setDraftError(null);
+    try {
+      const token = await authService.getToken();
+      if (!token) throw new Error('Sign in to save a draft.');
+      await new AgentToolsService(token).saveDraft(
+        content,
+        currentPlatform,
+        'Extension draft',
+        brandId,
+      );
+      setDraftStatus('saved');
+    } catch (error) {
+      setDraftStatus('idle');
+      setDraftError(
+        error instanceof Error ? error.message : 'Could not save draft.',
+      );
+    }
   }
 
   return (
     <div className="space-y-2">
-      <p className="text-sm leading-relaxed">{message.content}</p>
+      {message.metadata?.generatedContent ? (
+        <p className="text-sm leading-relaxed">{message.content}</p>
+      ) : null}
 
       <div className="border border-border bg-background p-3">
         <p className="whitespace-pre-wrap text-sm text-foreground">{content}</p>
@@ -102,7 +142,7 @@ export function ContentPreview({ message }: ContentPreviewProps): ReactElement {
           </div>
         )}
 
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           <Button
             type="button"
             variant={ButtonVariant.SECONDARY}
@@ -132,15 +172,34 @@ export function ContentPreview({ message }: ContentPreviewProps): ReactElement {
             <span className="text-xs text-destructive">Insert failed</span>
           )}
 
+          {currentPlatform ? (
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              isDisabled={!brandId || draftStatus !== 'idle'}
+              onClick={() => void handleSaveDraft()}
+            >
+              {draftStatus === 'saved'
+                ? 'Saved'
+                : draftStatus === 'saving'
+                  ? 'Saving…'
+                  : 'Save draft'}
+            </Button>
+          ) : null}
           <Button
             type="button"
             variant={ButtonVariant.SECONDARY}
             onClick={handleRegenerate}
+            isDisabled={isGenerating}
             className="rounded px-2.5 py-1 text-xs"
           >
             Regenerate
           </Button>
         </div>
+        {draftError ? (
+          <p role="alert" className="mt-2 text-xs text-destructive">
+            {draftError}
+          </p>
+        ) : null}
       </div>
     </div>
   );

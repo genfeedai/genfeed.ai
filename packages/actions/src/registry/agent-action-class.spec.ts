@@ -8,6 +8,11 @@ import {
 import { getDeclaredMutationPolicy } from './mutation-policy';
 
 describe('getAgentActionClass', () => {
+  it('classifies URL brand creation as brand context', () => {
+    expect(getAgentActionClass('create_brand_from_url')).toBe(
+      AGENT_ACTION_CLASS.BRAND_CONTEXT,
+    );
+  });
   it('classifies media generation as credit-spending', () => {
     expect(getAgentActionClass('generate_image')).toBe(
       AGENT_ACTION_CLASS.CREDIT_SPENDING,
@@ -60,6 +65,14 @@ describe('getAgentActionClass', () => {
   });
 
   it('leaves mundane direct writes unclassified', () => {
+    expect(getAgentActionClass('record_external_publication')).toBeUndefined();
+    expect(
+      resolveEffectiveMutationPolicy(
+        'record_external_publication',
+        'manual',
+        'direct',
+      ),
+    ).toBe('direct');
     expect(getAgentActionClass('create_chat')).toBeUndefined();
     expect(getAgentActionClass('tag_social_conversation')).toBeUndefined();
   });
@@ -190,4 +203,10 @@ describe('resolveEffectiveMutationPolicy — #4672 confirmation matrix', () => {
       ),
     ).toBe('approval-required');
   });
+});
+
+it('keeps credential linking outside native publication approval classes', () => {
+  expect(
+    getAgentActionClass('link_external_publication_credential'),
+  ).toBeUndefined();
 });

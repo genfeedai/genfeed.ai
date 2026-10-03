@@ -1,5 +1,6 @@
 'use client';
 
+import { getJsonApiErrorMember } from '@genfeedai/services/core/json-api-error-message';
 import type { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { useCallback, useReducer } from 'react';
 
@@ -116,9 +117,13 @@ export function useCreateOrganizationModal(
       // workspace data for the new org (same contract as the switch flow).
       dispatch({ isOpen: false, type: 'SET_OPEN' });
       window.location.reload();
-    } catch {
+    } catch (error) {
+      // Surface the server's reason (e.g. the plan's organization limit)
+      // rather than a generic failure.
       dispatch({
-        error: 'Failed to create organization',
+        error:
+          getJsonApiErrorMember(error)?.detail?.trim() ||
+          'Failed to create organization',
         type: 'SUBMIT_ERROR',
       });
     }

@@ -1,6 +1,8 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  publication: vi.fn().mockResolvedValue({ success: false, error: 'Rejected' }),
+  workspaceBrand: 'brand-1' as string | null,
   execute: vi.fn(),
   generateText: vi.fn(),
   getToken: vi.fn(),
@@ -8,11 +10,16 @@ const mocks = vi.hoisted(() => ({
   addListener: vi.fn(),
   openPanel: vi.fn().mockResolvedValue(undefined),
 }));
+vi.mock('~services/publication-capture.service', () => ({
+  initializePublicationCapture: vi.fn(),
+  handlePublicationCaptureMessage: mocks.publication,
+}));
 vi.mock('~services/auth.service', () => ({
   authService: { getToken: mocks.getToken },
 }));
 vi.mock('~services/error-tracking.service', () => ({
   initializeErrorTracking: vi.fn(),
+  captureExtensionError: vi.fn(),
 }));
 vi.mock('~services/agent-tools.service', () => ({
   AgentToolsService: class {
@@ -54,6 +61,7 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
+  mocks.workspaceBrand = 'brand-1';
   mocks.getToken.mockResolvedValue('token');
   mocks.generateText.mockReset().mockResolvedValue('Generated text');
   mocks.execute.mockReset().mockResolvedValue({
@@ -67,6 +75,11 @@ beforeEach(() => {
 });
 
 async function dispatch(request: Record<string, unknown>) {
+  const payload = request.payload as Record<string, unknown> | undefined;
+  if (typeof request.brandId === 'string')
+    mocks.workspaceBrand = request.brandId;
+  else if (typeof payload?.brandId === 'string')
+    mocks.workspaceBrand = payload.brandId;
   const respond = vi.fn();
   expect(backgroundListener(request, {}, respond)).toBe(true);
   await vi.waitFor(() => expect(respond).toHaveBeenCalled());
@@ -207,6 +220,7 @@ describe('background user action routing', () => {
   });
 
   it('asks for a brand instead of importing into another brand', async () => {
+    mocks.workspaceBrand = null;
     const result = await dispatch({
       event: 'savePost',
       url: 'https://x.com/author/status/123',
@@ -296,3 +310,116 @@ describe('background user action routing', () => {
     expect(response.message.content).toBe('Assistant answer');
   });
 });
+
+describe('Library references in agent turns', () => {
+  it('forwards scoped references to the real turn endpoint', async () => {
+    const reference = {
+      kind: 'ingredient',
+      serializer: 'ingredient',
+      recordId: 'image-1',
+      organizationId: 'org-1',
+      brandId: 'brand-1',
+    };
+    mocks.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ executionId: 'run-1' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [
+          {
+            runId: 'run-1',
+            sequence: 1,
+            type: 'assistant.finalized',
+            payload: { content: 'Done' },
+          },
+        ],
+      });
+    const response = await dispatch({
+      event: 'chatSendMessage',
+      payload: {
+        threadId: 'thread-1',
+        brandId: 'brand-1',
+        content: 'Use this artwork',
+        artifactReferences: [reference],
+      },
+    });
+    expect(response.success).toBe(true);
+    expect(JSON.parse(mocks.fetch.mock.calls[0][1].body)).toMatchObject({
+      brandId: 'brand-1',
+      artifactReferences: [reference],
+      content: 'Use this artwork',
+    });
+  });
+});
+
+// Unit boundary: identity/bootstrap reconciliation is covered by workspace.service.test.ts.
+vi.mock('~services/workspace.service', async () => {
+  const { authService } = await import('~services/auth.service');
+  const { apiEndpoint } = await import('~services/environment.service');
+  const snapshot = async () => {
+    const context =
+      'getAuthContext' in authService
+        ? await authService.getAuthContext()
+        : null;
+    return {
+      userId: context?.user?.id ?? 'user-1',
+      organizationId: context?.organization?.id ?? 'org-1',
+      brandId: mocks.workspaceBrand,
+      brands: [{ id: 'brand-1' }],
+      revision: 1,
+    };
+  };
+  return {
+    requireWorkspace: snapshot,
+    assertWorkspace: vi.fn(),
+    loadWorkspace: snapshot,
+    scopedWorkspaceRequest: async (
+      path: string,
+      options: RequestInit,
+      expected: { organizationId: string },
+    ) => {
+      const token = await authService.getToken();
+      const headers = new Headers(options.headers);
+      headers.set('Authorization', `Bearer ${token}`);
+      headers.set('x-genfeed-organization-id', expected.organizationId);
+      return fetch(path.startsWith('http') ? path : `${apiEndpoint}${path}`, {
+        ...options,
+        headers,
+      });
+    },
+  };
+});
+
+it('routes publication capture only once through the strict handler with the actual sender', async () => {
+  const respond = vi.fn();
+  const sender = {
+    id: 'test',
+    tab: { id: 1 },
+    frameId: 0,
+    url: 'https://x.com/home',
+  };
+  const request = { event: 'publicationCaptureContext' };
+  expect(backgroundListener(request, sender, respond)).toBe(true);
+  await vi.waitFor(() => expect(respond).toHaveBeenCalled());
+  expect(mocks.publication).toHaveBeenCalledWith(request, sender);
+  expect(mocks.execute).not.toHaveBeenCalled();
+  expect(mocks.generateText).not.toHaveBeenCalled();
+});
+
+it.each([
+  'publicationCaptureReplyIntent',
+  'publicationCaptureReplyIntentCancel',
+])(
+  'routes %s through the existing asynchronous capture delegate',
+  async (event) => {
+    const request = { event };
+    const sender = { id: 'ext', frameId: 0, url: 'https://x.com/compose/post' };
+    const respond = vi.fn();
+    expect(backgroundListener(request, sender, respond)).toBe(true);
+    await vi.waitFor(() => expect(respond).toHaveBeenCalled());
+    expect(mocks.publication).toHaveBeenCalledWith(request, sender);
+    expect(mocks.execute).not.toHaveBeenCalled();
+  },
+);

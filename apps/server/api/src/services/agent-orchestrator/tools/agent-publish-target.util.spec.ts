@@ -2,6 +2,7 @@ import {
   buildAgentPublishTargetProposals,
   collectInvalidTargetBlockers,
   formatTargetBlockersError,
+  normalizePublishPlatforms,
   parseAgentPublishTargetPayloads,
   resolvePublishValidationMedia,
   toCanonicalChannelTarget,
@@ -199,4 +200,12 @@ describe('agent-publish-target.util', () => {
       }),
     );
   });
+});
+
+it('preserves first-seen platform normalization without aliases', () => {
+  expect(
+    normalizePublishPlatforms([' TWITTER ', 7, '', 'twitter', 'X', 'linkedin']),
+  ).toEqual(['twitter', 'x', 'linkedin']);
+  expect(normalizePublishPlatforms('twitter')).toEqual([]);
+  expect(normalizePublishPlatforms(null)).toEqual([]);
 });

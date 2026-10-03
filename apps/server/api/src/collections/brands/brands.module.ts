@@ -13,6 +13,7 @@ import { BrandsController } from '@api/collections/brands/controllers/brands.con
 import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
 import { BrandsSetupController } from '@api/collections/brands/controllers/brands-setup.controller';
 import { BrandsRelationshipsController } from '@api/collections/brands/controllers/relationships/brands-relationships.controller';
+import { BrandFromUrlService } from '@api/collections/brands/services/brand-from-url.service';
 import { BrandPersistenceService } from '@api/collections/brands/services/brand-persistence.service';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
@@ -57,6 +58,7 @@ import { Module } from '@nestjs/common';
   exports: [
     BrandsCoreModule,
     BrandPersistenceService,
+    BrandFromUrlService,
     MasterPromptGeneratorService,
   ],
   imports: [
@@ -89,6 +91,7 @@ import { Module } from '@nestjs/common';
     BrandWatermarkLogoService,
     BrandWebsitePreviewService,
     BrandPersistenceService,
+    BrandFromUrlService,
     MasterPromptGeneratorService,
     CreditsGuard,
     CreditsInterceptor,

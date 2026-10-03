@@ -1,11 +1,14 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateVoteDto } from '@api/collections/votes/dto/create-vote.dto';
 import { VotesService } from '@api/collections/votes/services/votes.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { VoteEntityModel } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { VoteSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -14,6 +17,7 @@ import {
   Body,
   Controller,
   Delete,
+  HttpException,
   Post,
   Query,
   Req,
@@ -26,6 +30,7 @@ export class VotesController {
   constructor(
     readonly _loggerService: LoggerService,
     private readonly votesService: VotesService,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Post()
@@ -40,6 +45,33 @@ export class VotesController {
         throw new BadRequestException('Invalid entity id');
       }
 
+      if (createVoteDto.entityModel === VoteEntityModel.INGREDIENT) {
+        if (!user.organizationId) {
+          throw new NotFoundException('Ingredient', createVoteDto.entity);
+        }
+
+        const ingredient = await this.prisma.ingredient.findFirst({
+          select: { id: true },
+          where: {
+            id: createVoteDto.entity,
+            isDeleted: false,
+            organizationId: user.organizationId,
+          },
+        });
+
+        if (!ingredient) {
+          throw new NotFoundException('Ingredient', createVoteDto.entity);
+        }
+
+        const { vote } = await this.votesService.toggleVote({
+          entityId: createVoteDto.entity,
+          entityModel: VoteEntityModel.INGREDIENT,
+          organizationId: user.organizationId,
+          userId: user.userId ?? user.id,
+        });
+        return serializeSingle(request, VoteSerializer, vote);
+      }
+
       const vote = await this.votesService.create({
         entityId: createVoteDto.entity,
         entityModel: createVoteDto.entityModel,
@@ -48,6 +80,9 @@ export class VotesController {
 
       return serializeSingle(request, VoteSerializer, vote);
     } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       throw new BadRequestException((error as Error)?.message);
     }
   }

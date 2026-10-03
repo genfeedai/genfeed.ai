@@ -3,6 +3,7 @@ import { TargetExecutionState } from '@genfeedai/contracts';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { apiEndpoint } from '~services/environment.service';
 import { HTTPBaseService } from '~services/http-base.service';
+import { assertWorkspace, requireWorkspace } from '~services/workspace.service';
 
 export type ExtensionToolAction = 'analytics' | 'generate' | 'image' | 'post';
 
@@ -24,7 +25,14 @@ export class AgentToolsService extends HTTPBaseService {
     platform: string,
     type = 'post',
   ): Promise<string> {
-    const result = await this.execute('generate', { platform, topic, type });
+    const workspace = await requireWorkspace();
+    const result = await this.execute('generate', {
+      brandId: workspace.brandId,
+      platform,
+      topic,
+      type,
+    });
+    assertWorkspace(workspace);
     const content = result.data?.content;
     if (typeof content !== 'string' || !content.trim()) {
       throw new Error('No content returned from the action.');
@@ -38,15 +46,19 @@ export class AgentToolsService extends HTTPBaseService {
     label: string,
     brandId: string | null,
   ): Promise<void> {
+    const workspace = await requireWorkspace();
     if (!brandId) {
       throw new Error('Select a brand in Settings before saving a draft.');
     }
+    if (brandId !== workspace.brandId)
+      throw new Error('Select the original brand before saving this draft.');
     const credentials = await this.instance.get<{
       data: Array<{
         id: string;
         attributes: { platform: string; isConnected: boolean };
       }>;
     }>('/credentials', { params: { brandId, limit: 100 } });
+    assertWorkspace(workspace);
     const matches = credentials.data.data.filter(
       (credential) =>
         credential.attributes.platform === platform &&
@@ -73,12 +85,21 @@ export class AgentToolsService extends HTTPBaseService {
     action: ExtensionToolAction,
     parameters: Record<string, unknown>,
   ): Promise<AgentToolResult> {
+    const workspace = await requireWorkspace();
+    if (!workspace.brandId)
+      throw new Error('Select a brand before running an action.');
+    if (
+      parameters.brandId !== undefined &&
+      parameters.brandId !== workspace.brandId
+    )
+      throw new Error('Select the original brand before running this action.');
     const toolName = TOOL_NAME_BY_ACTION[action];
     const response = await this.instance.post<AgentToolResult>(
       `/agent-tools/${encodeURIComponent(toolName)}/execute`,
-      { parameters },
+      { parameters, context: { brandId: workspace.brandId } },
     );
 
+    assertWorkspace(workspace);
     if (!response.data.success || response.data.requiresConfirmation) {
       throw new Error(
         response.data.error || 'The action requires approval in Genfeed.',

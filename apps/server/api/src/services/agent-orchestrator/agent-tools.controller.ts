@@ -6,6 +6,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { assertApiKeyAgentPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
+import { AgentScopeContextService } from '@api/index';
 import {
   AgentUntrustedContentGateService,
   UNTRUSTED_CONTENT_WITHHELD_NOTICE,
@@ -23,7 +24,6 @@ import {
   isAgentUntrustedContentSource,
   readAgentUntrustedContentSource,
 } from '@genfeedai/contracts/interfaces';
-
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -47,6 +47,7 @@ export class AgentToolsController {
     private readonly usersService: UsersService,
     private readonly loggerService: LoggerService,
     private readonly untrustedContentGate: AgentUntrustedContentGateService,
+    private readonly agentScopeContextService: AgentScopeContextService,
   ) {}
 
   @Post(':name/execute')
@@ -90,8 +91,18 @@ export class AgentToolsController {
       // such as validatedScope, creditGovernance and isWorkflowScoped. The DTO
       // whitelists the one client-settable field; all else is server-derived.
       const approvedApprovalId = body.context?.approvedApprovalId;
+      // The caller's brand is a requested value, never the authority: prove it
+      // belongs to the authenticated organization before it reaches a tool.
+      const brandId = body.context?.brandId;
+      if (brandId) {
+        await this.agentScopeContextService.assertBrandAuthorized(
+          brandId,
+          organizationId,
+        );
+      }
 
       const context: ToolExecutionContext = {
+        ...(brandId ? { brandId } : {}),
         apiKeyContext: user,
         approvedApprovalId,
         approvalReviewerAuthorized:

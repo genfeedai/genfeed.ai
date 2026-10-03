@@ -15,6 +15,8 @@ describe('agent-tool-registry', () => {
     expect(names).toContain('rename_brand');
     expect(names).toContain('check_onboarding_status');
     expect(names).toContain('complete_onboarding');
+    expect(names).toContain('create_brand_from_url');
+    expect(names).toContain('get_brand_scan_status');
     expect(names).toContain('resolve_handle');
     expect(names).toContain('get_current_brand');
     expect(names).toContain('generate_image');
@@ -105,6 +107,8 @@ describe('agent-tool-registry', () => {
       );
     }
 
+    expect(AGENT_CREDIT_COSTS.create_brand_from_url).toBe(1);
+    expect(AGENT_CREDIT_COSTS.get_brand_scan_status).toBe(0);
     expect(AGENT_CREDIT_COSTS.get_workflow_inputs).toBe(0);
     expect(AGENT_CREDIT_COSTS.save_brand_voice_profile).toBe(0);
   });

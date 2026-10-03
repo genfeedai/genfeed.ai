@@ -12,3 +12,6 @@ export * from '@serializers/interfaces';
 export * from '@serializers/server';
 
 export { CrunGenerationQuoteSerializer } from '@serializers/server/billing/crun-generation-quote.serializer';
+
+export { ImportedSourceSerializer } from '@serializers/server/content/imported-source.serializer';
+export { ImportedSourceMediaSerializer } from '@serializers/server/content/imported-source-media.serializer';

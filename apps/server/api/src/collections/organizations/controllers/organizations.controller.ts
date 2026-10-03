@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
+import type { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
+import { CreateOrganizationRequestDto } from '@api/collections/organizations/dto/create-organization-request.dto';
 import { OrganizationQueryDto } from '@api/collections/organizations/dto/organization-query.dto';
 import type { UpdateOrganizationDto } from '@api/collections/organizations/dto/update-organization.dto';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
@@ -147,11 +148,11 @@ export class OrganizationsController extends BaseCRUDController<
   override async create(
     @Req() _request: Request,
     @CurrentUser() user: User,
-    @Body() createDto: CreateOrganizationDto,
+    @Body() createDto: CreateOrganizationRequestDto,
   ): Promise<JsonApiSingleResponse> {
     const result = await this.operationsService.createOrganization(
       {
-        description: (createDto as { description?: string }).description,
+        description: createDto.description,
         label: createDto.label,
       },
       user,

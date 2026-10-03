@@ -1,6 +1,6 @@
 import { ContentLibraryPicker } from '@genfeedai/agent/components/ContentLibraryPicker';
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
@@ -86,4 +86,65 @@ describe('ContentLibraryPicker', () => {
       screen.getByText('No library content available yet.'),
     ).toBeInTheDocument();
   });
+});
+
+it('retains local title/type filtering and resets it after close', () => {
+  const props = { items: ITEMS, onOpenChange: vi.fn(), onSelect: vi.fn() };
+  const view = render(<ContentLibraryPicker {...props} isOpen />);
+  fireEvent.change(
+    screen.getByRole('textbox', { name: 'Search library content' }),
+    { target: { value: 'image' } },
+  );
+  expect(
+    screen.queryByRole('option', { name: 'Reference Launch thread' }),
+  ).toBeNull();
+  expect(
+    screen.getByRole('option', { name: 'Reference Campaign visual' }),
+  ).toBeInTheDocument();
+  view.rerender(<ContentLibraryPicker {...props} isOpen={false} />);
+  view.rerender(<ContentLibraryPicker {...props} isOpen />);
+  expect(
+    screen.getByRole('option', { name: 'Reference Launch thread' }),
+  ).toBeInTheDocument();
+});
+it('remote mode returns server metadata matches without filtering and delegates the exact query', () => {
+  const change = vi.fn();
+  const props = {
+    isOpen: true,
+    items: ITEMS,
+    onOpenChange: vi.fn(),
+    onSelect: vi.fn(),
+    searchMode: 'remote' as const,
+    searchQuery: 'metadata match',
+    onSearchQueryChange: change,
+  };
+  const view = render(<ContentLibraryPicker {...props} />);
+  expect(
+    screen.getByRole('option', { name: 'Reference Launch thread' }),
+  ).toBeInTheDocument();
+  fireEvent.change(
+    screen.getByRole('textbox', { name: 'Search library content' }),
+    { target: { value: ' prompt + query ' } },
+  );
+  expect(change).toHaveBeenCalledWith(' prompt + query ');
+  view.rerender(<ContentLibraryPicker {...props} isOpen={false} />);
+  expect(change).toHaveBeenCalledTimes(1);
+});
+it('remote empty results distinguish a query from an empty Library', () => {
+  const props = {
+    isOpen: true,
+    items: [],
+    onOpenChange: vi.fn(),
+    onSelect: vi.fn(),
+    searchMode: 'remote' as const,
+    onSearchQueryChange: vi.fn(),
+  };
+  const view = render(
+    <ContentLibraryPicker {...props} searchQuery="missing" />,
+  );
+  expect(screen.getByText('No matching content.')).toBeInTheDocument();
+  view.rerender(<ContentLibraryPicker {...props} searchQuery="" />);
+  expect(
+    screen.getByText('No library content available yet.'),
+  ).toBeInTheDocument();
 });

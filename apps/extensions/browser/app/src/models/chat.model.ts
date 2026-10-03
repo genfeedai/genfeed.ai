@@ -1,4 +1,6 @@
+import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 export interface ChatMessageMetadata {
+  artifactReferences?: AgentArtifactReference[];
   generatedContent?: string;
   contentType?: string;
   platform?: string;

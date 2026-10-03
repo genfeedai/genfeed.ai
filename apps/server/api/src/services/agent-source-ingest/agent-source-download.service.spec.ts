@@ -537,3 +537,173 @@ describe('AgentSourceDownloadService', () => {
     expect(http.post).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('imported source correlated Files observation', () => {
+  const files = { extractMetadataFromUrl: vi.fn() };
+  const http = { get: vi.fn(), post: vi.fn() };
+  const config = { get: vi.fn() };
+  const logger = { error: vi.fn() };
+  const scope = { organizationId: 'org-1', userId: 'initiating-user' };
+  const url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+  const id = 'cstorage12345678';
+  const jobId = `agent-source-${id}`;
+  const service = new AgentSourceDownloadService(
+    files as unknown as FilesClientService,
+    http as unknown as HttpService,
+    config as unknown as ConfigService,
+    logger as unknown as LoggerService,
+  );
+  function job(state = 'completed') {
+    return {
+      jobId,
+      state,
+      data: {
+        id: jobId,
+        ingredientId: id,
+        organizationId: scope.organizationId,
+        userId: scope.userId,
+        type: 'video-to-audio',
+        params: { inputPath: url },
+      },
+      result: {
+        success: true,
+        sourceUrl: 'https://cdn.example/video',
+        sourceS3Key: `ingredients/videos/${id}`,
+      },
+    };
+  }
+  beforeEach(() => {
+    vi.resetAllMocks();
+    config.get.mockReturnValue('http://files-service');
+    files.extractMetadataFromUrl.mockResolvedValue({
+      width: 1920,
+      height: 1080,
+      duration: 12,
+      size: 900,
+      hasAudio: true,
+    });
+    http.get.mockReturnValue(of({ data: job() }));
+  });
+  it('does exactly one GET, probes only correlated original video, and never enqueues', async () => {
+    expect(
+      await service.observeQueuedSource(id, jobId, scope, url),
+    ).toMatchObject({
+      state: 'ready',
+      artifact: {
+        kind: 'video',
+        storageKey: `ingredients/videos/${id}`,
+        width: 1920,
+      },
+    });
+    expect(http.get).toHaveBeenCalledTimes(1);
+    expect(http.post).not.toHaveBeenCalled();
+    expect(files.extractMetadataFromUrl).toHaveBeenCalledWith(
+      'https://cdn.example/video',
+    );
+  });
+  it.each([
+    'jobId',
+    'id',
+    'ingredientId',
+    'organizationId',
+    'userId',
+    'type',
+    'inputPath',
+  ])('rejects mismatched %s before probing', async (field) => {
+    const value = job();
+    if (field === 'jobId') value.jobId = 'wrong';
+    else if (field === 'inputPath')
+      value.data.params.inputPath = 'https://foreign.example/video';
+    else Object.assign(value.data, { [field]: 'wrong' });
+    http.get.mockReturnValue(of({ data: { data: value } }));
+    expect(await service.observeQueuedSource(id, jobId, scope, url)).toEqual({
+      state: 'uncertain',
+    });
+    expect(files.extractMetadataFromUrl).not.toHaveBeenCalled();
+    expect(http.post).not.toHaveBeenCalled();
+  });
+  it.each([
+    'waiting',
+    'active',
+    'delayed',
+    'prioritized',
+    'waiting-children',
+    'paused',
+  ])('observes %s as pending', async (state) => {
+    http.get.mockReturnValue(of({ data: job(state) }));
+    expect(await service.observeQueuedSource(id, jobId, scope, url)).toEqual({
+      state: 'pending',
+    });
+  });
+  it('returns unknown states, failed metadata probe, and nonfinite metadata honestly', async () => {
+    http.get.mockReturnValue(of({ data: job('unknown') }));
+    expect(await service.observeQueuedSource(id, jobId, scope, url)).toEqual({
+      state: 'uncertain',
+    });
+    http.get.mockReturnValue(of({ data: job() }));
+    files.extractMetadataFromUrl.mockRejectedValueOnce(new Error('transport'));
+    expect(await service.observeQueuedSource(id, jobId, scope, url)).toEqual({
+      state: 'uncertain',
+    });
+    files.extractMetadataFromUrl.mockResolvedValueOnce({ width: Infinity });
+    expect(await service.observeQueuedSource(id, jobId, scope, url)).toEqual({
+      state: 'uncertain',
+    });
+  });
+  it.each([
+    {},
+    {
+      sourceUrl: 'https://cdn.example/audio',
+      sourceS3Key: 'ingredients/audios/other',
+    },
+    {
+      sourceUrl: 'https://user:password@cdn.example/video',
+      sourceS3Key: `ingredients/videos/${id}`,
+    },
+    {
+      sourceUrl: 'https://cdn.example/video',
+      sourceS3Key: `ingredients/videos/${id}`,
+      success: false,
+    },
+  ])('rejects nonoriginal or unsafe completed result', async (result) => {
+    http.get.mockReturnValue(of({ data: { ...job(), result } }));
+    expect(await service.observeQueuedSource(id, jobId, scope, url)).toEqual({
+      state: 'failed',
+    });
+    expect(files.extractMetadataFromUrl).not.toHaveBeenCalled();
+  });
+  it('classifies404 as missing and timeout as uncertain withoutPOST', async () => {
+    http.get.mockReturnValue(throwError(() => ({ response: { status: 404 } })));
+    expect(await service.observeQueuedSource(id, jobId, scope, url)).toEqual({
+      state: 'missing',
+    });
+    http.get.mockReturnValue(throwError(() => new Error('timeout')));
+    expect(await service.observeQueuedSource(id, jobId, scope, url)).toEqual({
+      state: 'uncertain',
+    });
+    expect(http.post).not.toHaveBeenCalled();
+  });
+  it('strict polling persists job identity before enqueue and never recreates missing jobs', async () => {
+    const queued = vi.fn(async () => {
+      expect(http.post).not.toHaveBeenCalled();
+    });
+    http.post.mockReturnValue(of({ data: { jobId } }));
+    http.get.mockReturnValue(throwError(() => ({ response: { status: 404 } })));
+    await expect(
+      service.download(url, id, 'video', scope, undefined, queued, {
+        requireJobIdentity: true,
+        requeueMissingJob: false,
+      }),
+    ).rejects.toBeInstanceOf(AgentSourceImportPendingError);
+    expect(queued).toHaveBeenCalledWith(jobId);
+    expect(http.post).toHaveBeenCalledTimes(1);
+    http.post.mockClear();
+    await expect(
+      service.download(url, id, 'video', scope, jobId, queued, {
+        requireJobIdentity: true,
+        requeueMissingJob: false,
+      }),
+    ).rejects.toBeInstanceOf(AgentSourceImportPendingError);
+    expect(http.post).not.toHaveBeenCalled();
+  });
+});
