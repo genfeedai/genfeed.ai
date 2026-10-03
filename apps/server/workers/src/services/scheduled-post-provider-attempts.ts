@@ -130,9 +130,9 @@ export class ScheduledPostProviderAttempts {
    */
   async publishUnderLease(
     post: PostEntity,
-    prepared: PreparedPostDelivery,
     attempt: ProviderPublishAttemptRef,
     url: string,
+    publish: () => Promise<PublishResult>,
   ): Promise<PublishResult> {
     const renewal = setInterval(() => {
       renewProviderPublishAttempt(this.prisma, post, attempt, false)
@@ -154,7 +154,7 @@ export class ScheduledPostProviderAttempts {
     }, PROVIDER_PUBLISH_LEASE_RENEWAL_MS);
     renewal.unref?.();
     try {
-      return await prepared.publisher.publish(prepared.context);
+      return await publish();
     } finally {
       clearInterval(renewal);
     }

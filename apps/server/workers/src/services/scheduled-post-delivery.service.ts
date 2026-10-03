@@ -399,11 +399,10 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
   ): Promise<PublishResult> {
     let result: PublishResult;
     try {
-      result = await this.attempts.publishUnderLease(
-        post,
-        prepared,
-        attempt,
-        url,
+      // The provider call itself stays in this documented workflow action
+      // adapter; the attempt only renews its lease around it.
+      result = await this.attempts.publishUnderLease(post, attempt, url, () =>
+        prepared.publisher.publish(prepared.context),
       );
     } catch (error: unknown) {
       // A timeout or dropped connection may hide an accepted publish: keep
