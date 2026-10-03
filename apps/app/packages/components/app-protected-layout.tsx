@@ -295,7 +295,6 @@ function AppLayoutWithDynamicMenu({
       isMessagesInboxRoute
         ? {
             render: () => <WorkspaceNavPanelTarget />,
-            sectionLabel: 'Messages',
           }
         : null,
     [isMessagesInboxRoute],
