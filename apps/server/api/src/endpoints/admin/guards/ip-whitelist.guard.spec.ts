@@ -74,7 +74,9 @@ describe('IpWhitelistGuard', () => {
 
       const ctx = makeContext('192.168.99.99');
       expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
-      expect(() => guard.canActivate(ctx)).toThrow('Access denied');
+      expect(() => guard.canActivate(ctx)).toThrow(
+        'Admin access is restricted to allowlisted IPs (your IP: 192.168.99.99)',
+      );
     });
 
     it('should block all requests when ADMIN_ALLOWED_IPS is empty', async () => {

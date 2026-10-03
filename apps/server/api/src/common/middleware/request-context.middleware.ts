@@ -8,6 +8,7 @@ import {
   RC_TTL,
 } from '@api/common/constants/request-context-cache.constants';
 import { IRequestContext } from '@api/common/interfaces/request-context.interface';
+import { isAdminIpAllowed } from '@api/helpers/utils/admin-ip-allowlist/admin-ip-allowlist.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import { isSelfHostedDeployment } from '@genfeedai/config';
@@ -61,10 +62,36 @@ export class RequestContextMiddleware implements NestMiddleware {
    * `CombinedAuthGuard` therefore calls this again right after it sets
    * `req.user`, which is what makes `req.context` available to every guard,
    * interceptor, and controller behind it (models, subscription, super-admin,
-   * feature flags, rate limits). Idempotent: an already-hydrated request is
-   * left untouched.
+   * feature flags, rate limits). Idempotent: an already-hydrated request keeps
+   * its context and only has the admin IP binding re-applied.
    */
   async hydrate(req: RequestWithContext): Promise<void> {
+    await this.hydrateContext(req);
+    this.bindSuperAdminToAdminIp(req);
+  }
+
+  /**
+   * Super-admin power is honoured only from `ADMIN_ALLOWED_IPS`. Applied after
+   * the Redis read/write so the cached context keeps the account's role and
+   * every request is judged on its own client IP.
+   */
+  private bindSuperAdminToAdminIp(req: RequestWithContext): void {
+    const isClaimingSuperAdmin =
+      req.context?.isSuperAdmin === true || req.user?.isSuperAdmin === true;
+
+    if (!isClaimingSuperAdmin || isAdminIpAllowed(req)) {
+      return;
+    }
+
+    if (req.context) {
+      req.context = { ...req.context, isSuperAdmin: false };
+    }
+    if (req.user) {
+      req.user = { ...req.user, isSuperAdmin: false };
+    }
+  }
+
+  private async hydrateContext(req: RequestWithContext): Promise<void> {
     if (req.context) {
       return;
     }
