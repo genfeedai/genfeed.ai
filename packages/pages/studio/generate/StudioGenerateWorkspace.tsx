@@ -702,7 +702,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     !isLoadingGallery &&
     galleryJobs.length === 0 &&
     prompt.trim().length === 0;
-  const contextSidebar = useContextSidebar();
+  const revealInspector = useContextSidebar()?.reveal;
   const handleInspectIngredient = useCallback(
     (ingredient: IIngredient) => {
       const job = visibleJobs.find(
@@ -712,10 +712,10 @@ export default function StudioGenerateWorkspace(): ReactElement {
       );
       if (job) {
         setSelectedJobId(job.id);
-        if (job.id === selectedJobId) contextSidebar?.reveal();
+        if (job.id === selectedJobId) revealInspector?.();
       }
     },
-    [contextSidebar, selectedJobId, visibleJobs],
+    [revealInspector, selectedJobId, visibleJobs],
   );
   const assetActions = useStudioGenerateAssetActions({
     onAttachReference: handleAttachGeneratedReference,

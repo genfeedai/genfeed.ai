@@ -431,11 +431,11 @@ export default function IngredientsListContent({
     [onOpenIngredientModal, onOpenLightbox],
   );
 
-  // A brand Library click selects the asset for the workspace sidebar.
+  // A brand Library click or See Details selects the asset for the workspace sidebar.
   // Clicking that asset again removes it. The sidebar preview opens the
   // lightbox; the tile click never does. Other scopes have no sidebar and
   // keep opening the preview straight away.
-  const contextSidebar = useContextSidebar();
+  const revealInspector = useContextSidebar()?.reveal;
   const handleSeeDetails = useCallback(
     (ingredient: IIngredient) => {
       if (scope === PageScope.BRAND) {
@@ -445,14 +445,14 @@ export default function IngredientsListContent({
           selectedIngredientIds.length === 1 &&
           selectedIngredientIds[0] === ingredient.id
         ) {
-          contextSidebar?.reveal();
+          revealInspector?.();
         }
         return;
       }
       onSeeDetails(ingredient);
     },
     [
-      contextSidebar,
+      revealInspector,
       onSeeDetails,
       onSelectionChange,
       scope,

@@ -298,8 +298,9 @@ export default function Container({
               data-testid="container-header-actions"
               className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2.5"
             >
-              {helpNode}
               {right}
+              {helpNode}
+              {iconActions}
             </div>
           </div>
         ) : null}

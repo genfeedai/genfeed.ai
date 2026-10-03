@@ -203,6 +203,30 @@ function UniversalWorkspaceShellContent({
     readonly token: symbol;
   } | null>(null);
   const primaryRegionRef = useRef<HTMLElement>(null);
+  const contextReturnFocusRef = useRef<HTMLElement | null>(null);
+  const wasContextOpenRef = useRef(false);
+  const restoreContextFocus = useCallback(() => {
+    const target = contextReturnFocusRef.current;
+    (target?.isConnected ? target : primaryRegionRef.current)?.focus({
+      preventScroll: true,
+    });
+  }, []);
+  const isContextVisible =
+    isInspectorOpen || Boolean(activeContextSidebar?.isMobileOpen);
+  useEffect(() => {
+    const wasOpen = wasContextOpenRef.current;
+    wasContextOpenRef.current = isContextVisible;
+    if (wasOpen && !isContextVisible) {
+      const focused = document.activeElement;
+      if (
+        focused === document.body ||
+        focused?.closest(
+          '#workspace-context-inspector, #workspace-context-inspector-drawer',
+        )
+      )
+        restoreContextFocus();
+    }
+  }, [isContextVisible, restoreContextFocus]);
   const inspectorRef = useRef<HTMLElement>(null);
   const previousPathnameRef = useRef<string | null>(null);
   const previousStateRef = useRef<WorkspaceShellState | null>(null);
@@ -1010,6 +1034,15 @@ function UniversalWorkspaceShellContent({
               )}
               data-testid="workspace-canvas-layout"
               ref={primaryRegionRef}
+              onFocusCapture={(event) => {
+                const target = event.target;
+                if (
+                  target instanceof HTMLElement &&
+                  !target.dataset.testid?.startsWith('topbar-inspector-')
+                ) {
+                  contextReturnFocusRef.current = target;
+                }
+              }}
               tabIndex={-1}
             >
               <ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider
@@ -1180,6 +1213,10 @@ function UniversalWorkspaceShellContent({
             <DrawerContent
               className="max-h-[85vh] rounded-t-[var(--radius-workspace-overlay)]"
               id="workspace-context-inspector-drawer"
+              onCloseAutoFocus={(event) => {
+                event.preventDefault();
+                restoreContextFocus();
+              }}
             >
               {activeContextSidebar ? (
                 <WorkspaceContextSidebarDrawerBody

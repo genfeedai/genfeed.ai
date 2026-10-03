@@ -65,7 +65,7 @@ export function InspectorToggleFallback() {
 
   return (
     <div
-      className={`shrink-0 justify-end border-b border-border px-4 py-1.5 ${sidebar.isMobileOpen ? 'hidden' : 'flex'} ${sidebar.isOpen ? 'xl:hidden' : 'xl:flex'}`}
+      className="flex min-h-11 shrink-0 justify-end border-b border-border px-4 py-1.5"
       data-testid="content-inspector-fallback"
     >
       <ContextInspectorToggle />
@@ -138,13 +138,23 @@ export default function ContextInspectorToggle() {
           aria-expanded={sidebar.isOpen}
           ariaLabel={translate('expand')}
           tooltip={translate('expand')}
-          className={`hidden xl:inline-flex ${SHELL_ICON_BUTTON_CLASS}`}
+          className={`max-xl:hidden ${SHELL_ICON_BUTTON_CLASS}`}
           data-active={sidebar.isOpen ? 'true' : 'false'}
           data-testid="topbar-inspector-toggle"
-          onClick={sidebar.toggle}
+          onClick={() => {
+            sidebar.toggle();
+            requestAnimationFrame(() =>
+              document
+                .querySelector<HTMLButtonElement>(
+                  '[data-testid="context-sidebar-close"]',
+                )
+                ?.focus({ preventScroll: true }),
+            );
+          }}
           size={ButtonSize.ICON}
           type="button"
           variant={ButtonVariant.GHOST}
+          withWrapper={false}
         >
           <PanelRightOpen className={SHELL_ICON_CLASS} />
         </Button>
@@ -161,6 +171,7 @@ export default function ContextInspectorToggle() {
           size={ButtonSize.ICON}
           type="button"
           variant={ButtonVariant.GHOST}
+          withWrapper={false}
         >
           <PanelRightOpen className={SHELL_ICON_CLASS} />
         </Button>
