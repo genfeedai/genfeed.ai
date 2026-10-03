@@ -10,7 +10,7 @@
   "description": "Shared client-facing services and orchestration helpers for Genfeed applications",
   "devDependencies": {
     "@genfeedai/tsconfig": "workspace:*",
-    "vitest": "5.0.2"
+    "vitest": "5.0.3"
   },
   "exports": {
     "./*": "./*"

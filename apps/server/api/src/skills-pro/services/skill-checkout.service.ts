@@ -76,7 +76,7 @@ export class SkillCheckoutService {
         type: 'skills-pro',
       },
       mode: 'payment',
-      payment_method_types: ['card'],
+      allowed_payment_method_types: ['card'],
       success_url: this.resolveRedirectUrl(dto.successUrl, defaultSuccessUrl),
     };
 

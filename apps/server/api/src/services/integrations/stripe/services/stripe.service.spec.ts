@@ -49,7 +49,7 @@ describe('StripeService', () => {
     const configGetMock = vi.fn((key: string) => {
       const map: Record<string, string> = {
         GENFEEDAI_APP_URL: 'http://localhost:3000',
-        STRIPE_API_VERSION: '2026-01-28.clover',
+        STRIPE_API_VERSION: '2026-09-30.endive',
         STRIPE_PRICE_PAYG: 'payg_id',
         STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: 'enterprise_id',
         STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: 'pro_id',
@@ -83,7 +83,25 @@ describe('StripeService', () => {
     expect(service).toBeDefined();
   });
 
+  it('pins the Stripe client to the endive API version', () => {
+    expect(service.stripe.getApiField('version')).toBe('2026-09-30.endive');
+  });
+
   describe('createPaymentSession', () => {
+    it('restricts checkout to cards via allowed_payment_method_types', async () => {
+      const createSpy = vi
+        .spyOn(service.stripe.checkout.sessions, 'create')
+        .mockResolvedValue(checkoutSessionResponse('sess'));
+
+      await service.createPaymentSession('cust', 'pro_id', 'http://origin', 1);
+
+      const params = createSpy.mock.calls[0]?.[0];
+      expect(params).toEqual(
+        expect.objectContaining({ allowed_payment_method_types: ['card'] }),
+      );
+      expect(params).not.toHaveProperty('payment_method_types');
+    });
+
     it('should pass quantity to stripe checkout', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
@@ -334,7 +352,7 @@ describe('StripeService', () => {
       const configGetMock = vi.fn((key: string) => {
         const map: Record<string, string> = {
           GENFEEDAI_APP_URL: 'http://localhost:3000',
-          STRIPE_API_VERSION: '2026-01-28.clover',
+          STRIPE_API_VERSION: '2026-09-30.endive',
           STRIPE_PRICE_PAYG: 'payg_id',
           STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: 'enterprise_id',
           STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: 'pro_id',
@@ -377,7 +395,7 @@ describe('StripeService', () => {
       const configGetMock = vi.fn((key: string) => {
         const map: Record<string, string> = {
           GENFEEDAI_APP_URL: 'http://localhost:3000',
-          STRIPE_API_VERSION: '2026-01-28.clover',
+          STRIPE_API_VERSION: '2026-09-30.endive',
           STRIPE_PRICE_PAYG: 'payg_id',
           STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: 'enterprise_id',
           STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: 'pro_id',
@@ -420,7 +438,7 @@ describe('StripeService', () => {
       const configGetMock = vi.fn((key: string) => {
         const map: Record<string, string> = {
           GENFEEDAI_APP_URL: 'http://localhost:3000',
-          STRIPE_API_VERSION: '2026-01-28.clover',
+          STRIPE_API_VERSION: '2026-09-30.endive',
           STRIPE_PRICE_PAYG: 'payg_id',
           STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: 'enterprise_id',
           STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: 'pro_id',
@@ -501,7 +519,7 @@ describe('StripeService', () => {
   describe('constructWebhookEvent', () => {
     const webhookSecret = 'whsec_test_secret';
     const payload = JSON.stringify({
-      api_version: '2026-03-25.dahlia',
+      api_version: '2026-09-30.endive',
       created: 1_700_000_000,
       data: { object: { id: 'in_test', object: 'invoice' } },
       id: 'evt_test_signed',
@@ -543,7 +561,7 @@ describe('StripeService', () => {
         }
 
         const map: Record<string, string> = {
-          STRIPE_API_VERSION: '2026-01-28.clover',
+          STRIPE_API_VERSION: '2026-09-30.endive',
           STRIPE_SECRET_KEY: 'sk_test',
         };
         return map[key];
