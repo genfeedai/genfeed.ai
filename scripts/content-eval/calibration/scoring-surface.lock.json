@@ -1,0 +1,67 @@
+{
+  "text": {
+    "digest": "sha256:c209ef4bcb9828a3d078e46e864484dbfc351167b5ccdf7fb86172b631fd9663",
+    "files": [
+      {
+        "digest": "sha256:701f5983be348dcd04d11e6a87cad3c49111eb64451f21b3f7bbde8e466b0bef",
+        "path": "apps/server/api/src/collections/evaluations/services/evaluation-result.projection.ts"
+      },
+      {
+        "digest": "sha256:66abbb993caaa3811f41f8c6989158d6578a439e5b0f4d6e44b6d576ecc34f9f",
+        "path": "apps/server/api/src/collections/evaluations/services/evaluations-operations.service.ts"
+      },
+      {
+        "digest": "sha256:b9aef4e1665877a5f6d0078de9ad4635253b0628becaad4e1d1288bba35f3e64",
+        "path": "apps/server/api/src/collections/evaluations/services/evaluations.service.ts"
+      },
+      {
+        "digest": "sha256:37229978e8512240e14bda8435583437565b0f10e53ac32c6a21c42b6e59f148",
+        "path": "apps/server/api/src/constants/default-text-model.constant.ts"
+      },
+      {
+        "digest": "sha256:35b46c7e125115a3f6073f97e7b8fe8f481688e303186abada4d26f9ec012dff",
+        "path": "apps/server/api/src/services/content-quality/content-quality-scorer.prompts.ts"
+      },
+      {
+        "digest": "sha256:7528fd1feeb45c85b2d2f22ce0006388e4af21d7e75f5a75c91a535c796cc9bc",
+        "path": "apps/server/api/src/services/content-quality/content-quality-scorer.service.ts"
+      },
+      {
+        "digest": "sha256:6635a3531e852ad3a74a0c88dc4e04bfc8ec1975aa49b93b919d758f755c3e7c",
+        "path": "packages/harness/src/persuasion/viral-psychology.ts"
+      },
+      {
+        "digest": "sha256:9bdd9700b3a616e3333ba4754e2505c871eac1bbb6692f7ccbcea9d6ab8a995f",
+        "path": "scripts/content-eval/scorers/rubrics.ts"
+      }
+    ],
+    "values": {
+      "contentQualityModel": "google/gemini-2.5-flash-lite",
+      "evaluationTemplates": {
+        "article": "prompt.evaluation.article",
+        "post": "prompt.evaluation.post",
+        "system": "system.evaluation"
+      },
+      "evaluationsModel": "anthropic/claude-sonnet-5",
+      "scoringSchema": "content_quality_scoring"
+    }
+  },
+  "version": "scoring-surface-v1",
+  "vision": {
+    "digest": "sha256:e96676efb184cc7acdefb5587d6fac1f6c0551d9bad03b764e11f8f902bbfb02",
+    "files": [
+      {
+        "digest": "sha256:a5af9537056bedb46d3ecf35e7e5eda90c6dbfb393ede0462b0a46180e9b1637",
+        "path": "scripts/content-eval/media/judge.ts"
+      }
+    ],
+    "values": {
+      "mediaRubricVersion": "media-panel-v1",
+      "scorerVisionModel": "openai/gpt-5.6-luna",
+      "visionTemplates": {
+        "image": "prompt.evaluation.image",
+        "video": "prompt.evaluation.video"
+      }
+    }
+  }
+}
