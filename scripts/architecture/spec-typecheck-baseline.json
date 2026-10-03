@@ -5353,30 +5353,6 @@
       "workspace": "files"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/files/src/services/hook-remix/hook-remix.service.spec.ts",
-      "fingerprint": "23642ae4edb4ca4701c3",
-      "message": "Argument of type '{ jobId: string; ctaVideoUrl: string; hookDurationSeconds: number; organizationId: string; youtubeUrl: string; }' is not assignable to parameter of type 'HookRemixJobData'.   Type '{ jobId: string; ctaVideoUrl: string; hookDurationSeconds: number; organizationId: string; youtubeUrl: string; }' is missing the following properties from type 'HookRemixJobData': userId, brandId",
-      "workspace": "files"
-    },
-    {
-      "code": 2345,
-      "count": 6,
-      "file": "apps/server/files/src/services/hook-remix/hook-remix.service.spec.ts",
-      "fingerprint": "42e6089de283e0981356",
-      "message": "Argument of type '{ ctaVideoUrl: string; hookDurationSeconds: number; jobId: string; organizationId: string; youtubeUrl: string; }' is not assignable to parameter of type 'HookRemixJobData'.   Type '{ ctaVideoUrl: string; hookDurationSeconds: number; jobId: string; organizationId: string; youtubeUrl: string; }' is missing the following properties from type 'HookRemixJobData': userId, brandId",
-      "workspace": "files"
-    },
-    {
-      "code": 2345,
-      "count": 3,
-      "file": "apps/server/files/src/services/hook-remix/hook-remix.service.spec.ts",
-      "fingerprint": "aefab4232004fb90dc8d",
-      "message": "Argument of type '{ ctaVideoUrl: string; hookDurationSeconds: number; jobId: string; organizationId: string; youtubeUrl: string; }' is not assignable to parameter of type 'HookRemixJobData'.   Type '{ ctaVideoUrl: string; hookDurationSeconds: number; jobId: string; organizationId: string; youtubeUrl: string; }' is missing the following properties from type 'HookRemixJobData': userId, brandId",
-      "workspace": "files"
-    },
-    {
       "code": 2352,
       "count": 2,
       "file": "apps/server/files/src/services/images/images-split.service.spec.ts",

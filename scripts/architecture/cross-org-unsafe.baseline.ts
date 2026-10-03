@@ -48,4 +48,12 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
       file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
       line: 273,
     },
+    // #5981: readPublicSources discovers only non-deleted ingredients that are
+    // public (isPublic, scope PUBLIC, or on a visibility PUBLIC post) and keeps
+    // only ids confirmed public; selected columns feed server-side grant
+    // issuance only and are never returned over HTTP.
+    {
+      file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
+      line: 211,
+    },
   ];
