@@ -41,6 +41,7 @@ async function setup(tier = 'free') {
       findMany: vi.fn().mockResolvedValue([]),
     },
     ingredient: { findMany: vi.fn().mockResolvedValue([source]) },
+    personaGrant: { findMany: vi.fn().mockResolvedValue([]) },
     mediaDeliveryVariant: {
       findMany: vi.fn().mockResolvedValue([]),
       findFirst: vi.fn().mockResolvedValue(null),
@@ -239,5 +240,75 @@ describe('AuthorizedMediaUrlService', () => {
     await expect(
       service.issuePublicDerivative(scope, ingredientId, 'public-share'),
     ).rejects.toThrow('permission');
+  });
+
+  describe('granted character media (#6037)', () => {
+    const recipientScope = {
+      brandId: testId('brand', 2),
+      organizationId: testId('org', 2),
+      userId: testId('user', 2),
+    };
+    const ownerOrganizationId = organizationId;
+    const grantRow = (overrides: Record<string, unknown> = {}) => ({
+      availabilityMode: 'ALL_BRANDS',
+      availableBrandIds: [],
+      ownerOrganizationId,
+      persona: { avatarIngredientId: ingredientId },
+      ...overrides,
+    });
+
+    it('serves a granted sheet from the owning organization to the receiving brand', async () => {
+      const { service, prisma } = await setup();
+      prisma.personaGrant.findMany.mockResolvedValue([grantRow()]);
+
+      const result = await service.projectGrantedCharacterMedia(
+        recipientScope,
+        [ingredientId],
+      );
+
+      expect(prisma.personaGrant.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            recipientOrganizationId: recipientScope.organizationId,
+            revokedAt: null,
+          }),
+        }),
+      );
+      expect(prisma.ingredient.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            organizationId: ownerOrganizationId,
+          }),
+        }),
+      );
+      expect(result).toHaveLength(1);
+      expect(result[0].url).toContain('signed=1');
+    });
+
+    it('serves nothing after revocation, outside the granted brands, or without a brand', async () => {
+      const { service, prisma } = await setup();
+
+      prisma.personaGrant.findMany.mockResolvedValue([]);
+      await expect(
+        service.projectGrantedCharacterMedia(recipientScope, [ingredientId]),
+      ).resolves.toEqual([]);
+
+      prisma.personaGrant.findMany.mockResolvedValue([
+        grantRow({
+          availabilityMode: 'SELECTED_BRANDS',
+          availableBrandIds: [testId('brand', 9)],
+        }),
+      ]);
+      await expect(
+        service.projectGrantedCharacterMedia(recipientScope, [ingredientId]),
+      ).resolves.toEqual([]);
+      await expect(
+        service.projectGrantedCharacterMedia(
+          { organizationId: recipientScope.organizationId, userId },
+          [ingredientId],
+        ),
+      ).resolves.toEqual([]);
+      expect(prisma.ingredient.findMany).not.toHaveBeenCalled();
+    });
   });
 });

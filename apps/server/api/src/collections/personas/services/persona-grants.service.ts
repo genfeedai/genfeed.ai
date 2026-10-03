@@ -16,7 +16,7 @@ export type GrantableMode =
   | PersonaAvailabilityMode.SELECTED_BRANDS;
 
 export interface CharacterGrantView {
-  availabilityMode: PersonaAvailabilityMode;
+  availabilityMode: string;
   availableBrandIds: string[];
   grantedAt: Date;
   id: string;
@@ -42,7 +42,13 @@ export class PersonaGrantsService {
     apiKeyContext?: ApiKeyRoleContext;
     organizationId: string;
     userId: string;
-  }): Promise<Array<{ id: string; label: string }>> {
+  }): Promise<
+    Array<{
+      brands: Array<{ id: string; label: string }>;
+      id: string;
+      label: string;
+    }>
+  > {
     const memberships = await this.prisma.member.findMany({
       select: {
         organization: { select: { id: true, label: true } },
@@ -56,14 +62,30 @@ export class PersonaGrantsService {
         userId: params.userId,
       },
     });
-    return memberships
-      .filter((member) =>
-        this.isAdminRole(params.apiKeyContext, member.role.key as MemberRole),
-      )
-      .map((member) => ({
-        id: member.organization.id,
-        label: member.organization.label,
-      }));
+    const administered = memberships.filter((member) =>
+      this.isAdminRole(params.apiKeyContext, member.role.key as MemberRole),
+    );
+    if (administered.length === 0) {
+      return [];
+    }
+    // The brands the actor can pick as the grant's receiving availability.
+    const brands = await this.prisma.brand.findMany({
+      orderBy: { label: 'asc' },
+      select: { id: true, label: true, organizationId: true },
+      where: {
+        isDeleted: false,
+        organizationId: {
+          in: administered.map((member) => member.organizationId),
+        },
+      },
+    });
+    return administered.map((member) => ({
+      brands: brands
+        .filter((brand) => brand.organizationId === member.organizationId)
+        .map(({ id, label }) => ({ id, label })),
+      id: member.organization.id,
+      label: member.organization.label,
+    }));
   }
 
   async listForPersona(params: {

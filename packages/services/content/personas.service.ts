@@ -2,10 +2,13 @@ import type { PersonaAvailabilityMode } from '@genfeedai/contracts';
 import type {
   BrandCharacterListItem,
   CharacterAvailabilityInput,
+  CharacterGrantInput,
+  CharacterGrantItem,
   CharacterImageInspection,
   ComposeCharacterSheetPromptInput,
   ComposeCharacterSheetPromptResult,
   CreatePersonaFromSheetInput,
+  GrantableOrganization,
 } from '@genfeedai/contracts/interfaces';
 import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import { BaseService } from '@services/core/base.service';
@@ -21,6 +24,8 @@ export class Persona {
   avatarIngredientId?: string | null;
   handle?: string | null;
   id!: string;
+  grantedByOrganizationName?: string | null;
+  isGranted?: boolean;
   isShared?: boolean;
   label!: string;
   owningBrandId?: string | null;
@@ -43,6 +48,8 @@ function toCharacterListItems(rows: Persona[]): BrandCharacterListItem[] {
     avatarIngredientId: row.avatarIngredientId,
     handle: row.handle,
     id: row.id,
+    grantedByOrganizationName: row.grantedByOrganizationName,
+    isGranted: row.isGranted,
     isShared: row.isShared,
     label: row.label,
     owningBrandId: row.owningBrandId,
@@ -92,6 +99,31 @@ export class PersonasService extends BaseService<
       input,
     );
     return deserializeResource<Persona>(response.data);
+  }
+
+  async listGrantableOrganizations(): Promise<GrantableOrganization[]> {
+    const response = await this.instance.get<{
+      organizations: GrantableOrganization[];
+    }>('/grantable-organizations');
+    return response.data.organizations;
+  }
+
+  async listGrants(id: string): Promise<CharacterGrantItem[]> {
+    const response = await this.instance.get<{ grants: CharacterGrantItem[] }>(
+      `/${id}/grants`,
+    );
+    return response.data.grants;
+  }
+
+  async grantToOrganization(
+    id: string,
+    input: CharacterGrantInput,
+  ): Promise<void> {
+    await this.instance.post(`/${id}/grants`, input);
+  }
+
+  async revokeGrant(id: string, grantId: string): Promise<void> {
+    await this.instance.delete(`/${id}/grants/${grantId}`);
   }
 
   async moveOwnership(id: string, brandId: string): Promise<Persona> {
