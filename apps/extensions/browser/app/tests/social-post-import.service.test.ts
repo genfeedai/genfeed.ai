@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  workspaceBrand: 'brand-a',
   fetch: vi.fn(),
   getToken: vi.fn(),
 }));
@@ -30,6 +31,7 @@ function jsonResponse(body: unknown, ok = true, status = ok ? 200 : 400) {
 
 describe('social post import service', () => {
   beforeEach(() => {
+    mocks.workspaceBrand = 'brand-a';
     mocks.fetch.mockReset();
     mocks.getToken.mockReset().mockResolvedValue('token');
     vi.stubGlobal('fetch', mocks.fetch);
@@ -95,6 +97,7 @@ describe('social post import service', () => {
   });
 
   it('scopes a second brand to a different import request', async () => {
+    mocks.workspaceBrand = 'brand-b';
     mocks.fetch.mockResolvedValue(
       jsonResponse({
         deduplicated: false,
@@ -234,4 +237,53 @@ describe('social post import service', () => {
     expect(source).not.toContain("'/posts");
     expect(source).not.toContain('AgentTools');
   });
+});
+
+// Unit boundary: identity/bootstrap reconciliation is covered by workspace.service.test.ts.
+vi.mock('~services/workspace.service', async () => {
+  const { authService } = await import('~services/auth.service');
+  const { apiEndpoint } = await import('~services/environment.service');
+  const snapshot = async () => {
+    const context =
+      'getAuthContext' in authService
+        ? await authService.getAuthContext()
+        : null;
+    return {
+      userId: context?.user?.id ?? 'user-1',
+      organizationId: context?.organization?.id ?? 'org-1',
+      brandId: mocks.workspaceBrand,
+      brands: [{ id: mocks.workspaceBrand }],
+      revision: 1,
+    };
+  };
+  return {
+    requireWorkspace: snapshot,
+    assertWorkspace: vi.fn(),
+    loadWorkspace: snapshot,
+    scopedWorkspaceRequest: async (
+      path: string,
+      options: RequestInit,
+      expected: { organizationId: string },
+    ) => {
+      const token = await authService.getToken();
+      const headers = new Headers(options.headers);
+      headers.set('Authorization', `Bearer ${token}`);
+      headers.set('x-genfeed-organization-id', expected.organizationId);
+      return fetch(path.startsWith('http') ? path : `${apiEndpoint}${path}`, {
+        ...options,
+        headers,
+      });
+    },
+  };
+});
+
+it('rejects stale same-organization brand arguments before import fetch', async () => {
+  mocks.workspaceBrand = 'brand-b';
+  await expect(
+    importSocialPost({
+      brandId: 'brand-a',
+      url: 'https://x.com/author/status/2',
+    }),
+  ).rejects.toThrow('original brand');
+  expect(mocks.fetch).not.toHaveBeenCalled();
 });

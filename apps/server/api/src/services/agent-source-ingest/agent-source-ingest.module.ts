@@ -1,3 +1,4 @@
+import { AgentImportedSourceIngestService } from '@api/services/agent-source-ingest/agent-imported-source-ingest.service';
 import { AgentSourceDownloadService } from '@api/services/agent-source-ingest/agent-source-download.service';
 import { AgentSourceIngestService } from '@api/services/agent-source-ingest/agent-source-ingest.service';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
@@ -8,7 +9,11 @@ import { Module } from '@nestjs/common';
 
 @Module({
   imports: [FilesClientModule, PrismaModule, ConfigModule, HttpModule],
-  providers: [AgentSourceDownloadService, AgentSourceIngestService],
-  exports: [AgentSourceIngestService],
+  providers: [
+    AgentSourceDownloadService,
+    AgentSourceIngestService,
+    AgentImportedSourceIngestService,
+  ],
+  exports: [AgentSourceIngestService, AgentImportedSourceIngestService],
 })
 export class AgentSourceIngestModule {}

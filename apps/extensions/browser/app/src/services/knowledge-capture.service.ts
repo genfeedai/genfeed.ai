@@ -1,12 +1,16 @@
 import { KnowledgeSourcePurpose } from '@genfeedai/contracts';
+import type { ExtensionWorkspaceSnapshot } from '@genfeedai/contracts/interfaces';
 import { Storage } from '@plasmohq/storage';
 import type {
   KnowledgeCaptureDraft,
   KnowledgeCaptureReceipt,
   KnowledgeCaptureSpace,
 } from '~models/knowledge-capture.model';
-import { authService } from '~services/auth.service';
-import { apiEndpoint } from '~services/environment.service';
+import {
+  assertWorkspace,
+  requireWorkspace,
+  scopedWorkspaceRequest,
+} from '~services/workspace.service';
 import { prepareKnowledgeSnapshot } from '~utils/knowledge-snapshot.util';
 
 const storage = new Storage({ area: 'local' });
@@ -25,20 +29,14 @@ interface ApiResult {
 }
 interface CaptureSession {
   key: string;
-  token: string;
+  workspace: ExtensionWorkspaceSnapshot;
 }
 
 async function session(): Promise<CaptureSession> {
-  const token = await authService.getToken();
-  const context = token ? await authService.getAuthContext() : null;
-  if (!token || !context?.organization?.id || !context.user?.id) {
-    throw new Error(
-      'Sign in to Genfeed and select your workspace before saving.',
-    );
-  }
+  const workspace = await requireWorkspace();
   return {
-    key: `knowledge_outbox:${context.organization.id}:${context.user.id}`,
-    token,
+    key: `knowledge_outbox:${workspace.organizationId}:${workspace.userId}`,
+    workspace,
   };
 }
 
@@ -49,16 +47,19 @@ async function request(
   body?: unknown,
   key?: string,
 ): Promise<ApiResult> {
-  const response = await fetch(`${apiEndpoint}${path}`, {
-    method,
-    signal: AbortSignal.timeout(20_000),
-    headers: {
-      Authorization: `Bearer ${current.token}`,
-      'Content-Type': 'application/json',
-      ...(key ? { 'Idempotency-Key': key } : {}),
+  const response = await scopedWorkspaceRequest(
+    path,
+    {
+      method,
+      signal: AbortSignal.timeout(20_000),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(key ? { 'Idempotency-Key': key } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
     },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  });
+    current.workspace,
+  );
   if (!response.ok) {
     if (response.status === 401)
       throw new Error('Sign in again, then retry this capture.');
@@ -76,7 +77,9 @@ async function request(
       'Genfeed could not finish saving. Your capture is kept here for retry.',
     );
   }
-  return response.json();
+  const result = await response.json();
+  assertWorkspace(current.workspace);
+  return result;
 }
 
 function resource(result: ApiResult): Resource {
@@ -93,6 +96,7 @@ async function saveReceipts(
   current: CaptureSession,
   rows: KnowledgeCaptureReceipt[],
 ) {
+  assertWorkspace(current.workspace);
   const pending = rows.filter((row) => row.draft);
   const receipts = rows.filter((row) => !row.draft).slice(0, MAX_RECEIPTS);
   await storage.set(current.key, [...pending, ...receipts]);
@@ -184,6 +188,8 @@ export function enqueueKnowledgeCapture(
       throw new Error('Select a brand before saving.');
     if (!Object.values(KnowledgeSourcePurpose).includes(input.purpose))
       throw new Error('Select a capture purpose.');
+    if (input.brandId !== current.workspace.brandId)
+      throw new Error('Select this brand in your workspace before saving.');
     const draft: KnowledgeCaptureDraft = {
       ...prepareKnowledgeSnapshot(input),
       brandId: input.brandId,
@@ -226,6 +232,10 @@ export function retryKnowledgeCapture(
       throw new Error(
         'This capture belongs to another workspace or has been discarded.',
       );
+    if (row.brandId !== current.workspace.brandId)
+      throw new Error(
+        'Select the original brand before retrying this capture.',
+      );
     if (row.draft) return deliver(current, row, receipts);
     if (row.sourceId && row.state === 'failed') {
       const response = await request(
@@ -248,6 +258,7 @@ export function listKnowledgeCaptures(): Promise<KnowledgeCaptureReceipt[]> {
     const receipts = await rows(current);
     for (const row of receipts.filter(
       (item) =>
+        item.brandId === current.workspace.brandId &&
         item.sourceId &&
         item.versionId &&
         !item.draft &&
@@ -277,16 +288,22 @@ export function listKnowledgeCaptures(): Promise<KnowledgeCaptureReceipt[]> {
       }
     }
     await saveReceipts(current, receipts);
-    return receipts;
+    return receipts.filter((row) => row.brandId === current.workspace.brandId);
   });
 }
 
 export function discardKnowledgeCapture(id: string): Promise<void> {
   return serialize(async () => {
     const current = await session();
+    const receipts = await rows(current);
+    const row = receipts.find((item) => item.id === id);
+    if (row && row.brandId !== current.workspace.brandId)
+      throw new Error(
+        'Select the original brand before discarding this capture.',
+      );
     await saveReceipts(
       current,
-      (await rows(current)).filter((item) => item.id !== id),
+      receipts.filter((item) => item.id !== id),
     );
   });
 }
@@ -296,6 +313,8 @@ export async function listCaptureSpaces(
 ): Promise<KnowledgeCaptureSpace[]> {
   if (!brandId) return [];
   const current = await session();
+  if (brandId !== current.workspace.brandId)
+    throw new Error('Select an accessible brand first.');
   const spaces: KnowledgeCaptureSpace[] = [];
   for (let page = 1; ; page++) {
     const result = await request(
@@ -322,11 +341,13 @@ export async function listCaptureSpaces(
 
 export async function getCaptureBrand(): Promise<string | null> {
   const current = await session();
-  return (await storage.get<string>(`${current.key}:brand`)) ?? null;
+  return current.workspace.brandId;
 }
 
 export async function setCaptureBrand(brandId: string): Promise<void> {
   const current = await session();
+  if (brandId !== current.workspace.brandId)
+    throw new Error('Select an accessible brand first.');
   await storage.set(`${current.key}:brand`, brandId);
 }
 

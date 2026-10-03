@@ -90,7 +90,7 @@
     "symbol": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts"
   },
   {
-    "actual": 1510,
+    "actual": 1508,
     "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts"
@@ -112,12 +112,6 @@
     "file": "apps/server/api/src/endpoints/ads-research/ads-research.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/endpoints/ads-research/ads-research.service.ts"
-  },
-  {
-    "actual": 506,
-    "file": "apps/server/api/src/endpoints/analytics/analytics.controller.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/api/src/endpoints/analytics/analytics.controller.ts"
   },
   {
     "actual": 276,
@@ -198,7 +192,7 @@
     "symbol": "AgentPrepareToolHandler.prepareClipWorkflowRun"
   },
   {
-    "actual": 1137,
+    "actual": 1097,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts"

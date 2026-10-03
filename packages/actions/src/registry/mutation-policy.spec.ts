@@ -237,3 +237,20 @@ describe('evaluateMutationPolicy', () => {
     ).toEqual({ kind: 'execute' });
   });
 });
+
+it('records external publication directly', () => {
+  expect(getDeclaredMutationPolicy('record_external_publication')).toBe(
+    'direct',
+  );
+});
+
+it('declares account recovery a free direct mutation', () => {
+  expect(
+    getDeclaredMutationPolicy('link_external_publication_credential'),
+  ).toBe('direct');
+  expect(getToolByName('link_external_publication_credential')).toMatchObject({
+    creditCost: 0,
+    mutationPolicy: 'direct',
+    toolset: 'content',
+  });
+});

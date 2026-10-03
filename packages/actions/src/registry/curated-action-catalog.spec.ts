@@ -9,6 +9,30 @@ import { ALL_TOOLS, getToolByName, getToolsForSurface } from './tool-registry';
 import { CORE_TOOLSET_NAME, isToolsetName } from './toolsets';
 
 describe('curated action catalog', () => {
+  it('records reported publications as a free agent-only action without publishing approval', () => {
+    const tool = getToolByName('record_external_publication');
+    expect(tool).toMatchObject({
+      creditCost: 0,
+      requiredRole: 'user',
+      toolset: 'content',
+      mutationPolicy: 'direct',
+      surfaces: { agent: true, mcp: false },
+    });
+    expect(tool?.parameters.additionalProperties).toBe(false);
+    expect(tool?.parameters.properties).toHaveProperty('contextUrl');
+    expect(tool?.parameters.properties.observedVisibility).toMatchObject({
+      enum: ['public', 'private', 'unlisted', 'unknown'],
+    });
+    expect(tool?.parameters.properties.description).toMatchObject({
+      maxLength: 1048576,
+    });
+    expect(tool?.parameters.properties).not.toHaveProperty('credentialId');
+    expect(tool?.description).toContain('never publishes');
+    const entry = CURATED_ACTION_CATALOG.find(
+      (candidate) => candidate.name === 'record_external_publication',
+    );
+    expect(entry && isPublishingApprovalRequired(entry)).toBe(false);
+  });
   it('is deterministically sorted with unique action names', () => {
     const names = CURATED_ACTION_CATALOG.map((entry) => entry.name);
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
@@ -333,4 +357,30 @@ describe('curated action catalog', () => {
       expect(getToolByName(name)?.toolset, name).toBe(toolset);
     }
   });
+});
+
+it('exposes explicit account recovery as a strict free agent-only direct action', () => {
+  const tool = getToolByName('link_external_publication_credential');
+  expect(tool).toMatchObject({
+    creditCost: 0,
+    requiredRole: 'user',
+    toolset: 'content',
+    mutationPolicy: 'direct',
+    surfaces: { agent: true, mcp: false },
+  });
+  expect(tool?.parameters.additionalProperties).toBe(false);
+  expect(tool?.parameters.required).toEqual([
+    'brandId',
+    'postId',
+    'credentialId',
+  ]);
+  expect(Object.keys(tool?.parameters.properties ?? {}).sort()).toEqual([
+    'brandId',
+    'credentialId',
+    'postId',
+  ]);
+  const entry = CURATED_ACTION_CATALOG.find(
+    (candidate) => candidate.name === 'link_external_publication_credential',
+  );
+  expect(entry && isPublishingApprovalRequired(entry)).toBe(false);
 });

@@ -350,6 +350,11 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp'],
     toolset: 'workflows',
   },
+  {
+    name: 'link_external_publication_credential',
+    surfaces: ['agent'],
+    toolset: 'content',
+  },
   { name: 'list_ads_research', surfaces: ['agent', 'mcp'], toolset: 'ads' },
   {
     name: 'list_agent_conversations',
@@ -464,6 +469,11 @@ export const CURATED_ACTION_CATALOG = [
     name: 'read_knowledge_source',
     surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'knowledge',
+  },
+  {
+    name: 'record_external_publication',
+    surfaces: ['agent'],
+    toolset: 'content',
   },
   { name: 'reframe_image', surfaces: ['agent', 'mcp'], toolset: 'generation' },
   { name: 'reject_social_draft', surfaces: ['mcp'], toolset: 'social-inbox' },

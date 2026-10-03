@@ -1,9 +1,9 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import PromptBarBody from '@ui/prompt-bars/components/shell/PromptBarBody';
+import PromptBarBody from './PromptBarBody';
 import PromptBarShell, {
   PROMPT_BAR_SURFACE_CLASS,
   type PromptBarShellProps,
-} from '@ui/prompt-bars/components/shell/PromptBarShell';
+} from './PromptBarShell';
 import type { ReactNode } from 'react';
 
 export interface PromptBarComposerProps extends PromptBarShellProps {

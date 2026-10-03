@@ -31,6 +31,18 @@ export class ExecuteAgentToolContextDto {
   @IsNotEmpty()
   @MaxLength(128)
   approvedApprovalId?: string;
+
+  @ApiProperty({
+    description:
+      'Brand the caller is acting in. Authorized against the authenticated organization on the server before it reaches the executor.',
+    maxLength: 128,
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(128)
+  brandId?: string;
 }
 
 export class ExecuteAgentToolDto {

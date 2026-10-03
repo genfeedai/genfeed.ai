@@ -1,7 +1,12 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useWorkspaceStore } from '~store/use-workspace-store';
 
+vi.mock('~components/settings/PublicationRecordingSettings', () => ({
+  PublicationRecordingSettings: () =>
+    React.createElement('div', null, 'Publication recording'),
+}));
 vi.mock('~components/settings/AutoFillToggle', () => ({
   AutoFillToggle: () =>
     React.createElement('div', null, 'Auto-fill compose box'),
@@ -46,4 +51,26 @@ describe('SettingsPanel', () => {
     expect(screen.queryByText('Auto-fill compose box')).not.toBeInTheDocument();
     expect(screen.queryByText('Appearance selector')).not.toBeInTheDocument();
   });
+});
+
+it('shows organization label without the opaque database userID', () => {
+  useWorkspaceStore.setState(
+    {
+      status: 'ready',
+      snapshot: {
+        userId: 'opaque-user-id',
+        organizationId: 'org',
+        organizationLabel: 'My organization',
+        brandId: 'brand',
+        revision: 1,
+        brands: [],
+        organizations: [],
+        isApiKey: false,
+      },
+    },
+    true,
+  );
+  render(React.createElement(SettingsPanel));
+  expect(screen.getByText('My organization')).toBeInTheDocument();
+  expect(screen.queryByText(/opaque-user-id/)).toBeNull();
 });

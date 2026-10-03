@@ -144,6 +144,18 @@ describe('committed brand icons', () => {
     expect(adaptive[3]).toBe(0);
   });
 
+  it('ships a white toolbar mark on a transparent canvas for dark browser chrome', async () => {
+    const png = readFileSync(
+      path.join(REPO_ROOT, BRAND_RASTER_FILES.extensionToolbar),
+    );
+    const center = await samplePng(png, 250, 250);
+    const corner = await samplePng(png, 0, 0);
+    expect(center.slice(0, 3)).toEqual([255, 255, 255]);
+    expect(center[3]).toBe(255);
+    expect(corner[3]).toBe(0);
+    expect(BRAND_RASTER_SPECS.extensionToolbar.fill).toBe('#ffffff');
+  });
+
   it('keeps PWA maskable marks inside the 80% crop circle', () => {
     expect(PWA_MASKABLE_MARK_RATIO).toBeLessThanOrEqual(0.8);
     expect(BRAND_RASTER_SPECS.pwaMaskable192.markSize).toBe(

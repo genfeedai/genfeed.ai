@@ -7,6 +7,7 @@ import {
   assertAnalyticsBrandInScope,
   buildAnalyticsCacheKey,
   buildOwnedAnalyticsCacheKey,
+  buildTopContentAnalyticsCacheKey,
   resolveAnalyticsTenantScope,
   resolveOwnedAnalyticsTenantScope,
 } from './analytics-tenant-scope';
@@ -293,5 +294,111 @@ describe('analytics tenant scope', () => {
         isDeleted: false,
       });
     });
+  });
+});
+
+it('isolates filtered and unfiltered top-content cache keys in the same tenant', () => {
+  const request = { query: {}, user: { organizationId: 'org' } };
+  const filtered = buildAnalyticsCacheKey('top-content', request, [
+    'brand',
+    'extension',
+  ]);
+  const all = buildAnalyticsCacheKey('top-content', request, ['brand', '']);
+  expect(filtered).not.toBe(all);
+  expect(filtered).toContain('org');
+});
+
+describe('frozen top-content cache identity', () => {
+  const request = {
+    user: { organizationId: 'org' },
+    query: {
+      startDate: '2026-01-01',
+      endDate: '2026-01-31',
+      metric: 'likes',
+      limit: '5',
+      brandId: 'brand',
+      platform: 'twitter',
+      source: 'extension',
+    },
+  };
+  it('preserves all ordered dimensions and defaults', () => {
+    expect(buildTopContentAnalyticsCacheKey(request)).toBe(
+      buildOwnedAnalyticsCacheKey('top', request, [
+        '2026-01-01',
+        '2026-01-31',
+        'likes',
+        '5',
+        'brand',
+        'twitter',
+        'extension',
+      ]),
+    );
+    expect(
+      buildTopContentAnalyticsCacheKey({ user: request.user, query: {} }),
+    ).toBe(
+      buildOwnedAnalyticsCacheKey('top', { user: request.user, query: {} }, [
+        'default',
+        'default',
+        'views',
+        '10',
+        '',
+        '',
+        '',
+      ]),
+    );
+    expect(
+      buildTopContentAnalyticsCacheKey({
+        user: request.user,
+        query: { limit: 0, metric: '' },
+      }),
+    ).toBe(
+      buildOwnedAnalyticsCacheKey('top', { user: request.user }, [
+        'default',
+        'default',
+        'views',
+        '10',
+        '',
+        '',
+        '',
+      ]),
+    );
+  });
+  it.each([
+    'startDate',
+    'endDate',
+    'metric',
+    'limit',
+    'brandId',
+    'platform',
+    'source',
+  ])('isolates %s while preserving the other ordered dimensions', (key) => {
+    expect(
+      buildTopContentAnalyticsCacheKey({
+        ...request,
+        query: { ...request.query, [key]: 'different' },
+      }),
+    ).not.toBe(buildTopContentAnalyticsCacheKey(request));
+  });
+  it('preserves own-org namespace even for a superadmin naming another org', () => {
+    const admin = {
+      ...request,
+      user: { organizationId: 'org', isSuperAdmin: true },
+      query: { ...request.query, organizationId: 'other' },
+    };
+    expect(buildTopContentAnalyticsCacheKey(admin)).toBe(
+      buildTopContentAnalyticsCacheKey(request),
+    );
+    expect(
+      buildTopContentAnalyticsCacheKey({
+        ...request,
+        user: { organizationId: 'other' },
+      }),
+    ).not.toBe(buildTopContentAnalyticsCacheKey(request));
+    expect(
+      buildTopContentAnalyticsCacheKey({
+        ...request,
+        query: { ...request.query, source: '' },
+      }),
+    ).not.toBe(buildTopContentAnalyticsCacheKey(request));
   });
 });

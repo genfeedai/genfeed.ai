@@ -9,6 +9,7 @@ import { memo } from 'react';
 
 interface PromptBarAttachedAssetsTrayProps {
   assets: PromptBarAttachedAsset[];
+  unoptimizedImages?: boolean;
   density?: 'compact' | 'default';
   dragError?: string | null;
   isDisabled?: boolean;
@@ -46,6 +47,7 @@ function getFallbackIcon(asset: PromptBarAttachedAsset) {
 
 const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
   assets,
+  unoptimizedImages = false,
   density = 'default',
   dragError,
   isDisabled = false,
@@ -79,6 +81,7 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
               {asset.previewUrl ? (
                 <Image
                   src={asset.previewUrl}
+                  unoptimized={unoptimizedImages}
                   alt={asset.name || getAssetRoleLabel(asset)}
                   width={isCompact ? 26 : 28}
                   height={isCompact ? 26 : 28}

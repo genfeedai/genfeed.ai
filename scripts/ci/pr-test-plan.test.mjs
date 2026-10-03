@@ -143,6 +143,10 @@ test('a full-suite escalation shards each whole suite four ways', () => {
     assert.deepEqual(surface.matrix, createShardMatrix(4));
   }
   assert.deepEqual(plan.workspaceMatrix.include, [
+    {
+      group: 'browser-extension',
+      filters: '--filter=@genfeedai/extension-browser',
+    },
     { group: 'packages', filters: '--filter=./packages/*' },
     {
       group: 'server',
@@ -226,7 +230,8 @@ test('creates a fail-closed plan with explicit applicability', () => {
     appTests: Array.from({ length: 76 }, (_, index) => `app-${index}.test.ts`),
     apiTests: Array.from({ length: 251 }, (_, index) => `api-${index}.test.ts`),
     turboTasks: {
-      extensions: [],
+      'browser-extension': [],
+      'ide-extension': [],
       packages: ['@genfeedai/contracts/interfaces#test'],
       server: [],
       web: ['@genfeedai/website#test'],
@@ -240,7 +245,8 @@ test('creates a fail-closed plan with explicit applicability', () => {
   assert.equal(plan.apiTests.count, 251);
   assert.equal(plan.apiTests.shards, 4);
   assert.deepEqual(plan.workspaceGroups, {
-    extensions: false,
+    'browser-extension': false,
+    'ide-extension': false,
     packages: true,
     server: false,
     web: true,
@@ -262,18 +268,20 @@ test('an empty affected plan runs no workspace or test shards', () => {
   assert.deepEqual(plan.workspaceMatrix, { include: [] });
 });
 
-test('keeps dormant extension tests out of full-suite plans', () => {
+test('master-heavy plans activate browser tests and keep IDE dormant', () => {
   const plan = createPrTestPlan({
     base: 'base-sha',
     changedFiles: [],
     forceAllSurfaces: true,
     runHeavy: true,
     turboTasks: {
-      extensions: ['@genfeedai/extension-browser#test'],
+      'browser-extension': ['@genfeedai/extension-browser#test'],
+      'ide-extension': ['extension-ide#test'],
     },
   });
 
-  assert.equal(plan.workspaceGroups.extensions, false);
+  assert.equal(plan.workspaceGroups['browser-extension'], true);
+  assert.equal(plan.workspaceGroups['ide-extension'], false);
 });
 
 test('keeps the workflow wired to the planner matrices and outputs', () => {
@@ -315,6 +323,7 @@ test('keeps the workflow wired to the planner matrices and outputs', () => {
     workflow,
     /matrix: \$\{\{ fromJSON\(needs\.plan\.outputs\.workspace_matrix\) \}\}/,
   );
+  assert.match(workflow, /name: Test Workspaces \(\$\{\{ matrix\.group \}\}\)/);
   assert.match(workflow, /WORKSPACE_FILTERS: \$\{\{ matrix\.filters \}\}/);
   // The diff base is the merge commit's first parent, resolved once by Plan;
   // the payload's `pull_request.base.sha` can be stale and over-escalate.
@@ -333,4 +342,81 @@ test('keeps the workflow wired to the planner matrices and outputs', () => {
   // PR runs carry no coverage instrumentation; full-repository coverage
   // stays in the weekly Coverage workflow.
   assert.doesNotMatch(workflow, /--coverage/);
+});
+
+test('direct browser source and config changes fail closed with an empty task graph', () => {
+  for (const file of [
+    'apps/extensions/browser/app/components/sidebar.tsx',
+    'apps/extensions/browser/app/package.json',
+    'apps/extensions/browser/app/scripts/build-icon.mjs',
+  ]) {
+    const plan = createPrTestPlan({ base: 'base-sha', changedFiles: [file] });
+    assert.deepEqual(plan.workspaceMatrix.include, [
+      {
+        group: 'browser-extension',
+        filters: '--filter=@genfeedai/extension-browser',
+      },
+    ]);
+    assert.equal(plan.workspaceGroups['ide-extension'], false);
+  }
+});
+
+test('affected browser dependencies activate only the browser workspace leg', () => {
+  const plan = createPrTestPlan({
+    base: 'base-sha',
+    changedFiles: ['packages/contracts/src/interfaces/example.ts'],
+    turboTasks: { 'browser-extension': ['@genfeedai/extension-browser#test'] },
+  });
+  assert.deepEqual(plan.workspaceMatrix.include, [
+    {
+      group: 'browser-extension',
+      filters: '--filter=@genfeedai/extension-browser',
+    },
+  ]);
+});
+
+test('IDE-only changes and unrelated docs do not activate extension tests', () => {
+  for (const file of ['apps/extensions/ide/package.json', 'docs/testing.md']) {
+    const plan = createPrTestPlan({
+      base: 'base-sha',
+      changedFiles: [file],
+      turboTasks: { 'ide-extension': ['extension-ide#test'] },
+    });
+    assert.deepEqual(plan.workspaceMatrix.include, []);
+    assert.equal(plan.workspaceGroups['browser-extension'], false);
+    assert.equal(plan.workspaceGroups['ide-extension'], false);
+  }
+});
+
+test('existing workspace groups retain affected-task applicability and declared order', () => {
+  const plan = createPrTestPlan({
+    base: 'base-sha',
+    changedFiles: ['docs/testing.md'],
+    turboTasks: {
+      web: ['@genfeedai/website#test'],
+      server: ['@genfeedai/worker#test'],
+      packages: ['@genfeedai/contracts#test'],
+      'browser-extension': ['@genfeedai/extension-browser#test'],
+    },
+  });
+  assert.deepEqual(
+    plan.workspaceMatrix.include.map(({ group }) => group),
+    ['browser-extension', 'packages', 'server', 'web'],
+  );
+});
+
+test('browser workspace legs run the full filtered suite while other groups retain affected selection', () => {
+  const workflow = readFileSync(
+    new URL('../../.github/workflows/ci.yml', import.meta.url),
+    'utf8',
+  );
+  const workspaceStep = workflow.slice(
+    workflow.indexOf('      - name: Run workspace tests'),
+    workflow.indexOf('\n  # App tests.'),
+  );
+  assert.match(workspaceStep, /WORKSPACE_GROUP: \$\{\{ matrix\.group \}\}/);
+  assert.match(
+    workspaceStep,
+    /if \[ "\$\{WORKSPACE_GROUP\}" = "browser-extension" \] \|\| \[ "\$\{FORCE_FULL\}" = "true" \] \|\| \[ -z "\$\{CI_BASE_SHA\}" \]; then\n {12}bunx turbo run test --continue \$\{WORKSPACE_FILTERS\}\n {10}else\n {12}TURBO_SCM_BASE="\$\{CI_BASE_SHA\}" bunx turbo run test --continue --affected \$\{WORKSPACE_FILTERS\}\n {10}fi/,
+  );
 });

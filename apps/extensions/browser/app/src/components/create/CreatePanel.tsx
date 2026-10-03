@@ -3,11 +3,10 @@ import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useMemo, useState } from 'react';
 import {
-  type AnalyticsSnapshot,
-  extractAnalyticsSnapshot,
   extractGeneratedPreview,
   type PostResultEntry,
 } from '~components/create/content-engine.utils';
+import { PublicationInsightsPanel } from '~components/create/PublicationInsightsPanel';
 import { TemplateCard } from '~components/create/TemplateCard';
 import {
   AgentToolsService,
@@ -110,13 +109,6 @@ const TOOL_TEMPLATES: ToolTemplate[] = [
     id: 'publish-preview',
     label: 'Create Post Draft',
   },
-  {
-    actionType: 'analytics',
-    buildInput: () => ({}),
-    description: 'Fetch generated/published KPI snapshot.',
-    id: 'analytics-snapshot',
-    label: 'Analytics Snapshot',
-  },
 ];
 
 const SOCIAL_PLATFORMS = new Set([
@@ -140,23 +132,6 @@ function normalizeToolPlatform(
     return 'newsletter';
   }
   return undefined;
-}
-
-function formatPercent(value: number): string {
-  return `${Math.round(value)}%`;
-}
-
-function formatSnapshotTime(value: string | null): string {
-  if (!value) {
-    return 'Not available';
-  }
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return value;
-  }
-
-  return parsed.toLocaleString();
 }
 
 function CreatePanelHeader(): ReactElement {
@@ -399,64 +374,6 @@ function PostSection({
   );
 }
 
-function AnalyticsSection({
-  currentAction,
-  isRunning,
-  kpis,
-  onAnalytics,
-}: {
-  currentAction: ExtensionToolAction | null;
-  isRunning: boolean;
-  kpis: AnalyticsSnapshot;
-  onAnalytics: () => void;
-}): ReactElement {
-  return (
-    <section className="border border-border bg-card p-3">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        4. Analytics
-      </p>
-      <Button
-        type="button"
-        variant={ButtonVariant.DEFAULT}
-        disabled={isRunning}
-        onClick={onAnalytics}
-        className="mt-2 w-full text-xs"
-      >
-        {isRunning && currentAction === 'analytics'
-          ? 'Running Analytics…'
-          : 'Run Analytics'}
-      </Button>
-
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        <div className="border border-border bg-background p-2">
-          <p className="text-2xs text-muted-foreground">Generated</p>
-          <p className="text-sm font-semibold text-foreground">
-            {kpis.generated}
-          </p>
-        </div>
-        <div className="border border-border bg-background p-2">
-          <p className="text-2xs text-muted-foreground">Published</p>
-          <p className="text-sm font-semibold text-foreground">
-            {kpis.published}
-          </p>
-        </div>
-        <div className="border border-border bg-background p-2">
-          <p className="text-2xs text-muted-foreground">Publish Success</p>
-          <p className="text-sm font-semibold text-foreground">
-            {formatPercent(kpis.publishSuccessRate)}
-          </p>
-        </div>
-        <div className="border border-border bg-background p-2">
-          <p className="text-2xs text-muted-foreground">Last Snapshot</p>
-          <p className="text-2xs font-medium text-foreground">
-            {formatSnapshotTime(kpis.lastSnapshotAt)}
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function ChatTemplatesSection({
   onSelectTemplate,
 }: {
@@ -513,8 +430,6 @@ function useCreatePanelController(onStartChat: () => void) {
   const [currentAction, setCurrentAction] =
     useState<ExtensionToolAction | null>(null);
   const [postResults, setPostResults] = useState<PostResultEntry[]>([]);
-  const [analyticsSnapshot, setAnalyticsSnapshot] =
-    useState<AnalyticsSnapshot | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [composerFeedback, setComposerFeedback] = useState<string | null>(null);
@@ -522,11 +437,6 @@ function useCreatePanelController(onStartChat: () => void) {
   const activeBrand = useMemo(
     () => brands.find((brand) => brand.id === activeBrandId) || null,
     [activeBrandId, brands],
-  );
-
-  const kpis = useMemo(
-    () => analyticsSnapshot ?? extractAnalyticsSnapshot({}),
-    [analyticsSnapshot],
   );
 
   function handleSelectTemplate(template: ChatTemplate) {
@@ -543,16 +453,14 @@ function useCreatePanelController(onStartChat: () => void) {
   }
 
   async function requireToolToken(): Promise<string> {
+    const authContext = await authService.getAuthContext(true);
     const token = await authService.getToken();
     if (!token) {
       throw new Error('Sign in from the extension popup first.');
     }
 
-    const authContext = await authService.getAuthContext(true);
     if (!authContext?.organization?.id) {
-      throw new Error(
-        'No organization context found. Open the web app and finish account setup.',
-      );
+      throw new Error('Open Genfeed, select a workspace, then retry.');
     }
 
     return token;
@@ -640,10 +548,6 @@ function useCreatePanelController(onStartChat: () => void) {
           setPreviewContent(generated);
         }
       }
-
-      if (actionType === 'analytics') {
-        setAnalyticsSnapshot(extractAnalyticsSnapshot(result.data));
-      }
     } finally {
       setIsRunning(false);
       setCurrentAction(null);
@@ -700,18 +604,6 @@ function useCreatePanelController(onStartChat: () => void) {
     }
   }
 
-  async function handleAnalytics() {
-    try {
-      await runAction('analytics', {});
-    } catch (error) {
-      setActionError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to execute analytics workflow.',
-      );
-    }
-  }
-
   async function handleExecuteTemplate(template: ToolTemplate) {
     const templateContext: ToolTemplateContext = {
       brandId: activeBrandId,
@@ -750,13 +642,11 @@ function useCreatePanelController(onStartChat: () => void) {
     currentAction,
     currentPlatform,
     generatePrompt,
-    handleAnalytics,
     handleExecuteTemplate,
     handleGenerate,
     handlePost,
     handleSelectTemplate,
     isRunning,
-    kpis,
     postResults,
     previewContent,
     insertInComposer,
@@ -774,13 +664,11 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
     currentAction,
     currentPlatform,
     generatePrompt,
-    handleAnalytics,
     handleExecuteTemplate,
     handleGenerate,
     handlePost,
     handleSelectTemplate,
     isRunning,
-    kpis,
     postResults,
     previewContent,
     insertInComposer,
@@ -830,14 +718,7 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
             void handlePost();
           }}
         />
-        <AnalyticsSection
-          currentAction={currentAction}
-          isRunning={isRunning}
-          kpis={kpis}
-          onAnalytics={() => {
-            void handleAnalytics();
-          }}
-        />
+        <PublicationInsightsPanel />
         <ChatTemplatesSection onSelectTemplate={handleSelectTemplate} />
       </div>
 

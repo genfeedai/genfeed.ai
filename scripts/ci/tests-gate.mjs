@@ -12,7 +12,7 @@ const DORMANT_CLASSIFICATION = 'dormant (paused surface)';
 // so the summary can tell a paused surface apart from an out-of-scope skip:
 // otherwise a full run reads as if it covered everything (#2486).
 const DORMANT_SURFACE_NAMES = {
-  extensions: 'Extension tests',
+  'ide-extension': 'IDE extension tests',
 };
 
 function parseBoolean(value, name, allowEmpty = false) {

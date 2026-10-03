@@ -366,6 +366,31 @@ describe('UI Helpers', () => {
   });
 
   describe('createGenFeedDropdown', () => {
+    it('opens a brand-aware reply composer from the web page', async () => {
+      vi.mocked(chrome.runtime.sendMessage).mockResolvedValue({
+        success: true,
+      } as never);
+      const dropdown = createGenFeedDropdown('123', 'twitter', {
+        postUrl: 'https://x.com/author/status/123',
+      });
+      const item = [...dropdown.querySelectorAll('button')].find((button) =>
+        button.textContent?.includes('Generate reply'),
+      );
+      expect(item).toBeDefined();
+      item?.click();
+      await vi.waitFor(() =>
+        expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            event: 'SHORTCUT_REPLY',
+            payload: expect.objectContaining({
+              platform: 'twitter',
+              url: 'https://x.com/author/status/123',
+            }),
+          }),
+        ),
+      );
+    });
+
     it('should create a dropdown container', () => {
       const dropdown = createGenFeedDropdown('123', 'twitter');
 

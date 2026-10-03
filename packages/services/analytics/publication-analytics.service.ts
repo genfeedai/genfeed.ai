@@ -28,11 +28,16 @@ export class PostAnalyticsService extends HTTPBaseService {
     publicationId: string,
     startDate?: string,
     endDate?: string,
+    brandId?: string,
   ): Promise<{
     summary: IPostAnalyticsSummary;
     dateRangeAnalytics?: IPostAnalytics[];
   }> {
     const params: IQueryParams = {};
+
+    if (brandId) {
+      params.brandId = brandId;
+    }
 
     if (startDate) {
       params.startDate = startDate;

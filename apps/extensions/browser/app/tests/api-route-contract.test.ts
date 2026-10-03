@@ -22,6 +22,7 @@ function normalizeRoute(route: string): string {
     .replace(/\$\{[^}]+\}/g, ':param')
     .split('?')[0]
     .replace(/:[^/]+/g, ':param')
+    .replace(/agent-tools\/[^/]+\/execute$/, 'agent-tools/:param/execute')
     .replace(/^\/|\/$/g, '');
 }
 
@@ -41,6 +42,26 @@ const apiRoutes = new Set(
   }),
 );
 
+// Better Auth's JWT plugin mounts /token through its handler, not a Nest controller.
+const authFactory = readFileSync(
+  resolve(root, 'apps/server/api/src/auth/better-auth/better-auth.factory.ts'),
+  'utf8',
+);
+const authConstants = readFileSync(
+  resolve(
+    root,
+    'apps/server/api/src/auth/better-auth/better-auth.constants.ts',
+  ),
+  'utf8',
+);
+if (
+  /jwt\(\{/.test(authFactory) &&
+  authFactory.includes('basePath: BETTER_AUTH_BASE_PATH') &&
+  authConstants.includes("BETTER_AUTH_BASE_PATH = '/v1/auth'")
+) {
+  apiRoutes.add('GET auth/token');
+}
+
 const routes = [
   ['POST', 'agent-tools/:name/execute'],
   ['POST', 'knowledge-sources'],
@@ -49,10 +70,15 @@ const routes = [
   ['GET', 'brands/:id'],
   ['GET', 'organizations'],
   ['POST', 'posts'],
+  ['GET', 'posts/publication-insights'],
+  ['GET', 'posts/:id/publication-insights'],
+  ['POST', 'posts/:id/refresh-analytics'],
   ['POST', 'prompts/tweet'],
   ['POST', 'images'],
   ['POST', 'videos'],
   ['GET', 'videos'],
+  ['GET', 'ingredients'],
+  ['GET', 'ingredients/batch'],
   ['GET', 'videos/:id'],
   ['POST', 'agent/threads'],
   ['GET', 'agent/threads'],
@@ -64,6 +90,7 @@ const routes = [
   ['GET', 'credentials'],
   ['GET', 'users/me/settings'],
   ['GET', 'auth/whoami'],
+  ['GET', 'auth/token'],
   ['PATCH', 'users/me/settings'],
   ...[
     'twitter',
@@ -94,6 +121,9 @@ describe('extension API route contract', () => {
       'background.ts',
       'services/auth.service.ts',
       'services/agent-tools.service.ts',
+      'services/library.service.ts',
+      'services/publication-capture.service.ts',
+      'services/publication-insights.service.ts',
       'services/theme-settings.service.ts',
       'services/social-post-import.service.ts',
       'components/settings/ConnectedAccounts.tsx',
@@ -102,7 +132,7 @@ describe('extension API route contract', () => {
       const source = readFileSync(resolve(extensionRoot, file), 'utf8');
       const endpoints = Array.from(
         source.matchAll(
-          /['"`](?:\$\{(?:API_BASE|apiEndpoint)\})?(\/(?:agent(?:-tools|\/threads)|auth|knowledge-sources|posts|prompts|images|videos|threads|brands|contexts|credentials|users|services|social-sources|source-posts|organizations)[^'"`]*)['"`]/g,
+          /['"`](?:\$\{(?:API_BASE|apiEndpoint)\})?(\/(?:agent(?:-tools|\/threads)|auth|knowledge-sources|posts|prompts|images|ingredients|videos|threads|brands|contexts|credentials|users|services|social-sources|source-posts|organizations)[^'"`]*)['"`]/g,
         ),
         (match) => normalizeRoute(match[1]),
       );

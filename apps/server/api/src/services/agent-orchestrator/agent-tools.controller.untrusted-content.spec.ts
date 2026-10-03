@@ -3,6 +3,7 @@ import { AgentUntrustedContentAuditsService } from '@api/collections/agent-untru
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
+import { AgentScopeContextService } from '@api/index';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
 import { AgentUntrustedContentGateService } from '@api/services/agent-orchestrator/agent-untrusted-content-gate.service';
@@ -15,7 +16,7 @@ import {
   readAgentUntrustedContentSource,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import type { INestApplication } from '@nestjs/common';
+import { ForbiddenException, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import express from 'express';
 import request from 'supertest';
@@ -43,6 +44,7 @@ describe('authenticated MCP result classification with actual gate and audit map
     citations: [{ title: 'raw citation' }],
   };
   const executeTool = vi.fn();
+  const assertBrandAuthorized = vi.fn();
   const decide = vi.fn();
   const create = vi.fn();
   const publishWorkEvent = vi.fn();
@@ -60,6 +62,10 @@ describe('authenticated MCP result classification with actual gate and audit map
         AgentUntrustedContentAuditsService,
         { provide: AgentToolExecutorService, useValue: { executeTool } },
         { provide: UsersService, useValue: { findOne: vi.fn() } },
+        {
+          provide: AgentScopeContextService,
+          useValue: { assertBrandAuthorized },
+        },
         {
           provide: PrismaService,
           useValue: { agentUntrustedContentAudit: { create } },
@@ -153,7 +159,6 @@ describe('authenticated MCP result classification with actual gate and audit map
     ['creditBudget', 1e9],
     ['isProactive', true],
     ['proactiveTextDraftOnly', true],
-    ['brandId', 'spoof-brand'],
     ['threadId', 'spoof-thread'],
     ['agentMode', 'auto'],
     ['runId', 'spoof-run'],
@@ -175,6 +180,20 @@ describe('authenticated MCP result classification with actual gate and audit map
       expect(executeTool).not.toHaveBeenCalled();
     },
   );
+  it('forbids a client-requested brand outside the organization before dispatch (#5898)', async () => {
+    assertBrandAuthorized.mockRejectedValueOnce(
+      new ForbiddenException('Requested brand is not available'),
+    );
+    await request(app.getHttpServer())
+      .post('/agent-tools/search_knowledge/execute')
+      .send({ parameters: {}, context: { brandId: 'foreign-brand' } })
+      .expect(403);
+    expect(assertBrandAuthorized).toHaveBeenCalledWith(
+      'foreign-brand',
+      'canonical-org',
+    );
+    expect(executeTool).not.toHaveBeenCalled();
+  });
   it('rejects unknown top-level body properties with 400 (#5898)', async () => {
     await request(app.getHttpServer())
       .post('/agent-tools/search_knowledge/execute')
