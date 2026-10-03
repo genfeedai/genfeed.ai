@@ -2,6 +2,7 @@ import type {
   SwitcherDropdownFooterAction,
   SwitcherDropdownItem,
 } from '@genfeedai/props/ui/menus/switcher-dropdown.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { fireEvent, render, screen } from '@testing-library/react';
 import MenuBrandSwitcher from '@ui/menus/switchers/MenuBrandSwitcher';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -205,9 +206,15 @@ describe('MenuBrandSwitcher', () => {
       'Open Test Brand settings',
     );
 
-    capturedItems[0]?.trailingAction?.onAction();
-
-    expect(mockPush).toHaveBeenCalledWith('/test-org/test-brand/settings');
+    expect(capturedItems[0]?.trailingAction?.href).toBe(
+      '/test-org/test-brand/settings',
+    );
+    expect(capturedItems[0]?.trailingAction?.target).toBeUndefined();
+    expect(capturedItems[0]?.extraTrailingActions?.[0]).toMatchObject({
+      ariaLabel: 'Open Test Brand public profile',
+      href: `${EnvironmentService.apps.website}/u/test-brand`,
+      target: '_blank',
+    });
   });
 
   it('renders a clear-selection control without adding a synthetic scope row', () => {
