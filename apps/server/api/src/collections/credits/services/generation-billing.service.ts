@@ -944,7 +944,9 @@ export class GenerationBillingService {
           ),
         },
         isDeleted: false,
-        status: { in: [...SETTLEABLE_STATUSES] },
+        status: {
+          in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
+        },
       },
     });
     const completed = new Set(
