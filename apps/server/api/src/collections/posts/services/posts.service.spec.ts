@@ -1419,8 +1419,10 @@ describe('post owner learning mutation protocol', () => {
       }),
     );
     expect(value.revision).toHaveBeenCalledTimes(1);
-    expect(value.order[0]).toContain('pg_advisory_xact_lock');
-    expect(value.order[1]).toContain('content_learning_accounts');
+    expect(value.order[0]).toContain('pg_advisory_xact_lock_shared(5728, 1)');
+    expect(value.order[1]).toContain('pg_advisory_xact_lock(');
+    expect(value.order[1]).toContain('hashtext(');
+    expect(value.order[2]).toContain('content_learning_accounts');
     expect(value.order.indexOf('telemetry')).toBe(-1);
     result.afterCommit.forEach((emit) => {
       emit();
@@ -1852,13 +1854,15 @@ describe('PostsService child creation authority', () => {
     const value = fixture();
     const created = await value.service.create(value.dto, []);
     expect(created.id).toBe('child');
-    expect(value.order[0]).toContain('pg_advisory_xact_lock');
-    expect(value.order[1]).toContain('a-parent-account');
-    expect(value.order[2]).toContain('z-child-account');
-    expect(value.order[3]).toContain('organizations');
+    expect(value.order[0]).toContain('pg_advisory_xact_lock_shared(5728, 1)');
+    expect(value.order[1]).toContain('pg_advisory_xact_lock(');
+    expect(value.order[1]).toContain('hashtext(');
+    expect(value.order[2]).toContain('a-parent-account');
+    expect(value.order[3]).toContain('z-child-account');
+    expect(value.order[4]).toContain('organizations');
     expect(
       value.order
-        .slice(3)
+        .slice(4)
         .filter((entry) => entry.includes('content_learning_accounts')),
     ).toEqual([]);
     expect(
@@ -2020,12 +2024,14 @@ describe('PostsService child creation authority', () => {
       'log',
     ]);
   });
-  it('missing child organization is refused under F without inheriting the parent tenant', async () => {
+  it('missing child organization is refused before any fence without inheriting the parent tenant', async () => {
     const value = fixture();
     await expect(
       value.service.create({ ...value.dto, organizationId: undefined }, []),
     ).rejects.toThrow('exact parent and organization');
-    expect(value.order[0]).toContain('pg_advisory_xact_lock');
+    expect(
+      value.order.filter((entry) => entry.includes('pg_advisory')),
+    ).toEqual([]);
     expect(value.tx.post.create).not.toHaveBeenCalled();
     expect(value.cache.invalidateByTags).not.toHaveBeenCalled();
   });

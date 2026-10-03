@@ -783,6 +783,11 @@ function bindingFixture() {
     const sql = tx.$queryRaw.mock.calls[0][0].join('');
     expect(sql).toContain('pg_advisory_xact_lock_shared(5728, 1)');
     expect(sql).not.toContain('pg_advisory_xact_lock(');
+    const organizationFence = tx.$queryRaw.mock.calls[1][0].join('?');
+    expect(organizationFence).toBe(
+      'SELECT pg_advisory_xact_lock_shared(?::int, hashtext(?))::text',
+    );
+    expect(tx.$queryRaw.mock.calls[1].slice(1)).toEqual([5729, 'org']);
     for (const mock of modelCalls)
       if (mock.mock.invocationCallOrder.length)
         expect(tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
@@ -811,12 +816,12 @@ describe('shared-fenced immutable artifact and publication binding', () => {
     expect(await f.service.bindArtifact('org', 'decision', f.payload)).toBe(
       f.hash,
     );
-    expect(f.tx.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(f.tx.$queryRaw).toHaveBeenCalledTimes(3);
     const calls = f.tx.$queryRaw.mock.calls;
-    expect(calls[1][0].join('')).toContain('FROM content_learning_decisions');
-    expect(calls[1][0].join('')).toContain('ORDER BY id FOR UPDATE');
-    expect(calls[1].slice(1)).toEqual(['decision', 'org']);
-    expect(f.tx.$queryRaw.mock.invocationCallOrder[1]).toBeLessThan(
+    expect(calls[2][0].join('')).toContain('FROM content_learning_decisions');
+    expect(calls[2][0].join('')).toContain('ORDER BY id FOR UPDATE');
+    expect(calls[2].slice(1)).toEqual(['decision', 'org']);
+    expect(f.tx.$queryRaw.mock.invocationCallOrder[2]).toBeLessThan(
       f.tx.contentLearningDecision.findFirst.mock.invocationCallOrder[0],
     );
     expect(f.tx.contentLearningDecision.findFirst).toHaveBeenCalledWith({
@@ -848,12 +853,12 @@ describe('shared-fenced immutable artifact and publication binding', () => {
       await f.service.bindPublication('org', 'decision', 'post', f.payload),
     ).toEqual({ valid: true });
     const sql = f.tx.$queryRaw.mock.calls.map(([parts]) => parts.join(''));
-    expect(sql).toHaveLength(3);
-    expect(sql[1]).toContain('FROM content_learning_decisions');
-    expect(sql[2]).toContain('FROM posts');
+    expect(sql).toHaveLength(4);
+    expect(sql[2]).toContain('FROM content_learning_decisions');
+    expect(sql[3]).toContain('FROM posts');
     expect(sql.join('')).not.toContain('content_learning_accounts');
-    expect(f.tx.$queryRaw.mock.calls[2].slice(1)).toEqual(['post', 'org']);
-    expect(f.tx.$queryRaw.mock.invocationCallOrder[2]).toBeLessThan(
+    expect(f.tx.$queryRaw.mock.calls[3].slice(1)).toEqual(['post', 'org']);
+    expect(f.tx.$queryRaw.mock.invocationCallOrder[3]).toBeLessThan(
       f.tx.contentLearningDecision.findFirst.mock.invocationCallOrder[0],
     );
     expect(f.tx.contentLearningDecision.findFirst).toHaveBeenCalledWith({
