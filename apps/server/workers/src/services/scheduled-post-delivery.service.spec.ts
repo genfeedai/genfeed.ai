@@ -509,7 +509,12 @@ describe('ScheduledPostDeliveryService', () => {
       where: receiptWhere,
     });
     expect(receipts.updateMany).toHaveBeenNthCalledWith(3, {
-      data: { persistedAt: expect.any(Date) },
+      data: {
+        externalId: 'tweet-1',
+        persistedAt: expect.any(Date),
+        result: expect.objectContaining({ externalId: 'tweet-1' }),
+        status: 'accepted',
+      },
       where: receiptWhere,
     });
   });
@@ -560,6 +565,28 @@ describe('ScheduledPostDeliveryService', () => {
     finishPublish(acceptedTweet);
     await delivery;
     vi.useRealTimers();
+  });
+
+  it('resolves the receipt when persistence succeeds after a failed accept write', async () => {
+    mockSuccessfulPublisher(mocks);
+    const receipts = mocks.prisma.postProviderPublishReceipt;
+    receipts.updateMany.mockImplementation(
+      async ({ data }: { data: Record<string, unknown> }) => {
+        if (data.status === 'accepted' && !data.persistedAt)
+          throw new Error('receipt write timed out');
+        return { count: 1 };
+      },
+    );
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(receipts.updateMany).toHaveBeenLastCalledWith({
+      data: expect.objectContaining({
+        persistedAt: expect.any(Date),
+        status: 'accepted',
+      }),
+      where: receiptWhere,
+    });
   });
 
   it('never calls the provider when the occurrence cannot be reserved', async () => {

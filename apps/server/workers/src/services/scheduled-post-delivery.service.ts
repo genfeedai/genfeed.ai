@@ -482,7 +482,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       throw error;
     }
     if (persisted) {
-      await this.attempts.markPersisted(post, attempt, url);
+      await this.attempts.markPersisted(post, attempt, result, url);
     }
     return result;
   }

@@ -206,9 +206,10 @@ export class ScheduledPostProviderAttempts {
   async markPersisted(
     post: PostEntity,
     attempt: ProviderPublishAttemptRef,
+    result: PublishResult,
     url: string,
   ): Promise<void> {
-    await markProviderReceiptPersisted(this.prisma, post, attempt).catch(
+    await markProviderReceiptPersisted(this.prisma, post, attempt, result).catch(
       (error: unknown) =>
         this.logger.warn(`${url} provider receipt persistence not marked`, {
           error: getErrorMessage(error),

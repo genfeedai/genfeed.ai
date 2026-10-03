@@ -383,10 +383,20 @@ export function releaseProviderPublishAttempt(
   return updateAttempt(prisma, post, attempt, { status: 'released' });
 }
 
+/**
+ * The state transition persisted: record the accepted result in the same write,
+ * so the receipt resolves even when the earlier accept write failed.
+ */
 export function markProviderReceiptPersisted(
   prisma: ReceiptClient,
   post: PostEntity,
   attempt: AttemptRef,
+  result: PublishResult,
 ): Promise<void> {
-  return updateAttempt(prisma, post, attempt, { persistedAt: new Date() });
+  return updateAttempt(prisma, post, attempt, {
+    status: 'accepted',
+    externalId: result.externalId,
+    result: { ...result } as Prisma.InputJsonObject,
+    persistedAt: new Date(),
+  });
 }
