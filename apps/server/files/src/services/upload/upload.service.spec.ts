@@ -63,6 +63,8 @@ vi.mock('fs', () => ({
 import * as fs from 'node:fs';
 import sharp from 'sharp';
 
+type ConfigKey = Parameters<ConfigService['get']>[0];
+
 type MockSharpInstance = {
   jpeg: Mock;
   metadata: Mock;
@@ -409,7 +411,7 @@ describe('UploadService', () => {
     });
 
     it('trusts only the configured CDN origin to resolve privately', async () => {
-      mockConfigService.get.mockImplementation((key: string) =>
+      mockConfigService.get.mockImplementation((key: ConfigKey) =>
         key === 'GENFEEDAI_CDN_URL' ? 'http://localhost:3012' : undefined,
       );
       safeFetchMock.mockResolvedValue(
@@ -441,7 +443,7 @@ describe('UploadService', () => {
       'trusts the files service origin only on self-hosted (self-hosted: %s)',
       async (isSelfHosted, policy) => {
         isSelfHostedDeploymentMock.mockReturnValue(isSelfHosted);
-        mockConfigService.get.mockImplementation((key: string) =>
+        mockConfigService.get.mockImplementation((key: ConfigKey) =>
           key === 'GENFEEDAI_MICROSERVICES_FILES_URL'
             ? 'http://files:3012'
             : 'https://cdn.example.com',
