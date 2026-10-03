@@ -83,6 +83,7 @@ export class StoryboardRunsController {
   }
 
   @Post(':runId/shots/:shotId/character-replacement')
+  @UseGuards(SubscriptionGuard)
   async replaceCharacter(
     @Param('brandId') brandId: string,
     @Param('runId') runId: string,

@@ -66,7 +66,7 @@ export class PostAnalyticsService extends HTTPBaseService {
   }> {
     return await this.instance
       .post<JsonApiResponseDocument>(
-        `/${publicationId}/analytics`,
+        `/${publicationId}/refresh-analytics`,
         ...(brandId ? [undefined, { params: { brandId } }] : []),
       )
       .then((res: AxiosResponse<JsonApiResponseDocument>) =>

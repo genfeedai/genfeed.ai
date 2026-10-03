@@ -335,6 +335,33 @@ describe('PostsAnalyticsController', () => {
       );
     });
 
+    it('scopes the post lookup to the caller organization and live posts', async () => {
+      mockPostsService.findOne.mockResolvedValue(mockPost);
+      mockCredentialsService.findOne.mockResolvedValue(mockCredential);
+      mockPostAnalyticsService.getPostAnalyticsSummary.mockResolvedValue(
+        mockAnalyticsSummary,
+      );
+
+      await controller.refreshAnalytics(mockUser, postId);
+
+      expect(mockPostsService.findOne).toHaveBeenCalledWith({
+        id: postId,
+        isDeleted: false,
+        organizationId: testId('org'),
+      });
+    });
+
+    it('fails closed without querying when the caller has no organization', async () => {
+      await expect(
+        controller.refreshAnalytics(
+          { ...mockUser, organizationId: undefined } as unknown as User,
+          postId,
+        ),
+      ).rejects.toThrow(/organization/);
+
+      expect(mockPostsService.findOne).not.toHaveBeenCalled();
+    });
+
     it('should return not found when post does not exist', async () => {
       mockPostsService.findOne.mockResolvedValue(null);
 

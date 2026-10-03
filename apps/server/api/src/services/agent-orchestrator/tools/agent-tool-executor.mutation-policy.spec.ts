@@ -7,6 +7,7 @@ import {
 import { AgentToolMutationAuthorizationService } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-authorization.service';
 import { UNSUPPORTED_APPROVAL_ERROR } from '@genfeedai/actions';
 import { buildLogicalWriteKey } from '@genfeedai/actions/server';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -92,6 +93,7 @@ describe('AgentToolExecutorService mutation policy', () => {
     findOwned: ReturnType<typeof vi.fn>;
     resolve: ReturnType<typeof vi.fn>;
   };
+  let membersService: { findOne: ReturnType<typeof vi.fn> };
   let service: AgentToolExecutorService;
   let mutationAuthorizationService: AgentToolMutationAuthorizationService;
 
@@ -111,9 +113,25 @@ describe('AgentToolExecutorService mutation policy', () => {
     };
     const workflowRunner = createWorkflowRunner();
     const unused = {} as never;
+    const memberRoles: Record<string, string> = {
+      [testId('requester')]: 'user',
+      [testId('member')]: 'user',
+      [testId('org-admin')]: 'admin',
+      [testId('org-owner')]: 'owner',
+    };
+    membersService = {
+      findOne: vi.fn(async (query: { userId: string }) =>
+        memberRoles[query.userId]
+          ? { role: { key: memberRoles[query.userId] } }
+          : null,
+      ),
+    };
     mutationAuthorizationService = new AgentToolMutationAuthorizationService(
       logger as unknown as LoggerService,
       mcpApprovals as never,
+      undefined,
+      undefined,
+      membersService as never,
     );
     service = new AgentToolExecutorService(
       logger as unknown as LoggerService,
@@ -621,6 +639,147 @@ describe('AgentToolExecutorService mutation policy', () => {
       }
     },
   );
+
+  describe('organization-admin redemption of an approved write', () => {
+    const queued = (overrides: Record<string, unknown> = {}) => ({
+      id: 'apr-1',
+      arguments: { content: 'hello' },
+      isDeleted: false,
+      status: 'APPROVED',
+      userId: testId('requester'),
+      toolName: 'create_post',
+      idempotencyKey: buildLogicalWriteKey({
+        arguments: { content: 'hello' },
+        organizationId: testId('org'),
+        userId: testId('requester'),
+        toolName: 'create_post',
+      }),
+      ...overrides,
+    });
+    const redeem = (overrides: Partial<ToolExecutionContext> = {}) =>
+      service.executeTool(
+        'create_post',
+        { content: 'hello' },
+        context({
+          approvedApprovalId: 'apr-1',
+          hostSupportsApproval: true,
+          userId: testId('org-admin'),
+          ...overrides,
+        }),
+      );
+
+    beforeEach(() => {
+      publishHandler.createPost.mockResolvedValue({
+        success: true,
+        creditsUsed: 0,
+        data: { id: 'post-1' },
+      });
+    });
+
+    it.each(['org-admin', 'org-owner'])(
+      'executes once as the recorded user when %s redeems',
+      async (reviewer) => {
+        mcpApprovals.findOwned.mockResolvedValue(queued());
+        const result = await redeem({ userId: testId(reviewer) });
+        expect(result.success).toBe(true);
+        expect(mcpApprovals.claimExecution).toHaveBeenCalledTimes(1);
+        expect(publishHandler.createPost).toHaveBeenCalledTimes(1);
+        expect(publishHandler.createPost.mock.calls[0][1]).toMatchObject({
+          organizationId: testId('org'),
+          userId: testId('requester'),
+        });
+      },
+    );
+
+    it('lets the requesting member redeem their own approval as themselves', async () => {
+      mcpApprovals.findOwned.mockResolvedValue(queued());
+      const result = await redeem({ userId: testId('requester') });
+      expect(result.success).toBe(true);
+      expect(publishHandler.createPost.mock.calls[0][1]).toMatchObject({
+        userId: testId('requester'),
+      });
+    });
+
+    it('rejects a different non-admin member before claiming anything', async () => {
+      mcpApprovals.findOwned.mockResolvedValue(queued());
+      const result = await redeem({ userId: testId('member') });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('does not authorize');
+      expect(mcpApprovals.claimExecution).not.toHaveBeenCalled();
+      expect(mcpApprovals.attachResult).not.toHaveBeenCalled();
+      expect(publishHandler.createPost).not.toHaveBeenCalled();
+    });
+
+    it('rejects a user who is not a member of the organization', async () => {
+      mcpApprovals.findOwned.mockResolvedValue(queued());
+      const result = await redeem({ userId: testId('outsider') });
+      expect(result.success).toBe(false);
+      expect(mcpApprovals.claimExecution).not.toHaveBeenCalled();
+      expect(publishHandler.createPost).not.toHaveBeenCalled();
+    });
+
+    it('does not let an API key without the admin scope act as an org admin', async () => {
+      mcpApprovals.findOwned.mockResolvedValue(queued());
+      const result = await redeem({
+        apiKeyContext: { isApiKey: true, scopes: [ApiKeyScope.POSTS_CREATE] },
+      });
+      expect(result.success).toBe(false);
+      expect(mcpApprovals.claimExecution).not.toHaveBeenCalled();
+      expect(publishHandler.createPost).not.toHaveBeenCalled();
+    });
+
+    it('rejects when the approval belongs to another organization', async () => {
+      mcpApprovals.findOwned.mockRejectedValue(new Error('not found'));
+      const result = await redeem();
+      expect(result.success).toBe(false);
+      expect(mcpApprovals.claimExecution).not.toHaveBeenCalled();
+      expect(publishHandler.createPost).not.toHaveBeenCalled();
+    });
+
+    it('rejects when the recorded requester is no longer an active member', async () => {
+      mcpApprovals.findOwned.mockResolvedValue(
+        queued({ userId: testId('former-member') }),
+      );
+      const result = await redeem();
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('no longer an active member');
+      expect(mcpApprovals.claimExecution).not.toHaveBeenCalled();
+      expect(publishHandler.createPost).not.toHaveBeenCalled();
+    });
+
+    it('never lets an admin redeem a thread-bound approval', async () => {
+      const storedThread = 'requester-thread';
+      mcpApprovals.findOwned.mockResolvedValue(
+        queued({
+          idempotencyKey: buildLogicalWriteKey({
+            arguments: { content: 'hello' },
+            organizationId: testId('org'),
+            userId: testId('requester'),
+            threadId: storedThread,
+            scope: { brandId: 'brand-1', contextVersion: 1 },
+            toolName: 'create_post',
+          }),
+        }),
+      );
+      const result = await redeem({ threadId: storedThread });
+      expect(result.success).toBe(false);
+      expect(mcpApprovals.claimExecution).not.toHaveBeenCalled();
+      expect(publishHandler.createPost).not.toHaveBeenCalled();
+    });
+
+    it('stays redeemable after an authorization failure, then executes once on retry', async () => {
+      mcpApprovals.findOwned.mockResolvedValue(queued());
+      const denied = await redeem({ userId: testId('member') });
+      expect(denied.success).toBe(false);
+      expect(mcpApprovals.claimExecution).not.toHaveBeenCalled();
+      expect(mcpApprovals.attachResult).not.toHaveBeenCalled();
+
+      const retried = await redeem();
+      expect(retried.success).toBe(true);
+      expect(mcpApprovals.claimExecution).toHaveBeenCalledTimes(1);
+      expect(publishHandler.createPost).toHaveBeenCalledTimes(1);
+    });
+  });
 
   it('does not dispatch when another request already claimed execution', async () => {
     mcpApprovals.claimExecution.mockResolvedValue(false);

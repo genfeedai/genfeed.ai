@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {
   buildClaudeCliArgs,
+  buildCliAgentMcpUrl,
   buildCodexCliArgs,
   removeStaleClaudeMcpConfigs,
   writeClaudeMcpConfig,
@@ -22,6 +23,20 @@ afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
     fs.rmSync(directory, { force: true, recursive: true });
   }
+});
+
+describe('buildCliAgentMcpUrl', () => {
+  it('requests the full toolset profile so brand context and generation tools are listed', () => {
+    expect(buildCliAgentMcpUrl('https://mcp.genfeed.ai/mcp')).toBe(
+      'https://mcp.genfeed.ai/mcp?profile=full',
+    );
+  });
+
+  it('keeps a self-hosted endpoint origin and path', () => {
+    expect(buildCliAgentMcpUrl('http://192.168.1.20:3014/mcp')).toBe(
+      'http://192.168.1.20:3014/mcp?profile=full',
+    );
+  });
 });
 
 describe('buildClaudeCliArgs', () => {

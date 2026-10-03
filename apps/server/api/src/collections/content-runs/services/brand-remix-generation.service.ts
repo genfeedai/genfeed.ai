@@ -286,6 +286,11 @@ export class BrandRemixGenerationService {
         throw new ConflictException(
           'Select an explicit registered image model before quoting.',
         );
+      // crun dispatch rejects approved remix quotes, so never accept one here.
+      if (requestedModel.startsWith('crun/'))
+        throw new ConflictException(
+          'The selected image model does not support remix quotes. Select another registered image model.',
+        );
       const registered = await this.models.validateModelForOrg(
         requestedModel,
         organizationId,

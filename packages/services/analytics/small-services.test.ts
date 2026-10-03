@@ -75,7 +75,27 @@ describe('PostAnalyticsService', () => {
 
     const result = await service.postAnalytics('pub_1');
 
-    expect(http.post).toHaveBeenCalledWith('/pub_1/analytics');
+    expect(http.post).toHaveBeenCalledWith('/pub_1/refresh-analytics');
+    expect(result).toMatchObject({ lastRefreshed: 'now' });
+  });
+
+  it('postAnalytics scopes the refresh to the selected brand', async () => {
+    http.post.mockResolvedValue(
+      axiosResponse(
+        resourceDocument(
+          { lastRefreshed: 'now', summary: { views: 1 } },
+          { id: 'pub_1' },
+        ),
+      ),
+    );
+
+    const result = await service.postAnalytics('pub_1', 'brand_1');
+
+    expect(http.post).toHaveBeenCalledWith(
+      '/pub_1/refresh-analytics',
+      undefined,
+      { params: { brandId: 'brand_1' } },
+    );
     expect(result).toMatchObject({ lastRefreshed: 'now' });
   });
 
