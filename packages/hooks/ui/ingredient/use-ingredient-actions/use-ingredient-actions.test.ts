@@ -13,17 +13,13 @@ import { useIngredientActions } from '@hooks/ui/ingredient/use-ingredient-action
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const {
-  mockCopyToClipboard,
-  mockDownloadIngredient,
-  mockOpenModal,
-  mockSubscribe,
-} = vi.hoisted(() => ({
-  mockCopyToClipboard: vi.fn(),
-  mockDownloadIngredient: vi.fn(),
-  mockOpenModal: vi.fn(),
-  mockSubscribe: vi.fn(() => vi.fn()),
-}));
+const { mockCopyToClipboard, mockOpenModal, mockSubscribe } = vi.hoisted(
+  () => ({
+    mockCopyToClipboard: vi.fn(),
+    mockOpenModal: vi.fn(),
+    mockSubscribe: vi.fn(() => vi.fn()),
+  }),
+);
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(),
@@ -145,10 +141,6 @@ vi.mock('@hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale', () => ({
   ),
 }));
 
-vi.mock('@helpers/media/download/download.helper', () => ({
-  downloadIngredient: mockDownloadIngredient,
-}));
-
 describe('useIngredientActions', () => {
   const mockVideoIngredient: IIngredient = {
     category: IngredientCategory.VIDEO,
@@ -167,6 +159,7 @@ describe('useIngredientActions', () => {
   } as IIngredient;
 
   let mockIngredientsService: {
+    downloadOriginal: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
     postClone: ReturnType<typeof vi.fn>;
     vote: ReturnType<typeof vi.fn>;
@@ -205,6 +198,7 @@ describe('useIngredientActions', () => {
 
     mockIngredientsService = {
       delete: vi.fn().mockResolvedValue(undefined),
+      downloadOriginal: vi.fn().mockResolvedValue(undefined),
       patch: vi.fn().mockResolvedValue(undefined),
       postClone: vi.fn().mockResolvedValue(undefined),
       vote: vi.fn().mockResolvedValue(undefined),
@@ -539,34 +533,35 @@ describe('useIngredientActions', () => {
   });
 
   describe('handleDownload', () => {
-    it('should download ingredient successfully', async () => {
+    it('should download the original through a fresh grant', async () => {
       const { result } = renderHook(() => useIngredientActions());
 
       await act(async () => {
         await result.current.handlers.handleDownload(mockVideoIngredient);
       });
 
-      expect(mockDownloadIngredient).toHaveBeenCalledWith(mockVideoIngredient);
+      expect(mockIngredientsService.downloadOriginal).toHaveBeenCalledWith(
+        mockVideoIngredient,
+      );
       expect(mockNotificationsService.success).toHaveBeenCalledWith(
         'Download started',
       );
     });
 
-    it('should show error if no URL available', async () => {
-      const ingredientWithoutUrl = {
-        ...mockVideoIngredient,
-        ingredientUrl: undefined,
-      };
+    it('should show an error when the original grant is refused', async () => {
+      mockIngredientsService.downloadOriginal.mockRejectedValue(
+        new Error('grant refused'),
+      );
       const { result } = renderHook(() => useIngredientActions());
 
       await act(async () => {
-        await result.current.handlers.handleDownload(ingredientWithoutUrl);
+        await result.current.handlers.handleDownload(mockVideoIngredient);
       });
 
       expect(mockNotificationsService.error).toHaveBeenCalledWith(
-        'No download URL available',
+        'Download failed',
       );
-      expect(mockDownloadIngredient).not.toHaveBeenCalled();
+      expect(mockNotificationsService.success).not.toHaveBeenCalled();
     });
   });
 
