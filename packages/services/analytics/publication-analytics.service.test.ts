@@ -63,9 +63,13 @@ describe('PostAnalyticsService', () => {
       params: { brandId: 'brand-2' },
     });
     await service.postAnalytics('post-1', 'brand-2').catch(() => undefined);
-    expect(instance.post).toHaveBeenCalledWith('/post-1/analytics', undefined, {
-      params: { brandId: 'brand-2' },
-    });
+    expect(instance.post).toHaveBeenCalledWith(
+      '/post-1/refresh-analytics',
+      undefined,
+      {
+        params: { brandId: 'brand-2' },
+      },
+    );
   });
 
   it('has getInstance static method', () => {

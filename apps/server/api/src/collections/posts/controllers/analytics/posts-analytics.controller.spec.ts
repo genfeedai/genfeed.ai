@@ -335,7 +335,7 @@ describe('PostsAnalyticsController', () => {
       );
     });
 
-    it('scopes the post lookup to the caller organization and live posts', async () => {
+    it('scopes the post lookup to the caller organization, brand and live posts', async () => {
       mockPostsService.findOne.mockResolvedValue(mockPost);
       mockCredentialsService.findOne.mockResolvedValue(mockCredential);
       mockPostAnalyticsService.getPostAnalyticsSummary.mockResolvedValue(
@@ -346,8 +346,12 @@ describe('PostsAnalyticsController', () => {
 
       expect(mockPostsService.findOne).toHaveBeenCalledWith({
         id: postId,
+        organizationId: mockUser.organizationId,
+        brandId: mockUser.brandId,
         isDeleted: false,
-        organizationId: testId('org'),
+        brand: {
+          is: { organizationId: mockUser.organizationId, isDeleted: false },
+        },
       });
     });
 
