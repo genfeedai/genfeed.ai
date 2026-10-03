@@ -3,6 +3,8 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { BrandedGenerationJsonV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import {
   canonicalizeBrandedGenerationJsonV1,
+  hashBrandArtifactValidationReportV1,
+  hashBrandedGenerationArtifactManifestV1,
   hashBrandedGenerationOperationV1,
   hashBrandedGenerationRequestV1,
   hashBrandedGenerationResolutionV1,
@@ -13,6 +15,10 @@ import { BrandedGenerationPromptStoreService } from '@api/services/branded-gener
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
 import type {
   BrandedGenerationActorV1,
+  BrandedGenerationArtifactCompletionV1,
+  BrandedGenerationDispatchInputV1,
+  BrandedGenerationDispatchRecoveryV1,
+  BrandedGenerationFailureInputV1,
   BrandedGenerationMutationResultV1,
   BrandedGenerationMutationV1,
   BrandedGenerationPreparedPromptV1,
@@ -27,19 +33,24 @@ import {
   parseBrandedGenerationCompilerRecipeV1,
 } from '@api/services/branded-generation-receipts/branded-generation-recompile-codec.util';
 import {
+  BRANDED_GENERATION_DISPATCH_WINDOW_MS,
   type BrandedGenerationOperationKindV1,
   canTransitionBrandedGenerationStateV1,
+  classifyBrandedGenerationReadinessV1,
 } from '@api/services/branded-generation-receipts/branded-generation-state.util';
 import { compileSnapshotBriefResolution } from '@api/services/harness/branded-generation-compiler';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
+  brandArtifactValidationReportV1Schema,
   brandedGenerationInputV1Schema,
   brandedGenerationReceiptV1Schema,
   brandedGenerationResolutionV1Schema,
+  brandGenerationArtifactV1Schema,
   learningContractIdSchema,
 } from '@genfeedai/contracts/api-types/contracts';
 import type {
+  BrandArtifactValidationReportV1,
   BrandedGenerationInputV1,
   BrandedGenerationReceiptV1,
   BrandedGenerationResolutionV1,
@@ -67,8 +78,9 @@ const cursorSchema = z.strictObject({
   }),
   id: learningContractIdSchema,
 });
-function withPromptRetentionDiagnostic(
+function withDiagnostic(
   diagnostics: BrandedGenerationReceiptV1['diagnostics'],
+  canonical: BrandedGenerationReceiptV1['diagnostics'][number],
 ): BrandedGenerationReceiptV1['diagnostics'] {
   const result = diagnostics.map((diagnostic) => ({
     ...diagnostic,
@@ -76,11 +88,6 @@ function withPromptRetentionDiagnostic(
       ? { evidenceIds: [...diagnostic.evidenceIds] }
       : {}),
   }));
-  const canonical = {
-    code: 'prompt_snapshot_unavailable',
-    severity: 'error' as const,
-    message: 'Prompt retention unavailable',
-  };
   const existing = result.findIndex(
     (diagnostic) => diagnostic.code === canonical.code,
   );
@@ -113,7 +120,7 @@ function withPromptRetentionDiagnostic(
       canonicalizeBrandedGenerationJsonV1(projection),
     );
     result.splice(index, 1);
-    canonical.message = `Prompt retention unavailable. One prior diagnostic was omitted: ${omitted.code} (${omitted.severity}); diagnostic hash ${hash}.`;
+    canonical.message = `${canonical.message}. One prior diagnostic was omitted: ${omitted.code} (${omitted.severity}); diagnostic hash ${hash}.`;
   }
   result.push(canonical);
   return result;
@@ -824,10 +831,389 @@ export class BrandedGenerationReceiptsService {
             compiled: compiled?.reference ?? null,
           },
           diagnostics: unavailable
-            ? withPromptRetentionDiagnostic(resolution.diagnostics)
+            ? withDiagnostic(resolution.diagnostics, {
+                code: 'prompt_snapshot_unavailable',
+                severity: 'error',
+                message: 'Prompt retention unavailable',
+              })
             : resolution.diagnostics,
           compliance: current.mode === 'raw' ? 'not_claimed' : 'unverified',
         };
+      },
+    );
+  }
+  async recordDispatch(
+    actor: BrandedGenerationActorV1,
+    id: string,
+    mutation: BrandedGenerationMutationV1,
+    input: BrandedGenerationDispatchInputV1,
+  ): Promise<BrandedGenerationMutationResultV1> {
+    try {
+      return await this.mutate(
+        actor,
+        id,
+        mutation,
+        'dispatch',
+        {
+          provider: input.provider,
+          model: input.model,
+          ...(input.capabilityId !== undefined
+            ? { capabilityId: input.capabilityId }
+            : {}),
+          ...(input.capabilityVersion !== undefined
+            ? { capabilityVersion: input.capabilityVersion }
+            : {}),
+          providerAttemptRef: input.providerAttemptRef,
+          dispatchClaimedAt: input.dispatchClaimedAt,
+          providerAcceptedAt: input.providerAcceptedAt,
+        },
+        async (_tx, current) => {
+          if (
+            !canTransitionBrandedGenerationStateV1(
+              current.state,
+              'dispatched',
+              'dispatch',
+            )
+          )
+            throw new ConflictException('receipt_state_conflict');
+          const now = Date.now();
+          const resolvedAt = Date.parse(current.updatedAt);
+          if (now > resolvedAt + BRANDED_GENERATION_DISPATCH_WINDOW_MS)
+            throw new ConflictException('receipt_dispatch_window_expired');
+          const claimedAt = Date.parse(input.dispatchClaimedAt);
+          const acceptedAt = Date.parse(input.providerAcceptedAt);
+          if (
+            !(
+              resolvedAt <= claimedAt &&
+              claimedAt <= acceptedAt &&
+              acceptedAt <= now
+            )
+          )
+            throw new BadRequestException('receipt_dispatch_timing_invalid');
+          const candidate = {
+            ...current,
+            state: 'dispatched' as const,
+            execution: { ...input, result: 'pending' as const },
+            budget: { ...current.budget, generationAttemptsUsed: 1 as const },
+          };
+          if (!brandedGenerationReceiptV1Schema.safeParse(candidate).success)
+            throw new ConflictException('receipt_state_conflict');
+          return candidate;
+        },
+      );
+    } catch (error) {
+      if (
+        error !== null &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 'P2002'
+      )
+        throw new ConflictException('provider_attempt_ref_conflict');
+      throw error;
+    }
+  }
+  async blockBeforeDispatch(
+    actor: BrandedGenerationActorV1,
+    id: string,
+    mutation: BrandedGenerationMutationV1,
+    reasonCode: 'provider_attempt_ref_unavailable',
+  ): Promise<BrandedGenerationMutationResultV1> {
+    return this.mutate(
+      actor,
+      id,
+      mutation,
+      'block',
+      { reasonCode },
+      async (_tx, current) => {
+        if (current.state !== 'resolved')
+          throw new ConflictException('receipt_state_conflict');
+        return {
+          ...current,
+          state: 'blocked',
+          diagnostics: withDiagnostic(current.diagnostics, {
+            code: reasonCode,
+            severity: 'error',
+            message: 'Provider attempt reference unavailable',
+          }),
+        };
+      },
+    );
+  }
+  async recoverExpiredDispatches(
+    actor: BrandedGenerationActorV1,
+    query: { limit: number; now?: Date },
+  ): Promise<BrandedGenerationDispatchRecoveryV1> {
+    this.limit(query.limit);
+    const cutoff = new Date(
+      (query.now ?? new Date()).getTime() -
+        BRANDED_GENERATION_DISPATCH_WINDOW_MS,
+    );
+    const rows = await this.transaction(async (tx) => {
+      const permission = await this.access.assertBrand(actor, tx);
+      return tx.brandedGenerationReceipt.findMany({
+        where: {
+          organizationId: actor.organizationId,
+          brandId: actor.brandId,
+          isDeleted: false,
+          state: 'resolved',
+          updatedAt: { lt: cutoff },
+          ...(!permission.isOwnerOrAdmin ? { actorId: actor.actorId } : {}),
+        },
+        take: query.limit,
+      });
+    });
+    const result: BrandedGenerationDispatchRecoveryV1 = {
+      blocked: [],
+      skipped: [],
+    };
+    for (const row of rows) {
+      try {
+        await this.mutate(
+          actor,
+          row.id,
+          {
+            operationKey: `dispatch-window-expired:${row.id}:${row.revision}`,
+            expectedRevision: row.revision,
+          },
+          'block',
+          { reasonCode: 'dispatch_window_expired' },
+          async (_tx, current) => {
+            if (
+              current.state !== 'resolved' ||
+              Date.parse(current.updatedAt) > cutoff.getTime()
+            )
+              throw new ConflictException('receipt_state_conflict');
+            return {
+              ...current,
+              state: 'blocked',
+              diagnostics: withDiagnostic(current.diagnostics, {
+                code: 'dispatch_window_expired',
+                severity: 'error',
+                message: 'Dispatch window expired',
+              }),
+            };
+          },
+        );
+        result.blocked.push(row.id);
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          [
+            'receipt_version_conflict',
+            'receipt_state_conflict',
+            'request_payload_conflict',
+            'receipt_deleted',
+          ].includes(error.message)
+        )
+          result.skipped.push(row.id);
+        else throw error;
+      }
+    }
+    return result;
+  }
+  async bindArtifact(
+    actor: BrandedGenerationActorV1,
+    id: string,
+    mutation: BrandedGenerationMutationV1,
+    input: BrandedGenerationArtifactCompletionV1,
+  ): Promise<BrandedGenerationMutationResultV1> {
+    const parsed = brandGenerationArtifactV1Schema.safeParse(input.artifact);
+    if (!parsed.success)
+      throw new BadRequestException('receipt_artifact_invalid');
+    const artifact = parsed.data;
+    try {
+      if (
+        hashBrandedGenerationArtifactManifestV1({
+          mediaKind: artifact.mediaKind,
+          textHash: input.textHash,
+          parts: artifact.parts,
+        }) !== artifact.contentHash ||
+        (artifact.kind === 'post'
+          ? artifact.mediaKind !== 'text' ||
+            artifact.parts.length !== 0 ||
+            input.textHash !== artifact.version
+          : artifact.kind !== 'ingredient' ||
+            !['image', 'video'].includes(artifact.mediaKind) ||
+            input.textHash !== null ||
+            artifact.parts.length !== 1 ||
+            artifact.version !== artifact.parts[0].version ||
+            artifact.parts[0].role !== artifact.mediaKind)
+      )
+        throw new Error('Invalid artifact');
+    } catch {
+      throw new BadRequestException('receipt_artifact_invalid');
+    }
+    return this.mutate(
+      actor,
+      id,
+      mutation,
+      'bind_artifact',
+      {
+        kind: artifact.kind,
+        id: artifact.id,
+        version: artifact.version,
+        contentHash: artifact.contentHash,
+        completedAt: input.completedAt,
+      },
+      async (tx, current) => {
+        if (
+          !canTransitionBrandedGenerationStateV1(
+            current.state,
+            'checking',
+            'bind_artifact',
+          ) ||
+          !current.execution
+        )
+          throw new ConflictException('receipt_state_conflict');
+        const where = {
+          id: artifact.id,
+          organizationId: actor.organizationId,
+          brandId: actor.brandId,
+          isDeleted: false,
+        };
+        if (artifact.kind === 'post') {
+          const post = await tx.post.findFirst({ where });
+          if (!post)
+            throw new NotFoundException({
+              message: 'receipt_artifact_not_found',
+            });
+          if (
+            hashBrandedGenerationTextV1(post.description) !== artifact.version
+          )
+            throw new ConflictException('receipt_artifact_version_mismatch');
+        } else {
+          const ingredient = await tx.ingredient.findFirst({ where });
+          if (!ingredient)
+            throw new NotFoundException({
+              message: 'receipt_artifact_not_found',
+            });
+          if (ingredient.s3Key !== artifact.parts[0].id)
+            throw new ConflictException('receipt_artifact_version_mismatch');
+        }
+        const candidate = {
+          ...current,
+          state: 'checking' as const,
+          artifact,
+          execution: {
+            ...current.execution,
+            result: 'completed' as const,
+            completedAt: input.completedAt,
+          },
+        };
+        if (!brandedGenerationReceiptV1Schema.safeParse(candidate).success)
+          throw new ConflictException('receipt_state_conflict');
+        return candidate;
+      },
+    );
+  }
+  async fail(
+    actor: BrandedGenerationActorV1,
+    id: string,
+    mutation: BrandedGenerationMutationV1,
+    input: BrandedGenerationFailureInputV1,
+  ): Promise<BrandedGenerationMutationResultV1> {
+    return this.mutate(
+      actor,
+      id,
+      mutation,
+      'fail',
+      { reasonCode: input.reasonCode, completedAt: input.completedAt },
+      async (_tx, current) => {
+        if (
+          !canTransitionBrandedGenerationStateV1(
+            current.state,
+            'failed',
+            'fail',
+          ) ||
+          !current.execution
+        )
+          throw new ConflictException('receipt_state_conflict');
+        const candidate = {
+          ...current,
+          state: 'failed' as const,
+          execution: {
+            ...current.execution,
+            result: 'failed' as const,
+            completedAt: input.completedAt,
+          },
+          diagnostics: withDiagnostic(current.diagnostics, {
+            code: input.reasonCode,
+            severity: 'error',
+            message: 'Generation failed',
+          }),
+        };
+        if (!brandedGenerationReceiptV1Schema.safeParse(candidate).success)
+          throw new ConflictException('receipt_state_conflict');
+        return candidate;
+      },
+    );
+  }
+  async recordValidation(
+    actor: BrandedGenerationActorV1,
+    id: string,
+    mutation: BrandedGenerationMutationV1,
+    kind: 'validate' | 'revalidate',
+    report: BrandArtifactValidationReportV1 | null,
+  ): Promise<BrandedGenerationMutationResultV1> {
+    if (
+      report !== null &&
+      !brandArtifactValidationReportV1Schema.safeParse(report).success
+    )
+      throw new BadRequestException('receipt_validation_invalid');
+    return this.mutate(
+      actor,
+      id,
+      mutation,
+      kind,
+      {
+        reportHash: report ? hashBrandArtifactValidationReportV1(report) : null,
+      },
+      async (_tx, current) => {
+        if (
+          !(
+            kind === 'validate'
+              ? ['checking']
+              : ['checking', 'ready', 'needs_review', 'blocked']
+          ).includes(current.state)
+        )
+          throw new ConflictException('receipt_state_conflict');
+        if (!current.artifact || current.execution?.result !== 'completed')
+          throw new ConflictException('receipt_state_conflict');
+        if (current.mode === 'raw' && report !== null)
+          throw new BadRequestException('receipt_validation_binding_mismatch');
+        if (current.mode !== 'raw' && current.snapshot === null)
+          throw new ConflictException('receipt_state_conflict');
+        if (
+          report !== null &&
+          (report.artifactId !== current.artifact.id ||
+            report.artifactVersion !== current.artifact.version ||
+            report.artifactHash !== current.artifact.contentHash ||
+            report.snapshotHash !== current.snapshot?.contentHash)
+        )
+          throw new BadRequestException('receipt_validation_binding_mismatch');
+        let result: ReturnType<typeof classifyBrandedGenerationReadinessV1>;
+        try {
+          result = classifyBrandedGenerationReadinessV1({
+            receipt: current,
+            validation: report,
+          });
+        } catch (error) {
+          if (error instanceof TypeError)
+            throw new ConflictException('receipt_state_conflict');
+          throw error;
+        }
+        if (
+          !canTransitionBrandedGenerationStateV1(
+            current.state,
+            result.state,
+            kind,
+          )
+        )
+          throw new ConflictException('receipt_state_conflict');
+        const candidate = { ...current, ...result, validation: report };
+        if (!brandedGenerationReceiptV1Schema.safeParse(candidate).success)
+          throw new ConflictException('receipt_state_conflict');
+        return candidate;
       },
     );
   }

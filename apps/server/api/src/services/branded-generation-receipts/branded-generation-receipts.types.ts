@@ -1,7 +1,9 @@
 import type { BrandedGenerationCompilerRecipeV1 } from '@api/services/branded-generation-receipts/branded-generation-recompile.types';
 import type {
+  BrandArtifactValidationMaterialV1,
   BrandedGenerationInputV1,
   BrandedGenerationReceiptV1,
+  BrandGenerationArtifactV1,
   BrandPromptReferenceV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 export interface BrandedGenerationActorV1 {
@@ -66,4 +68,34 @@ export interface BrandedGenerationPreparedPromptV1 {
     ciphertext: string;
     contentHash: string;
   } | null;
+}
+
+export interface BrandedGenerationDispatchInputV1 {
+  provider: string;
+  model: string;
+  capabilityId?: string;
+  capabilityVersion?: number;
+  providerAttemptRef: string;
+  dispatchClaimedAt: string;
+  providerAcceptedAt: string;
+}
+export interface BrandedGenerationArtifactBindingV1 {
+  artifact: BrandGenerationArtifactV1;
+  textHash: string | null;
+}
+export interface BrandedGenerationArtifactCompletionV1
+  extends BrandedGenerationArtifactBindingV1 {
+  completedAt: string;
+}
+export interface BrandedGenerationFailureInputV1 {
+  reasonCode: string;
+  completedAt: string;
+}
+export interface BrandedGenerationDispatchRecoveryV1 {
+  blocked: string[];
+  skipped: string[];
+}
+export interface BrandedGenerationAcquiredMaterialV1 {
+  receipt: BrandedGenerationReceiptV1;
+  material: BrandArtifactValidationMaterialV1;
 }

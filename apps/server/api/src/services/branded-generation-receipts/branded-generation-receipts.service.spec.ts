@@ -1,5 +1,6 @@
 import {
   canonicalizeBrandedGenerationJsonV1,
+  hashBrandedGenerationArtifactManifestV1,
   hashBrandedGenerationOperationV1,
   hashBrandedGenerationRequestV1,
   hashBrandedGenerationResolutionV1,
@@ -13,7 +14,9 @@ import { encodeBrandedGenerationCompilerRecipeV1 } from '@api/services/branded-g
 import { compileSnapshotBriefResolution } from '@api/services/harness/branded-generation-compiler';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
+  BrandArtifactValidationReportV1,
   BrandedGenerationInputV1,
+  BrandedGenerationReceiptV1,
   BrandedGenerationResolutionV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import type { Prisma } from '@genfeedai/prisma';
@@ -73,6 +76,12 @@ function fixture() {
   const tx = {
     $queryRaw: vi.fn().mockResolvedValue([{ id: 'brand' }]),
     $executeRaw: vi.fn().mockResolvedValue(1),
+    post: {
+      findFirst: vi
+        .fn()
+        .mockResolvedValue({ id: 'artifact', description: 'completed text' }),
+    },
+    ingredient: { findFirst: vi.fn().mockResolvedValue(null) },
     brandedGenerationReceipt: {
       findFirst: vi.fn().mockResolvedValue(null),
       create: vi.fn().mockResolvedValue({}),
@@ -1226,5 +1235,682 @@ describe('compiled resolution reproduction and immutable operation ownership', (
     );
     expect(result.receipt.budget).toEqual(current.budget);
     expect(result.receipt.costs).toEqual([]);
+  });
+});
+
+const hash = `sha256:${'a'.repeat(64)}`;
+const time = '2026-10-01T00:00:00.000Z';
+function completedReceipt(): BrandedGenerationReceiptV1 {
+  return {
+    schemaVersion: 1,
+    id: 'receipt',
+    organizationId: 'org',
+    brandId: 'brand',
+    actorId: 'user',
+    requestKey: 'request',
+    candidateIndex: 0,
+    requestHash: hash,
+    revision: 0,
+    state: 'checking',
+    mode: 'approved_brand',
+    surface: 'api',
+    contentType: 'post',
+    format: 'text',
+    createdAt: time,
+    updatedAt: time,
+    snapshot: {
+      schemaVersion: 1,
+      organizationId: 'org',
+      brandId: 'brand',
+      revisionId: 'revision',
+      revisionVersion: 1,
+      approval: 'approved',
+      resolvedAt: time,
+      contentHash: hash,
+      identity: { name: 'Acme' },
+      voice: { audience: [], values: [], messagingPillars: [], avoid: [] },
+      generationRules: {
+        schemaVersion: 1,
+        evidence: [
+          { id: 'evidence', sourceType: 'manual', label: 'Owner attestation' },
+        ],
+        facts: [
+          {
+            id: 'fact',
+            kind: 'statement',
+            subject: 'Acme',
+            predicate: 'name',
+            value: 'Acme',
+            evidenceIds: ['evidence'],
+            required: true,
+            match: 'literal',
+          },
+        ],
+        palette: [],
+        typography: [],
+        mandatory: [],
+        avoid: [],
+        examples: [],
+        assets: [],
+      },
+      diagnostics: [],
+    },
+    resolutionHash: hash,
+    layers: [],
+    learning: {
+      schemaVersion: 1,
+      brandFeedback: { status: 'not_applicable', sourceIds: [] },
+      global: {
+        status: 'not_applicable',
+        scope: { format: 'text', objective: 'engagement' },
+      },
+      privateAccount: {
+        mode: 'no_destination',
+        configVersion: 'v1',
+        synthetic: false,
+        application: {
+          status: 'unavailable',
+          reasonCodes: ['no_destination'],
+          privatePolicyApplied: false,
+          sharedReleaseApplied: false,
+          revalidatedAt: time,
+        },
+      },
+    },
+    prompts: {
+      original: {
+        contentHash: hash,
+        retention: 'retained',
+        snapshotId: 'original',
+      },
+      enhanced: null,
+      compiled: {
+        contentHash: hash,
+        retention: 'retained',
+        snapshotId: 'compiled',
+      },
+    },
+    execution: {
+      provider: 'provider',
+      model: 'model',
+      providerAttemptRef: 'attempt',
+      dispatchClaimedAt: time,
+      result: 'completed',
+    },
+    artifact: {
+      kind: 'post',
+      id: 'artifact',
+      version: '1',
+      contentHash: hash,
+      mediaKind: 'text',
+      parts: [],
+    },
+    validation: null,
+    compliance: 'unverified',
+    diagnostics: [],
+    costs: [
+      { id: 'pending-cost', stage: 'generation', status: 'pending' },
+      {
+        id: 'unavailable-cost',
+        stage: 'validation',
+        status: 'unavailable',
+        reasonCode: 'ledger_unavailable',
+      },
+    ],
+    budget: {
+      version: 'brand-enforcement-v1',
+      maximumGenerationAttempts: 1,
+      automaticPaidRetries: 0,
+      generationAttemptsUsed: 1,
+    },
+    isDeleted: false,
+  };
+}
+function validationReport(): BrandArtifactValidationReportV1 {
+  return {
+    schemaVersion: 1,
+    id: 'report',
+    rubricVersion: 1,
+    snapshotHash: hash,
+    artifactHash: hash,
+    artifactId: 'artifact',
+    artifactVersion: '1',
+    checkedAt: time,
+    checks: [
+      {
+        ruleId: 'fact',
+        category: 'fact',
+        severity: 'hard',
+        result: 'pass',
+        method: 'exact_text',
+        evidenceIds: ['actual-text'],
+      },
+    ],
+    quality: null,
+    diagnostics: [],
+  };
+}
+function loadCompletion(
+  f: ReturnType<typeof fixture>,
+  current: BrandedGenerationReceiptV1,
+) {
+  f.tx.brandedGenerationReceipt.findFirst.mockResolvedValue({
+    projection: current,
+    isDeleted: current.isDeleted,
+  });
+  return current;
+}
+async function resolvedReceipt(f: ReturnType<typeof fixture>) {
+  const current = await saved(f);
+  const resolved = (
+    await f.service.recordResolution(
+      actor,
+      current.id,
+      { operationKey: 'resolve', expectedRevision: 0 },
+      {
+        schemaVersion: 1,
+        mode: 'raw',
+        status: 'resolved',
+        snapshot: null,
+        layers: [],
+        diagnostics: [],
+        learning: blockedResolution().learning,
+        compiledPrompt: 'compiled',
+        originalPromptHash: current.prompts.original.contentHash,
+      },
+    )
+  ).receipt;
+  return loadCompletion(f, resolved);
+}
+function dispatchInput(current: BrandedGenerationReceiptV1) {
+  return {
+    provider: 'provider',
+    model: 'model',
+    providerAttemptRef: 'attempt',
+    dispatchClaimedAt: current.updatedAt,
+    providerAcceptedAt: current.updatedAt,
+  };
+}
+const completionMutation = { operationKey: 'completion', expectedRevision: 0 };
+describe('completion ABI through transaction delegates', () => {
+  it('dispatches once, persists the provider column and replays before revision conflicts', async () => {
+    const f = fixture();
+    const current = await resolvedReceipt(f);
+    const mutation = {
+      operationKey: 'dispatch',
+      expectedRevision: current.revision,
+    };
+    const first = await f.service.recordDispatch(
+      actor,
+      current.id,
+      mutation,
+      dispatchInput(current),
+    );
+    expect(first.receipt).toMatchObject({
+      state: 'dispatched',
+      execution: { result: 'pending', providerAttemptRef: 'attempt' },
+      budget: { generationAttemptsUsed: 1 },
+    });
+    expect(
+      f.tx.brandedGenerationReceipt.update.mock.calls.at(-1)?.[0].data
+        .providerAttemptRef,
+    ).toBe('attempt');
+    const event =
+      f.tx.brandedGenerationReceiptEvent.create.mock.calls.at(-1)?.[0].data;
+    f.tx.brandedGenerationReceiptEvent.findFirst.mockResolvedValue(event);
+    loadCompletion(f, first.receipt);
+    f.tx.brandedGenerationReceipt.update.mockClear();
+    expect(
+      await f.service.recordDispatch(
+        actor,
+        current.id,
+        mutation,
+        dispatchInput(current),
+      ),
+    ).toEqual({ receipt: first.receipt, replayed: true });
+    expect(f.tx.brandedGenerationReceipt.update).not.toHaveBeenCalled();
+  });
+  it('rejects expired windows, invalid timing and maps the global unique conflict', async () => {
+    const f = fixture();
+    const current = await resolvedReceipt(f);
+    const mutation = {
+      ...completionMutation,
+      expectedRevision: current.revision,
+    };
+    loadCompletion(f, {
+      ...current,
+      updatedAt: new Date(Date.now() - 900001).toISOString(),
+    });
+    await expect(
+      f.service.recordDispatch(
+        actor,
+        current.id,
+        mutation,
+        dispatchInput(current),
+      ),
+    ).rejects.toThrow('receipt_dispatch_window_expired');
+    loadCompletion(f, current);
+    await expect(
+      f.service.recordDispatch(actor, current.id, mutation, {
+        ...dispatchInput(current),
+        dispatchClaimedAt: new Date(
+          Date.parse(current.updatedAt) - 1,
+        ).toISOString(),
+      }),
+    ).rejects.toThrow('receipt_dispatch_timing_invalid');
+    f.tx.brandedGenerationReceipt.update.mockRejectedValueOnce({
+      code: 'P2002',
+    });
+    await expect(
+      f.service.recordDispatch(
+        actor,
+        current.id,
+        mutation,
+        dispatchInput(current),
+      ),
+    ).rejects.toThrow('provider_attempt_ref_conflict');
+  });
+  it('binds a raw post and completed execution in one revision, rejecting edited and foreign sources', async () => {
+    const f = fixture();
+    const resolved = await resolvedReceipt(f);
+    const current = (
+      await f.service.recordDispatch(
+        actor,
+        resolved.id,
+        { operationKey: 'dispatch', expectedRevision: resolved.revision },
+        dispatchInput(resolved),
+      )
+    ).receipt;
+    loadCompletion(f, current);
+    const textHash = hashBrandedGenerationTextV1('completed text');
+    const binding = {
+      artifact: {
+        kind: 'post' as const,
+        id: 'artifact',
+        version: textHash,
+        mediaKind: 'text' as const,
+        parts: [],
+        contentHash: hashBrandedGenerationArtifactManifestV1({
+          mediaKind: 'text',
+          textHash,
+          parts: [],
+        }),
+      },
+      textHash,
+      completedAt: current.updatedAt,
+    };
+    const mutation = {
+      ...completionMutation,
+      expectedRevision: current.revision,
+    };
+    const result = await f.service.bindArtifact(
+      actor,
+      current.id,
+      mutation,
+      binding,
+    );
+    expect(result.receipt).toMatchObject({
+      state: 'checking',
+      revision: current.revision + 1,
+      artifact: binding.artifact,
+      execution: { result: 'completed', completedAt: binding.completedAt },
+    });
+    expect(f.tx.post.findFirst.mock.calls.at(-1)?.[0].where).toEqual({
+      id: 'artifact',
+      organizationId: 'org',
+      brandId: 'brand',
+      isDeleted: false,
+    });
+    await expect(
+      f.service.bindArtifact(actor, current.id, mutation, {
+        ...binding,
+        artifact: { ...binding.artifact, contentHash: hash },
+      }),
+    ).rejects.toThrow('receipt_artifact_invalid');
+    await expect(
+      f.service.bindArtifact(actor, current.id, mutation, {
+        ...binding,
+        textHash: null,
+      }),
+    ).rejects.toThrow('receipt_artifact_invalid');
+    f.tx.post.findFirst.mockResolvedValue({
+      id: 'artifact',
+      description: 'edited',
+    });
+    await expect(
+      f.service.bindArtifact(actor, current.id, mutation, binding),
+    ).rejects.toThrow('receipt_artifact_version_mismatch');
+    const parts = [
+      {
+        id: 'images/foreign',
+        role: 'image' as const,
+        version: 's3:v:1',
+        contentHash: hash,
+      },
+    ];
+    await expect(
+      f.service.bindArtifact(actor, current.id, mutation, {
+        artifact: {
+          kind: 'ingredient',
+          id: 'foreign',
+          mediaKind: 'image',
+          version: 's3:v:1',
+          parts,
+          contentHash: hashBrandedGenerationArtifactManifestV1({
+            mediaKind: 'image',
+            textHash: null,
+            parts,
+          }),
+        },
+        textHash: null,
+        completedAt: current.updatedAt,
+      }),
+    ).rejects.toThrow('receipt_artifact_not_found');
+  });
+  it('fails dispatched work and only blocks before dispatch', async () => {
+    const f = fixture();
+    const resolved = await resolvedReceipt(f);
+    const mutation = {
+      ...completionMutation,
+      expectedRevision: resolved.revision,
+    };
+    const blocked = await f.service.blockBeforeDispatch(
+      actor,
+      resolved.id,
+      mutation,
+      'provider_attempt_ref_unavailable',
+    );
+    expect(blocked.receipt).toMatchObject({
+      state: 'blocked',
+      execution: null,
+      diagnostics: [{ code: 'provider_attempt_ref_unavailable' }],
+    });
+    const dispatched = (
+      await f.service.recordDispatch(
+        actor,
+        resolved.id,
+        { operationKey: 'dispatch', expectedRevision: resolved.revision },
+        dispatchInput(resolved),
+      )
+    ).receipt;
+    loadCompletion(f, dispatched);
+    await expect(
+      f.service.blockBeforeDispatch(
+        actor,
+        resolved.id,
+        { ...mutation, expectedRevision: dispatched.revision },
+        'provider_attempt_ref_unavailable',
+      ),
+    ).rejects.toThrow('receipt_state_conflict');
+    expect(
+      (
+        await f.service.fail(
+          actor,
+          resolved.id,
+          { ...mutation, expectedRevision: dispatched.revision },
+          { reasonCode: 'provider_failed', completedAt: dispatched.updatedAt },
+        )
+      ).receipt,
+    ).toMatchObject({
+      state: 'failed',
+      execution: { result: 'failed', completedAt: dispatched.updatedAt },
+      diagnostics: [{ code: 'provider_failed' }],
+    });
+  });
+  it.each([
+    ['approved_brand', 'pass', 'ready', 'passed'],
+    ['provisional_brand', 'pass', 'needs_review', 'unverified'],
+    ['approved_brand', 'fail', 'blocked', 'failed'],
+    ['approved_brand', null, 'needs_review', 'unverified'],
+    ['raw', null, 'ready', 'not_claimed'],
+  ] as const)(
+    'classifies %s with %s through mutate',
+    async (mode, check, state, compliance) => {
+      const f = fixture();
+      const current = completedReceipt();
+      current.mode = mode;
+      if (mode === 'raw') {
+        current.snapshot = null;
+        current.compliance = 'not_claimed';
+      } else if (mode === 'provisional_brand' && current.snapshot)
+        current.snapshot.approval = 'provisional';
+      loadCompletion(f, current);
+      const report = check === null ? null : validationReport();
+      if (report && check === 'fail')
+        report.checks[0] = {
+          ...report.checks[0],
+          result: 'fail',
+          reasonCode: 'validation_failed',
+        };
+      const result = await f.service.recordValidation(
+        actor,
+        current.id,
+        completionMutation,
+        'validate',
+        report,
+      );
+      expect(result.receipt).toMatchObject({
+        state,
+        compliance,
+        revision: 1,
+        validation: report,
+        diagnostics: current.diagnostics,
+      });
+      if (state === 'ready' && mode !== 'raw') {
+        loadCompletion(f, result.receipt);
+        expect(
+          (
+            await f.service.recordValidation(
+              actor,
+              current.id,
+              { operationKey: 'new-rubric', expectedRevision: 1 },
+              'revalidate',
+              { ...validationReport(), rubricVersion: 2, checks: [] },
+            )
+          ).receipt,
+        ).toMatchObject({ state: 'needs_review', compliance: 'unverified' });
+      }
+    },
+  );
+  it.each([
+    'artifactId',
+    'artifactVersion',
+    'artifactHash',
+    'snapshotHash',
+  ] as const)('rejects mismatched %s with no writes', async (key) => {
+    const f = fixture();
+    const current = loadCompletion(f, completedReceipt());
+    const report = validationReport();
+    report[key] = key.endsWith('Hash') ? `sha256:${'b'.repeat(64)}` : 'other';
+    await expect(
+      f.service.recordValidation(
+        actor,
+        current.id,
+        completionMutation,
+        'validate',
+        report,
+      ),
+    ).rejects.toThrow('receipt_validation_binding_mismatch');
+    expect(f.tx.brandedGenerationReceipt.update).not.toHaveBeenCalled();
+    expect(f.tx.brandedGenerationReceiptEvent.create).not.toHaveBeenCalled();
+  });
+  it('rejects raw reports, malformed reports, pre-completion states and artifactless blocked receipts', async () => {
+    const f = fixture();
+    const current = completedReceipt();
+    current.mode = 'raw';
+    current.snapshot = null;
+    current.compliance = 'not_claimed';
+    loadCompletion(f, current);
+    await expect(
+      f.service.recordValidation(
+        actor,
+        current.id,
+        completionMutation,
+        'validate',
+        validationReport(),
+      ),
+    ).rejects.toThrow('receipt_validation_binding_mismatch');
+    await expect(
+      f.service.recordValidation(
+        actor,
+        current.id,
+        completionMutation,
+        'validate',
+        { ...validationReport(), rubricVersion: 0 },
+      ),
+    ).rejects.toThrow('receipt_validation_invalid');
+    for (const state of ['resolved', 'dispatched', 'blocked'] as const) {
+      const value = completedReceipt();
+      value.mode = 'raw';
+      value.snapshot = null;
+      value.compliance = 'not_claimed';
+      value.state = state;
+      value.artifact = null;
+      if (state === 'resolved' || state === 'blocked') {
+        value.execution = null;
+        value.budget.generationAttemptsUsed = 0;
+      } else if (value.execution) value.execution.result = 'pending';
+      loadCompletion(f, value);
+      await expect(
+        f.service.recordValidation(
+          actor,
+          value.id,
+          completionMutation,
+          state === 'blocked' ? 'revalidate' : 'validate',
+          null,
+        ),
+      ).rejects.toThrow('receipt_state_conflict');
+    }
+    expect(f.tx.brandedGenerationReceipt.update).not.toHaveBeenCalled();
+  });
+  it('replays semantic report identity, rejects changed checks, stale revisions and cross-tenant access', async () => {
+    const f = fixture();
+    const current = loadCompletion(f, completedReceipt());
+    const report = validationReport();
+    const first = await f.service.recordValidation(
+      actor,
+      current.id,
+      completionMutation,
+      'validate',
+      report,
+    );
+    const event =
+      f.tx.brandedGenerationReceiptEvent.create.mock.calls.at(-1)?.[0].data;
+    loadCompletion(f, first.receipt);
+    f.tx.brandedGenerationReceiptEvent.findFirst.mockResolvedValue(event);
+    f.tx.brandedGenerationReceipt.update.mockClear();
+    expect(
+      (
+        await f.service.recordValidation(
+          actor,
+          current.id,
+          completionMutation,
+          'validate',
+          {
+            ...report,
+            id: 'regenerated',
+            checkedAt: '2026-10-02T00:00:00.000Z',
+          },
+        )
+      ).replayed,
+    ).toBe(true);
+    expect(f.tx.brandedGenerationReceipt.update).not.toHaveBeenCalled();
+    await expect(
+      f.service.recordValidation(
+        actor,
+        current.id,
+        completionMutation,
+        'validate',
+        { ...report, checks: [] },
+      ),
+    ).rejects.toThrow('request_payload_conflict');
+    f.tx.brandedGenerationReceiptEvent.findFirst.mockResolvedValue(null);
+    await expect(
+      f.service.recordValidation(
+        actor,
+        current.id,
+        completionMutation,
+        'revalidate',
+        report,
+      ),
+    ).rejects.toThrow('receipt_version_conflict');
+    f.tx.brandedGenerationReceipt.findFirst.mockResolvedValue(null);
+    await expect(
+      f.service.recordValidation(
+        { ...actor, organizationId: 'foreign' },
+        current.id,
+        completionMutation,
+        'validate',
+        report,
+      ),
+    ).rejects.toThrow('receipt_not_found');
+  });
+  it('recovers stale resolved receipts and filters creators before the query', async () => {
+    const f = fixture();
+    const current = await resolvedReceipt(f);
+    const now = new Date(Date.parse(current.updatedAt) + 900001);
+    f.tx.brandedGenerationReceipt.findMany.mockResolvedValue([
+      { id: current.id, revision: current.revision },
+    ]);
+    expect(
+      await f.service.recoverExpiredDispatches(actor, { limit: 10, now }),
+    ).toEqual({ blocked: [current.id], skipped: [] });
+    expect(f.tx.brandedGenerationReceipt.findMany.mock.calls[0][0]).toEqual({
+      where: {
+        organizationId: 'org',
+        brandId: 'brand',
+        isDeleted: false,
+        state: 'resolved',
+        updatedAt: { lt: new Date(now.getTime() - 900000) },
+        actorId: 'user',
+      },
+      take: 10,
+    });
+    expect(
+      f.tx.brandedGenerationReceipt.update.mock.calls.at(-1)?.[0].data
+        .projection,
+    ).toMatchObject({
+      state: 'blocked',
+      diagnostics: [{ code: 'dispatch_window_expired' }],
+    });
+    vi.mocked(f.access.assertBrand).mockResolvedValue({ isOwnerOrAdmin: true });
+    f.tx.brandedGenerationReceipt.findMany.mockResolvedValue([]);
+    expect(
+      await f.service.recoverExpiredDispatches(actor, { limit: 10, now }),
+    ).toEqual({ blocked: [], skipped: [] });
+    expect(
+      f.tx.brandedGenerationReceipt.findMany.mock.calls.at(-1)?.[0].where,
+    ).not.toHaveProperty('actorId');
+  });
+  it.each([
+    'fresh',
+    'recompose',
+    'version',
+    'state',
+    'payload',
+    'deleted',
+  ] as const)('skips %s recovery contenders without writing', async (race) => {
+    const f = fixture();
+    const current = await resolvedReceipt(f);
+    const now = new Date(Date.parse(current.updatedAt) + 900001);
+    const revision = current.revision;
+    f.tx.brandedGenerationReceipt.findMany.mockResolvedValue(
+      race === 'fresh' ? [] : [{ id: current.id, revision }],
+    );
+    if (race === 'recompose')
+      loadCompletion(f, { ...current, updatedAt: now.toISOString() });
+    if (race === 'version')
+      loadCompletion(f, { ...current, revision: revision + 1 });
+    if (race === 'state') loadCompletion(f, { ...current, state: 'cancelled' });
+    if (race === 'payload')
+      f.tx.brandedGenerationReceiptEvent.findFirst.mockResolvedValue({
+        actorId: 'other',
+      });
+    if (race === 'deleted') loadCompletion(f, { ...current, isDeleted: true });
+    f.tx.brandedGenerationReceipt.update.mockClear();
+    expect(
+      await f.service.recoverExpiredDispatches(actor, { limit: 10, now }),
+    ).toEqual({ blocked: [], skipped: race === 'fresh' ? [] : [current.id] });
+    expect(f.tx.brandedGenerationReceipt.update).not.toHaveBeenCalled();
   });
 });

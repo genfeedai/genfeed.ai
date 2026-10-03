@@ -12,11 +12,11 @@ import {
   resolveContainedPathWithoutSymlinks,
 } from './path-containment';
 import type {
-  BoundedStorageProvider,
   FileEntry,
   ListOptions,
   StorageObject,
   StorageReadOptions,
+  VersionedStorageProvider,
 } from './storage.provider';
 import { resolveLocalStorageBaseDir } from './storage-base-dir';
 
@@ -43,7 +43,7 @@ function getFileType(filePath: string): string {
   return MIME_TYPE_MAP[ext] ?? 'file';
 }
 
-export class LocalStorageProvider implements BoundedStorageProvider {
+export class LocalStorageProvider implements VersionedStorageProvider {
   private readonly baseDir: string;
 
   constructor(baseDir?: string) {
@@ -66,7 +66,20 @@ export class LocalStorageProvider implements BoundedStorageProvider {
     filePath: string,
     options: StorageReadOptions,
   ): Promise<Buffer> {
+    return (await this.read(filePath, options)).bytes;
+  }
+  async readVersionedBytes(
+    filePath: string,
+    options: StorageReadOptions & { expectedVersion?: string },
+  ): Promise<{ bytes: Buffer; version: string }> {
+    return this.read(filePath, options);
+  }
+  private async read(
+    filePath: string,
+    options: StorageReadOptions & { expectedVersion?: string },
+  ): Promise<{ bytes: Buffer; version: string }> {
     const context = createStorageReadContext(options);
+    let token = '';
     let handle: fs.FileHandle | undefined;
     let primary: StorageReadError | undefined;
     let result: Buffer | undefined;
@@ -97,6 +110,12 @@ export class LocalStorageProvider implements BoundedStorageProvider {
         throw new StorageReadError('storage_read_invalid_response');
       if (before.size > BigInt(context.maxBytes))
         throw new StorageReadError('storage_read_limit_exceeded');
+      token = `local:${before.dev}:${before.ino}:${before.size}:${before.mtimeNs}`;
+      if (
+        options.expectedVersion !== undefined &&
+        options.expectedVersion !== token
+      )
+        throw new StorageReadError('storage_read_changed');
       await resolveContainedPathWithoutSymlinks(
         this.baseDir,
         key,
@@ -156,7 +175,7 @@ export class LocalStorageProvider implements BoundedStorageProvider {
     }
     if (primary) throw primary;
     if (!result) throw new StorageReadError('storage_read_unavailable');
-    return result;
+    return { bytes: result, version: token };
   }
 
   async upload(
