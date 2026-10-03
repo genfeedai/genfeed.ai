@@ -45,7 +45,6 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import MessageAutomationsMenu from '@/components/messages/MessageAutomationsMenu';
 
 export type { MessagesInboxView, MessagesSurface };
 
@@ -490,14 +489,11 @@ export function MessagesConversationSidebar({
         <span className="text-2xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
           {translate('title')}
         </span>
-        <div className="flex items-center gap-2">
-          {pagination.total > 0 ? (
-            <span className="text-2xs tabular-nums text-muted-foreground">
-              {pagination.total}
-            </span>
-          ) : null}
-          <MessageAutomationsMenu />
-        </div>
+        {pagination.total > 0 ? (
+          <span className="text-2xs tabular-nums text-muted-foreground">
+            {pagination.total}
+          </span>
+        ) : null}
       </div>
       <ConversationSidebarSearch
         action={filterAction}
