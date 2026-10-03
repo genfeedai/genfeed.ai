@@ -15,10 +15,12 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import { ChartColumn } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import CreditHoldsPanel from './credit-holds-panel';
 
 export default function CreditUsageList() {
+  const t = useTranslations('pages.adminCreditHolds');
   const [selectedOrganization, setSelectedOrganization] =
     useState<IOrganizationCreditUsage>();
   const getSubscriptionsService = useAuthedService((token: string) =>
@@ -57,14 +59,14 @@ export default function CreditUsageList() {
 
   const columns: TableColumn<IOrganizationCreditUsage>[] = [
     {
-      header: 'Holds',
+      header: t('holdsColumn'),
       key: 'organizationId',
       render: (row) => (
         <Button
           variant={ButtonVariant.SECONDARY}
           onClick={() => setSelectedOrganization(row)}
         >
-          Review holds
+          {t('reviewHolds')}
         </Button>
       ),
     },
