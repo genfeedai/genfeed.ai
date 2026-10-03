@@ -68,7 +68,7 @@ export async function verifyProviderPublish(
     context.post.category !== PostCategory.TEXT ||
     context.post.ingredients.length > 0 ||
     context.hasThreadChildren !== false ||
-    !!context.post.quoteTweetId ||
+    context.post.quoteTweetId ||
     (context.isDraft && !match.isNativeHtml) ||
     !text ||
     (!match.isNativeHtml &&
