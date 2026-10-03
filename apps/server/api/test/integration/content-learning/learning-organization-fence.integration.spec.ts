@@ -141,8 +141,14 @@ describe('Per-organization learning fence (real Postgres)', () => {
         .replaceAll('"public".', '')
         .replace(/CREATE SCHEMA IF NOT EXISTS "public";/g, ''),
     );
+    // Scheduler locks use raw SQL, which resolves tables through search_path.
+    const scoped = new URL(connectionString);
+    scoped.searchParams.set('options', `-c search_path=${schema},public`);
     prisma = new PrismaClient({
-      adapter: new PrismaPg({ connectionString }, { schema }),
+      adapter: new PrismaPg(
+        { connectionString: scoped.toString() },
+        { schema },
+      ),
     });
     scheduler = new SchedulerPublishStateService(
       prisma as unknown as PrismaService,
