@@ -339,6 +339,70 @@ export class AgentTurnRoundRunnerService {
     return true;
   }
 
+  private async recordUnknownToolFailure(input: {
+    allowedToolNames: Set<CuratedActionName>;
+    context: AgentChatContext;
+    messages: ExecuteToolRoundParams['messages'];
+    model: string;
+    rawRequestedToolName: string;
+    requestedToolName: CuratedActionName;
+    source: AgentChatRequest['source'];
+    startTime: number;
+    state: AgentToolRoundState;
+    strategy: AgentToolRoundStrategy;
+    threadId: string;
+    toolCallId: string;
+    toolParams: Record<string, unknown>;
+  }): Promise<void> {
+    const unknownToolError = this.buildUnknownToolError(
+      input.rawRequestedToolName,
+      input.allowedToolNames,
+    );
+    const durationMs = Date.now() - input.startTime;
+    const summary: ToolCallSummary = {
+      creditsUsed: 0,
+      durationMs,
+      error: unknownToolError,
+      status: 'failed',
+      toolName: input.requestedToolName,
+    };
+
+    this.loggerService.warn(unknownToolError, {
+      allowedToolsCount: input.allowedToolNames.size,
+      constructor: this.constructorName,
+      model: input.model,
+      organizationId: input.context.organizationId,
+      source: input.source ?? 'agent',
+      threadId: input.threadId,
+      toolName: input.requestedToolName,
+      userId: input.context.userId,
+    });
+
+    input.state.toolCalls.push(summary);
+
+    if (input.strategy.onToolCompleted) {
+      await input.strategy.onToolCompleted({
+        durationMs,
+        kind: 'unknown',
+        parameters: input.toolParams,
+        requestedToolName: input.requestedToolName,
+        summary,
+        toolCallId: input.toolCallId,
+        toolName: input.requestedToolName,
+      });
+    }
+
+    input.messages.push({
+      content: JSON.stringify({
+        availableTools: Array.from(input.allowedToolNames),
+        error: unknownToolError,
+        success: false,
+      }),
+      role: 'tool' as const,
+      tool_call_id: input.toolCallId,
+    });
+  }
+
   async executeToolRound(
     params: ExecuteToolRoundParams,
   ): Promise<ExecuteToolRoundResult> {
@@ -427,52 +491,20 @@ export class AgentTurnRoundRunnerService {
             },
           );
         } else if (!strategy.deferUnknownToolFailure) {
-          const unknownToolError = this.buildUnknownToolError(
-            rawRequestedToolName,
+          await this.recordUnknownToolFailure({
             allowedToolNames,
-          );
-          const durationMs = Date.now() - startTime;
-          const summary: ToolCallSummary = {
-            creditsUsed: 0,
-            durationMs,
-            error: unknownToolError,
-            status: 'failed',
-            toolName: requestedToolName,
-          };
-
-          this.loggerService.warn(unknownToolError, {
-            allowedToolsCount: allowedToolNames.size,
-            constructor: this.constructorName,
+            context,
+            messages,
             model,
-            organizationId: context.organizationId,
-            source: source ?? 'agent',
+            rawRequestedToolName,
+            requestedToolName,
+            source,
+            startTime,
+            state,
+            strategy,
             threadId,
-            toolName: requestedToolName,
-            userId: context.userId,
-          });
-
-          state.toolCalls.push(summary);
-
-          if (strategy.onToolCompleted) {
-            await strategy.onToolCompleted({
-              durationMs,
-              kind: 'unknown',
-              parameters: toolParams,
-              requestedToolName,
-              summary,
-              toolCallId: toolCall.id,
-              toolName: requestedToolName,
-            });
-          }
-
-          messages.push({
-            content: JSON.stringify({
-              availableTools: Array.from(allowedToolNames),
-              error: unknownToolError,
-              success: false,
-            }),
-            role: 'tool' as const,
-            tool_call_id: toolCall.id,
+            toolCallId: toolCall.id,
+            toolParams,
           });
           continue;
         }
@@ -531,52 +563,20 @@ export class AgentTurnRoundRunnerService {
 
       // Stream: unknown tools that could not be recovered fail after started.
       if (strategy.deferUnknownToolFailure && !allowedToolNames.has(toolName)) {
-        const unknownToolError = this.buildUnknownToolError(
-          rawRequestedToolName,
+        await this.recordUnknownToolFailure({
           allowedToolNames,
-        );
-        const durationMs = Date.now() - startTime;
-
-        this.loggerService.warn(unknownToolError, {
-          allowedToolsCount: allowedToolNames.size,
-          constructor: this.constructorName,
+          context,
+          messages,
           model,
-          organizationId: context.organizationId,
-          source: source ?? 'agent',
+          rawRequestedToolName,
+          requestedToolName,
+          source,
+          startTime,
+          state,
+          strategy,
           threadId,
-          toolName: requestedToolName,
-          userId: context.userId,
-        });
-
-        const summary: ToolCallSummary = {
-          creditsUsed: 0,
-          durationMs,
-          error: unknownToolError,
-          status: 'failed',
-          toolName: requestedToolName,
-        };
-        state.toolCalls.push(summary);
-
-        if (strategy.onToolCompleted) {
-          await strategy.onToolCompleted({
-            durationMs,
-            kind: 'unknown',
-            parameters: toolParams,
-            requestedToolName,
-            summary,
-            toolCallId: toolCall.id,
-            toolName: requestedToolName,
-          });
-        }
-
-        messages.push({
-          content: JSON.stringify({
-            availableTools: Array.from(allowedToolNames),
-            error: unknownToolError,
-            success: false,
-          }),
-          role: 'tool' as const,
-          tool_call_id: toolCall.id,
+          toolCallId: toolCall.id,
+          toolParams,
         });
         continue;
       }
