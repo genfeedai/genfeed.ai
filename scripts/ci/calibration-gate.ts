@@ -57,7 +57,8 @@ export interface CalibrationGateResult {
 
 // A live label and a matching digest are not enough on their own: the summary
 // must also show paid calls over a calibration-sized fixture, a clean tree,
-// the current thresholds and a pooled metric row for each production judge.
+// the current thresholds and, for each production judge, enough scored rows
+// that carry a human label to measure agreement.
 export function summaryEvidenceGaps(summary: CalibrationSummary): string[] {
   const gaps: string[] = [];
   if (summary.spend.callCount === 0) {
@@ -84,8 +85,14 @@ export function summaryEvidenceGaps(summary: CalibrationSummary): string[] {
       (entry) =>
         entry.armId === arm?.armId && entry.contentKind === POOLED_KIND,
     );
-    if (pooled === undefined || pooled.scoredRows === 0) {
-      gaps.push(`it has no scored pooled metrics for ${profileId}`);
+    const labelledRows =
+      pooled === undefined
+        ? 0
+        : Math.max(pooled.scoredBandRows, pooled.scoredDecisionRows);
+    if (labelledRows < CONTENT_EVAL_THRESHOLDS.calibrationMinRows) {
+      gaps.push(
+        `it has ${labelledRows} labelled scored rows for ${profileId}, below ${CONTENT_EVAL_THRESHOLDS.calibrationMinRows}`,
+      );
     }
   }
   return gaps;

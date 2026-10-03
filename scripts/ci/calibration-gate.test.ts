@@ -76,7 +76,11 @@ function arm(profileId: ArmRecord['profileId']): ArmRecord {
   };
 }
 
-function pooledMetric(armId: string, scoredRows = 32): MetricRow {
+function pooledMetric(
+  armId: string,
+  scoredRows = 32,
+  labelledRows = scoredRows,
+): MetricRow {
   return {
     armId,
     bandKappa: 0.8,
@@ -96,8 +100,8 @@ function pooledMetric(armId: string, scoredRows = 32): MetricRow {
     },
     maeToBandMidpoint: 0.1,
     rows: 32,
-    scoredBandRows: scoredRows,
-    scoredDecisionRows: scoredRows,
+    scoredBandRows: labelledRows,
+    scoredDecisionRows: labelledRows,
     scoredRows,
     spearmanRho: 0.8,
     voidCount: 0,
@@ -305,7 +309,28 @@ describe('judge calibration gate', () => {
             metrics: [pooledMetric(ARMS[0]?.armId ?? '')],
           },
         }),
-        'it has no scored pooled metrics for evaluations',
+        'it has 0 labelled scored rows for evaluations, below 30',
+      ],
+      [
+        summary({
+          calibration: {
+            ...live.calibration,
+            metrics: ARMS.map((entry) => pooledMetric(entry.armId, 32, 0)),
+          },
+        }),
+        'it has 0 labelled scored rows for content-quality, below 30; it has 0 labelled scored rows for evaluations, below 30',
+      ],
+      [
+        summary({
+          calibration: {
+            ...live.calibration,
+            metrics: [
+              pooledMetric(ARMS[0]?.armId ?? '', 32, 29),
+              { ...pooledMetric(ARMS[1]?.armId ?? ''), scoredBandRows: 0 },
+            ],
+          },
+        }),
+        'it has 29 labelled scored rows for content-quality, below 30',
       ],
       [
         summary({
@@ -314,7 +339,7 @@ describe('judge calibration gate', () => {
             metrics: ARMS.map((entry) => pooledMetric(entry.armId, 0)),
           },
         }),
-        'it has no scored pooled metrics for content-quality; it has no scored pooled metrics for evaluations',
+        'it has 0 labelled scored rows for content-quality, below 30; it has 0 labelled scored rows for evaluations, below 30',
       ],
     ];
     for (const [value, gap] of incomplete) {
