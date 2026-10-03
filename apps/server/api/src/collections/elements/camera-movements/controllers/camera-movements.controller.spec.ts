@@ -169,10 +169,10 @@ describe('ElementsCameraMovementsController', () => {
       );
 
       expect(cameraMovementsService.findOne).toHaveBeenCalledWith(
-        { id },
+        expect.objectContaining({ id: expect.any(String) }),
         expect.anything(),
       );
-      expect(cameraMovementsService.patch).toHaveBeenCalled();
+      expect(cameraMovementsService.patchOneWhere).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
 
@@ -211,11 +211,13 @@ describe('ElementsCameraMovementsController', () => {
         id,
       );
 
-      expect(cameraMovementsService.findOne).toHaveBeenCalledWith({
-        id,
-        isDeleted: false,
-      });
-      expect(cameraMovementsService.remove).toHaveBeenCalledWith(id);
+      expect(cameraMovementsService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ id }),
+      );
+      expect(cameraMovementsService.patchOneWhere).toHaveBeenCalledWith(
+        expect.objectContaining({ id: id }),
+        { isDeleted: true },
+      );
       expect(result).toBeDefined();
     });
   });

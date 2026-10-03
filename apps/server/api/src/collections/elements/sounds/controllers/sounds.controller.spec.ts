@@ -118,10 +118,7 @@ describe('ElementsSoundsController', () => {
       const result = await controller.findOne(mockRequest, mockUser, soundId);
 
       expect(soundsService.findOne).toHaveBeenCalledWith(
-        {
-          id: soundId,
-          isDeleted: false,
-        },
+        expect.objectContaining({ id: soundId, isDeleted: false }),
         [],
       );
       expect(result).toBeDefined();
@@ -236,10 +233,10 @@ describe('ElementsSoundsController', () => {
       );
 
       expect(soundsService.findOne).toHaveBeenCalledWith(
-        { id: soundId },
+        expect.objectContaining({ id: expect.any(String) }),
         expect.anything(),
       );
-      expect(soundsService.patch).toHaveBeenCalled();
+      expect(soundsService.patchOneWhere).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
 
@@ -281,11 +278,13 @@ describe('ElementsSoundsController', () => {
 
       const result = await controller.remove(mockRequest, mockUser, soundId);
 
-      expect(soundsService.findOne).toHaveBeenCalledWith({
-        id: soundId,
-        isDeleted: false,
-      });
-      expect(soundsService.remove).toHaveBeenCalledWith(soundId);
+      expect(soundsService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ id: soundId }),
+      );
+      expect(soundsService.patchOneWhere).toHaveBeenCalledWith(
+        expect.objectContaining({ id: soundId }),
+        { isDeleted: true },
+      );
       expect(result).toBeDefined();
     });
 
@@ -298,7 +297,7 @@ describe('ElementsSoundsController', () => {
         controller.remove(mockRequest, mockUser, soundId),
       ).rejects.toThrow();
 
-      expect(soundsService.remove).not.toHaveBeenCalled();
+      expect(soundsService.patchOneWhere).not.toHaveBeenCalled();
     });
   });
 

@@ -187,7 +187,7 @@ describe('ElementsMoodsController', () => {
       );
 
       expect(moodsService.findOne).toHaveBeenCalled();
-      expect(moodsService.patch).toHaveBeenCalled();
+      expect(moodsService.patchOneWhere).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
 
@@ -222,7 +222,10 @@ describe('ElementsMoodsController', () => {
       const result = await controller.remove(mockRequest, mockUser, moodId);
 
       expect(moodsService.findOne).toHaveBeenCalled();
-      expect(moodsService.remove).toHaveBeenCalledWith(moodId);
+      expect(moodsService.patchOneWhere).toHaveBeenCalledWith(
+        expect.objectContaining({ id: moodId }),
+        { isDeleted: true },
+      );
       expect(result).toBeDefined();
     });
 
@@ -232,7 +235,7 @@ describe('ElementsMoodsController', () => {
       await expect(
         controller.remove(mockRequest, mockUser, moodId),
       ).rejects.toThrow();
-      expect(moodsService.remove).not.toHaveBeenCalled();
+      expect(moodsService.patchOneWhere).not.toHaveBeenCalled();
     });
   });
 

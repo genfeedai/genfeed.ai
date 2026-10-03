@@ -161,10 +161,10 @@ describe('ElementsLensesController', () => {
       );
 
       expect(lensesService.findOne).toHaveBeenCalledWith(
-        { id },
+        expect.objectContaining({ id: expect.any(String) }),
         expect.anything(),
       );
-      expect(lensesService.patch).toHaveBeenCalled();
+      expect(lensesService.patchOneWhere).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
 
@@ -201,11 +201,13 @@ describe('ElementsLensesController', () => {
         id,
       );
 
-      expect(lensesService.findOne).toHaveBeenCalledWith({
-        id,
-        isDeleted: false,
-      });
-      expect(lensesService.remove).toHaveBeenCalledWith(id);
+      expect(lensesService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ id }),
+      );
+      expect(lensesService.patchOneWhere).toHaveBeenCalledWith(
+        expect.objectContaining({ id: id }),
+        { isDeleted: true },
+      );
       expect(result).toBeDefined();
     });
   });

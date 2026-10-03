@@ -183,7 +183,7 @@ describe('ElementsScenesController', () => {
       );
 
       expect(scenesService.findOne).toHaveBeenCalled();
-      expect(scenesService.patch).toHaveBeenCalled();
+      expect(scenesService.patchOneWhere).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
 
@@ -221,7 +221,10 @@ describe('ElementsScenesController', () => {
       const result = await controller.remove(mockRequest, mockUser, sceneId);
 
       expect(scenesService.findOne).toHaveBeenCalled();
-      expect(scenesService.remove).toHaveBeenCalledWith(sceneId);
+      expect(scenesService.patchOneWhere).toHaveBeenCalledWith(
+        expect.objectContaining({ id: sceneId }),
+        { isDeleted: true },
+      );
       expect(result).toBeDefined();
     });
 
@@ -233,7 +236,7 @@ describe('ElementsScenesController', () => {
       await expect(
         controller.remove(mockRequest, mockUser, sceneId),
       ).rejects.toThrow();
-      expect(scenesService.remove).not.toHaveBeenCalled();
+      expect(scenesService.patchOneWhere).not.toHaveBeenCalled();
     });
   });
 

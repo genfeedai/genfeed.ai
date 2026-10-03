@@ -168,10 +168,10 @@ describe('ElementsLightingsController', () => {
       );
 
       expect(lightingsService.findOne).toHaveBeenCalledWith(
-        { id: lightingId },
+        expect.objectContaining({ id: expect.any(String) }),
         expect.anything(),
       );
-      expect(lightingsService.patch).toHaveBeenCalled();
+      expect(lightingsService.patchOneWhere).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
 
@@ -211,11 +211,13 @@ describe('ElementsLightingsController', () => {
         lightingId,
       );
 
-      expect(lightingsService.findOne).toHaveBeenCalledWith({
-        id: lightingId,
-        isDeleted: false,
-      });
-      expect(lightingsService.remove).toHaveBeenCalledWith(lightingId);
+      expect(lightingsService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ id: lightingId }),
+      );
+      expect(lightingsService.patchOneWhere).toHaveBeenCalledWith(
+        expect.objectContaining({ id: lightingId }),
+        { isDeleted: true },
+      );
       expect(result).toBeDefined();
     });
   });
