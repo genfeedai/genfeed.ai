@@ -357,3 +357,13 @@ export interface GoldenSetPrismaClient {
   contextBase: GoldenFindManyDelegate<GoldenContextBaseRecord>;
   contextEntry: GoldenFindManyDelegate<GoldenContextEntryRecord>;
 }
+
+export interface GoldenCandidate {
+  contentKey: string;
+  contentKind: GoldenContentKind;
+  brandId: string;
+  text: string;
+  promptBase: string | null;
+  platform: string | null;
+  labels: GoldenLabel[];
+}
