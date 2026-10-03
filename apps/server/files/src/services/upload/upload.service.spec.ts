@@ -10,12 +10,26 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { StorageProvider } from '@genfeedai/storage';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpService } from '@nestjs/axios';
-import { HttpException } from '@nestjs/common';
+import {
+  DestinationGuardError,
+  safeFetch,
+} from '@libs/security/destination-guard';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import type { AxiosResponse } from 'axios';
-import { of, throwError } from 'rxjs';
 import type { Mock, Mocked } from 'vitest';
+
+const isSelfHostedDeploymentMock = vi.hoisted(() => vi.fn(() => false));
+vi.mock('@genfeedai/config', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/config')>()),
+  isSelfHostedDeployment: isSelfHostedDeploymentMock,
+}));
+
+vi.mock('@libs/security/destination-guard', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('@libs/security/destination-guard')
+  >()),
+  safeFetch: vi.fn(),
+}));
 
 // Mock sharp
 vi.mock('sharp', () => {
@@ -58,24 +72,28 @@ type MockSharpInstance = {
   webp: Mock;
 };
 
-function axiosResponse(
-  data: Buffer,
+function remoteResponse(
+  data: string,
   headers: Record<string, string> = {},
-): AxiosResponse<Buffer> {
-  return {
-    config: {} as AxiosResponse<Buffer>['config'],
-    data,
-    headers,
-    status: 200,
-    statusText: 'OK',
-  };
+  status = 200,
+): Response {
+  return new Response(Buffer.from(data), { headers, status });
+}
+
+async function rejectionStatus(promise: Promise<unknown>): Promise<number> {
+  const error = await promise.then(
+    () => undefined,
+    (reason: unknown) => reason,
+  );
+  expect(error).toBeInstanceOf(HttpException);
+  return (error as HttpException).getStatus();
 }
 
 describe('UploadService', () => {
   let service: UploadService;
   let mockConfigService: Mocked<ConfigService>;
   let mockFfmpegService: Mocked<FFmpegService>;
-  let mockHttpService: Mocked<HttpService>;
+  const safeFetchMock = vi.mocked(safeFetch);
   let mockLogger: Mocked<LoggerService>;
   let mockStorage: Mocked<StorageProvider>;
   let mockSharpInstance: MockSharpInstance;
@@ -94,10 +112,6 @@ describe('UploadService', () => {
         ],
       }),
     } as unknown as Mocked<FFmpegService>;
-
-    mockHttpService = {
-      get: vi.fn(),
-    } as unknown as Mocked<HttpService>;
 
     mockLogger = {
       debug: vi.fn(),
@@ -144,7 +158,6 @@ describe('UploadService', () => {
         UploadService,
         { provide: ConfigService, useValue: mockConfigService },
         { provide: FFmpegService, useValue: mockFfmpegService },
-        { provide: HttpService, useValue: mockHttpService },
         { provide: LoggerService, useValue: mockLogger },
         { provide: 'STORAGE_PROVIDER', useValue: mockStorage },
       ],
@@ -158,6 +171,7 @@ describe('UploadService', () => {
     (fs.readFileSync as Mock).mockReturnValue(Buffer.from('file-content'));
     (fs.statSync as Mock).mockReturnValue({ size: 17 });
     pipelineMock.mockResolvedValue(undefined);
+    isSelfHostedDeploymentMock.mockReturnValue(false);
   });
 
   it('deletes a validated full storage key through the configured provider', async () => {
@@ -368,13 +382,9 @@ describe('UploadService', () => {
   });
 
   describe('uploadToS3 - URL source', () => {
-    it('should download and upload file from URL, declaring the client unknown', async () => {
-      mockHttpService.get.mockReturnValue(
-        of(
-          axiosResponse(Buffer.from('downloaded-content'), {
-            'content-type': 'image/jpeg',
-          }),
-        ),
+    it('downloads through the destination guard, declaring the client unknown', async () => {
+      safeFetchMock.mockResolvedValue(
+        remoteResponse('downloaded-content', { 'content-type': 'image/jpeg' }),
       );
 
       const result = await service.uploadToS3('test-key', 'images', {
@@ -382,22 +392,94 @@ describe('UploadService', () => {
         url: 'https://example.com/image.jpg',
       });
 
-      expect(mockHttpService.get).toHaveBeenCalledWith(
-        'https://example.com/image.jpg',
+      expect(safeFetchMock).toHaveBeenCalledWith(
+        new URL('https://example.com/image.jpg'),
         expect.objectContaining({
           headers: {
             [UNATTRIBUTED_FORWARDED_HEADER]: UNATTRIBUTED_FORWARDED_VALUE,
           },
-          maxBodyLength: 200 * 1024 * 1024,
-          maxContentLength: 200 * 1024 * 1024,
-          maxRedirects: 0,
-          responseType: 'stream',
-          timeout: 60000,
+          redirect: 'error',
+          signal: expect.any(AbortSignal),
         }),
+        {},
       );
       expect(pipelineMock).toHaveBeenCalled();
       expect(fs.unlinkSync).toHaveBeenCalled();
       expect(result.publicUrl).toBe('https://s3.example.com/test-key');
+    });
+
+    it('trusts only the configured CDN origin to resolve privately', async () => {
+      mockConfigService.get.mockImplementation((key: string) =>
+        key === 'GENFEEDAI_CDN_URL' ? 'http://localhost:3012' : undefined,
+      );
+      safeFetchMock.mockResolvedValue(
+        remoteResponse('cdn-content', { 'content-type': 'image/jpeg' }),
+      );
+
+      await service.uploadToS3('test-key', 'images', {
+        type: 'url',
+        url: 'http://localhost:3012/ingredients/images/source',
+      });
+
+      expect(safeFetchMock).toHaveBeenCalledWith(
+        expect.any(URL),
+        expect.any(Object),
+        {
+          allowedOrigins: ['http://localhost:3012'],
+          allowPrivateNetwork: true,
+        },
+      );
+    });
+
+    it.each([
+      [
+        true,
+        { allowedOrigins: ['http://files:3012'], allowPrivateNetwork: true },
+      ],
+      [false, {}],
+    ])(
+      'trusts the files service origin only on self-hosted (self-hosted: %s)',
+      async (isSelfHosted, policy) => {
+        isSelfHostedDeploymentMock.mockReturnValue(isSelfHosted);
+        mockConfigService.get.mockImplementation((key: string) =>
+          key === 'GENFEEDAI_MICROSERVICES_FILES_URL'
+            ? 'http://files:3012'
+            : 'https://cdn.example.com',
+        );
+        safeFetchMock.mockResolvedValue(
+          remoteResponse('local-content', { 'content-type': 'image/jpeg' }),
+        );
+
+        await service.uploadToS3('test-key', 'images', {
+          type: 'url',
+          url: 'http://files:3012/local/ingredients/images/source',
+        });
+
+        expect(safeFetchMock).toHaveBeenCalledWith(
+          expect.any(URL),
+          expect.any(Object),
+          policy,
+        );
+      },
+    );
+
+    it('rejects a destination the guard blocks with 400', async () => {
+      safeFetchMock.mockRejectedValue(
+        new DestinationGuardError(
+          'Destination resolves to a private or reserved address: 169.254.169.254',
+        ),
+      );
+
+      const status = await rejectionStatus(
+        service.uploadToS3('test-key', 'images', {
+          type: 'url',
+          url: 'http://169.254.169.254/latest/meta-data/',
+        }),
+      );
+
+      expect(status).toBe(HttpStatus.BAD_REQUEST);
+      expect(pipelineMock).not.toHaveBeenCalled();
+      expect(mockStorage.uploadFromFile).not.toHaveBeenCalled();
     });
 
     it('should throw error for invalid URL', async () => {
@@ -407,6 +489,7 @@ describe('UploadService', () => {
           url: 'not-a-valid-url',
         }),
       ).rejects.toThrow(HttpException);
+      expect(safeFetchMock).not.toHaveBeenCalled();
     });
 
     it('should throw error for empty URL', async () => {
@@ -419,38 +502,49 @@ describe('UploadService', () => {
     });
 
     it('should handle download errors', async () => {
-      mockHttpService.get.mockReturnValue(
-        throwError(() => new Error('Download failed')),
-      );
+      safeFetchMock.mockRejectedValue(new Error('Download failed'));
 
       await expect(
         service.uploadToS3('test-key', 'images', {
           type: 'url',
           url: 'https://example.com/image.jpg',
         }),
-      ).rejects.toThrow(HttpException);
+      ).rejects.toThrow('Failed to download file from URL: Download failed');
     });
 
-    it('should handle file size exceeded error', async () => {
-      mockHttpService.get.mockReturnValue(
-        throwError(() => ({ code: 'ERR_FR_MAX_BODY_LENGTH_EXCEEDED' })),
+    it('rejects a non-success response before spooling', async () => {
+      safeFetchMock.mockResolvedValue(remoteResponse('missing', {}, 404));
+
+      const status = await rejectionStatus(
+        service.uploadToS3('test-key', 'images', {
+          type: 'url',
+          url: 'https://example.com/image.jpg',
+        }),
+      );
+
+      expect(status).toBe(HttpStatus.BAD_REQUEST);
+      expect(pipelineMock).not.toHaveBeenCalled();
+    });
+
+    it('rejects a declared size over the 200MB limit before spooling', async () => {
+      safeFetchMock.mockResolvedValue(
+        remoteResponse('large', {
+          'content-length': String(200 * 1024 * 1024 + 1),
+          'content-type': 'video/mp4',
+        }),
       );
 
       await expect(
-        service.uploadToS3('test-key', 'images', {
+        service.uploadToS3('test-key', 'videos', {
           type: 'url',
           url: 'https://example.com/large-file.mp4',
         }),
       ).rejects.toThrow('File size exceeds 200MB limit');
+      expect(pipelineMock).not.toHaveBeenCalled();
     });
 
     it('should infer content type from URL extension', async () => {
-      mockHttpService.get.mockReturnValue(
-        of(axiosResponse(Buffer.from('video-content'))),
-      );
-
-      // Need to setup tmp dir mock
-      (fs.existsSync as Mock).mockReturnValue(true);
+      safeFetchMock.mockResolvedValue(remoteResponse('video-content'));
 
       await service.uploadToS3('test-key', 'videos', {
         type: 'url',
@@ -462,12 +556,8 @@ describe('UploadService', () => {
     });
 
     it('keeps the response content type for a gif and extracts dimensions', async () => {
-      mockHttpService.get.mockReturnValue(
-        of(
-          axiosResponse(Buffer.from('gif-content'), {
-            'content-type': 'image/gif',
-          }),
-        ),
+      safeFetchMock.mockResolvedValue(
+        remoteResponse('gif-content', { 'content-type': 'image/gif' }),
       );
 
       const result = await service.uploadToS3('test-key', 'images', {
@@ -490,12 +580,8 @@ describe('UploadService', () => {
     });
 
     it('keeps the response content type for an extension-less webm URL', async () => {
-      mockHttpService.get.mockReturnValue(
-        of(
-          axiosResponse(Buffer.from('webm-content'), {
-            'content-type': 'video/webm',
-          }),
-        ),
+      safeFetchMock.mockResolvedValue(
+        remoteResponse('webm-content', { 'content-type': 'video/webm' }),
       );
 
       const result = await service.uploadToS3('test-key', 'videos', {
@@ -515,12 +601,8 @@ describe('UploadService', () => {
     });
 
     it('removes the spooled download when preparation fails', async () => {
-      mockHttpService.get.mockReturnValue(
-        of(
-          axiosResponse(Buffer.from('video-content'), {
-            'content-type': 'video/mp4',
-          }),
-        ),
+      safeFetchMock.mockResolvedValue(
+        remoteResponse('video-content', { 'content-type': 'video/mp4' }),
       );
       mockFfmpegService.getVideoMetadata.mockRejectedValue(
         new Error('ffprobe failed'),
@@ -543,9 +625,7 @@ describe('UploadService', () => {
     });
 
     it('should handle ZIP files from URL', async () => {
-      mockHttpService.get.mockReturnValue(
-        of(axiosResponse(Buffer.from('zip-content'))),
-      );
+      safeFetchMock.mockResolvedValue(remoteResponse('zip-content'));
 
       const result = await service.uploadToS3('test-key', 'archives', {
         type: 'url',

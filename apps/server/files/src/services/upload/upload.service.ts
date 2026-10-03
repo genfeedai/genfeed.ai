@@ -1,12 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 import path from 'node:path';
-import type { Readable } from 'node:stream';
+import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
+import type { ReadableStream as NodeWebReadableStream } from 'node:stream/web';
 import { ConfigService } from '@files/config/config.service';
 import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { FileRuntimeSettingsService } from '@files/services/runtime-settings/file-runtime-settings.service';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
   UNATTRIBUTED_FORWARDED_HEADER,
   UNATTRIBUTED_FORWARDED_VALUE,
@@ -18,8 +20,11 @@ import {
   resolveContainedObjectKey,
   resolveContainedPath,
 } from '@libs/security';
+import {
+  type DestinationGuardOptions,
+  safeFetch,
+} from '@libs/security/destination-guard';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
   HttpException,
@@ -27,7 +32,6 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
 import sharp from 'sharp';
 
 type UploadSource =
@@ -57,6 +61,14 @@ type ProcessedUpload = PreparedUpload & {
 
 const createBadRequest = (message: string) => new BadRequestException(message);
 const CDN_ROOT_UPLOAD_TYPES = new Set(['banners', 'logos', 'references']);
+const REMOTE_DOWNLOAD_MAX_BYTES = 200 * 1024 * 1024;
+const REMOTE_DOWNLOAD_IDLE_TIMEOUT_MS = 60_000;
+
+const createPayloadTooLarge = () =>
+  new HttpException(
+    'File size exceeds 200MB limit',
+    HttpStatus.PAYLOAD_TOO_LARGE,
+  );
 
 @Injectable()
 export class UploadService {
@@ -64,9 +76,8 @@ export class UploadService {
 
   constructor(
     private readonly runtimeSettings: FileRuntimeSettingsService,
-    readonly _configService: ConfigService,
+    private readonly configService: ConfigService,
     @Inject(FFmpegService) private readonly ffmpegService: FFmpegService,
-    @Inject(HttpService) private readonly httpService: HttpService,
     private readonly loggerService: LoggerService,
     @Inject('STORAGE_PROVIDER') private readonly storage: StorageProvider,
   ) {}
@@ -177,7 +188,7 @@ export class UploadService {
     };
   }
 
-  private assertRemoteUrl(remoteUrl: string): void {
+  private parseRemoteUrl(remoteUrl: string): URL {
     if (!remoteUrl || typeof remoteUrl !== 'string') {
       throw new HttpException(
         'URL is required and must be a string',
@@ -185,7 +196,7 @@ export class UploadService {
       );
     }
     try {
-      new URL(remoteUrl);
+      return new URL(remoteUrl);
     } catch (error: unknown) {
       throw new HttpException(
         `Invalid URL: ${remoteUrl}`,
@@ -195,37 +206,80 @@ export class UploadService {
     }
   }
 
+  /**
+   * Only this deployment's own media origins may resolve inside the private
+   * network: the CDN, and on self-hosted the files service that serves local
+   * storage. Cloud never trusts the files service origin, whose unauthenticated
+   * download routes would hand out any tenant's object.
+   */
+  private remoteDownloadPolicy(remoteUrl: URL): DestinationGuardOptions {
+    const configuredUrls = [
+      this.configService.get('GENFEEDAI_CDN_URL'),
+      isSelfHostedDeployment()
+        ? this.configService.get('GENFEEDAI_MICROSERVICES_FILES_URL')
+        : undefined,
+    ];
+    const trustedOrigins = configuredUrls.flatMap((value) => {
+      if (typeof value !== 'string' || !value) return [];
+      try {
+        return [new URL(value).origin];
+      } catch {
+        return [];
+      }
+    });
+    return trustedOrigins.includes(remoteUrl.origin)
+      ? { allowedOrigins: [remoteUrl.origin], allowPrivateNetwork: true }
+      : {};
+  }
+
   private async spoolRemoteUpload(
-    remoteUrl: string,
+    remoteUrl: URL,
     key: string,
     url: string,
   ): Promise<{ contentType: string; tmpPath: string }> {
     this.loggerService.log(`${url} downloading remote file`, {
       key,
-      url: remoteUrl,
+      url: remoteUrl.href,
     });
 
+    const abort = new AbortController();
+    const idleTimer = setTimeout(
+      () => abort.abort(new Error('Remote download timed out')),
+      REMOTE_DOWNLOAD_IDLE_TIMEOUT_MS,
+    );
     try {
       const downloadStartTime = Date.now();
-      const response = await firstValueFrom(
-        this.httpService.get<Readable>(remoteUrl, {
+      const response = await safeFetch(
+        remoteUrl,
+        {
           // The URL may point back at the API over loopback. Declare the end
           // client unknown so the API never grants admin power from this
           // server's address.
           headers: {
             [UNATTRIBUTED_FORWARDED_HEADER]: UNATTRIBUTED_FORWARDED_VALUE,
           },
-          maxBodyLength: 200 * 1024 * 1024,
-          maxContentLength: 200 * 1024 * 1024,
-          maxRedirects: 0,
-          responseType: 'stream',
-          timeout: 60000,
-        }),
+          redirect: 'error',
+          signal: abort.signal,
+        },
+        this.remoteDownloadPolicy(remoteUrl),
       );
-      const rawContentType = response.headers['content-type'];
+      if (!response.ok || !response.body) {
+        await response.body?.cancel();
+        throw new Error(`Request failed with status code ${response.status}`);
+      }
+      const body = Readable.fromWeb(
+        response.body as NodeWebReadableStream<Uint8Array>,
+      );
+      if (
+        Number(response.headers.get('content-length')) >
+        REMOTE_DOWNLOAD_MAX_BYTES
+      ) {
+        body.destroy();
+        throw createPayloadTooLarge();
+      }
       const contentType = this.resolveContentType(
-        typeof rawContentType === 'string' ? rawContentType : undefined,
-        remoteUrl,
+        response.headers.get('content-type') ?? undefined,
+        remoteUrl.href,
       );
       const extension = this.getExtensionFromContentType(contentType);
       const tmpPath = resolveContainedPath(
@@ -238,45 +292,64 @@ export class UploadService {
         fs.mkdirSync(tmpDir, { recursive: true });
       }
 
-      await pipeline(
-        response.data,
-        fs.createWriteStream(
-          /* lgtm[js/path-injection] contained via resolveContainedPath */
-          tmpPath,
-        ),
-      );
+      let sizeBytes = 0;
+      const byteCap = new Transform({
+        transform(chunk: Buffer, _encoding, callback) {
+          idleTimer.refresh();
+          sizeBytes += chunk.byteLength;
+          callback(
+            sizeBytes > REMOTE_DOWNLOAD_MAX_BYTES
+              ? createPayloadTooLarge()
+              : null,
+            chunk,
+          );
+        },
+      });
+      try {
+        await pipeline(
+          body,
+          byteCap,
+          fs.createWriteStream(
+            /* lgtm[js/path-injection] contained via resolveContainedPath */
+            tmpPath,
+          ),
+          { signal: abort.signal },
+        );
+      } catch (error: unknown) {
+        if (fs.existsSync(tmpPath)) {
+          fs.unlinkSync(
+            /* lgtm[js/path-injection] contained via resolveContainedPath */
+            tmpPath,
+          );
+        }
+        throw error;
+      }
 
       this.loggerService.log(`${url} remote download completed`, {
         contentType,
         downloadDuration: `${Date.now() - downloadStartTime}ms`,
         key,
         path: tmpPath,
-        url: remoteUrl,
+        url: remoteUrl.href,
       });
 
       return { contentType, tmpPath };
     } catch (error: unknown) {
-      const parsedError = error as {
-        code?: string;
-        message?: string;
-        response?: { status?: number };
-      };
       this.loggerService.error(
         'Failed to download file directly from URL',
-        parsedError,
+        error,
       );
 
-      if (parsedError?.code === 'ERR_FR_MAX_BODY_LENGTH_EXCEEDED') {
-        throw new HttpException(
-          'File size exceeds 200MB limit',
-          HttpStatus.PAYLOAD_TOO_LARGE,
-        );
+      if (error instanceof HttpException) {
+        throw error;
       }
 
       throw new HttpException(
-        `Failed to download file from URL: ${parsedError?.message || 'Unknown error'}`,
+        `Failed to download file from URL: ${(error as Error)?.message || 'Unknown error'}`,
         HttpStatus.BAD_REQUEST,
       );
+    } finally {
+      clearTimeout(idleTimer);
     }
   }
 
@@ -285,8 +358,8 @@ export class UploadService {
     key: string,
     url: string,
   ): Promise<PreparedUpload> {
-    this.assertRemoteUrl(source.url);
-    const spooled = await this.spoolRemoteUpload(source.url, key, url);
+    const remoteUrl = this.parseRemoteUrl(source.url);
+    const spooled = await this.spoolRemoteUpload(remoteUrl, key, url);
     try {
       const prepared = await this.prepareFileUpload(
         { path: spooled.tmpPath, type: 'file' },
