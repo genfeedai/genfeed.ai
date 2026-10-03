@@ -15,6 +15,7 @@ const headersMock = vi.fn(async () => new Headers());
 
 vi.mock('@genfeedai/auth-client/server', () => ({
   getBetterAuthServerToken: getBetterAuthServerTokenMock,
+  isBetterAuthEnabled: () => true,
 }));
 
 vi.mock('next/headers', () => ({

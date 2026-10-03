@@ -4,9 +4,21 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resolveServerSuperAdmin } from './admin-ip-access.server';
 
 const headersMock = vi.hoisted(() => ({ value: new Headers() }));
+const deploymentMock = vi.hoisted(() => ({
+  isBetterAuthEnabled: true,
+  isSelfHosted: false,
+}));
 
 vi.mock('next/headers', () => ({
   headers: async () => headersMock.value,
+}));
+
+vi.mock('@genfeedai/auth-client/server', () => ({
+  isBetterAuthEnabled: () => deploymentMock.isBetterAuthEnabled,
+}));
+
+vi.mock('@genfeedai/config/deployment', () => ({
+  isSelfHostedDeployment: () => deploymentMock.isSelfHosted,
 }));
 
 const access = { isSuperAdmin: false } as AccessBootstrapState;
@@ -16,6 +28,8 @@ describe('resolveServerSuperAdmin', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     headersMock.value = new Headers();
+    deploymentMock.isBetterAuthEnabled = true;
+    deploymentMock.isSelfHosted = false;
   });
 
   it('grants a super-admin role from an allowlisted visitor IP even when the API saw the server IP', async () => {
@@ -66,5 +80,41 @@ describe('resolveServerSuperAdmin', () => {
     await expect(
       resolveServerSuperAdmin(access, { platformRole: 'USER' } as never),
     ).resolves.toBe(false);
+  });
+
+  describe('LOCAL mode (self-hosted, Better Auth off)', () => {
+    const localUser = { platformRole: 'USER' } as never;
+
+    it('grants the local admin from an allowlisted visitor IP although the API withheld it', async () => {
+      deploymentMock.isSelfHosted = true;
+      deploymentMock.isBetterAuthEnabled = false;
+      vi.stubEnv('ADMIN_ALLOWED_IPS', '192.168.1.20');
+      headersMock.value = new Headers({ 'x-forwarded-for': '192.168.1.20' });
+
+      await expect(resolveServerSuperAdmin(access, localUser)).resolves.toBe(
+        true,
+      );
+    });
+
+    it('denies the local admin from any other visitor IP', async () => {
+      deploymentMock.isSelfHosted = true;
+      deploymentMock.isBetterAuthEnabled = false;
+      vi.stubEnv('ADMIN_ALLOWED_IPS', '127.0.0.1');
+      headersMock.value = new Headers({ 'x-forwarded-for': '198.51.100.9' });
+
+      await expect(resolveServerSuperAdmin(access, localUser)).resolves.toBe(
+        false,
+      );
+    });
+
+    it('keeps requiring the role when self-host runs Better Auth', async () => {
+      deploymentMock.isSelfHosted = true;
+      vi.stubEnv('ADMIN_ALLOWED_IPS', '192.168.1.20');
+      headersMock.value = new Headers({ 'x-forwarded-for': '192.168.1.20' });
+
+      await expect(resolveServerSuperAdmin(access, localUser)).resolves.toBe(
+        false,
+      );
+    });
   });
 });

@@ -1,4 +1,8 @@
-import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
+import {
+  ORGANIZATION_CONTEXT_HEADER,
+  UNATTRIBUTED_FORWARDED_HEADER,
+  UNATTRIBUTED_FORWARDED_VALUE,
+} from '@genfeedai/contracts/constants';
 import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import {
@@ -309,6 +313,33 @@ describe('HTTPBaseService (InterceptorService)', () => {
       const result = service.handleRequest(config);
 
       expect(result.headers['x-genfeed-organization-id']).toBeUndefined();
+    });
+
+    it('declares the visitor unknown on server-side requests', () => {
+      const config: InternalAxiosRequestConfig = {
+        headers: {},
+      } as InternalAxiosRequestConfig;
+
+      const result = service.handleRequest(config);
+
+      expect(result.headers[UNATTRIBUTED_FORWARDED_HEADER]).toBe(
+        UNATTRIBUTED_FORWARDED_VALUE,
+      );
+    });
+
+    it('leaves browser requests unmarked', () => {
+      vi.stubGlobal('window', {});
+      try {
+        const config: InternalAxiosRequestConfig = {
+          headers: {},
+        } as InternalAxiosRequestConfig;
+
+        const result = service.handleRequest(config);
+
+        expect(result.headers[UNATTRIBUTED_FORWARDED_HEADER]).toBeUndefined();
+      } finally {
+        vi.unstubAllGlobals();
+      }
     });
 
     it('creates abort controller if not exists', () => {
