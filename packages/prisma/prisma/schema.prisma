@@ -2912,20 +2912,21 @@ model PostPublishFinalization {
   @@map("post_publish_finalizations")
 }
 
-/// Durable provider publish attempt for one post occurrence. Written before the
-/// provider call and resolved after it, so a failed state transition replays an
-/// accepted result and an unresolved attempt is never published twice.
+/// Durable provider publish attempt for one post occurrence. Reserved before
+/// the provider call and resolved after it, so a failed state transition
+/// replays an accepted result and concurrent deliveries never both publish.
 model PostProviderPublishReceipt {
   id                  String       @id @default(cuid())
   organizationId      String
   organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   postId              String
   post                Post         @relation(fields: [postId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  workflowExecutionId String
   /// Digest of the post id, active approval, approved version pin, schedule and content.
   occurrenceKey       String
-  /// attempting | accepted | released
+  /// attempting | accepted | uncertain | released
   status              String
+  workflowExecutionId String
+  attemptStartedAt    DateTime
   externalId          String?
   result              Json?
   persistedAt         DateTime?
@@ -2933,8 +2934,7 @@ model PostProviderPublishReceipt {
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
 
-  @@unique([organizationId, postId, workflowExecutionId], map: "post_provider_publish_receipts_attempt_key")
-  @@index([organizationId, postId, occurrenceKey, isDeleted], map: "post_provider_publish_receipts_occurrence_idx")
+  @@unique([organizationId, postId, occurrenceKey], map: "post_provider_publish_receipts_occurrence_key")
   @@map("post_provider_publish_receipts")
 }
 

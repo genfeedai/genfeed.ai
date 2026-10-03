@@ -5904,6 +5904,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
   },
   PostProviderPublishReceipt: {
     allFields: [
+      'attemptStartedAt',
       'createdAt',
       'externalId',
       'id',
