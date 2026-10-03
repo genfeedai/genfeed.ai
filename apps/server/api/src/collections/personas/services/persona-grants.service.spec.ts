@@ -172,6 +172,18 @@ describe('PersonaGrantsService (#6037)', () => {
       ).rejects.toBeInstanceOf(ValidationException);
     });
 
+    it('only grants a character of the acting organization, never one it merely received', async () => {
+      const { prisma, service } = setup();
+      prisma.persona.findFirst.mockResolvedValue(null);
+
+      await expect(service.grant(base)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(prisma.persona.findFirst).toHaveBeenCalledWith({
+        where: { id: 'persona-1', isDeleted: false, organizationId: OWNER_ORG },
+      });
+    });
+
     it('is not found for a character the active brand cannot use', async () => {
       const { prisma, service } = setup();
       prisma.persona.findFirst.mockResolvedValue({
