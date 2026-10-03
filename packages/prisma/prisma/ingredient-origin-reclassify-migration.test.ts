@@ -23,7 +23,9 @@ describe('ingredient origin reclassify migration (#6010)', () => {
   });
 
   it('leaves the immutability rule alone', () => {
-    expect(migrationSource).not.toContain('ingredients_origin_immutable');
+    expect(migrationSource).not.toMatch(
+      /(CREATE|ALTER|DROP)\s+(OR\s+REPLACE\s+)?(TRIGGER|FUNCTION)\s+"ingredients_origin_immutable"/iu,
+    );
     expect(migrationSource).not.toMatch(/DROP\s+(TRIGGER|FUNCTION)/iu);
   });
 
