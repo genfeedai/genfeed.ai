@@ -4,13 +4,22 @@ import type { MouseEvent } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Use vi.hoisted so mock fns are available before vi.mock factories run
-const { mockDownloadIngredient, mockNotificationsError } = vi.hoisted(() => ({
-  mockDownloadIngredient: vi.fn(),
+const { mockDownloadOriginal, mockNotificationsError } = vi.hoisted(() => ({
+  mockDownloadOriginal: vi.fn(),
   mockNotificationsError: vi.fn(),
 }));
 
-vi.mock('@genfeedai/helpers/media/download/download.helper', () => ({
-  downloadIngredient: mockDownloadIngredient,
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () =>
+    vi.fn(async () => ({
+      downloadOriginal: mockDownloadOriginal,
+    })),
+}));
+
+vi.mock('@genfeedai/services/content/ingredients.service', () => ({
+  IngredientsService: {
+    getInstance: vi.fn(),
+  },
 }));
 
 vi.mock('@genfeedai/services/core/logger.service', () => ({
@@ -29,7 +38,7 @@ vi.mock('@genfeedai/services/core/notifications.service', () => ({
 }));
 
 import {
-  createDownloadHandler,
+  useIngredientDownloadHandler,
   useMasonryHover,
 } from '@ui/masonry/shared/useMasonryHover';
 
@@ -251,40 +260,40 @@ describe('useMasonryHover', () => {
   });
 });
 
-describe('createDownloadHandler', () => {
+describe('useIngredientDownloadHandler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('should return a download handler function', () => {
-    const handler = createDownloadHandler();
+    const { result } = renderHook(() => useIngredientDownloadHandler());
 
-    expect(typeof handler).toBe('function');
+    expect(typeof result.current).toBe('function');
   });
 
-  it('should call downloadIngredient with ingredient', async () => {
-    const handler = createDownloadHandler();
+  it('should download the original through the ingredients service', async () => {
+    const { result } = renderHook(() => useIngredientDownloadHandler());
     const mockIngredient: IIngredient = {
       id: 'ing-123',
       ingredientUrl: 'https://example.com/image.png',
     } as IIngredient;
 
-    mockDownloadIngredient.mockResolvedValue(undefined);
+    mockDownloadOriginal.mockResolvedValue(undefined);
 
-    await handler(mockIngredient);
+    await result.current(mockIngredient);
 
-    expect(mockDownloadIngredient).toHaveBeenCalledWith(mockIngredient);
+    expect(mockDownloadOriginal).toHaveBeenCalledWith(mockIngredient);
   });
 
   it('should show error notification on download failure', async () => {
-    const handler = createDownloadHandler();
+    const { result } = renderHook(() => useIngredientDownloadHandler());
     const mockIngredient: IIngredient = {
       id: 'ing-123',
     } as IIngredient;
 
-    mockDownloadIngredient.mockRejectedValue(new Error('Download failed'));
+    mockDownloadOriginal.mockRejectedValue(new Error('Download failed'));
 
-    await handler(mockIngredient);
+    await result.current(mockIngredient);
 
     expect(mockNotificationsError).toHaveBeenCalledWith(
       'Failed to download file',
