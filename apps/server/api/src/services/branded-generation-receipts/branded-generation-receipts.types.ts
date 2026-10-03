@@ -99,3 +99,8 @@ export interface BrandedGenerationAcquiredMaterialV1 {
   receipt: BrandedGenerationReceiptV1;
   material: BrandArtifactValidationMaterialV1;
 }
+
+export interface BrandedGenerationReceiptCursorV1 {
+  createdAt: string;
+  id: string;
+}
