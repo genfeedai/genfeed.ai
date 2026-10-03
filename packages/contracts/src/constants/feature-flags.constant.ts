@@ -1,6 +1,6 @@
 /**
  * Product modules a superadmin can switch off for the whole platform from
- * Admin → Flags → Modules (#5468). Off hides the module's app-rail entry and
+ * Admin → Flags (#5468). Off hides the module's app-rail entry and
  * routes and answers its API with 404. Every module defaults on.
  */
 export const PLATFORM_MODULE_FLAG_KEYS = [
@@ -15,7 +15,20 @@ export const PLATFORM_MODULE_FLAG_KEYS = [
   'automation',
 ] as const;
 
-/** Product features inside a module, switched from Admin → Flags → Features. */
+/**
+ * Studio surfaces, each switchable on its own under the `studio` module. Off
+ * hides the Studio nav entry and its routes; surfaces with their own API also
+ * answer 404. Generate is the Studio home, so it follows the module itself.
+ */
+export const PLATFORM_STUDIO_FLAG_KEYS = [
+  'studio_motion',
+  'studio_storyboard',
+  'studio_clips',
+  'studio_batch',
+  'studio_editor',
+] as const;
+
+/** Product features, switched from Admin → Flags. */
 export const PLATFORM_FEATURE_FLAG_KEYS = [
   'library_canvas',
   'low_credits_banner',
@@ -24,17 +37,50 @@ export const PLATFORM_FEATURE_FLAG_KEYS = [
 ] as const;
 
 export type PlatformModuleFlagKey = (typeof PLATFORM_MODULE_FLAG_KEYS)[number];
+export type PlatformStudioFlagKey = (typeof PLATFORM_STUDIO_FLAG_KEYS)[number];
 export type PlatformFeatureFlagKey =
   (typeof PLATFORM_FEATURE_FLAG_KEYS)[number];
-export type PlatformFlagKey = PlatformModuleFlagKey | PlatformFeatureFlagKey;
+export type PlatformFlagKey =
+  | PlatformModuleFlagKey
+  | PlatformStudioFlagKey
+  | PlatformFeatureFlagKey;
 
 /** Same shape as `IPlatformFlags`, declared here so contracts stay acyclic. */
 type PlatformFlagValues = Readonly<Record<PlatformFlagKey, boolean>>;
 
 export const PLATFORM_FLAG_KEYS: readonly PlatformFlagKey[] = [
   ...PLATFORM_MODULE_FLAG_KEYS,
+  ...PLATFORM_STUDIO_FLAG_KEYS,
   ...PLATFORM_FEATURE_FLAG_KEYS,
 ];
+
+/**
+ * The flag each nested flag lives under. A flag is only in effect while its
+ * whole parent chain is on: switching Studio off turns off every Studio
+ * surface without touching their own stored switches. Unlisted flags are
+ * top level.
+ */
+export const PLATFORM_FLAG_PARENTS: Readonly<
+  Partial<Record<PlatformFlagKey, PlatformFlagKey>>
+> = {
+  batch_ideas: 'studio_batch',
+  library_canvas: 'library',
+  reply_bot: 'messages',
+  studio_batch: 'studio',
+  studio_clips: 'studio',
+  studio_editor: 'studio',
+  studio_motion: 'studio',
+  studio_storyboard: 'studio',
+};
+
+/** Direct children of `parent`, in `PLATFORM_FLAG_KEYS` order. */
+export function getPlatformFlagChildren(
+  parent: PlatformFlagKey,
+): PlatformFlagKey[] {
+  return PLATFORM_FLAG_KEYS.filter(
+    (key) => PLATFORM_FLAG_PARENTS[key] === parent,
+  );
+}
 
 /** Everything on: what a deployment gets until an operator switches a flag off. */
 export const DEFAULT_PLATFORM_FLAGS: PlatformFlagValues = Object.freeze(
@@ -63,6 +109,24 @@ export function parsePlatformFlags(value: unknown): PlatformFlagValues {
 
   return Object.fromEntries(
     PLATFORM_FLAG_KEYS.map((key) => [key, stored[key] !== false]),
+  ) as Record<PlatformFlagKey, boolean>;
+}
+
+/**
+ * The flags in effect: a flag is on only while it and every flag above it in
+ * `PLATFORM_FLAG_PARENTS` are on. Stored switches stay as the operator left
+ * them; this is what the API guard and the app shells read.
+ */
+export function resolvePlatformFlags(
+  flags: PlatformFlagValues,
+): PlatformFlagValues {
+  const isInEffect = (key: PlatformFlagKey): boolean => {
+    const parent = PLATFORM_FLAG_PARENTS[key];
+    return flags[key] && (parent === undefined || isInEffect(parent));
+  };
+
+  return Object.fromEntries(
+    PLATFORM_FLAG_KEYS.map((key) => [key, isInEffect(key)]),
   ) as Record<PlatformFlagKey, boolean>;
 }
 

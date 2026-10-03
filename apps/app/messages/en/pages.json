@@ -4141,75 +4141,97 @@
     }
   },
   "adminFlags": {
-    "modules": {
-      "title": "Modules",
-      "description": "Switch whole product modules on or off for every organization. Off hides the module from the app rail and its pages, and its API answers 404. Superadmins keep access for inspection.",
-      "flags": {
-        "agent": {
-          "label": "Agent",
-          "description": "The full-page agent conversation, its threads, runs and memories."
-        },
-        "studio": {
-          "label": "Studio",
-          "description": "Generation, storyboards, clips, batches and the timeline editor."
-        },
-        "library": {
-          "label": "Library",
-          "description": "The Library module in the app rail. Asset storage stays available to every other module."
-        },
-        "publishing": {
-          "label": "Publishing",
-          "description": "Posts, the review queue, schedules and publishing setup."
-        },
-        "messages": {
-          "label": "Messages",
-          "description": "The social inbox, reply campaigns and outreach."
-        },
-        "reply_bot": {
-          "label": "Replies",
-          "description": "Reply-bot configurations and their activity log inside Messages."
-        },
-        "discovery": {
-          "label": "Discovery",
-          "description": "Trends, ad research, saved ads and watchlists."
-        },
-        "analytics": {
-          "label": "Analytics",
-          "description": "Account and content analytics, insights, outliers and performance."
-        },
-        "automation": {
-          "label": "Automation",
-          "description": "Workflows, their runs and templates, and social content sources."
-        }
+    "title": "Flags",
+    "description": "Switch product modules, their surfaces and platform features on or off for every organization. Off hides it from the nav and its pages, and its API answers 404. A nested flag only applies while its parent is on. Superadmins keep access for inspection.",
+    "sections": {
+      "modules": {
+        "title": "Modules"
+      },
+      "platform": {
+        "title": "Platform"
       }
     },
-    "features": {
-      "title": "Features",
-      "description": "Switch individual product features on or off for every organization.",
-      "flags": {
-        "library_canvas": {
-          "label": "Library canvas",
-          "description": "The canvas view in the Library, alongside grid and list."
-        },
-        "low_credits_banner": {
-          "label": "Low-credits banner",
-          "description": "Warn users in the app shell when their credit balance runs low."
-        },
-        "desktop_local_workspace": {
-          "label": "Desktop local workspace",
-          "description": "Offer the offline local workspace on the desktop app’s sign-in and local pages."
-        },
-        "batch_ideas": {
-          "label": "Batch ideas",
-          "description": "Idea batches: turn brand data into a batch of content ideas in Studio batches."
-        }
+    "flags": {
+      "agent": {
+        "label": "Agent",
+        "description": "The full-page agent conversation, its threads, runs and memories."
+      },
+      "studio": {
+        "label": "Studio",
+        "description": "Generate and every Studio surface below. Off hides the whole module."
+      },
+      "studio_motion": {
+        "label": "Motion",
+        "description": "Animated visuals authored as React code from a prompt and rendered in the isolated visual-code renderer. Needs that renderer deployed."
+      },
+      "studio_storyboard": {
+        "label": "Storyboard",
+        "description": "Multi-scene storyboard runs with characters and per-scene generation."
+      },
+      "studio_clips": {
+        "label": "Clips",
+        "description": "Long-form video ingestion, highlight detection and short clip generation."
+      },
+      "studio_batch": {
+        "label": "Batch",
+        "description": "Batch projects that produce many review drafts at once."
+      },
+      "batch_ideas": {
+        "label": "Batch ideas",
+        "description": "Idea batches: turn brand data into a batch of content ideas."
+      },
+      "studio_editor": {
+        "label": "Editor",
+        "description": "The Remotion timeline editor other Studio surfaces hand finished video to."
+      },
+      "library": {
+        "label": "Library",
+        "description": "The Library module in the app rail. Asset storage stays available to every other module."
+      },
+      "library_canvas": {
+        "label": "Library canvas",
+        "description": "The canvas view in the Library, alongside grid and list."
+      },
+      "publishing": {
+        "label": "Publishing",
+        "description": "Posts, the review queue, schedules and publishing setup."
+      },
+      "messages": {
+        "label": "Messages",
+        "description": "The social inbox, reply campaigns and outreach."
+      },
+      "reply_bot": {
+        "label": "Replies",
+        "description": "Reply-bot configurations and their activity log inside Messages."
+      },
+      "discovery": {
+        "label": "Discovery",
+        "description": "Trends, ad research, saved ads and watchlists."
+      },
+      "analytics": {
+        "label": "Analytics",
+        "description": "Account and content analytics, insights, outliers and performance."
+      },
+      "automation": {
+        "label": "Automation",
+        "description": "Workflows, their runs and templates, and social content sources."
+      },
+      "low_credits_banner": {
+        "label": "Low-credits banner",
+        "description": "Warn users in the app shell when their credit balance runs low."
+      },
+      "desktop_local_workspace": {
+        "label": "Desktop local workspace",
+        "description": "Offer the offline local workspace on the desktop app’s sign-in and local pages."
       }
     },
+    "inactiveUnderParent": "Off while {parent} is off.",
     "status": {
       "on": "On",
       "off": "Off"
     },
-    "loadError": "Failed to load flags",
+    "loadErrorTitle": "Flags could not be loaded",
+    "loadErrorFallback": "The platform settings API did not answer. Check your administrator access and allowed IP address, then reload.",
     "saveError": "Failed to save the flag",
     "saved": "{label} switched {state}"
   },
