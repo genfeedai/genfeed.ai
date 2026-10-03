@@ -18,7 +18,11 @@ export class BatchInterpolationReferenceService {
   async resolvePair(
     pair: InterpolationPairDto,
     organizationId: string,
-  ): Promise<{ endFrameUrl?: string; startFrameUrl?: string }> {
+  ): Promise<{
+    endFrameUrl?: string;
+    sourceIngredientIds: string[];
+    startFrameUrl?: string;
+  }> {
     const [startFrameUrls, endFrameUrls] = await Promise.all([
       buildReferenceImageUrls({
         assetsService: this.assetsService,
@@ -37,8 +41,15 @@ export class BatchInterpolationReferenceService {
         referenceIds: [pair.endImageId],
       }),
     ]);
+    // A frame may be an Asset (logo, banner, reference), which is not an
+    // Ingredient: only Ingredient ids can be connected as `sources`.
+    const ingredients = await this.ingredientsService.findByIds(
+      [...new Set([pair.startImageId, pair.endImageId])],
+      organizationId,
+    );
     return {
       endFrameUrl: endFrameUrls[0],
+      sourceIngredientIds: ingredients.map((ingredient) => ingredient.id),
       startFrameUrl: startFrameUrls[0],
     };
   }

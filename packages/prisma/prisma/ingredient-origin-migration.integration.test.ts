@@ -8,23 +8,29 @@ import { describe, expect, it } from 'vitest';
 const databaseUrl = process.env.INGREDIENT_ORIGIN_TEST_DATABASE_URL;
 const migration = readFileSync(
   new URL(
-    './migrations/20261003170000_ingredient_origin/migration.sql',
+    './migrations/20261003180000_ingredient_origin/migration.sql',
     import.meta.url,
   ),
   'utf8',
 );
 
-/** One legacy row per classification rule, plus the edges between them. */
-const LEGACY_ROWS: ReadonlyArray<{
+type Origin = 'UPLOADED' | 'GENERATED' | 'IMPORTED' | 'UNKNOWN';
+
+interface LegacyRow {
   bookmarkId?: string;
-  expected: 'UPLOADED' | 'GENERATED' | 'IMPORTED' | 'UNKNOWN';
+  expected: Origin;
   generationPrompt?: string;
   generationSource?: string;
   id: string;
   isDeleted?: boolean;
   modelUsed?: string;
+  providerData?: Record<string, unknown>;
+  sourceActionId?: string;
   status: string;
-}> = [
+}
+
+/** One legacy row per classification rule, plus the edges between them. */
+const LEGACY_ROWS: readonly LegacyRow[] = [
   {
     bookmarkId: 'bookmark-1',
     expected: 'IMPORTED',
@@ -37,6 +43,31 @@ const LEGACY_ROWS: ReadonlyArray<{
     generationPrompt: 'receipt present',
     id: 'imported-with-receipt',
     modelUsed: 'flux',
+    status: 'VALIDATED',
+  },
+  {
+    expected: 'IMPORTED',
+    id: 'imported-source-media',
+    sourceActionId: 'imported-source-media:v1:abc',
+    status: 'PROCESSING',
+  },
+  {
+    expected: 'IMPORTED',
+    id: 'imported-source-media-capture',
+    providerData: { sourceCaptureIngest: { revision: 1 } },
+    status: 'VALIDATED',
+  },
+  {
+    expected: 'IMPORTED',
+    id: 'imported-source-record',
+    providerData: { importedSource: { provenance: 'imported' } },
+    status: 'DRAFT',
+  },
+  {
+    expected: 'IMPORTED',
+    generationPrompt: 'receipt present',
+    id: 'imported-agent-source',
+    sourceActionId: 'agent-source:digest',
     status: 'VALIDATED',
   },
   {
@@ -76,17 +107,31 @@ const LEGACY_ROWS: ReadonlyArray<{
   },
   { expected: 'UNKNOWN', id: 'unknown-validated', status: 'VALIDATED' },
   { expected: 'UNKNOWN', id: 'unknown-draft', status: 'DRAFT' },
+  {
+    expected: 'UNKNOWN',
+    id: 'unrelated-provider-data',
+    providerData: { somethingElse: true },
+    sourceActionId: 'visual-code.other',
+    status: 'DRAFT',
+  },
 ];
 
 describe.skipIf(!databaseUrl)(
-  'ingredient origin backfill on PostgreSQL',
+  'ingredient origin migration on PostgreSQL',
   () => {
-    it('classifies every legacy row by the product rules, reports counts and makes origin immutable', async () => {
+    it('backfills legacy rows, classifies rolling-deploy inserts and locks a known origin', async () => {
       const pool = new Pool({ connectionString: databaseUrl, max: 1 });
       const client = await pool.connect();
       const schema = `ingredient_origin_${process.pid}_${Date.now()}`;
       const notices: string[] = [];
       client.on('notice', (notice) => notices.push(notice.message));
+      const origin = async (id: string) =>
+        (
+          await client.query<{ origin: string }>(
+            `SELECT "origin"::text AS "origin" FROM "ingredients" WHERE "id"=$1`,
+            [id],
+          )
+        ).rows[0]?.origin;
 
       try {
         await client.query(`CREATE SCHEMA "${schema}"`);
@@ -103,12 +148,14 @@ describe.skipIf(!databaseUrl)(
         "bookmarkId" TEXT,
         "generationPrompt" TEXT,
         "modelUsed" TEXT,
-        "generationSource" TEXT
+        "generationSource" TEXT,
+        "sourceActionId" TEXT,
+        "providerData" JSONB
       )`);
 
         for (const row of LEGACY_ROWS) {
           await client.query(
-            `INSERT INTO "ingredients" ("id","isDeleted","status","bookmarkId","generationPrompt","modelUsed","generationSource") VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+            `INSERT INTO "ingredients" ("id","isDeleted","status","bookmarkId","generationPrompt","modelUsed","generationSource","sourceActionId","providerData") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
             [
               row.id,
               row.isDeleted ?? false,
@@ -117,6 +164,8 @@ describe.skipIf(!databaseUrl)(
               row.generationPrompt ?? null,
               row.modelUsed ?? null,
               row.generationSource ?? null,
+              row.sourceActionId ?? null,
+              row.providerData ? JSON.stringify(row.providerData) : null,
             ],
           );
         }
@@ -130,27 +179,48 @@ describe.skipIf(!databaseUrl)(
         for (const row of LEGACY_ROWS) {
           expect(byId.get(row.id), row.id).toBe(row.expected);
         }
-        // Every row is classified: none is left without an origin.
         expect(rows).toHaveLength(LEGACY_ROWS.length);
-
         expect(notices.find((message) => message.includes('#6010'))).toBe(
-          'ingredient origin backfill (#6010): imported=2, generated=4, uploaded=2, unknown=2',
+          'ingredient origin backfill (#6010): imported=6, generated=4, uploaded=2, unknown=3',
         );
 
-        // A row created after the migration that nobody classified is visibly
-        // Unknown, not silently mislabelled.
+        // Rolling deploy: a task still on the old code inserts with the default
+        // after the backfill. The insert trigger classifies it by the same rules
+        // instead of leaving a stale Unknown that would then be locked.
         await client.query(
-          `INSERT INTO "ingredients" ("id") VALUES ('new-row')`,
+          `INSERT INTO "ingredients" ("id") VALUES ('new-bare')`,
         );
-        expect(
-          (
-            await client.query(
-              `SELECT "origin"::text AS "origin" FROM "ingredients" WHERE "id"='new-row'`,
-            )
-          ).rows[0],
-        ).toEqual({ origin: 'UNKNOWN' });
+        await client.query(
+          `INSERT INTO "ingredients" ("id","generationPrompt","status") VALUES ('new-generated','a prompt','PROCESSING')`,
+        );
+        await client.query(
+          `INSERT INTO "ingredients" ("id","status") VALUES ('new-uploaded','UPLOADED')`,
+        );
+        await client.query(
+          `INSERT INTO "ingredients" ("id","sourceActionId","status") VALUES ('new-import','imported-source-media:v1:z','PROCESSING')`,
+        );
+        await client.query(
+          `INSERT INTO "ingredients" ("id","generationPrompt","origin") VALUES ('new-explicit','a prompt','IMPORTED')`,
+        );
+        expect(await origin('new-bare')).toBe('UNKNOWN');
+        expect(await origin('new-generated')).toBe('GENERATED');
+        expect(await origin('new-uploaded')).toBe('UPLOADED');
+        expect(await origin('new-import')).toBe('IMPORTED');
+        // An origin the writer names is never overridden.
+        expect(await origin('new-explicit')).toBe('IMPORTED');
 
-        // Immutable: no UPDATE may change it, whoever writes it.
+        // Exactly one transition is allowed: out of UNKNOWN.
+        await client.query(
+          `UPDATE "ingredients" SET "origin" = 'GENERATED' WHERE "id" = 'new-bare'`,
+        );
+        expect(await origin('new-bare')).toBe('GENERATED');
+        await expect(
+          client.query(
+            `UPDATE "ingredients" SET "origin" = 'IMPORTED' WHERE "id" = 'new-bare'`,
+          ),
+        ).rejects.toMatchObject({ code: '23514' });
+
+        // A known origin never changes, whoever writes it.
         await expect(
           client.query(
             `UPDATE "ingredients" SET "origin" = 'GENERATED' WHERE "id" = 'uploaded'`,
@@ -158,7 +228,7 @@ describe.skipIf(!databaseUrl)(
         ).rejects.toMatchObject({ code: '23514' });
         await expect(
           client.query(
-            `UPDATE "ingredients" SET "origin" = 'IMPORTED' WHERE "id" = 'unknown-draft'`,
+            `UPDATE "ingredients" SET "origin" = 'UNKNOWN' WHERE "id" = 'uploaded'`,
           ),
         ).rejects.toMatchObject({ code: '23514' });
 
@@ -169,13 +239,7 @@ describe.skipIf(!databaseUrl)(
         await client.query(
           `UPDATE "ingredients" SET "status" = 'VALIDATED' WHERE "id" = 'uploaded'`,
         );
-        expect(
-          (
-            await client.query(
-              `SELECT "origin"::text AS "origin", "status"::text AS "status" FROM "ingredients" WHERE "id"='uploaded'`,
-            )
-          ).rows[0],
-        ).toEqual({ origin: 'UPLOADED', status: 'VALIDATED' });
+        expect(await origin('uploaded')).toBe('UPLOADED');
 
         expect(
           (

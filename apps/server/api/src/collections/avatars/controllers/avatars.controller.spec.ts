@@ -4,7 +4,7 @@ import type { AvatarsService } from '@api/collections/avatars/services/avatars.s
 import type { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
 import type { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
 import type { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
-import { IngredientCategory } from '@genfeedai/contracts';
+import { IngredientCategory, IngredientOrigin } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Request } from 'express';
@@ -210,6 +210,30 @@ describe('AvatarsController', () => {
       );
       const [{ where }] = vi.mocked(mockAvatarsService.findAll).mock.calls[0];
       expect(where).not.toHaveProperty('type');
+      expect(where).not.toHaveProperty('origin');
+    });
+
+    it('filters avatars by origin and keeps the tenant scope', async () => {
+      const controller = buildController();
+      vi.mocked(mockAvatarsService.findAll).mockResolvedValue({
+        docs: [],
+      } as never);
+
+      await controller.findAll(makeRequest(), makeUser(), {
+        origins: [IngredientOrigin.UPLOADED],
+      } as never);
+
+      expect(mockAvatarsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            category: IngredientCategory.AVATAR,
+            organizationId: orgId,
+            origin: { in: [IngredientOrigin.UPLOADED] },
+            userId,
+          }),
+        }),
+        expect.anything(),
+      );
     });
   });
 });

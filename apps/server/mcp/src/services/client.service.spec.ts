@@ -678,6 +678,32 @@ describe('ClientService (MCP)', () => {
       expect(result[0].origin).toBe('GENERATED');
     });
 
+    it('lists music and avatars with the origin filter and returns their origin', async () => {
+      (mockAxiosInstance.get as Mock)
+        .mockResolvedValueOnce({
+          data: { data: [{ attributes: { origin: 'UPLOADED' }, id: 'm1' }] },
+        })
+        .mockResolvedValueOnce({
+          data: { data: [{ attributes: { origin: 'IMPORTED' }, id: 'a1' }] },
+        });
+
+      const music = await service.listMusic({
+        origin: IngredientOrigin.UPLOADED,
+      });
+      const avatars = await service.listAvatars({
+        origin: IngredientOrigin.IMPORTED,
+      });
+
+      expect(mockAxiosInstance.get).toHaveBeenNthCalledWith(1, '/musics', {
+        params: { 'page[limit]': 10, 'page[offset]': 0, origins: 'UPLOADED' },
+      });
+      expect(mockAxiosInstance.get).toHaveBeenNthCalledWith(2, '/avatars', {
+        params: { 'page[limit]': 10, 'page[offset]': 0, origins: 'IMPORTED' },
+      });
+      expect(music[0].origin).toBe('UPLOADED');
+      expect(avatars[0].origin).toBe('IMPORTED');
+    });
+
     it('reads the derived media url and stored prompt text', async () => {
       (mockAxiosInstance.get as Mock).mockResolvedValue({
         data: {

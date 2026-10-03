@@ -197,6 +197,52 @@ describe('ImagesController', () => {
     });
   });
 
+  describe('findAll (latest=true with origins)', () => {
+    it('keeps the origin filter in the latest aggregate', async () => {
+      const originFilter = { origin: { in: ['UPLOADED'] } };
+      vi.mocked(IngredientFilterUtil.buildOriginFilter).mockReturnValueOnce(
+        originFilter,
+      );
+
+      await controller.findAll(mockRequest, mockUser, {
+        isDeleted: false,
+        latest: true,
+        limit: 10,
+        origins: ['UPLOADED'],
+        page: 1,
+      } as unknown as ImagesQueryDto);
+
+      expect(IngredientFilterUtil.buildOriginFilter).toHaveBeenCalledWith([
+        'UPLOADED',
+      ]);
+      const aggregate = imagesService.findAll.mock.calls[0][0] as {
+        where: { AND: unknown[] };
+      };
+      expect(aggregate.where.AND).toContainEqual(originFilter);
+    });
+
+    it('does not share a latest-image cache entry between origins', () => {
+      const cacheConfig = Reflect.getMetadata(
+        'cache',
+        ImagesController.prototype.findAll,
+      ) as {
+        keyGenerator: (request: Record<string, unknown>) => string;
+      };
+      const buildKey = (origins?: string[]) =>
+        cacheConfig.keyGenerator({
+          query: { latest: 'true', limit: 10, origins },
+          user: {
+            brandId: 'brand-a',
+            id: mockUser.id,
+            organizationId: 'org-a',
+          },
+        });
+
+      expect(buildKey(['UPLOADED'])).not.toBe(buildKey(['GENERATED']));
+      expect(buildKey(['UPLOADED'])).not.toBe(buildKey());
+    });
+  });
+
   describe('findAll (standard list)', () => {
     it('partitions the latest-image cache by active organization and brand', () => {
       const cacheConfig = Reflect.getMetadata(

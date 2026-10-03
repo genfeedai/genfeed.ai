@@ -139,6 +139,7 @@ export class VideosController {
               trainingId: null,
               userId: user.userId ?? user.id,
             },
+            IngredientFilterUtil.buildOriginFilter(query.origins),
           ],
         },
         orderBy: { createdAt: -1 },

@@ -82,6 +82,12 @@ export const MCP_GENERATION_TOOLS: SourceTool[] = [
           description: 'Maximum number of avatars to return',
           type: 'number',
         },
+        origin: {
+          description:
+            'Only avatars with this permanent origin: UPLOADED (a member added the file), GENERATED (Genfeed produced it), IMPORTED (saved from an external post or page) or UNKNOWN (legacy)',
+          enum: ['UPLOADED', 'GENERATED', 'IMPORTED', 'UNKNOWN'],
+          type: 'string',
+        },
       },
       type: 'object',
     },
@@ -97,6 +103,12 @@ export const MCP_GENERATION_TOOLS: SourceTool[] = [
           default: 10,
           description: 'Maximum number of tracks to return',
           type: 'number',
+        },
+        origin: {
+          description:
+            'Only tracks with this permanent origin: UPLOADED (a member added the file), GENERATED (Genfeed produced it), IMPORTED (saved from an external post or page) or UNKNOWN (legacy)',
+          enum: ['UPLOADED', 'GENERATED', 'IMPORTED', 'UNKNOWN'],
+          type: 'string',
         },
       },
       type: 'object',

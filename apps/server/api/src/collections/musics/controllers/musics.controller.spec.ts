@@ -116,6 +116,28 @@ describe('MusicsController', () => {
       });
     });
 
+    it('filters every music branch by origin when asked', () => {
+      const query = controller.buildFindAllQuery(
+        createMockUser() as never,
+        { origins: ['UPLOADED', 'IMPORTED'] } as never,
+      );
+
+      // A sibling of the OR, so it narrows the user and default branches alike.
+      expect(query.where).toMatchObject({
+        origin: { in: ['UPLOADED', 'IMPORTED'] },
+      });
+      expect(query.where.OR).toHaveLength(2);
+    });
+
+    it('adds no origin predicate when none is asked for', () => {
+      const query = controller.buildFindAllQuery(
+        createMockUser() as never,
+        {} as never,
+      );
+
+      expect(query.where).not.toHaveProperty('origin');
+    });
+
     it('should include user and default music branches', () => {
       const user = createMockUser();
       const inputQuery = {};

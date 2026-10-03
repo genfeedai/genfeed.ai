@@ -12,6 +12,14 @@ describe('MusicQueryDto', () => {
       expect(dto).toBeInstanceOf(MusicQueryDto);
     });
 
+    it('normalizes repeated origins keys into upper-case labels', () => {
+      const dto = plainToInstance(MusicQueryDto, {
+        origins: ['uploaded', 'imported'],
+      });
+
+      expect(dto.origins).toEqual(['UPLOADED', 'IMPORTED']);
+    });
+
     it('normalizes repeated status query keys into an array', () => {
       const dto = plainToInstance(MusicQueryDto, {
         status: ['generated', 'processing'],

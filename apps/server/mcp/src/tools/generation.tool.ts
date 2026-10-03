@@ -90,6 +90,7 @@ export async function handleGenerationTool(
     case 'list_avatars': {
       const avatars = await client.listAvatars({
         limit: args?.limit as number | undefined,
+        origin: readOriginArg(args),
       });
       return {
         structuredContent: { data: avatars },
@@ -104,6 +105,7 @@ export async function handleGenerationTool(
     case 'list_music': {
       const musicTracks = await client.listMusic({
         limit: args?.limit as number | undefined,
+        origin: readOriginArg(args),
       });
       return {
         structuredContent: { data: musicTracks },

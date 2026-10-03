@@ -180,6 +180,10 @@ describe('BatchInterpolationController', () => {
   let promptsService: { create: ReturnType<typeof vi.fn> };
   let promptBuilderService: { buildPrompt: ReturnType<typeof vi.fn> };
   let replicateService: { generateTextToVideo: ReturnType<typeof vi.fn> };
+  let ingredientsService: {
+    findByIds: ReturnType<typeof vi.fn>;
+    findOne: ReturnType<typeof vi.fn>;
+  };
   let sharedService: { createMediaDocuments: ReturnType<typeof vi.fn> };
   let websocketService: {
     publishBackgroundTaskUpdate: ReturnType<typeof vi.fn>;
@@ -229,6 +233,12 @@ describe('BatchInterpolationController', () => {
         .fn()
         .mockResolvedValue('replicate-generation-id-123'),
     };
+    ingredientsService = {
+      findByIds: vi
+        .fn()
+        .mockResolvedValue([{ id: startImageId1 }, { id: endImageId1 }]),
+      findOne: vi.fn(),
+    };
     sharedService = {
       createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: mockIngredientData,
@@ -269,7 +279,7 @@ describe('BatchInterpolationController', () => {
           useValue: failedGenerationService,
         },
         { provide: FileQueueService, useValue: { processVideo: vi.fn() } },
-        { provide: IngredientsService, useValue: { findOne: vi.fn() } },
+        { provide: IngredientsService, useValue: ingredientsService },
         {
           provide: LoggerService,
           useValue: logger,
@@ -590,6 +600,29 @@ describe('BatchInterpolationController', () => {
             sourceIds: [startImageId1, endImageId1],
           }),
         );
+      });
+
+      it('skips an Asset end frame instead of connecting it as a source, and still dispatches', async () => {
+        // A logo or banner is an Asset, not an Ingredient: only the start
+        // frame can be a `sources` connection.
+        ingredientsService.findByIds.mockResolvedValueOnce([
+          { id: startImageId1 },
+        ]);
+
+        const result = await controller.createBatchInterpolation(
+          mockReq,
+          mockDto,
+          mockUser,
+        );
+
+        expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+          mockUser,
+          expect.objectContaining({ sourceIds: [startImageId1] }),
+        );
+        expect(readBatchResponseFixture(result).jobs[0]).toMatchObject({
+          status: 'processing',
+        });
+        expect(replicateService.generateTextToVideo).toHaveBeenCalled();
       });
 
       it('should generate a fresh group ID for each storyboard batch', async () => {

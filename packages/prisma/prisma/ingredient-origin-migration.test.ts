@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 const prismaDir = fileURLToPath(new URL('./', import.meta.url));
 const schemaSource = readFileSync(join(prismaDir, 'schema.prisma'), 'utf8');
 const migrationSource = readFileSync(
-  join(prismaDir, 'migrations/20261003170000_ingredient_origin/migration.sql'),
+  join(prismaDir, 'migrations/20261003180000_ingredient_origin/migration.sql'),
   'utf8',
 );
 const ingredientModel = schemaSource.slice(
@@ -49,29 +49,48 @@ describe('ingredient origin migration (#6010)', () => {
   });
 
   it('classifies by the first matching rule: imported, generated, uploaded, unknown', () => {
-    const imported = migrationSource.indexOf(`SET "origin" = 'IMPORTED'`);
-    const generated = migrationSource.indexOf(`SET "origin" = 'GENERATED'`);
-    const uploaded = migrationSource.indexOf(`SET "origin" = 'UPLOADED'`);
+    const imported = migrationSource.indexOf("THEN 'IMPORTED'");
+    const generated = migrationSource.indexOf("THEN 'GENERATED'");
+    const uploaded = migrationSource.indexOf("THEN 'UPLOADED'");
 
     expect(imported).toBeGreaterThan(-1);
     expect(generated).toBeGreaterThan(imported);
     expect(uploaded).toBeGreaterThan(generated);
-    // Later rules only ever touch rows an earlier rule left unclassified.
+    // The backfill only ever touches rows no earlier step classified.
     expect(
-      migrationSource.match(/WHERE "origin" = 'UNKNOWN'\n\s+AND/gu),
+      migrationSource.match(/WHERE i\."origin" = 'UNKNOWN'/gu),
     ).toHaveLength(3);
+  });
+
+  it('treats every imported-source link as Imported, not only a bookmark', () => {
+    for (const predicate of [
+      `btrim(coalesce("bookmarkId", '')) <> ''`,
+      `"sourceActionId", '') LIKE 'imported-source-media:%'`,
+      `"sourceActionId", '') LIKE 'agent-source:%'`,
+      `"providerData" -> 'sourceCaptureIngest' IS NOT NULL`,
+      `"providerData" -> 'importedSource' IS NOT NULL`,
+    ]) {
+      expect(migrationSource).toContain(predicate);
+    }
   });
 
   it('reads only the columns the product rules name', () => {
     for (const column of [
-      '"bookmarkId"',
       '"generationPrompt"',
       '"modelUsed"',
       '"generationSource"',
-      '"status" = \'UPLOADED\'',
+      `"status" = 'UPLOADED'`,
     ]) {
       expect(migrationSource).toContain(column);
     }
+  });
+
+  it('shares one classification between the backfill and the insert trigger', () => {
+    expect(
+      migrationSource.match(/"ingredients_classify_origin"\(/gu)?.length,
+    ).toBeGreaterThanOrEqual(5);
+    expect(migrationSource).toContain('BEFORE INSERT ON "ingredients"');
+    expect(migrationSource).toContain(`IF NEW."origin" = 'UNKNOWN' THEN`);
   });
 
   it('reports a count per outcome', () => {
@@ -84,8 +103,9 @@ describe('ingredient origin migration (#6010)', () => {
     expect(migrationSource).toContain(
       'BEFORE UPDATE OF "origin" ON "ingredients"',
     );
+    // Exactly one transition is allowed: out of UNKNOWN.
     expect(migrationSource).toContain(
-      'IF NEW."origin" IS DISTINCT FROM OLD."origin" THEN',
+      `IF NEW."origin" IS DISTINCT FROM OLD."origin" AND OLD."origin" <> 'UNKNOWN' THEN`,
     );
     expect(migrationSource.indexOf('CREATE TRIGGER')).toBeGreaterThan(
       migrationSource.indexOf('RAISE NOTICE'),

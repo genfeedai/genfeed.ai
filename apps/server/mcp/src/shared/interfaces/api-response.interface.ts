@@ -84,6 +84,7 @@ export interface AvatarAttributes {
   gender?: string;
   id?: string;
   name?: string;
+  origin?: string;
   status?: string;
   style?: string;
   thumbnailUrl?: string;
@@ -99,6 +100,7 @@ export interface MusicAttributes {
   genre?: string;
   id?: string;
   mood?: string;
+  origin?: string;
   prompt?: string;
   status?: string;
   url?: string;

@@ -274,6 +274,7 @@ export class MediaClient {
           params: {
             'page[limit]': params.limit || 10,
             'page[offset]': params.offset || 0,
+            ...(params.origin ? { origins: params.origin } : {}),
           },
         });
 
@@ -283,6 +284,7 @@ export class MediaClient {
             createdAt: avatar.attributes?.createdAt,
             gender: avatar.attributes?.gender,
             id: avatar.id,
+            origin: avatar.attributes?.origin,
             name: avatar.attributes?.name || 'Unnamed',
             status: avatar.attributes?.status || CONTENT_STATUS.COMPLETED,
             style: avatar.attributes?.style,
@@ -339,6 +341,7 @@ export class MediaClient {
           params: {
             'page[limit]': params.limit || 10,
             'page[offset]': params.offset || 0,
+            ...(params.origin ? { origins: params.origin } : {}),
           },
         });
 
@@ -349,6 +352,7 @@ export class MediaClient {
             genre: music.attributes?.genre,
             id: music.id,
             mood: music.attributes?.mood,
+            origin: music.attributes?.origin,
             prompt: music.attributes?.prompt || '',
             status: music.attributes?.status || CONTENT_STATUS.COMPLETED,
             url: music.attributes?.url,

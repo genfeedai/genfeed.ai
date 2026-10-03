@@ -18,10 +18,14 @@ interface LineageSnapshot {
   identity: string;
   isLoading: boolean;
   items: IIngredient[];
+  /** The last page that loaded; the next request is always this plus one. */
+  loadedPage: number;
 }
 
 interface LineageRequest {
   identity: string;
+  /** Bumped per request so retrying the same page re-runs the load. */
+  nonce: number;
   page: number;
 }
 
@@ -33,6 +37,7 @@ function emptySnapshot(identity: string): LineageSnapshot {
     identity,
     isLoading: true,
     items: [],
+    loadedPage: 0,
   };
 }
 
@@ -55,10 +60,21 @@ export function useIngredientLineage(
   );
   const [request, setRequest] = useState<LineageRequest>({
     identity,
+    nonce: 0,
     page: 1,
   });
-  const page = request.identity === identity ? request.page : 1;
+  // A request left over from another asset never applies to this one, so
+  // coming back to an asset always starts at its first page.
+  const { nonce, page } =
+    request.identity === identity ? request : { nonce: 0, page: 1 };
 
+  useEffect(() => {
+    setRequest((current) =>
+      current.identity === identity ? current : { identity, nonce: 0, page: 1 },
+    );
+  }, [identity]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `nonce` only re-runs the load so a failed page is retried
   useEffect(() => {
     const controller = new AbortController();
 
@@ -91,6 +107,7 @@ export function useIngredientLineage(
             page === 1 || current.identity !== identity
               ? result.items
               : [...current.items, ...result.items],
+          loadedPage: page,
         }));
       } catch (error) {
         if (controller.signal.aborted) {
@@ -116,14 +133,17 @@ export function useIngredientLineage(
     return () => {
       controller.abort();
     };
-  }, [direction, getIngredientsService, identity, ingredientId, page]);
-
-  const loadMore = useCallback(() => {
-    setRequest({ identity, page: page + 1 });
-  }, [identity, page]);
+  }, [direction, getIngredientsService, identity, ingredientId, nonce, page]);
 
   const current =
     snapshot.identity === identity ? snapshot : emptySnapshot(identity);
+  const loadedPage = current.loadedPage;
+
+  // The next page follows the last one that actually loaded, so a failed
+  // "Show more" is retried instead of skipping its entries.
+  const loadMore = useCallback(() => {
+    setRequest({ identity, nonce: nonce + 1, page: loadedPage + 1 });
+  }, [identity, loadedPage, nonce]);
 
   return {
     hasError: current.hasError,

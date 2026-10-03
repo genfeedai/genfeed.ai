@@ -519,11 +519,34 @@ describe('ToolRegistryService', () => {
     );
   });
 
-  it.each(['list_videos', 'list_images'])(
+  it.each([
+    ['list_music', 'listMusic'],
+    ['list_avatars', 'listAvatars'],
+  ] as const)(
+    'handleToolCall %s passes the origin filter through',
+    async (name, method) => {
+      await service.handleToolCall({
+        arguments: { origin: 'generated' },
+        name,
+      });
+
+      expect(clientService[method]).toHaveBeenCalledWith(
+        expect.objectContaining({ origin: 'GENERATED' }),
+      );
+    },
+  );
+
+  it.each(['list_videos', 'list_images', 'list_music', 'list_avatars'])(
     'handleToolCall %s rejects an unknown origin instead of listing everything',
     async (name) => {
-      clientService.listVideos.mockClear();
-      clientService.listImages.mockClear();
+      for (const method of [
+        clientService.listVideos,
+        clientService.listImages,
+        clientService.listMusic,
+        clientService.listAvatars,
+      ]) {
+        method.mockClear();
+      }
 
       const result = await service.handleToolCall({
         arguments: { origin: 'mine' },
@@ -536,6 +559,8 @@ describe('ToolRegistryService', () => {
       ).toContain('origin must be UPLOADED, GENERATED, IMPORTED or UNKNOWN');
       expect(clientService.listVideos).not.toHaveBeenCalled();
       expect(clientService.listImages).not.toHaveBeenCalled();
+      expect(clientService.listMusic).not.toHaveBeenCalled();
+      expect(clientService.listAvatars).not.toHaveBeenCalled();
     },
   );
 
