@@ -520,10 +520,7 @@ export class ToolRegistryService implements OnModuleInit {
     // once even though the MCP server is stateless and handles each request in
     // isolation. (Previously the claim happened AFTER execution, leaving a
     // TOCTOU window where two callers could both execute an irreversible tool.)
-    const approval = await this.clientService.resolveApproval(
-      approvalId,
-      'approve',
-    );
+    const approval = await this.claimApprovalOrRecoverRetry(approvalId);
 
     // Defense-in-depth: only execute tools that are actually approval-gated, so
     // a stray approval row created for a non-write tool cannot be run via the
@@ -534,6 +531,13 @@ export class ToolRegistryService implements OnModuleInit {
       throw new Error(message);
     }
 
+    // Agent-executor tools record their own outcome on the API, inside the
+    // execution fence. A failure that never reached that fence (identity or
+    // authorization check, transport) consumed nothing, so it must not be
+    // written onto the approval: that would make it permanently unredeemable.
+    const apiOwnsOutcome =
+      ToolRegistryService.classify(approval.toolName) === 'agent-executor';
+
     let result: Awaited<ReturnType<typeof this.executeTool>>;
     try {
       result = await this.executeTool(
@@ -542,12 +546,18 @@ export class ToolRegistryService implements OnModuleInit {
         approval.id,
       );
     } catch (error: unknown) {
-      // The approval is already claimed; record the failure on the audit row so
-      // the outcome is observable rather than a silently-APPROVED-but-failed row.
-      await this.attachApprovalResultSafe(approvalId, {
-        error: (error as Error)?.message ?? String(error),
-      });
+      if (!apiOwnsOutcome) {
+        // Direct-dispatch tools have no API-side fence, so the failure is
+        // recorded and the approval stays terminal to prevent a double run.
+        await this.attachApprovalResultSafe(approvalId, {
+          error: (error as Error)?.message ?? String(error),
+        });
+      }
       throw error;
+    }
+
+    if (apiOwnsOutcome && (result as { isError?: boolean }).isError) {
+      return result;
     }
 
     await this.attachApprovalResultSafe(
@@ -556,6 +566,38 @@ export class ToolRegistryService implements OnModuleInit {
     );
 
     return result;
+  }
+
+  /**
+   * Claim the approval for execution. An approval that is already APPROVED with
+   * no recorded outcome is a redemption that failed before the API consumed it
+   * (for example an identity check): its decision stands, so re-approving
+   * retries the execution instead of dead-ending on "already resolved". That
+   * recovery is limited to agent-executor tools, whose execution the API fences
+   * to at most one run; direct-dispatch tools have no such fence, so for them a
+   * lost claim always stays lost.
+   */
+  private async claimApprovalOrRecoverRetry(
+    approvalId: string,
+  ): Promise<McpApprovalResource> {
+    try {
+      return await this.clientService.resolveApproval(approvalId, 'approve');
+    } catch (claimError: unknown) {
+      let existing: McpApprovalResource | null = null;
+      try {
+        existing = await this.clientService.getApproval(approvalId);
+      } catch {
+        // Unreadable: keep the original claim failure.
+      }
+      if (
+        existing?.status === 'APPROVED' &&
+        !existing.result &&
+        ToolRegistryService.classify(existing.toolName) === 'agent-executor'
+      ) {
+        return existing;
+      }
+      throw claimError;
+    }
   }
 
   /**

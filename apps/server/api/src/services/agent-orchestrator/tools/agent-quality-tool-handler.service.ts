@@ -1,6 +1,5 @@
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { VoteEntity } from '@api/collections/votes/entities/vote.entity';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
@@ -197,43 +196,43 @@ export class AgentQualityToolHandler {
         };
       }
 
-      // Toggle: if an active vote exists, remove it; otherwise create one
-      const existing = await this.votesService.findOne({
-        entityId: ingredientId,
-        userId: ctx.userId,
-      });
-
-      if (existing) {
-        const existingVoteId = String(existing.id);
-        await this.votesService.patchAll(
-          { id: existingVoteId },
-          { isDeleted: true },
-        );
-
+      if (!this.ingredientsService) {
         return {
           creditsUsed: 0,
-          data: {
-            action: 'removed',
-            ingredientId,
-          },
-          success: true,
+          error: 'IngredientsService not available',
+          success: false,
         };
       }
 
-      const vote = await this.votesService.create(
-        new VoteEntity({
-          entity: ingredientId,
-          entityModel: VoteEntityModel.INGREDIENT,
-          userId: ctx.userId,
-        }) as unknown as Parameters<VotesService['create']>[0],
-      );
+      // Fail closed: only an ingredient in the caller's own organization can be
+      // rated, so a foreign or unknown id never reaches the votes table.
+      const ingredient = await this.ingredientsService.findOne({
+        id: ingredientId,
+        isDeleted: false,
+        organizationId: ctx.organizationId,
+      });
+
+      if (!ingredient) {
+        return {
+          creditsUsed: 0,
+          error: `Ingredient ${ingredientId} not found`,
+          success: false,
+        };
+      }
+
+      const { action, voteId } = await this.votesService.toggleVote({
+        entityId: ingredientId,
+        entityModel: VoteEntityModel.INGREDIENT,
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
+      });
+
       return {
         creditsUsed: 0,
-        data: {
-          action: 'added',
-          ingredientId,
-          voteId: String(vote.id),
-        },
+        data:
+          action === 'removed'
+            ? { action, ingredientId }
+            : { action, ingredientId, voteId },
         success: true,
       };
     } catch (error: unknown) {
