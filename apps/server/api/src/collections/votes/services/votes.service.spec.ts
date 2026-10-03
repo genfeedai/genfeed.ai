@@ -39,7 +39,11 @@ describe('VotesService.toggleVote', () => {
 
     const result = await service.toggleVote(input);
 
-    expect(result).toEqual({ action: 'added', voteId: 'vote-1' });
+    expect(result).toMatchObject({
+      action: 'added',
+      vote: { id: 'vote-1' },
+      voteId: 'vote-1',
+    });
     const data = vote.create.mock.calls[0][0].data;
     expect(data).toMatchObject({
       entityId: 'ingredient-1',
@@ -58,6 +62,8 @@ describe('VotesService.toggleVote', () => {
 
     expect(vote.findFirst.mock.calls[0][0].where).toMatchObject({
       entityId: 'ingredient-1',
+      entityModel: VoteEntityModel.INGREDIENT,
+      organizationId: 'org-1',
       isDeleted: false,
       userId: 'user-1',
     });
@@ -68,11 +74,21 @@ describe('VotesService.toggleVote', () => {
 
     const result = await service.toggleVote(input);
 
-    expect(result).toEqual({ action: 'removed', voteId: 'vote-1' });
+    expect(result).toMatchObject({
+      action: 'removed',
+      vote: { id: 'vote-1', isDeleted: true },
+      voteId: 'vote-1',
+    });
     expect(vote.create).not.toHaveBeenCalled();
     expect(vote.updateMany.mock.calls[0][0]).toMatchObject({
       data: { isDeleted: true },
-      where: { entityId: 'ingredient-1', userId: 'user-1' },
+      where: {
+        entityId: 'ingredient-1',
+        entityModel: VoteEntityModel.INGREDIENT,
+        organizationId: 'org-1',
+        isDeleted: false,
+        userId: 'user-1',
+      },
     });
   });
 });

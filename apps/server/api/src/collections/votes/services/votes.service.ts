@@ -23,20 +23,38 @@ export class VotesService extends BaseService<
   /**
    * Toggle a user's vote on an entity: remove the active vote if there is one,
    * otherwise record a new one stamped with the tenant. The caller must already
-   * have verified that `entityId` belongs to `organizationId`.
+   * have verified that `entityId` belongs to `organizationId`. Return the vote
+   * document as well so HTTP callers can use the standard vote serializer.
    */
   async toggleVote(input: {
     entityId: string;
     entityModel: VoteEntityModel;
     organizationId: string;
     userId: string;
-  }): Promise<{ action: 'added' | 'removed'; voteId: string }> {
+  }): Promise<{
+    action: 'added' | 'removed';
+    vote: VoteDocument;
+    voteId: string;
+  }> {
     const { entityId, entityModel, organizationId, userId } = input;
-    const existing = await this.findOne({ entityId, isDeleted: false, userId });
+    const existing = await this.findOne({
+      entityId,
+      entityModel,
+      isDeleted: false,
+      organizationId,
+      userId,
+    });
 
     if (existing) {
-      await this.patchAll({ entityId, userId }, { isDeleted: true });
-      return { action: 'removed', voteId: String(existing.id) };
+      await this.patchAll(
+        { entityId, entityModel, isDeleted: false, organizationId, userId },
+        { isDeleted: true },
+      );
+      return {
+        action: 'removed',
+        vote: { ...existing, isDeleted: true },
+        voteId: String(existing.id),
+      };
     }
 
     const vote = await this.create({
@@ -45,6 +63,6 @@ export class VotesService extends BaseService<
       organizationId,
       userId,
     } as unknown as CreateVoteDto);
-    return { action: 'added', voteId: String(vote.id) };
+    return { action: 'added', vote, voteId: String(vote.id) };
   }
 }
