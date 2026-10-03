@@ -11,6 +11,7 @@ import { LearningBaselineMaterializationService } from '@api/collections/content
 import { LearningCheckpointService } from '@api/collections/content-learning/services/learning-checkpoint.service';
 import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
 import { LearningPolicyService } from '@api/collections/content-learning/services/learning-policy.service';
+import { LearningRewardService } from '@api/collections/content-learning/services/learning-reward.service';
 import { LearningRunService } from '@api/collections/content-learning/services/learning-run.service';
 import { AnalyticsSyncService } from '@api/collections/content-performance/services/analytics-sync.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -135,6 +136,7 @@ describe('system workflow registration composition', () => {
           LearningCheckpointService,
           LearningDependencyService,
           LearningPolicyService,
+          LearningRewardService,
           LearningRunService,
           PostsService,
           PostAnalyticsCollectionStateService,

@@ -1,95 +1,231 @@
+import {
+  learningArtifactPostSelect,
+  learningDecisionDescriptorValid,
+  learningPostArtifactHashV1,
+} from '@api/collections/content-learning/services/learning-artifact-binding.helper';
 import { parseLearningMeasurement } from '@api/collections/content-learning/services/learning-checkpoint.service';
 import {
   LearningDependencyService,
   learningFence,
 } from '@api/collections/content-learning/services/learning-dependency.service';
-import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
+import {
+  learningHash,
+  learningScopeKey,
+} from '@api/collections/content-learning/services/learning-operation.service';
+import { validLearningCheckpointPublicationV1 } from '@api/collections/content-learning/services/learning-publication-source.helper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LearningObjective } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
-import { computeLearningReward } from '@genfeedai/harness';
+import {
+  computeLearningReward,
+  learningDescriptorTuple,
+  validLearningDescriptor,
+} from '@genfeedai/harness';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
+export type LearningRewardCommitResult =
+  | {
+      status: 'committed';
+      rewardId: string;
+      rewardStatus: string;
+      decisionId: string;
+      scopeKey: string;
+    }
+  | { status: 'unavailable'; reason: string };
+type LearningPreparedReward = Exclude<
+  Awaited<ReturnType<LearningRewardService['prepareReward']>>,
+  { reason: string }
+>;
 @Injectable()
 export class LearningRewardService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly dependencies: LearningDependencyService,
   ) {}
-  async commit(
+  /**
+   * Commits the reward for a valid 48h checkpoint of a publication bound to
+   * an unchanged, decision-generated artifact, against the baseline frozen
+   * at decision time. Any broken join returns `unavailable` and writes nothing.
+   */
+  async commitForCheckpoint(
     organizationId: string,
-    decisionId: string,
     checkpointId: string,
-    objective: LearningObjective,
-  ) {
+  ): Promise<LearningRewardCommitResult> {
     return this.prisma.$transaction(async (tx) => {
       await learningFence(tx, 'exclusive');
       const prepared = await this.prepareReward(
         tx,
         organizationId,
-        decisionId,
         checkpointId,
-        objective,
       );
-      if (!prepared) return null;
-      return this.persistReward(tx, organizationId, objective, prepared);
+      if ('reason' in prepared)
+        return { status: 'unavailable', reason: prepared.reason };
+      const reward = await this.persistReward(
+        tx,
+        organizationId,
+        prepared.objective,
+        prepared,
+      );
+      return {
+        status: 'committed',
+        rewardId: reward.id,
+        rewardStatus: reward.status,
+        decisionId: prepared.decision.id,
+        scopeKey: prepared.decision.scopeKey,
+      };
     });
   }
   private async prepareReward(
     tx: Prisma.TransactionClient,
     organizationId: string,
-    decisionId: string,
     checkpointId: string,
-    objective: LearningObjective,
   ) {
-    const decision = await tx.contentLearningDecision.findFirst({
-      where: { id: decisionId, organizationId, isDeleted: false },
-    });
-    if (!decision?.baselineId || decision.state !== 'published') return null;
+    const unavailable = (reason: string) => ({ reason });
     const checkpoint = await tx.contentLearningCheckpoint.findFirst({
+      where: { id: checkpointId, organizationId, isDeleted: false },
+    });
+    if (
+      checkpoint?.validity !== 'valid' ||
+      checkpoint.windowId !== '48h-v1' ||
+      checkpoint.format !== 'text' ||
+      !(await validLearningCheckpointPublicationV1(tx, checkpoint))
+    )
+      return unavailable('checkpoint_unavailable');
+    const post = await tx.post.findFirst({
       where: {
-        id: checkpointId,
+        id: checkpoint.postId,
         organizationId,
+        brandId: checkpoint.brandId,
+        credentialId: checkpoint.credentialId,
+        isDeleted: false,
+      },
+      select: { ...learningArtifactPostSelect, publishedAt: true },
+    });
+    if (
+      !post?.learningDecisionId ||
+      post.publishedAt?.getTime() !== checkpoint.publishedAt.getTime()
+    )
+      return unavailable('decision_unbound');
+    const decision = await tx.contentLearningDecision.findFirst({
+      where: {
+        id: post.learningDecisionId,
+        organizationId,
+        brandId: checkpoint.brandId,
+        credentialId: checkpoint.credentialId,
+        isDeleted: false,
+        synthetic: false,
+      },
+    });
+    const descriptor = decision?.cellDescriptor;
+    if (
+      decision?.state !== 'published' ||
+      decision.generationId !== post.id ||
+      !decision.baselineId ||
+      !learningDecisionDescriptorValid(decision) ||
+      !validLearningDescriptor(descriptor) ||
+      descriptor.format !== checkpoint.format ||
+      descriptor.windowId !== checkpoint.windowId ||
+      decision.scopeKey !==
+        learningScopeKey({
+          organizationId,
+          brandId: decision.brandId,
+          credentialId: decision.credentialId,
+          platform: descriptor.platform,
+          format: descriptor.format,
+          objective: descriptor.objective,
+          rewardProfileId: decision.descriptorHash ?? '',
+        }) ||
+      !(await this.dependencies.valid(
+        'decision',
+        decision.id,
+        tx,
+        organizationId,
+      ))
+    )
+      return unavailable('invalid_lineage');
+    const account = await tx.contentLearningAccount.findFirst({
+      where: {
+        organizationId,
+        brandId: decision.brandId,
         credentialId: decision.credentialId,
         isDeleted: false,
       },
     });
+    if (!account) return unavailable('account_unavailable');
+    if (account.epoch !== decision.epoch) return unavailable('epoch_changed');
+    if (account.mode === 'disabled') return unavailable('disabled');
+    if (
+      learningPostArtifactHashV1(post, decision) !== decision.finalArtifactHash
+    )
+      return unavailable('artifact_changed');
+    const raw = checkpoint.measurement;
+    const profile =
+      raw &&
+      typeof raw === 'object' &&
+      !Array.isArray(raw) &&
+      Array.isArray(raw.profiles)
+        ? raw.profiles.find(
+            (value) =>
+              value &&
+              typeof value === 'object' &&
+              !Array.isArray(value) &&
+              value.profileId === decision.descriptorHash &&
+              validLearningDescriptor(value.descriptor) &&
+              learningHash(learningDescriptorTuple(value.descriptor)) ===
+                decision.descriptorHash,
+          )
+        : undefined;
+    const measurement =
+      profile && typeof profile === 'object' && !Array.isArray(profile)
+        ? parseLearningMeasurement(profile.measurement)
+        : null;
+    if (
+      !measurement ||
+      (descriptor.retention &&
+        measurement.averageWatchTimeSeconds === undefined)
+    )
+      return unavailable('profile_unavailable');
     const baseline = await tx.contentLearningBaseline.findFirst({
       where: {
         id: decision.baselineId,
         organizationId,
+        brandId: decision.brandId,
         credentialId: decision.credentialId,
         isDeleted: false,
       },
     });
-    if (!checkpoint || !baseline) return null;
-    const raw = checkpoint.measurement,
-      measurement = parseLearningMeasurement(
-        raw &&
-          typeof raw === 'object' &&
-          !Array.isArray(raw) &&
-          'measurement' in raw
-          ? raw.measurement
-          : null,
-      );
-    const samples = Array.isArray(baseline.samples)
-      ? baseline.samples.flatMap((value) => {
-          const parsed = parseLearningMeasurement(value);
-          return parsed ? [parsed] : [];
-        })
-      : [];
-    if (!measurement) return null;
-    const result = computeLearningReward(measurement, samples, objective);
-    const status =
-      checkpoint.validity !== 'valid'
-        ? checkpoint.validity
-        : !(await this.dependencies.valid(
-              'baseline',
-              baseline.id,
-              tx,
-              organizationId,
-            ))
-          ? 'invalid_baseline'
-          : result.status;
+    if (
+      !baseline ||
+      baseline.descriptorHash !== decision.descriptorHash ||
+      baseline.scopeKey !== decision.scopeKey ||
+      baseline.configVersion !== descriptor.configVersion ||
+      baseline.cutoff.getTime() !== decision.createdAt.getTime() ||
+      baseline.validity !== 'valid' ||
+      baseline.count < 20
+    )
+      return unavailable('insufficient_baseline');
+    const rawSamples = Array.isArray(baseline.samples) ? baseline.samples : [];
+    const samples = rawSamples.map((value) => parseLearningMeasurement(value));
+    if (
+      !Array.isArray(baseline.samples) ||
+      samples.some((sample) => !sample) ||
+      samples.length !== baseline.count ||
+      baseline.contributorCheckpointIds.length !== baseline.count
+    )
+      return unavailable('invalid_baseline');
+    const objective = descriptor.objective;
+    const result = computeLearningReward(
+      measurement,
+      samples as NonNullable<(typeof samples)[number]>[],
+      objective,
+    );
+    const status = !(await this.dependencies.valid(
+      'baseline',
+      baseline.id,
+      tx,
+      organizationId,
+    ))
+      ? 'invalid_baseline'
+      : result.status;
     const sourceFingerprint = learningHash([
       decision.id,
       checkpoint.id,
@@ -99,8 +235,8 @@ export class LearningRewardService {
       status,
     ]);
     return {
-      decisionId,
-      checkpointId,
+      decisionId: decision.id,
+      checkpointId: checkpoint.id,
       decision,
       checkpoint,
       baseline,
@@ -108,15 +244,14 @@ export class LearningRewardService {
       result,
       status,
       sourceFingerprint,
+      objective,
     };
   }
   private async persistReward(
     tx: Prisma.TransactionClient,
     organizationId: string,
     objective: LearningObjective,
-    prepared: NonNullable<
-      Awaited<ReturnType<LearningRewardService['prepareReward']>>
-    >,
+    prepared: LearningPreparedReward,
   ) {
     const {
       decisionId,
@@ -188,6 +323,16 @@ export class LearningRewardService {
       await this.dependencies.resolve(
         'baseline',
         baseline.id,
+        organizationId,
+        tx,
+      ),
+      await this.dependencies.resolve('reward', reward.id, organizationId, tx),
+    );
+    await this.dependencies.link(
+      tx,
+      await this.dependencies.resolve(
+        'decision',
+        decision.id,
         organizationId,
         tx,
       ),
