@@ -2,7 +2,10 @@ import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import {
-  acknowledgeByokUsage,
+  GenerationByokUsage,
+  SETTLEABLE_STATUSES,
+} from '@api/collections/credits/services/generation-byok-usage';
+import {
   isCrunBillingDispositionAllowed,
   recordCrunSubmissionFailure,
   runCrunBillingMutation,
@@ -10,32 +13,30 @@ import {
 import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import type { ReservationCreditsConfig } from '@api/helpers/utils/credits/generation-credit-reservation.util';
-import { generationUsageReceiptSchema as usageReceiptSchema } from '@api/helpers/utils/credits/generation-submission-evidence.schema';
 import {
   generationSubmissionIntentSchema,
   persistSubmissionFailure,
   persistSubmissionRejection,
   submittedGenerationMetadataSchema,
 } from '@api/helpers/utils/credits/persist-submission-failure.util';
-import { scopedWhere } from '@api/index';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivitySource,
   CreditReservationStatus,
-  CreditTransactionCategory,
   IngredientStatus,
 } from '@genfeedai/contracts';
 import {
   GENERATION_POOL_WORKLOAD_TYPE,
   MEDIA_GENERATION_HOLD_TTL_MS,
+  MEDIA_GENERATION_INTENT_HOLD_CEILING_MS,
+  MEDIA_GENERATION_LATE_SETTLEMENT_KEY_PREFIX,
+  MEDIA_GENERATION_LATE_SETTLEMENT_MAX_OVERDRAFT_CREDITS,
+  MEDIA_GENERATION_LATE_SETTLEMENT_WINDOW_MS,
   MEDIA_GENERATION_WORKLOAD_TYPE,
 } from '@genfeedai/contracts/constants';
-import type {
-  ICreditReservation,
-  IGenerationUsageReceipt,
-} from '@genfeedai/contracts/interfaces/billing';
-import { Prisma, toPrismaJson } from '@genfeedai/prisma';
+import type { ICreditReservation } from '@genfeedai/contracts/interfaces/billing';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
@@ -51,6 +52,7 @@ export interface GenerationBillingRequest {
 
 export type GenerationSettlementOutcome =
   | 'queued'
+  | 'late-queued'
   | 'already-settled'
   | 'no-hold'
   | 'hold-ended'
@@ -67,10 +69,10 @@ const TERMINAL_FAILURE_STATUSES: readonly string[] = [
   IngredientStatus.REJECTED,
   IngredientStatus.ARCHIVED,
 ];
-const SETTLEABLE_STATUSES: readonly string[] = [
-  IngredientStatus.GENERATED,
-  IngredientStatus.VALIDATED,
-];
+interface HoldReconcileStats {
+  awaitingIntentProof: number;
+  expiredIntentHolds: number;
+}
 
 /**
  * The one billing contract for async media generation (#5657).
@@ -87,13 +89,17 @@ const SETTLEABLE_STATUSES: readonly string[] = [
  */
 @Injectable()
 export class GenerationBillingService {
+  private readonly byok: GenerationByokUsage;
+
   constructor(
     private readonly credits: CreditsUtilsService,
     private readonly queue: CreditDeductionQueueService,
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly quoteGroups: GenerationQuoteGroupService,
-  ) {}
+  ) {
+    this.byok = new GenerationByokUsage(queue, prisma, logger);
+  }
 
   /**
    * Opens a pool hold for a caller that has no request-level hold (a background
@@ -168,7 +174,7 @@ export class GenerationBillingService {
       config.isByokBypass &&
       organizationId
     ) {
-      await this.bindByokOutput(request, output, organizationId);
+      await this.byok.bindOutput(request, output, organizationId);
       return;
     }
     if (
@@ -337,14 +343,17 @@ export class GenerationBillingService {
       return 'group-handled';
     const hold = await this.findHold(ingredientId, organizationId);
     if (!hold) {
-      return this.settleByokOutput(ingredientId, organizationId);
+      return this.byok.settle(ingredientId, organizationId);
     }
     if (hold.status === CreditReservationStatus.SETTLED) {
       return 'already-settled';
     }
-    if (hold.status !== CreditReservationStatus.RESERVED || !hold.actorUserId) {
+    if (hold.status !== CreditReservationStatus.RESERVED) {
+      return this.chargeLateCompletion(hold, ingredientId, organizationId);
+    }
+    if (!hold.actorUserId) {
       this.logger.error(
-        'Generation completed after its credit hold ended; reconcile the missing charge',
+        'Generation completed on a credit hold with no actor; reconcile the missing charge',
         { ingredientId, organizationId, reservationId: hold.id },
       );
       return 'hold-ended';
@@ -368,252 +377,72 @@ export class GenerationBillingService {
     return 'queued';
   }
 
-  private async bindByokOutput(
-    request: GenerationBillingRequest,
-    output: {
-      credits: number;
-      ingredientId: string;
-      submissionIntentProvider?: string;
-    },
-    organizationId: string,
-  ): Promise<void> {
-    const config = request.creditsConfig;
-    const userId = request.user?.userId ?? request.user?.id;
-    if (!config || !userId)
-      throw new BusinessLogicException('BYOK usage identity is required');
-    const receipt: IGenerationUsageReceipt = usageReceiptSchema.parse({
-      kind: 'byok',
-      amount: output.credits,
-      description: config.description,
-      expiresAt: new Date(
-        Date.now() + MEDIA_GENERATION_HOLD_TTL_MS,
-      ).toISOString(),
-      source: config.source ?? ActivitySource.SCRIPT,
-      state: 'pending',
-      userId,
-      submissionIntentProvider: output.submissionIntentProvider,
-    });
-    const linked = await this.prisma.ingredient.updateMany({
-      data: { generationBilling: toPrismaJson(receipt) },
-      where: {
-        id: output.ingredientId,
-        organizationId,
-        isDeleted: false,
-        generationBilling: { equals: Prisma.DbNull },
-      },
-    });
-    if (linked.count !== 1) {
-      const existing = await this.readByokIngredient(
-        output.ingredientId,
-        organizationId,
-      );
-      const prior = this.readUsageReceipt(existing?.generationBilling);
-      const {
-        state: _state,
-        confirmedFailure: _failure,
-        ...immutable
-      } = receipt;
-      const priorImmutable = prior
-        ? (({ state: _oldState, confirmedFailure: _oldFailure, ...rest }) =>
-            rest)(prior)
-        : null;
-      if (
-        !existing ||
-        !prior ||
-        (output.submissionIntentProvider === 'crun' &&
-          JSON.stringify(immutable) !== JSON.stringify(priorImmutable))
-      )
-        throw new BusinessLogicException('BYOK output linkage failed');
-    }
-    request.creditsConfig = {
-      ...config,
-      boundOutputCount: (config.boundOutputCount ?? 0) + 1,
-    };
-    this.logger.log('Generation BYOK usage linked', {
-      organizationId,
-      ingredientId: output.ingredientId,
-    });
-  }
-
-  private readUsageReceipt(value: unknown): IGenerationUsageReceipt | null {
-    const parsed = usageReceiptSchema.safeParse(value);
-    return parsed.success ? parsed.data : null;
-  }
-
-  private readByokIngredient(ingredientId: string, organizationId: string) {
-    return this.prisma.ingredient.findFirst({
-      select: { id: true, status: true, generationBilling: true },
-      where: { id: ingredientId, organizationId, isDeleted: false },
-    });
-  }
-
-  private async settleByokOutput(
+  /**
+   * The output finished after its hold was released or expired (#5886). The
+   * funds are gone, so the charge is a direct deduction keyed by the dead hold:
+   * it settles from the wallet when funds exist and otherwise records the
+   * shortfall as a negative balance, the same durable debt every other
+   * delivered-then-billed output carries. The key keeps redeliveries and sweeps
+   * to one ledger transaction.
+   */
+  private async chargeLateCompletion(
+    hold: ICreditReservation,
     ingredientId: string,
     organizationId: string,
   ): Promise<GenerationSettlementOutcome> {
-    if (
-      !(await this.crunDispositionAllowed(
-        ingredientId,
-        organizationId,
-        'settle',
-      ))
-    )
-      return 'held';
-    const ingredient = await this.readByokIngredient(
-      ingredientId,
-      organizationId,
-    );
-    const receipt = this.readUsageReceipt(ingredient?.generationBilling);
-    if (!ingredient || !receipt) return 'no-hold';
-    if (receipt.state === 'recorded') return 'already-settled';
-    if (
-      receipt.state === 'failed' ||
-      !SETTLEABLE_STATUSES.includes(ingredient.status)
-    )
-      return 'hold-ended';
-    const idempotencyKey = `media-generation-usage:${ingredientId}`;
-    const recorded = await this.prisma.creditTransaction.findFirst({
-      select: { id: true },
-      where: scopedWhere(organizationId, {
-        organizationId,
-        isDeleted: false,
-        idempotencyKey: `byok:${organizationId}:${idempotencyKey}`,
-        ...(receipt.submissionIntentProvider === 'crun'
-          ? {
-              category: CreditTransactionCategory.BYOK_USAGE,
-              actorUserId: receipt.userId,
-              amount: receipt.amount,
-              source: receipt.source,
-              metadata: { path: ['assetId'], equals: ingredientId },
-            }
-          : {}),
-      }),
+    const ingredient = await this.prisma.ingredient.findFirst({
+      select: { status: true, userId: true },
+      where: { id: ingredientId, organizationId, isDeleted: false },
     });
-    if (recorded)
-      return acknowledgeByokUsage(
-        this.prisma,
+    if (!ingredient || !SETTLEABLE_STATUSES.includes(ingredient.status)) {
+      this.logger.log('Credit hold ended without a usable output; no charge', {
         ingredientId,
         organizationId,
-        receipt,
-        idempotencyKey,
+        reservationId: hold.id,
+        reservationStatus: hold.status,
+      });
+      return 'hold-ended';
+    }
+    const userId = hold.actorUserId ?? ingredient.userId;
+    if (!userId) {
+      this.logger.error(
+        'Generation completed after its credit hold ended with no user to charge; reconcile the missing charge',
+        { ingredientId, organizationId, reservationId: hold.id },
       );
-    const eligibility = await this.crunMutation(
-      ingredientId,
-      organizationId,
-      'settle',
-      async (tx) => {
-        const current = await tx.ingredient.findFirst({
-          where: scopedWhere(organizationId, {
-            id: ingredientId,
-            organizationId,
-            isDeleted: false,
-          }),
-          select: { generationBilling: true, status: true },
-        });
-        const frozen = this.readUsageReceipt(current?.generationBilling);
-        return current &&
-          frozen &&
-          frozen.state === 'pending' &&
-          SETTLEABLE_STATUSES.includes(current.status) &&
-          JSON.stringify(frozen) === JSON.stringify(receipt)
-          ? ('queued' as const)
-          : ('held' as const);
-      },
-    );
-    if (eligibility === 'held') return 'held';
-    await this.queue.queueByokUsage({
-      amount: receipt.amount,
-      description: receipt.description,
-      idempotencyKey,
+      return 'hold-ended';
+    }
+    await this.queue.queueDeduction({
+      amount: hold.amount,
+      description: hold.description ?? 'Media generation',
+      idempotencyKey: this.lateSettlementKey(hold.id),
+      maxOverdraftCredits:
+        MEDIA_GENERATION_LATE_SETTLEMENT_MAX_OVERDRAFT_CREDITS,
       metadata: {
         assetId: ingredientId,
-        ...(receipt.submissionIntentProvider === 'crun'
-          ? { submissionIntentProvider: 'crun' }
-          : {}),
+        lateSettlementOfReservationId: hold.id,
       },
       organizationId,
-      source: receipt.source,
-      type: 'record-byok-usage',
-      userId: receipt.userId,
+      source: hold.source ?? ActivitySource.SCRIPT,
+      type: 'deduct-credits',
+      userId,
     });
-    // Keep the receipt pending until the ledger confirms usage. Enqueue acknowledgement
-    // is not proof of worker completion; a crash here is safe to reconcile.
-    this.logger.log('Generation BYOK completion usage queued', {
-      ingredientId,
-      organizationId,
-      idempotencyKey,
-    });
-    return 'queued';
-  }
-
-  private async failByokOutput(
-    ingredientId: string,
-    organizationId: string,
-  ): Promise<GenerationReleaseOutcome> {
-    const crun = await this.crunMutation(
-      ingredientId,
-      organizationId,
-      'release',
-      async (tx) => {
-        const ingredient = await tx.ingredient.findFirst({
-          where: { id: ingredientId, organizationId, isDeleted: false },
-          select: { status: true, generationBilling: true },
-        });
-        const receipt = this.readUsageReceipt(ingredient?.generationBilling);
-        if (!ingredient || !receipt) return 'no-hold' as const;
-        if (SETTLEABLE_STATUSES.includes(ingredient.status))
-          return 'released' as const;
-        await tx.ingredient.updateMany({
-          where: {
-            id: ingredientId,
-            organizationId,
-            isDeleted: false,
-            generationBilling: { equals: toPrismaJson(receipt) },
-            status: {
-              notIn: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
-            },
-          },
-          data: {
-            generationBilling: toPrismaJson({ ...receipt, state: 'failed' }),
-          },
-        });
-        return 'released' as const;
-      },
-    );
-    if (crun !== undefined) return crun;
-    if (
-      !(await this.crunDispositionAllowed(
+    // Operator signal: error level pages through Sentry, and the stable message
+    // and fields are what a metric or log query counts.
+    this.logger.error(
+      'Generation completed after its credit hold ended; charged late',
+      {
+        amount: hold.amount,
         ingredientId,
         organizationId,
-        'release',
-      ))
-    )
-      return 'held';
-    const ingredient = await this.readByokIngredient(
-      ingredientId,
-      organizationId,
+        reservationId: hold.id,
+        reservationStatus: hold.status,
+      },
     );
-    const receipt = this.readUsageReceipt(ingredient?.generationBilling);
-    if (!ingredient || !receipt) return 'no-hold';
-    if (SETTLEABLE_STATUSES.includes(ingredient.status)) return 'released';
-    await this.prisma.ingredient.updateMany({
-      data: {
-        generationBilling: toPrismaJson({ ...receipt, state: 'failed' }),
-      },
-      where: {
-        id: ingredientId,
-        organizationId,
-        isDeleted: false,
-        status: {
-          notIn: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
-        },
-      },
-    });
-    this.logger.log('Generation BYOK usage cancelled', {
-      ingredientId,
-      organizationId,
-    });
-    return 'released';
+    return 'late-queued';
+  }
+
+  private lateSettlementKey(reservationId: string): string {
+    return `${MEDIA_GENERATION_LATE_SETTLEMENT_KEY_PREFIX}:${reservationId}`;
   }
 
   private crunMutation<T>(
@@ -675,7 +504,7 @@ export class GenerationBillingService {
         },
       });
       for (const row of rows) {
-        const receipt = this.readUsageReceipt(row.generationBilling);
+        const receipt = this.byok.readReceipt(row.generationBilling);
         if (!receipt || !row.organizationId) continue;
         try {
           if (
@@ -687,26 +516,26 @@ export class GenerationBillingService {
           )
             continue;
           if (SETTLEABLE_STATUSES.includes(row.status)) {
-            await this.settleByokOutput(row.id, row.organizationId);
+            await this.byok.settle(row.id, row.organizationId);
           } else if (receipt.submissionIntentProvider) {
             if (
               receipt.confirmedFailure?.ingredientId === row.id &&
               receipt.confirmedFailure.provider ===
                 receipt.submissionIntentProvider
             ) {
-              await this.failByokOutput(row.id, row.organizationId);
+              await this.byok.fail(row.id, row.organizationId);
             } else continue;
           } else if (TERMINAL_FAILURE_STATUSES.includes(row.status)) {
-            await this.failByokOutput(row.id, row.organizationId);
+            await this.byok.fail(row.id, row.organizationId);
           } else if (new Date(receipt.expiresAt) <= now) {
             await this.failStuckIngredient(row.id, row.organizationId);
-            const latest = await this.readByokIngredient(
+            const latest = await this.byok.readIngredient(
               row.id,
               row.organizationId,
             );
             if (latest && SETTLEABLE_STATUSES.includes(latest.status))
-              await this.settleByokOutput(row.id, row.organizationId);
-            else await this.failByokOutput(row.id, row.organizationId);
+              await this.byok.settle(row.id, row.organizationId);
+            else await this.byok.fail(row.id, row.organizationId);
           } else continue;
           acted += 1;
         } catch (error: unknown) {
@@ -747,7 +576,7 @@ export class GenerationBillingService {
       return 'released';
     const hold = await this.findHold(ingredientId, organizationId);
     if (!hold) {
-      return this.failByokOutput(ingredientId, organizationId);
+      return this.byok.fail(ingredientId, organizationId);
     }
     if (hold.status === CreditReservationStatus.RESERVED) {
       await this.credits.releaseReservation({
@@ -774,6 +603,10 @@ export class GenerationBillingService {
     let cursor: string | undefined;
     let acted = 0;
     let candidates = 0;
+    const stats: HoldReconcileStats = {
+      awaitingIntentProof: 0,
+      expiredIntentHolds: 0,
+    };
     for (;;) {
       // tenant-scope-ignore: platform sweep; each hold carries its organizationId
       const holds = await this.prisma.creditReservation.findMany({
@@ -790,17 +623,138 @@ export class GenerationBillingService {
       });
       if (holds.length === 0) break;
       candidates += holds.length;
-      acted += await this.reconcileHolds(holds, now);
+      acted += await this.reconcileHolds(holds, now, stats);
       if (holds.length < RECONCILE_BATCH) break;
       cursor = holds[holds.length - 1].id;
     }
     acted += await this.reconcileByok(now);
     acted += await this.quoteGroups.reconcile(now);
+    // The counts are the stuck-hold metric: intent holds still waiting for
+    // proof and intent holds this sweep expired.
     this.logger.log('Generation hold reconciliation completed', {
       acted,
+      awaitingIntentProof: stats.awaitingIntentProof,
       candidates,
+      expiredIntentHolds: stats.expiredIntentHolds,
     });
     return acted;
+  }
+
+  /**
+   * Charge outputs that completed after their hold ended when the completion
+   * hook missed or failed, so a lost signal cannot leave a delivered output
+   * unbilled (#5886). Each charge is keyed by its hold, so re-running is safe.
+   * Returns how many late charges it queued.
+   */
+  async reconcileLateCompletions(now = new Date()): Promise<number> {
+    let cursor: string | undefined;
+    let charged = 0;
+    for (;;) {
+      // tenant-scope-ignore: platform sweep; each hold carries its organizationId
+      const holds = await this.prisma.creditReservation.findMany({
+        orderBy: { id: 'asc' },
+        take: RECONCILE_BATCH,
+        where: {
+          ...(cursor ? { id: { gt: cursor } } : {}),
+          isDeleted: false,
+          status: {
+            in: [
+              CreditReservationStatus.EXPIRED,
+              CreditReservationStatus.RELEASED,
+            ],
+          },
+          updatedAt: {
+            gte: new Date(
+              now.getTime() - MEDIA_GENERATION_LATE_SETTLEMENT_WINDOW_MS,
+            ),
+          },
+          workloadId: { not: null },
+          workloadType: MEDIA_GENERATION_WORKLOAD_TYPE,
+        },
+      });
+      if (holds.length === 0) break;
+      charged += await this.chargeLateHolds(holds);
+      if (holds.length < RECONCILE_BATCH) break;
+      cursor = holds[holds.length - 1].id;
+    }
+    this.logger.log('Generation late charge reconciliation completed', {
+      lateCharges: charged,
+    });
+    return charged;
+  }
+
+  private async chargeLateHolds(
+    holds: Array<{
+      id: string;
+      organizationId: string;
+      workloadId: string | null;
+    }>,
+  ): Promise<number> {
+    // tenant-scope-ignore: ids come from the holds above, matched by org below
+    const ingredients = await this.prisma.ingredient.findMany({
+      select: { id: true, organizationId: true, status: true },
+      where: {
+        id: {
+          in: holds.flatMap((hold) =>
+            hold.workloadId ? [hold.workloadId] : [],
+          ),
+        },
+        isDeleted: false,
+        status: {
+          in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
+        },
+      },
+    });
+    const completed = new Set(
+      ingredients.map((row) => `${row.organizationId}:${row.id}`),
+    );
+    const candidates = holds.filter(
+      (hold) =>
+        hold.workloadId &&
+        completed.has(`${hold.organizationId}:${hold.workloadId}`),
+    );
+    if (candidates.length === 0) return 0;
+    // tenant-scope-ignore: keys embed the hold id; rows are matched by org below
+    const recorded = await this.prisma.creditTransaction.findMany({
+      select: { idempotencyKey: true, organizationId: true },
+      where: {
+        idempotencyKey: {
+          in: candidates.map((hold) => this.lateSettlementKey(hold.id)),
+        },
+        isDeleted: false,
+      },
+    });
+    const charged = new Set(
+      recorded.map((row) => `${row.organizationId}:${row.idempotencyKey}`),
+    );
+
+    let queued = 0;
+    for (const hold of candidates) {
+      const ingredientId = hold.workloadId;
+      if (
+        !ingredientId ||
+        charged.has(`${hold.organizationId}:${this.lateSettlementKey(hold.id)}`)
+      )
+        continue;
+      try {
+        if (
+          (await this.settleOutput(ingredientId, hold.organizationId)) ===
+          'late-queued'
+        )
+          queued += 1;
+      } catch (error: unknown) {
+        this.logger.error(
+          'Generation late charge reconciliation failed',
+          error,
+          {
+            ingredientId,
+            organizationId: hold.organizationId,
+            reservationId: hold.id,
+          },
+        );
+      }
+    }
+    return queued;
   }
 
   private async reconcileHolds(
@@ -812,6 +766,7 @@ export class GenerationBillingService {
       metadata?: unknown;
     }>,
     now: Date,
+    stats: HoldReconcileStats,
   ): Promise<number> {
     // tenant-scope-ignore: ids come from the holds above, matched by org below
     const ingredients = await this.prisma.ingredient.findMany({
@@ -864,23 +819,47 @@ export class GenerationBillingService {
             hold.metadata,
           );
           const evidence = proof.success ? proof.data : null;
-          if (
+          const isFailureConfirmed =
             evidence?.assetId === ingredientId &&
             evidence.confirmedFailure?.ingredientId === ingredientId &&
             evidence.confirmedFailure.provider ===
-              evidence.submissionIntent.provider
-          ) {
+              evidence.submissionIntent.provider;
+          const intent = generationSubmissionIntentSchema.parse(hold.metadata);
+          const isPastCeiling =
+            intent.submissionIntent.provider !== 'crun' &&
+            hold.expiresAt.getTime() +
+              MEDIA_GENERATION_INTENT_HOLD_CEILING_MS <=
+              now.getTime();
+          // A bound submission may have reached the provider, so library
+          // deletion, generic failure and elapsed time are not negative proof.
+          // Crun resolves through its own task receipts. For any other
+          // provider, a hold still unproven at the ceiling stops locking the
+          // wallet: an output that completes afterwards is charged late
+          // (#5886), so expiry cannot give it away.
+          if (isFailureConfirmed || isPastCeiling) {
             await this.credits.releaseReservation({
               organizationId: hold.organizationId,
+              ...(isFailureConfirmed ? {} : { reason: 'expiry' as const }),
               reservationId: hold.id,
               expectedReservationMetadata: z
                 .record(z.string(), z.unknown())
                 .parse(hold.metadata),
             });
+            if (!isFailureConfirmed) {
+              stats.expiredIntentHolds += 1;
+              this.logger.warn(
+                'Submission-intent credit hold expired without provider proof',
+                {
+                  ingredientId,
+                  organizationId: hold.organizationId,
+                  reservationId: hold.id,
+                },
+              );
+            }
             acted += 1;
+          } else if (hold.expiresAt <= now) {
+            stats.awaitingIntentProof += 1;
           }
-          // A bound submission may have reached the provider. Library deletion,
-          // generic failure and elapsed time cannot establish negative proof.
           continue;
         } else if (
           !ingredient ||
@@ -894,7 +873,7 @@ export class GenerationBillingService {
             hold.organizationId,
           );
           if (!failed) {
-            const latest = await this.readByokIngredient(
+            const latest = await this.byok.readIngredient(
               ingredientId,
               hold.organizationId,
             );

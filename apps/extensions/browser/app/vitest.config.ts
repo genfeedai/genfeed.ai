@@ -9,32 +9,69 @@ export default defineConfig({
   oxc: false,
   plugins: [react()],
   resolve: {
-    alias: {
-      '@genfeedai/auth-client/react': path.resolve(
-        extensionAppDir,
-        '../../../../packages/auth-client/src/react.tsx',
-      ),
-      '@genfeedai/helpers/formatting/cn': path.resolve(
-        extensionAppDir,
-        '../../../../packages/helpers/src/formatting/cn/index.ts',
-      ),
-      '@hooks': path.resolve(extensionAppDir, './src/hooks'),
-      '@ui': path.resolve(extensionAppDir, '../../../../packages/ui/src'),
-      '~': path.resolve(extensionAppDir, './src'),
-      '~components': path.resolve(extensionAppDir, './src/components'),
-      '~hooks': path.resolve(extensionAppDir, './src/hooks'),
-      '~models': path.resolve(extensionAppDir, './src/models'),
-      '~platforms': path.resolve(extensionAppDir, './src/platforms'),
-      '~popup': path.resolve(extensionAppDir, './src/popup.tsx'),
-      '~services': path.resolve(extensionAppDir, './src/services'),
-      '~store': path.resolve(extensionAppDir, './src/store'),
-      '~theme': path.resolve(extensionAppDir, './src/theme'),
-      '~style.css': path.resolve(extensionAppDir, './src/style.css'),
-      '~utils': path.resolve(extensionAppDir, './src/utils'),
-    },
+    dedupe: ['react', 'react-dom'],
+    alias: [
+      ...['helpers', 'contracts'].flatMap((name) => [
+        {
+          find: new RegExp(`^@genfeedai/${name}$`),
+          replacement: path.resolve(
+            extensionAppDir,
+            `../../../../packages/${name}/src/index.ts`,
+          ),
+        },
+        {
+          find: new RegExp(`^@genfeedai/${name}/(.+)$`),
+          replacement: `${path.resolve(extensionAppDir, `../../../../packages/${name}/src`)}/$1`,
+        },
+      ]),
+      ...Object.entries({
+        react: path.resolve(extensionAppDir, './node_modules/react'),
+        'react-dom': path.resolve(extensionAppDir, './node_modules/react-dom'),
+        '@genfeedai/auth-client/react': path.resolve(
+          extensionAppDir,
+          '../../../../packages/auth-client/src/react.tsx',
+        ),
+        '@genfeedai/agent': path.resolve(
+          extensionAppDir,
+          '../../../../packages/agent/src',
+        ),
+        '@helpers': path.resolve(
+          extensionAppDir,
+          '../../../../packages/helpers/src',
+        ),
+        '@hooks': path.resolve(extensionAppDir, './src/hooks'),
+        '@ui': path.resolve(extensionAppDir, '../../../../packages/ui/src'),
+        '~': path.resolve(extensionAppDir, './src'),
+        '~components': path.resolve(extensionAppDir, './src/components'),
+        '~hooks': path.resolve(extensionAppDir, './src/hooks'),
+        '~models': path.resolve(extensionAppDir, './src/models'),
+        '~platforms': path.resolve(extensionAppDir, './src/platforms'),
+        '~popup': path.resolve(extensionAppDir, './src/popup.tsx'),
+        '~services': path.resolve(extensionAppDir, './src/services'),
+        '~store': path.resolve(extensionAppDir, './src/store'),
+        '~theme': path.resolve(extensionAppDir, './src/theme'),
+        '~style.css': path.resolve(extensionAppDir, './src/style.css'),
+        '~utils': path.resolve(extensionAppDir, './src/utils'),
+      }).map(([find, replacement]) => ({ find, replacement })),
+    ],
     extensions: ['.tsx', '.ts', '.jsx', '.js', '.mjs', '.json'],
   },
   test: {
+    deps: {
+      optimizer: {
+        client: {
+          enabled: true,
+          include: [
+            'react',
+            'react-dom/client',
+            'lucide-react',
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-slot',
+          ],
+        },
+      },
+    },
+    server: { deps: { inline: [/react/, /@radix-ui/] } },
     coverage: {
       all: false,
       clean: true,

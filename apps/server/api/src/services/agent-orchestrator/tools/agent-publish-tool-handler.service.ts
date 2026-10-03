@@ -8,6 +8,11 @@ import { PostGroupsService } from '@api/collections/post-groups/services/post-gr
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AgentScopeContextService, SERVER_TOKENS } from '@api/index';
+import {
+  linkExternalPublicationCredentialAction,
+  recordExternalPublicationAction,
+  scheduleCanonicalPostAction,
+} from '@api/services/agent-orchestrator/tools/agent-publish-canonical-actions';
 import { resolveConfirmedPublishTargets } from '@api/services/agent-orchestrator/tools/agent-publish-confirmed-targets.util';
 import {
   blockMcpCreatePost,
@@ -23,10 +28,12 @@ import {
   resolveConfirmedFallbackPolicy,
   scheduleAgentPost,
 } from '@api/services/agent-orchestrator/tools/agent-publish-post-actions';
+import { assertAgentPublishingScope } from '@api/services/agent-orchestrator/tools/agent-publish-scope.util';
 import {
   buildAgentPublishTargetProposals,
   collectInvalidTargetBlockers,
   formatTargetBlockersError,
+  normalizePublishPlatforms,
   parseAgentPublishTargetPayloads,
   readCredentialId,
   readDomainPlatform,
@@ -54,7 +61,6 @@ import {
   PostVisibility,
   parsePlatform,
   ReleaseStatus,
-  TargetExecutionState,
 } from '@genfeedai/contracts';
 import { evaluateAgentAutoPublishPolicies } from '@genfeedai/contracts/api-types/contracts/agent-auto-publish.contract';
 import { type AgentPublishPolicyResult } from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
@@ -68,7 +74,6 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
-  ConflictException,
   HttpException,
   Inject,
   Injectable,
@@ -120,53 +125,34 @@ export class AgentPublishToolHandler {
     private readonly batchGenerationService?: BatchGenerationService,
   ) {}
 
+  async recordExternalPublication(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    return recordExternalPublicationAction(
+      this.postsService,
+      params,
+      ctx,
+      this.agentScopeContextService,
+    );
+  }
+
+  async linkExternalPublicationCredential(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    return linkExternalPublicationCredentialAction(
+      this.postsService,
+      params,
+      ctx,
+      this.agentScopeContextService,
+    );
+  }
+
   async scheduleCanonicalPost(
     input: ScheduleCanonicalPostInput,
   ): Promise<AgentToolResult> {
-    const release = await this.postGroupsService.scheduleTarget(
-      input.ctx.organizationId,
-      input.ctx.userId,
-      input.groupId,
-      input.postId,
-      input.scheduledAt,
-      {
-        agentContextSource: input.ctx.validatedScope?.source,
-        agentContextVersion: input.ctx.validatedScope?.contextVersion,
-        workflowExecutionId: input.ctx.runId,
-        agentStrategyId: input.ctx.strategyId,
-        agentThreadId: input.ctx.validatedScope?.threadId,
-      },
-    );
-    const target = release.targets?.find(
-      (candidate) => candidate.id === input.postId,
-    );
-    if (!target || target.executionState !== TargetExecutionState.SCHEDULED) {
-      throw new ConflictException(
-        'Canonical scheduler did not return the scheduled release target.',
-      );
-    }
-
-    return {
-      creditsUsed: 1,
-      data: {
-        id: input.postId,
-        releaseId: release.id,
-        scheduledAt: target.scheduledAt ?? input.scheduledAt,
-        status: target.executionState,
-      },
-      nextActions: [
-        {
-          ctas: [{ href: '/content/posts', label: 'Open posts' }],
-          description:
-            'The canonical release target is approval-backed and will enter the normal publish queue when due.',
-          id: `scheduled-post-${input.postId}`,
-          scheduledAt: target.scheduledAt ?? input.scheduledAt,
-          title: 'Post scheduled',
-          type: 'schedule_post_card',
-        },
-      ],
-      success: true,
-    };
+    return scheduleCanonicalPostAction(this.postGroupsService, input);
   }
 
   async publishConfirmedContent(
@@ -512,7 +498,7 @@ export class AgentPublishToolHandler {
             ? params.textContent.trim()
             : undefined;
     const requestedTargets = parseAgentPublishTargetPayloads(params.targets);
-    const platforms = this.normalizePlatforms(
+    const platforms = normalizePublishPlatforms(
       requestedTargets.length > 0
         ? requestedTargets.map((target) => target.platform)
         : Array.isArray(params.platforms)
@@ -558,23 +544,6 @@ export class AgentPublishToolHandler {
       error: 'sourceActionId does not match a persisted publish card.',
       success: false,
     };
-  }
-
-  private normalizePlatforms(value: unknown): string[] {
-    if (!Array.isArray(value)) {
-      return [];
-    }
-
-    return Array.from(
-      new Set(
-        value
-          .filter(
-            (platform): platform is string => typeof platform === 'string',
-          )
-          .map((platform) => platform.trim().toLowerCase())
-          .filter((platform) => platform.length > 0),
-      ),
-    );
   }
 
   private async resolveIngredientForContent(
@@ -773,23 +742,14 @@ export class AgentPublishToolHandler {
       success: true,
     };
   }
-  private async assertPublishingScope(
+  private assertPublishingScope(
     ctx: ToolExecutionContext,
     resourceBrandId: string | undefined,
     resourceLabel: string,
   ): Promise<void> {
-    if (!ctx.validatedScope || !this.agentScopeContextService) {
-      throw new Error(
-        'Validated agent scope is required before publishing side effects.',
-      );
-    }
-
-    await this.agentScopeContextService.assertConsequentialBoundary(
-      ctx.validatedScope,
-      'publish',
-    );
-    this.agentScopeContextService.assertResourceBrand(
-      ctx.validatedScope,
+    return assertAgentPublishingScope(
+      this.agentScopeContextService,
+      ctx,
       resourceBrandId,
       resourceLabel,
     );

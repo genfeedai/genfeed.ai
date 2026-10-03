@@ -6,6 +6,7 @@ import {
   toMcpTools,
 } from '@genfeedai/actions';
 import Ajv from 'ajv';
+import addFormats from 'ajv-formats';
 import { describe, expect, it } from 'vitest';
 import {
   type ActionContractJsonSchema,
@@ -25,7 +26,29 @@ const metric = {
   value: 12,
   trend: { direction: 'up', percentage: 5 },
 };
+function createAdvertisedSchemaAjv(): Ajv {
+  const ajv = new Ajv({
+    allErrors: true,
+    allowUnionTypes: true,
+    coerceTypes: false,
+    removeAdditional: false,
+    strict: true,
+    useDefaults: false,
+  });
+  addFormats(ajv);
+  return ajv;
+}
+
+const externalPublicationInput = {
+  brandId: 'brand-1',
+  platform: 'twitter',
+  publicationKind: 'post',
+  description: 'Already published',
+  publicationDate: '2026-10-02T12:00:00.000Z',
+  url: 'https://x.com/example/status/123',
+};
 const fixtures = [
+  { id: 'record_external_publication', input: externalPublicationInput },
   {
     id: 'execute_workflow',
     input: {
@@ -239,6 +262,47 @@ function validateInput(id: string, input: unknown): void {
 }
 
 describe('nested tool input contracts', () => {
+  it.each([
+    { date: '2026-10-02T12:00:00.000Z', valid: true },
+    { date: '2026-10-02T14:00:00+02:00', valid: true },
+    { date: 'not-a-date', valid: false },
+    { date: '2026-10-02', valid: false },
+    { date: '2026-10-02T12:00:00', valid: false },
+    { date: '2026-02-30T12:00:00Z', valid: false },
+    { date: 42, valid: false },
+  ])(
+    'matches advertised and production publication date validation for $date',
+    ({ date, valid }) => {
+      const tool = toAgentTools(ALL_TOOLS).find(
+        (entry) => entry.name === 'record_external_publication',
+      );
+      if (!tool)
+        throw new Error('Missing advertised record_external_publication');
+      const validate = createAdvertisedSchemaAjv().compile(tool.parameters);
+      const payload = { ...externalPublicationInput, publicationDate: date };
+      const original = structuredClone(payload);
+      expect(validate(payload), JSON.stringify(validate.errors)).toBe(valid);
+      if (valid) {
+        expect(() =>
+          validateInput('record_external_publication', payload),
+        ).not.toThrow();
+      } else {
+        expect(() =>
+          validateInput('record_external_publication', payload),
+        ).toThrow();
+        expect(validate.errors).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              instancePath: '/publicationDate',
+              keyword: typeof date === 'number' ? 'type' : 'format',
+            }),
+          ]),
+        );
+      }
+      expect(payload).toEqual(original);
+    },
+  );
+
   it.each(fixtures)(
     'accepts supported nested input for $id',
     ({ id, input }) => {
@@ -256,10 +320,7 @@ describe('nested tool input contracts', () => {
       ];
       expect(schemas.length).toBeGreaterThan(0);
       for (const schema of schemas) {
-        const validate = new Ajv({
-          allowUnionTypes: true,
-          strict: true,
-        }).compile(schema);
+        const validate = createAdvertisedSchemaAjv().compile(schema);
         expect(validate(input), JSON.stringify(validate.errors)).toBe(true);
       }
     },
@@ -464,7 +525,7 @@ it('compiles every advertised Agent and MCP schema with its shared definitions',
       schema: tool.inputSchema,
     })),
   ];
-  const ajv = new Ajv({ allowUnionTypes: true, strict: true });
+  const ajv = createAdvertisedSchemaAjv();
   const compiled = new Map<string, string | null>();
   const failures: string[] = [];
   for (const { name, schema } of schemas) {

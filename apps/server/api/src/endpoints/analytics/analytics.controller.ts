@@ -6,6 +6,7 @@ import { appendAnalyticsPlatform } from '@api/endpoints/analytics/analytics-resp
 import {
   buildAnalyticsCacheKey,
   buildOwnedAnalyticsCacheKey,
+  buildTopContentAnalyticsCacheKey,
   resolveAnalyticsTenantScope,
   resolveOwnedAnalyticsTenantScope,
 } from '@api/endpoints/analytics/analytics-tenant-scope';
@@ -332,15 +333,7 @@ export class AnalyticsController {
 
   @Get('top')
   @Cache({
-    keyGenerator: (req) =>
-      buildOwnedAnalyticsCacheKey('top', req, [
-        req.query?.startDate || 'default',
-        req.query?.endDate || 'default',
-        req.query?.metric || 'views',
-        req.query?.limit || '10',
-        req.query?.brandId || '',
-        req.query?.platform || '',
-      ]),
+    keyGenerator: buildTopContentAnalyticsCacheKey,
     tags: ['analytics', 'top-content'],
     ttl: 300,
   })
@@ -365,6 +358,7 @@ export class AnalyticsController {
       query.brandId,
       query.platform as CredentialPlatform,
       organizationId,
+      query.source,
     );
     return serializeSingle(req, AnalyticsTopPostSerializer, data);
   }

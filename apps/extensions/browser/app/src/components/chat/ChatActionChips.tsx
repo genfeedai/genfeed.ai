@@ -66,14 +66,14 @@ export function ChatActionChips({
     (currentPlatform && PLATFORM_CHIPS[currentPlatform]) || DEFAULT_CHIPS;
 
   return (
-    <div className="flex gap-1.5 overflow-x-auto px-3 pt-2 pb-1 scrollbar-none">
+    <div className="flex flex-wrap gap-2">
       {chips.map((chip) => (
         <Button
           key={chip.label}
           type="button"
           variant={ButtonVariant.SECONDARY}
           onClick={() => onChipClick(chip.prompt)}
-          className="shrink-0 rounded-full px-3 py-1 text-xs"
+          className="shrink-0 rounded-lg px-3 py-1.5 text-xs"
         >
           {chip.label}
         </Button>

@@ -316,7 +316,9 @@ export class ClipProjectIngestionService {
           : IngredientCategory.VIDEO,
         contentType: dto.contentType,
         filename: dto.filename,
+        sizeBytes: dto.sizeBytes,
       },
+      { maxBytes: MAX_CLIP_SOURCE_SIZE_BYTES },
     );
     const now = new Date().toISOString();
     const source: ClipSourceContract = {
@@ -439,6 +441,7 @@ export class ClipProjectIngestionService {
       await this.presignedUploadService.confirmUpload(
         user,
         source.ingredientId,
+        { maxBytes: MAX_CLIP_SOURCE_SIZE_BYTES },
       );
       ingredient = await this.ingredientsService.findOne(
         {

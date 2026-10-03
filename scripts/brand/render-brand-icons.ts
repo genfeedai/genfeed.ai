@@ -62,7 +62,7 @@ export const BRAND_RASTER_SPECS: Record<BrandRasterId, BrandRasterSpec> = {
   extensionToolbar: {
     background: TRANSPARENT,
     canvas: 500,
-    fill: '#000000',
+    fill: '#ffffff',
     markSize: 500,
   },
   mobileAdaptiveIcon: {

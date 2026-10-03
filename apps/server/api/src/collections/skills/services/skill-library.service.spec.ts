@@ -843,6 +843,98 @@ describe('SkillLibraryService authorized versions', () => {
   });
 });
 
+describe('SkillLibraryService legacy write gates', () => {
+  const service = new SkillLibraryService(prisma as unknown as PrismaService);
+  const row = (overrides: Record<string, unknown> = {}) => ({
+    audience: 'organization',
+    brandId: null,
+    config: { slug: 'voice' },
+    currentVersionId: null,
+    id: 'skill-1',
+    isDeleted: false,
+    isQuarantined: false,
+    label: 'Voice',
+    organizationId: 'org-1',
+    ownerKind: 'organization',
+    ownerUserId: null,
+    publishedVersionId: null,
+    revision: 1,
+    sharedVersionId: null,
+    ...overrides,
+  });
+
+  beforeEach(() => {
+    state.grants = [];
+    state.roleKey = 'member';
+    vi.clearAllMocks();
+  });
+
+  it('denies a member editing organization and brand skills but allows an admin', async () => {
+    prisma.skill.findFirst.mockResolvedValue(row());
+    await expect(
+      service.assertCanEdit(actor, 'skill-1'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    prisma.skill.findFirst.mockResolvedValue(
+      row({ brandId: 'brand-1', ownerKind: 'brand' }),
+    );
+    await expect(
+      service.assertCanEdit(actor, 'skill-1'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    state.roleKey = 'admin';
+    await expect(
+      service.assertCanEdit(actor, 'skill-1'),
+    ).resolves.toBeUndefined();
+  });
+
+  it('keeps a personal skill editable by its owner only', async () => {
+    prisma.skill.findFirst.mockResolvedValue(
+      row({
+        audience: 'private',
+        organizationId: null,
+        ownerKind: 'user',
+        ownerUserId: 'user-1',
+      }),
+    );
+    await expect(
+      service.assertCanEdit(actor, 'skill-1'),
+    ).resolves.toBeUndefined();
+
+    prisma.skill.findFirst.mockResolvedValue(
+      row({
+        audience: 'private',
+        organizationId: null,
+        ownerKind: 'user',
+        ownerUserId: 'user-2',
+      }),
+    );
+    await expect(
+      service.assertCanEdit(actor, 'skill-1'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('requires an admin to create organization or brand owned skills', async () => {
+    await expect(
+      service.assertCanCreateOwned(actor, 'organization'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      service.assertCanCreateOwned(actor, 'brand', 'brand-1'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      service.assertCanCreateOwned(actor, 'user'),
+    ).resolves.toBeUndefined();
+
+    state.roleKey = 'admin';
+    await expect(
+      service.assertCanCreateOwned(actor, 'organization'),
+    ).resolves.toBeUndefined();
+    await expect(
+      service.assertCanCreateOwned(actor, 'brand', 'brand-1'),
+    ).resolves.toBeUndefined();
+  });
+});
+
 describe('SkillLibraryService ordinary validated package import', () => {
   function input(slug = 'Personal-Upload') {
     return {

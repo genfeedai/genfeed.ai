@@ -187,3 +187,17 @@ function readRequestedOrganizationId(
     ? organizationId
     : undefined;
 }
+
+export function buildTopContentAnalyticsCacheKey(
+  request: AnalyticsCacheRequest,
+): string {
+  return buildOwnedAnalyticsCacheKey('top', request, [
+    request.query?.startDate || 'default',
+    request.query?.endDate || 'default',
+    request.query?.metric || 'views',
+    request.query?.limit || '10',
+    request.query?.brandId || '',
+    request.query?.platform || '',
+    request.query?.source || '',
+  ]);
+}

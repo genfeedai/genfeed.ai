@@ -5,26 +5,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { type ReactElement, useEffect } from 'react';
-
+import type { ReactElement } from 'react';
 import { useBrandVoice } from '~hooks/use-brand-voice';
+import { selectWorkspaceBrand } from '~services/workspace.service';
 import { useBrandStore } from '~store/use-brand-store';
+import { useWorkspaceStore } from '~store/use-workspace-store';
 
 export function BrandSelector(): ReactElement {
   const brands = useBrandStore((s) => s.brands);
   const activeBrandId = useBrandStore((s) => s.activeBrandId);
-  const setActiveBrand = useBrandStore((s) => s.setActiveBrand);
-  const { fetchBrands } = useBrandVoice();
-
-  useEffect(() => {
-    fetchBrands();
-  }, [fetchBrands]);
+  useBrandVoice();
+  const workspace = useWorkspaceStore();
 
   function handleChange(value: string) {
-    setActiveBrand(value || null);
-    void chrome.runtime
-      .sendMessage({ event: 'captureSetBrand', brandId: value })
-      .catch(() => undefined);
+    void selectWorkspaceBrand(value || null).catch(() => undefined);
   }
 
   if (brands.length === 0) {
@@ -36,8 +30,15 @@ export function BrandSelector(): ReactElement {
   }
 
   return (
-    <Select value={activeBrandId ?? ''} onValueChange={handleChange}>
-      <SelectTrigger className="w-full">
+    <Select
+      disabled={workspace.status !== 'ready'}
+      value={activeBrandId ?? ''}
+      onValueChange={handleChange}
+    >
+      <SelectTrigger
+        aria-label="Active brand"
+        className="h-8 w-full border-0 bg-transparent text-xs shadow-none"
+      >
         <SelectValue placeholder="Select a brand..." />
       </SelectTrigger>
       <SelectContent>

@@ -1895,11 +1895,43 @@ describe('FilesController', () => {
         expect.any(String),
         'video/mp4',
         3600,
+        undefined,
       );
       expect(result.uploadUrl).toBe('https://s3.presigned.upload.url');
       expect(result.publicUrl).toBe('https://s3.public.url');
       expect(result.expiresIn).toBe(3600);
     });
+
+    it('should forward the declared content length to the signer', async () => {
+      await controller.getPresignedUploadUrl({
+        contentLength: 4096,
+        contentType: 'image/png',
+        filename: 'a.png',
+        type: 'image',
+      });
+
+      expect(s3Service.getPresignedUploadUrl).toHaveBeenCalledWith(
+        expect.any(String),
+        'image/png',
+        3600,
+        4096,
+      );
+    });
+
+    it.each([0, -5, 1.5, Number.NaN])(
+      'should reject content length %s with 400',
+      async (contentLength) => {
+        await expect(
+          controller.getPresignedUploadUrl({
+            contentLength,
+            contentType: 'image/png',
+            filename: 'a.png',
+            type: 'image',
+          }),
+        ).rejects.toMatchObject({ status: 400 });
+        expect(s3Service.getPresignedUploadUrl).not.toHaveBeenCalled();
+      },
+    );
 
     it('should handle presigned URL errors', async () => {
       mockS3Service.getPresignedUploadUrl.mockRejectedValueOnce(

@@ -1,7 +1,9 @@
-import {
-  DEFAULT_THEME,
-  type ThemePreference,
-} from '@genfeedai/contracts/constants';
+import { DEFAULT_THEME } from '@genfeedai/contracts/constants';
+import type {
+  PersistedExtensionSettings,
+  SettingsActions,
+  SettingsState,
+} from '@genfeedai/contracts/interfaces/extension/extension-settings.interface';
 import { create } from 'zustand';
 import {
   EXTENSION_SETTINGS_STORAGE_KEY,
@@ -9,31 +11,7 @@ import {
 } from '~theme/theme-storage';
 import { logger } from '~utils/logger.util';
 
-interface SettingsState {
-  autoFill: boolean;
-  autoPost: boolean;
-  isLoaded: boolean;
-  settingsRevision: number;
-  theme: ThemePreference;
-  themeRevision: number;
-}
-
-interface SettingsActions {
-  applyStoredSettings: (settings: unknown) => void;
-  applyAccountTheme: (theme: ThemePreference) => void;
-  setAutoFill: (autoFill: boolean) => void;
-  setAutoPost: (autoPost: boolean) => void;
-  setTheme: (theme: ThemePreference) => void;
-  loadSettings: () => Promise<void>;
-}
-
 export { EXTENSION_SETTINGS_STORAGE_KEY } from '~theme/theme-storage';
-
-interface PersistedExtensionSettings {
-  autoFill: boolean;
-  autoPost: boolean;
-  theme: ThemePreference;
-}
 
 function normalizeSettings(settings: unknown): PersistedExtensionSettings {
   const candidate =
@@ -42,6 +20,10 @@ function normalizeSettings(settings: unknown): PersistedExtensionSettings {
       : {};
 
   return {
+    recordOwnPublications:
+      typeof candidate.recordOwnPublications === 'boolean'
+        ? candidate.recordOwnPublications
+        : true,
     autoFill:
       typeof candidate.autoFill === 'boolean' ? candidate.autoFill : false,
     autoPost:
@@ -57,12 +39,14 @@ function persistSettings(settings: PersistedExtensionSettings): void {
 }
 
 function currentPersistedSettings(): PersistedExtensionSettings {
-  const { autoFill, autoPost, theme } = useSettingsStore.getState();
-  return { autoFill, autoPost, theme };
+  const { autoFill, autoPost, theme, recordOwnPublications } =
+    useSettingsStore.getState();
+  return { autoFill, autoPost, theme, recordOwnPublications };
 }
 
 export const useSettingsStore = create<SettingsState & SettingsActions>(
   (set, get) => ({
+    recordOwnPublications: true,
     autoFill: false,
     autoPost: false,
     isLoaded: false,
@@ -109,6 +93,13 @@ export const useSettingsStore = create<SettingsState & SettingsActions>(
       }
     },
 
+    setRecordOwnPublications: (recordOwnPublications) => {
+      set((state) => ({
+        recordOwnPublications,
+        settingsRevision: state.settingsRevision + 1,
+      }));
+      persistSettings(currentPersistedSettings());
+    },
     setAutoFill: (autoFill) => {
       set((state) => ({
         autoFill,

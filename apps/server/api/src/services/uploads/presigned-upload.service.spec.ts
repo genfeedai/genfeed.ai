@@ -82,6 +82,7 @@ describe('PresignedUploadService', () => {
         {
           provide: FilesClientService,
           useValue: {
+            deleteStoredObject: vi.fn().mockResolvedValue(undefined),
             getPresignedDownloadUrl: vi.fn(),
             getPresignedUploadUrl: vi.fn(),
             uploadToS3: vi.fn(),
@@ -138,6 +139,7 @@ describe('PresignedUploadService', () => {
         category: IngredientCategory.IMAGE,
         contentType: 'image/jpeg',
         filename: 'test-image.jpg',
+        sizeBytes: 2048,
       };
 
       const mockIngredient = createIngredientEntity({
@@ -188,6 +190,7 @@ describe('PresignedUploadService', () => {
         'images',
         body.contentType,
         3600,
+        2048,
       );
     });
 
@@ -309,6 +312,7 @@ describe('PresignedUploadService', () => {
         'videos',
         body.contentType,
         3600,
+        undefined,
       );
     });
 
@@ -345,35 +349,107 @@ describe('PresignedUploadService', () => {
       );
     });
 
-    it('should extract file extension correctly', async () => {
-      const body = {
-        category: IngredientCategory.IMAGE,
-        contentType: 'application/pdf',
-        filename: 'document.pdf',
-      };
-
-      const mockIngredient = createIngredientEntity({
-        category: IngredientCategory.IMAGE,
-      });
-
+    it('should extract the filename extension for allowed types without a label', async () => {
       sharedService.createMediaDocuments.mockResolvedValue({
-        ingredientData: mockIngredient,
+        ingredientData: createIngredientEntity({}),
         metadataData: createMetadataEntity(),
       });
-
       filesClientService.getPresignedUploadUrl.mockResolvedValue({
         publicUrl: 'https://cdn.example.com/images/test',
         s3Key: 'ingredients/images/test',
         uploadUrl: 'https://s3.amazonaws.com/bucket/upload',
       });
 
-      await service.getPresignedUploadUrl(mockUser, body);
+      await service.getPresignedUploadUrl(mockUser, {
+        category: IngredientCategory.IMAGE,
+        contentType: 'image/heic',
+        filename: 'phone.heic',
+      });
 
       expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
         mockUser,
-        expect.objectContaining({
-          extension: 'pdf',
+        expect.objectContaining({ extension: 'heic' }),
+      );
+    });
+
+    it.each([
+      ['application/pdf', IngredientCategory.IMAGE],
+      ['application/octet-stream', IngredientCategory.IMAGE],
+      ['text/html', IngredientCategory.IMAGE],
+      ['image/svg+xml', IngredientCategory.IMAGE],
+      ['image/png', IngredientCategory.VIDEO],
+      ['video/mp4', IngredientCategory.MUSIC],
+      ['', IngredientCategory.IMAGE],
+    ])(
+      'should reject %s for %s before creating any record',
+      async (contentType, category) => {
+        await expect(
+          service.getPresignedUploadUrl(mockUser, {
+            category,
+            contentType,
+            filename: 'file.bin',
+            sizeBytes: 1024,
+          }),
+        ).rejects.toMatchObject({ status: HttpStatus.UNSUPPORTED_MEDIA_TYPE });
+
+        expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+        expect(filesClientService.getPresignedUploadUrl).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should reject a category that cannot be uploaded directly', async () => {
+      await expect(
+        service.getPresignedUploadUrl(mockUser, {
+          category: IngredientCategory.TEXT,
+          contentType: 'text/plain',
+          filename: 'a.txt',
         }),
+      ).rejects.toMatchObject({ status: HttpStatus.BAD_REQUEST });
+      expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    });
+
+    it('should reject an oversized declared upload before signing', async () => {
+      await expect(
+        service.getPresignedUploadUrl(mockUser, {
+          category: IngredientCategory.IMAGE,
+          contentType: 'image/png',
+          filename: 'huge.png',
+          sizeBytes: 51 * 1024 * 1024,
+        }),
+      ).rejects.toMatchObject({ status: HttpStatus.PAYLOAD_TOO_LARGE });
+
+      expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+      expect(filesClientService.getPresignedUploadUrl).not.toHaveBeenCalled();
+    });
+
+    it('should let trusted callers raise the cap', async () => {
+      sharedService.createMediaDocuments.mockResolvedValue({
+        ingredientData: createIngredientEntity({}),
+        metadataData: createMetadataEntity(),
+      });
+      filesClientService.getPresignedUploadUrl.mockResolvedValue({
+        publicUrl: 'https://cdn.example.com/v',
+        s3Key: 'ingredients/videos/v',
+        uploadUrl: 'https://s3.amazonaws.com/bucket/upload',
+      });
+
+      await service.getPresignedUploadUrl(
+        mockUser,
+        {
+          category: IngredientCategory.VIDEO,
+          contentType: 'video/mp4',
+          filename: 'big.mp4',
+          sizeBytes: 2 * 1024 * 1024 * 1024,
+        },
+        { maxBytes: 10 * 1024 * 1024 * 1024 },
+      );
+
+      expect(filesClientService.getPresignedUploadUrl).toHaveBeenCalledWith(
+        expect.any(String),
+        'videos',
+        'video/mp4',
+        3600,
+        2 * 1024 * 1024 * 1024,
       );
     });
 
@@ -468,63 +544,45 @@ describe('PresignedUploadService', () => {
       });
     });
 
-    it.each([false, true])(
-      'should preserve the existing key when metadata fails: %s',
-      async (fails) => {
-        const s3Key = 'ingredients/images/existing-key';
-        ingredientsService.findOne.mockResolvedValue(
-          createIngredientDocument({ s3Key }),
-        );
-        if (fails) {
-          filesClientService.uploadToS3.mockRejectedValue(
-            new Error('Metadata failed'),
-          );
-        } else {
-          filesClientService.uploadToS3.mockResolvedValue({
-            s3Key: 'ingredients/images/reprocessed-key',
-          });
-        }
-        await service.confirmUpload(mockUser, mockIngredientId);
-        expect(ingredientsService.patch).toHaveBeenCalledWith(
-          mockIngredientId,
-          {
-            s3Key,
-            status: IngredientStatus.UPLOADED,
-          },
-        );
-      },
-    );
+    it('should keep the existing key when reprocessing returns another key', async () => {
+      const s3Key = 'ingredients/images/existing-key';
+      ingredientsService.findOne.mockResolvedValue(
+        createIngredientDocument({ s3Key }),
+      );
+      filesClientService.uploadToS3.mockResolvedValue({
+        height: 10,
+        s3Key: 'ingredients/images/reprocessed-key',
+        width: 10,
+      });
+      await service.confirmUpload(mockUser, mockIngredientId);
+      expect(ingredientsService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        s3Key,
+        status: IngredientStatus.UPLOADED,
+      });
+    });
 
-    it.each([false, true])(
-      'should recover a legacy key from upload metadata when metadata patch fails: %s',
-      async (fails) => {
-        const s3Key = 'ingredients/images/trusted-upload-key';
-        ingredientsService.findOne.mockResolvedValue(
-          createIngredientDocument({}),
-        );
-        filesClientService.uploadToS3.mockResolvedValue({ s3Key });
-        if (fails)
-          metadataService.patch.mockRejectedValue(
-            new Error('Metadata patch failed'),
-          );
-        await service.confirmUpload(mockUser, mockIngredientId);
-        expect(ingredientsService.patch).toHaveBeenCalledWith(
-          mockIngredientId,
-          {
-            s3Key,
-            status: IngredientStatus.UPLOADED,
-          },
-        );
-      },
-    );
+    it('should recover a legacy key from upload metadata', async () => {
+      const s3Key = 'ingredients/images/trusted-upload-key';
+      ingredientsService.findOne.mockResolvedValue(
+        createIngredientDocument({}),
+      );
+      filesClientService.uploadToS3.mockResolvedValue({
+        height: 10,
+        s3Key,
+        width: 10,
+      });
+      await service.confirmUpload(mockUser, mockIngredientId);
+      expect(ingredientsService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        s3Key,
+        status: IngredientStatus.UPLOADED,
+      });
+    });
 
     it.each(['download', 'upload'])(
-      'should recover a legacy video key when %s fails',
+      'should fail the ingredient and delete the object when %s fails',
       async (stage) => {
         ingredientsService.findOne.mockResolvedValue(
-          createIngredientDocument({
-            category: IngredientCategory.VIDEO,
-          }),
+          createIngredientDocument({ category: IngredientCategory.VIDEO }),
         );
         if (stage === 'download') {
           filesClientService.getPresignedDownloadUrl.mockRejectedValue(
@@ -535,16 +593,114 @@ describe('PresignedUploadService', () => {
             new Error('Upload failed'),
           );
         }
-        await service.confirmUpload(mockUser, mockIngredientId);
+
+        await expect(
+          service.confirmUpload(mockUser, mockIngredientId),
+        ).rejects.toMatchObject({ status: HttpStatus.UNPROCESSABLE_ENTITY });
+
+        expect(ingredientsService.patch).toHaveBeenCalledTimes(1);
         expect(ingredientsService.patch).toHaveBeenCalledWith(
           mockIngredientId,
-          {
-            s3Key: `ingredients/videos/${mockIngredientId}`,
-            status: IngredientStatus.UPLOADED,
-          },
+          { status: IngredientStatus.FAILED },
+        );
+        expect(ingredientsService.patch).not.toHaveBeenCalledWith(
+          mockIngredientId,
+          expect.objectContaining({ status: IngredientStatus.UPLOADED }),
+        );
+        expect(filesClientService.deleteStoredObject).toHaveBeenCalledWith(
+          `ingredients/videos/${mockIngredientId}`,
+        );
+        expect(metadataService.patch).not.toHaveBeenCalled();
+        expect(loggerService.error).toHaveBeenCalledWith(
+          expect.stringContaining('failed to extract metadata'),
+          undefined,
+          expect.any(Object),
         );
       },
     );
+
+    it.each([
+      ['empty result', undefined],
+      ['zero dimensions', { height: 0, size: 10, width: 0 }],
+    ])(
+      'should reject an image with %s instead of marking it uploaded',
+      async (_label, uploadMeta) => {
+        ingredientsService.findOne.mockResolvedValue(
+          createIngredientDocument({ category: IngredientCategory.IMAGE }),
+        );
+        filesClientService.uploadToS3.mockResolvedValue(uploadMeta as never);
+
+        await expect(
+          service.confirmUpload(mockUser, mockIngredientId),
+        ).rejects.toMatchObject({ status: HttpStatus.UNPROCESSABLE_ENTITY });
+
+        expect(ingredientsService.patch).toHaveBeenCalledWith(
+          mockIngredientId,
+          {
+            status: IngredientStatus.FAILED,
+          },
+        );
+        expect(metadataService.patch).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should surface the processing error even when storage cleanup fails', async () => {
+      ingredientsService.findOne.mockResolvedValue(
+        createIngredientDocument({}),
+      );
+      filesClientService.uploadToS3.mockRejectedValue(new Error('corrupt'));
+      filesClientService.deleteStoredObject.mockRejectedValue(
+        new Error('storage down'),
+      );
+
+      await expect(
+        service.confirmUpload(mockUser, mockIngredientId),
+      ).rejects.toMatchObject({ status: HttpStatus.UNPROCESSABLE_ENTITY });
+    });
+
+    it('should reject an upload larger than the category cap', async () => {
+      ingredientsService.findOne.mockResolvedValue(
+        createIngredientDocument({ category: IngredientCategory.IMAGE }),
+      );
+      filesClientService.uploadToS3.mockResolvedValue({
+        height: 100,
+        size: 51 * 1024 * 1024,
+        width: 100,
+      });
+
+      await expect(
+        service.confirmUpload(mockUser, mockIngredientId),
+      ).rejects.toMatchObject({ status: HttpStatus.PAYLOAD_TOO_LARGE });
+
+      expect(ingredientsService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        status: IngredientStatus.FAILED,
+      });
+      expect(filesClientService.deleteStoredObject).toHaveBeenCalled();
+    });
+
+    it('should honor a raised cap from trusted callers', async () => {
+      const ingredient = createIngredientDocument({
+        category: IngredientCategory.VIDEO,
+      });
+      ingredientsService.findOne.mockResolvedValue(ingredient);
+      filesClientService.uploadToS3.mockResolvedValue({
+        height: 1080,
+        size: 500 * 1024 * 1024,
+        width: 1920,
+      });
+      ingredientsService.patch.mockResolvedValue(
+        createIngredientDocument({ status: IngredientStatus.UPLOADED }),
+      );
+
+      await service.confirmUpload(mockUser, mockIngredientId, {
+        maxBytes: 10 * 1024 * 1024 * 1024,
+      });
+
+      expect(ingredientsService.patch).toHaveBeenCalledWith(
+        mockIngredientId,
+        expect.objectContaining({ status: IngredientStatus.UPLOADED }),
+      );
+    });
 
     it('should throw NOT_FOUND when ingredient not found', async () => {
       const ingredientId = mockIngredientId.toString();
@@ -564,42 +720,6 @@ describe('PresignedUploadService', () => {
             title: 'Upload not found',
           }),
           status: HttpStatus.NOT_FOUND,
-        }),
-      );
-    });
-
-    it('should continue if metadata extraction fails', async () => {
-      const ingredientId = mockIngredientId.toString();
-
-      const mockIngredient = createIngredientDocument({
-        category: IngredientCategory.VIDEO,
-      });
-
-      ingredientsService.findOne.mockResolvedValue(mockIngredient);
-      filesClientService.getPresignedDownloadUrl.mockResolvedValue(
-        'https://s3.amazonaws.com/bucket/videos/test',
-      );
-      filesClientService.uploadToS3.mockRejectedValue(
-        new Error('Metadata extraction failed'),
-      );
-
-      ingredientsService.patch.mockResolvedValue(
-        createIngredientDocument({
-          ...mockIngredient,
-          status: IngredientStatus.UPLOADED,
-        }),
-      );
-
-      const result = await service.confirmUpload(mockUser, ingredientId);
-
-      expect(result.status).toBe(IngredientStatus.UPLOADED);
-      expect(loggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining('failed to extract metadata'),
-        undefined,
-        expect.objectContaining({
-          error: expect.objectContaining({
-            message: 'Metadata extraction failed',
-          }),
         }),
       );
     });

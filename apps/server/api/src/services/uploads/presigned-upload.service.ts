@@ -4,6 +4,11 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import {
+  assertPresignedUploadAllowed,
+  isImageOrVideoCategory,
+  resolveUploadMaxBytes,
+} from '@api/services/uploads/presigned-upload-policy.util';
 import { resolveUploadExtension } from '@api/services/uploads/upload-extension.util';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
@@ -14,9 +19,15 @@ import {
   IngredientStatus,
   normalizeCategory,
 } from '@genfeedai/contracts';
+import type { IFileMetadata } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+
+export interface PresignedUploadOptions {
+  /** Trusted internal callers (for example clip sources) may raise the cap. */
+  maxBytes?: number;
+}
 
 @Injectable()
 export class PresignedUploadService {
@@ -36,7 +47,10 @@ export class PresignedUploadService {
       filename: string;
       contentType: string;
       category?: IngredientCategory;
+      /** Exact size in bytes; checked against the cap and signed into the URL. */
+      sizeBytes?: number;
     },
+    options: PresignedUploadOptions = {},
   ): Promise<{
     id: string;
     uploadUrl: string;
@@ -48,13 +62,17 @@ export class PresignedUploadService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
 
-    const fileExtension = resolveUploadExtension(
-      body.contentType,
-      body.filename,
-    );
     const category = normalizeCategory(
       body.category ?? IngredientCategory.IMAGE,
     );
+    // Reject before any ingredient exists or any grant is signed.
+    const contentType = assertPresignedUploadAllowed({
+      category,
+      contentType: body.contentType,
+      maxBytesOverride: options.maxBytes,
+      sizeBytes: body.sizeBytes,
+    });
+    const fileExtension = resolveUploadExtension(contentType, body.filename);
 
     // Pre-create the ingredient document with pending status
     const { ingredientData } = await this.sharedService.createMediaDocuments(
@@ -83,8 +101,9 @@ export class PresignedUploadService {
     const presigned = await this.filesClientService.getPresignedUploadUrl(
       key,
       categoryToPlural(category),
-      body.contentType,
+      contentType,
       3600, // 1 hour expiry
+      body.sizeBytes,
     );
 
     if (!presigned.s3Key?.trim()) {
@@ -106,7 +125,11 @@ export class PresignedUploadService {
     };
   }
 
-  async confirmUpload(user: User, id: string): Promise<IngredientDocument> {
+  async confirmUpload(
+    user: User,
+    id: string,
+    options: PresignedUploadOptions = {},
+  ): Promise<IngredientDocument> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
 
@@ -141,6 +164,7 @@ export class PresignedUploadService {
     const s3Type = categoryToPlural(category);
     let s3Key = ingredient.s3Key || `ingredients/${s3Type}/${id}`;
 
+    let uploadMeta: IFileMetadata | undefined;
     try {
       // Get presigned download URL
       const downloadUrl = await this.filesClientService.getPresignedDownloadUrl(
@@ -151,31 +175,10 @@ export class PresignedUploadService {
 
       // Re-process the file through uploadToS3 to extract metadata
       // This uses the same workflow as AI-generated images/videos
-      const uploadMeta = await this.filesClientService.uploadToS3(id, s3Type, {
+      uploadMeta = await this.filesClientService.uploadToS3(id, s3Type, {
         type: FileInputType.URL,
         url: downloadUrl,
       });
-
-      if (
-        !ingredient.s3Key &&
-        typeof uploadMeta?.s3Key === 'string' &&
-        uploadMeta.s3Key.trim()
-      ) {
-        s3Key = uploadMeta.s3Key;
-      }
-
-      // Update metadata document with extracted dimensions
-      if (ingredient.metadataId && uploadMeta) {
-        await this.metadataService.patch(ingredient.metadataId, {
-          duration: uploadMeta.duration,
-          hasAudio: uploadMeta.hasAudio,
-          height: uploadMeta.height,
-          size: uploadMeta.size,
-          width: uploadMeta.width,
-        });
-      }
-
-      this.loggerService.log(`${url} metadata extracted`, uploadMeta);
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed to extract metadata`, undefined, {
         error: {
@@ -184,13 +187,94 @@ export class PresignedUploadService {
           stack: (error as Error)?.stack,
         },
       });
-      // Continue even if metadata extraction fails
+      await this.rejectUpload(id, s3Key);
+      throw new HttpException(
+        {
+          detail:
+            'The uploaded file could not be read as valid media. Upload a supported, uncorrupted file.',
+          title: 'Upload could not be processed',
+        },
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
     }
+
+    if (
+      !uploadMeta ||
+      (isImageOrVideoCategory(category) &&
+        !(Number(uploadMeta.width) > 0 && Number(uploadMeta.height) > 0))
+    ) {
+      this.loggerService.error(`${url} extracted no usable metadata`);
+      await this.rejectUpload(id, s3Key);
+      throw new HttpException(
+        {
+          detail: 'The uploaded file has no readable dimensions.',
+          title: 'Upload could not be processed',
+        },
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
+
+    // Backstop for uploads whose declared size was never signed into the URL.
+    const maxBytes = resolveUploadMaxBytes(category, options.maxBytes);
+    if (
+      maxBytes !== undefined &&
+      typeof uploadMeta.size === 'number' &&
+      uploadMeta.size > maxBytes
+    ) {
+      await this.rejectUpload(id, s3Key);
+      throw new HttpException(
+        {
+          detail: `The uploaded file exceeds the ${maxBytes} byte limit.`,
+          title: 'Upload too large',
+        },
+        HttpStatus.PAYLOAD_TOO_LARGE,
+      );
+    }
+
+    if (
+      !ingredient.s3Key &&
+      typeof uploadMeta.s3Key === 'string' &&
+      uploadMeta.s3Key.trim()
+    ) {
+      s3Key = uploadMeta.s3Key;
+    }
+
+    // Update metadata document with extracted dimensions
+    if (ingredient.metadataId) {
+      await this.metadataService.patch(ingredient.metadataId, {
+        duration: uploadMeta.duration,
+        hasAudio: uploadMeta.hasAudio,
+        height: uploadMeta.height,
+        size: uploadMeta.size,
+        width: uploadMeta.width,
+      });
+    }
+
+    this.loggerService.log(`${url} metadata extracted`, uploadMeta);
 
     // Update status to uploaded
     return await this.ingredientsService.patch(id, {
       s3Key,
       status: IngredientStatus.UPLOADED,
     });
+  }
+
+  /** Marks a rejected upload failed and removes the stored object best-effort. */
+  private async rejectUpload(id: string, s3Key: string): Promise<void> {
+    try {
+      await this.ingredientsService.patch(id, {
+        status: IngredientStatus.FAILED,
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} failed to mark upload ${id} failed`,
+        error,
+      );
+    }
+    try {
+      await this.filesClientService.deleteStoredObject(s3Key);
+    } catch {
+      // FilesClientService already logged the failure; the ingredient is FAILED.
+    }
   }
 }

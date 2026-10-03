@@ -29,7 +29,7 @@ const FORCE_FULL_PATTERNS = [
 // of reporting it as an ordinary out-of-scope skip (#2486). A dormant group is
 // forced inapplicable here even under `--run-heavy`, so the `full-suite` label
 // escalates every other group but cannot revive this one.
-export const TEMPORARILY_DISABLED_TEST_GROUPS = new Set(['extensions']);
+export const TEMPORARILY_DISABLED_TEST_GROUPS = new Set(['ide-extension']);
 
 // A queue checkout includes all proposed changes above its frozen base.
 // Master/release validation still forces both surfaces on.
@@ -40,10 +40,8 @@ export function isChangeRunEvent(eventName) {
 }
 
 const TURBO_TEST_GROUPS = {
-  extensions: [
-    '--filter=@genfeedai/extension-browser',
-    '--filter=extension-ide',
-  ],
+  'browser-extension': ['--filter=@genfeedai/extension-browser'],
+  'ide-extension': ['--filter=extension-ide'],
   packages: ['--filter=./packages/*'],
   server: ['--filter=./apps/server/*', '--filter=!@genfeedai/api'],
   web: [
@@ -219,7 +217,13 @@ export function createPrTestPlan({
     Object.entries(normalizedTurboTasks).map(([group, tasks]) => [
       group,
       !TEMPORARILY_DISABLED_TEST_GROUPS.has(group) &&
-        (runHeavy || classification.forceFull || tasks.length > 0),
+        (runHeavy ||
+          classification.forceFull ||
+          tasks.length > 0 ||
+          (group === 'browser-extension' &&
+            changedFiles.some((file) =>
+              file.startsWith('apps/extensions/browser/'),
+            ))),
     ]),
   );
 

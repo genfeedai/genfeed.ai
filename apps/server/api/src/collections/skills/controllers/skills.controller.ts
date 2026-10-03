@@ -98,6 +98,10 @@ export class SkillsController {
     @Body() body: CreateSkillDto,
   ) {
     const organization = this.requireOrganizationId(user);
+    await this.skillLibrary.assertCanCreateOwned(
+      this.actor(user),
+      'organization',
+    );
     const data = await this.skillsService.createSkill(organization, body);
 
     return serializeSingle(req, SkillSerializer, data);
@@ -111,6 +115,10 @@ export class SkillsController {
     @Body() body: CustomizeSkillDto,
   ) {
     const organization = this.requireOrganizationId(user);
+    await this.skillLibrary.assertCanCreateOwned(
+      this.actor(user),
+      'organization',
+    );
     const data = await this.skillsService.customizeSkill(
       organization,
       id,
@@ -128,11 +136,24 @@ export class SkillsController {
     @Body() body: UpdateSkillDto,
   ) {
     const organization = this.requireOrganizationId(user);
-    const data = await this.skillsService.updateSkill(
+    const actor = this.actor(user);
+    const existing = await this.skillsService.getSkillById(
       organization,
       id,
+      actor.userId,
+    );
+    if (!existing) {
+      throw new HttpException(
+        { detail: 'Skill not found', title: 'Not Found' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+    await this.skillLibrary.assertCanEdit(actor, String(existing.id));
+    const data = await this.skillsService.updateSkill(
+      organization,
+      String(existing.id),
       body,
-      this.actor(user).userId,
+      actor.userId,
     );
 
     return serializeSingle(req, SkillSerializer, data);

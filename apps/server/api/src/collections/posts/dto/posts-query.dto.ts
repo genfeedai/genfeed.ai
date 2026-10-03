@@ -17,6 +17,10 @@ import {
 
 export class PostsQueryDto extends BaseQueryDto {
   static readonly [FORBID_NON_WHITELISTED] = true;
+  @IsOptional()
+  @IsIn(['extension'])
+  source?: 'extension';
+
   @ApiProperty({
     description:
       'Separate posts that have been published from work in progress',

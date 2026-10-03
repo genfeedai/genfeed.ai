@@ -65,6 +65,14 @@ describe('getAgentActionClass', () => {
   });
 
   it('leaves mundane direct writes unclassified', () => {
+    expect(getAgentActionClass('record_external_publication')).toBeUndefined();
+    expect(
+      resolveEffectiveMutationPolicy(
+        'record_external_publication',
+        'manual',
+        'direct',
+      ),
+    ).toBe('direct');
     expect(getAgentActionClass('create_chat')).toBeUndefined();
     expect(getAgentActionClass('tag_social_conversation')).toBeUndefined();
   });
@@ -195,4 +203,10 @@ describe('resolveEffectiveMutationPolicy — #4672 confirmation matrix', () => {
       ),
     ).toBe('approval-required');
   });
+});
+
+it('keeps credential linking outside native publication approval classes', () => {
+  expect(
+    getAgentActionClass('link_external_publication_credential'),
+  ).toBeUndefined();
 });

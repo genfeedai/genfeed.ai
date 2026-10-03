@@ -9,7 +9,7 @@ interface ChatMessageProps {
 
 export function ChatMessage({ message }: ChatMessageProps): ReactElement {
   const isUser = message.role === 'user';
-  const hasGeneratedContent = !!message.metadata?.generatedContent;
+  const hasGeneratedContent = message.role === 'assistant';
 
   return (
     <div

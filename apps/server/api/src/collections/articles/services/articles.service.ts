@@ -58,7 +58,12 @@ import type {
 } from '@api/collections/articles/services/articles-content.service';
 import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
 import { assertArticleOwnershipIds } from '@api/collections/articles/utils/article-input-boundary.util';
-import { buildArticlePublishedDispatch } from '@api/collections/articles/utils/article-published-notification.util';
+import { sendArticlePublishedNotification } from '@api/collections/articles/utils/article-published-notification.util';
+import {
+  assertPublicSlugAvailable,
+  assertPublishedSlugTransition,
+  mapPublicSlugConflict,
+} from '@api/collections/articles/utils/article-slug.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -341,12 +346,18 @@ export class ArticlesService
       userId,
     });
 
-    const result = await super.create({
-      ...articleData,
-      ...(tags && tags.length > 0
-        ? { tags: { connect: tags.map((id) => ({ id })) } }
-        : {}),
-    } as CreateArticleDto);
+    if (articleData.status === 'PUBLISHED') {
+      await assertPublicSlugAvailable(this.delegate, articleData.slug);
+    }
+
+    const result = await mapPublicSlugConflict(() =>
+      super.create({
+        ...articleData,
+        ...(tags && tags.length > 0
+          ? { tags: { connect: tags.map((id) => ({ id })) } }
+          : {}),
+      } as CreateArticleDto),
+    );
 
     // Explicitly invalidate cache after create — canonical org/id keys + tags
     await this.invalidateArticleListCaches('create', {
@@ -458,7 +469,16 @@ export class ArticlesService
         });
       }
 
-      const result = await super.patch(id, updateData);
+      await assertPublishedSlugTransition(
+        this.delegate,
+        id,
+        updateData,
+        accessible,
+      );
+
+      const result = await mapPublicSlugConflict(() =>
+        super.patch(id, updateData),
+      );
 
       // Verify the article belongs to the user/organization (ownership already checked in controller)
       if (
@@ -482,7 +502,14 @@ export class ArticlesService
       });
 
       // Send Discord notification if article was just published
-      await this.sendArticlePublishedNotification(
+      await sendArticlePublishedNotification(
+        {
+          activityRecorder: this.activityRecorder,
+          configService: this.configService,
+          logger: this.logger,
+          organizationSettingsService: this.organizationSettingsService,
+          source: this.constructorName,
+        },
         result,
         organizationId,
         isPublishingUpdate,
@@ -534,66 +561,6 @@ export class ArticlesService
       // Article not found, but this will be caught by the patch call below.
       // Still stamp publishedAt for safety unless the DTO provided one.
       params.updateData.publishedAt = new Date().toISOString();
-    }
-  }
-
-  /**
-   * Send a Discord notification when an article was just published.
-   * No-op unless the update normalized to PUBLISHED, the supporting services are
-   * wired, and the organization has Discord notifications enabled. Never throws —
-   * a failed notification must not fail the update. Extracted from `update`.
-   *
-   * Takes the already-normalized publish signal rather than the raw DTO status so
-   * legacy `public` input notifies exactly like canonical `PUBLISHED` input.
-   */
-  private async sendArticlePublishedNotification(
-    result: ArticleDocument,
-    organizationId: string,
-    isPublishingUpdate: boolean,
-  ): Promise<void> {
-    if (
-      !isPublishingUpdate ||
-      !this.activityRecorder ||
-      !this.organizationSettingsService ||
-      !this.configService
-    ) {
-      return;
-    }
-
-    try {
-      const organizationSettings =
-        await this.organizationSettingsService.findOne({
-          organizationId,
-        });
-
-      if (!organizationSettings?.isNotificationsDiscordEnabled) {
-        return;
-      }
-
-      await this.activityRecorder.dispatch(
-        buildArticlePublishedDispatch(
-          result,
-          organizationId,
-          this.configService.get('GENFEEDAI_PUBLIC_URL'),
-        ),
-      );
-
-      this.logger.log(
-        `${this.constructorName} recorded Discord notification for published article`,
-        {
-          articleId: result.id,
-          slug: result.slug,
-        },
-      );
-    } catch (error: unknown) {
-      // Don't fail the update if notification fails
-      this.logger.error(
-        `${this.constructorName} failed to send Discord notification`,
-        {
-          articleId: result.id,
-          error,
-        },
-      );
     }
   }
 
@@ -712,7 +679,13 @@ export class ArticlesService
       );
     }
 
-    const article = await this.delegate.findFirst({ where });
+    // The partial unique index guarantees one published article per slug; the
+    // explicit order keeps the answer deterministic (earliest release first)
+    // even if a legacy duplicate survives.
+    const article = await this.delegate.findFirst({
+      orderBy: [{ publishedAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+      where,
+    });
 
     if (!article) {
       return null;

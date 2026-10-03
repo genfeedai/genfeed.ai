@@ -1,3 +1,4 @@
+import { publicYoutubeInboxPostFilter } from '@api/collections/posts/services/post-publication-capture.filters';
 import type {
   SocialConversationAvailability,
   SocialConversationDocument,
@@ -323,13 +324,10 @@ export class SocialInboxIngestionService {
       const posts = await this.prisma.post.findMany({
         orderBy: { publishedAt: 'desc' },
         take: 20,
-        where: scopedWhere(scope.organizationId, {
-          brandId: credential.brandId ?? undefined,
-          credentialId: credential.id,
-          externalId: { not: null },
-          platform: Platform.YOUTUBE,
-          status: { in: [PostStatus.PUBLIC] },
-        }),
+        where: scopedWhere(
+          scope.organizationId,
+          publicYoutubeInboxPostFilter(credential),
+        ),
       });
 
       for (const post of posts) {

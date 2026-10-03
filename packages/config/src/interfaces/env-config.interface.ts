@@ -347,6 +347,8 @@ export interface IEnvConfig {
   TELEGRAM_BOT_MODE?: string;
   TELEGRAM_ALLOWED_USER_IDS?: string;
   RESEND_API_KEY?: string;
+  /** Explicit dev opt-out: hosted-mode API may enforce email verification without a mailer. */
+  ALLOW_EMAIL_VERIFICATION_WITHOUT_MAILER?: string;
   RESEND_WEBHOOK_SECRET?: string;
   TWITCH_CLIENT_ID?: string;
   API_BASE_URL?: string;

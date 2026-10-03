@@ -16,6 +16,7 @@ import { useCallback, useMemo, useState } from 'react';
 
 export default function PostAnalyticsDashboard({
   publicationId,
+  brandId,
   className = '',
 }: PostAnalyticsDashboardProps) {
   const { isSignedIn } = useAuthIdentity();
@@ -32,7 +33,11 @@ export default function PostAnalyticsDashboard({
   );
 
   const queryClient = useQueryClient();
-  const publicationAnalyticsKey = ['publication-analytics', publicationId];
+  const publicationAnalyticsKey = [
+    'publication-analytics',
+    publicationId,
+    brandId,
+  ];
 
   const {
     data: analyticsData,
@@ -45,7 +50,12 @@ export default function PostAnalyticsDashboard({
         return null;
       }
       const service = await getPostAnalyticsService();
-      const data = await service.getPostAnalytics(publicationId);
+      const data = await service.getPostAnalytics(
+        publicationId,
+        undefined,
+        undefined,
+        brandId,
+      );
       return data.summary;
     },
     enabled: !!isSignedIn && !!publicationId,
@@ -53,9 +63,12 @@ export default function PostAnalyticsDashboard({
 
   const setAnalytics = useCallback(
     (data: IPostAnalyticsSummary | null) => {
-      queryClient.setQueryData(['publication-analytics', publicationId], data);
+      queryClient.setQueryData(
+        ['publication-analytics', publicationId, brandId],
+        data,
+      );
     },
-    [queryClient, publicationId],
+    [queryClient, publicationId, brandId],
   );
 
   const analytics: IPostAnalyticsSummary | null = analyticsData ?? null;
@@ -68,7 +81,7 @@ export default function PostAnalyticsDashboard({
     setIsRefreshing(true);
     try {
       const service = await getPostAnalyticsService();
-      const data = await service.postAnalytics(publicationId);
+      const data = await service.postAnalytics(publicationId, brandId);
 
       setAnalytics(data.summary);
       setLastRefreshed(new Date(data.lastRefreshed));
@@ -87,6 +100,7 @@ export default function PostAnalyticsDashboard({
     }
   }, [
     publicationId,
+    brandId,
     isRefreshing,
     getPostAnalyticsService,
     notificationsService,

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import PublicationAnalyticsDashboard from '@ui/analytics/post-dashboard/publication-analytics-dashboard';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -61,6 +61,30 @@ describe('PublicationAnalyticsDashboard', () => {
     );
     const rootElement = container.firstChild;
     expect(rootElement).toBeInTheDocument();
+  });
+
+  it('requests analytics for the publication brand instead of the session default', async () => {
+    const getPostAnalytics = vi.fn().mockResolvedValue({ summary: null });
+    mocks.getPostAnalyticsService.mockResolvedValueOnce({
+      getPostAnalytics,
+    } as never);
+    const Wrapper = createWrapper();
+    render(
+      <Wrapper>
+        <PublicationAnalyticsDashboard
+          publicationId="post-1"
+          brandId="brand-2"
+        />
+      </Wrapper>,
+    );
+    await waitFor(() =>
+      expect(getPostAnalytics).toHaveBeenCalledWith(
+        'post-1',
+        undefined,
+        undefined,
+        'brand-2',
+      ),
+    );
   });
 
   it('renders the header chrome while analytics data is loading', () => {
