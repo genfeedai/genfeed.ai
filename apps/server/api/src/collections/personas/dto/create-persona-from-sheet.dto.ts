@@ -1,11 +1,18 @@
+import { CharacterAvailabilityDto } from '@api/collections/personas/dto/character-availability.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   normalizePersonaHandle,
   PERSONA_HANDLE_PATTERN,
 } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { IsString, Matches, MinLength } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsOptional,
+  IsString,
+  Matches,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 
 export class CreatePersonaFromSheetDto {
   @IsEntityId()
@@ -34,4 +41,15 @@ export class CreatePersonaFromSheetDto {
     description: 'Display name for the character',
   })
   readonly label!: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CharacterAvailabilityDto)
+  @ApiProperty({
+    description:
+      'Which brands can use the character. Defaults to the owning brand only.',
+    required: false,
+    type: CharacterAvailabilityDto,
+  })
+  readonly availability?: CharacterAvailabilityDto;
 }

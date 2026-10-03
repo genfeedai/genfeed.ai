@@ -443,6 +443,35 @@
       }
     },
     "characters": {
+      "availability": {
+        "brandsLabel": "Brands that can use this character",
+        "cancel": "Cancel",
+        "column": "Availability",
+        "description": "Choose which brands in this organization can use {name}. Brands that lose access keep the assets they already generated.",
+        "error": "Could not update availability. Check that no brand already has a character with the same @handle.",
+        "label": "Available to",
+        "manage": "Manage availability",
+        "manageFor": "Manage availability for {name}",
+        "modes": {
+          "allBrands": {
+            "description": "Every current and future brand in this organization.",
+            "label": "All brands"
+          },
+          "owningBrand": {
+            "description": "Only the brand that owns the character.",
+            "label": "This brand only"
+          },
+          "selectedBrands": {
+            "description": "The owning brand plus the brands you pick.",
+            "label": "Selected brands"
+          }
+        },
+        "owner": "{brand} (owner)",
+        "save": "Save availability",
+        "sharedBadge": "Shared \u00b7 {brand} \u00b7 {count, plural, one {# brand} other {# brands}}",
+        "success": "Availability updated.",
+        "title": "Character availability"
+      },
       "actions": {
         "approve": "Approve",
         "creating": "Creating\u2026",

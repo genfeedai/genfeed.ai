@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CharacterAvailabilityDto } from '@api/collections/personas/dto/character-availability.dto';
 import { ComposeCharacterSheetDto } from '@api/collections/personas/dto/compose-character-sheet.dto';
 import { CreatePersonaDto } from '@api/collections/personas/dto/create-persona.dto';
 import { CreatePersonaFromSheetDto } from '@api/collections/personas/dto/create-persona-from-sheet.dto';
@@ -6,7 +7,13 @@ import { PersonasQueryDto } from '@api/collections/personas/dto/personas-query.d
 import { UpdatePersonaDto } from '@api/collections/personas/dto/update-persona.dto';
 import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
+import {
+  brandAvailabilityWhere,
+  hasSharedAvailability,
+  isPersonaAvailableToBrand,
+} from '@api/collections/personas/utils/persona-availability.util';
 import { composeCharacterSheetPrompt } from '@api/endpoints/ai-actions/prompts/character-sheet-preset';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -14,17 +21,23 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
+import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
 import { PersonaStatus } from '@genfeedai/contracts';
-import type { AgentCharacterMentionsResponse } from '@genfeedai/contracts/interfaces';
+import type {
+  AgentCharacterMentionsResponse,
+  JsonApiSingleResponse,
+} from '@genfeedai/contracts/interfaces';
 import { PersonaSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -34,6 +47,28 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
+
+const AVAILABILITY_FIELDS = [
+  'availabilityMode',
+  'availableBrandIds',
+  'availabilityAudits',
+  'isShared',
+  'availableBrandCount',
+  'owningBrandId',
+  'owningBrandName',
+] as const;
+
+/**
+ * Availability is changed only through `PATCH /personas/:id/availability`
+ * (admin-gated and audited), never through the generic create/update routes.
+ */
+function stripAvailabilityFields<T extends object>(dto: T): T {
+  const copy: Record<string, unknown> = { ...dto };
+  for (const field of AVAILABILITY_FIELDS) {
+    delete copy[field];
+  }
+  return copy as T;
+}
 
 @AutoSwagger()
 @Controller('personas')
@@ -62,6 +97,13 @@ export class PersonasController extends BaseCRUDController<
       isDeleted: query.isDeleted ?? false,
     };
     CollectionFilterUtil.applyAuthorizedTenantMatch(match, query, user);
+
+    // Characters owned by the brand plus those shared to it, in one query.
+    const brandId = match.brandId;
+    delete match.brandId;
+    if (typeof brandId === 'string') {
+      match.AND = [brandAvailabilityWhere(brandId)];
+    }
 
     if (query.status) {
       match.status = query.status;
@@ -151,7 +193,9 @@ export class PersonasController extends BaseCRUDController<
 
     const persona = await this.personasService.createFromApprovedSheet({
       assetId: body.assetId,
+      availability: body.availability,
       brandId: user.brandId,
+      isSuperAdmin: user.isSuperAdmin,
       handle: body.handle,
       label: body.label,
       organizationId: user.organizationId,
@@ -159,6 +203,133 @@ export class PersonasController extends BaseCRUDController<
     });
 
     return { data: persona };
+  }
+
+  @Patch(':id/availability')
+  async updateAvailability(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: CharacterAvailabilityDto,
+  ): Promise<JsonApiSingleResponse> {
+    const personaId = EntityIdUtil.validate(id, 'personaId');
+    const persona = await this.personasService.updateAvailability({
+      actorUserId: user.userId ?? user.id,
+      brandId: user.brandId,
+      brandIds: body.brandIds,
+      isSuperAdmin: user.isSuperAdmin,
+      mode: body.mode,
+      organizationId: user.organizationId,
+      personaId,
+    });
+    return serializeSingle(
+      request,
+      PersonaSerializer,
+      await this.decorateForResponse(persona, user),
+    );
+  }
+
+  public async decorateForResponse(
+    data: PersonaDocument,
+    user: User,
+  ): Promise<PersonaDocument> {
+    const [decorated] = await this.personasService.withAvailabilitySummary(
+      [data],
+      user.organizationId,
+    );
+    return decorated ?? data;
+  }
+
+  public canUserReadEntity(user: User, entity: PersonaDocument): boolean {
+    return (
+      entity.organizationId === user.organizationId &&
+      (entity.brandId == null ||
+        isPersonaAvailableToBrand(entity, user.brandId))
+    );
+  }
+
+  public canUserModifyEntity(user: User, entity: PersonaDocument): boolean {
+    if (hasSharedAvailability(entity)) {
+      return isPersonaAvailableToBrand(entity, user.brandId);
+    }
+    return super.canUserModifyEntity(user, entity);
+  }
+
+  /** Identity edits of a shared character are limited to owners and admins. */
+  protected async assertPatchAllowed(
+    user: User,
+    existing: PersonaDocument,
+    updateDto: Partial<UpdatePersonaDto>,
+  ): Promise<void> {
+    if (!hasSharedAvailability(existing)) {
+      return;
+    }
+    await this.personasService.assertCanManageSharing({
+      isSuperAdmin: user.isSuperAdmin,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
+    });
+    if (
+      updateDto.brandId !== undefined &&
+      updateDto.brandId !== existing.brandId
+    ) {
+      throw new ValidationException(
+        'A shared character cannot move to another owning brand',
+        'brandId',
+      );
+    }
+  }
+
+  public enrichCreateDto(
+    createDto: Partial<CreatePersonaDto>,
+    user: User,
+  ): CreatePersonaDto {
+    return super.enrichCreateDto(stripAvailabilityFields(createDto), user);
+  }
+
+  public async enrichUpdateDto(
+    updateDto: Partial<UpdatePersonaDto>,
+    user: User,
+  ): Promise<UpdatePersonaDto> {
+    return super.enrichUpdateDto(stripAvailabilityFields(updateDto), user);
+  }
+
+  /**
+   * Overrides the generic DELETE route so removing a shared character is an
+   * identity edit: owners/admins only, and not-found outside its availability.
+   */
+  @Delete(':id')
+  async remove(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ) {
+    await this.assertSharedPersonaEditable(user, id);
+    return super.remove(request, user, id);
+  }
+
+  private async assertSharedPersonaEditable(
+    user: User,
+    id: string,
+  ): Promise<void> {
+    if (!isEntityId(id)) {
+      return;
+    }
+    const persona = await this.personasService.findOne({
+      id,
+      organizationId: user.organizationId,
+    });
+    if (!persona || !hasSharedAvailability(persona)) {
+      return;
+    }
+    if (!isPersonaAvailableToBrand(persona, user.brandId)) {
+      throw new NotFoundException('Persona', id);
+    }
+    await this.personasService.assertCanManageSharing({
+      isSuperAdmin: user.isSuperAdmin,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
+    });
   }
 
   /**
@@ -176,6 +347,7 @@ export class PersonasController extends BaseCRUDController<
     @Body() updateDto: UpdatePersonaDto,
   ) {
     if (updateDto.memberIds) {
+      await this.assertSharedPersonaEditable(user, id);
       const organization = user.organizationId;
       const personaId = EntityIdUtil.validate(id, 'personaId');
       const orgId = EntityIdUtil.validate(organization, 'organizationId');

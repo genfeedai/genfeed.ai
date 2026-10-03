@@ -7,8 +7,9 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 import { PersonasController } from '@api/collections/personas/controllers/personas.controller';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
+import { brandAvailabilityWhere } from '@api/collections/personas/utils/persona-availability.util';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { PersonaStatus } from '@genfeedai/contracts';
+import { PersonaAvailabilityMode, PersonaStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException } from '@nestjs/common';
@@ -33,6 +34,7 @@ describe('PersonasController', () => {
   };
 
   const mockServiceMethods = {
+    assertCanManageSharing: vi.fn(),
     assignMembers: vi.fn(),
     create: vi.fn(),
     createFromApprovedSheet: vi.fn(),
@@ -41,9 +43,15 @@ describe('PersonasController', () => {
     listCharacterMentions: vi.fn(),
     patch: vi.fn(),
     remove: vi.fn(),
+    updateAvailability: vi.fn(),
+    withAvailabilitySummary: vi.fn(),
   };
 
   beforeEach(async () => {
+    mockServiceMethods.withAvailabilitySummary.mockImplementation(
+      async (docs: unknown[]) => docs,
+    );
+    mockServiceMethods.assertCanManageSharing.mockResolvedValue(undefined);
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PersonasController],
       providers: [
@@ -214,7 +222,9 @@ describe('PersonasController', () => {
 
       expect(mockServiceMethods.createFromApprovedSheet).toHaveBeenCalledWith({
         assetId: testId('asset'),
+        availability: undefined,
         brandId,
+        isSuperAdmin: undefined,
         handle: 'anna',
         label: 'Anna',
         organizationId,
@@ -256,7 +266,7 @@ describe('PersonasController', () => {
       } as never);
 
       expect(query.where).toMatchObject({
-        brandId,
+        AND: [brandAvailabilityWhere(brandId)],
         handle: { not: null },
         isDeleted: false,
         organizationId,
@@ -290,6 +300,196 @@ describe('PersonasController', () => {
           title: 'Forbidden',
         });
       }
+    });
+  });
+
+  describe('brand availability (#6009)', () => {
+    const request = {
+      get: vi.fn().mockReturnValue('localhost'),
+      headers: {},
+      path: `/personas/${personaId}`,
+      protocol: 'https',
+      query: {},
+    } as unknown as Request;
+    const otherBrandId = testId('brand', 2);
+    const sharedPersona = {
+      availabilityMode: PersonaAvailabilityMode.ALL_BRANDS,
+      availableBrandIds: [],
+      brandId: otherBrandId,
+      id: personaId,
+      organizationId,
+      userId: testId('user', 9),
+    };
+
+    it('lists characters owned by the brand plus those shared to it', () => {
+      const query = controller.buildFindAllQuery(mockUser, {} as never);
+
+      expect(query.where).toMatchObject({
+        AND: [brandAvailabilityWhere(brandId)],
+        isDeleted: false,
+        organizationId,
+      });
+      expect(query.where).not.toHaveProperty('brandId');
+    });
+
+    it('passes the availability choice and super-admin flag when creating from a sheet', async () => {
+      mockServiceMethods.createFromApprovedSheet.mockResolvedValue({
+        id: personaId,
+      });
+      const availability = {
+        brandIds: [otherBrandId],
+        mode: PersonaAvailabilityMode.SELECTED_BRANDS,
+      };
+
+      await controller.createFromSheet(mockUser, {
+        assetId: testId('asset'),
+        availability,
+        handle: 'anna',
+        label: 'Anna',
+      });
+
+      expect(mockServiceMethods.createFromApprovedSheet).toHaveBeenCalledWith(
+        expect.objectContaining({ availability }),
+      );
+    });
+
+    it('updates availability for the active brand and organization', async () => {
+      mockServiceMethods.updateAvailability.mockResolvedValue(sharedPersona);
+
+      await controller.updateAvailability(request, mockUser, personaId, {
+        mode: PersonaAvailabilityMode.ALL_BRANDS,
+      });
+
+      expect(mockServiceMethods.updateAvailability).toHaveBeenCalledWith({
+        actorUserId: userId,
+        brandId,
+        brandIds: undefined,
+        isSuperAdmin: undefined,
+        mode: PersonaAvailabilityMode.ALL_BRANDS,
+        organizationId,
+        personaId,
+      });
+    });
+
+    it('lets organization members read a character shared to their brand', () => {
+      expect(
+        controller.canUserReadEntity(mockUser, {
+          ...sharedPersona,
+        } as never),
+      ).toBe(true);
+    });
+
+    it('answers not-found material for a character outside the brand availability', () => {
+      expect(
+        controller.canUserReadEntity(mockUser, {
+          ...sharedPersona,
+          availabilityMode: PersonaAvailabilityMode.SELECTED_BRANDS,
+          availableBrandIds: [otherBrandId],
+        } as never),
+      ).toBe(false);
+      expect(
+        controller.canUserReadEntity(mockUser, {
+          ...sharedPersona,
+          availabilityMode: PersonaAvailabilityMode.OWNING_BRAND,
+        } as never),
+      ).toBe(false);
+      expect(
+        controller.canUserReadEntity(mockUser, {
+          ...sharedPersona,
+          organizationId: testId('org', 9),
+        } as never),
+      ).toBe(false);
+    });
+
+    it('requires owner or admin to edit a shared character', async () => {
+      mockServiceMethods.findOne.mockResolvedValue(sharedPersona);
+      mockServiceMethods.assertCanManageSharing.mockRejectedValue(
+        new ForbiddenException('admins only'),
+      );
+
+      await expect(
+        controller.patch(request, mockUser, personaId, { label: 'Renamed' }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(mockServiceMethods.patch).not.toHaveBeenCalled();
+    });
+
+    it('lets an admin edit a shared character they did not create', async () => {
+      mockServiceMethods.findOne.mockResolvedValue(sharedPersona);
+      mockServiceMethods.patch.mockResolvedValue(sharedPersona);
+
+      await controller.patch(request, mockUser, personaId, {
+        label: 'Renamed',
+      });
+
+      expect(mockServiceMethods.assertCanManageSharing).toHaveBeenCalledWith({
+        isSuperAdmin: undefined,
+        organizationId,
+        userId,
+      });
+      expect(mockServiceMethods.patch).toHaveBeenCalled();
+    });
+
+    it('does not reveal a shared character the brand cannot see', async () => {
+      mockServiceMethods.findOne.mockResolvedValue({
+        ...sharedPersona,
+        availabilityMode: PersonaAvailabilityMode.SELECTED_BRANDS,
+        availableBrandIds: [otherBrandId],
+      });
+
+      await expect(
+        controller.patch(request, mockUser, personaId, { label: 'Renamed' }),
+      ).rejects.toMatchObject({ status: 404 });
+      expect(mockServiceMethods.patch).not.toHaveBeenCalled();
+    });
+
+    it('gates member assignment on a shared character behind owner or admin', async () => {
+      mockServiceMethods.findOne.mockResolvedValue(sharedPersona);
+      mockServiceMethods.assertCanManageSharing.mockRejectedValue(
+        new ForbiddenException('admins only'),
+      );
+
+      await expect(
+        controller.patch(request, mockUser, personaId, {
+          memberIds: [memberId1],
+        }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(mockServiceMethods.assignMembers).not.toHaveBeenCalled();
+    });
+
+    it('refuses deleting a shared character without owner or admin', async () => {
+      mockServiceMethods.findOne.mockResolvedValue(sharedPersona);
+      mockServiceMethods.assertCanManageSharing.mockRejectedValue(
+        new ForbiddenException('admins only'),
+      );
+
+      await expect(
+        controller.remove(request, mockUser, personaId),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(mockServiceMethods.remove).not.toHaveBeenCalled();
+    });
+
+    it('drops availability fields from generic create and update payloads', async () => {
+      const createDto = controller.enrichCreateDto(
+        {
+          availabilityMode: PersonaAvailabilityMode.ALL_BRANDS,
+          label: 'Anna',
+        } as never,
+        mockUser,
+      ) as Record<string, unknown>;
+      expect(createDto.availabilityMode).toBeUndefined();
+      expect(createDto.label).toBe('Anna');
+
+      const updateDto = (await controller.enrichUpdateDto(
+        {
+          availabilityMode: PersonaAvailabilityMode.ALL_BRANDS,
+          availableBrandIds: [otherBrandId],
+          label: 'Anna',
+        } as never,
+        mockUser,
+      )) as Record<string, unknown>;
+      expect(updateDto.availabilityMode).toBeUndefined();
+      expect(updateDto.availableBrandIds).toBeUndefined();
+      expect(updateDto.label).toBe('Anna');
     });
   });
 });

@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
+import CharacterAvailabilityDialog from './character-availability-dialog';
 import CharacterCreateDialog from './character-create-dialog';
 import CharactersTable from './characters-table';
 import { useCharactersPage } from './use-characters-page';
@@ -22,7 +23,10 @@ export default function BrandSettingsCharactersPage(): ReactElement {
   const {
     approve,
     approveCandidate,
+    availabilityControls,
+    brands,
     candidate,
+    canManageSharing,
     characters,
     create,
     createCharacter,
@@ -67,9 +71,11 @@ export default function BrandSettingsCharactersPage(): ReactElement {
         }
       >
         <CharactersTable
+          canManageSharing={canManageSharing}
           characters={characters}
           isLoading={isLoading}
           onCreate={openCreateDialog}
+          onManageAvailability={availabilityControls.open}
         />
         <Link
           href={`${APP_ROUTES.SETTINGS.HELP}#characters`}
@@ -79,9 +85,17 @@ export default function BrandSettingsCharactersPage(): ReactElement {
         </Link>
       </Container>
 
+      <CharacterAvailabilityDialog
+        brands={brands}
+        controls={availabilityControls}
+      />
+
       <CharacterCreateDialog
         approve={approve}
         approveCandidate={approveCandidate}
+        brandId={brandId}
+        brands={brands}
+        canManageSharing={canManageSharing}
         candidate={candidate}
         create={create}
         createCharacter={createCharacter}
