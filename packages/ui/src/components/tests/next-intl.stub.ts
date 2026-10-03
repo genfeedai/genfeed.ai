@@ -393,6 +393,21 @@ const UI_TEST_MESSAGES = {
   },
   pages: {
     library: {
+      browser: {
+        columns: {
+          asset: 'Asset',
+          created: 'Created',
+          model: 'Model',
+          origin: 'Origin',
+          size: 'Size',
+          status: 'Status',
+          type: 'Type',
+        },
+        filteredEmpty: {
+          clearFilters: 'Clear Filters',
+          description: 'Try adjusting your filters or search terms.',
+        },
+      },
       inspector: {
         deletedReference: 'Deleted reference',
         hiddenCount:

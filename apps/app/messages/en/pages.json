@@ -2161,7 +2161,7 @@
       "filters": "Filters",
       "filtersWithCount": "Filters ({count})",
       "noFilterOptions": "No options available",
-      "clearFilters": "Clear filters",
+      "clearFilters": "Clear Filters",
       "newArticle": "New article"
     },
     "overview": {
@@ -2393,6 +2393,19 @@
   },
   "library": {
     "browser": {
+      "columns": {
+        "asset": "Asset",
+        "created": "Created",
+        "model": "Model",
+        "origin": "Origin",
+        "size": "Size",
+        "status": "Status",
+        "type": "Type"
+      },
+      "filteredEmpty": {
+        "clearFilters": "Clear Filters",
+        "description": "Try adjusting your filters or search terms."
+      },
       "toolbar": {
         "canvas": "Canvas",
         "clearOriginFilter": "Clear origin filter",
@@ -3181,7 +3194,7 @@
         "video": "Video"
       },
       "category": "Category",
-      "clearFilters": "Clear filters",
+      "clearFilters": "Clear Filters",
       "emptyCatalog": "No workflow templates are available yet.",
       "errors": {
         "bootstrap": "Failed to install workflow template",

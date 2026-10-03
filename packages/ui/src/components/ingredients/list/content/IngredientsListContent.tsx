@@ -301,7 +301,7 @@ export default function IngredientsListContent({
       },
       {
         className: 'w-72',
-        header: 'Asset',
+        header: translate('browser.columns.asset'),
         key: 'metadataLabel',
         render: (ingredient: IIngredient) => (
           <IngredientLedgerAssetCell ingredient={ingredient} />
@@ -309,7 +309,7 @@ export default function IngredientsListContent({
       },
       {
         className: 'w-40',
-        header: 'Type',
+        header: translate('browser.columns.type'),
         key: 'category',
         render: (ingredient: IIngredient) => {
           const format =
@@ -330,7 +330,7 @@ export default function IngredientsListContent({
       },
       {
         className: 'w-28',
-        header: 'Origin',
+        header: translate('browser.columns.origin'),
         key: 'origin',
         render: (ingredient: IIngredient) => (
           <IngredientOriginBadge origin={ingredient.origin} />
@@ -338,7 +338,7 @@ export default function IngredientsListContent({
       },
       {
         className: 'w-52',
-        header: 'Model',
+        header: translate('browser.columns.model'),
         key: 'model',
         render: (ingredient: IIngredient) => {
           const modelLabel = getIngredientModelLabel(ingredient);
@@ -365,7 +365,7 @@ export default function IngredientsListContent({
       },
       {
         className: 'w-28',
-        header: 'Size',
+        header: translate('browser.columns.size'),
         key: 'metadataSize',
         render: (ingredient: IIngredient) => {
           const sizeLabel = getIngredientSizeLabel(ingredient);
@@ -383,7 +383,7 @@ export default function IngredientsListContent({
       },
       {
         className: 'w-28',
-        header: 'Created',
+        header: translate('browser.columns.created'),
         key: 'createdAt',
         render: (ingredient: IIngredient) => {
           const createdAt = ingredient.createdAt
@@ -406,7 +406,7 @@ export default function IngredientsListContent({
       },
       {
         className: 'w-40',
-        header: 'Status',
+        header: translate('browser.columns.status'),
         key: 'status',
         render: (ingredient: IIngredient) => (
           <div className="flex items-center gap-1.5">
@@ -438,7 +438,7 @@ export default function IngredientsListContent({
         ),
       },
     ],
-    [onSetIngredients, onReprompt, translateRetry],
+    [onSetIngredients, onReprompt, translate, translateRetry],
   );
 
   const openIngredientPreview = useCallback(
@@ -887,9 +887,9 @@ export default function IngredientsListContent({
       {hasFilteredEmptyState ? (
         <CardEmptyContent
           label={EMPTY_STATES.RESULTS_FOUND}
-          description="Try adjusting your filters or search terms."
+          description={translate('browser.filteredEmpty.description')}
           action={{
-            label: 'Clear Filters',
+            label: translate('browser.filteredEmpty.clearFilters'),
             onClick: onClearFilters,
             variant: ButtonVariant.SECONDARY,
           }}
