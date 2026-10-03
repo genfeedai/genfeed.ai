@@ -177,6 +177,51 @@ describe('CreditsUtilsService', () => {
       );
     });
 
+    it('records the brand on the deduction ledger entry', async () => {
+      const service = buildService();
+
+      await service.deductCreditsFromOrganization(
+        'org_1',
+        'user_1',
+        40,
+        'branded deduct',
+        undefined,
+        { brandId: 'brand_1' },
+      );
+
+      expect(
+        creditTransactionsService.createTransactionEntry,
+      ).toHaveBeenCalledWith(
+        'org_1',
+        expect.anything(),
+        40,
+        100,
+        60,
+        expect.anything(),
+        'branded deduct',
+        undefined,
+        txClient,
+        expect.objectContaining({ brandId: 'brand_1' }),
+      );
+    });
+
+    it('leaves org-level deductions brandless', async () => {
+      const service = buildService();
+
+      await service.deductCreditsFromOrganization(
+        'org_1',
+        'user_1',
+        40,
+        'org deduct',
+        undefined,
+        { brandId: null },
+      );
+
+      const options =
+        creditTransactionsService.createTransactionEntry.mock.calls[0][9];
+      expect(options).not.toHaveProperty('brandId');
+    });
+
     it('throws on insufficient credits without writing', async () => {
       const service = buildService();
       creditBalanceService.applyDelta.mockRejectedValue(

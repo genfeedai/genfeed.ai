@@ -288,6 +288,7 @@ describe('PromptTransformationService', () => {
         'prompt-remix-refund',
         'Remix prompt generation failed - credit refund',
         expect.any(Date),
+        { brandId: undefined },
       ),
     );
     expect(activitiesService.update).toHaveBeenCalledWith(

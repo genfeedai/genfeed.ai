@@ -298,6 +298,7 @@ export class AgentMediaBatchGenerationService {
     const reservation = await this.reserveCreditsOrCancel({
       amount: prepared.estimatedCredits,
       batchId,
+      brandId,
       ctx,
     });
     if ('error' in reservation) return reservation;
@@ -436,6 +437,7 @@ export class AgentMediaBatchGenerationService {
   private async reserveCreditsOrCancel(params: {
     amount: number;
     batchId: string;
+    brandId?: string;
     ctx: ToolExecutionContext;
   }): Promise<{ reservationId?: string } | { error: AgentToolResult }> {
     try {
@@ -443,6 +445,7 @@ export class AgentMediaBatchGenerationService {
         const reservation = await this.creditsUtilsService.reserveCredits({
           actorUserId: params.ctx.userId,
           amount: params.amount,
+          ...(params.brandId ? { brandId: params.brandId } : {}),
           expiresAt: new Date(Date.now() + BATCH_RESERVATION_TTL_MS),
           idempotencyKey: `batch-generation:${params.batchId}`,
           organizationId: params.ctx.organizationId,

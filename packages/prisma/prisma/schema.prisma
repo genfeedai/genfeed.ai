@@ -3514,6 +3514,8 @@ model CreditTransaction {
   billingAccountId     String?
   billingAccount       BillingAccount?    @relation(fields: [billingAccountId], references: [id])
   actorUserId          String?
+  /// Brand the spend is attributed to. Null for org-level (brandless) spend.
+  brandId              String?
   reservationId        String?
   reservation          CreditReservation? @relation(fields: [reservationId], references: [id])
   idempotencyKey       String?
@@ -3536,6 +3538,7 @@ model CreditTransaction {
   @@index([isDeleted, category, createdAt(sort: Desc)], map: "credit_transactions_deleted_category_created_at_idx")
   @@index([billingAccountId, isDeleted, createdAt(sort: Desc)])
   @@index([reservationId])
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "credit_transactions_org_brand_deleted_created_at_idx")
   @@map("credit_transactions")
   @@index([organizationId, workflowExecutionId, workflowNodeId, isDeleted], map: "credit_transactions_workflow_accounting_idx")
 }
@@ -3703,6 +3706,8 @@ model CreditReservation {
   organizationId   String
   organization     Organization            @relation(fields: [organizationId], references: [id])
   actorUserId      String?
+  /// Brand the hold is attributed to; settlement copies it onto the ledger rows.
+  brandId          String?
   amount           Float
   settledAmount    Float?
   status           CreditReservationStatus @default(RESERVED)

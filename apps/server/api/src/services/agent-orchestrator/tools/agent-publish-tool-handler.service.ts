@@ -1031,6 +1031,7 @@ export class AgentPublishToolHandler {
           creditsUsed,
           `Post repurpose (agent rewrite) ${postId}`,
           ActivitySource.SCRIPT,
+          { brandId: readOptionalString(sourcePost.brandId) },
         );
       }
 

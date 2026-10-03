@@ -153,6 +153,7 @@ export class PromptTransformationService {
 
     this.generateRemix({
       activityId: activity.id.toString(),
+      brandId: user.brandId,
       byokApiKeyOverride,
       chargedCredits,
       data,
@@ -359,6 +360,7 @@ export class PromptTransformationService {
 
   private async generateRemix(options: {
     activityId: string;
+    brandId?: string | null;
     byokApiKeyOverride?: string;
     chargedCredits: number;
     data: PromptDocument;
@@ -370,6 +372,7 @@ export class PromptTransformationService {
   }): Promise<void> {
     const {
       activityId,
+      brandId,
       byokApiKeyOverride,
       chargedCredits,
       data,
@@ -430,7 +433,12 @@ export class PromptTransformationService {
           type: 'remix',
         }),
       });
-      await this.refundRemixCredits(organizationId, userId, chargedCredits);
+      await this.refundRemixCredits(
+        organizationId,
+        userId,
+        chargedCredits,
+        brandId,
+      );
       await this.promptsService.patch(data.id, {
         status: PromptStatus.FAILED,
       });
@@ -445,6 +453,7 @@ export class PromptTransformationService {
     organizationId: string,
     userId: string,
     chargedCredits: number,
+    brandId?: string | null,
   ): Promise<void> {
     try {
       const refundExpiresAt = new Date();
@@ -455,6 +464,7 @@ export class PromptTransformationService {
         'prompt-remix-refund',
         'Remix prompt generation failed - credit refund',
         refundExpiresAt,
+        { brandId },
       );
       this.loggerService.log('Credits refunded successfully', {
         amount: chargedCredits,

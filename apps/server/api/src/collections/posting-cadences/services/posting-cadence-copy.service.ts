@@ -111,6 +111,7 @@ export class PostingCadenceCopyService {
       pricedModel,
       { prompt: prompt.user, system: prompt.system },
       copy,
+      slot.brandId,
     );
     return copy;
   }
@@ -264,6 +265,7 @@ export class PostingCadenceCopyService {
     model: TextPricedModel,
     input: Record<string, unknown>,
     output: string,
+    brandId?: string | null,
   ): Promise<void> {
     const amount = calculateEstimatedTextCredits(model, input, output);
     if (amount <= 0) {
@@ -277,6 +279,7 @@ export class PostingCadenceCopyService {
       'Calendar campaign generate',
       ActivitySource.POST_GENERATION,
       {
+        brandId,
         maxOverdraftCredits:
           PostingCadenceCopyService.TEXT_MAX_OVERDRAFT_CREDITS,
       },

@@ -296,6 +296,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       {
         actorUserId: input.userId,
         billingAccountId: account.id,
+        ...(input.options?.brandId ? { brandId: input.options.brandId } : {}),
         ...(input.options?.idempotencyKey
           ? { idempotencyKey: input.options.idempotencyKey }
           : {}),

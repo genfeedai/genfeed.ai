@@ -646,6 +646,7 @@ export class AgentTurnRoundRunnerService {
           creditCost,
           `Agent tool: ${toolName}`,
           ActivitySource.SCRIPT,
+          { brandId: context.scope?.brandId },
         );
         state.totalCreditsUsed += creditCost;
       } else if (delegatedCredits > 0) {

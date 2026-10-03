@@ -62,6 +62,8 @@ export interface ICycleRemainingMetrics {
  * "never define inline interfaces" coding guideline.
  */
 export interface IDeductCreditsOptions {
+  /** Brand the spend is attributed to; omit for org-level (brandless) spend. */
+  brandId?: string | null;
   idempotencyKey?: string;
   maxOverdraftCredits?: number;
   metadata?: Record<string, unknown>;
@@ -78,6 +80,8 @@ export interface IAddCreditsOptions {
    * never redirect the credits.
    */
   billingAccountId?: string;
+  /** Brand a refund is attributed to, so it nets against that brand's usage. */
+  brandId?: string | null;
   idempotencyKey?: string;
   metadata?: Record<string, unknown>;
   referenceId?: string;

@@ -365,6 +365,7 @@ export class AgentOrchestratorStreamLoopService {
               try {
                 return await runReservedAgentLlmRound({
                   actorUserId: context.userId,
+                  brandId: context.scope?.brandId,
                   credits: this.creditsUtilsService,
                   idempotencyKey: `${context.executionId ?? threadId}:agent-llm-round:${round}`,
                   maximumCredits: maximumRoundCredits,

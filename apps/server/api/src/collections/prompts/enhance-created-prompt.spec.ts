@@ -71,6 +71,7 @@ describe('enhanceCreatedPrompt', () => {
       'prompt-creation-refund',
       'Prompt creation failed - credit refund',
       expect.any(Date),
+      { brandId: 'selected-brand' },
     );
     expect(deps.promptsService.patch).toHaveBeenCalledWith('prompt', {
       status: PromptStatus.FAILED,

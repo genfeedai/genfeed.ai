@@ -107,6 +107,7 @@ export class GenerationBillingService {
    * cover it, before any provider work starts.
    */
   async holdForService(params: {
+    brandId?: string | null;
     credits: number;
     description: string;
     organizationId: string;
@@ -116,6 +117,7 @@ export class GenerationBillingService {
     const reservation = await this.credits.reserveCredits({
       actorUserId: params.userId,
       amount: params.credits,
+      ...(params.brandId ? { brandId: params.brandId } : {}),
       description: params.description,
       expiresAt: new Date(Date.now() + MEDIA_GENERATION_HOLD_TTL_MS),
       idempotencyKey: `${GENERATION_POOL_WORKLOAD_TYPE}:${randomUUID()}`,
@@ -132,7 +134,7 @@ export class GenerationBillingService {
         source: params.source,
       },
       user: {
-        brandId: '',
+        brandId: params.brandId ?? '',
         id: params.userId,
         organizationId: params.organizationId,
         userId: params.userId,
@@ -360,6 +362,7 @@ export class GenerationBillingService {
     }
     await this.queue.queueDeduction({
       amount: hold.amount,
+      ...(hold.brandId ? { brandId: hold.brandId } : {}),
       description: hold.description ?? 'Media generation',
       idempotencyKey: `${MEDIA_GENERATION_WORKLOAD_TYPE}-settle:${hold.id}`,
       metadata: hold.metadata ?? undefined,
@@ -413,6 +416,7 @@ export class GenerationBillingService {
     }
     await this.queue.queueDeduction({
       amount: hold.amount,
+      ...(hold.brandId ? { brandId: hold.brandId } : {}),
       description: hold.description ?? 'Media generation',
       idempotencyKey: this.lateSettlementKey(hold.id),
       maxOverdraftCredits:

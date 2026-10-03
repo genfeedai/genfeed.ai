@@ -12,6 +12,7 @@ import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/tra
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { CreditTransactionCategory } from '@genfeedai/contracts';
+import { REFERRAL_REWARD_REVERSAL_REFERENCE_TYPE } from '@genfeedai/contracts/constants';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -19,6 +20,7 @@ import { Injectable } from '@nestjs/common';
 type CreateTransactionEntryOptions = {
   actorUserId?: string;
   billingAccountId?: string;
+  brandId?: string | null;
   idempotencyKey?: string;
   metadata?: Record<string, unknown>;
   referenceId?: string;
@@ -151,6 +153,7 @@ export class CreditTransactionsService extends BaseService<
       ...(options?.billingAccountId
         ? { billingAccountId: options.billingAccountId }
         : {}),
+      ...(options?.brandId ? { brandId: options.brandId } : {}),
       ...(options?.idempotencyKey
         ? { idempotencyKey: options.idempotencyKey }
         : {}),
@@ -230,13 +233,18 @@ export class CreditTransactionsService extends BaseService<
         organizationId,
         ...(category ? { category } : {}),
         ...(source ? { source } : {}),
-        // brandId is stored on ledger metadata when callers pass it through.
+        // Rows written before the brandId column carry it on metadata only.
         ...(brandId
           ? {
-              metadata: {
-                path: ['brandId'],
-                equals: brandId,
-              } satisfies Prisma.JsonFilter,
+              OR: [
+                { brandId },
+                {
+                  metadata: {
+                    path: ['brandId'],
+                    equals: brandId,
+                  } satisfies Prisma.JsonFilter,
+                },
+              ],
             }
           : {}),
       };
@@ -383,13 +391,26 @@ export class CreditTransactionsService extends BaseService<
       // Look back a year so monthly/weekly charts have enough buckets.
       const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
 
+      // Usage nets refunds against deductions; referral reward reversals are
+      // balance adjustments, not usage.
       const deductions = this.normalizeDocuments(
         (await this.delegate.findMany({
           where: {
-            category: CreditTransactionCategory.DEDUCT,
+            category: {
+              in: [
+                CreditTransactionCategory.DEDUCT,
+                CreditTransactionCategory.REFUND,
+              ],
+            },
             createdAt: { gte: yearAgo },
             isDeleted: false,
             organizationId,
+            OR: [
+              { referenceType: null },
+              {
+                referenceType: { not: REFERRAL_REWARD_REVERSAL_REFERENCE_TYPE },
+              },
+            ],
           },
         })) as unknown[],
       );
@@ -400,7 +421,7 @@ export class CreditTransactionsService extends BaseService<
       const byDay = new Map<string, number>();
 
       for (const d of deductions) {
-        const absAmount = Math.abs(Number(d.amount) || 0);
+        const absAmount = this.signedUsageAmount(d);
         const createdAt =
           d.createdAt instanceof Date ? d.createdAt : new Date(d.createdAt);
 
@@ -456,6 +477,17 @@ export class CreditTransactionsService extends BaseService<
       });
       throw error;
     }
+  }
+
+  /** Deductions count as positive usage and refunds as negative usage. */
+  private signedUsageAmount(entry: {
+    amount?: number | null;
+    category?: string | null;
+  }): number {
+    const magnitude = Math.abs(Number(entry.amount) || 0);
+    return entry.category === CreditTransactionCategory.REFUND
+      ? -magnitude
+      : magnitude;
   }
 
   private toUtcDayKey(date: Date): string {

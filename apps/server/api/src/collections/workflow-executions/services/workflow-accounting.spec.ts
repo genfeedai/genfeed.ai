@@ -49,7 +49,10 @@ describe('workflow accounting', () => {
   it('attributes aggregate funding explicitly without borrowing an unrelated current node scope', async () => {
     const prisma = {
       workflowExecution: {
-        findFirst: vi.fn().mockResolvedValue({ id: 'funded-run' }),
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'funded-run',
+          workflow: { brandId: 'brand-a' },
+        }),
       },
     };
     await runWithWorkflowAccounting(scope, async () => {
@@ -59,11 +62,11 @@ describe('workflow accounting', () => {
           'org',
           'funded-run',
         ),
-      ).toEqual({ workflowExecutionId: 'funded-run' });
+      ).toEqual({ brandId: 'brand-a', workflowExecutionId: 'funded-run' });
     });
     expect(prisma.workflowExecution.findFirst).toHaveBeenCalledExactlyOnceWith({
       where: { id: 'funded-run', organizationId: 'org', isDeleted: false },
-      select: { id: true },
+      select: { id: true, workflow: { select: { brandId: true } } },
     });
   });
   it('rejects foreign or deleted explicit funding attribution before the hold can be written', async () => {
