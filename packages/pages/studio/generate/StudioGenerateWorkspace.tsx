@@ -416,7 +416,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     apiBaseUrl: agentApiService?.baseUrl ?? '',
     getToken: getVoiceToken,
     onError: (error) => {
-      notificationsService.error('Voice transcription', {
+      notificationsService.error('Voice transcription failed', {
         description: error,
       });
     },

@@ -324,7 +324,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
             await findOneBrand(true);
           } catch (error) {
             logger.error(`${url} failed`, error);
-            notificationsService.error(`${url} failed`);
+            notificationsService.error('Failed to delete branding reference');
           } finally {
             setDeletingRefId(null);
           }

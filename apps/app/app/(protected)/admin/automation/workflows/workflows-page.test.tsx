@@ -325,7 +325,7 @@ describe('Admin workflows page Featured pins (#5511)', () => {
 
     await waitFor(() => {
       expect(notificationsService.error).toHaveBeenCalledWith(
-        'Updating Featured',
+        'Failed to update the featured status',
       );
     });
     expect(mocks.list).toHaveBeenCalledTimes(2);

@@ -453,7 +453,7 @@ export default function BrandDetailSocialMediaCard({
     } catch (error) {
       logger.error(`Failed to initiate ${platform} OAuth:`, error);
       NotificationsService.getInstance().error(
-        translate('connectPlatform', { platform: item.label }),
+        translate('connectPlatformError', { platform: item.label }),
       );
       setConnectingPlatform(null);
       setReconnectingCredentialId(null);
@@ -499,7 +499,9 @@ export default function BrandDetailSocialMediaCard({
       await Promise.all([onRefresh?.(), refreshBrands()]);
     } catch (error) {
       logger.error('Failed to disconnect account', error);
-      NotificationsService.getInstance().error(translate('disconnectAccount'));
+      NotificationsService.getInstance().error(
+        translate('disconnectAccountError'),
+      );
     } finally {
       setIsDisconnecting(false);
     }
@@ -535,7 +537,7 @@ export default function BrandDetailSocialMediaCard({
     } catch (error) {
       logger.error('Failed to confirm account health override', error);
       NotificationsService.getInstance().error(
-        translate('confirmWarmupOverride'),
+        translate('confirmWarmupOverrideError'),
       );
     } finally {
       setIsOverrideSubmitting(false);

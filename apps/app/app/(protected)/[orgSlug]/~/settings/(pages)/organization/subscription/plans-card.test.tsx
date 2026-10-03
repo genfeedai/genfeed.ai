@@ -221,7 +221,7 @@ describe('PlansCard', () => {
 
       await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
       expect(notifications.error).toHaveBeenCalledWith(
-        'Plan preview',
+        'Plan preview failed',
         expect.objectContaining({
           description: 'This plan is no longer available.',
         }),
@@ -239,7 +239,7 @@ describe('PlansCard', () => {
 
       await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
       expect(notifications.error).toHaveBeenCalledWith(
-        'Plan preview',
+        'Plan preview failed',
         expect.objectContaining({
           description: 'Something went wrong. Please try again.',
         }),
@@ -343,7 +343,7 @@ describe('PlansCard', () => {
 
       await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
       expect(notifications.error).toHaveBeenCalledWith(
-        'Plan change',
+        'Plan change failed',
         expect.objectContaining({
           description: 'Our billing provider is briefly unavailable.',
         }),
