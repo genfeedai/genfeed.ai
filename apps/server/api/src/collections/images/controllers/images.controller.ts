@@ -2,7 +2,10 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
 import { ImagesQueryDto } from '@api/collections/images/dto/images-query.dto';
 import { ImagesService } from '@api/collections/images/services/images.service';
-import { IngredientCharacterFilterService } from '@api/collections/ingredients/services/ingredient-character-filter.service';
+import {
+  IngredientCharacterFilterService,
+  resolveCharacterFilter,
+} from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -126,13 +129,11 @@ export class ImagesController {
     // Origin narrows the whole list, brand-default images included.
     const originFilter = IngredientFilterUtil.buildOriginFilter(query.origins);
 
-    // Character narrows the whole list too, and only to characters the active
-    // brand can use.
-    const characterFilter = await this.resolveCharacterFilter(
-      query.characters,
+    const characterFilter = await resolveCharacterFilter(this.characterFilter, {
+      characterIds: query.characters,
+      explicitBrandId: typeof brandId === 'string' ? brandId : undefined,
       user,
-      typeof brandId === 'string' ? brandId : undefined,
-    );
+    });
 
     // Build isPublic filter for public gallery (getshareable.app)
     const isPublicFilter =
@@ -210,30 +211,6 @@ export class ImagesController {
         contentType: 'image',
       })) ?? data,
     );
-  }
-
-  /**
-   * The `characters` filter, limited to characters the active brand can use.
-   * Without the resolver the filter fails closed rather than ignoring the ids.
-   */
-  private resolveCharacterFilter(
-    characterIds: string[] | undefined,
-    user: User,
-    explicitBrandId: string | undefined,
-  ): Promise<Record<string, unknown>> {
-    if (!characterIds || characterIds.length === 0) {
-      return Promise.resolve({});
-    }
-
-    if (!this.characterFilter) {
-      return Promise.resolve(IngredientFilterUtil.buildCharacterFilter([]));
-    }
-
-    return this.characterFilter.buildFilter({
-      brandId: explicitBrandId ?? user.brandId,
-      characterIds,
-      organizationId: user.organizationId,
-    });
   }
 
   private async findLatest(

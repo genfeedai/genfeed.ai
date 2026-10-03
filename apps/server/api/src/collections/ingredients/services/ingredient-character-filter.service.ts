@@ -46,3 +46,28 @@ export class IngredientCharacterFilterService {
     );
   }
 }
+
+/**
+ * The `characters` filter for a list request. Without the resolver the filter
+ * fails closed (matches nothing) rather than ignoring the requested ids.
+ */
+export function resolveCharacterFilter(
+  service: IngredientCharacterFilterService | undefined,
+  params: {
+    characterIds: string[] | undefined;
+    explicitBrandId: string | undefined;
+    user: { brandId?: string; organizationId: string };
+  },
+): Promise<Record<string, unknown>> {
+  if (!params.characterIds?.length) {
+    return Promise.resolve({});
+  }
+
+  return (
+    service?.buildFilter({
+      brandId: params.explicitBrandId ?? params.user.brandId,
+      characterIds: params.characterIds,
+      organizationId: params.user.organizationId,
+    }) ?? Promise.resolve(IngredientFilterUtil.buildCharacterFilter([]))
+  );
+}

@@ -3,7 +3,10 @@ import { ContentEvaluationProjectionService } from '@api/collections/evaluations
 import { FoldersService } from '@api/collections/folders/services/folders.service';
 import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
-import { IngredientCharacterFilterService } from '@api/collections/ingredients/services/ingredient-character-filter.service';
+import {
+  IngredientCharacterFilterService,
+  resolveCharacterFilter,
+} from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
@@ -127,11 +130,11 @@ export class IngredientsController {
       'prompt.prompt',
     ]);
 
-    const characterFilter = await this.resolveCharacterFilter(
-      query.characters,
+    const characterFilter = await resolveCharacterFilter(this.characterFilter, {
+      characterIds: query.characters,
+      explicitBrandId: typeof brandId === 'string' ? brandId : undefined,
       user,
-      typeof brandId === 'string' ? brandId : undefined,
-    );
+    });
 
     const aggregate = {
       include: { metadata: true, prompt: true },
@@ -166,30 +169,6 @@ export class IngredientsController {
         brandId: user.brandId,
       })) ?? data,
     );
-  }
-
-  /**
-   * The `characters` filter, limited to characters the active brand can use.
-   * Without the resolver the filter fails closed rather than ignoring the ids.
-   */
-  private resolveCharacterFilter(
-    characterIds: string[] | undefined,
-    user: User,
-    explicitBrandId: string | undefined,
-  ): Promise<Record<string, unknown>> {
-    if (!characterIds || characterIds.length === 0) {
-      return Promise.resolve({});
-    }
-
-    if (!this.characterFilter) {
-      return Promise.resolve(IngredientFilterUtil.buildCharacterFilter([]));
-    }
-
-    return this.characterFilter.buildFilter({
-      brandId: explicitBrandId ?? user.brandId,
-      characterIds,
-      organizationId: user.organizationId,
-    });
   }
 
   /**
