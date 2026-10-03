@@ -75,12 +75,19 @@ describe('element scope', () => {
       { createdAt: '2026-01-01', key: 'own-old', organizationId: 'org-1' },
       { key: 'second', organizationId: null, sortOrder: 20 },
       { createdAt: '2026-02-01', key: 'own-new', organizationId: 'org-1' },
+      {
+        createdAt: '2026-01-15',
+        key: 'own-first',
+        organizationId: 'org-1',
+        sortOrder: -1,
+      },
       { key: 'first', organizationId: null, sortOrder: 10 },
     ]);
 
     expect(ordered.map((item) => item.key)).toEqual([
       'first',
       'second',
+      'own-first',
       'own-new',
       'own-old',
     ]);

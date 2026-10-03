@@ -3,6 +3,11 @@ import ModalSound from '@ui/modals/elements/sound/ModalSound';
 import type { PropsWithChildren } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@ui/modals/modal/Modal', () => ({
   default: ({ children }: PropsWithChildren) => (
     <div data-testid="modal">{children}</div>
@@ -106,5 +111,11 @@ describe('ModalSound', () => {
       'data-controlled',
       'true',
     );
+  });
+
+  it('lets a superadmin set the sort order', () => {
+    render(<ModalSound {...defaultProps} />);
+
+    expect(screen.getByLabelText('Sort order')).toBeInTheDocument();
   });
 });

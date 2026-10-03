@@ -534,6 +534,53 @@ export abstract class BaseService<
   }
 
   /**
+   * Update the single document `where` selects, returning it (or null when
+   * nothing matched). `patch(id)` writes by primary key alone, which the CLOUD
+   * tenant guard rejects on tenant models; use this when `where` carries the
+   * tenant scope. `where` is used as given: it is the caller's scope contract.
+   */
+  async patchOneWhere(
+    where: PrismaFilter,
+    updateDto: Partial<UpdateDto> | PrismaUpdate,
+    populate: PopulateInput = [],
+  ): Promise<T | null> {
+    if (!where || typeof where !== 'object' || !('id' in where) || !where.id) {
+      throw new ValidationException('Document ID is required');
+    }
+    if (!updateDto || typeof updateDto !== 'object') {
+      throw new ValidationException('Update data is required');
+    }
+
+    const normalizedWhere = this.normalizeWhere(where);
+    const { count } = await this.internalDelegate.updateMany({
+      data: this.normalizeData(updateDto),
+      where: normalizedWhere,
+    });
+
+    if (count === 0) {
+      return null;
+    }
+
+    if (this.cacheService) {
+      await invalidateCollectionQueryCache(
+        this.cacheService,
+        this.collectionName,
+      );
+    }
+
+    const include = this.populateToInclude(populate);
+    // Re-read through the same scope, ignoring the soft-delete predicate so a
+    // tombstone just written by this call is still returned.
+    const { isDeleted: _isDeleted, ...readWhere } = normalizedWhere;
+    const result = await this.internalDelegate.findFirst({
+      where: readWhere,
+      ...(include ? { include } : {}),
+    });
+
+    return result ? this.normalizeDocument(result) : null;
+  }
+
+  /**
    * Bulk-update every matching document. Soft-deleted rows are excluded by
    * default (see `withSoftDeleteFilter`); pass `isDeleted` explicitly to opt
    * out. This is a filter-driven write, so the same default that keeps

@@ -1,13 +1,14 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
 import {
+  buildElementScopeConditions,
   canReadElement,
   type ScopedElement,
   withPlatformDefaultFlag,
 } from '@api/collections/elements/shared/element-scope.util';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
-import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { ScopedCRUDController } from '@api/shared/controllers/base-crud/scoped-crud.controller';
 import type { PlatformElementDto } from '@api/shared/dto/element/platform-element.dto';
 import { ForbiddenException } from '@nestjs/common';
 
@@ -16,6 +17,8 @@ import { ForbiddenException } from '@nestjs/common';
  *
  * - Reads: platform defaults are readable by everyone (inactive ones by
  *   superadmins only); organization rows only by their own organization.
+ * - Lookups and writes go through the scoped query of `ScopedCRUDController`
+ *   so the CLOUD tenant guard sees the caller's organization.
  * - Writes: only superadmins create platform defaults and may modify them.
  *   Organization routes answer not-found for a default they cannot modify.
  */
@@ -24,7 +27,14 @@ export abstract class ElementsCRUDController<
   CreateDto extends PlatformElementDto,
   UpdateDto extends Partial<PlatformElementDto>,
   QueryDto extends BaseQueryDto = BaseQueryDto,
-> extends BaseCRUDController<T, CreateDto, UpdateDto, QueryDto> {
+> extends ScopedCRUDController<T, CreateDto, UpdateDto, QueryDto> {
+  protected buildScopeConditions(user: User): Record<string, unknown>[] {
+    return buildElementScopeConditions({
+      isSuperAdmin: getIsSuperAdmin(user),
+      organizationId: user.organizationId,
+    });
+  }
+
   public override enrichCreateDto(
     createDto: Partial<CreateDto>,
     user: User,

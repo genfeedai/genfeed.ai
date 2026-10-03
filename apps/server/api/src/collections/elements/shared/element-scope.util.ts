@@ -69,7 +69,7 @@ function toTimestamp(value: ScopedElement['createdAt']): number {
 
 /**
  * Platform defaults first in curated order (`sortOrder`, then key), followed by
- * the organization's own elements newest first.
+ * the organization's own elements (`sortOrder`, then newest first).
  */
 export function orderElementsForOrganization<T extends ScopedElement>(
   docs: readonly T[],
@@ -85,6 +85,7 @@ export function orderElementsForOrganization<T extends ScopedElement>(
     .filter((doc) => !isPlatformDefaultElement(doc))
     .sort(
       (left, right) =>
+        (left.sortOrder ?? 0) - (right.sortOrder ?? 0) ||
         toTimestamp(right.createdAt) - toTimestamp(left.createdAt) ||
         compareText(left.key ?? '', right.key ?? ''),
     );
