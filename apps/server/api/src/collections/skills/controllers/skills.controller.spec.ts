@@ -1,10 +1,11 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { SkillsController } from '@api/collections/skills/controllers/skills.controller';
+import type { CreateSkillDto } from '@api/collections/skills/dto/skill.dto';
 import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { SkillSurface } from '@genfeedai/contracts';
+import { ContentSkillCategory, SkillSurface } from '@genfeedai/contracts';
 import { ForbiddenException, RequestMethod } from '@nestjs/common';
 import {
   GUARDS_METADATA,
@@ -287,8 +288,8 @@ describe('SkillsController legacy write authorization', () => {
     organizationId: 'org-1',
     userId: 'user-1',
   } as User;
-  const createBody = {
-    category: 'copywriting' as never,
+  const createBody: CreateSkillDto = {
+    category: ContentSkillCategory.WRITING,
     channels: ['youtube'],
     description: 'Writes hooks',
     modalities: ['text'],
