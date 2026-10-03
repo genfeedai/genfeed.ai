@@ -30,7 +30,7 @@ describe('MCP toolset profiles', () => {
     expect(isMcpToolsetProfileName('not-a-profile')).toBe(false);
   });
 
-  it('keeps media upload and get_post on content inside the bare-URL profile', () => {
+  it('keeps media upload and get_posts on content inside the bare-URL profile', () => {
     const names = new Set(
       getToolsForToolsets('mcp', DEFAULT_MCP_PROFILE_TOOLSETS).map(
         (tool) => tool.name,
@@ -38,7 +38,7 @@ describe('MCP toolset profiles', () => {
     );
     for (const name of [
       'complete_media_upload',
-      'get_post',
+      'get_posts',
       'request_media_upload',
     ]) {
       expect(names.has(name), name).toBe(true);

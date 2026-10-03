@@ -23,14 +23,11 @@ function tool(overrides: Partial<McpToolOutput> = {}): McpToolOutput {
   };
 }
 
-/** The seven `core` tools a plain `user` can see (everything but `resolve_approval`). */
+/** The four `core` tools a plain `user` can see (everything but `resolve_approval`). */
 const USER_VISIBLE_CORE_TOOL_NAMES = [
   'find_tools',
-  'get_account_info',
-  'list_brands',
-  'get_brand',
-  'get_credits_balance',
-  'get_usage_stats',
+  'get_account',
+  'get_brands',
   'get_job_status',
 ];
 
@@ -117,7 +114,7 @@ describe('handleToolDiscoveryTool', () => {
       expect(toolsets.map((toolset) => toolset.name)).toEqual(['content']);
     });
 
-    it('is role-aware: a plain user sees core with 7 tools and never sees resolve_approval', () => {
+    it('is role-aware: a plain user sees core with 4 tools and never sees resolve_approval', () => {
       // `getDiscoverableTools` is the registry's job to pre-filter by role —
       // this fixture simulates what a `user`-scoped registry returns: every
       // core tool except the superadmin-gated `resolve_approval`.
@@ -135,7 +132,7 @@ describe('handleToolDiscoveryTool', () => {
       }>;
       const core = toolsets.find((toolset) => toolset.name === 'core');
 
-      expect(core?.toolCount).toBe(7);
+      expect(core?.toolCount).toBe(4);
       expect(core?.toolNames).not.toContain('resolve_approval');
     });
 

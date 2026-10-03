@@ -97,8 +97,9 @@ describe('MCP tool annotations', () => {
       expect(getToolByName(name)?.annotations?.readOnlyHint, name).toBe(false);
     }
     for (const name of [
-      'get_account_info',
-      'list_brands',
+      'get_account',
+      'get_brands',
+      'list_assets',
       'validate_scheduler_target',
     ]) {
       expect(getToolByName(name)?.annotations?.readOnlyHint, name).toBe(true);
@@ -131,13 +132,13 @@ describe('MCP tool annotations', () => {
     }
   });
 
-  it('keeps media upload and get_post hints off the global write default', () => {
+  it('keeps media upload and get_posts hints off the global write default', () => {
     expect(getToolByName('request_media_upload')?.annotations).toMatchObject({
       destructiveHint: false,
       idempotentHint: false,
       readOnlyHint: false,
     });
-    expect(getToolByName('get_post')?.annotations).toMatchObject({
+    expect(getToolByName('get_posts')?.annotations).toMatchObject({
       destructiveHint: false,
       idempotentHint: true,
       readOnlyHint: true,
@@ -154,13 +155,13 @@ describe('MCP tool annotations', () => {
     expect(getToolByName('request_media_upload')?.mutationPolicy).toBe(
       'direct',
     );
-    expect(getToolByName('get_post')?.toolset).toBe('content');
+    expect(getToolByName('get_posts')?.toolset).toBe('content');
     expect(getToolByName('request_media_upload')?.toolset).toBe('content');
     expect(getToolByName('complete_media_upload')?.toolset).toBe('content');
   });
 
   it('derives a title from the tool name', () => {
-    expect(getToolByName('get_account_info')?.title).toBe('Get Account Info');
+    expect(getToolByName('get_account')?.title).toBe('Get Account');
     expect(getToolByName('create_post')?.title).toBe('Create Post');
   });
 

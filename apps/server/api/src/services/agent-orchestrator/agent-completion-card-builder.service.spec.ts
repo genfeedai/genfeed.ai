@@ -269,7 +269,7 @@ describe('AgentCompletionCardBuilderService', () => {
     expect(
       service.buildAssistantUiActions({
         reviewRequired: false,
-        toolCalls: [{ status: 'completed', toolName: 'get_credits_balance' }],
+        toolCalls: [{ status: 'completed', toolName: 'get_account' }],
         uiActions: [existingAction],
       }).uiActions,
     ).toEqual([existingAction]);
@@ -289,7 +289,7 @@ describe('AgentCompletionCardBuilderService', () => {
         reviewRequired: false,
         toolCalls: [
           { status: 'completed', toolName: 'get_current_brand' },
-          { status: 'completed', toolName: 'list_brands' },
+          { status: 'completed', toolName: 'get_brands' },
           {
             status: 'completed',
             toolName: 'get_connection_status',

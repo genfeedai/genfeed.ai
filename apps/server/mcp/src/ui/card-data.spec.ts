@@ -14,12 +14,11 @@ describe('MCP Apps card contract', () => {
   it('links content tools to a public HTML resource, preserving existing metadata', () => {
     const tools = toMcpTools(getToolsForSurface('mcp'));
     for (const name of [
-      'list_posts',
-      'list_images',
-      'list_videos',
+      'get_posts',
+      'list_assets',
       'generate',
       'get_articles',
-      'get_usage_stats',
+      'get_account',
     ]) {
       const tool = tools.find((item) => item.name === name);
       expect(tool, name).toBeDefined();
@@ -29,8 +28,8 @@ describe('MCP Apps card contract', () => {
         _meta: { ...tool._meta, ui: { resourceUri: MCP_CARD_RESOURCE_URI } },
       });
     }
-    const unrelated = tools.find((item) => item.name === 'list_brands');
-    if (!unrelated) throw new Error('Missing list_brands');
+    const unrelated = tools.find((item) => item.name === 'get_brands');
+    if (!unrelated) throw new Error('Missing get_brands');
     expect(withCardMetadata(unrelated)).toBe(unrelated);
     const resource = cardResource();
     expect(resource.mimeType).toBe(MCP_APP_MIME_TYPE);
@@ -46,13 +45,13 @@ describe('MCP Apps card contract', () => {
       isPublicMcpRequest({
         jsonrpc: '2.0',
         method: 'tools/call',
-        params: { name: 'list_posts' },
+        params: { name: 'get_posts' },
       }),
     ).toBe(false);
   });
 
   it('maps real post fields and preserves counts without inventing media URLs', () => {
-    const view = buildCardView('list_posts', {
+    const view = buildCardView('get_posts', {
       posts: [
         {
           id: 'p1',
@@ -81,7 +80,7 @@ describe('MCP Apps card contract', () => {
     });
     expect(view?.cards[0].url).toBeUndefined();
     expect(
-      buildCardView('get_post', { post: { id: 'p2', label: 'Detail' } })
+      buildCardView('get_posts', { post: { id: 'p2', label: 'Detail' } })
         ?.cards[0].id,
     ).toBe('p2');
   });
@@ -146,15 +145,16 @@ describe('MCP Apps card contract', () => {
         ?.cards[0].kind,
     ).toBe('video');
     expect(
-      buildCardView('get_usage_stats', {
-        timeRange: '7d',
-        contentCreated: { images: 0 },
-        creditsUsed: 0,
+      buildCardView('get_account', {
+        usage: { currentBalance: 0, usage7Days: 0, breakdown: [] },
       })?.cards,
     ).toHaveLength(2);
-    expect(buildCardView('list_images', [])?.cards).toEqual([]);
+    expect(buildCardView('get_account', { profile: { role: 'admin' } })).toBe(
+      undefined,
+    );
+    expect(buildCardView('list_assets', [])?.cards).toEqual([]);
     const view = buildCardView(
-      'list_images',
+      'list_assets',
       Array.from({ length: 30 }, () => ({ prompt: 'x'.repeat(5000) })),
     );
     expect(view?.cards).toHaveLength(24);

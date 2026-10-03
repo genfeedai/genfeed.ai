@@ -62,7 +62,8 @@ describe('tool registry', () => {
       ['discover_engagements', 'proactive'],
       ['generate_as_identity', 'identity'],
       ['request_asset', 'agent-control'],
-      ['get_credits_balance', 'other'],
+      ['get_account', 'social'],
+      ['list_assets', 'generation'],
     ];
     for (const [name, category] of expected) {
       expect(getToolByName(name)?.category, name).toBe(category);
@@ -74,7 +75,7 @@ describe('tool registry', () => {
       'approval-required',
     );
     expect(getToolByName('generate')?.mutationPolicy).toBe('direct');
-    expect(getToolByName('list_posts')?.mutationPolicy).toBeUndefined();
+    expect(getToolByName('get_posts')?.mutationPolicy).toBeUndefined();
   });
 
   it('attaches a UI action type only to mapped actions', () => {
@@ -84,7 +85,13 @@ describe('tool registry', () => {
     expect(getToolByName('schedule_post')?.uiActionType).toBe(
       'schedule_post_card',
     );
-    expect(getToolByName('list_posts')?.uiActionType).toBeUndefined();
+    expect(getToolByName('get_posts')?.uiActionType).toBe(
+      'content_calendar_card',
+    );
+    expect(getToolByName('get_account')?.uiActionType).toBe(
+      'credits_balance_card',
+    );
+    expect(getToolByName('list_assets')?.uiActionType).toBeUndefined();
   });
 
   it('widens the visible set as the role escalates', () => {

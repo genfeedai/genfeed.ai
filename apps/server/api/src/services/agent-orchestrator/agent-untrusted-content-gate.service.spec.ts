@@ -108,7 +108,7 @@ describe('AgentUntrustedContentGateService', () => {
     config.set('UNTRUSTED_CONTENT_DECISION_MODE', 'live');
 
     const result = await evaluate(buildGate(), {
-      toolName: 'get_credits_balance',
+      toolName: 'get_brands',
     });
 
     expect(result.outcome).toBe('allowed');

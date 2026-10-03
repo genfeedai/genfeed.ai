@@ -41,7 +41,7 @@ describe('finalizeMcpToolResult', () => {
   it.each([
     ['get_articles', true],
     ['unknown_native', false],
-    ['list_posts', false],
+    ['get_posts', false],
   ] as const)(
     'skips proxy or unmapped %s results',
     async (name, isAgentExecutor) => {
