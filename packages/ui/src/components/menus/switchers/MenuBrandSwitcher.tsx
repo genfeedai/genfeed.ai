@@ -7,6 +7,7 @@ import { createBrandAppRoute } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { BrandSwitcherProps } from '@genfeedai/props/social/brand-switcher.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
@@ -22,9 +23,8 @@ import {
   SWITCHER_TRIGGER_OPEN_CLASSNAME,
 } from '@ui/menus/switchers/switcher-trigger.classes';
 import { Button } from '@ui/primitives/button';
-import { ChevronsUpDown, Settings, X } from 'lucide-react';
+import { ChevronsUpDown, Settings, UserRound, X } from 'lucide-react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import { type MouseEvent, useCallback, useState } from 'react';
 
 export default function MenuBrandSwitcher({
@@ -41,7 +41,6 @@ export default function MenuBrandSwitcher({
   );
 
   const { openBrandOverlay } = useBrandOverlay();
-  const { push } = useRouter();
   const [isUpdatingBrand, setIsUpdatingBrand] = useState(false);
 
   const isUpdating = externalIsUpdating ?? isUpdatingBrand;
@@ -103,11 +102,22 @@ export default function MenuBrandSwitcher({
           orgSlug && b.slug
             ? {
                 ariaLabel: `Open ${b.label ?? 'brand'} settings`,
+                href: createBrandAppRoute(orgSlug, b.slug, '/settings'),
                 icon: Settings,
-                onAction: () =>
-                  push(createBrandAppRoute(orgSlug, b.slug, '/settings')),
+                onAction: () => undefined,
               }
             : undefined,
+        extraTrailingActions: b.slug
+          ? [
+              {
+                ariaLabel: `Open ${b.label ?? 'brand'} public profile`,
+                href: `${EnvironmentService.apps.website}/u/${b.slug}`,
+                icon: UserRound,
+                onAction: () => undefined,
+                target: '_blank' as const,
+              },
+            ]
+          : undefined,
       };
     }),
   ];

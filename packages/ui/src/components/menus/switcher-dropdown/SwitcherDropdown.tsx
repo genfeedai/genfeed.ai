@@ -5,6 +5,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   SwitcherDropdownItem,
   SwitcherDropdownProps,
+  SwitcherDropdownTrailingAction,
 } from '@genfeedai/props/ui/menus/switcher-dropdown.props';
 import { Button } from '@ui/primitives/button';
 import {
@@ -21,6 +22,7 @@ import {
 } from '@ui/primitives/popover';
 import { Check, Plus } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import type React from 'react';
 import { cloneElement, isValidElement, useCallback, useState } from 'react';
 
@@ -185,9 +187,9 @@ export default function SwitcherDropdown({
                 key={item.id}
                 item={item}
                 onSelect={handleSelect}
-                onAction={() => {
+                onAction={(action) => {
                   close();
-                  item.trailingAction?.onAction();
+                  action.onAction();
                 }}
               />
             ))}
@@ -233,10 +235,13 @@ function SwitcherItem({
   onSelect,
 }: {
   item: SwitcherDropdownItem;
-  onAction: () => void;
+  onAction: (action: SwitcherDropdownTrailingAction) => void;
   onSelect: (id: string) => void;
 }) {
-  const TrailingIcon = item.trailingAction?.icon;
+  const trailingActions = [
+    ...(item.trailingAction ? [item.trailingAction] : []),
+    ...(item.extraTrailingActions ?? []),
+  ];
 
   return (
     <div
@@ -303,38 +308,73 @@ function SwitcherItem({
         </span>
       </CommandItem>
 
-      {item.trailingAction && TrailingIcon ? (
-        item.trailingAction.href ? (
-          <a
-            href={item.trailingAction.href}
-            target={item.trailingAction.target}
-            rel={
-              item.trailingAction.target === '_blank' ? 'noreferrer' : undefined
-            }
-            aria-label={item.trailingAction.ariaLabel}
-            onClick={() => onAction()}
-            className={cn(
-              'mr-1.5 flex size-7 flex-shrink-0 items-center justify-center rounded text-foreground/38 transition-colors duration-150',
-              'group-hover:text-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-0',
-            )}
-          >
-            <TrailingIcon className="size-3.5" />
-          </a>
-        ) : (
-          <Button
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-            ariaLabel={item.trailingAction.ariaLabel}
-            onClick={onAction}
-            className={cn(
-              'mr-1.5 flex size-7 flex-shrink-0 items-center justify-center rounded text-foreground/38 transition-colors duration-150',
-              'group-hover:text-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-0',
-            )}
-          >
-            <TrailingIcon className="size-3.5" />
-          </Button>
-        )
-      ) : null}
+      {trailingActions.map((action) => (
+        <TrailingActionControl
+          key={action.ariaLabel}
+          action={action}
+          onAction={onAction}
+        />
+      ))}
     </div>
+  );
+}
+
+const TRAILING_ACTION_CLASSNAME = cn(
+  'mr-1.5 flex size-7 flex-shrink-0 items-center justify-center rounded text-foreground/38 transition-colors duration-150',
+  'group-hover:text-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-0',
+);
+
+function TrailingActionControl({
+  action,
+  onAction,
+}: {
+  action: SwitcherDropdownTrailingAction;
+  onAction: (action: SwitcherDropdownTrailingAction) => void;
+}) {
+  const Icon = action.icon;
+
+  if (action.href) {
+    const isNewTab = action.target === '_blank';
+
+    // Real anchor: middle/cmd/ctrl-click and "open in new tab" work natively.
+    // Modified clicks keep the menu open and are never preventDefault-ed.
+    return (
+      <Link
+        href={action.href}
+        target={action.target}
+        rel={isNewTab ? 'noopener noreferrer' : undefined}
+        aria-label={action.ariaLabel}
+        title={action.ariaLabel}
+        onClick={(event) => {
+          event.stopPropagation();
+          if (
+            event.metaKey ||
+            event.ctrlKey ||
+            event.shiftKey ||
+            event.altKey ||
+            event.button !== 0
+          ) {
+            return;
+          }
+          onAction(action);
+        }}
+        onAuxClick={(event) => event.stopPropagation()}
+        className={TRAILING_ACTION_CLASSNAME}
+      >
+        <Icon className="size-3.5" />
+      </Link>
+    );
+  }
+
+  return (
+    <Button
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
+      ariaLabel={action.ariaLabel}
+      onClick={() => onAction(action)}
+      className={TRAILING_ACTION_CLASSNAME}
+    >
+      <Icon className="size-3.5" />
+    </Button>
   );
 }
