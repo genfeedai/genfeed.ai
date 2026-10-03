@@ -1,3 +1,7 @@
+import {
+  UNATTRIBUTED_FORWARDED_HEADER,
+  UNATTRIBUTED_FORWARDED_VALUE,
+} from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@notifications/config/config.service';
@@ -76,6 +80,16 @@ describe('GenFeedService', () => {
         baseURL: 'https://api.genfeed.ai',
         headers: expect.objectContaining({
           Authorization: 'Bearer test-api-key',
+        }),
+      }),
+    );
+  });
+
+  it('declares the end client unknown on every API call', () => {
+    expect(mockedAxios.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          [UNATTRIBUTED_FORWARDED_HEADER]: UNATTRIBUTED_FORWARDED_VALUE,
         }),
       }),
     );

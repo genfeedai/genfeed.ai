@@ -1,4 +1,8 @@
 import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/contracts';
+import {
+  UNATTRIBUTED_FORWARDED_HEADER,
+  UNATTRIBUTED_FORWARDED_VALUE,
+} from '@genfeedai/contracts/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ConfigService } from '@mcp/config/config.service';
 import { resolveApiBaseUrl } from '@mcp/shared/utils/api-url.util';
@@ -59,6 +63,10 @@ export class BaseApiClient {
       headers: {
         Authorization: `Bearer ${this.bearerToken}`,
         'Content-Type': 'application/json',
+        // Calls reach the API from this server's address, loopback on
+        // self-host. Declare the end client unknown so the API never grants
+        // admin power from that address.
+        [UNATTRIBUTED_FORWARDED_HEADER]: UNATTRIBUTED_FORWARDED_VALUE,
         ...(this.mcpOriginProof
           ? {
               [MCP_ACTION_ORIGIN_PROOF_HEADER]: this.mcpOriginProof,

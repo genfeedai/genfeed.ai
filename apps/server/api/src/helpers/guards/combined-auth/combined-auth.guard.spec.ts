@@ -3,6 +3,10 @@ import type { RequestContextMiddleware } from '@api/common/middleware/request-co
 import { OPTIONAL_AUTH_KEY } from '@api/helpers/decorators/optional-auth.decorator';
 import type { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  UNATTRIBUTED_FORWARDED_HEADER,
+  UNATTRIBUTED_FORWARDED_VALUE,
+} from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -645,6 +649,33 @@ describe('CombinedAuthGuard', () => {
     } = {
       headers: {},
       ip: '198.51.100.9',
+    };
+    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
+      mockRequest,
+    );
+
+    await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
+
+    expect(mockRequest.user).toEqual(
+      expect.objectContaining({ id: 'user_1', isSuperAdmin: false }),
+    );
+  });
+
+  it('withholds super-admin from a loopback service call that declares its client unknown', async () => {
+    // MCP and notifications reach the API over loopback inside the self-host
+    // container; LOCAL mode ignores their bearer token.
+    vi.stubEnv('ADMIN_ALLOWED_IPS', '127.0.0.1');
+    guard = await instantiateGuard('local');
+    const mockRequest: {
+      user?: Record<string, unknown>;
+      headers: object;
+      ip: string;
+    } = {
+      headers: {
+        authorization: 'Bearer internal-service-key',
+        [UNATTRIBUTED_FORWARDED_HEADER]: UNATTRIBUTED_FORWARDED_VALUE,
+      },
+      ip: '127.0.0.1',
     };
     (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
       mockRequest,
