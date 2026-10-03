@@ -9,6 +9,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { returnNotFound } from '@api/helpers/utils/response/response.util';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { CredentialPlatform, MemberRole } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -141,14 +142,15 @@ export class PostsAnalyticsController {
     @CurrentUser() user: User,
     @Param('postId') postId: string,
   ): Promise<JsonApiSingleResponse<PostAnalyticsRefreshAttributes>> {
-    // Verify publication ownership
-    const post = await this.postsService.findOne({
-      id: postId,
-      OR: [
-        { userId: user.userId ?? user.id },
-        { organizationId: user.organizationId },
-      ],
-    });
+    if (!user.organizationId) {
+      throw new BadRequestException(
+        'An authenticated organization is required to refresh analytics',
+      );
+    }
+
+    const post = await this.postsService.findOne(
+      scopedWhere(user.organizationId, { id: postId }),
+    );
 
     if (!post) {
       return returnNotFound(this.constructorName, postId);
