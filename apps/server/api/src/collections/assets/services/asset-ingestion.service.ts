@@ -116,8 +116,8 @@ export class AssetIngestionService {
         : undefined;
       const entityData = {
         category: uploadDto.category,
-        organizationId,
         parentId,
+        parentOrgId: organizationId,
         parentType: uploadDto.parentType,
         userId,
       };
@@ -290,8 +290,8 @@ export class AssetIngestionService {
 
     const assetData = await this.assetsService.create({
       category: validatedCategory,
-      organizationId,
       parentId: validatedParent,
+      parentOrgId: organizationId,
       parentType: AssetParent.BRAND,
       userId,
     });

@@ -32,12 +32,12 @@ export class AssetsService extends BaseService<
     const normalized = { ...(data as Record<string, unknown>) };
     const parentId = normalized.parentId;
     const parentType = normalized.parentType;
-    // Not a column: the tenant the parent belongs to, stamped as parentOrgId.
+    // The tenant a non-organization parent (a brand) belongs to; kept through
+    // the parent-column rebuild below instead of being reset to null.
     const organizationId =
-      typeof normalized.organizationId === 'string'
-        ? normalized.organizationId
+      typeof normalized.parentOrgId === 'string'
+        ? normalized.parentOrgId
         : undefined;
-    delete normalized.organizationId;
 
     if (parentId !== undefined) {
       if (typeof parentId !== 'string') {

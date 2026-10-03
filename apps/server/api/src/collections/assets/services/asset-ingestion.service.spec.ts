@@ -164,8 +164,8 @@ describe('AssetIngestionService', () => {
     expect(cacheService.del).toHaveBeenCalledWith(`brand:${brandId}`);
     expect(assetsService.create).toHaveBeenCalledWith({
       category: AssetCategory.LOGO,
-      organizationId: user.organizationId,
       parentId: brandId,
+      parentOrgId: user.organizationId,
       parentType: AssetParent.BRAND,
       userId,
     });
@@ -250,8 +250,8 @@ describe('AssetIngestionService', () => {
     );
     expect(assetsService.create).toHaveBeenCalledWith({
       category: AssetCategory.LOGO,
-      organizationId,
       parentId: organizationId,
+      parentOrgId: organizationId,
       parentType: AssetParent.ORGANIZATION,
       userId,
     });
@@ -268,8 +268,8 @@ describe('AssetIngestionService', () => {
 
     expect(assetsService.create).toHaveBeenCalledWith({
       category: AssetCategory.REFERENCE,
-      organizationId: undefined,
       parentId: undefined,
+      parentOrgId: undefined,
       parentType: AssetParent.BRAND,
       userId,
     });
@@ -324,8 +324,8 @@ describe('AssetIngestionService', () => {
     );
     expect(assetsService.create).toHaveBeenCalledWith({
       category: AssetCategory.LOGO,
-      organizationId: user.organizationId,
       parentId: brandId,
+      parentOrgId: user.organizationId,
       parentType: AssetParent.BRAND,
       userId,
     });
