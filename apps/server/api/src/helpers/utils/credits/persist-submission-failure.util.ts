@@ -212,6 +212,10 @@ async function recordFailure(
     !['heygen', 'crun'].includes(parsed.submissionIntent.provider)
   )
     throw new BusinessLogicException('Submission rejection provider differs');
+  // Reconciliation expires an intent hold that stayed unproven past its
+  // ceiling. Its funds are already back in the wallet, so a failure that
+  // arrives later has nothing to release and must still reach the library row.
+  if (hold.status === CreditReservationStatus.EXPIRED) return;
   if (hold.status !== CreditReservationStatus.RESERVED)
     throw new BusinessLogicException('Submitted generation hold already ended');
   if (
