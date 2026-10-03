@@ -69,6 +69,29 @@
     }
   },
   "analytics": {
+    "metricDefinitions": {
+      "comments": "Comments recorded across the selected published content.",
+      "engagement": "Total recorded interactions across the selected content.",
+      "engagementRate": "Recorded interactions divided by the applicable audience or view denominator.",
+      "likes": "Likes recorded across the selected published content.",
+      "posts": "Published posts included in the visible scoped query.",
+      "saves": "Saves recorded across the selected published content.",
+      "shares": "Shares recorded across the selected published content.",
+      "views": "Platform-reported views for the selected published content.",
+      "viewsPerPost": "Platform-reported views divided by the number of selected published posts."
+    },
+    "metricLabels": {
+      "comments": "Comments",
+      "engagement": "Engagement",
+      "engagementRate": "Engagement rate",
+      "likes": "Likes",
+      "posts": "Posts",
+      "saves": "Saves",
+      "shares": "Shares",
+      "views": "Views",
+      "viewsPerPost": "Average views per post"
+    },
+    "metricDefinitionLabel": "About {metric}",
     "scopedExport": {
       "error": "Analytics export failed",
       "label": "Export scoped data",

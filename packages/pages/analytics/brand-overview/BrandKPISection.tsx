@@ -27,6 +27,7 @@ export default function BrandKPISection({
       items={[
         {
           description: 'Published content',
+          analyticsMetric: 'posts' as const,
           label: 'Total Posts',
           value: analytics?.totalPosts || 0,
         },
@@ -34,6 +35,7 @@ export default function BrandKPISection({
           description: analytics?.viewsGrowth
             ? `${formatPercentage(analytics.viewsGrowth)} from last period`
             : 'Total views',
+          analyticsMetric: 'views' as const,
           label: 'Total Views',
           value: analytics?.totalViews || 0,
         },
@@ -41,11 +43,17 @@ export default function BrandKPISection({
           description: analytics?.engagementGrowth
             ? `${formatPercentage(analytics.engagementGrowth)} from last period`
             : 'Total engagement',
+          analyticsMetric: analytics?.totalEngagement
+            ? ('engagement' as const)
+            : analytics?.totalLikes
+              ? ('likes' as const)
+              : ('engagement' as const),
           label: 'Total Engagement',
           value: analytics?.totalEngagement || analytics?.totalLikes || 0,
         },
         {
           description: 'Average engagement rate',
+          analyticsMetric: 'engagementRate' as const,
           label: 'Engagement Rate',
           value: analytics?.avgEngagementRate
             ? `${analytics.avgEngagementRate.toFixed(2)}%`
@@ -58,7 +66,9 @@ export default function BrandKPISection({
         },
         {
           description: 'Per content piece',
+          analyticsMetric: 'views' as const,
           label: 'Avg Views/Post',
+          analyticsMetricVariant: 'perPost' as const,
           value:
             analytics?.totalPosts && analytics?.totalViews
               ? formatCompactNumberIntl(

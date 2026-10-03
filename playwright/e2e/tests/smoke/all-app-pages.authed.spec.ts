@@ -233,3 +233,45 @@ test.describe('Authenticated route smoke (real Better Auth session)', () => {
     networkGuard.assertNoBlockedRequests();
   });
 });
+
+test('analytics metric definition opens on keyboard focus with real authentication', async ({
+  page,
+}) => {
+  test.setTimeout(600_000);
+  const networkGuard = await setupStrictNetworkGuard(page, { strict: true });
+  const { brandSlug, orgSlug } = await readWorkspaceOracleFromBootstrap(page);
+  const route = createBrandAppRoute(
+    orgSlug,
+    brandSlug,
+    APP_ROUTES.ANALYTICS.HOOKS,
+  );
+  await assertRouteLoads(page, route);
+  const postsCard = page
+    .getByTestId('metric-card')
+    .filter({ has: page.getByText('Posts Analyzed', { exact: true }) });
+  await expect(postsCard).toHaveCount(1);
+  await expect(
+    postsCard.getByText('Posts Analyzed', { exact: true }),
+  ).toBeVisible();
+  const trigger = postsCard.getByRole('button', {
+    name: 'About Posts',
+    exact: true,
+  });
+  await expect(trigger).toBeEnabled();
+  await trigger.focus();
+  await expect(trigger).toBeFocused();
+  const tooltip = page.getByRole('tooltip');
+  await expect(tooltip).toHaveText(
+    'Published posts included in the visible scoped query.',
+  );
+  const descriptionId = await tooltip.getAttribute('id');
+  expect(descriptionId).toBeTruthy();
+  await expect(trigger).toHaveAttribute(
+    'aria-describedby',
+    descriptionId as string,
+  );
+  await trigger.press('Escape');
+  await expect(tooltip).toHaveCount(0);
+  await assertNoErrorBoundaryFallback(page, route);
+  networkGuard.assertNoBlockedRequests();
+});

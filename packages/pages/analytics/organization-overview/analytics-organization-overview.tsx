@@ -24,6 +24,7 @@ import type {
 } from '@services/analytics/analytics.service';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
+import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Card from '@ui/card/Card';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
@@ -64,6 +65,7 @@ export interface AnalyticsOrganizationOverviewProps {
 }
 
 interface OrganizationMetricCard {
+  analyticsMetric?: 'posts' | 'views';
   accent: string;
   label: string;
   value: string;
@@ -97,11 +99,13 @@ function OrganizationMetricStrip({
     },
     {
       accent: 'Published content',
+      analyticsMetric: 'posts',
       label: 'Total Posts',
       value: formatCompactNumberIntl(analytics?.totalPosts),
     },
     {
       accent: formatGrowthAccent(analytics?.viewsGrowth, 'Total views'),
+      analyticsMetric: 'views',
       label: 'Total Views',
       value: formatCompactNumberIntl(analytics?.totalViews),
     },
@@ -150,7 +154,13 @@ function OrganizationMetricStrip({
               </div>
             )}
             <p className="mt-1 text-2xs font-medium uppercase tracking-[0.14em] text-foreground/55">
-              {metric.label}
+              {metric.analyticsMetric ? (
+                <AnalyticsMetricLabel metric={metric.analyticsMetric}>
+                  {metric.label}
+                </AnalyticsMetricLabel>
+              ) : (
+                metric.label
+              )}
             </p>
             {isLoading ? (
               <Skeleton variant="text" height={12} className="mt-2 w-28" />
@@ -354,7 +364,11 @@ export default function AnalyticsOrganizationOverview({
             },
             {
               className: 'text-right tabular-nums',
-              header: 'Posts',
+              header: (
+                <AnalyticsMetricLabel metric="posts">
+                  Posts
+                </AnalyticsMetricLabel>
+              ),
               key: 'totalPosts',
               render: (brand) => (
                 <span className="font-medium">
@@ -364,7 +378,11 @@ export default function AnalyticsOrganizationOverview({
             },
             {
               className: 'text-right tabular-nums',
-              header: 'Views',
+              header: (
+                <AnalyticsMetricLabel metric="views">
+                  Views
+                </AnalyticsMetricLabel>
+              ),
               key: 'totalViews',
               render: (brand) => (
                 <span className="font-medium">
@@ -374,7 +392,11 @@ export default function AnalyticsOrganizationOverview({
             },
             {
               className: 'text-right tabular-nums',
-              header: 'Engagement',
+              header: (
+                <AnalyticsMetricLabel metric="engagement">
+                  Engagement
+                </AnalyticsMetricLabel>
+              ),
               key: 'totalEngagement',
               render: (brand) => (
                 <span className="font-medium">
@@ -384,7 +406,11 @@ export default function AnalyticsOrganizationOverview({
             },
             {
               className: 'text-right tabular-nums',
-              header: 'Eng. Rate',
+              header: (
+                <AnalyticsMetricLabel metric="engagementRate">
+                  Eng. Rate
+                </AnalyticsMetricLabel>
+              ),
               key: 'avgEngagementRate',
               render: (brand) => (
                 <span className="font-medium">
