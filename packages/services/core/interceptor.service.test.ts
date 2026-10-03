@@ -43,6 +43,18 @@ class TestHTTPService extends HTTPBaseService {
   }
 }
 class OtherTestHTTPService extends HTTPBaseService {}
+
+function runRequestInterceptor(
+  target: HTTPBaseService,
+  config: InternalAxiosRequestConfig,
+): InternalAxiosRequestConfig {
+  const { handleRequest } = target as unknown as {
+    handleRequest: (
+      request: InternalAxiosRequestConfig,
+    ) => InternalAxiosRequestConfig;
+  };
+  return handleRequest(config);
+}
 class MultiArgHTTPService extends HTTPBaseService {
   public readonly organizationId: string;
 
@@ -320,7 +332,7 @@ describe('HTTPBaseService (InterceptorService)', () => {
         headers: {},
       } as InternalAxiosRequestConfig;
 
-      const result = service.handleRequest(config);
+      const result = runRequestInterceptor(service, config);
 
       expect(result.headers[UNATTRIBUTED_FORWARDED_HEADER]).toBe(
         UNATTRIBUTED_FORWARDED_VALUE,
@@ -334,7 +346,7 @@ describe('HTTPBaseService (InterceptorService)', () => {
           headers: {},
         } as InternalAxiosRequestConfig;
 
-        const result = service.handleRequest(config);
+        const result = runRequestInterceptor(service, config);
 
         expect(result.headers[UNATTRIBUTED_FORWARDED_HEADER]).toBeUndefined();
       } finally {
