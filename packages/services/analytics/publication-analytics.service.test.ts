@@ -45,6 +45,29 @@ describe('PostAnalyticsService', () => {
     expect(typeof service.postAllAnalytics).toBe('function');
   });
 
+  it('sends the owning brand when reading and refreshing a publication', async () => {
+    const instance = (
+      service as unknown as {
+        instance: {
+          get: ReturnType<typeof vi.fn>;
+          post: ReturnType<typeof vi.fn>;
+        };
+      }
+    ).instance;
+    instance.get.mockResolvedValue({ data: { data: null } });
+    instance.post.mockResolvedValue({ data: { data: null } });
+    await service
+      .getPostAnalytics('post-1', undefined, undefined, 'brand-2')
+      .catch(() => undefined);
+    expect(instance.get).toHaveBeenCalledWith('/post-1/analytics', {
+      params: { brandId: 'brand-2' },
+    });
+    await service.postAnalytics('post-1', 'brand-2').catch(() => undefined);
+    expect(instance.post).toHaveBeenCalledWith('/post-1/analytics', undefined, {
+      params: { brandId: 'brand-2' },
+    });
+  });
+
   it('has getInstance static method', () => {
     expect(typeof PostAnalyticsService.getInstance).toBe('function');
   });

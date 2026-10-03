@@ -28,11 +28,16 @@ export class PostAnalyticsService extends HTTPBaseService {
     publicationId: string,
     startDate?: string,
     endDate?: string,
+    brandId?: string,
   ): Promise<{
     summary: IPostAnalyticsSummary;
     dateRangeAnalytics?: IPostAnalytics[];
   }> {
     const params: IQueryParams = {};
+
+    if (brandId) {
+      params.brandId = brandId;
+    }
 
     if (startDate) {
       params.startDate = startDate;
@@ -52,12 +57,19 @@ export class PostAnalyticsService extends HTTPBaseService {
       );
   }
 
-  public async postAnalytics(publicationId: string): Promise<{
+  public async postAnalytics(
+    publicationId: string,
+    brandId?: string,
+  ): Promise<{
     summary: IPostAnalyticsSummary;
     lastRefreshed: string;
   }> {
     return await this.instance
-      .post<JsonApiResponseDocument>(`/${publicationId}/analytics`)
+      .post<JsonApiResponseDocument>(
+        `/${publicationId}/analytics`,
+        undefined,
+        brandId ? { params: { brandId } } : undefined,
+      )
       .then((res: AxiosResponse<JsonApiResponseDocument>) =>
         deserializeResource<{
           summary: IPostAnalyticsSummary;
