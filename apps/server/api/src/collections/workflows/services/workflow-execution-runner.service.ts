@@ -17,7 +17,11 @@ import {
 } from '@api/collections/workflows/services/workflow-executor-document.service';
 import { WorkflowGenerationAdmissionPlanService } from '@api/collections/workflows/services/workflow-generation-admission-plan.service';
 import { WorkflowNodeGraphRunnerService } from '@api/collections/workflows/services/workflow-node-graph-runner.service';
-import { requireRecordedWorkflowActor } from '@api/collections/workflows/services/workflow-resume-actor.util';
+import {
+  buildRevokedWorkflowActorMessage,
+  requireRecordedWorkflowActor,
+  WorkflowActorMembershipVerifier,
+} from '@api/collections/workflows/services/workflow-resume-actor.util';
 import type { WorkflowGenerationSelection } from '@api/collections/workflows/workflow-generation-admission.interface';
 import { AgentScopeContextService, scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -53,6 +57,7 @@ type PreparedWorkflowExecution = {
 
 export class WorkflowExecutionRunnerService {
   private readonly logContext = 'WorkflowExecutorService';
+  private readonly actorMembership: WorkflowActorMembershipVerifier;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -66,7 +71,9 @@ export class WorkflowExecutionRunnerService {
     private readonly graphRunner: WorkflowNodeGraphRunnerService,
     private readonly agentScopeContextService?: AgentScopeContextService,
     private readonly admissionPlan?: WorkflowGenerationAdmissionPlanService,
-  ) {}
+  ) {
+    this.actorMembership = new WorkflowActorMembershipVerifier(this.prisma);
+  }
 
   async resumeAfterDelay(
     jobData: DelayResumeJobData,
@@ -87,6 +94,21 @@ export class WorkflowExecutionRunnerService {
       executionId,
       delayedExecution?.userId,
     );
+    if (
+      !(await this.actorMembership.isActiveMember(
+        jobData.organizationId,
+        actorUserId,
+      ))
+    ) {
+      return this.failUnavailablePinnedExecution({
+        errorMessage: buildRevokedWorkflowActorMessage(executionId),
+        executionId,
+        organizationId: jobData.organizationId,
+        startedAt: delayedExecution?.startedAt ?? new Date(),
+        userId: actorUserId,
+        workflowId,
+      });
+    }
     const triggerEvent: TriggerEvent = {
       ...jobData.triggerEvent,
       userId: actorUserId,
