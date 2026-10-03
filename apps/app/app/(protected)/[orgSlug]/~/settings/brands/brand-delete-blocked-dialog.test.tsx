@@ -59,7 +59,7 @@ describe('BrandDeleteBlockedDialog', () => {
         onClose={onClose}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    fireEvent.click(screen.getByTestId('blocked-close'));
     expect(onClose).toHaveBeenCalled();
   });
 });

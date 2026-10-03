@@ -65,6 +65,7 @@ export default function BrandDeleteBlockedDialog({
         </ul>
         <div className="flex flex-wrap justify-end gap-2">
           <Button
+            data-testid="blocked-close"
             label={translate('close')}
             onClick={onClose}
             variant={ButtonVariant.GHOST}

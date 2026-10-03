@@ -49,13 +49,17 @@ export default function CharacterOwnershipFields({
         value={targetBrandId}
       >
         {candidates.map((brand) => (
-          <div className="flex items-center gap-2 text-sm" key={brand.id}>
+          <label
+            className="flex items-center gap-2 text-sm"
+            htmlFor={`character-ownership-${brand.id}`}
+            key={brand.id}
+          >
             <RadioGroupItem
               id={`character-ownership-${brand.id}`}
               value={brand.id}
             />
             <span>{brand.label}</span>
-          </div>
+          </label>
         ))}
       </RadioGroup>
       <div className="flex justify-end">
