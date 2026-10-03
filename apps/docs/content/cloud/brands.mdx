@@ -18,6 +18,15 @@ multiple brands inside its single organization.
 Use the product's brand settings as the source of truth for the fields available
 in the deployed release.
 
+## Create from a website
+
+In agent chat or MCP, organization owners and admins can use
+`create_brand_from_url` to create a brand with a draft website guide and voice
+analysis for one credit on success. Approval stays explicit through `approve:
+true`; otherwise review the draft using the returned review URL. Poll
+`get_brand_scan_status` if the scan is still running. See the
+[MCP guide](/api-reference/mcp#create-a-brand-from-a-url) for inputs and results.
+
 ## Brand voice from your own posts
 
 **Brand settings → Brand voice → Generate** drafts the brand's writing voice:

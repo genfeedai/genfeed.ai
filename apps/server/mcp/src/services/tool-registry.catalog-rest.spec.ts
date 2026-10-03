@@ -62,6 +62,8 @@ const MOCK_TOOLS = new Map(
     ...CATALOG_REST_NAMES,
     ...APPROVAL_GATED_NAMES,
     'generate_image',
+    'create_brand_from_url',
+    'get_brand_scan_status',
     'resolve_approval',
   ].map((name) => [
     name,
@@ -785,5 +787,32 @@ describe('ToolRegistryService — agent result mapping', () => {
       expect.stringContaining('Failed to attach result to approval apr-1'),
       expect.any(Error),
     );
+  });
+});
+
+describe('Brand URL tools', () => {
+  it.each(['create_brand_from_url', 'get_brand_scan_status'])(
+    'proxies %s directly without an approval queue',
+    async (name) => {
+      const { registry, client } = build();
+      await callTool(registry, name, {
+        url: 'https://example.com',
+        brandId: 'brand-1',
+      });
+      expect(client.executeAgentTool).toHaveBeenCalledWith(
+        name,
+        expect.objectContaining({ brandId: 'brand-1' }),
+        undefined,
+      );
+      expect(client.createApproval).not.toHaveBeenCalled();
+    },
+  );
+  it('lists both tools when selecting the brand toolset', () => {
+    const { registry } = build();
+    const names = registry
+      .getToolsForRoleAndToolsets('user', ['brand'])
+      .map((tool) => tool.name);
+    expect(names).toContain('create_brand_from_url');
+    expect(names).toContain('get_brand_scan_status');
   });
 });

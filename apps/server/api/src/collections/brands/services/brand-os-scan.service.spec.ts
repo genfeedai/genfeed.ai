@@ -255,6 +255,16 @@ describe('BrandOsScanService durable bounded scan', () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
+  it('collects scrape evidence and returns null data on request replay', async () => {
+    const h = harness();
+    const collected = await h.service.startAndCollect(h.input);
+    expect(collected.scrapedData).toEqual(envelope().data);
+    expect(collected.scan).toEqual(await h.service.get(ORG, BRAND));
+    const replay = await h.service.startAndCollect(h.input);
+    expect(replay).toEqual({ scan: collected.scan, scrapedData: null });
+    expect(h.scraper.scrapeWebsiteWithEvidence).toHaveBeenCalledOnce();
+  });
+
   it('does not initialize revisions on an absent GET and projects terminal state without internals', async () => {
     const h = harness();
     expect(await h.service.get(ORG, BRAND)).toBeNull();

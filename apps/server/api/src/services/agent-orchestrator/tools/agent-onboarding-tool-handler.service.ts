@@ -1,3 +1,4 @@
+import { AGENT_CREATED_BRAND_VISUAL_DEFAULTS } from '@api/collections/brands/constants/agent-created-brand.constant';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -224,14 +225,11 @@ export class AgentOnboardingToolHandler {
     }
 
     const brand = await this.brandsService.create({
+      ...AGENT_CREATED_BRAND_VISUAL_DEFAULTS,
       agentConfig: buildCreatedBrandAgentConfig(proposal, sourceActionId),
-      backgroundColor: '#000000',
       description: proposal.description,
-      fontFamily: 'montserrat_black',
       label: proposal.label,
       organizationId: ctx.organizationId,
-      primaryColor: '#000000',
-      secondaryColor: '#FFFFFF',
       slug: proposal.slug,
       userId: ctx.userId,
     });

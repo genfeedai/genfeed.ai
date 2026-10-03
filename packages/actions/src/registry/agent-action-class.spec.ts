@@ -8,6 +8,11 @@ import {
 import { getDeclaredMutationPolicy } from './mutation-policy';
 
 describe('getAgentActionClass', () => {
+  it('classifies URL brand creation as brand context', () => {
+    expect(getAgentActionClass('create_brand_from_url')).toBe(
+      AGENT_ACTION_CLASS.BRAND_CONTEXT,
+    );
+  });
   it('classifies media generation as credit-spending', () => {
     expect(getAgentActionClass('generate_image')).toBe(
       AGENT_ACTION_CLASS.CREDIT_SPENDING,

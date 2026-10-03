@@ -198,6 +198,8 @@ const BRANDLESS_AGENT_TOOLS = new Set<CuratedActionName>([
   'check_onboarding_status',
   'connect_social_account',
   'create_brand',
+  'create_brand_from_url',
+  'get_brand_scan_status',
   'get_ad_research_detail',
   'get_analytics',
   'get_approval_summary',
@@ -596,7 +598,12 @@ export class AgentToolExecutorService implements OnModuleInit {
     }
 
     const parameterBrandId = readOptionalString(parameters.brandId);
-    if (parameterBrandId && parameterBrandId !== scope.brandId) {
+    if (
+      parameterBrandId &&
+      parameterBrandId !== scope.brandId &&
+      toolName !== 'create_brand_from_url' &&
+      toolName !== 'get_brand_scan_status'
+    ) {
       throw new Error(
         'Tool brand parameters must match the validated thread brand scope.',
       );

@@ -1,5 +1,6 @@
 import type { SourceTool } from '../../interfaces/source-tool.interface';
 import { AGENT_ONLY_TOOLS } from './agent-only/index';
+import { BRAND_FROM_URL_TOOLS } from './brand-from-url.tools';
 import { BRAND_INTERVIEW_TOOLS } from './brand-interview.tools';
 import { MCP_ONLY_TOOLS } from './mcp-only/index';
 import { OVERLAP_TOOLS } from './overlap.tools';
@@ -18,4 +19,5 @@ export const SOURCE_TOOLS: SourceTool[] = [
   ...AGENT_ONLY_TOOLS,
   ...MCP_ONLY_TOOLS,
   ...BRAND_INTERVIEW_TOOLS,
+  ...BRAND_FROM_URL_TOOLS,
 ];

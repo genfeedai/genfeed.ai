@@ -3,6 +3,7 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { AGENT_ONLY_TOOLS } from './agent-only/index';
+import { BRAND_FROM_URL_TOOLS } from './brand-from-url.tools';
 import { BRAND_INTERVIEW_TOOLS } from './brand-interview.tools';
 import { SOURCE_TOOLS } from './index';
 import { MCP_ADMIN_TOOLS } from './mcp-only/admin.tools';
@@ -46,6 +47,7 @@ describe('hand-authored action definitions', () => {
       ...AGENT_ONLY_TOOLS,
       ...MCP_ONLY_TOOLS,
       ...BRAND_INTERVIEW_TOOLS,
+      ...BRAND_FROM_URL_TOOLS,
     ]);
   });
 
