@@ -1635,11 +1635,13 @@
     "checkingReadyReason": "Checking availability…",
     "confirmOverride": "Confirm override",
     "confirmWarmupOverride": "Confirm warmup override",
+    "confirmWarmupOverrideError": "Failed to confirm the warmup override",
     "connect": "Connect",
     "connectAccount": "Connect account",
     "connectAccountModalDescription": "Choose a platform to connect. Search or browse by category.",
     "connectAccountsDescription": "Connect accounts to display them here.",
     "connectPlatform": "Connect {platform}",
+    "connectPlatformError": "Failed to connect {platform}",
     "connectSocialAccountsDescription": "Connect your social media accounts to display them here.",
     "connected": "Connected",
     "connectedAccounts": "Connected accounts",
@@ -1647,6 +1649,7 @@
     "connectingEllipsis": "Connecting…",
     "disconnect": "Disconnect",
     "disconnectAccount": "Disconnect account",
+    "disconnectAccountError": "Failed to disconnect account",
     "disconnectAccountDescription": "{account} stops publishing for this brand. Other accounts on {platform} are untouched, and you can reconnect it later.",
     "disconnectNamed": "Disconnect {account}",
     "empty": "No social accounts connected yet.",
@@ -1734,6 +1737,7 @@
     "lastRefreshUnknown": "Last refresh not recorded yet",
     "loading": "Loading warm-up program",
     "markComplete": "Mark complete",
+    "markCompleteError": "Failed to mark the check complete",
     "nextAction": "Next",
     "noRefreshAdapter": "Authorized-signal refresh is not available for {platform} yet. Reconnect if evidence is stale.",
     "override": "Override 24h",
@@ -1745,6 +1749,7 @@
     "reconnect": "Reconnect",
     "refreshSignals": "Refresh signals",
     "reopen": "Reopen",
+    "reopenError": "Failed to reopen the check",
     "retryEnroll": "Retry",
     "score": "Score {score}",
     "statusComplete": "Completed",
@@ -4043,7 +4048,7 @@
     "loadError": "Could not load what the agent knows about this brand.",
     "memories": {
       "archive": "Archive",
-      "archiveError": "Archiving this memory",
+      "archiveError": "Failed to archive this memory",
       "archived": "Memory archived",
       "brandDescription": "Shared memories for this brand. Owners and admins manage them in organization Memory settings.",
       "brandEmpty": "No brand memories yet.",
@@ -4120,9 +4125,9 @@
       "label": "Topics",
       "placeholder": "product launches, hiring, ops"
     },
-    "generateErrorTitle": "Generating your brand voice",
+    "generateErrorTitle": "Failed to generate your brand voice",
     "generateSuccess": "Brand voice generated and saved",
-    "saveErrorTitle": "Saving your brand voice",
+    "saveErrorTitle": "Failed to save your brand voice",
     "corpus": {
       "learnedFrom": "Learned from {label}.",
       "thinTitle": "Brand voice saved, but it will not sound like you yet",
@@ -4480,9 +4485,9 @@
     "description": "Create multi-step automation pipelines for content generation and publishing",
     "empty": "No workflows found",
     "errors": {
-      "delete": "Deleting the workflow",
-      "featured": "Updating Featured",
-      "load": "Loading workflows"
+      "delete": "Failed to delete the workflow",
+      "featured": "Failed to update the featured status",
+      "load": "Failed to load workflows"
     },
     "featured": {
       "badge": "Featured",

@@ -105,7 +105,7 @@ export function useXArticleCompose(
         notificationsService.success('X Article generated');
       } catch (err) {
         logger.error('Failed to generate X Article', err);
-        notificationsService.error('Generate X Article');
+        notificationsService.error('Failed to generate X Article');
         setError('Failed to generate X Article. Please try again.');
         setPhase('error');
       }
@@ -150,7 +150,7 @@ export function useXArticleCompose(
     (url: string, filename: string) => {
       downloadUrl(url, filename).catch((err) => {
         logger.error('Failed to download image', err);
-        notificationsService.error('Download image');
+        notificationsService.error('Failed to download image');
       });
     },
     [notificationsService],
@@ -175,7 +175,7 @@ export function useXArticleCompose(
       notificationsService.success('Header image generated');
     } catch (err) {
       logger.error('Failed to generate header image', err);
-      notificationsService.error('Generate header image');
+      notificationsService.error('Failed to generate header image');
     } finally {
       setIsGeneratingImage(false);
     }

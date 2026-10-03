@@ -44,7 +44,9 @@ export default function CredentialPostingTimesEditor({
         onTimesChange?.(nextTimes);
       } catch (error) {
         logger.error('Failed to save posting times', error);
-        NotificationsService.getInstance().error('Save posting times');
+        NotificationsService.getInstance().error(
+          'Failed to save posting times',
+        );
       } finally {
         setIsSaving(false);
       }

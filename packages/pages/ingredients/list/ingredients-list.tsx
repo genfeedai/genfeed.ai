@@ -207,8 +207,8 @@ export default function IngredientsList({
 
     NotificationsService.getInstance().error(
       failures.length === selectedIngredients.length
-        ? 'Download'
-        : `Download for ${failures.length} of ${selectedIngredients.length} assets`,
+        ? 'Download failed'
+        : `Download failed for ${failures.length} of ${selectedIngredients.length} assets`,
     );
   }, [getDownloadService, selectedIngredients]);
 

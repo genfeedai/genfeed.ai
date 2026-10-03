@@ -179,7 +179,7 @@ export default function SocialWarmupProgram({
       await completeItem(itemId);
     } catch (completeError) {
       logger.error('Failed to complete warm-up check', completeError);
-      NotificationsService.getInstance().error(translate('markComplete'));
+      NotificationsService.getInstance().error(translate('markCompleteError'));
     } finally {
       setPendingItemId(null);
     }
@@ -191,7 +191,7 @@ export default function SocialWarmupProgram({
       await reopenItem(itemId);
     } catch (reopenError) {
       logger.error('Failed to reopen warm-up check', reopenError);
-      NotificationsService.getInstance().error(translate('reopen'));
+      NotificationsService.getInstance().error(translate('reopenError'));
     } finally {
       setPendingItemId(null);
     }

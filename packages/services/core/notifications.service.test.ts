@@ -81,6 +81,21 @@ describe('NotificationsService', () => {
       );
     });
 
+    it('renders the error message verbatim', () => {
+      service.error('Failed to load flags', {
+        description: 'Try again in a moment',
+      });
+
+      expect(sonnerMocks.errorMock).toHaveBeenCalledWith(
+        'Failed to load flags',
+        {
+          action: undefined,
+          description: 'Try again in a moment',
+          duration: undefined,
+        },
+      );
+    });
+
     it('keeps warning timeout compatibility', () => {
       service.warning('Heads up', 4_000);
 

@@ -293,7 +293,7 @@ describe('BrandDetailAgentProfileCard', () => {
         'steady',
       ),
     );
-    expect(errorMock).toHaveBeenCalledWith('Saving your brand voice', {
+    expect(errorMock).toHaveBeenCalledWith('Failed to save your brand voice', {
       description:
         'Your changes were not saved. Check your connection and try again.',
     });
@@ -592,9 +592,8 @@ describe('BrandDetailAgentProfileCard', () => {
   });
 
   /**
-   * `NotificationsService.error` renders `${message} failed`, so the first
-   * argument has to stay a title. Asserting it here is what keeps the toast
-   * from reading "Failed to generate brand voice failed" again.
+   * The classified cause belongs in the description, so the title and the
+   * cause render once each in a single toast.
    */
   it('reports the classified cause of a failed generation in one toast', async () => {
     const user = userEvent.setup();
@@ -625,10 +624,13 @@ describe('BrandDetailAgentProfileCard', () => {
     await user.click(screen.getAllByRole('button', { name: 'Generate' })[0]);
 
     await waitFor(() => expect(errorMock).toHaveBeenCalledTimes(1));
-    expect(errorMock).toHaveBeenCalledWith('Generating your brand voice', {
-      description:
-        'The generated profile was missing key details. Try again, or add a website, description, or audience to the brand first.',
-    });
+    expect(errorMock).toHaveBeenCalledWith(
+      'Failed to generate your brand voice',
+      {
+        description:
+          'The generated profile was missing key details. Try again, or add a website, description, or audience to the brand first.',
+      },
+    );
     expect(successMock).not.toHaveBeenCalled();
     expect(updateAgentConfigMock).not.toHaveBeenCalled();
   });
@@ -648,9 +650,12 @@ describe('BrandDetailAgentProfileCard', () => {
     await user.click(screen.getAllByRole('button', { name: 'Generate' })[0]);
 
     await waitFor(() => expect(errorMock).toHaveBeenCalledTimes(1));
-    expect(errorMock).toHaveBeenCalledWith('Generating your brand voice', {
-      description: 'Something went wrong. Please try again.',
-    });
+    expect(errorMock).toHaveBeenCalledWith(
+      'Failed to generate your brand voice',
+      {
+        description: 'Something went wrong. Please try again.',
+      },
+    );
   });
 
   it('never renders the server prose in the toast', async () => {
