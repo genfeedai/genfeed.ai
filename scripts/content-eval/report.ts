@@ -23,7 +23,7 @@ export function buildReport(
 ): ContentEvalReport {
   const { config, fixture, revision } = input;
   // Suite-specific sections live at the top level, not inside `outcome`.
-  const { benchMatches, media, ...outcome } = input.outcome;
+  const { benchMatches, calibration, media, ...outcome } = input.outcome;
   const fixtureRowsById = new Map(fixture.rows.map((row) => [row.id, row]));
   const sections: Record<string, unknown> = {};
   for (const analyzer of analyzers) {
@@ -44,6 +44,7 @@ export function buildReport(
     aborted: input.aborted,
     abortMessage: input.abortMessage,
     ...(benchMatches === undefined ? {} : { benchMatches }),
+    ...(calibration === undefined ? {} : { calibration }),
     calls: input.spend.calls,
     config,
     dispatcher: config.dispatcher,

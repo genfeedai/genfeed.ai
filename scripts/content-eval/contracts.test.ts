@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { matchSchema } from './bench/schema';
+import type { CalibrationSection } from './calibration/contracts';
+import type { ReportInput } from './contracts';
 import {
+  CONTENT_EVAL_THRESHOLDS,
+  contentEvalReportSchema,
   fixtureRowSchema,
   judgeVoteSchema,
   scoreBandSchema,
 } from './contracts';
+import { buildReport } from './report';
 
 const BENCH_MATCH = {
   a: {
@@ -44,6 +49,101 @@ const BENCH_MATCH = {
     },
   ],
 };
+
+const REPORT_INPUT: ReportInput = {
+  aborted: null,
+  abortMessage: null,
+  config: {
+    contestants: [],
+    dispatcher: 'stub',
+    fixturePath: 'judge.synthetic.jsonl',
+    judgeRegistryKeys: ['openai/gpt-5.6-luna'],
+    maxCredits: 50,
+    seed: 7,
+    suite: 'judge',
+    tieBand: 0.05,
+  },
+  fixture: {
+    digest: `sha256:${'0'.repeat(64)}`,
+    path: 'judge.synthetic.jsonl',
+    rows: [],
+  },
+  generatedAt: '2026-10-03T12:00:00.000Z',
+  outcome: {
+    contestants: [],
+    judges: [],
+    pairs: [],
+    positionBiasRate: null,
+    rows: [],
+    thresholdChecks: [],
+  },
+  revision: {
+    sourceRevision: '0'.repeat(40),
+    workingTreeDirty: false,
+  },
+  rubrics: [],
+  runId: 'calibration-contract-test',
+  spend: {
+    calls: [],
+    summary: {
+      byKind: { generation: 0, judge: 0 },
+      callCount: 0,
+      maxCredits: 50,
+      spentCredits: 0,
+      spentUsd: 0,
+    },
+  },
+};
+
+const CALIBRATION_SECTION: CalibrationSection = {
+  arms: [],
+  crossFamily: [],
+  injection: null,
+  metrics: [],
+  pointwisePositionBias: 'not-applicable-pointwise',
+  positionBias: [],
+  rubricAlignment: {
+    autoReviewJudge: null,
+    autoReviewReason: 'no production judge reaches κ ≥ 0.6',
+    crossJudge: null,
+    mapping: [],
+  },
+  schemaVersion: 1,
+  scores: [],
+  scoringSurface: {
+    textDigest: `sha256:${'0'.repeat(64)}`,
+    visionDigest: `sha256:${'0'.repeat(64)}`,
+  },
+  skippedCrossFamily: [],
+  vision: null,
+};
+
+describe('calibration report contracts', () => {
+  it('parses a report with a minimal calibration section lifted from the outcome', () => {
+    const report = buildReport(
+      {
+        ...REPORT_INPUT,
+        outcome: { ...REPORT_INPUT.outcome, calibration: CALIBRATION_SECTION },
+      },
+      [],
+    );
+
+    expect(contentEvalReportSchema.safeParse(report).success).toBe(true);
+    expect(report.calibration).toEqual(CALIBRATION_SECTION);
+    expect(report.outcome).not.toHaveProperty('calibration');
+  });
+
+  it('parses a report without a calibration section', () => {
+    const report = buildReport(REPORT_INPUT, []);
+
+    expect(contentEvalReportSchema.safeParse(report).success).toBe(true);
+    expect(report).not.toHaveProperty('calibration');
+  });
+
+  it('sets the judge kappa threshold to 0.6', () => {
+    expect(CONTENT_EVAL_THRESHOLDS.judgeMinKappa).toBe(0.6);
+  });
+});
 
 describe('bench match records', () => {
   it('round-trips a match through JSON unchanged', () => {
