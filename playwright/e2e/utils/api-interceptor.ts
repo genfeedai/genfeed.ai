@@ -20,6 +20,7 @@ import type {
   ICostReportSummary,
   IEmailPerformanceReport,
   IExpertPathStatus,
+  ISystemNotificationOverview,
   ITrendHashtag,
   ITrendSound,
   IUnitEconomicsReport,
@@ -2006,6 +2007,27 @@ export function buildUnhandledApiMockBody(url: string): unknown {
       },
     };
     return wrapInJsonApi(summary, 'cost-report-summary', 'mock-cost-summary');
+  }
+
+  if (parsedUrl.pathname.endsWith('/admin/system-notifications')) {
+    const overview: ISystemNotificationOverview = {
+      configuration: {
+        enabled: false,
+        eventTypes: [],
+        recordingEnabled: false,
+        transportConfigured: false,
+      },
+      deliveries: [],
+      destinations: [],
+      id: 'mock-system-notifications',
+      observedSignups: 0,
+      signupObservationStart: null,
+    };
+    return wrapInJsonApi(
+      overview,
+      'system-notification-overview',
+      'mock-system-notifications',
+    );
   }
 
   if (url.includes('/v1/health') || /\/health(?:\?|$)/.test(url)) {

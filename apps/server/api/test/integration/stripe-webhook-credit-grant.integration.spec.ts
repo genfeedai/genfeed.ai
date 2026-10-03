@@ -61,6 +61,7 @@ import { CreditTransactionsService } from '@api/collections/credits/services/cre
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
@@ -95,6 +96,7 @@ import {
   createTestDatabaseHelper,
   E2ETestModule,
 } from '@api-test/e2e-test.module';
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import {
   CreditTransactionCategory,
   SubscriptionPlan,
@@ -276,6 +278,10 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
         StripeInvoiceWebhookHandler,
         StripeSubscriptionCreditReconcilerService,
         StripeWebhookSupportService,
+        {
+          provide: PlatformSettingsService,
+          useValue: runtimeSettingsMock(),
+        },
         CreditsUtilsService,
         CreditBalanceService,
         CreditTransactionsService,
