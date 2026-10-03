@@ -1,3 +1,4 @@
+import { testId } from '@helpers/testing/test-id.helper';
 import { describe, expect, it } from 'vitest';
 import {
   anonymiseText,
@@ -143,9 +144,9 @@ describe('org/brand ids', () => {
     ['I1', 'org synthetic-org-golden', 'org [id]'],
     ['I2', 'ref synthetic-brand-kelder', 'ref [id]'],
     ['I3', 'post ckelderpost00000000000001', 'post [id]'],
-    ['I4', 'id cq7m2x9v4k8n3p6r1t5w0y2z4', 'id [id]'],
+    ['I4', `id ${testId('unknown-cuid')}`, 'id [id]'],
     ['I5', 'uuid 3f2b8c1e-9a4d-4e6f-8b2a-1c5d7e9f0a3b', 'uuid [id]'],
-    ['I6', 'oid 64b7f2c9e1a3d5f7b9c1e3a5', 'oid [id]'],
+    ['I6', `oid ${'0'.repeat(20)}beef`, 'oid [id]'],
   ])('%s: anonymises %s', (_caseId, input, expected) => {
     expect(anonymiseText(input, SPEC_CONTEXT)).toBe(expected);
   });
