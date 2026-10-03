@@ -32,10 +32,11 @@ export const MEDIA_GENERATION_CREDIT_FLOORS: Readonly<
   voice: 17,
 };
 
-const SHARED_PARAMETERS = ['type', 'prompt', 'model', 'brandId'] as const;
+const SHARED_PARAMETERS = ['type', 'prompt', 'brandId'] as const;
 
 const VISUAL_PARAMETERS = [
   'aspectRatio',
+  'model',
   'characterHandles',
   'harness',
   'references',
@@ -53,7 +54,7 @@ export const MEDIA_GENERATION_TYPE_PARAMETERS: Readonly<
   Record<MediaGenerationType, ReadonlySet<string>>
 > = {
   image: new Set([...SHARED_PARAMETERS, ...VISUAL_PARAMETERS, 'outputs']),
-  music: new Set([...SHARED_PARAMETERS, 'duration']),
+  music: new Set([...SHARED_PARAMETERS, 'duration', 'model']),
   video: new Set([
     ...SHARED_PARAMETERS,
     ...VISUAL_PARAMETERS,

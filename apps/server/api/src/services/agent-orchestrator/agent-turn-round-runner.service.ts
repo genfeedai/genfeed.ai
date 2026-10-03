@@ -34,6 +34,7 @@ import {
   type CuratedActionName,
   getVisualMediaGenerationType,
   MEDIA_GENERATION_TOOL_NAME,
+  MEDIA_GENERATION_TYPE_PARAMETERS,
 } from '@genfeedai/actions';
 import { ActivitySource, type RouterPriority } from '@genfeedai/contracts';
 import {
@@ -845,8 +846,18 @@ export class AgentTurnRoundRunnerService {
         useIdentity: _useIdentity,
         ...rest
       } = toolParams;
+      // A composer-mode redirect can change the type; keep only the fields
+      // the resolved type accepts so the call is not rejected for them.
+      const accepted = redirect.mediaType
+        ? MEDIA_GENERATION_TYPE_PARAMETERS[redirect.mediaType]
+        : undefined;
+      const applicable = accepted
+        ? Object.fromEntries(
+            Object.entries(rest).filter(([key]) => accepted.has(key)),
+          )
+        : rest;
       return {
-        ...rest,
+        ...applicable,
         prompt:
           (typeof rest.prompt === 'string' && rest.prompt) ||
           (typeof description === 'string' && description) ||
