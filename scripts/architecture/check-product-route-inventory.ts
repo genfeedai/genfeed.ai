@@ -221,6 +221,7 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/sitemap',
     '/skills',
     '/studio',
+    '/turbo',
     '/threads',
     '/tiktok',
     '/tools',
