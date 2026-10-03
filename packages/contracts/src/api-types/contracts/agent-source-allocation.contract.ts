@@ -21,6 +21,8 @@ export const agentSourceAllocationContextSchema = z
   .strict();
 
 /** No authority or server-generated identity can be supplied through request data.
+ * Draft selections (target `credentialId`, identity persona) are caller-chosen and
+ * must be authorized within the organization by the service before use.
  * Freshness arithmetic and comparison to the server clock belong to the service.
  */
 export const prepareSavedAdSourceAllocationSchema = z
@@ -30,7 +32,7 @@ export const prepareSavedAdSourceAllocationSchema = z
     executionId: opaqueIdSchema,
     savedAdId: opaqueIdSchema,
     expectedSourceUpdatedAt: timestampSchema,
-    freshnessWindowMs: z.number().finite().positive(),
+    freshnessWindowMs: z.number().positive(),
     draft: allocationDraftSchema,
   })
   .strict();
