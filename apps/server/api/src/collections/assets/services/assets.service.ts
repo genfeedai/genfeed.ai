@@ -32,6 +32,12 @@ export class AssetsService extends BaseService<
     const normalized = { ...(data as Record<string, unknown>) };
     const parentId = normalized.parentId;
     const parentType = normalized.parentType;
+    // Not a column: the tenant the parent belongs to, stamped as parentOrgId.
+    const organizationId =
+      typeof normalized.organizationId === 'string'
+        ? normalized.organizationId
+        : undefined;
+    delete normalized.organizationId;
 
     if (parentId !== undefined) {
       if (typeof parentId !== 'string') {
@@ -49,7 +55,11 @@ export class AssetsService extends BaseService<
       delete normalized.parentId;
       Object.assign(
         normalized,
-        buildAssetParentColumns(parentType as AssetParent, parentId),
+        buildAssetParentColumns(
+          parentType as AssetParent,
+          parentId,
+          organizationId,
+        ),
       );
     }
 

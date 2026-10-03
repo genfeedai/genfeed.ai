@@ -32,6 +32,12 @@ vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
   })),
 }));
 
+vi.mock('./organization-identity-card', () => ({
+  default: ({ organizationId }: { organizationId: string }) => (
+    <div>Organization identity for {organizationId}</div>
+  ),
+}));
+
 vi.mock('./organization-identity-defaults-card', () => ({
   default: () => <div>Organization Identity Defaults</div>,
 }));
@@ -77,6 +83,16 @@ describe('SettingsOrganizationPage', () => {
   it('should render without crashing', () => {
     const { container } = render(<SettingsOrganizationPage />);
     expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('shows the organization identity instead of raw ids or the current brand', () => {
+    render(<SettingsOrganizationPage />);
+
+    expect(
+      screen.getByText('Organization identity for org-123'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Organization ID/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Current Brand/i)).not.toBeInTheDocument();
   });
 
   it('always shows Start agent CTA and hides fleet NSFW when fleet is not connected', () => {

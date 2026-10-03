@@ -10,6 +10,7 @@ import { ValidationException } from '@api/exceptions/validation.exception';
 import { CacheService } from '@api/services/cache/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AssetCategory,
   AssetParent,
@@ -18,7 +19,7 @@ import {
 } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException } from '@nestjs/common';
+import { ForbiddenException, HttpException } from '@nestjs/common';
 
 describe('AssetIngestionService', () => {
   const userId = testId('user');
@@ -88,6 +89,9 @@ describe('AssetIngestionService', () => {
     publishAssetStatus: vi.fn(),
     publishBrandRefresh: vi.fn(),
   };
+  const prisma = {
+    brand: { findFirst: vi.fn() },
+  };
   const service = new AssetIngestionService(
     assetsService as unknown as AssetsService,
     cacheService as unknown as CacheService,
@@ -96,6 +100,7 @@ describe('AssetIngestionService', () => {
     loggerService as unknown as LoggerService,
     metadataService as unknown as MetadataService,
     websocketService as unknown as NotificationsPublisherService,
+    prisma as unknown as PrismaService,
   );
 
   beforeEach(() => {
@@ -110,6 +115,7 @@ describe('AssetIngestionService', () => {
     metadataService.findOne.mockResolvedValue({ id: metadataId });
     websocketService.publishAssetStatus.mockResolvedValue(undefined);
     websocketService.publishBrandRefresh.mockResolvedValue(undefined);
+    prisma.brand.findFirst.mockResolvedValue({ id: brandId });
   });
 
   afterEach(() => {
@@ -158,6 +164,7 @@ describe('AssetIngestionService', () => {
     expect(cacheService.del).toHaveBeenCalledWith(`brand:${brandId}`);
     expect(assetsService.create).toHaveBeenCalledWith({
       category: AssetCategory.LOGO,
+      organizationId: user.organizationId,
       parentId: brandId,
       parentType: AssetParent.BRAND,
       userId,
@@ -189,6 +196,69 @@ describe('AssetIngestionService', () => {
     );
   });
 
+  it('verifies the brand belongs to the caller organization before writing', async () => {
+    await service.createUpload(user, file, uploadDto);
+
+    expect(prisma.brand.findFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: {
+        id: brandId,
+        isDeleted: false,
+        organizationId: user.organizationId,
+      },
+    });
+  });
+
+  it('returns 404 and writes nothing for a brand in another organization', async () => {
+    prisma.brand.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.createUpload(user, file, uploadDto),
+    ).rejects.toBeInstanceOf(HttpException);
+    expect(assetsService.patchAll).not.toHaveBeenCalled();
+    expect(assetsService.create).not.toHaveBeenCalled();
+    expect(filesClientService.uploadToS3).not.toHaveBeenCalled();
+  });
+
+  it('rejects an organization logo for an organization other than the session one', async () => {
+    await expect(
+      service.createUpload(user, file, {
+        category: AssetCategory.LOGO,
+        parentId: testId('organization', 2),
+        parentType: AssetParent.ORGANIZATION,
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(assetsService.create).not.toHaveBeenCalled();
+  });
+
+  it('replaces the previous organization logo and stamps the organization', async () => {
+    const organizationId = user.organizationId as string;
+
+    await service.createUpload(user, file, {
+      category: AssetCategory.LOGO,
+      parentId: organizationId,
+      parentType: AssetParent.ORGANIZATION,
+    });
+
+    expect(assetsService.patchAll).toHaveBeenCalledWith(
+      {
+        category: AssetCategory.LOGO,
+        parentOrgId: organizationId,
+        parentType: AssetParent.ORGANIZATION,
+      },
+      { isDeleted: true },
+    );
+    expect(assetsService.create).toHaveBeenCalledWith({
+      category: AssetCategory.LOGO,
+      organizationId,
+      parentId: organizationId,
+      parentType: AssetParent.ORGANIZATION,
+      userId,
+    });
+    // An organization logo is not a brand refresh.
+    expect(websocketService.publishBrandRefresh).not.toHaveBeenCalled();
+  });
+
   it('drops an invalid optional parent id before upload persistence', async () => {
     await service.createUpload(user, file, {
       category: AssetCategory.REFERENCE,
@@ -198,6 +268,7 @@ describe('AssetIngestionService', () => {
 
     expect(assetsService.create).toHaveBeenCalledWith({
       category: AssetCategory.REFERENCE,
+      organizationId: undefined,
       parentId: undefined,
       parentType: AssetParent.BRAND,
       userId,
@@ -253,6 +324,7 @@ describe('AssetIngestionService', () => {
     );
     expect(assetsService.create).toHaveBeenCalledWith({
       category: AssetCategory.LOGO,
+      organizationId: user.organizationId,
       parentId: brandId,
       parentType: AssetParent.BRAND,
       userId,

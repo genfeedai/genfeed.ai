@@ -18,6 +18,15 @@ describe('asset-parent.util', () => {
     expect(getAssetParentIdField(AssetParent.ARTICLE)).toBe('parentArticleId');
   });
 
+  it('stamps the owning organization on a brand parent', () => {
+    expect(
+      buildAssetParentColumns(AssetParent.BRAND, 'brand_1', 'org_1'),
+    ).toMatchObject({ parentBrandId: 'brand_1', parentOrgId: 'org_1' });
+    expect(
+      buildAssetParentColumns(AssetParent.ORGANIZATION, 'org_1', 'org_1'),
+    ).toMatchObject({ parentBrandId: null, parentOrgId: 'org_1' });
+  });
+
   it('prefers brand, then org, ingredient, and article ids', () => {
     expect(
       getAssetParentId({

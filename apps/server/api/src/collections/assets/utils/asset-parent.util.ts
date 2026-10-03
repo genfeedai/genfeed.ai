@@ -15,15 +15,21 @@ const parentIdFieldByType = {
   [AssetParent.ORGANIZATION]: 'parentOrgId',
 } as const satisfies Record<AssetParent, keyof AssetParentColumns>;
 
+/**
+ * `organizationId` scopes a non-organization parent (a brand's logo) to its
+ * tenant: org-scoped readers such as the brand kit resolver match on
+ * `parentOrgId`, so a brand asset without it is never found.
+ */
 export function buildAssetParentColumns(
   parentType: AssetParent,
   parentId: string,
+  organizationId?: string | null,
 ): AssetParentColumns {
   return {
     parentArticleId: null,
     parentBrandId: null,
     parentIngredientId: null,
-    parentOrgId: null,
+    parentOrgId: organizationId ?? null,
     parentType,
     [parentIdFieldByType[parentType]]: parentId,
   };
