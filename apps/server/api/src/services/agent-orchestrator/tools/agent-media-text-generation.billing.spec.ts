@@ -98,6 +98,24 @@ describe('AgentMediaTextGenerationService billing and brand scope', () => {
     expect(credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
   });
 
+  it('charges nothing when the generator returns no draft', async () => {
+    const { contentGeneratorService, credits, service } = createService();
+    contentGeneratorService.generateContent.mockResolvedValue([]);
+
+    const result = await service.generateContent(
+      {
+        brandId: 'brand-1',
+        platform: 'linkedin',
+        topic: 'Launch',
+        type: 'post',
+      },
+      headless,
+    );
+
+    expect(result).toMatchObject({ creditsUsed: 0, success: false });
+    expect(credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
+  });
+
   it('generates a headless article under the explicit brand', async () => {
     const { generationGateway, service } = createService();
 
