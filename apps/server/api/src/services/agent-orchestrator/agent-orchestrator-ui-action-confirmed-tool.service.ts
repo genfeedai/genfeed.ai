@@ -541,7 +541,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
             : undefined,
         ) ?? params.context.generationPriority,
       sourceActionId,
-      toolName: MEDIA_GENERATION_TOOL_NAME,
+      toolName: MEDIA_GENERATION_TOOL_NAME as typeof MEDIA_GENERATION_TOOL_NAME,
       toolPayload:
         generationType === 'image'
           ? {
