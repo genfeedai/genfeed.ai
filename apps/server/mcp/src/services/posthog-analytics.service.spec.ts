@@ -56,6 +56,7 @@ describe('PostHogAnalyticsService', () => {
     expect(mocks.instrument).toHaveBeenCalledOnce();
     const options = mocks.instrument.mock.calls[0][2];
     expect(options).toMatchObject({
+      captureModel: false,
       context: false,
       enableConversationId: false,
       enableExceptionAutocapture: false,
