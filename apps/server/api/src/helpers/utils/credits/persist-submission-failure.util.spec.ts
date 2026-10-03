@@ -113,6 +113,22 @@ describe('confirmed submitted-generation failure evidence', () => {
       persistSubmissionFailure(state.prisma, where, failed, true),
     ).rejects.toThrow('Financial write failed');
   });
+  it('still fails the library row when the intent hold already expired at its ceiling', async () => {
+    const state = fixture();
+    state.hold.status = CreditReservationStatus.EXPIRED;
+    expect(
+      await persistSubmissionFailure(state.prisma, where, failed, true),
+    ).toEqual({ count: 1 });
+    expect(state.tx.ingredient.updateMany).toHaveBeenCalledTimes(1);
+    expect(state.tx.creditReservation.updateMany).not.toHaveBeenCalled();
+  });
+  it('rejects a failure for a hold that was released', async () => {
+    const state = fixture();
+    state.hold.status = CreditReservationStatus.RELEASED;
+    await expect(
+      persistSubmissionFailure(state.prisma, where, failed, true),
+    ).rejects.toThrow('already ended');
+  });
   it('does not write negative proof if the library CAS loses', async () => {
     const state = fixture();
     state.tx.ingredient.updateMany.mockResolvedValue({ count: 0 });

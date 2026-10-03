@@ -293,7 +293,7 @@ describe('GenerationBillingService', () => {
             expect.objectContaining({
               amount: 4,
               idempotencyKey: 'media-generation-late-settle:hold_1',
-              maxOverdraftCredits: 4,
+              maxOverdraftCredits: 1_000_000,
               organizationId: 'org_1',
               type: 'deduct-credits',
               userId: 'user_1',
@@ -643,8 +643,8 @@ describe('GenerationBillingService', () => {
 
       beforeEach(() => {
         prisma.creditReservation.findMany.mockImplementation(
-          async ({ where }: { where: { status: string } }) =>
-            where.status === CreditReservationStatus.EXPIRED ? [expired] : [],
+          async ({ where }: { where: { status: unknown } }) =>
+            typeof where.status === 'object' ? [expired] : [],
         );
         prisma.ingredient.findMany.mockResolvedValue([
           ingredient('late', IngredientStatus.GENERATED),

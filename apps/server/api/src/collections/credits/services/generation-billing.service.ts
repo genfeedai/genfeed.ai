@@ -31,6 +31,7 @@ import {
   MEDIA_GENERATION_HOLD_TTL_MS,
   MEDIA_GENERATION_INTENT_HOLD_CEILING_MS,
   MEDIA_GENERATION_LATE_SETTLEMENT_KEY_PREFIX,
+  MEDIA_GENERATION_LATE_SETTLEMENT_MAX_OVERDRAFT_CREDITS,
   MEDIA_GENERATION_LATE_SETTLEMENT_WINDOW_MS,
   MEDIA_GENERATION_WORKLOAD_TYPE,
 } from '@genfeedai/contracts/constants';
@@ -417,7 +418,8 @@ export class GenerationBillingService {
       amount: hold.amount,
       description: hold.description ?? 'Media generation',
       idempotencyKey: this.lateSettlementKey(hold.id),
-      maxOverdraftCredits: hold.amount,
+      maxOverdraftCredits:
+        MEDIA_GENERATION_LATE_SETTLEMENT_MAX_OVERDRAFT_CREDITS,
       metadata: {
         assetId: ingredientId,
         lateSettlementOfReservationId: hold.id,
@@ -890,7 +892,7 @@ export class GenerationBillingService {
   }
 
   /**
-   * Charge outputs that completed after their hold expired when the completion
+   * Charge outputs that completed after their hold ended when the completion
    * hook missed or failed, so a lost signal cannot leave a delivered output
    * unbilled (#5886). Each charge is keyed by its hold, so re-running is safe.
    * Returns how many late charges it queued.
@@ -906,7 +908,12 @@ export class GenerationBillingService {
         where: {
           ...(cursor ? { id: { gt: cursor } } : {}),
           isDeleted: false,
-          status: CreditReservationStatus.EXPIRED,
+          status: {
+            in: [
+              CreditReservationStatus.EXPIRED,
+              CreditReservationStatus.RELEASED,
+            ],
+          },
           updatedAt: {
             gte: new Date(
               now.getTime() - MEDIA_GENERATION_LATE_SETTLEMENT_WINDOW_MS,

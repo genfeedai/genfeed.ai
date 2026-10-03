@@ -34,6 +34,15 @@ export const MEDIA_GENERATION_LATE_SETTLEMENT_WINDOW_MS =
   7 * 24 * 60 * 60 * 1000;
 
 /**
+ * Wallet overdraft allowed for a late charge. The ledger caps the wallet's
+ * total negative balance, not each deduction, so the limit must not be the
+ * charge itself: a second late charge on an empty wallet would be rejected and
+ * a delivered output left unbilled. The output already exists, so the charge
+ * always records.
+ */
+export const MEDIA_GENERATION_LATE_SETTLEMENT_MAX_OVERDRAFT_CREDITS = 1_000_000;
+
+/**
  * Idempotency-key prefix of the charge recorded when an output completes after
  * its hold ended. The key carries the hold id, so redelivered webhooks and
  * sweeps collapse into a single ledger transaction.
