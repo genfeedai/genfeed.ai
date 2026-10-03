@@ -40,7 +40,6 @@ export * from './analytics/analytics-collection-state.interface';
 export * from './analytics/analytics-context.interface';
 export * from './analytics/analytics-query-reference.interface';
 export * from './analytics/analytics-ui.interface';
-export * from './analytics/creator-watchlist.interface';
 export * from './analytics/dashboard-preset.interface';
 export * from './analytics/evaluation.interface';
 export * from './analytics/fleet-evaluation-policy.interface';

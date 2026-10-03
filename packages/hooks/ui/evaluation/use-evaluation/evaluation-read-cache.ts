@@ -66,7 +66,7 @@ export function evaluationReadScopeKey(
 }
 
 export function evaluationVideosQueryKey(scopeKey: string | null) {
-  return ['analytics-trends-videos', scopeKey] as const;
+  return ['analytics-top-videos', scopeKey] as const;
 }
 
 export function evaluationReadRevision(scopeKey: string): number {

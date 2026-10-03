@@ -14,7 +14,7 @@ import type { TrendPlatform } from '@pages/trends/shared/trends-platforms';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { LayoutGrid } from 'lucide-react';
 
-export type SocialsNavigationBasePath = '/discovery' | '/analytics/trends';
+const TRENDS_BASE_PATH = '/discovery/trends';
 
 interface SocialsNavigationItem {
   href: string;
@@ -34,9 +34,8 @@ const PLATFORM_ICONS: Record<TrendPlatform, IconComponent> = {
 };
 
 /**
- * Local surface switcher for analytics/trends (and any host still using a
- * section topbar). Platform destinations in Discovery live in the **sidebar
- * menu** — not as rounded pills.
+ * Local surface switcher between Discovery › Trends and its per-platform
+ * drilldowns (`/discovery/trends/platforms/:platform`).
  */
 const PLATFORM_LABELS: Array<{
   id: 'overview' | TrendPlatform;
@@ -53,30 +52,13 @@ const PLATFORM_LABELS: Array<{
   { id: 'pinterest', label: 'Pinterest' },
 ];
 
-function buildOverviewHref(basePath: SocialsNavigationBasePath): string {
-  return basePath === '/analytics/trends'
-    ? '/analytics/trends'
-    : '/discovery/overview';
-}
-
-function buildPlatformHref(
-  basePath: SocialsNavigationBasePath,
-  platform: TrendPlatform,
-): string {
-  return basePath === '/analytics/trends'
-    ? `/analytics/trends/platforms/${platform}`
-    : `/discovery/${platform}`;
-}
-
-function buildSocialsNavItems(
-  basePath: SocialsNavigationBasePath,
-): SocialsNavigationItem[] {
+function buildSocialsNavItems(): SocialsNavigationItem[] {
   return PLATFORM_LABELS.map(({ id, label, matchMode }) => {
     const item: SocialsNavigationItem = {
       href:
         id === 'overview'
-          ? buildOverviewHref(basePath)
-          : buildPlatformHref(basePath, id),
+          ? TRENDS_BASE_PATH
+          : `${TRENDS_BASE_PATH}/platforms/${id}`,
       id,
       label,
     };
@@ -91,12 +73,10 @@ export type SocialsNavigationValue = 'overview' | TrendPlatform;
 
 export function SocialsNavigation({
   active,
-  basePath = '/discovery',
 }: {
   active: SocialsNavigationValue;
-  basePath?: SocialsNavigationBasePath;
 }) {
-  const items = buildSocialsNavItems(basePath);
+  const items = buildSocialsNavItems();
 
   return (
     <Tabs

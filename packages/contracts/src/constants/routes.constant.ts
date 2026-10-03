@@ -95,8 +95,6 @@ export const APP_ROUTES = {
     PERFORMANCE_LAB: '/analytics/performance-lab',
     POSTS: '/analytics/posts',
     STREAKS: '/analytics/streaks',
-    TREND_TURNOVER: '/analytics/trend-turnover',
-    TRENDS: '/analytics/trends',
   },
   AGENT: {
     ROOT: '/agent',
@@ -142,6 +140,9 @@ export const APP_ROUTES = {
      */
     OVERVIEW: '/discovery/overview',
     ROOT: '/discovery',
+    TREND_TURNOVER: '/discovery/trend-turnover',
+    /** Market trends: topics, viral videos, hashtags, sounds, source health. */
+    TRENDS: '/discovery/trends',
   },
   /**
    * Legacy long-form editor aliases retained for existing deep links. New

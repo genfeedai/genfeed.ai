@@ -139,12 +139,12 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/agent/onboarding/:threadId': 'Onboarding',
   '/:orgSlug/:brandSlug/analytics/brands/:id': 'Brand Details',
   '/:orgSlug/:brandSlug/analytics/brands/:id/platforms/:platform': ':platform',
-  '/:orgSlug/:brandSlug/analytics/trends/detail/:id': 'Trend Detail',
-  '/:orgSlug/:brandSlug/analytics/trends/platforms/:platform':
-    ':platform Trends',
   '/:orgSlug/:brandSlug/analytics': 'Overview',
   '/:orgSlug/:brandSlug/analytics/accounts': 'Accounts',
   '/:orgSlug/:brandSlug/analytics/accounts/:id': 'Account',
+  '/:orgSlug/:brandSlug/discovery/trends/detail/:id': 'Trend Detail',
+  '/:orgSlug/:brandSlug/discovery/trends/platforms/:platform':
+    ':platform Trends',
   '/:orgSlug/:brandSlug/edit/article/:id': 'Article',
   '/:orgSlug/:brandSlug/edit/newsletter/:id': 'Newsletter',
   '/:orgSlug/:brandSlug/library': 'Overview',
@@ -596,7 +596,12 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     telemetryClass: 'product',
   }),
   ...registerRoutes(
-    ['/:orgSlug/~/discovery/overview', '/:orgSlug/~/discovery/ads'],
+    [
+      '/:orgSlug/~/discovery/overview',
+      '/:orgSlug/~/discovery/trends',
+      '/:orgSlug/~/discovery/trend-turnover',
+      '/:orgSlug/~/discovery/ads',
+    ],
     {
       adapter: { key: 'discovery', status: 'embedded' },
       fallback: '/:orgSlug/~/discovery/overview',
@@ -823,6 +828,10 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/:brandSlug/discovery/overview',
+      '/:orgSlug/:brandSlug/discovery/trends',
+      '/:orgSlug/:brandSlug/discovery/trends/detail/:id',
+      '/:orgSlug/:brandSlug/discovery/trends/platforms/:platform',
+      '/:orgSlug/:brandSlug/discovery/trend-turnover',
       '/:orgSlug/:brandSlug/discovery/ads',
     ],
     {
@@ -970,10 +979,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/analytics/hooks',
       '/:orgSlug/:brandSlug/analytics/outliers',
       '/:orgSlug/:brandSlug/analytics/performance-lab',
-      '/:orgSlug/:brandSlug/analytics/trends',
-      '/:orgSlug/:brandSlug/analytics/trends/detail/:id',
-      '/:orgSlug/:brandSlug/analytics/trends/platforms/:platform',
-      '/:orgSlug/:brandSlug/analytics/trend-turnover',
       '/:orgSlug/:brandSlug/analytics/streaks',
     ],
     {

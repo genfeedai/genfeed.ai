@@ -69,6 +69,73 @@
     }
   },
   "analytics": {
+    "trendTurnover": {
+      "heading": "Trend Turnover Dashboard",
+      "periods": {
+        "d7": "7D",
+        "d30": "30D",
+        "d90": "90D"
+      },
+      "lifespanDays": "{value}d",
+      "kpi": {
+        "appeared": {
+          "label": "Appeared",
+          "description": "New trends in the last {days} days"
+        },
+        "died": {
+          "label": "Died",
+          "description": "Trends that expired in the last {days} days"
+        },
+        "avgLifespan": {
+          "label": "Avg Lifespan",
+          "description": "Average time a trend stays active"
+        },
+        "turnoverRate": {
+          "label": "Turnover Rate",
+          "description": "Percentage of new trends that expired"
+        }
+      },
+      "flow": {
+        "title": "Trend Flow",
+        "description": "Daily trend births (green) vs. deaths (red) over the selected period.",
+        "empty": "No timeline data for this period."
+      },
+      "breakdown": {
+        "title": "Platform Breakdown",
+        "empty": "No trend data for this period",
+        "columns": {
+          "platform": "Platform",
+          "appeared": "Appeared",
+          "died": "Died",
+          "alive": "Alive",
+          "avgLifespan": "Avg Lifespan",
+          "turnoverRate": "Turnover Rate"
+        }
+      },
+      "volatility": {
+        "title": "Platform Volatility",
+        "description": "Turnover rate by platform: higher bars indicate faster trend churn.",
+        "empty": "No platform data available for this period."
+      }
+    },
+    "topVideos": {
+      "title": "Top videos",
+      "description": "Your recent videos ranked by evaluated score, with the persuasion signal behind each one.",
+      "timeframe": "Timeframe",
+      "timeframes": {
+        "24h": "Last 24 hours",
+        "72h": "Last 72 hours",
+        "7d": "Last 7 days"
+      },
+      "empty": "No published videos in this timeframe yet.",
+      "columns": {
+        "video": "Video",
+        "platform": "Platform",
+        "views": "Views",
+        "engagement": "Engagement",
+        "score": "Score"
+      }
+    },
     "metricDefinitions": {
       "comments": "Comments recorded across the selected published content.",
       "engagement": "Total recorded interactions across the selected content.",
@@ -194,9 +261,73 @@
       "title": "Performance dataset"
     },
     "trends": {
+      "page": {
+        "heading": "Social Media Trends",
+        "trendingTopics": "Trending Topics",
+        "trendingHashtags": "Trending Hashtags",
+        "trendingSounds": "Trending Sounds"
+      },
+      "header": {
+        "latestObserved": "Latest observed source {date}",
+        "tracking": "Tracking {videoCount} standout videos across {platformCount} platforms",
+        "highestVolume": "Highest term volume:",
+        "mentions": "({count} mentions)",
+        "keywords": "{count} active keywords monitored"
+      },
+      "columns": {
+        "platform": "Platform",
+        "topic": "Topic",
+        "mentions": "Mentions",
+        "growth": "Growth",
+        "virality": "Virality"
+      },
+      "topics": {
+        "description": "Click on a trend to see detailed analytics and cross-platform data.",
+        "empty": "No trending topics available.",
+        "emptyDescription": "Connect your social accounts to see personalized trends."
+      },
       "detail": {
         "loadingTitle": "Loading trend…",
-        "notFound": "Trend not found"
+        "notFound": "Trend not found",
+        "error": "Error",
+        "goBack": "Go Back",
+        "backToTrends": "Back to Trends",
+        "trendingTopic": "Trending Topic",
+        "trendMetrics": "Trend Metrics",
+        "remixInAgent": "Remix in Agent",
+        "relatedHashtags": "Related Hashtags",
+        "sampleContent": "Sample Content",
+        "metrics": {
+          "mentions": { "label": "Mentions", "description": "Total mentions" },
+          "growthRate": {
+            "label": "Growth Rate",
+            "description": "Week-over-week"
+          },
+          "viralityScore": {
+            "label": "Virality Score",
+            "description": "Calculated score"
+          },
+          "engagementRate": {
+            "label": "Engagement Rate",
+            "description": "Average engagement"
+          },
+          "reach": { "label": "Reach", "description": "Total reach" },
+          "impressions": {
+            "label": "Impressions",
+            "description": "Total impressions"
+          }
+        },
+        "analysis": {
+          "title": "Trend Analysis",
+          "direction": "Direction",
+          "avgVirality": "Avg Virality (14d)",
+          "growthRate": "Growth Rate (14d)",
+          "peak": "Peak: {mentions} mentions on {date}"
+        },
+        "related": {
+          "title": "Cross-Platform Trends",
+          "description": "Similar trends on other platforms"
+        }
       },
       "corpusHealth": {
         "title": "Source health",
@@ -3463,14 +3594,6 @@
       "title": "Performance Lab",
       "body": "Experiments and comparisons across variants. Set up a test, then read the results here."
     },
-    "analyticsTrends": {
-      "title": "Trends",
-      "body": "Topics and formats gaining traction across platforms, scored for relevance to your brand."
-    },
-    "analyticsTrendTurnover": {
-      "title": "Trend turnover",
-      "body": "How fast trends rise and fade on each platform, so you can time content before a topic peaks."
-    },
     "library": {
       "title": "Library",
       "body": "All generated and uploaded assets. Browse by type or shelf, star favorites, and reuse anything in Studio or Publishing."
@@ -3518,6 +3641,14 @@
     "discoveryOverview": {
       "title": "Discovery",
       "body": "Content from accounts and topics you follow, ranked by what is moving. Save anything to remix later."
+    },
+    "discoveryTrends": {
+      "title": "Trends",
+      "body": "Topics, viral videos, hashtags, and sounds gaining traction across platforms, with the health of each trend source."
+    },
+    "discoveryTrendTurnover": {
+      "title": "Trend turnover",
+      "body": "How fast trends rise and fade on each platform, so you can time content before a topic peaks."
     },
     "discoveryAds": {
       "title": "Ads research",

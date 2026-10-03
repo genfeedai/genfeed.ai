@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUseTrendContent = vi.fn();
 const mockUseQuery = vi.fn();
-const mockUsePathname = vi.fn(() => '/discovery/tiktok');
+const mockUsePathname = vi.fn(() => '/discovery/trends/platforms/tiktok');
 
 // TrendContentCard (rendered for every feed item) calls `useTranslations`.
 // Without this mock it throws for lack of a `NextIntlClientProvider`, and
@@ -77,7 +77,7 @@ vi.mock('next/link', () => ({
 describe('TrendsPlatformDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUsePathname.mockReturnValue('/discovery/tiktok');
+    mockUsePathname.mockReturnValue('/discovery/trends/platforms/tiktok');
 
     mockUseTrendContent.mockReturnValue({
       error: null,
@@ -164,10 +164,7 @@ describe('TrendsPlatformDetail', () => {
     render(<TrendsPlatformDetail platform="tiktok" />);
 
     expect(mockUseTrendContent).toHaveBeenCalledWith('tiktok');
-    // Discovery: platform destinations are sidebar menu items, not topbar pills.
-    expect(
-      screen.queryByTestId('socials-platform-filter'),
-    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('socials-platform-filter')).toBeInTheDocument();
     expect(screen.getByText('TikTok Trends')).toBeInTheDocument();
     expect(
       screen.getByText('Three hooks driving the AI agent trend'),
@@ -277,7 +274,7 @@ describe('TrendsPlatformDetail', () => {
   });
 
   it('keeps LinkedIn on the public-reference feed when the feed is empty', () => {
-    mockUsePathname.mockReturnValue('/discovery/linkedin');
+    mockUsePathname.mockReturnValue('/discovery/trends/platforms/linkedin');
 
     mockUseTrendContent.mockReturnValue({
       error: null,
@@ -309,7 +306,7 @@ describe('TrendsPlatformDetail', () => {
   });
 
   it('activates the matching platform tab for reference-feed pages too', () => {
-    mockUsePathname.mockReturnValue('/discovery/linkedin');
+    mockUsePathname.mockReturnValue('/discovery/trends/platforms/linkedin');
 
     mockUseTrendContent.mockReturnValue({
       error: null,
@@ -336,15 +333,10 @@ describe('TrendsPlatformDetail', () => {
     render(<TrendsPlatformDetail platform="linkedin" />);
 
     expect(screen.getByText('LinkedIn Trends')).toBeInTheDocument();
-    expect(
-      screen.queryByTestId('socials-platform-filter'),
-    ).not.toBeInTheDocument();
   });
 
-  it('keeps local platform menu rows on analytics trends routes', () => {
-    render(
-      <TrendsPlatformDetail basePath="/analytics/trends" platform="twitter" />,
-    );
+  it('links the platform switcher to Discovery trends routes', () => {
+    render(<TrendsPlatformDetail platform="twitter" />);
 
     const filter = screen.getByTestId('socials-platform-filter');
     expect(filter).toBeInTheDocument();
@@ -354,7 +346,11 @@ describe('TrendsPlatformDetail', () => {
     );
     expect(screen.getByRole('link', { name: 'All platforms' })).toHaveAttribute(
       'href',
-      '/analytics/trends',
+      '/discovery/trends',
+    );
+    expect(screen.getByRole('link', { name: 'TikTok' })).toHaveAttribute(
+      'href',
+      '/discovery/trends/platforms/tiktok',
     );
   });
 });

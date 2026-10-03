@@ -1,0 +1,58 @@
+'use client';
+
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { TrendItem } from '@props/trends/trends-page.props';
+import { Button } from '@ui/primitives/button';
+import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
+import { ArrowLeft } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+
+type TrendDetailHeaderProps = {
+  backHref: string;
+  trend: TrendItem;
+  onBack: () => void;
+};
+
+export default function TrendDetailHeader({
+  backHref: _backHref,
+  trend,
+  onBack,
+}: TrendDetailHeaderProps) {
+  const translate = useTranslations('pages.analytics.trends.detail');
+  const platformConfig = PLATFORM_CONFIGS[trend.platform];
+
+  return (
+    <div className="space-y-3">
+      <Button
+        label={translate('backToTrends')}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.SM}
+        icon={<ArrowLeft className="size-4" />}
+        onClick={onBack}
+      />
+      <div className="flex items-center gap-3">
+        {platformConfig && (
+          <div
+            className="flex items-center justify-center size-10 rounded-full"
+            style={{ backgroundColor: `${platformConfig.color}20` }}
+          >
+            <platformConfig.icon
+              className="size-5"
+              style={{ color: platformConfig.color }}
+            />
+          </div>
+        )}
+        <div>
+          <div className="flex items-center gap-2 text-sm text-foreground/60">
+            <span className="uppercase tracking-wide font-semibold">
+              {platformConfig?.label || trend.platform}
+            </span>
+            <span>•</span>
+            <span>{translate('trendingTopic')}</span>
+          </div>
+          <h2 className="text-2xl font-bold">{trend.topic}</h2>
+        </div>
+      </div>
+    </div>
+  );
+}

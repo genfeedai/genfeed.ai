@@ -1814,7 +1814,8 @@
       "loading": "Loading the Desk\u2026",
       "emptyState": {
         "connectAccounts": "Connect accounts",
-        "followCreators": "Follow creators"
+        "followCreators": "Follow creators",
+        "checkSourceHealth": "Check source health"
       },
       "selectionBar": {
         "count": "{count} selected",

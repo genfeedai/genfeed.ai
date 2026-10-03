@@ -114,14 +114,17 @@ vi.mock('@pages/trends/desk/desk-empty-states', () => ({
   DeskEmptyState: ({
     followingHref,
     publishingHref,
+    sourceHealthHref,
   }: {
     followingHref: string;
     publishingHref: string;
+    sourceHealthHref: string;
   }) => (
     <div
       data-testid="desk-empty-state"
       data-following-href={followingHref}
       data-publishing-href={publishingHref}
+      data-source-health-href={sourceHealthHref}
     />
   ),
   DiscoveryReadinessCards: () => (
@@ -228,6 +231,10 @@ describe('DiscoveryDesk', () => {
     expect(screen.getByTestId('desk-empty-state')).toHaveAttribute(
       'data-publishing-href',
       '/org-1/settings/publishing',
+    );
+    expect(screen.getByTestId('desk-empty-state')).toHaveAttribute(
+      'data-source-health-href',
+      '/org-1/brand-1/discovery/trends',
     );
     expect(screen.getByTestId('discovery-readiness-cards')).toBeInTheDocument();
   });

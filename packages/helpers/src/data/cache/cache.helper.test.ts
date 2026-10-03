@@ -320,7 +320,7 @@ describe('browser storage caches', () => {
   });
 
   // Regression: createLocalStorageCache/createSessionStorageCache are sometimes
-  // invoked at module scope (e.g. useAnalyticsTrends.ts), which runs during
+  // invoked at module scope (e.g. useDiscoveryTrends.ts), which runs during
   // Next.js SSR/prerender where `localStorage` is not defined. The factory must
   // defer the storage lookup to the method calls so construction never throws.
   it('does not touch localStorage at construction time (SSR-safe)', () => {
