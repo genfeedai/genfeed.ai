@@ -310,9 +310,10 @@ export async function uploadAttachment(
     `${api.config.baseUrl}/images/upload/presigned`,
     {
       body: JSON.stringify({
+        category: 'IMAGE',
         contentType: file.type,
         filename: file.name,
-        type: 'image',
+        sizeBytes: file.size,
       }),
       method: 'POST',
     },

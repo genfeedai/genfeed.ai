@@ -236,7 +236,8 @@ export class IngredientsService<
   public async getPresignedUploadUrl(
     filename: string,
     contentType: string,
-    type: string,
+    category: string,
+    sizeBytes: number,
   ): Promise<{
     id: string;
     uploadUrl: string;
@@ -246,9 +247,10 @@ export class IngredientsService<
   }> {
     return await this.instance
       .post<JsonApiResponseDocument>('upload/presigned', {
+        category,
         contentType,
         filename,
-        type,
+        sizeBytes,
       })
       .then((res) =>
         this.extractResource<{

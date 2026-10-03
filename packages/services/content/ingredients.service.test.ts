@@ -214,13 +214,15 @@ describe('IngredientsService', () => {
       const result = await service.getPresignedUploadUrl(
         'x.png',
         'image/png',
-        'image',
+        'IMAGE',
+        2048,
       );
 
       expect(http.post).toHaveBeenCalledWith('upload/presigned', {
+        category: 'IMAGE',
         contentType: 'image/png',
         filename: 'x.png',
-        type: 'image',
+        sizeBytes: 2048,
       });
       expect(result).toMatchObject({
         id: 'upload_1',
