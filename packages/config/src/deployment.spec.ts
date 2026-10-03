@@ -16,6 +16,8 @@ import {
   isHostedGenfeedHostname,
   isSaaS,
   isSelfHostedDeployment,
+  parseTrustProxy,
+  resolveTrustProxyFromReader,
 } from './deployment';
 
 afterEach(() => {
@@ -253,5 +255,52 @@ describe('getDeploymentFromReader', () => {
 
   it('returns self-hosted when the reader has no cloud signal', () => {
     expect(getDeploymentFromReader(() => undefined)).toBe('self-hosted');
+  });
+});
+
+describe('parseTrustProxy', () => {
+  it('parses Express trust-proxy values', () => {
+    expect(parseTrustProxy('true')).toBe(true);
+    expect(parseTrustProxy(' FALSE ')).toBe(false);
+    expect(parseTrustProxy('')).toBe(false);
+    expect(parseTrustProxy('2')).toBe(2);
+    expect(parseTrustProxy('loopback, 10.0.0.0/8,,172.18.0.2')).toEqual([
+      'loopback',
+      '10.0.0.0/8',
+      '172.18.0.2',
+    ]);
+  });
+});
+
+describe('resolveTrustProxyFromReader', () => {
+  it('trusts exactly one hop on Cloud by default', () => {
+    const env: Record<string, string | undefined> = { GENFEED_CLOUD: 'true' };
+    expect(resolveTrustProxyFromReader((key) => env[key])).toBe(1);
+  });
+
+  it('trusts the hosted load balancer when Cloud is detected by domain', () => {
+    const env: Record<string, string | undefined> = {
+      GENFEEDAI_API_PUBLIC_URL: 'https://api.genfeed.ai',
+    };
+    expect(resolveTrustProxyFromReader((key) => env[key])).toBe(1);
+  });
+
+  it('trusts no forwarded header on self-host by default', () => {
+    expect(resolveTrustProxyFromReader(() => undefined)).toBe(false);
+    const env: Record<string, string | undefined> = {
+      GENFEED_CLOUD: 'false',
+      TRUST_PROXY: '  ',
+    };
+    expect(resolveTrustProxyFromReader((key) => env[key])).toBe(false);
+  });
+
+  it('lets an explicit TRUST_PROXY name the proxy', () => {
+    const env: Record<string, string | undefined> = {
+      GENFEED_CLOUD: 'false',
+      TRUST_PROXY: 'loopback',
+    };
+    expect(resolveTrustProxyFromReader((key) => env[key])).toEqual([
+      'loopback',
+    ]);
   });
 });

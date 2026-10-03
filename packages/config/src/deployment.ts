@@ -131,6 +131,51 @@ export function getDeploymentFromReader(readEnv: EnvValueReader): Deployment {
   return 'self-hosted';
 }
 
+/** An Express `trust proxy` value: on/off, a hop count, or proxy addresses/subnets. */
+export type TrustProxySetting = boolean | number | string[];
+
+/**
+ * Parse a `TRUST_PROXY` value with Express semantics: `true` / `false`, a hop
+ * count (`1`), or a comma-separated list of proxy addresses, subnets, or the
+ * Express ranges `loopback`, `linklocal` and `uniquelocal`.
+ */
+export function parseTrustProxy(value: string): TrustProxySetting {
+  const raw = value.trim();
+  const lowered = raw.toLowerCase();
+
+  if (lowered === 'true') {
+    return true;
+  }
+  if (lowered === '' || lowered === 'false') {
+    return false;
+  }
+  if (/^\d+$/.test(raw)) {
+    return Number(raw);
+  }
+
+  return raw
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Which forwarding proxies the server trusts to report the client address.
+ * `TRUST_PROXY` wins when set. Otherwise Cloud trusts exactly one hop (the
+ * load balancer is the only path in) and self-host trusts none, because its
+ * ports may be reachable directly and any client can send `X-Forwarded-For`.
+ */
+export function resolveTrustProxyFromReader(
+  readEnv: EnvValueReader,
+): TrustProxySetting {
+  const configured = readEnv('TRUST_PROXY')?.trim();
+  if (configured) {
+    return parseTrustProxy(configured);
+  }
+
+  return getDeploymentFromReader(readEnv) === 'cloud' ? 1 : false;
+}
+
 export function getDeployment(): Deployment {
   const fromEnv = getDeploymentFromReader((key) => process.env[key]);
   if (fromEnv === 'cloud') {

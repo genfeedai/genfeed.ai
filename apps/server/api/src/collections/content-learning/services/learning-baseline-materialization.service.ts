@@ -9,7 +9,7 @@ import {
 } from '@api/collections/content-learning/services/learning-baseline-selection';
 import {
   LearningDependencyService,
-  learningFence,
+  learningOrgFence,
 } from '@api/collections/content-learning/services/learning-dependency.service';
 import {
   learningHash,
@@ -670,7 +670,7 @@ export class LearningBaselineMaterializationService {
     request: Request,
     failedFingerprint?: string,
   ): Promise<ContentLearningBaseline | null> {
-    await learningFence(tx, 'shared');
+    await learningOrgFence(tx, request.scope.organizationId, 'shared');
     const context = await this.readAndLockContext(tx, request);
     if (!context) {
       if (failedFingerprint !== undefined) conflict();

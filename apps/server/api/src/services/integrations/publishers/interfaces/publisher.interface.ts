@@ -169,6 +169,20 @@ export interface IPublisher {
   publish(context: PublishContext): Promise<PublishResult>;
 
   /**
+   * Optional: whether an earlier publish of this context, whose provider
+   * outcome was never confirmed (timeout, reset, crash), landed on the
+   * platform. Resolve with its result when found and null when the platform
+   * confirms it is absent; throw when the platform cannot answer yet.
+   * Publishers without it are retried as before.
+   * @param context The publishing context of the unconfirmed attempt
+   * @param attemptStartedAt When the unconfirmed attempt began
+   */
+  verifyPublished?(
+    context: PublishContext,
+    attemptStartedAt: Date,
+  ): Promise<PublishResult | null>;
+
+  /**
    * Publish thread children (for platforms that support threads)
    * @param context The publishing context
    * @param children The child posts to publish

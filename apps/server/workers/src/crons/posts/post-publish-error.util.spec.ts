@@ -11,6 +11,7 @@ import {
   createQuotaExceededActivity,
   getPublishErrorCode,
   getPublishErrorMessage,
+  isAmbiguousPublishError,
   isRetryablePublishError,
 } from '@workers/crons/posts/post-publish-error.util';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -34,6 +35,30 @@ describe('post publish error policy', () => {
     [new Error('Provider rejected the payload'), false],
   ])('classifies retryability for %p', (error, expected) => {
     expect(isRetryablePublishError(error)).toBe(expected);
+  });
+
+  it.each([
+    [{ code: 'ETIMEDOUT' }, true],
+    [new Error('Provider returned HTTP 503'), true],
+    [{ code: 'ECONNRESET' }, true],
+    [new Error('socket hang up'), true],
+    [{ code: 'EPIPE' }, true],
+    [
+      {
+        code: 'transient_failure',
+        message: 'Beehiiv is temporarily unavailable.',
+      },
+      true,
+    ],
+    [{ message: 'Provider unavailable', statusCode: 502 }, true],
+    [{ message: 'Gateway', response: { status: 504 } }, true],
+    [{ code: 'validation_failed', statusCode: 400 }, false],
+    ['429 rate limit', false],
+    [{ code: 'ECONNREFUSED' }, false],
+    [{ code: 'ENOTFOUND' }, false],
+    [new Error('Provider rejected the payload'), false],
+  ])('treats %p as an unknown provider outcome: %s', (error, expected) => {
+    expect(isAmbiguousPublishError(error)).toBe(expected);
   });
 
   it.each([

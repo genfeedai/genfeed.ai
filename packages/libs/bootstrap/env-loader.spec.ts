@@ -173,7 +173,13 @@ describe('setupServiceShell', () => {
     set: vi.fn(),
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('configures trust proxy and shutdown hooks without redirects by default', () => {
+    vi.stubEnv('GENFEED_CLOUD', 'true');
+    vi.stubEnv('TRUST_PROXY', '');
     const serverGet = vi.fn();
     const app = buildApp(serverGet);
 
@@ -182,6 +188,29 @@ describe('setupServiceShell', () => {
     expect(app.set).toHaveBeenCalledWith('trust proxy', 1);
     expect(app.enableShutdownHooks).toHaveBeenCalledOnce();
     expect(serverGet).not.toHaveBeenCalled();
+  });
+
+  it('trusts no forwarded header on self-host by default', () => {
+    vi.stubEnv('GENFEED_CLOUD', 'false');
+    vi.stubEnv('TRUST_PROXY', '');
+    const app = buildApp(vi.fn());
+
+    setupServiceShell(app as unknown as NestExpressApplication);
+
+    expect(app.set).toHaveBeenCalledWith('trust proxy', false);
+  });
+
+  it('trusts the proxies TRUST_PROXY names', () => {
+    vi.stubEnv('GENFEED_CLOUD', 'false');
+    vi.stubEnv('TRUST_PROXY', 'loopback, 10.0.0.0/8');
+    const app = buildApp(vi.fn());
+
+    setupServiceShell(app as unknown as NestExpressApplication);
+
+    expect(app.set).toHaveBeenCalledWith('trust proxy', [
+      'loopback',
+      '10.0.0.0/8',
+    ]);
   });
 
   it('registers redirect handlers for each configured path', () => {

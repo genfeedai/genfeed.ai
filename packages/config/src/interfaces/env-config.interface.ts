@@ -17,6 +17,7 @@ export interface IEnvConfig {
   API_METRICS_LOGGING?: 'true' | 'false';
   API_SENTRY_PERFORMANCE_METRICS?: 'true' | 'false';
   GENFEED_CLOUD?: string;
+  TRUST_PROXY?: string;
 
   // === Genfeed Internal URLs ===
   GENFEEDAI_API_PUBLIC_URL?: string;

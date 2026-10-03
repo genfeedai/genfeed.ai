@@ -1,6 +1,6 @@
 import {
   LearningDependencyService,
-  learningFence,
+  learningOrgFence,
 } from '@api/collections/content-learning/services/learning-dependency.service';
 import {
   learningHash,
@@ -37,7 +37,7 @@ export class LearningScopeStateService {
     if (tx !== this.prisma)
       return this.ensureInTransaction(tx, scope, descriptor, epoch);
     return this.prisma.$transaction(async (client) => {
-      await learningFence(client, 'shared');
+      await learningOrgFence(client, scope.organizationId, 'shared');
       return this.ensureInTransaction(client, scope, descriptor, epoch);
     });
   }
