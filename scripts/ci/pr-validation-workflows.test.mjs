@@ -6,7 +6,6 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { runInNewContext } from 'node:vm';
 
-import './owner-merge-queue.test.mjs';
 import './coverage-failure-reporter.test.mjs';
 import './full-suite-evidence.test.mjs';
 import './nightly-e2e-failure-reporter.test.mjs';
@@ -112,26 +111,7 @@ test('keeps privileged PR triggers limited to metadata and trusted master code',
     )
     .sort();
 
-  assert.deepEqual(targetWorkflows, ['owner-merge-queue.yml', 'pr-title.yml']);
-  const controller = readWorkflow('owner-merge-queue.yml');
-  assert.match(controller, /ref: refs\/heads\/master/);
-  assert.match(controller, /persist-credentials: false/);
-  assert.match(controller, /github.ref == 'refs\/heads\/master'/);
-  assert.match(controller, /^ {2}status:/m);
-  assert.match(controller, /^ {2}check_run:/m);
-  assert.match(
-    controller,
-    /uses: actions\/create-github-app-token@[0-9a-f]{40} # v/,
-  );
-  assert.match(
-    controller,
-    /github-token: \$\{\{ steps\.bot-token\.outputs\.token \}\}/,
-  );
-  assert.doesNotMatch(controller, /CONSOLE_DEPLOY_TOKEN|vars\.OWNER_MERGE/);
-  assert.doesNotMatch(
-    controller,
-    /github\.event\.|download-artifact|secrets.GITHUB_TOKEN|uses: \.\//,
-  );
+  assert.deepEqual(targetWorkflows, ['pr-title.yml']);
   const title = readWorkflow('pr-title.yml');
   assert.match(title, /^permissions:\n {2}pull-requests: read$/m);
   assert.doesNotMatch(title, /uses: actions\/checkout@/);
