@@ -256,7 +256,9 @@ function addReference(
     .mockResolvedValueOnce({ bytes, version: 's3:e:reference' });
   return reference;
 }
-beforeEach(() => storage.readVersionedBytes.mockReset());
+beforeEach(() => {
+  storage.readVersionedBytes.mockReset();
+});
 afterEach(() => vi.restoreAllMocks());
 describe('versioned artifact material', () => {
   it('describes image and video with the hash and version captured in one read', async () => {
@@ -424,6 +426,7 @@ describe('versioned artifact material', () => {
         1,
       );
       addReference(f, referenceBytes);
+      storage.readVersionedBytes.mockReset();
       storage.readVersionedBytes.mockImplementation(async (key, options) => {
         const bytes = key.startsWith('logos/') ? referenceBytes : f.bytes;
         if (bytes.length > options.maxBytes)
