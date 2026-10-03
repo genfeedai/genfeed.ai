@@ -8,6 +8,7 @@ import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
 import { Globe } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 type TrendDetailRelatedTableProps = {
   relatedTrends: TrendItem[];
@@ -18,15 +19,17 @@ export default function TrendDetailRelatedTable({
   relatedTrends,
   getRowLink,
 }: TrendDetailRelatedTableProps) {
+  const translate = useTranslations('pages.analytics.trends');
+
   if (relatedTrends.length === 0) {
     return null;
   }
 
   return (
     <div className="mt-6">
-      <Card label="Cross-Platform Trends" icon={Globe}>
+      <Card label={translate('detail.related.title')} icon={Globe}>
         <p className="text-sm text-foreground/60 mb-4">
-          Similar trends on other platforms
+          {translate('detail.related.description')}
         </p>
         <Table
           items={relatedTrends}
@@ -34,7 +37,7 @@ export default function TrendDetailRelatedTable({
           getRowLink={getRowLink}
           columns={[
             {
-              header: 'Platform',
+              header: translate('columns.platform'),
               key: 'platform',
               render: (item) => {
                 const config = PLATFORM_CONFIGS[item.platform];
@@ -53,19 +56,19 @@ export default function TrendDetailRelatedTable({
               },
             },
             {
-              header: 'Topic',
+              header: translate('columns.topic'),
               key: 'topic',
               render: (item) => (
                 <span className="font-medium">{item.topic}</span>
               ),
             },
             {
-              header: 'Mentions',
+              header: translate('columns.mentions'),
               key: 'mentions',
               render: (item) => formatCompactNumber(item.mentions),
             },
             {
-              header: 'Growth',
+              header: translate('columns.growth'),
               key: 'growthRate',
               render: (item) => (
                 <span
@@ -79,7 +82,7 @@ export default function TrendDetailRelatedTable({
               ),
             },
             {
-              header: 'Virality',
+              header: translate('columns.virality'),
               key: 'viralityScore',
               render: (item) => (
                 <Badge value={item.viralityScore} className="text-xs" />

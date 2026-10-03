@@ -33,58 +33,50 @@ import TrendDetailAnalysisCard from './trend-detail-analysis-card';
 import TrendDetailHeader from './trend-detail-header';
 import TrendDetailRelatedTable from './trend-detail-related-table';
 
-const TREND_KPI_PLACEHOLDERS = [
+const TREND_KPI_METRICS = [
   {
-    description: 'Total mentions',
     icon: Hash,
     iconClassName: 'bg-primary/10 text-primary',
-    label: 'Mentions',
-    value: '-',
+    key: 'mentions',
   },
   {
-    description: 'Week-over-week',
     icon: TrendingUp,
     iconClassName: 'bg-success/10 text-success',
-    label: 'Growth Rate',
-    value: '-',
+    key: 'growthRate',
   },
   {
-    description: 'Calculated score',
     icon: Sparkles,
     iconClassName: 'bg-secondary/10 text-secondary',
-    label: 'Virality Score',
-    value: '-',
+    key: 'viralityScore',
   },
   {
-    description: 'Average engagement',
+    analyticsMetric: 'engagementRate' as const,
     icon: Flame,
     iconClassName: 'bg-accent/10 text-accent',
-    analyticsMetric: 'engagementRate' as const,
-    label: 'Engagement Rate',
-    value: '-',
+    key: 'engagementRate',
   },
   {
-    description: 'Total reach',
     icon: Globe,
     iconClassName: 'bg-info/10 text-info',
-    label: 'Reach',
-    value: '-',
+    key: 'reach',
   },
   {
-    description: 'Total impressions',
     icon: ChartColumn,
     iconClassName: 'bg-warning/10 text-warning',
-    label: 'Impressions',
-    value: '-',
+    key: 'impressions',
   },
-];
+] as const;
 
 export default function TrendDetail({
-  backHref = '/discovery/overview',
+  backHref = '/discovery/trends',
   trendId,
 }: TrendDetailProps) {
   const router = useRouter();
   const translate = useTranslations('pages.analytics.trends.detail');
+  const metricCopy = (key: (typeof TREND_KPI_METRICS)[number]['key']) => ({
+    description: translate(`metrics.${key}.description`),
+    label: translate(`metrics.${key}.label`),
+  });
   const getTrendsService = useAuthedService((token: string) =>
     TrendsService.getInstance(token),
   );
@@ -123,11 +115,11 @@ export default function TrendDetail({
 
   if (error) {
     return (
-      <Container label="Error" icon={Flame}>
+      <Container label={translate('error')} icon={Flame}>
         <Alert type={AlertCategory.ERROR}>
           {error}
           <Button
-            label="Go Back"
+            label={translate('goBack')}
             size={ButtonSize.SM}
             onClick={() => router.back()}
           />
@@ -138,11 +130,11 @@ export default function TrendDetail({
 
   if (!isLoading && !data) {
     return (
-      <Container label="Error" icon={Flame}>
+      <Container label={translate('error')} icon={Flame}>
         <Alert type={AlertCategory.ERROR}>
           {translate('notFound')}
           <Button
-            label="Go Back"
+            label={translate('goBack')}
             size={ButtonSize.SM}
             onClick={() => router.back()}
           />
@@ -158,65 +150,63 @@ export default function TrendDetail({
   const kpiItems = trend
     ? [
         {
-          description: 'Total mentions',
+          ...metricCopy('mentions'),
           icon: Hash,
           iconClassName: 'bg-primary/10 text-primary',
-          label: 'Mentions',
           value: formatCompactNumber(trend.mentions),
           valueClassName: 'text-primary',
         },
         {
-          description: 'Week-over-week',
+          ...metricCopy('growthRate'),
           icon: TrendingUp,
           iconClassName:
             trend.growthRate > 0
               ? 'bg-success/10 text-success'
               : 'bg-error/10 text-error',
-          label: 'Growth Rate',
           value: `${trend.growthRate > 0 ? '+' : ''}${trend.growthRate}%`,
           valueClassName: trend.growthRate > 0 ? 'text-success' : 'text-error',
         },
         {
-          description: 'Calculated score',
+          ...metricCopy('viralityScore'),
           icon: Sparkles,
           iconClassName: 'bg-secondary/10 text-secondary',
-          label: 'Virality Score',
           value: `${trend.viralityScore}/100`,
           valueClassName: 'text-secondary',
         },
         {
-          description: 'Average engagement',
+          ...metricCopy('engagementRate'),
           icon: Flame,
           iconClassName: 'bg-accent/10 text-accent',
           analyticsMetric: 'engagementRate' as const,
-          label: 'Engagement Rate',
           value: trend.metadata?.engagementRate
             ? `${trend.metadata.engagementRate.toFixed(1)}%`
             : 'N/A',
           valueClassName: 'text-accent',
         },
         {
-          description: 'Total reach',
+          ...metricCopy('reach'),
           icon: Globe,
           iconClassName: 'bg-info/10 text-info',
-          label: 'Reach',
           value: trend.metadata?.reach
             ? formatCompactNumber(trend.metadata.reach)
             : 'N/A',
           valueClassName: 'text-info',
         },
         {
-          description: 'Total impressions',
+          ...metricCopy('impressions'),
           icon: ChartColumn,
           iconClassName: 'bg-warning/10 text-warning',
-          label: 'Impressions',
           value: trend.metadata?.impressions
             ? formatCompactNumber(trend.metadata.impressions)
             : 'N/A',
           valueClassName: 'text-warning',
         },
       ]
-    : TREND_KPI_PLACEHOLDERS;
+    : TREND_KPI_METRICS.map(({ key, ...metric }) => ({
+        ...metric,
+        ...metricCopy(key),
+        value: '-',
+      }));
 
   return (
     <Container
@@ -240,7 +230,7 @@ export default function TrendDetail({
     >
       {/* KPI Section */}
       <KPISection
-        title="Trend Metrics"
+        title={translate('trendMetrics')}
         items={kpiItems}
         gridCols={{ desktop: 6, mobile: 2 }}
         isLoading={isLoading}
@@ -250,7 +240,7 @@ export default function TrendDetail({
         <>
           <div className="mt-6 flex flex-wrap gap-3">
             <Button
-              label="Remix in Agent"
+              label={translate('remixInAgent')}
               variant={ButtonVariant.DEFAULT}
               size={ButtonSize.SM}
               icon={<Sparkles className="size-4" />}
@@ -268,7 +258,7 @@ export default function TrendDetail({
           {/* Hashtags */}
           {trend.metadata?.hashtags && trend.metadata.hashtags.length > 0 && (
             <div className="mt-6">
-              <Card label="Related Hashtags" icon={Hash}>
+              <Card label={translate('relatedHashtags')} icon={Hash}>
                 <div className="flex flex-wrap gap-2">
                   {trend.metadata.hashtags.map((hashtag) => (
                     <Badge
@@ -285,7 +275,7 @@ export default function TrendDetail({
           {/* Sample Content */}
           {trend.metadata?.sampleContent && (
             <div className="mt-6">
-              <Card label="Sample Content" icon={Sparkles}>
+              <Card label={translate('sampleContent')} icon={Sparkles}>
                 <p className="text-foreground/80 whitespace-pre-wrap">
                   {trend.metadata.sampleContent}
                 </p>
@@ -297,7 +287,7 @@ export default function TrendDetail({
           <TrendDetailRelatedTable
             relatedTrends={relatedTrends}
             getRowLink={(item) => ({
-              href: `/discovery/${item.id}`,
+              href: `/discovery/trends/detail/${item.id}`,
               label: `Open ${item.topic}`,
             })}
           />

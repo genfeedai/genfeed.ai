@@ -4,6 +4,7 @@ import type { TrendItem } from '@props/trends/trends-page.props';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import { Flame } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 function getGrowthRateClass(rate: number): string {
   if (rate > 0) {
@@ -31,10 +32,12 @@ export default function TrendingTopicsSection({
   platformConfigLookup,
   getRowLink,
 }: Props) {
+  const translate = useTranslations('pages.analytics.trends');
+
   return (
     <>
       <p className="text-sm text-foreground/60">
-        Click on a trend to see detailed analytics and cross-platform data.
+        {translate('topics.description')}
       </p>
       {isLoadingTrends ? (
         <div className="animate-pulse space-y-3">
@@ -51,10 +54,8 @@ export default function TrendingTopicsSection({
       ) : trendingTopics.length === 0 ? (
         <div className="text-center py-8 text-foreground/60">
           <Flame className="size-12 mx-auto mb-3 opacity-30" />
-          <p>No trending topics available.</p>
-          <p className="text-sm mt-1">
-            Connect your social accounts to see personalized trends.
-          </p>
+          <p>{translate('topics.empty')}</p>
+          <p className="text-sm mt-1">{translate('topics.emptyDescription')}</p>
         </div>
       ) : (
         <Table<TrendItem>
@@ -64,7 +65,7 @@ export default function TrendingTopicsSection({
           columns={[
             {
               className: 'min-w-32',
-              header: 'Platform',
+              header: translate('columns.platform'),
               key: 'platform',
               render: (item) => {
                 const config = platformConfigLookup[item.platform];
@@ -86,7 +87,7 @@ export default function TrendingTopicsSection({
             },
             {
               className: 'min-w-48',
-              header: 'Topic',
+              header: translate('columns.topic'),
               key: 'topic',
               render: (item) => (
                 <span className="font-semibold text-foreground">
@@ -96,7 +97,7 @@ export default function TrendingTopicsSection({
             },
             {
               className: 'min-w-24',
-              header: 'Mentions',
+              header: translate('columns.mentions'),
               key: 'mentions',
               render: (item) => (
                 <span className="font-medium">
@@ -106,7 +107,7 @@ export default function TrendingTopicsSection({
             },
             {
               className: 'min-w-20',
-              header: 'Growth',
+              header: translate('columns.growth'),
               key: 'growthRate',
               render: (item) => (
                 <span
@@ -119,7 +120,7 @@ export default function TrendingTopicsSection({
             },
             {
               className: 'min-w-20',
-              header: 'Virality',
+              header: translate('columns.virality'),
               key: 'viralityScore',
               render: (item) => (
                 <Badge

@@ -1,5 +1,6 @@
 import type { TrendFlowChartProps } from '@props/analytics/trend-flow-chart.props';
 import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
 
 const Area = dynamic(() => import('recharts').then((module) => module.Area), {
   ssr: false,
@@ -31,6 +32,8 @@ export default function TrendFlowChart({
   data,
   isLoading,
 }: TrendFlowChartProps) {
+  const translate = useTranslations('pages.analytics.trendTurnover.flow');
+
   if (isLoading) {
     return <div className="h-72 w-full bg-muted/40 animate-pulse" />;
   }
@@ -38,7 +41,7 @@ export default function TrendFlowChart({
   if (data.length === 0) {
     return (
       <div className="flex h-72 items-center justify-center text-sm text-foreground/40">
-        No timeline data for this period.
+        {translate('empty')}
       </div>
     );
   }

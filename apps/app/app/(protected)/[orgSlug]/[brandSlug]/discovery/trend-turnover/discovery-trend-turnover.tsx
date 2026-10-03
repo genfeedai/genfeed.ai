@@ -17,6 +17,7 @@ import { Text } from '@ui/typography/text';
 import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
 import { Clock, Flame, TrendingDown, TrendingUp } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 const TrendFlowChart = dynamic(() => import('./TrendFlowChart'), {
@@ -25,12 +26,13 @@ const TrendFlowChart = dynamic(() => import('./TrendFlowChart'), {
 });
 
 const PERIOD_OPTIONS = [
-  { days: 7 as const, label: '7D' },
-  { days: 30 as const, label: '30D' },
-  { days: 90 as const, label: '90D' },
+  { days: 7 as const, labelKey: 'd7' },
+  { days: 30 as const, labelKey: 'd30' },
+  { days: 90 as const, labelKey: 'd90' },
 ];
 
 export default function DiscoveryTrendTurnover() {
+  const translate = useTranslations('pages.analytics.trendTurnover');
   const getTrendsService = useAuthedService((token: string) =>
     TrendsService.getInstance(token),
   );
@@ -83,13 +85,13 @@ export default function DiscoveryTrendTurnover() {
                   onClick={() => setPeriod(opt.days)}
                   className="uppercase tracking-wide"
                 >
-                  {opt.label}
+                  {translate(`periods.${opt.labelKey}`)}
                 </Button>
               ))}
             </div>
           </div>
           <Heading size="2xl" as="h1" className="sr-only">
-            Trend Turnover Dashboard
+            {translate('heading')}
           </Heading>
         </div>
       </header>
@@ -100,27 +102,33 @@ export default function DiscoveryTrendTurnover() {
         isLoading={isLoading}
         items={[
           {
-            description: `New trends in the last ${period} days`,
+            description: translate('kpi.appeared.description', {
+              days: period,
+            }),
             icon: TrendingUp,
-            label: 'Appeared',
+            label: translate('kpi.appeared.label'),
             value: totals?.appeared ?? 0,
           },
           {
-            description: `Trends that expired in the last ${period} days`,
+            description: translate('kpi.died.description', { days: period }),
             icon: TrendingDown,
-            label: 'Died',
+            label: translate('kpi.died.label'),
             value: totals?.died ?? 0,
           },
           {
-            description: 'Average time a trend stays active',
+            description: translate('kpi.avgLifespan.description'),
             icon: Clock,
-            label: 'Avg Lifespan',
-            value: totals ? `${totals.avgLifespanDays.toFixed(1)}d` : ':',
+            label: translate('kpi.avgLifespan.label'),
+            value: totals
+              ? translate('lifespanDays', {
+                  value: totals.avgLifespanDays.toFixed(1),
+                })
+              : ':',
           },
           {
-            description: 'Percentage of new trends that expired',
+            description: translate('kpi.turnoverRate.description'),
             icon: Flame,
-            label: 'Turnover Rate',
+            label: translate('kpi.turnoverRate.label'),
             value: totals ? `${totals.turnoverRate}%` : ':',
           },
         ]}
@@ -129,10 +137,10 @@ export default function DiscoveryTrendTurnover() {
       <Card
         className="backdrop-blur"
         bodyClassName="space-y-4"
-        label="Trend Flow"
+        label={translate('flow.title')}
       >
         <Text size="sm" color="subtle-60">
-          Daily trend births (green) vs. deaths (red) over the selected period.
+          {translate('flow.description')}
         </Text>
         <TrendFlowChart data={data?.timeline ?? []} isLoading={isLoading} />
       </Card>
@@ -140,16 +148,16 @@ export default function DiscoveryTrendTurnover() {
       <Card
         className="backdrop-blur"
         bodyClassName="space-y-4"
-        label="Platform Breakdown"
+        label={translate('breakdown.title')}
       >
         <Table<TrendTurnoverPlatformStats>
           items={data?.byPlatform ?? []}
           isLoading={isLoading}
           getRowKey={(item) => item.platform}
-          emptyLabel="No trend data for this period"
+          emptyLabel={translate('breakdown.empty')}
           columns={[
             {
-              header: 'Platform',
+              header: translate('breakdown.columns.platform'),
               key: 'platform',
               render: (item) => {
                 const config = PLATFORM_CONFIGS[item.platform];
@@ -171,7 +179,7 @@ export default function DiscoveryTrendTurnover() {
             },
             {
               className: 'text-right',
-              header: 'Appeared',
+              header: translate('breakdown.columns.appeared'),
               key: 'appeared',
               render: (item) => (
                 <span className="font-mono">{item.appeared}</span>
@@ -179,29 +187,31 @@ export default function DiscoveryTrendTurnover() {
             },
             {
               className: 'text-right',
-              header: 'Died',
+              header: translate('breakdown.columns.died'),
               key: 'died',
               render: (item) => <span className="font-mono">{item.died}</span>,
             },
             {
               className: 'text-right',
-              header: 'Alive',
+              header: translate('breakdown.columns.alive'),
               key: 'alive',
               render: (item) => <span className="font-mono">{item.alive}</span>,
             },
             {
               className: 'text-right',
-              header: 'Avg Lifespan',
+              header: translate('breakdown.columns.avgLifespan'),
               key: 'avgLifespanDays',
               render: (item) => (
                 <span className="font-mono">
-                  {item.avgLifespanDays.toFixed(1)}d
+                  {translate('lifespanDays', {
+                    value: item.avgLifespanDays.toFixed(1),
+                  })}
                 </span>
               ),
             },
             {
               className: 'text-right',
-              header: 'Turnover Rate',
+              header: translate('breakdown.columns.turnoverRate'),
               key: 'turnoverRate',
               render: (item) => (
                 <span
@@ -218,10 +228,10 @@ export default function DiscoveryTrendTurnover() {
       <Card
         className="backdrop-blur"
         bodyClassName="space-y-4"
-        label="Platform Volatility"
+        label={translate('volatility.title')}
       >
         <Text size="sm" color="subtle-60">
-          Turnover rate by platform : higher bars indicate faster trend churn.
+          {translate('volatility.description')}
         </Text>
         <div className="space-y-3">
           {(data?.byPlatform ?? []).map((item) => {
@@ -256,7 +266,7 @@ export default function DiscoveryTrendTurnover() {
           })}
           {!isLoading && !data?.byPlatform?.length && (
             <Text size="sm" color="subtle-60">
-              No platform data available for this period.
+              {translate('volatility.empty')}
             </Text>
           )}
         </div>

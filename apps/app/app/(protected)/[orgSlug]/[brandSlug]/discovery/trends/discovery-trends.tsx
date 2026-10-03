@@ -8,12 +8,14 @@ import {
 } from '@ui/analytics/trends';
 import Card from '@ui/card/Card';
 import { Flame, Hash, Music } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import TrendingTopicsSection from './TrendingTopicsSection';
 import TrendsPageHeader from './TrendsPageHeader';
 import { useDiscoveryTrends } from './useDiscoveryTrends';
 
 export default function DiscoveryTrends() {
+  const translate = useTranslations('pages.analytics.trends.page');
   const {
     PLATFORM_CONFIG_LOOKUP,
     TRENDS_PLATFORMS,
@@ -56,7 +58,7 @@ export default function DiscoveryTrends() {
         <Card
           className="backdrop-blur"
           bodyClassName="space-y-6"
-          label="Trending Topics"
+          label={translate('trendingTopics')}
           icon={Flame}
         >
           <TrendingTopicsSection
@@ -87,7 +89,7 @@ export default function DiscoveryTrends() {
         <Card
           className="backdrop-blur"
           bodyClassName="space-y-6"
-          label="Trending Hashtags"
+          label={translate('trendingHashtags')}
           icon={Hash}
         >
           <TrendingHashtags
@@ -103,7 +105,7 @@ export default function DiscoveryTrends() {
         <Card
           className="backdrop-blur"
           bodyClassName="space-y-6"
-          label="Trending Sounds"
+          label={translate('trendingSounds')}
           icon={Music}
         >
           <TrendingSounds

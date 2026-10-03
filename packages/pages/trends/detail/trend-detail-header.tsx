@@ -5,6 +5,7 @@ import type { TrendItem } from '@props/trends/trends-page.props';
 import { Button } from '@ui/primitives/button';
 import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
 import { ArrowLeft } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 type TrendDetailHeaderProps = {
   backHref: string;
@@ -17,12 +18,13 @@ export default function TrendDetailHeader({
   trend,
   onBack,
 }: TrendDetailHeaderProps) {
+  const translate = useTranslations('pages.analytics.trends.detail');
   const platformConfig = PLATFORM_CONFIGS[trend.platform];
 
   return (
     <div className="space-y-3">
       <Button
-        label="Back to Trends"
+        label={translate('backToTrends')}
         variant={ButtonVariant.GHOST}
         size={ButtonSize.SM}
         icon={<ArrowLeft className="size-4" />}
@@ -46,7 +48,7 @@ export default function TrendDetailHeader({
               {platformConfig?.label || trend.platform}
             </span>
             <span>•</span>
-            <span>Trending Topic</span>
+            <span>{translate('trendingTopic')}</span>
           </div>
           <h2 className="text-2xl font-bold">{trend.topic}</h2>
         </div>

@@ -3,6 +3,7 @@ import CorpusHealthPanel from '@pages/trends/shared/corpus-health-panel';
 import type { Props } from '@props/analytics/trends-page-header.props';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import { useTranslations } from 'next-intl';
 
 export default function TrendsPageHeader({
   corpusHealth,
@@ -13,6 +14,8 @@ export default function TrendsPageHeader({
   leadingPlatform,
   totalTrackedTopics,
 }: Props) {
+  const translate = useTranslations('pages.analytics.trends');
+
   return (
     <header>
       <CorpusHealthPanel
@@ -23,30 +26,33 @@ export default function TrendsPageHeader({
         <div className="flex flex-wrap items-center gap-3">
           {formattedLastSyncedAt && (
             <Text size="sm" color="subtle-60">
-              Latest observed source {formattedLastSyncedAt}
+              {translate('header.latestObserved', {
+                date: formattedLastSyncedAt,
+              })}
             </Text>
           )}
 
           <Text size="sm" color="subtle-60">
-            Tracking {videoCount} standout videos across {platformCount}{' '}
-            platforms
+            {translate('header.tracking', { platformCount, videoCount })}
           </Text>
 
           {leadingPlatform && leadingPlatform.totalMentions > 0 && (
             <Text size="sm" color="subtle-60">
-              Highest term volume:{' '}
+              {translate('header.highestVolume')}{' '}
               <Text weight="semibold" color="default">
                 {leadingPlatform.label}
               </Text>{' '}
-              ({formatCompactNumber(leadingPlatform.totalMentions)} mentions)
+              {translate('header.mentions', {
+                count: formatCompactNumber(leadingPlatform.totalMentions),
+              })}
             </Text>
           )}
           <Text size="sm" color="subtle-60">
-            {totalTrackedTopics} active keywords monitored
+            {translate('header.keywords', { count: totalTrackedTopics })}
           </Text>
         </div>
         <Heading size="2xl" as="h1" className="sr-only">
-          Social Media Trends
+          {translate('page.heading')}
         </Heading>
       </div>
     </header>

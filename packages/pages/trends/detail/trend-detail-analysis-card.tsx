@@ -5,6 +5,7 @@ import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { TrendDetailData } from '@props/trends/trends-page.props';
 import Card from '@ui/card/Card';
 import { ChartColumn, TrendingDown, TrendingUp } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 type TrendDetailAnalysisCardProps = {
   analysis: TrendDetailData['analysis'];
@@ -36,11 +37,15 @@ function getGrowthRateClass(rate: number): string {
 export default function TrendDetailAnalysisCard({
   analysis,
 }: TrendDetailAnalysisCardProps) {
+  const translate = useTranslations('pages.analytics.trends.detail.analysis');
+
   return (
-    <Card label="Trend Analysis" icon={ChartColumn}>
+    <Card label={translate('title')} icon={ChartColumn}>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="space-y-2">
-          <span className="text-sm text-foreground/60">Direction</span>
+          <span className="text-sm text-foreground/60">
+            {translate('direction')}
+          </span>
           <div className="flex items-center gap-2">
             {getTrendDirectionIcon(analysis.trendDirection)}
             <span className="text-lg font-semibold capitalize">
@@ -49,13 +54,17 @@ export default function TrendDetailAnalysisCard({
           </div>
         </div>
         <div className="space-y-2">
-          <span className="text-sm text-foreground/60">Avg Virality (14d)</span>
+          <span className="text-sm text-foreground/60">
+            {translate('avgVirality')}
+          </span>
           <div className="text-lg font-semibold">
             {analysis.averageViralityScore}/100
           </div>
         </div>
         <div className="space-y-2">
-          <span className="text-sm text-foreground/60">Growth Rate (14d)</span>
+          <span className="text-sm text-foreground/60">
+            {translate('growthRate')}
+          </span>
           <div
             className={`text-lg font-semibold ${getGrowthRateClass(analysis.growthRate)}`}
           >
@@ -67,8 +76,10 @@ export default function TrendDetailAnalysisCard({
       {analysis.peakDate && (
         <div className="mt-4 pt-4 border-t border-border">
           <span className="text-sm text-foreground/60">
-            Peak: {formatCompactNumber(analysis.peakMentions || 0)} mentions on{' '}
-            {formatDate(analysis.peakDate)}
+            {translate('peak', {
+              date: formatDate(analysis.peakDate),
+              mentions: formatCompactNumber(analysis.peakMentions || 0),
+            })}
           </span>
         </div>
       )}
