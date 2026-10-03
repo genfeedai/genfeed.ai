@@ -487,12 +487,12 @@ export function MessagesConversationSidebar({
       className="flex h-full min-h-0 flex-col pt-1"
     >
       <div className="flex items-center justify-between px-3 py-1.5">
-        <span className="text-2xs font-bold uppercase tracking-[0.15em] text-foreground/30">
+        <span className="text-2xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
           {translate('title')}
         </span>
         <div className="flex items-center gap-2">
           {pagination.total > 0 ? (
-            <span className="text-2xs tabular-nums text-foreground/28">
+            <span className="text-2xs tabular-nums text-muted-foreground">
               {pagination.total}
             </span>
           ) : null}
