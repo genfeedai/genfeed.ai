@@ -150,14 +150,14 @@ export default function AppProtectedLayoutSidebar({
   }
 
   // A module owns the nav column by handing the shell a panel: the surface
-  // keeps its logo, label and switchers, and the panel takes the place of its
-  // menu items. Nothing here knows what the panel renders.
+  // keeps its logo, label, switchers and primary destinations, and the panel
+  // takes the place of its grouped menu items. Nothing here knows what the
+  // panel renders.
   const navPanelProps = navPanel
     ? {
         collapsedSidebarWidth: 0,
-        items: [] satisfies MenuItemConfig[],
         renderBody: navPanel.render,
-        showPrimaryItems: false,
+        showPrimaryItems: true,
       }
     : null;
 
