@@ -422,13 +422,13 @@ describe('attachAgentStreamSubscriptions', () => {
       startedAt: '2026-03-26T10:00:00.000Z',
       threadId: 'thread-1',
       toolCallId: 'call-1',
-      toolName: 'generate_image',
+      toolName: 'generate',
     });
 
     expect(deps.addActiveToolCall).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'call-1',
-        name: 'generate_image',
+        name: 'generate',
         status: 'running',
       }),
     );

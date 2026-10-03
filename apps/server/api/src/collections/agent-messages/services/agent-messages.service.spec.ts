@@ -467,7 +467,7 @@ describe('AgentMessagesService', () => {
         parameters: { prompt: 'Create a launch image' },
         result: { imageId: 'image-1' },
         status: 'completed',
-        toolName: 'generate_image',
+        toolName: 'generate',
       },
     ];
     agentMessage.findMany.mockResolvedValueOnce([

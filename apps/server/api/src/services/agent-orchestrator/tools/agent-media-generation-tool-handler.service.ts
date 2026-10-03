@@ -2,6 +2,11 @@ import { AgentMediaAssetGenerationService } from '@api/services/agent-orchestrat
 import { AgentMediaBatchGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-batch-generation.service';
 import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import {
+  findInapplicableMediaGenerationParameters,
+  isMediaGenerationType,
+  MEDIA_GENERATION_TYPES,
+} from '@genfeedai/actions';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
@@ -31,11 +36,59 @@ export class AgentMediaGenerationToolHandler {
     return this.textGeneration.generateContent(params, ctx);
   }
 
-  async generateImage(
+  /**
+   * `generate` routes by `type` to the per-kind runtime. Voice and music
+   * runtimes read the spoken or described text from `text`, so `prompt` is
+   * mapped there; every other accepted field passes through unchanged.
+   */
+  async generate(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    return this.assetGeneration.generateImage(params, ctx);
+    const { type, ...rest } = params;
+    if (!isMediaGenerationType(type)) {
+      return {
+        creditsUsed: 0,
+        error: `type must be one of: ${MEDIA_GENERATION_TYPES.join(', ')}`,
+        success: false,
+      };
+    }
+    const inapplicable = findInapplicableMediaGenerationParameters(
+      type,
+      params,
+    );
+    if (inapplicable.length > 0) {
+      return {
+        creditsUsed: 0,
+        error: `${inapplicable.join(', ')} ${inapplicable.length === 1 ? 'does' : 'do'} not apply to type ${type}`,
+        success: false,
+      };
+    }
+    const prompt = typeof rest.prompt === 'string' ? rest.prompt.trim() : '';
+    if (!prompt) {
+      return { creditsUsed: 0, error: 'prompt is required', success: false };
+    }
+
+    switch (type) {
+      case 'image':
+        return this.assetGeneration.generateImage(rest, ctx);
+      case 'video':
+        return this.assetGeneration.generateVideo(rest, ctx);
+      case 'voice': {
+        const { prompt: _prompt, ...voice } = rest;
+        return this.assetGeneration.generateVoice(
+          { ...voice, text: prompt },
+          ctx,
+        );
+      }
+      case 'music': {
+        const { prompt: _prompt, ...music } = rest;
+        return this.assetGeneration.generateMusic(
+          { ...music, text: prompt },
+          ctx,
+        );
+      }
+    }
   }
 
   async editImage(
@@ -57,27 +110,6 @@ export class AgentMediaGenerationToolHandler {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     return this.assetGeneration.upscaleImage(params, ctx);
-  }
-
-  async generateVideo(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    return this.assetGeneration.generateVideo(params, ctx);
-  }
-
-  async generateMusic(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    return this.assetGeneration.generateMusic(params, ctx);
-  }
-
-  async generateVoice(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    return this.assetGeneration.generateVoice(params, ctx);
   }
 
   async generateContentBatch(

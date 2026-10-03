@@ -14,7 +14,7 @@ function buildTool(
     category: 'generation',
     creditCost: 17,
     description: 'Generate a voice clip',
-    name: 'generate_voice',
+    name: 'generate',
     parameters: {
       properties: { text: { type: 'string' } },
       required: ['text'],
@@ -37,7 +37,7 @@ describe('toMcpTools', () => {
       }),
     ]);
 
-    expect(tools.map((tool) => tool.name)).toEqual(['generate_voice']);
+    expect(tools.map((tool) => tool.name)).toEqual(['generate']);
   });
 
   it('advertises the credit cost under the namespaced _meta key', () => {
@@ -93,7 +93,7 @@ describe('toMcpTools', () => {
   it('derives annotations when a fixture has not stored them', () => {
     const [tool] = toMcpTools([buildTool({ mutationPolicy: 'direct' })]);
 
-    expect(tool?.title).toBe('Generate Voice');
+    expect(tool?.title).toBe('Generate');
     expect(tool?.annotations).toEqual({
       destructiveHint: true,
       idempotentHint: false,

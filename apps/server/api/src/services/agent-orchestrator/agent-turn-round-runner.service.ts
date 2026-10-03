@@ -1,6 +1,6 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { AgentUntrustedContentGateService } from '@api/services/agent-orchestrator/agent-untrusted-content-gate.service';
-import { AGENT_CREDIT_COSTS } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
+import { agentToolCreditFloor } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import type {
   AgentChatContext,
   AgentChatRequest,
@@ -17,6 +17,7 @@ import {
   buildAgentArtifactCompletionMetadata as buildArtifactMetadata,
 } from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
 import {
+  type GenerationRedirect,
   getGenerationPreparationRedirect,
   inferPrepareGenerationType,
   isIdentityGenerationToolName,
@@ -29,7 +30,11 @@ import type {
   OpenRouterMessage,
   OpenRouterToolCallResponse,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
-import type { CuratedActionName } from '@genfeedai/actions';
+import {
+  type CuratedActionName,
+  getVisualMediaGenerationType,
+  MEDIA_GENERATION_TOOL_NAME,
+} from '@genfeedai/actions';
 import { ActivitySource, type RouterPriority } from '@genfeedai/contracts';
 import {
   type AgentDashboardOperation,
@@ -48,19 +53,31 @@ const TOOL_EXECUTION_TIMEOUT_MS = 5 * 60 * 1000;
 const TOOL_CANCEL_POLL_INTERVAL_MS = 1500;
 
 const TERMINAL_RESULT_TOOLS = new Set<CuratedActionName>([
-  'generate_image',
-  'generate_video',
   'suggest_ingredient_alternatives',
 ]);
 
-function getTerminalToolContent(toolName: CuratedActionName): string {
+/** Visual `generate` results end the turn; voice and music do not. */
+function isTerminalResultTool(
+  toolName: CuratedActionName,
+  parameters: Record<string, unknown>,
+): boolean {
+  return (
+    TERMINAL_RESULT_TOOLS.has(toolName) ||
+    getVisualMediaGenerationType(toolName, parameters) !== undefined
+  );
+}
+
+function getTerminalToolContent(
+  toolName: CuratedActionName,
+  parameters: Record<string, unknown>,
+): string {
   if (toolName === 'ingest_source_media')
     return 'Source needs attention. Retry or add another source.';
   if (toolName === 'request_input') return 'Choose an option to continue.';
   if (toolName === 'suggest_ingredient_alternatives') {
     return 'Here are the ingredient alternatives.';
   }
-  if (toolName === 'generate_video') {
+  if (getVisualMediaGenerationType(toolName, parameters) === 'video') {
     return 'Video generation accepted.';
   }
   return 'Image generation accepted.';
@@ -349,6 +366,7 @@ export class AgentTurnRoundRunnerService {
       tool_calls: toolCalls,
     });
     let terminalToolName: CuratedActionName | undefined;
+    let terminalToolParams: Record<string, unknown> = {};
 
     for (const toolCall of toolCalls) {
       if (strategy.onBeforeTool) {
@@ -380,23 +398,24 @@ export class AgentTurnRoundRunnerService {
       let toolName = requestedToolName;
 
       if (!allowedToolNames.has(requestedToolName)) {
-        const recoveredToolName = this.getGenerationPreparationRedirect(
+        const recovered = this.getGenerationPreparationRedirect(
           rawRequestedToolName,
           allowedToolNames,
           context.generationMode,
-          toolParams.generationType,
+          toolParams,
         );
 
-        if (recoveredToolName) {
-          allowedToolNames.add(recoveredToolName);
-          toolName = recoveredToolName;
+        if (recovered) {
+          allowedToolNames.add(recovered.toolName);
+          toolName = recovered.toolName;
           toolParams = this.buildUnknownToolRecoveryParams(
             rawRequestedToolName,
             toolParams,
+            recovered,
           );
 
           this.loggerService.warn(
-            `Recovered unknown tool ${rawRequestedToolName} -> ${recoveredToolName}`,
+            `Recovered unknown tool ${rawRequestedToolName} -> ${recovered.toolName}`,
             {
               constructor: this.constructorName,
               model,
@@ -464,19 +483,20 @@ export class AgentTurnRoundRunnerService {
         toolName,
         allowedToolNames,
         context.generationMode,
-        toolParams.generationType,
+        toolParams,
       );
       if (directGenerationOverride) {
-        allowedToolNames.add(directGenerationOverride);
+        allowedToolNames.add(directGenerationOverride.toolName);
         const originalToolName = toolName;
-        toolName = directGenerationOverride;
+        toolName = directGenerationOverride.toolName;
         toolParams = this.buildUnknownToolRecoveryParams(
           rawRequestedToolName,
           toolParams,
+          directGenerationOverride,
         );
 
         this.loggerService.log(
-          `Remapped direct generation tool ${originalToolName} -> ${directGenerationOverride}`,
+          `Remapped direct generation tool ${originalToolName} -> ${directGenerationOverride.toolName}${directGenerationOverride.mediaType ? ` (${directGenerationOverride.mediaType})` : ''}`,
           {
             organizationId: context.organizationId,
             source: source ?? 'agent',
@@ -486,13 +506,13 @@ export class AgentTurnRoundRunnerService {
         );
       }
 
-      const creditCost = AGENT_CREDIT_COSTS[toolName] ?? 0;
+      const creditCost = agentToolCreditFloor(toolName, toolParams);
       // Gate affordability on the tool the model asked for: the
       // prepare_generation remap above would otherwise resolve a zero
       // cost and skip the check entirely (#482).
       const preflightCreditCost = Math.max(
         creditCost,
-        AGENT_CREDIT_COSTS[preRemapToolName] ?? 0,
+        agentToolCreditFloor(preRemapToolName, toolParams),
       );
 
       // Stream resets startTime after remap so duration excludes remap work.
@@ -614,13 +634,15 @@ export class AgentTurnRoundRunnerService {
       if (
         result.success &&
         result.nextActions?.length &&
-        TERMINAL_RESULT_TOOLS.has(toolName)
+        isTerminalResultTool(toolName, toolParams)
       ) {
         terminalToolName = toolName;
+        terminalToolParams = toolParams;
       }
 
       if (result.data?.waitingForInput === true) {
         terminalToolName = toolName;
+        terminalToolParams = toolParams;
       }
       if (result.requiresConfirmation) {
         state.reviewRequired = true;
@@ -727,7 +749,10 @@ export class AgentTurnRoundRunnerService {
       isCancelled: false,
       ...(terminalToolName
         ? {
-            terminalContent: getTerminalToolContent(terminalToolName),
+            terminalContent: getTerminalToolContent(
+              terminalToolName,
+              terminalToolParams,
+            ),
             terminalToolName,
           }
         : {}),
@@ -796,19 +821,41 @@ export class AgentTurnRoundRunnerService {
   private getGenerationPreparationRedirect(
     toolName: string,
     allowedTools: Set<CuratedActionName>,
-    generationMode?: AgentChatContext['generationMode'],
-    requestedGenerationType?: unknown,
-  ): CuratedActionName | null {
+    generationMode: AgentChatContext['generationMode'] | undefined,
+    toolParams: Record<string, unknown>,
+  ): GenerationRedirect | null {
     return getGenerationPreparationRedirect(toolName, allowedTools, {
       generationMode,
-      requestedGenerationType,
+      requestedGenerationType: toolParams.generationType,
+      requestedMediaType: toolParams.type,
     });
   }
 
   private buildUnknownToolRecoveryParams(
     requestedToolName: string,
     toolParams: Record<string, unknown>,
+    redirect: GenerationRedirect,
   ): Record<string, unknown> {
+    if (redirect.toolName === MEDIA_GENERATION_TOOL_NAME) {
+      // `generate` is strict per type; drop the per-kind aliases models send.
+      const {
+        description,
+        generationType: _generationType,
+        text,
+        useIdentity: _useIdentity,
+        ...rest
+      } = toolParams;
+      return {
+        ...rest,
+        prompt:
+          (typeof rest.prompt === 'string' && rest.prompt) ||
+          (typeof description === 'string' && description) ||
+          (typeof text === 'string' && text) ||
+          '',
+        type: redirect.mediaType,
+      };
+    }
+
     const generationType = inferPrepareGenerationType(requestedToolName);
     const recovered = generationType
       ? {

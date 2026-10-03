@@ -237,10 +237,10 @@ describe('formatAgentError', () => {
 
   it('still extracts a Failed at: context line as safe detail', () => {
     const formatted = formatAgentError(
-      ['rate limit exceeded', 'Failed at: generate_image', ''].join('\n'),
+      ['rate limit exceeded', 'Failed at: generate', ''].join('\n'),
     );
 
-    expect(formatted.detail).toBe('Failed at: generate_image');
+    expect(formatted.detail).toBe('Failed at: generate');
   });
 
   it('ignores a Failed at: line with nothing after the label', () => {

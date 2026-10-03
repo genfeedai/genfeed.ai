@@ -397,10 +397,8 @@ export class AgentCompletionCardBuilderService {
       hasCompletedTool(
         'generate_content',
         'generate_content_batch',
-        'generate_image',
-        'generate_video',
+        'generate',
         'generate_as_identity',
-        'generate_voice',
       )
     ) {
       addSuggestion(

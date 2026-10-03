@@ -70,7 +70,16 @@ describe('summarizeStreamingProgress', () => {
     ).toBe('Reviewing');
     expect(
       summarizeStreamingProgress(
-        { ...idleStream, activeToolCalls: [toolCall('generate_image')] },
+        {
+          ...idleStream,
+          activeToolCalls: [toolCall('generate_content_batch')],
+        },
+        [],
+      ).label,
+    ).toBe('Generating');
+    expect(
+      summarizeStreamingProgress(
+        { ...idleStream, activeToolCalls: [toolCall('generate')] },
         [],
       ).label,
     ).toBe('Generating');

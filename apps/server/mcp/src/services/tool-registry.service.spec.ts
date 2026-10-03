@@ -10,7 +10,7 @@ import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
 const MOCK_TOOLS = [
-  { name: 'generate_video', requiredRole: undefined, surfaces: { mcp: true } },
+  { name: 'generate', requiredRole: undefined, surfaces: { mcp: true } },
   {
     name: 'get_video_status',
     requiredRole: undefined,
@@ -360,20 +360,20 @@ describe('ToolRegistryService', () => {
     expect(service.getResources()).toHaveLength(MCP_RESOURCES.length);
   });
 
-  it('handleToolCall generate_video proxies through executeAgentTool', async () => {
+  it('handleToolCall generate proxies through executeAgentTool', async () => {
     const result = await service.handleToolCall({
-      arguments: { description: 'AI surfing', title: 'Epic Reel' },
-      name: 'generate_video',
+      arguments: { prompt: 'AI surfing', type: 'video' },
+      name: 'generate',
     });
 
     expect(clientService.executeAgentTool).toHaveBeenCalledWith(
-      'generate_video',
-      { description: 'AI surfing', title: 'Epic Reel' },
+      'generate',
+      { prompt: 'AI surfing', type: 'video' },
       undefined,
     );
     expect(
       (result as { content: { text: string }[] }).content[0].text,
-    ).toContain('generate_video');
+    ).toContain('generate');
   });
 
   it('handleToolCall get_video_status returns status info via generation handler', async () => {
@@ -841,8 +841,8 @@ describe('ToolRegistryService', () => {
 
     it('does not gate tools without a requiredRole', async () => {
       await service.handleToolCall({
-        arguments: { description: 'x', title: 'y' },
-        name: 'generate_video',
+        arguments: { prompt: 'x', type: 'video' },
+        name: 'generate',
       });
 
       expect(McpAuthGuard.checkToolRole).not.toHaveBeenCalled();

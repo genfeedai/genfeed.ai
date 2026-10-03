@@ -1,4 +1,8 @@
-import { getToolsForSurface } from '@genfeedai/actions';
+import {
+  getMediaGenerationCreditFloor,
+  getToolsForSurface,
+  MEDIA_GENERATION_TOOL_NAME,
+} from '@genfeedai/actions';
 
 const BASE_AGENT_CREDIT_COSTS: Record<string, number> = Object.fromEntries(
   getToolsForSurface('agent').map((tool) => [tool.name, tool.creditCost]),
@@ -21,6 +25,21 @@ export const AGENT_CREDIT_COSTS: Record<string, number> = {
   ...BASE_AGENT_CREDIT_COSTS,
   ...EXTRA_AGENT_CREDIT_COSTS,
 };
+
+/**
+ * Minimum credits one call can charge. `generate` floors by `type` (a video
+ * call must not pass the cheaper music gate); every other tool uses its
+ * catalog price.
+ */
+export function agentToolCreditFloor(
+  toolName: string,
+  parameters: Record<string, unknown>,
+): number {
+  if (toolName === MEDIA_GENERATION_TOOL_NAME) {
+    return getMediaGenerationCreditFloor(parameters);
+  }
+  return AGENT_CREDIT_COSTS[toolName] ?? 0;
+}
 
 /**
  * LLM request/response pairs inside one chat turn. 5 starved research turns

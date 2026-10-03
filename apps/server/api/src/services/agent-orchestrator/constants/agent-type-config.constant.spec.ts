@@ -16,14 +16,14 @@ describe('getAgentTypeConfig', () => {
     expect(config.systemPromptSuffix).toContain('X/Twitter');
   });
 
-  it('gives video creators the voice-clone card alongside generate_voice', () => {
+  it('gives video creators the voice-clone card alongside generate', () => {
     const config = getAgentTypeConfig(AgentType.VIDEO_CREATOR);
     expect(config.defaultTools).toEqual(
-      expect.arrayContaining(['generate_voice', 'prepare_voice_clone']),
+      expect.arrayContaining(['generate', 'prepare_voice_clone']),
     );
   });
 
-  it('gives default content specialists the voice-clone card even without generate_voice', () => {
+  it('gives default content specialists the voice-clone card even without generate', () => {
     expect(getAgentTypeConfig(AgentType.X_CONTENT).defaultTools).toEqual(
       expect.arrayContaining(['prepare_generation', 'prepare_voice_clone']),
     );

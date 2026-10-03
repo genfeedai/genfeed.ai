@@ -81,7 +81,7 @@ describe('AgentToolExecutorService — #4672 agent-mode confirmation matrix', ()
     handles: vi.fn(() => false),
     execute: vi.fn(),
   };
-  const mediaGenerationHandler = { generateImage: vi.fn() };
+  const mediaGenerationHandler = { generate: vi.fn() };
   const brandContentHandler = { saveBrandVoiceProfile: vi.fn() };
   const prepareHandler = { prepareGeneration: vi.fn() };
   const instagramHandler = { handles: vi.fn(() => false), execute: vi.fn() };
@@ -178,33 +178,37 @@ describe('AgentToolExecutorService — #4672 agent-mode confirmation matrix', ()
   });
 
   it('keeps current-turn selections even when model arguments omit them, without inheriting them on a later turn', async () => {
-    mediaGenerationHandler.generateImage.mockResolvedValue({
+    mediaGenerationHandler.generate.mockResolvedValue({
       creditsUsed: 0,
       success: true,
     });
-    const parameters = { prompt: 'A coast', requestedSkillSlugs: ['detail'] };
+    const parameters = {
+      prompt: 'A coast',
+      requestedSkillSlugs: ['detail'],
+      type: 'image',
+    };
     await service.executeTool(
-      'generate_image',
+      'generate',
       parameters,
       context({ requestedSkillSlugs: ['Cinema'] }),
     );
-    expect(mediaGenerationHandler.generateImage).toHaveBeenLastCalledWith(
+    expect(mediaGenerationHandler.generate).toHaveBeenLastCalledWith(
       expect.objectContaining({ requestedSkillSlugs: ['cinema', 'detail'] }),
       expect.anything(),
     );
     expect(parameters.requestedSkillSlugs).toEqual(['detail']);
     await service.executeTool(
-      'generate_image',
-      { prompt: 'A forest' },
+      'generate',
+      { prompt: 'A forest', type: 'image' },
       context(),
     );
     expect(
-      mediaGenerationHandler.generateImage.mock.calls.at(-1)?.[0],
+      mediaGenerationHandler.generate.mock.calls.at(-1)?.[0],
     ).not.toHaveProperty('requestedSkillSlugs');
   });
 
   describe('Manual — confirms credit-spending, brand-context, and outbound', () => {
-    it('docks the generation review card for generate_image instead of generating', async () => {
+    it('docks the generation review card for visual generate instead of generating', async () => {
       agentThreadsService.findOne.mockResolvedValue({ mode: 'manual' });
       prepareHandler.prepareGeneration.mockResolvedValue({
         creditsUsed: 0,
@@ -214,8 +218,8 @@ describe('AgentToolExecutorService — #4672 agent-mode confirmation matrix', ()
       });
 
       const result = await service.executeTool(
-        'generate_image',
-        { prompt: 'a red car' },
+        'generate',
+        { prompt: 'a red car', type: 'image' },
         context({ threadId: testId('thread') }),
       );
 
@@ -230,20 +234,20 @@ describe('AgentToolExecutorService — #4672 agent-mode confirmation matrix', ()
         }),
         expect.anything(),
       );
-      expect(mediaGenerationHandler.generateImage).not.toHaveBeenCalled();
+      expect(mediaGenerationHandler.generate).not.toHaveBeenCalled();
     });
 
     it('a confirmed "Generate" click (confirmationOrigin) bypasses the gate it triggered', async () => {
       agentThreadsService.findOne.mockResolvedValue({ mode: 'manual' });
-      mediaGenerationHandler.generateImage.mockResolvedValue({
+      mediaGenerationHandler.generate.mockResolvedValue({
         creditsUsed: 50,
         data: { id: 'img-1' },
         success: true,
       });
 
       const result = await service.executeTool(
-        'generate_image',
-        { prompt: 'a red car' },
+        'generate',
+        { prompt: 'a red car', type: 'image' },
         context({
           confirmationOrigin: 'thread-ui-action',
           threadId: testId('thread'),
@@ -252,7 +256,7 @@ describe('AgentToolExecutorService — #4672 agent-mode confirmation matrix', ()
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual({ id: 'img-1' });
-      expect(mediaGenerationHandler.generateImage).toHaveBeenCalledTimes(1);
+      expect(mediaGenerationHandler.generate).toHaveBeenCalledTimes(1);
       expect(prepareHandler.prepareGeneration).not.toHaveBeenCalled();
     });
 
@@ -294,21 +298,21 @@ describe('AgentToolExecutorService — #4672 agent-mode confirmation matrix', ()
   describe('Auto — executes credit-spending and brand-context without confirmation, still confirms outbound', () => {
     it('generates the image directly with no review card', async () => {
       agentThreadsService.findOne.mockResolvedValue({ mode: 'auto' });
-      mediaGenerationHandler.generateImage.mockResolvedValue({
+      mediaGenerationHandler.generate.mockResolvedValue({
         creditsUsed: 50,
         data: { id: 'img-2' },
         success: true,
       });
 
       const result = await service.executeTool(
-        'generate_image',
-        { prompt: 'a blue bike' },
+        'generate',
+        { prompt: 'a blue bike', type: 'image' },
         context({ threadId: testId('thread') }),
       );
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual({ id: 'img-2' });
-      expect(mediaGenerationHandler.generateImage).toHaveBeenCalledTimes(1);
+      expect(mediaGenerationHandler.generate).toHaveBeenCalledTimes(1);
       expect(prepareHandler.prepareGeneration).not.toHaveBeenCalled();
     });
 
@@ -349,20 +353,20 @@ describe('AgentToolExecutorService — #4672 agent-mode confirmation matrix', ()
   describe('Plan (running its approved steps) — behaves like Auto except outbound', () => {
     it('generates the image directly with no review card', async () => {
       agentThreadsService.findOne.mockResolvedValue({ mode: 'plan' });
-      mediaGenerationHandler.generateImage.mockResolvedValue({
+      mediaGenerationHandler.generate.mockResolvedValue({
         creditsUsed: 50,
         data: { id: 'img-3' },
         success: true,
       });
 
       const result = await service.executeTool(
-        'generate_image',
-        { prompt: 'a green truck' },
+        'generate',
+        { prompt: 'a green truck', type: 'image' },
         context({ threadId: testId('thread') }),
       );
 
       expect(result.success).toBe(true);
-      expect(mediaGenerationHandler.generateImage).toHaveBeenCalledTimes(1);
+      expect(mediaGenerationHandler.generate).toHaveBeenCalledTimes(1);
     });
 
     it('still confirms outbound (schedule_post)', async () => {
@@ -380,21 +384,21 @@ describe('AgentToolExecutorService — #4672 agent-mode confirmation matrix', ()
   });
 
   describe('threadless execution (MCP, CLI, batch) — #4672 modes do not apply', () => {
-    it('leaves generate_image direct without ever resolving a thread mode', async () => {
-      mediaGenerationHandler.generateImage.mockResolvedValue({
+    it('leaves visual generate direct without ever resolving a thread mode', async () => {
+      mediaGenerationHandler.generate.mockResolvedValue({
         creditsUsed: 50,
         data: { id: 'img-4' },
         success: true,
       });
 
       const result = await service.executeTool(
-        'generate_image',
-        { prompt: 'a yellow scooter' },
+        'generate',
+        { prompt: 'a yellow scooter', type: 'image' },
         context(),
       );
 
       expect(result.success).toBe(true);
-      expect(mediaGenerationHandler.generateImage).toHaveBeenCalledTimes(1);
+      expect(mediaGenerationHandler.generate).toHaveBeenCalledTimes(1);
       expect(agentThreadsService.findOne).not.toHaveBeenCalled();
     });
   });
@@ -409,15 +413,15 @@ describe('AgentToolExecutorService — #4672 agent-mode confirmation matrix', ()
       });
 
       const result = await service.executeTool(
-        'generate_image',
-        { prompt: 'a purple hat' },
+        'generate',
+        { prompt: 'a purple hat', type: 'image' },
         context({ threadId: testId('thread') }),
       );
 
       expect(result.nextActions?.[0]).toMatchObject({
         type: 'generation_action_card',
       });
-      expect(mediaGenerationHandler.generateImage).not.toHaveBeenCalled();
+      expect(mediaGenerationHandler.generate).not.toHaveBeenCalled();
     });
   });
 });

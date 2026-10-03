@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   AGENT_ACTION_CLASS,
   getAgentActionClass,
+  getVisualGenerationReviewType,
   resolveEffectiveMutationPolicy,
-  VISUAL_GENERATION_REVIEW_TOOL_NAMES,
 } from './agent-action-class';
 import { getDeclaredMutationPolicy } from './mutation-policy';
 
@@ -14,13 +14,7 @@ describe('getAgentActionClass', () => {
     );
   });
   it('classifies media generation as credit-spending', () => {
-    expect(getAgentActionClass('generate_image')).toBe(
-      AGENT_ACTION_CLASS.CREDIT_SPENDING,
-    );
-    expect(getAgentActionClass('generate_video')).toBe(
-      AGENT_ACTION_CLASS.CREDIT_SPENDING,
-    );
-    expect(getAgentActionClass('generate_voice')).toBe(
+    expect(getAgentActionClass('generate')).toBe(
       AGENT_ACTION_CLASS.CREDIT_SPENDING,
     );
   });
@@ -77,18 +71,31 @@ describe('getAgentActionClass', () => {
     expect(getAgentActionClass('tag_social_conversation')).toBeUndefined();
   });
 
-  it('names the visual-generation tools the docked review card covers', () => {
-    expect(VISUAL_GENERATION_REVIEW_TOOL_NAMES.has('generate_image')).toBe(
-      true,
+  it('reviews visual generate calls on the docked review card', () => {
+    expect(getVisualGenerationReviewType('generate', { type: 'image' })).toBe(
+      'image',
     );
-    expect(VISUAL_GENERATION_REVIEW_TOOL_NAMES.has('generate_video')).toBe(
-      true,
+    expect(getVisualGenerationReviewType('generate', { type: 'video' })).toBe(
+      'video',
     );
+  });
+
+  it('keeps voice, music, untyped generate and other tools on the generic card', () => {
+    expect(
+      getVisualGenerationReviewType('generate', { type: 'voice' }),
+    ).toBeUndefined();
+    expect(
+      getVisualGenerationReviewType('generate', { type: 'music' }),
+    ).toBeUndefined();
+    expect(getVisualGenerationReviewType('generate', {})).toBeUndefined();
+    expect(
+      getVisualGenerationReviewType('generate', undefined),
+    ).toBeUndefined();
     // Avatar identity generation is credit-spending but has no `prompt` —
     // it stays on the generic mutation-approval card, not this one.
     expect(
-      VISUAL_GENERATION_REVIEW_TOOL_NAMES.has('generate_as_identity'),
-    ).toBe(false);
+      getVisualGenerationReviewType('generate_as_identity', { type: 'image' }),
+    ).toBeUndefined();
   });
 });
 
@@ -97,7 +104,7 @@ describe('resolveEffectiveMutationPolicy — #4672 confirmation matrix', () => {
     'preserves every explicit approval-required policy in %s',
     (mode) => {
       for (const tool of [
-        'generate_image',
+        'generate',
         'save_brand_voice_profile',
         'create_brand',
         'create_chat',
@@ -111,16 +118,16 @@ describe('resolveEffectiveMutationPolicy — #4672 confirmation matrix', () => {
   it('fails closed for unknown runtime modes', () => {
     expect(
       resolveEffectiveMutationPolicy(
-        'generate_image',
+        'generate',
         'corrupt' as 'manual',
         'direct',
       ),
     ).toBe('approval-required');
   });
   it('Manual confirms credit-spending, brand-context, gated, and outbound', () => {
-    expect(
-      resolveEffectiveMutationPolicy('generate_image', 'manual', 'direct'),
-    ).toBe('approval-required');
+    expect(resolveEffectiveMutationPolicy('generate', 'manual', 'direct')).toBe(
+      'approval-required',
+    );
     expect(
       resolveEffectiveMutationPolicy(
         'save_brand_voice_profile',
@@ -141,9 +148,9 @@ describe('resolveEffectiveMutationPolicy — #4672 confirmation matrix', () => {
   });
 
   it('Auto executes direct credit-spending and brand-context while preserving existing gates', () => {
-    expect(
-      resolveEffectiveMutationPolicy('generate_image', 'auto', 'direct'),
-    ).toBe('direct');
+    expect(resolveEffectiveMutationPolicy('generate', 'auto', 'direct')).toBe(
+      'direct',
+    );
     expect(
       resolveEffectiveMutationPolicy(
         'save_brand_voice_profile',
@@ -174,9 +181,9 @@ describe('resolveEffectiveMutationPolicy — #4672 confirmation matrix', () => {
   });
 
   it('Plan (running its approved steps) behaves like Auto except outbound', () => {
-    expect(
-      resolveEffectiveMutationPolicy('generate_image', 'plan', 'direct'),
-    ).toBe('direct');
+    expect(resolveEffectiveMutationPolicy('generate', 'plan', 'direct')).toBe(
+      'direct',
+    );
     expect(
       resolveEffectiveMutationPolicy('schedule_post', 'plan', 'direct'),
     ).toBe('approval-required');
@@ -193,7 +200,7 @@ describe('resolveEffectiveMutationPolicy — #4672 confirmation matrix', () => {
 
   it('leaves the declared policy untouched with no mode at all (MCP, CLI, a recurring task — #4672 modes are a per-thread concept)', () => {
     expect(
-      resolveEffectiveMutationPolicy('generate_image', undefined, 'direct'),
+      resolveEffectiveMutationPolicy('generate', undefined, 'direct'),
     ).toBe('direct');
     expect(
       resolveEffectiveMutationPolicy(

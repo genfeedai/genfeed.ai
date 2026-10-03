@@ -30,8 +30,8 @@ import type {
 import {
   evaluateMutationPolicy,
   getToolByName,
+  getVisualGenerationReviewType,
   resolveEffectiveMutationPolicy,
-  VISUAL_GENERATION_REVIEW_TOOL_NAMES,
 } from '@genfeedai/actions';
 import { buildLogicalWriteKey } from '@genfeedai/actions/server';
 import {
@@ -363,10 +363,12 @@ export class AgentToolMutationAuthorizationService {
     context: ToolExecutionContext,
     collaborators: AgentMutationPolicyCollaborators,
   ): Promise<AgentMutationAuthorization | null> {
-    const isVisualGenerationReview =
-      VISUAL_GENERATION_REVIEW_TOOL_NAMES.has(toolName);
+    const visualGenerationReviewType = getVisualGenerationReviewType(
+      toolName,
+      parameters,
+    );
     const specialized =
-      isVisualGenerationReview ||
+      visualGenerationReviewType !== undefined ||
       specializedConfirmationTool(toolName, parameters);
     if (!specialized) {
       return null;
@@ -380,11 +382,11 @@ export class AgentToolMutationAuthorizationService {
       confirmationOrigin: undefined,
       approvedApprovalId: undefined,
     };
-    const result = isVisualGenerationReview
+    const result = visualGenerationReviewType
       ? await collaborators.prepareHandler.prepareGeneration(
           {
             ...parameters,
-            generationType: toolName === 'generate_image' ? 'image' : 'video',
+            generationType: visualGenerationReviewType,
           },
           previewContext,
         )

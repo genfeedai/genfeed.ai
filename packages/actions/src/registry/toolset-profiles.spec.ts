@@ -12,11 +12,11 @@ import {
 } from './toolset-profiles';
 import { getToolsForToolsets } from './toolsets';
 
-const INTENDED_DEFAULT_TOOLSETS = [
+const BEYOND_DEFAULT_TOOLSETS = [
   'core',
-  'scheduler',
-  'content',
   'generation',
+  'content',
+  'scheduler',
   'analytics',
   'brand',
   'onboarding',
@@ -55,17 +55,30 @@ describe('MCP toolset profiles', () => {
     expect(tools.length).toBeGreaterThan(0);
     expect(DEFAULT_MCP_PROFILE_TOOLSETS).toEqual([
       'core',
-      'scheduler',
+      'generation',
       'content',
+      'scheduler',
     ]);
   });
 
-  it('cannot add the rest of the intended set without crossing the cap', () => {
-    // Documents why generation, analytics, brand, and onboarding are not in
-    // the default profile. If the catalog shrinks enough that this fails,
-    // extend DEFAULT_MCP_PROFILE_TOOLSETS before raising the cap.
+  it('loads generation and the generate tool on the bare-URL default profile', () => {
+    expect(DEFAULT_MCP_PROFILE_TOOLSETS).toContain('generation');
+    const names = getToolsForToolsets('mcp', DEFAULT_MCP_PROFILE_TOOLSETS).map(
+      (tool) => tool.name,
+    );
+    expect(names).toContain('generate');
+    expect(names).not.toContain('generate_image');
+    expect(names).not.toContain('generate_video');
+    expect(names).not.toContain('generate_voice');
+    expect(names).not.toContain('generate_music');
+  });
+
+  it('cannot add analytics, brand, and onboarding without crossing the cap', () => {
+    // Documents why analytics, brand, and onboarding are not in the default
+    // profile. If the catalog shrinks enough that this fails, extend
+    // DEFAULT_MCP_PROFILE_TOOLSETS before raising the cap.
     expect(
-      getToolsForToolsets('mcp', INTENDED_DEFAULT_TOOLSETS).length,
+      getToolsForToolsets('mcp', BEYOND_DEFAULT_TOOLSETS).length,
     ).toBeGreaterThan(BARE_MCP_URL_TOOL_CAP);
   });
 
@@ -89,6 +102,7 @@ describe('MCP toolset profiles', () => {
         (tool) => tool.toolset === 'generation' || tool.toolset === 'clips',
       ),
     ).toBe(false);
+    expect(directoryTools.map((tool) => tool.name)).not.toContain('generate');
   });
 
   it('resolves full to the unfiltered catalog and the others to toolset lists', () => {

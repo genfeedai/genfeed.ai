@@ -71,7 +71,10 @@ const fixtures = [
           position: { x: 0, y: 0 },
           data: {
             label: 'Generate',
-            config: { actionId: 'generate_image', inputs: { prompt: 'A cat' } },
+            config: {
+              actionId: 'generate',
+              inputs: { prompt: 'A cat', type: 'image' },
+            },
           },
         },
       ],

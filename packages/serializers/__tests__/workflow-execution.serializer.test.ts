@@ -39,7 +39,7 @@ describe('WorkflowExecutionSerializer', () => {
       workflow: {
         description: 'Generates an image from an agent tool call',
         id: WORKFLOW_ID,
-        label: 'Agent Tool: generate_image',
+        label: 'Agent Tool: generate',
       },
     }) as SerializedDocument;
 
@@ -52,7 +52,7 @@ describe('WorkflowExecutionSerializer', () => {
       {
         attributes: {
           description: 'Generates an image from an agent tool call',
-          label: 'Agent Tool: generate_image',
+          label: 'Agent Tool: generate',
         },
         id: WORKFLOW_ID,
         type: 'workflow',

@@ -84,6 +84,7 @@ export function toolTitleFromName(name: string): string {
 
 function isOpenWorldTool(name: string): boolean {
   return (
+    name === 'generate' ||
     name.startsWith('generate_') ||
     GENERATION_OPEN_WORLD_NAMES.has(name) ||
     PUBLISHING_TOOL_NAMES.has(name)

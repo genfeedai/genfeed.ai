@@ -168,7 +168,7 @@ describe('handleToolDiscoveryTool', () => {
             'genfeed.ai/toolset': 'generation',
           },
           description: 'Generate an image',
-          name: 'generate_image',
+          name: 'generate',
         }),
         tool({
           description: 'Admin only tool',
@@ -195,7 +195,7 @@ describe('handleToolDiscoveryTool', () => {
       expectSuccess(result);
 
       expect(result.structuredContent?.tools).toEqual([
-        expect.objectContaining({ name: 'generate_image' }),
+        expect.objectContaining({ name: 'generate' }),
       ]);
     });
 
@@ -207,7 +207,7 @@ describe('handleToolDiscoveryTool', () => {
 
       expect(result.structuredContent?.tools).toEqual([
         expect.objectContaining({
-          name: 'generate_image',
+          name: 'generate',
           toolset: 'generation',
         }),
       ]);
@@ -220,7 +220,7 @@ describe('handleToolDiscoveryTool', () => {
       expectSuccess(result);
 
       expect(result.structuredContent?.tools).toEqual([
-        expect.objectContaining({ name: 'generate_image' }),
+        expect.objectContaining({ name: 'generate' }),
       ]);
     });
 
@@ -240,7 +240,7 @@ describe('handleToolDiscoveryTool', () => {
 
     it('reports mutationPolicy, creditCost, and requiredRole per hit', () => {
       const result = handleToolDiscoveryTool(registry, 'search_tools', {
-        query: 'generate_image',
+        query: 'generate',
       });
       expectSuccess(result);
 
@@ -249,7 +249,7 @@ describe('handleToolDiscoveryTool', () => {
           creditCost: 5,
           description: 'Generate an image',
           mutationPolicy: 'approval-required',
-          name: 'generate_image',
+          name: 'generate',
           requiredRole: 'user',
           toolset: 'generation',
         },

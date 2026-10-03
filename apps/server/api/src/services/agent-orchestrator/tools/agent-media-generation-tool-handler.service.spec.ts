@@ -116,7 +116,7 @@ describe('FLUX generation source admission', () => {
 });
 
 describe('AgentMediaGenerationToolHandler ownership', () => {
-  it('routes each public media tool to exactly one family owner', async () => {
+  it('routes each public media tool to exactly one family owner (generate routes by type below)', async () => {
     const result = { creditsUsed: 0, success: true };
     const textGeneration = {
       aiAction: vi.fn().mockResolvedValue(result),
@@ -125,9 +125,6 @@ describe('AgentMediaGenerationToolHandler ownership', () => {
     const assetGeneration = {
       generateAsIdentity: vi.fn().mockResolvedValue(result),
       generateImage: vi.fn().mockResolvedValue(result),
-      generateMusic: vi.fn().mockResolvedValue(result),
-      generateVideo: vi.fn().mockResolvedValue(result),
-      generateVoice: vi.fn().mockResolvedValue(result),
       reframeImage: vi.fn().mockResolvedValue(result),
       upscaleImage: vi.fn().mockResolvedValue(result),
     };
@@ -143,12 +140,9 @@ describe('AgentMediaGenerationToolHandler ownership', () => {
 
     await handler.aiAction(params, context);
     await handler.generateContent(params, context);
-    await handler.generateImage(params, context);
+    await handler.generate({ ...params, type: 'image' }, context);
     await handler.reframeImage(params, context);
     await handler.upscaleImage(params, context);
-    await handler.generateVideo(params, context);
-    await handler.generateMusic(params, context);
-    await handler.generateVoice(params, context);
     await handler.generateAsIdentity(params, context);
     await handler.generateContentBatch(params, context);
 
@@ -160,9 +154,6 @@ describe('AgentMediaGenerationToolHandler ownership', () => {
     expect(assetGeneration.generateImage).toHaveBeenCalledWith(params, context);
     expect(assetGeneration.reframeImage).toHaveBeenCalledWith(params, context);
     expect(assetGeneration.upscaleImage).toHaveBeenCalledWith(params, context);
-    expect(assetGeneration.generateVideo).toHaveBeenCalledWith(params, context);
-    expect(assetGeneration.generateMusic).toHaveBeenCalledWith(params, context);
-    expect(assetGeneration.generateVoice).toHaveBeenCalledWith(params, context);
     expect(assetGeneration.generateAsIdentity).toHaveBeenCalledWith(
       params,
       context,
@@ -175,6 +166,200 @@ describe('AgentMediaGenerationToolHandler ownership', () => {
       for (const method of Object.values(owner)) {
         expect(method).toHaveBeenCalledOnce();
       }
+    }
+  });
+});
+
+describe('AgentMediaGenerationToolHandler generate', () => {
+  function createRoutingHandler() {
+    const result = { creditsUsed: 0, success: true };
+    const assetGeneration = {
+      generateImage: vi.fn().mockResolvedValue(result),
+      generateMusic: vi.fn().mockResolvedValue(result),
+      generateVideo: vi.fn().mockResolvedValue(result),
+      generateVoice: vi.fn().mockResolvedValue(result),
+    };
+    const handler = new AgentMediaGenerationToolHandler(
+      {} as never,
+      assetGeneration as never,
+      {} as never,
+    );
+    return { assetGeneration, handler, result };
+  }
+
+  function expectNoGeneration(
+    assetGeneration: ReturnType<typeof createRoutingHandler>['assetGeneration'],
+  ) {
+    for (const method of Object.values(assetGeneration)) {
+      expect(method).not.toHaveBeenCalled();
+    }
+  }
+
+  it('routes type image to image generation without the type key', async () => {
+    const { assetGeneration, handler, result } = createRoutingHandler();
+
+    await expect(
+      handler.generate(
+        { aspectRatio: '1:1', prompt: 'A red apple', type: 'image' },
+        context,
+      ),
+    ).resolves.toBe(result);
+
+    expect(assetGeneration.generateImage).toHaveBeenCalledWith(
+      { aspectRatio: '1:1', prompt: 'A red apple' },
+      context,
+    );
+    expect(assetGeneration.generateVideo).not.toHaveBeenCalled();
+  });
+
+  it('routes type video to video generation', async () => {
+    const { assetGeneration, handler } = createRoutingHandler();
+
+    await handler.generate(
+      { duration: 8, prompt: 'A coast at dawn', type: 'video' },
+      context,
+    );
+
+    expect(assetGeneration.generateVideo).toHaveBeenCalledWith(
+      { duration: 8, prompt: 'A coast at dawn' },
+      context,
+    );
+    expect(assetGeneration.generateImage).not.toHaveBeenCalled();
+  });
+
+  it('maps the prompt to text for voice', async () => {
+    const { assetGeneration, handler } = createRoutingHandler();
+
+    await handler.generate(
+      { prompt: 'Welcome to the show', type: 'voice', voiceId: 'voice-1' },
+      context,
+    );
+
+    expect(assetGeneration.generateVoice).toHaveBeenCalledWith(
+      { text: 'Welcome to the show', voiceId: 'voice-1' },
+      context,
+    );
+  });
+
+  it('maps the prompt to text for music so the runtime never sees undefined text', async () => {
+    const { assetGeneration, handler } = createRoutingHandler();
+
+    await handler.generate(
+      { duration: 20, prompt: 'bright synthwave', type: 'music' },
+      context,
+    );
+
+    expect(assetGeneration.generateMusic).toHaveBeenCalledWith(
+      { duration: 20, text: 'bright synthwave' },
+      context,
+    );
+  });
+
+  it('trims the prompt before the voice and music mapping', async () => {
+    const { assetGeneration, handler } = createRoutingHandler();
+
+    await handler.generate({ prompt: '  hello  ', type: 'voice' }, context);
+
+    expect(assetGeneration.generateVoice).toHaveBeenCalledWith(
+      { text: 'hello' },
+      context,
+    );
+  });
+
+  it.each([
+    ['image', { type: 'image', duration: 5, prompt: 'x' }, 'duration'],
+    [
+      'image',
+      { audioUrl: 'https://a.test/a.mp3', prompt: 'x', type: 'image' },
+      'audioUrl',
+    ],
+    ['video', { outputs: 2, prompt: 'x', type: 'video' }, 'outputs'],
+    [
+      'voice',
+      { aspectRatio: '1:1', prompt: 'x', type: 'voice' },
+      'aspectRatio',
+    ],
+    ['music', { prompt: 'x', type: 'music', voiceId: 'voice-1' }, 'voiceId'],
+  ])(
+    'rejects a parameter that does not apply to type %s',
+    async (type, params, key) => {
+      const { assetGeneration, handler } = createRoutingHandler();
+
+      const result = await handler.generate(params, context);
+
+      expect(result).toEqual({
+        creditsUsed: 0,
+        error: `${key} does not apply to type ${type}`,
+        success: false,
+      });
+      expectNoGeneration(assetGeneration);
+    },
+  );
+
+  it('lists every inapplicable parameter with plural wording', async () => {
+    const { assetGeneration, handler } = createRoutingHandler();
+
+    const result = await handler.generate(
+      {
+        audioUrl: 'https://a.test/a.mp3',
+        duration: 5,
+        prompt: 'x',
+        type: 'image',
+      },
+      context,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('audioUrl, duration do not apply to type image');
+    expectNoGeneration(assetGeneration);
+  });
+
+  it('ignores null and undefined values for inapplicable parameters', async () => {
+    const { assetGeneration, handler } = createRoutingHandler();
+
+    await handler.generate(
+      { duration: null, outputs: undefined, prompt: 'x', type: 'image' },
+      context,
+    );
+
+    expect(assetGeneration.generateImage).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ['missing', {}],
+    ['unknown', { type: 'hologram' }],
+    ['non-string', { type: 3 }],
+    ['legacy per-kind', { type: 'generate_image' }],
+  ])('rejects a %s type', async (_label, extra) => {
+    const { assetGeneration, handler } = createRoutingHandler();
+
+    const result = await handler.generate({ prompt: 'x', ...extra }, context);
+
+    expect(result).toEqual({
+      creditsUsed: 0,
+      error: 'type must be one of: image, video, voice, music',
+      success: false,
+    });
+    expectNoGeneration(assetGeneration);
+  });
+
+  it.each([
+    ['missing', {}],
+    ['empty', { prompt: '' }],
+    ['blank', { prompt: '   ' }],
+    ['non-string', { prompt: 42 }],
+  ])('rejects a %s prompt for every type', async (_label, extra) => {
+    for (const type of ['image', 'video', 'voice', 'music']) {
+      const { assetGeneration, handler } = createRoutingHandler();
+
+      const result = await handler.generate({ type, ...extra }, context);
+
+      expect(result).toEqual({
+        creditsUsed: 0,
+        error: 'prompt is required',
+        success: false,
+      });
+      expectNoGeneration(assetGeneration);
     }
   });
 });
@@ -456,8 +641,8 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
   it('refuses image generation from an unscoped thread without an explicit brand', async () => {
     const { gateway, handler } = createHandler();
 
-    const result = await handler.generateImage(
-      { prompt: 'organization launch image' },
+    const result = await handler.generate(
+      { type: 'image', prompt: 'organization launch image' },
       { ...context, brandId: undefined },
     );
 
@@ -474,8 +659,8 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
       data: { attributes: { status: 'PROCESSING' }, id: 'ingredient-queued' },
     });
 
-    const result = await handler.generateImage(
-      { prompt: 'logo for genfeed.ai' },
+    const result = await handler.generate(
+      { type: 'image', prompt: 'logo for genfeed.ai' },
       context,
     );
 
@@ -501,8 +686,8 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
       new Error('Polling timed out after 180s'),
     );
 
-    const result = await handler.generateImage(
-      { prompt: 'logo for genfeed.ai' },
+    const result = await handler.generate(
+      { type: 'image', prompt: 'logo for genfeed.ai' },
       context,
     );
 
@@ -523,8 +708,8 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
       data: { attributes: {}, id: 'ingredient-1' },
     });
 
-    const result = await handler.generateImage(
-      { prompt: 'logo for genfeed.ai' },
+    const result = await handler.generate(
+      { type: 'image', prompt: 'logo for genfeed.ai' },
       context,
     );
 
@@ -545,8 +730,8 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
       },
     });
 
-    const result = await handler.generateImage(
-      { prompt: 'logo for genfeed.ai' },
+    const result = await handler.generate(
+      { type: 'image', prompt: 'logo for genfeed.ai' },
       context,
     );
 
@@ -582,8 +767,8 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
       },
     });
 
-    const result = await handler.generateImage(
-      { prompt: 'logo for genfeed.ai' },
+    const result = await handler.generate(
+      { type: 'image', prompt: 'logo for genfeed.ai' },
       context,
     );
 
@@ -613,8 +798,8 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
       },
     });
 
-    const result = await handler.generateImage(
-      { prompt: 'logo for genfeed.ai' },
+    const result = await handler.generate(
+      { type: 'image', prompt: 'logo for genfeed.ai' },
       context,
     );
 
@@ -638,8 +823,8 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
       },
     });
 
-    const result = await handler.generateImage(
-      { prompt: 'logo for genfeed.ai' },
+    const result = await handler.generate(
+      { type: 'image', prompt: 'logo for genfeed.ai' },
       context,
     );
 
@@ -662,7 +847,7 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
       },
     });
 
-    await handler.generateImage({ prompt: 'red apple' }, context);
+    await handler.generate({ type: 'image', prompt: 'red apple' }, context);
 
     expect(gateway.generateImage).toHaveBeenCalledWith({
       body: expect.objectContaining({
@@ -685,8 +870,8 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
       },
     });
 
-    await handler.generateImage(
-      { outputs: 3, prompt: 'logo for genfeed.ai' },
+    await handler.generate(
+      { type: 'image', outputs: 3, prompt: 'logo for genfeed.ai' },
       context,
     );
 
@@ -710,8 +895,8 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
       },
     });
 
-    const result = await handler.generateImage(
-      { prompt: 'logo for genfeed.ai' },
+    const result = await handler.generate(
+      { type: 'image', prompt: 'logo for genfeed.ai' },
       context,
     );
 
@@ -729,8 +914,8 @@ describe('AgentMediaGenerationToolHandler generateVideo', () => {
   it('refuses video generation from an unscoped thread without an explicit brand', async () => {
     const { gateway, handler } = createHandler();
 
-    const result = await handler.generateVideo(
-      { prompt: 'organization launch video' },
+    const result = await handler.generate(
+      { type: 'video', prompt: 'organization launch video' },
       { ...context, brandId: undefined },
     );
 
@@ -747,8 +932,8 @@ describe('AgentMediaGenerationToolHandler generateVideo', () => {
       data: { attributes: { status: 'processing' }, id: 'video-queued' },
     });
 
-    const result = await handler.generateVideo(
-      { prompt: 'red apple' },
+    const result = await handler.generate(
+      { type: 'video', prompt: 'red apple' },
       context,
     );
 
@@ -769,8 +954,8 @@ describe('AgentMediaGenerationToolHandler generateVideo', () => {
       data: { attributes: { status: 'processing' } },
     });
 
-    const result = await handler.generateVideo(
-      { prompt: 'red apple' },
+    const result = await handler.generate(
+      { type: 'video', prompt: 'red apple' },
       context,
     );
 
@@ -790,8 +975,8 @@ describe('AgentMediaGenerationToolHandler generateVideo', () => {
     const { gateway, handler } = createHandler();
     gateway.generateVideo.mockRejectedValue(new Error('Provider unavailable'));
 
-    const result = await handler.generateVideo(
-      { prompt: 'red apple' },
+    const result = await handler.generate(
+      { type: 'video', prompt: 'red apple' },
       context,
     );
 
@@ -818,7 +1003,7 @@ describe('AgentMediaGenerationToolHandler generateVideo', () => {
       },
     });
 
-    await handler.generateVideo({ prompt: 'red apple' }, context);
+    await handler.generate({ type: 'video', prompt: 'red apple' }, context);
 
     expect(gateway.generateVideo).toHaveBeenCalledWith({
       body: expect.objectContaining({
@@ -836,8 +1021,9 @@ describe('AgentMediaGenerationToolHandler generateVideo', () => {
       data: { attributes: { status: 'processing' }, id: 'video-queued' },
     });
 
-    await handler.generateVideo(
+    await handler.generate(
       {
+        type: 'video',
         endFrame: 'end-frame-1',
         model: 'minimax/h3',
         prompt: 'Continue the movement',
@@ -869,8 +1055,12 @@ describe('AgentMediaGenerationToolHandler generateVideo', () => {
       },
     });
 
-    await handler.generateVideo(
-      { audioUrl: 'https://cdn.example.com/voice.mp3', prompt: 'Say hello' },
+    await handler.generate(
+      {
+        type: 'video',
+        audioUrl: 'https://cdn.example.com/voice.mp3',
+        prompt: 'Say hello',
+      },
       { ...context, attachmentUrls: ['https://cdn.example.com/avatar.png'] },
     );
 
@@ -927,8 +1117,8 @@ describe('AgentMediaGenerationToolHandler direct asset families', () => {
     {
       method: 'generateMusic' as const,
       invoke: (handler: AgentMediaGenerationToolHandler) =>
-        handler.generateMusic(
-          { duration: 20, text: 'bright synthwave' },
+        handler.generate(
+          { duration: 20, prompt: 'bright synthwave', type: 'music' },
           context,
         ),
       response: {
@@ -945,8 +1135,8 @@ describe('AgentMediaGenerationToolHandler direct asset families', () => {
     {
       method: 'generateVoice' as const,
       invoke: (handler: AgentMediaGenerationToolHandler) =>
-        handler.generateVoice(
-          { text: 'Voice line', voiceId: 'voice-profile-1' },
+        handler.generate(
+          { prompt: 'Voice line', type: 'voice', voiceId: 'voice-profile-1' },
           context,
         ),
       response: {
@@ -1409,8 +1599,13 @@ describe('media tool skill transport', () => {
       gateway[method].mockResolvedValue({
         data: { id: 'queued', attributes: { status: 'processing' } },
       });
-      await handler[method](
-        { prompt: 'A coast', requestedSkillSlugs: ['Cinema'], harness: true },
+      await handler.generate(
+        {
+          harness: true,
+          prompt: 'A coast',
+          requestedSkillSlugs: ['Cinema'],
+          type: kind,
+        },
         context,
       );
       expect(gateway[method]).toHaveBeenCalledWith(
@@ -1423,8 +1618,8 @@ describe('media tool skill transport', () => {
       );
       gateway[method].mockClear();
       await expect(
-        handler[method](
-          { prompt: 'A coast', requestedSkillSlugs: ['bad_slug'] },
+        handler.generate(
+          { prompt: 'A coast', requestedSkillSlugs: ['bad_slug'], type: kind },
           context,
         ),
       ).rejects.toThrow();

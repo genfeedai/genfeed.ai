@@ -28,7 +28,7 @@ describe('AgentToolsService', () => {
   it.each([
     ['analytics', 'get_analytics', { days: 7 }],
     ['generate', 'generate_content', { topic: 'Launch update', type: 'post' }],
-    ['image', 'generate_image', { prompt: 'Launch artwork' }],
+    ['image', 'generate', { prompt: 'Launch artwork', type: 'image' }],
     ['post', 'create_post', { content: 'Draft' }],
   ] as const)(
     'executes %s with one catalog request',

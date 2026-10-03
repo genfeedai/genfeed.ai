@@ -1,4 +1,8 @@
 import type { SourceTool } from '../../interfaces/source-tool.interface';
+import {
+  MEDIA_GENERATION_CREDIT_FLOORS,
+  MEDIA_GENERATION_TYPES,
+} from '../media-generation';
 import { OVERLAP_GENERATION_TOOLS } from './overlap-generation.tools';
 import { OVERLAP_KNOWLEDGE_TOOLS } from './overlap-knowledge.tools';
 import { OVERLAP_PUBLISHING_TOOLS } from './overlap-publishing.tools';
@@ -92,39 +96,27 @@ export const OVERLAP_TOOLS: SourceTool[] = [
   },
   ...OVERLAP_WORKFLOW_TOOLS,
   {
-    // Minimum charge per call (standard image; 4k costs more). Actual amount
-    // is billed dynamically by the generation endpoint (issue #482).
-    creditCost: 50,
+    // Minimum charge across types (music). The per-type floor gates
+    // affordability (`MEDIA_GENERATION_CREDIT_FLOORS`); the generation
+    // endpoint bills the real amount (issue #482).
+    creditCost: Math.min(...Object.values(MEDIA_GENERATION_CREDIT_FLOORS)),
     description:
-      'Generate AI images with a custom prompt, style, and dimensions. Returns generationHarness with the exact submitted prompt and enhancement status. Show that prompt with the result instead of reconstructing it.',
-    name: 'generate_image',
+      'Generate an image, video, voice (text-to-speech) or music track. Set type; a parameter marked for another type is rejected. Omit model to let the router pick the best available model. Image and video results include generationHarness with the exact submitted prompt and enhancement status: show that prompt with the result instead of reconstructing it.',
+    name: 'generate',
     parameters: {
       properties: {
-        requestedSkillSlugs: {
-          description:
-            'Explicit skill selections for this generation; additive to brand guidance.',
-          type: 'array',
-          maxItems: 8,
-          items: {
-            type: 'string',
-            minLength: 1,
-            maxLength: 160,
-            pattern: '^[a-zA-Z0-9][a-zA-Z0-9-]*$',
-          },
-        },
-
-        harness: {
-          type: 'boolean',
-          description:
-            'Override saved prompt enhancement for this generation only. False preserves prompt text exactly.',
-        },
-        resolution: {
+        type: {
+          description: 'Asset to generate.',
+          enum: [...MEDIA_GENERATION_TYPES],
           type: 'string',
-          description:
-            'FLUX.3 native resolution: 768sq, 1k (default), 1.5k, 2k or 4k.',
         },
-        aspectRatio: {
-          description: 'Aspect ratio of the generated image',
+        prompt: {
+          description:
+            'What to generate. For voice, the exact text to speak. For music, the style, mood, instruments and genre.',
+          type: 'string',
+        },
+        model: {
+          description: 'Model key; omit for automatic router selection.',
           type: 'string',
         },
         brandId: {
@@ -132,217 +124,86 @@ export const OVERLAP_TOOLS: SourceTool[] = [
             'Brand that owns this generation. Required when the organization has more than one brand.',
           type: 'string',
         },
-        characterHandles: {
+        aspectRatio: {
+          description: 'Image or video only. For example 1:1, 16:9 or 9:16.',
+          type: 'string',
+        },
+        resolution: {
           description:
-            'Brand character handles resolved into reference images. Max 4; unresolvable handles fail the call.',
-          items: { type: 'string' },
-          maxItems: 4,
-          type: 'array',
+            'Image or video only. Image (FLUX.3): 768sq, 1k (default), 1.5k, 2k or 4k. Video: model-native, for example 720p, 1080p or 4k; unsupported values are rejected.',
+          type: 'string',
+        },
+        duration: {
+          description:
+            'Video or music only. Seconds; video models clamp or reject out-of-range values, music accepts 10-300.',
+          type: 'number',
         },
         outputs: {
-          description: 'Number of image variants to generate',
+          description: 'Image only. Number of variants.',
           maximum: 8,
           minimum: 1,
           type: 'integer',
         },
-        prompt: {
-          description: 'Description of the image to generate',
-          type: 'string',
-        },
         references: {
           description:
-            'Asset/ingredient ids or URLs used as visual references, not the prompt. Max 10 for FLUX.3; use owned Library image IDs for FLUX.3.',
+            'Image or video only. Asset/ingredient ids or URLs used as character or style references, not the start frame. Max 10 for images, 8 for video.',
           items: { type: 'string' },
           maxItems: 10,
           type: 'array',
         },
-        selectedContext: {
-          description:
-            'Transient task context for this generation only. Not saved as Knowledge unless capture_knowledge is used.',
-          properties: {
-            persist: {
-              description:
-                'Must stay false. Persistent save is a separate action.',
-              type: 'boolean',
-            },
-            sourceIds: {
-              description:
-                'Authorized Knowledge source ids to apply to this task.',
-              items: { type: 'string' },
-              maxItems: 8,
-              type: 'array',
-            },
-            text: {
-              description: 'Task-only context text. Max 8000 characters.',
-              type: 'string',
-            },
-          },
-          type: 'object',
-        },
-        quality: {
-          default: 'standard',
-          description: 'Image quality',
-          enum: ['standard', 'hd'],
-          type: 'string',
-        },
-        size: {
-          default: 'square',
-          description: 'Image dimensions',
-          enum: [
-            'square',
-            'portrait',
-            'landscape',
-            '1024x1024',
-            '1792x1024',
-            '1024x1792',
-          ],
-          type: 'string',
-        },
-        style: {
-          default: 'realistic',
-          description: 'Artistic style',
-          enum: [
-            'realistic',
-            'artistic',
-            'abstract',
-            'cartoon',
-            'photographic',
-            'digital-art',
-          ],
-          type: 'string',
-        },
-      },
-      required: ['prompt'],
-      type: 'object',
-    },
-    requiredRole: 'user',
-  },
-  {
-    // Minimum charge per call (cheapest music model). Actual amount is billed
-    // dynamically by the generation endpoint per model cost (issue #482).
-    creditCost: 10,
-    description:
-      'Generate music or audio using AI. Describe the desired music style, mood, instruments, and genre. Returns the audio URL.',
-    name: 'generate_music',
-    parameters: {
-      properties: {
-        duration: {
-          default: 60,
-          description: 'Duration in seconds',
-          maximum: 300,
-          minimum: 10,
-          type: 'number',
-        },
-        genre: {
-          description: 'Music genre',
-          enum: [
-            'ambient',
-            'electronic',
-            'rock',
-            'classical',
-            'jazz',
-            'pop',
-            'cinematic',
-          ],
-          type: 'string',
-        },
-        mood: {
-          description: 'Music mood',
-          enum: [
-            'upbeat',
-            'calm',
-            'energetic',
-            'dramatic',
-            'happy',
-            'sad',
-            'inspirational',
-          ],
-          type: 'string',
-        },
-        prompt: {
-          description: 'Description of the music to generate',
-          type: 'string',
-        },
-      },
-      required: ['prompt'],
-      type: 'object',
-    },
-    requiredRole: 'user',
-  },
-  {
-    // Minimum charge per call (shortest 4s clip). Actual amount is billed
-    // dynamically by the generation endpoint per duration (issue #482).
-    creditCost: 300,
-    description:
-      'Generate a video from a prompt. Add imageUrl+audioUrl for talking-avatar lip-sync. Returns the video URL and generationHarness with the exact submitted prompt and enhancement status. Show that prompt with the result instead of reconstructing it.',
-    name: 'generate_video',
-    parameters: {
-      properties: {
-        requestedSkillSlugs: {
-          description:
-            'Explicit skill selections for this generation; additive to brand guidance.',
-          type: 'array',
-          maxItems: 8,
-          items: {
-            type: 'string',
-            minLength: 1,
-            maxLength: 160,
-            pattern: '^[a-zA-Z0-9][a-zA-Z0-9-]*$',
-          },
-        },
-
-        harness: {
-          type: 'boolean',
-          description:
-            'Override saved prompt enhancement for this generation only. False preserves prompt text exactly.',
-        },
-        aspectRatio: {
-          description: 'Aspect ratio of the video',
-          enum: ['16:9', '9:16', '1:1'],
-          type: 'string',
-        },
-        brandId: {
-          description:
-            'Brand that owns this generation. Required when the organization has more than one brand.',
-          type: 'string',
-        },
-        audioUrl: {
-          description:
-            'Audio URL for avatar generation; with imageUrl, lip-syncs via Kling Avatar V2.',
-          type: 'string',
-        },
-        duration: {
-          description:
-            'Duration in seconds; model clamps or rejects out-of-range values.',
-          type: 'number',
-        },
         characterHandles: {
           description:
-            'Character handles resolved to reference images. Max 4; distinct from imageUrl.',
+            'Image or video only. Brand character handles resolved into reference images. Max 4; unresolvable handles fail the call.',
           items: { type: 'string' },
           maxItems: 4,
           type: 'array',
         },
         imageUrl: {
           description:
-            'Start-frame image URL for image-to-video or avatar generation.',
+            'Video only. Start-frame image URL for image-to-video; with audioUrl, talking-avatar lip-sync.',
           type: 'string',
         },
-        model: {
-          description: 'Model key; omit for auto router selection.',
+        audioUrl: {
+          description:
+            'Video only. Audio URL for avatar lip-sync together with imageUrl.',
           type: 'string',
         },
         endFrame: {
-          description: 'Image ingredient id for the final frame.',
+          description: 'Video only. Image ingredient id for the final frame.',
           type: 'string',
         },
-        prompt: {
-          description: 'Description of the video to generate',
+        videoReferences: {
+          description:
+            'Video only. Video ingredient ids for models supporting video references.',
+          items: { type: 'string' },
+          maxItems: 10,
+          type: 'array',
+        },
+        voiceId: {
+          description:
+            'Voice only. Catalog or cloned voice id; omit when unknown.',
           type: 'string',
+        },
+        harness: {
+          description:
+            'Image or video only. Override saved prompt enhancement for this generation. False preserves the prompt text exactly.',
+          type: 'boolean',
+        },
+        requestedSkillSlugs: {
+          description:
+            'Image or video only. Explicit skill selections for this generation; additive to brand guidance.',
+          items: {
+            maxLength: 160,
+            minLength: 1,
+            pattern: '^[a-zA-Z0-9][a-zA-Z0-9-]*$',
+            type: 'string',
+          },
+          maxItems: 8,
+          type: 'array',
         },
         selectedContext: {
           description:
-            'Transient task context for this generation only. Not saved as Knowledge unless capture_knowledge is used.',
+            'Image or video only. Transient task context for this generation. Not saved as Knowledge unless capture_knowledge is used.',
           properties: {
             persist: {
               description:
@@ -363,40 +224,8 @@ export const OVERLAP_TOOLS: SourceTool[] = [
           },
           type: 'object',
         },
-        references: {
-          description:
-            'Asset/ingredient ids or URLs as character/style references, not the start frame. Max 8.',
-          items: { type: 'string' },
-          maxItems: 8,
-          type: 'array',
-        },
-        resolution: {
-          description: 'Model-native resolution; unsupported values rejected.',
-          enum: [
-            '360p',
-            '480p',
-            '480P',
-            '720p',
-            '768p',
-            '768P',
-            '1080p',
-            '1080P',
-            '2K',
-            'standard',
-            'pro',
-            '4k',
-          ],
-          type: 'string',
-        },
-        videoReferences: {
-          description:
-            'Video ingredient ids for models supporting video references.',
-          items: { type: 'string' },
-          maxItems: 10,
-          type: 'array',
-        },
       },
-      required: ['prompt'],
+      required: ['type', 'prompt'],
       type: 'object',
     },
     requiredRole: 'user',

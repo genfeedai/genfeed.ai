@@ -230,9 +230,9 @@ export const TASK_FIXTURES: readonly TaskFixture[] = [
   {
     id: 'direct-generation-policy',
     kind: 'action-policy',
-    task: 'Preserve the reviewed direct single-image generation policy.',
+    task: 'Preserve the reviewed direct media generation policy.',
     input: {
-      action: 'generate_image',
+      action: 'generate',
       surface: 'agent',
       hasTrustedApproval: false,
     },

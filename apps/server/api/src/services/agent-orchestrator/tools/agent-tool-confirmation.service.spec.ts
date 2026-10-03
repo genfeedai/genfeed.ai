@@ -84,7 +84,7 @@ describe('AgentToolConfirmationService#prepareToolCall (#4306)', () => {
       organizationId: 'org-1',
       parameters: { prompt: 'A red apple' },
       threadId: 'thread-1',
-      toolName: 'generate_image',
+      toolName: 'generate',
       userId: 'user-1',
     });
 
