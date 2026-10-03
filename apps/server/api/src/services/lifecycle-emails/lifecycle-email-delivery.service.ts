@@ -347,8 +347,19 @@ export class LifecycleEmailDeliveryService {
   private async findDelivery(
     data: LifecycleEmailWorkflowInput,
   ): Promise<StoredLifecycleEmailDeliveryRecord | null> {
+    // Explicit select, not include: the workflow action output contract is
+    // closed, so scalar columns outside it (sentAt, failureReason, ...) fail
+    // output validation when spread into the load-delivery result.
     return await this.prisma.lifecycleEmailDelivery.findFirst({
-      include: {
+      select: {
+        email: true,
+        id: true,
+        metadata: true,
+        scheduledFor: true,
+        sequence: true,
+        status: true,
+        step: true,
+        triggerKey: true,
         user: {
           select: {
             email: true,

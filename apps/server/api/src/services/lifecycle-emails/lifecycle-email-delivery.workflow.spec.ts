@@ -1,4 +1,9 @@
 import type { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
+import { getActionDefinition } from '@genfeedai/actions';
+import {
+  type ActionContractJsonSchema,
+  compileActionContract,
+} from '@genfeedai/workflows/engine';
 import type { SystemEmailEligibilityService } from './system-email-eligibility.service';
 
 vi.mock('@genfeedai/config', async (importOriginal) => ({
@@ -132,6 +137,70 @@ describe('LifecycleEmailDeliveryService workflow actions', () => {
       where: { id: delivery.id, status: 'scheduled' },
     });
   });
+
+  it.each([
+    ['a populated metadata document', { organizationId: 'org-1' }],
+    ['null metadata', null],
+  ])(
+    'emits a load-delivery output the action contract accepts for %s',
+    async (_label, metadata) => {
+      // The real table returns every scalar column; only an explicit `select`
+      // keeps columns outside the closed contract (sentAt, failureReason, ...)
+      // out of the workflow output.
+      const databaseRow = {
+        ...delivery,
+        canceledAt: null,
+        createdAt: new Date('2026-08-27T00:00:00Z'),
+        failureReason: null,
+        metadata,
+        sentAt: null,
+        skippedAt: null,
+        updatedAt: new Date('2026-08-27T00:00:00Z'),
+        userId: request.userId,
+      };
+      prisma.lifecycleEmailDelivery.findFirst.mockImplementationOnce(
+        async (args: {
+          select?: Record<
+            string,
+            boolean | { select: Record<string, boolean> }
+          >;
+        }) => {
+          if (!args.select) return databaseRow;
+          const row = databaseRow as Record<string, unknown>;
+          return Object.fromEntries(
+            Object.entries(args.select).map(([key, selected]) => [
+              key,
+              typeof selected === 'object'
+                ? Object.fromEntries(
+                    Object.keys(selected.select).map((field) => [
+                      field,
+                      (row[key] as Record<string, unknown>)[field],
+                    ]),
+                  )
+                : row[key],
+            ]),
+          );
+        },
+      );
+      const action = getActionDefinition('lifecycle-email.load-delivery');
+      expect(action).toBeDefined();
+      const contract = compileActionContract('lifecycle-email.load-delivery', {
+        inputSchema: (action?.inputSchema ?? {}) as ActionContractJsonSchema,
+        outputSchema: (action?.outputSchema ?? {}) as ActionContractJsonSchema,
+      });
+
+      const loaded = await service.loadLifecycleDelivery(request);
+
+      expect(() =>
+        contract.validateOutput(loaded, {
+          nodeId: 'load-delivery',
+          runId: 'run-1',
+          workflowId: 'lifecycle-email.delivery',
+          workflowVersionId: 'v1',
+        }),
+      ).not.toThrow();
+    },
+  );
 
   it('marks a failed workflow finalizer idempotently from the loaded state', async () => {
     const loaded = await service.loadLifecycleDelivery(request);
