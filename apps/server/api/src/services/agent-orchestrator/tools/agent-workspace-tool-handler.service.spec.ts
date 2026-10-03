@@ -2,6 +2,7 @@ import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tool
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { IngredientCategory } from '@genfeedai/contracts';
 import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
+import { testId } from '@helpers/testing/test-id.helper';
 import { describe, expect, it, vi } from 'vitest';
 
 function createHandler(): AgentWorkspaceToolHandler {
@@ -279,7 +280,7 @@ describe('AgentWorkspaceToolHandler.listAssets characters (#6009)', () => {
 });
 
 describe('AgentWorkspaceToolHandler.listAssets characterIds (#6039 MCP, #6040)', () => {
-  const personaId = 'ckabcdefghijklmnopqrstuvw';
+  const personaId = testId('persona');
   const fragment = { personaId: { in: [personaId] } };
 
   it('forwards the character filter built by the Library filter service', async () => {
