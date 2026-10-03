@@ -583,9 +583,12 @@ export class ToolRegistryService implements OnModuleInit {
     try {
       return await this.clientService.resolveApproval(approvalId, 'approve');
     } catch (claimError: unknown) {
-      const existing = await this.clientService
-        .getApproval(approvalId)
-        .catch(() => null);
+      let existing: McpApprovalResource | null = null;
+      try {
+        existing = await this.clientService.getApproval(approvalId);
+      } catch {
+        // Unreadable: keep the original claim failure.
+      }
       if (
         existing?.status === 'APPROVED' &&
         !existing.result &&
