@@ -11,6 +11,15 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DesktopLocalProviderSettings from './DesktopLocalProviderSettings';
 
+const buildFlag = vi.hoisted(() => ({ isLocalModeEnabled: true }));
+
+vi.mock('@genfeedai/contracts/desktop', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/contracts/desktop')>()),
+  get IS_DESKTOP_LOCAL_MODE_ENABLED() {
+    return buildFlag.isLocalModeEnabled;
+  },
+}));
+
 const runtimeMocks = vi.hoisted(() => ({
   snapshot: {
     status: 'ready',
@@ -115,6 +124,7 @@ function setupBridge() {
 describe('DesktopLocalProviderSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    buildFlag.isLocalModeEnabled = true;
     setupBridge();
     mocks.getBootstrap.mockResolvedValue({ isOfflineMode: true });
     mocks.getProviderConfig.mockResolvedValue({
@@ -337,5 +347,20 @@ describe('DesktopLocalProviderSettings', () => {
     expect(mocks.getProviderConfig).not.toHaveBeenCalled();
     expect(mocks.saveProviderConfig).not.toHaveBeenCalled();
     expect(mocks.testProviderConfig).not.toHaveBeenCalled();
+  });
+
+  it('renders nothing and never reads bootstrap in cloud-only builds', () => {
+    buildFlag.isLocalModeEnabled = false;
+
+    const { container } = render(
+      <DesktopLocalProviderSettings variant="card" />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+    expect(
+      screen.queryByRole('button', { name: 'Use a local workspace' }),
+    ).toBeNull();
+    expect(mocks.getBootstrap).not.toHaveBeenCalled();
+    expect(mocks.enableOfflineMode).not.toHaveBeenCalled();
   });
 });

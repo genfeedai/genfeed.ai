@@ -2,9 +2,15 @@ import {
   SERVER_TOKENS,
   type ServerCredentialStore,
 } from '@api/server.dependencies';
+import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
+import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS } from '@api/services/integrations/publishers/publisher-verification.util';
+import { parseMastodonVerificationPage } from '@api/services/integrations/publishers/publisher-verification-pages.util';
 import { trimTrailingCharacter } from '@api/shared/utils/linear-string.util';
 import { assertHostNotPrivate } from '@api/shared/utils/ssrf.util';
+import { createSafeWebhookHttpsAgent } from '@api/shared/utils/webhook-validator/webhook-validator.util';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
+import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -300,6 +306,70 @@ export class MastodonService {
   /**
    * Verify account credentials on a Mastodon instance
    */
+  async listPublishVerificationPage(
+    context: PublishContext,
+    _startedAt: Date,
+    cursor?: string,
+  ): Promise<ProviderVerificationPage> {
+    const credential = await this.credentialsService.resolveBrandAccount({
+      organizationId: context.organizationId,
+      brandId: context.brandId,
+      credentialId: context.credential.id,
+      platform: CredentialPlatform.MASTODON,
+    });
+    const instance =
+      readChannelSettingString(context.settings, 'instanceUrl') ??
+      credential?.description;
+    if (
+      !credential?.accessToken ||
+      !credential.externalId ||
+      credential.externalId !== context.credential.externalId ||
+      !instance
+    )
+      throw new Error('Mastodon verification account unavailable or changed');
+    const normalized = this.normalizeInstanceUrl(instance);
+    const url = new URL(normalized);
+    if (url.username || url.password || url.search || url.hash)
+      throw new Error('Unsafe Mastodon instance identity');
+    const agent = await createSafeWebhookHttpsAgent(normalized);
+    const headers = {
+      Authorization: `Bearer ${EncryptionUtil.decrypt(credential.accessToken)}`,
+    };
+    try {
+      const account = await firstValueFrom(
+        this.httpService.get<{ id?: string }>(
+          `${normalized}/api/v1/accounts/verify_credentials`,
+          {
+            headers,
+            httpsAgent: agent,
+            maxRedirects: 0,
+            timeout: PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS,
+          },
+        ),
+      );
+      if (account.data.id !== credential.externalId)
+        throw new Error('Mastodon token/instance account mismatch');
+      const endpoint = `${normalized}/api/v1/accounts/${encodeURIComponent(credential.externalId)}/statuses`;
+      const result = await firstValueFrom(
+        this.httpService.get<unknown>(endpoint, {
+          headers,
+          httpsAgent: agent,
+          maxRedirects: 0,
+          timeout: PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS,
+          params: { limit: 40, ...(cursor ? { max_id: cursor } : {}) },
+        }),
+      );
+      return parseMastodonVerificationPage(
+        result.data,
+        credential.externalId,
+        result.headers?.link,
+        endpoint,
+      );
+    } finally {
+      agent.destroy();
+    }
+  }
+
   public async verifyCredentials(
     instanceUrl: string,
     accessToken: string,

@@ -143,6 +143,23 @@ describe('buildMediaUrl', () => {
     ).toBe(true);
   });
 
+  it('signs the exact raw object key without trimming or decoding its bytes', () => {
+    const key = ' ingredients/images/a%2Fb?c#d.png ';
+    const expected = `${CDN}/%20ingredients/images/a%252Fb%3Fc%23d.png%20`;
+    const url = buildMediaUrl(key, signing);
+
+    expect(new URL(url).pathname).toBe(
+      '/%20ingredients/images/a%252Fb%3Fc%23d.png%20',
+    );
+    expect(hasValidSignature(url, expected)).toBe(true);
+    expect(
+      hasValidSignature(url, `${CDN}/ingredients/images/a%252Fb%3Fc%23d.png`),
+    ).toBe(false);
+    expect(
+      hasValidSignature(url, `${CDN}/%20ingredients/images/a/b%3Fc%23d.png%20`),
+    ).toBe(false);
+  });
+
   it('leaves public-by-design media unsigned', () => {
     expect(
       buildMediaUrl('assets/agents/script-writer.webp', signing, {
@@ -336,4 +353,13 @@ describe('assertMediaUrlSigningConfig', () => {
       }),
     ).toThrow(/key pair cannot sign URLs/);
   });
+});
+
+it('fails boot when authorized delivery is required without a signer', () => {
+  expect(() =>
+    assertMediaUrlSigningConfig({
+      cdnUrl: 'https://cdn.test',
+      isAuthorizationRequired: true,
+    }),
+  ).toThrow('requires configured CDN signing');
 });

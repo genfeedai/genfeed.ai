@@ -31,6 +31,7 @@ import { PublicYoutubeClipsService } from '@api/endpoints/public/services/public
 import { RssService } from '@api/endpoints/public/services/rss.service';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
+import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { PublicClipToolStoreModule } from '@api/services/public-clip-tool/public-clip-tool-store.module';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
@@ -58,6 +59,7 @@ import { Module } from '@nestjs/common';
     BrandsCoreModule,
     ClipProjectsCoreModule,
     FilesClientModule,
+    MediaUrlsModule,
     FileQueueModule,
     HttpModule,
     ImagesModule,

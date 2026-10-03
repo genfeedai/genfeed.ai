@@ -1,0 +1,121 @@
+import type { TrendFlowChartProps } from '@props/analytics/trend-flow-chart.props';
+import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
+
+const Area = dynamic(() => import('recharts').then((module) => module.Area), {
+  ssr: false,
+});
+const AreaChart = dynamic(
+  () => import('recharts').then((module) => module.AreaChart),
+  { ssr: false },
+);
+const CartesianGrid = dynamic(
+  () => import('recharts').then((module) => module.CartesianGrid),
+  { ssr: false },
+);
+const ResponsiveContainer = dynamic(
+  () => import('recharts').then((module) => module.ResponsiveContainer),
+  { ssr: false },
+);
+const Tooltip = dynamic(
+  () => import('recharts').then((module) => module.Tooltip),
+  { ssr: false },
+);
+const XAxis = dynamic(() => import('recharts').then((module) => module.XAxis), {
+  ssr: false,
+});
+const YAxis = dynamic(() => import('recharts').then((module) => module.YAxis), {
+  ssr: false,
+});
+
+export default function TrendFlowChart({
+  data,
+  isLoading,
+}: TrendFlowChartProps) {
+  const translate = useTranslations('pages.analytics.trendTurnover.flow');
+
+  if (isLoading) {
+    return <div className="h-72 w-full bg-muted/40 animate-pulse" />;
+  }
+
+  if (data.length === 0) {
+    return (
+      <div className="flex h-72 items-center justify-center text-sm text-foreground/40">
+        {translate('empty')}
+      </div>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={288}>
+      <AreaChart data={data} margin={{ bottom: 0, left: 0, right: 16, top: 4 }}>
+        <defs>
+          <linearGradient id="appeared" x1="0" y1="0" x2="0" y2="1">
+            <stop
+              offset="5%"
+              stopColor="hsl(var(--success))"
+              stopOpacity={0.3}
+            />
+            <stop
+              offset="95%"
+              stopColor="hsl(var(--success))"
+              stopOpacity={0}
+            />
+          </linearGradient>
+          <linearGradient id="died" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="hsl(var(--error))" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="hsl(var(--error))" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="hsl(var(--border))"
+          vertical={false}
+        />
+        <XAxis
+          dataKey="date"
+          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+          tickLine={false}
+          axisLine={false}
+          tickFormatter={(v: string) => v.slice(5)} // MM-DD
+        />
+        <YAxis
+          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+          tickLine={false}
+          axisLine={false}
+          width={32}
+        />
+        <Tooltip
+          contentStyle={{
+            background: 'hsl(var(--card))',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: 0,
+            fontSize: 12,
+          }}
+          labelStyle={{
+            color: 'hsl(var(--muted-foreground))',
+            marginBottom: 4,
+          }}
+        />
+        <Area
+          type="monotone"
+          dataKey="appeared"
+          name="Appeared"
+          stroke="hsl(var(--success))"
+          strokeWidth={1.5}
+          fill="url(#appeared)"
+          dot={false}
+        />
+        <Area
+          type="monotone"
+          dataKey="died"
+          name="Died"
+          stroke="hsl(var(--error))"
+          strokeWidth={1.5}
+          fill="url(#died)"
+          dot={false}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+}

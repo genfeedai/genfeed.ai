@@ -1,5 +1,9 @@
 import { ModalEnum } from '@genfeedai/contracts';
-import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
+import {
+  ORGANIZATION_CONTEXT_HEADER,
+  UNATTRIBUTED_FORWARDED_HEADER,
+  UNATTRIBUTED_FORWARDED_VALUE,
+} from '@genfeedai/contracts/constants';
 import type { IErrorDebugInfo } from '@genfeedai/contracts/interfaces/modals/error-debug.interface';
 import type {
   IHttpCancelledError,
@@ -257,6 +261,13 @@ export abstract class HTTPBaseService {
     config.headers.Authorization = `Bearer ${this.token}`;
     for (const [name, value] of Object.entries(organizationHeaders)) {
       config.headers[name] = value;
+    }
+    // Server-side calls (SSR, route handlers) reach the API from this server's
+    // address, often loopback on self-host. Declare the visitor unknown so the
+    // API never grants admin power from that address.
+    if (typeof window === 'undefined') {
+      config.headers[UNATTRIBUTED_FORWARDED_HEADER] =
+        UNATTRIBUTED_FORWARDED_VALUE;
     }
 
     // Don't auto-cancel previous requests - let them complete naturally

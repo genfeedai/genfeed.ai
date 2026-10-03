@@ -54,7 +54,7 @@ describe('runContentEval with the stub dispatcher', () => {
       runId: 'ladder-test',
       schemaVersion: 1,
       suite: 'ladder',
-      thresholds: { version: 'thresholds-v1' },
+      thresholds: { version: 'thresholds-v2' },
     });
     expect(report.sourceRevision).toMatch(/^[0-9a-f]{40}$/);
     expect(typeof report.workingTreeDirty).toBe('boolean');

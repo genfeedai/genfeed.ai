@@ -1,4 +1,4 @@
-import { isDesktopClient } from '@genfeedai/config/deployment';
+import { useDesktopWindowChrome } from '@genfeedai/hooks/ui/use-desktop-window-chrome/use-desktop-window-chrome';
 import type { AppLayoutProps } from '@genfeedai/props/layout/app-layout.props';
 import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
 import { usePathname } from 'next/navigation';
@@ -32,6 +32,8 @@ const SHELL_CONTROL_SIZE = 32;
 const SHELL_CONTROL_INSET = 4;
 export const APP_RAIL_WIDTH = SHELL_CONTROL_SIZE + SHELL_CONTROL_INSET * 2;
 const DESKTOP_TITLEBAR_HEIGHT = 32;
+/** Window-left edge to just past the macOS traffic lights (see main.ts). */
+const DESKTOP_TRAFFIC_LIGHTS_WIDTH = 76;
 const SIDEBAR_TRANSITION_DURATION_MS = 300;
 const SIDEBAR_TRANSITION_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
 
@@ -293,12 +295,24 @@ export function useAppLayout({
       ? desktopSidebarCollapsedWidth
       : desktopSidebarExpandedWidth
     : 0;
+  // On macOS the chrome topbar is the window titlebar: the traffic lights
+  // float over its band, so the separate drag strip and its offset go away.
+  // Elsewhere (no topbar, or a native frame) the strip keeps its 32px.
+  const windowChrome = useDesktopWindowChrome();
+  const isTopbarTitlebar =
+    windowChrome.isMacDesktop &&
+    Boolean(railComponent) &&
+    Boolean(topbarComponent);
   const layoutStyle = {
     '--shell-topbar-height': `${APP_RAIL_WIDTH}px`,
     '--desktop-rail-width': `${railComponent ? APP_RAIL_WIDTH : 0}px`,
     '--desktop-sidebar-width': `${desktopSidebarWidth}px`,
-    '--desktop-titlebar-height': isDesktopClient()
-      ? `${DESKTOP_TITLEBAR_HEIGHT}px`
+    '--desktop-titlebar-height':
+      windowChrome.isMacDesktop && !isTopbarTitlebar
+        ? `${DESKTOP_TITLEBAR_HEIGHT}px`
+        : '0px',
+    '--desktop-traffic-lights-inset': windowChrome.hasInlineTrafficLights
+      ? `${DESKTOP_TRAFFIC_LIGHTS_WIDTH}px`
       : '0px',
   } as CSSProperties;
 
@@ -400,10 +414,13 @@ export function useAppLayout({
     handleSidebarResizeKeyDown,
     handleSidebarResizeStart,
     handleToggleDesktopSidebar,
+    hasInlineTrafficLights: windowChrome.hasInlineTrafficLights,
     hasMobileNavigation,
+    isDesktop: windowChrome.isDesktop,
     isDesktopCollapsed,
     isSidebarOpen,
     isSidebarResizing,
+    isTopbarTitlebar,
     layoutRootRef: layoutRootRef as RefObject<HTMLDivElement | null>,
     mainScrollRef: mainScrollRef as RefObject<HTMLElement | null>,
     layoutStyle,

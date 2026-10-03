@@ -65,7 +65,7 @@ export class ApifyInstagramService {
         `${this.constructorName}.getInstagramTrends failed`,
         error,
       );
-      return [];
+      throw error;
     }
   }
 
@@ -91,7 +91,7 @@ export class ApifyInstagramService {
         `${this.constructorName}.getInstagramVideos failed`,
         error,
       );
-      return [];
+      throw error;
     }
   }
 

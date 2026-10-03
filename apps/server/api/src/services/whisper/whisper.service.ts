@@ -1,15 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import {
-  type IngredientMediaSource,
-  resolveIngredientMediaUrl,
-} from '@libs/media/media-url.util';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { FileInputType } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  type IngredientMediaSource,
+  resolveIngredientMediaUrl,
+} from '@libs/media/media-url.util';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -58,6 +59,7 @@ export class WhisperService {
     private readonly httpService: HttpService,
     private readonly replicateService: ReplicateService,
     private readonly mediaUrlService: MediaUrlService,
+    private readonly mediaIssuer: AuthorizedMediaUrlService,
   ) {}
 
   private async convertVideoToAudio(
@@ -172,6 +174,7 @@ export class WhisperService {
   public async generateCaptions(
     id: string,
     source?: IngredientMediaSource,
+    organizationId?: string,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(
@@ -181,9 +184,20 @@ export class WhisperService {
     const resolvedUrl = source
       ? resolveIngredientMediaUrl(source, this.configService.cdnUrl)
       : undefined;
-    const videoUrl = resolvedUrl
-      ? this.mediaUrlService.buildUrlFromAbsolute(resolvedUrl)
-      : undefined;
+    let videoUrl: string | undefined;
+    if (this.configService.isAuthorizedMediaDeliveryEnabled) {
+      if (!organizationId) {
+        throw new Error('Caption media requires an organization-bound source');
+      }
+      videoUrl = (
+        await this.mediaIssuer.issueServerPublish(organizationId, [id])
+      ).get(id);
+      if (!videoUrl) throw new Error('Caption media is unavailable');
+    } else {
+      videoUrl = resolvedUrl
+        ? this.mediaUrlService.buildUrlFromAbsolute(resolvedUrl)
+        : undefined;
+    }
 
     let videoBuffer: Buffer;
     try {

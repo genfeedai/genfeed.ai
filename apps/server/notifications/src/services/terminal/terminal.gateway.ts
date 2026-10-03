@@ -1,4 +1,8 @@
 import {
+  UNATTRIBUTED_FORWARDED_HEADER,
+  UNATTRIBUTED_FORWARDED_VALUE,
+} from '@genfeedai/contracts/constants';
+import {
   isBearerScheme,
   parseAuthorizationHeader,
 } from '@libs/auth/authorization-header';
@@ -328,7 +332,10 @@ export class TerminalGateway
         this.terminalService.getBetterAuthTokenUrl(),
         {
           cache: 'no-store',
-          headers: { cookie },
+          headers: {
+            cookie,
+            [UNATTRIBUTED_FORWARDED_HEADER]: UNATTRIBUTED_FORWARDED_VALUE,
+          },
         },
       );
 

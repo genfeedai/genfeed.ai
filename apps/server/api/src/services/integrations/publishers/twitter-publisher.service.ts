@@ -9,6 +9,12 @@ import type {
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import {
+  PROVIDER_VERIFICATION_PAGE_SIZE,
+  PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS,
+  verifyTextPublish,
+} from '@api/services/integrations/publishers/publisher-verification.util';
+import { parseTwitterVerificationPage } from '@api/services/integrations/publishers/publisher-verification-pages.util';
+import {
   resolveTwitterReplySettings,
   TwitterService,
 } from '@api/services/integrations/twitter/services/twitter.service';
@@ -107,6 +113,62 @@ export class TwitterPublisherService extends BasePublisherService {
   /**
    * Publish a post to Twitter
    */
+  async verifyPublished(
+    context: PublishContext,
+    attemptStartedAt: Date,
+  ): Promise<PublishResult | null> {
+    const externalId = await verifyTextPublish(
+      context,
+      attemptStartedAt,
+      async (cursor) => {
+        const credential = await this.credentialsService.findOne({
+          id: context.credential.id,
+          isDeleted: false,
+          organizationId: context.organizationId,
+        });
+        if (
+          !credential?.accessToken ||
+          !credential.externalId ||
+          credential.externalId !== context.credential.externalId
+        ) {
+          throw new Error('X verification account unavailable or changed');
+        }
+        const response = await firstValueFrom(
+          this.httpService.get<unknown>(
+            `https://api.x.com/2/users/${encodeURIComponent(credential.externalId)}/tweets`,
+            {
+              headers: {
+                Authorization: `Bearer ${EncryptionUtil.decrypt(credential.accessToken)}`,
+              },
+              params: {
+                max_results: PROVIDER_VERIFICATION_PAGE_SIZE,
+                ...(cursor ? { pagination_token: cursor } : {}),
+                start_time: new Date(
+                  Math.floor(attemptStartedAt.getTime() / 1000) * 1000,
+                ).toISOString(),
+                'tweet.fields':
+                  'author_id,created_at,attachments,referenced_tweets,note_tweet',
+              },
+              timeout: PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS,
+              maxRedirects: 0,
+            },
+          ),
+        );
+        return parseTwitterVerificationPage(
+          response.data,
+          credential.externalId,
+        );
+      },
+    );
+    return externalId
+      ? this.createSuccessResult(
+          externalId,
+          this.platform,
+          this.buildPostUrl(externalId, context.credential),
+        )
+      : null;
+  }
+
   async publish(context: PublishContext): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const { post, credential } = context;
@@ -321,10 +383,8 @@ export class TwitterPublisherService extends BasePublisherService {
       (child.category === PostCategory.TEXT && childIngredientIds.length > 0);
 
     // Prepare media URLs for child
-    const childMediaUrls = childIngredientIds.map((id: string) =>
-      childIsImagePost
-        ? `${this.configService.ingredientsEndpoint}/images/${id}`
-        : `${this.configService.ingredientsEndpoint}/videos/${id}`,
+    const childMediaUrls = (child.ingredients || []).map((ingredient) =>
+      this.requireAuthorizedMediaUrl(ingredient, !childIsImagePost),
     );
 
     // Convert HTML description to plain text

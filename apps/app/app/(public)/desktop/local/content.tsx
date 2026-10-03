@@ -29,8 +29,11 @@ export default function LocalDesktopContent() {
   const translate = useTranslations('common.desktop.local');
   const runtime = useDesktopRuntimeContext();
   const costTranslate = useTranslations('common.desktop.generationCost');
-  const { isEnabled: isLocalWorkspaceEnabled, isReady: isLocalWorkspaceReady } =
-    useDesktopLocalWorkspaceFlag();
+  const {
+    isAvailable: isLocalWorkspaceAvailable,
+    isEnabled: isLocalWorkspaceEnabled,
+    isReady: isLocalWorkspaceReady,
+  } = useDesktopLocalWorkspaceFlag();
   const [bootstrap, setBootstrap] = useState<IDesktopBootstrap | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(true);
@@ -68,7 +71,11 @@ export default function LocalDesktopContent() {
   );
 
   useEffect(() => {
-    if (isLocalWorkspaceReady && !isLocalWorkspaceEnabled) {
+    // Cloud-only builds never show this page; leave without waiting for flags.
+    if (
+      !isLocalWorkspaceAvailable ||
+      (isLocalWorkspaceReady && !isLocalWorkspaceEnabled)
+    ) {
       window.location.assign(APP_ROUTES.LOGIN);
       return;
     }
@@ -80,7 +87,12 @@ export default function LocalDesktopContent() {
     const abortController = new AbortController();
     void loadLocalRuntime(abortController.signal);
     return () => abortController.abort();
-  }, [isLocalWorkspaceEnabled, isLocalWorkspaceReady, loadLocalRuntime]);
+  }, [
+    isLocalWorkspaceAvailable,
+    isLocalWorkspaceEnabled,
+    isLocalWorkspaceReady,
+    loadLocalRuntime,
+  ]);
 
   const refreshBootstrap = async (): Promise<void> => {
     const bridge = getDesktopBridge();
@@ -167,6 +179,10 @@ export default function LocalDesktopContent() {
     ) ??
     bootstrap?.workspaces[0] ??
     null;
+
+  if (!isLocalWorkspaceAvailable) {
+    return null;
+  }
 
   return (
     <main className="min-h-dvh bg-background px-6 pb-12 pt-16 text-foreground">

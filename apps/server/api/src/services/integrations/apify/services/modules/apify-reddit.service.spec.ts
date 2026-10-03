@@ -104,12 +104,10 @@ describe('ApifyRedditService', () => {
       );
     });
 
-    it('should return empty array on error', async () => {
+    it('rethrows provider failures instead of returning an empty list', async () => {
       mockBaseService.runActor.mockRejectedValue(new Error('API error'));
 
-      const result = await service.getRedditTrends();
-
-      expect(result).toEqual([]);
+      await expect(service.getRedditTrends()).rejects.toThrow('API error');
       expect(mockBaseService.loggerService.error).toHaveBeenCalled();
     });
   });
@@ -142,12 +140,10 @@ describe('ApifyRedditService', () => {
       });
     });
 
-    it('should return empty array on error', async () => {
+    it('rethrows provider failures instead of returning an empty list', async () => {
       mockBaseService.runActor.mockRejectedValue(new Error('network error'));
 
-      const result = await service.getRedditVideos();
-
-      expect(result).toEqual([]);
+      await expect(service.getRedditVideos()).rejects.toThrow('network error');
     });
   });
 

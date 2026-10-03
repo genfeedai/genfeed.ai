@@ -88,7 +88,13 @@ describe('FacebookPublisherService', () => {
     brandId: mockBrandId,
     category: PostCategory.IMAGE,
     description: '<p>Test image post</p>',
-    ingredients: [mockIngredientId],
+    ingredients: [
+      {
+        id: mockIngredientId,
+        mediaUrl:
+          'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+      },
+    ],
     isDeleted: false,
     organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
@@ -101,7 +107,13 @@ describe('FacebookPublisherService', () => {
     brandId: mockBrandId,
     category: PostCategory.VIDEO,
     description: '<p>Test video post</p>',
-    ingredients: [mockIngredientId],
+    ingredients: [
+      {
+        id: mockIngredientId,
+        mediaUrl:
+          'https://authorized.test/ingredients/videos/random-storage-key?signature=fixture',
+      },
+    ],
     isDeleted: false,
     label: 'Video Title',
     organizationId: mockOrganizationId,
@@ -115,7 +127,18 @@ describe('FacebookPublisherService', () => {
     brandId: mockBrandId,
     category: PostCategory.IMAGE,
     description: '<p>Carousel post</p>',
-    ingredients: [testId('ingredient', 2), testId('ingredient', 3)],
+    ingredients: [
+      {
+        id: testId('ingredient', 2),
+        mediaUrl:
+          'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+      },
+      {
+        id: testId('ingredient', 3),
+        mediaUrl:
+          'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+      },
+    ],
     isDeleted: false,
     organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
@@ -148,6 +171,7 @@ describe('FacebookPublisherService', () => {
           useValue: {
             get: vi.fn().mockReturnValue('test-value'),
             ingredientsEndpoint: 'https://api.test.com/ingredients',
+            isAuthorizedMediaDeliveryEnabled: true,
           },
         },
         {
@@ -549,7 +573,13 @@ describe('FacebookPublisherService', () => {
         id: testId('child', 3),
         category: PostCategory.IMAGE,
         description: '<p>Image child - should be ignored</p>',
-        ingredients: [mockIngredientId],
+        ingredients: [
+          {
+            id: mockIngredientId,
+            mediaUrl:
+              'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+          },
+        ],
         order: 3,
       },
     ];
@@ -579,7 +609,13 @@ describe('FacebookPublisherService', () => {
           id: testId('child', 4),
           category: PostCategory.IMAGE,
           description: '<p>Image</p>',
-          ingredients: [mockIngredientId],
+          ingredients: [
+            {
+              id: mockIngredientId,
+              mediaUrl:
+                'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+            },
+          ],
           order: 1,
         },
       ];
@@ -602,7 +638,8 @@ describe('FacebookPublisherService', () => {
         'Image',
         expect.anything(),
         expect.objectContaining({
-          attachmentUrl: expect.stringContaining(`/images/${mockIngredientId}`),
+          attachmentUrl:
+            'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
         }),
       );
     });

@@ -4,6 +4,7 @@ import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { verifyHtmlPublish } from '@api/services/integrations/publishers/publisher-verification.util';
 import { ShopifyService } from '@api/services/integrations/shopify/services/shopify.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
@@ -27,6 +28,34 @@ export class ShopifyPublisherService extends BasePublisherService {
     private readonly shopifyService: ShopifyService,
   ) {
     super(configService, logger);
+  }
+
+  async verifyPublished(
+    context: PublishContext,
+    attemptStartedAt: Date,
+  ): Promise<PublishResult | null> {
+    const status = undefined;
+    const found = await verifyHtmlPublish(
+      context,
+      attemptStartedAt,
+      (cursor) =>
+        this.shopifyService.listPublishVerificationPage(
+          context,
+          attemptStartedAt,
+          cursor,
+        ),
+      status,
+    );
+    if (!found) return null;
+    const result = this.createSuccessResult(
+      found.id,
+      this.platform,
+      found.url ||
+        this.buildPostUrl(found.handle ?? found.id, context.credential),
+    );
+    return found.status === 'DRAFT'
+      ? { ...result, isProviderDraft: true }
+      : result;
   }
 
   async publish(context: PublishContext): Promise<PublishResult> {

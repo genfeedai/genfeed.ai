@@ -3,11 +3,20 @@ import {
   type ScheduledPostWorkflowSource,
 } from '@api/collections/posts/services/scheduled-post-workflow-definition';
 import {
+  type IPublisher,
   type PublishResult,
   TIKTOK_APP_HANDOFF_SETTING,
   WORKFLOW_APPROVED_SCHEDULE_SETTING,
 } from '@api/index';
 import { BeehiivProviderError } from '@api/services/integrations/beehiiv/errors/beehiiv-provider.error';
+import { BeehiivPublisherService } from '@api/services/integrations/publishers/beehiiv-publisher.service';
+import { GhostPublisherService } from '@api/services/integrations/publishers/ghost-publisher.service';
+import { LinkedInPublisherService } from '@api/services/integrations/publishers/linkedin-publisher.service';
+import { MastodonPublisherService } from '@api/services/integrations/publishers/mastodon-publisher.service';
+import { ShopifyPublisherService } from '@api/services/integrations/publishers/shopify-publisher.service';
+import { ThreadsPublisherService } from '@api/services/integrations/publishers/threads-publisher.service';
+import { TwitterPublisherService } from '@api/services/integrations/publishers/twitter-publisher.service';
+import { WordpressPublisherService } from '@api/services/integrations/publishers/wordpress-publisher.service';
 import {
   ActivityKey,
   CredentialPlatform,
@@ -18,9 +27,11 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { IPublishingProviderReadiness } from '@genfeedai/contracts/interfaces';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
 import { PROVIDER_PUBLISH_LEASE_RENEWAL_MS } from '@workers/services/scheduled-post-provider-receipt.util';
+import { of } from 'rxjs';
 
 const PUBLISH_CAPABLE_READINESS: IPublishingProviderReadiness & {
   credentialId: string;
@@ -595,9 +606,64 @@ describe('ScheduledPostDeliveryService', () => {
       new Error('database unavailable'),
     );
 
+    await expect(
+      executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep'),
+    ).rejects.toThrow('Provider publish attempt state is unavailable.');
+
+    expect(publish).not.toHaveBeenCalled();
+    const states =
+      mocks.schedulerPublishStateService.transitionPost.mock.calls.map(
+        (call) => call[1].executionState,
+      );
+    expect(states).toEqual([TargetExecutionState.PUBLISHING]);
+  });
+
+  it('never fails or retries an occurrence whose receipt lookup fails', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockRejectedValueOnce(
+      new Error('receipt store unavailable'),
+    );
+
+    await expect(
+      executeDelivery(
+        mocks,
+        createScheduledPost({ retryCount: 3 }),
+        'scheduled_sweep',
+      ),
+    ).rejects.toThrow('Provider publish attempt state is unavailable.');
+
+    expect(publish).not.toHaveBeenCalled();
+    const states =
+      mocks.schedulerPublishStateService.transitionPost.mock.calls.map(
+        (call) => call[1].executionState,
+      );
+    expect(states).not.toContain(TargetExecutionState.FAILED);
+    expect(states).not.toContain(TargetExecutionState.SCHEDULED);
+  });
+
+  it('records a thrown gate error before releasing the held reservation', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+    mocks.quotaService.checkQuota.mockRejectedValue(
+      new Error('quota store exploded'),
+    );
+
     await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
 
     expect(publish).not.toHaveBeenCalled();
+    const transitions = mocks.schedulerPublishStateService.transitionPost.mock;
+    const failureWrite = transitions.calls.findIndex(
+      (call) => call[1].executionState !== TargetExecutionState.PUBLISHING,
+    );
+    expect(failureWrite).toBeGreaterThan(-1);
+    const receipts = mocks.prisma.postProviderPublishReceipt;
+    const releaseCall = receipts.updateMany.mock.calls.findIndex(
+      (call) =>
+        (call[0] as { data: { status?: string } }).data.status === 'released',
+    );
+    expect(releaseCall).toBeGreaterThan(-1);
+    expect(transitions.invocationCallOrder[failureWrite]).toBeLessThan(
+      receipts.updateMany.mock.invocationCallOrder[releaseCall],
+    );
   });
 
   it('never reschedules a provider-accepted publish whose state transition fails', async () => {
@@ -795,6 +861,189 @@ describe('ScheduledPostDeliveryService', () => {
       undefined,
       expect.anything(),
       expect.anything(),
+    );
+  });
+
+  it.each([
+    {
+      platform: CredentialPlatform.TWITTER,
+      publisherClass: TwitterPublisherService,
+    },
+    {
+      platform: CredentialPlatform.LINKEDIN,
+      publisherClass: LinkedInPublisherService,
+    },
+    {
+      platform: CredentialPlatform.THREADS,
+      publisherClass: ThreadsPublisherService,
+    },
+    {
+      platform: CredentialPlatform.MASTODON,
+      publisherClass: MastodonPublisherService,
+    },
+    {
+      platform: CredentialPlatform.WORDPRESS,
+      publisherClass: WordpressPublisherService,
+    },
+    {
+      platform: CredentialPlatform.GHOST,
+      publisherClass: GhostPublisherService,
+    },
+    {
+      platform: CredentialPlatform.SHOPIFY,
+      publisherClass: ShopifyPublisherService,
+    },
+    {
+      platform: CredentialPlatform.BEEHIIV,
+      publisherClass: BeehiivPublisherService,
+    },
+  ])(
+    'replays a landed timeout through the actual $platform verification hook without publishing twice',
+    async ({ platform, publisherClass }) => {
+      const startedAt = new Date(Date.now() - 60 * 60_000);
+      const createdAt = new Date(startedAt.getTime() + 1000);
+      const page = {
+        items: [
+          {
+            id: 'verified-parent',
+            createdAt,
+            hasMedia: false,
+            isReply: false,
+            text: 'Scheduled post caption',
+            title: 'Exact title',
+            status:
+              platform === CredentialPlatform.WORDPRESS
+                ? 'publish'
+                : platform === CredentialPlatform.GHOST
+                  ? 'published'
+                  : platform === CredentialPlatform.BEEHIIV
+                    ? 'confirmed'
+                    : 'ACTIVE',
+            visibility:
+              platform === CredentialPlatform.LINKEDIN
+                ? 'PUBLIC'
+                : PostVisibility.PUBLIC,
+            url: 'https://example.com/verified-parent',
+            scheduledAt: new Date('2026-07-07T09:55:00Z'),
+          },
+        ],
+        nextCursor: null,
+      };
+      const publish = vi.fn();
+      const listPublishVerificationPage = vi.fn().mockResolvedValue(page);
+      // Execute the concrete hook and base result builder; the network leaf is
+      // mocked. API publisher specs separately exercise its account-scoped HTTP.
+      const publisher: IPublisher = Object.assign(
+        Object.create(publisherClass.prototype),
+        {
+          credentialsService: mocks.credentialsService,
+          httpService: {
+            get: vi.fn().mockReturnValue(
+              of({
+                data: {
+                  data: [
+                    {
+                      id: 'verified-parent',
+                      author_id: 'account',
+                      created_at: createdAt.toISOString(),
+                      text: 'Scheduled post caption',
+                    },
+                  ],
+                  meta: { result_count: 1 },
+                },
+              }),
+            ),
+          },
+          linkedInService: { listPublishVerificationPage },
+          publish,
+          supportsThreads: false,
+          threadsService: { listPublishVerificationPage },
+          wordpressService: { listPublishVerificationPage },
+          ghostService: { listPublishVerificationPage },
+          shopifyService: { listPublishVerificationPage },
+          beehiivService: { listPublishVerificationPage },
+          mastodonService: { listPublishVerificationPage },
+          twitterService: {
+            buildTweetUrl: (id: string) => `https://x.com/account/status/${id}`,
+          },
+        },
+      );
+      vi.spyOn(EncryptionUtil, 'decrypt').mockReturnValue('fixture-token');
+      mocks.credentialsService.findOne.mockResolvedValue({
+        id: 'cred-1',
+        accessToken: 'fixture',
+        externalId: 'account',
+        externalHandle: 'account',
+        platform,
+      });
+      mocks.publisherFactory.getPublisher.mockReturnValue(publisher);
+      mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+        receiptRow({ attemptStartedAt: startedAt, status: 'uncertain' }),
+      );
+
+      await executeDelivery(
+        mocks,
+        createScheduledPost({
+          category: PostCategory.TEXT,
+          label: 'Exact title',
+          platform,
+        }),
+        'scheduled_sweep',
+      );
+
+      expect(publish).not.toHaveBeenCalled();
+      expect(
+        mocks.prisma.postProviderPublishReceipt.updateMany,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'accepted' }),
+        }),
+      );
+      expect(
+        mocks.schedulerPublishStateService.transitionPost,
+      ).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          executionState: TargetExecutionState.PUBLISHED,
+          externalId: 'verified-parent',
+        }),
+        undefined,
+        expect.anything(),
+        expect.anything(),
+      );
+      vi.restoreAllMocks();
+    },
+  );
+
+  it('passes thread evidence to verification so a found parent cannot settle an incomplete thread', async () => {
+    const verifyPublished = vi.fn().mockImplementation(async (context) => {
+      expect(context.hasThreadChildren).toBe(true);
+      throw new Error('Parent evidence cannot verify thread completion');
+    });
+    const publish = vi.fn();
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish,
+      supportsThreads: true,
+      verifyPublished,
+    });
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({ status: 'uncertain' }),
+    );
+
+    await executeDelivery(
+      mocks,
+      createScheduledPost({ children: [{ id: 'child-1' }] }),
+      'scheduled_sweep',
+    );
+
+    expect(verifyPublished).toHaveBeenCalled();
+    expect(publish).not.toHaveBeenCalled();
+    expect(
+      mocks.prisma.postProviderPublishReceipt.updateMany,
+    ).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'accepted' }),
+      }),
     );
   });
 
@@ -1091,6 +1340,25 @@ describe('ScheduledPostDeliveryService', () => {
     expect(receipts.updateMany.mock.invocationCallOrder[0]).toBeGreaterThan(
       failedWrite,
     );
+  });
+
+  it('keeps an unconfirmed occurrence publishing when the workflow fails', async () => {
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({ status: 'uncertain' }),
+    );
+
+    const result = await service.failTerminalValidation(
+      createScheduledPost() as never,
+      new Error('workflow failed'),
+    );
+
+    expect(result.executionState).toBe(TargetExecutionState.PUBLISHING);
+    expect(
+      mocks.schedulerPublishStateService.transitionPost,
+    ).not.toHaveBeenCalled();
+    expect(
+      mocks.prisma.postProviderPublishReceipt.updateMany,
+    ).not.toHaveBeenCalled();
   });
 
   it('keeps a provider-accepted occurrence publishing when the workflow fails', async () => {

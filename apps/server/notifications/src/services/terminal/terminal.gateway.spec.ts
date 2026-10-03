@@ -1,3 +1,7 @@
+import {
+  UNATTRIBUTED_FORWARDED_HEADER,
+  UNATTRIBUTED_FORWARDED_VALUE,
+} from '@genfeedai/contracts/constants';
 import type { Socket } from 'socket.io';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TerminalGateway } from './terminal.gateway';
@@ -283,7 +287,7 @@ describe('TerminalGateway', () => {
     },
   );
 
-  it('accepts localhost origins by minting a token from the Better Auth session cookie', async () => {
+  it('accepts localhost origins by minting a token from the Better Auth session cookie, declaring the client unknown', async () => {
     const terminalService = createTerminalService();
     const gateway = new TerminalGateway(terminalService as never);
     const socket = createSocket(
@@ -297,7 +301,10 @@ describe('TerminalGateway', () => {
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:3010/v1/auth/token',
       expect.objectContaining({
-        headers: { cookie: 'better-auth.session_token=session-123' },
+        headers: {
+          cookie: 'better-auth.session_token=session-123',
+          [UNATTRIBUTED_FORWARDED_HEADER]: UNATTRIBUTED_FORWARDED_VALUE,
+        },
       }),
     );
     expect(verifyMock).toHaveBeenCalledWith('cookie-token');

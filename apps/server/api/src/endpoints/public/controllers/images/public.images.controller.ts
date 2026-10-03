@@ -12,6 +12,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
   AssetScope,
@@ -23,6 +24,7 @@ import type {
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
+import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
 import { PrismaWhereQuery } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -43,6 +45,8 @@ export class PublicImagesController {
     private readonly filesClientService: FilesClientService,
     private readonly imagesService: ImagesService,
     private readonly logger: LoggerService,
+    private readonly mediaIssuer: AuthorizedMediaUrlService,
+    private readonly config: ConfigService,
   ) {}
 
   @Get()
@@ -136,6 +140,21 @@ export class PublicImagesController {
     @Param('imageId') imageId: string,
     @Res() res: ExpressResponse,
   ): Promise<void> {
+    if (this.config.isAuthorizedMediaDeliveryEnabled) {
+      const [projection] = await this.mediaIssuer.projectPublicIngredients([
+        imageId,
+      ]);
+      if (!projection?.grant.url) {
+        res
+          .status(404)
+          .json({ error: 'Protected public media is unavailable' });
+        return;
+      }
+      res.set('Cache-Control', 'no-store');
+      res.redirect(302, projection.grant.url);
+      return;
+    }
+
     const image = await this.imagesService.findOne({
       id: imageId,
       category: CategoryPrismaUtil.toIngredientCategory(

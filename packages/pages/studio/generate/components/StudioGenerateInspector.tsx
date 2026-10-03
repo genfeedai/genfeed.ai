@@ -12,6 +12,7 @@ import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import type { StudioGenerateInspectorProps } from '@genfeedai/props/studio/studio-generate.props';
 import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthorizedMediaPreview } from '@hooks/media/use-authorized-media-preview';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   resolveStudioAssetFacts,
@@ -29,7 +30,7 @@ import { VideosService } from '@services/ingredients/videos.service';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHarnessReceipt';
-import { createDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
+import { useIngredientDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
 import { PanelTabs } from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import { Download, MessageSquare, Send, Shuffle, Sparkles } from 'lucide-react';
@@ -49,7 +50,6 @@ import {
 type InspectorTab = 'history' | 'recipe' | 'used-in';
 
 const AUDIO_TYPES = new Set(['music', 'voice']);
-const downloadIngredient = createDownloadHandler();
 
 function isInspectorTab(value: string): value is InspectorTab {
   return value === 'history' || value === 'recipe' || value === 'used-in';
@@ -70,6 +70,7 @@ export default function StudioGenerateInspector({
   runJobs,
 }: StudioGenerateInspectorProps): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
+  const downloadIngredient = useIngredientDownloadHandler();
   const { href, orgSlug } = useOrgUrl();
   const { push } = useRouter();
   const agentDock = useAgentDock();
@@ -84,7 +85,10 @@ export default function StudioGenerateInspector({
   );
   const ingredientId = job.ingredientId;
   const ingredient = job.ingredient ?? null;
-  const previewUrl = resolveStudioAssetUrl(ingredient) ?? job.url;
+  const mediaPreview = useAuthorizedMediaPreview(ingredient);
+  const previewUrl = mediaPreview
+    ? (mediaPreview.url ?? '')
+    : (resolveStudioAssetUrl(ingredient) ?? job.url);
   const isReady =
     job.status === IngredientStatus.GENERATED ||
     job.status === IngredientStatus.UPLOADED ||

@@ -126,12 +126,10 @@ describe('ApifyYouTubeService', () => {
       );
     });
 
-    it('should return empty array on actor error', async () => {
+    it('rethrows provider failures instead of returning an empty list', async () => {
       baseService.runActor.mockRejectedValue(new Error('Apify error'));
 
-      const result = await service.getYouTubeVideos(5);
-
-      expect(result).toEqual([]);
+      await expect(service.getYouTubeVideos(5)).rejects.toThrow('Apify error');
       expect(baseService.loggerService.error).toHaveBeenCalled();
     });
   });
@@ -177,12 +175,10 @@ describe('ApifyYouTubeService', () => {
       expect(result[0].growthRate).toBeLessThanOrEqual(100);
     });
 
-    it('should return empty array on error', async () => {
+    it('rethrows provider failures instead of returning an empty list', async () => {
       baseService.runActor.mockRejectedValue(new Error('Failed'));
 
-      const result = await service.getYouTubeTrends();
-
-      expect(result).toEqual([]);
+      await expect(service.getYouTubeTrends()).rejects.toThrow('Failed');
     });
   });
 

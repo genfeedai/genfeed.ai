@@ -56,6 +56,9 @@ export class YoutubeProcessor extends WorkerHost {
         credential,
         description: description || '',
         ingredientId,
+        ...(job.data.sourceStorageKey
+          ? { sourceStorageKey: job.data.sourceStorageKey }
+          : {}),
         scheduledDate: scheduledDate ? new Date(scheduledDate) : undefined,
         status: status || 'private',
         tags: tags || [],

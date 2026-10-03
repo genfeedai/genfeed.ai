@@ -315,6 +315,34 @@ const config = createAppNextConfig({
 
     ...filterRouteRedirects,
     ...adminFilterRouteRedirects,
+    // Market trends moved from Analytics (own-content measurement) to
+    // Discovery. Keep bookmarked and agent-emitted links working.
+    {
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        `${APP_ROUTES.DISCOVERY.TRENDS}/:path*`,
+      ),
+      permanent: true,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        '/analytics/trends/:path*',
+      ),
+    },
+    {
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.DISCOVERY.TREND_TURNOVER,
+      ),
+      permanent: true,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        '/analytics/trend-turnover',
+      ),
+    },
     // Agent CTAs historically emitted bare `/review` (and route-rewrite scoped
     // it to `/:org/:brand/review`) — that page never existed. Send both dead
     // shapes to Publishing Review so stored thread links stop 404ing.

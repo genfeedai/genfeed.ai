@@ -161,6 +161,7 @@ export class IngredientsOperationsController {
       ingredient.category,
       ingredientId,
       user.userId ?? user.id,
+      ingredient.s3Key ?? undefined,
     ).catch((error) => {
       this.loggerService.error(`${url} async processing failed`, {
         error,
@@ -182,6 +183,7 @@ export class IngredientsOperationsController {
     category: string,
     originalIngredientId: string,
     userId: string,
+    originalStorageKey?: string,
   ): Promise<void> {
     const url = `${this.constructorName} processCloneAsync`;
 
@@ -191,8 +193,16 @@ export class IngredientsOperationsController {
         originalIngredientId,
       });
 
-      // Upload file from original ingredient URL
-      const uploadUrl = `${this.configService.ingredientsEndpoint}/${categoryToPlural(category)}/${originalIngredientId}`;
+      let uploadUrl = `${this.configService.ingredientsEndpoint}/${categoryToPlural(category)}/${originalIngredientId}`;
+      if (this.configService.isAuthorizedMediaDeliveryEnabled) {
+        if (!originalStorageKey) {
+          throw new Error('The original ingredient has no stored media key');
+        }
+        uploadUrl =
+          await this.getFilesClientService().getPresignedDownloadUrlForObjectKey(
+            originalStorageKey,
+          );
+      }
 
       const uploadMeta = await this.getFilesClientService().uploadToS3(
         newIngredientId,
@@ -214,6 +224,7 @@ export class IngredientsOperationsController {
 
       // Update ingredient status to GENERATED
       await this.ingredientsService.patch(newIngredientId, {
+        ...(uploadMeta.s3Key ? { s3Key: uploadMeta.s3Key } : {}),
         status: IngredientStatus.GENERATED,
       });
 

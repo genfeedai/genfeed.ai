@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { HttpException } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -69,7 +70,11 @@ describe('VideosEffectsController', () => {
   let controller: VideosEffectsController;
 
   const mockServices = {
-    configService: { ingredientsEndpoint: 'https://api.example.com' },
+    configService: {
+      ingredientsEndpoint: 'https://api.example.com',
+      isAuthorizedMediaDeliveryEnabled: false,
+    },
+    authorizedMediaUrls: { issueServerPublish: vi.fn() },
     fileQueueService: {
       processVideo: vi.fn().mockResolvedValue({ jobId: 'job123' }),
       waitForJob: vi.fn().mockResolvedValue({ outputPath: '/tmp/video.mp4' }),
@@ -92,9 +97,14 @@ describe('VideosEffectsController', () => {
   };
 
   beforeEach(async () => {
+    mockServices.configService.isAuthorizedMediaDeliveryEnabled = false;
     const module: TestingModule = await Test.createTestingModule({
       controllers: [VideosEffectsController],
       providers: [
+        {
+          provide: AuthorizedMediaUrlService,
+          useValue: mockServices.authorizedMediaUrls,
+        },
         { provide: ConfigService, useValue: mockServices.configService },
         { provide: FileQueueService, useValue: mockServices.fileQueueService },
         {
@@ -123,6 +133,39 @@ describe('VideosEffectsController', () => {
   });
 
   afterEach(() => vi.clearAllMocks());
+
+  it('uses the freshly authorized source URL when media delivery is activated', async () => {
+    mockServices.configService.isAuthorizedMediaDeliveryEnabled = true;
+    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+    mockServices.authorizedMediaUrls.issueServerPublish.mockResolvedValueOnce(
+      new Map([
+        [videoId, 'https://authorized.test/random-source?signature=grant'],
+      ]),
+    );
+    await controller.reverseVideo(mockRequest, mockUser, videoId);
+    expect(
+      mockServices.authorizedMediaUrls.issueServerPublish,
+    ).toHaveBeenCalledWith(mockUser.organizationId.toString(), [videoId]);
+    expect(mockServices.fileQueueService.processVideo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        params: expect.objectContaining({
+          inputPath: 'https://authorized.test/random-source?signature=grant',
+        }),
+      }),
+    );
+  });
+
+  it('rejects an issuer scope denial before queueing a transformation', async () => {
+    mockServices.configService.isAuthorizedMediaDeliveryEnabled = true;
+    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+    mockServices.authorizedMediaUrls.issueServerPublish.mockRejectedValueOnce(
+      new Error('Scoped media unavailable'),
+    );
+    await expect(
+      controller.reverseVideo(mockRequest, mockUser, videoId),
+    ).rejects.toThrow('Scoped media unavailable');
+    expect(mockServices.fileQueueService.processVideo).not.toHaveBeenCalled();
+  });
 
   it('should be defined', () => {
     expect(controller).toBeDefined();

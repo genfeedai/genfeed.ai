@@ -12,6 +12,7 @@
 import type { ZodType } from 'zod';
 import { z } from 'zod';
 import { matchSchema } from './bench/schema';
+import { calibrationSectionSchema } from './calibration/contracts';
 import {
   outlierSectionSchema,
   outlierThresholdsSchema,
@@ -24,7 +25,12 @@ import type {
   ScoredRow,
   SuiteName,
 } from './rows';
-import { pairwiseResultSchema, SUITE_NAMES, scoredRowSchema } from './rows';
+import {
+  pairwiseResultSchema,
+  SUITE_NAMES,
+  scoredRowSchema,
+  thresholdCheckSchema,
+} from './rows';
 
 export * from './rows';
 
@@ -47,11 +53,13 @@ export type AbortReason = (typeof ABORT_REASONS)[number];
  * new value (#4921 FR 8); the version is written into every report.
  */
 export const CONTENT_EVAL_THRESHOLDS = {
-  version: 'thresholds-v1',
+  version: 'thresholds-v2',
   /** A generated output is "accepted" at or above this judge score (0–1). */
   acceptedMinScore: 0.6,
+  calibrationMinRows: 30,
   /** Judge suite: share of rows whose judge score lands in the human band. */
   judgeMinBandAgreement: 0.6,
+  judgeMinKappa: 0.6,
   /** Pairwise suites: share of pairs whose verdict flips with the ordering. */
   maxPositionBiasRate: 0.05,
   /** Pairwise suites: generation or judge failures per contestant. */
@@ -258,17 +266,8 @@ export const judgeSummarySchema = z.object({
 });
 export type JudgeSummary = z.infer<typeof judgeSummarySchema>;
 
-export const thresholdCheckSchema = z.object({
-  actual: z.number().nullable(),
-  comparator: z.enum(['>=', '<=']),
-  id: z.string().min(1),
-  passed: z.boolean(),
-  subject: z.string().min(1),
-  threshold: z.number(),
-});
-export type ThresholdCheck = z.infer<typeof thresholdCheckSchema>;
-
 export const suiteOutcomeSchema = z.object({
+  calibration: calibrationSectionSchema.optional(),
   contestants: z.array(contestantSummarySchema),
   judges: z.array(judgeSummarySchema),
   pairs: z.array(pairwiseResultSchema),
@@ -300,6 +299,7 @@ export const contentEvalReportSchema = z.object({
   abortMessage: z.string().nullable(),
   /** Bench match records from the media ladder (#4926). */
   benchMatches: z.array(matchSchema).optional(),
+  calibration: calibrationSectionSchema.optional(),
   calls: z.array(callProvenanceSchema),
   config: suiteConfigSchema,
   dispatcher: z.enum(DISPATCHER_KINDS),
@@ -326,7 +326,9 @@ export const contentEvalReportSchema = z.object({
   suite: z.enum(SUITE_NAMES),
   thresholds: z.object({
     acceptedMinScore: z.number(),
+    calibrationMinRows: z.number().int().positive(),
     judgeMinBandAgreement: z.number(),
+    judgeMinKappa: z.number(),
     maxPositionBiasRate: z.number(),
     maxVoidRate: z.number(),
     pointwiseTieBand: z.number(),
@@ -469,6 +471,8 @@ export interface MeteredCallResult<TResult> {
 export interface StubDispatcherOptions {
   /** Registry keys whose calls fail, to exercise void handling. */
   failingModels?: string[];
+  isFirstAlwaysPreferred?: boolean;
+  qualityOf?: (content: string) => number;
   usdPerToken?: number;
 }
 

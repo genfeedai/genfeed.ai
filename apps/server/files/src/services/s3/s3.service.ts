@@ -20,6 +20,7 @@ import {
   resolveContainedPath,
 } from '@libs/security';
 import { safeFetch } from '@libs/security/destination-guard';
+import { assertStoredObjectKey } from '@libs/security/stored-object-key';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 
@@ -360,6 +361,19 @@ export class S3Service {
       );
       throw error;
     }
+  }
+
+  /** Internal canonical-key boundary: literal percent escapes are object identity. */
+  async getPresignedDownloadUrlForStoredKey(
+    key: string,
+    expiresIn = 300,
+  ): Promise<string> {
+    assertStoredObjectKey(key, createBadRequest);
+    return getSignedUrl(
+      this.s3Client,
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+      { expiresIn },
+    );
   }
 
   async getPresignedDownloadUrl(

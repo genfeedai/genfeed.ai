@@ -7,6 +7,10 @@ describe('ConfigService', () => {
 
   beforeEach(() => {
     // Mock environment variables for testing
+    delete env.GENFEEDAI_MEDIA_ISSUER_ENABLED;
+    delete env.GENFEEDAI_MEDIA_PREPARATION_ENABLED;
+    delete env.GENFEED_CLOUD;
+    delete env.NEXT_PUBLIC_GENFEED_CLOUD;
     delete env.GENFEEDAI_CDN_SIGNING_KEY_PAIR_ID;
     delete env.GENFEEDAI_CDN_SIGNING_PRIVATE_KEY;
     delete env.GENFEEDAI_CDN_SIGNED_URL_TTL_SECONDS;
@@ -177,6 +181,35 @@ describe('ConfigService', () => {
       const service = new ConfigService();
 
       expect(service.get('DB_MODE')).toBe('production');
+    });
+  });
+
+  describe('authorized media activation', () => {
+    it('defaults both delivery and preparation off', () => {
+      expect(configService.isAuthorizedMediaDeliveryEnabled).toBe(false);
+      expect(configService.isAuthorizedMediaPreparationEnabled).toBe(false);
+    });
+    it('allows explicit cloud prewarming without enabling delivery', () => {
+      env.GENFEED_CLOUD = '1';
+      env.GENFEEDAI_MEDIA_PREPARATION_ENABLED = 'true';
+      const staging = new ConfigService();
+      expect(staging.isAuthorizedMediaPreparationEnabled).toBe(true);
+      expect(staging.isAuthorizedMediaDeliveryEnabled).toBe(false);
+    });
+    it('requires signing when cloud delivery is activated', () => {
+      env.GENFEED_CLOUD = '1';
+      env.GENFEEDAI_MEDIA_ISSUER_ENABLED = 'true';
+      expect(
+        () => new ConfigService().isAuthorizedMediaDeliveryEnabled,
+      ).toThrow('requires configured CDN signing');
+    });
+    it('preserves self-hosted behavior even when flags are set', () => {
+      env.GENFEED_CLOUD = '0';
+      env.GENFEEDAI_MEDIA_ISSUER_ENABLED = 'true';
+      env.GENFEEDAI_MEDIA_PREPARATION_ENABLED = 'true';
+      const selfHosted = new ConfigService();
+      expect(selfHosted.isAuthorizedMediaDeliveryEnabled).toBe(false);
+      expect(selfHosted.isAuthorizedMediaPreparationEnabled).toBe(false);
     });
   });
 

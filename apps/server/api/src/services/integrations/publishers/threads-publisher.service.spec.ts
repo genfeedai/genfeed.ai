@@ -22,6 +22,7 @@ describe('ThreadsPublisherService', () => {
           useValue: {
             get: vi.fn().mockReturnValue(''),
             ingredientsEndpoint: 'https://assets.test',
+            isAuthorizedMediaDeliveryEnabled: true,
           },
         },
         {
@@ -238,7 +239,13 @@ describe('ThreadsPublisherService', () => {
         post: {
           category: PostCategory.VIDEO,
           description: 'Video caption',
-          ingredients: ['video-1'],
+          ingredients: [
+            {
+              id: 'video-1',
+              mediaUrl:
+                'https://authorized.test/ingredients/videos/random-storage-key?signature=fixture',
+            },
+          ],
         },
         postId: 'post-1',
       } as never);
@@ -246,7 +253,7 @@ describe('ThreadsPublisherService', () => {
       expect(mockThreadsService.publishVideo).toHaveBeenCalledWith(
         'org-1',
         'brand-1',
-        'https://assets.test/videos/video-1',
+        'https://authorized.test/ingredients/videos/random-storage-key?signature=fixture',
         'Video caption',
         undefined,
         undefined,
@@ -269,8 +276,18 @@ describe('ThreadsPublisherService', () => {
           category: PostCategory.IMAGE,
           description: 'Carousel caption',
           ingredients: [
-            { category: IngredientCategory.IMAGE, id: 'image-1' },
-            { category: IngredientCategory.VIDEO, id: 'video-1' },
+            {
+              category: IngredientCategory.IMAGE,
+              id: 'image-1',
+              mediaUrl:
+                'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+            },
+            {
+              category: IngredientCategory.VIDEO,
+              id: 'video-1',
+              mediaUrl:
+                'https://authorized.test/ingredients/videos/random-storage-key?signature=fixture',
+            },
           ],
         },
         postId: 'post-1',
@@ -282,11 +299,11 @@ describe('ThreadsPublisherService', () => {
         [
           {
             mediaType: 'IMAGE',
-            url: 'https://assets.test/images/image-1',
+            url: 'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
           },
           {
             mediaType: 'VIDEO',
-            url: 'https://assets.test/videos/video-1',
+            url: 'https://authorized.test/ingredients/videos/random-storage-key?signature=fixture',
           },
         ],
         'Carousel caption',
@@ -311,7 +328,13 @@ describe('ThreadsPublisherService', () => {
           category: PostCategory.VIDEO,
           description: 'Video reply',
           id: { toString: () => 'c1' },
-          ingredients: ['video-1'],
+          ingredients: [
+            {
+              id: 'video-1',
+              mediaUrl:
+                'https://authorized.test/ingredients/videos/random-storage-key?signature=fixture',
+            },
+          ],
           order: 0,
         },
       ];
@@ -330,7 +353,7 @@ describe('ThreadsPublisherService', () => {
       expect(mockThreadsService.publishVideo).toHaveBeenCalledWith(
         'org-1',
         'brand-1',
-        'https://assets.test/videos/video-1',
+        'https://authorized.test/ingredients/videos/random-storage-key?signature=fixture',
         'Video reply',
         'parent-thread-id',
         'credential-threads-1',

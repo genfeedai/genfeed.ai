@@ -53,8 +53,14 @@ vi.mock('@/lib/desktop/runtime', () => ({
   getDesktopBridge: mocks.getDesktopBridge,
 }));
 
+const localWorkspaceFlag = vi.hoisted(() => ({
+  isAvailable: true,
+  isEnabled: true,
+  isReady: true,
+}));
+
 vi.mock('@/lib/desktop/use-desktop-local-workspace-flag', () => ({
-  useDesktopLocalWorkspaceFlag: () => ({ isEnabled: true, isReady: true }),
+  useDesktopLocalWorkspaceFlag: () => localWorkspaceFlag,
 }));
 
 vi.mock('@/components/desktop/DesktopLocalProviderSettings', () => ({
@@ -84,6 +90,9 @@ const bootstrap = {
 describe('LocalDesktopContent', () => {
   beforeEach(() => {
     for (const mock of Object.values(mocks)) mock.mockReset();
+    localWorkspaceFlag.isAvailable = true;
+    localWorkspaceFlag.isEnabled = true;
+    localWorkspaceFlag.isReady = true;
     mocks.enableOfflineMode.mockResolvedValue(bootstrap);
     mocks.getBootstrap.mockResolvedValue(bootstrap);
     mocks.generateContent.mockResolvedValue({
@@ -142,6 +151,35 @@ describe('LocalDesktopContent', () => {
     expect(screen.getByText('Starting local workspace…')).toBeVisible();
     expect(screen.queryByText('Local provider settings')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Choose folder' })).toBeNull();
+  });
+
+  it('redirects to sign-in without starting local mode in cloud-only builds', async () => {
+    const originalLocation = window.location;
+    const assign = vi.fn();
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...originalLocation, assign },
+      writable: true,
+    });
+    localWorkspaceFlag.isAvailable = false;
+    localWorkspaceFlag.isEnabled = false;
+    localWorkspaceFlag.isReady = false;
+
+    try {
+      const { container } = render(<LocalDesktopContent />);
+
+      await waitFor(() => {
+        expect(assign).toHaveBeenCalledWith('/login');
+      });
+      expect(container).toBeEmptyDOMElement();
+      expect(mocks.enableOfflineMode).not.toHaveBeenCalled();
+    } finally {
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: originalLocation,
+        writable: true,
+      });
+    }
   });
 
   it('activates local mode explicitly and shows the selected workspace', async () => {

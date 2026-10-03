@@ -1,5 +1,6 @@
 import { EvaluationReadModule } from '@api/collections/evaluations/evaluation-read.module';
 import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
+import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 /**
  * Posts Module
  * Published content tracking: schedule posts, track post status, manage recurring posts,
@@ -72,6 +73,7 @@ import { Module } from '@nestjs/common';
     ReviewablePostsService,
   ],
   imports: [
+    MediaUrlsModule,
     PlatformSettingsModule,
     EvaluationReadModule,
     PostGenerationModule,

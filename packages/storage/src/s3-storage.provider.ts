@@ -27,12 +27,12 @@ import {
   resolveContainedPathWithoutSymlinks,
 } from './path-containment';
 import type {
-  BoundedStorageProvider,
   FileEntry,
   ListOptions,
   StorageObject,
   StorageProviderOptions,
   StorageReadOptions,
+  VersionedStorageProvider,
 } from './storage.provider';
 
 const createStorageError = (message: string) => new Error(message);
@@ -91,7 +91,7 @@ function normalizeCdnUrl(value: string | undefined): string | undefined {
   return stripTrailingSlashes(trimmed);
 }
 
-export class S3StorageProvider implements BoundedStorageProvider {
+export class S3StorageProvider implements VersionedStorageProvider {
   private readonly client: S3Client;
   private readonly bucket: string;
   private readonly region: string;
@@ -122,7 +122,20 @@ export class S3StorageProvider implements BoundedStorageProvider {
     filePath: string,
     options: StorageReadOptions,
   ): Promise<Buffer> {
+    return (await this.read(filePath, options)).bytes;
+  }
+  async readVersionedBytes(
+    filePath: string,
+    options: StorageReadOptions & { expectedVersion?: string },
+  ): Promise<{ bytes: Buffer; version: string }> {
+    return this.read(filePath, options);
+  }
+  private async read(
+    filePath: string,
+    options: StorageReadOptions & { expectedVersion?: string },
+  ): Promise<{ bytes: Buffer; version: string }> {
     const context = createStorageReadContext(options);
+    let token = '';
     let body: Readable | undefined;
     let lifecycle: StorageReadBodyLifecycle | undefined;
     let primary: StorageReadError | undefined;
@@ -156,6 +169,12 @@ export class S3StorageProvider implements BoundedStorageProvider {
         head.VersionId !== 'null'
           ? head.VersionId
           : undefined;
+      token = version ? `s3:v:${version}` : `s3:e:${head.ETag}`;
+      if (
+        options.expectedVersion !== undefined &&
+        options.expectedVersion !== token
+      )
+        throw new StorageReadError('storage_read_changed');
       const response = await this.client.send(
         new GetObjectCommand({
           Bucket: this.bucket,
@@ -207,7 +226,7 @@ export class S3StorageProvider implements BoundedStorageProvider {
     }
     if (primary) throw primary;
     if (!result) throw new StorageReadError('storage_read_unavailable');
-    return result;
+    return { bytes: result, version: token };
   }
 
   async upload(

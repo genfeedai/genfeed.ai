@@ -206,6 +206,20 @@ describe('app next.config', () => {
     expect(redirects?.some((redirect) => redirect.source === '/')).toBe(false);
   });
 
+  it('redirects retired Analytics trends routes to Discovery', async () => {
+    const redirects = await config.redirects?.();
+    expect(redirects).toContainEqual({
+      destination: '/:orgSlug/:brandSlug/discovery/trends/:path*',
+      permanent: true,
+      source: '/:orgSlug/:brandSlug/analytics/trends/:path*',
+    });
+    expect(redirects).toContainEqual({
+      destination: '/:orgSlug/:brandSlug/discovery/trend-turnover',
+      permanent: true,
+      source: '/:orgSlug/:brandSlug/analytics/trend-turnover',
+    });
+  });
+
   it('redirects dead bare /review CTAs to publish/review', async () => {
     const redirects = await config.redirects?.();
     expect(redirects).toContainEqual({

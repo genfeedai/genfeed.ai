@@ -2,7 +2,6 @@ import type {
   MultiPostSchema,
   PostModalSchema,
   PromptTextareaSchema,
-  ThreadModalSchema,
 } from '@genfeedai/client/schemas';
 import type {
   AssetScope,
@@ -49,9 +48,8 @@ import type { Brand } from '@genfeedai/models/organization/brand.model';
 import type { CrunVideoPromptBinding } from '@genfeedai/props/studio/prompt-bar.props';
 import type { ContentProps } from '@props/layout/content.props';
 import type { GallerySelectItem } from '@props/modals/modal-gallery.props';
-import type React from 'react';
 import type { ReactNode } from 'react';
-import type { FieldArrayWithId, UseFormReturn } from 'react-hook-form';
+import type { UseFormReturn } from 'react-hook-form';
 
 /**
  * Base props for modal components
@@ -223,13 +221,18 @@ export interface ModalPostProps extends ModalVisibilityProps {
   credential?: ICredential | null;
   credentials?: ICredential[];
   parentPost?: IPost | null;
-  postFormat?: PostFormat;
   defaultPlatform?: Platform;
   onConfirm?: () => void;
   onClose?: () => void;
   onCreated?: (postId: string) => void; // For draft creation workflow
   showViewDetailsButton?: boolean;
   onViewDetails?: () => void;
+  /**
+   * Destination-first composer: pick one or more connected accounts (or the
+   * Article / Newsletter destinations, which hand off to their own editors)
+   * instead of a single channel + account.
+   */
+  isComposer?: boolean;
 }
 
 /** The batch publish modal always renders as `ModalEnum.POST_BATCH`. */
@@ -239,45 +242,6 @@ export interface PostMetadataOverlayProps {
   post: IPost | null;
   onConfirm?: () => void;
   onClose?: () => void;
-}
-
-export interface ModalCreateThreadProps {
-  ingredient?: IIngredient | null;
-  credential?: ICredential | null;
-  credentials?: ICredential[];
-  onConfirm?: () => void;
-  onClose?: () => void;
-}
-
-export interface ModalCreateThreadSettingsProps {
-  form: UseFormReturn<ThreadModalSchema>;
-  credentials: ICredential[];
-  credentialOptions: { label: string; value: string }[];
-  browserTimezone: string;
-}
-
-export interface ModalCreateThreadPostsListProps {
-  form: UseFormReturn<ThreadModalSchema>;
-  fields: FieldArrayWithId<ThreadModalSchema, 'posts', 'id'>[];
-  charLimit: number;
-  /**
-   * What the selected channel does with media on a follow-up: attach it, or
-   * publish the text alone because its comment API takes no media.
-   */
-  isCommentMediaSupported: boolean;
-  onAddPost: () => void;
-  onRemovePost: (index: number) => void;
-  onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-  onPickMedia: (index: number) => void;
-  onClearMedia: (index: number) => void;
-  /** Raw input value; the composer parses and clamps it. */
-  onChangeDelay: (index: number, value: string) => void;
-}
-
-export interface ModalCreateThreadPreviewProps {
-  fields: FieldArrayWithId<ThreadModalSchema, 'posts', 'id'>[];
-  form: UseFormReturn<ThreadModalSchema>;
-  charLimit: number;
 }
 
 export interface ModalPostHeaderProps {
@@ -350,7 +314,32 @@ export interface ModalPostSimpleHeaderProps {
   description: string;
 }
 
+/** Non-social destinations offered next to the connected accounts. */
+export type ComposerDestination = 'article' | 'newsletter';
+
+export interface ModalPostDestinationsProps {
+  credentials: ICredential[];
+  selectedCredentialIds: string[];
+  destination: ComposerDestination | null;
+  isDisabled: boolean;
+  onToggleCredential: (credentialId: string) => void;
+  onSelectDestination: (destination: ComposerDestination) => void;
+}
+
+export interface ModalPostComposerFieldsState
+  extends ModalPostDestinationsProps {
+  /** Any selected account is on X, so the thread option applies. */
+  hasXTarget: boolean;
+  isThread: boolean;
+  /** X text over 280 characters publishes as a long post (derived). */
+  isLongPost: boolean;
+  /** Posts the thread will be split into; 0 when the text is empty. */
+  threadItemCount: number;
+  onThreadChange: (isThread: boolean) => void;
+}
+
 export interface ModalPostSimpleFieldsProps {
+  composer?: ModalPostComposerFieldsState;
   form: UseFormReturn<PostModalSchema>;
   credentials: ICredential[];
   isEditMode: boolean;
@@ -372,6 +361,11 @@ export interface ModalPostSimpleActionsProps {
   isFormValid: boolean;
   isEditMode: boolean;
   isThreadReply: boolean;
+  /** The composer is aimed at Article or Newsletter; submit hands off. */
+  isHandoff?: boolean;
+  /** The composer will create an X thread instead of one post per account. */
+  isThread?: boolean;
+  onContinue?: () => void;
   showViewDetailsButton: boolean;
   onViewDetails?: () => void;
   onViewDetailsClick: () => void;

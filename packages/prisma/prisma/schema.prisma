@@ -9004,3 +9004,26 @@ model SystemEventDelivery {
   @@index([isDeleted, deliveredAt, skippedAt, nextAttemptAt], map: "system_event_deliveries_due_idx")
   @@map("system_event_deliveries")
 }
+
+/// Durable prepared bytes; never stores an expiring URL. Authorization remains
+/// on the owning record and is rechecked whenever a grant is issued.
+model MediaDeliveryVariant {
+  id             String   @id @default(cuid())
+  organizationId String
+  ingredientId   String
+  sourceIdentity String
+  sourceKey      String
+  sourceVersion  Int
+  policyVersion  Int
+  purpose        String
+  state          String   @default("PENDING")
+  storageKey     String?
+  failureCode    String?
+  isDeleted      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, ingredientId, sourceIdentity, policyVersion, purpose], map: "media_delivery_variant_identity")
+  @@index([organizationId, ingredientId, isDeleted])
+  @@map("media_delivery_variants")
+}

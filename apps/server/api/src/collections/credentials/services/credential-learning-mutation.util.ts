@@ -191,7 +191,7 @@ async function lockCredentialSources(
     ),
   ].sort())
     await tx.$queryRaw(
-      Prisma.sql`SELECT "id" FROM "organizations" WHERE "id" = ${id} AND "isDeleted" = false FOR UPDATE`,
+      Prisma.sql`SELECT "id" FROM "organizations" WHERE "id" = ${id} AND "isDeleted" = false FOR NO KEY UPDATE`,
     );
   for (const brandId of [
     ...new Set(

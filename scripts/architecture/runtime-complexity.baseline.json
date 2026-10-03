@@ -12,7 +12,7 @@
     "symbol": "AgentTransfersService.create"
   },
   {
-    "actual": 1154,
+    "actual": 1153,
     "file": "apps/server/api/src/collections/articles/services/articles.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/articles/services/articles.service.ts"
@@ -94,12 +94,6 @@
     "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts"
-  },
-  {
-    "actual": 16,
-    "file": "apps/server/api/src/collections/videos/services/avatar-video-generation.service.ts",
-    "metric": "constructor-dependencies",
-    "symbol": "AvatarVideoGenerationService.constructor"
   },
   {
     "actual": 192,
@@ -228,12 +222,6 @@
     "symbol": "apps/server/api/src/services/integrations/meta-ads/services/meta-ads.service.ts"
   },
   {
-    "actual": 17,
-    "file": "apps/server/api/src/services/integrations/publishers/publisher-factory.service.ts",
-    "metric": "constructor-dependencies",
-    "symbol": "PublisherFactoryService.constructor"
-  },
-  {
     "actual": 1134,
     "file": "apps/server/api/src/services/integrations/stripe/services/stripe.service.ts",
     "metric": "file-lines",
@@ -336,7 +324,7 @@
     "symbol": "PlatformSchedulesProcessor.constructor"
   },
   {
-    "actual": 1071,
+    "actual": 1067,
     "file": "apps/server/workers/src/services/scheduled-post-delivery.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/workers/src/services/scheduled-post-delivery.service.ts"

@@ -18,6 +18,22 @@ describe('ConfigService (Files)', () => {
     vi.clearAllMocks();
   });
 
+  it.each([
+    ['true', 'true', true],
+    ['true', undefined, false],
+    ['false', 'true', false],
+  ] as const)(
+    'activates random media storage only for cloud=%s and issuer=%s',
+    (cloud, flag, enabled) => {
+      process.env.GENFEED_CLOUD = cloud;
+      if (flag === undefined) delete process.env.GENFEEDAI_MEDIA_ISSUER_ENABLED;
+      else process.env.GENFEEDAI_MEDIA_ISSUER_ENABLED = flag;
+      expect(new ConfigService().isAuthorizedMediaDeliveryEnabled).toBe(
+        enabled,
+      );
+    },
+  );
+
   it('should be defined', () => {
     const service = new ConfigService();
     expect(service).toBeDefined();

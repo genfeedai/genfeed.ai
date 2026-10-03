@@ -5,6 +5,7 @@ import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { verifyHtmlPublish } from '@api/services/integrations/publishers/publisher-verification.util';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -34,6 +35,33 @@ export class GhostPublisherService extends BasePublisherService {
    * Uses post.description as HTML content and post.label as title.
    * If media is present, the first image is used as the featured image.
    */
+  async verifyPublished(
+    context: PublishContext,
+    attemptStartedAt: Date,
+  ): Promise<PublishResult | null> {
+    const status = context.isDraft ? 'draft' : 'published';
+    const found = await verifyHtmlPublish(
+      context,
+      attemptStartedAt,
+      (cursor) =>
+        this.ghostService.listPublishVerificationPage(
+          context,
+          attemptStartedAt,
+          cursor,
+        ),
+      status,
+    );
+    if (!found) return null;
+    const result = this.createSuccessResult(
+      found.id,
+      this.platform,
+      found.url || this.buildPostUrl(found.id, context.credential),
+    );
+    return context.isDraft === true
+      ? { ...result, isProviderDraft: true }
+      : result;
+  }
+
   async publish(context: PublishContext): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const { post, credential } = context;

@@ -56,7 +56,7 @@ export class ApifyYouTubeService {
         `${this.constructorName}.getYouTubeTrends failed`,
         error,
       );
-      return [];
+      throw error;
     }
   }
 
@@ -85,7 +85,7 @@ export class ApifyYouTubeService {
         `${this.constructorName}.getYouTubeVideos failed`,
         error,
       );
-      return [];
+      throw error;
     }
   }
 

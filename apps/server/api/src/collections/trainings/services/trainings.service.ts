@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
@@ -13,6 +14,8 @@ import { scopedWhere } from '@api/index';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { requireStoredMediaKey } from '@api/services/media-urls/media-delivery-policy.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
@@ -29,7 +32,12 @@ import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 import * as archiver from 'archiver';
 
 type ZipArchiveConstructor = new (options: {
@@ -74,6 +82,8 @@ export class TrainingsService extends BaseService<
     private readonly replicateService: ReplicateService,
     private readonly websocketService: NotificationsPublisherService,
     private readonly memoryMonitorService: MemoryMonitorService,
+    @Optional()
+    private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
   ) {
     super(prisma, 'training', logger);
   }
@@ -422,10 +432,15 @@ export class TrainingsService extends BaseService<
   async createTrainingZip(
     trainingId: string,
     sourceImages: { id: string; metadata: { extension: string } }[],
+    organizationId?: string,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(url, { imageCount: sourceImages.length, trainingId });
 
+    const sourceKeys = await this.readTrainingSourceKeys(
+      sourceImages,
+      organizationId,
+    );
     // Monitor memory before starting
     this.memoryMonitorService.checkMemory();
 
@@ -475,11 +490,17 @@ export class TrainingsService extends BaseService<
         // Queue download file operation in files.genfeed service
         const downloadJob = await this.fileQueueService.processFile({
           ingredientId: trainingId,
-          organizationId: 'system',
+          organizationId: this.configService.isAuthorizedMediaDeliveryEnabled
+            ? (organizationId ?? 'system')
+            : 'system',
           params: {
             index: i,
             type: 'trainings',
-            url: `${this.configService.ingredientsEndpoint}/images/${id}`,
+            ...(sourceKeys.has(id)
+              ? { sourceStorageKey: sourceKeys.get(id) }
+              : {
+                  url: `${this.configService.ingredientsEndpoint}/images/${id}`,
+                }),
           },
           type: 'download-file',
           userId: 'system',
@@ -541,19 +562,68 @@ export class TrainingsService extends BaseService<
       void archive.finalize();
     });
 
-    // Upload zip to S3 under trainings/<trainingId>
-    const s3Key = `${trainingId}/${zipFileName}`;
-    await this.filesClientService.uploadToS3(s3Key, 'trainings', {
-      path: zipPath,
-      type: FileInputType.FILE,
-    });
-
-    const uploadedUrl = `${this.configService.ingredientsEndpoint}/trainings/${s3Key}`;
+    const uploadedUrl = await this.uploadTrainingArchive(
+      trainingId,
+      zipFileName,
+      zipPath,
+    );
 
     // Clean up temp file
     fs.unlinkSync(zipPath);
 
     return uploadedUrl;
+  }
+
+  private async readTrainingSourceKeys(
+    sourceImages: TrainingSourceImage[],
+    organizationId?: string,
+  ): Promise<Map<string, string>> {
+    const sourceKeys = new Map<string, string>();
+    if (!this.configService.isAuthorizedMediaDeliveryEnabled) return sourceKeys;
+    if (!organizationId || !this.authorizedMediaUrls)
+      throw new Error('An authorized training organization is required');
+    const sources = await this.authorizedMediaUrls.readSources(
+      organizationId,
+      sourceImages.map((source) => source.id),
+    );
+    if (
+      sources.length !==
+        new Set(sourceImages.map((source) => source.id)).size ||
+      sources.some((source) => source.category !== IngredientCategory.IMAGE)
+    )
+      throw new Error('Training sources are unavailable');
+    for (const source of sources)
+      sourceKeys.set(source.id, requireStoredMediaKey(source));
+    return sourceKeys;
+  }
+
+  private async uploadTrainingArchive(
+    trainingId: string,
+    zipFileName: string,
+    zipPath: string,
+  ): Promise<string> {
+    // Upload zip to S3 under trainings/<trainingId>.
+    const s3Key = this.configService.isAuthorizedMediaDeliveryEnabled
+      ? `${trainingId}/${randomUUID()}.zip`
+      : `${trainingId}/${zipFileName}`;
+    const uploaded = await this.filesClientService.uploadToS3(
+      s3Key,
+      'trainings',
+      {
+        path: zipPath,
+        type: FileInputType.FILE,
+      },
+    );
+
+    if (this.configService.isAuthorizedMediaDeliveryEnabled) {
+      const storageKey = uploaded.s3Key;
+      if (typeof storageKey !== 'string' || storageKey.length === 0)
+        throw new Error('Training archive has no canonical stored key');
+      return this.filesClientService.getPresignedDownloadUrlForObjectKey(
+        storageKey,
+      );
+    }
+    return `${this.configService.ingredientsEndpoint}/trainings/${s3Key}`;
   }
 
   /**

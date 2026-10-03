@@ -184,7 +184,7 @@ describe('LazyModal', () => {
 
   it('should have correct number of exported modals', () => {
     const exports = Object.keys(LazyModals);
-    // 46 -> 47: LazyModalNewsletter added for manual newsletter creation (#5349).
-    expect(exports.length).toBe(47); // Count of all exported modals
+    // 47 -> 46: LazyModalCreateThread removed; threads come from the post composer (#5980).
+    expect(exports.length).toBe(46); // Count of all exported modals
   });
 });

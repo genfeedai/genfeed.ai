@@ -95,8 +95,6 @@ export const APP_ROUTES = {
     PERFORMANCE_LAB: '/analytics/performance-lab',
     POSTS: '/analytics/posts',
     STREAKS: '/analytics/streaks',
-    TREND_TURNOVER: '/analytics/trend-turnover',
-    TRENDS: '/analytics/trends',
   },
   AGENT: {
     ROOT: '/agent',
@@ -142,6 +140,9 @@ export const APP_ROUTES = {
      */
     OVERVIEW: '/discovery/overview',
     ROOT: '/discovery',
+    TREND_TURNOVER: '/discovery/trend-turnover',
+    /** Market trends: topics, viral videos, hashtags, sounds, source health. */
+    TRENDS: '/discovery/trends',
   },
   /**
    * Legacy long-form editor aliases retained for existing deep links. New
@@ -259,13 +260,11 @@ export const APP_ROUTES = {
      * (draft, scheduled, pending, processing, published, failed) is a query
      * param filter on this single route — see
      * `createPublishingPostsFilterRoute` — never a dedicated path.
-     * - List: `/publishing/posts`
-     * - New: `/publishing/posts/new`
+     * - List: `/publishing/posts` (New Post opens the composer modal)
      * - Editor: `/publishing/posts/:id` (social post today; article/newsletter
      *   can share this path once kind resolution is wired)
      */
     POSTS: '/publishing/posts',
-    POSTS_NEW: '/publishing/posts/new',
     /**
      * Remix is a contextual **action** (Discovery/Library button), not a module
      * page. This path is the deep-link target for that action only — never a

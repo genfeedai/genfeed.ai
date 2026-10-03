@@ -139,12 +139,12 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/agent/onboarding/:threadId': 'Onboarding',
   '/:orgSlug/:brandSlug/analytics/brands/:id': 'Brand Details',
   '/:orgSlug/:brandSlug/analytics/brands/:id/platforms/:platform': ':platform',
-  '/:orgSlug/:brandSlug/analytics/trends/detail/:id': 'Trend Detail',
-  '/:orgSlug/:brandSlug/analytics/trends/platforms/:platform':
-    ':platform Trends',
   '/:orgSlug/:brandSlug/analytics': 'Overview',
   '/:orgSlug/:brandSlug/analytics/accounts': 'Accounts',
   '/:orgSlug/:brandSlug/analytics/accounts/:id': 'Account',
+  '/:orgSlug/:brandSlug/discovery/trends/detail/:id': 'Trend Detail',
+  '/:orgSlug/:brandSlug/discovery/trends/platforms/:platform':
+    ':platform Trends',
   '/:orgSlug/:brandSlug/edit/article/:id': 'Article',
   '/:orgSlug/:brandSlug/edit/newsletter/:id': 'Newsletter',
   '/:orgSlug/:brandSlug/library': 'Overview',
@@ -174,7 +174,6 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/automation/content-runs/:runId': 'Content Run',
   '/:orgSlug/:brandSlug/automation/library/:type': ':type',
   '/:orgSlug/:brandSlug/publishing/posts': 'Posts',
-  '/:orgSlug/:brandSlug/publishing/posts/new': 'New post',
   '/:orgSlug/:brandSlug/publishing/posts/:id': 'Content',
   '/:orgSlug/:brandSlug/publishing/campaigns': 'Campaigns',
   '/:orgSlug/:brandSlug/publishing/campaigns/new': 'New Campaign',
@@ -195,7 +194,6 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/publishing/campaigns/:id/ads': 'Ads',
   '/:orgSlug/~/publishing/campaigns/:id/edit': 'Edit',
   '/:orgSlug/~/publishing/posts': 'Posts',
-  '/:orgSlug/~/publishing/posts/new': 'New post',
   '/:orgSlug/~/publishing/posts/:id': 'Content',
   '/:orgSlug/~/publishing/content': 'Content',
   '/:orgSlug/~/publishing/review': 'Approval queue',
@@ -267,9 +265,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
 
 const BREADCRUMB_PARENT_OVERRIDES = Object.freeze({
   // Content desk lives under Posts, not Overview.
-  '/:orgSlug/:brandSlug/publishing/posts/new': 'Posts',
   '/:orgSlug/:brandSlug/publishing/posts/:id': 'Posts',
-  '/:orgSlug/~/publishing/posts/new': 'Posts',
   '/:orgSlug/~/publishing/posts/:id': 'Posts',
   '/:orgSlug/:brandSlug/publishing/campaigns/new': 'Campaigns',
   '/:orgSlug/:brandSlug/publishing/campaigns/compare': 'Campaigns',
@@ -291,16 +287,12 @@ const BREADCRUMB_PARENT_OVERRIDES = Object.freeze({
 } as const satisfies Readonly<Record<string, string>>);
 
 const BREADCRUMB_ROOT_HREF_OVERRIDES = Object.freeze({
-  '/:orgSlug/:brandSlug/publishing/posts/new': '/publishing/overview',
   '/:orgSlug/:brandSlug/publishing/posts/:id': '/publishing/overview',
-  '/:orgSlug/~/publishing/posts/new': '/publishing/overview',
   '/:orgSlug/~/publishing/posts/:id': '/publishing/overview',
 } as const satisfies Readonly<Record<string, string>>);
 
 const BREADCRUMB_PARENT_HREF_OVERRIDES = Object.freeze({
-  '/:orgSlug/:brandSlug/publishing/posts/new': '/publishing/posts',
   '/:orgSlug/:brandSlug/publishing/posts/:id': '/publishing/posts',
-  '/:orgSlug/~/publishing/posts/new': '/publishing/posts',
   '/:orgSlug/~/publishing/posts/:id': '/publishing/posts',
   '/:orgSlug/:brandSlug/publishing/campaigns/new': '/publishing/campaigns',
   '/:orgSlug/:brandSlug/publishing/campaigns/compare': '/publishing/campaigns',
@@ -604,7 +596,12 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     telemetryClass: 'product',
   }),
   ...registerRoutes(
-    ['/:orgSlug/~/discovery/overview', '/:orgSlug/~/discovery/ads'],
+    [
+      '/:orgSlug/~/discovery/overview',
+      '/:orgSlug/~/discovery/trends',
+      '/:orgSlug/~/discovery/trend-turnover',
+      '/:orgSlug/~/discovery/ads',
+    ],
     {
       adapter: { key: 'discovery', status: 'embedded' },
       fallback: '/:orgSlug/~/discovery/overview',
@@ -700,7 +697,6 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       '/:orgSlug/~/publishing',
       '/:orgSlug/~/publishing/overview',
       '/:orgSlug/~/publishing/posts',
-      '/:orgSlug/~/publishing/posts/new',
       '/:orgSlug/~/publishing/posts/:id',
       '/:orgSlug/~/publishing/content',
       '/:orgSlug/~/publishing/review',
@@ -832,6 +828,10 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/:brandSlug/discovery/overview',
+      '/:orgSlug/:brandSlug/discovery/trends',
+      '/:orgSlug/:brandSlug/discovery/trends/detail/:id',
+      '/:orgSlug/:brandSlug/discovery/trends/platforms/:platform',
+      '/:orgSlug/:brandSlug/discovery/trend-turnover',
       '/:orgSlug/:brandSlug/discovery/ads',
     ],
     {
@@ -932,7 +932,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/publishing',
       '/:orgSlug/:brandSlug/publishing/overview',
       '/:orgSlug/:brandSlug/publishing/posts',
-      '/:orgSlug/:brandSlug/publishing/posts/new',
       '/:orgSlug/:brandSlug/publishing/posts/:id',
       '/:orgSlug/:brandSlug/publishing/content',
       '/:orgSlug/:brandSlug/publishing/review',
@@ -980,10 +979,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/analytics/hooks',
       '/:orgSlug/:brandSlug/analytics/outliers',
       '/:orgSlug/:brandSlug/analytics/performance-lab',
-      '/:orgSlug/:brandSlug/analytics/trends',
-      '/:orgSlug/:brandSlug/analytics/trends/detail/:id',
-      '/:orgSlug/:brandSlug/analytics/trends/platforms/:platform',
-      '/:orgSlug/:brandSlug/analytics/trend-turnover',
       '/:orgSlug/:brandSlug/analytics/streaks',
     ],
     {

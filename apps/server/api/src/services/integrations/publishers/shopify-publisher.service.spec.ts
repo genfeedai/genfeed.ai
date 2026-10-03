@@ -52,7 +52,13 @@ describe('ShopifyPublisherService', () => {
     brandId,
     category: PostCategory.IMAGE,
     description: '<p>Product description</p>',
-    ingredients: ['test-object-id'],
+    ingredients: [
+      {
+        id: 'test-object-id',
+        mediaUrl:
+          'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+      },
+    ],
     id: postId,
     label: 'My Product',
     organizationId: orgId,

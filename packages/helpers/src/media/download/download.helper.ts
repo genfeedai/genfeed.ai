@@ -14,13 +14,14 @@ function formatCategoryForFilename(category: string): string {
 
 export async function downloadIngredient(
   ingredient: IIngredient,
+  originalUrl: string,
 ): Promise<void> {
-  if (!ingredient.ingredientUrl) {
+  if (!originalUrl) {
     throw new Error('No download URL available');
   }
 
   try {
-    const response = await fetch(ingredient.ingredientUrl);
+    const response = await fetch(originalUrl);
     if (!response.ok) {
       throw new Error(
         `Failed to download ingredient (status ${response.status})`,
@@ -39,7 +40,7 @@ export async function downloadIngredient(
   } catch {
     // Fallback: use anchor element for cross-origin downloads
     const link = document.createElement('a');
-    link.href = ingredient.ingredientUrl;
+    link.href = originalUrl;
     link.download = `${(ingredient.metadata as IMetadata)?.label || 'genfeed'}-${formatCategoryForFilename(ingredient.category)}-${ingredient.id}`;
     link.target = '_blank';
     link.rel = 'noopener noreferrer';

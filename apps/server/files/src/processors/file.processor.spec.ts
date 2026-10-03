@@ -488,4 +488,54 @@ describe('FileProcessor', () => {
       );
     });
   });
+
+  it('signs the exact queued stored key fresh at execution and ignores stale URLs', async () => {
+    const key = 'ingredients/videos/raw%2Fsource?#.mp4';
+    const sign = vi
+      .fn()
+      .mockResolvedValue('https://s3.example/actual?Signature=fresh');
+    Object.defineProperty(processor, 's3Service', {
+      value: { ...s3Service, getPresignedDownloadUrlForStoredKey: sign },
+    });
+    await processor.handleDownloadFile(
+      createMockJob(
+        'download-file',
+        createJobData({
+          params: {
+            type: 'videos',
+            sourceStorageKey: key,
+            url: 'https://stale.example/expired',
+          },
+        }),
+      ),
+    );
+    expect(sign).toHaveBeenCalledWith(key, 300);
+    expect(httpService.get).toHaveBeenCalledWith(
+      'https://s3.example/actual?Signature=fresh',
+      expect.any(Object),
+    );
+  });
+
+  it('fails closed on an old tenant ID URL when authorized delivery is enabled', async () => {
+    Object.defineProperty(processor, 'configService', {
+      value: {
+        isAuthorizedMediaDeliveryEnabled: true,
+        ingredientsEndpoint: 'https://api.example.com/ingredients',
+      },
+    });
+    await expect(
+      processor.handleDownloadFile(
+        createMockJob(
+          'download-file',
+          createJobData({
+            params: {
+              type: 'videos',
+              url: 'https://api.example.com/ingredients/videos/old-id',
+            },
+          }),
+        ),
+      ),
+    ).rejects.toThrow('canonical');
+    expect(httpService.get).not.toHaveBeenCalled();
+  });
 });

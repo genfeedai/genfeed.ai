@@ -5,7 +5,9 @@ import type {
   IIngredient,
   IIngredientExportResult,
   IPost,
+  MediaDeliveryGrant,
 } from '@genfeedai/contracts/interfaces';
+import { downloadIngredient } from '@genfeedai/helpers/media/download/download.helper';
 import { Avatar } from '@genfeedai/models/ai/avatar.model';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { GIF } from '@genfeedai/models/ingredients/gif.model';
@@ -22,11 +24,13 @@ import {
   MusicSerializer,
   VideoSerializer,
 } from '@genfeedai/serializers';
+import { MediaPreviewBatchService } from '@services/content/media-preview-batch.service';
 import { PagesService } from '@services/content/pages.service';
 import {
   BaseService,
   type JsonApiResponseDocument,
 } from '@services/core/base.service';
+import { EnvironmentService } from '@services/core/environment.service';
 import { deserializeResource } from '@services/core/json-api';
 import axios from 'axios';
 
@@ -44,6 +48,52 @@ type IngredientModelConstructorMap = {
 export class IngredientsService<
   T extends Ingredient = Ingredient,
 > extends BaseService<T> {
+  private readonly previewBatch = new MediaPreviewBatchService(
+    (ids) => this.findByIds(ids),
+    (ids) => this.preparePreviews(ids),
+  );
+
+  public static async publicGrant(
+    id: string,
+    purpose: 'public-share' | 'public-og',
+    signal: AbortSignal,
+  ): Promise<MediaDeliveryGrant> {
+    const response = await axios.get<JsonApiResponseDocument>(
+      `${EnvironmentService.apiEndpoint}/ingredients/${encodeURIComponent(id)}/public-grant`,
+      { params: { purpose }, signal },
+    );
+    return deserializeResource<MediaDeliveryGrant>(response.data);
+  }
+
+  public previewGrant(
+    id: string,
+    signal: AbortSignal,
+  ): Promise<MediaDeliveryGrant | null> {
+    return this.previewBatch.request(id, signal);
+  }
+
+  public async originalGrant(id: string): Promise<MediaDeliveryGrant> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `${EnvironmentService.apiEndpoint}/ingredients/${encodeURIComponent(id)}/original-grant`,
+    );
+    const grant = deserializeResource<MediaDeliveryGrant>(response.data);
+    if (grant.state !== 'READY' || !grant.url)
+      throw new Error('Original media is unavailable');
+    return grant;
+  }
+
+  public async downloadOriginal(ingredient: IIngredient): Promise<void> {
+    const grant = await this.originalGrant(ingredient.id);
+    await downloadIngredient(ingredient, grant.url as string);
+  }
+
+  public async preparePreviews(ids: readonly string[]): Promise<void> {
+    await this.instance.post(
+      `${EnvironmentService.apiEndpoint}/ingredients/media-previews`,
+      { ids: [...ids].slice(0, 50) },
+    );
+  }
+
   public async exportMedia(id: string, watermark: boolean) {
     const response = await this.instance.post<JsonApiResponseDocument>(
       `/${id}/export`,

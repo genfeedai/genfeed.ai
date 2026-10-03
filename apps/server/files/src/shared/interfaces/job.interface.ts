@@ -62,6 +62,8 @@ export interface YoutubeCredential {
 }
 
 export interface YoutubeJobData extends BaseJobData {
+  /** Canonical key authorized by the API producer, never a browser input. */
+  sourceStorageKey?: string;
   postId: string;
   credential: YoutubeCredential;
   brandId?: string;
@@ -86,6 +88,7 @@ export interface VideoProcessingParams {
   materializeSource?: boolean;
   assetManifest?: IEditorRenderJobParams['assetManifest'];
   rendererVersion?: IEditorRenderJobParams['rendererVersion'];
+  editorSourceStorageKeys?: IEditorRenderJobParams['sourceStorageKeys'];
   snapshot?: IEditorRenderJobParams['snapshot'];
   editorRender?: IEditorRenderCorrelation;
 
@@ -115,6 +118,7 @@ export interface VideoProcessingParams {
     endY?: number;
   }>;
   music?: string; // Music ingredient ID
+  musicStorageKey?: string; // Canonical object key resolved by the scoped API producer
   musicVolume?: number; // 0-1 (converted from 0-100)
   isMuteVideoAudio?: boolean;
 
@@ -196,6 +200,8 @@ export interface FileFrame {
 }
 
 export interface FileProcessingParams {
+  /** Canonical key authorized by the API producer, signed at execution. */
+  sourceStorageKey?: string;
   // Download params
   url?: string;
   type?: string;

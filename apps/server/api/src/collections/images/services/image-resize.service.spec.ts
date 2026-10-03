@@ -96,6 +96,8 @@ describe('ImageResizeService', () => {
 
     expect(imagesService.findOne).toHaveBeenCalledWith({
       id: imageId,
+      isDeleted: false,
+      organizationId: user.organizationId,
       userId: user.userId,
     });
     expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(user, {
@@ -168,6 +170,8 @@ describe('ImageResizeService', () => {
 
     expect(imagesService.findOne).toHaveBeenCalledWith({
       id: imageId,
+      organizationId: legacyUser.organizationId,
+      isDeleted: false,
       userId: legacyUser.id,
     });
   });
@@ -198,5 +202,61 @@ describe('ImageResizeService', () => {
       'ImagesTransformationsController resizeImage failed',
       error,
     );
+  });
+
+  it('resolves a fresh canonical source URL for enabled processing', async () => {
+    const grantedUrl =
+      'https://cdn.example/ingredients/images/random-source.png?Signature=fresh';
+    const issueServerPublish = vi
+      .fn()
+      .mockResolvedValue(new Map([[imageId, grantedUrl]]));
+    Object.defineProperty(service, 'configService', {
+      value: {
+        ingredientsEndpoint: 'https://legacy.example',
+        isAuthorizedMediaDeliveryEnabled: true,
+      },
+    });
+    Object.defineProperty(service, 'authorizedMediaUrls', {
+      value: { issueServerPublish },
+    });
+    filesClientService.uploadToS3.mockResolvedValue({
+      s3Key: 'ingredients/images/random-output.jpg',
+      width: 1080,
+      height: 1920,
+    });
+    await service.resizeImage(imageId, user, { width: 1080, height: 1920 });
+    expect(imagesService.patch).toHaveBeenCalledWith(
+      resizedImageId,
+      expect.objectContaining({
+        s3Key: 'ingredients/images/random-output.jpg',
+      }),
+    );
+    expect(issueServerPublish).toHaveBeenCalledWith(user.organizationId, [
+      imageId,
+    ]);
+    expect(filesClientService.resizeImageFromUrl).toHaveBeenCalledWith(
+      grantedUrl,
+      expect.any(Object),
+    );
+  });
+
+  it('never dispatches an ID fallback when enabled source authorization fails', async () => {
+    Object.defineProperty(service, 'configService', {
+      value: {
+        ingredientsEndpoint: 'https://legacy.example',
+        isAuthorizedMediaDeliveryEnabled: true,
+      },
+    });
+    Object.defineProperty(service, 'authorizedMediaUrls', {
+      value: {
+        issueServerPublish: vi
+          .fn()
+          .mockRejectedValue(new Error('Source denied')),
+      },
+    });
+    await expect(
+      service.resizeImage(imageId, user, { width: 1080, height: 1920 }),
+    ).rejects.toThrow('Source denied');
+    expect(filesClientService.resizeImageFromUrl).not.toHaveBeenCalled();
   });
 });

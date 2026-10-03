@@ -15,6 +15,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { PresignedUploadDto } from '@api/collections/images/dto/presigned-upload.dto';
 import { UploadImageDto } from '@api/collections/images/dto/upload-image.dto';
 import { UploadNftDto } from '@api/collections/images/dto/upload-nft.dto';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -34,7 +35,10 @@ import {
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/contracts';
-import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
+import type {
+  IFileMetadata,
+  JsonApiSingleResponse,
+} from '@genfeedai/contracts/interfaces';
 import {
   IngredientSerializer,
   IngredientUploadSerializer,
@@ -130,7 +134,7 @@ export class ImagesUploadsController {
     file: Express.Multer.File;
     folder: string;
     key: string;
-  }): Promise<void> {
+  }): Promise<IFileMetadata> {
     const source = params.file.path
       ? createReadStream(
           /* lgtm[js/path-injection] contained via resolveContainedPath */
@@ -165,15 +169,22 @@ export class ImagesUploadsController {
           source,
           params.contentType,
         );
-        await this.filesClientService.uploadToS3(params.key, params.folder, {
-          type: FileInputType.URL,
-          url: presigned.publicUrl,
-        });
-        return;
+        const downloadUrl =
+          await this.filesClientService.getPresignedDownloadUrlForObjectKey(
+            presigned.s3Key,
+          );
+        return this.filesClientService.uploadToExistingObject(
+          presigned.s3Key,
+          params.folder,
+          {
+            type: FileInputType.URL,
+            url: downloadUrl,
+          },
+        );
       }
     }
 
-    await this.filesClientService.uploadStreamToS3(params.key, params.folder, {
+    return this.filesClientService.uploadStreamToS3(params.key, params.folder, {
       contentType: params.contentType,
       data: source,
       filename: params.file.originalname || 'upload',
@@ -189,6 +200,7 @@ export class ImagesUploadsController {
     private readonly solanaService: SolanaService,
     private readonly validationConfigService: ValidationConfigService,
     private readonly websocketService: NotificationsPublisherService,
+    private readonly ingredientsService: IngredientsService,
   ) {}
 
   @Post('upload')
@@ -278,12 +290,18 @@ export class ImagesUploadsController {
     const resolvedContentType = validatedFile.mimetype || contentType;
 
     try {
-      await this.transferUploadedMedia({
+      const uploaded = await this.transferUploadedMedia({
         contentType: resolvedContentType,
         file: validatedFile,
         folder,
         key: ingredientData.id,
       });
+      if (uploaded?.s3Key) {
+        await this.ingredientsService.patch(ingredientData.id, {
+          s3Key: uploaded.s3Key,
+        });
+        ingredientData.s3Key = uploaded.s3Key;
+      }
     } finally {
       unlinkImageUploadTemp(validatedFile.path);
     }
@@ -324,11 +342,22 @@ export class ImagesUploadsController {
       },
     );
 
-    await this.filesClientService.uploadToS3(ingredientData.id, 'images', {
-      contentType,
-      data: Buffer.from(res.data),
-      type: FileInputType.BUFFER,
-    });
+    const uploaded = await this.filesClientService.uploadToS3(
+      ingredientData.id,
+      'images',
+      {
+        contentType,
+        data: Buffer.from(res.data),
+        type: FileInputType.BUFFER,
+      },
+    );
+
+    if (uploaded?.s3Key) {
+      await this.ingredientsService.patch(ingredientData.id, {
+        s3Key: uploaded.s3Key,
+      });
+      ingredientData.s3Key = uploaded.s3Key;
+    }
 
     return serializeSingle(request, IngredientUploadSerializer, ingredientData);
   }

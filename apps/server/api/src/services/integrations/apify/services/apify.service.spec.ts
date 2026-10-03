@@ -501,12 +501,12 @@ describe('ApifyService', () => {
       });
     });
 
-    it('should return empty array when trend fetcher throws', async () => {
+    it('should rethrow when the trend fetcher throws', async () => {
       tiktokService.getTikTokTrends.mockRejectedValue(new Error('API error'));
 
-      const result = await service.getTrendingHashtags('tiktok');
-
-      expect(result).toEqual([]);
+      await expect(service.getTrendingHashtags('tiktok')).rejects.toThrow(
+        'API error',
+      );
     });
   });
 

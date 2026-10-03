@@ -102,17 +102,18 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/studio/editor', 'Studio', 'Editor'],
     ['/acme/moonrise/studio/editor/project-1', 'Studio', 'Project'],
     ['/acme/~/studio/editor', 'Studio', 'Editor'],
-    ['/acme/moonrise/analytics/trends', 'Analytics', 'Trends'],
+    ['/acme/moonrise/discovery/trends', 'Discovery', 'Trends'],
     [
-      '/acme/moonrise/analytics/trends/detail/trend-1',
-      'Analytics',
+      '/acme/moonrise/discovery/trends/detail/trend-1',
+      'Discovery',
       'Trend Detail',
     ],
     [
-      '/acme/moonrise/analytics/trends/platforms/instagram',
-      'Analytics',
+      '/acme/moonrise/discovery/trends/platforms/instagram',
+      'Discovery',
       'Instagram Trends',
     ],
+    ['/acme/moonrise/discovery/trend-turnover', 'Discovery', 'Trend Turnover'],
     ['/acme/moonrise/automation/workflows', 'Automation', 'Workflows'],
     ['/acme/moonrise/automation/workflows/new', 'Automation', 'New Workflow'],
     [
@@ -164,19 +165,6 @@ describe('workspace shell trusted registry', () => {
       leafLabel: 'Campaign',
       parentHref: '/publishing/campaigns',
       parentLabel: 'Campaigns',
-      rootLabel: 'Publishing',
-    });
-  });
-
-  it('keeps the new-post composer nested under Posts', () => {
-    expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/publishing/posts/new')
-        ?.breadcrumb,
-    ).toEqual({
-      leafLabel: 'New post',
-      parentHref: '/publishing/posts',
-      parentLabel: 'Posts',
-      rootHref: '/publishing/overview',
       rootLabel: 'Publishing',
     });
   });
@@ -335,8 +323,11 @@ describe('workspace shell trusted registry', () => {
       resolveWorkspaceShellRoute('/acme/moonrise/discovery/ads'),
     ).toMatchObject({ productClass: 'visual-data' });
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/analytics/trends'),
+      resolveWorkspaceShellRoute('/acme/moonrise/discovery/trends'),
     ).toMatchObject({ productClass: 'visual-data' });
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/analytics/trends'),
+    ).toBeNull();
     expect(
       resolveWorkspaceShellRoute('/admin/overview/analytics/business'),
     ).toMatchObject({ productClass: 'visual-data' });
@@ -500,7 +491,7 @@ describe('workspace shell trusted registry', () => {
 
   it('interpolates a safe fallback without widening scope', () => {
     const route = resolveWorkspaceShellRoute(
-      '/acme/moonrise/analytics/trends/detail/trend-1',
+      '/acme/moonrise/analytics/brands/brand-1',
     );
 
     expect(route).not.toBeNull();

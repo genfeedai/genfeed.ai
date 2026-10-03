@@ -18,6 +18,13 @@ import type {
   BeehiivSubscriberOutcome,
   BeehiivSubscribersResponse,
 } from '@api/services/integrations/beehiiv/interfaces/beehiiv.interface';
+import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
+import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { parseBeehiivVerificationPage } from '@api/services/integrations/publishers/publisher-article-verification-pages.util';
+import {
+  PROVIDER_VERIFICATION_PAGE_SIZE,
+  PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS,
+} from '@api/services/integrations/publishers/publisher-verification.util';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -65,6 +72,40 @@ export class BeehiivService {
     } catch (error: unknown) {
       this.rethrowProviderError(error, url);
     }
+  }
+
+  async listPublishVerificationPage(
+    context: PublishContext,
+    startedAt: Date,
+    cursor?: string,
+  ): Promise<ProviderVerificationPage> {
+    const credential = await this.getDecryptedApiKey(
+      context.organizationId,
+      context.brandId,
+      context.credential.id,
+    );
+    if (credential.publicationId !== context.credential.externalId)
+      throw new Error('Beehiiv verification account unavailable or changed');
+    const page = cursor ? Number(cursor) : 1;
+    const result = await firstValueFrom(
+      this.httpService.get<unknown>(
+        `${this.apiBase}/publications/${encodeURIComponent(credential.publicationId)}/posts`,
+        {
+          headers: { Authorization: `Bearer ${credential.apiKey}` },
+          params: {
+            limit: PROVIDER_VERIFICATION_PAGE_SIZE,
+            page,
+            expand: ['free_web_content'],
+            status: 'all',
+            order_by: 'created',
+            direction: 'desc',
+          },
+          timeout: PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS,
+          maxRedirects: 0,
+        },
+      ),
+    );
+    return parseBeehiivVerificationPage(result.data, page, startedAt);
   }
 
   /**

@@ -631,6 +631,7 @@ describe('Library asset lifecycle', () => {
       {
         publishVideoComplete: vi.fn(),
       } as unknown as NotificationsPublisherService,
+      ingredientsService,
     );
     videosUploadController = new VideosUploadController(
       filesClientService as unknown as FilesClientService,

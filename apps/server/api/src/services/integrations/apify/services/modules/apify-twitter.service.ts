@@ -47,7 +47,7 @@ export class ApifyTwitterService {
         `${this.constructorName}.getTwitterTrends failed`,
         error,
       );
-      return [];
+      throw error;
     }
   }
 

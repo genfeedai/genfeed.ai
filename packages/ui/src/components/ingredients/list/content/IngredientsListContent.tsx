@@ -16,6 +16,7 @@ import {
 } from '@genfeedai/contracts';
 import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
 import type { IngredientTimeGroupHeadingProps } from '@genfeedai/props/content/ingredient.props';
 import type { IngredientsListContentProps } from '@genfeedai/props/pages/ingredients-list.props';
 import {
@@ -25,7 +26,10 @@ import {
   getIngredientSizeLabel,
   isFailedIngredient,
 } from '@genfeedai/utils/media/ingredient-ledger.util';
-import { getIngredientPreviewUrl } from '@genfeedai/utils/media/ingredient-preview.util';
+import {
+  getIngredientPreviewUrl,
+  isRasterPreviewUrl,
+} from '@genfeedai/utils/media/ingredient-preview.util';
 import {
   getIngredientDisplayLabel,
   isVideoIngredient,
@@ -87,7 +91,12 @@ function isAudioReadyToPlay(ingredient: IIngredient): boolean {
 }
 
 function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
-  const previewUrl = getIngredientPreviewUrl(ingredient);
+  const grant = useAuthorizedMediaPreview(ingredient);
+  const previewUrl = grant
+    ? isRasterPreviewUrl(grant.url)
+      ? grant.url
+      : ''
+    : getIngredientPreviewUrl(ingredient);
   const label = getIngredientDisplayLabel(ingredient) || 'Asset preview';
   const isVideo = isVideoIngredient(ingredient);
   const assetType = getLibraryAssetType(ingredient.category);
@@ -149,6 +158,7 @@ function IngredientLedgerAssetCell({
 }: {
   ingredient: IIngredient;
 }) {
+  const grant = useAuthorizedMediaPreview(ingredient);
   const label = getIngredientDisplayLabel(ingredient);
   const failureReason = getIngredientFailureReason(ingredient);
   const promptText = ingredient.promptText?.trim();
@@ -184,7 +194,9 @@ function IngredientLedgerAssetCell({
         <AudioPreviewPlayer
           audioUrl={
             isAudioReadyToPlay(ingredient)
-              ? ingredient.ingredientUrl
+              ? grant
+                ? (grant.url ?? undefined)
+                : ingredient.ingredientUrl
               : undefined
           }
           label={label || 'Untitled asset'}

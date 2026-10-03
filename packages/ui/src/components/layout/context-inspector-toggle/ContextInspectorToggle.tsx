@@ -64,8 +64,10 @@ export function InspectorToggleFallback() {
   }
 
   return (
+    // h-12 matches the context sidebar rail header so both bottom borders
+    // form one continuous line across the shell.
     <div
-      className="flex min-h-11 shrink-0 justify-end border-b border-border px-4 py-1.5"
+      className="flex h-12 shrink-0 items-center justify-end border-b border-border px-4"
       data-testid="content-inspector-fallback"
     >
       <ContextInspectorToggle />

@@ -14,7 +14,7 @@ Last updated: 2026-04-01
 
 ### Name
 
-Genfeed.ai Browser Extension
+GenFeed
 
 ### Short Description
 

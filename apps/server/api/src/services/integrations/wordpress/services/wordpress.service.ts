@@ -1,4 +1,11 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
+import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { parseWordpressVerificationPage } from '@api/services/integrations/publishers/publisher-article-verification-pages.util';
+import {
+  PROVIDER_VERIFICATION_PAGE_SIZE,
+  PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS,
+} from '@api/services/integrations/publishers/publisher-verification.util';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -52,6 +59,48 @@ export class WordpressService {
       state,
     } as Record<string, string>);
     return `${this.baseUrl}/oauth2/authorize?${params.toString()}`;
+  }
+
+  async listPublishVerificationPage(
+    context: PublishContext,
+    startedAt: Date,
+    cursor?: string,
+  ): Promise<ProviderVerificationPage> {
+    const credential = await this.credentialsService.resolveBrandAccount({
+      organizationId: context.organizationId,
+      brandId: context.brandId,
+      credentialId: context.credential.id,
+      platform: CredentialPlatform.WORDPRESS,
+    });
+    if (
+      !credential?.accessToken ||
+      !credential.externalId ||
+      credential.externalId !== context.credential.externalId
+    )
+      throw new Error('WordPress verification account unavailable or changed');
+    const offset = cursor ? Number(cursor) : 0;
+    const result = await firstValueFrom(
+      this.httpService.get<unknown>(
+        `${this.baseUrl}/rest/v1.1/sites/${encodeURIComponent(credential.externalId)}/posts/`,
+        {
+          headers: {
+            Authorization: `Bearer ${EncryptionUtil.decrypt(credential.accessToken)}`,
+          },
+          params: {
+            context: 'edit',
+            status: 'any',
+            number: PROVIDER_VERIFICATION_PAGE_SIZE,
+            offset,
+            after: new Date(
+              Math.floor(startedAt.getTime() / 1000) * 1000 - 1000,
+            ).toISOString(),
+          },
+          timeout: PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS,
+          maxRedirects: 0,
+        },
+      ),
+    );
+    return parseWordpressVerificationPage(result.data, offset);
   }
 
   public async exchangeCodeForToken(

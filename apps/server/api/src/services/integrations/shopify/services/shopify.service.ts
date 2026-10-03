@@ -1,4 +1,8 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
+import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { parseShopifyVerificationPage } from '@api/services/integrations/publishers/publisher-article-verification-pages.util';
+import { PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS } from '@api/services/integrations/publishers/publisher-verification.util';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   IShopifyProduct,
@@ -51,6 +55,48 @@ export class ShopifyService {
       state,
     } as Record<string, string>);
     return `https://${normalizedShop}/admin/oauth/authorize?${params.toString()}`;
+  }
+
+  async listPublishVerificationPage(
+    context: PublishContext,
+    startedAt: Date,
+    cursor?: string,
+  ): Promise<ProviderVerificationPage> {
+    const credential = await this.credentialsService.resolveBrandAccount({
+      organizationId: context.organizationId,
+      brandId: context.brandId,
+      credentialId: context.credential.id,
+      platform: CredentialPlatform.SHOPIFY,
+    });
+    if (
+      !credential?.accessToken ||
+      !credential.externalHandle ||
+      credential.externalHandle !== context.credential.externalHandle
+    )
+      throw new Error('Shopify verification account unavailable or changed');
+    const shop = normalizeShopifyShopDomain(credential.externalHandle);
+    const result = await firstValueFrom(
+      this.httpService.post<unknown>(
+        `https://${shop}/admin/api/${this.apiVersion}/graphql.json`,
+        {
+          query: `query VerifyPublished($after: String, $query: String!) { products(first: 100, after: $after, query: $query, sortKey: CREATED_AT) { edges { node { id title descriptionHtml createdAt status handle onlineStoreUrl images(first: 1) { nodes { id } } } } pageInfo { hasNextPage endCursor } } }`,
+          variables: {
+            after: cursor ?? null,
+            query: `created_at:>=${new Date(Math.floor(startedAt.getTime() / 1000) * 1000 - 1000).toISOString()}`,
+          },
+        },
+        {
+          headers: {
+            'X-Shopify-Access-Token': EncryptionUtil.decrypt(
+              credential.accessToken,
+            ),
+          },
+          timeout: PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS,
+          maxRedirects: 0,
+        },
+      ),
+    );
+    return parseShopifyVerificationPage(result.data);
   }
 
   public async exchangeCodeForToken(

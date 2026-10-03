@@ -17,6 +17,7 @@ const RETRYABLE_ERROR_PATTERNS = [
   'rate_limited',
   'transient_failure',
   'timeout',
+  'timed out',
   'ETIMEDOUT',
   'ECONNRESET',
   'ECONNREFUSED',

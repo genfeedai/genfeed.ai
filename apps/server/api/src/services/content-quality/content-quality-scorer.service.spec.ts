@@ -1,6 +1,11 @@
+import {
+  formatScorerHarnessCriteria,
+  TEXT_SCORING_PROMPT,
+} from '@api/services/content-quality/content-quality-scorer.prompts';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
 import { QualityStatus } from '@genfeedai/contracts';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMocks() {
@@ -42,6 +47,70 @@ describe('ContentQualityScorerService', () => {
       mocks.ingredientsService as never,
       mocks.postsService as never,
     );
+  });
+
+  describe('scoreText', () => {
+    it('sends the unchanged text scoring prompt with the production model and temperature', async () => {
+      await service.scoreText('Hello', 'post');
+
+      expect(
+        mocks.llmDispatcherService.completeStructured,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          messages: [
+            {
+              content: `${TEXT_SCORING_PROMPT}\n\nContent:\nHello`,
+              role: 'user',
+            },
+          ],
+          model: LLM_DEFAULTS.background,
+          temperature: 0.3,
+        }),
+        undefined,
+      );
+    });
+
+    it('puts the brand criteria and example sections before the content', async () => {
+      await service.scoreText(
+        'Hello',
+        'post',
+        formatScorerHarnessCriteria(
+          ['Mentions the product'],
+          ['Good example'],
+          ['Bad example'],
+        ),
+      );
+
+      const expectedPrompt = [
+        TEXT_SCORING_PROMPT,
+        'Brand evaluation criteria (score against these as well):\n- Mentions the product',
+        'On-brand examples (content in this voice scores higher):\n- Good example',
+        'Off-brand examples (content like this scores lower):\n- Bad example',
+        'Content:\nHello',
+      ].join('\n\n');
+      expect(
+        mocks.llmDispatcherService.completeStructured,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          messages: [{ content: expectedPrompt, role: 'user' }],
+        }),
+        undefined,
+      );
+    });
+  });
+
+  describe('formatScorerHarnessCriteria', () => {
+    it('returns an empty string for empty criteria and example lists', () => {
+      expect(formatScorerHarnessCriteria([], [], [])).toBe('');
+    });
+
+    it('truncates a 300-character example to 280 characters ending in an ellipsis', () => {
+      const formatted = formatScorerHarnessCriteria([], ['x'.repeat(300)], []);
+
+      expect(formatted).toBe(
+        `On-brand examples (content in this voice scores higher):\n- ${'x'.repeat(279)}…`,
+      );
+    });
   });
 
   describe('scoreAndTag', () => {

@@ -6,3 +6,4 @@ export * from '@serializers/server/ingredients/ingredient.serializer';
 export * from '@serializers/server/ingredients/metadata.serializer';
 export * from '@serializers/server/ingredients/music.serializer';
 export * from '@serializers/server/ingredients/video.serializer';
+export * from './media-delivery-grant.serializer';

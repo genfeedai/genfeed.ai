@@ -15,6 +15,7 @@ const headersMock = vi.fn(async () => new Headers());
 
 vi.mock('@genfeedai/auth-client/server', () => ({
   getBetterAuthServerToken: getBetterAuthServerTokenMock,
+  isBetterAuthEnabled: () => true,
 }));
 
 vi.mock('next/headers', () => ({
@@ -241,6 +242,7 @@ describe('loadProtectedBootstrap', () => {
       getBetterAuthServerToken: vi.fn(async () => {
         throw new Error('auth middleware missing');
       }),
+      isBetterAuthEnabled: () => true,
     }));
 
     const { getServerAuthToken, loadProtectedBootstrap } = await import(
@@ -263,6 +265,7 @@ describe('loadProtectedBootstrap', () => {
       getBetterAuthServerToken: vi.fn(async () => {
         throw new Error('auth middleware missing');
       }),
+      isBetterAuthEnabled: () => true,
     }));
 
     const { getServerAuthToken, loadProtectedBootstrap } = await import(

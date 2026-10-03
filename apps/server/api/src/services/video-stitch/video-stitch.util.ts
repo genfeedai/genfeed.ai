@@ -13,6 +13,7 @@ import {
   VIDEO_STITCH_LIMITS,
 } from '@genfeedai/contracts/constants';
 import type { IVideoMergeSettings } from '@genfeedai/contracts/interfaces';
+import { assertStoredObjectKey } from '@libs/security/stored-object-key';
 import { BadRequestException } from '@nestjs/common';
 
 const STITCH_STORAGE_KEY = /^ingredients\/(videos|avatars)\/[^\s]+$/;
@@ -180,11 +181,18 @@ export function isMuteDeferredToCaptions(
 }
 
 /** Stored object the worker downloads for a clip. */
-export function resolveStitchClipStorageKey(clip: {
-  category: string;
-  id: string;
-  s3Key: string | null;
-}): string {
+export function resolveStitchClipStorageKey(
+  clip: { category: string; id: string; s3Key: string | null },
+  isAuthorizedDeliveryEnabled = false,
+): string {
+  if (isAuthorizedDeliveryEnabled) {
+    if (!clip.s3Key || !/^ingredients\/(videos|avatars)\//.test(clip.s3Key)) {
+      throw stitchRequestError('clipIds', 'Clip has no valid stored media key');
+    }
+    return assertStoredObjectKey(clip.s3Key, (message) =>
+      stitchRequestError('clipIds', message),
+    );
+  }
   if (clip.s3Key && STITCH_STORAGE_KEY.test(clip.s3Key)) {
     return clip.s3Key;
   }
@@ -220,6 +228,7 @@ export function buildVideoStitchJobParams(
       ? { isMuteVideoAudio: settings.isMuteVideoAudio }
       : {}),
     ...(settings.music ? { music: settings.music } : {}),
+    ...(plan.musicStorageKey ? { musicStorageKey: plan.musicStorageKey } : {}),
     ...(settings.music && settings.musicVolume !== undefined
       ? { musicVolume: settings.musicVolume / 100 }
       : {}),

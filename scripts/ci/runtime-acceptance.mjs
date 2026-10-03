@@ -85,7 +85,7 @@ export const BRAND_SOURCE_CONTRACT = {
   ],
   brand: {
     path: 'apps/server/api/test/integration/branded-generation/branded-generation-receipts.integration.spec.ts',
-    sha256: '132cb7ddab81acf2d70150e7425aaf4a9d1bc7465747bb4b2c9549a367cb37b8',
+    sha256: 'b79d6ffb8e84be00a6c6c7f610300641254c5f2b801901bca4911714964e239a',
     passedTitles: [
       'branded receipt full-migration service and relocation acceptance serializes same-input create, rejects changed payloads, and isolates other scopes',
       'branded receipt full-migration service and relocation acceptance commits one competing revision and replays immutable event projections',
@@ -97,6 +97,7 @@ export const BRAND_SOURCE_CONTRACT = {
       'branded receipt full-migration service and relocation acceptance rejects actually encrypted retained-input and recipe tampering without weakening immutable rows',
       'branded receipt full-migration service and relocation acceptance rolls compiled envelope, enhanced prompt, event and projection back on actual event failure',
       'branded receipt full-migration service and relocation acceptance purges both branded formats while preserving unrelated legacy payloads',
+      'branded receipt full-migration service and relocation acceptance accepts the completion chain, enforces provider uniqueness and recovers expired dispatch windows',
       'branded receipt full-migration service and relocation acceptance requires the active relocation history guard for live and tombstoned receipts',
       'branded receipt full-migration service and relocation acceptance observes receipt-first Brand ownership before the relocation contender enters PostgreSQL',
       'branded receipt full-migration service and relocation acceptance observes move-first Brand ownership and refuses an old-scope receipt after the move',
@@ -116,7 +117,7 @@ export const BRAND_SOURCE_CONTRACT = {
     {
       path: 'apps/server/api/src/services/branded-generation-receipts/branded-generation-receipts.service.spec.ts',
       sha256:
-        '7d9407f1613ddaf97a4d183bc9ae6d92bee37c3350bd8e741e56f7c1bbb45971',
+        'e121d769cabadc1b1601f103745013b275c20786971401c3db7feb8801456d30',
       acceptance:
         'nonzero passed in this exact file; no failed/pending/skipped/todo',
     },
@@ -4155,7 +4156,7 @@ async function executeDedicatedAcceptance(identity, env, baseline = false) {
       : {
           file: DELEGATED_API_FILES[1],
           titles: BRAND_SOURCE_CONTRACT.brand.passedTitles,
-          count: 16,
+          count: 17,
         };
   const vitestStart = async (
     ledger,

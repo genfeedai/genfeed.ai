@@ -110,12 +110,10 @@ describe('ApifyPinterestService', () => {
       );
     });
 
-    it('should return empty array on error', async () => {
+    it('rethrows provider failures instead of returning an empty list', async () => {
       mockBaseService.runActor.mockRejectedValue(new Error('API error'));
 
-      const result = await service.getPinterestTrends();
-
-      expect(result).toEqual([]);
+      await expect(service.getPinterestTrends()).rejects.toThrow('API error');
       expect(mockBaseService.loggerService.error).toHaveBeenCalled();
     });
 

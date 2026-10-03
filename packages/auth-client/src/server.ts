@@ -1,3 +1,7 @@
+import {
+  UNATTRIBUTED_FORWARDED_HEADER,
+  UNATTRIBUTED_FORWARDED_VALUE,
+} from '@genfeedai/contracts/constants';
 import { BETTER_AUTH_BASE_PATH, getApiOrigin } from './config';
 
 export { isBetterAuthEnabled } from './config';
@@ -26,7 +30,10 @@ export async function getBetterAuthServerToken(
       `${getApiOrigin()}${BETTER_AUTH_BASE_PATH}/token`,
       {
         cache: 'no-store',
-        headers: { cookie: cookieHeader },
+        headers: {
+          cookie: cookieHeader,
+          [UNATTRIBUTED_FORWARDED_HEADER]: UNATTRIBUTED_FORWARDED_VALUE,
+        },
       },
     );
 

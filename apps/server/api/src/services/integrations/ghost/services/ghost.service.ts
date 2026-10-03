@@ -1,5 +1,13 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
+import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { parseGhostVerificationPage } from '@api/services/integrations/publishers/publisher-article-verification-pages.util';
+import {
+  PROVIDER_VERIFICATION_PAGE_SIZE,
+  PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS,
+} from '@api/services/integrations/publishers/publisher-verification.util';
 import { trimTrailingCharacter } from '@api/shared/utils/string/linear-string.util';
+import { createSafeWebhookHttpsAgent } from '@api/shared/utils/webhook-validator/webhook-validator.util';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   GhostImageUploadResponse,
@@ -60,6 +68,47 @@ export class GhostService {
         },
       },
     );
+  }
+
+  async listPublishVerificationPage(
+    context: PublishContext,
+    startedAt: Date,
+    cursor?: string,
+  ): Promise<ProviderVerificationPage> {
+    const credential = await this.getCredentialApiKey(
+      context.organizationId,
+      context.brandId,
+      context.credential.id,
+    );
+    if (!credential || credential.ghostUrl !== context.credential.externalId)
+      throw new Error('Ghost verification account unavailable or changed');
+    const endpoint = `${this.normalizeUrl(credential.ghostUrl)}/ghost/api/admin/posts/`;
+    const target = new URL(endpoint);
+    if (target.username || target.password || target.search || target.hash)
+      throw new Error('Ghost verification instance URL unavailable');
+    const agent = await createSafeWebhookHttpsAgent(endpoint);
+    const page = cursor ? Number(cursor) : 1;
+    try {
+      const result = await firstValueFrom(
+        this.httpService.get<unknown>(endpoint, {
+          headers: {
+            Authorization: `Ghost ${this.generateToken(credential.apiKey)}`,
+          },
+          httpsAgent: agent,
+          maxRedirects: 0,
+          params: {
+            limit: PROVIDER_VERIFICATION_PAGE_SIZE,
+            page,
+            formats: 'html',
+            filter: `created_at:>='${new Date(Math.floor(startedAt.getTime() / 1000) * 1000 - 1000).toISOString()}'`,
+          },
+          timeout: PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS,
+        }),
+      );
+      return parseGhostVerificationPage(result.data, page);
+    } finally {
+      agent.destroy();
+    }
   }
 
   /**

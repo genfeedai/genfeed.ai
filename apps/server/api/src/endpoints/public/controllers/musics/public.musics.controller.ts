@@ -12,6 +12,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import {
   AssetScope,
   IngredientCategory,
@@ -22,6 +23,7 @@ import type {
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
 import { MusicSerializer } from '@genfeedai/serializers';
+import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
 import { PrismaWhereQuery } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -42,6 +44,8 @@ export class PublicMusicsController {
     private readonly filesClientService: FilesClientService,
     private readonly musicsService: MusicsService,
     private readonly logger: LoggerService,
+    private readonly mediaIssuer: AuthorizedMediaUrlService,
+    private readonly config: ConfigService,
   ) {}
 
   @Get()
@@ -132,6 +136,21 @@ export class PublicMusicsController {
     @Param('musicId') musicId: string,
     @Res() res: ExpressResponse,
   ): Promise<void> {
+    if (this.config.isAuthorizedMediaDeliveryEnabled) {
+      const [projection] = await this.mediaIssuer.projectPublicIngredients([
+        musicId,
+      ]);
+      if (!projection?.grant.url) {
+        res
+          .status(404)
+          .json({ error: 'Protected public media is unavailable' });
+        return;
+      }
+      res.set('Cache-Control', 'no-store');
+      res.redirect(302, projection.grant.url);
+      return;
+    }
+
     const music = await this.musicsService.findOne({
       id: musicId,
       category: CategoryPrismaUtil.toIngredientCategory(

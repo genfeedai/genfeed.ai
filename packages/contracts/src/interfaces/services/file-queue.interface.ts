@@ -29,6 +29,8 @@ export interface IFileProcessingJob {
 }
 
 export interface IFileProcessingParams {
+  /** Canonical scoped key from an internal producer; workers mint fresh access. */
+  sourceStorageKey?: string;
   inputPath?: string;
   outputPath?: string;
   width?: number;

@@ -1,3 +1,4 @@
+import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -946,8 +947,9 @@ describe('AppProtectedLayout', () => {
     ).not.toBeInTheDocument();
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
+        items: [],
         renderBody: expect.any(Function),
-        showPrimaryItems: false,
+        showPrimaryItems: true,
       }),
     );
     expect(appSidebarSpy.mock.calls.at(-1)?.[0].sectionLabel).toBeUndefined();
@@ -1027,10 +1029,10 @@ describe('AppProtectedLayout', () => {
     ['/org-123/brand-123/library', 'Library', 'Overview'],
     ['/org-123/brand-123/library/videos', 'Library', 'Assets'],
     ['/org-123/brand-123/studio/clips', 'Studio', 'Clips'],
-    ['/org-123/brand-123/analytics/trends', 'Analytics', 'Trends'],
+    ['/org-123/brand-123/discovery/trends', 'Discovery', 'Trends'],
     [
-      '/org-123/brand-123/analytics/trends/detail/trend-1',
-      'Analytics',
+      '/org-123/brand-123/discovery/trends/detail/trend-1',
+      'Discovery',
       'Trend Detail',
     ],
     ['/org-123/brand-123/automation/workflows', 'Automation', 'Workflows'],
@@ -1227,16 +1229,23 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         currentApp: 'messages',
-        items: [],
         sectionLabel: undefined,
       }),
     );
-    expect(appSidebarSpy.mock.lastCall?.[0]).toEqual(
+    // Inbox and the send-side pages stay listed above the thread list, the
+    // same rows the sub-pages show, instead of hiding behind a menu.
+    const lastSidebarProps = appSidebarSpy.mock.lastCall?.[0];
+    expect(lastSidebarProps).toEqual(
       expect.objectContaining({
         renderBody: expect.any(Function),
-        showPrimaryItems: false,
+        showPrimaryItems: true,
       }),
     );
+    expect(
+      lastSidebarProps?.items
+        .filter((item: MenuItemConfig) => item.isPrimary)
+        .map((item: MenuItemConfig) => item.label),
+    ).toEqual(['Inbox', 'Outreach sequences', 'Replies', 'Reply drip']);
     expect(
       screen.getByRole('button', { name: 'New Task' }),
     ).toBeInTheDocument();
@@ -1258,10 +1267,9 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         currentApp: 'library',
-        items: [],
         renderBody: expect.any(Function),
         sectionLabel: 'Library',
-        showPrimaryItems: false,
+        showPrimaryItems: true,
       }),
     );
   });
@@ -1508,10 +1516,10 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         currentApp: 'library',
-        items: [],
+        items: [{ href: '/library/images', label: 'Images' }],
         renderBody: expect.any(Function),
         sectionLabel: 'Collections',
-        showPrimaryItems: false,
+        showPrimaryItems: true,
       }),
     );
   });

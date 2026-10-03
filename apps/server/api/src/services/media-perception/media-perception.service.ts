@@ -15,6 +15,7 @@ import {
   MEDIA_INGREDIENT_CATEGORIES,
   resolveMediaKind,
 } from '@api/services/media-readiness/media-kind.util';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { MediaVendorCostLedgerService } from '@api/services/media-vendor-cost/media-vendor-cost-ledger.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
@@ -126,6 +127,7 @@ export class MediaPerceptionService {
     private readonly mediaUrlService: MediaUrlService,
     private readonly platformSettingsService: PlatformSettingsService,
     private readonly logger: LoggerService,
+    private readonly mediaIssuer: AuthorizedMediaUrlService,
   ) {}
 
   /**
@@ -338,7 +340,12 @@ export class MediaPerceptionService {
       where: scopedWhere(organizationId, { id: ingredientId }),
     });
     const kind = resolveMediaKind(row?.category);
-    const url = readIngredientMediaUrlWithFallback(row);
+    const url =
+      row && this.mediaIssuer.isEnabled
+        ? (
+            await this.mediaIssuer.issueServerPublish(organizationId, [row.id])
+          ).get(row.id)
+        : readIngredientMediaUrlWithFallback(row);
     if (!row || !kind || !url) {
       return null;
     }

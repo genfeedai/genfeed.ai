@@ -4519,6 +4519,27 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       client: 'clientId',
     },
   },
+  MediaDeliveryVariant: {
+    allFields: [
+      'createdAt',
+      'failureCode',
+      'id',
+      'ingredientId',
+      'isDeleted',
+      'organizationId',
+      'policyVersion',
+      'purpose',
+      'sourceIdentity',
+      'sourceKey',
+      'sourceVersion',
+      'state',
+      'storageKey',
+      'updatedAt',
+    ],
+    listFields: [],
+    enumFields: {},
+    relationIdFields: {},
+  },
   MediaModeration: {
     allFields: [
       'assetHash',

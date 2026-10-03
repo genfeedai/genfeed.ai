@@ -2,11 +2,17 @@ import { AgentThreadsService } from '@api/collections/agent-threads/services/age
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import type {
   AgentDashboardOperation,
   AgentUIBlock,
   AgentUiAction,
 } from '@genfeedai/contracts/interfaces';
+import {
+  assetResponseIds,
+  ingredientResponseIds,
+  projectMediaResponse,
+} from '@genfeedai/serializers';
 import type { StructuredProgressDebugPayload } from '@genfeedai/utils/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -71,7 +77,36 @@ export class AgentStreamPublisherService {
     private readonly agentThreadEngineService?: AgentThreadEngineService,
     @Optional()
     private readonly configService?: ConfigService,
+    @Optional() private readonly mediaIssuer?: AuthorizedMediaUrlService,
   ) {}
+
+  /** Authorize typed media before both durable events and live transport. */
+  private async projectMediaPayload<
+    T extends { threadId: string; userId: string },
+  >(data: T): Promise<T> {
+    if (!this.configService?.isAuthorizedMediaDeliveryEnabled) return data;
+    const ids = ingredientResponseIds(data);
+    const assetIds = assetResponseIds(data);
+    if (ids.length === 0 && assetIds.length === 0) return data;
+    const thread = await this.agentThreadsService?.findOne({
+      id: data.threadId,
+      userId: data.userId,
+      isDeleted: false,
+    });
+    if (!thread?.organizationId || !this.mediaIssuer)
+      return projectMediaResponse(data, [], false) as T;
+    const scope = {
+      organizationId: thread.organizationId,
+      userId: data.userId,
+      brandId: thread.brandId ?? undefined,
+    };
+    const [ingredients, clean, assets] = await Promise.all([
+      this.mediaIssuer.projectIngredients(scope, ids),
+      this.mediaIssuer.hasCleanAccess(scope.organizationId),
+      this.mediaIssuer.projectAssets(scope, assetIds),
+    ]);
+    return projectMediaResponse(data, ingredients, clean, assets) as T;
+  }
 
   private getCoalesceWindowMs(): number {
     return (
@@ -445,6 +480,7 @@ export class AgentStreamPublisherService {
     uiActions?: AgentUiAction[];
     userId: string;
   }) {
+    data = await this.projectMediaPayload(data);
     await this.persistThreadEvent(data.threadId, {
       commandId: `tool-complete:${data.toolCallId}:${data.status}`,
       payload: {
@@ -494,6 +530,7 @@ export class AgentStreamPublisherService {
     }>;
     userId: string;
   }) {
+    data = await this.projectMediaPayload(data);
     const metadata = data.metadata ?? {};
 
     const finalizedSequence = await this.persistThreadEvent(data.threadId, {
@@ -625,6 +662,7 @@ export class AgentStreamPublisherService {
     runId?: string;
     userId: string;
   }) {
+    data = await this.projectMediaPayload(data);
     await this.persistThreadEvent(data.threadId, {
       commandId: `ui-blocks:${data.threadId}:${data.runId ?? 'stream'}`,
       payload: {
@@ -672,6 +710,7 @@ export class AgentStreamPublisherService {
     toolName?: string;
     userId: string;
   }) {
+    data = await this.projectMediaPayload(data);
     const mappedType =
       data.event === 'interrupted'
         ? 'run.interrupted'
@@ -732,6 +771,7 @@ export class AgentStreamPublisherService {
     title: string;
     userId: string;
   }) {
+    data = await this.projectMediaPayload(data);
     await this.persistThreadEvent(data.threadId, {
       commandId: `input-request:${data.inputRequestId}`,
       payload: {
@@ -832,6 +872,7 @@ export class AgentStreamPublisherService {
     toolName: string;
     userId: string;
   }) {
+    data = await this.projectMediaPayload(data);
     await this.persistThreadEvent(data.threadId, {
       commandId: `tool-progress:${data.toolCallId ?? `${data.toolName}:${data.runId ?? 'stream'}`}`,
       payload: {

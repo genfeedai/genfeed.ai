@@ -2,12 +2,26 @@ import { describe, expect, it } from 'vitest';
 import { DISCOVERY_MENU_ITEMS } from './discovery-menu-items.config';
 
 describe('DISCOVERY_MENU_ITEMS', () => {
-  it('renders exactly Overview, Following, Ads', () => {
+  it('renders exactly Overview, Following, Trends, Trend Turnover, Ads', () => {
     expect(DISCOVERY_MENU_ITEMS.map((item) => item.label)).toEqual([
       'Overview',
       'Following',
+      'Trends',
+      'Trend Turnover',
       'Ads',
     ]);
+  });
+
+  it('owns market trends at /discovery/trends and /discovery/trend-turnover', () => {
+    const trends = DISCOVERY_MENU_ITEMS.find((item) => item.label === 'Trends');
+    const turnover = DISCOVERY_MENU_ITEMS.find(
+      (item) => item.label === 'Trend Turnover',
+    );
+
+    expect(trends?.href).toBe('/discovery/trends');
+    expect(trends?.matchPaths).toEqual(['/discovery/trends']);
+    expect(turnover?.href).toBe('/discovery/trend-turnover');
+    expect(turnover?.matchPaths).toEqual(['/discovery/trend-turnover']);
   });
 
   it('uses /discovery/overview as the home href (not /discovery/discovery)', () => {

@@ -31,6 +31,11 @@ const { assetSelection, setSelectedAsset, revealSidebar } = vi.hoisted(() => ({
 // The grid hands its single selection to the shared asset selection, and the
 // library surface adapter renders the rail from there. Stubbing the context is
 // what lets this test assert the handoff instead of the rail's markup.
+vi.mock('@genfeedai/hooks/media/use-authorized-media-preview', () => ({
+  useAuthorizedMediaPreview: (ingredient: IIngredient) =>
+    ingredient.mediaDelivery ?? null,
+}));
+
 vi.mock('@hooks/ui/use-storyboard-entry/use-storyboard-entry', () => ({
   useStoryboardEntry: () => ({
     createFromAsset: vi.fn(),
@@ -249,6 +254,32 @@ const staleErrorIngredient = {
 } as unknown as IIngredient;
 
 describe('IngredientsListContent', () => {
+  it('never feeds a protected video capability or stale original poster into an image thumbnail', () => {
+    renderContent({
+      viewMode: 'list',
+      type: 'videos',
+      singularType: IngredientCategory.VIDEO,
+      filteredIngredients: [
+        {
+          ...videoIngredient,
+          mediaDelivery: {
+            id: videoIngredient.id,
+            purpose: 'preview',
+            state: 'READY',
+            url: 'https://media.test/protected.mp4?grant=fresh',
+            expiresAt: null,
+          },
+        },
+      ],
+    });
+    expect(
+      screen.getByTestId('ingredient-preview-fallback'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByAltText(videoIngredient.metadataLabel as string),
+    ).not.toBeInTheDocument();
+  });
+
   it('renders generic Library media as a contact sheet in grid mode', () => {
     const { onOpenLightbox } = renderContent({
       filteredIngredients: [videoIngredient],

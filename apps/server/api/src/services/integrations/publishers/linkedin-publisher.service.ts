@@ -1,12 +1,16 @@
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
+import {
+  LinkedInService,
+  resolveLinkedInVisibility,
+} from '@api/services/integrations/linkedin/services/linkedin.service';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
   PublishContext,
   PublishResult,
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { verifyProviderPublish } from '@api/services/integrations/publishers/publisher-verification.util';
 import { CredentialPlatform, PostCategory } from '@genfeedai/contracts';
 import {
   getIntegrationProviderDefinition,
@@ -61,6 +65,36 @@ export class LinkedInPublisherService extends BasePublisherService {
   /**
    * Publish a post to LinkedIn
    */
+  async verifyPublished(
+    context: PublishContext,
+    attemptStartedAt: Date,
+  ): Promise<PublishResult | null> {
+    const found = await verifyProviderPublish(
+      context,
+      attemptStartedAt,
+      (cursor) =>
+        this.linkedInService.listPublishVerificationPage(
+          context.organizationId,
+          context.brandId,
+          context.credential.id,
+          context.credential.externalId,
+          cursor,
+        ),
+      {
+        text: this.sanitizeDescription(context.post.description),
+        visibility: resolveLinkedInVisibility(context.settings),
+      },
+    );
+    const externalId = found?.id;
+    return externalId
+      ? this.createSuccessResult(
+          externalId,
+          this.platform,
+          this.buildPostUrl(externalId, context.credential),
+        )
+      : null;
+  }
+
   async publish(context: PublishContext): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const { post, credential, organizationId, brandId } = context;

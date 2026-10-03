@@ -8,6 +8,7 @@ import type {
   IMetadata,
 } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
 import useIngredientActions from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import type { MasonryImageProps } from '@genfeedai/props/content/masonry.props';
 import { getIngredientFailureReason } from '@genfeedai/utils/media/ingredient-ledger.util';
@@ -17,11 +18,11 @@ import MasonryBrandLogo from '@ui/masonry/shared/MasonryBrandLogo';
 import MasonryConfirmBridge from '@ui/masonry/shared/MasonryConfirmBridge';
 import MasonrySelectionToggle from '@ui/masonry/shared/MasonrySelectionToggle';
 import {
-  createDownloadHandler,
+  useIngredientDownloadHandler,
   useMasonryHover,
 } from '@ui/masonry/shared/useMasonryHover';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
-import { type SyntheticEvent, useCallback, useMemo, useState } from 'react';
+import { type SyntheticEvent, useCallback, useState } from 'react';
 import MasonryImageActionsBar from './MasonryImageActionsBar';
 import MasonryImageMediaArea from './MasonryImageMediaArea';
 import { getAspectRatioStyle, getImageSrc } from './masonry-image.helpers';
@@ -119,13 +120,16 @@ function MasonryImageTile({
     onHoverChange,
   });
 
-  const handleDownload = useMemo(() => createDownloadHandler(), []);
+  const handleDownload = useIngredientDownloadHandler();
 
   const isProcessing = image.status === IngredientStatus.PROCESSING;
   const isFailed = image.status === IngredientStatus.FAILED;
   const failureReason = getIngredientFailureReason(image);
 
-  const currentImageUrl = image.ingredientUrl ?? '';
+  const mediaPreview = useAuthorizedMediaPreview(image);
+  const currentImageUrl = mediaPreview
+    ? (mediaPreview.url ?? '')
+    : (image.ingredientUrl ?? '');
   // A still-processing asset has no generated URL yet — that is not an error,
   // the processing overlay covers it. Only treat a missing or failed URL as a
   // fallback when the asset is not actively processing.
@@ -189,7 +193,7 @@ function MasonryImageTile({
   const aspectRatioStyle =
     resolvedAspectRatioStyle ??
     (isSquare ? undefined : { aspectRatio: '4 / 5' });
-  const imageSrc = getImageSrc(image?.ingredientUrl, imageError);
+  const imageSrc = getImageSrc(currentImageUrl, imageError);
   const shouldShowBadges = isActionsEnabled && !isProcessing && !isFailed;
   const useDragDrop = isDragEnabled && onUpdateParent;
   const isFleetNsfwSensitive =

@@ -262,7 +262,7 @@ export class ContentOrchestrationService implements OnModuleInit {
         ? 'videos'
         : category === IngredientCategory.IMAGE
           ? 'images'
-          : 'audio',
+          : 'musics',
       { type: FileInputType.URL, url: result.url },
     );
 
@@ -273,6 +273,7 @@ export class ContentOrchestrationService implements OnModuleInit {
       ...(s3Meta.width != null ? { width: s3Meta.width } : {}),
     });
     await this.ingredientsService.patch(ingredientData.id, {
+      ...(s3Meta.s3Key ? { s3Key: s3Meta.s3Key } : {}),
       status: IngredientStatus.UPLOADED,
     });
     return ingredientData.id.toString();

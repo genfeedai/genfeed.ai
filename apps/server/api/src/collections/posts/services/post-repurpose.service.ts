@@ -8,6 +8,7 @@ import {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
@@ -107,6 +108,7 @@ export class PostRepurposeService {
     private readonly contentGeneratorService: ContentGeneratorService,
     private readonly batchGenerationService: BatchGenerationService,
     private readonly postGroupPersistenceService: PostGroupPersistenceService,
+    private readonly mediaIssuer: AuthorizedMediaUrlService,
   ) {}
 
   async repurpose(params: RepurposePostParams): Promise<RepurposePostResult> {
@@ -483,7 +485,9 @@ export class PostRepurposeService {
     organizationId: string,
     ingredientId: string | undefined,
   ): Promise<string | undefined> {
-    if (!ingredientId) {
+    // Review metadata keeps the ingredient identity; delivery is projected
+    // freshly for the viewer instead of persisting an expiring URL.
+    if (!ingredientId || this.mediaIssuer.isEnabled) {
       return undefined;
     }
 

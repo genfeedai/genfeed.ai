@@ -18,6 +18,7 @@ import { BatchInterpolationController } from '@api/collections/videos/controller
 import { AvatarVideoBillingService } from '@api/collections/videos/services/avatar-video-billing.service';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { AvatarVideoLifecycleService } from '@api/collections/videos/services/avatar-video-lifecycle.service';
+import { AvatarVideoReferenceService } from '@api/collections/videos/services/avatar-video-reference.service';
 import { BatchInterpolationBillingService } from '@api/collections/videos/services/batch-interpolation-billing.service';
 import { BatchInterpolationReferenceService } from '@api/collections/videos/services/batch-interpolation-reference.service';
 import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
@@ -31,6 +32,7 @@ import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenla
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 import { ManagedInferenceRuntimeModule } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
+import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
@@ -41,6 +43,7 @@ import { Module } from '@nestjs/common';
   controllers: [AvatarVideoController, BatchInterpolationController],
   exports: [AvatarVideoGenerationService],
   imports: [
+    MediaUrlsModule,
     PlatformSettingsModule,
     // Core video module for VideosService
     VideosCoreModule,
@@ -75,6 +78,7 @@ import { Module } from '@nestjs/common';
     AvatarVideoGenerationService,
     AvatarVideoBillingService,
     AvatarVideoLifecycleService,
+    AvatarVideoReferenceService,
     BatchInterpolationBillingService,
     BatchInterpolationReferenceService,
     CreditsGuard,

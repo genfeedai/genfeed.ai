@@ -12,11 +12,12 @@ import {
   PageScope,
 } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import { downloadIngredient } from '@helpers/media/download/download.helper';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useIngredientDeepLink } from '@hooks/data/ingredients/use-ingredient-deep-link/use-ingredient-deep-link';
 import { useIngredientsList } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-list';
 import type { IngredientsListProps } from '@props/pages/ingredients-list.props';
 import { usePostModal } from '@providers/global-modals/global-modals.provider';
+import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
@@ -181,9 +182,15 @@ export default function IngredientsList({
         ingredient.campaign === selectedCampaign,
     );
 
+  const getDownloadService = useAuthedService((token) =>
+    IngredientsService.getInstance(token),
+  );
+
   const handleBulkDownload = useCallback(async () => {
     const results = await Promise.allSettled(
-      selectedIngredients.map((ingredient) => downloadIngredient(ingredient)),
+      selectedIngredients.map(async (ingredient) =>
+        (await getDownloadService()).downloadOriginal(ingredient),
+      ),
     );
     const failures = results.filter(
       (result): result is PromiseRejectedResult => result.status === 'rejected',
@@ -203,7 +210,7 @@ export default function IngredientsList({
         ? 'Download'
         : `Download for ${failures.length} of ${selectedIngredients.length} assets`,
     );
-  }, [selectedIngredients]);
+  }, [getDownloadService, selectedIngredients]);
 
   const cachedLabel = useMemo(() => {
     if (!cachedAt) {

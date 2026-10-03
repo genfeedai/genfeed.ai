@@ -2,6 +2,7 @@ import type { WorkflowEngineExecutorHelperService } from '@api/collections/workf
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { runImageGenerationBrief } from '@api/services/generation-brief';
+import type { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import type { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
@@ -9,6 +10,7 @@ import {
   createExecutableActionNode,
   type ExecutionContext,
 } from '@genfeedai/workflows/engine';
+import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -58,13 +60,19 @@ function fixture() {
   const getPresignedDownloadUrl = vi
     .fn()
     .mockResolvedValue('https://storage.test/source.mp4?signed=1');
+  const config = { isAuthorizedMediaDeliveryEnabled: false };
+  const mediaIssuer = { issueServerPublish: vi.fn() };
   const service = new WorkflowMediaProviderPlanService(
     helper,
     { warn: vi.fn() } as unknown as LoggerService,
     { buildPrompt } as unknown as PromptBuilderService,
     { getPresignedDownloadUrl } as unknown as FilesClientService,
+    config as unknown as ConfigService,
+    mediaIssuer as unknown as AuthorizedMediaUrlService,
   );
   return {
+    config,
+    mediaIssuer,
     service,
     buildPrompt,
     getPresignedDownloadUrl,
@@ -184,6 +192,34 @@ describe('WorkflowMediaProviderPlanService', () => {
     expect(f.buildPrompt).not.toHaveBeenCalled();
     for (const effect of Object.values(f.sideEffects))
       expect(effect).not.toHaveBeenCalled();
+  });
+
+  it('refreshes canonical tenant video references before dispatch when activated', async () => {
+    const f = fixture();
+    f.config.isAuthorizedMediaDeliveryEnabled = true;
+    f.mediaIssuer.issueServerPublish.mockResolvedValue(
+      new Map([
+        ['source-video-1', 'https://storage.test/opaque-video?Signature=fresh'],
+      ]),
+    );
+    const prepared = await f.service.prepareNode(
+      node('videoGen', {
+        model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+        prompt: 'extend',
+        actionVerb: 'extend',
+        duration: 8,
+        parentIngredientId: 'source-video-1',
+      }),
+      new Map([['videoReference', 'https://api.test/videos/source-video-1']]),
+      context,
+    );
+    expect(f.mediaIssuer.issueServerPublish).toHaveBeenCalledWith('org-1', [
+      'source-video-1',
+    ]);
+    expect(prepared.input).toMatchObject({
+      reference_videos: ['https://storage.test/opaque-video?Signature=fresh'],
+    });
+    expect(f.getPresignedDownloadUrl).not.toHaveBeenCalled();
   });
 
   it('keeps native extension duration unknown and resolves references before returning the exact provider input', async () => {

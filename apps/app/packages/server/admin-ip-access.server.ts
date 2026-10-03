@@ -1,7 +1,9 @@
 import 'server-only';
 
 import { BlockList, isIP } from 'node:net';
+import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import {
+  isSelfHostedDeployment,
   parseTrustProxy,
   type TrustProxySetting,
 } from '@genfeedai/config/deployment';
@@ -118,15 +120,19 @@ export async function isAdminIpAllowedForServerRequest(): Promise<boolean> {
 }
 
 /**
- * The API judges super-admin on the caller's IP, but the server-side bootstrap
- * reaches it from this server's IP. Re-derive the flag from the account role
- * and the visitor's IP; the API still enforces every admin call on its own.
+ * The API judges super-admin on the caller's IP, and the server-side bootstrap
+ * declares its caller unknown, so the API never grants it. Re-derive the flag
+ * from the account role and the visitor's IP; the API still enforces every
+ * admin call on its own. In LOCAL mode every request runs as the seeded local
+ * admin, so only the visitor's IP decides.
  */
 export async function resolveServerSuperAdmin(
   access: AccessBootstrapState,
   currentUser: IUser | null | undefined,
 ): Promise<boolean> {
+  const isLocalIdentity = isSelfHostedDeployment() && !isBetterAuthEnabled();
   const hasSuperAdminRole =
+    isLocalIdentity ||
     access.isSuperAdmin === true ||
     currentUser?.platformRole === PlatformRole.SUPERADMIN;
 

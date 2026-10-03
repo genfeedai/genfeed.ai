@@ -11,6 +11,7 @@ import type {
   IMetadata,
   IPrompt,
   ITag,
+  MediaDeliveryGrant,
 } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { IngredientEndpoints } from '@genfeedai/utils/media/ingredients.util';
@@ -33,6 +34,7 @@ function isFilesServiceHostname(hostname: string): boolean {
 export class Ingredient extends BaseIngredient {
   private _ingredientUrl: string = '';
 
+  declare public mediaDelivery?: MediaDeliveryGrant;
   declare public cdnUrl?: string | null;
   declare public s3Key?: string | null;
   declare public generationPrompt?: string | null;
@@ -219,6 +221,11 @@ export class Ingredient extends BaseIngredient {
   }
 
   public get ingredientUrl(): string {
+    if (this.mediaDelivery) {
+      return this.mediaDelivery.state === 'READY'
+        ? (this.mediaDelivery.url ?? '')
+        : '';
+    }
     const assetsEndpoint = EnvironmentService.assetsEndpoint;
     const isAudioCategory =
       this.category === IngredientCategory.VOICE ||

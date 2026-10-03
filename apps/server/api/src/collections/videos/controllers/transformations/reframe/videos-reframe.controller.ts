@@ -26,6 +26,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
@@ -55,6 +56,7 @@ import {
   Controller,
   HttpException,
   HttpStatus,
+  Optional,
   Param,
   Post,
   Req,
@@ -80,7 +82,27 @@ export class VideosReframeController {
     private readonly videosService: VideosService,
     private readonly websocketService: NotificationsPublisherService,
     private readonly generationBilling: GenerationBillingService,
+    @Optional()
+    private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
   ) {}
+
+  private async processingMediaUrl(
+    organizationId: string,
+    ingredientId: string,
+    category: string,
+  ): Promise<string> {
+    if (!this.configService.isAuthorizedMediaDeliveryEnabled)
+      return `${this.configService.ingredientsEndpoint}/${category}/${ingredientId}`;
+    if (!this.authorizedMediaUrls)
+      throw new Error('Authorized media issuer is unavailable');
+    const urls = await this.authorizedMediaUrls.issueServerPublish(
+      organizationId,
+      [ingredientId],
+    );
+    const url = urls.get(ingredientId);
+    if (!url) throw new Error('The source has no authorized media URL');
+    return url;
+  }
 
   @Post(':videoId/reframe')
   @UseGuards(SubscriptionGuard, CreditsGuard, ModelsGuard)
@@ -110,6 +132,8 @@ export class VideosReframeController {
     const parent = await this.videosService.findOne(
       {
         id: videoId,
+        organizationId: user.organizationId,
+        isDeleted: false,
         category: IngredientCategory.VIDEO,
         userId: user.userId ?? user.id,
       },
@@ -288,7 +312,11 @@ export class VideosReframeController {
             mood: createVideoDto.mood,
             prompt: promptData.original,
             references: [
-              `${this.configService.ingredientsEndpoint}/videos/${parentId}`,
+              await this.processingMediaUrl(
+                user.organizationId,
+                parentId,
+                'videos',
+              ),
             ],
             scene: createVideoDto.scene,
             style: createVideoDto.style,

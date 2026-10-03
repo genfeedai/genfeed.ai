@@ -4,6 +4,7 @@ import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { verifyHtmlPublish } from '@api/services/integrations/publishers/publisher-verification.util';
 import { WordpressService } from '@api/services/integrations/wordpress/services/wordpress.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
@@ -27,6 +28,33 @@ export class WordpressPublisherService extends BasePublisherService {
     private readonly wordpressService: WordpressService,
   ) {
     super(configService, logger);
+  }
+
+  async verifyPublished(
+    context: PublishContext,
+    attemptStartedAt: Date,
+  ): Promise<PublishResult | null> {
+    const status = context.isDraft ? 'draft' : 'publish';
+    const found = await verifyHtmlPublish(
+      context,
+      attemptStartedAt,
+      (cursor) =>
+        this.wordpressService.listPublishVerificationPage(
+          context,
+          attemptStartedAt,
+          cursor,
+        ),
+      status,
+    );
+    if (!found) return null;
+    const result = this.createSuccessResult(
+      found.id,
+      this.platform,
+      this.buildPostUrl(found.id, context.credential),
+    );
+    return context.isDraft === true
+      ? { ...result, isProviderDraft: true }
+      : result;
   }
 
   async publish(context: PublishContext): Promise<PublishResult> {

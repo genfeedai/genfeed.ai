@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -11,6 +12,7 @@ import {
 } from '@api/services/uploads/presigned-upload-policy.util';
 import { resolveUploadExtension } from '@api/services/uploads/upload-extension.util';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
   AssetScope,
   categoryToPlural,
@@ -20,6 +22,7 @@ import {
   normalizeCategory,
 } from '@genfeedai/contracts';
 import type { IFileMetadata } from '@genfeedai/contracts/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
@@ -39,6 +42,7 @@ export class PresignedUploadService {
     private readonly ingredientsService: IngredientsService,
     private readonly metadataService: MetadataService,
     private readonly loggerService: LoggerService,
+    private readonly configService: ConfigService,
   ) {}
 
   async getPresignedUploadUrl(
@@ -94,8 +98,12 @@ export class PresignedUploadService {
       userId: ingredientData.userId,
     });
 
-    // Generate key using ingredient ID
-    const key = ingredientData.id.toString();
+    const ingredientId = ingredientData.id.toString();
+    const key =
+      isSelfHostedDeployment() ||
+      !this.configService.isAuthorizedMediaDeliveryEnabled
+        ? ingredientId
+        : randomUUID();
 
     // Get presigned URL from AWS service
     const presigned = await this.filesClientService.getPresignedUploadUrl(
@@ -113,7 +121,9 @@ export class PresignedUploadService {
       );
     }
 
-    await this.ingredientsService.patch(key, { s3Key: presigned.s3Key });
+    await this.ingredientsService.patch(ingredientId, {
+      s3Key: presigned.s3Key,
+    });
 
     return {
       expiresIn: 3600,
@@ -137,6 +147,7 @@ export class PresignedUploadService {
     const ingredient = await this.ingredientsService.findOne(
       {
         id: id,
+        isDeleted: false,
         organizationId: user.organizationId,
         status: IngredientStatus.PROCESSING,
         userId: user.userId ?? user.id,
@@ -162,23 +173,36 @@ export class PresignedUploadService {
       ingredient.category || IngredientCategory.IMAGE,
     );
     const s3Type = categoryToPlural(category);
-    let s3Key = ingredient.s3Key || `ingredients/${s3Type}/${id}`;
+    const s3Key = ingredient.s3Key;
+    const keyPrefix = `ingredients/${s3Type}/`;
+    if (!s3Key?.startsWith(keyPrefix) || s3Key === keyPrefix) {
+      await this.ingredientsService.patch(id, {
+        status: IngredientStatus.FAILED,
+      });
+      throw new HttpException(
+        'The pending upload has no valid stored object key',
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
 
     let uploadMeta: IFileMetadata | undefined;
     try {
       // Get presigned download URL
-      const downloadUrl = await this.filesClientService.getPresignedDownloadUrl(
-        id,
-        s3Type,
-        300, // 5 minutes
-      );
+      const downloadUrl =
+        await this.filesClientService.getPresignedDownloadUrlForObjectKey(
+          s3Key,
+        );
 
       // Re-process the file through uploadToS3 to extract metadata
       // This uses the same workflow as AI-generated images/videos
-      uploadMeta = await this.filesClientService.uploadToS3(id, s3Type, {
-        type: FileInputType.URL,
-        url: downloadUrl,
-      });
+      uploadMeta = await this.filesClientService.uploadToExistingObject(
+        s3Key,
+        s3Type,
+        {
+          type: FileInputType.URL,
+          url: downloadUrl,
+        },
+      );
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed to extract metadata`, undefined, {
         error: {
@@ -229,14 +253,6 @@ export class PresignedUploadService {
         },
         HttpStatus.PAYLOAD_TOO_LARGE,
       );
-    }
-
-    if (
-      !ingredient.s3Key &&
-      typeof uploadMeta.s3Key === 'string' &&
-      uploadMeta.s3Key.trim()
-    ) {
-      s3Key = uploadMeta.s3Key;
     }
 
     // Update metadata document with extracted dimensions

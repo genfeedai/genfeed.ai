@@ -175,3 +175,13 @@ export const pairwiseResultSchema = z.object({
   voidReason: z.string().nullable(),
 });
 export type PairwiseResult = z.infer<typeof pairwiseResultSchema>;
+
+export const thresholdCheckSchema = z.object({
+  actual: z.number().nullable(),
+  comparator: z.enum(['>=', '<=']),
+  id: z.string().min(1),
+  passed: z.boolean(),
+  subject: z.string().min(1),
+  threshold: z.number(),
+});
+export type ThresholdCheck = z.infer<typeof thresholdCheckSchema>;

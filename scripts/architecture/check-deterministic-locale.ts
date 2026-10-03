@@ -244,11 +244,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     2,
   ),
   legacyUiAllowance(
-    'packages/pages/analytics/trends/trend-detail/trend-detail-analysis-card.tsx',
-    'to-locale-date-string',
-    1,
-  ),
-  legacyUiAllowance(
     'packages/pages/posts/detail/components/PostDetailCardBody.tsx',
     'to-locale-string',
     1,

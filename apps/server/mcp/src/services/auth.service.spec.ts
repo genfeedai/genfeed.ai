@@ -1,4 +1,8 @@
 import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/contracts';
+import {
+  UNATTRIBUTED_FORWARDED_HEADER,
+  UNATTRIBUTED_FORWARDED_VALUE,
+} from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { AuthResult, AuthService } from '@mcp/services/auth.service';
@@ -89,6 +93,7 @@ describe('AuthService (MCP)', () => {
       expect(mockHttpService.get).toHaveBeenCalledWith(WHOAMI_URL, {
         headers: {
           Authorization: `Bearer ${apiKey}`,
+          [UNATTRIBUTED_FORWARDED_HEADER]: UNATTRIBUTED_FORWARDED_VALUE,
           [MCP_ACTION_ORIGIN_PROOF_HEADER]:
             'Qr4bP6k-qVZGg3vfc9dLxHTynsF-ZfeCH_0bjXWLlaA',
         },
@@ -183,6 +188,7 @@ describe('AuthService (MCP)', () => {
       expect(mockHttpService.get).toHaveBeenCalledWith(WHOAMI_URL, {
         headers: {
           Authorization: `Bearer ${jwtToken}`,
+          [UNATTRIBUTED_FORWARDED_HEADER]: UNATTRIBUTED_FORWARDED_VALUE,
           [MCP_ACTION_ORIGIN_PROOF_HEADER]:
             'Qr4bP6k-qVZGg3vfc9dLxHTynsF-ZfeCH_0bjXWLlaA',
         },

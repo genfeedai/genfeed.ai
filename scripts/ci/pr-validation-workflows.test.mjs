@@ -374,13 +374,16 @@ test('reusable CI callers grant the failure tracker permission ceiling', () => {
   }
 });
 
-test('the full suite runs on every master push and never cancels a run', () => {
+test('the full suite runs on demand and at release, never on push, and never cancels a run', () => {
   const workflow = readWorkflow('full-suite.yml');
 
-  // A cron cadence was tried and dropped: this repository's scheduled
-  // workflows start hours late, which left master unvalidated.
-  assert.match(workflow, /^ {2}push:\n {4}branches: \[master\]$/m);
+  // It competed with pull-request CI for runners on every merge (2026-10-03).
+  // A cron cadence was tried earlier and dropped: this repository's scheduled
+  // workflows start hours late.
+  assert.doesNotMatch(workflow, /^ {2}push:/m);
   assert.doesNotMatch(workflow, /^ {2}schedule:/m);
+  assert.match(workflow, /^ {2}workflow_dispatch:$/m);
+  assert.match(workflow, /^ {2}workflow_call:$/m);
   assert.match(
     topLevelConcurrencyBlock(workflow, 'full-suite.yml'),
     /^ {2}cancel-in-progress: false$/m,
@@ -578,7 +581,7 @@ test('server image PR validation bounds cache export without changing reachabili
     );
   }
   // Source paths are validated by normal CI and by build-server-image.yml on
-  // every master push; the PR docker build is scoped to the image definition.
+  // every master push (build-server-image.yml); the PR docker build is scoped to the image definition.
   for (const droppedPath of ['apps/server/**', 'packages/**']) {
     assert.ok(
       !workflow.includes(`      - '${droppedPath}'\n`),

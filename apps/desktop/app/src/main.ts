@@ -21,12 +21,14 @@ import type {
   IDesktopSyncConsentInput,
   IDesktopSyncOpAck,
   IDesktopTerminalCreateOptions,
+  IDesktopWindowChromeState,
   IDesktopWorkflowGenerationOptions,
   IDesktopWorkspaceCloudLinkInput,
 } from '@genfeedai/contracts/desktop';
 import {
   DESKTOP_APP_PROTOCOL_SCHEME,
   DESKTOP_IPC_CHANNELS,
+  IS_DESKTOP_LOCAL_MODE_ENABLED,
   parseDesktopThreadLink,
 } from '@genfeedai/contracts/desktop';
 import {
@@ -82,6 +84,7 @@ import {
 } from './main/runtime-context.util';
 import {
   activateDesktopLocalMode,
+  assertDesktopLocalModeEnabled,
   createLocalRuntimeCleanupBarrier,
   createUnwoundLocalRuntimeState,
   restoreDesktopRuntimeMode,
@@ -228,6 +231,9 @@ const telemetryService = new DesktopTelemetryService(environment);
 
 const trayService = new DesktopTrayService();
 const shortcutsService = new DesktopShortcutsService();
+
+/** Centres the 12px traffic lights in the shell's 40px topbar band. */
+const MAC_TRAFFIC_LIGHT_POSITION = { x: 14, y: 14 };
 
 const EXTERNAL_NAVIGATION_HOSTS = new Set([
   'app.genfeed.ai',
@@ -916,7 +922,10 @@ const createWindow = async (): Promise<void> => {
     minWidth: 1280,
     show: false,
     title: 'GenFeed',
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    // macOS: the renderer's topbar is the titlebar. The traffic lights sit
+    // centred in its first 40px band; the shell leaves room for them.
+    titleBarStyle: process.platform === 'darwin' ? 'hidden' : 'default',
+    trafficLightPosition: MAC_TRAFFIC_LIGHT_POSITION,
     webPreferences: {
       additionalArguments: [
         `--genfeed-app-origin=${appShellService.appOrigin}`,
@@ -933,6 +942,15 @@ const createWindow = async (): Promise<void> => {
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
   });
+
+  const emitWindowChrome = (): void => {
+    mainWindow?.webContents.send(
+      DESKTOP_IPC_CHANNELS.windowChromeChanged,
+      getWindowChromeState(),
+    );
+  };
+  mainWindow.on('enter-full-screen', emitWindowChrome);
+  mainWindow.on('leave-full-screen', emitWindowChrome);
 
   const isDev = !app.isPackaged;
 
@@ -1050,7 +1068,7 @@ const createWindow = async (): Promise<void> => {
     await mainWindow.loadURL(buildDesktopFailureScreenUrl());
   }
 
-  buildDesktopMenu(mainWindow, () => {
+  const openLocalWorkspaceFromMenu = (): void => {
     void (async () => {
       assertDesktopRuntimeAvailable(runtimeContextStatus);
       await activateDesktopLocalMode(
@@ -1077,7 +1095,12 @@ const createWindow = async (): Promise<void> => {
         `open local workspace failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     });
-  });
+  };
+
+  buildDesktopMenu(
+    mainWindow,
+    IS_DESKTOP_LOCAL_MODE_ENABLED ? openLocalWorkspaceFromMenu : null,
+  );
 };
 
 const showDesktopStartupFailure = async (error: unknown): Promise<void> => {
@@ -1403,6 +1426,10 @@ const registerProtocolHandling = (): void => {
   });
 };
 
+const getWindowChromeState = (): IDesktopWindowChromeState => ({
+  isFullScreen: mainWindow?.isFullScreen() ?? false,
+});
+
 const registerIpcHandlers = (): void => {
   // The canonical apps/app shell is always available. Database-backed channels
   // are guarded by LOCAL_RUNTIME_IPC_CHANNELS and cannot initialize PGlite as a
@@ -1410,6 +1437,10 @@ const registerIpcHandlers = (): void => {
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.appRuntimeContext,
     async () => getRuntimeContext(),
+  );
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.windowChromeState,
+    async () => getWindowChromeState(),
   );
   registerPrivilegedIpcHandler(DESKTOP_IPC_CHANNELS.appBootstrap, async () =>
     getBootstrap(),
@@ -1421,6 +1452,7 @@ const registerIpcHandlers = (): void => {
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.appEnableOfflineMode,
     async () => {
+      assertDesktopLocalModeEnabled();
       assertDesktopRuntimeAvailable(runtimeContextStatus);
       try {
         await activateDesktopLocalMode(

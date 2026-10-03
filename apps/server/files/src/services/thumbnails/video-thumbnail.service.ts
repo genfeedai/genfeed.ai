@@ -1,10 +1,12 @@
+import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
+import { ConfigService } from '@files/config/config.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { assertSafeSegment, resolveContainedPath } from '@libs/security';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import sharp from 'sharp';
 
 const createBadRequest = (message: string) => new BadRequestException(message);
@@ -17,6 +19,7 @@ export class VideoThumbnailService {
     private readonly loggerService: LoggerService,
     private readonly ffmpegService: FFmpegService,
     private readonly s3Service: S3Service,
+    @Optional() private readonly configService?: ConfigService,
   ) {}
 
   /**
@@ -130,21 +133,10 @@ export class VideoThumbnailService {
         width,
       });
 
-      // Upload thumbnail to S3
-      const s3Key = this.s3Service.generateS3Key(
-        'thumbnails',
+      const { s3Key, publicUrl, uploadDuration } = await this.uploadThumbnail(
+        resizedThumbnailPath,
         safeIngredientId,
       );
-      const uploadStartTime = Date.now();
-
-      await this.s3Service.uploadFile(
-        s3Key,
-        resizedThumbnailPath,
-        'image/jpeg',
-      );
-      const uploadDuration = Date.now() - uploadStartTime;
-
-      const publicUrl = this.s3Service.getPublicUrl(s3Key);
       const totalDuration = Date.now() - thumbnailStartTime;
 
       // Cleanup temp files
@@ -176,6 +168,32 @@ export class VideoThumbnailService {
       });
       throw error;
     }
+  }
+
+  private async uploadThumbnail(
+    thumbnailPath: string,
+    ingredientId: string,
+  ): Promise<{ s3Key: string; publicUrl: string; uploadDuration: number }> {
+    const requestedKey = this.s3Service.generateS3Key(
+      'thumbnails',
+      this.configService?.isAuthorizedMediaDeliveryEnabled
+        ? randomUUID()
+        : ingredientId,
+    );
+    const uploadStartTime = Date.now();
+    const uploaded = await this.s3Service.uploadFile(
+      requestedKey,
+      thumbnailPath,
+      'image/jpeg',
+    );
+    const uploadDuration = Date.now() - uploadStartTime;
+    if (this.configService?.isAuthorizedMediaDeliveryEnabled && !uploaded?.Key)
+      throw new Error('Thumbnail upload returned no stored key');
+    const s3Key = uploaded?.Key ?? requestedKey;
+    const publicUrl = this.configService?.isAuthorizedMediaDeliveryEnabled
+      ? await this.s3Service.getPresignedDownloadUrlForStoredKey(s3Key, 300)
+      : this.s3Service.getPublicUrl(s3Key);
+    return { s3Key, publicUrl, uploadDuration };
   }
 
   /**

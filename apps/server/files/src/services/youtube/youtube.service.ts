@@ -1,10 +1,11 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { ConfigService } from '@files/config/config.service';
+import { S3Service } from '@files/services/s3/s3.service';
 import type { YoutubeCredential } from '@files/shared/interfaces/job.interface';
 import { PostStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import axios from 'axios';
 import { Auth, google, youtube_v3 } from 'googleapis';
 
@@ -15,6 +16,7 @@ export class YoutubeService {
   constructor(
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
+    @Optional() private readonly s3Service?: S3Service,
   ) {}
 
   /**
@@ -53,6 +55,7 @@ export class YoutubeService {
   async uploadVideo(params: {
     credential: YoutubeCredential;
     ingredientId: string;
+    sourceStorageKey?: string;
     title: string;
     description: string;
     tags: string[];
@@ -76,7 +79,15 @@ export class YoutubeService {
       this.initializeYoutubeAPI(credential);
 
       // Download video file
-      const videoUrl = `${this.configService.ingredientsEndpoint}/videos/${ingredientId}`;
+      let videoUrl = `${this.configService.ingredientsEndpoint}/videos/${ingredientId}`;
+      if (this.configService.isAuthorizedMediaDeliveryEnabled) {
+        if (!params.sourceStorageKey || !this.s3Service)
+          throw new Error('YouTube source has no authorized stored key');
+        videoUrl = await this.s3Service.getPresignedDownloadUrlForStoredKey(
+          params.sourceStorageKey,
+          300,
+        );
+      }
       const outputDir = path.join(
         process.cwd(),
         'public',

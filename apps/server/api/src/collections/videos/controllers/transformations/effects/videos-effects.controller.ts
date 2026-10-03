@@ -14,6 +14,7 @@ import {
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
@@ -30,7 +31,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
-import { Controller, Param, Post, Req } from '@nestjs/common';
+import { Controller, Optional, Param, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
 function requirePath(value: unknown): string {
@@ -56,7 +57,27 @@ export class VideosEffectsController {
     private readonly sharedService: SharedService,
     private readonly videosService: VideosService,
     private readonly websocketService: NotificationsPublisherService,
+    @Optional()
+    private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
   ) {}
+
+  private async processingVideoUrl(
+    organizationId: string,
+    videoId: string,
+  ): Promise<string> {
+    if (!this.configService.isAuthorizedMediaDeliveryEnabled) {
+      return `${this.configService.ingredientsEndpoint}/videos/${videoId}`;
+    }
+    if (!this.authorizedMediaUrls)
+      throw new Error('Authorized media issuer is unavailable');
+    const urls = await this.authorizedMediaUrls.issueServerPublish(
+      organizationId,
+      [videoId],
+    );
+    const url = urls.get(videoId);
+    if (!url) throw new Error('The source video has no authorized media URL');
+    return url;
+  }
 
   @Post(':videoId/reverse')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -86,7 +107,10 @@ export class VideosEffectsController {
         status: IngredientStatus.PROCESSING,
       });
 
-    const videoUrl = `${this.configService.ingredientsEndpoint}/videos/${videoId}`;
+    const videoUrl = await this.processingVideoUrl(
+      user.organizationId.toString(),
+      videoId,
+    );
     this.fileQueueService
       .processVideo({
         ingredientId: ingredientData.id.toString(),
@@ -113,6 +137,7 @@ export class VideosEffectsController {
           new MetadataEntity(meta),
         );
         await this.ingredientsService.patch(ingredientData.id, {
+          ...(meta.s3Key ? { s3Key: meta.s3Key } : {}),
           status: IngredientStatus.GENERATED,
           transformations: [TransformationCategory.REVERSED],
         });
@@ -165,7 +190,10 @@ export class VideosEffectsController {
           status: IngredientStatus.PROCESSING,
         });
 
-      const videoUrl = `${this.configService.ingredientsEndpoint}/videos/${videoId}`;
+      const videoUrl = await this.processingVideoUrl(
+        user.organizationId.toString(),
+        videoId,
+      );
       this.fileQueueService
         .processVideo({
           ingredientId: ingredientData.id.toString(),
@@ -198,6 +226,7 @@ export class VideosEffectsController {
             new MetadataEntity(meta),
           );
           await this.ingredientsService.patch(ingredientData.id, {
+            ...(meta.s3Key ? { s3Key: meta.s3Key } : {}),
             status: IngredientStatus.GENERATED,
             transformations: [TransformationCategory.MIRRORED],
           });

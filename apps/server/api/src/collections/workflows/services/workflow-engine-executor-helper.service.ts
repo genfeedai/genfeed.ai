@@ -369,6 +369,7 @@ export class WorkflowEngineExecutorHelperService {
     id: string;
     brandId: string;
     category: IngredientCategory;
+    objectKey?: string;
     storageKey: string;
     storageType: string;
   }> {
@@ -406,6 +407,9 @@ export class WorkflowEngineExecutorHelperService {
       typeof asset.s3Key === 'string'
         ? asset.s3Key.match(/^ingredients\/([^/]+)\/(.+)$/)
         : null;
+    if (this.configService.isAuthorizedMediaDeliveryEnabled && !stored) {
+      throw new Error('Media asset has no trusted stored object key');
+    }
     const storageType =
       stored?.[1] ??
       (
@@ -430,6 +434,7 @@ export class WorkflowEngineExecutorHelperService {
       id,
       brandId: asset.brandId,
       category: asset.category as IngredientCategory,
+      ...(stored ? { objectKey: stored[0] } : {}),
       storageKey: stored?.[2] ?? id,
       storageType,
     };

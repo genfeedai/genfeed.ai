@@ -12,6 +12,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import {
@@ -24,7 +25,7 @@ import {
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Controller, Param, Post, Req } from '@nestjs/common';
+import { Controller, Optional, Param, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -41,7 +42,27 @@ export class VideosGifController {
     private readonly metadataService: MetadataService,
     private readonly sharedService: SharedService,
     private readonly videosService: VideosService,
+    @Optional()
+    private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
   ) {}
+
+  private async processingVideoUrl(
+    organizationId: string,
+    videoId: string,
+  ): Promise<string> {
+    if (!this.configService.isAuthorizedMediaDeliveryEnabled) {
+      return `${this.configService.ingredientsEndpoint}/videos/${videoId}`;
+    }
+    if (!this.authorizedMediaUrls)
+      throw new Error('Authorized media issuer is unavailable');
+    const urls = await this.authorizedMediaUrls.issueServerPublish(
+      organizationId,
+      [videoId],
+    );
+    const url = urls.get(videoId);
+    if (!url) throw new Error('The source video has no authorized media URL');
+    return url;
+  }
 
   @Post(':videoId/gif')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -61,7 +82,7 @@ export class VideosGifController {
 
     const jobResponse = await this.fileQueueService.createGif(
       videoId,
-      `${this.configService.ingredientsEndpoint}/videos/${videoId}`,
+      await this.processingVideoUrl(user.organizationId.toString(), videoId),
       { fps: 10, width: 480 },
     );
 
@@ -83,12 +104,17 @@ export class VideosGifController {
     this.fileQueueService
       .waitForJob(jobResponse.jobId, 60000)
       .then(async (result) => {
-        await this.filesClientService.uploadToS3(ingredientData.id, `gifs`, {
-          path: String(result.outputPath ?? ''),
-          type: FileInputType.FILE,
-        });
+        const uploaded = await this.filesClientService.uploadToS3(
+          ingredientData.id,
+          `gifs`,
+          {
+            path: String(result.outputPath ?? ''),
+            type: FileInputType.FILE,
+          },
+        );
 
         await this.ingredientsService.patch(ingredientData.id, {
+          ...(uploaded.s3Key ? { s3Key: uploaded.s3Key } : {}),
           status: IngredientStatus.GENERATED,
         });
 

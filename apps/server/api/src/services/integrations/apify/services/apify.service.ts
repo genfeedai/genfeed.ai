@@ -356,7 +356,7 @@ export class ApifyService {
         `${this.constructorName}.getTrendingHashtags failed for ${platform}`,
         error,
       );
-      return [];
+      throw error;
     }
   }
 
