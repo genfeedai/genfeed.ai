@@ -2,9 +2,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   CODEX_IGNORE_USER_CONFIG_FLAG,
+  GENFEED_MCP_AGENT_PROFILE,
   GENFEED_MCP_SERVER_NAME,
   GENFEED_MCP_TOKEN_ENV_VAR,
 } from './cli-agent-runtime.constants';
+
+/** Server profile MCP endpoint plus the toolset profile CLI turns need. */
+export function buildCliAgentMcpUrl(mcpEndpoint: string): string {
+  const url = new URL(mcpEndpoint);
+  url.searchParams.set('profile', GENFEED_MCP_AGENT_PROFILE);
+  return url.toString();
+}
 
 export interface ClaudeCliArgsInput {
   mcpConfigPath: string;

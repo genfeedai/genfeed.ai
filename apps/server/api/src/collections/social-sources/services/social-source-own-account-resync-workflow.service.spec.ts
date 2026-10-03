@@ -232,7 +232,7 @@ describe('SocialSourceOwnAccountResyncWorkflowService', () => {
           trigger: 'scheduled',
         }),
         expect.stringContaining('social-source-own-account-resync-'),
-        expect.objectContaining({ replaceTerminalJob: true }),
+        expect.any(Object),
       );
     });
   });

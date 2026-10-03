@@ -358,7 +358,6 @@ export class SocialReplyCampaignService {
       `social-reply-campaign-${campaign.id}-${dispatchCursor}`,
       {
         dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
-        replaceTerminalJob: true,
       },
     );
 

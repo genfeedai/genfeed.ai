@@ -92,7 +92,6 @@ describe('email digest durable workflow results', () => {
       {
         attempts: 3,
         dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
-        replaceTerminalJob: true,
       },
     );
   });
