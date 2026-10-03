@@ -736,6 +736,33 @@ describe('ClientService (MCP) domain clients', () => {
       });
     });
 
+    it('surfaces video generation progress and stage from the ingredient', async () => {
+      (mockAxiosInstance.get as Mock).mockResolvedValue({
+        data: {
+          data: [
+            {
+              attributes: {
+                category: 'VIDEO',
+                generationProgress: 42,
+                generationStage: 'rendering',
+                status: 'PROCESSING',
+              },
+              id: 'video-1',
+            },
+          ],
+        },
+      });
+
+      const result = await service.getJobStatus('video-1');
+
+      expect(result).toMatchObject({
+        id: 'video-1',
+        progress: 42,
+        stage: 'rendering',
+        status: 'PROCESSING',
+      });
+    });
+
     it('creates an agent chat thread', async () => {
       (mockAxiosInstance.post as Mock).mockResolvedValue({
         data: { data: { id: 'thread-1' } },

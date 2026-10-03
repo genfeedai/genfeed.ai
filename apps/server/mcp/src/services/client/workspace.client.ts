@@ -225,9 +225,21 @@ export class WorkspaceClient {
           (typeof attributes.cdnUrl === 'string' && attributes.cdnUrl) ||
           (typeof attributes.url === 'string' && attributes.url) ||
           undefined;
+        // Video (and other long-running) generations report progress on the
+        // ingredient; surface it under the stable `progress`/`stage` names.
+        const progress =
+          typeof attributes.generationProgress === 'number'
+            ? attributes.generationProgress
+            : undefined;
+        const stage =
+          typeof attributes.generationStage === 'string'
+            ? attributes.generationStage
+            : undefined;
         return {
           id,
           ...attributes,
+          ...(progress !== undefined ? { progress } : {}),
+          ...(stage ? { stage } : {}),
           ...(url ? { url } : {}),
         };
       },
