@@ -101,4 +101,16 @@ describe('PersonasService', () => {
       }),
     ]);
   });
+
+  it('lists every character for an explicit brand', async () => {
+    const findAllPages = vi
+      .spyOn(service, 'findAllPages')
+      .mockResolvedValue([new Persona({ id: 'p1', label: 'Anna' })]);
+    const signal = new AbortController().signal;
+
+    const result = await service.listAllCharacters({ brandId: 'b2', signal });
+
+    expect(findAllPages).toHaveBeenCalledWith({ brandId: 'b2' }, signal);
+    expect(result).toEqual([expect.objectContaining({ id: 'p1' })]);
+  });
 });

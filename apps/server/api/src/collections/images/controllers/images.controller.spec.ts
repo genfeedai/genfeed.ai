@@ -358,6 +358,24 @@ describe('ImagesController', () => {
       expect(aggregate.where.AND).toContainEqual(resolved);
     });
 
+    it('resolves availability for the active brand, not a brandId override', async () => {
+      const otherBrandId = testId('brand', 2);
+      characterFilterService.buildFilter.mockResolvedValueOnce({
+        personaId: { in: [] },
+      });
+
+      await controller.findAll(mockRequest, mockUser, {
+        brandId: otherBrandId,
+        characters: [testId('character')],
+        limit: 10,
+        page: 1,
+      } as unknown as ImagesQueryDto);
+
+      expect(characterFilterService.buildFilter).toHaveBeenCalledWith(
+        expect.objectContaining({ brandId: mockUser.brandId }),
+      );
+    });
+
     it('fails closed when the character resolver is not wired', async () => {
       const unwired = new ImagesController(
         imagesService as unknown as ImagesService,

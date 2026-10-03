@@ -10,6 +10,7 @@ import {
   parseLibraryShelf,
 } from '@genfeedai/contracts';
 import {
+  LIBRARY_MAX_CHARACTER_FILTERS,
   LIBRARY_QUERY_KEYS,
   LIBRARY_VIEW_MODES,
   type LibraryViewMode,
@@ -58,7 +59,7 @@ function parseOrigins(values: string[]): IngredientOrigin[] {
 function parseCharacters(values: string[]): string[] {
   return Array.from(
     new Set(values.map((value) => value.trim()).filter(Boolean)),
-  );
+  ).slice(0, LIBRARY_MAX_CHARACTER_FILTERS);
 }
 
 function parseViewMode(value: string | null): LibraryViewMode {

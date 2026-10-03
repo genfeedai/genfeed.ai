@@ -2405,6 +2405,7 @@
       "toolbar": {
         "canvas": "Canvas",
         "character": "Character",
+        "characterLimit": "Limit of {count} characters reached",
         "clearCharacterFilter": "Clear character filter",
         "clearOriginFilter": "Clear origin filter",
         "clearTypeFilter": "Clear type filter",
