@@ -2,7 +2,6 @@ import type { AgentAdsResearchToolHandler } from '@api/services/agent-orchestrat
 import type { AgentAnalyticsToolHandler } from '@api/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
 import type { AgentBrandContentToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-content-tool-handler.service';
 import type { AgentBrandContextToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-context-tool-handler.service';
-import type { AgentBrandFromUrlToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-from-url-tool-handler.service';
 import type { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
 import type { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import type { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
@@ -33,7 +32,6 @@ export type AgentToolDispatchHandlers = {
   brandContentHandler: AgentBrandContentToolHandler;
   brandContextHandler: AgentBrandContextToolHandler;
   brandInterviewHandler: AgentBrandInterviewToolHandler;
-  brandFromUrlHandler: AgentBrandFromUrlToolHandler;
   campaignHandler: AgentCampaignToolHandler;
   catalogHandler: AgentToolCatalogHandler;
   connectionHandler: AgentConnectionToolHandler;
@@ -65,8 +63,9 @@ export function dispatchRegisteredAgentTool(
 ): Promise<AgentToolResult> {
   switch (toolName) {
     case 'create_brand_from_url':
+      return handlers.brandContentHandler.createBrandFromUrl(params, ctx);
     case 'get_brand_scan_status':
-      return handlers.brandFromUrlHandler.execute(toolName, params, ctx);
+      return handlers.brandContentHandler.getBrandScanStatus(params, ctx);
   }
   return Promise.resolve(
     dispatchCatalogAndTransfer(handlers, toolName, params, ctx) ??

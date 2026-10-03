@@ -1,5 +1,5 @@
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { AgentBrandFromUrlToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-from-url-tool-handler.service';
+import { AgentBrandContentToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-content-tool-handler.service';
 import { MemberRole } from '@genfeedai/contracts';
 import { Reflector } from '@nestjs/core';
 
@@ -41,10 +41,13 @@ function harness(role: MemberRole = MemberRole.OWNER) {
     get: vi.fn().mockResolvedValue(completed),
   };
   return {
-    handler: new AgentBrandFromUrlToolHandler(
+    handler: new AgentBrandContentToolHandler(
+      {} as never,
+      {} as never,
       roles,
       requestContext as never,
       prisma as never,
+      undefined,
       service as never,
     ),
     service,
@@ -52,15 +55,14 @@ function harness(role: MemberRole = MemberRole.OWNER) {
     requestContext,
   };
 }
-describe('AgentBrandFromUrlToolHandler', () => {
+describe('AgentBrandContentToolHandler', () => {
   afterEach(() => vi.useRealTimers());
   it.each([MemberRole.OWNER, MemberRole.ADMIN])(
     'allows %s and delegates billing',
     async (role) => {
       const h = harness(role);
       expect(
-        await h.handler.execute(
-          'create_brand_from_url',
+        await h.handler.createBrandFromUrl(
           { url: 'https://example.com', approve: true },
           CTX,
         ),
@@ -97,9 +99,7 @@ describe('AgentBrandFromUrlToolHandler', () => {
     'rejects %s before validation or writes',
     async (role) => {
       const h = harness(role);
-      await expect(
-        h.handler.execute('create_brand_from_url', {}, CTX),
-      ).rejects.toThrow(
+      await expect(h.handler.createBrandFromUrl({}, CTX)).rejects.toThrow(
         'Only organization owners and admins can create brands from a URL.',
       );
       expect(h.service.start).not.toHaveBeenCalled();
@@ -108,11 +108,7 @@ describe('AgentBrandFromUrlToolHandler', () => {
   it('reads status without the creation role check', async () => {
     const h = harness(MemberRole.ANALYTICS);
     expect(
-      await h.handler.execute(
-        'get_brand_scan_status',
-        { brandId: 'brand-1' },
-        CTX,
-      ),
+      await h.handler.getBrandScanStatus({ brandId: 'brand-1' }, CTX),
     ).toEqual({
       success: true,
       creditsUsed: 0,
@@ -135,7 +131,7 @@ describe('AgentBrandFromUrlToolHandler', () => {
     });
     let hasReturned = false;
     const result = h.handler
-      .execute('create_brand_from_url', { url: 'https://example.com' }, CTX)
+      .createBrandFromUrl({ url: 'https://example.com' }, CTX)
       .then((value) => {
         hasReturned = true;
         return value;
@@ -152,13 +148,7 @@ describe('AgentBrandFromUrlToolHandler', () => {
     finish(completed);
     await completion;
     expect(
-      (
-        await h.handler.execute(
-          'get_brand_scan_status',
-          { brandId: 'brand-1' },
-          CTX,
-        )
-      ).data,
+      (await h.handler.getBrandScanStatus({ brandId: 'brand-1' }, CTX)).data,
     ).toEqual(completed);
   });
   it('delegates zero credits on failure', async () => {
@@ -169,19 +159,19 @@ describe('AgentBrandFromUrlToolHandler', () => {
       completion: Promise.resolve({ ...completed, scanStatus: 'failed' }),
     } as never);
     expect(
-      await h.handler.execute(
-        'create_brand_from_url',
-        { url: 'https://example.com' },
-        CTX,
-      ),
+      await h.handler.createBrandFromUrl({ url: 'https://example.com' }, CTX),
     ).toMatchObject({ creditsUsed: 0, isBillingDelegated: true });
   });
   it.each([
     ['create_brand_from_url', 'create_brand_from_url requires a url.'],
     ['get_brand_scan_status', 'get_brand_scan_status requires a brandId.'],
   ] as const)('requires inputs for %s', async (name, message) => {
-    await expect(harness().handler.execute(name, {}, CTX)).rejects.toThrow(
-      message,
-    );
+    await expect(
+      harness().handler[
+        name === 'create_brand_from_url'
+          ? 'createBrandFromUrl'
+          : 'getBrandScanStatus'
+      ]({}, CTX),
+    ).rejects.toThrow(message);
   });
 });

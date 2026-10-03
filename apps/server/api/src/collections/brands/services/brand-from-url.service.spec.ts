@@ -1,6 +1,6 @@
 import { BrandDataMapper } from '@api/collections/brands/services/brand-data.mapper';
 import { BrandFromUrlService } from '@api/collections/brands/services/brand-from-url.service';
-import { AgentBrandFromUrlToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-from-url-tool-handler.service';
+import { AgentBrandContentToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-content-tool-handler.service';
 import { DEFAULT_BRAND_VOICE_ANALYSIS } from '@api/services/knowledge-base/master-prompt-generator.service';
 import { buildBrandKitDraftFromBrand } from '@genfeedai/helpers';
 import { resolveSafeDestination } from '@libs/security/destination-guard';
@@ -294,7 +294,9 @@ describe('BrandFromUrlService', () => {
       return collected;
     });
     h.scans.get.mockResolvedValue({ status: 'running' } as never);
-    const handler = new AgentBrandFromUrlToolHandler(
+    const handler = new AgentBrandContentToolHandler(
+      {} as never,
+      {} as never,
       { assertRoles: vi.fn() } as never,
       { hydrate: vi.fn() } as never,
       {
@@ -304,10 +306,10 @@ describe('BrandFromUrlService', () => {
             .mockResolvedValue({ id: context.userId, platformRole: 'USER' }),
         },
       } as never,
+      undefined,
       h.service,
     );
-    const result = handler.execute(
-      'create_brand_from_url',
+    const result = handler.createBrandFromUrl(
       { url: 'https://example.com' },
       context,
     );
@@ -320,8 +322,7 @@ describe('BrandFromUrlService', () => {
     await vi.advanceTimersByTimeAsync(1000);
     expect(h.revisions.update).toHaveBeenCalledOnce();
     expect(h.credits.settleReservation).toHaveBeenCalledOnce();
-    const status = await handler.execute(
-      'get_brand_scan_status',
+    const status = await handler.getBrandScanStatus(
       { brandId: h.brand.id },
       context,
     );

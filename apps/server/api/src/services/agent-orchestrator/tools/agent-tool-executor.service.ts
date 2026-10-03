@@ -19,7 +19,6 @@ import { AgentAdsResearchToolHandler } from '@api/services/agent-orchestrator/to
 import { AgentAnalyticsToolHandler } from '@api/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
 import { AgentBrandContentToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-content-tool-handler.service';
 import { AgentBrandContextToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-context-tool-handler.service';
-import { AgentBrandFromUrlToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-from-url-tool-handler.service';
 import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
 import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
@@ -273,7 +272,6 @@ export class AgentToolExecutorService implements OnModuleInit {
     private readonly instagramInspirationHandler: AgentInstagramInspirationToolHandler,
     private readonly xActionsHandler: AgentXActionsToolHandler,
     private readonly brandInterviewHandler: AgentBrandInterviewToolHandler,
-    private readonly brandFromUrlHandler: AgentBrandFromUrlToolHandler,
     private readonly workspaceHandler: AgentWorkspaceToolHandler,
     private readonly connectionHandler: AgentConnectionToolHandler,
     private readonly trendsHandler: AgentTrendsToolHandler,
@@ -683,7 +681,6 @@ export class AgentToolExecutorService implements OnModuleInit {
         brandContentHandler: this.brandContentHandler,
         brandContextHandler: this.brandContextHandler,
         brandInterviewHandler: this.brandInterviewHandler,
-        brandFromUrlHandler: this.brandFromUrlHandler,
         campaignHandler: this.campaignHandler,
         catalogHandler: this.catalogHandler,
         connectionHandler: this.connectionHandler,

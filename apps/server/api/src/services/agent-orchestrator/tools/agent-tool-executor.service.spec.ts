@@ -1119,8 +1119,23 @@ describe('AgentToolExecutorService', () => {
     const brandContentHandler = new AgentBrandContentToolHandler(
       loggerService,
       brandsService as never,
+      {} as never,
+      {} as never,
+      {} as never,
       batchGenerationService as never,
     );
+    vi.spyOn(brandContentHandler, 'createBrandFromUrl').mockResolvedValue({
+      success: true,
+      creditsUsed: 0,
+      isBillingDelegated: true,
+      data: { brandId: 'brand-1', scanStatus: 'running' },
+    });
+    vi.spyOn(brandContentHandler, 'getBrandScanStatus').mockResolvedValue({
+      success: true,
+      creditsUsed: 0,
+      isBillingDelegated: true,
+      data: { brandId: 'brand-1', scanStatus: 'running' },
+    });
     const prepareHandler = new AgentPrepareToolHandler(
       brandsService as never,
       membersService as never,
@@ -1163,14 +1178,6 @@ describe('AgentToolExecutorService', () => {
       instagramInspirationHandler,
       xActionsHandler,
       brandInterviewHandler,
-      {
-        execute: vi.fn().mockResolvedValue({
-          success: true,
-          creditsUsed: 0,
-          isBillingDelegated: true,
-          data: { brandId: 'brand-1', scanStatus: 'running' },
-        }),
-      } as never,
       workspaceHandler,
       connectionHandler,
       trendsHandler,
@@ -5970,7 +5977,6 @@ describe('AgentToolExecutorService', () => {
         undefined,
       ),
       new AgentBrandInterviewToolHandler(undefined),
-      {} as never,
       new AgentWorkspaceToolHandler(
         {} as never,
         brandsService as never,
@@ -6072,6 +6078,9 @@ describe('AgentToolExecutorService', () => {
       new AgentBrandContentToolHandler(
         loggerService,
         brandsService as never,
+        {} as never,
+        {} as never,
+        {} as never,
         {} as never,
       ),
       new AgentPrepareToolHandler(

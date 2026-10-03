@@ -142,7 +142,6 @@ describe('AgentToolExecutorService — #4672 agent-mode confirmation matrix', ()
       unused,
       unused,
       unused,
-      unused,
       mediaGenerationHandler as never,
       unused,
       brandContentHandler as never,
