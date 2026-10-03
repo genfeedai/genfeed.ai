@@ -39,6 +39,13 @@ export const MCP_GENERATION_TOOLS: SourceTool[] = [
           enum: ['UPLOADED', 'GENERATED', 'IMPORTED', 'UNKNOWN'],
           type: 'string',
         },
+        characterIds: {
+          description:
+            'Only videos generated with any of these characters (character ids). Only characters available to the active brand are honoured; an unavailable id matches nothing',
+          items: { type: 'string' },
+          maxItems: 25,
+          type: 'array',
+        },
       },
       type: 'object',
     },
@@ -65,6 +72,13 @@ export const MCP_GENERATION_TOOLS: SourceTool[] = [
             'Only images with this permanent origin: UPLOADED (a member added the file), GENERATED (Genfeed produced it), IMPORTED (saved from an external post or page) or UNKNOWN (legacy)',
           enum: ['UPLOADED', 'GENERATED', 'IMPORTED', 'UNKNOWN'],
           type: 'string',
+        },
+        characterIds: {
+          description:
+            'Only images generated with any of these characters (character ids). Only characters available to the active brand are honoured; an unavailable id matches nothing',
+          items: { type: 'string' },
+          maxItems: 25,
+          type: 'array',
         },
       },
       type: 'object',

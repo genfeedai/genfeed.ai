@@ -8,6 +8,7 @@ import {
   LibraryPlace,
   PageScope,
 } from '@genfeedai/contracts';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type { LibraryBrowserProps } from '@props/pages/library-browser.props';
 import Container from '@ui/layout/container/Container';
 import FormSearchbar from '@ui/primitives/searchbar';
@@ -23,6 +24,7 @@ import LibraryBrowserToolbar, {
   LibraryBrowserIconActions,
 } from './library-browser-toolbar';
 import { useLibraryBrowser } from './use-library-browser';
+import { useLibraryCharacterOptions } from './use-library-character-options';
 
 /**
  * One browser behind every Library destination.
@@ -44,9 +46,12 @@ export default function LibraryBrowser({
     place,
     shelf,
     categories,
+    characters,
     contextValue,
     handleCategoriesChange,
+    handleCharactersChange,
     handleClearCategories,
+    handleClearCharacters,
     handleClearOrigins,
     handleOriginsChange,
     handleRefresh,
@@ -64,6 +69,14 @@ export default function LibraryBrowser({
     scope,
     seededCategories,
     shelf: defaultShelf,
+  });
+
+  // Character availability is resolved for one brand, so the filter belongs to
+  // brand-scoped views only.
+  const { brandId } = useCollectionScope();
+  const characterOptions = useLibraryCharacterOptions({
+    brandId,
+    isEnabled: scope === PageScope.BRAND,
   });
 
   const [headerMeta, setHeaderMeta] = useState<ReactNode>();
@@ -145,8 +158,12 @@ export default function LibraryBrowser({
           right={
             <LibraryBrowserToolbar
               categories={categories}
+              characterOptions={characterOptions}
+              characters={characters}
               onCategoriesChange={handleCategoriesChange}
+              onCharactersChange={handleCharactersChange}
               onClearCategories={handleClearCategories}
+              onClearCharacters={handleClearCharacters}
               onClearOrigins={handleClearOrigins}
               onOriginsChange={handleOriginsChange}
               origins={origins}

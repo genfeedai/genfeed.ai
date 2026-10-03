@@ -7,6 +7,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
 import type { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
+import { IngredientCharacterFilterService } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
 import {
@@ -60,12 +61,18 @@ describe('IngredientsController — Library axes', () => {
     }),
   };
 
+  const characterFilter = {
+    buildFilter: vi.fn().mockResolvedValue({}),
+  };
+
   const controller = new IngredientsController(
     ingredientsService as unknown as IngredientsService,
     {} as never,
     {} as never,
     { ingredientsEndpoint: 'https://cdn.genfeed.ai/ingredients' } as never,
     { buildUrlFromAbsolute: (url: string) => url } as never,
+    undefined,
+    characterFilter as unknown as IngredientCharacterFilterService,
   );
 
   afterEach(() => {
@@ -197,6 +204,91 @@ describe('IngredientsController — Library axes', () => {
       expect(findBranchWith(aggregate, 'category')).toEqual({
         category: { in: ['IMAGE'] },
       });
+    });
+
+    it('narrows to the resolved characters beside the other axes', async () => {
+      const characterId = testId('character');
+      characterFilter.buildFilter.mockResolvedValueOnce({
+        personaId: { in: [characterId] },
+      });
+
+      await controller.findAll(
+        mockRequest,
+        {
+          categories: [IngredientCategory.IMAGE],
+          characters: [characterId],
+          origins: [IngredientOrigin.GENERATED],
+        } as IngredientsQueryDto,
+        mockUser,
+      );
+
+      expect(characterFilter.buildFilter).toHaveBeenCalledWith({
+        brandId,
+        characterIds: [characterId],
+        organizationId,
+      });
+      const [aggregate] = ingredientsService.findAll.mock.calls[0];
+      expect(findBranchWith(aggregate, 'personaId')).toEqual({
+        personaId: { in: [characterId] },
+      });
+      expect(findBranchWith(aggregate, 'origin')).toEqual({
+        origin: { in: ['GENERATED'] },
+      });
+      expect(findBranchWith(aggregate, 'category')).toEqual({
+        category: { in: ['IMAGE'] },
+      });
+      // Tenant scope is never traded for the character filter.
+      expect(andBranches(aggregate)).toContainEqual({ organizationId });
+    });
+
+    it('lists no assets when every requested character is unavailable', async () => {
+      characterFilter.buildFilter.mockResolvedValueOnce({
+        personaId: { in: [] },
+      });
+
+      await controller.findAll(
+        mockRequest,
+        { characters: [testId('character')] } as IngredientsQueryDto,
+        mockUser,
+      );
+
+      const [aggregate] = ingredientsService.findAll.mock.calls[0];
+      expect(findBranchWith(aggregate, 'personaId')).toEqual({
+        personaId: { in: [] },
+      });
+    });
+
+    it('fails closed when the character resolver is not wired', async () => {
+      const unwired = new IngredientsController(
+        ingredientsService as unknown as IngredientsService,
+        {} as never,
+        {} as never,
+        { ingredientsEndpoint: 'https://cdn.genfeed.ai/ingredients' } as never,
+        { buildUrlFromAbsolute: (url: string) => url } as never,
+      );
+
+      await unwired.findAll(
+        mockRequest,
+        { characters: [testId('character')] } as IngredientsQueryDto,
+        mockUser,
+      );
+
+      const [aggregate] = ingredientsService.findAll.mock.calls[0];
+      expect(findBranchWith(aggregate, 'personaId')).toEqual({
+        personaId: { in: [] },
+      });
+    });
+
+    it('adds no character predicate or lookup when none was asked for', async () => {
+      await controller.findAll(
+        mockRequest,
+        {} as IngredientsQueryDto,
+        mockUser,
+      );
+
+      const [aggregate] = ingredientsService.findAll.mock.calls[0];
+      expect(andBranches(aggregate).some((b) => 'personaId' in b)).toBe(false);
+      expect(characterFilter.buildFilter).not.toHaveBeenCalled();
     });
 
     it('adds no origin predicate when none was asked for', async () => {

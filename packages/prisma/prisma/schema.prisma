@@ -2385,6 +2385,7 @@ model Ingredient {
   @@index([isDeleted, organizationId, createdAt(sort: Desc)], map: "ingredients_deleted_org_created_at_idx")
   @@index([organizationId, updatedAt, id], map: "ingredients_org_updated_at_id_idx")
   @@index([organizationId, origin, isDeleted, createdAt(sort: Desc)], map: "ingredients_org_origin_created_at_idx")
+  @@index([organizationId, personaId, isDeleted, createdAt(sort: Desc)], map: "ingredients_org_persona_created_at_idx")
   @@map("ingredients")
 }
 

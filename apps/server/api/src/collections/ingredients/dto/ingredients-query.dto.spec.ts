@@ -1,4 +1,6 @@
 import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
+import { MAX_CHARACTER_FILTER_IDS } from '@api/helpers/dto/ingredient-characters-query.transform';
+import { testId, testIds } from '@helpers/testing/test-id.helper';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 
@@ -48,6 +50,48 @@ describe('IngredientsQueryDto', () => {
 
       expect(await validate(dto)).toHaveLength(0);
       expect(dto.origins).toEqual(['UPLOADED', 'IMPORTED']);
+    });
+
+    it('accepts repeated characters keys and de-duplicates them', async () => {
+      const first = testId('character', 1);
+      const second = testId('character', 2);
+      const dto = plainToInstance(IngredientsQueryDto, {
+        characters: [first, second, first],
+      });
+
+      expect(await validate(dto)).toHaveLength(0);
+      expect(dto.characters).toEqual([first, second]);
+    });
+
+    it('wraps a single character id and leaves it unset when absent', () => {
+      const id = testId('character');
+
+      expect(
+        plainToInstance(IngredientsQueryDto, { characters: id }).characters,
+      ).toEqual([id]);
+      expect(
+        plainToInstance(IngredientsQueryDto, {}).characters,
+      ).toBeUndefined();
+    });
+
+    it('rejects a malformed character id instead of listing everything', async () => {
+      const dto = plainToInstance(IngredientsQueryDto, {
+        characters: [testId('character'), 'not an id!'],
+      });
+
+      const errors = await validate(dto);
+
+      expect(errors.map((error) => error.property)).toContain('characters');
+    });
+
+    it('rejects an oversized character list', async () => {
+      const dto = plainToInstance(IngredientsQueryDto, {
+        characters: testIds('character', MAX_CHARACTER_FILTER_IDS + 1),
+      });
+
+      const errors = await validate(dto);
+
+      expect(errors.map((error) => error.property)).toContain('characters');
     });
 
     it('wraps a single origin and leaves it unset when absent', async () => {

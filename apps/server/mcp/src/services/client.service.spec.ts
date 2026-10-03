@@ -291,6 +291,40 @@ describe('ClientService (MCP)', () => {
     });
   });
 
+  describe('character filter', () => {
+    it('sends the character ids when listing videos and images', async () => {
+      (mockAxiosInstance.get as Mock).mockResolvedValue({ data: { data: [] } });
+
+      await service.listVideos(10, 0, undefined, ['c1', 'c2']);
+      await service.listImages({ characterIds: ['c1'] });
+
+      expect(mockAxiosInstance.get).toHaveBeenNthCalledWith(1, '/videos', {
+        params: {
+          characters: ['c1', 'c2'],
+          'page[limit]': 10,
+          'page[offset]': 0,
+        },
+      });
+      expect(mockAxiosInstance.get).toHaveBeenNthCalledWith(2, '/images', {
+        params: {
+          characters: ['c1'],
+          'page[limit]': 10,
+          'page[offset]': 0,
+        },
+      });
+    });
+
+    it('omits the character param when no ids are given', async () => {
+      (mockAxiosInstance.get as Mock).mockResolvedValue({ data: { data: [] } });
+
+      await service.listVideos(10, 0, undefined, []);
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/videos', {
+        params: { 'page[limit]': 10, 'page[offset]': 0 },
+      });
+    });
+  });
+
   // ==================== ARTICLE TESTS ====================
 
   describe('createArticle', () => {

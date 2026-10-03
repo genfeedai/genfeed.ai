@@ -285,8 +285,9 @@ export class ClientService {
     limit: number = 10,
     offset: number = 0,
     origin?: IngredientOrigin,
+    characterIds?: string[],
   ): Promise<VideoResponse[]> {
-    return this.media.listVideos(limit, offset, origin);
+    return this.media.listVideos(limit, offset, origin, characterIds);
   }
 
   mergeVideos(params: MergeVideosParams): Promise<MergeVideosResult> {

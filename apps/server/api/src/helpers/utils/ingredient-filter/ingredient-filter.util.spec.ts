@@ -17,6 +17,24 @@ describe('IngredientFilterUtil', () => {
     });
   });
 
+  describe('buildCharacterFilter', () => {
+    it('matches assets linked to any resolved character', () => {
+      expect(IngredientFilterUtil.buildCharacterFilter(['p1', 'p2'])).toEqual({
+        personaId: { in: ['p1', 'p2'] },
+      });
+    });
+
+    it('matches nothing when every requested character was unavailable', () => {
+      expect(IngredientFilterUtil.buildCharacterFilter([])).toEqual({
+        personaId: { in: [] },
+      });
+    });
+
+    it('adds no predicate when no character was asked for', () => {
+      expect(IngredientFilterUtil.buildCharacterFilter(undefined)).toEqual({});
+    });
+  });
+
   describe('buildParentFilter', () => {
     it('should filter root ingredients when parent is null', () => {
       const result = IngredientFilterUtil.buildParentFilter(null);

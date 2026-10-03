@@ -2404,11 +2404,14 @@
       },
       "toolbar": {
         "canvas": "Canvas",
+        "character": "Character",
+        "clearCharacterFilter": "Clear character filter",
         "clearOriginFilter": "Clear origin filter",
         "clearTypeFilter": "Clear type filter",
         "contactSheet": "Contact sheet",
         "list": "List",
         "origin": "Origin",
+        "searchCharacters": "Search characters",
         "sortAria": "Sort",
         "type": "Type",
         "upload": "Upload"

@@ -6,6 +6,11 @@ import { APP_ROUTES } from './routes.constant';
 export const LIBRARY_QUERY_KEYS = {
   /** Repeated key — the type axis (`?categories=IMAGE&categories=VIDEO`). */
   CATEGORIES: 'categories',
+  /**
+   * Repeated key — the character filter (`?characters=<id>&characters=<id>`).
+   * A filter like origin, never a navigation destination.
+   */
+  CHARACTERS: 'characters',
   /** Folder axis. Absent means "any folder"; the Unsorted shelf means "none". */
   FOLDER: 'folder',
   /**
@@ -27,6 +32,7 @@ export type LibraryViewMode = (typeof LIBRARY_VIEW_MODES)[number];
 
 export interface LibraryBrowserRouteOptions {
   categories?: readonly IngredientCategory[];
+  characters?: readonly string[];
   folderId?: string;
   origins?: readonly IngredientOrigin[];
   search?: string;
@@ -44,7 +50,7 @@ export function createLibraryShelfRoute(shelf: LibraryShelf): string {
 }
 
 /**
- * Attach the type / folder / search filters to any Library browser route.
+ * Attach the type / character / origin / folder / search filters to any Library browser route.
  *
  * Pass the result through `useOrgUrl().href()` to scope it to org + brand.
  */
@@ -52,6 +58,7 @@ export function createLibraryBrowserRoute(
   route: string = APP_ROUTES.LIBRARY.ASSETS,
   {
     categories,
+    characters,
     folderId,
     origins,
     search,
@@ -64,6 +71,12 @@ export function createLibraryBrowserRoute(
 
   for (const category of categories ?? []) {
     params.append(LIBRARY_QUERY_KEYS.CATEGORIES, category);
+  }
+
+  if (characters) params.delete(LIBRARY_QUERY_KEYS.CHARACTERS);
+
+  for (const character of characters ?? []) {
+    params.append(LIBRARY_QUERY_KEYS.CHARACTERS, character);
   }
 
   if (origins) params.delete(LIBRARY_QUERY_KEYS.ORIGINS);

@@ -1,6 +1,7 @@
 import { Readable } from 'node:stream';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
+import { IngredientCharacterFilterService } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
@@ -101,6 +102,8 @@ export class VideosController {
     @Optional()
     private readonly evaluationProjection?: ContentEvaluationProjectionService,
     @Optional() private readonly mediaIssuer?: AuthorizedMediaUrlService,
+    @Optional()
+    private readonly characterFilter?: IngredientCharacterFilterService,
   ) {}
 
   @Get()
@@ -200,6 +203,12 @@ export class VideosController {
     // Handle format filter based on metadata dimensions
     // Format is now filtered after metadata lookup
 
+    const characterFilter = await this.resolveCharacterFilter(
+      query.characters,
+      user,
+      typeof brandId === 'string' ? brandId : undefined,
+    );
+
     const aggregate = {
       where: {
         AND: [
@@ -220,6 +229,7 @@ export class VideosController {
           parentConditions,
           trainingFilter,
           IngredientFilterUtil.buildOriginFilter(query.origins),
+          characterFilter,
           searchFilter.where,
         ],
       },
@@ -235,6 +245,30 @@ export class VideosController {
         contentType: 'video',
       })) ?? data,
     );
+  }
+
+  /**
+   * The `characters` filter, limited to characters the active brand can use.
+   * Without the resolver the filter fails closed rather than ignoring the ids.
+   */
+  private resolveCharacterFilter(
+    characterIds: string[] | undefined,
+    user: User,
+    explicitBrandId: string | undefined,
+  ): Promise<Record<string, unknown>> {
+    if (!characterIds || characterIds.length === 0) {
+      return Promise.resolve({});
+    }
+
+    if (!this.characterFilter) {
+      return Promise.resolve(IngredientFilterUtil.buildCharacterFilter([]));
+    }
+
+    return this.characterFilter.buildFilter({
+      brandId: explicitBrandId ?? user.brandId,
+      characterIds,
+      organizationId: user.organizationId,
+    });
   }
 
   @Get(':videoId')

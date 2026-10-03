@@ -168,6 +168,9 @@ vi.mock('@mcp/guards/mcp-auth.guard', () => ({
   },
 }));
 
+const CHARACTER_ID = 'cmcharacter0000000000000001';
+const OTHER_CHARACTER_ID = 'cmcharacter0000000000000002';
+
 describe('ToolRegistryService', () => {
   let service: ToolRegistryService;
   let clientService: {
@@ -493,7 +496,12 @@ describe('ToolRegistryService', () => {
       name: 'list_videos',
     });
 
-    expect(clientService.listVideos).toHaveBeenCalledWith(5, 0, undefined);
+    expect(clientService.listVideos).toHaveBeenCalledWith(
+      5,
+      0,
+      undefined,
+      undefined,
+    );
     expect(
       (result as { content: { text: string }[] }).content[0].text,
     ).toContain('vid-1');
@@ -505,7 +513,12 @@ describe('ToolRegistryService', () => {
       name: 'list_videos',
     });
 
-    expect(clientService.listVideos).toHaveBeenCalledWith(5, 0, 'UPLOADED');
+    expect(clientService.listVideos).toHaveBeenCalledWith(
+      5,
+      0,
+      'UPLOADED',
+      undefined,
+    );
   });
 
   it('handleToolCall list_images passes the origin filter through', async () => {
@@ -518,6 +531,50 @@ describe('ToolRegistryService', () => {
       expect.objectContaining({ origin: 'IMPORTED' }),
     );
   });
+
+  it('handleToolCall list_images passes the character filter through', async () => {
+    const characterIds = [CHARACTER_ID, OTHER_CHARACTER_ID];
+
+    await service.handleToolCall({
+      arguments: { characterIds: [...characterIds, CHARACTER_ID] },
+      name: 'list_images',
+    });
+
+    expect(clientService.listImages).toHaveBeenCalledWith(
+      expect.objectContaining({ characterIds }),
+    );
+  });
+
+  it('handleToolCall list_videos passes the character filter through', async () => {
+    await service.handleToolCall({
+      arguments: { characterIds: [CHARACTER_ID], limit: 5 },
+      name: 'list_videos',
+    });
+
+    expect(clientService.listVideos).toHaveBeenCalledWith(5, 0, undefined, [
+      CHARACTER_ID,
+    ]);
+  });
+
+  it.each(['list_videos', 'list_images'])(
+    'handleToolCall %s rejects malformed character ids instead of listing everything',
+    async (name) => {
+      clientService.listVideos.mockClear();
+      clientService.listImages.mockClear();
+
+      const result = await service.handleToolCall({
+        arguments: { characterIds: ['not an id!'] },
+        name,
+      });
+
+      expect((result as { isError: boolean }).isError).toBe(true);
+      expect(
+        (result as { content: { text: string }[] }).content[0].text,
+      ).toContain('characterIds must be a list of up to 25 character ids');
+      expect(clientService.listVideos).not.toHaveBeenCalled();
+      expect(clientService.listImages).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([
     ['list_music', 'listMusic'],

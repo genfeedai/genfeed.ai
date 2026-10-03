@@ -32,6 +32,24 @@ export const IngredientFilterUtil = {
   },
 
   /**
+   * Build the character filter (Library character axis).
+   *
+   * Takes ids that were already resolved against the brand's character
+   * availability, never the raw query.
+   *
+   * - `undefined` → empty object, so the filter never narrows an unfiltered list
+   * - ids → rows linked to any of them
+   * - `[]` → matches nothing (every requested character was unavailable)
+   */
+  buildCharacterFilter(
+    availableCharacterIds: readonly string[] | undefined,
+  ): Record<string, unknown> {
+    return availableCharacterIds
+      ? { personaId: { in: [...availableCharacterIds] } }
+      : {};
+  },
+
+  /**
    * Build parent filter conditions
    *
    * Handles filtering by parent ingredient ID:

@@ -151,9 +151,10 @@ export class MediaClient {
     limit: number = 10,
     offset: number = 0,
     origin?: IngredientOrigin,
+    characterIds?: string[],
   ): Promise<VideoResponse[]> {
     this.base.logger.debug(
-      `Listing videos: limit=${limit}, offset=${offset}, origin=${origin ?? 'any'}`,
+      `Listing videos: limit=${limit}, offset=${offset}, origin=${origin ?? 'any'}, characters=${characterIds?.length ?? 0}`,
     );
 
     return this.base.request(
@@ -164,6 +165,7 @@ export class MediaClient {
             'page[limit]': limit,
             'page[offset]': offset,
             ...(origin ? { origins: origin } : {}),
+            ...(characterIds?.length ? { characters: characterIds } : {}),
           },
         });
 
@@ -228,6 +230,9 @@ export class MediaClient {
             'page[limit]': params.limit || 10,
             'page[offset]': params.offset || 0,
             ...(params.origin ? { origins: params.origin } : {}),
+            ...(params.characterIds?.length
+              ? { characters: params.characterIds }
+              : {}),
           },
         });
 

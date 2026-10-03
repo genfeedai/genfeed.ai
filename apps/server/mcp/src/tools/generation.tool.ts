@@ -1,4 +1,5 @@
 import { parseIngredientOrigin } from '@genfeedai/contracts';
+import { isEntityId } from '@genfeedai/contracts/api-types/helpers/entity-id';
 import type { ClientService } from '@mcp/services/client.service';
 import { formatListResult } from '@mcp/shared/utils/format-list-result.util';
 
@@ -32,6 +33,35 @@ function readOriginArg(args: Record<string, unknown>) {
   return origin;
 }
 
+const MAX_CHARACTER_IDS = 25;
+
+/**
+ * The optional `characterIds` filter of the image and video list tools. A
+ * malformed id is an error, not "no filter", for the same reason as `origin`.
+ * Availability to the active brand is enforced by the API.
+ */
+function readCharacterIdsArg(
+  args: Record<string, unknown>,
+): string[] | undefined {
+  const value = args?.characterIds;
+
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (
+    !Array.isArray(value) ||
+    value.length > MAX_CHARACTER_IDS ||
+    !value.every((entry): entry is string => isEntityId(entry))
+  ) {
+    throw new Error(
+      `characterIds must be a list of up to ${MAX_CHARACTER_IDS} character ids`,
+    );
+  }
+
+  return value.length > 0 ? Array.from(new Set(value)) : undefined;
+}
+
 export async function handleGenerationTool(
   client: ClientService,
   name: string,
@@ -60,6 +90,7 @@ export async function handleGenerationTool(
         limit,
         offset,
         readOriginArg(args),
+        readCharacterIdsArg(args),
       );
       return {
         structuredContent: { data: videos },
@@ -73,6 +104,7 @@ export async function handleGenerationTool(
     }
     case 'list_images': {
       const images = await client.listImages({
+        characterIds: readCharacterIdsArg(args),
         limit: args?.limit as number | undefined,
         offset: args?.offset as number | undefined,
         origin: readOriginArg(args),

@@ -41,6 +41,9 @@ vi.mock('@api/helpers/utils/collection-filter/collection-filter.util', () => ({
 vi.mock('@api/helpers/utils/ingredient-filter/ingredient-filter.util', () => ({
   IngredientFilterUtil: {
     buildFolderFilter: vi.fn(() => ({})),
+    buildCharacterFilter: vi.fn((ids: string[]) => ({
+      personaId: { in: ids },
+    })),
     buildOriginFilter: vi.fn(() => ({})),
     buildParentFilter: vi.fn(() => ({})),
     buildTrainingFilter: vi.fn(() => ({})),
@@ -52,6 +55,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ImagesController } from '@api/collections/images/controllers/images.controller';
 import type { ImagesQueryDto } from '@api/collections/images/dto/images-query.dto';
 import { ImagesService } from '@api/collections/images/services/images.service';
+import { IngredientCharacterFilterService } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
@@ -72,6 +76,10 @@ describe('ImagesController', () => {
     findAll: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
     remove: ReturnType<typeof vi.fn>;
+  };
+
+  const characterFilterService = {
+    buildFilter: vi.fn(),
   };
 
   const mockRequest = {} as unknown as Request;
@@ -112,6 +120,10 @@ describe('ImagesController', () => {
           },
         },
         { provide: VotesService, useValue: { findOne: vi.fn() } },
+        {
+          provide: IngredientCharacterFilterService,
+          useValue: characterFilterService,
+        },
       ],
     })
       .overrideGuard(BetterAuthGuard)
@@ -319,6 +331,60 @@ describe('ImagesController', () => {
       };
       // A sibling of the OR (user-owned | brand defaults), not inside one branch.
       expect(aggregate.where.AND).toContainEqual(originFilter);
+    });
+  });
+
+  describe('findAll character filter', () => {
+    it('narrows the whole list to the characters the brand can use', async () => {
+      const characterId = testId('character');
+      const resolved = { personaId: { in: [characterId] } };
+      characterFilterService.buildFilter.mockResolvedValueOnce(resolved);
+      const query = {
+        characters: [characterId],
+        limit: 10,
+        page: 1,
+      } as unknown as ImagesQueryDto;
+
+      await controller.findAll(mockRequest, mockUser, query);
+
+      expect(characterFilterService.buildFilter).toHaveBeenCalledWith({
+        brandId: mockUser.brandId,
+        characterIds: [characterId],
+        organizationId: mockUser.organizationId,
+      });
+      const aggregate = imagesService.findAll.mock.calls[0][0] as {
+        where: { AND: unknown[] };
+      };
+      expect(aggregate.where.AND).toContainEqual(resolved);
+    });
+
+    it('fails closed when the character resolver is not wired', async () => {
+      const unwired = new ImagesController(
+        imagesService as unknown as ImagesService,
+        { log: vi.fn() } as unknown as LoggerService,
+        {} as unknown as VotesService,
+      );
+      const query = {
+        characters: [testId('character')],
+        limit: 10,
+        page: 1,
+      } as unknown as ImagesQueryDto;
+
+      await unwired.findAll(mockRequest, mockUser, query);
+
+      const aggregate = imagesService.findAll.mock.calls[0][0] as {
+        where: { AND: unknown[] };
+      };
+      expect(aggregate.where.AND).toContainEqual({ personaId: { in: [] } });
+    });
+
+    it('does not resolve characters when none were asked for', async () => {
+      await controller.findAll(mockRequest, mockUser, {
+        limit: 10,
+        page: 1,
+      } as unknown as ImagesQueryDto);
+
+      expect(characterFilterService.buildFilter).not.toHaveBeenCalled();
     });
   });
 

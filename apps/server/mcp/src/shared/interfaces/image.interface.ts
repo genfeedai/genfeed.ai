@@ -36,4 +36,6 @@ export interface ImageListParams {
   offset?: number;
   /** Only assets with this origin. */
   origin?: IngredientOrigin;
+  /** Only assets generated with any of these characters (ids). */
+  characterIds?: string[];
 }

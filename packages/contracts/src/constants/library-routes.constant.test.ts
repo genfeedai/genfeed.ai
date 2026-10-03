@@ -49,6 +49,15 @@ describe('createLibraryBrowserRoute', () => {
     ).toBe('/library/assets?shelf=approved&categories=VIDEO&folder=folder-1');
   });
 
+  it('repeats the characters key beside the other filters', () => {
+    expect(
+      createLibraryBrowserRoute(APP_ROUTES.LIBRARY.ASSETS, {
+        categories: [IngredientCategory.IMAGE],
+        characters: ['c1', 'c2'],
+      }),
+    ).toBe('/library/assets?categories=IMAGE&characters=c1&characters=c2');
+  });
+
   it('encodes search terms', () => {
     expect(
       createLibraryBrowserRoute(APP_ROUTES.LIBRARY.ASSETS, {

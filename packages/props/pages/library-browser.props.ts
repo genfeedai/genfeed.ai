@@ -42,15 +42,29 @@ export interface LibraryBrowserSortOption {
   value: string;
 }
 
+/** A character the Library can be filtered by. */
+export interface LibraryCharacterOption {
+  /** Avatar ingredient id, when the character has one. */
+  avatarIngredientId?: string | null;
+  id: string;
+  label: string;
+}
+
 export interface LibraryBrowserToolbarProps {
   categories: IngredientCategory[];
+  /** Selected character ids (`?characters=`). */
+  characters: string[];
+  /** Characters available to the active brand. Empty hides the filter. */
+  characterOptions: LibraryCharacterOption[];
   origins: IngredientOrigin[];
   sort: string;
   sortOptions: LibraryBrowserSortOption[];
   viewMode: LibraryViewMode;
   isRefreshing: boolean;
   onCategoriesChange: (categories: IngredientCategory[]) => void;
+  onCharactersChange: (characters: string[]) => void;
   onClearCategories: () => void;
+  onClearCharacters: () => void;
   onOriginsChange: (origins: IngredientOrigin[]) => void;
   onClearOrigins: () => void;
   onSortChange: (sort: string) => void;

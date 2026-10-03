@@ -101,8 +101,12 @@ function renderToolbar(
   render(
     <LibraryBrowserToolbar
       categories={[]}
+      characterOptions={[]}
+      characters={[]}
       onCategoriesChange={vi.fn()}
+      onCharactersChange={vi.fn()}
       onClearCategories={vi.fn()}
+      onClearCharacters={vi.fn()}
       onClearOrigins={vi.fn()}
       onOriginsChange={vi.fn()}
       onSortChange={vi.fn()}
@@ -127,8 +131,12 @@ describe('LibraryBrowserToolbar', () => {
     render(
       <LibraryBrowserToolbar
         categories={[IngredientCategory.VIDEO, IngredientCategory.VIDEO_EDIT]}
+        characterOptions={[]}
+        characters={[]}
         onCategoriesChange={onCategoriesChange}
+        onCharactersChange={vi.fn()}
         onClearCategories={vi.fn()}
+        onClearCharacters={vi.fn()}
         onClearOrigins={vi.fn()}
         onOriginsChange={vi.fn()}
         onSortChange={vi.fn()}
@@ -187,6 +195,53 @@ describe('LibraryBrowserToolbar', () => {
       IngredientOrigin.UPLOADED,
       IngredientOrigin.IMPORTED,
     ]);
+  });
+
+  it('hides the character filter when the brand has no characters', () => {
+    renderToolbar();
+
+    expect(screen.queryByText('Character')).not.toBeInTheDocument();
+  });
+
+  it('filters by character from a searchable multi-select beside origin', () => {
+    const onCharactersChange = vi.fn();
+
+    renderToolbar({
+      characterOptions: [
+        { avatarIngredientId: 'img-1', id: 'c1', label: 'Anna' },
+        { id: 'c2', label: 'Vincent' },
+      ],
+      characters: ['c1'],
+      onCharactersChange,
+    });
+
+    expect(screen.getByText('Character')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Anna' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Vincent' }));
+
+    expect(onCharactersChange).toHaveBeenCalledWith(['c1', 'c2']);
+  });
+
+  it('clears only the character filter, and keeps it clearable without options', () => {
+    const onClearCharacters = vi.fn();
+    const onClearOrigins = vi.fn();
+
+    renderToolbar({
+      characters: ['gone'],
+      onClearCharacters,
+      onClearOrigins,
+    });
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Clear character filter' }),
+    );
+
+    expect(onClearCharacters).toHaveBeenCalledTimes(1);
+    expect(onClearOrigins).not.toHaveBeenCalled();
   });
 
   it('keeps origin out of the type filter and clears only itself', () => {
