@@ -1,9 +1,11 @@
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
+import { ContentLearningCoreModule } from '@api/collections/content-learning/content-learning-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { MembersModule } from '@api/collections/members/members.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
+import { PostDraftGenerationService } from '@api/collections/posts/services/post-draft-generation.service';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
@@ -18,6 +20,7 @@ import { Module } from '@nestjs/common';
 
 @Module({
   imports: [
+    ContentLearningCoreModule,
     ActivitiesModule,
     ApiKeysModule,
     BrandsCoreModule,
@@ -33,7 +36,11 @@ import { Module } from '@nestjs/common';
     PromptBuilderModule,
     LoggerModule,
   ],
-  providers: [PostGenerationService, PostThreadGenerationService],
+  providers: [
+    PostDraftGenerationService,
+    PostGenerationService,
+    PostThreadGenerationService,
+  ],
   exports: [PostGenerationService, PostThreadGenerationService],
 })
 export class PostGenerationModule {}

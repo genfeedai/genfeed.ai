@@ -40,6 +40,14 @@ const TERMINAL_DELIVERY_STATUSES = new Set<string>([
   DELIVERY_STATUS.SKIPPED,
 ]);
 
+// The workflow state's `preference` object is closed; the full row would leak
+// userId and timestamps into the check-eligibility output.
+const PREFERENCE_SELECT = {
+  id: true,
+  marketingUnsubscribedAt: true,
+  unsubscribeToken: true,
+} as const;
+
 type UserEmailTarget = {
   id: string;
   email: string | null;
@@ -315,6 +323,7 @@ export class LifecycleEmailDeliveryService {
     unsubscribeToken: string;
   }> {
     const existing = await this.prisma.lifecycleEmailPreference.findUnique({
+      select: PREFERENCE_SELECT,
       where: { userId },
     });
 
@@ -328,6 +337,7 @@ export class LifecycleEmailDeliveryService {
           unsubscribeToken: randomBytes(32).toString('base64url'),
           userId,
         },
+        select: PREFERENCE_SELECT,
       });
     } catch (error: unknown) {
       if (!this.isUniqueConstraintError(error)) {
@@ -335,6 +345,7 @@ export class LifecycleEmailDeliveryService {
       }
 
       const preference = await this.prisma.lifecycleEmailPreference.findUnique({
+        select: PREFERENCE_SELECT,
         where: { userId },
       });
       if (!preference) {
@@ -347,8 +358,19 @@ export class LifecycleEmailDeliveryService {
   private async findDelivery(
     data: LifecycleEmailWorkflowInput,
   ): Promise<StoredLifecycleEmailDeliveryRecord | null> {
+    // Explicit select, not include: the workflow action output contract is
+    // closed, so scalar columns outside it (sentAt, failureReason, ...) fail
+    // output validation when spread into the load-delivery result.
     return await this.prisma.lifecycleEmailDelivery.findFirst({
-      include: {
+      select: {
+        email: true,
+        id: true,
+        metadata: true,
+        scheduledFor: true,
+        sequence: true,
+        status: true,
+        step: true,
+        triggerKey: true,
         user: {
           select: {
             email: true,

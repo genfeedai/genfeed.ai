@@ -301,7 +301,8 @@ https://mcp.genfeed.ai/mcp?toolsets=inspiration,content,generation,analytics,bra
 ```
 
 `core` is still added automatically. The bare URL keeps the `default` profile
-and its 31-tool cap; use `?profile=full` to list every tool.
+and its 31-tool cap, which does not advertise these actions; use
+`?profile=full` to list every tool.
 
 Call the actions in this order. Saving, importing, reading, editing, attaching,
 and quoting never dispatch generation, publish, or add brand Knowledge.
@@ -320,9 +321,11 @@ and quoting never dispatch generation, publish, or add brand Knowledge.
 5. `quote_remix_generation` — persists an exact quote for `expectedRevision`
    and does not start work. Read it back with `get_remix_run` before approval.
    Image and copy accept only `operation: "generate"` and reject scene or repair
-   fields. Image requires `model`. Copy ignores caller models and uses the
-   canonical background model at one credit per variant. Video and avatar reject
-   `model` and quote `analysis`, `generate`, or `repair` on the scene pipeline.
+   fields. Image requires a registered image `model`; `crun/` models do not
+   support remix quotes and are rejected. Copy rejects a caller `model` and uses
+   the canonical background model at one credit per variant. Video and avatar
+   reject `model` and quote `analysis`, `generate`, or `repair` on the scene
+   pipeline.
    A quote expires 15 minutes after it is saved. Price, model, BYOK, source, or
    recipe changes require a new quote.
 6. `start_remix_generation` — approval-required. Pass the persisted `quoteId`
