@@ -3,6 +3,7 @@
  * Usage credits system: track AI generation credits, manage credit packages,
 and enforce usage limits.
  */
+
 import { BillingAccountsModule } from '@api/collections/billing-accounts/billing-accounts.module';
 import { CreditsController } from '@api/collections/credits/controllers/credits.controller';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
@@ -10,6 +11,7 @@ import { CreditReservationService } from '@api/collections/credits/services/cred
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
+import { GenerationHoldRecoveryService } from '@api/collections/credits/services/generation-hold-recovery.service';
 import { GenerationLineReservationService } from '@api/collections/credits/services/generation-line-reservation.service';
 import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
 import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
@@ -21,7 +23,9 @@ import { CommonModule } from '@api/common/common.module';
 import { OssCreditsUtilsService } from '@api/common/credits/oss-credits-utils.service';
 import { TransactionModule } from '@api/helpers/utils/transaction/transaction.module';
 import { CreditDeductionModule } from '@api/queues/credit-deduction/credit-deduction.module';
+import { ActivityRecordingModule } from '@api/services/activity-recording/activity-recording.module';
 import { ServerFunnelCaptureModule } from '@api/services/analytics/server-funnel-capture.module';
+import { ApiKeyHelperModule } from '@api/services/api-key/api-key-helper.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { usesMeteredCredits } from '@genfeedai/config';
@@ -38,6 +42,7 @@ import { Module } from '@nestjs/common';
     CreditTransactionsService,
     CreditsUtilsService,
     GenerationBillingService,
+    GenerationHoldRecoveryService,
     GenerationQuoteGroupService,
     GenerationLineReservationService,
     VideoGenerationLineageService,
@@ -45,6 +50,8 @@ import { Module } from '@nestjs/common';
   ],
   imports: [
     BillingAccountsModule,
+    ActivityRecordingModule,
+    ApiKeyHelperModule,
     ByokModule,
     CommonModule,
     CreditDeductionModule,
@@ -61,6 +68,7 @@ import { Module } from '@nestjs/common';
     CreditReservationService,
     CreditTransactionsService,
     GenerationBillingService,
+    GenerationHoldRecoveryService,
     GenerationQuoteGroupService,
     GenerationLineReservationService,
     VideoGenerationLineageService,
