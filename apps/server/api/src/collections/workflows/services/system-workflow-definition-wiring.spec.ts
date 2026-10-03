@@ -5,6 +5,13 @@ import {
   ARTICLE_REVIEW_WORKFLOW_ID,
 } from '@api/collections/articles/services/article-workflow-definitions';
 import { buildSocialInboxOutboundWorkflowDefinition } from '@api/collections/social-inbox/services/social-inbox-outbound-workflow-definition';
+import { WORKFLOW_ARTIFACT_ACTION_IDS } from '@api/collections/workflows/services/workflow-artifact-lifecycle.service';
+import {
+  buildWorkflowArtifactCleanupExecutionDefinition,
+  buildWorkflowArtifactCleanupSweepDefinition,
+  buildWorkflowArtifactExpiredScopeDefinition,
+} from '@api/collections/workflows/services/workflow-artifact-workflow-definition';
+import { YOUTUBE_LONG_FORM_WORKFLOW_ID } from '@api/collections/workflows/services/youtube-long-form-workflow.constants';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
 import { getActionDefinition } from '@genfeedai/actions';
 import { buildActionExecutionInput } from '@genfeedai/workflows/engine';
@@ -33,11 +40,22 @@ const IGNORED_MODULE_PATTERN = /\.(?:spec|service|module)\.ts$/;
 
 /**
  * Definition factories that take arguments cannot be discovered by arity, so
- * every registered variant is listed explicitly.
+ * every registered variant is listed with the arguments its registrar passes.
+ * `register*(runner)` modules are discovered separately through a capturing
+ * runner.
  */
 const PARAMETERIZED_DEFINITIONS: SystemWorkflowGraphDefinition[] = [
   buildSocialInboxOutboundWorkflowDefinition('dm'),
   buildSocialInboxOutboundWorkflowDefinition('reply'),
+  buildWorkflowArtifactCleanupExecutionDefinition(
+    WORKFLOW_ARTIFACT_ACTION_IDS.CLEANUP,
+  ),
+  buildWorkflowArtifactExpiredScopeDefinition(
+    WORKFLOW_ARTIFACT_ACTION_IDS.CLEANUP_EXPIRED_SCOPE,
+  ),
+  buildWorkflowArtifactCleanupSweepDefinition(
+    WORKFLOW_ARTIFACT_ACTION_IDS.DISCOVER_EXPIRED,
+  ),
 ];
 
 /**
@@ -157,13 +175,20 @@ async function collectSystemWorkflowDefinitions(): Promise<
   );
   for (const modulePath of modulePaths.sort()) {
     const exports = readRecord(await import(/* @vite-ignore */ modulePath));
-    for (const exported of Object.values(exports)) {
-      const candidates: unknown[] =
-        typeof exported === 'function'
-          ? exported.length === 0
-            ? [(exported as () => unknown)()]
-            : []
-          : [exported];
+    for (const [exportName, exported] of Object.entries(exports)) {
+      const candidates: unknown[] = [];
+      if (typeof exported !== 'function') {
+        candidates.push(exported);
+      } else if (exported.length === 0) {
+        candidates.push((exported as () => unknown)());
+      } else if (exportName.startsWith('register') && exported.length === 1) {
+        // Registrar modules hand definitions straight to the runner.
+        (exported as (runner: unknown) => void)({
+          registerWorkflow: (definition: unknown) => {
+            candidates.push(definition);
+          },
+        });
+      }
       for (const candidate of candidates.flat()) {
         if (isSystemWorkflowDefinition(candidate)) {
           definitions.set(candidate.canonicalId, candidate);
@@ -229,6 +254,7 @@ describe('system workflow definition wiring against action contracts', () => {
     expect(canonicalIds).toContain('trends.maintenance.scoped-refresh');
     expect(canonicalIds).toContain(ARTICLE_GENERATION_CHILD_WORKFLOW_ID);
     expect(canonicalIds).toContain(ARTICLE_REVIEW_WORKFLOW_ID);
+    expect(canonicalIds).toContain(YOUTUBE_LONG_FORM_WORKFLOW_ID);
     for (const definition of PARAMETERIZED_DEFINITIONS) {
       expect(canonicalIds).toContain(definition.canonicalId);
     }
