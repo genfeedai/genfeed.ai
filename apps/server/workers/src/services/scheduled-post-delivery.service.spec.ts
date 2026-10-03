@@ -267,8 +267,6 @@ describe('ScheduledPostDeliveryService', () => {
         error: null,
         executionState: TargetExecutionState.PUBLISHING,
         lastAttemptAt: expect.any(Date),
-        // Claims the post for this run so the guarded PUBLISHED write applies.
-        workflowExecutionId: 'execution-1',
       }),
       undefined,
       undefined,

@@ -100,6 +100,17 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
           throw new Error('Publish execution claim did not return a lease.');
         }
         await this.executionGuard.assertPublishVersionPin(post, versionPinId);
+        // The runner links the post to this execution only after the whole
+        // graph returns, but delivery guards its PUBLISHED write with this
+        // execution id: link it while this run holds the approval lease.
+        await this.prisma.post.updateMany({
+          data: { workflowExecutionId: action.provenance.executionId },
+          where: {
+            id: request.postId,
+            isDeleted: false,
+            organizationId: request.organizationId,
+          },
+        });
       }
       return {
         executionStartedAt,

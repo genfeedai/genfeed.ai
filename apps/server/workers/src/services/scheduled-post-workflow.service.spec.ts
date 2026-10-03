@@ -18,6 +18,7 @@ const bindLearningPublication = vi.mocked(bindLearningPublicationV1);
 
 type RegisteredActionRequest = {
   input: Record<string, unknown>;
+  provenance?: { executionId: string };
 };
 
 type RegisteredAction = (request: RegisteredActionRequest) => Promise<unknown>;
@@ -42,10 +43,19 @@ function createHarness() {
       userId: 'user-1',
     }),
   };
+  const executionGuard = {
+    assertAgentPublishingScope: vi.fn().mockResolvedValue(undefined),
+    assertPublishVersionPin: vi.fn().mockResolvedValue(undefined),
+  };
   const publishApprovalsService = {
+    claimForExecution: vi.fn().mockResolvedValue({
+      executionStartedAt: '2026-10-03T10:00:00.000Z',
+      isAlreadyPublished: false,
+    }),
     completeExecution: vi.fn().mockResolvedValue(undefined),
   };
   const prisma = {
+    post: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
     postPublishFinalization: {
       findUnique: vi.fn().mockResolvedValue(null),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
@@ -65,7 +75,7 @@ function createHarness() {
     activitiesService as never,
     deliveryService as never,
     discoveryService as never,
-    {} as never,
+    executionGuard as never,
     logger as never,
     publishApprovalsService as never,
     prisma as never,
@@ -487,5 +497,64 @@ describe('failure compensation', () => {
 
     expect(result).toEqual({ reason: 'not_eligible', skipped: true });
     expect(h.deliveryService.failTerminalValidation).not.toHaveBeenCalled();
+  });
+});
+
+describe('claim', () => {
+  const request: ScheduledPostWorkflowInput = {
+    approvalId: 'approval-1',
+    operationId: 'operation-1',
+    organizationId: 'org-1',
+    postId: 'post-1',
+    source: 'publish_now',
+    userId: 'user-1',
+    versionPinId: 'pin-1',
+  };
+
+  function claim(registeredActions: Map<string, RegisteredAction>) {
+    const action = registeredActions.get(SCHEDULED_POST_ACTION_IDS.CLAIM);
+    if (!action) {
+      throw new Error('Scheduled post claim action was not registered');
+    }
+    return action({
+      input: { request },
+      provenance: { executionId: 'execution-7' },
+    });
+  }
+
+  function claimablePost(h: ReturnType<typeof createHarness>) {
+    h.discoveryService.findEligiblePost.mockResolvedValue({
+      id: 'post-1',
+      organizationId: 'org-1',
+      publishApproval: {
+        id: 'approval-1',
+        status: PublishApprovalStatus.QUEUED,
+      },
+    });
+  }
+
+  it('links the post to the claiming execution so delivery can persist PUBLISHED', async () => {
+    const h = createHarness();
+    claimablePost(h);
+
+    await claim(h.registeredActions);
+
+    expect(h.prisma.post.updateMany).toHaveBeenCalledWith({
+      data: { workflowExecutionId: 'execution-7' },
+      where: { id: 'post-1', isDeleted: false, organizationId: 'org-1' },
+    });
+  });
+
+  it('does not relink a post whose approval already published', async () => {
+    const h = createHarness();
+    claimablePost(h);
+    h.publishApprovalsService.claimForExecution.mockResolvedValue({
+      executionStartedAt: null,
+      isAlreadyPublished: true,
+    });
+
+    await claim(h.registeredActions);
+
+    expect(h.prisma.post.updateMany).not.toHaveBeenCalled();
   });
 });

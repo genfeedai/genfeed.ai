@@ -157,14 +157,10 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
   ): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    // The runner links the post to this execution only after the whole graph
-    // returns, so the run claims it here; otherwise every later write guarded
-    // by `expectedWorkflowExecutionId` is discarded as stale.
     await this.persistPublishState(post, {
       error: null,
       executionState: TargetExecutionState.PUBLISHING,
       lastAttemptAt: new Date(),
-      workflowExecutionId,
     });
 
     const ids = readDeliveryIds(post);
