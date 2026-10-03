@@ -137,11 +137,17 @@ describe('BrandsSetupController', () => {
       organizationId: 'cmorganization000000000000002',
       userId: mockUser.userId,
     };
+    // Emulates the database `where`, `OR` included: the old userId-or-org
+    // scope matches this row, the session-org scope must not.
+    const matchesWhere = (where: Record<string, unknown>): boolean =>
+      Object.entries(where).every(([key, value]) =>
+        key === 'OR'
+          ? (value as Record<string, unknown>[]).some(matchesWhere)
+          : (foreignBrand as Record<string, unknown>)[key] === value,
+      );
     brandsService.findOne.mockImplementation(
-      async (where: { organizationId?: string }) =>
-        where.organizationId === foreignBrand.organizationId
-          ? foreignBrand
-          : null,
+      async (where: Record<string, unknown>) =>
+        matchesWhere(where) ? foreignBrand : null,
     );
 
     await expect(
