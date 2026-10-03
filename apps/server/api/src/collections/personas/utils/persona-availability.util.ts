@@ -1,7 +1,5 @@
-import {
-  type PersonaAvailabilityFields,
-  PersonaAvailabilityMode,
-} from '@genfeedai/contracts';
+import { PersonaAvailabilityMode } from '@genfeedai/contracts';
+import type { PersonaAvailabilityFields } from '@genfeedai/contracts/interfaces';
 
 export function isPersonaSharedAcrossBrands(
   persona: PersonaAvailabilityFields,
