@@ -36,7 +36,7 @@ export class ExecuteAgentToolContextDto {
 export class ExecuteAgentToolDto {
   static readonly [FORBID_NON_WHITELISTED] = true;
 
-  @ApiProperty({ required: false, type: 'object' })
+  @ApiProperty({ required: false, type: Object })
   @IsOptional()
   @IsObject()
   parameters?: Record<string, unknown>;
