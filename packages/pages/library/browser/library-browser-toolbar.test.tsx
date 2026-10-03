@@ -226,6 +226,30 @@ describe('LibraryBrowserToolbar', () => {
     expect(onCharactersChange).toHaveBeenCalledWith(['c1', 'c2']);
   });
 
+  it('caps the character selection at the API limit and shows it', () => {
+    const onCharactersChange = vi.fn();
+    const characterOptions = Array.from({ length: 26 }, (_, index) => ({
+      id: `c${index}`,
+      label: `Character ${index}`,
+    }));
+
+    renderToolbar({
+      characterOptions,
+      characters: characterOptions.slice(0, 25).map((option) => option.id),
+      onCharactersChange,
+    });
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Limit of 25 characters reached',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Character 25' }));
+
+    expect(onCharactersChange).toHaveBeenCalledTimes(1);
+    expect(onCharactersChange.mock.calls[0][0]).toHaveLength(25);
+    expect(onCharactersChange.mock.calls[0][0]).not.toContain('c25');
+  });
+
   it('clears only the character filter, and keeps it clearable without options', () => {
     const onClearCharacters = vi.fn();
     const onClearOrigins = vi.fn();

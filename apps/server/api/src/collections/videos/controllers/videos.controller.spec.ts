@@ -755,6 +755,26 @@ describe('VideosController', () => {
       });
     });
 
+    it('resolves availability for the active brand, not a brandId override', async () => {
+      characterFilterService.buildFilter.mockResolvedValueOnce({
+        personaId: { in: [] },
+      });
+      videosService.findAll.mockResolvedValue({
+        docs: [],
+        totalDocs: 0,
+      } as unknown as AggregatePaginateResult<IngredientDocument>);
+
+      await controller.findAll(mockRequest, mockUser, {
+        ...baseQuery,
+        brandId: testId('brand', 2),
+        characters: [testId('character')],
+      } as VideosQueryDto);
+
+      expect(characterFilterService.buildFilter).toHaveBeenCalledWith(
+        expect.objectContaining({ brandId: mockUser.brandId }),
+      );
+    });
+
     it('does not resolve characters when none were asked for', async () => {
       videosService.findAll.mockResolvedValue({
         docs: [],

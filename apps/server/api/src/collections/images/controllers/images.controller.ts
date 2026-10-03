@@ -131,7 +131,8 @@ export class ImagesController {
 
     const characterFilter = await resolveCharacterFilter(this.characterFilter, {
       characterIds: query.characters,
-      explicitBrandId: typeof brandId === 'string' ? brandId : undefined,
+      // These lists do not authorize a `brandId` override, so availability
+      // always follows the session's active brand, never the query.
       user,
     });
 
