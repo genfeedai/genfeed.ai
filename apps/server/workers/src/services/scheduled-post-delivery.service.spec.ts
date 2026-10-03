@@ -443,24 +443,39 @@ describe('ScheduledPostDeliveryService', () => {
     );
   });
 
-  it('records a provider receipt and retires it once the publish transition persists', async () => {
-    mockSuccessfulPublisher(mocks);
+  it('records the attempt before the provider call and resolves it after persistence', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
 
     await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
 
-    expect(mocks.prisma.postProviderPublishReceipt.upsert).toHaveBeenCalledWith(
+    const receipts = mocks.prisma.postProviderPublishReceipt;
+    expect(receipts.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({
-          externalId: 'tweet-1',
+          occurrenceKey: expect.stringMatching(/^[0-9a-f]{64}$/),
           organizationId: 'org-1',
           postId: 'post-1',
+          status: 'attempting',
           workflowExecutionId: 'execution-1',
         }),
       }),
     );
-    expect(
-      mocks.prisma.postProviderPublishReceipt.updateMany,
-    ).toHaveBeenCalledWith({
+    expect(receipts.upsert.mock.invocationCallOrder[0]).toBeLessThan(
+      publish.mock.invocationCallOrder[0],
+    );
+    expect(receipts.updateMany).toHaveBeenNthCalledWith(1, {
+      data: expect.objectContaining({
+        externalId: 'tweet-1',
+        status: 'accepted',
+      }),
+      where: {
+        id: 'receipt-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        postId: 'post-1',
+      },
+    });
+    expect(receipts.updateMany).toHaveBeenNthCalledWith(2, {
       data: { persistedAt: expect.any(Date) },
       where: {
         id: 'receipt-1',
@@ -469,6 +484,17 @@ describe('ScheduledPostDeliveryService', () => {
         postId: 'post-1',
       },
     });
+  });
+
+  it('never calls the provider when the attempt cannot be recorded', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+    mocks.prisma.postProviderPublishReceipt.upsert.mockRejectedValue(
+      new Error('database unavailable'),
+    );
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(publish).not.toHaveBeenCalled();
   });
 
   it('never reschedules a provider-accepted publish whose state transition fails', async () => {
@@ -496,13 +522,19 @@ describe('ScheduledPostDeliveryService', () => {
     expect(states).not.toContain(TargetExecutionState.FAILED);
     expect(
       mocks.prisma.postProviderPublishReceipt.updateMany,
-    ).not.toHaveBeenCalled();
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      mocks.prisma.postProviderPublishReceipt.updateMany,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'accepted' }),
+      }),
+    );
   });
 
-  it('replays a recorded provider receipt instead of publishing again', async () => {
+  it('replays an accepted attempt for the same occurrence instead of publishing again', async () => {
     const publish = mockSuccessfulPublisher(mocks);
     mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue({
-      externalId: 'tweet-1',
       id: 'receipt-1',
       result: {
         executionState: TargetExecutionState.PUBLISHED,
@@ -511,6 +543,7 @@ describe('ScheduledPostDeliveryService', () => {
         success: true,
         url: 'https://x.com/example/status/tweet-1',
       },
+      status: 'accepted',
     });
 
     const result = await executeDelivery(
@@ -529,9 +562,10 @@ describe('ScheduledPostDeliveryService', () => {
       expect.objectContaining({
         where: {
           isDeleted: false,
+          occurrenceKey: expect.stringMatching(/^[0-9a-f]{64}$/),
           organizationId: 'org-1',
-          persistedAt: null,
           postId: 'post-1',
+          status: { in: ['attempting', 'accepted'] },
         },
       }),
     );
@@ -552,11 +586,54 @@ describe('ScheduledPostDeliveryService', () => {
     ).not.toHaveBeenCalled();
   });
 
-  it('retires a receipt the post already persisted and publishes the next occurrence', async () => {
-    const publish = mockSuccessfulPublisher(mocks, { externalId: 'tweet-2' });
+  it('fails closed without publishing when an earlier attempt never resolved', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
     mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue({
-      externalId: 'tweet-1',
       id: 'receipt-old',
+      result: null,
+      status: 'attempting',
+    });
+
+    const result = await executeDelivery(
+      mocks,
+      createScheduledPost(),
+      'scheduled_sweep',
+    );
+
+    expect(publish).not.toHaveBeenCalled();
+    expect(result.success).toBe(false);
+    expect(
+      mocks.schedulerPublishStateService.transitionPost,
+    ).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        error: expect.objectContaining({ code: 'provider_outcome_unknown' }),
+        executionState: TargetExecutionState.FAILED,
+      }),
+      expect.any(String),
+      expect.anything(),
+    );
+  });
+
+  it('releases the attempt when the provider rejects the publish', async () => {
+    mockSuccessfulPublisher(mocks, {
+      error: 'rejected',
+      executionState: TargetExecutionState.FAILED,
+      success: false,
+    });
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(
+      mocks.prisma.postProviderPublishReceipt.updateMany,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { status: 'released' } }),
+    );
+  });
+
+  it('keeps a provider-accepted occurrence publishing when the workflow fails', async () => {
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue({
+      id: 'receipt-1',
       result: {
         executionState: TargetExecutionState.PUBLISHED,
         externalId: 'tweet-1',
@@ -564,22 +641,21 @@ describe('ScheduledPostDeliveryService', () => {
         success: true,
         url: 'https://x.com/example/status/tweet-1',
       },
+      status: 'accepted',
     });
 
-    await executeDelivery(
-      mocks,
-      createScheduledPost({ externalId: 'tweet-1' }),
-      'scheduled_sweep',
+    const result = await service.failTerminalValidation(
+      createScheduledPost() as never,
+      new Error('Provider publish succeeded but its state transition failed.'),
     );
 
-    expect(publish).toHaveBeenCalledTimes(1);
+    expect(result.executionState).toBe(TargetExecutionState.PUBLISHING);
     expect(
-      mocks.prisma.postProviderPublishReceipt.updateMany,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ id: 'receipt-old' }),
-      }),
-    );
+      mocks.schedulerPublishStateService.transitionPost,
+    ).not.toHaveBeenCalled();
+    expect(
+      mocks.publishEventWebhookService.emitLegacyPostFailed,
+    ).not.toHaveBeenCalled();
   });
 
   it('carries the provider shortcode into the publish webhook', async () => {

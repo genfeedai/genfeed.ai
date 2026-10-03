@@ -70,10 +70,13 @@ import {
   toValidationMedia,
 } from '@workers/services/scheduled-post-media-gate.util';
 import {
-  findReplayableProviderReceipt,
+  acceptProviderPublishAttempt,
+  beginProviderPublishAttempt,
+  findProviderPublishAttempt,
   markProviderReceiptPersisted,
+  type ProviderPublishAttempt,
   ProviderPublishPersistenceError,
-  recordProviderReceipt,
+  releaseProviderPublishAttempt,
 } from '@workers/services/scheduled-post-provider-receipt.util';
 import {
   queueLearningPublicationRefreshV1,
@@ -212,6 +215,21 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       fallback: () => 'Publish validation failed',
       messageSource: 'error-instance',
     });
+
+    const attempt = await findProviderPublishAttempt(this.prisma, post);
+    if (attempt?.kind === 'replay') {
+      // The provider already accepted this occurrence: keep the target
+      // PUBLISHING so the next delivery replays the receipt, never FAILED.
+      this.logger.warn('Kept provider-accepted publish for receipt replay', {
+        error: errorMessage,
+        postId: post.id,
+        receiptId: attempt.receiptId,
+      });
+      return {
+        ...attempt.result,
+        executionState: TargetExecutionState.PUBLISHING,
+      };
+    }
 
     this.logger.error('Durable validation rejected queued publishing', {
       error: errorMessage,
@@ -590,41 +608,77 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     workflowExecutionId: string,
     url: string,
   ): Promise<PublishResult> {
-    const receipt = await findReplayableProviderReceipt(this.prisma, post);
+    let attempt: ProviderPublishAttempt;
+    try {
+      attempt = await beginProviderPublishAttempt(
+        this.prisma,
+        post,
+        workflowExecutionId,
+      );
+    } catch (error: unknown) {
+      // Nothing reached the provider, so the normal retry path is safe.
+      return await this.handlePublishError(post, error, workflowExecutionId);
+    }
+    if (attempt.kind === 'ambiguous') {
+      return await this.failAmbiguousProviderAttempt(
+        post,
+        attempt.receiptId,
+        workflowExecutionId,
+        url,
+      );
+    }
+
     let result: PublishResult;
-    if (receipt) {
-      result = receipt.result;
+    if (attempt.kind === 'replay') {
+      result = attempt.result;
       this.logger.warn(`${url} replaying recorded provider publish`, {
         externalId: result.externalId,
         postId: post.id.toString(),
-        receiptId: receipt.id,
+        receiptId: attempt.receiptId,
       });
     } else {
       try {
         result = await prepared.publisher.publish(prepared.context);
-        if (!result.success) {
+      } catch (error: unknown) {
+        await this.releaseProviderAttempt(post, attempt.receiptId, url);
+        return await this.handlePublishError(post, error, workflowExecutionId);
+      }
+      if (!result.success) {
+        await this.releaseProviderAttempt(post, attempt.receiptId, url);
+        try {
           return await this.handlePublishFailure(
             post,
             result,
             prepared.platform,
             workflowExecutionId,
           );
+        } catch (error: unknown) {
+          return await this.handlePublishError(
+            post,
+            error,
+            workflowExecutionId,
+          );
         }
-      } catch (error: unknown) {
-        return await this.handlePublishError(post, error, workflowExecutionId);
       }
+      // If this write fails the attempt stays unresolved, and a later
+      // delivery fails closed instead of publishing again.
+      await acceptProviderPublishAttempt(
+        this.prisma,
+        post,
+        attempt.receiptId,
+        result,
+      ).catch((error: unknown) =>
+        this.logger.error(`${url} provider publish receipt not recorded`, {
+          error: getErrorMessage(error),
+          externalId: result.externalId,
+          postId: post.id.toString(),
+          receiptId: attempt.receiptId,
+        }),
+      );
     }
 
     // The provider accepted the post: from here a failure must never reach
     // the publish retry path, or the next attempt would publish it again.
-    const receiptId =
-      receipt?.id ??
-      (await this.recordProviderReceipt(
-        post,
-        workflowExecutionId,
-        result,
-        url,
-      ));
     let persisted: boolean;
     try {
       persisted = await this.persistProviderSuccess(
@@ -641,45 +695,67 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       this.logger.error(`${url} provider publish persistence failed`, {
         error: getErrorMessage(error.cause),
         externalId: result.externalId,
-        hasReceipt: receiptId !== null,
         postId: post.id.toString(),
+        receiptId: attempt.receiptId,
       });
       throw error;
     }
-    if (persisted && receiptId) {
-      await markProviderReceiptPersisted(this.prisma, post, receiptId).catch(
-        (error: unknown) =>
-          this.logger.warn(`${url} provider receipt not retired`, {
-            error: getErrorMessage(error),
-            postId: post.id.toString(),
-            receiptId,
-          }),
+    if (persisted) {
+      await markProviderReceiptPersisted(
+        this.prisma,
+        post,
+        attempt.receiptId,
+      ).catch((error: unknown) =>
+        this.logger.warn(`${url} provider receipt persistence not marked`, {
+          error: getErrorMessage(error),
+          postId: post.id.toString(),
+          receiptId: attempt.receiptId,
+        }),
       );
     }
     return result;
   }
 
-  private async recordProviderReceipt(
+  private async releaseProviderAttempt(
     post: PostEntity,
-    workflowExecutionId: string,
-    result: PublishResult,
+    receiptId: string,
     url: string,
-  ): Promise<string | null> {
-    try {
-      return await recordProviderReceipt(
-        this.prisma,
-        post,
-        workflowExecutionId,
-        result,
-      );
-    } catch (error: unknown) {
-      this.logger.error(`${url} provider publish receipt not recorded`, {
-        error: getErrorMessage(error),
-        externalId: result.externalId,
-        postId: post.id.toString(),
-      });
-      return null;
-    }
+  ): Promise<void> {
+    await releaseProviderPublishAttempt(this.prisma, post, receiptId).catch(
+      (error: unknown) =>
+        this.logger.error(`${url} provider publish attempt not released`, {
+          error: getErrorMessage(error),
+          postId: post.id.toString(),
+          receiptId,
+        }),
+    );
+  }
+
+  /**
+   * An earlier attempt for this occurrence never recorded whether the
+   * provider accepted it. Fail closed: publishing again could duplicate it.
+   */
+  private async failAmbiguousProviderAttempt(
+    post: PostEntity,
+    receiptId: string,
+    workflowExecutionId: string,
+    url: string,
+  ): Promise<PublishResult> {
+    const errorMessage =
+      'An earlier publish attempt never recorded its provider outcome. Check the platform before publishing again; edit or reschedule the post to start a new attempt.';
+    this.logger.error(`${url} refused publish with unresolved attempt`, {
+      postId: post.id.toString(),
+      receiptId,
+    });
+    await this.attemptRetry(
+      post,
+      false,
+      errorMessage,
+      'provider_outcome_unknown',
+      workflowExecutionId,
+    );
+    this.emitPublishFailedWebhook(post, errorMessage);
+    return createFailedPublishResult('', errorMessage);
   }
 
   private async persistProviderSuccess(

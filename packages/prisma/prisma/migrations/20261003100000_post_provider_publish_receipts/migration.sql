@@ -1,14 +1,16 @@
--- Record provider-accepted publishes before the learning-fenced post
--- transition so a failed transition replays the receipt instead of publishing
--- to the provider a second time (#5882).
+-- Record each provider publish attempt for a post occurrence before the
+-- provider call, so a failed learning-fenced state transition replays the
+-- accepted result and an unresolved attempt is never published twice (#5882).
 
 CREATE TABLE IF NOT EXISTS "post_provider_publish_receipts" (
   "id" TEXT NOT NULL,
   "organizationId" TEXT NOT NULL,
   "postId" TEXT NOT NULL,
   "workflowExecutionId" TEXT NOT NULL,
+  "occurrenceKey" TEXT NOT NULL,
+  "status" TEXT NOT NULL,
   "externalId" TEXT,
-  "result" JSONB NOT NULL,
+  "result" JSONB,
   "persistedAt" TIMESTAMP(3),
   "isDeleted" BOOLEAN NOT NULL DEFAULT false,
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -19,8 +21,8 @@ CREATE TABLE IF NOT EXISTS "post_provider_publish_receipts" (
 CREATE UNIQUE INDEX IF NOT EXISTS "post_provider_publish_receipts_attempt_key"
   ON "post_provider_publish_receipts" ("organizationId", "postId", "workflowExecutionId");
 
-CREATE INDEX IF NOT EXISTS "post_provider_publish_receipts_pending_idx"
-  ON "post_provider_publish_receipts" ("organizationId", "postId", "persistedAt", "isDeleted");
+CREATE INDEX IF NOT EXISTS "post_provider_publish_receipts_occurrence_idx"
+  ON "post_provider_publish_receipts" ("organizationId", "postId", "occurrenceKey", "isDeleted");
 
 ALTER TABLE "post_provider_publish_receipts"
   DROP CONSTRAINT IF EXISTS "post_provider_publish_receipts_organizationId_fkey",
