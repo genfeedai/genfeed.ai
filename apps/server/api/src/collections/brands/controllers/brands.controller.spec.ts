@@ -10,6 +10,7 @@ import type {
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
 import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
+import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
@@ -124,6 +125,9 @@ describe('BrandsController', () => {
             // destructures the first element, so the stub has to hand the rows
             // straight back rather than default to undefined.
             attachBrandKitAssetRelations: vi.fn((brands: unknown[]) =>
+              Promise.resolve(brands),
+            ),
+            attachBrandListRelations: vi.fn((brands: unknown[]) =>
               Promise.resolve(brands),
             ),
             buildManualBrandKitDraft: vi.fn(),
@@ -531,49 +535,32 @@ describe('BrandsController', () => {
       expect(result).toBeDefined();
     });
 
-    it("attaches logos and each brand's own connected accounts to list rows", async () => {
-      const otherBrand = { ...mockBrand, id: 'cmbrand000000000000000002' };
-      brandsService.findAll.mockResolvedValue({
-        docs: [mockBrand, otherBrand],
+    it('decorates list rows with logos and connected accounts before serializing', async () => {
+      const brand = { ...mockBrand } as unknown as BrandDocument;
+      const decorated = {
+        ...brand,
+        credentials: [{ id: 'cmcredential00000000000001' }],
+      } as unknown as BrandDocument;
+      const page: AggregatePaginateResult<BrandDocument> = {
+        docs: [brand],
+        hasNextPage: false,
+        hasPrevPage: false,
         limit: 20,
         page: 1,
-        totalDocs: 2,
+        totalDocs: 1,
         totalPages: 1,
-      } as unknown as AggregatePaginateResult<unknown>);
-      brandsService.attachBrandKitAssetRelations.mockImplementation(
-        (brands: Array<Record<string, unknown>>) =>
-          Promise.resolve(
-            brands.map((brand) => ({
-              ...brand,
-              logo: { id: `logo-${String(brand.id)}` },
-            })),
-          ) as never,
-      );
-      credentialsService.find.mockResolvedValue([
-        {
-          brandId: mockBrand.id,
-          id: 'cmcredential00000000000001',
-          platform: 'INSTAGRAM',
-        },
-      ] as never);
-
-      const result = (await controller.findAll(mockRequest, mockUser, {
-        isDeleted: false,
-      } as BaseQueryDto)) as unknown as {
-        data: Array<{ credentials: unknown[]; id: string; logo: unknown }>;
       };
+      brandsService.findAll.mockResolvedValue(page);
+      brandsService.attachBrandListRelations.mockResolvedValue([decorated]);
 
-      expect(credentialsService.find).toHaveBeenCalledOnce();
-      expect(credentialsService.find).toHaveBeenCalledWith({
-        brandId: { in: [mockBrand.id, otherBrand.id] },
+      const result = await controller.findAll(mockRequest, mockUser, {
         isDeleted: false,
-        organizationId: mockBrand.organizationId,
-      });
-      expect(result.data[0].logo).toEqual({ id: `logo-${mockBrand.id}` });
-      expect(result.data[0].credentials).toEqual([
-        expect.objectContaining({ platform: 'instagram' }),
+      } as BaseQueryDto);
+
+      expect(brandsService.attachBrandListRelations).toHaveBeenCalledWith([
+        brand,
       ]);
-      expect(result.data[1].credentials).toEqual([]);
+      expect(result).toEqual({ data: [decorated] });
     });
   });
 

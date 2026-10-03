@@ -260,14 +260,14 @@ describe('ModelsController', () => {
     });
 
     it('filters a catalog group by any of its categories, ahead of category', () => {
-      const query: ModelsQueryDto = {
+      const query = Object.assign(new ModelsQueryDto(), {
         categories: [
           ModelCategory.IMAGE,
           ModelCategory.IMAGE_EDIT,
           ModelCategory.IMAGE_UPSCALE,
         ],
         category: ModelCategory.TEXT,
-      };
+      });
 
       const result = controller.buildFindAllQuery(mockRegularUser, query);
 

@@ -158,14 +158,13 @@ describe('MembersController.findAll — organization roster', () => {
 
     await controller.findAll({} as never, makeRequest(), makeUser());
 
-    const [params] = vi.mocked(mockMembersService.findAll).mock.calls[0] as [
-      { include: Record<string, unknown>; where: Record<string, unknown> },
-    ];
-    expect(params.where).toEqual({
-      isDeleted: false,
-      organizationId: callerOrgId,
-    });
-    expect(params.where).not.toHaveProperty('userId');
+    // Exactly the org scope — no `userId` filter.
+    expect(mockMembersService.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { isDeleted: false, organizationId: callerOrgId },
+      }),
+      expect.anything(),
+    );
   });
 
   it('loads identity-only user fields, the role and active brand assignments', async () => {
@@ -176,26 +175,28 @@ describe('MembersController.findAll — organization roster', () => {
 
     await controller.findAll({} as never, makeRequest(), makeUser());
 
-    const [params] = vi.mocked(mockMembersService.findAll).mock.calls[0] as [
-      { include: Record<string, unknown> },
-    ];
-    expect(params.include).toEqual({
-      brands: {
-        select: { id: true, label: true, slug: true },
-        where: { isDeleted: false },
-      },
-      role: true,
-      user: {
-        select: {
-          avatar: true,
-          email: true,
-          firstName: true,
-          handle: true,
-          id: true,
-          lastName: true,
+    expect(mockMembersService.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: {
+          brands: {
+            select: { id: true, label: true, slug: true },
+            where: { isDeleted: false },
+          },
+          role: true,
+          user: {
+            select: {
+              avatar: true,
+              email: true,
+              firstName: true,
+              handle: true,
+              id: true,
+              lastName: true,
+            },
+          },
         },
-      },
-    });
+      }),
+      expect.anything(),
+    );
   });
 
   it('fails closed with 404 when the session has no organization', async () => {
