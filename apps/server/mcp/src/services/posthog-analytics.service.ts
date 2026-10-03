@@ -59,6 +59,11 @@ export class PostHogAnalyticsService implements OnModuleDestroy {
         }
         return event;
       },
+      // Model capture injects a required `llm_model` argument into tool
+      // schemas and can only strip it on the server instance that served
+      // `tools/list`. We build a fresh server per request, so the argument
+      // reaches strict action contracts and every call fails (#5972).
+      captureModel: false,
       context: false,
       enableConversationId: false,
       enableExceptionAutocapture: false,
