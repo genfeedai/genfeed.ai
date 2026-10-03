@@ -205,7 +205,7 @@ export default function ArticleDetail({
         }
       } catch (err) {
         logger.error('Failed to generate X Article teaser draft', err);
-        notificationsService.error('Generate X teaser');
+        notificationsService.error('Failed to generate X teaser');
       } finally {
         setGeneratingTeaserFormat(null);
       }

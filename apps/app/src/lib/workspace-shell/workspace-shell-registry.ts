@@ -236,6 +236,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/settings/general': 'General',
   '/:orgSlug/~/settings/credits': 'Credits',
   '/:orgSlug/~/settings/subscription': 'Subscription',
+  '/:orgSlug/~/settings/referrals': 'Referrals',
   '/:orgSlug/~/settings/usage': 'Usage',
   '/:orgSlug/~/settings/api-keys': 'API Keys',
   '/:orgSlug/~/settings/integrations': 'Integrations',
@@ -656,6 +657,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       '/:orgSlug/~/settings/members',
       '/:orgSlug/~/settings/credits',
       '/:orgSlug/~/settings/subscription',
+      '/:orgSlug/~/settings/referrals',
       '/:orgSlug/~/settings/api-keys',
       '/:orgSlug/~/settings/integrations',
       '/:orgSlug/~/settings/webhooks',
@@ -1162,8 +1164,7 @@ const ADMIN_CONTROL_PLANE_ROUTE_PATTERNS = [
   '/admin/administration/announcements',
   '/admin/administration/system-emails',
   '/admin/administration/platform-settings',
-  '/admin/flags/modules',
-  '/admin/flags/features',
+  '/admin/flags',
 ] as const;
 
 const ADMIN_ANALYTICS_ROUTE_PATTERNS = [

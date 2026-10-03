@@ -43,6 +43,7 @@ export interface RoutedOrganizationSummary {
   isActive: boolean;
   isOwner?: boolean;
   label: string;
+  logoUrl?: string | null;
   slug: string;
 }
 
@@ -56,6 +57,11 @@ interface RoutedOrganizationState {
 export interface RoutedOrganizationContextValue
   extends RoutedOrganizationState {
   isRouteConfirmed: boolean;
+  /**
+   * Re-reads the organization list (labels, logos) without re-running route
+   * reconciliation — for in-place edits such as a new organization logo.
+   */
+  refreshOrganizations: () => Promise<void>;
   retry: () => void;
   switchOrganization: (organizationId: string) => Promise<string | null>;
 }
@@ -284,6 +290,13 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
     setRetryNonce((current) => current + 1);
   }, []);
 
+  const refreshOrganizations = useCallback(async () => {
+    const service = await getOrganizationsService({ forceRefresh: true });
+    const organizations =
+      (await service.getMyOrganizations()) as RoutedOrganizationSummary[];
+    setState((current) => ({ ...current, organizations }));
+  }, [getOrganizationsService]);
+
   const switchOrganization = useCallback(
     async (organizationId: string): Promise<string | null> => {
       const target = stateRef.current.organizations.find(
@@ -469,10 +482,11 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
     () => ({
       ...state,
       isRouteConfirmed,
+      refreshOrganizations,
       retry,
       switchOrganization,
     }),
-    [isRouteConfirmed, retry, state, switchOrganization],
+    [isRouteConfirmed, refreshOrganizations, retry, state, switchOrganization],
   );
 
   return (

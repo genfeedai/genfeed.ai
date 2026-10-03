@@ -21,6 +21,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Member } from '@models/organization/member.model';
+import type { MemberBrandAccessProps } from '@props/settings/members-list.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -29,11 +30,13 @@ import CardEmpty from '@ui/card/empty/CardEmpty';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalMember } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Ban, Lock, RotateCw, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useState } from 'react';
 
 function formatTierLabel(tier: string | null): string {
@@ -106,21 +109,47 @@ function MembersListContent() {
     Set<string>
   >(new Set());
 
+  const translate = useTranslations('common.settings.members');
+
   const columns: TableColumn<Member>[] = [
     {
-      header: 'Name',
+      header: translate('columnMember'),
       key: 'userFullName',
-      render: (member: Member) => member.userFullName || '-',
-    },
-    {
-      header: 'Email',
-      key: 'userEmail',
-      render: (member: Member) => member.userEmail || '-',
+      render: (member: Member) => {
+        const name = member.userFullName;
+        const hasName = Boolean(name) && name !== '-';
+        const displayName = hasName ? name : member.userEmail || 'Unknown';
+        return (
+          <div className="flex min-w-0 items-center gap-2.5">
+            <Avatar className="size-7 shrink-0">
+              {member.user?.avatar ? (
+                <AvatarImage alt={displayName} src={member.user.avatar} />
+              ) : null}
+              <AvatarFallback className="text-2xs font-semibold">
+                {displayName.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <p className="truncate font-medium">{displayName}</p>
+              {hasName && member.userEmail ? (
+                <p className="truncate text-xs text-muted-foreground">
+                  {member.userEmail}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        );
+      },
     },
     {
       header: 'Role',
       key: 'roleLabel',
       render: (member: Member) => member.roleLabel || '-',
+    },
+    {
+      header: translate('columnBrands'),
+      key: 'brands',
+      render: (member: Member) => <MemberBrandAccess member={member} />,
     },
     {
       header: 'Joined',
@@ -338,5 +367,40 @@ export default function MembersList() {
     <Suspense fallback={null}>
       <MembersListContent />
     </Suspense>
+  );
+}
+
+/**
+ * Owners and admins bypass brand assignments, and an empty assignment list
+ * means unrestricted — both read as "All brands" (matches server access checks).
+ */
+function MemberBrandAccess({ member }: MemberBrandAccessProps) {
+  const translate = useTranslations('common.settings.members');
+  const roleKey = member.role?.key ?? member.roleKey;
+  const brands = member.brands ?? [];
+  const isUnrestricted =
+    roleKey === MemberRole.OWNER ||
+    roleKey === MemberRole.ADMIN ||
+    brands.length === 0;
+
+  if (isUnrestricted) {
+    return (
+      <span className="text-sm text-muted-foreground">
+        {translate('allBrands')}
+      </span>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {brands.slice(0, 3).map((brand) => (
+        <Badge key={brand.id} variant="secondary">
+          {brand.label}
+        </Badge>
+      ))}
+      {brands.length > 3 ? (
+        <Badge variant="outline">+{brands.length - 3}</Badge>
+      ) : null}
+    </div>
   );
 }

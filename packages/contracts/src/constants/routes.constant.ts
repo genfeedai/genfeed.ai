@@ -11,10 +11,7 @@ export const APP_ROUTES = {
   SIGN_UP: '/sign-up',
   ADMIN: {
     ROOT: '/admin',
-    FLAGS: {
-      FEATURES: '/admin/flags/features',
-      MODULES: '/admin/flags/modules',
-    },
+    FLAGS: '/admin/flags',
     ADMINISTRATION: {
       ANNOUNCEMENTS: '/admin/administration/announcements',
       CREDIT_USAGE: '/admin/administration/credit-usage',
@@ -286,6 +283,8 @@ export const APP_ROUTES = {
      * Kit, not in the asset library. `/library/knowledge` redirects here.
      */
     KNOWLEDGE: '/settings/knowledge',
+    /** Referral link, rewards and history (billing-enabled deployments). */
+    REFERRALS: '/settings/referrals',
     SUBSCRIPTION: '/settings/subscription',
     ELEMENTS_SCENES: '/settings/elements/scenes',
     CHARACTERS: '/settings/characters',

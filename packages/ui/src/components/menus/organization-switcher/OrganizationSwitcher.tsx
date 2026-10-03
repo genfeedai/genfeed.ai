@@ -24,6 +24,7 @@ import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { ChevronsUpDown, Settings } from 'lucide-react';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 
@@ -94,6 +95,7 @@ export default function OrganizationSwitcher({
         minWidth={240}
         items={orgs.map((o) => ({
           id: o.id,
+          imageUrl: o.logoUrl || undefined,
           isActive: o.id === activeOrgId,
           label: o.label,
           trailingAction: {
@@ -123,7 +125,18 @@ export default function OrganizationSwitcher({
             )}
           >
             <span className={SWITCHER_AVATAR_CLASSNAME}>
-              {displayLabel.charAt(0).toUpperCase()}
+              {activeOrg?.logoUrl ? (
+                <Image
+                  src={activeOrg.logoUrl}
+                  alt={displayLabel}
+                  width={24}
+                  height={24}
+                  className="size-full object-cover object-center"
+                  sizes="24px"
+                />
+              ) : (
+                displayLabel.charAt(0).toUpperCase()
+              )}
             </span>
             <span
               className={cn(

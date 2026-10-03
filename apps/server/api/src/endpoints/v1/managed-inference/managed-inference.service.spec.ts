@@ -75,6 +75,7 @@ describe('ManagedInferenceService', () => {
 
   const request = {
     user: {
+      brandId: 'brand-1',
       id: 'user-1',
       organizationId: 'org-1',
       userId: 'user-1',
@@ -129,6 +130,7 @@ describe('ManagedInferenceService', () => {
       1,
       'Managed inference image fal:fal-ai/flux/dev',
       ActivitySource.IMAGE_GENERATION,
+      { brandId: 'brand-1' },
     );
   });
 
@@ -165,6 +167,7 @@ describe('ManagedInferenceService', () => {
       1,
       'Managed inference video fal:fal-ai/kling-video/v1/standard/text-to-video',
       ActivitySource.VIDEO_GENERATION,
+      { brandId: 'brand-1' },
     );
   });
 
@@ -292,6 +295,7 @@ describe('ManagedInferenceService', () => {
       'managed_inference',
       'Managed inference refund fal:fal-ai/flux/dev',
       expect.any(Date),
+      { brandId: 'brand-1' },
     );
   });
 });

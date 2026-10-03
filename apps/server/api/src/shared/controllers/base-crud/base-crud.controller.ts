@@ -113,7 +113,10 @@ export abstract class BaseCRUDController<
       findAllQuery,
       options,
     );
-    return serializeCollection(request, this.serializer, data);
+    return serializeCollection(request, this.serializer, {
+      ...data,
+      docs: await this.decorateListForResponse(data.docs, user),
+    });
   }
 
   /**
@@ -254,6 +257,15 @@ export abstract class BaseCRUDController<
    */
   public decorateForResponse(data: T, _user: User): Promise<T> | T {
     return data;
+  }
+
+  /**
+   * List-page counterpart of {@link decorateForResponse}, applied to `findAll`
+   * docs before serialization. Default is a no-op; override it to resolve the
+   * same non-column relations for a whole page in batched queries.
+   */
+  public decorateListForResponse(docs: T[], _user: User): Promise<T[]> | T[] {
+    return docs;
   }
 
   protected assertPatchAllowed(

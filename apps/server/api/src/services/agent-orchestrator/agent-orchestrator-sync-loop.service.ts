@@ -110,6 +110,7 @@ export class AgentOrchestratorSyncLoopService {
     }
     return runReservedAgentLlmRound({
       actorUserId: input.context.userId,
+      brandId: input.context.scope?.brandId,
       credits: this.creditsUtilsService,
       idempotencyKey: `${input.context.executionId ?? input.threadId}:agent-llm-round:${input.round}`,
       maximumCredits: input.maximumRoundCredits,

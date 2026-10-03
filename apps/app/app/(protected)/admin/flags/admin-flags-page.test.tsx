@@ -1,4 +1,7 @@
-import { DEFAULT_PLATFORM_FLAGS } from '@genfeedai/contracts/constants';
+import {
+  DEFAULT_PLATFORM_FLAGS,
+  PLATFORM_FLAG_KEYS,
+} from '@genfeedai/contracts/constants';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -68,20 +71,37 @@ vi.mock('@ui/layout/container/Container', () => ({
   ),
 }));
 
+vi.mock('@ui/primitives/alert', () => ({
+  Alert: ({ children }: { children: ReactNode }) => (
+    <div role="alert">{children}</div>
+  ),
+  AlertDescription: ({ children }: { children: ReactNode }) => (
+    <p>{children}</p>
+  ),
+  AlertTitle: ({ children }: { children: ReactNode }) => <p>{children}</p>,
+}));
+
+vi.mock('@ui/typography/heading', () => ({
+  Heading: ({ children }: { children: ReactNode }) => <h2>{children}</h2>,
+}));
+
 vi.mock('@ui/primitives/switch', () => ({
   Switch: ({
     'aria-label': ariaLabel,
+    description,
     isChecked,
     isDisabled,
     onCheckedChange,
   }: {
     'aria-label'?: string;
+    description?: string;
     isChecked?: boolean;
     isDisabled?: boolean;
     onCheckedChange?: (isChecked: boolean) => void;
   }) => (
     <button
       aria-checked={isChecked}
+      aria-description={description}
       aria-label={ariaLabel}
       disabled={isDisabled}
       onClick={() => onCheckedChange?.(!isChecked)}
@@ -100,8 +120,8 @@ describe('AdminFlagsPage (#5468)', () => {
     });
   });
 
-  it('lists every module with its stored state', async () => {
-    render(<AdminFlagsPage kind="modules" />);
+  it('lists every flag on one page with its stored state', async () => {
+    render(<AdminFlagsPage />);
 
     expect(
       await screen.findByRole('switch', { name: 'Analytics' }),
@@ -110,23 +130,43 @@ describe('AdminFlagsPage (#5468)', () => {
       'aria-checked',
       'true',
     );
-    expect(screen.getAllByRole('switch')).toHaveLength(9);
+    expect(screen.getAllByRole('switch')).toHaveLength(
+      PLATFORM_FLAG_KEYS.length,
+    );
     expect(
-      screen.queryByRole('switch', { name: 'Library canvas' }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('heading', { name: 'Modules' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Platform' }),
+    ).toBeInTheDocument();
   });
 
-  it('lists the product features on the features page', async () => {
-    render(<AdminFlagsPage kind="features" />);
+  it('lists every Studio surface as its own switch', async () => {
+    render(<AdminFlagsPage />);
 
-    expect(
-      await screen.findByRole('switch', { name: 'Library canvas' }),
-    ).toBeInTheDocument();
-    expect(screen.getAllByRole('switch')).toHaveLength(4);
+    for (const name of ['Motion', 'Storyboard', 'Clips', 'Batch', 'Editor']) {
+      expect(await screen.findByRole('switch', { name })).toBeInTheDocument();
+    }
+  });
+
+  it('disables nested switches while their parent is off', async () => {
+    mocks.getSettings.mockResolvedValue({
+      flags: { studio: false, studio_motion: true },
+    });
+    render(<AdminFlagsPage />);
+
+    const motion = await screen.findByRole('switch', { name: 'Motion' });
+    expect(motion).toBeDisabled();
+    expect(motion).toHaveAttribute('aria-checked', 'true');
+    expect(motion.getAttribute('aria-description')).toContain(
+      'Off while Studio is off.',
+    );
+    expect(screen.getByRole('switch', { name: 'Batch ideas' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'Agent' })).toBeEnabled();
   });
 
   it('saves only the switched flag, at once', async () => {
-    render(<AdminFlagsPage kind="modules" />);
+    render(<AdminFlagsPage />);
 
     fireEvent.click(await screen.findByRole('switch', { name: 'Studio' }));
 
@@ -147,7 +187,7 @@ describe('AdminFlagsPage (#5468)', () => {
 
   it('reverts the switch when the save fails', async () => {
     mocks.updateSettings.mockRejectedValue(new Error('boom'));
-    render(<AdminFlagsPage kind="modules" />);
+    render(<AdminFlagsPage />);
 
     fireEvent.click(await screen.findByRole('switch', { name: 'Studio' }));
 
@@ -159,9 +199,20 @@ describe('AdminFlagsPage (#5468)', () => {
     );
   });
 
+  it('shows the load failure instead of default switches', async () => {
+    mocks.getSettings.mockRejectedValue(new Error('boom'));
+    render(<AdminFlagsPage />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Flags could not be loaded',
+    );
+    expect(screen.queryAllByRole('switch')).toHaveLength(0);
+    expect(mocks.error).not.toHaveBeenCalled();
+  });
+
   it('shows every flag on before an operator changed any', async () => {
     mocks.getSettings.mockResolvedValue({ flags: {} });
-    render(<AdminFlagsPage kind="features" />);
+    render(<AdminFlagsPage />);
 
     await screen.findByRole('switch', { name: 'Library canvas' });
     for (const toggle of screen.getAllByRole('switch')) {

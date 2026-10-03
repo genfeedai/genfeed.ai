@@ -12,6 +12,8 @@ export interface IAsset extends IBaseEntity {
   parentArticleId?: string | null;
   category: AssetCategory;
   url: string;
+  /** Absolute delivery URL, resolved server-side from the stored object key. */
+  cdnUrl?: string;
   mimeType?: string;
   size?: number;
   width?: number;

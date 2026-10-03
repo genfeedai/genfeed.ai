@@ -2,7 +2,6 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import {
   Banknote,
-  Blocks,
   ChartColumn,
   ClipboardList,
   Cpu,
@@ -308,20 +307,11 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = withAdminCollapsibleGroups([
     solid: Banknote,
   },
   {
-    group: 'Flags',
+    group: 'Administration',
     hrefScope: 'global',
-    href: APP_ROUTES.ADMIN.FLAGS.MODULES,
-    label: 'Modules',
-    matchPaths: [APP_ROUTES.ADMIN.FLAGS.MODULES],
-    outline: Blocks,
-    solid: Blocks,
-  },
-  {
-    group: 'Flags',
-    hrefScope: 'global',
-    href: APP_ROUTES.ADMIN.FLAGS.FEATURES,
-    label: 'Features',
-    matchPaths: [APP_ROUTES.ADMIN.FLAGS.FEATURES],
+    href: APP_ROUTES.ADMIN.FLAGS,
+    label: 'Flags',
+    matchPaths: [APP_ROUTES.ADMIN.FLAGS],
     outline: ToggleRight,
     solid: ToggleRight,
   },

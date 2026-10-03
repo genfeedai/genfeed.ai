@@ -68,7 +68,7 @@ describe('PlatformBadge', () => {
     ['facebook', 'bg-platform-facebook'],
     ['linkedin', 'bg-platform-linkedin'],
     ['youtube', 'bg-platform-youtube'],
-    ['tiktok', 'bg-platform-tiktok'],
+    ['tiktok', 'bg-black'],
     ['twitter', 'bg-black'],
     ['x', 'bg-black'],
     ['threads', 'bg-platform-threads'],

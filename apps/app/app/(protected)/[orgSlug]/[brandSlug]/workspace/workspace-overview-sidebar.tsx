@@ -5,6 +5,7 @@ import {
   ReviewDecision,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { useFeatureFlagContext } from '@hooks/feature-flags/provider';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { WorkspaceOverviewSidebarProps } from '@props/workspace/workspace-overview-sidebar.props';
@@ -22,6 +23,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import { isStudioSurfaceEnabled } from '@/lib/platform-flags/studio-surface-flags';
 import {
   useAdvancedTools,
   useLibrarySnapshotLinks,
@@ -48,8 +50,11 @@ export function WorkspaceOverviewSidebar({
   const { href, orgHref } = useOrgUrl();
   const advancedTools = useAdvancedTools();
   const librarySnapshotLinks = useLibrarySnapshotLinks();
+  const { flags } = useFeatureFlagContext();
   const availableAdvancedTools = advancedTools.filter(
-    (tool) => isStudioEnabled || !tool.href.startsWith(APP_ROUTES.STUDIO.ROOT),
+    (tool) =>
+      !tool.href.startsWith(APP_ROUTES.STUDIO.ROOT) ||
+      (isStudioEnabled && isStudioSurfaceEnabled(tool.href, flags)),
   );
   const taskStreamContent =
     isTasksLoading && inProgressTasks.length === 0 ? (

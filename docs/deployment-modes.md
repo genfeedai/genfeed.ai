@@ -82,10 +82,11 @@ licensed-self-host bindings.
   `users.platformRole = 'SUPERADMIN'`, separate from organization owner/admin
   roles. Deployment operators manage `users.platformRole` separately.
 - **Product modules and features are Admin flags.** Every deployment switches
-  them at `/admin/flags/modules` and `/admin/flags/features` (stored on the
-  platform-settings row); all default on. A module that is off disappears from
-  the app rail, its routes answer 404 and its API answers 404; superadmins keep
-  access. There is no env or PostHog flag for product behaviour.
+  them at `/admin/flags` (stored on the platform-settings row); all default on.
+  Nested flags (Studio surfaces such as Motion or Clips, Library canvas,
+  Replies) are only in effect while their parent is on. A module or surface
+  that is off disappears from the nav, its routes answer 404 and its API
+  answers 404; superadmins keep access. There is no env or PostHog flag for product behaviour.
 
 ## See also
 

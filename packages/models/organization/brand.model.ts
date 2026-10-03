@@ -66,7 +66,9 @@ export class Brand extends BaseBrand {
     if (!this.logo) {
       return undefined;
     }
-    return `${EnvironmentService.cdnUrl}/logos/${this.logo.id}`;
+    return (
+      this.logo.cdnUrl ?? `${EnvironmentService.cdnUrl}/logos/${this.logo.id}`
+    );
   }
 
   get bannerUrl(): string | undefined {

@@ -2,6 +2,7 @@ import type { IAddCreditsOptions } from '@genfeedai/contracts/interfaces/billing
 
 const CREDIT_TRANSACTION_OPTION_KEYS = [
   'actorUserId',
+  'brandId',
   'idempotencyKey',
   'metadata',
   'referenceId',

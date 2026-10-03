@@ -138,6 +138,7 @@ export class BatchGenerationCreditsService {
       const batch = await this.prisma.batch.findFirst({
         select: {
           batchItems: batchItemRowsReadArgs(params.organizationId),
+          brandId: true,
           config: true,
           items: true,
           updatedAt: true,
@@ -183,6 +184,7 @@ export class BatchGenerationCreditsService {
           additionalCredits,
           alreadyCharged,
           batchId: params.batchId,
+          brandId: batch.brandId,
           config,
           credits: {
             ...config.credits,
@@ -233,6 +235,7 @@ export class BatchGenerationCreditsService {
       await this.moveSettlementCredits({
         additionalCredits,
         batchId: params.batchId,
+        brandId: batch.brandId,
         organizationId: params.organizationId,
         refundCredits,
         settlementSeq,
@@ -258,6 +261,7 @@ export class BatchGenerationCreditsService {
     additionalCredits: number;
     alreadyCharged: number;
     batchId: string;
+    brandId?: string | null;
     config: BatchConfig;
     credits: BatchCreditsLedger & { reservationId: string };
     organizationId: string;
@@ -270,6 +274,7 @@ export class BatchGenerationCreditsService {
       additionalCredits,
       alreadyCharged,
       batchId,
+      brandId,
       config,
       credits,
       organizationId,
@@ -294,6 +299,7 @@ export class BatchGenerationCreditsService {
       await this.creditsUtilsService.settleReservation({
         actualAmount: reservationSettlement,
         actorUserId: userId,
+        brandId,
         description: `Batch generation ${batchId} settlement`,
         organizationId: organizationId,
         reservationId: credits.reservationId,
@@ -338,6 +344,7 @@ export class BatchGenerationCreditsService {
       await this.moveSettlementCredits({
         additionalCredits,
         batchId: batchId,
+        brandId,
         organizationId: organizationId,
         refundCredits: 0,
         settlementSeq,
@@ -389,8 +396,13 @@ export class BatchGenerationCreditsService {
     }
 
     try {
+      const batch = await this.prisma.batch.findFirst({
+        select: { brandId: true },
+        where: scopedWhere(params.organizationId, { id: params.batchId }),
+      });
       await this.deductSettlementCredits({
         batchId: params.batchId,
+        brandId: batch?.brandId,
         organizationId: params.organizationId,
         settlementSeq: params.settlementShortfallSeq,
         settlementShortfall: params.settlementShortfall,
@@ -475,6 +487,7 @@ export class BatchGenerationCreditsService {
   private async moveSettlementCredits(params: {
     additionalCredits: number;
     batchId: string;
+    brandId?: string | null;
     organizationId: string;
     refundCredits: number;
     settlementSeq: number;
@@ -488,6 +501,7 @@ export class BatchGenerationCreditsService {
       try {
         await this.deductSettlementCredits({
           batchId: params.batchId,
+          brandId: params.brandId,
           organizationId: params.organizationId,
           settlementSeq: params.settlementSeq,
           settlementShortfall: params.additionalCredits,
@@ -517,6 +531,7 @@ export class BatchGenerationCreditsService {
           `Batch generation ${params.batchId} settlement`,
           new Date(Date.now() + REFUND_EXPIRY_MS),
           {
+            brandId: params.brandId,
             idempotencyKey: `batch-refund:${params.batchId}:${params.settlementSeq}`,
             referenceId: params.batchId,
             referenceType: 'batch_generation',
@@ -538,6 +553,7 @@ export class BatchGenerationCreditsService {
 
   private async deductSettlementCredits(params: {
     batchId: string;
+    brandId?: string | null;
     organizationId: string;
     settlementSeq: number;
     settlementShortfall: number;
@@ -556,6 +572,7 @@ export class BatchGenerationCreditsService {
       `Batch generation ${params.batchId} settlement`,
       ActivitySource.SCRIPT,
       {
+        brandId: params.brandId,
         metadata: { batchId: params.batchId },
         referenceId: `${params.batchId}:${params.settlementSeq}`,
         referenceType: BATCH_SETTLEMENT_REFERENCE_TYPE,

@@ -48,6 +48,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Get,
   HttpException,
   HttpStatus,
@@ -325,9 +326,8 @@ export class BrandsController extends BaseCRUDController<
   }
 
   /**
-   * List brands for the caller. Superadmins may pass `organization`/`brand`
-   * query filters. Members get brands they own or that belong to the requested
-   * (or active) organization via `GET /brands?organization=`.
+   * One organization's brands: superadmins may filter by `organizationId`, all
+   * others get their session org. Creating a brand elsewhere never widens it.
    */
   public buildFindAllQuery(user: User, query: BaseQueryDto) {
     const adminFilter = CollectionFilterUtil.buildAdminFilter(user, query);
@@ -341,7 +341,6 @@ export class BrandsController extends BaseCRUDController<
       };
     }
 
-    // Members may only filter by their session organization (or omit the param).
     const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
       query,
       user,
@@ -349,19 +348,13 @@ export class BrandsController extends BaseCRUDController<
     );
     const organizationId = scope.organizationId ?? user.organizationId;
 
-    const orConditions: Record<string, unknown>[] = [
-      { userId: user.userId ?? user.id },
-    ];
-    if (organizationId) {
-      orConditions.push({ organizationId });
+    if (!organizationId) {
+      throw new ForbiddenException('Organization not found in session');
     }
 
     return {
       orderBy: handleQuerySort(query.sort),
-      where: {
-        isDeleted,
-        OR: orConditions,
-      },
+      where: { isDeleted, organizationId },
     };
   }
 
@@ -387,6 +380,13 @@ export class BrandsController extends BaseCRUDController<
     @Query() query: BaseQueryDto,
   ): Promise<JsonApiCollectionResponse> {
     return super.findAll(request, user, query);
+  }
+
+  /** Logos and connected accounts for list rows, batched per organization. */
+  public override decorateListForResponse(
+    docs: BrandDocument[],
+  ): Promise<BrandDocument[]> {
+    return this.brandsService.attachBrandListRelations(docs);
   }
 
   @Get('slug')

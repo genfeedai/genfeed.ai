@@ -377,6 +377,28 @@
     "workspace": "Workspace"
   },
   "settings": {
+    "creditsBalance": {
+      "creditsLeft": "Credits left",
+      "cycleNote": "Based on this cycle's total: subscription credits plus packs bought this cycle.",
+      "ofTotal": "of {total}",
+      "progressLabel": "Credits left this cycle",
+      "referralDescription": "Share your referral link and earn on referred customers' credit purchases.",
+      "referralTitle": "Earn 10% in credits",
+      "resets": "Resets",
+      "viewReferrals": "View referrals"
+    },
+    "members": {
+      "allBrands": "All brands",
+      "columnBrands": "Brands",
+      "columnMember": "Member"
+    },
+    "organizationIdentity": {
+      "logoAlt": "{label} logo",
+      "logoHint": "Square PNG, JPG or WebP. Shown in the organization switcher.",
+      "replaceLogo": "Replace logo",
+      "title": "Organization",
+      "uploadLogo": "Upload logo"
+    },
     "apiKeys": {
       "actions": {
         "copy": "Copy",
@@ -929,6 +951,7 @@
       "unavailable": "Approval state is temporarily unavailable. Publishing and credential checks remain available.",
       "addBrand": "Add a brand before opening a brand-scoped review queue.",
       "approve": "Approve",
+      "approveError": "Failed to approve the item",
       "approvePost": "Approve post",
       "workflowFailed": "Workflow execution failed."
     },
@@ -1917,7 +1940,7 @@
       "usageLabel": "This organization's usage"
     },
     "plans": {
-      "changeErrorTitle": "Plan change",
+      "changeErrorTitle": "Plan change failed",
       "confirmChange": "Confirm change",
       "confirmTitle": "Switch to {plan}?",
       "creditsPerMonth": "{credits} / month",
@@ -1941,7 +1964,7 @@
         "subscriptionMissing": "You do not have a subscription yet."
       },
       "listPrice": "was {price}",
-      "previewErrorTitle": "Plan preview",
+      "previewErrorTitle": "Plan preview failed",
       "prorationDowngrade": "Stripe estimates your next invoice at {amount}, including the downgrade credit.",
       "prorationNoChange": "Stripe estimates your next invoice at {amount}.",
       "prorationUnavailable": "Stripe could not provide a next-invoice estimate. You can still review the final amount before confirming.",

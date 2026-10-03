@@ -36,7 +36,7 @@ export class BrandRemixSceneBillingService {
     let reservationId = imageReservationId;
     let isReusedSettlement = false;
     try {
-      const { config } = await this.store.fence(
+      const { brandId, config } = await this.store.fence(
         organizationId,
         runId,
         operationId,
@@ -49,6 +49,7 @@ export class BrandRemixSceneBillingService {
           organizationId,
           actorUserId: pipeline.operation.userId,
           amount: line.credits,
+          brandId,
           idempotencyKey: key,
           workloadType: 'brand-remix-scene',
           workloadId: key,
@@ -109,7 +110,7 @@ export class BrandRemixSceneBillingService {
     line: BrandRemixSceneQuote['items'][number],
     image = false,
   ) {
-    const { config } = await this.store.read(organizationId, runId);
+    const { brandId, config } = await this.store.read(organizationId, runId);
     const pipeline = config.scenePipeline;
     const key = this.receiptKey(runId, operationId, line, image);
     const receipt = pipeline?.receipts.find(
@@ -134,6 +135,7 @@ export class BrandRemixSceneBillingService {
             ? { reservationId: receipt.reservationId }
             : { idempotencyKey: key }),
           actualAmount: line.credits,
+          brandId,
           description: `Remix ${line.stage}`,
         });
       } catch (error: unknown) {

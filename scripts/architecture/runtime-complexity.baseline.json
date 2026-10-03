@@ -60,7 +60,7 @@
     "symbol": "LearningRunService.reconcileDispatch"
   },
   {
-    "actual": 1113,
+    "actual": 1114,
     "file": "apps/server/api/src/collections/content-runs/services/brand-remix-run-execution.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/content-runs/services/brand-remix-run-execution.service.ts"
@@ -144,13 +144,13 @@
     "symbol": "AgentOrchestratorBatchService.tryHandleBatchGenerationTurnStream"
   },
   {
-    "actual": 157,
+    "actual": 158,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-plan-mode.service.ts",
     "metric": "method-lines",
     "symbol": "AgentOrchestratorPlanModeService.generatePlanModeResponse"
   },
   {
-    "actual": 591,
+    "actual": 592,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-stream-loop.service.ts",
     "metric": "method-lines",
     "symbol": "AgentOrchestratorStreamLoopService.runStreamLoop"
@@ -162,7 +162,7 @@
     "symbol": "AgentOrchestratorSyncLoopService.executeSynchronousChatLoop"
   },
   {
-    "actual": 410,
+    "actual": 411,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-turn-round-runner.service.ts",
     "metric": "method-lines",
     "symbol": "AgentTurnRoundRunnerService.executeToolRound"
@@ -186,7 +186,7 @@
     "symbol": "AgentPrepareToolHandler.prepareClipWorkflowRun"
   },
   {
-    "actual": 1097,
+    "actual": 1098,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts"

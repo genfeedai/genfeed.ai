@@ -15,6 +15,7 @@ import {
   CreditTransactionCategory,
   IngredientCategory,
 } from '@genfeedai/contracts';
+import { MEDIA_GENERATION_LATE_SETTLEMENT_KEY_PREFIX } from '@genfeedai/contracts/constants';
 import {
   CREDIT_DEDUCTION_QUEUE,
   CreditDeductionJobData,
@@ -103,8 +104,10 @@ export class CreditDeductionProcessor extends WorkerHost {
         }
         if (job.data.reservationId) {
           await this.creditsUtilsService.settleReservation({
+            settlementIdempotencyKey: job.data.idempotencyKey,
             actualAmount: amount,
             actorUserId: userId,
+            brandId: job.data.brandId,
             description,
             metadata: job.data.metadata,
             organizationId,
@@ -119,6 +122,7 @@ export class CreditDeductionProcessor extends WorkerHost {
             description,
             source,
             {
+              brandId: job.data.brandId,
               // Payloads queued before keys were required carry none; their
               // stable job id still names the charge across retries.
               idempotencyKey:
@@ -126,8 +130,22 @@ export class CreditDeductionProcessor extends WorkerHost {
                 (job.id ? `credit-job:${job.id}` : undefined),
               maxOverdraftCredits: job.data.maxOverdraftCredits,
               metadata: job.data.metadata,
-              referenceId: job.data.referenceId,
-              referenceType: job.data.referenceType,
+              referenceId:
+                job.data.referenceId ??
+                (job.data.idempotencyKey?.startsWith(
+                  `${MEDIA_GENERATION_LATE_SETTLEMENT_KEY_PREFIX}:`,
+                )
+                  ? job.data.idempotencyKey.slice(
+                      `${MEDIA_GENERATION_LATE_SETTLEMENT_KEY_PREFIX}:`.length,
+                    )
+                  : undefined),
+              referenceType:
+                job.data.referenceType ??
+                (job.data.idempotencyKey?.startsWith(
+                  `${MEDIA_GENERATION_LATE_SETTLEMENT_KEY_PREFIX}:`,
+                )
+                  ? 'credit_reservation'
+                  : undefined),
             },
           );
         }
@@ -153,6 +171,7 @@ export class CreditDeductionProcessor extends WorkerHost {
           {
             idempotencyKey: `byok:${organizationId}:${job.data.idempotencyKey ?? job.id}`,
             actorUserId: userId,
+            brandId: job.data.brandId,
             metadata: job.data.metadata,
           },
         );

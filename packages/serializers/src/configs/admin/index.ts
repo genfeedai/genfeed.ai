@@ -4,3 +4,4 @@ export * from '@serializers/configs/admin/email-performance.config';
 export * from '@serializers/configs/admin/model-pricing-report.config';
 export * from '@serializers/configs/admin/system-notification-overview.config';
 export * from '@serializers/configs/admin/warmup-account.config';
+export * from './credit-hold-report.config';

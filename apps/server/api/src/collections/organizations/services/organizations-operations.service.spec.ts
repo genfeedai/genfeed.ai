@@ -13,6 +13,7 @@ import type { BrandsService } from '@api/collections/brands/services/brands.serv
 import type { MembersService } from '@api/collections/members/services/members.service';
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import type { OrganizationLogoService } from '@api/collections/organizations/services/organization-logo.service';
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { OrganizationsOperationsService } from '@api/collections/organizations/services/organizations-operations.service';
 import type { RolesService } from '@api/collections/roles/services/roles.service';
@@ -52,6 +53,7 @@ describe('OrganizationsOperationsService', () => {
     ensureForOrganization: vi.fn().mockResolvedValue({ id: 'ba_new' }),
   };
   const userAccessCacheService = { invalidateAll: vi.fn() };
+  const organizationLogoService = { resolveLogoUrls: vi.fn() };
   const user = {
     brandId: 'brand_active',
     id: 'user_1',
@@ -68,6 +70,7 @@ describe('OrganizationsOperationsService', () => {
     rolesService as unknown as RolesService,
     usersService as unknown as UsersService,
     userAccessCacheService as unknown as UserAccessCacheService,
+    organizationLogoService as unknown as OrganizationLogoService,
   );
 
   beforeEach(() => {
@@ -96,6 +99,9 @@ describe('OrganizationsOperationsService', () => {
     usersService.findOne.mockResolvedValue({ id: 'user_1' });
     usersService.patch.mockResolvedValue({ id: 'user_1' });
     userAccessCacheService.invalidateAll.mockResolvedValue(undefined);
+    organizationLogoService.resolveLogoUrls.mockResolvedValue(
+      new Map([['org_a', 'https://cdn.test/logos/asset_1']]),
+    );
   });
 
   describe('findMine', () => {
@@ -123,8 +129,12 @@ describe('OrganizationsOperationsService', () => {
           isActive: false,
           isOwner: true,
           label: 'Org A',
+          logoUrl: 'https://cdn.test/logos/asset_1',
           slug: 'org-a',
         },
+      ]);
+      expect(organizationLogoService.resolveLogoUrls).toHaveBeenCalledWith([
+        'org_a',
       ]);
       expect(organizationsService.findOne).toHaveBeenCalledOnce();
       expect(organizationsService.findOne).toHaveBeenCalledWith({

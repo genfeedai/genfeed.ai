@@ -1,5 +1,6 @@
 import {
   AssetCategory,
+  AssetParent,
   IngredientCategory,
   UploadStatus,
 } from '@genfeedai/contracts';
@@ -688,6 +689,31 @@ describe('actual upload service transport delegation and completion', () => {
       expect(
         (boundary.assetUpload.mock.calls[0][0] as FormData).get('file'),
       ).toMatchObject({ type: 'image/png' });
+    },
+  );
+
+  it.each([
+    ['Brand', 'brand-1', AssetParent.BRAND],
+    ['Organization', 'org-1', AssetParent.ORGANIZATION],
+  ] as const)(
+    'sends the %s parent as the parentId/parentType the asset API validates',
+    async (parentModel, parentId, parentType) => {
+      const hook = renderUpload({
+        category: AssetCategory.LOGO,
+        parentId,
+        parentModel,
+      });
+      await pick(hook, [
+        new File(['bytes'], 'logo.png', { type: 'image/png' }),
+      ]);
+      await act(async () => {
+        await hook.result.current.handleSubmit();
+      });
+      const form = boundary.assetUpload.mock.calls[0][0] as FormData;
+      expect(form.get('parentId')).toBe(parentId);
+      expect(form.get('parentType')).toBe(parentType);
+      expect(form.get('parent')).toBeNull();
+      expect(form.get('parentModel')).toBeNull();
     },
   );
 

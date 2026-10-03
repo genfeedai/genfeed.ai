@@ -8,6 +8,7 @@ import type { CreditDeductionQueueService } from '@api/queues/credit-deduction/c
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivitySource,
+  CreditHoldRecoveryAction,
   CreditReservationStatus,
   CreditTransactionCategory,
   IngredientStatus,
@@ -75,12 +76,14 @@ describe('GenerationBillingService', () => {
     closeDispatch: vi.fn(),
     bindOutput: vi.fn(),
   };
+  const holdRecovery = { recoverAtCeiling: vi.fn() };
   const service = new GenerationBillingService(
     credits as unknown as CreditsUtilsService,
     queue as unknown as CreditDeductionQueueService,
     prisma as unknown as PrismaService,
     logger as unknown as LoggerService,
     quoteGroups as never,
+    holdRecovery as never,
   );
 
   const request = (
@@ -107,6 +110,9 @@ describe('GenerationBillingService', () => {
     prisma.crunGenerationTask.findFirst.mockReset().mockResolvedValue(null);
     prisma.crunGenerationTask.findMany.mockReset().mockResolvedValue([]);
     vi.resetAllMocks();
+    holdRecovery.recoverAtCeiling.mockResolvedValue(
+      CreditHoldRecoveryAction.RELEASE,
+    );
     prisma.$transaction.mockImplementation(async (operation) =>
       operation(prisma),
     );
@@ -221,6 +227,24 @@ describe('GenerationBillingService', () => {
       expect(billing.creditsConfig?.reservationId).toBe('pool_9');
       expect(service.hasPool(billing)).toBe(true);
     });
+
+    it('attributes the pool and its identity to the caller brand', async () => {
+      credits.reserveCredits.mockResolvedValue(hold({ id: 'pool_9' }));
+
+      const billing = await service.holdForService({
+        brandId: 'brand_7',
+        credits: 4,
+        description: 'Avatar video generation',
+        organizationId: 'org_1',
+        source: ActivitySource.VIDEO_GENERATION,
+        userId: 'user_1',
+      });
+
+      expect(credits.reserveCredits).toHaveBeenCalledWith(
+        expect.objectContaining({ brandId: 'brand_7' }),
+      );
+      expect(billing.user?.brandId).toBe('brand_7');
+    });
   });
 
   describe('settleOutput', () => {
@@ -241,6 +265,21 @@ describe('GenerationBillingService', () => {
         type: 'deduct-credits',
         userId: 'user_1',
       });
+    });
+
+    it('carries the hold brand onto the queued settlement', async () => {
+      credits.findReservationForWorkload.mockResolvedValue(
+        hold({ brandId: 'brand_7' }),
+      );
+
+      await service.settleOutput('ing_1', 'org_1');
+
+      expect(queue.queueDeduction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: 'brand_7',
+          reservationId: 'hold_1',
+        }),
+      );
     });
 
     it('keys a redelivered completion identically so the queue collapses it', async () => {
@@ -587,24 +626,43 @@ describe('GenerationBillingService', () => {
         ]);
       });
 
-      it('expires an unproven hold once, guarded by the evidence it read', async () => {
+      it('checks provider recovery before ending an intent hold', async () => {
         const stale = intentRow('heygen', DAY_MS + 1);
         prisma.creditReservation.findMany.mockResolvedValue([stale]);
 
         expect(await service.reconcile(NOW)).toBe(1);
 
-        expect(credits.releaseReservation).toHaveBeenCalledTimes(1);
-        expect(credits.releaseReservation).toHaveBeenCalledWith({
-          expectedReservationMetadata: stale.metadata,
-          organizationId: 'org_1',
-          reason: 'expiry',
-          reservationId: 'hold_intent',
-        });
+        expect(holdRecovery.recoverAtCeiling).toHaveBeenCalledWith(
+          'org_1',
+          'hold_intent',
+        );
+        expect(credits.releaseReservation).not.toHaveBeenCalled();
         expect(prisma.ingredient.updateMany).not.toHaveBeenCalled();
         expect(logger.log).toHaveBeenCalledWith(
           'Generation hold reconciliation completed',
           expect.objectContaining({ expiredIntentHolds: 1 }),
         );
+      });
+
+      it('bounds provider recovery to five calls across a sweep', async () => {
+        const holds = Array.from({ length: 7 }, (_, i) => ({
+          ...intentRow('heygen', DAY_MS + 1),
+          id: `hold_${i}`,
+          workloadId: `asset_${i}`,
+          metadata: {
+            assetId: `asset_${i}`,
+            submissionIntent: { version: 1, provider: 'heygen' },
+          },
+        }));
+        prisma.creditReservation.findMany.mockResolvedValue(holds);
+        prisma.ingredient.findMany.mockResolvedValue(
+          holds.map((hold) =>
+            ingredient(hold.workloadId, IngredientStatus.PROCESSING),
+          ),
+        );
+        expect(await service.reconcile(NOW)).toBe(5);
+        expect(holdRecovery.recoverAtCeiling).toHaveBeenCalledTimes(5);
+        expect(credits.releaseReservation).not.toHaveBeenCalled();
       });
 
       it('counts a hold still inside the ceiling as awaiting proof', async () => {

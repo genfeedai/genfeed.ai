@@ -327,7 +327,7 @@ export class BatchProjectIdeaDispatchService implements OnModuleInit {
               'Avatar funding changed after the accepted quote. Retry with a fresh quote.',
             );
           }
-          await this.reserveLine(job, dispatch);
+          await this.reserveLine(job, dispatch, project.brandId);
         },
       );
       return;
@@ -413,9 +413,11 @@ export class BatchProjectIdeaDispatchService implements OnModuleInit {
   private async reserveLine(
     job: BatchProjectIdeaDispatchJob,
     dispatch: IBatchProjectItemDispatch,
+    brandId: string | null | undefined,
   ): Promise<void> {
     const reservationId = await this.credits.reserve({
       actorUserId: job.userId,
+      brandId,
       dispatch,
       organizationId: job.organizationId,
     });

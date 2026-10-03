@@ -1,6 +1,10 @@
+import { createHash } from 'node:crypto';
 import {
   formatScorerHarnessCriteria,
+  IMAGE_SCORING_PROMPT,
   TEXT_SCORING_PROMPT,
+  VIDEO_SCORING_PROMPT,
+  VISION_RUBRIC_PROMPT,
 } from '@api/services/content-quality/content-quality-scorer.prompts';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
@@ -34,6 +38,28 @@ function createMocks() {
     },
   };
 }
+
+describe('content-quality scorer prompts', () => {
+  // Digests of the prompt text as it stood in the service before the #5991
+  // move. A prompt edit must change these deliberately, with calibration.
+  it('keeps every scoring prompt byte-identical to the pre-move text', () => {
+    const digest = (prompt: string) =>
+      createHash('sha256').update(prompt).digest('hex');
+
+    expect({
+      image: digest(IMAGE_SCORING_PROMPT),
+      text: digest(TEXT_SCORING_PROMPT),
+      video: digest(VIDEO_SCORING_PROMPT),
+      vision: digest(VISION_RUBRIC_PROMPT),
+    }).toEqual({
+      image: 'a6bd1a2dfb3a910ce7f22292d9e4b6f1bfecde34770ed6191bb59d41f52b7742',
+      text: 'f07384a942dc4d1e3f0e8a645daef0657e4ae5e8279b2ef127e6e021da54b200',
+      video: '39c697c230a96d8d56d800ab62940d812573d7207f0482abdd9457ff4f2df6ad',
+      vision:
+        '75edf453cdf14910882234307876fd96bde286a7b703edbe2d0e031447ef2ea1',
+    });
+  });
+});
 
 describe('ContentQualityScorerService', () => {
   let service: ContentQualityScorerService;

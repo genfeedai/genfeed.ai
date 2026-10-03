@@ -10,6 +10,7 @@ import type {
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
 import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
+import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
@@ -124,6 +125,9 @@ describe('BrandsController', () => {
             // destructures the first element, so the stub has to hand the rows
             // straight back rather than default to undefined.
             attachBrandKitAssetRelations: vi.fn((brands: unknown[]) =>
+              Promise.resolve(brands),
+            ),
+            attachBrandListRelations: vi.fn((brands: unknown[]) =>
               Promise.resolve(brands),
             ),
             buildManualBrandKitDraft: vi.fn(),
@@ -530,6 +534,35 @@ describe('BrandsController', () => {
       expect(brandsService.findAll).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
+
+    it('decorates list rows with logos and connected accounts before serializing', async () => {
+      const brand = { ...mockBrand } as unknown as BrandDocument;
+      const decorated = {
+        ...brand,
+        credentials: [{ id: 'cmcredential00000000000001' }],
+      } as unknown as BrandDocument;
+      const page: AggregatePaginateResult<BrandDocument> = {
+        docs: [brand],
+        hasNextPage: false,
+        hasPrevPage: false,
+        limit: 20,
+        page: 1,
+        pagingCounter: 1,
+        totalDocs: 1,
+        totalPages: 1,
+      };
+      brandsService.findAll.mockResolvedValue(page);
+      brandsService.attachBrandListRelations.mockResolvedValue([decorated]);
+
+      const result = await controller.findAll(mockRequest, mockUser, {
+        isDeleted: false,
+      } as BaseQueryDto);
+
+      expect(brandsService.attachBrandListRelations).toHaveBeenCalledWith([
+        brand,
+      ]);
+      expect(result).toEqual({ data: [decorated] });
+    });
   });
 
   describe('buildFindAllQuery', () => {
@@ -558,7 +591,7 @@ describe('BrandsController', () => {
       expect(result.orderBy).toEqual({ label: 1 });
     });
 
-    it('scopes members to owned brands or their session organization', () => {
+    it('scopes members to their session organization only', () => {
       const organizationId = (mockUser as AuthenticatedUser).organizationId;
       const query = {
         isDeleted: false,
@@ -568,11 +601,21 @@ describe('BrandsController', () => {
 
       const result = controller.buildFindAllQuery(mockUser, query);
 
+      // Brands the caller created in another organization must not leak in.
+      expect(result.where).toEqual({ isDeleted: false, organizationId });
+      expect(result.where).not.toHaveProperty('OR');
+      expect(result.orderBy).toEqual({ label: 1 });
+    });
+
+    it('falls back to the session organization when no filter is passed', () => {
+      const result = controller.buildFindAllQuery(mockUser, {
+        isDeleted: false,
+      } as BaseQueryDto);
+
       expect(result.where).toEqual({
         isDeleted: false,
-        OR: [{ userId: mockUser.userId }, { organizationId }],
+        organizationId: (mockUser as AuthenticatedUser).organizationId,
       });
-      expect(result.orderBy).toEqual({ label: 1 });
     });
 
     it('rejects member organization filters outside the session org', () => {

@@ -61,6 +61,24 @@ describe('ModelsLayoutContent', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
+  it('leaves category filtering to the catalog chips', async () => {
+    const user = userEvent.setup();
+    render(
+      <ModelsLayoutContent>
+        <div>children</div>
+      </ModelsLayoutContent>,
+    );
+
+    await user.click(screen.getByRole('combobox', { name: 'Model type' }));
+
+    expect(
+      await screen.findByRole('option', { name: 'Catalog' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: 'Images' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('renders a model type filter instead of type tabs', () => {
     render(
       <ModelsLayoutContent>
@@ -90,10 +108,10 @@ describe('ModelsLayoutContent', () => {
     );
 
     await user.click(screen.getByRole('combobox', { name: 'Model type' }));
-    await user.click(await screen.findByRole('option', { name: 'Images' }));
+    await user.click(await screen.findByRole('option', { name: 'Trainings' }));
 
     expect(mockPush).toHaveBeenCalledWith(
-      '/acme/~/settings/models?type=images',
+      '/acme/~/settings/models?type=trainings',
       { scroll: false },
     );
   });

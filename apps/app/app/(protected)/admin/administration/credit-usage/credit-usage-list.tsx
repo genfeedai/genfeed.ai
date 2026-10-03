@@ -1,5 +1,6 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/contracts';
 import { formatCreditBalanceExact } from '@genfeedai/contracts/constants';
 import type { IOrganizationCreditUsage } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -11,11 +12,17 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
+import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import { ChartColumn } from 'lucide-react';
-import { useEffect } from 'react';
+import { useTranslations } from 'next-intl';
+import { useEffect, useState } from 'react';
+import CreditHoldsPanel from './credit-holds-panel';
 
 export default function CreditUsageList() {
+  const t = useTranslations('pages.adminCreditHolds');
+  const [selectedOrganization, setSelectedOrganization] =
+    useState<IOrganizationCreditUsage>();
   const getSubscriptionsService = useAuthedService((token: string) =>
     SubscriptionsService.getInstance(token),
   );
@@ -51,6 +58,18 @@ export default function CreditUsageList() {
   };
 
   const columns: TableColumn<IOrganizationCreditUsage>[] = [
+    {
+      header: t('holdsColumn'),
+      key: 'organizationId',
+      render: (row) => (
+        <Button
+          variant={ButtonVariant.SECONDARY}
+          onClick={() => setSelectedOrganization(row)}
+        >
+          {t('reviewHolds')}
+        </Button>
+      ),
+    },
     {
       header: 'Organization',
       key: 'organizationName',
@@ -131,6 +150,13 @@ export default function CreditUsageList() {
         getRowKey={(row) => row.organizationId}
         emptyLabel="No organization credit usage found"
       />
+      {selectedOrganization && (
+        <CreditHoldsPanel
+          key={selectedOrganization.organizationId}
+          organizationId={selectedOrganization.organizationId}
+          organizationName={selectedOrganization.organizationName}
+        />
+      )}
     </Container>
   );
 }

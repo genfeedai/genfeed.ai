@@ -67,7 +67,12 @@ export function cohensKappa(
   categories: number,
   weighting: KappaWeighting,
 ): number | null {
-  if (pairs.length === 0) {
+  if (pairs.length === 0 || categories < 2) {
+    return null;
+  }
+  const isInRange = (value: number) =>
+    Number.isInteger(value) && value >= 0 && value < categories;
+  if (pairs.some(([a, b]) => !isInRange(a) || !isInRange(b))) {
     return null;
   }
   const counts = Array.from({ length: categories * categories }, () => 0);
@@ -131,11 +136,11 @@ export function meanAbsoluteError(
   predicted: readonly number[],
   actual: readonly number[],
 ): number | null {
-  if (predicted.length === 0) {
+  if (predicted.length === 0 || predicted.length !== actual.length) {
     return null;
   }
   const total = predicted.reduce(
-    (sum, value, index) => sum + Math.abs(value - (actual[index] ?? 0)),
+    (sum, value, index) => sum + Math.abs(value - (actual[index] ?? value)),
     0,
   );
 

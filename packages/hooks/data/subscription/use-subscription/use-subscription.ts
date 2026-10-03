@@ -114,7 +114,7 @@ export function useSubscription(): UseSubscriptionReturn {
       window.open(response.url, '_blank');
     } catch (err) {
       logger.error('Failed to open billing portal:', err);
-      notificationsService.error('Opening billing portal');
+      notificationsService.error('Failed to open billing portal');
     }
   };
 

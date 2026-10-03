@@ -234,6 +234,7 @@ export class VoiceGenerationService implements OnModuleInit {
       ['GENERATED', 'VALIDATED'].includes(String(existing.status).toUpperCase())
     ) {
       await this.voiceCreditsService.settleBackgroundGenerationCredits({
+        brandId: existing.brandId ?? params.brandId,
         durationSeconds: Number(existing.duration) || 0,
         ingredientId: params.ingredientId,
         organizationId: params.organizationId,
@@ -438,6 +439,7 @@ export class VoiceGenerationService implements OnModuleInit {
     );
 
     await this.voiceCreditsService.settleBackgroundGenerationCredits({
+      brandId: params.brandId,
       durationSeconds: result.duration,
       ingredientId: params.ingredientId,
       organizationId: params.organizationId,

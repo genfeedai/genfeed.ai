@@ -209,6 +209,7 @@ export class BrandSetupService {
     scrapedData: IScrapedBrandData,
     organizationId: string,
     userId: string,
+    brandId?: string,
   ): Promise<IBrandVoiceAnalysis | undefined> {
     const hasAnalyzableContent = Boolean(
       scrapedData.description ||
@@ -223,6 +224,7 @@ export class BrandSetupService {
     }
 
     return this.masterPromptGeneratorService.analyzeBrandVoice(scrapedData, {
+      brandId,
       organizationId: organizationId.toString(),
       userId: userId.toString(),
     });
@@ -292,6 +294,7 @@ export class BrandSetupService {
           scrapedData,
           organizationId,
           userId,
+          targetBrandId,
         );
 
         // 5. Build complete extracted data

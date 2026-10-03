@@ -102,6 +102,16 @@ describe('PlansCard', () => {
     expect(screen.queryByText('was $499/mo')).not.toBeInTheDocument();
   });
 
+  it('renders every upgrade call to action as the primary (white) button', () => {
+    useBrandMock.mockReturnValue({ settings: { subscriptionTier: 'pro' } });
+
+    render(<PlansCard />);
+
+    const upgrade = screen.getByRole('button', { name: /Upgrade to Scale/i });
+    expect(upgrade.className).toMatch(/\bbg-primary\b/);
+    expect(upgrade.className).not.toMatch(/\bbg-tertiary\b/);
+  });
+
   it('badges the current plan and drops its call to action', () => {
     useBrandMock.mockReturnValue({ settings: { subscriptionTier: 'pro' } });
 
@@ -221,7 +231,7 @@ describe('PlansCard', () => {
 
       await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
       expect(notifications.error).toHaveBeenCalledWith(
-        'Plan preview',
+        'Plan preview failed',
         expect.objectContaining({
           description: 'This plan is no longer available.',
         }),
@@ -239,7 +249,7 @@ describe('PlansCard', () => {
 
       await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
       expect(notifications.error).toHaveBeenCalledWith(
-        'Plan preview',
+        'Plan preview failed',
         expect.objectContaining({
           description: 'Something went wrong. Please try again.',
         }),
@@ -343,7 +353,7 @@ describe('PlansCard', () => {
 
       await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
       expect(notifications.error).toHaveBeenCalledWith(
-        'Plan change',
+        'Plan change failed',
         expect.objectContaining({
           description: 'Our billing provider is briefly unavailable.',
         }),

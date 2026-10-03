@@ -63,6 +63,7 @@ export async function enhanceCreatedPrompt(
         'prompt-creation-refund',
         'Prompt creation failed - credit refund',
         refundExpiresAt,
+        { brandId: input.brandId },
       );
       deps.loggerService.log('Credits refunded successfully', {
         amount: input.chargedCredits,

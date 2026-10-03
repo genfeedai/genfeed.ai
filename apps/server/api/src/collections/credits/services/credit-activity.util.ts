@@ -121,7 +121,8 @@ export async function recordCreditTransactionActivity(
       ? transaction.metadata
       : {};
   const candidateBrandId =
-    typeof metadata.brandId === 'string' ? metadata.brandId : undefined;
+    transaction.brandId ||
+    (typeof metadata.brandId === 'string' ? metadata.brandId : undefined);
   const brand = candidateBrandId
     ? await tx.brand.findFirst({
         select: { id: true },

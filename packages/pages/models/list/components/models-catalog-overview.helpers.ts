@@ -6,12 +6,22 @@ import { Braces, FileText, Film, Image, Mic2, Music } from 'lucide-react';
 
 export { getModelCategoryBadgeClass };
 
+export type ModelCategoryGroupKey =
+  | 'image'
+  | 'video'
+  | 'music'
+  | 'voice'
+  | 'text'
+  | 'embedding';
+
 export type ModelCatalogOverviewCard = {
-  cardClassName?: string;
   count: number;
   description: string;
   icon: IconType;
   iconClassName: string;
+  /** Selected as the current list filter (or every card when unfiltered). */
+  isActive: boolean;
+  key: ModelCategoryGroupKey;
   label: string;
 };
 
@@ -19,6 +29,7 @@ type ModelCategoryGroup = {
   categories: ModelCategory[];
   icon: IconType;
   iconClassName: string;
+  key: ModelCategoryGroupKey;
   label: string;
   routeCategory: string;
 };
@@ -32,6 +43,7 @@ const MODEL_CATEGORY_GROUPS: ModelCategoryGroup[] = [
     ],
     icon: Image as IconType,
     iconClassName: 'bg-info/15 text-info',
+    key: 'image',
     label: 'Image',
     routeCategory: 'image',
   },
@@ -44,6 +56,7 @@ const MODEL_CATEGORY_GROUPS: ModelCategoryGroup[] = [
     icon: Film as IconType,
     iconClassName:
       '[background-color:color-mix(in_srgb,var(--accent-violet)_15%,transparent)] text-[var(--accent-violet)]',
+    key: 'video',
     label: 'Video',
     routeCategory: 'video',
   },
@@ -52,6 +65,7 @@ const MODEL_CATEGORY_GROUPS: ModelCategoryGroup[] = [
     icon: Music as IconType,
     iconClassName:
       '[background-color:color-mix(in_srgb,var(--accent-orange)_15%,transparent)] text-[var(--accent-orange)]',
+    key: 'music',
     label: 'Music',
     routeCategory: 'music',
   },
@@ -60,6 +74,7 @@ const MODEL_CATEGORY_GROUPS: ModelCategoryGroup[] = [
     icon: Mic2 as IconType,
     iconClassName:
       '[background-color:color-mix(in_srgb,var(--accent-pink)_15%,transparent)] text-[var(--accent-pink)]',
+    key: 'voice',
     label: 'Voice',
     routeCategory: 'other',
   },
@@ -67,6 +82,7 @@ const MODEL_CATEGORY_GROUPS: ModelCategoryGroup[] = [
     categories: [ModelCategory.TEXT],
     icon: FileText as IconType,
     iconClassName: 'bg-success/15 text-success',
+    key: 'text',
     label: 'Text',
     routeCategory: 'text',
   },
@@ -75,10 +91,38 @@ const MODEL_CATEGORY_GROUPS: ModelCategoryGroup[] = [
     icon: Braces as IconType,
     iconClassName:
       '[background-color:color-mix(in_srgb,var(--accent-rose)_15%,transparent)] text-[var(--accent-rose)]',
+    key: 'embedding',
     label: 'Embedding',
     routeCategory: 'other',
   },
 ];
+
+const MODEL_CATEGORY_GROUP_KEYS = new Set<string>(
+  MODEL_CATEGORY_GROUPS.map((group) => group.key),
+);
+
+/**
+ * The catalog group a list filter value selects. Accepts the group keys and the
+ * legacy plural route values (`images`, `videos`); anything else is unfiltered.
+ */
+export function resolveModelCategoryGroupKey(
+  value?: string | null,
+): ModelCategoryGroupKey | null {
+  const normalized =
+    value === 'images' ? 'image' : value === 'videos' ? 'video' : value;
+  return normalized && MODEL_CATEGORY_GROUP_KEYS.has(normalized)
+    ? (normalized as ModelCategoryGroupKey)
+    : null;
+}
+
+/** Every exact model category a catalog group spans. */
+export function getModelCategoryGroupCategories(
+  key: ModelCategoryGroupKey,
+): ModelCategory[] {
+  return (
+    MODEL_CATEGORY_GROUPS.find((group) => group.key === key)?.categories ?? []
+  );
+}
 
 function normalizeRouteCategory(category?: string): string {
   if (category === 'images') {
@@ -105,19 +149,22 @@ export function buildModelCatalogOverviewCards(
       group.categories.includes(model.category),
     );
     const defaultModel = groupModels.find((model) => model.isDefault);
-    const isActive =
-      activeCategory === 'all' ||
-      activeCategory === 'active' ||
-      activeCategory === group.routeCategory;
+    const selectedGroupKey = resolveModelCategoryGroupKey(selectedCategory);
+    const isActive = selectedGroupKey
+      ? selectedGroupKey === group.key
+      : activeCategory === 'all' ||
+        activeCategory === 'active' ||
+        activeCategory === group.routeCategory;
 
     return {
-      cardClassName: isActive ? undefined : 'opacity-50',
       count: groupModels.length,
       description: defaultModel
         ? `Default: ${defaultModel.label}`
         : 'No default selected',
       icon: group.icon,
       iconClassName: group.iconClassName,
+      isActive,
+      key: group.key,
       label: group.label,
     };
   });

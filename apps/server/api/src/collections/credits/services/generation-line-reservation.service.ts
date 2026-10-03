@@ -58,6 +58,7 @@ export class GenerationLineReservationService {
     const reservation = await this.credits.reserveCredits({
       actorUserId: intent.owner.actorUserId,
       amount: intent.modelQuote.credits,
+      brandId: intent.owner.brandId,
       organizationId: intent.owner.organizationId,
       description: intent.description,
       source: intent.source,

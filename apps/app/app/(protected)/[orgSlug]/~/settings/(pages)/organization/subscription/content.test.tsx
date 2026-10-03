@@ -77,12 +77,23 @@ describe('SettingsSubscriptionPage', () => {
 
     expect(screen.getByText('Current Plan')).toBeInTheDocument();
     expect(screen.getByText('Organizations')).toBeInTheDocument();
-    expect(screen.getByText('Manage subscription')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /Open Billing Portal/i }),
     ).toBeInTheDocument();
     expect(screen.queryByText('Add credits')).not.toBeInTheDocument();
     expect(screen.queryByText('Credits Left')).not.toBeInTheDocument();
+  });
+
+  it('puts the billing portal at the top, ahead of the plans', () => {
+    render(<SettingsSubscriptionPage />);
+
+    const portal = screen.getByRole('button', { name: /Open Billing Portal/i });
+    const plansHeading = screen.getByRole('heading', { name: 'Plans' });
+    expect(
+      portal.compareDocumentPosition(plansHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.queryByText('Manage subscription')).not.toBeInTheDocument();
   });
 
   it('offers in-app plan selection alongside the billing portal', () => {
@@ -121,7 +132,6 @@ describe('SettingsSubscriptionPage', () => {
 
     // Chrome: section headers render unconditionally while data loads.
     expect(screen.getByText('Current Plan')).toBeInTheDocument();
-    expect(screen.getByText('Manage subscription')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /Open Billing Portal/i }),
     ).toBeInTheDocument();
@@ -145,7 +155,6 @@ describe('SettingsSubscriptionPage', () => {
     render(<SettingsSubscriptionPage />);
 
     expect(screen.getByText('Current Plan')).toBeInTheDocument();
-    expect(screen.getByText('Manage subscription')).toBeInTheDocument();
     expect(screen.getAllByText('-').length).toBeGreaterThan(0);
   });
 

@@ -4,3 +4,4 @@ export * from '@serializers/server/admin/email-performance.serializer';
 export * from '@serializers/server/admin/model-pricing-report.serializer';
 export * from '@serializers/server/admin/system-notification-overview.serializer';
 export * from '@serializers/server/admin/warmup-account.serializer';
+export * from './credit-hold-report.serializer';
