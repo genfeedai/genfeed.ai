@@ -223,6 +223,7 @@ export class PersonasService extends BaseService<
       if (!normalizedHandle) {
         return await super.patch(id, nextDto, populate);
       }
+      // tenant-scope-ignore: patch(id) runs after the controller's org access check; this read resolves the row's organizationId to scope the collision lock
       const current = await this.prisma.persona.findFirst({
         select: {
           availabilityMode: true,
@@ -779,7 +780,7 @@ export class PersonasService extends BaseService<
       }
       await tx.persona.update({
         data: availability,
-        where: { id: persona.id },
+        where: scopedWhere(params.organizationId, { id: persona.id }),
       });
       await tx.personaAvailabilityAudit.create({
         data: {

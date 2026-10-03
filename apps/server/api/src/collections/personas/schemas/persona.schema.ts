@@ -8,6 +8,11 @@ export interface PersonaDocument
   > {
   avatarExternalId?: string | null;
   avatarProvider?: AvatarProvider | string | null;
+  /** Computed availability summary, set by `withAvailabilitySummary`. */
+  availableBrandCount?: number;
+  isShared?: boolean;
+  owningBrandId?: string | null;
+  owningBrandName?: string | null;
   bio?: string | null;
   contentStrategy?: Record<string, unknown> | null;
   emoji?: string | null;
