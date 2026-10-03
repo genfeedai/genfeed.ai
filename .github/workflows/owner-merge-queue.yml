@@ -23,28 +23,42 @@ concurrency:
 
 jobs:
   reconcile:
-    if: vars.OWNER_MERGE_MODE == 'strict' && github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      # No-op until the Genfeed bot GitHub App is installed and its secrets set.
+      HAS_BOT_APP: ${{ secrets.GENFEED_BOT_CLIENT_ID != '' && secrets.GENFEED_BOT_PRIVATE_KEY != '' }}
     steps:
       # Privileged metadata controller: never checkout a PR, load artifacts,
       # execute PR code, or interpolate event text into commands.
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - if: env.HAS_BOT_APP == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: refs/heads/master
           persist-credentials: false
-      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        env:
-          MERGE_MODE: ${{ vars.OWNER_MERGE_MODE }}
-          STRICT_RULESET_ID: ${{ vars.OWNER_MERGE_RULESET_ID }}
-          MERGE_TOKEN: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
+      # App token: merges and branch updates must emit native PR and master push
+      # events, which GITHUB_TOKEN suppresses. Never fall back to GITHUB_TOKEN.
+      - id: bot-token
+        if: env.HAS_BOT_APP == 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
-          # A PAT merge/update emits native PR and master push events.
-          # Never fall back to GITHUB_TOKEN and suppress those validations.
-          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
+          client-id: ${{ secrets.GENFEED_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.GENFEED_BOT_PRIVATE_KEY }}
+          repositories: genfeed.ai
+          permission-actions: write
+          permission-administration: read
+          permission-checks: read
+          permission-contents: write
+          permission-pull-requests: write
+          permission-statuses: read
+          permission-workflows: write
+      - if: env.HAS_BOT_APP == 'true'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          github-token: ${{ steps.bot-token.outputs.token }}
           script: |
-            if (!process.env.MERGE_TOKEN) throw new Error('Owner merge token is missing');
             const path = require('node:path');
             const { pathToFileURL } = require('node:url');
             const { reconcile } = await import(pathToFileURL(path.join(process.env.GITHUB_WORKSPACE, 'scripts/ci/owner-merge-queue.mjs')).href);
-            await reconcile({ github, mode: process.env.MERGE_MODE, rulesetId: process.env.STRICT_RULESET_ID });
+            await reconcile({ github });

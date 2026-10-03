@@ -121,8 +121,13 @@ test('keeps privileged PR triggers limited to metadata and trusted master code',
   assert.match(controller, /^ {2}check_run:/m);
   assert.match(
     controller,
-    /github-token: \$\{\{ secrets.CONSOLE_DEPLOY_TOKEN \}\}/,
+    /uses: actions\/create-github-app-token@[0-9a-f]{40} # v/,
   );
+  assert.match(
+    controller,
+    /github-token: \$\{\{ steps\.bot-token\.outputs\.token \}\}/,
+  );
+  assert.doesNotMatch(controller, /CONSOLE_DEPLOY_TOKEN|vars\.OWNER_MERGE/);
   assert.doesNotMatch(
     controller,
     /github\.event\.|download-artifact|secrets.GITHUB_TOKEN|uses: \.\//,
