@@ -5,7 +5,6 @@ import {
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import { MAX_THREAD_DELAY_MINUTES } from '@genfeedai/contracts/api-types/contracts';
 import { z } from 'zod';
 
 // Reusable post status enum for YouTube-compatible platforms
@@ -132,65 +131,3 @@ export const postMetadataSchema = z.object({
 });
 
 export type PostMetadataSchema = z.infer<typeof postMetadataSchema>;
-
-export const threadPostSchema = z.object({
-  description: z.string().trim().min(1, 'Post content is required'),
-  /**
-   * Media attached to this item alone. Empty means the item falls back to the
-   * thread's shared ingredient, which is how every item behaved before items
-   * could carry their own media.
-   */
-  ingredientIds: z.array(z.string().min(1)).optional(),
-  /**
-   * Minutes after the post goes live before this comment publishes. Ignored on
-   * the first item, which is the post itself.
-   */
-  threadDelayMinutes: z
-    .number()
-    .int()
-    .min(0)
-    .max(MAX_THREAD_DELAY_MINUTES)
-    .optional(),
-});
-
-export type ThreadPostSchema = z.infer<typeof threadPostSchema>;
-
-export const threadModalSchema = z
-  .object({
-    credentialId: z.string().optional(),
-    platform: z.nativeEnum(Platform).optional(),
-    globalTitle: z.string().optional(),
-    ingredient: z.string().optional(),
-    posts: z.array(threadPostSchema).min(1, 'At least one post is required'),
-    scheduledDate: z.string().optional(),
-    status: z.string().optional(),
-    targetExecutionState: z.nativeEnum(TargetExecutionState).optional(),
-    visibility: z.nativeEnum(PostVisibility).optional(),
-  })
-  .superRefine((value, context) => {
-    const state =
-      value.targetExecutionState ??
-      (value.scheduledDate
-        ? TargetExecutionState.SCHEDULED
-        : TargetExecutionState.DRAFT);
-    if (!value.credentialId?.trim() && state !== TargetExecutionState.DRAFT) {
-      context.addIssue({
-        code: 'custom',
-        message: 'Connect an account before scheduling or publishing',
-        path: ['credentialId'],
-      });
-    }
-
-    if (
-      value.targetExecutionState === TargetExecutionState.SCHEDULED &&
-      !value.scheduledDate?.trim()
-    ) {
-      context.addIssue({
-        code: 'custom',
-        message: 'Scheduled date is required',
-        path: ['scheduledDate'],
-      });
-    }
-  });
-
-export type ThreadModalSchema = z.infer<typeof threadModalSchema>;
