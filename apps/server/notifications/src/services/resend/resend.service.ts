@@ -2,6 +2,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@notifications/config/config.service';
+import { NotificationRuntimeSettingsService } from '@notifications/services/runtime-settings/notification-runtime-settings.service';
 import { type ErrorResponse, Resend } from 'resend';
 
 export interface ResendEmailPayload {
@@ -103,6 +104,7 @@ export class ResendService {
   private readonly constructorName = ResendService.name;
 
   constructor(
+    private readonly runtimeSettings: NotificationRuntimeSettingsService,
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
   ) {}
@@ -125,13 +127,16 @@ export class ResendService {
       const response = await resend.emails.send(
         {
           from: resolveResendFromAddress({
-            configuredFrom: this.configService.get('RESEND_FROM_EMAIL'),
+            configuredFrom:
+              (await this.runtimeSettings.get()).emailFromAddress ?? undefined,
             isDevelopment: this.configService.isDevelopment,
             payloadFrom: payload.from,
           }),
           html: payload.html,
           replyTo:
-            payload.replyTo || this.configService.get('RESEND_REPLY_TO_EMAIL'),
+            payload.replyTo ||
+            ((await this.runtimeSettings.get()).emailReplyToAddress ??
+              undefined),
           subject: payload.subject,
           text: payload.text,
           to: payload.to,

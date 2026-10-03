@@ -4,6 +4,7 @@ import {
   BrandedGenerationReceiptEmptyQueryDto,
   BrandedGenerationReceiptHistoryQueryDto,
   BrandedGenerationReceiptListQueryDto,
+  BrandIdentityPreviewQueryDto,
 } from '@api/collections/branded-generation-receipts/dto/branded-generation-receipt-query.dto';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -12,12 +13,14 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
 import { BrandedGenerationReceiptsService } from '@api/services/branded-generation-receipts/branded-generation-receipts.service';
 import { learningContractIdSchema } from '@genfeedai/contracts/api-types/contracts/content-learning-generation.contract';
 import {
   BrandedGenerationPromptInspectionSerializer,
   BrandedGenerationReceiptRevisionSerializer,
   BrandedGenerationReceiptSerializer,
+  BrandIdentityPreviewSerializer,
 } from '@genfeedai/serializers';
 import {
   BadRequestException,
@@ -44,7 +47,10 @@ import type { Request } from 'express';
   }),
 )
 export class BrandedGenerationReceiptsController {
-  constructor(private readonly receipts: BrandedGenerationReceiptsService) {}
+  constructor(
+    private readonly receipts: BrandedGenerationReceiptsService,
+    private readonly identities: BrandIdentitySnapshotService,
+  ) {}
   private id(value: string): string {
     const parsed = learningContractIdSchema.safeParse(value);
     if (!parsed.success) throw new BadRequestException('receipt_query_invalid');
@@ -84,6 +90,28 @@ export class BrandedGenerationReceiptsController {
       limit: query.limit,
       hasMore: page.nextCursor !== null,
       nextCursor: page.nextCursor,
+    });
+  }
+  @Get('identity-preview')
+  @Header('Cache-Control', 'private,no-store')
+  @Header('Vary', 'Cookie,Authorization')
+  async identityPreview(
+    @Req() request: Request,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('brandId') brandId: string,
+    @Query() query: BrandIdentityPreviewQueryDto,
+  ) {
+    const snapshot = await this.identities.preview(
+      this.actor(user, brandId),
+      query.receiptId === undefined ? undefined : this.id(query.receiptId),
+    );
+    return serializeSingle(request, BrandIdentityPreviewSerializer, {
+      id: snapshot.contentHash,
+      snapshot,
+      source:
+        query.receiptId === undefined
+          ? 'current_approved_revision'
+          : 'receipt_snapshot',
     });
   }
   @Get(':receiptId')

@@ -32,6 +32,7 @@ import { WorkflowNodeClaimService } from '@api/collections/workflows/services/wo
 import { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
 import { WorkflowNodeGraphRunnerService } from '@api/collections/workflows/services/workflow-node-graph-runner.service';
 import { WorkflowNodeProgressTrackerService } from '@api/collections/workflows/services/workflow-node-progress-tracker.service';
+import { requireRecordedWorkflowActor } from '@api/collections/workflows/services/workflow-resume-actor.util';
 import { WorkflowReviewGateService } from '@api/collections/workflows/services/workflow-review-gate.service';
 import {
   AgentScopeContextService,
@@ -313,13 +314,18 @@ export class WorkflowExecutorService {
       };
     }
 
+    const actorUserId = requireRecordedWorkflowActor(
+      executionId,
+      execution.userId,
+    );
+    const resumeEvent: TriggerEvent = { ...event, userId: actorUserId };
     let normalizedWorkflow: WorkflowDocument | null;
     try {
       normalizedWorkflow = await this.documentService.findPinnedWorkflow(
         workflowId,
         execution.workflowVersionId,
         event.organizationId,
-        event.userId,
+        actorUserId,
       );
     } catch (error) {
       if (error instanceof RetiredWorkflowExecutionError) {
@@ -328,7 +334,7 @@ export class WorkflowExecutorService {
           executionId,
           organizationId: event.organizationId,
           startedAt: execution.startedAt ?? new Date(),
-          userId: event.userId,
+          userId: actorUserId,
           workflowId,
         });
       }
@@ -340,14 +346,14 @@ export class WorkflowExecutorService {
         executionId,
         organizationId: event.organizationId,
         startedAt: execution.startedAt ?? new Date(),
-        userId: event.userId,
+        userId: actorUserId,
         workflowId,
       });
     }
 
     return this.executeWorkflowDocumentWithActionOrigin(
-      normalizedWorkflow,
-      event,
+      { ...normalizedWorkflow, userId: actorUserId },
+      resumeEvent,
       (execution.trigger as WorkflowExecutionTrigger | null) ??
         WorkflowExecutionTrigger.EVENT,
       {

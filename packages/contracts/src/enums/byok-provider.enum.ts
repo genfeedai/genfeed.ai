@@ -13,4 +13,8 @@ export enum ByokProvider {
   LEONARDOAI = 'leonardoai',
   HIGGSFIELD = 'higgsfield',
   APIFY = 'apify',
+  GOOGLE = 'google',
+  XAI = 'xai',
+  BFL = 'bfl',
+  RUNWAY = 'runway',
 }

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import AnalyticsOverview from '@ui/analytics/overview/analytics-overview';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 const mockAnalytics = [
   {
@@ -240,4 +240,14 @@ describe('AnalyticsOverview', () => {
       expect(screen.getByText('2.5M')).toBeInTheDocument();
     });
   });
+});
+
+vi.mock('next-intl', async () => {
+  const { createTranslateFromCatalog } = await import(
+    '@ui/tests/next-intl.stub'
+  );
+  const { default: pages } = await import(
+    '../../../../../../apps/app/messages/en/pages.json'
+  );
+  return { useTranslations: createTranslateFromCatalog({ pages }) };
 });

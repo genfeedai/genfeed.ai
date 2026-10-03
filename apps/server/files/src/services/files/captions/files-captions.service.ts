@@ -4,6 +4,7 @@ import { promisify } from 'node:util';
 import { ConfigService } from '@files/config/config.service';
 import { ffmpegEscapeString } from '@files/helpers/utils/string/string.util';
 import { FilesService } from '@files/services/files/files.service';
+import { FileRuntimeSettingsService } from '@files/services/runtime-settings/file-runtime-settings.service';
 import { SlideText, Word } from '@files/shared/interfaces/caption.interface';
 import { FFprobeData } from '@files/shared/interfaces/ffmpeg.interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -14,11 +15,12 @@ import ffmpegPath from 'ffmpeg-static';
 @Injectable()
 export class FilesCaptionsService extends FilesService {
   constructor(
+    runtimeSettings: FileRuntimeSettingsService,
     public readonly configService: ConfigService,
     public readonly loggerService: LoggerService,
     public readonly httpService: HttpService,
   ) {
-    super(configService, loggerService, httpService);
+    super(runtimeSettings, configService, loggerService, httpService);
   }
 
   private readonly execFileAsync = promisify(execFile);

@@ -59,6 +59,7 @@ export type {
   PinnedSkillExecution,
   SkillLibraryActor,
 } from '@api/collections/skills/services/skill-library.types';
+
 export type {
   RecordedSkillExclusion,
   RecordedSkillVersion,
@@ -92,6 +93,18 @@ export class SkillLibraryService {
     versionId: string,
   ): Promise<SkillVersionReadV1> {
     return this.versionReader.getVersion(actor, skillId, versionId);
+  }
+
+  async importValidatedPackage(
+    actor: SkillLibraryActor,
+    input: unknown,
+  ): Promise<SkillDocument> {
+    const created = await importValidatedSkillPackage(
+      this.prisma,
+      actor,
+      input,
+    );
+    return this.toDocument(created as unknown as SkillRow);
   }
 
   async importValidatedPackage(

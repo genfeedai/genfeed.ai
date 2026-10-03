@@ -8,7 +8,6 @@ export interface IEnvConfig {
   VISUAL_CODE_RENDERER_TOKEN?: string;
   VISUAL_CODE_RENDER_CREDITS_PER_SECOND?: number;
 
-  SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL?: string;
   // === Base ===
   NODE_ENV: 'development' | 'staging' | 'production' | 'test';
   PORT: number;
@@ -70,7 +69,6 @@ export interface IEnvConfig {
   AWS_SECRET_ACCESS_KEY?: string;
   AWS_REGION?: string;
   AWS_S3_BUCKET?: string;
-  AWS_IMAGE_COMPRESSION?: number;
 
   // === Better Auth ===
   BETTER_AUTH_ENABLED?: 'true' | 'false';
@@ -102,16 +100,10 @@ export interface IEnvConfig {
   STRIPE_API_VERSION?: string;
   STRIPE_PRICE_PAYG?: string;
   STRIPE_PRICE_SKILLS_PRO?: string;
-  STRIPE_PROMOTION_CODE_LAUNCH?: string;
-  STRIPE_PROMOTION_CODE_SKILLS_PRO?: string;
-  STRIPE_PAYG_CREDITS?: number;
 
   // === General AI ===
-  AGENT_CONTEXT_COMPRESSION_MODEL?: string;
-  AGENT_CONTEXT_WINDOW_SIZE?: number;
   AGENT_STREAM_COALESCE_MAX_BYTES?: number;
   AGENT_STREAM_COALESCE_WINDOW_MS?: number;
-  MAX_TOKENS?: number;
 
   // === fal.ai ===
   FAL_API_KEY?: string;
@@ -119,27 +111,19 @@ export interface IEnvConfig {
   // === Mureka (direct integration, not fal/Replicate) ===
   MUREKA_API_KEY?: string;
   MUREKA_API_BASE_URL?: string;
-  MUREKA_MODEL?: string;
 
   // === Replicate ===
   REPLICATE_KEY?: string;
   REPLICATE_WEBHOOK_SIGNING_SECRET?: string;
-  REPLICATE_TARGET_FPS?: number;
-  REPLICATE_TARGET_RESOLUTION?: string;
-  REPLICATE_MODELS_TRAINER?: string;
   REPLICATE_OWNER?: string;
-  REPLICATE_MODEL_VISIBILITY?: 'public' | 'private';
-  REPLICATE_MODEL_HARDWARE?: string;
 
   // === KlingAI ===
   KLINGAI_KEY?: string;
   KLINGAI_SECRET?: string;
-  KLINGAI_MODEL?: string;
   KLINGAI_WEBHOOK_SECRET?: string;
 
   // === ElevenLabs ===
   ELEVENLABS_API_KEY?: string;
-  ELEVENLABS_MODEL?: string;
 
   // === Leonardo ===
   LEONARDO_KEY?: string;
@@ -190,7 +174,6 @@ export interface IEnvConfig {
 
   // === Typed decisions (TypeSafe AI / Jev) ===
   // Rollout modes and thresholds are Admin platform settings (#5407).
-  TYPED_DECISION_TIMEOUT_MS?: number;
   TYPESAFE_API_KEY?: string;
   // Eval-organization API key the content-eval media ladder (#4926) uses to
   // generate through the product API. Never a customer key.
@@ -201,8 +184,6 @@ export interface IEnvConfig {
   NEWS_API_URL?: string;
 
   // === Pricing ===
-  TRAINING_TRAINING_CREDITS_COST?: number;
-  TRAINING_CUSTOM_MODEL_CREDITS_COST?: number;
 
   // === Solana ===
   SOLANA_KEY?: string;
@@ -262,7 +243,6 @@ export interface IEnvConfig {
   LINKEDIN_CLIENT_ID?: string;
   LINKEDIN_CLIENT_SECRET?: string;
   LINKEDIN_REDIRECT_URI?: string;
-  LINKEDIN_TREND_SOURCE_URLS?: string;
 
   // === Medium ===
   MEDIUM_CLIENT_ID?: string;
@@ -362,24 +342,12 @@ export interface IEnvConfig {
   DISCORD_CLIENT_ID?: string;
   DISCORD_CLIENT_SECRET?: string;
   DISCORD_REDIRECT_URI?: string;
-  DISCORD_GUILD_ID?: string;
-  DISCORD_CHANNEL_ID_DEPLOYMENTS?: string;
-  DISCORD_CHANNEL_ID_POSTS?: string;
-  DISCORD_CHANNEL_ID_STUDIO?: string;
-  DISCORD_CHANNEL_ID_USERS?: string;
-  DISCORD_CHANNEL_ID_MODELS?: string;
-  DISCORD_BOT_AVATAR_URL?: string;
-  DISCORD_WEBHOOK_NAME_PREFIX?: string;
-  DISCORD_WEBHOOK_REASON?: string;
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_BOT_USERNAME?: string;
-  TELEGRAM_ADMIN_IDS?: string;
   TELEGRAM_BOT_MODE?: string;
   TELEGRAM_ALLOWED_USER_IDS?: string;
   RESEND_API_KEY?: string;
   RESEND_WEBHOOK_SECRET?: string;
-  RESEND_FROM_EMAIL?: string;
-  RESEND_REPLY_TO_EMAIL?: string;
   TWITCH_CLIENT_ID?: string;
   API_BASE_URL?: string;
   API_SECRET_KEY?: string;

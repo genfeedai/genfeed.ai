@@ -97,4 +97,41 @@ describe('AnalyticsPostsList', () => {
       'post-3',
     );
   });
+  it('annotates views, interactions and percent engagement without opening content or changing filters', () => {
+    useTopPostsMock.mockReturnValue({
+      isLoading: false,
+      topPosts: [
+        {
+          brandName: 'Acme',
+          engagementRate: 0,
+          platform: 'twitter',
+          postId: 'post-3',
+          totalEngagement: 0,
+          totalViews: 0,
+        },
+      ],
+    });
+    renderPostsList();
+    for (const name of [
+      'About Views',
+      'About Engagement',
+      'About Engagement rate',
+    ]) {
+      fireEvent.click(screen.getByRole('button', { name }));
+    }
+    expect(screen.getByTestId('post-detail-overlay')).toHaveTextContent(
+      'closed',
+    );
+    expect(pushMock).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('columnheader', { name: /Eng. Rate/ }),
+    ).toContainElement(
+      screen.getByRole('button', { name: 'About Engagement rate' }),
+    );
+  });
+});
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
 });

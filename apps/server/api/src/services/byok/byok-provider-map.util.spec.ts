@@ -6,6 +6,49 @@ import {
 import { ByokProvider, ModelProvider } from '@genfeedai/contracts';
 
 describe('byok-provider-map.util', () => {
+  it.each([
+    [ModelProvider.GOOGLE, ByokProvider.GOOGLE],
+    [ModelProvider.XAI, ByokProvider.XAI],
+    [ModelProvider.BFL, ByokProvider.BFL],
+    [ModelProvider.RUNWAY, ByokProvider.RUNWAY],
+    [ModelProvider.OPENAI, ByokProvider.OPENAI],
+  ])(
+    'maps explicit direct identity %s without a model prefix',
+    (provider, expected) => {
+      expect(modelProviderToByokProvider(provider)).toBe(expected);
+      expect(resolveModelByokProvider('unprefixed-model', provider)).toBe(
+        expected,
+      );
+    },
+  );
+
+  it.each([
+    ['google/nano-banana-pro', ModelProvider.REPLICATE, ByokProvider.REPLICATE],
+    ['openai/gpt-image-2', ModelProvider.REPLICATE, ByokProvider.REPLICATE],
+    [
+      'black-forest-labs/flux-2-pro',
+      ModelProvider.REPLICATE,
+      ByokProvider.REPLICATE,
+    ],
+    ['black-forest-labs/flux-2-pro', ModelProvider.FAL, ByokProvider.FAL],
+    ['runwayml/gen-4.5', ModelProvider.REPLICATE, ByokProvider.REPLICATE],
+    ['x-ai/grok-4', ModelProvider.OPENROUTER, ByokProvider.OPENROUTER],
+  ])(
+    'preserves the aggregator route for %s through %s',
+    (model, provider, expected) => {
+      expect(resolveModelByokProvider(model, provider)).toBe(expected);
+    },
+  );
+
+  it.each([
+    'google/nano-banana-pro',
+    'black-forest-labs/flux-2-pro',
+    'runwayml/gen-4.5',
+    'xai/grok-imagine-image',
+  ])('does not add a direct prefix rule for %s', (model) => {
+    expect(modelKeyToByokProvider(model)).toBeUndefined();
+  });
+
   it('routes both exact Crun launch keys through Crun credentials', () => {
     expect(modelProviderToByokProvider(ModelProvider.CRUN)).toBe(
       ByokProvider.CRUN,

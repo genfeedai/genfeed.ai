@@ -1,10 +1,12 @@
 import { IngredientCategory } from '@genfeedai/contracts';
+import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
 import type { IDiscordEmbed } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@notifications/config/config.service';
 import { DiscordService } from '@notifications/services/discord/discord.service';
 import { DiscordBotService } from '@notifications/services/discord/discord-bot.service';
+import { NotificationRuntimeSettingsService } from '@notifications/services/runtime-settings/notification-runtime-settings.service';
 import type { WebhookMessageCreateOptions } from 'discord.js';
 
 vi.mock('@libs/utils/caller/caller.util', () => ({
@@ -46,6 +48,30 @@ describe('DiscordService', () => {
       providers: [
         DiscordService,
         { provide: ConfigService, useValue: mockConfigService },
+        {
+          provide: NotificationRuntimeSettingsService,
+          useValue: {
+            get: async () => ({
+              ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+              discordChannelIdPosts:
+                mockConfigService.get('DISCORD_CHANNEL_ID_POSTS') || null,
+              discordChannelIdStudio:
+                mockConfigService.get('DISCORD_CHANNEL_ID_STUDIO') || null,
+              discordChannelIdUsers:
+                mockConfigService.get('DISCORD_CHANNEL_ID_USERS') || null,
+              discordChannelIdModels:
+                mockConfigService.get('DISCORD_CHANNEL_ID_MODELS') || null,
+              discordChannelIdDeployments:
+                mockConfigService.get('DISCORD_CHANNEL_ID_DEPLOYMENTS') || null,
+              discordWebhookNamePrefix:
+                mockConfigService.get('DISCORD_WEBHOOK_NAME_PREFIX') || null,
+              discordWebhookReason:
+                mockConfigService.get('DISCORD_WEBHOOK_REASON') || null,
+              discordBotAvatarUrl:
+                mockConfigService.get('DISCORD_BOT_AVATAR_URL') || null,
+            }),
+          },
+        },
         { provide: LoggerService, useValue: mockLoggerService },
         { provide: DiscordBotService, useValue: mockDiscordBotService },
       ],

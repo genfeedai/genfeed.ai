@@ -1,5 +1,6 @@
 import type { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { ReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import { isCloudDeployment } from '@genfeedai/config';
 import { AgentFailureReason } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
@@ -68,6 +69,7 @@ function createHarness(
     configService,
     loggerService,
     service: new ReplicateService(
+      runtimeSettingsMock(configService),
       configService,
       loggerService,
       openRouterService as OpenRouterService | undefined,

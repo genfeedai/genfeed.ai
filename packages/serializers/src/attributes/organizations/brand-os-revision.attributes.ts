@@ -8,6 +8,7 @@ export const brandOsRevisionAttributes = createEntityAttributes([
   'status',
   'content',
   'generationRulesReviewHash',
+  'generationRulesReviewCandidateHash',
   'approvedById',
   'approvedAt',
 ]);

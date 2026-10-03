@@ -40,6 +40,15 @@ const MODEL_PROVIDER_BADGE_CLASSES: Record<ModelProvider, string> = {
     '[background-color:color-mix(in_srgb,#8B5CF6_15%,transparent)] text-[#A78BFA] [border-color:color-mix(in_srgb,#8B5CF6_30%,transparent)]',
   [ModelProvider.REPLICATE]:
     '[background-color:color-mix(in_srgb,#D97706_15%,transparent)] text-[#F59E0B] [border-color:color-mix(in_srgb,#D97706_30%,transparent)]',
+  [ModelProvider.GOOGLE]:
+    '[background-color:color-mix(in_srgb,#4285F4_15%,transparent)] text-[#4285F4] [border-color:color-mix(in_srgb,#4285F4_30%,transparent)]',
+  [ModelProvider.XAI]: 'bg-foreground/10 text-foreground border-foreground/20',
+  [ModelProvider.BFL]:
+    '[background-color:color-mix(in_srgb,#FB923C_15%,transparent)] text-[#FB923C] [border-color:color-mix(in_srgb,#FB923C_30%,transparent)]',
+  [ModelProvider.RUNWAY]:
+    '[background-color:color-mix(in_srgb,#FACC15_15%,transparent)] text-[#FACC15] [border-color:color-mix(in_srgb,#FACC15_30%,transparent)]',
+  [ModelProvider.OPENAI]:
+    '[background-color:color-mix(in_srgb,#10A37F_15%,transparent)] text-[#10A37F] [border-color:color-mix(in_srgb,#10A37F_30%,transparent)]',
 };
 
 const MODEL_PROVIDER_LABELS: Record<ModelProvider, string> = {
@@ -51,6 +60,11 @@ const MODEL_PROVIDER_LABELS: Record<ModelProvider, string> = {
   [ModelProvider.MUREKA]: 'Mureka',
   [ModelProvider.OPENROUTER]: 'OpenRouter',
   [ModelProvider.REPLICATE]: 'Replicate',
+  [ModelProvider.GOOGLE]: 'Google Gemini API',
+  [ModelProvider.XAI]: 'xAI',
+  [ModelProvider.BFL]: 'Black Forest Labs',
+  [ModelProvider.RUNWAY]: 'Runway',
+  [ModelProvider.OPENAI]: 'OpenAI',
 };
 
 export function getModelCategoryBadgeClass(category?: string): string {

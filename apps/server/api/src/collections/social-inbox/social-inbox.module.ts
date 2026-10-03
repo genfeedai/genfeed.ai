@@ -1,3 +1,4 @@
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { SocialInboxController } from '@api/collections/social-inbox/controllers/social-inbox.controller';
 import { SocialReplyCampaignController } from '@api/collections/social-inbox/controllers/social-reply-campaign.controller';
 import { SuggestedReplyCreditsGuard } from '@api/collections/social-inbox/guards/suggested-reply-credits.guard';
@@ -26,6 +27,7 @@ import { Module } from '@nestjs/common';
   controllers: [SocialInboxController, SocialReplyCampaignController],
   exports: [SocialInboxService, SocialReplyCampaignDispatchService],
   imports: [
+    PlatformSettingsModule,
     ReplyBotModule,
     InstagramModule,
     LinkedInModule,

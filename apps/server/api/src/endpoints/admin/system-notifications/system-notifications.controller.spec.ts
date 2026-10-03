@@ -1,5 +1,6 @@
 import { AdminSystemNotificationsController } from '@api/endpoints/admin/system-notifications/system-notifications.controller';
 import { SystemEventsService } from '@api/services/system-events/system-events.service';
+import { SystemNotificationDestinationsService } from '@api/services/system-events/system-notification-destinations.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
@@ -22,6 +23,7 @@ describe('deployment notification administration', () => {
     const module = await Test.createTestingModule({
       controllers: [AdminSystemNotificationsController],
       providers: [
+        { provide: SystemNotificationDestinationsService, useValue: {} },
         { provide: SystemEventsService, useValue: { overview } },
         { provide: LoggerService, useValue: { warn: vi.fn() } },
       ],
@@ -51,6 +53,20 @@ describe('deployment notification administration', () => {
         .expect(403);
       await request(app.getHttpServer())
         .post('/admin/system-notifications/deliveries/evt_1/retry')
+        .expect(403);
+      await request(app.getHttpServer())
+        .post('/admin/system-notifications/destinations')
+        .send({})
+        .expect(403);
+      await request(app.getHttpServer())
+        .patch('/admin/system-notifications/destinations/d1')
+        .send({})
+        .expect(403);
+      await request(app.getHttpServer())
+        .delete('/admin/system-notifications/destinations/d1')
+        .expect(403);
+      await request(app.getHttpServer())
+        .post('/admin/system-notifications/destinations/d1/test')
         .expect(403);
       expect(overview).not.toHaveBeenCalled();
       const response = await request(app.getHttpServer())

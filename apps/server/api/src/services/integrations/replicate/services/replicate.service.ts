@@ -1,3 +1,4 @@
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import {
   runStructuredCompletion,
   toStructuredJsonSchema,
@@ -172,6 +173,7 @@ export class ReplicateService {
   };
 
   constructor(
+    private readonly platformSettingsService: PlatformSettingsService,
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     @Optional() private readonly openRouterService?: OpenRouterService,
@@ -280,7 +282,9 @@ export class ReplicateService {
     try {
       // Use provided trainer version or default from config
       const versionString =
-        trainerVersion || this.configService.get('REPLICATE_MODELS_TRAINER');
+        trainerVersion ||
+        (await this.platformSettingsService.getFeatureSettings())
+          .replicateTrainerModel;
 
       // Expect format like: "replicate/fast-flux-trainer:<hash>"
       const [ownerModel, version] = String(versionString).split(':');
@@ -337,9 +341,11 @@ export class ReplicateService {
 
           await client.models.create(destOwner, destModel, {
             hardware:
-              this.configService.get('REPLICATE_MODEL_HARDWARE') || 'gpu-t4',
+              (await this.platformSettingsService.getFeatureSettings())
+                .replicateModelHardware || 'gpu-t4',
             visibility:
-              this.configService.get('REPLICATE_MODEL_VISIBILITY') || 'private',
+              (await this.platformSettingsService.getFeatureSettings())
+                .replicateModelVisibility || 'private',
           });
 
           const training = await attempt();
@@ -428,17 +434,18 @@ export class ReplicateService {
       : this.runModel(version, input, apiKeyOverride);
   }
 
-  public enhanceVideo(
+  public async enhanceVideo(
     videoUrl: string,
     apiKeyOverride?: string,
   ): Promise<string> {
     return this.runModel(
       'topazlabs/video-upscale',
       {
-        target_fps: this.configService.get('REPLICATE_TARGET_FPS'),
-        target_resolution: this.configService.get(
-          'REPLICATE_TARGET_RESOLUTION',
-        ),
+        target_fps: (await this.platformSettingsService.getFeatureSettings())
+          .replicateTargetFps,
+        target_resolution: (
+          await this.platformSettingsService.getFeatureSettings()
+        ).replicateTargetResolution,
         video: videoUrl,
       },
       apiKeyOverride,

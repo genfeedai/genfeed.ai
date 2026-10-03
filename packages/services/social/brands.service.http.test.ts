@@ -72,6 +72,72 @@ describe('BrandsService HTTP methods', () => {
     },
   );
 
+  it('retains the exact saved draft candidate through authenticated list, get and save transport', async () => {
+    const candidate = `sha256:${'b'.repeat(64)}`;
+    const attributes = {
+      brandId,
+      organizationId: 'org',
+      status: 'DRAFT',
+      updatedAt: 'saved-time',
+      generationRulesReviewCandidateHash: candidate,
+      content: { fields: {}, generationRules: { schemaVersion: 1 } },
+    };
+    http.get.mockResolvedValueOnce(
+      axiosResponse(
+        collectionDocument([{ id: 'revision-1', ...attributes }], {
+          type: 'brand-os-revisions',
+        }),
+      ),
+    );
+    const revisions = await service.listBrandOsRevisions(brandId);
+    expect(revisions[0]).toMatchObject({
+      generationRulesReviewCandidateHash: candidate,
+    });
+    http.get.mockResolvedValueOnce(
+      axiosResponse(resourceDocument(attributes, { id: 'revision-1' })),
+    );
+    expect(
+      await service.getBrandOsRevision(brandId, 'revision-1'),
+    ).toMatchObject({ generationRulesReviewCandidateHash: candidate });
+    expect(http.get).toHaveBeenLastCalledWith(
+      `/${brandId}/brand-os/revisions/revision-1`,
+      { signal: undefined },
+    );
+    const content = revisions[0].content;
+    const request = { content, updatedAt: 'saved-time' };
+    http.patch.mockResolvedValueOnce(
+      axiosResponse(resourceDocument(attributes, { id: 'revision-1' })),
+    );
+    expect(
+      await service.updateBrandOsRevision(brandId, 'revision-1', request),
+    ).toMatchObject({ generationRulesReviewCandidateHash: candidate });
+    expect(http.patch).toHaveBeenCalledExactlyOnceWith(
+      `/${brandId}/brand-os/revisions/revision-1`,
+      request,
+    );
+    http.post.mockResolvedValueOnce(
+      axiosResponse(
+        resourceDocument(
+          {
+            status: 'APPROVED',
+            generationRulesReviewHash: candidate,
+          },
+          { id: 'revision-1' },
+        ),
+      ),
+    );
+    await service.approveBrandOsRevision(
+      brandId,
+      'revision-1',
+      'saved-time',
+      candidate,
+    );
+    expect(http.post).toHaveBeenCalledWith(
+      `/${brandId}/brand-os/revisions/revision-1/approve`,
+      { updatedAt: 'saved-time', reviewedGenerationRulesHash: candidate },
+    );
+  });
+
   it('keeps a missing optional review digest absent in the client revision', async () => {
     http.post.mockResolvedValue(
       axiosResponse(resourceDocument({ status: 'APPROVED' }, { id: 'legacy' })),
@@ -82,6 +148,7 @@ describe('BrandsService HTTP methods', () => {
       'saved-time',
     );
     expect(result).not.toHaveProperty('generationRulesReviewHash');
+    expect(result).not.toHaveProperty('generationRulesReviewCandidateHash');
   });
 
   it('starts a scan with the exact request and AbortSignal', async () => {

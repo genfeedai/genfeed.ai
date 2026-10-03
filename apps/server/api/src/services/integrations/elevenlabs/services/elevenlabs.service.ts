@@ -1,9 +1,9 @@
 import fs from 'node:fs';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import { ApiKeyCategory, FileInputType } from '@genfeedai/contracts';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -41,7 +41,7 @@ export class ElevenLabsService {
   private client: ElevenLabsClient | null = null;
 
   constructor(
-    private readonly configService: ConfigService,
+    private readonly platformSettingsService: PlatformSettingsService,
     private readonly loggerService: LoggerService,
     private readonly apiKeyHelperService: ApiKeyHelperService,
     private readonly filesClientService: FilesClientService,
@@ -84,8 +84,11 @@ export class ElevenLabsService {
     }
   }
 
-  public getSpeechModelId(): string {
-    return String(this.configService.get('ELEVENLABS_MODEL') ?? '');
+  public async getSpeechModelId(): Promise<string> {
+    return String(
+      (await this.platformSettingsService.getFeatureSettings())
+        .elevenlabsModel ?? '',
+    );
   }
 
   public async textToSpeech(
@@ -98,7 +101,10 @@ export class ElevenLabsService {
   ): Promise<ElevenLabsAudioWithTimestampsResponse> {
     const client = this.getClient(apiKeyOverride);
     return (await client.textToSpeech.convertWithTimestamps(voiceId, {
-      modelId: this.configService.get('ELEVENLABS_MODEL'),
+      modelId:
+        (
+          await this.platformSettingsService.getFeatureSettings()
+        ).elevenlabsModel ?? undefined,
       outputFormat: 'mp3_44100_128',
       text,
       ...this.speechOptions(options),
@@ -135,7 +141,10 @@ export class ElevenLabsService {
       const audioResponse = (await client.textToSpeech.convertWithTimestamps(
         voiceId,
         {
-          modelId: this.configService.get('ELEVENLABS_MODEL'),
+          modelId:
+            (
+              await this.platformSettingsService.getFeatureSettings()
+            ).elevenlabsModel ?? undefined,
           outputFormat: 'mp3_44100_128',
           text,
           ...this.speechOptions(options),

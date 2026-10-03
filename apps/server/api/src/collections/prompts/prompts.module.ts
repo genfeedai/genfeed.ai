@@ -8,6 +8,7 @@ import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { ModelsModule } from '@api/collections/models/models.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { PromptsController } from '@api/collections/prompts/controllers/prompts.controller';
 import { PromptsOperationsController } from '@api/collections/prompts/controllers/prompts-operations.controller';
 import { PromptsTransformationsController } from '@api/collections/prompts/controllers/prompts-transformations.controller';
@@ -33,6 +34,7 @@ import { Module } from '@nestjs/common';
   ],
   exports: [PromptsCoreModule],
   imports: [
+    PlatformSettingsModule,
     PromptEnhancementModule,
     PromptsCoreModule,
     ActivitiesModule,

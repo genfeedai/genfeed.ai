@@ -42,6 +42,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ImagesModule } from '@api/collections/images/images.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
@@ -79,6 +80,7 @@ import { Module } from '@nestjs/common';
     ContentRunRecommendationsService,
   ],
   imports: [
+    PlatformSettingsModule,
     FileQueueModule,
     MediaUrlsModule,
     RouterModule,

@@ -16,6 +16,7 @@ import type {
 import type { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import type { TemplatesService } from '@api/collections/templates/services/templates.service';
 import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import {
   ArticleCategory,
   ArticleStatus,
@@ -136,6 +137,7 @@ describe('ArticlesContentService generation orchestration', () => {
     const replicateService = {} as unknown as ReplicateService;
 
     const service = new ArticlesContentService(
+      runtimeSettingsMock(configService),
       logger,
       configService,
       articleTextGenerationService,

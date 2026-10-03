@@ -35,6 +35,25 @@ describe('model-badge.helper', () => {
     );
   });
 
+  it.each([
+    [ModelProvider.GOOGLE, 'Google Gemini API'],
+    [ModelProvider.XAI, 'xAI'],
+    [ModelProvider.BFL, 'Black Forest Labs'],
+    [ModelProvider.RUNWAY, 'Runway'],
+    [ModelProvider.OPENAI, 'OpenAI'],
+  ])('labels the explicit direct provider %s', (provider, label) => {
+    expect(getModelProviderLabel(provider)).toBe(label);
+    expect(getModelProviderBadgeClass(provider)).not.toBe(
+      getModelProviderBadgeClass(),
+    );
+  });
+
+  it('keeps the xAI text theme-aware', () => {
+    expect(getModelProviderBadgeClass(ModelProvider.XAI)).toContain(
+      'text-foreground',
+    );
+  });
+
   it('labels providers with their product names', () => {
     expect(getModelProviderLabel(ModelProvider.FAL)).toBe('fal.ai');
     expect(getModelProviderLabel(ModelProvider.REPLICATE)).toBe('Replicate');

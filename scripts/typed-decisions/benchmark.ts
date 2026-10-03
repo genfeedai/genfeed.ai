@@ -1,3 +1,4 @@
+import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '../../packages/contracts/src/constants/platform-feature-settings.constant';
 /**
  * Offline typed-decision benchmark (#4864).
  *
@@ -34,7 +35,7 @@
  *   --question=<text>       default question for rows that omit one
  *   --options=a,b,c         default choice options
  *   --score-tolerance=<n>   |answer - expected| that still counts (default 0.1)
- *   --timeout-ms=<n>        per-call budget (default TYPED_DECISION_TIMEOUT_MS)
+ *   --timeout-ms=<n>        per-call budget (default platform typed decision timeout)
  *
  * `--mode=media` runs the media-gate benchmark instead (#4883): readiness
  * against the seeded spec table, moderation against the labelled set, and
@@ -265,13 +266,13 @@ function resolveProviderName(): TypedDecisionProviderName {
   return parsed;
 }
 
-function resolveTimeoutMs(configService: ConfigService): number {
+function resolveTimeoutMs(_configService: ConfigService): number {
   const flag = readNumberFlag('timeout-ms');
   if (flag !== undefined && flag > 0) {
     return flag;
   }
 
-  const configured = Number(configService.get('TYPED_DECISION_TIMEOUT_MS'));
+  const configured = DEFAULT_PLATFORM_FEATURE_SETTINGS.typedDecisionTimeoutMs;
 
   return Number.isFinite(configured) && configured > 0
     ? configured

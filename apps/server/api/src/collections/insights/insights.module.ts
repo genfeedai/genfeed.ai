@@ -1,3 +1,4 @@
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 /**
  * Insights Module
  * Predictive analytics: trend forecasting, viral potential prediction, content gap analysis,
@@ -21,6 +22,7 @@ import { Module } from '@nestjs/common';
   controllers: [InsightsController],
   exports: [InsightsService],
   imports: [
+    PlatformSettingsModule,
     ByokModule,
     ConfigModule,
     ContentPerformanceModule,

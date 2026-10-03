@@ -6,6 +6,7 @@ import { pipeline } from 'node:stream/promises';
 import { ConfigService } from '@files/config/config.service';
 import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
+import { FileRuntimeSettingsService } from '@files/services/runtime-settings/file-runtime-settings.service';
 import type { StorageProvider } from '@genfeedai/storage';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -58,7 +59,8 @@ export class UploadService {
   private readonly constructorName = String(this.constructor.name);
 
   constructor(
-    private readonly configService: ConfigService,
+    private readonly runtimeSettings: FileRuntimeSettingsService,
+    readonly _configService: ConfigService,
     @Inject(FFmpegService) private readonly ffmpegService: FFmpegService,
     @Inject(HttpService) private readonly httpService: HttpService,
     private readonly loggerService: LoggerService,
@@ -358,9 +360,7 @@ export class UploadService {
 
     const imageProcessingStart = Date.now();
     const originalSizeBytes = prepared.body?.length ?? prepared.size ?? 0;
-    const quality = Number(
-      this.configService.get('AWS_IMAGE_COMPRESSION') || '90',
-    );
+    const quality = (await this.runtimeSettings.get()).imageCompressionQuality;
     const processor = sharp(imageInput).rotate();
     let body: Buffer;
     let contentType: string;

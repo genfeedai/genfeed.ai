@@ -1,3 +1,6 @@
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
+
 vi.mock('@api/helpers/utils/jwt/jwt.util', () => ({
   encodeJwtToken: vi.fn(() => 'jwt-token'),
 }));
@@ -63,6 +66,10 @@ describe('KlingAIService (contract)', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         KlingAIService,
+        {
+          provide: PlatformSettingsService,
+          useValue: runtimeSettingsMock(configMock),
+        },
         { provide: ConfigService, useValue: configMock },
         { provide: LoggerService, useValue: logger },
         { provide: HttpService, useValue: httpService },
