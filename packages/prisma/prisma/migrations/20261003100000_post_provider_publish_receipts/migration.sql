@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS "post_provider_publish_receipts" (
   "workflowExecutionId" TEXT NOT NULL,
   "attemptToken" TEXT NOT NULL,
   "attemptStartedAt" TIMESTAMP(3) NOT NULL,
+  "leaseRenewedAt" TIMESTAMP(3) NOT NULL,
   "externalId" TEXT,
   "result" JSONB,
   "persistedAt" TIMESTAMP(3),

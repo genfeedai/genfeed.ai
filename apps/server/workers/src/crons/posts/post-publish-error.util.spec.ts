@@ -43,6 +43,16 @@ describe('post publish error policy', () => {
     [{ code: 'ECONNRESET' }, true],
     [new Error('socket hang up'), true],
     [{ code: 'EPIPE' }, true],
+    [
+      {
+        code: 'transient_failure',
+        message: 'Beehiiv is temporarily unavailable.',
+      },
+      true,
+    ],
+    [{ message: 'Provider unavailable', statusCode: 502 }, true],
+    [{ message: 'Gateway', response: { status: 504 } }, true],
+    [{ code: 'validation_failed', statusCode: 400 }, false],
     ['429 rate limit', false],
     [{ code: 'ECONNREFUSED' }, false],
     [{ code: 'ENOTFOUND' }, false],

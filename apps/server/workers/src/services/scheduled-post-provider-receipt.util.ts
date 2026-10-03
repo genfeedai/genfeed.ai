@@ -15,8 +15,10 @@ export type ProviderPublishAttemptRef = {
   attemptToken: string;
 };
 
-/** An attempt younger than this is presumed in flight on another worker. */
+/** An attempt whose lease was renewed this recently is in flight. */
 export const PROVIDER_PUBLISH_ATTEMPT_LEASE_MS = 30 * 60_000;
+/** How often a delivery renews its lease while the provider call runs. */
+export const PROVIDER_PUBLISH_LEASE_RENEWAL_MS = 5 * 60_000;
 const MAX_RESERVATION_ROUNDS = 3;
 
 /**
@@ -177,6 +179,7 @@ export async function inspectProviderPublishAttempt(
       attemptStartedAt: true,
       attemptToken: true,
       id: true,
+      leaseRenewedAt: true,
       result: true,
       status: true,
     },
@@ -189,7 +192,7 @@ export async function inspectProviderPublishAttempt(
   if (result) return { kind: 'replay', result, ...ref };
   if (
     status === 'attempting' &&
-    now.getTime() - row.attemptStartedAt.getTime() <
+    now.getTime() - row.leaseRenewedAt.getTime() <
       PROVIDER_PUBLISH_ATTEMPT_LEASE_MS
   )
     return { kind: 'in_flight', ...ref };
@@ -204,7 +207,8 @@ export async function inspectProviderPublishAttempt(
 /**
  * Take over an attempt row observed with `observed.attemptToken`. The token
  * changes on every takeover, so exactly one concurrent delivery wins; losers
- * get null and must not call the provider.
+ * get null and must not call the provider. An `attempting` row is only taken
+ * over once its lease expired, so a holder that renewed it keeps it.
  */
 export async function claimProviderPublishAttempt(
   prisma: ReceiptClient,
@@ -224,11 +228,19 @@ export async function claimProviderPublishAttempt(
       // An attempt accepted meanwhile keeps its token; the status check stops
       // a stale takeover from erasing its result.
       status: observed.status,
+      ...(observed.status === 'attempting'
+        ? {
+            leaseRenewedAt: {
+              lt: new Date(now.getTime() - PROVIDER_PUBLISH_ATTEMPT_LEASE_MS),
+            },
+          }
+        : {}),
       isDeleted: false,
     },
     data: {
       attemptStartedAt: now,
       attemptToken,
+      leaseRenewedAt: now,
       externalId: null,
       persistedAt: null,
       result: Prisma.DbNull,
@@ -262,6 +274,7 @@ export async function reserveProviderPublishAttempt(
             ...occurrenceScope(post),
             attemptStartedAt: now,
             attemptToken,
+            leaseRenewedAt: now,
             status: 'attempting',
             workflowExecutionId,
           },
@@ -307,6 +320,36 @@ async function updateAttempt(
     },
     data,
   });
+}
+
+/**
+ * Renew the lease of the live attempt this delivery holds. False once another
+ * delivery took it over or it was settled: the holder must not call the
+ * provider. `isProviderCallStart` restarts the attempt clock that provider
+ * verification searches from; renewals during the call keep it.
+ */
+export async function renewProviderPublishAttempt(
+  prisma: ReceiptClient,
+  post: PostEntity,
+  attempt: AttemptRef,
+  isProviderCallStart: boolean,
+  now: Date = new Date(),
+): Promise<boolean> {
+  const { organizationId, postId } = occurrenceScope(post);
+  const renewed = await prisma.postProviderPublishReceipt.updateMany({
+    where: {
+      id: attempt.receiptId,
+      organizationId,
+      postId,
+      attemptToken: attempt.attemptToken,
+      status: 'attempting',
+      isDeleted: false,
+    },
+    data: isProviderCallStart
+      ? { attemptStartedAt: now, leaseRenewedAt: now }
+      : { leaseRenewedAt: now },
+  });
+  return renewed.count === 1;
 }
 
 export function acceptProviderPublishAttempt(

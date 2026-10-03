@@ -76,11 +76,13 @@ import {
   inspectProviderPublishAttempt,
   markProviderPublishAttemptUncertain,
   markProviderReceiptPersisted,
+  PROVIDER_PUBLISH_LEASE_RENEWAL_MS,
   type ProviderPublishAttempt,
   type ProviderPublishAttemptRef,
   ProviderPublishInFlightError,
   ProviderPublishPersistenceError,
   releaseProviderPublishAttempt,
+  renewProviderPublishAttempt,
   reserveProviderPublishAttempt,
 } from '@workers/services/scheduled-post-provider-receipt.util';
 import {
@@ -94,6 +96,9 @@ import {
   type DelayedThreadChild,
   planThreadChildDelivery,
 } from '@workers/services/thread-comment-schedule.util';
+
+/** Receipt owner recorded while a terminal failure holds the occurrence. */
+const TERMINAL_VALIDATION_EXECUTION_ID = 'terminal-validation';
 
 type PostDeliveryIds = {
   brandId: string | undefined;
@@ -336,7 +341,19 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       if (!providerAttempt) {
         throw new Error('Provider publish requires a reserved attempt.');
       }
+      // A holder that stalled past its lease may have been taken over by
+      // another delivery: confirm the attempt is still ours right before the
+      // provider call, or never call it.
+      const isOwned = await renewProviderPublishAttempt(
+        this.prisma,
+        post,
+        providerAttempt,
+        true,
+      );
       held = null;
+      if (!isOwned) {
+        throw new ProviderPublishInFlightError(post.id.toString());
+      }
       return await this.callProvider(
         post,
         prepared.value,
@@ -360,7 +377,22 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       messageSource: 'error-instance',
     });
 
-    const attempt = await inspectProviderPublishAttempt(this.prisma, post);
+    // Hold the occurrence while failing it, so no delivery can reserve it and
+    // reach the provider between this check and the FAILED write.
+    let attempt: ProviderPublishAttempt;
+    try {
+      attempt = await reserveProviderPublishAttempt(
+        this.prisma,
+        post,
+        TERMINAL_VALIDATION_EXECUTION_ID,
+      );
+    } catch (reservationError: unknown) {
+      if (!(reservationError instanceof ProviderPublishInFlightError))
+        throw reservationError;
+      attempt = await inspectProviderPublishAttempt(this.prisma, post);
+      if (attempt.kind === 'none' || attempt.kind === 'released')
+        throw reservationError;
+    }
     if (attempt.kind === 'replay' || attempt.kind === 'in_flight') {
       // The provider accepted this occurrence, or another delivery is
       // publishing it: keep the target PUBLISHING for replay, never FAILED.
@@ -382,12 +414,23 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       error: errorMessage,
       postId: post.id,
     });
-    await this.attemptRetry(
-      post,
-      false,
-      errorMessage,
-      'publish_validation_failed',
-    );
+    try {
+      await this.attemptRetry(
+        post,
+        false,
+        errorMessage,
+        'publish_validation_failed',
+      );
+    } finally {
+      if (attempt.kind === 'publish') {
+        await this.settleProviderAttempt(
+          post,
+          attempt,
+          'released',
+          `${this.constructorName} failTerminalValidation`,
+        );
+      }
+    }
     this.emitPublishFailedWebhook(post, errorMessage);
 
     return createFailedPublishResult('', errorMessage);
@@ -801,7 +844,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
   ): Promise<PublishResult> {
     let result: PublishResult;
     try {
-      result = await prepared.publisher.publish(prepared.context);
+      result = await this.publishUnderLease(post, prepared, attempt, url);
     } catch (error: unknown) {
       // A timeout or dropped connection may hide an accepted publish: keep
       // the attempt for verification on retry instead of releasing it.
@@ -814,6 +857,8 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       return await this.handlePublishError(post, error, workflowExecutionId);
     }
     if (!result.success) {
+      // A pre-publish validation code is deterministic; anything else that
+      // looks like a timeout or 5xx may hide an accepted publish.
       const isAmbiguous =
         !result.errorCode && isAmbiguousPublishError(result.error ?? '');
       await this.settleProviderAttempt(
@@ -842,6 +887,42 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       workflowExecutionId,
       url,
     );
+  }
+
+  /**
+   * Call the provider while renewing the attempt's lease, so no other
+   * delivery can take the attempt over while this call may still land.
+   */
+  private async publishUnderLease(
+    post: PostEntity,
+    prepared: PreparedPostDelivery,
+    attempt: ProviderPublishAttemptRef,
+    url: string,
+  ): Promise<PublishResult> {
+    const renewal = setInterval(() => {
+      renewProviderPublishAttempt(this.prisma, post, attempt, false)
+        .then((isOwned) => {
+          if (!isOwned) {
+            this.logger.error(`${url} provider publish lease lost`, {
+              postId: post.id.toString(),
+              receiptId: attempt.receiptId,
+            });
+          }
+        })
+        .catch((error: unknown) =>
+          this.logger.warn(`${url} provider publish lease not renewed`, {
+            error: getErrorMessage(error),
+            postId: post.id.toString(),
+            receiptId: attempt.receiptId,
+          }),
+        );
+    }, PROVIDER_PUBLISH_LEASE_RENEWAL_MS);
+    renewal.unref?.();
+    try {
+      return await prepared.publisher.publish(prepared.context);
+    } finally {
+      clearInterval(renewal);
+    }
   }
 
   /**

@@ -20,6 +20,7 @@ import {
 import type { IPublishingProviderReadiness } from '@genfeedai/contracts/interfaces';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
+import { PROVIDER_PUBLISH_LEASE_RENEWAL_MS } from '@workers/services/scheduled-post-provider-receipt.util';
 
 const PUBLISH_CAPABLE_READINESS: IPublishingProviderReadiness & {
   credentialId: string;
@@ -454,6 +455,7 @@ describe('ScheduledPostDeliveryService', () => {
     attemptStartedAt: new Date(Date.now() - 60 * 60_000),
     attemptToken: 'token-0',
     id: 'receipt-1',
+    leaseRenewedAt: new Date(Date.now() - 60 * 60_000),
     result: null,
     status: 'attempting',
     workflowExecutionId: 'execution-0',
@@ -477,6 +479,7 @@ describe('ScheduledPostDeliveryService', () => {
       data: {
         attemptStartedAt: expect.any(Date),
         attemptToken: expect.any(String),
+        leaseRenewedAt: expect.any(Date),
         occurrenceKey: expect.stringMatching(/^[0-9a-f]{64}$/),
         organizationId: 'org-1',
         postId: 'post-1',
@@ -489,16 +492,74 @@ describe('ScheduledPostDeliveryService', () => {
       publish.mock.invocationCallOrder[0],
     );
     expect(receipts.updateMany).toHaveBeenNthCalledWith(1, {
+      data: {
+        attemptStartedAt: expect.any(Date),
+        leaseRenewedAt: expect.any(Date),
+      },
+      where: { ...receiptWhere, status: 'attempting' },
+    });
+    expect(receipts.updateMany.mock.invocationCallOrder[0]).toBeLessThan(
+      publish.mock.invocationCallOrder[0],
+    );
+    expect(receipts.updateMany).toHaveBeenNthCalledWith(2, {
       data: expect.objectContaining({
         externalId: 'tweet-1',
         status: 'accepted',
       }),
       where: receiptWhere,
     });
-    expect(receipts.updateMany).toHaveBeenNthCalledWith(2, {
+    expect(receipts.updateMany).toHaveBeenNthCalledWith(3, {
       data: { persistedAt: expect.any(Date) },
       where: receiptWhere,
     });
+  });
+
+  it('never calls the provider once a stalled reservation was taken over', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+    mocks.prisma.postProviderPublishReceipt.updateMany.mockResolvedValueOnce({
+      count: 0,
+    });
+
+    await expect(
+      executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep'),
+    ).rejects.toThrow('Another delivery is publishing this post occurrence.');
+    expect(publish).not.toHaveBeenCalled();
+    expect(
+      mocks.prisma.postProviderPublishReceipt.updateMany,
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  it('renews the lease while the provider call is running', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    let finishPublish: (result: PublishResult) => void = () => undefined;
+    const publish = vi.fn(
+      () =>
+        new Promise<PublishResult>((done) => {
+          finishPublish = done;
+        }),
+    );
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish,
+      supportsThreads: false,
+    });
+
+    const delivery = executeDelivery(
+      mocks,
+      createScheduledPost(),
+      'scheduled_sweep',
+    );
+    await vi.waitFor(() => expect(publish).toHaveBeenCalled());
+    await vi.advanceTimersByTimeAsync(PROVIDER_PUBLISH_LEASE_RENEWAL_MS);
+
+    expect(
+      mocks.prisma.postProviderPublishReceipt.updateMany,
+    ).toHaveBeenCalledWith({
+      data: { leaseRenewedAt: expect.any(Date) },
+      where: { ...receiptWhere, status: 'attempting' },
+    });
+    finishPublish(acceptedTweet);
+    await delivery;
+    vi.useRealTimers();
   });
 
   it('never calls the provider when the occurrence cannot be reserved', async () => {
@@ -537,10 +598,10 @@ describe('ScheduledPostDeliveryService', () => {
     expect(states).not.toContain(TargetExecutionState.FAILED);
     expect(
       mocks.prisma.postProviderPublishReceipt.updateMany,
-    ).toHaveBeenCalledTimes(1);
+    ).toHaveBeenCalledTimes(2);
     expect(
       mocks.prisma.postProviderPublishReceipt.updateMany,
-    ).toHaveBeenCalledWith(
+    ).toHaveBeenLastCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ status: 'accepted' }),
       }),
@@ -619,7 +680,7 @@ describe('ScheduledPostDeliveryService', () => {
     const publish = mockSuccessfulPublisher(mocks);
     mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
       receiptRow({
-        attemptStartedAt: new Date(),
+        leaseRenewedAt: new Date(),
         workflowExecutionId: 'other',
       }),
     );
@@ -852,7 +913,7 @@ describe('ScheduledPostDeliveryService', () => {
     });
     mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
       receiptRow({
-        attemptStartedAt: new Date(),
+        leaseRenewedAt: new Date(),
         workflowExecutionId: 'other',
       }),
     );
@@ -938,7 +999,7 @@ describe('ScheduledPostDeliveryService', () => {
     const publish = mockSuccessfulPublisher(mocks);
     mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
       receiptRow({
-        attemptStartedAt: new Date(),
+        leaseRenewedAt: new Date(),
         workflowExecutionId: 'execution-1',
       }),
     );
@@ -965,6 +1026,44 @@ describe('ScheduledPostDeliveryService', () => {
       );
     expect(states).toContain(TargetExecutionState.PUBLISHED);
     expect(states).not.toContain(TargetExecutionState.FAILED);
+  });
+
+  it('keeps an in-flight occurrence publishing when the workflow fails', async () => {
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({ leaseRenewedAt: new Date(), workflowExecutionId: 'other' }),
+    );
+
+    const result = await service.failTerminalValidation(
+      createScheduledPost() as never,
+      new Error('Scheduled publish workflow failed before finalization.'),
+    );
+
+    expect(result.executionState).toBe(TargetExecutionState.PUBLISHING);
+    expect(
+      mocks.schedulerPublishStateService.transitionPost,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('holds the occurrence while it fails the target, then releases it', async () => {
+    await service.failTerminalValidation(
+      createScheduledPost() as never,
+      new Error('Canonical Post digest no longer matches pin.'),
+    );
+
+    const receipts = mocks.prisma.postProviderPublishReceipt;
+    const failedWrite =
+      mocks.schedulerPublishStateService.transitionPost.mock
+        .invocationCallOrder[0];
+    expect(receipts.create.mock.invocationCallOrder[0]).toBeLessThan(
+      failedWrite,
+    );
+    expect(receipts.updateMany).toHaveBeenCalledWith({
+      data: { status: 'released' },
+      where: receiptWhere,
+    });
+    expect(receipts.updateMany.mock.invocationCallOrder[0]).toBeGreaterThan(
+      failedWrite,
+    );
   });
 
   it('keeps a provider-accepted occurrence publishing when the workflow fails', async () => {

@@ -5910,6 +5910,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'externalId',
       'id',
       'isDeleted',
+      'leaseRenewedAt',
       'occurrenceKey',
       'organization',
       'organizationId',

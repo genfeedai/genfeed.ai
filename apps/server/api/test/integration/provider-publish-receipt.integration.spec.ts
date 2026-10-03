@@ -16,6 +16,8 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import {
   claimProviderPublishAttempt,
   markProviderPublishAttemptUncertain,
+  PROVIDER_PUBLISH_ATTEMPT_LEASE_MS,
+  renewProviderPublishAttempt,
   reserveProviderPublishAttempt,
 } from '@workers/services/scheduled-post-provider-receipt.util';
 import { Client } from 'pg';
@@ -168,6 +170,51 @@ describe('Provider publish receipts (real Postgres)', () => {
       ),
     );
     expect(claims.filter((claim) => claim !== null)).toHaveLength(1);
+  });
+
+  it('takes over a live attempt only after its holder stopped renewing the lease', async () => {
+    const post = await seedPost();
+    const holder = await reserveProviderPublishAttempt(
+      receipts,
+      post,
+      'execution-holder',
+    );
+    if (holder.kind !== 'publish') throw new Error('expected a reservation');
+    const expired = new Date(
+      Date.now() - PROVIDER_PUBLISH_ATTEMPT_LEASE_MS - 60_000,
+    );
+    await prisma.postProviderPublishReceipt.update({
+      where: { id: holder.receiptId },
+      data: { attemptStartedAt: expired, leaseRenewedAt: expired },
+    });
+    // The holder renews after a takeover observed the expired lease.
+    await expect(
+      renewProviderPublishAttempt(receipts, post, holder, false),
+    ).resolves.toBe(true);
+    await expect(
+      claimProviderPublishAttempt(
+        receipts,
+        post,
+        { ...holder, status: 'attempting' },
+        'execution-takeover',
+      ),
+    ).resolves.toBeNull();
+
+    await prisma.postProviderPublishReceipt.update({
+      where: { id: holder.receiptId },
+      data: { leaseRenewedAt: expired },
+    });
+    const takeover = await claimProviderPublishAttempt(
+      receipts,
+      post,
+      { ...holder, status: 'attempting' },
+      'execution-takeover',
+    );
+    expect(takeover).not.toBeNull();
+    // The stalled holder can no longer confirm the attempt before publishing.
+    await expect(
+      renewProviderPublishAttempt(receipts, post, holder, true),
+    ).resolves.toBe(false);
   });
 
   it('never lets a stale takeover erase an accepted receipt', async () => {

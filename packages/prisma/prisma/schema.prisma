@@ -2928,7 +2928,10 @@ model PostProviderPublishReceipt {
   workflowExecutionId String
   /// Fresh per reservation; every takeover and settlement compares it.
   attemptToken        String
+  /// When the current provider call began; provider verification searches from it.
   attemptStartedAt    DateTime
+  /// Renewed while the holder is alive; takeovers wait for it to expire.
+  leaseRenewedAt      DateTime
   externalId          String?
   result              Json?
   persistedAt         DateTime?
