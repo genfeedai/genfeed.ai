@@ -163,6 +163,10 @@ const UI_TEST_MESSAGES = {
       collapse: 'Collapse sidebar',
       expand: 'Expand sidebar',
     },
+    windowChrome: {
+      back: 'Back',
+      forward: 'Forward',
+    },
     contextSidebar: {
       close: 'Close details',
       collapse: 'Collapse details',

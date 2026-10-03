@@ -40,6 +40,8 @@ export default function DesktopRail({
     >
       <div
         className="flex h-[var(--shell-topbar-height)] shrink-0 items-center justify-center"
+        // Empty under the macOS traffic lights; it drags the window there.
+        data-desktop-drag="true"
         data-testid="app-rail-mark"
       >
         {sidebarToggle ? (

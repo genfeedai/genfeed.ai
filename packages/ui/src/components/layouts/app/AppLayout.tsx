@@ -11,6 +11,7 @@ import { cloneElement, type ReactElement, type ReactNode } from 'react';
 import CollapsedSidebarToggle from './CollapsedSidebarToggle';
 import DesktopRail from './DesktopRail';
 import DesktopSidebar from './DesktopSidebar';
+import DesktopTitlebarControls from './DesktopTitlebarControls';
 import { useAppLayout } from './useAppLayout';
 
 const EMPTY_ARRAY: never[] = [];
@@ -39,10 +40,13 @@ export default function AppLayout({
     handleSidebarResizeKeyDown,
     handleSidebarResizeStart,
     handleToggleDesktopSidebar,
+    hasInlineTrafficLights,
     hasMobileNavigation,
+    isDesktop,
     isDesktopCollapsed,
     isSidebarOpen,
     isSidebarResizing,
+    isTopbarTitlebar,
     layoutRootRef,
     layoutStyle,
     mainScrollRef,
@@ -70,6 +74,13 @@ export default function AppLayout({
     TopbarComponent && topbarProps ? (
       <TopbarComponent {...topbarProps} />
     ) : null;
+  const desktopSidebarToggle = menuComponent
+    ? { isCollapsed: isDesktopCollapsed, onToggle: handleToggleDesktopSidebar }
+    : null;
+  // The traffic lights cover the rail's mark band, so its toggle moves into
+  // the topbar after them (Codex layout). Fullscreen hides the lights and
+  // gives the band back.
+  const isSidebarToggleInTitlebar = isTopbarTitlebar && hasInlineTrafficLights;
   const desktopSidebar = menuComponent ? (
     <DesktopSidebar
       ariaLabel="Navigation"
@@ -106,6 +117,7 @@ export default function AppLayout({
               : 'bg-background',
             lockViewportHeight ? 'h-dvh overflow-hidden' : 'min-h-screen',
           )}
+          data-desktop-titlebar={isTopbarTitlebar ? 'topbar' : undefined}
           data-shell-chrome={hasChrome ? 'true' : undefined}
           data-workspace-shell={isWorkspaceShell ? 'true' : undefined}
           style={layoutStyle}
@@ -113,12 +125,7 @@ export default function AppLayout({
           {railComponent ? (
             <DesktopRail
               sidebarToggle={
-                menuComponent
-                  ? {
-                      isCollapsed: isDesktopCollapsed,
-                      onToggle: handleToggleDesktopSidebar,
-                    }
-                  : null
+                isSidebarToggleInTitlebar ? null : desktopSidebarToggle
               }
             >
               {railComponent}
@@ -231,7 +238,18 @@ export default function AppLayout({
                   transition: hasChrome ? undefined : sidebarOffsetTransition,
                 }}
               >
-                {topbarContent}
+                {isDesktop && hasChrome ? (
+                  <div className="flex h-full w-full">
+                    <DesktopTitlebarControls
+                      sidebarToggle={
+                        isSidebarToggleInTitlebar ? desktopSidebarToggle : null
+                      }
+                    />
+                    <div className="h-full min-w-0 flex-1">{topbarContent}</div>
+                  </div>
+                ) : (
+                  topbarContent
+                )}
               </div>
             ) : null}
 

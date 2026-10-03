@@ -2078,5 +2078,9 @@
       "label": "Admin",
       "description": "Platform management."
     }
+  },
+  "windowChrome": {
+    "back": "Back",
+    "forward": "Forward"
   }
 }

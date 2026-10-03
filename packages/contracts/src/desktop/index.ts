@@ -181,6 +181,8 @@ export const DESKTOP_IPC_CHANNELS = {
   terminalResize: 'desktop:terminal:resize',
   terminalWrite: 'desktop:terminal:write',
   toggleSidebar: 'desktop:view:toggleSidebar',
+  windowChromeChanged: 'desktop:window:chromeChanged',
+  windowChromeState: 'desktop:window:chromeState',
   workspaceLinkCloudContext: 'desktop:workspace:linkCloudContext',
   workspaceLinkProject: 'desktop:workspace:linkProject',
   workspaceOpen: 'desktop:workspace:open',
@@ -214,6 +216,11 @@ export interface IDesktopEnvironment {
 export interface IDesktopRuntimeLocalProvider {
   provider: DesktopGenerationProviderKind;
   networkAccess: 'local' | 'remote' | 'unknown';
+}
+
+/** Native window state the renderer needs to lay out its own titlebar. */
+export interface IDesktopWindowChromeState {
+  isFullScreen: boolean;
 }
 
 /** Nonsecret, authoritative selected-account and generation execution context. */
@@ -1170,6 +1177,10 @@ export interface IGenfeedDesktopBridge {
       callback: (bootstrap: IDesktopBootstrap) => void,
     ) => () => void;
     onToggleSidebar: (callback: () => void) => () => void;
+    getWindowChrome: () => Promise<IDesktopWindowChromeState>;
+    onDidChangeWindowChrome: (
+      callback: (state: IDesktopWindowChromeState) => void,
+    ) => () => void;
     openExternalPath: (pathname: string) => Promise<void>;
     revealLogs: () => Promise<void>;
     switchToCloudMode: () => Promise<void>;
