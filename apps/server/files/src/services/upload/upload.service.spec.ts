@@ -4,6 +4,10 @@ import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { FileRuntimeSettingsService } from '@files/services/runtime-settings/file-runtime-settings.service';
 import { UploadService } from '@files/services/upload/upload.service';
+import {
+  UNATTRIBUTED_FORWARDED_HEADER,
+  UNATTRIBUTED_FORWARDED_VALUE,
+} from '@genfeedai/contracts/constants';
 import type { StorageProvider } from '@genfeedai/storage';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -364,7 +368,7 @@ describe('UploadService', () => {
   });
 
   describe('uploadToS3 - URL source', () => {
-    it('should download and upload file from URL', async () => {
+    it('should download and upload file from URL, declaring the client unknown', async () => {
       mockHttpService.get.mockReturnValue(
         of(
           axiosResponse(Buffer.from('downloaded-content'), {
@@ -381,6 +385,9 @@ describe('UploadService', () => {
       expect(mockHttpService.get).toHaveBeenCalledWith(
         'https://example.com/image.jpg',
         expect.objectContaining({
+          headers: {
+            [UNATTRIBUTED_FORWARDED_HEADER]: UNATTRIBUTED_FORWARDED_VALUE,
+          },
           maxBodyLength: 200 * 1024 * 1024,
           maxContentLength: 200 * 1024 * 1024,
           maxRedirects: 0,

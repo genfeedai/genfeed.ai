@@ -7,6 +7,10 @@ import { ConfigService } from '@files/config/config.service';
 import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { FileRuntimeSettingsService } from '@files/services/runtime-settings/file-runtime-settings.service';
+import {
+  UNATTRIBUTED_FORWARDED_HEADER,
+  UNATTRIBUTED_FORWARDED_VALUE,
+} from '@genfeedai/contracts/constants';
 import type { StorageProvider } from '@genfeedai/storage';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -205,6 +209,12 @@ export class UploadService {
       const downloadStartTime = Date.now();
       const response = await firstValueFrom(
         this.httpService.get<Readable>(remoteUrl, {
+          // The URL may point back at the API over loopback. Declare the end
+          // client unknown so the API never grants admin power from this
+          // server's address.
+          headers: {
+            [UNATTRIBUTED_FORWARDED_HEADER]: UNATTRIBUTED_FORWARDED_VALUE,
+          },
           maxBodyLength: 200 * 1024 * 1024,
           maxContentLength: 200 * 1024 * 1024,
           maxRedirects: 0,
