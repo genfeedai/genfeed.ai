@@ -59,6 +59,7 @@ import type {
 import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
 import { assertArticleOwnershipIds } from '@api/collections/articles/utils/article-input-boundary.util';
 import { buildArticlePublishedDispatch } from '@api/collections/articles/utils/article-published-notification.util';
+import { isPublicSlugUniqueViolation } from '@api/collections/articles/utils/article-slug.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -92,6 +93,7 @@ import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  ConflictException,
   forwardRef,
   Inject,
   Injectable,
@@ -341,12 +343,18 @@ export class ArticlesService
       userId,
     });
 
-    const result = await super.create({
-      ...articleData,
-      ...(tags && tags.length > 0
-        ? { tags: { connect: tags.map((id) => ({ id })) } }
-        : {}),
-    } as CreateArticleDto);
+    if (articleData.status === 'PUBLISHED') {
+      await this.assertPublicSlugAvailable(articleData.slug);
+    }
+
+    const result = await this.writeUniquePublicSlug(() =>
+      super.create({
+        ...articleData,
+        ...(tags && tags.length > 0
+          ? { tags: { connect: tags.map((id) => ({ id })) } }
+          : {}),
+      } as CreateArticleDto),
+    );
 
     // Explicitly invalidate cache after create — canonical org/id keys + tags
     await this.invalidateArticleListCaches('create', {
@@ -458,7 +466,18 @@ export class ArticlesService
         });
       }
 
-      const result = await super.patch(id, updateData);
+      const nextStatus = updateData.status ?? accessible.status;
+      const nextSlug = updateData.slug ?? accessible.slug;
+      if (
+        nextStatus === 'PUBLISHED' &&
+        (nextStatus !== accessible.status || nextSlug !== accessible.slug)
+      ) {
+        await this.assertPublicSlugAvailable(nextSlug, id);
+      }
+
+      const result = await this.writeUniquePublicSlug(() =>
+        super.patch(id, updateData),
+      );
 
       // Verify the article belongs to the user/organization (ownership already checked in controller)
       if (
@@ -636,6 +655,51 @@ export class ArticlesService
     }
   }
 
+  /**
+   * Public slugs are one global namespace (`/articles/:slug`). Reject a publish
+   * whose slug another live published article already holds, so a tenant can
+   * never shadow an existing page. The partial unique index
+   * `articles_public_slug_uidx` is the race-proof backstop.
+   */
+  private async assertPublicSlugAvailable(
+    slug: string | null | undefined,
+    excludeId?: string,
+  ): Promise<void> {
+    if (!slug) {
+      return;
+    }
+
+    const holder = await this.delegate.findFirst({
+      select: { id: true },
+      where: {
+        isDeleted: false,
+        slug,
+        status: 'PUBLISHED',
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+    });
+
+    if (holder) {
+      throw new ConflictException(
+        `The slug "${slug}" is already used by a published article`,
+      );
+    }
+  }
+
+  /** Maps a lost race on the public-slug unique index to the same 409. */
+  private async writeUniquePublicSlug<R>(write: () => Promise<R>): Promise<R> {
+    try {
+      return await write();
+    } catch (error: unknown) {
+      if (isPublicSlugUniqueViolation(error)) {
+        throw new ConflictException(
+          'The slug is already used by a published article',
+        );
+      }
+      throw error;
+    }
+  }
+
   // Public methods for website
   async findPublicArticles(query: ArticlesQueryDto) {
     const {
@@ -712,7 +776,13 @@ export class ArticlesService
       );
     }
 
-    const article = await this.delegate.findFirst({ where });
+    // The partial unique index guarantees one published article per slug; the
+    // explicit order keeps the answer deterministic (earliest release first)
+    // even if a legacy duplicate survives.
+    const article = await this.delegate.findFirst({
+      orderBy: [{ publishedAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+      where,
+    });
 
     if (!article) {
       return null;
