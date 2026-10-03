@@ -321,7 +321,7 @@ function AgentChatMessageInner({
                   <span className="inline-block h-4 w-0.5 animate-pulse bg-current align-middle opacity-70" />
                 ) : null}
                 {!isExpanded && shouldTruncateContent && (
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-card to-transparent" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-accent to-transparent" />
                 )}
               </div>
             )}
@@ -474,9 +474,11 @@ function UserPromptCard({
   }
 
   return (
+    // Accent is the nested-fill step above the card plane: on the dark
+    // canvas a bg-card prompt is 1.09:1 and disappears into the page.
     <Card
       bodyClassName="gap-0 px-3 py-2.5 text-md leading-6 text-foreground"
-      className="w-full"
+      className="w-full bg-accent"
       data-testid="agent-user-prompt"
     >
       {children}
