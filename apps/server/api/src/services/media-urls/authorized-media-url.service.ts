@@ -10,6 +10,7 @@ import {
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isCloudDeployment } from '@genfeedai/config';
+import { PostVisibility } from '@genfeedai/contracts';
 import type {
   MediaAssetProjection,
   MediaDeliveryGrant,
@@ -191,7 +192,7 @@ export class AuthorizedMediaUrlService {
         where: {
           organizationId: source.organizationId,
           isDeleted: false,
-          scope: 'PUBLIC',
+          visibility: PostVisibility.PUBLIC,
           ingredients: {
             some: {
               id: source.id,
@@ -218,7 +219,9 @@ export class AuthorizedMediaUrlService {
             { isPublic: true },
             { scope: 'PUBLIC' },
             {
-              postIngredients: { some: { isDeleted: false, scope: 'PUBLIC' } },
+              postIngredients: {
+                some: { isDeleted: false, visibility: PostVisibility.PUBLIC },
+              },
             },
           ],
         },
@@ -249,7 +252,7 @@ export class AuthorizedMediaUrlService {
         where: {
           organizationId,
           isDeleted: false,
-          scope: 'PUBLIC',
+          visibility: PostVisibility.PUBLIC,
           ingredients: {
             some: { id: { in: ids }, organizationId, isDeleted: false },
           },

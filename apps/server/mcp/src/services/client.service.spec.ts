@@ -1,5 +1,9 @@
 import { createHash } from 'node:crypto';
 import { MCP_ACTION_ORIGIN_PROOF_HEADER, Platform } from '@genfeedai/contracts';
+import {
+  UNATTRIBUTED_FORWARDED_HEADER,
+  UNATTRIBUTED_FORWARDED_VALUE,
+} from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { ClientService } from '@mcp/services/client.service';
@@ -72,6 +76,7 @@ describe('ClientService (MCP)', () => {
       headers: {
         Authorization: 'Bearer test-api-key',
         'Content-Type': 'application/json',
+        [UNATTRIBUTED_FORWARDED_HEADER]: UNATTRIBUTED_FORWARDED_VALUE,
         [MCP_ACTION_ORIGIN_PROOF_HEADER]: createHash('sha256')
           .update('test-api-key')
           .digest('base64url'),
