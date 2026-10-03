@@ -1,15 +1,33 @@
 import { describe, expect, it } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { IS_DESKTOP_LOCAL_MODE_ENABLED } from '@genfeedai/contracts/desktop';
 import {
-  activateDesktopLocalMode,
+  activateDesktopLocalMode as activateDesktopLocalModeWithFlag,
+  assertDesktopLocalModeEnabled,
   createLocalRuntimeCleanupBarrier,
   createUnwoundLocalRuntimeState,
+  DESKTOP_LOCAL_MODE_DISABLED_MESSAGE,
   restoreDesktopRuntimeMode,
   selectDesktopDataService,
   switchDesktopToCloud,
   unwindFailedLocalRuntimeAfterClose,
 } from './runtime-mode.util';
+
+// The shipped flag is off; these cases exercise the local runtime itself.
+const activateDesktopLocalMode = (
+  initializeLocalRuntime: () => Promise<void>,
+  persistLocalMode: () => void,
+  timeoutMs?: number,
+  invalidateAttempt?: () => void,
+) =>
+  activateDesktopLocalModeWithFlag(
+    initializeLocalRuntime,
+    persistLocalMode,
+    timeoutMs,
+    invalidateAttempt,
+    true,
+  );
 
 describe('desktop runtime mode transitions', () => {
   it('falls back to cloud when a remembered local runtime cannot start', async () => {
@@ -21,6 +39,7 @@ describe('desktop runtime mode transitions', () => {
       initializeLocalRuntime: async () => {
         throw error;
       },
+      isLocalModeEnabled: true,
       isLocalModeRequested: true,
       onLocalRuntimeError: (runtimeError) => {
         reportedErrors.push(runtimeError);
@@ -246,5 +265,109 @@ describe('desktop local runtime unwind', () => {
     );
     expect(source).toContain('attemptId !== localRuntimeAttemptId');
     expect(source).toContain('invalidateLocalRuntimeAttempt');
+  });
+});
+
+describe('desktop cloud-only local mode flag', () => {
+  it('ships with local mode disabled', () => {
+    expect(IS_DESKTOP_LOCAL_MODE_ENABLED).toBe(false);
+  });
+
+  it('ignores a persisted local mode on startup without touching local data', async () => {
+    let initialized = false;
+    let persistedMode: 'cloud' | null = null;
+    const reportedErrors: unknown[] = [];
+
+    const isOfflineMode = await restoreDesktopRuntimeMode({
+      initializeLocalRuntime: async () => {
+        initialized = true;
+      },
+      isLocalModeEnabled: false,
+      isLocalModeRequested: true,
+      onLocalRuntimeError: (error) => {
+        reportedErrors.push(error);
+      },
+      persistCloudMode: () => {
+        persistedMode = 'cloud';
+      },
+    });
+
+    expect(isOfflineMode).toBe(false);
+    expect(initialized).toBe(false);
+    expect(persistedMode).toBeNull();
+    expect(reportedErrors).toEqual([]);
+  });
+
+  it('ignores a persisted local mode by default while the shipped flag is off', async () => {
+    let initialized = false;
+
+    const isOfflineMode = await restoreDesktopRuntimeMode({
+      initializeLocalRuntime: async () => {
+        initialized = true;
+      },
+      isLocalModeRequested: true,
+      onLocalRuntimeError: () => undefined,
+      persistCloudMode: () => undefined,
+    });
+
+    expect(isOfflineMode).toBe(false);
+    expect(initialized).toBe(false);
+  });
+
+  it('still restores a persisted local mode when the flag is on', async () => {
+    let initialized = false;
+
+    const isOfflineMode = await restoreDesktopRuntimeMode({
+      initializeLocalRuntime: async () => {
+        initialized = true;
+      },
+      isLocalModeEnabled: true,
+      isLocalModeRequested: true,
+      onLocalRuntimeError: () => undefined,
+      persistCloudMode: () => undefined,
+    });
+
+    expect(isOfflineMode).toBe(true);
+    expect(initialized).toBe(true);
+  });
+
+  it('refuses to enter local mode without initializing or persisting anything', async () => {
+    let initialized = false;
+    let persisted = false;
+
+    await expect(
+      activateDesktopLocalModeWithFlag(
+        async () => {
+          initialized = true;
+        },
+        () => {
+          persisted = true;
+        },
+        undefined,
+        undefined,
+        false,
+      ),
+    ).rejects.toThrow(DESKTOP_LOCAL_MODE_DISABLED_MESSAGE);
+
+    expect(initialized).toBe(false);
+    expect(persisted).toBe(false);
+  });
+
+  it('refuses with a clear error by default while the shipped flag is off', () => {
+    expect(() => assertDesktopLocalModeEnabled()).toThrow(
+      'Local mode is not available in this version of Genfeed Desktop.',
+    );
+    expect(() => assertDesktopLocalModeEnabled(true)).not.toThrow();
+  });
+
+  it('guards the enable-offline IPC handler and hides the menu entry in main.ts', () => {
+    const source = readFileSync(join(import.meta.dir, '../main.ts'), 'utf8');
+
+    expect(source).toMatch(
+      /DESKTOP_IPC_CHANNELS\.appEnableOfflineMode,\s*async \(\) => \{\s*assertDesktopLocalModeEnabled\(\);/,
+    );
+    expect(source).toContain(
+      'IS_DESKTOP_LOCAL_MODE_ENABLED ? openLocalWorkspaceFromMenu : null',
+    );
   });
 });

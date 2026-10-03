@@ -764,7 +764,7 @@ describe('membership-scoped saved guide wizard', () => {
     expect(mocks.patchMe).not.toHaveBeenCalled();
     expect(mocks.push).not.toHaveBeenCalled();
   });
-  it('preserves Desktop missing-token local escape without Cloud gate writes', async () => {
+  it('sends a tokenless Desktop skip to sign-in in cloud-only builds without Cloud gate writes', async () => {
     mocks.desktop = true;
     mocks.getToken.mockResolvedValue(null);
     mocks.scope.brands = [];
@@ -773,9 +773,7 @@ describe('membership-scoped saved guide wizard', () => {
       await screen.findByRole('button', { name: 'Skip for now' }),
     );
     await waitFor(() => expect(mocks.push).toHaveBeenCalledTimes(1));
-    expect(mocks.push).toHaveBeenCalledExactlyOnceWith(
-      APP_ROUTES.DESKTOP.LOCAL,
-    );
+    expect(mocks.push).toHaveBeenCalledExactlyOnceWith(APP_ROUTES.LOGIN);
     expect(mocks.patchSettings).not.toHaveBeenCalled();
     expect(mocks.patchMe).not.toHaveBeenCalled();
   });
