@@ -387,6 +387,7 @@ describe('VideosController', () => {
             findOne: vi.fn().mockResolvedValue(mockModelData),
           },
         },
+        { provide: PersonasService, useValue: personasServiceStub() },
         {
           provide: OrganizationSettingsService,
           useValue: {
@@ -1704,7 +1705,6 @@ beforeAll(async () => {
         useValue: { registerGeneratedOutput: vi.fn() },
       },
       { provide: ModelsService, useValue: { findOne: vi.fn() } },
-      { provide: PersonasService, useValue: personasServiceStub() },
       { provide: PersonasService, useValue: personasServiceStub() },
       {
         provide: OrganizationSettingsService,
