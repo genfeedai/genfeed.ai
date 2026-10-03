@@ -41,11 +41,13 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
 
   let app: INestApplication;
   let assertAccessibleSkillSlugs: ReturnType<typeof vi.fn>;
+  let findOne: ReturnType<typeof vi.fn>;
   let generateBrandVoice: ReturnType<typeof vi.fn>;
   let updateAgentConfig: ReturnType<typeof vi.fn>;
 
   beforeAll(async () => {
     assertAccessibleSkillSlugs = vi.fn().mockResolvedValue(undefined);
+    findOne = vi.fn();
     generateBrandVoice = vi.fn();
     updateAgentConfig = vi.fn().mockResolvedValue(mockBrand);
 
@@ -58,7 +60,7 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
       providers: [
         {
           provide: BrandsService,
-          useValue: { generateBrandVoice, updateAgentConfig },
+          useValue: { findOne, generateBrandVoice, updateAgentConfig },
         },
         {
           provide: IngredientsService,
@@ -112,6 +114,8 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
 
   beforeEach(() => {
     assertAccessibleSkillSlugs.mockClear();
+    findOne.mockReset();
+    findOne.mockResolvedValue(mockBrand);
     generateBrandVoice.mockReset();
     updateAgentConfig.mockClear();
     updateAgentConfig.mockResolvedValue(mockBrand);
@@ -373,6 +377,22 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
         }),
         orgId,
       );
+    });
+
+    it('404s a path brand outside the session organization without generating', async () => {
+      findOne.mockResolvedValue(null);
+
+      await request(app.getHttpServer())
+        .post(`/brands/${brandId}/agent-config/generate-voice`)
+        .send({ url: 'https://acme.example' })
+        .expect(404);
+
+      expect(findOne).toHaveBeenCalledWith({
+        id: brandId,
+        isDeleted: false,
+        organizationId: orgId,
+      });
+      expect(generateBrandVoice).not.toHaveBeenCalled();
     });
 
     it('rejects non-string pasted samples', async () => {

@@ -373,7 +373,7 @@ describe('BrandsController', () => {
         controller.patch(mockRequest, mockUser, mockBrand.id, {
           slug: 'taken',
         }),
-      ).rejects.toMatchObject({ status: 403 });
+      ).rejects.toMatchObject({ status: 404 });
 
       expect(brandsService.isSlugAvailable).not.toHaveBeenCalled();
     });
@@ -386,7 +386,7 @@ describe('BrandsController', () => {
       };
       // Membership-scoped lookups miss; the plain lookup finds the brand.
       brandsService.findOne.mockImplementation(async (params) =>
-        'OR' in (params as Record<string, unknown>)
+        'organizationId' in (params as Record<string, unknown>)
           ? null
           : (foreignBrand as never),
       );
@@ -413,7 +413,7 @@ describe('BrandsController', () => {
         userId: 'cmuser0000000000000000009',
       };
       brandsService.findOne.mockImplementation(async (params) =>
-        'OR' in (params as Record<string, unknown>)
+        'organizationId' in (params as Record<string, unknown>)
           ? null
           : (sourceBrand as never),
       );
@@ -741,6 +741,123 @@ describe('BrandsController', () => {
     });
   });
 
+  describe('brand created by the caller in another organization', () => {
+    // The caller created this brand (same `userId`) but in an organization
+    // other than their session org — e.g. one they left, or a demo org.
+    const foreignBrand = {
+      ...mockBrand,
+      organizationId: 'cmorganization000000000000002',
+    };
+
+    /**
+     * Emulates the database `where`: top-level scalars must match, and an `OR`
+     * matches when any clause does. The old `userId`-or-org scope would match
+     * this brand; the session-org scope must not.
+     */
+    function matchesWhere(
+      row: Record<string, unknown>,
+      where: Record<string, unknown>,
+    ): boolean {
+      return Object.entries(where).every(([key, value]) =>
+        key === 'OR'
+          ? (value as Record<string, unknown>[]).some((clause) =>
+              matchesWhere(row, clause),
+            )
+          : row[key] === value,
+      );
+    }
+
+    beforeEach(() => {
+      const lookup = async (where: unknown) =>
+        matchesWhere(foreignBrand, where as Record<string, unknown>)
+          ? (foreignBrand as never)
+          : null;
+      brandsService.findOne.mockImplementation(lookup);
+      brandsService.findOneBySlug.mockImplementation(lookup);
+    });
+
+    it('404s GET /brands/:id', async () => {
+      await expect(
+        controller.findOne(mockRequest, mockUser, foreignBrand.id),
+      ).rejects.toMatchObject({ status: 404 });
+      expect(serializeSingle).not.toHaveBeenCalled();
+    });
+
+    it('404s GET /brands/slug', async () => {
+      await expect(
+        controller.findOneBySlug(mockRequest, mockUser, foreignBrand.slug),
+      ).rejects.toMatchObject({ status: 404 });
+      expect(brandsService.findOneBySlug).toHaveBeenCalledWith({
+        isDeleted: false,
+        organizationId: mockUser.organizationId,
+        slug: foreignBrand.slug,
+      });
+    });
+
+    it('404s a default PATCH and never writes', async () => {
+      await expect(
+        controller.patch(mockRequest, mockUser, foreignBrand.id, {
+          label: 'Hijacked',
+        } as never),
+      ).rejects.toMatchObject({ status: 404 });
+      expect(brandsService.patch).not.toHaveBeenCalled();
+    });
+
+    it('404s DELETE and never removes', async () => {
+      await expect(
+        controller.remove(mockRequest, mockUser, foreignBrand.id),
+      ).rejects.toMatchObject({ status: 404 });
+      expect(brandsService.remove).not.toHaveBeenCalled();
+    });
+
+    it('404s brand-kit crawl, apply and Brand OS claim without calling the service', async () => {
+      await expect(
+        agentConfigController.crawlBrandKitWebsite(
+          mockRequest,
+          mockUser,
+          foreignBrand.id,
+          { url: 'https://acme.com' },
+        ),
+      ).rejects.toMatchObject({ status: 404 });
+      await expect(
+        agentConfigController.applyBrandKitDraft(
+          mockRequest,
+          mockUser,
+          foreignBrand.id,
+          { fields: {} },
+        ),
+      ).rejects.toMatchObject({ status: 404 });
+      await expect(
+        agentConfigController.claimBrandOsPreview(
+          mockRequest,
+          mockUser,
+          foreignBrand.id,
+          { previewToken: 'a'.repeat(43) },
+        ),
+      ).rejects.toMatchObject({ status: 404 });
+
+      expect(brandsService.crawlWebsiteBrandKitDraft).not.toHaveBeenCalled();
+      expect(brandsService.applyBrandKitDraft).not.toHaveBeenCalled();
+      expect(brandsService.claimBrandOsPreview).not.toHaveBeenCalled();
+    });
+
+    it("keeps the creator-only PATCH rule for a teammate's brand in the session org", async () => {
+      // Same org, different creator: the base creator-only PATCH rule stands.
+      const teammateBrand = {
+        ...mockBrand,
+        userId: 'cmuser0000000000000000002',
+      };
+      brandsService.findOne.mockResolvedValue(teammateBrand as never);
+
+      await expect(
+        controller.patch(mockRequest, mockUser, teammateBrand.id, {
+          label: 'Renamed',
+        } as never),
+      ).rejects.toMatchObject({ status: 404 });
+      expect(brandsService.patch).not.toHaveBeenCalled();
+    });
+  });
+
   describe('crawlBrandKitWebsite', () => {
     it('verifies brand access and passes organization context to the service', async () => {
       const brandId = 'cmbrand000000000000000001';
@@ -780,11 +897,9 @@ describe('BrandsController', () => {
       );
 
       expect(brandsService.findOne).toHaveBeenCalledWith({
-        OR: [
-          { userId: 'cmuser0000000000000000001' },
-          { organizationId: 'cmorganization000000000000001' },
-        ],
         id: brandId,
+        isDeleted: false,
+        organizationId: 'cmorganization000000000000001',
       });
       expect(brandsService.crawlWebsiteBrandKitDraft).toHaveBeenCalledWith(
         brandId,
@@ -819,11 +934,9 @@ describe('BrandsController', () => {
             url: 'https://acme.com',
           },
         ),
-      ).rejects.toMatchObject({
-        response: expect.objectContaining({
-          detail: 'Organization context is required',
-        }),
-      });
+      ).rejects.toMatchObject({ status: 404 });
+      // Fail closed: no organization means no brand read at all.
+      expect(brandsService.findOne).not.toHaveBeenCalled();
       expect(brandsService.crawlWebsiteBrandKitDraft).not.toHaveBeenCalled();
     });
   });
@@ -868,11 +981,9 @@ describe('BrandsController', () => {
       );
 
       expect(brandsService.findOne).toHaveBeenCalledWith({
-        OR: [
-          { userId: mockUser.userId },
-          { organizationId: mockUser.organizationId },
-        ],
         id: brandId,
+        isDeleted: false,
+        organizationId: mockUser.organizationId,
       });
       expect(brandsService.claimBrandOsPreview).toHaveBeenCalledWith(
         brandId,
@@ -923,8 +1034,9 @@ describe('BrandsController', () => {
           brandId,
           { previewToken: 'a'.repeat(43) },
         ),
-      ).rejects.toMatchObject({ status: 403 });
+      ).rejects.toMatchObject({ status: 404 });
 
+      expect(brandsService.findOne).not.toHaveBeenCalled();
       expect(brandsService.claimBrandOsPreview).not.toHaveBeenCalled();
     });
   });
@@ -962,11 +1074,9 @@ describe('BrandsController', () => {
       );
 
       expect(brandsService.findOne).toHaveBeenCalledWith({
-        OR: [
-          { userId: mockUser.userId },
-          { organizationId: mockUser.organizationId },
-        ],
         id: brandId,
+        isDeleted: false,
+        organizationId: mockUser.organizationId,
       });
       expect(brandsService.applyBrandKitDraft).toHaveBeenCalledWith(
         brandId,
@@ -1013,11 +1123,9 @@ describe('BrandsController', () => {
             },
           },
         ),
-      ).rejects.toMatchObject({
-        response: expect.objectContaining({
-          detail: 'Organization context is required',
-        }),
-      });
+      ).rejects.toMatchObject({ status: 404 });
+      // Fail closed: no organization means no brand read at all.
+      expect(brandsService.findOne).not.toHaveBeenCalled();
       expect(brandsService.applyBrandKitDraft).not.toHaveBeenCalled();
     });
   });
@@ -1061,11 +1169,9 @@ describe('BrandsController', () => {
       );
 
       expect(brandsService.findOne).toHaveBeenCalledWith({
-        OR: [
-          { userId: mockUser.userId },
-          { organizationId: mockUser.organizationId },
-        ],
         id: brandId,
+        isDeleted: false,
+        organizationId: mockUser.organizationId,
       });
       expect(brandsService.buildManualBrandKitDraft).toHaveBeenCalledWith(
         brandId,
@@ -1100,11 +1206,9 @@ describe('BrandsController', () => {
             description: 'Manual description',
           },
         ),
-      ).rejects.toMatchObject({
-        response: expect.objectContaining({
-          detail: 'Organization context is required',
-        }),
-      });
+      ).rejects.toMatchObject({ status: 404 });
+      // Fail closed: no organization means no brand read at all.
+      expect(brandsService.findOne).not.toHaveBeenCalled();
       expect(brandsService.buildManualBrandKitDraft).not.toHaveBeenCalled();
     });
   });

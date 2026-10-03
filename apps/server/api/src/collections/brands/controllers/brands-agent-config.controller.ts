@@ -264,6 +264,9 @@ export class BrandsAgentConfigController {
     @Param('id') id: string,
     @Body() generateBrandVoiceDto: GenerateBrandVoiceDto,
   ) {
+    // A URL-driven run never loads the path brand, so authorize it up front
+    // rather than charging a generation for a brand outside the session org.
+    await verifyBrandAccess(this.brandsService, id, user);
     const organizationId = this.requireOrganizationId(user);
 
     // The path brand is authoritative: it scopes the own-posts voice corpus

@@ -4,6 +4,7 @@ import { STRATEGY_TEMPLATES } from '@api/collections/brands/constants/strategy-t
 import {
   assertBrandHandleAvailable,
   verifyBrandAccess,
+  verifyBrandSlugAccess,
 } from '@api/collections/brands/controllers/brand-access.helpers';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
@@ -30,6 +31,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { resolveScopeId } from '@api/shared/controllers/base-crud/base-crud-scope.util';
 import { BaseService } from '@api/shared/services/base/base.service';
 import {
   ActivityKey,
@@ -130,6 +132,22 @@ export class BrandsController extends BaseCRUDController<
     );
 
     return Promise.resolve(definedFields as UpdateBrandDto);
+  }
+
+  /**
+   * PATCH/DELETE: the base creator-only `userId` rule, inside the session
+   * organization — a creator cannot modify their brand from another org.
+   */
+  public override canUserModifyEntity(
+    user: User,
+    entity: BrandDocument,
+  ): boolean {
+    const organizationId = resolveScopeId(entity.organizationId);
+    return (
+      Boolean(organizationId) &&
+      organizationId === user.organizationId &&
+      super.canUserModifyEntity(user, entity)
+    );
   }
 
   /**
@@ -382,27 +400,7 @@ export class BrandsController extends BaseCRUDController<
       throw new BadRequestException('slug query param is required');
     }
 
-    const brand = await this.brandsService.findOneBySlug({
-      slug,
-      OR: [
-        { userId: user.userId ?? user.id },
-        { organizationId: user.organizationId },
-      ],
-      isDeleted: false,
-    });
-
-    if (!brand) {
-      if (!getIsSuperAdmin(user)) {
-        throw new HttpException(
-          { detail: 'Access denied to this brand', title: 'Forbidden' },
-          HttpStatus.FORBIDDEN,
-        );
-      }
-      throw new HttpException(
-        { detail: 'Brand not found', title: 'Not Found' },
-        HttpStatus.NOT_FOUND,
-      );
-    }
+    const brand = await verifyBrandSlugAccess(this.brandsService, slug, user);
 
     return serializeSingle(
       request,

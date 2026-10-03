@@ -2,44 +2,53 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { BRAND_HANDLE_TAKEN_MESSAGE } from '@genfeedai/contracts/constants';
-import { ConflictException, HttpException, HttpStatus } from '@nestjs/common';
+import { ConflictException } from '@nestjs/common';
 
-export async function verifyBrandAccess(
+/**
+ * Resolve a brand inside the caller's session organization, or 404.
+ *
+ * Tenancy is the session organization only: creating a brand never grants
+ * access to it from another organization (a former org, a demo org). A miss
+ * is 404 for everyone, matching base-crud.controller.ts, so the response never
+ * confirms that the id exists elsewhere. A session without an organization
+ * fails closed instead of issuing an unscoped read.
+ */
+export function verifyBrandAccess(
   brandsService: Pick<BrandsService, 'findOne'>,
   brandId: string,
   user: User,
 ): Promise<BrandDocument> {
-  const brand = await brandsService.findOne({
-    id: brandId,
-    OR: [
-      { userId: user.userId ?? user.id },
-      { organizationId: user.organizationId },
-    ],
-  });
-
-  if (brand) {
-    return brand;
-  }
-
-  if (!getIsSuperAdmin(user)) {
-    throw new HttpException(
-      {
-        detail: 'Access denied to this brand',
-        title: 'Forbidden',
-      },
-      HttpStatus.FORBIDDEN,
-    );
-  }
-
-  throw new HttpException(
-    {
-      detail: 'Brand not found',
-      title: 'Not Found',
-    },
-    HttpStatus.NOT_FOUND,
+  return findSessionBrand(user, brandId, (organizationId) =>
+    brandsService.findOne(scopedWhere(organizationId, { id: brandId })),
   );
+}
+
+/** {@link verifyBrandAccess} by handle, for `GET /brands/slug`. */
+export function verifyBrandSlugAccess(
+  brandsService: Pick<BrandsService, 'findOneBySlug'>,
+  slug: string,
+  user: User,
+): Promise<BrandDocument> {
+  return findSessionBrand(user, slug, (organizationId) =>
+    brandsService.findOneBySlug(scopedWhere(organizationId, { slug })),
+  );
+}
+
+async function findSessionBrand(
+  user: User,
+  identifier: string,
+  find: (organizationId: string) => Promise<BrandDocument | null>,
+): Promise<BrandDocument> {
+  const organizationId = user.organizationId;
+  const brand = organizationId ? await find(organizationId) : null;
+
+  if (!brand) {
+    throw new NotFoundException('Brand', identifier);
+  }
+
+  return brand;
 }
 
 /**
