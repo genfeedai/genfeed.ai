@@ -32,6 +32,8 @@ export interface DispatchVideoGenerationParams {
   modelInputSchema?: Record<string, unknown>;
   modelProvider?: ModelProvider | string;
   modelSchemaFamily?: string;
+  /** Reference images of characters granted by another organization (#6037). */
+  grantedAvatarOwners?: ReadonlyMap<string, string>;
   organizationId?: string;
   prompt: string;
   promptParams: Record<string, unknown>;

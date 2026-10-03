@@ -61,6 +61,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { OutliersCoreModule } from '@api/collections/outliers/outliers-core.module';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
+import { PersonaGrantReadService } from '@api/collections/personas/services/persona-grant-read.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
@@ -261,6 +262,8 @@ const WORKER_DOMAIN_SERVICES = [
   ArticlesContentService,
   ArticlesService,
   PersonasService,
+  PersonaGrantReadService,
+  PersonaGrantReadService,
   AssetGateService,
   AttributionService,
   AuthorReplyLoopService,

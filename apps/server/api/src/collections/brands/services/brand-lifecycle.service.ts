@@ -111,13 +111,32 @@ export class BrandLifecycleService {
           }),
         });
         const liveBrandIds = new Set(liveBrands.map((brand) => brand.id));
-        const blockingCharacters = sharedCharacters.filter((character) =>
+        // Characters granted to other organizations block the same way (#6037).
+        const grantedCharacters = await tx.personaGrant.findMany({
+          select: {
+            persona: { select: { handle: true, id: true, label: true } },
+          },
+          where: {
+            persona: { brandId: id, isDeleted: false },
+            revokedAt: null,
+          },
+        });
+        const sharedBlocking = sharedCharacters.filter((character) =>
           character.availabilityMode === PersonaAvailabilityMode.ALL_BRANDS
             ? liveBrandIds.size > 1
             : (character.availableBrandIds ?? []).some(
                 (brandId) => brandId !== id && liveBrandIds.has(brandId),
               ),
         );
+        const blockingCharacters = [
+          ...sharedBlocking,
+          ...grantedCharacters
+            .map((grant) => grant.persona)
+            .filter(
+              (granted) =>
+                !sharedBlocking.some((shared) => shared.id === granted.id),
+            ),
+        ];
         if (blockingCharacters.length > 0) {
           throw new ConflictException({
             code: 'brand_owns_shared_characters',
