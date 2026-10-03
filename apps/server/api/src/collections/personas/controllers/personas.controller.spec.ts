@@ -100,6 +100,7 @@ describe('PersonasController', () => {
       mockServiceMethods.assignMembers.mockResolvedValue(mockPersona);
       mockServiceMethods.findOne.mockResolvedValue({
         id: personaId,
+        organizationId,
         userId,
       });
       mockServiceMethods.patch.mockResolvedValue(mockPersona);
@@ -125,6 +126,7 @@ describe('PersonasController', () => {
       mockServiceMethods.assignMembers.mockResolvedValue(mockPersona);
       mockServiceMethods.findOne.mockResolvedValue({
         id: personaId,
+        organizationId,
         userId,
       });
       mockServiceMethods.patch.mockResolvedValue(mockPersona);
@@ -153,7 +155,11 @@ describe('PersonasController', () => {
       // Legacy base62 user IDs fail every Genfeed entity-id shape (#5410).
       const legacyUserId = 'LegacyBetterAuthUserIdBase62Abcd';
       mockServiceMethods.assignMembers.mockResolvedValue({ id: personaId });
-      mockServiceMethods.findOne.mockResolvedValue({ id: personaId, userId });
+      mockServiceMethods.findOne.mockResolvedValue({
+        id: personaId,
+        organizationId,
+        userId,
+      });
       mockServiceMethods.patch.mockResolvedValue({ id: personaId });
 
       await controller.patch(mockRequest, mockUser, personaId, {
@@ -182,6 +188,7 @@ describe('PersonasController', () => {
       mockServiceMethods.assignMembers.mockRejectedValue(new Error('DB error'));
       mockServiceMethods.findOne.mockResolvedValue({
         id: personaId,
+        organizationId,
         userId,
       });
 
