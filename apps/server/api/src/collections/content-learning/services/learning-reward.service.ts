@@ -21,6 +21,7 @@ import {
   validLearningDescriptor,
 } from '@genfeedai/harness';
 import {
+  type ContentLearningBaseline,
   type ContentLearningCheckpoint,
   type ContentLearningDecision,
   type Prisma,
@@ -238,7 +239,13 @@ export class LearningRewardService {
     tx: Prisma.TransactionClient,
     organizationId: string,
     decision: ContentLearningDecision,
-  ) {
+  ): Promise<
+    | { reason: string }
+    | {
+        baseline: ContentLearningBaseline;
+        samples: NonNullable<ReturnType<typeof parseLearningMeasurement>>[];
+      }
+  > {
     const descriptor = decision.cellDescriptor;
     const baseline =
       decision.baselineId && validLearningDescriptor(descriptor)
