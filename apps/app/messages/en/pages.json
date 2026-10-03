@@ -1828,15 +1828,9 @@
   },
   "publishing": {
     "layout": {
-      "article": "Article",
       "description": "Manage and publish across platforms.",
       "newPost": "New post",
-      "newsletter": "Newsletter",
-      "socialPost": "Social post",
-      "xPost": "X post",
-      "title": "Publishing",
-      "xLongPost": "X long post",
-      "xThread": "X thread"
+      "title": "Publishing"
     },
     "campaigns": {
       "loadError": "Campaigns could not be loaded.",

@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import {
   ArticleCategory,
   Platform,
+  PostFormat,
   PostStatus,
   TargetExecutionState,
 } from '@genfeedai/contracts';
@@ -143,6 +144,44 @@ describe('PublishingContentLibrary', () => {
     expect(screen.getByText('3 posts')).toBeVisible();
 
     await waitFor(() => expect(mocks.setFiltersNode).toHaveBeenCalled());
+  });
+
+  it('drops the Type column and tags only non-plain formats', () => {
+    render(<PublishingContentLibrary />);
+
+    expect(
+      screen.queryByRole('columnheader', { name: 'Type' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Social post')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Article').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Newsletter').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Thread')).not.toBeInTheDocument();
+  });
+
+  it('leads a post row with its target account avatar and a thread tag', () => {
+    mocks.queryData = {
+      ...collections,
+      posts: [
+        {
+          createdAt: '2026-08-08T10:00:00.000Z',
+          credential: {
+            externalHandle: 'acme_x',
+            id: 'cred-x',
+            platform: Platform.TWITTER,
+          },
+          description: 'Thread opener',
+          format: PostFormat.THREAD,
+          id: 'post-thread',
+          platform: Platform.TWITTER,
+          status: PostStatus.SCHEDULED,
+        },
+      ],
+    };
+
+    render(<PublishingContentLibrary />);
+
+    expect(screen.getAllByText('Thread').length).toBeGreaterThan(0);
+    expect(screen.getByTitle('acme_x')).toBeInTheDocument();
   });
 
   it.each([

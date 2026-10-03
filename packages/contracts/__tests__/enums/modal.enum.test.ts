@@ -46,7 +46,7 @@ describe('modal.enum', () => {
       expect(ModalEnum.MOOD).toBe('modal-mood');
       expect(ModalEnum.MUSIC).toBe('modal-music');
       expect(ModalEnum.ONBOARDING).toBe('modal-onboarding');
-      expect(ModalEnum.POST_LONG_FORM).toBe('modal-post-long-form');
+      expect(ModalEnum.POST_COMPOSE).toBe('modal-post-compose');
       expect(ModalEnum.POST_BATCH).toBe('modal-post-batch');
       expect(ModalEnum.POST_METADATA).toBe('modal-post-metadata');
       expect(ModalEnum.POST_REMIX).toBe('modal-post-remix');
@@ -61,7 +61,6 @@ describe('modal.enum', () => {
       expect(ModalEnum.SUBSCRIPTION).toBe('modal-subscription');
       expect(ModalEnum.TAG).toBe('modal-tag');
       expect(ModalEnum.TEXT_OVERLAY).toBe('modal-text-overlay');
-      expect(ModalEnum.THREAD_CREATE).toBe('modal-thread-create');
       expect(ModalEnum.TRAINING).toBe('modal-training');
       expect(ModalEnum.TRAINING_EDIT).toBe('modal-training-edit');
       expect(ModalEnum.TRAINING_UPLOAD).toBe('modal-training-new');

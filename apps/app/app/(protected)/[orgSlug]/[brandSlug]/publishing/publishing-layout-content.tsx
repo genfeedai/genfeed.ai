@@ -5,13 +5,7 @@ import {
   type RefreshFunction,
 } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import {
-  ButtonSize,
-  ButtonVariant,
-  CredentialPlatform,
-  ModalEnum,
-  PostFormat,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createArtifactEditorRoute,
@@ -26,13 +20,10 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import {
   LazyModalArticle,
-  LazyModalCreateThread,
   LazyModalNewsletter,
   LazyModalPost,
 } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
-import { Dropdown } from '@ui/primitives/dropdown';
-import { DropdownMenuItem } from '@ui/primitives/dropdown-menu';
 import { Newspaper, Plus } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -131,27 +122,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
   }, [refreshFn, refresh]);
 
   const handleNewPost = useCallback(() => {
-    push(href(APP_ROUTES.PUBLISHING.POSTS_NEW));
-  }, [href, push]);
-
-  const handleNewXPost = useCallback(() => {
-    push(`${href(APP_ROUTES.PUBLISHING.POSTS_NEW)}?platform=twitter`);
-  }, [href, push]);
-
-  const xCredentials = useMemo(
-    () =>
-      credentials.filter(
-        (credential) => credential.platform === CredentialPlatform.TWITTER,
-      ),
-    [credentials],
-  );
-
-  const handleNewLongPost = useCallback(() => {
-    openModal(ModalEnum.POST_LONG_FORM);
-  }, []);
-
-  const handleNewThread = useCallback(() => {
-    openModal(ModalEnum.THREAD_CREATE);
+    openModal(ModalEnum.POST_COMPOSE);
   }, []);
 
   const setExportNode = useCallback(
@@ -231,45 +202,20 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
               onClick={handleRefresh}
               isRefreshing={isRefreshing}
             />
-            <Dropdown
-              minWidth="190px"
-              trigger={
-                <Button
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.DEFAULT}
-                  withWrapper={false}
-                  className="shrink-0"
-                  ariaLabel={translate('newPost')}
-                  icon={<Plus className="size-4" />}
-                  label={
-                    <span className="hidden @[64rem]/publishing:inline">
-                      {translate('newPost')}
-                    </span>
-                  }
-                />
+            <Button
+              size={ButtonSize.SM}
+              variant={ButtonVariant.DEFAULT}
+              withWrapper={false}
+              className="shrink-0"
+              ariaLabel={translate('newPost')}
+              icon={<Plus className="size-4" />}
+              label={
+                <span className="hidden @[64rem]/publishing:inline">
+                  {translate('newPost')}
+                </span>
               }
-            >
-              <DropdownMenuItem onSelect={handleNewPost}>
-                {translate('socialPost')}
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={handleNewXPost}>
-                {translate('xPost')}
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => openModal(ModalEnum.ARTICLE)}>
-                {translate('article')}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => openModal(ModalEnum.NEWSLETTER)}
-              >
-                {translate('newsletter')}
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={handleNewLongPost}>
-                {translate('xLongPost')}
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={handleNewThread}>
-                {translate('xThread')}
-              </DropdownMenuItem>
-            </Dropdown>
+              onClick={handleNewPost}
+            />
           </div>
         }
       >
@@ -285,14 +231,9 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
         onCreated={(id) => push(href(`${APP_ROUTES.EDIT.NEWSLETTER}/${id}`))}
       />
       <LazyModalPost
-        defaultPlatform={CredentialPlatform.TWITTER}
-        credentials={xCredentials}
-        modalId={ModalEnum.POST_LONG_FORM}
-        postFormat={PostFormat.LONG_FORM}
-        onConfirm={handleRefresh}
-      />
-      <LazyModalCreateThread
-        credentials={xCredentials}
+        isComposer
+        credentials={credentials}
+        modalId={ModalEnum.POST_COMPOSE}
         onConfirm={handleRefresh}
       />
     </PostsLayoutContext.Provider>

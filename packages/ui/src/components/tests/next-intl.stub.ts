@@ -345,22 +345,29 @@ const UI_TEST_MESSAGES = {
       postContent: 'Post content',
       tweetPlaceholder: 'Write the tweet',
     },
-    createThread: {
-      addPost: 'Add comment / post',
-      attachMedia: 'Attach media',
-      attached: '{count} attached',
-      cancel: 'Cancel',
-      clearMedia: 'Clear media',
-      commentMediaUnsupported:
-        'This channel publishes comments as text only, so a comment here cannot carry media.',
-      compose: 'Compose',
-      content: 'Content',
-      delay: 'Delay',
-      description:
-        'Create multiple posts that will be linked together as a thread',
-      postsTitle: 'Thread Posts',
-      remove: 'Remove',
-      title: 'Create Thread',
+    postComposer: {
+      destinations: 'Post to',
+      destinationsDescription:
+        'Pick one or more accounts, or choose Article or Newsletter to write it in its own editor.',
+      noAccounts:
+        'No connected accounts yet. Save a draft now and connect an account later.',
+      draftOnly: 'No account selected. This saves as a draft.',
+      article: 'Article',
+      articleHint: 'genfeed.ai blog',
+      newsletter: 'Newsletter',
+      newsletterHint: 'Email',
+      handoff:
+        'Article and Newsletter are written in their own editor. Continue to open it.',
+      continue: 'Continue',
+      splitIntoThread: 'Split into thread',
+      splitIntoThreadHelp:
+        'Publishes to X as a linked thread, split into posts of 280 characters or fewer.',
+      threadCount: '{count} posts in this thread',
+      longPostHelp: 'Over 280 characters, X publishes this as a long post.',
+      titleOptional: 'Title',
+      createThread: 'Create Thread',
+      createTitle: 'New post',
+      createDescription: 'Write once, then choose where it goes.',
     },
     postPlatforms: {
       charactersUsed: 'Characters used per channel',
