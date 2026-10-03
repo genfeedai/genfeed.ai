@@ -11,6 +11,7 @@ import {
   UNTRUSTED_CONTENT_WITHHELD_NOTICE,
 } from '@api/services/agent-orchestrator/agent-untrusted-content-gate.service';
 import { EvaluateMcpToolResultDto } from '@api/services/agent-orchestrator/dto/evaluate-mcp-tool-result.dto';
+import { ExecuteAgentToolDto } from '@api/services/agent-orchestrator/dto/execute-agent-tool.dto';
 import {
   AgentToolExecutorService,
   type ToolExecutionContext,
@@ -37,20 +38,6 @@ import {
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
-interface ExecuteToolBody {
-  parameters?: Record<string, unknown>;
-  context?: Partial<
-    Omit<
-      ToolExecutionContext,
-      | 'approvalReviewerAuthorized'
-      | 'confirmationOrigin'
-      | 'hostSupportsApproval'
-      | 'organizationId'
-      | 'userId'
-    >
-  >;
-}
-
 @ApiTags('Agent Tools')
 @FeatureFlag('agent')
 @Controller('agent-tools')
@@ -68,7 +55,7 @@ export class AgentToolsController {
   })
   async execute(
     @Param('name') name: string,
-    @Body() body: ExecuteToolBody,
+    @Body() body: ExecuteAgentToolDto,
     @CurrentUser() user: User,
     @Req() request: Request,
   ) {
@@ -99,17 +86,12 @@ export class AgentToolsController {
 
       const organizationId = this.resolveOrganizationId(user);
       const userId = await this.resolveDatabaseUserId(user);
-      const clientContext = {
-        ...(body.context ?? {}),
-      } as Partial<ToolExecutionContext>;
-      delete clientContext.confirmationOrigin;
-      delete clientContext.approvalReviewerAuthorized;
-      const approvedApprovalId = clientContext.approvedApprovalId;
-      delete clientContext.hostSupportsApproval;
-      delete clientContext.approvedApprovalId;
+      // Never spread client input into the context: the executor trusts fields
+      // such as validatedScope, creditGovernance and isWorkflowScoped. The DTO
+      // whitelists the one client-settable field; all else is server-derived.
+      const approvedApprovalId = body.context?.approvedApprovalId;
 
       const context: ToolExecutionContext = {
-        ...clientContext,
         apiKeyContext: user,
         approvedApprovalId,
         approvalReviewerAuthorized:
@@ -182,7 +164,13 @@ export class AgentToolsController {
         `Tool ${name} requires ${tool.requiredRole}`,
       );
     }
-    return this.evaluateMcpResult(name, body.content, organizationId, userId);
+    return this.evaluateMcpResult(
+      name,
+      body.content,
+      organizationId,
+      userId,
+      body.isPartial === true,
+    );
   }
 
   private evaluateMcpResult(
@@ -190,11 +178,13 @@ export class AgentToolsController {
     content: string,
     organizationId: string,
     userId: string,
+    isContentPartial = false,
   ) {
     return this.untrustedContentGate.evaluateToolResult({
       brandId: null,
       content,
       context: { organizationId, userId },
+      isContentPartial,
       origin: 'mcp',
       threadId: null,
       toolCallId: name,
