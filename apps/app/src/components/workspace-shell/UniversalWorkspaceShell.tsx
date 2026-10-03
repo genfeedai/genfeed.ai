@@ -1038,6 +1038,7 @@ function UniversalWorkspaceShellContent({
                 const target = event.target;
                 if (
                   target instanceof HTMLElement &&
+                  primaryRegionRef.current?.contains(target) &&
                   !target.dataset.testid?.startsWith('topbar-inspector-')
                 ) {
                   contextReturnFocusRef.current = target;

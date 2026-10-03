@@ -631,7 +631,7 @@ describe('UniversalWorkspaceShell', () => {
                 : null
             }
           >
-            Focus details
+            <button type="button">Inspector action</button>
           </ContextSidebarPanel>
         </>
       );
@@ -646,6 +646,7 @@ describe('UniversalWorkspaceShell', () => {
     const asset = screen.getByRole('button', { name: 'Inspect image' });
     act(() => asset.focus());
     fireEvent.click(asset);
+    act(() => screen.getByRole('button', { name: 'Inspector action' }).focus());
     const close = screen.getByRole('button', { name: 'Close details' });
     act(() => close.focus());
     fireEvent.click(close);

@@ -112,7 +112,7 @@ export default function SectionTopbar({
               >
                 {actions}
                 <div
-                  className="flex shrink-0 items-center gap-1"
+                  className="flex shrink-0 items-center gap-1 empty:hidden"
                   data-testid="section-topbar-icon-actions"
                 >
                   {helpTrigger ? (
@@ -187,7 +187,7 @@ export default function SectionTopbar({
             >
               {actions}
               <div
-                className="flex shrink-0 items-center gap-1"
+                className="flex shrink-0 items-center gap-1 empty:hidden"
                 data-testid="section-topbar-icon-actions"
               >
                 {helpTrigger ? (
