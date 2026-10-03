@@ -9,7 +9,11 @@ import { AssetParent } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
-type AssetCreateInput = CreateAssetDto & { userId: string };
+type AssetCreateInput = CreateAssetDto & {
+  /** Tenant of a non-organization parent, stamped as `parentOrgId`. */
+  parentOrgId?: string;
+  userId: string;
+};
 
 @Injectable()
 export class AssetsService extends BaseService<
