@@ -145,6 +145,7 @@ vi.mock('next/navigation', () => ({
 
 interface RenderOptions {
   invitations?: Array<Record<string, unknown>>;
+  members?: Array<Record<string, unknown>>;
   page?: string | null;
   pageCount: number;
   role?: MemberRole;
@@ -153,6 +154,7 @@ interface RenderOptions {
 
 function renderMembers({
   invitations = [],
+  members,
   page = null,
   pageCount,
   role = MemberRole.OWNER,
@@ -174,7 +176,7 @@ function renderMembers({
     userEmail: `user-${index}@example.test`,
     userFullName: `User ${index}`,
   }));
-  mocks.findAll.mockResolvedValue(pageMembers);
+  mocks.findAll.mockResolvedValue(members ?? pageMembers);
   mocks.listInvitations.mockResolvedValue(invitations);
   mocks.useUserRole.mockReturnValue(role);
 
@@ -234,6 +236,45 @@ describe('MembersList seat limit', () => {
     expect(inviteButton()).toBeEnabled();
     expect(screen.queryByText(/Unlock team members/i)).not.toBeInTheDocument();
     expect(mocks.findAll).toHaveBeenCalled();
+  });
+
+  it('shows each member identity, role and the brands they can access', async () => {
+    renderMembers({
+      members: [
+        {
+          brands: [],
+          createdAt: '2026-01-01T00:00:00.000Z',
+          id: 'member-owner',
+          role: { id: 'r1', key: 'owner', label: 'Owner' },
+          roleLabel: 'Owner',
+          user: { avatar: null, id: 'u1' },
+          userEmail: 'vincent@example.test',
+          userFullName: 'Vincent',
+        },
+        {
+          brands: [
+            { id: 'b1', label: 'ShipShit.dev' },
+            { id: 'b2', label: 'FUD News' },
+          ],
+          createdAt: '2026-01-01T00:00:00.000Z',
+          id: 'member-creator',
+          role: { id: 'r2', key: 'creator', label: 'Creator' },
+          roleLabel: 'Creator',
+          user: { avatar: null, id: 'u2' },
+          userEmail: 'sam@example.test',
+          userFullName: 'Sam',
+        },
+      ],
+      pageCount: 2,
+      tier: 'pro',
+    });
+
+    expect(await screen.findByText('Vincent')).toBeVisible();
+    expect(screen.getByText('vincent@example.test')).toBeVisible();
+    expect(screen.getByText('All brands')).toBeVisible();
+    expect(screen.getByText('ShipShit.dev')).toBeVisible();
+    expect(screen.getByText('FUD News')).toBeVisible();
+    expect(screen.getByText('Creator')).toBeVisible();
   });
 
   it('never blocks invite for an unlimited tier regardless of member count', async () => {

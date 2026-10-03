@@ -3,15 +3,30 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandsList from './brands-list';
 import '@testing-library/jest-dom/vitest';
 
+import { Brand } from '@models/organization/brand.model';
+
+// Built through the real model so the row reads the same `logo` and
+// `credentials` relations the list API returns, not hand-set getters.
 const mockBrands = [
-  {
+  new Brand({
     createdAt: '2024-01-01',
+    credentials: [
+      { id: 'c1', platform: 'instagram' },
+      { id: 'c2', platform: 'tiktok' },
+      { id: 'c3', platform: 'youtube' },
+    ],
     id: '1',
     label: 'Test Brand',
-    logoUrl: 'https://example.com/logo.png',
+    logo: { cdnUrl: 'https://cdn.example.com/logos/asset-1', id: 'asset-1' },
     slug: 'testbrand',
-    totalCredentials: 3,
-  },
+  } as never),
+  new Brand({
+    createdAt: '2024-01-02',
+    credentials: [],
+    id: '2',
+    label: 'Nologo',
+    slug: 'nologo',
+  } as never),
 ];
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -112,6 +127,41 @@ describe('BrandsList', () => {
     expect(screen.getByText('Test Brand')).toBeInTheDocument();
     expect(screen.getByText('@testbrand')).toBeInTheDocument();
     expect(screen.getByText('3 connected')).toBeInTheDocument();
+  });
+
+  it('shows the brand logo, or the brand initial when none is uploaded', () => {
+    render(<BrandsList />);
+
+    expect(screen.getByAltText('Test Brand')).toHaveAttribute(
+      'src',
+      expect.stringContaining('cdn.example.com'),
+    );
+    expect(screen.getByText('N')).toBeInTheDocument();
+    expect(screen.getByText('0 connected')).toBeInTheDocument();
+  });
+
+  it('requests the organization by the query param the API accepts', async () => {
+    const { useQuery } = await import('@tanstack/react-query');
+    const { useAuthedService } = await import(
+      '@hooks/auth/use-authed-service/use-authed-service'
+    );
+    const findAll = vi.fn().mockResolvedValue([]);
+    vi.mocked(useAuthedService).mockReturnValue((async () => ({
+      findAll,
+    })) as never);
+    render(<BrandsList />);
+
+    const [options] = vi.mocked(useQuery).mock.calls[0] as unknown as [
+      { queryFn: () => Promise<unknown> },
+    ];
+    await options.queryFn();
+
+    // `organization` is not a declared query field and is stripped by the API.
+    expect(findAll).toHaveBeenCalledWith({
+      limit: 20,
+      organizationId: 'org-123',
+      page: 1,
+    });
   });
 
   it('links the row to brand settings instead of the edit overlay', () => {

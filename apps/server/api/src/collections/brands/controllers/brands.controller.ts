@@ -26,7 +26,12 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
+import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
+import {
+  serializeCollection,
+  serializeSingle,
+} from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
@@ -307,9 +312,10 @@ export class BrandsController extends BaseCRUDController<
   }
 
   /**
-   * List brands for the caller. Superadmins may pass `organization`/`brand`
-   * query filters. Members get brands they own or that belong to the requested
-   * (or active) organization via `GET /brands?organization=`.
+   * List the brands of one organization. Superadmins may pass
+   * `organizationId`/`brandId` query filters; everyone else is held to their
+   * session organization. Ownership (`Brand.userId`) never widens the list —
+   * a brand someone created in another org belongs to that org, not to them.
    */
   public buildFindAllQuery(user: User, query: BaseQueryDto) {
     const adminFilter = CollectionFilterUtil.buildAdminFilter(user, query);
@@ -323,7 +329,6 @@ export class BrandsController extends BaseCRUDController<
       };
     }
 
-    // Members may only filter by their session organization (or omit the param).
     const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
       query,
       user,
@@ -331,19 +336,16 @@ export class BrandsController extends BaseCRUDController<
     );
     const organizationId = scope.organizationId ?? user.organizationId;
 
-    const orConditions: Record<string, unknown>[] = [
-      { userId: user.userId ?? user.id },
-    ];
-    if (organizationId) {
-      orConditions.push({ organizationId });
+    if (!organizationId) {
+      throw new HttpException(
+        { detail: 'Organization not found in session', title: 'Forbidden' },
+        HttpStatus.FORBIDDEN,
+      );
     }
 
     return {
       orderBy: handleQuerySort(query.sort),
-      where: {
-        isDeleted,
-        OR: orConditions,
-      },
+      where: { isDeleted, organizationId },
     };
   }
 
@@ -363,12 +365,72 @@ export class BrandsController extends BaseCRUDController<
     tags: ['brands'],
     ttl: 1_800, // 30 minutes
   })
-  findAll(
+  async findAll(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Query() query: BaseQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    return super.findAll(request, user, query);
+    const data = await this.brandsService.findAll(
+      this.buildFindAllQuery(user, query),
+      {
+        customLabels,
+        ...QueryDefaultsUtil.getPaginationDefaults(query),
+      },
+    );
+
+    return serializeCollection(request, BrandSerializer, {
+      ...data,
+      docs: await this.decorateListForResponse(data.docs),
+    });
+  }
+
+  /**
+   * Batched list form of `decorateForResponse`: logos and connected accounts
+   * for a whole page in one query each per organization, so list rows render
+   * the brand logo and the real connected-platform count.
+   */
+  private async decorateListForResponse(
+    brands: BrandDocument[],
+  ): Promise<BrandDocument[]> {
+    const brandsByOrganization = new Map<string, BrandDocument[]>();
+    for (const brand of brands) {
+      const organizationId = brand.organizationId;
+      if (typeof organizationId !== 'string' || !organizationId) {
+        continue;
+      }
+      const group = brandsByOrganization.get(organizationId) ?? [];
+      group.push(brand);
+      brandsByOrganization.set(organizationId, group);
+    }
+
+    const decoratedById = new Map<string, BrandDocument>();
+    for (const [organizationId, group] of brandsByOrganization) {
+      const withAssets = await this.brandsService.attachBrandKitAssetRelations(
+        group.map((brand) => ({ ...brand })),
+        organizationId,
+      );
+      const credentials = await this.credentialsService.find({
+        brandId: { in: group.map((brand) => String(brand.id)) },
+        isDeleted: false,
+        organizationId,
+      });
+
+      for (const brand of withAssets) {
+        decoratedById.set(String(brand.id), {
+          ...brand,
+          credentials: credentials
+            .filter((credential) => credential.brandId === String(brand.id))
+            .map((credential) => ({
+              ...credential,
+              platform:
+                fromPrismaCredentialPlatform(credential.platform) ??
+                credential.platform,
+            })),
+        });
+      }
+    }
+
+    return brands.map((brand) => decoratedById.get(String(brand.id)) ?? brand);
   }
 
   @Get('slug')

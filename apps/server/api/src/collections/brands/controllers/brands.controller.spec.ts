@@ -530,6 +530,51 @@ describe('BrandsController', () => {
       expect(brandsService.findAll).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
+
+    it("attaches logos and each brand's own connected accounts to list rows", async () => {
+      const otherBrand = { ...mockBrand, id: 'cmbrand000000000000000002' };
+      brandsService.findAll.mockResolvedValue({
+        docs: [mockBrand, otherBrand],
+        limit: 20,
+        page: 1,
+        totalDocs: 2,
+        totalPages: 1,
+      } as unknown as AggregatePaginateResult<unknown>);
+      brandsService.attachBrandKitAssetRelations.mockImplementation(
+        (brands: Array<Record<string, unknown>>) =>
+          Promise.resolve(
+            brands.map((brand) => ({
+              ...brand,
+              logo: { id: `logo-${String(brand.id)}` },
+            })),
+          ) as never,
+      );
+      credentialsService.find.mockResolvedValue([
+        {
+          brandId: mockBrand.id,
+          id: 'cmcredential00000000000001',
+          platform: 'INSTAGRAM',
+        },
+      ] as never);
+
+      const result = (await controller.findAll(mockRequest, mockUser, {
+        isDeleted: false,
+      } as BaseQueryDto)) as unknown as {
+        data: Array<{ credentials: unknown[]; id: string; logo: unknown }>;
+      };
+
+      expect(credentialsService.find).toHaveBeenCalledOnce();
+      expect(credentialsService.find).toHaveBeenCalledWith({
+        brandId: { in: [mockBrand.id, otherBrand.id] },
+        isDeleted: false,
+        organizationId: mockBrand.organizationId,
+      });
+      expect(result.data[0].logo).toEqual({ id: `logo-${mockBrand.id}` });
+      expect(result.data[0].credentials).toEqual([
+        expect.objectContaining({ platform: 'instagram' }),
+      ]);
+      expect(result.data[1].credentials).toEqual([]);
+    });
   });
 
   describe('buildFindAllQuery', () => {
@@ -558,7 +603,7 @@ describe('BrandsController', () => {
       expect(result.orderBy).toEqual({ label: 1 });
     });
 
-    it('scopes members to owned brands or their session organization', () => {
+    it('scopes members to their session organization only', () => {
       const organizationId = (mockUser as AuthenticatedUser).organizationId;
       const query = {
         isDeleted: false,
@@ -568,11 +613,21 @@ describe('BrandsController', () => {
 
       const result = controller.buildFindAllQuery(mockUser, query);
 
+      // Brands the caller created in another organization must not leak in.
+      expect(result.where).toEqual({ isDeleted: false, organizationId });
+      expect(result.where).not.toHaveProperty('OR');
+      expect(result.orderBy).toEqual({ label: 1 });
+    });
+
+    it('falls back to the session organization when no filter is passed', () => {
+      const result = controller.buildFindAllQuery(mockUser, {
+        isDeleted: false,
+      } as BaseQueryDto);
+
       expect(result.where).toEqual({
         isDeleted: false,
-        OR: [{ userId: mockUser.userId }, { organizationId }],
+        organizationId: (mockUser as AuthenticatedUser).organizationId,
       });
-      expect(result.orderBy).toEqual({ label: 1 });
     });
 
     it('rejects member organization filters outside the session org', () => {
