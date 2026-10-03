@@ -170,7 +170,11 @@ Calibration-Report: scripts/content-eval/calibration/reports/{file}.json
 ```
 
 The summary must match `calibrationSummarySchema`, have
-`evidenceKind: live-dispatcher`, and measure the head text digest. Summaries
+`evidenceKind: live-dispatcher`, and measure the head text digest. It must also
+record at least one judge call, a fixture of at least `calibrationMinRows` rows,
+the current `thresholdsVersion`, a clean working tree, and, for the primary arm
+of each production judge, at least `calibrationMinRows` scored rows that carry a
+human band or decision label. Summaries
 contain neither row text nor scores. Keep full reports outside the repository.
 A linked report that fails thresholds produces a warning; passing thresholds
 are not required to link evidence. Re-run the job after a PR-body edit.
@@ -190,11 +194,16 @@ are not required to link evidence. Re-run the job after a PR-body edit.
 | report-invalid | Fail: linked summary does not match the schema |
 | report-stub | Fail: linked summary is not live-dispatcher evidence |
 | report-stale | Fail: summary text digest differs from the head |
+| report-incomplete | Fail: summary lacks calls, rows, current thresholds, a clean tree or labelled rows per production judge |
 | linked | Pass: live summary measures this revision; warn if thresholds fail |
 
 Checks run in table order. Head-lock validation applies even to bootstrap and
 no-base runs. The initial lock introduction passes as bootstrap. Merge-group
 runs do not require another PR-body link; member PRs have already been checked.
+
+Only `pull_request` runs enforce the link. The step runs in no `push` workflow,
+so a direct push or an admin merge that skips PR CI is not gated; such a change
+needs its calibration evidence linked in a follow-up PR.
 
 ## Compile settings and limitations
 
@@ -210,3 +219,9 @@ decoding rather than production free-text decoding; its schema omits
 `persuasion`. It uses anonymised context and global templates rather than
 brand-thread history or prior evaluations. Vision calibration is deferred.
 Content-eval tests are not in CI; that remains #4928.
+
+Known gaps from the #5991 post-merge review, deferred because each changes the
+text digest and so needs a live report: the lock hashes whole service files
+(unrelated edits flip it) yet omits the evaluations prompt-builder path and the
+content-quality schema shape, and the content-quality arm repeats the
+service's temperature and token literals instead of sharing them.
