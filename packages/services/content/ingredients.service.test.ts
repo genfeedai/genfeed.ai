@@ -1,4 +1,7 @@
-import { IngredientCategory } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  IngredientLineageDirection,
+} from '@genfeedai/contracts';
 import { Avatar } from '@genfeedai/models/ai/avatar.model';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { GIF } from '@genfeedai/models/ingredients/gif.model';
@@ -140,6 +143,56 @@ describe('IngredientsService', () => {
 
     expect(http.get).toHaveBeenCalledWith('ing_1/children');
     expect(result[0].id).toBe('child_1');
+  });
+
+  describe('findLineage', () => {
+    it('GETs one lineage page with its pagination and hidden count', async () => {
+      http.get.mockResolvedValue(
+        axiosResponse({
+          ...collectionDocument([{ id: 'ref_1', origin: 'UPLOADED' }], {
+            pagination: { limit: 24, page: 2, pages: 3, total: 55 },
+          }),
+          meta: { hiddenCount: 4 },
+        }),
+      );
+      const signal = new AbortController().signal;
+
+      const result = await service.findLineage(
+        'ing_1',
+        IngredientLineageDirection.MADE_FROM,
+        { page: 2, signal },
+      );
+
+      expect(http.get).toHaveBeenCalledWith('ing_1/lineage/made-from', {
+        params: { limit: undefined, page: 2 },
+        signal,
+      });
+      expect(result).toMatchObject({
+        hasNext: true,
+        hiddenCount: 4,
+        page: 2,
+        pageSize: 24,
+        total: 55,
+        totalPages: 3,
+      });
+      expect(result.items[0]?.id).toBe('ref_1');
+    });
+
+    it('reports no hidden items when the API sends none', async () => {
+      http.get.mockResolvedValue(axiosResponse(collectionDocument([])));
+
+      const result = await service.findLineage(
+        'ing_1',
+        IngredientLineageDirection.USED_IN,
+      );
+
+      expect(http.get.mock.calls[0]?.[0]).toBe('ing_1/lineage/used-in');
+      expect(result).toMatchObject({
+        hasNext: false,
+        hiddenCount: 0,
+        items: [],
+      });
+    });
   });
 
   describe('findByIds', () => {

@@ -374,7 +374,9 @@ export class BatchInterpolationController {
           organizationId: context.brand.organizationId,
           promptId: promptData.id,
           promptTemplate: builtPrompt.templateUsed,
-          sourceIds: [pair.startImageId],
+          // Both frames are references: record them so the output lists them
+          // under "Made from" and each frame lists it under "Used in".
+          sourceIds: [...new Set([pair.startImageId, pair.endImageId])],
           status: IngredientStatus.PROCESSING,
           templateVersion: builtPrompt.templateVersion,
           width: context.width,

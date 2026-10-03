@@ -1,9 +1,13 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { IngredientLineageQueryDto } from '@api/collections/ingredients/dto/ingredient-lineage-query.dto';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { IngredientLineageService } from '@api/collections/ingredients/services/ingredient-lineage.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
+import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { customLabels } from '@api/helpers/utils/pagination.util';
@@ -16,6 +20,7 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { IngredientLineageDirection } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -38,6 +43,7 @@ export class IngredientsRelationshipsController {
 
   constructor(
     private readonly ingredientsService: IngredientsService,
+    private readonly lineageService: IngredientLineageService,
     private readonly moduleRef: ModuleRef,
   ) {}
 
@@ -108,6 +114,67 @@ export class IngredientsRelationshipsController {
     }
 
     return serializeSingle(request, MetadataSerializer, data.metadata);
+  }
+
+  /**
+   * References this asset was made from (`sources`). Visibility follows the
+   * Library, so this route does not use `AssetAccessGuard`: an asset the member
+   * cannot list is a 404 here, not a 403 that confirms it exists.
+   */
+  @Get(':ingredientId/lineage/made-from')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async findMadeFrom(
+    @Req() request: Request,
+    @Param('ingredientId') ingredientId: string,
+    @Query() query: IngredientLineageQueryDto,
+    @CurrentUser() user: User,
+  ): Promise<JsonApiCollectionResponse> {
+    return this.findLineage(
+      request,
+      ingredientId,
+      IngredientLineageDirection.MADE_FROM,
+      query,
+      user,
+    );
+  }
+
+  /** Assets that used this one as a reference (`sourceOf`), newest first. */
+  @Get(':ingredientId/lineage/used-in')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async findUsedIn(
+    @Req() request: Request,
+    @Param('ingredientId') ingredientId: string,
+    @Query() query: IngredientLineageQueryDto,
+    @CurrentUser() user: User,
+  ): Promise<JsonApiCollectionResponse> {
+    return this.findLineage(
+      request,
+      ingredientId,
+      IngredientLineageDirection.USED_IN,
+      query,
+      user,
+    );
+  }
+
+  private async findLineage(
+    request: Request,
+    ingredientId: string,
+    direction: IngredientLineageDirection,
+    query: IngredientLineageQueryDto,
+    user: User,
+  ): Promise<JsonApiCollectionResponse> {
+    const { hiddenCount, ...page } = await this.lineageService.findLineage({
+      direction,
+      ingredientId,
+      limit: query.limit,
+      page: query.page,
+      viewer: { brandId: user.brandId, organizationId: user.organizationId },
+    });
+
+    return {
+      ...serializeCollection(request, IngredientSerializer, page),
+      meta: { hiddenCount },
+    };
   }
 
   @Get(':ingredientId/posts')

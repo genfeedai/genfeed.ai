@@ -581,6 +581,17 @@ describe('BatchInterpolationController', () => {
         );
       });
 
+      it('records the start and end frames as the output sources', async () => {
+        await controller.createBatchInterpolation(mockReq, mockDto, mockUser);
+
+        expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+          mockUser,
+          expect.objectContaining({
+            sourceIds: [startImageId1, endImageId1],
+          }),
+        );
+      });
+
       it('should generate a fresh group ID for each storyboard batch', async () => {
         mockBuildReferenceImageUrls
           .mockReset()

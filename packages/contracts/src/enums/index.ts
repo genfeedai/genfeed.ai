@@ -72,6 +72,7 @@ export * from './image-format.enum';
 export * from './ingredient.enum';
 export * from './ingredient.util';
 export * from './ingredient-category.util';
+export * from './ingredient-origin.enum';
 export * from './insight.enum';
 export * from './instagram-media.enum';
 export * from './integration.enum';

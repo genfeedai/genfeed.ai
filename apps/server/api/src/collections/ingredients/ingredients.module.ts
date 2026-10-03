@@ -14,6 +14,7 @@ import { IngredientPerceptionController } from '@api/collections/ingredients/con
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
 import { IngredientsRelationshipsController } from '@api/collections/ingredients/controllers/ingredients-relationships.controller';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
+import { IngredientLineageService } from '@api/collections/ingredients/services/ingredient-lineage.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
@@ -48,6 +49,7 @@ import { Module } from '@nestjs/common';
     CleanExportAccessGuard,
     IngredientExportService,
     IngredientGenerationCancellationService,
+    IngredientLineageService,
     IngredientsService,
   ],
 })

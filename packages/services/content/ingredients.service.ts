@@ -1,9 +1,13 @@
-import { IngredientCategory } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  type IngredientLineageDirection,
+} from '@genfeedai/contracts';
 import type {
   IBulkDeleteRequest,
   IBulkDeleteResult,
   IIngredient,
   IIngredientExportResult,
+  IIngredientLineagePage,
   IPost,
   MediaDeliveryGrant,
 } from '@genfeedai/contracts/interfaces';
@@ -450,6 +454,40 @@ export class IngredientsService<
     return await this.instance
       .delete<JsonApiResponseDocument>(``, { data: body })
       .then((res) => this.extractResource<IBulkDeleteResult>(res.data));
+  }
+
+  /**
+   * One page of an asset's lineage in a single direction: the references it
+   * was made from, or the outputs that used it. Assets the member cannot see
+   * are never returned, only counted in `hiddenCount`.
+   */
+  public async findLineage(
+    id: string,
+    direction: IngredientLineageDirection,
+    options: { limit?: number; page?: number; signal?: AbortSignal } = {},
+  ): Promise<IIngredientLineagePage> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      `${encodeURIComponent(id)}/lineage/${direction}`,
+      {
+        params: { limit: options.limit, page: options.page },
+        signal: options.signal,
+      },
+    );
+    const items = await this.mapMany(response.data);
+    const pagination = response.data.links?.pagination;
+    const page = pagination?.page ?? 1;
+    const totalPages = Math.max(1, pagination?.pages ?? 1);
+    const hiddenCount = Number(response.data.meta?.hiddenCount ?? 0);
+
+    return {
+      hasNext: page < totalPages,
+      hiddenCount: Number.isFinite(hiddenCount) ? hiddenCount : 0,
+      items,
+      page,
+      pageSize: pagination?.limit ?? items.length,
+      total: pagination?.total ?? items.length,
+      totalPages,
+    };
   }
 
   public async getPosts(id: string): Promise<IPost[]> {

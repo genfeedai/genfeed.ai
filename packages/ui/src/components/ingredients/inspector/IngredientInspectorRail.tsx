@@ -4,6 +4,7 @@ import {
   ButtonVariant,
   ComponentSize,
   IngredientCategory,
+  IngredientLineageDirection,
   LIBRARY_SHELF_LABELS,
   LibraryShelf,
 } from '@genfeedai/contracts';
@@ -25,7 +26,7 @@ import { format } from 'date-fns';
 import { Maximize2 } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-
+import IngredientLineageStrip from './IngredientLineageStrip';
 import { getIngredientShelf } from './ingredient-shelf.util';
 
 const SHELF_VARIANTS: Record<
@@ -232,6 +233,15 @@ export default function IngredientInspectorRail({
           }
         />
       </dl>
+
+      <IngredientLineageStrip
+        direction={IngredientLineageDirection.MADE_FROM}
+        ingredientId={ingredient.id}
+      />
+      <IngredientLineageStrip
+        direction={IngredientLineageDirection.USED_IN}
+        ingredientId={ingredient.id}
+      />
 
       <IngredientQuickActions align="start" selectedIngredient={ingredient} />
       <InspectorNote label="Prompt" text={ingredient.promptText} />
