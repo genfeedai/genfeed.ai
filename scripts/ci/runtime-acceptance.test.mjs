@@ -2776,7 +2776,7 @@ const focusedContracts = {
   'brand-acceptance': {
     file: DELEGATED_API_FILES[1],
     titles: BRAND_SOURCE_CONTRACT.brand.passedTitles,
-    count: 16,
+    count: 17,
   },
   'baseline-materialization-migration': {
     file: 'prisma/content-learning-baseline-materialization-migration.test.ts',
@@ -2872,7 +2872,7 @@ test('prepared owner revisions retain only the exact approved source hashes', ()
         entry.path ===
         'apps/server/api/src/services/branded-generation-receipts/branded-generation-receipts.service.spec.ts',
     )?.sha256,
-    '7d9407f1613ddaf97a4d183bc9ae6d92bee37c3350bd8e741e56f7c1bbb45971',
+    'e121d769cabadc1b1601f103745013b275c20786971401c3db7feb8801456d30',
   );
   assert.equal(
     BRAND_SOURCE_CONTRACT.unitFiles.find(
@@ -2896,7 +2896,7 @@ test('prepared owner revisions retain only the exact approved source hashes', ()
   );
   assert.equal(
     BRAND_SOURCE_CONTRACT.brand.sha256,
-    '132cb7ddab81acf2d70150e7425aaf4a9d1bc7465747bb4b2c9549a367cb37b8',
+    '6576e46cddcff5f1beb1b3765939e5bb6ee1759bdcf422adff1dcc40ae37fc2f',
   );
 });
 test('migration diagnostics helper is an exact frozen dependency for learning and brand', () => {
