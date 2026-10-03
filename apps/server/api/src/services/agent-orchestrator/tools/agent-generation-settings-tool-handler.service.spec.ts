@@ -100,6 +100,13 @@ describe('AgentGenerationSettingsToolHandler', () => {
     },
   );
 
+  it('leaves reads to get_generation_options', () => {
+    const { handler } = setup();
+    expect(handler.handles('get_generation_settings')).toBe(false);
+    expect(handler.handles('get_generation_options')).toBe(false);
+    expect(handler.handles('set_generation_settings')).toBe(true);
+  });
+
   it('reads only in the authenticated tenant and uses thread brand context', async () => {
     const { handler, settings } = setup();
     expect(await handler.get({ organizationId: 'foreign' }, ctx)).toMatchObject(

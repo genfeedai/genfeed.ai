@@ -92,6 +92,7 @@ import { Module } from '@nestjs/common';
     LiveSessionCreditsService,
     VideoGenerationCreditsService,
     VideoGenerationService,
+    VideoMergeOrchestrationService,
     VideoProvenanceService,
     VideosCoreModule,
   ],

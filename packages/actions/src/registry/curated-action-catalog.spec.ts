@@ -150,14 +150,48 @@ describe('curated action catalog', () => {
     ).toEqual(['voiceProfile']);
   });
 
+  it('merges X post fetch and search into get_x_posts with no required argument', () => {
+    const tool = getToolByName('get_x_posts');
+    expect(tool?.parameters.required ?? []).toEqual([]);
+    expect(Object.keys(tool?.parameters.properties ?? {}).sort()).toEqual([
+      'brandId',
+      'limit',
+      'postIdOrUrl',
+      'query',
+      'sortOrder',
+    ]);
+    expect(getToolByName('fetch_x_post')).toBeUndefined();
+    expect(getToolByName('search_x_posts')).toBeUndefined();
+  });
+
+  it('merges article get and search into MCP-only get_articles with no required argument', () => {
+    const tool = getToolByName('get_articles');
+    expect(tool?.surfaces).toMatchObject({ agent: false, mcp: true });
+    expect(tool?.parameters.required ?? []).toEqual([]);
+    expect(Object.keys(tool?.parameters.properties ?? {}).sort()).toEqual([
+      'articleId',
+      'category',
+      'limit',
+      'query',
+    ]);
+    expect(getToolByName('get_article')).toBeUndefined();
+    expect(getToolByName('search_articles')).toBeUndefined();
+  });
+
+  it('drops get_video_status because get_job_status covers videos', () => {
+    expect(getToolByName('get_video_status')).toBeUndefined();
+    expect(getToolByName('get_job_status')?.surfaces).toMatchObject({
+      mcp: true,
+    });
+  });
+
   it('exposes the reviewed generation, edit, and analytics actions on both surfaces', () => {
     for (const name of [
       'analyze_performance',
       'generate',
       'get_analytics',
-      'get_content_calendar',
-      'reframe_image',
-      'upscale_image',
+      'get_posts',
+      'transform_media',
     ]) {
       expect(getToolByName(name)?.surfaces, name).toMatchObject({
         agent: true,
@@ -167,11 +201,7 @@ describe('curated action catalog', () => {
   });
 
   it('exposes headless-safe X read actions on both surfaces and keeps drafts agent-only', () => {
-    for (const name of [
-      'fetch_x_post',
-      'list_x_account_activity',
-      'search_x_posts',
-    ]) {
+    for (const name of ['get_x_posts', 'list_x_account_activity']) {
       expect(getToolByName(name)?.surfaces, name).toMatchObject({
         agent: true,
         mcp: true,
@@ -236,9 +266,8 @@ describe('curated action catalog', () => {
 
   it('exposes read-only scheduler capability discovery on MCP only', () => {
     for (const name of [
-      'get_scheduler_capability',
+      'get_scheduler_capabilities',
       'list_brand_publishing_readiness',
-      'list_scheduler_capabilities',
       'validate_scheduler_target',
     ]) {
       const tool = getToolByName(name);
@@ -256,16 +285,17 @@ describe('curated action catalog', () => {
       getToolByName('list_brand_publishing_readiness')?.parameters.required,
     ).toEqual(['brandId']);
     expect(
-      getToolByName('list_scheduler_capabilities')?.parameters.properties,
+      getToolByName('get_scheduler_capabilities')?.parameters.properties,
     ).toEqual(
       expect.objectContaining({
         includeHidden: expect.objectContaining({ type: 'boolean' }),
         includePlanned: expect.objectContaining({ type: 'boolean' }),
+        platform: expect.objectContaining({ type: 'string' }),
       }),
     );
     expect(
-      getToolByName('get_scheduler_capability')?.parameters.required,
-    ).toEqual(['platform']);
+      getToolByName('get_scheduler_capabilities')?.parameters.required ?? [],
+    ).toEqual([]);
     expect(
       getToolByName('validate_scheduler_target')?.parameters.required,
     ).toEqual(['platform']);
@@ -313,7 +343,7 @@ describe('curated action catalog', () => {
   });
 
   it('places the always-on discovery meta tools in the core toolset, MCP-only', () => {
-    for (const name of ['list_toolsets', 'search_tools', 'describe_tool']) {
+    for (const name of ['find_tools']) {
       const entry = CURATED_ACTION_CATALOG.find(
         (candidate) => candidate.name === name,
       );
@@ -329,8 +359,10 @@ describe('curated action catalog', () => {
 
   it('groups representative actions into the expected toolsets', () => {
     const expected: ReadonlyArray<readonly [string, string]> = [
-      ['get_account_info', 'core'],
-      ['get_credits_balance', 'core'],
+      ['get_account', 'core'],
+      ['get_brands', 'core'],
+      ['get_posts', 'content'],
+      ['list_assets', 'generation'],
       ['resolve_approval', 'core'],
       ['create_post', 'content'],
       ['repurpose_post', 'content'],

@@ -82,7 +82,7 @@ it('initializes the standard bridge and accepts host theme', async () => {
 it('renders post content as text and ignores messages from other windows', () => {
   const payload = {
     structuredContent: {
-      genfeedCards: buildCardView('list_posts', {
+      genfeedCards: buildCardView('get_posts', {
         posts: [
           {
             label: '<img src=x onerror=alert(1)>',
@@ -101,25 +101,32 @@ it('renders post content as text and ignores messages from other windows', () =>
 });
 
 it('renders image, video and audio controls using allowed origins', () => {
-  result('list_images', [
-    { id: 'img', url: 'https://cdn.genfeed.ai/image.png' },
+  result('list_assets', [
+    { id: 'img', category: 'IMAGE', url: 'https://cdn.genfeed.ai/image.png' },
   ]);
   expect(document.querySelector('img')?.getAttribute('src')).toBe(
     'https://cdn.genfeed.ai/image.png',
   );
-  result('list_videos', [
-    { id: 'vid', url: 'https://cdn.genfeed.ai/video.mp4', status: 'COMPLETED' },
+  result('list_assets', [
+    {
+      id: 'vid',
+      category: 'VIDEO',
+      url: 'https://cdn.genfeed.ai/video.mp4',
+      status: 'COMPLETED',
+    },
   ]);
   expect(document.querySelector('video')?.controls).toBe(true);
   expect(document.querySelector('video')?.autoplay).toBe(false);
-  result('list_music', [
-    { id: 'audio', url: 'https://cdn.genfeed.ai/music.mp3' },
+  result('list_assets', [
+    { id: 'audio', category: 'MUSIC', url: 'https://cdn.genfeed.ai/music.mp3' },
   ]);
   expect(document.querySelector('audio')?.controls).toBe(true);
 });
 
 it('uses open-link for external media without loading unapproved origins', () => {
-  result('list_images', [{ url: 'https://external.example/image.png' }]);
+  result('list_assets', [
+    { category: 'IMAGE', url: 'https://external.example/image.png' },
+  ]);
   expect(document.querySelector('img')).toBeNull();
   document.querySelector('a')?.click();
   expect(window.parent.postMessage).toHaveBeenCalledWith(
@@ -132,8 +139,8 @@ it('uses open-link for external media without loading unapproved origins', () =>
 });
 
 it('replaces content on empty, error and approval results', () => {
-  result('list_posts', { posts: [{ id: 'p1', label: 'Post' }] });
-  result('list_posts', { posts: [] });
+  result('get_posts', { posts: [{ id: 'p1', label: 'Post' }] });
+  result('get_posts', { posts: [] });
   expect(document.querySelector('article')).toBeNull();
   expect(document.body.textContent).toContain('No content found.');
   message('ui/notifications/tool-result', {
@@ -148,12 +155,12 @@ it('replaces content on empty, error and approval results', () => {
 });
 
 it('shows long article text, usage zeroes, and truncated list counts', () => {
-  result('get_article', { title: 'Article', content: 'a'.repeat(900) });
+  result('get_articles', { title: 'Article', content: 'a'.repeat(900) });
   expect(document.querySelector('summary')?.textContent).toBe('Read more');
-  result('get_usage_stats', { contentCreated: { images: 0 } });
+  result('get_account', { usage: { currentBalance: 0 } });
   expect(document.querySelector('.metric')?.textContent).toBe('0');
   result(
-    'list_images',
+    'list_assets',
     Array.from({ length: 30 }, (_, id) => ({ id: String(id) })),
   );
   expect(document.querySelectorAll('article')).toHaveLength(24);
@@ -166,8 +173,12 @@ it('reports a failed handshake instead of loading indefinitely', async () => {
 });
 
 it('renders avatars that only supply a thumbnail', () => {
-  result('list_avatars', [
-    { name: 'Avatar', thumbnailUrl: 'https://cdn.genfeed.ai/avatar.png' },
+  result('list_assets', [
+    {
+      category: 'AVATAR',
+      name: 'Avatar',
+      thumbnailUrl: 'https://cdn.genfeed.ai/avatar.png',
+    },
   ]);
   expect(document.querySelector('img')?.getAttribute('src')).toBe(
     'https://cdn.genfeed.ai/avatar.png',
@@ -178,7 +189,9 @@ it('renders avatars that only supply a thumbnail', () => {
 });
 
 it('reports host open-link failures returned as results', async () => {
-  result('list_images', [{ url: 'https://external.example/image.png' }]);
+  result('list_assets', [
+    { category: 'IMAGE', url: 'https://external.example/image.png' },
+  ]);
   document.querySelector('a')?.click();
   window.dispatchEvent(
     new MessageEvent('message', {
@@ -215,7 +228,7 @@ it('reports natural body height so the host frame can shrink', async () => {
     '*',
   );
   bounds.mockReturnValue({ height: 200 } as DOMRect);
-  result('list_posts', []);
+  result('get_posts', []);
   expect(window.parent.postMessage).toHaveBeenLastCalledWith(
     expect.objectContaining({
       method: 'ui/notifications/size-changed',

@@ -1,14 +1,30 @@
 import { AgentMediaAssetGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-asset-generation.service';
 import { AgentMediaBatchGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-batch-generation.service';
 import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
+import { AgentMediaTransformService } from '@api/services/agent-orchestrator/tools/agent-media-transform.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import {
   findInapplicableMediaGenerationParameters,
   isMediaGenerationType,
   MEDIA_GENERATION_TYPES,
+  type MediaGenerationType,
 } from '@genfeedai/actions';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
+
+/**
+ * Tags a `generate` result with its asset kind so MCP cards and clients can
+ * render the right player without guessing from the shared tool name.
+ */
+function withMediaKind(
+  result: AgentToolResult,
+  type: MediaGenerationType,
+): AgentToolResult {
+  const data = result.data;
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return result;
+  if ('kind' in data) return result;
+  return { ...result, data: { ...data, kind: type } };
+}
 
 /**
  * Stable media-tool facade. Each tool family has one bounded runtime owner so
@@ -20,6 +36,7 @@ export class AgentMediaGenerationToolHandler {
     private readonly textGeneration: AgentMediaTextGenerationService,
     private readonly assetGeneration: AgentMediaAssetGenerationService,
     private readonly batchGeneration: AgentMediaBatchGenerationService,
+    private readonly transform: AgentMediaTransformService,
   ) {}
 
   async aiAction(
@@ -69,6 +86,18 @@ export class AgentMediaGenerationToolHandler {
       return { creditsUsed: 0, error: 'prompt is required', success: false };
     }
 
+    return withMediaKind(
+      await this.generateByType(type, rest, prompt, ctx),
+      type,
+    );
+  }
+
+  private generateByType(
+    type: MediaGenerationType,
+    rest: Record<string, unknown>,
+    prompt: string,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
     switch (type) {
       case 'image':
         return this.assetGeneration.generateImage(rest, ctx);
@@ -91,25 +120,11 @@ export class AgentMediaGenerationToolHandler {
     }
   }
 
-  async editImage(
+  async transformMedia(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    return this.assetGeneration.editImage(params, ctx);
-  }
-
-  async reframeImage(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    return this.assetGeneration.reframeImage(params, ctx);
-  }
-
-  async upscaleImage(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    return this.assetGeneration.upscaleImage(params, ctx);
+    return this.transform.transformMedia(params, ctx);
   }
 
   async generateContentBatch(

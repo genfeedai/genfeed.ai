@@ -23,7 +23,7 @@ import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator
 import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
-import { AgentGenerationCostToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-cost-tool-handler.service';
+import { AgentGenerationOptionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-options-tool-handler.service';
 import { AgentGenerationSettingsToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-settings-tool-handler.service';
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
 import { AgentKnowledgeToolHandler } from '@api/services/agent-orchestrator/tools/agent-knowledge-tool-handler.service';
@@ -65,6 +65,7 @@ import type {
   CuratedActionName,
 } from '@genfeedai/actions';
 import {
+  getMediaTransformOperation,
   getToolByName,
   getToolsForSurface,
   getVisualMediaGenerationType,
@@ -93,9 +94,7 @@ import { toPlainJson } from '@serializers/helpers/plain-json.helper';
 const UNQUOTED_PAID_AGENT_TOOLS = new Set<string>([
   'generate',
   'generate_as_identity',
-  'edit_image',
-  'reframe_image',
-  'upscale_image',
+  'transform_media',
   'generate_onboarding_content',
   'generate_ad_pack',
   'enhance_prompt',
@@ -108,6 +107,8 @@ export function agentToolCreditEstimate(
 ): number | undefined {
   // Batch preparation enforces its authoritative quote against the remaining cap before reserving credits.
   if (toolName === 'generate_content_batch') return 0;
+  // Merging clips runs on the local files queue and is never charged.
+  if (getMediaTransformOperation(toolName, parameters) === 'merge') return 0;
   if (UNQUOTED_PAID_AGENT_TOOLS.has(toolName)) return undefined;
   if (
     toolName === 'generate_content' &&
@@ -188,8 +189,7 @@ export interface ToolExecutionContext {
 }
 
 const BRANDLESS_AGENT_TOOLS = new Set<CuratedActionName>([
-  'get_generation_cost',
-  'get_generation_settings',
+  'get_generation_options',
   'set_generation_settings',
   'analyze_performance',
   'check_goal_progress',
@@ -202,8 +202,7 @@ const BRANDLESS_AGENT_TOOLS = new Set<CuratedActionName>([
   'get_analytics',
   'get_approval_summary',
   'get_connection_status',
-  'get_content_calendar',
-  'get_credits_balance',
+  'get_account',
   'get_dashboard_layout',
   'get_top_ingredients',
   'get_trends',
@@ -212,12 +211,11 @@ const BRANDLESS_AGENT_TOOLS = new Set<CuratedActionName>([
   'inspect_workflow',
   'list_ads_research',
   'list_agent_conversations',
-  'list_brands',
-  'list_characters',
+  'get_brands',
+  'get_posts',
+  'list_assets',
   'list_genfeed_tools',
   'list_outlier_posts',
-  'list_posts',
-  'get_post',
   'request_media_upload',
   'complete_media_upload',
   'list_review_queue',
@@ -236,6 +234,22 @@ const BRANDLESS_AGENT_TOOLS = new Set<CuratedActionName>([
 ]);
 
 /**
+ * Whether a call needs an explicit thread brand. Image and video generation
+ * resolve a brand themselves; voice and music need one. Merging clips is
+ * brand-agnostic: the clips are scoped by organization.
+ */
+function isBrandRequiredTool(
+  toolName: CuratedActionName,
+  parameters: Record<string, unknown>,
+): boolean {
+  return (
+    !BRANDLESS_AGENT_TOOLS.has(toolName) &&
+    !getVisualMediaGenerationType(toolName, parameters) &&
+    getMediaTransformOperation(toolName, parameters) !== 'merge'
+  );
+}
+
+/**
  * Thin agent tool router. Tool families live in dedicated handlers (#519).
  */
 @Injectable()
@@ -248,8 +262,8 @@ export class AgentToolExecutorService implements OnModuleInit {
   @Inject(AgentWorkObjectService)
   private readonly workObjects!: AgentWorkObjectService;
 
-  @Inject(AgentGenerationCostToolHandler)
-  private readonly generationCostHandler!: AgentGenerationCostToolHandler;
+  @Inject(AgentGenerationOptionsToolHandler)
+  private readonly generationOptionsHandler!: AgentGenerationOptionsToolHandler;
 
   @Inject(AgentGenerationSettingsToolHandler)
   private readonly generationSettingsHandler!: AgentGenerationSettingsToolHandler;
@@ -607,12 +621,7 @@ export class AgentToolExecutorService implements OnModuleInit {
       );
     }
 
-    // Image and video resolve a brand themselves; voice and music need one.
-    if (
-      !scope.brandId &&
-      !BRANDLESS_AGENT_TOOLS.has(toolName) &&
-      !getVisualMediaGenerationType(toolName, parameters)
-    ) {
+    if (!scope.brandId && isBrandRequiredTool(toolName, parameters)) {
       throw new Error(
         `An explicit thread brand context is required for ${toolName}.`,
       );
@@ -624,22 +633,22 @@ export class AgentToolExecutorService implements OnModuleInit {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    if (toolName === 'get_generation_cost') {
-      return this.dispatchGenerationCost(toolName, params, ctx);
+    if (toolName === 'get_generation_options') {
+      return this.dispatchGenerationOptions(toolName, params, ctx);
     }
     return Object.hasOwn(VISUAL_CODE_ACTION_ALIASES, toolName)
       ? this.dispatchVisualCode(toolName, params, ctx)
       : this.dispatch(toolName, params, ctx);
   }
 
-  private dispatchGenerationCost(
+  private dispatchGenerationOptions(
     toolName: CuratedActionName,
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     switch (toolName) {
-      case 'get_generation_cost':
-        return this.generationCostHandler.execute(params, ctx);
+      case 'get_generation_options':
+        return this.generationOptionsHandler.execute(params, ctx);
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }

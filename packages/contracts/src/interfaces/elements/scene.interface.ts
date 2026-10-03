@@ -1,7 +1,7 @@
 import type { ModelCategory } from '../..';
-import type { IBaseEntity, IElementBase } from '../index';
+import type { IBaseEntity, IPlatformElement } from '../index';
 
-export interface IElementScene extends IBaseEntity, IElementBase {
+export interface IElementScene extends IBaseEntity, IPlatformElement {
   category?: ModelCategory;
   isFavorite?: boolean;
 }

@@ -12,7 +12,7 @@ import { ToolRegistryService } from '@mcp/services/tool-registry.service';
  * per-instance `getToolsForRole`.
  *
  * The tools below are synthetic fixtures chosen to exercise each role tier:
- * `list_posts` (real user tool) and `resolve_approval` (real superadmin tool),
+ * `get_posts` (real user tool) and `resolve_approval` (real superadmin tool),
  * plus a synthetic admin-tier tool (the OSS MCP surface currently has no
  * admin-only tool after the fleet tools were dropped in PR 5/6).
  */
@@ -21,7 +21,7 @@ const USER_TOOL = {
   _meta: {},
   description: 'user tool',
   inputSchema: { properties: {}, type: 'object' },
-  name: 'list_posts',
+  name: 'get_posts',
   requiredRole: 'user',
 } as McpToolOutput;
 
@@ -100,19 +100,19 @@ describe('ToolRegistryService.filterToolsByRole', () => {
   it('gives a user only user-tier tools', () => {
     expect(
       names(ToolRegistryService.filterToolsByRole(ALL_TOOLS, 'user')),
-    ).toEqual(['list_posts']);
+    ).toEqual(['get_posts']);
   });
 
   it('gives an admin user- and admin-tier tools, not superadmin', () => {
     expect(
       names(ToolRegistryService.filterToolsByRole(ALL_TOOLS, 'admin')),
-    ).toEqual(['admin_scoped_tool', 'list_posts']);
+    ).toEqual(['admin_scoped_tool', 'get_posts']);
   });
 
   it('gives a superadmin every tool', () => {
     expect(
       names(ToolRegistryService.filterToolsByRole(ALL_TOOLS, 'superadmin')),
-    ).toEqual(['admin_scoped_tool', 'list_posts', 'resolve_approval']);
+    ).toEqual(['admin_scoped_tool', 'get_posts', 'resolve_approval']);
   });
 });
 
@@ -121,22 +121,22 @@ describe('ToolRegistryService listing filters by the caller role', () => {
     const registry = build('user');
     expect(names(registry.getToolsForRole('admin'))).toEqual([
       'admin_scoped_tool',
-      'list_posts',
+      'get_posts',
     ]);
   });
 
   it('getTools defaults to the per-request role threaded into the constructor', () => {
-    expect(names(build('user').getTools())).toEqual(['list_posts']);
+    expect(names(build('user').getTools())).toEqual(['get_posts']);
     expect(names(build('admin').getTools())).toEqual([
       'admin_scoped_tool',
-      'list_posts',
+      'get_posts',
     ]);
   });
 
   it('getAllTools returns the unfiltered surface for internal checks', () => {
     expect(names(build('user').getAllTools())).toEqual([
       'admin_scoped_tool',
-      'list_posts',
+      'get_posts',
       'resolve_approval',
     ]);
   });
@@ -147,7 +147,7 @@ describe('ToolRegistryService toolset-aware listing (getTools / getToolsForRoleA
     _meta: {},
     description: 'core discovery tool',
     inputSchema: { properties: {}, type: 'object' },
-    name: 'list_toolsets',
+    name: 'find_tools',
     requiredRole: 'user',
   } as McpToolOutput;
 
@@ -184,19 +184,19 @@ describe('ToolRegistryService toolset-aware listing (getTools / getToolsForRoleA
   it('still applies the role filter on top of whatever the toolset selection returns', () => {
     expect(names(build('user', ['content']).getTools())).toEqual([
       'create_post',
-      'list_toolsets',
+      'find_tools',
     ]);
     expect(names(build('admin', ['content']).getTools())).toEqual([
       'admin_only_generation_tool',
       'create_post',
-      'list_toolsets',
+      'find_tools',
     ]);
   });
 
   it('an empty selection defers to the shared catalog for "every tool"', () => {
     expect(names(build('user', []).getTools())).toEqual([
       'create_post',
-      'list_toolsets',
+      'find_tools',
     ]);
   });
 
@@ -212,7 +212,7 @@ describe('ToolRegistryService toolset-aware listing (getTools / getToolsForRoleA
 
     expect(
       names(registry.getToolsForRoleAndToolsets('user', ['content'])),
-    ).toEqual(['create_post', 'list_toolsets']);
+    ).toEqual(['create_post', 'find_tools']);
   });
 });
 
@@ -224,10 +224,10 @@ describe('ToolRegistryService.getDiscoverableTools', () => {
     mockState.toolsForToolsets = [];
 
     expect(names(build('user', ['content']).getDiscoverableTools())).toEqual([
-      'list_posts',
+      'get_posts',
     ]);
     expect(
       names(build('superadmin', ['content']).getDiscoverableTools()),
-    ).toEqual(['admin_scoped_tool', 'list_posts', 'resolve_approval']);
+    ).toEqual(['admin_scoped_tool', 'get_posts', 'resolve_approval']);
   });
 });

@@ -35,7 +35,7 @@ and a quoted, approved budget for paid media generation. Record client version,
 deployed SHA, observed behavior, and cost evidence in the authorized run. The
 read-only run established only the observations listed in the matrix above.
 
-Expected client behavior remains explicit brand selection (`list_brands` then
+Expected client behavior remains explicit brand selection (`get_brands` then
 `brandId`, or `gf brand` / `--brand`) and transient context (`selectedContext` or
 `--context`). Image delivery may use a resource link, structured artifact, and
 text fallback; video uses a file or open link and never claims inline playback.
@@ -55,15 +55,15 @@ or approved spending. Selecting a profile does not authorize writes or costs.
 
 | Stage | Existing curated MCP actions | Availability / acceptance boundary |
 | --- | --- | --- |
-| Discover tools and select a brand | `search_tools`, `describe_tool`, `list_brands`, `get_brand` | Exposed; explicit brand lookup still needs the deployed #5017 retest. |
-| Research | `search_articles`, `search_x_posts`, `get_trends` | Exposed through content and analytics; does not establish generic URL import. |
+| Discover tools and select a brand | `find_tools`, `get_brands` | Exposed; explicit brand lookup still needs the deployed #5017 retest. |
+| Research | `get_articles`, `get_x_posts`, `get_trends` | Exposed through content and analytics; does not establish generic URL import. |
 | Upload local media | `request_media_upload`, `complete_media_upload` | Exposed; reservation and completion are writes. Upload the bytes using the returned instructions between these calls. |
 | Import a post | `import_source_post` | Exposed through inspiration for public X, Instagram, and TikTok post URLs only; approval required. Arbitrary URL or media fetch stays unavailable. Fixture coverage only, not a live pass. |
 | Save, edit, and quote concepts | `create_remix_concept`, `get_remix_run`, `update_remix_concept`, `attach_remix_analysis_source`, `quote_remix_generation`, `start_remix_generation`, `control_remix_generation` | Exposed through inspiration and generation; see [Imported remix handoff](#imported-remix-handoff). Fixture coverage only, not a live pass. |
 | Generate media | `generate` (`type: image`, `video`, `voice` or `music`) | Exposed through generation; requires owner consent and a quoted, approved paid budget for live acceptance. |
-| Inspect progress | `get_job_status`, `get_video_status` | Exposed; live wait/reconnect recovery remains unverified. |
-| Retrieve output | `list_images`, `list_videos`, `get_post` | Exposed; verify the actual client artifact or supported fallback. |
-| Prepare and schedule | `list_scheduler_capabilities`, `list_brand_publishing_readiness`, `validate_scheduler_target`, `create_scheduled_release` | Exposed; readiness must agree with scheduler support. Creating a release is a write and retains approval checks. |
+| Inspect progress | `get_job_status` | Exposed; live wait/reconnect recovery remains unverified. |
+| Retrieve output | `list_assets`, `get_posts` | Exposed; verify the actual client artifact or supported fallback. |
+| Prepare and schedule | `get_scheduler_capabilities`, `list_brand_publishing_readiness`, `validate_scheduler_target`, `create_scheduled_release` | Exposed; readiness must agree with scheduler support. Creating a release is a write and retains approval checks. |
 | Inspect analytics | `get_analytics`, `get_content_analytics`, `get_video_analytics` | Exposed through analytics; requires scoped account data and live verification. |
 
 This document adds no actions or schemas and does not change the independently
@@ -80,7 +80,7 @@ from public client and directory acceptance.
   `oauth-callback-error.util.spec.ts`
 - Explicit brand selection and unauthorized knowledge sources:
   `agent-generation-scope.service.spec.ts`
-- MCP `get_brand` no longer returns the first of two brands:
+- MCP `get_brands` no longer returns the first of two brands:
   `account-management.tool.spec.ts`
 - MCP image/video `resource_link` + structured artifact + text fallback:
   `packages/helpers/src/media/media-artifact.helper.test.ts`
@@ -134,8 +134,9 @@ through another client.
 
 The MCP generation toolset exposes:
 
-- `get_generation_settings`: optionally supply `brandId` to inspect the effective
-  setting and its source.
+- `get_generation_options`: optionally supply `brandId` to inspect the effective
+  setting and its source. Add `type` to also read the credit estimate and balance
+  for that generation type.
 - `set_generation_settings`: pass `scope` (`organization` or `brand`), `isEnabled`
   (`true`, `false`, or `null` to reset), and `brandId` for a brand override.
 - `enhance_prompt`: pass `prompt`, `contentType` (`image` or `video`), selected

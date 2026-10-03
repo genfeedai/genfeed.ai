@@ -615,7 +615,7 @@ test('expired video admission reports the error and never retries automatically'
   const errorToast = page
     .locator('[data-sonner-toast][data-type="error"]')
     .filter({
-      has: page.getByText('The image provider could not be reached. failed', {
+      has: page.getByText('The image provider could not be reached.', {
         exact: true,
       }),
     });

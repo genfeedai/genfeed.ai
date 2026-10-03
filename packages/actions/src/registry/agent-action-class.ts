@@ -54,7 +54,6 @@ const CREDIT_SPENDING_TOOL_NAMES = new Set<string>([
   'export_visual_code_project',
   'retry_visual_code_project',
 
-  'edit_image',
   'generate',
   'generate_ad_pack',
   'generate_as_identity',
@@ -62,8 +61,7 @@ const CREDIT_SPENDING_TOOL_NAMES = new Set<string>([
   'generate_content_batch',
   'generate_monthly_content',
   'generate_onboarding_content',
-  'reframe_image',
-  'upscale_image',
+  'transform_media',
   'execute_workflow',
 ]);
 

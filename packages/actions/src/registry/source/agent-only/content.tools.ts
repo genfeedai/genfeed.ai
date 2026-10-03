@@ -84,17 +84,17 @@ export const AGENT_CONTENT_TOOLS: SourceTool[] = [
   {
     creditCost: 2,
     description:
-      'Generate social media content or a newsletter draft for a given topic or brief.',
+      'Generate content for a topic or brief. Social types (caption, post, thread, script, article_outline) return ready-to-publish text with hook, body, CTA and hashtags and are not saved; use platform linkedin for LinkedIn posts and variationsCount for alternatives. type newsletter creates a saved newsletter draft. type article (or x-article) generates and saves an article draft with an id, ready for get_article_preview and publish_article; to import an already written article without regeneration use create_article_draft. Each field lists the types it applies to.',
     name: 'generate_content',
     parameters: {
       properties: {
         brandId: {
-          description: 'Brand ID to use for tone and voice',
+          description: 'All types. Brand ID to use for tone and voice',
           type: 'string',
         },
         knowledgePurposes: {
           description:
-            'Restrict grounding to saved Knowledge with these purposes (BRAND_TRUTH, INSPIRATION, RESEARCH)',
+            'Social types. Restrict grounding to saved Knowledge with these purposes (BRAND_TRUTH, INSPIRATION, RESEARCH)',
           items: {
             enum: ['BRAND_TRUTH', 'INSPIRATION', 'RESEARCH'],
             type: 'string',
@@ -103,12 +103,23 @@ export const AGENT_CONTENT_TOOLS: SourceTool[] = [
         },
         knowledgeSourceIds: {
           description:
-            'Ground the content on these saved Knowledge source ids only; the output cites them',
+            'Social types. Ground the content on these saved Knowledge source ids only; the output cites them',
           items: { type: 'string' },
           type: 'array',
         },
+        keywords: {
+          description: 'article, x-article. SEO keywords to include',
+          items: { type: 'string' },
+          type: 'array',
+        },
+        length: {
+          description:
+            'article. Article length, folded into the generation prompt',
+          enum: ['short', 'medium', 'long'],
+          type: 'string',
+        },
         platform: {
-          description: 'Target social platform',
+          description: 'Social types. Target social platform',
           enum: [
             'instagram',
             'twitter',
@@ -120,8 +131,19 @@ export const AGENT_CONTENT_TOOLS: SourceTool[] = [
           ],
           type: 'string',
         },
+        targetAudience: {
+          description:
+            'article. Target audience, folded into the generation prompt',
+          type: 'string',
+        },
+        tone: {
+          description:
+            'article, x-article. Writing tone, for example professional, casual, humorous, technical or storytelling',
+          type: 'string',
+        },
         topic: {
-          description: 'Topic or brief for the content',
+          description:
+            'All types. Topic or brief for the content (at most 500 characters for article and x-article)',
           type: 'string',
         },
         type: {
@@ -133,8 +155,17 @@ export const AGENT_CONTENT_TOOLS: SourceTool[] = [
             'thread',
             'script',
             'newsletter',
+            'article',
+            'x-article',
           ],
           type: 'string',
+        },
+        variationsCount: {
+          description:
+            'Social types. Number of variations to generate (1-5, default 1)',
+          maximum: 5,
+          minimum: 1,
+          type: 'number',
         },
       },
       required: ['topic', 'type'],
@@ -159,23 +190,6 @@ export const AGENT_CONTENT_TOOLS: SourceTool[] = [
         },
       },
       required: ['postId', 'scheduledAt'],
-      type: 'object',
-    },
-    requiredRole: 'user',
-  },
-  {
-    creditCost: 0,
-    description:
-      'Get the content calendar for the coming week. Returns scheduled and draft posts with gap analysis showing days without content.',
-    name: 'get_content_calendar',
-    parameters: {
-      properties: {
-        days: {
-          description: 'Number of days ahead to look (default 7)',
-          type: 'number',
-        },
-      },
-      required: [],
       type: 'object',
     },
     requiredRole: 'user',

@@ -15,6 +15,7 @@ import { isReadOnlyToolName } from '../mutation-policy';
  */
 const READ_ONLY_HINT_PREFIXES = [
   'describe_',
+  'find_',
   'get_',
   'list_',
   'search_',
@@ -25,10 +26,8 @@ const GENERATION_OPEN_WORLD_NAMES: ReadonlySet<string> = new Set([
   'import_source_post',
   'start_remix_generation',
   'control_remix_generation',
-  'edit_image',
-  'reframe_image',
   'replace_storyboard_character',
-  'upscale_image',
+  'transform_media',
 ]);
 
 /**
@@ -46,8 +45,6 @@ const DESTRUCTIVE_HINT_NAMES: ReadonlySet<string> = new Set([
 
 const READ_ONLY_HINT_NAMES: ReadonlySet<string> = new Set([
   'quote_visual_code_generation',
-  'get_account_info',
-  'list_brands',
   'validate_scheduler_target',
 ]);
 
@@ -57,16 +54,15 @@ const READ_ONLY_HINT_NAMES: ReadonlySet<string> = new Set([
  * `create_post` is draft-only on MCP, so the draft write is not destructive.
  */
 const NON_DESTRUCTIVE_WRITE_NAMES: ReadonlySet<string> = new Set([
-  'edit_image',
   'cancel_visual_code_project',
   'import_source_post',
   'create_remix_concept',
   'create_storyboard_remix',
   'complete_media_upload',
-  'merge_videos',
   'request_media_upload',
   'create_post',
   'open_in_editor',
+  'transform_media',
 ]);
 
 const PUBLISHING_TOOL_NAMES: ReadonlySet<string> = new Set(

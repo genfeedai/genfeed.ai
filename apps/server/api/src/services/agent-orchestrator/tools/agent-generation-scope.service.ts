@@ -83,7 +83,7 @@ export class AgentGenerationScopeService {
         creditsUsed: 0,
         data: { brands, recoveryAction: 'select_brand' },
         error:
-          'Select a brand before generating. Pass brandId from list_brands; the first organization brand is not used automatically.',
+          'Select a brand before generating. Pass brandId from get_brands; the first organization brand is not used automatically.',
         success: false,
       },
     };

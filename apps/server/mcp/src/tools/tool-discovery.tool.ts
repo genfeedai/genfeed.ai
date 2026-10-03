@@ -13,9 +13,7 @@ import type {
 
 /** MCP-surfaced meta tools handled entirely in-process — no API call. */
 export const TOOL_DISCOVERY_TOOL_NAMES: ReadonlySet<string> = new Set([
-  'list_toolsets',
-  'search_tools',
-  'describe_tool',
+  'find_tools',
 ]);
 
 const DEFAULT_SEARCH_LIMIT = 20;
@@ -47,7 +45,7 @@ function errorResult(text: string) {
 }
 
 /**
- * `list_toolsets` must be role-aware: it summarizes exactly what the caller
+ * Listing toolsets must be role-aware: it summarizes exactly what the caller
  * can currently see, derived from `registry.getDiscoverableTools()` (already
  * role-filtered) grouped by each tool's `genfeed.ai/toolset` `_meta` key. A
  * plain `user`, for example, must see `core` short by `resolve_approval` (a
@@ -109,9 +107,7 @@ function handleSearchTools(
     typeof args.toolset === 'string' ? args.toolset.trim().toLowerCase() : '';
 
   if (!query && !toolsetFilter) {
-    return errorResult(
-      'search_tools requires at least one of "query" or "toolset".',
-    );
+    return handleListToolsets(registry);
   }
 
   if (toolsetFilter) {
@@ -160,10 +156,6 @@ function handleDescribeTool(
   args: Record<string, unknown>,
 ) {
   const name = typeof args.name === 'string' ? args.name.trim() : '';
-  if (!name) {
-    return errorResult('describe_tool requires "name".');
-  }
-
   const tools = registry.getDiscoverableTools();
   const tool = tools.find((candidate) => candidate.name === name);
 
@@ -216,19 +208,20 @@ function closestMatches(name: string, tools: McpToolOutput[]): string[] {
     .map((candidate) => candidate.name);
 }
 
+/**
+ * `find_tools`: `name` describes one tool, `query`/`toolset` search, and no
+ * argument lists the toolsets.
+ */
 export function handleToolDiscoveryTool(
   registry: ToolDiscoverySource,
   name: string,
   args: Record<string, unknown>,
 ) {
-  switch (name) {
-    case 'list_toolsets':
-      return handleListToolsets(registry);
-    case 'search_tools':
-      return handleSearchTools(registry, args);
-    case 'describe_tool':
-      return handleDescribeTool(registry, args);
-    default:
-      throw new Error(`Unknown tool discovery tool: ${name}`);
+  if (name !== 'find_tools') {
+    throw new Error(`Unknown tool discovery tool: ${name}`);
   }
+  if (typeof args.name === 'string' && args.name.trim()) {
+    return handleDescribeTool(registry, args);
+  }
+  return handleSearchTools(registry, args);
 }

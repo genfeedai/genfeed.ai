@@ -3,10 +3,8 @@ import {
   CAMERA_PRESETS,
   CATEGORY_LABELS,
   LIGHTING_PRESETS,
-  MOOD_PRESETS,
   PROMPT_CATEGORIES,
   SCENE_PRESETS,
-  STYLE_PRESETS,
 } from './prompts';
 
 describe('prompts', () => {
@@ -25,8 +23,6 @@ describe('prompts', () => {
 
   it('keeps every style preset list non-empty and duplicate-free', () => {
     const presetLists: readonly (readonly string[])[] = [
-      MOOD_PRESETS,
-      STYLE_PRESETS,
       CAMERA_PRESETS,
       LIGHTING_PRESETS,
       SCENE_PRESETS,
@@ -38,8 +34,6 @@ describe('prompts', () => {
   });
 
   it('preserves representative preset values', () => {
-    expect(MOOD_PRESETS).toContain('cinematic');
-    expect(STYLE_PRESETS).toContain('photorealistic');
     expect(CAMERA_PRESETS).toContain('wide-angle');
     expect(LIGHTING_PRESETS).toContain('golden-hour');
     expect(SCENE_PRESETS).toContain('studio');

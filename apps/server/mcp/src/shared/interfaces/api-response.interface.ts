@@ -26,22 +26,6 @@ export interface ApiResource<TAttributes> {
 }
 
 /**
- * Video resource attributes from API
- */
-export interface VideoAttributes {
-  createdAt?: string;
-  duration?: number;
-  id?: string;
-  message?: string;
-  origin?: string;
-  progress?: number;
-  status?: string;
-  title?: string;
-  url?: string;
-  views?: number;
-}
-
-/**
  * Article resource attributes from API
  */
 /**
@@ -59,51 +43,6 @@ export interface ArticleAttributes {
   status?: string;
   summary?: string;
   updatedAt?: string;
-}
-
-/**
- * Image resource attributes from API
- */
-export interface ImageAttributes {
-  createdAt?: string;
-  id?: string;
-  origin?: string;
-  prompt?: string;
-  size?: string;
-  status?: string;
-  style?: string;
-  url?: string;
-}
-
-/**
- * Avatar resource attributes from API
- */
-export interface AvatarAttributes {
-  age?: string;
-  createdAt?: string;
-  gender?: string;
-  id?: string;
-  name?: string;
-  origin?: string;
-  status?: string;
-  style?: string;
-  thumbnailUrl?: string;
-  videoUrl?: string;
-}
-
-/**
- * Music resource attributes from API
- */
-export interface MusicAttributes {
-  createdAt?: string;
-  duration?: number;
-  genre?: string;
-  id?: string;
-  mood?: string;
-  origin?: string;
-  prompt?: string;
-  status?: string;
-  url?: string;
 }
 
 /**
@@ -178,11 +117,7 @@ export interface WorkflowExecutionAttributes {
 /**
  * Type aliases for common API resource types
  */
-export type VideoResource = ApiResource<VideoAttributes>;
 export type ArticleResource = ApiResource<ArticleAttributes>;
-export type ImageResource = ApiResource<ImageAttributes>;
-export type AvatarResource = ApiResource<AvatarAttributes>;
-export type MusicResource = ApiResource<MusicAttributes>;
 export type PostResource = ApiResource<PostAttributes>;
 export type TrendResource = ApiResource<TrendAttributes>;
 export type WorkflowResource = ApiResource<WorkflowAttributes>;

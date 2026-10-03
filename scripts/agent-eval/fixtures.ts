@@ -83,7 +83,7 @@ export const TASK_FIXTURES: readonly TaskFixture[] = [
     kind: 'action-policy',
     task: 'Read the current credit balance without requesting mutation approval.',
     input: {
-      action: 'get_credits_balance',
+      action: 'get_account',
       surface: 'agent',
       hasTrustedApproval: false,
     },

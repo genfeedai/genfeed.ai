@@ -6,6 +6,7 @@ export interface BuildSoundsColumnsParams {
   scope: ContentScope;
   onToggleActive: (sound: Sound) => void;
   onToggleDefault: (sound: Sound) => void;
+  scopeLabel: string;
 }
 
 export interface SoundCellProps {

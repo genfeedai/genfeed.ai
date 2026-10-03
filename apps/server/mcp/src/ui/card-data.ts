@@ -10,21 +10,14 @@ export const MCP_CARD_RESOURCE_URI = 'ui://genfeed/content-cards-v1.html';
 export const MCP_APP_MIME_TYPE = 'text/html;profile=mcp-app';
 
 const TOOL_KINDS: Readonly<Record<string, McpCardKind>> = {
-  create_article: 'article',
   create_post: 'post',
   generate: 'media',
-  get_article: 'article',
+  get_account: 'usage',
+  get_articles: 'article',
   get_job_status: 'media',
-  get_post: 'post',
-  get_usage_stats: 'usage',
-  get_video_status: 'video',
-  list_avatars: 'image',
-  list_images: 'image',
-  list_music: 'audio',
-  list_posts: 'post',
-  list_videos: 'video',
-  merge_videos: 'video',
-  search_articles: 'article',
+  get_posts: 'post',
+  list_assets: 'media',
+  transform_media: 'media',
 };
 
 export function withCardMetadata(tool: McpToolOutput): McpToolOutput {
@@ -108,12 +101,9 @@ export function buildCardView(
   if (!kind) return undefined;
   const data = record(payload);
   if (kind === 'usage') {
-    const metrics = {
-      ...record(data.contentCreated),
-      creditsUsed: data.creditsUsed,
-      postsPublished: data.postsPublished,
-      totalEngagement: data.totalEngagement,
-    };
+    // `get_account` can omit the usage section; there is nothing to chart then.
+    if (!Object.keys(record(data.usage)).length) return undefined;
+    const metrics = record(data.usage);
     const cards = Object.entries(metrics).flatMap(([label, value]) =>
       typeof value === 'number' && Number.isFinite(value)
         ? [
@@ -125,11 +115,7 @@ export function buildCardView(
           ]
         : [],
     );
-    return {
-      cards,
-      title: `Usage${text(data, 'timeRange') ? ` · ${text(data, 'timeRange')}` : ''}`,
-      total: cards.length,
-    };
+    return { cards, title: 'Usage', total: cards.length };
   }
   const collection = Array.isArray(payload)
     ? payload
@@ -142,6 +128,7 @@ export function buildCardView(
         'avatars',
         'items',
         'assets',
+        'characters',
       ]
         .map((key) => data[key])
         .find(Array.isArray);

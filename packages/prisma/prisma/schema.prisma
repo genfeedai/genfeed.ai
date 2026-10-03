@@ -2385,6 +2385,7 @@ model Ingredient {
   @@index([isDeleted, organizationId, createdAt(sort: Desc)], map: "ingredients_deleted_org_created_at_idx")
   @@index([organizationId, updatedAt, id], map: "ingredients_org_updated_at_id_idx")
   @@index([organizationId, origin, isDeleted, createdAt(sort: Desc)], map: "ingredients_org_origin_created_at_idx")
+  @@index([organizationId, personaId, isDeleted, createdAt(sort: Desc)], map: "ingredients_org_persona_created_at_idx")
   @@map("ingredients")
 }
 
@@ -6475,117 +6476,141 @@ model ElementBlacklist {
 
 model ElementCamera {
   id             String   @id @default(cuid())
-  organizationId String
+  organizationId String?
   key            String?
   label          String?
   description    String?
   isDeleted      Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, isDeleted, isActive, sortOrder], map: "elements_cameras_scope_idx")
   @@map("elements_cameras")
 }
 
 model ElementCameraMovement {
   id             String   @id @default(cuid())
-  organizationId String
+  organizationId String?
   key            String?
   label          String?
   description    String?
   isDeleted      Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, isDeleted, isActive, sortOrder], map: "elements_camera_movements_scope_idx")
   @@map("elements_camera_movements")
 }
 
 model ElementLens {
   id             String   @id @default(cuid())
-  organizationId String
+  organizationId String?
   key            String?
   label          String?
   description    String?
   isDeleted      Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, isDeleted, isActive, sortOrder], map: "elements_lenses_scope_idx")
   @@map("elements_lenses")
 }
 
 model ElementLighting {
   id             String   @id @default(cuid())
-  organizationId String
+  organizationId String?
   key            String?
   label          String?
   description    String?
   isDeleted      Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, isDeleted, isActive, sortOrder], map: "elements_lightings_scope_idx")
   @@map("elements_lightings")
 }
 
 model ElementMood {
   id             String   @id @default(cuid())
-  organizationId String
+  organizationId String?
   key            String?
   label          String?
   description    String?
   isDeleted      Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, isDeleted, isActive, sortOrder], map: "elements_moods_scope_idx")
   @@map("elements_moods")
 }
 
 model ElementScene {
   id             String   @id @default(cuid())
-  organizationId String
+  organizationId String?
   key            String?
   label          String?
   description    String?
   isDeleted      Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
 
   isFavorite Boolean @default(false)
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, isDeleted, isActive, sortOrder], map: "elements_scenes_scope_idx")
   @@map("elements_scenes")
 }
 
 model ElementSound {
   id             String   @id @default(cuid())
-  organizationId String
+  organizationId String?
   key            String?
   label          String?
   description    String?
   isDeleted      Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
 
   isFavorite Boolean @default(false)
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, isDeleted, isActive, sortOrder], map: "elements_sounds_scope_idx")
   @@map("elements_sounds")
 }
 
 model ElementStyle {
   id             String   @id @default(cuid())
-  organizationId String
+  organizationId String?
   key            String?
   label          String?
   description    String?
   isDeleted      Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, isDeleted, isActive, sortOrder], map: "elements_styles_scope_idx")
   @@map("elements_styles")
 }
 

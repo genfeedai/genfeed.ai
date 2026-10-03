@@ -1,7 +1,12 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createLibraryBrowserRoute,
+} from '@genfeedai/contracts/constants';
 import type { BrandCharacterListItem } from '@genfeedai/contracts/interfaces';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { CharactersTableProps } from '@props/characters/characters-page.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -11,6 +16,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Plus, Share2, UserRound } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
@@ -26,6 +32,7 @@ export default function CharactersTable({
   onManageAvailability,
 }: CharactersTableProps) {
   const translate = useTranslations('common.settings.characters');
+  const { href } = useOrgUrl();
 
   const columns = useMemo<TableColumn<BrandCharacterListItem>[]>(
     () => [
@@ -88,8 +95,32 @@ export default function CharactersTable({
           </div>
         ),
       },
+      {
+        header: translate('list.libraryColumn'),
+        key: 'library',
+        render: (character) => (
+          <Button
+            aria-label={translate('list.viewInLibraryFor', {
+              name: character.label,
+            })}
+            asChild
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          >
+            <Link
+              href={href(
+                createLibraryBrowserRoute(APP_ROUTES.LIBRARY.ASSETS, {
+                  characters: [character.id],
+                }),
+              )}
+            >
+              {translate('list.viewInLibrary')}
+            </Link>
+          </Button>
+        ),
+      },
     ],
-    [canManageSharing, onManageAvailability, translate],
+    [canManageSharing, href, onManageAvailability, translate],
   );
 
   return (

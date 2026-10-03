@@ -58,7 +58,7 @@ describe('resolveRequestToolsets', () => {
   it('keeps a declared toolset that has no MCP tools instead of calling it unknown', () => {
     // `goals` is a real declared toolset name with no tools on the `mcp`
     // surface. It must not 400. It stays selected so the connection does
-    // not widen to every tool, and `empty` is the list_toolsets warning.
+    // not widen to every tool, and `empty` is the find_tools warning.
     const selection = resolveRequestToolsets({ toolsets: 'goals' });
 
     expect(selection.toolsets).toEqual(['goals']);

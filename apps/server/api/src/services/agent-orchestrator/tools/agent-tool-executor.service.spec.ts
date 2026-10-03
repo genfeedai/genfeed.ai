@@ -25,6 +25,7 @@ import { AgentMediaAssetGenerationService } from '@api/services/agent-orchestrat
 import { AgentMediaBatchGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-batch-generation.service';
 import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service';
 import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
+import { AgentMediaTransformService } from '@api/services/agent-orchestrator/tools/agent-media-transform.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
 import { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
@@ -958,6 +959,8 @@ describe('AgentToolExecutorService', () => {
       postsService as never,
       { listCharacterMentions: vi.fn().mockResolvedValue([]) } as never,
       presignedUploadService as never,
+      { getUsageMetrics: vi.fn() } as never,
+      { listLibraryAssets: vi.fn().mockResolvedValue([]) } as never,
     );
     const reviewHandler = new AgentReviewToolHandler(
       batchGenerationService as never,
@@ -978,6 +981,7 @@ describe('AgentToolExecutorService', () => {
       generateMusic: vi.fn(),
       generateVideo: vi.fn(),
       generateVoice: vi.fn(),
+      mergeVideos: vi.fn(),
       reframeImage: vi.fn(),
       upscaleImage: vi.fn(),
     };
@@ -1080,6 +1084,14 @@ describe('AgentToolExecutorService', () => {
         { getWorkflow: vi.fn(), runWorkflow: vi.fn() } as never,
       ),
     );
+    const assetGenerationService = new AgentMediaAssetGenerationService(
+      loggerService,
+      configService as never,
+      generationGateway as never,
+      onboardingHandler,
+      brandsService as never,
+      contentQualityScorerService as never,
+    );
     const mediaGenerationHandler = new AgentMediaGenerationToolHandler(
       new AgentMediaTextGenerationService(
         aiActionsService as never,
@@ -1089,14 +1101,7 @@ describe('AgentToolExecutorService', () => {
         brandsService as never,
         membersService as never,
       ),
-      new AgentMediaAssetGenerationService(
-        loggerService,
-        configService as never,
-        generationGateway as never,
-        onboardingHandler,
-        brandsService as never,
-        contentQualityScorerService as never,
-      ),
+      assetGenerationService,
       new AgentMediaBatchGenerationService(
         loggerService,
         brandsService as never,
@@ -1106,6 +1111,10 @@ describe('AgentToolExecutorService', () => {
         credentialsService as never,
         creditsUtilsService as never,
         batchCreditsService as never,
+      ),
+      new AgentMediaTransformService(
+        assetGenerationService,
+        generationGateway as never,
       ),
     );
     const qualityHandler = new AgentQualityToolHandler(
@@ -2152,7 +2161,7 @@ describe('AgentToolExecutorService', () => {
     postsService.findAll.mockResolvedValue({ docs: [] });
 
     const result = await service.executeTool(
-      'list_posts',
+      'get_posts',
       { executionState: TargetExecutionState.DRAFT },
       {
         organizationId: testId('org'),
@@ -2177,7 +2186,7 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
-  it('returns one post in the list_posts item shape', async () => {
+  it('returns one post in the list item shape', async () => {
     const { postsService, service } = createService();
     const createdAt = new Date('2026-09-01T00:00:00.000Z');
     const scheduledDate = new Date('2026-09-02T00:00:00.000Z');
@@ -2198,7 +2207,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      'get_post',
+      'get_posts',
       { postId: 'post-1' },
       {
         organizationId: testId('org'),
@@ -2236,6 +2245,69 @@ describe('AgentToolExecutorService', () => {
         updatedAt: createdAt.toISOString(),
       },
     });
+  });
+
+  it('rejects get_posts postId combined with list or calendar fields', async () => {
+    const { postsService, service } = createService();
+    const ctx = { organizationId: testId('org'), userId: testId('user') };
+
+    const withLimit = await service.executeTool(
+      'get_posts',
+      { limit: 5, postId: 'post-1' },
+      ctx,
+    );
+    const withDays = await service.executeTool(
+      'get_posts',
+      { days: 7, postId: 'post-1' },
+      ctx,
+    );
+    const calendarWithState = await service.executeTool(
+      'get_posts',
+      { days: 7, executionState: TargetExecutionState.DRAFT },
+      ctx,
+    );
+
+    expect(withLimit.success).toBe(false);
+    expect(withLimit.error).toContain('postId cannot be combined');
+    expect(withDays.success).toBe(false);
+    expect(calendarWithState.success).toBe(false);
+    expect(postsService.findOne).not.toHaveBeenCalled();
+    expect(postsService.findAll).not.toHaveBeenCalled();
+  });
+
+  it('rejects an empty get_posts postId instead of listing posts', async () => {
+    const { postsService, service } = createService();
+    const result = await service.executeTool(
+      'get_posts',
+      { postId: '' },
+      { organizationId: testId('org'), userId: testId('user') },
+    );
+
+    expect(result.success).toBe(false);
+    expect(postsService.findAll).not.toHaveBeenCalled();
+  });
+
+  it('reads the content calendar when get_posts receives days', async () => {
+    const { postsService, service } = createService();
+    postsService.findAll.mockResolvedValue({ docs: [] });
+
+    const result = await service.executeTool(
+      'get_posts',
+      { days: 3 },
+      { organizationId: testId('org'), userId: testId('user') },
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({ days: 3, gapsCount: 3 });
+    expect(postsService.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          isDeleted: false,
+          organizationId: testId('org'),
+        }),
+      }),
+      {},
+    );
   });
 
   it.each(['thread', 'headless MCP'])(
@@ -5869,6 +5941,69 @@ describe('AgentToolExecutorService', () => {
     });
   });
 
+  describe('thread brand requirement for merged media tools', () => {
+    const brandlessContext = () => {
+      const context = scopedContext('brand-A');
+      delete context.brandId;
+      delete context.validatedScope?.brandId;
+      return context;
+    };
+
+    it.each([
+      ['edit', { imageId: 'image-1', operation: 'edit', prompt: 'Change it' }],
+      ['reframe', { imageId: 'image-1', operation: 'reframe' }],
+      [
+        'upscale',
+        { imageUrl: 'https://cdn.example.com/a.png', operation: 'upscale' },
+      ],
+    ])('requires a thread brand for %s', async (_operation, parameters) => {
+      const { service } = createService('auto');
+
+      const result = await service.executeTool(
+        'transform_media',
+        parameters,
+        brandlessContext(),
+      );
+
+      expect(result).toMatchObject({
+        error:
+          'An explicit thread brand context is required for transform_media.',
+        success: false,
+      });
+    });
+
+    it('lets merge run without a thread brand because clips are scoped by organization', async () => {
+      const { service } = createService('auto');
+
+      const result = await service.executeTool(
+        'transform_media',
+        { ids: ['clip-1', 'clip-2'], operation: 'merge' },
+        brandlessContext(),
+      );
+
+      expect(result.error).not.toContain('thread brand context');
+    });
+
+    it('reads generation options without a thread brand', async () => {
+      const { service } = createService('auto');
+      const execute = vi.fn().mockResolvedValue({
+        creditsUsed: 0,
+        data: { settings: {} },
+        success: true,
+      });
+      Object.assign(service, { generationOptionsHandler: { execute } });
+
+      const result = await service.executeTool(
+        'get_generation_options',
+        { type: 'image' },
+        brandlessContext(),
+      );
+
+      expect(result).toMatchObject({ data: { settings: {} }, success: true });
+      expect(execute).toHaveBeenCalledOnce();
+    });
+  });
+
   it('rejects stale thread scope before dispatching a tool', async () => {
     const { agentScopeContextService, batchGenerationService, service } =
       createService();
@@ -6008,6 +6143,8 @@ describe('AgentToolExecutorService', () => {
         postsService as never,
         { listCharacterMentions: vi.fn().mockResolvedValue([]) } as never,
         { confirmUpload: vi.fn(), getPresignedUploadUrl: vi.fn() } as never,
+        {} as never,
+        {} as never,
       ),
       new AgentConnectionToolHandler(credentialsService as never),
       new AgentTrendsToolHandler({
@@ -6097,6 +6234,7 @@ describe('AgentToolExecutorService', () => {
           {} as never,
           credentialsService as never,
         ),
+        {} as never,
       ),
       new AgentToolCatalogHandler(),
       new AgentBrandContentToolHandler(
@@ -7097,6 +7235,16 @@ describe('capped tool quote boundary', () => {
       agentToolCreditEstimate('generate', { type: 'image' }),
     ).toBeUndefined();
     expect(agentToolCreditEstimate('generate_content_batch', {})).toBe(0);
+    expect(
+      agentToolCreditEstimate('transform_media', { operation: 'merge' }),
+    ).toBe(0);
+    for (const operation of ['edit', 'reframe', 'upscale']) {
+      expect(
+        agentToolCreditEstimate('transform_media', { operation }),
+        operation,
+      ).toBeUndefined();
+    }
+    expect(agentToolCreditEstimate('transform_media', {})).toBeUndefined();
     expect(agentToolCreditEstimate('unknown_tool', {})).toBeUndefined();
   });
   it('does not invoke the workflow runner for an unquoted capped tool', async () => {

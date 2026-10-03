@@ -1,6 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { buildElementFindAllQuery } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
-import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
+import { ElementsCRUDController } from '@api/collections/elements/shared/elements-crud.controller';
 import { CreateElementStyleDto } from '@api/collections/elements/styles/dto/create-style.dto';
 import { UpdateElementStyleDto } from '@api/collections/elements/styles/dto/update-style.dto';
 import type { ElementStyleDocument } from '@api/collections/elements/styles/schemas/style.schema';
@@ -10,8 +10,8 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { MemberRole } from '@genfeedai/contracts';
 import { StyleSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -35,7 +35,7 @@ import type { Request } from 'express';
 @ApiTags('styles')
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
-export class ElementsStylesController extends BaseCRUDController<
+export class ElementsStylesController extends ElementsCRUDController<
   ElementStyleDocument,
   CreateElementStyleDto,
   UpdateElementStyleDto,
@@ -106,16 +106,10 @@ export class ElementsStylesController extends BaseCRUDController<
     return buildElementFindAllQuery({
       adminFilter,
       metadata: {
+        isSuperAdmin: getIsSuperAdmin(user),
         organizationId: user.organizationId,
       },
       query,
     });
-  }
-
-  public override canUserModifyEntity(
-    user: User,
-    entity: ElementStyleDocument,
-  ): boolean {
-    return canModifyOrganizationElement(user, entity);
   }
 }

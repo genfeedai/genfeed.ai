@@ -4,14 +4,14 @@ import { UpdateElementCameraDto } from '@api/collections/elements/cameras/dto/up
 import type { ElementCameraDocument } from '@api/collections/elements/cameras/schemas/camera.schema';
 import { ElementsCamerasService } from '@api/collections/elements/cameras/services/cameras.service';
 import { buildElementFindAllQuery } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
-import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
+import { ElementsCRUDController } from '@api/collections/elements/shared/elements-crud.controller';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { MemberRole } from '@genfeedai/contracts';
 import { CameraSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -35,7 +35,7 @@ import type { Request } from 'express';
 @ApiTags('cameras')
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
-export class ElementsCamerasController extends BaseCRUDController<
+export class ElementsCamerasController extends ElementsCRUDController<
   ElementCameraDocument,
   CreateElementCameraDto,
   UpdateElementCameraDto,
@@ -102,16 +102,10 @@ export class ElementsCamerasController extends BaseCRUDController<
     return buildElementFindAllQuery({
       adminFilter,
       metadata: {
+        isSuperAdmin: getIsSuperAdmin(user),
         organizationId: user.organizationId,
       },
       query,
     });
-  }
-
-  public override canUserModifyEntity(
-    user: User,
-    entity: ElementCameraDocument,
-  ): boolean {
-    return canModifyOrganizationElement(user, entity);
   }
 }

@@ -3,34 +3,6 @@ import type { SourceTool } from '../../../interfaces/source-tool.interface';
 export const MCP_SOCIAL_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
-    description:
-      'Get current account info including user, organization, scopes, and active brand',
-    name: 'get_account_info',
-    parameters: {
-      properties: {},
-      type: 'object',
-    },
-    requiredRole: 'user',
-  },
-  {
-    creditCost: 0,
-    description:
-      'Get details of a selected brand. When an organization has more than one brand, pass brandId; the first brand is never chosen automatically.',
-    name: 'get_brand',
-    parameters: {
-      properties: {
-        brandId: {
-          description:
-            'Brand to inspect. Required when more than one brand exists.',
-          type: 'string',
-        },
-      },
-      type: 'object',
-    },
-    requiredRole: 'user',
-  },
-  {
-    creditCost: 0,
     description: 'List connected Meta (Facebook) ad accounts',
     name: 'list_meta_ad_accounts',
     parameters: {

@@ -36,7 +36,7 @@ export const OVERLAP_KNOWLEDGE_TOOLS: SourceTool[] = [
         },
         brandId: {
           description:
-            'Brand whose Knowledge to search. Required when the session has no brand. Use an id from list_brands.',
+            'Brand whose Knowledge to search. Required when the session has no brand. Use an id from get_brands.',
           type: 'string',
         },
         query: {

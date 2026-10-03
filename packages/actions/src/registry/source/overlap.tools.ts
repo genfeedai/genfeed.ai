@@ -116,7 +116,8 @@ export const OVERLAP_TOOLS: SourceTool[] = [
           type: 'string',
         },
         model: {
-          description: 'Model key; omit for automatic router selection.',
+          description:
+            'Image, video or music only. Model key; omit for automatic router selection.',
           type: 'string',
         },
         brandId: {

@@ -18,7 +18,6 @@ const MCP_QUEUED_WRITES = [
   'approve_social_draft',
   'control_scheduled_release',
   'create_ad_remix_workflow',
-  'create_article',
   'create_article_draft',
   'publish_article',
   'create_clip_project_from_youtube',
@@ -108,9 +107,7 @@ describe('mutation policy map', () => {
     for (const [name, policy] of Object.entries(MUTATION_POLICY_BY_NAME)) {
       expect(getToolByName(name)?.mutationPolicy, name).toBe(policy);
     }
-    expect(
-      getToolByName('get_credits_balance')?.mutationPolicy,
-    ).toBeUndefined();
+    expect(getToolByName('get_account')?.mutationPolicy).toBeUndefined();
     expect(getToolByName('resolve_approval')?.mutationPolicy).toBeUndefined();
     expect(getActionDefinition('create_post')?.approval).toBe('required');
     expect(getActionDefinition('generate')?.approval).toBe('none');
@@ -127,13 +124,18 @@ describe('mutation policy map', () => {
 });
 
 describe('discovery meta tools', () => {
-  it('treats every describe_-prefixed tool as read-only', () => {
-    expect(isReadOnlyToolName('describe_tool')).toBe(true);
-    expect(toolRequiresMutationPolicy('describe_tool')).toBe(false);
+  it('treats every find_-prefixed tool as read-only', () => {
+    expect(isReadOnlyToolName('find_tools')).toBe(true);
+    expect(toolRequiresMutationPolicy('find_tools')).toBe(false);
   });
 
-  it('treats the full discovery tool set as read-only with no declared policy', () => {
-    for (const name of ['list_toolsets', 'search_tools', 'describe_tool']) {
+  it('treats every describe_-prefixed tool as read-only', () => {
+    expect(isReadOnlyToolName('describe_anything')).toBe(true);
+    expect(toolRequiresMutationPolicy('describe_anything')).toBe(false);
+  });
+
+  it('treats the discovery tool as read-only with no declared policy', () => {
+    for (const name of ['find_tools']) {
       expect(isReadOnlyToolName(name), name).toBe(true);
       expect(toolRequiresMutationPolicy(name), name).toBe(false);
       expect(getDeclaredMutationPolicy(name), name).toBeUndefined();

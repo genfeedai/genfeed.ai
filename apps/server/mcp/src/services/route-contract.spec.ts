@@ -64,37 +64,9 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/mcp-approvals/controllers/mcp-approvals.controller.ts',
     prefix: 'mcp-approvals',
   },
-  videos: {
-    file: 'collections/videos/controllers/videos.controller.ts',
-    prefix: 'videos',
-  },
-  videosMerge: {
-    file: 'collections/videos/controllers/relationships/videos-merge.controller.ts',
-    prefix: 'videos',
-  },
-  images: {
-    file: 'collections/images/controllers/images.controller.ts',
-    prefix: 'images',
-  },
-  avatars: {
-    file: 'collections/avatars/controllers/avatars.controller.ts',
-    prefix: 'avatars',
-  },
-  musics: {
-    file: 'collections/musics/controllers/musics.controller.ts',
-    prefix: 'musics',
-  },
   articles: {
     file: 'collections/articles/controllers/articles.controller.ts',
     prefix: 'articles',
-  },
-  articleOperations: {
-    file: 'collections/articles/controllers/operations/articles-operations.controller.ts',
-    prefix: 'articles',
-  },
-  credits: {
-    file: 'collections/credits/controllers/credits.controller.ts',
-    prefix: 'credits',
   },
   credentials: {
     file: 'collections/credentials/controllers/credentials.controller.ts',
@@ -104,21 +76,9 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/credentials/controllers/credentials-publishing.controller.ts',
     prefix: 'credentials',
   },
-  contentIntelGenerate: {
-    file: 'collections/content-intelligence/controllers/generate.controller.ts',
-    prefix: 'content-intelligence/generate',
-  },
   contentPerformance: {
     file: 'collections/content-performance/controllers/content-performance.controller.ts',
     prefix: 'content-performance',
-  },
-  brands: {
-    file: 'collections/brands/controllers/brands.controller.ts',
-    prefix: 'brands',
-  },
-  authWhoami: {
-    file: 'auth/controllers/auth-whoami.controller.ts',
-    prefix: 'auth',
   },
   ingredients: {
     file: 'collections/ingredients/controllers/ingredients-relationships.controller.ts',
@@ -389,33 +349,16 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   // ── Legacy media / content ──
   {
     method: 'Get',
-    sub: ':videoId',
-    controller: 'videos',
-    tools: ['get_video_status'],
-  },
-  { method: 'Get', sub: '', controller: 'videos', tools: ['list_videos'] },
-  {
-    method: 'Post',
-    sub: 'merge',
-    controller: 'videosMerge',
-    tools: ['merge_videos'],
-  },
-  { method: 'Get', sub: '', controller: 'images', tools: ['list_images'] },
-  { method: 'Get', sub: '', controller: 'avatars', tools: ['list_avatars'] },
-  { method: 'Get', sub: '', controller: 'musics', tools: ['list_music'] },
-  {
-    method: 'Post',
-    sub: 'generations',
-    controller: 'articleOperations',
-    tools: ['create_article'],
+    sub: BASE_CRUD_LIST,
+    controller: 'articles',
+    tools: ['get_articles'],
   },
   {
     method: 'Get',
-    sub: BASE_CRUD_LIST,
+    sub: ':id',
     controller: 'articles',
-    tools: ['search_articles'],
+    tools: ['get_articles'],
   },
-  { method: 'Get', sub: ':id', controller: 'articles', tools: ['get_article'] },
   {
     method: 'Post',
     sub: BASE_CRUD_CREATE,
@@ -433,12 +376,6 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     sub: ':articleId',
     controller: 'articles',
     tools: ['publish_article'],
-  },
-  {
-    method: 'Get',
-    sub: 'usage',
-    controller: 'credits',
-    tools: ['get_usage_stats'],
   },
 
   // ── Analytics → content-performance (video/content analytics) ──
@@ -463,12 +400,6 @@ const ROUTE_CONTRACT: ContractRoute[] = [
 
   // ── LinkedIn ──
   {
-    method: 'Post',
-    sub: '',
-    controller: 'contentIntelGenerate',
-    tools: ['generate_linkedin_content'],
-  },
-  {
     method: 'Get',
     sub: 'mentions',
     controller: 'credentialsPublishing',
@@ -476,18 +407,6 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   },
 
   // ── Account management ──
-  {
-    method: 'Get',
-    sub: 'whoami',
-    controller: 'authWhoami',
-    tools: ['get_account_info'],
-  },
-  {
-    method: 'Get',
-    sub: '',
-    controller: 'brands',
-    tools: ['list_brands', 'get_brand'],
-  },
   {
     method: 'Get',
     sub: ':ingredientId/metadata',
@@ -661,7 +580,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Get',
     sub: 'channel-capabilities',
     controller: 'schedules',
-    tools: ['list_scheduler_capabilities'],
+    tools: ['get_scheduler_capabilities'],
   },
   {
     method: 'Get',
@@ -673,7 +592,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Get',
     sub: 'channel-capabilities/:platform',
     controller: 'schedules',
-    tools: ['get_scheduler_capability'],
+    tools: ['get_scheduler_capabilities'],
   },
   {
     method: 'Post',
@@ -893,10 +812,9 @@ describe('MCP → API route contract', () => {
         !agentExecutorNames.has(name) &&
         !contractTools.has(name) &&
         name !== 'resolve_approval' &&
-        // Tool discovery meta tools (`list_toolsets`, `search_tools`,
-        // `describe_tool`) are handled entirely in-process against the
-        // registry's own catalog — they never call out to the API, so they
-        // have no mounted route to cover.
+        // The tool discovery meta tool (`find_tools`) is handled entirely
+        // in-process against the registry's own catalog — it never calls out
+        // to the API, so it has no mounted route to cover.
         !TOOL_DISCOVERY_TOOL_NAMES.has(name),
     );
     expect(uncovered).toEqual([]);

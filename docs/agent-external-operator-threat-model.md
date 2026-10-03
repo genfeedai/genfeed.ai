@@ -93,7 +93,7 @@ prevent replay of a stolen bearer token.
 ## Scope discovery and safe defaults
 
 Start with explicitly authenticated organization discovery and reviewed safe
-reads such as `get_credits_balance`. Brand-scoped generation must require an
+reads such as `get_account`. Brand-scoped generation must require an
 authorized explicit brand, even where legacy in-app thread fallback is supported.
 Capture only context the user chose to share; saving it as reusable knowledge
 is a separate action under the existing Knowledge owner.

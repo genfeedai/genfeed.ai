@@ -19,7 +19,7 @@ export type McpToolsetProfileName = (typeof MCP_PROFILE_NAMES)[number];
 export const BARE_URL_MCP_PROFILE: McpToolsetProfileName = 'default';
 
 /** Hard cap on tools advertised by the bare MCP URL (`tools/list`). */
-export const BARE_MCP_URL_TOOL_CAP = 46;
+export const BARE_MCP_URL_TOOL_CAP = 26;
 
 export const DEFAULT_MCP_PROFILE_TOOLSETS: readonly ToolsetName[] = [
   'core',

@@ -19,11 +19,13 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { StylesService } from '@services/elements/styles.service';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import Badge from '@ui/display/badge/Badge';
+import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalStyle } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Pencil, Trash2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   Suspense,
   useCallback,
@@ -139,6 +141,7 @@ function StylesListContent({
     onRefreshingChangeRef.current = onRefreshingChange;
   });
 
+  const scopeTranslate = useTranslations('ui.elementPlatformFields');
   const columns: TableColumn<ElementStyle>[] = [
     {
       header: 'Label',
@@ -146,6 +149,16 @@ function StylesListContent({
       subtext: (style: ElementStyle) => style.description,
     },
     { className: 'font-mono text-sm', header: 'Key', key: 'key' },
+    {
+      header: scopeTranslate('scopeHeader'),
+      key: 'isPlatformDefault',
+      render: (element: ElementStyle) => (
+        <ElementScopeBadge
+          isActive={element.isActive}
+          isPlatformDefault={element.isPlatformDefault}
+        />
+      ),
+    },
     {
       className: 'min-w-32 max-w-xs',
       header: 'Model',

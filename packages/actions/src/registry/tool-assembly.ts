@@ -38,10 +38,10 @@ const UI_ACTION_MAP: Partial<
   generate: 'generation_action_card',
   generate_as_identity: 'generation_action_card',
   generate_content_batch: 'batch_generation_card',
+  get_account: 'credits_balance_card',
   get_analytics: 'analytics_snapshot_card',
   get_outreach_sequence_analytics: 'analytics_snapshot_card',
-  get_content_calendar: 'content_calendar_card',
-  get_credits_balance: 'credits_balance_card',
+  get_posts: 'content_calendar_card',
   get_trends: 'trending_topics_card',
   initiate_oauth_connect: 'oauth_connect_card',
   list_review_queue: 'review_gate_card',
@@ -51,14 +51,13 @@ const UI_ACTION_MAP: Partial<
   prepare_generation: 'generation_action_card',
   prepare_workflow_trigger: 'workflow_trigger_card',
   present_payment_options: 'payment_cta_card',
-  reframe_image: 'image_transform_card',
   rename_brand: 'brand_identity_confirmation_card',
   schedule_post: 'schedule_post_card',
   select_ingredient: 'ingredient_picker_card',
   start_outreach_sequence: 'outreach_sequence_control_card',
   suggest_ingredient_alternatives: 'ingredient_alternatives_card',
   suggest_next_steps: 'next_steps_card',
-  upscale_image: 'image_transform_card',
+  transform_media: 'image_transform_card',
 };
 
 export function inferCategory(name: string): ToolCategory {
@@ -66,10 +65,10 @@ export function inferCategory(name: string): ToolCategory {
   if (
     [
       'generate',
-      'get_generation_cost',
-      'get_generation_settings',
+      'get_generation_options',
       'set_generation_settings',
       'enhance_prompt',
+      'list_assets',
     ].includes(name)
   )
     return 'generation';

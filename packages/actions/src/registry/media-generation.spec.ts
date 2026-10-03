@@ -64,7 +64,7 @@ describe('media generation type parsing', () => {
       getVisualMediaGenerationType('generate', { type: 'music' }),
     ).toBeUndefined();
     expect(
-      getVisualMediaGenerationType('edit_image', { type: 'image' }),
+      getVisualMediaGenerationType('transform_media', { type: 'image' }),
     ).toBeUndefined();
   });
 });
@@ -132,6 +132,23 @@ describe('inapplicable media generation parameters', () => {
         duration: 5,
       }),
     ).toEqual(['aspectRatio', 'duration', 'resolution']);
+  });
+
+  it('accepts a model for music but not for voice', () => {
+    expect(
+      findInapplicableMediaGenerationParameters('music', {
+        model: 'music-model-1',
+        prompt: 'calm piano',
+        type: 'music',
+      }),
+    ).toEqual([]);
+    expect(
+      findInapplicableMediaGenerationParameters('voice', {
+        model: 'voice-model-1',
+        prompt: 'hello',
+        type: 'voice',
+      }),
+    ).toEqual(['model']);
   });
 
   it('ignores null and undefined values', () => {

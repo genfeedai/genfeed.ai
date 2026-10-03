@@ -1,7 +1,7 @@
 import type { ModelCategory } from '../..';
-import type { IBaseEntity, IElementBase } from '../index';
+import type { IBaseEntity, IPlatformElement } from '../index';
 
-export interface IElementStyle extends IBaseEntity, IElementBase {
+export interface IElementStyle extends IBaseEntity, IPlatformElement {
   category?: ModelCategory;
   models?: string[];
 }

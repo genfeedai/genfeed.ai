@@ -3,6 +3,10 @@ import { ContentEvaluationProjectionService } from '@api/collections/evaluations
 import { FoldersService } from '@api/collections/folders/services/folders.service';
 import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
+import {
+  IngredientCharacterFilterService,
+  resolveCharacterFilter,
+} from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
@@ -71,6 +75,8 @@ export class IngredientsController {
     private readonly mediaUrlService: MediaUrlService,
     @Optional()
     private readonly evaluationProjection?: ContentEvaluationProjectionService,
+    @Optional()
+    private readonly characterFilter?: IngredientCharacterFilterService,
   ) {}
 
   /**
@@ -124,6 +130,12 @@ export class IngredientsController {
       'prompt.prompt',
     ]);
 
+    const characterFilter = await resolveCharacterFilter(this.characterFilter, {
+      characterIds: query.characters,
+      explicitBrandId: typeof brandId === 'string' ? brandId : undefined,
+      user,
+    });
+
     const aggregate = {
       include: { metadata: true, prompt: true },
       orderBy: handleQuerySort(query.sort),
@@ -143,6 +155,7 @@ export class IngredientsController {
           IngredientFilterUtil.buildFolderFilter(query.folderId?.toString()),
           IngredientFilterUtil.buildParentFilter(query.parentId?.toString()),
           IngredientFilterUtil.buildOriginFilter(query.origins),
+          characterFilter,
           searchFilter.where,
         ],
       },

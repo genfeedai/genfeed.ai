@@ -39,8 +39,7 @@ describe('getAgentTypeConfig', () => {
     const config = getAgentTypeConfig(AgentType.X_CONTENT);
     expect(config.defaultTools).toEqual(
       expect.arrayContaining([
-        'search_x_posts',
-        'fetch_x_post',
+        'get_x_posts',
         'list_x_account_activity',
         'draft_x_quote',
         'draft_x_repost',

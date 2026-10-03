@@ -4,14 +4,14 @@ import { UpdateElementMoodDto } from '@api/collections/elements/moods/dto/update
 import type { ElementMoodDocument } from '@api/collections/elements/moods/schemas/mood.schema';
 import { ElementsMoodsService } from '@api/collections/elements/moods/services/moods.service';
 import { buildElementFindAllQuery } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
-import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
+import { ElementsCRUDController } from '@api/collections/elements/shared/elements-crud.controller';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { MemberRole } from '@genfeedai/contracts';
 import { MoodSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -35,7 +35,7 @@ import type { Request } from 'express';
 @ApiTags('moods')
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
-export class ElementsMoodsController extends BaseCRUDController<
+export class ElementsMoodsController extends ElementsCRUDController<
   ElementMoodDocument,
   CreateElementMoodDto,
   UpdateElementMoodDto,
@@ -102,16 +102,10 @@ export class ElementsMoodsController extends BaseCRUDController<
     return buildElementFindAllQuery({
       adminFilter,
       metadata: {
+        isSuperAdmin: getIsSuperAdmin(user),
         organizationId: user.organizationId,
       },
       query,
     });
-  }
-
-  public override canUserModifyEntity(
-    user: User,
-    entity: ElementMoodDocument,
-  ): boolean {
-    return canModifyOrganizationElement(user, entity);
   }
 }

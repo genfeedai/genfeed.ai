@@ -124,6 +124,49 @@ describe('useLibraryBrowser', () => {
     });
   });
 
+  it('reads repeated characters from the URL into the API query', () => {
+    state.search = '?characters=c1&characters=c2&characters=c1';
+
+    const { result } = renderHook(() => useLibraryBrowser({}));
+
+    expect(result.current.characters).toEqual(['c1', 'c2']);
+    expect(result.current.contextValue.query.characters).toEqual(['c1', 'c2']);
+  });
+
+  it('sends no characters when none are selected', () => {
+    const { result } = renderHook(() => useLibraryBrowser({}));
+
+    expect(result.current.characters).toEqual([]);
+    expect(result.current.contextValue.query).not.toHaveProperty('characters');
+  });
+
+  it('writes characters to the URL without dropping the other axes', () => {
+    state.search =
+      '?categories=IMAGE&origins=GENERATED&folder=f1&search=hero&page=2';
+
+    const { result } = renderHook(() => useLibraryBrowser({}));
+    act(() => result.current.handleCharactersChange(['c1', 'c2', 'c1']));
+
+    const next = new URLSearchParams(lastPushedSearch());
+    expect(next.getAll('characters')).toEqual(['c1', 'c2']);
+    expect(next.getAll('categories')).toEqual(['IMAGE']);
+    expect(next.getAll('origins')).toEqual(['GENERATED']);
+    expect(next.get('folder')).toBe('f1');
+    expect(next.get('search')).toBe('hero');
+    expect(next.has('page')).toBe(false);
+  });
+
+  it('clears characters without touching other axes', () => {
+    state.search = '?characters=c1&origins=UPLOADED';
+
+    const { result } = renderHook(() => useLibraryBrowser({}));
+    act(() => result.current.handleClearCharacters());
+
+    const next = new URLSearchParams(lastPushedSearch());
+    expect(next.has('characters')).toBe(false);
+    expect(next.getAll('origins')).toEqual(['UPLOADED']);
+  });
+
   it('writes origin to the URL without dropping the other axes', () => {
     state.search = '?categories=IMAGE&folder=f1&search=hero&page=2';
 

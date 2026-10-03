@@ -501,12 +501,13 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   ],
   'camera-movement:ElementCameraMovement': [
     'category',
-    'isActive',
     'isDefault',
+    // Computed: whether the row has no organization (a platform default).
+    'isPlatformDefault',
     'organization',
     'user',
   ],
-  'camera:ElementCamera': ['category'],
+  'camera:ElementCamera': ['category', 'isPlatformDefault'],
   'clip-project:ClipProject': [
     'transcriptSegments',
     'transcriptSrt',
@@ -524,19 +525,21 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'goal:Goal': ['description', 'title'],
   'lens:ElementLens': [
     'category',
-    'isActive',
     'isDefault',
+    // Computed: whether the row has no organization (a platform default).
+    'isPlatformDefault',
     'organization',
     'user',
   ],
   'lighting:ElementLighting': [
     'category',
-    'isActive',
     'isDefault',
+    // Computed: whether the row has no organization (a platform default).
+    'isPlatformDefault',
     'organization',
     'user',
   ],
-  'mood:ElementMood': ['category', 'isFavorite'],
+  'mood:ElementMood': ['category', 'isFavorite', 'isPlatformDefault'],
   'preset:Preset': [
     'blacklists',
     'camera',
@@ -552,7 +555,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'scene',
     'style',
   ],
-  'scene:ElementScene': ['category'],
+  'scene:ElementScene': ['category', 'isPlatformDefault'],
   'skill:Skill': [
     'baseSkill',
     'category',
@@ -568,8 +571,19 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'systemPromptTemplate',
     'toolOverrides',
   ],
-  'sound:ElementSound': ['category', 'isActive', 'isDefault', 'organization'],
-  'style:ElementStyle': ['category', 'isFavorite', 'models'],
+  'sound:ElementSound': [
+    'category',
+    'isDefault',
+    // Computed: whether the row has no organization (a platform default).
+    'isPlatformDefault',
+    'organization',
+  ],
+  'style:ElementStyle': [
+    'category',
+    'isFavorite',
+    'isPlatformDefault',
+    'models',
+  ],
   'asset:Asset': ['cdnUrl'],
   'bookmark:Bookmark': [],
   'agent-memory:AgentMemory': [],

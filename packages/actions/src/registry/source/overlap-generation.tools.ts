@@ -38,35 +38,194 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
     },
   },
   {
-    name: 'get_generation_cost',
+    name: 'get_generation_options',
     description:
-      'Read the Studio image or video generation estimate and the organization credit balance. Returns the same catalog estimate the Generate composer shows and the same Genfeed balance as the credits bar. Does not charge credits, change a price, or authorize a generation. Omit modelKey, or pass Auto, for estimate status auto. Unsupported, missing, or unpriced models return estimate status unavailable with credits null. balance is null when the wallet cannot be read; a numeric 0 is a real empty balance.',
+      'Read what generation can do right now: the effective image/video prompt enhancement settings with organization or brand overrides (settings, always returned), plus the Studio credit estimate and organization balance (cost, only when type is given). Returns the same catalog estimate the Generate composer shows and the same Genfeed balance as the credits bar. Does not charge credits, change a price, or authorize a generation. Omit modelKey, or pass Auto, for estimate status auto. Unsupported, missing, unpriced or voice and music types return estimate status unavailable with credits null. balance is null when the wallet cannot be read; a numeric 0 is a real empty balance. Threaded Agent calls use the validated current thread brand; brandId must match it. In threadless MCP calls, brandId selects the brand scope for settings.',
     creditCost: 0,
     requiredRole: 'user',
     parameters: {
       type: 'object',
-      required: ['type'],
+      additionalProperties: false,
       properties: {
-        type: { type: 'string', enum: ['image', 'image-edit', 'video'] },
+        type: {
+          type: 'string',
+          enum: ['image', 'image-edit', 'video', 'voice', 'music'],
+          description:
+            'Return a credit estimate and balance for this generation type. Omit to read settings only.',
+        },
+        brandId: {
+          type: 'string',
+          description: 'Brand whose settings overrides to read.',
+        },
         modelKey: {
           type: 'string',
           description:
-            'Catalog model key. Omit for Auto, which has no estimate until a model is selected.',
+            'Cost only. Catalog model key. Omit for Auto, which has no estimate until a model is selected.',
         },
-        aspectRatio: { type: 'string' },
-        resolution: { type: 'string' },
-        duration: { type: 'number' },
-        outputs: { type: 'number' },
+        aspectRatio: { type: 'string', description: 'Cost only.' },
+        resolution: { type: 'string', description: 'Cost only.' },
+        duration: { type: 'number', description: 'Cost only, in seconds.' },
+        outputs: { type: 'number', description: 'Cost only.' },
       },
     },
   },
   {
-    name: 'get_generation_settings',
+    name: 'transform_media',
     description:
-      'Read effective image/video prompt enhancement settings and organization or brand overrides. Threaded Agent calls use the validated current thread brand; brandId must match it. In threadless MCP calls, brandId selects the brand scope.',
+      'Change existing media or join clips. operation edit: apply an exact instruction to a Library image (the original stays unchanged; imageId is the primary source, references adds up to four ordered images for Ideogram or nine for FLUX.3; FLUX.3 supports one output, resolution and aspectRatio, with no mask or seed; optional maskId must match the primary dimensions, black changes and white stays; uses the image-editing category default, never the generation model; do not enhance or rewrite the instruction). operation reframe: re-crop an image to a new aspect ratio. operation upscale: upscale an image to higher resolution from its URL. operation merge: join two or more existing videos into one clip with transitions, captions, resizing, mute and background music; slideshow zoom (zoomEaseCurve and zoomConfigs) is not supported and is rejected before any merge starts. Each field lists the operations it applies to; a field for another operation is rejected. Edit, reframe and upscale spend credits through the shared generation settlement; merge runs locally and is free.',
     creditCost: 0,
     requiredRole: 'user',
-    parameters: { type: 'object', properties: { brandId: { type: 'string' } } },
+    parameters: {
+      type: 'object',
+      required: ['operation'],
+      additionalProperties: false,
+      properties: {
+        operation: {
+          type: 'string',
+          enum: ['edit', 'reframe', 'upscale', 'merge'],
+          description: 'Which transform to run.',
+        },
+        brandId: {
+          type: 'string',
+          description:
+            'All operations. Brand scope; must match the thread brand.',
+        },
+        imageId: {
+          type: 'string',
+          description:
+            'edit, reframe. ID of the existing Library image to transform.',
+        },
+        imageUrl: {
+          type: 'string',
+          description: 'upscale. URL of the image to upscale.',
+        },
+        prompt: {
+          type: 'string',
+          minLength: 1,
+          maxLength: 20000,
+          description: 'edit. Exact editing instruction. Required for edit.',
+        },
+        model: {
+          type: 'string',
+          description: 'edit. Image-editing model key.',
+        },
+        references: {
+          type: 'array',
+          maxItems: 9,
+          uniqueItems: true,
+          items: { type: 'string' },
+          description: 'edit. Extra ordered reference image IDs.',
+        },
+        resolution: {
+          type: 'string',
+          enum: ['768sq', '1k', '1.5k', '2k', '4k'],
+          description: 'edit. FLUX.3 only; default 1k.',
+        },
+        aspectRatio: {
+          type: 'string',
+          description:
+            'edit: FLUX.3 only; auto matches the first source aspect ratio. reframe: target ratio, one of 1:1, 16:9, 9:16, 4:3, 3:4 (default 1:1).',
+        },
+        maskId: {
+          type: 'string',
+          description:
+            'edit. Mask image ID matching the primary dimensions: black changes, white stays.',
+        },
+        size: {
+          type: 'string',
+          enum: [
+            'source',
+            '1024x1024',
+            '1280x896',
+            '896x1280',
+            '1344x768',
+            '768x1344',
+            '1536x640',
+            '640x1536',
+          ],
+          description: 'edit. Output size.',
+        },
+        outputs: {
+          type: 'integer',
+          minimum: 1,
+          maximum: 8,
+          description: 'edit. Number of outputs.',
+        },
+        seed: {
+          type: 'integer',
+          minimum: 0,
+          maximum: 2147483647,
+          description: 'edit. Deterministic seed.',
+        },
+        ids: {
+          type: 'array',
+          minItems: 2,
+          items: { type: 'string' },
+          description:
+            'merge. Ordered video ingredient ids to join (at least two). Required for merge.',
+        },
+        isCaptionsEnabled: {
+          type: 'boolean',
+          description:
+            'merge. Burn transcribed captions into the merged video.',
+        },
+        isMuteVideoAudio: {
+          type: 'boolean',
+          description: 'merge. Mute the original audio from the source clips.',
+        },
+        isResizeEnabled: {
+          type: 'boolean',
+          description:
+            'merge. Fit the joined video to portrait 1080x1920 after merge.',
+        },
+        music: {
+          type: 'string',
+          description:
+            'merge. Music ingredient id to lay under the merged video.',
+        },
+        musicVolume: {
+          type: 'number',
+          minimum: 0,
+          maximum: 100,
+          description: 'merge. Background music volume from 0 to 100.',
+        },
+        transition: {
+          type: 'string',
+          enum: [
+            'none',
+            'fade',
+            'dissolve',
+            'wipeleft',
+            'wiperight',
+            'wipeup',
+            'wipedown',
+            'circleopen',
+            'circleclose',
+            'slideleft',
+            'slideright',
+          ],
+          description:
+            'merge. Transition between clips. Defaults to a cut when omitted.',
+        },
+        transitionDuration: {
+          type: 'number',
+          minimum: 0.1,
+          maximum: 2,
+          description: 'merge. Transition length in seconds (0.1-2).',
+        },
+        transitionEaseCurve: {
+          type: 'string',
+          enum: [
+            'easyinoutexpo',
+            'easyinexpooutcubic',
+            'easyinquartoutquad',
+            'easyinoutcubic',
+            'easyinoutsine',
+          ],
+          description: 'merge. Ease curve for the transition between clips.',
+        },
+      },
+    },
   },
   {
     name: 'set_generation_settings',

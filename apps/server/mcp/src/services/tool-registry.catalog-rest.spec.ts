@@ -3,38 +3,27 @@ import { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 
 /**
- * Covers the MCP catalog REST handlers (generation, content, analytics,
- * workflow-status, merge-videos). Each case is exercised through the public
+ * Covers the MCP catalog REST handlers (content, analytics,
+ * workflow-status). Each case is exercised through the public
  * `handleToolCall` path so the classifier, the role check and the response
- * formatting all run together. `create_article` is approval-gated, so it is
- * reached through the `resolve_approval` execution path instead.
+ * formatting all run together. `create_article_draft` is approval-gated, so it
+ * is reached through the `resolve_approval` execution path instead.
  */
 const CATALOG_REST_NAMES = [
-  'get_video_status',
-  'list_videos',
-  'merge_videos',
   'get_video_analytics',
-  'create_article',
   'create_article_draft',
   'get_article_preview',
   'publish_article',
-  'search_articles',
-  'get_article',
-  'list_images',
-  'list_avatars',
-  'list_music',
+  'get_articles',
   'get_workflow_status',
   'list_workflow_templates',
   'get_content_analytics',
-  'get_usage_stats',
-  'generate_linkedin_content',
   'get_linkedin_connection_status',
   'get_linkedin_analytics',
 ];
 
 const APPROVAL_GATED_NAMES = [
   'create_post',
-  'create_article',
   'create_article_draft',
   'publish_article',
   'generate_content_batch',
@@ -62,6 +51,9 @@ const MOCK_TOOLS = new Map(
     ...CATALOG_REST_NAMES,
     ...APPROVAL_GATED_NAMES,
     'generate',
+    'generate_content',
+    'get_generation_options',
+    'transform_media',
     'create_brand_from_url',
     'get_brand_scan_status',
     'resolve_approval',
@@ -118,18 +110,9 @@ function build() {
       status: 'PUBLISHED',
       title: 'Reviewed guide',
     }),
-    createArticle: vi.fn().mockResolvedValue({
-      id: 'article-1',
-      status: 'draft',
-      title: 'AI News',
-      wordCount: 820,
-    }),
     executeAgentTool: vi
       .fn()
       .mockResolvedValue({ data: { id: 'image-1' }, success: true }),
-    generateLinkedInContent: vi
-      .fn()
-      .mockResolvedValue([{ text: 'Variation A' }]),
     getArticle: vi.fn().mockResolvedValue({
       content: 'Long form body',
       createdAt: '2026-08-01T00:00:00.000Z',
@@ -144,19 +127,6 @@ function build() {
     getLinkedInConnectionStatus: vi
       .fn()
       .mockResolvedValue({ connected: true, profile: 'in/genfeed' }),
-    getUsageStats: vi.fn().mockResolvedValue({
-      contentCreated: {
-        articles: 4,
-        avatars: 1,
-        images: 12,
-        music: 2,
-        videos: 7,
-      },
-      creditsUsed: 340,
-      postsPublished: 9,
-      timeRange: '30d',
-      totalEngagement: 5100,
-    }),
     getVideoAnalytics: vi
       .fn()
       .mockResolvedValue({ views: 1200, watchTime: 90 }),
@@ -168,13 +138,6 @@ function build() {
       nodeCount: 3,
       status: 'RUNNING',
       version: 4,
-    }),
-    listAvatars: vi.fn().mockResolvedValue([{ id: 'avatar-1' }]),
-    listImages: vi.fn().mockResolvedValue([{ id: 'image-1' }]),
-    listMusic: vi.fn().mockResolvedValue([{ id: 'track-1' }]),
-    mergeVideos: vi.fn().mockResolvedValue({
-      id: 'merged-1',
-      status: 'PROCESSING',
     }),
     listWorkflowTemplates: vi.fn().mockResolvedValue([
       {
@@ -337,55 +300,10 @@ describe('catalog REST handlers — articles', () => {
     });
   });
 
-  it('creates an article through the approval execution path', async () => {
-    const { client, registry } = build();
-    client.resolveApproval.mockResolvedValue({
-      arguments: {
-        keywords: ['ai'],
-        length: 'medium',
-        targetAudience: 'founders',
-        tone: 'professional',
-        topic: 'AI news',
-      },
-      id: 'apr-1',
-      status: 'APPROVED',
-      toolName: 'create_article',
-    });
-
-    const result = await callTool(registry, 'resolve_approval', {
-      approvalId: 'apr-1',
-      decision: 'approve',
-    });
-
-    expect(client.createArticle).toHaveBeenCalledWith({
-      keywords: ['ai'],
-      length: 'medium',
-      targetAudience: 'founders',
-      tone: 'professional',
-      topic: 'AI news',
-    });
-    expect(result.content[0].text).toContain('Article created successfully!');
-    expect(result.content[0].text).toContain('article-1');
-  });
-
-  it('queues an approval rather than creating an article directly', async () => {
-    const { client, registry } = build();
-
-    const result = await callTool(registry, 'create_article', {
-      topic: 'AI news',
-    });
-
-    expect(client.createApproval).toHaveBeenCalledWith('create_article', {
-      topic: 'AI news',
-    });
-    expect(client.createArticle).not.toHaveBeenCalled();
-    expect(result.content[0].text).toContain('requires approval');
-  });
-
   it('searches articles and links the result list', async () => {
     const { client, registry } = build();
 
-    const result = await callTool(registry, 'search_articles', {
+    const result = await callTool(registry, 'get_articles', {
       category: 'news',
       limit: 5,
       query: 'ai video',
@@ -407,7 +325,7 @@ describe('catalog REST handlers — articles', () => {
     const { client, registry } = build();
     client.searchArticles.mockResolvedValue([]);
 
-    const result = await callTool(registry, 'search_articles', {
+    const result = await callTool(registry, 'get_articles', {
       query: 'nothing',
     });
 
@@ -416,127 +334,53 @@ describe('catalog REST handlers — articles', () => {
     );
   });
 
-  it('requires a search query', async () => {
-    const { registry } = build();
+  it('requires exactly one of articleId or query', async () => {
+    const { client, registry } = build();
 
-    const result = await callTool(registry, 'search_articles', {});
+    const neither = await callTool(registry, 'get_articles', {});
+    const both = await callTool(registry, 'get_articles', {
+      articleId: 'article-1',
+      query: 'ai video',
+    });
 
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain('query required');
+    for (const result of [neither, both]) {
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain(
+        'Pass exactly one of articleId or query',
+      );
+    }
+    expect(client.getArticle).not.toHaveBeenCalled();
+    expect(client.searchArticles).not.toHaveBeenCalled();
   });
 
   it('renders a single article with a content preview', async () => {
     const { client, registry } = build();
 
-    const result = await callTool(registry, 'get_article', {
+    const result = await callTool(registry, 'get_articles', {
       articleId: 'article-1',
     });
 
     expect(client.getArticle).toHaveBeenCalledWith('article-1');
+    expect(client.searchArticles).not.toHaveBeenCalled();
     expect(result.content[0].text).toContain('Article: AI News');
     expect(result.content[0].text).toContain('Long form body');
   });
 
-  it('requires an articleId', async () => {
-    const { registry } = build();
-
-    const result = await callTool(registry, 'get_article', {});
-
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain('articleId required');
-  });
-});
-
-describe('catalog REST handlers — media libraries', () => {
-  it('lists images with pagination forwarded', async () => {
+  it('rejects search-only fields when fetching one article', async () => {
     const { client, registry } = build();
 
-    const result = await callTool(registry, 'list_images', {
-      limit: 10,
-      offset: 20,
-    });
+    for (const extra of [{ category: 'news' }, { limit: 5 }]) {
+      const result = await callTool(registry, 'get_articles', {
+        articleId: 'article-1',
+        ...extra,
+      });
 
-    expect(client.listImages).toHaveBeenCalledWith({ limit: 10, offset: 20 });
-    expect(result.content[0].text).toContain('Found 1 images');
-  });
-
-  it('reports an empty image library', async () => {
-    const { client, registry } = build();
-    client.listImages.mockResolvedValue([]);
-
-    const result = await callTool(registry, 'list_images', {});
-
-    expect(result.content[0].text).toBe('No images found.');
-  });
-
-  it('lists avatars', async () => {
-    const { client, registry } = build();
-
-    const result = await callTool(registry, 'list_avatars', { limit: 5 });
-
-    expect(client.listAvatars).toHaveBeenCalledWith({ limit: 5 });
-    expect(result.content[0].text).toContain('Found 1 avatars');
-  });
-
-  it('reports an empty avatar library', async () => {
-    const { client, registry } = build();
-    client.listAvatars.mockResolvedValue([]);
-
-    const result = await callTool(registry, 'list_avatars', {});
-
-    expect(result.content[0].text).toBe('No avatars found.');
-  });
-
-  it('lists music tracks', async () => {
-    const { client, registry } = build();
-
-    const result = await callTool(registry, 'list_music', { limit: 3 });
-
-    expect(client.listMusic).toHaveBeenCalledWith({ limit: 3 });
-    expect(result.content[0].text).toContain('Found 1 music tracks');
-  });
-
-  it('starts a merge and forwards supported options', async () => {
-    const { client, registry } = build();
-
-    const result = await callTool(registry, 'merge_videos', {
-      ids: ['clip-1', 'clip-2'],
-      isResizeEnabled: true,
-      transition: 'fade',
-    });
-
-    expect(client.mergeVideos).toHaveBeenCalledWith({
-      ids: ['clip-1', 'clip-2'],
-      isResizeEnabled: true,
-      transition: 'fade',
-    });
-    expect(result.isError).toBeUndefined();
-    expect(result.content[0].text).toContain('merged-1');
-    expect(result.content[0].text).toContain('PROCESSING');
-  });
-
-  it('rejects zoom instead of starting a merge without it', async () => {
-    const { client, registry } = build();
-
-    const result = await callTool(registry, 'merge_videos', {
-      ids: ['clip-1', 'clip-2'],
-      zoomEaseCurve: 'easyinoutcubic',
-    });
-
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain(
-      'Zoom effects are not supported when merging videos',
-    );
-    expect(client.mergeVideos).not.toHaveBeenCalled();
-  });
-
-  it('reports an empty music library', async () => {
-    const { client, registry } = build();
-    client.listMusic.mockResolvedValue([]);
-
-    const result = await callTool(registry, 'list_music', {});
-
-    expect(result.content[0].text).toBe('No music tracks found.');
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain(
+        'category and limit apply only to a query search',
+      );
+    }
+    expect(client.getArticle).not.toHaveBeenCalled();
   });
 });
 
@@ -617,80 +461,7 @@ describe('catalog REST handlers — workflows', () => {
   });
 });
 
-describe('catalog REST handlers — usage and LinkedIn', () => {
-  it('defaults usage stats to a 30d window', async () => {
-    const { client, registry } = build();
-
-    const result = await callTool(registry, 'get_usage_stats', {});
-
-    expect(client.getUsageStats).toHaveBeenCalledWith('30d');
-    expect(result.content[0].text).toContain('Usage Statistics (30d)');
-    expect(result.content[0].text).toContain('Credits Used: 340');
-    expect(result.structuredContent?.genfeedCards?.title).toBe('Usage · 30d');
-  });
-
-  it('forwards the requested usage range and displays the server-reported range', async () => {
-    const { client, registry } = build();
-
-    const result = await callTool(registry, 'get_usage_stats', {
-      timeRange: '7d',
-    });
-
-    expect(client.getUsageStats).toHaveBeenCalledWith('7d');
-    expect(result.structuredContent?.genfeedCards?.title).toBe('Usage · 30d');
-  });
-
-  it('generates LinkedIn variations with a default count of 3', async () => {
-    const { client, registry } = build();
-
-    const result = await callTool(registry, 'generate_linkedin_content', {
-      brandId: 'brand-1',
-      topic: 'Launch week',
-    });
-
-    expect(client.generateLinkedInContent).toHaveBeenCalledWith({
-      brandId: 'brand-1',
-      topic: 'Launch week',
-      variationsCount: 3,
-    });
-    expect(result.content[0].text).toContain(
-      'Generated 1 LinkedIn content variations',
-    );
-  });
-
-  it('honours an explicit variations count', async () => {
-    const { client, registry } = build();
-
-    await callTool(registry, 'generate_linkedin_content', {
-      topic: 'Launch week',
-      variationsCount: 5,
-    });
-
-    expect(client.generateLinkedInContent).toHaveBeenCalledWith(
-      expect.objectContaining({ variationsCount: 5 }),
-    );
-  });
-
-  it('reports when no LinkedIn content came back', async () => {
-    const { client, registry } = build();
-    client.generateLinkedInContent.mockResolvedValue([]);
-
-    const result = await callTool(registry, 'generate_linkedin_content', {
-      topic: 'Launch week',
-    });
-
-    expect(result.content[0].text).toBe('No content generated.');
-  });
-
-  it('requires a topic for LinkedIn generation', async () => {
-    const { registry } = build();
-
-    const result = await callTool(registry, 'generate_linkedin_content', {});
-
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain('topic is required');
-  });
-
+describe('catalog REST handlers — LinkedIn', () => {
   it('returns the LinkedIn connection status verbatim', async () => {
     const { client, registry } = build();
 
@@ -740,6 +511,67 @@ describe('catalog REST handlers — usage and LinkedIn', () => {
 });
 
 describe('ToolRegistryService — agent result mapping', () => {
+  it.each([
+    [
+      'edit',
+      { imageId: 'image-1', operation: 'edit', prompt: 'Change the sign' },
+    ],
+    [
+      'reframe',
+      { aspectRatio: '9:16', imageId: 'image-1', operation: 'reframe' },
+    ],
+    [
+      'upscale',
+      { imageUrl: 'https://cdn.example.com/a.png', operation: 'upscale' },
+    ],
+    ['merge', { ids: ['clip-1', 'clip-2'], operation: 'merge' }],
+  ])(
+    'proxies transform_media %s through the agent executor with no MCP-side handler',
+    async (_operation, args) => {
+      const { client, registry } = build();
+
+      const result = await callTool(registry, 'transform_media', args);
+
+      expect(client.executeAgentTool).toHaveBeenCalledWith(
+        'transform_media',
+        args,
+        undefined,
+      );
+      expect(client.createApproval).not.toHaveBeenCalled();
+      expect(result.isError).toBeUndefined();
+    },
+  );
+
+  it('renders a transform_media result as the card kind the executor reports', async () => {
+    const { client, registry } = build();
+    client.executeAgentTool.mockResolvedValue({
+      data: { id: 'merged-1', kind: 'video', status: 'processing' },
+      success: true,
+    });
+
+    const result = await callTool(registry, 'transform_media', {
+      ids: ['clip-1', 'clip-2'],
+      operation: 'merge',
+    });
+
+    expect(result.structuredContent?.genfeedCards?.cards[0]).toMatchObject({
+      id: 'merged-1',
+      kind: 'video',
+    });
+  });
+
+  it.each([
+    ['generate_content', { topic: 'Launch week', type: 'post' }],
+    ['get_generation_options', { type: 'image' }],
+  ])('proxies %s through the agent executor', async (name, args) => {
+    const { client, registry } = build();
+
+    await callTool(registry, name, args);
+
+    expect(client.executeAgentTool).toHaveBeenCalledWith(name, args, undefined);
+    expect(client.createApproval).not.toHaveBeenCalled();
+  });
+
   it('maps a failed agent tool result to an MCP error', async () => {
     const { client, registry } = build();
     client.executeAgentTool.mockResolvedValue({
@@ -772,10 +604,15 @@ describe('ToolRegistryService — agent result mapping', () => {
   it('does not let an approval audit-write failure mask the tool result', async () => {
     const { client, logger, registry } = build();
     client.resolveApproval.mockResolvedValue({
-      arguments: { topic: 'AI news' },
+      arguments: {
+        content: '<p>Full content</p>',
+        label: 'Reviewed guide',
+        slug: 'reviewed-guide',
+        summary: 'Verified',
+      },
       id: 'apr-1',
       status: 'APPROVED',
-      toolName: 'create_article',
+      toolName: 'create_article_draft',
     });
     client.attachApprovalResult.mockRejectedValue(new Error('audit down'));
 
@@ -784,7 +621,7 @@ describe('ToolRegistryService — agent result mapping', () => {
       decision: 'approve',
     });
 
-    expect(result.content[0].text).toContain('Article created successfully!');
+    expect(result.content[0].text).toContain('saved as a draft');
     expect(logger.error).toHaveBeenCalledWith(
       expect.stringContaining('Failed to attach result to approval apr-1'),
       expect.any(Error),

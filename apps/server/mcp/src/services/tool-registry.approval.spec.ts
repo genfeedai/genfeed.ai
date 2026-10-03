@@ -52,8 +52,8 @@ const MOCK_TOOLS: Record<
     name: 'create_scheduled_release',
     surfaces: { mcp: true },
   },
-  get_video_status: {
-    name: 'get_video_status',
+  get_job_status: {
+    name: 'get_job_status',
     requiredRole: 'user',
     surfaces: { mcp: true },
   },
@@ -115,7 +115,7 @@ function build() {
       status: 'APPROVED',
       toolName: 'create_post',
     }),
-    getVideoStatus: vi
+    getJobStatus: vi
       .fn()
       .mockResolvedValue({ progress: 100, status: 'completed' }),
   };
@@ -327,7 +327,7 @@ describe('ToolRegistryService — approval queue', () => {
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain('already resolved');
     expect(client.executeAgentTool).not.toHaveBeenCalled();
-    expect(client.getVideoStatus).not.toHaveBeenCalled();
+    expect(client.getJobStatus).not.toHaveBeenCalled();
   });
 
   it('refuses to execute a non-approval-gated tool referenced by an approval', async () => {
@@ -335,10 +335,10 @@ describe('ToolRegistryService — approval queue', () => {
     // approval-required set must not run via the admin resolve path.
     const { client, registry } = build();
     client.resolveApproval.mockResolvedValue({
-      arguments: { videoId: 'v1' },
+      arguments: { jobId: 'v1' },
       id: 'apr-1',
       status: 'APPROVED',
-      toolName: 'get_video_status',
+      toolName: 'get_job_status',
     });
 
     const result = (await registry.handleToolCall({
@@ -348,7 +348,7 @@ describe('ToolRegistryService — approval queue', () => {
 
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain('non-approval-gated');
-    expect(client.getVideoStatus).not.toHaveBeenCalled();
+    expect(client.getJobStatus).not.toHaveBeenCalled();
     expect(client.executeAgentTool).not.toHaveBeenCalled();
     expect(client.attachApprovalResult).toHaveBeenCalledWith(
       'apr-1',

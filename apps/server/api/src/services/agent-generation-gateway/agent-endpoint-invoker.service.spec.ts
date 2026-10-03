@@ -189,6 +189,25 @@ describe('AgentEndpointInvoker', () => {
     expect(endpoint.handle).not.toHaveBeenCalled();
   });
 
+  it('skips the subscription gate only for an endpoint that declares no SubscriptionGuard', async () => {
+    const endpoint = buildEndpoint({
+      creditsConfig: undefined,
+      hasCreditsInterceptor: false,
+      isSubscriptionCheckSkipped: true,
+    });
+    subscriptionGuard.assertActive.mockImplementation(() => {
+      throw new ForbiddenException('Active subscription required');
+    });
+
+    await expect(invoker.invoke(endpoint, invocation)).resolves.toBe(
+      'generated',
+    );
+
+    expect(subscriptionGuard.assertActive).not.toHaveBeenCalled();
+    expect(rolesGuard.assertRoles).toHaveBeenCalled();
+    expect(endpoint.handle).toHaveBeenCalledOnce();
+  });
+
   it('validates the body against the endpoint DTO before the handler runs', async () => {
     const endpoint = buildEndpoint();
 

@@ -125,18 +125,16 @@ function dispatchWorkspaceFamily(
   ctx: ToolExecutionContext,
 ): FamilyResult {
   switch (toolName) {
-    case 'get_credits_balance':
-      return handlers.workspaceHandler.getCreditsBalance(ctx);
-    case 'list_brands':
-      return handlers.workspaceHandler.listBrands(ctx);
-    case 'list_characters':
-      return handlers.workspaceHandler.listCharacters(params, ctx);
+    case 'get_account':
+      return handlers.workspaceHandler.getAccount(params, ctx);
+    case 'get_brands':
+      return handlers.workspaceHandler.getBrands(params, ctx);
+    case 'list_assets':
+      return handlers.workspaceHandler.listAssets(params, ctx);
     case 'get_current_brand':
       return handlers.workspaceHandler.getCurrentBrand(ctx);
-    case 'list_posts':
-      return handlers.workspaceHandler.listPosts(params, ctx);
-    case 'get_post':
-      return handlers.workspaceHandler.getPost(params, ctx);
+    case 'get_posts':
+      return dispatchGetPosts(handlers, params, ctx);
     case 'request_media_upload':
       return handlers.workspaceHandler.requestMediaUpload(params, ctx);
     case 'complete_media_upload':
@@ -159,6 +157,47 @@ function dispatchWorkspaceFamily(
     default:
       return null;
   }
+}
+
+/**
+ * `get_posts` modes: `postId` opens one post (exclusive with every other
+ * field), `days` reads the content calendar, otherwise recent posts are listed.
+ */
+function dispatchGetPosts(
+  handlers: AgentToolDispatchHandlers,
+  params: Record<string, unknown>,
+  ctx: ToolExecutionContext,
+): Promise<AgentToolResult> | AgentToolResult {
+  const isSet = (key: string): boolean =>
+    params[key] !== undefined && params[key] !== null && params[key] !== '';
+
+  // A supplied postId, even an empty one, selects detail mode so an invalid id
+  // is rejected instead of silently listing unrelated posts.
+  if (params.postId !== undefined && params.postId !== null) {
+    const others = ['days', 'executionState', 'limit'].filter(isSet);
+    if (others.length > 0) {
+      return {
+        creditsUsed: 0,
+        error: `postId cannot be combined with ${others.join(', ')}.`,
+        success: false,
+      };
+    }
+    return handlers.workspaceHandler.getPost(params, ctx);
+  }
+
+  if (isSet('days')) {
+    const others = ['executionState', 'limit'].filter(isSet);
+    if (others.length > 0) {
+      return {
+        creditsUsed: 0,
+        error: `days (content calendar) cannot be combined with ${others.join(', ')}.`,
+        success: false,
+      };
+    }
+    return handlers.proactiveHandler.getContentCalendar(params, ctx);
+  }
+
+  return handlers.workspaceHandler.listPosts(params, ctx);
 }
 
 function dispatchWorkflowFamily(
@@ -250,12 +289,8 @@ function dispatchMediaFamily(
       return handlers.mediaGenerationHandler.generateContent(params, ctx);
     case 'generate':
       return handlers.mediaGenerationHandler.generate(params, ctx);
-    case 'edit_image':
-      return handlers.mediaGenerationHandler.editImage(params, ctx);
-    case 'reframe_image':
-      return handlers.mediaGenerationHandler.reframeImage(params, ctx);
-    case 'upscale_image':
-      return handlers.mediaGenerationHandler.upscaleImage(params, ctx);
+    case 'transform_media':
+      return handlers.mediaGenerationHandler.transformMedia(params, ctx);
     case 'generate_content_batch':
       return handlers.mediaGenerationHandler.generateContentBatch(params, ctx);
     case 'generate_as_identity':
@@ -312,8 +347,6 @@ function dispatchGrowthFamily(
       return handlers.proactiveHandler.getApprovalSummary(ctx);
     case 'analyze_performance':
       return handlers.proactiveHandler.analyzePerformance(params, ctx);
-    case 'get_content_calendar':
-      return handlers.proactiveHandler.getContentCalendar(params, ctx);
     case 'update_strategy_state':
       return handlers.proactiveHandler.updateStrategyState(params, ctx);
     default:

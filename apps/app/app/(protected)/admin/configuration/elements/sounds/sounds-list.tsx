@@ -19,6 +19,7 @@ import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Pencil, Trash2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   Suspense,
   useCallback,
@@ -278,11 +279,13 @@ function SoundsListContent({
     }
   };
 
+  const scopeTranslate = useTranslations('ui.elementPlatformFields');
   const columns = buildSoundsColumns({
     updatingIds,
     scope,
     onToggleActive: handleToggleActive,
     onToggleDefault: handleToggleDefault,
+    scopeLabel: scopeTranslate('scopeHeader'),
   });
 
   const actions =

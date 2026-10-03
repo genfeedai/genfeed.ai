@@ -17,7 +17,7 @@ export const MCP_MUTATION_POLICY_META_KEY = 'genfeed.ai/mutationPolicy';
 
 /**
  * `_meta` key carrying the tool's toolset name, so a client that fetched an
- * unfiltered `tools/list` (or `describe_tool`) can still see which
+ * unfiltered `tools/list` (or `find_tools`) can still see which
  * `?toolsets=` selection would have included a given tool.
  */
 export const MCP_TOOLSET_META_KEY = 'genfeed.ai/toolset';

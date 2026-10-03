@@ -1,4 +1,3 @@
-import type { IngredientOrigin } from '@genfeedai/contracts';
 import { storyboardCharacterReplacementSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
 import { storyboardRunSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { storyboardRunCapabilitiesSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
@@ -20,7 +19,6 @@ import { AnalyticsClient } from '@mcp/services/client/analytics.client';
 import { BaseApiClient } from '@mcp/services/client/base-api-client';
 import type {
   AdsGatewayInsightsParams,
-  BrandResponse,
   CreateBatchParams,
   ListBatchesParams,
   PersonaResponse,
@@ -67,23 +65,16 @@ import type {
   McpApprovalResource,
 } from '@mcp/shared/interfaces/approval.interface';
 import type {
-  ArticleCreationParams,
   ArticleResponse,
   ArticleSearchParams,
   ArticleSearchResult,
 } from '@mcp/shared/interfaces/article.interface';
 import type {
-  AvatarListParams,
-  AvatarResponse,
-} from '@mcp/shared/interfaces/avatar.interface';
-import type {
   ImageCreationParams,
-  ImageListParams,
   ImageResponse,
 } from '@mcp/shared/interfaces/image.interface';
 import type {
   MusicCreationParams,
-  MusicListParams,
   MusicResponse,
 } from '@mcp/shared/interfaces/music.interface';
 import type {
@@ -93,18 +84,14 @@ import type {
   PublishContentParams,
   TrendingTopic,
   TrendingTopicsParams,
-  UsageStats,
 } from '@mcp/shared/interfaces/post.interface';
 import type {
   SkillsProEntitlement,
   SkillsProInstallation,
 } from '@mcp/shared/interfaces/skills-pro.interface';
 import type {
-  MergeVideosParams,
-  MergeVideosResult,
   VideoCreationParams,
   VideoResponse,
-  VideoStatus,
 } from '@mcp/shared/interfaces/video.interface';
 import type {
   SystemWorkflowCatalogEntry,
@@ -277,40 +264,12 @@ export class ClientService {
     return this.media.createVideo(params);
   }
 
-  getVideoStatus(videoId: string): Promise<VideoStatus> {
-    return this.media.getVideoStatus(videoId);
-  }
-
-  listVideos(
-    limit: number = 10,
-    offset: number = 0,
-    origin?: IngredientOrigin,
-  ): Promise<VideoResponse[]> {
-    return this.media.listVideos(limit, offset, origin);
-  }
-
-  mergeVideos(params: MergeVideosParams): Promise<MergeVideosResult> {
-    return this.media.mergeVideos(params);
-  }
-
   createImage(params: ImageCreationParams): Promise<ImageResponse> {
     return this.media.createImage(params);
   }
 
-  listImages(params: ImageListParams = {}): Promise<ImageResponse[]> {
-    return this.media.listImages(params);
-  }
-
-  listAvatars(params: AvatarListParams = {}): Promise<AvatarResponse[]> {
-    return this.media.listAvatars(params);
-  }
-
   createMusic(params: MusicCreationParams): Promise<MusicResponse> {
     return this.media.createMusic(params);
-  }
-
-  listMusic(params: MusicListParams = {}): Promise<MusicResponse[]> {
-    return this.media.listMusic(params);
   }
 
   // ── Analytics ──
@@ -338,10 +297,6 @@ export class ClientService {
 
   publishArticle(articleId: string): Promise<ArticleResponse> {
     return this.content.publishArticle(articleId);
-  }
-
-  createArticle(params: ArticleCreationParams): Promise<ArticleResponse> {
-    return this.content.createArticle(params);
   }
 
   searchArticles(params: ArticleSearchParams): Promise<ArticleSearchResult[]> {
@@ -548,14 +503,6 @@ export class ClientService {
     return this.workspace.getCredits();
   }
 
-  getUsageStats(timeRange: string = '30d'): Promise<UsageStats> {
-    return this.workspace.getUsageStats(timeRange);
-  }
-
-  listBrands(): Promise<BrandResponse[]> {
-    return this.workspace.listBrands();
-  }
-
   listPersonas(
     params: { status?: string; limit?: number; offset?: number } = {},
   ): Promise<PersonaResponse[]> {
@@ -570,10 +517,6 @@ export class ClientService {
     params: ListBatchesParams = {},
   ): Promise<Array<Record<string, unknown>>> {
     return this.workspace.listBatches(params);
-  }
-
-  getAccountInfo(): Promise<Record<string, unknown>> {
-    return this.workspace.getAccountInfo();
   }
 
   getJobStatus(jobId: string): Promise<Record<string, unknown>> {
@@ -944,22 +887,6 @@ export class ClientService {
   }
 
   // ── LinkedIn ──
-
-  generateLinkedInContent(params: {
-    brandId?: string;
-    topic: string;
-    variationsCount?: number;
-  }): Promise<
-    Array<{
-      body: string;
-      content: string;
-      cta: string;
-      hashtags: string[];
-      hook: string;
-    }>
-  > {
-    return this.linkedin.generateLinkedInContent(params);
-  }
 
   getLinkedInConnectionStatus(): Promise<LinkedInConnectionStatus> {
     return this.linkedin.getLinkedInConnectionStatus();

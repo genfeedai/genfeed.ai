@@ -39,9 +39,9 @@ describe('finalizeMcpToolResult', () => {
   });
 
   it.each([
-    ['search_articles', true],
+    ['get_articles', true],
     ['unknown_native', false],
-    ['list_posts', false],
+    ['get_posts', false],
   ] as const)(
     'skips proxy or unmapped %s results',
     async (name, isAgentExecutor) => {
@@ -67,15 +67,15 @@ describe('finalizeMcpToolResult', () => {
         outcome,
       });
       const final = await finalizeMcpToolResult(
-        'search_articles',
+        'get_articles',
         raw,
         false,
         client,
         logger,
       );
-      expect(final).toEqual(withCardResult('search_articles', raw));
+      expect(final).toEqual(withCardResult('get_articles', raw));
       expect(client.evaluateMcpToolResult).toHaveBeenCalledExactlyOnceWith(
-        'search_articles',
+        'get_articles',
         JSON.stringify(before),
       );
       expect(raw).toEqual(before);
@@ -90,13 +90,7 @@ describe('finalizeMcpToolResult', () => {
       outcome: 'withheld',
     });
     expect(
-      await finalizeMcpToolResult(
-        'search_articles',
-        raw,
-        false,
-        client,
-        logger,
-      ),
+      await finalizeMcpToolResult('get_articles', raw, false, client, logger),
     ).toEqual({
       content: [
         {
@@ -117,18 +111,12 @@ describe('finalizeMcpToolResult', () => {
       },
     };
     expect(
-      await finalizeMcpToolResult(
-        'search_articles',
-        raw,
-        false,
-        client,
-        logger,
-      ),
+      await finalizeMcpToolResult('get_articles', raw, false, client, logger),
     ).toBe(raw);
     expect(client.evaluateMcpToolResult).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalledExactlyOnceWith(
       'MCP result gate failed open',
-      { toolName: 'search_articles', category: 'adapter', contentLength: 0 },
+      { toolName: 'get_articles', category: 'adapter', contentLength: 0 },
     );
     expect(metricsCount).toHaveBeenCalledExactlyOnceWith(
       'agent.untrusted_content_gate.fail_open',
@@ -144,18 +132,12 @@ describe('finalizeMcpToolResult', () => {
       new Error('RAW_PRIVATE_BODY'),
     );
     expect(
-      await finalizeMcpToolResult(
-        'search_articles',
-        raw,
-        false,
-        client,
-        logger,
-      ),
-    ).toEqual(withCardResult('search_articles', before));
+      await finalizeMcpToolResult('get_articles', raw, false, client, logger),
+    ).toEqual(withCardResult('get_articles', before));
     expect(logger.warn).toHaveBeenCalledExactlyOnceWith(
       'MCP result gate failed open',
       {
-        toolName: 'search_articles',
+        toolName: 'get_articles',
         category: 'adapter',
         contentLength: Buffer.byteLength(
           JSON.stringify(JSON.stringify(before)),
@@ -186,17 +168,11 @@ describe('finalizeMcpToolResult', () => {
         Buffer.byteLength(JSON.stringify(JSON.stringify(raw)), 'utf8'),
       ).toBe(MCP_TOOL_RESULT_MAX_JSON_BYTES + over);
       expect(
-        await finalizeMcpToolResult(
-          'search_articles',
-          raw,
-          false,
-          client,
-          logger,
-        ),
+        await finalizeMcpToolResult('get_articles', raw, false, client, logger),
       ).toBe(raw);
       if (over === 0) {
         expect(client.evaluateMcpToolResult).toHaveBeenCalledExactlyOnceWith(
-          'search_articles',
+          'get_articles',
           JSON.stringify(raw),
         );
         expect(logger.warn).not.toHaveBeenCalled();
@@ -204,7 +180,7 @@ describe('finalizeMcpToolResult', () => {
         // Oversize results are classified as a bounded, flagged sample so the
         // API decides by mode; they are never skipped (#5894).
         expect(client.evaluateMcpToolResult).toHaveBeenCalledExactlyOnceWith(
-          'search_articles',
+          'get_articles',
           expect.any(String),
           true,
         );
@@ -225,7 +201,7 @@ describe('finalizeMcpToolResult', () => {
       outcome: 'withheld',
     });
     const final = await finalizeMcpToolResult(
-      'search_articles',
+      'get_articles',
       raw,
       false,
       client,
@@ -241,7 +217,7 @@ describe('finalizeMcpToolResult', () => {
       isError: true,
     });
     expect(client.evaluateMcpToolResult).toHaveBeenCalledExactlyOnceWith(
-      'search_articles',
+      'get_articles',
       expect.stringContaining('middle of oversize result omitted'),
       true,
     );
@@ -256,7 +232,7 @@ describe('finalizeMcpToolResult', () => {
     });
     Object.defineProperty(raw, 'toJSON', { value: () => ({ content: [] }) });
     await expect(
-      finalizeMcpToolResult('search_articles', raw, false, client, logger),
+      finalizeMcpToolResult('get_articles', raw, false, client, logger),
     ).rejects.toThrow('card formatting failure');
     expect(logger.warn).not.toHaveBeenCalled();
     expect(client.evaluateMcpToolResult).toHaveBeenCalledTimes(1);

@@ -8,6 +8,9 @@ export class ElementScene extends BaseEntity implements IElementScene {
   declare public description?: string;
   declare public category?: ModelCategory;
   declare public isFavorite?: boolean;
+  declare public isActive?: boolean;
+  declare public isPlatformDefault?: boolean;
+  declare public sortOrder?: number;
 
   constructor(data: Partial<IElementScene> = {}) {
     super(data);
