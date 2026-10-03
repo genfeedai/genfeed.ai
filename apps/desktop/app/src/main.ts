@@ -27,6 +27,7 @@ import type {
 import {
   DESKTOP_APP_PROTOCOL_SCHEME,
   DESKTOP_IPC_CHANNELS,
+  IS_DESKTOP_LOCAL_MODE_ENABLED,
   parseDesktopThreadLink,
 } from '@genfeedai/contracts/desktop';
 import {
@@ -82,6 +83,7 @@ import {
 } from './main/runtime-context.util';
 import {
   activateDesktopLocalMode,
+  assertDesktopLocalModeEnabled,
   createLocalRuntimeCleanupBarrier,
   createUnwoundLocalRuntimeState,
   restoreDesktopRuntimeMode,
@@ -1050,7 +1052,7 @@ const createWindow = async (): Promise<void> => {
     await mainWindow.loadURL(buildDesktopFailureScreenUrl());
   }
 
-  buildDesktopMenu(mainWindow, () => {
+  const openLocalWorkspaceFromMenu = (): void => {
     void (async () => {
       assertDesktopRuntimeAvailable(runtimeContextStatus);
       await activateDesktopLocalMode(
@@ -1077,7 +1079,12 @@ const createWindow = async (): Promise<void> => {
         `open local workspace failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     });
-  });
+  };
+
+  buildDesktopMenu(
+    mainWindow,
+    IS_DESKTOP_LOCAL_MODE_ENABLED ? openLocalWorkspaceFromMenu : null,
+  );
 };
 
 const showDesktopStartupFailure = async (error: unknown): Promise<void> => {
@@ -1421,6 +1428,7 @@ const registerIpcHandlers = (): void => {
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.appEnableOfflineMode,
     async () => {
+      assertDesktopLocalModeEnabled();
       assertDesktopRuntimeAvailable(runtimeContextStatus);
       try {
         await activateDesktopLocalMode(

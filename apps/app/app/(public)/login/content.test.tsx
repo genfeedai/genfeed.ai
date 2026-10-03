@@ -29,6 +29,7 @@ const desktopRuntimeMocks = vi.hoisted(() => ({
 }));
 
 const desktopLocalWorkspaceFlagMock = vi.hoisted(() => ({
+  isAvailable: true,
   isEnabled: true,
   isReady: true,
 }));
@@ -112,6 +113,7 @@ describe('LoginPage', () => {
     authClientMocks.social.mockReset();
     authClientMocks.social.mockResolvedValue({});
     desktopRuntimeMocks.eventOrder.length = 0;
+    desktopLocalWorkspaceFlagMock.isAvailable = true;
     desktopLocalWorkspaceFlagMock.isEnabled = true;
     desktopLocalWorkspaceFlagMock.isReady = true;
     desktopRuntimeMocks.enableOfflineMode.mockReset();
@@ -265,6 +267,20 @@ describe('LoginPage', () => {
         'Local workspace is coming soon. Sign in with Genfeed Cloud.',
       ),
     ).toBeVisible();
+  });
+
+  it('hides every local workspace entry on the desktop sign-in screen in cloud-only builds', () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    desktopLocalWorkspaceFlagMock.isAvailable = false;
+    desktopLocalWorkspaceFlagMock.isEnabled = false;
+    render(<LoginPage />);
+
+    expect(
+      screen.getByRole('button', { name: 'Sign in with Genfeed' }),
+    ).toBeEnabled();
+    expect(screen.queryByText(/local workspace/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/local mode/i)).not.toBeInTheDocument();
+    expect(desktopRuntimeMocks.enableOfflineMode).not.toHaveBeenCalled();
   });
 
   it('starts local mode only after the user selects it', async () => {

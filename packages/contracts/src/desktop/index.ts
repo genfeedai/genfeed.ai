@@ -3,6 +3,17 @@ import type { IAgentThreadExternalRuntime } from '../interfaces/ai/agent-externa
 
 /* ─── Desktop IPC Channel Names ─── */
 
+/**
+ * Build-time switch for the local/offline runtime mode (PGlite workspace).
+ * Genfeed Desktop is cloud-only while this is `false`: the renderer hides every
+ * entry point into local mode and the main process neither restores a
+ * persisted local mode nor accepts `appEnableOfflineMode`. The local runtime
+ * code and any existing local data stay in place; flip this back to `true` to
+ * re-expose them. The Admin `desktop_local_workspace` flag only narrows this
+ * further, it cannot enable local mode when this is `false`.
+ */
+export const IS_DESKTOP_LOCAL_MODE_ENABLED = false;
+
 export const DESKTOP_ASSET_PROTOCOL_HOST = 'local';
 export const DESKTOP_ASSET_PROTOCOL_SCHEME = 'genfeed-asset';
 
