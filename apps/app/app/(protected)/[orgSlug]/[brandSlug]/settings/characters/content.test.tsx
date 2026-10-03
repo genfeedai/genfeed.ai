@@ -15,16 +15,19 @@ const mocks = vi.hoisted(() => {
   const createFromSheet = vi.fn();
   const listCharacters = vi.fn();
   const updateAvailability = vi.fn();
+  const moveOwnership = vi.fn();
   const postImage = vi.fn();
   const personasService = {
     composeSheetPrompt,
     createFromSheet,
     listCharacters,
+    moveOwnership,
     updateAvailability,
   };
   const imagesService = { post: postImage };
   return {
     role: undefined as string | undefined,
+    moveOwnership,
     updateAvailability,
     composeSheetPrompt,
     createFromSheet,
@@ -119,6 +122,7 @@ vi.mock('@services/content/personas.service', () => ({
       composeSheetPrompt: mocks.composeSheetPrompt,
       createFromSheet: mocks.createFromSheet,
       listCharacters: mocks.listCharacters,
+      moveOwnership: mocks.moveOwnership,
       updateAvailability: mocks.updateAvailability,
     }),
   },
@@ -138,6 +142,7 @@ describe('BrandSettingsCharactersPage', () => {
     mocks.role = MemberRole.USER;
     mocks.listCharacters.mockResolvedValue([]);
     mocks.updateAvailability.mockResolvedValue({ id: 'p1' });
+    mocks.moveOwnership.mockResolvedValue({ id: 'p1' });
     mocks.composeSheetPrompt.mockResolvedValue({
       prompt:
         'CHARACTER REFERENCE SHEET PRESET v1.0.0\n<<<CHARACTER_DESCRIPTION>>>a tall woman<<<END_CHARACTER_DESCRIPTION>>>',
@@ -328,6 +333,42 @@ describe('BrandSettingsCharactersPage', () => {
           mode: PersonaAvailabilityMode.ALL_BRANDS,
         });
       });
+    });
+
+    it('lets an admin move a shared character to another brand it is available to', async () => {
+      mocks.role = MemberRole.ADMIN;
+      mocks.listCharacters.mockResolvedValue([sharedCharacter]);
+      render(<BrandSettingsCharactersPage />);
+
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: 'Manage availability for Anna',
+        }),
+      );
+      expect(screen.getByTestId('move-ownership')).toBeDisabled();
+      fireEvent.click(await screen.findByRole('radio', { name: 'Newsletter' }));
+      fireEvent.click(screen.getByTestId('move-ownership'));
+
+      await waitFor(() => {
+        expect(mocks.moveOwnership).toHaveBeenCalledWith('p1', 'brand-3');
+      });
+    });
+
+    it('does not offer an ownership move for a character owned by one brand', async () => {
+      mocks.role = MemberRole.ADMIN;
+      mocks.listCharacters.mockResolvedValue([privateCharacter]);
+      render(<BrandSettingsCharactersPage />);
+
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: 'Manage availability for Ben',
+        }),
+      );
+      await screen.findByTestId('character-availability');
+
+      expect(
+        screen.queryByTestId('character-ownership'),
+      ).not.toBeInTheDocument();
     });
 
     it('offers selected brands with the owning brand locked on', async () => {
