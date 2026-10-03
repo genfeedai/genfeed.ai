@@ -1,3 +1,4 @@
+import { bindLearningPublicationV1 } from '@api/collections/content-learning/services/learning-artifact-binding.helper';
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import {
   buildScheduledPostFailureWorkflowDefinition,
@@ -137,6 +138,7 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
       organizationId: request.organizationId,
       versionPinId: this.requiredString(request.versionPinId, 'versionPinId'),
     });
+    if (result.success) await this.bindLearningPublication(request);
 
     const finalization = await this.prisma.postPublishFinalization.findUnique({
       where: {
@@ -306,6 +308,27 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
       post,
       new Error(workflowError),
     );
+  }
+
+  /**
+   * The approval completes after the publish transition, so learning binds
+   * here once it is PUBLISHED. Learning never fails a publish finalization.
+   */
+  private async bindLearningPublication(
+    request: ScheduledPostWorkflowInput,
+  ): Promise<void> {
+    try {
+      await bindLearningPublicationV1(
+        this.prisma,
+        request.organizationId,
+        request.postId,
+      );
+    } catch (error: unknown) {
+      this.logger.warn('Learning publication binding skipped', {
+        error: error instanceof Error ? error.name : 'unknown',
+        postId: request.postId,
+      });
+    }
   }
 
   private async releaseRejectedClaim(

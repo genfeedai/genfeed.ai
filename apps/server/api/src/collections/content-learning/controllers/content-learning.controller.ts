@@ -119,6 +119,44 @@ export class ContentLearningController {
     await this.accounts.credential(actor.organizationId, row.credentialId);
     return serializeSingle(request, ContentLearningEvidenceSerializer, row);
   }
+  /** The learning decision that generated, or was bound to, a post. */
+  @Get('posts/:postId/decision') async postDecision(
+    @Req() request: Request,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('postId') postId: string,
+  ) {
+    const actor = await this.actor(user);
+    const post = await this.prisma.post.findFirst({
+      where: {
+        id: postId,
+        organizationId: actor.organizationId,
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        brandId: true,
+        credentialId: true,
+        learningDecisionId: true,
+      },
+    });
+    if (!post?.credentialId) throw new NotFoundException('Decision not found');
+    await this.accounts.credential(actor.organizationId, post.credentialId);
+    const rows = await this.prisma.contentLearningDecision.findMany({
+      where: {
+        organizationId: actor.organizationId,
+        brandId: post.brandId,
+        credentialId: post.credentialId,
+        isDeleted: false,
+        OR: [
+          { generationId: post.id },
+          ...(post.learningDecisionId ? [{ id: post.learningDecisionId }] : []),
+        ],
+      },
+      take: 2,
+    });
+    if (rows.length !== 1) throw new NotFoundException('Decision not found');
+    return serializeSingle(request, ContentLearningEvidenceSerializer, rows[0]);
+  }
   @Get('policies/:id') async policy(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,

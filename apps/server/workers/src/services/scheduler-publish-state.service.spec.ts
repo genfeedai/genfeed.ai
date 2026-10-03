@@ -2,6 +2,7 @@ import {
   buildArtifactContentDigest,
   projectPostArtifactMaterial,
 } from '@api/agent-artifacts/agent-artifact-material.util';
+import { bindLearningPublicationV1 } from '@api/collections/content-learning/services/learning-artifact-binding.helper';
 import { CONTENT_LEARNING_ACTION_IDS } from '@api/collections/workflows/templates/content-learning-workflows.template';
 import type { PostLifecycleTransitionInput } from '@api/post-lifecycle/post-lifecycle.service';
 import {
@@ -16,6 +17,11 @@ import {
   queueLearningPublicationRefreshV1,
   SchedulerPublishStateService,
 } from '@workers/services/scheduler-publish-state.service';
+
+vi.mock(
+  '@api/collections/content-learning/services/learning-artifact-binding.helper',
+  () => ({ bindLearningPublicationV1: vi.fn() }),
+);
 
 function createLifecycleService(
   kind: 'stale' | 'transitioned' = 'transitioned',
@@ -359,6 +365,101 @@ describe('SchedulerPublishStateService', () => {
         result: expect.objectContaining({ success: true }),
         source: 'CronTiktokStatusService.applyStatusTransition',
       },
+    });
+  });
+
+  describe('learning publication binding after commit', () => {
+    const bind = vi.mocked(bindLearningPublicationV1);
+    function bindingHarness(
+      finalization: { findUnique: ReturnType<typeof vi.fn> } = {
+        findUnique: vi.fn().mockResolvedValue(null),
+      },
+      lifecycle = createLifecycleService(),
+    ) {
+      const postPublishFinalization = {
+        ...finalization,
+        create: vi.fn().mockResolvedValue({ id: 'finalization-1' }),
+      };
+      const prisma = {
+        $transaction: vi.fn(async (callback) =>
+          callback(
+            transactionFixture({
+              post: { findMany: vi.fn(), updateMany: vi.fn() },
+              postGroup: { findFirst: vi.fn(), updateMany: vi.fn() },
+              postPublishFinalization,
+            }),
+          ),
+        ),
+      };
+      const logger = { warn: vi.fn() };
+      const service = new SchedulerPublishStateService(
+        prisma as never,
+        logger as never,
+        lifecycle as never,
+      );
+      const publish = (state = TargetExecutionState.PUBLISHED) =>
+        service.transitionPost(
+          { id: 'post-1', organizationId: 'org-1' },
+          {
+            executionState: state,
+            externalId: 'provider-1',
+            visibility: PostVisibility.PUBLIC,
+          },
+          'Provider confirmed publication',
+          { priorExecutionStates: [TargetExecutionState.PUBLISHING] },
+          {
+            result: {
+              executionState: TargetExecutionState.PUBLISHED,
+              platform: 'twitter',
+              externalId: 'provider-1',
+              success: true,
+            },
+            source: 'CronTiktokStatusService.applyStatusTransition',
+          },
+        );
+      return { prisma, logger, postPublishFinalization, publish };
+    }
+    beforeEach(() => {
+      bind.mockReset();
+      bind.mockResolvedValue({ status: 'bound' });
+    });
+    it('binds once after the transaction commits when a finalization is created', async () => {
+      const h = bindingHarness();
+      expect(await h.publish()).toBe(true);
+      expect(h.postPublishFinalization.create).toHaveBeenCalledOnce();
+      expect(bind).toHaveBeenCalledOnce();
+      expect(bind).toHaveBeenCalledWith(h.prisma, 'org-1', 'post-1');
+      expect(bind.mock.invocationCallOrder[0]).toBeGreaterThan(
+        h.prisma.$transaction.mock.invocationCallOrder[0],
+      );
+    });
+    it('does not bind a replayed transition whose finalization already exists', async () => {
+      const h = bindingHarness({
+        findUnique: vi.fn().mockResolvedValue({ id: 'finalization-0' }),
+      });
+      expect(await h.publish()).toBe(true);
+      expect(h.postPublishFinalization.create).not.toHaveBeenCalled();
+      expect(bind).not.toHaveBeenCalled();
+    });
+    it('does not bind a stale transition', async () => {
+      const h = bindingHarness(undefined, createLifecycleService('stale'));
+      expect(await h.publish()).toBe(false);
+      expect(bind).not.toHaveBeenCalled();
+    });
+    it('does not bind a non-public PUBLISHING transition', async () => {
+      const h = bindingHarness();
+      await h.publish(TargetExecutionState.PUBLISHING);
+      expect(h.postPublishFinalization.create).not.toHaveBeenCalled();
+      expect(bind).not.toHaveBeenCalled();
+    });
+    it('keeps the publish successful when learning binding rejects', async () => {
+      bind.mockRejectedValue(new Error('learning down'));
+      const h = bindingHarness();
+      expect(await h.publish()).toBe(true);
+      expect(h.logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('learning publication binding skipped'),
+        expect.objectContaining({ postId: 'post-1' }),
+      );
     });
   });
 

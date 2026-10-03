@@ -1,3 +1,4 @@
+import { PostAccountLearningService } from '@api/collections/posts/services/post-account-learning.service';
 import { PostDraftGenerationService } from '@api/collections/posts/services/post-draft-generation.service';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
@@ -391,6 +392,14 @@ Tweet 3: Tech innovation is changing the world.`,
         {
           provide: PostDraftGenerationService,
           useValue: { generateDraftText: vi.fn() },
+        },
+        {
+          provide: PostAccountLearningService,
+          useValue: {
+            resolve: vi.fn(),
+            revalidate: vi.fn(),
+            bindArtifact: vi.fn(),
+          },
         },
         {
           provide: PostRepurposeService,
