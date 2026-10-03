@@ -1,3 +1,4 @@
+import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
 import {
   axiosResponse,
   collectionDocument,
@@ -9,11 +10,18 @@ import {
   AgentCampaign,
   AgentCampaignsService,
 } from '@services/automation/agent-campaigns.service';
-import { Skill, SkillsService } from '@services/content/skills.service';
+import {
+  classifySkillImportFailure,
+  Skill,
+  SkillImportCreatedUnavailableError,
+  SkillImportRejectedError,
+  SkillsService,
+} from '@services/content/skills.service';
 import {
   clearRequestOrganizationId,
   setRequestOrganizationId,
 } from '@services/core/interceptor.service';
+import axios, { type AxiosAdapter } from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const skillInput = {
@@ -82,9 +90,22 @@ describe('SkillsService', () => {
       axiosResponse(resourceDocument({ name: 'Hook' }, { id: 'skill_imp' })),
     );
 
-    const result = await service.importSkill(skillInput);
+    const envelope = {
+      slug: 'hook-writer',
+      package: {
+        format: 'files' as const,
+        files: [
+          {
+            path: 'SKILL.md',
+            content:
+              '---\nname: Hook writer\ndescription: Hooks\n---\nInstructions',
+          },
+        ],
+      },
+    };
+    const result = await service.importSkill(envelope);
 
-    expect(http.post).toHaveBeenCalledWith('/import', skillInput);
+    expect(http.post).toHaveBeenCalledWith('/import', envelope);
     expect(result.id).toBe('skill_imp');
   });
 
@@ -278,5 +299,125 @@ describe('SkillsService canonical fork and scoped acquisition', () => {
     } finally {
       clearRequestOrganizationId();
     }
+  });
+});
+
+describe('SkillsService validated import transport', () => {
+  it.each([
+    {
+      slug: 'upload',
+      package: {
+        format: 'files' as const,
+        files: [{ path: 'SKILL.md', content: 'Original contents' }],
+      },
+    },
+    {
+      slug: 'upload',
+      expectedPackageChecksum: 'a'.repeat(64),
+      sourceUrl: 'https://example.com/package',
+      package: { format: 'zip' as const, archiveBase64: 'UEs=' },
+    },
+  ])(
+    'sends the exact envelope with the bound organization and token through the real interceptor',
+    async (input) => {
+      const adapter = vi.fn<AxiosAdapter>(async (config) => ({
+        config,
+        data: resourceDocument({ name: 'Imported' }, { id: 'imported-1' }),
+        headers: {},
+        status: 201,
+        statusText: 'Created',
+      }));
+      const create = axios.create.bind(axios);
+      const spy = vi
+        .spyOn(axios, 'create')
+        .mockImplementation((config) => create({ ...config, adapter }));
+      setRequestOrganizationId('org-import');
+      try {
+        const service = SkillsService.forOrganization(
+          'import-token',
+          'org-import',
+        );
+        expect((await service.importSkill(input)).id).toBe('imported-1');
+        const config = adapter.mock.calls[0][0];
+        expect(config.url).toBe('/import');
+        expect(JSON.parse(config.data)).toEqual(input);
+        expect(config.headers[ORGANIZATION_CONTEXT_HEADER]).toBe('org-import');
+        expect(config.headers.Authorization).toBe('Bearer import-token');
+        setRequestOrganizationId('org-other');
+        await expect(service.importSkill(input)).rejects.toMatchObject({
+          isCancelled: true,
+        });
+        expect(adapter).toHaveBeenCalledTimes(1);
+      } finally {
+        clearRequestOrganizationId();
+        spy.mockRestore();
+      }
+    },
+  );
+  it('marks successful creation with a malformed resource as unavailable without a second POST', async () => {
+    const service = new SkillsService('fixture');
+    const http = installMockHttp(service);
+    http.post.mockResolvedValue(
+      axiosResponse(resourceDocument({ name: 'Missing ID' }, { id: '' })),
+    );
+    await expect(
+      service.importSkill({
+        slug: 'upload',
+        package: { format: 'files', files: [] },
+      }),
+    ).rejects.toMatchObject({ name: 'SkillImportCreatedUnavailableError' });
+    expect(http.post).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('validated import safe error classification', () => {
+  it.each([400, 401, 403, 409, 422, 429])(
+    'classifies known pre-write status %s without retaining private response data',
+    async (status) => {
+      const service = new SkillsService('fixture');
+      const http = installMockHttp(service);
+      const failure = {
+        errors: [
+          { status: String(status), detail: 'PRIVATE_VALIDATION_CONTEXT' },
+        ],
+      };
+      http.post.mockRejectedValue(failure);
+      await expect(
+        service.importSkill({
+          slug: 'upload',
+          package: { format: 'files', files: [] },
+        }),
+      ).rejects.toBeInstanceOf(SkillImportRejectedError);
+      const classified = classifySkillImportFailure(failure);
+      expect(classified).not.toHaveProperty('cause');
+      expect(JSON.stringify(classified)).not.toContain(
+        'PRIVATE_VALIDATION_CONTEXT',
+      );
+      expect(http.post).toHaveBeenCalledTimes(1);
+    },
+  );
+  it('recognizes only the exact canonical post-write 403 marker', () => {
+    const exact =
+      'Skill import was created, but details are unavailable. Refresh the skill library.';
+    expect(
+      classifySkillImportFailure({
+        errors: [{ status: '403', detail: exact }],
+      }),
+    ).toBeInstanceOf(SkillImportCreatedUnavailableError);
+    expect(
+      classifySkillImportFailure({ statusCode: 403, message: exact }),
+    ).toBeInstanceOf(SkillImportCreatedUnavailableError);
+    expect(
+      classifySkillImportFailure({
+        statusCode: 403,
+        message: `${exact} PRIVATE_EXTRA`,
+      }),
+    ).toBeInstanceOf(SkillImportRejectedError);
+    expect(
+      classifySkillImportFailure({ statusCode: 500, message: exact }),
+    ).toBeNull();
+    expect(
+      classifySkillImportFailure(new Error('created unavailable')),
+    ).toBeNull();
   });
 });

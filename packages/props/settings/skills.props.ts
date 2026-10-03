@@ -40,7 +40,20 @@ export type SkillDetailSheetProps = SkillDetailCardProps & {
   onOpenSamplePrompt: () => void;
 };
 
+export type SkillImportFields = {
+  files: File[];
+  slug: string;
+  sourceUrl: string;
+  checksum: string;
+};
+
 export type SkillsPageState = {
+  importFields: SkillImportFields;
+  isImportOpen: boolean;
+  isImporting: boolean;
+  isImportLocked: boolean;
+  importError: string | null;
+  importResetKey: number;
   skills: Skill[];
   selectedSkillId: string;
   sourceFilter: SourceFilterValue;
@@ -57,7 +70,14 @@ export type SkillsPageState = {
 };
 
 export type SkillsPageAction =
-  | { type: 'RESET' }
+  | { type: 'RESET'; importLocked?: boolean }
+  | { type: 'IMPORT_RECOVERED' }
+  | { type: 'IMPORT_OPEN' }
+  | { type: 'IMPORT_FIELDS'; fields: Partial<SkillImportFields> }
+  | { type: 'IMPORT_START' }
+  | { type: 'IMPORT_SENT' }
+  | { type: 'IMPORT_DONE' }
+  | { type: 'IMPORT_ERROR'; message: string; locked: boolean }
   | { type: 'HYDRATE_SKILL'; skill: Skill }
   | { type: 'FORK_CREATED'; sourceId: string }
   | { type: 'LOAD_START' }
@@ -97,3 +117,65 @@ export type SkillsTableProps = {
   onToggleSkill: (slug: string) => void;
   skills: Skill[];
 };
+
+export type SkillImportInputErrorCode =
+  | 'SLUG'
+  | 'SOURCE_URL'
+  | 'CHECKSUM'
+  | 'COUNT'
+  | 'PATH'
+  | 'DIRECTORY'
+  | 'ROOT'
+  | 'SIZE'
+  | 'UTF8'
+  | 'READ';
+
+export interface SkillImportInputOptions {
+  slug: string;
+  sourceUrl?: string;
+  checksum?: string;
+}
+export interface SkillImportInputFile {
+  content: string;
+  path: string;
+}
+export interface SkillImportInput {
+  slug: string;
+  sourceUrl?: string;
+  expectedPackageChecksum?: string;
+  package:
+    | { format: 'files'; files: SkillImportInputFile[] }
+    | { format: 'zip'; archiveBase64: string };
+}
+
+export interface SkillImportFormLabels {
+  files: string;
+  slug: string;
+  sourceUrl: string;
+  checksum: string;
+  submit: string;
+  submitting: string;
+  selectedFiles: string;
+  packageHint: string;
+  nestedHint: string;
+  failed: string;
+  errors: Record<SkillImportInputErrorCode, string>;
+}
+export interface SkillImportFormProps {
+  files: readonly File[];
+  slug: string;
+  sourceUrl: string;
+  checksum: string;
+  onFilesChange: (files: File[]) => void;
+  onSlugChange: (value: string) => void;
+  onSourceUrlChange: (value: string) => void;
+  onChecksumChange: (value: string) => void;
+  onImport: (input: SkillImportInput) => Promise<void>;
+  labels: SkillImportFormLabels;
+  isDisabled: boolean;
+  isSubmitting: boolean;
+  /** Parent must include current auth/organization identity, not just the selected brand. */
+  scopeKey: string;
+  resetKey?: string | number;
+  error?: string;
+}
