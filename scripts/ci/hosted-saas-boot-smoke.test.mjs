@@ -21,6 +21,22 @@ const script = step
   .map((line) => line.slice(10))
   .join('\n');
 
+test('boot failures stop before the live migration task can change the serving schema', () => {
+  const boot = workflow.indexOf(
+    '      - name: Boot API and workers before services roll',
+  );
+  const migrate = workflow.indexOf('      - name: Run DB migrations');
+  const roll = workflow.indexOf(
+    '      - name: Tofu apply (roll services to new image)',
+  );
+  assert.ok(boot > 0 && boot < migrate && migrate < roll);
+  const migrationStep = workflow.slice(migrate, roll);
+  assert.doesNotMatch(
+    migrationStep,
+    /if:\s*.*(?:always\(|failure\(|boot-smoke)/,
+  );
+});
+
 for (const [api, worker] of [
   [0, 0],
   [1, 0],
