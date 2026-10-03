@@ -12,7 +12,7 @@ import {
 import { AgentToolConfirmationService } from '@api/services/agent-orchestrator/tools/agent-tool-confirmation.service';
 import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import type { CuratedActionName } from '@genfeedai/actions';
-import { RouterPriority } from '@genfeedai/contracts';
+import { AgentGenerationMode, RouterPriority } from '@genfeedai/contracts';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -564,12 +564,16 @@ describe('AgentTurnRoundRunnerService generate recovery', () => {
   function round(params: {
     allowed: CuratedActionName[];
     args: Record<string, unknown>;
+    generationMode?: AgentGenerationMode;
     name: string;
   }) {
     return runner.executeToolRound({
       allowedToolNames: new Set(params.allowed),
       assistantContent: null,
       context: {
+        ...(params.generationMode
+          ? { generationMode: params.generationMode }
+          : {}),
         organizationId: 'org-1',
         userId: 'user-1',
       },
@@ -629,6 +633,27 @@ describe('AgentTurnRoundRunnerService generate recovery', () => {
       prompt: 'Hello there',
       type: 'voice',
       voiceId: 'voice-1',
+    });
+  });
+
+  it('drops fields the composer-selected type does not accept', async () => {
+    await round({
+      allowed: ['generate'],
+      args: {
+        aspectRatio: '9:16',
+        outputs: 2,
+        prompt: 'a red car',
+        type: 'image',
+      },
+      generationMode: AgentGenerationMode.VIDEO,
+      name: 'generate',
+    });
+
+    expect(executeTool).toHaveBeenCalledOnce();
+    expect(executeTool.mock.calls[0][1]).toEqual({
+      aspectRatio: '9:16',
+      prompt: 'a red car',
+      type: 'video',
     });
   });
 

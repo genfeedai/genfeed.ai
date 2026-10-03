@@ -362,6 +362,65 @@ describe('AgentMediaGenerationToolHandler generate', () => {
       expectNoGeneration(assetGeneration);
     }
   });
+
+  it('tags the result data with the generated kind for cards and clients', async () => {
+    const { assetGeneration, handler } = createRoutingHandler();
+    assetGeneration.generateMusic.mockResolvedValue({
+      creditsUsed: 0,
+      data: { id: 'music-1', status: 'generated' },
+      success: true,
+    });
+
+    const output = await handler.generate(
+      { prompt: 'bright synthwave', type: 'music' },
+      context,
+    );
+
+    expect(output.data).toEqual({
+      id: 'music-1',
+      kind: 'music',
+      status: 'generated',
+    });
+  });
+
+  it('keeps a kind the runtime already set', async () => {
+    const { assetGeneration, handler } = createRoutingHandler();
+    assetGeneration.generateImage.mockResolvedValue({
+      creditsUsed: 0,
+      data: { id: 'image-1', kind: 'avatar' },
+      success: true,
+    });
+
+    const output = await handler.generate(
+      { prompt: 'A red apple', type: 'image' },
+      context,
+    );
+
+    expect(output.data).toEqual({ id: 'image-1', kind: 'avatar' });
+  });
+
+  it('passes a music model through and rejects one for voice', async () => {
+    const { assetGeneration, handler } = createRoutingHandler();
+
+    await handler.generate(
+      { model: 'music-model-1', prompt: 'calm piano', type: 'music' },
+      context,
+    );
+    expect(assetGeneration.generateMusic).toHaveBeenCalledWith(
+      { model: 'music-model-1', text: 'calm piano' },
+      context,
+    );
+
+    const voice = await handler.generate(
+      { model: 'voice-model-1', prompt: 'Hello', type: 'voice' },
+      context,
+    );
+    expect(voice).toMatchObject({
+      error: 'model does not apply to type voice',
+      success: false,
+    });
+    expect(assetGeneration.generateVoice).not.toHaveBeenCalled();
+  });
 });
 
 describe('AgentMediaGenerationToolHandler text previews', () => {
@@ -1015,6 +1074,22 @@ describe('AgentMediaGenerationToolHandler generateVideo', () => {
     });
   });
 
+  it('sends an explicit music model instead of auto-selecting one', async () => {
+    const { gateway, handler } = createHandler();
+    gateway.generateMusic.mockResolvedValue({
+      data: { attributes: {}, id: 'music-2' },
+    });
+
+    await handler.generate(
+      { model: 'music-model-1', prompt: 'calm piano', type: 'music' },
+      context,
+    );
+
+    const body = gateway.generateMusic.mock.calls[0][0].body;
+    expect(body).toMatchObject({ model: 'music-model-1', text: 'calm piano' });
+    expect(body).not.toHaveProperty('autoSelectModel');
+  });
+
   it('forwards model-native video controls shared by Agent and MCP', async () => {
     const { gateway, handler } = createHandler();
     gateway.generateVideo.mockResolvedValue({
@@ -1128,7 +1203,7 @@ describe('AgentMediaGenerationToolHandler direct asset families', () => {
         },
       },
       result: {
-        data: { id: 'music-1' },
+        data: { id: 'music-1', kind: 'music' },
         preview: { audio: ['https://cdn.example.com/music.mp3'] },
       },
     },
@@ -1146,7 +1221,7 @@ describe('AgentMediaGenerationToolHandler direct asset families', () => {
         },
       },
       result: {
-        data: { id: 'voice-1' },
+        data: { id: 'voice-1', kind: 'voice' },
         preview: { audio: ['https://cdn.example.com/voice.mp3'] },
       },
     },

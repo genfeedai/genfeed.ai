@@ -665,7 +665,9 @@ export class AgentMediaAssetGenerationService {
     const response = toMediaResponseRecord(
       await this.generationGateway.generateMusic({
         body: {
-          autoSelectModel: true,
+          ...(typeof params.model === 'string' && params.model.trim()
+            ? { model: params.model.trim() }
+            : { autoSelectModel: true }),
           duration: (params.duration as number) || 10,
           text: params.text as string,
           waitForCompletion: true,
