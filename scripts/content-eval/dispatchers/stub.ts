@@ -58,8 +58,37 @@ function stubGeneration(model: string, messages: EvalMessage[]): unknown {
   return { text: `${voice} ${prompt}${closer}` };
 }
 
-function stubJudgement(messages: EvalMessage[]): unknown {
+function stubJudgement(
+  messages: EvalMessage[],
+  schemaName: string,
+  qualityOf: (content: string) => number,
+  isFirstAlwaysPreferred: boolean,
+): unknown {
   const prompt = textOf(messages[messages.length - 1]);
+  if (schemaName === 'content_quality_scoring') {
+    const marker = '\nContent:\n';
+    const content = prompt.slice(prompt.lastIndexOf(marker) + marker.length);
+    return {
+      feedback: ['Stub scorer'],
+      score: 1 + Math.round(qualityOf(content) * 9),
+      suggestions: [],
+    };
+  }
+  if (schemaName === 'content_eval_evaluations_response') {
+    const content = between(prompt, '[Content]:', '\n***') ?? prompt;
+    const overallScore = Math.round(qualityOf(content) * 100);
+    return {
+      overallScore,
+      scores: {
+        brand: { overall: overallScore },
+        engagement: { overall: overallScore },
+        technical: { overall: overallScore },
+      },
+      strengths: [],
+      suggestions: [],
+      weaknesses: [],
+    };
+  }
   const choiceList = /exactly one of: (.+)\.$/m.exec(prompt)?.[1];
   const choices = choiceList?.split(', ') ?? [];
   if (choices.length === 0) {
@@ -69,7 +98,8 @@ function stubJudgement(messages: EvalMessage[]): unknown {
   const first = between(prompt, '[Response 1]', '[Instruction 2]');
   const second = between(prompt, '[Response 2]', 'Is the first response');
   if (first !== null && second !== null) {
-    const isFirstBetter = stubQuality(first) >= stubQuality(second);
+    const isFirstBetter =
+      isFirstAlwaysPreferred || qualityOf(first) >= qualityOf(second);
     return {
       choice: isFirstBetter ? 'Yes' : 'No',
       reasons: 'Stub battle: compared the two responses by hash quality.',
@@ -79,7 +109,7 @@ function stubJudgement(messages: EvalMessage[]): unknown {
   const content = between(prompt, '[Content]:', '***') ?? prompt;
   const index = Math.min(
     choices.length - 1,
-    Math.floor(stubQuality(content) * choices.length),
+    Math.floor(qualityOf(content) * choices.length),
   );
   return {
     choice: choices[index],
@@ -92,6 +122,8 @@ export function createStubDispatcher(
 ): EvalDispatcher {
   const usdPerToken = options.usdPerToken ?? STUB_DEFAULT_USD_PER_TOKEN;
   const failingModels = new Set(options.failingModels ?? []);
+  const qualityOf = (content: string): number =>
+    Math.min(1, Math.max(0, (options.qualityOf ?? stubQuality)(content)));
 
   return {
     async close() {},
@@ -111,7 +143,12 @@ export function createStubDispatcher(
       const raw =
         request.role === 'generation'
           ? stubGeneration(request.model, request.messages)
-          : stubJudgement(request.messages);
+          : stubJudgement(
+              request.messages,
+              request.schemaName,
+              qualityOf,
+              options.isFirstAlwaysPreferred ?? false,
+            );
       // Same contract as the live helper: the answer must match the schema.
       const value = request.schema.parse(raw);
       const promptTokens = estimateTokens(canonicalJson(request.messages));

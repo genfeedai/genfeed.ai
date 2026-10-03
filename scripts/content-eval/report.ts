@@ -6,6 +6,7 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { POOLED_KIND } from './calibration/contracts';
 import type {
   ContentEvalReport,
   ReportAnalyzer,
@@ -23,7 +24,7 @@ export function buildReport(
 ): ContentEvalReport {
   const { config, fixture, revision } = input;
   // Suite-specific sections live at the top level, not inside `outcome`.
-  const { benchMatches, media, ...outcome } = input.outcome;
+  const { benchMatches, calibration, media, ...outcome } = input.outcome;
   const fixtureRowsById = new Map(fixture.rows.map((row) => [row.id, row]));
   const sections: Record<string, unknown> = {};
   for (const analyzer of analyzers) {
@@ -44,6 +45,7 @@ export function buildReport(
     aborted: input.aborted,
     abortMessage: input.abortMessage,
     ...(benchMatches === undefined ? {} : { benchMatches }),
+    ...(calibration === undefined ? {} : { calibration }),
     calls: input.spend.calls,
     config,
     dispatcher: config.dispatcher,
@@ -109,6 +111,24 @@ export function renderSummary(
     lines.push(
       `  position bias: ${formatRate(report.outcome.positionBiasRate)}`,
     );
+  }
+  if (report.calibration !== undefined) {
+    const calibration = report.calibration;
+    for (const arm of calibration.arms.filter((entry) => entry.isPrimary)) {
+      const metric = calibration.metrics.find(
+        (entry) =>
+          entry.armId === arm.armId && entry.contentKind === POOLED_KIND,
+      );
+      if (metric === undefined) {
+        continue;
+      }
+      lines.push(
+        `  calibration ${arm.armId}: κband ${metric.bandKappa ?? 'n/a'} · κdecision ${metric.decisionKappa ?? 'n/a'} · ρ ${metric.spearmanRho ?? 'n/a'} over ${metric.scoredRows} rows`,
+      );
+    }
+    if (calibration.injection !== null) {
+      lines.push(`  injection: ${calibration.injection.recommendation}`);
+    }
   }
   for (const analyzer of analyzers) {
     lines.push(...(analyzer.summaryLines?.(report) ?? []));
