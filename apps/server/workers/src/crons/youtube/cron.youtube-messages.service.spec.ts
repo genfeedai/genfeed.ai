@@ -4,12 +4,12 @@ import { buildYoutubeCommentsSweepDefinition } from '@workers/crons/youtube/yout
 describe('YouTube comment workflows', () => {
   it('fans connected credentials into comment ingestion workflows', () => {
     expect(
-      buildYoutubeCommentsSweepDefinition().definition.nodes[1]?.data.config
-        .actionId,
-    ).toBe('workflow.for-each-tenant');
-    expect(
-      buildYoutubeCommentsSweepDefinition().definition.nodes[1]?.data.config
-        .parameters.childWorkflowId,
-    ).toBe(SOCIAL_INBOX_SYNC_WORKFLOW_IDS.YOUTUBE_COMMENTS);
+      buildYoutubeCommentsSweepDefinition().definition.nodes[1]?.data.config,
+    ).toMatchObject({
+      actionId: 'workflow.for-each-tenant',
+      parameters: {
+        childWorkflowId: SOCIAL_INBOX_SYNC_WORKFLOW_IDS.YOUTUBE_COMMENTS,
+      },
+    });
   });
 });
