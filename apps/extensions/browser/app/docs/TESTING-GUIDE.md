@@ -2,7 +2,7 @@
 
 ## Pre-Testing Setup
 
-1. **Build from this repository** (MacBook builds only; tests/typechecks use Mac Studio)
+1. **Build from this repository**
 
    ```bash
    cd apps/extensions/browser/app
@@ -16,14 +16,14 @@
      npm exec -- plasmo build --tag=dev --target=chrome-mv3 --with-source-maps
    ```
 
-After building, transfer the exact built folder to the assigned Mac Studio checkout and run the compiled startup probe there:
+After building, run the compiled startup probe against the exact built folder:
 
 ```bash
 cd apps/extensions/browser/app
 node scripts/verify-compiled-startup.mjs --build-dir <absolute-built-folder> --output <absolute-result.json>
 ```
 
-Use the approved existing verification runtime. The probe executes the actual popup and sidepanel bundles with empty storage and synthetic signed-out auth responses, requires real Retry/Open Genfeed controls and working cached Zod constructors, and rejects unexpected network or runtime errors. Preserve the JSON and artifact hashes. This checks compiled startup; installed Brave, CSP, session and live backend acceptance remain separate.
+The probe executes the actual popup and sidepanel bundles with empty storage and synthetic signed-out auth responses, requires real Retry/Open Genfeed controls and working cached Zod constructors, and rejects unexpected network or runtime errors. Preserve the JSON and artifact hashes. This checks compiled startup; installed Brave, CSP, session and live backend acceptance remain separate.
 
 2. **Load in Brave manually**
    - Use the local Genfeed Brave profile already signed into Genfeed.
@@ -62,7 +62,7 @@ Use the approved existing verification runtime. The probe executes the actual po
 - Toggle off disables Retry and cancels unconfirmed discovery while preserving confirmed recovery. Switch scope/logout: old previews/actions disappear immediately; another tab/scope cannot join an in-flight callback. Switch back to recover the original scoped record. Dismiss is explicit; confirmed observations have no age cutoff.
 - Fixtures are reconstructed sanitized structures from read-only DOM inspection. Mocked trust classification, storage and API tests do not prove a browser-trusted click, an installed publication or production persistence. Record exact installed commit and genuine user-originated outcome separately. Independent other-lab review, current-head CI, merge/deployment and installed acceptance remain delivery gates; source completion does not close #4344/#4340.
 
-Run all tests and typechecks through `ssh mac-studio-2022`, in the assigned isolated Studio verification checkout:
+Run the tests and typecheck from the extension directory:
 
 ```bash
 cd apps/extensions/browser/app
@@ -70,7 +70,7 @@ bunx vitest run
 bunx tsc --noEmit -p tsconfig.json
 ```
 
-Compare pristine-input and final TypeScript diagnostics in the identical dependency/package-built environment. Retain both raw logs and require zero new normalized signatures or count growth; inherited nonzero diagnostics remain explicit. The prior 47/28 receipt is environment/input-specific, not an invented baseline. MacBook is restricted to formatting/lint/build.
+The change must not add TypeScript diagnostics compared with `master`; CI is the gate for the typecheck result.
 
 ## Platform Testing Checklist
 
