@@ -91,8 +91,8 @@ describe('SettingsOrganizationPage', () => {
     expect(
       screen.getByText('Organization identity for org-123'),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/Organization ID/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Current Brand/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('Organization ID')).not.toBeInTheDocument();
+    expect(screen.queryByText('Current Brand')).not.toBeInTheDocument();
   });
 
   it('always shows Start agent CTA and hides fleet NSFW when fleet is not connected', () => {

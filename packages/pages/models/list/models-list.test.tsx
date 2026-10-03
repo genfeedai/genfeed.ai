@@ -199,7 +199,9 @@ describe('ModelsList', () => {
     renderModelsList();
 
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: /^Image/ })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /^Image/ })).toHaveTextContent(
+        'Image1',
+      );
     });
     expect(screen.getByText('Model catalog')).toBeInTheDocument();
     // Every category sits in a single tab row.
