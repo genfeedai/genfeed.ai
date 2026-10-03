@@ -397,8 +397,25 @@ export default function StudioGenerateComposer({
     [deleteLook],
   );
 
+  const isExpanded =
+    prompt.length > 0 ||
+    attachedAssets.length > 0 ||
+    isGenerating ||
+    isListening ||
+    isTranscribing ||
+    isUploading ||
+    isEnhancingPrompt ||
+    isFlux ||
+    type === 'image-edit' ||
+    isFirstFrameMissing ||
+    isReferenceCombinationInvalid ||
+    isKling4KReferenceInvalid;
+
   return (
     <PromptBarComposer
+      bodyClassName={
+        isExpanded ? undefined : 'flex flex-wrap items-center gap-x-1'
+      }
       beforeBody={
         attachedAssets.length > 0 ? (
           <div className="px-3 pb-1 pt-3">
@@ -416,11 +433,17 @@ export default function StudioGenerateComposer({
         ) : null
       }
       className={cn(isDragActive && 'ring-1 ring-primary/40')}
+      data-expanded={isExpanded}
       data-testid="studio-generate-composer-shell"
+      density="compact"
     >
       <PromptEditor
         ariaLabel={translate('prompt')}
-        className="min-h-9 w-full"
+        className={cn(
+          'min-h-6 min-w-0 [&_.ProseMirror]:min-h-6',
+          isExpanded ? 'w-full' : 'basis-full sm:basis-0',
+        )}
+        editorClassName="py-0.5"
         documentSeed={documentSeed}
         extraExtensions={type === 'image-edit' ? undefined : extraExtensions}
         isDisabled={isGenerating}
@@ -602,14 +625,16 @@ export default function StudioGenerateComposer({
           ) : null}
         </div>
       ) : null}
-      <StudioGenerationSummary
-        crunQuote={crunQuote}
-        estimate={estimate}
-        isLoadingModels={isLoadingModels}
-        model={selectedModel}
-        settings={displaySettings}
-        type={type}
-      />
+      {isExpanded ? (
+        <StudioGenerationSummary
+          crunQuote={crunQuote}
+          estimate={estimate}
+          isLoadingModels={isLoadingModels}
+          model={selectedModel}
+          settings={displaySettings}
+          type={type}
+        />
+      ) : null}
 
       {isFirstFrameMissing ||
       isReferenceCombinationInvalid ||
@@ -625,8 +650,19 @@ export default function StudioGenerateComposer({
               : translate('kling4KReferenceConflict')}
         </p>
       ) : null}
-      <div className="mt-0.5 flex min-h-9 min-w-0 flex-wrap items-center justify-between gap-2 pt-1">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5">
+      <div
+        className={
+          isExpanded
+            ? 'mt-0.5 flex min-h-9 min-w-0 flex-wrap items-center justify-between gap-2 pt-1'
+            : 'contents'
+        }
+      >
+        <div
+          className={cn(
+            'flex min-w-0 flex-wrap items-center gap-0.5',
+            isExpanded ? 'flex-1' : 'shrink-0',
+          )}
+        >
           {inputControls?.mediaKind === 'image' ? (
             <PromptBarCrunControls
               controls={inputControls}
@@ -850,7 +886,7 @@ export default function StudioGenerateComposer({
           ) : null}
         </div>
 
-        <div className="-mr-2 ml-auto flex shrink-0 items-center">
+        <div className="ml-auto flex shrink-0 items-center">
           {!isEnhancingPrompt && previousPrompt !== null ? (
             <Button
               ariaLabel={translate('undoPromptEnhancement')}

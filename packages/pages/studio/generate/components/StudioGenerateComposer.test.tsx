@@ -233,6 +233,49 @@ describe('StudioGenerateComposer', () => {
     vi.clearAllMocks();
   });
 
+  it('keeps an empty composer compact with setup and submission controls, then expands while typing', () => {
+    const view = render(
+      <StudioGenerateComposer
+        {...baseProps}
+        prompt=""
+        settings={settings}
+        type="image"
+      />,
+    );
+    const shell = screen.getByTestId('studio-generate-composer-shell');
+    expect(shell).toHaveAttribute('data-expanded', 'false');
+    expect(screen.getByRole('button', { name: 'Setup' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
+    expect(screen.queryByTestId('studio-generation-summary')).toBeNull();
+
+    const editor = screen.getByRole('textbox', { name: 'Prompt' });
+    editor.focus();
+    view.rerender(
+      <StudioGenerateComposer
+        {...baseProps}
+        prompt="A product photo"
+        settings={settings}
+        type="image"
+      />,
+    );
+    expect(shell).toHaveAttribute('data-expanded', 'true');
+    expect(screen.getByTestId('studio-generation-summary')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
+    expect(screen.getByRole('textbox', { name: 'Prompt' })).toBe(editor);
+    expect(editor).toHaveFocus();
+
+    view.rerender(
+      <StudioGenerateComposer
+        {...baseProps}
+        prompt=""
+        settings={settings}
+        type="image"
+      />,
+    );
+    expect(shell).toHaveAttribute('data-expanded', 'false');
+    expect(editor).toHaveFocus();
+  });
+
   it.each(['loading', 'switching', 'unavailable'] as const)(
     'guards button and keyboard while desktop runtime is %s',
     (status) => {

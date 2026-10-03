@@ -2040,7 +2040,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
-          <div className="relative z-0 h-full overflow-auto px-6 py-6 pb-40">
+          <div className="relative z-0 h-full overflow-auto px-3 py-3 pb-40 sm:px-4 sm:py-4">
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
               {galleryError ? (
                 <Alert role="alert">
