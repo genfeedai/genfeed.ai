@@ -1,3 +1,4 @@
+import type { IngredientOrigin } from '@genfeedai/contracts';
 import type {
   AvatarResource,
   ImageResource,
@@ -146,14 +147,24 @@ export class MediaClient {
     );
   }
 
-  listVideos(limit: number = 10, offset: number = 0): Promise<VideoResponse[]> {
-    this.base.logger.debug(`Listing videos: limit=${limit}, offset=${offset}`);
+  listVideos(
+    limit: number = 10,
+    offset: number = 0,
+    origin?: IngredientOrigin,
+  ): Promise<VideoResponse[]> {
+    this.base.logger.debug(
+      `Listing videos: limit=${limit}, offset=${offset}, origin=${origin ?? 'any'}`,
+    );
 
     return this.base.request(
       'listing videos',
       async (http) => {
         const response = await http.get('/videos', {
-          params: { 'page[limit]': limit, 'page[offset]': offset },
+          params: {
+            'page[limit]': limit,
+            'page[offset]': offset,
+            ...(origin ? { origins: origin } : {}),
+          },
         });
 
         return (
@@ -161,6 +172,7 @@ export class MediaClient {
             createdAt: video.attributes?.createdAt,
             duration: video.attributes?.duration,
             id: video.id,
+            origin: video.attributes?.origin,
             status: video.attributes?.status || CONTENT_STATUS.UNKNOWN,
             title: video.attributes?.title || 'Untitled',
             url: video.attributes?.url,
@@ -215,6 +227,7 @@ export class MediaClient {
           params: {
             'page[limit]': params.limit || 10,
             'page[offset]': params.offset || 0,
+            ...(params.origin ? { origins: params.origin } : {}),
           },
         });
 
@@ -237,6 +250,7 @@ export class MediaClient {
             return {
               createdAt: attributes?.createdAt,
               id: image.id,
+              origin: attributes?.origin,
               prompt,
               size: attributes?.size || 'square',
               status: attributes?.status || CONTENT_STATUS.COMPLETED,
@@ -260,6 +274,7 @@ export class MediaClient {
           params: {
             'page[limit]': params.limit || 10,
             'page[offset]': params.offset || 0,
+            ...(params.origin ? { origins: params.origin } : {}),
           },
         });
 
@@ -269,6 +284,7 @@ export class MediaClient {
             createdAt: avatar.attributes?.createdAt,
             gender: avatar.attributes?.gender,
             id: avatar.id,
+            origin: avatar.attributes?.origin,
             name: avatar.attributes?.name || 'Unnamed',
             status: avatar.attributes?.status || CONTENT_STATUS.COMPLETED,
             style: avatar.attributes?.style,
@@ -325,6 +341,7 @@ export class MediaClient {
           params: {
             'page[limit]': params.limit || 10,
             'page[offset]': params.offset || 0,
+            ...(params.origin ? { origins: params.origin } : {}),
           },
         });
 
@@ -335,6 +352,7 @@ export class MediaClient {
             genre: music.attributes?.genre,
             id: music.id,
             mood: music.attributes?.mood,
+            origin: music.attributes?.origin,
             prompt: music.attributes?.prompt || '',
             status: music.attributes?.status || CONTENT_STATUS.COMPLETED,
             url: music.attributes?.url,

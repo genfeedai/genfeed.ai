@@ -28,6 +28,7 @@ import type {
   SourceCaptureIngest,
 } from '@api/services/agent-source-ingest/agent-source-ingest.interface';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { IngredientOrigin } from '@genfeedai/contracts';
 import type {
   ImportedSourceMediaBinding,
   ImportedSourceMediaView,
@@ -250,6 +251,7 @@ export class AgentImportedSourceIngestService {
                   : selection.kind === 'audio'
                     ? IngredientCategory.AUDIO
                     : IngredientCategory.VIDEO,
+              origin: IngredientOrigin.IMPORTED,
               scope: AssetScope.USER,
               status: IngredientStatus.PROCESSING,
               version: 1,

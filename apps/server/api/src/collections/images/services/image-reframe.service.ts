@@ -26,6 +26,7 @@ import {
   ActivityKey,
   ActivitySource,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
   ModelCategory,
@@ -152,6 +153,7 @@ export class ImageReframeService {
 
     const { metadataData, ingredientData } =
       await this.sharedService.createMediaDocuments(user, {
+        origin: IngredientOrigin.GENERATED,
         brandId: parent.brandId ?? user.brandId,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.IMAGE,

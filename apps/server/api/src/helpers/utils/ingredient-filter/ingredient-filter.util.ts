@@ -1,4 +1,5 @@
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import type { IngredientOrigin } from '@genfeedai/contracts';
 
 /**
  * IngredientFilterUtil - Utility for building consistent ingredient query filters
@@ -13,6 +14,23 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
  */
 
 export const IngredientFilterUtil = {
+  /**
+   * Build the permanent-origin filter (Library origin axis).
+   *
+   * - one or more origins → rows whose origin is any of them
+   * - none → empty object, so origin never narrows a list nobody filtered
+   *
+   * `origin` is indexed with `organizationId`, so this stays a cheap predicate
+   * on the Library list.
+   */
+  buildOriginFilter(
+    origins: readonly IngredientOrigin[] | undefined,
+  ): Record<string, unknown> {
+    return origins && origins.length > 0
+      ? { origin: { in: [...origins] } }
+      : {};
+  },
+
   /**
    * Build parent filter conditions
    *

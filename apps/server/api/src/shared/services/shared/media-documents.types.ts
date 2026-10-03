@@ -2,6 +2,7 @@ import type { PrismaIngredientCategoryValue } from '@api/helpers/utils/category-
 import type {
   AssetScope,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   TransformationCategory,
 } from '@genfeedai/contracts';
@@ -41,6 +42,11 @@ export interface MediaDocumentsInput {
   model?: string;
   negativePrompt?: string;
   order?: number;
+  /**
+   * Where this asset came from. Every creation path names it, and it is
+   * permanent once written.
+   */
+  origin: IngredientOrigin;
   organizationId?: string;
   parentId?: string;
   promptId?: string;

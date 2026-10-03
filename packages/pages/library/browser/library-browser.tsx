@@ -47,12 +47,15 @@ export default function LibraryBrowser({
     contextValue,
     handleCategoriesChange,
     handleClearCategories,
+    handleClearOrigins,
+    handleOriginsChange,
     handleRefresh,
     handleSearchChange,
     handleSortChange,
     handleUpload,
     handleViewModeChange,
     isRefreshing,
+    origins,
     search,
     sort,
     viewMode,
@@ -144,6 +147,9 @@ export default function LibraryBrowser({
               categories={categories}
               onCategoriesChange={handleCategoriesChange}
               onClearCategories={handleClearCategories}
+              onClearOrigins={handleClearOrigins}
+              onOriginsChange={handleOriginsChange}
+              origins={origins}
               onSortChange={handleSortChange}
               onViewModeChange={handleViewModeChange}
               sort={sort}

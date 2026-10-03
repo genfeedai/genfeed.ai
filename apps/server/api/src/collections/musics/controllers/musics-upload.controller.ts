@@ -13,6 +13,7 @@ import {
   AssetScope,
   FileInputType,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/contracts';
@@ -73,6 +74,7 @@ export class MusicsUploadController {
     const { ingredientData } = await this.sharedService.createMediaDocuments(
       user,
       {
+        origin: IngredientOrigin.UPLOADED,
         category: IngredientCategory.MUSIC,
         extension: MetadataExtension.MP3,
         label: file.originalname,

@@ -11,6 +11,7 @@ import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   AssetScope,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
 } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -191,6 +192,7 @@ describe('PresignedUploadService', () => {
           ),
           extension: 'JPEG',
           label: body.filename,
+          origin: IngredientOrigin.UPLOADED,
           scope: AssetScope.USER,
           status: IngredientStatus.PROCESSING,
         },

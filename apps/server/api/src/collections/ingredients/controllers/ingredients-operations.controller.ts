@@ -21,7 +21,9 @@ import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
   categoryToPlural,
   FileInputType,
+  IngredientOrigin,
   IngredientStatus,
+  parseIngredientOrigin,
 } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import {
@@ -138,6 +140,10 @@ export class IngredientsOperationsController {
     // Create ingredient with PROCESSING status under the caller's organization
     const { metadataData, ingredientData } =
       await this.getSharedService().createMediaDocuments(user, {
+        // A clone keeps the original's origin: copying an asset does not
+        // change where it came from.
+        origin:
+          parseIngredientOrigin(ingredient.origin) ?? IngredientOrigin.UNKNOWN,
         brandId: user.brandId,
         category: ingredient.category,
         duration: metadata.duration,

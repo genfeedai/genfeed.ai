@@ -1,4 +1,7 @@
-import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
+import {
+  CreateIngredientDto,
+  type IngredientServerCreate,
+} from '@api/collections/ingredients/dto/create-ingredient.dto';
 import {
   type IngredientServerUpdate,
   UpdateIngredientDto,
@@ -147,7 +150,7 @@ export class IngredientsService extends BaseService<
 
   @HandleErrors('create ingredient', 'ingredients')
   async create(
-    createDto: CreateIngredientDto,
+    createDto: IngredientServerCreate,
     populate: PopulateInput = this.getPopulationForContext('create'),
   ): Promise<IngredientDocument> {
     this.logger.debug(`${this.constructorName} create`, { createDto });

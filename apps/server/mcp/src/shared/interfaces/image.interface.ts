@@ -1,3 +1,5 @@
+import type { IngredientOrigin } from '@genfeedai/contracts';
+
 export interface ImageCreationParams {
   prompt: string;
   style?:
@@ -25,9 +27,13 @@ export interface ImageResponse {
   size: string;
   status: 'processing' | 'completed' | 'failed';
   createdAt: string;
+  /** Permanent origin: UPLOADED, GENERATED, IMPORTED or UNKNOWN. */
+  origin?: string;
 }
 
 export interface ImageListParams {
   limit?: number;
   offset?: number;
+  /** Only assets with this origin. */
+  origin?: IngredientOrigin;
 }

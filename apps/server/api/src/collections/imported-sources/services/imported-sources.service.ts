@@ -15,6 +15,7 @@ import {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { IngredientOrigin } from '@genfeedai/contracts';
 import type {
   ImportedSourceEnvelope,
   ImportedSourceSnapshotInput,
@@ -112,6 +113,7 @@ export class ImportedSourcesService {
         brandId: scope.brandId,
         userId: scope.userId,
         category: 'TEXT',
+        origin: IngredientOrigin.IMPORTED,
         status: 'DRAFT',
         scope: 'USER',
         version: envelope.captureRevision,

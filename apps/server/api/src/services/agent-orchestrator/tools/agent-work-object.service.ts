@@ -11,6 +11,7 @@ import { AgentSourceIngestService } from '@api/services/agent-source-ingest/agen
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
+import { IngredientOrigin } from '@genfeedai/contracts';
 import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
 import type {
   AgentSessionAsset,
@@ -234,6 +235,7 @@ export class AgentWorkObjectService {
         }),
         userId: scope.userId,
         category: 'TEXT',
+        origin: IngredientOrigin.GENERATED,
         status: 'DRAFT',
         sourceActionId: `work:${scope.threadId}:${sourceActionId}`,
         providerData: toPrismaJson({

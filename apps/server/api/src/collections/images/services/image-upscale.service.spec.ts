@@ -18,6 +18,7 @@ import {
   ActivitySource,
   ImageFormat,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
   ModelCategory,
@@ -196,6 +197,7 @@ describe('ImageUpscaleService', () => {
     );
     expect(routerService.getDefaultModel).not.toHaveBeenCalled();
     expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(user, {
+      origin: IngredientOrigin.GENERATED,
       brandId: parent.brandId,
       category: CategoryPrismaUtil.toIngredientCategory(
         IngredientCategory.IMAGE,

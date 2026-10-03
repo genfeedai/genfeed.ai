@@ -17,6 +17,7 @@ import {
   ActivityKey,
   ActivitySource,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/contracts';
@@ -137,6 +138,7 @@ export class VoiceGenerationService implements OnModuleInit {
     const { ingredientData } = await this.sharedService.createMediaDocuments(
       user,
       {
+        origin: IngredientOrigin.GENERATED,
         brandId: user.brandId,
         category: IngredientCategory.VOICE,
         extension: MetadataExtension.MP3,

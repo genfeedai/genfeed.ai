@@ -19,6 +19,7 @@ import {
   AssetScope,
   FileInputType,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/contracts';
@@ -88,6 +89,7 @@ export class VideosGifController {
 
     const { ingredientData, metadataData } =
       await this.sharedService.createMediaDocuments(user, {
+        origin: IngredientOrigin.GENERATED,
         // The GIF belongs with its source video, so it lands in that brand's
         // Library and Generate gallery linked back to it.
         brandId: video.brandId ?? user.brandId,

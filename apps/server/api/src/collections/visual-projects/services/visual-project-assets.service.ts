@@ -8,6 +8,7 @@ import { VisualProjectAuthorizationService } from '@api/collections/visual-proje
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/contracts';
@@ -177,6 +178,7 @@ export class VisualProjectAssetsService {
         item.format === 'mp4'
           ? IngredientCategory.VIDEO
           : IngredientCategory.IMAGE,
+      origin: IngredientOrigin.GENERATED,
       status: IngredientStatus.PROCESSING,
       s3Key: `visual-code/${revision.organizationId}/${revision.brandId}/${revision.id}/outputs/${index}.${item.format}`,
       mimeType: item.format === 'mp4' ? 'video/mp4' : `image/${item.format}`,

@@ -34,6 +34,7 @@ interface LineageRow {
   createdAt: Date;
   id: string;
   isDeleted: boolean;
+  origin: string;
   updatedAt: Date;
 }
 
@@ -118,13 +119,15 @@ export class IngredientLineageService {
   }
 
   private toLineageDocument(row: LineageRow): Record<string, unknown> {
-    // A trashed reference keeps no media, name or prompt: only that it existed.
+    // A trashed reference keeps no media, name or prompt: only that it existed
+    // and where it came from.
     if (row.isDeleted) {
       return {
         category: row.category,
         createdAt: row.createdAt,
         id: row.id,
         isDeleted: true,
+        origin: row.origin,
         updatedAt: row.updatedAt,
       };
     }

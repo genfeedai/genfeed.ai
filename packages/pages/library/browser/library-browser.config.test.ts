@@ -1,7 +1,12 @@
-import { IngredientCategory, LibraryShelf } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  LibraryPlace,
+  LibraryShelf,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import {
+  LIBRARY_PLACE_COPY,
   LIBRARY_SHELF_DESCRIPTIONS,
   LIBRARY_SORT_OPTIONS,
   LIBRARY_TYPE_CHIPS,
@@ -65,6 +70,24 @@ describe('LIBRARY_TYPE_PRESETS', () => {
         APP_ROUTES.LIBRARY.VIDEOS,
       ].sort(),
     );
+  });
+});
+
+describe('Library copy', () => {
+  it('does not claim every asset was generated: the Library holds uploads and imports too', () => {
+    const copy = [
+      LIBRARY_PLACE_COPY[LibraryPlace.ASSETS].description,
+      ...Object.values(LIBRARY_TYPE_PRESETS).map(
+        (preset) => preset.description,
+      ),
+    ];
+
+    expect(LIBRARY_PLACE_COPY[LibraryPlace.ASSETS].description).toBe(
+      'Everything this brand has uploaded, imported or generated, in one place.',
+    );
+    for (const description of copy) {
+      expect(description).not.toMatch(/this brand (has )?generated/);
+    }
   });
 });
 

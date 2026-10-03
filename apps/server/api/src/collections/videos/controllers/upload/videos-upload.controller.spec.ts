@@ -8,6 +8,7 @@ import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation/uploa
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import { IngredientOrigin } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -139,7 +140,10 @@ describe('VideosUploadController', () => {
     it('should upload a video file successfully', async () => {
       const result = await controller.createUpload(mockReq, mockUser, mockFile);
 
-      expect(sharedService.createMediaDocuments).toHaveBeenCalled();
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ origin: IngredientOrigin.UPLOADED }),
+      );
       expect(filesClientService.uploadToS3).toHaveBeenCalled();
       expect(result).toBeDefined();
     });

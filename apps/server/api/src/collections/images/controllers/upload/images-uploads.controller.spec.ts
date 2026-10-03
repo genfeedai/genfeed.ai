@@ -36,7 +36,7 @@ import { SolanaService } from '@api/services/integrations/solana/solana.service'
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import { IngredientCategory } from '@genfeedai/contracts';
+import { IngredientCategory, IngredientOrigin } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ValidationConfigService } from '@libs/config/services/validation.config';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -193,7 +193,10 @@ describe('ImagesUploadsController', () => {
         category: IngredientCategory.IMAGE,
       });
 
-      expect(sharedService.createMediaDocuments).toHaveBeenCalled();
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ origin: IngredientOrigin.UPLOADED }),
+      );
       expect(filesClientService.uploadStreamToS3).toHaveBeenCalledWith(
         mockIngredient.id,
         'images',

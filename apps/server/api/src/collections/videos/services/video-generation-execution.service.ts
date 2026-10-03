@@ -37,6 +37,7 @@ import {
   ActivityKey,
   ActivitySource,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/contracts';
@@ -301,6 +302,7 @@ export class VideoGenerationExecutionService {
     context: VideoGenerationContext,
   ): Promise<VideoGenerationSaveDocumentsResult> {
     return this.sharedService.createMediaDocuments(context.user, {
+      origin: IngredientOrigin.GENERATED,
       brandId: context.brand.id,
       category: CategoryPrismaUtil.toIngredientCategory(
         IngredientCategory.VIDEO,

@@ -74,6 +74,13 @@ const INGREDIENT_SCALAR_FIELDS = [
   'workflowUsed',
 ] as const;
 
+/**
+ * Written once when the row is created and never by an update. `origin` is not
+ * in `INGREDIENT_SCALAR_FIELDS`, which `toIngredientUpdateData` also reads, so
+ * a patch can neither set nor change it (the database trigger is the backstop).
+ */
+const INGREDIENT_CREATE_ONLY_FIELDS = ['origin'] as const;
+
 function toId(value: unknown): string | undefined {
   return isEntityId(value) ? value.trim() : undefined;
 }
@@ -110,6 +117,7 @@ export function toIngredientCreateData(
 ): Record<string, unknown> {
   const data: Record<string, unknown> = {
     ...pickDefinedFields(input, INGREDIENT_SCALAR_FIELDS),
+    ...pickDefinedFields(input, INGREDIENT_CREATE_ONLY_FIELDS),
   };
 
   assignRelationIds(data, input, 'sources', 'connect');

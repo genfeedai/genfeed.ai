@@ -3,6 +3,7 @@ import type {
   ComponentSize,
   IngredientFormat,
   IngredientLineageDirection,
+  IngredientOrigin,
 } from '@genfeedai/contracts';
 import type {
   ICredential,
@@ -104,6 +105,11 @@ export interface IngredientInspectorRailProps {
   className?: string;
   /** Opens the full-size lightbox; the preview is not interactive without it. */
   onOpenPreview?: () => void;
+}
+
+export interface IngredientOriginBadgeProps {
+  origin?: IngredientOrigin | null;
+  className?: string;
 }
 
 export interface IngredientLineageStripProps {

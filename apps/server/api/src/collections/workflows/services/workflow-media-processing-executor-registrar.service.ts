@@ -19,6 +19,7 @@ import {
   CaptionLanguage,
   FileInputType,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
   MusicSourceType,
@@ -281,6 +282,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
 
         const { ingredientData, metadataData } =
           await sharedService.createMediaDocumentsInternal({
+            origin: IngredientOrigin.GENERATED,
             brandId,
             category: IngredientCategory.VIDEO,
             extension: MetadataExtension.MP4,

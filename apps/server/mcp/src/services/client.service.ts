@@ -1,3 +1,4 @@
+import type { IngredientOrigin } from '@genfeedai/contracts';
 import { storyboardCharacterReplacementSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
 import { storyboardRunSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { storyboardRunCapabilitiesSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
@@ -280,8 +281,12 @@ export class ClientService {
     return this.media.getVideoStatus(videoId);
   }
 
-  listVideos(limit: number = 10, offset: number = 0): Promise<VideoResponse[]> {
-    return this.media.listVideos(limit, offset);
+  listVideos(
+    limit: number = 10,
+    offset: number = 0,
+    origin?: IngredientOrigin,
+  ): Promise<VideoResponse[]> {
+    return this.media.listVideos(limit, offset, origin);
   }
 
   mergeVideos(params: MergeVideosParams): Promise<MergeVideosResult> {

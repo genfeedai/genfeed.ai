@@ -2,9 +2,11 @@
 
 import {
   IngredientCategory,
+  type IngredientOrigin,
   LibraryPlace,
   PageScope,
   parseIngredientCategory,
+  parseIngredientOrigin,
   parseLibraryShelf,
 } from '@genfeedai/contracts';
 import {
@@ -41,6 +43,14 @@ function parseCategories(values: string[]): IngredientCategory[] {
   const parsed = values
     .map((value) => parseIngredientCategory(value))
     .filter((value): value is IngredientCategory => Boolean(value));
+
+  return Array.from(new Set(parsed));
+}
+
+function parseOrigins(values: string[]): IngredientOrigin[] {
+  const parsed = values
+    .map((value) => parseIngredientOrigin(value))
+    .filter((value): value is IngredientOrigin => Boolean(value));
 
   return Array.from(new Set(parsed));
 }
@@ -117,6 +127,13 @@ export function useLibraryBrowser({
     return match?.label;
   }, [categories]);
 
+  // Origin is a filter beside type, shelf and folder. It has no seeded default
+  // and no route of its own, so the URL is its only source.
+  const origins = useMemo(
+    () => parseOrigins(searchParams?.getAll(LIBRARY_QUERY_KEYS.ORIGINS) ?? []),
+    [searchParams],
+  );
+
   const folderId = searchParams?.get(LIBRARY_QUERY_KEYS.FOLDER) ?? '';
   const search = searchParams?.get(LIBRARY_QUERY_KEYS.SEARCH) ?? '';
   const viewMode = parseViewMode(
@@ -144,12 +161,14 @@ export function useLibraryBrowser({
     (next: {
       categories?: IngredientCategory[];
       folderId?: string;
+      origins?: IngredientOrigin[];
       search?: string;
       sort?: string;
       viewMode?: LibraryViewMode;
     }) => {
       const nextCategories = next.categories ?? categories;
       const nextFolderId = next.folderId ?? folderId;
+      const nextOrigins = next.origins ?? origins;
       const nextSearch = next.search ?? search;
       const nextSort = next.sort ?? sort;
       const nextViewMode = next.viewMode ?? viewMode;
@@ -158,6 +177,7 @@ export function useLibraryBrowser({
       for (const key of [
         'categories',
         'folder',
+        'origins',
         'search',
         'sort',
         'view',
@@ -174,6 +194,10 @@ export function useLibraryBrowser({
       // like they refuse to clear.
       if (nextCategories.length === 0 && (seededCategories?.length ?? 0) > 0) {
         params.set(LIBRARY_QUERY_KEYS.CATEGORIES, '');
+      }
+
+      for (const origin of nextOrigins) {
+        params.append(LIBRARY_QUERY_KEYS.ORIGINS, origin);
       }
 
       if (nextFolderId) {
@@ -202,6 +226,7 @@ export function useLibraryBrowser({
       categories,
       defaultSort,
       folderId,
+      origins,
       pathname,
       router,
       search,
@@ -228,6 +253,17 @@ export function useLibraryBrowser({
 
   const handleClearCategories = useCallback(() => {
     pushAxes({ categories: [] });
+  }, [pushAxes]);
+
+  const handleOriginsChange = useCallback(
+    (nextOrigins: IngredientOrigin[]) => {
+      pushAxes({ origins: Array.from(new Set(nextOrigins)) });
+    },
+    [pushAxes],
+  );
+
+  const handleClearOrigins = useCallback(() => {
+    pushAxes({ origins: [] });
   }, [pushAxes]);
 
   const handleSearchChange = useCallback(
@@ -298,6 +334,10 @@ export function useLibraryBrowser({
       next.shelf = shelf;
     }
 
+    if (origins.length > 0) {
+      next.origins = origins;
+    }
+
     if (folderId) {
       next.folder = folderId;
     }
@@ -315,7 +355,7 @@ export function useLibraryBrowser({
     }
 
     return next;
-  }, [categories, folderId, place, search, shelf, sort]);
+  }, [categories, folderId, origins, place, search, shelf, sort]);
 
   const contextValue: IIngredientsContextValue = useMemo(
     () => ({
@@ -345,12 +385,15 @@ export function useLibraryBrowser({
     folderId,
     handleCategoriesChange,
     handleClearCategories,
+    handleClearOrigins,
+    handleOriginsChange,
     handleRefresh,
     handleSearchChange,
     handleSortChange,
     handleUpload,
     handleViewModeChange,
     isRefreshing,
+    origins,
     search,
     sort,
     viewMode,

@@ -40,5 +40,30 @@ describe('IngredientsQueryDto', () => {
       expect(errors).toHaveLength(0);
       expect(dto.status).toBeUndefined();
     });
+
+    it('accepts repeated origins keys and normalizes their case', async () => {
+      const dto = plainToInstance(IngredientsQueryDto, {
+        origins: ['uploaded', 'IMPORTED'],
+      });
+
+      expect(await validate(dto)).toHaveLength(0);
+      expect(dto.origins).toEqual(['UPLOADED', 'IMPORTED']);
+    });
+
+    it('wraps a single origin and leaves it unset when absent', async () => {
+      const single = plainToInstance(IngredientsQueryDto, {
+        origins: 'generated',
+      });
+      const none = plainToInstance(IngredientsQueryDto, {});
+
+      expect(single.origins).toEqual(['GENERATED']);
+      expect(none.origins).toBeUndefined();
+    });
+
+    it('rejects an unknown origin instead of returning an empty Library', async () => {
+      const dto = plainToInstance(IngredientsQueryDto, { origins: ['mine'] });
+
+      expect((await validate(dto)).length).toBeGreaterThan(0);
+    });
   });
 });

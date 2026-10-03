@@ -20,6 +20,7 @@ import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   FileInputType,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
   TransformationCategory,
@@ -99,6 +100,7 @@ export class VideosEffectsController {
 
     const { metadataData, ingredientData } =
       await this.sharedService.createMediaDocuments(user, {
+        origin: IngredientOrigin.GENERATED,
         brandId: video.brandId,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
@@ -182,6 +184,7 @@ export class VideosEffectsController {
     try {
       const { metadataData, ingredientData } =
         await this.sharedService.createMediaDocuments(user, {
+          origin: IngredientOrigin.GENERATED,
           brandId: video.brandId,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,

@@ -37,6 +37,7 @@ import {
   ActivitySource,
   IngredientCategory,
   IngredientFormat,
+  IngredientOrigin,
   IngredientStatus,
   MemberRole,
   MetadataExtension,
@@ -306,7 +307,7 @@ export class BatchInterpolationController {
     context: InterpolationContext,
   ): Promise<InterpolationJobResult> {
     try {
-      const { endFrameUrl, startFrameUrl } =
+      const { endFrameUrl, sourceIngredientIds, startFrameUrl } =
         await this.interpolationReferenceService.resolvePair(
           pair,
           context.user.organizationId,
@@ -360,6 +361,7 @@ export class BatchInterpolationController {
       );
       const { metadataData, ingredientData } =
         await this.sharedService.createMediaDocuments(context.user, {
+          origin: IngredientOrigin.GENERATED,
           brandId: context.brand.id,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
@@ -374,9 +376,10 @@ export class BatchInterpolationController {
           organizationId: context.brand.organizationId,
           promptId: promptData.id,
           promptTemplate: builtPrompt.templateUsed,
-          // Both frames are references: record them so the output lists them
-          // under "Made from" and each frame lists it under "Used in".
-          sourceIds: [...new Set([pair.startImageId, pair.endImageId])],
+          // Frames that are Library assets are references: record them so the
+          // output lists them under "Made from". Asset-backed frames (logos,
+          // banners) are not Ingredients and are skipped, not connected.
+          sourceIds: sourceIngredientIds,
           status: IngredientStatus.PROCESSING,
           templateVersion: builtPrompt.templateVersion,
           width: context.width,

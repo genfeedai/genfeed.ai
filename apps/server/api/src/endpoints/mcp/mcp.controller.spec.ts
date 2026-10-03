@@ -9,6 +9,7 @@ import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { IngredientOrigin } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -107,7 +108,10 @@ describe('MCPController', () => {
 
       await controller.createVideo(mockRequest, mockCreateVideoDto);
 
-      expect(videosService.create).toHaveBeenCalledWith(mockCreateVideoDto);
+      expect(videosService.create).toHaveBeenCalledWith({
+        ...mockCreateVideoDto,
+        origin: IngredientOrigin.GENERATED,
+      });
     });
 
     it('should handle video creation error', async () => {

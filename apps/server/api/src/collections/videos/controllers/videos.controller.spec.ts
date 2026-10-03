@@ -635,6 +635,27 @@ describe('VideosController', () => {
       expect(branch).not.toHaveProperty('organization');
     });
 
+    it('keeps the origin filter in the latest aggregate', async () => {
+      videosService.findAll.mockResolvedValue({
+        docs: [],
+        limit: 10,
+        page: 1,
+        totalDocs: 0,
+      } as unknown as AggregatePaginateResult<IngredientDocument>);
+
+      await controller.findAll(mockRequest, mockUser, {
+        ...latestQuery,
+        origins: ['UPLOADED', 'IMPORTED'],
+      } as unknown as VideosQueryDto);
+
+      const [aggregate] = videosService.findAll.mock.calls[0] as [
+        { where: { AND: Array<Record<string, unknown>> } },
+      ];
+      expect(aggregate.where.AND).toContainEqual({
+        origin: { in: ['UPLOADED', 'IMPORTED'] },
+      });
+    });
+
     it('should cap the latest limit at 50', async () => {
       videosService.findAll.mockResolvedValue({
         docs: [],

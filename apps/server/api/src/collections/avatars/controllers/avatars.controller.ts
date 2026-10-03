@@ -1,10 +1,11 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { AvatarsQueryDto } from '@api/collections/avatars/dto/avatars-query.dto';
 import { AvatarsService } from '@api/collections/avatars/services/avatars.service';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
@@ -220,7 +221,7 @@ export class AvatarsController {
   async findAll(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Query() query: BaseQueryDto,
+    @Query() query: AvatarsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
     const options = {
       customLabels,
@@ -234,6 +235,7 @@ export class AvatarsController {
         isDeleted,
         organizationId: user.organizationId,
         userId: user.userId ?? user.id,
+        ...IngredientFilterUtil.buildOriginFilter(query.origins),
       },
       orderBy: handleQuerySort(query.sort),
     };

@@ -42,6 +42,7 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
+import IngredientOriginBadge from '@ui/ingredients/ingredient-origin-badge';
 import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientTimeGroupHeading from '@ui/ingredients/list/media-grid/ingredient-time-group-heading';
@@ -326,6 +327,14 @@ export default function IngredientsListContent({
             </div>
           );
         },
+      },
+      {
+        className: 'w-28',
+        header: 'Origin',
+        key: 'origin',
+        render: (ingredient: IIngredient) => (
+          <IngredientOriginBadge origin={ingredient.origin} />
+        ),
       },
       {
         className: 'w-52',

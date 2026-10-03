@@ -26,6 +26,7 @@ import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   FileInputType,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
   PostCategory,
@@ -249,6 +250,7 @@ export class ContentOrchestrationService implements OnModuleInit {
     const extension = this.contentTypeToExtension(result.contentType);
     const { ingredientData, metadataData } =
       await this.sharedService.createMediaDocumentsInternal({
+        origin: IngredientOrigin.GENERATED,
         brandId,
         category,
         extension,

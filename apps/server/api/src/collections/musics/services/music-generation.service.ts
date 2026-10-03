@@ -27,6 +27,7 @@ import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
   ModelCategory,
@@ -192,6 +193,7 @@ export class MusicGenerationService {
 
     const { metadataData, ingredientData } =
       await this.sharedService.createMediaDocuments(user, {
+        origin: IngredientOrigin.GENERATED,
         brandId,
         category: IngredientCategory.MUSIC,
         duration: normalizedDto.duration,
@@ -407,6 +409,7 @@ export class MusicGenerationService {
       const created = await this.sharedService.createMediaDocuments(
         params.user,
         {
+          origin: IngredientOrigin.GENERATED,
           brandId: params.brandId,
           category: IngredientCategory.MUSIC,
           duration: params.createMusicDto.duration,

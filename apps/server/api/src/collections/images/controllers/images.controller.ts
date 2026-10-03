@@ -65,7 +65,7 @@ export class ImagesController {
   @Cache({
     keyGenerator: (req) =>
       req.query.latest === 'true'
-        ? `images:latest:org:${(req.user?.organizationId as string | undefined) ?? 'global'}:brand:${(req.user?.brandId as string | undefined) ?? 'global'}:user:${req.user?.id ?? 'anonymous'}:limit:${req.query.limit ?? 10}`
+        ? `images:latest:org:${(req.user?.organizationId as string | undefined) ?? 'global'}:brand:${(req.user?.brandId as string | undefined) ?? 'global'}:user:${req.user?.id ?? 'anonymous'}:limit:${req.query.limit ?? 10}:origins:${JSON.stringify(req.query.origins ?? [])}`
         : '',
     tags: ['images'],
     ttl: 300, // 5 minutes
@@ -119,6 +119,9 @@ export class ImagesController {
     const trainingFilter = IngredientFilterUtil.buildTrainingFilter(
       query.trainingId,
     );
+
+    // Origin narrows the whole list, brand-default images included.
+    const originFilter = IngredientFilterUtil.buildOriginFilter(query.origins);
 
     // Build isPublic filter for public gallery (getshareable.app)
     const isPublicFilter =
@@ -180,6 +183,7 @@ export class ImagesController {
                 : []),
             ],
           },
+          originFilter,
         ],
       },
       orderBy: handleQuerySort(query.sort),
@@ -236,6 +240,7 @@ export class ImagesController {
               },
             ],
           },
+          IngredientFilterUtil.buildOriginFilter(query.origins),
         ],
       },
       orderBy: { createdAt: -1 },

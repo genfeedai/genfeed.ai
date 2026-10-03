@@ -351,6 +351,21 @@ describe('IngredientsListContent', () => {
     ).not.toBeNull();
   });
 
+  it('shows the origin of every list row in its own column', () => {
+    renderContent({
+      filteredIngredients: [
+        { ...videoIngredient, origin: 'IMPORTED' } as unknown as IIngredient,
+      ],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+    });
+
+    expect(
+      screen.getByRole('columnheader', { name: 'Origin' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Imported')).toBeInTheDocument();
+  });
+
   it('falls back to a video placeholder when there is no poster', () => {
     renderContent({
       filteredIngredients: [
@@ -872,7 +887,7 @@ describe('IngredientsListContent inspector handoff', () => {
 });
 
 describe('IngredientsListContent generation ledger columns', () => {
-  it('renders the seven ledger column headers in order', () => {
+  it('renders the ledger column headers in order', () => {
     renderContent({ viewMode: 'list' });
 
     const headers = screen
@@ -886,6 +901,7 @@ describe('IngredientsListContent generation ledger columns', () => {
       '',
       'Asset',
       'Type',
+      'Origin',
       'Model',
       'Size',
       'Created',

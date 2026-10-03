@@ -33,6 +33,7 @@ export interface VideoAttributes {
   duration?: number;
   id?: string;
   message?: string;
+  origin?: string;
   progress?: number;
   status?: string;
   title?: string;
@@ -66,6 +67,7 @@ export interface ArticleAttributes {
 export interface ImageAttributes {
   createdAt?: string;
   id?: string;
+  origin?: string;
   prompt?: string;
   size?: string;
   status?: string;
@@ -82,6 +84,7 @@ export interface AvatarAttributes {
   gender?: string;
   id?: string;
   name?: string;
+  origin?: string;
   status?: string;
   style?: string;
   thumbnailUrl?: string;
@@ -97,6 +100,7 @@ export interface MusicAttributes {
   genre?: string;
   id?: string;
   mood?: string;
+  origin?: string;
   prompt?: string;
   status?: string;
   url?: string;
