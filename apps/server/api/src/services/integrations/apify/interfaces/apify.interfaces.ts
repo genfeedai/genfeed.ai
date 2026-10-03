@@ -53,31 +53,13 @@ export interface ApifyRunBudgetDecision {
   isAllowed: boolean;
   maxTotalChargeUsd?: number;
   reason?: string;
-  reservation?: ApifyRunBudgetReservation;
   retryAfterMs?: number;
 }
 
-export interface ApifyRunBudgetReservation {
-  reservationKey: string;
-  reservedMicroUsd: number;
-  usageKey: string;
-}
-
 export interface ApifyRunBudgetLimits {
-  maxBillingPeriodUsd: number;
   maxRunsPerDay: number;
   maxRunsPerHour: number;
   maxTotalChargeUsdPerRun: number;
-}
-
-export interface ApifyMonthlyUsageResponse {
-  data: {
-    totalUsageCreditsUsdAfterVolumeDiscount: number;
-    usageCycle: {
-      endAt: string;
-      startAt: string;
-    };
-  };
 }
 
 export interface ApifyDatasetResponse<T = ApifyDatasetItem> {

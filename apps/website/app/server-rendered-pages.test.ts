@@ -43,6 +43,7 @@ const SERVER_RENDERED_PAGES = [
   'app/(public)/skills/success/skills-success-content.tsx',
   'app/(public)/studio/studio-content.tsx',
   'app/(public)/terms/terms-page.tsx',
+  'app/(public)/turbo/turbo-content.tsx',
   'app/(public)/tools/tools-content.tsx',
   'app/(public)/use-cases/use-cases-hub-content.tsx',
   'app/(public)/vs/vs-hub-content.tsx',

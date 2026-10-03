@@ -3,8 +3,9 @@
 # Jobs, OpenTofu, and deploy scripts all live in this repository so GitHub
 # bills free public minutes. Do not check out console.genfeed.ai.
 #
-# Flow: resolve server:<sha> in GHCR -> copy GHCR->ECR -> RDS pre-migration
-# snapshot -> Prisma migrate task -> parallel API and workers boot-smoke -> OpenTofu apply rolls services (task defs are OpenTofu-managed with
+# Flow: resolve server:<sha> in GHCR -> copy GHCR->ECR ->
+# parallel API and workers boot-smoke -> snapshot -> Prisma migrate task ->
+# OpenTofu apply rolls services (task defs are OpenTofu-managed with
 # image digest) -> wait services-stable -> deploy Vercel frontends -> live
 # post-deploy smoke.
 #
@@ -364,6 +365,53 @@ jobs:
             -target=aws_cloudwatch_log_group.harness_profile_seed \
             -target=aws_ecs_task_definition.harness_profile_seed
 
+      - name: Verify serving image schemas before live migrations
+        working-directory: ops/${{ env.TF_DIR }}
+        env:
+          CANDIDATE_DIGEST: ${{ steps.copy-image.outputs.image_digest }}
+        run: |
+          set -euo pipefail
+          CLUSTER=$(tofu output -raw cluster_name)
+          SERVICES=$(tofu output -json service_names)
+          REPOSITORY=$(aws ecr describe-repositories --repository-names "$ECR_REPOSITORY_NAME" --query 'repositories[0].repositoryUri' --output text)
+          node "${GITHUB_WORKSPACE}/ops/scripts/deploy/hosted-saas/verify-serving-schema.mjs" \
+            --cluster "$CLUSTER" --services "$SERVICES" --repository "$REPOSITORY" \
+            --candidate-digest "$CANDIDATE_DIGEST" --cwd "${GITHUB_WORKSPACE}/source"
+
+      # Fail before live migrations: a rejected image must leave the serving
+      # release's schema intact. Candidates must boot on the expanded schema;
+      # schema-dependent startup changes require an earlier expand release.
+      - name: Boot API and workers before services roll
+        id: boot-smoke
+        working-directory: ops/${{ env.TF_DIR }}
+        run: |
+          set -euo pipefail
+          CLUSTER=$(tofu output -raw cluster_name)
+          API_TASK=$(tofu output -raw boot_smoke_task_definition_arn)
+          WORKER_TASK=$(tofu output -raw worker_boot_smoke_task_definition_arn)
+          SUBNETS=$(tofu output -json task_subnets | jq -r 'join(",")')
+          SG=$(tofu output -raw task_security_group)
+          runner="${GITHUB_WORKSPACE}/ops/scripts/deploy/hosted-saas/ecs-run-task-and-wait.ts"
+          common=(--cluster "$CLUSTER" --subnets "$SUBNETS" --security-groups "$SG" --stop-on-timeout)
+          bun "$runner" "${common[@]}" --phase boot-smoke \
+            --task-definition "$API_TASK" --timeout-seconds 600 &
+          api_pid=$!
+          bun "$runner" "${common[@]}" --phase worker-boot-smoke \
+            --task-definition "$WORKER_TASK" --timeout-seconds 900 &
+          worker_pid=$!
+          status=0
+          wait "$api_pid" || status=1
+          wait "$worker_pid" || status=1
+          exit "$status"
+
+      - name: Print boot-smoke logs on failure
+        if: ${{ failure() && steps.boot-smoke.outcome == 'failure' }}
+        run: |
+          for task in boot-smoke worker-boot-smoke; do
+            aws logs tail "/ecs/${TF_VAR_project}-production/${task}" \
+              --since 30m --format short | tail -n 300 || true
+          done
+
       - name: Snapshot RDS before migrations (fail-closed)
         env:
           RDS_INSTANCE_ID: ${{ vars.RDS_INSTANCE_ID }}
@@ -410,37 +458,6 @@ jobs:
             --subnets "$SUBNETS" \
             --security-groups "$SG" \
             --timeout-seconds 900
-
-      - name: Boot API and workers before services roll
-        id: boot-smoke
-        working-directory: ops/${{ env.TF_DIR }}
-        run: |
-          set -euo pipefail
-          CLUSTER=$(tofu output -raw cluster_name)
-          API_TASK=$(tofu output -raw boot_smoke_task_definition_arn)
-          WORKER_TASK=$(tofu output -raw worker_boot_smoke_task_definition_arn)
-          SUBNETS=$(tofu output -json task_subnets | jq -r 'join(",")')
-          SG=$(tofu output -raw task_security_group)
-          runner="${GITHUB_WORKSPACE}/ops/scripts/deploy/hosted-saas/ecs-run-task-and-wait.ts"
-          common=(--cluster "$CLUSTER" --subnets "$SUBNETS" --security-groups "$SG" --stop-on-timeout)
-          bun "$runner" "${common[@]}" --phase boot-smoke \
-            --task-definition "$API_TASK" --timeout-seconds 600 &
-          api_pid=$!
-          bun "$runner" "${common[@]}" --phase worker-boot-smoke \
-            --task-definition "$WORKER_TASK" --timeout-seconds 900 &
-          worker_pid=$!
-          status=0
-          wait "$api_pid" || status=1
-          wait "$worker_pid" || status=1
-          exit "$status"
-
-      - name: Print boot-smoke logs on failure
-        if: ${{ failure() && steps.boot-smoke.outcome == 'failure' }}
-        run: |
-          for task in boot-smoke worker-boot-smoke; do
-            aws logs tail "/ecs/${TF_VAR_project}-production/${task}" \
-              --since 30m --format short | tail -n 300 || true
-          done
 
       - name: Tofu apply (roll services to new image)
         working-directory: ops/${{ env.TF_DIR }}

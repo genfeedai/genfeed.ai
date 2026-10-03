@@ -28,3 +28,16 @@ export function shouldBypassBetterAuthHandler(
 
   return allowedPaths.has(normalizeMountedPath(mountedPath));
 }
+
+/**
+ * Better Auth's admin plugin (impersonation, role and ban management) is
+ * served outside the Nest guard chain, so `main.ts` applies the admin IP
+ * allowlist to these paths before the handler runs.
+ */
+export function isBetterAuthAdminPath(mountedPath: string): boolean {
+  const path = normalizeMountedPath(mountedPath)
+    .replace(/\/{2,}/g, '/')
+    .toLowerCase();
+
+  return path === '/admin' || path.startsWith('/admin/');
+}

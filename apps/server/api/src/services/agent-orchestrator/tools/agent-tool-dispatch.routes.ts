@@ -61,6 +61,12 @@ export function dispatchRegisteredAgentTool(
   params: Record<string, unknown>,
   ctx: ToolExecutionContext,
 ): Promise<AgentToolResult> {
+  switch (toolName) {
+    case 'create_brand_from_url':
+      return handlers.brandContentHandler.createBrandFromUrl(params, ctx);
+    case 'get_brand_scan_status':
+      return handlers.brandContentHandler.getBrandScanStatus(params, ctx);
+  }
   return Promise.resolve(
     dispatchCatalogAndTransfer(handlers, toolName, params, ctx) ??
       dispatchWorkspaceFamily(handlers, toolName, params, ctx) ??

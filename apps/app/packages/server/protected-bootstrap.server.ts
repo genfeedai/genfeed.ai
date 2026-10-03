@@ -11,6 +11,7 @@ import { logger } from '@services/core/logger.service';
 import { PublicService } from '@services/external/public.service';
 import { cookies } from 'next/headers';
 import { cache } from 'react';
+import { resolveServerSuperAdmin } from './admin-ip-access.server';
 import { isDesktopServerRequest } from './desktop-request.server';
 
 export { isDesktopServerRequest } from './desktop-request.server';
@@ -108,8 +109,13 @@ export const loadProtectedBootstrap = cache(
       return null;
     }
 
+    const isSuperAdmin = await resolveServerSuperAdmin(
+      bootstrap.access,
+      bootstrap.currentUser,
+    );
+
     return {
-      accessState: bootstrap.access,
+      accessState: { ...bootstrap.access, isSuperAdmin },
       brandId: bootstrap.access.brandId ?? '',
       brands: bootstrap.brands ?? [],
       currentUser: bootstrap.currentUser,

@@ -5,6 +5,36 @@ import type {
 } from '@api/collections/post-groups/services/post-group.types';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
+import { stripHtmlToPlainText } from '@genfeedai/helpers';
+
+const RELEASE_TITLE_MAX_LENGTH = 80;
+const UNTITLED_RELEASE = 'Untitled post';
+
+function toPlainTitleText(value?: string | null): string {
+  return stripHtmlToPlainText(value).replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * A release title is operator-facing plain text: the post label, else the
+ * start of its content. Post content is stored as editor HTML, so it is
+ * flattened first — never persist or project raw markup as a title.
+ */
+export function deriveReleaseTitle(
+  label: string | null | undefined,
+  content: string | null | undefined,
+): string {
+  const labelTitle = toPlainTitleText(label);
+  if (labelTitle) {
+    return labelTitle;
+  }
+  const contentTitle = toPlainTitleText(content);
+  if (!contentTitle) {
+    return UNTITLED_RELEASE;
+  }
+  return contentTitle.length > RELEASE_TITLE_MAX_LENGTH
+    ? `${contentTitle.slice(0, RELEASE_TITLE_MAX_LENGTH - 3).trimEnd()}...`
+    : contentTitle;
+}
 
 export function toSyntheticReleaseGroup(
   target: SchedulerPostTarget,
@@ -17,21 +47,6 @@ export function toSyntheticReleaseGroup(
   ) {
     return null;
   }
-
-  const contentTitle = target.description
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  const labelTitle = target.label
-    ?.replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  const title =
-    labelTitle ||
-    (contentTitle.length > 80
-      ? `${contentTitle.slice(0, 77).trimEnd()}...`
-      : contentTitle) ||
-    'Untitled post';
 
   return {
     attachments: [],
@@ -54,7 +69,7 @@ export function toSyntheticReleaseGroup(
     status: target.targetExecutionState,
     statusTransitions: [],
     timezone: target.timezone,
-    title,
+    title: deriveReleaseTitle(target.label, target.description),
     updatedAt: target.updatedAt,
   };
 }

@@ -1130,7 +1130,8 @@ describe('immutable materializer with real selector/publication proof and explic
       maxWait: 5_000,
       timeout: 30_000,
     });
-    expect(f.trace.slice(0, 10)).toEqual([
+    expect(f.trace.slice(0, 11)).toEqual([
+      'F',
       'F',
       'account',
       'account-lock',
@@ -1146,13 +1147,17 @@ describe('immutable materializer with real selector/publication proof and explic
     expect(calls[0][0].join('')).toBe(
       'SELECT pg_advisory_xact_lock_shared(5728, 1)::text',
     );
-    expect(calls[1].slice(1)).toEqual([
+    expect(calls[1][0].join('?')).toBe(
+      'SELECT pg_advisory_xact_lock_shared(?::int, hashtext(?))::text',
+    );
+    expect(calls[1].slice(1)).toEqual([5729, f.scope.organizationId]);
+    expect(calls[2].slice(1)).toEqual([
       'account',
       'org',
       'brand',
       'credential',
     ]);
-    expect(calls[2].slice(1)).toEqual([
+    expect(calls[3].slice(1)).toEqual([
       'state',
       'org',
       'brand',
@@ -1160,9 +1165,9 @@ describe('immutable materializer with real selector/publication proof and explic
       learningScopeKey(f.scope),
       2,
     ]);
-    expect(calls[1][0].join('')).toContain('FOR UPDATE');
     expect(calls[2][0].join('')).toContain('FOR UPDATE');
-    expect(calls).toHaveLength(3);
+    expect(calls[3][0].join('')).toContain('FOR UPDATE');
+    expect(calls).toHaveLength(4);
     expect(f.blocked).not.toHaveBeenCalled();
   });
   it.each([0, 19, 20, 50, 51])(

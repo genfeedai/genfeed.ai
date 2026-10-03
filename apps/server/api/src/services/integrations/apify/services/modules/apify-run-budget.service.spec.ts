@@ -2,14 +2,11 @@ import { CacheService } from '@api/services/cache/cache.service';
 import { ApifyRunBudgetService } from '@api/services/integrations/apify/services/modules/apify-run-budget.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpService } from '@nestjs/axios';
-import { of } from 'rxjs';
 
 describe('ApifyRunBudgetService', () => {
   let service: ApifyRunBudgetService;
   let cacheService: Record<string, ReturnType<typeof vi.fn>>;
   let configService: Record<string, ReturnType<typeof vi.fn>>;
-  let httpService: { get: ReturnType<typeof vi.fn> };
   let loggerService: {
     error: ReturnType<typeof vi.fn>;
     log: ReturnType<typeof vi.fn>;
@@ -17,14 +14,12 @@ describe('ApifyRunBudgetService', () => {
   };
   let env: Record<string, string | undefined>;
   let counters: Record<string, number>;
-  let claims: Set<string>;
 
   const build = (): ApifyRunBudgetService =>
     new ApifyRunBudgetService(
       configService as unknown as ConfigService,
       loggerService as unknown as LoggerService,
       cacheService as unknown as CacheService,
-      httpService as unknown as HttpService,
     );
 
   beforeEach(() => {
@@ -32,21 +27,10 @@ describe('ApifyRunBudgetService', () => {
     vi.setSystemTime(new Date('2026-08-31T10:00:00.000Z'));
     env = {};
     counters = {};
-    claims = new Set();
 
     configService = { get: vi.fn((key: string) => env[key]) };
 
     cacheService = {
-      claimOnce: vi.fn(async (key: string) => {
-        if (claims.has(key)) return 'duplicate';
-        claims.add(key);
-        return 'claimed';
-      }),
-      del: vi.fn(async (key: string) => {
-        delete counters[key];
-        claims.delete(key);
-        return true;
-      }),
       expire: vi.fn().mockResolvedValue(true),
       generateKey: vi.fn(
         (namespace: string, ...parts: (string | number)[]) =>
@@ -71,109 +55,10 @@ describe('ApifyRunBudgetService', () => {
           return { status: 'reserved', reserved, total: counters[key] };
         },
       ),
-      reconcileCounterReservation: vi.fn(
-        async (
-          key: string,
-          receipt: string,
-          reserved: number,
-          actual: number,
-        ) => {
-          if (claims.has(receipt)) return 'duplicate';
-          claims.add(receipt);
-          counters[key] += actual - reserved;
-          return 'settled';
-        },
-      ),
       initializeCounterBudget: vi.fn(async (key: string, value: number) => {
         counters[key] ??= value;
         return true;
       }),
-      importHostedAccountUsage: vi.fn(
-        async (usageKey: string, providerMicro: number) => {
-          const snapshotKey = `${usageKey}:snapshot`;
-          const settledKey = `${usageKey}:settled`;
-          const provisionalKey = `${usageKey}:provisional`;
-          const recognizedKey = `${usageKey}:recognized`;
-          const outstanding = counters[`${usageKey}:outstanding`] ?? 0;
-          const settled = counters[settledKey] ?? 0;
-          const provisional = counters[provisionalKey] ?? 0;
-          const recognized = counters[recognizedKey] ?? 0;
-          const current = counters[usageKey] ?? 0;
-          const snapshot = counters[snapshotKey];
-          let growth = 0;
-          let isBaselined = false;
-          if (snapshot === undefined) {
-            growth = Math.max(
-              0,
-              providerMicro - Math.max(0, current - outstanding),
-            );
-            isBaselined = true;
-          } else if (providerMicro < snapshot) {
-            return { status: 'behind' };
-          } else {
-            growth = providerMicro - snapshot;
-          }
-          const unseen = Math.max(0, settled - recognized);
-          const explained = Math.min(growth, unseen);
-          const charge = growth - explained;
-          let next = current;
-          let nextProvisional = provisional;
-          let nextRecognized = recognized + explained;
-          if (charge > 0) {
-            next += charge;
-            const ambiguous = Math.min(charge, outstanding);
-            if (ambiguous > 0) nextProvisional += ambiguous;
-          }
-          const unexplained = Math.max(0, settled - nextRecognized);
-          if (outstanding === 0 && nextProvisional > 0) {
-            if (unexplained >= nextProvisional && next >= nextProvisional) {
-              nextRecognized = Math.min(
-                settled,
-                nextRecognized + nextProvisional,
-              );
-              next -= nextProvisional;
-            }
-            nextProvisional = 0;
-          }
-          counters[usageKey] = next;
-          counters[snapshotKey] = providerMicro;
-          counters[provisionalKey] = nextProvisional;
-          counters[recognizedKey] = nextRecognized;
-          if (isBaselined) return { status: 'baselined' };
-          if (charge > 0) {
-            return { externalMicroUsd: charge, status: 'applied' };
-          }
-          return { status: 'unchanged' };
-        },
-      ),
-      noteResearchReservation: vi.fn(
-        async (usageKey: string, _reservationKey: string, amount: number) => {
-          const outstandingKey = `${usageKey}:outstanding`;
-          counters[outstandingKey] = (counters[outstandingKey] ?? 0) + amount;
-          return 'noted';
-        },
-      ),
-      noteSettledResearchReservation: vi.fn(async () => 'noted'),
-      set: vi.fn(async (key: string, value: unknown) => {
-        counters[key] = value === true ? 1 : 0;
-        return true;
-      }),
-    };
-
-    httpService = {
-      get: vi.fn().mockReturnValue(
-        of({
-          data: {
-            data: {
-              totalUsageCreditsUsdAfterVolumeDiscount: 0,
-              usageCycle: {
-                endAt: '2026-09-26T23:59:59.999Z',
-                startAt: '2026-08-27T00:00:00.000Z',
-              },
-            },
-          },
-        }),
-      ),
     };
 
     loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
@@ -191,11 +76,7 @@ describe('ApifyRunBudgetService', () => {
     env.APIFY_MAX_RUNS_PER_DAY = '10';
     service = build();
 
-    const decision = await service.consumeRun(
-      'hosted',
-      'apify/scraper',
-      'test-token',
-    );
+    const decision = await service.consumeRun('hosted', 'apify/scraper');
 
     expect(decision.isAllowed).toBe(true);
     expect(cacheService.incr).toHaveBeenCalledTimes(2);
@@ -205,7 +86,7 @@ describe('ApifyRunBudgetService', () => {
     env.APIFY_MAX_RUNS_PER_HOUR = '5';
     service = build();
 
-    await service.consumeRun('hosted', 'apify/scraper', 'test-token');
+    await service.consumeRun('hosted', 'apify/scraper');
 
     expect(cacheService.expire).toHaveBeenCalledTimes(2);
   });
@@ -215,13 +96,9 @@ describe('ApifyRunBudgetService', () => {
     env.APIFY_MAX_RUNS_PER_DAY = '100';
     service = build();
 
-    await service.consumeRun('hosted', 'apify/scraper', 'test-token');
-    await service.consumeRun('hosted', 'apify/scraper', 'test-token');
-    const third = await service.consumeRun(
-      'hosted',
-      'apify/scraper',
-      'test-token',
-    );
+    await service.consumeRun('hosted', 'apify/scraper');
+    await service.consumeRun('hosted', 'apify/scraper');
+    const third = await service.consumeRun('hosted', 'apify/scraper');
 
     expect(third.isAllowed).toBe(false);
     expect(third.reason).toContain('hourly');
@@ -233,12 +110,8 @@ describe('ApifyRunBudgetService', () => {
     env.APIFY_MAX_RUNS_PER_DAY = '1';
     service = build();
 
-    await service.consumeRun('hosted', 'apify/scraper', 'test-token');
-    const second = await service.consumeRun(
-      'hosted',
-      'apify/scraper',
-      'test-token',
-    );
+    await service.consumeRun('hosted', 'apify/scraper');
+    const second = await service.consumeRun('hosted', 'apify/scraper');
 
     expect(second.isAllowed).toBe(false);
     expect(second.reason).toContain('daily');
@@ -248,12 +121,8 @@ describe('ApifyRunBudgetService', () => {
     env.APIFY_MAX_RUNS_PER_HOUR = '1';
     service = build();
 
-    await service.consumeRun('hosted', 'apify/scraper', 'test-token');
-    const other = await service.consumeRun(
-      'byok:org-1',
-      'apify/scraper',
-      'byok-token',
-    );
+    await service.consumeRun('hosted', 'apify/scraper');
+    const other = await service.consumeRun('byok:org-1', 'apify/scraper');
 
     expect(other.isAllowed).toBe(true);
   });
@@ -263,9 +132,9 @@ describe('ApifyRunBudgetService', () => {
     env.APIFY_MAX_RUNS_PER_DAY = '1';
     service = build();
 
-    await service.consumeRun('hosted', 'apify/scraper', 'test-token');
+    await service.consumeRun('hosted', 'apify/scraper');
     cacheService.incr.mockClear();
-    await service.consumeRun('hosted', 'apify/scraper', 'test-token');
+    await service.consumeRun('hosted', 'apify/scraper');
 
     expect(cacheService.incr).toHaveBeenCalledTimes(1);
   });
@@ -273,14 +142,9 @@ describe('ApifyRunBudgetService', () => {
   it('rejects a non-positive hosted cap', async () => {
     env.APIFY_MAX_RUNS_PER_HOUR = '0';
     env.APIFY_MAX_RUNS_PER_DAY = '0';
-    env.APIFY_MAX_BILLING_PERIOD_USD = '0';
     service = build();
 
-    const decision = await service.consumeRun(
-      'hosted',
-      'apify/scraper',
-      'test-token',
-    );
+    const decision = await service.consumeRun('hosted', 'apify/scraper');
 
     expect(decision.isAllowed).toBe(false);
     expect(cacheService.incr).not.toHaveBeenCalled();
@@ -291,11 +155,7 @@ describe('ApifyRunBudgetService', () => {
     service = build();
     cacheService.incr.mockResolvedValue(0);
 
-    const decision = await service.consumeRun(
-      'hosted',
-      'apify/scraper',
-      'test-token',
-    );
+    const decision = await service.consumeRun('hosted', 'apify/scraper');
 
     expect(decision.isAllowed).toBe(false);
     expect(decision.reason).toContain('unavailable');
@@ -304,11 +164,7 @@ describe('ApifyRunBudgetService', () => {
   it('keeps BYOK run-budget behavior isolated when Redis is unavailable', async () => {
     cacheService.incr.mockResolvedValue(0);
 
-    const decision = await service.consumeRun(
-      'byok:org-1',
-      'apify/scraper',
-      'byok-token',
-    );
+    const decision = await service.consumeRun('byok:org-1', 'apify/scraper');
 
     expect(decision.isAllowed).toBe(true);
   });
@@ -317,9 +173,9 @@ describe('ApifyRunBudgetService', () => {
     env.APIFY_MAX_RUNS_PER_HOUR = '1';
     service = build();
 
-    await service.consumeRun('hosted', 'apify/scraper', 'test-token');
-    await service.consumeRun('hosted', 'apify/scraper', 'test-token');
-    await service.consumeRun('hosted', 'apify/scraper', 'test-token');
+    await service.consumeRun('hosted', 'apify/scraper');
+    await service.consumeRun('hosted', 'apify/scraper');
+    await service.consumeRun('hosted', 'apify/scraper');
 
     expect(loggerService.warn).toHaveBeenCalledTimes(1);
   });
@@ -329,166 +185,38 @@ describe('ApifyRunBudgetService', () => {
 
     expect(limits.maxRunsPerHour).toBeGreaterThan(0);
     expect(limits.maxRunsPerDay).toBeGreaterThan(limits.maxRunsPerHour);
-    expect(limits.maxBillingPeriodUsd).toBe(4);
     expect(limits.maxTotalChargeUsdPerRun).toBeGreaterThan(0);
   });
 
-  it('initializes the hosted ledger and clamps a run to remaining current-cycle usage', async () => {
-    env.APIFY_MAX_BILLING_PERIOD_USD = '4';
-    env.APIFY_MAX_TOTAL_CHARGE_USD_PER_RUN = '0.25';
-    httpService.get.mockReturnValueOnce(
-      of({
-        data: {
-          data: {
-            totalUsageCreditsUsdAfterVolumeDiscount: 3.9,
-            usageCycle: {
-              endAt: '2026-09-26T23:59:59.999Z',
-              startAt: '2026-08-27T00:00:00.000Z',
-            },
-          },
-        },
-      }),
-    );
+  it('admits hosted runs without consulting exhausted or unhealthy billing books', async () => {
+    const usageKey = 'apify:billing-period-budget:hosted:2026-08-27';
+    counters[usageKey] = 4_000_000;
+    counters[`${usageKey}:books-unhealthy`] = 1;
+    cacheService.get.mockRejectedValue(new Error('billing ledger unavailable'));
     service = build();
 
-    const decision = await service.consumeRun(
-      'hosted',
-      'apify/scraper',
-      'test-token',
-    );
+    const decision = await service.consumeRun('hosted', 'apify/scraper');
 
-    expect(decision).toMatchObject({
+    expect(decision).toEqual({ isAllowed: true, maxTotalChargeUsd: 0.25 });
+    expect(cacheService.get).not.toHaveBeenCalled();
+    expect(cacheService.initializeCounterBudget).not.toHaveBeenCalled();
+    expect(cacheService.reserveCounterBudget).not.toHaveBeenCalled();
+    expect(counters[usageKey]).toBe(4_000_000);
+  });
+
+  it('passes the configured hosted per-run charge ceiling without a reservation', async () => {
+    env.APIFY_MAX_TOTAL_CHARGE_USD_PER_RUN = '0.12';
+    service = build();
+    expect(await service.consumeRun('hosted', 'actor')).toEqual({
       isAllowed: true,
-      maxTotalChargeUsd: 0.1,
-      reservation: expect.objectContaining({ reservedMicroUsd: 100_000 }),
+      maxTotalChargeUsd: 0.12,
     });
-    expect(httpService.get).toHaveBeenCalledWith(
-      'https://api.apify.com/v2/users/me/usage/monthly',
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          Authorization: 'Bearer test-token',
-        }),
-        timeout: 15_000,
-      }),
-    );
-  });
-
-  it('retains the completed billing-period ledger for post-reset review', async () => {
-    env.APIFY_MAX_BILLING_PERIOD_USD = '4';
-    service = build();
-
-    await service.consumeRun('hosted', 'apify/scraper', 'test-token');
-
-    const usageSet = cacheService.initializeCounterBudget.mock.calls.find(
-      ([key]) => String(key).startsWith('apify:billing-period-budget:hosted:'),
-    );
-    const ttl = usageSet?.[2] as number | undefined;
-    const secondsUntilReset = Math.ceil(
-      (Date.parse('2026-09-26T23:59:59.999Z') - Date.now()) / 1000,
-    );
-
-    expect(ttl).toBeGreaterThan(secondsUntilReset + 89 * 24 * 60 * 60);
-  });
-
-  it('refuses hosted runs when Apify current-cycle usage reached the ceiling', async () => {
-    env.APIFY_MAX_BILLING_PERIOD_USD = '4';
-    httpService.get.mockReturnValueOnce(
-      of({
-        data: {
-          data: {
-            totalUsageCreditsUsdAfterVolumeDiscount: 4,
-            usageCycle: {
-              endAt: '2026-09-26T23:59:59.999Z',
-              startAt: '2026-08-27T00:00:00.000Z',
-            },
-          },
-        },
-      }),
-    );
-    service = build();
-
-    const decision = await service.consumeRun(
-      'hosted',
-      'apify/scraper',
-      'test-token',
-    );
-
-    expect(decision.isAllowed).toBe(false);
-    expect(decision.reason).toContain('billing-period');
-    expect(loggerService.warn).toHaveBeenCalledWith(
-      expect.stringContaining('100%'),
-      expect.objectContaining({ threshold: 100 }),
-    );
-  });
-
-  it('claims billing threshold alerts once across service instances', async () => {
-    env.APIFY_MAX_BILLING_PERIOD_USD = '4';
-    httpService.get.mockReturnValue(
-      of({
-        data: {
-          data: {
-            totalUsageCreditsUsdAfterVolumeDiscount: 2,
-            usageCycle: {
-              endAt: '2026-09-26T23:59:59.999Z',
-              startAt: '2026-08-27T00:00:00.000Z',
-            },
-          },
-        },
-      }),
-    );
-
-    await build().consumeRun('hosted', 'apify/scraper', 'test-token');
-    await build().consumeRun('hosted', 'apify/scraper', 'test-token');
-
-    const thresholdWarnings = loggerService.warn.mock.calls.filter(
-      ([message]) => String(message).includes('50%'),
-    );
-    expect(thresholdWarnings).toHaveLength(1);
-  });
-
-  it('returns a per-run charge cap and reconciles the reservation to actual usage', async () => {
-    env.APIFY_MAX_BILLING_PERIOD_USD = '4';
-    env.APIFY_MAX_TOTAL_CHARGE_USD_PER_RUN = '0.25';
-    service = build();
-
-    const decision = await service.consumeRun(
-      'hosted',
-      'apify/scraper',
-      'test-token',
-    );
-    expect(decision).toMatchObject({
-      isAllowed: true,
-      maxTotalChargeUsd: 0.25,
-      reservation: expect.objectContaining({ reservedMicroUsd: 250_000 }),
-    });
-
-    await service.reconcileRun(decision.reservation, 0.012);
-
-    const usageKey = decision.reservation?.usageKey;
-    expect(usageKey).toBeDefined();
-    expect(counters[usageKey as string]).toBe(12_000);
-  });
-
-  it('retains and reports the reservation when Apify omits actual usage', async () => {
-    const reservation = {
-      reservationKey: 'receipt',
-      reservedMicroUsd: 250_000,
-      usageKey: 'apify:billing-period-budget:hosted:2026-08-27',
-    };
-
-    await service.reconcileRun(reservation, undefined);
-
-    expect(cacheService.incr).not.toHaveBeenCalled();
-    expect(loggerService.warn).toHaveBeenCalledWith(
-      'Apify billing reservation retained; verify receipt, actual usage and Redis budget storage',
-    );
   });
 
   it.each(
     [
       'APIFY_MAX_RUNS_PER_HOUR',
       'APIFY_MAX_RUNS_PER_DAY',
-      'APIFY_MAX_BILLING_PERIOD_USD',
       'APIFY_MAX_TOTAL_CHARGE_USD_PER_RUN',
     ].flatMap((key) =>
       [
@@ -502,255 +230,10 @@ describe('ApifyRunBudgetService', () => {
         '0.00000001',
       ].map((value) => [key, value]),
     ),
-  )('rejects invalid %s=%s before cache or HTTP', async (key, value) => {
+  )('rejects invalid %s=%s before consuming a run', async (key, value) => {
     env[key] = value;
-    const result = await build().consumeRun('hosted', 'actor', 'token');
+    const result = await build().consumeRun('hosted', 'actor');
     expect(result.isAllowed).toBe(false);
     expect(cacheService.incr).not.toHaveBeenCalled();
-    expect(httpService.get).not.toHaveBeenCalled();
-  });
-
-  it('settles zero delta once and retains actual overages', async () => {
-    const decision = await service.consumeRun('hosted', 'actor', 'token');
-    await service.reconcileRun(decision.reservation, 0.25);
-    await service.reconcileRun(decision.reservation, 0);
-    expect(counters[decision.reservation?.usageKey ?? '']).toBe(250_000);
-    const second = await service.consumeRun('hosted', 'actor', 'token');
-    await service.reconcileRun(second.reservation, 5);
-    expect(
-      (await service.consumeRun('hosted', 'actor', 'token')).isAllowed,
-    ).toBe(false);
-  });
-
-  it.each([undefined, NaN, Infinity, -1, Number.MAX_SAFE_INTEGER])(
-    'retains invalid actual usage %s',
-    async (actual) => {
-      const decision = await service.consumeRun('hosted', 'actor', 'token');
-      await service.reconcileRun(decision.reservation, actual);
-      expect(cacheService.reconcileCounterReservation).not.toHaveBeenCalled();
-      expect(counters[decision.reservation?.usageKey ?? '']).toBe(250_000);
-    },
-  );
-  it('preserves an existing cycle ledger when initialization markers are absent', async () => {
-    const key = 'apify:billing-period-budget:hosted:2026-08-27';
-    counters[key] = 3_900_000;
-    const decision = await service.consumeRun('hosted', 'actor', 'token');
-    expect(decision.maxTotalChargeUsd).toBe(0.1);
-    expect(counters[key]).toBe(4_000_000);
-  });
-
-  it.each([-1, NaN, Infinity, Number.MAX_SAFE_INTEGER])(
-    'rejects invalid provider baseline %s before initialization',
-    async (usage) => {
-      httpService.get.mockReturnValueOnce(
-        of({
-          data: {
-            data: {
-              totalUsageCreditsUsdAfterVolumeDiscount: usage,
-              usageCycle: {
-                startAt: '2026-08-27T00:00:00.000Z',
-                endAt: '2026-09-26T23:59:59.999Z',
-              },
-            },
-          },
-        }),
-      );
-      expect(
-        (await service.consumeRun('hosted', 'actor', 'token')).isAllowed,
-      ).toBe(false);
-      expect(cacheService.initializeCounterBudget).not.toHaveBeenCalled();
-    },
-  );
-
-  it('holds provider usage inside an open reservation once', async () => {
-    env.APIFY_MAX_BILLING_PERIOD_USD = '4';
-    service = build();
-    const first = await service.consumeRun('hosted', 'actor', 'token');
-    const usageKey = first.reservation?.usageKey ?? '';
-    const reserved = first.reservation?.reservedMicroUsd ?? 0;
-    vi.advanceTimersByTime(6 * 60 * 1000);
-    httpService.get.mockReturnValue(
-      of({
-        data: {
-          data: {
-            totalUsageCreditsUsdAfterVolumeDiscount: 0.05,
-            usageCycle: {
-              endAt: '2026-09-26T23:59:59.999Z',
-              startAt: '2026-08-27T00:00:00.000Z',
-            },
-          },
-        },
-      }),
-    );
-
-    const second = await service.consumeRun('hosted', 'actor', 'token');
-
-    expect(counters[usageKey]).toBe(
-      reserved + (second.reservation?.reservedMicroUsd ?? 0) + 50_000,
-    );
-    vi.advanceTimersByTime(6 * 60 * 1000);
-    const beforeReplay = counters[usageKey];
-    const third = await service.consumeRun('hosted', 'actor', 'token');
-    expect(counters[usageKey]).toBe(
-      beforeReplay + (third.reservation?.reservedMicroUsd ?? 0),
-    );
-  });
-
-  it('fails closed when hosted cost books are unverified', async () => {
-    env.APIFY_MAX_BILLING_PERIOD_USD = '4';
-    service = build();
-    const first = await service.consumeRun('hosted', 'actor', 'token');
-    counters[`${first.reservation?.usageKey}:books-unhealthy`] = 1;
-    vi.advanceTimersByTime(6 * 60 * 1000);
-
-    const decision = await service.consumeRun('hosted', 'actor', 'token');
-
-    expect(decision.isAllowed).toBe(false);
-    expect(decision.reason).toContain('cost books');
-  });
-
-  it('preserves BYOK behavior with invalid hosted monetary configuration', async () => {
-    env.APIFY_MAX_BILLING_PERIOD_USD = 'bad';
-    expect(
-      (await build().consumeRun('byok:org', 'actor', 'token')).isAllowed,
-    ).toBe(true);
-    expect(httpService.get).not.toHaveBeenCalled();
-  });
-  describe('truthful settlement acknowledgement', () => {
-    const receipt = {
-      reservationKey: 'settlement-receipt',
-      reservedMicroUsd: 250_000,
-      usageKey: 'settlement-usage',
-    };
-    it('requires both counter and bookkeeping acknowledgements, including retries', async () => {
-      counters[receipt.usageKey] = 250_000;
-      expect(await service.reconcileRunWithResult(receipt, 0.012)).toBe(
-        'settled',
-      );
-      expect(await service.reconcileRunWithResult(receipt, 0.012)).toBe(
-        'settled',
-      );
-      expect(counters[receipt.usageKey]).toBe(12_000);
-      expect(cacheService.noteSettledResearchReservation).toHaveBeenCalledTimes(
-        2,
-      );
-    });
-    it.each(['settled', 'duplicate'])(
-      'accepts a duplicate bookkeeping receipt after %s counter result',
-      async (result) => {
-        cacheService.reconcileCounterReservation.mockResolvedValue(result);
-        cacheService.noteSettledResearchReservation.mockResolvedValue(
-          'duplicate',
-        );
-        expect(await service.reconcileRunWithResult(receipt, 0)).toBe(
-          'settled',
-        );
-      },
-    );
-    it('reports not_required only for an absent reservation', async () => {
-      expect(await service.reconcileRunWithResult(undefined, undefined)).toBe(
-        'not_required',
-      );
-      expect(cacheService.reconcileCounterReservation).not.toHaveBeenCalled();
-      expect(
-        cacheService.noteSettledResearchReservation,
-      ).not.toHaveBeenCalled();
-    });
-    it.each([
-      undefined,
-      Number.NaN,
-      Number.POSITIVE_INFINITY,
-      -1,
-      Number.MAX_SAFE_INTEGER,
-    ])('retains funding for invalid/missing actual usage %s', async (usage) => {
-      expect(await service.reconcileRunWithResult(receipt, usage)).toBe(
-        'pending',
-      );
-      expect(cacheService.reconcileCounterReservation).not.toHaveBeenCalled();
-      expect(
-        cacheService.noteSettledResearchReservation,
-      ).not.toHaveBeenCalled();
-    });
-    it.each([
-      { ...receipt, reservationKey: '' },
-      { ...receipt, usageKey: '' },
-      { ...receipt, reservationKey: receipt.usageKey },
-      { ...receipt, reservedMicroUsd: 0 },
-      { ...receipt, reservedMicroUsd: -1 },
-      { ...receipt, reservedMicroUsd: 0.5 },
-    ])(
-      'rejects incomplete/invalid persisted receipt %# before settlement',
-      async (invalid) => {
-        expect(await service.reconcileRunWithResult(invalid, 0)).toBe(
-          'pending',
-        );
-        expect(cacheService.reconcileCounterReservation).not.toHaveBeenCalled();
-      },
-    );
-    it.each(['unavailable', 'throws'])(
-      'retains funding when counter reconciliation %s',
-      async (failure) => {
-        if (failure === 'throws')
-          cacheService.reconcileCounterReservation.mockRejectedValue(
-            new Error('synthetic cache failure'),
-          );
-        else
-          cacheService.reconcileCounterReservation.mockResolvedValue(
-            'unavailable',
-          );
-        expect(await service.reconcileRunWithResult(receipt, 0.012)).toBe(
-          'pending',
-        );
-        expect(
-          cacheService.noteSettledResearchReservation,
-        ).not.toHaveBeenCalled();
-        expect(loggerService.warn).toHaveBeenCalled();
-      },
-    );
-    it.each(['unavailable', 'throws'])(
-      'keeps unhealthy books when bookkeeping %s, even after counter settlement',
-      async (failure) => {
-        cacheService.reconcileCounterReservation.mockResolvedValue('settled');
-        if (failure === 'throws')
-          cacheService.noteSettledResearchReservation.mockRejectedValue(
-            new Error('synthetic bookkeeping failure'),
-          );
-        else
-          cacheService.noteSettledResearchReservation.mockResolvedValue(
-            'unavailable',
-          );
-        expect(await service.reconcileRunWithResult(receipt, 0.012)).toBe(
-          'pending',
-        );
-        expect(cacheService.set).toHaveBeenCalledWith(
-          `${receipt.usageKey}:books-unhealthy`,
-          true,
-          { ttl: 90 * 24 * 60 * 60 },
-        );
-        expect(loggerService.warn).toHaveBeenCalled();
-      },
-    );
-    it('retains pending when the unhealthy marker cannot be written', async () => {
-      cacheService.reconcileCounterReservation.mockResolvedValue('duplicate');
-      cacheService.noteSettledResearchReservation.mockResolvedValue(
-        'unavailable',
-      );
-      cacheService.set.mockRejectedValue(
-        new Error('synthetic marker unavailable'),
-      );
-      expect(await service.reconcileRunWithResult(receipt, 0)).toBe('pending');
-      expect(loggerService.warn).toHaveBeenCalled();
-    });
-    it('keeps the compatibility API void while performing the same settlement', async () => {
-      counters[receipt.usageKey] = 250_000;
-      expect(await service.reconcileRun(receipt, 0.012)).toBeUndefined();
-      expect(counters[receipt.usageKey]).toBe(12_000);
-      expect(
-        cacheService.noteSettledResearchReservation,
-      ).toHaveBeenCalledExactlyOnceWith(
-        receipt.usageKey,
-        receipt.reservationKey,
-      );
-    });
   });
 });

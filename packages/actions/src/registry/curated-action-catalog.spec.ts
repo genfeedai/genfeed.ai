@@ -9,6 +9,16 @@ import { ALL_TOOLS, getToolByName, getToolsForSurface } from './tool-registry';
 import { CORE_TOOLSET_NAME, isToolsetName } from './toolsets';
 
 describe('curated action catalog', () => {
+  it.each(['create_brand_from_url', 'get_brand_scan_status'])(
+    'exposes %s on agent and MCP in the brand toolset',
+    (name) => {
+      expect(getToolByName(name)).toMatchObject({
+        toolset: 'brand',
+        requiredRole: 'user',
+        surfaces: { agent: true, mcp: true },
+      });
+    },
+  );
   it('records reported publications as a free agent-only action without publishing approval', () => {
     const tool = getToolByName('record_external_publication');
     expect(tool).toMatchObject({

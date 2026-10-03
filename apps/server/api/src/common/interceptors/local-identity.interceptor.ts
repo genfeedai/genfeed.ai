@@ -1,4 +1,5 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { isAdminIpAllowed } from '@api/helpers/utils/admin-ip-allowlist/admin-ip-allowlist.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { SubscriptionStatus } from '@genfeedai/contracts';
@@ -61,7 +62,7 @@ export class LocalIdentityInterceptor implements NestInterceptor {
         emailAddresses: [],
         firstName: 'Local',
         id: defaultUser.id,
-        isSuperAdmin: true,
+        isSuperAdmin: isAdminIpAllowed(request),
         lastName: 'Admin',
         organizationId: defaultOrg.id,
         stripeSubscriptionStatus: SubscriptionStatus.ACTIVE,

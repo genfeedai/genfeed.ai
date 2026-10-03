@@ -10,10 +10,9 @@ import HtmlContent from '@ui/display/html-content/HtmlContent';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
-import { Textarea } from '@ui/primitives/textarea';
 import { Eye, Heart, MessageSquare } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type MutableRefObject, useEffect, useRef } from 'react';
+import type { MutableRefObject } from 'react';
 
 export interface PostDetailCardBodyProps {
   post: IPost;
@@ -66,28 +65,6 @@ export default function PostDetailCardBody({
   const tweetLimit = 280;
   const isTweetOverLimit = tweetLength > tweetLimit;
 
-  // Unwrap a legacy post's stored HTML into plain text once, the moment its
-  // id shows up here — never on every render, which would re-run against the
-  // reader's own in-progress typing and trim away the trailing space they
-  // just pressed. Deliberately keyed on post identity only, so
-  // `descriptionValue`/`onDescriptionChange` are read but not depended on.
-  const sanitizedPostIdRef = useRef<string | null>(null);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: see comment above.
-  useEffect(() => {
-    if (!isTwitter || !isEditable || !post?.id) {
-      return;
-    }
-    if (sanitizedPostIdRef.current === post.id) {
-      return;
-    }
-    sanitizedPostIdRef.current = post.id;
-    const plainText = stripHtmlToPlainText(descriptionValue);
-    if (plainText !== descriptionValue) {
-      onDescriptionChange(plainText);
-      currentDescriptionsRef.current.set(post.id, plainText);
-    }
-  }, [post?.id, isTwitter, isEditable]);
-
   return (
     <Card className="overflow-hidden space-y-3">
       <div className="flex items-start gap-3">
@@ -136,25 +113,27 @@ export default function PostDetailCardBody({
               <h3 className="font-semibold text-lg">{post.label}</h3>
             )}
 
-            {isEditable && isTwitter ? (
+            {isEditable ? (
               <FormControl
                 label={
-                  <div className="flex w-full items-center justify-between gap-2">
-                    <span>{translate('tweetFieldLabel')}</span>
-                    <span
-                      className={`text-xs ${isTweetOverLimit ? 'text-error' : 'text-foreground/60'}`}
-                    >
-                      {tweetLength} / {tweetLimit}
-                    </span>
-                  </div>
+                  isTwitter ? (
+                    <div className="flex w-full items-center justify-between gap-2">
+                      <span>{translate('tweetFieldLabel')}</span>
+                      <span
+                        className={`text-xs ${isTweetOverLimit ? 'text-error' : 'text-foreground/60'}`}
+                      >
+                        {tweetLength} / {tweetLimit}
+                      </span>
+                    </div>
+                  ) : undefined
                 }
               >
-                <Textarea
-                  name="tweetBody"
-                  value={descriptionValue}
+                <LazyRichTextEditor
                   placeholder={placeholder}
-                  onChange={(event) => {
-                    const value = event.target.value;
+                  toolbarMode="hidden"
+                  value={descriptionValue}
+                  minHeight={{ desktop: 150, mobile: 100 }}
+                  onChange={(value) => {
                     onDescriptionChange(value);
                     if (post?.id) {
                       currentDescriptionsRef.current.set(post.id, value);
@@ -162,21 +141,6 @@ export default function PostDetailCardBody({
                   }}
                 />
               </FormControl>
-            ) : null}
-
-            {isEditable && !isTwitter ? (
-              <LazyRichTextEditor
-                placeholder={placeholder}
-                toolbarMode="hidden"
-                value={descriptionValue}
-                minHeight={{ desktop: 150, mobile: 100 }}
-                onChange={(value) => {
-                  onDescriptionChange(value);
-                  if (post?.id) {
-                    currentDescriptionsRef.current.set(post.id, value);
-                  }
-                }}
-              />
             ) : null}
 
             {/* Read-only content display for non-publisher scopes */}

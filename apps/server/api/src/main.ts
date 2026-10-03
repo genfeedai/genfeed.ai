@@ -10,7 +10,10 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { BetterAuthService } from '@api/auth/better-auth/better-auth.service';
 import { attachBetterAuthRequestLog } from '@api/auth/better-auth/better-auth-request-log.util';
-import { shouldBypassBetterAuthHandler } from '@api/auth/better-auth/better-auth-route-bypass.util';
+import {
+  isBetterAuthAdminPath,
+  shouldBypassBetterAuthHandler,
+} from '@api/auth/better-auth/better-auth-route-bypass.util';
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
 import { BULL_BOARD_QUEUE_NAMES } from '@api/config/bull-board-queue-names';
 import { DocsService } from '@api/endpoints/docs/docs.service';
@@ -24,6 +27,10 @@ import {
 import { MemoryMonitorService } from '@api/helpers/memory/monitor/memory-monitor.service';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import {
+  isAdminIpAllowed,
+  resolveAdminClientIp,
+} from '@api/helpers/utils/admin-ip-allowlist/admin-ip-allowlist.util';
+import {
   buildStableOpenApiDocument,
   createOpenApiBuilderOptions,
 } from '@api/helpers/utils/openapi/openapi-document.util';
@@ -35,6 +42,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { ExpressAdapter } from '@bull-board/express';
+import { resolveTrustProxyFromReader } from '@genfeedai/config/deployment';
 import {
   initializeLicenseVerification,
   reportLicenseVerificationWarning,
@@ -137,7 +145,15 @@ async function main() {
       DEFAULT_API_LISTEN_TIMEOUT_MS,
     );
 
-    app.set('trust proxy', 1);
+    // Cloud trusts the ALB hop; self-host trusts no forwarded header unless
+    // TRUST_PROXY names the proxy, so a direct client cannot spoof request.ip.
+    app.set(
+      'trust proxy',
+      resolveTrustProxyFromReader((key) => {
+        const value = configService.get(key);
+        return typeof value === 'string' ? value : undefined;
+      }),
+    );
     app.enableShutdownHooks();
 
     const nodeEnv = configService.get('NODE_ENV');
@@ -197,6 +213,14 @@ async function main() {
         (req: Request, res: Response, next: NextFunction) => {
           if (shouldBypassBetterAuthHandler(req.method, req.path)) {
             return next();
+          }
+
+          if (isBetterAuthAdminPath(req.path) && !isAdminIpAllowed(req)) {
+            res.status(403).json({
+              code: 'FORBIDDEN',
+              message: `Admin access is restricted to allowlisted IPs (your IP: ${resolveAdminClientIp(req) || 'unknown'})`,
+            });
+            return;
           }
 
           if (logger) {

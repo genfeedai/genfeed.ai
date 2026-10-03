@@ -1,6 +1,6 @@
 import {
   LearningDependencyService,
-  learningFence,
+  learningOrgFence,
 } from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import {
@@ -217,7 +217,7 @@ export class LearningRunService {
     input: LearningRunDispatchInput,
   ): Promise<{ operation: ContentLearningOperation; dispatchable: boolean }> {
     return this.prisma.$transaction(async (tx) => {
-      await learningFence(tx, 'shared');
+      await learningOrgFence(tx, input.organizationId, 'shared');
       const { run, operation, now } = await this.lockedDispatch(tx, input);
       if (terminalStatuses.has(operation.status))
         return { operation, dispatchable: false };
@@ -497,7 +497,7 @@ export class LearningRunService {
     const repaired = await this.reconcileDispatch(input);
     if (!repaired.dispatchable) return null;
     return this.prisma.$transaction(async (tx) => {
-      await learningFence(tx, 'shared');
+      await learningOrgFence(tx, input.organizationId, 'shared');
       const { run, operation, now } = await this.lockedDispatch(tx, input);
       const receipt = parseLearningRunDispatch(operation.resultReferences);
       if (
@@ -580,7 +580,7 @@ export class LearningRunService {
     const input = scopedRunDispatch(claim);
     if (!input) return null;
     return this.prisma.$transaction(async (tx) => {
-      await learningFence(tx, 'shared');
+      await learningOrgFence(tx, input.organizationId, 'shared');
       const { run, operation, now } = await this.lockedDispatch(tx, input);
       const receipt = parseLearningRunDispatch(operation.resultReferences);
       if (
@@ -679,7 +679,7 @@ export class LearningRunService {
         input.parentArtifactId,
       ]);
     return this.prisma.$transaction(async (tx) => {
-      await learningFence(tx, 'shared');
+      await learningOrgFence(tx, input.organizationId, 'shared');
       if (
         !(await this.actorActive(tx, input.actorId)) ||
         !(await this.dependencies.valid('dataset', dataset.id, tx, null))

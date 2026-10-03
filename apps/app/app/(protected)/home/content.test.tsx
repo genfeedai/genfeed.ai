@@ -812,6 +812,57 @@ describe('OperationalHomeContent', () => {
     expect(accounts.getByText('X')).toHaveClass('sr-only');
   });
 
+  it('hides abandoned OAuth attempts and sends reconnects to integrations', () => {
+    mocks.brandState.credentials = [
+      {
+        id: 'cred_abandoned',
+        platform: CredentialPlatform.FACEBOOK,
+        isConnected: false,
+      } as ICredential,
+      {
+        id: 'cred_lapsed',
+        platform: CredentialPlatform.TWITTER,
+        externalName: 'Lapsed Account',
+        externalId: 'profile_2',
+        isConnected: false,
+      } as ICredential,
+    ];
+    render(<OperationalHomeContent />);
+
+    const accounts = within(screen.getByTestId('operational-home-credentials'));
+    expect(accounts.getByText('Lapsed Account')).toBeInTheDocument();
+    expect(accounts.queryByText('Facebook')).not.toBeInTheDocument();
+
+    const queue = within(screen.getByTestId('operational-home-needs-you'));
+    expect(queue.getAllByTestId('operational-home-needs-you-row')).toHaveLength(
+      1,
+    );
+    expect(queue.getByRole('link', { name: 'Reconnect' })).toHaveAttribute(
+      'href',
+      '/acme/moonrise/settings/integrations',
+    );
+  });
+
+  it('opens a failed run with its error from the attention queue', () => {
+    mocks.executions = [
+      {
+        id: 'exec_1',
+        status: WorkflowExecutionStatus.FAILED,
+        createdAt: '2026-09-24T12:01:00Z',
+        error: 'Provider rejected the prompt',
+        workflow: { label: 'Daily trends digest' },
+      },
+    ] as IWorkflowExecution[];
+    render(<OperationalHomeContent />);
+
+    const queue = within(screen.getByTestId('operational-home-needs-you'));
+    expect(queue.getByText('Provider rejected the prompt')).toBeInTheDocument();
+    expect(queue.getByRole('link', { name: 'Open' })).toHaveAttribute(
+      'href',
+      '/acme/moonrise/automation/runs/exec_1',
+    );
+  });
+
   it('renders review video media with a paused video thumbnail', () => {
     mocks.reviewInboxRecentItems = [
       {

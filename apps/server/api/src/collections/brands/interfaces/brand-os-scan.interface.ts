@@ -1,6 +1,7 @@
 import type {
   IBrandKitDraft,
   IBrandOnboardingScan,
+  IScrapedBrandData,
 } from '@genfeedai/contracts/interfaces';
 
 export interface BrandOsScanInput {
@@ -33,3 +34,8 @@ export type BrandOsScanFailureCode =
   | 'brand_scan.invalid_content'
   | 'brand_scan.content_too_large'
   | 'brand_scan.revision_conflict';
+
+export interface BrandOsScanCollection {
+  scan: IBrandOnboardingScan;
+  scrapedData: IScrapedBrandData | null;
+}

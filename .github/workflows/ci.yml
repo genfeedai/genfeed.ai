@@ -358,6 +358,12 @@ jobs:
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+      - name: Guard destructive migration release compatibility
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node --test --test-concurrency=1 scripts/ci/migration-safety.test.mjs scripts/deploy/hosted-saas/verify-serving-schema.test.mjs
+          node scripts/ci/migration-safety.mjs --base "${CI_BASE_SHA:-HEAD^1}"
       - name: Check pinned product skill catalog
         run: bun run check:skills-catalog
       - name: Check formatting

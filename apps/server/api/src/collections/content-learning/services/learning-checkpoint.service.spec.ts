@@ -639,7 +639,7 @@ describe('fixed physical provider observation fulfillment', () => {
       ),
     });
     expect(result).toBe(original);
-    expect(f.prisma.$queryRaw).toHaveBeenCalledTimes(3);
+    expect(f.prisma.$queryRaw).toHaveBeenCalledTimes(4);
     expect(f.prisma.contentLearningCheckpoint.create).not.toHaveBeenCalled();
   });
   it.each([
@@ -668,7 +668,10 @@ describe('fixed physical provider observation fulfillment', () => {
       if (mutation === 'credential_deleted')
         f.prisma.credential.findFirst.mockResolvedValue(null);
       if (mutation === 'lock_missing')
-        f.prisma.$queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+        f.prisma.$queryRaw
+          .mockResolvedValueOnce([])
+          .mockResolvedValueOnce([])
+          .mockResolvedValueOnce([]);
       expect(
         await f.service.capture({
           publicationSource: capturePublication().source,
@@ -1127,27 +1130,32 @@ describe('capture account-before-publication locking', () => {
       windowId: '48h-v1',
     });
     const calls = f.prisma.$queryRaw.mock.calls;
-    expect(calls).toHaveLength(3);
+    expect(calls).toHaveLength(4);
     expect(calls[0][0].join('')).toContain('pg_advisory_xact_lock_shared');
-    expect(calls[1][0].join('')).toContain('FROM content_learning_accounts');
-    expect(calls[1][0].join('')).toContain('ORDER BY id FOR UPDATE');
-    expect(calls[1].slice(1)).toEqual([
+    expect(calls[1][0].join('?')).toBe(
+      'SELECT pg_advisory_xact_lock_shared(?::int, hashtext(?))::text',
+    );
+    expect(calls[1].slice(1)).toEqual([5729, 'org']);
+    expect(calls[2][0].join('')).toContain('FROM content_learning_accounts');
+    expect(calls[2][0].join('')).toContain('ORDER BY id FOR UPDATE');
+    expect(calls[2].slice(1)).toEqual([
       'account',
       'org',
       'brand',
       'credential',
     ]);
-    expect(calls[2][0].join('')).toContain('FROM posts');
-    expect(calls[2].slice(1)).toEqual(['post', 'org']);
+    expect(calls[3][0].join('')).toContain('FROM posts');
+    expect(calls[3].slice(1)).toEqual(['post', 'org']);
     const orders = f.prisma.$queryRaw.mock.invocationCallOrder;
     expect(orders[0]).toBeLessThan(orders[1]);
-    expect(orders[1]).toBeLessThan(
+    expect(orders[1]).toBeLessThan(orders[2]);
+    expect(orders[2]).toBeLessThan(
       f.prisma.contentLearningAccount.findFirst.mock.invocationCallOrder[0],
     );
     expect(
       f.prisma.contentLearningAccount.findFirst.mock.invocationCallOrder[0],
-    ).toBeLessThan(orders[2]);
-    expect(orders[2]).toBeLessThan(
+    ).toBeLessThan(orders[3]);
+    expect(orders[3]).toBeLessThan(
       f.prisma.post.findFirst.mock.invocationCallOrder[1],
     );
     expect(f.prisma.post.findFirst.mock.invocationCallOrder[1]).toBeLessThan(
@@ -1198,7 +1206,10 @@ describe('capture account-before-publication locking', () => {
     async (kind) => {
       const f = fixture([]);
       if (kind === 'account-lock')
-        f.prisma.$queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+        f.prisma.$queryRaw
+          .mockResolvedValueOnce([])
+          .mockResolvedValueOnce([])
+          .mockResolvedValueOnce([]);
       if (kind === 'current-account')
         f.prisma.contentLearningAccount.findFirst.mockResolvedValue(null);
       if (kind === 'disabled')
@@ -1209,11 +1220,12 @@ describe('capture account-before-publication locking', () => {
       if (kind === 'post-lock')
         f.prisma.$queryRaw
           .mockResolvedValueOnce([])
+          .mockResolvedValueOnce([])
           .mockResolvedValueOnce([{ id: 'account' }])
           .mockResolvedValueOnce([]);
       expect(await f.service.capture(captureInput())).toBeNull();
       expect(f.prisma.$queryRaw).toHaveBeenCalledTimes(
-        kind === 'post-lock' ? 3 : 2,
+        kind === 'post-lock' ? 4 : 3,
       );
       expect(f.prisma.contentLearningCheckpoint.create).not.toHaveBeenCalled();
       expect(f.prisma.contentLearningAccount.updateMany).not.toHaveBeenCalled();
@@ -1285,7 +1297,7 @@ describe('capture account-before-publication locking', () => {
       captureInput().learningMetrics,
     ]);
     expect(await f.service.capture(captureInput())).toBe(row);
-    expect(f.prisma.$queryRaw).toHaveBeenCalledTimes(3);
+    expect(f.prisma.$queryRaw).toHaveBeenCalledTimes(4);
     expect(f.prisma.contentLearningCheckpoint.create).not.toHaveBeenCalled();
     expect(f.prisma.contentLearningAccount.updateMany).not.toHaveBeenCalled();
     expect(f.dependencies.invalidate).not.toHaveBeenCalled();

@@ -28,6 +28,7 @@ import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workf
 import {
   getActivityDescription,
   getActivityDestinationPath,
+  getActivityDetailText,
   getActivityLifecycleText,
 } from '@pages/activities/activities-list.utils';
 import ActivityThumbnailCell from '@pages/activities/components/ActivityThumbnailCell';
@@ -53,7 +54,10 @@ import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { ListRow } from '@ui/lists/list-row/ListRow';
-import { credentialToSocialConnection } from '@ui/modals/brands/brand/ModalBrand.types';
+import {
+  credentialToSocialConnection,
+  isVisibleCredentialRow,
+} from '@ui/modals/brands/brand/ModalBrand.types';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -234,11 +238,16 @@ function NeedsYouSurface({
   const reviewHref = brandSlug
     ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISHING.REVIEW)
     : brandSetupHref;
-  const publishingHref = brandSlug
-    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISHING.OVERVIEW)
-    : brandSetupHref;
+  const runHref = (executionId: string) =>
+    brandSlug
+      ? createBrandAppRoute(
+          orgSlug,
+          brandSlug,
+          `${APP_ROUTES.AUTOMATION.RUNS}/${encodeURIComponent(executionId)}`,
+        )
+      : brandSetupHref;
   const credentialsHref = brandSlug
-    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.SETTINGS.PUBLISHING)
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.SETTINGS.INTEGRATIONS)
     : brandSetupHref;
   const needsYouItems = buildNeedsYouItems({
     credentials,
@@ -394,7 +403,10 @@ function NeedsYouSurface({
                 <ListRow
                   data-testid="operational-home-needs-you-row"
                   density="compact"
-                  description={translate('home.approvals.workflowFailed')}
+                  description={
+                    execution.error?.trim() ||
+                    translate('home.approvals.workflowFailed')
+                  }
                   key={needsYouItem.key}
                   meta={
                     <ClientFormattedDate
@@ -413,7 +425,7 @@ function NeedsYouSurface({
                       size={ButtonSize.SM}
                       variant={ButtonVariant.GHOST}
                     >
-                      <Link href={publishingHref}>
+                      <Link href={runHref(execution.id)}>
                         {translate('home.approvals.openItem')}
                       </Link>
                     </Button>
@@ -822,7 +834,12 @@ function ActivitySurface({
                 ? createBrandAppRoute(orgSlug, brandSlug, assetPath)
                 : createOrganizationAppRoute(orgSlug, assetPath)
               : undefined;
-            const lifecycle = getActivityLifecycleText(activity);
+            const detail = [
+              getActivityLifecycleText(activity),
+              getActivityDetailText(activity),
+            ]
+              .filter(Boolean)
+              .join(' · ');
             return (
               <ListRow
                 data-testid="operational-home-activity-row"
@@ -838,7 +855,7 @@ function ActivitySurface({
                     </Link>
                   ) : undefined
                 }
-                description={lifecycle}
+                description={detail || undefined}
                 meta={
                   <ClientFormattedDate
                     fallback="Time unavailable"
@@ -901,7 +918,15 @@ export default function OperationalHomeSections({
   const failedExecutions = executions.filter(
     (execution) => execution.status === WorkflowExecutionStatus.FAILED,
   );
-  const attentionCredentials = credentials.filter(needsAttentionCredential);
+  // Abandoned OAuth attempts (no identity, never connected) are not accounts;
+  // the integrations page hides them and so must every home surface.
+  const accountCredentials = useMemo(
+    () => credentials.filter(isVisibleCredentialRow),
+    [credentials],
+  );
+  const attentionCredentials = accountCredentials.filter(
+    needsAttentionCredential,
+  );
   const refreshOperationalState = useCallback(async () => {
     await Promise.all([refresh(), refreshExecutions()]);
   }, [refresh, refreshExecutions]);
@@ -971,7 +996,7 @@ export default function OperationalHomeSections({
 
       <NeedsYouSurface
         brandSlug={brandSlug}
-        credentials={credentials}
+        credentials={accountCredentials}
         failedExecutions={failedExecutions}
         isError={isError}
         isLoading={isLoading || areExecutionsLoading}
@@ -993,7 +1018,7 @@ export default function OperationalHomeSections({
         />
         <CredentialHealthSurface
           brandSlug={brandSlug}
-          credentials={credentials}
+          credentials={accountCredentials}
           isError={Boolean(credentialsError)}
           isLoading={credentialsLoading}
           onRetry={refreshBrands}

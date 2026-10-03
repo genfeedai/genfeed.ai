@@ -130,23 +130,33 @@ function fixture() {
     root as unknown as PrismaService,
     dependencies as unknown as LearningDependencyService,
   );
-  function assertEntry(mode: 'shared' | 'exclusive' = 'shared') {
+  function assertEntry(
+    mode: 'shared' | 'exclusive' = 'shared',
+    hasOrganizationFence = mode === 'shared',
+  ) {
     expect(root.$transaction).toHaveBeenCalledTimes(1);
-    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+    const fenceCalls = hasOrganizationFence ? 2 : 1;
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(fenceCalls);
     expect(tx.$queryRaw.mock.calls[0][0].join('')).toContain(
       mode === 'shared'
         ? 'pg_advisory_xact_lock_shared(5728, 1)'
         : 'pg_advisory_xact_lock(5728, 1)',
     );
+    if (hasOrganizationFence) {
+      expect(tx.$queryRaw.mock.calls[1][0].join('?')).toBe(
+        'SELECT pg_advisory_xact_lock_shared(?::int, hashtext(?))::text',
+      );
+      expect(tx.$queryRaw.mock.calls[1].slice(1)).toEqual([5729, 'org']);
+    }
     for (const mock of [
       tx.contentLearningOpportunity.findFirst,
       tx.contentLearningExperimentEvent.findFirst,
       tx.contentLearningExperimentEvent.create,
     ])
       if (mock.mock.invocationCallOrder.length)
-        expect(tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
-          mock.mock.invocationCallOrder[0],
-        );
+        expect(
+          tx.$queryRaw.mock.invocationCallOrder[fenceCalls - 1],
+        ).toBeLessThan(mock.mock.invocationCallOrder[0]);
     expect(root.contentLearningOpportunity.findFirst).not.toHaveBeenCalled();
     expect(
       root.contentLearningExperimentEvent.findFirst,
@@ -333,7 +343,7 @@ describe('same-client fenced experiment evidence append', () => {
         f.dependencies.link,
       ])
         expect(mock).not.toHaveBeenCalled();
-      f.assertEntry();
+      f.assertEntry('shared', kind === 'opportunity');
     },
   );
   it.each(['llm-ledger', 'media-ledger', 'config', 'invalid-kind'])(

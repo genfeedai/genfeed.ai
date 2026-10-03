@@ -17,6 +17,7 @@ export interface IEnvConfig {
   API_METRICS_LOGGING?: 'true' | 'false';
   API_SENTRY_PERFORMANCE_METRICS?: 'true' | 'false';
   GENFEED_CLOUD?: string;
+  TRUST_PROXY?: string;
 
   // === Genfeed Internal URLs ===
   GENFEEDAI_API_PUBLIC_URL?: string;
@@ -332,7 +333,6 @@ export interface IEnvConfig {
    */
   APIFY_MAX_RUNS_PER_DAY?: string;
   APIFY_MAX_RUNS_PER_HOUR?: string;
-  APIFY_MAX_BILLING_PERIOD_USD?: string;
   APIFY_MAX_TOTAL_CHARGE_USD_PER_RUN?: string;
   DISCORD_PUBLIC_KEY?: string;
   THREADS_REDIRECT_URI?: string;
