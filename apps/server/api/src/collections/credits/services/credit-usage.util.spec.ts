@@ -2,6 +2,7 @@ import {
   CREDIT_USAGE_AMOUNT_SQL,
   CREDIT_USAGE_BRAND_SQL,
   CREDIT_USAGE_FILTER_SQL,
+  creditUsageSignBuckets,
   creditUsageWhere,
   netCreditUsage,
   signedCreditUsage,
@@ -24,6 +25,13 @@ describe('credit usage semantics', () => {
         { referenceType: { not: REFERRAL_REWARD_REVERSAL_REFERENCE_TYPE } },
       ],
     });
+  });
+
+  it('splits usage queries into single-sign buckets', () => {
+    expect(creditUsageSignBuckets()).toEqual([
+      { amount: { gte: 0 } },
+      { amount: { lt: 0 } },
+    ]);
   });
 
   it('counts refunds negative regardless of the stored sign', () => {

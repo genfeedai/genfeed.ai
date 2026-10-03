@@ -24,6 +24,18 @@ export function creditUsageWhere() {
   } satisfies Prisma.CreditTransactionWhereInput;
 }
 
+/**
+ * Prisma cannot sum `ABS("amount")`. Query usage once per bucket so each
+ * grouped sum has a single sign, then `netCreditUsage` over every bucket's
+ * rows equals the per-row SQL.
+ */
+export function creditUsageSignBuckets() {
+  return [
+    { amount: { gte: 0 } },
+    { amount: { lt: 0 } },
+  ] satisfies Prisma.CreditTransactionWhereInput[];
+}
+
 /** One usage row's contribution: refunds count negative. */
 export function signedCreditUsage(entry: {
   amount?: number | null;
@@ -35,7 +47,7 @@ export function signedCreditUsage(entry: {
     : magnitude;
 }
 
-/** Net usage from usage rows grouped by `category` with `_sum.amount`. */
+/** Net usage from usage rows grouped by `category` within `creditUsageSignBuckets`. */
 export function netCreditUsage(
   rows: ReadonlyArray<{
     _sum: { amount: number | null };

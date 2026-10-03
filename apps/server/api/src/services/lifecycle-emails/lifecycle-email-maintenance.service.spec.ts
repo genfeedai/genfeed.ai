@@ -39,9 +39,13 @@ function fixture(count: number) {
     article: { findMany: vi.fn().mockResolvedValue([]) },
     post: { findMany: vi.fn().mockResolvedValue([]) },
     creditTransaction: {
-      groupBy: vi
-        .fn()
-        .mockResolvedValue([{ _sum: { amount: 450 }, category: 'deduct' }]),
+      groupBy: vi.fn(({ where }: { where: { amount: { lt?: number } } }) =>
+        Promise.resolve(
+          where.amount.lt === 0
+            ? []
+            : [{ _sum: { amount: 450 }, category: 'deduct' }],
+        ),
+      ),
     },
   };
   const service = new LifecycleEmailMaintenanceService(
@@ -121,12 +125,19 @@ describe('system recap policy', () => {
       'analytics are available',
     );
   });
-  it('reports credit usage net of refunds and without referral reward reversals', async () => {
+  it('reports credit usage net of refunds, by row magnitude, without referral reward reversals', async () => {
     const { service, prisma, queueEmail } = fixture(5);
-    prisma.creditTransaction.groupBy.mockResolvedValue([
-      { _sum: { amount: 450 }, category: 'deduct' },
-      { _sum: { amount: 50 }, category: 'refund' },
-    ]);
+    prisma.creditTransaction.groupBy.mockImplementation(({ where }) =>
+      Promise.resolve(
+        where.amount.lt === 0
+          ? // Legacy negative-signed deduction counts its magnitude.
+            [{ _sum: { amount: -100 }, category: 'deduct' }]
+          : [
+              { _sum: { amount: 450 }, category: 'deduct' },
+              { _sum: { amount: 50 }, category: 'refund' },
+            ],
+      ),
+    );
     await service.recaps(request);
     expect(prisma.creditTransaction.groupBy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -140,7 +151,7 @@ describe('system recap policy', () => {
       }),
     );
     expect(queueEmail.mock.calls[0][0].html).toContain(
-      '400 credits used during this period.',
+      '500 credits used during this period.',
     );
   });
   it('deduplicates repeated generated IDs before the five-piece threshold', async () => {

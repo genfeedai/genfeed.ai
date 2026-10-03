@@ -1,4 +1,5 @@
 import {
+  creditUsageSignBuckets,
   creditUsageWhere,
   netCreditUsage,
 } from '@api/collections/credits/services/credit-usage.util';
@@ -304,17 +305,22 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
       ingredients.map(({ id }) => id),
       articles.map(({ id }) => id),
     );
-    const creditUsageRows = await this.prisma.creditTransaction.groupBy({
-      by: ['category'],
-      where: scopedWhere(request.organizationId, {
-        ...creditUsageWhere(),
-        actorUserId: userId,
-        createdAt: { gte: start, lt: end },
-      }),
-      _sum: { amount: true },
-    });
+    const creditUsageBuckets = await Promise.all(
+      creditUsageSignBuckets().map((sign) =>
+        this.prisma.creditTransaction.groupBy({
+          by: ['category'],
+          where: scopedWhere(request.organizationId, {
+            ...creditUsageWhere(),
+            ...sign,
+            actorUserId: userId,
+            createdAt: { gte: start, lt: end },
+          }),
+          _sum: { amount: true },
+        }),
+      ),
+    );
     // A period can refund more than it spent; that reads as no usage.
-    const creditsUsed = Math.max(0, netCreditUsage(creditUsageRows));
+    const creditsUsed = Math.max(0, netCreditUsage(creditUsageBuckets.flat()));
     const metrics = published.length
       ? await this.prisma.contentPerformance.findMany({
           where: {

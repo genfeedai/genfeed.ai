@@ -3,6 +3,7 @@ import {
   CREDIT_USAGE_AMOUNT_SQL,
   CREDIT_USAGE_BRAND_SQL,
   CREDIT_USAGE_FILTER_SQL,
+  creditUsageSignBuckets,
   creditUsageWhere,
   netCreditUsage,
 } from '@api/collections/credits/services/credit-usage.util';
@@ -80,6 +81,8 @@ describe.skipIf(!connectionString)(
           row(CreditTransactionCategory.DEDUCT, 4, {
             metadata: { brandId: 'brand-a' },
           }),
+          // Legacy negative-signed deduction: usage counts its magnitude.
+          row(CreditTransactionCategory.DEDUCT, -4, { brandId: 'brand-a' }),
           row(CreditTransactionCategory.REFUND, 3, { brandId: 'brand-a' }),
           row(CreditTransactionCategory.DEDUCT, 5, {
             metadata: { brandId: '' },
@@ -115,17 +118,26 @@ describe.skipIf(!connectionString)(
         `,
       );
 
-      expect(result.usage).toBe(16);
+      expect(result.usage).toBe(20);
     });
 
     it('counts the same rows through the Prisma where', async () => {
-      const rows = await database().creditTransaction.groupBy({
-        by: ['category'],
-        _sum: { amount: true },
-        where: { ...creditUsageWhere(), isDeleted: false, organizationId },
-      });
+      const buckets = await Promise.all(
+        creditUsageSignBuckets().map((sign) =>
+          database().creditTransaction.groupBy({
+            by: ['category'],
+            _sum: { amount: true },
+            where: {
+              ...creditUsageWhere(),
+              ...sign,
+              isDeleted: false,
+              organizationId,
+            },
+          }),
+        ),
+      );
 
-      expect(netCreditUsage(rows)).toBe(16);
+      expect(netCreditUsage(buckets.flat())).toBe(20);
     });
 
     it('attributes brand from the column, then non-empty metadata', async () => {
@@ -146,7 +158,7 @@ describe.skipIf(!connectionString)(
       );
 
       expect(rows).toEqual([
-        { brandId: 'brand-a', usage: 11 },
+        { brandId: 'brand-a', usage: 15 },
         { brandId: null, usage: 5 },
       ]);
     });

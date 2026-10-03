@@ -1,4 +1,5 @@
 import {
+  creditUsageSignBuckets,
   creditUsageWhere,
   netCreditUsage,
 } from '@api/collections/credits/services/credit-usage.util';
@@ -910,13 +911,20 @@ export class BillingAccountsService {
   }
 
   private async usageByOrganization(scope: BillingAccountScope) {
-    const rows = await this.prisma.creditTransaction.groupBy({
-      by: ['organizationId', 'category'],
-      _sum: { amount: true },
-      where: billingAccountScopedWhere(scope, creditUsageWhere()),
-    });
+    const buckets = await Promise.all(
+      creditUsageSignBuckets().map((sign) =>
+        this.prisma.creditTransaction.groupBy({
+          by: ['organizationId', 'category'],
+          _sum: { amount: true },
+          where: billingAccountScopedWhere(scope, {
+            ...creditUsageWhere(),
+            ...sign,
+          }),
+        }),
+      ),
+    );
     const usage = new Map<string, number>();
-    for (const row of rows) {
+    for (const row of buckets.flat()) {
       usage.set(
         row.organizationId,
         (usage.get(row.organizationId) ?? 0) + netCreditUsage([row]),
@@ -935,15 +943,20 @@ export class BillingAccountsService {
     scope: BillingAccountScope,
     organizationId: string,
   ): Promise<number> {
-    const rows = await this.prisma.creditTransaction.groupBy({
-      by: ['category'],
-      _sum: { amount: true },
-      where: billingAccountScopedWhere(scope, {
-        ...creditUsageWhere(),
-        organizationId,
-      }),
-    });
-    return netCreditUsage(rows);
+    const buckets = await Promise.all(
+      creditUsageSignBuckets().map((sign) =>
+        this.prisma.creditTransaction.groupBy({
+          by: ['category'],
+          _sum: { amount: true },
+          where: billingAccountScopedWhere(scope, {
+            ...creditUsageWhere(),
+            ...sign,
+            organizationId,
+          }),
+        }),
+      ),
+    );
+    return netCreditUsage(buckets.flat());
   }
 
   private organizationLimitForTier(planTier: string | null) {
