@@ -12,6 +12,7 @@ import { YoutubeMetadataService } from '@api/services/integrations/youtube/servi
 import { YoutubeUploadService } from '@api/services/integrations/youtube/services/modules/youtube-upload.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { YoutubeAuthorizedSignalsService } from '@api/services/integrations/youtube/services/youtube-authorized-signals.service';
+import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { TagResolutionModule } from '@api/shared/services/tag-resolution/tag-resolution.module';
 import { HttpModule } from '@nestjs/axios';
@@ -24,6 +25,7 @@ const YOUTUBE_UPLOADS_PROVIDER = {
 
 const BaseModule = createServiceModule(YoutubeService, {
   additionalImports: [
+    MediaUrlsModule,
     FileQueueModule,
     TagResolutionModule,
     BrandsCoreModule,

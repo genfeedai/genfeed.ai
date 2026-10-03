@@ -50,11 +50,13 @@ import {
   videoStitchJobId,
 } from '@genfeedai/contracts/interfaces';
 import { FILE_JOB_TYPES } from '@genfeedai/contracts/queue';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { assertSafeObjectKey } from '@libs/security';
+import { assertStoredObjectKey } from '@libs/security/stored-object-key';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { z } from 'zod';
 
 const STITCH_JOB_TIMEOUT_MS = 300_000;
@@ -153,6 +155,7 @@ export class VideoStitchService {
     private readonly sharedService: SharedService,
     private readonly websocketService: NotificationsPublisherService,
     private readonly whisperService: WhisperService,
+    @Optional() private readonly configService?: ConfigService,
   ) {}
 
   /**
@@ -403,11 +406,12 @@ export class VideoStitchService {
     }
 
     const { settings } = request;
+    let musicStorageKey: string | undefined;
     if (settings.music) {
       // Same scope as the Music API: the organization's own tracks or a
       // global default track.
       const music = await this.prisma.ingredient.findFirst({
-        select: { id: true },
+        select: { id: true, s3Key: true },
         where: {
           category: CategoryPrismaUtil.toIngredientCategory(
             IngredientCategory.MUSIC,
@@ -423,11 +427,26 @@ export class VideoStitchService {
       if (!music) {
         throw stitchRequestError('music', 'Music asset is not available');
       }
+      if (this.configService?.isAuthorizedMediaDeliveryEnabled) {
+        if (
+          !music.s3Key ||
+          !/^ingredients\/(musics|audio|audios)\/.+/.test(music.s3Key)
+        ) {
+          throw stitchRequestError(
+            'music',
+            'Music asset has no valid stored media key',
+          );
+        }
+        musicStorageKey = assertStoredObjectKey(music.s3Key, (message) =>
+          stitchRequestError('music', message),
+        );
+      }
     }
 
     const byId = new Map(clips.map((clip) => [clip.id, clip]));
     return {
       clipIds: request.clipIds,
+      ...(musicStorageKey ? { musicStorageKey } : {}),
       ...(request.output ? { output: request.output } : {}),
       settings,
       sourceStorageKeys: request.clipIds.map((id) => {
@@ -435,7 +454,10 @@ export class VideoStitchService {
         if (!clip) {
           throw stitchRequestError('clipIds', 'Clip is not available');
         }
-        return resolveStitchClipStorageKey(clip);
+        return resolveStitchClipStorageKey(
+          clip,
+          this.configService?.isAuthorizedMediaDeliveryEnabled,
+        );
       }),
     };
   }
@@ -721,6 +743,8 @@ export class VideoStitchService {
     try {
       const captionContent = await this.whisperService.generateCaptions(
         context.outputId,
+        undefined,
+        context.organizationId,
       );
       // Same caption row the merge flow has always written; ownership and
       // soft-delete columns pass through the collection's create.

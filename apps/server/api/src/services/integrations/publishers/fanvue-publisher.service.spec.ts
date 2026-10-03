@@ -72,6 +72,7 @@ describe('FanvuePublisherService', () => {
           useValue: {
             get: vi.fn(),
             ingredientsEndpoint: 'https://cdn.genfeed.ai',
+            isAuthorizedMediaDeliveryEnabled: true,
           },
         },
         { provide: FanvueService, useValue: fanvueService },
@@ -134,7 +135,13 @@ describe('FanvuePublisherService', () => {
         post: {
           category: PostCategory.IMAGE,
           description: '<p>Image post</p>',
-          ingredients: [ingredientId],
+          ingredients: [
+            {
+              id: ingredientId,
+              mediaUrl:
+                'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+            },
+          ],
           label: 'Image Post',
           status: PostStatus.DRAFT,
         } as never,
@@ -162,7 +169,11 @@ describe('FanvuePublisherService', () => {
         post: {
           category: PostCategory.IMAGE,
           description: '<p>Multi image</p>',
-          ingredients: ingredientIds,
+          ingredients: ingredientIds.map((id) => ({
+            id,
+            mediaUrl:
+              'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+          })),
           label: 'Multi Image',
           status: PostStatus.DRAFT,
         } as never,

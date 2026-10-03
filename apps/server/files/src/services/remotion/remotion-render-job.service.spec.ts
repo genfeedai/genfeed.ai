@@ -30,6 +30,12 @@ describe('RemotionRenderJobService', () => {
       .fn()
       .mockReturnValue('https://cdn.example.com/videos/output-123.mp4'),
     uploadFile: vi.fn().mockResolvedValue(undefined),
+    getPresignedDownloadUrlForStoredKey: vi
+      .fn()
+      .mockImplementation(
+        async (key: string) =>
+          `https://s3.example/${encodeURIComponent(key)}?Signature=fresh`,
+      ),
   };
   const webSocketService = {
     emitError: vi.fn(),
@@ -81,9 +87,9 @@ describe('RemotionRenderJobService', () => {
       updateProgress: vi.fn().mockResolvedValue(undefined),
     }) as unknown as Job<VideoJobData>;
 
-  const makeService = () =>
+  const makeService = (isAuthorizedMediaDeliveryEnabled = false) =>
     new RemotionRenderJobService(
-      configService as never,
+      { ...configService, isAuthorizedMediaDeliveryEnabled } as never,
       ffmpegService as never,
       remotionRendererService as never,
       s3Service as never,
@@ -98,6 +104,31 @@ describe('RemotionRenderJobService', () => {
       async (_params, _output, onProgress) => {
         onProgress(0.5);
       },
+    );
+  });
+
+  it('allocates an unrelated object token and returns the actual stored render key when activated', async () => {
+    s3Service.uploadFile.mockResolvedValueOnce({
+      Key: 'ingredients/videos/actual-render-object',
+    });
+    const job = makeJob();
+    job.data.params.editorSourceStorageKeys = Object.fromEntries(
+      (job.data.params.assetManifest ?? []).map((asset) => [
+        asset.clipId,
+        'ingredients/videos/canonical-source.mp4',
+      ]),
+    );
+    const result = await makeService(true).process(job);
+    expect(s3Service.generateS3Key).toHaveBeenCalledWith(
+      'videos',
+      expect.stringMatching(/^[a-f0-9-]{36}$/),
+    );
+    expect(result.s3Key).toBe('ingredients/videos/actual-render-object');
+    expect(webSocketService.emitSuccess).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ s3Key: result.s3Key }),
+      expect.any(String),
+      expect.any(String),
     );
   });
 
@@ -208,5 +239,38 @@ describe('RemotionRenderJobService', () => {
         terminalReason: 'asset_unavailable',
       }),
     );
+  });
+
+  it('hydrates source keys per attempt without mutating persisted queue snapshots', async () => {
+    const job = makeJob();
+    const key = 'ingredients/videos/raw%2Fsource?#.mp4';
+    job.data.params.editorSourceStorageKeys = Object.fromEntries(
+      (job.data.params.assetManifest ?? []).map((asset) => [asset.clipId, key]),
+    );
+    const before = JSON.stringify(job.data);
+    s3Service.uploadFile.mockResolvedValueOnce({
+      Key: 'ingredients/videos/random-output.mp4',
+    });
+    await makeService(true).process(job);
+    expect(s3Service.getPresignedDownloadUrlForStoredKey).toHaveBeenCalledWith(
+      key,
+      900,
+    );
+    const hydrated = remotionRendererService.render.mock.calls[0][0];
+    expect(hydrated.assetManifest[0].ingredientUrl).toContain(
+      'Signature=fresh',
+    );
+    expect(hydrated.snapshot.tracks[0].clips[0].ingredientUrl).toBe(
+      hydrated.assetManifest[0].ingredientUrl,
+    );
+    expect(JSON.stringify(job.data)).toBe(before);
+  });
+
+  it('does not render or upload when an enabled source has no canonical key', async () => {
+    await expect(makeService(true).process(makeJob())).rejects.toThrow(
+      'canonical stored key',
+    );
+    expect(remotionRendererService.render).not.toHaveBeenCalled();
+    expect(s3Service.uploadFile).not.toHaveBeenCalled();
   });
 });

@@ -984,3 +984,49 @@ describe('Ingredient', () => {
     });
   });
 });
+
+describe('authorized ingredient previews', () => {
+  it('does not reconstruct an ID-derived original while preview preparation is pending', () => {
+    const ingredient = new Ingredient({
+      id: testId('ingredient', 3),
+      category: IngredientCategory.IMAGE,
+      status: IngredientStatus.GENERATED,
+      cdnUrl: 'https://cdn.example/original.png',
+      s3Key: 'ingredients/images/original.png',
+      mediaDelivery: {
+        id: testId('ingredient', 3),
+        purpose: 'preview',
+        state: 'PENDING',
+        url: null,
+        expiresAt: null,
+      },
+    });
+    expect(ingredient.ingredientUrl).toBe('');
+  });
+
+  it('reads the current grant instead of caching a stale original URL', () => {
+    const id = testId('ingredient', 4);
+    const ingredient = new Ingredient({
+      id,
+      category: IngredientCategory.IMAGE,
+      status: IngredientStatus.GENERATED,
+      mediaDelivery: {
+        id,
+        purpose: 'preview',
+        state: 'READY',
+        url: 'https://cdn.example/preview.png?grant=1',
+        expiresAt: null,
+      },
+    });
+    expect(ingredient.ingredientUrl).toContain('grant=1');
+    ingredient.mediaDelivery = {
+      ...ingredient.mediaDelivery,
+      id: 'image-1',
+      state: 'READY',
+      purpose: 'preview',
+      expiresAt: null,
+      url: 'https://cdn.example/preview.png?grant=2',
+    };
+    expect(ingredient.ingredientUrl).toContain('grant=2');
+  });
+});

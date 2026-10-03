@@ -62,6 +62,7 @@ import { KlingAIModule } from '@api/services/integrations/klingai/klingai.module
 import { LeonardoAIModule } from '@api/services/integrations/leonardoai/leonardoai.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { SolanaModule } from '@api/services/integrations/solana/solana.module';
+import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { MediaVendorCostModule } from '@api/services/media-vendor-cost/media-vendor-cost.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
@@ -93,6 +94,7 @@ import { Module } from '@nestjs/common';
     ImagesCoreModule,
   ],
   imports: [
+    MediaUrlsModule,
     PlatformSettingsModule,
     CrunCoreModule,
     EvaluationReadModule,

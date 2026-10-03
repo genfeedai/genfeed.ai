@@ -2,7 +2,11 @@ import type { WorkflowEngineExecutorHelperService } from '@api/collections/workf
 import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
 import * as imageGenerationBriefRegistry from '@api/services/generation-brief/image-generation-brief-registry';
-import { ByokProvider, IngredientStatus } from '@genfeedai/contracts';
+import {
+  ByokProvider,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/contracts';
 import { QWEN_IMAGE_MODEL_KEY } from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
@@ -897,6 +901,117 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       expect(replicateService.runModel).not.toHaveBeenCalled();
     });
   });
+
+  it.each(['granted', 'denied'] as const)(
+    'delegates activated lip-sync media to the scoped issuer (%s)',
+    async (state) => {
+      const helper = {
+        requireMediaAsset: vi.fn(async (value: unknown) => ({
+          id: String(value),
+          brandId: 'brand-1',
+          category:
+            value === 'video-asset'
+              ? IngredientCategory.VIDEO
+              : IngredientCategory.AUDIO,
+          storageKey: 'untrusted-stale-suffix',
+          storageType: value === 'video-asset' ? 'videos' : 'audios',
+        })),
+        readConfigString: () => undefined,
+        createAndLinkProcessingOutput: vi.fn(
+          async (args: {
+            runProvider: (
+              id: string,
+              continuationId: string,
+            ) => Promise<unknown>;
+          }) => {
+            await args.runProvider('output-1', 'continuation-1');
+            return { ingredientId: 'output-1', metadataId: 'metadata-1' };
+          },
+        ),
+        buildVideoIngredientUrl: () => 'https://legacy.test/video/output',
+        wrapEngineExecutor,
+      } as unknown as WorkflowEngineExecutorHelperService;
+      const issuer = {
+        issueServerPublish: vi.fn(
+          async (_organizationId: string, ids: readonly string[]) => {
+            if (state === 'denied') throw new Error('Scoped media unavailable');
+            return new Map(
+              ids.map((id) => [
+                id,
+                `https://authorized.test/${id}?signature=grant`,
+              ]),
+            );
+          },
+        ),
+      };
+      const files = { getPresignedDownloadUrl: vi.fn() };
+      const replicate = { runModel: vi.fn().mockResolvedValue('prediction-1') };
+      const logger = { log: vi.fn(), warn: vi.fn() };
+      const engine = new WorkflowEngine();
+      new WorkflowMediaGenerationExecutorRegistrarService(
+        helper,
+        logger as never,
+        new WorkflowMediaProviderPlanService(
+          helper,
+          logger as never,
+          undefined,
+          files as never,
+        ),
+        undefined,
+        undefined,
+        replicate as never,
+        files as never,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { isAuthorizedMediaDeliveryEnabled: true } as never,
+        issuer as never,
+      ).register(engine);
+      const pending = getActionExecutor(engine, 'lipSync')?.(
+        {
+          config: { mode: 'video', model: 'sync/lipsync-2' },
+          id: 'lip-sync-1',
+          inputs: [],
+          label: 'Lip sync',
+          type: 'lipSync',
+        },
+        new Map([
+          ['video', 'video-asset'],
+          ['audio', 'audio-asset'],
+        ]),
+        {
+          organizationId: 'org-1',
+          runId: 'run-1',
+          userId: 'user-1',
+          workflowId: 'workflow-1',
+          workflowVersionId: 'version-1',
+        },
+      );
+      if (state === 'denied') {
+        await expect(pending).rejects.toThrow('Scoped media unavailable');
+        expect(replicate.runModel).not.toHaveBeenCalled();
+      } else {
+        await pending;
+        expect(replicate.runModel).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            video: 'https://authorized.test/video-asset?signature=grant',
+            audio: 'https://authorized.test/audio-asset?signature=grant',
+          }),
+          undefined,
+          'continuation-1',
+        );
+      }
+      expect(issuer.issueServerPublish).toHaveBeenCalledWith('org-1', [
+        'video-asset',
+      ]);
+      expect(issuer.issueServerPublish).toHaveBeenCalledWith('org-1', [
+        'audio-asset',
+      ]);
+      expect(files.getPresignedDownloadUrl).not.toHaveBeenCalled();
+    },
+  );
 
   it('rejects lip-sync when the source media and audio belong to different brands', async () => {
     const requireMediaAsset = vi.fn(async (value: unknown) => {

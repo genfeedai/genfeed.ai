@@ -37,15 +37,13 @@ export class TenantContextInterceptor implements NestInterceptor {
       .switchToHttp()
       .getRequest<TenantContextRequest>();
     const organizationId = readRequestOrganizationId(request);
-    const observable = next.handle();
-
     if (!organizationId) {
-      return observable;
+      return next.handle();
     }
 
     return new Observable<unknown>((subscriber) =>
       runWithTenantContext({ organizationId }, () => {
-        const subscription = observable.subscribe({
+        const subscription = next.handle().subscribe({
           complete: () => subscriber.complete(),
           error: (error: unknown) => subscriber.error(error),
           next: (value: unknown) => subscriber.next(value),

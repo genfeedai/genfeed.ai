@@ -32,6 +32,7 @@ describe('MastodonPublisherService', () => {
   let configService: {
     get: ReturnType<typeof vi.fn>;
     ingredientsEndpoint: string;
+    isAuthorizedMediaDeliveryEnabled: boolean;
   };
   let loggerService: {
     error: ReturnType<typeof vi.fn>;
@@ -84,6 +85,7 @@ describe('MastodonPublisherService', () => {
     configService = {
       get: vi.fn(() => 'https://webhooks.genfeed.ai'),
       ingredientsEndpoint: 'https://cdn.genfeed.ai',
+      isAuthorizedMediaDeliveryEnabled: true,
     };
     loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
 
@@ -244,7 +246,13 @@ describe('MastodonPublisherService', () => {
           id: postId,
           category: PostCategory.IMAGE,
           description: 'Post with image',
-          ingredients: [ingredientId],
+          ingredients: [
+            {
+              id: ingredientId,
+              mediaUrl:
+                'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+            },
+          ],
         } as unknown as PublishContext['post'],
       });
 

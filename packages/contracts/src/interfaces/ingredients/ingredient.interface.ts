@@ -8,6 +8,7 @@ import type {
   TransformationCategory,
 } from '../..';
 import type { GenerationHarnessReceipt } from '../content/generation-harness.interface';
+import type { MediaDeliveryGrant } from '../content/media-delivery.interface';
 import type {
   IAsset,
   IBaseEntity,
@@ -68,6 +69,7 @@ export interface IIngredient extends IBaseEntity {
   aspectRatio?: string;
   format?: IngredientFormat;
   ingredientFormat?: IngredientFormat;
+  mediaDelivery?: MediaDeliveryGrant;
   cdnUrl?: string | null;
   s3Key?: string | null;
   thumbnailUrl?: string;

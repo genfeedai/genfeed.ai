@@ -1,3 +1,5 @@
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((source, id) => ({
     message: `${source} ${id} not found`,
@@ -65,7 +67,9 @@ describe('VideosCaptionsController', () => {
 
   const mockServices = {
     captionsService: { findAll: vi.fn(), findOne: vi.fn() },
+    authorizedMediaUrls: { issueServerPublish: vi.fn() },
     configService: {
+      isAuthorizedMediaDeliveryEnabled: false,
       get: vi.fn(),
       ingredientsEndpoint: 'https://api.example.com',
       isDevelopment: false,
@@ -82,9 +86,14 @@ describe('VideosCaptionsController', () => {
   };
 
   beforeEach(async () => {
+    mockServices.configService.isAuthorizedMediaDeliveryEnabled = false;
     const module: TestingModule = await Test.createTestingModule({
       controllers: [VideosCaptionsController],
       providers: [
+        {
+          provide: AuthorizedMediaUrlService,
+          useValue: mockServices.authorizedMediaUrls,
+        },
         {
           provide: FilesClientService,
           useValue: mockServices.filesClientService,
@@ -195,6 +204,59 @@ describe('VideosCaptionsController', () => {
       async (where: RowWhere) =>
         captionRows.find((row) => matchesWhere(row, where)) ?? null,
     );
+
+  it.each(['granted', 'denied'] as const)(
+    'uses the scoped issuer for activated caption source (%s)',
+    async (state) => {
+      mockServices.configService.isAuthorizedMediaDeliveryEnabled = true;
+      mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+      mockServices.captionsService.findOne.mockResolvedValue(
+        mockVideo.captions[0],
+      );
+      mockServices.sharedService.createMediaDocuments.mockResolvedValue({
+        ingredientData: { id: ingredientId },
+        metadataData: { id: metadataId },
+      });
+      mockServices.fileQueueService.processVideo.mockResolvedValue({
+        jobId: 'job123',
+      });
+      if (state === 'denied')
+        mockServices.authorizedMediaUrls.issueServerPublish.mockRejectedValueOnce(
+          new Error('Scoped media unavailable'),
+        );
+      else
+        mockServices.authorizedMediaUrls.issueServerPublish.mockResolvedValueOnce(
+          new Map([
+            [videoId, 'https://authorized.test/random-source?signature=grant'],
+          ]),
+        );
+      const pending = controller.createVideoWithCaptions(
+        mockReq,
+        mockUser,
+        videoId,
+        { caption: captionId },
+      );
+      if (state === 'denied') {
+        await expect(pending).rejects.toThrow('Scoped media unavailable');
+        expect(
+          mockServices.fileQueueService.processVideo,
+        ).not.toHaveBeenCalled();
+      } else {
+        await pending;
+        expect(mockServices.fileQueueService.processVideo).toHaveBeenCalledWith(
+          expect.objectContaining({
+            params: expect.objectContaining({
+              inputPath:
+                'https://authorized.test/random-source?signature=grant',
+            }),
+          }),
+        );
+      }
+      expect(
+        mockServices.authorizedMediaUrls.issueServerPublish,
+      ).toHaveBeenCalledWith(mockUser.organizationId.toString(), [videoId]);
+    },
+  );
 
   it('should be defined', () => {
     expect(controller).toBeDefined();

@@ -8,9 +8,13 @@ import {
   LibraryShelf,
 } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
 import type { IngredientInspectorRailProps } from '@genfeedai/props/content/ingredient.props';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
-import { getIngredientPreviewUrl } from '@genfeedai/utils/media/ingredient-preview.util';
+import {
+  getIngredientPreviewUrl,
+  isRasterPreviewUrl,
+} from '@genfeedai/utils/media/ingredient-preview.util';
 import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
 import Badge from '@ui/display/badge/Badge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
@@ -118,9 +122,16 @@ export default function IngredientInspectorRail({
 }: IngredientInspectorRailProps) {
   const translate = useTranslations('pages.library.inspector');
   const shelf = getIngredientShelf(ingredient);
-  const previewUrl = getIngredientPreviewUrl(ingredient);
+  const grant = useAuthorizedMediaPreview(ingredient);
+  const previewUrl = grant
+    ? isRasterPreviewUrl(grant.url)
+      ? grant.url
+      : ''
+    : getIngredientPreviewUrl(ingredient);
   const videoUrl = isVideoIngredient(ingredient)
-    ? ingredient.ingredientUrl
+    ? grant
+      ? (grant.url ?? undefined)
+      : ingredient.ingredientUrl
     : undefined;
   const dimensions =
     ingredient.width && ingredient.height

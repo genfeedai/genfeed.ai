@@ -14,9 +14,15 @@ import {
   IngredientStatus,
 } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+
+vi.mock('@genfeedai/config', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  isSelfHostedDeployment: () => false,
+}));
 
 // Mock legacy auth provider utilities
 
@@ -64,6 +70,7 @@ describe('PresignedUploadService', () => {
       organizationId: mockOrganizationId,
       status: IngredientStatus.PROCESSING,
       userId: mockUserId,
+      s3Key: `ingredients/${partial.category === IngredientCategory.VIDEO ? 'videos' : 'images'}/${mockIngredientId}`,
       ...partial,
     }) as unknown as IngredientDocument;
 
@@ -80,12 +87,16 @@ describe('PresignedUploadService', () => {
       providers: [
         PresignedUploadService,
         {
+          provide: ConfigService,
+          useValue: { isAuthorizedMediaDeliveryEnabled: true },
+        },
+        {
           provide: FilesClientService,
           useValue: {
             deleteStoredObject: vi.fn().mockResolvedValue(undefined),
-            getPresignedDownloadUrl: vi.fn(),
+            getPresignedDownloadUrlForObjectKey: vi.fn(),
             getPresignedUploadUrl: vi.fn(),
-            uploadToS3: vi.fn(),
+            uploadToExistingObject: vi.fn(),
           },
         },
         {
@@ -186,7 +197,7 @@ describe('PresignedUploadService', () => {
       );
 
       expect(filesClientService.getPresignedUploadUrl).toHaveBeenCalledWith(
-        mockIngredientId.toString(),
+        expect.stringMatching(/^[0-9a-f-]{36}$/),
         'images',
         body.contentType,
         3600,
@@ -308,7 +319,7 @@ describe('PresignedUploadService', () => {
 
       expect(result.s3Key).toBe(`ingredients/videos/${mockIngredientId}`);
       expect(filesClientService.getPresignedUploadUrl).toHaveBeenCalledWith(
-        mockIngredientId.toString(),
+        expect.stringMatching(/^[0-9a-f-]{36}$/),
         'videos',
         body.contentType,
         3600,
@@ -495,11 +506,11 @@ describe('PresignedUploadService', () => {
 
       ingredientsService.findOne.mockResolvedValue(mockIngredient);
 
-      filesClientService.getPresignedDownloadUrl.mockResolvedValue(
+      filesClientService.getPresignedDownloadUrlForObjectKey.mockResolvedValue(
         'https://s3.amazonaws.com/bucket/images/test?signature=abc',
       );
 
-      filesClientService.uploadToS3.mockResolvedValue({
+      filesClientService.uploadToExistingObject.mockResolvedValue({
         duration: undefined,
         hasAudio: false,
         height: 1080,
@@ -523,6 +534,7 @@ describe('PresignedUploadService', () => {
       expect(ingredientsService.findOne).toHaveBeenCalledWith(
         {
           id: mockIngredientId,
+          isDeleted: false,
           organizationId: mockOrganizationId,
           status: IngredientStatus.PROCESSING,
           userId: mockUserId,
@@ -549,7 +561,7 @@ describe('PresignedUploadService', () => {
       ingredientsService.findOne.mockResolvedValue(
         createIngredientDocument({ s3Key }),
       );
-      filesClientService.uploadToS3.mockResolvedValue({
+      filesClientService.uploadToExistingObject.mockResolvedValue({
         height: 10,
         s3Key: 'ingredients/images/reprocessed-key',
         width: 10,
@@ -561,17 +573,40 @@ describe('PresignedUploadService', () => {
       });
     });
 
-    it('should recover a legacy key from upload metadata', async () => {
-      const s3Key = 'ingredients/images/trusted-upload-key';
+    it('refuses keyless pending uploads without reconstructing a key from the ingredient ID', async () => {
       ingredientsService.findOne.mockResolvedValue(
-        createIngredientDocument({}),
+        createIngredientDocument({ s3Key: undefined }),
       );
-      filesClientService.uploadToS3.mockResolvedValue({
+      await expect(
+        service.confirmUpload(mockUser, mockIngredientId),
+      ).rejects.toMatchObject({ status: HttpStatus.UNPROCESSABLE_ENTITY });
+      expect(
+        filesClientService.getPresignedDownloadUrlForObjectKey,
+      ).not.toHaveBeenCalled();
+      expect(filesClientService.uploadToExistingObject).not.toHaveBeenCalled();
+    });
+
+    it('reads and processes the stored random object while patching the canonical ingredient', async () => {
+      const s3Key = 'ingredients/images/unrelated-random-token';
+      ingredientsService.findOne.mockResolvedValue(
+        createIngredientDocument({ s3Key }),
+      );
+      filesClientService.getPresignedDownloadUrlForObjectKey.mockResolvedValue(
+        'https://s3.test/random?signature=grant',
+      );
+      filesClientService.uploadToExistingObject.mockResolvedValue({
         height: 10,
-        s3Key,
         width: 10,
       });
       await service.confirmUpload(mockUser, mockIngredientId);
+      expect(
+        filesClientService.getPresignedDownloadUrlForObjectKey,
+      ).toHaveBeenCalledWith(s3Key);
+      expect(filesClientService.uploadToExistingObject).toHaveBeenCalledWith(
+        s3Key,
+        'images',
+        { type: 'url', url: 'https://s3.test/random?signature=grant' },
+      );
       expect(ingredientsService.patch).toHaveBeenCalledWith(mockIngredientId, {
         s3Key,
         status: IngredientStatus.UPLOADED,
@@ -585,11 +620,11 @@ describe('PresignedUploadService', () => {
           createIngredientDocument({ category: IngredientCategory.VIDEO }),
         );
         if (stage === 'download') {
-          filesClientService.getPresignedDownloadUrl.mockRejectedValue(
+          filesClientService.getPresignedDownloadUrlForObjectKey.mockRejectedValue(
             new Error('Download failed'),
           );
         } else {
-          filesClientService.uploadToS3.mockRejectedValue(
+          filesClientService.uploadToExistingObject.mockRejectedValue(
             new Error('Upload failed'),
           );
         }
@@ -628,7 +663,9 @@ describe('PresignedUploadService', () => {
         ingredientsService.findOne.mockResolvedValue(
           createIngredientDocument({ category: IngredientCategory.IMAGE }),
         );
-        filesClientService.uploadToS3.mockResolvedValue(uploadMeta as never);
+        filesClientService.uploadToExistingObject.mockResolvedValue(
+          uploadMeta as never,
+        );
 
         await expect(
           service.confirmUpload(mockUser, mockIngredientId),
@@ -648,7 +685,9 @@ describe('PresignedUploadService', () => {
       ingredientsService.findOne.mockResolvedValue(
         createIngredientDocument({}),
       );
-      filesClientService.uploadToS3.mockRejectedValue(new Error('corrupt'));
+      filesClientService.uploadToExistingObject.mockRejectedValue(
+        new Error('corrupt'),
+      );
       filesClientService.deleteStoredObject.mockRejectedValue(
         new Error('storage down'),
       );
@@ -662,7 +701,7 @@ describe('PresignedUploadService', () => {
       ingredientsService.findOne.mockResolvedValue(
         createIngredientDocument({ category: IngredientCategory.IMAGE }),
       );
-      filesClientService.uploadToS3.mockResolvedValue({
+      filesClientService.uploadToExistingObject.mockResolvedValue({
         height: 100,
         size: 51 * 1024 * 1024,
         width: 100,
@@ -683,7 +722,7 @@ describe('PresignedUploadService', () => {
         category: IngredientCategory.VIDEO,
       });
       ingredientsService.findOne.mockResolvedValue(ingredient);
-      filesClientService.uploadToS3.mockResolvedValue({
+      filesClientService.uploadToExistingObject.mockResolvedValue({
         height: 1080,
         size: 500 * 1024 * 1024,
         width: 1920,
@@ -732,10 +771,10 @@ describe('PresignedUploadService', () => {
       });
 
       ingredientsService.findOne.mockResolvedValue(mockIngredient);
-      filesClientService.getPresignedDownloadUrl.mockResolvedValue(
+      filesClientService.getPresignedDownloadUrlForObjectKey.mockResolvedValue(
         'https://s3.amazonaws.com/bucket/videos/test',
       );
-      filesClientService.uploadToS3.mockResolvedValue({
+      filesClientService.uploadToExistingObject.mockResolvedValue({
         duration: 10.5,
         hasAudio: true,
         height: 1080,
@@ -752,14 +791,12 @@ describe('PresignedUploadService', () => {
 
       await service.confirmUpload(mockUser, ingredientId);
 
-      expect(filesClientService.getPresignedDownloadUrl).toHaveBeenCalledWith(
-        ingredientId,
-        'videos',
-        300,
-      );
+      expect(
+        filesClientService.getPresignedDownloadUrlForObjectKey,
+      ).toHaveBeenCalledWith(`ingredients/videos/${ingredientId}`);
 
-      expect(filesClientService.uploadToS3).toHaveBeenCalledWith(
-        ingredientId,
+      expect(filesClientService.uploadToExistingObject).toHaveBeenCalledWith(
+        `ingredients/videos/${ingredientId}`,
         'videos',
         expect.objectContaining({
           type: 'url',
@@ -776,10 +813,10 @@ describe('PresignedUploadService', () => {
       });
 
       ingredientsService.findOne.mockResolvedValue(mockIngredient);
-      filesClientService.getPresignedDownloadUrl.mockResolvedValue(
+      filesClientService.getPresignedDownloadUrlForObjectKey.mockResolvedValue(
         'https://s3.amazonaws.com/test',
       );
-      filesClientService.uploadToS3.mockResolvedValue({
+      filesClientService.uploadToExistingObject.mockResolvedValue({
         height: 600,
         size: 1024000,
         width: 800,

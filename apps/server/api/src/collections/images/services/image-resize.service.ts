@@ -6,6 +6,7 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { returnNotFound } from '@api/helpers/utils/response/response.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   FileInputType,
@@ -18,7 +19,7 @@ import type { IResizeBodyParams } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 const LEGACY_CONTROLLER_NAME = 'ImagesTransformationsController';
 
@@ -31,7 +32,27 @@ export class ImageResizeService {
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
     private readonly sharedService: SharedService,
+    @Optional()
+    private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
   ) {}
+
+  private async processingMediaUrl(
+    organizationId: string,
+    ingredientId: string,
+    category: string,
+  ): Promise<string> {
+    if (!this.configService.isAuthorizedMediaDeliveryEnabled)
+      return `${this.configService.ingredientsEndpoint}/${category}/${ingredientId}`;
+    if (!this.authorizedMediaUrls)
+      throw new Error('Authorized media issuer is unavailable');
+    const urls = await this.authorizedMediaUrls.issueServerPublish(
+      organizationId,
+      [ingredientId],
+    );
+    const url = urls.get(ingredientId);
+    if (!url) throw new Error('The source has no authorized media URL');
+    return url;
+  }
 
   async resizeImage(
     imageId: string,
@@ -41,6 +62,8 @@ export class ImageResizeService {
     const url = `${LEGACY_CONTROLLER_NAME} ${CallerUtil.getCallerName()}`;
     const image = await this.imagesService.findOne({
       id: imageId,
+      organizationId: user.organizationId,
+      isDeleted: false,
       userId: user.userId ?? user.id,
     });
 
@@ -65,7 +88,11 @@ export class ImageResizeService {
         height: body.height || 1920,
         width: body.width || 1080,
       };
-      const imageUrl = `${this.configService.ingredientsEndpoint}/images/${imageId}`;
+      const imageUrl = await this.processingMediaUrl(
+        user.organizationId,
+        imageId,
+        'images',
+      );
       const resizedImage = await this.filesClientService.resizeImageFromUrl(
         imageUrl,
         target,

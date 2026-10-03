@@ -14,6 +14,7 @@ import {
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
@@ -38,6 +39,7 @@ import {
   Controller,
   HttpException,
   HttpStatus,
+  Optional,
   Param,
   Post,
   Req,
@@ -59,7 +61,27 @@ export class VideosEditsController {
     private readonly sharedService: SharedService,
     private readonly videosService: VideosService,
     private readonly websocketService: NotificationsPublisherService,
+    @Optional()
+    private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
   ) {}
+
+  private async processingVideoUrl(
+    organizationId: string,
+    videoId: string,
+  ): Promise<string> {
+    if (!this.configService.isAuthorizedMediaDeliveryEnabled) {
+      return `${this.configService.ingredientsEndpoint}/videos/${videoId}`;
+    }
+    if (!this.authorizedMediaUrls)
+      throw new Error('Authorized media issuer is unavailable');
+    const urls = await this.authorizedMediaUrls.issueServerPublish(
+      organizationId,
+      [videoId],
+    );
+    const url = urls.get(videoId);
+    if (!url) throw new Error('The source video has no authorized media URL');
+    return url;
+  }
 
   @Post(':videoId/trim')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -106,7 +128,10 @@ export class VideosEditsController {
           status: IngredientStatus.PROCESSING,
         });
 
-      const videoUrl = `${this.configService.ingredientsEndpoint}/videos/${videoId}`;
+      const videoUrl = await this.processingVideoUrl(
+        user.organizationId.toString(),
+        videoId,
+      );
       this.fileQueueService
         .processVideo({
           ingredientId: ingredientData.id.toString(),
@@ -144,6 +169,7 @@ export class VideosEditsController {
           });
 
           await this.ingredientsService.patch(ingredientData.id, {
+            ...(meta.s3Key ? { s3Key: meta.s3Key } : {}),
             status: IngredientStatus.GENERATED,
           });
 
@@ -243,7 +269,10 @@ export class VideosEditsController {
           width: originalMetadata.width,
         });
 
-      const videoUrl = `${this.configService.ingredientsEndpoint}/videos/${videoId}`;
+      const videoUrl = await this.processingVideoUrl(
+        user.organizationId.toString(),
+        videoId,
+      );
       this.fileQueueService
         .processVideo({
           ingredientId: ingredientData.id.toString(),
@@ -284,6 +313,7 @@ export class VideosEditsController {
           });
 
           await this.ingredientsService.patch(ingredientData.id, {
+            ...(meta.s3Key ? { s3Key: meta.s3Key } : {}),
             status: IngredientStatus.GENERATED,
           });
 

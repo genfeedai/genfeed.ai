@@ -5,6 +5,7 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import type { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
+import type { S3Service } from '@files/services/s3/s3.service';
 import { WatermarkExportService } from '@files/services/watermark-export/watermark-export.service';
 import type { FFprobeData } from '@files/shared/interfaces/ffmpeg.interfaces';
 import type { IWatermarkExportRequest } from '@genfeedai/contracts/interfaces';
@@ -12,6 +13,13 @@ import type { StorageProvider } from '@genfeedai/storage';
 import ffmpegPath from 'ffmpeg-static';
 import ffprobeStatic from 'ffprobe-static';
 import sharp from 'sharp';
+
+const deployment = vi.hoisted(() => ({ cloud: false }));
+vi.mock('@genfeedai/config', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  isCloudDeployment: () => deployment.cloud,
+}));
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // `ffmpeg-static`/`ffprobe-static` publish a binary path from their package
@@ -69,15 +77,58 @@ function setup() {
     getUrl: vi.fn((key) => `https://cdn.example/${key}`),
   };
   const ffmpeg = { getVideoMetadata: vi.fn(), executeFFmpegCapture: vi.fn() };
+  const s3 = {
+    getPresignedDownloadUrlForStoredKey: vi
+      .fn()
+      .mockResolvedValue('https://s3.test/fresh-grant'),
+    downloadFromUrl: vi.fn(async (_url: string, target: string) => {
+      await writeFile(target, await original());
+    }),
+  };
   const service = new WatermarkExportService(
     storage,
     ffmpeg as unknown as FFmpegService,
+    s3 as unknown as S3Service,
   );
-  return { service, storage, ffmpeg, getExported: () => exported };
+  return { service, storage, ffmpeg, s3, getExported: () => exported };
 }
 
 describe('WatermarkExportService', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    deployment.cloud = false;
+  });
+
+  it('preserves canonical S3 reserved bytes when preparing a protected preview', async () => {
+    const { service, s3 } = setup();
+    deployment.cloud = true;
+    const key = 'ingredients/images/ space ?#%2F.png ';
+    await service.render({ ...request, storageKey: key });
+    expect(s3.getPresignedDownloadUrlForStoredKey).toHaveBeenCalledWith(
+      key,
+      300,
+    );
+    expect(s3.downloadFromUrl).toHaveBeenCalledWith(
+      'https://s3.test/fresh-grant',
+      expect.any(String),
+      1024 * 1024 * 1024,
+    );
+  });
+
+  it('preserves a canonical reserved-byte brand logo without generic path decoding', async () => {
+    const { service, s3, storage } = setup();
+    deployment.cloud = true;
+    const logoStorageKey = 'logos/brand%2F?#.png';
+    await service.render({
+      ...request,
+      layers: [{ logoStorageKey, position: 'bottom-right', opacity: 0.5 }],
+    });
+    expect(s3.getPresignedDownloadUrlForStoredKey).toHaveBeenCalledWith(
+      logoStorageKey,
+      300,
+    );
+    expect(storage.exists).not.toHaveBeenCalledWith(logoStorageKey);
+  });
 
   it('renders a separate image with escaped text and leaves source storage untouched', async () => {
     const { service, storage, getExported } = setup();
@@ -232,9 +283,18 @@ describe('WatermarkExportService', () => {
             return { ...result, code: 0 };
           },
         );
+        const s3 = {
+          getPresignedDownloadUrlForStoredKey: vi
+            .fn()
+            .mockResolvedValue('https://s3.test/fresh-grant'),
+          downloadFromUrl: vi.fn(async (_url: string, target: string) => {
+            await writeFile(target, await original());
+          }),
+        };
         const service = new WatermarkExportService(
           storage,
           ffmpeg as unknown as FFmpegService,
+          s3 as unknown as S3Service,
         );
         await service.render({ ...request, category: 'videos' });
         const probe = await execute(probeBinary, [

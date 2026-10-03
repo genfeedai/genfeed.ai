@@ -82,7 +82,13 @@ describe('YouTubePublisherService', () => {
     brandId: mockBrandId,
     category: PostCategory.IMAGE,
     description: '<p>Test image post</p>',
-    ingredients: [mockIngredientId],
+    ingredients: [
+      {
+        id: mockIngredientId,
+        mediaUrl:
+          'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+      },
+    ],
     isDeleted: false,
     organizationId: mockOrganizationId,
     scheduledDate: new Date(),
@@ -96,7 +102,13 @@ describe('YouTubePublisherService', () => {
     brandId: mockBrandId,
     category: PostCategory.VIDEO,
     description: '<p>Test video post</p>',
-    ingredients: [mockIngredientId],
+    ingredients: [
+      {
+        id: mockIngredientId,
+        mediaUrl:
+          'https://authorized.test/ingredients/videos/random-storage-key?signature=fixture',
+      },
+    ],
     isDeleted: false,
     label: 'Video Title',
     organizationId: mockOrganizationId,
@@ -117,7 +129,18 @@ describe('YouTubePublisherService', () => {
     brandId: mockBrandId,
     category: PostCategory.VIDEO,
     description: '<p>Multi video post</p>',
-    ingredients: [testId('ingredient', 2), testId('ingredient', 3)],
+    ingredients: [
+      {
+        id: testId('ingredient', 2),
+        mediaUrl:
+          'https://authorized.test/ingredients/videos/random-storage-key?signature=fixture',
+      },
+      {
+        id: testId('ingredient', 3),
+        mediaUrl:
+          'https://authorized.test/ingredients/videos/random-storage-key?signature=fixture',
+      },
+    ],
     isDeleted: false,
     organizationId: mockOrganizationId,
     scheduledDate: new Date(),
@@ -150,6 +173,7 @@ describe('YouTubePublisherService', () => {
           useValue: {
             get: vi.fn().mockReturnValue('test-value'),
             ingredientsEndpoint: 'https://api.test.com/ingredients',
+            isAuthorizedMediaDeliveryEnabled: true,
           },
         },
         {
@@ -431,7 +455,13 @@ describe('YouTubePublisherService', () => {
         id: testId('child', 3),
         category: PostCategory.VIDEO,
         description: '<p>Video child - should be ignored</p>',
-        ingredients: [mockIngredientId],
+        ingredients: [
+          {
+            id: mockIngredientId,
+            mediaUrl:
+              'https://authorized.test/ingredients/videos/random-storage-key?signature=fixture',
+          },
+        ],
         order: 3,
       },
     ];
@@ -461,7 +491,13 @@ describe('YouTubePublisherService', () => {
           id: testId('child', 4),
           category: PostCategory.VIDEO,
           description: '<p>Video</p>',
-          ingredients: [mockIngredientId],
+          ingredients: [
+            {
+              id: mockIngredientId,
+              mediaUrl:
+                'https://authorized.test/ingredients/videos/random-storage-key?signature=fixture',
+            },
+          ],
           order: 1,
         },
       ];

@@ -287,13 +287,14 @@ export class ThreadsPublisherService extends BasePublisherService {
     ingredients: unknown[] | undefined,
   ): ThreadsCarouselMediaItem[] {
     return (ingredients || []).map((ingredient) => {
-      const id = this.getRecordId(ingredient);
       const mediaType = this.getThreadsMediaType(fallbackCategory, ingredient);
-      const path = mediaType === ThreadsMediaType.IMAGE ? 'images' : 'videos';
 
       return {
         mediaType,
-        url: `${this.configService.ingredientsEndpoint}/${path}/${id}`,
+        url: this.requireAuthorizedMediaUrl(
+          ingredient,
+          mediaType === ThreadsMediaType.VIDEO,
+        ),
       };
     });
   }

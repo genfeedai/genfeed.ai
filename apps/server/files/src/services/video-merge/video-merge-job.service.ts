@@ -1,4 +1,6 @@
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
+import { ConfigService } from '@files/config/config.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import { WebSocketService } from '@files/services/websocket/websocket.service';
@@ -11,9 +13,10 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { assertSafeObjectKey } from '@libs/security';
+import { assertStoredObjectKey } from '@libs/security/stored-object-key';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import type { Job } from 'bullmq';
 
 type MergeStep = NonNullable<JobProgress['step']>;
@@ -27,6 +30,7 @@ export class VideoMergeJobService {
     private readonly webSocketService: WebSocketService,
     private readonly redisService: RedisService,
     private readonly logger: LoggerService,
+    @Optional() private readonly configService?: ConfigService,
   ) {}
 
   async process(job: Job<VideoJobData>): Promise<JobResult> {
@@ -118,8 +122,18 @@ export class VideoMergeJobService {
     ) {
       throw new Error('Stored video keys must match the ordered source IDs');
     }
+    if (
+      this.configService?.isAuthorizedMediaDeliveryEnabled &&
+      !params.sourceStorageKeys
+    ) {
+      throw new Error(
+        'Authorized video merge requires canonical source storage keys',
+      );
+    }
     const keys = params.sourceStorageKeys?.map((key) => {
-      const safeKey = assertSafeObjectKey(key, (message) => new Error(message));
+      const safeKey = this.configService?.isAuthorizedMediaDeliveryEnabled
+        ? assertStoredObjectKey(key, (message) => new Error(message))
+        : assertSafeObjectKey(key, (message) => new Error(message));
       if (
         !safeKey.startsWith('ingredients/videos/') &&
         !safeKey.startsWith('ingredients/avatars/')
@@ -137,7 +151,19 @@ export class VideoMergeJobService {
       const inputPath = path.join(tempPath, `input_${index}.mp4`);
       const s3Key =
         keys?.[index] ?? this.s3Service.generateS3Key('videos', sourceId);
-      await this.s3Service.downloadFile(s3Key, inputPath);
+      if (this.configService?.isAuthorizedMediaDeliveryEnabled) {
+        const url = await this.s3Service.getPresignedDownloadUrlForStoredKey(
+          s3Key,
+          300,
+        );
+        await this.s3Service.downloadFromUrl(
+          url,
+          inputPath,
+          1024 * 1024 * 1024,
+        );
+      } else {
+        await this.s3Service.downloadFile(s3Key, inputPath);
+      }
       inputPaths.push(inputPath);
 
       this.emitStepProgress(
@@ -156,17 +182,50 @@ export class VideoMergeJobService {
     job: Job<VideoJobData>,
     tempPath: string,
   ): Promise<string | undefined> {
-    const { music } = job.data.params;
+    const { music, musicStorageKey } = job.data.params;
     if (!music) {
       return undefined;
     }
 
     this.emitStepProgress(job, 'downloading-music', 0, 30, 'Downloading music');
     const musicPath = path.join(tempPath, 'music.mp3');
-    const musicS3Key = this.s3Service.generateS3Key('audio', music);
+    if (
+      this.configService?.isAuthorizedMediaDeliveryEnabled &&
+      !musicStorageKey
+    ) {
+      throw new Error(
+        'Authorized video merge requires a canonical music storage key',
+      );
+    }
+    const musicS3Key = musicStorageKey
+      ? this.configService?.isAuthorizedMediaDeliveryEnabled
+        ? assertStoredObjectKey(
+            musicStorageKey,
+            (message) => new Error(message),
+          )
+        : assertSafeObjectKey(musicStorageKey, (message) => new Error(message))
+      : this.s3Service.generateS3Key('audio', music);
+    if (
+      musicStorageKey &&
+      !/^ingredients\/(musics|audio|audios)\/.+/.test(musicS3Key)
+    ) {
+      throw new Error('Merge music must use an audio storage key');
+    }
 
     try {
-      await this.s3Service.downloadFile(musicS3Key, musicPath);
+      if (this.configService?.isAuthorizedMediaDeliveryEnabled) {
+        const url = await this.s3Service.getPresignedDownloadUrlForStoredKey(
+          musicS3Key,
+          300,
+        );
+        await this.s3Service.downloadFromUrl(
+          url,
+          musicPath,
+          1024 * 1024 * 1024,
+        );
+      } else {
+        await this.s3Service.downloadFile(musicS3Key, musicPath);
+      }
       this.emitStepProgress(
         job,
         'downloading-music',
@@ -300,8 +359,20 @@ export class VideoMergeJobService {
   ): Promise<string> {
     const { ingredientId } = job.data;
     this.emitStepProgress(job, 'uploading', 0, 95, 'Uploading merged video');
-    const s3Key = this.s3Service.generateS3Key('videos', ingredientId);
-    await this.s3Service.uploadFile(s3Key, outputPath, 'video/mp4');
+    const requestedKey = this.s3Service.generateS3Key(
+      'videos',
+      this.configService?.isAuthorizedMediaDeliveryEnabled
+        ? randomUUID()
+        : ingredientId,
+    );
+    const uploaded = await this.s3Service.uploadFile(
+      requestedKey,
+      outputPath,
+      'video/mp4',
+    );
+    if (this.configService?.isAuthorizedMediaDeliveryEnabled && !uploaded?.Key)
+      throw new Error('Merged upload returned no stored key');
+    const s3Key = uploaded?.Key ?? requestedKey;
     this.emitStepProgress(job, 'uploading', 100, 100, 'Upload complete');
     return s3Key;
   }

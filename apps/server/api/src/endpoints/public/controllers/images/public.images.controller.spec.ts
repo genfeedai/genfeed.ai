@@ -2,6 +2,7 @@ import { ImagesService } from '@api/collections/images/services/images.service';
 import { PublicImagesController } from '@api/endpoints/public/controllers/images/public.images.controller';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import {
   createIngredientDocumentFixture,
   createPaginatedFixture,
@@ -13,6 +14,7 @@ import {
 } from '@genfeedai/contracts';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type {
@@ -63,6 +65,14 @@ describe('PublicImagesController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PublicImagesController],
       providers: [
+        {
+          provide: AuthorizedMediaUrlService,
+          useValue: { projectPublicIngredients: vi.fn().mockResolvedValue([]) },
+        },
+        {
+          provide: ConfigService,
+          useValue: { isAuthorizedMediaDeliveryEnabled: false },
+        },
         {
           provide: FilesClientService,
           useValue: {

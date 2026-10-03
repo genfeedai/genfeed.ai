@@ -20,7 +20,6 @@ import {
   isVideoIngredient,
 } from '@genfeedai/utils/media/ingredient-type.util';
 import { IngredientEndpoints } from '@genfeedai/utils/media/ingredients.util';
-import { downloadIngredient } from '@helpers/media/download/download.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
@@ -501,14 +500,11 @@ export function useIngredientActions({
 
   const handleDownload = useCallback(
     async (ingredient: IIngredient) => {
-      if (!ingredient.ingredientUrl) {
-        return notificationsService.error('No download URL available');
-      }
-
       setActionStates((prev) => ({ ...prev, isDownloading: true }));
 
       try {
-        await downloadIngredient(ingredient);
+        const service = await getIngredientsService();
+        await service.downloadOriginal(ingredient);
         notificationsService.success('Download started');
       } catch (error) {
         logger.error('Failed to download ingredient', error);
@@ -517,7 +513,7 @@ export function useIngredientActions({
         setActionStates((prev) => ({ ...prev, isDownloading: false }));
       }
     },
-    [notificationsService],
+    [getIngredientsService, notificationsService],
   );
 
   const handleMirror = useCallback(

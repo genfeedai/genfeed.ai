@@ -66,6 +66,7 @@ export const ingredientAttributes = createEntityAttributes([
   'workflowExecutionId',
   'agentStrategyId',
   'cdnUrl',
+  'mediaDelivery',
   's3Key',
   // Generation ledger. The Library list view reports what produced an asset and
   // why a failed one failed; without these the operator sees a red status chip

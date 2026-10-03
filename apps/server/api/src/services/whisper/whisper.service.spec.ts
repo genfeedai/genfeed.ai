@@ -1,5 +1,6 @@
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { ConfigService } from '@libs/config/config.service';
@@ -40,6 +41,8 @@ function createMockLogger() {
 
 describe('WhisperService', () => {
   let service: WhisperService;
+  let isIssuerEnabled = false;
+  const mediaIssuer = { issueServerPublish: vi.fn() };
   let replicateMock: Record<string, ReturnType<typeof vi.fn>>;
   let httpServiceMock: Record<string, ReturnType<typeof vi.fn>>;
   let fileQueueMock: Record<string, ReturnType<typeof vi.fn>>;
@@ -47,6 +50,8 @@ describe('WhisperService', () => {
   let mediaUrlMock: { buildUrlFromAbsolute: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
+    isIssuerEnabled = false;
+    mediaIssuer.issueServerPublish.mockReset();
     replicateMock = {
       transcribeAudio: vi.fn().mockResolvedValue({
         duration: 5,
@@ -72,11 +77,15 @@ describe('WhisperService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        { provide: AuthorizedMediaUrlService, useValue: mediaIssuer },
         WhisperService,
         {
           provide: ConfigService,
           useValue: {
             get: vi.fn().mockReturnValue('test-endpoint'),
+            get isAuthorizedMediaDeliveryEnabled() {
+              return isIssuerEnabled;
+            },
             cdnUrl: 'https://cdn.genfeed.ai',
             ingredientsEndpoint: 'https://api.test.com',
           },
@@ -213,6 +222,44 @@ describe('WhisperService', () => {
   });
 
   describe('generateCaptions', () => {
+    it('downloads a fresh organization-bound grant instead of a supplied source when activated', async () => {
+      isIssuerEnabled = true;
+      mediaIssuer.issueServerPublish.mockResolvedValue(
+        new Map([
+          [
+            'ingredient-123',
+            'https://cdn.genfeed.ai/opaque-original?Signature=fresh',
+          ],
+        ]),
+      );
+      await service.generateCaptions(
+        'ingredient-123',
+        { s3Key: 'foreign/caller-key.mp4' },
+        'org-1',
+      );
+      expect(mediaIssuer.issueServerPublish).toHaveBeenCalledWith('org-1', [
+        'ingredient-123',
+      ]);
+      expect(httpServiceMock.get).toHaveBeenCalledWith(
+        'https://cdn.genfeed.ai/opaque-original?Signature=fresh',
+        { responseType: 'arraybuffer' },
+      );
+      expect(mediaUrlMock.buildUrlFromAbsolute).not.toHaveBeenCalled();
+    });
+
+    it('requires organization proof and never falls back to an ID-derived URL when activated', async () => {
+      isIssuerEnabled = true;
+      await expect(service.generateCaptions('ingredient-123')).rejects.toThrow(
+        'organization-bound',
+      );
+      expect(httpServiceMock.get).not.toHaveBeenCalled();
+      mediaIssuer.issueServerPublish.mockResolvedValue(new Map());
+      await expect(
+        service.generateCaptions('ingredient-123', undefined, 'org-1'),
+      ).rejects.toThrow('unavailable');
+      expect(httpServiceMock.get).not.toHaveBeenCalled();
+    });
+
     it('uses the same single-entry SRT fallback when no segments exist', async () => {
       replicateMock.transcribeAudio.mockResolvedValue({
         duration: 3,

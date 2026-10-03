@@ -391,6 +391,24 @@ export class FilesStorageController {
   /**
    * Get presigned download URL
    */
+  @Post('presigned-download')
+  async getPresignedDownloadUrlForObjectKey(
+    @Body() body: { storageKey?: string },
+  ) {
+    const storageKey = body.storageKey;
+    if (typeof storageKey !== 'string' || !storageKey.trim()) {
+      throw new HttpException('storageKey is required', HttpStatus.BAD_REQUEST);
+    }
+    return {
+      downloadUrl: await this.s3Service.getPresignedDownloadUrlForStoredKey(
+        storageKey,
+        300,
+      ),
+      expiresIn: 300,
+      key: storageKey,
+    };
+  }
+
   @Get('presigned-download/:type/*key')
   async getPresignedDownloadUrl(
     @Param('type') type: string,

@@ -1,3 +1,6 @@
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { ConfigService } from '@libs/config/config.service';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type, id) => {
     const { HttpException, HttpStatus } = require('@nestjs/common');
@@ -80,6 +83,14 @@ describe('PublicVideosController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PublicVideosController],
       providers: [
+        {
+          provide: AuthorizedMediaUrlService,
+          useValue: { projectPublicIngredients: vi.fn().mockResolvedValue([]) },
+        },
+        {
+          provide: ConfigService,
+          useValue: { isAuthorizedMediaDeliveryEnabled: false },
+        },
         { provide: VideosService, useValue: mockVideosService },
         { provide: FilesClientService, useValue: mockFilesClientService },
         { provide: LoggerService, useValue: mockLoggerService },

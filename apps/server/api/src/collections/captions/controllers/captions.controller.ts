@@ -174,6 +174,7 @@ export class CaptionsController {
         metadata: ingredient.metadata,
         s3Key: ingredient.s3Key,
       },
+      user.organizationId,
     );
 
     const captionInput = {

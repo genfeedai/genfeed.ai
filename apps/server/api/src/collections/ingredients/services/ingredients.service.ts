@@ -16,6 +16,7 @@ import { persistQuoteGroupDisposition } from '@api/helpers/utils/credits/persist
 import { persistSubmissionFailure } from '@api/helpers/utils/credits/persist-submission-failure.util';
 import { LibraryShelfUtil } from '@api/helpers/utils/library-shelf/library-shelf.util';
 import { scopedWhere } from '@api/index';
+import { MediaDerivativePreparationService } from '@api/services/media-urls/media-derivative-preparation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BaseService,
@@ -401,6 +402,40 @@ export class IngredientsService extends BaseService<
         await this.fireAssetGateForOrganizations([result.organizationId]);
       }
 
+      if (
+        result.organizationId &&
+        result.s3Key &&
+        (updateDto.status === IngredientStatus.GENERATED ||
+          updateDto.status === IngredientStatus.UPLOADED ||
+          updateDto.scope === 'PUBLIC')
+      ) {
+        try {
+          await this.moduleRef
+            .get(MediaDerivativePreparationService, { strict: false })
+            .enqueue(result.organizationId, result.id);
+          if (result.isPublic || result.scope === 'PUBLIC') {
+            const preparation = this.moduleRef.get(
+              MediaDerivativePreparationService,
+              { strict: false },
+            );
+            await preparation.enqueue(
+              result.organizationId,
+              result.id,
+              'public-share',
+            );
+            await preparation.enqueue(
+              result.organizationId,
+              result.id,
+              'public-og',
+            );
+          }
+        } catch (error: unknown) {
+          this.logger.warn('Protected preview preparation requires retry', {
+            id,
+            error,
+          });
+        }
+      }
       return result;
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} patch failed`, {

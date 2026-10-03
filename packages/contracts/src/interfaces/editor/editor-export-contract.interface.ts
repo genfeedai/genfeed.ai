@@ -62,6 +62,8 @@ export interface IValidatedEditorExportContract {
 }
 
 export interface IEditorRenderJobParams extends IValidatedEditorExportContract {
+  /** Internal queue-only clip identity map. Never persist in public provenance. */
+  sourceStorageKeys?: Record<string, string>;
   rendererVersion: typeof EDITOR_RENDERER_VERSION;
 }
 

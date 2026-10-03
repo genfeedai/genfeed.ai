@@ -101,7 +101,13 @@ describe('TwitterPublisherService', () => {
     brandId: mockBrandId,
     category: PostCategory.IMAGE,
     description: '<p>Test image tweet</p>',
-    ingredients: [mockIngredientId],
+    ingredients: [
+      {
+        id: mockIngredientId,
+        mediaUrl:
+          'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+      },
+    ],
     isDeleted: false,
     organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
@@ -114,7 +120,13 @@ describe('TwitterPublisherService', () => {
     brandId: mockBrandId,
     category: PostCategory.VIDEO,
     description: '<p>Test video tweet</p>',
-    ingredients: [mockIngredientId],
+    ingredients: [
+      {
+        id: mockIngredientId,
+        mediaUrl:
+          'https://authorized.test/ingredients/videos/random-storage-key?signature=fixture',
+      },
+    ],
     isDeleted: false,
     organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
@@ -128,9 +140,21 @@ describe('TwitterPublisherService', () => {
     category: PostCategory.IMAGE,
     description: '<p>Carousel tweet</p>',
     ingredients: [
-      testId('ingredient', 2),
-      testId('ingredient', 3),
-      testId('ingredient', 4),
+      {
+        id: testId('ingredient', 2),
+        mediaUrl:
+          'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+      },
+      {
+        id: testId('ingredient', 3),
+        mediaUrl:
+          'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+      },
+      {
+        id: testId('ingredient', 4),
+        mediaUrl:
+          'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+      },
     ],
     isDeleted: false,
     organizationId: mockOrganizationId,
@@ -140,7 +164,7 @@ describe('TwitterPublisherService', () => {
 
   // Create publish context helper
   const createPublishContext = (
-    post: PostEntity,
+    post: PublishContext['post'],
     settings: ChannelTargetSettings = {},
   ): PublishContext => ({
     brandId: mockBrandId.toString(),
@@ -175,6 +199,7 @@ describe('TwitterPublisherService', () => {
               return config[key] || '';
             }),
             ingredientsEndpoint: 'https://api.test.com/ingredients',
+            isAuthorizedMediaDeliveryEnabled: true,
           },
         },
         {
@@ -532,7 +557,13 @@ describe('TwitterPublisherService', () => {
       it('should treat TEXT post with ingredients as IMAGE post', async () => {
         const textPostWithIngredient = {
           ...mockTextPost,
-          ingredients: [mockIngredientId],
+          ingredients: [
+            {
+              id: mockIngredientId,
+              mediaUrl:
+                'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+            },
+          ],
         };
         const context = createPublishContext(textPostWithIngredient);
         const mockTweetId = '1234567890';
@@ -667,7 +698,13 @@ describe('TwitterPublisherService', () => {
         id: testId('post', 3),
         category: PostCategory.IMAGE,
         description: '<p>Child 2</p>',
-        ingredients: [mockIngredientId],
+        ingredients: [
+          {
+            id: mockIngredientId,
+            mediaUrl:
+              'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+          },
+        ],
         order: 2,
       },
     ];
@@ -955,7 +992,14 @@ describe('TwitterPublisherService', () => {
     it('should handle populated ingredient objects', () => {
       const postWithPopulatedIngredients = {
         ...mockImagePost,
-        ingredients: [{ id: mockIngredientId, name: 'Test Ingredient' }],
+        ingredients: [
+          {
+            id: mockIngredientId,
+            name: 'Test Ingredient',
+            mediaUrl:
+              'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+          },
+        ],
       };
 
       const result = service['extractMediaInfo'](postWithPopulatedIngredients);

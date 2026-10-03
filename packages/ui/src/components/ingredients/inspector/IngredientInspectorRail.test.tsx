@@ -4,6 +4,11 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import IngredientInspectorRail from './IngredientInspectorRail';
 
+vi.mock('@genfeedai/hooks/media/use-authorized-media-preview', () => ({
+  useAuthorizedMediaPreview: (ingredient: IIngredient) =>
+    ingredient.mediaDelivery ?? null,
+}));
+
 vi.mock('@ui/quick-actions/actions/IngredientQuickActions', () => ({
   default: () => null,
 }));
@@ -31,6 +36,40 @@ const ingredient = {
 } as IIngredient;
 
 describe('IngredientInspectorRail', () => {
+  it('uses the refreshed authorized preview and keeps pending originals hidden', () => {
+    const { rerender } = render(
+      <IngredientInspectorRail
+        ingredient={{
+          ...ingredient,
+          mediaDelivery: {
+            id: 'asset-1',
+            state: 'READY',
+            purpose: 'preview',
+            url: 'https://media.test/protected-fresh',
+            expiresAt: '2026-10-03T01:00:00Z',
+          },
+        }}
+      />,
+    );
+    expect(screen.getByRole('img').getAttribute('src')).toBe(
+      'https://media.test/protected-fresh',
+    );
+    rerender(
+      <IngredientInspectorRail
+        ingredient={{
+          ...ingredient,
+          mediaDelivery: {
+            id: 'asset-1',
+            state: 'PENDING',
+            purpose: 'preview',
+            url: null,
+            expiresAt: null,
+          },
+        }}
+      />,
+    );
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+  });
   it('shows the complete selectable prompt with whitespace and unbroken text preserved', () => {
     const prompt = `${'A detailed prompt line.\n'.repeat(12)}\n${'longword'.repeat(80)}`;
     render(

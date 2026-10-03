@@ -1,5 +1,7 @@
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { PLATFORM_PREVIEW_LAYERS } from '@api/services/media-urls/media-delivery-policy.util';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
@@ -29,6 +31,7 @@ export class IngredientExportService {
     private readonly files: FilesClientService,
     private readonly config: ConfigService,
     private readonly mediaUrlService: MediaUrlService,
+    private readonly mediaIssuer: AuthorizedMediaUrlService,
   ) {}
 
   async export(
@@ -112,7 +115,11 @@ export class IngredientExportService {
     const result = await this.files.watermarkExport({
       storageKey: ingredient.s3Key,
       category,
-      layers: [layer],
+      layers:
+        this.config.isAuthorizedMediaDeliveryEnabled &&
+        !(await this.mediaIssuer.hasCleanAccess(organizationId))
+          ? [layer, ...PLATFORM_PREVIEW_LAYERS.map((entry) => ({ ...entry }))]
+          : [layer],
     });
     let url: string | undefined;
     if (isSelfHostedDeployment() && result.url.startsWith('/local/')) {

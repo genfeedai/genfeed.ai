@@ -127,6 +127,7 @@ function makeHarness(
   };
   const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
 
+  const mediaIssuer = { isEnabled: false, issueServerPublish: vi.fn() };
   const service = new MediaPerceptionService(
     {
       ingredient: {
@@ -150,9 +151,11 @@ function makeHarness(
     mediaUrlService as unknown as MediaUrlService,
     platformSettingsService as unknown as PlatformSettingsService,
     logger as unknown as LoggerService,
+    mediaIssuer as never,
   );
 
   return {
+    mediaIssuer,
     mediaUrlService,
     describe,
     extractPerceptionArtefacts,
@@ -176,6 +179,23 @@ const JOB = {
 } as const;
 
 describe('MediaPerceptionService.process', () => {
+  it('fetches a fresh scoped original when automatic browser grants are suppressed', async () => {
+    const h = makeHarness();
+    h.mediaIssuer.isEnabled = true;
+    h.mediaIssuer.issueServerPublish.mockResolvedValue(
+      new Map([
+        ['asset-1', 'https://cdn.example.com/opaque-original?Signature=fresh'],
+      ]),
+    );
+    await expect(h.service.process(JOB)).resolves.toBe('perceived');
+    expect(h.mediaIssuer.issueServerPublish).toHaveBeenCalledWith('org-1', [
+      'asset-1',
+    ]);
+    expect(h.fingerprintMedia).toHaveBeenCalledWith(
+      'https://cdn.example.com/opaque-original?Signature=fresh',
+    );
+  });
+
   it('perceives a new asset: fingerprint, artefacts, transcript and description', async () => {
     const h = makeHarness();
 

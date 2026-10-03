@@ -10,12 +10,19 @@ import type { Organization } from '@genfeedai/prisma';
 
 type PublisherRecordId = { toString(): string } | string;
 
+/** Ephemeral provider media grant populated at the server execution boundary. */
+export interface ServerPublisherIngredientInput {
+  id?: PublisherRecordId;
+  category?: string;
+  mediaUrl?: string;
+}
+
 /** API-owned post fields read by the shared publisher contract and base. */
 export interface PublisherPostInput {
   category: PostCategory;
   description: string;
   id: PublisherRecordId;
-  ingredients: Array<{ id?: PublisherRecordId } | string>;
+  ingredients: Array<ServerPublisherIngredientInput | string>;
   isShareToFeedSelected?: boolean;
   label: string;
   quoteTweetId?: string;
@@ -115,7 +122,7 @@ export type ThreadChild = {
   id: { toString(): string } | string;
   category?: PostCategory | string;
   description?: string | null;
-  ingredients?: Array<{ id?: { toString(): string } | string } | string>;
+  ingredients?: Array<ServerPublisherIngredientInput | string>;
   order?: number;
 };
 
