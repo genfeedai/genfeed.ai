@@ -154,7 +154,6 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'inspiration',
   },
   { name: 'create_workflow', surfaces: ['agent', 'mcp'], toolset: 'workflows' },
-  { name: 'describe_tool', surfaces: ['mcp'], toolset: 'core' },
   { name: 'discover_engagements', surfaces: ['agent'], toolset: 'engagement' },
   { name: 'draft_brand_voice_profile', surfaces: ['agent'], toolset: 'brand' },
   {
@@ -186,7 +185,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'visual-code',
   },
-  { name: 'fetch_x_post', surfaces: ['agent', 'mcp'], toolset: 'content' },
+  { name: 'find_tools', surfaces: ['mcp'], toolset: 'core' },
   { name: 'fork_skill', surfaces: ['mcp'], toolset: 'skills-pro' },
   { name: 'generate', surfaces: ['agent', 'mcp'], toolset: 'generation' },
   { name: 'generate_ad_pack', surfaces: ['agent'], toolset: 'ads' },
@@ -220,8 +219,8 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'get_ads_adset_insights', surfaces: ['mcp'], toolset: 'ads' },
   { name: 'get_analytics', surfaces: ['agent', 'mcp'], toolset: 'analytics' },
   { name: 'get_approval_summary', surfaces: ['agent'], toolset: 'engagement' },
-  { name: 'get_article', surfaces: ['mcp'], toolset: 'content' },
   { name: 'get_article_preview', surfaces: ['mcp'], toolset: 'articles' },
+  { name: 'get_articles', surfaces: ['mcp'], toolset: 'content' },
   { name: 'get_brand', surfaces: ['mcp'], toolset: 'core' },
   {
     name: 'get_brand_completeness',
@@ -300,7 +299,11 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'get_post', surfaces: ['agent', 'mcp'], toolset: 'content' },
   { name: 'get_remix_run', surfaces: ['mcp'], toolset: 'inspiration' },
   { name: 'get_scheduled_release', surfaces: ['mcp'], toolset: 'scheduler' },
-  { name: 'get_scheduler_capability', surfaces: ['mcp'], toolset: 'scheduler' },
+  {
+    name: 'get_scheduler_capabilities',
+    surfaces: ['mcp'],
+    toolset: 'scheduler',
+  },
   {
     name: 'get_social_conversation',
     surfaces: ['mcp'],
@@ -316,7 +319,6 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'get_trends', surfaces: ['agent', 'mcp'], toolset: 'analytics' },
   { name: 'get_usage_stats', surfaces: ['mcp'], toolset: 'core' },
   { name: 'get_video_analytics', surfaces: ['mcp'], toolset: 'analytics' },
-  { name: 'get_video_status', surfaces: ['mcp'], toolset: 'generation' },
   {
     name: 'get_visual_code_catalog',
     surfaces: ['agent', 'mcp', 'workflow'],
@@ -334,6 +336,7 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'workflows',
   },
   { name: 'get_workflow_status', surfaces: ['mcp'], toolset: 'workflows' },
+  { name: 'get_x_posts', surfaces: ['agent', 'mcp'], toolset: 'content' },
   { name: 'import_source_post', surfaces: ['mcp'], toolset: 'inspiration' },
   { name: 'ingest_source_media', surfaces: ['agent'], toolset: 'ui' },
   {
@@ -411,11 +414,6 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'list_posts', surfaces: ['agent', 'mcp'], toolset: 'content' },
   { name: 'list_review_queue', surfaces: ['agent'], toolset: 'content' },
   {
-    name: 'list_scheduler_capabilities',
-    surfaces: ['mcp'],
-    toolset: 'scheduler',
-  },
-  {
     name: 'list_social_conversations',
     surfaces: ['mcp'],
     toolset: 'social-inbox',
@@ -429,7 +427,6 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'list_tiktok_adgroups', surfaces: ['mcp'], toolset: 'ads' },
   { name: 'list_tiktok_ads', surfaces: ['mcp'], toolset: 'ads' },
   { name: 'list_tiktok_campaigns', surfaces: ['mcp'], toolset: 'ads' },
-  { name: 'list_toolsets', surfaces: ['mcp'], toolset: 'core' },
   { name: 'list_videos', surfaces: ['mcp'], toolset: 'generation' },
   {
     name: 'list_workflow_runs',
@@ -526,14 +523,11 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'save_dashboard_layout', surfaces: ['agent'], toolset: 'ui' },
   { name: 'schedule_post', surfaces: ['agent'], toolset: 'content' },
   { name: 'score_seo', surfaces: ['agent'], toolset: 'content' },
-  { name: 'search_articles', surfaces: ['mcp'], toolset: 'content' },
   {
     name: 'search_knowledge',
     surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'knowledge',
   },
-  { name: 'search_tools', surfaces: ['mcp'], toolset: 'core' },
-  { name: 'search_x_posts', surfaces: ['agent', 'mcp'], toolset: 'content' },
   { name: 'select_ingredient', surfaces: ['agent'], toolset: 'ui' },
   { name: 'send_chat_message', surfaces: ['mcp'], toolset: 'agent-chat' },
   {

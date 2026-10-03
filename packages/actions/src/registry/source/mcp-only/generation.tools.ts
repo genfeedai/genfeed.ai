@@ -3,22 +3,6 @@ import type { SourceTool } from '../../../interfaces/source-tool.interface';
 export const MCP_GENERATION_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
-    description: 'Check the status of a video creation job',
-    name: 'get_video_status',
-    parameters: {
-      properties: {
-        videoId: {
-          description: 'The ID of the video to check',
-          type: 'string',
-        },
-      },
-      required: ['videoId'],
-      type: 'object',
-    },
-    requiredRole: 'user',
-  },
-  {
-    creditCost: 0,
     description: 'List all videos in your organization',
     name: 'list_videos',
     parameters: {

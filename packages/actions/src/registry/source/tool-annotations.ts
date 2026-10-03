@@ -15,6 +15,7 @@ import { isReadOnlyToolName } from '../mutation-policy';
  */
 const READ_ONLY_HINT_PREFIXES = [
   'describe_',
+  'find_',
   'get_',
   'list_',
   'search_',

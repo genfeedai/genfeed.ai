@@ -25,7 +25,6 @@ import type {
   MergeVideosResult,
   VideoCreationParams,
   VideoResponse,
-  VideoStatus,
 } from '@mcp/shared/interfaces/video.interface';
 import type { BaseApiClient } from './base-api-client';
 import { CONTENT_STATUS } from './client.types';
@@ -72,26 +71,6 @@ export class MediaClient {
         };
       },
       this.base.failWithDetail('Failed to create video'),
-    );
-  }
-
-  getVideoStatus(videoId: string): Promise<VideoStatus> {
-    this.base.logger.debug(`Getting video status for ID: ${videoId}`);
-
-    return this.base.request(
-      'getting video status',
-      async (http) => {
-        const response = await http.get(`/videos/${videoId}`);
-        const video = response.data?.data;
-
-        return {
-          message: video?.attributes?.message || '',
-          progress: video?.attributes?.progress || 0,
-          status: video?.attributes?.status || CONTENT_STATUS.UNKNOWN,
-          url: video?.attributes?.url,
-        };
-      },
-      this.base.failWith('Failed to get video status'),
     );
   }
 

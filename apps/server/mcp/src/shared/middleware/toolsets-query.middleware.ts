@@ -131,7 +131,7 @@ function jsonRpcInvalidParams(message: string) {
  * stores the parsed selection on `req.toolsets` for
  * `StreamableHttpService.buildServer` to thread into `ToolRegistryService`.
  * A declared toolset with no tools on this deploy is not a 400 — it stays
- * in the selection and `list_toolsets` warns about it.
+ * in the selection and `find_tools` warns about it.
  */
 export function toolsetsQueryMiddleware(
   req: McpRequest,

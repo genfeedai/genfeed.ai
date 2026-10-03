@@ -158,7 +158,7 @@ const isAdsGatewayTool = (name: string): boolean => name.startsWith('get_ads_');
  * precedence exactly (tool-discovery → agent-chat → workflow-control →
  * agent-executor → catalog REST handlers → ads/external), so classification
  * never changes which handler runs. `tool-discovery` is checked first since
- * its names (e.g. `describe_tool`) are meta tools with no other executor to
+ * its name (`find_tools`) is a meta tool with no other executor to
  * shadow.
  */
 type ExecutorKind =
@@ -296,7 +296,7 @@ export class ToolRegistryService implements OnModuleInit {
 
   /**
    * The role-filtered full catalog, ignoring the caller's `?toolsets=`
-   * selection. Backs `list_toolsets`/`search_tools`/`describe_tool` — a
+   * selection. Backs `find_tools` — a
    * client should be able to discover a tool outside its currently-loaded
    * toolset so it can reconnect with a broader selection.
    */
@@ -306,7 +306,7 @@ export class ToolRegistryService implements OnModuleInit {
 
   /**
    * Requested toolset names that exist in the catalog but have no MCP tools
-   * on this deploy. `list_toolsets` warns about them; they are not a failed
+   * on this deploy. `find_tools` warns about them; they are not a failed
    * connection. An empty request selection (`?profile=full`) warns about
    * nothing — the caller did not name a specific empty toolset.
    */

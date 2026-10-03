@@ -114,18 +114,17 @@ export interface IAgentUntrustedContentAuditDocument {
 export const WEB_FETCH_TOOLS: ReadonlySet<string> = new Set<string>([
   'capture_knowledge',
   'create_clip_project_from_youtube',
-  'fetch_x_post',
   'get_ad_research_detail',
   'get_instagram_inspiration_detail',
   'get_trends',
+  'get_x_posts',
   'list_ads_research',
   'list_instagram_inspiration',
   'list_outlier_posts',
   'read_knowledge_source',
   'resolve_handle',
-  'search_articles',
+  'get_articles',
   'search_knowledge',
-  'search_x_posts',
 ]);
 
 /**

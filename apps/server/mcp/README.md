@@ -29,14 +29,14 @@ https://mcp.genfeed.ai/mcp?toolsets=content,generation
 ```
 
 - **Comma-separated, kebab-case names** — see `getToolsets('mcp')` (exported
-  from `@genfeedai/actions`) for the live list, or call the `list_toolsets`
+  from `@genfeedai/actions`) for the live list, or call the `find_tools`
   meta tool once connected.
 - **`core` is always included** and cannot be excluded — it holds the
-  discovery meta tools (`list_toolsets`, `search_tools`, `describe_tool`) plus
+  discovery meta tool (`find_tools`) plus
   a handful of always-needed account/status tools.
 - **Omitting the parameter (or passing an empty value) uses `?profile=`**, and
   a bare URL gets the `default` profile: `core`, `generation`, `content` and
-  `scheduler`, capped at 46 tools. Use `?profile=full` for every tool.
+  `scheduler`, capped at 40 tools. Use `?profile=full` for every tool.
 - **An unknown toolset name is rejected with an HTTP 400** and a JSON-RPC
   `-32602` error naming the valid toolsets, before authentication runs (so it
   also applies to the unauthenticated public `tools/list` discovery path).
@@ -48,16 +48,16 @@ https://mcp.genfeed.ai/mcp?toolsets=content,generation
 
 ### Tool discovery meta tools
 
-Because `tools/list` can be narrowed, three read-only meta tools (always
-in the `core` toolset) help a client find something outside its current
-selection so it can reconnect with a broader `?toolsets=`:
+Because `tools/list` can be narrowed, one read-only meta tool (always in the
+`core` toolset), `find_tools { name?, query?, toolset?, limit? }`, helps a
+client find something outside its current selection so it can reconnect with
+a broader `?toolsets=`:
 
-- `list_toolsets` — every toolset available on this server, with tool counts.
-- `search_tools` — case-insensitive substring search over tool name,
-  description, and toolset (`{ query?, toolset?, limit? }`, at least one of
-  `query`/`toolset` required).
-- `describe_tool` — the full tool definition for one name (`{ name }`),
-  including the closest name matches when the name is not found.
+- No arguments — every toolset available on this server, with tool counts.
+- `query` and/or `toolset` — case-insensitive substring search over tool name,
+  description, and toolset.
+- `name` — the full tool definition for one name, including the closest name
+  matches when the name is not found.
 
 These search the full, role-filtered catalog regardless of the caller's
 current toolset selection — they are for discovering what else exists, not

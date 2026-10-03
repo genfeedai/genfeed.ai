@@ -4,47 +4,34 @@ export const AGENT_SOCIAL_TOOLS: SourceTool[] = [
   {
     creditCost: 1,
     description:
-      'Search recent posts on X by topic. Returns posts with author, text, stats, and link. Explains clearly if the connected account cannot search.',
-    name: 'search_x_posts',
+      "Read X posts. postIdOrUrl opens one post and returns its text and stats. query searches recent posts by topic through the brand's connected X account and returns author, text, stats, and link; it explains clearly if that account cannot search. Pass exactly one of postIdOrUrl or query.",
+    name: 'get_x_posts',
     parameters: {
       properties: {
+        postIdOrUrl: {
+          description: 'Post link or post id to open.',
+          type: 'string',
+        },
+        query: {
+          description: 'What to search for on X.',
+          type: 'string',
+        },
         brandId: {
           description:
-            'Brand whose connected X account searches. Required when the session has no brand. Use an id from list_brands.',
+            'Search only. Brand whose connected X account searches. Required when the session has no brand. Use an id from list_brands.',
           type: 'string',
         },
         limit: {
-          description: 'How many posts to return (default 10, max 25)',
+          description:
+            'Search only. How many posts to return (default 10, max 25).',
           type: 'number',
         },
-        query: {
-          description: 'What to search for on X',
-          type: 'string',
-        },
         sortOrder: {
-          description: 'Sort by best match or newest first',
+          description: 'Search only. Sort by best match or newest first.',
           enum: ['relevancy', 'recency'],
           type: 'string',
         },
       },
-      required: ['query'],
-      type: 'object',
-    },
-    requiredRole: 'user',
-  },
-  {
-    creditCost: 1,
-    description:
-      'Open one X post from a link or post id and return its text and stats.',
-    name: 'fetch_x_post',
-    parameters: {
-      properties: {
-        postIdOrUrl: {
-          description: 'Post link or post id',
-          type: 'string',
-        },
-      },
-      required: ['postIdOrUrl'],
       type: 'object',
     },
     requiredRole: 'user',

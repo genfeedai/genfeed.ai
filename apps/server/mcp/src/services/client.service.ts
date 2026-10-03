@@ -104,7 +104,6 @@ import type {
   MergeVideosResult,
   VideoCreationParams,
   VideoResponse,
-  VideoStatus,
 } from '@mcp/shared/interfaces/video.interface';
 import type {
   SystemWorkflowCatalogEntry,
@@ -275,10 +274,6 @@ export class ClientService {
 
   createVideo(params: VideoCreationParams): Promise<VideoResponse> {
     return this.media.createVideo(params);
-  }
-
-  getVideoStatus(videoId: string): Promise<VideoStatus> {
-    return this.media.getVideoStatus(videoId);
   }
 
   listVideos(

@@ -207,7 +207,7 @@ automatically when it runs the agent on your own Claude Code or Codex CLI; see
 
 ## Publishing readiness
 
-Before scheduling, call `list_scheduler_capabilities` and
+Before scheduling, call `get_scheduler_capabilities` and
 `list_brand_publishing_readiness` for the selected brand. A connected account
 alone does not make its channel schedulable. Readiness combines credential
 health with the canonical scheduler capability catalog.
@@ -264,7 +264,7 @@ The bare endpoint uses the `default` profile. Profiles shape the advertised
 
 | Endpoint selector | Advertised toolsets |
 | --- | --- |
-| No selector or `?profile=default` | `core`, `generation`, `content`, and `scheduler`, capped at 46 tools. |
+| No selector or `?profile=default` | `core`, `generation`, `content`, and `scheduler`, capped at 40 tools. |
 | `?profile=directory` | The same bounded selection, with `generation`, `clips`, and `ui` excluded. This profile does not imply directory approval. |
 | `?profile=full` | All toolsets, subject to the caller's permissions. |
 
@@ -361,20 +361,18 @@ calls, and real publishing are not claimed here.
 
 ### Discover tools outside your selection
 
-Three read-only meta tools, always in `core`, let an agent find a tool that
-isn't in its current selection:
+One read-only meta tool, always in `core`, lets an agent find a tool that
+isn't in its current selection. `find_tools` takes `{ name?, query?, toolset?, limit? }`:
 
-- **`list_toolsets`** — every toolset available on this server, with tool
-  counts.
-- **`search_tools`** — case-insensitive substring search over tool name,
-  description, and toolset (`{ query?, toolset?, limit? }`, at least one of
-  `query`/`toolset` required).
-- **`describe_tool`** — the full tool definition for one name (`{ name }`),
-  including the closest name matches when the name isn't found.
+- **No arguments** — every toolset available on this server, with tool counts.
+- **`query` and/or `toolset`** — case-insensitive substring search over tool
+  name, description, and toolset.
+- **`name`** — the full tool definition for one name, including the closest
+  name matches when the name isn't found.
 
 These search the full, role-filtered catalog regardless of the caller's
 current toolset selection. Once an agent has a tool's name and schema from
-`describe_tool`, it can call that tool directly with `tools/call` — narrowing
+`find_tools`, it can call that tool directly with `tools/call` — narrowing
 `tools/list` only narrows discovery, not what can be invoked — or reconnect
 with a broader `?toolsets=` selection so the tool appears in future
 `tools/list` responses.

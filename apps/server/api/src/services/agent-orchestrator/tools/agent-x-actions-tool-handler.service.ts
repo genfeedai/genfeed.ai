@@ -51,8 +51,7 @@ export class AgentXActionsToolHandler {
 
   handles(toolName: CuratedActionName): boolean {
     return (
-      toolName === 'search_x_posts' ||
-      toolName === 'fetch_x_post' ||
+      toolName === 'get_x_posts' ||
       toolName === 'list_x_account_activity' ||
       toolName === 'draft_x_quote' ||
       toolName === 'draft_x_repost'
@@ -65,10 +64,8 @@ export class AgentXActionsToolHandler {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     switch (toolName) {
-      case 'search_x_posts':
-        return this.searchXPosts(params, ctx);
-      case 'fetch_x_post':
-        return this.fetchXPost(params, ctx);
+      case 'get_x_posts':
+        return this.getXPosts(params, ctx);
       case 'list_x_account_activity':
         return this.listXAccountActivity(params, ctx);
       case 'draft_x_quote':
@@ -78,6 +75,36 @@ export class AgentXActionsToolHandler {
       default:
         throw new Error(`Unsupported X action tool: ${toolName}`);
     }
+  }
+
+  /** One post by `postIdOrUrl`, or a search by `query` — exactly one. */
+  async getXPosts(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const hasPost = Boolean(readOptionalString(params.postIdOrUrl));
+    const hasQuery = Boolean(readOptionalString(params.query));
+    if (hasPost === hasQuery) {
+      return {
+        creditsUsed: 0,
+        error: 'Pass exactly one of postIdOrUrl or query',
+        success: false,
+      };
+    }
+    if (hasPost) {
+      const searchOnly = ['brandId', 'limit', 'sortOrder'].filter(
+        (key) => params[key] !== undefined && params[key] !== null,
+      );
+      if (searchOnly.length > 0) {
+        return {
+          creditsUsed: 0,
+          error: `${searchOnly.join(', ')} apply only to a query search`,
+          success: false,
+        };
+      }
+      return this.fetchXPost(params, ctx);
+    }
+    return this.searchXPosts(params, ctx);
   }
 
   async searchXPosts(

@@ -22,12 +22,12 @@ export const MCP_OTHER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Check the status of a content generation job. Auto-detects content type.',
+      'Check the status and result of any generation (image, video, voice, music) by the id generate returned. Auto-detects content type.',
     name: 'get_job_status',
     parameters: {
       properties: {
         jobId: {
-          description: 'The job/ingredient ID to check',
+          description: 'The job or ingredient id to check',
           type: 'string',
         },
       },

@@ -13,18 +13,16 @@ const TOOL_KINDS: Readonly<Record<string, McpCardKind>> = {
   create_article: 'article',
   create_post: 'post',
   generate: 'media',
-  get_article: 'article',
+  get_articles: 'article',
   get_job_status: 'media',
   get_post: 'post',
   get_usage_stats: 'usage',
-  get_video_status: 'video',
   list_avatars: 'image',
   list_images: 'image',
   list_music: 'audio',
   list_posts: 'post',
   list_videos: 'video',
   merge_videos: 'video',
-  search_articles: 'article',
 };
 
 export function withCardMetadata(tool: McpToolOutput): McpToolOutput {

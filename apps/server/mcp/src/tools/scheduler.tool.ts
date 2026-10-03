@@ -8,9 +8,8 @@ export const SCHEDULER_TOOL_NAMES = new Set([
   'control_scheduled_release',
   'create_scheduled_release',
   'get_scheduled_release',
-  'get_scheduler_capability',
+  'get_scheduler_capabilities',
   'list_brand_publishing_readiness',
-  'list_scheduler_capabilities',
   'update_scheduled_release',
   'validate_scheduler_target',
 ]);
@@ -71,11 +70,35 @@ export function handleSchedulerTool(
       );
       return textJsonResult('Scheduled release', result);
     },
-    get_scheduler_capability: async (a) => {
-      const result = await client.getSchedulerCapability(
-        requiredString(a, 'platform'),
-      );
-      return textJsonResult('Scheduler capability', result);
+    get_scheduler_capabilities: async (a) => {
+      const platform = optionalString(a, 'platform');
+      if (platform) {
+        if (
+          optionalBoolean(a, 'includeHidden') !== undefined ||
+          optionalBoolean(a, 'includePlanned') !== undefined
+        ) {
+          throw new Error(
+            'includeHidden and includePlanned apply only when listing (omit platform)',
+          );
+        }
+        const result = await client.getSchedulerCapability(platform);
+        return textJsonResult('Scheduler capability', result);
+      }
+      const result = await client.listSchedulerCapabilities({
+        includeHidden: optionalBoolean(a, 'includeHidden'),
+        includePlanned: optionalBoolean(a, 'includePlanned'),
+      });
+      return {
+        content: [
+          {
+            text:
+              result.length > 0
+                ? `Found ${result.length} scheduler capabilities:\n\n${JSON.stringify(result, null, 2)}`
+                : 'No scheduler capabilities found.',
+            type: 'text' as const,
+          },
+        ],
+      };
     },
     list_brand_publishing_readiness: async (a) => {
       const result = await client.listBrandPublishingReadiness(
@@ -88,23 +111,6 @@ export function handleSchedulerTool(
               result.length > 0
                 ? `Found ${result.length} publishing channels with readiness:\n\n${JSON.stringify(result, null, 2)}`
                 : 'No connected publishing channels found for this brand.',
-            type: 'text' as const,
-          },
-        ],
-      };
-    },
-    list_scheduler_capabilities: async (a) => {
-      const result = await client.listSchedulerCapabilities({
-        includeHidden: optionalBoolean(a, 'includeHidden'),
-        includePlanned: optionalBoolean(a, 'includePlanned'),
-      });
-      return {
-        content: [
-          {
-            text:
-              result.length > 0
-                ? `Found ${result.length} scheduler capabilities:\n\n${JSON.stringify(result, null, 2)}`
-                : 'No scheduler capabilities found.',
             type: 'text' as const,
           },
         ],

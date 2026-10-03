@@ -3,7 +3,6 @@ import type { ClientService } from '@mcp/services/client.service';
 import { formatListResult } from '@mcp/shared/utils/format-list-result.util';
 
 export const GENERATION_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
-  'get_video_status',
   'list_videos',
   'list_images',
   'list_avatars',
@@ -38,21 +37,6 @@ export async function handleGenerationTool(
   args: Record<string, unknown>,
 ) {
   switch (name) {
-    case 'get_video_status': {
-      if (!args?.videoId) {
-        throw new Error('videoId required');
-      }
-      const status = await client.getVideoStatus(args.videoId as string);
-      return {
-        structuredContent: { data: { ...status, id: args.videoId } },
-        content: [
-          {
-            text: `Video Status: ${status.status}\nProgress: ${status.progress}%\n${status.message || ''}${status.url ? `\nURL: ${status.url}` : ''}`,
-            type: 'text' as const,
-          },
-        ],
-      };
-    }
     case 'list_videos': {
       const limit = (args?.limit as number) || 10;
       const offset = (args?.offset as number) || 0;
