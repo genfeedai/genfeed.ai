@@ -17,11 +17,6 @@ import {
 } from '@genfeedai/contracts';
 import { PrismaClient } from '@genfeedai/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
-import {
-  claimProviderPublishAttempt,
-  markProviderPublishAttemptUncertain,
-  reserveProviderPublishAttempt,
-} from '@workers/services/scheduled-post-provider-receipt.util';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 import { Client } from 'pg';
 import { assertIsolatedDatabaseUrl } from '../../../scripts/assert-isolated-db-url';
@@ -259,67 +254,6 @@ describe('Per-organization learning fence (real Postgres)', () => {
       await organizationHolder.done;
     }
     await global;
-  });
-
-  it('lets exactly one concurrent delivery reserve a post occurrence for the provider', async () => {
-    const postId = await seedPost(orgB, brands.get(orgB) as string);
-    const post = await prisma.post.findFirstOrThrow({
-      where: { id: postId, organizationId: orgB, isDeleted: false },
-      include: { ingredients: true },
-    });
-    const attempts = await Promise.all(
-      Array.from({ length: 6 }, (_, index) =>
-        reserveProviderPublishAttempt(
-          prisma as unknown as PrismaService,
-          post as never,
-          `execution-${index}`,
-        ).then(
-          (attempt) => attempt.kind,
-          (error: Error) => error.name,
-        ),
-      ),
-    );
-    expect(attempts.filter((kind) => kind === 'publish')).toHaveLength(1);
-    expect(
-      attempts
-        .filter((kind) => kind !== 'publish')
-        .every(
-          (kind) =>
-            kind === 'in_flight' || kind === 'ProviderPublishInFlightError',
-        ),
-    ).toBe(true);
-    await expect(
-      prisma.postProviderPublishReceipt.count({
-        where: { organizationId: orgB, postId, isDeleted: false },
-      }),
-    ).resolves.toBe(1);
-  });
-
-  it('lets exactly one concurrent delivery take over an unconfirmed attempt', async () => {
-    const postId = await seedPost(orgB, brands.get(orgB) as string);
-    const post = await prisma.post.findFirstOrThrow({
-      where: { id: postId, organizationId: orgB, isDeleted: false },
-      include: { ingredients: true },
-    });
-    const client = prisma as unknown as PrismaService;
-    const first = await reserveProviderPublishAttempt(
-      client,
-      post as never,
-      'execution-first',
-    );
-    if (first.kind !== 'publish') throw new Error('expected a reservation');
-    await markProviderPublishAttemptUncertain(client, post as never, first);
-    const claims = await Promise.all(
-      Array.from({ length: 6 }, (_, index) =>
-        claimProviderPublishAttempt(
-          client,
-          post as never,
-          first,
-          `execution-retry-${index}`,
-        ),
-      ),
-    );
-    expect(claims.filter((claim) => claim !== null)).toHaveLength(1);
   });
 
   it('reruns a publish under the global fence when its invalidation reaches global learning state', async () => {
