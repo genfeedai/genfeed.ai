@@ -84,6 +84,14 @@ describe('IngredientsQueryDto', () => {
       expect(errors.map((error) => error.property)).toContain('characters');
     });
 
+    it('rejects an empty characters value instead of listing everything', async () => {
+      const dto = plainToInstance(IngredientsQueryDto, { characters: '' });
+
+      const errors = await validate(dto);
+
+      expect(errors.map((error) => error.property)).toContain('characters');
+    });
+
     it('rejects an oversized character list', async () => {
       const dto = plainToInstance(IngredientsQueryDto, {
         characters: testIds('character', MAX_CHARACTER_FILTER_IDS + 1),

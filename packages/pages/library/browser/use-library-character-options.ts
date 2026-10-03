@@ -30,14 +30,17 @@ export function useLibraryCharacterOptions({
       return;
     }
 
+    // Never show the previous brand's characters while the next brand loads.
+    setOptions([]);
     const abortController = new AbortController();
 
     async function load(): Promise<void> {
       try {
         const service = await getPersonasService();
-        const characters = await service.listAllCharacters(
-          abortController.signal,
-        );
+        const characters = await service.listAllCharacters({
+          brandId,
+          signal: abortController.signal,
+        });
 
         if (abortController.signal.aborted) {
           return;

@@ -11,6 +11,7 @@ import {
 } from '@genfeedai/contracts';
 import {
   LIBRARY_CANVAS_FEATURE_FLAG,
+  LIBRARY_MAX_CHARACTER_FILTERS,
   type LibraryViewMode,
 } from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -245,13 +246,23 @@ export default function LibraryBrowserToolbar({
             isSearchEnabled
             name="characters"
             onChange={(_name, values) => {
-              onCharactersChange(values);
+              onCharactersChange(
+                values.slice(0, LIBRARY_MAX_CHARACTER_FILTERS),
+              );
             }}
             options={characterDropdownOptions}
             placeholder={translate('character')}
             searchPlaceholder={translate('searchCharacters')}
             values={characters}
           />
+
+          {characters.length >= LIBRARY_MAX_CHARACTER_FILTERS ? (
+            <span className="text-xs text-foreground/50" role="status">
+              {translate('characterLimit', {
+                count: LIBRARY_MAX_CHARACTER_FILTERS,
+              })}
+            </span>
+          ) : null}
 
           {hasCharacterFilter ? (
             <Button
