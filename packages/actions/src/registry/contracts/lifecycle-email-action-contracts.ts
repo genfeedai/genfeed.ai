@@ -102,6 +102,15 @@ const DELIVERY_STATE = closedObjectSchema(
   ['request'],
 );
 const stateInput = closedObjectSchema({ state: DELIVERY_STATE }, ['state']);
+// The engine's failure envelope routed through a `failure` source handle.
+const FAILURE = closedObjectSchema(
+  {
+    error: STRING_SCHEMA,
+    failedNodeId: STRING_SCHEMA,
+    nodeOutputs: JSON_DOCUMENT_SCHEMA,
+  },
+  ['error', 'failedNodeId', 'nodeOutputs'],
+);
 const SCHEDULE_ITEM = closedObjectSchema(
   {
     checkoutSessionId: STRING_SCHEMA,
@@ -221,10 +230,7 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
   },
   'lifecycle-email.finalize': {
     inputSchema: closedObjectSchema({
-      failure: closedObjectSchema({
-        error: STRING_SCHEMA,
-        nodeOutputs: JSON_DOCUMENT_SCHEMA,
-      }),
+      failure: FAILURE,
       state: DELIVERY_STATE,
     }),
     outputSchema: closedObjectSchema(

@@ -355,6 +355,34 @@ describe('BrandRemixGenerationService exact quotes', () => {
     );
   });
 
+  it('rejects crun image models before pricing or saving a quote', async () => {
+    await expect(
+      service.quote('org-1', 'run-1', user as never, {
+        expectedRevision: 1,
+        model: 'crun/google/nano-banana-pro',
+      }),
+    ).rejects.toThrow('does not support remix quotes');
+    expect(models.validateModelForOrg).not.toHaveBeenCalled();
+    expect(imageCredits.quoteCredits).not.toHaveBeenCalled();
+    expect(persistence.compareAndSwapExactConfig).not.toHaveBeenCalled();
+  });
+
+  it('rejects a persisted crun quote before acceptance or canonical start', async () => {
+    await quote();
+    config = brandRemixRunConfigSchema.parse({
+      ...config,
+      generationQuote: {
+        ...config.generationQuote,
+        model: 'crun/google/nano-banana-pro',
+      },
+    });
+    persistence.compareAndSwapExactConfig.mockClear();
+    await expect(execute()).rejects.toThrow('does not support remix quotes');
+    expect(persistence.compareAndSwapExactConfig).not.toHaveBeenCalled();
+    expect(config.generationQuote?.acceptedAt).toBeUndefined();
+    expect(runs.start).not.toHaveBeenCalled();
+  });
+
   it('rejects stale/foreign quotes and revision races', async () => {
     await quote();
     await expect(execute('foreign')).rejects.toThrow('does not match');
