@@ -319,7 +319,8 @@ describe('AgentChatMessage', () => {
 
     expect(surface).toBeTruthy();
     const card = screen.getByTestId('agent-user-prompt');
-    expect(card).toHaveClass('bg-card');
+    expect(card).toHaveClass('bg-accent');
+    expect(card).not.toHaveClass('bg-card');
     expect(card).toHaveClass('rounded-card');
     expect(card).toHaveClass('shadow-border');
     expect(card).not.toHaveClass('rounded-xl');
