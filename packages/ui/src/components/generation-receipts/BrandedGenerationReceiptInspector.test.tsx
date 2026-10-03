@@ -59,7 +59,12 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
-  const service = { get: vi.fn(), getRevision: vi.fn(), readPrompt: vi.fn() };
+  const service = {
+    get: vi.fn(),
+    getRevision: vi.fn(),
+    readPrompt: vi.fn(),
+    getIdentityPreview: vi.fn(),
+  };
   return { service, getService: async () => service };
 });
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -330,5 +335,89 @@ describe('shared saved receipt inspector', () => {
       expect(screen.getByRole('alert')).toHaveTextContent('promptRestricted'),
     );
     expect(screen.queryByText(/PRIVATE/)).toBeNull();
+  });
+  describe('recorded identity snapshot', () => {
+    function identitySnapshot(name: string, version: number, mark: string) {
+      return {
+        schemaVersion: 1,
+        organizationId: 'org',
+        brandId: 'brand',
+        revisionId: `brand-revision-${version}`,
+        revisionVersion: version,
+        approval: 'approved',
+        resolvedAt: time,
+        contentHash: `sha256:${mark.repeat(64)}`,
+        identity: { name },
+        voice: { audience: [], values: [], messagingPillars: [], avoid: [] },
+        generationRules: {
+          schemaVersion: 1,
+          evidence: [],
+          facts: [],
+          palette: [],
+          typography: [],
+          mandatory: [],
+          avoid: [],
+          examples: [],
+          assets: [],
+        },
+        diagnostics: [],
+      };
+    }
+    beforeEach(() => {
+      mocks.service.getRevision.mockResolvedValue({
+        ...publicReceipt(),
+        id: 'receipt:1',
+        receiptId: 'receipt',
+        revision: 1,
+        snapshot: identitySnapshot('Recorded A', 1, 'd'),
+      });
+      mocks.service.get.mockResolvedValue({
+        ...publicReceipt(),
+        revision: 2,
+        snapshot: identitySnapshot('Current B', 2, 'e'),
+      });
+    });
+    it('shows the exact loaded revision A and never replaces it with later approval B', async () => {
+      const view = render(
+        <BrandedGenerationReceiptInspector {...input} revision={1} />,
+      );
+      await screen.findByText('Recorded A');
+      expect(
+        screen.getByRole('region', { name: 'receiptTitle' }),
+      ).toBeInTheDocument();
+      expect(screen.getByText('recordedApproved')).toBeInTheDocument();
+      expect(screen.queryByText('Current B')).not.toBeInTheDocument();
+      expect(mocks.service.getRevision).toHaveBeenCalledExactlyOnceWith(
+        'brand',
+        'receipt',
+        1,
+        expect.any(AbortSignal),
+      );
+      view.rerender(<BrandedGenerationReceiptInspector {...input} />);
+      await screen.findByText('Current B');
+      expect(screen.queryByText('Recorded A')).not.toBeInTheDocument();
+      view.rerender(
+        <BrandedGenerationReceiptInspector {...input} revision={1} />,
+      );
+      await screen.findByText('Recorded A');
+      expect(screen.queryByText('Current B')).not.toBeInTheDocument();
+      expect(mocks.service.getIdentityPreview).not.toHaveBeenCalled();
+      expect(mocks.service.readPrompt).not.toHaveBeenCalled();
+    });
+    it('shows unavailable instead of a snapshot recorded for another scope', async () => {
+      mocks.service.get.mockResolvedValueOnce({
+        ...publicReceipt(),
+        organizationId: 'other-org',
+        snapshot: {
+          ...identitySnapshot('Foreign identity', 3, 'f'),
+          organizationId: 'other-org',
+        },
+      });
+      render(<BrandedGenerationReceiptInspector {...input} />);
+      await screen.findByText(/created · raw · not_claimed/);
+      expect(screen.queryByText('Foreign identity')).not.toBeInTheDocument();
+      expect(screen.getByText('unavailable')).toBeInTheDocument();
+      expect(mocks.service.getIdentityPreview).not.toHaveBeenCalled();
+    });
   });
 });
