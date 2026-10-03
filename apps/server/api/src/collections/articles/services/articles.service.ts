@@ -58,8 +58,12 @@ import type {
 } from '@api/collections/articles/services/articles-content.service';
 import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
 import { assertArticleOwnershipIds } from '@api/collections/articles/utils/article-input-boundary.util';
-import { buildArticlePublishedDispatch } from '@api/collections/articles/utils/article-published-notification.util';
-import { isPublicSlugUniqueViolation } from '@api/collections/articles/utils/article-slug.util';
+import { sendArticlePublishedNotification } from '@api/collections/articles/utils/article-published-notification.util';
+import {
+  assertPublicSlugAvailable,
+  assertPublishedSlugTransition,
+  mapPublicSlugConflict,
+} from '@api/collections/articles/utils/article-slug.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -93,7 +97,6 @@ import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
-  ConflictException,
   forwardRef,
   Inject,
   Injectable,
@@ -344,10 +347,10 @@ export class ArticlesService
     });
 
     if (articleData.status === 'PUBLISHED') {
-      await this.assertPublicSlugAvailable(articleData.slug);
+      await assertPublicSlugAvailable(this.delegate, articleData.slug);
     }
 
-    const result = await this.writeUniquePublicSlug(() =>
+    const result = await mapPublicSlugConflict(() =>
       super.create({
         ...articleData,
         ...(tags && tags.length > 0
@@ -466,16 +469,14 @@ export class ArticlesService
         });
       }
 
-      const nextStatus = updateData.status ?? accessible.status;
-      const nextSlug = updateData.slug ?? accessible.slug;
-      if (
-        nextStatus === 'PUBLISHED' &&
-        (nextStatus !== accessible.status || nextSlug !== accessible.slug)
-      ) {
-        await this.assertPublicSlugAvailable(nextSlug, id);
-      }
+      await assertPublishedSlugTransition(
+        this.delegate,
+        id,
+        updateData,
+        accessible,
+      );
 
-      const result = await this.writeUniquePublicSlug(() =>
+      const result = await mapPublicSlugConflict(() =>
         super.patch(id, updateData),
       );
 
@@ -501,7 +502,14 @@ export class ArticlesService
       });
 
       // Send Discord notification if article was just published
-      await this.sendArticlePublishedNotification(
+      await sendArticlePublishedNotification(
+        {
+          activityRecorder: this.activityRecorder,
+          configService: this.configService,
+          logger: this.logger,
+          organizationSettingsService: this.organizationSettingsService,
+          source: this.constructorName,
+        },
         result,
         organizationId,
         isPublishingUpdate,
@@ -556,66 +564,6 @@ export class ArticlesService
     }
   }
 
-  /**
-   * Send a Discord notification when an article was just published.
-   * No-op unless the update normalized to PUBLISHED, the supporting services are
-   * wired, and the organization has Discord notifications enabled. Never throws —
-   * a failed notification must not fail the update. Extracted from `update`.
-   *
-   * Takes the already-normalized publish signal rather than the raw DTO status so
-   * legacy `public` input notifies exactly like canonical `PUBLISHED` input.
-   */
-  private async sendArticlePublishedNotification(
-    result: ArticleDocument,
-    organizationId: string,
-    isPublishingUpdate: boolean,
-  ): Promise<void> {
-    if (
-      !isPublishingUpdate ||
-      !this.activityRecorder ||
-      !this.organizationSettingsService ||
-      !this.configService
-    ) {
-      return;
-    }
-
-    try {
-      const organizationSettings =
-        await this.organizationSettingsService.findOne({
-          organizationId,
-        });
-
-      if (!organizationSettings?.isNotificationsDiscordEnabled) {
-        return;
-      }
-
-      await this.activityRecorder.dispatch(
-        buildArticlePublishedDispatch(
-          result,
-          organizationId,
-          this.configService.get('GENFEEDAI_PUBLIC_URL'),
-        ),
-      );
-
-      this.logger.log(
-        `${this.constructorName} recorded Discord notification for published article`,
-        {
-          articleId: result.id,
-          slug: result.slug,
-        },
-      );
-    } catch (error: unknown) {
-      // Don't fail the update if notification fails
-      this.logger.error(
-        `${this.constructorName} failed to send Discord notification`,
-        {
-          articleId: result.id,
-          error,
-        },
-      );
-    }
-  }
-
   async removeArticle(
     id: string,
     userId: string,
@@ -651,51 +599,6 @@ export class ArticlesService
         error,
         id,
       });
-      throw error;
-    }
-  }
-
-  /**
-   * Public slugs are one global namespace (`/articles/:slug`). Reject a publish
-   * whose slug another live published article already holds, so a tenant can
-   * never shadow an existing page. The partial unique index
-   * `articles_public_slug_uidx` is the race-proof backstop.
-   */
-  private async assertPublicSlugAvailable(
-    slug: string | null | undefined,
-    excludeId?: string,
-  ): Promise<void> {
-    if (!slug) {
-      return;
-    }
-
-    const holder = await this.delegate.findFirst({
-      select: { id: true },
-      where: {
-        isDeleted: false,
-        slug,
-        status: 'PUBLISHED',
-        ...(excludeId ? { id: { not: excludeId } } : {}),
-      },
-    });
-
-    if (holder) {
-      throw new ConflictException(
-        `The slug "${slug}" is already used by a published article`,
-      );
-    }
-  }
-
-  /** Maps a lost race on the public-slug unique index to the same 409. */
-  private async writeUniquePublicSlug<R>(write: () => Promise<R>): Promise<R> {
-    try {
-      return await write();
-    } catch (error: unknown) {
-      if (isPublicSlugUniqueViolation(error)) {
-        throw new ConflictException(
-          'The slug is already used by a published article',
-        );
-      }
       throw error;
     }
   }
