@@ -192,7 +192,6 @@ describe('ReplyInboundProcessorService workflow boundary', () => {
       'reply-inbound-org-1-comment-1',
       {
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
-        replaceTerminalJob: true,
       },
     );
   });

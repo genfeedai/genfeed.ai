@@ -243,7 +243,6 @@ export class CronTrendsService implements OnModuleInit {
       {
         attempts: 3,
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
-        replaceTerminalJob: true,
       },
     );
     this.loggerService.log('Queued trend maintenance workflow', {

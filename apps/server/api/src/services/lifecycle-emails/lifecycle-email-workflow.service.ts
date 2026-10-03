@@ -186,7 +186,6 @@ export class LifecycleEmailWorkflowService implements OnModuleInit {
         attempts: 3,
         delayMs: Math.max(0, scheduledFor.getTime() - Date.now()),
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
-        replaceTerminalJob: true,
       },
     );
   }

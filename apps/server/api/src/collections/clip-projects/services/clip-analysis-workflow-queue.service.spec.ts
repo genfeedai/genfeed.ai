@@ -44,7 +44,6 @@ describe('ClipAnalysisWorkflowQueueService', () => {
           canonicalId: 'clip.analysis.failure',
           inputValues: { job: request },
         },
-        replaceTerminalJob: true,
       },
     );
   });

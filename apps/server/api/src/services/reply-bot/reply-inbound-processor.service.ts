@@ -68,7 +68,6 @@ export class ReplyInboundProcessorService implements OnModuleInit {
       `reply-inbound-${data.organizationId}-${data.commentId}`,
       {
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
-        replaceTerminalJob: true,
       },
     );
     return { jobId };

@@ -65,7 +65,7 @@ describe('ReplyPostWatchService workflow boundary', () => {
       // The job id carries the watch identity so a redelivered series replaces
       // its own attempt instead of queueing a duplicate watch.
       expect.stringContaining('reply-post-watch-org-1-youtube-video-1-0'),
-      expect.objectContaining({ delayMs: 120_000, replaceTerminalJob: true }),
+      expect.objectContaining({ delayMs: 120_000 }),
     );
   });
 });
