@@ -610,6 +610,18 @@
       }
     },
     "skills": {
+      "versions": {
+        "title": "Versions",
+        "load": "Load versions",
+        "loading": "Loading versions…",
+        "older": "Load older",
+        "view": "View instructions for version {versionNumber}",
+        "version": "Version {versionNumber}",
+        "instructions": "Version instructions",
+        "emptyInstructions": "This version has empty instructions.",
+        "empty": "No readable versions.",
+        "unavailable": "Skill versions are unavailable."
+      },
       "import": {
         "action": "Import package",
         "title": "Import a skill",

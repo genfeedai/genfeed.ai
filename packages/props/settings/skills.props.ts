@@ -1,4 +1,8 @@
 import type {
+  SkillVersionMetadataV1,
+  SkillVersionReadV1,
+} from '@genfeedai/contracts/interfaces/ai/skill-version-read.interface';
+import type {
   ModalityFilterValue,
   SourceFilterValue,
   StageFilterValue,
@@ -33,6 +37,7 @@ export type SkillDetailCardProps = {
 };
 
 export type SkillDetailSheetProps = SkillDetailCardProps & {
+  versions?: SkillVersionsPanelProps;
   error?: string | null;
   onArchiveSkill?: () => void;
   onClose: () => void;
@@ -47,7 +52,28 @@ export type SkillImportFields = {
   checksum: string;
 };
 
+export type SkillVersionsState = {
+  skillId: string;
+  items: SkillVersionMetadataV1[];
+  detail: SkillVersionReadV1 | null;
+  hasLoaded: boolean;
+  hasMore: boolean;
+  nextCursor: number | null;
+  isLoading: boolean;
+  error: string | null;
+};
+export type SkillVersionsPanelProps = Omit<
+  SkillVersionsState,
+  'skillId' | 'nextCursor'
+> & {
+  isDisabled: boolean;
+  onLoad: () => void;
+  onLoadOlder: () => void;
+  onView: (versionId: string) => void;
+};
+
 export type SkillsPageState = {
+  versions: SkillVersionsState;
   importFields: SkillImportFields;
   isImportOpen: boolean;
   isImporting: boolean;
@@ -70,6 +96,17 @@ export type SkillsPageState = {
 };
 
 export type SkillsPageAction =
+  | { type: 'VERSIONS_CLEAR' }
+  | { type: 'VERSIONS_START'; skillId: string }
+  | {
+      type: 'VERSIONS_LIST';
+      skillId: string;
+      items: SkillVersionMetadataV1[];
+      hasMore: boolean;
+      nextCursor: number | null;
+    }
+  | { type: 'VERSIONS_DETAIL'; skillId: string; detail: SkillVersionReadV1 }
+  | { type: 'VERSIONS_ERROR'; message: string }
   | { type: 'RESET'; importLocked?: boolean }
   | { type: 'IMPORT_RECOVERED' }
   | { type: 'IMPORT_OPEN' }
