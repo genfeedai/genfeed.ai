@@ -1,13 +1,5 @@
 import type { ArticleStatus } from '@genfeedai/contracts';
 
-export interface ArticleCreationParams {
-  topic: string;
-  tone?: 'professional' | 'casual' | 'humorous' | 'technical' | 'storytelling';
-  length?: 'short' | 'medium' | 'long';
-  targetAudience?: string;
-  keywords?: string[];
-}
-
 export interface ArticleResponse {
   id: string;
   title: string;

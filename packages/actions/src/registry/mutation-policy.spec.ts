@@ -18,7 +18,6 @@ const MCP_QUEUED_WRITES = [
   'approve_social_draft',
   'control_scheduled_release',
   'create_ad_remix_workflow',
-  'create_article',
   'create_article_draft',
   'publish_article',
   'create_clip_project_from_youtube',

@@ -90,6 +90,18 @@ export {
   type MediaGenerationType,
   type VisualMediaGenerationType,
 } from './registry/media-generation';
+export {
+  findInapplicableMediaTransformParameters,
+  getMediaTransformOperation,
+  isMediaTransformOperation,
+  MEDIA_MERGE_ZOOM_UNSUPPORTED,
+  MEDIA_REFRAME_ASPECT_RATIOS,
+  MEDIA_TRANSFORM_OPERATION_PARAMETERS,
+  MEDIA_TRANSFORM_OPERATIONS,
+  MEDIA_TRANSFORM_RESULT_KINDS,
+  MEDIA_TRANSFORM_TOOL_NAME,
+  type MediaTransformOperation,
+} from './registry/media-transform';
 export type {
   MutationApprovalStatus,
   MutationPolicyDecision,

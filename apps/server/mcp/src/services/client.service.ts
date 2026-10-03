@@ -65,7 +65,6 @@ import type {
   McpApprovalResource,
 } from '@mcp/shared/interfaces/approval.interface';
 import type {
-  ArticleCreationParams,
   ArticleResponse,
   ArticleSearchParams,
   ArticleSearchResult,
@@ -91,8 +90,6 @@ import type {
   SkillsProInstallation,
 } from '@mcp/shared/interfaces/skills-pro.interface';
 import type {
-  MergeVideosParams,
-  MergeVideosResult,
   VideoCreationParams,
   VideoResponse,
 } from '@mcp/shared/interfaces/video.interface';
@@ -267,10 +264,6 @@ export class ClientService {
     return this.media.createVideo(params);
   }
 
-  mergeVideos(params: MergeVideosParams): Promise<MergeVideosResult> {
-    return this.media.mergeVideos(params);
-  }
-
   createImage(params: ImageCreationParams): Promise<ImageResponse> {
     return this.media.createImage(params);
   }
@@ -304,10 +297,6 @@ export class ClientService {
 
   publishArticle(articleId: string): Promise<ArticleResponse> {
     return this.content.publishArticle(articleId);
-  }
-
-  createArticle(params: ArticleCreationParams): Promise<ArticleResponse> {
-    return this.content.createArticle(params);
   }
 
   searchArticles(params: ArticleSearchParams): Promise<ArticleSearchResult[]> {
@@ -898,22 +887,6 @@ export class ClientService {
   }
 
   // ── LinkedIn ──
-
-  generateLinkedInContent(params: {
-    brandId?: string;
-    topic: string;
-    variationsCount?: number;
-  }): Promise<
-    Array<{
-      body: string;
-      content: string;
-      cta: string;
-      hashtags: string[];
-      hook: string;
-    }>
-  > {
-    return this.linkedin.generateLinkedInContent(params);
-  }
 
   getLinkedInConnectionStatus(): Promise<LinkedInConnectionStatus> {
     return this.linkedin.getLinkedInConnectionStatus();

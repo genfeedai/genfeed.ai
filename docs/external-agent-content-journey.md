@@ -134,8 +134,9 @@ through another client.
 
 The MCP generation toolset exposes:
 
-- `get_generation_settings`: optionally supply `brandId` to inspect the effective
-  setting and its source.
+- `get_generation_options`: optionally supply `brandId` to inspect the effective
+  setting and its source. Add `type` to also read the credit estimate and balance
+  for that generation type.
 - `set_generation_settings`: pass `scope` (`organization` or `brand`), `isEnabled`
   (`true`, `false`, or `null` to reset), and `brandId` for a brand override.
 - `enhance_prompt`: pass `prompt`, `contentType` (`image` or `video`), selected

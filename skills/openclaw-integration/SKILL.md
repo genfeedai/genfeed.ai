@@ -74,7 +74,7 @@ Authorization: Bearer gf_live_xxx
 
 | Tool | Description | Required Params | Optional Params |
 |------|-------------|-----------------|-----------------|
-| `create_article` | Generate an AI article | `topic` | `tone`, `length`, `targetAudience`, `keywords` |
+| `generate_content` | Generate an article and save it as a draft | `topic`, `type: "article"` | `tone`, `length`, `targetAudience`, `keywords` |
 | `get_articles` | Search articles, or retrieve one | `query` or `articleId` | `category`, `limit` (search only) |
 
 ### Images
@@ -167,7 +167,7 @@ Flags:
 
 ```
 1. get_trending_topics({ category: "tech" })
-2. create_article({ topic: "<trending topic>", tone: "professional" })
+2. generate_content({ topic: "<trending topic>", type: "article", tone: "professional" })
 3. create_image({ prompt: "<article hero image>" })
 4. publish_content({ contentId: "<articleId>", platforms: ["twitter", "linkedin"] })
 ```

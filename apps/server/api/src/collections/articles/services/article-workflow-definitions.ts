@@ -2,7 +2,7 @@ import { ARTICLE_HEADER_PROMPT_WORKFLOW_ID } from '@api/collections/articles/ser
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
-export const ARTICLE_GENERATION_TOOL_ID = 'create_article';
+export const ARTICLE_GENERATION_TOOL_ID = 'generate_content';
 export const ARTICLE_REVIEW_ACTION_ID = 'article.review';
 export const ARTICLE_FINALIZE_GENERATION_ACTION_ID =
   'article.generation.finalize';

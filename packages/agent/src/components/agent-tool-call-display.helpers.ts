@@ -51,7 +51,6 @@ export const TOOL_LABELS: Record<string, string> = {
   rate_content: 'Rate Content',
   score_seo: 'Score SEO',
   rate_ingredient: 'Rate Ingredient',
-  reframe_image: 'Reframe Image',
   rename_brand: 'Rename Brand',
   repurpose_post: 'Repurpose Post',
   resolve_handle: 'Resolve Handle',
@@ -61,7 +60,7 @@ export const TOOL_LABELS: Record<string, string> = {
   start_outreach_sequence: 'Start outreach sequence',
   suggest_ingredient_alternatives: 'Find Stronger Alternatives',
   suggest_next_steps: 'Suggest Next Steps',
-  upscale_image: 'Upscale Image',
+  transform_media: 'Transform Media',
 };
 
 /** Product copy for tool activity; provider identifiers never reach the UI. */

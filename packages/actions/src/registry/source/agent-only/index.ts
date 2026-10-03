@@ -7,7 +7,6 @@ import { AGENT_CAMPAIGN_TOOLS } from './campaign.tools';
 import { AGENT_CONTENT_TOOLS } from './content.tools';
 import { AGENT_CONVERSATION_TRANSFER_TOOLS } from './conversation-transfer.tools';
 import { AGENT_DASHBOARD_LAYOUT_TOOLS } from './dashboard-layout.tools';
-import { AGENT_GENERATION_TOOLS } from './generation.tools';
 import { AGENT_IDENTITY_TOOLS } from './identity.tools';
 import { AGENT_ONBOARDING_TOOLS } from './onboarding.tools';
 import { AGENT_OPERATOR_TOOLS } from './operator.tools';
@@ -19,7 +18,6 @@ import { AGENT_WORK_OBJECT_TOOLS } from './work-objects.tools';
 import { AGENT_WORKFLOW_TOOLS } from './workflow.tools';
 
 export const AGENT_ONLY_TOOLS: SourceTool[] = [
-  ...AGENT_GENERATION_TOOLS,
   ...AGENT_OTHER_TOOLS,
   ...AGENT_OPERATOR_TOOLS,
   ...AGENT_CONTENT_TOOLS,

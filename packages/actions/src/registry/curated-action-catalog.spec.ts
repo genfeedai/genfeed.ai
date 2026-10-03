@@ -191,8 +191,7 @@ describe('curated action catalog', () => {
       'generate',
       'get_analytics',
       'get_posts',
-      'reframe_image',
-      'upscale_image',
+      'transform_media',
     ]) {
       expect(getToolByName(name)?.surfaces, name).toMatchObject({
         agent: true,

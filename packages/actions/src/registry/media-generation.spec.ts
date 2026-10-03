@@ -64,7 +64,7 @@ describe('media generation type parsing', () => {
       getVisualMediaGenerationType('generate', { type: 'music' }),
     ).toBeUndefined();
     expect(
-      getVisualMediaGenerationType('edit_image', { type: 'image' }),
+      getVisualMediaGenerationType('transform_media', { type: 'image' }),
     ).toBeUndefined();
   });
 });
