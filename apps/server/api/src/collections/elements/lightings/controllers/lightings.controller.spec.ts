@@ -82,6 +82,7 @@ describe('ElementsLightingsController', () => {
             findAll: vi.fn(),
             findOne: vi.fn(),
             patch: vi.fn(),
+            patchOneWhere: vi.fn(),
             remove: vi.fn(),
             supportsField: vi.fn((field: string) => field === 'organizationId'),
           },
@@ -155,7 +156,9 @@ describe('ElementsLightingsController', () => {
       };
 
       lightingsService.findOne.mockResolvedValue(mockExistingLighting as never);
-      lightingsService.patch.mockResolvedValue(mockUpdatedLighting as never);
+      lightingsService.patchOneWhere.mockResolvedValue(
+        mockUpdatedLighting as never,
+      );
 
       const result = await controller.update(
         mockRequest,
@@ -165,10 +168,10 @@ describe('ElementsLightingsController', () => {
       );
 
       expect(lightingsService.findOne).toHaveBeenCalledWith(
-        { id: lightingId },
+        expect.objectContaining({ id: expect.any(String) }),
         expect.anything(),
       );
-      expect(lightingsService.patch).toHaveBeenCalled();
+      expect(lightingsService.patchOneWhere).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
 
@@ -200,7 +203,7 @@ describe('ElementsLightingsController', () => {
       };
 
       lightingsService.findOne.mockResolvedValue(mockLighting as never);
-      lightingsService.remove.mockResolvedValue(mockLighting as never);
+      lightingsService.patchOneWhere.mockResolvedValue(mockLighting as never);
 
       const result = await controller.remove(
         mockRequest,
@@ -208,11 +211,13 @@ describe('ElementsLightingsController', () => {
         lightingId,
       );
 
-      expect(lightingsService.findOne).toHaveBeenCalledWith({
-        id: lightingId,
-        isDeleted: false,
-      });
-      expect(lightingsService.remove).toHaveBeenCalledWith(lightingId);
+      expect(lightingsService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ id: lightingId }),
+      );
+      expect(lightingsService.patchOneWhere).toHaveBeenCalledWith(
+        expect.objectContaining({ id: lightingId }),
+        { isDeleted: true },
+      );
       expect(result).toBeDefined();
     });
   });

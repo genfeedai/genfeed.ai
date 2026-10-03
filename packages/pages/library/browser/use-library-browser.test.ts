@@ -133,6 +133,17 @@ describe('useLibraryBrowser', () => {
     expect(result.current.contextValue.query.characters).toEqual(['c1', 'c2']);
   });
 
+  it('never reads more characters from the URL than the API accepts', () => {
+    state.search = Array.from(
+      { length: 30 },
+      (_, index) => `characters=c${index}`,
+    ).join('&');
+
+    const { result } = renderHook(() => useLibraryBrowser({}));
+
+    expect(result.current.characters).toHaveLength(25);
+  });
+
   it('sends no characters when none are selected', () => {
     const { result } = renderHook(() => useLibraryBrowser({}));
 

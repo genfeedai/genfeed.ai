@@ -55,7 +55,8 @@ export function resolveCharacterFilter(
   service: IngredientCharacterFilterService | undefined,
   params: {
     characterIds: string[] | undefined;
-    explicitBrandId: string | undefined;
+    /** Only for lists that already authorized a brand override. */
+    explicitBrandId?: string;
     user: { brandId?: string; organizationId: string };
   },
 ): Promise<Record<string, unknown>> {

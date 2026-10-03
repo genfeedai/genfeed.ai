@@ -286,6 +286,7 @@ function SoundsListContent({
     onToggleActive: handleToggleActive,
     onToggleDefault: handleToggleDefault,
     scopeLabel: scopeTranslate('scopeHeader'),
+    sortOrderLabel: scopeTranslate('sortOrderLabel'),
   });
 
   const actions =

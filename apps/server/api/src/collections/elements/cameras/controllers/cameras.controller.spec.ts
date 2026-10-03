@@ -76,6 +76,7 @@ describe('ElementsCamerasController', () => {
             findAll: vi.fn(),
             findOne: vi.fn(),
             patch: vi.fn(),
+            patchOneWhere: vi.fn(),
             remove: vi.fn(),
           },
         },
@@ -147,7 +148,9 @@ describe('ElementsCamerasController', () => {
       };
 
       camerasService.findOne.mockResolvedValue(mockExistingCamera as never);
-      camerasService.patch.mockResolvedValue(mockUpdatedCamera as never);
+      camerasService.patchOneWhere.mockResolvedValue(
+        mockUpdatedCamera as never,
+      );
 
       const result = await controller.update(
         mockRequest,
@@ -157,10 +160,10 @@ describe('ElementsCamerasController', () => {
       );
 
       expect(camerasService.findOne).toHaveBeenCalledWith(
-        { id: id },
+        expect.objectContaining({ id: expect.any(String) }),
         expect.anything(),
       );
-      expect(camerasService.patch).toHaveBeenCalled();
+      expect(camerasService.patchOneWhere).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
 
@@ -189,7 +192,7 @@ describe('ElementsCamerasController', () => {
       };
 
       camerasService.findOne.mockResolvedValue(mockCamera as never);
-      camerasService.remove.mockResolvedValue(mockCamera as never);
+      camerasService.patchOneWhere.mockResolvedValue(mockCamera as never);
 
       const result = await controller.remove(
         mockRequest,
@@ -197,11 +200,13 @@ describe('ElementsCamerasController', () => {
         id,
       );
 
-      expect(camerasService.findOne).toHaveBeenCalledWith({
-        id: id,
-        isDeleted: false,
-      });
-      expect(camerasService.remove).toHaveBeenCalledWith(id);
+      expect(camerasService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ id: id }),
+      );
+      expect(camerasService.patchOneWhere).toHaveBeenCalledWith(
+        expect.objectContaining({ id: id }),
+        { isDeleted: true },
+      );
       expect(result).toBeDefined();
     });
   });

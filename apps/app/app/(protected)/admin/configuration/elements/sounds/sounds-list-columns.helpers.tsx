@@ -14,6 +14,7 @@ export function buildSoundsColumns({
   onToggleActive,
   onToggleDefault,
   scopeLabel,
+  sortOrderLabel,
 }: BuildSoundsColumnsParams): TableColumn<Sound>[] {
   return [
     {
@@ -28,6 +29,12 @@ export function buildSoundsColumns({
       render: (sound: Sound) => (
         <ElementScopeBadge isPlatformDefault={sound.isPlatformDefault} />
       ),
+    },
+    {
+      className: 'tabular-nums',
+      header: sortOrderLabel,
+      key: 'sortOrder',
+      render: (sound: Sound) => sound.sortOrder ?? 0,
     },
     {
       header: 'Category',

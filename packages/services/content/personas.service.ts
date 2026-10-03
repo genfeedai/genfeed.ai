@@ -73,9 +73,14 @@ export class PersonasService extends BaseService<
    * only the first page.
    */
   async listAllCharacters(
-    signal?: AbortSignal,
+    options: { brandId?: string; signal?: AbortSignal } = {},
   ): Promise<BrandCharacterListItem[]> {
-    return toCharacterListItems(await this.findAllPages({}, signal));
+    return toCharacterListItems(
+      await this.findAllPages(
+        options.brandId ? { brandId: options.brandId } : {},
+        options.signal,
+      ),
+    );
   }
 
   async updateAvailability(

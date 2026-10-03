@@ -4,16 +4,17 @@ import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
 
 interface ElementPlatformFieldsProps {
-  isActive: boolean;
+  /** Omit with `onIsActiveChange` when the modal already owns the active toggle. */
+  isActive?: boolean;
   isDisabled?: boolean;
-  onIsActiveChange: (isActive: boolean) => void;
+  onIsActiveChange?: (isActive: boolean) => void;
   onSortOrderChange: (sortOrder: number) => void;
   sortOrder: number;
 }
 
 /** Active toggle and curated order shared by every element modal (#6038). */
 export default function ElementPlatformFields({
-  isActive,
+  isActive = true,
   isDisabled = false,
   onIsActiveChange,
   onSortOrderChange,
@@ -23,16 +24,20 @@ export default function ElementPlatformFields({
 
   return (
     <>
-      <div className="flex flex-col gap-1.5">
-        <Checkbox
-          name="isActive"
-          label={translate('activeLabel')}
-          isChecked={isActive}
-          onChange={(event) => onIsActiveChange(event.target.checked)}
-          isDisabled={isDisabled}
-        />
-        <p className="text-xs text-foreground/70">{translate('activeHelp')}</p>
-      </div>
+      {onIsActiveChange ? (
+        <div className="flex flex-col gap-1.5">
+          <Checkbox
+            name="isActive"
+            label={translate('activeLabel')}
+            isChecked={isActive}
+            onChange={(event) => onIsActiveChange(event.target.checked)}
+            isDisabled={isDisabled}
+          />
+          <p className="text-xs text-foreground/70">
+            {translate('activeHelp')}
+          </p>
+        </div>
+      ) : null}
 
       <FormControl label={translate('sortOrderLabel')}>
         <Input

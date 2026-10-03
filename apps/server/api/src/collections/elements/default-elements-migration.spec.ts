@@ -74,3 +74,32 @@ describe('default Studio elements migration (#6038)', () => {
     expect(migration).not.toMatch(/UPDATE "elements_/);
   });
 });
+
+describe('default Studio elements seed-by-id migration (#6038 review)', () => {
+  const rerun = readFileSync(
+    path.resolve(
+      __dirname,
+      '../../../../../../packages/prisma/prisma/migrations/20261004110000_default_studio_elements_seed_by_id/migration.sql',
+    ),
+    'utf8',
+  );
+
+  it('decides existence by deterministic id or platform key in every section', () => {
+    expect(
+      rerun.match(/existing\."id" = 'c' \|\| substr\(md5\(/g),
+    ).toHaveLength(TABLES.length);
+    expect(
+      rerun.match(/existing\."organizationId" IS NULL AND existing\."key"/g),
+    ).toHaveLength(TABLES.length);
+  });
+
+  it('seeds the same catalog and never updates or alters', () => {
+    for (const table of TABLES) {
+      const keys = (
+        rerun.split(`-- ${table}\n`)[1]?.split('\nWHERE')[0] ?? ''
+      ).match(/^ {2}\('([a-z0-9-]+)', '/gm);
+      expect(keys?.length).toBe(seededKeys(table).length);
+    }
+    expect(rerun).not.toMatch(/\bUPDATE\b|\bALTER\b|ON CONFLICT/);
+  });
+});

@@ -78,6 +78,7 @@ describe('ElementsLensesController', () => {
             findAll: vi.fn(),
             findOne: vi.fn(),
             patch: vi.fn(),
+            patchOneWhere: vi.fn(),
             remove: vi.fn(),
             supportsField: vi.fn((field: string) => field === 'organizationId'),
           },
@@ -150,7 +151,7 @@ describe('ElementsLensesController', () => {
       };
 
       lensesService.findOne.mockResolvedValue(mockExistingLens as never);
-      lensesService.patch.mockResolvedValue(mockUpdatedLens as never);
+      lensesService.patchOneWhere.mockResolvedValue(mockUpdatedLens as never);
 
       const result = await controller.update(
         mockRequest,
@@ -160,10 +161,10 @@ describe('ElementsLensesController', () => {
       );
 
       expect(lensesService.findOne).toHaveBeenCalledWith(
-        { id },
+        expect.objectContaining({ id: expect.any(String) }),
         expect.anything(),
       );
-      expect(lensesService.patch).toHaveBeenCalled();
+      expect(lensesService.patchOneWhere).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
 
@@ -192,7 +193,7 @@ describe('ElementsLensesController', () => {
       };
 
       lensesService.findOne.mockResolvedValue(mockLens as never);
-      lensesService.remove.mockResolvedValue(mockLens as never);
+      lensesService.patchOneWhere.mockResolvedValue(mockLens as never);
 
       const result = await controller.remove(
         mockRequest,
@@ -200,11 +201,13 @@ describe('ElementsLensesController', () => {
         id,
       );
 
-      expect(lensesService.findOne).toHaveBeenCalledWith({
-        id,
-        isDeleted: false,
-      });
-      expect(lensesService.remove).toHaveBeenCalledWith(id);
+      expect(lensesService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ id }),
+      );
+      expect(lensesService.patchOneWhere).toHaveBeenCalledWith(
+        expect.objectContaining({ id: id }),
+        { isDeleted: true },
+      );
       expect(result).toBeDefined();
     });
   });

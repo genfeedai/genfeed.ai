@@ -10,7 +10,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { PresetFilterUtil } from '@api/helpers/utils/preset-filter/preset-filter.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { ScopedCRUDController } from '@api/shared/controllers/base-crud/scoped-crud.controller';
 import type { SortObject } from '@genfeedai/contracts/interfaces';
 import { PresetSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -33,7 +33,7 @@ import type { Request } from 'express';
 @ApiBearerAuth()
 @Controller('presets')
 @UseGuards(RolesGuard)
-export class PresetsController extends BaseCRUDController<
+export class PresetsController extends ScopedCRUDController<
   PresetDocument,
   CreatePresetDto,
   UpdatePresetDto,
@@ -44,6 +44,10 @@ export class PresetsController extends BaseCRUDController<
     public readonly loggerService: LoggerService,
   ) {
     super(loggerService, presetsService, PresetSerializer, 'Preset');
+  }
+
+  protected buildScopeConditions(user: User): Record<string, unknown>[] {
+    return PresetFilterUtil.buildScopeOrConditions(user);
   }
 
   /**

@@ -26,6 +26,9 @@ export const LIBRARY_QUERY_KEYS = {
   VIEW: 'view',
 } as const;
 
+/** Most characters one Library query may filter by; the API rejects more. */
+export const LIBRARY_MAX_CHARACTER_FILTERS = 25;
+
 export const LIBRARY_VIEW_MODES = ['grid', 'list', 'canvas'] as const;
 
 export type LibraryViewMode = (typeof LIBRARY_VIEW_MODES)[number];

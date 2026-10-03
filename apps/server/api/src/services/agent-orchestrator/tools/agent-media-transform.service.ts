@@ -154,12 +154,21 @@ export class AgentMediaTransformService {
       }
     }
 
+    // Headless MCP calls carry no thread brand; resolve it like generate does.
+    const scoped = await this.assetGeneration.resolveMediaBrandContext(
+      params,
+      ctx,
+    );
+    if ('error' in scoped) {
+      return scoped.error;
+    }
+
     try {
       const response = toMediaResponseRecord(
         await this.mergeGateway.mergeVideos({
           body,
           principal: {
-            brandId: ctx.brandId,
+            brandId: scoped.context.brandId,
             organizationId: ctx.organizationId,
             userId: ctx.userId,
           },

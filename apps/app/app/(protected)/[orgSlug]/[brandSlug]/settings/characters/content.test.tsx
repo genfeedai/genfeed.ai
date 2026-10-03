@@ -88,6 +88,10 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   },
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/acme/main${path}` }),
+}));
+
 vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
   useSocketManager: () => ({ subscribe: vi.fn(() => vi.fn()) }),
 }));
