@@ -18,6 +18,7 @@ import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -30,7 +31,9 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { resolveScopeId } from '@api/shared/controllers/base-crud/base-crud-scope.util';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   ActivityKey,
   ActivitySource,
@@ -129,6 +132,24 @@ export class BrandsController extends BaseCRUDController<
     );
 
     return Promise.resolve(definedFields as UpdateBrandDto);
+  }
+
+  /**
+   * PATCH/DELETE authorization. The base default is creator-only through
+   * `userId`, which would let a creator modify their brand from any other
+   * organization; the brand must also belong to the session organization.
+   * Superadmins keep the base bypass.
+   */
+  public override canUserModifyEntity(
+    user: User,
+    entity: BrandDocument,
+  ): boolean {
+    const organizationId = resolveScopeId(entity.organizationId);
+    return (
+      Boolean(organizationId) &&
+      organizationId === user.organizationId &&
+      super.canUserModifyEntity(user, entity)
+    );
   }
 
   /**
@@ -382,26 +403,16 @@ export class BrandsController extends BaseCRUDController<
       throw new BadRequestException('slug query param is required');
     }
 
-    const brand = await this.brandsService.findOneBySlug({
-      slug,
-      OR: [
-        { userId: user.userId ?? user.id },
-        { organizationId: user.organizationId },
-      ],
-      isDeleted: false,
-    });
+    // Session organization only, 404 on a miss: see verifyBrandAccess.
+    const organizationId = user.organizationId;
+    const brand = organizationId
+      ? await this.brandsService.findOneBySlug(
+          scopedWhere(organizationId, { slug }),
+        )
+      : null;
 
     if (!brand) {
-      if (!getIsSuperAdmin(user)) {
-        throw new HttpException(
-          { detail: 'Access denied to this brand', title: 'Forbidden' },
-          HttpStatus.FORBIDDEN,
-        );
-      }
-      throw new HttpException(
-        { detail: 'Brand not found', title: 'Not Found' },
-        HttpStatus.NOT_FOUND,
-      );
+      throw new NotFoundException('Brand', slug);
     }
 
     return serializeSingle(
