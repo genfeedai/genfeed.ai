@@ -49,6 +49,7 @@ import { AgentWorkflowToolOfficialResolverService } from '@api/services/agent-or
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
 import {
+  ActivitySource,
   AgentGenerationMode,
   ApiKeyScope,
   IngredientCategory,
@@ -1693,7 +1694,8 @@ describe('AgentToolExecutorService', () => {
       testId('user'),
       1,
       expect.stringContaining('source-post-1'),
-      expect.anything(),
+      ActivitySource.SCRIPT,
+      { brandId: testId('brand') },
     );
   });
 
