@@ -394,8 +394,16 @@ const UI_TEST_MESSAGES = {
   pages: {
     library: {
       inspector: {
+        deletedReference: 'Deleted reference',
+        hiddenCount:
+          '{count, plural, one {# more is not available to you} other {# more are not available to you}}',
+        lineageError: 'This could not be loaded right now.',
+        madeFrom: 'Made from',
         openPreview: 'Open full-size preview',
+        showMore: 'Show more',
         type: 'Type',
+        untitled: 'Untitled asset',
+        usedIn: 'Used in',
       },
       otherAssets: 'Other assets',
       videoDetail: {
