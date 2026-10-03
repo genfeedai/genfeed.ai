@@ -80,8 +80,22 @@ test('Playwright full-tier nightly workflow exists as a standalone reporter', ()
   assert.match(workflow, /REPOSITORY_TOKEN: \$\{\{ github\.token \}\}/);
   assert.match(
     workflow,
-    /github-token: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \|\| github\.token \}\}/,
+    /github-token: \$\{\{ steps\.reporter-token\.outputs\.token \}\}/,
   );
+  const reporterJob = workflow
+    .split('  nightly-failure-report:')[1]
+    .split('  nightly-recovery-report:')[0];
+  assert.match(
+    reporterJob,
+    /- name: Mint reporter token \(Genfeed bot App\)\n\s+id: reporter-token\n\s+uses: \.\/\.github\/actions\/reporter-token\n\s+with:\n\s+client-id: \$\{\{ secrets\.GENFEED_BOT_CLIENT_ID \}\}\n\s+private-key: \$\{\{ secrets\.GENFEED_BOT_PRIVATE_KEY \}\}\n/u,
+    'reporter token must be minted from the Genfeed bot App',
+  );
+  assert.ok(
+    reporterJob.indexOf('actions/checkout@') <
+      reporterJob.indexOf('uses: ./.github/actions/reporter-token'),
+    'the composite action is local, so the repository must be checked out first',
+  );
+  assert.doesNotMatch(reporterJob, /CONSOLE_DEPLOY_TOKEN/u);
 });
 
 test('full-suite.yml and daily-production-deploy.yml do not depend on the reporting-only full tier', () => {

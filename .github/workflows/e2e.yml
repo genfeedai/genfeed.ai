@@ -1054,6 +1054,13 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Mint reporter token (Genfeed bot App)
+        id: reporter-token
+        uses: ./.github/actions/reporter-token
+        with:
+          client-id: ${{ secrets.GENFEED_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.GENFEED_BOT_PRIVATE_KEY }}
+
       - name: Create or update bounded nightly-failure trackers
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
@@ -1067,7 +1074,7 @@ jobs:
           RUN_ATTEMPT: ${{ github.run_attempt }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
-          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN || github.token }}
+          github-token: ${{ steps.reporter-token.outputs.token }}
           script: |
             const repositoryGithub = getOctokit(process.env.REPOSITORY_TOKEN);
             const path = require('node:path');

@@ -238,7 +238,7 @@ test('reportReleaseE2eFailure fails loudly when the tracker label does not land'
 });
 
 test('reportReleaseE2eFailure files the issue and warns once, without failing the job, when triage GraphQL is permission-denied', async () => {
-  // Regression test for #5204: the reporter token (CONSOLE_DEPLOY_TOKEN) can
+  // Regression test for #5204: the reporter token (Genfeed bot App) can
   // lack the org-level scopes for native issue metadata / Project #12. That
   // must degrade to a single actionable warning, not fail the job — the
   // tracker issue itself was already created by this point.
@@ -283,8 +283,19 @@ test('release failure step separates repository writes from project credentials'
   assert.match(step, /REPOSITORY_TOKEN: \$\{\{ github.token \}\}/u);
   assert.match(
     step,
-    /github-token: \$\{\{ secrets.CONSOLE_DEPLOY_TOKEN \|\| github\.token \}\}/u,
+    /github-token: \$\{\{ steps\.reporter-token\.outputs\.token \}\}/u,
   );
+  assert.match(
+    RELEASE_E2E_WORKFLOW,
+    /- name: Mint reporter token \(Genfeed bot App\)\n\s+id: reporter-token\n\s+uses: \.\/\.github\/actions\/reporter-token\n\s+with:\n\s+client-id: \$\{\{ secrets\.GENFEED_BOT_CLIENT_ID \}\}\n\s+private-key: \$\{\{ secrets\.GENFEED_BOT_PRIVATE_KEY \}\}\n/u,
+    'reporter token must be minted from the Genfeed bot App',
+  );
+  assert.ok(
+    RELEASE_E2E_WORKFLOW.indexOf('actions/checkout@') <
+      RELEASE_E2E_WORKFLOW.indexOf('uses: ./.github/actions/reporter-token'),
+    'the composite action is local, so the repository must be checked out first',
+  );
+  assert.doesNotMatch(RELEASE_E2E_WORKFLOW, /CONSOLE_DEPLOY_TOKEN/u);
   assert.match(step, /github: getOctokit\(process\.env\.REPOSITORY_TOKEN\)/u);
   assert.match(step, /projectGithub: github/u);
   assert.doesNotMatch(step, /continue-on-error:/u);
