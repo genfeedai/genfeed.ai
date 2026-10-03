@@ -49,7 +49,7 @@ export class ApifyTikTokService {
         `${this.constructorName}.getTikTokTrends failed`,
         error,
       );
-      return [];
+      throw error;
     }
   }
 
@@ -75,7 +75,7 @@ export class ApifyTikTokService {
         `${this.constructorName}.getTikTokVideos failed`,
         error,
       );
-      return [];
+      throw error;
     }
   }
 
@@ -117,7 +117,7 @@ export class ApifyTikTokService {
         `${this.constructorName}.getTikTokSounds failed`,
         error,
       );
-      return [];
+      throw error;
     }
   }
 

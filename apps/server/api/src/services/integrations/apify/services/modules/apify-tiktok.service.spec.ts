@@ -155,12 +155,10 @@ describe('ApifyTikTokService', () => {
       );
     });
 
-    it('should return empty array on error', async () => {
+    it('rethrows provider failures instead of returning an empty list', async () => {
       mockBaseService.runActor.mockRejectedValue(new Error('API error'));
 
-      const result = await service.getTikTokTrends();
-
-      expect(result).toEqual([]);
+      await expect(service.getTikTokTrends()).rejects.toThrow('API error');
       expect(mockBaseService.loggerService.error).toHaveBeenCalled();
     });
 
@@ -255,12 +253,10 @@ describe('ApifyTikTokService', () => {
       expect(result[0].hashtags).toEqual(['viral', 'fyp']);
     });
 
-    it('should return empty array on error', async () => {
+    it('rethrows provider failures instead of returning an empty list', async () => {
       mockBaseService.runActor.mockRejectedValue(new Error('network error'));
 
-      const result = await service.getTikTokVideos();
-
-      expect(result).toEqual([]);
+      await expect(service.getTikTokVideos()).rejects.toThrow('network error');
       expect(mockBaseService.loggerService.error).toHaveBeenCalled();
     });
 
@@ -306,12 +302,10 @@ describe('ApifyTikTokService', () => {
       expect(result[0].usageCount).toBe(3);
     });
 
-    it('should return empty array on error', async () => {
+    it('rethrows provider failures instead of returning an empty list', async () => {
       mockBaseService.runActor.mockRejectedValue(new Error('timeout'));
 
-      const result = await service.getTikTokSounds();
-
-      expect(result).toEqual([]);
+      await expect(service.getTikTokSounds()).rejects.toThrow('timeout');
       expect(mockBaseService.loggerService.error).toHaveBeenCalled();
     });
 

@@ -90,10 +90,9 @@ describe('ApifyTwitterService', () => {
     expect(result[0].metadata.trendType).toBe('hashtag');
   });
 
-  it('getTwitterTrends returns empty on error', async () => {
+  it('getTwitterTrends rethrows provider failures', async () => {
     baseService.runActor.mockRejectedValue(new Error('API error'));
-    const result = await service.getTwitterTrends();
-    expect(result).toEqual([]);
+    await expect(service.getTwitterTrends()).rejects.toThrow('API error');
   });
 
   it('getTwitterMentions normalizes tweets', async () => {
