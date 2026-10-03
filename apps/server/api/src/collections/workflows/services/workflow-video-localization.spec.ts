@@ -1,5 +1,6 @@
 import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
+import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import { IngredientCategory } from '@genfeedai/contracts';
 import type {
   INodeExecutor,
@@ -97,6 +98,7 @@ function setup(category = IngredientCategory.VIDEO) {
     new WorkflowMediaProviderPlanService(
       helper as unknown as Arguments[0],
       { log: vi.fn() } as unknown as Arguments[1],
+      personasServiceStub(),
       undefined,
       files as unknown as Arguments[6],
     ),
@@ -210,6 +212,7 @@ describe('Text-to-speech workflow input ports', () => {
       new WorkflowMediaProviderPlanService(
         helper as unknown as Arguments[0],
         { log: vi.fn() } as unknown as Arguments[1],
+        personasServiceStub(),
         undefined,
         undefined,
       ),
