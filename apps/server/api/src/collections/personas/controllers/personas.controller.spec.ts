@@ -223,6 +223,7 @@ describe('PersonasController', () => {
 
       expect(mockServiceMethods.createFromApprovedSheet).toHaveBeenCalledWith({
         assetId: testId('asset'),
+        apiKeyContext: mockUser,
         availability: undefined,
         brandId,
         isSuperAdmin: undefined,
@@ -363,6 +364,7 @@ describe('PersonasController', () => {
 
       expect(mockServiceMethods.updateAvailability).toHaveBeenCalledWith({
         actorUserId: userId,
+        apiKeyContext: mockUser,
         brandId,
         brandIds: undefined,
         isSuperAdmin: undefined,
@@ -423,6 +425,7 @@ describe('PersonasController', () => {
       });
 
       expect(mockServiceMethods.assertCanManageSharing).toHaveBeenCalledWith({
+        apiKeyContext: mockUser,
         isSuperAdmin: undefined,
         organizationId,
         userId,
@@ -478,6 +481,73 @@ describe('PersonasController', () => {
         controller.remove(request, mockUser, personaId),
       ).rejects.toBeInstanceOf(ForbiddenException);
       expect(mockServiceMethods.remove).not.toHaveBeenCalled();
+    });
+
+    describe('cross-organization isolation', () => {
+      const foreignOrgPersona = {
+        ...sharedPersona,
+        organizationId: testId('org', 9),
+      };
+
+      it('never treats another organization character as modifiable', () => {
+        expect(
+          controller.canUserModifyEntity(mockUser, foreignOrgPersona as never),
+        ).toBe(false);
+      });
+
+      it('answers 404 when an admin patches another organization character shared with all brands', async () => {
+        mockServiceMethods.findOne.mockResolvedValue(foreignOrgPersona);
+
+        await expect(
+          controller.patch(request, mockUser, personaId, { label: 'Renamed' }),
+        ).rejects.toMatchObject({ status: 404 });
+        expect(mockServiceMethods.patch).not.toHaveBeenCalled();
+        expect(mockServiceMethods.assignMembers).not.toHaveBeenCalled();
+      });
+
+      it('answers 404 when a member deletes another organization character shared with all brands', async () => {
+        mockServiceMethods.findOne.mockResolvedValue(foreignOrgPersona);
+        mockServiceMethods.assertCanManageSharing.mockRejectedValue(
+          new ForbiddenException('admins only'),
+        );
+
+        await expect(
+          controller.remove(request, mockUser, personaId),
+        ).rejects.toMatchObject({ status: 404 });
+        expect(
+          mockServiceMethods.assertCanManageSharing,
+        ).not.toHaveBeenCalled();
+        expect(mockServiceMethods.remove).not.toHaveBeenCalled();
+      });
+
+      it('answers 404 for an admin deleting another organization character', async () => {
+        mockServiceMethods.findOne.mockResolvedValue(foreignOrgPersona);
+
+        await expect(
+          controller.remove(request, mockUser, personaId),
+        ).rejects.toMatchObject({ status: 404 });
+        expect(mockServiceMethods.remove).not.toHaveBeenCalled();
+      });
+
+      it('scopes the base id lookup to the caller organization', () => {
+        expect(controller.buildFindOneQuery(mockUser, personaId)).toEqual({
+          id: personaId,
+          isDeleted: false,
+          organizationId,
+        });
+      });
+    });
+
+    it('passes the authenticated user so API-key role caps apply', async () => {
+      const apiKeyUser = { ...mockUser, isApiKey: true, scopes: ['read'] };
+      mockServiceMethods.findOne.mockResolvedValue(sharedPersona);
+      mockServiceMethods.patch.mockResolvedValue(sharedPersona);
+
+      await controller.patch(request, apiKeyUser, personaId, { label: 'x' });
+
+      expect(mockServiceMethods.assertCanManageSharing).toHaveBeenCalledWith(
+        expect.objectContaining({ apiKeyContext: apiKeyUser }),
+      );
     });
 
     it('drops availability fields from generic create and update payloads', async () => {

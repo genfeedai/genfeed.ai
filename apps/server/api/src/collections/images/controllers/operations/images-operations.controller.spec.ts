@@ -74,6 +74,7 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import type { TagEntity } from '@api/collections/tags/entities/tag.entity';
 import { TagsService } from '@api/collections/tags/services/tags.service';
@@ -276,6 +277,15 @@ describe('ImagesOperationsController', () => {
         FalImageGenerationProviderAdapter,
         GenfeedAiImageGenerationProviderAdapter,
         ImageGenerationAdmissionService,
+        {
+          provide: PersonasService,
+          useValue: {
+            resolveCharacterReferences: vi.fn().mockResolvedValue({
+              availableAvatarIds: new Set(),
+              personaId: null,
+            }),
+          },
+        },
         ImageGenerationCreditsService,
         ImageGenerationProviderDispatchService,
         {

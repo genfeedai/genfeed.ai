@@ -6,6 +6,7 @@ import type {
 } from '@genfeedai/agent/types/mention.types';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 import {
@@ -80,6 +81,14 @@ export function CharacterMentionList({
               @{item.handle}
             </span>
           </div>
+          {item.isShared ? (
+            <Badge className="ml-auto shrink-0">
+              {translate('sharedBadge', {
+                brand: item.owningBrandName ?? '',
+                count: item.availableBrandCount ?? 0,
+              })}
+            </Badge>
+          ) : null}
         </Button>
       ))}
     </div>

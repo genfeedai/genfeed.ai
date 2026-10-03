@@ -193,6 +193,7 @@ export class PersonasController extends BaseCRUDController<
 
     const persona = await this.personasService.createFromApprovedSheet({
       assetId: body.assetId,
+      apiKeyContext: user,
       availability: body.availability,
       brandId: user.brandId,
       isSuperAdmin: user.isSuperAdmin,
@@ -216,6 +217,7 @@ export class PersonasController extends BaseCRUDController<
     const persona = await this.personasService.updateAvailability({
       actorUserId: user.userId ?? user.id,
       brandId: user.brandId,
+      apiKeyContext: user,
       brandIds: body.brandIds,
       isSuperAdmin: user.isSuperAdmin,
       mode: body.mode,
@@ -240,6 +242,14 @@ export class PersonasController extends BaseCRUDController<
     return decorated ?? data;
   }
 
+  /** Lookups by id never cross organizations (super admins excepted). */
+  public buildFindOneQuery(user: User, id: string): Record<string, unknown> {
+    return {
+      ...super.buildFindOneQuery(user, id),
+      ...(user.isSuperAdmin ? {} : { organizationId: user.organizationId }),
+    };
+  }
+
   public canUserReadEntity(user: User, entity: PersonaDocument): boolean {
     return (
       entity.organizationId === user.organizationId &&
@@ -250,7 +260,10 @@ export class PersonasController extends BaseCRUDController<
 
   public canUserModifyEntity(user: User, entity: PersonaDocument): boolean {
     if (hasSharedAvailability(entity)) {
-      return isPersonaAvailableToBrand(entity, user.brandId);
+      return (
+        entity.organizationId === user.organizationId &&
+        isPersonaAvailableToBrand(entity, user.brandId)
+      );
     }
     return super.canUserModifyEntity(user, entity);
   }
@@ -265,6 +278,7 @@ export class PersonasController extends BaseCRUDController<
       return;
     }
     await this.personasService.assertCanManageSharing({
+      apiKeyContext: user,
       isSuperAdmin: user.isSuperAdmin,
       organizationId: user.organizationId,
       userId: user.userId ?? user.id,
@@ -313,17 +327,23 @@ export class PersonasController extends BaseCRUDController<
     if (!isEntityId(id)) {
       return;
     }
-    const persona = await this.personasService.findOne({
-      id,
-      organizationId: user.organizationId,
-    });
-    if (!persona || !hasSharedAvailability(persona)) {
+    // Unscoped by design: a character in another organization must read as
+    // not-found, never fall through to the base (global) delete.
+    const persona = await this.personasService.findOne({ id });
+    if (!persona) {
+      return;
+    }
+    if (persona.organizationId !== user.organizationId && !user.isSuperAdmin) {
+      throw new NotFoundException('Persona', id);
+    }
+    if (!hasSharedAvailability(persona)) {
       return;
     }
     if (!isPersonaAvailableToBrand(persona, user.brandId)) {
       throw new NotFoundException('Persona', id);
     }
     await this.personasService.assertCanManageSharing({
+      apiKeyContext: user,
       isSuperAdmin: user.isSuperAdmin,
       organizationId: user.organizationId,
       userId: user.userId ?? user.id,

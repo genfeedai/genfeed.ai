@@ -24,6 +24,7 @@ const ready = (id: string, width = 1024, height = 768) => ({
   metadata: { width, height, extension: 'png' },
 });
 const findOne = vi.fn();
+const resolveCharacterReferences = vi.fn();
 const service = new ImageGenerationAdmissionService(
   {} as never,
   { ingredientsEndpoint: 'https://cdn.example.com/ingredients' } as never,
@@ -31,6 +32,7 @@ const service = new ImageGenerationAdmissionService(
   { findOne } as never,
   {} as never,
   {} as never,
+  { resolveCharacterReferences } as never,
 );
 const dto = (patch: Partial<EditImageDto> = {}) =>
   Object.assign(new EditImageDto(), {
@@ -40,6 +42,11 @@ const dto = (patch: Partial<EditImageDto> = {}) =>
   });
 
 beforeEach(() => {
+  resolveCharacterReferences.mockReset();
+  resolveCharacterReferences.mockResolvedValue({
+    availableAvatarIds: new Set(),
+    personaId: null,
+  });
   findOne.mockReset();
   findOne.mockImplementation(async (query: { id: string }) => ready(query.id));
 });
@@ -295,5 +302,31 @@ describe('FLUX.3 model-specific admission', () => {
     await expect(
       service.resolveFlux3References(organizationId, brandId, [secondary]),
     ).rejects.toThrow('not found');
+  });
+
+  it('resolves a shared character reference owned by another brand for FLUX.3 (#6009)', async () => {
+    const avatar = testId('edit', 6);
+    resolveCharacterReferences.mockResolvedValue({
+      availableAvatarIds: new Set([avatar]),
+      personaId: 'persona-1',
+    });
+
+    await expect(
+      service.resolveFlux3References(organizationId, brandId, [avatar]),
+    ).resolves.toEqual([
+      `https://cdn.example.com/ingredients/images/${avatar}`,
+    ]);
+
+    const query = findOne.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(query.organizationId).toBe(organizationId);
+    expect(query).not.toHaveProperty('brandId');
+  });
+
+  it('keeps FLUX.3 references brand-scoped when they are not a shared character image', async () => {
+    const image = testId('edit', 7);
+
+    await service.resolveFlux3References(organizationId, brandId, [image]);
+
+    expect(findOne.mock.calls[0]?.[0]).toMatchObject({ brandId });
   });
 });

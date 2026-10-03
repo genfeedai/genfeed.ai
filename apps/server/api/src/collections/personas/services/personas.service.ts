@@ -1,3 +1,4 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreatePersonaDto } from '@api/collections/personas/dto/create-persona.dto';
 import { UpdatePersonaDto } from '@api/collections/personas/dto/update-persona.dto';
 import type { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
@@ -9,6 +10,7 @@ import {
 } from '@api/collections/personas/utils/persona-availability.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
+import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
@@ -29,11 +31,18 @@ import type {
   CharacterAvailability,
   CharacterAvailabilityInput,
   CharacterHandleResolution,
+  PersonaAvailabilityFields,
   PopulateOption,
 } from '@genfeedai/contracts/interfaces';
 import { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException, Injectable } from '@nestjs/common';
+
+type ApiKeyRoleContext = Pick<AuthenticatedUser, 'isApiKey' | 'scopes'>;
+type PersonaClient = Pick<
+  PrismaService,
+  '$queryRaw' | 'brand' | 'persona' | 'personaAvailabilityAudit'
+>;
 
 function isPersonaHandleUniqueViolation(error: unknown): boolean {
   if (!error || typeof error !== 'object') {
@@ -151,10 +160,27 @@ export class PersonasService extends BaseService<
       ...(Object.keys(config).length > 0 ? { config } : {}),
     };
     try {
-      return await super.create(
-        payload as unknown as CreatePersonaDto,
-        populate,
-      );
+      const owningBrandId = payload.brandId ?? null;
+      if (handle === null || !owningBrandId || !payload.organizationId) {
+        return await super.create(
+          payload as unknown as CreatePersonaDto,
+          populate,
+        );
+      }
+      return await this.withHandleLock(payload.organizationId, async (tx) => {
+        await this.assertNoHandleCollision({
+          availability: {
+            availabilityMode:
+              payload.availabilityMode ?? PersonaAvailabilityMode.OWNING_BRAND,
+            availableBrandIds: payload.availableBrandIds ?? [],
+          },
+          client: tx,
+          handle,
+          organizationId: payload.organizationId,
+          owningBrandId,
+        });
+        return super.create(payload as unknown as CreatePersonaDto, populate);
+      });
     } catch (error: unknown) {
       rethrowHandleConflict(error, handle);
     }
@@ -194,7 +220,33 @@ export class PersonasService extends BaseService<
       nextDto.handle = normalizedHandle;
     }
     try {
-      return await super.patch(id, nextDto, populate);
+      if (!normalizedHandle) {
+        return await super.patch(id, nextDto, populate);
+      }
+      const current = await this.prisma.persona.findFirst({
+        select: {
+          availabilityMode: true,
+          availableBrandIds: true,
+          brandId: true,
+          organizationId: true,
+        },
+        where: { id, isDeleted: false },
+      });
+      if (!current?.brandId) {
+        return await super.patch(id, nextDto, populate);
+      }
+      const owningBrandId = current.brandId;
+      return await this.withHandleLock(current.organizationId, async (tx) => {
+        await this.assertNoHandleCollision({
+          availability: current,
+          client: tx,
+          excludePersonaId: id,
+          handle: normalizedHandle,
+          organizationId: current.organizationId,
+          owningBrandId,
+        });
+        return super.patch(id, nextDto, populate);
+      });
     } catch (error: unknown) {
       rethrowHandleConflict(error, normalizedHandle);
     }
@@ -237,7 +289,11 @@ export class PersonasService extends BaseService<
     const rows = await this.prisma.persona.findMany({
       orderBy: { label: 'asc' },
       select: {
+        availabilityMode: true,
+        availableBrandIds: true,
         avatarIngredientId: true,
+        brand: { select: { label: true } },
+        brandId: true,
         handle: true,
         id: true,
         label: true,
@@ -270,17 +326,32 @@ export class PersonasService extends BaseService<
       }),
     });
 
+    const hasAllBrands = rows.some(
+      (row) => row.availabilityMode === PersonaAvailabilityMode.ALL_BRANDS,
+    );
+    const organizationBrandCount = hasAllBrands
+      ? await this.prisma.brand.count({
+          where: scopedWhere(params.organizationId),
+        })
+      : 0;
+
     return rows.flatMap((row) => {
       if (!row.handle) {
         return [];
       }
       return [
         {
+          availableBrandCount:
+            row.availabilityMode === PersonaAvailabilityMode.ALL_BRANDS
+              ? organizationBrandCount
+              : resolvePersonaBrandIds(row, []).length,
           avatarIngredientId: row.avatarIngredientId,
           handle: row.handle,
           hasReferenceImage: Boolean(row.avatarIngredientId),
           id: row.id,
+          isShared: isPersonaSharedAcrossBrands(row),
           label: row.label,
+          owningBrandName: row.brand?.label ?? null,
         },
       ];
     });
@@ -355,9 +426,55 @@ export class PersonasService extends BaseService<
     return { resolvedIngredientIds, unresolvedHandles };
   }
 
+  /**
+   * Generation references that are a character's reference image. Rejects one
+   * whose character the active brand can no longer use (revocation applies on
+   * the next request), and returns the avatar ids the brand may use across
+   * brands plus the character to link the output to (FR10).
+   */
+  async resolveCharacterReferences(params: {
+    brandId: string;
+    ingredientIds: readonly string[];
+    organizationId: string;
+  }): Promise<{ availableAvatarIds: Set<string>; personaId: string | null }> {
+    if (params.ingredientIds.length === 0) {
+      return { availableAvatarIds: new Set(), personaId: null };
+    }
+    const rows = await this.prisma.persona.findMany({
+      select: {
+        availabilityMode: true,
+        availableBrandIds: true,
+        avatarIngredientId: true,
+        brandId: true,
+        id: true,
+      },
+      where: scopedWhere(params.organizationId, {
+        avatarIngredientId: { in: [...params.ingredientIds] },
+      }),
+    });
+    const availableAvatarIds = new Set<string>();
+    let personaId: string | null = null;
+    for (const id of params.ingredientIds) {
+      const owners = rows.filter((row) => row.avatarIngredientId === id);
+      if (owners.length === 0) {
+        continue;
+      }
+      const usable = owners.find((row) =>
+        isPersonaAvailableToBrand(row, params.brandId),
+      );
+      if (!usable) {
+        throw new NotFoundException('Reference image');
+      }
+      availableAvatarIds.add(id);
+      personaId ??= usable.id;
+    }
+    return { availableAvatarIds, personaId };
+  }
+
   async createFromApprovedSheet(params: {
     assetId: string;
     availability?: CharacterAvailabilityInput;
+    apiKeyContext?: ApiKeyRoleContext;
     brandId: string;
     handle: string;
     isSuperAdmin?: boolean;
@@ -409,20 +526,12 @@ export class PersonasService extends BaseService<
       availability.availabilityMode !== PersonaAvailabilityMode.OWNING_BRAND
     ) {
       await this.assertCanManageSharing({
+        apiKeyContext: params.apiKeyContext,
         isSuperAdmin: params.isSuperAdmin,
         organizationId: params.organizationId,
         userId: params.userId,
       });
     }
-    await this.assertNoHandleCollision({
-      handle,
-      organizationId: params.organizationId,
-      targetBrandIds: await this.resolveTargetBrandIds(
-        availability,
-        params.organizationId,
-        params.brandId,
-      ),
-    });
     return this.create({
       ...availability,
       avatarIngredientId: image.id,
@@ -436,6 +545,7 @@ export class PersonasService extends BaseService<
   }
 
   async isOrganizationOwnerOrAdmin(params: {
+    apiKeyContext?: ApiKeyRoleContext;
     organizationId: string;
     userId: string;
   }): Promise<boolean> {
@@ -446,16 +556,18 @@ export class PersonasService extends BaseService<
         userId: params.userId,
       }),
     });
-    return (
-      member !== null &&
-      member !== undefined &&
-      [MemberRole.OWNER, MemberRole.ADMIN].includes(
-        member.role.key as MemberRole,
-      )
+    if (!member) {
+      return false;
+    }
+    const effectiveRole = resolveApiKeyEffectiveMemberRole(
+      params.apiKeyContext ?? {},
+      member.role.key as MemberRole,
     );
+    return [MemberRole.OWNER, MemberRole.ADMIN].includes(effectiveRole);
   }
 
   async assertCanManageSharing(params: {
+    apiKeyContext?: ApiKeyRoleContext;
     isSuperAdmin?: boolean;
     organizationId: string;
     userId: string;
@@ -511,39 +623,41 @@ export class PersonasService extends BaseService<
     };
   }
 
-  private async resolveTargetBrandIds(
-    availability: CharacterAvailability,
+  /**
+   * Serializes handle checks and writes per organization so two concurrent
+   * sharing, create or rename requests cannot both pass validation against
+   * the old state.
+   */
+  private withHandleLock<T>(
     organizationId: string,
-    owningBrandId: string,
-  ): Promise<string[]> {
-    if (availability.availabilityMode === PersonaAvailabilityMode.ALL_BRANDS) {
-      const brands = await this.prisma.brand.findMany({
-        select: { id: true },
-        where: scopedWhere(organizationId),
-      });
-      return [...new Set([owningBrandId, ...brands.map((brand) => brand.id)])];
-    }
-    return resolvePersonaBrandIds(
-      { ...availability, brandId: owningBrandId },
-      [],
-    );
+    work: (tx: PersonaClient) => Promise<T>,
+  ): Promise<T> {
+    return this.prisma.$transaction(async (tx) => {
+      const key = `persona-handle:${organizationId}`;
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))::text`;
+      return work(tx);
+    });
   }
 
   /**
    * A handle must stay unique among the characters a brand can see. Rejects
    * when another live character with the same handle is owned by, or shared
-   * to, any of `targetBrandIds`, naming the handle and the brand.
+   * to, any brand the character will be available to, naming the handle and
+   * the brand.
    */
   private async assertNoHandleCollision(params: {
+    availability: PersonaAvailabilityFields;
+    client?: PersonaClient;
     excludePersonaId?: string;
     handle: string | null | undefined;
     organizationId: string;
-    targetBrandIds: readonly string[];
+    owningBrandId: string;
   }): Promise<void> {
     if (!params.handle) {
       return;
     }
-    const others = await this.prisma.persona.findMany({
+    const client = params.client ?? this.prisma;
+    const others = await client.persona.findMany({
       select: {
         availabilityMode: true,
         availableBrandIds: true,
@@ -560,17 +674,24 @@ export class PersonasService extends BaseService<
       return;
     }
 
-    const brands = await this.prisma.brand.findMany({
+    const brands = await client.brand.findMany({
       select: { id: true, label: true },
       where: scopedWhere(params.organizationId),
     });
     const organizationBrandIds = brands.map((brand) => brand.id);
+    const targetBrandIds = new Set([
+      params.owningBrandId,
+      ...resolvePersonaBrandIds(
+        { ...params.availability, brandId: params.owningBrandId },
+        organizationBrandIds,
+      ),
+    ]);
     const occupied = new Set(
       others.flatMap((other) =>
         resolvePersonaBrandIds(other, organizationBrandIds),
       ),
     );
-    const conflictingBrandId = params.targetBrandIds.find((brandId) =>
+    const conflictingBrandId = [...targetBrandIds].find((brandId) =>
       occupied.has(brandId),
     );
     if (conflictingBrandId) {
@@ -604,6 +725,7 @@ export class PersonasService extends BaseService<
     actorUserId: string;
     brandId: string;
     brandIds?: readonly string[];
+    apiKeyContext?: ApiKeyRoleContext;
     isSuperAdmin?: boolean;
     mode: PersonaAvailabilityMode;
     organizationId: string;
@@ -616,6 +738,7 @@ export class PersonasService extends BaseService<
       throw new NotFoundException('Persona', params.personaId);
     }
     await this.assertCanManageSharing({
+      apiKeyContext: params.apiKeyContext,
       isSuperAdmin: params.isSuperAdmin,
       organizationId: params.organizationId,
       userId: params.actorUserId,
@@ -633,22 +756,27 @@ export class PersonasService extends BaseService<
       organizationId: params.organizationId,
       owningBrandId: persona.brandId,
     });
-    if (
-      availability.availabilityMode !== PersonaAvailabilityMode.OWNING_BRAND
-    ) {
-      await this.assertNoHandleCollision({
-        excludePersonaId: persona.id,
-        handle: persona.handle,
-        organizationId: params.organizationId,
-        targetBrandIds: await this.resolveTargetBrandIds(
-          availability,
-          params.organizationId,
-          persona.brandId,
-        ),
+    const owningBrandId = persona.brandId;
+    await this.withHandleLock(params.organizationId, async (tx) => {
+      // Re-read under the lock so a concurrent change cannot slip past.
+      const locked = await tx.persona.findFirst({
+        where: scopedWhere(params.organizationId, { id: persona.id }),
       });
-    }
-
-    await this.prisma.$transaction(async (tx) => {
+      if (!locked) {
+        throw new NotFoundException('Persona', params.personaId);
+      }
+      if (
+        availability.availabilityMode !== PersonaAvailabilityMode.OWNING_BRAND
+      ) {
+        await this.assertNoHandleCollision({
+          availability,
+          client: tx,
+          excludePersonaId: persona.id,
+          handle: locked.handle,
+          organizationId: params.organizationId,
+          owningBrandId,
+        });
+      }
       await tx.persona.update({
         data: availability,
         where: { id: persona.id },
@@ -660,8 +788,8 @@ export class PersonasService extends BaseService<
           newMode: availability.availabilityMode,
           organizationId: params.organizationId,
           personaId: persona.id,
-          previousBrandIds: persona.availableBrandIds,
-          previousMode: persona.availabilityMode,
+          previousBrandIds: locked.availableBrandIds,
+          previousMode: locked.availabilityMode,
         },
       });
     });
