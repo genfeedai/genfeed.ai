@@ -467,7 +467,7 @@ test('expired server quote preserves the prompt and never resubmits automaticall
   const errorToast = page
     .locator('[data-sonner-toast][data-type="error"]')
     .filter({
-      has: page.getByText('The image provider could not be reached. failed', {
+      has: page.getByText('The image provider could not be reached.', {
         exact: true,
       }),
     });
