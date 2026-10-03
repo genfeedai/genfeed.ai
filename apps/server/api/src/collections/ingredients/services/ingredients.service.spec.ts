@@ -491,6 +491,13 @@ describe('IngredientsService', () => {
             isDeleted: false,
             organizationId,
             origin: IngredientOrigin.UPLOADED,
+            status: {
+              notIn: [
+                IngredientStatus.FAILED,
+                IngredientStatus.ARCHIVED,
+                IngredientStatus.REJECTED,
+              ],
+            },
             trainingId: null,
           },
         }),

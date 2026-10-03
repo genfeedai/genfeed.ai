@@ -157,7 +157,8 @@ export class AgentWorkspaceToolHandler {
 
   /**
    * `get_brands`: every brand in the organization, or the one matching
-   * `brandId` by id, slug, name or label.
+   * `brand` by id, slug, name or label. The lookup is a plain `brand` field,
+   * not `brandId`, so it never collides with thread brand-scope checks.
    */
   async getBrands(
     params: Record<string, unknown>,
@@ -176,7 +177,7 @@ export class AgentWorkspaceToolHandler {
       (brands.docs as Record<string, unknown>[] | undefined) ?? [],
     );
 
-    const requested = readRequiredString(params.brandId);
+    const requested = readRequiredString(params.brand);
     if (!requested) {
       return { creditsUsed: 0, data: { brands: serialized }, success: true };
     }
@@ -218,7 +219,12 @@ export class AgentWorkspaceToolHandler {
           `${misused.join(', ')} do not apply to type character.`,
         );
       }
-      return this.listCharacters(params, ctx);
+      const characterBrand = await this.resolveAssetBrand(params, ctx);
+      if ('error' in characterBrand) return characterBrand.error;
+      return this.listCharacters(params, {
+        ...ctx,
+        ...(characterBrand.brandId ? { brandId: characterBrand.brandId } : {}),
+      });
     }
 
     if (params.q !== undefined && params.q !== null) {
@@ -235,7 +241,9 @@ export class AgentWorkspaceToolHandler {
       );
     }
 
-    const brandId = ctx.brandId ?? ctx.validatedScope?.brandId;
+    const brandScope = await this.resolveAssetBrand(params, ctx);
+    if ('error' in brandScope) return brandScope.error;
+    const brandId = brandScope.brandId;
     const assets = await this.ingredientsService.listLibraryAssets({
       ...(brandId ? { brandId } : {}),
       category: ASSET_TYPE_CATEGORY[type],
@@ -254,6 +262,34 @@ export class AgentWorkspaceToolHandler {
       },
       success: true,
     };
+  }
+
+  /**
+   * Brand for an asset listing: an explicit `brandId` (must belong to the
+   * organization), else the thread brand, else the member's current brand.
+   * With none, the listing spans the organization — it is read-only and
+   * already tenant-scoped.
+   */
+  private async resolveAssetBrand(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<{ brandId?: string } | { error: AgentToolResult }> {
+    const explicitBrandId = readRequiredString(params.brandId);
+    const brand = await resolveGenerationBrand({
+      brandsService: this.brandsService,
+      contextBrandId: ctx.brandId ?? ctx.validatedScope?.brandId,
+      explicitBrandId,
+      membersService: this.membersService,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+    });
+    const brandId = typeof brand?.id === 'string' ? brand.id : undefined;
+    if (explicitBrandId && brandId !== explicitBrandId) {
+      return {
+        error: toolFailure('Brand was not found in this organization.'),
+      };
+    }
+    return brandId ? { brandId } : {};
   }
 
   private async listCharacters(

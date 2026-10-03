@@ -2268,6 +2268,18 @@ describe('AgentToolExecutorService', () => {
     expect(postsService.findAll).not.toHaveBeenCalled();
   });
 
+  it('rejects an empty get_posts postId instead of listing posts', async () => {
+    const { postsService, service } = createService();
+    const result = await service.executeTool(
+      'get_posts',
+      { postId: '' },
+      { organizationId: testId('org'), userId: testId('user') },
+    );
+
+    expect(result.success).toBe(false);
+    expect(postsService.findAll).not.toHaveBeenCalled();
+  });
+
   it('reads the content calendar when get_posts receives days', async () => {
     const { postsService, service } = createService();
     postsService.findAll.mockResolvedValue({ docs: [] });

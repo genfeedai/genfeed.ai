@@ -1,3 +1,4 @@
+import { HIDDEN_LIBRARY_ASSET_STATUSES } from '@api/collections/ingredients/constants/library-asset-listing.constants';
 import {
   CreateIngredientDto,
   type IngredientServerCreate,
@@ -257,8 +258,8 @@ export class IngredientsService extends BaseService<
   /**
    * One page of an organization's Library assets of a single category, newest
    * first. Scoped by `organizationId` and `isDeleted: false`, and by `brandId`
-   * when the caller is brand-scoped; training ingredients are not Library
-   * assets, matching the Library list endpoints.
+   * when the caller is brand-scoped. Training ingredients and failed, archived
+   * or rejected assets are left out, like the Library list defaults.
    */
   async listLibraryAssets(params: {
     brandId?: string;
@@ -276,6 +277,7 @@ export class IngredientsService extends BaseService<
       where: scopedWhere(params.organizationId, {
         ...(params.brandId ? { brandId: params.brandId } : {}),
         category: params.category,
+        status: { notIn: [...HIDDEN_LIBRARY_ASSET_STATUSES] },
         trainingId: null,
         ...(params.origin ? { origin: params.origin } : {}),
       }),

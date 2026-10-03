@@ -171,7 +171,9 @@ function dispatchGetPosts(
   const isSet = (key: string): boolean =>
     params[key] !== undefined && params[key] !== null && params[key] !== '';
 
-  if (isSet('postId')) {
+  // A supplied postId, even an empty one, selects detail mode so an invalid id
+  // is rejected instead of silently listing unrelated posts.
+  if (params.postId !== undefined && params.postId !== null) {
     const others = ['days', 'executionState', 'limit'].filter(isSet);
     if (others.length > 0) {
       return {
