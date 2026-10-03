@@ -1,3 +1,7 @@
+import {
+  CREDIT_USAGE_AMOUNT_SQL,
+  CREDIT_USAGE_FILTER_SQL,
+} from '@api/collections/credits/services/credit-usage.util';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -5,6 +9,10 @@ import { CreditTransactionCategory } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+
+type CreditFlow =
+  | CreditTransactionCategory.ADD
+  | CreditTransactionCategory.DEDUCT;
 
 interface DailyAmountEntry {
   date: string;
@@ -47,6 +55,11 @@ type StripeChargeListParams = Parameters<
 interface DailyAmountRow {
   amount: bigint | number | string | null;
   date: string;
+}
+
+interface LeaderAmountRow {
+  amount: bigint | number | string | null;
+  organizationId: string;
 }
 
 interface DailyCountRow {
@@ -273,7 +286,7 @@ export class BusinessAnalyticsService {
     const thisWeekStart = daysAgo(now, 7);
     const lastWeekStart = daysAgo(now, 14);
 
-    const addSource = CreditTransactionCategory.ADD;
+    const addFlow: CreditFlow = CreditTransactionCategory.ADD;
 
     const [
       todayResult,
@@ -284,13 +297,13 @@ export class BusinessAnalyticsService {
       thisWeekTotal,
       lastWeekTotal,
     ] = await Promise.all([
-      this.sumCreditTransactions(addSource, todayStart),
-      this.sumCreditTransactions(addSource, last7dStart),
-      this.sumCreditTransactions(addSource, last30dStart),
-      this.sumCreditTransactions(addSource, mtdStart),
-      this.getDailyCreditSeries(addSource, last30dStart, now),
-      this.sumCreditTransactions(addSource, thisWeekStart),
-      this.sumCreditTransactions(addSource, lastWeekStart, thisWeekStart),
+      this.sumCreditTransactions(addFlow, todayStart),
+      this.sumCreditTransactions(addFlow, last7dStart),
+      this.sumCreditTransactions(addFlow, last30dStart),
+      this.sumCreditTransactions(addFlow, mtdStart),
+      this.getDailyCreditSeries(addFlow, last30dStart, now),
+      this.sumCreditTransactions(addFlow, thisWeekStart),
+      this.sumCreditTransactions(addFlow, lastWeekStart, thisWeekStart),
     ]);
 
     const wowGrowth = computeWowGrowth(thisWeekTotal, lastWeekTotal);
@@ -310,8 +323,8 @@ export class BusinessAnalyticsService {
     const thisWeekStart = daysAgo(now, 7);
     const lastWeekStart = daysAgo(now, 14);
 
-    const addSource = CreditTransactionCategory.ADD;
-    const deductSource = CreditTransactionCategory.DEDUCT;
+    const addFlow: CreditFlow = CreditTransactionCategory.ADD;
+    const deductFlow: CreditFlow = CreditTransactionCategory.DEDUCT;
 
     const [
       sold,
@@ -321,12 +334,12 @@ export class BusinessAnalyticsService {
       thisWeekConsumed,
       lastWeekConsumed,
     ] = await Promise.all([
-      this.sumCreditTransactions(addSource, last30dStart),
-      this.sumCreditTransactions(deductSource, last30dStart),
-      this.getDailyCreditSeries(addSource, last30dStart, now),
-      this.getDailyCreditSeries(deductSource, last30dStart, now),
-      this.sumCreditTransactions(deductSource, thisWeekStart),
-      this.sumCreditTransactions(deductSource, lastWeekStart, thisWeekStart),
+      this.sumCreditTransactions(addFlow, last30dStart),
+      this.sumCreditTransactions(deductFlow, last30dStart),
+      this.getDailyCreditSeries(addFlow, last30dStart, now),
+      this.getDailyCreditSeries(deductFlow, last30dStart, now),
+      this.sumCreditTransactions(deductFlow, thisWeekStart),
+      this.sumCreditTransactions(deductFlow, lastWeekStart, thisWeekStart),
     ]);
 
     const wowGrowth = computeWowGrowth(thisWeekConsumed, lastWeekConsumed);
@@ -397,48 +410,59 @@ export class BusinessAnalyticsService {
     return { byCredits, byIngredients, byRevenue };
   }
 
+  /**
+   * Sold credits are `add` rows; consumed credits are usage — deductions net
+   * of refunds, without referral reward reversals.
+   */
+  private creditFlowSql(flow: CreditFlow): {
+    amount: Prisma.Sql;
+    filter: Prisma.Sql;
+  } {
+    return flow === CreditTransactionCategory.DEDUCT
+      ? { amount: CREDIT_USAGE_AMOUNT_SQL, filter: CREDIT_USAGE_FILTER_SQL }
+      : {
+          amount: Prisma.sql`"amount"`,
+          filter: Prisma.sql`"category" = ${CreditTransactionCategory.ADD}`,
+        };
+  }
+
   private async sumCreditTransactions(
-    source: string,
+    flow: CreditFlow,
     createdAtGte?: Date,
     createdAtLt?: Date,
   ): Promise<number> {
-    const rows = createdAtLt
-      ? await this.prisma.$queryRaw<Array<{ amount?: unknown }>>(
-          Prisma.sql`
-            SELECT COALESCE(SUM("amount"), 0) AS amount
-            FROM "credit_transactions"
-            WHERE "isDeleted" = false
-              AND "source" = ${source}
-              AND "createdAt" >= ${createdAtGte ?? new Date(0)}
-              AND "createdAt" < ${createdAtLt}
-          `,
-        )
-      : await this.prisma.$queryRaw<Array<{ amount?: unknown }>>(
-          Prisma.sql`
-            SELECT COALESCE(SUM("amount"), 0) AS amount
-            FROM "credit_transactions"
-            WHERE "isDeleted" = false
-              AND "source" = ${source}
-              AND "createdAt" >= ${createdAtGte ?? new Date(0)}
-          `,
-        );
+    const { amount, filter } = this.creditFlowSql(flow);
+    const upperBound = createdAtLt
+      ? Prisma.sql`AND "createdAt" < ${createdAtLt}`
+      : Prisma.empty;
+    const rows = await this.prisma.$queryRaw<Array<{ amount?: unknown }>>(
+      Prisma.sql`
+        SELECT COALESCE(SUM(${amount}), 0) AS amount
+        FROM "credit_transactions"
+        WHERE "isDeleted" = false
+          AND ${filter}
+          AND "createdAt" >= ${createdAtGte ?? new Date(0)}
+          ${upperBound}
+      `,
+    );
 
     return this.readNumber(rows[0]?.amount);
   }
 
   private async getDailyCreditSeries(
-    source: string,
+    flow: CreditFlow,
     from: Date,
     to: Date,
   ): Promise<DailyAmountEntry[]> {
+    const { amount, filter } = this.creditFlowSql(flow);
     const rows = await this.prisma.$queryRaw<DailyAmountRow[]>(
       Prisma.sql`
         SELECT
           to_char(date_trunc('day', "createdAt"), 'YYYY-MM-DD') AS date,
-          COALESCE(SUM("amount"), 0) AS amount
+          COALESCE(SUM(${amount}), 0) AS amount
         FROM "credit_transactions"
         WHERE "isDeleted" = false
-          AND "source" = ${source}
+          AND ${filter}
           AND "createdAt" >= ${from}
           AND "createdAt" <= ${to}
         GROUP BY date_trunc('day', "createdAt")
@@ -520,25 +544,28 @@ export class BusinessAnalyticsService {
   }
 
   private async getLeadersByCredits(
-    source: string,
+    flow: CreditFlow,
     from: Date,
     to: Date,
   ): Promise<LeaderEntry[]> {
-    // tenant-scope-ignore: platform-wide admin analytics; this query ranks every organization
-    const rows = await this.prisma.creditTransaction.groupBy({
-      _sum: { amount: true },
-      by: ['organizationId'],
-      orderBy: { _sum: { amount: 'desc' } },
-      take: 10,
-      where: {
-        createdAt: { gte: from, lte: to },
-        isDeleted: false,
-        source,
-      },
-    });
+    const { amount, filter } = this.creditFlowSql(flow);
+    // Platform-wide admin analytics; this query ranks every organization.
+    const rows = await this.prisma.$queryRaw<LeaderAmountRow[]>(
+      Prisma.sql`
+        SELECT "organizationId", SUM(${amount}) AS amount
+        FROM "credit_transactions"
+        WHERE "isDeleted" = false
+          AND ${filter}
+          AND "createdAt" >= ${from}
+          AND "createdAt" <= ${to}
+        GROUP BY "organizationId"
+        ORDER BY amount DESC
+        LIMIT 10
+      `,
+    );
 
     const leaders = rows.map((row) => ({
-      amount: this.readNumber(row._sum.amount),
+      amount: this.readNumber(row.amount),
       organizationId: String(row.organizationId),
     }));
     if (leaders.length === 0) return [];

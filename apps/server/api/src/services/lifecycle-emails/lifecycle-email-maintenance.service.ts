@@ -1,3 +1,8 @@
+import {
+  creditUsageSignBuckets,
+  creditUsageWhere,
+  netCreditUsage,
+} from '@api/collections/credits/services/credit-usage.util';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
@@ -5,10 +10,7 @@ import { NotificationPreferenceService } from '@api/services/notifications/workf
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { isSelfHostedDeployment } from '@genfeedai/config';
-import {
-  CreditTransactionCategory,
-  TargetExecutionState,
-} from '@genfeedai/contracts';
+import { TargetExecutionState } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types';
 import { getLifecycleSystemEmailDefinition } from '@genfeedai/contracts/constants';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
@@ -303,16 +305,22 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
       ingredients.map(({ id }) => id),
       articles.map(({ id }) => id),
     );
-    const credits = await this.prisma.creditTransaction.aggregate({
-      where: {
-        organizationId: request.organizationId,
-        isDeleted: false,
-        actorUserId: userId,
-        category: CreditTransactionCategory.DEDUCT,
-        createdAt: { gte: start, lt: end },
-      },
-      _sum: { amount: true },
-    });
+    const creditUsageBuckets = await Promise.all(
+      creditUsageSignBuckets().map((sign) =>
+        this.prisma.creditTransaction.groupBy({
+          by: ['category'],
+          where: scopedWhere(request.organizationId, {
+            ...creditUsageWhere(),
+            ...sign,
+            actorUserId: userId,
+            createdAt: { gte: start, lt: end },
+          }),
+          _sum: { amount: true },
+        }),
+      ),
+    );
+    // A period can refund more than it spent; that reads as no usage.
+    const creditsUsed = Math.max(0, netCreditUsage(creditUsageBuckets.flat()));
     const metrics = published.length
       ? await this.prisma.contentPerformance.findMany({
           where: {
@@ -367,7 +375,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
               .join('; ')}.`,
           ]
         : []),
-      `${Math.abs(credits._sum.amount ?? 0).toLocaleString('en-US')} credits used during this period.`,
+      `${creditsUsed.toLocaleString('en-US')} credits used during this period.`,
       ...(metrics.length
         ? [
             `Latest measured performance for these published pieces: views ${views}; interactions ${interactions}.`,

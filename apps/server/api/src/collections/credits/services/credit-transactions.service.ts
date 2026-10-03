@@ -4,6 +4,10 @@ import {
   recordCreditTransactionActivity,
 } from '@api/collections/credits/services/credit-activity.util';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
+import {
+  creditUsageWhere,
+  signedCreditUsage,
+} from '@api/collections/credits/services/credit-usage.util';
 import { validatedWorkflowAccountingAttribution } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { CACHE_PATTERNS } from '@api/common/constants/cache-patterns.constants';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
@@ -12,7 +16,6 @@ import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/tra
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { CreditTransactionCategory } from '@genfeedai/contracts';
-import { REFERRAL_REWARD_REVERSAL_REFERENCE_TYPE } from '@genfeedai/contracts/constants';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -391,26 +394,13 @@ export class CreditTransactionsService extends BaseService<
       // Look back a year so monthly/weekly charts have enough buckets.
       const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
 
-      // Usage nets refunds against deductions; referral reward reversals are
-      // balance adjustments, not usage.
       const deductions = this.normalizeDocuments(
         (await this.delegate.findMany({
           where: {
-            category: {
-              in: [
-                CreditTransactionCategory.DEDUCT,
-                CreditTransactionCategory.REFUND,
-              ],
-            },
+            ...creditUsageWhere(),
             createdAt: { gte: yearAgo },
             isDeleted: false,
             organizationId,
-            OR: [
-              { referenceType: null },
-              {
-                referenceType: { not: REFERRAL_REWARD_REVERSAL_REFERENCE_TYPE },
-              },
-            ],
           },
         })) as unknown[],
       );
@@ -421,7 +411,7 @@ export class CreditTransactionsService extends BaseService<
       const byDay = new Map<string, number>();
 
       for (const d of deductions) {
-        const absAmount = this.signedUsageAmount(d);
+        const absAmount = signedCreditUsage(d);
         const createdAt =
           d.createdAt instanceof Date ? d.createdAt : new Date(d.createdAt);
 
@@ -480,16 +470,6 @@ export class CreditTransactionsService extends BaseService<
   }
 
   /** Deductions count as positive usage and refunds as negative usage. */
-  private signedUsageAmount(entry: {
-    amount?: number | null;
-    category?: string | null;
-  }): number {
-    const magnitude = Math.abs(Number(entry.amount) || 0);
-    return entry.category === CreditTransactionCategory.REFUND
-      ? -magnitude
-      : magnitude;
-  }
-
   private toUtcDayKey(date: Date): string {
     return date.toISOString().slice(0, 10);
   }
