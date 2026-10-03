@@ -1,6 +1,9 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "rootDir": "../../../../..",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "noEmit": true,
     "strict": true,
     "skipLibCheck": true,
