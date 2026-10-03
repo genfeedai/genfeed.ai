@@ -156,6 +156,26 @@ describe('admin IP allowlist through the app /v1 rewrite', () => {
     expect(response.body).toEqual({ ip: '', isAllowed: false });
   });
 
+  // Node caps incoming headers at 1000. Filler headers must not push the
+  // rewrite's x-forwarded-host past the cap and strip the marker; the counts
+  // straddle the cap once the client's and proxy's own headers are added.
+  it.each(Array.from({ length: 10 }, (_, index) => 990 + index))(
+    'denies a rewrite request padded with %i filler headers',
+    async (count) => {
+      vi.stubEnv('ADMIN_ALLOWED_IPS', ALLOWED_IPS);
+      const appPort = await startAppRewrite(await startApi(false));
+      const filler = Object.fromEntries(
+        Array.from({ length: count }, (_, index) => [`x-f${index}`, '1']),
+      );
+
+      const response = await request(`http://127.0.0.1:${appPort}`)
+        .get('/v1/admin-probe')
+        .set(filler);
+
+      expect(response.body.isAllowed).not.toBe(true);
+    },
+  );
+
   it('still allows a direct loopback client on the API port', async () => {
     vi.stubEnv('ADMIN_ALLOWED_IPS', ALLOWED_IPS);
     const apiPort = await startApi(false);
