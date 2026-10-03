@@ -1,4 +1,7 @@
-import type { BrandedGenerationReceiptV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+import type {
+  BrandedGenerationReceiptV1,
+  BrandIdentitySnapshotV1,
+} from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 
 const hash = `sha256:${'a'.repeat(64)}`;
 const time = '2026-10-01T00:00:00.000Z';
@@ -281,5 +284,192 @@ describe('receipt read HTTP client', () => {
     await expect(
       service.readPrompt('brand', 'receipt', 0, 'original'),
     ).rejects.toBe(error);
+  });
+});
+
+function identitySnapshot(): BrandIdentitySnapshotV1 {
+  return {
+    schemaVersion: 1,
+    organizationId: 'org',
+    brandId: 'brand',
+    revisionId: 'A',
+    revisionVersion: 1,
+    approval: 'approved',
+    resolvedAt: time,
+    contentHash: hash,
+    identity: { name: '  Café 東京\n  ' },
+    voice: { audience: [], values: [], messagingPillars: [], avoid: [] },
+    generationRules: {
+      schemaVersion: 1,
+      evidence: [],
+      facts: [],
+      palette: [],
+      typography: [],
+      mandatory: [],
+      avoid: [],
+      examples: [],
+      assets: [],
+    },
+    diagnostics: [],
+  };
+}
+describe('strict scoped identity preview HTTP client', () => {
+  it('makes exactly one encoded current GET with signal and no organization query or mutations', async () => {
+    const { service, http } = setup();
+    const signal = new AbortController().signal;
+    const snapshot = { ...identitySnapshot(), brandId: 'brand /?' };
+    http.get.mockResolvedValue(
+      axiosResponse(
+        resourceDocument(
+          { snapshot, source: 'current_approved_revision' },
+          { id: hash, type: 'brand-identity-preview' },
+        ),
+      ),
+    );
+    expect(
+      await service.getIdentityPreview(
+        'org',
+        snapshot.brandId,
+        undefined,
+        signal,
+      ),
+    ).toEqual({ id: hash, snapshot, source: 'current_approved_revision' });
+    expect(http.get).toHaveBeenCalledExactlyOnceWith(
+      'brand%20%2F%3F/generation-receipts/identity-preview',
+      { signal },
+    );
+    for (const method of ['post', 'patch', 'put', 'delete'] as const)
+      expect(http[method]).not.toHaveBeenCalled();
+  });
+  it.each(['approved', 'provisional'] as const)(
+    'preserves recorded %s snapshot with only the exact supplied receipt query',
+    async (approval) => {
+      const { service, http } = setup();
+      const snapshot = { ...identitySnapshot(), approval };
+      const signal = new AbortController().signal;
+      http.get.mockResolvedValue(
+        axiosResponse(
+          resourceDocument(
+            { snapshot, source: 'receipt_snapshot' },
+            { id: hash, type: 'brand-identity-preview' },
+          ),
+        ),
+      );
+      expect(
+        (await service.getIdentityPreview('org', 'brand', 'receipt /?', signal))
+          .snapshot,
+      ).toEqual(snapshot);
+      expect(http.get).toHaveBeenCalledExactlyOnceWith(
+        'brand/generation-receipts/identity-preview',
+        { params: { receiptId: 'receipt /?' }, signal },
+      );
+    },
+  );
+  it.each([
+    { organizationId: '' },
+    { organizationId: 'x'.repeat(257) },
+    { organizationId: 'bad\u0000' },
+    { brandId: '' },
+    { brandId: 'bad\u0080' },
+    { brandId: 'x'.repeat(257) },
+    { receiptId: '' },
+    { receiptId: 'bad\n' },
+    { receiptId: 'x'.repeat(257) },
+  ])('rejects malformed bounded IDs before any HTTP %j', async (patch) => {
+    const { service, http } = setup();
+    const args = {
+      organizationId: 'org',
+      brandId: 'brand',
+      receiptId: undefined,
+      ...patch,
+    };
+    await expect(
+      service.getIdentityPreview(
+        args.organizationId,
+        args.brandId,
+        args.receiptId,
+      ),
+    ).rejects.toThrow('receipt_response_invalid');
+    expect(http.get).not.toHaveBeenCalled();
+  });
+  it.each([
+    { snapshot: { ...identitySnapshot(), organizationId: 'foreign' } },
+    { snapshot: { ...identitySnapshot(), brandId: 'foreign' } },
+    {
+      snapshot: {
+        ...identitySnapshot(),
+        contentHash: `sha256:${'b'.repeat(64)}`,
+      },
+    },
+    { snapshot: { ...identitySnapshot(), approval: 'provisional' } },
+    { snapshot: { ...identitySnapshot(), unknown: 'private' } },
+    { snapshot: null },
+    { source: 'receipt_snapshot' },
+    { source: 'unknown' },
+    { unknown: 'PRIVATE_RESPONSE' },
+    { id: hash },
+  ])(
+    'rejects foreign, inconsistent, malformed or unknown attributes %j',
+    async (patch) => {
+      const { service, http } = setup();
+      http.get.mockResolvedValue(
+        axiosResponse(
+          resourceDocument(
+            {
+              snapshot: identitySnapshot(),
+              source: 'current_approved_revision',
+              ...patch,
+            },
+            { id: hash, type: 'brand-identity-preview' },
+          ),
+        ),
+      );
+      await expect(service.getIdentityPreview('org', 'brand')).rejects.toThrow(
+        'receipt_response_invalid',
+      );
+    },
+  );
+  it.each([
+    { data: null },
+    { data: [] },
+    resourceDocument(
+      { snapshot: identitySnapshot(), source: 'current_approved_revision' },
+      { id: hash, type: 'wrong' },
+    ),
+    resourceDocument(
+      { snapshot: identitySnapshot(), source: 'current_approved_revision' },
+      { id: `sha256:${'b'.repeat(64)}`, type: 'brand-identity-preview' },
+    ),
+  ])(
+    'requires one resource of exact type and digest identity %j',
+    async (document) => {
+      const { service, http } = setup();
+      http.get.mockResolvedValue(axiosResponse(document));
+      await expect(service.getIdentityPreview('org', 'brand')).rejects.toThrow(
+        'receipt_response_invalid',
+      );
+    },
+  );
+  it('rejects current substitution for a supplied historical receipt and preserves forbidden failures', async () => {
+    const { service, http } = setup();
+    http.get.mockResolvedValueOnce(
+      axiosResponse(
+        resourceDocument(
+          { snapshot: identitySnapshot(), source: 'current_approved_revision' },
+          { id: hash, type: 'brand-identity-preview' },
+        ),
+      ),
+    );
+    await expect(
+      service.getIdentityPreview('org', 'brand', 'receipt'),
+    ).rejects.toThrow('receipt_response_invalid');
+    const error = {
+      isAxiosError: true,
+      response: { status: 403, data: { private: 'NEVER_EXPOSE' } },
+    };
+    http.get.mockRejectedValueOnce(error);
+    await expect(service.getIdentityPreview('org', 'brand')).rejects.toBe(
+      error,
+    );
   });
 });
