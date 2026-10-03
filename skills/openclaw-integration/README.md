@@ -80,9 +80,8 @@ Get your API key at [app.genfeed.ai/settings/api-keys](https://app.genfeed.ai/se
 | `list_images` | List all images |
 | `list_avatars` | List all avatars |
 | `list_music` | List all music tracks |
-| `search_articles` | Search articles |
-| `get_article` | Retrieve an article |
-| `get_video_status` | Check video progress |
+| `get_articles` | Search articles or retrieve one |
+| `get_job_status` | Check generation progress |
 
 ### Publishing
 

@@ -66,7 +66,7 @@ Authorization: Bearer gf_live_xxx
 | Tool | Description | Required Params | Optional Params |
 |------|-------------|-----------------|-----------------|
 | `create_video` | Generate an AI video | `title`, `description` | `style`, `duration`, `voiceOver` |
-| `get_video_status` | Check video generation progress | `videoId` | |
+| `get_job_status` | Check generation status and progress | `jobId` | |
 | `list_videos` | List all videos | | `limit`, `offset` |
 | `get_video_analytics` | Get video performance metrics | `videoId` | `timeRange` |
 
@@ -75,8 +75,7 @@ Authorization: Bearer gf_live_xxx
 | Tool | Description | Required Params | Optional Params |
 |------|-------------|-----------------|-----------------|
 | `create_article` | Generate an AI article | `topic` | `tone`, `length`, `targetAudience`, `keywords` |
-| `search_articles` | Search existing articles | `query` | `category`, `limit` |
-| `get_article` | Retrieve a single article | `articleId` | |
+| `get_articles` | Search articles, or retrieve one | `query` or `articleId` | `category`, `limit` (search only) |
 
 ### Images
 
@@ -160,7 +159,7 @@ Flags:
 
 ```
 1. create_video({ title: "Product Launch", description: "60s cinematic intro" })
-2. get_video_status({ videoId: "<videoId>" }) -- poll until complete
+2. get_job_status({ jobId: "<videoId>" }) -- poll until complete
 3. get_video_analytics({ videoId: "<videoId>" })
 ```
 
