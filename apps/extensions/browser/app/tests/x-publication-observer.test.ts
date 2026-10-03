@@ -384,6 +384,45 @@ it('changed scope hides recovery and removes stale retry listeners', async () =>
   ).toHaveLength(1);
 });
 
+it('unrelated settings writes keep a pending attempt; toggling recording cancels it', async () => {
+  send.mockImplementation(async (request) =>
+    eventOf(request) === 'publicationCaptureContext'
+      ? context()
+      : { success: true, data: { kind: 'armed', attemptId: attempt.id } },
+  );
+  await trustedFixtureSubmission();
+  const changed = vi
+    .mocked(chrome.storage.onChanged.addListener)
+    .mock.calls.at(-1)?.[0];
+  if (!changed) throw new Error('Missing storage listener');
+  const cancels = () =>
+    send.mock.calls.filter(
+      ([request]) => eventOf(request) === 'publicationCaptureCancel',
+    ).length;
+  changed(
+    {
+      'genfeed-settings': {
+        oldValue: { recordOwnPublications: true, theme: 'light' },
+        newValue: { recordOwnPublications: true, theme: 'dark' },
+      },
+    },
+    'local',
+  );
+  await flush();
+  expect(cancels()).toBe(0);
+  changed(
+    {
+      'genfeed-settings': {
+        oldValue: { recordOwnPublications: true },
+        newValue: { recordOwnPublications: false },
+      },
+    },
+    'local',
+  );
+  await flush();
+  expect(cancels()).toBeGreaterThan(0);
+});
+
 it('unsupported same-X route cancels the active home attempt while keeping the dormant listener alive', async () => {
   send.mockImplementation(async (request) =>
     eventOf(request) === 'publicationCaptureContext'

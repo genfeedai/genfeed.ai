@@ -98,7 +98,18 @@ it('clears prior-scope entries immediately and ignores delayedlistresponses', as
       }),
   );
   render(<PublicationRecordingSettings />);
-  act(() => useWorkspaceStore.setState({ status: 'loading' }, true));
+  send.mockResolvedValue({
+    success: true,
+    data: { kind: 'list', enabled: true, entries: [] },
+  });
+  act(() =>
+    useWorkspaceStore.setState((state) =>
+      state.status === 'ready'
+        ? { snapshot: { ...state.snapshot, revision: 2 } }
+        : state,
+    ),
+  );
+  await waitFor(() => expect(send).toHaveBeenCalledTimes(2));
   await act(async () =>
     finish({
       success: true,

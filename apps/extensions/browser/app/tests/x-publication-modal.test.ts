@@ -390,6 +390,25 @@ it('disabled recording never arms Reply or standalone Post', async () => {
   expect(events('publicationCaptureBegin')).toHaveLength(0);
 });
 
+it('does not show a failure overlay for a Reply submit while recording is disabled', async () => {
+  send.mockResolvedValue({
+    success: true,
+    data: {
+      kind: 'context',
+      enabled: false,
+      scope: null,
+      pending: null,
+      confirmed: null,
+    },
+  });
+  await attach();
+  await openReply();
+  await submit();
+  expect(events('publicationCaptureBegin')).toHaveLength(0);
+  expect(
+    document.querySelector('#genfeed-publication-recording-status'),
+  ).toBeNull();
+});
 it('resolves source permalinks against document base and rejects malformed links without throwing', () => {
   const base = document.createElement('base');
   base.href = 'https://x.com/';

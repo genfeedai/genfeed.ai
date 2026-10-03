@@ -195,7 +195,11 @@ export function publicationCaptureAttemptAllowsUrl(
   return attempt.surface.kind === 'x-home'
     ? Boolean(publicationCaptureHomeUrl(value))
     : Boolean(publicationCaptureComposeUrl(value)) ||
-        url.href === attempt.surface.returnUrl;
+        url.href === attempt.surface.returnUrl ||
+        // A directly opened composer has no origin page; X routes to Home after submit.
+        (attempt.surface.kind === 'x-post-modal' &&
+          attempt.surface.returnUrl === null &&
+          Boolean(publicationCaptureHomeUrl(value)));
 }
 export function validPublicationCaptureIdentity(
   origin: string,

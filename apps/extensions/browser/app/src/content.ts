@@ -396,6 +396,11 @@ window.addEventListener('pagehide', () => {
   stopPublicationObserver?.();
   stopPublicationObserver = null;
 });
+// A page restored from the back/forward cache keeps its content script alive
+// but pagehide already detached the observer.
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) synchronizePublicationObserver();
+});
 watchContentTheme();
 setupNavigationListeners();
 initializePlatformIntegration();

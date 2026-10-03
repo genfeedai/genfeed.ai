@@ -43,6 +43,13 @@ import {
 const normalize = (text: string) => text.replace(/\r\n/g, '\n').trim();
 const textOf = (element: HTMLElement) =>
   normalize(element.innerText ?? element.textContent ?? '');
+const recordingEnabled = (settings: unknown): boolean =>
+  typeof settings === 'object' &&
+  settings !== null &&
+  'recordOwnPublications' in settings &&
+  typeof settings.recordOwnPublications === 'boolean'
+    ? settings.recordOwnPublications
+    : true;
 export function attachXPublicationObserver(): () => void {
   if (!isXPublicationPage(location.href)) return () => undefined;
   let context: Extract<
@@ -442,6 +449,10 @@ export function attachXPublicationObserver(): () => void {
       !isTrustedXSubmission(event.isTrusted, event.target, composer)
     )
       return;
+    if (context && !context.enabled) {
+      cancelIntent();
+      return;
+    }
     if (
       dialog?.kind === 'reply' &&
       (!intent ||
@@ -566,13 +577,21 @@ export function attachXPublicationObserver(): () => void {
     void refresh();
   };
   const changed = (changes: Record<string, chrome.storage.StorageChange>) => {
-    if (changes['genfeed-settings'] || changes.extension_workspace_changed) {
+    const settings = changes['genfeed-settings'];
+    const recordingToggled =
+      settings &&
+      recordingEnabled(settings.oldValue) !==
+        recordingEnabled(settings.newValue);
+    if (recordingToggled || changes.extension_workspace_changed) {
       context = null;
       cancel();
       cancelIntent();
       frozenAttempt = null;
       frozenObservation = null;
       removePublicationStatus();
+      void refresh();
+    } else if (settings) {
+      // Theme and auto-fill writes must not discard a pending confirmation.
       void refresh();
     }
   };

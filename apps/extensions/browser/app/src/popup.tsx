@@ -31,7 +31,7 @@ function PopupContent() {
   const { isLoaded, signOut } = useAuth();
   const workspace = useWorkspace();
   const authState =
-    workspace.status === 'ready'
+    workspace.status === 'ready' || workspace.status === 'refreshing'
       ? 'authenticated'
       : workspace.status === 'loading'
         ? 'syncing'

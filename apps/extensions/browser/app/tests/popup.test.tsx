@@ -75,6 +75,20 @@ describe('verified popup workspace', () => {
     expect(screen.getByLabelText('Loading')).toBeInTheDocument();
     expect(screen.queryByText('Open Side Panel')).not.toBeInTheDocument();
   });
+  it('keeps the verified popup visible while the workspace is refreshing', () => {
+    mocks.workspace = {
+      status: 'refreshing',
+      snapshot: {
+        userId: 'user-1',
+        organizationLabel: 'Demo',
+        brandId: 'brand-1',
+        brands: [{ id: 'brand-1', label: 'Vincent' }],
+      },
+    };
+    render(<Popup />);
+    expect(screen.getByText('Open Side Panel')).toBeInTheDocument();
+    expect(screen.queryByText('Login Page')).not.toBeInTheDocument();
+  });
   it('shows the actual blocked error with Retry and Open Genfeed', async () => {
     mocks.workspace = { status: 'blocked', error: 'HTTP 503. Retry.' };
     render(<Popup />);

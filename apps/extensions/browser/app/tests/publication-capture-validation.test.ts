@@ -106,7 +106,7 @@ it('keeps exact modal return routes and home variants distinct', () => {
       { ...attempt, surface: { kind: 'x-post-modal', returnUrl: null } },
       'https://x.com/home',
     ),
-  ).toBe(false);
+  ).toBe(true);
 });
 it('validates own reply identity and original time without promoting parent or quotes', () => {
   expect(validPublicationCaptureObservation(attempt, observation, now)).toBe(

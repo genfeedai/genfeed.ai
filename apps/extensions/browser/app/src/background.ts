@@ -295,7 +295,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     typeof request?.event === 'string' &&
     request.event.startsWith('publicationCapture')
   ) {
-    void handlePublicationCaptureMessage(request, sender).then(sendResponse);
+    void handlePublicationCaptureMessage(request, sender)
+      .then(sendResponse)
+      .catch((error: unknown) =>
+        sendError(sendResponse, 'Publication recording failed.', error),
+      );
     return true;
   }
   const captureHandlers: Record<string, () => Promise<unknown>> = {
