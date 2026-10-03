@@ -204,10 +204,20 @@ function buildHandler(overrides: {
   personas?: unknown;
   transactions?: unknown;
 }): AgentWorkspaceToolHandler {
+  // Default brand lookups resolve any id inside the organization and members
+  // have no current brand, so tests opt into other behavior explicitly.
+  const brands = overrides.brands ?? {
+    findOne: vi.fn(async (query: { id?: string }) =>
+      query.id ? { id: query.id } : null,
+    ),
+  };
+  const members = overrides.members ?? {
+    findOne: vi.fn().mockResolvedValue(null),
+  };
   return new AgentWorkspaceToolHandler(
     (overrides.credits ?? {}) as HandlerArgs[0],
-    (overrides.brands ?? {}) as HandlerArgs[1],
-    (overrides.members ?? {}) as HandlerArgs[2],
+    brands as HandlerArgs[1],
+    members as HandlerArgs[2],
     {} as HandlerArgs[3],
     (overrides.personas ?? {}) as HandlerArgs[4],
     {} as HandlerArgs[5],
@@ -348,6 +358,50 @@ describe('AgentWorkspaceToolHandler.listAssets library assets', () => {
     expect(ingredients.listLibraryAssets.mock.calls[0][0]).not.toHaveProperty(
       'brandId',
     );
+  });
+
+  it("defaults a headless call to the member's current brand", async () => {
+    const ingredients = { listLibraryAssets: vi.fn().mockResolvedValue([]) };
+    const members = {
+      findOne: vi.fn().mockResolvedValue({ currentBrandId: 'brand-current' }),
+    };
+    await buildHandler({ ingredients, members }).listAssets({ type: 'video' }, {
+      organizationId: 'org-1',
+      userId: 'user-1',
+    } as ToolExecutionContext);
+
+    expect(ingredients.listLibraryAssets).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'brand-current' }),
+    );
+  });
+
+  it('honors an explicit brand and rejects one outside the organization', async () => {
+    const ingredients = { listLibraryAssets: vi.fn().mockResolvedValue([]) };
+    const brands = {
+      findOne: vi.fn(async (query: { id?: string }) =>
+        query.id === 'brand-ok' ? { id: 'brand-ok' } : null,
+      ),
+    };
+    const handler = buildHandler({ brands, ingredients });
+    const headless = {
+      organizationId: 'org-1',
+      userId: 'user-1',
+    } as ToolExecutionContext;
+
+    await handler.listAssets({ brandId: 'brand-ok', type: 'image' }, headless);
+    expect(ingredients.listLibraryAssets).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'brand-ok' }),
+    );
+
+    const rejected = await handler.listAssets(
+      { brandId: 'brand-elsewhere', type: 'image' },
+      headless,
+    );
+    expect(rejected).toMatchObject({
+      error: 'Brand was not found in this organization.',
+      success: false,
+    });
+    expect(ingredients.listLibraryAssets).toHaveBeenCalledTimes(1);
   });
 
   it('rejects an unknown type, a bad origin, and q on non-character types', async () => {
@@ -501,14 +555,14 @@ describe('AgentWorkspaceToolHandler.getBrands', () => {
   it.each(['b2', 'BETA', 'beta co'])(
     'returns the one brand matched by %s',
     async (brandId) => {
-      const result = await handler.getBrands({ brandId }, baseCtx);
+      const result = await handler.getBrands({ brand: brandId }, baseCtx);
       expect(result.success).toBe(true);
       expect((result.data as { brand: { id: string } }).brand.id).toBe('b2');
     },
   );
 
   it('fails when the brand is not in the organization', async () => {
-    const result = await handler.getBrands({ brandId: 'ghost' }, baseCtx);
+    const result = await handler.getBrands({ brand: 'ghost' }, baseCtx);
     expect(result).toMatchObject({
       error: 'Brand was not found in this organization.',
       success: false,

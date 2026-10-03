@@ -60,13 +60,13 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      "Read the organization's brands. Without brandId it lists every brand with name, description and tone profile. With brandId it returns that one brand (matched by id, slug, name or label). When more than one brand exists, pass brandId; the first brand is never used implicitly.",
+      "Read the organization's brands. Without brand it lists every brand with name, description and tone profile. With brand it returns that one brand, matched by id, slug, name or label. When more than one brand exists, pass the chosen brand's id as brandId to other tools; the first brand is never used implicitly.",
     name: 'get_brands',
     parameters: {
       properties: {
-        brandId: {
+        brand: {
           description:
-            'Return only this brand. Omit to list all brands in the organization.',
+            'Return only this brand: its id, slug, name or label. Omit to list all brands in the organization.',
           type: 'string',
         },
       },
@@ -120,10 +120,15 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      "List the organization's library assets of one type, newest first. Types image, video, music and avatar return id, category, status, url, label or prompt, origin and createdAt. Type character lists the active named characters the current brand can use (handle, label, description, whether a reference image exists). Tenant-scoped.",
+      'List library assets of one type, newest first, for one brand: brandId, else the thread brand, else your current brand; with none of those it lists the whole organization. Failed, archived and rejected assets are left out. Types image, video, music and avatar return id, category, status, url, label or prompt, origin and createdAt. Type character lists the active named characters the brand can use (handle, label, description, whether a reference image exists).',
     name: 'list_assets',
     parameters: {
       properties: {
+        brandId: {
+          description:
+            'Brand to list. Defaults to the thread brand, then your current brand.',
+          type: 'string',
+        },
         limit: {
           default: 10,
           description:

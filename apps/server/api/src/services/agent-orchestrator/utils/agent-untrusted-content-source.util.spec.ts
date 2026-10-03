@@ -35,6 +35,7 @@ describe('readAgentUntrustedContentSource', () => {
 
   it('classifies platform-derived tools as internal', () => {
     expect(readAgentUntrustedContentSource('get_brands')).toBe('internal');
+    expect(readAgentUntrustedContentSource('get_account')).toBe('internal');
     expect(readAgentUntrustedContentSource('render_dashboard')).toBe(
       'internal',
     );
