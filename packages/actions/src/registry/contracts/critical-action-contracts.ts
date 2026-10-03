@@ -150,6 +150,10 @@ const FOR_EACH_INPUT = closedObjectSchema(
     items: arraySchema(JSON_DOCUMENT_SCHEMA),
     maxConcurrency: { minimum: 1, type: 'integer' },
     mode: enumSchema(['await', 'scheduled'] as const),
+    // Ordering-edge convention shared with the trends maintenance actions: a
+    // linear chain wires `targetHandle: 'previous'` between steps. The
+    // executor never reads it and children only receive `baseInput` + item.
+    previous: JSON_DOCUMENT_SCHEMA,
     request: JSON_DOCUMENT_SCHEMA,
   },
   ['childWorkflowId', 'items'],
