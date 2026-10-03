@@ -10201,22 +10201,6 @@
       "workspace": "workers"
     },
     {
-      "code": 2307,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/workflows/task-types/generate-image.task.spec.ts",
-      "fingerprint": "603dc99d2a30494e5236",
-      "message": "Cannot find module '@workers/crons/workflows/task-types/generate-image.task' or its corresponding type declarations.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/workflows/task-types/generate-music.task.spec.ts",
-      "fingerprint": "c0c454c5cf531ecffbcb",
-      "message": "Cannot find module '@workers/crons/workflows/task-types/generate-music.task' or its corresponding type declarations.",
-      "workspace": "workers"
-    },
-    {
       "code": 2540,
       "count": 1,
       "file": "apps/server/workers/test/setup-unit.ts",
