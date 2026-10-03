@@ -39,6 +39,7 @@ export class AgentClient {
   evaluateMcpToolResult(
     name: string,
     content: string,
+    isPartial = false,
   ): Promise<AgentUntrustedContentGateResult> {
     return this.base.request(
       `classifying MCP result ${name}`,
@@ -46,7 +47,7 @@ export class AgentClient {
         try {
           const response = await http.post(
             `/agent-tools/${encodeURIComponent(name)}/result-gate`,
-            { content },
+            { content, ...(isPartial ? { isPartial } : {}) },
           );
           const result = response.data as
             | AgentUntrustedContentGateResult

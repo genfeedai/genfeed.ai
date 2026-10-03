@@ -5,6 +5,11 @@ import type { AgentChatContext } from '@api/services/agent-orchestrator/interfac
 import { AGENT_UNTRUSTED_CONTENT_MAX_LENGTH } from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
 import { resolveUntrustedContentDecisionConfig } from '@api/services/agent-orchestrator/utils/agent-untrusted-content-decision-config.util';
 import {
+  countUntrustedContentClassifierCalls,
+  countUntrustedContentFailClosed,
+  countUntrustedContentFailOpen,
+} from '@api/services/agent-orchestrator/utils/agent-untrusted-content-metrics.util';
+import {
   isAgentUntrustedContentSource,
   readAgentUntrustedContentSource,
 } from '@api/services/agent-orchestrator/utils/agent-untrusted-content-source.util';
@@ -48,13 +53,21 @@ const UNTRUSTED_CONTENT_DECISION_MAX_LENGTH =
 const UNTRUSTED_CONTENT_DECISION_MAX_WINDOWS = 8;
 
 /**
+ * Shadow mode cannot withhold anything, so its classifier spend only sizes the
+ * false-positive rate. Past this many windows it samples the head and the tail
+ * instead of covering the result, bounding spend per fetch until live mode is
+ * enabled under #4944.
+ */
+const UNTRUSTED_CONTENT_SHADOW_MAX_WINDOWS = 2;
+
+/**
  * Characters each window repeats from the previous one, so an instruction
  * straddling a window boundary is still seen whole by at least one call.
  */
 const UNTRUSTED_CONTENT_DECISION_WINDOW_OVERLAP = 512;
 
 interface UntrustedContentDecisionWindows {
-  /** True when the cap stopped the windows short of covering the content. */
+  /** True when the windows stop short of covering the content end to end. */
   isTruncated: boolean;
   windows: string[];
 }
@@ -67,31 +80,44 @@ interface UntrustedContentDecisionWindows {
  * has to land in some window. A head-only truncation hides an override
  * appended at the end; a head-and-tail window hides one buried in the middle.
  * Both were real: this covers the content end to end, overlapping the seams.
+ *
+ * Content that needs more than `maxWindows` is reported as truncated. `live`
+ * keeps the leading windows (the caller fails closed on the unclassified
+ * tail); `shadow` samples the head and the real tail, bounding spend.
  */
 function buildDecisionWindows(
   content: string,
+  mode: TypedDecisionMode,
 ): UntrustedContentDecisionWindows {
   if (content.length <= UNTRUSTED_CONTENT_DECISION_MAX_LENGTH) {
     return { isTruncated: false, windows: content ? [content] : [] };
   }
 
+  const maxWindows =
+    mode === 'shadow'
+      ? UNTRUSTED_CONTENT_SHADOW_MAX_WINDOWS
+      : UNTRUSTED_CONTENT_DECISION_MAX_WINDOWS;
   const stride =
     UNTRUSTED_CONTENT_DECISION_MAX_LENGTH -
     UNTRUSTED_CONTENT_DECISION_WINDOW_OVERLAP;
   const windows: string[] = [];
   let offset = 0;
 
-  while (
-    offset < content.length &&
-    windows.length < UNTRUSTED_CONTENT_DECISION_MAX_WINDOWS
-  ) {
+  while (offset < content.length && windows.length < maxWindows) {
     windows.push(
       content.slice(offset, offset + UNTRUSTED_CONTENT_DECISION_MAX_LENGTH),
     );
     offset += stride;
   }
 
-  return { isTruncated: offset < content.length, windows };
+  const isTruncated = offset < content.length;
+  if (isTruncated && mode === 'shadow') {
+    windows[windows.length - 1] = content.slice(
+      -UNTRUSTED_CONTENT_DECISION_MAX_LENGTH,
+    );
+  }
+
+  return { isTruncated, windows };
 }
 
 /**
@@ -137,6 +163,11 @@ export class AgentUntrustedContentGateService {
     brandId?: string | null;
     content: string;
     context: AgentChatContext;
+    /**
+     * The caller could only send a bounded sample of a larger result (an MCP
+     * result past the size limit). Whatever was not sent was not classified.
+     */
+    isContentPartial?: boolean;
     threadId?: string | null;
     origin: AgentUntrustedContentOrigin;
     toolCallId: string;
@@ -168,21 +199,35 @@ export class AgentUntrustedContentGateService {
       // overlapping windows that cover it end to end.
       const { isTruncated, windows } = buildDecisionWindows(
         params.content.trim() ? params.content : '',
+        mode,
       );
       if (windows.length === 0) {
         return allowed;
       }
 
-      if (isTruncated) {
-        // Loud, never silent: past the window cap some of what the model reads
-        // was not classified, so this result's coverage is partial.
+      // Past the window cap (or a caller-side sample) some of what the model
+      // reads was not classified. Live mode fails closed on that tail below;
+      // shadow cannot withhold, so the gap is counted instead.
+      const hasUnclassifiedTail =
+        isTruncated || params.isContentPartial === true;
+      const metricAttributes = { mode, origin: params.origin } as const;
+      countUntrustedContentClassifierCalls(windows.length, metricAttributes);
+
+      if (hasUnclassifiedTail) {
+        if (mode !== 'live') {
+          countUntrustedContentFailOpen({
+            ...metricAttributes,
+            category: 'oversize',
+          });
+        }
         this.loggerService.warn(
           `${this.constructorName} classified a tool result only in part`,
           {
             contentLength: params.content.length,
+            isCallerSample: params.isContentPartial === true,
             maxClassifiedLength:
-              UNTRUSTED_CONTENT_DECISION_MAX_WINDOWS *
-              UNTRUSTED_CONTENT_DECISION_MAX_LENGTH,
+              windows.length * UNTRUSTED_CONTENT_DECISION_MAX_LENGTH,
+            mode,
             organizationId: params.context.organizationId,
             threadId: params.threadId,
             toolName: params.toolName,
@@ -221,35 +266,45 @@ export class AgentUntrustedContentGateService {
         .map((answer) => answer?.confidence ?? 0)
         .filter((confidence) => confidence >= minConfidence);
 
-      if (confidences.length === 0) {
+      const isFlagged = confidences.length > 0;
+      const isWithheldForCoverage = mode === 'live' && hasUnclassifiedTail;
+      if (!isFlagged && !isWithheldForCoverage) {
         return allowed;
       }
 
-      const answer = { confidence: Math.max(...confidences) };
-
+      const confidence = isFlagged ? Math.max(...confidences) : undefined;
       const outcome: AgentUntrustedContentGateOutcome =
         mode === 'live' ? 'withheld' : 'shadow_flagged';
 
-      await this.recordAudit({
-        brandId: params.brandId ?? null,
-        confidence: answer.confidence,
-        content: params.content,
-        context: params.context,
-        minConfidence,
-        mode,
-        origin: params.origin,
-        outcome,
-        source,
-        threadId: params.threadId,
-        toolName: params.toolName,
-      });
+      if (confidence !== undefined) {
+        await this.recordAudit({
+          brandId: params.brandId ?? null,
+          confidence,
+          content: params.content,
+          context: params.context,
+          minConfidence,
+          mode,
+          origin: params.origin,
+          outcome,
+          source,
+          threadId: params.threadId,
+          toolName: params.toolName,
+        });
+      }
 
       if (outcome === 'shadow_flagged') {
         return {
-          confidence: answer.confidence,
+          confidence,
           content: params.content,
           outcome,
         };
+      }
+
+      if (!isFlagged) {
+        countUntrustedContentFailClosed({
+          ...metricAttributes,
+          category: 'oversize',
+        });
       }
 
       if (params.threadId)
@@ -261,7 +316,7 @@ export class AgentUntrustedContentGateService {
         });
 
       return {
-        confidence: answer.confidence,
+        confidence,
         content: JSON.stringify({
           error: UNTRUSTED_CONTENT_WITHHELD_NOTICE,
           success: false,
@@ -269,7 +324,12 @@ export class AgentUntrustedContentGateService {
         outcome,
       };
     } catch (error: unknown) {
-      // A gate that can fail a turn is worse than no gate.
+      // A gate that can fail a turn is worse than no gate. The outcome is
+      // counted so a failing provider is visible rather than silently open.
+      countUntrustedContentFailOpen({
+        category: 'adapter',
+        origin: params.origin,
+      });
       this.loggerService.warn(`${this.constructorName} gate failed open`, {
         error,
         organizationId: params.context.organizationId,
