@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import {
   LearningDependencyService,
   learningFence,
+  learningOrgFence,
 } from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -48,7 +49,8 @@ export class LearningExperimentEvidenceService {
     supersedesId?: string;
   }) {
     return this.prisma.$transaction(async (tx) => {
-      await learningFence(tx, input.supersedesId ? 'exclusive' : 'shared');
+      if (input.supersedesId) await learningFence(tx, 'exclusive');
+      else await learningOrgFence(tx, input.organizationId, 'shared');
       const opportunity = await tx.contentLearningOpportunity.findFirst({
         where: {
           id: input.opportunityId,

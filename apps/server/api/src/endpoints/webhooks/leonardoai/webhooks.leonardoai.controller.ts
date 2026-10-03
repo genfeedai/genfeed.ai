@@ -57,7 +57,8 @@ export class LeonardoaiWebhookController {
       url,
     });
 
-    // request.ip is derived safely by Express under `trust proxy 1`.
+    // request.ip is derived safely by Express under the deployment's
+    // `trust proxy` setting (see resolveTrustProxyFromReader).
     // Reading x-forwarded-for directly is spoofable: an attacker sends
     // 'X-Forwarded-For: <allowed-ip>, <self>' and the first-token split
     // yields the allowed IP.

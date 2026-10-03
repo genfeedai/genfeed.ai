@@ -73,11 +73,15 @@ describe('runService', () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     onSpy.mockRestore();
     exitSpy.mockRestore();
   });
 
   it('boots the service shell and listens on the configured port', async () => {
+    vi.stubEnv('GENFEED_CLOUD', 'true');
+    vi.stubEnv('TRUST_PROXY', '');
+
     await runService({
       configService: TestConfigService,
       module: TestAppModule,

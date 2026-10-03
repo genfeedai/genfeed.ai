@@ -1,6 +1,6 @@
 import {
   LearningDependencyService,
-  learningFence,
+  learningOrgFence,
 } from '@api/collections/content-learning/services/learning-dependency.service';
 import {
   type LearningActor,
@@ -264,7 +264,7 @@ export class LearningExperimentService {
   ) {
     await this.operations.assertMember(actor, true);
     return this.prisma.$transaction(async (tx) => {
-      await learningFence(tx, 'shared');
+      await learningOrgFence(tx, actor.organizationId, 'shared');
       await tx.$queryRaw`SELECT id FROM content_learning_experiments WHERE id = ${input.experimentId} AND "organizationId" = ${actor.organizationId} AND "isDeleted" = false FOR UPDATE`;
       const experiment = await tx.contentLearningExperiment.findFirst({
         where: {

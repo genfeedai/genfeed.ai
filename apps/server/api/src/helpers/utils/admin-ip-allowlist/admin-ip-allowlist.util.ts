@@ -57,7 +57,9 @@ export function getAdminAllowedIps(): string[] {
 }
 
 /**
- * `request.ip` is the client address Express derives under `trust proxy 1`.
+ * `request.ip` is the client address Express derives under the deployment's
+ * `trust proxy` setting: one hop on Cloud, none on self-host unless
+ * `TRUST_PROXY` names the proxy (see `resolveTrustProxyFromReader`).
  * Empty when the client cannot be known: a loopback forwarder such as the app's
  * `/v1` rewrite reached the API and no trusted hop reported the real client.
  */
