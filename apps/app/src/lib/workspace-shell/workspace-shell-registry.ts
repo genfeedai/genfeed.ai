@@ -1164,8 +1164,7 @@ const ADMIN_CONTROL_PLANE_ROUTE_PATTERNS = [
   '/admin/administration/announcements',
   '/admin/administration/system-emails',
   '/admin/administration/platform-settings',
-  '/admin/flags/modules',
-  '/admin/flags/features',
+  '/admin/flags',
 ] as const;
 
 const ADMIN_ANALYTICS_ROUTE_PATTERNS = [

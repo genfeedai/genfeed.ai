@@ -941,7 +941,7 @@ export default function OperationalHomeSections({
         await refresh();
       } catch (error) {
         logger.error('Approve review item failed', error);
-        notifications.error(translate('home.approvals.approve'));
+        notifications.error(translate('home.approvals.approveError'));
       }
     },
     [getBatchesService, notifications, refresh, translate],

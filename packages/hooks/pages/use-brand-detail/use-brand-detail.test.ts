@@ -550,7 +550,7 @@ describe('useBrandDetail', () => {
     });
 
     expect(mockNotifyError).toHaveBeenCalledWith(
-      'DELETE /assets/asset-1 failed',
+      'Failed to delete branding reference',
     );
   });
 

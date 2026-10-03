@@ -512,7 +512,21 @@ async function requestPinnedDestination(
           signal: init.signal ?? undefined,
         },
         (incoming) => {
-          resolve(createPinnedResponse(incoming, init, destination));
+          // Node accepts any three-digit status, but Response rejects those
+          // outside 200-599. A throw here would escape the socket callback
+          // and crash the process instead of rejecting this request.
+          try {
+            resolve(createPinnedResponse(incoming, init, destination));
+          } catch (error: unknown) {
+            incoming.destroy();
+            reject(
+              new DestinationGuardError(
+                `Destination returned an unsupported response (${incoming.statusCode}): ${
+                  error instanceof Error ? error.message : String(error)
+                }`,
+              ),
+            );
+          }
         },
       );
 

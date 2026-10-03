@@ -250,6 +250,15 @@ describe('destination guard', () => {
     });
   });
 
+  it('rejects an out-of-range upstream status instead of throwing from the socket callback', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    mockHttpResponse(600, [], ['body']);
+
+    await expect(
+      safeFetch('http://public.example/asset'),
+    ).rejects.toBeInstanceOf(DestinationGuardError);
+  });
+
   it('preserves fetch-compatible request metadata', async () => {
     dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
     mockHttpResponse(200);

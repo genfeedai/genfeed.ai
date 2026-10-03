@@ -58,7 +58,7 @@ export class NotificationsService {
   }
 
   public error(message: string, options?: NotificationOptions): void {
-    toast.error(`${message} failed`, this.buildOptions(options));
+    toast.error(message, this.buildOptions(options));
   }
 
   public warning(

@@ -279,7 +279,7 @@ describe('useSubscription', () => {
 
       await waitFor(() => {
         expect(mockNotificationsService.error).toHaveBeenCalledWith(
-          'Opening billing portal',
+          'Failed to open billing portal',
         );
       });
     });

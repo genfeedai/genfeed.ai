@@ -50,7 +50,7 @@ export class SocketManager {
     this.config = {
       autoConnect: true,
       enableErrorHandling: true,
-      errorMessage: 'Socket connection',
+      errorMessage: 'Socket connection failed',
       ...config,
     };
     this.currentToken = config.token;
@@ -161,7 +161,7 @@ export class SocketManager {
 
       const notificationsService = NotificationsService.getInstance();
       notificationsService.error(
-        this.config.errorMessage || 'Socket connection',
+        this.config.errorMessage || 'Socket connection failed',
       );
     };
 

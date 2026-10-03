@@ -47,6 +47,7 @@ export * from './content-source.enum';
 export * from './content-type.enum';
 export * from './credential.enum';
 export * from './credit.enum';
+export * from './credit-hold-recovery.enum';
 export * from './crm.enum';
 export * from './crud-action.enum';
 export * from './desktop-os.enum';

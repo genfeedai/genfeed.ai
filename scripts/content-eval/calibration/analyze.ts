@@ -566,14 +566,18 @@ export function buildCalibrationChecks(
   for (const metric of positionBias.filter(
     (entry) => entry.contentKind === POOLED_KIND,
   )) {
-    checks.push(
-      atMost(
-        'judge-position-bias',
-        metric.judgeRegistryKey,
-        metric.positionBiasRate,
-        thresholds.maxPositionBiasRate,
-      ),
+    const check = atMost(
+      'judge-position-bias',
+      metric.judgeRegistryKey,
+      metric.positionBiasRate,
+      thresholds.maxPositionBiasRate,
     );
+    // A judge with no measured swapped pair has no position-bias evidence, so
+    // its null rate fails rather than passing as `atMost` would.
+    checks.push({
+      ...check,
+      passed: check.passed && metric.positionBiasRate !== null,
+    });
   }
   return checks;
 }

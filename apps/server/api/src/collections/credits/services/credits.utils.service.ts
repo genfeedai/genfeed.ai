@@ -20,6 +20,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivitySource,
+  CreditReservationStatus,
   CreditTransactionCategory,
 } from '@genfeedai/contracts';
 import type {
@@ -262,6 +263,16 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       }
     }
 
+    const lateReservation = await this.findLateReservation(input, tx);
+    if (lateReservation?.status === CreditReservationStatus.SETTLED) {
+      return {
+        newBalance: await this.getOrganizationCreditsBalance(
+          input.organizationId,
+          tx,
+        ),
+        wasApplied: false,
+      };
+    }
     const currentBalance = await this.getOrganizationCreditsBalance(
       input.organizationId,
       tx,
@@ -277,25 +288,28 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       input.organizationId,
       {
         balanceDelta: -input.creditsToDeduct,
-        billingAccountId: account.id,
+        billingAccountId: lateReservation?.billingAccountId ?? account.id,
         maxOverdraftCredits,
       },
       tx,
+      lateReservation?.id,
     );
     const newBalance = snapshot.available;
     await this.creditTransactionsService.createTransactionEntry(
       input.organizationId,
       CreditTransactionCategory.DEDUCT,
       input.creditsToDeduct,
-      currentBalance,
-      newBalance,
+      lateReservation
+        ? snapshot.settled + input.creditsToDeduct
+        : currentBalance,
+      lateReservation ? snapshot.settled : newBalance,
       input.source,
       input.description,
       undefined,
       tx,
       {
         actorUserId: input.userId,
-        billingAccountId: account.id,
+        billingAccountId: lateReservation?.billingAccountId ?? account.id,
         ...(input.options?.brandId ? { brandId: input.options.brandId } : {}),
         ...(input.options?.idempotencyKey
           ? { idempotencyKey: input.options.idempotencyKey }
@@ -313,6 +327,51 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     );
 
     return { newBalance, wasApplied: true };
+  }
+
+  private async findLateReservation(
+    input: DeductCreditsCoreInput,
+    tx?: PrismaTransactionClient,
+  ) {
+    // Old late-job payloads acquire their reservation reference in the worker.
+    // Pin late charges to the original wallet and reject a still-live hold.
+    const lateReservation =
+      input.options?.referenceType === 'credit_reservation' &&
+      input.options.referenceId
+        ? await (tx ?? this.prisma).creditReservation.findFirst({
+            where: {
+              id: input.options.referenceId,
+              organizationId: input.organizationId,
+              isDeleted: false,
+            },
+          })
+        : null;
+    const expectedLateActor =
+      lateReservation?.actorUserId ??
+      (lateReservation?.workloadId
+        ? (
+            await (tx ?? this.prisma).ingredient.findFirst({
+              where: {
+                id: lateReservation.workloadId,
+                organizationId: input.organizationId,
+                isDeleted: false,
+              },
+              select: { userId: true },
+            })
+          )?.userId
+        : null);
+    if (
+      input.options?.referenceType === 'credit_reservation' &&
+      (!lateReservation ||
+        lateReservation.amount !== input.creditsToDeduct ||
+        expectedLateActor !== input.userId ||
+        lateReservation.status === CreditReservationStatus.RESERVED)
+    ) {
+      throw new BusinessLogicException(
+        'Late charge does not match an ended media reservation',
+      );
+    }
+    return lateReservation;
   }
 
   async checkOrganizationCreditsAvailable(

@@ -157,6 +157,7 @@ describe('CreditsUtilsService', () => {
           maxOverdraftCredits: 0,
         },
         txClient,
+        undefined,
       );
       expect(
         creditTransactionsService.createTransactionEntry,

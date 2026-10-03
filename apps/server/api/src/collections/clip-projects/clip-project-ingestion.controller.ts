@@ -40,7 +40,7 @@ import type { Request } from 'express';
 @AutoSwagger()
 @ApiTags('clip-projects')
 @ApiBearerAuth()
-@FeatureFlag('studio')
+@FeatureFlag('studio_clips')
 @Controller('clip-projects')
 @UseGuards(RolesGuard)
 export class ClipProjectIngestionController {

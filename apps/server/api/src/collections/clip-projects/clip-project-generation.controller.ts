@@ -31,7 +31,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 @AutoSwagger()
 @ApiTags('clip-projects')
 @ApiBearerAuth()
-@FeatureFlag('studio')
+@FeatureFlag('studio_clips')
 @Controller('clip-projects')
 @UseGuards(RolesGuard)
 export class ClipProjectGenerationController {

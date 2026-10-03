@@ -73,6 +73,32 @@ describe('PlatformModuleRouteGate (#5468)', () => {
     expect(screen.getByText('module content')).toBeInTheDocument();
   });
 
+  it('answers 404 on a Studio surface whose own flag is off', () => {
+    state.flags = { studio: true, studio_motion: false };
+    state.pathname = '/acme/brand/studio/motion';
+
+    expect(renderGate).toThrow('NEXT_NOT_FOUND');
+  });
+
+  it('keeps other Studio surfaces open when one surface is off', () => {
+    state.flags = { studio: true, studio_motion: false };
+    state.pathname = '/acme/brand/studio/storyboard/new';
+
+    renderGate();
+
+    expect(screen.getByText('module content')).toBeInTheDocument();
+  });
+
+  it('lets a superadmin open a Studio surface that is off', () => {
+    state.flags = { studio: true, studio_editor: false };
+    state.isSuperAdmin = true;
+    state.pathname = '/acme/~/studio/editor/new';
+
+    renderGate();
+
+    expect(screen.getByText('module content')).toBeInTheDocument();
+  });
+
   it('never gates a route outside the flagged modules', () => {
     state.flags = { studio: false };
     state.pathname = '/acme/brand/workspace/overview';

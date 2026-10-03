@@ -34,6 +34,8 @@ import BrandOsGenerationRulesReview from './BrandOsGenerationRulesReview';
 import BrandOsIdentityPreview from './BrandOsIdentityPreview';
 import BrandOsRevisionFields from './BrandOsRevisionFields';
 
+const AUTO_SAVE_DELAY_MS = 1500;
+
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
@@ -79,8 +81,10 @@ function useBrandOsDirtyNavigation(
 export default function BrandOsSettingsCard({
   brandId,
   refreshKey = 0,
+  isAutoSaveEnabled = false,
   onRefreshBrand,
   onRevisionSaved,
+  onReadinessChange,
 }: BrandOsSettingsCardProps) {
   const t = useTranslations('pages.brandOsSettings');
   const common = useTranslations('common.actions');
@@ -110,6 +114,10 @@ export default function BrandOsSettingsCard({
   const currentRefresh = useRef(refreshKey);
   const pendingRef = useRef(false);
   const dirtyRef = useRef(false);
+  const autoSaveAttemptRef = useRef<string | null>(null);
+  // Bumped by every successful save or approval so a history read that
+  // started earlier never replaces newer persisted state.
+  const mutationRef = useRef(0);
   if (
     currentScope.current.brandId !== brandId ||
     currentScope.current.getService !== getService ||
@@ -164,10 +172,9 @@ export default function BrandOsSettingsCard({
     );
   }
   const selected = revisions.find((revision) => revision.id === selectedId);
+  const contentKey = content ? JSON.stringify(content) : null;
   const dirty = Boolean(
-    selected &&
-      content &&
-      JSON.stringify(content) !== JSON.stringify(selected.content),
+    selected && contentKey && contentKey !== JSON.stringify(selected.content),
   );
   dirtyRef.current = dirty;
   const binding = selected
@@ -243,6 +250,7 @@ export default function BrandOsSettingsCard({
   useEffect(() => {
     const controller = new AbortController();
     const operationEpoch = epoch.current;
+    const mutationAtStart = mutationRef.current;
     async function load() {
       clearAcknowledgement();
       setLoading(true);
@@ -255,6 +263,10 @@ export default function BrandOsSettingsCard({
           service.getBrandOsExport(brandId, controller.signal),
         ]);
         if (controller.signal.aborted || !isCurrent(operationEpoch)) return;
+        if (mutationRef.current !== mutationAtStart) {
+          setReload((value) => value + 1);
+          return;
+        }
         if (revisionResult.status === 'rejected') throw revisionResult.reason;
         const nextRevisions = revisionResult.value;
         const organizationId = nextRevisions[0]?.organizationId;
@@ -409,6 +421,7 @@ export default function BrandOsSettingsCard({
           saved.id === selected.id)
       )
         throw new Error(t('operationFailed'));
+      mutationRef.current += 1;
       clearAcknowledgement();
       setRevisions((current) => [
         saved,
@@ -474,6 +487,7 @@ export default function BrandOsSettingsCard({
         approved.status !== BrandOsRevisionStatus.APPROVED
       )
         throw new Error(t('operationFailed'));
+      mutationRef.current += 1;
       setRevisions((current) =>
         current.map((revision) =>
           revision.id === approved.id
@@ -509,6 +523,52 @@ export default function BrandOsSettingsCard({
   }
 
   const busy = Boolean(pending);
+  const isApproved = selected?.status === BrandOsRevisionStatus.APPROVED;
+
+  // An unresolved role must not read as a member who cannot approve.
+  useEffect(() => {
+    onReadinessChange?.({
+      isLoaded: !loading && role !== undefined,
+      canManage,
+      isApproved,
+      isDirty: dirty,
+      isBusy: busy,
+    });
+  }, [onReadinessChange, loading, role, canManage, isApproved, dirty, busy]);
+
+  // Auto-save goes through the same expected-updatedAt save as the Save
+  // button. Content that already failed to save is not retried until it
+  // changes again, so a conflict keeps the edits without looping.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: saveDraft is recreated every render; the deps capture what it saves
+  useEffect(() => {
+    if (
+      !isAutoSaveEnabled ||
+      !dirty ||
+      !canManage ||
+      busy ||
+      loading ||
+      !contentKey ||
+      selected?.status === BrandOsRevisionStatus.SUPERSEDED ||
+      autoSaveAttemptRef.current === contentKey
+    )
+      return;
+    const timer = setTimeout(() => {
+      autoSaveAttemptRef.current = contentKey;
+      saveDraft();
+    }, AUTO_SAVE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [
+    isAutoSaveEnabled,
+    dirty,
+    canManage,
+    busy,
+    loading,
+    contentKey,
+    selected?.id,
+    selected?.updatedAt,
+    selected?.status,
+  ]);
+
   const organizationId = revisions[0]?.organizationId ?? '';
   // Any selection, save, approval or history change closes the current preview.
   const identityPreviewKey = JSON.stringify([

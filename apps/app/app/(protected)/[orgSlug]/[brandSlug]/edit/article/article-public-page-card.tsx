@@ -51,7 +51,7 @@ export default function ArticlePublicPageCard({
       setPreviewUrl(link.url);
     } catch (err) {
       logger.error('Failed to create article preview link', err);
-      notificationsService.error('Create preview link');
+      notificationsService.error('Failed to create preview link');
     } finally {
       setIsCreatingPreview(false);
     }

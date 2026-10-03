@@ -4,3 +4,4 @@ export * from '@serializers/attributes/admin/email-performance.attributes';
 export * from '@serializers/attributes/admin/model-pricing-report.attributes';
 export * from '@serializers/attributes/admin/system-notification-overview.attributes';
 export * from '@serializers/attributes/admin/warmup-account.attributes';
+export * from './credit-hold-report.attributes';
