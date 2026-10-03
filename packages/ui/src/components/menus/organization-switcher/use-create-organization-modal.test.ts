@@ -135,4 +135,33 @@ describe('useCreateOrganizationModal', () => {
     expect(result.current.isCreating).toBe(false);
     expect(reloadMock).not.toHaveBeenCalled();
   });
+
+  it('surfaces the server-provided error detail', async () => {
+    mockCreateOrganization.mockRejectedValueOnce({
+      response: {
+        data: {
+          errors: [
+            {
+              detail: 'Your plan allows 1 organization. Upgrade to Scale.',
+              status: '422',
+            },
+          ],
+        },
+      },
+    });
+    const { result } = renderHook(() =>
+      useCreateOrganizationModal(getOrgsService),
+    );
+
+    act(() => result.current.setLabel('Acme'));
+
+    await act(async () => {
+      await result.current.submit();
+    });
+
+    expect(result.current.createError).toBe(
+      'Your plan allows 1 organization. Upgrade to Scale.',
+    );
+    expect(result.current.isCreating).toBe(false);
+  });
 });
