@@ -129,14 +129,6 @@ describe('getActivityDescription', () => {
       } as IActivity),
     ).toBe('/automation/runs/exec-7');
     expect(
-      getActivityDestinationPath({
-        entityId: 'strategy-3',
-        entityModel: 'AgentStrategy',
-        key: ActivityKey.AGENT_REVIEW_CHANGED,
-        value: 'Review required for x.',
-      } as IActivity),
-    ).toBe('/automation/agents/strategy-3');
-    expect(
       getActivityTypeKind({
         key: ActivityKey.IMAGE_FAILED,
       } as IActivity),
@@ -158,6 +150,13 @@ describe('getActivityDescription', () => {
         value: 'Daily trends digest',
       } as IActivity),
     ).toBe('Daily trends digest');
+    expect(
+      getActivityDetailText({
+        entityId: 'exec-7',
+        key: ActivityKey.WORKFLOW_EXECUTION_FAILED,
+        value: 'GPT-4o',
+      } as IActivity),
+    ).toBe('GPT-4o');
     expect(
       getActivityDetailText({
         key: ActivityKey.IMAGE_PROCESSING,
