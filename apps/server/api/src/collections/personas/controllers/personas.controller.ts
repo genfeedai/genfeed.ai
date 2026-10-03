@@ -18,6 +18,7 @@ import { ValidationException } from '@api/exceptions/validation.exception';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
@@ -181,6 +182,7 @@ export class PersonasController extends BaseCRUDController<
 
   @Post('from-sheet')
   async createFromSheet(
+    @Req() request: Request,
     @CurrentUser() user: User,
     @Body() body: CreatePersonaFromSheetDto,
   ) {
@@ -196,7 +198,7 @@ export class PersonasController extends BaseCRUDController<
       apiKeyContext: user,
       availability: body.availability,
       brandId: user.brandId,
-      isSuperAdmin: user.isSuperAdmin,
+      isSuperAdmin: getIsSuperAdmin(user, request),
       handle: body.handle,
       label: body.label,
       organizationId: user.organizationId,
@@ -219,7 +221,7 @@ export class PersonasController extends BaseCRUDController<
       brandId: user.brandId,
       apiKeyContext: user,
       brandIds: body.brandIds,
-      isSuperAdmin: user.isSuperAdmin,
+      isSuperAdmin: getIsSuperAdmin(user, request),
       mode: body.mode,
       organizationId: user.organizationId,
       personaId,
@@ -243,10 +245,16 @@ export class PersonasController extends BaseCRUDController<
   }
 
   /** Lookups by id never cross organizations (super admins excepted). */
-  public buildFindOneQuery(user: User, id: string): Record<string, unknown> {
+  public buildFindOneQuery(
+    user: User,
+    id: string,
+    request?: Request,
+  ): Record<string, unknown> {
     return {
-      ...super.buildFindOneQuery(user, id),
-      ...(user.isSuperAdmin ? {} : { organizationId: user.organizationId }),
+      ...super.buildFindOneQuery(user, id, request),
+      ...(getIsSuperAdmin(user, request)
+        ? {}
+        : { organizationId: user.organizationId }),
     };
   }
 
@@ -273,13 +281,14 @@ export class PersonasController extends BaseCRUDController<
     user: User,
     existing: PersonaDocument,
     updateDto: Partial<UpdatePersonaDto>,
+    request?: Request,
   ): Promise<void> {
     if (!hasSharedAvailability(existing)) {
       return;
     }
     await this.personasService.assertCanManageSharing({
       apiKeyContext: user,
-      isSuperAdmin: user.isSuperAdmin,
+      isSuperAdmin: getIsSuperAdmin(user, request),
       organizationId: user.organizationId,
       userId: user.userId ?? user.id,
     });
@@ -326,11 +335,12 @@ export class PersonasController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
-    await this.assertSharedPersonaEditable(user, id);
+    await this.assertSharedPersonaEditable(request, user, id);
     return super.remove(request, user, id);
   }
 
   private async assertSharedPersonaEditable(
+    request: Request,
     user: User,
     id: string,
   ): Promise<void> {
@@ -343,7 +353,10 @@ export class PersonasController extends BaseCRUDController<
     if (!persona) {
       return;
     }
-    if (persona.organizationId !== user.organizationId && !user.isSuperAdmin) {
+    if (
+      persona.organizationId !== user.organizationId &&
+      !getIsSuperAdmin(user, request)
+    ) {
       throw new NotFoundException('Persona', id);
     }
     if (!hasSharedAvailability(persona)) {
@@ -354,7 +367,7 @@ export class PersonasController extends BaseCRUDController<
     }
     await this.personasService.assertCanManageSharing({
       apiKeyContext: user,
-      isSuperAdmin: user.isSuperAdmin,
+      isSuperAdmin: getIsSuperAdmin(user, request),
       organizationId: user.organizationId,
       userId: user.userId ?? user.id,
     });
@@ -375,7 +388,7 @@ export class PersonasController extends BaseCRUDController<
     @Body() updateDto: UpdatePersonaDto,
   ) {
     if (updateDto.memberIds) {
-      await this.assertSharedPersonaEditable(user, id);
+      await this.assertSharedPersonaEditable(request, user, id);
       const organization = user.organizationId;
       const personaId = EntityIdUtil.validate(id, 'personaId');
       const orgId = EntityIdUtil.validate(organization, 'organizationId');
