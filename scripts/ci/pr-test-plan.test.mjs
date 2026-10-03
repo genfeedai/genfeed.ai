@@ -420,3 +420,22 @@ test('browser workspace legs run the full filtered suite while other groups reta
     /if \[ "\$\{WORKSPACE_GROUP\}" = "browser-extension" \] \|\| \[ "\$\{FORCE_FULL\}" = "true" \] \|\| \[ -z "\$\{CI_BASE_SHA\}" \]; then\n {12}bunx turbo run test --continue \$\{WORKSPACE_FILTERS\}\n {10}else\n {12}TURBO_SCM_BASE="\$\{CI_BASE_SHA\}" bunx turbo run test --continue --affected \$\{WORKSPACE_FILTERS\}\n {10}fi/,
   );
 });
+
+test('server workspace leg runs the workers cron specs with affected selection', () => {
+  const workflow = readFileSync(
+    new URL('../../.github/workflows/ci.yml', import.meta.url),
+    'utf8',
+  );
+  const cronStep = workflow.slice(
+    workflow.indexOf('      - name: Run workers cron specs'),
+    workflow.indexOf('\n  # App tests.'),
+  );
+  assert.match(
+    cronStep,
+    /if: \$\{\{ !cancelled\(\) && matrix\.group == 'server' \}\}/,
+  );
+  assert.match(
+    cronStep,
+    /if \[ "\$\{FORCE_FULL\}" = "true" \] \|\| \[ -z "\$\{CI_BASE_SHA\}" \]; then\n {12}bunx turbo run test:cron --filter=@genfeedai\/workers\n {10}else\n {12}TURBO_SCM_BASE="\$\{CI_BASE_SHA\}" bunx turbo run test:cron --affected --filter=@genfeedai\/workers\n {10}fi/,
+  );
+});
