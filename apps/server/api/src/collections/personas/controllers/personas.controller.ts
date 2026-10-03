@@ -63,7 +63,7 @@ const AVAILABILITY_FIELDS = [
  * (admin-gated and audited), never through the generic create/update routes.
  */
 function stripAvailabilityFields<T extends object>(dto: T): T {
-  const copy: Record<string, unknown> = { ...dto };
+  const copy = { ...dto } as Record<string, unknown>;
   for (const field of AVAILABILITY_FIELDS) {
     delete copy[field];
   }
@@ -269,10 +269,8 @@ export class PersonasController extends BaseCRUDController<
       organizationId: user.organizationId,
       userId: user.userId ?? user.id,
     });
-    if (
-      updateDto.brandId !== undefined &&
-      updateDto.brandId !== existing.brandId
-    ) {
+    const nextBrandId = (updateDto as Record<string, unknown>).brandId;
+    if (nextBrandId !== undefined && nextBrandId !== existing.brandId) {
       throw new ValidationException(
         'A shared character cannot move to another owning brand',
         'brandId',

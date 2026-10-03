@@ -8,6 +8,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import { PersonasController } from '@api/collections/personas/controllers/personas.controller';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { brandAvailabilityWhere } from '@api/collections/personas/utils/persona-availability.util';
+import { ValidationException } from '@api/exceptions/validation.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { PersonaAvailabilityMode, PersonaStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -439,6 +440,17 @@ describe('PersonasController', () => {
       await expect(
         controller.patch(request, mockUser, personaId, { label: 'Renamed' }),
       ).rejects.toMatchObject({ status: 404 });
+      expect(mockServiceMethods.patch).not.toHaveBeenCalled();
+    });
+
+    it('does not let a shared character move to another owning brand', async () => {
+      mockServiceMethods.findOne.mockResolvedValue(sharedPersona);
+
+      await expect(
+        controller.patch(request, mockUser, personaId, {
+          brandId: brandId,
+        } as never),
+      ).rejects.toBeInstanceOf(ValidationException);
       expect(mockServiceMethods.patch).not.toHaveBeenCalled();
     });
 
