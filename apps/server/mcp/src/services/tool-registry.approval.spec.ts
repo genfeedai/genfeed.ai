@@ -421,6 +421,9 @@ describe('ToolRegistryService — approval queue', () => {
 
     it('retries an APPROVED approval that has no recorded outcome, executing it once', async () => {
       const { client, registry } = build();
+      client.resolveApproval.mockRejectedValue(
+        new Error('Approval already resolved'),
+      );
       client.getApproval.mockResolvedValue({ ...queued, result: null });
       client.executeAgentTool
         .mockResolvedValueOnce({ error: 'denied', success: false })
@@ -434,13 +437,34 @@ describe('ToolRegistryService — approval queue', () => {
       expect((await call()).isError).toBe(true);
       expect((await call()).isError).toBeFalsy();
 
-      expect(client.resolveApproval).not.toHaveBeenCalled();
       expect(client.executeAgentTool).toHaveBeenCalledTimes(2);
       expect(client.executeAgentTool).toHaveBeenLastCalledWith(
         'create_post',
         { content: 'hello' },
         { approvedApprovalId: 'apr-1' },
       );
+    });
+
+    it('never retries a direct-dispatch approval whose claim was lost', async () => {
+      const { client, registry } = build();
+      client.resolveApproval.mockRejectedValue(
+        new Error('Approval already resolved'),
+      );
+      client.getApproval.mockResolvedValue({
+        arguments: { runId: 'run-1', expectedRevision: 2, action: 'cancel' },
+        id: 'apr-1',
+        result: null,
+        status: 'APPROVED',
+        toolName: 'control_remix_generation',
+      });
+
+      const result = (await registry.handleToolCall({
+        arguments: { approvalId: 'apr-1', decision: 'approve' },
+        name: 'resolve_approval',
+      })) as { isError?: boolean };
+
+      expect(result.isError).toBe(true);
+      expect(client.controlRemixGeneration).not.toHaveBeenCalled();
     });
 
     it('does not re-run an approval whose outcome was already recorded', async () => {

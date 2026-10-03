@@ -513,15 +513,6 @@ export class ToolRegistryService implements OnModuleInit {
       );
     }
 
-    // An approval already APPROVED with no recorded outcome is a redemption that
-    // failed before the API consumed it (for example an identity check): its
-    // decision stands and the API's execution fence still guarantees at most one
-    // run, so re-approving retries the execution instead of dead-ending on
-    // "already resolved". Anything else is claimed atomically below.
-    const existing = await this.clientService.getApproval(approvalId);
-    const retryable =
-      existing?.status === 'APPROVED' && !existing.result ? existing : null;
-
     // Atomically CLAIM the approval (PENDING -> APPROVED) BEFORE executing the
     // tool. The API resolves via a conditional updateMany on status=PENDING, so
     // a concurrent resolve_approval for the same id loses the race and throws
@@ -529,9 +520,7 @@ export class ToolRegistryService implements OnModuleInit {
     // once even though the MCP server is stateless and handles each request in
     // isolation. (Previously the claim happened AFTER execution, leaving a
     // TOCTOU window where two callers could both execute an irreversible tool.)
-    const approval =
-      retryable ??
-      (await this.clientService.resolveApproval(approvalId, 'approve'));
+    const approval = await this.claimApprovalOrRecoverRetry(approvalId);
 
     // Defense-in-depth: only execute tools that are actually approval-gated, so
     // a stray approval row created for a non-write tool cannot be run via the
@@ -577,6 +566,35 @@ export class ToolRegistryService implements OnModuleInit {
     );
 
     return result;
+  }
+
+  /**
+   * Claim the approval for execution. An approval that is already APPROVED with
+   * no recorded outcome is a redemption that failed before the API consumed it
+   * (for example an identity check): its decision stands, so re-approving
+   * retries the execution instead of dead-ending on "already resolved". That
+   * recovery is limited to agent-executor tools, whose execution the API fences
+   * to at most one run; direct-dispatch tools have no such fence, so for them a
+   * lost claim always stays lost.
+   */
+  private async claimApprovalOrRecoverRetry(
+    approvalId: string,
+  ): Promise<McpApprovalResource> {
+    try {
+      return await this.clientService.resolveApproval(approvalId, 'approve');
+    } catch (claimError: unknown) {
+      const existing = await this.clientService
+        .getApproval(approvalId)
+        .catch(() => null);
+      if (
+        existing?.status === 'APPROVED' &&
+        !existing.result &&
+        ToolRegistryService.classify(existing.toolName) === 'agent-executor'
+      ) {
+        return existing;
+      }
+      throw claimError;
+    }
   }
 
   /**
