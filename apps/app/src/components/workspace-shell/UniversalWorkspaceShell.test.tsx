@@ -609,6 +609,50 @@ describe('UniversalWorkspaceShell', () => {
     ).toHaveAttribute('aria-hidden', 'true');
   });
 
+  it('returns focus to the asset after closing its sidebar', () => {
+    navigation.pathname = '/acme/moonrise/studio/generate';
+    function Surface() {
+      const [selected, setSelected] = useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => setSelected(true)}>
+            Inspect image
+          </button>
+          <ContextSidebarPanel
+            onClose={() => setSelected(false)}
+            selection={
+              selected
+                ? {
+                    id: 'image-focus',
+                    kind: 'asset',
+                    origin: 'user',
+                    title: 'Image',
+                  }
+                : null
+            }
+          >
+            <button type="button">Inspector action</button>
+          </ContextSidebarPanel>
+        </>
+      );
+    }
+    render(
+      <ContextSidebarProvider>
+        <UniversalWorkspaceShell agentApiService={agentApiService}>
+          <Surface />
+        </UniversalWorkspaceShell>
+      </ContextSidebarProvider>,
+    );
+    const asset = screen.getByRole('button', { name: 'Inspect image' });
+    act(() => asset.focus());
+    fireEvent.click(asset);
+    act(() => screen.getByRole('button', { name: 'Inspector action' }).focus());
+    const close = screen.getByRole('button', { name: 'Close details' });
+    act(() => close.focus());
+    fireEvent.click(close);
+    expect(asset).toHaveFocus();
+  });
+
   it('keeps the context sidebar rail closed and inert with no selection', () => {
     navigation.pathname = '/acme/moonrise/workspace';
 
@@ -1431,14 +1475,17 @@ describe('UniversalWorkspaceShell', () => {
       expect(screen.getByTestId('dock-conversation')).toBeInTheDocument();
     });
 
-    it('uses a chat bubble on studio pages instead of a second promptbar', async () => {
-      navigation.pathname = '/acme/moonrise/studio/generate';
-      renderWithDock();
+    it.each(['/acme/moonrise/studio/generate', '/acme/moonrise/studio/clips'])(
+      'hides the chat bubble on prompt-bar page %s',
+      async (pathname) => {
+        navigation.pathname = pathname;
+        renderWithDock();
 
-      await waitFor(() => expect(dock?.isAvailable).toBe(true));
-      expect(screen.getByTestId('agent-conversation-bubble')).toBeVisible();
-      expect(screen.queryByTestId('agent-page-promptbar')).toBeNull();
-    });
+        await waitFor(() => expect(dock?.isAvailable).toBe(true));
+        expect(screen.queryByTestId('agent-conversation-bubble')).toBeNull();
+        expect(screen.queryByTestId('agent-page-promptbar')).toBeNull();
+      },
+    );
 
     it('renders scope notices in the dock without the scope switchers', async () => {
       navigation.pathname = '/acme/moonrise/workspace';

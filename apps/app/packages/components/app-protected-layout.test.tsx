@@ -1228,7 +1228,7 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({
         currentApp: 'messages',
         items: [],
-        sectionLabel: 'Messages',
+        sectionLabel: undefined,
       }),
     );
     expect(appSidebarSpy.mock.lastCall?.[0]).toEqual(

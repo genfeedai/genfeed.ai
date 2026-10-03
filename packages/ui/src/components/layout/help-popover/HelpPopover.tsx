@@ -8,6 +8,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
+import {
+  SHELL_ICON_BUTTON_CLASS,
+  SHELL_ICON_CLASS,
+} from '@ui-constants/shell-chrome.constant';
 import { CircleHelp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -19,10 +23,10 @@ export default function HelpPopover({ help }: HelpPopoverProps) {
       <PopoverTrigger asChild>
         <Button
           ariaLabel={translate('help')}
-          icon={<CircleHelp className="size-4" />}
+          icon={<CircleHelp className={SHELL_ICON_CLASS} />}
           variant={ButtonVariant.GHOST}
           size={ButtonSize.ICON}
-          className="shrink-0"
+          className={SHELL_ICON_BUTTON_CLASS}
           data-testid="page-help-trigger"
         />
       </PopoverTrigger>

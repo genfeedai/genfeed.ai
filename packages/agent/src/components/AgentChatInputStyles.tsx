@@ -43,7 +43,7 @@ export function AgentChatInputStyles(): ReactElement {
           float: left;
           pointer-events: none;
           height: 0;
-          color: hsl(var(--foreground) / 0.42);
+          color: hsl(var(--muted-foreground));
         }
         .mention {
           border-radius: 0.25rem;

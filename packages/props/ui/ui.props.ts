@@ -77,6 +77,8 @@ interface ContainerBaseProps {
   /** Left-aligned module-bar tools such as search. Maps to SectionTopbar `leading`. */
   leading?: ReactNode;
   right?: ReactNode;
+  /** Module toolbar ghost actions, placed beside Help and the inspector. */
+  iconActions?: ReactNode;
   /**
    * Keep the module bar pinned to the top of the scrolling canvas, and
    * publish its height as `--pinned-topbar-height` for sticky descendants.

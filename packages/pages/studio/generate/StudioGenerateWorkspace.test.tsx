@@ -8,6 +8,7 @@ import {
   IMAGE_EDIT_CONTRACT_VERSION,
   MODEL_KEYS,
 } from '@genfeedai/contracts/constants';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { CrunInputControls } from '@genfeedai/contracts/interfaces/content/crun-contract.interface';
 import type { StudioGenerateJob } from '@pages/studio/generate/types';
 import {
@@ -47,9 +48,18 @@ function ContextSidebarCloseControl() {
   const contextSidebar = useContextSidebar();
 
   return (
-    <button type="button" onClick={contextSidebar?.close}>
-      Close sidebar
-    </button>
+    <>
+      <button type="button" onClick={contextSidebar?.close}>
+        Close sidebar
+      </button>
+      <button
+        type="button"
+        aria-expanded={contextSidebar?.isOpen}
+        onClick={contextSidebar?.toggle}
+      >
+        Collapse sidebar
+      </button>
+    </>
   );
 }
 
@@ -1300,6 +1310,47 @@ describe('StudioGenerateWorkspace', () => {
     expect(mocks.results.mock.calls.at(-1)?.[0]).toMatchObject({
       selectedJobId: null,
     });
+  });
+
+  it('routes See Details to the same job inspector as the gallery card', () => {
+    const ingredient = { id: 'saved-image' } as IIngredient;
+    const job = {
+      createdAt: 1,
+      id: 'local-job',
+      ingredientId: ingredient.id,
+      ingredient,
+      prompt: 'Details prompt',
+      status: 'GENERATED',
+      type: 'image',
+    };
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [job],
+    });
+    render(<StudioGenerateWorkspace />, { wrapper: ContextSidebarHost });
+    const hookParams = mocks.assetActionsHook.mock.calls.at(-1)?.[0] as {
+      onInspectIngredient: (asset: IIngredient) => void;
+    };
+    act(() => hookParams.onInspectIngredient(ingredient));
+    expect(screen.getByTestId('context-sidebar-outlet')).toContainElement(
+      screen.getByTestId('studio-inspector'),
+    );
+    expect(mocks.results.mock.calls.at(-1)?.[0]).toMatchObject({
+      selectedJobId: 'local-job',
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }));
+    expect(
+      screen.getByRole('button', { name: 'Collapse sidebar' }),
+    ).toHaveAttribute('aria-expanded', 'false');
+    const latestParams = mocks.assetActionsHook.mock.calls.at(-1)?.[0] as {
+      onInspectIngredient: (asset: IIngredient) => void;
+    };
+    act(() => latestParams.onInspectIngredient(ingredient));
+    expect(
+      screen.getByRole('button', { name: 'Collapse sidebar' }),
+    ).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('studio-inspector')).toBeInTheDocument();
   });
 
   it('applies an Agent handoff end-to-end: switches type, prefills the prompt, falls back an unavailable model and unsupported params with a notice, and attaches the resolved reference (#4716 review)', async () => {

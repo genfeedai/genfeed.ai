@@ -783,6 +783,20 @@ describe('SocialMessagesPage', () => {
     expect(
       screen.getAllByRole('navigation', { name: 'Social conversations' }),
     ).toHaveLength(1);
+    expect(within(portalTarget).getAllByText('Messages')).toHaveLength(1);
+    expect(
+      within(portalTarget).queryByText('Conversations'),
+    ).not.toBeInTheDocument();
+    expect(
+      within(portalTarget).getByRole('textbox', {
+        name: 'Search social conversations',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(portalTarget).getByRole('button', {
+        name: 'Filter social conversations',
+      }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('messages-surface-layout')).not.toHaveClass(
       'lg:grid-cols-[380px_minmax(0,1fr)]',
     );

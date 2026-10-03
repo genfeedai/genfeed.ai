@@ -46,6 +46,15 @@ const {
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ organizationId: 'org_1' }),
 }));
+vi.mock(
+  '@genfeedai/contexts/user/organization-context/organization-context',
+  () => ({
+    useRoutedOrganization: () => ({
+      confirmedOrganizationId: 'org_1',
+      isRouteConfirmed: true,
+    }),
+  }),
+);
 
 vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => ({
