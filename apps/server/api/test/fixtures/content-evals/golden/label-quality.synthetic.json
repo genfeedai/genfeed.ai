@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "setVersion": "golden-set-v1",
+  "visibility": "synthetic",
+  "window": null,
+  "scopeCount": 1,
+  "agreementFloor": {
+    "minKappa": 0.4,
+    "minPairs": 20,
+    "minPercentAgreementWhenKappaUndefined": 0.8
+  },
+  "sources": [
+    {
+      "source": "batch-item-review",
+      "labels": 72,
+      "pairs": 0,
+      "percentAgreement": null,
+      "kappa": null,
+      "status": "insufficient-overlap"
+    },
+    {
+      "source": "evaluation-decision",
+      "labels": 54,
+      "pairs": 78,
+      "percentAgreement": 1,
+      "kappa": 1,
+      "status": "kept"
+    },
+    {
+      "source": "evaluation-score",
+      "labels": 54,
+      "pairs": 78,
+      "percentAgreement": 1,
+      "kappa": 1,
+      "status": "kept"
+    },
+    {
+      "source": "harness-avoid",
+      "labels": 12,
+      "pairs": 0,
+      "percentAgreement": null,
+      "kappa": null,
+      "status": "insufficient-overlap"
+    },
+    {
+      "source": "harness-seed",
+      "labels": 9,
+      "pairs": 0,
+      "percentAgreement": null,
+      "kappa": null,
+      "status": "insufficient-overlap"
+    },
+    {
+      "source": "harness-winner",
+      "labels": 6,
+      "pairs": 18,
+      "percentAgreement": 1,
+      "kappa": null,
+      "status": "insufficient-overlap"
+    },
+    {
+      "source": "newsletter-approval",
+      "labels": 24,
+      "pairs": 0,
+      "percentAgreement": null,
+      "kappa": null,
+      "status": "insufficient-overlap"
+    },
+    {
+      "source": "post-review",
+      "labels": 72,
+      "pairs": 42,
+      "percentAgreement": 1,
+      "kappa": 1,
+      "status": "kept"
+    }
+  ],
+  "kinds": [
+    {
+      "contentKind": "social-post",
+      "rows": 45,
+      "brands": 3,
+      "approve": 30,
+      "reject": 15,
+      "withScoreBand": 18
+    },
+    {
+      "contentKind": "thread",
+      "rows": 36,
+      "brands": 3,
+      "approve": 24,
+      "reject": 12,
+      "withScoreBand": 0
+    },
+    {
+      "contentKind": "article",
+      "rows": 36,
+      "brands": 3,
+      "approve": 24,
+      "reject": 12,
+      "withScoreBand": 36
+    },
+    {
+      "contentKind": "script",
+      "rows": 36,
+      "brands": 3,
+      "approve": 24,
+      "reject": 12,
+      "withScoreBand": 0
+    },
+    {
+      "contentKind": "newsletter",
+      "rows": 36,
+      "brands": 3,
+      "approve": 24,
+      "reject": 12,
+      "withScoreBand": 0
+    },
+    {
+      "contentKind": "image-caption",
+      "rows": 36,
+      "brands": 3,
+      "approve": 24,
+      "reject": 12,
+      "withScoreBand": 0
+    }
+  ],
+  "excluded": {
+    "conflict": 0,
+    "copyOfReview": 0,
+    "emptyText": 0,
+    "missingContent": 0,
+    "noBrand": 0,
+    "noLabel": 0,
+    "outOfScopeBrand": 0,
+    "residualIdentifier": 0,
+    "unsupportedKind": 0
+  }
+}
