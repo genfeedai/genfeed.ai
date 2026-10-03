@@ -19,6 +19,7 @@ import { AgentAdsResearchToolHandler } from '@api/services/agent-orchestrator/to
 import { AgentAnalyticsToolHandler } from '@api/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
 import { AgentBrandContentToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-content-tool-handler.service';
 import { AgentBrandContextToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-context-tool-handler.service';
+import { AgentBrandFromUrlToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-from-url-tool-handler.service';
 import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
 import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
@@ -198,6 +199,8 @@ const BRANDLESS_AGENT_TOOLS = new Set<CuratedActionName>([
   'check_onboarding_status',
   'connect_social_account',
   'create_brand',
+  'create_brand_from_url',
+  'get_brand_scan_status',
   'get_ad_research_detail',
   'get_analytics',
   'get_approval_summary',
@@ -270,6 +273,7 @@ export class AgentToolExecutorService implements OnModuleInit {
     private readonly instagramInspirationHandler: AgentInstagramInspirationToolHandler,
     private readonly xActionsHandler: AgentXActionsToolHandler,
     private readonly brandInterviewHandler: AgentBrandInterviewToolHandler,
+    private readonly brandFromUrlHandler: AgentBrandFromUrlToolHandler,
     private readonly workspaceHandler: AgentWorkspaceToolHandler,
     private readonly connectionHandler: AgentConnectionToolHandler,
     private readonly trendsHandler: AgentTrendsToolHandler,
@@ -596,7 +600,12 @@ export class AgentToolExecutorService implements OnModuleInit {
     }
 
     const parameterBrandId = readOptionalString(parameters.brandId);
-    if (parameterBrandId && parameterBrandId !== scope.brandId) {
+    if (
+      parameterBrandId &&
+      parameterBrandId !== scope.brandId &&
+      toolName !== 'create_brand_from_url' &&
+      toolName !== 'get_brand_scan_status'
+    ) {
       throw new Error(
         'Tool brand parameters must match the validated thread brand scope.',
       );
@@ -674,6 +683,7 @@ export class AgentToolExecutorService implements OnModuleInit {
         brandContentHandler: this.brandContentHandler,
         brandContextHandler: this.brandContextHandler,
         brandInterviewHandler: this.brandInterviewHandler,
+        brandFromUrlHandler: this.brandFromUrlHandler,
         campaignHandler: this.campaignHandler,
         catalogHandler: this.catalogHandler,
         connectionHandler: this.connectionHandler,

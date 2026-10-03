@@ -47,6 +47,8 @@ describe('ToolRegistryService.classify', () => {
     ['list_system_workflow_catalog', 'workflow-control'],
     ['install_system_workflow', 'workflow-control'],
     ['generate_image', 'agent-executor'],
+    ['create_brand_from_url', 'agent-executor'],
+    ['get_brand_scan_status', 'agent-executor'],
     ['generate_visual_code', 'agent-executor'],
     ['get_visual_code_catalog', 'agent-executor'],
     ['get_visual_code_project', 'agent-executor'],
@@ -133,6 +135,8 @@ describe('ToolRegistryService.validateDispatchCoverage', () => {
   it('passes when every surfaced tool routes (resolve_approval excepted)', () => {
     mockState.tools = [
       { name: 'generate_image' },
+      { name: 'create_brand_from_url' },
+      { name: 'get_brand_scan_status' },
       { name: 'get_video_status' },
       { name: 'list_meta_campaigns' },
       { name: 'resolve_approval' },
@@ -145,6 +149,8 @@ describe('ToolRegistryService.validateDispatchCoverage', () => {
   it('throws when a surfaced tool has no executor', () => {
     mockState.tools = [
       { name: 'generate_image' },
+      { name: 'create_brand_from_url' },
+      { name: 'get_brand_scan_status' },
       { name: 'totally_unrouted_tool' },
     ];
     expect(() => ToolRegistryService.validateDispatchCoverage()).toThrow(

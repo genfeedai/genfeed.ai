@@ -106,6 +106,11 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'create_article', surfaces: ['mcp'], toolset: 'content' },
   { name: 'create_article_draft', surfaces: ['mcp'], toolset: 'articles' },
   { name: 'create_brand', surfaces: ['agent'], toolset: 'onboarding' },
+  {
+    name: 'create_brand_from_url',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'brand',
+  },
   { name: 'create_chat', surfaces: ['mcp'], toolset: 'agent-chat' },
   {
     name: 'create_clip_project_from_youtube',
@@ -223,6 +228,11 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'brand',
   },
   { name: 'get_brand_context', surfaces: ['agent', 'mcp'], toolset: 'brand' },
+  {
+    name: 'get_brand_scan_status',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'brand',
+  },
   { name: 'get_clip_highlights', surfaces: ['mcp'], toolset: 'clips' },
   { name: 'get_clip_project', surfaces: ['mcp'], toolset: 'clips' },
   {

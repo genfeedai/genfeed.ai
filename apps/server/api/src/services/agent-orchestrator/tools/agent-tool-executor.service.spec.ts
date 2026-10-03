@@ -139,7 +139,7 @@ describe('AgentToolExecutorService', () => {
     },
   });
 
-  const createService = () => {
+  const createService = (threadMode: 'manual' | 'auto' = 'manual') => {
     const recurringWorkflowId = 'test-object-id';
     const loggerService = {
       error: vi.fn(),
@@ -1150,6 +1150,7 @@ describe('AgentToolExecutorService', () => {
       new AgentToolMutationAuthorizationService(
         loggerService,
         approvals as never,
+        { findOne: vi.fn().mockResolvedValue({ mode: threadMode }) } as never,
       );
     const service = new AgentToolExecutorService(
       loggerService,
@@ -1162,6 +1163,14 @@ describe('AgentToolExecutorService', () => {
       instagramInspirationHandler,
       xActionsHandler,
       brandInterviewHandler,
+      {
+        execute: vi.fn().mockResolvedValue({
+          success: true,
+          creditsUsed: 0,
+          isBillingDelegated: true,
+          data: { brandId: 'brand-1', scanStatus: 'running' },
+        }),
+      } as never,
       workspaceHandler,
       connectionHandler,
       trendsHandler,
@@ -5766,6 +5775,69 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
+  it.each(['create_brand_from_url', 'get_brand_scan_status'] as const)(
+    'dispatches %s with delegated billing',
+    async (name) => {
+      const { service } = createService();
+      const result = await service.executeTool(
+        name,
+        { url: 'https://example.com', brandId: 'brand-1' },
+        { organizationId: 'org-1', userId: 'user-1' },
+      );
+      expect(result).toMatchObject({
+        success: true,
+        isBillingDelegated: true,
+        data: { brandId: 'brand-1', scanStatus: 'running' },
+      });
+    },
+  );
+
+  it.each([true, false])(
+    'creates and polls a new brand with existing thread brand: %s',
+    async (hasBrand) => {
+      const { service } = createService('auto');
+      const context = scopedContext('brand-A');
+      if (!hasBrand) {
+        delete context.brandId;
+        delete context.validatedScope?.brandId;
+      }
+      const scopeBefore = structuredClone(context.validatedScope);
+      const created = await service.executeTool(
+        'create_brand_from_url',
+        { url: 'https://example.com' },
+        context,
+      );
+      expect(created.error).toBeUndefined();
+      expect(created).toMatchObject({
+        success: true,
+        data: { brandId: 'brand-1' },
+      });
+      expect(
+        await service.executeTool(
+          'get_brand_scan_status',
+          { brandId: 'brand-1' },
+          context,
+        ),
+      ).toMatchObject({ success: true, data: { brandId: 'brand-1' } });
+      expect(context.validatedScope).toEqual(scopeBefore);
+    },
+  );
+
+  it('preserves brand parameter isolation for other tools', async () => {
+    const { service } = createService();
+    expect(
+      await service.executeTool(
+        'get_brand_completeness',
+        { brandId: 'brand-B' },
+        scopedContext('brand-A'),
+      ),
+    ).toMatchObject({
+      success: false,
+      error:
+        'Tool brand parameters must match the validated thread brand scope.',
+    });
+  });
+
   it('rejects stale thread scope before dispatching a tool', async () => {
     const { agentScopeContextService, batchGenerationService, service } =
       createService();
@@ -5898,6 +5970,7 @@ describe('AgentToolExecutorService', () => {
         undefined,
       ),
       new AgentBrandInterviewToolHandler(undefined),
+      {} as never,
       new AgentWorkspaceToolHandler(
         {} as never,
         brandsService as never,

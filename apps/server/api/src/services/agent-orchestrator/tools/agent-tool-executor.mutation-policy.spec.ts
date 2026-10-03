@@ -144,6 +144,7 @@ describe('AgentToolExecutorService mutation policy', () => {
       instagramHandler as never,
       xActionsHandler as never,
       unused,
+      unused,
       workspaceHandler as never,
       unused,
       unused,

@@ -44,9 +44,11 @@ import { VoicesModule } from '@api/collections/voices/voices.module';
 import { VotesModule } from '@api/collections/votes/votes.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { RequestContextModule } from '@api/common/request-context.module';
 import { AdsResearchModule } from '@api/endpoints/ads-research/ads-research.module';
 import { AiActionsModule } from '@api/endpoints/ai-actions/ai-actions.module';
 import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { AgentArtifactReferenceService, SERVER_TOKENS } from '@api/index';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
@@ -89,6 +91,7 @@ import { AgentAdsResearchToolHandler } from '@api/services/agent-orchestrator/to
 import { AgentAnalyticsToolHandler } from '@api/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
 import { AgentBrandContentToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-content-tool-handler.service';
 import { AgentBrandContextToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-context-tool-handler.service';
+import { AgentBrandFromUrlToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-from-url-tool-handler.service';
 import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
 import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { AgentConnectionRequestService } from '@api/services/agent-orchestrator/tools/agent-connection-request.service';
@@ -187,6 +190,7 @@ import { Module } from '@nestjs/common';
     BatchGenerationModule,
     AutonomousPublishingModule,
     BrandInterviewModule,
+    RequestContextModule,
     BrandsCoreModule,
     BotsModule,
     MembersModule,
@@ -254,6 +258,8 @@ import { Module } from '@nestjs/common';
     AgentBrandContextToolHandler,
     AgentKnowledgeToolHandler,
     AgentBrandInterviewToolHandler,
+    AgentBrandFromUrlToolHandler,
+    RolesGuard,
     AgentPrepareToolHandler,
     AgentSpawnToolHandler,
     AgentToolCatalogHandler,
