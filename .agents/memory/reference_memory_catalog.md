@@ -146,6 +146,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [agency-cost-reporting](spec-agency-cost-reporting.md) · [decisions](decisions-agency-cost-reporting.md) — org/brand provider-cost + credit reporting, CSV, and API
 - [workspace-inspector-tabs](spec-workspace-inspector-tabs.md) · [decisions](decisions-workspace-inspector-tabs.md) — user-configurable right-rail asset panes
 - [app-theming](spec-app-theming.md) · [decisions](decisions-app-theming.md) — System, Light, and Dark in product apps; marketing website stays Dark
+- [judge-calibration decisions](decisions-judge-calibration.md) — #4924 judge κ/ρ suite, scoring-surface lock + CI gate, harness-criteria injection OFF pending measured κ
 
 ## Project state
 
