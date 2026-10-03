@@ -15,10 +15,20 @@ export interface BrandOsIdentityPreviewProps {
   isDisabled: boolean;
 }
 
+export interface BrandOsGuideReadiness {
+  isLoaded: boolean;
+  canManage: boolean;
+  isApproved: boolean;
+  isDirty: boolean;
+  isBusy: boolean;
+}
+
 export interface BrandOsSettingsCardProps {
   brandId: string;
   refreshKey?: number;
+  isAutoSaveEnabled?: boolean;
   onRevisionSaved?: (revision: IBrandOsRevision) => void;
+  onReadinessChange?: (readiness: BrandOsGuideReadiness) => void;
   onRefreshBrand: () => Promise<void>;
 }
 

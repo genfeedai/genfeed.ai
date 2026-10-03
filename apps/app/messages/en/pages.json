@@ -2547,6 +2547,7 @@
         "reviewExisting": "Review saved details",
         "manual": "Add details manually",
         "wait": "Keep waiting",
+        "start": "Scan website",
         "rescan": "Scan website again"
       },
       "review": {
@@ -2555,7 +2556,8 @@
         "saved": "Your brand guide has been saved.",
         "approved": "Your brand guide is approved.",
         "conflict": "This guide changed while you were editing. Your unsaved edits are still here.",
-        "reload": "Reload saved revision"
+        "reload": "Reload saved revision",
+        "approveToContinue": "Approve your brand guide to continue, or skip for now."
       },
       "preview": {
         "title": "Your first content",

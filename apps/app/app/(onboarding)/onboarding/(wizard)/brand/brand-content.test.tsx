@@ -5,7 +5,10 @@ import type {
   BrandGuidePanelProps,
   UseBrandGuideScanResult,
 } from '@genfeedai/props/onboarding/brand-guide.props';
-import type { BrandOsSettingsCardProps } from '@genfeedai/props/pages/brand-os-settings.props';
+import type {
+  BrandOsGuideReadiness,
+  BrandOsSettingsCardProps,
+} from '@genfeedai/props/pages/brand-os-settings.props';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandGuidePanel from './brand-guide-panel';
@@ -104,6 +107,14 @@ beforeEach(() => {
 });
 describe('saved guide panel composition', () => {
   it('always mounts one review card and focuses it without remounting or requiring website input', () => {
+    if (!mocks.scan) throw new Error('Missing scan fixture');
+    mocks.scan.scan = {
+      id: 'saved',
+      brandId: 'brand-1',
+      status: 'ready',
+      url: 'saved.example',
+      startedAt: '2026-10-01T00:00:00Z',
+    };
     const props = panelProps();
     const view = render(<BrandGuidePanel {...props} />);
     expect(screen.getByText('Retained guide card')).toBeInTheDocument();
@@ -202,12 +213,130 @@ describe('saved guide panel composition', () => {
         'brand-1',
       );
     for (const name of [
-      'Scan website again',
+      'Scan website',
       'Add details manually',
       'Review saved details',
     ])
       expect(screen.getByRole('button', { name })).not.toHaveAttribute(
         'data-brand-os-navigation',
       );
+  });
+});
+describe('first-run scan and approval-gated Continue', () => {
+  const readiness: BrandOsGuideReadiness = {
+    isLoaded: true,
+    canManage: true,
+    isApproved: false,
+    isDirty: false,
+    isBusy: false,
+  };
+  function report(patch: Partial<BrandOsGuideReadiness> = {}) {
+    const onReadinessChange = mocks.cardProps?.onReadinessChange;
+    if (!onReadinessChange) throw new Error('Missing readiness callback');
+    act(() => onReadinessChange({ ...readiness, ...patch }));
+  }
+  function continueButton() {
+    return screen.getByRole('button', { name: 'Continue' });
+  }
+
+  it('scans a known website once on first arrival', () => {
+    const props = panelProps();
+    const view = render(
+      <BrandGuidePanel {...props} websiteUrl="https://acme.com" />,
+    );
+    expect(mocks.start).toHaveBeenCalledExactlyOnceWith('https://acme.com');
+    expect(
+      screen.getByRole('button', { name: 'Scan website' }),
+    ).toBeInTheDocument();
+    view.rerender(<BrandGuidePanel {...props} websiteUrl="https://acme.com" />);
+    view.rerender(
+      <BrandGuidePanel {...props} websiteUrl="https://other.com" />,
+    );
+    expect(mocks.start).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    'stored scan',
+    'resolving',
+    'in-flight request',
+    'error',
+    'empty website',
+  ] as const)('does not auto-scan with %s', (state) => {
+    if (!mocks.scan) throw new Error('Missing scan fixture');
+    if (state === 'stored scan')
+      mocks.scan.scan = {
+        id: 'saved',
+        brandId: 'brand-1',
+        status: 'failed',
+        url: 'https://acme.com',
+        startedAt: '2026-10-01T00:00:00Z',
+      };
+    if (state === 'resolving') mocks.scan.phase = 'resolving';
+    if (state === 'in-flight request')
+      mocks.scan.request = { requestId: 'retained', url: 'https://acme.com' };
+    if (state === 'error') mocks.scan.error = true;
+    render(
+      <BrandGuidePanel
+        {...panelProps()}
+        websiteUrl={state === 'empty website' ? '  ' : 'https://acme.com'}
+      />,
+    );
+    expect(mocks.start).not.toHaveBeenCalled();
+  });
+
+  it('does not auto-scan a website the owner is editing', () => {
+    const props = panelProps();
+    const view = render(<BrandGuidePanel {...props} />);
+    fireEvent.change(screen.getByLabelText('Website URL'), {
+      target: { value: 'owner.example' },
+    });
+    view.rerender(<BrandGuidePanel {...props} websiteUrl="owner.example" />);
+    expect(mocks.start).not.toHaveBeenCalled();
+  });
+
+  it('enables auto-save on the review card', () => {
+    render(<BrandGuidePanel {...panelProps()} />);
+    expect(mocks.cardProps?.isAutoSaveEnabled).toBe(true);
+  });
+
+  it('blocks Continue until the guide is approved, saved and idle while Skip stays available', () => {
+    render(<BrandGuidePanel {...panelProps()} />);
+    expect(continueButton()).toBeDisabled();
+    report();
+    expect(continueButton()).toBeDisabled();
+    expect(
+      screen.getByText(
+        'Approve your brand guide to continue, or skip for now.',
+      ),
+    ).toBeInTheDocument();
+    for (const patch of [
+      { isApproved: true, isDirty: true },
+      { isApproved: true, isBusy: true },
+      { isApproved: true, isLoaded: false },
+    ]) {
+      report(patch);
+      expect(continueButton()).toBeDisabled();
+    }
+    expect(screen.getByRole('button', { name: 'Skip for now' })).toBeEnabled();
+    report({ isApproved: true });
+    expect(continueButton()).toBeEnabled();
+    expect(
+      screen.queryByText(
+        'Approve your brand guide to continue, or skip for now.',
+      ),
+    ).not.toBeInTheDocument();
+    fireEvent.click(continueButton());
+    expect(mocks.continue).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets a member who cannot approve continue once the guide has loaded', () => {
+    render(<BrandGuidePanel {...panelProps()} />);
+    report({ canManage: false });
+    expect(continueButton()).toBeEnabled();
+    expect(
+      screen.queryByText(
+        'Approve your brand guide to continue, or skip for now.',
+      ),
+    ).not.toBeInTheDocument();
   });
 });
