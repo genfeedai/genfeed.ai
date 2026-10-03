@@ -39,7 +39,7 @@ export class ApifyPinterestService {
         `${this.constructorName}.getPinterestTrends failed`,
         error,
       );
-      return [];
+      throw error;
     }
   }
 

@@ -506,4 +506,27 @@ describe('TrendVideoService', () => {
       }),
     ]);
   });
+
+  it('records fallback_failed without a successful refresh when Apify throws for sounds, hashtags and TikTok videos', async () => {
+    mockApifyService.getTikTokSounds.mockRejectedValue(new Error('blocked'));
+    mockApifyService.getTrendingHashtags.mockRejectedValue(
+      new Error('blocked'),
+    );
+    mockApifyService.getTikTokVideos.mockRejectedValue(new Error('blocked'));
+
+    await service.fetchAndCacheSounds();
+    await service.fetchAndCacheHashtags('tiktok');
+    await service.fetchAndCacheViralVideos('tiktok');
+
+    for (const dataset of ['sounds', 'hashtags', 'videos']) {
+      expect(refreshHealth.record).toHaveBeenCalledWith(null, [
+        expect.objectContaining({
+          dataset,
+          lastSuccessfulRefreshAt: null,
+          outcome: 'fallback_failed',
+          reason: 'provider_failed',
+        }),
+      ]);
+    }
+  });
 });
