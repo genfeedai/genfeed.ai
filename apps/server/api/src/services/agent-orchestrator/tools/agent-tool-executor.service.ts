@@ -513,6 +513,9 @@ export class AgentToolExecutorService implements OnModuleInit {
         return policyResult.result;
       }
       executionApprovalId = policyResult.approvalId;
+      if (policyResult.executeAsUserId) {
+        context = { ...context, userId: policyResult.executeAsUserId };
+      }
       if (policyResult.constraint) {
         if (toolName !== 'create_post') {
           throw new Error(

@@ -2,12 +2,14 @@ import { getActionOriginContext } from '@api/action-origin/action-origin.context
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
+import { MembersService } from '@api/collections/members/services/members.service';
 import { AGENT_RUNTIME_WORKFLOW_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import {
   getSystemWorkflowMetadata,
   isHiddenSystemWorkflowMetadata,
   SYSTEM_WORKFLOW_PRINCIPAL_ID,
 } from '@api/collections/workflows/system-workflow.contract';
+import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
 import type { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
 import { readPublishContentId } from '@api/services/agent-orchestrator/tools/agent-publish-mcp-draft-only.util';
 import type { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
@@ -20,6 +22,7 @@ import {
 import type { AgentMutationAuthorization } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-policy.types';
 import { buildMutationApprovalCard } from '@api/services/agent-orchestrator/tools/mutation-approval-card';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import type {
   AgentThreadModeValue,
   CuratedActionName,
@@ -34,6 +37,7 @@ import { buildLogicalWriteKey } from '@genfeedai/actions/server';
 import {
   ActionOrigin,
   AgentAutonomyMode,
+  MemberRole,
   normalizeAgentAutonomyMode,
 } from '@genfeedai/contracts';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
@@ -81,6 +85,8 @@ export class AgentToolMutationAuthorizationService {
     private readonly agentThreadsService?: AgentThreadsService,
     @Optional()
     private readonly prisma?: PrismaService,
+    @Optional()
+    private readonly membersService?: MembersService,
   ) {}
 
   /**
@@ -433,10 +439,11 @@ export class AgentToolMutationAuthorizationService {
               idempotencyKey,
             )
           : null;
+    const reviewer = await this.resolveApprovalReviewer(context, existing);
     const hasTrustedApproval = hasTrustedMutationApproval(
       toolName,
       parameters,
-      context,
+      reviewer.context,
       existing,
     );
     const decision = evaluateMutationPolicy({
@@ -456,12 +463,15 @@ export class AgentToolMutationAuthorizationService {
       if (effectivePolicy !== 'approval-required') {
         return { kind: 'execute' };
       }
-      return this.claimApprovedMutation(
+      const claimed = await this.claimApprovedMutation(
         toolName,
         parameters,
         context,
         existing,
       );
+      return reviewer.executeAsUserId && claimed.kind === 'execute'
+        ? { ...claimed, executeAsUserId: reviewer.executeAsUserId }
+        : claimed;
     }
 
     if (decision.kind === 'replay') {
@@ -497,6 +507,81 @@ export class AgentToolMutationAuthorizationService {
     }
 
     return this.createMutationApproval(toolName, parameters, context);
+  }
+
+  /**
+   * Who may redeem an approval: the member who queued it, or a reviewer acting
+   * for them. A reviewer is a platform super admin (decided by the HTTP layer
+   * via `approvalReviewerAuthorized`) or an active organization OWNER/ADMIN,
+   * decided here from membership, never from client input. A reviewer's
+   * redemption executes as the recorded requester, who must still be an active
+   * member. Threaded or scoped approvals are never reviewer-redeemable.
+   */
+  private async resolveApprovalReviewer(
+    context: ToolExecutionContext,
+    approval: McpApprovalDocument | null,
+  ): Promise<{ context: ToolExecutionContext; executeAsUserId?: string }> {
+    if (!context.approvedApprovalId || !approval) return { context };
+    if (approval.userId === context.userId) return { context };
+    if (context.threadId || context.validatedScope) return { context };
+
+    const isReviewer =
+      context.approvalReviewerAuthorized === true ||
+      (await this.isOrganizationAdmin(context));
+    if (!isReviewer) return { context };
+
+    if (
+      !(await this.isActiveOrganizationMember(
+        approval.userId,
+        context.organizationId,
+      ))
+    ) {
+      throw new Error(
+        'Approval requester is no longer an active member of this organization',
+      );
+    }
+    return {
+      context: { ...context, approvalReviewerAuthorized: true },
+      executeAsUserId: approval.userId,
+    };
+  }
+
+  private async isOrganizationAdmin(
+    context: ToolExecutionContext,
+  ): Promise<boolean> {
+    if (!this.membersService) return false;
+    const member = (await this.membersService.findOne(
+      {
+        isActive: true,
+        isDeleted: false,
+        organizationId: context.organizationId,
+        userId: context.userId,
+      },
+      [PopulateBuilder.withFields('role', ['id', 'key', 'label'])],
+    )) as { role?: { key?: string } } | null;
+    const membershipRole = member?.role?.key as MemberRole | undefined;
+    if (!membershipRole) return false;
+    const effectiveRole = resolveApiKeyEffectiveMemberRole(
+      context.apiKeyContext ?? {},
+      membershipRole,
+    );
+    return (
+      effectiveRole === MemberRole.OWNER || effectiveRole === MemberRole.ADMIN
+    );
+  }
+
+  private async isActiveOrganizationMember(
+    userId: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    if (!this.membersService) return false;
+    const member = await this.membersService.findOne({
+      isActive: true,
+      isDeleted: false,
+      organizationId,
+      userId,
+    });
+    return Boolean(member);
   }
 
   private async createMutationApproval(
