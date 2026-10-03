@@ -522,11 +522,20 @@ describe('ToolRegistryService', () => {
   it.each(['list_videos', 'list_images'])(
     'handleToolCall %s rejects an unknown origin instead of listing everything',
     async (name) => {
-      await expect(
-        service.handleToolCall({ arguments: { origin: 'mine' }, name }),
-      ).rejects.toThrow(
-        'origin must be UPLOADED, GENERATED, IMPORTED or UNKNOWN',
-      );
+      clientService.listVideos.mockClear();
+      clientService.listImages.mockClear();
+
+      const result = await service.handleToolCall({
+        arguments: { origin: 'mine' },
+        name,
+      });
+
+      expect((result as { isError: boolean }).isError).toBe(true);
+      expect(
+        (result as { content: { text: string }[] }).content[0].text,
+      ).toContain('origin must be UPLOADED, GENERATED, IMPORTED or UNKNOWN');
+      expect(clientService.listVideos).not.toHaveBeenCalled();
+      expect(clientService.listImages).not.toHaveBeenCalled();
     },
   );
 

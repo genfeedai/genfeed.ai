@@ -887,7 +887,7 @@ describe('IngredientsListContent inspector handoff', () => {
 });
 
 describe('IngredientsListContent generation ledger columns', () => {
-  it('renders the seven ledger column headers in order', () => {
+  it('renders the ledger column headers in order', () => {
     renderContent({ viewMode: 'list' });
 
     const headers = screen
@@ -901,6 +901,7 @@ describe('IngredientsListContent generation ledger columns', () => {
       '',
       'Asset',
       'Type',
+      'Origin',
       'Model',
       'Size',
       'Created',

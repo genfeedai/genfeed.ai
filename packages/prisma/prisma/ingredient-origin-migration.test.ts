@@ -57,9 +57,9 @@ describe('ingredient origin migration (#6010)', () => {
     expect(generated).toBeGreaterThan(imported);
     expect(uploaded).toBeGreaterThan(generated);
     // Later rules only ever touch rows an earlier rule left unclassified.
-    expect(migrationSource.match(/WHERE "origin" = 'UNKNOWN'/gu)).toHaveLength(
-      3,
-    );
+    expect(
+      migrationSource.match(/WHERE "origin" = 'UNKNOWN'\n\s+AND/gu),
+    ).toHaveLength(3);
   });
 
   it('reads only the columns the product rules name', () => {

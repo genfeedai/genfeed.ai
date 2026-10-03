@@ -180,6 +180,7 @@ export default function LibraryBrowserToolbar({
 
         {hasOriginFilter ? (
           <Button
+            ariaLabel={translate('clearOriginFilter')}
             className="h-7 rounded-full px-2 text-xs text-foreground/50 hover:text-foreground"
             icon={<X className="size-3.5" />}
             onClick={onClearOrigins}
