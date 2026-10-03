@@ -42,6 +42,13 @@ test('reporter-token falls back to github.token when the App is not configured',
   assert.match(ACTION, /^ {4}- id: app$/mu);
 });
 
+test('reporter-token falls back to github.token when minting fails', () => {
+  assert.match(
+    ACTION,
+    /^ {4}- id: app\n {6}if: [^\n]+\n {6}continue-on-error: true$/mu,
+  );
+});
+
 test('reporter-token requests only the permissions the reporters call', () => {
   const requested = [...ACTION.matchAll(/^ {8}(permission-[a-z-]+): (\w+)$/gmu)]
     .map((match) => `${match[1]}: ${match[2]}`)

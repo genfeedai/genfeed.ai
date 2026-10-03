@@ -15,7 +15,7 @@ inputs:
     default: ''
 outputs:
   token:
-    description: App installation token, or github.token when the App is not configured.
+    description: App installation token, or github.token when the App is not configured or minting fails.
     value: ${{ steps.app.outputs.token || github.token }}
 runs:
   using: composite
@@ -26,8 +26,12 @@ runs:
     #   organization-projects: write   addProjectV2ItemById into org Project #12
     # Repository tracker writes keep using the job's GITHUB_TOKEN
     # (REPOSITORY_TOKEN); metadata: read is granted implicitly.
+    # Best effort: an invalid key, missing permission or suspended
+    # installation must not stop the repository tracker write, so a failed
+    # mint falls back to github.token like an unconfigured App.
     - id: app
       if: inputs.client-id != '' && inputs.private-key != ''
+      continue-on-error: true
       uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
       with:
         client-id: ${{ inputs.client-id }}
