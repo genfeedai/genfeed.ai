@@ -35,6 +35,7 @@ import type {
   XArticleContentMetadata,
 } from '@api/collections/articles/services/articles-content.types';
 import { buildTwitterThreadTweets } from '@api/collections/articles/utils/article-thread.util';
+import type { PublicArticleScope } from '@api/collections/articles/utils/public-article-scope.util';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
@@ -463,9 +464,9 @@ export class ArticlesContentService {
   /**
    * Convert article to Twitter thread
    */
-  convertToTwitterThread(
+  async convertToTwitterThread(
     article: ArticleDocument,
-    isHostedOnWebsite: boolean,
+    publicArticleScope: PublicArticleScope,
   ): Promise<TwitterThreadResponse> {
     try {
       this.logger.debug(`${this.constructorName} convertToTwitterThread`, {
@@ -481,10 +482,12 @@ export class ArticlesContentService {
         this.configService?.get('GENFEEDAI_PUBLIC_URL') as string | undefined
       )?.replace(/\/$/, '');
       if (
-        isHostedOnWebsite &&
         article.slug &&
         publicUrl &&
-        String(article.status) === ArticleStatus.PUBLISHED
+        String(article.status) === ArticleStatus.PUBLISHED &&
+        (await publicArticleScope.isHostedOrganization(
+          String(article.organizationId),
+        ))
       ) {
         articleUrl = `${publicUrl}/articles/${article.slug}`;
       }
@@ -501,10 +504,7 @@ export class ArticlesContentService {
         { articleId: article.id, totalTweets: tweets.length },
       );
 
-      return Promise.resolve({
-        totalTweets: tweets.length,
-        tweets,
-      } as TwitterThreadResponse);
+      return { totalTweets: tweets.length, tweets } as TwitterThreadResponse;
     } catch (error: unknown) {
       this.logger.error(
         `${this.constructorName} convertToTwitterThread failed`,

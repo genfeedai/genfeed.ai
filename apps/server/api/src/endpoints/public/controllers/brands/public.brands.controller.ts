@@ -368,7 +368,7 @@ export class PublicBrandsController {
         brandId,
         isDeleted: false,
         scope: AssetScope.PUBLIC,
-        ...(await this.articlesService.buildPublicArticleWhere()),
+        ...(await this.articlesService.publicArticleScope.buildWhere()),
       },
       orderBy: { createdAt: -1, publishedAt: -1 },
     };

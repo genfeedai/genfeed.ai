@@ -29,7 +29,13 @@
     "titleOptional": "Title",
     "createThread": "Create Thread",
     "createTitle": "New post",
-    "createDescription": "Write once, then choose where it goes."
+    "createDescription": "Write once, then choose where it goes.",
+    "editTitle": "Edit Post",
+    "editDescription": "Update the content and details for this post",
+    "threadReplyTitle": "Add Thread Reply",
+    "threadReplyDescription": "Add a new reply to continue the thread",
+    "draftTitle": "Create Post",
+    "draftDescription": "Write or generate a draft. Connect an account when you are ready to publish"
   },
   "analyticsTrends": {
     "cachedEvaluationWarning": "Showing cached data; evaluation may be out of date.",

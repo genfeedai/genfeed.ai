@@ -87,14 +87,16 @@ describe('PublicArticlesController', () => {
 
   const genfeedOrganizationId = testId('organization', 1);
   const mockArticlesService = {
-    buildPublicArticleWhere: vi.fn(async () => ({
-      organizationId: genfeedOrganizationId,
-      publishedAt: { lte: new Date() },
-      status: 'PUBLISHED',
-    })),
     findAll: vi.fn(),
     findOne: vi.fn(),
     findPublicArticleBySlug: vi.fn(),
+    publicArticleScope: {
+      buildWhere: vi.fn(async () => ({
+        organizationId: genfeedOrganizationId,
+        publishedAt: { lte: new Date() },
+        status: 'PUBLISHED',
+      })),
+    },
   };
 
   const mockLoggerService = {

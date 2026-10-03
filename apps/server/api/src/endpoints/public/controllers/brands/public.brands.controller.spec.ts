@@ -83,11 +83,13 @@ describe('PublicBrandsController', () => {
         {
           provide: ArticlesService,
           useValue: {
-            buildPublicArticleWhere: vi.fn(async () => ({
-              organizationId: 'genfeed-org',
-              publishedAt: { lte: new Date() },
-              status: 'PUBLISHED',
-            })),
+            publicArticleScope: {
+              buildWhere: vi.fn(async () => ({
+                organizationId: 'genfeed-org',
+                publishedAt: { lte: new Date() },
+                status: 'PUBLISHED',
+              })),
+            },
             findAll: vi.fn(),
           },
         },

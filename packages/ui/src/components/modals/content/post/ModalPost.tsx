@@ -556,14 +556,14 @@ export default function ModalPost({
   const getModalContent = () => {
     if (isEditMode) {
       return {
-        description: 'Update the content and details for this post',
-        title: 'Edit Post',
+        description: composerTranslate('editDescription'),
+        title: composerTranslate('editTitle'),
       };
     }
     if (isThreadReply) {
       return {
-        description: 'Add a new reply to continue the thread',
-        title: 'Add Thread Reply',
+        description: composerTranslate('threadReplyDescription'),
+        title: composerTranslate('threadReplyTitle'),
       };
     }
     if (isDestinationComposer) {
@@ -573,9 +573,8 @@ export default function ModalPost({
       };
     }
     return {
-      description:
-        'Write or generate a draft. Connect an account when you are ready to publish',
-      title: 'Create Post',
+      description: composerTranslate('draftDescription'),
+      title: composerTranslate('draftTitle'),
     };
   };
 

@@ -1,5 +1,6 @@
 import type { ArticleDocument } from '@api/collections/articles/schemas/article.schema';
 import { readNonEmptyString } from '@api/collections/articles/utils/article-input-boundary.util';
+import type { PublicArticleScope } from '@api/collections/articles/utils/public-article-scope.util';
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { ChannelDispatchInput } from '@api/services/activity-recording/activity-recording.types';
@@ -59,10 +60,10 @@ export async function sendArticlePublishedNotification(
   deps: {
     activityRecorder?: ActivityRecorderService;
     configService?: ConfigService;
-    /** True only for the organization the website hosts articles for. */
-    isHostedOnWebsite: boolean;
     logger: LoggerService;
     organizationSettingsService?: OrganizationSettingsService;
+    /** Only the organization the website hosts gets a genfeed.ai link. */
+    publicArticleScope: PublicArticleScope;
     source: string;
   },
   result: ArticleDocument,
@@ -72,9 +73,9 @@ export async function sendArticlePublishedNotification(
   const {
     activityRecorder,
     configService,
-    isHostedOnWebsite,
     logger,
     organizationSettingsService,
+    publicArticleScope,
     source,
   } = deps;
   if (
@@ -99,7 +100,7 @@ export async function sendArticlePublishedNotification(
       buildArticlePublishedDispatch(
         result,
         organizationId,
-        isHostedOnWebsite
+        (await publicArticleScope.isHostedOrganization(organizationId))
           ? configService.get('GENFEEDAI_PUBLIC_URL')
           : undefined,
       ),

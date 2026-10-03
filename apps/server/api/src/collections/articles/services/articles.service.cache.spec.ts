@@ -168,11 +168,13 @@ describe('ArticlesService cache invalidation', () => {
     } as unknown as OrganizationsService;
     const { service } = buildService({ organizationsService });
 
-    await expect(service.buildPublicArticleWhere()).resolves.toMatchObject({
+    await expect(
+      service.publicArticleScope.buildWhere(),
+    ).resolves.toMatchObject({
       organizationId: { in: [] },
     });
     await expect(
-      service.isPublicArticlesOrganization('org_customer'),
+      service.publicArticleScope.isHostedOrganization('org_customer'),
     ).resolves.toBe(false);
   });
 

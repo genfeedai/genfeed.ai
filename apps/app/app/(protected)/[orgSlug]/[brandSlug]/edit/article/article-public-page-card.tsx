@@ -10,6 +10,7 @@ import { Button } from '@ui/primitives/button';
 import { Clipboard, ExternalLink, Eye, Globe } from 'lucide-react';
 import Image from 'next/image';
 import NextLink from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 
 function toDisplayUrl(url: string): string {
@@ -27,6 +28,7 @@ export default function ArticlePublicPageCard({
   summary,
   title,
 }: ArticlePublicPageCardProps) {
+  const translate = useTranslations('common.articleDetail.publicPage');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isCreatingPreview, setIsCreatingPreview] = useState(false);
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
@@ -59,13 +61,9 @@ export default function ArticlePublicPageCard({
     return (
       <Card bodyClassName="space-y-2">
         <h3 className="text-sm font-semibold text-foreground/60 uppercase tracking-wider">
-          Public page
+          {translate('title')}
         </h3>
-        <p className="text-sm text-foreground/70">
-          Not hosted on genfeed.ai. The genfeed.ai blog only carries Genfeed's
-          own articles, so publishing marks this article done in your workspace.
-          Share it through posts on your connected accounts.
-        </p>
+        <p className="text-sm text-foreground/70">{translate('notHosted')}</p>
       </Card>
     );
   }
@@ -74,10 +72,10 @@ export default function ArticlePublicPageCard({
     <Card bodyClassName="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-foreground/60 uppercase tracking-wider">
-          Public page
+          {translate('title')}
         </h3>
         <span className="text-xs font-medium text-foreground/60">
-          {isPublished ? 'Live on genfeed.ai' : 'Not live yet'}
+          {isPublished ? translate('live') : translate('notLive')}
         </span>
       </div>
 
@@ -86,9 +84,7 @@ export default function ArticlePublicPageCard({
       </p>
       {!isPublished && (
         <p className="text-xs text-foreground/60">
-          {previewUrl
-            ? 'Private preview link. Anyone with it can read this draft until it expires.'
-            : 'Publishing puts the article at this address and on the genfeed.ai blog.'}
+          {previewUrl ? translate('previewHint') : translate('publishHint')}
         </p>
       )}
 
@@ -103,11 +99,11 @@ export default function ArticlePublicPageCard({
             >
               <NextLink href={linkUrl} target="_blank" rel="noopener">
                 <ExternalLink className="size-4" />
-                Open
+                {translate('open')}
               </NextLink>
             </Button>
             <Button
-              label="Copy link"
+              label={translate('copyLink')}
               size={ButtonSize.SM}
               variant={ButtonVariant.SECONDARY}
               icon={<Clipboard className="size-4" />}
@@ -116,7 +112,7 @@ export default function ArticlePublicPageCard({
           </>
         ) : (
           <Button
-            label="Preview link"
+            label={translate('previewLink')}
             size={ButtonSize.SM}
             variant={ButtonVariant.SECONDARY}
             icon={<Eye className="size-4" />}
@@ -146,10 +142,10 @@ export default function ArticlePublicPageCard({
         )}
         <div className="space-y-1 p-3">
           <p className="text-xs uppercase tracking-wider text-foreground/50">
-            genfeed.ai
+            {translate('shareDomain')}
           </p>
           <p className="line-clamp-2 text-sm font-semibold">
-            {title || 'Untitled Article'}
+            {title || translate('untitled')}
           </p>
           {summary && (
             <p className="line-clamp-2 text-xs text-foreground/60">{summary}</p>

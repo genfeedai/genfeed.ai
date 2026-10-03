@@ -192,7 +192,7 @@ export class ArticlesController extends BaseCRUDController<
     }
 
     if (
-      !(await this.articlesService.isPublicArticlesOrganization(
+      !(await this.articlesService.publicArticleScope.isHostedOrganization(
         String(article.organizationId),
       ))
     ) {

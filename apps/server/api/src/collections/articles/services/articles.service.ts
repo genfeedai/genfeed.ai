@@ -64,6 +64,7 @@ import {
   assertPublishedSlugTransition,
   mapPublicSlugConflict,
 } from '@api/collections/articles/utils/article-slug.util';
+import { PublicArticleScope } from '@api/collections/articles/utils/public-article-scope.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -93,7 +94,6 @@ import {
   paginatedQueryCacheTag,
 } from '@api/shared/utils/query-cache/query-cache.util';
 import { ArticleScope, WorkflowExecutionTrigger } from '@genfeedai/contracts';
-import { PUBLIC_ARTICLES_ORGANIZATION_SLUG } from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -131,7 +131,9 @@ export class ArticlesService
   implements OnModuleInit
 {
   private readonly constructorName = this.constructor.name;
-  private publicArticlesOrganizationId?: string;
+  readonly publicArticleScope = new PublicArticleScope(
+    () => this.organizationsService,
+  );
 
   constructor(
     public readonly prisma: PrismaService,
@@ -508,9 +510,7 @@ export class ArticlesService
         {
           activityRecorder: this.activityRecorder,
           configService: this.configService,
-          isHostedOnWebsite:
-            isPublishingUpdate &&
-            (await this.isPublicArticlesOrganization(organizationId)),
+          publicArticleScope: this.publicArticleScope,
           logger: this.logger,
           organizationSettingsService: this.organizationSettingsService,
           source: this.constructorName,
@@ -608,48 +608,6 @@ export class ArticlesService
     }
   }
 
-  /**
-   * genfeed.ai hosts only Genfeed's own articles. Organizations live in the
-   * auth DB, so resolve the id once by its unique slug and filter articles on
-   * `organizationId`. Returns null while it cannot be resolved (not cached).
-   */
-  async resolvePublicArticlesOrganizationId(): Promise<string | null> {
-    if (this.publicArticlesOrganizationId) {
-      return this.publicArticlesOrganizationId;
-    }
-
-    const organization = await this.organizationsService?.findOne({
-      isDeleted: false,
-      slug: PUBLIC_ARTICLES_ORGANIZATION_SLUG,
-    });
-    const organizationId = organization?.id ? String(organization.id) : null;
-    if (organizationId) {
-      this.publicArticlesOrganizationId = organizationId;
-    }
-    return organizationId;
-  }
-
-  async isPublicArticlesOrganization(organizationId: string): Promise<boolean> {
-    return (
-      (await this.resolvePublicArticlesOrganizationId()) === organizationId
-    );
-  }
-
-  /**
-   * Every anonymous article read (website, RSS, brand profiles, preview
-   * links) goes through this filter. An unresolved Genfeed organization
-   * matches nothing rather than every tenant.
-   */
-  async buildPublicArticleWhere(
-    now: Date = new Date(),
-  ): Promise<Record<string, unknown>> {
-    const organizationId = await this.resolvePublicArticlesOrganizationId();
-    return {
-      ...ArticleFilterUtil.buildPublicArticleVisibilityFilter(now),
-      organizationId: organizationId ?? { in: [] },
-    };
-  }
-
   // Public methods for website
   async findPublicArticles(query: ArticlesQueryDto) {
     const {
@@ -664,7 +622,7 @@ export class ArticlesService
 
     const where: Record<string, unknown> = {
       isDeleted: false,
-      ...(await this.buildPublicArticleWhere()),
+      ...(await this.publicArticleScope.buildWhere()),
     };
 
     if (search) {
@@ -712,18 +670,10 @@ export class ArticlesService
     slug: string,
     previewArticleId: string | null = null,
   ): Promise<Article | null> {
-    const where: Record<string, unknown> = {
-      isDeleted: false,
+    const where = await this.publicArticleScope.buildSlugWhere(
       slug,
-    };
-    // A verified preview names an exact record; slugs can overlap across tenants.
-    if (previewArticleId) {
-      where.id = previewArticleId;
-      where.organizationId =
-        (await this.resolvePublicArticlesOrganizationId()) ?? { in: [] };
-    } else {
-      Object.assign(where, await this.buildPublicArticleWhere());
-    }
+      previewArticleId,
+    );
 
     // The partial unique index guarantees one published article per slug; the
     // explicit order keeps the answer deterministic (earliest release first)
@@ -976,7 +926,7 @@ export class ArticlesService
 
     return this.articlesContentService.convertToTwitterThread(
       article,
-      await this.isPublicArticlesOrganization(String(article.organizationId)),
+      this.publicArticleScope,
     );
   }
 

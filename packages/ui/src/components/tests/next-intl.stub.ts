@@ -368,6 +368,13 @@ const UI_TEST_MESSAGES = {
       createThread: 'Create Thread',
       createTitle: 'New post',
       createDescription: 'Write once, then choose where it goes.',
+      draftDescription:
+        'Write or generate a draft. Connect an account when you are ready to publish',
+      draftTitle: 'Create Post',
+      editDescription: 'Update the content and details for this post',
+      editTitle: 'Edit Post',
+      threadReplyDescription: 'Add a new reply to continue the thread',
+      threadReplyTitle: 'Add Thread Reply',
     },
     postPlatforms: {
       charactersUsed: 'Characters used per channel',

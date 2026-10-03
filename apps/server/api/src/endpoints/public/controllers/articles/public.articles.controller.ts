@@ -70,7 +70,7 @@ export class PublicArticlesController {
 
     const matchQuery: PrismaWhereQuery = {
       isDeleted: false,
-      ...(await this.articlesService.buildPublicArticleWhere()),
+      ...(await this.articlesService.publicArticleScope.buildWhere()),
     };
 
     // Add search filter
@@ -171,7 +171,7 @@ export class PublicArticlesController {
 
     const article = await this.articlesService.findOne({
       id: articleId,
-      ...(await this.articlesService.buildPublicArticleWhere()),
+      ...(await this.articlesService.publicArticleScope.buildWhere()),
     });
 
     if (!article) {

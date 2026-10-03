@@ -61,8 +61,8 @@ describe('ArticlesController', () => {
     findBySlug: vi.fn(),
     findOne: vi.fn(),
     getArticleVersions: vi.fn(),
-    isPublicArticlesOrganization: vi.fn(async () => true),
     patch: vi.fn(),
+    publicArticleScope: { isHostedOrganization: vi.fn(async () => true) },
     remove: vi.fn(),
     restoreArticleVersion: vi.fn(),
     update: vi.fn(),
@@ -242,7 +242,7 @@ describe('ArticlesController', () => {
 
     it('rejects a preview for an organization genfeed.ai does not host', async () => {
       mockArticlesService.findOne.mockResolvedValue(mockArticle);
-      mockArticlesService.isPublicArticlesOrganization.mockResolvedValueOnce(
+      mockArticlesService.publicArticleScope.isHostedOrganization.mockResolvedValueOnce(
         false,
       );
 
