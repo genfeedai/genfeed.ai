@@ -57,6 +57,14 @@ describe('DesktopDragStrip', () => {
     );
   });
 
+  it('yields to the shell topbar when it is the window titlebar', () => {
+    pathnameMock.current = '/acme/studio/generate';
+    render(<DesktopDragStrip />);
+    expect(
+      document.querySelector('[data-desktop-drag="true"]')?.className,
+    ).toContain('[body:has([data-desktop-titlebar=topbar])_&]:hidden');
+  });
+
   it('does not render on desktop outside macOS', () => {
     vi.stubGlobal('navigator', {
       platform: 'Win32',

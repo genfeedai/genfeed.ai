@@ -102,6 +102,17 @@ const desktopBridge: IGenfeedDesktopBridge = {
         ipcRenderer.off(DESKTOP_IPC_CHANNELS.bootstrapChanged, listener);
       };
     },
+    getWindowChrome: async () =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.windowChromeState),
+    onDidChangeWindowChrome: (callback) => {
+      const listener = (_event: unknown, state: unknown) =>
+        callback(state as Parameters<typeof callback>[0]);
+      ipcRenderer.on(DESKTOP_IPC_CHANNELS.windowChromeChanged, listener);
+
+      return () => {
+        ipcRenderer.off(DESKTOP_IPC_CHANNELS.windowChromeChanged, listener);
+      };
+    },
     onToggleSidebar: (callback) => {
       const listener = () => callback();
       ipcRenderer.on(DESKTOP_IPC_CHANNELS.toggleSidebar, listener);

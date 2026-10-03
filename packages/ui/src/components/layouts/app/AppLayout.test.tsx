@@ -3,11 +3,12 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import Container from '@ui/layout/container/Container';
 import AppLayout from '@ui/layouts/app/AppLayout';
 import type { ReactElement } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const navigationState = vi.hoisted(() => ({
   pathname: '/acme/brand/workspace',
 }));
+const routerMock = vi.hoisted(() => ({ back: vi.fn(), forward: vi.fn() }));
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
 
@@ -17,6 +18,7 @@ vi.mock('next-intl', async () => {
 vi.mock('next/navigation', async (importOriginal) => ({
   ...(await importOriginal<typeof import('next/navigation')>()),
   usePathname: () => navigationState.pathname,
+  useRouter: () => routerMock,
 }));
 
 function MenuComponent(): ReactElement {
@@ -641,5 +643,94 @@ describe('AppLayout', () => {
       screen.queryByText('Create keys for headless clients and MCP servers.'),
     ).not.toBeInTheDocument();
     expect(screen.getByText('Page controls')).toBeInTheDocument();
+  });
+});
+
+describe('AppLayout desktop titlebar', () => {
+  type DesktopGlobal = typeof globalThis & {
+    __GENFEED_RUNTIME_CONFIG__?: { clientSurface?: 'desktop' | 'web' };
+  };
+  const desktopGlobal = globalThis as DesktopGlobal;
+
+  function renderChromeShell() {
+    return render(
+      <AppLayout
+        menuComponent={<MenuComponent />}
+        railComponent={<RailComponent />}
+        topbarComponent={MenuToggleTopbar}
+      >
+        <div>Content</div>
+      </AppLayout>,
+    );
+  }
+
+  afterEach(() => {
+    delete desktopGlobal.__GENFEED_RUNTIME_CONFIG__;
+    vi.unstubAllGlobals();
+  });
+
+  it('keeps the browser topbar free of window controls', () => {
+    renderChromeShell();
+
+    expect(
+      screen.queryByTestId('desktop-titlebar-controls'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('app-rail-mark')).toContainElement(
+      screen.getByRole('button', { name: 'Collapse sidebar' }),
+    );
+  });
+
+  it('makes the topbar the macOS titlebar with the controls after the traffic lights', () => {
+    desktopGlobal.__GENFEED_RUNTIME_CONFIG__ = { clientSurface: 'desktop' };
+    vi.stubGlobal('navigator', {
+      platform: 'MacIntel',
+      userAgentData: { platform: 'macOS' },
+    });
+
+    renderChromeShell();
+
+    const layoutRoot = screen.getByTestId('app-content-shell').parentElement;
+    expect(layoutRoot).toHaveAttribute('data-desktop-titlebar', 'topbar');
+    expect(layoutRoot).toHaveStyle({
+      '--desktop-titlebar-height': '0px',
+      '--desktop-traffic-lights-inset': '76px',
+    });
+
+    const controls = screen.getByTestId('desktop-titlebar-controls');
+    expect(screen.getByTestId('app-topbar-shell')).toContainElement(controls);
+    // The lights cover the rail's mark band, so its toggle moves here.
+    expect(controls).toContainElement(
+      screen.getByRole('button', { name: 'Collapse sidebar' }),
+    );
+    expect(screen.getByTestId('app-rail-mark')).toBeEmptyDOMElement();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Forward' }));
+    expect(routerMock.back).toHaveBeenCalledTimes(1);
+    expect(routerMock.forward).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the sidebar toggle in the rail on a native window frame', () => {
+    desktopGlobal.__GENFEED_RUNTIME_CONFIG__ = { clientSurface: 'desktop' };
+    vi.stubGlobal('navigator', {
+      platform: 'Win32',
+      userAgentData: { platform: 'Windows' },
+    });
+
+    renderChromeShell();
+
+    const layoutRoot = screen.getByTestId('app-content-shell').parentElement;
+    expect(layoutRoot).not.toHaveAttribute('data-desktop-titlebar');
+    expect(layoutRoot).toHaveStyle({
+      '--desktop-titlebar-height': '0px',
+      '--desktop-traffic-lights-inset': '0px',
+    });
+    const controls = screen.getByTestId('desktop-titlebar-controls');
+    expect(controls).toContainElement(
+      screen.getByRole('button', { name: 'Back' }),
+    );
+    expect(screen.getByTestId('app-rail-mark')).toContainElement(
+      screen.getByRole('button', { name: 'Collapse sidebar' }),
+    );
   });
 });
