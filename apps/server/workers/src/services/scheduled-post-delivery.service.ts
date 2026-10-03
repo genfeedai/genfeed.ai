@@ -389,9 +389,10 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     } catch (reservationError: unknown) {
       if (!(reservationError instanceof ProviderPublishInFlightError))
         throw reservationError;
-      attempt = await inspectProviderPublishAttempt(this.prisma, post);
-      if (attempt.kind === 'none' || attempt.kind === 'released')
+      const observed = await inspectProviderPublishAttempt(this.prisma, post);
+      if (observed.kind !== 'replay' && observed.kind !== 'in_flight')
         throw reservationError;
+      attempt = observed;
     }
     if (attempt.kind === 'replay' || attempt.kind === 'in_flight') {
       // The provider accepted this occurrence, or another delivery is
