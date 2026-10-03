@@ -1,6 +1,6 @@
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { LinkedInTrendResolverService } from '@api/services/integrations/linkedin/services/linkedin-trend-resolver.service';
-import { ConfigService } from '@libs/config/config.service';
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import { LoggerService } from '@libs/logger/logger.service';
 
 describe('LinkedInTrendResolverService', () => {
@@ -23,7 +23,7 @@ describe('LinkedInTrendResolverService', () => {
     configService.get.mockReturnValue(undefined);
     service = new LinkedInTrendResolverService(
       brandScraperService as unknown as BrandScraperService,
-      configService as unknown as ConfigService,
+      runtimeSettingsMock(configService),
       loggerService as unknown as LoggerService,
     );
   });

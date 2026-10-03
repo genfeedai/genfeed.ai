@@ -15,6 +15,128 @@ const prepared = () =>
   });
 const json = (value: unknown) => new Response(JSON.stringify(value));
 describe('Runway direct client', () => {
+  const credentialForms = [
+    'fixture-private-key',
+    '%66ixture-private-key',
+    '%66%69%78%74%75%72%65%2D%70%72%69%76%61%74%65%2D%6B%65%79',
+    '%66%69%78%74%75%72%65%2d%70%72%69%76%61%74%65%2d%6b%65%79',
+    '%2566%2569%2578%2574%2575%2572%2565%252d%2570%2572%2569%2576%2561%2574%2565%252d%256b%2565%2579',
+  ];
+
+  it('rejects a UUID-looking credential returned as the paid task ID', async () => {
+    const credentialContext = { apiKey: id };
+    const transport = vi.fn<typeof fetch>().mockResolvedValue(json({ id }));
+    const result = new RunwayDirectClient(transport).submit(
+      prepared(),
+      credentialContext,
+    );
+    await expect(result).rejects.toMatchObject({
+      code: 'PROVIDER_RESPONSE_INVALID',
+      message: 'Runway returned an invalid response.',
+      isSubmissionUncertain: true,
+    });
+    await expect(result).rejects.not.toThrow(id);
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a UUID-looking credential in recovered identity before polling or cancellation', async () => {
+    const credentialContext = { apiKey: id };
+    const transport = vi.fn<typeof fetch>();
+    const client = new RunwayDirectClient(transport);
+    for (const operation of [
+      () => client.poll({ externalId: id }, credentialContext),
+      () => client.cancel({ externalId: id }, credentialContext),
+    ]) {
+      const result = operation();
+      await expect(result).rejects.toMatchObject({
+        code: 'RUNWAY_TASK_INVALID',
+        message: 'Invalid Runway task identity.',
+      });
+      await expect(result).rejects.not.toThrow(id);
+    }
+    expect(transport).not.toHaveBeenCalled();
+  });
+
+  it('rejects a UUID-looking credential in returned result identity for a different recovered task', async () => {
+    const credentialContext = { apiKey: id };
+    const externalId = '87654321-1234-4234-8234-123456789abc';
+    const transport = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(json({ id, status: 'RUNNING' }));
+    const result = new RunwayDirectClient(transport).poll(
+      { externalId },
+      credentialContext,
+    );
+    await expect(result).rejects.toMatchObject({
+      code: 'PROVIDER_RESPONSE_INVALID',
+      message: 'Runway returned an invalid response.',
+    });
+    await expect(result).rejects.not.toThrow(id);
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(credentialForms)(
+    'rejects reflected returned result IDs before state handling: %s',
+    async (credential) => {
+      const transport = vi.fn<typeof fetch>().mockImplementation(async () =>
+        json({
+          id: credential,
+          status: 'RUNNING',
+        }),
+      );
+      const client = new RunwayDirectClient(transport);
+      for (const operation of [
+        () => client.poll({ externalId: id }, context),
+        () => client.cancel({ externalId: id }, context),
+      ]) {
+        const result = operation();
+        await expect(result).rejects.toMatchObject({
+          code: 'PROVIDER_RESPONSE_INVALID',
+          message: 'Runway returned an invalid response.',
+        });
+        await expect(result).rejects.not.toThrow(credential);
+      }
+      expect(transport).toHaveBeenCalledTimes(2);
+      expect(
+        transport.mock.calls.every((call) => call[1]?.method === 'GET'),
+      ).toBe(true);
+    },
+  );
+
+  it.each(credentialForms)(
+    'rejects raw or encoded credentials in succeeded output URLs: %s',
+    async (credential) => {
+      const transport = vi.fn<typeof fetch>().mockResolvedValue(
+        json({
+          status: 'SUCCEEDED',
+          output: [`https://cdn.example/output.mp4?signature=${credential}`],
+        }),
+      );
+      const result = new RunwayDirectClient(transport).poll(
+        { externalId: id },
+        context,
+      );
+      await expect(result).rejects.toMatchObject({
+        code: 'PROVIDER_RESPONSE_INVALID',
+        message: 'Runway returned an invalid response.',
+      });
+      await expect(result).rejects.not.toThrow(credential);
+      expect(transport).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('preserves unrelated percent-encoded output URLs', async () => {
+    const output =
+      'https://cdn.example/output%20video.mp4?signature=safe%2Fvalue';
+    const transport = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(json({ id, status: 'SUCCEEDED', output: [output] }));
+    await expect(
+      new RunwayDirectClient(transport).poll({ externalId: id }, context),
+    ).resolves.toEqual({ status: 'succeeded', outputs: [{ url: output }] });
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+
   it('submits exactly once to the fixed host and signals the paid boundary', async () => {
     const order: string[] = [];
     const transport = vi.fn<typeof fetch>().mockImplementation(async () => {

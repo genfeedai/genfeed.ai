@@ -468,3 +468,403 @@ describe('ByokService Crun harmless credential verification', () => {
     );
   });
 });
+
+describe('ByokService explicit direct-provider credentials', () => {
+  const apiKey = 'fixture-direct-credential';
+  const providers = [
+    {
+      provider: ByokProvider.GOOGLE,
+      url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      body: { name: 'models/gemini-3.1-flash-image' },
+      label: 'Google Gemini API',
+      docsUrl: 'https://aistudio.google.com/apikey',
+    },
+    {
+      provider: ByokProvider.XAI,
+      url: 'https://api.x.ai/v1/api-key',
+      headers: { Authorization: `Bearer ${apiKey}` },
+      body: {
+        api_key_blocked: false,
+        api_key_disabled: false,
+        team_blocked: false,
+        acls: ['api-key:model:*', 'api-key:endpoint:*'],
+      },
+      label: 'xAI',
+      docsUrl: 'https://console.x.ai',
+    },
+    {
+      provider: ByokProvider.BFL,
+      url: 'https://api.bfl.ai/v1/credits',
+      headers: { accept: 'application/json', 'x-key': apiKey },
+      body: { credits: 0 },
+      label: 'Black Forest Labs',
+      docsUrl: 'https://api.bfl.ai',
+    },
+    {
+      provider: ByokProvider.RUNWAY,
+      url: 'https://api.dev.runwayml.com/v1/organization',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'X-Runway-Version': '2024-11-06',
+        'Content-Type': 'application/json',
+      },
+      body: { creditBalance: 0 },
+      label: 'Runway',
+      docsUrl: 'https://dev.runwayml.com',
+    },
+  ];
+  const transport = vi.fn<typeof fetch>();
+  const settings = { findOne: vi.fn() };
+  const paidAccess = {
+    isSubscriptionGated: vi.fn(),
+    isSubscriptionGatedStrict: vi.fn(),
+  };
+  const logger = { error: vi.fn(), log: vi.fn() };
+  const http = { get: vi.fn(), post: vi.fn() };
+  const transactionClient = {
+    organizationSetting: { findFirst: vi.fn(), updateMany: vi.fn() },
+  };
+  const prisma = {
+    $transaction: vi.fn(
+      async (callback: (tx: typeof transactionClient) => Promise<void>) =>
+        callback(transactionClient),
+    ),
+  };
+  // These dependency boundaries intentionally expose only the methods exercised by this suite.
+  const service = new ByokService(
+    settings as unknown as ConstructorParameters<typeof ByokService>[0],
+    paidAccess as unknown as ConstructorParameters<typeof ByokService>[1],
+    http as unknown as ConstructorParameters<typeof ByokService>[2],
+    logger as unknown as ConstructorParameters<typeof ByokService>[3],
+    prisma as unknown as ConstructorParameters<typeof ByokService>[4],
+    crunCache as unknown as ConstructorParameters<typeof ByokService>[5],
+  );
+  const response = (body: unknown) =>
+    new Response(JSON.stringify(body), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  const storedOtherKeys = () => ({
+    [ByokProvider.REPLICATE]: {
+      apiKey: 'encrypted-replicate',
+      isEnabled: true,
+      provider: ByokProvider.REPLICATE,
+    },
+    [ByokProvider.OPENAI]: {
+      apiKey: 'encrypted-oauth-access',
+      apiSecret: 'encrypted-oauth-refresh',
+      isEnabled: true,
+      provider: ByokProvider.OPENAI,
+      authMode: 'oauth',
+      oauthAccountId: 'fixture-oauth-account',
+    },
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    transport.mockReset();
+    vi.stubGlobal('fetch', transport);
+    paidAccess.isSubscriptionGated.mockResolvedValue(false);
+    paidAccess.isSubscriptionGatedStrict.mockResolvedValue(false);
+    transactionClient.organizationSetting.findFirst.mockResolvedValue({
+      id: 'settings-direct',
+      organizationId: 'org-direct',
+      updatedAt: new Date('2026-10-02T00:00:00Z'),
+      byokKeys: storedOtherKeys(),
+    });
+    transactionClient.organizationSetting.updateMany.mockResolvedValue({
+      count: 1,
+    });
+    settings.findOne.mockResolvedValue({ byokKeys: storedOtherKeys() });
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it.each(providers)(
+    'validates $provider using exactly one read-only request, including zero-credit accounts',
+    async ({ provider, url, headers, body }) => {
+      transport.mockImplementation(async () => response(body));
+      expect(await service.validateKey(provider, apiKey)).toEqual({
+        isValid: true,
+      });
+      expect(transport).toHaveBeenCalledOnce();
+      expect(transport).toHaveBeenCalledWith(
+        url,
+        expect.objectContaining({ method: 'GET', headers, redirect: 'error' }),
+      );
+      expect(transport.mock.calls[0][1]?.body).toBeUndefined();
+      expect(http.post).not.toHaveBeenCalled();
+      expect(logger.error).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(providers)(
+    'rejects malformed $provider metadata, auth/rate/network failures without exposing credentials',
+    async ({ provider }) => {
+      const failures = [
+        response([]),
+        new Response(apiKey, { status: 401 }),
+        new Response(apiKey, { status: 403 }),
+        new Response(apiKey, { status: 429 }),
+      ];
+      for (const failure of failures) {
+        transport.mockResolvedValueOnce(failure);
+        const result = await service.validateKey(provider, apiKey);
+        expect(result.isValid).toBe(false);
+        expect(JSON.stringify(result)).not.toContain(apiKey);
+      }
+      transport.mockRejectedValueOnce(new Error(apiKey));
+      const result = await service.validateKey(provider, apiKey);
+      expect(result.isValid).toBe(false);
+      expect(JSON.stringify(result)).not.toContain(apiKey);
+      expect(transport).toHaveBeenCalledTimes(5);
+      expect(http.post).not.toHaveBeenCalled();
+      expect(logger.error).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects blocked or unverified xAI ACLs', async () => {
+    for (const body of [
+      {
+        api_key_blocked: true,
+        api_key_disabled: false,
+        team_blocked: false,
+        acls: ['api-key:model:*', 'api-key:endpoint:*'],
+      },
+      {
+        api_key_blocked: false,
+        api_key_disabled: true,
+        team_blocked: false,
+        acls: ['api-key:model:*', 'api-key:endpoint:*'],
+      },
+      {
+        api_key_blocked: false,
+        api_key_disabled: false,
+        team_blocked: true,
+        acls: ['api-key:model:*', 'api-key:endpoint:*'],
+      },
+      {
+        api_key_blocked: false,
+        api_key_disabled: false,
+        team_blocked: false,
+        acls: ['api-key:model:unreviewed'],
+      },
+    ]) {
+      transport.mockResolvedValueOnce(response(body));
+      expect(
+        (await service.validateKey(ByokProvider.XAI, apiKey)).isValid,
+      ).toBe(false);
+    }
+  });
+
+  it.each(providers)(
+    'rejects missing $provider keys before any request',
+    async ({ provider }) => {
+      expect((await service.validateKey(provider, '')).isValid).toBe(false);
+      expect(transport).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(providers)(
+    'saves and replaces only the validated encrypted $provider key, preserving other keys and OpenAI OAuth',
+    async ({ provider, body }) => {
+      transport.mockImplementation(async () => response(body));
+      await service.saveKey('org-direct', provider, apiKey);
+      expect(EncryptionUtil.encrypt).toHaveBeenCalledWith(apiKey);
+      expect(
+        transactionClient.organizationSetting.findFirst,
+      ).toHaveBeenCalledWith({ where: { organizationId: 'org-direct' } });
+      expect(
+        transactionClient.organizationSetting.updateMany,
+      ).toHaveBeenLastCalledWith({
+        where: {
+          id: 'settings-direct',
+          organizationId: 'org-direct',
+          updatedAt: new Date('2026-10-02T00:00:00Z'),
+        },
+        data: {
+          isByokEnabled: true,
+          byokKeys: expect.objectContaining({
+            ...storedOtherKeys(),
+            [provider]: expect.objectContaining({
+              provider,
+              apiKey: `encrypted:${apiKey}`,
+              isEnabled: true,
+            }),
+          }),
+        },
+      });
+      await service.saveKey('org-direct', provider, 'fixture-replacement');
+      expect(
+        transactionClient.organizationSetting.updateMany,
+      ).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            byokKeys: expect.objectContaining({
+              ...storedOtherKeys(),
+              [provider]: expect.objectContaining({
+                apiKey: 'encrypted:fixture-replacement',
+              }),
+            }),
+          }),
+        }),
+      );
+      expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it.each(providers)(
+    'does not open a storage transaction for a denied $provider credential',
+    async ({ provider }) => {
+      transport.mockResolvedValue(new Response(apiKey, { status: 403 }));
+      await expect(
+        service.saveKey('org-direct', provider, apiKey),
+      ).rejects.toThrow();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(EncryptionUtil.encrypt).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(providers)(
+    'keeps $provider storage and lookup behind the existing subscription gate',
+    async ({ provider }) => {
+      paidAccess.isSubscriptionGated.mockResolvedValue(true);
+      paidAccess.isSubscriptionGatedStrict.mockResolvedValue(true);
+      await expect(
+        service.saveKey('org-direct', provider, apiKey),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      settings.findOne.mockResolvedValue({
+        byokKeys: {
+          [provider]: { apiKey: 'encrypted-direct', isEnabled: true, provider },
+        },
+      });
+      expect(
+        await service.lookupApiKey('org-direct', provider),
+      ).toBeUndefined();
+      expect(transport).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(EncryptionUtil.decrypt).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(providers)(
+    'reports masked $provider status and exact chrome without OAuth/secret flags',
+    async ({ provider, label, docsUrl }) => {
+      settings.findOne.mockResolvedValue({
+        byokKeys: {
+          ...storedOtherKeys(),
+          [provider]: { apiKey: 'encrypted-direct', isEnabled: true, provider },
+        },
+      });
+      const statuses = await service.getStatus('org-direct');
+      expect(statuses).toHaveLength(18);
+      expect(
+        statuses.find((status) => status.provider === provider),
+      ).toMatchObject({
+        label,
+        docsUrl,
+        description: '',
+        hasKey: true,
+        isEnabled: true,
+        supportsOAuth: undefined,
+        requiresSecret: undefined,
+        maskedKey: expect.stringContaining('*'),
+      });
+      expect(
+        statuses.find((status) => status.provider === ByokProvider.OPENAI),
+      ).toMatchObject({ supportsOAuth: true, authMode: 'oauth' });
+      expect(JSON.stringify(statuses)).not.toContain(
+        'decrypted:encrypted-direct',
+      );
+      expect(JSON.stringify(statuses)).not.toContain('encrypted-oauth-refresh');
+      expect(settings.findOne).toHaveBeenCalledWith({
+        organizationId: 'org-direct',
+      });
+    },
+  );
+
+  it.each(providers)(
+    'removes only $provider from the scoped tenant settings',
+    async ({ provider }) => {
+      transactionClient.organizationSetting.findFirst.mockResolvedValue({
+        id: 'settings-direct',
+        organizationId: 'org-direct',
+        updatedAt: new Date('2026-10-02T00:00:00Z'),
+        byokKeys: {
+          ...storedOtherKeys(),
+          [provider]: { apiKey: 'encrypted-direct', isEnabled: true, provider },
+        },
+      });
+      await service.removeKey('org-direct', provider);
+      expect(
+        transactionClient.organizationSetting.findFirst,
+      ).toHaveBeenCalledWith({ where: { organizationId: 'org-direct' } });
+      expect(
+        transactionClient.organizationSetting.updateMany,
+      ).toHaveBeenCalledWith({
+        where: {
+          id: 'settings-direct',
+          organizationId: 'org-direct',
+          updatedAt: new Date('2026-10-02T00:00:00Z'),
+        },
+        data: { byokKeys: storedOtherKeys(), isByokEnabled: true },
+      });
+      expect(transport).not.toHaveBeenCalled();
+    },
+  );
+
+  it('preserves encrypted OpenAI OAuth storage without a credential probe', async () => {
+    const entry = {
+      apiKey: 'encrypted-oauth-access',
+      apiSecret: 'encrypted-oauth-refresh',
+      isEnabled: true,
+      provider: ByokProvider.OPENAI,
+      authMode: 'oauth' as const,
+      oauthAccountId: 'fixture-oauth-account',
+    };
+    transactionClient.organizationSetting.findFirst.mockResolvedValue({
+      id: 'settings-direct',
+      organizationId: 'org-direct',
+      updatedAt: new Date('2026-10-02T00:00:00Z'),
+      byokKeys: {
+        [ByokProvider.GOOGLE]: {
+          apiKey: 'encrypted-direct',
+          isEnabled: true,
+          provider: ByokProvider.GOOGLE,
+        },
+      },
+    });
+    await service.saveOAuthKey('org-direct', ByokProvider.OPENAI, entry);
+    expect(
+      transactionClient.organizationSetting.updateMany,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          isByokEnabled: true,
+          byokKeys: {
+            [ByokProvider.OPENAI]: entry,
+            [ByokProvider.GOOGLE]: {
+              apiKey: 'encrypted-direct',
+              isEnabled: true,
+              provider: ByokProvider.GOOGLE,
+            },
+          },
+        },
+      }),
+    );
+    expect(EncryptionUtil.encrypt).not.toHaveBeenCalled();
+    expect(transport).not.toHaveBeenCalled();
+  });
+
+  it('preserves existing OpenAI API-key validation', async () => {
+    http.get.mockReturnValue(of({ data: [] }));
+    expect(await service.validateKey(ByokProvider.OPENAI, apiKey)).toEqual({
+      isValid: true,
+    });
+    expect(http.get).toHaveBeenCalledWith('https://api.openai.com/v1/models', {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    expect(transport).not.toHaveBeenCalled();
+  });
+});

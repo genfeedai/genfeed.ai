@@ -45,7 +45,50 @@ type InternalCreatePlatformSettingPayload = CreatePlatformSettingDto & {
  * (the DTO has already validated it). The nullable and JSON columns need a
  * storage conversion and are handled apart.
  */
+const NULLABLE_RUNTIME_KEYS = [
+  'linkedinTrendSourceUrls',
+  'agentContextCompressionModel',
+  'elevenlabsModel',
+  'discordChannelIdDeployments',
+  'discordChannelIdPosts',
+  'discordChannelIdStudio',
+  'discordChannelIdUsers',
+  'discordChannelIdModels',
+  'discordBotAvatarUrl',
+  'discordWebhookNamePrefix',
+  'discordWebhookReason',
+  'emailFromAddress',
+  'emailReplyToAddress',
+] as const;
+
 const PATCHABLE_FEATURE_KEYS = [
+  'imageCompressionQuality',
+  'paygFallbackCredits',
+  'linkedinTrendSourceUrls',
+  'agentContextCompressionModel',
+  'agentContextWindowSize',
+  'generationMaxTokens',
+  'typedDecisionTimeoutMs',
+  'trainingCreditsCost',
+  'customModelCreditsCost',
+  'replicateModelHardware',
+  'replicateModelVisibility',
+  'replicateTrainerModel',
+  'replicateTargetFps',
+  'replicateTargetResolution',
+  'klingModel',
+  'elevenlabsModel',
+  'murekaModel',
+  'discordChannelIdDeployments',
+  'discordChannelIdPosts',
+  'discordChannelIdStudio',
+  'discordChannelIdUsers',
+  'discordChannelIdModels',
+  'discordBotAvatarUrl',
+  'discordWebhookNamePrefix',
+  'discordWebhookReason',
+  'emailFromAddress',
+  'emailReplyToAddress',
   'agentAutoRoutingDecisionMode',
   'isAgentContextCompressionEnabled',
   'isAgentTokenStreamingEnabled',
@@ -350,6 +393,10 @@ export class PlatformSettingsService
       if (dto[key] !== undefined && dto[key] !== null) {
         Object.assign(patch, { [key]: dto[key] });
       }
+    }
+    for (const key of NULLABLE_RUNTIME_KEYS) {
+      if (dto[key] !== undefined)
+        Object.assign(patch, { [key]: dto[key]?.trim() || null });
     }
     if (dto.mediaPerceptionVisionModel !== undefined) {
       patch.mediaPerceptionVisionModel =

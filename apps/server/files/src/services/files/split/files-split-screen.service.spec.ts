@@ -1,6 +1,7 @@
 import { ConfigService } from '@files/config/config.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { FilesSplitScreenService } from '@files/services/files/split/files-split-screen.service';
+import { FileRuntimeSettingsService } from '@files/services/runtime-settings/file-runtime-settings.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -29,6 +30,10 @@ describe('FilesSplitScreenService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        {
+          provide: FileRuntimeSettingsService,
+          useValue: { get: async () => ({ imageCompressionQuality: 50 }) },
+        },
         FilesSplitScreenService,
         { provide: ConfigService, useValue: { get: vi.fn() } },
         { provide: LoggerService, useValue: loggerService },

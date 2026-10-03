@@ -1,3 +1,4 @@
+import { BrandOsPreviewSerializer } from '@serializers/server/organizations/brand-kit.serializer';
 import { BrandOsExportSerializer } from '@serializers/server/organizations/brand-os-export.serializer';
 import { BrandOsRevisionSerializer } from '@serializers/server/organizations/brand-os-revision.serializer';
 import { describe, expect, it } from 'vitest';
@@ -45,6 +46,49 @@ describe('Brand OS transport boundaries', () => {
       'attributes.generationRulesReviewHash',
     );
   });
+  it('transports the draft candidate independently from persisted approval evidence', () => {
+    const candidate = `sha256:${'b'.repeat(64)}`;
+    const persisted = `sha256:${'a'.repeat(64)}`;
+    const output = BrandOsRevisionSerializer.serialize({
+      id: 'draft',
+      status: 'DRAFT',
+      content: { fields: {} },
+      generationRulesReviewCandidateHash: candidate,
+      generationRulesReviewHash: persisted,
+    });
+    expect(output.data.attributes).toMatchObject({
+      generationRulesReviewCandidateHash: candidate,
+      generationRulesReviewHash: persisted,
+    });
+    const legacy = BrandOsRevisionSerializer.serialize({
+      id: 'legacy',
+      content: { fields: {} },
+    });
+    expect(legacy.data.attributes).not.toHaveProperty(
+      'generationRulesReviewCandidateHash',
+    );
+  });
+
+  it('keeps candidate acknowledgement out of unauthenticated preview and export allowlists', () => {
+    const generationRulesReviewCandidateHash = `sha256:${'b'.repeat(64)}`;
+    const preview = BrandOsPreviewSerializer.serialize({
+      id: 'preview',
+      draft: { fields: {} },
+      generationRulesReviewCandidateHash,
+    });
+    const publication = BrandOsExportSerializer.serialize({
+      id: 'brand',
+      state: 'published',
+      generationRulesReviewCandidateHash,
+    });
+    expect(preview.data.attributes).not.toHaveProperty(
+      'generationRulesReviewCandidateHash',
+    );
+    expect(publication.data.attributes).not.toHaveProperty(
+      'generationRulesReviewCandidateHash',
+    );
+  });
+
   it('exports publication metadata without artifact content or private internals', () => {
     const output = BrandOsExportSerializer.serialize({
       id: 'brand',

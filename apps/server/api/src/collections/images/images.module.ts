@@ -39,6 +39,7 @@ import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { TagsModule } from '@api/collections/tags/tags.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
@@ -92,6 +93,7 @@ import { Module } from '@nestjs/common';
     ImagesCoreModule,
   ],
   imports: [
+    PlatformSettingsModule,
     CrunCoreModule,
     EvaluationReadModule,
     MediaPromptEnhancementModule,

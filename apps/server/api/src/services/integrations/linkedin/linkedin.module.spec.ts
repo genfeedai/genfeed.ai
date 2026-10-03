@@ -1,5 +1,6 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { SERVER_TOKENS } from '@api/server.dependencies';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
@@ -7,6 +8,7 @@ import { LinkedInController } from '@api/services/integrations/linkedin/controll
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { LinkedInAuthorizedSignalsService } from '@api/services/integrations/linkedin/services/linkedin-authorized-signals.service';
 import { LinkedInTrendResolverService } from '@api/services/integrations/linkedin/services/linkedin-trend-resolver.service';
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -21,6 +23,7 @@ describe('LinkedInModule', () => {
       providers: [
         LinkedInService,
         LinkedInTrendResolverService,
+        { provide: PlatformSettingsService, useValue: runtimeSettingsMock() },
         {
           provide: ConfigService,
           useValue: {

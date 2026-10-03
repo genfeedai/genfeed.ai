@@ -17,6 +17,7 @@ import {
 } from '@api/collections/workflows/services/workflow-executor-document.service';
 import { WorkflowGenerationAdmissionPlanService } from '@api/collections/workflows/services/workflow-generation-admission-plan.service';
 import { WorkflowNodeGraphRunnerService } from '@api/collections/workflows/services/workflow-node-graph-runner.service';
+import { requireRecordedWorkflowActor } from '@api/collections/workflows/services/workflow-resume-actor.util';
 import type { WorkflowGenerationSelection } from '@api/collections/workflows/workflow-generation-admission.interface';
 import { AgentScopeContextService, scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -70,7 +71,7 @@ export class WorkflowExecutionRunnerService {
   async resumeAfterDelay(
     jobData: DelayResumeJobData,
   ): Promise<WorkflowExecutionResult> {
-    const { executionId, workflowId, triggerEvent } = jobData;
+    const { executionId, workflowId } = jobData;
     this.logger.log(`${this.logContext} resuming after delay`, {
       delayNodeId: jobData.delayNodeId,
       executionId,
@@ -82,11 +83,17 @@ export class WorkflowExecutionRunnerService {
       id: executionId,
       organizationId: jobData.organizationId,
     });
-    const { workflowDoc, unavailableMessage } = await this.loadDelayedWorkflow(
-      jobData,
-      delayedExecution,
+    const actorUserId = requireRecordedWorkflowActor(
+      executionId,
+      delayedExecution?.userId,
     );
-    if (!workflowDoc) {
+    const triggerEvent: TriggerEvent = {
+      ...jobData.triggerEvent,
+      userId: actorUserId,
+    };
+    const { workflowDoc: pinnedWorkflowDoc, unavailableMessage } =
+      await this.loadDelayedWorkflow(jobData, delayedExecution);
+    if (!pinnedWorkflowDoc) {
       return this.failUnavailablePinnedExecution({
         errorMessage: unavailableMessage,
         executionId,
@@ -97,6 +104,10 @@ export class WorkflowExecutionRunnerService {
       });
     }
 
+    const workflowDoc: WorkflowDocument = {
+      ...pinnedWorkflowDoc,
+      userId: actorUserId,
+    };
     const workflowLabel = this.documentService.getWorkflowLabel(workflowDoc);
     let executableWorkflow =
       this.engineAdapter.convertToExecutableWorkflow(workflowDoc);

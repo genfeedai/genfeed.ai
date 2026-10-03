@@ -4,6 +4,7 @@ import { TypedDecisionService } from '@api/services/typed-decisions/typed-decisi
 import type { TypedDecisionProviderResolver } from '@api/services/typed-decisions/typed-decision-provider.resolver';
 import type { TypedDecisionTelemetryService } from '@api/services/typed-decisions/typed-decision-telemetry.service';
 import { TYPED_DECISION_MAX_OPTIONS } from '@api/services/typed-decisions/typed-decisions.constants';
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import type {
   TypedDecisionAnswer,
   TypedDecisionCallContext,
@@ -57,8 +58,8 @@ function createHarness(provider: TypedDecisionProvider, timeoutMs = 50) {
     logger,
     providerResolver,
     service: new TypedDecisionService(
+      runtimeSettingsMock(configService),
       providerResolver,
-      configService,
       logger,
       telemetry,
     ),
@@ -374,8 +375,8 @@ describe('TypedDecisionService', () => {
       resolve: vi.fn(async () => provider),
     } as unknown as TypedDecisionProviderResolver;
     const service = new TypedDecisionService(
+      runtimeSettingsMock(configService),
       providerResolver,
-      configService,
       logger,
     );
 

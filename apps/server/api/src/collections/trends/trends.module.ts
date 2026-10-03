@@ -4,6 +4,7 @@ import { CredentialsCoreModule } from '@api/collections/credentials/credentials-
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { MembersModule } from '@api/collections/members/members.module';
 import { ModelsModule } from '@api/collections/models/models.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { TrendsController } from '@api/collections/trends/controllers/trends.controller';
 import { TrendsAnalyticsController } from '@api/collections/trends/controllers/trends-analytics.controller';
 import { TrendsDiscoveryController } from '@api/collections/trends/controllers/trends-discovery.controller';
@@ -63,6 +64,7 @@ import { Module } from '@nestjs/common';
     TrendReferenceCorpusService,
   ],
   imports: [
+    PlatformSettingsModule,
     ApifyModule,
     ApiKeysModule,
     BrandsCoreModule,

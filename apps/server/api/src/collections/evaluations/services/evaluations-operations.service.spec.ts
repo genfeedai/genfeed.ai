@@ -1,11 +1,13 @@
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { ExternalServiceException } from '@api/helpers/exceptions/external/external-service.exception';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { ByokProvider } from '@genfeedai/contracts';
 import type { IEvaluationScores } from '@genfeedai/contracts/interfaces';
@@ -70,8 +72,13 @@ describe('EvaluationsOperationsService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        { provide: ConfigService, useValue: mockServices.configService },
         EvaluationsOperationsService,
         { provide: ConfigService, useValue: mockServices.configService },
+        {
+          provide: PlatformSettingsService,
+          useValue: runtimeSettingsMock(mockServices.configService),
+        },
         { provide: ModelsService, useValue: mockServices.modelsService },
         { provide: ReplicateService, useValue: mockServices.replicateService },
         {
@@ -474,7 +481,7 @@ describe('EvaluationsOperationsService', () => {
 
     it('should throw error when services not initialized', async () => {
       const serviceWithoutServices = new EvaluationsOperationsService(
-        undefined as unknown as string,
+        runtimeSettingsMock(),
         undefined as unknown as string,
         undefined as unknown as string,
         undefined as unknown as string,

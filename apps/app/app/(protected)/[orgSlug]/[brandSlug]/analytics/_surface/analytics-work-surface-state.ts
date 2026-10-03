@@ -6,6 +6,7 @@ import type {
   AnalyticsQueryReference,
   AnalyticsQuerySelectedResource,
 } from '@genfeedai/contracts/interfaces';
+import { getAnalyticsMetricDefinitionKey } from '@genfeedai/helpers/analytics/analytics-metric-definition.util';
 import type {
   AnalyticsSurfaceDescriptor,
   RestoredAnalyticsSurfaceState,
@@ -37,18 +38,6 @@ export const ANALYTICS_FILTER_SEARCH_KEYS = Object.freeze({
   timeframe: 'timeframe',
   visibility: 'visibility',
 } satisfies Record<AnalyticsQueryFilterKey, string>);
-
-export const ANALYTICS_METRIC_DEFINITIONS = Object.freeze({
-  comments: 'Comments recorded across the selected published content.',
-  engagement: 'Total recorded interactions across the selected content.',
-  engagementRate:
-    'Recorded interactions divided by the applicable audience or view denominator.',
-  likes: 'Likes recorded across the selected published content.',
-  posts: 'Published posts included in the visible scoped query.',
-  saves: 'Saves recorded across the selected published content.',
-  shares: 'Shares recorded across the selected published content.',
-  views: 'Platform-reported views for the selected published content.',
-} satisfies Record<AnalyticsQueryMetric, string>);
 
 const DEFAULT_DESCRIPTOR = Object.freeze({
   cacheMinutes: 15,
@@ -220,9 +209,7 @@ function normalizeFilterValue(
       : undefined;
   }
   if (key === 'metric' || key === 'sort') {
-    return Object.hasOwn(ANALYTICS_METRIC_DEFINITIONS, normalized)
-      ? normalized
-      : undefined;
+    return getAnalyticsMetricDefinitionKey(normalized) ? normalized : undefined;
   }
   if (key === 'timeframe') {
     return ['24h', '72h', '7d', '30d', '90d'].includes(normalized)

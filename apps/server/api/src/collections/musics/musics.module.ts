@@ -20,6 +20,7 @@ import { FalMusicGenerationProviderAdapter } from '@api/collections/musics/servi
 import { MurekaMusicGenerationProviderAdapter } from '@api/collections/musics/services/providers/mureka-music-generation-provider.adapter';
 import { ReplicateMusicGenerationProviderAdapter } from '@api/collections/musics/services/providers/replicate-music-generation-provider.adapter';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { WebhooksMediaModule } from '@api/endpoints/webhooks/webhooks-media.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -45,6 +46,7 @@ import { Module } from '@nestjs/common';
   ],
   exports: [MusicGenerationService, MusicsService],
   imports: [
+    PlatformSettingsModule,
     ActivitiesModule,
     BrandsCoreModule,
     ByokModule,

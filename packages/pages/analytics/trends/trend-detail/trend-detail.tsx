@@ -59,6 +59,7 @@ const TREND_KPI_PLACEHOLDERS = [
     description: 'Average engagement',
     icon: Flame,
     iconClassName: 'bg-accent/10 text-accent',
+    analyticsMetric: 'engagementRate' as const,
     label: 'Engagement Rate',
     value: '-',
   },
@@ -187,6 +188,7 @@ export default function TrendDetail({
           description: 'Average engagement',
           icon: Flame,
           iconClassName: 'bg-accent/10 text-accent',
+          analyticsMetric: 'engagementRate' as const,
           label: 'Engagement Rate',
           value: trend.metadata?.engagementRate
             ? `${trend.metadata.engagementRate.toFixed(1)}%`

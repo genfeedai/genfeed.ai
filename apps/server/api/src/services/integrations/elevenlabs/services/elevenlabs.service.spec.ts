@@ -1,5 +1,6 @@
 import type { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import { ApiKeyCategory, FileInputType } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -54,7 +55,7 @@ function createHarness() {
     getApiKey,
     loggerService,
     service: new ElevenLabsService(
-      configService,
+      runtimeSettingsMock(configService),
       loggerService,
       apiKeyHelperService,
       filesClientService,

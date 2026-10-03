@@ -8,6 +8,7 @@ import {
 } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type { Post } from '@models/content/post.model';
+import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import HtmlContent from '@ui/display/html-content/HtmlContent';
 import Table from '@ui/display/table/Table';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
@@ -117,7 +118,9 @@ export default function BrandTopPostsTable({
             ),
           },
           {
-            header: 'Views',
+            header: (
+              <AnalyticsMetricLabel metric="views">Views</AnalyticsMetricLabel>
+            ),
             key: 'totalViews',
             render: (post) => {
               const postWithAnalytics = post as PostWithAnalytics;
@@ -129,7 +132,9 @@ export default function BrandTopPostsTable({
             },
           },
           {
-            header: 'Likes',
+            header: (
+              <AnalyticsMetricLabel metric="likes">Likes</AnalyticsMetricLabel>
+            ),
             key: 'totalLikes',
             render: (post) => {
               const postWithAnalytics = post as PostWithAnalytics;
@@ -141,7 +146,11 @@ export default function BrandTopPostsTable({
             },
           },
           {
-            header: 'Comments',
+            header: (
+              <AnalyticsMetricLabel metric="comments">
+                Comments
+              </AnalyticsMetricLabel>
+            ),
             key: 'totalComments',
             render: (post) => {
               const postWithAnalytics = post as PostWithAnalytics;
@@ -155,7 +164,11 @@ export default function BrandTopPostsTable({
             },
           },
           {
-            header: 'Eng. Rate',
+            header: (
+              <AnalyticsMetricLabel metric="engagementRate">
+                Eng. Rate
+              </AnalyticsMetricLabel>
+            ),
             key: 'engagementRate',
             render: (post) => {
               const postWithAnalytics = post as PostWithAnalytics;

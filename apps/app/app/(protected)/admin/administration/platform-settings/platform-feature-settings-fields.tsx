@@ -99,6 +99,356 @@ export default function PlatformFeatureSettingsFields({
         {translate('intro')}
       </Text>
 
+      <Heading size="md">{translate('runtime.heading')}</Heading>
+      <PlatformNumberSettingField
+        id="platform-imageCompressionQuality"
+        label={translate('runtime.imageCompressionQuality')}
+        min={1}
+        max={100}
+        value={settings.imageCompressionQuality}
+        isInteger
+        isDisabled={isDisabled}
+        onValidityChange={onValidityChange}
+        onCommit={updateNumber('imageCompressionQuality')}
+      />
+      <PlatformNumberSettingField
+        id="platform-paygFallbackCredits"
+        label={translate('runtime.paygFallbackCredits')}
+        min={1}
+        max={1000000}
+        value={settings.paygFallbackCredits}
+        isInteger
+        isDisabled={isDisabled}
+        onValidityChange={onValidityChange}
+        onCommit={updateNumber('paygFallbackCredits')}
+      />
+      <Field
+        label={translate('runtime.linkedinTrendSourceUrls')}
+        htmlFor="platform-linkedinTrendSourceUrls"
+      >
+        <Input
+          id="platform-linkedinTrendSourceUrls"
+          value={settings.linkedinTrendSourceUrls ?? ''}
+          disabled={isDisabled}
+          onChange={(event) =>
+            onChange({
+              ...settings,
+              linkedinTrendSourceUrls: event.target.value.trim() || null,
+            })
+          }
+        />
+      </Field>
+
+      <Field
+        label={translate('runtime.agentContextCompressionModel')}
+        htmlFor="platform-agentContextCompressionModel"
+      >
+        <Input
+          id="platform-agentContextCompressionModel"
+          value={settings.agentContextCompressionModel ?? ''}
+          disabled={isDisabled}
+          onChange={(event) =>
+            update('agentContextCompressionModel', event.target.value || null)
+          }
+        />
+      </Field>
+      <PlatformNumberSettingField
+        id="platform-agentContextWindowSize"
+        label={translate('runtime.agentContextWindowSize')}
+        min={1}
+        max={200}
+        value={settings.agentContextWindowSize}
+        isInteger={true}
+        isDisabled={isDisabled}
+        onValidityChange={onValidityChange}
+        onCommit={updateNumber('agentContextWindowSize')}
+      />
+      <PlatformNumberSettingField
+        id="platform-generationMaxTokens"
+        label={translate('runtime.generationMaxTokens')}
+        min={1}
+        max={128000}
+        value={settings.generationMaxTokens}
+        isInteger={true}
+        isDisabled={isDisabled}
+        onValidityChange={onValidityChange}
+        onCommit={updateNumber('generationMaxTokens')}
+      />
+      <PlatformNumberSettingField
+        id="platform-typedDecisionTimeoutMs"
+        label={translate('runtime.typedDecisionTimeoutMs')}
+        min={1}
+        max={60000}
+        value={settings.typedDecisionTimeoutMs}
+        isInteger={true}
+        isDisabled={isDisabled}
+        onValidityChange={onValidityChange}
+        onCommit={updateNumber('typedDecisionTimeoutMs')}
+      />
+      <PlatformNumberSettingField
+        id="platform-trainingCreditsCost"
+        label={translate('runtime.trainingCreditsCost')}
+        min={0}
+        max={1000000}
+        value={settings.trainingCreditsCost}
+        isInteger={false}
+        isDisabled={isDisabled}
+        onValidityChange={onValidityChange}
+        onCommit={updateNumber('trainingCreditsCost')}
+      />
+      <PlatformNumberSettingField
+        id="platform-customModelCreditsCost"
+        label={translate('runtime.customModelCreditsCost')}
+        min={0}
+        max={1000000}
+        value={settings.customModelCreditsCost}
+        isInteger={false}
+        isDisabled={isDisabled}
+        onValidityChange={onValidityChange}
+        onCommit={updateNumber('customModelCreditsCost')}
+      />
+      <Field
+        label={translate('runtime.replicateModelHardware')}
+        htmlFor="platform-replicateModelHardware"
+      >
+        <Input
+          id="platform-replicateModelHardware"
+          value={settings.replicateModelHardware ?? ''}
+          disabled={isDisabled}
+          onChange={(event) =>
+            update('replicateModelHardware', event.target.value)
+          }
+        />
+      </Field>
+      <Field
+        label={translate('runtime.replicateModelVisibility')}
+        htmlFor="platform-replicateModelVisibility"
+      >
+        <Select
+          value={settings.replicateModelVisibility}
+          onValueChange={(value) =>
+            update(
+              'replicateModelVisibility',
+              value === 'public' ? 'public' : 'private',
+            )
+          }
+          disabled={isDisabled}
+        >
+          <SelectTrigger id="platform-replicateModelVisibility">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="private">
+              {translate('runtime.private')}
+            </SelectItem>
+            <SelectItem value="public">
+              {translate('runtime.public')}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </Field>
+      <Field
+        label={translate('runtime.replicateTrainerModel')}
+        htmlFor="platform-replicateTrainerModel"
+      >
+        <Input
+          id="platform-replicateTrainerModel"
+          value={settings.replicateTrainerModel ?? ''}
+          disabled={isDisabled}
+          onChange={(event) =>
+            update('replicateTrainerModel', event.target.value)
+          }
+        />
+      </Field>
+      <PlatformNumberSettingField
+        id="platform-replicateTargetFps"
+        label={translate('runtime.replicateTargetFps')}
+        min={1}
+        max={120}
+        value={settings.replicateTargetFps}
+        isInteger={true}
+        isDisabled={isDisabled}
+        onValidityChange={onValidityChange}
+        onCommit={updateNumber('replicateTargetFps')}
+      />
+      <Field
+        label={translate('runtime.replicateTargetResolution')}
+        htmlFor="platform-replicateTargetResolution"
+      >
+        <Input
+          id="platform-replicateTargetResolution"
+          value={settings.replicateTargetResolution ?? ''}
+          disabled={isDisabled}
+          onChange={(event) =>
+            update('replicateTargetResolution', event.target.value)
+          }
+        />
+      </Field>
+      <Field
+        label={translate('runtime.klingModel')}
+        htmlFor="platform-klingModel"
+      >
+        <Input
+          id="platform-klingModel"
+          value={settings.klingModel ?? ''}
+          disabled={isDisabled}
+          onChange={(event) => update('klingModel', event.target.value)}
+        />
+      </Field>
+      <Field
+        label={translate('runtime.elevenlabsModel')}
+        htmlFor="platform-elevenlabsModel"
+      >
+        <Input
+          id="platform-elevenlabsModel"
+          value={settings.elevenlabsModel ?? ''}
+          disabled={isDisabled}
+          onChange={(event) =>
+            update('elevenlabsModel', event.target.value || null)
+          }
+        />
+      </Field>
+      <Field
+        label={translate('runtime.murekaModel')}
+        htmlFor="platform-murekaModel"
+      >
+        <Input
+          id="platform-murekaModel"
+          value={settings.murekaModel ?? ''}
+          disabled={isDisabled}
+          onChange={(event) => update('murekaModel', event.target.value)}
+        />
+      </Field>
+      <Field
+        label={translate('runtime.discordChannelIdDeployments')}
+        htmlFor="platform-discordChannelIdDeployments"
+      >
+        <Input
+          id="platform-discordChannelIdDeployments"
+          value={settings.discordChannelIdDeployments ?? ''}
+          disabled={isDisabled}
+          onChange={(event) =>
+            update('discordChannelIdDeployments', event.target.value || null)
+          }
+        />
+      </Field>
+      <Field
+        label={translate('runtime.discordChannelIdPosts')}
+        htmlFor="platform-discordChannelIdPosts"
+      >
+        <Input
+          id="platform-discordChannelIdPosts"
+          value={settings.discordChannelIdPosts ?? ''}
+          disabled={isDisabled}
+          onChange={(event) =>
+            update('discordChannelIdPosts', event.target.value || null)
+          }
+        />
+      </Field>
+      <Field
+        label={translate('runtime.discordChannelIdStudio')}
+        htmlFor="platform-discordChannelIdStudio"
+      >
+        <Input
+          id="platform-discordChannelIdStudio"
+          value={settings.discordChannelIdStudio ?? ''}
+          disabled={isDisabled}
+          onChange={(event) =>
+            update('discordChannelIdStudio', event.target.value || null)
+          }
+        />
+      </Field>
+      <Field
+        label={translate('runtime.discordChannelIdUsers')}
+        htmlFor="platform-discordChannelIdUsers"
+      >
+        <Input
+          id="platform-discordChannelIdUsers"
+          value={settings.discordChannelIdUsers ?? ''}
+          disabled={isDisabled}
+          onChange={(event) =>
+            update('discordChannelIdUsers', event.target.value || null)
+          }
+        />
+      </Field>
+      <Field
+        label={translate('runtime.discordChannelIdModels')}
+        htmlFor="platform-discordChannelIdModels"
+      >
+        <Input
+          id="platform-discordChannelIdModels"
+          value={settings.discordChannelIdModels ?? ''}
+          disabled={isDisabled}
+          onChange={(event) =>
+            update('discordChannelIdModels', event.target.value || null)
+          }
+        />
+      </Field>
+      <Field
+        label={translate('runtime.discordBotAvatarUrl')}
+        htmlFor="platform-discordBotAvatarUrl"
+      >
+        <Input
+          id="platform-discordBotAvatarUrl"
+          value={settings.discordBotAvatarUrl ?? ''}
+          disabled={isDisabled}
+          onChange={(event) =>
+            update('discordBotAvatarUrl', event.target.value || null)
+          }
+        />
+      </Field>
+      <Field
+        label={translate('runtime.discordWebhookNamePrefix')}
+        htmlFor="platform-discordWebhookNamePrefix"
+      >
+        <Input
+          id="platform-discordWebhookNamePrefix"
+          value={settings.discordWebhookNamePrefix ?? ''}
+          disabled={isDisabled}
+          onChange={(event) =>
+            update('discordWebhookNamePrefix', event.target.value || null)
+          }
+        />
+      </Field>
+      <Field
+        label={translate('runtime.discordWebhookReason')}
+        htmlFor="platform-discordWebhookReason"
+      >
+        <Input
+          id="platform-discordWebhookReason"
+          value={settings.discordWebhookReason ?? ''}
+          disabled={isDisabled}
+          onChange={(event) =>
+            update('discordWebhookReason', event.target.value || null)
+          }
+        />
+      </Field>
+      <Field
+        label={translate('runtime.emailFromAddress')}
+        htmlFor="platform-emailFromAddress"
+      >
+        <Input
+          id="platform-emailFromAddress"
+          value={settings.emailFromAddress ?? ''}
+          disabled={isDisabled}
+          onChange={(event) =>
+            update('emailFromAddress', event.target.value || null)
+          }
+        />
+      </Field>
+      <Field
+        label={translate('runtime.emailReplyToAddress')}
+        htmlFor="platform-emailReplyToAddress"
+      >
+        <Input
+          id="platform-emailReplyToAddress"
+          value={settings.emailReplyToAddress ?? ''}
+          disabled={isDisabled}
+          onChange={(event) =>
+            update('emailReplyToAddress', event.target.value || null)
+          }
+        />
+      </Field>
       <Heading size="md">{translate('media.heading')}</Heading>
       <Switch
         aria-label={translate('media.perceptionLabel')}

@@ -17,6 +17,7 @@ import {
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
+import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Card from '@ui/card/Card';
 import Table from '@ui/display/table/Table';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
@@ -105,12 +106,16 @@ export default function AnalyticsAccountDetail() {
       },
       {
         key: 'views',
-        header: 'Views',
+        header: (
+          <AnalyticsMetricLabel metric="views">Views</AnalyticsMetricLabel>
+        ),
         render: (row) => formatCompactNumberIntl(row.views),
       },
       {
         key: 'likes',
-        header: 'Likes',
+        header: (
+          <AnalyticsMetricLabel metric="likes">Likes</AnalyticsMetricLabel>
+        ),
         render: (row) => formatCompactNumberIntl(row.likes),
       },
     ],
@@ -155,7 +160,11 @@ export default function AnalyticsAccountDetail() {
       <div className="grid gap-4 md:grid-cols-3">
         {(detail?.metrics ?? []).map((metric) => (
           <Card key={metric.metric}>
-            <p className="text-sm text-muted-foreground">{metric.metric}</p>
+            <p className="text-sm text-muted-foreground">
+              <AnalyticsMetricLabel metric={metric.metric}>
+                {metric.metric}
+              </AnalyticsMetricLabel>
+            </p>
             <p className="text-2xl">
               {metric.availability === 'observed' && metric.change !== null
                 ? formatCompactNumberIntl(metric.change)

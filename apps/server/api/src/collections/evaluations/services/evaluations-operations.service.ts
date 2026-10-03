@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { ExternalServiceException } from '@api/helpers/exceptions/external/external-service.exception';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
@@ -23,7 +24,6 @@ import {
   buildPersuasionEvaluationRubric,
   normalizePersuasionScores,
 } from '@genfeedai/harness';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -105,7 +105,7 @@ export class EvaluationsOperationsService {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
-    private readonly configService: ConfigService,
+    private readonly platformSettingsService: PlatformSettingsService,
     private readonly modelsService: ModelsService,
     private readonly replicateService: ReplicateService,
     private readonly promptBuilderService: PromptBuilderService,
@@ -170,7 +170,8 @@ export class EvaluationsOperationsService {
 
       const promptOptions: EvaluationPromptOptions = {
         brand: context.brand,
-        maxTokens: this.configService.get('MAX_TOKENS'),
+        maxTokens: (await this.platformSettingsService.getFeatureSettings())
+          .generationMaxTokens,
         modelCategory: ModelCategory.TEXT,
         prompt: truncatedContent,
         promptTemplate: config.promptTemplate,

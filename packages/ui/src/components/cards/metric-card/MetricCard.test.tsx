@@ -1,7 +1,9 @@
 import * as animatedCounter from '@genfeedai/hooks/ui/use-animated-counter/use-animated-counter';
 import { render, screen } from '@testing-library/react';
 import { Users } from 'lucide-react';
+import { NextIntlClientProvider } from 'next-intl';
 import { describe, expect, it, vi } from 'vitest';
+import pages from '../../../../../../apps/app/messages/en/pages.json';
 import MetricCard from './MetricCard';
 
 describe('MetricCard', () => {
@@ -94,4 +96,49 @@ describe('MetricSummary', () => {
       /4\s*accounts\s*·\s*2\s*healthy/,
     );
   });
+});
+
+it('preserves canonical metric identity through zero, loading and inline rendering', () => {
+  const { container, rerender } = render(
+    <NextIntlClientProvider locale="en" messages={{ pages }}>
+      <MetricCard
+        label="Percent Engagement"
+        value="0%"
+        analyticsMetric="engagementRate"
+      />
+    </NextIntlClientProvider>,
+  );
+  expect(
+    screen.getByRole('button', { name: 'About Engagement rate' }),
+  ).toBeInTheDocument();
+  rerender(
+    <NextIntlClientProvider locale="en" messages={{ pages }}>
+      <MetricCard
+        label="Percent Engagement"
+        value="0%"
+        analyticsMetric="engagementRate"
+        isLoading
+      />
+    </NextIntlClientProvider>,
+  );
+  expect(
+    container.querySelector('[aria-label="About Engagement rate"]'),
+  ).toBeInTheDocument();
+  rerender(
+    <NextIntlClientProvider locale="en" messages={{ pages }}>
+      <MetricCard
+        appearance="inline"
+        label="Likes"
+        value="0"
+        analyticsMetric="likes"
+      />
+    </NextIntlClientProvider>,
+  );
+  expect(
+    screen.getByRole('button', { name: 'About Likes' }),
+  ).toBeInTheDocument();
+});
+it('does not require an intl provider for generic unannotated cards', () => {
+  render(<MetricCard label="Runs" value="0" />);
+  expect(screen.queryByRole('button')).toBeNull();
 });

@@ -16,6 +16,7 @@ import type { Post } from '@models/content/post.model';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
 import { logger } from '@services/core/logger.service';
 import { BrandsService } from '@services/social/brands.service';
+import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Card from '@ui/card/Card';
 import Table from '@ui/display/table/Table';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
@@ -171,6 +172,7 @@ export default function AnalyticsPlatformDetail({
             description: 'Published content',
             icon: Video,
             iconClassName: 'bg-foreground/10 text-foreground',
+            analyticsMetric: 'posts' as const,
             label: 'Total Posts',
             value: posts.length,
           },
@@ -178,6 +180,7 @@ export default function AnalyticsPlatformDetail({
             description: 'All posts combined',
             icon: Eye,
             iconClassName: 'bg-foreground/10 text-foreground',
+            analyticsMetric: 'views' as const,
             label: 'Total Views',
             value: formatCompactNumberIntl(totalViews),
           },
@@ -185,13 +188,16 @@ export default function AnalyticsPlatformDetail({
             description: 'Per content piece',
             icon: ChartColumn,
             iconClassName: 'bg-foreground/10 text-foreground',
+            analyticsMetric: 'views' as const,
             label: 'Avg Views/Post',
+            analyticsMetricVariant: 'perPost' as const,
             value: formatCompactNumberIntl(avgViewsPerPost),
           },
           {
             description: `${formatCompactNumberIntl(totalLikes)} likes, ${formatCompactNumberIntl(totalComments)} comments`,
             icon: Heart,
             iconClassName: 'bg-foreground/10 text-foreground',
+            analyticsMetric: 'engagement' as const,
             label: 'Total Engagement',
             value: formatCompactNumberIntl(totalEngagement),
           },
@@ -199,6 +205,7 @@ export default function AnalyticsPlatformDetail({
             description: 'Average across posts',
             icon: Flame,
             iconClassName: 'bg-foreground/10 text-foreground',
+            analyticsMetric: 'engagementRate' as const,
             label: 'Engagement Rate',
             value: formatPercentageSimple(avgEngagementRate, 2),
           },
@@ -206,6 +213,7 @@ export default function AnalyticsPlatformDetail({
             description: bestPost ? 'views on top post' : 'No posts yet',
             icon: Trophy,
             iconClassName: 'bg-foreground/10 text-foreground',
+            analyticsMetric: 'views' as const,
             label: 'Best Performing',
             value: bestPost
               ? formatCompactNumberIntl(bestPost.totalViews || 0)
@@ -262,7 +270,11 @@ export default function AnalyticsPlatformDetail({
                 ),
               },
               {
-                header: 'Views',
+                header: (
+                  <AnalyticsMetricLabel metric="views">
+                    Views
+                  </AnalyticsMetricLabel>
+                ),
                 key: 'totalViews',
                 render: (post) => (
                   <span className="font-mono font-semibold">
@@ -271,7 +283,11 @@ export default function AnalyticsPlatformDetail({
                 ),
               },
               {
-                header: 'Likes',
+                header: (
+                  <AnalyticsMetricLabel metric="likes">
+                    Likes
+                  </AnalyticsMetricLabel>
+                ),
                 key: 'totalLikes',
                 render: (post) => (
                   <span className="font-mono">
@@ -280,7 +296,11 @@ export default function AnalyticsPlatformDetail({
                 ),
               },
               {
-                header: 'Comments',
+                header: (
+                  <AnalyticsMetricLabel metric="comments">
+                    Comments
+                  </AnalyticsMetricLabel>
+                ),
                 key: 'totalComments',
                 render: (post) => (
                   <span className="font-mono">
@@ -289,7 +309,11 @@ export default function AnalyticsPlatformDetail({
                 ),
               },
               {
-                header: 'Shares',
+                header: (
+                  <AnalyticsMetricLabel metric="shares">
+                    Shares
+                  </AnalyticsMetricLabel>
+                ),
                 key: 'totalShares',
                 render: (post) => (
                   <span className="font-mono">
@@ -298,7 +322,11 @@ export default function AnalyticsPlatformDetail({
                 ),
               },
               {
-                header: 'Eng. Rate',
+                header: (
+                  <AnalyticsMetricLabel metric="engagementRate">
+                    Eng. Rate
+                  </AnalyticsMetricLabel>
+                ),
                 key: 'engagementRate',
                 render: (post) => (
                   <span className="font-mono">

@@ -78,30 +78,20 @@ describe('ConfigService (Notifications)', () => {
       delete process.env.TELEGRAM_BOT_TOKEN;
     });
 
-    it('reports Discord enabled only with token, client id, and guild id', () => {
+    it('reports Discord enabled with its bot token; channels come from admin settings', () => {
       delete process.env.DISCORD_BOT_TOKEN;
       service = new ConfigService();
       expect(service.isDiscordEnabled()).toBe(false);
-
       process.env.DISCORD_BOT_TOKEN = 'discord-token';
-      process.env.DISCORD_CLIENT_ID = 'client-1';
-      service = new ConfigService();
-      expect(service.isDiscordEnabled()).toBe(false);
-
-      process.env.DISCORD_GUILD_ID = 'guild-1';
       service = new ConfigService();
       expect(service.isDiscordEnabled()).toBe(true);
-
       delete process.env.DISCORD_BOT_TOKEN;
-      delete process.env.DISCORD_CLIENT_ID;
-      delete process.env.DISCORD_GUILD_ID;
     });
 
     it('keeps Discord disabled by default in local development', () => {
       vi.stubEnv('NODE_ENV', 'development');
       process.env.DISCORD_BOT_TOKEN = 'discord-token';
       process.env.DISCORD_CLIENT_ID = 'client-1';
-      process.env.DISCORD_GUILD_ID = 'guild-1';
 
       service = new ConfigService();
       expect(service.isDiscordEnabled()).toBe(false);

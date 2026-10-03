@@ -1,7 +1,7 @@
 import { Timeframe, TrendDirection } from '@genfeedai/contracts';
 import { render, screen } from '@testing-library/react';
 import { GrowthTrendsCard } from '@ui/analytics/cards/growth-trends/growth-trends-card';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('GrowthTrendsCard', () => {
   const mockGrowthData = {
@@ -243,4 +243,14 @@ describe('GrowthTrendsCard', () => {
       expect(screen.getByText('-15.5%')).toBeInTheDocument();
     });
   });
+});
+
+vi.mock('next-intl', async () => {
+  const { createTranslateFromCatalog } = await import(
+    '@ui/tests/next-intl.stub'
+  );
+  const { default: pages } = await import(
+    '../../../../../../../apps/app/messages/en/pages.json'
+  );
+  return { useTranslations: createTranslateFromCatalog({ pages }) };
 });

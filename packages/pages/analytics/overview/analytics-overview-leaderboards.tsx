@@ -17,6 +17,7 @@ import type {
   IBrandWithStats,
   IOrgLeaderboardItem,
 } from '@services/analytics/analytics.service';
+import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import TopPostsSection from '@ui/analytics/top-posts/TopPostsSection';
 import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
@@ -92,7 +93,9 @@ export default function AnalyticsOverviewLeaderboards({
       },
       {
         className: 'text-right',
-        header: 'Posts',
+        header: (
+          <AnalyticsMetricLabel metric="posts">Posts</AnalyticsMetricLabel>
+        ),
         key: 'totalPosts',
         render: (item) => (
           <span className="font-mono">{item.totalPosts.toLocaleString()}</span>
@@ -100,7 +103,11 @@ export default function AnalyticsOverviewLeaderboards({
       },
       {
         className: 'text-right',
-        header: 'Engagement',
+        header: (
+          <AnalyticsMetricLabel metric="engagement">
+            Engagement
+          </AnalyticsMetricLabel>
+        ),
         key: 'totalEngagement',
         render: (item) => (
           <span className="font-mono">
@@ -153,7 +160,9 @@ export default function AnalyticsOverviewLeaderboards({
       },
       {
         className: 'text-right',
-        header: 'Posts',
+        header: (
+          <AnalyticsMetricLabel metric="posts">Posts</AnalyticsMetricLabel>
+        ),
         key: 'totalPosts',
         render: (item) => (
           <span className="font-mono">{item.totalPosts.toLocaleString()}</span>
@@ -161,7 +170,11 @@ export default function AnalyticsOverviewLeaderboards({
       },
       {
         className: 'text-right',
-        header: 'Engagement',
+        header: (
+          <AnalyticsMetricLabel metric="engagement">
+            Engagement
+          </AnalyticsMetricLabel>
+        ),
         key: 'totalEngagement',
         render: (item) => (
           <span className="font-mono">
