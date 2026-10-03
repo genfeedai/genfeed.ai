@@ -157,72 +157,7 @@ end
 return 1
 `;
 
-const IMPORT_HOSTED_ACCOUNT_USAGE_SCRIPT = `${COUNTER_VALIDATION_SCRIPT}
-${RELEASE_UNRECOGNIZED_HOLD_SCRIPT}
-local provider = integer(ARGV[1])
-if provider == nil then return 0 end
-local settled = integer(redis.call('GET', KEYS[3]) or '0')
-local outstanding = integer(redis.call('GET', KEYS[4]) or '0')
-local provisional = integer(redis.call('GET', KEYS[5]) or '0')
-local recognized = integer(redis.call('GET', KEYS[6]) or '0')
-if settled == nil or outstanding == nil or provisional == nil or recognized == nil then return 0 end
-local snapshotRaw = redis.call('GET', KEYS[2])
-local growth = 0
-local baselined = false
-if not snapshotRaw then
-  local base = current - outstanding
-  if base < 0 then base = 0 end
-  growth = provider - base
-  if growth < 0 then growth = 0 end
-  baselined = true
-else
-  local snapshot = integer(snapshotRaw)
-  if snapshot == nil then return 0 end
-  if provider < snapshot then return {4} end
-  growth = provider - snapshot
-end
--- Growth already explained by settled charges that the snapshot has not
--- absorbed yet is our own run appearing at the provider. It is not new
--- external spend, including after a nonzero external baseline.
--- The remainder is held immediately. The slice inside the open cap is
--- provisional and comes back out only once outstanding reaches zero and
--- settled dollars not yet recognized cover that whole slice. Recognized
--- dollars cannot explain a new hold. Dollars above the cap stay.
-local unseen = settled - recognized
-if unseen < 0 then unseen = 0 end
-local explained = growth
-if explained > unseen then explained = unseen end
-local charge = growth - explained
-local ambiguous = charge
-if ambiguous > outstanding then ambiguous = outstanding end
-if charge > 0 then
-  if current > MAX - charge then return 0 end
-  if ambiguous > 0 and provisional > MAX - ambiguous then return 0 end
-  redis.call('INCRBY', KEYS[1], string.format('%.0f', charge))
-  current = current + charge
-  if ambiguous > 0 then
-    provisional = provisional + ambiguous
-    redis.call('SET', KEYS[5], string.format('%.0f', provisional), 'PX', ttl)
-  end
-end
-if explained > 0 then
-  recognized = recognized + explained
-  redis.call('SET', KEYS[6], string.format('%.0f', recognized), 'PX', ttl)
-end
-redis.call('SET', KEYS[2], string.format('%.0f', provider), 'PX', ttl)
-if outstanding == 0 then
-  provisional, recognized = releaseUnrecognizedHold(settled, provisional, recognized)
-end
-if baselined then return {3} end
-if charge > 0 then return {1, string.format('%.0f', charge)} end
-return {2}
-`;
-
 export type ResearchReservationNote = 'duplicate' | 'noted' | 'unavailable';
-export type HostedAccountUsageImport =
-  | { externalMicroUsd: number; status: 'applied' }
-  | { status: 'baselined' | 'behind' | 'unchanged' | 'unavailable' };
-
 @Injectable()
 export class CacheService {
   private readonly defaultTtl = 300; // 5 minutes default
@@ -414,60 +349,6 @@ export class CacheService {
       [],
       true,
     );
-  }
-
-  /**
-   * Fold provider-account usage into the hosted counter. New provider
-   * dollars are held immediately. The slice inside an open reservation cap
-   * is provisional and comes back out only once outstanding reaches zero
-   * and settled dollars not yet recognized cover that whole slice.
-   * Recognized dollars cannot explain a new hold. Dollars above that cap
-   * stay. A reservation release never drops the counter below provider
-   * usage already observed.
-   */
-  async importHostedAccountUsage(
-    usageKey: string,
-    providerMicroUsd: number,
-  ): Promise<HostedAccountUsageImport> {
-    if (
-      !this.isAvailable ||
-      !usageKey ||
-      !Number.isSafeInteger(providerMicroUsd) ||
-      providerMicroUsd < 0
-    ) {
-      return { status: 'unavailable' };
-    }
-    try {
-      const result = await this.client.eval(
-        IMPORT_HOSTED_ACCOUNT_USAGE_SCRIPT,
-        6,
-        usageKey,
-        `${usageKey}:snapshot`,
-        `${usageKey}:settled`,
-        `${usageKey}:outstanding`,
-        `${usageKey}:provisional`,
-        `${usageKey}:recognized`,
-        String(providerMicroUsd),
-      );
-      if (Array.isArray(result) && result[0] === 1) {
-        const external = Number(result[1]);
-        if (Number.isSafeInteger(external) && external > 0) {
-          return { externalMicroUsd: external, status: 'applied' };
-        }
-      }
-      if (Array.isArray(result) && result[0] === 2) {
-        return { status: 'unchanged' };
-      }
-      if (Array.isArray(result) && result[0] === 3) {
-        return { status: 'baselined' };
-      }
-      if (Array.isArray(result) && result[0] === 4) {
-        return { status: 'behind' };
-      }
-    } catch (error: unknown) {
-      this.logOperationError('importHostedAccountUsage', { error });
-    }
-    return { status: 'unavailable' };
   }
 
   private async evalResearchNote(

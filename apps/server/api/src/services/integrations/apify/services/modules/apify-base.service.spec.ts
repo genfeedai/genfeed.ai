@@ -55,7 +55,6 @@ describe('ApifyBaseService', () => {
 
     runBudget = {
       consumeRun: vi.fn().mockResolvedValue({ isAllowed: true }),
-      reconcileRun: vi.fn().mockResolvedValue(undefined),
     };
 
     loggerService = {
@@ -196,14 +195,9 @@ describe('ApifyBaseService', () => {
   });
 
   it('runActor throws when actor run fails', async () => {
-    const reservation = {
-      reservedMicroUsd: 250_000,
-      usageKey: 'apify:billing-period-budget:hosted:2026-08-27',
-    };
     runBudget.consumeRun.mockResolvedValueOnce({
       isAllowed: true,
       maxTotalChargeUsd: 0.25,
-      reservation,
     });
     httpService.post.mockReturnValue(
       of({
@@ -225,18 +219,12 @@ describe('ApifyBaseService', () => {
       'Actor run run-1 ended with status: FAILED',
     );
     await expect(execution).rejects.toBeInstanceOf(ServiceUnavailableException);
-    expect(runBudget.reconcileRun).toHaveBeenCalledWith(reservation, 0.004);
   });
 
-  it('caps a hosted run and reconciles the reservation to Apify actual usage', async () => {
-    const reservation = {
-      reservedMicroUsd: 250_000,
-      usageKey: 'apify:billing-period-budget:hosted:2026-08-27',
-    };
+  it('sends the hosted per-run charge ceiling directly to Apify', async () => {
     runBudget.consumeRun.mockResolvedValueOnce({
       isAllowed: true,
       maxTotalChargeUsd: 0.25,
-      reservation,
     });
     httpService.post.mockReturnValue(
       of({
@@ -270,7 +258,6 @@ describe('ApifyBaseService', () => {
       {},
       expect.anything(),
     );
-    expect(runBudget.reconcileRun).toHaveBeenCalledWith(reservation, 0.012);
   });
 
   it('runActorForOrg uses byok key when available', async () => {
@@ -652,7 +639,6 @@ describe('ApifyBaseService', () => {
       expect(runBudget.consumeRun).toHaveBeenCalledWith(
         'byok:org-1',
         'test/actor',
-        'byok-key',
       );
     });
 

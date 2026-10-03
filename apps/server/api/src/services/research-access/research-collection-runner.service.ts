@@ -2,7 +2,6 @@ import type {
   ApifyActorRun,
   ApifyActorRunResponse,
   ApifyRunBudgetDecision,
-  ApifyRunBudgetReservation,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
 import { ApifyRunBudgetService } from '@api/services/integrations/apify/services/modules/apify-run-budget.service';
@@ -186,7 +185,7 @@ export class ResearchCollectionRunner {
     let budget: ApifyRunBudgetDecision;
     try {
       this.baseService.assertCollectionAdmission(scope);
-      budget = await this.budget.consumeRun(scope, actorId, token.token);
+      budget = await this.budget.consumeRun(scope, actorId);
     } catch (error: unknown) {
       this.baseService.recordCollectionFailure(scope, actorId, error);
       await this.stopUnsubmitted(job, 'admission_rejected');
@@ -198,40 +197,22 @@ export class ResearchCollectionRunner {
         budget.reason ?? 'Apify run budget exhausted',
       );
     }
-    if (budget.reservation) {
-      const reserved = await this.jobs.attachReservation(
-        job,
-        budget.reservation,
-      );
-      if (!reserved) {
-        await this.releaseReservation(budget.reservation, 0);
-        throw new ServiceUnavailableException(
-          'research_collection_recovery_pending',
-        );
-      }
-    }
-    const reservedJob = {
-      ...job,
-      scope,
-      reservationKey: budget.reservation?.reservationKey ?? null,
-      reservedMicroUsd: budget.reservation?.reservedMicroUsd ?? null,
-      usageKey: budget.reservation?.usageKey ?? null,
-    };
+    const scopedJob = { ...job, scope };
     const currentAccess = await this.access.decide(job.organizationId);
     if (!currentAccess.isAllowed) {
-      await this.stopUnsubmitted(reservedJob, 'access_denied');
+      await this.stopUnsubmitted(scopedJob, 'access_denied');
       throw new ServiceUnavailableException(currentAccess.reason);
     }
     const submissionAt = new Date();
     if (!(await this.jobs.confirmSubmission(job, submissionAt))) {
-      // A stale owner cannot mutate a newer job. Release only its own receipt.
-      await this.stopUnsubmitted(reservedJob, 'ownership_rejected');
+      // A stale owner cannot mutate a newer job.
+      await this.stopUnsubmitted(scopedJob, 'ownership_rejected');
       throw new ServiceUnavailableException(
         'research_collection_recovery_pending',
       );
     }
     const run = await this.startActorOrStop(
-      reservedJob,
+      scopedJob,
       actorId,
       input,
       token.token,
@@ -251,11 +232,8 @@ export class ResearchCollectionRunner {
     return this.finishRecordedRun({
       ...job,
       datasetId: run.defaultDatasetId,
-      reservationKey: budget.reservation?.reservationKey ?? null,
-      reservedMicroUsd: budget.reservation?.reservedMicroUsd ?? null,
       scope,
       upstreamRunId: run.id,
-      usageKey: budget.reservation?.usageKey ?? null,
     });
   }
 
@@ -264,10 +242,7 @@ export class ResearchCollectionRunner {
     actorId: string,
     input: object,
     token: string,
-    budget: {
-      maxTotalChargeUsd?: number;
-      reservation?: ApifyRunBudgetReservation;
-    },
+    budget: ApifyRunBudgetDecision,
     scope: string,
     startedAt: Date,
   ): Promise<ApifyActorRun> {
@@ -343,14 +318,6 @@ export class ResearchCollectionRunner {
         'research_collection_cost_unverified',
       );
     }
-    const reservation = this.reservationFrom(job);
-    if (job.scope === 'hosted' && !reservation) {
-      throw new ServiceUnavailableException(
-        'research_collection_cost_unverified',
-      );
-    }
-    if (!job.reconciledAt)
-      await this.releaseReservation(reservation, usage, job.scope === 'hosted');
     const reconciledAt = job.reconciledAt ?? new Date();
     const currentAccess = await this.access.decide(job.organizationId);
     if (run.status !== 'SUCCEEDED') {
@@ -484,11 +451,10 @@ export class ResearchCollectionRunner {
       // window. Per the issue's requirement, a candidate that cannot be tied
       // to the request is not evidence either way, so both cases reconcile
       // the same way: UNRECONCILED (not FAILED, since we cannot confirm the
-      // provider rejected the start), with the hold released. Splitting this
-      // by runs.length would make FAILED depend on whether this actor
+      // provider rejected the start), with actual cost remaining unverified.
+      // Splitting this by runs.length would make FAILED depend on whether this actor
       // happens to have any run history at all, which is incidental and not
       // what the issue asks for.
-      await this.releaseJobReservation(job, 0);
       const reconciled = await this.jobs.finishUnreconciledStart(job, now);
       if (!reconciled) {
         throw new ServiceUnavailableException(
@@ -499,7 +465,7 @@ export class ResearchCollectionRunner {
         'research_collection_start_unreconciled',
       );
     }
-    await this.releaseJobReservation(job, 0);
+
     const released = await this.jobs.finishExpiredUnrecorded(job, now);
     if (!released) {
       throw new ServiceUnavailableException(
@@ -511,59 +477,11 @@ export class ResearchCollectionRunner {
     );
   }
 
-  private reservationFrom(
-    job: ResearchCollectionJobRecord,
-  ): ApifyRunBudgetReservation | undefined {
-    if (!job.reservationKey || !job.usageKey || job.reservedMicroUsd === null) {
-      return undefined;
-    }
-    return {
-      reservationKey: job.reservationKey,
-      reservedMicroUsd: job.reservedMicroUsd,
-      usageKey: job.usageKey,
-    };
-  }
-
-  private async releaseJobReservation(
-    job: ResearchCollectionJobRecord,
-    actualUsageUsd: number,
-  ): Promise<void> {
-    const hasReceipt =
-      job.reservationKey != null ||
-      job.usageKey != null ||
-      job.reservedMicroUsd != null;
-    await this.releaseReservation(
-      this.reservationFrom(job),
-      actualUsageUsd,
-      hasReceipt,
-    );
-  }
-
-  private async releaseReservation(
-    reservation: ApifyRunBudgetReservation | undefined,
-    actualUsageUsd: number | undefined,
-    requireReceipt = false,
-  ): Promise<void> {
-    const result = await this.budget.reconcileRunWithResult(
-      reservation,
-      actualUsageUsd,
-    );
-    if (requireReceipt && result === 'not_required')
-      throw new ServiceUnavailableException(
-        'research_collection_cost_unverified',
-      );
-    if (result === 'pending')
-      throw new ServiceUnavailableException(
-        'research_collection_recovery_pending',
-      );
-  }
-
   private async stopUnsubmitted(
     job: ResearchCollectionJobRecord,
     reason: string,
   ): Promise<void> {
     if (!(await this.jobs.markNoStart(job, reason))) {
-      await this.releaseJobReservation(job, 0);
       throw new ServiceUnavailableException(
         'research_collection_recovery_pending',
       );
@@ -572,7 +490,6 @@ export class ResearchCollectionRunner {
   }
 
   private async finishNoStart(job: ResearchCollectionJobRecord): Promise<void> {
-    await this.releaseJobReservation(job, 0);
     const finished = await this.jobs.finish(job, {
       actualCostMicroUsd: 0,
       reconciledAt: new Date(),

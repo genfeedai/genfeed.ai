@@ -316,11 +316,7 @@ export class ApifyBaseService {
 
     this.assertCollectionAdmission(scope);
 
-    const budget = await this.runBudgetService.consumeRun(
-      scope,
-      actorId,
-      token,
-    );
+    const budget = await this.runBudgetService.consumeRun(scope, actorId);
     if (!budget.isAllowed) {
       throw new ServiceUnavailableException(
         budget.reason ?? 'Apify run budget exhausted',
@@ -352,10 +348,6 @@ export class ApifyBaseService {
       const datasetId = runResponse.data.data.defaultDatasetId;
 
       const completedRun = await this.waitForRun(runId, token);
-      await this.runBudgetService.reconcileRun(
-        budget.reservation,
-        completedRun.usageTotalUsd,
-      );
       if (completedRun.status !== 'SUCCEEDED') {
         throw new ServiceUnavailableException(
           `Actor run ${runId} ended with status: ${completedRun.status}`,
