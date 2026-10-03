@@ -142,6 +142,7 @@ export class IngredientsController {
           LibraryShelfUtil.buildPlaceFilter(query.isFavorite),
           IngredientFilterUtil.buildFolderFilter(query.folderId?.toString()),
           IngredientFilterUtil.buildParentFilter(query.parentId?.toString()),
+          IngredientFilterUtil.buildOriginFilter(query.origins),
           searchFilter.where,
         ],
       },

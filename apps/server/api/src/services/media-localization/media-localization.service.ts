@@ -14,6 +14,7 @@ import {
   ByokProvider,
   FileInputType,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/contracts';
@@ -138,6 +139,7 @@ export class MediaLocalizationService {
       );
     const { ingredientData, metadataData } =
       await this.shared.createMediaDocumentsInternal({
+        origin: IngredientOrigin.GENERATED,
         brandId,
         category: IngredientCategory.MUSIC,
         extension: MetadataExtension.WAV,
@@ -229,6 +231,7 @@ export class MediaLocalizationService {
       await this.loadLocalizationSource(request);
     const { ingredientData, metadataData } =
       await this.shared.createMediaDocumentsInternal({
+        origin: IngredientOrigin.GENERATED,
         brandId,
         category: IngredientCategory.AUDIO,
         extension: MetadataExtension.WAV,

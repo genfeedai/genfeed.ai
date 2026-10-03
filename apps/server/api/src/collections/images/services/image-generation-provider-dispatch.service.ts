@@ -52,6 +52,7 @@ import {
   ActivitySource,
   FileInputType,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/contracts';
@@ -674,6 +675,7 @@ export class ImageGenerationProviderDispatchService {
     context: ImageGenerationContext,
   ): Promise<ImageGenerationSaveDocumentsResult> {
     return this.sharedService.createMediaDocuments(context.user, {
+      origin: IngredientOrigin.GENERATED,
       brandId: context.brand.id,
       category: IngredientCategory.IMAGE,
       extension: MetadataExtension.JPG,

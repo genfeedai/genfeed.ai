@@ -3,6 +3,7 @@ import type {
   AssetScope,
   IngredientCategory,
   IngredientFormat,
+  IngredientOrigin,
   IngredientStatus,
   QualityStatus,
   TransformationCategory,
@@ -107,6 +108,8 @@ export interface IIngredient extends IBaseEntity {
   twitterUrl?: string;
   publishedAt?: string;
   personaSlug?: string;
+  /** Permanent origin; set once at creation (`UNKNOWN` only for legacy rows). */
+  origin?: IngredientOrigin;
   reviewStatus?: string;
   qualityStatus?: QualityStatus;
   contentRating?: string;

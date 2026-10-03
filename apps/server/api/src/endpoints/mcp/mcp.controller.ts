@@ -1,4 +1,4 @@
-import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
+import type { IngredientServerCreate } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
@@ -17,7 +17,11 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { ActivitySource, ModelCategory } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  IngredientOrigin,
+  ModelCategory,
+} from '@genfeedai/contracts';
 import { AnalyticSerializer, VideoSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -52,9 +56,10 @@ export class MCPController {
     @Req() request: Request,
     @Body() createVideoDto: CreateVideoDto,
   ) {
-    const data = await this.videosService.create(
-      createVideoDto as CreateIngredientDto,
-    );
+    const data = await this.videosService.create({
+      ...createVideoDto,
+      origin: IngredientOrigin.GENERATED,
+    } as IngredientServerCreate);
     return serializeSingle(request, VideoSerializer, data);
   }
 

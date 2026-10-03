@@ -1,4 +1,3 @@
-import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { EditImageDto } from '@api/collections/images/dto/edit-image.dto';
@@ -30,6 +29,7 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
@@ -38,6 +38,7 @@ import {
   ActivitySource,
   FileInputType,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MemberRole,
   MetadataExtension,
@@ -294,6 +295,7 @@ export class ImagesOperationsController {
       const { ingredientData } = await this.sharedService.createMediaDocuments(
         user,
         {
+          origin: IngredientOrigin.GENERATED,
           assistant:
             typeof sourceMetadata?.assistant === 'string'
               ? sourceMetadata.assistant

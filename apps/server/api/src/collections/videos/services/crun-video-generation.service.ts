@@ -28,6 +28,7 @@ import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   ActivitySource,
   IngredientCategory,
+  IngredientOrigin,
   MetadataExtension,
   PromptCategory,
   PromptStatus,
@@ -295,6 +296,7 @@ export class CrunVideoGenerationService {
       outputIndex++
     ) {
       const docs = await this.shared.createMediaDocuments(user, {
+        origin: IngredientOrigin.GENERATED,
         category: IngredientCategory.VIDEO,
         brandId: frozen.brandId,
         organizationId: user.organizationId,

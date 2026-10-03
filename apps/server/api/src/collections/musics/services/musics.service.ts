@@ -7,6 +7,7 @@ import {
   BaseService,
   type PopulateInput,
 } from '@api/shared/services/base/base.service';
+import type { IngredientOrigin } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { withExternalMediaFallback } from '@libs/media/media-url.util';
 import { Injectable } from '@nestjs/common';
@@ -34,7 +35,7 @@ export class MusicsService extends BaseService<
   }
 
   override async create(
-    createDto: CreateMusicDto,
+    createDto: CreateMusicDto & { readonly origin: IngredientOrigin },
     populate?: PopulateInput,
   ): Promise<MusicDocument> {
     // The DTO cast stays — music and ingredient create DTOs differ. The return

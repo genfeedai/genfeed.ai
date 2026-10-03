@@ -11,6 +11,7 @@ import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   FileInputType,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
   TransformationCategory,
@@ -74,6 +75,7 @@ export class ImageResizeService {
     try {
       const { metadataData, ingredientData } =
         await this.sharedService.createMediaDocuments(user, {
+          origin: IngredientOrigin.GENERATED,
           brandId: user.brandId,
           category: CategoryPrismaUtil.toIngredientCategory(
             IngredientCategory.IMAGE,

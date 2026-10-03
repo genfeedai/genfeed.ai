@@ -138,6 +138,7 @@ export class IngredientsOperationsController {
     // Create ingredient with PROCESSING status under the caller's organization
     const { metadataData, ingredientData } =
       await this.getSharedService().createMediaDocuments(user, {
+        origin: ingredient.origin,
         brandId: user.brandId,
         category: ingredient.category,
         duration: metadata.duration,

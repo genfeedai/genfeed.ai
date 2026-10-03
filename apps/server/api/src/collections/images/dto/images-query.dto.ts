@@ -1,6 +1,7 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { normalizeIngredientOrigins } from '@api/helpers/dto/ingredient-origins-query.transform';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { AssetScope } from '@genfeedai/contracts';
+import { AssetScope, IngredientOrigin } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
@@ -185,4 +186,21 @@ export class ImagesQueryDto extends BaseQueryDto {
     return Boolean(value);
   })
   latest?: boolean;
+
+  @ApiProperty({
+    description:
+      'Filter by permanent asset origin using repeated query keys ' +
+      '(e.g., ?origins=UPLOADED&origins=IMPORTED). Origin is a Library filter ' +
+      'beside type, shelf and folder; it composes with all of them.',
+    enum: IngredientOrigin,
+    enumName: 'IngredientOrigin',
+    example: [IngredientOrigin.UPLOADED],
+    isArray: true,
+    required: false,
+  })
+  @Transform(({ value }) => normalizeIngredientOrigins(value))
+  @IsOptional()
+  @IsArray()
+  @IsEnum(IngredientOrigin, { each: true })
+  origins?: IngredientOrigin[];
 }

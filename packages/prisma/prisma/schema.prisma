@@ -69,6 +69,16 @@ enum IngredientStatus {
   REJECTED
 }
 
+/// Where a Library asset came from. Decided once at creation and immutable:
+/// `ingredients_origin_immutable` rejects any later change. `UNKNOWN` is only
+/// ever assigned by the one-time backfill to legacy rows it cannot classify.
+enum IngredientOrigin {
+  UPLOADED
+  GENERATED
+  IMPORTED
+  UNKNOWN
+}
+
 enum TransformationCategory {
   UPSCALED
   RESIZED
@@ -2244,6 +2254,8 @@ model Ingredient {
   // Discriminator: single table for Image, Video, Music, GIF, Avatar, Voice, etc.
   category              IngredientCategory       @default(IMAGE)
   status                IngredientStatus         @default(DRAFT)
+  // Permanent origin (#6010). Unlike `status`, never changes after creation.
+  origin                IngredientOrigin         @default(UNKNOWN)
   transformations       TransformationCategory[] @default([])
   order                 Int                      @default(0)
   version               Int                      @default(1)
@@ -2363,6 +2375,7 @@ model Ingredient {
   @@index([isDeleted, category, createdAt(sort: Desc)], map: "ingredients_deleted_category_created_at_idx")
   @@index([isDeleted, organizationId, createdAt(sort: Desc)], map: "ingredients_deleted_org_created_at_idx")
   @@index([organizationId, updatedAt, id], map: "ingredients_org_updated_at_id_idx")
+  @@index([organizationId, origin, isDeleted, createdAt(sort: Desc)], map: "ingredients_org_origin_created_at_idx")
   @@map("ingredients")
 }
 

@@ -21,6 +21,7 @@ import {
   AssetScope,
   FileInputType,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/contracts';
@@ -81,6 +82,7 @@ export class VideosUploadController {
 
     const { ingredientData, metadataData } =
       await this.sharedService.createMediaDocuments(user, {
+        origin: IngredientOrigin.UPLOADED,
         brandId: user.brandId,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,

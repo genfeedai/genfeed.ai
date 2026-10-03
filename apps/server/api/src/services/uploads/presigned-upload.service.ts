@@ -18,6 +18,7 @@ import {
   categoryToPlural,
   FileInputType,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   normalizeCategory,
 } from '@genfeedai/contracts';
@@ -82,6 +83,7 @@ export class PresignedUploadService {
     const { ingredientData } = await this.sharedService.createMediaDocuments(
       user,
       {
+        origin: IngredientOrigin.UPLOADED,
         category: CategoryPrismaUtil.toIngredientCategory(category),
         extension: fileExtension,
         label: body.filename,

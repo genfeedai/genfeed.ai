@@ -8,6 +8,7 @@ import type {
   AgentSourceIngestInput,
 } from '@api/services/agent-source-ingest/agent-source-ingest.interface';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { IngredientOrigin } from '@genfeedai/contracts';
 import {
   IngredientCategory,
   IngredientStatus,
@@ -175,6 +176,7 @@ export class AgentSourceIngestService {
           user: { connect: { id: context.userId } },
           isDeleted: false,
           category: this.category(input.kind ?? 'video'),
+          origin: IngredientOrigin.IMPORTED,
           status: IngredientStatus.PROCESSING,
           sourceActionId: `agent-source:${digest}`,
           metadata: {

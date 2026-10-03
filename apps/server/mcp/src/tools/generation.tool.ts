@@ -1,3 +1,4 @@
+import { parseIngredientOrigin } from '@genfeedai/contracts';
 import type { ClientService } from '@mcp/services/client.service';
 import { formatListResult } from '@mcp/shared/utils/format-list-result.util';
 
@@ -8,6 +9,28 @@ export const GENERATION_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'list_avatars',
   'list_music',
 ]);
+
+/**
+ * The optional `origin` filter of the list tools. An unrecognised value is an
+ * error, not "no filter": silently listing everything would hand back assets
+ * the caller asked to exclude.
+ */
+function readOriginArg(args: Record<string, unknown>) {
+  if (
+    args?.origin === undefined ||
+    args.origin === null ||
+    args.origin === ''
+  ) {
+    return undefined;
+  }
+
+  const origin = parseIngredientOrigin(args.origin);
+  if (!origin) {
+    throw new Error('origin must be UPLOADED, GENERATED, IMPORTED or UNKNOWN');
+  }
+
+  return origin;
+}
 
 export async function handleGenerationTool(
   client: ClientService,
@@ -33,7 +56,11 @@ export async function handleGenerationTool(
     case 'list_videos': {
       const limit = (args?.limit as number) || 10;
       const offset = (args?.offset as number) || 0;
-      const videos = await client.listVideos(limit, offset);
+      const videos = await client.listVideos(
+        limit,
+        offset,
+        readOriginArg(args),
+      );
       return {
         structuredContent: { data: videos },
         content: [
@@ -48,6 +75,7 @@ export async function handleGenerationTool(
       const images = await client.listImages({
         limit: args?.limit as number | undefined,
         offset: args?.offset as number | undefined,
+        origin: readOriginArg(args),
       });
       return {
         structuredContent: { data: images },

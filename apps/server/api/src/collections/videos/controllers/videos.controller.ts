@@ -218,6 +218,7 @@ export class VideosController {
           folderConditions,
           parentConditions,
           trainingFilter,
+          IngredientFilterUtil.buildOriginFilter(query.origins),
           searchFilter.where,
         ],
       },

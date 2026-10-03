@@ -1,5 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import type { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
+import type { IngredientServerCreate } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import type { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata.dto';
@@ -157,7 +157,7 @@ const buildIngredientCreateDto = (
   sourceIds: string[],
   tagIds: string[],
   version: number,
-): CreateIngredientDto => ({
+): IngredientServerCreate => ({
   ...(input.bookmarkId !== undefined ? { bookmarkId: input.bookmarkId } : {}),
   ...(ownership.brandId ? { brandId: ownership.brandId } : {}),
   category: input.category,
@@ -189,6 +189,7 @@ const buildIngredientCreateDto = (
     ? { negativePrompt: input.negativePrompt }
     : {}),
   ...(input.order !== undefined ? { order: input.order } : {}),
+  origin: input.origin,
   ...(ownership.organizationId
     ? { organizationId: ownership.organizationId }
     : {}),

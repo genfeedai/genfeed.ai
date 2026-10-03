@@ -120,6 +120,9 @@ export class ImagesController {
       query.trainingId,
     );
 
+    // Origin narrows the whole list, brand-default images included.
+    const originFilter = IngredientFilterUtil.buildOriginFilter(query.origins);
+
     // Build isPublic filter for public gallery (getshareable.app)
     const isPublicFilter =
       query.isPublic !== undefined ? { isPublic: query.isPublic } : {};
@@ -180,6 +183,7 @@ export class ImagesController {
                 : []),
             ],
           },
+          originFilter,
         ],
       },
       orderBy: handleQuerySort(query.sort),

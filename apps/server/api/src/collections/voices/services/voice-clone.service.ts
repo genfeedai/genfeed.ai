@@ -14,6 +14,7 @@ import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
   ByokProvider,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   VoiceCloneStatus,
   VoiceProvider,
@@ -182,6 +183,7 @@ export class VoiceCloneService {
     const { ingredientData } = await this.sharedService.createMediaDocuments(
       user,
       {
+        origin: IngredientOrigin.GENERATED,
         brandId: user.brandId,
         category: IngredientCategory.VOICE,
         label: dto.name,
@@ -229,6 +231,7 @@ export class VoiceCloneService {
     const { ingredientData } = await this.sharedService.createMediaDocuments(
       user,
       {
+        origin: IngredientOrigin.GENERATED,
         brandId: user.brandId,
         category: IngredientCategory.VOICE,
         label: dto.name,

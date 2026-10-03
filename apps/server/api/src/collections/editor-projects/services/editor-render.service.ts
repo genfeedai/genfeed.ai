@@ -23,6 +23,7 @@ import {
   EditorProjectStatus,
   EditorTrackType,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/contracts';
@@ -228,6 +229,7 @@ export class EditorRenderService {
     try {
       const { metadataData, ingredientData } =
         await this.sharedService.createMediaDocuments(user, {
+          origin: IngredientOrigin.GENERATED,
           brandId: projectForValidation.brandId ?? brandId,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,

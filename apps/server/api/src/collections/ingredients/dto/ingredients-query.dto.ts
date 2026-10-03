@@ -1,7 +1,9 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { normalizeIngredientOrigins } from '@api/helpers/dto/ingredient-origins-query.transform';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   LibraryShelf,
   MetadataExtension,
@@ -125,4 +127,21 @@ export class IngredientsQueryDto extends BaseQueryDto {
   @IsOptional()
   @IsEnum(MetadataExtension)
   format?: MetadataExtension;
+
+  @ApiProperty({
+    description:
+      'Filter by permanent asset origin using repeated query keys ' +
+      '(e.g., ?origins=UPLOADED&origins=IMPORTED). Origin is a Library filter ' +
+      'beside type, shelf and folder; it composes with all of them.',
+    enum: IngredientOrigin,
+    enumName: 'IngredientOrigin',
+    example: [IngredientOrigin.UPLOADED],
+    isArray: true,
+    required: false,
+  })
+  @Transform(({ value }) => normalizeIngredientOrigins(value))
+  @IsOptional()
+  @IsArray()
+  @IsEnum(IngredientOrigin, { each: true })
+  origins?: IngredientOrigin[];
 }

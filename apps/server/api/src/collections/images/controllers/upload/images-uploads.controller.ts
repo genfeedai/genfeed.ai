@@ -32,6 +32,7 @@ import {
   categoryToPlural,
   FileInputType,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/contracts';
@@ -278,6 +279,7 @@ export class ImagesUploadsController {
     const { ingredientData } = await this.sharedService.createMediaDocuments(
       user,
       {
+        origin: IngredientOrigin.UPLOADED,
         category,
         extension,
         label: validatedFile.originalname,
@@ -334,6 +336,7 @@ export class ImagesUploadsController {
     const { ingredientData } = await this.sharedService.createMediaDocuments(
       user,
       {
+        origin: IngredientOrigin.UPLOADED,
         category: IngredientCategory.IMAGE,
         extension: contentType.split('/').pop() || 'jpg',
         label: nft.name || address,

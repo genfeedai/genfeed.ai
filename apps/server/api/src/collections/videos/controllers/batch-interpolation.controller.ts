@@ -360,6 +360,7 @@ export class BatchInterpolationController {
       );
       const { metadataData, ingredientData } =
         await this.sharedService.createMediaDocuments(context.user, {
+          origin: IngredientOrigin.GENERATED,
           brandId: context.brand.id,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,

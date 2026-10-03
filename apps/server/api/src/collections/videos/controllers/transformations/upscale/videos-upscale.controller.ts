@@ -38,6 +38,7 @@ import {
   ActivityKey,
   ActivitySource,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
   ModelCategory,
@@ -189,6 +190,7 @@ export class VideosUpscaleController {
     try {
       const { metadataData, ingredientData } =
         await this.sharedService.createMediaDocuments(user, {
+          origin: IngredientOrigin.GENERATED,
           brandId: video.brandId ?? user.brandId,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,

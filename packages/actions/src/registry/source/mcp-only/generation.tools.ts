@@ -33,6 +33,12 @@ export const MCP_GENERATION_TOOLS: SourceTool[] = [
           description: 'Offset for pagination',
           type: 'number',
         },
+        origin: {
+          description:
+            'Only videos with this permanent origin: UPLOADED (a member added the file), GENERATED (Genfeed produced it), IMPORTED (saved from an external post or page) or UNKNOWN (legacy)',
+          enum: ['UPLOADED', 'GENERATED', 'IMPORTED', 'UNKNOWN'],
+          type: 'string',
+        },
       },
       type: 'object',
     },
@@ -53,6 +59,12 @@ export const MCP_GENERATION_TOOLS: SourceTool[] = [
           default: 0,
           description: 'Offset for pagination',
           type: 'number',
+        },
+        origin: {
+          description:
+            'Only images with this permanent origin: UPLOADED (a member added the file), GENERATED (Genfeed produced it), IMPORTED (saved from an external post or page) or UNKNOWN (legacy)',
+          enum: ['UPLOADED', 'GENERATED', 'IMPORTED', 'UNKNOWN'],
+          type: 'string',
         },
       },
       type: 'object',

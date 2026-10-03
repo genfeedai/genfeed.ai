@@ -15,6 +15,7 @@ import {
   categoryToPlural,
   FileInputType,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -119,6 +120,7 @@ export class BrandRemixSourceMediaService {
     try {
       const { ingredientData } = await this.shared.createMediaDocumentsInternal(
         {
+          origin: IngredientOrigin.IMPORTED,
           brandId: input.brandId,
           category,
           extension: category === IngredientCategory.VIDEO ? 'mp4' : 'jpg',

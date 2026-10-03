@@ -493,11 +493,42 @@ describe('ToolRegistryService', () => {
       name: 'list_videos',
     });
 
-    expect(clientService.listVideos).toHaveBeenCalledWith(5, 0);
+    expect(clientService.listVideos).toHaveBeenCalledWith(5, 0, undefined);
     expect(
       (result as { content: { text: string }[] }).content[0].text,
     ).toContain('vid-1');
   });
+
+  it('handleToolCall list_videos passes the origin filter through', async () => {
+    await service.handleToolCall({
+      arguments: { limit: 5, origin: 'uploaded' },
+      name: 'list_videos',
+    });
+
+    expect(clientService.listVideos).toHaveBeenCalledWith(5, 0, 'UPLOADED');
+  });
+
+  it('handleToolCall list_images passes the origin filter through', async () => {
+    await service.handleToolCall({
+      arguments: { origin: 'IMPORTED' },
+      name: 'list_images',
+    });
+
+    expect(clientService.listImages).toHaveBeenCalledWith(
+      expect.objectContaining({ origin: 'IMPORTED' }),
+    );
+  });
+
+  it.each(['list_videos', 'list_images'])(
+    'handleToolCall %s rejects an unknown origin instead of listing everything',
+    async (name) => {
+      await expect(
+        service.handleToolCall({ arguments: { origin: 'mine' }, name }),
+      ).rejects.toThrow(
+        'origin must be UPLOADED, GENERATED, IMPORTED or UNKNOWN',
+      );
+    },
+  );
 
   it.each([
     ['list_videos', 'listVideos', 'videos', ''],

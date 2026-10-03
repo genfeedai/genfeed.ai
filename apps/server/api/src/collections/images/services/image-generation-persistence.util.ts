@@ -22,6 +22,7 @@ import type { PromptBuilderService } from '@api/services/prompt-builder/prompt-b
 import type { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   IngredientCategory,
+  IngredientOrigin,
   MetadataExtension,
   ModelCategory,
   PromptCategory,
@@ -227,6 +228,7 @@ export async function persistImageDocuments(
 
   const { metadataData, ingredientData } =
     await dependencies.sharedService.createMediaDocuments(user, {
+      origin: IngredientOrigin.GENERATED,
       brandId: brand.id,
       category: IngredientCategory.IMAGE,
       extension: MetadataExtension.JPEG,

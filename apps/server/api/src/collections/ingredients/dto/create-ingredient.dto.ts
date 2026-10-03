@@ -6,6 +6,7 @@ import {
   FleetReviewStatus,
   IngredientAvatarCategory,
   IngredientCategory,
+  type IngredientOrigin,
   IngredientStatus,
   QualityStatus,
   TransformationCategory,
@@ -318,3 +319,14 @@ export class CreateIngredientDto {
   })
   readonly reviewStatus?: FleetReviewStatus;
 }
+
+/**
+ * A create the server performs. `origin` is server-owned and permanent, so it is
+ * deliberately not a field of `CreateIngredientDto`: the image, video and voice
+ * request DTOs extend that class, and the whitelisting pipe would otherwise let
+ * a client choose it. It travels with the create call instead, and every caller
+ * has to name it.
+ */
+export type IngredientServerCreate = CreateIngredientDto & {
+  readonly origin: IngredientOrigin;
+};

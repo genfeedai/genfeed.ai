@@ -33,6 +33,7 @@ import {
   AssetScope,
   FileInputType,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
   TransformationCategory,
@@ -186,6 +187,7 @@ export class VideosCaptionsController {
 
     const { ingredientData, metadataData } =
       await this.sharedService.createMediaDocuments(user, {
+        origin: IngredientOrigin.GENERATED,
         brandId: user.brandId,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,

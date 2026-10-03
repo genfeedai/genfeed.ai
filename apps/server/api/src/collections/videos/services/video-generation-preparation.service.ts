@@ -55,6 +55,7 @@ import { RouterService } from '@api/services/router/router.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
   ModelCategory,
@@ -301,6 +302,7 @@ export class VideoGenerationPreparationService {
     const promptData = await this.createGenerationPrompt(resolved, promptText);
     const { metadataData, ingredientData } =
       await this.sharedService.createMediaDocuments(user, {
+        origin: IngredientOrigin.GENERATED,
         bookmarkId: createVideoDto.bookmark
           ? (createVideoDto.bookmark as string)
           : undefined,
