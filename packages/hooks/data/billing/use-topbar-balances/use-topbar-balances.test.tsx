@@ -9,7 +9,9 @@ const state = vi.hoisted(() => ({
   isAuthLoaded: true,
   isSignedIn: true,
   organizationId: 'org-1',
-  orgId: 'org-1',
+  orgId: 'org-1' as string | null,
+  confirmedOrganizationId: 'org-1' as string | null,
+  isRouteConfirmed: true,
   sessionId: 'session-1',
   userId: 'user-1',
   desktop: false,
@@ -19,6 +21,12 @@ const state = vi.hoisted(() => ({
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ organizationId: state.organizationId }),
+}));
+vi.mock('@contexts/user/organization-context/organization-context', () => ({
+  useRoutedOrganization: () => ({
+    confirmedOrganizationId: state.confirmedOrganizationId,
+    isRouteConfirmed: state.isRouteConfirmed,
+  }),
 }));
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => ({
@@ -84,6 +92,8 @@ describe('shared wallet scope', () => {
       isSignedIn: true,
       organizationId: 'org-1',
       orgId: 'org-1',
+      confirmedOrganizationId: 'org-1',
+      isRouteConfirmed: true,
       sessionId: 'session-1',
       userId: 'user-1',
       desktop: false,
@@ -167,7 +177,7 @@ describe('shared wallet scope', () => {
     },
   );
 
-  it('waits for matching authenticated organization and ignores refresh while disabled', async () => {
+  it('waits for the verified routed organization and ignores refresh while disabled', async () => {
     state.isAuthLoaded = false;
     const { result, rerender } = renderHook(() => useTopbarBalances(), {
       wrapper: createQueryWrapper(),
@@ -178,12 +188,41 @@ describe('shared wallet scope', () => {
     });
     expect(state.getBalances).not.toHaveBeenCalled();
     state.isAuthLoaded = true;
-    state.orgId = 'old-org';
+    state.confirmedOrganizationId = 'old-org';
     rerender();
     expect(state.getBalances).not.toHaveBeenCalled();
-    state.orgId = 'org-1';
+    state.confirmedOrganizationId = 'org-1';
     rerender();
     await waitFor(() => expect(result.current.genfeedBalance).toBe(17));
+  });
+
+  it.each([null, 'old-org'])(
+    'loads the verified organization wallet when auth organization is %s',
+    async (orgId) => {
+      state.orgId = orgId;
+      const { result } = renderHook(() => useTopbarBalances(), {
+        wrapper: createQueryWrapper(),
+      });
+      await waitFor(() => expect(result.current.genfeedBalance).toBe(17));
+      expect(state.getBalances).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('hides cached balances and blocks refresh and socket updates while the route is unconfirmed', async () => {
+    const { result, rerender } = renderHook(() => useTopbarBalances(), {
+      wrapper: createQueryWrapper(),
+    });
+    await waitFor(() => expect(result.current.genfeedBalance).toBe(17));
+    state.isRouteConfirmed = false;
+    rerender();
+    await act(async () => {
+      result.current.publishGenfeedBalance(999);
+      await result.current.refresh();
+      window.dispatchEvent(new Event('genfeed:topbar-balances:refresh'));
+    });
+    expect(result.current.genfeedBalance).toBeNull();
+    expect(result.current.isLoaded).toBe(false);
+    expect(state.getBalances).toHaveBeenCalledTimes(1);
   });
 
   it('hides cached values immediately after sign-out and refuses socket publication', async () => {
@@ -218,7 +257,7 @@ describe('shared wallet scope', () => {
       if (scope === 'user') state.userId = 'user-2';
       if (scope === 'organization') {
         state.organizationId = 'org-2';
-        state.orgId = 'org-2';
+        state.confirmedOrganizationId = 'org-2';
       }
       rerender();
       expect(result.current.genfeedBalance).toBeNull();
