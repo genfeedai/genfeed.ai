@@ -15,18 +15,37 @@ import { ConflictException } from '@nestjs/common';
  * confirms that the id exists elsewhere. A session without an organization
  * fails closed instead of issuing an unscoped read.
  */
-export async function verifyBrandAccess(
+export function verifyBrandAccess(
   brandsService: Pick<BrandsService, 'findOne'>,
   brandId: string,
   user: User,
 ): Promise<BrandDocument> {
+  return findSessionBrand(user, brandId, (organizationId) =>
+    brandsService.findOne(scopedWhere(organizationId, { id: brandId })),
+  );
+}
+
+/** {@link verifyBrandAccess} by handle, for `GET /brands/slug`. */
+export function verifyBrandSlugAccess(
+  brandsService: Pick<BrandsService, 'findOneBySlug'>,
+  slug: string,
+  user: User,
+): Promise<BrandDocument> {
+  return findSessionBrand(user, slug, (organizationId) =>
+    brandsService.findOneBySlug(scopedWhere(organizationId, { slug })),
+  );
+}
+
+async function findSessionBrand(
+  user: User,
+  identifier: string,
+  find: (organizationId: string) => Promise<BrandDocument | null>,
+): Promise<BrandDocument> {
   const organizationId = user.organizationId;
-  const brand = organizationId
-    ? await brandsService.findOne(scopedWhere(organizationId, { id: brandId }))
-    : null;
+  const brand = organizationId ? await find(organizationId) : null;
 
   if (!brand) {
-    throw new NotFoundException('Brand', brandId);
+    throw new NotFoundException('Brand', identifier);
   }
 
   return brand;

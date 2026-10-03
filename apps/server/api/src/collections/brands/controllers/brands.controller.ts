@@ -4,6 +4,7 @@ import { STRATEGY_TEMPLATES } from '@api/collections/brands/constants/strategy-t
 import {
   assertBrandHandleAvailable,
   verifyBrandAccess,
+  verifyBrandSlugAccess,
 } from '@api/collections/brands/controllers/brand-access.helpers';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
@@ -18,7 +19,6 @@ import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -33,7 +33,6 @@ import { ActivityRecorderService } from '@api/services/activity-recording/activi
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { resolveScopeId } from '@api/shared/controllers/base-crud/base-crud-scope.util';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   ActivityKey,
   ActivitySource,
@@ -135,10 +134,8 @@ export class BrandsController extends BaseCRUDController<
   }
 
   /**
-   * PATCH/DELETE authorization. The base default is creator-only through
-   * `userId`, which would let a creator modify their brand from any other
-   * organization; the brand must also belong to the session organization.
-   * Superadmins keep the base bypass.
+   * PATCH/DELETE: the base creator-only `userId` rule, inside the session
+   * organization — a creator cannot modify their brand from another org.
    */
   public override canUserModifyEntity(
     user: User,
@@ -403,17 +400,7 @@ export class BrandsController extends BaseCRUDController<
       throw new BadRequestException('slug query param is required');
     }
 
-    // Session organization only, 404 on a miss: see verifyBrandAccess.
-    const organizationId = user.organizationId;
-    const brand = organizationId
-      ? await this.brandsService.findOneBySlug(
-          scopedWhere(organizationId, { slug }),
-        )
-      : null;
-
-    if (!brand) {
-      throw new NotFoundException('Brand', slug);
-    }
+    const brand = await verifyBrandSlugAccess(this.brandsService, slug, user);
 
     return serializeSingle(
       request,
