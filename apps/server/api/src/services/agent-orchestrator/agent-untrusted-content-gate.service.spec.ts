@@ -379,6 +379,21 @@ describe('AgentUntrustedContentGateService', () => {
       );
     });
 
+    it('counts a provider outage (null decision) as an adapter fail-open outcome', async () => {
+      config.set('UNTRUSTED_CONTENT_DECISION_MODE', 'shadow');
+      decide.mockResolvedValue(null);
+      const content = JSON.stringify({ data: 'benign' });
+
+      const result = await evaluate(buildGate(), { content });
+
+      expect(result).toEqual({ content, outcome: 'allowed' });
+      expect(metricsCount).toHaveBeenCalledWith(
+        'agent.untrusted_content_gate.fail_open',
+        1,
+        attributes({ category: 'adapter', mode: 'shadow', origin: 'agent' }),
+      );
+    });
+
     it('counts a gate failure as an adapter fail-open outcome', async () => {
       config.set('UNTRUSTED_CONTENT_DECISION_MODE', 'shadow');
       decide.mockRejectedValue(new Error('provider down'));

@@ -259,6 +259,16 @@ export class AgentUntrustedContentGateService {
         ),
       );
 
+      // `decide` resolves to null on a provider timeout, rate limit or error:
+      // those windows went unclassified, so count the outage as a fail-open.
+      if (answers.some((answer) => answer === null)) {
+        countUntrustedContentFailOpen({
+          category: 'adapter',
+          mode,
+          origin: params.origin,
+        });
+      }
+
       // One flagged window condemns the whole result: the model reads it whole.
       // `null` and sub-threshold are the same answer: today's behaviour.
       const confidences = answers
