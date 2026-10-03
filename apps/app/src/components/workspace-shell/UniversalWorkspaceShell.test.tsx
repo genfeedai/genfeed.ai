@@ -1431,14 +1431,17 @@ describe('UniversalWorkspaceShell', () => {
       expect(screen.getByTestId('dock-conversation')).toBeInTheDocument();
     });
 
-    it('uses a chat bubble on studio pages instead of a second promptbar', async () => {
-      navigation.pathname = '/acme/moonrise/studio/generate';
-      renderWithDock();
+    it.each(['/acme/moonrise/studio/generate', '/acme/moonrise/studio/clips'])(
+      'hides the chat bubble on prompt-bar page %s',
+      async (pathname) => {
+        navigation.pathname = pathname;
+        renderWithDock();
 
-      await waitFor(() => expect(dock?.isAvailable).toBe(true));
-      expect(screen.getByTestId('agent-conversation-bubble')).toBeVisible();
-      expect(screen.queryByTestId('agent-page-promptbar')).toBeNull();
-    });
+        await waitFor(() => expect(dock?.isAvailable).toBe(true));
+        expect(screen.queryByTestId('agent-conversation-bubble')).toBeNull();
+        expect(screen.queryByTestId('agent-page-promptbar')).toBeNull();
+      },
+    );
 
     it('renders scope notices in the dock without the scope switchers', async () => {
       navigation.pathname = '/acme/moonrise/workspace';

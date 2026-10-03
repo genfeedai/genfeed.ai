@@ -356,20 +356,18 @@ export default function AgentDock({
     }
     setBubbleMorph('closed');
   };
-  // Studio and edit already have a major prompt bar, so the bubble stays a
-  // single control there. Everywhere else the page shortcuts fan off it.
-  const closedLauncher = isBubbleChrome ? (
-    <div ref={bindLauncher}>
-      <AgentConversationBubble
-        isDismissed={isOpen || (!isCompact && bubbleMorph !== 'closed')}
-        onOpen={handleLauncherOpen}
-        onSelectSuggestedAction={
-          hasMajorPromptBar ? undefined : onSelectSuggestedAction
-        }
-        suggestedActions={hasMajorPromptBar ? [] : suggestedActions}
-      />
-    </div>
-  ) : null;
+  // Pages with their own prompt bar do not need a second floating launcher.
+  const closedLauncher =
+    isBubbleChrome && !hasMajorPromptBar ? (
+      <div ref={bindLauncher}>
+        <AgentConversationBubble
+          isDismissed={isOpen || (!isCompact && bubbleMorph !== 'closed')}
+          onOpen={handleLauncherOpen}
+          onSelectSuggestedAction={onSelectSuggestedAction}
+          suggestedActions={suggestedActions}
+        />
+      </div>
+    ) : null;
 
   // Opening moves focus into the composer and remembers where it came from;
   // any close (header, Esc, ⌘J, topbar) hands focus back if it was inside.

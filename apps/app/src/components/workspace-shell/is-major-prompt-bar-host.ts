@@ -2,7 +2,7 @@ import { APP_ROUTE_PREFIXES } from '@genfeedai/contracts/constants';
 
 /**
  * Studio and the legacy long-form editor already host a full prompt bar.
- * Product-page agent chrome must not add a second compact page promptbar there.
+ * Product-page agent chrome must not add another prompt bar or chat bubble there.
  */
 export function isMajorPromptBarHost(normalizedPathname: string): boolean {
   return (
