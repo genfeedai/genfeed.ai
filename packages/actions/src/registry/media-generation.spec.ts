@@ -134,6 +134,23 @@ describe('inapplicable media generation parameters', () => {
     ).toEqual(['aspectRatio', 'duration', 'resolution']);
   });
 
+  it('accepts a model for music but not for voice', () => {
+    expect(
+      findInapplicableMediaGenerationParameters('music', {
+        model: 'music-model-1',
+        prompt: 'calm piano',
+        type: 'music',
+      }),
+    ).toEqual([]);
+    expect(
+      findInapplicableMediaGenerationParameters('voice', {
+        model: 'voice-model-1',
+        prompt: 'hello',
+        type: 'voice',
+      }),
+    ).toEqual(['model']);
+  });
+
   it('ignores null and undefined values', () => {
     expect(
       findInapplicableMediaGenerationParameters('music', {
