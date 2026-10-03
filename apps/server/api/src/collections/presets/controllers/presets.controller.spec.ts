@@ -34,6 +34,7 @@ describe('PresetsController', () => {
     findAll: vi.fn(),
     findOne: vi.fn(),
     patch: vi.fn(),
+    patchOneWhere: vi.fn(),
     remove: vi.fn(),
   };
 
@@ -198,7 +199,7 @@ describe('PresetsController', () => {
 
       const request = {} as Request;
       mockPresetsService.findOne.mockResolvedValue(mockPreset);
-      mockPresetsService.patch.mockResolvedValue({
+      mockPresetsService.patchOneWhere.mockResolvedValue({
         ...mockPreset,
         ...updateDto,
       });
@@ -215,7 +216,7 @@ describe('PresetsController', () => {
       const request = {} as Request;
 
       mockPresetsService.findOne.mockResolvedValue(mockPreset);
-      mockPresetsService.remove.mockResolvedValue(mockPreset);
+      mockPresetsService.patchOneWhere.mockResolvedValue(mockPreset);
 
       const result = await controller.remove(request, mockUser, id);
 

@@ -7,6 +7,7 @@ export interface BuildSoundsColumnsParams {
   onToggleActive: (sound: Sound) => void;
   onToggleDefault: (sound: Sound) => void;
   scopeLabel: string;
+  sortOrderLabel: string;
 }
 
 export interface SoundCellProps {
