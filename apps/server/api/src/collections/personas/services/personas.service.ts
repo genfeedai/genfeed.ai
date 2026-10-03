@@ -53,6 +53,7 @@ export type PersonaClient = Pick<
   | 'persona'
   | 'personaAvailabilityAudit'
   | 'personaGrant'
+  | 'personaGrantAudit'
 >;
 
 function isPersonaHandleUniqueViolation(error: unknown): boolean {
