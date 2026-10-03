@@ -27,6 +27,200 @@ function fixture(body: unknown, status = 200) {
 }
 
 describe('XaiDirectClient', () => {
+  const privacyContext = { apiKey: 'fixture-private-key' };
+  const encodedKey =
+    '%66%69%78%74%75%72%65%2d%70%72%69%76%61%74%65%2d%6b%65%79';
+  const reflections = [
+    privacyContext.apiKey,
+    encodedKey,
+    encodedKey.toUpperCase(),
+    '%66%69%78%74%75%72%65%2D%70%72%69%76%61%74%65%2d%6B%65%79',
+    '%66ixture-private-key',
+    encodedKey.replaceAll('%', '%25'),
+    encodedKey.replaceAll('%', '%25').replaceAll('%', '%25'),
+    `%ZZ${encodedKey}`,
+  ];
+
+  it.each(reflections)(
+    'rejects raw or encoded image/video URL reflections in query and path: %s',
+    async (reflected) => {
+      for (const url of [
+        `https://outputs.example/${reflected}/result`,
+        `https://outputs.example/result?signature=${reflected}`,
+      ]) {
+        const item = fixture({ data: [{ url }] });
+        const started = vi.fn();
+        const submission = item.client.submit(image, {
+          ...privacyContext,
+          onProviderSubmissionStarted: started,
+        });
+        await expect(submission).rejects.toMatchObject({
+          code: 'PROVIDER_RESPONSE_INVALID',
+          isSubmissionUncertain: true,
+        });
+        await expect(submission).rejects.not.toThrow(privacyContext.apiKey);
+        await expect(submission).rejects.not.toThrow(reflected);
+        await submission.catch((error: unknown) => {
+          expect(JSON.stringify(error)).not.toContain(privacyContext.apiKey);
+          expect(JSON.stringify(error)).not.toContain(reflected);
+        });
+        expect(started).toHaveBeenCalledTimes(1);
+        expect(item.transport).toHaveBeenCalledTimes(1);
+        expect(item.transport.mock.calls[0][1]?.method).toBe('POST');
+        const polling = fixture({
+          status: 'done',
+          video: { url, respect_moderation: true },
+        });
+        const result = polling.client.poll(
+          { externalId: 'job-123', model: video.model },
+          privacyContext,
+        );
+        await expect(result).rejects.toMatchObject({
+          code: 'PROVIDER_RESPONSE_INVALID',
+          isSubmissionUncertain: false,
+        });
+        await expect(result).rejects.not.toThrow(privacyContext.apiKey);
+        await expect(result).rejects.not.toThrow(reflected);
+        await result.catch((error: unknown) => {
+          expect(JSON.stringify(error)).not.toContain(privacyContext.apiKey);
+          expect(JSON.stringify(error)).not.toContain(reflected);
+        });
+        expect(polling.transport).toHaveBeenCalledTimes(1);
+        expect(polling.transport.mock.calls[0][1]?.method).toBe('GET');
+      }
+    },
+  );
+
+  it.each(reflections)(
+    'rejects returned credential-bearing or syntactically invalid video IDs as uncertain: %s',
+    async (reflected) => {
+      const item = fixture({ request_id: `job-${reflected}` });
+      const started = vi.fn();
+      const result = item.client.submit(video, {
+        ...privacyContext,
+        onProviderSubmissionStarted: started,
+      });
+      await expect(result).rejects.toMatchObject({
+        code: 'PROVIDER_RESPONSE_INVALID',
+        isSubmissionUncertain: true,
+      });
+      await expect(result).rejects.not.toThrow(privacyContext.apiKey);
+      await expect(result).rejects.not.toThrow(reflected);
+      await result.catch((error: unknown) => {
+        expect(JSON.stringify(error)).not.toContain(privacyContext.apiKey);
+        expect(JSON.stringify(error)).not.toContain(reflected);
+      });
+      expect(started).toHaveBeenCalledTimes(1);
+      expect(item.transport).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each(reflections)(
+    'rejects recovered raw or syntactically forbidden encoded IDs before poll/cancel: %s',
+    async (reflected) => {
+      const item = fixture({ status: 'pending' });
+      const task = { externalId: `job-${reflected}`, model: video.model };
+      for (const operation of [
+        () => item.client.poll(task, privacyContext),
+        () => item.client.cancel(task, privacyContext),
+      ]) {
+        const result = operation();
+        await expect(result).rejects.toMatchObject({
+          code: 'PROVIDER_INPUT_INVALID',
+          isSubmissionUncertain: false,
+        });
+        await expect(result).rejects.not.toThrow(privacyContext.apiKey);
+        await expect(result).rejects.not.toThrow(reflected);
+        await result.catch((error: unknown) => {
+          expect(JSON.stringify(error)).not.toContain(privacyContext.apiKey);
+          expect(JSON.stringify(error)).not.toContain(reflected);
+        });
+      }
+      expect(item.transport).not.toHaveBeenCalled();
+    },
+  );
+
+  it('keeps the forbidden recovered URL gate and valid unsupported cancellation', async () => {
+    const item = fixture({});
+    await expect(
+      item.client.poll(
+        {
+          externalId: 'job-123',
+          pollingUrl: `https://api.x.ai/v1/videos/job-123?key=${encodedKey}`,
+        },
+        privacyContext,
+      ),
+    ).rejects.toMatchObject({
+      code: 'PROVIDER_INPUT_INVALID',
+      isSubmissionUncertain: false,
+    });
+    await expect(
+      item.client.cancel(
+        { externalId: 'job-123', model: video.model },
+        privacyContext,
+      ),
+    ).resolves.toEqual({ status: 'unsupported' });
+    expect(item.transport).not.toHaveBeenCalled();
+  });
+
+  it('preserves safe inline base64 when a reflected URL is discarded, without decoding media bytes', async () => {
+    const base64 = Buffer.from(privacyContext.apiKey).toString('base64');
+    const item = fixture({
+      data: [
+        {
+          url: `https://outputs.example/image?signature=${encodedKey}`,
+          b64_json: base64,
+        },
+      ],
+    });
+    await expect(item.client.submit(image, privacyContext)).resolves.toEqual({
+      kind: 'inline',
+      outputs: [{ base64, mimeType: 'image/jpeg' }],
+    });
+    expect(item.transport).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps encoded strings outside the accepted base64 alphabet', async () => {
+    const item = fixture({ data: [{ b64_json: encodedKey }] });
+    const result = item.client.submit(image, privacyContext);
+    await expect(result).rejects.toMatchObject({
+      code: 'PROVIDER_RESPONSE_INVALID',
+      isSubmissionUncertain: true,
+    });
+    await expect(result).rejects.not.toThrow(encodedKey);
+    expect(item.transport).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves unrelated signed URL escapes/malformed escapes and valid video task hints', async () => {
+    const url =
+      'https://outputs.example/output%20image?signature=safe%2fvalue&hint=%ZZ';
+    await expect(
+      fixture({ data: [{ url }] }).client.submit(image, privacyContext),
+    ).resolves.toEqual({
+      kind: 'inline',
+      outputs: [{ url, mimeType: 'image/jpeg' }],
+    });
+    await expect(
+      fixture({ request_id: 'job-123' }).client.submit(video, privacyContext),
+    ).resolves.toEqual({
+      kind: 'task',
+      externalId: 'job-123',
+      model: video.model,
+    });
+    await expect(
+      fixture({
+        status: 'done',
+        video: { url, respect_moderation: true },
+      }).client.poll(
+        { externalId: 'job-123', model: video.model },
+        privacyContext,
+      ),
+    ).resolves.toEqual({
+      status: 'succeeded',
+      outputs: [{ url, mimeType: 'video/mp4' }],
+    });
+  });
+
   it('submits compiled JSON with bearer authorization and the submission callback', async () => {
     const { client, transport } = fixture({
       data: [{ url: 'https://outputs.example/a.jpg' }],

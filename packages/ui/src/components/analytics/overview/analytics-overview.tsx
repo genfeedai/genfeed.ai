@@ -50,6 +50,7 @@ export default function AnalyticsOverview({
           {
             icon: Video,
             iconClassName: 'bg-muted text-muted-foreground',
+            analyticsMetric: 'posts' as const,
             label: 'Posts',
             value: totals.totalPosts,
             valueClassName: 'tabular-nums',
@@ -59,6 +60,7 @@ export default function AnalyticsOverview({
     {
       icon: Eye,
       iconClassName: 'bg-muted text-muted-foreground',
+      analyticsMetric: 'views' as const,
       label: 'Total Views',
       value: formatCompactNumber(totals.totalViews),
       valueClassName: 'tabular-nums',
@@ -66,6 +68,7 @@ export default function AnalyticsOverview({
     {
       icon: Heart,
       iconClassName: 'bg-muted text-muted-foreground',
+      analyticsMetric: 'likes' as const,
       label: 'Total Likes',
       value: formatCompactNumber(totals.totalLikes),
       valueClassName: 'tabular-nums',
@@ -73,6 +76,7 @@ export default function AnalyticsOverview({
     {
       icon: MessageCircle,
       iconClassName: 'bg-muted text-muted-foreground',
+      analyticsMetric: 'comments' as const,
       label: 'Comments',
       value: formatCompactNumber(totals.totalComments),
       valueClassName: 'tabular-nums',
@@ -80,6 +84,7 @@ export default function AnalyticsOverview({
     {
       icon: Share2,
       iconClassName: 'bg-muted text-muted-foreground',
+      analyticsMetric: 'shares' as const,
       label: 'Shares',
       value: formatCompactNumber(totals.totalShares),
       valueClassName: 'tabular-nums',
@@ -87,6 +92,7 @@ export default function AnalyticsOverview({
     {
       icon: TrendingUp,
       iconClassName: 'bg-muted text-muted-foreground',
+      analyticsMetric: 'engagementRate' as const,
       label: 'Avg Engagement',
       value: `${totals.avgEngagementRate.toFixed(2)}%`,
       valueClassName: 'tabular-nums',

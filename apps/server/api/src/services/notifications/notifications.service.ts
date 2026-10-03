@@ -7,7 +7,11 @@ import type {
   IEmailDeliveryStatusResponse,
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
-import type { SystemEvent } from '@libs/interfaces/system-event.interface';
+import type {
+  SystemEvent,
+  SystemNotificationDeliveryRequest,
+  SystemNotificationTarget,
+} from '@libs/interfaces/system-event.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
 import { Injectable } from '@nestjs/common';
@@ -94,26 +98,28 @@ export class NotificationsService {
   ) {}
 
   /** Request-time provider acceptance for durable and authentication email. */
-  async systemNotificationStatus(): Promise<{
-    webhookConfigured: boolean;
-    transportConfigured: boolean;
-  }> {
+  async systemNotificationStatus(): Promise<{ transportConfigured: boolean }> {
     const result = await this.requestSystemNotifications();
     if (
       !result ||
       typeof result !== 'object' ||
-      !('webhookConfigured' in result) ||
-      typeof result.webhookConfigured !== 'boolean'
+      !('isAvailable' in result) ||
+      result.isAvailable !== true
     )
       throw new Error('Invalid notifications status');
-    return {
-      webhookConfigured: result.webhookConfigured,
-      transportConfigured: true,
-    };
+    return { transportConfigured: true };
   }
 
-  async deliverSystemNotification(event: SystemEvent): Promise<void> {
-    const result = await this.requestSystemNotifications(event);
+  async deliverSystemNotification(
+    event: SystemEvent,
+    target: SystemNotificationTarget,
+    idempotencyKey: string,
+  ): Promise<void> {
+    const result = await this.requestSystemNotifications({
+      event,
+      target,
+      idempotencyKey,
+    });
     if (
       !result ||
       typeof result !== 'object' ||
@@ -124,7 +130,7 @@ export class NotificationsService {
   }
 
   private async requestSystemNotifications(
-    event?: SystemEvent,
+    delivery?: SystemNotificationDeliveryRequest,
   ): Promise<unknown> {
     const endpoint = this.configService
       .get('GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL')
@@ -139,12 +145,12 @@ export class NotificationsService {
       const response = await safeFetch(
         new URL('v1/internal/system-notifications', base),
         {
-          method: event ? 'POST' : 'GET',
+          method: delivery ? 'POST' : 'GET',
           headers: {
             Authorization: `Bearer ${key}`,
             'Content-Type': 'application/json',
           },
-          ...(event ? { body: JSON.stringify(event) } : {}),
+          ...(delivery ? { body: JSON.stringify(delivery) } : {}),
           signal: AbortSignal.timeout(15_000),
         },
         {

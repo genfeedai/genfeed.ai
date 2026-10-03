@@ -12,6 +12,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import type { AnalyticsHooksProps } from '@props/analytics/analytics-hooks.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
+import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
 import Table from '@ui/display/table/Table';
@@ -215,7 +216,11 @@ export default function AnalyticsHooks({
                   },
                   {
                     className: 'w-28',
-                    header: 'Views',
+                    header: (
+                      <AnalyticsMetricLabel metric="views">
+                        Views
+                      </AnalyticsMetricLabel>
+                    ),
                     key: 'totalViews',
                     render: (video) => (
                       <span className="text-sm font-medium">
@@ -225,7 +230,11 @@ export default function AnalyticsHooks({
                   },
                   {
                     className: 'w-28',
-                    header: 'Engagement',
+                    header: (
+                      <AnalyticsMetricLabel metric="engagement">
+                        Engagement
+                      </AnalyticsMetricLabel>
+                    ),
                     key: 'totalEngagement',
                     render: (video) => (
                       <span className="text-sm font-medium">

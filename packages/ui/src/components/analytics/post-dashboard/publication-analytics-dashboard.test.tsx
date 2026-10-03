@@ -77,3 +77,13 @@ describe('PublicationAnalyticsDashboard', () => {
     ).not.toBeInTheDocument();
   });
 });
+
+vi.mock('next-intl', async () => {
+  const { createTranslateFromCatalog } = await import(
+    '@ui/tests/next-intl.stub'
+  );
+  const { default: pages } = await import(
+    '../../../../../../apps/app/messages/en/pages.json'
+  );
+  return { useTranslations: createTranslateFromCatalog({ pages }) };
+});

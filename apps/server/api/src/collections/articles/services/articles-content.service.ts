@@ -1,3 +1,4 @@
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 /**
  * Articles Content Service
  * Handles AI-powered content generation:
@@ -84,6 +85,7 @@ export class ArticlesContentService {
   private readonly defaultArticleLabel = 'Untitled Article';
 
   constructor(
+    private readonly platformSettingsService: PlatformSettingsService,
     private readonly logger: LoggerService,
     private readonly configService: ConfigService,
     private readonly articleTextGenerationService: ArticleTextGenerationService,
@@ -238,7 +240,8 @@ export class ArticlesContentService {
         basePrompt: context.prompt,
         byok,
         buildPromptOptions: {
-          maxTokens: this.configService.get('MAX_TOKENS'),
+          maxTokens: (await this.platformSettingsService.getFeatureSettings())
+            .generationMaxTokens,
           modelCategory: ModelCategory.TEXT,
           promptTemplate: context.textPromptTemplate,
           systemPromptTemplate: context.systemPromptTemplate,

@@ -10,6 +10,11 @@ export enum ModelProvider {
   HEYGEN = 'heygen',
   /** Direct integration — Higgsfield Soul, DoP, and Genjutsu. */
   HIGGSFIELD = 'higgsfield',
+  GOOGLE = 'google',
+  XAI = 'xai',
+  BFL = 'bfl',
+  RUNWAY = 'runway',
+  OPENAI = 'openai',
 }
 
 /**

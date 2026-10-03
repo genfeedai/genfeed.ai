@@ -1,6 +1,7 @@
 import { MarginInputMode, type ModerationCategory } from '@genfeedai/contracts';
 import type { PlatformFlagKey } from '@genfeedai/contracts/constants';
 import {
+  EMAIL_ADDRESS_PATTERN,
   isPlatformFlagKey,
   MODERATION_PROVIDER_NAMES,
   PLATFORM_FEATURE_SETTING_BOUNDS,
@@ -19,6 +20,7 @@ import { MAX_MARGIN_MULTIPLIER } from '@genfeedai/pricing';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,
+  IsEmail,
   IsEnum,
   IsIn,
   IsInt,
@@ -26,10 +28,14 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUrl,
+  Matches,
   Max,
   MaxLength,
   Min,
+  MinLength,
   ValidateBy,
+  ValidateIf,
 } from 'class-validator';
 
 const { confidence, mediaPerceptionFrameCount, mediaPerceptionLookbackHours } =
@@ -121,6 +127,209 @@ function SwitchProperty(description: string): PropertyDecorator {
  * (workers would then miss it and fall back to default pricing).
  */
 export class UpdatePlatformSettingDto {
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  readonly imageCompressionQuality?: number;
+
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsInt()
+  @Min(1)
+  @Max(1000000)
+  readonly paygFallbackCredits?: number;
+
+  @ValidateIf(
+    (_object, value) => value !== undefined && value !== null && value !== '',
+  )
+  @IsString()
+  @MaxLength(320)
+  @Matches(/^[^\r\n]*$/)
+  readonly linkedinTrendSourceUrls?: string | null;
+
+  @ValidateIf(
+    (_object, value) => value !== undefined && value !== null && value !== '',
+  )
+  @IsString()
+  @MaxLength(320)
+  @Matches(/^[^\r\n]*$/)
+  readonly agentContextCompressionModel?: string | null;
+
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsInt()
+  @Min(1)
+  @Max(200)
+  readonly agentContextWindowSize?: number;
+
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsInt()
+  @Min(1)
+  @Max(128000)
+  readonly generationMaxTokens?: number;
+
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsInt()
+  @Min(1)
+  @Max(60000)
+  readonly typedDecisionTimeoutMs?: number;
+
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsNumber()
+  @Min(0)
+  @Max(1000000)
+  readonly trainingCreditsCost?: number;
+
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsNumber()
+  @Min(0)
+  @Max(1000000)
+  readonly customModelCreditsCost?: number;
+
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(320)
+  @Matches(/^[^\r\n]*$/)
+  readonly replicateModelHardware?: string;
+
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(320)
+  @Matches(/^[^\r\n]*$/)
+  @IsIn(['private', 'public'])
+  readonly replicateModelVisibility?: 'private' | 'public';
+
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(320)
+  @Matches(/^[^\r\n]*$/)
+  readonly replicateTrainerModel?: string;
+
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsInt()
+  @Min(1)
+  @Max(120)
+  readonly replicateTargetFps?: number;
+
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(320)
+  @Matches(/^[^\r\n]*$/)
+  readonly replicateTargetResolution?: string;
+
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(320)
+  @Matches(/^[^\r\n]*$/)
+  readonly klingModel?: string;
+
+  @ValidateIf(
+    (_object, value) => value !== undefined && value !== null && value !== '',
+  )
+  @IsString()
+  @MaxLength(320)
+  @Matches(/^[^\r\n]*$/)
+  readonly elevenlabsModel?: string | null;
+
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(320)
+  @Matches(/^[^\r\n]*$/)
+  readonly murekaModel?: string;
+
+  @ValidateIf(
+    (_object, value) => value !== undefined && value !== null && value !== '',
+  )
+  @IsString()
+  @MaxLength(320)
+  @Matches(/^[^\r\n]*$/)
+  @Matches(/^\d{17,20}$/)
+  readonly discordChannelIdDeployments?: string | null;
+
+  @ValidateIf(
+    (_object, value) => value !== undefined && value !== null && value !== '',
+  )
+  @IsString()
+  @MaxLength(320)
+  @Matches(/^[^\r\n]*$/)
+  @Matches(/^\d{17,20}$/)
+  readonly discordChannelIdPosts?: string | null;
+
+  @ValidateIf(
+    (_object, value) => value !== undefined && value !== null && value !== '',
+  )
+  @IsString()
+  @MaxLength(320)
+  @Matches(/^[^\r\n]*$/)
+  @Matches(/^\d{17,20}$/)
+  readonly discordChannelIdStudio?: string | null;
+
+  @ValidateIf(
+    (_object, value) => value !== undefined && value !== null && value !== '',
+  )
+  @IsString()
+  @MaxLength(320)
+  @Matches(/^[^\r\n]*$/)
+  @Matches(/^\d{17,20}$/)
+  readonly discordChannelIdUsers?: string | null;
+
+  @ValidateIf(
+    (_object, value) => value !== undefined && value !== null && value !== '',
+  )
+  @IsString()
+  @MaxLength(320)
+  @Matches(/^[^\r\n]*$/)
+  @Matches(/^\d{17,20}$/)
+  readonly discordChannelIdModels?: string | null;
+
+  @ValidateIf(
+    (_object, value) => value !== undefined && value !== null && value !== '',
+  )
+  @IsString()
+  @MaxLength(320)
+  @Matches(/^[^\r\n]*$/)
+  @IsUrl({ protocols: ['https'], require_protocol: true })
+  readonly discordBotAvatarUrl?: string | null;
+
+  @ValidateIf(
+    (_object, value) => value !== undefined && value !== null && value !== '',
+  )
+  @IsString()
+  @MaxLength(320)
+  @Matches(/^[^\r\n]*$/)
+  readonly discordWebhookNamePrefix?: string | null;
+
+  @ValidateIf(
+    (_object, value) => value !== undefined && value !== null && value !== '',
+  )
+  @IsString()
+  @MaxLength(320)
+  @Matches(/^[^\r\n]*$/)
+  readonly discordWebhookReason?: string | null;
+
+  @ValidateIf(
+    (_object, value) => value !== undefined && value !== null && value !== '',
+  )
+  @IsString()
+  @MaxLength(320)
+  @Matches(/^[^\r\n]*$/)
+  @Matches(EMAIL_ADDRESS_PATTERN)
+  readonly emailFromAddress?: string | null;
+
+  @ValidateIf(
+    (_object, value) => value !== undefined && value !== null && value !== '',
+  )
+  @IsString()
+  @MaxLength(320)
+  @Matches(/^[^\r\n]*$/)
+  @IsEmail()
+  readonly emailReplyToAddress?: string | null;
+
   @ApiProperty({
     description:
       'Generation sell/cost ratio applied to provider USD. 3.33 = 70% margin on sell price.',

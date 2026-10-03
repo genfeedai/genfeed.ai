@@ -1,3 +1,4 @@
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 /**
  * Templates Module
  * Prompt templates with {{variables}}: content patterns like "Introducing {{product_name}}!".
@@ -22,6 +23,7 @@ import { Module } from '@nestjs/common';
   controllers: [TemplatesController],
   exports: [TemplatesService],
   imports: [
+    PlatformSettingsModule,
     ByokModule,
     ConfigModule,
     CreditsModule,

@@ -117,6 +117,7 @@ export class BrandOsRevisionsController {
         revisionId,
         userId,
         dto.updatedAt,
+        dto.reviewedGenerationRulesHash,
       ),
     );
   }

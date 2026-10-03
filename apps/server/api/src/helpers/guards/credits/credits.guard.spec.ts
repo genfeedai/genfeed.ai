@@ -12,6 +12,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import type { ByokService } from '@api/services/byok/byok.service';
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import {
   ActivitySource,
   ByokProvider,
@@ -89,12 +90,12 @@ describe('CreditsGuard', () => {
     };
 
     guard = new CreditsGuard(
+      runtimeSettingsMock({ get: vi.fn() } as unknown as ConfigService),
       reflector,
       creditsUtilsService as unknown as CreditsUtilsService,
       modelsService as unknown as ModelsService,
       byokService as unknown as ByokService,
       loggerService,
-      { get: vi.fn() } as unknown as ConfigService,
       testModelCreditQuote(modelsService as never),
     );
   });

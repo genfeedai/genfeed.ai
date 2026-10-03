@@ -4,6 +4,7 @@ import { FilesCaptionsService } from '@files/services/files/captions/files-capti
 import { FilesService } from '@files/services/files/files.service';
 import { FilesGifService } from '@files/services/files/gif/files-gif.service';
 import { FilesKenBurnsEffectService } from '@files/services/files/ken-burns/files-ken-burns-effect.service';
+import { FileRuntimeSettingsService } from '@files/services/runtime-settings/file-runtime-settings.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -31,6 +32,10 @@ describe('FilesGifService', () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [],
       providers: [
+        {
+          provide: FileRuntimeSettingsService,
+          useValue: { get: async () => ({ imageCompressionQuality: 50 }) },
+        },
         FilesGifService,
         { provide: ConfigService, useValue: { get: vi.fn() } },
         { provide: LoggerService, useValue: loggerService },

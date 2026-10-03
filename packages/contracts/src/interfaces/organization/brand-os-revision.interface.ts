@@ -10,6 +10,7 @@ export interface IBrandOsRevision {
   status: `${BrandOsRevisionStatus}`;
   content: IBrandKitDraft;
   generationRulesReviewHash?: string;
+  generationRulesReviewCandidateHash?: string;
   approvedById: string | null;
   approvedAt: string | null;
   createdAt: string;

@@ -3,6 +3,7 @@ import { Command } from 'commander';
 import { get, patch, post, requireAuth } from '@/api/client';
 import { printJson } from '@/ui/theme';
 import { handleError } from '@/utils/errors';
+import { readSkillPackageInput, type SkillPackageInputOptions } from '@/utils/skill-package-input';
 
 async function run(action: () => Promise<unknown>): Promise<void> {
   try {
@@ -14,7 +15,7 @@ async function run(action: () => Promise<unknown>): Promise<void> {
 }
 
 export const skillCommand = new Command('skill').description(
-  'Create, share, publish, export, and uninstall scoped skills'
+  'Create, import, edit, fork, roll back, publish, export and archive skills'
 );
 
 skillCommand
@@ -78,27 +79,23 @@ skillCommand
 
 skillCommand
   .command('import')
-  .requiredOption('--name <name>')
-  .requiredOption('--slug <slug>')
-  .requiredOption('--description <description>')
-  .requiredOption('--instructions <instructions>')
-  .action(
-    async (options: { description: string; instructions: string; name: string; slug: string }) => {
-      await run(() =>
-        post('/skills/import', {
-          category: 'content',
-          channels: ['general'],
-          defaultInstructions: options.instructions,
-          description: options.description,
-          modalities: ['text'],
-          name: options.name,
-          slug: options.slug,
-          systemPromptTemplate: options.instructions,
-          workflowStage: 'creation',
-        })
-      );
-    }
-  );
+  .description(
+    'Import a private skill from root SKILL.md and Markdown references, or a bounded ZIP package'
+  )
+  .argument('<SKILL.md-or-package.zip>', 'Local root SKILL.md or ZIP file; no directory traversal')
+  .requiredOption('--slug <slug>', 'Personal skill slug')
+  .option(
+    '--reference <relative-markdown-path...>',
+    'Markdown files relative to the SKILL.md directory; may be repeated'
+  )
+  .option('--source-url <url>', 'HTTP(S) provenance URL; never fetched by the CLI')
+  .option(
+    '--checksum <package-sha256>',
+    'Expected package content SHA256, optionally prefixed sha256:'
+  )
+  .action(async (filePath: string, options: SkillPackageInputOptions) => {
+    await run(async () => post('/skills/import', await readSkillPackageInput(filePath, options)));
+  });
 
 skillCommand
   .command('edit')

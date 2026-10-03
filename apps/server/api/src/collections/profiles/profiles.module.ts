@@ -1,3 +1,4 @@
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 /**
  * Profiles Module
  * Brand consistency management: tone/style profiles for images, videos, voice, and articles.
@@ -19,6 +20,7 @@ import { Module } from '@nestjs/common';
   controllers: [ProfilesController],
   exports: [ProfilesService],
   imports: [
+    PlatformSettingsModule,
     ByokModule,
     ConfigModule,
     CreditsModule,

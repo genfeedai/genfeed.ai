@@ -93,6 +93,117 @@ describe('WorkflowReviewGateService — atomic gate claim', () => {
     );
   });
 
+  it.each(['human', 'timeout'] as const)(
+    'keeps the recorded generation actor distinct from the %s reviewer',
+    async (reviewer) => {
+      const actor = ' recorded-review-actor ';
+      executionsService.findOne.mockResolvedValue(
+        buildExecution({ userId: actor }),
+      );
+      const doc = {
+        id: WORKFLOW_ID,
+        userId: 'creator',
+        organizationId: ORGANIZATION_ID,
+      };
+      documentService.findPinnedWorkflow.mockResolvedValue(doc);
+      const engine = {
+        convertToExecutableWorkflow: vi.fn((workflow) => ({
+          ...workflow,
+          nodes: [],
+          edges: [],
+        })),
+        applyRuntimeInputValues: vi.fn((_doc, workflow) => workflow),
+      };
+      const continueGraph = vi.fn().mockResolvedValue({ status: 'running' });
+      finalizer.mapRunResultToExecutionStatus.mockReturnValue(
+        WorkflowExecutionStatus.RUNNING,
+      );
+      const mounted = new WorkflowReviewGateService(
+        engine as never,
+        executionsService as never,
+        documentService as never,
+        {
+          collectDownstreamNodeIds: vi.fn().mockReturnValue(['publish']),
+        } as never,
+        {} as never,
+        finalizer as never,
+        undefined,
+        continueGraph,
+      );
+      if (reviewer === 'human') {
+        const result = await mounted.submitReviewGateApproval(
+          WORKFLOW_ID,
+          EXECUTION_ID,
+          'human-reviewer',
+          ORGANIZATION_ID,
+          NODE_ID,
+          true,
+        );
+        expect(result.approvedBy).toBe('human-reviewer');
+      } else
+        await mounted.resolveTimedOutReviewGate(
+          WORKFLOW_ID,
+          EXECUTION_ID,
+          ORGANIZATION_ID,
+          NODE_ID,
+        );
+      expect(continueGraph).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workflow: expect.objectContaining({ userId: actor }),
+          triggerEvent: expect.objectContaining({ userId: actor }),
+        }),
+      );
+      expect(executionsService.updateExecutionMetadata).toHaveBeenCalledWith(
+        EXECUTION_ID,
+        expect.objectContaining({
+          lastApproval: expect.objectContaining({
+            approvedBy: reviewer === 'human' ? 'human-reviewer' : 'system',
+          }),
+        }),
+      );
+      expect(doc.userId).toBe('creator');
+    },
+  );
+
+  it.each([undefined, null, 42, {}, '', '  \t'])(
+    'blocks review approval with invalid recorded actor %j before hydration or claim',
+    async (actor) => {
+      executionsService.findOne.mockResolvedValue(
+        buildExecution({ userId: actor }),
+      );
+      await expect(
+        service.submitReviewGateApproval(
+          WORKFLOW_ID,
+          EXECUTION_ID,
+          'human-reviewer',
+          ORGANIZATION_ID,
+          NODE_ID,
+          true,
+        ),
+      ).rejects.toThrow(EXECUTION_ID);
+      expect(documentService.findPinnedWorkflow).not.toHaveBeenCalled();
+      expect(executionsService.claimPendingReviewGate).not.toHaveBeenCalled();
+      expect(executionsService.updateNodeResult).not.toHaveBeenCalled();
+      expect(finalizer.finalizeExecution).not.toHaveBeenCalled();
+    },
+  );
+
+  it('surfaces an invalid timeout actor instead of treating corruption as a claim race', async () => {
+    executionsService.findOne.mockResolvedValue(
+      buildExecution({ userId: null }),
+    );
+    await expect(
+      service.resolveTimedOutReviewGate(
+        WORKFLOW_ID,
+        EXECUTION_ID,
+        ORGANIZATION_ID,
+        NODE_ID,
+      ),
+    ).rejects.toThrow(EXECUTION_ID);
+    expect(executionsService.claimPendingReviewGate).not.toHaveBeenCalled();
+    expect(finalizer.finalizeExecution).not.toHaveBeenCalled();
+  });
+
   it('rejects a human approval when the gate was already claimed by another resolver', async () => {
     executionsService.claimPendingReviewGate.mockResolvedValue(false);
 

@@ -21,6 +21,180 @@ const json = (body: unknown) =>
   });
 
 describe('BFL direct client', () => {
+  const credentialForms = [
+    'fixture-private-key',
+    '%66ixture-private-key',
+    '%66%69%78%74%75%72%65%2D%70%72%69%76%61%74%65%2D%6B%65%79',
+    '%66%69%78%74%75%72%65%2d%70%72%69%76%61%74%65%2d%6b%65%79',
+    '%2566%2569%2578%2574%2575%2572%2565%252d%2570%2572%2569%2576%2561%2574%2565%252d%256b%2565%2579',
+  ];
+
+  it.each(credentialForms)(
+    'rejects reflected submission identity with uncertainty and redacted error: %s',
+    async (credential) => {
+      const externalId = `task-${credential}`;
+      const transport = vi.fn<typeof fetch>().mockResolvedValue(
+        json({
+          id: externalId,
+          polling_url: `https://api.eu.bfl.ai/v1/get_result?id=${encodeURIComponent(externalId)}`,
+        }),
+      );
+      const result = new BflDirectClient(transport).submit(request, context);
+      await expect(result).rejects.toMatchObject({
+        code: 'PROVIDER_RESPONSE_INVALID',
+        message: 'BFL returned an unsupported response.',
+        isSubmissionUncertain: true,
+      });
+      await expect(result).rejects.not.toThrow(context.apiKey);
+      await expect(result).rejects.not.toThrow(credential);
+      expect(transport).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each(credentialForms)(
+    'rejects a reflected polling URL while the returned ID itself is credential-free: %s',
+    async (credential) => {
+      const externalId = 'task-1';
+      const transport = vi.fn<typeof fetch>().mockResolvedValue(
+        json({
+          id: externalId,
+          polling_url: `https://api.eu.bfl.ai/v1/get_result?id=${externalId}&credential=${credential}`,
+        }),
+      );
+      const result = new BflDirectClient(transport).submit(request, context);
+      await expect(result).rejects.toMatchObject({
+        code: 'PROVIDER_RESPONSE_INVALID',
+        message: 'BFL returned an unsupported response.',
+        isSubmissionUncertain: true,
+      });
+      await expect(result).rejects.not.toThrow(credential);
+      expect(transport).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each(credentialForms)(
+    'rejects credential-bearing recovered identity before GET: %s',
+    async (credential) => {
+      const externalId = `task-${credential}`;
+      const transport = vi.fn<typeof fetch>();
+      const result = new BflDirectClient(transport).poll(
+        {
+          externalId,
+          pollingUrl: `https://api.eu.bfl.ai/v1/get_result?id=${encodeURIComponent(externalId)}`,
+          model: task.model,
+        },
+        context,
+      );
+      await expect(result).rejects.toMatchObject({
+        code: 'PROVIDER_POLL_URL_INVALID',
+        message: 'BFL polling URL is unsupported.',
+        isSubmissionUncertain: false,
+      });
+      await expect(result).rejects.not.toThrow(credential);
+      expect(transport).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(credentialForms)(
+    'rejects credential-bearing recovered polling URL before GET: %s',
+    async (credential) => {
+      const transport = vi.fn<typeof fetch>();
+      const result = new BflDirectClient(transport).poll(
+        {
+          ...task,
+          pollingUrl: `${pollingUrl}&credential=${credential}`,
+        },
+        context,
+      );
+      await expect(result).rejects.toMatchObject({
+        code: 'PROVIDER_POLL_URL_INVALID',
+        message: 'BFL polling URL is unsupported.',
+      });
+      await expect(result).rejects.not.toThrow(credential);
+      expect(transport).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(credentialForms)(
+    'rejects raw or encoded credential-bearing delivery URLs: %s',
+    async (credential) => {
+      const transport = vi.fn<typeof fetch>().mockResolvedValue(
+        json({
+          id: task.externalId,
+          status: 'Ready',
+          result: {
+            sample: `https://delivery.eu.bfl.ai/output.jpeg?signature=${credential}`,
+          },
+        }),
+      );
+      const result = new BflDirectClient(transport).poll(task, context);
+      await expect(result).rejects.toMatchObject({
+        code: 'PROVIDER_RESPONSE_INVALID',
+        message: 'BFL returned an unsupported response.',
+      });
+      await expect(result).rejects.not.toThrow(credential);
+      expect(transport).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each([
+    'https://api.eu.bfl.ai/v1/get_result?id=task-1',
+    'https://%61pi.eu.bfl.ai/v1/get_result?id=task-1',
+  ])(
+    'rejects a credential reflected only in an otherwise allowed polling URL: %s',
+    async (url) => {
+      const credentialContext = { apiKey: 'api.eu.bfl.ai' };
+      const transport = vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(json({ id: task.externalId, polling_url: url }));
+      const client = new BflDirectClient(transport);
+      await expect(
+        client.submit(request, credentialContext),
+      ).rejects.toMatchObject({
+        code: 'PROVIDER_RESPONSE_INVALID',
+        isSubmissionUncertain: true,
+      });
+      const recovered = client.poll(
+        { ...task, pollingUrl: url },
+        credentialContext,
+      );
+      await expect(recovered).rejects.toMatchObject({
+        code: 'PROVIDER_POLL_URL_INVALID',
+        message: 'BFL polling URL is unsupported.',
+      });
+      await expect(recovered).rejects.not.toThrow(credentialContext.apiKey);
+      expect(transport).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('preserves unrelated percent-encoded task IDs and delivery URLs', async () => {
+    const externalId = 'task with spaces';
+    const pollingUrl =
+      'https://api.eu.bfl.ai/v1/get_result?id=task%20with%20spaces';
+    const sample =
+      'https://delivery.eu.bfl.ai/output%20image.jpeg?signature=safe%2Fvalue';
+    const transport = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(json({ id: externalId, polling_url: pollingUrl }))
+      .mockResolvedValueOnce(
+        json({ id: externalId, status: 'Ready', result: { sample } }),
+      );
+    const client = new BflDirectClient(transport);
+    await expect(client.submit(request, context)).resolves.toEqual({
+      kind: 'task',
+      externalId,
+      pollingUrl,
+      model: task.model,
+    });
+    await expect(
+      client.poll({ externalId, pollingUrl, model: task.model }, context),
+    ).resolves.toEqual({
+      status: 'succeeded',
+      outputs: [{ url: sample, mimeType: 'image/jpeg' }],
+    });
+    expect(transport.mock.calls[1][0]).toBe(pollingUrl);
+  });
+
   it('submits the compiled payload with x-key, calls the marker immediately before POST, and preserves the provider polling URL', async () => {
     const events: string[] = [];
     const transport = vi.fn<typeof fetch>().mockImplementation(async () => {

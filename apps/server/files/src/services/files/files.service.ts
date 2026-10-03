@@ -4,6 +4,7 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { ConfigService } from '@files/config/config.service';
 import { escapeDrawtextValue } from '@files/helpers/utils/string/string.util';
+import { FileRuntimeSettingsService } from '@files/services/runtime-settings/file-runtime-settings.service';
 import type { SlideText } from '@files/shared/interfaces/caption.interface';
 import type { FFprobeData } from '@files/shared/interfaces/ffmpeg.interfaces';
 import type { FileFrame } from '@files/shared/interfaces/job.interface';
@@ -20,6 +21,7 @@ export class FilesService {
   public readonly isDeleteTempFilesEnabled: boolean = true;
 
   constructor(
+    private readonly runtimeSettings: FileRuntimeSettingsService,
     public readonly configService: ConfigService,
     public readonly loggerService: LoggerService,
     public readonly httpService: HttpService,
@@ -217,7 +219,7 @@ export class FilesService {
           .rotate() // Auto-rotate based on EXIF orientation
           .resize({ width: 1080, withoutEnlargement: true })
           .jpeg({
-            quality: Number(this.configService.get('AWS_IMAGE_COMPRESSION')),
+            quality: (await this.runtimeSettings.get()).imageCompressionQuality,
           })
           .toFile(filePath);
       } else {

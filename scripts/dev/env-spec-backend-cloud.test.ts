@@ -76,7 +76,7 @@ describe('env-spec backend cloud flag', () => {
     }
   });
 
-  it('copies signup alert settings onto the services that read them', () => {
+  it('keeps signup destinations in admin settings instead of service env', () => {
     const notificationsTarget = ENV_TARGETS.find(
       (target) => target.id === 'notifications',
     );
@@ -84,10 +84,10 @@ describe('env-spec backend cloud flag', () => {
       (section) => section.title === 'Files MCP Notifications',
     );
 
-    expect(notificationsTarget?.directKeys).toContain(
+    expect(notificationsTarget?.directKeys).not.toContain(
       'SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL',
     );
-    expect(notificationsSection?.keys).toContain(
+    expect(notificationsSection?.keys).not.toContain(
       'SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL',
     );
   });

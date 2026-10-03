@@ -15,7 +15,6 @@ export {
   newsApiSchema,
   opusProSchema,
   replicateSchema,
-  trainingPricingSchema,
 } from './ai.schema';
 export {
   awsOptionalSchema,

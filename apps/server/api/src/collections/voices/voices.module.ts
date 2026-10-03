@@ -8,6 +8,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { VoicesController } from '@api/collections/voices/controllers/voices.controller';
 import { VoicesCatalogController } from '@api/collections/voices/controllers/voices-catalog.controller';
 import { VoicesOperationsController } from '@api/collections/voices/controllers/voices-operations.controller';
@@ -40,6 +41,7 @@ import { Module } from '@nestjs/common';
   ],
   exports: [ExternalVoiceCatalogService, VoiceGenerationService, VoicesService],
   imports: [
+    PlatformSettingsModule,
     ActivitiesModule,
     IngredientsModule,
     MetadataModule,

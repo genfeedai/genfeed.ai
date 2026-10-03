@@ -29,6 +29,14 @@ export const MODERATION_PROVIDER_NAMES: readonly ModerationProviderName[] = [
 
 /** Inclusive bounds of the numeric feature switches. */
 export const PLATFORM_FEATURE_SETTING_BOUNDS = {
+  imageCompressionQuality: { min: 1, max: 100 },
+  paygFallbackCredits: { min: 1, max: 1000000 },
+  agentContextWindowSize: { min: 1, max: 200 },
+  generationMaxTokens: { min: 1, max: 128000 },
+  typedDecisionTimeoutMs: { min: 1, max: 60000 },
+  trainingCreditsCost: { min: 0, max: 1000000 },
+  customModelCreditsCost: { min: 0, max: 1000000 },
+  replicateTargetFps: { min: 1, max: 120 },
   confidence: { max: 1, min: 0 },
   mediaPerceptionFrameCount: { max: 24, min: 1 },
   mediaPerceptionLookbackHours: { max: 720, min: 1 },
@@ -46,6 +54,34 @@ export const FEATURED_WORKFLOW_LIMIT = 12;
  */
 export const DEFAULT_PLATFORM_FEATURE_SETTINGS: Readonly<IPlatformFeatureSettings> =
   {
+    imageCompressionQuality: 50,
+    paygFallbackCredits: 1000,
+    linkedinTrendSourceUrls: null,
+    agentContextCompressionModel: null,
+    agentContextWindowSize: 5,
+    generationMaxTokens: 4000,
+    typedDecisionTimeoutMs: 800,
+    trainingCreditsCost: 500,
+    customModelCreditsCost: 5,
+    replicateModelHardware: 'gpu-t4',
+    replicateModelVisibility: 'private',
+    replicateTrainerModel:
+      'replicate/fast-flux-trainer:f463fbfc97389e10a2f443a8a84b6953b1058eafbf0c9af4d84457ff07cb04db',
+    replicateTargetFps: 30,
+    replicateTargetResolution: '1080p',
+    klingModel: 'kling-v2',
+    elevenlabsModel: null,
+    murekaModel: 'mureka-9',
+    discordChannelIdDeployments: null,
+    discordChannelIdPosts: null,
+    discordChannelIdStudio: null,
+    discordChannelIdUsers: null,
+    discordChannelIdModels: null,
+    discordBotAvatarUrl: null,
+    discordWebhookNamePrefix: null,
+    discordWebhookReason: null,
+    emailFromAddress: null,
+    emailReplyToAddress: null,
     agentAutoRoutingDecisionMode: 'off',
     // Nothing pinned: the templates page hides Featured (#5511).
     featuredWorkflowIds: [],
@@ -131,6 +167,23 @@ function pickConfidence(value: unknown, fallback: number): number {
   );
 }
 
+export const EMAIL_ADDRESS_PATTERN =
+  /^(?:[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+|[^<>\r\n]+<[^<>\s@]+@[^<>\s@]+\.[^<>\s@]+>)$/;
+
+function pickRuntimeString<T extends string | null>(
+  value: unknown,
+  fallback: T,
+  pattern?: RegExp,
+): string | T {
+  const text = typeof value === 'string' ? value.trim() : '';
+  return text &&
+    text.length <= 320 &&
+    !/[\r\n]/.test(text) &&
+    (!pattern || pattern.test(text))
+    ? text
+    : fallback;
+}
+
 function pickTimestamp(value: unknown): string | null {
   const date =
     value instanceof Date
@@ -207,6 +260,148 @@ export function parsePlatformFeatureSettings(
       : '';
 
   return {
+    imageCompressionQuality: pickNumber(
+      row.imageCompressionQuality,
+      bounds.imageCompressionQuality,
+      defaults.imageCompressionQuality,
+      true,
+    ),
+    paygFallbackCredits: pickNumber(
+      row.paygFallbackCredits,
+      bounds.paygFallbackCredits,
+      defaults.paygFallbackCredits,
+      true,
+    ),
+    linkedinTrendSourceUrls: pickRuntimeString(
+      row.linkedinTrendSourceUrls,
+      defaults.linkedinTrendSourceUrls,
+    ),
+    agentContextCompressionModel: pickRuntimeString(
+      row.agentContextCompressionModel,
+      defaults.agentContextCompressionModel,
+      undefined,
+    ),
+    agentContextWindowSize: pickNumber(
+      row.agentContextWindowSize,
+      bounds.agentContextWindowSize,
+      defaults.agentContextWindowSize,
+      true,
+    ),
+    generationMaxTokens: pickNumber(
+      row.generationMaxTokens,
+      bounds.generationMaxTokens,
+      defaults.generationMaxTokens,
+      true,
+    ),
+    typedDecisionTimeoutMs: pickNumber(
+      row.typedDecisionTimeoutMs,
+      bounds.typedDecisionTimeoutMs,
+      defaults.typedDecisionTimeoutMs,
+      true,
+    ),
+    trainingCreditsCost: pickNumber(
+      row.trainingCreditsCost,
+      bounds.trainingCreditsCost,
+      defaults.trainingCreditsCost,
+      false,
+    ),
+    customModelCreditsCost: pickNumber(
+      row.customModelCreditsCost,
+      bounds.customModelCreditsCost,
+      defaults.customModelCreditsCost,
+      false,
+    ),
+    replicateModelHardware: pickRuntimeString(
+      row.replicateModelHardware,
+      defaults.replicateModelHardware,
+      undefined,
+    ),
+    replicateModelVisibility: pickOption(
+      row.replicateModelVisibility,
+      ['private', 'public'],
+      defaults.replicateModelVisibility,
+    ),
+    replicateTrainerModel: pickRuntimeString(
+      row.replicateTrainerModel,
+      defaults.replicateTrainerModel,
+      undefined,
+    ),
+    replicateTargetFps: pickNumber(
+      row.replicateTargetFps,
+      bounds.replicateTargetFps,
+      defaults.replicateTargetFps,
+      true,
+    ),
+    replicateTargetResolution: pickRuntimeString(
+      row.replicateTargetResolution,
+      defaults.replicateTargetResolution,
+      undefined,
+    ),
+    klingModel: pickRuntimeString(
+      row.klingModel,
+      defaults.klingModel,
+      undefined,
+    ),
+    elevenlabsModel: pickRuntimeString(
+      row.elevenlabsModel,
+      defaults.elevenlabsModel,
+      undefined,
+    ),
+    murekaModel: pickRuntimeString(
+      row.murekaModel,
+      defaults.murekaModel,
+      undefined,
+    ),
+    discordChannelIdDeployments: pickRuntimeString(
+      row.discordChannelIdDeployments,
+      defaults.discordChannelIdDeployments,
+      /^\d{17,20}$/,
+    ),
+    discordChannelIdPosts: pickRuntimeString(
+      row.discordChannelIdPosts,
+      defaults.discordChannelIdPosts,
+      /^\d{17,20}$/,
+    ),
+    discordChannelIdStudio: pickRuntimeString(
+      row.discordChannelIdStudio,
+      defaults.discordChannelIdStudio,
+      /^\d{17,20}$/,
+    ),
+    discordChannelIdUsers: pickRuntimeString(
+      row.discordChannelIdUsers,
+      defaults.discordChannelIdUsers,
+      /^\d{17,20}$/,
+    ),
+    discordChannelIdModels: pickRuntimeString(
+      row.discordChannelIdModels,
+      defaults.discordChannelIdModels,
+      /^\d{17,20}$/,
+    ),
+    discordBotAvatarUrl: pickRuntimeString(
+      row.discordBotAvatarUrl,
+      defaults.discordBotAvatarUrl,
+      /^https:\/\/[^\s]+$/,
+    ),
+    discordWebhookNamePrefix: pickRuntimeString(
+      row.discordWebhookNamePrefix,
+      defaults.discordWebhookNamePrefix,
+      undefined,
+    ),
+    discordWebhookReason: pickRuntimeString(
+      row.discordWebhookReason,
+      defaults.discordWebhookReason,
+      undefined,
+    ),
+    emailFromAddress: pickRuntimeString(
+      row.emailFromAddress,
+      defaults.emailFromAddress,
+      EMAIL_ADDRESS_PATTERN,
+    ),
+    emailReplyToAddress: pickRuntimeString(
+      row.emailReplyToAddress,
+      defaults.emailReplyToAddress,
+      /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/,
+    ),
     agentAutoRoutingDecisionMode: pickOption(
       row.agentAutoRoutingDecisionMode,
       TYPED_DECISION_MODES,

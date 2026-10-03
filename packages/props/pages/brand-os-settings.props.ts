@@ -6,6 +6,7 @@ import type {
   IBrandKitFieldOwner,
   IBrandOsRevision,
 } from '@genfeedai/contracts/interfaces';
+import type { BrandGenerationRulesV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 
 export interface BrandOsSettingsCardProps {
   brandId: string;
@@ -30,4 +31,12 @@ export interface BrandOsValueEditorProps {
   value: unknown;
   isDisabled: boolean;
   onChange: (value: unknown) => void;
+}
+
+export interface BrandOsGenerationRulesReviewProps {
+  rules: BrandGenerationRulesV1;
+  acknowledged: boolean;
+  isDisabled: boolean;
+  showAcknowledgement: boolean;
+  onAcknowledgedChange: (acknowledged: boolean) => void;
 }

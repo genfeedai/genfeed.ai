@@ -1,6 +1,8 @@
 import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import type { NotificationsService } from '@api/services/notifications/notifications.service';
+import type { SystemEventDeliveryService } from '@api/services/system-events/system-event-delivery.service';
 import { SystemEventsService } from '@api/services/system-events/system-events.service';
+import type { SystemNotificationDestinationsService } from '@api/services/system-events/system-notification-destinations.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -37,6 +39,9 @@ function setup(
       upsert: vi.fn(),
     },
     $queryRaw: vi.fn().mockResolvedValue([]),
+    systemEventDelivery: {
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
     systemEventWebhook: {
       upsert: vi.fn(),
       findMany: vi
@@ -48,6 +53,12 @@ function setup(
     },
   };
   const service = new SystemEventsService(
+    {
+      deliver: (...args: unknown[]) =>
+        notifications.deliverSystemNotification(...args),
+      retry: async () => false,
+    } as unknown as SystemEventDeliveryService,
+    {} as SystemNotificationDestinationsService,
     prisma as unknown as PrismaService,
     featureSettings as unknown as PlatformSettingsService,
     { warn: vi.fn() } as unknown as LoggerService,
@@ -102,10 +113,11 @@ describe('system event outbox', () => {
   });
   it('delivers through the existing notifications service and records acknowledgement under the lease', async () => {
     const { service, prisma } = setup();
-    notifications.deliverSystemNotification.mockResolvedValue(undefined);
+    notifications.deliverSystemNotification.mockResolvedValue('delivered');
     await service.recover();
     expect(notifications.deliverSystemNotification).toHaveBeenCalledWith(
-      JSON.parse(payload),
+      expect.objectContaining({ payload }),
+      expect.any(String),
     );
     expect(prisma.systemEventWebhook.updateMany).toHaveBeenLastCalledWith(
       expect.objectContaining({

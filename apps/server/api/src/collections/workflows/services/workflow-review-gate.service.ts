@@ -15,6 +15,7 @@ import {
   RetiredWorkflowExecutionError,
   WorkflowExecutorDocumentService,
 } from '@api/collections/workflows/services/workflow-executor-document.service';
+import { requireRecordedWorkflowActor } from '@api/collections/workflows/services/workflow-resume-actor.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { WorkflowExecutionStatus, WorkflowStatus } from '@genfeedai/contracts';
 import type {
@@ -99,13 +100,17 @@ export class WorkflowReviewGateService {
       throw new NotFoundException(`Execution ${executionId} not found`);
     }
 
+    const actorUserId = requireRecordedWorkflowActor(
+      executionId,
+      execution.userId,
+    );
     let normalizedWorkflowDoc: WorkflowDocument | null;
     try {
       normalizedWorkflowDoc = await this.documentService.findPinnedWorkflow(
         workflowId,
         execution.workflowVersionId,
         organizationId,
-        execution.userId,
+        actorUserId,
       );
     } catch (error) {
       if (error instanceof RetiredWorkflowExecutionError) {
@@ -619,11 +624,17 @@ export class WorkflowReviewGateService {
     input: ApproveReviewGateInput,
     approvedOutput: Record<string, unknown>,
   ): { executableWorkflow: ExecutableWorkflow; remainingNodeIds: string[] } {
-    let executableWorkflow = this.engineAdapter.convertToExecutableWorkflow(
-      input.normalizedWorkflowDoc,
-    );
+    const workflowDoc = {
+      ...input.normalizedWorkflowDoc,
+      userId: requireRecordedWorkflowActor(
+        input.executionId,
+        input.execution.userId,
+      ),
+    };
+    let executableWorkflow =
+      this.engineAdapter.convertToExecutableWorkflow(workflowDoc);
     executableWorkflow = this.engineAdapter.applyRuntimeInputValues(
-      input.normalizedWorkflowDoc,
+      workflowDoc,
       executableWorkflow,
       input.execution.inputValues ?? {},
     );

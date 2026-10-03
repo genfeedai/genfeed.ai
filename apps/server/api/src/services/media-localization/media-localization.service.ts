@@ -244,7 +244,7 @@ export class MediaLocalizationService {
       transcription: { modelId: 'openai/whisper', calls: 0 },
       translation: { modelId: DEFAULT_TEXT_MODEL, calls: 0 },
       synthesis: {
-        modelId: this.elevenlabs.getSpeechModelId(),
+        modelId: await this.elevenlabs.getSpeechModelId(),
         calls: 0,
         characters: 0,
         generatedSeconds: 0,

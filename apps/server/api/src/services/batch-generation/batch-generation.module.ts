@@ -3,6 +3,7 @@ import { ContentIntelligenceModule } from '@api/collections/content-intelligence
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness-profiles.module';
 import { ModelsModule } from '@api/collections/models/models.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { PostGenerationModule } from '@api/collections/posts/post-generation.module';
 import { PostLifecycleModule } from '@api/collections/posts/post-lifecycle.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
@@ -51,6 +52,7 @@ import { Module } from '@nestjs/common';
     BatchGenerationWorkflowService,
   ],
   imports: [
+    PlatformSettingsModule,
     ActivityRecordingModule,
     PostGenerationModule,
     ModelsModule,

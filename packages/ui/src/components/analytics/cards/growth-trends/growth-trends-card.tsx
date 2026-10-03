@@ -6,6 +6,7 @@ import {
   formatPercentage,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { GrowthTrendsCardProps } from '@genfeedai/props/analytics/analytics.props';
+import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { Minus, TrendingDown, TrendingUp } from 'lucide-react';
 
@@ -101,7 +102,9 @@ export function GrowthTrendsCard({
       <div className="mb-6 pb-6 border-b border-border">
         <div className="flex items-start justify-between mb-2">
           <div>
-            <p className="text-sm text-muted-foreground mb-1">Views</p>
+            <p className="text-sm text-muted-foreground mb-1">
+              <AnalyticsMetricLabel metric="views">Views</AnalyticsMetricLabel>
+            </p>
             <p className="text-2xl font-bold text-foreground tabular-nums">
               {formatCompactNumberIntl(growthData.views.current)}
             </p>
@@ -143,7 +146,11 @@ export function GrowthTrendsCard({
       <div className="mb-6 pb-6 border-b border-border">
         <div className="flex items-start justify-between mb-2">
           <div>
-            <p className="text-sm text-muted-foreground mb-1">Engagement</p>
+            <p className="text-sm text-muted-foreground mb-1">
+              <AnalyticsMetricLabel metric="engagement">
+                Engagement
+              </AnalyticsMetricLabel>
+            </p>
             <p className="text-2xl font-bold text-foreground tabular-nums">
               {formatCompactNumberIntl(growthData.engagement.current)}
             </p>
@@ -202,7 +209,9 @@ export function GrowthTrendsCard({
             </p>
           </div>
           <div className="text-right">
-            <p className="text-sm text-muted-foreground mb-1">Views</p>
+            <p className="text-sm text-muted-foreground mb-1">
+              <AnalyticsMetricLabel metric="views">Views</AnalyticsMetricLabel>
+            </p>
             <p className="text-2xl font-bold text-foreground tabular-nums">
               {formatCompactNumberIntl(growthData.bestDay.views)}
             </p>

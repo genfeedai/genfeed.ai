@@ -9,6 +9,7 @@ import type { FileQueueService } from '@api/services/files-microservice/queue/fi
 import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import { IngredientStatus } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -49,6 +50,7 @@ describe('TrainingsService', () => {
     };
 
     service = new TrainingsService(
+      runtimeSettingsMock(configService as unknown as ConfigService),
       {} as PrismaService,
       {
         debug: vi.fn(),

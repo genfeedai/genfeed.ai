@@ -75,27 +75,6 @@ export function validateSystemEvent(event: unknown): SystemEvent {
   };
 }
 
-export function discordWebhookUrl(value: string): URL | null {
-  try {
-    const url = new URL(value);
-    if (
-      url.protocol !== 'https:' ||
-      url.hostname !== 'discord.com' ||
-      url.port ||
-      url.username ||
-      url.password ||
-      url.hash ||
-      url.search ||
-      !/^\/api\/webhooks\/\d+\/[A-Za-z0-9_-]+$/.test(url.pathname)
-    )
-      return null;
-    url.searchParams.set('wait', 'true');
-    return url;
-  } catch {
-    return null;
-  }
-}
-
 const titles: Record<SystemEvent['type'], string> = {
   'user.created': 'New signup',
   'subscription.created': 'Subscription created',
@@ -143,9 +122,11 @@ export function discordMessage(event: SystemEvent) {
     allowed_mentions: { parse: [] },
     embeds: [
       {
-        title: free
-          ? 'Free redemption — no payment collected'
-          : titles[event.type],
+        title: event.id.startsWith('test/')
+          ? 'Test notification'
+          : free
+            ? 'Free redemption — no payment collected'
+            : titles[event.type],
         color:
           event.type === 'payment.failed'
             ? 0xef4444

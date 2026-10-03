@@ -10,6 +10,7 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { VideosClipChainController } from '@api/collections/videos/controllers/transformations/clip-chain/videos-clip-chain.controller';
 import { VideosEditsController } from '@api/collections/videos/controllers/transformations/edits/videos-edits.controller';
@@ -49,6 +50,7 @@ import { Module } from '@nestjs/common';
     VideosUpscaleController,
   ],
   imports: [
+    PlatformSettingsModule,
     // Data modules
     ActivitiesModule,
     // Utility modules

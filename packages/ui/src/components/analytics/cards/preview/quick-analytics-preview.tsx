@@ -5,6 +5,7 @@ import {
   formatCompactNumberIntl,
   formatPercentage,
 } from '@genfeedai/helpers/formatting/format/format.helper';
+import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import { ChartContainer } from '@ui/charts';
 import { ArrowRight, ChartNoAxesColumn, Eye, Heart } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -98,6 +99,7 @@ export function QuickAnalyticsPreview({
     {
       color: 'text-muted-foreground',
       icon: ChartNoAxesColumn,
+      analyticsMetric: 'posts' as const,
       label: 'Total Posts',
       value: data.totalPosts,
     },
@@ -105,6 +107,7 @@ export function QuickAnalyticsPreview({
       color: 'text-muted-foreground',
       growth: data.viewsGrowth,
       icon: Eye,
+      analyticsMetric: 'views' as const,
       label: 'Total Views',
       value: data.totalViews,
     },
@@ -112,6 +115,7 @@ export function QuickAnalyticsPreview({
       color: 'text-muted-foreground',
       growth: data.engagementGrowth,
       icon: Heart,
+      analyticsMetric: 'likes' as const,
       label: 'Engagement',
       value: data.totalLikes || 0,
     },
@@ -137,7 +141,11 @@ export function QuickAnalyticsPreview({
           >
             <div className="flex items-center gap-2 mb-2">
               <stat.icon className={`size-4 ${stat.color}`} />
-              <p className="text-xs text-muted-foreground">{stat.label}</p>
+              <p className="text-xs text-muted-foreground">
+                <AnalyticsMetricLabel metric={stat.analyticsMetric}>
+                  {stat.label}
+                </AnalyticsMetricLabel>
+              </p>
             </div>
             <p className="text-2xl font-bold text-foreground mb-1 tabular-nums">
               {formatCompactNumberIntl(stat.value)}

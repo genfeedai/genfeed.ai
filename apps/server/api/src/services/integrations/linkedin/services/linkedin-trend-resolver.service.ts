@@ -1,3 +1,4 @@
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { recordTrendProviderOutcome } from '@api/collections/trends/utils/trend-refresh-evidence.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import type {
@@ -9,7 +10,6 @@ import {
   type LinkedInTrendTopic,
   resolveLinkedInTrendSourceUrls,
 } from '@api/services/integrations/linkedin/utils/linkedin-trend.util';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -28,7 +28,7 @@ export class LinkedInTrendResolverService
 {
   constructor(
     private readonly brandScraperService: BrandScraperService,
-    private readonly configService: ConfigService,
+    private readonly platformSettings: PlatformSettingsService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -38,7 +38,8 @@ export class LinkedInTrendResolverService
   ): Promise<ServerLinkedInTrend[]> {
     const url = `LinkedInService getTrends organizationId: ${organizationId} brandId: ${brandId}`;
     const sourceUrls = resolveLinkedInTrendSourceUrls(
-      this.configService.get('LINKEDIN_TREND_SOURCE_URLS'),
+      (await this.platformSettings.getFeatureSettings())
+        .linkedinTrendSourceUrls ?? undefined,
     );
 
     try {

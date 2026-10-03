@@ -3,6 +3,7 @@ import { createServer, type Server } from 'node:http';
 import type { ConfigService } from '@files/config/config.service';
 import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import type { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
+import { FileRuntimeSettingsService } from '@files/services/runtime-settings/file-runtime-settings.service';
 import { UploadService } from '@files/services/upload/upload.service';
 import type { StorageProvider } from '@genfeedai/storage';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -59,6 +60,9 @@ describe('remote upload redirect rejection with real HTTP', () => {
       return 'ingredients/files/fixture';
     });
     service = new UploadService(
+      {
+        get: async () => ({ imageCompressionQuality: 50 }),
+      } as unknown as FileRuntimeSettingsService,
       { get: vi.fn() } as unknown as ConfigService,
       {} as FFmpegService,
       new HttpService(axios.create({ proxy: false })),

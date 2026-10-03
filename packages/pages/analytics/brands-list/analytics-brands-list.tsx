@@ -15,6 +15,7 @@ import {
   type IBrandWithStats,
 } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
+import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Table from '@ui/display/table/Table';
 import FormSearchbar from '@ui/primitives/searchbar';
 import {
@@ -209,7 +210,9 @@ export default function AnalyticsBrandsList({
           ),
         },
         {
-          header: 'Posts',
+          header: (
+            <AnalyticsMetricLabel metric="posts">Posts</AnalyticsMetricLabel>
+          ),
           key: 'totalPosts',
           render: (brand) => (
             <div className="text-center">
@@ -221,7 +224,9 @@ export default function AnalyticsBrandsList({
           ),
         },
         {
-          header: 'Views',
+          header: (
+            <AnalyticsMetricLabel metric="views">Views</AnalyticsMetricLabel>
+          ),
           key: 'totalViews',
           render: (brand) => (
             <div className="text-center">
@@ -233,7 +238,11 @@ export default function AnalyticsBrandsList({
           ),
         },
         {
-          header: 'Engagement',
+          header: (
+            <AnalyticsMetricLabel metric="engagement">
+              Engagement
+            </AnalyticsMetricLabel>
+          ),
           key: 'totalEngagement',
           render: (brand) => (
             <div className="text-center">
@@ -245,7 +254,11 @@ export default function AnalyticsBrandsList({
           ),
         },
         {
-          header: 'Eng. Rate',
+          header: (
+            <AnalyticsMetricLabel metric="engagementRate">
+              Eng. Rate
+            </AnalyticsMetricLabel>
+          ),
           key: 'avgEngagementRate',
           render: (brand) => (
             <div className="text-center">

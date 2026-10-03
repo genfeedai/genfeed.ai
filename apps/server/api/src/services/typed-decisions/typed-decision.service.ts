@@ -1,3 +1,4 @@
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import {
   TypedDecisionRateLimitError,
   TypedDecisionTimeoutError,
@@ -22,7 +23,6 @@ import type {
   TypedDecisionScoreParams,
   TypedDecisionTelemetryRecord,
 } from '@genfeedai/contracts/interfaces';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
@@ -65,8 +65,8 @@ export class TypedDecisionService {
   private readonly constructorName = String(this.constructor.name);
 
   constructor(
+    private readonly platformSettingsService: PlatformSettingsService,
     private readonly providerResolver: TypedDecisionProviderResolver,
-    private readonly configService: ConfigService,
     private readonly logger: LoggerService,
     @Optional()
     private readonly telemetry?: TypedDecisionTelemetryService,
@@ -152,7 +152,7 @@ export class TypedDecisionService {
       return null;
     }
 
-    const timeoutMs = this.resolveTimeoutMs(context);
+    const timeoutMs = await this.resolveTimeoutMs(context);
     const startedAt = Date.now();
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -323,13 +323,16 @@ export class TypedDecisionService {
     }
   }
 
-  private resolveTimeoutMs(context: TypedDecisionCallContext): number {
+  private async resolveTimeoutMs(
+    context: TypedDecisionCallContext,
+  ): Promise<number> {
     if (context.timeoutMs !== undefined && context.timeoutMs > 0) {
       return context.timeoutMs;
     }
 
     const configured = Number(
-      this.configService.get('TYPED_DECISION_TIMEOUT_MS'),
+      (await this.platformSettingsService.getFeatureSettings())
+        .typedDecisionTimeoutMs,
     );
 
     return Number.isFinite(configured) && configured > 0

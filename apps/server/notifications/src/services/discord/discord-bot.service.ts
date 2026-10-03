@@ -5,6 +5,7 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@notifications/config/config.service';
+import { NotificationRuntimeSettingsService } from '@notifications/services/runtime-settings/notification-runtime-settings.service';
 import {
   ChannelType,
   Client,
@@ -29,6 +30,7 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
   private isReady = false;
 
   constructor(
+    private readonly runtimeSettings: NotificationRuntimeSettingsService,
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
   ) {}
@@ -74,14 +76,15 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private getWebhookName(name: string): string {
-    const prefix = this.configService.get('DISCORD_WEBHOOK_NAME_PREFIX');
+  private async getWebhookName(name: string): Promise<string> {
+    const prefix = (await this.runtimeSettings.get()).discordWebhookNamePrefix;
     return prefix ? `${prefix} ${name}` : name;
   }
 
-  private getWebhookReason(): string {
+  private async getWebhookReason(): Promise<string> {
     return (
-      this.configService.get('DISCORD_WEBHOOK_REASON') || 'Notification webhook'
+      (await this.runtimeSettings.get()).discordWebhookReason ||
+      'Notification webhook'
     );
   }
 
@@ -129,10 +132,15 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
       if (!webhook) {
         webhook = await channel.createWebhook({
           name: webhookName,
-          reason: this.getWebhookReason(),
+          reason: await this.getWebhookReason(),
         });
       }
 
+      if (this.webhookCache.size >= 20) {
+        for (const cached of this.webhookCache.values())
+          cached.client.destroy();
+        this.webhookCache.clear();
+      }
       const webhookClient = new WebhookClient({ url: webhook.url });
       this.webhookCache.set(cacheKey, {
         channelId,
@@ -159,39 +167,49 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  getPostsWebhook(): Promise<WebhookClient | null> {
+  async getPostsWebhook(): Promise<WebhookClient | null> {
+    if (!this.client || !this.isReady) return null;
     return this.getOrCreateWebhook(
-      this.configService.get('DISCORD_CHANNEL_ID_POSTS'),
-      this.getWebhookName('Posts'),
+      (await this.runtimeSettings.get()).discordChannelIdPosts ?? undefined,
+      await this.getWebhookName('Posts'),
     );
   }
 
-  getDeploymentsWebhook(): Promise<WebhookClient | null> {
+  async getDeploymentsWebhook(): Promise<WebhookClient | null> {
+    if (!this.client || !this.isReady) return null;
     return this.getOrCreateWebhook(
-      this.configService.get('DISCORD_CHANNEL_ID_DEPLOYMENTS'),
-      this.getWebhookName('Deployments'),
+      (await this.runtimeSettings.get()).discordChannelIdDeployments ??
+        undefined,
+      await this.getWebhookName('Deployments'),
     );
   }
 
-  getIngredientsWebhook(): Promise<WebhookClient | null> {
+  async getIngredientsWebhook(): Promise<WebhookClient | null> {
+    if (!this.client || !this.isReady) return null;
     return this.getOrCreateWebhook(
-      this.configService.get('DISCORD_CHANNEL_ID_STUDIO'),
-      this.getWebhookName('Studio'),
+      (await this.runtimeSettings.get()).discordChannelIdStudio ?? undefined,
+      await this.getWebhookName('Studio'),
     );
   }
 
-  getUsersWebhook(): Promise<WebhookClient | null> {
+  async getUsersWebhook(): Promise<WebhookClient | null> {
+    if (!this.client || !this.isReady) return null;
     return this.getOrCreateWebhook(
-      this.configService.get('DISCORD_CHANNEL_ID_USERS'),
-      this.getWebhookName('Users'),
+      (await this.runtimeSettings.get()).discordChannelIdUsers ?? undefined,
+      await this.getWebhookName('Users'),
     );
   }
 
-  getModelsWebhook(): Promise<WebhookClient | null> {
+  async getModelsWebhook(): Promise<WebhookClient | null> {
+    if (!this.client || !this.isReady) return null;
     const channelId =
-      this.configService.get('DISCORD_CHANNEL_ID_MODELS') ||
-      this.configService.get('DISCORD_CHANNEL_ID_STUDIO');
-    return this.getOrCreateWebhook(channelId, this.getWebhookName('Models'));
+      ((await this.runtimeSettings.get()).discordChannelIdModels ||
+        (await this.runtimeSettings.get()).discordChannelIdStudio) ??
+      undefined;
+    return this.getOrCreateWebhook(
+      channelId,
+      await this.getWebhookName('Models'),
+    );
   }
 
   get botReady(): boolean {
@@ -270,15 +288,19 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
   }> {
     const channels = [
       {
-        channelId: this.configService.get('DISCORD_CHANNEL_ID_POSTS'),
+        channelId:
+          (await this.runtimeSettings.get()).discordChannelIdPosts ?? undefined,
         name: 'POSTS',
       },
       {
-        channelId: this.configService.get('DISCORD_CHANNEL_ID_STUDIO'),
+        channelId:
+          (await this.runtimeSettings.get()).discordChannelIdStudio ??
+          undefined,
         name: 'STUDIO',
       },
       {
-        channelId: this.configService.get('DISCORD_CHANNEL_ID_USERS'),
+        channelId:
+          (await this.runtimeSettings.get()).discordChannelIdUsers ?? undefined,
         name: 'USERS',
       },
     ];

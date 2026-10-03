@@ -2,7 +2,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import {
   CreateSkillDto,
   CustomizeSkillDto,
-  ImportSkillDto,
   UpdateSkillDto,
 } from '@api/collections/skills/dto/skill.dto';
 import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
@@ -100,18 +99,6 @@ export class SkillsController {
   ) {
     const organization = this.requireOrganizationId(user);
     const data = await this.skillsService.createSkill(organization, body);
-
-    return serializeSingle(req, SkillSerializer, data);
-  }
-
-  @Post('skills/import')
-  async importSkill(
-    @Req() req: Request,
-    @CurrentUser() user: User,
-    @Body() body: ImportSkillDto,
-  ) {
-    const organization = this.requireOrganizationId(user);
-    const data = await this.skillsService.importSkill(organization, body);
 
     return serializeSingle(req, SkillSerializer, data);
   }

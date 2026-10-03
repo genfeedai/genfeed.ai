@@ -5,6 +5,7 @@ import { EvaluationsService } from '@api/collections/evaluations/services/evalua
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { ImagesCoreModule } from '@api/collections/images/images-core.module';
 import { ModelsModule } from '@api/collections/models/models.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
 import { ByokModule } from '@api/services/byok/byok.module';
@@ -21,6 +22,7 @@ import { Module } from '@nestjs/common';
   controllers: [EvaluationsController],
   exports: [EvaluationsService, EvaluationsOperationsService],
   imports: [
+    PlatformSettingsModule,
     ArticlesModule,
     ByokModule,
     CacheModule,

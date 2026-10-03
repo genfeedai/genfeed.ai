@@ -1,12 +1,13 @@
 ---
-description: 'Configure every Genfeed BYOK provider for language, image, video, voice, avatar, and trend generation with documented environment fallbacks.'
+description: 'Understand deployed Genfeed BYOK providers and prepared direct media foundations, including configuration boundaries and environment fallbacks.'
 ---
 
 # AI Providers
 
-Genfeed exposes the following providers through **Organization settings →
+Genfeed exposes deployed providers through **Organization settings →
 Integrations**. Saving a credential validates it against the provider before it
-is encrypted for the organization.
+is encrypted for the organization. The catalog also includes prepared direct
+media identities; their credential checks do not establish generation readiness.
 
 On Genfeed Cloud, bring-your-own-key is included with Pro, Scale, and
 Enterprise: generations that run on an organization key draw no credits and
@@ -31,11 +32,47 @@ deployments never gate BYOK.
 | `klingai`    | Kling AI    | Video generation                             | `KLINGAI_KEY` + `KLINGAI_SECRET`               | [Kling AI](https://klingai.com)                                |
 | `leonardoai` | Leonardo.AI | Image generation                             | `LEONARDO_KEY`                                 | [API access](https://app.leonardo.ai/api-access)               |
 | `higgsfield` | Higgsfield  | Media generation                             | `HIGGSFIELD_API_KEY` + `HIGGSFIELD_API_SECRET` | [API documentation](https://docs.higgsfield.ai)                |
+| `google` | Google Gemini API | Prepared direct image/video contracts and credential validation | No direct runtime fallback wired | [API keys](https://aistudio.google.com/apikey) |
+| `xai` | xAI | Prepared direct image/video contracts and credential validation | No direct runtime fallback wired | [Console](https://console.x.ai) |
+| `bfl` | Black Forest Labs | Prepared direct image contracts and credential validation | No direct runtime fallback wired | [API dashboard](https://api.bfl.ai) |
+| `runway` | Runway | Prepared direct image/video contracts and credential validation | No direct runtime fallback wired | [Developer dashboard](https://dev.runwayml.com) |
 | `apify`      | Apify       | Social trend and monitored-account ingestion | `APIFY_API_TOKEN`                              | [Integrations](https://console.apify.com/account/integrations) |
 
-The keys in the first column are stable organization BYOK identifiers. Model
-names are intentionally not duplicated here because the deployed model registry
-is the source of truth.
+The keys in the first column are stable organization BYOK identifiers. The
+deployed model registry remains the source of truth for model availability. The
+configuration and execution steps below apply to deployed provider cards and
+routes; prepared direct media entries are not a launch or activation guide.
+
+## Prepared direct media foundations
+
+The following compiler/client contracts were reviewed on 2026-10-02. They accept
+only their reviewed controls and references. This table describes prepared
+requests, not models admitted for generation in a deployment.
+
+| Direct identity | Reviewed models and modes | Reviewed controls and references |
+| --- | --- | --- |
+| `google` | `gemini-3.1-flash-image`: text-to-image and image-edit; `gemini-omni-1.1-flash` and `veo-3.1-generate-preview`: text-to-video and image-to-video | Gemini image sizes 512/1K/2K/4K and 1–14 edit references. Omni 16:9/9:16, 720p/1080p and one starting image. Veo 4/6/8 seconds, 720p/1080p/4k; higher resolutions require 8 seconds and image input must be inline PNG/JPEG/WebP. |
+| `xai` | `grok-imagine-image-2.0`: text-to-image and image-edit; `grok-imagine-video-1.5`: text-to-video and image-to-video | Images: 1k/2k and 1–5 edit references. Video: integer 1–15 seconds, 480p/720p/1080p and one starting image. |
+| `bfl` | `flux-2-pro`: text-to-image and image-edit | Optional width/height and seed; fixed JPEG output; zero generation references or 1–8 edit references. |
+| `runway` | `gen4.5`: text-to-video and image-to-video; `gen4_image_turbo`: text-to-image and image-edit | Gen-4.5: integer 2–10 seconds, two text-video pixel ratios or six image-video ratios and one starting image. Image Turbo: 1–3 references, 16 reviewed pixel ratios and optional uint32 seed. |
+
+These direct identities preserve provider-owned credential boundaries. Replicate
+and fal routes retain their own identities, and OpenRouter `x-ai/` names do not
+select direct `xai` credentials. The `direct-media` directory also contains an
+OpenAI image compiler/client foundation under the existing `openai` identity.
+
+Credential validation uses non-generation provider reads. A valid credential or
+compiled request does not admit a model, wire its runtime dispatcher, or establish
+funding. Runtime admission and registry wiring, durable account-bound jobs and
+uncertain-submission reconciliation, billing/funding, tenant asset admission,
+protected output ingestion and saved assets remain application delivery work.
+BFL output URLs expire after 10 minutes; Runway output URLs expire within 24–48
+hours. The application must persist outputs rather than treating temporary URLs
+as saved assets. Aborting local HTTP does not confirm remote cancellation.
+
+Independent review and authorized live image/edit/video
+acceptance remain separate gates; neither is established by these foundations.
+They do not change defaults or activate a route.
 
 ## Configure an organization key
 
