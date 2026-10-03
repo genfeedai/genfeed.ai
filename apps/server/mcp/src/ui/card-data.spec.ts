@@ -146,6 +146,26 @@ describe('MCP Apps card contract', () => {
     expect(buildCardView(name, { id: 'asset' })).toBeUndefined();
   });
 
+  it('renders generate_content articles as article cards and social copy as posts', () => {
+    const article = buildCardView('generate_content', {
+      articleId: 'art-1',
+      content: 'Body',
+      title: 'Guide',
+      type: 'standard',
+    });
+    expect(article?.cards[0]).toMatchObject({
+      id: 'art-1',
+      kind: 'article',
+      title: 'Guide',
+    });
+
+    const social = buildCardView('generate_content', {
+      content: 'LinkedIn post',
+      hashtags: [],
+    });
+    expect(social?.cards[0]).toMatchObject({ kind: 'post' });
+  });
+
   it('builds article cards for both get_articles modes', () => {
     expect(
       buildCardView('get_articles', { id: 'a1', title: 'One' })?.cards[0].kind,

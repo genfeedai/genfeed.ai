@@ -5,6 +5,7 @@ import type {
 import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-generation-brand.util';
 import { GenerateContentDto } from '@api/collections/content-intelligence/dto/generate-content.dto';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { GenerateNewsletterDraftDto } from '@api/collections/newsletters/dto/generate-newsletter-draft.dto';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import {
@@ -27,6 +28,7 @@ import {
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import {
+  ActivitySource,
   ContentIntelligencePlatform,
   formatPlatformLabel,
   KnowledgeSourcePurpose,
@@ -150,6 +152,15 @@ function readVariationsCount(
     : { ok: false };
 }
 
+/** Flat charge for one social or newsletter draft (catalog `generate_content`). */
+const TEXT_GENERATION_CREDITS = 2;
+
+const INSUFFICIENT_TEXT_CREDITS_RESULT: AgentToolResult = {
+  creditsUsed: 0,
+  error: 'Not enough credits to generate content.',
+  success: false,
+};
+
 @Injectable()
 export class AgentMediaTextGenerationService {
   constructor(
@@ -162,7 +173,59 @@ export class AgentMediaTextGenerationService {
     private readonly brandsService: ResolveGenerationBrandServiceLike,
     @Inject('AGENT_MEMBERS_SERVICE')
     private readonly membersService: ResolveGenerationBrandMembersServiceLike,
+    private readonly creditsUtilsService: CreditsUtilsService,
   ) {}
+
+  /**
+   * Explicit brandId, then the thread brand, then the member's current brand
+   * (#5219). Headless MCP calls carry no thread brand, so they rely on the
+   * first and last steps.
+   */
+  private async resolveBrandId(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<string | undefined> {
+    const brand = await resolveGenerationBrand({
+      brandsService: this.brandsService,
+      contextBrandId: ctx.brandId,
+      explicitBrandId:
+        typeof params.brandId === 'string' ? params.brandId : undefined,
+      membersService: this.membersService,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+    });
+    return brand?.id ? String(brand.id) : undefined;
+  }
+
+  /**
+   * Text generation has no billing endpoint behind it, so the handler admits
+   * and settles its own flat charge and marks the result billing-delegated.
+   * That charges MCP calls (which skip the agent turn's settlement) and keeps
+   * in-app turns from charging twice.
+   */
+  private async hasTextGenerationCredits(
+    ctx: ToolExecutionContext,
+  ): Promise<boolean> {
+    return this.creditsUtilsService.checkOrganizationCreditsAvailable(
+      ctx.organizationId,
+      TEXT_GENERATION_CREDITS,
+    );
+  }
+
+  private async chargeTextGeneration(
+    ctx: ToolExecutionContext,
+    brandId: string,
+    description: string,
+  ): Promise<void> {
+    await this.creditsUtilsService.deductCreditsFromOrganization(
+      ctx.organizationId,
+      ctx.userId,
+      TEXT_GENERATION_CREDITS,
+      description,
+      ActivitySource.SCRIPT,
+      { brandId },
+    );
+  }
 
   async aiAction(
     params: Record<string, unknown>,
@@ -232,6 +295,17 @@ export class AgentMediaTextGenerationService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    const brandId = await this.resolveBrandId(params, ctx);
+    if (!brandId) {
+      return {
+        creditsUsed: 0,
+        error: 'A brand is required to generate content.',
+        success: false,
+      };
+    }
+    if (!(await this.hasTextGenerationCredits(ctx))) {
+      return INSUFFICIENT_TEXT_CREDITS_RESULT;
+    }
     const dto: GenerateNewsletterDraftDto = {
       angle: readOptionalString(params.angle),
       instructions: readOptionalString(params.instructions),
@@ -241,10 +315,15 @@ export class AgentMediaTextGenerationService {
         '',
     };
     const newsletter = await this.newslettersService.generateDraft(dto, {
-      brandId: ctx.brandId ?? '',
+      brandId,
       organizationId: ctx.organizationId,
       userId: ctx.userId,
     });
+    await this.chargeTextGeneration(
+      ctx,
+      brandId,
+      'Agent tool: generate_content (newsletter)',
+    );
     const newsletterId = readOptionalString(newsletter.id);
     const content = readOptionalString(newsletter.content) ?? '';
     const subject =
@@ -254,8 +333,9 @@ export class AgentMediaTextGenerationService {
     const preheader = readOptionalString(newsletter.summary);
 
     return {
-      creditsUsed: 2,
+      creditsUsed: TEXT_GENERATION_CREDITS,
       data: { content, newsletterId, preheader, subject },
+      isBillingDelegated: true,
       nextActions: newsletterId
         ? [
             {
@@ -288,6 +368,14 @@ export class AgentMediaTextGenerationService {
   ): Promise<AgentToolResult> {
     const articleType =
       normalizedType === 'x-article' ? 'x-article' : 'standard';
+    const brandId = await this.resolveBrandId(params, ctx);
+    if (!brandId) {
+      return {
+        creditsUsed: 0,
+        error: 'A brand is required to generate an article.',
+        success: false,
+      };
+    }
     const response = toMediaResponseRecord(
       await this.generationGateway.generateArticle({
         body: {
@@ -311,7 +399,7 @@ export class AgentMediaTextGenerationService {
           type: articleType,
         },
         principal: {
-          brandId: ctx.brandId,
+          brandId,
           organizationId: ctx.organizationId,
           userId: ctx.userId,
         },
@@ -391,6 +479,9 @@ export class AgentMediaTextGenerationService {
         success: false,
       };
     }
+    if (!(await this.hasTextGenerationCredits(ctx))) {
+      return INSUFFICIENT_TEXT_CREDITS_RESULT;
+    }
     const results = await this.contentGeneratorService.generateContent(
       ctx.organizationId,
       {
@@ -402,6 +493,11 @@ export class AgentMediaTextGenerationService {
         variationsCount,
       } satisfies GenerateContentDto,
     );
+    await this.chargeTextGeneration(
+      ctx,
+      String(brand.id),
+      `Agent tool: generate_content (${normalizedType})`,
+    );
     const generated = results[0];
     const threadSegments =
       normalizedType === 'thread' && generated?.content
@@ -410,7 +506,8 @@ export class AgentMediaTextGenerationService {
     const knowledgeReceipts = generated?.knowledgeReceipts ?? [];
 
     return {
-      creditsUsed: 2,
+      creditsUsed: TEXT_GENERATION_CREDITS,
+      isBillingDelegated: true,
       data: {
         content: generated?.content ?? '',
         hashtags: generated?.hashtags ?? [],
