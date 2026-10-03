@@ -26,6 +26,8 @@ const forkSkillMock = vi.fn();
 const importSkillMock = vi.fn();
 const acquireSkillsServiceMock = vi.fn();
 const getSkillMock = vi.fn();
+const listSkillVersionsMock = vi.fn();
+const getSkillVersionMock = vi.fn();
 const exportSkillMock = vi.fn();
 const archiveSkillMock = vi.fn();
 const authIdentityMock = {
@@ -130,6 +132,8 @@ vi.mock('@services/content/skills.service', async () => {
           importSkill: importSkillMock,
           forkSkill: forkSkillMock,
           getSkill: getSkillMock,
+          listSkillVersions: listSkillVersionsMock,
+          getSkillVersion: getSkillVersionMock,
           exportSkill: exportSkillMock,
           archiveSkill: archiveSkillMock,
           listSkills: listSkillsMock,
@@ -1085,6 +1089,222 @@ describe('BrandSettingsSkillsPage', () => {
         view.unmount();
         closeModal(ModalEnum.SKILL);
       }
+    },
+  );
+  function versionPage() {
+    return {
+      items: Array.from({ length: 20 }, (_, index) => ({
+        id: `sv1_import-1_${22 - index}`,
+        versionNumber: 22 - index,
+        createdAt: '2026-10-02T10:20:30.000Z',
+        contentHash: `sha256:skill-v1:${'a'.repeat(64)}`,
+      })),
+      limit: 20,
+      hasMore: true,
+      nextCursor: 3,
+    };
+  }
+  async function openVersionSkill() {
+    listSkillsMock.mockResolvedValue([
+      importedFixture(),
+      importedFixture({
+        id: 'import-2',
+        name: 'Second imported personal skill',
+        slug: 'second-upload',
+      }),
+    ]);
+    const view = render(<BrandSettingsSkillsPage />);
+    fireEvent.click(await screen.findByText('Imported personal skill'));
+    return view;
+  }
+  it('reads versions only on explicit actions and reads exact escaped snapshots without editing or export inference', async () => {
+    listSkillVersionsMock.mockResolvedValue(versionPage());
+    getSkillVersionMock.mockResolvedValue({
+      ...versionPage().items[19],
+      instructionText: '<script>EXACT_LITERAL</script> \n',
+    });
+    await openVersionSkill();
+    expect(listSkillVersionsMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Load versions' }));
+    await screen.findByRole('button', {
+      name: 'View instructions for version 3',
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'View instructions for version 3' }),
+    );
+    await waitFor(() =>
+      expect(screen.getByLabelText('Version instructions').textContent).toBe(
+        '<script>EXACT_LITERAL</script> \n',
+      ),
+    );
+    expect(getSkillVersionMock).toHaveBeenCalledWith(
+      'import-1',
+      'sv1_import-1_3',
+    );
+    expect(exportSkillMock).not.toHaveBeenCalled();
+    expect(updateSkillMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Load older' }));
+    await waitFor(() =>
+      expect(listSkillVersionsMock).toHaveBeenLastCalledWith('import-1', {
+        limit: 20,
+        beforeVersionNumber: 3,
+      }),
+    );
+  });
+  it('latches reads synchronously, clears private history on the same unavailable denial, and preserves sparse imported edits', async () => {
+    const response = pending<ReturnType<typeof versionPage>>();
+    listSkillVersionsMock.mockReturnValueOnce(response.promise);
+    await openVersionSkill();
+    const load = screen.getByRole('button', { name: 'Load versions' });
+    fireEvent.click(load);
+    fireEvent.click(load);
+    await waitFor(() => expect(listSkillVersionsMock).toHaveBeenCalledTimes(1));
+    await act(async () => response.resolve(versionPage()));
+    getSkillVersionMock.mockRejectedValue({
+      status: 404,
+      detail: 'PRIVATE_DENIAL',
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'View instructions for version 3' }),
+    );
+    expect(
+      await screen.findByText('Skill versions are unavailable.'),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: 'View instructions for version 3' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('PRIVATE_DENIAL')).not.toBeInTheDocument();
+    getSkillMock.mockResolvedValue(importedFixture());
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
+      target: { value: 'Metadata only' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save skill' }));
+    await waitFor(() =>
+      expect(updateSkillMock).toHaveBeenCalledWith('import-1', {
+        name: 'Metadata only',
+      }),
+    );
+  });
+  it('keeps metadata saves independent of a pending versions read and discards that read after the save starts', async () => {
+    const response = pending<ReturnType<typeof versionPage>>();
+    listSkillVersionsMock.mockReturnValueOnce(response.promise);
+    getSkillMock.mockResolvedValue(
+      importedFixture({ name: 'Metadata during read' }),
+    );
+    await openVersionSkill();
+    fireEvent.click(screen.getByRole('button', { name: 'Load versions' }));
+    await waitFor(() => expect(listSkillVersionsMock).toHaveBeenCalledTimes(1));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
+      target: { value: 'Metadata during read' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save skill' }));
+    await waitFor(() =>
+      expect(updateSkillMock).toHaveBeenCalledWith('import-1', {
+        name: 'Metadata during read',
+      }),
+    );
+    await act(async () => response.resolve(versionPage()));
+    expect(
+      screen.queryByRole('button', { name: 'View instructions for version 3' }),
+    ).not.toBeInTheDocument();
+    expect(getSkillVersionMock).not.toHaveBeenCalled();
+  });
+  it.each([
+    'actor',
+    'session',
+    'organization',
+    'brand',
+    'signout',
+    'close',
+    'selection',
+  ])('drops a deferred versions token across %s changes', async (change) => {
+    const view = await openVersionSkill();
+    const token = pending<string>();
+    resolveAuthTokenMock.mockReturnValueOnce(token.promise);
+    fireEvent.click(screen.getByRole('button', { name: 'Load versions' }));
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Loading versions…' }),
+      ).toBeDisabled(),
+    );
+    if (change === 'close' || change === 'selection') {
+      await act(async () => {
+        closeModal(ModalEnum.SKILL);
+      });
+      if (change === 'selection')
+        fireEvent.click(screen.getByText('Second imported personal skill'));
+    } else {
+      changeImportScope(change);
+      view.rerender(<BrandSettingsSkillsPage />);
+    }
+    await act(async () => token.resolve('stale-token'));
+    expect(listSkillVersionsMock).not.toHaveBeenCalled();
+  });
+  it.each(
+    ['list', 'detail'].flatMap((phase) =>
+      [
+        'actor',
+        'session',
+        'organization',
+        'brand',
+        'signout',
+        'close',
+        'selection',
+      ].map((change) => ({ phase, change })),
+    ),
+  )(
+    'ignores stale versions $phase HTTP after $change',
+    async ({ phase, change }) => {
+      const view = await openVersionSkill();
+      const response = pending<ReturnType<typeof versionPage>>();
+      const detail = pending<{
+        id: string;
+        versionNumber: number;
+        createdAt: string;
+        contentHash: string;
+        instructionText: string;
+      }>();
+      listSkillVersionsMock.mockReturnValueOnce(
+        phase === 'list' ? response.promise : Promise.resolve(versionPage()),
+      );
+      getSkillVersionMock.mockReturnValueOnce(detail.promise);
+      fireEvent.click(screen.getByRole('button', { name: 'Load versions' }));
+      if (phase === 'detail') {
+        fireEvent.click(
+          await screen.findByRole('button', {
+            name: 'View instructions for version 3',
+          }),
+        );
+        await waitFor(() =>
+          expect(getSkillVersionMock).toHaveBeenCalledTimes(1),
+        );
+      } else
+        await waitFor(() =>
+          expect(listSkillVersionsMock).toHaveBeenCalledTimes(1),
+        );
+      if (change === 'close' || change === 'selection') {
+        await act(async () => {
+          closeModal(ModalEnum.SKILL);
+        });
+        if (change === 'selection')
+          fireEvent.click(screen.getByText('Second imported personal skill'));
+      } else {
+        changeImportScope(change);
+        view.rerender(<BrandSettingsSkillsPage />);
+      }
+      await act(async () => {
+        response.resolve(versionPage());
+        detail.resolve({
+          ...versionPage().items[19],
+          instructionText: 'STALE_PRIVATE_VERSION',
+        });
+      });
+      expect(
+        screen.queryByText('STALE_PRIVATE_VERSION'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByLabelText('Version instructions'),
+      ).not.toBeInTheDocument();
     },
   );
 });

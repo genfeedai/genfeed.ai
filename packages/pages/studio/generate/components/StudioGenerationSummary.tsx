@@ -23,6 +23,7 @@ import { useTranslations } from 'next-intl';
 export default function StudioGenerationSummary({
   estimate,
   crunQuote,
+  isCollapsed = false,
   isLoadingModels,
   model,
   settings,
@@ -139,6 +140,7 @@ export default function StudioGenerationSummary({
           <Link
             className="rounded-sm underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             href={orgHref(APP_ROUTES.SETTINGS.CREDITS)}
+            tabIndex={isCollapsed ? -1 : undefined}
           >
             {balanceLabel}
           </Link>

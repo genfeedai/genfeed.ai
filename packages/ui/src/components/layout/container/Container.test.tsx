@@ -153,7 +153,7 @@ describe('Container', () => {
     ).toBe(`${pinned.offsetHeight}px`);
   });
 
-  it('keeps Help immediately left of chrome-only refresh actions', () => {
+  it('keeps Help beside Refresh in the trailing ghost cluster', () => {
     navigationState.hasCanonicalBreadcrumb = true;
 
     render(
@@ -161,7 +161,8 @@ describe('Container', () => {
         label="Activities"
         titleVisibility="sr-only"
         help={{ title: 'About Activities', body: 'Recent actions.' }}
-        right={<button type="button">Refresh</button>}
+        right={<button type="button">Filter</button>}
+        iconActions={<button type="button">Refresh</button>}
       >
         content
       </Container>,
@@ -173,8 +174,15 @@ describe('Container', () => {
     const headerActions = screen.getByTestId('container-header-actions');
 
     expect(actions).toHaveClass('justify-end');
-    expect(actions.firstElementChild).toBe(help);
-    expect(headerActions).toContainElement(refresh);
+    expect(screen.getByTestId('section-topbar-icon-actions')).toContainElement(
+      help,
+    );
+    expect(screen.getByTestId('section-topbar-icon-actions')).toContainElement(
+      refresh,
+    );
+    expect(headerActions).toContainElement(
+      screen.getByRole('button', { name: 'Filter' }),
+    );
     expect(headerActions.className).not.toMatch(/\bflex-1\b/);
     expect(
       help.compareDocumentPosition(refresh) & Node.DOCUMENT_POSITION_FOLLOWING,

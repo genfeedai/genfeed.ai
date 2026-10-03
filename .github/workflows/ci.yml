@@ -8,13 +8,15 @@ name: CI
 #     QA path) and pr-heavy-ci.yml (the `full-suite` PR label) pass
 #     `run_heavy_tests: true` for the complete matrix.
 #
-# There is no push or merge-queue trigger of its own. Master is validated by
+# Merge groups validate their combined source. Master is validated by
 # the Full Suite on every push (never cancelled mid-run), which inherits the
 # `push` event here; the master failure tracker keys off that event.
 on:
   pull_request:
     branches: [master]
     types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+    types: [checks_requested]
   workflow_call:
     inputs:
       run_heavy_tests:
@@ -40,15 +42,14 @@ concurrency:
 
 permissions:
   contents: read
-  pull-requests: write
-  statuses: write
+  pull-requests: read
 
 env:
   # The diff base for every "changed since base" step (turbo `--affected`,
   # vitest `--changed`, the PR test plan) is CI_BASE_SHA, resolved once by the
   # Plan job and passed to each job through `needs.plan.outputs.base`. Only
-  # pull requests have one; every other event runs the full paths.
-  CI_IS_CHANGE_RUN: ${{ github.event_name == 'pull_request' }}
+  # PRs and merge groups have one; other events run the full paths.
+  CI_IS_CHANGE_RUN: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
@@ -132,7 +133,10 @@ jobs:
           set -euo pipefail
           heavy=false
           reason='affected tier'
-          if [ "${RUN_HEAVY_INPUT}" = "true" ]; then
+          if [ "${GITHUB_EVENT_NAME}" = "merge_group" ]; then
+            heavy=true
+            reason='merge group (preserve all member escalations)'
+          elif [ "${RUN_HEAVY_INPUT}" = "true" ]; then
             heavy=true
             reason='run_heavy_tests input'
           elif [ "${FULL_SUITE_LABEL}" = "true" ]; then
@@ -157,11 +161,23 @@ jobs:
       # a full spec typecheck on an unrelated website PR, 2026-09-27).
       - name: Resolve diff base
         id: base
+        env:
+          MERGE_GROUP_BASE_SHA: ${{ github.event.merge_group.base_sha }}
         run: |
           set -euo pipefail
           base=''
           if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
             base="$(git rev-parse HEAD^1)"
+          elif [ "${GITHUB_EVENT_NAME}" = "merge_group" ]; then
+            base="${MERGE_GROUP_BASE_SHA}"
+            if ! [[ "${base}" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "::error::Invalid merge group base SHA"
+              exit 1
+            fi
+            if ! git merge-base --is-ancestor "${base}" HEAD; then
+              echo "::error::Merge group base is not an ancestor of HEAD"
+              exit 1
+            fi
           fi
           echo "sha=${base}" >>"${GITHUB_OUTPUT}"
           echo "CI_BASE_SHA=${base}" >>"${GITHUB_ENV}"
@@ -305,13 +321,8 @@ jobs:
         env:
           APPS_AFFECTED: ${{ steps.scope.outputs.apps_affected }}
         run: bun run scripts/ci/spec-typecheck-scope.ts
-      # Each of the solo workspaces typechecks most of the frontend graph
-      # through source-pointing path aliases and takes ~10 minutes on its own
-      # (measured 2026-09-27: app 679s, agent 627s, pages 614s, props 605s,
-      # ui 587s, hooks 561s; the other ~30 workspaces total ~5 minutes). Run in one job
-      # they made the full ratchet a 57-minute serial walk. Each solo workspace
-      # gets its own matrix leg; everything else shares one leg. A workspace
-      # missing from this list is only slower, never unchecked.
+      # Three balanced pools preserve the selected union while reducing runner
+      # startup/build repetition and queue pressure. Weights affect scheduling only.
       - name: Build spec typecheck matrix
         id: spec-matrix
         env:
@@ -428,7 +439,7 @@ jobs:
   spec-typecheck:
     name: Spec Typecheck (${{ matrix.name }})
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     needs: plan
     if: needs.plan.outputs.spec_run == 'true'
     strategy:
@@ -742,7 +753,7 @@ jobs:
     if: >-
       ${{ always()
       && !github.event.pull_request.draft
-      && (github.event_name == 'pull_request' || github.event_name == 'push') }}
+      && (github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'push') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 

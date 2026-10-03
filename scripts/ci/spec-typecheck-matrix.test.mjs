@@ -12,41 +12,50 @@ const SCRIPT = fileURLToPath(
   new URL('./spec-typecheck-matrix.mjs', import.meta.url),
 );
 
-test('gives each solo workspace its own leg and shares the rest', () => {
-  const matrix = buildSpecTypecheckMatrix({
-    workspaces: ['api', 'app', 'workers', 'props', 'utils'],
-    soloWorkspaces: ['app', 'agent', 'props'],
-  });
+test('caps heavy runner demand at three deterministic balanced pools', () => {
+  const workspaces = [
+    'api',
+    'workers',
+    'app',
+    'agent',
+    'props',
+    'hooks',
+    'pages',
+    'ui',
+    'utils',
+  ];
+  const matrix = buildSpecTypecheckMatrix({ workspaces });
+  assert.equal(matrix.include.length, 3);
+  assert.deepEqual(
+    matrix,
+    buildSpecTypecheckMatrix({ workspaces: [...workspaces].reverse() }),
+  );
+  assert.deepEqual(
+    matrix.include.flatMap((leg) => leg.workspaces.split(' ')).sort(),
+    workspaces.sort(),
+  );
+  for (const leg of matrix.include)
+    assert.ok(leg.workspaces.split(' ').length >= 2);
+});
 
-  assert.deepEqual(matrix.include, [
-    { name: 'app', workspaces: 'app' },
-    { name: 'props', workspaces: 'props' },
-    { name: 'shared', workspaces: 'api workers utils' },
+test('uses one pool for light scope, dedupes, validates names and handles empty scope', () => {
+  assert.deepEqual(buildSpecTypecheckMatrix({ workspaces: [] }).include, []);
+  assert.deepEqual(
+    buildSpecTypecheckMatrix({ workspaces: ['api', 'api'] }).include,
+    [{ name: 'pool-1', workspaces: 'api' }],
+  );
+  assert.deepEqual(buildSpecTypecheckMatrix({ workspaces: ['app'] }).include, [
+    { name: 'pool-1', workspaces: 'app' },
   ]);
-});
-
-test('omits the shared leg when only solo workspaces are in scope', () => {
-  const matrix = buildSpecTypecheckMatrix({
-    workspaces: ['app'],
-    soloWorkspaces: ['app'],
+  assert.throws(
+    () => buildSpecTypecheckMatrix({ workspaces: ['api;exit'] }),
+    /Invalid/,
+  );
+  const heavy = buildSpecTypecheckMatrix({
+    workspaces: ['future', 'app'],
+    soloWorkspaces: ['future'],
   });
-
-  assert.deepEqual(matrix.include, [{ name: 'app', workspaces: 'app' }]);
-});
-
-test('emits no legs for an empty scope and dedupes repeated workspaces', () => {
-  assert.deepEqual(
-    buildSpecTypecheckMatrix({ workspaces: [], soloWorkspaces: ['app'] })
-      .include,
-    [],
-  );
-  assert.deepEqual(
-    buildSpecTypecheckMatrix({
-      workspaces: ['api', 'api'],
-      soloWorkspaces: [],
-    }).include,
-    [{ name: 'shared', workspaces: 'api' }],
-  );
+  assert.equal(heavy.include.length, 2);
 });
 
 test('writes run and matrix outputs for the workflow', () => {

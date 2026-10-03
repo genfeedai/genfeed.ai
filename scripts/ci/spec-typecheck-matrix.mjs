@@ -1,9 +1,5 @@
 #!/usr/bin/env node
-// Splits the spec-typecheck scope into matrix legs. A handful of workspaces
-// each typecheck most of the frontend graph and take ~10 minutes alone; run
-// serially they turned the full ratchet into a 57-minute job. Each solo
-// workspace gets its own leg and every other workspace shares one, so the
-// ratchet's wall clock is bounded by its slowest workspace instead of the sum.
+// Bound runner demand while preserving every selected compiler program.
 import { appendFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
@@ -11,24 +7,51 @@ function splitWords(value) {
   return (value ?? '').split(/\s+/).filter(Boolean);
 }
 
-export function buildSpecTypecheckMatrix({ workspaces, soloWorkspaces }) {
-  const solo = new Set(soloWorkspaces);
-  const include = [];
-  const shared = [];
+// Cold execution seconds observed on 2026-09-27; estimates schedule work only,
+// never decide coverage or represent a latency guarantee (see issue #5862).
+export const SPEC_WORKSPACE_WEIGHTS = {
+  app: 679,
+  agent: 627,
+  pages: 614,
+  props: 605,
+  ui: 587,
+  hooks: 561,
+};
 
-  for (const workspace of new Set(workspaces)) {
-    if (solo.has(workspace)) {
-      include.push({ name: workspace, workspaces: workspace });
-    } else {
-      shared.push(workspace);
-    }
+export function buildSpecTypecheckMatrix({ workspaces, soloWorkspaces = [] }) {
+  const selected = [...new Set(workspaces)];
+  if (selected.some((name) => !/^[a-z0-9][a-z0-9-]*$/u.test(name))) {
+    throw new Error('Invalid spec workspace name');
   }
-
-  if (shared.length > 0) {
-    include.push({ name: 'shared', workspaces: shared.join(' ') });
+  if (selected.length === 0) return { include: [] };
+  const heavy = new Set([
+    ...Object.keys(SPEC_WORKSPACE_WEIGHTS),
+    ...soloWorkspaces,
+  ]);
+  const count = Math.min(
+    3,
+    Math.max(1, selected.filter((name) => heavy.has(name)).length),
+  );
+  const pools = Array.from({ length: count }, () => ({
+    workspaces: [],
+    weight: 0,
+  }));
+  const weight = (name) =>
+    SPEC_WORKSPACE_WEIGHTS[name] ?? (heavy.has(name) ? 600 : 10);
+  selected.sort((a, b) => weight(b) - weight(a) || a.localeCompare(b, 'en'));
+  for (const workspace of selected) {
+    const pool = pools.reduce((best, candidate) =>
+      candidate.weight < best.weight ? candidate : best,
+    );
+    pool.workspaces.push(workspace);
+    pool.weight += weight(workspace);
   }
-
-  return { include };
+  return {
+    include: pools.map((pool, index) => ({
+      name: `pool-${index + 1}`,
+      workspaces: pool.workspaces.join(' '),
+    })),
+  };
 }
 
 function runCli(env = process.env) {

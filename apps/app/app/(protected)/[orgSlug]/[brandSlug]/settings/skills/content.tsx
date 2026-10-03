@@ -21,6 +21,7 @@ import type {
   SkillsPageAction as PageAction,
   SkillsPageState as PageState,
   SkillDraft,
+  SkillVersionsState,
 } from '@props/settings/skills.props';
 import {
   classifySkillImportFailure,
@@ -64,7 +65,21 @@ function draftFromSkill(skill: Skill | null): SkillDraft {
   };
 }
 
+function emptyVersions(): SkillVersionsState {
+  return {
+    skillId: '',
+    items: [],
+    detail: null,
+    hasLoaded: false,
+    hasMore: false,
+    nextCursor: null,
+    isLoading: false,
+    error: null,
+  };
+}
+
 const initialState: PageState = {
+  versions: emptyVersions(),
   importFields: { files: [], slug: '', sourceUrl: '', checksum: '' },
   isImportOpen: false,
   isImporting: false,
@@ -88,6 +103,49 @@ const initialState: PageState = {
 
 function pageReducer(state: PageState, action: PageAction): PageState {
   switch (action.type) {
+    case 'VERSIONS_CLEAR':
+      return { ...state, versions: emptyVersions() };
+    case 'VERSIONS_START':
+      return {
+        ...state,
+        versions: {
+          ...state.versions,
+          skillId: action.skillId,
+          detail: null,
+          isLoading: true,
+          error: null,
+        },
+      };
+    case 'VERSIONS_LIST':
+      return {
+        ...state,
+        versions: {
+          skillId: action.skillId,
+          items: action.items,
+          detail: null,
+          isLoading: false,
+          hasLoaded: true,
+          hasMore: action.hasMore,
+          nextCursor: action.nextCursor,
+          error: null,
+        },
+      };
+    case 'VERSIONS_DETAIL':
+      return {
+        ...state,
+        versions: {
+          ...state.versions,
+          skillId: action.skillId,
+          detail: action.detail,
+          isLoading: false,
+          error: null,
+        },
+      };
+    case 'VERSIONS_ERROR':
+      return {
+        ...state,
+        versions: { ...emptyVersions(), error: action.message },
+      };
     case 'RESET':
       return {
         ...initialState,
@@ -130,6 +188,7 @@ function pageReducer(state: PageState, action: PageAction): PageState {
     case 'HYDRATE_SKILL':
       return {
         ...state,
+        versions: emptyVersions(),
         error: null,
         isSavingSkill: false,
         isCustomizing: false,
@@ -162,6 +221,7 @@ function pageReducer(state: PageState, action: PageAction): PageState {
     case 'SELECT_SKILL':
       return {
         ...state,
+        versions: emptyVersions(),
         isImportOpen: false,
         isImporting: false,
         selectedSkillId: action.id,
@@ -174,6 +234,7 @@ function pageReducer(state: PageState, action: PageAction): PageState {
     case 'CLEAR_SELECTED_SKILL':
       return {
         ...state,
+        versions: emptyVersions(),
         selectedSkillId: '',
         skillDraft: emptyDraft(),
         originalSkillDraft: emptyDraft(),
@@ -217,6 +278,7 @@ export default function BrandSettingsSkillsPage() {
 
   const catalogRequestIdRef = useRef(0);
   const catalogScopeKeyRef = useRef('');
+  const versionsRequestRef = useRef({ operationId: 0, pendingId: 0 });
   const lifecycleRef = useRef({
     isActive: true,
     epoch: 0,
@@ -277,6 +339,8 @@ export default function BrandSettingsSkillsPage() {
     lifecycleRef.current.pendingId = 0;
     lifecycleRef.current.selectedId = '';
     lifecycleRef.current.importSent = false;
+    versionsRequestRef.current.pendingId = 0;
+    versionsRequestRef.current.operationId += 1;
   }
 
   const skills =
@@ -350,6 +414,8 @@ export default function BrandSettingsSkillsPage() {
       lifecycleRef.current.epoch += 1;
       lifecycleRef.current.isActive = false;
       lifecycleRef.current.pendingId = 0;
+      versionsRequestRef.current.pendingId = 0;
+      versionsRequestRef.current.operationId += 1;
       closeModal(ModalEnum.SKILL);
     };
   }, [refreshCatalog]);
@@ -405,6 +471,9 @@ export default function BrandSettingsSkillsPage() {
       lifecycle.selectedId !== selectedSkill.id
     )
       return null;
+    versionsRequestRef.current.pendingId = 0;
+    versionsRequestRef.current.operationId += 1;
+    dispatch({ type: 'VERSIONS_CLEAR' });
     const epoch = lifecycle.epoch;
     const id = ++lifecycle.operationId;
     const selectedId = selectedSkill.id;
@@ -422,6 +491,88 @@ export default function BrandSettingsSkillsPage() {
       },
     };
   }, [isScopeMatch, scopeKey, selectedSkill]);
+
+  const handleReadVersions = useCallback(
+    async (kind: 'first' | 'older' | 'detail', versionId?: string) => {
+      const lifecycle = lifecycleRef.current;
+      if (
+        !isScopeMatch ||
+        !lifecycle.isActive ||
+        lifecycle.scopeKey !== scopeKey ||
+        !selectedSkill ||
+        selectedSkill.canRead !== true ||
+        lifecycle.selectedId !== selectedSkill.id ||
+        lifecycle.pendingId ||
+        isPending ||
+        versionsRequestRef.current.pendingId ||
+        !isModalOpen(ModalEnum.SKILL)
+      )
+        return;
+      const cursor = kind === 'older' ? state.versions.nextCursor : undefined;
+      if (kind === 'older' && (!state.versions.hasMore || cursor === null))
+        return;
+      if (
+        kind === 'detail' &&
+        (!versionId ||
+          !state.versions.items.some((item) => item.id === versionId))
+      )
+        return;
+      const epoch = lifecycle.epoch;
+      const selectedId = selectedSkill.id;
+      const operationId = ++versionsRequestRef.current.operationId;
+      versionsRequestRef.current.pendingId = operationId;
+      const isCurrent = () =>
+        lifecycleRef.current.isActive &&
+        lifecycleRef.current.epoch === epoch &&
+        lifecycleRef.current.scopeKey === scopeKey &&
+        lifecycleRef.current.selectedId === selectedId &&
+        versionsRequestRef.current.pendingId === operationId &&
+        !lifecycleRef.current.pendingId &&
+        isModalOpen(ModalEnum.SKILL);
+      dispatch({ type: 'VERSIONS_START', skillId: selectedId });
+      try {
+        const service = await acquireService(isCurrent);
+        if (!isCurrent() || !service) return;
+        if (kind === 'detail' && versionId) {
+          const detail = await service.getSkillVersion(selectedId, versionId);
+          if (!isCurrent()) return;
+          dispatch({ type: 'VERSIONS_DETAIL', skillId: selectedId, detail });
+        } else {
+          const page = await service.listSkillVersions(selectedId, {
+            limit: 20,
+            ...(cursor !== undefined && cursor !== null
+              ? { beforeVersionNumber: cursor }
+              : {}),
+          });
+          if (!isCurrent()) return;
+          dispatch({
+            type: 'VERSIONS_LIST',
+            skillId: selectedId,
+            items: page.items,
+            hasMore: page.hasMore,
+            nextCursor: page.nextCursor,
+          });
+        }
+      } catch {
+        if (!isCurrent()) return;
+        dispatch({
+          type: 'VERSIONS_ERROR',
+          message: translate('versions.unavailable'),
+        });
+      } finally {
+        if (isCurrent()) versionsRequestRef.current.pendingId = 0;
+      }
+    },
+    [
+      acquireService,
+      isPending,
+      isScopeMatch,
+      scopeKey,
+      selectedSkill,
+      state.versions,
+      translate,
+    ],
+  );
 
   const importLabels = useMemo<SkillImportFormLabels>(
     () => ({
@@ -727,6 +878,8 @@ export default function BrandSettingsSkillsPage() {
       lifecycleRef.current.epoch += 1;
       lifecycleRef.current.pendingId = 0;
       lifecycleRef.current.selectedId = id;
+      versionsRequestRef.current.pendingId = 0;
+      versionsRequestRef.current.operationId += 1;
       dispatch({ type: 'SELECT_SKILL', id, draft: draftFromSkill(skill) });
       openModal(ModalEnum.SKILL);
     },
@@ -734,6 +887,8 @@ export default function BrandSettingsSkillsPage() {
   );
 
   const handleCloseDetail = useCallback(() => {
+    versionsRequestRef.current.pendingId = 0;
+    versionsRequestRef.current.operationId += 1;
     lifecycleRef.current.epoch += 1;
     lifecycleRef.current.pendingId = 0;
     lifecycleRef.current.selectedId = '';
@@ -906,6 +1061,13 @@ export default function BrandSettingsSkillsPage() {
       />
 
       <SkillDetailSheet
+        versions={{
+          ...state.versions,
+          isDisabled: isPending,
+          onLoad: () => void handleReadVersions('first'),
+          onLoadOlder: () => void handleReadVersions('older'),
+          onView: (versionId) => void handleReadVersions('detail', versionId),
+        }}
         customizing={isCustomizing}
         error={error}
         hasChanges={preparedPatch.hasChanges}

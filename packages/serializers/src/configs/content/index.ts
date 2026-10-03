@@ -23,6 +23,7 @@ export * from '@serializers/configs/content/content-plan.config';
 export * from '@serializers/configs/content/content-plan-item.config';
 export * from '@serializers/configs/content/content-run.config';
 export * from '@serializers/configs/content/content-skill.config';
+export * from '@serializers/configs/content/content-skill-version.config';
 export * from '@serializers/configs/content/context-base.config';
 export * from '@serializers/configs/content/context-entry.config';
 export * from '@serializers/configs/content/dashboard-layout.config';

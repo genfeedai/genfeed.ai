@@ -421,3 +421,451 @@ describe('validated import safe error classification', () => {
     ).toBeNull();
   });
 });
+
+describe('SkillsService strict immutable version reads', () => {
+  function resource(versionNumber = 3) {
+    return {
+      type: 'skill-version',
+      id: `sv1_skill-1_${versionNumber}`,
+      attributes: {
+        versionNumber,
+        createdAt: '2026-10-02T10:20:30.000Z',
+        contentHash: `sha256:skill-v1:${'a'.repeat(64)}`,
+      },
+    };
+  }
+  function page() {
+    return {
+      data: [resource(3), resource(2)],
+      links: {
+        self: '/api/v1/skills/skill-1/versions?limit=2',
+        cursor: { limit: 2, hasMore: true, nextCursor: 2 },
+      },
+    };
+  }
+  function alteredMetadata(row: unknown) {
+    return { ...page(), data: [row, resource(2)] };
+  }
+  it('reads allowlisted raw metadata and explicit empty/whitespace/literal instruction snapshots without Skill deserialization', async () => {
+    const service = new SkillsService('fixture');
+    const http = installMockHttp(service);
+    http.get.mockResolvedValueOnce(axiosResponse(page()));
+    const result = await service.listSkillVersions('skill-1', { limit: 2 });
+    expect(result).toEqual({
+      items: page().data.map((row) => ({ id: row.id, ...row.attributes })),
+      limit: 2,
+      hasMore: true,
+      nextCursor: 2,
+    });
+    expect(result.items[0]).not.toBeInstanceOf(Skill);
+    expect(http.get).toHaveBeenCalledWith('/skill-1/versions', {
+      params: { limit: 2 },
+    });
+    for (const instructionText of [
+      '',
+      ' \n\t ',
+      '<script>PRIVATE_LITERAL</script>',
+    ]) {
+      http.get.mockResolvedValueOnce(
+        axiosResponse({
+          data: {
+            ...resource(),
+            attributes: { ...resource().attributes, instructionText },
+          },
+          links: { self: '/skills/skill-1/versions/sv1_skill-1_3' },
+        }),
+      );
+      expect(await service.getSkillVersion('skill-1', 'sv1_skill-1_3')).toEqual(
+        { id: resource().id, ...resource().attributes, instructionText },
+      );
+    }
+  });
+  it('accepts limit-one advancing continuation and a terminal empty page with default effective limit', async () => {
+    const service = new SkillsService('fixture');
+    const http = installMockHttp(service);
+    http.get.mockResolvedValueOnce(
+      axiosResponse({
+        ...page(),
+        data: [resource(2)],
+        links: {
+          ...page().links,
+          cursor: { limit: 1, hasMore: true, nextCursor: 2 },
+        },
+      }),
+    );
+    expect(
+      (
+        await service.listSkillVersions('skill-1', {
+          limit: 1,
+          beforeVersionNumber: 3,
+        })
+      ).nextCursor,
+    ).toBe(2);
+    http.get.mockResolvedValueOnce(
+      axiosResponse({
+        data: [],
+        links: {
+          self: '/skills/skill-1/versions',
+          cursor: { limit: 20, hasMore: false, nextCursor: null },
+        },
+      }),
+    );
+    expect((await service.listSkillVersions('skill-1')).items).toEqual([]);
+  });
+  it.each([
+    { ...page(), included: [] },
+    { ...page(), meta: {} },
+    alteredMetadata({ ...resource(), relationships: {} }),
+    alteredMetadata({ ...resource(), links: {} }),
+    alteredMetadata({ ...resource(), type: 'skills' }),
+    alteredMetadata({ ...resource(), id: 'sv1_foreign_3' }),
+    alteredMetadata({
+      ...resource(),
+      attributes: { ...resource().attributes, versionNumber: 3.5 },
+    }),
+    alteredMetadata({
+      ...resource(),
+      attributes: {
+        ...resource().attributes,
+        contentHash: `sha256:skill-v1:${'A'.repeat(64)}`,
+      },
+    }),
+    alteredMetadata({
+      ...resource(),
+      attributes: {
+        ...resource().attributes,
+        contentHash: `${resource().attributes.contentHash}\n`,
+      },
+    }),
+    alteredMetadata({
+      ...resource(),
+      attributes: {
+        ...resource().attributes,
+        createdAt: '2026-10-02T10:20:30+00:00',
+      },
+    }),
+    alteredMetadata({
+      ...resource(),
+      attributes: {
+        ...resource().attributes,
+        createdAt: '2026-02-30T10:20:30.000Z',
+      },
+    }),
+    {
+      ...page(),
+      data: [resource(2), resource(3)],
+      links: {
+        ...page().links,
+        cursor: { limit: 2, hasMore: true, nextCursor: 3 },
+      },
+    },
+    {
+      ...page(),
+      data: [resource(3), resource(3)],
+      links: {
+        ...page().links,
+        cursor: { limit: 2, hasMore: true, nextCursor: 3 },
+      },
+    },
+    {
+      ...page(),
+      links: {
+        ...page().links,
+        cursor: { limit: 3, hasMore: true, nextCursor: 2 },
+      },
+    },
+    {
+      ...page(),
+      links: {
+        ...page().links,
+        cursor: { limit: 2, hasMore: true, nextCursor: 3 },
+      },
+    },
+    {
+      ...page(),
+      links: {
+        ...page().links,
+        cursor: { limit: 2, hasMore: false, nextCursor: 2 },
+      },
+    },
+    {
+      ...page(),
+      links: {
+        ...page().links,
+        cursor: { limit: 2, hasMore: true, nextCursor: null },
+      },
+    },
+    {
+      ...page(),
+      links: {
+        ...page().links,
+        cursor: { limit: 2, hasMore: 'true', nextCursor: 2 },
+      },
+    },
+    {
+      ...page(),
+      links: {
+        ...page().links,
+        cursor: { limit: 2, hasMore: true, nextCursor: '2' },
+      },
+    },
+    {
+      ...page(),
+      links: {
+        ...page().links,
+        cursor: { limit: 2, hasMore: true, nextCursor: 2, payload: {} },
+      },
+    },
+    { ...page(), links: { ...page().links, unknown: 'PRIVATE_RAW' } },
+    { ...page(), links: { ...page().links, self: null } },
+    { ...page(), data: [resource(3), resource(2), resource(1)] },
+    {
+      ...page(),
+      data: [],
+      links: {
+        ...page().links,
+        cursor: { limit: 2, hasMore: true, nextCursor: 2 },
+      },
+    },
+  ])(
+    'rejects malformed metadata/pagination without partial results or retries',
+    async (wire) => {
+      const service = new SkillsService('fixture');
+      const http = installMockHttp(service);
+      http.get.mockResolvedValue(axiosResponse(wire));
+      await expect(
+        service.listSkillVersions('skill-1', { limit: 2 }),
+      ).rejects.toMatchObject({ message: 'Skill versions are unavailable.' });
+      expect(http.get).toHaveBeenCalledTimes(1);
+    },
+  );
+  it.each([
+    'payload',
+    'instructionText',
+    'instructionHash',
+    'createdById',
+    'instructionSourceField',
+    'instructionUsable',
+    'format',
+    'skillId',
+    'importProvenance',
+    'config',
+  ])('rejects protected metadata attribute %s', async (field) => {
+    const service = new SkillsService('fixture');
+    const http = installMockHttp(service);
+    http.get.mockResolvedValue(
+      axiosResponse(
+        alteredMetadata({
+          ...resource(),
+          attributes: { ...resource().attributes, [field]: 'PRIVATE_RAW' },
+        }),
+      ),
+    );
+    await expect(
+      service.listSkillVersions('skill-1', { limit: 2 }),
+    ).rejects.toMatchObject({ message: 'Skill versions are unavailable.' });
+  });
+  it('rejects request cursor violations, wrong detail identity and protected detail fields with the same sanitized denial', async () => {
+    const service = new SkillsService('fixture');
+    const http = installMockHttp(service);
+    http.get.mockResolvedValueOnce(axiosResponse(page()));
+    await expect(
+      service.listSkillVersions('skill-1', {
+        limit: 2,
+        beforeVersionNumber: 3,
+      }),
+    ).rejects.toMatchObject({ message: 'Skill versions are unavailable.' });
+    for (const data of [
+      {
+        ...resource(2),
+        attributes: { ...resource(2).attributes, instructionText: '' },
+      },
+      {
+        ...resource(),
+        attributes: {
+          ...resource().attributes,
+          instructionText: '',
+          payload: 'PRIVATE_RAW',
+        },
+      },
+      {
+        ...resource(),
+        attributes: { ...resource().attributes, instructionText: null },
+      },
+    ]) {
+      http.get.mockResolvedValueOnce(
+        axiosResponse({
+          data,
+          links: { self: '/skills/skill-1/versions/sv1_skill-1_3' },
+        }),
+      );
+      await expect(
+        service.getSkillVersion('skill-1', 'sv1_skill-1_3'),
+      ).rejects.toMatchObject({ message: 'Skill versions are unavailable.' });
+    }
+    http.get.mockRejectedValueOnce({
+      status: 404,
+      detail: 'PRIVATE_RAW_DENIAL',
+    });
+    const error = await service
+      .getSkillVersion('skill-1', 'sv1_skill-1_3')
+      .catch((failure: unknown) => failure);
+    expect(error).toMatchObject({ message: 'Skill versions are unavailable.' });
+    expect(error).not.toHaveProperty('cause');
+    expect(JSON.stringify(error)).not.toContain('PRIVATE_RAW');
+  });
+  it.each([
+    { limit: 0 },
+    { limit: 51 },
+    { limit: 1.5 },
+    { limit: Number.NaN },
+    { beforeVersionNumber: 0 },
+    { beforeVersionNumber: 2147483648 },
+    { limit: 20, organizationId: 'foreign' },
+  ])('rejects invalid feature queries before dispatch', async (query) => {
+    const service = new SkillsService('fixture');
+    const http = installMockHttp(service);
+    await expect(
+      service.listSkillVersions('skill-1', query),
+    ).rejects.toMatchObject({ message: 'Skill versions are unavailable.' });
+    expect(http.get).not.toHaveBeenCalled();
+  });
+  it.each([
+    'payload',
+    'config',
+    'importProvenance',
+    'instructionHash',
+    'createdById',
+    'format',
+    'skillId',
+    'instructionSourceField',
+    'instructionUsable',
+  ])('rejects protected detail attribute %s', async (field) => {
+    const service = new SkillsService('fixture');
+    const http = installMockHttp(service);
+    http.get.mockResolvedValue(
+      axiosResponse({
+        data: {
+          ...resource(),
+          attributes: {
+            ...resource().attributes,
+            instructionText: '',
+            [field]: 'PRIVATE_RAW',
+          },
+        },
+        links: { self: '/skills/skill-1/versions/sv1_skill-1_3' },
+      }),
+    );
+    await expect(
+      service.getSkillVersion('skill-1', 'sv1_skill-1_3'),
+    ).rejects.toMatchObject({ message: 'Skill versions are unavailable.' });
+    expect(http.get).toHaveBeenCalledTimes(1);
+  });
+  it.each([
+    'sv1_foreign_3',
+    'sv1_skill-1_03',
+    'sv1_skill-1_3\n',
+    'sv1_skill-1_2147483648',
+  ])(
+    'rejects malformed requested version %j before HTTP',
+    async (versionId) => {
+      const service = new SkillsService('fixture');
+      const http = installMockHttp(service);
+      await expect(
+        service.getSkillVersion('skill-1', versionId),
+      ).rejects.toMatchObject({ message: 'Skill versions are unavailable.' });
+      expect(http.get).not.toHaveBeenCalled();
+    },
+  );
+  it('accepts the maximum bounded page without accumulating hidden evidence', async () => {
+    const service = new SkillsService('fixture');
+    const http = installMockHttp(service);
+    http.get.mockResolvedValue(
+      axiosResponse({
+        data: Array.from({ length: 50 }, (_, index) => resource(100 - index)),
+        links: {
+          self: '/skills/skill-1/versions?limit=50',
+          cursor: { limit: 50, hasMore: true, nextCursor: 51 },
+        },
+      }),
+    );
+    expect(
+      (await service.listSkillVersions('skill-1', { limit: 50 })).items,
+    ).toHaveLength(50);
+  });
+});
+
+describe('SkillsService versions scoped HTTP transport', () => {
+  it('uses only explicit version query fields, encodes identities, preserves actor/organization headers and does not follow self links', async () => {
+    const metadata = {
+      type: 'skill-version',
+      id: 'sv1_skill-1_2',
+      attributes: {
+        versionNumber: 2,
+        createdAt: '2026-10-02T10:20:30.000Z',
+        contentHash: `sha256:skill-v1:${'a'.repeat(64)}`,
+      },
+    };
+    const adapter = vi.fn<AxiosAdapter>(async (config) => ({
+      config,
+      data: config.url?.endsWith('/versions')
+        ? {
+            data: [metadata],
+            links: {
+              self: 'https://inert.example.test/path',
+              cursor: { limit: 1, hasMore: true, nextCursor: 2 },
+            },
+          }
+        : {
+            data: {
+              ...metadata,
+              attributes: { ...metadata.attributes, instructionText: '' },
+            },
+            links: { self: '/api/v1/skills/skill-1/versions/sv1_skill-1_2' },
+          },
+      headers: {},
+      status: 200,
+      statusText: 'OK',
+    }));
+    const create = axios.create.bind(axios);
+    const spy = vi
+      .spyOn(axios, 'create')
+      .mockImplementation((config) => create({ ...config, adapter }));
+    setRequestOrganizationId('org-versions');
+    try {
+      const service = SkillsService.forOrganization(
+        'versions-token',
+        'org-versions',
+      );
+      await service.listSkillVersions('skill-1', {
+        limit: 1,
+        beforeVersionNumber: 3,
+      });
+      await service.getSkillVersion('skill-1', 'sv1_skill-1_2');
+      expect(adapter).toHaveBeenCalledTimes(2);
+      expect(adapter.mock.calls[0][0].url).toBe('/skill-1/versions');
+      expect(adapter.mock.calls[0][0].params).toEqual({
+        limit: 1,
+        beforeVersionNumber: 3,
+      });
+      expect(adapter.mock.calls[1][0].url).toBe(
+        '/skill-1/versions/sv1_skill-1_2',
+      );
+      expect(adapter.mock.calls[1][0].params).toBeUndefined();
+      for (const [config] of adapter.mock.calls) {
+        expect(config.headers[ORGANIZATION_CONTEXT_HEADER]).toBe(
+          'org-versions',
+        );
+        expect(config.headers.Authorization).toBe('Bearer versions-token');
+      }
+      setRequestOrganizationId('org-other');
+      await expect(
+        service.getSkillVersion('skill-1', 'sv1_skill-1_2'),
+      ).rejects.toMatchObject({ message: 'Skill versions are unavailable.' });
+      expect(adapter).toHaveBeenCalledTimes(2);
+    } finally {
+      clearRequestOrganizationId();
+      spy.mockRestore();
+    }
+  });
+});

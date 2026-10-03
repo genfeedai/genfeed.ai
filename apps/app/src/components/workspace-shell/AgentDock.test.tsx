@@ -224,8 +224,10 @@ describe('AgentDock', () => {
     );
   });
 
-  it('returns keyboard focus to the conversation bubble after the overlay closes', async () => {
+  it('returns keyboard focus to the page control on prompt-bar pages after the overlay closes', async () => {
     const dock = buildDock({ isOpen: false });
+    const opener = document.createElement('button');
+    document.body.append(opener);
     const view = render(
       <AgentDock
         chrome="bubble"
@@ -239,11 +241,7 @@ describe('AgentDock', () => {
         </div>
       </AgentDock>,
     );
-    const launcher = screen.getByTestId('agent-conversation-bubble');
-    launcher.focus();
-    fireEvent.click(launcher);
-    expect(dock.open).toHaveBeenCalledTimes(1);
-
+    opener.focus();
     view.rerender(
       <AgentDock
         chrome="bubble"
@@ -272,11 +270,8 @@ describe('AgentDock', () => {
       </AgentDock>,
     );
 
-    await waitFor(() =>
-      expect(document.activeElement).toBe(
-        screen.getByTestId('agent-conversation-bubble'),
-      ),
-    );
+    await waitFor(() => expect(document.activeElement).toBe(opener));
+    opener.remove();
   });
 
   it('moves focus into the composer when it opens', () => {
@@ -446,7 +441,7 @@ describe('AgentDock', () => {
     ).toBeNull();
   });
 
-  it('shows a chat bubble on major prompt-bar pages and an overlay when open', async () => {
+  it('hides the chat bubble on major prompt-bar pages and preserves explicitly opened conversations', async () => {
     const dock = buildDock({ isOpen: false, open: vi.fn() });
     const { rerender } = render(
       <AgentDock
@@ -460,11 +455,8 @@ describe('AgentDock', () => {
       </AgentDock>,
     );
 
-    expect(screen.getByTestId('agent-conversation-bubble')).toBeVisible();
+    expect(screen.queryByTestId('agent-conversation-bubble')).toBeNull();
     expect(screen.queryByTestId('agent-page-promptbar')).toBeNull();
-
-    fireEvent.click(screen.getByTestId('agent-conversation-bubble'));
-    expect(dock.open).toHaveBeenCalledTimes(1);
 
     rerender(
       <AgentDock
@@ -484,13 +476,7 @@ describe('AgentDock', () => {
     expect(overlay).toHaveStyle({ transformOrigin: 'bottom right' });
     expect(overlay.style.transform).toContain('--bubble-from-x');
     expect(overlay).toHaveTextContent('Conversation transcript');
-    expect(screen.getByTestId('agent-conversation-bubble')).toHaveAttribute(
-      'tabindex',
-      '-1',
-    );
-    expect(
-      screen.getByTestId('agent-conversation-bubble').closest('[inert]'),
-    ).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.queryByTestId('agent-conversation-bubble')).toBeNull();
 
     await act(async () => {
       await new Promise((resolve) => {

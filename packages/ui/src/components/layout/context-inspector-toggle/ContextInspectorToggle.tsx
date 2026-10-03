@@ -3,7 +3,11 @@
 import { useContextSidebar } from '@genfeedai/contexts/ui/context-sidebar-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
-import { PanelRightClose, PanelRightOpen } from 'lucide-react';
+import {
+  SHELL_ICON_BUTTON_CLASS,
+  SHELL_ICON_CLASS,
+} from '@ui-constants/shell-chrome.constant';
+import { PanelRightOpen } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   createContext,
@@ -61,7 +65,7 @@ export function InspectorToggleFallback() {
 
   return (
     <div
-      className="flex shrink-0 justify-end border-b border-border px-4 py-1.5"
+      className="flex min-h-11 shrink-0 justify-end border-b border-border px-4 py-1.5"
       data-testid="content-inspector-fallback"
     >
       <ContextInspectorToggle />
@@ -128,43 +132,50 @@ export default function ContextInspectorToggle() {
 
   return (
     <>
-      <Button
-        aria-controls="workspace-context-inspector"
-        aria-expanded={sidebar.isOpen}
-        ariaLabel={sidebar.isOpen ? translate('collapse') : translate('expand')}
-        className="hidden size-8 xl:inline-flex"
-        data-active={sidebar.isOpen ? 'true' : 'false'}
-        data-testid="topbar-inspector-toggle"
-        onClick={sidebar.toggle}
-        size={ButtonSize.ICON}
-        type="button"
-        variant={ButtonVariant.GHOST}
-      >
-        {sidebar.isOpen ? (
-          <PanelRightClose className="size-4" />
-        ) : (
-          <PanelRightOpen className="size-4" />
-        )}
-      </Button>
-      <Button
-        aria-controls="workspace-context-inspector-drawer"
-        aria-expanded={sidebar.isMobileOpen}
-        ariaLabel={
-          sidebar.isMobileOpen ? translate('close') : translate('open')
-        }
-        className="inline-flex size-8 xl:hidden"
-        data-testid="topbar-inspector-drawer-toggle"
-        onClick={() => sidebar.setIsMobileOpen(!sidebar.isMobileOpen)}
-        size={ButtonSize.ICON}
-        type="button"
-        variant={ButtonVariant.GHOST}
-      >
-        {sidebar.isMobileOpen ? (
-          <PanelRightClose className="size-4" />
-        ) : (
-          <PanelRightOpen className="size-4" />
-        )}
-      </Button>
+      {!sidebar.isOpen ? (
+        <Button
+          aria-controls="workspace-context-inspector"
+          aria-expanded={sidebar.isOpen}
+          ariaLabel={translate('expand')}
+          tooltip={translate('expand')}
+          className={`max-xl:hidden ${SHELL_ICON_BUTTON_CLASS}`}
+          data-active={sidebar.isOpen ? 'true' : 'false'}
+          data-testid="topbar-inspector-toggle"
+          onClick={() => {
+            sidebar.toggle();
+            requestAnimationFrame(() =>
+              document
+                .querySelector<HTMLButtonElement>(
+                  '[data-testid="context-sidebar-close"]',
+                )
+                ?.focus({ preventScroll: true }),
+            );
+          }}
+          size={ButtonSize.ICON}
+          type="button"
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
+        >
+          <PanelRightOpen className={SHELL_ICON_CLASS} />
+        </Button>
+      ) : null}
+      {!sidebar.isMobileOpen ? (
+        <Button
+          aria-controls="workspace-context-inspector-drawer"
+          aria-expanded={sidebar.isMobileOpen}
+          ariaLabel={translate('open')}
+          tooltip={translate('open')}
+          className={`inline-flex xl:hidden ${SHELL_ICON_BUTTON_CLASS}`}
+          data-testid="topbar-inspector-drawer-toggle"
+          onClick={() => sidebar.setIsMobileOpen(!sidebar.isMobileOpen)}
+          size={ButtonSize.ICON}
+          type="button"
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
+        >
+          <PanelRightOpen className={SHELL_ICON_CLASS} />
+        </Button>
+      ) : null}
     </>
   );
 }

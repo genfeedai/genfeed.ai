@@ -24,6 +24,15 @@ vi.mock(
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ organizationId: 'org-1' }),
 }));
+vi.mock(
+  '@genfeedai/contexts/user/organization-context/organization-context',
+  () => ({
+    useRoutedOrganization: () => ({
+      confirmedOrganizationId: 'org-1',
+      isRouteConfirmed: true,
+    }),
+  }),
+);
 
 vi.mock('@genfeedai/config/license', async (importOriginal) => {
   const actual =

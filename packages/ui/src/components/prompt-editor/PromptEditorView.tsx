@@ -139,6 +139,7 @@ function PromptEditorView({
     <EditorContent
       className={cn(
         'min-w-0 flex-1 [&_.ProseMirror]:min-h-9 [&_.ProseMirror]:max-h-28 [&_.ProseMirror]:overflow-y-auto',
+        '[&_.ProseMirror_p.is-editor-empty:first-child]:before:pointer-events-none [&_.ProseMirror_p.is-editor-empty:first-child]:before:float-left [&_.ProseMirror_p.is-editor-empty:first-child]:before:h-0 [&_.ProseMirror_p.is-editor-empty:first-child]:before:text-muted-foreground [&_.ProseMirror_p.is-editor-empty:first-child]:before:content-[attr(data-placeholder)]',
         className,
       )}
       data-testid={testId}

@@ -18,12 +18,6 @@ vi.mock('@pages/studio/generate/components/StudioGenerateCard', () => ({
   ),
 }));
 
-vi.mock('@ui/display/masonry/Masonry', () => ({
-  default: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="studio-masonry">{children}</div>
-  ),
-}));
-
 const assetActions = {
   onClickIngredient: vi.fn(),
   onConvertToVideo: vi.fn(),
@@ -60,7 +54,7 @@ describe('StudioGenerateResults', () => {
     expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
   });
 
-  it('uses the shared masonry gallery for generated assets', () => {
+  it('uses a row-based grid for generated assets', () => {
     render(
       <StudioGenerateResults
         assetActions={assetActions}
@@ -80,7 +74,7 @@ describe('StudioGenerateResults', () => {
       />,
     );
 
-    expect(screen.getByTestId('studio-masonry')).toBeInTheDocument();
+    expect(screen.getByTestId('studio-grid')).toHaveClass('grid', 'gap-2');
     expect(screen.getByText('asset-1')).toBeInTheDocument();
     expect(screen.getByText('asset-1')).toHaveAttribute(
       'data-card-view',
@@ -169,9 +163,12 @@ describe('StudioGenerateResults', () => {
       />,
     );
 
-    expect(screen.getAllByTestId('studio-masonry')).toHaveLength(1);
-    expect(screen.getByTestId('studio-masonry')).toHaveTextContent('asset-1');
-    expect(screen.getByTestId('studio-masonry')).toHaveTextContent('asset-2');
+    const grid = screen.getByTestId('studio-grid');
+    expect(screen.getAllByTestId('studio-grid')).toHaveLength(1);
+    expect(Array.from(grid.children, (card) => card.textContent)).toEqual([
+      'asset-1',
+      'asset-2',
+    ]);
   });
 
   it('offers a readable list of the results sheet', () => {
@@ -195,7 +192,7 @@ describe('StudioGenerateResults', () => {
     );
 
     expect(screen.getByTestId('studio-list')).toBeInTheDocument();
-    expect(screen.queryByTestId('studio-masonry')).toBeNull();
+    expect(screen.queryByTestId('studio-grid')).toBeNull();
     expect(screen.getByTestId('studio-generate-results')).toHaveAttribute(
       'data-results-view',
       'list',

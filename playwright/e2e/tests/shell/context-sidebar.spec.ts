@@ -182,29 +182,31 @@ test.describe('Context sidebar — selection driven', () => {
     expect(authenticatedPage.url()).toBe(studioUrl);
   });
 
-  test('keeps the selection while the topbar collapses and reopens it', async ({
+  test('closes details from inside the sidebar and reopens from the asset', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.setViewportSize({ height: 900, width: 1440 });
     await openStudioList(authenticatedPage);
-
-    await authenticatedPage
-      .getByTestId(`studio-asset-${ASSET_ID}`)
-      .getByText(ASSET_PROMPT)
-      .click();
-
+    const card = authenticatedPage.getByTestId(`studio-asset-${ASSET_ID}`);
+    await card.getByText(ASSET_PROMPT).click();
     const contextSidebar = authenticatedPage.getByRole('complementary', {
       name: 'Selection details',
     });
-    const toggle = authenticatedPage.getByTestId('topbar-inspector-toggle');
-    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-
-    await toggle.click();
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    await expect(contextSidebar).toHaveAttribute('inert', '');
-
-    await toggle.click();
-    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(
+      contextSidebar.getByTestId('studio-generate-inspector'),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByTestId('topbar-inspector-toggle'),
+    ).toHaveCount(0);
+    await contextSidebar.getByTestId('context-sidebar-close').click();
+    await expect(card).toHaveAttribute('data-selected', 'false');
+    await expect(
+      authenticatedPage.locator('#workspace-context-inspector'),
+    ).toHaveAttribute('inert', '');
+    await expect(
+      authenticatedPage.getByTestId('topbar-inspector-toggle'),
+    ).toHaveCount(0);
+    await card.getByText(ASSET_PROMPT).click();
     await expect(
       contextSidebar.getByTestId('studio-generate-inspector'),
     ).toBeVisible();

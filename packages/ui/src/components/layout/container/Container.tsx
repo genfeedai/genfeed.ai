@@ -51,6 +51,7 @@ export default function Container({
   left,
   leading,
   right,
+  iconActions,
   isTopbarPinned = false,
   topbarFooter,
   help,
@@ -73,7 +74,8 @@ export default function Container({
   const activeTab = controlledActiveTab ?? internalActiveTab;
   const onTabChange = controlledOnTabChange ?? setInternalActiveTab;
 
-  const hasHeaderRight = Boolean(right) || Boolean(helpNode);
+  const hasHeaderRight =
+    Boolean(right) || Boolean(iconActions) || Boolean(helpNode);
   const hasBodyTabs = Boolean(tabs && tabs.length > 0);
   // Prefer explicit headerTabs. Body tabs + primary actions used to render as
   // a right-only bar with an orphan strip underneath — always promote.
@@ -108,6 +110,7 @@ export default function Container({
       shouldPromoteBodyTabs ||
       shouldLiftBodyTabsAlone ||
       hasLeading ||
+      Boolean(iconActions) ||
       (!hasVisibleTitle && hasHeaderRight));
 
   // Dev-only regression net for the flip class of bug this file exists to
@@ -216,6 +219,7 @@ export default function Container({
         ) : undefined
       }
       help={resolvedHelp}
+      iconActions={iconActions}
       tabs={moduleTabsNode ?? undefined}
       forceVisible={moduleChrome === true}
     />
@@ -258,8 +262,9 @@ export default function Container({
               <h1 className="sr-only">{sectionTitle}</h1>
             )}
             {leading}
-            {helpNode}
             {right}
+            {helpNode}
+            {iconActions}
             {moduleTabsNode}
           </div>
         ) : usesModuleLocalChrome ? (
@@ -293,8 +298,9 @@ export default function Container({
               data-testid="container-header-actions"
               className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2.5"
             >
-              {helpNode}
               {right}
+              {helpNode}
+              {iconActions}
             </div>
           </div>
         ) : null}
