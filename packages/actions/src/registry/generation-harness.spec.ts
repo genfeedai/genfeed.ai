@@ -33,8 +33,7 @@ describe('generation harness catalog', () => {
     (surface) => {
       const tools = getToolsForSurface(surface);
       for (const name of [
-        'get_generation_cost',
-        'get_generation_settings',
+        'get_generation_options',
         'set_generation_settings',
       ]) {
         expect(tools.find((tool) => tool.name === name)).toMatchObject({
@@ -48,12 +47,11 @@ describe('generation harness catalog', () => {
       'direct',
     );
     expect(
-      getToolByName('get_generation_cost')?.mutationPolicy,
+      getToolByName('get_generation_options')?.mutationPolicy,
     ).toBeUndefined();
-    expect(getToolByName('get_generation_cost')?.toolset).toBe('generation');
-    expect(
-      getToolByName('get_generation_settings')?.mutationPolicy,
-    ).toBeUndefined();
+    expect(getToolByName('get_generation_options')?.toolset).toBe('generation');
+    expect(getToolByName('get_generation_cost')).toBeUndefined();
+    expect(getToolByName('get_generation_settings')).toBeUndefined();
   });
   it('declares a strict optional boolean on generate', () => {
     const tool = getToolByName('generate');

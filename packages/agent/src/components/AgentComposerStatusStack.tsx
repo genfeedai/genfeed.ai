@@ -77,9 +77,8 @@ const GENERATION_TOOL_NAMES = new Set([
   'generate_content_batch',
   'ingest_source_media',
   'prepare_generation',
-  'reframe_image',
   'suggest_ingredient_alternatives',
-  'upscale_image',
+  'transform_media',
 ]);
 
 function getAssetType(event: AgentWorkEvent): ComposerTask['assetType'] {
