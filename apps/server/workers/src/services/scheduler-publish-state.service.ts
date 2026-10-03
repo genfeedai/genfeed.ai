@@ -1,6 +1,8 @@
 import {
   invalidateLearningDependencySource,
-  learningFence,
+  type LearningMutationFenceScope,
+  learningMutationFence,
+  withLearningFenceEscalation,
 } from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import { loadLearningPublicationAssociationV1 } from '@api/collections/content-learning/services/learning-publication-source.helper';
@@ -111,11 +113,20 @@ export class SchedulerPublishStateService {
   }
 
   async transition(input: SchedulerPublishStateInput): Promise<boolean> {
+    return withLearningFenceEscalation((scope) =>
+      this.transitionWithinFence(input, scope),
+    );
+  }
+
+  private async transitionWithinFence(
+    input: SchedulerPublishStateInput,
+    scope: LearningMutationFenceScope,
+  ): Promise<boolean> {
     for (let attempt = 1; attempt <= MAX_SERIALIZABLE_ATTEMPTS; attempt++) {
       try {
         const applied = await this.prisma.$transaction(
-          (tx) => this.applyTransition(input, tx),
-          // Read after exclusive F is granted: a pre-fence snapshot can miss
+          (tx) => this.applyTransition(input, tx, scope),
+          // Read after the exclusive fence is granted: a pre-fence snapshot can miss
           // a projection's newly committed dependencies during invalidation.
           { isolationLevel: 'ReadCommitted' },
         );
@@ -140,8 +151,11 @@ export class SchedulerPublishStateService {
   private async applyTransition(
     input: SchedulerPublishStateInput,
     tx: Prisma.TransactionClient,
+    scope: LearningMutationFenceScope,
   ): Promise<boolean> {
-    await learningFence(tx, 'exclusive');
+    // Per-organization fence: publishes in different organizations never wait
+    // on each other; cross-tenant invalidations escalate to the global fence.
+    await learningMutationFence(tx, input.organizationId, scope);
     const request = this.buildTransitionRequest(input);
 
     const where = {

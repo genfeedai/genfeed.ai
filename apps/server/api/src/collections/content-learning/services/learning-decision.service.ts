@@ -6,7 +6,7 @@ import {
 import { LearningCheckpointService } from '@api/collections/content-learning/services/learning-checkpoint.service';
 import {
   LearningDependencyService,
-  learningFence,
+  learningOrgFence,
 } from '@api/collections/content-learning/services/learning-dependency.service';
 import {
   learningHash,
@@ -649,7 +649,7 @@ export class LearningDecisionService {
     )
       throw new BadRequestException('Invalid learning request identity');
     return this.prisma.$transaction(async (tx) => {
-      await learningFence(tx, 'shared');
+      await learningOrgFence(tx, input.organizationId, 'shared');
       const objective = context.objective ?? 'awareness',
         destinationKey = learningHash([credentialId, input.format, objective]);
       const payloadHash = learningHash([
@@ -862,7 +862,7 @@ export class LearningDecisionService {
     const canonical = { ...payload, text: payload.text.replace(/\r\n/g, '\n') };
     const hash = learningHash(canonical);
     return this.prisma.$transaction(async (tx) => {
-      await learningFence(tx, 'shared');
+      await learningOrgFence(tx, organizationId, 'shared');
       await tx.$queryRaw`SELECT id FROM content_learning_decisions WHERE id = ${decisionId} AND "organizationId" = ${organizationId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
       const decision = await tx.contentLearningDecision.findFirst({
         where: {
@@ -897,7 +897,7 @@ export class LearningDecisionService {
     payload: Parameters<LearningDecisionService['bindArtifact']>[2],
   ) {
     return this.prisma.$transaction(async (tx) => {
-      await learningFence(tx, 'shared');
+      await learningOrgFence(tx, organizationId, 'shared');
       await tx.$queryRaw`SELECT id FROM content_learning_decisions WHERE id = ${decisionId} AND "organizationId" = ${organizationId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
       await tx.$queryRaw`SELECT id FROM posts WHERE id = ${postId} AND "organizationId" = ${organizationId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
       const decision = await tx.contentLearningDecision.findFirst({

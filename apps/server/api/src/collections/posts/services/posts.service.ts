@@ -1,4 +1,5 @@
 import process from 'node:process';
+import { withLearningFenceEscalation } from '@api/collections/content-learning/services/learning-dependency.service';
 import { CredentialEntity } from '@api/collections/credentials/entities/credential.entity';
 import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
 import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
@@ -234,12 +235,15 @@ export class PostsService extends BaseService<
     data: Record<string, unknown>,
     populate: PopulateInput,
   ): Promise<PostDocument> {
-    const result = await this.prisma.$transaction((tx) =>
-      createPostChildWithLearning(
-        tx,
-        this.postLearningContext(),
-        data,
-        populate,
+    const result = await withLearningFenceEscalation((fenceScope) =>
+      this.prisma.$transaction((tx) =>
+        createPostChildWithLearning(
+          tx,
+          this.postLearningContext(),
+          data,
+          populate,
+          fenceScope,
+        ),
       ),
     );
     await this.invalidatePostMutationCache();
@@ -368,8 +372,17 @@ export class PostsService extends BaseService<
     if (!id) throw new ValidationException('Document ID is required');
     if (!dto || typeof dto !== 'object')
       throw new ValidationException('Update data is required');
-    const result = await this.prisma.$transaction((tx) =>
-      patchPostWithLearning(tx, this.postLearningContext(), id, dto, populate),
+    const result = await withLearningFenceEscalation((fenceScope) =>
+      this.prisma.$transaction((tx) =>
+        patchPostWithLearning(
+          tx,
+          this.postLearningContext(),
+          id,
+          dto,
+          populate,
+          fenceScope,
+        ),
+      ),
     );
     const { updatedPost, currentPost, isPublishingPost } = result;
     await this.invalidatePostMutationCache();
@@ -968,8 +981,10 @@ export class PostsService extends BaseService<
       throw new Error('Post ID is required');
     }
 
-    const result = await this.prisma.$transaction((tx) =>
-      removePostWithLearning(tx, this.postLearningContext(), id),
+    const result = await withLearningFenceEscalation((fenceScope) =>
+      this.prisma.$transaction((tx) =>
+        removePostWithLearning(tx, this.postLearningContext(), id, fenceScope),
+      ),
     );
     if (!result) {
       this.logger.warn(`Post ${id} not found for deletion`);

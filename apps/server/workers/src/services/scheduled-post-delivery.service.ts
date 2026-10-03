@@ -70,6 +70,12 @@ import {
   toValidationMedia,
 } from '@workers/services/scheduled-post-media-gate.util';
 import {
+  findReplayableProviderReceipt,
+  markProviderReceiptPersisted,
+  ProviderPublishPersistenceError,
+  recordProviderReceipt,
+} from '@workers/services/scheduled-post-provider-receipt.util';
+import {
   queueLearningPublicationRefreshV1,
   type SchedulerPublishFinalizationInput,
   SchedulerPublishStateService,
@@ -193,6 +199,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         url,
       );
     } catch (error: unknown) {
+      if (error instanceof ProviderPublishPersistenceError) throw error;
       return await this.handlePublishError(post, error);
     }
   }
@@ -583,27 +590,95 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     workflowExecutionId: string,
     url: string,
   ): Promise<PublishResult> {
-    try {
-      const result = await prepared.publisher.publish(prepared.context);
-
-      if (result.success) {
-        return await this.persistProviderSuccess(
-          post,
-          result,
-          prepared,
-          workflowExecutionId,
-          url,
-        );
+    const receipt = await findReplayableProviderReceipt(this.prisma, post);
+    let result: PublishResult;
+    if (receipt) {
+      result = receipt.result;
+      this.logger.warn(`${url} replaying recorded provider publish`, {
+        externalId: result.externalId,
+        postId: post.id.toString(),
+        receiptId: receipt.id,
+      });
+    } else {
+      try {
+        result = await prepared.publisher.publish(prepared.context);
+        if (!result.success) {
+          return await this.handlePublishFailure(
+            post,
+            result,
+            prepared.platform,
+            workflowExecutionId,
+          );
+        }
+      } catch (error: unknown) {
+        return await this.handlePublishError(post, error, workflowExecutionId);
       }
+    }
 
-      return await this.handlePublishFailure(
+    // The provider accepted the post: from here a failure must never reach
+    // the publish retry path, or the next attempt would publish it again.
+    const receiptId =
+      receipt?.id ??
+      (await this.recordProviderReceipt(
+        post,
+        workflowExecutionId,
+        result,
+        url,
+      ));
+    let persisted: boolean;
+    try {
+      persisted = await this.persistProviderSuccess(
         post,
         result,
-        prepared.platform,
+        prepared,
         workflowExecutionId,
+        url,
       );
     } catch (error: unknown) {
-      return await this.handlePublishError(post, error, workflowExecutionId);
+      if (!(error instanceof ProviderPublishPersistenceError)) {
+        return await this.handlePublishError(post, error, workflowExecutionId);
+      }
+      this.logger.error(`${url} provider publish persistence failed`, {
+        error: getErrorMessage(error.cause),
+        externalId: result.externalId,
+        hasReceipt: receiptId !== null,
+        postId: post.id.toString(),
+      });
+      throw error;
+    }
+    if (persisted && receiptId) {
+      await markProviderReceiptPersisted(this.prisma, post, receiptId).catch(
+        (error: unknown) =>
+          this.logger.warn(`${url} provider receipt not retired`, {
+            error: getErrorMessage(error),
+            postId: post.id.toString(),
+            receiptId,
+          }),
+      );
+    }
+    return result;
+  }
+
+  private async recordProviderReceipt(
+    post: PostEntity,
+    workflowExecutionId: string,
+    result: PublishResult,
+    url: string,
+  ): Promise<string | null> {
+    try {
+      return await recordProviderReceipt(
+        this.prisma,
+        post,
+        workflowExecutionId,
+        result,
+      );
+    } catch (error: unknown) {
+      this.logger.error(`${url} provider publish receipt not recorded`, {
+        error: getErrorMessage(error),
+        externalId: result.externalId,
+        postId: post.id.toString(),
+      });
+      return null;
     }
   }
 
@@ -613,7 +688,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     prepared: PreparedPostDelivery,
     workflowExecutionId: string,
     url: string,
-  ): Promise<PublishResult> {
+  ): Promise<boolean> {
     const transitionGuard: SchedulerPublishTransitionGuard = {
       expectedWorkflowExecutionId: workflowExecutionId,
       priorExecutionStates: [TargetExecutionState.PUBLISHING],
@@ -627,7 +702,8 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     }
 
     if (result.executionState === TargetExecutionState.PUBLISHING) {
-      const persisted = await this.persistPublishState(
+      const persisted = await this.persistAcceptedPublishState(
+        result,
         post,
         {
           error: null,
@@ -640,7 +716,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         transitionGuard,
       );
       if (!persisted) {
-        return result;
+        return false;
       }
 
       this.logger.log(`${url} post marked PENDING for deferred verification`, {
@@ -648,12 +724,13 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         postId: post.id.toString(),
         publishId: result.externalId,
       });
-      return result;
+      return true;
     }
 
     const isProviderDraft = result.isProviderDraft === true;
     const publishedAt = new Date();
-    const persisted = await this.persistPublishState(
+    const persisted = await this.persistAcceptedPublishState(
+      result,
       post,
       {
         error: null,
@@ -680,7 +757,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         : undefined,
     );
     if (!persisted) {
-      return result;
+      return false;
     }
 
     const children = (post.children || []) as unknown as PostDocument[];
@@ -708,7 +785,26 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       },
     );
 
-    return result;
+    return true;
+  }
+
+  /**
+   * Persist a provider-accepted publish. A failure is surfaced as
+   * ProviderPublishPersistenceError so no caller treats it as a publish error.
+   */
+  private async persistAcceptedPublishState(
+    result: PublishResult,
+    ...args: Parameters<ScheduledPostDeliveryService['persistPublishState']>
+  ): Promise<boolean> {
+    try {
+      return await this.persistPublishState(...args);
+    } catch (error: unknown) {
+      throw new ProviderPublishPersistenceError(
+        args[0].id.toString(),
+        result.externalId,
+        error,
+      );
+    }
   }
 
   /**

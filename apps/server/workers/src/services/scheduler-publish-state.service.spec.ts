@@ -846,10 +846,12 @@ describe('learning publication transaction boundary', () => {
     return { sources, pin };
   }
 
-  it('takes F first, then existing accounts before scoped source locks and lifecycle', async () => {
+  it('takes the organization fence first, then existing accounts before scoped source locks and lifecycle', async () => {
     const h = harness();
     await h.service.transition(h.input);
-    expect(h.trace[0]).toContain('pg_advisory_xact_lock(5728, 1)');
+    expect(h.trace[0]).toContain('pg_advisory_xact_lock_shared(5728, 1)');
+    expect(h.trace[1]).toContain('pg_advisory_xact_lock(?::int, hashtext(?))');
+    expect(h.trace.join('\n')).not.toContain('pg_advisory_xact_lock(5728, 1)');
     const locks = h.trace.filter((value) => value.includes('SELECT id'));
     expect(locks.map((value) => value.match(/FROM (\w+)/)?.[1])).toEqual([
       'content_learning_accounts',
