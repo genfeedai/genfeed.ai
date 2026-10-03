@@ -1,5 +1,10 @@
 // Deployment
-export type { ClientSurface, Deployment, EnvValueReader } from './deployment';
+export type {
+  ClientSurface,
+  Deployment,
+  EnvValueReader,
+  TrustProxySetting,
+} from './deployment';
 export {
   envFlag,
   getClientSurface,
@@ -17,6 +22,8 @@ export {
   isHostedGenfeedHostname,
   isSaaS,
   isSelfHostedDeployment,
+  parseTrustProxy,
+  resolveTrustProxyFromReader,
 } from './deployment';
 export {
   conditionalRequired,

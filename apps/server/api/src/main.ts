@@ -42,6 +42,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { ExpressAdapter } from '@bull-board/express';
+import { resolveTrustProxyFromReader } from '@genfeedai/config/deployment';
 import {
   initializeLicenseVerification,
   reportLicenseVerificationWarning,
@@ -144,7 +145,15 @@ async function main() {
       DEFAULT_API_LISTEN_TIMEOUT_MS,
     );
 
-    app.set('trust proxy', 1);
+    // Cloud trusts the ALB hop; self-host trusts no forwarded header unless
+    // TRUST_PROXY names the proxy, so a direct client cannot spoof request.ip.
+    app.set(
+      'trust proxy',
+      resolveTrustProxyFromReader((key) => {
+        const value = configService.get(key);
+        return typeof value === 'string' ? value : undefined;
+      }),
+    );
     app.enableShutdownHooks();
 
     const nodeEnv = configService.get('NODE_ENV');
