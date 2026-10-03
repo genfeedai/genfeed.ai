@@ -5,6 +5,7 @@ import type {
   BrandedGenerationReceiptInspectorState,
 } from '@genfeedai/props/content/branded-generation-receipt.props';
 import { useBrandedGenerationReceipt } from '@hooks/ui/generation-receipts/use-branded-generation-receipt';
+import BrandIdentitySnapshotView from '@ui/components/generation-receipts/BrandIdentitySnapshotView';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 
@@ -300,6 +301,16 @@ export default function BrandedGenerationReceiptInspector(
   const state = useBrandedGenerationReceipt(props);
   const t = useTranslations('pages.generationReceipts');
   if (!props.isOpen) return null;
+  const receipt = state.receipt;
+  // Show only the snapshot recorded on this exact loaded receipt revision.
+  const isRequestedReceipt = Boolean(
+    receipt &&
+      receipt.organizationId === props.organizationId &&
+      receipt.brandId === props.brandId &&
+      ('receiptId' in receipt ? receipt.receiptId : receipt.id) ===
+        props.receiptId &&
+      (props.revision === undefined || receipt.revision === props.revision),
+  );
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
@@ -323,9 +334,16 @@ export default function BrandedGenerationReceiptInspector(
           {t(state.error === 'unavailable' ? 'unavailable' : 'loadFailed')}
         </p>
       ) : null}
-      {state.receipt ? (
+      {receipt ? (
         <>
-          <SavedMetadata receipt={state.receipt} />
+          <SavedMetadata receipt={receipt} />
+          <BrandIdentitySnapshotView
+            snapshot={isRequestedReceipt ? receipt.snapshot : null}
+            organizationId={props.organizationId}
+            brandId={props.brandId}
+            source="receipt_snapshot"
+            receiptRevision={receipt.revision}
+          />
           <SavedPrompts {...state} />
         </>
       ) : null}
