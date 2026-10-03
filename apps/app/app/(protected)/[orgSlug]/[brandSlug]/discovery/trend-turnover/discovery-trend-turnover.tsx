@@ -30,7 +30,7 @@ const PERIOD_OPTIONS = [
   { days: 90 as const, label: '90D' },
 ];
 
-export default function AnalyticsTrendTurnover() {
+export default function DiscoveryTrendTurnover() {
   const getTrendsService = useAuthedService((token: string) =>
     TrendsService.getInstance(token),
   );

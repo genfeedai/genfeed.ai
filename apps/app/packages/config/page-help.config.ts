@@ -33,11 +33,6 @@ export const PAGE_HELP_ROUTES: PageHelpRoute[] = [
     key: 'analyticsPerformanceLab',
     prefix: APP_ROUTES.ANALYTICS.PERFORMANCE_LAB,
   },
-  { key: 'analyticsTrends', prefix: APP_ROUTES.ANALYTICS.TRENDS },
-  {
-    key: 'analyticsTrendTurnover',
-    prefix: APP_ROUTES.ANALYTICS.TREND_TURNOVER,
-  },
   { key: 'library', prefix: APP_ROUTES.LIBRARY.ROOT },
   { key: 'libraryTrash', prefix: '/library/trash' },
   { key: 'studioGenerate', prefix: APP_ROUTES.STUDIO.GENERATE },
@@ -50,6 +45,11 @@ export const PAGE_HELP_ROUTES: PageHelpRoute[] = [
   { key: 'messagesReplies', prefix: APP_ROUTES.MESSAGES.REPLIES },
   { key: 'messagesReplyDrip', prefix: APP_ROUTES.MESSAGES.REPLY_DRIP },
   { key: 'discoveryOverview', prefix: APP_ROUTES.DISCOVERY.OVERVIEW },
+  { key: 'discoveryTrends', prefix: APP_ROUTES.DISCOVERY.TRENDS },
+  {
+    key: 'discoveryTrendTurnover',
+    prefix: APP_ROUTES.DISCOVERY.TREND_TURNOVER,
+  },
   { key: 'discoveryAds', prefix: APP_ROUTES.DISCOVERY.ADS },
 ];
 

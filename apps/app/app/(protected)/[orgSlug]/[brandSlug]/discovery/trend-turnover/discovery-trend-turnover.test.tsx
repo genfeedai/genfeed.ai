@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import AnalyticsTrendTurnover from './analytics-trend-turnover';
+import DiscoveryTrendTurnover from './discovery-trend-turnover';
 
 const mocks = vi.hoisted(() => ({
   getService: vi.fn(),
@@ -207,7 +207,7 @@ const turnoverResponse = {
   },
 };
 
-describe('AnalyticsTrendTurnover', () => {
+describe('DiscoveryTrendTurnover', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getTurnoverStats.mockResolvedValue(turnoverResponse);
@@ -217,7 +217,7 @@ describe('AnalyticsTrendTurnover', () => {
   });
 
   it('loads trend turnover KPIs, chart, table, and volatility bars', async () => {
-    render(<AnalyticsTrendTurnover />);
+    render(<DiscoveryTrendTurnover />);
 
     expect(
       screen.getByRole('heading', {
@@ -263,7 +263,7 @@ describe('AnalyticsTrendTurnover', () => {
       })
       .mockRejectedValueOnce(new Error('network down'));
 
-    render(<AnalyticsTrendTurnover />);
+    render(<DiscoveryTrendTurnover />);
 
     expect(
       await screen.findByText('No trend data for this period'),

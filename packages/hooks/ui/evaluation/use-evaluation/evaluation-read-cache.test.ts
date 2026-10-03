@@ -67,7 +67,7 @@ describe('Persisted evaluation scoped video cache', () => {
       expect(evaluationReadScopeKey(...parts)).not.toBe(key);
     }
     expect(evaluationVideosQueryKey(key)).toEqual([
-      'analytics-trends-videos',
+      'analytics-top-videos',
       key,
     ]);
   });

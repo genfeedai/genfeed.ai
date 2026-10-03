@@ -115,8 +115,6 @@ describe('ANALYTICS_MENU_ITEMS', () => {
       'Hooks',
       'Outliers',
       'Performance Lab',
-      'Trends',
-      'Trend Turnover',
     ]);
   });
 
@@ -128,13 +126,11 @@ describe('ANALYTICS_MENU_ITEMS', () => {
     expect(new Set(solidIcons).size).toBe(solidIcons.length);
   });
 
-  it('exposes trends behind a nav entry', () => {
-    // Regression guard for the orphaned `/analytics/trends` route: the page,
-    // its drilldowns, and the workspace-shell breadcrumbs existed, but nothing
-    // linked to it.
-    expect(ANALYTICS_MENU_ITEMS.map((item) => item.href)).toContain(
-      '/analytics/trends',
-    );
+  it('leaves market trends to Discovery', () => {
+    const hrefs = ANALYTICS_MENU_ITEMS.map((item) => item.href);
+
+    expect(hrefs).not.toContain('/analytics/trends');
+    expect(hrefs).not.toContain('/analytics/trend-turnover');
   });
 
   it('exposes every analytics page behind a nav entry', () => {

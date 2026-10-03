@@ -9,20 +9,16 @@ import {
 import Card from '@ui/card/Card';
 import { Flame, Hash, Music } from 'lucide-react';
 
-import CrossPlatformLeaderboardSection from './CrossPlatformLeaderboardSection';
-import PlaybookSection from './PlaybookSection';
 import TrendingTopicsSection from './TrendingTopicsSection';
 import TrendsPageHeader from './TrendsPageHeader';
-import { useAnalyticsTrends } from './useAnalyticsTrends';
+import { useDiscoveryTrends } from './useDiscoveryTrends';
 
-export default function AnalyticsTrends() {
+export default function DiscoveryTrends() {
   const {
     PLATFORM_CONFIG_LOOKUP,
     TRENDS_PLATFORMS,
-    creatorLeaderboard,
     corpusHealth,
     formattedLastSyncedAt,
-    handleHashtagClick,
     handleRemixClose,
     handleSoundClick,
     handleVideoClick,
@@ -32,11 +28,7 @@ export default function AnalyticsTrends() {
     isLoadingSounds,
     isLoadingTrends,
     isLoadingVideos,
-    isUsingCachedVideos,
-    hasVideoReadError,
-    retryEvaluationRead,
     leadingPlatform,
-    playbooks,
     remixVideo,
     setHashtagPlatform,
     setVideoTimeframe,
@@ -45,9 +37,8 @@ export default function AnalyticsTrends() {
     trendingSounds,
     trendingTopics,
     videoTimeframe,
-    viralLeaderboard,
     viralVideos,
-  } = useAnalyticsTrends();
+  } = useDiscoveryTrends();
 
   return (
     <div className="space-y-8 pb-12">
@@ -61,7 +52,6 @@ export default function AnalyticsTrends() {
         totalTrackedTopics={totalTrackedTopics}
       />
 
-      {/* Trending Topics Section */}
       <section>
         <Card
           className="backdrop-blur"
@@ -74,14 +64,13 @@ export default function AnalyticsTrends() {
             trendingTopics={trendingTopics}
             platformConfigLookup={PLATFORM_CONFIG_LOOKUP}
             getRowLink={(item) => ({
-              href: `/analytics/trends/detail/${item.id}`,
+              href: `/discovery/trends/detail/${item.id}`,
               label: `Open ${item.topic}`,
             })}
           />
         </Card>
       </section>
 
-      {/* Viral Video Leaderboard Section */}
       <section>
         <Card className="backdrop-blur" bodyClassName="space-y-6">
           <ViralVideoLeaderboard
@@ -94,7 +83,6 @@ export default function AnalyticsTrends() {
         </Card>
       </section>
 
-      {/* Trending Hashtags Section */}
       <section>
         <Card
           className="backdrop-blur"
@@ -107,12 +95,10 @@ export default function AnalyticsTrends() {
             isLoading={isLoadingHashtags}
             selectedPlatform={hashtagPlatform}
             onPlatformChange={setHashtagPlatform}
-            onHashtagClick={handleHashtagClick}
           />
         </Card>
       </section>
 
-      {/* Trending Sounds Section */}
       <section>
         <Card
           className="backdrop-blur"
@@ -127,22 +113,6 @@ export default function AnalyticsTrends() {
           />
         </Card>
       </section>
-
-      <CrossPlatformLeaderboardSection
-        isUsingCachedVideos={isUsingCachedVideos}
-        hasVideoReadError={hasVideoReadError}
-        onRetryEvaluationRead={() => {
-          void retryEvaluationRead();
-        }}
-        viralLeaderboard={viralLeaderboard}
-        creatorLeaderboard={creatorLeaderboard}
-        platformConfigLookup={PLATFORM_CONFIG_LOOKUP}
-      />
-
-      <PlaybookSection
-        playbooks={playbooks}
-        platformConfigLookup={PLATFORM_CONFIG_LOOKUP}
-      />
 
       <HookRemixModal
         video={remixVideo}

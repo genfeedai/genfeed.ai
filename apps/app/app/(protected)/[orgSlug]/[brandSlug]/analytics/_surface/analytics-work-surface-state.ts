@@ -107,32 +107,12 @@ function resolveDescriptor(route: string): AnalyticsSurfaceDescriptor {
   if (route === '/analytics/outliers') {
     return {
       cacheMinutes: 15,
-      filterKeys: ['platform'],
+      defaultFilters: { timeframe: '72h' },
+      filterKeys: ['platform', 'timeframe'],
       label: 'Outliers',
       maxVisibleResults: 50,
       metrics: ['views'],
       source: 'genfeed-analytics-api',
-    };
-  }
-  if (route === '/analytics/trends') {
-    return {
-      cacheMinutes: 30,
-      defaultFilters: { timeframe: '72h' },
-      filterKeys: ['platform', 'timeframe'],
-      label: 'Analytics trends',
-      maxVisibleResults: 12,
-      metrics: ['views', 'engagementRate'],
-      source: 'genfeed-trends-api',
-    };
-  }
-  if (route.startsWith('/analytics/trends/')) {
-    return {
-      cacheMinutes: 30,
-      filterKeys: [],
-      label: 'Trend analytics',
-      maxVisibleResults: 50,
-      metrics: ['views', 'engagementRate'],
-      source: 'genfeed-trends-api',
     };
   }
   if (route === '/analytics/performance-lab') {
@@ -259,16 +239,6 @@ function resolveSelectedResource(
   const brandMatch = route.match(/^\/analytics\/brands\/([^/]+)$/);
   if (brandMatch) {
     return { id: brandMatch[1], kind: 'brand' };
-  }
-  const trendMatch = route.match(/^\/analytics\/trends\/detail\/([^/]+)$/);
-  if (trendMatch) {
-    return { id: trendMatch[1], kind: 'trend' };
-  }
-  const trendPlatformMatch = route.match(
-    /^\/analytics\/trends\/platforms\/([^/]+)$/,
-  );
-  if (trendPlatformMatch) {
-    return { id: trendPlatformMatch[1], kind: 'platform' };
   }
   return undefined;
 }

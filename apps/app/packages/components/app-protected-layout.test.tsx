@@ -1027,10 +1027,10 @@ describe('AppProtectedLayout', () => {
     ['/org-123/brand-123/library', 'Library', 'Overview'],
     ['/org-123/brand-123/library/videos', 'Library', 'Assets'],
     ['/org-123/brand-123/studio/clips', 'Studio', 'Clips'],
-    ['/org-123/brand-123/analytics/trends', 'Analytics', 'Trends'],
+    ['/org-123/brand-123/discovery/trends', 'Discovery', 'Trends'],
     [
-      '/org-123/brand-123/analytics/trends/detail/trend-1',
-      'Analytics',
+      '/org-123/brand-123/discovery/trends/detail/trend-1',
+      'Discovery',
       'Trend Detail',
     ],
     ['/org-123/brand-123/automation/workflows', 'Automation', 'Workflows'],

@@ -48,7 +48,7 @@ describe('Analytics work surface state', () => {
 
   it('canonicalizes unsafe filters and invalid future date ranges', () => {
     const restored = restoreAnalyticsSurfaceState({
-      pathname: '/acme/moonrise/analytics/trends',
+      pathname: '/acme/moonrise/analytics/outliers',
       searchParams: new URLSearchParams(
         'startDate=2999-01-01&endDate=2999-01-02&platform=%00invalid&timeframe=forever',
       ),

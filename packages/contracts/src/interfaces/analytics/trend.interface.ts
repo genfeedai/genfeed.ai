@@ -81,14 +81,6 @@ export interface ITrendAccount {
   collaborationReady?: boolean;
 }
 
-export interface ITrendPlaybook {
-  id: string;
-  title: string;
-  description: string;
-  action: string;
-  platforms: string[];
-}
-
 export interface ITrendHashtag {
   id: string;
   platform: string;

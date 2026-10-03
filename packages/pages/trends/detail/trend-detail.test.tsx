@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import TrendDetail from '@pages/analytics/trends/trend-detail/trend-detail';
+import TrendDetail from '@pages/trends/detail/trend-detail';
 import type { TrendDetailData } from '@props/trends/trends-page.props';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

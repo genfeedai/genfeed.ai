@@ -1,6 +1,4 @@
-import RemixBriefInspector from '@app-components/research/remix/RemixBriefInspector';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import { DiscoveryRemixProvider } from '@pages/research/remix/DiscoveryRemixProvider';
 import TrendsPlatformDetail from '@pages/trends/platform-detail/trends-platform-detail';
 import {
   getTrendPlatformLabel,
@@ -24,7 +22,7 @@ export async function generateMetadata({
   return createPageMetadata(`${getTrendPlatformLabel(platform)} Trends`);
 }
 
-export default async function AnalyticsTrendsPlatformPage({
+export default async function DiscoveryTrendsPlatformPage({
   params,
 }: {
   params: Promise<{ platform: string }>;
@@ -37,13 +35,7 @@ export default async function AnalyticsTrendsPlatformPage({
 
   return (
     <Suspense fallback={null}>
-      <DiscoveryRemixProvider>
-        <RemixBriefInspector />
-        <TrendsPlatformDetail
-          platform={platform as TrendPlatform}
-          basePath="/analytics/trends"
-        />
-      </DiscoveryRemixProvider>
+      <TrendsPlatformDetail platform={platform as TrendPlatform} />
     </Suspense>
   );
 }

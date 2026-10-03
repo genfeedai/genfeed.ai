@@ -3469,14 +3469,6 @@
       "title": "Performance Lab",
       "body": "Experiments and comparisons across variants. Set up a test, then read the results here."
     },
-    "analyticsTrends": {
-      "title": "Trends",
-      "body": "Topics and formats gaining traction across platforms, scored for relevance to your brand."
-    },
-    "analyticsTrendTurnover": {
-      "title": "Trend turnover",
-      "body": "How fast trends rise and fade on each platform, so you can time content before a topic peaks."
-    },
     "library": {
       "title": "Library",
       "body": "All generated and uploaded assets. Browse by type or shelf, star favorites, and reuse anything in Studio or Publishing."
@@ -3524,6 +3516,14 @@
     "discoveryOverview": {
       "title": "Discovery",
       "body": "Content from accounts and topics you follow, ranked by what is moving. Save anything to remix later."
+    },
+    "discoveryTrends": {
+      "title": "Trends",
+      "body": "Topics, viral videos, hashtags, and sounds gaining traction across platforms, with the health of each trend source."
+    },
+    "discoveryTrendTurnover": {
+      "title": "Trend turnover",
+      "body": "How fast trends rise and fade on each platform, so you can time content before a topic peaks."
     },
     "discoveryAds": {
       "title": "Ads research",

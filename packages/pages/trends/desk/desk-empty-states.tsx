@@ -7,7 +7,7 @@ import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import { EmptyStateCard } from '@ui/feedback';
 import { Button } from '@ui/primitives/button';
-import { AtSign, Link2, TrendingUp } from 'lucide-react';
+import { Activity, AtSign, Link2, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
@@ -57,6 +57,7 @@ export function DeskEmptyState({
   onClearSearch,
   onRefresh,
   publishingHref,
+  sourceHealthHref,
 }: {
   followingHref: string;
   hasSearch: boolean;
@@ -64,6 +65,7 @@ export function DeskEmptyState({
   onClearSearch: () => void;
   onRefresh: () => void;
   publishingHref: string;
+  sourceHealthHref: string;
 }) {
   const translateDesk = useTranslations('common.trends.desk');
 
@@ -101,6 +103,12 @@ export function DeskEmptyState({
               {translateDesk('emptyState.followCreators')}
             </Link>
           </Button>
+          <Button asChild size={ButtonSize.SM} variant={ButtonVariant.GHOST}>
+            <Link href={sourceHealthHref}>
+              <Activity className="size-3.5" />
+              Check source health
+            </Link>
+          </Button>
           <Button
             isLoading={isRefreshing}
             label="Refresh"
@@ -110,7 +118,7 @@ export function DeskEmptyState({
           />
         </div>
       }
-      description="No saved observed posts are available for this brand yet. Coverage depends on connected accounts and followed creators."
+      description="No saved observed posts are available for this brand yet. Coverage depends on connected accounts, followed creators, and trend source refreshes."
       icon={TrendingUp}
       label="No saved posts yet"
     />

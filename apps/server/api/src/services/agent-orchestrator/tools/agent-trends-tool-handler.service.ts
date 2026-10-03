@@ -58,8 +58,8 @@ export class AgentTrendsToolHandler {
         : `${platformLabel ? `${platformLabel} trends` : 'Trends'} loaded`;
     const summaryText =
       trendCount === 0
-        ? `No ${platformLabel ? `${platformLabel} trends` : 'trends'} are available in the cached corpus right now. Open trends analytics to confirm source coverage before retrying this task.`
-        : `Loaded ${trendCount} ${platformLabel ? `${platformLabel} ` : ''}trend${trendCount === 1 ? '' : 's'} from the cached corpus. Open trends analytics to review the strongest hooks and decide what to remix.`;
+        ? `No ${platformLabel ? `${platformLabel} trends` : 'trends'} are available in the cached corpus right now. Open Discovery trends to confirm source coverage before retrying this task.`
+        : `Loaded ${trendCount} ${platformLabel ? `${platformLabel} ` : ''}trend${trendCount === 1 ? '' : 's'} from the cached corpus. Open Discovery trends to review the strongest hooks and decide what to remix.`;
 
     const outcomeBullets =
       trendCount === 0
@@ -88,8 +88,8 @@ export class AgentTrendsToolHandler {
       id: `trends-${(platform ?? 'all').trim().toLowerCase() || 'all'}-${Date.now()}`,
       outcomeBullets,
       primaryCta: {
-        href: '/analytics/trends',
-        label: 'Open trends analytics',
+        href: '/discovery/trends',
+        label: 'Open trends',
       },
       status: 'completed' as const,
       summaryText,

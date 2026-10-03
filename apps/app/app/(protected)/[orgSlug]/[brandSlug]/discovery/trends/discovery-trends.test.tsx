@@ -1,15 +1,10 @@
 import '@testing-library/jest-dom/vitest';
 import { Platform, Timeframe } from '@genfeedai/contracts';
-import {
-  evaluationVideoCache,
-  evaluationVideosQueryKey,
-  invalidateEvaluationVideoRead,
-} from '@hooks/ui/evaluation/use-evaluation/evaluation-read-cache';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { type ReactNode, StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import AnalyticsTrends from './analytics-trends';
+import DiscoveryTrends from './discovery-trends';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
@@ -17,19 +12,15 @@ vi.mock('next-intl', async () => {
 });
 
 const mocks = vi.hoisted(() => ({
-  scopeKey: 'scoped-video-read',
-  videoCache: new Map<string, unknown>(),
   cacheGet: vi.fn(),
   cacheSet: vi.fn(),
-  findAllVideos: vi.fn(),
   getCorpusFreshnessHealth: vi.fn(),
   getTrendsDiscovery: vi.fn(),
   getTrendingHashtags: vi.fn(),
   getTrendingSounds: vi.fn(),
   getTrendingTopics: vi.fn(),
-  getOutlierService: vi.fn(),
   getTrendsService: vi.fn(),
-  getVideosService: vi.fn(),
+  getViralVideos: vi.fn(),
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
   open: vi.fn(),
@@ -37,38 +28,21 @@ const mocks = vi.hoisted(() => ({
   viralVideoProps: vi.fn(),
 }));
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  isBrandResourceReady: () => true,
+  useCollectionScope: () => ({
     brandId: 'brand-1',
     isReady: true,
     organizationId: 'org-1',
+    pageScope: 'brand',
   }),
-  useBrandId: () => 'brand-1',
 }));
 
-vi.mock(
-  '@hooks/ui/evaluation/use-evaluation/evaluation-read-cache',
-  async (importOriginal) => ({
-    ...(await importOriginal<
-      typeof import('@hooks/ui/evaluation/use-evaluation/evaluation-read-cache')
-    >()),
-    useEvaluationReadScopeKey: () => mocks.scopeKey,
-  }),
-);
-
 vi.mock('@helpers/data/cache/cache.helper', () => ({
-  createLocalStorageCache: (config: { prefix: string }) =>
-    config.prefix === 'trends:evaluation-videos:'
-      ? {
-          get: (key: string) => mocks.videoCache.get(key) ?? null,
-          set: (key: string, value: unknown) =>
-            mocks.videoCache.set(key, value),
-          remove: (key: string) => mocks.videoCache.delete(key),
-        }
-      : {
-          get: mocks.cacheGet,
-          set: mocks.cacheSet,
-        },
+  createLocalStorageCache: () => ({
+    get: mocks.cacheGet,
+    set: mocks.cacheSet,
+  }),
 }));
 
 vi.mock('@helpers/formatting/date/date.helper', () => ({
@@ -80,24 +54,7 @@ vi.mock('@helpers/formatting/format/format.helper', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: (factory: (token: string) => unknown) => {
-    const service = factory('mock-token');
-    if (service === 'videos-service') return mocks.getVideosService;
-    if (service === 'outliers-service') return mocks.getOutlierService;
-    return mocks.getTrendsService;
-  },
-}));
-
-vi.mock('@services/ingredients/videos.service', () => ({
-  VideosService: {
-    getInstance: vi.fn(() => 'videos-service'),
-  },
-}));
-
-vi.mock('@services/analytics/outlier-baselines.service', () => ({
-  OutlierBaselinesService: {
-    getInstance: vi.fn(() => 'outliers-service'),
-  },
+  useAuthedService: () => mocks.getTrendsService,
 }));
 
 vi.mock('@pages/trends/list/components/HookRemixModal', () => ({
@@ -136,12 +93,10 @@ vi.mock('@services/social/trends.service', () => ({
 vi.mock('@ui/analytics/trends', () => ({
   TrendingHashtags: ({
     hashtags,
-    onHashtagClick,
     onPlatformChange,
     selectedPlatform,
   }: {
     hashtags: Array<{ hashtag: string }>;
-    onHashtagClick: (hashtag: { hashtag: string }) => void;
     onPlatformChange: (platform: string) => void;
     selectedPlatform: string;
   }) => (
@@ -151,13 +106,7 @@ vi.mock('@ui/analytics/trends', () => ({
         Filter YouTube Hashtags
       </button>
       {hashtags.map((hashtag) => (
-        <button
-          key={hashtag.hashtag}
-          type="button"
-          onClick={() => onHashtagClick(hashtag)}
-        >
-          {hashtag.hashtag}
-        </button>
+        <span key={hashtag.hashtag}>{hashtag.hashtag}</span>
       ))}
     </section>
   ),
@@ -338,23 +287,17 @@ function makeTrend(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function makeVideo(overrides: Record<string, unknown> = {}) {
+function makeViralVideo(overrides: Record<string, unknown> = {}) {
   return {
-    brand: { label: 'Creator' },
-    createdAt: new Date().toISOString(),
-    evaluation: {
-      actualPerformance: {
-        engagementRate: 8.5,
-        views: 100_000,
-      },
-      externalContent: { platform: Platform.TIKTOK },
-      scores: { engagement: { viralityPotential: 91 } },
-    },
-    id: 'video-1',
-    ingredientUrl: 'https://example.test/video',
-    metadataLabel: 'Launch hook',
-    publishedAt: new Date().toISOString(),
-    thumbnailUrl: 'https://example.test/thumbnail',
+    creatorHandle: 'creator',
+    engagementRate: 8.5,
+    id: 'viral-1',
+    platform: Platform.TIKTOK,
+    title: 'Launch hook',
+    velocity: 40,
+    videoUrl: 'https://example.test/video',
+    viralScore: 91,
+    views: 100_000,
     ...overrides,
   };
 }
@@ -415,18 +358,13 @@ function configureSuccessfulService() {
       topic: 'Carousel hooks',
     }),
   ]);
-  mocks.findAllVideos.mockResolvedValue([
-    makeVideo(),
-    makeVideo({
-      brand: undefined,
-      evaluation: {
-        actualPerformance: { engagementRate: 0, views: 0 },
-        externalContent: { platform: Platform.YOUTUBE },
-        scores: { engagement: { viralityPotential: 44 } },
-      },
+  mocks.getViralVideos.mockResolvedValue([
+    makeViralVideo(),
+    makeViralVideo({
       id: undefined,
-      ingredientUrl: 'https://example.test/external-video',
-      metadataLabel: 'External video',
+      platform: Platform.YOUTUBE,
+      title: 'External video',
+      videoUrl: 'https://example.test/external-video',
     }),
   ]);
   mocks.getTrendingHashtags.mockResolvedValue([
@@ -437,11 +375,9 @@ function configureSuccessfulService() {
   ]);
 }
 
-describe('AnalyticsTrends', () => {
+describe('DiscoveryTrends', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.videoCache.clear();
-    mocks.scopeKey = 'scoped-video-read';
     vi.stubGlobal('open', mocks.open);
     configureSuccessfulService();
     mocks.cacheGet.mockReturnValue(null);
@@ -451,20 +387,15 @@ describe('AnalyticsTrends', () => {
       getTrendingHashtags: mocks.getTrendingHashtags,
       getTrendingSounds: mocks.getTrendingSounds,
       getTrendingTopics: mocks.getTrendingTopics,
-    });
-    mocks.getVideosService.mockResolvedValue({
-      findAll: mocks.findAllVideos,
-    });
-    mocks.getOutlierService.mockResolvedValue({
-      listPosts: vi.fn().mockResolvedValue({ docs: [], total: 0 }),
+      getViralVideos: mocks.getViralVideos,
     });
   });
 
-  function renderAnalyticsTrends(isStrictMode: boolean = false) {
+  function renderDiscoveryTrends(isStrictMode: boolean = false) {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
-    const content = <AnalyticsTrends />;
+    const content = <DiscoveryTrends />;
 
     const rendered = render(
       <QueryClientProvider client={queryClient}>
@@ -475,7 +406,7 @@ describe('AnalyticsTrends', () => {
   }
 
   it('loads trend surfaces and routes interactive trend content', async () => {
-    renderAnalyticsTrends();
+    renderDiscoveryTrends();
 
     expect(
       screen.getByRole('heading', {
@@ -496,21 +427,22 @@ describe('AnalyticsTrends', () => {
     // detail route before the click and cmd-click opens it in a new tab.
     expect(screen.getByRole('link', { name: 'Open AI video' })).toHaveAttribute(
       'href',
-      '/analytics/trends/detail/trend-1',
+      '/discovery/trends/detail/trend-1',
     );
 
+    // Market viral videos, not the brand's own uploads.
+    await waitFor(() => {
+      expect(mocks.getViralVideos).toHaveBeenCalledWith({
+        limit: 12,
+        timeframe: Timeframe.H72,
+      });
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Last 7 Days' }));
     await waitFor(() => {
-      expect(mocks.findAllVideos).toHaveBeenLastCalledWith(
-        {
-          brand: 'brand-1',
-          lightweight: true,
-          limit: 12,
-          sort: 'createdAt: -1',
-        },
-        expect.any(AbortSignal),
-      );
-      expect(mocks.findAllVideos).toHaveBeenCalledTimes(1);
+      expect(mocks.getViralVideos).toHaveBeenLastCalledWith({
+        limit: 12,
+        timeframe: Timeframe.D7,
+      });
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Launch hook' }));
@@ -525,11 +457,6 @@ describe('AnalyticsTrends', () => {
       'https://example.test/external-video',
       '_blank',
     );
-
-    fireEvent.click(screen.getByRole('button', { name: '#AIAgents' }));
-    expect(mocks.loggerInfo).toHaveBeenCalledWith('Hashtag clicked', {
-      hashtag: '#AIAgents',
-    });
 
     fireEvent.click(screen.getByRole('button', { name: 'Launch audio' }));
     expect(mocks.open).toHaveBeenCalledWith(
@@ -566,7 +493,7 @@ describe('AnalyticsTrends', () => {
       },
     });
 
-    renderAnalyticsTrends();
+    renderDiscoveryTrends();
 
     expect(
       await screen.findByText('Trend corpus degraded'),
@@ -585,7 +512,7 @@ describe('AnalyticsTrends', () => {
       new Error('corpus health failed'),
     );
 
-    renderAnalyticsTrends();
+    renderDiscoveryTrends();
 
     expect(
       await screen.findByText('Trend corpus unavailable'),
@@ -596,21 +523,11 @@ describe('AnalyticsTrends', () => {
     expect(screen.queryByText('Checking trend corpus')).not.toBeInTheDocument();
   });
 
-  it('renders empty topic copy and falls back to cached videos, hashtags, and sounds', async () => {
+  it('renders empty topic copy and falls back to cached hashtags and sounds', async () => {
     mocks.getTrendsDiscovery.mockResolvedValue({ trends: [] });
     mocks.getTrendingTopics.mockRejectedValue(new Error('topics failed'));
-    mocks.findAllVideos.mockRejectedValue(new Error('videos failed'));
     mocks.getTrendingHashtags.mockRejectedValue(new Error('hashtags failed'));
     mocks.getTrendingSounds.mockRejectedValue(new Error('sounds failed'));
-    evaluationVideoCache.set(mocks.scopeKey, [
-      {
-        id: 'cached-video',
-        title: 'Cached video',
-        platform: Platform.TIKTOK,
-        publishedAt: new Date().toISOString(),
-        views: 100,
-      } as never,
-    ]);
     mocks.cacheGet.mockImplementation((key: string) => {
       if (key.startsWith('hashtags:')) {
         return [{ hashtag: '#CachedTag' }];
@@ -621,21 +538,16 @@ describe('AnalyticsTrends', () => {
       return null;
     });
 
-    renderAnalyticsTrends();
+    renderDiscoveryTrends();
 
     expect(
       await screen.findByText('No trending topics available.'),
     ).toBeInTheDocument();
-    expect(screen.getByText('Cached video')).toBeInTheDocument();
     expect(screen.getByText('#CachedTag')).toBeInTheDocument();
     expect(screen.getByText('Cached sound')).toBeInTheDocument();
     expect(mocks.loggerError).toHaveBeenCalledWith('GET /trends failed', {
       error: expect.any(Error),
     });
-    expect(mocks.loggerError).toHaveBeenCalledWith(
-      'Failed to fetch analytics videos',
-      { error: expect.any(Error) },
-    );
     expect(mocks.loggerError).toHaveBeenCalledWith(
       'Failed to fetch trending hashtags',
       { error: expect.any(Error) },
@@ -646,172 +558,20 @@ describe('AnalyticsTrends', () => {
     );
   });
 
-  it('normalizes videos with missing analytics data into a safe empty-metric row', async () => {
-    mocks.findAllVideos.mockResolvedValue([
-      makeVideo({
-        brand: undefined,
-        createdAt: new Date().toISOString(),
-        evaluation: undefined,
-        id: 'video-without-analytics',
-        metadataLabel: undefined,
-        provider: undefined,
-        publishedAt: undefined,
-      }),
-    ]);
-
-    renderAnalyticsTrends();
-
-    await waitFor(() => {
-      expect(mocks.viralVideoProps).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          videos: [
-            expect.objectContaining({
-              creatorHandle: 'Your brand',
-              engagementRate: 0,
-              platform: 'genfeed',
-              title: 'video-wi',
-              viralScore: 0,
-              views: 0,
-            }),
-          ],
-        }),
-      );
-    });
-  });
-
-  it('supplies a recoverable empty collection when no videos exist', async () => {
-    mocks.findAllVideos.mockResolvedValue([]);
-
-    renderAnalyticsTrends();
-
-    await waitFor(() => {
-      expect(mocks.viralVideoProps).toHaveBeenLastCalledWith(
-        expect.objectContaining({ videos: [] }),
-      );
-    });
-    expect(mocks.loggerError).not.toHaveBeenCalledWith(
-      'Failed to fetch analytics videos',
-      expect.anything(),
+  it('aborts the corpus health request across a Strict Mode remount', async () => {
+    mocks.getCorpusFreshnessHealth.mockReturnValue(
+      new Promise(() => undefined),
     );
-  });
 
-  it('deduplicates videos and aborts active requests across a Strict Mode remount', async () => {
-    mocks.findAllVideos.mockReturnValue(new Promise(() => undefined));
-
-    const view = renderAnalyticsTrends(true);
+    const view = renderDiscoveryTrends(true);
 
     await waitFor(() => {
-      expect(mocks.findAllVideos).toHaveBeenCalledTimes(1);
       expect(mocks.getCorpusFreshnessHealth).toHaveBeenCalled();
     });
 
-    const requestSignal = mocks.findAllVideos.mock.calls[0]?.[1] as AbortSignal;
     const corpusHealthCall = mocks.getCorpusFreshnessHealth.mock.calls.at(-1);
     const corpusHealthSignal = corpusHealthCall?.[0] as AbortSignal;
     view.unmount();
-    expect(requestSignal.aborted).toBe(true);
     expect(corpusHealthSignal.aborted).toBe(true);
-  });
-  it('shows saved observations in an accessible expansion and honest score-only/absent states', async () => {
-    const persuasion = {
-      demandFit: 20,
-      hookStrength: 90,
-      openLoopIntegrity: 60,
-      ctaNaturalness: 40,
-      overall: 999,
-    };
-    const observation = 'Saved content-specific mechanism. '.repeat(20).trim();
-    const evaluated = (id: string, data: object) =>
-      makeVideo({ id, evaluation: { id: `eval-${id}`, data } });
-    mocks.findAllVideos.mockResolvedValue([
-      evaluated('written', {
-        status: 'completed',
-        overallScore: 72,
-        scores: { persuasion },
-        analysis: { strengths: ['', observation] },
-      }),
-      evaluated('scores', {
-        status: 'completed',
-        overallScore: 72,
-        scores: { persuasion },
-      }),
-      evaluated('failed', { status: 'failed', scores: { persuasion } }),
-    ]);
-    renderAnalyticsTrends();
-    const expand = await screen.findByRole('button', {
-      name: "Evaluator's observation",
-    });
-    fireEvent.click(expand);
-    expect(screen.getByText(observation)).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Layer scores are available; no written explanation was saved.',
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByText('No persuasion analysis')).toBeInTheDocument();
-  });
-  it('refetches the warm mounted query after persisted evaluation changes in the same SPA', async () => {
-    const { queryClient } = renderAnalyticsTrends();
-    await screen.findByText('Launch hook');
-    expect(mocks.findAllVideos).toHaveBeenCalledTimes(1);
-    mocks.findAllVideos.mockResolvedValue([
-      makeVideo({ metadataLabel: 'Committed revision' }),
-    ]);
-    await invalidateEvaluationVideoRead(queryClient, mocks.scopeKey);
-    expect(await screen.findByText('Committed revision')).toBeInTheDocument();
-    expect(mocks.findAllVideos).toHaveBeenCalledTimes(2);
-    expect(
-      queryClient.getQueryState(evaluationVideosQueryKey(mocks.scopeKey))
-        ?.isInvalidated,
-    ).toBe(false);
-  });
-  it('refetches on reopening with a warm query instead of hiding external completion for 30 minutes', async () => {
-    const client = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    const renderInSession = () =>
-      render(
-        <QueryClientProvider client={client}>
-          <AnalyticsTrends />
-        </QueryClientProvider>,
-      );
-    const first = renderInSession();
-    await screen.findByText('Launch hook');
-    first.unmount();
-    mocks.findAllVideos.mockResolvedValue([
-      makeVideo({ metadataLabel: 'Background completion' }),
-    ]);
-    renderInSession();
-    expect(
-      await screen.findByText('Background completion'),
-    ).toBeInTheDocument();
-    expect(mocks.findAllVideos).toHaveBeenCalledTimes(2);
-  });
-  it('warns on same-scope fallback and retries into a fresh successful read', async () => {
-    evaluationVideoCache.set(mocks.scopeKey, [
-      {
-        id: 'cached',
-        title: 'Cached snapshot',
-        platform: Platform.TIKTOK,
-        publishedAt: new Date().toISOString(),
-        views: 100,
-      } as never,
-    ]);
-    mocks.findAllVideos.mockRejectedValue(new Error('offline'));
-    renderAnalyticsTrends();
-    expect(
-      await screen.findByText(
-        'Showing cached data; evaluation may be out of date.',
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Cached snapshot')).toBeInTheDocument();
-    mocks.findAllVideos.mockResolvedValue([
-      makeVideo({ metadataLabel: 'Fresh retry' }),
-    ]);
-    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
-    expect(await screen.findByText('Fresh retry')).toBeInTheDocument();
-    expect(
-      screen.queryByText('Showing cached data; evaluation may be out of date.'),
-    ).not.toBeInTheDocument();
   });
 });
