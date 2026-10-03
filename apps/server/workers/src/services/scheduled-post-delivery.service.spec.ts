@@ -646,8 +646,8 @@ describe('ScheduledPostDeliveryService', () => {
     expect(failureWrite).toBeGreaterThan(-1);
     const receipts = mocks.prisma.postProviderPublishReceipt;
     const releaseCall = receipts.updateMany.mock.calls.findIndex(
-      ([args]: [{ data: { status?: string } }]) =>
-        args.data.status === 'released',
+      (call) =>
+        (call[0] as { data: { status?: string } }).data.status === 'released',
     );
     expect(releaseCall).toBeGreaterThan(-1);
     expect(transitions.invocationCallOrder[failureWrite]).toBeLessThan(
