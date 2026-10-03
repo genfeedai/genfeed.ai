@@ -263,6 +263,7 @@ export class IngredientsService extends BaseService<
    */
   async listLibraryAssets(params: {
     brandId?: string;
+    characterFilter?: Record<string, unknown>;
     category: IngredientCategory;
     limit: number;
     offset: number;
@@ -280,6 +281,7 @@ export class IngredientsService extends BaseService<
         status: { notIn: [...HIDDEN_LIBRARY_ASSET_STATUSES] },
         trainingId: null,
         ...(params.origin ? { origin: params.origin } : {}),
+        ...(params.characterFilter ?? {}),
       }),
     });
 
