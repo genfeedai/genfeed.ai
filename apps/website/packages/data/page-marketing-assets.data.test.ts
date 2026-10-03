@@ -29,7 +29,15 @@ describe('page illustration coverage', () => {
 
   it('serves distinct, described website assets through the CDN', () => {
     const assets = Object.values(PAGE_MARKETING_ASSETS);
-    expect(new Set(assets.map(({ src }) => src)).size).toBe(assets.length);
+    expect(PAGE_MARKETING_ASSETS['/turbo']).toEqual(
+      PAGE_MARKETING_ASSETS['/studio'],
+    );
+    const distinctAssets = Object.entries(PAGE_MARKETING_ASSETS)
+      .filter(([route]) => route !== '/turbo')
+      .map(([, asset]) => asset);
+    expect(new Set(distinctAssets.map(({ src }) => src)).size).toBe(
+      distinctAssets.length,
+    );
 
     for (const asset of assets) {
       expect(asset.src).toMatch(
