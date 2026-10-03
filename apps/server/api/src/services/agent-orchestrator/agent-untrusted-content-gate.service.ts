@@ -127,6 +127,21 @@ function buildDecisionWindows(
  */
 const UNTRUSTED_CONTENT_WITHHELD_TOOL_CALL_SUFFIX = ':withheld';
 
+export interface EvaluateToolResultParams {
+  brandId?: string | null;
+  content: string;
+  context: AgentChatContext;
+  /**
+   * The caller could only send a bounded sample of a larger result (an MCP
+   * result past the size limit). Whatever was not sent was not classified.
+   */
+  isContentPartial?: boolean;
+  threadId?: string | null;
+  origin: AgentUntrustedContentOrigin;
+  toolCallId: string;
+  toolName: string;
+}
+
 /**
  * The injection gate on inbound tool results (#4870).
  *
@@ -159,20 +174,9 @@ export class AgentUntrustedContentGateService {
    * Returns the content to push onto the message list — the caller's original
    * string on every path but a live-mode flag above threshold.
    */
-  async evaluateToolResult(params: {
-    brandId?: string | null;
-    content: string;
-    context: AgentChatContext;
-    /**
-     * The caller could only send a bounded sample of a larger result (an MCP
-     * result past the size limit). Whatever was not sent was not classified.
-     */
-    isContentPartial?: boolean;
-    threadId?: string | null;
-    origin: AgentUntrustedContentOrigin;
-    toolCallId: string;
-    toolName: string;
-  }): Promise<AgentUntrustedContentGateResult> {
+  async evaluateToolResult(
+    params: EvaluateToolResultParams,
+  ): Promise<AgentUntrustedContentGateResult> {
     const allowed: AgentUntrustedContentGateResult = {
       content: params.content,
       outcome: 'allowed',
@@ -212,81 +216,28 @@ export class AgentUntrustedContentGateService {
         isTruncated || params.isContentPartial === true;
       const metricAttributes = { mode, origin: params.origin } as const;
       countUntrustedContentClassifierCalls(windows.length, metricAttributes);
-
       if (hasUnclassifiedTail) {
-        if (mode !== 'live') {
-          countUntrustedContentFailOpen({
-            ...metricAttributes,
-            category: 'oversize',
-          });
-        }
-        this.loggerService.warn(
-          `${this.constructorName} classified a tool result only in part`,
-          {
-            contentLength: params.content.length,
-            isCallerSample: params.isContentPartial === true,
-            maxClassifiedLength:
-              windows.length * UNTRUSTED_CONTENT_DECISION_MAX_LENGTH,
-            mode,
-            organizationId: params.context.organizationId,
-            threadId: params.threadId,
-            toolName: params.toolName,
-          },
-        );
+        this.reportUnclassifiedTail(params, mode, windows.length);
       }
 
-      const answers = await Promise.all(
-        windows.map((window) =>
-          this.typedDecisionService.decide(
-            {
-              question: UNTRUSTED_CONTENT_DECISION_QUESTION,
-              state: { content: window, source, toolName: params.toolName },
-            },
-            {
-              brandId: params.brandId ?? undefined,
-              decisionPoint: UNTRUSTED_CONTENT_DECISION_POINT,
-              // Today's path never withholds, so a disagreement in shadow mode
-              // is exactly one would-be withhold — the false-positive
-              // numerator.
-              deterministicAnswer: false,
-              mode,
-              organizationId: params.context.organizationId,
-              runId: params.context.executionId,
-              threadId: params.threadId ?? undefined,
-              userId: params.context.userId,
-            },
-          ),
-        ),
-      );
+      const confidence = await this.classifyWindows({
+        minConfidence,
+        mode,
+        params,
+        source,
+        windows,
+      });
 
-      // `decide` resolves to null on a provider timeout, rate limit or error:
-      // those windows went unclassified, so count the outage as a fail-open.
-      if (answers.some((answer) => answer === null)) {
-        countUntrustedContentFailOpen({
-          category: 'adapter',
-          mode,
-          origin: params.origin,
-        });
-      }
-
-      // One flagged window condemns the whole result: the model reads it whole.
-      // `null` and sub-threshold are the same answer: today's behaviour.
-      const confidences = answers
-        .filter((answer) => answer?.value === true)
-        .map((answer) => answer?.confidence ?? 0)
-        .filter((confidence) => confidence >= minConfidence);
-
-      const isFlagged = confidences.length > 0;
+      const isFlagged = confidence !== undefined;
       const isWithheldForCoverage = mode === 'live' && hasUnclassifiedTail;
       if (!isFlagged && !isWithheldForCoverage) {
         return allowed;
       }
 
-      const confidence = isFlagged ? Math.max(...confidences) : undefined;
       const outcome: AgentUntrustedContentGateOutcome =
         mode === 'live' ? 'withheld' : 'shadow_flagged';
 
-      if (confidence !== undefined) {
+      if (isFlagged) {
         await this.recordAudit({
           brandId: params.brandId ?? null,
           confidence,
@@ -303,11 +254,7 @@ export class AgentUntrustedContentGateService {
       }
 
       if (outcome === 'shadow_flagged') {
-        return {
-          confidence,
-          content: params.content,
-          outcome,
-        };
+        return { confidence, content: params.content, outcome };
       }
 
       if (!isFlagged) {
@@ -316,23 +263,7 @@ export class AgentUntrustedContentGateService {
           category: 'oversize',
         });
       }
-
-      if (params.threadId)
-        await this.publishWithheldWorkEvent({
-          context: params.context,
-          threadId: params.threadId,
-          toolCallId: params.toolCallId,
-          toolName: params.toolName,
-        });
-
-      return {
-        confidence,
-        content: JSON.stringify({
-          error: UNTRUSTED_CONTENT_WITHHELD_NOTICE,
-          success: false,
-        }),
-        outcome,
-      };
+      return this.buildWithheldResult(params, confidence);
     } catch (error: unknown) {
       // A gate that can fail a turn is worse than no gate. The outcome is
       // counted so a failing provider is visible rather than silently open.
@@ -348,6 +279,111 @@ export class AgentUntrustedContentGateService {
       });
       return allowed;
     }
+  }
+
+  /** Loud, never silent: part of what the model reads was not classified. */
+  private reportUnclassifiedTail(
+    params: EvaluateToolResultParams,
+    mode: TypedDecisionMode,
+    windowCount: number,
+  ): void {
+    if (mode !== 'live') {
+      countUntrustedContentFailOpen({
+        category: 'oversize',
+        mode,
+        origin: params.origin,
+      });
+    }
+    this.loggerService.warn(
+      `${this.constructorName} classified a tool result only in part`,
+      {
+        contentLength: params.content.length,
+        isCallerSample: params.isContentPartial === true,
+        maxClassifiedLength:
+          windowCount * UNTRUSTED_CONTENT_DECISION_MAX_LENGTH,
+        mode,
+        organizationId: params.context.organizationId,
+        threadId: params.threadId,
+        toolName: params.toolName,
+      },
+    );
+  }
+
+  /**
+   * Run the provider decision over every window and return the highest
+   * above-threshold flag, or undefined when nothing was flagged. One flagged
+   * window condemns the whole result: the model reads it whole. `null` and
+   * sub-threshold are the same answer: today's behaviour.
+   */
+  private async classifyWindows(input: {
+    minConfidence: number;
+    mode: TypedDecisionMode;
+    params: EvaluateToolResultParams;
+    source: AgentUntrustedContentSource;
+    windows: string[];
+  }): Promise<number | undefined> {
+    const { minConfidence, mode, params, source, windows } = input;
+    const answers = await Promise.all(
+      windows.map((window) =>
+        this.typedDecisionService.decide(
+          {
+            question: UNTRUSTED_CONTENT_DECISION_QUESTION,
+            state: { content: window, source, toolName: params.toolName },
+          },
+          {
+            brandId: params.brandId ?? undefined,
+            decisionPoint: UNTRUSTED_CONTENT_DECISION_POINT,
+            // Today's path never withholds, so a disagreement in shadow mode
+            // is exactly one would-be withhold — the false-positive
+            // numerator.
+            deterministicAnswer: false,
+            mode,
+            organizationId: params.context.organizationId,
+            runId: params.context.executionId,
+            threadId: params.threadId ?? undefined,
+            userId: params.context.userId,
+          },
+        ),
+      ),
+    );
+
+    // `decide` resolves to null on a provider timeout, rate limit or error:
+    // those windows went unclassified, so count the outage as a fail-open.
+    if (answers.some((answer) => answer === null)) {
+      countUntrustedContentFailOpen({
+        category: 'adapter',
+        mode,
+        origin: params.origin,
+      });
+    }
+
+    const confidences = answers
+      .filter((answer) => answer?.value === true)
+      .map((answer) => answer?.confidence ?? 0)
+      .filter((confidence) => confidence >= minConfidence);
+    return confidences.length > 0 ? Math.max(...confidences) : undefined;
+  }
+
+  private async buildWithheldResult(
+    params: EvaluateToolResultParams,
+    confidence: number | undefined,
+  ): Promise<AgentUntrustedContentGateResult> {
+    if (params.threadId) {
+      await this.publishWithheldWorkEvent({
+        context: params.context,
+        threadId: params.threadId,
+        toolCallId: params.toolCallId,
+        toolName: params.toolName,
+      });
+    }
+    return {
+      confidence,
+      content: JSON.stringify({
+        error: UNTRUSTED_CONTENT_WITHHELD_NOTICE,
+        success: false,
+      }),
+      outcome: 'withheld',
+    };
   }
 
   /**
