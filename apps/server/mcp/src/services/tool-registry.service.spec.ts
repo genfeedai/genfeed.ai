@@ -27,7 +27,7 @@ const MOCK_TOOLS = [
   { name: 'get_posts', requiredRole: undefined, surfaces: { mcp: true } },
   {
     mutationPolicy: 'approval-required',
-    name: 'create_article',
+    name: 'create_article_draft',
     requiredRole: undefined,
     surfaces: { mcp: true },
   },
@@ -170,7 +170,7 @@ describe('ToolRegistryService', () => {
     executeAgentTool: ReturnType<typeof vi.fn>;
     getVideoAnalytics: ReturnType<typeof vi.fn>;
     searchArticles: ReturnType<typeof vi.fn>;
-    createArticle: ReturnType<typeof vi.fn>;
+    createArticleDraft: ReturnType<typeof vi.fn>;
     createApproval: ReturnType<typeof vi.fn>;
     approveSocialDraft: ReturnType<typeof vi.fn>;
     assignSocialConversation: ReturnType<typeof vi.fn>;
@@ -217,7 +217,7 @@ describe('ToolRegistryService', () => {
                 toolName,
               }),
             ),
-            createArticle: vi.fn().mockResolvedValue({
+            createArticleDraft: vi.fn().mockResolvedValue({
               id: 'art-1',
               status: 'draft',
               title: 'AI News',
@@ -801,22 +801,26 @@ describe('ToolRegistryService', () => {
     expect((result as { isError: boolean }).isError).toBe(true);
   });
 
-  it('handleToolCall create_article queues a pending approval instead of executing', async () => {
-    // create_article is an approval-gated mutation: it must persist a pending
-    // approval (human-in-the-loop) rather than run immediately. Execution-time
-    // arg validation (e.g. "topic required") only happens once approved.
+  it('handleToolCall create_article_draft queues a pending approval instead of executing', async () => {
+    // create_article_draft is an approval-gated mutation: it must persist a
+    // pending approval (human-in-the-loop) rather than run immediately.
+    // Execution-time arg validation only happens once approved.
+    const args = {
+      content: '<p>Full content</p>',
+      label: 'AI News',
+      slug: 'ai-news',
+      summary: 'Verified',
+    };
     const result = await service.handleToolCall({
-      arguments: { topic: 'AI News' },
-      name: 'create_article',
+      arguments: args,
+      name: 'create_article_draft',
     });
 
     expect(clientService.createApproval).toHaveBeenCalledWith(
-      'create_article',
-      {
-        topic: 'AI News',
-      },
+      'create_article_draft',
+      args,
     );
-    expect(clientService.createArticle).not.toHaveBeenCalled();
+    expect(clientService.createArticleDraft).not.toHaveBeenCalled();
     expect(
       (result as { content: { text: string }[] }).content[0].text,
     ).toContain('requires approval');

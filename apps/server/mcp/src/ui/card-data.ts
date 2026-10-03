@@ -10,7 +10,6 @@ export const MCP_CARD_RESOURCE_URI = 'ui://genfeed/content-cards-v1.html';
 export const MCP_APP_MIME_TYPE = 'text/html;profile=mcp-app';
 
 const TOOL_KINDS: Readonly<Record<string, McpCardKind>> = {
-  create_article: 'article',
   create_post: 'post',
   generate: 'media',
   get_account: 'usage',
@@ -18,7 +17,7 @@ const TOOL_KINDS: Readonly<Record<string, McpCardKind>> = {
   get_job_status: 'media',
   get_posts: 'post',
   list_assets: 'media',
-  merge_videos: 'video',
+  transform_media: 'media',
 };
 
 export function withCardMetadata(tool: McpToolOutput): McpToolOutput {

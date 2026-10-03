@@ -7,9 +7,6 @@ import type {
   MusicResponse,
 } from '@mcp/shared/interfaces/music.interface';
 import type {
-  MergeVideoResource,
-  MergeVideosParams,
-  MergeVideosResult,
   VideoCreationParams,
   VideoResponse,
 } from '@mcp/shared/interfaces/video.interface';
@@ -58,58 +55,6 @@ export class MediaClient {
         };
       },
       this.base.failWithDetail('Failed to create video'),
-    );
-  }
-
-  mergeVideos(params: MergeVideosParams): Promise<MergeVideosResult> {
-    this.base.logger.debug('Merging videos', { clipCount: params.ids.length });
-
-    const body: Record<string, unknown> = {
-      category: 'VIDEO',
-      ids: params.ids,
-    };
-    if (params.isCaptionsEnabled !== undefined) {
-      body.isCaptionsEnabled = params.isCaptionsEnabled;
-    }
-    if (params.isMuteVideoAudio !== undefined) {
-      body.isMuteVideoAudio = params.isMuteVideoAudio;
-    }
-    if (params.isResizeEnabled !== undefined) {
-      body.isResizeEnabled = params.isResizeEnabled;
-    }
-    if (params.music !== undefined) body.music = params.music;
-    if (params.musicVolume !== undefined) body.musicVolume = params.musicVolume;
-    if (params.transition !== undefined) body.transition = params.transition;
-    if (params.transitionDuration !== undefined) {
-      body.transitionDuration = params.transitionDuration;
-    }
-    if (params.transitionEaseCurve !== undefined) {
-      body.transitionEaseCurve = params.transitionEaseCurve;
-    }
-
-    return this.base.request(
-      'merging videos',
-      async (http) => {
-        const response = await http.post('/videos/merge', body);
-        const video = (response.data?.data ?? response.data) as
-          | MergeVideoResource
-          | undefined;
-        const id = readNonEmptyString(video?.id);
-        if (!id) {
-          throw new Error('Video merge did not return an output id');
-        }
-        const attributeStatus = video?.attributes?.status;
-        return {
-          id,
-          status:
-            typeof attributeStatus === 'string'
-              ? attributeStatus
-              : typeof video?.status === 'string'
-                ? video.status
-                : 'PROCESSING',
-        };
-      },
-      this.base.failWithDetail('Failed to merge videos'),
     );
   }
 

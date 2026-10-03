@@ -48,10 +48,6 @@ import {
   approvalPendingToolResult,
   toMcpToolErrorResult,
 } from '@mcp/tools/mcp-tool-error';
-import {
-  handleMergeVideosTool,
-  MERGE_VIDEOS_TOOL_NAMES,
-} from '@mcp/tools/merge-videos';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
 import { handleRemixTool, REMIX_TOOL_NAMES } from '@mcp/tools/remix.tool';
 import {
@@ -159,7 +155,6 @@ type ExecutorKind =
   | 'agent-chat'
   | 'workflow-control'
   | 'agent-executor'
-  | 'merge-videos'
   | 'content'
   | 'analytics'
   | 'workflow-status'
@@ -379,7 +374,6 @@ export class ToolRegistryService implements OnModuleInit {
     if (AGENT_CHAT_TOOL_NAMES.has(name)) return 'agent-chat';
     if (WORKFLOW_CONTROL_TOOL_NAMES.has(name)) return 'workflow-control';
     if (AGENT_EXECUTOR_TOOL_NAMES.has(name)) return 'agent-executor';
-    if (MERGE_VIDEOS_TOOL_NAMES.has(name)) return 'merge-videos';
     if (CONTENT_TOOL_NAMES.has(name)) return 'content';
     if (ANALYTICS_TOOL_NAMES.has(name)) return 'analytics';
     if (WORKFLOW_STATUS_TOOL_NAMES.has(name)) return 'workflow-status';
@@ -437,8 +431,6 @@ export class ToolRegistryService implements OnModuleInit {
         );
         return this.toMcpResult(result);
       }
-      case 'merge-videos':
-        return handleMergeVideosTool(this.clientService, args ?? {});
       case 'content':
         return handleContentTool(this.clientService, name, args);
       case 'analytics':

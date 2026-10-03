@@ -294,7 +294,10 @@ describe('handleToolDiscoveryTool', () => {
     const registry: ToolDiscoverySource = {
       getDiscoverableTools: () => [
         tool({ description: 'Create a post', name: 'create_post' }),
-        tool({ description: 'Create an article', name: 'create_article' }),
+        tool({
+          description: 'Import an article',
+          name: 'create_article_draft',
+        }),
       ],
     };
 
