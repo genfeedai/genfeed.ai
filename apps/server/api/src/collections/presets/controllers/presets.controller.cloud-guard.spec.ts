@@ -70,18 +70,10 @@ function buildPrisma(rows: Row[]) {
       guard('update', args);
       const row = rows.find((candidate) => matches(candidate, args.where));
       if (!row) {
-        throw new Error('not found');
+        throw Object.assign(new Error('not found'), { code: 'P2025' });
       }
       Object.assign(row, args.data);
       return row;
-    }),
-    updateMany: vi.fn(async (args: { data: Partial<Row>; where: Where }) => {
-      guard('updateMany', args);
-      const hit = rows.filter((row) => matches(row, args.where));
-      for (const row of hit) {
-        Object.assign(row, args.data);
-      }
-      return { count: hit.length };
     }),
   };
 

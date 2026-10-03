@@ -76,6 +76,7 @@ describe('ElementsCamerasController', () => {
             findAll: vi.fn(),
             findOne: vi.fn(),
             patch: vi.fn(),
+            patchOneWhere: vi.fn(),
             remove: vi.fn(),
           },
         },
@@ -147,7 +148,9 @@ describe('ElementsCamerasController', () => {
       };
 
       camerasService.findOne.mockResolvedValue(mockExistingCamera as never);
-      camerasService.patch.mockResolvedValue(mockUpdatedCamera as never);
+      camerasService.patchOneWhere.mockResolvedValue(
+        mockUpdatedCamera as never,
+      );
 
       const result = await controller.update(
         mockRequest,
@@ -189,7 +192,7 @@ describe('ElementsCamerasController', () => {
       };
 
       camerasService.findOne.mockResolvedValue(mockCamera as never);
-      camerasService.remove.mockResolvedValue(mockCamera as never);
+      camerasService.patchOneWhere.mockResolvedValue(mockCamera as never);
 
       const result = await controller.remove(
         mockRequest,

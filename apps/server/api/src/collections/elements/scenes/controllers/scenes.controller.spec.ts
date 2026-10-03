@@ -68,6 +68,7 @@ describe('ElementsScenesController', () => {
             findOne: vi.fn(),
             paginate: vi.fn(),
             patch: vi.fn(),
+            patchOneWhere: vi.fn(),
             remove: vi.fn(),
             supportsField: vi.fn((field: string) => field === 'organizationId'),
           },
@@ -170,7 +171,7 @@ describe('ElementsScenesController', () => {
       scenesService.findOne.mockResolvedValueOnce(
         mockExistingScene as unknown as never,
       );
-      scenesService.patch.mockResolvedValueOnce(
+      scenesService.patchOneWhere.mockResolvedValueOnce(
         mockUpdatedScene as unknown as never,
       );
 
@@ -213,7 +214,9 @@ describe('ElementsScenesController', () => {
       scenesService.findOne.mockResolvedValueOnce(
         mockScene as unknown as never,
       );
-      scenesService.remove.mockResolvedValueOnce(mockScene as unknown as never);
+      scenesService.patchOneWhere.mockResolvedValueOnce(
+        mockScene as unknown as never,
+      );
 
       const result = await controller.remove(mockRequest, mockUser, sceneId);
 

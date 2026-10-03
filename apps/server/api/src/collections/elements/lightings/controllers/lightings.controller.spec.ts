@@ -82,6 +82,7 @@ describe('ElementsLightingsController', () => {
             findAll: vi.fn(),
             findOne: vi.fn(),
             patch: vi.fn(),
+            patchOneWhere: vi.fn(),
             remove: vi.fn(),
             supportsField: vi.fn((field: string) => field === 'organizationId'),
           },
@@ -155,7 +156,9 @@ describe('ElementsLightingsController', () => {
       };
 
       lightingsService.findOne.mockResolvedValue(mockExistingLighting as never);
-      lightingsService.patch.mockResolvedValue(mockUpdatedLighting as never);
+      lightingsService.patchOneWhere.mockResolvedValue(
+        mockUpdatedLighting as never,
+      );
 
       const result = await controller.update(
         mockRequest,
@@ -200,7 +203,7 @@ describe('ElementsLightingsController', () => {
       };
 
       lightingsService.findOne.mockResolvedValue(mockLighting as never);
-      lightingsService.remove.mockResolvedValue(mockLighting as never);
+      lightingsService.patchOneWhere.mockResolvedValue(mockLighting as never);
 
       const result = await controller.remove(
         mockRequest,

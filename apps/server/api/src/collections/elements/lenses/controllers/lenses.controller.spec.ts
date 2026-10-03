@@ -78,6 +78,7 @@ describe('ElementsLensesController', () => {
             findAll: vi.fn(),
             findOne: vi.fn(),
             patch: vi.fn(),
+            patchOneWhere: vi.fn(),
             remove: vi.fn(),
             supportsField: vi.fn((field: string) => field === 'organizationId'),
           },
@@ -150,7 +151,7 @@ describe('ElementsLensesController', () => {
       };
 
       lensesService.findOne.mockResolvedValue(mockExistingLens as never);
-      lensesService.patch.mockResolvedValue(mockUpdatedLens as never);
+      lensesService.patchOneWhere.mockResolvedValue(mockUpdatedLens as never);
 
       const result = await controller.update(
         mockRequest,
@@ -192,7 +193,7 @@ describe('ElementsLensesController', () => {
       };
 
       lensesService.findOne.mockResolvedValue(mockLens as never);
-      lensesService.remove.mockResolvedValue(mockLens as never);
+      lensesService.patchOneWhere.mockResolvedValue(mockLens as never);
 
       const result = await controller.remove(
         mockRequest,

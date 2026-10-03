@@ -47,8 +47,8 @@ describe('buildElementFindAllQuery ordering', () => {
     const pageOne = [...rows]
       .sort(
         (left, right) =>
-          Number(right.organizationId !== null) -
-            Number(left.organizationId !== null) ||
+          Number(left.organizationId !== null) -
+            Number(right.organizationId !== null) ||
           left.sortOrder - right.sortOrder ||
           right.createdAt - left.createdAt ||
           left.label.localeCompare(right.label),

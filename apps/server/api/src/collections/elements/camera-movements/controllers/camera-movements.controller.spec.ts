@@ -78,6 +78,7 @@ describe('ElementsCameraMovementsController', () => {
             findAll: vi.fn(),
             findOne: vi.fn(),
             patch: vi.fn(),
+            patchOneWhere: vi.fn(),
             remove: vi.fn(),
             supportsField: vi.fn((field: string) => field === 'organizationId'),
           },
@@ -156,7 +157,7 @@ describe('ElementsCameraMovementsController', () => {
       cameraMovementsService.findOne.mockResolvedValue(
         mockExistingMovement as never,
       );
-      cameraMovementsService.patch.mockResolvedValue(
+      cameraMovementsService.patchOneWhere.mockResolvedValue(
         mockUpdatedMovement as never,
       );
 
@@ -200,7 +201,9 @@ describe('ElementsCameraMovementsController', () => {
       };
 
       cameraMovementsService.findOne.mockResolvedValue(mockMovement as never);
-      cameraMovementsService.remove.mockResolvedValue(mockMovement as never);
+      cameraMovementsService.patchOneWhere.mockResolvedValue(
+        mockMovement as never,
+      );
 
       const result = await controller.remove(
         mockRequest,

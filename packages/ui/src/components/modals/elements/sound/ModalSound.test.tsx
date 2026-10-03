@@ -116,6 +116,6 @@ describe('ModalSound', () => {
   it('lets a superadmin set the sort order', () => {
     render(<ModalSound {...defaultProps} />);
 
-    expect(screen.getByLabelText('Sort order')).toBeInTheDocument();
+    expect(screen.getByTestId('input-sortOrder')).toBeInTheDocument();
   });
 });

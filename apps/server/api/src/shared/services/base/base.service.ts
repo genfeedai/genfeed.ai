@@ -96,6 +96,16 @@ type PrismaDelegate<TWhere = PrismaFilter, TResult = BaseDocument> = {
  * Accepts a Prisma query shape plus pagination options and executes `findMany`
  * and `count`. Complex queries belong in their domain service.
  */
+/** Prisma P2025: an `update` whose `where` matched no row. */
+function isPrismaRecordNotFound(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === 'P2025'
+  );
+}
+
 @Injectable()
 export abstract class BaseService<
   T,
@@ -537,7 +547,8 @@ export abstract class BaseService<
    * Update the single document `where` selects, returning it (or null when
    * nothing matched). `patch(id)` writes by primary key alone, which the CLOUD
    * tenant guard rejects on tenant models; use this when `where` carries the
-   * tenant scope. `where` is used as given: it is the caller's scope contract.
+   * tenant scope. Prisma `update` accepts the extra scope predicates next to the
+   * unique `id`; `where` is the caller's scope contract and is used as given.
    */
   async patchOneWhere(
     where: PrismaFilter,
@@ -551,33 +562,29 @@ export abstract class BaseService<
       throw new ValidationException('Update data is required');
     }
 
-    const normalizedWhere = this.normalizeWhere(where);
-    const { count } = await this.internalDelegate.updateMany({
-      data: this.normalizeData(updateDto),
-      where: normalizedWhere,
-    });
-
-    if (count === 0) {
-      return null;
-    }
-
-    if (this.cacheService) {
-      await invalidateCollectionQueryCache(
-        this.cacheService,
-        this.collectionName,
-      );
-    }
-
     const include = this.populateToInclude(populate);
-    // Re-read through the same scope, ignoring the soft-delete predicate so a
-    // tombstone just written by this call is still returned.
-    const { isDeleted: _isDeleted, ...readWhere } = normalizedWhere;
-    const result = await this.internalDelegate.findFirst({
-      where: readWhere,
-      ...(include ? { include } : {}),
-    });
 
-    return result ? this.normalizeDocument(result) : null;
+    try {
+      const result = await this.internalDelegate.update({
+        data: this.normalizeData(updateDto),
+        where: this.normalizeWhere(where),
+        ...(include ? { include } : {}),
+      });
+
+      if (this.cacheService) {
+        await invalidateCollectionQueryCache(
+          this.cacheService,
+          this.collectionName,
+        );
+      }
+
+      return this.normalizeDocument(result);
+    } catch (error: unknown) {
+      if (isPrismaRecordNotFound(error)) {
+        return null;
+      }
+      throw error;
+    }
   }
 
   /**

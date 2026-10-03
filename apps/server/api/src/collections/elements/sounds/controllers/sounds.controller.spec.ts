@@ -66,6 +66,7 @@ describe('ElementsSoundsController', () => {
             findOne: vi.fn(),
             paginate: vi.fn(),
             patch: vi.fn(),
+            patchOneWhere: vi.fn(),
             remove: vi.fn(),
           },
         },
@@ -223,7 +224,7 @@ describe('ElementsSoundsController', () => {
       soundsService.findOne.mockResolvedValueOnce(
         mockExistingSound as unknown as never,
       );
-      soundsService.patch.mockResolvedValueOnce(
+      soundsService.patchOneWhere.mockResolvedValueOnce(
         mockUpdatedSound as unknown as never,
       );
 
@@ -274,7 +275,9 @@ describe('ElementsSoundsController', () => {
       soundsService.findOne.mockResolvedValueOnce(
         mockSound as unknown as never,
       );
-      soundsService.remove.mockResolvedValueOnce(mockSound as unknown as never);
+      soundsService.patchOneWhere.mockResolvedValueOnce(
+        mockSound as unknown as never,
+      );
 
       const result = await controller.remove(mockRequest, mockUser, soundId);
 

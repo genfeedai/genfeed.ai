@@ -72,6 +72,7 @@ describe('ElementsMoodsController', () => {
             findOne: vi.fn(),
             paginate: vi.fn(),
             patch: vi.fn(),
+            patchOneWhere: vi.fn(),
             remove: vi.fn(),
             supportsField: vi.fn((field: string) => field === 'organizationId'),
           },
@@ -174,7 +175,7 @@ describe('ElementsMoodsController', () => {
       moodsService.findOne.mockResolvedValueOnce(
         mockExistingMood as unknown as never,
       );
-      moodsService.patch.mockResolvedValueOnce(
+      moodsService.patchOneWhere.mockResolvedValueOnce(
         mockUpdatedMood as unknown as never,
       );
 
@@ -214,7 +215,9 @@ describe('ElementsMoodsController', () => {
       };
 
       moodsService.findOne.mockResolvedValueOnce(mockMood as unknown as never);
-      moodsService.remove.mockResolvedValueOnce(mockMood as unknown as never);
+      moodsService.patchOneWhere.mockResolvedValueOnce(
+        mockMood as unknown as never,
+      );
 
       const result = await controller.remove(mockRequest, mockUser, moodId);
 
