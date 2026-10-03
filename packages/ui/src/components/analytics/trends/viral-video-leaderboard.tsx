@@ -174,9 +174,7 @@ export function ViralVideoLeaderboard({
           },
           {
             className: 'min-w-20',
-            header: (
-              <AnalyticsMetricLabel metric="views">Views</AnalyticsMetricLabel>
-            ),
+            header: 'Views',
             key: 'views',
             render: (video) => (
               <span className="font-semibold tabular-nums">

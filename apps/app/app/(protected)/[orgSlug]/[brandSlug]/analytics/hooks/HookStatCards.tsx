@@ -31,7 +31,6 @@ export default function HookStatCards({
       <MetricCard
         icon={TrendingUp}
         isLoading={isLoading}
-        analyticsMetric="engagement"
         label="Best Hook Avg Engagement"
         size="md"
         value={bestHook ? formatCompactNumber(bestHook.avgEngagement) : 'N/A'}

@@ -130,11 +130,7 @@ export default function CrossPlatformLeaderboardSection({
               },
               {
                 className: 'min-w-24',
-                header: (
-                  <AnalyticsMetricLabel metric="views">
-                    Views
-                  </AnalyticsMetricLabel>
-                ),
+                header: 'Views',
                 key: 'views',
                 render: (video) => (
                   <span className="font-semibold text-foreground">

@@ -3,7 +3,6 @@
 import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { TrendingHashtagsProps } from '@genfeedai/props/analytics/trends.props';
-import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import Badge from '@ui/display/badge/Badge';
@@ -164,22 +163,14 @@ export function TrendingHashtags({
 
               <div className="space-y-1.5 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-foreground/60">
-                    <AnalyticsMetricLabel metric="posts">
-                      Posts
-                    </AnalyticsMetricLabel>
-                  </span>
+                  <span className="text-foreground/60">Posts</span>
                   <span className="font-medium tabular-nums">
                     {formatCompactNumber(hashtag.postCount)}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-foreground/60">
-                    <AnalyticsMetricLabel metric="views">
-                      Views
-                    </AnalyticsMetricLabel>
-                  </span>
+                  <span className="text-foreground/60">Views</span>
                   <span className="font-medium tabular-nums">
                     {formatCompactNumber(hashtag.viewCount)}
                   </span>
