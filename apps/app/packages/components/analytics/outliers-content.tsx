@@ -1,8 +1,8 @@
 'use client';
 
+import BrandTopVideosSection from '@app-components/analytics/top-videos/brand-top-videos-section';
 import RemixBriefInspector from '@app-components/research/remix/RemixBriefInspector';
 import AnalyticsOutliers from '@pages/analytics/outliers/analytics-outliers';
-import BrandTopVideosSection from '@pages/analytics/outliers/brand-top-videos-section';
 import { DiscoveryRemixProvider } from '@pages/research/remix/DiscoveryRemixProvider';
 
 export default function OutliersContent() {
