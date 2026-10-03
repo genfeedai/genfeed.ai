@@ -45,6 +45,29 @@ describe('admin IP allowlist', () => {
     vi.stubEnv('ADMIN_ALLOWED_IPS', '127.0.0.1');
     expect(isAdminIpAllowed({})).toBe(false);
   });
+
+  it.each([
+    'for=unknown',
+    'For="unknown"',
+    'for=192.0.2.60;proto=http, for=unknown',
+  ])('treats `Forwarded: %s` as an unknown client', (forwarded) => {
+    vi.stubEnv('ADMIN_ALLOWED_IPS', '127.0.0.1');
+
+    expect(
+      resolveAdminClientIp({ headers: { forwarded }, ip: '127.0.0.1' }),
+    ).toBe('');
+  });
+
+  it('ignores Forwarded elements that do not declare the client unknown', () => {
+    vi.stubEnv('ADMIN_ALLOWED_IPS', '10.0.0.1');
+
+    expect(
+      isAdminIpAllowed({
+        headers: { forwarded: 'for=_gateway;by=unknown' },
+        ip: '10.0.0.1',
+      }),
+    ).toBe(true);
+  });
 });
 
 describe('admin IP allowlist behind the deployment trust-proxy setting', () => {
@@ -104,6 +127,24 @@ describe('admin IP allowlist behind the deployment trust-proxy setting', () => {
 
     expect(response.body).toEqual({ ip: ALLOWLISTED_IP, isAllowed: true });
   });
+
+  it.each([
+    ['self-host default', {}],
+    ['TRUST_PROXY=loopback', { TRUST_PROXY: 'loopback' }],
+  ])(
+    'denies an app-server call that declares the client unknown under %s',
+    async (_label, trust) => {
+      vi.stubEnv('ADMIN_ALLOWED_IPS', '127.0.0.1,::1');
+
+      const response = await request(
+        buildApp({ GENFEED_CLOUD: 'false', ...trust }),
+      )
+        .get('/')
+        .set('Forwarded', 'for=unknown');
+
+      expect(response.body).toEqual({ ip: '', isAllowed: false });
+    },
+  );
 
   it('takes the load balancer hop on Cloud, not a client-prepended entry', async () => {
     vi.stubEnv('ADMIN_ALLOWED_IPS', ALLOWLISTED_IP);
@@ -246,6 +287,17 @@ describe('admin IP allowlist through the app /v1 rewrite', () => {
     );
 
     expect(response.body).toEqual({ ip: '127.0.0.1', isAllowed: true });
+  });
+
+  it('denies an app-server call that a trusted loopback proxy attributes to loopback', async () => {
+    vi.stubEnv('ADMIN_ALLOWED_IPS', ALLOWED_IPS);
+    const proxyPort = await startAttributingProxy(await startApi(['loopback']));
+
+    const response = await request(`http://127.0.0.1:${proxyPort}`)
+      .get('/v1/admin-probe')
+      .set('Forwarded', 'for=unknown');
+
+    expect(response.body).toEqual({ ip: '', isAllowed: false });
   });
 
   it('denies a loopback proxy the deployment does not trust', async () => {

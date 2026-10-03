@@ -1,3 +1,8 @@
+import {
+  UNATTRIBUTED_FORWARDED_HEADER,
+  UNATTRIBUTED_FORWARDED_VALUE,
+} from '@genfeedai/contracts/constants';
+
 /**
  * Every admin surface — the `/admin/*` endpoints and super-admin power on any
  * other endpoint — is reachable only from `ADMIN_ALLOWED_IPS`. An empty list
@@ -57,14 +62,38 @@ export function getAdminAllowedIps(): string[] {
 }
 
 /**
+ * A caller that declares its client unknown (RFC 7239 `for=unknown`), as the
+ * app server does on every server-side call. Honoured whatever the peer or
+ * trusted hops say: sending it can only take admin access away.
+ */
+function declaresUnknownClient(request: AdminIpRequest): boolean {
+  const forwarded = request.headers?.[UNATTRIBUTED_FORWARDED_HEADER];
+  const values = Array.isArray(forwarded) ? forwarded : [forwarded ?? ''];
+
+  return values.some((value) =>
+    value
+      .split(/[,;]/)
+      .some(
+        (pair) =>
+          pair.trim().toLowerCase().replaceAll('"', '') ===
+          UNATTRIBUTED_FORWARDED_VALUE,
+      ),
+  );
+}
+
+/**
  * `request.ip` is the client address Express derives under the deployment's
  * `trust proxy` setting: one hop on Cloud, none on self-host unless
  * `TRUST_PROXY` names the proxy (see `resolveTrustProxyFromReader`).
- * Empty when the client cannot be known: a loopback forwarder such as the app's
- * `/v1` rewrite reached the API and no trusted hop reported the real client.
+ * Empty when the client cannot be known: the caller declares it unknown, or a
+ * loopback forwarder such as the app's `/v1` rewrite reached the API and no
+ * trusted hop reported the real client.
  */
 export function resolveAdminClientIp(request: AdminIpRequest): string {
-  if (isUnattributedLoopbackForward(request)) {
+  if (
+    declaresUnknownClient(request) ||
+    isUnattributedLoopbackForward(request)
+  ) {
     return '';
   }
 
