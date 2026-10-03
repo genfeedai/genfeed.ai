@@ -16,6 +16,7 @@ import { Progress } from '@ui/primitives/progress';
 import { Text } from '@ui/typography/text';
 import { Gift, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import AddCreditsCard from '../billing/add-credits-card';
 import ManagedCreditsCheckoutCard from './managed-credits-checkout-card';
@@ -28,6 +29,7 @@ import ManagedCreditsCheckoutCard from './managed-credits-checkout-card';
 export default function SettingsCreditsPage() {
   const { creditsBreakdown, isLoading } = useSubscription();
   const { orgHref } = useOrgUrl();
+  const translate = useTranslations('common.settings.creditsBalance');
   const isBillingEnabled = hasOrganizationBillingHint();
   const hasLocalPaygPrice = Boolean(EnvironmentService.plans.payg);
   const useManagedCloudCheckout =
@@ -76,7 +78,7 @@ export default function SettingsCreditsPage() {
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="flex flex-col gap-1">
               <Text as="p" size="sm" color="muted">
-                Credits left
+                {translate('creditsLeft')}
               </Text>
               <p className="text-3xl font-semibold tabular-nums tracking-tight text-foreground">
                 {creditsBreakdown.total.toLocaleString('en-US', {
@@ -84,9 +86,10 @@ export default function SettingsCreditsPage() {
                 })}
                 {hasCycleTotal ? (
                   <span className="ml-2 text-base font-normal text-muted-foreground">
-                    of{' '}
-                    {cycleTotal.toLocaleString('en-US', {
-                      maximumFractionDigits: 1,
+                    {translate('ofTotal', {
+                      total: cycleTotal.toLocaleString('en-US', {
+                        maximumFractionDigits: 1,
+                      }),
                     })}
                   </span>
                 ) : null}
@@ -102,24 +105,22 @@ export default function SettingsCreditsPage() {
             </Text>
           </div>
           <Progress
-            aria-label="Credits left this cycle"
+            aria-label={translate('progressLabel')}
             className={cn('h-2.5', isLowCredits && 'bg-warning/20')}
             value={remainingPercent ?? 0}
           />
           <Text as="p" size="xs" color="muted">
-            Based on this cycle's total: subscription credits plus packs bought
-            this cycle.
+            {translate('cycleNote')}
             {creditsBreakdown.cycleEndAt ? (
               <>
                 {' '}
-                Resets{' '}
+                {translate('resets')}{' '}
                 <ClientFormattedDate
                   format="date"
                   locales="en-US"
                   options={{ day: 'numeric', month: 'long' }}
                   value={creditsBreakdown.cycleEndAt}
                 />
-                .
               </>
             ) : null}
           </Text>
@@ -141,17 +142,16 @@ export default function SettingsCreditsPage() {
               </div>
               <div>
                 <Text as="p" size="sm" weight="semibold">
-                  Earn 10% in credits
+                  {translate('referralTitle')}
                 </Text>
                 <Text as="p" size="xs" color="muted">
-                  Share your referral link and earn on referred customers'
-                  credit purchases.
+                  {translate('referralDescription')}
                 </Text>
               </div>
             </div>
             <Button asChild variant={ButtonVariant.SECONDARY}>
               <Link href={orgHref(APP_ROUTES.SETTINGS.REFERRALS)}>
-                View referrals
+                {translate('viewReferrals')}
               </Link>
             </Button>
           </div>

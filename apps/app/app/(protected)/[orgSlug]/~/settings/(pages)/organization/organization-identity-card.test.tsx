@@ -4,6 +4,12 @@ import '@testing-library/jest-dom/vitest';
 import { AssetCategory } from '@genfeedai/contracts';
 import OrganizationIdentityCard from './organization-identity-card';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 const openUpload = vi.fn();
 const refreshOrganizations = vi.fn(() => Promise.resolve());
 const routedOrganization = vi.fn();

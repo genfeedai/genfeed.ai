@@ -36,6 +36,7 @@ import { Button } from '@ui/primitives/button';
 import { Ban, Lock, RotateCw, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useState } from 'react';
 
 function formatTierLabel(tier: string | null): string {
@@ -108,9 +109,11 @@ function MembersListContent() {
     Set<string>
   >(new Set());
 
+  const translate = useTranslations('common.settings.members');
+
   const columns: TableColumn<Member>[] = [
     {
-      header: 'Member',
+      header: translate('columnMember'),
       key: 'userFullName',
       render: (member: Member) => {
         const name = member.userFullName;
@@ -144,7 +147,7 @@ function MembersListContent() {
       render: (member: Member) => member.roleLabel || '-',
     },
     {
-      header: 'Brands',
+      header: translate('columnBrands'),
       key: 'brands',
       render: (member: Member) => <MemberBrandAccess member={member} />,
     },
@@ -372,6 +375,7 @@ export default function MembersList() {
  * means unrestricted — both read as "All brands" (matches server access checks).
  */
 function MemberBrandAccess({ member }: MemberBrandAccessProps) {
+  const translate = useTranslations('common.settings.members');
   const roleKey = member.role?.key ?? member.roleKey;
   const brands = member.brands ?? [];
   const isUnrestricted =
@@ -380,7 +384,11 @@ function MemberBrandAccess({ member }: MemberBrandAccessProps) {
     brands.length === 0;
 
   if (isUnrestricted) {
-    return <span className="text-sm text-muted-foreground">All brands</span>;
+    return (
+      <span className="text-sm text-muted-foreground">
+        {translate('allBrands')}
+      </span>
+    );
   }
 
   return (
