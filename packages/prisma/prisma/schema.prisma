@@ -2926,6 +2926,8 @@ model PostProviderPublishReceipt {
   /// attempting | accepted | uncertain | released
   status              String
   workflowExecutionId String
+  /// Fresh per reservation; every takeover and settlement compares it.
+  attemptToken        String
   attemptStartedAt    DateTime
   externalId          String?
   result              Json?

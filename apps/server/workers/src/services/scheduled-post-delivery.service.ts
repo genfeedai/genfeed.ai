@@ -77,6 +77,7 @@ import {
   markProviderPublishAttemptUncertain,
   markProviderReceiptPersisted,
   type ProviderPublishAttempt,
+  type ProviderPublishAttemptRef,
   ProviderPublishInFlightError,
   ProviderPublishPersistenceError,
   releaseProviderPublishAttempt,
@@ -182,17 +183,21 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     const ids = this.readDeliveryIds(post);
 
     try {
-      // A provider-accepted occurrence only needs its state persisted: the
-      // readiness, quota and media gates must not fail an already-published post.
-      const isReplay =
-        (
-          await inspectProviderPublishAttempt(
-            this.prisma,
-            post,
-            workflowExecutionId,
-          )
-        ).kind === 'replay';
-      const loaded = await this.loadPublishResources(post, ids, url, isReplay);
+      // A provider-accepted occurrence only needs its state persisted: no
+      // credential, readiness, quota or media gate may fail it.
+      const state = await inspectProviderPublishAttempt(this.prisma, post);
+      if (state.kind === 'replay') {
+        return await this.persistAcceptedPublish(
+          post,
+          state,
+          state.result,
+          await this.loadRecoveryDelivery(post, source, ids),
+          workflowExecutionId,
+          url,
+        );
+      }
+
+      const loaded = await this.loadPublishResources(post, ids, url);
       if (!loaded.ok) {
         return loaded.result;
       }
@@ -204,7 +209,6 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         loaded.value.credential,
         loaded.value.organization,
         url,
-        isReplay,
       );
       if (!prepared.ok) {
         return prepared.result;
@@ -215,6 +219,15 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         prepared.value,
         workflowExecutionId,
         url,
+        () =>
+          this.runPublishGates(
+            post,
+            ids,
+            loaded.value.credential,
+            loaded.value.organization,
+            prepared.value,
+            url,
+          ),
       );
     } catch (error: unknown) {
       if (
@@ -235,11 +248,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       messageSource: 'error-instance',
     });
 
-    const attempt = await inspectProviderPublishAttempt(
-      this.prisma,
-      post,
-      null,
-    );
+    const attempt = await inspectProviderPublishAttempt(this.prisma, post);
     if (attempt.kind === 'replay' || attempt.kind === 'in_flight') {
       // The provider accepted this occurrence, or another delivery is
       // publishing it: keep the target PUBLISHING for replay, never FAILED.
@@ -285,7 +294,6 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     post: PostEntity,
     ids: PostDeliveryIds,
     url: string,
-    isReplay: boolean,
   ): Promise<
     DeliveryLoad<{
       credential: CredentialDocument;
@@ -302,28 +310,6 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       return organization;
     }
 
-    if (!isReplay) {
-      const readinessFailure = await this.assertChannelReady(
-        post,
-        ids,
-        credential.value,
-        url,
-      );
-      if (readinessFailure) {
-        return { ok: false, result: readinessFailure };
-      }
-
-      const quotaFailure = await this.assertQuotaAllowed(
-        post,
-        credential.value,
-        organization.value,
-        url,
-      );
-      if (quotaFailure) {
-        return { ok: false, result: quotaFailure };
-      }
-    }
-
     return {
       ok: true,
       value: {
@@ -331,6 +317,92 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         organization: organization.value,
       },
     };
+  }
+
+  /**
+   * Gates for a fresh provider call only. They run after the occurrence's
+   * attempt is resolved, so they never fail an already-published post.
+   */
+  private async runPublishGates(
+    post: PostEntity,
+    ids: PostDeliveryIds,
+    credential: CredentialDocument,
+    organization: OrganizationDocument,
+    prepared: PreparedPostDelivery,
+    url: string,
+  ): Promise<PublishResult | null> {
+    const readinessFailure = await this.assertChannelReady(
+      post,
+      ids,
+      credential,
+      url,
+    );
+    if (readinessFailure) {
+      return readinessFailure;
+    }
+
+    const quotaFailure = await this.assertQuotaAllowed(
+      post,
+      credential,
+      organization,
+      url,
+    );
+    if (quotaFailure) {
+      return quotaFailure;
+    }
+
+    const targetValidation = validateChannelTargetSettings({
+      caption: post.description,
+      credentialId: ids.credentialId ?? undefined,
+      media: toValidationMedia(post),
+      platform: prepared.platform,
+      publishMode: 'publish_now',
+      settings: resolveChannelTargetSettings(
+        prepared.platform,
+        post.targetSettings,
+      ),
+      visibility: prepared.context.visibility,
+    });
+    if (!targetValidation.valid) {
+      return this.failChannel(
+        post,
+        prepared.platform,
+        'channel_target_invalid',
+        targetValidation.errors[0]?.message ??
+          'Channel target validation failed',
+        false,
+      );
+    }
+
+    return this.assertMediaReady(post, ids, prepared.platform, url);
+  }
+
+  /**
+   * Best-effort delivery context for persisting an accepted receipt. Missing
+   * credentials or publishers only skip follow-up work; they never fail it.
+   */
+  private async loadRecoveryDelivery(
+    post: PostEntity,
+    source: ScheduledPostWorkflowInput['source'],
+    ids: PostDeliveryIds,
+  ): Promise<PreparedPostDelivery | null> {
+    const credential = (await this.credentialsService.findOne({
+      id: ids.credentialId,
+      isDeleted: false,
+      ...(ids.organizationId ? { organizationId: ids.organizationId } : {}),
+    })) as CredentialDocument | null;
+    const organization = (await this.organizationsService.findOne({
+      id: ids.organizationId,
+      isDeleted: false,
+    })) as OrganizationDocument | null;
+    if (!credential || !organization) return null;
+    return this.buildPreparedDelivery(
+      post,
+      source,
+      ids,
+      credential,
+      organization,
+    );
   }
 
   private async loadCredential(
@@ -470,45 +542,50 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     credential: CredentialDocument,
     organization: OrganizationDocument,
     url: string,
-    isReplay: boolean,
   ): Promise<DeliveryLoad<PreparedPostDelivery>> {
+    const prepared = this.buildPreparedDelivery(
+      post,
+      source,
+      ids,
+      credential,
+      organization,
+    );
+    if (prepared) {
+      return { ok: true, value: prepared };
+    }
+
+    const platform = String(credential.platform ?? '');
+    this.logger.error(`${url} unsupported platform`, {
+      platform,
+      postId: post.id,
+    });
+    return {
+      ok: false,
+      result: await this.failChannel(
+        post,
+        fromPrismaCredentialPlatform(platform) ?? platform,
+        'unsupported_platform',
+        'Unsupported platform',
+        false,
+      ),
+    };
+  }
+
+  private buildPreparedDelivery(
+    post: PostEntity,
+    source: ScheduledPostWorkflowInput['source'],
+    ids: PostDeliveryIds,
+    credential: CredentialDocument,
+    organization: OrganizationDocument,
+  ): PreparedPostDelivery | null {
     const platform = fromPrismaCredentialPlatform(
       String(credential.platform ?? ''),
     );
-    if (!platform) {
-      const unknownPlatform = String(credential.platform ?? '');
-      this.logger.error(`${url} unsupported platform`, {
-        platform: unknownPlatform,
-        postId: post.id,
-      });
-      return {
-        ok: false,
-        result: await this.failChannel(
-          post,
-          unknownPlatform,
-          'unsupported_platform',
-          'Unsupported platform',
-          false,
-        ),
-      };
-    }
-
-    const publisher = this.publisherFactory.getPublisher(platform);
-    if (!publisher) {
-      this.logger.error(`${url} unsupported platform`, {
-        platform: credential.platform,
-        postId: post.id,
-      });
-      return {
-        ok: false,
-        result: await this.failChannel(
-          post,
-          platform,
-          'unsupported_platform',
-          'Unsupported platform',
-          false,
-        ),
-      };
+    const publisher = platform
+      ? this.publisherFactory.getPublisher(platform)
+      : null;
+    if (!platform || !publisher) {
+      return null;
     }
 
     const resolvedSettings = resolveChannelTargetSettings(
@@ -516,38 +593,6 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       post.targetSettings,
     );
     const visibility = resolvePostVisibility(post.visibility);
-    const targetValidation = validateChannelTargetSettings({
-      caption: post.description,
-      credentialId: ids.credentialId ?? undefined,
-      media: toValidationMedia(post),
-      platform,
-      publishMode: 'publish_now',
-      settings: resolvedSettings,
-      visibility,
-    });
-    if (!isReplay && !targetValidation.valid) {
-      const validationError =
-        targetValidation.errors[0]?.message ??
-        'Channel target validation failed';
-      return {
-        ok: false,
-        result: await this.failChannel(
-          post,
-          platform,
-          'channel_target_invalid',
-          validationError,
-          false,
-        ),
-      };
-    }
-
-    const mediaBlock = isReplay
-      ? null
-      : await this.assertMediaReady(post, ids, platform, url);
-    if (mediaBlock) {
-      return { ok: false, result: mediaBlock };
-    }
-
     const settings =
       source === 'tiktok_app'
         ? {
@@ -565,22 +610,19 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
           : resolvedSettings;
 
     return {
-      ok: true,
-      value: {
-        context: {
-          brandId: ids.brandId ?? '',
-          credential,
-          organization,
-          organizationId: ids.organizationId ?? '',
-          post,
-          postId: post.id.toString(),
-          settings,
-          visibility,
-        },
+      context: {
+        brandId: ids.brandId ?? '',
         credential,
-        platform,
-        publisher,
+        organization,
+        organizationId: ids.organizationId ?? '',
+        post,
+        postId: post.id.toString(),
+        settings,
+        visibility,
       },
+      credential,
+      platform,
+      publisher,
     };
   }
 
@@ -639,6 +681,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     prepared: PreparedPostDelivery,
     workflowExecutionId: string,
     url: string,
+    runGates: () => Promise<PublishResult | null>,
   ): Promise<PublishResult> {
     let attempt: ProviderPublishAttempt;
     try {
@@ -672,49 +715,88 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         workflowExecutionId,
       );
     }
-    const receiptId = attempt.receiptId;
-
-    let result: PublishResult;
     if (attempt.kind === 'replay') {
-      result = attempt.result;
       this.logger.warn(`${url} replaying recorded provider publish`, {
-        externalId: result.externalId,
+        externalId: attempt.result.externalId,
         postId: post.id.toString(),
-        receiptId,
+        receiptId: attempt.receiptId,
       });
-    } else {
-      try {
-        result = await prepared.publisher.publish(prepared.context);
-      } catch (error: unknown) {
-        // A timeout or dropped connection may hide an accepted publish: keep
-        // the attempt for verification on retry instead of releasing it.
-        if (isAmbiguousPublishError(error))
-          await this.settleProviderAttempt(post, receiptId, 'uncertain', url);
-        else await this.settleProviderAttempt(post, receiptId, 'released', url);
-        return await this.handlePublishError(post, error, workflowExecutionId);
-      }
-      if (!result.success) {
-        await this.settleProviderAttempt(post, receiptId, 'released', url);
-        try {
-          return await this.handlePublishFailure(
-            post,
-            result,
-            prepared.platform,
-            workflowExecutionId,
-          );
-        } catch (error: unknown) {
-          return await this.handlePublishError(
-            post,
-            error,
-            workflowExecutionId,
-          );
-        }
-      }
-      await this.acceptProviderAttempt(post, receiptId, result, url);
+      return this.persistAcceptedPublish(
+        post,
+        attempt,
+        attempt.result,
+        prepared,
+        workflowExecutionId,
+        url,
+      );
     }
 
-    // The provider accepted the post: from here a failure must never reach
-    // the publish retry path, or the next attempt would publish it again.
+    const gateFailure = await runGates().catch(async (error: unknown) => {
+      await this.settleProviderAttempt(post, attempt, 'released', url);
+      throw error;
+    });
+    if (gateFailure) {
+      await this.settleProviderAttempt(post, attempt, 'released', url);
+      return gateFailure;
+    }
+
+    let result: PublishResult;
+    try {
+      result = await prepared.publisher.publish(prepared.context);
+    } catch (error: unknown) {
+      // A timeout or dropped connection may hide an accepted publish: keep
+      // the attempt for verification on retry instead of releasing it.
+      await this.settleProviderAttempt(
+        post,
+        attempt,
+        isAmbiguousPublishError(error) ? 'uncertain' : 'released',
+        url,
+      );
+      return await this.handlePublishError(post, error, workflowExecutionId);
+    }
+    if (!result.success) {
+      const isAmbiguous =
+        !result.errorCode && isAmbiguousPublishError(result.error ?? '');
+      await this.settleProviderAttempt(
+        post,
+        attempt,
+        isAmbiguous ? 'uncertain' : 'released',
+        url,
+      );
+      try {
+        return await this.handlePublishFailure(
+          post,
+          result,
+          prepared.platform,
+          workflowExecutionId,
+        );
+      } catch (error: unknown) {
+        return await this.handlePublishError(post, error, workflowExecutionId);
+      }
+    }
+    await this.acceptProviderAttempt(post, attempt, result, url);
+    return this.persistAcceptedPublish(
+      post,
+      attempt,
+      result,
+      prepared,
+      workflowExecutionId,
+      url,
+    );
+  }
+
+  /**
+   * Persist a provider-accepted result. From here a failure must never reach
+   * the publish retry path, or the next attempt would publish it again.
+   */
+  private async persistAcceptedPublish(
+    post: PostEntity,
+    attempt: ProviderPublishAttemptRef,
+    result: PublishResult,
+    prepared: PreparedPostDelivery | null,
+    workflowExecutionId: string,
+    url: string,
+  ): Promise<PublishResult> {
     let persisted: boolean;
     try {
       persisted = await this.persistProviderSuccess(
@@ -732,17 +814,17 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         error: getErrorMessage(error.cause),
         externalId: result.externalId,
         postId: post.id.toString(),
-        receiptId,
+        receiptId: attempt.receiptId,
       });
       throw error;
     }
     if (persisted) {
-      await markProviderReceiptPersisted(this.prisma, post, receiptId).catch(
+      await markProviderReceiptPersisted(this.prisma, post, attempt).catch(
         (error: unknown) =>
           this.logger.warn(`${url} provider receipt persistence not marked`, {
             error: getErrorMessage(error),
             postId: post.id.toString(),
-            receiptId,
+            receiptId: attempt.receiptId,
           }),
       );
     }
@@ -752,7 +834,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
   /**
    * Resolve an earlier attempt whose provider outcome was never confirmed.
    * Publishers that can verify report whether it landed; a confirmed absence
-   * (or a publisher without verification) reclaims the attempt for a retry.
+   * (or a publisher without verification) takes the attempt over for a retry.
    */
   private async resolveUnconfirmedAttempt(
     post: PostEntity,
@@ -780,34 +862,28 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
           postId: post.id.toString(),
           receiptId: attempt.receiptId,
         });
-        await acceptProviderPublishAttempt(
-          this.prisma,
-          post,
-          attempt.receiptId,
-          found,
-        );
-        return { kind: 'replay', receiptId: attempt.receiptId, result: found };
+        await acceptProviderPublishAttempt(this.prisma, post, attempt, found);
+        return { ...attempt, kind: 'replay', result: found };
       }
     }
-    const isClaimed = await claimProviderPublishAttempt(
+    const claimed = await claimProviderPublishAttempt(
       this.prisma,
       post,
-      attempt.receiptId,
-      attempt.status,
+      attempt,
       workflowExecutionId,
     );
-    if (!isClaimed) return { kind: 'in_flight', receiptId: attempt.receiptId };
+    if (!claimed) return { ...attempt, kind: 'in_flight' };
     this.logger.warn(`${url} retrying an unconfirmed provider publish`, {
       isVerified: Boolean(verify),
       postId: post.id.toString(),
       receiptId: attempt.receiptId,
     });
-    return { kind: 'publish', receiptId: attempt.receiptId };
+    return { kind: 'publish', ...claimed };
   }
 
   private async acceptProviderAttempt(
     post: PostEntity,
-    receiptId: string,
+    attempt: ProviderPublishAttemptRef,
     result: PublishResult,
     url: string,
   ): Promise<void> {
@@ -816,21 +892,21 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     await acceptProviderPublishAttempt(
       this.prisma,
       post,
-      receiptId,
+      attempt,
       result,
     ).catch((error: unknown) =>
       this.logger.error(`${url} provider publish receipt not recorded`, {
         error: getErrorMessage(error),
         externalId: result.externalId,
         postId: post.id.toString(),
-        receiptId,
+        receiptId: attempt.receiptId,
       }),
     );
   }
 
   private async settleProviderAttempt(
     post: PostEntity,
-    receiptId: string,
+    attempt: ProviderPublishAttemptRef,
     outcome: 'uncertain' | 'released',
     url: string,
   ): Promise<void> {
@@ -838,12 +914,12 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       outcome === 'uncertain'
         ? markProviderPublishAttemptUncertain
         : releaseProviderPublishAttempt;
-    await settle(this.prisma, post, receiptId).catch((error: unknown) =>
+    await settle(this.prisma, post, attempt).catch((error: unknown) =>
       this.logger.error(`${url} provider publish attempt not settled`, {
         error: getErrorMessage(error),
         outcome,
         postId: post.id.toString(),
-        receiptId,
+        receiptId: attempt.receiptId,
       }),
     );
   }
@@ -851,10 +927,12 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
   private async persistProviderSuccess(
     post: PostEntity,
     result: PublishResult,
-    prepared: PreparedPostDelivery,
+    prepared: PreparedPostDelivery | null,
     workflowExecutionId: string,
     url: string,
   ): Promise<boolean> {
+    const platform =
+      prepared?.platform ?? readPostString(post, ['platform']) ?? '';
     const transitionGuard: SchedulerPublishTransitionGuard = {
       expectedWorkflowExecutionId: workflowExecutionId,
       priorExecutionStates: [TargetExecutionState.PUBLISHING],
@@ -862,7 +940,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
 
     if (!result.externalId) {
       this.logger.warn(`${url} provider returned no external id`, {
-        platform: prepared.credential.platform,
+        platform,
         postId: post.id.toString(),
       });
     }
@@ -886,7 +964,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       }
 
       this.logger.log(`${url} post marked PENDING for deferred verification`, {
-        platform: prepared.credential.platform,
+        platform,
         postId: post.id.toString(),
         publishId: result.externalId,
       });
@@ -927,18 +1005,25 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     }
 
     const children = (post.children || []) as unknown as PostDocument[];
-    await this.deliverThreadChildren(
-      post,
-      children,
-      prepared,
-      result,
-      publishedAt,
-      url,
-    );
+    if (prepared) {
+      await this.deliverThreadChildren(
+        post,
+        children,
+        prepared,
+        result,
+        publishedAt,
+        url,
+      );
+    } else if (children.length > 0) {
+      this.logger.warn(`${url} replayed publish without a publisher`, {
+        childrenCount: children.length,
+        postId: post.id.toString(),
+      });
+    }
 
     if (!isProviderDraft) {
-      this.emitPublishPublishedWebhook(post, result, prepared.platform);
-      this.scheduleReplyPostWatchAfterPublish(post, result, prepared.platform);
+      this.emitPublishPublishedWebhook(post, result, platform);
+      this.scheduleReplyPostWatchAfterPublish(post, result, platform);
     }
 
     this.logger.log(
@@ -946,7 +1031,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       {
         childrenCount: children.length,
         externalId: result.externalId,
-        platform: prepared.credential.platform,
+        platform,
         postId: post.id.toString(),
       },
     );
@@ -1252,7 +1337,8 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     const currentRetryCount = post.retryCount || 0;
     const isRetryable = result.errorCode
       ? false
-      : isRetryablePublishError(result.error);
+      : isRetryablePublishError(result.error) ||
+        isAmbiguousPublishError(result.error ?? '');
     const canRetry = isRetryable && currentRetryCount < this.MAX_RETRY_ATTEMPTS;
     const errorMessage = result.error || 'Max retries reached';
 
@@ -1289,7 +1375,9 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
   ): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const currentRetryCount = post.retryCount || 0;
-    const isRetryable = isRetryablePublishError(error);
+    // An ambiguous outcome must reach the soft retry that verifies it.
+    const isRetryable =
+      isRetryablePublishError(error) || isAmbiguousPublishError(error);
     const canRetry = isRetryable && currentRetryCount < this.MAX_RETRY_ATTEMPTS;
     const errorMessage = getPublishErrorMessage(error);
 

@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PublishResult } from '@api/index';
 import { TargetExecutionState } from '@genfeedai/contracts';
@@ -10,6 +10,10 @@ import { readScheduledDeliveryResult } from '@workers/services/scheduled-post-de
 type ReceiptClient = Pick<PrismaService, 'postProviderPublishReceipt'>;
 
 type ReceiptStatus = 'attempting' | 'accepted' | 'uncertain' | 'released';
+export type ProviderPublishAttemptRef = {
+  receiptId: string;
+  attemptToken: string;
+};
 
 /** An attempt younger than this is presumed in flight on another worker. */
 export const PROVIDER_PUBLISH_ATTEMPT_LEASE_MS = 30 * 60_000;
@@ -23,21 +27,22 @@ const MAX_RESERVATION_ROUNDS = 3;
  *   verify it with the provider before publishing again.
  * - `in_flight`: another delivery holds a live attempt for this occurrence.
  */
+type AttemptRef = ProviderPublishAttemptRef;
+
 export type ProviderPublishAttemptState =
   | { kind: 'none' }
-  | { kind: 'released'; receiptId: string }
-  | { kind: 'replay'; receiptId: string; result: PublishResult }
-  | {
+  | ({ kind: 'released' } & AttemptRef)
+  | ({ kind: 'replay'; result: PublishResult } & AttemptRef)
+  | ({
       kind: 'unconfirmed';
-      receiptId: string;
       status: ReceiptStatus;
       attemptStartedAt: Date;
-    }
-  | { kind: 'in_flight'; receiptId: string };
+    } & AttemptRef)
+  | ({ kind: 'in_flight' } & AttemptRef);
 
 /** What a delivery that reserved (or found) the occurrence's attempt may do. */
 export type ProviderPublishAttempt =
-  | { kind: 'publish'; receiptId: string }
+  | ({ kind: 'publish' } & AttemptRef)
   | Extract<
       ProviderPublishAttemptState,
       { kind: 'replay' | 'unconfirmed' | 'in_flight' }
@@ -158,68 +163,69 @@ function isUniqueConflict(error: unknown): boolean {
 }
 
 /**
- * Read-only state of the occurrence's attempt. `workflowExecutionId` is the
- * caller's own execution; its own attempting row is never treated as in flight.
+ * Read-only state of the occurrence's attempt. A live `attempting` row is in
+ * flight whoever owns it, including a duplicate run of the same execution.
  */
 export async function inspectProviderPublishAttempt(
   prisma: ReceiptClient,
   post: PostEntity,
-  workflowExecutionId: string | null,
   now: Date = new Date(),
 ): Promise<ProviderPublishAttemptState> {
   const row = await prisma.postProviderPublishReceipt.findFirst({
     where: { ...occurrenceScope(post), isDeleted: false },
     select: {
       attemptStartedAt: true,
+      attemptToken: true,
       id: true,
       result: true,
       status: true,
-      workflowExecutionId: true,
     },
   });
   if (!row) return { kind: 'none' };
+  const ref = { receiptId: row.id, attemptToken: row.attemptToken };
   const status = row.status as ReceiptStatus;
-  if (status === 'released') return { kind: 'released', receiptId: row.id };
+  if (status === 'released') return { kind: 'released', ...ref };
   const result = status === 'accepted' ? readReceiptResult(row.result) : null;
-  if (result) return { kind: 'replay', receiptId: row.id, result };
+  if (result) return { kind: 'replay', result, ...ref };
   if (
     status === 'attempting' &&
-    row.workflowExecutionId !== workflowExecutionId &&
     now.getTime() - row.attemptStartedAt.getTime() <
       PROVIDER_PUBLISH_ATTEMPT_LEASE_MS
   )
-    return { kind: 'in_flight', receiptId: row.id };
+    return { kind: 'in_flight', ...ref };
   return {
     kind: 'unconfirmed',
-    receiptId: row.id,
     status,
     attemptStartedAt: row.attemptStartedAt,
+    ...ref,
   };
 }
 
 /**
- * Take over an attempt row observed in `fromStatus`. The conditional update
- * lets exactly one delivery win; losers must inspect the occurrence again.
+ * Take over an attempt row observed with `observed.attemptToken`. The token
+ * changes on every takeover, so exactly one concurrent delivery wins; losers
+ * get null and must not call the provider.
  */
 export async function claimProviderPublishAttempt(
   prisma: ReceiptClient,
   post: PostEntity,
-  receiptId: string,
-  fromStatus: ReceiptStatus,
+  observed: AttemptRef,
   workflowExecutionId: string,
   now: Date = new Date(),
-): Promise<boolean> {
+): Promise<AttemptRef | null> {
   const { organizationId, postId } = occurrenceScope(post);
+  const attemptToken = randomUUID();
   const claimed = await prisma.postProviderPublishReceipt.updateMany({
     where: {
-      id: receiptId,
+      id: observed.receiptId,
       organizationId,
       postId,
-      status: fromStatus,
+      attemptToken: observed.attemptToken,
       isDeleted: false,
     },
     data: {
       attemptStartedAt: now,
+      attemptToken,
       externalId: null,
       persistedAt: null,
       result: Prisma.DbNull,
@@ -227,7 +233,9 @@ export async function claimProviderPublishAttempt(
       workflowExecutionId,
     },
   });
-  return claimed.count === 1;
+  return claimed.count === 1
+    ? { receiptId: observed.receiptId, attemptToken }
+    : null;
 }
 
 /**
@@ -242,41 +250,35 @@ export async function reserveProviderPublishAttempt(
   now: Date = new Date(),
 ): Promise<ProviderPublishAttempt> {
   for (let round = 0; round < MAX_RESERVATION_ROUNDS; round++) {
-    const state = await inspectProviderPublishAttempt(
-      prisma,
-      post,
-      workflowExecutionId,
-      now,
-    );
+    const state = await inspectProviderPublishAttempt(prisma, post, now);
     if (state.kind === 'none') {
+      const attemptToken = randomUUID();
       try {
         const created = await prisma.postProviderPublishReceipt.create({
           data: {
             ...occurrenceScope(post),
             attemptStartedAt: now,
+            attemptToken,
             status: 'attempting',
             workflowExecutionId,
           },
           select: { id: true },
         });
-        return { kind: 'publish', receiptId: created.id };
+        return { kind: 'publish', receiptId: created.id, attemptToken };
       } catch (error: unknown) {
         if (!isUniqueConflict(error)) throw error;
         continue;
       }
     }
     if (state.kind === 'released') {
-      if (
-        await claimProviderPublishAttempt(
-          prisma,
-          post,
-          state.receiptId,
-          'released',
-          workflowExecutionId,
-          now,
-        )
-      )
-        return { kind: 'publish', receiptId: state.receiptId };
+      const claimed = await claimProviderPublishAttempt(
+        prisma,
+        post,
+        state,
+        workflowExecutionId,
+        now,
+      );
+      if (claimed) return { kind: 'publish', ...claimed };
       continue;
     }
     return state;
@@ -284,15 +286,22 @@ export async function reserveProviderPublishAttempt(
   throw new ProviderPublishInFlightError(String(post.id));
 }
 
+/** Settle only the attempt this delivery holds; a taken-over row is left alone. */
 async function updateAttempt(
   prisma: ReceiptClient,
   post: PostEntity,
-  receiptId: string,
+  attempt: AttemptRef,
   data: Prisma.PostProviderPublishReceiptUpdateManyMutationInput,
 ): Promise<void> {
   const { organizationId, postId } = occurrenceScope(post);
   await prisma.postProviderPublishReceipt.updateMany({
-    where: { id: receiptId, organizationId, postId, isDeleted: false },
+    where: {
+      id: attempt.receiptId,
+      organizationId,
+      postId,
+      attemptToken: attempt.attemptToken,
+      isDeleted: false,
+    },
     data,
   });
 }
@@ -300,10 +309,10 @@ async function updateAttempt(
 export function acceptProviderPublishAttempt(
   prisma: ReceiptClient,
   post: PostEntity,
-  receiptId: string,
+  attempt: AttemptRef,
   result: PublishResult,
 ): Promise<void> {
-  return updateAttempt(prisma, post, receiptId, {
+  return updateAttempt(prisma, post, attempt, {
     status: 'accepted',
     externalId: result.externalId,
     result: { ...result } as Prisma.InputJsonObject,
@@ -314,24 +323,24 @@ export function acceptProviderPublishAttempt(
 export function markProviderPublishAttemptUncertain(
   prisma: ReceiptClient,
   post: PostEntity,
-  receiptId: string,
+  attempt: AttemptRef,
 ): Promise<void> {
-  return updateAttempt(prisma, post, receiptId, { status: 'uncertain' });
+  return updateAttempt(prisma, post, attempt, { status: 'uncertain' });
 }
 
 /** The provider definitively did not publish; a retry may publish again. */
 export function releaseProviderPublishAttempt(
   prisma: ReceiptClient,
   post: PostEntity,
-  receiptId: string,
+  attempt: AttemptRef,
 ): Promise<void> {
-  return updateAttempt(prisma, post, receiptId, { status: 'released' });
+  return updateAttempt(prisma, post, attempt, { status: 'released' });
 }
 
 export function markProviderReceiptPersisted(
   prisma: ReceiptClient,
   post: PostEntity,
-  receiptId: string,
+  attempt: AttemptRef,
 ): Promise<void> {
-  return updateAttempt(prisma, post, receiptId, { persistedAt: new Date() });
+  return updateAttempt(prisma, post, attempt, { persistedAt: new Date() });
 }

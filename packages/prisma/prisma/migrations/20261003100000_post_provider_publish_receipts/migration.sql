@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS "post_provider_publish_receipts" (
   "occurrenceKey" TEXT NOT NULL,
   "status" TEXT NOT NULL,
   "workflowExecutionId" TEXT NOT NULL,
+  "attemptToken" TEXT NOT NULL,
   "attemptStartedAt" TIMESTAMP(3) NOT NULL,
   "externalId" TEXT,
   "result" JSONB,
