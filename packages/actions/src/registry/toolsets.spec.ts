@@ -88,7 +88,7 @@ describe('parseToolsetSelection', () => {
 
   it('with surface "mcp", keeps a declared toolset that has no tools on that surface', () => {
     // Empty-on-this-deploy is not unknown. The name stays selected so the
-    // caller does not widen to every tool, and `empty` is how list_toolsets
+    // caller does not widen to every tool, and `empty` is how find_tools
     // warns instead of the connection failing.
     expect(parseToolsetSelection('goals', 'mcp')).toEqual({
       empty: ['goals'],
@@ -196,7 +196,7 @@ describe('getToolsForToolsets', () => {
     // A tool from an unrelated toolset must not leak in.
     expect(resultNames.has('generate')).toBe(false);
     // Core is always present even when not explicitly requested.
-    expect(resultNames.has('list_toolsets')).toBe(true);
+    expect(resultNames.has('find_tools')).toBe(true);
   });
 
   it('never duplicates a tool that is itself in the core toolset', () => {

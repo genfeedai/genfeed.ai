@@ -8,7 +8,7 @@ describe('@genfeedai/actions CLI agent surface', () => {
     expect(names).toContain('create_post');
     expect(names).toContain('generate');
 
-    expect(names).toContain('get_credits_balance');
+    expect(names).toContain('get_account');
     expect(names).toContain('get_trends');
   });
 });

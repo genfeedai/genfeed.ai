@@ -72,13 +72,13 @@ describe('StreamableHttpService (real SDK integration)', () => {
       expect(JSON.parse(listing.text).result.tools).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            name: 'list_posts',
+            name: 'get_posts',
             _meta: expect.objectContaining({
               ui: { resourceUri: MCP_CARD_RESOURCE_URI },
             }),
           }),
           expect.objectContaining({
-            name: 'list_images',
+            name: 'list_assets',
             _meta: expect.objectContaining({
               ui: { resourceUri: MCP_CARD_RESOURCE_URI },
             }),

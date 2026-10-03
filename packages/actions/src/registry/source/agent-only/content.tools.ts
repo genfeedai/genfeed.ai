@@ -164,23 +164,6 @@ export const AGENT_CONTENT_TOOLS: SourceTool[] = [
     requiredRole: 'user',
   },
   {
-    creditCost: 0,
-    description:
-      'Get the content calendar for the coming week. Returns scheduled and draft posts with gap analysis showing days without content.',
-    name: 'get_content_calendar',
-    parameters: {
-      properties: {
-        days: {
-          description: 'Number of days ahead to look (default 7)',
-          type: 'number',
-        },
-      },
-      required: [],
-      type: 'object',
-    },
-    requiredRole: 'user',
-  },
-  {
     creditCost: 5,
     description:
       'Generate a full month of content (30 days) for a brand. Creates a content plan with a mix of tweets, images, and videos, then executes it. Requires credits.',

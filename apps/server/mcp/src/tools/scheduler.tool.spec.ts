@@ -61,9 +61,8 @@ describe('SCHEDULER_TOOL_NAMES', () => {
       'control_scheduled_release',
       'create_scheduled_release',
       'get_scheduled_release',
-      'get_scheduler_capability',
+      'get_scheduler_capabilities',
       'list_brand_publishing_readiness',
-      'list_scheduler_capabilities',
       'update_scheduled_release',
       'validate_scheduler_target',
     ]);
@@ -225,7 +224,7 @@ describe('handleSchedulerTool', () => {
   it('lists scheduler capabilities and forwards discovery flags', async () => {
     const client = buildClient();
 
-    const result = await call(client, 'list_scheduler_capabilities', {
+    const result = await call(client, 'get_scheduler_capabilities', {
       includeHidden: true,
       includePlanned: false,
     });
@@ -333,7 +332,7 @@ describe('handleSchedulerTool', () => {
     const client = buildClient();
     client.listSchedulerCapabilities.mockResolvedValue([]);
 
-    const result = await call(client, 'list_scheduler_capabilities', {});
+    const result = await call(client, 'get_scheduler_capabilities', {});
 
     expect(client.listSchedulerCapabilities).toHaveBeenCalledWith({
       includeHidden: undefined,
@@ -345,21 +344,28 @@ describe('handleSchedulerTool', () => {
   it('gets one scheduler capability by platform', async () => {
     const client = buildClient();
 
-    await call(client, 'get_scheduler_capability', { platform: 'youtube' });
+    await call(client, 'get_scheduler_capabilities', { platform: 'youtube' });
 
     expect(client.getSchedulerCapability).toHaveBeenCalledWith('youtube');
+    expect(client.listSchedulerCapabilities).not.toHaveBeenCalled();
     expect(client.createScheduledRelease).not.toHaveBeenCalled();
     expect(client.updateScheduledRelease).not.toHaveBeenCalled();
     expect(client.controlScheduledRelease).not.toHaveBeenCalled();
   });
 
-  it('rejects get_scheduler_capability without a platform', async () => {
+  it('rejects list-only flags when a platform is given', async () => {
     const client = buildClient();
 
-    await expect(call(client, 'get_scheduler_capability', {})).rejects.toThrow(
-      /platform is required/,
-    );
+    for (const flag of ['includeHidden', 'includePlanned']) {
+      await expect(
+        call(client, 'get_scheduler_capabilities', {
+          [flag]: false,
+          platform: 'youtube',
+        }),
+      ).rejects.toThrow(/apply only when listing/);
+    }
     expect(client.getSchedulerCapability).not.toHaveBeenCalled();
+    expect(client.listSchedulerCapabilities).not.toHaveBeenCalled();
   });
 
   it('validates a proposed target without mutating scheduler state', async () => {

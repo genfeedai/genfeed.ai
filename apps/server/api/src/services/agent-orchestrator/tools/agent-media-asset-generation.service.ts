@@ -100,7 +100,7 @@ export class AgentMediaAssetGenerationService {
         error: {
           creditsUsed: 0,
           error:
-            'Select a brand before generating. Pass brandId from list_brands; the first organization brand is not used automatically.',
+            'Select a brand before generating. Pass brandId from get_brands; the first organization brand is not used automatically.',
           success: false,
         },
       };

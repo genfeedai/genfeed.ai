@@ -97,9 +97,9 @@ describe('check-agent-tool-dispatch', () => {
       catalog: [
         { name: 'generate_ad_pack', surfaces: ['agent'] },
         { name: 'get_workflow_inputs', surfaces: ['agent'] },
-        { name: 'list_brands', surfaces: ['agent', 'mcp'] },
+        { name: 'get_brands', surfaces: ['agent', 'mcp'] },
       ],
-      dispatch: ['GENERATE_AD_PACK', 'GET_WORKFLOW_INPUTS', 'LIST_BRANDS'],
+      dispatch: ['GENERATE_AD_PACK', 'GET_WORKFLOW_INPUTS', 'GET_BRANDS'],
     });
 
     const result = runCheckAgentToolDispatch();
@@ -236,15 +236,15 @@ describe('check-agent-tool-dispatch', () => {
     writeFixtures({
       catalog: [
         { name: 'generate_ad_pack', surfaces: ['agent'] },
-        { name: 'list_brands', surfaces: ['mcp'] },
+        { name: 'get_brands', surfaces: ['mcp'] },
       ],
-      dispatch: ['GENERATE_AD_PACK', 'LIST_BRANDS'],
+      dispatch: ['GENERATE_AD_PACK', 'GET_BRANDS'],
     });
 
     const result = runCheckAgentToolDispatch();
 
     expect(result.violations).toEqual([
-      expect.objectContaining({ action: 'list_brands' }),
+      expect.objectContaining({ action: 'get_brands' }),
     ]);
   });
 

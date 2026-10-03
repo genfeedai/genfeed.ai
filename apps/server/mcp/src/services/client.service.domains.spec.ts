@@ -101,10 +101,10 @@ describe('ClientService (MCP) domain clients', () => {
     const gated = { content, outcome: 'shadow_flagged', confidence: 0.99 };
     mockAxiosInstance.post.mockResolvedValue({ data: gated });
     expect(
-      await service.evaluateMcpToolResult('search_articles', content),
+      await service.evaluateMcpToolResult('get_articles', content),
     ).toEqual(gated);
     expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-      '/agent-tools/search_articles/result-gate',
+      '/agent-tools/get_articles/result-gate',
       { content },
     );
   });
@@ -114,7 +114,7 @@ describe('ClientService (MCP) domain clients', () => {
     async (response) => {
       mockAxiosInstance.post.mockResolvedValue(response);
       await expect(
-        service.evaluateMcpToolResult('search_articles', 'RAW_SECRET'),
+        service.evaluateMcpToolResult('get_articles', 'RAW_SECRET'),
       ).rejects.toThrow('MCP result classification unavailable');
       expect(JSON.stringify(mockLoggerService.error.mock.calls)).not.toContain(
         'RAW_SECRET',
@@ -127,7 +127,7 @@ describe('ClientService (MCP) domain clients', () => {
       response: { data: { errors: [{ detail: 'RAW_SECRET' }] } },
     });
     await expect(
-      service.evaluateMcpToolResult('search_articles', 'RAW_SECRET'),
+      service.evaluateMcpToolResult('get_articles', 'RAW_SECRET'),
     ).rejects.toThrow('MCP result classification unavailable');
     expect(JSON.stringify(mockLoggerService.error.mock.calls)).not.toContain(
       'RAW_SECRET',
@@ -567,35 +567,6 @@ describe('ClientService (MCP) domain clients', () => {
   // ==================== WORKSPACE ====================
 
   describe('workspace reads', () => {
-    it('lists brands with id/name normalization', async () => {
-      (mockAxiosInstance.get as Mock).mockResolvedValue({
-        data: {
-          data: [
-            { attributes: { name: 'Acme', status: 'active' }, id: 'brand-1' },
-            { attributes: {}, id: 'brand-2' },
-          ],
-        },
-      });
-
-      const result = await service.listBrands();
-
-      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/brands');
-      expect(result[0]).toMatchObject({
-        id: 'brand-1',
-        name: 'Acme',
-        status: 'active',
-      });
-      expect(result[1]).toMatchObject({ id: 'brand-2', name: 'Unnamed' });
-    });
-
-    it('returns an empty brand list when the payload has no data', async () => {
-      (mockAxiosInstance.get as Mock).mockResolvedValue({ data: {} });
-
-      const result = await service.listBrands();
-
-      expect(result).toEqual([]);
-    });
-
     it('lists personas with JSON:API filters and paging defaults', async () => {
       (mockAxiosInstance.get as Mock).mockResolvedValue({
         data: {
@@ -692,22 +663,6 @@ describe('ClientService (MCP) domain clients', () => {
       expect(result).toEqual([]);
     });
 
-    it('reads account identity from the whoami endpoint', async () => {
-      (mockAxiosInstance.get as Mock).mockResolvedValue({
-        data: {
-          data: { organization: 'org-1', user: { email: 'user@genfeed.ai' } },
-        },
-      });
-
-      const result = await service.getAccountInfo();
-
-      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/auth/whoami');
-      expect(result).toEqual({
-        organization: 'org-1',
-        user: { email: 'user@genfeed.ai' },
-      });
-    });
-
     it('reads job status from the ingredient batch, not metadata', async () => {
       (mockAxiosInstance.get as Mock).mockResolvedValue({
         data: {
@@ -733,6 +688,33 @@ describe('ClientService (MCP) domain clients', () => {
         id: 'ingredient-1',
         status: 'GENERATED',
         url: 'https://cdn.example.com/img.png',
+      });
+    });
+
+    it('surfaces video generation progress and stage from the ingredient', async () => {
+      (mockAxiosInstance.get as Mock).mockResolvedValue({
+        data: {
+          data: [
+            {
+              attributes: {
+                category: 'VIDEO',
+                generationProgress: 42,
+                generationStage: 'rendering',
+                status: 'PROCESSING',
+              },
+              id: 'video-1',
+            },
+          ],
+        },
+      });
+
+      const result = await service.getJobStatus('video-1');
+
+      expect(result).toMatchObject({
+        id: 'video-1',
+        progress: 42,
+        stage: 'rendering',
+        status: 'PROCESSING',
       });
     });
 

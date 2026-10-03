@@ -16,7 +16,7 @@ function setup() {
               {
                 id: 'tool',
                 type: 'function',
-                function: { name: 'get_brand', arguments: '{}' },
+                function: { name: 'get_brands', arguments: '{}' },
               },
             ],
           },

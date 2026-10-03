@@ -26,7 +26,7 @@ describe('AgentUntrustedContentAuditsService origin mapping', () => {
         mode: 'shadow',
         outcome: 'shadow_flagged',
         source: 'connector',
-        toolName: 'get_account_info',
+        toolName: 'get_account',
       });
       expect(document.origin).toBe(origin);
       expect(create.mock.calls[0][0].data).toMatchObject({

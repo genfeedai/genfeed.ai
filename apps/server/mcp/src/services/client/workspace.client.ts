@@ -1,10 +1,6 @@
-import type {
-  CreditsUsage,
-  UsageStats,
-} from '@mcp/shared/interfaces/post.interface';
+import type { CreditsUsage } from '@mcp/shared/interfaces/post.interface';
 import type { BaseApiClient } from './base-api-client';
 import type {
-  BrandResponse,
   CreateBatchParams,
   JsonApiResource,
   ListBatchesParams,
@@ -12,8 +8,8 @@ import type {
 } from './client.types';
 
 /**
- * Account-scoped reads and content-batch orchestration: credits/usage, brands,
- * personas, batches, account/job status, and agent chat threads.
+ * Account-scoped reads and content-batch orchestration: credits, personas,
+ * batches, job status, and agent chat threads.
  */
 export class WorkspaceClient {
   constructor(private readonly base: BaseApiClient) {}
@@ -45,62 +41,6 @@ export class WorkspaceClient {
         };
       },
       this.base.failWith('Failed to get credits usage'),
-    );
-  }
-
-  getUsageStats(timeRange: string = '30d'): Promise<UsageStats> {
-    this.base.logger.debug(`Getting usage stats for timeRange: ${timeRange}`);
-
-    return this.base.request(
-      'getting usage stats',
-      async (http) => {
-        // Credit usage is the canonical OSS tracking surface
-        // (`@Controller('credits')` + `@Get('usage')`). It exposes a
-        // per-content-type credit breakdown plus the total consumed, which we
-        // project onto the `UsageStats` shape. `postsPublished` /
-        // `totalEngagement` have no credit-ledger analog, so they stay 0.
-        const response = await http.get('/credits/usage');
-        const data =
-          response.data?.data?.attributes || response.data?.data || {};
-        const breakdown = data.breakdown || {};
-
-        return {
-          contentCreated: {
-            articles: breakdown.articles || 0,
-            avatars: breakdown.avatars || 0,
-            images: breakdown.images || 0,
-            music: breakdown.music || 0,
-            videos: breakdown.videos || 0,
-          },
-          creditsUsed: data.used || 0,
-          postsPublished: data.postsPublished || 0,
-          timeRange,
-          totalEngagement: data.totalEngagement || 0,
-        };
-      },
-      this.base.failWith('Failed to get usage stats'),
-    );
-  }
-
-  listBrands(): Promise<BrandResponse[]> {
-    this.base.logger.debug('Listing brands');
-
-    return this.base.request(
-      'listing brands',
-      async (http) => {
-        const response = await http.get('/brands');
-        return (
-          response.data?.data?.map((brand: JsonApiResource) => ({
-            id: brand.id || String(brand.attributes?.id || ''),
-            name: String(brand.attributes?.name || 'Unnamed'),
-            status: brand.attributes?.status
-              ? String(brand.attributes.status)
-              : undefined,
-            ...(brand.attributes || {}),
-          })) || []
-        );
-      },
-      this.base.failWith('Failed to list brands'),
     );
   }
 
@@ -184,22 +124,6 @@ export class WorkspaceClient {
     );
   }
 
-  getAccountInfo(): Promise<Record<string, unknown>> {
-    return this.base.request(
-      'getting account info',
-      async (http) => {
-        // Identity introspection is served by `@Controller('auth')` +
-        // `@Get('whoami')`, which returns `{ data: { user, organization, role,
-        // scopes, isApiKey } }` for the bearer token — the account context an
-        // MCP caller has.
-        const response = await http.get('/auth/whoami');
-        const data = response.data?.data ?? response.data ?? {};
-        return data as Record<string, unknown>;
-      },
-      this.base.failWith('Failed to get account info'),
-    );
-  }
-
   getJobStatus(jobId: string): Promise<Record<string, unknown>> {
     return this.base.request(
       'getting job status',
@@ -225,9 +149,21 @@ export class WorkspaceClient {
           (typeof attributes.cdnUrl === 'string' && attributes.cdnUrl) ||
           (typeof attributes.url === 'string' && attributes.url) ||
           undefined;
+        // Video (and other long-running) generations report progress on the
+        // ingredient; surface it under the stable `progress`/`stage` names.
+        const progress =
+          typeof attributes.generationProgress === 'number'
+            ? attributes.generationProgress
+            : undefined;
+        const stage =
+          typeof attributes.generationStage === 'string'
+            ? attributes.generationStage
+            : undefined;
         return {
           id,
           ...attributes,
+          ...(progress !== undefined ? { progress } : {}),
+          ...(stage ? { stage } : {}),
           ...(url ? { url } : {}),
         };
       },

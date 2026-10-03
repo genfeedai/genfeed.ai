@@ -64,7 +64,7 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Publish an owned reviewed article on the public website. Requires approval. Use get_article and get_article_preview before requesting publication. Changes publication status without regenerating the body or replacing an existing publication date.',
+      'Publish an owned reviewed article on the public website. Requires approval. Use get_articles and get_article_preview before requesting publication. Changes publication status without regenerating the body or replacing an existing publication date.',
     name: 'publish_article',
     requiredRole: 'user',
     parameters: {
@@ -126,42 +126,29 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Search published articles by query, category, or tags. Filter and find content quickly.',
-    name: 'search_articles',
+      'Get one article by articleId, or search published articles by query (optionally filtered by category). Pass exactly one of articleId or query.',
+    name: 'get_articles',
     parameters: {
       properties: {
+        articleId: {
+          description: 'The article to retrieve.',
+          type: 'string',
+        },
+        query: {
+          description: 'Search query over published articles.',
+          type: 'string',
+        },
         category: {
-          description: 'Filter by category',
+          description: 'Search only. Filter by category.',
           type: 'string',
         },
         limit: {
           default: 10,
-          description: 'Maximum results to return',
+          description: 'Search only. Maximum results to return.',
           maximum: 50,
           type: 'number',
         },
-        query: {
-          description: 'Search query',
-          type: 'string',
-        },
       },
-      required: ['query'],
-      type: 'object',
-    },
-    requiredRole: 'user',
-  },
-  {
-    creditCost: 0,
-    description: 'Get a specific article by ID',
-    name: 'get_article',
-    parameters: {
-      properties: {
-        articleId: {
-          description: 'The ID of the article to retrieve',
-          type: 'string',
-        },
-      },
-      required: ['articleId'],
       type: 'object',
     },
     requiredRole: 'user',

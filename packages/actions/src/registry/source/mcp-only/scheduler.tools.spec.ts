@@ -11,9 +11,8 @@ describe('MCP_SCHEDULER_TOOLS', () => {
       'control_scheduled_release',
       'create_scheduled_release',
       'get_scheduled_release',
-      'get_scheduler_capability',
+      'get_scheduler_capabilities',
       'list_brand_publishing_readiness',
-      'list_scheduler_capabilities',
       'update_scheduled_release',
       'validate_scheduler_target',
     ]);
@@ -30,23 +29,17 @@ describe('MCP_SCHEDULER_TOOLS', () => {
     expect(tool?.description).toContain('Read-only');
   });
 
-  it('matches the REST channel-capability list query contract', () => {
-    const tool = toolsByName.get('list_scheduler_capabilities');
+  it('merges the capability list and platform get into one optional-platform tool', () => {
+    const tool = toolsByName.get('get_scheduler_capabilities');
     expect(tool?.creditCost).toBe(0);
     expect(tool?.parameters.required ?? []).toEqual([]);
     expect(tool?.parameters.properties).toEqual(
       expect.objectContaining({
         includeHidden: expect.objectContaining({ type: 'boolean' }),
         includePlanned: expect.objectContaining({ type: 'boolean' }),
+        platform: expect.objectContaining({ type: 'string' }),
       }),
     );
-  });
-
-  it('matches the REST platform capability get contract', () => {
-    const tool = toolsByName.get('get_scheduler_capability');
-    expect(tool?.creditCost).toBe(0);
-    expect(tool?.parameters.required).toEqual(['platform']);
-    expect(tool?.parameters.properties).toHaveProperty('platform');
   });
 
   it('matches the REST validate-target body contract', () => {

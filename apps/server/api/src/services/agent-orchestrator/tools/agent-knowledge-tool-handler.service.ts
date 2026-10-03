@@ -181,7 +181,7 @@ export class AgentKnowledgeToolHandler {
       return {
         creditsUsed: 0,
         error:
-          'Select a brand before searching its Knowledge. Pass brandId from list_brands.',
+          'Select a brand before searching its Knowledge. Pass brandId from get_brands.',
         success: false,
       };
     }

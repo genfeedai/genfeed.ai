@@ -1,22 +1,9 @@
-import type { IngredientOrigin } from '@genfeedai/contracts';
-import type {
-  AvatarResource,
-  ImageResource,
-  MusicResource,
-  VideoResource,
-} from '@mcp/shared/interfaces/api-response.interface';
-import type {
-  AvatarListParams,
-  AvatarResponse,
-} from '@mcp/shared/interfaces/avatar.interface';
 import type {
   ImageCreationParams,
-  ImageListParams,
   ImageResponse,
 } from '@mcp/shared/interfaces/image.interface';
 import type {
   MusicCreationParams,
-  MusicListParams,
   MusicResponse,
 } from '@mcp/shared/interfaces/music.interface';
 import type {
@@ -25,7 +12,6 @@ import type {
   MergeVideosResult,
   VideoCreationParams,
   VideoResponse,
-  VideoStatus,
 } from '@mcp/shared/interfaces/video.interface';
 import type { BaseApiClient } from './base-api-client';
 import { CONTENT_STATUS } from './client.types';
@@ -34,7 +20,7 @@ function readNonEmptyString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-/** Media generation + listing: videos, images, avatars, and music. */
+/** Media generation: videos, images, and music. */
 export class MediaClient {
   constructor(private readonly base: BaseApiClient) {}
 
@@ -72,26 +58,6 @@ export class MediaClient {
         };
       },
       this.base.failWithDetail('Failed to create video'),
-    );
-  }
-
-  getVideoStatus(videoId: string): Promise<VideoStatus> {
-    this.base.logger.debug(`Getting video status for ID: ${videoId}`);
-
-    return this.base.request(
-      'getting video status',
-      async (http) => {
-        const response = await http.get(`/videos/${videoId}`);
-        const video = response.data?.data;
-
-        return {
-          message: video?.attributes?.message || '',
-          progress: video?.attributes?.progress || 0,
-          status: video?.attributes?.status || CONTENT_STATUS.UNKNOWN,
-          url: video?.attributes?.url,
-        };
-      },
-      this.base.failWith('Failed to get video status'),
     );
   }
 
@@ -147,43 +113,6 @@ export class MediaClient {
     );
   }
 
-  listVideos(
-    limit: number = 10,
-    offset: number = 0,
-    origin?: IngredientOrigin,
-  ): Promise<VideoResponse[]> {
-    this.base.logger.debug(
-      `Listing videos: limit=${limit}, offset=${offset}, origin=${origin ?? 'any'}`,
-    );
-
-    return this.base.request(
-      'listing videos',
-      async (http) => {
-        const response = await http.get('/videos', {
-          params: {
-            'page[limit]': limit,
-            'page[offset]': offset,
-            ...(origin ? { origins: origin } : {}),
-          },
-        });
-
-        return (
-          response.data?.data?.map((video: VideoResource) => ({
-            createdAt: video.attributes?.createdAt,
-            duration: video.attributes?.duration,
-            id: video.id,
-            origin: video.attributes?.origin,
-            status: video.attributes?.status || CONTENT_STATUS.UNKNOWN,
-            title: video.attributes?.title || 'Untitled',
-            url: video.attributes?.url,
-            views: video.attributes?.views || 0,
-          })) || []
-        );
-      },
-      this.base.failWith('Failed to list videos'),
-    );
-  }
-
   createImage(params: ImageCreationParams): Promise<ImageResponse> {
     this.base.logger.debug('Creating image', { params });
 
@@ -214,86 +143,6 @@ export class MediaClient {
         };
       },
       this.base.failWithDetail('Failed to create image'),
-    );
-  }
-
-  listImages(params: ImageListParams = {}): Promise<ImageResponse[]> {
-    this.base.logger.debug('Listing images', { params });
-
-    return this.base.request(
-      'listing images',
-      async (http) => {
-        const response = await http.get('/images', {
-          params: {
-            'page[limit]': params.limit || 10,
-            'page[offset]': params.offset || 0,
-            ...(params.origin ? { origins: params.origin } : {}),
-          },
-        });
-
-        return (
-          response.data?.data?.map((image: ImageResource) => {
-            const attributes = image.attributes as
-              | (ImageResource['attributes'] & {
-                  cdnUrl?: string;
-                  text?: string;
-                })
-              | undefined;
-            const prompt =
-              readNonEmptyString(attributes?.prompt) ||
-              readNonEmptyString(attributes?.text) ||
-              '';
-            const url =
-              readNonEmptyString(attributes?.url) ||
-              readNonEmptyString(attributes?.cdnUrl) ||
-              '';
-            return {
-              createdAt: attributes?.createdAt,
-              id: image.id,
-              origin: attributes?.origin,
-              prompt,
-              size: attributes?.size || 'square',
-              status: attributes?.status || CONTENT_STATUS.COMPLETED,
-              style: attributes?.style || 'realistic',
-              url,
-            };
-          }) || []
-        );
-      },
-      this.base.failWith('Failed to list images'),
-    );
-  }
-
-  listAvatars(params: AvatarListParams = {}): Promise<AvatarResponse[]> {
-    this.base.logger.debug('Listing avatars', { params });
-
-    return this.base.request(
-      'listing avatars',
-      async (http) => {
-        const response = await http.get('/avatars', {
-          params: {
-            'page[limit]': params.limit || 10,
-            'page[offset]': params.offset || 0,
-            ...(params.origin ? { origins: params.origin } : {}),
-          },
-        });
-
-        return (
-          response.data?.data?.map((avatar: AvatarResource) => ({
-            age: avatar.attributes?.age,
-            createdAt: avatar.attributes?.createdAt,
-            gender: avatar.attributes?.gender,
-            id: avatar.id,
-            origin: avatar.attributes?.origin,
-            name: avatar.attributes?.name || 'Unnamed',
-            status: avatar.attributes?.status || CONTENT_STATUS.COMPLETED,
-            style: avatar.attributes?.style,
-            thumbnailUrl: avatar.attributes?.thumbnailUrl,
-            videoUrl: avatar.attributes?.videoUrl,
-          })) || []
-        );
-      },
-      this.base.failWith('Failed to list avatars'),
     );
   }
 
@@ -328,38 +177,6 @@ export class MediaClient {
         };
       },
       this.base.failWithDetail('Failed to create music'),
-    );
-  }
-
-  listMusic(params: MusicListParams = {}): Promise<MusicResponse[]> {
-    this.base.logger.debug('Listing music', { params });
-
-    return this.base.request(
-      'listing music',
-      async (http) => {
-        const response = await http.get('/musics', {
-          params: {
-            'page[limit]': params.limit || 10,
-            'page[offset]': params.offset || 0,
-            ...(params.origin ? { origins: params.origin } : {}),
-          },
-        });
-
-        return (
-          response.data?.data?.map((music: MusicResource) => ({
-            createdAt: music.attributes?.createdAt,
-            duration: music.attributes?.duration || 0,
-            genre: music.attributes?.genre,
-            id: music.id,
-            mood: music.attributes?.mood,
-            origin: music.attributes?.origin,
-            prompt: music.attributes?.prompt || '',
-            status: music.attributes?.status || CONTENT_STATUS.COMPLETED,
-            url: music.attributes?.url,
-          })) || []
-        );
-      },
-      this.base.failWith('Failed to list music'),
     );
   }
 }

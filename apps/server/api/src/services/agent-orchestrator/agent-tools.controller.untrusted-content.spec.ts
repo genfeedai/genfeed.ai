@@ -219,7 +219,7 @@ describe('authenticated MCP result classification with actual gate and audit map
   });
   it('classifies only the caller supplied observation without dispatch or attribution', async () => {
     const response = await request(app.getHttpServer())
-      .post('/agent-tools/search_articles/result-gate')
+      .post('/agent-tools/get_articles/result-gate')
       .send({ content })
       .expect(201);
     expect(response.body).toMatchObject({ content, outcome: 'shadow_flagged' });
@@ -232,11 +232,11 @@ describe('authenticated MCP result classification with actual gate and audit map
   });
   it('accepts a boolean isPartial flag on the result gate and rejects other types (#5894)', async () => {
     await request(app.getHttpServer())
-      .post('/agent-tools/search_articles/result-gate')
+      .post('/agent-tools/get_articles/result-gate')
       .send({ content, isPartial: true })
       .expect(201);
     await request(app.getHttpServer())
-      .post('/agent-tools/search_articles/result-gate')
+      .post('/agent-tools/get_articles/result-gate')
       .send({ content, isPartial: 'yes' })
       .expect(400);
   });
@@ -245,7 +245,7 @@ describe('authenticated MCP result classification with actual gate and audit map
     async (configuredMode) => {
       mode = configuredMode;
       const response = await request(app.getHttpServer())
-        .post('/agent-tools/search_articles/result-gate')
+        .post('/agent-tools/get_articles/result-gate')
         .send({ content })
         .expect(201);
       expect(response.body).toEqual({ content, outcome: 'allowed' });
@@ -262,7 +262,7 @@ describe('authenticated MCP result classification with actual gate and audit map
     async (answer) => {
       decide.mockResolvedValue(answer);
       const response = await request(app.getHttpServer())
-        .post('/agent-tools/search_articles/result-gate')
+        .post('/agent-tools/get_articles/result-gate')
         .send({ content })
         .expect(201);
       expect(response.body).toEqual({ content, outcome: 'allowed' });
@@ -272,14 +272,14 @@ describe('authenticated MCP result classification with actual gate and audit map
   it('fails open on classifier failure and keeps shadow output on audit failure', async () => {
     decide.mockRejectedValueOnce(new Error('provider unavailable'));
     const first = await request(app.getHttpServer())
-      .post('/agent-tools/search_articles/result-gate')
+      .post('/agent-tools/get_articles/result-gate')
       .send({ content })
       .expect(201);
     expect(first.body.outcome).toBe('allowed');
     expect(create).not.toHaveBeenCalled();
     create.mockRejectedValueOnce(new Error('persistence unavailable'));
     const second = await request(app.getHttpServer())
-      .post('/agent-tools/search_articles/result-gate')
+      .post('/agent-tools/get_articles/result-gate')
       .send({ content })
       .expect(201);
     expect(second.body).toMatchObject({ outcome: 'shadow_flagged', content });
@@ -292,7 +292,7 @@ describe('authenticated MCP result classification with actual gate and audit map
     'non-mcp',
     'wrong-role',
   ])('rejects %s before classification', async (scenario) => {
-    let name = 'search_articles';
+    let name = 'get_articles';
     if (scenario === 'anonymous') user = undefined;
     if (scenario === 'missing-org')
       user = { id: 'canonical-user' } as AuthenticatedUser;
@@ -332,7 +332,7 @@ describe('authenticated MCP result classification with actual gate and audit map
     'rejects invalid/oversize/spoofed DTO before the provider',
     async (body) => {
       await request(app.getHttpServer())
-        .post('/agent-tools/search_articles/result-gate')
+        .post('/agent-tools/get_articles/result-gate')
         .send(body)
         .expect(400);
       expect(decide).not.toHaveBeenCalled();

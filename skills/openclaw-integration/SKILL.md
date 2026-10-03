@@ -66,8 +66,8 @@ Authorization: Bearer gf_live_xxx
 | Tool | Description | Required Params | Optional Params |
 |------|-------------|-----------------|-----------------|
 | `create_video` | Generate an AI video | `title`, `description` | `style`, `duration`, `voiceOver` |
-| `get_video_status` | Check video generation progress | `videoId` | |
-| `list_videos` | List all videos | | `limit`, `offset` |
+| `get_job_status` | Check generation status and progress | `jobId` | |
+| `list_assets` | List videos | `type: "video"` | `limit`, `offset`, `origin` |
 | `get_video_analytics` | Get video performance metrics | `videoId` | `timeRange` |
 
 ### Articles
@@ -75,36 +75,35 @@ Authorization: Bearer gf_live_xxx
 | Tool | Description | Required Params | Optional Params |
 |------|-------------|-----------------|-----------------|
 | `create_article` | Generate an AI article | `topic` | `tone`, `length`, `targetAudience`, `keywords` |
-| `search_articles` | Search existing articles | `query` | `category`, `limit` |
-| `get_article` | Retrieve a single article | `articleId` | |
+| `get_articles` | Search articles, or retrieve one | `query` or `articleId` | `category`, `limit` (search only) |
 
 ### Images
 
 | Tool | Description | Required Params | Optional Params |
 |------|-------------|-----------------|-----------------|
 | `create_image` | Generate an AI image | `prompt` | `style`, `size`, `quality` |
-| `list_images` | List all images | | `limit`, `offset` |
+| `list_assets` | List images | `type: "image"` | `limit`, `offset`, `origin` |
 
 ### Avatars
 
 | Tool | Description | Required Params | Optional Params |
 |------|-------------|-----------------|-----------------|
 | `create_avatar` | Create a digital avatar | `name` | `gender`, `style`, `age` |
-| `list_avatars` | List all avatars | | `limit` |
+| `list_assets` | List avatars | `type: "avatar"` | `limit`, `offset`, `origin` |
 
 ### Music
 
 | Tool | Description | Required Params | Optional Params |
 |------|-------------|-----------------|-----------------|
 | `create_music` | Generate AI music | `prompt` | `genre`, `mood`, `duration` |
-| `list_music` | List all music tracks | | `limit` |
+| `list_assets` | List music tracks | `type: "music"` | `limit`, `offset`, `origin` |
 
 ### Publishing
 
 | Tool | Description | Required Params | Optional Params |
 |------|-------------|-----------------|-----------------|
 | `publish_content` | Publish to social platforms | `contentId`, `platforms` | `customMessage`, `scheduleAt` |
-| `list_posts` | List published posts | | `platform`, `limit` |
+| `get_posts` | List posts, open one, or show the calendar | | `postId`, `executionState`, `limit`, `days` |
 
 ### Discovery
 
@@ -118,7 +117,7 @@ Authorization: Bearer gf_live_xxx
 | Tool | Description | Required Params | Optional Params |
 |------|-------------|-----------------|-----------------|
 | `get_credits` | Check remaining credits | | |
-| `get_usage_stats` | Get usage statistics | | `timeRange` |
+| `get_account` | Profile, credit balance and usage | | `include` (`profile`, `credits`, `usage`) |
 
 ### Workflows
 
@@ -152,7 +151,7 @@ Flags:
 
 ```
 1. create_image({ prompt: "Product hero shot, studio lighting, 8K" })
-2. list_images() -- verify it appears
+2. list_assets({ type: "image" }) -- verify it appears
 3. publish_content({ contentId: "<imageId>", platforms: ["instagram"] })
 ```
 
@@ -160,7 +159,7 @@ Flags:
 
 ```
 1. create_video({ title: "Product Launch", description: "60s cinematic intro" })
-2. get_video_status({ videoId: "<videoId>" }) -- poll until complete
+2. get_job_status({ jobId: "<videoId>" }) -- poll until complete
 3. get_video_analytics({ videoId: "<videoId>" })
 ```
 
@@ -176,14 +175,14 @@ Flags:
 ### Publish to Social
 
 ```
-1. list_videos({ limit: 5 }) -- find content to publish
+1. list_assets({ type: "video", limit: 5 }) -- find content to publish
 2. publish_content({
      contentId: "<videoId>",
      platforms: ["youtube", "tiktok", "instagram"],
      customMessage: "Check out our latest creation!",
      scheduleAt: "2026-03-01T10:00:00Z"
    })
-3. list_posts({ platform: "youtube" }) -- verify publication
+3. get_posts({ executionState: "published" }) -- verify publication
 ```
 
 ### Workflow Automation

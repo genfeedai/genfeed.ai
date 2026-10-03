@@ -29,6 +29,7 @@ import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   type IngredientCategory,
+  type IngredientOrigin,
   IngredientStatus,
   LibraryShelf,
   MetadataExtension,
@@ -251,6 +252,36 @@ export class IngredientsService extends BaseService<
       });
       throw error;
     }
+  }
+
+  /**
+   * One page of an organization's Library assets of a single category, newest
+   * first. Scoped by `organizationId` and `isDeleted: false`, and by `brandId`
+   * when the caller is brand-scoped; training ingredients are not Library
+   * assets, matching the Library list endpoints.
+   */
+  async listLibraryAssets(params: {
+    brandId?: string;
+    category: IngredientCategory;
+    limit: number;
+    offset: number;
+    organizationId: string;
+    origin?: IngredientOrigin;
+  }): Promise<IngredientDocument[]> {
+    const rows = await this.prisma.ingredient.findMany({
+      include: { metadata: { select: { result: true } } },
+      orderBy: { createdAt: 'desc' },
+      skip: params.offset,
+      take: params.limit,
+      where: scopedWhere(params.organizationId, {
+        ...(params.brandId ? { brandId: params.brandId } : {}),
+        category: params.category,
+        trainingId: null,
+        ...(params.origin ? { origin: params.origin } : {}),
+      }),
+    });
+
+    return rows.map((row) => this.normalizeDocument(row));
   }
 
   async findAvatarImageById(
