@@ -1,5 +1,5 @@
 import type { MediaResourceProjection } from '@genfeedai/contracts/interfaces';
-import { testId } from '@helpers/testing/test-id.helper';
+import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import {
   assetResponseIds,
   ingredientResponseIds,

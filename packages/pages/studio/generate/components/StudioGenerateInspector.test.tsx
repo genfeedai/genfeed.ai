@@ -84,7 +84,7 @@ vi.mock('next/image', () => ({
 }));
 
 vi.mock('@ui/masonry/shared/useMasonryHover', () => ({
-  createDownloadHandler: () => mocks.download,
+  useIngredientDownloadHandler: () => mocks.download,
 }));
 
 vi.mock('@services/content/ingredients.service', () => ({

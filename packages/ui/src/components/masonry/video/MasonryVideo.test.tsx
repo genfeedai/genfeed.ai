@@ -89,7 +89,7 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
 }));
 
 vi.mock('@ui/masonry/shared/useMasonryHover', () => ({
-  createDownloadHandler: () => vi.fn(),
+  useIngredientDownloadHandler: () => vi.fn(),
 }));
 
 vi.mock('next-intl', async () => {

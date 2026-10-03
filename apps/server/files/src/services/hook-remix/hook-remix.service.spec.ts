@@ -2,6 +2,7 @@ import path from 'node:path';
 import { ConfigService } from '@files/config/config.service';
 import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
+import type { HookRemixJobData } from '@files/services/hook-remix/hook-remix.interfaces';
 import { HookRemixService } from '@files/services/hook-remix/hook-remix.service';
 import { UploadService } from '@files/services/upload/upload.service';
 import { YtDlpService } from '@files/services/ytdlp/ytdlp.service';
@@ -44,11 +45,13 @@ describe('HookRemixService', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  const baseJobData = {
+  const baseJobData: HookRemixJobData = {
+    brandId: 'brand-1',
     ctaVideoUrl: 'https://cdn.example.com/cta.mp4',
     hookDurationSeconds: 10,
     jobId: 'job-abc123',
     organizationId: 'org-1',
+    userId: 'user-1',
     youtubeUrl: 'https://youtube.com/watch?v=test',
   };
 
