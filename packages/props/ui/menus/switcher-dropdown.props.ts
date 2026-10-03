@@ -1,18 +1,22 @@
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { ReactNode } from 'react';
 
+export interface SwitcherDropdownTrailingAction {
+  ariaLabel: string;
+  href?: string;
+  icon: IconComponent;
+  onAction: () => void;
+  target?: '_blank' | '_self';
+}
+
 export interface SwitcherDropdownItem {
   id: string;
   label: string;
   isActive: boolean;
   imageUrl?: string;
-  trailingAction?: {
-    ariaLabel: string;
-    href?: string;
-    icon: IconComponent;
-    onAction: () => void;
-    target?: '_blank' | '_self';
-  };
+  trailingAction?: SwitcherDropdownTrailingAction;
+  /** Rendered after `trailingAction`, in order. */
+  extraTrailingActions?: SwitcherDropdownTrailingAction[];
 }
 
 export interface SwitcherDropdownFooterAction {

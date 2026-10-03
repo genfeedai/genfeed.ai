@@ -24,6 +24,33 @@ export interface PublishingContentEntryProps {
   evalScore?: number | null;
 }
 
+/** A non-plain format worth a tag on a row; plain posts carry none. */
+export type PublishingContentFormat =
+  | 'thread'
+  | 'long-post'
+  | 'video'
+  | 'article'
+  | 'newsletter';
+
+/** One target account of a row, rendered as an avatar with a platform badge. */
+export interface PublishingContentAccount {
+  avatarUrl?: string | null;
+  id: string;
+  label: string;
+  platform: string;
+}
+
 export interface PublishingContentChannelsProps {
+  /** Target accounts; shown as avatars when known, else platform icons. */
+  accounts?: PublishingContentAccount[];
   channels: string[];
+}
+
+export interface PublishingContentIdentityProps
+  extends PublishingContentChannelsProps {
+  /** Tag for a non-plain format (thread, long post, video, article, newsletter). */
+  format?: PublishingContentFormat;
+  summary?: string;
+  title: string;
+  titleHref?: string;
 }

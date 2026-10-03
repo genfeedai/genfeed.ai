@@ -1,11 +1,21 @@
 import {
   ArticleCategory,
   formatPlatformLabel,
+  IngredientCategory,
   Platform,
+  PostFormat,
 } from '@genfeedai/contracts';
-import type { IPost, IReleaseGroup } from '@genfeedai/contracts/interfaces';
+import type {
+  ICredential,
+  IPost,
+  IReleaseGroup,
+} from '@genfeedai/contracts/interfaces';
 import type { Article } from '@models/content/article.model';
 import type { Newsletter } from '@models/content/newsletter.model';
+import type {
+  PublishingContentAccount,
+  PublishingContentFormat,
+} from '@props/posts/publishing-content-entry.props';
 
 export const PUBLISHING_CONTENT_TYPES = [
   'post',
@@ -17,7 +27,9 @@ export type PublishingContentType = (typeof PUBLISHING_CONTENT_TYPES)[number];
 export type PublishingContentTypeFilter = PublishingContentType | 'all';
 
 export interface PublishingContentLibraryItem {
+  accounts?: PublishingContentAccount[];
   channels?: string[];
+  format?: PublishingContentFormat;
   release?: IReleaseGroup;
   scheduledAt?: string | null;
   channel: string;
@@ -72,6 +84,62 @@ export function formatPublishingContentType(
   }
 }
 
+export function formatPublishingContentFormat(
+  format: PublishingContentFormat,
+): string {
+  switch (format) {
+    case 'article':
+      return 'Article';
+    case 'long-post':
+      return 'Long post';
+    case 'newsletter':
+      return 'Newsletter';
+    case 'thread':
+      return 'Thread';
+    case 'video':
+      return 'Video';
+  }
+}
+
+function resolvePostFormat(post: IPost): PublishingContentFormat | undefined {
+  if (post.format === PostFormat.THREAD) {
+    return 'thread';
+  }
+  if (post.format === PostFormat.LONG_FORM) {
+    return 'long-post';
+  }
+  if (
+    post.ingredients?.some(
+      (ingredient) => ingredient.category === IngredientCategory.VIDEO,
+    )
+  ) {
+    return 'video';
+  }
+  return undefined;
+}
+
+function toAccounts(
+  credentials: (ICredential | undefined)[],
+): PublishingContentAccount[] | undefined {
+  const accounts = credentials.flatMap((credential) =>
+    credential
+      ? [
+          {
+            avatarUrl: credential.externalAvatar,
+            id: credential.id,
+            label:
+              credential.label ||
+              credential.externalHandle ||
+              credential.externalName ||
+              credential.platform,
+            platform: credential.platform,
+          },
+        ]
+      : [],
+  );
+  return accounts.length > 0 ? accounts : undefined;
+}
+
 export function formatPublishingContentStatus(status: string): string {
   return status
     .split(/[_-]/g)
@@ -119,6 +187,11 @@ export function createPublishingContentLibraryItems({
   const releaseIds = new Set(releases.map((release) => release.id));
   const releaseItems: PublishingContentLibraryItem[] = releases.map(
     (release) => ({
+      accounts: toAccounts(
+        (Array.isArray(release.targets) ? release.targets : []).map(
+          (target) => target.credential,
+        ),
+      ),
       channel: release.targets?.[0]?.platform ?? 'social',
       channels: (Array.isArray(release.targets) ? release.targets : []).map(
         (target) => target.platform,
@@ -143,8 +216,10 @@ export function createPublishingContentLibraryItems({
         !(post.groupId && releaseIds.has(post.groupId)),
     )
     .map((post) => ({
+      accounts: toAccounts([post.credential]),
       channel: post.platform ?? 'social',
       createdAt: post.createdAt,
+      format: resolvePostFormat(post),
       id: post.id,
       scheduledAt: post.scheduledDate
         ? new Date(post.scheduledDate).toISOString()
@@ -163,6 +238,7 @@ export function createPublishingContentLibraryItems({
           ? Platform.TWITTER
           : 'web',
       createdAt: article.createdAt,
+      format: 'article',
       id: article.id,
       status: normalizedStatus(article.status),
       summary: stripHtml(article.summary || article.content),
@@ -175,6 +251,7 @@ export function createPublishingContentLibraryItems({
     (newsletter) => ({
       channel: 'email',
       createdAt: newsletter.createdAt,
+      format: 'newsletter',
       id: newsletter.id,
       status: normalizedStatus(newsletter.status),
       summary: stripHtml(newsletter.summary || newsletter.topic),

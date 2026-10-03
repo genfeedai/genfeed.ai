@@ -3,15 +3,18 @@ import {
   useAgentDraftContext,
 } from '@genfeedai/agent';
 import { ArticleCategory, ArticleStatus } from '@genfeedai/contracts';
+import { PUBLIC_ARTICLES_ORGANIZATION_SLUG } from '@genfeedai/contracts/constants';
 import type { Article } from '@genfeedai/models/content/article.model';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useArticleDetail } from '@hooks/pages/use-article-detail/use-article-detail';
 import { useXArticleCompose } from '@hooks/pages/use-x-article-compose/use-x-article-compose';
 import type { ArticleEditorProps } from '@props/content/article-editor.props';
+import type { ArticlePublishDestination } from '@props/edit/article-public-page.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { PostsService } from '@services/content/posts.service';
 import { ClipboardService } from '@services/core/clipboard.service';
+import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import XArticleAssetsBar from '@ui/articles/x-article/XArticleAssetsBar';
@@ -136,6 +139,19 @@ export default function ArticleDetail({
   const canArchive = !!article && isPublished;
   const plainTextContent = form.content.replace(/<[^>]*>/g, '').trim();
   const canGenerateTeaser = !!article && hasXArticleSections && !!credentialId;
+  // UX hint only: the API decides what genfeed.ai serves.
+  const isHostedOnWebsite =
+    params?.orgSlug === PUBLIC_ARTICLES_ORGANIZATION_SLUG;
+  const destination = useMemo<ArticlePublishDestination>(
+    () => ({
+      isHostedOnWebsite,
+      publicUrl:
+        isHostedOnWebsite && article?.slug
+          ? `${EnvironmentService.apps.website}/articles/${article.slug}`
+          : undefined,
+    }),
+    [article?.slug, isHostedOnWebsite],
+  );
 
   const handleApplyDraftSuggestion = useCallback(
     (payload: AgentDraftSuggestionPayload) => {
@@ -228,6 +244,7 @@ export default function ArticleDetail({
         <ArticleDetailHeader
           state={{ isNew, hasXArticleSections, isDirty, isSaving }}
           permissions={{ canPublish, canArchive }}
+          destination={destination}
           formLabel={form.label}
           plainTextContent={plainTextContent}
           openConfirm={openConfirm}
@@ -286,6 +303,7 @@ export default function ArticleDetail({
         <ArticleSidebar
           form={form}
           article={article}
+          destination={destination}
           isDirty={isDirty}
           isScoringSeo={isScoringSeo}
           onScoreSeo={handleScoreSeo}

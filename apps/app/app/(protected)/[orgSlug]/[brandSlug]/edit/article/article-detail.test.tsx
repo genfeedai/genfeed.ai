@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { useParams } from 'next/navigation';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ArticleDetail, { applyDraftSuggestionToHtml } from './article-detail';
 import '@testing-library/jest-dom/vitest';
@@ -96,6 +97,87 @@ describe('ArticleDetail', () => {
     vi.clearAllMocks();
     useArticleDetailMock.mockReturnValue(defaultArticleDetailState());
     useXArticleComposeMock.mockReturnValue(undefined);
+    vi.mocked(useParams).mockReturnValue({
+      brandSlug: 'brand-123',
+      orgSlug: 'org-123',
+    });
+  });
+
+  const savedArticleState = (status: string) => ({
+    ...defaultArticleDetailState(),
+    article: {
+      category: 'blog',
+      id: 'article-1',
+      label: 'Launch notes',
+      slug: 'launch-notes',
+      status,
+      summary: 'What shipped',
+    },
+    form: {
+      category: 'blog',
+      content: '<p>Body</p>',
+      label: 'Launch notes',
+      status,
+      summary: 'What shipped',
+      tags: '',
+    },
+  });
+
+  it('tells customer organizations their article is not hosted on genfeed.ai', () => {
+    useArticleDetailMock.mockReturnValue(savedArticleState('draft'));
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(
+      screen.getByRole('button', { name: 'Mark published' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Publish to genfeed.ai' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/Not hosted on genfeed\.ai/)).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Open' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the live genfeed.ai link and share card for a published Genfeed article', () => {
+    vi.mocked(useParams).mockReturnValue({
+      brandSlug: 'genfeedai',
+      orgSlug: 'genfeed',
+    });
+    useArticleDetailMock.mockReturnValue(savedArticleState('PUBLISHED'));
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(screen.getByText('Live on genfeed.ai')).toBeInTheDocument();
+    const openLink = screen.getByRole('link', { name: 'Open' });
+    expect(openLink.getAttribute('href')).toMatch(/\/articles\/launch-notes$/);
+    expect(openLink).toHaveAttribute('target', '_blank');
+    expect(
+      screen.getByRole('button', { name: 'Copy link' }),
+    ).toBeInTheDocument();
+    expect(screen.getByAltText('Launch notes')).toHaveAttribute(
+      'src',
+      expect.stringMatching(/\/articles\/launch-notes\/og$/),
+    );
+  });
+
+  it('offers a preview link before a Genfeed article is published', () => {
+    vi.mocked(useParams).mockReturnValue({
+      brandSlug: 'genfeedai',
+      orgSlug: 'genfeed',
+    });
+    useArticleDetailMock.mockReturnValue(savedArticleState('draft'));
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(
+      screen.getByRole('button', { name: 'Publish to genfeed.ai' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Not live yet')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Preview link' }),
+    ).toBeInTheDocument();
   });
 
   it('should render without crashing', () => {

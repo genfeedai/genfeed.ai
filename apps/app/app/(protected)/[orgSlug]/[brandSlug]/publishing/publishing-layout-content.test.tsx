@@ -2,8 +2,9 @@ import '@testing-library/jest-dom/vitest';
 import type {
   ModalArticleProps,
   ModalNewsletterProps,
+  ModalPostProps,
 } from '@props/modals/modal.props';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PublishingLayoutContent from './publishing-layout-content';
@@ -15,6 +16,7 @@ const modalCallbacks = vi.hoisted(() => ({
   articleMount: vi.fn(),
   article: undefined as ModalArticleProps['onCreated'],
   newsletter: undefined as ModalNewsletterProps['onCreated'] | undefined,
+  post: undefined as ModalPostProps | undefined,
 }));
 const openModalMock = vi.fn();
 const pushMock = vi.fn();
@@ -49,8 +51,10 @@ vi.mock('@ui/lazy/modal/LazyModal', () => ({
     modalCallbacks.newsletter = props.onCreated;
     return null;
   },
-  LazyModalCreateThread: () => null,
-  LazyModalPost: () => null,
+  LazyModalPost: (props: ModalPostProps) => {
+    modalCallbacks.post = props;
+    return null;
+  },
 }));
 
 vi.mock('next-intl', async () => {
@@ -83,6 +87,8 @@ describe('PublishingLayoutContent', () => {
   beforeEach(() => {
     modalCallbacks.articleMount.mockClear();
     brandMock.label = 'Acme Creator';
+    brandMock.credentials = [];
+    modalCallbacks.post = undefined;
     openModalMock.mockReset();
     pushMock.mockReset();
     hrefMock.mockClear();
@@ -121,7 +127,7 @@ describe('PublishingLayoutContent', () => {
     expect(modalCallbacks.articleMount).not.toHaveBeenCalled();
   });
 
-  it('renders the New post menu and leaves filters to the posts list', () => {
+  it('renders one New post button and leaves filters to the posts list', () => {
     render(
       <PublishingLayoutContent>
         <div>child content</div>
@@ -140,82 +146,57 @@ describe('PublishingLayoutContent', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('opens the manual composer without a connected account', async () => {
+  it('opens the unified composer without a format menu', async () => {
     const user = userEvent.setup();
     render(
       <PublishingLayoutContent>
         <div>posts</div>
       </PublishingLayoutContent>,
     );
+
     await user.click(screen.getByRole('button', { name: /new post/i }));
-    await user.click(screen.getByRole('menuitem', { name: /social post/i }));
-    expect(pushMock).toHaveBeenCalledWith('/acme/main/publishing/posts/new');
-    expect(openModalMock).not.toHaveBeenCalledWith('modal-post-create');
-    await waitFor(() =>
-      expect(screen.queryByRole('menu')).not.toBeInTheDocument(),
-    );
-    await user.click(screen.getByRole('button', { name: /new post/i }));
-    await user.click(screen.getByRole('menuitem', { name: /x post/i }));
-    expect(pushMock).toHaveBeenCalledWith(
-      '/acme/main/publishing/posts/new?platform=twitter',
-    );
-    await waitFor(() =>
-      expect(screen.queryByRole('menu')).not.toBeInTheDocument(),
-    );
+
+    expect(openModalMock).toHaveBeenCalledTimes(1);
+    expect(openModalMock).toHaveBeenCalledWith('modal-post-compose');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem')).not.toBeInTheDocument();
+    expect(pushMock).not.toHaveBeenCalled();
   });
 
-  it('opens article and newsletter modals and routes creation to their editors', async () => {
-    const user = userEvent.setup();
+  it('mounts the composer with every connected account as a destination', () => {
+    brandMock.credentials = [
+      { id: 'cred-x', platform: 'twitter' },
+      { id: 'cred-li', platform: 'linkedin' },
+    ];
     render(
       <PublishingLayoutContent>
         <div>posts</div>
       </PublishingLayoutContent>,
     );
-    await user.click(screen.getByRole('button', { name: /new post/i }));
-    expect(
-      screen.queryByRole('menuitem', { name: /ask agent/i }),
-    ).not.toBeInTheDocument();
-    await user.click(screen.getByRole('menuitem', { name: /^article$/i }));
-    expect(openModalMock).toHaveBeenCalledWith('modal-article');
+
+    expect(modalCallbacks.post?.isComposer).toBe(true);
+    expect(modalCallbacks.post?.modalId).toBe('modal-post-compose');
+    expect(modalCallbacks.post?.credentials?.map((c) => c.id)).toEqual([
+      'cred-x',
+      'cred-li',
+    ]);
+  });
+
+  it('routes article and newsletter creation to their editors', () => {
+    render(
+      <PublishingLayoutContent>
+        <div>posts</div>
+      </PublishingLayoutContent>,
+    );
+
     modalCallbacks.article?.(['article-1', 'article-2']);
     expect(pushMock).toHaveBeenLastCalledWith(
       '/acme/main/publishing/posts/article-1',
     );
-    await waitFor(() =>
-      expect(screen.queryByRole('menu')).not.toBeInTheDocument(),
-    );
-    await user.click(screen.getByRole('button', { name: /new post/i }));
-    await user.click(screen.getByRole('menuitem', { name: /^newsletter$/i }));
-    expect(openModalMock).toHaveBeenCalledWith('modal-newsletter');
     modalCallbacks.newsletter?.('newsletter-1');
     expect(pushMock).toHaveBeenLastCalledWith(
       '/acme/main/edit/newsletter/newsletter-1',
     );
-  });
-
-  it('opens first-class X long-form and thread composers', async () => {
-    const user = userEvent.setup();
-    render(
-      <PublishingLayoutContent>
-        <div>child content</div>
-      </PublishingLayoutContent>,
-    );
-
-    await user.click(await screen.findByRole('button', { name: /new post/i }));
-    await user.click(
-      await screen.findByRole('menuitem', { name: /x long post/i }),
-    );
-    expect(openModalMock).toHaveBeenCalledWith('modal-post-long-form');
-
-    await waitFor(() => {
-      expect(document.body).not.toHaveAttribute('data-scroll-locked');
-    });
-
-    await user.click(await screen.findByRole('button', { name: /new post/i }));
-    await user.click(
-      await screen.findByRole('menuitem', { name: /x thread/i }),
-    );
-    expect(openModalMock).toHaveBeenCalledWith('modal-thread-create');
   });
 
   it('skips the container chrome for organization-and-brand-scoped detail routes', () => {

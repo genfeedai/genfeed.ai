@@ -19,6 +19,7 @@ import { ArticleInsightsService } from '@api/collections/articles/services/artic
 import { ArticleRemixService } from '@api/collections/articles/services/article-remix.service';
 import { ArticleVersionService } from '@api/collections/articles/services/article-version.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -36,7 +37,9 @@ describe('ArticlesService cache invalidation', () => {
   const userId = 'user_1';
   const brandId = 'brand_1';
 
-  function buildService() {
+  function buildService(
+    options: { organizationsService?: OrganizationsService } = {},
+  ) {
     const delegate = {
       create: vi.fn(),
       findFirst: vi.fn(),
@@ -96,7 +99,7 @@ describe('ArticlesService cache invalidation', () => {
       undefined, // articlesContentService
       cacheService,
       undefined, // usersService
-      undefined, // organizationsService
+      options.organizationsService,
       cacheInvalidationService,
     );
 
@@ -112,6 +115,8 @@ describe('ArticlesService cache invalidation', () => {
         where: {
           id: 'article_2',
           isDeleted: false,
+          // No resolvable Genfeed organization: the read matches nothing.
+          organizationId: { in: [] },
           slug: 'shared-slug',
         },
       }),
@@ -133,6 +138,44 @@ describe('ArticlesService cache invalidation', () => {
       }),
     });
     expect(delegate.findFirst.mock.calls[0][0].where).not.toHaveProperty('id');
+  });
+
+  it('serves public slugs only from the Genfeed organization', async () => {
+    const organizationsService = {
+      findOne: vi.fn().mockResolvedValue({ id: 'org_genfeed' }),
+    } as unknown as OrganizationsService;
+    const { delegate, service } = buildService({ organizationsService });
+    delegate.findFirst.mockResolvedValue(null);
+
+    await service.findPublicArticleBySlug('shared-slug');
+    await service.findPublicArticleBySlug('other-slug');
+
+    expect(organizationsService.findOne).toHaveBeenCalledTimes(1);
+    expect(organizationsService.findOne).toHaveBeenCalledWith({
+      isDeleted: false,
+      slug: 'genfeed',
+    });
+    expect(delegate.findFirst.mock.calls[0][0].where).toMatchObject({
+      organizationId: 'org_genfeed',
+      slug: 'shared-slug',
+      status: 'PUBLISHED',
+    });
+  });
+
+  it('matches no tenant when the Genfeed organization cannot be resolved', async () => {
+    const organizationsService = {
+      findOne: vi.fn().mockResolvedValue(null),
+    } as unknown as OrganizationsService;
+    const { service } = buildService({ organizationsService });
+
+    await expect(
+      service.publicArticleScope.buildWhere(),
+    ).resolves.toMatchObject({
+      organizationId: { in: [] },
+    });
+    await expect(
+      service.publicArticleScope.isHostedOrganization('org_customer'),
+    ).resolves.toBe(false);
   });
 
   it('busts the org list key, the single key, and the articles tag on create', async () => {

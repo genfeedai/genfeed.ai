@@ -153,7 +153,9 @@ export class ArticlesController extends BaseCRUDController<
   }
 
   /**
-   * Mint a shareable preview link for an unpublished article.
+   * Mint a shareable preview link for an unpublished article. Only articles of
+   * the organization the website hosts (`PUBLIC_ARTICLES_ORGANIZATION_SLUG`)
+   * have one.
    *
    * The link carries a signed, article-bound, expiring token — the only thing the
    * public articles endpoint accepts as authorisation to serve unpublished
@@ -187,6 +189,16 @@ export class ArticlesController extends BaseCRUDController<
       !getIsSuperAdmin(user, request)
     ) {
       ErrorResponse.notFound(this.entityName, articleId);
+    }
+
+    if (
+      !(await this.articlesService.publicArticleScope.isHostedOrganization(
+        String(article.organizationId),
+      ))
+    ) {
+      throw new BadRequestException(
+        'Only Genfeed articles are hosted on genfeed.ai, so this article has no public preview.',
+      );
     }
 
     const publicUrl = (

@@ -23,7 +23,6 @@ import type {
   ModalBrandGenerateProps,
   ModalBrandLinkProps,
   ModalConfirmProps,
-  ModalCreateThreadProps,
   ModalCredentialProps,
   ModalCrudProps,
   ModalExportProps,
@@ -242,11 +241,6 @@ export const LazyPostMetadataOverlay = dynamic(
   () => import('@ui/modals/content/post/ModalPostMetadata'),
   { ssr: false },
 ) as ComponentType<PostMetadataOverlayProps>;
-
-export const LazyModalCreateThread = dynamic(
-  () => import('@ui/modals/content/create-thread/ModalCreateThread'),
-  { ssr: false },
-) as ComponentType<ModalCreateThreadProps>;
 
 export const LazyModalTextOverlay = dynamic(
   () => import('@ui/modals/content/overlay/ModalTextOverlay'),

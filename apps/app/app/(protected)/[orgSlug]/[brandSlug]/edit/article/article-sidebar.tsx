@@ -1,17 +1,29 @@
-import { formatEnumLabel } from '@genfeedai/contracts';
+import { ArticleStatus, formatEnumLabel } from '@genfeedai/contracts';
 import type { ArticleSidebarProps } from '@props/edit/article-sidebar.props';
 import Card from '@ui/card/Card';
 import SeoScorecard from '@ui/evaluation/seo-scorecard/SeoScorecard';
+import ArticlePublicPageCard from './article-public-page-card';
 
 export default function ArticleSidebar({
   form,
   article,
+  destination,
   isDirty = false,
   isScoringSeo = false,
   onScoreSeo,
 }: ArticleSidebarProps) {
   return (
     <div className="space-y-4">
+      {article && (
+        <ArticlePublicPageCard
+          article={article}
+          destination={destination}
+          isPublished={form.status === ArticleStatus.PUBLISHED}
+          summary={form.summary}
+          title={form.label}
+        />
+      )}
+
       {article && (
         <SeoScorecard
           score={article.seoScore}
