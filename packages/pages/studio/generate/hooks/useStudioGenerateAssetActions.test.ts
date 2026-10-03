@@ -110,9 +110,14 @@ describe('useStudioGenerateAssetActions', () => {
 
   it('reconnects gallery assets to details, publishing, and the composer', () => {
     const onAttachReference = vi.fn();
+    const onInspectIngredient = vi.fn();
     const onRefresh = vi.fn();
     const { result } = renderHook(() =>
-      useStudioGenerateAssetActions({ onAttachReference, onRefresh }),
+      useStudioGenerateAssetActions({
+        onAttachReference,
+        onRefresh,
+        onInspectIngredient,
+      }),
     );
 
     act(() => result.current.onClickIngredient(ingredient));
@@ -121,10 +126,10 @@ describe('useStudioGenerateAssetActions', () => {
     act(() => result.current.onConvertToVideo(ingredient));
     act(() => result.current.onUseAsVideoReference(ingredient));
 
-    expect(mocks.openIngredientOverlay).toHaveBeenCalledWith(
-      ingredient,
-      onRefresh,
-    );
+    act(() => result.current.onSeeDetails(ingredient));
+    expect(onInspectIngredient).toHaveBeenCalledTimes(2);
+    expect(onInspectIngredient).toHaveBeenCalledWith(ingredient);
+    expect(mocks.openIngredientOverlay).not.toHaveBeenCalled();
     expect(mocks.openPostBatchModal).toHaveBeenCalledWith(ingredient);
     expect(onAttachReference).toHaveBeenNthCalledWith(1, ingredient, 'image');
     expect(onAttachReference).toHaveBeenNthCalledWith(2, ingredient, 'video');
@@ -134,6 +139,7 @@ describe('useStudioGenerateAssetActions', () => {
   it('opens a video in the Studio editor through the editor route', () => {
     const { result } = renderHook(() =>
       useStudioGenerateAssetActions({
+        onInspectIngredient: vi.fn(),
         onAttachReference: vi.fn(),
         onRefresh: vi.fn(),
       }),
@@ -150,7 +156,11 @@ describe('useStudioGenerateAssetActions', () => {
     mocks.postResize.mockResolvedValueOnce({ id: 'resized-1' });
     const onRefresh = vi.fn();
     const { result } = renderHook(() =>
-      useStudioGenerateAssetActions({ onAttachReference: vi.fn(), onRefresh }),
+      useStudioGenerateAssetActions({
+        onInspectIngredient: vi.fn(),
+        onAttachReference: vi.fn(),
+        onRefresh,
+      }),
     );
 
     await act(async () => {
@@ -180,6 +190,7 @@ describe('useStudioGenerateAssetActions', () => {
     );
     const { result } = renderHook(() =>
       useStudioGenerateAssetActions({
+        onInspectIngredient: vi.fn(),
         onAttachReference: vi.fn(),
         onRefresh: vi.fn(),
       }),
@@ -202,7 +213,11 @@ describe('useStudioGenerateAssetActions', () => {
     mocks.postResize.mockRejectedValueOnce(new Error('queue down'));
     const onRefresh = vi.fn();
     const { result } = renderHook(() =>
-      useStudioGenerateAssetActions({ onAttachReference: vi.fn(), onRefresh }),
+      useStudioGenerateAssetActions({
+        onInspectIngredient: vi.fn(),
+        onAttachReference: vi.fn(),
+        onRefresh,
+      }),
     );
 
     await act(async () => {
@@ -219,6 +234,7 @@ describe('useStudioGenerateAssetActions', () => {
     const onRefresh = vi.fn();
     const { result } = renderHook(() =>
       useStudioGenerateAssetActions({
+        onInspectIngredient: vi.fn(),
         onAttachReference: vi.fn(),
         onRefresh,
       }),
@@ -245,6 +261,7 @@ describe('useStudioGenerateAssetActions', () => {
     const onRefresh = vi.fn();
     const { result } = renderHook(() =>
       useStudioGenerateAssetActions({
+        onInspectIngredient: vi.fn(),
         onAttachReference: vi.fn(),
         onDeleted,
         onRefresh,
@@ -280,6 +297,7 @@ describe('useStudioGenerateAssetActions', () => {
     const onDeleted = vi.fn();
     const { result } = renderHook(() =>
       useStudioGenerateAssetActions({
+        onInspectIngredient: vi.fn(),
         onAttachReference: vi.fn(),
         onDeleted,
         onRefresh: vi.fn(),
@@ -308,6 +326,7 @@ describe('useStudioGenerateAssetActions', () => {
     const onRefresh = vi.fn();
     const { result } = renderHook(() =>
       useStudioGenerateAssetActions({
+        onInspectIngredient: vi.fn(),
         onAttachReference: vi.fn(),
         onDeleted,
         onRefresh,
@@ -346,6 +365,7 @@ describe('useStudioGenerateAssetActions', () => {
     const onDeleted = vi.fn();
     const { result } = renderHook(() =>
       useStudioGenerateAssetActions({
+        onInspectIngredient: vi.fn(),
         onAttachReference: vi.fn(),
         onDeleted,
         onRefresh: vi.fn(),

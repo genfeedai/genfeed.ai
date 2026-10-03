@@ -18,13 +18,14 @@ import { format } from 'date-fns';
 import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { assetSelection, setSelectedAsset } = vi.hoisted(() => ({
+const { assetSelection, setSelectedAsset, revealSidebar } = vi.hoisted(() => ({
   assetSelection: {
     lightboxRequestCount: 0,
     requestedLightboxIngredient: null as IIngredient | null,
     published: null as { id: string } | null,
   },
   setSelectedAsset: vi.fn(),
+  revealSidebar: vi.fn(),
 }));
 
 // The grid hands its single selection to the shared asset selection, and the
@@ -50,6 +51,10 @@ vi.mock('@genfeedai/contexts/ui/asset-selection.context', () => ({
     selectedIngredient: assetSelection.published,
     setSelectedAsset,
   }),
+}));
+
+vi.mock('@genfeedai/contexts/ui/context-sidebar-context', () => ({
+  useContextSidebar: () => ({ reveal: revealSidebar }),
 }));
 
 vi.mock('next/image', () => ({
@@ -95,17 +100,24 @@ vi.mock('@ui/ingredients/list/media-grid/IngredientsMediaGrid', () => ({
   default: ({
     items,
     onClickIngredient,
+    onSeeDetails,
   }: {
     items: IIngredient[];
     onClickIngredient: (ingredient: IIngredient) => void;
+    onSeeDetails: (ingredient: IIngredient) => void;
   }) => (
-    <button
-      data-testid="media-grid-item"
-      onClick={() => onClickIngredient(items[0])}
-      type="button"
-    >
-      {items[0]?.metadataLabel ?? 'Media item'}
-    </button>
+    <>
+      <button
+        data-testid="media-grid-item"
+        onClick={() => onClickIngredient(items[0])}
+        type="button"
+      >
+        {items[0]?.metadataLabel ?? 'Media item'}
+      </button>
+      <button onClick={() => onSeeDetails(items[0])} type="button">
+        See Details
+      </button>
+    </>
   ),
 }));
 
@@ -935,5 +947,46 @@ describe('IngredientsListContent generation ledger columns', () => {
     expect(
       screen.queryByRole('button', { name: 'Retry generation' }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('Library See Details sidebar routing', () => {
+  it('selects the asset without opening its overlay or toggling it off', () => {
+    const onSelectionChange = vi.fn();
+    const onSeeDetails = vi.fn();
+    const { onOpenIngredientModal, onOpenLightbox } = renderContent({
+      scope: PageScope.BRAND,
+      singularType: IngredientCategory.IMAGE,
+      filteredIngredients: [
+        { ...baseIngredient, category: IngredientCategory.IMAGE },
+      ],
+      selectedIngredientIds: [baseIngredient.id],
+      onSelectionChange,
+      onSeeDetails,
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'See Details' }));
+    expect(onSelectionChange).toHaveBeenCalledWith([baseIngredient.id]);
+    expect(onSeeDetails).not.toHaveBeenCalled();
+    expect(revealSidebar).toHaveBeenCalled();
+    expect(onOpenIngredientModal).not.toHaveBeenCalled();
+    expect(onOpenLightbox).not.toHaveBeenCalled();
+  });
+  it('preserves details behavior outside the brand workspace', () => {
+    const onSeeDetails = vi.fn();
+    const onSelectionChange = vi.fn();
+    renderContent({
+      scope: PageScope.ORGANIZATION,
+      singularType: IngredientCategory.IMAGE,
+      filteredIngredients: [
+        { ...baseIngredient, category: IngredientCategory.IMAGE },
+      ],
+      onSelectionChange,
+      onSeeDetails,
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'See Details' }));
+    expect(onSeeDetails).toHaveBeenCalledWith(
+      expect.objectContaining({ id: baseIngredient.id }),
+    );
+    expect(onSelectionChange).not.toHaveBeenCalled();
   });
 });

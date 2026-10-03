@@ -14,7 +14,6 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
 import {
   useConfirmModal,
-  useIngredientOverlay,
   usePostModal,
 } from '@providers/global-modals/global-modals.provider';
 import { IngredientsService } from '@services/content/ingredients.service';
@@ -30,6 +29,7 @@ export interface UseStudioGenerateAssetActionsParams {
   onAttachReference: (ingredient: IIngredient, type: 'image' | 'video') => void;
   onDeleted?: (id: string) => void;
   onRefresh: () => void;
+  onInspectIngredient: (ingredient: IIngredient) => void;
 }
 
 /**
@@ -41,6 +41,7 @@ export function useStudioGenerateAssetActions({
   onAttachReference,
   onDeleted,
   onRefresh,
+  onInspectIngredient,
 }: UseStudioGenerateAssetActionsParams): StudioGenerateAssetActions {
   const translate = useTranslations('pages.studioGenerate');
   const { createFromAsset } = useStoryboardEntry();
@@ -52,7 +53,6 @@ export function useStudioGenerateAssetActions({
     [],
   );
   const { openConfirm } = useConfirmModal();
-  const { openIngredientOverlay } = useIngredientOverlay();
   const { openPostBatchModal } = usePostModal({ onRefresh });
   const getIngredientsService = useAuthedService((token: string) =>
     IngredientsService.getInstance(token),
@@ -240,12 +240,7 @@ export function useStudioGenerateAssetActions({
     [getVideosService, notificationsService, onRefresh, translate],
   );
 
-  const onSeeDetails = useCallback(
-    (ingredient: IIngredient) => {
-      openIngredientOverlay(ingredient, onRefresh);
-    },
-    [onRefresh, openIngredientOverlay],
-  );
+  const onSeeDetails = onInspectIngredient;
 
   return useMemo(
     () => ({

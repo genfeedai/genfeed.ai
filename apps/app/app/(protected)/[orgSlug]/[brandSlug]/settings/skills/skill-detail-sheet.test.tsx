@@ -172,4 +172,55 @@ describe('SkillDetailSheet', () => {
     fireEvent.click(fork);
     expect(onFork).not.toHaveBeenCalled();
   });
+  it('offers versions only with authoritative read capability and controlled callbacks', () => {
+    const onLoad = vi.fn();
+    const versions = {
+      items: [],
+      detail: null,
+      hasLoaded: false,
+      hasMore: false,
+      isLoading: false,
+      isDisabled: false,
+      error: null,
+      onLoad,
+      onLoadOlder: vi.fn(),
+      onView: vi.fn(),
+    };
+    const value = {
+      customizing: false,
+      hasChanges: false,
+      draftErrors: [],
+      onClose: vi.fn(),
+      onCustomize: vi.fn(),
+      onOpenSamplePrompt: vi.fn(),
+      onSaveSkill: vi.fn(),
+      onSkillDraftChange: vi.fn(),
+      savingSkill: false,
+      skillDraft: {
+        name: 'Name',
+        description: 'Description',
+        defaultInstructions: '',
+        systemPromptTemplate: '',
+      },
+      versions,
+    };
+    const view = render(
+      <SkillDetailSheet
+        {...value}
+        selectedSkill={{ ...selectedSkillFixture, canRead: true }}
+      />,
+    );
+    expect(onLoad).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Load versions' }));
+    expect(onLoad).toHaveBeenCalledOnce();
+    view.rerender(
+      <SkillDetailSheet
+        {...value}
+        selectedSkill={{ ...selectedSkillFixture, canRead: false }}
+      />,
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Load versions' }),
+    ).not.toBeInTheDocument();
+  });
 });
