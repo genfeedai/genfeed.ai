@@ -191,7 +191,9 @@ export class ImagesOperationsController {
 
     // Get the image URL from CDN
     const imageUrl = this.configService.isAuthorizedMediaDeliveryEnabled
-      ? (await this.mediaIssuer.issueServerPublish(user.organizationId, [id])).get(id) as string
+      ? ((
+          await this.mediaIssuer.issueServerPublish(user.organizationId, [id])
+        ).get(id) as string)
       : `${this.configService.ingredientsEndpoint}/images/${id}`;
 
     this.loggerService.log('Splitting contact sheet', {
@@ -270,10 +272,22 @@ export class ImagesOperationsController {
     sourceMetadata: IngredientMetadataDocument | null;
     tagId: string;
     user: User;
-  }): Promise<Array<{ id: string; ingredientId: string; index: number; url: string | null }>> {
+  }): Promise<
+    Array<{
+      id: string;
+      ingredientId: string;
+      index: number;
+      url: string | null;
+    }>
+  > {
     const { frames, parentId, sourceImage, sourceMetadata, tagId, user } =
       params;
-    const results: Array<{ id: string; ingredientId: string; index: number; url: string | null }> = [];
+    const results: Array<{
+      id: string;
+      ingredientId: string;
+      index: number;
+      url: string | null;
+    }> = [];
     for (let index = 0; index < frames.length; index++) {
       const frameBuffer = frames[index];
       const frameMetadata = await sharp(frameBuffer).metadata();
@@ -329,7 +343,9 @@ export class ImagesOperationsController {
         id: ingredientId,
         index,
         ingredientId,
-        url: this.configService.isAuthorizedMediaDeliveryEnabled ? null : `${this.configService.ingredientsEndpoint}/images/${ingredientId}`,
+        url: this.configService.isAuthorizedMediaDeliveryEnabled
+          ? null
+          : `${this.configService.ingredientsEndpoint}/images/${ingredientId}`,
       });
     }
     return results;

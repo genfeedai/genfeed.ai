@@ -1033,21 +1033,19 @@ describe('authorized media stream projection', () => {
     const userId = testId('user');
     const redis = { publish: vi.fn().mockResolvedValue(undefined) };
     const issuer = {
-      projectIngredients: vi
-        .fn()
-        .mockResolvedValue([
-          {
-            ingredientId: id,
-            metadataId: null,
-            grant: {
-              id,
-              purpose: 'preview',
-              state: 'PENDING',
-              url: null,
-              expiresAt: null,
-            },
+      projectIngredients: vi.fn().mockResolvedValue([
+        {
+          ingredientId: id,
+          metadataId: null,
+          grant: {
+            id,
+            purpose: 'preview',
+            state: 'PENDING',
+            url: null,
+            expiresAt: null,
           },
-        ]),
+        },
+      ]),
       hasCleanAccess: vi.fn().mockResolvedValue(false),
       projectAssets: vi.fn().mockResolvedValue([]),
     };

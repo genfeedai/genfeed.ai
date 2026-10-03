@@ -331,15 +331,13 @@ describe('WorkflowEngineExecutorHelperService.createAndLinkProcessingOutput', ()
 describe('WorkflowEngineExecutorHelperService.requireMediaAsset activated storage', () => {
   it('returns the exact raw stored key from a scoped ready record, including reserved characters', async () => {
     const key = 'ingredients/videos/random key?frame=#x%2F.mp4';
-    const findOne = vi
-      .fn()
-      .mockResolvedValue({
-        id: 'asset-1',
-        brandId: 'brand-1',
-        category: IngredientCategory.VIDEO,
-        status: 'GENERATED',
-        s3Key: key,
-      });
+    const findOne = vi.fn().mockResolvedValue({
+      id: 'asset-1',
+      brandId: 'brand-1',
+      category: IngredientCategory.VIDEO,
+      status: 'GENERATED',
+      s3Key: key,
+    });
     const helper = new WorkflowEngineExecutorHelperService(
       { isAuthorizedMediaDeliveryEnabled: true } as ConfigService,
       undefined,
@@ -358,15 +356,13 @@ describe('WorkflowEngineExecutorHelperService.requireMediaAsset activated storag
   });
 
   it('rejects a keyless record when activated instead of rebuilding an object key from its ID', async () => {
-    const findOne = vi
-      .fn()
-      .mockResolvedValue({
-        id: 'asset-1',
-        brandId: 'brand-1',
-        category: IngredientCategory.VIDEO,
-        status: 'GENERATED',
-        s3Key: null,
-      });
+    const findOne = vi.fn().mockResolvedValue({
+      id: 'asset-1',
+      brandId: 'brand-1',
+      category: IngredientCategory.VIDEO,
+      status: 'GENERATED',
+      s3Key: null,
+    });
     const helper = new WorkflowEngineExecutorHelperService(
       { isAuthorizedMediaDeliveryEnabled: true } as ConfigService,
       undefined,

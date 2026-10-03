@@ -568,13 +568,11 @@ describe('FileQueueService', () => {
       .mockResolvedValue([
         { id: 'video', category: 'VIDEO', s3Key: canonicalKey },
       ]);
-    const findOne = vi
-      .fn()
-      .mockResolvedValue({
-        id: 'credential',
-        refreshToken: 'encrypted-fixture',
-        accessToken: 'encrypted-fixture',
-      });
+    const findOne = vi.fn().mockResolvedValue({
+      id: 'credential',
+      refreshToken: 'encrypted-fixture',
+      accessToken: 'encrypted-fixture',
+    });
     Object.defineProperty(service, 'configService', {
       value: { isAuthorizedMediaDeliveryEnabled: true, get: vi.fn() },
     });

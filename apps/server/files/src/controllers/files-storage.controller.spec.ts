@@ -18,7 +18,10 @@ describe('FilesStorageController exact stored object signing', () => {
       expiresIn: 300,
       key: storageKey,
     });
-    expect(getPresignedDownloadUrlForStoredKey).toHaveBeenCalledWith(storageKey, 300);
+    expect(getPresignedDownloadUrlForStoredKey).toHaveBeenCalledWith(
+      storageKey,
+      300,
+    );
   });
 
   it.each([undefined, '', '  '])(

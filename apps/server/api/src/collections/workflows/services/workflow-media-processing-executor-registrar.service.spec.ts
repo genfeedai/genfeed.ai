@@ -61,12 +61,10 @@ describe('WorkflowMediaProcessingExecutorRegistrarService', () => {
       })),
       extractMusicIngredientId: () => undefined,
       readConfigString: () => undefined,
-      createWorkflowOutputIngredient: vi
-        .fn()
-        .mockResolvedValue({
-          ingredientId: 'output-1',
-          metadataId: 'metadata-1',
-        }),
+      createWorkflowOutputIngredient: vi.fn().mockResolvedValue({
+        ingredientId: 'output-1',
+        metadataId: 'metadata-1',
+      }),
       patchIngredient: vi.fn().mockResolvedValue(undefined),
       wrapEngineExecutor,
     } as unknown as WorkflowEngineExecutorHelperService;
