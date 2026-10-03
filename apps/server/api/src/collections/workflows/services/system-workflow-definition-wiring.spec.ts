@@ -1,5 +1,10 @@
 import { readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import {
+  ARTICLE_GENERATION_CHILD_WORKFLOW_ID,
+  ARTICLE_REVIEW_WORKFLOW_ID,
+} from '@api/collections/articles/services/article-workflow-definitions';
+import { buildSocialInboxOutboundWorkflowDefinition } from '@api/collections/social-inbox/services/social-inbox-outbound-workflow-definition';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
 import { getActionDefinition } from '@genfeedai/actions';
 import { buildActionExecutionInput } from '@genfeedai/workflows/engine';
@@ -25,6 +30,15 @@ const SOURCE_ROOTS = [
 const DEFINITION_MODULE_PATTERN =
   /workflow[^/]*\.definitions?\.ts$|workflow-definitions?\.ts$/;
 const IGNORED_MODULE_PATTERN = /\.(?:spec|service|module)\.ts$/;
+
+/**
+ * Definition factories that take arguments cannot be discovered by arity, so
+ * every registered variant is listed explicitly.
+ */
+const PARAMETERIZED_DEFINITIONS: SystemWorkflowGraphDefinition[] = [
+  buildSocialInboxOutboundWorkflowDefinition('dm'),
+  buildSocialInboxOutboundWorkflowDefinition('reply'),
+];
 
 /**
  * Wiring defects that already exist on master and are outside #5869 (which is
@@ -135,13 +149,18 @@ async function collectSystemWorkflowDefinitions(): Promise<
       ),
   );
 
-  const definitions = new Map<string, SystemWorkflowGraphDefinition>();
+  const definitions = new Map<string, SystemWorkflowGraphDefinition>(
+    PARAMETERIZED_DEFINITIONS.map((definition) => [
+      definition.canonicalId,
+      definition,
+    ]),
+  );
   for (const modulePath of modulePaths.sort()) {
     const exports = readRecord(await import(/* @vite-ignore */ modulePath));
-    for (const [exportName, exported] of Object.entries(exports)) {
+    for (const exported of Object.values(exports)) {
       const candidates: unknown[] =
         typeof exported === 'function'
-          ? exportName.startsWith('build') && exported.length === 0
+          ? exported.length === 0
             ? [(exported as () => unknown)()]
             : []
           : [exported];
@@ -208,6 +227,11 @@ describe('system workflow definition wiring against action contracts', () => {
     expect(definitions.length).toBeGreaterThan(30);
     expect(canonicalIds).toContain('trends.maintenance.refresh');
     expect(canonicalIds).toContain('trends.maintenance.scoped-refresh');
+    expect(canonicalIds).toContain(ARTICLE_GENERATION_CHILD_WORKFLOW_ID);
+    expect(canonicalIds).toContain(ARTICLE_REVIEW_WORKFLOW_ID);
+    for (const definition of PARAMETERIZED_DEFINITIONS) {
+      expect(canonicalIds).toContain(definition.canonicalId);
+    }
 
     const issues = definitions.flatMap(findWiringIssues);
     const issueKeys = new Set(
