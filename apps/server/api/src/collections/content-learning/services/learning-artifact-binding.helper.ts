@@ -1,6 +1,4 @@
-import {
-  learningOrgFence,
-} from '@api/collections/content-learning/services/learning-dependency.service';
+import { learningOrgFence } from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import { resolveLearningPublicationSourceV1 } from '@api/collections/content-learning/services/learning-publication-source.helper';
 import { PublishApprovalStatus } from '@genfeedai/contracts';
