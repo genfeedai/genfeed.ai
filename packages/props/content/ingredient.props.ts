@@ -2,6 +2,7 @@ import type {
   AssetScope,
   ComponentSize,
   IngredientFormat,
+  IngredientLineageDirection,
 } from '@genfeedai/contracts';
 import type {
   ICredential,
@@ -103,6 +104,25 @@ export interface IngredientInspectorRailProps {
   className?: string;
   /** Opens the full-size lightbox; the preview is not interactive without it. */
   onOpenPreview?: () => void;
+}
+
+export interface IngredientLineageStripProps {
+  ingredientId: string;
+  direction: IngredientLineageDirection;
+  className?: string;
+}
+
+export interface IngredientLineageItemProps {
+  ingredient: IIngredient;
+}
+
+export interface UseIngredientLineageResult {
+  items: IIngredient[];
+  hiddenCount: number;
+  hasNext: boolean;
+  isLoading: boolean;
+  hasError: boolean;
+  loadMore: () => void;
 }
 
 export interface IngredientsTypeProps {

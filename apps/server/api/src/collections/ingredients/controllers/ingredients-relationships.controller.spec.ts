@@ -1,8 +1,11 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientsRelationshipsController } from '@api/collections/ingredients/controllers/ingredients-relationships.controller';
+import { IngredientLineageService } from '@api/collections/ingredients/services/ingredient-lineage.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { IngredientLineageDirection } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ModuleRef } from '@nestjs/core';
@@ -46,6 +49,16 @@ describe('IngredientsRelationshipsController', () => {
       }),
       findOne: vi.fn().mockResolvedValue(mockIngredient),
     },
+    lineageService: {
+      findLineage: vi.fn().mockResolvedValue({
+        docs: [{ category: 'IMAGE', id: ingredientId }],
+        hiddenCount: 3,
+        limit: 24,
+        page: 1,
+        totalDocs: 1,
+        totalPages: 1,
+      }),
+    },
     loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
     postsService: {
       findAll: vi.fn().mockResolvedValue({
@@ -70,6 +83,10 @@ describe('IngredientsRelationshipsController', () => {
         {
           provide: IngredientsService,
           useValue: mockServices.ingredientsService,
+        },
+        {
+          provide: IngredientLineageService,
+          useValue: mockServices.lineageService,
         },
         { provide: LoggerService, useValue: mockServices.loggerService },
         { provide: PostsService, useValue: mockServices.postsService },
@@ -175,5 +192,38 @@ describe('IngredientsRelationshipsController', () => {
         expect.anything(),
       );
     });
+  });
+
+  describe('lineage', () => {
+    const user = {
+      brandId: 'brand-1',
+      organizationId,
+    } as unknown as User;
+
+    it.each([
+      ['findMadeFrom', IngredientLineageDirection.MADE_FROM],
+      ['findUsedIn', IngredientLineageDirection.USED_IN],
+    ] as const)(
+      '%s reads one page for the member and reports the hidden count',
+      async (method, direction) => {
+        const result = await controller[method](
+          mockRequest,
+          ingredientId,
+          { limit: 24, page: 2 },
+          user,
+        );
+
+        expect(mockServices.lineageService.findLineage).toHaveBeenCalledWith({
+          direction,
+          ingredientId,
+          limit: 24,
+          page: 2,
+          viewer: { brandId: 'brand-1', organizationId },
+        });
+        expect(result.meta).toEqual({ hiddenCount: 3 });
+        expect(result.data).toHaveLength(1);
+        expect(result.data[0]?.id).toBe(ingredientId);
+      },
+    );
   });
 });

@@ -13,6 +13,16 @@ vi.mock('@ui/quick-actions/actions/IngredientQuickActions', () => ({
   default: () => null,
 }));
 
+vi.mock('./IngredientLineageStrip', () => ({
+  default: ({
+    direction,
+    ingredientId,
+  }: {
+    direction: string;
+    ingredientId: string;
+  }) => <div data-testid={`lineage-${direction}`}>{ingredientId}</div>,
+}));
+
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
@@ -141,5 +151,14 @@ describe('IngredientInspectorRail', () => {
       screen.getByRole('button', { name: 'Open full-size preview' }),
     );
     expect(onOpenPreview).toHaveBeenCalledOnce();
+  });
+
+  it('shows the references it was made from and where it was used', () => {
+    render(<IngredientInspectorRail ingredient={ingredient} />);
+
+    expect(screen.getByTestId('lineage-made-from')).toHaveTextContent(
+      'asset-1',
+    );
+    expect(screen.getByTestId('lineage-used-in')).toHaveTextContent('asset-1');
   });
 });
