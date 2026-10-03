@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
@@ -99,6 +100,7 @@ export class CreditsInterceptor implements NestInterceptor {
       await this.creditDeductionQueueService.queueByokUsage({
         amount: currentCreditsConfig.amount || 0,
         description: currentCreditsConfig.description,
+        idempotencyKey: this.chargeKey('byok-usage', currentCreditsConfig),
         organizationId: identity.organizationId,
         source: currentCreditsConfig.source || ActivitySource.SCRIPT,
         type: 'record-byok-usage',
@@ -112,6 +114,7 @@ export class CreditsInterceptor implements NestInterceptor {
       await this.creditDeductionQueueService.queueDeduction({
         amount: currentCreditsConfig.amount || 0,
         description: currentCreditsConfig.description,
+        idempotencyKey: this.chargeKey('credit-settle', currentCreditsConfig),
         maxOverdraftCredits: currentCreditsConfig.maxOverdraftCredits,
         metadata:
           currentCreditsConfig.pricingMetadata || assetId
@@ -137,6 +140,22 @@ export class CreditsInterceptor implements NestInterceptor {
       userId: identity.id,
     });
     return response;
+  }
+
+  /**
+   * Names the one logical charge this response settles. A reservation is
+   * settled at most once, so its id is the stable identity. A request with no
+   * hold has no other identity the interceptor can derive, so the charge gets
+   * a fresh id here, once per settlement, never inside the queue job: the id
+   * travels in the job payload and survives every retry and redelivery.
+   */
+  private chargeKey(
+    prefix: 'byok-usage' | 'credit-settle',
+    config: DeferredCreditsConfig,
+  ): string {
+    return config.reservationId
+      ? `${prefix}:${config.reservationId}`
+      : `${prefix}:${randomUUID()}`;
   }
 
   /**

@@ -1,16 +1,23 @@
-import { randomUUID } from 'node:crypto';
 import { currentWorkflowAccountingScope } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import {
   CREDIT_DEDUCTION_QUEUE,
-  CreditDeductionJobData,
+  type QueuedCreditChargeData,
 } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
 
 function toBullMqJobId(value: string): string {
   return value.replaceAll(':', '-');
+}
+
+function assertIdempotencyKey(data: QueuedCreditChargeData): void {
+  if (!data.idempotencyKey) {
+    throw new BadRequestException(
+      'A credit charge needs an idempotency key naming the thing it charges',
+    );
+  }
 }
 
 @Injectable()
@@ -22,20 +29,15 @@ export class CreditDeductionQueueService {
     private readonly logger: LoggerService,
   ) {}
 
-  async queueDeduction(data: CreditDeductionJobData): Promise<void> {
+  async queueDeduction(data: QueuedCreditChargeData): Promise<void> {
+    assertIdempotencyKey(data);
     const scope = currentWorkflowAccountingScope();
     if (scope?.organizationId === data.organizationId)
-      data = {
-        ...data,
-        workflowAccounting: scope,
-        idempotencyKey: data.idempotencyKey ?? randomUUID(),
-      };
+      data = { ...data, workflowAccounting: scope };
     const jobId = toBullMqJobId(
-      data.idempotencyKey
-        ? `credit-deduct-${data.organizationId}-${data.idempotencyKey}`
-        : `credit-deduct-${data.organizationId}-${Date.now()}`,
+      `credit-deduct-${data.organizationId}-${data.idempotencyKey}`,
     );
-    if (data.idempotencyKey && (await this.resumeExistingJob(jobId))) return;
+    if (await this.resumeExistingJob(jobId)) return;
     await this.queue.add('deduct-credits', data, {
       ...(data.acceptedGeneration ? { removeOnFail: false } : {}),
       ...(data.acceptedGeneration
@@ -52,20 +54,15 @@ export class CreditDeductionQueueService {
     });
   }
 
-  async queueByokUsage(data: CreditDeductionJobData): Promise<void> {
+  async queueByokUsage(data: QueuedCreditChargeData): Promise<void> {
+    assertIdempotencyKey(data);
     const scope = currentWorkflowAccountingScope();
     if (scope?.organizationId === data.organizationId)
-      data = {
-        ...data,
-        workflowAccounting: scope,
-        idempotencyKey: data.idempotencyKey ?? randomUUID(),
-      };
+      data = { ...data, workflowAccounting: scope };
     const jobId = toBullMqJobId(
-      data.idempotencyKey
-        ? `byok-usage-${data.organizationId}-${data.idempotencyKey}`
-        : `byok-usage-${data.organizationId}-${Date.now()}`,
+      `byok-usage-${data.organizationId}-${data.idempotencyKey}`,
     );
-    if (data.idempotencyKey && (await this.resumeExistingJob(jobId))) return;
+    if (await this.resumeExistingJob(jobId)) return;
     await this.queue.add('record-byok-usage', data, {
       ...(data.acceptedGeneration
         ? { attempts: 20_160, backoff: { delay: 30_000, type: 'fixed' } }

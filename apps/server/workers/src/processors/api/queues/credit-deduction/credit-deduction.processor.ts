@@ -119,7 +119,11 @@ export class CreditDeductionProcessor extends WorkerHost {
             description,
             source,
             {
-              idempotencyKey: job.data.idempotencyKey,
+              // Payloads queued before keys were required carry none; their
+              // stable job id still names the charge across retries.
+              idempotencyKey:
+                job.data.idempotencyKey ??
+                (job.id ? `credit-job:${job.id}` : undefined),
               maxOverdraftCredits: job.data.maxOverdraftCredits,
               metadata: job.data.metadata,
               referenceId: job.data.referenceId,

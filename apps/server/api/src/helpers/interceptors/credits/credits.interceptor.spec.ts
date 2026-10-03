@@ -176,6 +176,7 @@ describe('CreditsInterceptor', () => {
               ).toHaveBeenCalledWith({
                 amount: 10,
                 description: 'Test operation',
+                idempotencyKey: expect.stringMatching(/^credit-settle:/),
                 organizationId,
                 source: ActivitySource.SCRIPT,
                 type: 'deduct-credits',
@@ -372,6 +373,112 @@ describe('CreditsInterceptor', () => {
       });
     });
 
+    describe('charge identity', () => {
+      const settle = (
+        creditsConfig: CreditsConfig & { reservationId?: string },
+      ) =>
+        interceptor.settle(
+          {
+            creditsConfig,
+            user: { id: 'user_123', organizationId, userId },
+          } as never,
+          { data: { id: 'asset-1' } },
+        );
+      const queued = (method: 'queueDeduction' | 'queueByokUsage') =>
+        vi
+          .mocked(creditDeductionQueueService[method])
+          .mock.calls.map(([job]) => job.idempotencyKey);
+
+      it('keys a reserved charge by its reservation, identically on every settle of it', async () => {
+        const config = {
+          amount: 4,
+          description: 'Image generation',
+          reservationId: 'reservation-7',
+          source: ActivitySource.IMAGE_GENERATION,
+        };
+
+        await settle(config);
+        await settle(config);
+
+        expect(queued('queueDeduction')).toEqual([
+          'credit-settle:reservation-7',
+          'credit-settle:reservation-7',
+        ]);
+      });
+
+      it('gives each unreserved charge its own key, fixed once per settlement', async () => {
+        const config = {
+          amount: 4,
+          description: 'Image generation',
+          source: ActivitySource.IMAGE_GENERATION,
+        };
+
+        await settle(config);
+        await settle(config);
+
+        const [first, second] = queued('queueDeduction');
+        expect(first).toMatch(/^credit-settle:/);
+        expect(second).toMatch(/^credit-settle:/);
+        expect(first).not.toBe(second);
+      });
+
+      it('keys BYOK usage the same way', async () => {
+        await settle({
+          amount: 5,
+          description: 'BYOK operation',
+          isByokBypass: true,
+          source: ActivitySource.SCRIPT,
+        });
+        await settle({
+          amount: 5,
+          description: 'BYOK operation',
+          isByokBypass: true,
+          reservationId: 'reservation-8',
+          source: ActivitySource.SCRIPT,
+        });
+
+        const [unreserved, reserved] = queued('queueByokUsage');
+        expect(unreserved).toMatch(/^byok-usage:/);
+        expect(reserved).toBe('byok-usage:reservation-8');
+      });
+
+      it('never lets two same-millisecond settlements share a queue job id', async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-10-03T00:00:00.000Z'));
+        try {
+          const queue = { add: vi.fn(), getJob: vi.fn() };
+          const realQueueService = new CreditDeductionQueueService(
+            queue as never,
+            { log: vi.fn() } as never,
+          );
+          const wired = new CreditsInterceptor(
+            realQueueService,
+            creditsUtilsService as never,
+            loggerService,
+            quoteGroups as never,
+          );
+          const config = {
+            amount: 4,
+            description: 'Image generation',
+            source: ActivitySource.IMAGE_GENERATION,
+          };
+          const request = {
+            creditsConfig: config,
+            user: { id: 'user_123', organizationId, userId },
+          } as never;
+
+          await wired.settle(request, {});
+          await wired.settle(request, {});
+
+          const jobIds = queue.add.mock.calls.map((call) => call[2].jobId);
+          expect(jobIds).toHaveLength(2);
+          expect(new Set(jobIds).size).toBe(2);
+        } finally {
+          vi.useRealTimers();
+        }
+      });
+    });
+
     it('should forward the pricing audit stamp as deduction metadata', async () => {
       mockRequest.creditsConfig = {
         amount: 120,
@@ -400,6 +507,7 @@ describe('CreditsInterceptor', () => {
               ).toHaveBeenCalledWith({
                 amount: 120,
                 description: 'Video generation',
+                idempotencyKey: expect.stringMatching(/^credit-settle:/),
                 metadata: {
                   marginMultiplier: 1.2,
                   pricingType: 'per-second',
@@ -444,7 +552,7 @@ describe('CreditsInterceptor', () => {
           metadata: { assetId: 'asset-9', pricingType: 'per-image' },
           reservationId: 'reservation-1',
         });
-        expect(job).not.toHaveProperty('idempotencyKey');
+        expect(job.idempotencyKey).toBe('credit-settle:reservation-1');
         expect(job).not.toHaveProperty('referenceId');
         expect(job).not.toHaveProperty('settlementAssetId');
       });
@@ -474,6 +582,7 @@ describe('CreditsInterceptor', () => {
               ).toHaveBeenCalledWith({
                 amount: 5,
                 description: 'BYOK operation',
+                idempotencyKey: expect.stringMatching(/^byok-usage:/),
                 organizationId,
                 source: ActivitySource.SCRIPT,
                 type: 'record-byok-usage',
@@ -595,6 +704,7 @@ describe('CreditsInterceptor', () => {
               ).toHaveBeenCalledWith({
                 amount: 5,
                 description: 'Test operation',
+                idempotencyKey: expect.stringMatching(/^credit-settle:/),
                 organizationId,
                 source: ActivitySource.SCRIPT, // Default source
                 type: 'deduct-credits',
