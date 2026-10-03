@@ -64,19 +64,16 @@ async function observeLearningFence(
 }
 
 /**
- * Global learning fence. Shared holders read global learning state; the
- * exclusive holder excludes every global and organization fence holder and is
- * reserved for genuinely global or cross-tenant invalidations.
+ * Global exclusive learning fence: excludes every organization fence holder.
+ * Reserved for genuinely global or cross-tenant invalidations. Readers and
+ * per-organization writers use learningOrgFence; the global key has no
+ * shared-only mode, so a reader can never skip its organization key.
  */
 export async function learningFence(
   tx: Prisma.TransactionClient,
-  mode: LearningFenceMode,
+  mode: 'exclusive',
 ): Promise<void> {
   await observeLearningFence('global', mode, async () => {
-    if (mode === 'shared') {
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock_shared(5728, 1)::text`;
-      return;
-    }
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(5728, 1)::text`;
     exclusiveFenceScopes.set(tx, 'global');
   });
