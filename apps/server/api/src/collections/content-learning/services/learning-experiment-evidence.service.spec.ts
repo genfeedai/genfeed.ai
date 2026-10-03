@@ -130,16 +130,19 @@ function fixture() {
     root as unknown as PrismaService,
     dependencies as unknown as LearningDependencyService,
   );
-  function assertEntry(mode: 'shared' | 'exclusive' = 'shared') {
+  function assertEntry(
+    mode: 'shared' | 'exclusive' = 'shared',
+    hasOrganizationFence = mode === 'shared',
+  ) {
     expect(root.$transaction).toHaveBeenCalledTimes(1);
-    const fenceCalls = mode === 'shared' ? 2 : 1;
+    const fenceCalls = hasOrganizationFence ? 2 : 1;
     expect(tx.$queryRaw).toHaveBeenCalledTimes(fenceCalls);
     expect(tx.$queryRaw.mock.calls[0][0].join('')).toContain(
       mode === 'shared'
         ? 'pg_advisory_xact_lock_shared(5728, 1)'
         : 'pg_advisory_xact_lock(5728, 1)',
     );
-    if (mode === 'shared') {
+    if (hasOrganizationFence) {
       expect(tx.$queryRaw.mock.calls[1][0].join('?')).toBe(
         'SELECT pg_advisory_xact_lock_shared(?::int, hashtext(?))::text',
       );
@@ -340,7 +343,7 @@ describe('same-client fenced experiment evidence append', () => {
         f.dependencies.link,
       ])
         expect(mock).not.toHaveBeenCalled();
-      f.assertEntry();
+      f.assertEntry('shared', kind === 'opportunity');
     },
   );
   it.each(['llm-ledger', 'media-ledger', 'config', 'invalid-kind'])(

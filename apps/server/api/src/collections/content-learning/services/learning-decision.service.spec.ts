@@ -778,16 +778,17 @@ function bindingFixture() {
     tx.post.updateMany,
     tx.contentLearningAccount.findFirst,
   ];
-  function assertSharedEntry() {
+  function assertSharedEntry(hasOrganizationFence = true) {
     expect(root.$transaction).toHaveBeenCalledTimes(1);
     const sql = tx.$queryRaw.mock.calls[0][0].join('');
     expect(sql).toContain('pg_advisory_xact_lock_shared(5728, 1)');
     expect(sql).not.toContain('pg_advisory_xact_lock(');
-    const organizationFence = tx.$queryRaw.mock.calls[1][0].join('?');
-    expect(organizationFence).toBe(
-      'SELECT pg_advisory_xact_lock_shared(?::int, hashtext(?))::text',
-    );
-    expect(tx.$queryRaw.mock.calls[1].slice(1)).toEqual([5729, 'org']);
+    if (hasOrganizationFence) {
+      expect(tx.$queryRaw.mock.calls[1][0].join('?')).toBe(
+        'SELECT pg_advisory_xact_lock_shared(?::int, hashtext(?))::text',
+      );
+      expect(tx.$queryRaw.mock.calls[1].slice(1)).toEqual([5729, 'org']);
+    }
     for (const mock of modelCalls)
       if (mock.mock.invocationCallOrder.length)
         expect(tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
@@ -915,7 +916,7 @@ describe('shared-fenced immutable artifact and publication binding', () => {
       await expect(result).rejects.toBe(failure);
       expect(f.tx.$queryRaw).toHaveBeenCalledTimes(1);
       for (const mock of f.modelCalls) expect(mock).not.toHaveBeenCalled();
-      f.assertSharedEntry();
+      f.assertSharedEntry(false);
     },
   );
   it.each([
