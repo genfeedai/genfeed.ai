@@ -672,9 +672,9 @@ test('resolveMasterCiFailure does not close a scheduled-failure tracker that onl
 
 // ── Workflow contract (#2510) ───────────────────────────────────────────────
 //
-// The master Full Suite must reach a conclusive Tests Gate, and a red
-// gate must file the tracker. These pins fail the build if either half
-// regresses to PR-only.
+// A `push`-driven Tests Gate must be conclusive, and a red gate must file the
+// tracker. The Full Suite no longer runs on master pushes, so this wiring is
+// dormant, but these pins keep it intact for a future push-driven caller.
 
 const CI_WORKFLOW = readFileSync(
   fileURLToPath(new URL('../../.github/workflows/ci.yml', import.meta.url)),
@@ -690,12 +690,12 @@ function ciJob(name) {
   return end === -1 ? rest : rest.slice(0, end);
 }
 
-test('tests-gate runs on the master suite as well as pull requests', () => {
+test('tests-gate keeps its push arm alongside pull requests', () => {
   const gate = ciJob('tests-gate');
   assert.match(
     gate,
     /github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group' \|\| github\.event_name == 'push'/,
-    'tests-gate must produce a conclusive result on the master push run (#2510)',
+    'tests-gate must keep its push arm so the tracker stays wired (#2510)',
   );
 });
 
