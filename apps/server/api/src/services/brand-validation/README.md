@@ -1,7 +1,9 @@
 # Brand artifact validation core
 
 This internal API leaf binds captured artifact bytes to canonical snapshot and
-artifact metadata. It does not register a caller or persist readiness. The
+artifact metadata. It registers no application caller.
+`BrandValidationReceiptService.validateReceipt(actor, receiptId)` (exported by
+`BrandValidationReceiptModule`) is the persisted completion adapter. The
 synthetic corpus is regression input, never provider qualification or production
 improvement evidence.
 
@@ -90,3 +92,38 @@ contract. A future canonical wrapper must preserve distinct reviewed row IDs and
 persisted ordering, map returned positions to that same frozen row array, and
 establish source/review authority separately. It must not deduplicate wording or
 activate factual/report decisions solely from a unique array result.
+
+## Receipt completion adapter
+
+`BrandValidationReceiptService.validateReceipt(actor, receiptId)` first calls
+`BrandedGenerationArtifactMaterialService.acquire` to authorize the receipt scope,
+re-read pinned artifact bytes and verify artifact and reference hashes. For a
+non-raw receipt it then calls `validateBrandArtifact` with the receipt's own
+snapshot, bound artifact and acquired material. Raw receipts skip the validator
+and use a null report. The adapter computes the semantic report hash, checks for
+exact-scope reuse, then calls `recordValidation` with the acquired revision and
+`validate` for a checking receipt or `revalidate` otherwise.
+
+The operation key is
+`brand-validation:<validate|revalidate>:<reportHash|raw>`. A receipt outside checking
+reuses its report without a write only when its stored validation has the exact
+same semantic hash, or both reports are null for raw mode. Acquisition and hash
+verification still run before reuse. Receipt events provide deterministic
+idempotency before CAS for concurrent or lost-response replays; a real revision
+conflict propagates without retry.
+
+All acquisition, access, integrity, validator and persistence errors propagate
+unchanged without a receipt write, state change or partial report. In particular,
+an integrity error leaves a checking receipt in checking with no invented checks.
+The adapter performs no provider work or paid retries and preserves costs and
+budget.
+
+Readiness comes only from `classifyBrandedGenerationReadinessV1` through the
+existing receipt projection. Any hard failure gives blocked/failed; raw completion
+gives ready/not_claimed. Factual coverage stays hard unknown, so approved output
+is needs_review/unverified, never ready/passed.
+
+The production trigger belongs to #5786: after `bindArtifact` resolves, including
+a replay, its route matrix imports `BrandValidationReceiptModule` and calls
+`validateReceipt(actor, receipt.id)`. This module registers no application or HTTP
+caller. This service slice is partial delivery and leaves #5787 and #4617 open.
