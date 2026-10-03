@@ -11,6 +11,13 @@ export interface IEmailVerificationEnforcementSources {
   isRequired: () => Promise<boolean>;
   /** Whether the notifications service has an email provider configured. */
   isMailerConfigured: () => Promise<boolean>;
+  /**
+   * Whether running without a mailer is legitimate here (self-hosted, or the
+   * explicit dev setting). When false, a missing mailer fails closed.
+   */
+  isMailerOptional: () => boolean;
+  /** Called when verification is required, no mailer exists, and none is optional. */
+  onMailerMissing?: () => void;
 }
 
 export interface IBetterAuthSocialProviderConfig {
