@@ -9,7 +9,7 @@
  *
  * Flags:
  *   --suite=judge|ladder|harness-ab   required (media-ladder is reserved, #4926)
- *   --fixture=<path>                  required, JSONL fixture
+ *   --fixture=<path[,path]>           required, JSONL; judge combines in flag order
  *   --max-credits=<n>                 required spend cap (1 credit = $0.01)
  *   --judge=<key[,key]>               required judge registry key(s)
  *   --models=<key,...>                ladder: baseline first; harness-ab: one key
@@ -20,6 +20,10 @@
  *   --out=<report.json>               write the report here instead of stdout
  *   --outlier-thresholds=<path.json>  outlier cut (#5234); defaults in
  *                                     outliers/contracts.ts, recorded per run
+ *   --production-judges=<id,...>      judge: default content-quality,evaluations
+ *   --cross-family-judges=<key,...>   judge: additional model arms
+ *   --brand-context=<path.json>       judge: brand criteria and examples
+ *   --calibration-summary-out=<path> judge: write the calibration summary
  *
  * Exit codes: 0 pass · 1 threshold failure, spend abort or run error · 2 usage.
  *
@@ -32,6 +36,10 @@
 import { readFileSync } from 'node:fs';
 import process from 'node:process';
 import { REPORT_ANALYZERS } from './analyzers';
+import {
+  buildCalibrationSummary,
+  writeCalibrationSummary,
+} from './calibration/summary';
 import { parseCliArgs, readFlag, UsageError } from './cli';
 import type { DispatcherKind, EvalDispatcher } from './contracts';
 import { createStubDispatcher } from './dispatchers/stub';
@@ -83,6 +91,15 @@ function readOutlierThresholds(argv: string[]): unknown {
 async function main(): Promise<number> {
   const argv = process.argv.slice(2);
   const { out, ...args } = parseCliArgs(argv);
+  const calibrationSummaryPath = readFlag(argv, 'calibration-summary-out');
+  if (calibrationSummaryPath === '') {
+    throw new UsageError('--calibration-summary-out needs a path');
+  }
+  if (calibrationSummaryPath !== undefined && args.suite !== 'judge') {
+    throw new UsageError(
+      '--calibration-summary-out is only valid with --suite=judge',
+    );
+  }
   const { exitCode, report } = await runContentEval({
     ...args,
     argv,
@@ -98,6 +115,21 @@ async function main(): Promise<number> {
   process.stderr.write(renderSummary(report, REPORT_ANALYZERS));
   if (out) {
     process.stderr.write(`  report:    ${out}\n`);
+  }
+  if (calibrationSummaryPath !== undefined) {
+    if (report.calibration === undefined) {
+      process.stderr.write(
+        'calibration summary skipped: no calibration section\n',
+      );
+    } else {
+      writeCalibrationSummary(
+        resolveRepoPath(calibrationSummaryPath),
+        buildCalibrationSummary(report),
+      );
+      process.stderr.write(
+        `  calibration summary: ${calibrationSummaryPath}\n`,
+      );
+    }
   }
 
   return exitCode;

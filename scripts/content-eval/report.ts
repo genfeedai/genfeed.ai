@@ -6,6 +6,7 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { POOLED_KIND } from './calibration/contracts';
 import type {
   ContentEvalReport,
   ReportAnalyzer,
@@ -110,6 +111,24 @@ export function renderSummary(
     lines.push(
       `  position bias: ${formatRate(report.outcome.positionBiasRate)}`,
     );
+  }
+  if (report.calibration !== undefined) {
+    const calibration = report.calibration;
+    for (const arm of calibration.arms.filter((entry) => entry.isPrimary)) {
+      const metric = calibration.metrics.find(
+        (entry) =>
+          entry.armId === arm.armId && entry.contentKind === POOLED_KIND,
+      );
+      if (metric === undefined) {
+        continue;
+      }
+      lines.push(
+        `  calibration ${arm.armId}: κband ${metric.bandKappa ?? 'n/a'} · κdecision ${metric.decisionKappa ?? 'n/a'} · ρ ${metric.spearmanRho ?? 'n/a'} over ${metric.scoredRows} rows`,
+      );
+    }
+    if (calibration.injection !== null) {
+      lines.push(`  injection: ${calibration.injection.recommendation}`);
+    }
   }
   for (const analyzer of analyzers) {
     lines.push(...(analyzer.summaryLines?.(report) ?? []));
