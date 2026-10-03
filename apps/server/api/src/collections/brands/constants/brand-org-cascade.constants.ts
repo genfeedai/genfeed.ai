@@ -921,6 +921,10 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
   'BrandedGenerationReceiptEvent',
   // Crun financial history blocks relocation and retains its funding tenant.
   'CrunGenerationTask',
+  // Credit ledger history stays with the organization that was billed; its
+  // brandId is usage attribution, not brand-owned content.
+  'CreditReservation',
+  'CreditTransaction',
   // Retained security history blocks relocation, including indirect and deleted audits.
   'AgentPublishAudit',
   'AgentUntrustedContentAudit',
@@ -957,6 +961,8 @@ export const AUDITOR_IGNORED_TABLES: readonly string[] = [
   'branded_generation_receipts',
   'branded_generation_receipt_events',
   'crun_generation_tasks',
+  'credit_reservations',
+  'credit_transactions',
   'agent_publish_audits',
   'agent_untrusted_content_audits',
   'agent_transfers',
