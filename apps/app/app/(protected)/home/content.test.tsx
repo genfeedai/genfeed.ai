@@ -943,7 +943,9 @@ describe('OperationalHomeContent', () => {
     );
 
     await waitFor(() =>
-      expect(mocks.notificationsError).toHaveBeenCalledWith('Approve'),
+      expect(mocks.notificationsError).toHaveBeenCalledWith(
+        'Failed to approve the item',
+      ),
     );
     expect(mocks.loggerError).toHaveBeenCalledWith(
       'Approve review item failed',
