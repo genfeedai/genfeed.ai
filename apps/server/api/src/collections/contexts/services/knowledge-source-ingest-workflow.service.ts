@@ -108,7 +108,6 @@ export class KnowledgeSourceIngestWorkflowService implements OnModuleInit {
       {
         attempts: 3,
         dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
-        replaceTerminalJob: true,
       },
     );
   }
@@ -129,7 +128,6 @@ export class KnowledgeSourceIngestWorkflowService implements OnModuleInit {
       {
         attempts: 1,
         dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
-        replaceTerminalJob: true,
       },
     );
   }

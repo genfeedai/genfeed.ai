@@ -88,7 +88,6 @@ export class BatchGenerationWorkflowService implements OnModuleInit {
         {
           attempts: 1,
           dispatchClass,
-          replaceTerminalJob: true,
         },
       ),
     );

@@ -92,7 +92,6 @@ export class ReplyPostWatchService implements OnModuleInit {
           {
             delayMs: delayMinutes * 60 * 1000,
             dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
-            replaceTerminalJob: true,
           },
         );
       }),
