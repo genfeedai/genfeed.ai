@@ -161,7 +161,6 @@ export class PatternExtractionWorkflowService implements OnModuleInit {
       {
         attempts: 2,
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
-        replaceTerminalJob: true,
       },
     );
   }

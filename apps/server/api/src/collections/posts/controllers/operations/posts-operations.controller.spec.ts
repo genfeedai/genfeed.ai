@@ -1,3 +1,6 @@
+import { PostAccountLearningService } from '@api/collections/posts/services/post-account-learning.service';
+import { PostDraftGenerationService } from '@api/collections/posts/services/post-draft-generation.service';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnBadRequest: vi.fn((response) => {
     throw new HttpException(response, 400);
@@ -386,6 +389,18 @@ Tweet 3: Tech innovation is changing the world.`,
         { provide: MembersService, useValue: mockMembersService },
         { provide: LoggerService, useValue: mockLoggerService },
         PostGenerationService,
+        {
+          provide: PostDraftGenerationService,
+          useValue: { generateDraftText: vi.fn() },
+        },
+        {
+          provide: PostAccountLearningService,
+          useValue: {
+            resolve: vi.fn(),
+            revalidate: vi.fn(),
+            bindArtifact: vi.fn(),
+          },
+        },
         {
           provide: PostRepurposeService,
           useValue: { repurpose: vi.fn() },

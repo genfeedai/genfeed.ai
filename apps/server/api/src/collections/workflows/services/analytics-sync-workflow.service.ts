@@ -135,7 +135,6 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
       {
         attempts: 1,
         dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
-        replaceTerminalJob: true,
       },
     );
     return { jobId, workflowId: definition.canonicalId };

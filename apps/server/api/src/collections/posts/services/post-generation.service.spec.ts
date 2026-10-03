@@ -1,14 +1,18 @@
+import { PostDraftGenerationService } from '@api/collections/posts/services/post-draft-generation.service';
+
 vi.mock('@api/collections/templates/services/templates.service', () => ({
   TemplatesService: class {},
 }));
 
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { LearningDecisionService } from '@api/collections/content-learning/services/learning-decision.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { HookPlatform } from '@api/collections/posts/dto/generate-hooks.dto';
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
 import type { PostDocument } from '@api/collections/posts/post.schema';
+import { PostAccountLearningService } from '@api/collections/posts/services/post-account-learning.service';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -17,18 +21,18 @@ import { TrendReferenceCorpusService } from '@api/collections/trends/services/tr
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
-import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
-import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import {
+  ContentLearningArm,
+  ContentLearningMode,
   CredentialPlatform,
-  PostFormat,
+  Status,
   SystemPromptKey,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { learningGenerationReceiptSchema } from '@genfeedai/contracts/api-types/contracts/content-learning-generation.contract';
 import type { AccountPublishingContext } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -114,18 +118,7 @@ describe('PostGenerationService', () => {
     resolveDraft: vi.fn(),
     resolve: vi.fn().mockResolvedValue(mockPublishingContext),
   };
-  const mockContextAssemblyService = {
-    assembleContext: vi.fn(),
-    buildSystemPrompt: vi.fn(),
-  };
-  const mockAgentChatModelRegistry = {
-    resolveModelKey: vi
-      .fn()
-      .mockImplementation(
-        (_key?: string, fallbackKey?: string) =>
-          fallbackKey ?? DEFAULT_MINI_TEXT_MODEL,
-      ),
-  };
+
   const mockApiKeysService = {
     findOne: vi.fn(),
   };
@@ -170,30 +163,48 @@ Tweet 3: Tech innovation is changing the world.`,
     emit: vi.fn().mockResolvedValue(undefined),
   };
 
+  const mockPostDraftGenerationService = { generateDraftText: vi.fn() };
+  const mockLearningDecisionService = {
+    resolveBatchForGeneration: vi.fn(),
+    bindArtifact: vi.fn(),
+  };
+  function learningResolution(index: number, reason: string) {
+    return {
+      receipt: {
+        decisionId: `decision-${index}`,
+        credentialId,
+        mode: ContentLearningMode.SHADOW,
+        accountRevision: 1,
+        epoch: 1,
+        armId: ContentLearningArm.BASELINE,
+        probabilities: {
+          [ContentLearningArm.BASELINE]: 1,
+          [ContentLearningArm.QUESTION_EXAMPLE]: 0,
+          [ContentLearningArm.PROOF_STEPS]: 0,
+        },
+        selectedProbability: 1,
+        assignment: 'control' as const,
+        assignmentProbability: 1,
+        executionProbability: 1,
+        configVersion: 'rl-reward-v1-experimental',
+        synthetic: false,
+        reason,
+      },
+      contribution: {},
+    };
+  }
+
   beforeEach(async () => {
     vi.clearAllMocks();
     mockAccountPublishingContextService.resolveDraft.mockResolvedValue({
       brand: mockPublishingContext.brand,
       constraints: { ...mockPublishingContext.constraints },
     });
-    mockAgentChatModelRegistry.resolveModelKey.mockImplementation(
-      (_key?: string, fallbackKey?: string) =>
-        fallbackKey ?? DEFAULT_MINI_TEXT_MODEL,
-    );
     mockBrandsService.findOne.mockResolvedValue({
       id: brandId,
       label: 'Test Brand',
     });
     mockMembersService.findOne.mockResolvedValue(null);
-    mockContextAssemblyService.assembleContext.mockResolvedValue({
-      brandId,
-      brandName: 'Test Brand',
-      voice: { audience: 'founders', tone: 'direct' },
-    });
-    mockContextAssemblyService.buildSystemPrompt.mockImplementation(
-      (base: string) =>
-        `${base}\n\n## Brand: Test Brand\n## Brand Voice\n- Tone: direct\n- Target audience: founders`,
-    );
 
     mockActivitiesService.record.mockResolvedValue(mockActivity);
     mockActivitiesService.update.mockResolvedValue(mockActivity);
@@ -218,23 +229,31 @@ Tweet 3: Tech innovation is changing the world.`,
       undefined,
     );
     mockWebsocketService.emit.mockResolvedValue(undefined);
+    mockLearningDecisionService.resolveBatchForGeneration.mockImplementation(
+      ({ candidates }: { candidates: unknown[] }) =>
+        candidates.map((_, index) =>
+          learningResolution(index, 'insufficient_baseline'),
+        ),
+    );
+    mockLearningDecisionService.bindArtifact.mockResolvedValue('hash');
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PostGenerationService,
+        PostAccountLearningService,
+        {
+          provide: LearningDecisionService,
+          useValue: mockLearningDecisionService,
+        },
+        {
+          provide: PostDraftGenerationService,
+          useValue: mockPostDraftGenerationService,
+        },
         {
           provide: AccountPublishingContextService,
           useValue: mockAccountPublishingContextService,
         },
         { provide: ActivityRecorderService, useValue: mockActivitiesService },
-        {
-          provide: AgentContextAssemblyService,
-          useValue: mockContextAssemblyService,
-        },
-        {
-          provide: AgentChatModelRegistryService,
-          useValue: mockAgentChatModelRegistry,
-        },
         { provide: ApiKeysService, useValue: mockApiKeysService },
         { provide: BrandsService, useValue: mockBrandsService },
         { provide: LoggerService, useValue: mockLoggerService },
@@ -261,251 +280,23 @@ Tweet 3: Tech innovation is changing the world.`,
     service = module.get<PostGenerationService>(PostGenerationService);
   });
 
-  describe('generateDraftText', () => {
-    it('generates a tweet using brand context without resolving an account or saving a post', async () => {
-      mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
-        'A new tweet',
-      );
-      await expect(
-        service.generateDraftText(
-          {
-            brandId,
-            prompt: 'Launch day',
-            platform: CredentialPlatform.TWITTER,
-          },
-          identity,
-        ),
-      ).resolves.toEqual({
-        description: 'A new tweet',
-        model: DEFAULT_MINI_TEXT_MODEL,
-      });
-      expect(
-        mockAccountPublishingContextService.resolveDraft,
-      ).toHaveBeenCalledWith({
-        brandId,
-        organizationId,
-        platform: CredentialPlatform.TWITTER,
-      });
-      expect(
-        mockAccountPublishingContextService.resolve,
-      ).not.toHaveBeenCalled();
-      expect(mockPostsService.create).not.toHaveBeenCalled();
-      expect(mockContextAssemblyService.assembleContext).toHaveBeenCalledWith({
-        brandId,
-        layers: {
-          brandGuidance: true,
-          brandIdentity: true,
-          brandKnowledge: true,
-          brandMemory: true,
-          performancePatterns: true,
-          ragContext: true,
-          recentPosts: true,
-        },
-        organizationId,
-        platform: CredentialPlatform.TWITTER,
-        query: 'Launch day',
-        userId,
-      });
-      expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(
-        DEFAULT_MINI_TEXT_MODEL,
-        expect.objectContaining({
-          brandingMode: 'off',
-          prompt: expect.stringContaining('Launch day'),
-          systemPrompt: expect.stringContaining('Brand Voice'),
-        }),
-        organizationId,
-      );
-      const draftPrompt = mockPromptBuilderService.buildPrompt.mock.calls[0][1]
-        .prompt as string;
-      expect(draftPrompt).not.toContain(brandId);
-      expect(draftPrompt).not.toContain('Brand context:');
-      expect(DEFAULT_MINI_TEXT_MODEL).toBe(
-        MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH,
-      );
-      expect(
-        mockReplicateService.generateTextCompletionSync,
-      ).toHaveBeenCalledWith(
-        DEFAULT_MINI_TEXT_MODEL,
-        expect.any(Object),
-        undefined,
-      );
-    });
-    it('uses the Admin default TEXT model over the seed fallback', async () => {
-      const adminDefaultModel = 'anthropic/claude-sonnet-5';
-      mockAgentChatModelRegistry.resolveModelKey.mockResolvedValueOnce(
-        adminDefaultModel,
-      );
-      mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
-        'A new tweet',
-      );
-
-      await service.generateDraftText(
-        { brandId, prompt: 'Launch day', platform: CredentialPlatform.TWITTER },
-        identity,
-      );
-
-      expect(mockAgentChatModelRegistry.resolveModelKey).toHaveBeenCalledWith(
-        undefined,
-        DEFAULT_MINI_TEXT_MODEL,
-      );
-      expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(
-        adminDefaultModel,
-        expect.any(Object),
-        organizationId,
-      );
-      expect(
-        mockReplicateService.generateTextCompletionSync,
-      ).toHaveBeenCalledWith(adminDefaultModel, expect.any(Object), undefined);
-    });
-    it('settles BYOK once for the resolved Admin default and dispatches every attempt with that key', async () => {
-      const adminDefaultModel = 'anthropic/claude-sonnet-5';
-      mockAgentChatModelRegistry.resolveModelKey.mockResolvedValueOnce(
-        adminDefaultModel,
-      );
-      mockReplicateService.generateTextCompletionSync
-        .mockResolvedValueOnce('x'.repeat(400))
-        .mockResolvedValueOnce('A new tweet');
-      const resolveApiKey = vi.fn().mockResolvedValue('org-openrouter-key');
-
-      await service.generateDraftText(
-        { brandId, prompt: 'Launch day', platform: CredentialPlatform.TWITTER },
-        identity,
-        resolveApiKey,
-      );
-
-      expect(resolveApiKey).toHaveBeenCalledTimes(1);
-      expect(resolveApiKey).toHaveBeenCalledWith(adminDefaultModel);
-      expect(
-        mockReplicateService.generateTextCompletionSync,
-      ).toHaveBeenCalledTimes(2);
-      for (const call of mockReplicateService.generateTextCompletionSync.mock
-        .calls) {
-        expect(call).toEqual([
-          adminDefaultModel,
-          expect.any(Object),
-          'org-openrouter-key',
-        ]);
-      }
-    });
-    it('rejects a blank prompt before calling the model', async () => {
-      await expect(
-        service.generateDraftText(
-          { brandId, prompt: '  ', platform: CredentialPlatform.TWITTER },
-          identity,
-        ),
-      ).rejects.toThrow('Describe');
-      expect(
-        mockReplicateService.generateTextCompletionSync,
-      ).not.toHaveBeenCalled();
-    });
-    it('propagates inaccessible brand errors before calling the model', async () => {
-      mockAccountPublishingContextService.resolveDraft.mockRejectedValueOnce(
-        new Error('Brand not found'),
-      );
-      await expect(
-        service.generateDraftText(
-          { brandId, prompt: 'Launch', platform: CredentialPlatform.TWITTER },
-          identity,
-        ),
-      ).rejects.toThrow('Brand not found');
-      expect(
-        mockReplicateService.generateTextCompletionSync,
-      ).not.toHaveBeenCalled();
-    });
-    it('rejects empty model output', async () => {
-      mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
-        ' ',
-      );
-      await expect(
-        service.generateDraftText(
-          { brandId, prompt: 'Launch', platform: CredentialPlatform.TWITTER },
-          identity,
-        ),
-      ).rejects.toThrow('No draft');
-    });
-    it('retries an oversized X draft using weighted character limits', async () => {
-      mockReplicateService.generateTextCompletionSync
-        .mockResolvedValueOnce('界'.repeat(200))
-        .mockResolvedValueOnce('A short tweet');
-      await expect(
-        service.generateDraftText(
-          { brandId, prompt: 'Launch', platform: CredentialPlatform.TWITTER },
-          identity,
-        ),
-      ).resolves.toEqual({
-        description: 'A short tweet',
-        model: DEFAULT_MINI_TEXT_MODEL,
-      });
-      expect(
-        mockReplicateService.generateTextCompletionSync,
-      ).toHaveBeenCalledTimes(2);
-    });
-    it('rejects non-publishing platforms before calling the model', async () => {
-      await expect(
-        service.generateDraftText(
-          { brandId, prompt: 'Launch', platform: CredentialPlatform.RESTREAM },
-          identity,
-        ),
-      ).rejects.toThrow('supported publishing channel');
-      expect(
-        mockReplicateService.generateTextCompletionSync,
-      ).not.toHaveBeenCalled();
-    });
-    it('uses the X long-post limit for long-form drafts', async () => {
-      await service.generateDraftText(
-        {
-          brandId,
-          prompt: 'Launch',
-          platform: CredentialPlatform.TWITTER,
-          format: PostFormat.LONG_FORM,
-        },
-        identity,
-      );
-      expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(
-        DEFAULT_MINI_TEXT_MODEL,
-        expect.objectContaining({
-          prompt: expect.stringContaining('25000'),
-          maxTokens: 12500,
-        }),
-        organizationId,
-      );
-    });
-
-    it('falls back to brand label and voice when assembled context is missing', async () => {
-      mockContextAssemblyService.assembleContext.mockResolvedValueOnce(null);
-      mockAccountPublishingContextService.resolveDraft.mockResolvedValueOnce({
-        brand: {
-          id: brandId,
-          description: 'Publish content. Now.',
-          label: 'Genfeed.ai',
-          voice: 'Short, direct, no fluff.',
-        },
-        constraints: { ...mockPublishingContext.constraints },
-      });
-      mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
-        'A new tweet',
-      );
-
-      await service.generateDraftText(
-        {
-          brandId,
-          prompt: 'AI content is taking over',
-          platform: CredentialPlatform.TWITTER,
-        },
-        identity,
-      );
-
-      expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(
-        DEFAULT_MINI_TEXT_MODEL,
-        expect.objectContaining({
-          systemPrompt: expect.stringContaining('Short, direct, no fluff.'),
-        }),
-        organizationId,
-      );
-      const draftPrompt = mockPromptBuilderService.buildPrompt.mock.calls[0][1]
-        .prompt as string;
-      expect(draftPrompt).not.toContain(brandId);
-    });
+  it('delegates draft generation with the unchanged caller identity and deferred key resolver', async () => {
+    const dto = {
+      brandId,
+      prompt: 'Launch',
+      platform: CredentialPlatform.TWITTER,
+    };
+    const resolver = vi.fn();
+    const result = { description: 'Draft', model: DEFAULT_MINI_TEXT_MODEL };
+    mockPostDraftGenerationService.generateDraftText.mockResolvedValueOnce(
+      result,
+    );
+    await expect(
+      service.generateDraftText(dto, identity, resolver),
+    ).resolves.toBe(result);
+    expect(
+      mockPostDraftGenerationService.generateDraftText,
+    ).toHaveBeenCalledWith(dto, identity, resolver);
   });
 
   it('should be defined', () => {
@@ -682,6 +473,176 @@ Tweet 3: Tech innovation is changing the world.`,
       );
       expect(mockPostsService.patch).toHaveBeenCalledWith(
         String(secondPost.id),
+        expect.objectContaining({
+          targetExecutionState: TargetExecutionState.FAILED,
+        }),
+      );
+    });
+  });
+
+  describe('account generation learning', () => {
+    const groupedPosts = [
+      { ...mockPost, groupId: 'group' },
+      { ...mockPost, id: secondPostId, groupId: 'group' },
+    ] as unknown as PostDocument[];
+    const dto = {
+      count: 2,
+      credentialId,
+      format: 'post' as const,
+      topic: 'AI technology',
+    };
+    it('resolves learning before the first provider call with one candidate per draft', async () => {
+      await service.generateAccountContentAsync(
+        dto,
+        groupedPosts,
+        identity,
+        mockPublishingContext,
+      );
+      expect(
+        mockLearningDecisionService.resolveBatchForGeneration,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          originalPrompt: 'AI technology',
+          format: 'text',
+          context: expect.objectContaining({ requestKey: 'group' }),
+          candidates: [
+            { candidateIndex: 0, generationId: postId },
+            { candidateIndex: 1, generationId: secondPostId },
+          ],
+        }),
+      );
+      expect(
+        mockLearningDecisionService.resolveBatchForGeneration.mock
+          .invocationCallOrder[0],
+      ).toBeLessThan(
+        mockReplicateService.generateTextCompletionSync.mock
+          .invocationCallOrder[0],
+      );
+      expect(mockLearningDecisionService.bindArtifact).toHaveBeenCalledWith(
+        organizationId,
+        'decision-0',
+        postId,
+        expect.any(String),
+      );
+      expect(mockLearningDecisionService.bindArtifact).toHaveBeenCalledWith(
+        organizationId,
+        'decision-1',
+        secondPostId,
+        expect.any(String),
+      );
+    });
+    it('emits a schema-valid learning receipt with the completed draft', async () => {
+      await service.generateAccountContentAsync(
+        dto,
+        groupedPosts,
+        identity,
+        mockPublishingContext,
+      );
+      const completed = mockWebsocketService.emit.mock.calls
+        .map(([, payload]) => payload)
+        .filter((payload) => payload.status === Status.COMPLETED);
+      expect(completed).toHaveLength(2);
+      for (const payload of completed) {
+        expect(
+          learningGenerationReceiptSchema.safeParse(payload.learningReceipt)
+            .success,
+        ).toBe(true);
+        expect(payload.learningReceipt.application.status).toBe('baseline');
+      }
+    });
+    it('revalidates replay-only before X repair attempts 2 and 3 only', async () => {
+      mockReplicateService.generateTextCompletionSync.mockResolvedValue(
+        'x'.repeat(400),
+      );
+      await service.generateAccountContentAsync(
+        { ...dto, count: 1 },
+        [groupedPosts[0]],
+        identity,
+        mockPublishingContext,
+      );
+      const calls =
+        mockLearningDecisionService.resolveBatchForGeneration.mock.calls;
+      expect(calls).toHaveLength(3);
+      expect(calls[0][0].replayOnly).toBeUndefined();
+      expect(calls[1][0].replayOnly).toBe(true);
+      expect(calls[2][0].replayOnly).toBe(true);
+      const order =
+        mockLearningDecisionService.resolveBatchForGeneration.mock
+          .invocationCallOrder;
+      const providerOrder =
+        mockReplicateService.generateTextCompletionSync.mock
+          .invocationCallOrder;
+      expect(providerOrder).toHaveLength(3);
+      expect(order[1]).toBeGreaterThan(providerOrder[0]);
+      expect(order[1]).toBeLessThan(providerOrder[1]);
+      expect(order[2]).toBeLessThan(providerOrder[2]);
+    });
+    it('builds byte-identical prompts whatever the learning outcome', async () => {
+      const runs: unknown[][] = [];
+      for (const outcome of ['baseline', 'paused', 'throw']) {
+        vi.clearAllMocks();
+        mockPromptBuilderService.buildPrompt.mockResolvedValue({
+          input: { max_tokens: 4096, prompt: 'test prompt' },
+        });
+        mockTemplatesService.getRenderedPrompt.mockResolvedValue(
+          'Generated prompt template',
+        );
+        if (outcome === 'throw')
+          mockLearningDecisionService.resolveBatchForGeneration.mockRejectedValue(
+            new Error('learning down'),
+          );
+        else
+          mockLearningDecisionService.resolveBatchForGeneration.mockImplementation(
+            ({ candidates }: { candidates: unknown[] }) =>
+              candidates.map((_, index) =>
+                learningResolution(
+                  index,
+                  outcome === 'paused' ? 'paused' : 'insufficient_baseline',
+                ),
+              ),
+          );
+        await service.generateAccountContentAsync(
+          dto,
+          groupedPosts,
+          identity,
+          mockPublishingContext,
+        );
+        runs.push(mockPromptBuilderService.buildPrompt.mock.calls);
+      }
+      expect(runs[1]).toEqual(runs[0]);
+      expect(runs[2]).toEqual(runs[0]);
+      const prompt = JSON.stringify(runs[0]);
+      for (const marker of [
+        'baseline-v1',
+        'question-example',
+        'proof-steps',
+        'learning',
+      ])
+        expect(prompt).not.toContain(marker);
+    });
+    it('still completes every draft when learning is unavailable', async () => {
+      mockLearningDecisionService.resolveBatchForGeneration.mockRejectedValue(
+        new Error('learning down'),
+      );
+      mockLearningDecisionService.bindArtifact.mockRejectedValue(
+        new Error('binding down'),
+      );
+      await service.generateAccountContentAsync(
+        dto,
+        groupedPosts,
+        identity,
+        mockPublishingContext,
+      );
+      const completed = mockWebsocketService.emit.mock.calls
+        .map(([, payload]) => payload)
+        .filter((payload) => payload.status === Status.COMPLETED);
+      expect(completed).toHaveLength(2);
+      expect(completed[0].learningReceipt.application.status).toBe(
+        'unavailable',
+      );
+      expect(mockLearningDecisionService.bindArtifact).not.toHaveBeenCalled();
+      expect(mockPostsService.patch).not.toHaveBeenCalledWith(
+        expect.anything(),
         expect.objectContaining({
           targetExecutionState: TargetExecutionState.FAILED,
         }),

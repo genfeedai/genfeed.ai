@@ -37,7 +37,6 @@ export class ClipFactoryWorkflowQueueService {
           canonicalId: CLIP_FACTORY_FAILURE_WORKFLOW_ID,
           inputValues: { job },
         },
-        replaceTerminalJob: true,
       },
     );
   }

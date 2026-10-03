@@ -36,7 +36,6 @@ describe('ScheduledPostWorkflowQueueService', () => {
           canonicalId: 'scheduled-post.publish.failure',
           inputValues: { request: input },
         },
-        replaceTerminalJob: true,
       },
     );
   });

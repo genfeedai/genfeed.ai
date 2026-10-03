@@ -1,7 +1,8 @@
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { ActivitySource } from '@genfeedai/contracts';
-import type { CreditDeductionJobData } from '@genfeedai/contracts/queue';
+import type { QueuedCreditChargeData } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -33,7 +34,7 @@ describe('CreditDeductionQueueService', () => {
   it.each(['deduct-credits', 'record-byok-usage'] as const)(
     'retains accepted %s jobs with the seven day retry window',
     async (type) => {
-      const data: CreditDeductionJobData = {
+      const data: QueuedCreditChargeData = {
         type,
         amount: 5,
         description: 'Interpolation',
@@ -88,9 +89,10 @@ describe('CreditDeductionQueueService', () => {
 
   describe('queueDeduction', () => {
     it('should queue credit deduction job successfully', async () => {
-      const jobData: CreditDeductionJobData = {
+      const jobData: QueuedCreditChargeData = {
         amount: 100,
         description: 'Test deduction',
+        idempotencyKey: 'charge-1',
         organizationId: 'org-123',
         source: ActivitySource.VIDEO_GENERATION,
         type: 'deduct-credits',
@@ -102,17 +104,16 @@ describe('CreditDeductionQueueService', () => {
       expect(queue.add).toHaveBeenCalledWith(
         'deduct-credits',
         jobData,
-        expect.objectContaining({
-          jobId: expect.stringContaining('credit-deduct-org-123-'),
-        }),
+        expect.objectContaining({ jobId: 'credit-deduct-org-123-charge-1' }),
       );
       expect(logger.log).toHaveBeenCalled();
     });
 
     it('should handle queue errors gracefully', async () => {
-      const jobData: CreditDeductionJobData = {
+      const jobData: QueuedCreditChargeData = {
         amount: 100,
         description: 'Test deduction',
+        idempotencyKey: 'charge-1',
         organizationId: 'org-123',
         source: ActivitySource.VIDEO_GENERATION,
         type: 'deduct-credits',
@@ -126,35 +127,52 @@ describe('CreditDeductionQueueService', () => {
       );
     });
 
-    it('should generate unique job IDs', async () => {
-      const jobData: CreditDeductionJobData = {
+    it('gives two charges for one org in the same millisecond distinct job ids', async () => {
+      vi.setSystemTime(new Date('2026-10-03T00:00:00.000Z'));
+      const base = {
         amount: 100,
         description: 'Test',
         organizationId: 'org-123',
-        source: 'test',
+        source: ActivitySource.VIDEO_GENERATION,
         type: 'deduct-credits',
         userId: 'user-456',
-      };
+      } as const;
 
-      vi.mocked(queue.add).mockResolvedValue(undefined as never);
+      await service.queueDeduction({ ...base, idempotencyKey: 'charge-a' });
+      await service.queueDeduction({ ...base, idempotencyKey: 'charge-b' });
 
-      await service.queueDeduction(jobData);
-
-      // Advance timer to ensure different Date.now() values
-      vi.advanceTimersByTime(1);
-
-      await service.queueDeduction(jobData);
-
-      expect(queue.add).toHaveBeenCalledTimes(2);
-      const call1 = (queue.add as ReturnType<typeof vi.fn>).mock.calls[0][2]
-        .jobId as string;
-      const call2 = (queue.add as ReturnType<typeof vi.fn>).mock.calls[1][2]
-        .jobId as string;
-      expect(call1).not.toBe(call2);
+      const jobIds = vi
+        .mocked(queue.add)
+        .mock.calls.map((call) => call[2]?.jobId);
+      expect(jobIds).toEqual([
+        'credit-deduct-org-123-charge-a',
+        'credit-deduct-org-123-charge-b',
+      ]);
+      expect(jobIds.join()).not.toContain(String(Date.now()));
     });
 
+    it.each(['queueDeduction', 'queueByokUsage'] as const)(
+      'refuses %s without an idempotency key instead of deriving a time based job id',
+      async (method) => {
+        const keyless = {
+          amount: 100,
+          description: 'Test',
+          organizationId: 'org-123',
+          source: ActivitySource.VIDEO_GENERATION,
+          type: 'deduct-credits',
+          userId: 'user-456',
+        } as const;
+
+        // @ts-expect-error The key is required by the type; this proves the runtime guard too.
+        await expect(service[method](keyless)).rejects.toThrow(
+          BadRequestException,
+        );
+        expect(queue.add).not.toHaveBeenCalled();
+      },
+    );
+
     it('should use a deterministic job ID when an idempotency key is supplied', async () => {
-      const jobData: CreditDeductionJobData = {
+      const jobData: QueuedCreditChargeData = {
         amount: 18,
         description: 'Fleet voice clone compute',
         idempotencyKey: 'fleet-voice-clone-job-1',
@@ -176,12 +194,12 @@ describe('CreditDeductionQueueService', () => {
     });
 
     it('strips colons from idempotency keys so BullMQ accepts the job id', async () => {
-      const jobData: CreditDeductionJobData = {
+      const jobData: QueuedCreditChargeData = {
         amount: 2,
         description: 'Composer image generation',
         idempotencyKey: 'generation:composer-generation-execution-1',
         organizationId: 'org-123',
-        source: 'image-generation',
+        source: ActivitySource.IMAGE_GENERATION,
         type: 'deduct-credits',
         userId: 'user-456',
       };
@@ -199,11 +217,12 @@ describe('CreditDeductionQueueService', () => {
     });
 
     it('should queue BYOK usage job successfully', async () => {
-      const jobData: CreditDeductionJobData = {
+      const jobData: QueuedCreditChargeData = {
         amount: 50,
         description: 'BYOK usage',
+        idempotencyKey: 'byok-1',
         organizationId: 'org-789',
-        source: 'openai',
+        source: ActivitySource.SCRIPT,
         type: 'record-byok-usage',
       };
 
@@ -214,19 +233,18 @@ describe('CreditDeductionQueueService', () => {
       expect(queue.add).toHaveBeenCalledWith(
         'record-byok-usage',
         jobData,
-        expect.objectContaining({
-          jobId: expect.stringContaining('byok-usage-org-789-'),
-        }),
+        expect.objectContaining({ jobId: 'byok-usage-org-789-byok-1' }),
       );
       expect(logger.log).toHaveBeenCalled();
     });
 
     it('should handle BYOK queue errors', async () => {
-      const jobData: CreditDeductionJobData = {
+      const jobData: QueuedCreditChargeData = {
         amount: 50,
         description: 'BYOK usage',
+        idempotencyKey: 'byok-1',
         organizationId: 'org-789',
-        source: 'openai',
+        source: ActivitySource.SCRIPT,
         type: 'record-byok-usage',
       };
 
@@ -240,7 +258,7 @@ describe('CreditDeductionQueueService', () => {
     });
 
     it('uses a deterministic BYOK job ID when an idempotency key is supplied', async () => {
-      const jobData: CreditDeductionJobData = {
+      const jobData: QueuedCreditChargeData = {
         amount: 7,
         description: 'Bot media generation',
         idempotencyKey: 'bot-media-image-1',

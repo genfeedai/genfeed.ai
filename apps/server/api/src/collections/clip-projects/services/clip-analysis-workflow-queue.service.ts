@@ -30,7 +30,6 @@ export class ClipAnalysisWorkflowQueueService {
           canonicalId: CLIP_ANALYSIS_FAILURE_WORKFLOW_ID,
           inputValues: { job: data },
         },
-        replaceTerminalJob: true,
       },
     );
   }

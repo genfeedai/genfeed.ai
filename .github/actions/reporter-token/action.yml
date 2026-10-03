@@ -1,0 +1,42 @@
+name: Reporter Token
+description: >-
+  Mint a short-lived Genfeed bot GitHub App token for CI failure reporters
+  (organization-native issue metadata and Project #12 writes). Falls back to
+  the workflow GITHUB_TOKEN when the App is not configured, so a reporter
+  still files its repository tracker and degrades only the org-level writes.
+inputs:
+  client-id:
+    description: Genfeed bot GitHub App client ID.
+    required: false
+    default: ''
+  private-key:
+    description: Genfeed bot GitHub App signing key (PEM).
+    required: false
+    default: ''
+outputs:
+  token:
+    description: App installation token, or github.token when the App is not configured or minting fails.
+    value: ${{ steps.app.outputs.token || github.token }}
+runs:
+  using: composite
+  steps:
+    # Least privilege for what the reporters call through this token:
+    #   issues: write                  issues.get + updateIssue (issue type and
+    #                                  org issue fields) in genfeedai/genfeed.ai
+    #   organization-projects: write   addProjectV2ItemById into org Project #12
+    # Repository tracker writes keep using the job's GITHUB_TOKEN
+    # (REPOSITORY_TOKEN); metadata: read is granted implicitly.
+    # Best effort: an invalid key, missing permission or suspended
+    # installation must not stop the repository tracker write, so a failed
+    # mint falls back to github.token like an unconfigured App.
+    - id: app
+      if: inputs.client-id != '' && inputs.private-key != ''
+      continue-on-error: true
+      uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+      with:
+        client-id: ${{ inputs.client-id }}
+        private-key: ${{ inputs.private-key }}
+        owner: genfeedai
+        repositories: genfeed.ai
+        permission-issues: write
+        permission-organization-projects: write

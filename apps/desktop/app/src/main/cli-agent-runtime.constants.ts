@@ -13,6 +13,13 @@ export const GENFEED_MCP_TOKEN_ENV_VAR = 'GENFEED_API_KEY';
 export const GENFEED_BRAND_CONTEXT_TOOL = 'get_brand_context';
 
 /**
+ * MCP toolset profile for CLI turns. The bare MCP URL only lists core,
+ * scheduler and content, which leaves out `get_brand_context` and the
+ * generation, knowledge and memory tools the system prompt relies on.
+ */
+export const GENFEED_MCP_AGENT_PROFILE = 'full';
+
+/**
  * `codex exec` flag that keeps the user's own Codex config (MCP servers,
  * plugins, hooks) out of Genfeed turns. Codex CLIs without it cannot run a
  * turn, so readiness probes for it.

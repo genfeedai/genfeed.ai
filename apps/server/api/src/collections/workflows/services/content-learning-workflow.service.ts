@@ -14,6 +14,7 @@ import {
 } from '@api/collections/content-learning/services/learning-operation.service';
 import { LearningPolicyService } from '@api/collections/content-learning/services/learning-policy.service';
 import { validLearningCheckpointPublicationV1 } from '@api/collections/content-learning/services/learning-publication-source.helper';
+import { LearningRewardService } from '@api/collections/content-learning/services/learning-reward.service';
 import { LearningRunService } from '@api/collections/content-learning/services/learning-run.service';
 import { analyticsPostRefreshWorkflowId } from '@api/collections/workflows/services/analytics-sync-workflow.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
@@ -71,6 +72,7 @@ export class ContentLearningWorkflowService implements OnModuleInit {
     private readonly dependencies: LearningDependencyService,
     private readonly checkpoints: LearningCheckpointService,
     private readonly materializer: LearningBaselineMaterializationService,
+    private readonly rewards: LearningRewardService,
   ) {}
   onModuleInit(): void {
     for (const template of CONTENT_LEARNING_WORKFLOW_TEMPLATES)
@@ -319,10 +321,32 @@ export class ContentLearningWorkflowService implements OnModuleInit {
           checkpointId: row.id,
           reason: 'publication_source_unavailable',
         };
+      // Rewards only; no ACCOUNT_REBUILD is queued while every logged
+      // decision is a baseline-arm control (plan revision 6, D-13).
+      const reward = await this.rewards.commitForCheckpoint(
+        organizationId,
+        row.id,
+      );
       return {
         status: 'completed',
         checkpointId: row.id,
         reason: preexisting ? 'already_observed' : collection.reasonCode,
+        result: {
+          reward:
+            reward.status === 'committed'
+              ? {
+                  status: reward.status,
+                  rewardId: reward.rewardId,
+                  rewardStatus: reward.rewardStatus,
+                  reason: null,
+                }
+              : {
+                  status: reward.status,
+                  rewardId: null,
+                  rewardStatus: null,
+                  reason: reward.reason,
+                },
+        },
       };
     }
     return {

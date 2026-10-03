@@ -23,6 +23,7 @@ import type {
   LearningPublicationPinRow,
   LearningPublicationPostRow,
 } from '@api/collections/content-learning/services/learning-publication-source.types';
+import { LearningRewardService } from '@api/collections/content-learning/services/learning-reward.service';
 import { LearningRunService } from '@api/collections/content-learning/services/learning-run.service';
 import type { WorkflowInputVariable } from '@api/collections/workflows/schemas/workflow.schema';
 import { ContentLearningWorkflowService } from '@api/collections/workflows/services/content-learning-workflow.service';
@@ -229,7 +230,15 @@ async function fixture() {
       latestAttempt: vi.fn().mockResolvedValue(null),
     };
   const policies = { rebuild: vi.fn().mockResolvedValue(null) },
-    dependencies = { invalidate: vi.fn().mockResolvedValue(0) };
+    dependencies = { invalidate: vi.fn().mockResolvedValue(0) },
+    rewards = {
+      commitForCheckpoint: vi
+        .fn<LearningRewardService['commitForCheckpoint']>()
+        .mockResolvedValue({
+          status: 'unavailable',
+          reason: 'decision_unbound',
+        }),
+    };
   const module = await Test.createTestingModule({
     providers: [
       ContentLearningWorkflowService,
@@ -244,9 +253,11 @@ async function fixture() {
         provide: LearningBaselineMaterializationService,
         useValue: materializer,
       },
+      { provide: LearningRewardService, useValue: rewards },
     ],
   }).compile();
   return {
+    rewards,
     prisma,
     queue,
     runner,
@@ -1281,6 +1292,14 @@ describe('A6 physical observation recovery and exact current source reporting', 
         status: 'completed',
         checkpointId: f.publication.checkpoint.id,
         reason: preexisting ? 'already_observed' : null,
+        result: {
+          reward: {
+            status: 'unavailable',
+            rewardId: null,
+            rewardStatus: null,
+            reason: 'decision_unbound',
+          },
+        },
       });
       expect(f.materializer.materialize).toHaveBeenCalledExactlyOnceWith(
         f.scope,
@@ -1291,6 +1310,51 @@ describe('A6 physical observation recovery and exact current source reporting', 
       expect(f.publication.edges).toEqual(before);
     },
   );
+  it('commits the reward for a completed checkpoint and never queues a rebuild', async () => {
+    const f = await observedFixture();
+    f.rewards.commitForCheckpoint.mockResolvedValue({
+      status: 'committed',
+      rewardId: 'reward',
+      rewardStatus: 'valid',
+      decisionId: 'decision',
+      scopeKey: 'scope',
+    });
+    expect(
+      await f.service.execute(CONTENT_LEARNING_ACTION_IDS.CHECKPOINT, 'org', {
+        postId: 'post',
+      }),
+    ).toMatchObject({
+      status: 'completed',
+      result: {
+        reward: {
+          status: 'committed',
+          rewardId: 'reward',
+          rewardStatus: 'valid',
+          reason: null,
+        },
+      },
+    });
+    expect(f.rewards.commitForCheckpoint).toHaveBeenCalledExactlyOnceWith(
+      'org',
+      f.publication.checkpoint.id,
+    );
+    expect(
+      f.queue.queueSystemWorkflow.mock.calls.map(
+        ([request]) => request.actionType,
+      ),
+    ).not.toContain(CONTENT_LEARNING_ACTION_IDS.ACCOUNT_REBUILD);
+    expect(f.policies.rebuild).not.toHaveBeenCalled();
+  });
+  it('propagates a reward commit failure to the durable retry', async () => {
+    const f = await observedFixture(),
+      error = new Error('reward DB');
+    f.rewards.commitForCheckpoint.mockRejectedValue(error);
+    await expect(
+      f.service.execute(CONTENT_LEARNING_ACTION_IDS.CHECKPOINT, 'org', {
+        postId: 'post',
+      }),
+    ).rejects.toBe(error);
+  });
   it.each(['legacy', 'superseded'])(
     'refreshes %s physical evidence but never recollects or reports eligibility',
     async (mutation) => {
@@ -1317,6 +1381,7 @@ describe('A6 physical observation recovery and exact current source reporting', 
       });
       expect(f.materializer.materialize).toHaveBeenCalledOnce();
       expect(f.runner.runWorkflow).not.toHaveBeenCalled();
+      expect(f.rewards.commitForCheckpoint).not.toHaveBeenCalled();
       expect(f.publication.edges).toEqual(before);
     },
   );
@@ -1353,6 +1418,7 @@ describe('A6 physical observation recovery and exact current source reporting', 
         outcome === 'terminal' ? 'unavailable' : 'pending',
       );
       expect(f.materializer.materialize).not.toHaveBeenCalled();
+      expect(f.rewards.commitForCheckpoint).not.toHaveBeenCalled();
     },
   );
   it('retries refresh failure over the same committed fulfilled row without another provider workflow', async () => {

@@ -282,7 +282,9 @@ test('optional project triage preserves the tracker when its credential is expir
   });
   assert.equal(result.degraded, true);
   assert.equal(warnings.length, 1);
-  assert.match(warnings[0], /CONSOLE_DEPLOY_TOKEN/);
+  assert.match(warnings[0], /reporter token \(Genfeed bot App\)/);
+  assert.match(warnings[0], /Genfeed bot App installation\/permissions/);
+  assert.doesNotMatch(warnings[0], /CONSOLE_DEPLOY_TOKEN/);
   await assert.rejects(
     triageCiFailureOnProject(github, {
       owner: 'genfeedai',

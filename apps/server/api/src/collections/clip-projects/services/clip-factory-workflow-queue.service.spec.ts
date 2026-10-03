@@ -44,7 +44,6 @@ describe('ClipFactoryWorkflowQueueService', () => {
           canonicalId: 'clip.factory.failure',
           inputValues: { job: { ...job, mode: 'avatar' } },
         },
-        replaceTerminalJob: true,
       },
     );
   });

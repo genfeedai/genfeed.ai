@@ -32,7 +32,11 @@ import { WorkflowNodeClaimService } from '@api/collections/workflows/services/wo
 import { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
 import { WorkflowNodeGraphRunnerService } from '@api/collections/workflows/services/workflow-node-graph-runner.service';
 import { WorkflowNodeProgressTrackerService } from '@api/collections/workflows/services/workflow-node-progress-tracker.service';
-import { requireRecordedWorkflowActor } from '@api/collections/workflows/services/workflow-resume-actor.util';
+import {
+  buildRevokedWorkflowActorMessage,
+  requireRecordedWorkflowActor,
+  WorkflowActorMembershipVerifier,
+} from '@api/collections/workflows/services/workflow-resume-actor.util';
 import { WorkflowReviewGateService } from '@api/collections/workflows/services/workflow-review-gate.service';
 import {
   AgentScopeContextService,
@@ -80,6 +84,7 @@ export class WorkflowExecutorService {
   private readonly progressService: WorkflowExecutionProgressService;
   private readonly finalizer: WorkflowExecutionFinalizerService;
   private readonly reviewGateService: WorkflowReviewGateService;
+  private readonly actorMembership: WorkflowActorMembershipVerifier;
   private readonly nodeProgressTracker: WorkflowNodeProgressTrackerService;
   private readonly graphRunner: WorkflowNodeGraphRunnerService;
   private readonly executionRunner: WorkflowExecutionRunnerService;
@@ -124,6 +129,7 @@ export class WorkflowExecutorService {
       this.artifactLifecycleService,
       this.videoGenerationCreditsService,
     );
+    this.actorMembership = new WorkflowActorMembershipVerifier(this.prisma);
     this.reviewGateService = new WorkflowReviewGateService(
       this.engineAdapter,
       this.executionsService,
@@ -131,6 +137,7 @@ export class WorkflowExecutorService {
       this.graphService,
       this.progressService,
       this.finalizer,
+      this.actorMembership,
       this.reviewGateNotifier,
       (input) =>
         this.graphRunner.executeNodeGraph(
@@ -318,6 +325,21 @@ export class WorkflowExecutorService {
       executionId,
       execution.userId,
     );
+    if (
+      !(await this.actorMembership.isActiveMember(
+        event.organizationId,
+        actorUserId,
+      ))
+    ) {
+      return this.failUnavailablePinnedExecution({
+        errorMessage: buildRevokedWorkflowActorMessage(executionId),
+        executionId,
+        organizationId: event.organizationId,
+        startedAt: execution.startedAt ?? new Date(),
+        userId: actorUserId,
+        workflowId,
+      });
+    }
     const resumeEvent: TriggerEvent = { ...event, userId: actorUserId };
     let normalizedWorkflow: WorkflowDocument | null;
     try {

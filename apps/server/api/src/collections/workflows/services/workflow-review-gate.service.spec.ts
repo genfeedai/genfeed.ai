@@ -1,7 +1,7 @@
 import { RetiredWorkflowExecutionError } from '@api/collections/workflows/services/workflow-executor-document.service';
 import { WorkflowReviewGateService } from '@api/collections/workflows/services/workflow-review-gate.service';
 import { WorkflowExecutionStatus, WorkflowStatus } from '@genfeedai/contracts';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const WORKFLOW_ID = 'workflow-1';
@@ -50,9 +50,11 @@ describe('WorkflowReviewGateService — atomic gate claim', () => {
     getWorkflowLabel: ReturnType<typeof vi.fn>;
     normalizeWorkflowDocument: ReturnType<typeof vi.fn>;
   };
+  let actorMembership: { isActiveMember: ReturnType<typeof vi.fn> };
   let service: WorkflowReviewGateService;
 
   beforeEach(() => {
+    actorMembership = { isActiveMember: vi.fn().mockResolvedValue(true) };
     executionsService = {
       claimPendingReviewGate: vi.fn().mockResolvedValue(true),
       completePendingReviewGateClaim: vi.fn().mockResolvedValue(true),
@@ -90,6 +92,7 @@ describe('WorkflowReviewGateService — atomic gate claim', () => {
         publishWorkflowTaskUpdate: vi.fn(),
       } as never,
       finalizer as never,
+      actorMembership as never,
     );
   });
 
@@ -127,6 +130,7 @@ describe('WorkflowReviewGateService — atomic gate claim', () => {
         } as never,
         {} as never,
         finalizer as never,
+        actorMembership as never,
         undefined,
         continueGraph,
       );
@@ -359,6 +363,87 @@ describe('WorkflowReviewGateService — atomic gate claim', () => {
       ).toHaveBeenCalledTimes(1);
     },
   );
+
+  describe('recorded actor removed from the organization (#5892)', () => {
+    it('fails the run and denies a human approval without resuming the graph', async () => {
+      actorMembership.isActiveMember.mockResolvedValue(false);
+
+      await expect(
+        service.submitReviewGateApproval(
+          WORKFLOW_ID,
+          EXECUTION_ID,
+          'reviewer-1',
+          ORGANIZATION_ID,
+          NODE_ID,
+          true,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(actorMembership.isActiveMember).toHaveBeenCalledWith(
+        ORGANIZATION_ID,
+        'execution-user-1',
+      );
+      expect(executionsService.updateNodeResult).toHaveBeenCalledWith(
+        EXECUTION_ID,
+        expect.objectContaining({
+          error: expect.stringContaining('no longer an active member'),
+          status: WorkflowExecutionStatus.FAILED,
+        }),
+      );
+      expect(finalizer.finalizeExecution).toHaveBeenCalledWith(
+        expect.objectContaining({
+          finalStatus: WorkflowExecutionStatus.FAILED,
+        }),
+      );
+      expect(finalizer.mapRunResultToExecutionStatus).not.toHaveBeenCalled();
+      expect(
+        executionsService.completePendingReviewGateClaim,
+      ).toHaveBeenCalled();
+      expect(
+        executionsService.releasePendingReviewGateClaim,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('fails the run instead of auto-approving on timeout', async () => {
+      actorMembership.isActiveMember.mockResolvedValue(false);
+
+      const resolution = await service.resolveTimedOutReviewGate(
+        WORKFLOW_ID,
+        EXECUTION_ID,
+        ORGANIZATION_ID,
+        NODE_ID,
+      );
+
+      expect(resolution).toEqual({
+        executionId: EXECUTION_ID,
+        nodeId: NODE_ID,
+        resolution: 'rejected',
+      });
+      expect(finalizer.finalizeExecution).toHaveBeenCalledWith(
+        expect.objectContaining({
+          finalStatus: WorkflowExecutionStatus.FAILED,
+        }),
+      );
+      expect(finalizer.mapRunResultToExecutionStatus).not.toHaveBeenCalled();
+    });
+
+    it('still lets a reviewer reject the paused run', async () => {
+      actorMembership.isActiveMember.mockResolvedValue(false);
+
+      const result = await service.submitReviewGateApproval(
+        WORKFLOW_ID,
+        EXECUTION_ID,
+        'reviewer-1',
+        ORGANIZATION_ID,
+        NODE_ID,
+        false,
+        'not good enough',
+      );
+
+      expect(result.status).toBe('rejected');
+      expect(result.rejectionReason).toBe('not good enough');
+    });
+  });
 
   it('resolves a rejection normally when the claim succeeds', async () => {
     const result = await service.submitReviewGateApproval(

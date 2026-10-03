@@ -8,11 +8,11 @@
  *
  * Project membership and metadata triage are independent writes, so either can
  * land when the other service boundary fails. A permissions rejection on
- * either write ("Resource not accessible by personal access token", HTTP 401/403,
+ * either write ("Resource not accessible by integration", HTTP 401/403,
  * or a GraphQL `FORBIDDEN` error) is degraded, not fatal: the reporter token
- * (`CONSOLE_DEPLOY_TOKEN`) may lack org-level scopes (issue types, custom
- * properties, Project #12) without that blocking the tracker itself, which is
- * always persisted by the caller before this runs. Any other failure — a bad
+ * (Genfeed bot App, falling back to `GITHUB_TOKEN`) may lack org-level scopes
+ * (issue types, custom properties, Project #12) without that blocking the
+ * tracker itself, which is always persisted by the caller before this runs. Any other failure — a bad
  * query, a network error, an unexpected response shape — remains fatal so a
  * genuine regression still shows up red. See #5204 (recurrence of #4688/#3669).
  */
@@ -258,7 +258,7 @@ export async function triageCiFailureOnProject(
   } catch (error) {
     if (error?.status === 401 && !metadataRequired) {
       core.warning?.(
-        `Skipped optional native triage for ${trackerName} #${issueNumber}: CONSOLE_DEPLOY_TOKEN was rejected (401). Rotate that credential to restore Project #12 metadata. The repository tracker and occurrence data were already persisted.`,
+        `Skipped optional native triage for ${trackerName} #${issueNumber}: the reporter token (Genfeed bot App) was rejected (401). Check the Genfeed bot App installation/permissions to restore Project #12 metadata. The repository tracker and occurrence data were already persisted.`,
       );
       return { ok: true, degraded: true };
     }

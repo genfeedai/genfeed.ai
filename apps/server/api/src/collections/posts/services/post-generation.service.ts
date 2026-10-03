@@ -17,8 +17,12 @@ import {
 } from '@api/collections/posts/dto/generate-tweets.dto';
 import { type PostDocument } from '@api/collections/posts/post.schema';
 import {
+  PostAccountLearningService,
+  type PostAccountLearningSession,
+} from '@api/collections/posts/services/post-account-learning.service';
+import { PostDraftGenerationService } from '@api/collections/posts/services/post-draft-generation.service';
+import {
   extractPostGenerationLabel,
-  isValidPostLength,
   parsePostGenerationContent,
 } from '@api/collections/posts/services/post-generation-text.util';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
@@ -29,8 +33,6 @@ import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
-import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
-import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import type { TextDispatchKeyResolver } from '@api/services/byok/text-dispatch-byok.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -48,7 +50,6 @@ import {
   SystemPromptKey,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts';
 import type {
   AccountPublishingContext,
   PostDraftGenerationInput,
@@ -81,12 +82,12 @@ export class PostGenerationService {
     private readonly accountPublishingContextService: AccountPublishingContextService,
 
     private readonly activityRecorder: ActivityRecorderService,
-    private readonly agentChatModelRegistry: AgentChatModelRegistryService,
     private readonly apiKeysService: ApiKeysService,
     private readonly brandsService: BrandsService,
-    private readonly contextAssemblyService: AgentContextAssemblyService,
     private readonly logger: LoggerService,
     private readonly membersService: MembersService,
+    private readonly postAccountLearningService: PostAccountLearningService,
+    private readonly postDraftGenerationService: PostDraftGenerationService,
     private readonly postThreadGenerationService: PostThreadGenerationService,
     private readonly postsService: PostsService,
     private readonly promptBuilderService: PromptBuilderService,
@@ -183,53 +184,6 @@ export class PostGenerationService {
       '',
       'Do not repeat recent account posts. Keep the output tailored to this selected account.',
     ].join('\n');
-  }
-
-  private async buildDraftSystemPrompt(
-    dto: PostDraftGenerationInput,
-    identity: GenerationMetadata,
-    fallbackBrand: Pick<AccountPublishingContext, 'brand'>,
-  ): Promise<string> {
-    const platformInstruction = [
-      `You are writing as this brand on ${dto.platform}.`,
-      'Match the brand identity, voice, audience, guidelines, and recent-post style.',
-      'Return only the finished post text, without explanations or quotation marks.',
-    ].join(' ');
-
-    const brandContext = await this.contextAssemblyService.assembleContext({
-      brandId: dto.brandId,
-      layers: {
-        brandGuidance: true,
-        brandIdentity: true,
-        brandKnowledge: true,
-        brandMemory: true,
-        performancePatterns: true,
-        ragContext: true,
-        recentPosts: true,
-      },
-      organizationId: identity.organizationId,
-      platform: dto.platform,
-      query: dto.prompt.trim(),
-      userId: identity.userId,
-    });
-
-    if (brandContext) {
-      return this.contextAssemblyService.buildSystemPrompt(
-        platformInstruction,
-        brandContext,
-      );
-    }
-
-    return [
-      platformInstruction,
-      `## Brand: ${fallbackBrand.brand.label ?? 'Brand'}`,
-      fallbackBrand.brand.description,
-      fallbackBrand.brand.voice
-        ? `## Brand Voice\n${fallbackBrand.brand.voice}`
-        : undefined,
-    ]
-      .filter((section): section is string => Boolean(section))
-      .join('\n');
   }
 
   // ==========================================================================
@@ -372,6 +326,7 @@ export class PostGenerationService {
     input: Record<string, unknown>;
     model: string;
     organizationId: string;
+    beforeRepairAttempt?: () => Promise<void>;
   }): Promise<string[]> {
     const maxAttempts =
       params.context.account.platform === CredentialPlatform.TWITTER ? 3 : 1;
@@ -379,6 +334,7 @@ export class PostGenerationService {
     let input = params.input;
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      if (attempt > 0) await params.beforeRepairAttempt?.();
       content =
         (await this.replicateService.generateTextCompletionSync(
           params.model,
@@ -511,7 +467,14 @@ export class PostGenerationService {
         identity.organizationId,
       );
 
+      const learning = await this.postAccountLearningService.resolve(
+        dto,
+        createdPosts,
+        identity,
+      );
       const generatedLines = await this.generateParsedAccountPosts({
+        beforeRepairAttempt: () =>
+          this.postAccountLearningService.revalidate(learning),
         context,
         count: dto.count,
         input,
@@ -534,6 +497,7 @@ export class PostGenerationService {
           postText,
           identity,
           context,
+          { session: learning, index: i },
         );
         if (completed) {
           completedCount++;
@@ -606,8 +570,10 @@ export class PostGenerationService {
     postText: string,
     identity: GenerationMetadata,
     context: AccountPublishingContext,
+    learning: { session: PostAccountLearningSession; index: number },
   ): Promise<boolean> {
     const postId = String(post.id);
+    const learningReceipt = learning.session.receipts[learning.index];
     try {
       const updatedPost = await this.postsService.patch(
         postId,
@@ -624,9 +590,16 @@ export class PostGenerationService {
           },
         ],
       );
+      await this.postAccountLearningService.bindArtifact(
+        learning.session,
+        learning.index,
+        postId,
+        postText,
+      );
       await this.websocketService.emit(WebSocketPaths.post(postId), {
         result: updatedPost,
         status: Status.COMPLETED,
+        ...(learningReceipt ? { learningReceipt } : {}),
       });
       await this.activityRecorder.record({
         brandId: identity.brandId,
@@ -712,85 +685,10 @@ export class PostGenerationService {
     identity: GenerationMetadata,
     resolveApiKey?: TextDispatchKeyResolver,
   ): Promise<PostDraftGenerationResult> {
-    if (!getChannelCapability(dto.platform)) {
-      throw new BadRequestException('Select a supported publishing channel');
-    }
-    if (!dto.prompt.trim()) {
-      throw new BadRequestException('Describe what the post should be about');
-    }
-    const context = await this.accountPublishingContextService.resolveDraft({
-      brandId: dto.brandId,
-      organizationId: identity.organizationId,
-      platform: dto.platform,
-    });
-    if (dto.format === PostFormat.LONG_FORM) {
-      if (dto.platform !== CredentialPlatform.TWITTER) {
-        throw new BadRequestException('Long posts are only supported for X');
-      }
-      context.constraints = {
-        ...context.constraints,
-        maxCharacters: 25000,
-        maxWeightedCharacters: undefined,
-        usesWeightedCharacters: false,
-      };
-    }
-    const limit =
-      context.constraints.maxWeightedCharacters ??
-      context.constraints.maxCharacters ??
-      5000;
-    const systemPrompt = await this.buildDraftSystemPrompt(
+    return this.postDraftGenerationService.generateDraftText(
       dto,
       identity,
-      context,
-    );
-    // Admin → Automation → Models `isDefault` TEXT row wins; DEFAULT_MINI_TEXT_MODEL
-    // (#5161) is only the seed used when no Admin default resolves.
-    const model = await this.agentChatModelRegistry.resolveModelKey(
-      undefined,
-      DEFAULT_MINI_TEXT_MODEL,
-    );
-    const { input } = await this.promptBuilderService.buildPrompt(
-      model,
-      {
-        brandingMode: 'off',
-        modelCategory: ModelCategory.TEXT,
-        maxTokens: Math.max(
-          TEXT_GENERATION_LIMITS.postTweetGeneration,
-          Math.ceil(limit / 2),
-        ),
-        prompt: [
-          `Write one ${dto.platform} post, at most ${limit} characters.`,
-          `Request: ${dto.prompt.trim()}`,
-        ].join('\n'),
-        systemPrompt,
-        temperature: 0.8,
-        useTemplate: false,
-      },
-      identity.organizationId,
-    );
-    const apiKey = await resolveApiKey?.(model);
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const output = await this.replicateService.generateTextCompletionSync(
-        model,
-        input,
-        apiKey,
-      );
-      const description = output?.trim();
-      if (!description) {
-        throw new BadRequestException('No draft was generated. Try again.');
-      }
-      if (
-        isValidPostLength(
-          description,
-          limit,
-          context.constraints.usesWeightedCharacters,
-        )
-      ) {
-        return { description, model };
-      }
-    }
-    throw new BadRequestException(
-      'The generated draft exceeds the channel limit. Try a shorter topic.',
+      resolveApiKey,
     );
   }
 

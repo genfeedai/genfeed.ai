@@ -231,8 +231,9 @@ export class ClientService {
   evaluateMcpToolResult(
     name: string,
     content: string,
+    isPartial = false,
   ): Promise<AgentUntrustedContentGateResult> {
-    return this.agent.evaluateMcpToolResult(name, content);
+    return this.agent.evaluateMcpToolResult(name, content, isPartial);
   }
 
   executeAgentTool(

@@ -160,6 +160,9 @@ describe('DesktopCliAgentRuntimeService', () => {
     expect(spawnCalls[0]?.args.join(' ')).not.toContain(TOKEN);
     expect(spawnCalls[0]?.options.env?.GENFEED_API_KEY).toBeUndefined();
     expect(mcpFileDuringRun).toContain(TOKEN);
+    expect(mcpFileDuringRun).toContain(
+      '"url":"https://mcp.genfeed.ai/mcp?profile=full"',
+    );
     const systemPrompt =
       spawnCalls[0]?.args[
         (spawnCalls[0]?.args.indexOf('--append-system-prompt') ?? 0) + 1

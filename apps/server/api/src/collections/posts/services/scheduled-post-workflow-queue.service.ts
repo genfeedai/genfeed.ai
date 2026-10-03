@@ -46,7 +46,6 @@ export class ScheduledPostWorkflowQueueService {
           canonicalId: SCHEDULED_POST_FAILURE_WORKFLOW_ID,
           inputValues: { request: input },
         },
-        replaceTerminalJob: true,
       },
     );
   }

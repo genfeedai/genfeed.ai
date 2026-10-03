@@ -114,7 +114,7 @@ describe('SocialSourceHistoryImportService', () => {
         userId: 'user-1',
       }),
       'social-source-history-import-source-1',
-      expect.objectContaining({ replaceTerminalJob: true }),
+      expect.any(Object),
     );
     expect(activitiesService.record).toHaveBeenCalledWith(
       expect.objectContaining({

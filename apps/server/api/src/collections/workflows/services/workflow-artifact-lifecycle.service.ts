@@ -637,7 +637,6 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
       {
         attempts: 3,
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
-        replaceTerminalJob: true,
       },
     );
   }
