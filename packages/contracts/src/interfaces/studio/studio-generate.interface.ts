@@ -48,6 +48,8 @@ export interface FormDropdownOption {
   key: string | number;
   label: string;
   description?: string;
+  /** Platform default shared with every organization; pickers mark it "Default". */
+  isPlatformDefault?: boolean;
   thumbnailUrl?: string;
   badge?: string;
   badgeVariant?:

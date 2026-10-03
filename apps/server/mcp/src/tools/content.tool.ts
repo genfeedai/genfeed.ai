@@ -6,8 +6,7 @@ export const CONTENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'create_article_draft',
   'get_article_preview',
   'publish_article',
-  'search_articles',
-  'get_article',
+  'get_articles',
   'generate_linkedin_content',
 ]);
 
@@ -114,14 +113,32 @@ export async function handleContentTool(
         ],
       };
     }
-    case 'search_articles': {
-      if (!args?.query) {
-        throw new Error('query required');
+    case 'get_articles': {
+      const articleId =
+        typeof args?.articleId === 'string' ? args.articleId.trim() : '';
+      const query = typeof args?.query === 'string' ? args.query.trim() : '';
+      if (Boolean(articleId) === Boolean(query)) {
+        throw new Error('Pass exactly one of articleId or query');
+      }
+      if (articleId) {
+        if (args.category !== undefined || args.limit !== undefined) {
+          throw new Error('category and limit apply only to a query search');
+        }
+        const article = await client.getArticle(articleId);
+        return {
+          structuredContent: { data: article },
+          content: [
+            {
+              text: `Article: ${article.title}\n\nID: ${article.id}\nStatus: ${article.status}\nWord Count: ${article.wordCount}\nCreated: ${article.createdAt}\n\nContent Preview:\n${article.content?.substring(0, 500)}...`,
+              type: 'text' as const,
+            },
+          ],
+        };
       }
       const articles = await client.searchArticles({
         category: args.category as string | undefined,
         limit: args.limit as number | undefined,
-        query: args.query as string,
+        query,
       });
 
       return {
@@ -131,23 +148,8 @@ export async function handleContentTool(
             text: formatListResult(
               articles,
               'articles',
-              ` matching "${args.query}"`,
+              ` matching "${query}"`,
             ),
-            type: 'text' as const,
-          },
-        ],
-      };
-    }
-    case 'get_article': {
-      if (!args?.articleId) {
-        throw new Error('articleId required');
-      }
-      const article = await client.getArticle(args.articleId as string);
-      return {
-        structuredContent: { data: article },
-        content: [
-          {
-            text: `Article: ${article.title}\n\nID: ${article.id}\nStatus: ${article.status}\nWord Count: ${article.wordCount}\nCreated: ${article.createdAt}\n\nContent Preview:\n${article.content?.substring(0, 500)}...`,
             type: 'text' as const,
           },
         ],

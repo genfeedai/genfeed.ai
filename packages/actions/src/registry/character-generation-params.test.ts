@@ -4,9 +4,7 @@ import { OVERLAP_TOOLS } from './source/overlap.tools';
 
 describe('character generation tool params (#3441)', () => {
   const generate = OVERLAP_TOOLS.find((tool) => tool.name === 'generate');
-  const listCharacters = OVERLAP_TOOLS.find(
-    (tool) => tool.name === 'list_characters',
-  );
+  const listAssets = OVERLAP_TOOLS.find((tool) => tool.name === 'list_assets');
 
   it('declares every image parameter consumed by confirmed generation', () => {
     expect(generate?.parameters.properties).toMatchObject({
@@ -30,14 +28,21 @@ describe('character generation tool params (#3441)', () => {
     ).toContain('start frame');
   });
 
-  it('registers list_characters as a zero-credit read tool on agent and MCP', () => {
-    expect(listCharacters?.creditCost).toBe(0);
+  it('registers list_assets as a zero-credit read tool that covers characters', () => {
+    expect(listAssets?.creditCost).toBe(0);
+    expect(listAssets?.parameters.properties.type).toMatchObject({
+      enum: ['image', 'video', 'music', 'avatar', 'character'],
+    });
+    expect(listAssets?.parameters.required).toEqual(['type']);
     expect(
-      CURATED_ACTION_CATALOG.find((entry) => entry.name === 'list_characters'),
+      CURATED_ACTION_CATALOG.find((entry) => entry.name === 'list_assets'),
     ).toEqual({
-      name: 'list_characters',
+      name: 'list_assets',
       surfaces: ['agent', 'mcp'],
       toolset: 'generation',
     });
+    expect(
+      CURATED_ACTION_CATALOG.some((entry) => entry.name === 'list_characters'),
+    ).toBe(false);
   });
 });

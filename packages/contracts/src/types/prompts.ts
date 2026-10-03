@@ -76,38 +76,6 @@ export interface IQueryPrompts {
 // STYLE PRESETS
 // =============================================================================
 
-export const MOOD_PRESETS = [
-  'cinematic',
-  'dreamy',
-  'gritty',
-  'ethereal',
-  'nostalgic',
-  'futuristic',
-  'mysterious',
-  'peaceful',
-  'energetic',
-  'moody',
-  'dramatic',
-  'whimsical',
-] as const;
-
-export const STYLE_PRESETS = [
-  'photorealistic',
-  'anime',
-  '3d-render',
-  'oil-painting',
-  'watercolor',
-  'digital-art',
-  'comic-book',
-  'sketch',
-  'pixel-art',
-  'minimalist',
-  'cyberpunk',
-  'fantasy',
-  'retro',
-  'vintage',
-] as const;
-
 export const CAMERA_PRESETS = [
   'wide-angle',
   'macro',
@@ -160,8 +128,6 @@ export const SCENE_PRESETS = [
 ] as const;
 
 // Type helpers for presets
-export type MoodPreset = (typeof MOOD_PRESETS)[number];
-export type StylePreset = (typeof STYLE_PRESETS)[number];
 export type CameraPreset = (typeof CAMERA_PRESETS)[number];
 export type LightingPreset = (typeof LIGHTING_PRESETS)[number];
 export type ScenePreset = (typeof SCENE_PRESETS)[number];

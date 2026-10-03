@@ -1,5 +1,3 @@
-import type { IngredientOrigin } from '@genfeedai/contracts';
-
 export interface MusicCreationParams {
   prompt: string;
   genre?:
@@ -32,11 +30,4 @@ export interface MusicResponse {
   createdAt: string;
   /** Permanent origin: UPLOADED, GENERATED, IMPORTED or UNKNOWN. */
   origin?: string;
-}
-
-export interface MusicListParams {
-  limit?: number;
-  offset?: number;
-  /** Only assets with this origin. */
-  origin?: IngredientOrigin;
 }

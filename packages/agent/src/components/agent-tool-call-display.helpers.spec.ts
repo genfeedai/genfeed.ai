@@ -22,3 +22,11 @@ describe('outreach sequence tool labels', () => {
     expect(TOOL_LABELS.get_campaign_analytics).toBeUndefined();
   });
 });
+
+describe('merged X post tool label', () => {
+  it('labels get_x_posts and drops the removed fetch and search labels', () => {
+    expect(TOOL_LABELS.get_x_posts).toBe('X Posts');
+    expect(TOOL_LABELS.fetch_x_post).toBeUndefined();
+    expect(TOOL_LABELS.search_x_posts).toBeUndefined();
+  });
+});

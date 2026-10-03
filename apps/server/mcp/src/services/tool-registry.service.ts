@@ -43,10 +43,6 @@ import {
 } from '@mcp/tools/clip-projects.tool';
 import { CONTENT_TOOL_NAMES, handleContentTool } from '@mcp/tools/content.tool';
 import { EDITOR_TOOL_NAMES, handleEditorTool } from '@mcp/tools/editor.tool';
-import {
-  GENERATION_TOOL_NAMES,
-  handleGenerationTool,
-} from '@mcp/tools/generation.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import {
   approvalPendingToolResult,
@@ -126,9 +122,6 @@ const PRE_DISPATCH_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
 ]);
 
 const ACCOUNT_MANAGEMENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
-  'get_account_info',
-  'list_brands',
-  'get_brand',
   'get_job_status',
 ]);
 
@@ -158,7 +151,7 @@ const isAdsGatewayTool = (name: string): boolean => name.startsWith('get_ads_');
  * precedence exactly (tool-discovery → agent-chat → workflow-control →
  * agent-executor → catalog REST handlers → ads/external), so classification
  * never changes which handler runs. `tool-discovery` is checked first since
- * its names (e.g. `describe_tool`) are meta tools with no other executor to
+ * its name (`find_tools`) is a meta tool with no other executor to
  * shadow.
  */
 type ExecutorKind =
@@ -167,7 +160,6 @@ type ExecutorKind =
   | 'workflow-control'
   | 'agent-executor'
   | 'merge-videos'
-  | 'generation'
   | 'content'
   | 'analytics'
   | 'workflow-status'
@@ -296,7 +288,7 @@ export class ToolRegistryService implements OnModuleInit {
 
   /**
    * The role-filtered full catalog, ignoring the caller's `?toolsets=`
-   * selection. Backs `list_toolsets`/`search_tools`/`describe_tool` — a
+   * selection. Backs `find_tools` — a
    * client should be able to discover a tool outside its currently-loaded
    * toolset so it can reconnect with a broader selection.
    */
@@ -306,7 +298,7 @@ export class ToolRegistryService implements OnModuleInit {
 
   /**
    * Requested toolset names that exist in the catalog but have no MCP tools
-   * on this deploy. `list_toolsets` warns about them; they are not a failed
+   * on this deploy. `find_tools` warns about them; they are not a failed
    * connection. An empty request selection (`?profile=full`) warns about
    * nothing — the caller did not name a specific empty toolset.
    */
@@ -388,7 +380,6 @@ export class ToolRegistryService implements OnModuleInit {
     if (WORKFLOW_CONTROL_TOOL_NAMES.has(name)) return 'workflow-control';
     if (AGENT_EXECUTOR_TOOL_NAMES.has(name)) return 'agent-executor';
     if (MERGE_VIDEOS_TOOL_NAMES.has(name)) return 'merge-videos';
-    if (GENERATION_TOOL_NAMES.has(name)) return 'generation';
     if (CONTENT_TOOL_NAMES.has(name)) return 'content';
     if (ANALYTICS_TOOL_NAMES.has(name)) return 'analytics';
     if (WORKFLOW_STATUS_TOOL_NAMES.has(name)) return 'workflow-status';
@@ -448,8 +439,6 @@ export class ToolRegistryService implements OnModuleInit {
       }
       case 'merge-videos':
         return handleMergeVideosTool(this.clientService, args ?? {});
-      case 'generation':
-        return handleGenerationTool(this.clientService, name, args);
       case 'content':
         return handleContentTool(this.clientService, name, args);
       case 'analytics':

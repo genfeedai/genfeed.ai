@@ -10,12 +10,14 @@ import type { StudioGenerateType } from '../types';
 
 interface LookElement {
   description?: string;
+  isPlatformDefault?: boolean;
   key: string;
   label: string;
 }
 
 interface LookDropdownOption {
   description?: string;
+  isPlatformDefault?: boolean;
   key: string;
   label: string;
 }
@@ -25,6 +27,7 @@ function toDropdownOptions(
 ): LookDropdownOption[] {
   return items.map((item) => ({
     description: item.description,
+    isPlatformDefault: item.isPlatformDefault,
     key: item.key,
     label: item.label,
   }));

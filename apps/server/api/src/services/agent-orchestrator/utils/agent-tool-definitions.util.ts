@@ -181,7 +181,7 @@ export const BATCH_SCOPED_ALLOWED_TOOLS: CuratedActionName[] = [
   'generate_content_batch',
   'batch_approve_reject',
   'get_current_brand',
-  'list_brands',
+  'get_brands',
   'list_review_queue',
 ];
 

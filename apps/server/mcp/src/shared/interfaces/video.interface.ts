@@ -22,13 +22,6 @@ export interface VideoResponse {
   origin?: string;
 }
 
-export interface VideoStatus {
-  status: string;
-  progress: number;
-  message?: string;
-  url?: string;
-}
-
 /** Body for `POST /videos/merge`. Zoom fields are not part of this contract. */
 export interface MergeVideosParams {
   ids: string[];

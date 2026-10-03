@@ -12,20 +12,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 const MOCK_TOOLS = [
   { name: 'generate', requiredRole: undefined, surfaces: { mcp: true } },
   {
-    name: 'get_video_status',
+    name: 'get_articles',
     requiredRole: undefined,
     surfaces: { mcp: true },
   },
-  { name: 'list_videos', requiredRole: undefined, surfaces: { mcp: true } },
-  { name: 'list_images', requiredRole: undefined, surfaces: { mcp: true } },
-  { name: 'search_articles', requiredRole: undefined, surfaces: { mcp: true } },
-  { name: 'list_avatars', requiredRole: undefined, surfaces: { mcp: true } },
-  { name: 'list_music', requiredRole: undefined, surfaces: { mcp: true } },
-  {
-    name: 'get_credits_balance',
-    requiredRole: undefined,
-    surfaces: { mcp: true },
-  },
+  { name: 'get_account', requiredRole: undefined, surfaces: { mcp: true } },
   { name: 'get_trends', requiredRole: undefined, surfaces: { mcp: true } },
   {
     mutationPolicy: 'approval-required',
@@ -33,7 +24,7 @@ const MOCK_TOOLS = [
     requiredRole: undefined,
     surfaces: { mcp: true },
   },
-  { name: 'list_posts', requiredRole: undefined, surfaces: { mcp: true } },
+  { name: 'get_posts', requiredRole: undefined, surfaces: { mcp: true } },
   {
     mutationPolicy: 'approval-required',
     name: 'create_article',
@@ -79,6 +70,11 @@ const MOCK_TOOLS = [
   {
     name: 'get_workflow_status',
     requiredRole: 'admin',
+    surfaces: { mcp: true },
+  },
+  {
+    name: 'get_video_analytics',
+    requiredRole: undefined,
     surfaces: { mcp: true },
   },
   {
@@ -168,19 +164,11 @@ vi.mock('@mcp/guards/mcp-auth.guard', () => ({
   },
 }));
 
-const CHARACTER_ID = 'cmcharacter0000000000000001';
-const OTHER_CHARACTER_ID = 'cmcharacter0000000000000002';
-
 describe('ToolRegistryService', () => {
   let service: ToolRegistryService;
   let clientService: {
     executeAgentTool: ReturnType<typeof vi.fn>;
-    getVideoStatus: ReturnType<typeof vi.fn>;
-    listVideos: ReturnType<typeof vi.fn>;
     getVideoAnalytics: ReturnType<typeof vi.fn>;
-    listImages: ReturnType<typeof vi.fn>;
-    listAvatars: ReturnType<typeof vi.fn>;
-    listMusic: ReturnType<typeof vi.fn>;
     searchArticles: ReturnType<typeof vi.fn>;
     createArticle: ReturnType<typeof vi.fn>;
     createApproval: ReturnType<typeof vi.fn>;
@@ -215,8 +203,6 @@ describe('ToolRegistryService', () => {
         {
           provide: ClientService,
           useValue: {
-            listAvatars: vi.fn(),
-            listMusic: vi.fn(),
             searchArticles: vi.fn(),
             approveSocialDraft: vi
               .fn()
@@ -255,9 +241,6 @@ describe('ToolRegistryService', () => {
               messages: [{ id: 'msg-1', status: 'received' }],
             }),
             getVideoAnalytics: vi.fn().mockResolvedValue({ views: 1000 }),
-            getVideoStatus: vi
-              .fn()
-              .mockResolvedValue({ progress: 100, status: 'completed' }),
             getWorkflowStatus: vi.fn().mockResolvedValue({
               currentStepIndex: 0,
               id: 'wf-1',
@@ -290,14 +273,10 @@ describe('ToolRegistryService', () => {
               progress: 100,
               status: 'completed',
             }),
-            listImages: vi.fn().mockResolvedValue([]),
             listSocialConversations: vi.fn().mockResolvedValue({
               conversations: [{ id: 'conv-1', status: 'open' }],
               meta: { page: 1 },
             }),
-            listVideos: vi
-              .fn()
-              .mockResolvedValue([{ id: 'vid-1', title: 'Test' }]),
             markSocialConversationResolved: vi
               .fn()
               .mockResolvedValue({ id: 'conv-1', status: 'resolved' }),
@@ -379,22 +358,10 @@ describe('ToolRegistryService', () => {
     ).toContain('generate');
   });
 
-  it('handleToolCall get_video_status returns status info via generation handler', async () => {
-    const result = await service.handleToolCall({
-      arguments: { videoId: 'vid-1' },
-      name: 'get_video_status',
-    });
-
-    expect(clientService.getVideoStatus).toHaveBeenCalledWith('vid-1');
-    expect(
-      (result as { content: { text: string }[] }).content[0].text,
-    ).toContain('completed');
-  });
-
-  it('handleToolCall get_video_status returns validation details when videoId missing', async () => {
+  it('handleToolCall get_video_analytics returns validation details when videoId missing', async () => {
     const result = await service.handleToolCall({
       arguments: {},
-      name: 'get_video_status',
+      name: 'get_video_analytics',
     });
 
     expect((result as { isError: boolean }).isError).toBe(true);
@@ -490,143 +457,8 @@ describe('ToolRegistryService', () => {
     ).toContain('contentId and contentType required');
   });
 
-  it('handleToolCall list_videos returns video list via generation handler', async () => {
-    const result = await service.handleToolCall({
-      arguments: { limit: 5 },
-      name: 'list_videos',
-    });
-
-    expect(clientService.listVideos).toHaveBeenCalledWith(
-      5,
-      0,
-      undefined,
-      undefined,
-    );
-    expect(
-      (result as { content: { text: string }[] }).content[0].text,
-    ).toContain('vid-1');
-  });
-
-  it('handleToolCall list_videos passes the origin filter through', async () => {
-    await service.handleToolCall({
-      arguments: { limit: 5, origin: 'uploaded' },
-      name: 'list_videos',
-    });
-
-    expect(clientService.listVideos).toHaveBeenCalledWith(
-      5,
-      0,
-      'UPLOADED',
-      undefined,
-    );
-  });
-
-  it('handleToolCall list_images passes the origin filter through', async () => {
-    await service.handleToolCall({
-      arguments: { origin: 'IMPORTED' },
-      name: 'list_images',
-    });
-
-    expect(clientService.listImages).toHaveBeenCalledWith(
-      expect.objectContaining({ origin: 'IMPORTED' }),
-    );
-  });
-
-  it('handleToolCall list_images passes the character filter through', async () => {
-    const characterIds = [CHARACTER_ID, OTHER_CHARACTER_ID];
-
-    await service.handleToolCall({
-      arguments: { characterIds: [...characterIds, CHARACTER_ID] },
-      name: 'list_images',
-    });
-
-    expect(clientService.listImages).toHaveBeenCalledWith(
-      expect.objectContaining({ characterIds }),
-    );
-  });
-
-  it('handleToolCall list_videos passes the character filter through', async () => {
-    await service.handleToolCall({
-      arguments: { characterIds: [CHARACTER_ID], limit: 5 },
-      name: 'list_videos',
-    });
-
-    expect(clientService.listVideos).toHaveBeenCalledWith(5, 0, undefined, [
-      CHARACTER_ID,
-    ]);
-  });
-
-  it.each(['list_videos', 'list_images'])(
-    'handleToolCall %s rejects malformed character ids instead of listing everything',
-    async (name) => {
-      clientService.listVideos.mockClear();
-      clientService.listImages.mockClear();
-
-      const result = await service.handleToolCall({
-        arguments: { characterIds: ['not an id!'] },
-        name,
-      });
-
-      expect((result as { isError: boolean }).isError).toBe(true);
-      expect(
-        (result as { content: { text: string }[] }).content[0].text,
-      ).toContain('characterIds must be a list of up to 25 character ids');
-      expect(clientService.listVideos).not.toHaveBeenCalled();
-      expect(clientService.listImages).not.toHaveBeenCalled();
-    },
-  );
-
   it.each([
-    ['list_music', 'listMusic'],
-    ['list_avatars', 'listAvatars'],
-  ] as const)(
-    'handleToolCall %s passes the origin filter through',
-    async (name, method) => {
-      await service.handleToolCall({
-        arguments: { origin: 'generated' },
-        name,
-      });
-
-      expect(clientService[method]).toHaveBeenCalledWith(
-        expect.objectContaining({ origin: 'GENERATED' }),
-      );
-    },
-  );
-
-  it.each(['list_videos', 'list_images', 'list_music', 'list_avatars'])(
-    'handleToolCall %s rejects an unknown origin instead of listing everything',
-    async (name) => {
-      for (const method of [
-        clientService.listVideos,
-        clientService.listImages,
-        clientService.listMusic,
-        clientService.listAvatars,
-      ]) {
-        method.mockClear();
-      }
-
-      const result = await service.handleToolCall({
-        arguments: { origin: 'mine' },
-        name,
-      });
-
-      expect((result as { isError: boolean }).isError).toBe(true);
-      expect(
-        (result as { content: { text: string }[] }).content[0].text,
-      ).toContain('origin must be UPLOADED, GENERATED, IMPORTED or UNKNOWN');
-      expect(clientService.listVideos).not.toHaveBeenCalled();
-      expect(clientService.listImages).not.toHaveBeenCalled();
-      expect(clientService.listMusic).not.toHaveBeenCalled();
-      expect(clientService.listAvatars).not.toHaveBeenCalled();
-    },
-  );
-
-  it.each([
-    ['list_videos', 'listVideos', 'videos', ''],
-    ['list_images', 'listImages', 'images', ''],
-    ['list_avatars', 'listAvatars', 'avatars', ''],
-    ['list_music', 'listMusic', 'music tracks', ''],
-    ['search_articles', 'searchArticles', 'articles', ' matching "AI"'],
+    ['get_articles', 'searchArticles', 'articles', ' matching "AI"'],
   ] as const)(
     '%s preserves list and empty result text',
     async (name, method, noun, qualifier) => {
@@ -906,20 +738,58 @@ describe('ToolRegistryService', () => {
     });
   });
 
-  it('handleToolCall get_credits_balance proxies through executeAgentTool', async () => {
+  it('handleToolCall get_account proxies through executeAgentTool', async () => {
     const result = await service.handleToolCall({
       arguments: {},
-      name: 'get_credits_balance',
+      name: 'get_account',
     });
 
     expect(clientService.executeAgentTool).toHaveBeenCalledWith(
-      'get_credits_balance',
+      'get_account',
       {},
       undefined,
     );
     expect(
       (result as { content: { text: string }[] }).content[0].text,
-    ).toContain('get_credits_balance');
+    ).toContain('get_account');
+  });
+
+  it('handleToolCall get_account renders non-zero usage on the usage card', async () => {
+    clientService.executeAgentTool.mockResolvedValueOnce({
+      creditsUsed: 0,
+      data: {
+        credits: { balance: 88 },
+        usage: {
+          breakdown: [{ amount: 12, count: 3, source: 'image' }],
+          currentBalance: 88,
+          trendPercentage: 5,
+          usage30Days: 40,
+          usage7Days: 12,
+        },
+      },
+      success: true,
+    });
+
+    const result = (await service.handleToolCall({
+      arguments: {},
+      name: 'get_account',
+    })) as {
+      structuredContent: {
+        genfeedCards: { cards: { description: string; title: string }[] };
+      };
+    };
+
+    expect(
+      result.structuredContent.genfeedCards.cards.map((card) => [
+        card.title,
+        card.description,
+      ]),
+    ).toEqual([
+      ['current Balance', '88'],
+      ['trend Percentage', '5'],
+      ['usage30 Days', '40'],
+      ['usage7 Days', '12'],
+    ]);
   });
 
   it('handleToolCall throws for unknown tool and returns error', async () => {
@@ -999,11 +869,11 @@ describe('ToolRegistryService', () => {
 
     await service.handleToolCall({
       arguments: {},
-      name: 'get_credits_balance',
+      name: 'get_account',
     });
 
     expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining('get_credits_balance'),
+      expect.stringContaining('get_account'),
       expect.any(Error),
     );
   });

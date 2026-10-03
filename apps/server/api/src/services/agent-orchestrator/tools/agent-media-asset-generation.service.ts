@@ -100,7 +100,7 @@ export class AgentMediaAssetGenerationService {
         error: {
           creditsUsed: 0,
           error:
-            'Select a brand before generating. Pass brandId from list_brands; the first organization brand is not used automatically.',
+            'Select a brand before generating. Pass brandId from get_brands; the first organization brand is not used automatically.',
           success: false,
         },
       };
@@ -665,7 +665,9 @@ export class AgentMediaAssetGenerationService {
     const response = toMediaResponseRecord(
       await this.generationGateway.generateMusic({
         body: {
-          autoSelectModel: true,
+          ...(typeof params.model === 'string' && params.model.trim()
+            ? { model: params.model.trim() }
+            : { autoSelectModel: true }),
           duration: (params.duration as number) || 10,
           text: params.text as string,
           waitForCompletion: true,

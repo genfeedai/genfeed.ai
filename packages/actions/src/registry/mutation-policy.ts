@@ -27,6 +27,7 @@ const READ_ONLY_PREFIXES = [
   'describe_',
   'discover_',
   'fetch_',
+  'find_',
   'get_',
   'inspect_',
   'list_',

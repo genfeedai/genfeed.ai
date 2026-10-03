@@ -7,6 +7,9 @@ export class ElementMood extends BaseEntity implements IElementMood {
   declare public label: string;
   declare public description?: string;
   declare public category?: ModelCategory;
+  declare public isActive?: boolean;
+  declare public isPlatformDefault?: boolean;
+  declare public sortOrder?: number;
 
   constructor(data: Partial<IElementMood> = {}) {
     super(data);

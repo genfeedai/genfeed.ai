@@ -3,15 +3,15 @@ import { CreateElementSceneDto } from '@api/collections/elements/scenes/dto/crea
 import { UpdateElementSceneDto } from '@api/collections/elements/scenes/dto/update-scene.dto';
 import type { ElementSceneDocument } from '@api/collections/elements/scenes/schemas/scene.schema';
 import { ElementsScenesService } from '@api/collections/elements/scenes/services/scenes.service';
-import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
+import { buildElementFindAllQuery } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
+import { ElementsCRUDController } from '@api/collections/elements/shared/elements-crud.controller';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { MemberRole } from '@genfeedai/contracts';
 import { SceneSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -35,7 +35,7 @@ import type { Request } from 'express';
 @ApiTags('scenes')
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
-export class ElementsScenesController extends BaseCRUDController<
+export class ElementsScenesController extends ElementsCRUDController<
   ElementSceneDocument,
   CreateElementSceneDto,
   UpdateElementSceneDto,
@@ -97,35 +97,17 @@ export class ElementsScenesController extends BaseCRUDController<
   }
 
   public buildFindAllQuery(user: User, query: BaseQueryDto) {
-    const adminFilter = CollectionFilterUtil.buildAdminFilter(user, query);
-
-    const orConditions: Record<string, unknown>[] = [];
-
-    if (user.organizationId) {
-      orConditions.push({
+    return buildElementFindAllQuery({
+      adminFilter: CollectionFilterUtil.buildAdminFilter(user, query),
+      filters:
+        typeof query.isFavorite === 'boolean'
+          ? { isFavorite: query.isFavorite }
+          : undefined,
+      metadata: {
+        isSuperAdmin: getIsSuperAdmin(user),
         organizationId: user.organizationId,
-      });
-    }
-
-    return {
-      where: {
-        isDeleted: query.isDeleted ?? false,
-        ...(typeof query.isFavorite === 'boolean' && {
-          isFavorite: query.isFavorite,
-        }),
-        ...(adminFilter ??
-          (orConditions.length > 0 ? { OR: orConditions } : {})),
       },
-      orderBy: query.sort
-        ? handleQuerySort(query.sort)
-        : { createdAt: -1, key: 1 },
-    };
-  }
-
-  public override canUserModifyEntity(
-    user: User,
-    entity: ElementSceneDocument,
-  ): boolean {
-    return canModifyOrganizationElement(user, entity);
+      query,
+    });
   }
 }

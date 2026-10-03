@@ -55,14 +55,15 @@ describe('tool registry', () => {
       ['get_analytics', 'analytics'],
       ['create_workflow', 'workflow'],
       ['create_post', 'content'],
-      ['list_scheduler_capabilities', 'content'],
+      ['get_scheduler_capabilities', 'content'],
       ['generate', 'generation'],
       ['initiate_oauth_connect', 'social'],
       ['get_meta_ad_insights', 'ads'],
       ['discover_engagements', 'proactive'],
       ['generate_as_identity', 'identity'],
       ['request_asset', 'agent-control'],
-      ['get_credits_balance', 'other'],
+      ['get_account', 'social'],
+      ['list_assets', 'generation'],
     ];
     for (const [name, category] of expected) {
       expect(getToolByName(name)?.category, name).toBe(category);
@@ -74,7 +75,7 @@ describe('tool registry', () => {
       'approval-required',
     );
     expect(getToolByName('generate')?.mutationPolicy).toBe('direct');
-    expect(getToolByName('list_posts')?.mutationPolicy).toBeUndefined();
+    expect(getToolByName('get_posts')?.mutationPolicy).toBeUndefined();
   });
 
   it('attaches a UI action type only to mapped actions', () => {
@@ -84,7 +85,13 @@ describe('tool registry', () => {
     expect(getToolByName('schedule_post')?.uiActionType).toBe(
       'schedule_post_card',
     );
-    expect(getToolByName('list_posts')?.uiActionType).toBeUndefined();
+    expect(getToolByName('get_posts')?.uiActionType).toBe(
+      'content_calendar_card',
+    );
+    expect(getToolByName('get_account')?.uiActionType).toBe(
+      'credits_balance_card',
+    );
+    expect(getToolByName('list_assets')?.uiActionType).toBeUndefined();
   });
 
   it('widens the visible set as the role escalates', () => {
@@ -205,7 +212,7 @@ describe('tool registry catalog validation', () => {
   it('rejects a default MCP profile that exceeds the bare-URL cap', async () => {
     vi.doMock('./toolsets', () => ({
       CORE_TOOLSET_NAME: 'core',
-      getToolsForToolsets: () => Array.from({ length: 47 }, () => ({})),
+      getToolsForToolsets: () => Array.from({ length: 32 }, () => ({})),
       isToolsetName: () => true,
       TOOLSETS: [{ description: 'core', isAlwaysOn: true, name: 'core' }],
     }));
@@ -215,7 +222,7 @@ describe('tool registry catalog validation', () => {
           category: 'other',
           creditCost: 0,
           description: 'core tool',
-          name: 'list_toolsets',
+          name: 'find_tools',
           parameters: { properties: {}, type: 'object' },
           requiredRole: 'user',
           surfaces: { agent: false, cliAgentVisible: false, mcp: true },
@@ -226,7 +233,7 @@ describe('tool registry catalog validation', () => {
     vi.resetModules();
 
     await expect(import('./tool-registry')).rejects.toThrow(
-      /default MCP profile exceeds the 46-tool bare-URL cap: has 47/,
+      /default MCP profile exceeds the 31-tool bare-URL cap: has 32/,
     );
   });
 });

@@ -6,11 +6,9 @@ const toolsByName = new Map(
 );
 
 describe('MCP_DISCOVERY_TOOLS', () => {
-  it('exposes exactly the three discovery meta tools', () => {
-    expect(MCP_DISCOVERY_TOOLS.map((tool) => tool.name).sort()).toEqual([
-      'describe_tool',
-      'list_toolsets',
-      'search_tools',
+  it('exposes exactly the find_tools discovery meta tool', () => {
+    expect(MCP_DISCOVERY_TOOLS.map((tool) => tool.name)).toEqual([
+      'find_tools',
     ]);
   });
 
@@ -21,17 +19,12 @@ describe('MCP_DISCOVERY_TOOLS', () => {
     }
   });
 
-  it('takes no parameters for list_toolsets', () => {
-    const tool = toolsByName.get('list_toolsets');
-    expect(tool?.parameters.properties).toEqual({});
-    expect(tool?.parameters.required ?? []).toEqual([]);
-  });
-
-  it('matches the search_tools contract: optional query/toolset, bounded limit', () => {
-    const tool = toolsByName.get('search_tools');
+  it('matches the find_tools contract: every argument optional, bounded limit', () => {
+    const tool = toolsByName.get('find_tools');
     expect(tool?.parameters.required ?? []).toEqual([]);
     expect(Object.keys(tool?.parameters.properties ?? {}).sort()).toEqual([
       'limit',
+      'name',
       'query',
       'toolset',
     ]);
@@ -42,18 +35,9 @@ describe('MCP_DISCOVERY_TOOLS', () => {
           minimum: 1,
           type: 'number',
         }),
+        name: expect.objectContaining({ type: 'string' }),
         query: expect.objectContaining({ type: 'string' }),
         toolset: expect.objectContaining({ type: 'string' }),
-      }),
-    );
-  });
-
-  it('requires a name for describe_tool', () => {
-    const tool = toolsByName.get('describe_tool');
-    expect(tool?.parameters.required).toEqual(['name']);
-    expect(tool?.parameters.properties).toEqual(
-      expect.objectContaining({
-        name: expect.objectContaining({ type: 'string' }),
       }),
     );
   });

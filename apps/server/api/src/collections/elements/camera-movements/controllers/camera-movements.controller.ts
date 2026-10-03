@@ -4,14 +4,14 @@ import { UpdateElementCameraMovementDto } from '@api/collections/elements/camera
 import type { ElementCameraMovementDocument } from '@api/collections/elements/camera-movements/schemas/camera-movement.schema';
 import { ElementsCameraMovementsService } from '@api/collections/elements/camera-movements/services/camera-movements.service';
 import { buildElementFindAllQuery } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
-import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
+import { ElementsCRUDController } from '@api/collections/elements/shared/elements-crud.controller';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { MemberRole } from '@genfeedai/contracts';
 import { CameraMovementSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -35,7 +35,7 @@ import type { Request } from 'express';
 @ApiTags('camera-movements')
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
-export class ElementsCameraMovementsController extends BaseCRUDController<
+export class ElementsCameraMovementsController extends ElementsCRUDController<
   ElementCameraMovementDocument,
   CreateElementCameraMovementDto,
   UpdateElementCameraMovementDto,
@@ -112,17 +112,11 @@ export class ElementsCameraMovementsController extends BaseCRUDController<
       adminFilter,
       includeStateFilters: true,
       metadata: {
+        isSuperAdmin: getIsSuperAdmin(user),
         organizationId: user.organizationId,
       },
       query,
       searchableFields: ['label', 'description', 'key'],
     });
-  }
-
-  public override canUserModifyEntity(
-    user: User,
-    entity: ElementCameraMovementDocument,
-  ): boolean {
-    return canModifyOrganizationElement(user, entity);
   }
 }

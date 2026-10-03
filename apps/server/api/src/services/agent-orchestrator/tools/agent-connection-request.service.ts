@@ -210,7 +210,7 @@ export class AgentConnectionRequestService {
           recoveryAction: 'select_brand',
         },
         error:
-          'Select a brand before connecting an account. Pass brandId from list_brands.',
+          'Select a brand before connecting an account. Pass brandId from get_brands.',
         success: false,
       },
     };

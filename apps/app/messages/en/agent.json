@@ -195,6 +195,7 @@
     "on": "On",
     "outputs": "Outputs",
     "pinned": "Pinned: {label}",
+    "platformDefault": "Default",
     "presets": "Presets",
     "promptEnhance": "Prompt enhance",
     "searchFields": "Search fields\u2026",

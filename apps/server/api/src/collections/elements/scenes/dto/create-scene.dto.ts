@@ -1,8 +1,8 @@
-import { ElementDto } from '@api/shared/dto/element/element.dto';
+import { PlatformElementDto } from '@api/shared/dto/element/platform-element.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsOptional } from 'class-validator';
 
-export class CreateElementSceneDto extends ElementDto {
+export class CreateElementSceneDto extends PlatformElementDto {
   @IsOptional()
   @IsBoolean()
   @ApiProperty({

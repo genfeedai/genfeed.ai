@@ -166,7 +166,7 @@ Both tools are available in the `brand` toolset and in agent chat.
 
 ## Social accounts, brand scope, and media
 
-Use `list_brands` then pass `brandId` into generation and connection tools. Genfeed
+Use `get_brands` then pass `brandId` into generation and connection tools. Genfeed
 does not silently pick the first organization brand.
 
 `connect_social_account` returns a `connectionId` and a browser authorization URL.
@@ -207,7 +207,7 @@ automatically when it runs the agent on your own Claude Code or Codex CLI; see
 
 ## Publishing readiness
 
-Before scheduling, call `list_scheduler_capabilities` and
+Before scheduling, call `get_scheduler_capabilities` and
 `list_brand_publishing_readiness` for the selected brand. A connected account
 alone does not make its channel schedulable. Readiness combines credential
 health with the canonical scheduler capability catalog.
@@ -264,7 +264,7 @@ The bare endpoint uses the `default` profile. Profiles shape the advertised
 
 | Endpoint selector | Advertised toolsets |
 | --- | --- |
-| No selector or `?profile=default` | `core`, `generation`, `content`, and `scheduler`, capped at 46 tools. |
+| No selector or `?profile=default` | `core`, `generation`, `content`, and `scheduler`, capped at 31 tools. |
 | `?profile=directory` | The same bounded selection, with `generation`, `clips`, and `ui` excluded. This profile does not imply directory approval. |
 | `?profile=full` | All toolsets, subject to the caller's permissions. |
 
@@ -361,20 +361,18 @@ calls, and real publishing are not claimed here.
 
 ### Discover tools outside your selection
 
-Three read-only meta tools, always in `core`, let an agent find a tool that
-isn't in its current selection:
+One read-only meta tool, always in `core`, lets an agent find a tool that
+isn't in its current selection. `find_tools` takes `{ name?, query?, toolset?, limit? }`:
 
-- **`list_toolsets`** — every toolset available on this server, with tool
-  counts.
-- **`search_tools`** — case-insensitive substring search over tool name,
-  description, and toolset (`{ query?, toolset?, limit? }`, at least one of
-  `query`/`toolset` required).
-- **`describe_tool`** — the full tool definition for one name (`{ name }`),
-  including the closest name matches when the name isn't found.
+- **No arguments** — every toolset available on this server, with tool counts.
+- **`query` and/or `toolset`** — case-insensitive substring search over tool
+  name, description, and toolset.
+- **`name`** — the full tool definition for one name, including the closest
+  name matches when the name isn't found.
 
 These search the full, role-filtered catalog regardless of the caller's
 current toolset selection. Once an agent has a tool's name and schema from
-`describe_tool`, it can call that tool directly with `tools/call` — narrowing
+`find_tools`, it can call that tool directly with `tools/call` — narrowing
 `tools/list` only narrows discovery, not what can be invoked — or reconnect
 with a broader `?toolsets=` selection so the tool appears in future
 `tools/list` responses.
@@ -425,7 +423,7 @@ https://mcp.genfeed.ai/mcp
 ## Uploading local media
 
 The default MCP profile includes `request_media_upload`, `complete_media_upload`,
-and `get_post`. Select a brand before reserving an upload.
+and `get_posts`. Select a brand before reserving an upload.
 
 1. Call `request_media_upload` with `filename`, `contentType`, and `category`.
 2. Upload to the returned `uploadUrl` before it expires. For `method: PUT`, send
@@ -435,10 +433,10 @@ and `get_post`. Select a brand before reserving an upload.
 3. Call `complete_media_upload` with the returned `assetId`. Its `media` entries
    can be passed to `create_scheduled_release`; a returned hosted `url` can also
    be used in `create_post` `mediaUrls`. Scheduling retains its approval checks.
-4. Use `get_post` with `postId` to read a post's targets, state, media, and timestamps.
+4. Use `get_posts` with `postId` to read a post's targets, state, media, and timestamps.
 
 Upload reservation creates a pending asset. Both upload tools are non-destructive
-writes; `get_post` is read-only. None of these tools publishes a post.
+writes; `get_posts` is read-only. None of these tools publishes a post.
 
 ## Interactive content cards
 

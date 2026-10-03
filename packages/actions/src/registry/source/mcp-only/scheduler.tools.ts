@@ -234,37 +234,26 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'List scheduler channel capabilities: platforms, caption limits, media rules, publish modes, required settings. Read-only.',
-    name: 'list_scheduler_capabilities',
-    parameters: {
-      properties: {
-        includeHidden: {
-          description:
-            'Include hidden channels that exist but refuse scheduling',
-          type: 'boolean',
-        },
-        includePlanned: {
-          description: 'Include planned channels with no live publish path yet',
-          type: 'boolean',
-        },
-      },
-      type: 'object',
-    },
-    requiredRole: 'user',
-  },
-  {
-    creditCost: 0,
-    description:
-      'Get one scheduler channel capability by platform: caption limits, media rules, publish modes, required settings, status. Read-only.',
-    name: 'get_scheduler_capability',
+      'Scheduler channel capabilities: caption limits, media rules, publish modes, required settings, status. Pass platform for one channel; omit it to list every channel. Read-only.',
+    name: 'get_scheduler_capabilities',
     parameters: {
       properties: {
         platform: {
+          description: 'One channel to describe. Omit to list all channels.',
           enum: credentialPlatforms,
           type: 'string',
         },
+        includeHidden: {
+          description:
+            'List only. Include hidden channels that exist but refuse scheduling.',
+          type: 'boolean',
+        },
+        includePlanned: {
+          description:
+            'List only. Include planned channels with no live publish path yet.',
+          type: 'boolean',
+        },
       },
-      required: ['platform'],
       type: 'object',
     },
     requiredRole: 'user',

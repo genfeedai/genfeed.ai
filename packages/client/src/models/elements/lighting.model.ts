@@ -9,6 +9,8 @@ export class ElementLighting extends BaseEntity implements IElementLighting {
   declare public category?: ModelCategory;
   declare public isActive?: boolean;
   declare public isDefault?: boolean;
+  declare public isPlatformDefault?: boolean;
+  declare public sortOrder?: number;
 
   constructor(data: Partial<IElementLighting> = {}) {
     super(data);

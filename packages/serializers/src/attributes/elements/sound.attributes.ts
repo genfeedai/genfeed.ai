@@ -8,4 +8,6 @@ export const soundAttributes = createEntityAttributes([
   'key',
   'isActive',
   'isDefault',
+  'isPlatformDefault',
+  'sortOrder',
 ]);

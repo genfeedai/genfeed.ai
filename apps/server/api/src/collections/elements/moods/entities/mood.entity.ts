@@ -3,7 +3,9 @@ import { ModelCategory } from '@genfeedai/contracts';
 import { type ElementMood } from '@genfeedai/prisma';
 
 export class ElementMoodEntity extends BaseEntity implements ElementMood {
-  declare readonly organizationId: string;
+  declare readonly organizationId: string | null;
+  declare readonly isActive: boolean;
+  declare readonly sortOrder: number;
 
   declare readonly key: string;
   declare readonly label: string;

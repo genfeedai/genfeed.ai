@@ -19,11 +19,13 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ScenesService } from '@services/elements/scenes.service';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
+import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalScene } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Pencil, Trash2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   type ReactNode,
   Suspense,
@@ -138,6 +140,7 @@ function ScenesListContent({
     onRefreshingChangeRef.current = onRefreshingChange;
   });
 
+  const scopeTranslate = useTranslations('ui.elementPlatformFields');
   const columns: TableColumn<ElementScene>[] = [
     {
       header: 'Label',
@@ -145,6 +148,16 @@ function ScenesListContent({
       subtext: (scene: ElementScene) => scene.description,
     },
     { className: 'font-mono text-sm', header: 'Key', key: 'key' },
+    {
+      header: scopeTranslate('scopeHeader'),
+      key: 'isPlatformDefault',
+      render: (element: ElementScene) => (
+        <ElementScopeBadge
+          isActive={element.isActive}
+          isPlatformDefault={element.isPlatformDefault}
+        />
+      ),
+    },
   ];
 
   const findAllScenes = useCallback(
