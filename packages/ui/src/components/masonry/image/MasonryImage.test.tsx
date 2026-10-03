@@ -49,7 +49,7 @@ vi.mock('@ui/masonry/shared/MasonryConfirmBridge', () => ({
 }));
 
 vi.mock('@ui/masonry/shared/useMasonryHover', () => ({
-  createDownloadHandler: vi.fn(() => vi.fn()),
+  useIngredientDownloadHandler: vi.fn(() => vi.fn()),
   useMasonryHover: vi.fn(() => ({
     handleMouseEnter: vi.fn(),
     handleMouseLeave: vi.fn(),

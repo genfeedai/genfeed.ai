@@ -261,6 +261,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'isBrandingEnabled',
     'lens',
     'lighting',
+    // Computed per request by the media delivery projection, not stored.
+    'mediaDelivery',
     'model',
     'mood',
     'outputFormat',
@@ -297,6 +299,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'frame',
     'hasVoted',
     'height',
+    // Computed per request by the media delivery projection, not stored.
+    'mediaDelivery',
     'model',
     'mood',
     'outputFormat',
@@ -437,6 +441,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'hasVoted',
     'height',
     'isActive',
+    // Computed per request by the media delivery projection, not stored.
+    'mediaDelivery',
     'model',
     'mood',
     'outputFormat',
@@ -616,6 +622,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'hasVoted',
     'height',
     'label',
+    // Computed per request by the media delivery projection, not stored.
+    'mediaDelivery',
     'model',
     'modelLabel',
     'mood',
@@ -670,6 +678,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'isBrandingEnabled',
     'lens',
     'lighting',
+    // Computed per request by the media delivery projection, not stored.
+    'mediaDelivery',
     'model',
     'mood',
     'outputFormat',

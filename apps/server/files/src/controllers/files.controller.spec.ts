@@ -407,6 +407,10 @@ describe('FilesController', () => {
       getJobStatus: jobsController.getJobStatus.bind(jobsController),
       getPresignedDownloadUrl:
         storageController.getPresignedDownloadUrl.bind(storageController),
+      getPresignedDownloadUrlForObjectKey:
+        storageController.getPresignedDownloadUrlForObjectKey.bind(
+          storageController,
+        ),
       getPresignedUploadUrl:
         storageController.getPresignedUploadUrl.bind(storageController),
       getQueueStats: jobsController.getQueueStats.bind(jobsController),
