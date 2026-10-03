@@ -15,7 +15,9 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 import { VotesController } from '@api/collections/votes/controllers/votes.controller';
 import { VotesService } from '@api/collections/votes/services/votes.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { VoteEntityModel } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -29,7 +31,12 @@ const validEntityId = testId('entity');
 
 describe('VotesController', () => {
   let controller: VotesController;
-  let service: { create: vi.Mock; patchAll: vi.Mock };
+  let service: {
+    create: ReturnType<typeof vi.fn>;
+    patchAll: ReturnType<typeof vi.fn>;
+    toggleVote: ReturnType<typeof vi.fn>;
+  };
+  let ingredientFindFirst: ReturnType<typeof vi.fn>;
 
   const mockReq = {} as Request;
 
@@ -48,12 +55,19 @@ describe('VotesController', () => {
     service = {
       create: vi.fn(),
       patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+      toggleVote: vi.fn(),
     };
+
+    ingredientFindFirst = vi.fn().mockResolvedValue({ id: validEntityId });
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [VotesController],
       providers: [
         { provide: VotesService, useValue: service },
+        {
+          provide: PrismaService,
+          useValue: { ingredient: { findFirst: ingredientFindFirst } },
+        },
         {
           provide: LoggerService,
           useValue: { error: vi.fn(), log: vi.fn() },
@@ -67,9 +81,13 @@ describe('VotesController', () => {
     controller = module.get<VotesController>(VotesController);
   });
 
-  it('creates a vote', async () => {
-    const mockVote = { _id: '1', entity: validEntityId };
-    service.create.mockResolvedValue(mockVote);
+  it('validates the ingredient tenant before using the shared toggle', async () => {
+    const mockVote = { id: testId('vote'), entity: validEntityId };
+    service.toggleVote.mockResolvedValue({
+      action: 'added',
+      vote: mockVote,
+      voteId: mockVote.id,
+    });
 
     const result = await controller.create(
       mockReq,
@@ -77,13 +95,84 @@ describe('VotesController', () => {
       mockUser,
     );
 
-    expect(service.create).toHaveBeenCalledOnce();
-    expect(service.create).toHaveBeenCalledWith({
+    expect(ingredientFindFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: { id: validEntityId, isDeleted: false, organizationId },
+    });
+    expect(service.toggleVote).toHaveBeenCalledWith({
       entityId: validEntityId,
       entityModel: VoteEntityModel.INGREDIENT,
-      userId: mockUser.userId,
+      organizationId,
+      userId,
     });
+    expect(service.create).not.toHaveBeenCalled();
     expect(result).toEqual(mockVote);
+  });
+
+  it.each([
+    {
+      name: 'another organization',
+      organizationId: testId('foreign-org'),
+      isDeleted: false,
+    },
+    { name: 'deleted', organizationId, isDeleted: true },
+    {
+      name: 'missing',
+      organizationId,
+      isDeleted: false,
+      id: testId('other-ingredient'),
+    },
+  ])(
+    'returns 404 for an ingredient that is $name without writing a vote',
+    async (row) => {
+      const ingredient = { id: validEntityId, ...row };
+      ingredientFindFirst.mockImplementation(({ where }) =>
+        Object.entries(where).every(
+          ([key, value]) =>
+            ingredient[key as keyof typeof ingredient] === value,
+        )
+          ? Promise.resolve({ id: ingredient.id })
+          : Promise.resolve(null),
+      );
+
+      const result = controller.create(mockReq, validCreateVoteDto, mockUser);
+
+      await expect(result).rejects.toBeInstanceOf(NotFoundException);
+      await expect(result).rejects.toMatchObject({ status: 404 });
+      expect(service.toggleVote).not.toHaveBeenCalled();
+      expect(service.create).not.toHaveBeenCalled();
+      expect(service.patchAll).not.toHaveBeenCalled();
+    },
+  );
+
+  it('fails closed when the authenticated organization is missing', async () => {
+    await expect(
+      controller.create(mockReq, validCreateVoteDto, {
+        ...mockUser,
+        organizationId: '',
+      }),
+    ).rejects.toMatchObject({ status: 404 });
+
+    expect(ingredientFindFirst).not.toHaveBeenCalled();
+    expect(service.toggleVote).not.toHaveBeenCalled();
+  });
+
+  it('serializes the removed vote when the ingredient is voted on again', async () => {
+    const removedVote = {
+      id: testId('vote'),
+      entity: validEntityId,
+      isDeleted: true,
+    };
+    service.toggleVote.mockResolvedValue({
+      action: 'removed',
+      vote: removedVote,
+      voteId: removedVote.id,
+    });
+
+    expect(
+      await controller.create(mockReq, validCreateVoteDto, mockUser),
+    ).toEqual(removedVote);
+    expect(service.create).not.toHaveBeenCalled();
   });
 
   it('throws BadRequestException when entity is invalid ObjectId', async () => {
@@ -107,7 +196,7 @@ describe('VotesController', () => {
   });
 
   it('throws BadRequestException when service fails', async () => {
-    service.create.mockRejectedValue(new Error('fail'));
+    service.toggleVote.mockRejectedValue(new Error('fail'));
 
     await expect(
       controller.create(mockReq, validCreateVoteDto, mockUser),
@@ -132,26 +221,8 @@ describe('VotesController', () => {
       expect.objectContaining({ entityModel: VoteEntityModel.PROMPT }),
     );
     expect(result).toEqual(mockVote);
-  });
-
-  it('creates an ingredient vote with entity model', async () => {
-    const mockVote = {
-      _id: '3',
-      entity: validEntityId,
-      entityModel: VoteEntityModel.INGREDIENT,
-    };
-    service.create.mockResolvedValue(mockVote);
-
-    const result = await controller.create(
-      mockReq,
-      validCreateVoteDto,
-      mockUser,
-    );
-
-    expect(service.create).toHaveBeenCalledWith(
-      expect.objectContaining({ entityModel: VoteEntityModel.INGREDIENT }),
-    );
-    expect(result).toEqual(mockVote);
+    expect(ingredientFindFirst).not.toHaveBeenCalled();
+    expect(service.toggleVote).not.toHaveBeenCalled();
   });
 
   it('removes a vote (soft-delete) via DELETE endpoint', async () => {
