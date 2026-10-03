@@ -6,19 +6,32 @@ import {
   PublishSkillDto,
   RollbackSkillDto,
 } from '@api/collections/skills/dto/skill-library.dto';
+import {
+  parseSkillVersionEmptyQueryV1,
+  SkillVersionListQueryDto,
+} from '@api/collections/skills/dto/skill-version-query.dto';
 import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { SkillSerializer } from '@genfeedai/serializers';
+import {
+  serializeCollection,
+  serializeSingle,
+} from '@api/helpers/utils/response/response.util';
+import {
+  SkillSerializer,
+  SkillVersionMetadataSerializer,
+  SkillVersionReadSerializer,
+} from '@genfeedai/serializers';
 import {
   Body,
   Controller,
   Get,
+  Header,
   HttpException,
   HttpStatus,
   Param,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -28,6 +41,44 @@ import type { Request } from 'express';
 @UseGuards(RolesGuard)
 export class SkillLibraryController {
   constructor(private readonly library: SkillLibraryService) {}
+
+  @Get(':id/versions')
+  @Header('Cache-Control', 'private,no-store')
+  @Header('Vary', 'Cookie,Authorization')
+  async listVersions(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Query() query: unknown,
+  ) {
+    const parsed = SkillVersionListQueryDto.parse(query);
+    const page = await this.library.listVersions(this.actor(user), id, parsed);
+    return serializeCollection(request, SkillVersionMetadataSerializer, {
+      docs: page.items,
+      limit: page.limit,
+      hasMore: page.hasMore,
+      nextCursor: page.nextCursor,
+    });
+  }
+
+  @Get(':id/versions/:versionId')
+  @Header('Cache-Control', 'private,no-store')
+  @Header('Vary', 'Cookie,Authorization')
+  async getVersion(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Param('versionId') versionId: string,
+    @Query() query: unknown,
+  ) {
+    parseSkillVersionEmptyQueryV1(query);
+    const version = await this.library.getVersion(
+      this.actor(user),
+      id,
+      versionId,
+    );
+    return serializeSingle(request, SkillVersionReadSerializer, version);
+  }
 
   @Post('scoped')
   async createScopedSkill(

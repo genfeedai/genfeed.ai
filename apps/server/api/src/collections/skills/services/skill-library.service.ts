@@ -37,10 +37,16 @@ import {
   applyAuthorizedVersionBody,
   loadAuthorizedSkillVersions,
 } from '@api/collections/skills/services/skill-version-loader';
+import { SkillVersionReader } from '@api/collections/skills/services/skill-version-reader';
 import { withSkillWriteSession } from '@api/collections/skills/services/skill-write-session';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type {
+  SkillVersionListQueryV1,
+  SkillVersionReadPageV1,
+  SkillVersionReadV1,
+} from '@genfeedai/contracts/interfaces/ai/skill-version-read.interface';
 import type { Prisma } from '@genfeedai/prisma';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
@@ -58,10 +64,36 @@ export type {
   RecordedSkillExclusion,
   RecordedSkillVersion,
 } from '@api/collections/skills/services/skill-resolution-evidence';
+export { isVerifiedOrdinaryUploadVersionReadV1 } from '@api/collections/skills/services/skill-version-reader';
 
 @Injectable()
 export class SkillLibraryService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly versionReader: SkillVersionReader;
+
+  constructor(private readonly prisma: PrismaService) {
+    this.versionReader = new SkillVersionReader(prisma, {
+      decide: (actor, skill) => this.decide(actor, skill),
+      toDocument: (skill) => this.toDocument(skill),
+      loadAuthorizedVersions: (actor, documents, options) =>
+        this.loadAuthorizedVersions(actor, documents, options),
+    });
+  }
+
+  async listVersions(
+    actor: SkillLibraryActor,
+    skillId: string,
+    query: SkillVersionListQueryV1,
+  ): Promise<SkillVersionReadPageV1> {
+    return this.versionReader.listVersions(actor, skillId, query);
+  }
+
+  async getVersion(
+    actor: SkillLibraryActor,
+    skillId: string,
+    versionId: string,
+  ): Promise<SkillVersionReadV1> {
+    return this.versionReader.getVersion(actor, skillId, versionId);
+  }
 
   async importValidatedPackage(
     actor: SkillLibraryActor,
