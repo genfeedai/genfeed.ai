@@ -1,24 +1,11 @@
+import { PlatformElementDto } from '@api/shared/dto/element/platform-element.dto';
 import { ModelCategory } from '@genfeedai/contracts';
-import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
 
-export class CreateElementCameraMovementDto {
-  @IsString()
-  key!: string;
-
-  @IsString()
-  label!: string;
-
-  @IsString()
-  @IsOptional()
-  description?: string;
-
+export class CreateElementCameraMovementDto extends PlatformElementDto {
   @IsEnum(ModelCategory)
   @IsOptional()
   category?: ModelCategory;
-
-  @IsBoolean()
-  @IsOptional()
-  isActive?: boolean;
 
   @IsBoolean()
   @IsOptional()

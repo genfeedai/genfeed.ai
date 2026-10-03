@@ -179,6 +179,16 @@
     "cancel": "Cancel",
     "generate": "Generate"
   },
+  "elementPlatformFields": {
+    "activeHelp": "Inactive elements are hidden from pickers.",
+    "activeLabel": "Active",
+    "inactive": "Inactive",
+    "scopeHeader": "Scope",
+    "scopeOrganization": "Organization",
+    "scopePlatform": "Default",
+    "sortOrderHelp": "Lowest first. Platform defaults sort ahead of organization elements.",
+    "sortOrderLabel": "Sort order"
+  },
   "evaluationCard": {
     "persuasion": "Persuasion"
   },

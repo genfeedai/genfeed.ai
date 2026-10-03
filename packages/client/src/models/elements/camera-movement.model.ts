@@ -12,6 +12,8 @@ export class ElementCameraMovement
   declare public category?: ModelCategory;
   declare public isActive?: boolean;
   declare public isDefault?: boolean;
+  declare public isPlatformDefault?: boolean;
+  declare public sortOrder?: number;
 
   constructor(data: Partial<IElementCameraMovement> = {}) {
     super(data);

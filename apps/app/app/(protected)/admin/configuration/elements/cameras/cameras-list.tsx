@@ -16,11 +16,13 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { CamerasService } from '@services/elements/cameras.service';
 import { useQuery } from '@tanstack/react-query';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
+import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalCamera } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Pencil, Trash2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   Suspense,
   useCallback,
@@ -168,6 +170,7 @@ function CamerasListContent({
     onRefreshingChangeRef.current?.(isRefreshing);
   }, [isRefreshing]);
 
+  const scopeTranslate = useTranslations('ui.elementPlatformFields');
   const columns: TableColumn<ElementCamera>[] = [
     {
       header: 'Label',
@@ -175,6 +178,16 @@ function CamerasListContent({
       subtext: (camera: ElementCamera) => camera.description,
     },
     { className: 'font-mono text-sm', header: 'Key', key: 'key' },
+    {
+      header: scopeTranslate('scopeHeader'),
+      key: 'isPlatformDefault',
+      render: (element: ElementCamera) => (
+        <ElementScopeBadge
+          isActive={element.isActive}
+          isPlatformDefault={element.isPlatformDefault}
+        />
+      ),
+    },
   ];
 
   const actions =

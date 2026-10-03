@@ -1,6 +1,7 @@
 import type { Sound } from '@models/ingredients/sound.model';
 import type { BuildSoundsColumnsParams } from '@props/admin/sounds.props';
 import type { TableColumn } from '@props/ui/display/table.props';
+import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
 import {
   SoundActiveCell,
   SoundCategoryCell,
@@ -12,6 +13,7 @@ export function buildSoundsColumns({
   scope,
   onToggleActive,
   onToggleDefault,
+  scopeLabel,
 }: BuildSoundsColumnsParams): TableColumn<Sound>[] {
   return [
     {
@@ -20,6 +22,13 @@ export function buildSoundsColumns({
       subtext: (sound: Sound) => sound.description,
     },
     { className: 'font-mono text-sm', header: 'Key', key: 'key' },
+    {
+      header: scopeLabel,
+      key: 'isPlatformDefault',
+      render: (sound: Sound) => (
+        <ElementScopeBadge isPlatformDefault={sound.isPlatformDefault} />
+      ),
+    },
     {
       header: 'Category',
       key: 'category',

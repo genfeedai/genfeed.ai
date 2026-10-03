@@ -1,15 +1,10 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import { PlatformElementDto } from '@api/shared/dto/element/platform-element.dto';
 import { ModelCategory } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsBoolean,
-  IsEnum,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
 
-export class CreateElementSoundDto {
+export class CreateElementSoundDto extends PlatformElementDto {
   @ApiProperty({ required: false })
   @IsEntityId()
   @IsOptional()
@@ -24,30 +19,10 @@ export class CreateElementSoundDto {
   @IsOptional()
   category?: ModelCategory;
 
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  label!: string;
-
-  @ApiProperty({ required: false })
-  @IsString()
-  @IsOptional()
-  description?: string;
-
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  key!: string;
-
   @ApiProperty({ default: false, required: false })
   @IsBoolean()
   @IsOptional()
   isDeleted?: boolean;
-
-  @ApiProperty({ default: true, required: false })
-  @IsBoolean()
-  @IsOptional()
-  isActive?: boolean;
 
   @ApiProperty({
     default: false,

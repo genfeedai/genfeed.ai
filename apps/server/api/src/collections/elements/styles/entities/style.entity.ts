@@ -3,7 +3,9 @@ import { BaseEntity } from '@api/entities/base.entity';
 import type { ModelCategory } from '@genfeedai/contracts';
 
 export class ElementStyleEntity extends BaseEntity implements ElementStyle {
-  declare readonly organizationId: string;
+  declare readonly organizationId: string | null;
+  declare readonly isActive: boolean;
+  declare readonly sortOrder: number;
 
   declare readonly key: string;
   declare readonly label: string;

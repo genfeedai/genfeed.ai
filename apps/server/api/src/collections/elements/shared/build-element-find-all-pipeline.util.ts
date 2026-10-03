@@ -1,13 +1,16 @@
+import { buildElementScopeConditions } from '@api/collections/elements/shared/element-scope.util';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 
 interface ElementMetadata {
+  isSuperAdmin?: boolean;
   organizationId?: string;
 }
 
 interface BuildElementFindAllQueryOptions {
   adminFilter?: Record<string, unknown> | null;
   defaultSort?: Record<string, 1 | -1>;
+  filters?: Record<string, unknown>;
   includeStateFilters?: boolean;
   metadata: ElementMetadata;
   query: BaseQueryDto;
@@ -16,23 +19,17 @@ interface BuildElementFindAllQueryOptions {
 
 export function buildElementFindAllQuery({
   adminFilter,
-  defaultSort = { createdAt: -1, label: 1 },
+  defaultSort = { sortOrder: 1, label: 1, createdAt: -1 },
+  filters,
   includeStateFilters = false,
   metadata,
   query,
   searchableFields = [],
 }: BuildElementFindAllQueryOptions): Record<string, unknown> {
   const queryAny = query as unknown as Record<string, unknown>;
-  const orConditions: Record<string, unknown>[] = [];
-
-  if (metadata.organizationId) {
-    orConditions.push({
-      organizationId: metadata.organizationId,
-    });
-  }
-
   const where: Record<string, unknown> = {
     isDeleted: query.isDeleted ?? false,
+    ...(filters ?? {}),
     ...(includeStateFilters &&
       typeof queryAny.isActive === 'boolean' && {
         isActive: queryAny.isActive,
@@ -41,7 +38,7 @@ export function buildElementFindAllQuery({
       typeof queryAny.isDefault === 'boolean' && {
         isDefault: queryAny.isDefault,
       }),
-    ...(adminFilter ?? (orConditions.length > 0 ? { OR: orConditions } : {})),
+    ...(adminFilter ?? { OR: buildElementScopeConditions(metadata) }),
   };
 
   if (searchableFields.length > 0 && typeof queryAny.search === 'string') {

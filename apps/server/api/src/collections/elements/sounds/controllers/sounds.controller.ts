@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
+import { buildElementFindAllQuery } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
+import { ElementsCRUDController } from '@api/collections/elements/shared/elements-crud.controller';
 import { CreateElementSoundDto } from '@api/collections/elements/sounds/dto/create-sound.dto';
 import { UpdateElementSoundDto } from '@api/collections/elements/sounds/dto/update-sound.dto';
 import { ElementsSoundsService } from '@api/collections/elements/sounds/services/sounds.service';
@@ -10,10 +11,7 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { MemberRole } from '@genfeedai/contracts';
-import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { type ElementSound } from '@genfeedai/prisma';
 import { SoundSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -37,7 +35,7 @@ import type { Request } from 'express';
 @ApiBearerAuth()
 @AutoSwagger()
 @UseGuards(RolesGuard)
-export class ElementsSoundsController extends BaseCRUDController<
+export class ElementsSoundsController extends ElementsCRUDController<
   ElementSound,
   CreateElementSoundDto,
   UpdateElementSoundDto,
@@ -98,82 +96,18 @@ export class ElementsSoundsController extends BaseCRUDController<
     return super.remove(request, user, id);
   }
 
-  /**
-   * Override the base pipeline to load sounds
-   * Load items with: (no org AND no user) OR (user's org) OR (user's user)
-   */
   public buildFindAllQuery(user: User, query: BaseQueryDto) {
-    const adminFilter = CollectionFilterUtil.buildAdminFilter(user, query);
-
-    // Build OR conditions: global items OR user's org items OR user's items
-    const orConditions: Record<string, unknown>[] = [];
-
-    if (user.organizationId) {
-      orConditions.push({
+    return buildElementFindAllQuery({
+      adminFilter: CollectionFilterUtil.buildAdminFilter(user, query),
+      filters:
+        typeof query.isFavorite === 'boolean'
+          ? { isFavorite: query.isFavorite }
+          : undefined,
+      metadata: {
+        isSuperAdmin: getIsSuperAdmin(user),
         organizationId: user.organizationId,
-      });
-    }
-
-    return {
-      where: {
-        isDeleted: query.isDeleted ?? false,
-        ...(typeof query.isFavorite === 'boolean' && {
-          isFavorite: query.isFavorite,
-        }),
-        ...(adminFilter ??
-          (orConditions.length > 0 ? { OR: orConditions } : {})),
       },
-      orderBy: query.sort
-        ? handleQuerySort(query.sort)
-        : { createdAt: -1, label: 1 },
-    };
-  }
-
-  /**
-   * Override enrichCreateDto to handle organization
-   */
-  public enrichCreateDto(
-    createDto: CreateElementSoundDto,
-    user: User,
-  ): CreateElementSoundDto {
-    const enriched: CreateElementSoundDto & { organizationId?: string } = {
-      ...createDto,
-    };
-
-    // Add organization if not super admin
-    if (!getIsSuperAdmin(user) && user.organizationId) {
-      enriched.organizationId = user.organizationId;
-    }
-
-    // Sounds don't have a user field
-    return enriched as CreateElementSoundDto;
-  }
-
-  /**
-   * Override enrichUpdateDto to handle organization
-   */
-  public enrichUpdateDto(
-    updateDto: UpdateElementSoundDto,
-    _user?: User,
-  ): Promise<UpdateElementSoundDto> {
-    return Promise.resolve({ ...updateDto });
-  }
-
-  /**
-   * Override canUserModifyEntity to use organization authorization
-   */
-  public override canUserModifyEntity(
-    user: User,
-    entity: ElementSound,
-  ): boolean {
-    return canModifyOrganizationElement(user, entity);
-  }
-
-  /**
-   * Override getPopulateForOwnershipCheck since sounds don't have a user field
-   * Only populate organization field for ownership checks
-   */
-  public getPopulateForOwnershipCheck(): PopulateOption[] {
-    return [];
+      query,
+    });
   }
 }

@@ -8,4 +8,6 @@ export class Sound extends Ingredient implements ISound {
 
   public label?: string;
   public description?: string;
+  declare public isPlatformDefault?: boolean;
+  declare public sortOrder?: number;
 }

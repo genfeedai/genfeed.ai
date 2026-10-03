@@ -8,6 +8,7 @@ import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal'
 import type { ModalCrudProps } from '@genfeedai/props/modals/modal.props';
 import { CamerasService } from '@genfeedai/services/elements/cameras.service';
 import ModalActions from '@ui/modals/actions/ModalActions';
+import ElementPlatformFields from '@ui/modals/elements/shared/ElementPlatformFields';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
@@ -25,6 +26,8 @@ export default function ModalCamera({
     ElementSimpleSchema
   >({
     defaultValues: {
+      isActive: true,
+      sortOrder: 0,
       description: '',
       key: '',
       label: '',
@@ -95,6 +98,18 @@ export default function ModalCamera({
             isDisabled={isSubmitting}
           />
         </FormControl>
+
+        <ElementPlatformFields
+          isActive={form.watch('isActive') ?? true}
+          isDisabled={isSubmitting}
+          onIsActiveChange={(isActive) =>
+            form.setValue('isActive', isActive, { shouldValidate: true })
+          }
+          onSortOrderChange={(sortOrder) =>
+            form.setValue('sortOrder', sortOrder, { shouldValidate: true })
+          }
+          sortOrder={form.watch('sortOrder') ?? 0}
+        />
 
         <ModalActions>
           <Button
