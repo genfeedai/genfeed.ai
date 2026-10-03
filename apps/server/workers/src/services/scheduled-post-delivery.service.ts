@@ -1,89 +1,120 @@
-import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
-import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { PostEntity } from '@api/collections/posts/entities/post.entity';
-import type { PostDocument } from '@api/collections/posts/post.schema';
+import {
+  CredentialPublishingReadinessService,
+} from '@api/collections/credentials/services/credential-publishing-readiness.service';
+import {
+  OrganizationsService,
+} from '@api/collections/organizations/services/organizations.service';
+import {
+  PostEntity,
+} from '@api/collections/posts/entities/post.entity';
+import type {
+  PostDocument,
+} from '@api/collections/posts/post.schema';
 import {
   SCHEDULED_POST_ACTION_IDS,
   type ScheduledPostWorkflowInput,
 } from '@api/collections/posts/services/scheduled-post-workflow-definition';
-import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
-import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import {
-  type CredentialDocument,
-  type IPublisher,
-  type PublishContext,
+  WorkflowExecutionQueueService,
+} from '@api/collections/workflows/services/workflow-execution-queue.service';
+import {
+  SystemWorkflowRunnerService,
+} from '@api/collections/workflows/system-workflow-runner.service';
+import {
   type PublishResult,
   SERVER_TOKENS,
   type ServerCredentialStore,
   type ServerPublisherFactory,
   scopedWhere,
-  TIKTOK_APP_HANDOFF_SETTING,
-  WORKFLOW_APPROVED_SCHEDULE_SETTING,
 } from '@api/index';
-import type { RecordActivityInput } from '@api/services/activity-recording/activity-recording.types';
-import { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
-import { QuotaService } from '@api/services/quota/quota.service';
-import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
-import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
+import type {
+  RecordActivityInput,
+} from '@api/services/activity-recording/activity-recording.types';
+import {
+  MediaReadinessService,
+} from '@api/services/media-readiness/media-readiness.service';
+import {
+  QuotaService,
+} from '@api/services/quota/quota.service';
+import {
+  ReplyPostWatchService,
+} from '@api/services/reply-bot/reply-post-watch.service';
+import {
+  PublishEventWebhookService,
+} from '@api/services/webhook-client/publish-event-webhook.service';
 import {
   CredentialPlatform,
-  fromPrismaCredentialPlatform,
   Platform,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import {
-  resolveChannelTargetSettings,
-  validateChannelTargetSettings,
-} from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
-import { resolvePostVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
-import { LoggerService } from '@libs/logger/logger.service';
-import { PrismaService } from '@libs/prisma/prisma.service';
-import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
-import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+  resolvePostVisibility,
+} from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import {
+  LoggerService,
+} from '@libs/logger/logger.service';
+import {
+  PrismaService,
+} from '@libs/prisma/prisma.service';
+import {
+  CallerUtil,
+} from '@libs/utils/caller/caller.util';
+import {
+  getErrorMessage,
+} from '@libs/utils/error/get-error-message.util';
+import {
+  Inject,
+  Injectable,
+  type OnModuleInit,
+} from '@nestjs/common';
 import {
   createChannelTargetError,
   createFailedPublishResult,
   createPublishFailedActivity,
-  createQuotaExceededActivity,
   getPublishErrorCode,
   getPublishErrorMessage,
   isAmbiguousPublishError,
   isRetryablePublishError,
-  type QuotaCheckResult,
 } from '@workers/crons/posts/post-publish-error.util';
-import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
-import { readPostString } from '@workers/services/scheduled-post.utils';
-import { loadScheduledActionPost } from '@workers/services/scheduled-post-action-load.util';
+import {
+  SCHEDULED_POST_RETRY_BACKOFF_SECONDS,
+} from '@workers/services/scheduled-post.constants';
+import {
+  readPostString,
+} from '@workers/services/scheduled-post.utils';
+import {
+  loadScheduledActionPost,
+} from '@workers/services/scheduled-post-action-load.util';
 import {
   readScheduledDeliveryRecord,
   readScheduledDeliveryRequest,
   readScheduledDeliveryResult,
 } from '@workers/services/scheduled-post-delivery-input.util';
-import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
+import type {
+  DeliveryGateFailure,
+  PostDeliveryIds,
+  PreparedPostDelivery,
+} from '@workers/services/scheduled-post-delivery.types';
 import {
-  collectMediaGateAssetIds,
+  readDeliveryIds,
+  ScheduledPostDeliveryGates,
+} from '@workers/services/scheduled-post-delivery-gates';
+import {
+  ScheduledPostFailureService,
+} from '@workers/services/scheduled-post-failure.service';
+import {
   type PlannedThreadChild,
-  readMediaGateOutcome,
   toPlannedThreadChildren,
-  toValidationMedia,
 } from '@workers/services/scheduled-post-media-gate.util';
 import {
-  acceptProviderPublishAttempt,
-  claimProviderPublishAttempt,
-  inspectProviderPublishAttempt,
-  markProviderPublishAttemptUncertain,
-  markProviderReceiptPersisted,
-  PROVIDER_PUBLISH_LEASE_RENEWAL_MS,
+  ScheduledPostProviderAttempts,
+} from '@workers/services/scheduled-post-provider-attempts';
+import {
   type ProviderPublishAttempt,
   type ProviderPublishAttemptRef,
   ProviderPublishInFlightError,
   ProviderPublishPersistenceError,
-  releaseProviderPublishAttempt,
-  renewProviderPublishAttempt,
-  reserveProviderPublishAttempt,
 } from '@workers/services/scheduled-post-provider-receipt.util';
 import {
   queueLearningPublicationRefreshV1,
@@ -97,50 +128,43 @@ import {
   planThreadChildDelivery,
 } from '@workers/services/thread-comment-schedule.util';
 
-/** Receipt owner recorded while a terminal failure holds the occurrence. */
-const TERMINAL_VALIDATION_EXECUTION_ID = 'terminal-validation';
-
-type PostDeliveryIds = {
-  brandId: string | undefined;
-  credentialId: string | undefined;
-  organizationId: string | undefined;
-  userId: string | undefined;
-};
-
-type PreparedPostDelivery = {
-  context: PublishContext;
-  credential: CredentialDocument;
-  platform: Platform;
-  publisher: IPublisher;
-};
-
-type DeliveryLoad<T> =
-  | { ok: true; value: T }
-  | { ok: false; result: PublishResult };
-
 @Injectable()
 export class ScheduledPostDeliveryService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
   private readonly MAX_RETRY_ATTEMPTS = 3;
+  private readonly gates: ScheduledPostDeliveryGates;
+  private readonly attempts: ScheduledPostProviderAttempts;
 
   constructor(
     private readonly logger: LoggerService,
     private readonly postFailureService: ScheduledPostFailureService,
     @Inject(SERVER_TOKENS.credentials)
-    private readonly credentialsService: ServerCredentialStore,
-    private readonly organizationsService: OrganizationsService,
-    private readonly quotaService: QuotaService,
+    credentialsService: ServerCredentialStore,
+    organizationsService: OrganizationsService,
+    quotaService: QuotaService,
     @Inject(SERVER_TOKENS.publisherFactory)
-    private readonly publisherFactory: ServerPublisherFactory,
+    publisherFactory: ServerPublisherFactory,
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
     private readonly publishEventWebhookService: PublishEventWebhookService,
     private readonly schedulerPublishStateService: SchedulerPublishStateService,
     private readonly replyPostWatchService: ReplyPostWatchService,
-    private readonly publishingReadinessService: CredentialPublishingReadinessService,
+    publishingReadinessService: CredentialPublishingReadinessService,
     private readonly prisma: PrismaService,
-    private readonly mediaReadinessService: MediaReadinessService,
+    mediaReadinessService: MediaReadinessService,
     private readonly workflowQueue: WorkflowExecutionQueueService,
-  ) {}
+  ) {
+    this.gates = new ScheduledPostDeliveryGates(
+      logger,
+      credentialsService,
+      organizationsService,
+      quotaService,
+      publisherFactory,
+      publishingReadinessService,
+      prisma,
+      mediaReadinessService,
+    );
+    this.attempts = new ScheduledPostProviderAttempts(prisma, logger);
+  }
 
   onModuleInit(): void {
     this.systemWorkflowRunner.registerAction(
@@ -185,7 +209,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       lastAttemptAt: new Date(),
     });
 
-    const ids = this.readDeliveryIds(post);
+    const ids = readDeliveryIds(post);
 
     try {
       // Reserve the occurrence before any gate: only the holder of a fresh
@@ -193,11 +217,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       // delivery's provider call or fail an already-published post.
       let attempt: ProviderPublishAttempt;
       try {
-        attempt = await reserveProviderPublishAttempt(
-          this.prisma,
-          post,
-          workflowExecutionId,
-        );
+        attempt = await this.attempts.reserve(post, workflowExecutionId);
       } catch (error: unknown) {
         if (error instanceof ProviderPublishInFlightError) throw error;
         // Nothing reached the provider, so the normal retry path is safe.
@@ -212,7 +232,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
           post,
           attempt,
           attempt.result,
-          await this.loadRecoveryDelivery(post, source, ids, url),
+          await this.gates.loadRecoveryDelivery(post, source, ids, url),
           workflowExecutionId,
           url,
         );
@@ -254,27 +274,32 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     let held: ProviderPublishAttemptRef | null =
       attempt.kind === 'publish' ? attempt : null;
     const release = async (result: PublishResult): Promise<PublishResult> => {
-      if (held) await this.settleProviderAttempt(post, held, 'released', url);
+      if (held) await this.attempts.settle(post, held, 'released', url);
       return result;
     };
+    const fail = (failure: DeliveryGateFailure): Promise<PublishResult> =>
+      this.failChannel(
+        post,
+        failure.platform,
+        failure.code,
+        failure.message,
+        failure.isRetryable,
+        failure.activity,
+      ).then(release);
     try {
-      const loaded = await this.loadPublishResources(post, ids, url);
+      const loaded = await this.gates.loadResources(post, ids, url);
       if (!loaded.ok) {
-        return await release(loaded.result);
+        return await fail(loaded.failure);
       }
       const { credential, organization } = loaded.value;
+      const checkCredential = () =>
+        this.gates.checkCredential(post, ids, credential, organization, url);
       if (held) {
-        const failure = await this.runCredentialGates(
-          post,
-          ids,
-          credential,
-          organization,
-          url,
-        );
-        if (failure) return await release(failure);
+        const failure = await checkCredential();
+        if (failure) return await fail(failure);
       }
 
-      const prepared = await this.preparePublisherAndContext(
+      const prepared = this.gates.prepare(
         post,
         source,
         ids,
@@ -283,11 +308,13 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         url,
       );
       if (!prepared.ok) {
-        return await release(prepared.result);
+        return await fail(prepared.failure);
       }
+      const checkContent = () =>
+        this.gates.checkContent(post, ids, prepared.value, url);
 
       if (attempt.kind === 'unconfirmed') {
-        const resolved = await this.resolveUnconfirmedAttempt(
+        const resolved = await this.attempts.resolveUnconfirmed(
           post,
           prepared.value,
           attempt,
@@ -318,23 +345,11 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
           );
         }
         held = resolved;
-        const failure =
-          (await this.runCredentialGates(
-            post,
-            ids,
-            credential,
-            organization,
-            url,
-          )) ?? (await this.runContentGates(post, ids, prepared.value, url));
-        if (failure) return await release(failure);
+        const failure = (await checkCredential()) ?? (await checkContent());
+        if (failure) return await fail(failure);
       } else {
-        const failure = await this.runContentGates(
-          post,
-          ids,
-          prepared.value,
-          url,
-        );
-        if (failure) return await release(failure);
+        const failure = await checkContent();
+        if (failure) return await fail(failure);
       }
 
       const providerAttempt = held;
@@ -344,11 +359,9 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       // A holder that stalled past its lease may have been taken over by
       // another delivery: confirm the attempt is still ours right before the
       // provider call, or never call it.
-      const isOwned = await renewProviderPublishAttempt(
-        this.prisma,
+      const isOwned = await this.attempts.confirmOwnership(
         post,
         providerAttempt,
-        true,
       );
       held = null;
       if (!isOwned) {
@@ -379,21 +392,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
 
     // Hold the occurrence while failing it, so no delivery can reserve it and
     // reach the provider between this check and the FAILED write.
-    let attempt: ProviderPublishAttempt;
-    try {
-      attempt = await reserveProviderPublishAttempt(
-        this.prisma,
-        post,
-        TERMINAL_VALIDATION_EXECUTION_ID,
-      );
-    } catch (reservationError: unknown) {
-      if (!(reservationError instanceof ProviderPublishInFlightError))
-        throw reservationError;
-      const observed = await inspectProviderPublishAttempt(this.prisma, post);
-      if (observed.kind !== 'replay' && observed.kind !== 'in_flight')
-        throw reservationError;
-      attempt = observed;
-    }
+    const attempt = await this.attempts.holdForTerminalFailure(post);
     if (attempt.kind === 'replay' || attempt.kind === 'in_flight') {
       // The provider accepted this occurrence, or another delivery is
       // publishing it: keep the target PUBLISHING for replay, never FAILED.
@@ -424,7 +423,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       );
     } finally {
       if (attempt.kind === 'publish') {
-        await this.settleProviderAttempt(
+        await this.attempts.settle(
           post,
           attempt,
           'released',
@@ -437,405 +436,6 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     return createFailedPublishResult('', errorMessage);
   }
 
-  private readDeliveryIds(post: PostEntity): PostDeliveryIds {
-    return {
-      brandId: readPostString(post, ['brandId']),
-      credentialId: readPostString(post, ['credentialId']),
-      organizationId: readPostString(post, ['organizationId']),
-      userId: readPostString(post, ['userId']),
-    };
-  }
-
-  private async loadPublishResources(
-    post: PostEntity,
-    ids: PostDeliveryIds,
-    url: string,
-  ): Promise<
-    DeliveryLoad<{
-      credential: CredentialDocument;
-      organization: OrganizationDocument;
-    }>
-  > {
-    const credential = await this.loadCredential(post, ids, url);
-    if (!credential.ok) {
-      return credential;
-    }
-
-    const organization = await this.loadOrganization(post, ids, url);
-    if (!organization.ok) {
-      return organization;
-    }
-
-    return {
-      ok: true,
-      value: {
-        credential: credential.value,
-        organization: organization.value,
-      },
-    };
-  }
-
-  /** Credential gates before a provider call: channel readiness and quota. */
-  private async runCredentialGates(
-    post: PostEntity,
-    ids: PostDeliveryIds,
-    credential: CredentialDocument,
-    organization: OrganizationDocument,
-    url: string,
-  ): Promise<PublishResult | null> {
-    const readinessFailure = await this.assertChannelReady(
-      post,
-      ids,
-      credential,
-      url,
-    );
-    if (readinessFailure) {
-      return readinessFailure;
-    }
-    return this.assertQuotaAllowed(post, credential, organization, url);
-  }
-
-  /** Content gates before a provider call: target settings and media. */
-  private async runContentGates(
-    post: PostEntity,
-    ids: PostDeliveryIds,
-    prepared: PreparedPostDelivery,
-    url: string,
-  ): Promise<PublishResult | null> {
-    const targetValidation = validateChannelTargetSettings({
-      caption: post.description,
-      credentialId: ids.credentialId ?? undefined,
-      media: toValidationMedia(post),
-      platform: prepared.platform,
-      publishMode: 'publish_now',
-      settings: resolveChannelTargetSettings(
-        prepared.platform,
-        post.targetSettings,
-      ),
-      visibility: prepared.context.visibility,
-    });
-    if (!targetValidation.valid) {
-      return this.failChannel(
-        post,
-        prepared.platform,
-        'channel_target_invalid',
-        targetValidation.errors[0]?.message ??
-          'Channel target validation failed',
-        false,
-      );
-    }
-
-    return this.assertMediaReady(post, ids, prepared.platform, url);
-  }
-
-  /**
-   * Best-effort delivery context for persisting an accepted receipt. Missing
-   * credentials or publishers only skip follow-up work; they never fail it.
-   */
-  private async loadRecoveryDelivery(
-    post: PostEntity,
-    source: ScheduledPostWorkflowInput['source'],
-    ids: PostDeliveryIds,
-    url: string,
-  ): Promise<PreparedPostDelivery | null> {
-    try {
-      const credential = (await this.credentialsService.findOne({
-        id: ids.credentialId,
-        isDeleted: false,
-        ...(ids.organizationId ? { organizationId: ids.organizationId } : {}),
-      })) as CredentialDocument | null;
-      const organization = (await this.organizationsService.findOne({
-        id: ids.organizationId,
-        isDeleted: false,
-      })) as OrganizationDocument | null;
-      if (!credential || !organization) return null;
-      return this.buildPreparedDelivery(
-        post,
-        source,
-        ids,
-        credential,
-        organization,
-      );
-    } catch (error: unknown) {
-      this.logger.warn(`${url} recovery delivery context unavailable`, {
-        error: getErrorMessage(error),
-        postId: post.id.toString(),
-      });
-      return null;
-    }
-  }
-
-  private async loadCredential(
-    post: PostEntity,
-    ids: PostDeliveryIds,
-    url: string,
-  ): Promise<DeliveryLoad<CredentialDocument>> {
-    const credential = (await this.credentialsService.findOne({
-      id: ids.credentialId,
-      isDeleted: false,
-      ...(ids.organizationId ? { organizationId: ids.organizationId } : {}),
-    })) as CredentialDocument | null;
-
-    if (!credential) {
-      this.logger.error(`${url} credential not found`, { postId: post.id });
-      return {
-        ok: false,
-        result: await this.failChannel(
-          post,
-          '',
-          'credential_not_found',
-          'Credential not found',
-          false,
-        ),
-      };
-    }
-
-    return { ok: true, value: credential };
-  }
-
-  private async loadOrganization(
-    post: PostEntity,
-    ids: PostDeliveryIds,
-    url: string,
-  ): Promise<DeliveryLoad<OrganizationDocument>> {
-    const organization = (await this.organizationsService.findOne({
-      id: ids.organizationId,
-      isDeleted: false,
-    })) as OrganizationDocument | null;
-
-    if (!organization) {
-      this.logger.error(`${url} organization not found`, {
-        postId: post.id,
-      });
-      return {
-        ok: false,
-        result: await this.failChannel(
-          post,
-          '',
-          'organization_not_found',
-          'Organization not found',
-          false,
-        ),
-      };
-    }
-
-    return { ok: true, value: organization };
-  }
-
-  private async assertChannelReady(
-    post: PostEntity,
-    ids: PostDeliveryIds,
-    credential: CredentialDocument,
-    url: string,
-  ): Promise<PublishResult | null> {
-    const readiness = (
-      await this.publishingReadinessService.resolveForCredentials(
-        this.prisma,
-        ids.organizationId ?? '',
-        [ids.credentialId ?? ''],
-      )
-    ).get(ids.credentialId ?? '');
-
-    if (readiness?.canSchedule) {
-      return null;
-    }
-
-    const blocking = readiness?.diagnostics.find(
-      (diagnostic) => diagnostic.severity === 'error',
-    );
-    const readinessError =
-      blocking?.message ?? 'Channel is not ready to publish';
-
-    this.logger.error(`${url} channel not ready to publish`, {
-      classification: blocking?.classification,
-      credentialId: ids.credentialId,
-      platform: credential.platform,
-      postId: post.id,
-      readinessState: readiness?.state ?? 'unresolved',
-    });
-
-    return this.failChannel(
-      post,
-      this.toDomainPlatform(credential.platform),
-      blocking?.code ?? 'channel_not_ready',
-      readinessError,
-      readiness?.isRetryable ?? false,
-    );
-  }
-
-  private async assertQuotaAllowed(
-    post: PostEntity,
-    credential: CredentialDocument,
-    organization: OrganizationDocument,
-    url: string,
-  ): Promise<PublishResult | null> {
-    const quotaCheck = (await this.quotaService.checkQuota(
-      credential,
-      organization,
-    )) as QuotaCheckResult;
-    if (quotaCheck.allowed) {
-      return null;
-    }
-
-    this.logger.warn(`${url} quota exceeded for ${credential.platform}`, {
-      currentCount: quotaCheck.currentCount,
-      dailyLimit: quotaCheck.dailyLimit,
-      platform: credential.platform,
-      postId: post.id,
-    });
-
-    const platform = this.toDomainPlatform(credential.platform);
-    return this.failChannel(
-      post,
-      platform,
-      'quota_exceeded',
-      'Quota exceeded',
-      false,
-      createQuotaExceededActivity(post, quotaCheck, platform),
-    );
-  }
-
-  private async preparePublisherAndContext(
-    post: PostEntity,
-    source: ScheduledPostWorkflowInput['source'],
-    ids: PostDeliveryIds,
-    credential: CredentialDocument,
-    organization: OrganizationDocument,
-    url: string,
-  ): Promise<DeliveryLoad<PreparedPostDelivery>> {
-    const prepared = this.buildPreparedDelivery(
-      post,
-      source,
-      ids,
-      credential,
-      organization,
-    );
-    if (prepared) {
-      return { ok: true, value: prepared };
-    }
-
-    const platform = String(credential.platform ?? '');
-    this.logger.error(`${url} unsupported platform`, {
-      platform,
-      postId: post.id,
-    });
-    return {
-      ok: false,
-      result: await this.failChannel(
-        post,
-        fromPrismaCredentialPlatform(platform) ?? platform,
-        'unsupported_platform',
-        'Unsupported platform',
-        false,
-      ),
-    };
-  }
-
-  private buildPreparedDelivery(
-    post: PostEntity,
-    source: ScheduledPostWorkflowInput['source'],
-    ids: PostDeliveryIds,
-    credential: CredentialDocument,
-    organization: OrganizationDocument,
-  ): PreparedPostDelivery | null {
-    const platform = fromPrismaCredentialPlatform(
-      String(credential.platform ?? ''),
-    );
-    const publisher = platform
-      ? this.publisherFactory.getPublisher(platform)
-      : null;
-    if (!platform || !publisher) {
-      return null;
-    }
-
-    const resolvedSettings = resolveChannelTargetSettings(
-      platform,
-      post.targetSettings,
-    );
-    const visibility = resolvePostVisibility(post.visibility);
-    const settings =
-      source === 'tiktok_app'
-        ? {
-            ...resolvedSettings,
-            [TIKTOK_APP_HANDOFF_SETTING]: true,
-          }
-        : platform === CredentialPlatform.BEEHIIV &&
-            source !== 'publish_now' &&
-            post.scheduledDate instanceof Date
-          ? {
-              ...resolvedSettings,
-              [WORKFLOW_APPROVED_SCHEDULE_SETTING]:
-                post.scheduledDate.toISOString(),
-            }
-          : resolvedSettings;
-
-    return {
-      context: {
-        brandId: ids.brandId ?? '',
-        credential,
-        organization,
-        organizationId: ids.organizationId ?? '',
-        post,
-        postId: post.id.toString(),
-        settings,
-        visibility,
-      },
-      credential,
-      platform,
-      publisher,
-    };
-  }
-
-  /**
-   * Deterministic media readiness gate (#4878).
-   *
-   * The last check before `callProvider`, so an asset that breaks
-   * the target platform's published media spec is reported as a channel
-   * failure instead of bouncing back as a provider error. `warning`
-   * diagnostics are recorded and let the publish proceed.
-   */
-  private async assertMediaReady(
-    post: PostEntity,
-    ids: PostDeliveryIds,
-    platform: Platform,
-    url: string,
-  ): Promise<PublishResult | null> {
-    const assetIds = collectMediaGateAssetIds(post);
-    if (assetIds.length === 0) {
-      return null;
-    }
-
-    const outcome = readMediaGateOutcome(
-      await this.mediaReadinessService.evaluatePublishReadiness({
-        assetIds,
-        organizationId: ids.organizationId ?? '',
-        platforms: [platform],
-      }),
-    );
-    const context = { platform, postId: post.id };
-    if (outcome.warnings.length > 0) {
-      this.logger.warn(`${url} media readiness warnings`, {
-        ...context,
-        diagnostics: outcome.warnings,
-      });
-    }
-    if (outcome.blockers.length === 0) {
-      return null;
-    }
-
-    this.logger.error(`${url} media readiness blocked publish`, {
-      ...context,
-      diagnostics: outcome.blockers,
-    });
-    return this.failChannel(
-      post,
-      platform,
-      outcome.code,
-      outcome.message,
-      false,
-    );
-  }
-
   private async callProvider(
     post: PostEntity,
     prepared: PreparedPostDelivery,
@@ -845,11 +445,16 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
   ): Promise<PublishResult> {
     let result: PublishResult;
     try {
-      result = await this.publishUnderLease(post, prepared, attempt, url);
+      result = await this.attempts.publishUnderLease(
+        post,
+        prepared,
+        attempt,
+        url,
+      );
     } catch (error: unknown) {
       // A timeout or dropped connection may hide an accepted publish: keep
       // the attempt for verification on retry instead of releasing it.
-      await this.settleProviderAttempt(
+      await this.attempts.settle(
         post,
         attempt,
         isAmbiguousPublishError(error) ? 'uncertain' : 'released',
@@ -862,7 +467,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       // looks like a timeout or 5xx may hide an accepted publish.
       const isAmbiguous =
         !result.errorCode && isAmbiguousPublishError(result.error ?? '');
-      await this.settleProviderAttempt(
+      await this.attempts.settle(
         post,
         attempt,
         isAmbiguous ? 'uncertain' : 'released',
@@ -879,7 +484,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         return await this.handlePublishError(post, error, workflowExecutionId);
       }
     }
-    await this.acceptProviderAttempt(post, attempt, result, url);
+    await this.attempts.accept(post, attempt, result, url);
     return this.persistAcceptedPublish(
       post,
       attempt,
@@ -888,42 +493,6 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       workflowExecutionId,
       url,
     );
-  }
-
-  /**
-   * Call the provider while renewing the attempt's lease, so no other
-   * delivery can take the attempt over while this call may still land.
-   */
-  private async publishUnderLease(
-    post: PostEntity,
-    prepared: PreparedPostDelivery,
-    attempt: ProviderPublishAttemptRef,
-    url: string,
-  ): Promise<PublishResult> {
-    const renewal = setInterval(() => {
-      renewProviderPublishAttempt(this.prisma, post, attempt, false)
-        .then((isOwned) => {
-          if (!isOwned) {
-            this.logger.error(`${url} provider publish lease lost`, {
-              postId: post.id.toString(),
-              receiptId: attempt.receiptId,
-            });
-          }
-        })
-        .catch((error: unknown) =>
-          this.logger.warn(`${url} provider publish lease not renewed`, {
-            error: getErrorMessage(error),
-            postId: post.id.toString(),
-            receiptId: attempt.receiptId,
-          }),
-        );
-    }, PROVIDER_PUBLISH_LEASE_RENEWAL_MS);
-    renewal.unref?.();
-    try {
-      return await prepared.publisher.publish(prepared.context);
-    } finally {
-      clearInterval(renewal);
-    }
   }
 
   /**
@@ -960,109 +529,9 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       throw error;
     }
     if (persisted) {
-      await markProviderReceiptPersisted(this.prisma, post, attempt).catch(
-        (error: unknown) =>
-          this.logger.warn(`${url} provider receipt persistence not marked`, {
-            error: getErrorMessage(error),
-            postId: post.id.toString(),
-            receiptId: attempt.receiptId,
-          }),
-      );
+      await this.attempts.markPersisted(post, attempt, url);
     }
     return result;
-  }
-
-  /**
-   * Resolve an earlier attempt whose provider outcome was never confirmed.
-   * Publishers that can verify report whether it landed; a confirmed absence
-   * (or a publisher without verification) takes the attempt over for a retry.
-   */
-  private async resolveUnconfirmedAttempt(
-    post: PostEntity,
-    prepared: PreparedPostDelivery,
-    attempt: Extract<ProviderPublishAttempt, { kind: 'unconfirmed' }>,
-    workflowExecutionId: string,
-    url: string,
-  ): Promise<ProviderPublishAttempt> {
-    const verify = prepared.publisher.verifyPublished?.bind(prepared.publisher);
-    if (verify) {
-      let found: PublishResult | null;
-      try {
-        found = await verify(prepared.context, attempt.attemptStartedAt);
-      } catch (error: unknown) {
-        this.logger.warn(`${url} provider publish verification unavailable`, {
-          error: getErrorMessage(error),
-          postId: post.id.toString(),
-          receiptId: attempt.receiptId,
-        });
-        return attempt;
-      }
-      if (found?.success) {
-        this.logger.warn(`${url} verified an unconfirmed provider publish`, {
-          externalId: found.externalId,
-          postId: post.id.toString(),
-          receiptId: attempt.receiptId,
-        });
-        await acceptProviderPublishAttempt(this.prisma, post, attempt, found);
-        return { ...attempt, kind: 'replay', result: found };
-      }
-    }
-    const claimed = await claimProviderPublishAttempt(
-      this.prisma,
-      post,
-      attempt,
-      workflowExecutionId,
-    );
-    if (!claimed) return { ...attempt, kind: 'in_flight' };
-    this.logger.warn(`${url} retrying an unconfirmed provider publish`, {
-      isVerified: Boolean(verify),
-      postId: post.id.toString(),
-      receiptId: attempt.receiptId,
-    });
-    return { kind: 'publish', ...claimed };
-  }
-
-  private async acceptProviderAttempt(
-    post: PostEntity,
-    attempt: ProviderPublishAttemptRef,
-    result: PublishResult,
-    url: string,
-  ): Promise<void> {
-    // If this write fails the attempt stays unconfirmed, and the next
-    // delivery verifies it with the provider before publishing again.
-    await acceptProviderPublishAttempt(
-      this.prisma,
-      post,
-      attempt,
-      result,
-    ).catch((error: unknown) =>
-      this.logger.error(`${url} provider publish receipt not recorded`, {
-        error: getErrorMessage(error),
-        externalId: result.externalId,
-        postId: post.id.toString(),
-        receiptId: attempt.receiptId,
-      }),
-    );
-  }
-
-  private async settleProviderAttempt(
-    post: PostEntity,
-    attempt: ProviderPublishAttemptRef,
-    outcome: 'uncertain' | 'released',
-    url: string,
-  ): Promise<void> {
-    const settle =
-      outcome === 'uncertain'
-        ? markProviderPublishAttemptUncertain
-        : releaseProviderPublishAttempt;
-    await settle(this.prisma, post, attempt).catch((error: unknown) =>
-      this.logger.error(`${url} provider publish attempt not settled`, {
-        error: getErrorMessage(error),
-        outcome,
-        postId: post.id.toString(),
-        receiptId: attempt.receiptId,
-      }),
-    );
   }
 
   private async persistProviderSuccess(
@@ -1554,15 +1023,6 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
 
     this.emitPublishFailedWebhook(post, errorMessage);
     return createFailedPublishResult('', errorMessage);
-  }
-
-  private toDomainPlatform(
-    platform: CredentialDocument['platform'] | string | null | undefined,
-  ): string {
-    return (
-      fromPrismaCredentialPlatform(String(platform ?? '')) ??
-      String(platform ?? '')
-    );
   }
 
   private emitPublishPublishedWebhook(
