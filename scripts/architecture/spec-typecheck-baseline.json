@@ -3065,22 +3065,6 @@
       "workspace": "api"
     },
     {
-      "code": 2322,
-      "count": 3,
-      "file": "apps/server/api/src/queues/credit-deduction/credit-deduction-queue.service.spec.ts",
-      "fingerprint": "e6087c62a753341d6658",
-      "message": "Type '\"test\"' is not assignable to type 'ActivitySource'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2820,
-      "count": 1,
-      "file": "apps/server/api/src/queues/credit-deduction/credit-deduction-queue.service.spec.ts",
-      "fingerprint": "393a7a19ef8e597b97f3",
-      "message": "Type '\"image-generation\"' is not assignable to type 'ActivitySource'. Did you mean 'ActivitySource.IMAGE_GENERATION'?",
-      "workspace": "api"
-    },
-    {
       "code": 2349,
       "count": 1,
       "file": "apps/server/api/src/services/agent-campaign/agent-message-bus.service.spec.ts",

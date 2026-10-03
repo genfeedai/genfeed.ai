@@ -93,7 +93,6 @@ export class RssSourceWorkflowService implements OnModuleInit {
       {
         attempts: 3,
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
-        replaceTerminalJob: true,
       },
     );
   }
@@ -114,7 +113,6 @@ export class RssSourceWorkflowService implements OnModuleInit {
       {
         attempts: 3,
         dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
-        replaceTerminalJob: true,
       },
     );
   }

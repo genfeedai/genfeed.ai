@@ -3,6 +3,7 @@ import { AgentUntrustedContentAuditsService } from '@api/collections/agent-untru
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
+import { AgentScopeContextService } from '@api/index';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
 import { AgentUntrustedContentGateService } from '@api/services/agent-orchestrator/agent-untrusted-content-gate.service';
@@ -15,7 +16,7 @@ import {
   readAgentUntrustedContentSource,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import type { INestApplication } from '@nestjs/common';
+import { ForbiddenException, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import express from 'express';
 import request from 'supertest';
@@ -43,6 +44,7 @@ describe('authenticated MCP result classification with actual gate and audit map
     citations: [{ title: 'raw citation' }],
   };
   const executeTool = vi.fn();
+  const assertBrandAuthorized = vi.fn();
   const decide = vi.fn();
   const create = vi.fn();
   const publishWorkEvent = vi.fn();
@@ -60,6 +62,10 @@ describe('authenticated MCP result classification with actual gate and audit map
         AgentUntrustedContentAuditsService,
         { provide: AgentToolExecutorService, useValue: { executeTool } },
         { provide: UsersService, useValue: { findOne: vi.fn() } },
+        {
+          provide: AgentScopeContextService,
+          useValue: { assertBrandAuthorized },
+        },
         {
           provide: PrismaService,
           useValue: { agentUntrustedContentAudit: { create } },
@@ -118,21 +124,7 @@ describe('authenticated MCP result classification with actual gate and audit map
   it('returns the complete proxy result unchanged and writes one truthful MCP audit', async () => {
     const response = await request(app.getHttpServer())
       .post('/agent-tools/search_knowledge/execute')
-      .send({
-        parameters: {},
-        context: {
-          brandId: 'spoof-brand',
-          threadId: 'spoof-thread',
-          organizationId: 'spoof-org',
-          userId: 'spoof-user',
-          strategyId: 'spoof-strategy',
-          executionId: 'spoof-run',
-          origin: 'agent',
-          confirmationOrigin: 'user',
-          approvalReviewerAuthorized: true,
-          hostSupportsApproval: true,
-        },
-      })
+      .send({ parameters: {} })
       .expect(201);
     expect(response.body).toEqual(result);
     expect(executeTool).toHaveBeenCalledTimes(1);
@@ -160,6 +152,71 @@ describe('authenticated MCP result classification with actual gate and audit map
     );
     expect(publishWorkEvent).not.toHaveBeenCalled();
   });
+  it.each([
+    ['validatedScope', { organizationId: 'spoof-org', brandId: 'spoof' }],
+    ['isWorkflowScoped', true],
+    ['creditGovernance', { agentDailyCreditCap: 1e9 }],
+    ['creditBudget', 1e9],
+    ['isProactive', true],
+    ['proactiveTextDraftOnly', true],
+    ['threadId', 'spoof-thread'],
+    ['agentMode', 'auto'],
+    ['runId', 'spoof-run'],
+    ['organizationId', 'spoof-org'],
+    ['userId', 'spoof-user'],
+    ['confirmationOrigin', 'thread-ui-action'],
+    ['approvalReviewerAuthorized', true],
+    ['hostSupportsApproval', true],
+    ['sourceActionId', 'spoof-action'],
+    ['strategyId', 'spoof-strategy'],
+    ['autonomyMode', 'full'],
+  ])(
+    'rejects client-injected server-only context field %s with 400 before dispatch (#5898)',
+    async (field, value) => {
+      await request(app.getHttpServer())
+        .post('/agent-tools/search_knowledge/execute')
+        .send({ parameters: {}, context: { [field]: value } })
+        .expect(400);
+      expect(executeTool).not.toHaveBeenCalled();
+    },
+  );
+  it('forbids a client-requested brand outside the organization before dispatch (#5898)', async () => {
+    assertBrandAuthorized.mockRejectedValueOnce(
+      new ForbiddenException('Requested brand is not available'),
+    );
+    await request(app.getHttpServer())
+      .post('/agent-tools/search_knowledge/execute')
+      .send({ parameters: {}, context: { brandId: 'foreign-brand' } })
+      .expect(403);
+    expect(assertBrandAuthorized).toHaveBeenCalledWith(
+      'foreign-brand',
+      'canonical-org',
+    );
+    expect(executeTool).not.toHaveBeenCalled();
+  });
+  it('rejects unknown top-level body properties with 400 (#5898)', async () => {
+    await request(app.getHttpServer())
+      .post('/agent-tools/search_knowledge/execute')
+      .send({ parameters: {}, validatedScope: {} })
+      .expect(400);
+    expect(executeTool).not.toHaveBeenCalled();
+  });
+  it('rejects a non-string approvedApprovalId with 400 (#5898)', async () => {
+    await request(app.getHttpServer())
+      .post('/agent-tools/search_knowledge/execute')
+      .send({ parameters: {}, context: { approvedApprovalId: { $ne: 1 } } })
+      .expect(400);
+    expect(executeTool).not.toHaveBeenCalled();
+  });
+  it('still accepts the whitelisted approvedApprovalId (#5898)', async () => {
+    await request(app.getHttpServer())
+      .post('/agent-tools/search_knowledge/execute')
+      .send({ parameters: {}, context: { approvedApprovalId: 'apr-1' } })
+      .expect(201);
+    expect(executeTool.mock.calls[0][2]).toMatchObject({
+      approvedApprovalId: 'apr-1',
+    });
+  });
   it('classifies only the caller supplied observation without dispatch or attribution', async () => {
     const response = await request(app.getHttpServer())
       .post('/agent-tools/search_articles/result-gate')
@@ -172,6 +229,16 @@ describe('authenticated MCP result classification with actual gate and audit map
       brandId: null,
     });
     expect(executeTool).not.toHaveBeenCalled();
+  });
+  it('accepts a boolean isPartial flag on the result gate and rejects other types (#5894)', async () => {
+    await request(app.getHttpServer())
+      .post('/agent-tools/search_articles/result-gate')
+      .send({ content, isPartial: true })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post('/agent-tools/search_articles/result-gate')
+      .send({ content, isPartial: 'yes' })
+      .expect(400);
   });
   it.each([undefined, 'off', 'live'])(
     'does no classification or audit with unactivated mode %s',

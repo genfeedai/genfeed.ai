@@ -57,8 +57,19 @@ test('nightly E2E failure step separates repository and project credentials', ()
   assert.match(step, /REPOSITORY_TOKEN: \$\{\{ github.token \}\}/u);
   assert.match(
     step,
-    /github-token: \$\{\{ secrets.CONSOLE_DEPLOY_TOKEN \|\| github\.token \}\}/u,
+    /github-token: \$\{\{ steps\.reporter-token\.outputs\.token \}\}/u,
   );
+  assert.match(
+    report,
+    /- name: Mint reporter token \(Genfeed bot App\)\n\s+id: reporter-token\n\s+uses: \.\/\.github\/actions\/reporter-token\n\s+with:\n\s+client-id: \$\{\{ secrets\.GENFEED_BOT_CLIENT_ID \}\}\n\s+private-key: \$\{\{ secrets\.GENFEED_BOT_PRIVATE_KEY \}\}\n/u,
+    'reporter token must be minted from the Genfeed bot App',
+  );
+  assert.ok(
+    report.indexOf('actions/checkout@') <
+      report.indexOf('uses: ./.github/actions/reporter-token'),
+    'the composite action is local, so the repository must be checked out first',
+  );
+  assert.doesNotMatch(report, /CONSOLE_DEPLOY_TOKEN/u);
   assert.match(
     step,
     /const repositoryGithub = getOctokit\(process.env.REPOSITORY_TOKEN\)/u,

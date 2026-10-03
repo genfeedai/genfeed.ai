@@ -16,6 +16,10 @@ import {
   TweetTone,
 } from '@api/collections/posts/dto/generate-tweets.dto';
 import { type PostDocument } from '@api/collections/posts/post.schema';
+import {
+  PostAccountLearningService,
+  type PostAccountLearningSession,
+} from '@api/collections/posts/services/post-account-learning.service';
 import { PostDraftGenerationService } from '@api/collections/posts/services/post-draft-generation.service';
 import {
   extractPostGenerationLabel,
@@ -82,6 +86,7 @@ export class PostGenerationService {
     private readonly brandsService: BrandsService,
     private readonly logger: LoggerService,
     private readonly membersService: MembersService,
+    private readonly postAccountLearningService: PostAccountLearningService,
     private readonly postDraftGenerationService: PostDraftGenerationService,
     private readonly postThreadGenerationService: PostThreadGenerationService,
     private readonly postsService: PostsService,
@@ -321,6 +326,7 @@ export class PostGenerationService {
     input: Record<string, unknown>;
     model: string;
     organizationId: string;
+    beforeRepairAttempt?: () => Promise<void>;
   }): Promise<string[]> {
     const maxAttempts =
       params.context.account.platform === CredentialPlatform.TWITTER ? 3 : 1;
@@ -328,6 +334,7 @@ export class PostGenerationService {
     let input = params.input;
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      if (attempt > 0) await params.beforeRepairAttempt?.();
       content =
         (await this.replicateService.generateTextCompletionSync(
           params.model,
@@ -460,7 +467,14 @@ export class PostGenerationService {
         identity.organizationId,
       );
 
+      const learning = await this.postAccountLearningService.resolve(
+        dto,
+        createdPosts,
+        identity,
+      );
       const generatedLines = await this.generateParsedAccountPosts({
+        beforeRepairAttempt: () =>
+          this.postAccountLearningService.revalidate(learning),
         context,
         count: dto.count,
         input,
@@ -483,6 +497,7 @@ export class PostGenerationService {
           postText,
           identity,
           context,
+          { session: learning, index: i },
         );
         if (completed) {
           completedCount++;
@@ -555,8 +570,10 @@ export class PostGenerationService {
     postText: string,
     identity: GenerationMetadata,
     context: AccountPublishingContext,
+    learning: { session: PostAccountLearningSession; index: number },
   ): Promise<boolean> {
     const postId = String(post.id);
+    const learningReceipt = learning.session.receipts[learning.index];
     try {
       const updatedPost = await this.postsService.patch(
         postId,
@@ -573,9 +590,16 @@ export class PostGenerationService {
           },
         ],
       );
+      await this.postAccountLearningService.bindArtifact(
+        learning.session,
+        learning.index,
+        postId,
+        postText,
+      );
       await this.websocketService.emit(WebSocketPaths.post(postId), {
         result: updatedPost,
         status: Status.COMPLETED,
+        ...(learningReceipt ? { learningReceipt } : {}),
       });
       await this.activityRecorder.record({
         brandId: identity.brandId,

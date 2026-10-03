@@ -41,6 +41,10 @@ function hold(overrides: Partial<ICreditReservation> = {}): ICreditReservation {
   };
 }
 
+function job0(queue: { queueDeduction: { mock: { calls: unknown[][] } } }) {
+  return queue.queueDeduction.mock.calls[0][0] as object;
+}
+
 describe('GenerationBillingService', () => {
   const credits = {
     bindReservationOutput: vi.fn(),
@@ -62,7 +66,7 @@ describe('GenerationBillingService', () => {
       updateMany: vi.fn(),
     },
     ingredient: { findMany: vi.fn(), findFirst: vi.fn(), updateMany: vi.fn() },
-    creditTransaction: { findFirst: vi.fn() },
+    creditTransaction: { findFirst: vi.fn(), findMany: vi.fn() },
   };
   const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const quoteGroups = {
@@ -264,17 +268,56 @@ describe('GenerationBillingService', () => {
       expect(queue.queueDeduction).not.toHaveBeenCalled();
     });
 
-    it('flags a completion that arrives after its hold was released', async () => {
+    it.each([
+      CreditReservationStatus.RELEASED,
+      CreditReservationStatus.EXPIRED,
+    ])(
+      'charges a completion that arrives after its hold was %s, once per hold',
+      async (status) => {
+        credits.findReservationForWorkload.mockResolvedValue(hold({ status }));
+        prisma.ingredient.findFirst.mockResolvedValue({
+          status: IngredientStatus.GENERATED,
+          userId: 'user_2',
+        });
+
+        expect(await service.settleOutput('ing_1', 'org_1')).toBe(
+          'late-queued',
+        );
+        expect(await service.settleOutput('ing_1', 'org_1')).toBe(
+          'late-queued',
+        );
+
+        expect(queue.queueDeduction).toHaveBeenCalledTimes(2);
+        for (const [job] of queue.queueDeduction.mock.calls)
+          expect(job).toEqual(
+            expect.objectContaining({
+              amount: 4,
+              idempotencyKey: 'media-generation-late-settle:hold_1',
+              maxOverdraftCredits: 1_000_000,
+              organizationId: 'org_1',
+              type: 'deduct-credits',
+              userId: 'user_1',
+            }),
+          );
+        expect(job0(queue)).not.toHaveProperty('reservationId');
+        expect(logger.error).toHaveBeenCalledWith(
+          expect.stringContaining('charged late'),
+          expect.objectContaining({ ingredientId: 'ing_1' }),
+        );
+      },
+    );
+
+    it('does not charge a hold that ended without a usable output', async () => {
       credits.findReservationForWorkload.mockResolvedValue(
         hold({ status: CreditReservationStatus.RELEASED }),
       );
+      prisma.ingredient.findFirst.mockResolvedValue({
+        status: IngredientStatus.FAILED,
+        userId: 'user_1',
+      });
 
       expect(await service.settleOutput('ing_1', 'org_1')).toBe('hold-ended');
       expect(queue.queueDeduction).not.toHaveBeenCalled();
-      expect(logger.error).toHaveBeenCalledWith(
-        expect.stringContaining('after its credit hold ended'),
-        expect.objectContaining({ ingredientId: 'ing_1' }),
-      );
     });
 
     it('ignores an output that never had a hold (BYOK, external billing)', async () => {
@@ -527,6 +570,122 @@ describe('GenerationBillingService', () => {
         });
       },
     );
+
+    describe('intent-bound holds past the ceiling', () => {
+      const intentRow = (provider: string, expiredMsAgo: number) => ({
+        ...row('intent', new Date(NOW.getTime() - expiredMsAgo)),
+        metadata: {
+          assetId: 'intent',
+          submissionIntent: { version: 1, provider },
+        },
+      });
+      const DAY_MS = 24 * 60 * 60 * 1000;
+
+      beforeEach(() => {
+        prisma.ingredient.findMany.mockResolvedValue([
+          ingredient('intent', IngredientStatus.PROCESSING),
+        ]);
+      });
+
+      it('expires an unproven hold once, guarded by the evidence it read', async () => {
+        const stale = intentRow('heygen', DAY_MS + 1);
+        prisma.creditReservation.findMany.mockResolvedValue([stale]);
+
+        expect(await service.reconcile(NOW)).toBe(1);
+
+        expect(credits.releaseReservation).toHaveBeenCalledTimes(1);
+        expect(credits.releaseReservation).toHaveBeenCalledWith({
+          expectedReservationMetadata: stale.metadata,
+          organizationId: 'org_1',
+          reason: 'expiry',
+          reservationId: 'hold_intent',
+        });
+        expect(prisma.ingredient.updateMany).not.toHaveBeenCalled();
+        expect(logger.log).toHaveBeenCalledWith(
+          'Generation hold reconciliation completed',
+          expect.objectContaining({ expiredIntentHolds: 1 }),
+        );
+      });
+
+      it('counts a hold still inside the ceiling as awaiting proof', async () => {
+        prisma.creditReservation.findMany.mockResolvedValue([
+          intentRow('heygen', DAY_MS - 1),
+        ]);
+
+        expect(await service.reconcile(NOW)).toBe(0);
+
+        expect(credits.releaseReservation).not.toHaveBeenCalled();
+        expect(logger.log).toHaveBeenCalledWith(
+          'Generation hold reconciliation completed',
+          expect.objectContaining({
+            awaitingIntentProof: 1,
+            expiredIntentHolds: 0,
+          }),
+        );
+      });
+
+      it('leaves Crun intent to its own task receipts', async () => {
+        prisma.creditReservation.findMany.mockResolvedValue([
+          intentRow('crun', 10 * DAY_MS),
+        ]);
+
+        expect(await service.reconcile(NOW)).toBe(0);
+        expect(credits.releaseReservation).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('late completions after hold expiry', () => {
+      const expired = {
+        id: 'hold_late',
+        organizationId: 'org_1',
+        workloadId: 'late',
+      };
+
+      beforeEach(() => {
+        prisma.creditReservation.findMany.mockImplementation(
+          async ({ where }: { where: { status: unknown } }) =>
+            typeof where.status === 'object' ? [expired] : [],
+        );
+        prisma.ingredient.findMany.mockResolvedValue([
+          ingredient('late', IngredientStatus.GENERATED),
+        ]);
+        credits.findReservationForWorkload.mockResolvedValue(
+          hold({
+            id: 'hold_late',
+            status: CreditReservationStatus.EXPIRED,
+            workloadId: 'late',
+          }),
+        );
+        prisma.ingredient.findFirst.mockResolvedValue({
+          status: IngredientStatus.GENERATED,
+          userId: 'user_1',
+        });
+        prisma.creditTransaction.findMany.mockResolvedValue([]);
+      });
+
+      it('charges a completed output whose completion hook never ran', async () => {
+        expect(await service.reconcileLateCompletions(NOW)).toBe(1);
+
+        expect(queue.queueDeduction).toHaveBeenCalledTimes(1);
+        expect(queue.queueDeduction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            idempotencyKey: 'media-generation-late-settle:hold_late',
+          }),
+        );
+      });
+
+      it('skips an output whose late charge is already in the ledger', async () => {
+        prisma.creditTransaction.findMany.mockResolvedValue([
+          {
+            idempotencyKey: 'media-generation-late-settle:hold_late',
+            organizationId: 'org_1',
+          },
+        ]);
+
+        expect(await service.reconcileLateCompletions(NOW)).toBe(0);
+        expect(queue.queueDeduction).not.toHaveBeenCalled();
+      });
+    });
 
     it('settles finished output, releases failed output, and fails one that outlived its hold', async () => {
       prisma.creditReservation.findMany.mockResolvedValue([

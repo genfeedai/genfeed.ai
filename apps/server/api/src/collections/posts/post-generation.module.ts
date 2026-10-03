@@ -5,6 +5,7 @@ import { ContentLearningCoreModule } from '@api/collections/content-learning/con
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { MembersModule } from '@api/collections/members/members.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
+import { PostAccountLearningService } from '@api/collections/posts/services/post-account-learning.service';
 import { PostDraftGenerationService } from '@api/collections/posts/services/post-draft-generation.service';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
@@ -37,6 +38,7 @@ import { Module } from '@nestjs/common';
     LoggerModule,
   ],
   providers: [
+    PostAccountLearningService,
     PostDraftGenerationService,
     PostGenerationService,
     PostThreadGenerationService,

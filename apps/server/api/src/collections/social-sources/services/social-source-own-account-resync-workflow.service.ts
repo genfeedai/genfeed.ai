@@ -92,7 +92,6 @@ export class SocialSourceOwnAccountResyncWorkflowService
       {
         attempts: 3,
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
-        replaceTerminalJob: true,
       },
     );
   }

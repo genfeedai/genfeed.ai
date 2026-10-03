@@ -15,7 +15,11 @@ import {
   RetiredWorkflowExecutionError,
   WorkflowExecutorDocumentService,
 } from '@api/collections/workflows/services/workflow-executor-document.service';
-import { requireRecordedWorkflowActor } from '@api/collections/workflows/services/workflow-resume-actor.util';
+import {
+  buildRevokedWorkflowActorMessage,
+  requireRecordedWorkflowActor,
+  type WorkflowActorMembershipVerifier,
+} from '@api/collections/workflows/services/workflow-resume-actor.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { WorkflowExecutionStatus, WorkflowStatus } from '@genfeedai/contracts';
 import type {
@@ -23,7 +27,7 @@ import type {
   ExecutionRunResult,
   NodeExecutionResult,
 } from '@genfeedai/workflows/engine';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 
 /** Actor recorded on automatic (timeout sweep) approvals/rejections. */
 const REVIEW_GATE_SYSTEM_ACTOR = 'system';
@@ -73,6 +77,7 @@ export class WorkflowReviewGateService {
     private readonly graphService: WorkflowExecutionGraphService,
     private readonly progressService: WorkflowExecutionProgressService,
     private readonly finalizer: WorkflowExecutionFinalizerService,
+    private readonly actorMembership: WorkflowActorMembershipVerifier,
     private readonly notifier?: ReviewGateNotificationService,
     private readonly continueWorkflowGraph?: ContinueWorkflowGraph,
   ) {}
@@ -104,6 +109,12 @@ export class WorkflowReviewGateService {
       executionId,
       execution.userId,
     );
+    // Approval resumes the graph as the recorded actor; a removed member must
+    // not keep spending credits or writing under their identity. Rejection
+    // spends nothing, so it stays available to close the paused run.
+    const isActorRevoked =
+      approved &&
+      !(await this.actorMembership.isActiveMember(organizationId, actorUserId));
     let normalizedWorkflowDoc: WorkflowDocument | null;
     try {
       normalizedWorkflowDoc = await this.documentService.findPinnedWorkflow(
@@ -164,45 +175,57 @@ export class WorkflowReviewGateService {
     const approvedAt = new Date();
     const approvedAtIso = approvedAt.toISOString();
 
+    let reviewResult: ReviewGateApprovalResult;
     try {
-      const result = !approved
-        ? await this.rejectReviewGate({
-            approvedAt,
-            approvedAtIso,
-            execution,
-            executionId,
-            keepsWorkflowActive: execution.metadata?.isSystemAction === true,
-            nodeId,
-            pendingApproval,
-            rejectionReason,
-            userId,
-            workflowId,
-            workflowLabel,
-          })
-        : await this.approveReviewGate({
-            approvedAt,
-            approvedAtIso,
-            execution,
-            executionId,
-            nodeId,
-            normalizedWorkflowDoc,
-            pendingApproval,
-            userId,
-            workflowId,
-            workflowLabel,
-          });
+      const result =
+        !approved || isActorRevoked
+          ? await this.rejectReviewGate({
+              approvedAt,
+              approvedAtIso,
+              execution,
+              executionId,
+              keepsWorkflowActive: execution.metadata?.isSystemAction === true,
+              nodeId,
+              pendingApproval,
+              rejectionReason: isActorRevoked
+                ? buildRevokedWorkflowActorMessage(executionId)
+                : rejectionReason,
+              userId,
+              workflowId,
+              workflowLabel,
+            })
+          : await this.approveReviewGate({
+              approvedAt,
+              approvedAtIso,
+              execution,
+              executionId,
+              nodeId,
+              normalizedWorkflowDoc,
+              pendingApproval,
+              userId,
+              workflowId,
+              workflowLabel,
+            });
       await this.executionsService.completePendingReviewGateClaim(
         executionId,
         nodeId,
         claimToken,
       );
-      return result;
+      reviewResult = result;
     } catch (error: unknown) {
       await this.executionsService
         .releasePendingReviewGateClaim(executionId, nodeId, claimToken)
         .catch(() => false);
       throw error;
     }
+    if (isActorRevoked) {
+      // The run is already failed and its claim settled; surface the typed
+      // denial to the approver instead of reporting a successful approval.
+      throw new ForbiddenException(
+        buildRevokedWorkflowActorMessage(executionId),
+      );
+    }
+    return reviewResult;
   }
 
   /**
@@ -257,6 +280,10 @@ export class WorkflowReviewGateService {
       // A human resolved the gate between our pre-check and the atomic claim.
       if (error instanceof BadRequestException) {
         return null;
+      }
+      // The recorded actor was removed: the run was failed instead of resumed.
+      if (error instanceof ForbiddenException) {
+        return { executionId, nodeId, resolution: 'rejected' };
       }
       throw error;
     }

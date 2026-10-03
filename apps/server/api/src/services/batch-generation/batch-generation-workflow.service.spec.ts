@@ -116,7 +116,6 @@ describe('BatchGenerationWorkflowService', () => {
       {
         attempts: 1,
         dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
-        replaceTerminalJob: true,
       },
     );
   });

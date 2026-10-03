@@ -107,14 +107,6 @@ export interface QueueSystemWorkflowOptions {
    * for every remaining producer via `dispatchClass` above.
    */
   usePlatformQueue?: boolean;
-  /**
-   * @deprecated `queueSystemWorkflow` now always reserves a fresh id (removing
-   * a stale/terminal job under the same deterministic jobId before adding) —
-   * see #5162. Every call site already set this to `true`; it is kept as a
-   * no-op so existing callers don't need a mechanical edit, but new callers
-   * don't need to set it.
-   */
-  replaceTerminalJob?: boolean;
 }
 
 export interface WorkflowSchedulerUpsertInput {

@@ -188,7 +188,7 @@ describe('check-workflow-dispatch-class', () => {
         const jobId = await input.queueSystemWorkflow(
           workflow,
           jobId,
-          { delayMs: 0, replaceTerminalJob: true },
+          { delayMs: 0 },
         );
       }
     `;

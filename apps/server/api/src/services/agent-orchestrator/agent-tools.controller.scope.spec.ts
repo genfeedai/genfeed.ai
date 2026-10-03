@@ -3,6 +3,7 @@ import { OnboardingCreditGrantsService } from '@api/collections/credits/services
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { UsersService } from '@api/collections/users/services/users.service';
+import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { AgentScopeContextService } from '@api/index';
 import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
 import { AgentUntrustedContentGateService } from '@api/services/agent-orchestrator/agent-untrusted-content-gate.service';
@@ -12,6 +13,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ApiKeyScope } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ForbiddenException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { NextFunction, Request, Response } from 'express';
 import httpRequest from 'supertest';
@@ -30,6 +32,7 @@ const apiKeyUser = (scopes: string[]): User =>
 
 describe('AgentToolsController publishing scopes', () => {
   const executor = { executeTool: vi.fn() };
+  const agentScopeContextService = { assertBrandAuthorized: vi.fn() };
   const controller = new AgentToolsController(
     executor as unknown as AgentToolExecutorService,
     {} as UsersService,
@@ -40,6 +43,7 @@ describe('AgentToolsController publishing scopes', () => {
         outcome: 'allowed',
       })),
     } as unknown as AgentUntrustedContentGateService,
+    agentScopeContextService as unknown as AgentScopeContextService,
   );
 
   it('rejects confirmed direct publishing with only the legacy draft scope', async () => {
@@ -157,6 +161,75 @@ describe('AgentToolsController publishing scopes', () => {
       expect.not.objectContaining({ validatedScope: expect.anything() }),
     );
   });
+
+  it('authorizes a client-requested brand against the organization before dispatch (#5855)', async () => {
+    executor.executeTool.mockResolvedValue({ creditsUsed: 0, success: true });
+    agentScopeContextService.assertBrandAuthorized.mockResolvedValueOnce(
+      undefined,
+    );
+    await controller.execute(
+      'list_brands',
+      { context: { brandId: 'brand-1' }, parameters: {} },
+      apiKeyUser([]),
+      request,
+    );
+    expect(agentScopeContextService.assertBrandAuthorized).toHaveBeenCalledWith(
+      'brand-1',
+      'org-1',
+    );
+    expect(executor.executeTool.mock.calls.at(-1)?.[2]).toMatchObject({
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+    });
+  });
+
+  it('does not dispatch when the requested brand is outside the organization (#5855)', async () => {
+    executor.executeTool.mockClear();
+    agentScopeContextService.assertBrandAuthorized.mockRejectedValueOnce(
+      new ForbiddenException('Requested brand is not available'),
+    );
+    await expect(
+      controller.execute(
+        'list_brands',
+        { context: { brandId: 'foreign-brand' }, parameters: {} },
+        apiKeyUser([]),
+        request,
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(executor.executeTool).not.toHaveBeenCalled();
+  });
+
+  it('never copies unlisted client context into the executor context even if validation is bypassed (#5898)', async () => {
+    executor.executeTool.mockResolvedValue({ creditsUsed: 0, success: true });
+    await controller.execute(
+      'list_brands',
+      {
+        context: {
+          agentMode: 'auto',
+          creditGovernance: { agentDailyCreditCap: 1e9 },
+          isWorkflowScoped: true,
+          validatedScope: { organizationId: 'spoof-org' },
+        } as never,
+        parameters: {},
+      },
+      apiKeyUser([]),
+      request,
+    );
+    const context = executor.executeTool.mock.calls.at(-1)?.[2];
+    for (const field of [
+      'agentMode',
+      'creditGovernance',
+      'isWorkflowScoped',
+      'validatedScope',
+    ]) {
+      expect(context).not.toHaveProperty(field);
+    }
+    expect(context).toMatchObject({
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+  });
+
   it('rejects client-injected reviewer authority for an ordinary user', async () => {
     await controller.execute(
       'create_post',
@@ -420,6 +493,7 @@ describe('POST /agent-tools/record_external_publication/execute', () => {
       handler.recordExternalPublication(parameters, ctx),
     );
     const app = module.createNestApplication();
+    app.useGlobalPipes(new ValidationPipe());
     const user = apiKeyUser([ApiKeyScope.POSTS_DRAFT]);
     app.use((req: Request, _res: Response, next: NextFunction) => {
       Object.assign(req, { user });
@@ -438,7 +512,8 @@ describe('POST /agent-tools/record_external_publication/execute', () => {
         },
         context: { brandId: 'brand-1' },
       };
-      const first = await httpRequest(app.getHttpServer())
+      // Client-asserted identity is rejected outright (#5898), not ignored.
+      await httpRequest(app.getHttpServer())
         .post('/agent-tools/record_external_publication/execute')
         .send({
           ...body,
@@ -448,6 +523,11 @@ describe('POST /agent-tools/record_external_publication/execute', () => {
             userId: 'forged-user',
           },
         })
+        .expect(400);
+      expect(executor.executeTool).not.toHaveBeenCalled();
+      const first = await httpRequest(app.getHttpServer())
+        .post('/agent-tools/record_external_publication/execute')
+        .send(body)
         .expect(201);
       expect(first.body).toMatchObject({
         success: true,

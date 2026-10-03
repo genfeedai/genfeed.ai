@@ -504,6 +504,56 @@ describe('CreditDeductionProcessor', () => {
     ).not.toHaveBeenCalled();
   });
 
+  describe('retried deductions', () => {
+    // The ledger rejects a second write under a key it has already recorded,
+    // as CreditsUtilsService.deductCreditsCore does.
+    function useKeyedLedger(options: { failAfterCommit: boolean }) {
+      const ledger: Array<{ amount: number; key?: string }> = [];
+      let isFirstAttempt = true;
+      creditsUtilsService.deductCreditsFromOrganization.mockImplementation(
+        async (
+          _organizationId: string,
+          _userId: string,
+          amount: number,
+          _description: string,
+          _source: ActivitySource,
+          ledgerOptions?: { idempotencyKey?: string },
+        ) => {
+          const key = ledgerOptions?.idempotencyKey;
+          if (!key || !ledger.some((entry) => entry.key === key)) {
+            ledger.push({ amount, key });
+          }
+          if (options.failAfterCommit && isFirstAttempt) {
+            isFirstAttempt = false;
+            throw new Error('connection lost after commit');
+          }
+        },
+      );
+      return ledger;
+    }
+
+    it('charges once when a keyed job is retried after the ledger committed', async () => {
+      const ledger = useKeyedLedger({ failAfterCommit: true });
+      const job = buildJob({ idempotencyKey: 'credit-settle:hold-9' });
+
+      await expect(processor.process(job)).rejects.toThrow('after commit');
+      await processor.process(job);
+
+      expect(ledger).toEqual([{ amount: 10, key: 'credit-settle:hold-9' }]);
+    });
+
+    it('charges a keyless legacy job once per job id across redelivery', async () => {
+      const ledger = useKeyedLedger({ failAfterCommit: true });
+      const job = buildJob({});
+
+      await expect(processor.process(job)).rejects.toThrow('after commit');
+      await processor.process(job);
+      await processor.process(job);
+
+      expect(ledger).toEqual([{ amount: 10, key: 'credit-job:job-1' }]);
+    });
+  });
+
   it('converts BusinessLogicException into an UnrecoverableError', async () => {
     creditsUtilsService.deductCreditsFromOrganization.mockRejectedValue(
       new BusinessLogicException('insufficient credits'),

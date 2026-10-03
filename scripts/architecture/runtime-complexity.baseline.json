@@ -36,12 +36,6 @@
     "symbol": "PublicYoutubeClipClaimService.claim"
   },
   {
-    "actual": 214,
-    "file": "apps/server/api/src/collections/content-learning/services/learning-decision.service.ts",
-    "metric": "method-lines",
-    "symbol": "LearningDecisionService.resolveForGeneration"
-  },
-  {
     "actual": 219,
     "file": "apps/server/api/src/collections/content-learning/services/learning-experiment.service.ts",
     "metric": "method-lines",

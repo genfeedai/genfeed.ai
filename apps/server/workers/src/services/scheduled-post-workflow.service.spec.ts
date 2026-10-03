@@ -1,3 +1,4 @@
+import { bindLearningPublicationV1 } from '@api/collections/content-learning/services/learning-artifact-binding.helper';
 import {
   SCHEDULED_POST_ACTION_IDS,
   type ScheduledPostWorkflowInput,
@@ -5,6 +6,12 @@ import {
 import { TargetExecutionState } from '@genfeedai/contracts';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import { ScheduledPostWorkflowService } from '@workers/services/scheduled-post-workflow.service';
+
+vi.mock(
+  '@api/collections/content-learning/services/learning-artifact-binding.helper',
+  () => ({ bindLearningPublicationV1: vi.fn() }),
+);
+const bindLearningPublication = vi.mocked(bindLearningPublicationV1);
 
 type RegisteredActionRequest = {
   input: Record<string, unknown>;
@@ -44,12 +51,13 @@ function createHarness() {
     }),
     registerWorkflow: vi.fn(),
   };
+  const logger = { warn: vi.fn(), error: vi.fn() };
   const service = new ScheduledPostWorkflowService(
     activitiesService as never,
     {} as never,
     discoveryService as never,
     {} as never,
-    {} as never,
+    logger as never,
     publishApprovalsService as never,
     prisma as never,
     repeatScheduler as never,
@@ -59,6 +67,7 @@ function createHarness() {
 
   return {
     activitiesService,
+    logger,
     prisma,
     publishApprovalsService,
     registeredActions,
@@ -335,6 +344,43 @@ describe('ScheduledPostWorkflowService', () => {
         data: expect.objectContaining({ attempts: { increment: 1 } }),
       }),
     );
+  });
+});
+
+describe('learning publication binding after approval completion', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+  it('binds after the approval completes as published', async () => {
+    const harness = createHarness();
+    await finalize(harness.registeredActions, TargetExecutionState.PUBLISHED);
+    expect(bindLearningPublication).toHaveBeenCalledExactlyOnceWith(
+      harness.prisma,
+      'org-1',
+      'post-1',
+    );
+    expect(bindLearningPublication.mock.invocationCallOrder[0]).toBeGreaterThan(
+      harness.publishApprovalsService.completeExecution.mock
+        .invocationCallOrder[0],
+    );
+  });
+  it('does not bind a failed delivery', async () => {
+    const harness = createHarness();
+    await finalize(harness.registeredActions, TargetExecutionState.FAILED, {
+      success: false,
+      error: 'provider failed',
+    });
+    expect(bindLearningPublication).not.toHaveBeenCalled();
+  });
+  it('keeps finalizing when learning binding rejects', async () => {
+    const harness = createHarness();
+    bindLearningPublication.mockRejectedValueOnce(new Error('learning down'));
+    await finalize(harness.registeredActions, TargetExecutionState.PUBLISHED);
+    expect(harness.logger.warn).toHaveBeenCalledWith(
+      'Learning publication binding skipped',
+      expect.objectContaining({ postId: 'post-1' }),
+    );
+    expect(harness.activitiesService.record).toHaveBeenCalledOnce();
   });
 });
 

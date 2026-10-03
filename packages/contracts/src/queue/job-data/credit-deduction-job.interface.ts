@@ -20,3 +20,13 @@ export interface CreditDeductionJobData {
   /** Provider accepted this asset; persist its identity before charging. */
   acceptedGeneration?: { ingredientId: string; externalId: string };
 }
+
+/**
+ * A charge being enqueued. The key names the single logical charge, so a
+ * retried, redelivered or re-enqueued job cannot charge it twice and two
+ * charges can never share a queue job id. Legacy payloads already in Redis
+ * keep the optional `CreditDeductionJobData` shape until drained.
+ */
+export type QueuedCreditChargeData = CreditDeductionJobData & {
+  idempotencyKey: string;
+};

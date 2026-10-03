@@ -6,11 +6,13 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { assertApiKeyAgentPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
+import { AgentScopeContextService } from '@api/index';
 import {
   AgentUntrustedContentGateService,
   UNTRUSTED_CONTENT_WITHHELD_NOTICE,
 } from '@api/services/agent-orchestrator/agent-untrusted-content-gate.service';
 import { EvaluateMcpToolResultDto } from '@api/services/agent-orchestrator/dto/evaluate-mcp-tool-result.dto';
+import { ExecuteAgentToolDto } from '@api/services/agent-orchestrator/dto/execute-agent-tool.dto';
 import {
   AgentToolExecutorService,
   type ToolExecutionContext,
@@ -22,7 +24,6 @@ import {
   isAgentUntrustedContentSource,
   readAgentUntrustedContentSource,
 } from '@genfeedai/contracts/interfaces';
-
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -37,20 +38,6 @@ import {
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
-interface ExecuteToolBody {
-  parameters?: Record<string, unknown>;
-  context?: Partial<
-    Omit<
-      ToolExecutionContext,
-      | 'approvalReviewerAuthorized'
-      | 'confirmationOrigin'
-      | 'hostSupportsApproval'
-      | 'organizationId'
-      | 'userId'
-    >
-  >;
-}
-
 @ApiTags('Agent Tools')
 @FeatureFlag('agent')
 @Controller('agent-tools')
@@ -60,6 +47,7 @@ export class AgentToolsController {
     private readonly usersService: UsersService,
     private readonly loggerService: LoggerService,
     private readonly untrustedContentGate: AgentUntrustedContentGateService,
+    private readonly agentScopeContextService: AgentScopeContextService,
   ) {}
 
   @Post(':name/execute')
@@ -68,7 +56,7 @@ export class AgentToolsController {
   })
   async execute(
     @Param('name') name: string,
-    @Body() body: ExecuteToolBody,
+    @Body() body: ExecuteAgentToolDto,
     @CurrentUser() user: User,
     @Req() request: Request,
   ) {
@@ -99,19 +87,22 @@ export class AgentToolsController {
 
       const organizationId = this.resolveOrganizationId(user);
       const userId = await this.resolveDatabaseUserId(user);
-      const clientContext = {
-        ...(body.context ?? {}),
-      } as Partial<ToolExecutionContext>;
-      delete clientContext.confirmationOrigin;
-      // Scope validation is server-owned; a caller can never assert it.
-      delete clientContext.validatedScope;
-      delete clientContext.approvalReviewerAuthorized;
-      const approvedApprovalId = clientContext.approvedApprovalId;
-      delete clientContext.hostSupportsApproval;
-      delete clientContext.approvedApprovalId;
+      // Never spread client input into the context: the executor trusts fields
+      // such as validatedScope, creditGovernance and isWorkflowScoped. The DTO
+      // whitelists the one client-settable field; all else is server-derived.
+      const approvedApprovalId = body.context?.approvedApprovalId;
+      // The caller's brand is a requested value, never the authority: prove it
+      // belongs to the authenticated organization before it reaches a tool.
+      const brandId = body.context?.brandId;
+      if (brandId) {
+        await this.agentScopeContextService.assertBrandAuthorized(
+          brandId,
+          organizationId,
+        );
+      }
 
       const context: ToolExecutionContext = {
-        ...clientContext,
+        ...(brandId ? { brandId } : {}),
         apiKeyContext: user,
         approvedApprovalId,
         approvalReviewerAuthorized:
@@ -184,7 +175,13 @@ export class AgentToolsController {
         `Tool ${name} requires ${tool.requiredRole}`,
       );
     }
-    return this.evaluateMcpResult(name, body.content, organizationId, userId);
+    return this.evaluateMcpResult(
+      name,
+      body.content,
+      organizationId,
+      userId,
+      body.isPartial === true,
+    );
   }
 
   private evaluateMcpResult(
@@ -192,11 +189,13 @@ export class AgentToolsController {
     content: string,
     organizationId: string,
     userId: string,
+    isContentPartial = false,
   ) {
     return this.untrustedContentGate.evaluateToolResult({
       brandId: null,
       content,
       context: { organizationId, userId },
+      isContentPartial,
       origin: 'mcp',
       threadId: null,
       toolCallId: name,

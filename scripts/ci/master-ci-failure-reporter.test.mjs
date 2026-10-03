@@ -256,7 +256,7 @@ test('reportMasterCiFailure fails loudly when the tracker label does not land', 
 });
 
 test('reportMasterCiFailure files the issue and warns once, without failing the job, when triage GraphQL is permission-denied', async () => {
-  // Regression test for #5204: the reporter token (CONSOLE_DEPLOY_TOKEN) can
+  // Regression test for #5204: the reporter token (Genfeed bot App) can
   // lack the org-level scopes for native issue metadata / Project #12. That
   // must degrade to a single actionable warning, not fail the job — the
   // tracker issue itself was already created by this point.
@@ -726,9 +726,20 @@ test('a red master gate files the tracker and a green one resolves it', () => {
   assert.match(report, /master-ci-failure-reporter\.mjs/);
   assert.match(
     report,
-    /github-token: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \|\| github\.token \}\}/,
-    'Project #12 writes must use the existing PAT, not repository GITHUB_TOKEN',
+    /github-token: \$\{\{ steps\.reporter-token\.outputs\.token \}\}/,
+    'Project #12 writes must use the Genfeed bot App token, not repository GITHUB_TOKEN',
   );
+  assert.match(
+    tracker,
+    /- name: Mint reporter token \(Genfeed bot App\)\n\s+id: reporter-token\n\s+uses: \.\/\.github\/actions\/reporter-token\n\s+with:\n\s+client-id: \$\{\{ secrets\.GENFEED_BOT_CLIENT_ID \}\}\n\s+private-key: \$\{\{ secrets\.GENFEED_BOT_PRIVATE_KEY \}\}\n/u,
+    'reporter token must be minted from the Genfeed bot App',
+  );
+  assert.ok(
+    tracker.indexOf('actions/checkout@') <
+      tracker.indexOf('uses: ./.github/actions/reporter-token'),
+    'the composite action is local, so the repository must be checked out first',
+  );
+  assert.doesNotMatch(tracker, /CONSOLE_DEPLOY_TOKEN/u);
 
   const resolve = tracker.slice(
     tracker.indexOf('- name: Close open master-ci-failure trackers'),

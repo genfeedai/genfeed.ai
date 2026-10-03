@@ -97,7 +97,6 @@ export class EmailProductSignalsService implements OnModuleInit {
           {
             attempts: 3,
             dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
-            replaceTerminalJob: true,
           },
         );
         count++;

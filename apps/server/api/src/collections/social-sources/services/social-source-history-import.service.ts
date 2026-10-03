@@ -194,7 +194,6 @@ export class SocialSourceHistoryImportService {
       {
         attempts: 2,
         dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
-        replaceTerminalJob: true,
       },
     );
 

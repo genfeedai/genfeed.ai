@@ -97,7 +97,6 @@ describe('CronTrendsService', () => {
       {
         attempts: 3,
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
-        replaceTerminalJob: true,
       },
     );
     expect(trends.fetchAndCacheTrends).not.toHaveBeenCalled();

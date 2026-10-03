@@ -159,9 +159,12 @@ organization or repository policy changes:
   enabled and it has no required reviewer. For a solo-maintainer repository
   this can be an explicit availability tradeoff; if separation of duties is
   desired, disable bypass and add a reviewer without changing workflow code.
-- Release E2E organization-Project reporting continues to use the existing
-  `CONSOLE_DEPLOY_TOKEN`, whose scope supports organization Project writes.
-  This hardening adds no token and does not introduce `PROJECT_BOARD_TOKEN`.
+- CI failure-reporter organization-Project writes use a short-lived token
+  minted from the Genfeed bot GitHub App by `.github/actions/reporter-token`
+  (issues write and organization Projects write, scoped to this repository).
+  The token falls back to `GITHUB_TOKEN` when the App is not configured, which
+  degrades only the organization-level writes. This hardening does not
+  introduce `PROJECT_BOARD_TOKEN`.
 
 ## Runtime and cost tradeoffs
 

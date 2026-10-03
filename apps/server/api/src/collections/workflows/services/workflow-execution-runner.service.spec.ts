@@ -13,7 +13,10 @@ vi.mock(
 );
 
 describe('WorkflowExecutionRunnerService.resumeAfterDelay — never strands a running execution (#4307)', () => {
-  const prisma = { workflow: { update: vi.fn() } };
+  const prisma = {
+    member: { findFirst: vi.fn() },
+    workflow: { update: vi.fn() },
+  };
   const logger = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -69,6 +72,7 @@ describe('WorkflowExecutionRunnerService.resumeAfterDelay — never strands a ru
 
   beforeEach(() => {
     vi.clearAllMocks();
+    prisma.member.findFirst.mockResolvedValue({ id: 'member-1' });
     executionsService.findOne.mockResolvedValue({
       startedAt: new Date('2026-01-01T00:00:00.000Z'),
       userId: 'user-1',
@@ -183,6 +187,30 @@ describe('WorkflowExecutionRunnerService.resumeAfterDelay — never strands a ru
       expect(progressService.publishWorkflowTaskUpdate).not.toHaveBeenCalled();
     },
   );
+
+  it('fails a delayed resume without running nodes when the recorded actor was removed from the organization (#5892)', async () => {
+    prisma.member.findFirst.mockResolvedValue(null);
+
+    const result = await runner.resumeAfterDelay(jobData);
+
+    expect(prisma.member.findFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: {
+        isActive: true,
+        isDeleted: false,
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+    });
+    expect(result.status).toBe(WorkflowExecutionStatus.FAILED);
+    expect(result.error).toContain('no longer an active member');
+    expect(executionsService.completeExecution).toHaveBeenCalledWith(
+      'execution-1',
+      expect.stringContaining('no longer an active member'),
+    );
+    expect(documentService.findPinnedWorkflow).not.toHaveBeenCalled();
+    expect(graphRunner.executeNodeGraph).not.toHaveBeenCalled();
+  });
 
   it('blocks a missing delayed execution before hydration without a queued actor fallback', async () => {
     executionsService.findOne.mockResolvedValue(null);
