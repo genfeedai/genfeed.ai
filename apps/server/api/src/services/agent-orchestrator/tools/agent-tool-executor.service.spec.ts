@@ -1694,6 +1694,7 @@ describe('AgentToolExecutorService', () => {
       1,
       expect.stringContaining('source-post-1'),
       expect.anything(),
+      { brandId: testId('brand') },
     );
   });
 
