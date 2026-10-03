@@ -1010,6 +1010,9 @@ describe('WorkflowEngineAdapterService', () => {
         getPresignedDownloadUrl: vi
           .fn()
           .mockResolvedValue('https://cdn.example.com/presigned'),
+        getPresignedDownloadUrlForObjectKey: vi
+          .fn()
+          .mockResolvedValue('https://cdn.example.com/presigned-by-key'),
         uploadToS3: vi.fn().mockResolvedValue({ width: 1920 }),
       };
       const ingredientsService = {
@@ -1194,6 +1197,9 @@ describe('WorkflowEngineAdapterService', () => {
       expect(ingredientsService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({ id: musicId, organizationId }),
       );
+      expect(
+        filesClientService.getPresignedDownloadUrlForObjectKey,
+      ).toHaveBeenCalledWith(`ingredients/videos/${captionedId}`);
       expect(filesClientService.audioOverlay).toHaveBeenCalledWith(
         expect.objectContaining({
           audioVolume: 30,
