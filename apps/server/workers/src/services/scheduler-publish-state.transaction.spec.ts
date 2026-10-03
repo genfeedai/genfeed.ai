@@ -34,7 +34,9 @@ describe('scheduler transaction conflict boundary', () => {
     'retries a structurally identified conflict: %j',
     async (error) => {
       const { transaction, warn, service, input } = boundary();
-      transaction.mockRejectedValueOnce(error).mockResolvedValueOnce(true);
+      transaction
+        .mockRejectedValueOnce(error)
+        .mockResolvedValueOnce({ applied: true, finalizationCreated: false });
       await expect(service.transition(input)).resolves.toBe(true);
       expect(transaction).toHaveBeenCalledTimes(2);
       for (const [, options] of transaction.mock.calls)
