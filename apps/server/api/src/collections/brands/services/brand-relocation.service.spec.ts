@@ -83,7 +83,7 @@ describe('BrandRelocationService', () => {
         ? statement.join('')
         : (statement as Prisma.Sql).sql;
       if (text.includes('AS retained')) return [{ retained: false }];
-      if (text.includes('FOR UPDATE')) return [{ id: 'locked' }];
+      if (/FOR (NO KEY )?UPDATE/.test(text)) return [{ id: 'locked' }];
       return [];
     });
     transactionSpy = vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
@@ -1072,7 +1072,7 @@ describe('BrandRelocationService', () => {
           : (statement as Prisma.Sql).sql;
         if (sql.includes('AS retained'))
           return Promise.resolve([{ retained: false }]);
-        if (sql.includes('FOR UPDATE'))
+        if (/FOR (NO KEY )?UPDATE/.test(sql))
           return Promise.resolve([{ id: 'locked' }]);
         if (sql.includes('information_schema')) {
           return Promise.resolve([
