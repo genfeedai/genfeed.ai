@@ -2865,6 +2865,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'amount',
       'billingAccount',
       'billingAccountId',
+      'brandId',
       'createdAt',
       'description',
       'expiresAt',
@@ -2900,6 +2901,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'balanceAfter',
       'billingAccount',
       'billingAccountId',
+      'brandId',
       'category',
       'createdAt',
       'description',
@@ -5557,6 +5559,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
   },
   Persona: {
     allFields: [
+      'availabilityMode',
       'avatarExternalId',
       'avatarIngredient',
       'avatarIngredientId',
@@ -5588,6 +5591,8 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [
       'assignedMembers',
+      'availabilityAudits',
+      'availableBrandIds',
       'credentials',
       'ingredients',
       'posts',
@@ -5595,6 +5600,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'trainings',
     ],
     enumFields: {
+      availabilityMode: {
+        enumType: 'PersonaAvailabilityMode',
+        isRequired: true,
+      },
       status: { enumType: 'PersonaStatus', isRequired: true },
     },
     relationIdFields: {
@@ -5603,6 +5612,26 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       organization: 'organizationId',
       user: 'userId',
       voiceIngredient: 'voiceIngredientId',
+    },
+  },
+  PersonaAvailabilityAudit: {
+    allFields: [
+      'actorUserId',
+      'createdAt',
+      'id',
+      'newMode',
+      'organizationId',
+      'persona',
+      'personaId',
+      'previousMode',
+    ],
+    listFields: ['newBrandIds', 'previousBrandIds'],
+    enumFields: {
+      newMode: { enumType: 'PersonaAvailabilityMode', isRequired: true },
+      previousMode: { enumType: 'PersonaAvailabilityMode', isRequired: true },
+    },
+    relationIdFields: {
+      persona: 'personaId',
     },
   },
   PlatformSetting: {

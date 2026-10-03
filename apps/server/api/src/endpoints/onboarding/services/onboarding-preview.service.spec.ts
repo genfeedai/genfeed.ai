@@ -131,7 +131,14 @@ describe('OnboardingPreviewService', () => {
     );
     expect(
       creditsUtilsService.deductCreditsFromOrganization,
-    ).toHaveBeenCalledWith('org-1', 'user-1', 5, 'Onboarding preview image');
+    ).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      5,
+      'Onboarding preview image',
+      undefined,
+      { brandId: 'brand-1' },
+    );
     expect(brandsService.patch).not.toHaveBeenCalled();
     expect(result).toEqual({
       imageUrl: 'https://cdn.genfeed.ai/onboarding/preview.png',

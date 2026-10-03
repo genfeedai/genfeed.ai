@@ -2,7 +2,7 @@ import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tool
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { IngredientCategory } from '@genfeedai/contracts';
 import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 function createHandler(): AgentWorkspaceToolHandler {
   return new AgentWorkspaceToolHandler(
@@ -187,5 +187,50 @@ describe('AgentWorkspaceToolHandler.requestMediaUpload', () => {
       },
     });
     expect(result.data).not.toHaveProperty('headers');
+  });
+});
+
+describe('AgentWorkspaceToolHandler.listCharacters (#6009)', () => {
+  it('lists characters for the active brand through the shared availability rule', async () => {
+    const personas = {
+      listCharacterMentions: vi.fn().mockResolvedValue([
+        {
+          handle: 'anna',
+          hasReferenceImage: true,
+          id: 'persona-1',
+          label: 'Anna (shared from another brand)',
+        },
+      ]),
+    };
+    const handler = new AgentWorkspaceToolHandler(
+      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[0],
+      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[1],
+      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[2],
+      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[3],
+      personas as unknown as ConstructorParameters<
+        typeof AgentWorkspaceToolHandler
+      >[4],
+      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[5],
+    );
+
+    const result = await handler.listCharacters({ q: 'an' }, {
+      brandId: 'brand-b',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    } as ToolExecutionContext);
+
+    expect(personas.listCharacterMentions).toHaveBeenCalledWith({
+      brandId: 'brand-b',
+      organizationId: 'org-1',
+      q: 'an',
+    });
+    expect(result.data).toEqual({
+      characters: [
+        expect.objectContaining({
+          handle: 'anna',
+          hasReferenceImage: true,
+        }),
+      ],
+    });
   });
 });

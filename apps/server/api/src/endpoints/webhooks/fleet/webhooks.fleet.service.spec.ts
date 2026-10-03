@@ -20,6 +20,7 @@ describe('FleetWebhookService', () => {
   };
 
   const voice = {
+    brandId: 'brand-1',
     id: 'voice-asset-1',
     organizationId: 'org-1',
     providerData: { fleet: { jobId: 'old-job' } },
@@ -78,6 +79,7 @@ describe('FleetWebhookService', () => {
     expect(creditDeductionQueueService.queueDeduction).toHaveBeenCalledWith(
       expect.objectContaining({
         amount: 18,
+        brandId: 'brand-1',
         idempotencyKey: 'fleet-voice-clone-fleet-job-1',
         organizationId: 'org-1',
         referenceId: 'fleet-job-1',

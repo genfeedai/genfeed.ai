@@ -87,6 +87,29 @@ describe('credit activity persistence', () => {
     expect(tx.activity.create.mock.calls[1][0].data.brandId).toBe('brand-1');
   });
 
+  it('prefers the ledger brand column over legacy metadata for activity attribution', async () => {
+    const tx = client();
+    tx.brand.findFirst.mockResolvedValue({ id: 'brand-column' });
+    await recordCreditTransactionActivity(
+      tx as unknown as PrismaTransactionClient,
+      transaction({
+        brandId: 'brand-column',
+        metadata: { brandId: 'brand-metadata' },
+      }),
+    );
+    expect(tx.brand.findFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: {
+        id: 'brand-column',
+        organizationId: 'org-1',
+        isDeleted: false,
+      },
+    });
+    expect(tx.activity.create.mock.calls[0][0].data.brandId).toBe(
+      'brand-column',
+    );
+  });
+
   it('does not invent usage for a free settlement or an unknown category', async () => {
     const tx = client();
     await recordCreditTransactionActivity(

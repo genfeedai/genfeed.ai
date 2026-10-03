@@ -86,10 +86,8 @@ describe('BrandsSetupController', () => {
 
     expect(brandsService.findOne).toHaveBeenCalledWith({
       id: brandId,
-      OR: [
-        { userId: mockUser.userId },
-        { organizationId: mockUser.organizationId },
-      ],
+      isDeleted: false,
+      organizationId: mockUser.organizationId,
     });
     expect(brandSetupService.setupBrand).toHaveBeenCalledWith(
       brandId,
@@ -109,10 +107,8 @@ describe('BrandsSetupController', () => {
 
     expect(brandsService.findOne).toHaveBeenCalledWith({
       id: brandId,
-      OR: [
-        { userId: mockUser.userId },
-        { organizationId: mockUser.organizationId },
-      ],
+      isDeleted: false,
+      organizationId: mockUser.organizationId,
     });
     expect(brandSetupService.addReferenceImages).toHaveBeenCalledWith(
       brandId,
@@ -128,8 +124,42 @@ describe('BrandsSetupController', () => {
       controller.scrapeBrand(mockUser, brandId, {
         brandUrl: 'https://acme.com',
       }),
-    ).rejects.toMatchObject({ status: 403 });
+    ).rejects.toMatchObject({ status: 404 });
 
     expect(brandSetupService.setupBrand).not.toHaveBeenCalled();
+  });
+
+  it('does not scrape a brand the caller created in another organization', async () => {
+    // The lookup is session-org scoped, so a brand the caller created in
+    // another organization never resolves.
+    const foreignBrand = {
+      id: brandId,
+      organizationId: 'cmorganization000000000000002',
+      userId: mockUser.userId,
+    };
+    // Emulates the database `where`, `OR` included: the old userId-or-org
+    // scope matches this row, the session-org scope must not.
+    const matchesWhere = (where: Record<string, unknown>): boolean =>
+      Object.entries(where).every(([key, value]) =>
+        key === 'OR'
+          ? (value as Record<string, unknown>[]).some(matchesWhere)
+          : (foreignBrand as Record<string, unknown>)[key] === value,
+      );
+    brandsService.findOne.mockImplementation(
+      async (where: Record<string, unknown>) =>
+        matchesWhere(where) ? foreignBrand : null,
+    );
+
+    await expect(
+      controller.scrapeBrand(mockUser, brandId, {
+        brandUrl: 'https://acme.com',
+      }),
+    ).rejects.toMatchObject({ status: 404 });
+    await expect(
+      controller.addReferenceImages(mockUser, brandId, { images: [] }),
+    ).rejects.toMatchObject({ status: 404 });
+
+    expect(brandSetupService.setupBrand).not.toHaveBeenCalled();
+    expect(brandSetupService.addReferenceImages).not.toHaveBeenCalled();
   });
 });

@@ -468,6 +468,7 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
         'Brand remix generation',
         ActivitySource.SCRIPT,
         {
+          brandId: state.brandId,
           idempotencyKey: `brand-remix.generate:${request.provenance.executionId}`,
           referenceId: state.runId,
           referenceType: 'brand-remix-run',

@@ -61,6 +61,7 @@ type MyOrganizationSummary = {
   slug: string;
   isActive: boolean;
   isOwner: boolean;
+  logoUrl?: string | null;
   brand: { id: string; label: string } | null;
 };
 

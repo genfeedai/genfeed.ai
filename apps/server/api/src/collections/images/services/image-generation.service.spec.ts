@@ -14,6 +14,7 @@ import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/
 import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
 import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import {
   IngredientOrigin,
@@ -224,6 +225,11 @@ const createService = () => {
     patch: vi.fn().mockResolvedValue(undefined),
     patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
   };
+  const personasService = {
+    resolveCharacterReferences: vi
+      .fn()
+      .mockResolvedValue({ availableAvatarIds: new Set(), personaId: null }),
+  };
   const activitiesService = {
     record: vi.fn().mockResolvedValue({ id: { toString: () => 'act' } }),
   };
@@ -358,6 +364,7 @@ const createService = () => {
     imagesService as never,
     ingredientsService as never,
     loggerService,
+    personasService as never,
   );
 
   const service = new ImageGenerationService(
@@ -391,6 +398,7 @@ const createService = () => {
     loggerService,
     metadataService,
     modelRegistrationService,
+    personasService,
     promptBuilderService,
     promptsService,
     replicateService,
@@ -1425,6 +1433,56 @@ describe('ImageGenerationService', () => {
       expect(JSON.stringify(falService.generateImage.mock.calls)).not.toContain(
         foreignId,
       );
+    });
+
+    describe('shared character references (#6009)', () => {
+      const avatarId = testId('reference', 7);
+
+      it('rejects a character reference the active brand can no longer use', async () => {
+        const { service, personasService, falService } = createService();
+        personasService.resolveCharacterReferences.mockRejectedValue(
+          new NotFoundException('Reference image'),
+        );
+
+        await expect(
+          service.generateImage(
+            buildUser(),
+            baseDto({ model: FAL_MODEL, references: [avatarId] }),
+            buildRequest(),
+          ),
+        ).rejects.toBeInstanceOf(NotFoundException);
+        expect(personasService.resolveCharacterReferences).toHaveBeenCalledWith(
+          expect.objectContaining({
+            brandId: RESOLVED_BRAND,
+            ingredientIds: [avatarId],
+            organizationId: ORG,
+          }),
+        );
+        expect(falService.generateImage).not.toHaveBeenCalled();
+      });
+
+      it('links the generated image to the character whose reference was used', async () => {
+        const { service, personasService, imagesService, ingredientsService } =
+          createService();
+        mockTenantIngredients(ingredientsService, [
+          { id: avatarId, organizationId: ORG },
+        ]);
+        personasService.resolveCharacterReferences.mockResolvedValue({
+          availableAvatarIds: new Set([avatarId]),
+          personaId: 'persona-1',
+        });
+
+        await service.generateImage(
+          buildUser(),
+          baseDto({ model: FAL_MODEL, references: [avatarId] }),
+          buildRequest(),
+        );
+
+        expect(imagesService.patch).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({ personaId: 'persona-1' }),
+        );
+      });
     });
 
     it('does not dispatch a soft-deleted same-tenant reference id', async () => {

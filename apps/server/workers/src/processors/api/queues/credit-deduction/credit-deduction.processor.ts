@@ -107,6 +107,7 @@ export class CreditDeductionProcessor extends WorkerHost {
             settlementIdempotencyKey: job.data.idempotencyKey,
             actualAmount: amount,
             actorUserId: userId,
+            brandId: job.data.brandId,
             description,
             metadata: job.data.metadata,
             organizationId,
@@ -121,6 +122,7 @@ export class CreditDeductionProcessor extends WorkerHost {
             description,
             source,
             {
+              brandId: job.data.brandId,
               // Payloads queued before keys were required carry none; their
               // stable job id still names the charge across retries.
               idempotencyKey:
@@ -169,6 +171,7 @@ export class CreditDeductionProcessor extends WorkerHost {
           {
             idempotencyKey: `byok:${organizationId}:${job.data.idempotencyKey ?? job.id}`,
             actorUserId: userId,
+            brandId: job.data.brandId,
             metadata: job.data.metadata,
           },
         );

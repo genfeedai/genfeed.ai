@@ -7,8 +7,9 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import AppTable from '@ui/display/table/Table';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { Plus, UserRound } from 'lucide-react';
+import { Plus, Share2, UserRound } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
@@ -18,9 +19,11 @@ function resolveCharacterImageUrl(id: string): string {
 }
 
 export default function CharactersTable({
+  canManageSharing,
   characters,
   isLoading,
   onCreate,
+  onManageAvailability,
 }: CharactersTableProps) {
   const translate = useTranslations('common.settings.characters');
 
@@ -55,8 +58,38 @@ export default function CharactersTable({
           </div>
         ),
       },
+      {
+        header: translate('availability.column'),
+        key: 'availability',
+        render: (character) => (
+          <div className="flex flex-wrap items-center gap-2">
+            {character.isShared ? (
+              <Badge icon={<Share2 />}>
+                {translate('availability.sharedBadge', {
+                  brand: character.owningBrandName ?? '',
+                  count: character.availableBrandCount ?? 0,
+                })}
+              </Badge>
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                {translate('availability.modes.owningBrand.label')}
+              </span>
+            )}
+            {canManageSharing ? (
+              <Button
+                aria-label={translate('availability.manageFor', {
+                  name: character.label,
+                })}
+                label={translate('availability.manage')}
+                onClick={() => onManageAvailability(character)}
+                variant={ButtonVariant.GHOST}
+              />
+            ) : null}
+          </div>
+        ),
+      },
     ],
-    [translate],
+    [canManageSharing, onManageAvailability, translate],
   );
 
   return (

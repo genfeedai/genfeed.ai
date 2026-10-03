@@ -377,6 +377,28 @@
     "workspace": "Workspace"
   },
   "settings": {
+    "creditsBalance": {
+      "creditsLeft": "Credits left",
+      "cycleNote": "Based on this cycle's total: subscription credits plus packs bought this cycle.",
+      "ofTotal": "of {total}",
+      "progressLabel": "Credits left this cycle",
+      "referralDescription": "Share your referral link and earn on referred customers' credit purchases.",
+      "referralTitle": "Earn 10% in credits",
+      "resets": "Resets",
+      "viewReferrals": "View referrals"
+    },
+    "members": {
+      "allBrands": "All brands",
+      "columnBrands": "Brands",
+      "columnMember": "Member"
+    },
+    "organizationIdentity": {
+      "logoAlt": "{label} logo",
+      "logoHint": "Square PNG, JPG or WebP. Shown in the organization switcher.",
+      "replaceLogo": "Replace logo",
+      "title": "Organization",
+      "uploadLogo": "Upload logo"
+    },
     "apiKeys": {
       "actions": {
         "copy": "Copy",
@@ -443,6 +465,35 @@
       }
     },
     "characters": {
+      "availability": {
+        "brandsLabel": "Brands that can use this character",
+        "cancel": "Cancel",
+        "column": "Availability",
+        "description": "Choose which brands in this organization can use {name}. Brands that lose access keep the assets they already generated.",
+        "error": "Could not update availability. Check that no brand already has a character with the same @handle.",
+        "label": "Available to",
+        "manage": "Manage availability",
+        "manageFor": "Manage availability for {name}",
+        "modes": {
+          "allBrands": {
+            "description": "Every current and future brand in this organization.",
+            "label": "All brands"
+          },
+          "owningBrand": {
+            "description": "Only the brand that owns the character.",
+            "label": "This brand only"
+          },
+          "selectedBrands": {
+            "description": "The owning brand plus the brands you pick.",
+            "label": "Selected brands"
+          }
+        },
+        "owner": "{brand} (owner)",
+        "save": "Save availability",
+        "sharedBadge": "Shared \u00b7 {brand} \u00b7 {count, plural, one {# brand} other {# brands}}",
+        "success": "Availability updated.",
+        "title": "Character availability"
+      },
       "actions": {
         "approve": "Approve",
         "creating": "Creating\u2026",

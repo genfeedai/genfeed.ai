@@ -355,6 +355,7 @@ export class VisualProjectBillingService {
       organizationId: revision.organizationId,
       actorUserId: revision.userId,
       amount: revision.maximumCredits,
+      brandId: revision.brandId,
       idempotencyKey: `visual-code-${revision.id}`,
       workloadType: 'visual-code',
       workloadId: revision.id,
@@ -377,6 +378,7 @@ export class VisualProjectBillingService {
         organizationId: revision.organizationId,
         actorUserId: revision.userId,
         reservationId: revision.reservationId,
+        brandId: revision.brandId,
         actualAmount: Math.min(
           revision.maximumCredits,
           revision.consumedCredits,

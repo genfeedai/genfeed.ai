@@ -64,6 +64,13 @@ Respond in JSON format with an array of prompts:
  * - Brand voice analysis (tone, voice, audience, values)
  * - Master prompts for content generation
  */
+type MasterPromptBillingContext = {
+  /** Brand the generation is attributed to; omit when no brand exists yet. */
+  brandId?: string;
+  organizationId: string;
+  userId: string;
+};
+
 @Injectable()
 export class MasterPromptGeneratorService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -82,7 +89,7 @@ export class MasterPromptGeneratorService {
    */
   async analyzeBrandVoice(
     brandData: IExtractedBrandData,
-    billingContext?: { organizationId: string; userId: string },
+    billingContext?: MasterPromptBillingContext,
   ): Promise<IExtractedBrandData['brandVoice']> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} starting`);
@@ -151,7 +158,7 @@ export class MasterPromptGeneratorService {
    */
   async generateMasterPrompts(
     brandData: IExtractedBrandData,
-    billingContext?: { organizationId: string; userId: string },
+    billingContext?: MasterPromptBillingContext,
   ): Promise<IMasterPrompt[]> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} starting`);
@@ -319,10 +326,9 @@ export class MasterPromptGeneratorService {
    * The single BYOK decision for a billed generation (#5380): the org's own
    * key pays and nothing is charged. Unbilled calls stay on the platform key.
    */
-  private async resolveByok(billingContext?: {
-    organizationId: string;
-    userId: string;
-  }): Promise<TextByokDispatch | undefined> {
+  private async resolveByok(
+    billingContext?: MasterPromptBillingContext,
+  ): Promise<TextByokDispatch | undefined> {
     if (!billingContext) {
       return undefined;
     }
@@ -332,10 +338,9 @@ export class MasterPromptGeneratorService {
     );
   }
 
-  private async assertCreditsAvailable(billingContext?: {
-    organizationId: string;
-    userId: string;
-  }): Promise<void> {
+  private async assertCreditsAvailable(
+    billingContext?: MasterPromptBillingContext,
+  ): Promise<void> {
     if (!billingContext) {
       return;
     }
@@ -363,10 +368,9 @@ export class MasterPromptGeneratorService {
     throw new InsufficientCreditsException(requiredCredits, currentBalance);
   }
 
-  private async assertBrandProfileCreditsAvailable(billingContext?: {
-    organizationId: string;
-    userId: string;
-  }): Promise<void> {
+  private async assertBrandProfileCreditsAvailable(
+    billingContext?: MasterPromptBillingContext,
+  ): Promise<void> {
     if (!billingContext) {
       return;
     }
@@ -391,10 +395,9 @@ export class MasterPromptGeneratorService {
     );
   }
 
-  private async settleBrandProfileCredits(billingContext?: {
-    organizationId: string;
-    userId: string;
-  }): Promise<void> {
+  private async settleBrandProfileCredits(
+    billingContext?: MasterPromptBillingContext,
+  ): Promise<void> {
     if (!billingContext) {
       return;
     }
@@ -405,11 +408,12 @@ export class MasterPromptGeneratorService {
       BRAND_PROFILE_GENERATION_CREDIT_COST,
       'AI brand profile generation',
       ActivitySource.SCRIPT,
+      { brandId: billingContext.brandId },
     );
   }
 
   private async settleCredits(
-    billingContext: { organizationId: string; userId: string } | undefined,
+    billingContext: MasterPromptBillingContext | undefined,
     input: Record<string, unknown>,
     output: string,
   ): Promise<void> {
@@ -430,6 +434,7 @@ export class MasterPromptGeneratorService {
       'Master prompt generation',
       ActivitySource.SCRIPT,
       {
+        brandId: billingContext.brandId,
         maxOverdraftCredits:
           MasterPromptGeneratorService.TEXT_MAX_OVERDRAFT_CREDITS,
       },

@@ -67,6 +67,14 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   ),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../tests/next-intl.stub'
+  );
+  return {
+    useTranslations: (namespace: string) => translateFromCatalog(namespace),
+  };
+});
 vi.mock('@services/billing/subscriptions.service', () => ({
   SubscriptionsService: {
     getInstance: vi.fn(),

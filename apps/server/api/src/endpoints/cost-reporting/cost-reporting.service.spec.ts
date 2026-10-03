@@ -30,7 +30,7 @@ describe('CostReportingService', () => {
         },
         {
           brandId: null,
-          brandLabel: 'Unattributed',
+          brandLabel: 'No brand',
           byokCount: 0n,
           creditsUsed: 4,
           generationCount: 1n,
@@ -71,7 +71,7 @@ describe('CostReportingService', () => {
       }),
       expect.objectContaining({
         brandId: null,
-        brandLabel: 'Unattributed',
+        brandLabel: 'No brand',
       }),
     ]);
     expect(result.daily).toEqual([
@@ -80,6 +80,66 @@ describe('CostReportingService', () => {
         providerCostUsd: 3,
       }),
     ]);
+  });
+
+  describe('credit usage SQL', () => {
+    const summarySql = async (brandId?: string) => {
+      prisma.brand.findFirst.mockResolvedValue({ id: 'brand-1' });
+      prisma.$queryRaw.mockResolvedValue([]);
+      await service.getSummary('org-1', {
+        ...(brandId ? { brandId } : {}),
+        from: '2026-08-20',
+        to: '2026-08-20',
+      });
+      return prisma.$queryRaw.mock.calls[0][0] as {
+        sql: string;
+        values: unknown[];
+      };
+    };
+    const normalize = (sql: string) => sql.replace(/\s+/g, ' ');
+
+    it('reads the credit brand from the ledger column before legacy metadata', async () => {
+      const { sql } = await summarySql();
+
+      expect(normalize(sql)).toContain(
+        `COALESCE("brandId", NULLIF("metadata"->>'brandId', '')) AS "brandId"`,
+      );
+    });
+
+    it('filters credit rows by the same brand coalesce', async () => {
+      const { sql, values } = await summarySql('brand-1');
+
+      expect(normalize(sql)).toContain(
+        `AND COALESCE("brandId", NULLIF("metadata"->>'brandId', '')) = ?`,
+      );
+      expect(values).toContain('brand-1');
+    });
+
+    it('nets refunds against deductions', async () => {
+      const { sql, values } = await summarySql();
+
+      expect(normalize(sql)).toContain(
+        `CASE WHEN "category" = ? THEN -ABS("amount") ELSE ABS("amount") END`,
+      );
+      expect(normalize(sql)).toContain(`"category" IN (?, ?)`);
+      expect(values).toEqual(expect.arrayContaining(['refund', 'deduct']));
+    });
+
+    it('excludes referral reward reversals from usage', async () => {
+      const { sql, values } = await summarySql();
+
+      expect(normalize(sql)).toContain(`"referenceType" IS DISTINCT FROM ?`);
+      expect(values).toContain('referral-reward-reversal');
+    });
+
+    it('labels brandless spend "No brand" and keeps deleted brands joined', async () => {
+      const { sql } = await summarySql();
+      const text = normalize(sql);
+
+      expect(text).toContain(`COALESCE(b."label", 'No brand')`);
+      expect(text).not.toContain('Unattributed');
+      expect(text).not.toContain('b."isDeleted"');
+    });
   });
 
   it('rejects a brand outside the authenticated organization', async () => {

@@ -67,6 +67,10 @@ export interface ImageGenerationPersistenceDependencies {
   promptBuilderService: PromptBuilderService;
   sharedService: SharedService;
   imagesService: ImagesService;
+  /** Character whose reference image drives this generation (FR10), if any. */
+  resolveCharacterPersonaId?: (
+    referenceIds: string[],
+  ) => Promise<string | null>;
 }
 export async function resolveGenerationPrompt(
   promptsService: PromptsService,
@@ -262,8 +266,12 @@ export async function persistImageDocuments(
       width,
     });
 
+  const personaId = editing
+    ? null
+    : ((await dependencies.resolveCharacterPersonaId?.(referenceIds)) ?? null);
   await dependencies.imagesService.patch(ingredientData.id, {
     promptId: promptData.id,
+    ...(personaId ? { personaId } : {}),
   });
 
   return { ingredientData, metadataData, promptData, providerInput };

@@ -74,6 +74,11 @@ interface CostUsagePageProps {
   lockedBrandId?: string;
 }
 
+/** Usage is a measured amount: zero is `0 GEN`, never the "Free" price label. */
+function formatUsageCredits(value: number): string {
+  return value === 0 ? '0 GEN' : formatCreditCost(value, { unit: 'GEN' });
+}
+
 function formatChartCredits(value: number): string {
   return value === 0 ? '0' : formatCreditCost(value);
 }
@@ -182,8 +187,8 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
     }
   };
   const creditValue = (row: ICostReportEntry) =>
-    row.entryType === 'credit' || row.creditsUsed > 0
-      ? formatCreditCost(row.creditsUsed, { unit: 'GEN' })
+    row.entryType === 'credit' || row.creditsUsed !== 0
+      ? formatUsageCredits(row.creditsUsed)
       : translate('notRecorded');
   const entryColumns: TableColumn<ICostReportEntry>[] = [
     {
@@ -215,7 +220,10 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
     {
       header: translate('tables.headers.creditsUsed'),
       key: 'creditsUsed',
-      render: (row) => formatCreditCost(row.creditsUsed, { unit: 'GEN' }),
+      render: (row) =>
+        row.creditsUsed === 0 && row.generationCount > 0
+          ? translate('notRecorded')
+          : formatUsageCredits(row.creditsUsed),
     },
     { header: translate('tables.headers.generations'), key: 'generationCount' },
   ];
@@ -227,7 +235,7 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
       render: (row) =>
         row.accounting?.actualCredits == null
           ? translate('notRecorded')
-          : formatCreditCost(row.accounting.actualCredits, { unit: 'GEN' }),
+          : formatUsageCredits(row.accounting.actualCredits),
     },
   ];
   const totalEntries = entriesQuery.data?.total ?? 0;
@@ -324,9 +332,10 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
                 label={translate('metrics.creditsUsed.label')}
                 value={
                   summary
-                    ? formatCreditCost(summary.total.creditsUsed, {
-                        unit: 'GEN',
-                      })
+                    ? summary.total.creditsUsed === 0 &&
+                      summary.total.generationCount > 0
+                      ? translate('notRecorded')
+                      : formatUsageCredits(summary.total.creditsUsed)
                     : '—'
                 }
                 description={translate('metrics.creditsUsed.description')}
@@ -450,7 +459,7 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
                 columns={brandColumns}
                 items={summary?.byBrand ?? []}
                 isLoading={summaryQuery.isLoading}
-                getRowKey={(row) => row.brandId ?? '__unattributed__'}
+                getRowKey={(row) => row.brandId ?? '__no_brand__'}
                 emptyLabel={translate('tables.emptyLabel')}
               />
             ) : null}

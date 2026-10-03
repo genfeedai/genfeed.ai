@@ -9,5 +9,7 @@ export interface OrganizationOption {
   isActive: boolean;
   isOwner: boolean;
   label: string;
+  /** Uploaded organization logo, absolute CDN URL. */
+  logoUrl: string | null;
   slug: string;
 }

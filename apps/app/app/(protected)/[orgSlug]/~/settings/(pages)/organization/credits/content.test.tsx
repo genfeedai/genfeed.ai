@@ -3,6 +3,12 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsCreditsPage from './content';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 const {
   hasOrganizationBillingMock,
   isSelfHostedMock,
@@ -45,8 +51,8 @@ vi.mock('./managed-credits-checkout-card', () => ({
   default: () => <div data-testid="managed-credits-card">Managed credits</div>,
 }));
 
-vi.mock('./referral-hub-card', () => ({
-  default: () => <div data-testid="referral-hub-card">Referral hub</div>,
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ orgHref: (path: string) => `/acme/~${path}` }),
 }));
 
 function renderCreditsPage() {
@@ -113,12 +119,38 @@ describe('SettingsCreditsPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders referral rewards when organization billing is enabled', () => {
+  it('links to the dedicated referrals page when organization billing is enabled', () => {
     isSelfHostedMock.mockReturnValue(false);
     hasOrganizationBillingMock.mockReturnValue(true);
 
     renderCreditsPage();
 
-    expect(screen.getByTestId('referral-hub-card')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'View referrals' }),
+    ).toHaveAttribute('href', '/acme/~/settings/referrals');
+    expect(screen.queryByLabelText('Referral link')).not.toBeInTheDocument();
+  });
+
+  it('shows the remaining balance as a progress bar against the cycle total', () => {
+    useSubscriptionMock.mockReturnValue({
+      creditsBreakdown: {
+        credits: [],
+        cycleTotal: 6000,
+        planLimit: 5900,
+        remainingPercent: 91.03,
+        total: 5461.8,
+      },
+      isLoading: false,
+    });
+
+    renderCreditsPage();
+
+    const progress = screen.getByRole('progressbar', {
+      name: 'Credits left this cycle',
+    });
+    expect(progress).toHaveAttribute('aria-valuenow', '91.03');
+    expect(screen.getByText('91%')).toBeInTheDocument();
+    expect(screen.getByText(/5,461\.8/)).toBeInTheDocument();
+    expect(screen.getByText(/of 6,000/)).toBeInTheDocument();
   });
 });

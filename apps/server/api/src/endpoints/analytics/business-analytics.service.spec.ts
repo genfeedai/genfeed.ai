@@ -1,15 +1,21 @@
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CreditTransactionCategory } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  CreditTransactionCategory,
+} from '@genfeedai/contracts';
+import { REFERRAL_REWARD_REVERSAL_REFERENCE_TYPE } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BusinessAnalyticsService } from './business-analytics.service';
 
 type CreditRow = {
   amount: number;
+  category: CreditTransactionCategory;
   createdAt: Date;
   isDeleted: boolean;
   organizationId: string;
-  source: string;
+  referenceType?: string;
+  source: ActivitySource;
 };
 
 type IngredientRow = {
@@ -34,38 +40,60 @@ describe('BusinessAnalyticsService', () => {
   const creditRows: CreditRow[] = [
     {
       amount: 100,
+      category: CreditTransactionCategory.ADD,
       createdAt: new Date('2026-06-18T09:00:00.000Z'),
       isDeleted: false,
       organizationId: 'org_a',
-      source: CreditTransactionCategory.ADD,
+      source: ActivitySource.PAY_AS_YOU_GO,
     },
     {
       amount: 50,
+      category: CreditTransactionCategory.ADD,
       createdAt: new Date('2026-06-10T09:00:00.000Z'),
       isDeleted: false,
       organizationId: 'org_b',
-      source: CreditTransactionCategory.ADD,
+      source: ActivitySource.SUBSCRIPTION,
     },
     {
       amount: 30,
+      category: CreditTransactionCategory.DEDUCT,
       createdAt: new Date('2026-06-16T09:00:00.000Z'),
       isDeleted: false,
       organizationId: 'org_a',
-      source: CreditTransactionCategory.DEDUCT,
+      source: ActivitySource.IMAGE_GENERATION,
+    },
+    {
+      amount: 5,
+      category: CreditTransactionCategory.REFUND,
+      createdAt: new Date('2026-06-17T09:00:00.000Z'),
+      isDeleted: false,
+      organizationId: 'org_a',
+      source: ActivitySource.IMAGE_GENERATION,
     },
     {
       amount: 10,
+      category: CreditTransactionCategory.DEDUCT,
       createdAt: new Date('2026-06-10T10:00:00.000Z'),
       isDeleted: false,
       organizationId: 'org_b',
-      source: CreditTransactionCategory.DEDUCT,
+      source: ActivitySource.VIDEO_GENERATION,
+    },
+    {
+      amount: 7,
+      category: CreditTransactionCategory.DEDUCT,
+      createdAt: new Date('2026-06-10T11:00:00.000Z'),
+      isDeleted: false,
+      organizationId: 'org_b',
+      referenceType: REFERRAL_REWARD_REVERSAL_REFERENCE_TYPE,
+      source: ActivitySource.REFERRAL,
     },
     {
       amount: 999,
+      category: CreditTransactionCategory.ADD,
       createdAt: new Date('2026-06-18T10:00:00.000Z'),
       isDeleted: true,
       organizationId: 'org_a',
-      source: CreditTransactionCategory.ADD,
+      source: ActivitySource.PAY_AS_YOU_GO,
     },
   ];
   const ingredientRows: IngredientRow[] = [
@@ -106,18 +134,45 @@ describe('BusinessAnalyticsService', () => {
     return true;
   }
 
-  function filterCredits(where: {
-    createdAt?: { gte?: Date; lt?: Date; lte?: Date };
-    isDeleted?: boolean;
-    source?: string;
-  }) {
-    return creditRows.filter(
-      (row) =>
-        (typeof where.isDeleted !== 'boolean' ||
-          row.isDeleted === where.isDeleted) &&
-        (!where.source || row.source === where.source) &&
-        dateMatches(row.createdAt, where.createdAt),
+  const USAGE_FILTER = `"category" IN (?, ?) AND "referenceType" IS DISTINCT FROM ?`;
+  const USAGE_AMOUNT = `CASE WHEN "category" = ? THEN -ABS("amount") ELSE ABS("amount") END`;
+
+  /**
+   * Evaluates the two credit flows the service may ask for. Any other shape —
+   * e.g. filtering the ledger by `"source"` — is a bug, so it throws.
+   */
+  function queryCredits(sql: string, values: unknown[]) {
+    const text = sql.replace(/\s+/g, ' ');
+    const isUsage =
+      text.includes(`SUM(${USAGE_AMOUNT})`) && text.includes(USAGE_FILTER);
+    const isSold =
+      text.includes('SUM("amount")') && text.includes('"category" = ?');
+    if (!isUsage && !isSold) {
+      throw new Error(`Unexpected credit query: ${text}`);
+    }
+    const [from, to] = values.filter(
+      (value): value is Date => value instanceof Date,
     );
+    const createdAt = text.includes('"createdAt" < ?')
+      ? { gte: from, lt: to }
+      : { gte: from, lte: to };
+    const rows = creditRows.filter(
+      (row) =>
+        !row.isDeleted &&
+        dateMatches(row.createdAt, createdAt) &&
+        (isUsage
+          ? (row.category === CreditTransactionCategory.DEDUCT ||
+              row.category === CreditTransactionCategory.REFUND) &&
+            row.referenceType !== REFERRAL_REWARD_REVERSAL_REFERENCE_TYPE
+          : row.category === CreditTransactionCategory.ADD),
+    );
+    return rows.map((row) => ({
+      ...row,
+      amount:
+        isUsage && row.category === CreditTransactionCategory.REFUND
+          ? -row.amount
+          : row.amount,
+    }));
   }
 
   function filterIngredients(where: {
@@ -162,18 +217,26 @@ describe('BusinessAnalyticsService', () => {
       const values = query.values ?? [];
 
       if (sql.includes('"credit_transactions"')) {
-        const [source, from, to] = values as [string, Date, Date | undefined];
-        const rows = filterCredits({
-          createdAt: {
-            gte: from,
-            ...(sql.includes('"createdAt" <') ? { lt: to } : { lte: to }),
-          },
-          isDeleted: false,
-          source,
-        });
+        const rows = queryCredits(sql, values);
 
         if (sql.includes('date_trunc')) {
           return Promise.resolve(toDailyAmountRows(rows));
+        }
+
+        if (sql.includes('GROUP BY "organizationId"')) {
+          const byOrg = new Map<string, number>();
+          for (const row of rows) {
+            byOrg.set(
+              row.organizationId,
+              (byOrg.get(row.organizationId) ?? 0) + row.amount,
+            );
+          }
+          return Promise.resolve(
+            Array.from(byOrg.entries())
+              .map(([organizationId, amount]) => ({ amount, organizationId }))
+              .sort((left, right) => right.amount - left.amount)
+              .slice(0, 10),
+          );
         }
 
         return Promise.resolve([
@@ -196,33 +259,8 @@ describe('BusinessAnalyticsService', () => {
       return Promise.resolve([]);
     }),
     creditTransaction: {
-      aggregate: vi.fn(({ where }) => {
-        const amount = filterCredits(where).reduce(
-          (total, row) => total + row.amount,
-          0,
-        );
-        return Promise.resolve({ _sum: { amount } });
-      }),
       findMany: vi.fn(),
-      groupBy: vi.fn(({ take, where }) => {
-        const byOrg = new Map<string, number>();
-        for (const row of filterCredits(where)) {
-          byOrg.set(
-            row.organizationId,
-            (byOrg.get(row.organizationId) ?? 0) + row.amount,
-          );
-        }
-        const rows = Array.from(byOrg.entries())
-          .map(([organizationId, amount]) => ({
-            _sum: { amount },
-            organizationId,
-          }))
-          .sort(
-            (left, right) =>
-              Number(right._sum.amount) - Number(left._sum.amount),
-          );
-        return Promise.resolve(rows.slice(0, take));
-      }),
+      groupBy: vi.fn(),
     },
     ingredient: {
       count: vi.fn(({ where }) =>
@@ -305,10 +343,12 @@ describe('BusinessAnalyticsService', () => {
       today: 100,
       wowGrowth: 100,
     });
+    // Refunds net out and the referral reward reversal is not usage:
+    // this week 30 - 5, last week 10.
     expect(result.credits).toMatchObject({
-      consumed: 40,
+      consumed: 35,
       sold: 150,
-      wowGrowth: 200,
+      wowGrowth: 150,
     });
     expect(result.ingredients).toMatchObject({
       categoryBreakdown: [
@@ -322,7 +362,7 @@ describe('BusinessAnalyticsService', () => {
     });
     expect(result.leaders).toMatchObject({
       byCredits: [
-        { amount: 30, organizationId: 'org_a', organizationName: 'Alpha Org' },
+        { amount: 25, organizationId: 'org_a', organizationName: 'Alpha Org' },
         { amount: 10, organizationId: 'org_b', organizationName: 'Beta Org' },
       ],
       byIngredients: [
@@ -335,12 +375,12 @@ describe('BusinessAnalyticsService', () => {
       ],
     });
     expect(result.comparisons).toMatchObject({
-      cashInVsUsageValue: { cashIn: 150, usageValue: 40 },
-      outstandingPrepaid: 110,
-      soldVsConsumed: { consumed: 40, sold: 150 },
+      cashInVsUsageValue: { cashIn: 150, usageValue: 35 },
+      outstandingPrepaid: 115,
+      soldVsConsumed: { consumed: 35, sold: 150 },
     });
 
-    expect(prisma.creditTransaction.groupBy).toHaveBeenCalled();
+    expect(prisma.creditTransaction.groupBy).not.toHaveBeenCalled();
     expect(prisma.ingredient.groupBy).toHaveBeenCalled();
     expect(prisma.$queryRaw).toHaveBeenCalled();
     expect(prisma.creditTransaction.findMany).not.toHaveBeenCalled();
@@ -415,7 +455,7 @@ describe('BusinessAnalyticsService', () => {
       expect.objectContaining({ limit: 100 }),
     );
     // Credits/ingredients blocks still come from the database
-    expect(result.credits).toMatchObject({ consumed: 40, sold: 150 });
+    expect(result.credits).toMatchObject({ consumed: 35, sold: 150 });
   });
 
   it('falls back to the credit-transaction proxy when Stripe fetch fails', async () => {

@@ -14,6 +14,7 @@ import {
   Cpu,
   CreditCard,
   Flame,
+  Gift,
   Key,
   LayoutGrid,
   Link,
@@ -215,6 +216,14 @@ function buildOrganizationMenuItems(
             label: 'Subscription',
             outline: Receipt,
             solid: Receipt,
+          },
+          {
+            group: 'Billing',
+            href: APP_ROUTES.SETTINGS.REFERRALS,
+            hrefScope: 'organization' as const,
+            label: 'Referrals',
+            outline: Gift,
+            solid: Gift,
           },
         ]
       : []),

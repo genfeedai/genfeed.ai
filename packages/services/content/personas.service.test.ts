@@ -1,3 +1,4 @@
+import { PersonaAvailabilityMode } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Persona, PersonasService } from './personas.service';
 
@@ -54,5 +55,50 @@ describe('PersonasService', () => {
     });
     expect(persona).toBeInstanceOf(Persona);
     expect(persona.handle).toBe('anna');
+  });
+
+  it('patches character availability and maps the response', async () => {
+    const patch = vi.fn().mockResolvedValue({
+      data: {
+        data: { id: 'p1', type: 'persona', attributes: { label: 'Anna' } },
+      },
+    });
+    (service as unknown as { instance: { patch: typeof patch } }).instance = {
+      patch,
+    };
+
+    await service.updateAvailability('p1', {
+      brandIds: ['b2'],
+      mode: PersonaAvailabilityMode.SELECTED_BRANDS,
+    });
+
+    expect(patch).toHaveBeenCalledWith('/p1/availability', {
+      brandIds: ['b2'],
+      mode: PersonaAvailabilityMode.SELECTED_BRANDS,
+    });
+  });
+
+  it('maps availability fields onto character list items', async () => {
+    vi.spyOn(service, 'findAll').mockResolvedValue([
+      new Persona({
+        availabilityMode: PersonaAvailabilityMode.ALL_BRANDS,
+        availableBrandCount: 3,
+        availableBrandIds: [],
+        handle: 'anna',
+        id: 'p1',
+        isShared: true,
+        label: 'Anna',
+        owningBrandId: 'b1',
+        owningBrandName: 'Podcast',
+      }),
+    ]);
+
+    await expect(service.listCharacters()).resolves.toEqual([
+      expect.objectContaining({
+        availableBrandCount: 3,
+        isShared: true,
+        owningBrandName: 'Podcast',
+      }),
+    ]);
   });
 });

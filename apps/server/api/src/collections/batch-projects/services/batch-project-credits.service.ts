@@ -28,6 +28,7 @@ export class BatchProjectCreditsService {
    */
   async reserve(input: {
     actorUserId: string;
+    brandId?: string | null;
     dispatch: IBatchProjectItemDispatch;
     organizationId: string;
   }): Promise<string | undefined> {
@@ -38,6 +39,7 @@ export class BatchProjectCreditsService {
     const reservation = await this.credits.reserveCredits({
       actorUserId: input.actorUserId,
       amount: dispatch.credits,
+      ...(input.brandId ? { brandId: input.brandId } : {}),
       expiresAt: new Date(Date.now() + IDEA_RESERVATION_TTL_MS),
       idempotencyKey: dispatch.key,
       organizationId: input.organizationId,
@@ -61,6 +63,7 @@ export class BatchProjectCreditsService {
    */
   async settle(input: {
     actorUserId: string;
+    brandId?: string | null;
     description: string;
     dispatch: IBatchProjectItemDispatch;
     organizationId: string;
@@ -74,6 +77,7 @@ export class BatchProjectCreditsService {
       await this.credits.settleReservation({
         actorUserId: input.actorUserId,
         actualAmount: dispatch.credits,
+        ...(input.brandId ? { brandId: input.brandId } : {}),
         description: input.description,
         organizationId: input.organizationId,
         source: input.source,

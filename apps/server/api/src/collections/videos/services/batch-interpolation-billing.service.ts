@@ -132,6 +132,7 @@ export class BatchInterpolationBillingService {
         ? await this.credits.reserveCredits({
             actorUserId: input.user.userId ?? input.user.id,
             amount: input.amount,
+            ...(input.user.brandId ? { brandId: input.user.brandId } : {}),
             expiresAt: new Date(Date.now() + MEDIA_GENERATION_HOLD_TTL_MS),
             description: input.description,
             source: ActivitySource.VIDEO_GENERATION,

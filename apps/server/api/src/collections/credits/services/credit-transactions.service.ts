@@ -4,6 +4,10 @@ import {
   recordCreditTransactionActivity,
 } from '@api/collections/credits/services/credit-activity.util';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
+import {
+  creditUsageWhere,
+  signedCreditUsage,
+} from '@api/collections/credits/services/credit-usage.util';
 import { validatedWorkflowAccountingAttribution } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { CACHE_PATTERNS } from '@api/common/constants/cache-patterns.constants';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
@@ -19,6 +23,7 @@ import { Injectable } from '@nestjs/common';
 type CreateTransactionEntryOptions = {
   actorUserId?: string;
   billingAccountId?: string;
+  brandId?: string | null;
   idempotencyKey?: string;
   metadata?: Record<string, unknown>;
   referenceId?: string;
@@ -151,6 +156,7 @@ export class CreditTransactionsService extends BaseService<
       ...(options?.billingAccountId
         ? { billingAccountId: options.billingAccountId }
         : {}),
+      ...(options?.brandId ? { brandId: options.brandId } : {}),
       ...(options?.idempotencyKey
         ? { idempotencyKey: options.idempotencyKey }
         : {}),
@@ -230,13 +236,18 @@ export class CreditTransactionsService extends BaseService<
         organizationId,
         ...(category ? { category } : {}),
         ...(source ? { source } : {}),
-        // brandId is stored on ledger metadata when callers pass it through.
+        // Rows written before the brandId column carry it on metadata only.
         ...(brandId
           ? {
-              metadata: {
-                path: ['brandId'],
-                equals: brandId,
-              } satisfies Prisma.JsonFilter,
+              OR: [
+                { brandId },
+                {
+                  metadata: {
+                    path: ['brandId'],
+                    equals: brandId,
+                  } satisfies Prisma.JsonFilter,
+                },
+              ],
             }
           : {}),
       };
@@ -386,7 +397,7 @@ export class CreditTransactionsService extends BaseService<
       const deductions = this.normalizeDocuments(
         (await this.delegate.findMany({
           where: {
-            category: CreditTransactionCategory.DEDUCT,
+            ...creditUsageWhere(),
             createdAt: { gte: yearAgo },
             isDeleted: false,
             organizationId,
@@ -400,7 +411,7 @@ export class CreditTransactionsService extends BaseService<
       const byDay = new Map<string, number>();
 
       for (const d of deductions) {
-        const absAmount = Math.abs(Number(d.amount) || 0);
+        const absAmount = signedCreditUsage(d);
         const createdAt =
           d.createdAt instanceof Date ? d.createdAt : new Date(d.createdAt);
 
@@ -458,6 +469,7 @@ export class CreditTransactionsService extends BaseService<
     }
   }
 
+  /** Deductions count as positive usage and refunds as negative usage. */
   private toUtcDayKey(date: Date): string {
     return date.toISOString().slice(0, 10);
   }

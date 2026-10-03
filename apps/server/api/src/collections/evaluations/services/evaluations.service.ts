@@ -366,6 +366,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       userId,
       billedCredits,
       `Content evaluation: ${IngredientCategory.VIDEO}`,
+      brandId,
     );
 
     return evaluation;
@@ -440,6 +441,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       userId,
       billedCredits,
       `Content evaluation: ${IngredientCategory.IMAGE}`,
+      brandId,
     );
 
     return evaluation;
@@ -512,6 +514,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       userId,
       billedCredits,
       'Content evaluation: article',
+      brandId,
     );
 
     return evaluation;
@@ -559,6 +562,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       organizationId,
       userId,
       byok,
+      brandId,
     ).catch((error) => {
       this.logger.error(
         `Async post evaluation failed: ${(error as Error).message}`,
@@ -579,6 +583,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     organizationId: string,
     userId: string,
     byok?: TextByokDispatch,
+    brandId?: string,
   ): Promise<void> {
     const postId = String(post.id);
     let billedCredits = 0;
@@ -617,6 +622,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         userId,
         billedCredits,
         'Content evaluation: post',
+        brandId,
       );
       creditsSettled = true;
 
@@ -678,6 +684,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           organizationId,
           billedCredits,
           'Content evaluation failed: post',
+          brandId,
         );
       }
 
@@ -926,6 +933,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     userId: string,
     amount: number,
     description: string,
+    brandId?: string | null,
   ): Promise<void> {
     if (amount <= 0) return;
 
@@ -936,6 +944,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       description,
       ActivitySource.CONTENT_EVALUATION,
       {
+        brandId,
         maxOverdraftCredits:
           EvaluationsService.EVALUATION_MAX_OVERDRAFT_CREDITS,
       },
@@ -946,6 +955,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     organizationId: string,
     amount: number,
     description: string,
+    brandId?: string | null,
   ): Promise<void> {
     if (amount <= 0) return;
 
@@ -959,6 +969,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         'content-evaluation-refund',
         description,
         refundExpiresAt,
+        { brandId },
       );
     } catch (error: unknown) {
       // A failed refund must not mask the original evaluation failure — log and

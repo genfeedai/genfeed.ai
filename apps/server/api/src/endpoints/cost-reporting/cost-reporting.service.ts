@@ -1,8 +1,12 @@
+import {
+  CREDIT_USAGE_AMOUNT_SQL,
+  CREDIT_USAGE_BRAND_SQL,
+  CREDIT_USAGE_FILTER_SQL,
+} from '@api/collections/credits/services/credit-usage.util';
 import { readWorkflowAccountings } from '@api/collections/workflow-executions/services/workflow-accounting';
 import { resolveCostReportRange } from '@api/endpoints/cost-reporting/cost-reporting-query.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CreditTransactionCategory } from '@genfeedai/contracts';
 import type { WorkflowCostReportExecution } from '@genfeedai/contracts/interfaces';
 import type {
   CostReportEntryType,
@@ -111,7 +115,7 @@ export class CostReportingService {
         WITH "costEvents" AS (${events})
         SELECT
           b."id" AS "brandId",
-          COALESCE(b."label", 'Unattributed') AS "brandLabel",
+          COALESCE(b."label", 'No brand') AS "brandLabel",
           SUM(e."byokCount")::bigint AS "byokCount",
           SUM(e."creditsUsed")::double precision AS "creditsUsed",
           SUM(e."generationCount")::bigint AS "generationCount",
@@ -122,7 +126,6 @@ export class CostReportingService {
         LEFT JOIN "brands" b
           ON b."id" = e."brandId"
           AND b."organizationId" = ${organizationId}
-          AND b."isDeleted" = false
         GROUP BY b."id", b."label"
         ORDER BY "providerCostMicros" DESC, "creditsUsed" DESC, "brandLabel" ASC
       `),
@@ -218,7 +221,7 @@ export class CostReportingService {
         e."id" AS "id",
         e."entryType" AS "entryType",
         b."id" AS "brandId",
-        COALESCE(b."label", 'Unattributed') AS "brandLabel",
+        COALESCE(b."label", 'No brand') AS "brandLabel",
         e."provider" AS "provider",
         e."model" AS "model",
         e."category" AS "category",
@@ -232,7 +235,6 @@ export class CostReportingService {
       LEFT JOIN "brands" b
         ON b."id" = e."brandId"
         AND b."organizationId" = ${organizationId}
-        AND b."isDeleted" = false
       ORDER BY e."createdAt" DESC, e."id" DESC
       LIMIT ${limit}
       OFFSET ${skip}
@@ -248,8 +250,9 @@ export class CostReportingService {
     const ledgerBrandFilter = options.brandId
       ? Prisma.sql`AND "brandId" = ${options.brandId}`
       : Prisma.empty;
+    // Rows written before the brandId column carry the brand in metadata only.
     const creditBrandFilter = options.brandId
-      ? Prisma.sql`AND "metadata"->>'brandId' = ${options.brandId}`
+      ? Prisma.sql`AND ${CREDIT_USAGE_BRAND_SQL} = ${options.brandId}`
       : Prisma.empty;
 
     return Prisma.sql`
@@ -308,13 +311,13 @@ export class CostReportingService {
       SELECT
         "id" AS "id",
         'credit'::text AS "entryType",
-        NULLIF("metadata"->>'brandId', '') AS "brandId",
+        ${CREDIT_USAGE_BRAND_SQL} AS "brandId",
         NULL::text AS "provider",
         NULL::text AS "model",
         COALESCE("source", "category", 'credits') AS "category",
         "referenceId" AS "referenceId",
         0::bigint AS "providerCostMicros",
-        ABS("amount")::double precision AS "creditsUsed",
+        (${CREDIT_USAGE_AMOUNT_SQL})::double precision AS "creditsUsed",
         false AS "isByok",
         0::bigint AS "byokCount",
         0::bigint AS "generationCount",
@@ -324,7 +327,7 @@ export class CostReportingService {
       FROM "credit_transactions"
       WHERE "organizationId" = ${options.organizationId}
         AND "isDeleted" = false
-        AND "category" = ${CreditTransactionCategory.DEDUCT}
+        AND ${CREDIT_USAGE_FILTER_SQL}
         AND "createdAt" >= ${options.from}
         AND "createdAt" <= ${options.to}
         ${creditBrandFilter}

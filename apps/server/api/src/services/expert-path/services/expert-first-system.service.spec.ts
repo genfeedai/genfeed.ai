@@ -339,6 +339,7 @@ describe('ExpertFirstSystemService', () => {
         10,
         'Expert Path first content system',
         expect.any(String),
+        { brandId: 'brand-1' },
       );
 
       expect(brandMemoryService.upsertTypedEntry).toHaveBeenCalledWith(

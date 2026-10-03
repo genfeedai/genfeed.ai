@@ -151,6 +151,8 @@ export class OnboardingPreviewService {
           userId,
           ONBOARDING_PREVIEW_CREDIT_COST,
           'Onboarding preview image',
+          undefined,
+          { brandId: dto.brandId },
         );
 
         this.loggerService.log(`${caller} completed`, {

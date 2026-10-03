@@ -61,9 +61,11 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
+const mockReplace = vi.fn();
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/models',
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace: mockReplace }),
   useSearchParams: () => new URLSearchParams(''),
 }));
 
@@ -81,7 +83,10 @@ function buildModel(overrides: Partial<IModel> = {}): IModel {
   } as unknown as IModel;
 }
 
-function renderModelsList(scope: PageScope = PageScope.ORGANIZATION) {
+function renderModelsList(
+  scope: PageScope = PageScope.ORGANIZATION,
+  type?: string,
+) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -92,7 +97,9 @@ function renderModelsList(scope: PageScope = PageScope.ORGANIZATION) {
     );
   }
 
-  return render(<ModelsList scope={scope} />, { wrapper: Wrapper });
+  return render(<ModelsList scope={scope} type={type} />, {
+    wrapper: Wrapper,
+  });
 }
 
 describe('ModelsList', () => {
@@ -192,10 +199,62 @@ describe('ModelsList', () => {
     renderModelsList();
 
     await waitFor(() => {
-      expect(screen.getByText('Default: Flux Dev')).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /^Image/ })).toHaveTextContent(
+        'Image1',
+      );
     });
     expect(screen.getByText('Model catalog')).toBeInTheDocument();
-    expect(screen.getByText('Image')).toBeInTheDocument();
+    // Every category sits in a single tab row.
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
+      'All1',
+      'Image1',
+      'Video0',
+      'Music0',
+      'Voice0',
+      'Text0',
+      'Embedding0',
+    ]);
+  });
+
+  it('lists a whole catalog group when a category is selected', async () => {
+    renderModelsList(PageScope.ORGANIZATION, 'image');
+
+    await waitFor(() => {
+      expect(mockFindAll).toHaveBeenCalled();
+    });
+    expect(mockFindAll.mock.calls[0]?.[0]).toMatchObject({
+      categories: 'image,image-edit,image-upscale',
+    });
+    expect(mockFindAll.mock.calls[0]?.[0]).not.toHaveProperty('category');
+    expect(screen.getByRole('tab', { name: /^Image/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
+
+  it('filters by category from the one-line chip row', async () => {
+    renderModelsList();
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /^Video/ })).toBeInTheDocument();
+    });
+    // Radix tabs activate on mouse down.
+    fireEvent.mouseDown(screen.getByRole('tab', { name: /^Video/ }), {
+      button: 0,
+    });
+
+    expect(mockReplace).toHaveBeenCalledWith('/models?type=video', {
+      scroll: false,
+    });
+  });
+
+  it('keeps the catalog overview read-only for superadmins', async () => {
+    renderModelsList(PageScope.SUPERADMIN);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('models-category-filter')).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
   });
 
   it('searches the complete model catalog through the API', async () => {

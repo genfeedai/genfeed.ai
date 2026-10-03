@@ -5,7 +5,11 @@ import {
   toUnitEconomicsMetrics,
 } from '@api/endpoints/admin/unit-economics/unit-economics-report.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ActivitySource } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  CreditTransactionCategory,
+} from '@genfeedai/contracts';
+import { REFERRAL_REWARD_REVERSAL_REFERENCE_TYPE } from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';
 
 describe('unit economics margin math', () => {
@@ -177,6 +181,30 @@ describe('UnitEconomicsService', () => {
         llmProviderCostUsd: 0.5,
       }),
     ]);
+  });
+
+  it('counts credit usage net of refunds and without referral reward reversals', async () => {
+    const { queries, service } = createService();
+
+    await service.getReport({ from: FROM, to: TO });
+
+    const creditSql = queries.find((query) =>
+      query.sql.includes('credit_transactions'),
+    );
+    const text = creditSql?.sql.replace(/\s+/g, ' ');
+    expect(text).toContain(
+      `CASE WHEN "category" = ? THEN -ABS("amount") ELSE ABS("amount") END`,
+    );
+    expect(text).toContain(
+      `"category" IN (?, ?) AND "referenceType" IS DISTINCT FROM ?`,
+    );
+    expect(creditSql?.values).toEqual(
+      expect.arrayContaining([
+        CreditTransactionCategory.DEDUCT,
+        CreditTransactionCategory.REFUND,
+        REFERRAL_REWARD_REVERSAL_REFERENCE_TYPE,
+      ]),
+    );
   });
 
   it('rejects a drill-down into an unknown organization', async () => {

@@ -70,7 +70,7 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      "List the current brand's active named characters (handle, label, description, whether a reference image exists). Tenant-scoped.",
+      'List the active named characters the current brand can use: characters it owns plus characters shared to it from other brands of the same organization (handle, label, description, whether a reference image exists). Tenant-scoped.',
     name: 'list_characters',
     parameters: {
       properties: {

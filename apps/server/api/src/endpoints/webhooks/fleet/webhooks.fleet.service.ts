@@ -233,6 +233,7 @@ export class FleetWebhookService {
 
     await this.creditDeductionQueueService.queueDeduction({
       amount: params.chargedCredits,
+      ...(voice.brandId ? { brandId: voice.brandId } : {}),
       description: `Fleet voice clone compute (${params.processTimeSeconds.toFixed(2)}s)`,
       idempotencyKey,
       metadata: {

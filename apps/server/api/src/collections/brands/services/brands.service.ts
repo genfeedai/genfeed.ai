@@ -291,6 +291,57 @@ export class BrandsService extends BaseService<
   }
 
   /**
+   * List-page form of the single-brand response decoration: each brand's logo
+   * and its own connected accounts, batched per organization (one credential
+   * query plus the one ranked asset query), so list rows render the brand logo
+   * and the real connected-platform count. Credentials use the bootstrap
+   * allowlist — never token or OAuth columns.
+   */
+  async attachBrandListRelations(
+    brands: BrandDocument[],
+  ): Promise<BrandDocument[]> {
+    const brandsByOrganization = new Map<string, BrandDocument[]>();
+    for (const brand of brands) {
+      const organizationId = brand.organizationId;
+      if (typeof organizationId !== 'string' || !organizationId) {
+        continue;
+      }
+      const group = brandsByOrganization.get(organizationId) ?? [];
+      group.push({ ...brand });
+      brandsByOrganization.set(organizationId, group);
+    }
+
+    const decoratedById = new Map<string, BrandDocument>();
+    for (const [organizationId, group] of brandsByOrganization) {
+      const { orderBy, select } = bootstrapCredentialInclude(organizationId);
+      const credentials = await this.prisma.credential.findMany({
+        orderBy,
+        select,
+        where: {
+          brandId: { in: group.map((brand) => String(brand.id)) },
+          isDeleted: false,
+          organizationId,
+        },
+      });
+
+      const withAssets = await this.attachBrandKitAssetRelations(
+        group,
+        organizationId,
+      );
+      for (const brand of withAssets) {
+        brand.credentials = mapBootstrapCredentials(
+          credentials.filter(
+            (credential) => credential.brandId === String(brand.id),
+          ),
+        );
+        decoratedById.set(String(brand.id), brand);
+      }
+    }
+
+    return brands.map((brand) => decoratedById.get(String(brand.id)) ?? brand);
+  }
+
+  /**
    * Populate the serializer's brand kit asset relations on fetched brand rows.
    *
    * `brandSerializerConfig` declares `logo`, `banner` and `references` as asset

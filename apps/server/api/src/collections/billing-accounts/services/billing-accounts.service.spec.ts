@@ -1,4 +1,5 @@
 import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
+import { creditUsageWhere } from '@api/collections/credits/services/credit-usage.util';
 import { PlanLimitExceededException } from '@api/exceptions/business-logic.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -44,7 +45,6 @@ describe('BillingAccountsService', () => {
       updateMany: vi.fn(),
     },
     creditTransaction: {
-      aggregate: vi.fn(),
       groupBy: vi.fn(),
       updateMany: vi.fn(),
     },
@@ -516,10 +516,36 @@ describe('BillingAccountsService', () => {
         balance: 100,
         heldAmount: 10,
       });
-      prisma.creditTransaction.groupBy.mockResolvedValue([
-        { _sum: { amount: 5 }, organizationId: 'org_1' },
-        { _sum: { amount: 9 }, organizationId: 'org_2' },
-      ]);
+      prisma.creditTransaction.groupBy.mockImplementation(({ where }) =>
+        Promise.resolve(
+          where.amount.lt === 0
+            ? [
+                // Legacy negative-signed deduction counts its magnitude.
+                {
+                  _sum: { amount: -4 },
+                  category: 'deduct',
+                  organizationId: 'org_1',
+                },
+              ]
+            : [
+                {
+                  _sum: { amount: 5 },
+                  category: 'deduct',
+                  organizationId: 'org_1',
+                },
+                {
+                  _sum: { amount: 2 },
+                  category: 'refund',
+                  organizationId: 'org_1',
+                },
+                {
+                  _sum: { amount: 9 },
+                  category: 'deduct',
+                  organizationId: 'org_2',
+                },
+              ],
+        ),
+      );
       prisma.subscription.findFirst.mockResolvedValue({
         currentPeriodEnd: null,
         status: 'active',
@@ -540,6 +566,19 @@ describe('BillingAccountsService', () => {
       expect(
         snapshot.linkedOrganizations.map((link) => link.organizationId),
       ).toEqual(['org_1', 'org_2']);
+      // Usage nets refunds and skips referral reward reversals (#6008).
+      expect(snapshot.linkedOrganizations.map((link) => link.usage)).toEqual([
+        7, 9,
+      ]);
+      expect(prisma.creditTransaction.groupBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          by: ['organizationId', 'category'],
+          where: expect.objectContaining({
+            billingAccountId: 'ba_1',
+            ...creditUsageWhere(),
+          }),
+        }),
+      );
     });
 
     it('returns only the caller organization usage/budget/link status to a caller with no billing role', async () => {
@@ -551,9 +590,16 @@ describe('BillingAccountsService', () => {
         organizationId: 'org_1',
         status: BillingAccountOrganizationStatus.LINKED,
       });
-      prisma.creditTransaction.aggregate.mockResolvedValue({
-        _sum: { amount: 12 },
-      });
+      prisma.creditTransaction.groupBy.mockImplementation(({ where }) =>
+        Promise.resolve(
+          where.amount.lt === 0
+            ? [{ _sum: { amount: -3 }, category: 'deduct' }]
+            : [
+                { _sum: { amount: 11 }, category: 'deduct' },
+                { _sum: { amount: 2 }, category: 'refund' },
+              ],
+        ),
+      );
 
       const snapshot = await service.getSnapshot('org_1', 'user_plain_member');
 
@@ -587,7 +633,6 @@ describe('BillingAccountsService', () => {
       expect(prisma.billingAccountOrganization.findMany).not.toHaveBeenCalled();
       expect(prisma.creditBalance.findFirst).not.toHaveBeenCalled();
       expect(prisma.subscription.findFirst).not.toHaveBeenCalled();
-      expect(prisma.creditTransaction.groupBy).not.toHaveBeenCalled();
 
       expect(prisma.billingAccountOrganization.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -597,11 +642,14 @@ describe('BillingAccountsService', () => {
           }),
         }),
       );
-      expect(prisma.creditTransaction.aggregate).toHaveBeenCalledWith(
+      expect(prisma.creditTransaction.groupBy).toHaveBeenCalledTimes(2);
+      expect(prisma.creditTransaction.groupBy).toHaveBeenCalledWith(
         expect.objectContaining({
+          by: ['category'],
           where: expect.objectContaining({
             billingAccountId: 'ba_1',
             organizationId: 'org_1',
+            ...creditUsageWhere(),
           }),
         }),
       );

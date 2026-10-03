@@ -99,6 +99,7 @@ export class CreditsInterceptor implements NestInterceptor {
       if (currentCreditsConfig.settlement === 'completion') return response;
       await this.creditDeductionQueueService.queueByokUsage({
         amount: currentCreditsConfig.amount || 0,
+        ...(identity.brandId ? { brandId: identity.brandId } : {}),
         description: currentCreditsConfig.description,
         idempotencyKey: this.chargeKey('byok-usage', currentCreditsConfig),
         organizationId: identity.organizationId,
@@ -113,6 +114,7 @@ export class CreditsInterceptor implements NestInterceptor {
       const assetId = this.readResponseAssetId(response);
       await this.creditDeductionQueueService.queueDeduction({
         amount: currentCreditsConfig.amount || 0,
+        ...(identity.brandId ? { brandId: identity.brandId } : {}),
         description: currentCreditsConfig.description,
         idempotencyKey: this.chargeKey('credit-settle', currentCreditsConfig),
         maxOverdraftCredits: currentCreditsConfig.maxOverdraftCredits,

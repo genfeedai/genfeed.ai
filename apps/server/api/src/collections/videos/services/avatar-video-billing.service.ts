@@ -55,6 +55,7 @@ export class AvatarVideoBillingService {
       return context.request;
     }
     return this.generationBilling.holdForService({
+      brandId: context.brandId,
       credits: funding.credits,
       description: `Avatar video generation - ${MODEL_KEYS.HEYGEN_AVATAR}`,
       organizationId: context.organizationId,

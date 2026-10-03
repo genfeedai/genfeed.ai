@@ -256,6 +256,7 @@ export class ExpertFirstSystemService {
         EXPERT_FIRST_SYSTEM_CREDIT_COST,
         'Expert Path first content system',
         ActivitySource.EXPERT_FIRST_SYSTEM,
+        { brandId },
       );
       await this.writeRecord(organizationId, brandId, {
         planId: String(result.plan.id),

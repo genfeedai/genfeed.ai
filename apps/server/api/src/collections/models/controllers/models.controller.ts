@@ -129,8 +129,13 @@ export class ModelsController extends BaseCRUDController<
       ];
     }
 
-    // Add category filter if provided
-    if (query.category) {
+    // A catalog group (several categories) wins over a single category.
+    if (query.categories?.length) {
+      matchConditions = {
+        ...matchConditions,
+        ...CollectionFilterUtil.buildCategoryFilter(query.categories),
+      } as MatchConditions;
+    } else if (query.category) {
       // Handle "other" category as a special case - match multiple categories
       if (query.category === 'other') {
         // Use CollectionFilterUtil for array matching

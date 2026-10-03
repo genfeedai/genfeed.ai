@@ -9,7 +9,11 @@ import { AssetParent } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
-type AssetCreateInput = CreateAssetDto & { userId: string };
+type AssetCreateInput = CreateAssetDto & {
+  /** Tenant of a non-organization parent, stamped as `parentOrgId`. */
+  parentOrgId?: string;
+  userId: string;
+};
 
 @Injectable()
 export class AssetsService extends BaseService<
@@ -32,6 +36,12 @@ export class AssetsService extends BaseService<
     const normalized = { ...(data as Record<string, unknown>) };
     const parentId = normalized.parentId;
     const parentType = normalized.parentType;
+    // The tenant a non-organization parent (a brand) belongs to; kept through
+    // the parent-column rebuild below instead of being reset to null.
+    const organizationId =
+      typeof normalized.parentOrgId === 'string'
+        ? normalized.parentOrgId
+        : undefined;
 
     if (parentId !== undefined) {
       if (typeof parentId !== 'string') {
@@ -49,7 +59,11 @@ export class AssetsService extends BaseService<
       delete normalized.parentId;
       Object.assign(
         normalized,
-        buildAssetParentColumns(parentType as AssetParent, parentId),
+        buildAssetParentColumns(
+          parentType as AssetParent,
+          parentId,
+          organizationId,
+        ),
       );
     }
 

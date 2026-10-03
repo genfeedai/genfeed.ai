@@ -7,6 +7,7 @@ import { replaceDispatchReferenceIds } from '@api/collections/images/services/im
 import { ImagesService } from '@api/collections/images/services/images.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
@@ -43,7 +44,24 @@ export class ImageGenerationAdmissionService {
     private readonly imagesService: ImagesService,
     private readonly ingredientsService: IngredientsService,
     private readonly loggerService: LoggerService,
+    private readonly personasService: PersonasService,
   ) {}
+
+  /**
+   * Character references in a generation request: rejects one the active
+   * brand can no longer use and returns the character to link the output to.
+   */
+  resolveCharacterLink(
+    organizationId: string,
+    brandId: string,
+    referenceIds: string[],
+  ): Promise<{ availableAvatarIds: Set<string>; personaId: string | null }> {
+    return this.personasService.resolveCharacterReferences({
+      brandId,
+      ingredientIds: referenceIds,
+      organizationId,
+    });
+  }
 
   async admitImageEdit(
     sourceId: string,
@@ -221,12 +239,19 @@ export class ImageGenerationAdmissionService {
       throw new BadRequestException(
         'Choose at most ten distinct source images.',
       );
+    // A shared character's reference image belongs to its owning brand; it is
+    // usable here when the character is available to the active brand.
+    const { availableAvatarIds } = await this.resolveCharacterLink(
+      organizationId,
+      brandId,
+      sourceIds,
+    );
     for (const id of sourceIds) {
       const image = await this.imagesService.findOne(
         {
           id,
           organizationId,
-          brandId,
+          ...(availableAvatarIds.has(id) ? {} : { brandId }),
           isDeleted: false,
           category: IngredientCategory.IMAGE,
         },

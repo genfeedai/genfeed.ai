@@ -171,6 +171,7 @@ describe('MasterPromptGeneratorService', () => {
     );
 
     await service.analyzeBrandVoice(makeBrandData(), {
+      brandId: 'brand-1',
       organizationId: 'org-1',
       userId: 'user-1',
     });
@@ -189,6 +190,7 @@ describe('MasterPromptGeneratorService', () => {
       1,
       'AI brand profile generation',
       expect.any(String),
+      { brandId: 'brand-1' },
     );
   });
 

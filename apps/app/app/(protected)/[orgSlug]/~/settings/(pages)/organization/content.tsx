@@ -26,6 +26,7 @@ import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useState } from 'react';
 import OrganizationGenerationDefaultsCard from './organization-generation-defaults-card';
+import OrganizationIdentityCard from './organization-identity-card';
 import OrganizationIdentityDefaultsCard from './organization-identity-defaults-card';
 import OrganizationPublishingCapsCard from './organization-publishing-caps-card';
 
@@ -85,22 +86,7 @@ export default function SettingsOrganizationPage() {
 
   return (
     <div className="space-y-4">
-      <Card label="Organization Information" bodyClassName="gap-3 p-4">
-        <div className="space-y-3">
-          <div>
-            <span className="text-sm text-muted-foreground">
-              Organization ID
-            </span>
-            <p className="font-mono text-sm font-medium">
-              {organizationId || 'Not set'}
-            </p>
-          </div>
-          <div>
-            <span className="text-sm text-muted-foreground">Current Brand</span>
-            <p className="font-medium">{selectedBrand?.label || 'Not set'}</p>
-          </div>
-        </div>
-      </Card>
+      <OrganizationIdentityCard organizationId={organizationId} />
 
       <Card
         label="Language"

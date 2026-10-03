@@ -178,6 +178,7 @@ export class BrandInterviewService {
         chargedCredits,
         'Brand context interview',
         ActivitySource.BRAND_INTERVIEW,
+        { brandId },
       );
     } catch (error: unknown) {
       // Compensate: soft-delete the session so the unique index is freed

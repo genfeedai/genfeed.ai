@@ -1,4 +1,8 @@
 import {
+  CREDIT_USAGE_AMOUNT_SQL,
+  CREDIT_USAGE_FILTER_SQL,
+} from '@api/collections/credits/services/credit-usage.util';
+import {
   buildUnitEconomicsRows,
   EMPTY_UNIT_ECONOMICS_AGGREGATE,
   type UnitEconomicsAggregate,
@@ -6,10 +10,7 @@ import {
 import { resolveCostReportRange } from '@api/endpoints/cost-reporting/cost-reporting-query.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import {
-  ActivitySource,
-  CreditTransactionCategory,
-} from '@genfeedai/contracts';
+import { ActivitySource } from '@genfeedai/contracts';
 import type {
   IUnitEconomicsQuery,
   IUnitEconomicsReport,
@@ -257,15 +258,14 @@ export class UnitEconomicsService {
   }
 
   creditSql(scope: ReportScope): Prisma.Sql {
-    const signedAmount = Prisma.sql`CASE WHEN "category" = ${CreditTransactionCategory.REFUND} THEN -ABS("amount") ELSE ABS("amount") END`;
     return Prisma.sql`
       SELECT
         ${this.groupKey(scope, '"actorUserId"')} AS "key",
-        COALESCE(SUM(${signedAmount}) FILTER (WHERE "source" = ${ActivitySource.AGENT_CHAT}), 0)::double precision AS "agentChatCredits",
-        COALESCE(SUM(${signedAmount}) FILTER (WHERE "source" IS DISTINCT FROM ${ActivitySource.AGENT_CHAT}), 0)::double precision AS "generationCredits"
+        COALESCE(SUM(${CREDIT_USAGE_AMOUNT_SQL}) FILTER (WHERE "source" = ${ActivitySource.AGENT_CHAT}), 0)::double precision AS "agentChatCredits",
+        COALESCE(SUM(${CREDIT_USAGE_AMOUNT_SQL}) FILTER (WHERE "source" IS DISTINCT FROM ${ActivitySource.AGENT_CHAT}), 0)::double precision AS "generationCredits"
       FROM "credit_transactions"
       WHERE "isDeleted" = false
-        AND "category" IN (${CreditTransactionCategory.DEDUCT}, ${CreditTransactionCategory.REFUND})
+        AND ${CREDIT_USAGE_FILTER_SQL}
         AND "createdAt" >= ${scope.from}
         AND "createdAt" <= ${scope.to}
         ${this.organizationFilter(scope)}

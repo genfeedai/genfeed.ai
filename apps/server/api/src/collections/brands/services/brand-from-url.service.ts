@@ -213,6 +213,7 @@ export class BrandFromUrlService {
     await this.credits.settleReservation({
       actualAmount: 1,
       actorUserId: context.userId,
+      brandId,
       description: 'Create brand from URL',
       organizationId: context.organizationId,
       reservationId,

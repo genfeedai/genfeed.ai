@@ -3260,6 +3260,8 @@
   "models": {
     "loadError": "Models could not be loaded.",
     "catalogTitle": "Model catalog",
+    "categoryAll": "All",
+    "categoryFilterLabel": "Model category",
     "catalogDescription": "Compare available models by category, quality, and credit cost.",
     "table": {
       "approvedStatus": "Approved",
@@ -4487,6 +4489,31 @@
     "variables": "Variables:",
     "open": "Open template {name}",
     "details": "View details"
+  },
+  "adminCreditHolds": {
+    "sectionLabel": "Credit holds for {organization}",
+    "title": "Stuck credit holds · {organization}",
+    "description": "Review expired media holds. Charging uses the original quoted amount and payer. Every action records your reason.",
+    "loading": "Loading holds…",
+    "loadError": "Credit holds could not be loaded.",
+    "empty": "No stuck media holds.",
+    "unknownProvider": "Unknown provider",
+    "holdSummary": "{id} · {provider} · {status} · {amount} credits",
+    "releaseHold": "Release hold",
+    "chargeQuotedAmount": "Charge quoted amount",
+    "confirmPrompt": "Confirm {action} for {id} ({amount} credits)",
+    "actionRelease": "release",
+    "actionCharge": "charge",
+    "confirmAction": "Confirm {action}",
+    "reasonLabel": "Credit hold recovery reason",
+    "reasonPlaceholder": "Why is this recovery necessary?",
+    "cancel": "Cancel",
+    "recoveryFailed": "Recovery failed. Refresh the holds and review their status before retrying.",
+    "refresh": "Refresh holds",
+    "next": "Next holds",
+    "first": "First holds",
+    "holdsColumn": "Holds",
+    "reviewHolds": "Review holds"
   },
   "adminGenerations": {
     "compiled": "Compiled",

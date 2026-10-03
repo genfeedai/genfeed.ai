@@ -176,6 +176,7 @@ describe('BatchGenerationRewriteRunnerService', () => {
       expect.objectContaining({
         actorUserId: 'user-1',
         amount: 2,
+        brandId: 'brand-1',
         idempotencyKey: 'batch-rewrite:job-1:item-1',
         organizationId: 'org-1',
         workloadId: 'job-1',
@@ -194,6 +195,7 @@ describe('BatchGenerationRewriteRunnerService', () => {
     expect(deductions.queueDeduction).toHaveBeenCalledTimes(2);
     expect(deductions.queueDeduction).toHaveBeenCalledWith({
       amount: 2,
+      brandId: 'brand-1',
       description: 'Batch rewrite (text model)',
       idempotencyKey: 'batch-rewrite-job-1-item-2',
       organizationId: 'org-1',

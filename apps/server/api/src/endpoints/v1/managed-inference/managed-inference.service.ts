@@ -86,6 +86,7 @@ export class ManagedInferenceService {
       credits,
       `Managed inference ${dto.operation} ${dto.provider}:${dto.model}`,
       this.getActivitySource(dto),
+      { brandId: request.user?.brandId },
     );
 
     try {
@@ -99,7 +100,12 @@ export class ManagedInferenceService {
         provider: dto.provider,
       };
     } catch (error: unknown) {
-      await this.refundCredits(organizationId, credits, dto);
+      await this.refundCredits(
+        organizationId,
+        credits,
+        dto,
+        request.user?.brandId,
+      );
       throw error;
     }
   }
@@ -352,6 +358,7 @@ export class ManagedInferenceService {
     organizationId: string,
     credits: number,
     dto: ManagedInferenceRequestDto,
+    brandId?: string,
   ): Promise<void> {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + MANAGED_INFERENCE_REFUND_DAYS);
@@ -363,6 +370,7 @@ export class ManagedInferenceService {
         'managed_inference',
         `Managed inference refund ${dto.provider}:${dto.model}`,
         expiresAt,
+        { brandId },
       );
     } catch (refundError: unknown) {
       this.loggerService.error(

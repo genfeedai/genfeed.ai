@@ -136,6 +136,63 @@ describe('CostUsagePage', () => {
     expect(screen.getByLabelText('Brand')).toBeInTheDocument();
   });
 
+  describe('zero usage', () => {
+    const totals = (creditsUsed: number, generationCount: number) => ({
+      byokCount: 0,
+      creditsUsed,
+      generationCount,
+      llmCount: generationCount,
+      mediaCount: 0,
+      providerCostMicros: 0,
+      providerCostUsd: 0,
+    });
+    const mockSummary = (creditsUsed: number, generationCount: number) => {
+      mockUseQuery.mockImplementation((options: { queryKey: unknown[] }) => ({
+        data: String(options.queryKey[0]).includes('summary')
+          ? {
+              byBrand: [
+                {
+                  brandId: 'brand-1',
+                  brandLabel: 'Demo',
+                  ...totals(creditsUsed, generationCount),
+                },
+              ],
+              daily: [],
+              from: '2026-08-01T00:00:00.000Z',
+              to: '2026-08-26T23:59:59.999Z',
+              total: totals(creditsUsed, generationCount),
+            }
+          : [],
+        error: null,
+        isFetching: false,
+        isLoading: false,
+        refetch: vi.fn(),
+      }));
+    };
+
+    it('never renders zero credits as "Free" when generations ran without recorded credits', () => {
+      mockSummary(0, 4);
+      render(<CostUsagePage />);
+
+      expect(screen.queryByText('Free')).not.toBeInTheDocument();
+      expect(screen.queryByText('0 GEN')).not.toBeInTheDocument();
+      // KPI card and the brand row both say the spend was not recorded.
+      expect(screen.getAllByText('Not recorded').length).toBeGreaterThanOrEqual(
+        2,
+      );
+    });
+
+    it('shows "0 GEN" for a period with no generations and no credits', () => {
+      mockSummary(0, 0);
+      render(<CostUsagePage />);
+
+      expect(screen.queryByText('Free')).not.toBeInTheDocument();
+      expect(screen.queryByText('Not recorded')).not.toBeInTheDocument();
+      // KPI card and the brand row.
+      expect(screen.getAllByText('0 GEN').length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
   it('paginates the ledger and resets the page when the brand changes', async () => {
     const { rerender } = render(<CostUsagePage lockedBrandId="brand-1" />);
     fireEvent.mouseDown(

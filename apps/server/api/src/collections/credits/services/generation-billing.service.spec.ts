@@ -227,6 +227,24 @@ describe('GenerationBillingService', () => {
       expect(billing.creditsConfig?.reservationId).toBe('pool_9');
       expect(service.hasPool(billing)).toBe(true);
     });
+
+    it('attributes the pool and its identity to the caller brand', async () => {
+      credits.reserveCredits.mockResolvedValue(hold({ id: 'pool_9' }));
+
+      const billing = await service.holdForService({
+        brandId: 'brand_7',
+        credits: 4,
+        description: 'Avatar video generation',
+        organizationId: 'org_1',
+        source: ActivitySource.VIDEO_GENERATION,
+        userId: 'user_1',
+      });
+
+      expect(credits.reserveCredits).toHaveBeenCalledWith(
+        expect.objectContaining({ brandId: 'brand_7' }),
+      );
+      expect(billing.user?.brandId).toBe('brand_7');
+    });
   });
 
   describe('settleOutput', () => {
@@ -247,6 +265,21 @@ describe('GenerationBillingService', () => {
         type: 'deduct-credits',
         userId: 'user_1',
       });
+    });
+
+    it('carries the hold brand onto the queued settlement', async () => {
+      credits.findReservationForWorkload.mockResolvedValue(
+        hold({ brandId: 'brand_7' }),
+      );
+
+      await service.settleOutput('ing_1', 'org_1');
+
+      expect(queue.queueDeduction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: 'brand_7',
+          reservationId: 'hold_1',
+        }),
+      );
     });
 
     it('keys a redelivered completion identically so the queue collapses it', async () => {

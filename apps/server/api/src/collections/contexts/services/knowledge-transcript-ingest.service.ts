@@ -441,14 +441,24 @@ export class KnowledgeTranscriptIngestService {
   private async reserveTranscriptCredits(
     input: {
       organizationId: string;
+      sourceId: string;
       userId: string;
       versionId: string;
     },
     attempt: number,
   ): Promise<ICreditReservation> {
+    const source = await this.prisma.knowledgeSource.findFirst({
+      select: { brandId: true },
+      where: {
+        id: input.sourceId,
+        isDeleted: false,
+        organizationId: input.organizationId,
+      },
+    });
     const reservation = await this.credits.reserveCredits({
       actorUserId: input.userId,
       amount: KNOWLEDGE_CAPTURE_TRANSCRIPT_CREDIT,
+      ...(source?.brandId ? { brandId: source.brandId } : {}),
       idempotencyKey: `knowledge-transcript:${input.organizationId}:${input.versionId}:${attempt}`,
       organizationId: input.organizationId,
       workloadId: input.versionId,

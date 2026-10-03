@@ -185,6 +185,7 @@ describe('BrandInterviewService', () => {
         BRAND_INTERVIEW_CREDIT_COST,
         'Brand context interview',
         expect.any(String), // ActivitySource.BRAND_INTERVIEW
+        { brandId: 'brand-1' },
       );
       expect(result.interviewId).toBe('interview-1');
       expect(result.creditsCharged).toBe(BRAND_INTERVIEW_CREDIT_COST);

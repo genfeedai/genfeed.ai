@@ -2,7 +2,9 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   IngredientStatus,
   isPersonaHandle,
+  MemberRole,
   normalizePersonaHandle,
+  PersonaAvailabilityMode,
   QualityTier,
 } from '@genfeedai/contracts';
 import type {
@@ -13,8 +15,12 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { CHARACTERS_CHANGED_EVENT } from '@genfeedai/helpers/content/character-mention.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import type { CharactersPageState } from '@props/characters/characters-page.props';
+import type {
+  CharacterAvailabilityDraft,
+  CharactersPageState,
+} from '@props/characters/characters-page.props';
 import { PersonasService } from '@services/content/personas.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
@@ -29,6 +35,11 @@ function resolveCharacterImageUrl(id: string): string {
   return `${EnvironmentService.ingredientsEndpoint}/images/${id}`;
 }
 
+const OWNING_BRAND_ONLY: CharacterAvailabilityDraft = {
+  brandIds: [],
+  mode: PersonaAvailabilityMode.OWNING_BRAND,
+};
+
 function parseOptionalSeed(value: string): number | undefined {
   const trimmed = value.trim();
   if (!trimmed) {
@@ -40,7 +51,14 @@ function parseOptionalSeed(value: string): number | undefined {
 
 export function useCharactersPage(): CharactersPageState {
   const translate = useTranslations('common.settings.characters');
-  const { brandId } = useBrand();
+  const { brandId, brands } = useBrand();
+  const role = useUserRole();
+  const canManageSharing =
+    role === MemberRole.OWNER || role === MemberRole.ADMIN;
+  const brandOptions = useMemo(
+    () => brands.map((brand) => ({ id: brand.id, label: brand.label })),
+    [brands],
+  );
   const { subscribe } = useSocketManager();
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
@@ -68,6 +86,13 @@ export function useCharactersPage(): CharactersPageState {
   const [isCreating, setIsCreating] = useState(false);
   const [label, setLabel] = useState('');
   const [handle, setHandle] = useState('');
+  const [availability, setAvailability] =
+    useState<CharacterAvailabilityDraft>(OWNING_BRAND_ONLY);
+  const [availabilityCharacter, setAvailabilityCharacter] =
+    useState<BrandCharacterListItem | null>(null);
+  const [availabilityDraft, setAvailabilityDraft] =
+    useState<CharacterAvailabilityDraft>(OWNING_BRAND_ONLY);
+  const [isSavingAvailability, setIsSavingAvailability] = useState(false);
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
   const cleanupSocket = useCallback(() => {
@@ -229,6 +254,7 @@ export function useCharactersPage(): CharactersPageState {
     setStep('describe');
     setLabel('');
     setHandle('');
+    setAvailability(OWNING_BRAND_ONLY);
     setIsGenerating(false);
   }, [cleanupSocket]);
 
@@ -259,6 +285,15 @@ export function useCharactersPage(): CharactersPageState {
       const service = await getPersonasService();
       await service.createFromSheet({
         assetId: candidate.id,
+        ...(canManageSharing &&
+        availability.mode !== PersonaAvailabilityMode.OWNING_BRAND
+          ? {
+              availability: {
+                brandIds: availability.brandIds,
+                mode: availability.mode,
+              },
+            }
+          : {}),
         handle: nextHandle,
         label: nextLabel,
       });
@@ -277,12 +312,57 @@ export function useCharactersPage(): CharactersPageState {
       setIsCreating(false);
     }
   }, [
+    availability,
     candidate,
+    canManageSharing,
     discardCandidate,
     getPersonasService,
     handle,
     isCreating,
     label,
+    notificationsService,
+    refreshCharacters,
+    translate,
+  ]);
+
+  const openAvailability = useCallback((character: BrandCharacterListItem) => {
+    setAvailabilityCharacter(character);
+    setAvailabilityDraft({
+      brandIds: character.availableBrandIds ?? [],
+      mode: character.availabilityMode ?? PersonaAvailabilityMode.OWNING_BRAND,
+    });
+  }, []);
+
+  const closeAvailability = useCallback(() => {
+    setAvailabilityCharacter(null);
+  }, []);
+
+  const saveAvailability = useCallback(async () => {
+    if (!availabilityCharacter || isSavingAvailability) {
+      return;
+    }
+    setIsSavingAvailability(true);
+    try {
+      const service = await getPersonasService();
+      await service.updateAvailability(availabilityCharacter.id, {
+        brandIds: availabilityDraft.brandIds,
+        mode: availabilityDraft.mode,
+      });
+      window.dispatchEvent(new Event(CHARACTERS_CHANGED_EVENT));
+      notificationsService.success(translate('availability.success'));
+      setAvailabilityCharacter(null);
+      await refreshCharacters(new AbortController().signal);
+    } catch (error: unknown) {
+      logger.error('Failed to update character availability', error);
+      notificationsService.error(translate('availability.error'));
+    } finally {
+      setIsSavingAvailability(false);
+    }
+  }, [
+    availabilityCharacter,
+    availabilityDraft,
+    getPersonasService,
+    isSavingAvailability,
     notificationsService,
     refreshCharacters,
     translate,
@@ -306,9 +386,28 @@ export function useCharactersPage(): CharactersPageState {
   );
 
   return {
-    approve: { handle, label, setHandle, setLabel },
+    approve: {
+      availability,
+      handle,
+      label,
+      setAvailability,
+      setHandle,
+      setLabel,
+    },
     approveCandidate,
+    availabilityControls: {
+      character: availabilityCharacter,
+      close: closeAvailability,
+      draft: availabilityDraft,
+      isSaving: isSavingAvailability,
+      open: openAvailability,
+      save: saveAvailability,
+      setDraft: setAvailabilityDraft,
+    },
+    brandId,
+    brands: brandOptions,
     candidate,
+    canManageSharing,
     characters,
     create: {
       description,
