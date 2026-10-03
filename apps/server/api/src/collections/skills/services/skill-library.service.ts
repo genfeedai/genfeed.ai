@@ -12,12 +12,9 @@ import {
 import {
   grantMatchesActor,
   resolveSkillCapabilities,
-  type SkillAudience,
   type SkillCapabilityActor,
   type SkillCapabilityGrant,
-  type SkillCapabilitySubject,
   type SkillOwnerKind,
-  type SkillSourcePolicy,
   skillGrantRecipientClauses,
 } from '@api/collections/skills/policy/skill-capabilities';
 import { resolveSkillSourcePolicy } from '@api/collections/skills/policy/skill-source-policy';
@@ -27,6 +24,16 @@ import type {
   SkillLibraryActor,
   SkillRow,
 } from '@api/collections/skills/services/skill-library.types';
+import {
+  configFromInput,
+  defaultAudience,
+  instructionOf,
+  readConfig,
+  subjectFromDocument,
+  subjectFromRow,
+  toDocument,
+  withCapabilities,
+} from '@api/collections/skills/services/skill-library-mapping';
 import { importValidatedSkillPackage } from '@api/collections/skills/services/skill-package-import';
 import {
   type RecordedSkillExclusion,
@@ -73,7 +80,7 @@ export class SkillLibraryService {
   constructor(private readonly prisma: PrismaService) {
     this.versionReader = new SkillVersionReader(prisma, {
       decide: (actor, skill) => this.decide(actor, skill),
-      toDocument: (skill) => this.toDocument(skill),
+      toDocument,
       loadAuthorizedVersions: (actor, documents, options) =>
         this.loadAuthorizedVersions(actor, documents, options),
     });
@@ -104,7 +111,7 @@ export class SkillLibraryService {
       actor,
       input,
     );
-    return this.toDocument(created as unknown as SkillRow);
+    return toDocument(created as unknown as SkillRow);
   }
 
   async create(
@@ -132,7 +139,7 @@ export class SkillLibraryService {
       await this.requireBrand(actor.organizationId, input.brandId);
     }
 
-    const audience = this.defaultAudience(ownerKind, input.audience);
+    const audience = defaultAudience(ownerKind, input.audience);
     if (ownerKind !== 'user' && audience === 'private') {
       throw new ValidationException(
         'Private organization and brand skills stay off until every reader filters them',
@@ -148,7 +155,7 @@ export class SkillLibraryService {
           data: {
             audience,
             brandId: ownerKind === 'brand' ? (input.brandId ?? null) : null,
-            config: this.configFromInput(input) as Prisma.InputJsonValue,
+            config: configFromInput(input) as Prisma.InputJsonValue,
             isDeleted: false,
             label: input.name,
             organizationId: ownerKind === 'user' ? null : actor.organizationId,
@@ -157,7 +164,7 @@ export class SkillLibraryService {
           },
         }),
     );
-    return this.toDocument(created as unknown as SkillRow);
+    return toDocument(created as unknown as SkillRow);
   }
 
   /**
@@ -196,7 +203,7 @@ export class SkillLibraryService {
     if (!decision.canFork) {
       throw new ForbiddenException('This skill cannot be forked');
     }
-    const config = this.readConfig(source);
+    const config = readConfig(source);
     const version = decision.canEdit
       ? null
       : await this.versionFor(source, false, actor);
@@ -210,7 +217,7 @@ export class SkillLibraryService {
       instructions: version
         ? version.instructionText
         : decision.canEdit
-          ? this.instructionOf(source, config)
+          ? instructionOf(source, config)
           : '',
       name: `${String(config.name ?? source.label ?? 'Skill')} fork`,
       ownerKind: 'user',
@@ -319,7 +326,7 @@ export class SkillLibraryService {
         return row;
       },
     );
-    return this.toDocument(updated as unknown as SkillRow);
+    return toDocument(updated as unknown as SkillRow);
   }
 
   async archive(
@@ -413,7 +420,7 @@ export class SkillLibraryService {
         return row;
       },
     );
-    return this.toDocument(restored as unknown as SkillRow);
+    return toDocument(restored as unknown as SkillRow);
   }
 
   async attachSharedDefaults(
@@ -482,12 +489,12 @@ export class SkillLibraryService {
     });
     const visible: SkillDocument[] = [];
     for (const document of documents) {
-      const subject = this.subjectFromDocument(document);
+      const subject = subjectFromDocument(document);
       const decision = resolveSkillCapabilities(
         subject,
         capabilityActor,
         grants.get(String(document.id)) ?? [],
-        this.sourcePolicy(subject, document),
+        resolveSkillSourcePolicy(subject, document),
       );
       const isPrivate = subject.audience === 'private';
       if (
@@ -504,9 +511,7 @@ export class SkillLibraryService {
         : version
           ? applyAuthorizedVersionBody(document, version)
           : this.withoutInstructions(document);
-      visible.push(
-        this.withCapabilities(projected, decision, decision.canRead),
-      );
+      visible.push(withCapabilities(projected, decision, decision.canRead));
     }
     return visible;
   }
@@ -625,7 +630,7 @@ export class SkillLibraryService {
     });
     let attached = 0;
     for (const skill of defaults) {
-      const slug = this.readConfig(skill as unknown as SkillRow).slug;
+      const slug = readConfig(skill as unknown as SkillRow).slug;
       if (!isDefaultFirstPartySkillSlug(slug) || !skill.currentVersionId) {
         continue;
       }
@@ -670,12 +675,12 @@ export class SkillLibraryService {
   private async decide(actor: SkillLibraryActor, skill: SkillRow) {
     const capabilityActor = await this.loadActor(actor);
     const grants = await this.grantsFor(actor, [skill.id]);
-    const subject = this.subjectFromRow(skill);
+    const subject = subjectFromRow(skill);
     return resolveSkillCapabilities(
       subject,
       capabilityActor,
       grants.get(skill.id) ?? [],
-      this.sourcePolicy(subject, this.toDocument(skill)),
+      resolveSkillSourcePolicy(subject, toDocument(skill)),
     );
   }
 
@@ -730,34 +735,6 @@ export class SkillLibraryService {
     ) {
       throw new ForbiddenException('Brand skills require a brand admin');
     }
-  }
-
-  private defaultAudience(
-    ownerKind: SkillOwnerKind,
-    requested?: SkillAudience,
-  ): SkillAudience {
-    if (requested) return requested;
-    return ownerKind === 'user' ? 'private' : 'organization';
-  }
-
-  private configFromInput(
-    input: CreateScopedSkillDto,
-  ): Record<string, unknown> {
-    return {
-      category: input.category ?? 'content',
-      channels: input.channels ?? ['general'],
-      defaultInstructions: input.instructions,
-      description: input.description,
-      isBuiltIn: false,
-      isEnabled: true,
-      modalities: input.modalities ?? ['text'],
-      name: input.name,
-      slug: input.slug,
-      source: 'custom',
-      status: 'draft',
-      systemPromptTemplate: input.instructions,
-      workflowStage: input.workflowStage ?? 'creation',
-    };
   }
 
   private async requireRow(skillId: string): Promise<SkillRow> {
@@ -817,7 +794,7 @@ export class SkillLibraryService {
     }
     const versions = await this.loadAuthorizedVersions(
       actor,
-      [this.toDocument(skill)],
+      [toDocument(skill)],
       { purpose: 'read' },
     );
     return versions.get(skill.id) ?? null;
@@ -843,11 +820,11 @@ export class SkillLibraryService {
       this.prisma,
       actor,
       documents.map((document) => {
-        const subject = this.subjectFromDocument(document);
+        const subject = subjectFromDocument(document);
         return {
           allowsCatalogRead:
             subject.ownerKind === 'system' &&
-            this.sourcePolicy(subject, document).allowsRead,
+            resolveSkillSourcePolicy(subject, document).allowsRead,
           audience: document.audience,
           currentVersionId: document.currentVersionId,
           id: String(document.id),
@@ -894,126 +871,5 @@ export class SkillLibraryService {
       grouped.set(row.skillId, [...(grouped.get(row.skillId) ?? []), grant]);
     }
     return grouped;
-  }
-
-  private subjectFromRow(skill: SkillRow): SkillCapabilitySubject {
-    return {
-      audience: this.audienceOf(skill.audience),
-      brandId: skill.brandId,
-      hasPublishedVersion: Boolean(skill.publishedVersionId),
-      isQuarantined: skill.isQuarantined,
-      organizationId: skill.organizationId,
-      ownerKind: this.ownerOf(skill.ownerKind),
-      ownerUserId: skill.ownerUserId,
-    };
-  }
-
-  private subjectFromDocument(document: SkillDocument): SkillCapabilitySubject {
-    const record = document as SkillDocument & {
-      audience?: string;
-      brandId?: string | null;
-      currentVersionId?: string | null;
-      isQuarantined?: boolean;
-      organizationId?: string | null;
-      ownerKind?: string | null;
-      ownerUserId?: string | null;
-      publishedVersionId?: string | null;
-    };
-    return {
-      audience: this.audienceOf(record.audience),
-      brandId: record.brandId ?? null,
-      hasPublishedVersion: Boolean(record.publishedVersionId),
-      isQuarantined: record.isQuarantined === true,
-      organizationId:
-        typeof record.organizationId === 'string'
-          ? record.organizationId
-          : null,
-      ownerKind: this.ownerOf(record.ownerKind),
-      ownerUserId: record.ownerUserId ?? null,
-    };
-  }
-
-  private sourcePolicy(
-    subject: SkillCapabilitySubject,
-    document: SkillDocument,
-  ): SkillSourcePolicy {
-    return resolveSkillSourcePolicy(subject, document);
-  }
-
-  private withCapabilities(
-    document: SkillDocument,
-    decision: ReturnType<typeof resolveSkillCapabilities>,
-    canRead: boolean,
-  ): SkillDocument {
-    const config = { ...(document.config as Record<string, unknown>) };
-    if (!canRead) {
-      delete config.defaultInstructions;
-      delete config.systemPromptTemplate;
-    }
-    return {
-      ...document,
-      ...decision,
-      config,
-      defaultInstructions: canRead ? document.defaultInstructions : undefined,
-      systemPromptTemplate: canRead ? document.systemPromptTemplate : undefined,
-    } as SkillDocument;
-  }
-
-  private toDocument(skill: SkillRow): SkillDocument {
-    const config = this.readConfig(skill);
-    return {
-      ...config,
-      config,
-      id: skill.id,
-      audience: skill.audience,
-      currentVersionId: skill.currentVersionId,
-      isQuarantined: skill.isQuarantined,
-      label: skill.label,
-      organizationId: skill.organizationId,
-      ownerKind: skill.ownerKind,
-      ownerUserId: skill.ownerUserId,
-      publishedVersionId: skill.publishedVersionId,
-      sharedVersionId: skill.sharedVersionId,
-      revision: skill.revision,
-    } as unknown as SkillDocument;
-  }
-
-  private readConfig(
-    skill: { config: Prisma.JsonValue } | SkillRow,
-  ): Record<string, unknown> {
-    return skill.config &&
-      typeof skill.config === 'object' &&
-      !Array.isArray(skill.config)
-      ? (skill.config as Record<string, unknown>)
-      : {};
-  }
-
-  private instructionOf(
-    skill: SkillRow,
-    config: Record<string, unknown>,
-  ): string {
-    const system = config.systemPromptTemplate;
-    const fallback = config.defaultInstructions;
-    if (typeof system === 'string' && system.length > 0) return system;
-    if (typeof fallback === 'string') return fallback;
-    return skill.label ?? '';
-  }
-
-  private audienceOf(value: string | null | undefined): SkillAudience {
-    if (value === 'public' || value === 'organization' || value === 'private')
-      return value;
-    return 'private';
-  }
-
-  private ownerOf(value: string | null | undefined): SkillOwnerKind | null {
-    if (
-      value === 'system' ||
-      value === 'user' ||
-      value === 'organization' ||
-      value === 'brand'
-    ) {
-      return value;
-    }
-    return null;
   }
 }
