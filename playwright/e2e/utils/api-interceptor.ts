@@ -926,6 +926,25 @@ async function handleBillingRoutes(route: Route): Promise<void> {
     return;
   }
 
+  // `SubscriptionsService.getCreditsBreakdown` reads `res.data.data` as a plain
+  // breakdown, not a JSON:API resource; the Credits page renders `total`.
+  if (url.includes('/subscriptions/current/credits')) {
+    await route.fulfill({
+      body: JSON.stringify({
+        data: {
+          credits: [],
+          cycleTotal: 625,
+          planLimit: 625,
+          remainingPercent: 80,
+          total: 500,
+        },
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
   if (url.includes('/subscriptions')) {
     await route.fulfill({
       body: JSON.stringify(
