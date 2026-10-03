@@ -102,10 +102,11 @@ describe('background user action routing', () => {
   );
 
   it.each(['generatePostImage', 'generateImage'])(
-    'routes %s to the image catalog action',
+    'routes %s to the typed image generate action',
     async (event) => {
       await dispatch({ event, postContent: 'Artwork', prompt: 'Artwork' });
       expect(mocks.execute).toHaveBeenCalledExactlyOnceWith('image', {
+        type: 'image',
         prompt: 'Artwork',
       });
       expect(mocks.fetch).not.toHaveBeenCalled();
