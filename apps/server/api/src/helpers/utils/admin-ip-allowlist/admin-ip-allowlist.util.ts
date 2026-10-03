@@ -20,7 +20,11 @@ export function getAdminAllowedIps(): string[] {
     .filter(Boolean);
 }
 
-/** `request.ip` is the client address Express derives under `trust proxy 1`. */
+/**
+ * `request.ip` is the client address Express derives under the deployment's
+ * `trust proxy` setting: one hop on Cloud, none on self-host unless
+ * `TRUST_PROXY` names the proxy (see `resolveTrustProxyFromReader`).
+ */
 export function resolveAdminClientIp(request: AdminIpRequest): string {
   return normalizeAdminIp(request.ip || request.socket?.remoteAddress || '');
 }
