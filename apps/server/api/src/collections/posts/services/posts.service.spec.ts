@@ -1400,6 +1400,7 @@ describe('post owner learning mutation protocol', () => {
       'post',
       { ingredients: ['ingredient-new'] },
       [],
+      'organization',
     );
     expect(value.approvals.assertPostMutable).toHaveBeenCalledWith(
       'org',
@@ -1437,6 +1438,7 @@ describe('post owner learning mutation protocol', () => {
       'post',
       { description: 'original' },
       [],
+      'organization',
     );
     await value.patchPostWithLearning(
       value.tx as never,
@@ -1444,6 +1446,7 @@ describe('post owner learning mutation protocol', () => {
       'post',
       { analyticsCollectionError: 'retry' } as never,
       [],
+      'organization',
     );
     expect(value.approvals.invalidatePost).not.toHaveBeenCalled();
     expect(value.revision).not.toHaveBeenCalled();
@@ -1461,6 +1464,7 @@ describe('post owner learning mutation protocol', () => {
       first.tx as never,
       first.context as never,
       'post',
+      'organization',
     );
     expect(result?.childrenDeleted).toBe(1);
     expect(first.rows.every((row) => row.isDeleted)).toBe(true);
@@ -1483,6 +1487,7 @@ describe('post owner learning mutation protocol', () => {
         second.tx as never,
         second.context as never,
         'post',
+        'organization',
       ),
     ).rejects.toThrow('dependency failure');
     expect(second.revision).not.toHaveBeenCalled();
@@ -1494,6 +1499,7 @@ describe('post owner learning mutation protocol', () => {
         value.tx as never,
         value.context as never,
         'missing',
+        'organization',
       ),
     ).resolves.toBeNull();
     await expect(
@@ -1503,6 +1509,7 @@ describe('post owner learning mutation protocol', () => {
         'post',
         { organizationId: 'foreign' },
         [],
+        'organization',
       ),
     ).rejects.toThrow(/authorized brand relocation/);
     expect(value.tx.post.updateMany).not.toHaveBeenCalled();
@@ -1534,6 +1541,7 @@ describe('post owner learning mutation protocol', () => {
             value.tx as never,
             value.context as never,
             'post',
+            'organization',
           );
         } catch (error) {
           value.rows.forEach((row, index) => {
@@ -1562,6 +1570,7 @@ describe('post owner learning mutation protocol', () => {
         'post',
         { isDeleted: true },
         [],
+        'organization',
       ),
     ).rejects.toThrow('active execution');
     expect(value.approvals.assertPostMutable).toHaveBeenCalledExactlyOnceWith(
@@ -1600,6 +1609,7 @@ describe('post owner learning mutation protocol', () => {
         'post',
         { targetExecutionState: TargetExecutionState.SCHEDULED },
         [],
+        'organization',
       ),
     ).rejects.toThrow('child provider execution is in flight');
     expect(value.approvals.assertPostMutable).toHaveBeenCalledExactlyOnceWith(
