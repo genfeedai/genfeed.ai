@@ -1,4 +1,5 @@
 import type { LearningAccountService } from '@api/collections/content-learning/services/learning-account.service';
+import { learningArtifactHashV1 } from '@api/collections/content-learning/services/learning-artifact-binding.helper';
 import type { LearningCheckpointService } from '@api/collections/content-learning/services/learning-checkpoint.service';
 import { LearningDecisionService } from '@api/collections/content-learning/services/learning-decision.service';
 import type { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
@@ -674,48 +675,46 @@ describe('structurally proven insufficient baseline observation retry', () => {
 });
 
 function bindingFixture() {
-  const payload: Parameters<LearningDecisionService['bindArtifact']>[2] = {
-    text: 'First line\r\nSecond line',
-    ingredients: [{ id: 'ingredient', version: '2' }],
-    credentialId: 'credential',
-    format: 'text',
-    objective: 'awareness',
-  };
-  const hash = learningHash({ ...payload, text: 'First line\nSecond line' });
+  const descriptor = learningRegisteredProfiles(
+      'twitter',
+      'text',
+      'awareness',
+    )[0].descriptor,
+    descriptorHash = learningHash(learningDescriptorTuple(descriptor));
   const decision = {
     id: 'decision',
     organizationId: 'org',
+    brandId: 'brand',
     credentialId: 'credential',
+    generationId: 'post',
+    cellDescriptor: descriptor as unknown,
+    descriptorHash: descriptorHash as string | null,
     finalArtifactHash: null as string | null,
-    state: 'selected',
-    epoch: 2,
-    accountRevision: 4,
-    censorshipReason: null as string | null,
+    state: 'pending',
+    synthetic: false,
   };
   const post = {
     id: 'post',
     organizationId: 'org',
+    brandId: 'brand',
     credentialId: 'credential',
-    learningDecisionId: null as string | null,
+    description: 'First line\r\nSecond line',
+    format: 'standard',
+    parentId: null,
+    learningDecisionId: null,
+    ingredients: [{ id: 'ingredient', version: 2 }],
   };
-  const account = { epoch: 2, revision: 4 };
+  const hash = learningArtifactHashV1({
+    text: 'First line\nSecond line',
+    ingredients: [{ id: 'ingredient', version: '2' }],
+    credentialId: 'credential',
+    format: 'text',
+    objective: 'awareness',
+  });
   const tx = {
     $queryRaw: vi.fn().mockResolvedValue([]),
     contentLearningDecision: {
-      findFirst: vi
-        .fn()
-        .mockImplementation(
-          ({
-            where,
-          }: {
-            where: Prisma.ContentLearningDecisionWhereInput;
-          }): typeof decision | null =>
-            where.id === decision.id &&
-            where.organizationId === decision.organizationId &&
-            where.credentialId === decision.credentialId
-              ? decision
-              : null,
-        ),
+      findFirst: vi.fn().mockImplementation(() => decision),
       updateMany: vi
         .fn()
         .mockImplementation(
@@ -730,25 +729,7 @@ function bindingFixture() {
           },
         ),
     },
-    post: {
-      findFirst: vi
-        .fn()
-        .mockImplementation(
-          ({ where }: { where: Prisma.PostWhereInput }): typeof post | null =>
-            where.id === post.id ? post : null,
-        ),
-      updateMany: vi
-        .fn()
-        .mockImplementation(({ data }: Prisma.PostUpdateManyArgs) => {
-          Object.assign(post, data);
-          return { count: 1 };
-        }),
-    },
-    contentLearningAccount: {
-      findFirst: vi
-        .fn()
-        .mockImplementation((): typeof account | null => account),
-    },
+    post: { findFirst: vi.fn().mockImplementation(() => post) },
   };
   const root = {
     $transaction: vi
@@ -757,65 +738,27 @@ function bindingFixture() {
         apply(tx),
       ),
   };
-  const dependencies = {
-    valid: vi.fn(),
-    resolve: vi.fn(),
-    link: vi.fn(),
-    invalidate: vi.fn(),
-  };
   const service = new LearningDecisionService(
     root as unknown as PrismaService,
     {} as LearningAccountService,
     {} as LearningCheckpointService,
     {} as LearningPolicyService,
     {} as LearningScopeStateService,
-    dependencies as unknown as LearningDependencyService,
+    {} as LearningDependencyService,
   );
-  const modelCalls = [
-    tx.contentLearningDecision.findFirst,
-    tx.contentLearningDecision.updateMany,
-    tx.post.findFirst,
-    tx.post.updateMany,
-    tx.contentLearningAccount.findFirst,
-  ];
-  function assertSharedEntry() {
-    expect(root.$transaction).toHaveBeenCalledTimes(1);
-    const sql = tx.$queryRaw.mock.calls[0][0].join('');
-    expect(sql).toContain('pg_advisory_xact_lock_shared(5728, 1)');
-    expect(sql).not.toContain('pg_advisory_xact_lock(');
-    for (const mock of modelCalls)
-      if (mock.mock.invocationCallOrder.length)
-        expect(tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
-          mock.mock.invocationCallOrder[0],
-        );
-    for (const mock of Object.values(dependencies))
-      expect(mock).not.toHaveBeenCalled();
-  }
-  return {
-    service,
-    root,
-    tx,
-    dependencies,
-    decision,
-    post,
-    account,
-    payload,
-    hash,
-    modelCalls,
-    assertSharedEntry,
-  };
+  return { service, root, tx, decision, post, hash };
 }
-describe('shared-fenced immutable artifact and publication binding', () => {
-  it('binds canonical artifact after shared entry and the exact decision lock on the supplied callback client', async () => {
+describe('shared-fenced immutable artifact binding', () => {
+  it('binds the persisted post artifact after shared entry and the exact decision lock', async () => {
     const f = bindingFixture();
-    expect(await f.service.bindArtifact('org', 'decision', f.payload)).toBe(
+    expect(await f.service.bindArtifact('org', 'decision', 'post')).toBe(
       f.hash,
     );
-    expect(f.tx.$queryRaw).toHaveBeenCalledTimes(2);
-    const calls = f.tx.$queryRaw.mock.calls;
-    expect(calls[1][0].join('')).toContain('FROM content_learning_decisions');
-    expect(calls[1][0].join('')).toContain('ORDER BY id FOR UPDATE');
-    expect(calls[1].slice(1)).toEqual(['decision', 'org']);
+    const sql = f.tx.$queryRaw.mock.calls.map(([parts]) => parts.join(''));
+    expect(sql[0]).toContain('pg_advisory_xact_lock_shared(5728, 1)');
+    expect(sql[0]).not.toContain('pg_advisory_xact_lock(');
+    expect(sql[1]).toContain('FROM content_learning_decisions');
+    expect(f.tx.$queryRaw.mock.calls[1].slice(1)).toEqual(['decision', 'org']);
     expect(f.tx.$queryRaw.mock.invocationCallOrder[1]).toBeLessThan(
       f.tx.contentLearningDecision.findFirst.mock.invocationCallOrder[0],
     );
@@ -823,10 +766,21 @@ describe('shared-fenced immutable artifact and publication binding', () => {
       where: {
         id: 'decision',
         organizationId: 'org',
-        credentialId: 'credential',
         isDeleted: false,
+        synthetic: false,
       },
     });
+    expect(f.tx.post.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'post',
+          organizationId: 'org',
+          brandId: 'brand',
+          credentialId: 'credential',
+          isDeleted: false,
+        },
+      }),
+    );
     expect(f.tx.contentLearningDecision.updateMany).toHaveBeenCalledWith({
       where: {
         id: 'decision',
@@ -836,193 +790,238 @@ describe('shared-fenced immutable artifact and publication binding', () => {
       },
       data: { finalArtifactHash: f.hash, state: 'generated' },
     });
-    expect(f.decision.state).toBe('generated');
-    expect(f.tx.post.findFirst).not.toHaveBeenCalled();
-    expect(f.tx.contentLearningAccount.findFirst).not.toHaveBeenCalled();
-    f.assertSharedEntry();
   });
-  it('binds valid publication after shared entry, decision and Post locks with unchanged scoped predicates', async () => {
+  it('replays the same artifact without a second write', async () => {
     const f = bindingFixture();
-    f.decision.finalArtifactHash = f.hash;
-    expect(
-      await f.service.bindPublication('org', 'decision', 'post', f.payload),
-    ).toEqual({ valid: true });
-    const sql = f.tx.$queryRaw.mock.calls.map(([parts]) => parts.join(''));
-    expect(sql).toHaveLength(3);
-    expect(sql[1]).toContain('FROM content_learning_decisions');
-    expect(sql[2]).toContain('FROM posts');
-    expect(sql.join('')).not.toContain('content_learning_accounts');
-    expect(f.tx.$queryRaw.mock.calls[2].slice(1)).toEqual(['post', 'org']);
-    expect(f.tx.$queryRaw.mock.invocationCallOrder[2]).toBeLessThan(
-      f.tx.contentLearningDecision.findFirst.mock.invocationCallOrder[0],
+    await f.service.bindArtifact('org', 'decision', 'post');
+    expect(await f.service.bindArtifact('org', 'decision', 'post')).toBe(
+      f.hash,
     );
-    expect(f.tx.contentLearningDecision.findFirst).toHaveBeenCalledWith({
-      where: {
-        id: 'decision',
-        organizationId: 'org',
-        credentialId: 'credential',
-        isDeleted: false,
-      },
-    });
-    expect(f.tx.contentLearningAccount.findFirst).toHaveBeenCalledWith({
-      where: {
-        organizationId: 'org',
-        credentialId: 'credential',
-        isDeleted: false,
-      },
-    });
-    expect(f.tx.post.findFirst).toHaveBeenNthCalledWith(1, {
-      where: {
-        id: 'post',
-        organizationId: 'org',
-        credentialId: 'credential',
-        isDeleted: false,
-      },
-    });
-    expect(f.tx.post.findFirst).toHaveBeenNthCalledWith(2, {
-      where: {
-        organizationId: 'org',
-        learningDecisionId: 'decision',
-        id: { not: 'post' },
-        isDeleted: false,
-      },
-    });
-    expect(f.tx.post.updateMany).toHaveBeenCalledWith({
-      where: { id: 'post', organizationId: 'org', isDeleted: false },
-      data: { learningDecisionId: 'decision' },
-    });
-    expect(f.tx.contentLearningDecision.updateMany).toHaveBeenCalledWith({
-      where: { id: 'decision', organizationId: 'org', isDeleted: false },
-      data: { state: 'published' },
-    });
-    f.assertSharedEntry();
-  });
-  it.each(['artifact', 'publication'])(
-    'propagates %s fence failure before every row lock/read/write',
-    async (kind) => {
-      const f = bindingFixture(),
-        failure = new Error('shared fence failed');
-      f.tx.$queryRaw.mockRejectedValueOnce(failure);
-      const result =
-        kind === 'artifact'
-          ? f.service.bindArtifact('org', 'decision', f.payload)
-          : f.service.bindPublication('org', 'decision', 'post', f.payload);
-      await expect(result).rejects.toBe(failure);
-      expect(f.tx.$queryRaw).toHaveBeenCalledTimes(1);
-      for (const mock of f.modelCalls) expect(mock).not.toHaveBeenCalled();
-      f.assertSharedEntry();
-    },
-  );
-  it.each([
-    'missing-destination',
-    'mismatched-destination',
-    'different-artifact',
-    'same-artifact',
-  ])('preserves immutable artifact behavior for %s', async (kind) => {
-    const f = bindingFixture();
-    if (kind === 'missing-destination')
-      f.tx.contentLearningDecision.findFirst.mockResolvedValue(null);
-    else if (kind === 'mismatched-destination')
-      f.payload.credentialId = 'foreign-credential';
-    else
-      f.decision.finalArtifactHash =
-        kind === 'same-artifact' ? f.hash : 'saved-other-hash';
-    const result = f.service.bindArtifact('org', 'decision', f.payload);
-    if (kind === 'same-artifact') {
-      expect(await result).toBe(f.hash);
-      expect(f.tx.contentLearningDecision.updateMany).toHaveBeenCalledTimes(1);
-      expect(
-        f.tx.contentLearningDecision.updateMany.mock.results[0].value,
-      ).toEqual({ count: 0 });
-      expect(f.decision.state).toBe('selected');
-    } else {
-      await expect(result).rejects.toThrow(
-        kind === 'missing-destination' || kind === 'mismatched-destination'
-          ? 'Decision destination mismatch'
-          : 'Decision already bound to another artifact',
-      );
-      expect(f.tx.contentLearningDecision.updateMany).not.toHaveBeenCalled();
-    }
-    f.assertSharedEntry();
-  });
-  it.each([
-    'same-post',
-    'duplicate-post',
-    'other-decision',
-    'changed-bound-hash',
-  ])(
-    'preserves publication replay/conflict precedence for %s',
-    async (kind) => {
-      const f = bindingFixture();
-      f.decision.finalArtifactHash = f.hash;
-      if (kind === 'duplicate-post')
-        f.tx.post.findFirst
-          .mockResolvedValueOnce(f.post)
-          .mockResolvedValueOnce({ ...f.post, id: 'other-post' });
-      else
-        f.post.learningDecisionId =
-          kind === 'other-decision' ? 'other-decision' : 'decision';
-      if (kind === 'changed-bound-hash')
-        f.decision.finalArtifactHash = 'changed-hash';
-      const result = f.service.bindPublication(
-        'org',
-        'decision',
-        'post',
-        f.payload,
-      );
-      if (kind === 'same-post') {
-        expect(await result).toEqual({ valid: true });
-        expect(f.tx.post.updateMany).toHaveBeenCalledTimes(1);
-        expect(f.tx.contentLearningDecision.updateMany).toHaveBeenCalledWith(
-          expect.objectContaining({ data: { state: 'published' } }),
-        );
-      } else {
-        await expect(result).rejects.toThrow(
-          kind === 'changed-bound-hash'
-            ? 'Published artifact binding differs'
-            : 'Publication already has immutable decision binding',
-        );
-        expect(f.tx.post.updateMany).not.toHaveBeenCalled();
-        expect(f.tx.contentLearningDecision.updateMany).not.toHaveBeenCalled();
-      }
-      f.assertSharedEntry();
-    },
-  );
-  it.each([
-    'missing-post',
-    'missing-decision',
-    'edited',
-    'missing-account',
-    'epoch',
-    'revision',
-  ])('preserves censorship reason and no Post write for %s', async (kind) => {
-    const f = bindingFixture();
-    f.decision.finalArtifactHash = f.hash;
-    if (kind === 'missing-post') f.tx.post.findFirst.mockResolvedValue(null);
-    if (kind === 'missing-decision')
-      f.tx.contentLearningDecision.findFirst.mockResolvedValue(null);
-    if (kind === 'edited') f.decision.finalArtifactHash = 'edited-hash';
-    if (kind === 'missing-account')
-      f.tx.contentLearningAccount.findFirst.mockResolvedValue(null);
-    if (kind === 'epoch') f.account.epoch++;
-    if (kind === 'revision') f.account.revision++;
-    const reason =
-      kind === 'missing-post' || kind === 'missing-decision'
-        ? 'lineage_conflict'
-        : kind === 'edited'
-          ? 'edited_artifact'
-          : 'invalidated_after_dispatch';
     expect(
-      await f.service.bindPublication('org', 'decision', 'post', f.payload),
-    ).toEqual({ valid: false, reason });
-    expect(f.tx.post.updateMany).not.toHaveBeenCalled();
-    if (kind === 'missing-decision')
-      expect(f.tx.contentLearningDecision.updateMany).not.toHaveBeenCalled();
-    else
-      expect(f.tx.contentLearningDecision.updateMany).toHaveBeenCalledWith({
-        where: { id: 'decision', organizationId: 'org', isDeleted: false },
-        data: { state: 'censored', censorshipReason: reason },
+      f.tx.contentLearningDecision.updateMany.mock.results[1].value,
+    ).toEqual({ count: 0 });
+  });
+  it.each([
+    ['missing decision', 'Decision artifact mismatch'],
+    ['other generation', 'Decision artifact mismatch'],
+    ['invalid descriptor', 'Decision artifact mismatch'],
+    ['missing post', 'Decision artifact mismatch'],
+    ['different artifact', 'Decision already bound to another artifact'],
+    ['published', 'Decision is no longer bindable'],
+  ])('rejects %s with 409 and no write', async (kind, message) => {
+    const f = bindingFixture();
+    if (kind === 'missing decision')
+      f.tx.contentLearningDecision.findFirst.mockResolvedValue(null);
+    if (kind === 'other generation') f.decision.generationId = 'other';
+    if (kind === 'invalid descriptor') f.decision.descriptorHash = 'other';
+    if (kind === 'missing post') f.tx.post.findFirst.mockResolvedValue(null);
+    if (kind === 'different artifact') f.decision.finalArtifactHash = 'other';
+    if (kind === 'published') f.decision.state = 'published';
+    await expect(
+      f.service.bindArtifact('org', 'decision', 'post'),
+    ).rejects.toThrow(message);
+    expect(f.tx.contentLearningDecision.updateMany).not.toHaveBeenCalled();
+  });
+  it('propagates fence failure before every row lock, read and write', async () => {
+    const f = bindingFixture(),
+      failure = new Error('shared fence failed');
+    f.tx.$queryRaw.mockRejectedValueOnce(failure);
+    await expect(
+      f.service.bindArtifact('org', 'decision', 'post'),
+    ).rejects.toBe(failure);
+    expect(f.tx.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(f.tx.contentLearningDecision.findFirst).not.toHaveBeenCalled();
+    expect(f.tx.post.findFirst).not.toHaveBeenCalled();
+  });
+});
+function batchFixture(count = 20) {
+  const f = decisionFixture(count);
+  const store = new Map<number, ContentLearningDecision>();
+  f.tx.contentLearningDecision.findFirst.mockImplementation(
+    ({ where }: { where: Prisma.ContentLearningDecisionWhereInput }) =>
+      store.get(Number(where.candidateIndex)) ?? null,
+  );
+  f.tx.contentLearningDecision.create.mockImplementation(({ data }) => {
+    const decision = {
+      id: `decision-${data.candidateIndex}`,
+      synthetic: false,
+      isDeleted: false,
+      accountPolicyId: null,
+      sharedReleaseId: null,
+      opportunityId: null,
+      ...data,
+    } as ContentLearningDecision;
+    store.set(data.candidateIndex, decision);
+    return decision;
+  });
+  const { context, ...shared } = f.input;
+  const batch = {
+    ...shared,
+    context: { credentialId: context.credentialId, requestKey: 'request' },
+    candidates: [
+      { candidateIndex: 0, generationId: 'post-0' },
+      { candidateIndex: 1, generationId: 'post-1' },
+      { candidateIndex: 2, generationId: 'post-2' },
+    ],
+  };
+  return { ...f, store, batch };
+}
+describe('batch decision resolution for one generation request', () => {
+  it('freezes one baseline and creates index-aligned decisions sharing one decision time', async () => {
+    const f = batchFixture();
+    const results = await f.service.resolveBatchForGeneration(f.batch);
+    expect(results.map((r) => r.receipt.decisionId)).toEqual([
+      'decision-0',
+      'decision-1',
+      'decision-2',
+    ]);
+    const fences = f.tx.$queryRaw.mock.calls.filter(([parts]) =>
+      parts.join('').includes('pg_advisory_xact_lock'),
+    );
+    expect(fences).toHaveLength(1);
+    expect(f.checkpoints.freeze).toHaveBeenCalledTimes(1);
+    expect(f.scopes.ensure).toHaveBeenCalledTimes(1);
+    expect(f.tx.accountAnalyticsSnapshot.findFirst).toHaveBeenCalledTimes(1);
+    const created = f.tx.contentLearningDecision.create.mock.calls.map(
+      ([{ data }]) => data,
+    );
+    expect(created).toHaveLength(3);
+    expect(new Set(created.map((d) => d.createdAt.getTime())).size).toBe(1);
+    expect(new Set(created.map((d) => d.baselineId))).toEqual(
+      new Set(['baseline']),
+    );
+    expect(created.map((d) => d.generationId)).toEqual([
+      'post-0',
+      'post-1',
+      'post-2',
+    ]);
+    expect(f.dependencies.link).toHaveBeenCalledTimes(15);
+    for (const result of results) expect(result.contribution).toEqual({});
+  });
+  it('computes the same payload hash as a single-candidate resolution', async () => {
+    const batch = batchFixture();
+    await batch.service.resolveBatchForGeneration({
+      ...batch.batch,
+      candidates: [{ candidateIndex: 0, generationId: 'post-0' }],
+    });
+    const single = decisionFixture();
+    await single.service.resolveForGeneration({
+      ...single.input,
+      context: { ...single.input.context, generationId: 'post-0' },
+    });
+    expect(batch.store.get(0)?.payloadHash).toBe(single.recorded?.payloadHash);
+    expect(batch.store.get(0)?.destinationKey).toBe(
+      single.recorded?.destinationKey,
+    );
+  });
+  it('replays every candidate without freeze or writes', async () => {
+    const f = batchFixture();
+    const original = await f.service.resolveBatchForGeneration(f.batch);
+    f.checkpoints.freeze.mockClear();
+    f.tx.contentLearningDecision.create.mockClear();
+    const replay = await f.service.resolveBatchForGeneration(f.batch);
+    expect(replay.map((r) => r.receipt)).toEqual(
+      original.map((r) => r.receipt),
+    );
+    expect(f.checkpoints.freeze).not.toHaveBeenCalled();
+    expect(f.tx.contentLearningDecision.create).not.toHaveBeenCalled();
+  });
+  it('rejects a changed prompt for an existing identity', async () => {
+    const f = batchFixture();
+    await f.service.resolveBatchForGeneration(f.batch);
+    await expect(
+      f.service.resolveBatchForGeneration({
+        ...f.batch,
+        originalPrompt: 'changed',
+      }),
+    ).rejects.toThrow('payload conflict');
+  });
+  it('revalidates without creating when replay-only identities are missing', async () => {
+    const f = batchFixture();
+    const results = await f.service.resolveBatchForGeneration({
+      ...f.batch,
+      replayOnly: true,
+    });
+    expect(results.map((r) => r.receipt)).toEqual(
+      Array(3).fill(
+        expect.objectContaining({
+          mode: 'unavailable',
+          reason: 'decision_missing',
+        }),
+      ),
+    );
+    expect(f.accounts.ensure).not.toHaveBeenCalled();
+    expect(f.tx.contentLearningDecision.create).not.toHaveBeenCalled();
+  });
+  it.each(['paused', 'shadow', 'epoch', 'control', 'scope'])(
+    'replay-only revalidation suppresses current %s changes',
+    async (mutation) => {
+      const f = batchFixture();
+      await f.service.resolveBatchForGeneration(f.batch);
+      if (mutation === 'paused' || mutation === 'shadow')
+        f.account.mode = mutation;
+      if (mutation === 'epoch') f.account.epoch++;
+      if (mutation === 'control') f.account.revision++;
+      if (mutation === 'scope') f.scope.revision++;
+      const results = await f.service.resolveBatchForGeneration({
+        ...f.batch,
+        replayOnly: true,
       });
-    f.assertSharedEntry();
+      const expected = ['paused', 'shadow'].includes(mutation)
+        ? mutation
+        : mutation === 'scope'
+          ? 'scope_changed'
+          : 'account_changed';
+      for (const result of results) {
+        expect(result.receipt.reason).toBe(expected);
+        expect(result.contribution).toEqual({});
+      }
+    },
+  );
+  it('returns disabled and unsupported fallbacks for every candidate', async () => {
+    const disabled = batchFixture();
+    disabled.accounts.ensure.mockResolvedValue({
+      ...disabled.account,
+      mode: 'disabled',
+    });
+    expect(
+      (await disabled.service.resolveBatchForGeneration(disabled.batch)).map(
+        (r) => r.receipt.reason,
+      ),
+    ).toEqual(['disabled', 'disabled', 'disabled']);
+    const unsupported = batchFixture();
+    unsupported.accounts.credential.mockResolvedValue({
+      id: 'credential',
+      brandId: 'brand',
+      platform: 'UNKNOWN',
+    });
+    expect(
+      (
+        await unsupported.service.resolveBatchForGeneration(unsupported.batch)
+      ).map((r) => r.receipt.reason),
+    ).toEqual(['unsupported_cell', 'unsupported_cell', 'unsupported_cell']);
+    expect(
+      unsupported.tx.contentLearningDecision.create,
+    ).not.toHaveBeenCalled();
+  });
+  it.each([
+    ['more than 50 candidates', { candidates: 51 }],
+    ['duplicate indexes', { duplicate: true }],
+    ['empty candidates', { candidates: 0 }],
+    ['oversized generation id', { generationId: 'x'.repeat(257) }],
+  ])('rejects %s with 400', async (_, variant) => {
+    const f = batchFixture();
+    const candidates =
+      'candidates' in variant
+        ? Array.from({ length: Number(variant.candidates) }, (_, i) => ({
+            candidateIndex: i,
+          }))
+        : 'duplicate' in variant
+          ? [{ candidateIndex: 0 }, { candidateIndex: 0 }]
+          : [{ candidateIndex: 0, generationId: variant.generationId }];
+    await expect(
+      f.service.resolveBatchForGeneration({ ...f.batch, candidates }),
+    ).rejects.toThrow('Invalid learning request identity');
+    expect(f.tx.$queryRaw).not.toHaveBeenCalled();
   });
 });
