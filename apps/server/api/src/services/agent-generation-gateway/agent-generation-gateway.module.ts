@@ -19,7 +19,11 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { AgentEndpointInvoker } from '@api/services/agent-generation-gateway/agent-endpoint-invoker.service';
 import { AgentGenerationGatewayService } from '@api/services/agent-generation-gateway/agent-generation-gateway.service';
-import { AGENT_GENERATION_GATEWAY } from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
+import { AgentVideoMergeGatewayService } from '@api/services/agent-generation-gateway/agent-video-merge-gateway.service';
+import {
+  AGENT_GENERATION_GATEWAY,
+  AGENT_VIDEO_MERGE_GATEWAY,
+} from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { ConfigModule } from '@libs/config/config.module';
@@ -39,8 +43,10 @@ import { Module } from '@nestjs/common';
 @Module({
   exports: [
     AGENT_GENERATION_GATEWAY,
+    AGENT_VIDEO_MERGE_GATEWAY,
     AgentEndpointInvoker,
     AgentGenerationGatewayService,
+    AgentVideoMergeGatewayService,
   ],
   imports: [
     PlatformSettingsModule,
@@ -64,6 +70,7 @@ import { Module } from '@nestjs/common';
   providers: [
     AgentEndpointInvoker,
     AgentGenerationGatewayService,
+    AgentVideoMergeGatewayService,
     CreditsGuard,
     CreditsInterceptor,
     ModelsGuard,
@@ -72,6 +79,10 @@ import { Module } from '@nestjs/common';
     {
       provide: AGENT_GENERATION_GATEWAY,
       useExisting: AgentGenerationGatewayService,
+    },
+    {
+      provide: AGENT_VIDEO_MERGE_GATEWAY,
+      useExisting: AgentVideoMergeGatewayService,
     },
   ],
 })

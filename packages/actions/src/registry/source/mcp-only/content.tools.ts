@@ -82,50 +82,6 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Generate an article draft from a topic, tone, audience and keywords. To import an already written article without regeneration, use create_article_draft.',
-    name: 'create_article',
-    parameters: {
-      properties: {
-        keywords: {
-          description: 'SEO keywords to include',
-          items: { type: 'string' },
-          type: 'array',
-        },
-        length: {
-          default: 'medium',
-          description: 'Article length',
-          enum: ['short', 'medium', 'long'],
-          type: 'string',
-        },
-        targetAudience: {
-          description: 'Target audience for the article',
-          type: 'string',
-        },
-        tone: {
-          default: 'professional',
-          description: 'Writing tone and style',
-          enum: [
-            'professional',
-            'casual',
-            'humorous',
-            'technical',
-            'storytelling',
-          ],
-          type: 'string',
-        },
-        topic: {
-          description: 'Article topic or main idea',
-          type: 'string',
-        },
-      },
-      required: ['topic'],
-      type: 'object',
-    },
-    requiredRole: 'user',
-  },
-  {
-    creditCost: 0,
-    description:
       'Get one article by articleId, or search published articles by query (optionally filtered by category). Pass exactly one of articleId or query.',
     name: 'get_articles',
     parameters: {
@@ -149,35 +105,6 @@ export const MCP_CONTENT_TOOLS: SourceTool[] = [
           type: 'number',
         },
       },
-      type: 'object',
-    },
-    requiredRole: 'user',
-  },
-  {
-    creditCost: 0,
-    description:
-      'Generate LinkedIn-optimized post text for a given topic or brief. Returns ready-to-publish text content with hook, body, CTA, and hashtags.',
-    name: 'generate_linkedin_content',
-    parameters: {
-      properties: {
-        brandId: {
-          description: 'Brand ID to apply tone and voice profile',
-          type: 'string',
-        },
-        topic: {
-          description:
-            'Topic, brief, or sales objection to turn into LinkedIn content',
-          type: 'string',
-        },
-        variationsCount: {
-          default: 3,
-          description: 'Number of content variations to generate (1-5)',
-          maximum: 5,
-          minimum: 1,
-          type: 'number',
-        },
-      },
-      required: ['topic'],
       type: 'object',
     },
     requiredRole: 'user',

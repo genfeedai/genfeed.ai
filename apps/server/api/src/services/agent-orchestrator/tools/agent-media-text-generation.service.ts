@@ -5,6 +5,7 @@ import type {
 import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-generation-brand.util';
 import { GenerateContentDto } from '@api/collections/content-intelligence/dto/generate-content.dto';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { GenerateNewsletterDraftDto } from '@api/collections/newsletters/dto/generate-newsletter-draft.dto';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import {
@@ -27,6 +28,7 @@ import {
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import {
+  ActivitySource,
   ContentIntelligencePlatform,
   formatPlatformLabel,
   KnowledgeSourcePurpose,
@@ -112,6 +114,59 @@ function readStringList(value: unknown): string[] | undefined {
   return items.length > 0 ? items : undefined;
 }
 
+/** Mirrors `MaxLength(500)` on `GenerateArticlesDto.prompt`. */
+const ARTICLE_PROMPT_MAX_LENGTH = 500;
+const MAX_VARIATIONS = 5;
+
+/**
+ * The tool speaks `topic` plus `targetAudience` and `length`; the article DTO
+ * has only a free-text `prompt`. Fold the framing into it, as `create_article`
+ * did, rather than inventing DTO fields.
+ */
+function buildArticlePrompt(params: Record<string, unknown>): string {
+  const topic =
+    readOptionalString(params.topic) ?? readOptionalString(params.prompt) ?? '';
+  const audience = readOptionalString(params.targetAudience);
+  const length = readOptionalString(params.length);
+  const framing = [
+    audience ? `Write it for this audience: ${audience}.` : undefined,
+    length ? `Length: ${length}.` : undefined,
+  ]
+    .filter(Boolean)
+    .join(' ');
+  return (framing ? `${topic}\n\n${framing}` : topic).slice(
+    0,
+    ARTICLE_PROMPT_MAX_LENGTH,
+  );
+}
+
+function readVariationsCount(
+  value: unknown,
+): { ok: true; count: number } | { ok: false } {
+  if (value === undefined || value === null) return { ok: true, count: 1 };
+  return typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value >= 1 &&
+    value <= MAX_VARIATIONS
+    ? { ok: true, count: value }
+    : { ok: false };
+}
+
+/** Flat charge for one social or newsletter draft (catalog `generate_content`). */
+const TEXT_GENERATION_CREDITS = 2;
+
+const EMPTY_TEXT_GENERATION_RESULT: AgentToolResult = {
+  creditsUsed: 0,
+  error: 'Content generation returned no draft. No credits were charged.',
+  success: false,
+};
+
+const INSUFFICIENT_TEXT_CREDITS_RESULT: AgentToolResult = {
+  creditsUsed: 0,
+  error: 'Not enough credits to generate content.',
+  success: false,
+};
+
 @Injectable()
 export class AgentMediaTextGenerationService {
   constructor(
@@ -124,7 +179,59 @@ export class AgentMediaTextGenerationService {
     private readonly brandsService: ResolveGenerationBrandServiceLike,
     @Inject('AGENT_MEMBERS_SERVICE')
     private readonly membersService: ResolveGenerationBrandMembersServiceLike,
+    private readonly creditsUtilsService: CreditsUtilsService,
   ) {}
+
+  /**
+   * Explicit brandId, then the thread brand, then the member's current brand
+   * (#5219). Headless MCP calls carry no thread brand, so they rely on the
+   * first and last steps.
+   */
+  private async resolveBrandId(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<string | undefined> {
+    const brand = await resolveGenerationBrand({
+      brandsService: this.brandsService,
+      contextBrandId: ctx.brandId,
+      explicitBrandId:
+        typeof params.brandId === 'string' ? params.brandId : undefined,
+      membersService: this.membersService,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+    });
+    return brand?.id ? String(brand.id) : undefined;
+  }
+
+  /**
+   * Text generation has no billing endpoint behind it, so the handler admits
+   * and settles its own flat charge and marks the result billing-delegated.
+   * That charges MCP calls (which skip the agent turn's settlement) and keeps
+   * in-app turns from charging twice.
+   */
+  private async hasTextGenerationCredits(
+    ctx: ToolExecutionContext,
+  ): Promise<boolean> {
+    return this.creditsUtilsService.checkOrganizationCreditsAvailable(
+      ctx.organizationId,
+      TEXT_GENERATION_CREDITS,
+    );
+  }
+
+  private async chargeTextGeneration(
+    ctx: ToolExecutionContext,
+    brandId: string,
+    description: string,
+  ): Promise<void> {
+    await this.creditsUtilsService.deductCreditsFromOrganization(
+      ctx.organizationId,
+      ctx.userId,
+      TEXT_GENERATION_CREDITS,
+      description,
+      ActivitySource.SCRIPT,
+      { brandId },
+    );
+  }
 
   async aiAction(
     params: Record<string, unknown>,
@@ -174,13 +281,37 @@ export class AgentMediaTextGenerationService {
     ) {
       return this.generateArticle(params, ctx, normalizedType);
     }
-    return this.generateSocialContent(params, ctx, normalizedType);
+    const variations = readVariationsCount(params.variationsCount);
+    if (!variations.ok) {
+      return {
+        creditsUsed: 0,
+        error: `variationsCount must be an integer from 1 to ${MAX_VARIATIONS}`,
+        success: false,
+      };
+    }
+    return this.generateSocialContent(
+      params,
+      ctx,
+      normalizedType,
+      variations.count,
+    );
   }
 
   private async generateNewsletter(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    const brandId = await this.resolveBrandId(params, ctx);
+    if (!brandId) {
+      return {
+        creditsUsed: 0,
+        error: 'A brand is required to generate content.',
+        success: false,
+      };
+    }
+    if (!(await this.hasTextGenerationCredits(ctx))) {
+      return INSUFFICIENT_TEXT_CREDITS_RESULT;
+    }
     const dto: GenerateNewsletterDraftDto = {
       angle: readOptionalString(params.angle),
       instructions: readOptionalString(params.instructions),
@@ -190,12 +321,20 @@ export class AgentMediaTextGenerationService {
         '',
     };
     const newsletter = await this.newslettersService.generateDraft(dto, {
-      brandId: ctx.brandId ?? '',
+      brandId,
       organizationId: ctx.organizationId,
       userId: ctx.userId,
     });
     const newsletterId = readOptionalString(newsletter.id);
     const content = readOptionalString(newsletter.content) ?? '';
+    if (!content.trim()) {
+      return EMPTY_TEXT_GENERATION_RESULT;
+    }
+    await this.chargeTextGeneration(
+      ctx,
+      brandId,
+      'Agent tool: generate_content (newsletter)',
+    );
     const subject =
       readOptionalString(newsletter.label) ??
       readOptionalString(newsletter.topic) ??
@@ -203,8 +342,9 @@ export class AgentMediaTextGenerationService {
     const preheader = readOptionalString(newsletter.summary);
 
     return {
-      creditsUsed: 2,
+      creditsUsed: TEXT_GENERATION_CREDITS,
       data: { content, newsletterId, preheader, subject },
+      isBillingDelegated: true,
       nextActions: newsletterId
         ? [
             {
@@ -237,6 +377,14 @@ export class AgentMediaTextGenerationService {
   ): Promise<AgentToolResult> {
     const articleType =
       normalizedType === 'x-article' ? 'x-article' : 'standard';
+    const brandId = await this.resolveBrandId(params, ctx);
+    if (!brandId) {
+      return {
+        creditsUsed: 0,
+        error: 'A brand is required to generate an article.',
+        success: false,
+      };
+    }
     const response = toMediaResponseRecord(
       await this.generationGateway.generateArticle({
         body: {
@@ -251,19 +399,16 @@ export class AgentMediaTextGenerationService {
           ...(ctx.generationModelOverride
             ? { model: ctx.generationModelOverride }
             : {}),
-          prompt: (params.topic as string) || (params.prompt as string) || '',
+          prompt: buildArticlePrompt(params),
           targetWordCount:
             articleType === 'x-article'
               ? (params.targetWordCount as number | undefined)
               : undefined,
-          tone:
-            articleType === 'x-article'
-              ? (params.tone as string | undefined)
-              : undefined,
+          tone: readOptionalString(params.tone),
           type: articleType,
         },
         principal: {
-          brandId: ctx.brandId,
+          brandId,
           organizationId: ctx.organizationId,
           userId: ctx.userId,
         },
@@ -321,6 +466,7 @@ export class AgentMediaTextGenerationService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
     normalizedType: string,
+    variationsCount: number,
   ): Promise<AgentToolResult> {
     const platform =
       (readOptionalString(params.platform) as ContentIntelligencePlatform) ??
@@ -342,6 +488,9 @@ export class AgentMediaTextGenerationService {
         success: false,
       };
     }
+    if (!(await this.hasTextGenerationCredits(ctx))) {
+      return INSUFFICIENT_TEXT_CREDITS_RESULT;
+    }
     const results = await this.contentGeneratorService.generateContent(
       ctx.organizationId,
       {
@@ -350,10 +499,20 @@ export class AgentMediaTextGenerationService {
         ...(knowledge ? { knowledge } : {}),
         platform,
         topic: params.topic as string,
-        variationsCount: 1,
+        variationsCount,
       } satisfies GenerateContentDto,
     );
     const generated = results[0];
+    // The generator swallows LLM failures and returns no results; never bill
+    // a call that produced no draft.
+    if (!generated?.content?.trim()) {
+      return EMPTY_TEXT_GENERATION_RESULT;
+    }
+    await this.chargeTextGeneration(
+      ctx,
+      String(brand.id),
+      `Agent tool: generate_content (${normalizedType})`,
+    );
     const threadSegments =
       normalizedType === 'thread' && generated?.content
         ? splitThreadSegments(generated.content)
@@ -361,13 +520,26 @@ export class AgentMediaTextGenerationService {
     const knowledgeReceipts = generated?.knowledgeReceipts ?? [];
 
     return {
-      creditsUsed: 2,
+      creditsUsed: TEXT_GENERATION_CREDITS,
+      isBillingDelegated: true,
       data: {
         content: generated?.content ?? '',
         hashtags: generated?.hashtags ?? [],
         hook: generated?.hook,
         knowledgeReceipts,
         patternUsed: generated?.patternUsed,
+        ...(variationsCount > 1
+          ? {
+              variations: results.map((variation) => ({
+                body: variation.body,
+                content: variation.content,
+                cta: variation.cta,
+                hashtags: variation.hashtags,
+                hook: variation.hook,
+                patternUsed: variation.patternUsed,
+              })),
+            }
+          : {}),
       },
       nextActions: generated?.content
         ? [

@@ -3,8 +3,6 @@ import type { BaseApiClient } from './base-api-client';
 import type {
   LinkedInAccountIdentity,
   LinkedInConnectionStatus,
-  LinkedInContentAttributes,
-  LinkedInContentItem,
 } from './linkedin.client.types';
 
 const LINKEDIN_CREDENTIAL_PAGE_SIZE = 100;
@@ -15,43 +13,6 @@ const DISCONNECTED_CREDENTIAL_REASON =
 /** LinkedIn content generation, connection status, and analytics tools. */
 export class LinkedInClient {
   constructor(private readonly base: BaseApiClient) {}
-
-  /**
-   * `brandId` is optional here only because the server resolves it (#5219):
-   * this key's validated default brand when omitted, else the request is
-   * rejected with a 400. There is no "any brand" guess — configure a default
-   * brand for this API key, or pass brandId explicitly on each call.
-   */
-  generateLinkedInContent(params: {
-    brandId?: string;
-    topic: string;
-    variationsCount?: number;
-  }): Promise<LinkedInContentItem[]> {
-    this.base.logger.debug('Generating LinkedIn content', { params });
-
-    return this.base.request(
-      'generating LinkedIn content',
-      async (http) => {
-        const response = await http.post('/content-intelligence/generate', {
-          brandId: params.brandId,
-          platform: 'linkedin',
-          topic: params.topic,
-          variationsCount: params.variationsCount || 3,
-        });
-
-        return (
-          response.data?.data?.map((item: LinkedInContentAttributes) => ({
-            body: item.attributes?.body || '',
-            content: item.attributes?.content || '',
-            cta: item.attributes?.cta || '',
-            hashtags: item.attributes?.hashtags || [],
-            hook: item.attributes?.hook || '',
-          })) || []
-        );
-      },
-      this.base.failWith('Failed to generate LinkedIn content'),
-    );
-  }
 
   getLinkedInConnectionStatus(): Promise<LinkedInConnectionStatus> {
     this.base.logger.debug('Getting LinkedIn connection status');

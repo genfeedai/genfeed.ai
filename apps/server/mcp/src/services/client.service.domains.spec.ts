@@ -1413,50 +1413,6 @@ describe('ClientService (MCP) domain clients', () => {
   // ==================== LINKEDIN ====================
 
   describe('LinkedIn', () => {
-    it('generates content variations with a default count', async () => {
-      (mockAxiosInstance.post as Mock).mockResolvedValue({
-        data: {
-          data: [
-            {
-              attributes: {
-                body: 'Body text',
-                content: 'Full content',
-                cta: 'Follow us',
-                hashtags: ['#ai'],
-                hook: 'Hot take',
-              },
-            },
-            { attributes: {} },
-          ],
-        },
-      });
-
-      const result = await service.generateLinkedInContent({
-        brandId: 'brand-1',
-        topic: 'AI trends',
-      });
-
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-        '/content-intelligence/generate',
-        {
-          brandId: 'brand-1',
-          platform: 'linkedin',
-          topic: 'AI trends',
-          variationsCount: 3,
-        },
-      );
-      expect(result).toEqual([
-        {
-          body: 'Body text',
-          content: 'Full content',
-          cta: 'Follow us',
-          hashtags: ['#ai'],
-          hook: 'Hot take',
-        },
-        { body: '', content: '', cta: '', hashtags: [], hook: '' },
-      ]);
-    });
-
     it('reports a connected LinkedIn credential', async () => {
       (mockAxiosInstance.get as Mock).mockResolvedValue({
         data: {

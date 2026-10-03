@@ -10,15 +10,17 @@ export const MCP_CARD_RESOURCE_URI = 'ui://genfeed/content-cards-v1.html';
 export const MCP_APP_MIME_TYPE = 'text/html;profile=mcp-app';
 
 const TOOL_KINDS: Readonly<Record<string, McpCardKind>> = {
-  create_article: 'article',
   create_post: 'post',
   generate: 'media',
+  // Social copy renders as a post; an article result switches to the article
+  // card in buildCardView via its articleId.
+  generate_content: 'post',
   get_account: 'usage',
   get_articles: 'article',
   get_job_status: 'media',
   get_posts: 'post',
   list_assets: 'media',
-  merge_videos: 'video',
+  transform_media: 'media',
 };
 
 export function withCardMetadata(tool: McpToolOutput): McpToolOutput {
@@ -79,7 +81,15 @@ function card(row: Record<string, unknown>, kind: McpCardKind): McpCard {
       'text',
       'message',
     ).slice(0, 4000),
-    id: text(row, 'id', 'assetId', 'ingredientId', 'postId', 'jobId'),
+    id: text(
+      row,
+      'id',
+      'assetId',
+      'articleId',
+      'ingredientId',
+      'postId',
+      'jobId',
+    ),
     kind: cardKind(row, kind),
     platform: text(row, 'platform'),
     status: text(row, 'status', 'state', 'executionState'),
@@ -98,9 +108,13 @@ export function buildCardView(
   name: string,
   payload: unknown,
 ): McpCardView | undefined {
-  const kind = TOOL_KINDS[name];
-  if (!kind) return undefined;
+  const baseKind = TOOL_KINDS[name];
+  if (!baseKind) return undefined;
   const data = record(payload);
+  const kind: McpCardKind =
+    name === 'generate_content' && text(data, 'articleId')
+      ? 'article'
+      : baseKind;
   if (kind === 'usage') {
     // `get_account` can omit the usage section; there is nothing to chart then.
     if (!Object.keys(record(data.usage)).length) return undefined;

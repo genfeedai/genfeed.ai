@@ -79,3 +79,14 @@ export interface IAgentGenerationGateway {
     input: AgentGenerationResourceInput,
   ): Promise<JsonApiSingleResponse>;
 }
+
+/**
+ * DI token for the in-process video merge gateway. A merge is not a billable
+ * generation (local files queue, no provider call), so it has its own seam
+ * rather than a method on {@link IAgentGenerationGateway}.
+ */
+export const AGENT_VIDEO_MERGE_GATEWAY = Symbol('AGENT_VIDEO_MERGE_GATEWAY');
+
+export interface IAgentVideoMergeGateway {
+  mergeVideos(input: AgentGenerationInput): Promise<JsonApiSingleResponse>;
+}
