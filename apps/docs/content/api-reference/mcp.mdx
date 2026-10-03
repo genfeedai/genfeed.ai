@@ -264,7 +264,7 @@ The bare endpoint uses the `default` profile. Profiles shape the advertised
 
 | Endpoint selector | Advertised toolsets |
 | --- | --- |
-| No selector or `?profile=default` | `core`, `generation`, `content`, and `scheduler`, capped at 31 tools. |
+| No selector or `?profile=default` | `core`, `generation`, `content`, and `scheduler`, capped at 26 tools. |
 | `?profile=directory` | The same bounded selection, with `generation`, `clips`, and `ui` excluded. This profile does not imply directory approval. |
 | `?profile=full` | All toolsets, subject to the caller's permissions. |
 
@@ -293,9 +293,9 @@ https://mcp.genfeed.ai/mcp?toolsets=content,generation,analytics,brand,scheduler
 | Toolset | Description |
 | --- | --- |
 | `core` | Account basics and tool discovery. Always included on every connection regardless of the requested toolsets. |
-| `content` | Posts, articles, the content calendar, repurposing, X post activity, and LinkedIn content generation. |
+| `content` | Posts, articles, the content calendar, repurposing, X post activity, and LinkedIn and article generation through `generate_content`. |
 | `scheduler` | Scheduled release lifecycle and channel scheduling capability discovery. |
-| `generation` | Image, video, music, voice, and avatar generation, plus listing generated media. |
+| `generation` | Image, video, music, voice, and avatar generation, media transforms (edit, reframe, upscale, merge), generation options, plus listing generated media. |
 | `workflows` | Workflow creation, execution, scheduling, and template management. |
 | `analytics` | Performance, content, video, and LinkedIn analytics plus trend discovery. |
 | `social-inbox` | Social conversation triage: replies, approvals, direct messages, and account activity. |
@@ -318,7 +318,7 @@ https://mcp.genfeed.ai/mcp?toolsets=inspiration,content,generation,analytics,bra
 ```
 
 `core` is still added automatically. The bare URL keeps the `default` profile
-and its 31-tool cap, which does not advertise these actions; use
+and its 26-tool cap, which does not advertise these actions; use
 `?profile=full` to list every tool.
 
 Call the actions in this order. Saving, importing, reading, editing, attaching,

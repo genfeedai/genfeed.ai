@@ -12,8 +12,8 @@ after the 2026-08-06 review. Pinned by `curated-action-catalog.spec.ts`.
 
 ## Both surfaces
 
-`analyze_performance`, `get_analytics`, `get_posts`, `reframe_image`,
-`upscale_image`, `get_x_posts`, and `list_x_account_activity` are headless-safe:
+`analyze_performance`, `get_analytics`, `get_posts`, `transform_media`,
+`get_x_posts`, and `list_x_account_activity` are headless-safe:
 each returns data or an asset URL from a concrete `AgentToolExecutorService` case, so an MCP client
 reaches them through the existing `/agent-tools/:name/execute` proxy with no new handler. They match
 peers already on both surfaces (`generate`, which covers image, video, voice and music by `type`), and none of

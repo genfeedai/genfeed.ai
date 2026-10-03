@@ -250,7 +250,7 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
     exceptionAllowed: false,
     id: 'workflow-entry-action-used-as-internal-node',
     matches: (_file, source) =>
-      /(?:registerAction\s*\(\s*|actionId\s*:\s*)(?:ARTICLE_GENERATION_(?:ACTION|TOOL)_ID|LINKEDIN_CONTENT_GENERATION_(?:ACTION|TOOL)_ID|['"](?:create_article|generate_linkedin_content)['"])/s.test(
+      /(?:registerAction\s*\(\s*|actionId\s*:\s*)(?:ARTICLE_GENERATION_(?:ACTION|TOOL)_ID|LINKEDIN_CONTENT_GENERATION_(?:ACTION|TOOL)_ID|['"]generate_content['"])/s.test(
         source,
       ),
     message:

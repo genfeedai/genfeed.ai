@@ -64,16 +64,8 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/mcp-approvals/controllers/mcp-approvals.controller.ts',
     prefix: 'mcp-approvals',
   },
-  videosMerge: {
-    file: 'collections/videos/controllers/relationships/videos-merge.controller.ts',
-    prefix: 'videos',
-  },
   articles: {
     file: 'collections/articles/controllers/articles.controller.ts',
-    prefix: 'articles',
-  },
-  articleOperations: {
-    file: 'collections/articles/controllers/operations/articles-operations.controller.ts',
     prefix: 'articles',
   },
   credentials: {
@@ -83,10 +75,6 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
   credentialsPublishing: {
     file: 'collections/credentials/controllers/credentials-publishing.controller.ts',
     prefix: 'credentials',
-  },
-  contentIntelGenerate: {
-    file: 'collections/content-intelligence/controllers/generate.controller.ts',
-    prefix: 'content-intelligence/generate',
   },
   contentPerformance: {
     file: 'collections/content-performance/controllers/content-performance.controller.ts',
@@ -360,18 +348,6 @@ const ROUTE_CONTRACT: ContractRoute[] = [
 
   // ── Legacy media / content ──
   {
-    method: 'Post',
-    sub: 'merge',
-    controller: 'videosMerge',
-    tools: ['merge_videos'],
-  },
-  {
-    method: 'Post',
-    sub: 'generations',
-    controller: 'articleOperations',
-    tools: ['create_article'],
-  },
-  {
     method: 'Get',
     sub: BASE_CRUD_LIST,
     controller: 'articles',
@@ -423,12 +399,6 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   },
 
   // ── LinkedIn ──
-  {
-    method: 'Post',
-    sub: '',
-    controller: 'contentIntelGenerate',
-    tools: ['generate_linkedin_content'],
-  },
   {
     method: 'Get',
     sub: 'mentions',

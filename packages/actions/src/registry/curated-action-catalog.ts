@@ -103,7 +103,6 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp'],
     toolset: 'workflows',
   },
-  { name: 'create_article', surfaces: ['mcp'], toolset: 'content' },
   { name: 'create_article_draft', surfaces: ['mcp'], toolset: 'articles' },
   { name: 'create_brand', surfaces: ['agent'], toolset: 'onboarding' },
   {
@@ -168,7 +167,6 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp'],
     toolset: 'workflows',
   },
-  { name: 'edit_image', surfaces: ['agent', 'mcp'], toolset: 'generation' },
   {
     name: 'enhance_prompt',
     surfaces: ['agent', 'mcp'],
@@ -191,13 +189,12 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'generate_ad_pack', surfaces: ['agent'], toolset: 'ads' },
   { name: 'generate_as_identity', surfaces: ['agent'], toolset: 'generation' },
   { name: 'generate_clips', surfaces: ['mcp'], toolset: 'clips' },
-  { name: 'generate_content', surfaces: ['agent'], toolset: 'content' },
+  { name: 'generate_content', surfaces: ['agent', 'mcp'], toolset: 'content' },
   {
     name: 'generate_content_batch',
     surfaces: ['agent', 'mcp'],
     toolset: 'content',
   },
-  { name: 'generate_linkedin_content', surfaces: ['mcp'], toolset: 'content' },
   { name: 'generate_monthly_content', surfaces: ['agent'], toolset: 'content' },
   {
     name: 'generate_onboarding_content',
@@ -244,12 +241,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'get_current_brand', surfaces: ['agent'], toolset: 'brand' },
   { name: 'get_dashboard_layout', surfaces: ['agent'], toolset: 'ui' },
   {
-    name: 'get_generation_cost',
-    surfaces: ['agent', 'mcp'],
-    toolset: 'generation',
-  },
-  {
-    name: 'get_generation_settings',
+    name: 'get_generation_options',
     surfaces: ['agent', 'mcp'],
     toolset: 'generation',
   },
@@ -429,7 +421,6 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['mcp'],
     toolset: 'social-inbox',
   },
-  { name: 'merge_videos', surfaces: ['mcp'], toolset: 'generation' },
   { name: 'open_in_editor', surfaces: ['mcp'], toolset: 'clips' },
   { name: 'open_studio_handoff', surfaces: ['agent'], toolset: 'ui' },
   { name: 'pause_outreach_sequence', surfaces: ['agent'], toolset: 'outreach' },
@@ -466,7 +457,6 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent'],
     toolset: 'content',
   },
-  { name: 'reframe_image', surfaces: ['agent', 'mcp'], toolset: 'generation' },
   { name: 'reject_social_draft', surfaces: ['mcp'], toolset: 'social-inbox' },
   { name: 'rename_brand', surfaces: ['agent'], toolset: 'onboarding' },
   { name: 'render_dashboard', surfaces: ['agent'], toolset: 'ui' },
@@ -568,6 +558,11 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent'],
     toolset: 'agent-chat',
   },
+  {
+    name: 'transform_media',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'generation',
+  },
   { name: 'update_goal', surfaces: ['agent'], toolset: 'goals' },
   { name: 'update_remix_concept', surfaces: ['mcp'], toolset: 'inspiration' },
   {
@@ -577,7 +572,6 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'scheduler',
   },
   { name: 'update_strategy_state', surfaces: ['agent'], toolset: 'engagement' },
-  { name: 'upscale_image', surfaces: ['agent', 'mcp'], toolset: 'generation' },
   {
     name: 'validate_scheduler_target',
     surfaces: ['mcp'],

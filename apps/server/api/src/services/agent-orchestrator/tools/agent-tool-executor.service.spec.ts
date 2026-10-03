@@ -25,6 +25,7 @@ import { AgentMediaAssetGenerationService } from '@api/services/agent-orchestrat
 import { AgentMediaBatchGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-batch-generation.service';
 import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service';
 import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
+import { AgentMediaTransformService } from '@api/services/agent-orchestrator/tools/agent-media-transform.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
 import { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
@@ -980,6 +981,7 @@ describe('AgentToolExecutorService', () => {
       generateMusic: vi.fn(),
       generateVideo: vi.fn(),
       generateVoice: vi.fn(),
+      mergeVideos: vi.fn(),
       reframeImage: vi.fn(),
       upscaleImage: vi.fn(),
     };
@@ -1082,6 +1084,14 @@ describe('AgentToolExecutorService', () => {
         { getWorkflow: vi.fn(), runWorkflow: vi.fn() } as never,
       ),
     );
+    const assetGenerationService = new AgentMediaAssetGenerationService(
+      loggerService,
+      configService as never,
+      generationGateway as never,
+      onboardingHandler,
+      brandsService as never,
+      contentQualityScorerService as never,
+    );
     const mediaGenerationHandler = new AgentMediaGenerationToolHandler(
       new AgentMediaTextGenerationService(
         aiActionsService as never,
@@ -1091,14 +1101,7 @@ describe('AgentToolExecutorService', () => {
         brandsService as never,
         membersService as never,
       ),
-      new AgentMediaAssetGenerationService(
-        loggerService,
-        configService as never,
-        generationGateway as never,
-        onboardingHandler,
-        brandsService as never,
-        contentQualityScorerService as never,
-      ),
+      assetGenerationService,
       new AgentMediaBatchGenerationService(
         loggerService,
         brandsService as never,
@@ -1108,6 +1111,10 @@ describe('AgentToolExecutorService', () => {
         credentialsService as never,
         creditsUtilsService as never,
         batchCreditsService as never,
+      ),
+      new AgentMediaTransformService(
+        assetGenerationService,
+        generationGateway as never,
       ),
     );
     const qualityHandler = new AgentQualityToolHandler(
@@ -5934,6 +5941,69 @@ describe('AgentToolExecutorService', () => {
     });
   });
 
+  describe('thread brand requirement for merged media tools', () => {
+    const brandlessContext = () => {
+      const context = scopedContext('brand-A');
+      delete context.brandId;
+      delete context.validatedScope?.brandId;
+      return context;
+    };
+
+    it.each([
+      ['edit', { imageId: 'image-1', operation: 'edit', prompt: 'Change it' }],
+      ['reframe', { imageId: 'image-1', operation: 'reframe' }],
+      [
+        'upscale',
+        { imageUrl: 'https://cdn.example.com/a.png', operation: 'upscale' },
+      ],
+    ])('requires a thread brand for %s', async (_operation, parameters) => {
+      const { service } = createService('auto');
+
+      const result = await service.executeTool(
+        'transform_media',
+        parameters,
+        brandlessContext(),
+      );
+
+      expect(result).toMatchObject({
+        error:
+          'An explicit thread brand context is required for transform_media.',
+        success: false,
+      });
+    });
+
+    it('lets merge run without a thread brand because clips are scoped by organization', async () => {
+      const { service } = createService('auto');
+
+      const result = await service.executeTool(
+        'transform_media',
+        { ids: ['clip-1', 'clip-2'], operation: 'merge' },
+        brandlessContext(),
+      );
+
+      expect(result.error).not.toContain('thread brand context');
+    });
+
+    it('reads generation options without a thread brand', async () => {
+      const { service } = createService('auto');
+      const execute = vi.fn().mockResolvedValue({
+        creditsUsed: 0,
+        data: { settings: {} },
+        success: true,
+      });
+      Object.assign(service, { generationOptionsHandler: { execute } });
+
+      const result = await service.executeTool(
+        'get_generation_options',
+        { type: 'image' },
+        brandlessContext(),
+      );
+
+      expect(result).toMatchObject({ data: { settings: {} }, success: true });
+      expect(execute).toHaveBeenCalledOnce();
+    });
+  });
+
   it('rejects stale thread scope before dispatching a tool', async () => {
     const { agentScopeContextService, batchGenerationService, service } =
       createService();
@@ -6164,6 +6234,7 @@ describe('AgentToolExecutorService', () => {
           {} as never,
           credentialsService as never,
         ),
+        {} as never,
       ),
       new AgentToolCatalogHandler(),
       new AgentBrandContentToolHandler(
@@ -7164,6 +7235,16 @@ describe('capped tool quote boundary', () => {
       agentToolCreditEstimate('generate', { type: 'image' }),
     ).toBeUndefined();
     expect(agentToolCreditEstimate('generate_content_batch', {})).toBe(0);
+    expect(
+      agentToolCreditEstimate('transform_media', { operation: 'merge' }),
+    ).toBe(0);
+    for (const operation of ['edit', 'reframe', 'upscale']) {
+      expect(
+        agentToolCreditEstimate('transform_media', { operation }),
+        operation,
+      ).toBeUndefined();
+    }
+    expect(agentToolCreditEstimate('transform_media', {})).toBeUndefined();
     expect(agentToolCreditEstimate('unknown_tool', {})).toBeUndefined();
   });
   it('does not invoke the workflow runner for an unquoted capped tool', async () => {

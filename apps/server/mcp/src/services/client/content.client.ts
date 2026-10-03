@@ -15,7 +15,6 @@ import type {
   TrendResource,
 } from '@mcp/shared/interfaces/api-response.interface';
 import type {
-  ArticleCreationParams,
   ArticleResponse,
   ArticleSearchParams,
   ArticleSearchResult,
@@ -35,35 +34,6 @@ import {
 } from '@mcp/tools/tool-validators';
 import type { BaseApiClient } from './base-api-client';
 import { CONTENT_STATUS } from './client.types';
-
-/** Mirrors `MaxLength(500)` on the API's `GenerateArticlesDto.prompt`. */
-const ARTICLE_PROMPT_MAX_LENGTH = 500;
-
-/**
- * The `create_article` tool speaks `topic` / `length` / `targetAudience`; the
- * API's `GenerateArticlesDto` speaks `prompt` (plus `tone` and `keywords`).
- * The API validates with `whitelist: true` and no `forbidNonWhitelisted`, so
- * undeclared keys are deleted silently — sending `topic` meant the body reached
- * the controller without the required `prompt` and every call 400'd.
- *
- * Fold the tool's framing into the prompt instead of inventing DTO fields: the
- * generation prompt is free text, and the API has no separate audience or
- * length input for standard articles.
- */
-function buildArticlePrompt(params: ArticleCreationParams): string {
-  const framing = [
-    params.targetAudience
-      ? `Write it for this audience: ${params.targetAudience}.`
-      : undefined,
-    params.length ? `Length: ${params.length}.` : undefined,
-  ]
-    .filter(Boolean)
-    .join(' ');
-
-  const prompt = framing ? `${params.topic}\n\n${framing}` : params.topic;
-
-  return prompt.slice(0, ARTICLE_PROMPT_MAX_LENGTH);
-}
 
 /**
  * `wordCount` is not a serialized article attribute — derive it from the
@@ -161,42 +131,6 @@ export class ContentClient {
         return reviewedArticleResponse(response.data.data);
       },
       this.base.failWithDetail('Failed to publish article'),
-    );
-  }
-
-  createArticle(params: ArticleCreationParams): Promise<ArticleResponse> {
-    this.base.logger.debug('Creating article', { params });
-
-    return this.base.request(
-      'creating article',
-      async (http) => {
-        const response = await http.post('/articles/generations', {
-          data: {
-            attributes: {
-              keywords: params.keywords || [],
-              prompt: buildArticlePrompt(params),
-              tone: params.tone || 'professional',
-            },
-            type: 'articles',
-          },
-        });
-
-        // A standard generation is serialized as a collection (one resource per
-        // generated article), so the envelope holds an array here.
-        const payload = response.data?.data;
-        const article = Array.isArray(payload) ? payload[0] : payload;
-        const content = article?.attributes?.content || '';
-
-        return {
-          content,
-          createdAt: article?.attributes?.createdAt || new Date().toISOString(),
-          id: article?.id || article?.attributes?.id,
-          status: article?.attributes?.status || CONTENT_STATUS.PROCESSING,
-          title: article?.attributes?.label || params.topic,
-          wordCount: countWords(content),
-        };
-      },
-      this.base.failWithDetail('Failed to create article'),
     );
   }
 

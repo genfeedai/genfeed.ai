@@ -2,12 +2,10 @@ import type { ClientService } from '@mcp/services/client.service';
 import { formatListResult } from '@mcp/shared/utils/format-list-result.util';
 
 export const CONTENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
-  'create_article',
   'create_article_draft',
   'get_article_preview',
   'publish_article',
   'get_articles',
-  'generate_linkedin_content',
 ]);
 
 function requireArticleString(
@@ -85,34 +83,6 @@ export async function handleContentTool(
         ],
       };
     }
-    case 'create_article': {
-      if (!args?.topic) {
-        throw new Error('topic required');
-      }
-      const article = await client.createArticle({
-        keywords: args.keywords as string[] | undefined,
-        length: args.length as 'short' | 'medium' | 'long' | undefined,
-        targetAudience: args.targetAudience as string | undefined,
-        tone: args.tone as
-          | 'professional'
-          | 'casual'
-          | 'humorous'
-          | 'technical'
-          | 'storytelling'
-          | undefined,
-        topic: args.topic as string,
-      });
-
-      return {
-        structuredContent: { data: article },
-        content: [
-          {
-            text: `Article created successfully!\n\nArticle ID: ${article.id}\nTitle: ${article.title}\nStatus: ${article.status}\nWord Count: ${article.wordCount}`,
-            type: 'text' as const,
-          },
-        ],
-      };
-    }
     case 'get_articles': {
       const articleId =
         typeof args?.articleId === 'string' ? args.articleId.trim() : '';
@@ -150,27 +120,6 @@ export async function handleContentTool(
               'articles',
               ` matching "${query}"`,
             ),
-            type: 'text' as const,
-          },
-        ],
-      };
-    }
-    case 'generate_linkedin_content': {
-      if (!args?.topic) {
-        throw new Error('topic is required');
-      }
-      const linkedInContent = await client.generateLinkedInContent({
-        brandId: args.brandId as string | undefined,
-        topic: args.topic as string,
-        variationsCount: (args.variationsCount as number) || 3,
-      });
-      return {
-        content: [
-          {
-            text:
-              linkedInContent.length > 0
-                ? `Generated ${linkedInContent.length} LinkedIn content variations:\n\n${JSON.stringify(linkedInContent, null, 2)}`
-                : 'No content generated.',
             type: 'text' as const,
           },
         ],

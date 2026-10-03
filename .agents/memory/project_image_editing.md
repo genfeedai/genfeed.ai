@@ -17,7 +17,7 @@ Provider contract verified from https://replicate.com/ideogram-ai/ideogram-4-5 o
 
 Strict admission resolves every source and mask within organization, brand, IMAGE category, nondeleted and ready state before funding or placeholder creation. Explicit unavailable/unsupported models fail; editing never inherits an ordinary generation model. Resolve omitted model from the editing category registry and validate again before dispatch.
 
-Agent and MCP expose edit_image and the existing mutation approval matrix, with shared credit settlement. Studio owns a distinct image-edit settings/draft/history type and editSource/editMask attachment roles. Library Edit opens a source-only draft with an empty instruction. Re-edit starts with the result only and clears old mask/seed/references; Reuse restores the original editing inputs and instruction. Missing restored inputs block submission.
+Agent and MCP expose `transform_media` (operation `edit`) and the existing mutation approval matrix, with shared credit settlement. Studio owns a distinct image-edit settings/draft/history type and editSource/editMask attachment roles. Library Edit opens a source-only draft with an empty instruction. Re-edit starts with the result only and clears old mask/seed/references; Reuse restores the original editing inputs and instruction. Missing restored inputs block submission.
 
 Acceptance evidence must cover scoped source admission, masks, exact provider payload, output bounds/batch billing, default resolution, Agent policy/gateway, Studio edit payload/persistence/recipes and Library entry. Required independent review and current-head CI remain delivery gates.
 

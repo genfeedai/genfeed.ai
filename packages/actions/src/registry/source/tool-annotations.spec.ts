@@ -120,9 +120,7 @@ describe('MCP tool annotations', () => {
       const isOpenWorld =
         tool.name === 'generate' ||
         tool.name.startsWith('generate_') ||
-        tool.name === 'edit_image' ||
-        tool.name === 'reframe_image' ||
-        tool.name === 'upscale_image' ||
+        tool.name === 'transform_media' ||
         tool.name === 'import_source_post' ||
         tool.name === 'start_remix_generation' ||
         tool.name === 'control_remix_generation' ||

@@ -97,6 +97,7 @@ import { AgentConnectionRequestService } from '@api/services/agent-orchestrator/
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentGenerationCostToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-cost-tool-handler.service';
+import { AgentGenerationOptionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-options-tool-handler.service';
 import { AgentGenerationScopeService } from '@api/services/agent-orchestrator/tools/agent-generation-scope.service';
 import { AgentGenerationSettingsToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-settings-tool-handler.service';
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
@@ -106,6 +107,7 @@ import { AgentMediaAssetGenerationService } from '@api/services/agent-orchestrat
 import { AgentMediaBatchGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-batch-generation.service';
 import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service';
 import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
+import { AgentMediaTransformService } from '@api/services/agent-orchestrator/tools/agent-media-transform.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
 import { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
@@ -236,6 +238,7 @@ import { Module } from '@nestjs/common';
   providers: [
     AgentBrandContextSnapshotService,
     AgentGenerationCostToolHandler,
+    AgentGenerationOptionsToolHandler,
     AgentGenerationSettingsToolHandler,
     AgentCompletionCardBuilderService,
     AgentAdsResearchToolHandler,
@@ -246,6 +249,7 @@ import { Module } from '@nestjs/common';
     AgentMediaBatchGenerationService,
     AgentMediaGenerationToolHandler,
     AgentMediaTextGenerationService,
+    AgentMediaTransformService,
     AgentOnboardingToolHandler,
     AgentTransferToolHandler,
     AgentWorkflowToolCreateService,
