@@ -160,6 +160,33 @@ export class SkillLibraryService {
     return this.toDocument(created as unknown as SkillRow);
   }
 
+  /**
+   * Edit gate for the legacy PATCH route. Uses the same capability decision as
+   * archive and rollback, so organization and brand skills need their governor.
+   */
+  async assertCanEdit(
+    actor: SkillLibraryActor,
+    skillId: string,
+  ): Promise<void> {
+    const skill = await this.requireRow(skillId);
+    const decision = await this.decide(actor, skill);
+    if (!decision.canEdit) {
+      throw new ForbiddenException('This skill cannot be edited');
+    }
+  }
+
+  /**
+   * Create gate for the legacy POST routes, which write organization or brand
+   * owned rows. Reuses the scoped-create owner rules.
+   */
+  async assertCanCreateOwned(
+    actor: SkillLibraryActor,
+    ownerKind: SkillOwnerKind,
+    brandId?: string,
+  ): Promise<void> {
+    this.assertOwnerCreate(await this.loadActor(actor), ownerKind, brandId);
+  }
+
   async fork(
     actor: SkillLibraryActor,
     skillId: string,
