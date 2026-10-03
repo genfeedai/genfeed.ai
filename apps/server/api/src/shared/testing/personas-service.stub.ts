@@ -1,5 +1,6 @@
 import type { PersonasService } from '@api/collections/personas/services/personas.service';
 import { noCharacterAdmission } from '@api/collections/personas/utils/character-admission.util';
+import { vi } from 'vitest';
 
 /**
  * Stand-in for specs whose subject calls the shared character admission but
