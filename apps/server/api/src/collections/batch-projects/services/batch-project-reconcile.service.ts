@@ -336,6 +336,7 @@ export class BatchProjectReconcileService {
       if (outcome.kind === 'completed') {
         state = await this.credits.settle({
           actorUserId: project.userId,
+          brandId: project.brandId,
           description: `Batch idea ${outcome.category.toLowerCase()} generation`,
           dispatch,
           organizationId: project.organizationId,

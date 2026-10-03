@@ -43,6 +43,50 @@ describe('reserveGenerationRequestCredits', () => {
     });
   });
 
+  it('holds the request price against the request identity brand', async () => {
+    const reserveCredits = vi.fn().mockResolvedValue({
+      amount: 10,
+      id: 'branded-reservation',
+      status: CreditReservationStatus.RESERVED,
+    });
+    const request = {
+      creditsConfig: { amount: 10 },
+      user: { brandId: 'brand-1', userId: 'user-1' },
+    };
+
+    await reserveGenerationRequestCredits({
+      amount: 10,
+      creditsUtilsService: { reserveCredits } as never,
+      organizationId: 'org-1',
+      request: request as never,
+    });
+
+    expect(reserveCredits).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'brand-1' }),
+    );
+  });
+
+  it('opens a brandless hold when the request identity has no brand', async () => {
+    const reserveCredits = vi.fn().mockResolvedValue({
+      amount: 10,
+      id: 'brandless-reservation',
+      status: CreditReservationStatus.RESERVED,
+    });
+    const request = {
+      creditsConfig: { amount: 10 },
+      user: { brandId: '', userId: 'user-1' },
+    };
+
+    await reserveGenerationRequestCredits({
+      amount: 10,
+      creditsUtilsService: { reserveCredits } as never,
+      organizationId: 'org-1',
+      request: request as never,
+    });
+
+    expect(reserveCredits.mock.calls[0]?.[0]).not.toHaveProperty('brandId');
+  });
+
   it('keeps the price pinned by an existing source-action reservation', async () => {
     const reserveCredits = vi.fn().mockResolvedValue({
       amount: 7,

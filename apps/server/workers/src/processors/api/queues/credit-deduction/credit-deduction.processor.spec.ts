@@ -361,6 +361,36 @@ describe('CreditDeductionProcessor', () => {
     );
   });
 
+  it('carries the job brand onto a reservation settlement', async () => {
+    await processor.process(
+      buildJob({ brandId: 'brand-1', reservationId: 'reservation-1' }),
+    );
+
+    expect(creditsUtilsService.settleReservation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        reservationId: 'reservation-1',
+      }),
+    );
+  });
+
+  it('carries the job brand onto a direct deduction', async () => {
+    await processor.process(
+      buildJob({ brandId: 'brand-1', idempotencyKey: 'charge-1' }),
+    );
+
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      10,
+      'Image generation',
+      ActivitySource.IMAGE_GENERATION,
+      expect.objectContaining({ brandId: 'brand-1' }),
+    );
+  });
+
   it('throws an UnrecoverableError when a deduction job has no userId', async () => {
     await expect(
       processor.process(buildJob({ userId: undefined })),

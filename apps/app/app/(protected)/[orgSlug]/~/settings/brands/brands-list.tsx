@@ -99,7 +99,7 @@ function BrandsListContent() {
 
       const query: IQueryParams = {
         limit: ITEMS_PER_PAGE,
-        organization: organizationId,
+        organizationId,
         page: currentPage,
       };
 
@@ -156,8 +156,8 @@ function BrandsListContent() {
                 height={24}
               />
             ) : (
-              <div className="flex size-6 items-center justify-center rounded-md bg-primary/10">
-                <Building2 className="size-3.5 text-primary" />
+              <div className="flex size-6 items-center justify-center rounded-md bg-foreground/10 text-xs font-semibold text-foreground">
+                {brand.label.charAt(0).toUpperCase()}
               </div>
             )}
             <span className="font-medium">{brand.label}</span>

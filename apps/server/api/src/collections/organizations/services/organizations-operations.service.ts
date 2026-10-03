@@ -4,6 +4,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import { OrganizationLogoService } from '@api/collections/organizations/services/organization-logo.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
@@ -45,6 +46,7 @@ export class OrganizationsOperationsService {
     private readonly rolesService: RolesService,
     private readonly usersService: UsersService,
     private readonly userAccessCacheService: UserAccessCacheService,
+    private readonly organizationLogoService: OrganizationLogoService,
     private readonly skillLibrary?: SkillLibraryService,
   ) {}
 
@@ -101,6 +103,9 @@ export class OrganizationsOperationsService {
       ),
     );
 
+    const logoUrls =
+      await this.organizationLogoService.resolveLogoUrls(organizationIds);
+
     return Promise.all(
       organizations
         .filter(
@@ -121,6 +126,7 @@ export class OrganizationsOperationsService {
             isActive: user.organizationId === organization.id.toString(),
             isOwner: this.isOrganizationOwner(organization, userId),
             label: organization.label,
+            logoUrl: logoUrls.get(organization.id.toString()) ?? null,
             slug: organization.slug ?? '',
           };
         }),

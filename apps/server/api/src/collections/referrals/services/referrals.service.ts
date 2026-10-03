@@ -15,6 +15,7 @@ import {
   ReferralRewardStatus,
   ReferralStatus,
 } from '@genfeedai/contracts';
+import { REFERRAL_REWARD_REVERSAL_REFERENCE_TYPE } from '@genfeedai/contracts/constants';
 import type {
   IReferralAdminReward,
   IReferralClaimResult,
@@ -709,7 +710,7 @@ export class ReferralsService {
                 stripePaymentIntentId: input.stripePaymentIntentId,
               },
               referenceId: `${reward.id}:${refundedAmountCents}`,
-              referenceType: 'referral-reward-reversal',
+              referenceType: REFERRAL_REWARD_REVERSAL_REFERENCE_TYPE,
             },
           );
         }

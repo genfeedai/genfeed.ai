@@ -13,6 +13,7 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { CacheService } from '@api/services/cache/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AssetCategory,
   AssetParent,
@@ -22,7 +23,11 @@ import {
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 
 const ASSET_CACHE_TAGS = ['brands', 'links', 'assets', 'public'];
 
@@ -38,7 +43,45 @@ export class AssetIngestionService {
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
     private readonly websocketService: NotificationsPublisherService,
+    private readonly prisma: PrismaService,
   ) {}
+
+  /**
+   * A logo or banner may only be attached to a parent in the caller's own
+   * organization. Returns that organization so the asset is stamped with it
+   * (`parentOrgId`), which org-scoped readers such as the brand kit require.
+   */
+  private async resolveParentOrganizationId(
+    user: User,
+    parentType: AssetParent,
+    parentId: string,
+  ): Promise<string> {
+    const organizationId = user.organizationId;
+
+    if (!organizationId || !isEntityId(organizationId)) {
+      throw new ForbiddenException('Organization not found in session');
+    }
+
+    if (parentType === AssetParent.ORGANIZATION) {
+      if (parentId !== organizationId) {
+        throw new ForbiddenException('Access denied to this organization');
+      }
+      return organizationId;
+    }
+
+    if (parentType === AssetParent.BRAND) {
+      const brand = await this.prisma.brand.findFirst({
+        select: { id: true },
+        where: { id: parentId, isDeleted: false, organizationId },
+      });
+      if (!brand) {
+        return returnNotFound('Brand', parentId);
+      }
+      return organizationId;
+    }
+
+    throw new BadRequestException('Unsupported asset parent');
+  }
 
   async createUpload(
     user: User,
@@ -60,12 +103,21 @@ export class AssetIngestionService {
 
     try {
       const userId = user.userId ?? user.id;
+      const parentId =
+        uploadDto.parentId && isEntityId(uploadDto.parentId)
+          ? uploadDto.parentId
+          : undefined;
+      const organizationId = parentId
+        ? await this.resolveParentOrganizationId(
+            user,
+            uploadDto.parentType,
+            parentId,
+          )
+        : undefined;
       const entityData = {
         category: uploadDto.category,
-        parentId:
-          uploadDto.parentId && isEntityId(uploadDto.parentId)
-            ? uploadDto.parentId
-            : undefined,
+        parentId,
+        parentOrgId: organizationId,
         parentType: uploadDto.parentType,
         userId,
       };
@@ -97,6 +149,23 @@ export class AssetIngestionService {
         await this.invalidateBrandAssets(entityData.parentId);
       }
 
+      // One logo per organization: the new upload replaces the previous one.
+      if (
+        uploadDto.category === AssetCategory.LOGO &&
+        entityData.parentId &&
+        uploadDto.parentType === AssetParent.ORGANIZATION
+      ) {
+        await this.assetsService.patchAll(
+          {
+            category: AssetCategory.LOGO,
+            parentOrgId: entityData.parentId,
+            parentType: AssetParent.ORGANIZATION,
+          },
+          { isDeleted: true },
+        );
+        await this.cacheService.invalidateByTags(['organizations']);
+      }
+
       const assetData = await this.assetsService.create(entityData);
 
       this.loggerService.log(`${url} - Asset created successfully`, {
@@ -121,6 +190,7 @@ export class AssetIngestionService {
 
         if (
           uploadDto.parentId &&
+          uploadDto.parentType === AssetParent.BRAND &&
           [AssetCategory.LOGO, AssetCategory.BANNER].includes(
             uploadDto.category,
           )
@@ -175,6 +245,11 @@ export class AssetIngestionService {
       createFromIngredientDto.parentId,
       'parentId',
     );
+    const organizationId = await this.resolveParentOrganizationId(
+      user,
+      AssetParent.BRAND,
+      validatedParent,
+    );
     const userId = user.userId ?? user.id;
     const ingredient = await this.ingredientsService.findOne({
       id: validatedIngredientId,
@@ -216,6 +291,7 @@ export class AssetIngestionService {
     const assetData = await this.assetsService.create({
       category: validatedCategory,
       parentId: validatedParent,
+      parentOrgId: organizationId,
       parentType: AssetParent.BRAND,
       userId,
     });

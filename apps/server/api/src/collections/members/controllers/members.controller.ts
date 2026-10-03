@@ -52,11 +52,17 @@ export class MembersController {
     readonly _loggerService: LoggerService,
   ) {}
 
+  /**
+   * GET /members — the roster of the caller's session organization, with the
+   * user, role and brand assignments each row renders. Scoped by organization,
+   * never by the caller's own user id (that returned the caller's memberships
+   * across every org they belong to, with no names).
+   */
   @Get()
   @Cache({
     keyGenerator: (req) => {
-      const userId = (req.user as { id?: string })?.id ?? 'unknown';
-      return `members:list:${userId}`;
+      const user = req.user as { id?: string; organizationId?: string };
+      return `members:list:${user?.organizationId ?? 'unknown'}:${user?.id ?? 'unknown'}:query:${JSON.stringify(req.query)}`;
     },
     tags: ['members'],
     ttl: 120,
@@ -67,6 +73,12 @@ export class MembersController {
     @Req() request: Request,
     @CurrentUser() user: User,
   ): Promise<JsonApiCollectionResponse> {
+    const organizationId = user.organizationId;
+
+    if (!isEntityId(organizationId)) {
+      return returnNotFound(this.constructorName, 'organization');
+    }
+
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -75,11 +87,27 @@ export class MembersController {
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     const data = await this.membersService.findAll(
       {
-        orderBy: handleQuerySort(query.sort),
-        where: {
-          isDeleted,
-          userId: user.userId ?? user.id,
+        include: {
+          brands: {
+            select: { id: true, label: true, slug: true },
+            where: { isDeleted: false },
+          },
+          role: true,
+          // Colleagues see identity only — never another member's settings,
+          // onboarding state or platform role.
+          user: {
+            select: {
+              avatar: true,
+              email: true,
+              firstName: true,
+              handle: true,
+              id: true,
+              lastName: true,
+            },
+          },
         },
+        orderBy: handleQuerySort(query.sort),
+        where: scopedWhere(organizationId, { isDeleted }),
       },
       options,
     );

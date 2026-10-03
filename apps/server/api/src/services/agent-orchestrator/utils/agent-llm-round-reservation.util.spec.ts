@@ -241,6 +241,7 @@ describe('runReservedAgentLlmRound exact-cost settlement', () => {
 
     const result = await runReservedAgentLlmRound({
       actorUserId: 'user-1',
+      brandId: 'brand-1',
       credits,
       idempotencyKey: 'run-1:agent-llm-round:2',
       maximumCredits: 1,
@@ -257,6 +258,9 @@ describe('runReservedAgentLlmRound exact-cost settlement', () => {
 
     const exact = calculateAgentExactCredits(0.05);
     expect(result.credits).toBe(exact);
+    expect(credits.reserveCredits).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'brand-1' }),
+    );
     expect(credits.settleReservation).toHaveBeenCalledWith(
       expect.objectContaining({ actualAmount: 1 }),
     );
@@ -267,6 +271,7 @@ describe('runReservedAgentLlmRound exact-cost settlement', () => {
       expect.stringContaining('beyond hold'),
       ActivitySource.AGENT_CHAT,
       expect.objectContaining({
+        brandId: 'brand-1',
         idempotencyKey: 'run-1:agent-llm-round:2:overflow',
         maxOverdraftCredits: Number((exact - 1).toFixed(6)),
       }),

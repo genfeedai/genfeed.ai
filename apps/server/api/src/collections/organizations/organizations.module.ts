@@ -18,6 +18,7 @@ import { OrganizationsRelationshipsController } from '@api/collections/organizat
 import { OrganizationsSettingsController } from '@api/collections/organizations/controllers/organizations-settings.controller';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
 import { AgentPolicyOverridesService } from '@api/collections/organizations/services/agent-policy-overrides.service';
+import { OrganizationLogoService } from '@api/collections/organizations/services/organization-logo.service';
 import { OrganizationsOperationsService } from '@api/collections/organizations/services/organizations-operations.service';
 import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
@@ -74,6 +75,7 @@ import { Module } from '@nestjs/common';
   providers: [
     AgentPolicyOverridesService,
     MemberCreditsGuard,
+    OrganizationLogoService,
     OrganizationsOperationsService,
   ],
 })

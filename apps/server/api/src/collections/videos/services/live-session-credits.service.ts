@@ -96,6 +96,7 @@ export class LiveSessionCreditsService {
     const ceilingEndsAt = new Date(now.getTime() + ceilingSeconds * 1000);
     const reservationId = await this.reserveCeiling({
       amount: requiredCredits,
+      brandId: params.user.brandId || null,
       ceilingEndsAt,
       organizationId: params.user.organizationId,
       request: params.request,
@@ -274,6 +275,7 @@ export class LiveSessionCreditsService {
 
   private async reserveCeiling(params: {
     amount: number;
+    brandId?: string | null;
     ceilingEndsAt: Date;
     organizationId: string;
     request: LiveSessionCreditsRequest;
@@ -284,6 +286,7 @@ export class LiveSessionCreditsService {
       const reservation = await this.creditsUtilsService.reserveCredits({
         actorUserId: params.userId,
         amount: params.amount,
+        ...(params.brandId ? { brandId: params.brandId } : {}),
         expiresAt: params.ceilingEndsAt,
         idempotencyKey: `${LIVE_SESSION_WORKLOAD_TYPE}:${workloadId}`,
         organizationId: params.organizationId,

@@ -198,6 +198,51 @@ describe('CreditsInterceptor', () => {
       });
     });
 
+    it('attributes the queued deduction to the request identity brand', async () => {
+      mockRequest.creditsConfig = {
+        amount: 10,
+        description: 'Test operation',
+        source: ActivitySource.SCRIPT,
+      } as CreditsConfig;
+      mockRequest.user = {
+        brandId: 'brand-1',
+        id: 'user_123',
+        organizationId,
+        userId,
+      } as typeof mockRequest.user;
+
+      await new Promise<void>((resolve, reject) => {
+        interceptor.intercept(mockContext, mockHandler).subscribe({
+          complete: resolve,
+          error: reject,
+        });
+      });
+
+      expect(creditDeductionQueueService.queueDeduction).toHaveBeenCalledWith(
+        expect.objectContaining({ brandId: 'brand-1' }),
+      );
+    });
+
+    it('leaves the queued deduction brandless when the identity has no brand', async () => {
+      mockRequest.user = {
+        brandId: '',
+        id: 'user_123',
+        organizationId,
+        userId,
+      } as typeof mockRequest.user;
+
+      await new Promise<void>((resolve, reject) => {
+        interceptor.intercept(mockContext, mockHandler).subscribe({
+          complete: resolve,
+          error: reject,
+        });
+      });
+
+      const [job] = vi.mocked(creditDeductionQueueService.queueDeduction).mock
+        .calls[0];
+      expect(job).not.toHaveProperty('brandId');
+    });
+
     describe('completion-settled routes', () => {
       const asCompletion = (
         overrides: Partial<NonNullable<typeof mockRequest.creditsConfig>> = {},

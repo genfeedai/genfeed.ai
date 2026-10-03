@@ -8,6 +8,8 @@ export interface CreditDeductionJobData {
   type: 'deduct-credits' | 'record-byok-usage';
   organizationId: string;
   userId?: string;
+  /** Brand the charge is attributed to; omit for org-level spend. */
+  brandId?: string | null;
   amount: number;
   description: string;
   source: ActivitySource;

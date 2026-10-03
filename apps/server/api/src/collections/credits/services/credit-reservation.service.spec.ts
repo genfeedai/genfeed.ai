@@ -272,6 +272,115 @@ describe('CreditReservationService', () => {
     expect(creditBalanceService.applyDelta).toHaveBeenCalledTimes(1);
   });
 
+  it('persists the brand on the hold when one is supplied', async () => {
+    prisma.creditReservation.findFirst.mockResolvedValue(null);
+    prisma.creditReservation.create.mockResolvedValue({
+      actorUserId: 'user_1',
+      amount: 20,
+      billingAccountId: 'ba_1',
+      brandId: 'brand_1',
+      createdAt: new Date(),
+      expiresAt: new Date(),
+      id: 'res_brand',
+      idempotencyKey: 'brand_1',
+      isDeleted: false,
+      organizationId: 'org_1',
+      settledAmount: null,
+      status: CreditReservationStatus.RESERVED,
+      updatedAt: new Date(),
+      workloadId: null,
+      workloadType: null,
+    });
+
+    const result = await service.reserve({
+      actorUserId: 'user_1',
+      amount: 20,
+      billingAccountId: 'ba_1',
+      brandId: 'brand_1',
+      idempotencyKey: 'brand_1',
+      organizationId: 'org_1',
+    });
+
+    expect(prisma.creditReservation.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ brandId: 'brand_1' }),
+    });
+    expect(result.brandId).toBe('brand_1');
+  });
+
+  it('copies the hold brand onto the settlement ledger row and its attribution update', async () => {
+    prisma.creditReservation.findFirst.mockResolvedValue({
+      amount: 20,
+      billingAccountId: 'ba_1',
+      brandId: 'brand_1',
+      id: 'res_1',
+      organizationId: 'org_1',
+      status: CreditReservationStatus.RESERVED,
+    });
+
+    await service.settle({
+      actualAmount: 15,
+      actorUserId: 'user_1',
+      description: 'complete',
+      organizationId: 'org_1',
+      reservationId: 'res_1',
+    });
+
+    expect(
+      creditTransactionsService.createTransactionEntry,
+    ).toHaveBeenCalledWith(
+      'org_1',
+      'deduct',
+      15,
+      expect.any(Number),
+      expect.any(Number),
+      expect.anything(),
+      'complete',
+      undefined,
+      txClient,
+      expect.objectContaining({ brandId: 'brand_1', reservationId: 'res_1' }),
+    );
+    expect(prisma.creditTransaction.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ brandId: 'brand_1' }),
+      }),
+    );
+  });
+
+  it('falls back to the settle input brand when the hold carries none', async () => {
+    prisma.creditReservation.findFirst.mockResolvedValue({
+      amount: 20,
+      billingAccountId: 'ba_1',
+      brandId: null,
+      id: 'res_1',
+      organizationId: 'org_1',
+      status: CreditReservationStatus.RESERVED,
+    });
+
+    await service.settle({
+      actualAmount: 15,
+      actorUserId: 'user_1',
+      brandId: 'brand_from_input',
+      description: 'complete',
+      organizationId: 'org_1',
+      reservationId: 'res_1',
+    });
+
+    expect(
+      creditTransactionsService.createTransactionEntry,
+    ).toHaveBeenCalledWith(
+      'org_1',
+      'deduct',
+      15,
+      expect.any(Number),
+      expect.any(Number),
+      expect.anything(),
+      'complete',
+      undefined,
+      txClient,
+      expect.objectContaining({ brandId: 'brand_from_input' }),
+    );
+  });
+
   it.each([null, 'reserved-run'])(
     'preserves transaction attribution when reservation run is %s',
     async (workflowExecutionId) => {

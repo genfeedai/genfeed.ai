@@ -40,6 +40,8 @@ export interface AgentLlmRoundResult {
  */
 export async function runReservedAgentLlmRound(params: {
   actorUserId: string;
+  /** Brand the round is attributed to; omit for brandless runs. */
+  brandId?: string | null;
   credits: ReservationCreditsClient;
   idempotencyKey: string;
   maximumCredits: number;
@@ -57,6 +59,7 @@ export async function runReservedAgentLlmRound(params: {
   const reservation = await params.credits.reserveCredits({
     actorUserId: params.actorUserId,
     amount: maximumCredits,
+    ...(params.brandId ? { brandId: params.brandId } : {}),
     idempotencyKey: params.idempotencyKey,
     organizationId: params.organizationId,
     workloadId: params.idempotencyKey,
@@ -136,6 +139,7 @@ export async function runReservedAgentLlmRound(params: {
       `${description} — beyond hold`,
       ActivitySource.AGENT_CHAT,
       {
+        ...(params.brandId ? { brandId: params.brandId } : {}),
         idempotencyKey: `${params.idempotencyKey}:overflow`,
         maxOverdraftCredits: overflowCredits,
         metadata: { ...metadata, isOverflow: true },

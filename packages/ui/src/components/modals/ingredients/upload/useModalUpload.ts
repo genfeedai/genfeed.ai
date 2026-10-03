@@ -3,6 +3,7 @@
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AssetCategory,
+  AssetParent,
   AssetScope,
   IngredientCategory,
   ModalEnum,
@@ -492,18 +493,22 @@ export function useModalUpload({
             const formData = new FormData();
             formData.append('category', category);
             formData.append('file', selectedFile);
-            formData.append('scope', scope);
-            if (parentId) {
-              formData.append('parent', parentId);
-            }
-            if (parentModel) {
-              formData.append('parentModel', parentModel);
-            }
             if (
               category === AssetCategory.LOGO ||
               category === AssetCategory.BANNER ||
               category === AssetCategory.REFERENCE
             ) {
+              // `/assets/upload` validates `parentId` + `parentType`; the
+              // ingredient upload's `parent`/`parentModel` would be stripped.
+              formData.append(
+                'parentType',
+                parentModel === 'Organization'
+                  ? AssetParent.ORGANIZATION
+                  : AssetParent.BRAND,
+              );
+              if (parentId) {
+                formData.append('parentId', parentId);
+              }
               const assetsService = await getAssetsService();
               uploaded = await assetsService.postUpload(
                 formData,
@@ -511,6 +516,13 @@ export function useModalUpload({
               );
               logger.info(`${url} success`, uploaded);
             } else {
+              formData.append('scope', scope);
+              if (parentId) {
+                formData.append('parent', parentId);
+              }
+              if (parentModel) {
+                formData.append('parentModel', parentModel);
+              }
               const mediaService = await getIngredientsService();
               uploaded = await mediaService.postUpload(
                 formData,

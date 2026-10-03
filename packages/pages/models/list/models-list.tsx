@@ -30,7 +30,10 @@ export default function ModelsList({
   const {
     isAdminScope,
     catalogOverviewCards,
+    catalogTotal,
+    handleCategorySelect,
     isLoadingCatalog,
+    selectedGroupKey,
     isLoading,
     isError,
     columns,
@@ -151,6 +154,9 @@ export default function ModelsList({
       <ModelsCatalogOverview
         cards={catalogOverviewCards}
         isLoading={isLoadingCatalog}
+        onSelect={isAdminScope ? undefined : handleCategorySelect}
+        selectedKey={selectedGroupKey}
+        total={catalogTotal}
       />
 
       <AppTable<IModel>

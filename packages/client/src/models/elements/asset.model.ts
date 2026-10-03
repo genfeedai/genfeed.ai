@@ -12,6 +12,7 @@ export class Asset extends BaseEntity implements IAsset {
   declare public parentArticleId?: string | null;
   declare public category: AssetCategory;
   declare public url: string;
+  declare public cdnUrl?: string;
 
   declare public mimeType?: string;
   declare public size?: number;

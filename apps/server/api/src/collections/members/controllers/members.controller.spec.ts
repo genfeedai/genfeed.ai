@@ -6,6 +6,7 @@ vi.mock(
     ...(await importOriginal<
       typeof import('@api/helpers/utils/response/response.util')
     >()),
+    serializeCollection: vi.fn((_req, _serializer, data) => data),
     serializeSingle: vi.fn((_req, _serializer, data) => data),
   }),
 );
@@ -141,5 +142,73 @@ describe('MembersController.findOne — cross-tenant scoping', () => {
     );
 
     expect(mockMembersService.findOne).not.toHaveBeenCalled();
+  });
+});
+
+describe('MembersController.findAll — organization roster', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('lists the caller organization roster, not the caller own memberships', async () => {
+    const controller = buildController();
+    vi.mocked(mockMembersService.findAll).mockResolvedValue({
+      docs: [],
+    } as never);
+
+    await controller.findAll({} as never, makeRequest(), makeUser());
+
+    // Exactly the org scope — no `userId` filter.
+    expect(mockMembersService.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { isDeleted: false, organizationId: callerOrgId },
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('loads identity-only user fields, the role and active brand assignments', async () => {
+    const controller = buildController();
+    vi.mocked(mockMembersService.findAll).mockResolvedValue({
+      docs: [],
+    } as never);
+
+    await controller.findAll({} as never, makeRequest(), makeUser());
+
+    expect(mockMembersService.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: {
+          brands: {
+            select: { id: true, label: true, slug: true },
+            where: { isDeleted: false },
+          },
+          role: true,
+          user: {
+            select: {
+              avatar: true,
+              email: true,
+              firstName: true,
+              handle: true,
+              id: true,
+              lastName: true,
+            },
+          },
+        },
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('fails closed with 404 when the session has no organization', async () => {
+    const controller = buildController();
+
+    await expectNotFound(
+      controller.findAll(
+        {} as never,
+        makeRequest(),
+        makeUser({ organizationId: undefined }),
+      ),
+    );
+    expect(mockMembersService.findAll).not.toHaveBeenCalled();
   });
 });

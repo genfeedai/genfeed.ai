@@ -254,6 +254,7 @@ export class BatchGenerationRewriteRunnerService {
     const input = {
       actorUserId: data.userId,
       amount: data.credits.amountPerItem,
+      brandId: data.brandId,
       expiresAt: new Date(Date.now() + ITEM_RESERVATION_TTL_MS),
       idempotencyKey: `batch-rewrite:${jobId}:${itemId}`,
       organizationId: data.organizationId,
@@ -284,6 +285,7 @@ export class BatchGenerationRewriteRunnerService {
     // job's marker on the item and settles the same hold under the same key.
     await this.creditDeductionQueueService.queueDeduction({
       amount: data.credits.amountPerItem,
+      brandId: data.brandId,
       description: data.credits.description,
       idempotencyKey: `batch-rewrite-${jobId}-${itemId}`,
       organizationId: data.organizationId,

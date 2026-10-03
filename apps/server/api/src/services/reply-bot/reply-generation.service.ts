@@ -219,6 +219,7 @@ Body: ${escapeConversationData(options.tweetContent.slice(0, CONVERSATION_MESSAG
         replyText,
         'Reply bot text generation',
         byok,
+        options.brandId,
       );
 
       this.loggerService.log(`${url} success`, {
@@ -455,6 +456,7 @@ DM text:`;
     output: string,
     description: string,
     byok: TextByokDispatch | undefined,
+    brandId?: string | null,
   ): Promise<void> {
     if (byok) {
       return;
@@ -472,6 +474,7 @@ DM text:`;
       description,
       ActivitySource.SCRIPT,
       {
+        brandId,
         maxOverdraftCredits: ReplyGenerationService.TEXT_MAX_OVERDRAFT_CREDITS,
       },
     );

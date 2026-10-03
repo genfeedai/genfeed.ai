@@ -79,9 +79,11 @@ export async function reserveGenerationRequestCredits(params: {
   }
 
   const workloadId = readSourceActionId(params.request) ?? randomUUID();
+  const brandId = params.request.user?.brandId || null;
   const reservationInput = {
     actorUserId,
     amount: params.amount,
+    ...(brandId ? { brandId } : {}),
     description: config.description,
     expiresAt: new Date(Date.now() + MEDIA_GENERATION_HOLD_TTL_MS),
     idempotencyKey: `${GENERATION_POOL_WORKLOAD_TYPE}:${workloadId}`,

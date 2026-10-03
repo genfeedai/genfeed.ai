@@ -46,6 +46,7 @@ describe('BrandsService', () => {
   let delegate: Record<string, ReturnType<typeof vi.fn>>;
   let assetDelegate: Record<string, ReturnType<typeof vi.fn>>;
   let queryRaw: ReturnType<typeof vi.fn>;
+  let credentialDelegate: { findMany: ReturnType<typeof vi.fn> };
   let brandLifecycleService: {
     remove: ReturnType<typeof vi.fn>;
     selectBrandForUser: ReturnType<typeof vi.fn>;
@@ -127,6 +128,7 @@ describe('BrandsService', () => {
     };
 
     queryRaw = vi.fn().mockResolvedValue([]);
+    credentialDelegate = { findMany: vi.fn().mockResolvedValue([]) };
     organizationDelegate = {
       findFirst: vi.fn().mockResolvedValue({ accountType: 'BUSINESS' }),
     };
@@ -143,6 +145,7 @@ describe('BrandsService', () => {
       $queryRaw: queryRaw,
       asset: assetDelegate,
       brand: delegate,
+      credential: credentialDelegate,
       organization: organizationDelegate,
     } as unknown as PrismaService;
 
@@ -337,6 +340,47 @@ describe('BrandsService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
 
       expect(delegate.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('attachBrandListRelations', () => {
+    it('attaches each brand only its own allowlisted credentials and its logo', async () => {
+      credentialDelegate.findMany.mockResolvedValue([
+        { brandId: 'brand-1', id: 'cred-1', platform: 'INSTAGRAM' },
+      ]);
+      queryRaw.mockResolvedValue([
+        {
+          category: 'LOGO',
+          cloudObjectKey: 'logos/logo-1',
+          displayName: null,
+          id: 'logo-1',
+          mimeType: 'image/png',
+          parentBrandId: 'brand-1',
+        },
+      ]);
+
+      const brands = await service.attachBrandListRelations([
+        { id: 'brand-1', organizationId: 'org-1' },
+        { id: 'brand-2', organizationId: 'org-1' },
+      ] as never);
+
+      expect(credentialDelegate.findMany).toHaveBeenCalledOnce();
+      const [query] = credentialDelegate.findMany.mock.calls[0] as [
+        { select: Record<string, boolean>; where: Record<string, unknown> },
+      ];
+      expect(query.where).toEqual({
+        brandId: { in: ['brand-1', 'brand-2'] },
+        isDeleted: false,
+        organizationId: 'org-1',
+      });
+      // Never token or OAuth columns.
+      expect(query.select).not.toHaveProperty('accessToken');
+      expect(brands[0].credentials).toEqual([
+        expect.objectContaining({ id: 'cred-1', platform: 'instagram' }),
+      ]);
+      expect(brands[0].logo).toMatchObject({ id: 'logo-1' });
+      expect(brands[1].credentials).toEqual([]);
+      expect(brands[1].logo).toBeUndefined();
     });
   });
 

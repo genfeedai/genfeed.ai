@@ -13,6 +13,7 @@ export class CreditTransactionsEntity
   declare readonly organizationId: string;
   declare readonly billingAccountId: string | null;
   declare readonly actorUserId: string | null;
+  declare readonly brandId: string | null;
   declare readonly reservationId: string | null;
   declare readonly idempotencyKey: string | null;
   declare readonly metadata: CreditTransactions['metadata'];

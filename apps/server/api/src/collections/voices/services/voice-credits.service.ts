@@ -55,6 +55,7 @@ export class VoiceCreditsService {
   }
 
   async settleBackgroundGenerationCredits(params: {
+    brandId?: string | null;
     durationSeconds: number;
     ingredientId: string;
     organizationId: string;
@@ -73,6 +74,7 @@ export class VoiceCreditsService {
       'Voice generation (TTS)',
       ActivitySource.VOICE_GENERATION,
       {
+        brandId: params.brandId,
         maxOverdraftCredits: credits,
         referenceId: params.ingredientId,
         referenceType: 'agent-media:voice-generation',

@@ -205,6 +205,7 @@ export class AgentOrchestratorPlanModeService {
     });
     const reservedRound = await runReservedAgentLlmRound({
       actorUserId: params.context.userId,
+      brandId: params.context.scope?.brandId,
       credits: this.creditsUtilsService,
       idempotencyKey: `${params.context.executionId ?? params.threadId}:agent-plan-round:1`,
       maximumCredits: await this.agentChatModelRegistry.getMaximumRoundCredits(

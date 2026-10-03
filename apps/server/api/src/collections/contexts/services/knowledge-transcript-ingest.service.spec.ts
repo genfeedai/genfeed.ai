@@ -26,6 +26,9 @@ function buildService() {
     knowledgeCaptureRequest: {
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
+    knowledgeSource: {
+      findFirst: vi.fn().mockResolvedValue({ brandId: 'brand-1' }),
+    },
     knowledgeSourceVersion: {
       findFirst: vi.fn().mockResolvedValue({ payload: {}, provenance: {} }),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
@@ -109,6 +112,7 @@ describe('KnowledgeTranscriptIngestService', () => {
     expect(credits.reserveCredits).toHaveBeenCalledWith(
       expect.objectContaining({
         amount: 1,
+        brandId: 'brand-1',
         organizationId: 'org-1',
         workloadType: 'knowledge-transcript',
       }),

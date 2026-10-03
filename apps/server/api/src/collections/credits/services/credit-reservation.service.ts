@@ -103,6 +103,7 @@ export class CreditReservationService {
             actorUserId: input.actorUserId,
             amount: input.amount,
             billingAccountId: input.billingAccountId,
+            ...(input.brandId ? { brandId: input.brandId } : {}),
             expiresAt:
               input.expiresAt ??
               new Date(Date.now() + DEFAULT_RESERVATION_TTL_MS),
@@ -211,6 +212,7 @@ export class CreditReservationService {
             actorUserId: pool.actorUserId,
             amount,
             billingAccountId: pool.billingAccountId,
+            brandId: pool.brandId,
             description: pool.description,
             expiresAt: input.expiresAt,
             idempotencyKey,
@@ -444,6 +446,7 @@ export class CreditReservationService {
     snapshot: ICreditWalletSnapshot,
     alreadyCharged: boolean,
   ): Promise<void> {
+    const settleBrandId = reservation.brandId ?? input.brandId ?? null;
     if (!alreadyCharged)
       await this.creditTransactionsService.createTransactionEntry(
         reservation.organizationId,
@@ -459,6 +462,7 @@ export class CreditReservationService {
           actorUserId: input.actorUserId,
           idempotencyKey: input.settlementIdempotencyKey,
           billingAccountId: reservation.billingAccountId,
+          ...(settleBrandId ? { brandId: settleBrandId } : {}),
           ...(input.metadata ? { metadata: input.metadata } : {}),
           reservationId: reservation.id,
           referenceId: reservation.id,
@@ -470,6 +474,7 @@ export class CreditReservationService {
       data: {
         actorUserId: input.actorUserId,
         billingAccountId: reservation.billingAccountId,
+        ...(settleBrandId ? { brandId: settleBrandId } : {}),
         reservationId: reservation.id,
         ...(reservation.workflowExecutionId
           ? {
@@ -842,6 +847,7 @@ export class CreditReservationService {
     billingAccountId: string;
     organizationId: string;
     actorUserId: string | null;
+    brandId: string | null;
     amount: number;
     settledAmount: number | null;
     status: string;
@@ -860,6 +866,7 @@ export class CreditReservationService {
       actorUserId: row.actorUserId,
       amount: row.amount,
       billingAccountId: row.billingAccountId,
+      brandId: row.brandId,
       createdAt: row.createdAt.toISOString(),
       description: row.description,
       expiresAt: row.expiresAt.toISOString(),

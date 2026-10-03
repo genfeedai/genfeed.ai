@@ -5,6 +5,7 @@ import { ButtonVariant, formatEnumLabel } from '@genfeedai/contracts';
 import { getPlanEntitlementForTier, getPlanLabel } from '@genfeedai/pricing';
 import { useBillingAccount } from '@hooks/data/billing/use-billing-account/use-billing-account';
 import { useSubscription } from '@hooks/data/subscription/use-subscription/use-subscription';
+import type { SubscriptionStatCellProps } from '@props/settings/subscription-page.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
@@ -12,7 +13,6 @@ import { Button } from '@ui/primitives/button';
 import { Text } from '@ui/typography/text';
 import { ExternalLink } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import PlansCard from './plans-card';
 
@@ -33,20 +33,6 @@ function formatSubscriptionTierLabel(tier?: string): string {
   return (tier && SUBSCRIPTION_TIER_LABELS[tier]) || 'Free';
 }
 
-function SectionCard({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Card label={title} bodyClassName="gap-3 p-4">
-      {children}
-    </Card>
-  );
-}
-
 function formatPlanLimit(limit: number | null): string {
   return limit === null ? 'Unlimited' : limit.toLocaleString('en-US');
 }
@@ -61,6 +47,23 @@ function getApiAccessLabel(
   return entitlement.apiRateLimit === null ? 'Custom' : 'Included';
 }
 
+function formatCredits(value: number): string {
+  return value.toLocaleString('en-US', { maximumFractionDigits: 1 });
+}
+
+function StatCell({ label, value }: SubscriptionStatCellProps) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <Text as="p" size="xs" color="muted">
+        {label}
+      </Text>
+      <Text as="p" weight="semibold" className="truncate tabular-nums">
+        {value}
+      </Text>
+    </div>
+  );
+}
+
 /** Plan, entitlements, Stripe portal — not credit top-ups. */
 export default function SettingsSubscriptionPage() {
   const translate = useTranslations('common');
@@ -71,40 +74,55 @@ export default function SettingsSubscriptionPage() {
 
   const isPlanLoading = !isReady || isLoading;
   const planEntitlement = getPlanEntitlementForTier(settings?.subscriptionTier);
+  const limits = [
+    {
+      label: 'Organizations',
+      value: formatPlanLimit(planEntitlement.organizationLimit),
+    },
+    { label: 'Brands', value: formatPlanLimit(planEntitlement.brandLimit) },
+    { label: 'Channels', value: formatPlanLimit(planEntitlement.channelLimit) },
+    { label: 'Seats', value: formatPlanLimit(planEntitlement.seatLimit) },
+    { label: 'API', value: getApiAccessLabel(planEntitlement) },
+    {
+      label: 'Bring your own keys',
+      value: planEntitlement.byokAccess ? 'Included' : 'Paid plans',
+    },
+  ];
 
   return (
     <div className="flex flex-col gap-4 pb-10">
       <h1 className="sr-only">Subscription</h1>
 
-      <SectionCard title="Current Plan">
+      <Card
+        label="Current Plan"
+        bodyClassName="gap-5 p-5"
+        headerAction={
+          <Button
+            variant={ButtonVariant.DEFAULT}
+            onClick={openBillingPortal}
+            disabled={billingAccount?.capabilities.canOpenPortal === false}
+            icon={<ExternalLink className="size-4" />}
+          >
+            Open Billing Portal
+          </Button>
+        }
+      >
         {isPlanLoading ? (
           <SkeletonCard showImage={false} />
         ) : subscription ? (
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col gap-1">
-                <Text size="sm" color="muted">
-                  Plan
-                </Text>
-                <Text weight="medium">
-                  {formatSubscriptionTierLabel(settings?.subscriptionTier)}
-                </Text>
-              </div>
-              <div className="flex flex-col gap-1 text-right">
-                <Text size="sm" color="muted">
-                  Status
-                </Text>
-                <Badge variant={isSubscriptionActive ? 'success' : 'warning'}>
-                  {formatEnumLabel(subscription.status)}
-                </Badge>
-              </div>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <div className="flex items-center gap-3">
+              <Text as="p" size="xl" weight="bold">
+                {formatSubscriptionTierLabel(settings?.subscriptionTier)}
+              </Text>
+              <Badge variant={isSubscriptionActive ? 'success' : 'warning'}>
+                {formatEnumLabel(subscription.status)}
+              </Badge>
             </div>
             {subscription.currentPeriodEnd && (
-              <div>
-                <Text as="p" size="sm" color="muted">
-                  Current period ends
-                </Text>
-                <Text as="p" weight="medium">
+              <Text as="p" size="sm" color="muted">
+                Current period ends{' '}
+                <span className="font-medium text-foreground">
                   <ClientFormattedDate
                     format="date"
                     locales="en-US"
@@ -115,80 +133,31 @@ export default function SettingsSubscriptionPage() {
                     }}
                     value={subscription.currentPeriodEnd}
                   />
-                </Text>
-              </div>
+                </span>
+              </Text>
             )}
           </div>
         ) : (
-          <Text color="muted">
+          <Text as="p" color="muted">
             No active subscription. Subscribe to unlock all features.
           </Text>
         )}
 
-        <div className="grid grid-cols-2 gap-3 border-t border-border pt-4 md:grid-cols-6">
-          <div className="p-3 bg-muted/50 rounded">
-            <Text size="sm" color="muted">
-              Organizations
-            </Text>
-            <Text as="p" size="lg" weight="bold">
-              {isReady
-                ? formatPlanLimit(planEntitlement.organizationLimit)
-                : '-'}
-            </Text>
-          </div>
-          <div className="p-3 bg-muted/50 rounded">
-            <Text size="sm" color="muted">
-              Brands
-            </Text>
-            <Text as="p" size="lg" weight="bold">
-              {isReady ? formatPlanLimit(planEntitlement.brandLimit) : '-'}
-            </Text>
-          </div>
-          <div className="p-3 bg-muted/50 rounded">
-            <Text size="sm" color="muted">
-              Channels
-            </Text>
-            <Text as="p" size="lg" weight="bold">
-              {isReady ? formatPlanLimit(planEntitlement.channelLimit) : '-'}
-            </Text>
-          </div>
-          <div className="p-3 bg-muted/50 rounded">
-            <Text size="sm" color="muted">
-              Seats
-            </Text>
-            <Text as="p" size="lg" weight="bold">
-              {isReady ? formatPlanLimit(planEntitlement.seatLimit) : '-'}
-            </Text>
-          </div>
-          <div className="p-3 bg-muted/50 rounded">
-            <Text size="sm" color="muted">
-              API
-            </Text>
-            <Text as="p" size="lg" weight="bold">
-              {isReady ? getApiAccessLabel(planEntitlement) : '-'}
-            </Text>
-          </div>
-          <div className="p-3 bg-muted/50 rounded">
-            <Text size="sm" color="muted">
-              Bring your own keys
-            </Text>
-            <Text as="p" size="lg" weight="bold">
-              {isReady
-                ? planEntitlement.byokAccess
-                  ? 'Included'
-                  : 'Paid plans'
-                : '-'}
-            </Text>
-          </div>
+        <div className="grid grid-cols-2 gap-4 border-t border-border pt-4 sm:grid-cols-3 lg:grid-cols-6">
+          {limits.map((limit) => (
+            <StatCell
+              key={limit.label}
+              label={limit.label}
+              value={isReady ? limit.value : '-'}
+            />
+          ))}
         </div>
-      </SectionCard>
 
-      {billingAccount?.kind === 'account' ? (
-        <SectionCard title="Billing account">
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <Text size="sm" color="muted">
-                Status
+        {billingAccount?.kind === 'account' ? (
+          <div className="flex flex-col gap-4 border-t border-border pt-4">
+            <div className="flex items-center justify-between gap-3">
+              <Text as="p" size="sm" weight="semibold">
+                Billing account
               </Text>
               <Badge
                 variant={billingAccount.isIdentityStale ? 'warning' : 'success'}
@@ -197,63 +166,51 @@ export default function SettingsSubscriptionPage() {
               </Badge>
             </div>
             {billingAccount.isIdentityStale ? (
-              <Text size="sm" color="destructive">
+              <Text as="p" size="sm" color="destructive">
                 Billing identity is stale. Checkout is blocked until the mapping
                 is repaired.
               </Text>
             ) : null}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="p-3 bg-muted/50 rounded">
-                <Text size="sm" color="muted">
-                  Available
-                </Text>
-                <Text as="p" size="lg" weight="bold">
-                  {billingAccount.wallet.available.toLocaleString('en-US')}
-                </Text>
-              </div>
-              <div className="p-3 bg-muted/50 rounded">
-                <Text size="sm" color="muted">
-                  Held
-                </Text>
-                <Text as="p" size="lg" weight="bold">
-                  {billingAccount.wallet.held.toLocaleString('en-US')}
-                </Text>
-              </div>
-              <div className="p-3 bg-muted/50 rounded">
-                <Text size="sm" color="muted">
-                  Settled
-                </Text>
-                <Text as="p" size="lg" weight="bold">
-                  {billingAccount.wallet.settled.toLocaleString('en-US')}
-                </Text>
-              </div>
+            <div className="grid grid-cols-3 gap-4">
+              <StatCell
+                label="Available"
+                value={formatCredits(billingAccount.wallet.available)}
+              />
+              <StatCell
+                label="Held"
+                value={formatCredits(billingAccount.wallet.held)}
+              />
+              <StatCell
+                label="Settled"
+                value={formatCredits(billingAccount.wallet.settled)}
+              />
             </div>
             <div className="flex flex-col gap-2">
-              <Text size="sm" color="muted">
+              <Text as="p" size="xs" color="muted">
                 Funded organizations
               </Text>
               {billingAccount.linkedOrganizations.map((link) => (
                 <div
-                  className="flex items-center justify-between"
+                  className="flex items-center justify-between gap-3"
                   key={link.organizationId}
                 >
-                  <Text weight="medium">{link.label}</Text>
-                  <Text size="sm" color="muted">
-                    {link.usage.toLocaleString('en-US')} used
+                  <Text as="p" size="sm" weight="medium">
+                    {link.label}
+                  </Text>
+                  <Text as="p" size="sm" color="muted" className="tabular-nums">
+                    {formatCredits(link.usage)} used
                   </Text>
                 </div>
               ))}
             </div>
           </div>
-        </SectionCard>
-      ) : null}
+        ) : null}
 
-      {billingAccount?.kind === 'organization' ? (
-        <SectionCard title={translate('subscription.billingAccount.title')}>
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <Text size="sm" color="muted">
-                {translate('subscription.billingAccount.linkedHeading')}
+        {billingAccount?.kind === 'organization' ? (
+          <div className="flex flex-col gap-3 border-t border-border pt-4">
+            <div className="flex items-center justify-between gap-3">
+              <Text as="p" size="sm" weight="semibold">
+                {translate('subscription.billingAccount.title')}
               </Text>
               <Badge variant={billingAccount.isLinked ? 'success' : 'warning'}>
                 {billingAccount.isLinked
@@ -261,47 +218,31 @@ export default function SettingsSubscriptionPage() {
                   : translate('subscription.billingAccount.notLinked')}
               </Badge>
             </div>
-            <Text size="sm" color="muted">
+            <Text as="p" size="sm" color="muted">
+              {translate('subscription.billingAccount.linkedHeading')}
+            </Text>
+            <Text as="p" size="sm" color="muted">
               {translate('subscription.billingAccount.sharedDescription')}
             </Text>
-            <div className="p-3 bg-muted/50 rounded">
-              <Text size="sm" color="muted">
-                {translate('subscription.billingAccount.usageLabel')}
-              </Text>
-              <Text as="p" size="lg" weight="bold">
-                {billingAccount.usage.toLocaleString('en-US')}
-              </Text>
+            <div className="grid grid-cols-2 gap-4">
+              <StatCell
+                label={translate('subscription.billingAccount.usageLabel')}
+                value={formatCredits(billingAccount.usage)}
+              />
+              {billingAccount.monthlyBudgetCredits !== null ? (
+                <StatCell
+                  label={translate(
+                    'subscription.billingAccount.monthlyBudgetLabel',
+                  )}
+                  value={formatCredits(billingAccount.monthlyBudgetCredits)}
+                />
+              ) : null}
             </div>
-            {billingAccount.monthlyBudgetCredits !== null ? (
-              <div className="p-3 bg-muted/50 rounded">
-                <Text size="sm" color="muted">
-                  {translate('subscription.billingAccount.monthlyBudgetLabel')}
-                </Text>
-                <Text as="p" size="lg" weight="bold">
-                  {billingAccount.monthlyBudgetCredits.toLocaleString('en-US')}
-                </Text>
-              </div>
-            ) : null}
           </div>
-        </SectionCard>
-      ) : null}
+        ) : null}
+      </Card>
 
       <PlansCard />
-
-      <SectionCard title="Manage subscription">
-        <Text as="p" size="sm" color="muted">
-          View invoices, update payment methods, and manage your plan through
-          the Stripe billing portal.
-        </Text>
-        <Button
-          variant={ButtonVariant.DEFAULT}
-          onClick={openBillingPortal}
-          disabled={billingAccount?.capabilities.canOpenPortal === false}
-          icon={<ExternalLink className="size-4" />}
-        >
-          Open Billing Portal
-        </Button>
-      </SectionCard>
     </div>
   );
 }
