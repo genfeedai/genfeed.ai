@@ -82,6 +82,9 @@ export class PublisherFactoryService
   }
 
   private authorizePublisher(publisher: IPublisher): IPublisher {
+    // Forwarding only: the provider call is made by the documented workflow
+    // action adapter that receives this wrapper, never decided here.
+    const publishToProvider = publisher.publish.bind(publisher);
     return {
       platform: publisher.platform,
       supportsCarousel: publisher.supportsCarousel,
@@ -96,7 +99,7 @@ export class PublisherFactoryService
         : {}),
       publish: async (context) => {
         const { hydratedContext } = await this.hydrateMedia(context);
-        return publisher.publish(hydratedContext);
+        return publishToProvider(hydratedContext);
       },
       ...(publisher.publishThreadChildren
         ? {
