@@ -10,14 +10,148 @@ import {
   validLearningDependencyRef,
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { type Prisma } from '@genfeedai/prisma';
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, Logger } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
+
+export type LearningFenceMode = 'shared' | 'exclusive';
+export type LearningMutationFenceScope = 'organization' | 'global';
+
+/** Fence waits at or above this are logged as warnings (alert threshold). */
+export const LEARNING_FENCE_WAIT_ALERT_MS = 1000;
+// Advisory key spaces: (5728, 1) is the global fence; (5729, hashtext(orgId))
+// are per-organization fences nested beneath it.
+const LEARNING_ORGANIZATION_FENCE_CLASS = 5729;
+// Exclusive fence scope held by each interactive transaction client.
+const exclusiveFenceScopes = new WeakMap<
+  Prisma.TransactionClient,
+  'global' | readonly string[]
+>();
+const learningFenceLogger = new Logger('LearningFence');
+
+/**
+ * An organization-fenced invalidation reached global or other-tenant learning
+ * state. The transaction must roll back and rerun under the global fence.
+ */
+export class LearningFenceEscalationError extends ConflictException {
+  constructor() {
+    super(
+      'Learning invalidation crossed its organization fence; retry under the global fence.',
+    );
+  }
+}
+
+async function observeLearningFence(
+  scope: LearningMutationFenceScope,
+  mode: LearningFenceMode,
+  acquire: () => Promise<void>,
+): Promise<void> {
+  const startedAt = performance.now();
+  await acquire();
+  const waitMs = performance.now() - startedAt;
+  try {
+    Sentry.metrics.distribution('learning.fence.wait', waitMs, {
+      attributes: { mode, scope },
+      unit: 'millisecond',
+    });
+  } catch {
+    // Fence telemetry must never change locking behavior.
+  }
+  if (waitMs >= LEARNING_FENCE_WAIT_ALERT_MS)
+    learningFenceLogger.warn(
+      `learning fence wait ${Math.round(waitMs)}ms exceeded ${LEARNING_FENCE_WAIT_ALERT_MS}ms`,
+      { mode, scope, waitMs: Math.round(waitMs) },
+    );
+}
+
+/**
+ * Global exclusive learning fence: excludes every organization fence holder.
+ * Reserved for genuinely global or cross-tenant invalidations. Readers and
+ * per-organization writers use learningOrgFence; the global key has no
+ * shared-only mode, so a reader can never skip its organization key.
+ */
 export async function learningFence(
   tx: Prisma.TransactionClient,
-  mode: 'shared' | 'exclusive',
+  mode: 'exclusive',
 ): Promise<void> {
-  if (mode === 'shared')
+  await observeLearningFence('global', mode, async () => {
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(5728, 1)::text`;
+    exclusiveFenceScopes.set(tx, 'global');
+  });
+}
+
+/**
+ * Organization learning fence: global shared, then each organization key in
+ * ascending id order. Same-organization readers and writers exclude each other
+ * while different organizations proceed concurrently. An exclusive holder's
+ * invalidation walk may not leave its organizations; it raises
+ * LearningFenceEscalationError instead (see withLearningFenceEscalation).
+ */
+export async function learningOrgFence(
+  tx: Prisma.TransactionClient,
+  organizationIds: string | readonly string[],
+  mode: LearningFenceMode,
+): Promise<void> {
+  const ids = [
+    ...new Set(
+      (typeof organizationIds === 'string'
+        ? [organizationIds]
+        : organizationIds
+      ).filter((id) => typeof id === 'string' && id.trim().length > 0),
+    ),
+  ].sort();
+  if (ids.length === 0)
+    throw new ConflictException('Learning organization fence scope required');
+  await observeLearningFence('organization', mode, async () => {
     await tx.$queryRaw`SELECT pg_advisory_xact_lock_shared(5728, 1)::text`;
-  else await tx.$queryRaw`SELECT pg_advisory_xact_lock(5728, 1)::text`;
+    for (const id of ids)
+      if (mode === 'shared')
+        await tx.$queryRaw`SELECT pg_advisory_xact_lock_shared(${LEARNING_ORGANIZATION_FENCE_CLASS}::int, hashtext(${id}))::text`;
+      else
+        await tx.$queryRaw`SELECT pg_advisory_xact_lock(${LEARNING_ORGANIZATION_FENCE_CLASS}::int, hashtext(${id}))::text`;
+    if (mode === 'exclusive' && exclusiveFenceScopes.get(tx) !== 'global')
+      exclusiveFenceScopes.set(tx, ids);
+  });
+}
+
+/** Exclusive mutation fence for one organization at the requested scope. */
+export async function learningMutationFence(
+  tx: Prisma.TransactionClient,
+  organizationId: string,
+  scope: LearningMutationFenceScope,
+): Promise<void> {
+  if (scope === 'global') await learningFence(tx, 'exclusive');
+  else await learningOrgFence(tx, organizationId, 'exclusive');
+}
+
+/**
+ * Runs an organization-fenced mutation, rerunning it once under the global
+ * fence when its invalidation walk reaches global or other-tenant state.
+ */
+export async function withLearningFenceEscalation<T>(
+  run: (scope: LearningMutationFenceScope) => Promise<T>,
+): Promise<T> {
+  try {
+    return await run('organization');
+  } catch (error: unknown) {
+    if (!(error instanceof LearningFenceEscalationError)) throw error;
+    learningFenceLogger.log('learning mutation escalated to global fence');
+    return run('global');
+  }
+}
+
+function assertInvalidationWithinFence(
+  tx: Prisma.TransactionClient,
+  derivedKind: string,
+  derivedOrganizationId: string | null,
+): void {
+  const scope = exclusiveFenceScopes.get(tx);
+  if (scope === undefined || scope === 'global') return;
+  if (
+    isLearningGlobalDependencyKind(derivedKind) ||
+    derivedOrganizationId === null ||
+    !scope.includes(derivedOrganizationId)
+  )
+    throw new LearningFenceEscalationError();
 }
 function scoped(
   kind: LearningDependencyKindV1,
@@ -56,6 +190,15 @@ export async function invalidateLearningDependencySource(
       orderBy: { id: 'asc' },
     });
     for (const edge of edges) {
+      if (
+        isLearningGlobalDependencyKind(edge.derivedKind) ||
+        edge.derivedOrganizationId !== edge.sourceOrganizationId
+      )
+        assertInvalidationWithinFence(
+          tx,
+          edge.derivedKind,
+          edge.derivedOrganizationId,
+        );
       await tx.contentLearningDependency.updateMany({
         where: { id: edge.id, isDeleted: false },
         data: { valid: false, invalidatedAt: new Date() },

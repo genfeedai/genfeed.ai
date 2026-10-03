@@ -874,4 +874,51 @@ describe('TrendFetchService', () => {
       }),
     ]);
   });
+
+  describe.each([
+    ['twitter', 'getTwitterTrends'],
+    ['tiktok', 'getTikTokTrends'],
+    ['instagram', 'getInstagramTrends'],
+  ] as const)('global %s Apify fallback evidence', (platform, method) => {
+    it('records fallback_failed without a successful refresh when Apify throws', async () => {
+      mockApifyService[method].mockRejectedValue(
+        new Error('Apify run budget exhausted'),
+      );
+
+      await service.fetchAndCacheTrends(undefined, undefined, undefined, {
+        platforms: [platform],
+      });
+
+      const receipt = refreshHealth.record.mock.calls.at(-1)?.[1][0];
+      expect(refreshHealth.record).toHaveBeenCalledWith(null, [
+        expect.objectContaining({
+          outcome: 'fallback_failed',
+          platform,
+          reason: 'provider_failed',
+        }),
+      ]);
+      expect(receipt.lastSuccessfulRefreshAt).toBeNull();
+    });
+
+    it('records fallback_empty when Apify genuinely returns no trends', async () => {
+      mockApifyService[method].mockResolvedValue([]);
+
+      await service.fetchAndCacheTrends(undefined, undefined, undefined, {
+        platforms: [platform],
+      });
+
+      expect(refreshHealth.record).toHaveBeenCalledWith(null, [
+        expect.objectContaining({ outcome: 'fallback_empty', platform }),
+      ]);
+    });
+  });
+
+  it('records fallback_failed when Apify throws after Grok rejects every X trend', async () => {
+    mockXaiService.getTrends.mockRejectedValue(new Error('Grok 402'));
+    mockApifyService.getTwitterTrends.mockRejectedValue(new Error('blocked'));
+
+    await expect(service.fetchTwitterTrends()).resolves.toEqual([]);
+
+    expect(mockLoggerService.error).toHaveBeenCalled();
+  });
 });

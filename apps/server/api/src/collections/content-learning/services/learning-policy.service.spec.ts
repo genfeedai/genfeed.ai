@@ -248,10 +248,11 @@ describe('current epoch scope authority and rebuild', () => {
     );
     expect(f.tx.contentLearningAccount.updateMany).not.toHaveBeenCalled();
     const sql = f.tx.$queryRaw.mock.calls.map(([strings]) => strings.join(''));
-    expect(sql[0]).toContain('pg_advisory_xact_lock_shared');
-    expect(sql[1]).toContain('content_learning_accounts');
-    expect(sql[2]).toContain('content_learning_scope_states');
-    expect(f.tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(sql[0]).toContain('pg_advisory_xact_lock_shared(5728, 1)');
+    expect(sql[1]).toContain('pg_advisory_xact_lock_shared(::int, hashtext(');
+    expect(sql[2]).toContain('content_learning_accounts');
+    expect(sql[3]).toContain('content_learning_scope_states');
+    expect(f.tx.$queryRaw.mock.invocationCallOrder[1]).toBeLessThan(
       f.tx.contentLearningAccount.findFirst.mock.invocationCallOrder[0],
     );
     expect(f.dependencies.valid).toHaveBeenCalledWith(

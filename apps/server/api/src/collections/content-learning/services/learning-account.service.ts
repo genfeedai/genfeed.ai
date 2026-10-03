@@ -2,6 +2,7 @@ import { selectLearningBaseline } from '@api/collections/content-learning/servic
 import {
   LearningDependencyService,
   learningFence,
+  learningOrgFence,
 } from '@api/collections/content-learning/services/learning-dependency.service';
 import {
   type LearningActor,
@@ -86,7 +87,7 @@ export class LearningAccountService {
     if (tx !== this.prisma)
       return this.ensureInTransaction(organizationId, credentialId, tx);
     return this.prisma.$transaction(async (client) => {
-      await learningFence(client, 'shared');
+      await learningOrgFence(client, organizationId, 'shared');
       return this.ensureInTransaction(organizationId, credentialId, client);
     });
   }
@@ -332,7 +333,7 @@ export class LearningAccountService {
     )
       throw new BadRequestException('Invalid learning scope filter');
     return this.prisma.$transaction(async (tx) => {
-      await learningFence(tx, 'shared');
+      await learningOrgFence(tx, organizationId, 'shared');
       const credential = await this.credential(
         organizationId,
         credentialId,
@@ -444,7 +445,7 @@ export class LearningAccountService {
   ): Promise<LearningBrandReceivingView> {
     await this.operations.assertMember(actor);
     return this.prisma.$transaction(async (tx) => {
-      await learningFence(tx, 'shared');
+      await learningOrgFence(tx, actor.organizationId, 'shared');
       const brand = await tx.brand.findFirst({
         where: scopedWhere(actor.organizationId, { id: brandId }),
       });

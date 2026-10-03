@@ -221,6 +221,15 @@ export class TrendFetchService {
       );
     } catch {
       if (!allowApifyFallback) return [];
+    }
+
+    return this.fetchTwitterApifyFallback(nativeReason);
+  }
+
+  private async fetchTwitterApifyFallback(
+    nativeReason: 'native_empty' | 'native_failed',
+  ): Promise<TrendData[]> {
+    try {
       const apifyTrends = await this.apifyService.getTwitterTrends({
         limit: 20,
       });
@@ -229,16 +238,11 @@ export class TrendFetchService {
         nativeReason,
       );
       return this.toTrendDataArray(apifyTrends);
+    } catch (error: unknown) {
+      recordTrendProviderOutcome('fallback_failed', 'provider_failed');
+      this.loggerService.error('twitter Apify trend fallback failed', error);
+      return [];
     }
-
-    const apifyTrends = await this.apifyService.getTwitterTrends({
-      limit: 20,
-    });
-    recordTrendProviderOutcome(
-      apifyTrends.length ? 'fallback_available' : 'fallback_empty',
-      nativeReason,
-    );
-    return this.toTrendDataArray(apifyTrends);
   }
 
   private buildPersonalizedTwitterTrendsCacheKey(

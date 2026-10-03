@@ -1400,6 +1400,7 @@ describe('post owner learning mutation protocol', () => {
       'post',
       { ingredients: ['ingredient-new'] },
       [],
+      'organization',
     );
     expect(value.approvals.assertPostMutable).toHaveBeenCalledWith(
       'org',
@@ -1419,8 +1420,10 @@ describe('post owner learning mutation protocol', () => {
       }),
     );
     expect(value.revision).toHaveBeenCalledTimes(1);
-    expect(value.order[0]).toContain('pg_advisory_xact_lock');
-    expect(value.order[1]).toContain('content_learning_accounts');
+    expect(value.order[0]).toContain('pg_advisory_xact_lock_shared(5728, 1)');
+    expect(value.order[1]).toContain('pg_advisory_xact_lock(');
+    expect(value.order[1]).toContain('hashtext(');
+    expect(value.order[2]).toContain('content_learning_accounts');
     expect(value.order.indexOf('telemetry')).toBe(-1);
     result.afterCommit.forEach((emit) => {
       emit();
@@ -1435,6 +1438,7 @@ describe('post owner learning mutation protocol', () => {
       'post',
       { description: 'original' },
       [],
+      'organization',
     );
     await value.patchPostWithLearning(
       value.tx as never,
@@ -1442,6 +1446,7 @@ describe('post owner learning mutation protocol', () => {
       'post',
       { analyticsCollectionError: 'retry' } as never,
       [],
+      'organization',
     );
     expect(value.approvals.invalidatePost).not.toHaveBeenCalled();
     expect(value.revision).not.toHaveBeenCalled();
@@ -1459,6 +1464,7 @@ describe('post owner learning mutation protocol', () => {
       first.tx as never,
       first.context as never,
       'post',
+      'organization',
     );
     expect(result?.childrenDeleted).toBe(1);
     expect(first.rows.every((row) => row.isDeleted)).toBe(true);
@@ -1481,6 +1487,7 @@ describe('post owner learning mutation protocol', () => {
         second.tx as never,
         second.context as never,
         'post',
+        'organization',
       ),
     ).rejects.toThrow('dependency failure');
     expect(second.revision).not.toHaveBeenCalled();
@@ -1492,6 +1499,7 @@ describe('post owner learning mutation protocol', () => {
         value.tx as never,
         value.context as never,
         'missing',
+        'organization',
       ),
     ).resolves.toBeNull();
     await expect(
@@ -1501,6 +1509,7 @@ describe('post owner learning mutation protocol', () => {
         'post',
         { organizationId: 'foreign' },
         [],
+        'organization',
       ),
     ).rejects.toThrow(/authorized brand relocation/);
     expect(value.tx.post.updateMany).not.toHaveBeenCalled();
@@ -1532,6 +1541,7 @@ describe('post owner learning mutation protocol', () => {
             value.tx as never,
             value.context as never,
             'post',
+            'organization',
           );
         } catch (error) {
           value.rows.forEach((row, index) => {
@@ -1560,6 +1570,7 @@ describe('post owner learning mutation protocol', () => {
         'post',
         { isDeleted: true },
         [],
+        'organization',
       ),
     ).rejects.toThrow('active execution');
     expect(value.approvals.assertPostMutable).toHaveBeenCalledExactlyOnceWith(
@@ -1598,6 +1609,7 @@ describe('post owner learning mutation protocol', () => {
         'post',
         { targetExecutionState: TargetExecutionState.SCHEDULED },
         [],
+        'organization',
       ),
     ).rejects.toThrow('child provider execution is in flight');
     expect(value.approvals.assertPostMutable).toHaveBeenCalledExactlyOnceWith(
@@ -1852,13 +1864,15 @@ describe('PostsService child creation authority', () => {
     const value = fixture();
     const created = await value.service.create(value.dto, []);
     expect(created.id).toBe('child');
-    expect(value.order[0]).toContain('pg_advisory_xact_lock');
-    expect(value.order[1]).toContain('a-parent-account');
-    expect(value.order[2]).toContain('z-child-account');
-    expect(value.order[3]).toContain('organizations');
+    expect(value.order[0]).toContain('pg_advisory_xact_lock_shared(5728, 1)');
+    expect(value.order[1]).toContain('pg_advisory_xact_lock(');
+    expect(value.order[1]).toContain('hashtext(');
+    expect(value.order[2]).toContain('a-parent-account');
+    expect(value.order[3]).toContain('z-child-account');
+    expect(value.order[4]).toContain('organizations');
     expect(
       value.order
-        .slice(3)
+        .slice(4)
         .filter((entry) => entry.includes('content_learning_accounts')),
     ).toEqual([]);
     expect(
@@ -2020,12 +2034,14 @@ describe('PostsService child creation authority', () => {
       'log',
     ]);
   });
-  it('missing child organization is refused under F without inheriting the parent tenant', async () => {
+  it('missing child organization is refused before any fence without inheriting the parent tenant', async () => {
     const value = fixture();
     await expect(
       value.service.create({ ...value.dto, organizationId: undefined }, []),
     ).rejects.toThrow('exact parent and organization');
-    expect(value.order[0]).toContain('pg_advisory_xact_lock');
+    expect(
+      value.order.filter((entry) => entry.includes('pg_advisory')),
+    ).toEqual([]);
     expect(value.tx.post.create).not.toHaveBeenCalled();
     expect(value.cache.invalidateByTags).not.toHaveBeenCalled();
   });

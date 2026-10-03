@@ -6,6 +6,7 @@ import {
 import {
   LearningDependencyService,
   learningFence,
+  learningOrgFence,
 } from '@api/collections/content-learning/services/learning-dependency.service';
 import {
   learningHash,
@@ -364,7 +365,7 @@ export class ContentLearningWorkflowService implements OnModuleInit {
     operationId: string,
   ) {
     return this.prisma.$transaction(async (tx) => {
-      await learningFence(tx, 'shared');
+      await learningOrgFence(tx, organizationId, 'shared');
       await tx.$queryRaw`SELECT id FROM content_learning_operations WHERE id=${operationId} AND "organizationId"=${organizationId} AND "isDeleted"=false FOR UPDATE`;
       return tx.contentLearningOperation.updateMany({
         where: {

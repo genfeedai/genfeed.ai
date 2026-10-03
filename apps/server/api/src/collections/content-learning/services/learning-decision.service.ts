@@ -17,7 +17,7 @@ import {
 } from '@api/collections/content-learning/services/learning-decision-batch.helper';
 import {
   LearningDependencyService,
-  learningFence,
+  learningOrgFence,
 } from '@api/collections/content-learning/services/learning-dependency.service';
 import {
   learningHash,
@@ -655,7 +655,7 @@ export class LearningDecisionService {
       throw new BadRequestException('Invalid learning request identity');
     const credentialId = context.credentialId;
     return this.prisma.$transaction(async (tx) => {
-      await learningFence(tx, 'shared');
+      await learningOrgFence(tx, input.organizationId, 'shared');
       const candidate = { ...input, context };
       const [resolution] = await this.resolveCandidates(
         tx,
@@ -679,7 +679,7 @@ export class LearningDecisionService {
       learningBatchCandidateInputs(input);
     return this.prisma.$transaction(
       async (tx) => {
-        await learningFence(tx, 'shared');
+        await learningOrgFence(tx, input.organizationId, 'shared');
         return this.resolveCandidates(
           tx,
           inputs[0],

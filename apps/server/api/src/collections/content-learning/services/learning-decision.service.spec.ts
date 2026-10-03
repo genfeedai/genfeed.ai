@@ -765,9 +765,11 @@ describe('shared-fenced immutable artifact binding', () => {
     const sql = f.tx.$queryRaw.mock.calls.map(([parts]) => parts.join(''));
     expect(sql[0]).toContain('pg_advisory_xact_lock_shared(5728, 1)');
     expect(sql[0]).not.toContain('pg_advisory_xact_lock(');
-    expect(sql[1]).toContain('FROM content_learning_decisions');
-    expect(f.tx.$queryRaw.mock.calls[1].slice(1)).toEqual(['decision', 'org']);
-    expect(f.tx.$queryRaw.mock.invocationCallOrder[1]).toBeLessThan(
+    expect(sql[1]).toContain('pg_advisory_xact_lock_shared(::int, hashtext(');
+    expect(f.tx.$queryRaw.mock.calls[1].slice(1)).toEqual([5729, 'org']);
+    expect(sql[2]).toContain('FROM content_learning_decisions');
+    expect(f.tx.$queryRaw.mock.calls[2].slice(1)).toEqual(['decision', 'org']);
+    expect(f.tx.$queryRaw.mock.invocationCallOrder[2]).toBeLessThan(
       f.tx.contentLearningDecision.findFirst.mock.invocationCallOrder[0],
     );
     expect(f.tx.contentLearningDecision.findFirst).toHaveBeenCalledWith({
@@ -891,10 +893,12 @@ describe('batch decision resolution for one generation request', () => {
       'decision-1',
       'decision-2',
     ]);
+    // One transaction-wide fence: the global shared key, then the org key.
     const fences = f.tx.$queryRaw.mock.calls.filter(([parts]) =>
       parts.join('').includes('pg_advisory_xact_lock'),
     );
-    expect(fences).toHaveLength(1);
+    expect(fences).toHaveLength(2);
+    expect(fences[1].slice(1)).toEqual([5729, f.batch.organizationId]);
     expect(f.checkpoints.freeze).toHaveBeenCalledTimes(1);
     expect(f.scopes.ensure).toHaveBeenCalledTimes(1);
     expect(f.tx.accountAnalyticsSnapshot.findFirst).toHaveBeenCalledTimes(1);

@@ -565,6 +565,19 @@ jobs:
           else
             TURBO_SCM_BASE="${CI_BASE_SHA}" bunx turbo run test --continue --affected ${WORKSPACE_FILTERS}
           fi
+      # Workers cron specs run under their own Vitest config
+      # (apps/server/workers/vitest.cron.config.ts), outside `test`.
+      - name: Run workers cron specs
+        if: ${{ !cancelled() && matrix.group == 'server' }}
+        env:
+          FORCE_FULL: ${{ needs.plan.outputs.force_full }}
+        run: |
+          set -euo pipefail
+          if [ "${FORCE_FULL}" = "true" ] || [ -z "${CI_BASE_SHA}" ]; then
+            bunx turbo run test:cron --filter=@genfeedai/workers
+          else
+            TURBO_SCM_BASE="${CI_BASE_SHA}" bunx turbo run test:cron --affected --filter=@genfeedai/workers
+          fi
 
   # App tests. The planner emits the shard matrix: on the affected tier it
   # counts the exact Vitest changed graph and picks one, two, or four shards;

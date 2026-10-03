@@ -1,6 +1,6 @@
 import {
   LearningDependencyService,
-  learningFence,
+  learningOrgFence,
 } from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import { LearningScopeStateService } from '@api/collections/content-learning/services/learning-scope-state.service';
@@ -178,7 +178,7 @@ export class LearningPolicyService {
     };
     if (tx) return read(tx);
     return this.prisma.$transaction(async (client) => {
-      await learningFence(client, 'shared');
+      await learningOrgFence(client, organizationId, 'shared');
       return read(client);
     });
   }
@@ -388,7 +388,7 @@ export class LearningPolicyService {
     scopeKey: string,
   ) {
     return this.prisma.$transaction(async (tx) => {
-      await learningFence(tx, 'shared');
+      await learningOrgFence(tx, organizationId, 'shared');
       const account = await tx.contentLearningAccount.findFirst({
         where: { organizationId, credentialId, isDeleted: false },
       });

@@ -14,6 +14,7 @@ import { LearningAccountService } from '@api/collections/content-learning/servic
 import {
   LearningDependencyService,
   learningFence,
+  learningOrgFence,
 } from '@api/collections/content-learning/services/learning-dependency.service';
 import {
   learningHash,
@@ -595,7 +596,8 @@ export class LearningCheckpointService {
     const prepared = await this.prepareCapture(input);
     if (!prepared) return null;
     return this.prisma.$transaction(async (tx) => {
-      await learningFence(tx, input.supersedesId ? 'exclusive' : 'shared');
+      if (input.supersedesId) await learningFence(tx, 'exclusive');
+      else await learningOrgFence(tx, input.organizationId, 'shared');
       const currentAccount = await this.lockCaptureSources(
         tx,
         input,
@@ -690,7 +692,7 @@ export class LearningCheckpointService {
     };
     if (tx) return collect(tx);
     return this.prisma.$transaction(async (client) => {
-      await learningFence(client, 'shared');
+      await learningOrgFence(client, scope.organizationId, 'shared');
       return collect(client);
     });
   }
