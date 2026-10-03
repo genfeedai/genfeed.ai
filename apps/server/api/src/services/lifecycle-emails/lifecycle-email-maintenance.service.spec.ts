@@ -1,3 +1,4 @@
+import { creditUsageWhere } from '@api/collections/credits/services/credit-usage.util';
 import type { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import type { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
@@ -38,7 +39,9 @@ function fixture(count: number) {
     article: { findMany: vi.fn().mockResolvedValue([]) },
     post: { findMany: vi.fn().mockResolvedValue([]) },
     creditTransaction: {
-      aggregate: vi.fn().mockResolvedValue({ _sum: { amount: -450 } }),
+      groupBy: vi
+        .fn()
+        .mockResolvedValue([{ _sum: { amount: 450 }, category: 'deduct' }]),
     },
   };
   const service = new LifecycleEmailMaintenanceService(
@@ -116,6 +119,28 @@ describe('system recap policy', () => {
     );
     expect(queueEmail.mock.calls[0][0].html).toContain(
       'analytics are available',
+    );
+  });
+  it('reports credit usage net of refunds and without referral reward reversals', async () => {
+    const { service, prisma, queueEmail } = fixture(5);
+    prisma.creditTransaction.groupBy.mockResolvedValue([
+      { _sum: { amount: 450 }, category: 'deduct' },
+      { _sum: { amount: 50 }, category: 'refund' },
+    ]);
+    await service.recaps(request);
+    expect(prisma.creditTransaction.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        by: ['category'],
+        where: expect.objectContaining({
+          ...creditUsageWhere(),
+          actorUserId: 'user-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+    expect(queueEmail.mock.calls[0][0].html).toContain(
+      '400 credits used during this period.',
     );
   });
   it('deduplicates repeated generated IDs before the five-piece threshold', async () => {

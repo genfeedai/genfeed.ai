@@ -1,9 +1,12 @@
+import {
+  CREDIT_USAGE_AMOUNT_SQL,
+  CREDIT_USAGE_BRAND_SQL,
+  CREDIT_USAGE_FILTER_SQL,
+} from '@api/collections/credits/services/credit-usage.util';
 import { readWorkflowAccountings } from '@api/collections/workflow-executions/services/workflow-accounting';
 import { resolveCostReportRange } from '@api/endpoints/cost-reporting/cost-reporting-query.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CreditTransactionCategory } from '@genfeedai/contracts';
-import { REFERRAL_REWARD_REVERSAL_REFERENCE_TYPE } from '@genfeedai/contracts/constants';
 import type { WorkflowCostReportExecution } from '@genfeedai/contracts/interfaces';
 import type {
   CostReportEntryType,
@@ -248,12 +251,9 @@ export class CostReportingService {
       ? Prisma.sql`AND "brandId" = ${options.brandId}`
       : Prisma.empty;
     // Rows written before the brandId column carry the brand in metadata only.
-    const creditBrand = Prisma.sql`COALESCE("brandId", NULLIF("metadata"->>'brandId', ''))`;
     const creditBrandFilter = options.brandId
-      ? Prisma.sql`AND ${creditBrand} = ${options.brandId}`
+      ? Prisma.sql`AND ${CREDIT_USAGE_BRAND_SQL} = ${options.brandId}`
       : Prisma.empty;
-    // Refunds net against deductions so usage is what stayed spent.
-    const creditUsage = Prisma.sql`CASE WHEN "category" = ${CreditTransactionCategory.REFUND} THEN -ABS("amount") ELSE ABS("amount") END`;
 
     return Prisma.sql`
       SELECT
@@ -311,13 +311,13 @@ export class CostReportingService {
       SELECT
         "id" AS "id",
         'credit'::text AS "entryType",
-        ${creditBrand} AS "brandId",
+        ${CREDIT_USAGE_BRAND_SQL} AS "brandId",
         NULL::text AS "provider",
         NULL::text AS "model",
         COALESCE("source", "category", 'credits') AS "category",
         "referenceId" AS "referenceId",
         0::bigint AS "providerCostMicros",
-        (${creditUsage})::double precision AS "creditsUsed",
+        (${CREDIT_USAGE_AMOUNT_SQL})::double precision AS "creditsUsed",
         false AS "isByok",
         0::bigint AS "byokCount",
         0::bigint AS "generationCount",
@@ -327,8 +327,7 @@ export class CostReportingService {
       FROM "credit_transactions"
       WHERE "organizationId" = ${options.organizationId}
         AND "isDeleted" = false
-        AND "category" IN (${CreditTransactionCategory.DEDUCT}, ${CreditTransactionCategory.REFUND})
-        AND "referenceType" IS DISTINCT FROM ${REFERRAL_REWARD_REVERSAL_REFERENCE_TYPE}
+        AND ${CREDIT_USAGE_FILTER_SQL}
         AND "createdAt" >= ${options.from}
         AND "createdAt" <= ${options.to}
         ${creditBrandFilter}

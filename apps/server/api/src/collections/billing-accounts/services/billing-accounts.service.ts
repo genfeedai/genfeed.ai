@@ -1,3 +1,7 @@
+import {
+  creditUsageWhere,
+  netCreditUsage,
+} from '@api/collections/credits/services/credit-usage.util';
 import { PlanLimitExceededException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
@@ -15,7 +19,6 @@ import {
   BillingAccountStatus,
   billingAccountRoleSatisfies,
   CreditReservationStatus,
-  CreditTransactionCategory,
   MemberRole,
   parseBillingAccountMemberRole,
   parseBillingAccountOrganizationStatus,
@@ -908,15 +911,18 @@ export class BillingAccountsService {
 
   private async usageByOrganization(scope: BillingAccountScope) {
     const rows = await this.prisma.creditTransaction.groupBy({
-      by: ['organizationId'],
+      by: ['organizationId', 'category'],
       _sum: { amount: true },
-      where: billingAccountScopedWhere(scope, {
-        category: CreditTransactionCategory.DEDUCT,
-      }),
+      where: billingAccountScopedWhere(scope, creditUsageWhere()),
     });
-    return new Map(
-      rows.map((row) => [row.organizationId, row._sum.amount ?? 0]),
-    );
+    const usage = new Map<string, number>();
+    for (const row of rows) {
+      usage.set(
+        row.organizationId,
+        (usage.get(row.organizationId) ?? 0) + netCreditUsage([row]),
+      );
+    }
+    return usage;
   }
 
   /**
@@ -929,14 +935,15 @@ export class BillingAccountsService {
     scope: BillingAccountScope,
     organizationId: string,
   ): Promise<number> {
-    const result = await this.prisma.creditTransaction.aggregate({
+    const rows = await this.prisma.creditTransaction.groupBy({
+      by: ['category'],
       _sum: { amount: true },
       where: billingAccountScopedWhere(scope, {
-        category: CreditTransactionCategory.DEDUCT,
+        ...creditUsageWhere(),
         organizationId,
       }),
     });
-    return result._sum.amount ?? 0;
+    return netCreditUsage(rows);
   }
 
   private organizationLimitForTier(planTier: string | null) {
