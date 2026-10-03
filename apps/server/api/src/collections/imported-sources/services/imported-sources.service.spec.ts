@@ -3,6 +3,7 @@ import type { ImportedSourceRecord } from '@api/collections/imported-sources/ser
 import { readImportedSourceEnvelope } from '@api/collections/imported-sources/services/imported-source-state';
 import { ImportedSourcesService } from '@api/collections/imported-sources/services/imported-sources.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { IngredientOrigin } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { beforeEach, expect, it, vi } from 'vitest';
 
@@ -143,6 +144,7 @@ it('writes only USER TEXT DRAFT immutable Ingredient using canonical userId and 
     data: expect.objectContaining({
       id: result.id,
       category: 'TEXT',
+      origin: IngredientOrigin.IMPORTED,
       status: 'DRAFT',
       scope: 'USER',
       userId: user.userId,

@@ -16,6 +16,7 @@ import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-
 import { assertRedactedVideoGenerationBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
 import {
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   ModelProvider,
 } from '@genfeedai/contracts';
@@ -939,6 +940,7 @@ describe('VideoGenerationService', () => {
 
       expect(sharedService.createMediaDocuments).toHaveBeenCalledTimes(2);
       for (const [, payload] of sharedService.createMediaDocuments.mock.calls) {
+        expect(payload.origin).toBe(IngredientOrigin.GENERATED);
         expect(payload.sourceIds).toEqual([
           'start-frame-1',
           'end-frame-1',

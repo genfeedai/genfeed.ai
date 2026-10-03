@@ -16,6 +16,7 @@ import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/serv
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import {
+  IngredientOrigin,
   IngredientStatus,
   ModelCategory,
   ModelProvider,
@@ -463,6 +464,7 @@ describe('ImageGenerationService', () => {
     );
     for (const [, document] of sharedService.createMediaDocuments.mock.calls) {
       expect(document).toMatchObject({
+        origin: IngredientOrigin.GENERATED,
         generationPrompt: providerPrompt,
         generationHarness: {
           originalPrompt: 'A bicycle',
