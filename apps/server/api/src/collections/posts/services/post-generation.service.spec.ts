@@ -6,11 +6,13 @@ vi.mock('@api/collections/templates/services/templates.service', () => ({
 
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { LearningDecisionService } from '@api/collections/content-learning/services/learning-decision.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { HookPlatform } from '@api/collections/posts/dto/generate-hooks.dto';
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
 import type { PostDocument } from '@api/collections/posts/post.schema';
+import { PostAccountLearningService } from '@api/collections/posts/services/post-account-learning.service';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -23,10 +25,14 @@ import { ReplicateService } from '@api/services/integrations/replicate/services/
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import {
+  ContentLearningArm,
+  ContentLearningMode,
   CredentialPlatform,
+  Status,
   SystemPromptKey,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { learningGenerationReceiptSchema } from '@genfeedai/contracts/api-types/contracts/content-learning-generation.contract';
 import type { AccountPublishingContext } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -158,6 +164,35 @@ Tweet 3: Tech innovation is changing the world.`,
   };
 
   const mockPostDraftGenerationService = { generateDraftText: vi.fn() };
+  const mockLearningDecisionService = {
+    resolveBatchForGeneration: vi.fn(),
+    bindArtifact: vi.fn(),
+  };
+  function learningResolution(index: number, reason: string) {
+    return {
+      receipt: {
+        decisionId: `decision-${index}`,
+        credentialId,
+        mode: ContentLearningMode.SHADOW,
+        accountRevision: 1,
+        epoch: 1,
+        armId: ContentLearningArm.BASELINE,
+        probabilities: {
+          [ContentLearningArm.BASELINE]: 1,
+          [ContentLearningArm.QUESTION_EXAMPLE]: 0,
+          [ContentLearningArm.PROOF_STEPS]: 0,
+        },
+        selectedProbability: 1,
+        assignment: 'control' as const,
+        assignmentProbability: 1,
+        executionProbability: 1,
+        configVersion: 'rl-reward-v1-experimental',
+        synthetic: false,
+        reason,
+      },
+      contribution: {},
+    };
+  }
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -194,10 +229,22 @@ Tweet 3: Tech innovation is changing the world.`,
       undefined,
     );
     mockWebsocketService.emit.mockResolvedValue(undefined);
+    mockLearningDecisionService.resolveBatchForGeneration.mockImplementation(
+      ({ candidates }: { candidates: unknown[] }) =>
+        candidates.map((_, index) =>
+          learningResolution(index, 'insufficient_baseline'),
+        ),
+    );
+    mockLearningDecisionService.bindArtifact.mockResolvedValue('hash');
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PostGenerationService,
+        PostAccountLearningService,
+        {
+          provide: LearningDecisionService,
+          useValue: mockLearningDecisionService,
+        },
         {
           provide: PostDraftGenerationService,
           useValue: mockPostDraftGenerationService,
@@ -426,6 +473,174 @@ Tweet 3: Tech innovation is changing the world.`,
       );
       expect(mockPostsService.patch).toHaveBeenCalledWith(
         String(secondPost.id),
+        expect.objectContaining({
+          targetExecutionState: TargetExecutionState.FAILED,
+        }),
+      );
+    });
+  });
+
+  describe('account generation learning', () => {
+    const groupedPosts = [
+      { ...mockPost, groupId: 'group' },
+      { ...mockPost, id: secondPostId, groupId: 'group' },
+    ] as unknown as PostDocument[];
+    const dto = {
+      count: 2,
+      credentialId,
+      format: 'post' as const,
+      topic: 'AI technology',
+    };
+    it('resolves learning before the first provider call with one candidate per draft', async () => {
+      await service.generateAccountContentAsync(
+        dto,
+        groupedPosts,
+        identity,
+        mockPublishingContext,
+      );
+      expect(
+        mockLearningDecisionService.resolveBatchForGeneration,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          originalPrompt: 'AI technology',
+          format: 'text',
+          context: expect.objectContaining({ requestKey: 'group' }),
+          candidates: [
+            { candidateIndex: 0, generationId: postId },
+            { candidateIndex: 1, generationId: secondPostId },
+          ],
+        }),
+      );
+      expect(
+        mockLearningDecisionService.resolveBatchForGeneration.mock
+          .invocationCallOrder[0],
+      ).toBeLessThan(
+        mockReplicateService.generateTextCompletionSync.mock
+          .invocationCallOrder[0],
+      );
+      expect(mockLearningDecisionService.bindArtifact).toHaveBeenCalledWith(
+        organizationId,
+        'decision-0',
+        postId,
+      );
+      expect(mockLearningDecisionService.bindArtifact).toHaveBeenCalledWith(
+        organizationId,
+        'decision-1',
+        secondPostId,
+      );
+    });
+    it('emits a schema-valid learning receipt with the completed draft', async () => {
+      await service.generateAccountContentAsync(
+        dto,
+        groupedPosts,
+        identity,
+        mockPublishingContext,
+      );
+      const completed = mockWebsocketService.emit.mock.calls
+        .map(([, payload]) => payload)
+        .filter((payload) => payload.status === Status.COMPLETED);
+      expect(completed).toHaveLength(2);
+      for (const payload of completed) {
+        expect(
+          learningGenerationReceiptSchema.safeParse(payload.learningReceipt)
+            .success,
+        ).toBe(true);
+        expect(payload.learningReceipt.application.status).toBe('baseline');
+      }
+    });
+    it('revalidates replay-only before X repair attempts 2 and 3 only', async () => {
+      mockReplicateService.generateTextCompletionSync.mockResolvedValue(
+        'x'.repeat(400),
+      );
+      await service.generateAccountContentAsync(
+        { ...dto, count: 1 },
+        [groupedPosts[0]],
+        identity,
+        mockPublishingContext,
+      );
+      const calls =
+        mockLearningDecisionService.resolveBatchForGeneration.mock.calls;
+      expect(calls).toHaveLength(3);
+      expect(calls[0][0].replayOnly).toBeUndefined();
+      expect(calls[1][0].replayOnly).toBe(true);
+      expect(calls[2][0].replayOnly).toBe(true);
+      const order =
+        mockLearningDecisionService.resolveBatchForGeneration.mock
+          .invocationCallOrder;
+      const providerOrder =
+        mockReplicateService.generateTextCompletionSync.mock
+          .invocationCallOrder;
+      expect(providerOrder).toHaveLength(3);
+      expect(order[1]).toBeGreaterThan(providerOrder[0]);
+      expect(order[1]).toBeLessThan(providerOrder[1]);
+      expect(order[2]).toBeLessThan(providerOrder[2]);
+    });
+    it('builds byte-identical prompts whatever the learning outcome', async () => {
+      const runs: unknown[][] = [];
+      for (const outcome of ['baseline', 'paused', 'throw']) {
+        vi.clearAllMocks();
+        mockPromptBuilderService.buildPrompt.mockResolvedValue({
+          input: { max_tokens: 4096, prompt: 'test prompt' },
+        });
+        mockTemplatesService.getRenderedPrompt.mockResolvedValue(
+          'Generated prompt template',
+        );
+        if (outcome === 'throw')
+          mockLearningDecisionService.resolveBatchForGeneration.mockRejectedValue(
+            new Error('learning down'),
+          );
+        else
+          mockLearningDecisionService.resolveBatchForGeneration.mockImplementation(
+            ({ candidates }: { candidates: unknown[] }) =>
+              candidates.map((_, index) =>
+                learningResolution(
+                  index,
+                  outcome === 'paused' ? 'paused' : 'insufficient_baseline',
+                ),
+              ),
+          );
+        await service.generateAccountContentAsync(
+          dto,
+          groupedPosts,
+          identity,
+          mockPublishingContext,
+        );
+        runs.push(mockPromptBuilderService.buildPrompt.mock.calls);
+      }
+      expect(runs[1]).toEqual(runs[0]);
+      expect(runs[2]).toEqual(runs[0]);
+      const prompt = JSON.stringify(runs[0]);
+      for (const marker of [
+        'baseline-v1',
+        'question-example',
+        'proof-steps',
+        'learning',
+      ])
+        expect(prompt).not.toContain(marker);
+    });
+    it('still completes every draft when learning is unavailable', async () => {
+      mockLearningDecisionService.resolveBatchForGeneration.mockRejectedValue(
+        new Error('learning down'),
+      );
+      mockLearningDecisionService.bindArtifact.mockRejectedValue(
+        new Error('binding down'),
+      );
+      await service.generateAccountContentAsync(
+        dto,
+        groupedPosts,
+        identity,
+        mockPublishingContext,
+      );
+      const completed = mockWebsocketService.emit.mock.calls
+        .map(([, payload]) => payload)
+        .filter((payload) => payload.status === Status.COMPLETED);
+      expect(completed).toHaveLength(2);
+      expect(completed[0].learningReceipt.application.status).toBe(
+        'unavailable',
+      );
+      expect(mockLearningDecisionService.bindArtifact).not.toHaveBeenCalled();
+      expect(mockPostsService.patch).not.toHaveBeenCalledWith(
+        expect.anything(),
         expect.objectContaining({
           targetExecutionState: TargetExecutionState.FAILED,
         }),
