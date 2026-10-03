@@ -312,6 +312,7 @@ describe('PresignedUploadService', () => {
         'videos',
         body.contentType,
         3600,
+        undefined,
       );
     });
 
