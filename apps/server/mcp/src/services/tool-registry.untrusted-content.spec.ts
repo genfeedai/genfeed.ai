@@ -164,19 +164,20 @@ describe('native MCP untrusted-result integration', () => {
     expect(client.evaluateMcpToolResult).toHaveBeenCalledTimes(1);
     expect(JSON.stringify(logger.warn.mock.calls)).not.toContain('RAW_SECRET');
   });
-  it('prechecks the same serialized UTF-8 JSON limit and retains oversized output', async () => {
+  it('classifies a bounded flagged sample of an oversize result and retains the output when allowed', async () => {
     client.getAccountInfo.mockResolvedValue({ text: 'é'.repeat(550000) });
     const result = await registry().handleToolCall({
       name: 'get_account_info',
       arguments: {},
     });
     expect(JSON.stringify(result).length).toBeGreaterThan(550000);
-    expect(client.evaluateMcpToolResult).not.toHaveBeenCalled();
-    expect(client.getAccountInfo).toHaveBeenCalledTimes(1);
-    expect(logger.warn).toHaveBeenCalledWith(
-      'MCP result gate failed open',
-      expect.objectContaining({ category: 'oversize' }),
+    expect(client.evaluateMcpToolResult).toHaveBeenCalledExactlyOnceWith(
+      'get_account_info',
+      expect.stringContaining('middle of oversize result omitted'),
+      true,
     );
+    expect(client.getAccountInfo).toHaveBeenCalledTimes(1);
+    expect(logger.warn).not.toHaveBeenCalled();
   });
   it('does not classify pending or declined approvals and executes an approved native write only once', async () => {
     const service = registry();

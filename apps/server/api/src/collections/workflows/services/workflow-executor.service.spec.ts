@@ -68,6 +68,9 @@ function pinnedVersion(input: {
 
 describe('WorkflowExecutorService', () => {
   const prisma = {
+    member: {
+      findFirst: vi.fn(),
+    },
     workflow: {
       findFirst: vi.fn(),
       update: vi.fn(),
@@ -116,6 +119,7 @@ describe('WorkflowExecutorService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    prisma.member.findFirst.mockResolvedValue({ id: 'member-1' });
     prisma.workflowNodeClaim.create.mockResolvedValue({ id: 'claim-1' });
     prisma.workflowNodeClaim.findFirst.mockResolvedValue(null);
     prisma.workflowNodeClaim.updateMany.mockResolvedValue({ count: 1 });
@@ -1150,6 +1154,52 @@ describe('WorkflowExecutorService', () => {
       expect(engineAdapter.executeNode).not.toHaveBeenCalled();
       expect(executionsService.findOne).toHaveBeenCalledTimes(1);
     });
+
+    it.each(['manual', 'provider'] as const)(
+      'fails %s continuation without running nodes when the recorded actor was removed from the organization (#5892)',
+      async (entrypoint) => {
+        prisma.member.findFirst.mockResolvedValue(null);
+        executionsService.findOne.mockResolvedValue({
+          id: 'exec-removed',
+          startedAt: new Date('2026-01-01T00:00:00.000Z'),
+          status: WorkflowExecutionStatus.FAILED,
+          userId: 'removed-user',
+          workflowId: 'workflow-1',
+          workflowVersionId: WORKFLOW_VERSION_ID,
+        });
+        executionsService.completeExecution.mockResolvedValue({ metadata: {} });
+
+        const result =
+          entrypoint === 'manual'
+            ? await service.continueExistingExecution(
+                'exec-removed',
+                triggerEvent,
+              )
+            : await service.continueProviderCallbackExecution({
+                executionId: 'exec-removed',
+                organizationId: 'org-1',
+                workflowVersionId: WORKFLOW_VERSION_ID,
+              });
+
+        expect(prisma.member.findFirst).toHaveBeenCalledWith({
+          select: { id: true },
+          where: {
+            isActive: true,
+            isDeleted: false,
+            organizationId: 'org-1',
+            userId: 'removed-user',
+          },
+        });
+        expect(result.status).toBe(WorkflowExecutionStatus.FAILED);
+        expect(result.error).toContain('no longer an active member');
+        expect(executionsService.completeExecution).toHaveBeenCalledWith(
+          'exec-removed',
+          expect.stringContaining('no longer an active member'),
+        );
+        expect(prisma.workflowVersion.findFirst).not.toHaveBeenCalled();
+        expect(engineAdapter.executeNode).not.toHaveBeenCalled();
+      },
+    );
 
     it.each([undefined, null, 42, {}, '', '  \t'])(
       'blocks continuation with invalid recorded actor %j before hydration',

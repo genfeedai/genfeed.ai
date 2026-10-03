@@ -130,6 +130,39 @@ describe('AgentToolsController publishing scopes', () => {
       }),
     );
   });
+  it('never copies unlisted client context into the executor context even if validation is bypassed (#5898)', async () => {
+    executor.executeTool.mockResolvedValue({ creditsUsed: 0, success: true });
+    await controller.execute(
+      'list_brands',
+      {
+        context: {
+          agentMode: 'auto',
+          brandId: 'spoof-brand',
+          creditGovernance: { agentDailyCreditCap: 1e9 },
+          isWorkflowScoped: true,
+          validatedScope: { organizationId: 'spoof-org' },
+        } as never,
+        parameters: {},
+      },
+      apiKeyUser([]),
+      request,
+    );
+    const context = executor.executeTool.mock.calls.at(-1)?.[2];
+    for (const field of [
+      'agentMode',
+      'brandId',
+      'creditGovernance',
+      'isWorkflowScoped',
+      'validatedScope',
+    ]) {
+      expect(context).not.toHaveProperty(field);
+    }
+    expect(context).toMatchObject({
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+  });
+
   it('rejects client-injected reviewer authority for an ordinary user', async () => {
     await controller.execute(
       'create_post',
