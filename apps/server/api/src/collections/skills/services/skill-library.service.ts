@@ -107,18 +107,6 @@ export class SkillLibraryService {
     return this.toDocument(created as unknown as SkillRow);
   }
 
-  async importValidatedPackage(
-    actor: SkillLibraryActor,
-    input: unknown,
-  ): Promise<SkillDocument> {
-    const created = await importValidatedSkillPackage(
-      this.prisma,
-      actor,
-      input,
-    );
-    return this.toDocument(created as unknown as SkillRow);
-  }
-
   async create(
     actor: SkillLibraryActor,
     input: CreateScopedSkillDto,
