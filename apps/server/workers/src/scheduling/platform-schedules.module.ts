@@ -1,4 +1,5 @@
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { ReferralsModule } from '@api/collections/referrals/referrals.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
@@ -56,6 +57,7 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
     ConfigModule,
     LibsConfigModule,
     LoggerModule,
+    PlatformSettingsModule,
     WorkflowsModule,
     WorkflowExecutionsModule,
     IngredientsModule,
