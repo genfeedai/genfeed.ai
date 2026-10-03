@@ -94,6 +94,45 @@ export function isRetryablePublishError(error: unknown): boolean {
   );
 }
 
+const AMBIGUOUS_OUTCOME_PATTERNS = [
+  'econnreset',
+  'socket hang up',
+  'epipe',
+] as const;
+
+function readHttpStatus(error: unknown): number | null {
+  if (!isRecord(error)) return null;
+  const response = isRecord(error.response) ? error.response : null;
+  const status = error.statusCode ?? error.status ?? response?.status;
+  return typeof status === 'number' ? status : null;
+}
+
+/**
+ * Whether a thrown publish error leaves the provider outcome unknown: the
+ * request may have reached the platform and been accepted (timeouts, dropped
+ * connections, 5xx, provider-normalized transient failures). Rate limits,
+ * refused connections and DNS failures prove nothing was published.
+ */
+export function isAmbiguousPublishError(error: unknown): boolean {
+  const status = readHttpStatus(error);
+  if (status !== null && status >= 500) return true;
+  const code = getPublishErrorCode(error);
+  if (
+    code === 'timeout' ||
+    code === 'provider_unavailable' ||
+    code === 'transient_failure'
+  )
+    return true;
+  const message = getPublishErrorMessage(error).toLowerCase();
+  const rawCode =
+    isRecord(error) && 'code' in error
+      ? String(error.code ?? '').toLowerCase()
+      : '';
+  return AMBIGUOUS_OUTCOME_PATTERNS.some(
+    (pattern) => message.includes(pattern) || rawCode.includes(pattern),
+  );
+}
+
 export function createChannelTargetError(
   code: string,
   message: string,
