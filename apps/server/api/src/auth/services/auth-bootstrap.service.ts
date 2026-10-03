@@ -187,12 +187,20 @@ export class AuthBootstrapService {
         organizationId,
       );
       if (cached) {
+        // The cache is keyed by user, but super-admin depends on the client IP.
+        const cachedForRequest: AccessBootstrapCachePayload = {
+          ...cached,
+          access: {
+            ...cached.access,
+            isSuperAdmin: user ? getIsSuperAdmin(user, request) : false,
+          },
+        };
         return {
-          access: cached.access,
-          brands: cached.brands,
-          cachedPayload: cached,
-          currentUser: cached.currentUser,
-          settings: cached.settings,
+          access: cachedForRequest.access,
+          brands: cachedForRequest.brands,
+          cachedPayload: cachedForRequest,
+          currentUser: cachedForRequest.currentUser,
+          settings: cachedForRequest.settings,
         };
       }
     }

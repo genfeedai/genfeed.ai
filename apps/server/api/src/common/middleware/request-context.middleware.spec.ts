@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const configState = vi.hoisted(() => ({
   betterAuthEnabled: true,
@@ -130,6 +130,10 @@ describe('RequestContextMiddleware', () => {
       buildSubscriptionsService() as never,
       {} as never,
     );
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('cache hit → returns cached context, no extra set calls', async () => {
@@ -385,7 +389,8 @@ describe('RequestContextMiddleware', () => {
         prisma as never,
       );
 
-      const req = { headers: { authorization } } as never;
+      vi.stubEnv('ADMIN_ALLOWED_IPS', '127.0.0.1');
+      const req = { headers: { authorization }, ip: '127.0.0.1' } as never;
       const next: NextFunction = vi.fn();
 
       await middleware.use(req, {} as Response, next);
@@ -414,4 +419,108 @@ describe('RequestContextMiddleware', () => {
       expect(next).toHaveBeenCalledOnce();
     },
   );
+
+  describe('admin IP binding', () => {
+    function buildSuperAdminRequest(ip?: string) {
+      return {
+        headers: {},
+        ip,
+        user: { ...buildUser(), isSuperAdmin: true },
+      };
+    }
+
+    it('keeps super-admin for a request from ADMIN_ALLOWED_IPS', async () => {
+      vi.stubEnv('ADMIN_ALLOWED_IPS', '203.0.113.7, 10.0.0.1');
+      redisService.getPublisher.mockReturnValue(buildPublisher());
+      const req = buildSuperAdminRequest('::ffff:203.0.113.7');
+
+      await middleware.hydrate(req as never);
+
+      const hydrated = req as typeof req & {
+        context: { isSuperAdmin: boolean };
+      };
+      expect(hydrated.context.isSuperAdmin).toBe(true);
+      expect(hydrated.user.isSuperAdmin).toBe(true);
+    });
+
+    it('drops super-admin from context and user for any other IP but caches the role', async () => {
+      vi.stubEnv('ADMIN_ALLOWED_IPS', '203.0.113.7');
+      const publisher = buildPublisher();
+      redisService.getPublisher.mockReturnValue(publisher);
+      const req = buildSuperAdminRequest('198.51.100.9');
+
+      await middleware.hydrate(req as never);
+
+      const hydrated = req as typeof req & {
+        context: { isSuperAdmin: boolean };
+      };
+      expect(hydrated.context.isSuperAdmin).toBe(false);
+      expect(hydrated.user.isSuperAdmin).toBe(false);
+      expect(publisher.setex).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(Number),
+        expect.stringContaining('"isSuperAdmin":true'),
+      );
+    });
+
+    it('drops super-admin when ADMIN_ALLOWED_IPS is empty', async () => {
+      vi.stubEnv('ADMIN_ALLOWED_IPS', '');
+      redisService.getPublisher.mockReturnValue(buildPublisher());
+      const req = buildSuperAdminRequest('127.0.0.1');
+
+      await middleware.hydrate(req as never);
+
+      expect(
+        (req as typeof req & { context: { isSuperAdmin: boolean } }).context
+          .isSuperAdmin,
+      ).toBe(false);
+    });
+
+    it('drops super-admin from a cached context served to a blocked IP', async () => {
+      vi.stubEnv('ADMIN_ALLOWED_IPS', '203.0.113.7');
+      const publisher = buildPublisher();
+      publisher.get.mockResolvedValue(
+        JSON.stringify({
+          brandId: 'brand_1',
+          hydratedAt: 1,
+          isSuperAdmin: true,
+          organizationId: 'org_1',
+          stripeSubscriptionStatus: 'active',
+          subscriptionTier: 'pro',
+          userId: 'user_1',
+        }),
+      );
+      redisService.getPublisher.mockReturnValue(publisher);
+      const req = buildSuperAdminRequest('198.51.100.9');
+
+      await middleware.hydrate(req as never);
+
+      expect(
+        (req as typeof req & { context: { isSuperAdmin: boolean } }).context
+          .isSuperAdmin,
+      ).toBe(false);
+    });
+
+    it('drops super-admin from the self-hosted default context for a blocked IP', async () => {
+      vi.stubEnv('ADMIN_ALLOWED_IPS', '203.0.113.7');
+      configState.isSelfHosted = true;
+      const publisher = buildPublisher();
+      redisService.getPublisher.mockReturnValue(publisher);
+      middleware = new RequestContextMiddleware(
+        redisService as unknown as RedisService,
+        buildLogger(),
+        buildOrgSettingsService('free') as never,
+        buildSubscriptionsService('active') as never,
+        buildPrismaService() as never,
+      );
+      const req = { headers: {}, ip: '198.51.100.9' };
+
+      await middleware.hydrate(req as never);
+
+      expect(
+        (req as typeof req & { context: { isSuperAdmin: boolean } }).context
+          .isSuperAdmin,
+      ).toBe(false);
+    });
+  });
 });

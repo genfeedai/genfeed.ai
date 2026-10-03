@@ -259,17 +259,18 @@ describe('AgentEndpointInvoker', () => {
     expect(creditsGuard.admit).not.toHaveBeenCalled();
   });
 
-  it('exempts a platform superadmin from the membership proof', async () => {
+  it('requires membership from a platform superadmin, which has no client IP here', async () => {
     membersService.findOne.mockResolvedValue(null);
     prisma.user.findFirst.mockResolvedValue({
       id: USER_ID,
       platformRole: PlatformRole.SUPERADMIN,
     });
+    const endpoint = buildEndpoint();
 
-    await expect(invoker.invoke(buildEndpoint(), invocation)).resolves.toBe(
-      'generated',
+    await expect(invoker.invoke(endpoint, invocation)).rejects.toBeInstanceOf(
+      ForbiddenException,
     );
-    expect(membersService.findOne).not.toHaveBeenCalled();
+    expect(endpoint.handle).not.toHaveBeenCalled();
   });
 
   it('refuses to run a billable endpoint with no credits interceptor before reserving anything', async () => {

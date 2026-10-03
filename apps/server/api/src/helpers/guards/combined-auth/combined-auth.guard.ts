@@ -7,6 +7,10 @@ import {
 import { OPTIONAL_AUTH_KEY } from '@api/helpers/decorators/optional-auth.decorator';
 import { REQUIRES_CLOUD_AUTH_KEY } from '@api/helpers/decorators/requires-cloud-auth.decorator';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
+import {
+  type AdminIpRequest,
+  isAdminIpAllowed,
+} from '@api/helpers/utils/admin-ip-allowlist/admin-ip-allowlist.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import { isSelfHostedDeployment } from '@genfeedai/config';
@@ -147,7 +151,9 @@ export class CombinedAuthGuard implements CanActivate {
   ): Promise<void> {
     const request = context.switchToHttp().getRequest<RequestWithContext>();
 
-    if (!request.user || request.context) {
+    // Runs even when the pre-auth middleware already built a context (the
+    // self-host default) so the admin IP binding reaches `request.user` too.
+    if (!request.user) {
       return;
     }
 
@@ -162,9 +168,9 @@ export class CombinedAuthGuard implements CanActivate {
     }
   }
 
-  private async injectLocalIdentity(request: {
-    user?: AuthenticatedUser;
-  }): Promise<void> {
+  private async injectLocalIdentity(
+    request: AdminIpRequest & { user?: AuthenticatedUser },
+  ): Promise<void> {
     if (request.user) {
       return;
     }
@@ -183,7 +189,7 @@ export class CombinedAuthGuard implements CanActivate {
         emailAddresses: [],
         firstName: 'Local',
         id: defaultUser.id,
-        isSuperAdmin: true,
+        isSuperAdmin: isAdminIpAllowed(request),
         lastName: 'Admin',
         organizationId: defaultOrg.id,
         stripeSubscriptionStatus: SubscriptionStatus.ACTIVE,
@@ -247,15 +253,17 @@ export class CombinedAuthGuard implements CanActivate {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<{
-      headers: { authorization?: string };
-      originalUrl?: string;
-      params?: Record<string, unknown>;
-      path?: string;
-      query?: Record<string, unknown>;
-      url?: string;
-      user?: AuthenticatedUser;
-    }>();
+    const request = context.switchToHttp().getRequest<
+      AdminIpRequest & {
+        headers: { authorization?: string };
+        originalUrl?: string;
+        params?: Record<string, unknown>;
+        path?: string;
+        query?: Record<string, unknown>;
+        url?: string;
+        user?: AuthenticatedUser;
+      }
+    >();
 
     if (requestPresentsApiKeyInUrl(request)) {
       throw new UnauthorizedException(URL_API_CREDENTIAL_REJECTION);
