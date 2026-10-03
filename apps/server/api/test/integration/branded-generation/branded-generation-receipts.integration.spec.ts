@@ -1295,6 +1295,11 @@ describe('branded receipt full-migration service and relocation acceptance', () 
         ),
       );
       await waitBlocked(applicationNames[1], applicationNames[0]);
+      // Let the blocked contender run its own deadlock check first, so a lock cycle
+      // aborts the receipt writer instead of a retryable relocation attempt.
+      await observer.query(
+        `SELECT pg_sleep(extract(epoch FROM current_setting('deadlock_timeout')::interval) + 0.5)`,
+      );
     } finally {
       await barrier.release();
       await Promise.all([creating, moving]);

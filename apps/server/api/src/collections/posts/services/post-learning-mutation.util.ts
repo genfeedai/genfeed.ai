@@ -353,7 +353,7 @@ async function lockPostMutationSources(
   createScope?: Scope,
 ): Promise<void> {
   await tx.$queryRaw(
-    Prisma.sql`SELECT "id" FROM "organizations" WHERE "id" = ${plan.organizationId} AND "isDeleted" = false FOR UPDATE`,
+    Prisma.sql`SELECT "id" FROM "organizations" WHERE "id" = ${plan.organizationId} AND "isDeleted" = false FOR NO KEY UPDATE`,
   );
   for (const id of [
     ...new Set(
