@@ -3,6 +3,10 @@ import {
   hasExplicitApiKeyAdminScope,
   MCP_ACTION_ORIGIN_PROOF_HEADER,
 } from '@genfeedai/contracts';
+import {
+  UNATTRIBUTED_FORWARDED_HEADER,
+  UNATTRIBUTED_FORWARDED_VALUE,
+} from '@genfeedai/contracts/constants';
 import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
@@ -96,6 +100,7 @@ export class AuthService {
         this.httpService.get(`${baseUrl}/auth/whoami`, {
           headers: {
             Authorization: `Bearer ${bearerToken}`,
+            [UNATTRIBUTED_FORWARDED_HEADER]: UNATTRIBUTED_FORWARDED_VALUE,
             ...(mcpOriginProof
               ? { [MCP_ACTION_ORIGIN_PROOF_HEADER]: mcpOriginProof }
               : {}),

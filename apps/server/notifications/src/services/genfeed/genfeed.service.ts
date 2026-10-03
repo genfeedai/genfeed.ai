@@ -1,3 +1,7 @@
+import {
+  UNATTRIBUTED_FORWARDED_HEADER,
+  UNATTRIBUTED_FORWARDED_VALUE,
+} from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@notifications/config/config.service';
@@ -47,6 +51,10 @@ export class GenFeedService {
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json',
+        // Calls reach the API from this server's address, loopback on
+        // self-host. Declare the end client unknown so the API never grants
+        // admin power from that address.
+        [UNATTRIBUTED_FORWARDED_HEADER]: UNATTRIBUTED_FORWARDED_VALUE,
       },
       timeout: 30000,
     });

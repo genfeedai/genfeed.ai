@@ -1,3 +1,7 @@
+import {
+  UNATTRIBUTED_FORWARDED_HEADER,
+  UNATTRIBUTED_FORWARDED_VALUE,
+} from '@genfeedai/contracts/constants';
 import type { Socket } from 'socket.io';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TerminalGateway } from './terminal.gateway';
@@ -217,6 +221,29 @@ describe('TerminalGateway', () => {
       socketId: 'socket-1',
     });
     expect(socket.disconnect).not.toHaveBeenCalled();
+  });
+
+  it('declares the end client unknown when minting a token from the session cookie', async () => {
+    const terminalService = createTerminalService();
+    const gateway = new TerminalGateway(terminalService as never);
+    const socket = createSocket(
+      'http://localhost:3000',
+      undefined,
+      'better-auth.session_token=session-123',
+    );
+
+    await gateway.handleConnection(socket);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3010/v1/auth/token',
+      {
+        cache: 'no-store',
+        headers: {
+          cookie: 'better-auth.session_token=session-123',
+          [UNATTRIBUTED_FORWARDED_HEADER]: UNATTRIBUTED_FORWARDED_VALUE,
+        },
+      },
+    );
   });
 
   // #5318: a well-formed Bearer header that fails verification must keep
