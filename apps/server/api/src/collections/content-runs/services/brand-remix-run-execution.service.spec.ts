@@ -5,6 +5,7 @@ import { BrandRemixRunExecutionService } from '@api/collections/content-runs/ser
 import { assembleBrandRemixRunsGraph } from '@api/collections/content-runs/services/brand-remix-runs.factory';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import { ContentRunStatus } from '@genfeedai/contracts';
 import { brandRemixRunConfigSchema } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -101,6 +102,7 @@ describe('BrandRemixRunExecutionService', () => {
         getOrganizationCreditsBalance: vi.fn().mockResolvedValue(100),
       } as never,
       imageGenerationService: imageGenerationService as never,
+      personasService: personasServiceStub(),
       organizationSettingsService: {
         findOne: vi.fn().mockResolvedValue({ organizationId: 'org-1' }),
       } as never,
@@ -298,6 +300,7 @@ describe('BrandRemixRunExecutionService', () => {
         getOrganizationCreditsBalance: vi.fn().mockResolvedValue(0),
       } as never,
       imageGenerationService: imageGenerationService as never,
+      personasService: personasServiceStub(),
       organizationSettingsService: {
         findOne: vi.fn().mockResolvedValue({ organizationId: 'org-1' }),
       } as never,

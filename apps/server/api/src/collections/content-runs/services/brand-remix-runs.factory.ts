@@ -17,6 +17,7 @@ import type { PausedXAdsCampaignDraftService } from '@api/collections/content-ru
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import type { PersonasService } from '@api/collections/personas/services/personas.service';
 import type { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import type { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import type { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
@@ -36,6 +37,7 @@ export interface BrandRemixRunsCollaborators {
   creditsUtilsService: CreditsUtilsService;
   imageGenerationService: ImageGenerationService;
   organizationSettingsService: OrganizationSettingsService;
+  personasService: PersonasService;
   pausedMetaCampaignDraftService: PausedMetaCampaignDraftService;
   pausedXAdsCampaignDraftService: PausedXAdsCampaignDraftService;
   prisma: PrismaService;
@@ -73,6 +75,7 @@ export function assembleBrandRemixRunsGraph(
     collaborators.organizationSettingsService,
     sourceResolver,
     new BrandRemixPersonaResolutionService(collaborators.prisma),
+    collaborators.personasService,
   );
   const state = new BrandRemixRunStateService(
     collaborators.prisma,
