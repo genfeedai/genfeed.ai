@@ -698,9 +698,13 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       id: state.threadId,
       organizationId: state.organizationId,
     });
-    const seedTitle = String(
-      thread?.title ?? buildSeedThreadTitle(request.content),
-    );
+    // Name the thread from its first intent only. Counted before this turn's
+    // user message is persisted; an empty seed disables model retitling.
+    const isFirstTurn =
+      (await this.agentMessagesService.countMessages(state.threadId)) === 0;
+    const seedTitle = isFirstTurn
+      ? String(thread?.title ?? buildSeedThreadTitle(request.content))
+      : '';
     const startedAt = new Date().toISOString();
 
     await this.threadEventRecorder.recordThreadTurnRequested({
