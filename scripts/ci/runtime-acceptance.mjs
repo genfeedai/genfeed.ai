@@ -85,7 +85,7 @@ export const BRAND_SOURCE_CONTRACT = {
   ],
   brand: {
     path: 'apps/server/api/test/integration/branded-generation/branded-generation-receipts.integration.spec.ts',
-    sha256: '6576e46cddcff5f1beb1b3765939e5bb6ee1759bdcf422adff1dcc40ae37fc2f',
+    sha256: 'b79d6ffb8e84be00a6c6c7f610300641254c5f2b801901bca4911714964e239a',
     passedTitles: [
       'branded receipt full-migration service and relocation acceptance serializes same-input create, rejects changed payloads, and isolates other scopes',
       'branded receipt full-migration service and relocation acceptance commits one competing revision and replays immutable event projections',
