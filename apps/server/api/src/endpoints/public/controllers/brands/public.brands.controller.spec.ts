@@ -80,7 +80,17 @@ describe('PublicBrandsController', () => {
             findOneBySlug: vi.fn(),
           },
         },
-        { provide: ArticlesService, useValue: { findAll: vi.fn() } },
+        {
+          provide: ArticlesService,
+          useValue: {
+            buildPublicArticleWhere: vi.fn(async () => ({
+              organizationId: 'genfeed-org',
+              publishedAt: { lte: new Date() },
+              status: 'PUBLISHED',
+            })),
+            findAll: vi.fn(),
+          },
+        },
         { provide: ImagesService, useValue: { findAll: vi.fn() } },
         { provide: LinksService, useValue: { findAll: vi.fn() } },
         { provide: VideosService, useValue: { findAll: vi.fn() } },
@@ -202,6 +212,7 @@ describe('PublicBrandsController', () => {
           where: expect.objectContaining({
             brandId,
             isDeleted: false,
+            organizationId: 'genfeed-org',
             publishedAt: { lte: expect.any(Date) },
             scope: AssetScope.PUBLIC,
             status: 'PUBLISHED',

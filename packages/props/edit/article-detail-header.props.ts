@@ -1,3 +1,4 @@
+import type { ArticlePublishDestination } from '@props/edit/article-public-page.props';
 import type { GlobalModalsContextValue } from '@props/modals/global-modals.props';
 import type { ClipboardService } from '@services/core/clipboard.service';
 
@@ -16,6 +17,7 @@ export type ArticleDetailHeaderPermissions = {
 export type ArticleDetailHeaderProps = {
   state: ArticleDetailHeaderState;
   permissions: ArticleDetailHeaderPermissions;
+  destination: ArticlePublishDestination;
   formLabel: string;
   plainTextContent: string;
   openConfirm: GlobalModalsContextValue['openConfirm'];

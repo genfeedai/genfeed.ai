@@ -1,6 +1,7 @@
 import { type ArticleCategory, ArticleStatus } from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type { ScoreSeoRequest } from '@genfeedai/contracts/interfaces';
+import type { ArticlePreviewLink } from '@genfeedai/contracts/interfaces/content/article-preview-link.interface';
 import type {
   ArticleTraffic,
   ArticleTrafficPeriod,
@@ -109,6 +110,18 @@ export class ArticlesService extends BaseService<Article> {
       publishedAt: new Date(),
       status: ArticleStatus.PUBLISHED,
     } as Record<string, unknown>);
+  }
+
+  /**
+   * Mint a signed, expiring genfeed.ai preview link for an unpublished
+   * article. Only Genfeed's own articles have one; treat the URL as a bearer
+   * credential.
+   */
+  public async createPreviewLink(id: string): Promise<ArticlePreviewLink> {
+    const response = await this.instance.get<ArticlePreviewLink>(
+      `${id}/preview-links`,
+    );
+    return response.data;
   }
 
   public async getWebsiteTraffic(

@@ -61,6 +61,7 @@ describe('ArticlesController', () => {
     findBySlug: vi.fn(),
     findOne: vi.fn(),
     getArticleVersions: vi.fn(),
+    isPublicArticlesOrganization: vi.fn(async () => true),
     patch: vi.fn(),
     remove: vi.fn(),
     restoreArticleVersion: vi.fn(),
@@ -236,6 +237,18 @@ describe('ArticlesController', () => {
       await expect(
         controller.createPreviewLink(mockRequest, mockUser, id),
       ).rejects.toThrow();
+      expect(mockConfigService.get).not.toHaveBeenCalled();
+    });
+
+    it('rejects a preview for an organization genfeed.ai does not host', async () => {
+      mockArticlesService.findOne.mockResolvedValue(mockArticle);
+      mockArticlesService.isPublicArticlesOrganization.mockResolvedValueOnce(
+        false,
+      );
+
+      await expect(
+        controller.createPreviewLink(mockRequest, mockUser, id),
+      ).rejects.toThrow(BadRequestException);
       expect(mockConfigService.get).not.toHaveBeenCalled();
     });
 

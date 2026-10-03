@@ -15,10 +15,12 @@ export function buildArticlePublishedDispatch(
   organizationId: string,
   publicBaseUrl: string | undefined,
 ): ChannelDispatchInput {
-  // PUBLISHED articles are public, so a slug always has a public URL.
-  const publicUrl = article.slug
-    ? `${publicBaseUrl}/articles/${article.slug}`
-    : undefined;
+  // Only Genfeed's own articles are hosted on the website; callers pass no
+  // base URL for any other organization.
+  const publicUrl =
+    article.slug && publicBaseUrl
+      ? `${publicBaseUrl.replace(/\/$/, '')}/articles/${article.slug}`
+      : undefined;
   return {
     deduplicationKey: `message.article-published/${article.id}`,
     messages: [
@@ -57,6 +59,8 @@ export async function sendArticlePublishedNotification(
   deps: {
     activityRecorder?: ActivityRecorderService;
     configService?: ConfigService;
+    /** True only for the organization the website hosts articles for. */
+    isHostedOnWebsite: boolean;
     logger: LoggerService;
     organizationSettingsService?: OrganizationSettingsService;
     source: string;
@@ -68,6 +72,7 @@ export async function sendArticlePublishedNotification(
   const {
     activityRecorder,
     configService,
+    isHostedOnWebsite,
     logger,
     organizationSettingsService,
     source,
@@ -94,7 +99,9 @@ export async function sendArticlePublishedNotification(
       buildArticlePublishedDispatch(
         result,
         organizationId,
-        configService.get('GENFEEDAI_PUBLIC_URL'),
+        isHostedOnWebsite
+          ? configService.get('GENFEEDAI_PUBLIC_URL')
+          : undefined,
       ),
     );
 

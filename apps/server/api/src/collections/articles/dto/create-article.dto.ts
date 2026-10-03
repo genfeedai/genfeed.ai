@@ -4,6 +4,7 @@ import {
   ArticleStatus,
   AssetScope,
 } from '@genfeedai/contracts';
+import { ARTICLE_SLUG_PATTERN } from '@genfeedai/contracts/constants';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
@@ -31,7 +32,7 @@ export class CreateArticleDto {
     example: 'my-article-title',
   })
   @IsString()
-  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+  @Matches(ARTICLE_SLUG_PATTERN, {
     message: 'Slug must contain only lowercase letters, numbers, and hyphens',
   })
   slug!: string;

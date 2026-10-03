@@ -58,6 +58,7 @@ import {
   PromptTemplateKey,
   SystemPromptKey,
 } from '@genfeedai/contracts';
+import { normalizeArticleSlug } from '@genfeedai/contracts/constants';
 import type { AccountPublishingContext } from '@genfeedai/contracts/interfaces';
 import type {
   ArticleGenerationResponse,
@@ -78,6 +79,23 @@ export type {
 } from '@api/collections/articles/services/articles-content.types';
 
 type HarnessPersonaInput = Parameters<typeof buildHarnessInput>[0]['persona'];
+
+/**
+ * A model-suggested slug is untrusted text (`test-article-for-genfeed.ai`).
+ * Fold it into the public slug shape, falling back to the label, then a
+ * generated id, so persisted slugs always satisfy `ARTICLE_SLUG_PATTERN`.
+ */
+function toGeneratedArticleSlug(
+  suggested: string | undefined,
+  label: string,
+  fallback: string,
+): string {
+  return (
+    normalizeArticleSlug(suggested ?? '') ||
+    normalizeArticleSlug(label) ||
+    fallback
+  );
+}
 
 @Injectable()
 export class ArticlesContentService {
@@ -390,14 +408,21 @@ export class ArticlesContentService {
       throw new Error('Unexpected response format from AI service');
     }
 
-    return generatedArticles.map((generated, index) => ({
-      content: generated.content || '',
-      label:
-        generated.label || generated.title || `Generated Article ${index + 1}`,
-      slug: generated.slug || `article-${Date.now()}-${index}`,
-      summary: generated.summary || '',
-      tags: generated.tags,
-    }));
+    return generatedArticles.map((generated, index) => {
+      const label =
+        generated.label || generated.title || `Generated Article ${index + 1}`;
+      return {
+        content: generated.content || '',
+        label,
+        slug: toGeneratedArticleSlug(
+          generated.slug,
+          label,
+          `article-${Date.now()}-${index}`,
+        ),
+        summary: generated.summary || '',
+        tags: generated.tags,
+      };
+    });
   }
 
   private parseXArticleDrafts(
@@ -422,7 +447,11 @@ export class ArticlesContentService {
         {
           content,
           label: response.title,
-          slug: response.slug || `x-article-${Date.now()}`,
+          slug: toGeneratedArticleSlug(
+            response.slug,
+            response.title,
+            `x-article-${Date.now()}`,
+          ),
           summary: response.summary || '',
           tags: response.tags,
         },
@@ -436,6 +465,7 @@ export class ArticlesContentService {
    */
   convertToTwitterThread(
     article: ArticleDocument,
+    isHostedOnWebsite: boolean,
   ): Promise<TwitterThreadResponse> {
     try {
       this.logger.debug(`${this.constructorName} convertToTwitterThread`, {
@@ -445,11 +475,13 @@ export class ArticlesContentService {
       // Resolve the article URL for the trailing link tweet. A tweet is a
       // public broadcast, so an unpublished article gets no link at all —
       // linking one would publish the draft (and any preview grant with it).
+      // Only Genfeed's own articles are hosted on the website at all.
       let articleUrl: string | undefined;
       const publicUrl = (
         this.configService?.get('GENFEEDAI_PUBLIC_URL') as string | undefined
       )?.replace(/\/$/, '');
       if (
+        isHostedOnWebsite &&
         article.slug &&
         publicUrl &&
         String(article.status) === ArticleStatus.PUBLISHED

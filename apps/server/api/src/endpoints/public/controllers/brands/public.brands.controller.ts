@@ -5,7 +5,6 @@ import { LinksService } from '@api/collections/links/services/links.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import {
   serializeCollection,
@@ -369,7 +368,7 @@ export class PublicBrandsController {
         brandId,
         isDeleted: false,
         scope: AssetScope.PUBLIC,
-        ...ArticleFilterUtil.buildPublicArticleVisibilityFilter(),
+        ...(await this.articlesService.buildPublicArticleWhere()),
       },
       orderBy: { createdAt: -1, publishedAt: -1 },
     };

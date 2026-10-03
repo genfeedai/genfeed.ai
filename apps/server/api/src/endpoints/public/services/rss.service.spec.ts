@@ -42,6 +42,11 @@ describe('RssService', () => {
         {
           provide: ArticlesService,
           useValue: {
+            buildPublicArticleWhere: vi.fn(async () => ({
+              organizationId: 'genfeed-org',
+              publishedAt: { lte: new Date() },
+              status: 'PUBLISHED',
+            })),
             findAll: vi.fn().mockResolvedValue({ docs: mockArticles }),
           },
         },
@@ -97,6 +102,7 @@ describe('RssService', () => {
         expect.objectContaining({
           where: {
             isDeleted: false,
+            organizationId: 'genfeed-org',
             publishedAt: { lte: expect.any(Date) },
             scope: ArticleScope.PUBLIC,
             status: 'PUBLISHED',
