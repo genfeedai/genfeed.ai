@@ -2,6 +2,7 @@ import type { WorkflowEngineExecutorHelperService } from '@api/collections/workf
 import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
 import * as imageGenerationBriefRegistry from '@api/services/generation-brief/image-generation-brief-registry';
+import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import {
   ByokProvider,
   IngredientCategory,
@@ -120,6 +121,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         { log: vi.fn() } as unknown as ConstructorParameters<
           typeof WorkflowMediaProviderPlanService
         >[1],
+        personasServiceStub(),
         { buildPrompt: vi.fn() } as unknown as ConstructorParameters<
           typeof WorkflowMediaProviderPlanService
         >[2],
@@ -219,6 +221,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         { log: vi.fn() } as unknown as ConstructorParameters<
           typeof WorkflowMediaProviderPlanService
         >[1],
+        personasServiceStub(),
         promptBuilderService as unknown as ConstructorParameters<
           typeof WorkflowMediaProviderPlanService
         >[2],
@@ -324,6 +327,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         { log: vi.fn() } as unknown as ConstructorParameters<
           typeof WorkflowMediaProviderPlanService
         >[1],
+        personasServiceStub(),
         promptBuilderService as unknown as ConstructorParameters<
           typeof WorkflowMediaProviderPlanService
         >[2],
@@ -411,6 +415,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         { log: vi.fn() } as unknown as ConstructorParameters<
           typeof WorkflowMediaProviderPlanService
         >[1],
+        personasServiceStub(),
         { buildPrompt: vi.fn() } as unknown as ConstructorParameters<
           typeof WorkflowMediaProviderPlanService
         >[2],
@@ -496,6 +501,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         { log: vi.fn() } as unknown as ConstructorParameters<
           typeof WorkflowMediaProviderPlanService
         >[1],
+        personasServiceStub(),
         { buildPrompt: vi.fn() } as unknown as ConstructorParameters<
           typeof WorkflowMediaProviderPlanService
         >[2],
@@ -573,6 +579,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         { log: vi.fn() } as unknown as ConstructorParameters<
           typeof WorkflowMediaProviderPlanService
         >[1],
+        personasServiceStub(),
         undefined,
         undefined,
       ),
@@ -678,6 +685,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
           logger as unknown as ConstructorParameters<
             typeof WorkflowMediaProviderPlanService
           >[1],
+          personasServiceStub(),
           undefined,
           undefined,
         ),
@@ -954,6 +962,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         new WorkflowMediaProviderPlanService(
           helper,
           logger as never,
+          personasServiceStub(),
           undefined,
           files as never,
         ),
@@ -1052,6 +1061,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         { log: vi.fn() } as unknown as ConstructorParameters<
           typeof WorkflowMediaProviderPlanService
         >[1],
+        personasServiceStub(),
         undefined,
         filesClientService as unknown as ConstructorParameters<
           typeof WorkflowMediaProviderPlanService
@@ -1118,6 +1128,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         { log: vi.fn() } as unknown as ConstructorParameters<
           typeof WorkflowMediaProviderPlanService
         >[1],
+        personasServiceStub(),
         undefined,
         undefined,
       ),

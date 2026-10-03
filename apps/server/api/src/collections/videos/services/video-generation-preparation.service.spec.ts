@@ -1,3 +1,4 @@
+import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -60,6 +61,7 @@ describe('video selection transport', () => {
       unused,
       unused,
       unused,
+      personasServiceStub(),
       unused,
       unused,
       unused,
@@ -113,6 +115,7 @@ describe('canonical video execution references', () => {
       unused,
       unused,
       unused,
+      personasServiceStub(),
       unused,
       unused,
       unused,

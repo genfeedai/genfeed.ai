@@ -991,8 +991,8 @@ describe('PersonasService', () => {
           data: expect.objectContaining({
             actorUserId: 'actor-1',
             newMode: PersonaAvailabilityMode.SELECTED_BRANDS,
-            newOwningBrandId: 'brand-b',
-            previousOwningBrandId: 'brand-a',
+            newOwningBrand: 'brand-b',
+            previousOwningBrand: 'brand-a',
           }),
         });
       });

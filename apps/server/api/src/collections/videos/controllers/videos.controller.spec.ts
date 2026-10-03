@@ -1,5 +1,6 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { CrunVideoGenerationService } from '@api/collections/videos/services/crun-video-generation.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -15,6 +16,7 @@ import {
   MediaPromptEnhancementService,
 } from '@api/services/harness/media-prompt-enhancement.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import { VideoGenerationSerializer } from '@genfeedai/serializers';
 
 vi.mock('@api/collections/templates/services/templates.service', () => ({
@@ -1702,6 +1704,7 @@ beforeAll(async () => {
         useValue: { registerGeneratedOutput: vi.fn() },
       },
       { provide: ModelsService, useValue: { findOne: vi.fn() } },
+      { provide: PersonasService, useValue: personasServiceStub() },
       {
         provide: OrganizationSettingsService,
         useValue: { findOne: vi.fn() },

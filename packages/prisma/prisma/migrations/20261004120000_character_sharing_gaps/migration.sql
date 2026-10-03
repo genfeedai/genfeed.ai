@@ -2,5 +2,5 @@
 -- Rows written by availability changes leave both columns NULL.
 
 ALTER TABLE "persona_availability_audits"
-  ADD COLUMN "previousOwningBrandId" TEXT,
-  ADD COLUMN "newOwningBrandId" TEXT;
+  ADD COLUMN "previousOwningBrand" TEXT,
+  ADD COLUMN "newOwningBrand" TEXT;

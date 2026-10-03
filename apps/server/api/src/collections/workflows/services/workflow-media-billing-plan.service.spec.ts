@@ -14,6 +14,7 @@ import { workflowFundingFixture } from '@api/helpers/utils/credits/workflow-gene
 import type { ByokService } from '@api/services/byok/byok.service';
 import type { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { WorkflowGenerationNodeAllocation } from '@genfeedai/contracts/interfaces/billing';
 import { createExecutableActionNode } from '@genfeedai/workflows/engine';
@@ -94,6 +95,7 @@ function fixture(byok = false) {
   const preparation = new WorkflowMediaProviderPlanService(
     helper,
     {} as LoggerService,
+    personasServiceStub(),
     { buildPrompt: vi.fn() } as unknown as PromptBuilderService,
   );
   let profile = billableProfile({ key, cost: 5 });

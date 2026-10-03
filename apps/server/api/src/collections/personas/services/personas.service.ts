@@ -954,12 +954,12 @@ export class PersonasService extends BaseService<
           actorUserId: params.actorUserId,
           newBrandIds: locked.availableBrandIds,
           newMode: locked.availabilityMode,
-          newOwningBrandId: params.targetBrandId,
+          newOwningBrand: params.targetBrandId,
           organizationId: params.organizationId,
           personaId: locked.id,
           previousBrandIds: locked.availableBrandIds,
           previousMode: locked.availabilityMode,
-          previousOwningBrandId: locked.brandId,
+          previousOwningBrand: locked.brandId,
         },
       });
     });
