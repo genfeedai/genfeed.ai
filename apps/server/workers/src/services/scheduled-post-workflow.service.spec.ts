@@ -3,7 +3,10 @@ import {
   SCHEDULED_POST_ACTION_IDS,
   type ScheduledPostWorkflowInput,
 } from '@api/collections/posts/services/scheduled-post-workflow-definition';
-import { TargetExecutionState } from '@genfeedai/contracts';
+import {
+  PublishApprovalStatus,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import { ScheduledPostWorkflowService } from '@workers/services/scheduled-post-workflow.service';
 
@@ -25,7 +28,13 @@ function createHarness() {
     record: vi.fn().mockResolvedValue(undefined),
     findOne: vi.fn().mockResolvedValue(null),
   };
+  const deliveryService = {
+    failTerminalValidation: vi
+      .fn()
+      .mockResolvedValue({ platform: '', success: false }),
+  };
   const discoveryService = {
+    findEligiblePost: vi.fn().mockResolvedValue(null),
     findPost: vi.fn().mockResolvedValue({
       brandId: 'brand-1',
       id: 'post-1',
@@ -54,7 +63,7 @@ function createHarness() {
   const logger = { warn: vi.fn(), error: vi.fn() };
   const service = new ScheduledPostWorkflowService(
     activitiesService as never,
-    {} as never,
+    deliveryService as never,
     discoveryService as never,
     {} as never,
     logger as never,
@@ -67,6 +76,8 @@ function createHarness() {
 
   return {
     activitiesService,
+    deliveryService,
+    discoveryService,
     logger,
     prisma,
     publishApprovalsService,
@@ -401,5 +412,80 @@ describe('immutable outbox selection', () => {
     });
     expect(h.activitiesService.record).not.toHaveBeenCalled();
     expect(h.repeatScheduler.scheduleNextRepeat).not.toHaveBeenCalled();
+  });
+});
+
+describe('failure compensation', () => {
+  const request: ScheduledPostWorkflowInput = {
+    approvalId: 'approval-1',
+    operationId: 'operation-1',
+    organizationId: 'org-1',
+    postId: 'post-1',
+    source: 'scheduled_sweep',
+    userId: 'user-1',
+    versionPinId: 'pin-1',
+  };
+
+  function fail(registeredActions: Map<string, RegisteredAction>) {
+    const action = registeredActions.get(SCHEDULED_POST_ACTION_IDS.FAIL);
+    if (!action) {
+      throw new Error('Scheduled post fail action was not registered');
+    }
+    return action({ input: { request } });
+  }
+
+  function eligiblePost(approval: { id: string; status: string }) {
+    return {
+      id: 'post-1',
+      organizationId: 'org-1',
+      publishApproval: approval,
+      targetExecutionState: TargetExecutionState.PUBLISHING,
+    };
+  }
+
+  it('fails the post when the failed run still owns its approval', async () => {
+    const h = createHarness();
+    const post = eligiblePost({
+      id: 'approval-1',
+      status: PublishApprovalStatus.EXECUTING,
+    });
+    h.discoveryService.findEligiblePost.mockResolvedValue(post);
+
+    await fail(h.registeredActions);
+
+    expect(h.deliveryService.failTerminalValidation).toHaveBeenCalledWith(
+      post,
+      expect.any(Error),
+    );
+  });
+
+  it('leaves the post alone when Publish Now superseded the failed run', async () => {
+    const h = createHarness();
+    h.discoveryService.findEligiblePost.mockResolvedValue(
+      eligiblePost({
+        id: 'approval-2',
+        status: PublishApprovalStatus.PUBLISHED,
+      }),
+    );
+
+    const result = await fail(h.registeredActions);
+
+    expect(result).toEqual({ reason: 'not_eligible', skipped: true });
+    expect(h.deliveryService.failTerminalValidation).not.toHaveBeenCalled();
+  });
+
+  it('leaves the post alone when its approval already published', async () => {
+    const h = createHarness();
+    h.discoveryService.findEligiblePost.mockResolvedValue(
+      eligiblePost({
+        id: 'approval-1',
+        status: PublishApprovalStatus.PUBLISHED,
+      }),
+    );
+
+    const result = await fail(h.registeredActions);
+
+    expect(result).toEqual({ reason: 'not_eligible', skipped: true });
+    expect(h.deliveryService.failTerminalValidation).not.toHaveBeenCalled();
   });
 });

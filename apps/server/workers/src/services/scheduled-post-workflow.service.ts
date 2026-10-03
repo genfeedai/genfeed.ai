@@ -300,6 +300,20 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
     if (!post) {
       return { reason: 'not_eligible', skipped: true };
     }
+    // A run whose approval was superseded (e.g. by Publish Now) or already
+    // published must not fail the post another run owns.
+    if (
+      post.publishApproval?.id !== request.approvalId ||
+      post.publishApproval?.status === PublishApprovalStatus.PUBLISHED
+    ) {
+      this.logger.warn('Skipped failing a post owned by another approval', {
+        activeApprovalId: post.publishApproval?.id ?? null,
+        activeApprovalStatus: post.publishApproval?.status ?? null,
+        failedApprovalId: request.approvalId ?? null,
+        postId: request.postId,
+      });
+      return { reason: 'not_eligible', skipped: true };
+    }
     const workflowError =
       typeof action.input.workflowError === 'string'
         ? action.input.workflowError
