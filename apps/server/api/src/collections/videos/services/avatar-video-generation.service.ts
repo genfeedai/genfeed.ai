@@ -43,6 +43,7 @@ import {
   ActivitySource,
   ByokProvider,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
   VoiceProvider,
@@ -325,6 +326,7 @@ export class AvatarVideoGenerationService {
     placeholderScope?: GenerationPlaceholderScope,
   ): ReturnType<SharedService['createMediaDocumentsInternal']> {
     return this.sharedService.createMediaDocumentsInternal({
+      origin: IngredientOrigin.GENERATED,
       brandId,
       category: IngredientCategory.AVATAR,
       extension: MetadataExtension.MP4,

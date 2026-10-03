@@ -19,6 +19,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/contracts';
@@ -304,6 +305,7 @@ export class BrandRemixSceneAssemblyService {
       : String(
           (
             await this.shared.createMediaDocumentsInternal({
+              origin: IngredientOrigin.GENERATED,
               brandId,
               category: IngredientCategory.VIDEO,
               extension: MetadataExtension.MP4,

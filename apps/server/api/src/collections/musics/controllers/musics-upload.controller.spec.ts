@@ -14,6 +14,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation/upload-validation.pipe';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import { IngredientOrigin } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ValidationConfigService } from '@libs/config/services/validation.config';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -127,7 +128,10 @@ describe('MusicsUploadController', () => {
     it('should upload a music file successfully', async () => {
       const result = await controller.createUpload(mockReq, mockUser, mockFile);
 
-      expect(sharedService.createMediaDocuments).toHaveBeenCalled();
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ origin: IngredientOrigin.UPLOADED }),
+      );
       expect(filesClientService.uploadToS3).toHaveBeenCalled();
       expect(mockServices.musicsService.patch).toHaveBeenCalledWith(
         ingredientId,

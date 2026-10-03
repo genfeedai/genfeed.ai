@@ -15,6 +15,7 @@ import type {
   AgentSourceArtifact,
 } from '@api/services/agent-source-ingest/agent-source-ingest.interface';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { IngredientOrigin } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, expect, it, vi } from 'vitest';
@@ -320,6 +321,7 @@ it('claims one USER media asset, awaited durable result and immutable source bin
         user: { connect: { id: scope.userId } },
         organization: { connect: { id: scope.organizationId } },
         brand: { connect: { id: scope.brandId } },
+        origin: IngredientOrigin.IMPORTED,
         scope: 'USER',
         category: 'VIDEO',
         status: 'PROCESSING',

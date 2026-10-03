@@ -400,6 +400,7 @@ const UI_TEST_MESSAGES = {
         lineageError: 'This could not be loaded right now.',
         madeFrom: 'Made from',
         openPreview: 'Open full-size preview',
+        origin: 'Origin',
         showMore: 'Show more',
         type: 'Type',
         untitled: 'Untitled asset',

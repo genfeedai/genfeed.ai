@@ -35,6 +35,7 @@ import {
   CaptionFormat,
   CaptionLanguage,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   JobState,
   MetadataExtension,
@@ -177,6 +178,7 @@ export class VideoStitchService {
     try {
       const { ingredientData } =
         await this.sharedService.createMediaDocumentsInternal({
+          origin: IngredientOrigin.GENERATED,
           brandId: request.brandId,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,

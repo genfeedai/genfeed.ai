@@ -9,7 +9,7 @@ import LibraryCreditNotice from '../library-credit-notice';
 export const generateMetadata = createPageMetadata('All assets');
 
 /**
- * The Library's canonical home. Every asset this brand has generated, with
+ * The Library's canonical home. Every asset this brand has uploaded, imported or generated, with
  * type and folder available as filters on top — the per-type routes are the
  * same page with their chips pre-selected.
  */

@@ -1,5 +1,6 @@
 import type {
   IngredientCategory,
+  IngredientOrigin,
   LibraryPlace,
   LibraryShelf,
   PageScope,
@@ -43,12 +44,15 @@ export interface LibraryBrowserSortOption {
 
 export interface LibraryBrowserToolbarProps {
   categories: IngredientCategory[];
+  origins: IngredientOrigin[];
   sort: string;
   sortOptions: LibraryBrowserSortOption[];
   viewMode: LibraryViewMode;
   isRefreshing: boolean;
   onCategoriesChange: (categories: IngredientCategory[]) => void;
   onClearCategories: () => void;
+  onOriginsChange: (origins: IngredientOrigin[]) => void;
+  onClearOrigins: () => void;
   onSortChange: (sort: string) => void;
   onViewModeChange: (viewMode: LibraryViewMode) => void;
   onRefresh: () => void;

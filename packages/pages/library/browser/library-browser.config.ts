@@ -38,19 +38,18 @@ export const LIBRARY_TYPE_PRESETS: Readonly<Record<string, LibraryTypePreset>> =
   {
     [APP_ROUTES.LIBRARY.AVATARS]: {
       categories: [IngredientCategory.AVATAR],
-      description:
-        'Avatars this brand generated. Clear the chip to see the rest.',
+      description: 'Avatars in this brand. Clear the chip to see the rest.',
       label: 'Avatars',
     },
     [APP_ROUTES.LIBRARY.GIFS]: {
       categories: [IngredientCategory.GIF],
-      description: 'GIFs this brand generated. Clear the chip to see the rest.',
+      description: 'GIFs in this brand. Clear the chip to see the rest.',
       label: 'GIFs',
     },
     [APP_ROUTES.LIBRARY.IMAGES]: {
       categories: [IngredientCategory.IMAGE, IngredientCategory.IMAGE_EDIT],
       description:
-        'Images and edits this brand generated. Clear the chip to see the rest.',
+        'Images and edits in this brand. Clear the chip to see the rest.',
       label: 'Images',
     },
     [APP_ROUTES.LIBRARY.MUSIC]: {
@@ -61,7 +60,7 @@ export const LIBRARY_TYPE_PRESETS: Readonly<Record<string, LibraryTypePreset>> =
     [APP_ROUTES.LIBRARY.VIDEOS]: {
       categories: [IngredientCategory.VIDEO, IngredientCategory.VIDEO_EDIT],
       description:
-        'Videos and edits this brand generated. Clear the chip to see the rest.',
+        'Videos and edits in this brand. Clear the chip to see the rest.',
       label: 'Videos',
     },
   };
@@ -75,7 +74,8 @@ export const LIBRARY_PLACE_COPY: Readonly<
   Record<LibraryPlace, LibraryDestinationCopy>
 > = {
   [LibraryPlace.ASSETS]: {
-    description: 'Everything this brand has generated, in one place.',
+    description:
+      'Everything this brand has uploaded, imported or generated, in one place.',
     label: 'All assets',
   },
   [LibraryPlace.RECENT]: {

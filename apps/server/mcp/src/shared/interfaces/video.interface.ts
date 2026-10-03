@@ -18,6 +18,8 @@ export interface VideoResponse {
   duration?: number;
   url?: string;
   views?: number;
+  /** Permanent origin: UPLOADED, GENERATED, IMPORTED or UNKNOWN. */
+  origin?: string;
 }
 
 export interface VideoStatus {

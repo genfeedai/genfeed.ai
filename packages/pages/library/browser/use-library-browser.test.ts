@@ -1,5 +1,6 @@
 import {
   IngredientCategory,
+  IngredientOrigin,
   LibraryPlace,
   LibraryShelf,
   PageScope,
@@ -85,6 +86,82 @@ describe('useLibraryBrowser', () => {
       IngredientCategory.VIDEO,
     ]);
     expect(result.current.contextValue.viewMode).toBe('grid');
+  });
+
+  it('reads the origin filter from repeated origins keys and sends it to the list', () => {
+    state.search = '?origins=UPLOADED&origins=imported&origins=bogus';
+
+    const { result } = renderHook(() => useLibraryBrowser({}));
+
+    expect(result.current.origins).toEqual([
+      IngredientOrigin.UPLOADED,
+      IngredientOrigin.IMPORTED,
+    ]);
+    expect(result.current.contextValue.query.origins).toEqual([
+      IngredientOrigin.UPLOADED,
+      IngredientOrigin.IMPORTED,
+    ]);
+  });
+
+  it('sends no origin when none is selected', () => {
+    const { result } = renderHook(() => useLibraryBrowser({}));
+
+    expect(result.current.origins).toEqual([]);
+    expect(result.current.contextValue.query).not.toHaveProperty('origins');
+  });
+
+  it('composes origin with type, shelf and folder instead of replacing them', () => {
+    state.search =
+      '?categories=IMAGE&shelf=approved&folder=f1&origins=UPLOADED';
+
+    const { result } = renderHook(() => useLibraryBrowser({}));
+
+    expect(result.current.contextValue.query).toMatchObject({
+      categories: [IngredientCategory.IMAGE],
+      folder: 'f1',
+      origins: [IngredientOrigin.UPLOADED],
+      shelf: 'approved',
+    });
+  });
+
+  it('writes origin to the URL without dropping the other axes', () => {
+    state.search = '?categories=IMAGE&folder=f1&search=hero&page=2';
+
+    const { result } = renderHook(() => useLibraryBrowser({}));
+    act(() =>
+      result.current.handleOriginsChange([
+        IngredientOrigin.GENERATED,
+        IngredientOrigin.GENERATED,
+        IngredientOrigin.IMPORTED,
+      ]),
+    );
+
+    const next = new URLSearchParams(lastPushedSearch());
+    expect(next.getAll('origins')).toEqual(['GENERATED', 'IMPORTED']);
+    expect(next.getAll('categories')).toEqual(['IMAGE']);
+    expect(next.get('folder')).toBe('f1');
+    expect(next.get('search')).toBe('hero');
+    expect(next.has('page')).toBe(false);
+  });
+
+  it('keeps origin when another axis changes and clears only itself', () => {
+    state.search = '?origins=UPLOADED';
+
+    const { result } = renderHook(() => useLibraryBrowser({}));
+    act(() =>
+      result.current.handleCategoriesChange([IngredientCategory.VIDEO]),
+    );
+    expect(new URLSearchParams(lastPushedSearch()).getAll('origins')).toEqual([
+      'UPLOADED',
+    ]);
+
+    state.search = '?categories=VIDEO&origins=UPLOADED';
+    const { result: second } = renderHook(() => useLibraryBrowser({}));
+    act(() => second.current.handleClearOrigins());
+
+    const cleared = new URLSearchParams(lastPushedSearch());
+    expect(cleared.has('origins')).toBe(false);
+    expect(cleared.getAll('categories')).toEqual(['VIDEO']);
   });
 
   it('puts the selected view in the shared list context', () => {

@@ -2,7 +2,7 @@ import { CaptionsService } from '@api/collections/captions/services/captions.ser
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import type { ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
-import type { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
+import type { IngredientServerCreate } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { scopedWhere } from '@api/index';
@@ -10,6 +10,7 @@ import {
   CaptionFormat,
   CaptionLanguage,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/contracts';
@@ -236,6 +237,7 @@ export class ClipLibraryLinkService {
         generationStage: this.readString(clipResult.mode) ?? 'avatar',
         metadataId: metadata.id,
         mimeType: 'video/mp4',
+        origin: IngredientOrigin.GENERATED,
         ...(this.readString(clipResult.providerName)
           ? { modelUsed: this.readString(clipResult.providerName) }
           : {}),
@@ -244,7 +246,7 @@ export class ClipLibraryLinkService {
         status: IngredientStatus.GENERATED,
         ...(userId ? { userId } : {}),
         ...(projectId ? { workflowUsed: `clip-project:${projectId}` } : {}),
-      } as CreateIngredientDto);
+      } as IngredientServerCreate);
 
       return {
         ingredientId: String(ingredient.id),

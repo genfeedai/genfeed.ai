@@ -5,6 +5,7 @@ import {
 import type { AgentSourceIngestContext } from '@api/services/agent-source-ingest/agent-source-ingest.interface';
 import { AgentSourceIngestService } from '@api/services/agent-source-ingest/agent-source-ingest.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { IngredientOrigin } from '@genfeedai/contracts';
 import { IngredientStatus, Prisma } from '@genfeedai/prisma';
 
 describe('AgentSourceIngestService', () => {
@@ -62,6 +63,7 @@ describe('AgentSourceIngestService', () => {
         organization: { connect: { id: 'org-1' } },
         brand: { connect: { id: 'brand-1' } },
         user: { connect: { id: 'user-1' } },
+        origin: IngredientOrigin.IMPORTED,
         status: IngredientStatus.PROCESSING,
         isDeleted: false,
         metadata: {

@@ -44,6 +44,7 @@ import {
   FontFamily,
   GenerationPriority,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   IntegrationPlatform,
   IntegrationStatus,
@@ -212,6 +213,7 @@ const PRISMA_REQUIRED: Record<string, readonly string[]> = {
     'TEXT',
     'SOURCE',
   ],
+  IngredientOrigin: ['UPLOADED', 'GENERATED', 'IMPORTED', 'UNKNOWN'],
   IngredientStatus: [
     'DRAFT',
     'PROCESSING',
@@ -403,6 +405,7 @@ const DOMAIN_ENUMS: Record<string, Record<string, string>> = {
   FontFamily,
   GenerationPriority,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   IntegrationPlatform,
   IntegrationStatus,

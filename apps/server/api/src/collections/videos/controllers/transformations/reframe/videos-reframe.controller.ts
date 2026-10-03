@@ -37,6 +37,7 @@ import {
   ActivityKey,
   ActivitySource,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
   ModelCategory,
@@ -178,6 +179,7 @@ export class VideosReframeController {
 
     const { metadataData, ingredientData } =
       await this.sharedService.createMediaDocuments(user, {
+        origin: IngredientOrigin.GENERATED,
         brandId: parent.brandId ?? user.brandId,
         category: IngredientCategory.VIDEO,
         duration: parentMetadata.duration,

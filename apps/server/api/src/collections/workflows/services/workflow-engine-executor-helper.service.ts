@@ -7,6 +7,7 @@ import { isReplicateSubmissionRejected } from '@api/services/integrations/replic
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
   TransformationCategory,
@@ -124,6 +125,7 @@ export class WorkflowEngineExecutorHelperService {
 
     const { ingredientData, metadataData } =
       await this.sharedService.createMediaDocumentsInternal({
+        origin: IngredientOrigin.GENERATED,
         brandId: args.brandId,
         category: args.category,
         extension: args.extension,

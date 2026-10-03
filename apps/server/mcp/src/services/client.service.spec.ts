@@ -1,5 +1,9 @@
 import { createHash } from 'node:crypto';
-import { MCP_ACTION_ORIGIN_PROOF_HEADER, Platform } from '@genfeedai/contracts';
+import {
+  IngredientOrigin,
+  MCP_ACTION_ORIGIN_PROOF_HEADER,
+  Platform,
+} from '@genfeedai/contracts';
 import {
   UNATTRIBUTED_FORWARDED_HEADER,
   UNATTRIBUTED_FORWARDED_VALUE,
@@ -265,6 +269,25 @@ describe('ClientService (MCP)', () => {
       });
       expect(result).toHaveLength(2);
       expect(result[0].title).toBe('Video 1');
+    });
+
+    it('sends the origin filter and returns each video origin', async () => {
+      (mockAxiosInstance.get as Mock).mockResolvedValue({
+        data: {
+          data: [{ attributes: { origin: 'UPLOADED' }, id: 'v1' }],
+        },
+      });
+
+      const result = await service.listVideos(10, 0, IngredientOrigin.UPLOADED);
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/videos', {
+        params: {
+          'page[limit]': 10,
+          'page[offset]': 0,
+          origins: 'UPLOADED',
+        },
+      });
+      expect(result[0].origin).toBe('UPLOADED');
     });
   });
 
@@ -632,6 +655,53 @@ describe('ClientService (MCP)', () => {
 
       expect(result).toHaveLength(2);
       expect(result[0].prompt).toBe('Sunset');
+    });
+
+    it('sends the origin filter and returns each image origin', async () => {
+      (mockAxiosInstance.get as Mock).mockResolvedValue({
+        data: {
+          data: [{ attributes: { origin: 'GENERATED' }, id: 'i4' }],
+        },
+      });
+
+      const result = await service.listImages({
+        origin: IngredientOrigin.GENERATED,
+      });
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/images', {
+        params: {
+          'page[limit]': 10,
+          'page[offset]': 0,
+          origins: 'GENERATED',
+        },
+      });
+      expect(result[0].origin).toBe('GENERATED');
+    });
+
+    it('lists music and avatars with the origin filter and returns their origin', async () => {
+      (mockAxiosInstance.get as Mock)
+        .mockResolvedValueOnce({
+          data: { data: [{ attributes: { origin: 'UPLOADED' }, id: 'm1' }] },
+        })
+        .mockResolvedValueOnce({
+          data: { data: [{ attributes: { origin: 'IMPORTED' }, id: 'a1' }] },
+        });
+
+      const music = await service.listMusic({
+        origin: IngredientOrigin.UPLOADED,
+      });
+      const avatars = await service.listAvatars({
+        origin: IngredientOrigin.IMPORTED,
+      });
+
+      expect(mockAxiosInstance.get).toHaveBeenNthCalledWith(1, '/musics', {
+        params: { 'page[limit]': 10, 'page[offset]': 0, origins: 'UPLOADED' },
+      });
+      expect(mockAxiosInstance.get).toHaveBeenNthCalledWith(2, '/avatars', {
+        params: { 'page[limit]': 10, 'page[offset]': 0, origins: 'IMPORTED' },
+      });
+      expect(music[0].origin).toBe('UPLOADED');
+      expect(avatars[0].origin).toBe('IMPORTED');
     });
 
     it('reads the derived media url and stored prompt text', async () => {

@@ -1,6 +1,7 @@
 import {
   IngredientCategory,
   IngredientLineageDirection,
+  IngredientOrigin,
 } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { UseIngredientLineageResult } from '@genfeedai/props/content/ingredient.props';
@@ -56,18 +57,20 @@ describe('IngredientLineageStrip', () => {
     setLineage();
   });
 
-  it('lists each reference with its name and type under "Made from"', () => {
+  it('lists each reference with its name, type and origin under "Made from"', () => {
     setLineage({
       items: [
         asset({
           id: 'sheet',
           ingredientUrl: 'https://cdn.genfeed.ai/sheet.jpg',
           metadataLabel: 'Character sheet',
+          origin: IngredientOrigin.UPLOADED,
         }),
         asset({
           id: 'logo',
           ingredientUrl: 'https://cdn.genfeed.ai/logo.jpg',
           metadataLabel: 'Logo',
+          origin: IngredientOrigin.IMPORTED,
         }),
       ],
     });
@@ -84,6 +87,8 @@ describe('IngredientLineageStrip', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Character sheet')).toBeInTheDocument();
     expect(screen.getByText('Logo')).toBeInTheDocument();
+    expect(screen.getByText('Uploaded')).toBeInTheDocument();
+    expect(screen.getByText('Imported')).toBeInTheDocument();
     expect(
       screen.getByRole('img', { name: 'Character sheet' }),
     ).toHaveAttribute('src', 'https://cdn.genfeed.ai/sheet.jpg');
@@ -95,6 +100,7 @@ describe('IngredientLineageStrip', () => {
         asset({
           id: 'out',
           metadataLabel: 'Hero shot',
+          origin: IngredientOrigin.GENERATED,
         }),
       ],
     });
@@ -107,6 +113,7 @@ describe('IngredientLineageStrip', () => {
     );
 
     expect(screen.getByRole('region', { name: 'Used in' })).toBeInTheDocument();
+    expect(screen.getByText('Generated')).toBeInTheDocument();
   });
 
   it('shows a trashed reference as "Deleted reference" without a thumbnail', () => {
@@ -117,6 +124,7 @@ describe('IngredientLineageStrip', () => {
           ingredientUrl: 'https://cdn.genfeed.ai/should-not-render.jpg',
           isDeleted: true,
           metadataLabel: 'Old sheet',
+          origin: IngredientOrigin.UPLOADED,
         }),
       ],
     });
@@ -129,6 +137,8 @@ describe('IngredientLineageStrip', () => {
     );
 
     expect(screen.getByText('Deleted reference')).toBeInTheDocument();
+    // Where it came from survives the trash; what it was does not.
+    expect(screen.getByText('Uploaded')).toBeInTheDocument();
     expect(screen.queryByText('Old sheet')).not.toBeInTheDocument();
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });

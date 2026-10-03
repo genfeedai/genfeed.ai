@@ -16,7 +16,7 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import { IngredientCategory } from '@genfeedai/contracts';
+import { IngredientCategory, IngredientOrigin } from '@genfeedai/contracts';
 import { testId, testIds } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -254,6 +254,24 @@ describe('IngredientsOperationsController', () => {
         mockServices.sharedService.createMediaDocuments,
       ).toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+
+    it.each([
+      IngredientOrigin.UPLOADED,
+      IngredientOrigin.GENERATED,
+      IngredientOrigin.IMPORTED,
+      IngredientOrigin.UNKNOWN,
+    ])('keeps the original %s origin on the clone', async (origin) => {
+      mockServices.ingredientsService.findOne.mockResolvedValueOnce({
+        ...mockIngredient,
+        origin,
+      });
+
+      await controller.cloneIngredient(mockRequest, mockUser, ingredientId);
+
+      expect(
+        mockServices.sharedService.createMediaDocuments,
+      ).toHaveBeenCalledWith(mockUser, expect.objectContaining({ origin }));
     });
 
     // Regression: production categories are SCREAMING_SNAKE, but uploads land

@@ -25,6 +25,7 @@ import {
   ByokProvider,
   categoryToPlural,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/contracts';
@@ -121,6 +122,7 @@ export class VideosLipSyncController {
       );
       const { metadataData, ingredientData } =
         await this.sharedService.createMediaDocuments(user, {
+          origin: IngredientOrigin.GENERATED,
           brandId: imageIngredient.brandId ?? user.brandId,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,

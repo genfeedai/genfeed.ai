@@ -119,4 +119,61 @@ describe('useIngredientLineage', () => {
     expect(result.current.isLoading).toBe(false);
     expect(result.current.items).toEqual([]);
   });
+
+  it('starts at page one when returning to an asset that was paged', async () => {
+    findLineage
+      .mockResolvedValueOnce(page({ hasNext: true, items: [item('a1')] }))
+      .mockResolvedValueOnce(page({ items: [item('a2')], page: 2 }))
+      .mockResolvedValueOnce(page({ items: [item('b1')] }))
+      .mockResolvedValueOnce(page({ items: [item('a1')] }));
+
+    const { rerender, result } = renderHook(
+      ({ id }) =>
+        useIngredientLineage(id, IngredientLineageDirection.MADE_FROM),
+      { initialProps: { id: 'asset-a' } },
+    );
+    await waitFor(() => expect(result.current.hasNext).toBe(true));
+    act(() => result.current.loadMore());
+    await waitFor(() => expect(result.current.items).toHaveLength(2));
+
+    rerender({ id: 'asset-b' });
+    await waitFor(() =>
+      expect(result.current.items.map((entry) => entry.id)).toEqual(['b1']),
+    );
+    rerender({ id: 'asset-a' });
+    await waitFor(() =>
+      expect(result.current.items.map((entry) => entry.id)).toEqual(['a1']),
+    );
+
+    expect(findLineage).toHaveBeenLastCalledWith(
+      'asset-a',
+      IngredientLineageDirection.MADE_FROM,
+      expect.objectContaining({ page: 1 }),
+    );
+  });
+
+  it('retries the same page after a failed show more instead of skipping it', async () => {
+    findLineage
+      .mockResolvedValueOnce(page({ hasNext: true, items: [item('a')] }))
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValueOnce(page({ items: [item('b')], page: 2 }));
+
+    const { result } = renderHook(() =>
+      useIngredientLineage('asset-1', IngredientLineageDirection.MADE_FROM),
+    );
+    await waitFor(() => expect(result.current.hasNext).toBe(true));
+
+    act(() => result.current.loadMore());
+    await waitFor(() => expect(result.current.hasError).toBe(true));
+    expect(result.current.hasNext).toBe(true);
+    expect(result.current.items.map((entry) => entry.id)).toEqual(['a']);
+
+    act(() => result.current.loadMore());
+    await waitFor(() =>
+      expect(result.current.items.map((entry) => entry.id)).toEqual(['a', 'b']),
+    );
+
+    const pages = findLineage.mock.calls.map(([, , options]) => options.page);
+    expect(pages).toEqual([1, 2, 2]);
+  });
 });

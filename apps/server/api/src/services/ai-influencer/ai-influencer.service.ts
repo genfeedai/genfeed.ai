@@ -16,6 +16,7 @@ import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.uti
 import {
   FileInputType,
   FleetReviewStatus,
+  IngredientOrigin,
   IngredientStatus,
   LoraStatus,
 } from '@genfeedai/contracts';
@@ -447,6 +448,7 @@ export class AiInfluencerService {
       generationSource: `ai-influencer-${persona.slug}`,
       isDeleted: false,
       organizationId: persona.organizationId,
+      origin: IngredientOrigin.GENERATED,
       personaId: persona.id,
       personaSlug: persona.slug,
       reviewStatus: FleetReviewStatus.APPROVED,

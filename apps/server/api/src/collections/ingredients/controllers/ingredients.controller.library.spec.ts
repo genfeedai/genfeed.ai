@@ -11,6 +11,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
 import {
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   LibraryShelf,
 } from '@genfeedai/contracts';
@@ -175,6 +176,38 @@ describe('IngredientsController — Library axes', () => {
       expect(findBranchWith(aggregate, 'category')).toEqual({
         category: { in: ['IMAGE', 'VIDEO'] },
       });
+    });
+
+    it('filters the origin axis alongside type, shelf and folder', async () => {
+      await controller.findAll(
+        mockRequest,
+        {
+          categories: [IngredientCategory.IMAGE],
+          origins: [IngredientOrigin.UPLOADED, IngredientOrigin.IMPORTED],
+          shelf: LibraryShelf.APPROVED,
+        } as IngredientsQueryDto,
+        mockUser,
+      );
+
+      const [aggregate] = ingredientsService.findAll.mock.calls[0];
+      expect(findBranchWith(aggregate, 'origin')).toEqual({
+        origin: { in: ['UPLOADED', 'IMPORTED'] },
+      });
+      // The other axes still apply: origin narrows, it does not replace.
+      expect(findBranchWith(aggregate, 'category')).toEqual({
+        category: { in: ['IMAGE'] },
+      });
+    });
+
+    it('adds no origin predicate when none was asked for', async () => {
+      await controller.findAll(
+        mockRequest,
+        {} as IngredientsQueryDto,
+        mockUser,
+      );
+
+      const [aggregate] = ingredientsService.findAll.mock.calls[0];
+      expect(andBranches(aggregate).some((b) => 'origin' in b)).toBe(false);
     });
 
     it('falls back to the single `category` field when no multi-select is given', async () => {

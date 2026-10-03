@@ -493,11 +493,76 @@ describe('ToolRegistryService', () => {
       name: 'list_videos',
     });
 
-    expect(clientService.listVideos).toHaveBeenCalledWith(5, 0);
+    expect(clientService.listVideos).toHaveBeenCalledWith(5, 0, undefined);
     expect(
       (result as { content: { text: string }[] }).content[0].text,
     ).toContain('vid-1');
   });
+
+  it('handleToolCall list_videos passes the origin filter through', async () => {
+    await service.handleToolCall({
+      arguments: { limit: 5, origin: 'uploaded' },
+      name: 'list_videos',
+    });
+
+    expect(clientService.listVideos).toHaveBeenCalledWith(5, 0, 'UPLOADED');
+  });
+
+  it('handleToolCall list_images passes the origin filter through', async () => {
+    await service.handleToolCall({
+      arguments: { origin: 'IMPORTED' },
+      name: 'list_images',
+    });
+
+    expect(clientService.listImages).toHaveBeenCalledWith(
+      expect.objectContaining({ origin: 'IMPORTED' }),
+    );
+  });
+
+  it.each([
+    ['list_music', 'listMusic'],
+    ['list_avatars', 'listAvatars'],
+  ] as const)(
+    'handleToolCall %s passes the origin filter through',
+    async (name, method) => {
+      await service.handleToolCall({
+        arguments: { origin: 'generated' },
+        name,
+      });
+
+      expect(clientService[method]).toHaveBeenCalledWith(
+        expect.objectContaining({ origin: 'GENERATED' }),
+      );
+    },
+  );
+
+  it.each(['list_videos', 'list_images', 'list_music', 'list_avatars'])(
+    'handleToolCall %s rejects an unknown origin instead of listing everything',
+    async (name) => {
+      for (const method of [
+        clientService.listVideos,
+        clientService.listImages,
+        clientService.listMusic,
+        clientService.listAvatars,
+      ]) {
+        method.mockClear();
+      }
+
+      const result = await service.handleToolCall({
+        arguments: { origin: 'mine' },
+        name,
+      });
+
+      expect((result as { isError: boolean }).isError).toBe(true);
+      expect(
+        (result as { content: { text: string }[] }).content[0].text,
+      ).toContain('origin must be UPLOADED, GENERATED, IMPORTED or UNKNOWN');
+      expect(clientService.listVideos).not.toHaveBeenCalled();
+      expect(clientService.listImages).not.toHaveBeenCalled();
+      expect(clientService.listMusic).not.toHaveBeenCalled();
+      expect(clientService.listAvatars).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([
     ['list_videos', 'listVideos', 'videos', ''],

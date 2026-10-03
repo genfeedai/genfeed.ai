@@ -14,6 +14,7 @@ interface Row {
   metadata: { label: string };
   modelUsed: string | null;
   organizationId: string;
+  origin: string;
   sourceIds: string[];
   status: string;
   updatedAt: Date;
@@ -99,6 +100,7 @@ function row(overrides: Partial<Row> & { id: string }): Row {
     metadata: { label: overrides.id },
     modelUsed: null,
     organizationId: 'org-1',
+    origin: 'UPLOADED',
     sourceIds: [],
     status: 'UPLOADED',
     updatedAt: new Date('2026-10-01T00:00:00Z'),
@@ -138,6 +140,10 @@ describe('IngredientLineageService', () => {
     });
 
     expect(result.docs.map((doc) => doc.id).sort()).toEqual(['logo', 'sheet']);
+    expect(result.docs.map((doc) => doc.origin)).toEqual([
+      'UPLOADED',
+      'UPLOADED',
+    ]);
     expect(result.totalDocs).toBe(2);
     expect(result.hiddenCount).toBe(0);
   });
@@ -230,7 +236,11 @@ describe('IngredientLineageService', () => {
     });
 
     expect(result.docs).toHaveLength(1);
-    expect(result.docs[0]).toMatchObject({ id: 'trashed', isDeleted: true });
+    expect(result.docs[0]).toMatchObject({
+      id: 'trashed',
+      isDeleted: true,
+      origin: 'UPLOADED',
+    });
     expect(result.docs[0]).not.toHaveProperty('metadata');
     expect(result.docs[0]).not.toHaveProperty('generationPrompt');
     expect(JSON.stringify(result)).not.toContain('Old sheet');

@@ -26,6 +26,7 @@ import {
   ArticleStatus,
   AssetScope,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
   PromptCategory,
@@ -596,6 +597,7 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
             isDeleted: false,
             metadataId: metadata.id,
             mimeType: 'video/mp4',
+            origin: IngredientOrigin.IMPORTED,
             organizationId: request.context.organizationId,
             providerData: {
               artifactId,

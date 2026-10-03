@@ -7,6 +7,7 @@ import { PromptsService } from '@api/collections/prompts/services/prompts.servic
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/contracts';
@@ -90,6 +91,7 @@ describe('SharedService', () => {
         appliedPacks: [{ id: 'core-baseline', version: '1.0.0' }],
       };
       await service.createMediaDocuments(mockUser, {
+        origin: IngredientOrigin.GENERATED,
         category: IngredientCategory.IMAGE,
         generationPrompt: generationHarness.enhancedPrompt,
         generationHarness,
@@ -110,6 +112,7 @@ describe('SharedService', () => {
       ];
 
       const result = await service.createMediaDocuments(mockUser, {
+        origin: IngredientOrigin.GENERATED,
         category: IngredientCategory.IMAGE,
         extension: MetadataExtension.JPG,
         generationPrompt: 'A boxer in a dark arena',
@@ -136,6 +139,7 @@ describe('SharedService', () => {
           metadataId: mockMetadata.id,
           modelUsed: 'black-forest-labs/flux-schnell',
           organizationId: owner.organizationId,
+          origin: IngredientOrigin.GENERATED,
           promptId,
           sources: sourceIds,
           userId: owner.userId,
@@ -149,6 +153,7 @@ describe('SharedService', () => {
 
     it('persists redacted generation-brief compiler identity on the ingredient', async () => {
       await service.createMediaDocuments(mockUser, {
+        origin: IngredientOrigin.GENERATED,
         category: IngredientCategory.IMAGE,
         generationSource:
           'generation-brief:v1:flux-schnell-capability@1:flux-schnell-image-compiler@1',
@@ -172,6 +177,7 @@ describe('SharedService', () => {
 
     it('persists the confirmed agent action identity on the ingredient', async () => {
       await service.createMediaDocuments(mockUser, {
+        origin: IngredientOrigin.GENERATED,
         category: IngredientCategory.IMAGE,
         sourceActionId: 'generation-card-1',
       });
@@ -183,6 +189,7 @@ describe('SharedService', () => {
 
     it('derives a compact metadata label from a multiline prompt', async () => {
       await service.createMediaDocuments(mockUser, {
+        origin: IngredientOrigin.GENERATED,
         category: IngredientCategory.IMAGE,
         generationPrompt: 'SCENE:\nA boxer in a dark arena',
       });
@@ -205,6 +212,7 @@ describe('SharedService', () => {
       'accepts the %s filename extension case-insensitively',
       async (extension, expected) => {
         await service.createMediaDocuments(mockUser, {
+          origin: IngredientOrigin.GENERATED,
           category: IngredientCategory.IMAGE,
           extension: extension as MetadataExtension,
         });
@@ -218,6 +226,7 @@ describe('SharedService', () => {
     it('rejects an unsupported metadata extension', async () => {
       await expect(
         service.createMediaDocuments(mockUser, {
+          origin: IngredientOrigin.GENERATED,
           category: IngredientCategory.IMAGE,
           extension: 'exe' as MetadataExtension,
         }),
@@ -232,6 +241,7 @@ describe('SharedService', () => {
       } as never);
 
       await service.createMediaDocuments(mockUser, {
+        origin: IngredientOrigin.GENERATED,
         category: IngredientCategory.VIDEO,
         parentId,
       });
@@ -245,6 +255,7 @@ describe('SharedService', () => {
     it('rejects malformed canonical relation IDs before writing', async () => {
       await expect(
         service.createMediaDocuments(mockUser, {
+          origin: IngredientOrigin.GENERATED,
           category: IngredientCategory.IMAGE,
           promptId: 'not-an-id',
         }),
@@ -263,6 +274,7 @@ describe('SharedService', () => {
       } as unknown as User;
 
       await service.createMediaDocuments(signedInUser, {
+        origin: IngredientOrigin.GENERATED,
         category: IngredientCategory.IMAGE,
       });
 
@@ -278,6 +290,7 @@ describe('SharedService', () => {
 
       await expect(
         service.createMediaDocuments(mockUser, {
+          origin: IngredientOrigin.GENERATED,
           category: IngredientCategory.IMAGE,
         }),
       ).rejects.toThrow('Ingredient create failed');
@@ -288,9 +301,30 @@ describe('SharedService', () => {
     });
   });
 
+  describe('origin', () => {
+    it.each([
+      IngredientOrigin.UPLOADED,
+      IngredientOrigin.GENERATED,
+      IngredientOrigin.IMPORTED,
+    ])(
+      'hands %s to the ingredient create for the caller to own',
+      async (origin) => {
+        await service.createMediaDocuments(mockUser, {
+          category: IngredientCategory.IMAGE,
+          origin,
+        });
+
+        expect(ingredientsService.create).toHaveBeenCalledWith(
+          expect.objectContaining({ origin }),
+        );
+      },
+    );
+  });
+
   describe('createMediaDocumentsInternal', () => {
     it('requires and persists explicit canonical ownership IDs', async () => {
       await service.createMediaDocumentsInternal({
+        origin: IngredientOrigin.GENERATED,
         brandId: owner.brandId,
         category: IngredientCategory.VOICE,
         organizationId: owner.organizationId,

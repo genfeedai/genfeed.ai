@@ -4,6 +4,7 @@ import { ReplicateProviderError } from '@api/services/integrations/replicate/err
 import {
   AgentFailureReason,
   IngredientCategory,
+  IngredientOrigin,
   MetadataExtension,
 } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -127,6 +128,7 @@ describe('WorkflowEngineExecutorHelperService.createWorkflowOutputIngredient', (
       expect.objectContaining({
         generationPrompt: 'A launch poster',
         generationSource: 'generation-brief:v1:workflow',
+        origin: IngredientOrigin.GENERATED,
         negativePrompt: 'watermark',
         providerData: { compilerId: 'qwen-image-image-compiler' },
       }),
