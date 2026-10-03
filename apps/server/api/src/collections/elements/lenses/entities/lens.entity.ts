@@ -4,7 +4,6 @@ import { type ElementLens } from '@genfeedai/prisma';
 
 export class ElementLensEntity extends BaseEntity implements ElementLens {
   declare readonly organizationId: string | null;
-  declare readonly isActive: boolean;
   declare readonly sortOrder: number;
   key!: string;
   label!: string;

@@ -7,7 +7,6 @@ export class ElementCameraMovementEntity
   implements ElementCameraMovement
 {
   declare readonly organizationId: string | null;
-  declare readonly isActive: boolean;
   declare readonly sortOrder: number;
   key!: string;
   label!: string;
