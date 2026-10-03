@@ -3,6 +3,7 @@ import type { SchedulerPostGroup } from '@api/collections/post-groups/services/p
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
+import { deriveReleaseTitle } from '@api/collections/post-groups/services/post-group-release-projection.util';
 import {
   applyReleaseTargetUpdates,
   GROUP_ACTION_STATES,
@@ -339,10 +340,7 @@ export class PostGroupsService {
           status: ReleaseStatus.DRAFT,
           statusTransitions: this.contractService.toJson([transition]),
           timezone: post.timezone || 'UTC',
-          title:
-            post.label?.trim() ||
-            post.description.slice(0, 100) ||
-            'Untitled post',
+          title: deriveReleaseTitle(post.label, post.description),
         },
       });
       await tx.post.updateMany({

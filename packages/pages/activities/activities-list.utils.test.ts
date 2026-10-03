@@ -121,6 +121,22 @@ describe('getActivityDescription', () => {
       } as IActivity),
     ).toBe('/settings/integrations');
     expect(
+      getActivityDestinationPath({
+        entityId: 'exec-7',
+        entityModel: 'WorkflowExecution',
+        key: ActivityKey.WORKFLOW_EXECUTION_FAILED,
+        value: 'Daily trends digest',
+      } as IActivity),
+    ).toBe('/automation/runs/exec-7');
+    expect(
+      getActivityDestinationPath({
+        entityId: 'strategy-3',
+        entityModel: 'AgentStrategy',
+        key: ActivityKey.AGENT_REVIEW_CHANGED,
+        value: 'Review required for x.',
+      } as IActivity),
+    ).toBe('/automation/agents/strategy-3');
+    expect(
       getActivityTypeKind({
         key: ActivityKey.IMAGE_FAILED,
       } as IActivity),
@@ -136,6 +152,18 @@ describe('getActivityDescription', () => {
         value: JSON.stringify({ error: 'Provider timed out' }),
       } as IActivity),
     ).toBe('Provider timed out');
+    expect(
+      getActivityDetailText({
+        key: ActivityKey.WORKFLOW_EXECUTION_FAILED,
+        value: 'Daily trends digest',
+      } as IActivity),
+    ).toBe('Daily trends digest');
+    expect(
+      getActivityDetailText({
+        key: ActivityKey.IMAGE_PROCESSING,
+        value: 'cmg1a2b3c0000xyz',
+      } as IActivity),
+    ).toBeUndefined();
   });
 
   it('exposes structured source and credit metadata for compact activity feeds', () => {

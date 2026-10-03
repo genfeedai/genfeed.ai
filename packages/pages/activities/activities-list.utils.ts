@@ -403,6 +403,10 @@ export function getActivityDetailText(activity: IActivity): string | undefined {
   if (value.includes('/images/') || value.includes('/videos/')) {
     return undefined;
   }
+  // A bare record id (`image-1`, a cuid) is a reference, not readable detail.
+  if (/^[a-zA-Z0-9_-]+$/.test(value) && /[\d_-]/.test(value)) {
+    return undefined;
+  }
   return value;
 }
 
@@ -445,6 +449,13 @@ export function getActivityDestinationPath(
   }
   if (id && entityModel === 'workflow') {
     return `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${encodeURIComponent(id)}`;
+  }
+  // Workflow and agent run outcomes point at the run, where its error lives.
+  if (id && entityModel === 'workflowexecution') {
+    return `${APP_ROUTES.AUTOMATION.RUNS}/${encodeURIComponent(id)}`;
+  }
+  if (id && entityModel === 'agentstrategy') {
+    return `${APP_ROUTES.AUTOMATION.AGENTS}/${encodeURIComponent(id)}`;
   }
   if (MEDIA_SUBJECTS.has(subject)) {
     return createLibraryAssetRoute(
