@@ -251,6 +251,7 @@ describe('CreditDeductionProcessor', () => {
       metadata: { assetId: 'asset-1', marginMultiplier: 3.33 },
       organizationId: 'org-1',
       reservationId: 'hold-1',
+      settlementIdempotencyKey: 'media-generation-settle:hold-1',
       source: ActivitySource.IMAGE_GENERATION,
     });
     expect(
@@ -259,6 +260,25 @@ describe('CreditDeductionProcessor', () => {
     expect(prisma.ingredient.findFirst).not.toHaveBeenCalled();
   });
 
+  it('normalizes legacy late-job payloads to the reservation ledger reference', async () => {
+    await processor.process(
+      buildJob({ idempotencyKey: 'media-generation-late-settle:hold-1' }),
+    );
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({
+        referenceId: 'hold-1',
+        referenceType: 'credit_reservation',
+        idempotencyKey: 'media-generation-late-settle:hold-1',
+      }),
+    );
+  });
   it('passes completion billing references into the credit utility', async () => {
     const data: CreditDeductionJobData = {
       amount: 18,

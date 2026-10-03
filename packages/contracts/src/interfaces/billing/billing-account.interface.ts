@@ -120,6 +120,8 @@ export interface IBindCreditReservationOutputInput {
 }
 
 export interface ISettleCreditReservationInput {
+  /** Ledger key, separate from the reservation lookup idempotencyKey. */
+  settlementIdempotencyKey?: string;
   /** Internal evidence CAS: reject a claim computed from an obsolete completion snapshot. */
   expectedReservationMetadata?: Record<string, unknown>;
   organizationId: string;

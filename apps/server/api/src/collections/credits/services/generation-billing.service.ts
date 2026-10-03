@@ -10,6 +10,7 @@ import {
   recordCrunSubmissionFailure,
   runCrunBillingMutation,
 } from '@api/collections/credits/services/generation-crun-billing-guard';
+import { GenerationHoldRecoveryService } from '@api/collections/credits/services/generation-hold-recovery.service';
 import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import type { ReservationCreditsConfig } from '@api/helpers/utils/credits/generation-credit-reservation.util';
@@ -23,6 +24,7 @@ import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivitySource,
+  CreditHoldRecoveryAction,
   CreditReservationStatus,
   IngredientStatus,
 } from '@genfeedai/contracts';
@@ -38,7 +40,7 @@ import {
 import type { ICreditReservation } from '@genfeedai/contracts/interfaces/billing';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { z } from 'zod';
 
 /** The request-shaped input every generation billing step reads. */
@@ -71,7 +73,9 @@ const TERMINAL_FAILURE_STATUSES: readonly string[] = [
 ];
 interface HoldReconcileStats {
   awaitingIntentProof: number;
+  pollsRemaining: number;
   expiredIntentHolds: number;
+  recoveredIntentHolds: number;
 }
 
 /**
@@ -97,6 +101,7 @@ export class GenerationBillingService {
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly quoteGroups: GenerationQuoteGroupService,
+    @Optional() private readonly holdRecovery?: GenerationHoldRecoveryService,
   ) {
     this.byok = new GenerationByokUsage(queue, prisma, logger);
   }
@@ -415,6 +420,8 @@ export class GenerationBillingService {
       amount: hold.amount,
       description: hold.description ?? 'Media generation',
       idempotencyKey: this.lateSettlementKey(hold.id),
+      referenceId: hold.id,
+      referenceType: 'credit_reservation',
       maxOverdraftCredits:
         MEDIA_GENERATION_LATE_SETTLEMENT_MAX_OVERDRAFT_CREDITS,
       metadata: {
@@ -605,7 +612,9 @@ export class GenerationBillingService {
     let candidates = 0;
     const stats: HoldReconcileStats = {
       awaitingIntentProof: 0,
+      pollsRemaining: 5,
       expiredIntentHolds: 0,
+      recoveredIntentHolds: 0,
     };
     for (;;) {
       // tenant-scope-ignore: platform sweep; each hold carries its organizationId
@@ -636,6 +645,7 @@ export class GenerationBillingService {
       awaitingIntentProof: stats.awaitingIntentProof,
       candidates,
       expiredIntentHolds: stats.expiredIntentHolds,
+      recoveredIntentHolds: stats.recoveredIntentHolds,
     });
     return acted;
   }
@@ -836,26 +846,31 @@ export class GenerationBillingService {
           // provider, a hold still unproven at the ceiling stops locking the
           // wallet: an output that completes afterwards is charged late
           // (#5886), so expiry cannot give it away.
-          if (isFailureConfirmed || isPastCeiling) {
+          if (isPastCeiling && !isFailureConfirmed) {
+            if (!this.holdRecovery || stats.pollsRemaining <= 0) {
+              stats.awaitingIntentProof += 1;
+              continue;
+            }
+            stats.pollsRemaining -= 1;
+            const action = await this.holdRecovery.recoverAtCeiling(
+              hold.organizationId,
+              hold.id,
+            );
+            if (action) {
+              if (action === CreditHoldRecoveryAction.RELEASE)
+                stats.expiredIntentHolds += 1;
+              stats.recoveredIntentHolds += 1;
+              acted += 1;
+            }
+          } else if (isFailureConfirmed) {
             await this.credits.releaseReservation({
               organizationId: hold.organizationId,
-              ...(isFailureConfirmed ? {} : { reason: 'expiry' as const }),
+
               reservationId: hold.id,
               expectedReservationMetadata: z
                 .record(z.string(), z.unknown())
                 .parse(hold.metadata),
             });
-            if (!isFailureConfirmed) {
-              stats.expiredIntentHolds += 1;
-              this.logger.warn(
-                'Submission-intent credit hold expired without provider proof',
-                {
-                  ingredientId,
-                  organizationId: hold.organizationId,
-                  reservationId: hold.id,
-                },
-              );
-            }
             acted += 1;
           } else if (hold.expiresAt <= now) {
             stats.awaitingIntentProof += 1;

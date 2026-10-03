@@ -5,19 +5,18 @@ import type {
   AvatarVideoProvider,
 } from '@api/services/avatar-video/avatar-video-provider.interface';
 import { ByokService } from '@api/services/byok/byok.service';
+import { readHeygenVideoStatus } from '@api/services/integrations/heygen/heygen-video-status';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
-import { ApiKeyCategory, ByokProvider } from '@genfeedai/contracts';
+import { ByokProvider } from '@genfeedai/contracts';
 import type { AvatarVideoProviderName } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class HeygenAvatarProvider implements AvatarVideoProvider {
   readonly providerName: AvatarVideoProviderName = 'heygen';
   private readonly logContext = 'HeygenAvatarProvider';
-  private readonly statusUrl = 'https://api.heygen.com/v1/video_status.get';
 
   constructor(
     private readonly heygenService: HeyGenService,
@@ -86,64 +85,13 @@ export class HeygenAvatarProvider implements AvatarVideoProvider {
     jobId: string,
     organizationId: string,
   ): Promise<AvatarVideoJobResult> {
-    try {
-      const byokKey = await this.byokService.resolveApiKey(
-        organizationId,
-        ByokProvider.HEYGEN,
-      );
-      const apiKey =
-        byokKey?.apiKey ??
-        this.apiKeyHelperService.getApiKey(ApiKeyCategory.HEYGEN);
-
-      if (!apiKey) {
-        this.logger.error(
-          `${this.logContext} getStatus failed: no HeyGen API key resolved`,
-          { organizationId },
-        );
-        return {
-          error: 'No HeyGen API key configured (BYOK or env HEYGEN_KEY).',
-          jobId,
-          providerName: this.providerName,
-          status: 'failed',
-        };
-      }
-
-      const response = await firstValueFrom(
-        this.httpService.get(this.statusUrl, {
-          headers: { 'X-Api-Key': apiKey },
-          params: { video_id: jobId },
-          timeout: 15_000,
-        }),
-      );
-
-      const data = response.data?.data;
-
-      if (!data) {
-        return { jobId, providerName: this.providerName, status: 'processing' };
-      }
-
-      if (data.status === 'completed') {
-        return {
-          jobId,
-          providerName: this.providerName,
-          status: 'completed',
-          videoUrl: data.video_url,
-        };
-      }
-
-      if (data.status === 'failed' || data.status === 'error') {
-        return {
-          error: data.error || 'HeyGen video generation failed',
-          jobId,
-          providerName: this.providerName,
-          status: 'failed',
-        };
-      }
-
-      return { jobId, providerName: this.providerName, status: 'processing' };
-    } catch (error: unknown) {
-      this.logger.error(`${this.logContext} getStatus failed`, error);
-      return { jobId, providerName: this.providerName, status: 'processing' };
-    }
+    return readHeygenVideoStatus(
+      jobId,
+      organizationId,
+      this.byokService,
+      this.apiKeyHelperService,
+      this.httpService,
+      this.logger,
+    );
   }
 }
