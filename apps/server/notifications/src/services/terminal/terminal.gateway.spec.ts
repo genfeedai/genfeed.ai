@@ -223,29 +223,6 @@ describe('TerminalGateway', () => {
     expect(socket.disconnect).not.toHaveBeenCalled();
   });
 
-  it('declares the end client unknown when minting a token from the session cookie', async () => {
-    const terminalService = createTerminalService();
-    const gateway = new TerminalGateway(terminalService as never);
-    const socket = createSocket(
-      'http://localhost:3000',
-      undefined,
-      'better-auth.session_token=session-123',
-    );
-
-    await gateway.handleConnection(socket);
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:3010/v1/auth/token',
-      {
-        cache: 'no-store',
-        headers: {
-          cookie: 'better-auth.session_token=session-123',
-          [UNATTRIBUTED_FORWARDED_HEADER]: UNATTRIBUTED_FORWARDED_VALUE,
-        },
-      },
-    );
-  });
-
   // #5318: a well-formed Bearer header that fails verification must keep
   // the documented session-cookie fallback (unlike a malformed header).
   it('falls back to the session cookie when a well-formed Bearer header fails verification', async () => {
@@ -310,7 +287,7 @@ describe('TerminalGateway', () => {
     },
   );
 
-  it('accepts localhost origins by minting a token from the Better Auth session cookie', async () => {
+  it('accepts localhost origins by minting a token from the Better Auth session cookie, declaring the client unknown', async () => {
     const terminalService = createTerminalService();
     const gateway = new TerminalGateway(terminalService as never);
     const socket = createSocket(
@@ -324,7 +301,10 @@ describe('TerminalGateway', () => {
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:3010/v1/auth/token',
       expect.objectContaining({
-        headers: { cookie: 'better-auth.session_token=session-123' },
+        headers: {
+          cookie: 'better-auth.session_token=session-123',
+          [UNATTRIBUTED_FORWARDED_HEADER]: UNATTRIBUTED_FORWARDED_VALUE,
+        },
       }),
     );
     expect(verifyMock).toHaveBeenCalledWith('cookie-token');
