@@ -16,7 +16,7 @@ import HelpPopover from '@ui/layout/help-popover/HelpPopover';
  * **App contract for local navigation + primary actions** (Discovery Socials,
  * Ads hub, Models, Admin list modules, Analytics date tools, etc.):
  * - full-bleed `border-b` that meets the shell edges
- * - Help sits immediately left of the action cluster, then tabs at the right edge
+ * - ghost actions, Help and the inspector opener share a cluster after controls
  * - when shell breadcrumb owns page identity (or `titleVisibility="sr-only"`):
  *   title is chrome-only; tabs + actions share one dense row
  * - when title is visible: title row, then optional tab strip under it
@@ -29,6 +29,7 @@ export default function SectionTopbar({
   subtitle,
   icon: Icon,
   actions,
+  iconActions,
   leading,
   tabs,
   titleVisibility = 'auto',
@@ -48,7 +49,8 @@ export default function SectionTopbar({
   const routeHelp = usePageHelp();
   const resolvedHelp = help === undefined ? routeHelp : help;
   const helpTrigger = resolvedHelp ? <HelpPopover help={resolvedHelp} /> : null;
-  const hasActions = Boolean(actions) || Boolean(helpTrigger);
+  const hasActions =
+    Boolean(actions) || Boolean(iconActions) || Boolean(helpTrigger);
   const isBarVisible =
     forceVisible || hasVisibleTitle || hasLeading || hasTabs || hasActions;
   const { markPlaced, renderToggle } = useSectionInspectorToggle(isBarVisible);
@@ -108,16 +110,22 @@ export default function SectionTopbar({
                       : 'shrink-0',
                 )}
               >
-                {helpTrigger ? (
-                  <div
-                    data-testid="section-topbar-help"
-                    className="flex shrink-0 items-center"
-                  >
-                    {helpTrigger}
-                  </div>
-                ) : null}
                 {actions}
-                {inspectorToggle}
+                <div
+                  className="flex shrink-0 items-center gap-1"
+                  data-testid="section-topbar-icon-actions"
+                >
+                  {helpTrigger ? (
+                    <div
+                      data-testid="section-topbar-help"
+                      className="flex shrink-0 items-center"
+                    >
+                      {helpTrigger}
+                    </div>
+                  ) : null}
+                  {iconActions}
+                  {inspectorToggle}
+                </div>
               </div>
             ) : null}
             {hasTabs ? (
@@ -177,16 +185,22 @@ export default function SectionTopbar({
               data-testid="section-topbar-actions"
               className="flex max-w-full min-w-0 flex-wrap items-center justify-end gap-2"
             >
-              {helpTrigger ? (
-                <div
-                  data-testid="section-topbar-help"
-                  className="flex shrink-0 items-center"
-                >
-                  {helpTrigger}
-                </div>
-              ) : null}
               {actions}
-              {inspectorToggle}
+              <div
+                className="flex shrink-0 items-center gap-1"
+                data-testid="section-topbar-icon-actions"
+              >
+                {helpTrigger ? (
+                  <div
+                    data-testid="section-topbar-help"
+                    className="flex shrink-0 items-center"
+                  >
+                    {helpTrigger}
+                  </div>
+                ) : null}
+                {iconActions}
+                {inspectorToggle}
+              </div>
             </div>
           ) : null}
         </div>

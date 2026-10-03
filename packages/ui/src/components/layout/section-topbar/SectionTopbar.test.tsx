@@ -286,14 +286,15 @@ describe('SectionTopbar', () => {
     );
   });
 
-  it('clusters Help immediately left of chrome-only actions on the right', () => {
+  it('clusters Help with ghost actions after the bordered controls', () => {
     navigationState.hasCanonicalBreadcrumb = true;
 
     render(
       <SectionTopbar
         title="Activities"
         titleVisibility="sr-only"
-        actions={<button type="button">Refresh</button>}
+        actions={<button type="button">Filter</button>}
+        iconActions={<button type="button">Refresh</button>}
         help={{ title: 'About Activities', body: 'What changed.' }}
       />,
     );
@@ -303,18 +304,20 @@ describe('SectionTopbar', () => {
     const refresh = screen.getByRole('button', { name: 'Refresh' });
 
     expect(actions).toHaveClass('justify-end');
-    expect(actions.firstElementChild).toBe(helpSlot);
+    expect(
+      screen.getByTestId('section-topbar-icon-actions').firstElementChild,
+    ).toBe(helpSlot);
     expect(
       helpSlot.compareDocumentPosition(refresh) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
-  it('renders a help trigger before actions that opens a popover with the given title and body', () => {
+  it('renders a help trigger beside ghost actions that opens a popover with the given title and body', () => {
     render(
       <SectionTopbar
         title="Trending Content"
-        actions={<button type="button">Refresh</button>}
+        iconActions={<button type="button">Refresh</button>}
         help={{ title: 'About Trending', body: 'How this page works.' }}
       />,
     );
@@ -326,7 +329,9 @@ describe('SectionTopbar', () => {
     const refresh = screen.getByRole('button', { name: 'Refresh' });
     const helpSlot = screen.getByTestId('section-topbar-help');
     expect(actionsSlot).toContainElement(helpTrigger);
-    expect(actionsSlot.firstElementChild).toBe(helpSlot);
+    expect(
+      screen.getByTestId('section-topbar-icon-actions').firstElementChild,
+    ).toBe(helpSlot);
     expect(
       helpTrigger.compareDocumentPosition(refresh) &
         Node.DOCUMENT_POSITION_FOLLOWING,
@@ -350,7 +355,9 @@ describe('SectionTopbar', () => {
     const helpSlot = screen.getByTestId('section-topbar-help');
     const actionsSlot = screen.getByTestId('section-topbar-actions');
     expect(actionsSlot).toContainElement(helpSlot);
-    expect(actionsSlot.firstElementChild).toBe(helpSlot);
+    expect(
+      screen.getByTestId('section-topbar-icon-actions').firstElementChild,
+    ).toBe(helpSlot);
     expect(actionsSlot).toHaveClass('shrink-0');
     expect(helpSlot).toHaveClass('shrink-0');
     expect(actionsSlot.parentElement).toHaveClass('justify-end');
@@ -374,16 +381,18 @@ describe('SectionTopbar', () => {
     const tabs = screen.getByTestId('section-topbar-tabs');
     const helpSlot = screen.getByTestId('section-topbar-help');
     expect(actions).toContainElement(helpSlot);
-    expect(actions.firstElementChild).toBe(helpSlot);
+    expect(
+      screen.getByTestId('section-topbar-icon-actions').firstElementChild,
+    ).toBe(helpSlot);
     expect(actions.nextElementSibling).toBe(tabs);
-    expect(helpSlot.parentElement).toHaveClass('flex', 'items-center', 'gap-2');
+    expect(helpSlot.parentElement).toHaveClass('flex', 'items-center', 'gap-1');
   });
 
-  it('puts the details toggle at the end of the sub-nav', () => {
+  it('puts the sidebar opener at the end of the ghost cluster', () => {
     const toggle = vi.fn();
     sidebarState.current = {
       isMobileOpen: false,
-      isOpen: true,
+      isOpen: false,
       selection: { id: 'asset-1' },
       setIsMobileOpen: vi.fn(),
       toggle,
@@ -408,6 +417,25 @@ describe('SectionTopbar', () => {
 
     fireEvent.click(details);
     expect(toggle).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves closing controls inside the open sidebar and drawer', () => {
+    sidebarState.current = {
+      isMobileOpen: true,
+      isOpen: true,
+      selection: { id: 'asset-1' },
+      setIsMobileOpen: vi.fn(),
+      toggle: vi.fn(),
+    };
+    render(
+      <SectionTopbar
+        title="Library"
+        titleVisibility="sr-only"
+        actions={<span>Filters</span>}
+      />,
+    );
+    expect(screen.queryByTestId('topbar-inspector-toggle')).toBeNull();
+    expect(screen.queryByTestId('topbar-inspector-drawer-toggle')).toBeNull();
   });
 
   it('hides the details toggle when nothing is selected', () => {

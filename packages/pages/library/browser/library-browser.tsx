@@ -19,7 +19,9 @@ import {
   LIBRARY_SHELF_DESCRIPTIONS,
   LIBRARY_SORT_OPTIONS,
 } from './library-browser.config';
-import LibraryBrowserToolbar from './library-browser-toolbar';
+import LibraryBrowserToolbar, {
+  LibraryBrowserIconActions,
+} from './library-browser-toolbar';
 import { useLibraryBrowser } from './use-library-browser';
 
 /**
@@ -140,16 +142,20 @@ export default function LibraryBrowser({
           right={
             <LibraryBrowserToolbar
               categories={categories}
-              isRefreshing={isRefreshing}
               onCategoriesChange={handleCategoriesChange}
               onClearCategories={handleClearCategories}
-              onRefresh={handleRefresh}
               onSortChange={handleSortChange}
-              onUpload={handleUpload}
               onViewModeChange={handleViewModeChange}
               sort={sort}
               sortOptions={[...LIBRARY_SORT_OPTIONS]}
               viewMode={viewMode}
+            />
+          }
+          iconActions={
+            <LibraryBrowserIconActions
+              isRefreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              onUpload={handleUpload}
             />
           }
           topbarFooter={

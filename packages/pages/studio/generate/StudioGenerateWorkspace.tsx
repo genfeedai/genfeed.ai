@@ -1,6 +1,9 @@
 'use client';
 
-import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
+import {
+  ContextSidebarPanel,
+  useContextSidebar,
+} from '@contexts/ui/context-sidebar-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAgentApiService } from '@genfeedai/agent';
 import { ContentLibraryPicker } from '@genfeedai/agent/components/ContentLibraryPicker';
@@ -129,6 +132,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { usePromptCommandExtension } from '@ui/prompt-editor/use-prompt-command-extension';
+import { SHELL_ICON_CLASS } from '@ui-constants/shell-chrome.constant';
 import { LayoutGrid, RotateCcw, Rows3 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -678,12 +682,6 @@ export default function StudioGenerateWorkspace(): ReactElement {
     updateSettings,
   ]);
 
-  const assetActions = useStudioGenerateAssetActions({
-    onAttachReference: handleAttachGeneratedReference,
-    onDeleted: removeJob,
-    onRefresh: refresh,
-  });
-
   useEffect(() => {
     rehydratePending(storedJobs);
   }, [rehydratePending, storedJobs]);
@@ -704,6 +702,28 @@ export default function StudioGenerateWorkspace(): ReactElement {
     !isLoadingGallery &&
     galleryJobs.length === 0 &&
     prompt.trim().length === 0;
+  const contextSidebar = useContextSidebar();
+  const handleInspectIngredient = useCallback(
+    (ingredient: IIngredient) => {
+      const job = visibleJobs.find(
+        (candidate) =>
+          candidate.ingredientId === ingredient.id ||
+          candidate.ingredient?.id === ingredient.id,
+      );
+      if (job) {
+        setSelectedJobId(job.id);
+        if (job.id === selectedJobId) contextSidebar?.reveal();
+      }
+    },
+    [contextSidebar, selectedJobId, visibleJobs],
+  );
+  const assetActions = useStudioGenerateAssetActions({
+    onAttachReference: handleAttachGeneratedReference,
+    onDeleted: removeJob,
+    onInspectIngredient: handleInspectIngredient,
+    onRefresh: refresh,
+  });
+
   const selectedJob = useMemo(
     () => visibleJobs.find((job) => job.id === selectedJobId) ?? null,
     [selectedJobId, visibleJobs],
@@ -1950,7 +1970,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     <div className="flex h-full flex-col overflow-hidden">
       <SectionTopbar
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
             <Select
               onValueChange={(value) => {
                 if (value === 'all' || isStudioGenerateType(value)) {
@@ -2008,20 +2028,22 @@ export default function StudioGenerateWorkspace(): ReactElement {
               }}
               options={[
                 {
-                  icon: <Rows3 className="size-4" />,
+                  icon: <Rows3 className={SHELL_ICON_CLASS} />,
                   label: translate('viewList'),
                   type: ViewType.LIST,
                 },
                 {
-                  icon: <LayoutGrid className="size-4" />,
+                  icon: <LayoutGrid className={SHELL_ICON_CLASS} />,
                   label: translate('viewGrid'),
                   type: ViewType.GRID,
                 },
               ]}
               size={ComponentSize.SM}
             />
-            <ButtonRefresh isRefreshing={isLoadingGallery} onClick={refresh} />
           </div>
+        }
+        iconActions={
+          <ButtonRefresh isRefreshing={isLoadingGallery} onClick={refresh} />
         }
         leading={
           <Searchbar
@@ -2227,7 +2249,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
             ? {
                 id: selectedJob.id,
                 kind: 'asset',
-                // Only a card click or a run-sibling pick selects a job.
+                // Card clicks, See Details and run-sibling picks select a job.
                 origin: 'user',
                 subtitle:
                   selectedJob.modelKey || translate('inspector.autoModel'),
