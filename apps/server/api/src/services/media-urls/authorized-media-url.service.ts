@@ -124,57 +124,6 @@ export class AuthorizedMediaUrlService {
     });
   }
 
-  /**
-   * Reference sheets of characters granted to the caller's organization
-   * (#6037). Only an active grant whose receiving availability includes the
-   * caller's brand yields a grant, read from the owning organization; a
-   * revoked or missing grant yields nothing, so access ends on the next call.
-   */
-  async projectGrantedCharacterMedia(
-    scope: MediaDeliveryScope,
-    ingredientIds: readonly string[],
-  ): Promise<MediaDeliveryGrant[]> {
-    if (ingredientIds.length === 0 || !scope.brandId) return [];
-    const grants = await this.prisma.personaGrant.findMany({
-      select: {
-        availabilityMode: true,
-        availableBrandIds: true,
-        ownerOrganizationId: true,
-        persona: { select: { avatarIngredientId: true } },
-      },
-      where: {
-        persona: {
-          avatarIngredientId: { in: [...new Set(ingredientIds)] },
-          isDeleted: false,
-        },
-        recipientOrganizationId: scope.organizationId,
-        revokedAt: null,
-      },
-    });
-    const idsByOwner = new Map<string, string[]>();
-    for (const grant of grants) {
-      const avatarId = grant.persona.avatarIngredientId;
-      if (
-        avatarId &&
-        isPersonaAvailableToBrand({ ...grant, brandId: null }, scope.brandId)
-      ) {
-        idsByOwner.set(grant.ownerOrganizationId, [
-          ...(idsByOwner.get(grant.ownerOrganizationId) ?? []),
-          avatarId,
-        ]);
-      }
-    }
-    const granted: MediaDeliveryGrant[] = [];
-    for (const [ownerOrganizationId, ids] of idsByOwner) {
-      for (const source of await this.readSources(ownerOrganizationId, ids)) {
-        granted.push(
-          this.grant(source.id, requireStoredMediaKey(source), 'preview'),
-        );
-      }
-    }
-    return granted;
-  }
-
   /** Internal execution capability; there is deliberately no HTTP route. */
   async issueServerPublish(
     organizationId: string,
@@ -462,6 +411,57 @@ export class AuthorizedMediaUrlService {
         organizationId,
       },
     });
+  }
+
+  /**
+   * Reference sheets of characters granted to the caller's organization
+   * (#6037). Only an active grant whose receiving availability includes the
+   * caller's brand yields a grant, read from the owning organization; a
+   * revoked or missing grant yields nothing, so access ends on the next call.
+   */
+  async projectGrantedCharacterMedia(
+    scope: MediaDeliveryScope,
+    ingredientIds: readonly string[],
+  ): Promise<MediaDeliveryGrant[]> {
+    if (ingredientIds.length === 0 || !scope.brandId) return [];
+    const grants = await this.prisma.personaGrant.findMany({
+      select: {
+        availabilityMode: true,
+        availableBrandIds: true,
+        ownerOrganizationId: true,
+        persona: { select: { avatarIngredientId: true } },
+      },
+      where: {
+        persona: {
+          avatarIngredientId: { in: [...new Set(ingredientIds)] },
+          isDeleted: false,
+        },
+        recipientOrganizationId: scope.organizationId,
+        revokedAt: null,
+      },
+    });
+    const idsByOwner = new Map<string, string[]>();
+    for (const grant of grants) {
+      const avatarId = grant.persona.avatarIngredientId;
+      if (
+        avatarId &&
+        isPersonaAvailableToBrand({ ...grant, brandId: null }, scope.brandId)
+      ) {
+        idsByOwner.set(grant.ownerOrganizationId, [
+          ...(idsByOwner.get(grant.ownerOrganizationId) ?? []),
+          avatarId,
+        ]);
+      }
+    }
+    const granted: MediaDeliveryGrant[] = [];
+    for (const [ownerOrganizationId, ids] of idsByOwner) {
+      for (const source of await this.readSources(ownerOrganizationId, ids)) {
+        granted.push(
+          this.grant(source.id, requireStoredMediaKey(source), 'preview'),
+        );
+      }
+    }
+    return granted;
   }
 
   async hasCleanAccess(organizationId: string): Promise<boolean> {

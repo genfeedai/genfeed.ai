@@ -236,7 +236,6 @@ export class ImageGenerationService {
       request,
       editing ? ModelCategory.IMAGE_EDIT : ModelCategory.IMAGE,
     );
-
     const accepted = await this.reuseAcceptedGeneration(
       user,
       createImageDto,
@@ -246,7 +245,6 @@ export class ImageGenerationService {
       editing,
     );
     if (accepted) return accepted;
-
     const {
       referenceIds,
       referenceImageUrls,
