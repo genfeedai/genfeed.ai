@@ -9,7 +9,7 @@ describe('YouTube comment workflows', () => {
     ).toBe('workflow.for-each-tenant');
     expect(
       buildYoutubeCommentsSweepDefinition().definition.nodes[1]?.data.config
-        .childWorkflowId,
+        .parameters.childWorkflowId,
     ).toBe(SOCIAL_INBOX_SYNC_WORKFLOW_IDS.YOUTUBE_COMMENTS);
   });
 });
