@@ -433,7 +433,7 @@ describe('PersonasService', () => {
             availabilityMode: PersonaAvailabilityMode.ALL_BRANDS,
             availableBrandIds: [],
           },
-          where: { id: 'persona-1' },
+          where: { id: 'persona-1', isDeleted: false, organizationId: 'org-1' },
         });
         expect(prisma.personaAvailabilityAudit.create).toHaveBeenCalledWith({
           data: {
