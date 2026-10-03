@@ -91,6 +91,9 @@ export class PublisherFactoryService
       supportsVideos: publisher.supportsVideos,
       buildPostUrl: publisher.buildPostUrl.bind(publisher),
       validatePost: publisher.validatePost.bind(publisher),
+      ...(publisher.verifyPublished
+        ? { verifyPublished: publisher.verifyPublished.bind(publisher) }
+        : {}),
       publish: async (context) => {
         const { hydratedContext } = await this.hydrateMedia(context);
         return publisher.publish(hydratedContext);

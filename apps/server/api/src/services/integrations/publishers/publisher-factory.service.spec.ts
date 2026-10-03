@@ -344,6 +344,36 @@ describe('PublisherFactoryService', () => {
       expect(issueServerPublish).not.toHaveBeenCalled();
       expect(twitter.publish).toHaveBeenCalledTimes(1);
     });
+
+    it('preserves bound provider verification without issuing media or publishing', async () => {
+      const confirmed = { success: true, externalId: 'confirmed-post' };
+      const verifyPublished = vi.fn().mockResolvedValue(confirmed);
+      const publisher = { ...twitter, verifyPublished };
+      const wrapped = service['authorizePublisher'](publisher);
+      const original = context(['ingredient-1']);
+      const attemptStartedAt = new Date('2026-10-03T12:00:00Z');
+
+      await expect(
+        wrapped.verifyPublished?.(original, attemptStartedAt),
+      ).resolves.toBe(confirmed);
+      expect(verifyPublished).toHaveBeenCalledWith(original, attemptStartedAt);
+      expect(verifyPublished.mock.contexts[0]).toBe(publisher);
+      expect(issueServerPublish).not.toHaveBeenCalled();
+      expect(twitter.publish).not.toHaveBeenCalled();
+
+      verifyPublished.mockResolvedValueOnce(null);
+      await expect(
+        wrapped.verifyPublished?.(original, attemptStartedAt),
+      ).resolves.toBeNull();
+      verifyPublished.mockRejectedValueOnce(new Error('Provider unavailable'));
+      await expect(
+        wrapped.verifyPublished?.(original, attemptStartedAt),
+      ).rejects.toThrow('Provider unavailable');
+    });
+
+    it('keeps provider verification absent when the provider has no hook', () => {
+      expect(service.getPublisher('TWITTER')?.verifyPublished).toBeUndefined();
+    });
   });
 
   // ─── isSupported() ──────────────────────────────────────────────────────────
