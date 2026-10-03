@@ -80,7 +80,9 @@ describe('PersonasService', () => {
 
   it('moves the owning brand through the ownership route', async () => {
     const patch = vi.fn().mockResolvedValue({
-      data: { attributes: { label: 'Anna' }, id: 'p1', type: 'personas' },
+      data: {
+        data: { id: 'p1', type: 'persona', attributes: { label: 'Anna' } },
+      },
     });
     (service as unknown as { instance: { patch: typeof patch } }).instance = {
       patch,
