@@ -3,6 +3,12 @@ import {
   SERVER_TOKENS,
   type ServerCredentialStore,
 } from '@api/server.dependencies';
+import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
+import {
+  readThreadsAccountDetails,
+  readThreadsVerificationPage,
+  requireThreadsString,
+} from '@api/services/integrations/threads/services/threads-account-reader.util';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import {
   captureLearningMetrics,
@@ -63,44 +69,19 @@ export class ThreadsService {
     this.apiVersion = this.configService.get('THREADS_API_VERSION') || 'v1.0';
   }
 
-  private requireString(
-    value: string | null | undefined,
-    label: string,
-  ): string {
-    if (!value) {
-      throw new Error(`${label} is required`);
-    }
-
-    return value;
-  }
-
   /**
    * Get Threads account details
    * @param accessToken The decrypted access token
    * @returns Account details including id, username, threads_profile_picture_url
    */
   public async getAccountDetails(accessToken: string): Promise<unknown> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      const response = await firstValueFrom(
-        this.httpService.get(`${this.graphUrl}/${this.apiVersion}/me`, {
-          params: {
-            access_token: accessToken,
-            fields: 'id,username,threads_profile_picture_url,threads_biography',
-          },
-        }),
-      );
-
-      this.loggerService.log(`${url} succeeded`, {
-        hasAccount: !!response.data,
-      });
-
-      return response.data;
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      throw error;
-    }
+    return readThreadsAccountDetails(
+      this.httpService,
+      this.loggerService,
+      `${this.graphUrl}/${this.apiVersion}`,
+      `${this.constructorName} ${CallerUtil.getCallerName()}`,
+      accessToken,
+    );
   }
 
   /**
@@ -209,9 +190,9 @@ export class ThreadsService {
       credentialId,
     );
     const decryptedAccessToken = EncryptionUtil.decrypt(
-      this.requireString(credential.accessToken, 'Threads access token'),
+      requireThreadsString(credential.accessToken, 'Threads access token'),
     );
-    const externalId = this.requireString(
+    const externalId = requireThreadsString(
       credential.externalId,
       'Threads externalId',
     );
@@ -270,9 +251,9 @@ export class ThreadsService {
       credentialId,
     );
     const decryptedAccessToken = EncryptionUtil.decrypt(
-      this.requireString(credential.accessToken, 'Threads access token'),
+      requireThreadsString(credential.accessToken, 'Threads access token'),
     );
-    const externalId = this.requireString(
+    const externalId = requireThreadsString(
       credential.externalId,
       'Threads externalId',
     );
@@ -342,9 +323,9 @@ export class ThreadsService {
       credentialId,
     );
     const decryptedAccessToken = EncryptionUtil.decrypt(
-      this.requireString(credential.accessToken, 'Threads access token'),
+      requireThreadsString(credential.accessToken, 'Threads access token'),
     );
-    const externalId = this.requireString(
+    const externalId = requireThreadsString(
       credential.externalId,
       'Threads externalId',
     );
@@ -416,9 +397,9 @@ export class ThreadsService {
       credentialId,
     );
     const decryptedAccessToken = EncryptionUtil.decrypt(
-      this.requireString(credential.accessToken, 'Threads access token'),
+      requireThreadsString(credential.accessToken, 'Threads access token'),
     );
-    const externalId = this.requireString(
+    const externalId = requireThreadsString(
       credential.externalId,
       'Threads externalId',
     );
@@ -477,9 +458,9 @@ export class ThreadsService {
       credentialId,
     );
     const decryptedAccessToken = EncryptionUtil.decrypt(
-      this.requireString(credential.accessToken, 'Threads access token'),
+      requireThreadsString(credential.accessToken, 'Threads access token'),
     );
-    const externalId = this.requireString(
+    const externalId = requireThreadsString(
       credential.externalId,
       'Threads externalId',
     );
@@ -528,7 +509,7 @@ export class ThreadsService {
       credentialId,
     );
     const decryptedAccessToken = EncryptionUtil.decrypt(
-      this.requireString(credential.accessToken, 'Threads access token'),
+      requireThreadsString(credential.accessToken, 'Threads access token'),
     );
 
     try {
@@ -563,6 +544,29 @@ export class ThreadsService {
    * @param credentialId - which connected Threads account this runs as. A brand
    *   may hold several; without an id this falls back to its oldest one.
    */
+  public async listPublishVerificationPage(
+    organizationId: string,
+    brandId: string,
+    credentialId: string,
+    expectedExternalId: string | null,
+    attemptStartedAt: Date,
+    cursor?: string,
+  ): Promise<ProviderVerificationPage> {
+    const credential = await this.getCredential(
+      organizationId,
+      brandId,
+      credentialId,
+    );
+    return readThreadsVerificationPage(
+      this.httpService,
+      `${this.graphUrl}/${this.apiVersion}`,
+      credential,
+      expectedExternalId,
+      attemptStartedAt,
+      cursor,
+    );
+  }
+
   public async publishText(
     organizationId: string,
     brandId: string,
@@ -826,7 +830,7 @@ export class ThreadsService {
       credentialId,
     );
     const decryptedAccessToken = EncryptionUtil.decrypt(
-      this.requireString(credential.accessToken, 'Threads access token'),
+      requireThreadsString(credential.accessToken, 'Threads access token'),
     );
 
     try {

@@ -11,6 +11,12 @@ import {
   LINKEDIN_DM_UNAVAILABLE_REASON,
 } from '@api/services/integrations/linkedin/services/linkedin-inbox.constants';
 import { getSafeLinkedInOAuthErrorLog } from '@api/services/integrations/linkedin/utils/linkedin-oauth-error.util';
+import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
+import {
+  PROVIDER_VERIFICATION_PAGE_SIZE,
+  PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS,
+} from '@api/services/integrations/publishers/publisher-verification.util';
+import { parseLinkedInVerificationPage } from '@api/services/integrations/publishers/publisher-verification-pages.util';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   type ChannelTargetSettings,
@@ -438,6 +444,54 @@ export class LinkedInService {
    * @param credentialId - which connected LinkedIn account this runs as. A brand
    *   may hold several; without an id this falls back to its oldest one.
    */
+  public async listPublishVerificationPage(
+    organizationId: string,
+    brandId: string,
+    credentialId: string,
+    expectedExternalId: string | null,
+    cursor?: string,
+  ): Promise<ProviderVerificationPage> {
+    const credential = await this.credentialsService.resolveBrandAccount({
+      organizationId,
+      brandId,
+      credentialId,
+      platform: CredentialPlatform.LINKEDIN,
+    });
+    if (
+      !credential?.accessToken ||
+      !credential.externalId ||
+      credential.externalId !== expectedExternalId
+    )
+      throw new Error('LinkedIn verification account unavailable or changed');
+    const token = EncryptionUtil.decrypt(credential.accessToken);
+    const author = credential.externalId.startsWith('urn:li:person:')
+      ? credential.externalId
+      : `urn:li:person:${credential.externalId}`;
+    if (!/^urn:li:person:[A-Za-z0-9_-]+$/.test(author))
+      throw new Error('LinkedIn verification member identity unavailable');
+    const response = await firstValueFrom(
+      this.httpService.get<unknown>(this.getApiUrl('ugcPosts'), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'X-Restli-Protocol-Version': '2.0.0',
+        },
+        params: {
+          authors: `List(${author})`,
+          count: PROVIDER_VERIFICATION_PAGE_SIZE,
+          q: 'authors',
+          start: cursor ? Number(cursor) : 0,
+        },
+        timeout: PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS,
+        maxRedirects: 0,
+      }),
+    );
+    const page = parseLinkedInVerificationPage(response.data, author);
+    const raw = response.data as { paging?: { start?: number } };
+    if (raw.paging?.start !== (cursor ? Number(cursor) : 0))
+      throw new Error('LinkedIn verification cursor was not honored');
+    return page;
+  }
+
   public async createTextPost(
     organizationId: string,
     brandId: string,

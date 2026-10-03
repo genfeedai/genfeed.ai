@@ -107,7 +107,13 @@ export class ScheduledPostProviderAttempts {
     if (verify) {
       let found: PublishResult | null;
       try {
-        found = await verify(prepared.context, attempt.attemptStartedAt);
+        found = await verify(
+          {
+            ...prepared.context,
+            hasThreadChildren: (post.children?.length ?? 0) > 0,
+          },
+          attempt.attemptStartedAt,
+        );
       } catch (error: unknown) {
         this.logger.warn(`${url} provider publish verification unavailable`, {
           error: getErrorMessage(error),

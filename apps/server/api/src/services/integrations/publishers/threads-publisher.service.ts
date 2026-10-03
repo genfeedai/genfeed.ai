@@ -8,6 +8,7 @@ import type {
   PublishResult,
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { verifyTextPublish } from '@api/services/integrations/publishers/publisher-verification.util';
 import {
   type ThreadsCarouselMediaItem,
   ThreadsMediaType,
@@ -45,6 +46,32 @@ export class ThreadsPublisherService extends BasePublisherService {
   /**
    * Publish a post to Threads
    */
+  async verifyPublished(
+    context: PublishContext,
+    attemptStartedAt: Date,
+  ): Promise<PublishResult | null> {
+    const externalId = await verifyTextPublish(
+      context,
+      attemptStartedAt,
+      (cursor) =>
+        this.threadsService.listPublishVerificationPage(
+          context.organizationId,
+          context.brandId,
+          context.credential.id,
+          context.credential.externalId,
+          attemptStartedAt,
+          cursor,
+        ),
+    );
+    return externalId
+      ? this.createSuccessResult(
+          externalId,
+          this.platform,
+          this.buildPostUrl(externalId, context.credential),
+        )
+      : null;
+  }
+
   async publish(context: PublishContext): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const { post, credential, organizationId, brandId } = context;

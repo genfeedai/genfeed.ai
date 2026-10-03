@@ -8,6 +8,7 @@ import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { verifyProviderPublish } from '@api/services/integrations/publishers/publisher-verification.util';
 import {
   CredentialPlatform,
   PostCategory,
@@ -66,6 +67,41 @@ export class MastodonPublisherService extends BasePublisherService {
   /**
    * Publish a status to Mastodon
    */
+  async verifyPublished(
+    context: PublishContext,
+    attemptStartedAt: Date,
+  ): Promise<PublishResult | null> {
+    const text = this.sanitizeDescription(context.post.description);
+    if (text.includes('@'))
+      throw new Error(
+        'Mastodon mention rendering cannot provide exact text proof',
+      );
+    const found = await verifyProviderPublish(
+      context,
+      attemptStartedAt,
+      (cursor) =>
+        this.mastodonService.listPublishVerificationPage(
+          context,
+          attemptStartedAt,
+          cursor,
+        ),
+      {
+        text,
+        visibility:
+          context.visibility ??
+          readChannelSettingString(context.settings, 'visibility') ??
+          PostVisibility.PUBLIC,
+      },
+    );
+    return found
+      ? this.createSuccessResult(
+          found.id,
+          this.platform,
+          found.url || this.buildPostUrl(found.id, context.credential),
+        )
+      : null;
+  }
+
   async publish(context: PublishContext): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const { post, credential } = context;

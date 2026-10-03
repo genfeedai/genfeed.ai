@@ -97,6 +97,8 @@ export interface PublishContext {
   brandId: string;
   postId: string;
   isDraft?: boolean;
+  /** Explicit scheduler evidence; parent lookup cannot verify thread children. */
+  hasThreadChildren?: boolean;
   /**
    * Channel settings resolved from `post.targetSettings` against the current
    * capability catalog. Always present — publishers read it instead of the raw

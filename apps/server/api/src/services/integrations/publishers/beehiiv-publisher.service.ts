@@ -6,6 +6,7 @@ import type {
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { WORKFLOW_APPROVED_SCHEDULE_SETTING } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { verifyProviderPublish } from '@api/services/integrations/publishers/publisher-verification.util';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { ConfigService } from '@libs/config/config.service';
@@ -28,6 +29,47 @@ export class BeehiivPublisherService extends BasePublisherService {
     private readonly beehiivService: BeehiivService,
   ) {
     super(configService, logger);
+  }
+
+  async verifyPublished(
+    context: PublishContext,
+    attemptStartedAt: Date,
+  ): Promise<PublishResult | null> {
+    const status =
+      context.isDraft ||
+      readChannelSettingString(context.settings, 'providerStatus') === 'draft'
+        ? 'draft'
+        : 'confirmed';
+    const scheduledAt = readChannelSettingString(
+      context.settings,
+      WORKFLOW_APPROVED_SCHEDULE_SETTING,
+    );
+    const found = await verifyProviderPublish(
+      context,
+      attemptStartedAt,
+      (cursor) =>
+        this.beehiivService.listPublishVerificationPage(
+          context,
+          attemptStartedAt,
+          cursor,
+        ),
+      {
+        text: context.post.description,
+        title: context.post.label ?? 'Untitled',
+        status,
+        isNativeHtml: true,
+        ...(status === 'confirmed' && scheduledAt
+          ? { scheduledAt: new Date(scheduledAt) }
+          : {}),
+      },
+    );
+    if (!found) return null;
+    const result = this.createSuccessResult(
+      found.id,
+      this.platform,
+      found.url || this.buildPostUrl(found.id, context.credential),
+    );
+    return status === 'draft' ? { ...result, isProviderDraft: true } : result;
   }
 
   async publish(context: PublishContext): Promise<PublishResult> {
