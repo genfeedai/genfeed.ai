@@ -1,4 +1,6 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import type { UpdatePersonaDto } from '@api/collections/personas/dto/update-persona.dto';
+import type { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import type { Request } from 'express';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
@@ -149,6 +151,46 @@ describe('PersonasController', () => {
       >;
       expect(patchArg.memberIds).toBeUndefined();
       expect(patchArg.label).toBe('Renamed Persona');
+    });
+
+    it('stamps the caller organization on the update so handle checks stay scoped', async () => {
+      mockServiceMethods.findOne.mockResolvedValue({
+        id: personaId,
+        organizationId,
+        userId,
+      });
+      mockServiceMethods.patch.mockResolvedValue({ id: personaId });
+
+      await controller.patch(mockRequest, mockUser, personaId, {
+        handle: 'ben',
+        organizationId: 'client-supplied-org',
+      } as UpdatePersonaDto);
+
+      const patchArg = mockServiceMethods.patch.mock.calls[0][1] as Record<
+        string,
+        unknown
+      >;
+      expect(patchArg.organizationId).toBe(organizationId);
+    });
+
+    it('answers 404 when the creator patches their own unshared character in another organization', async () => {
+      mockServiceMethods.findOne.mockResolvedValue({
+        id: personaId,
+        organizationId: 'other-organization',
+        userId,
+      });
+
+      expect(
+        controller.canUserModifyEntity(mockUser, {
+          id: personaId,
+          organizationId: 'other-organization',
+          userId,
+        } as PersonaDocument),
+      ).toBe(false);
+      await expect(
+        controller.patch(mockRequest, mockUser, personaId, { handle: 'ben' }),
+      ).rejects.toMatchObject({ status: 404 });
+      expect(mockServiceMethods.patch).not.toHaveBeenCalled();
     });
 
     it('assigns members whose user IDs are legacy Better Auth IDs', async () => {

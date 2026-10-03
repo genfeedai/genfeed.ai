@@ -259,11 +259,11 @@ export class PersonasController extends BaseCRUDController<
   }
 
   public canUserModifyEntity(user: User, entity: PersonaDocument): boolean {
+    if (entity.organizationId !== user.organizationId) {
+      return false;
+    }
     if (hasSharedAvailability(entity)) {
-      return (
-        entity.organizationId === user.organizationId &&
-        isPersonaAvailableToBrand(entity, user.brandId)
-      );
+      return isPersonaAvailableToBrand(entity, user.brandId);
     }
     return super.canUserModifyEntity(user, entity);
   }
@@ -303,7 +303,17 @@ export class PersonasController extends BaseCRUDController<
     updateDto: Partial<UpdatePersonaDto>,
     user: User,
   ): Promise<UpdatePersonaDto> {
-    return super.enrichUpdateDto(stripAvailabilityFields(updateDto), user);
+    const dto = await super.enrichUpdateDto(
+      stripAvailabilityFields(updateDto),
+      user,
+    );
+    // Server-side organization (the base strips any client value): scopes the
+    // service's handle-collision check to the caller's organization.
+    const scoped: Record<string, unknown> = {
+      ...dto,
+      organizationId: user.organizationId,
+    };
+    return scoped as UpdatePersonaDto;
   }
 
   /**

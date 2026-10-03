@@ -392,8 +392,16 @@ describe('PersonasService', () => {
       (prisma.persona as unknown as { update: typeof update }).update = update;
 
       await expect(
-        service.patch('persona-1', { handle: 'Ben' }),
+        service.patch('persona-1', {
+          handle: 'Ben',
+          organizationId: orgId,
+        }),
       ).rejects.toThrow(ValidationException);
+      expect(prisma.persona.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'persona-1', isDeleted: false, organizationId: orgId },
+        }),
+      );
       expect(prisma.persona.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
@@ -402,6 +410,31 @@ describe('PersonasService', () => {
           }),
         }),
       );
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it('refuses a handle change that carries no organization', async () => {
+      const update = vi.fn();
+      (prisma.persona as unknown as { update: typeof update }).update = update;
+
+      await expect(
+        service.patch('persona-1', { handle: 'Ben' }),
+      ).rejects.toThrow(ValidationException);
+      expect(prisma.persona.findFirst).not.toHaveBeenCalled();
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it('answers not-found for a handle change on another organization character', async () => {
+      prisma.persona.findFirst.mockResolvedValue(null);
+      const update = vi.fn();
+      (prisma.persona as unknown as { update: typeof update }).update = update;
+
+      await expect(
+        service.patch('persona-1', {
+          handle: 'Ben',
+          organizationId: orgId,
+        }),
+      ).rejects.toThrow(NotFoundException);
       expect(update).not.toHaveBeenCalled();
     });
 

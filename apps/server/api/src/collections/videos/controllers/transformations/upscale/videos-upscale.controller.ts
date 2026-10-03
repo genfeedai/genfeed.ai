@@ -218,34 +218,12 @@ export class VideosUpscaleController {
         }),
       );
 
-      // Create activity for video upscale start
-      const activity = await this.activityRecorder.record({
-        brandId: video.brandId ?? user.brandId,
-        entityId: ingredientData.id,
-        entityModel: ActivityEntityModel.INGREDIENT,
-        key: ActivityKey.VIDEO_UPSCALE_PROCESSING,
-        organizationId: user.organizationId,
-        source: ActivitySource.VIDEO_UPSCALE,
-        userId: user.userId ?? user.id,
-        value: JSON.stringify({
-          ingredientId: ingredientData.id.toString(),
-          actionVerb: 'upscale',
-          dispatchMode: 'native',
-          model,
-          sourceId: videoId,
-          type: 'transformation',
-        }),
-      });
-
-      // Emit background-task-update WebSocket event for activities dropdown
-      await this.websocketService.publishBackgroundTaskUpdate({
-        activityId: activity.id.toString(),
-        label: 'Video Upscale',
-        progress: 0,
-        room: getUserRoomName(user.id),
-        status: 'processing',
-        taskId: ingredientData.id.toString(),
-        userId: user.id,
+      await this.announceUpscaleStart({
+        ingredientId,
+        model,
+        user,
+        video,
+        videoId,
       });
 
       if (this.configService.isDevelopment) {
@@ -312,6 +290,44 @@ export class VideosUpscaleController {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  /** Records the upscale-start activity and notifies the activities dropdown. */
+  private async announceUpscaleStart(params: {
+    ingredientId: string;
+    model: string;
+    user: User;
+    video: IngredientDocument;
+    videoId: string;
+  }): Promise<void> {
+    const { ingredientId, model, user, video, videoId } = params;
+    const activity = await this.activityRecorder.record({
+      brandId: video.brandId ?? user.brandId,
+      entityId: ingredientId,
+      entityModel: ActivityEntityModel.INGREDIENT,
+      key: ActivityKey.VIDEO_UPSCALE_PROCESSING,
+      organizationId: user.organizationId,
+      source: ActivitySource.VIDEO_UPSCALE,
+      userId: user.userId ?? user.id,
+      value: JSON.stringify({
+        ingredientId,
+        actionVerb: 'upscale',
+        dispatchMode: 'native',
+        model,
+        sourceId: videoId,
+        type: 'transformation',
+      }),
+    });
+
+    await this.websocketService.publishBackgroundTaskUpdate({
+      activityId: activity.id.toString(),
+      label: 'Video Upscale',
+      progress: 0,
+      room: getUserRoomName(user.id),
+      status: 'processing',
+      taskId: ingredientId,
+      userId: user.id,
+    });
   }
 
   private async dispatchUpscale(params: {
