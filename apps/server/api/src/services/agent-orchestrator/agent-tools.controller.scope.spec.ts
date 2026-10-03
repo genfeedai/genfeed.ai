@@ -354,6 +354,7 @@ describe('AgentToolsController reported publication contract', () => {
           outcome: 'allowed',
         })),
       } as unknown as AgentUntrustedContentGateService,
+      module.get(AgentScopeContextService),
     );
     return { posts, executor, controller };
   }
