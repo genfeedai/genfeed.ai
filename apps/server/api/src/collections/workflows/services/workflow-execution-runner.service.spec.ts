@@ -71,6 +71,7 @@ describe('WorkflowExecutionRunnerService.resumeAfterDelay — never strands a ru
     vi.clearAllMocks();
     executionsService.findOne.mockResolvedValue({
       startedAt: new Date('2026-01-01T00:00:00.000Z'),
+      userId: 'user-1',
       workflowVersionId: 'version-1',
     });
     executionsService.getRuntimeState.mockResolvedValue({
@@ -123,6 +124,75 @@ describe('WorkflowExecutionRunnerService.resumeAfterDelay — never strands a ru
       graphRunner as never,
       undefined,
     );
+  });
+
+  it('uses the recorded delay actor for hydration, graph context, event and failure settlement', async () => {
+    const actor = ' recorded-delay-actor ';
+    executionsService.findOne.mockResolvedValue({
+      userId: actor,
+      workflowVersionId: 'version-1',
+    });
+    const doc = { brandId: null, userId: 'creator' };
+    documentService.findPinnedWorkflow.mockResolvedValue(doc);
+    engineAdapter.convertToExecutableWorkflow.mockImplementation(
+      (workflow) => ({ nodes: [], edges: [], userId: workflow.userId }),
+    );
+    graphRunner.executeNodeGraph.mockRejectedValue(
+      new Error('provider failed'),
+    );
+    const queued = {
+      ...jobData,
+      userId: 'queue-actor',
+      triggerEvent: { ...jobData.triggerEvent, userId: 'queue-event-actor' },
+    };
+    await runner.resumeAfterDelay(queued);
+    expect(documentService.findPinnedWorkflow).toHaveBeenCalledWith(
+      'workflow-1',
+      'version-1',
+      'org-1',
+      actor,
+    );
+    expect(graphRunner.executeNodeGraph).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: actor }),
+      expect.objectContaining({ userId: actor }),
+      'execution-1',
+      expect.anything(),
+    );
+    expect(
+      finalizer.settleClipChainReservationForWorkflow,
+    ).toHaveBeenCalledWith(expect.objectContaining({ actorUserId: actor }));
+    expect(queued.triggerEvent.userId).toBe('queue-event-actor');
+    expect(doc.userId).toBe('creator');
+  });
+
+  it.each([undefined, null, 42, {}, '', '  \t'])(
+    'blocks delay with invalid recorded actor %j before hydration or settlement',
+    async (actor) => {
+      executionsService.findOne.mockResolvedValue({
+        userId: actor,
+        workflowVersionId: 'version-1',
+      });
+      await expect(runner.resumeAfterDelay(jobData)).rejects.toThrow(
+        'execution-1',
+      );
+      expect(documentService.findPinnedWorkflow).not.toHaveBeenCalled();
+      expect(graphRunner.executeNodeGraph).not.toHaveBeenCalled();
+      expect(
+        finalizer.settleClipChainReservationForWorkflow,
+      ).not.toHaveBeenCalled();
+      expect(progressService.publishWorkflowTaskUpdate).not.toHaveBeenCalled();
+    },
+  );
+
+  it('blocks a missing delayed execution before hydration without a queued actor fallback', async () => {
+    executionsService.findOne.mockResolvedValue(null);
+    await expect(runner.resumeAfterDelay(jobData)).rejects.toThrow(
+      'execution-1',
+    );
+    expect(documentService.findPinnedWorkflow).not.toHaveBeenCalled();
+    expect(
+      finalizer.settleClipChainReservationForWorkflow,
+    ).not.toHaveBeenCalled();
   });
 
   it('marks the execution and workflow failed instead of leaving it running when the resumed graph pass throws', async () => {

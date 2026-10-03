@@ -1,8 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import { Sparkles } from 'lucide-react';
-
+import { NextIntlClientProvider } from 'next-intl';
 import { describe, expect, it } from 'vitest';
+import pages from '../../../../../../apps/app/messages/en/pages.json';
 
 describe('KPISection', () => {
   const items = [
@@ -78,4 +79,21 @@ it('uses the same container-width tile ladder while loading and isolates section
   expect(screen.getByText('Unavailable')).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Working' })).toBeInTheDocument();
   expect(screen.getAllByTestId('metric-card-grid')).toHaveLength(1);
+});
+
+it('forwards canonical metadata to metric tiles and leaves generic KPIs unannotated', () => {
+  render(
+    <NextIntlClientProvider locale="en" messages={{ pages }}>
+      <KPISection
+        items={[
+          { label: 'Published', value: 0, analyticsMetric: 'posts' },
+          { label: 'Runs', value: 0 },
+        ]}
+      />
+    </NextIntlClientProvider>,
+  );
+  expect(
+    screen.getByRole('button', { name: 'About Posts' }),
+  ).toBeInTheDocument();
+  expect(screen.getAllByRole('button')).toHaveLength(1);
 });

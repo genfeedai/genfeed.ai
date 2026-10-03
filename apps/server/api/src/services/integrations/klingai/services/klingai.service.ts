@@ -1,3 +1,4 @@
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { encodeJwtToken } from '@api/helpers/utils/jwt/jwt.util';
 import { createConcurrencyLimit } from '@api/shared/utils/create-concurrency-limit.util';
 import { appendWebhookToken } from '@api/webhooks/webhook-token.util';
@@ -27,13 +28,12 @@ export class KlingAIService {
   private readonly apiKey: string;
   private readonly apiSecret: string;
 
-  private readonly model: string;
-
   private readonly limit = createConcurrencyLimit(3);
 
   private readonly callbackUrl: string;
 
   constructor(
+    private readonly platformSettingsService: PlatformSettingsService,
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly httpService: HttpService,
@@ -43,7 +43,6 @@ export class KlingAIService {
     this.ingredientsEndpoint = this.configService.ingredientsEndpoint;
     this.apiKey = this.configService.get('KLINGAI_KEY') ?? '';
     this.apiSecret = this.configService.get('KLINGAI_SECRET') ?? '';
-    this.model = this.configService.get('KLINGAI_MODEL') ?? '';
     this.callbackUrl = appendWebhookToken(
       `${this.webhookEndpoint}/v1/webhooks/klingai/callback`,
       this.configService.get('KLINGAI_WEBHOOK_SECRET') as string | undefined,
@@ -136,7 +135,10 @@ export class KlingAIService {
             aspect_ratio: this.getAspectRatio(options?.width, options?.height),
             callback_url: this.callbackUrl,
             image: options?.reference,
-            model: options?.model || this.model,
+            model:
+              options?.model ||
+              (await this.platformSettingsService.getFeatureSettings())
+                .klingModel,
             n: 1,
             prompt,
           },
@@ -196,7 +198,10 @@ export class KlingAIService {
             callback_url: this.callbackUrl,
             duration: 5,
             image: `${this.ingredientsEndpoint}/images/${parentId}`,
-            model: options?.model || this.model,
+            model:
+              options?.model ||
+              (await this.platformSettingsService.getFeatureSettings())
+                .klingModel,
             prompt,
           },
           { headers: this.getHeadersWithOverride(credentialsOverride) },
@@ -257,7 +262,10 @@ export class KlingAIService {
             aspect_ratio: this.getAspectRatio(options?.width, options?.height),
             callback_url: this.callbackUrl,
             duration: 5,
-            model: options?.model || this.model,
+            model:
+              options?.model ||
+              (await this.platformSettingsService.getFeatureSettings())
+                .klingModel,
             prompt,
           },
           { headers },

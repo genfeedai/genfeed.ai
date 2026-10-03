@@ -10,6 +10,7 @@ import type {
   MetricSummaryItem,
   MetricSummaryProps,
 } from '@genfeedai/props/cards/metric-card.props';
+import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Card from '@ui/card/Card';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import { memo, type ReactElement, type ReactNode } from 'react';
@@ -96,6 +97,8 @@ function resolveValueContent(
  * Surface frame is always {@link Card} (`rounded-card` + `shadow-border`).
  */
 const MetricCard = memo(function MetricCard({
+  analyticsMetric,
+  analyticsMetricVariant,
   appearance = 'tile',
   className,
   description,
@@ -165,7 +168,18 @@ const MetricCard = memo(function MetricCard({
         <span className="font-medium text-foreground tabular-nums">
           {resolveValueContent(value, isLoading, 'sm')}
         </span>
-        <span className="text-foreground/55">{label}</span>
+        <span className="text-foreground/55">
+          {analyticsMetric ? (
+            <AnalyticsMetricLabel
+              metric={analyticsMetric}
+              variant={analyticsMetricVariant}
+            >
+              {label}
+            </AnalyticsMetricLabel>
+          ) : (
+            label
+          )}
+        </span>
       </span>
     );
   }
@@ -190,7 +204,18 @@ const MetricCard = memo(function MetricCard({
             <Icon className={size === 'lg' ? 'size-5' : 'size-4'} />
           </span>
         ) : null}
-        <p className={LABEL_CLASS}>{label}</p>
+        <p className={LABEL_CLASS}>
+          {analyticsMetric ? (
+            <AnalyticsMetricLabel
+              metric={analyticsMetric}
+              variant={analyticsMetricVariant}
+            >
+              {label}
+            </AnalyticsMetricLabel>
+          ) : (
+            label
+          )}
+        </p>
       </div>
 
       {valueNode}

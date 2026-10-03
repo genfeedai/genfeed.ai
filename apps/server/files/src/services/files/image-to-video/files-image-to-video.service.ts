@@ -4,6 +4,7 @@ import { ConfigService } from '@files/config/config.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { FilesCaptionsService } from '@files/services/files/captions/files-captions.service';
 import { FilesService } from '@files/services/files/files.service';
+import { FileRuntimeSettingsService } from '@files/services/runtime-settings/file-runtime-settings.service';
 import { SlideText } from '@files/shared/interfaces/caption.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -20,6 +21,7 @@ export interface CreateVideoFromImagesConfig {
 @Injectable()
 export class FilesImageToVideoService extends FilesService {
   constructor(
+    runtimeSettings: FileRuntimeSettingsService,
     public readonly configService: ConfigService,
     public readonly loggerService: LoggerService,
     public readonly httpService: HttpService,
@@ -27,7 +29,7 @@ export class FilesImageToVideoService extends FilesService {
     private readonly ffmpegService: FFmpegService,
     private readonly filesCaptionsService: FilesCaptionsService,
   ) {
-    super(configService, loggerService, httpService);
+    super(runtimeSettings, configService, loggerService, httpService);
   }
 
   async generateImageToVideo(

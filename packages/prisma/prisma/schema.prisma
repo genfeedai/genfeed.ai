@@ -1783,6 +1783,34 @@ model PlatformSetting {
   // migration on the operator's critical path.
   typedDecisionProvider String @default("none")
 
+  imageCompressionQuality Int @default(50)
+  paygFallbackCredits Int @default(1000)
+  linkedinTrendSourceUrls String?
+  agentContextCompressionModel String?
+  agentContextWindowSize Int @default(5)
+  generationMaxTokens Int @default(4000)
+  typedDecisionTimeoutMs Int @default(800)
+  trainingCreditsCost Float @default(500)
+  customModelCreditsCost Float @default(5)
+  replicateModelHardware String @default("gpu-t4")
+  replicateModelVisibility String @default("private")
+  replicateTrainerModel String @default("replicate/fast-flux-trainer:f463fbfc97389e10a2f443a8a84b6953b1058eafbf0c9af4d84457ff07cb04db")
+  replicateTargetFps Int @default(30)
+  replicateTargetResolution String @default("1080p")
+  klingModel String @default("kling-v2")
+  elevenlabsModel String?
+  murekaModel String @default("mureka-9")
+  discordChannelIdDeployments String?
+  discordChannelIdPosts String?
+  discordChannelIdStudio String?
+  discordChannelIdUsers String?
+  discordChannelIdModels String?
+  discordBotAvatarUrl String?
+  discordWebhookNamePrefix String?
+  discordWebhookReason String?
+  emailFromAddress String?
+  emailReplyToAddress String?
+
   // Product feature switches (#5407). Operator decisions live here, not in
   // env, so changing one is an admin click rather than a deploy. Defaults
   // equal the retired env defaults. Mode columns are plain strings for the
@@ -8101,6 +8129,8 @@ model OutlierPostPerformance {
 
 /// Deployment-wide outbound events, configured by the operator rather than tenants.
 model SystemEventWebhook {
+  deliveries SystemEventDelivery[]
+  destinationsResolvedAt DateTime?
   skippedAt DateTime?
   id             String   @id
   type           String
@@ -8898,4 +8928,42 @@ model BrandedGenerationReceiptEvent {
   @@unique([receiptId, operationKey])
   @@index([organizationId, brandId, receiptId, revision], map: "branded_generation_receipt_events_scope_idx")
   @@map("branded_generation_receipt_events")
+}
+
+/// Operator routes for signup and billing events. Webhook credentials are GCM encrypted.
+model SystemNotificationDestination {
+  id String @id @default(cuid())
+  label String
+  provider String
+  address String?
+  webhookEncrypted String?
+  eventTypes String[]
+  isEnabled Boolean @default(true)
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deliveries SystemEventDelivery[]
+  @@index([isDeleted, isEnabled], map: "system_notification_destinations_enabled_idx")
+  @@map("system_notification_destinations")
+}
+
+/// Independent acknowledgement and retry state for each event/destination.
+model SystemEventDelivery {
+  id String @id @default(cuid())
+  eventId String
+  event SystemEventWebhook @relation(fields: [eventId], references: [id])
+  destinationId String
+  destination SystemNotificationDestination @relation(fields: [destinationId], references: [id])
+  attempts Int @default(0)
+  nextAttemptAt DateTime @default(now())
+  deliveredAt DateTime?
+  skippedAt DateTime?
+  leaseToken String?
+  leaseUntil DateTime?
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([eventId, destinationId])
+  @@index([isDeleted, deliveredAt, skippedAt, nextAttemptAt], map: "system_event_deliveries_due_idx")
+  @@map("system_event_deliveries")
 }

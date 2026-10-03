@@ -19,6 +19,7 @@ import type { AnalyticsOutliersProps } from '@props/analytics/analytics-outliers
 import type { TableColumn } from '@props/ui/display/table.props';
 import { OutlierBaselinesService } from '@services/analytics/outlier-baselines.service';
 import { logger } from '@services/core/logger.service';
+import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
@@ -173,7 +174,11 @@ export default function AnalyticsOutliers({
       },
       {
         className: 'min-w-24',
-        header: translate('views'),
+        header: (
+          <AnalyticsMetricLabel metric="views">
+            {translate('views')}
+          </AnalyticsMetricLabel>
+        ),
         key: 'views',
         render: (post) =>
           post.views == null ? '—' : formatCompactNumber(post.views),

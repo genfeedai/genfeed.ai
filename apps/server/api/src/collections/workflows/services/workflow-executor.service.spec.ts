@@ -1,5 +1,6 @@
 import { WorkflowEngineConverterService } from '@api/collections/workflows/services/workflow-engine-converter.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import { WorkflowNodeGraphRuntimeService } from '@api/collections/workflows/services/workflow-node-graph-runtime.service';
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
@@ -720,10 +721,15 @@ describe('WorkflowExecutorService', () => {
 
   it('reuses the previous ETA duration when resuming after a delay', async () => {
     const startedAt = new Date();
+    const delayPass = vi.spyOn(
+      WorkflowNodeGraphRuntimeService.prototype,
+      'handleDelayNode',
+    );
     const executableWorkflow = {
       edges: [
         { source: 'completed-node', target: 'next-node' },
         { source: 'next-node', target: 'pause-node' },
+        { source: 'pause-node', target: 'after-pause' },
       ],
       id: 'workflow-1',
       nodes: [
@@ -744,6 +750,11 @@ describe('WorkflowExecutorService', () => {
           label: 'Pause',
           type: 'delay',
         },
+        createExecutableActionNode({
+          actionId: 'publish',
+          id: 'after-pause',
+          label: 'After pause',
+        }),
       ],
     };
 
@@ -751,19 +762,23 @@ describe('WorkflowExecutorService', () => {
       id: 'exec-1',
       workflowId: 'workflow-1',
       workflowVersionId: WORKFLOW_VERSION_ID,
+      userId: 'recorded-delay-actor',
     });
     prisma.workflowVersion.findFirst.mockResolvedValue(
       pinnedVersion({
-        edges: [],
+        edges: executableWorkflow.edges,
         id: 'workflow-1',
         label: 'Delayed workflow',
         nodes: [],
       }),
     );
-    engineAdapter.convertToExecutableWorkflow.mockReturnValue(
-      executableWorkflow,
+    engineAdapter.convertToExecutableWorkflow.mockImplementation((doc) => ({
+      ...executableWorkflow,
+      userId: doc.userId,
+    }));
+    engineAdapter.applyRuntimeInputValues.mockImplementation(
+      (_doc, workflow) => workflow,
     );
-    engineAdapter.applyRuntimeInputValues.mockReturnValue(executableWorkflow);
     executionsService.getRuntimeState.mockResolvedValue({
       metadata: {
         eta: {
@@ -807,11 +822,14 @@ describe('WorkflowExecutorService', () => {
         organizationId: 'org-1',
         platform: 'twitter',
         type: 'mention',
-        userId: 'user-1',
+        userId: 'queued-event-actor',
       },
-      userId: 'user-1',
+      userId: 'queued-top-level-actor',
       workflowId: 'workflow-1',
     });
+
+    const delayedResult = await delayPass.mock.results[0]?.value;
+    delayPass.mockRestore();
 
     // The version tuple is globally unique, so the pinned lookup is keyed on
     // it alone and tenant ownership is asserted against the loaded row.
@@ -847,6 +865,21 @@ describe('WorkflowExecutorService', () => {
         progress: 55,
         status: 'processing',
         taskId: 'exec-1',
+      }),
+    );
+    expect(engineAdapter.executeNode).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(Map),
+      expect.objectContaining({ userId: 'recorded-delay-actor' }),
+      expect.objectContaining({ executionId: 'exec-1' }),
+    );
+    expect(delayedResult?._delayJobData).toEqual(
+      expect.objectContaining({
+        userId: 'recorded-delay-actor',
+        remainingNodeIds: ['after-pause'],
+        triggerEvent: expect.objectContaining({
+          userId: 'recorded-delay-actor',
+        }),
       }),
     );
     expect(prisma.workflow.update).not.toHaveBeenCalled();
@@ -944,6 +977,10 @@ describe('WorkflowExecutorService', () => {
     ).rejects.toThrow('Agent context is stale.');
 
     expect(prisma.workflow.findFirst).not.toHaveBeenCalled();
+    expect(scopeService.assertConsequentialBoundary).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'user-1' }),
+      'workflow',
+    );
     expect(engineAdapter.executeNode).not.toHaveBeenCalled();
   });
 
@@ -967,6 +1004,7 @@ describe('WorkflowExecutorService', () => {
       id: 'exec-1',
       workflowId: 'workflow-1',
       workflowVersionId: WORKFLOW_VERSION_ID,
+      userId: 'recorded-scope-actor',
     });
     prisma.workflowVersion.findFirst.mockResolvedValue(
       pinnedVersion({
@@ -1009,6 +1047,10 @@ describe('WorkflowExecutorService', () => {
       }),
     ).rejects.toThrow('Agent context is stale.');
 
+    expect(scopeService.assertConsequentialBoundary).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'recorded-scope-actor' }),
+      'workflow',
+    );
     expect(engineAdapter.executeNode).not.toHaveBeenCalled();
   });
 
@@ -1020,6 +1062,116 @@ describe('WorkflowExecutorService', () => {
       type: 'mention',
       userId: 'user-1',
     };
+
+    it.each(['manual', 'provider'] as const)(
+      'uses the recorded actor in actual node context on %s continuation',
+      async (entrypoint) => {
+        const actor = ' recorded-actor ';
+        const version = pinnedVersion({
+          id: 'workflow-1',
+          label: 'Creator workflow',
+        });
+        executionsService.findOne.mockResolvedValue({
+          id: 'exec-actor',
+          status: WorkflowExecutionStatus.FAILED,
+          userId: actor,
+          workflowId: 'workflow-1',
+          workflowVersionId: WORKFLOW_VERSION_ID,
+        });
+        prisma.workflowVersion.findFirst.mockResolvedValue(version);
+        engineAdapter.convertToExecutableWorkflow.mockImplementation((doc) => ({
+          edges: [],
+          id: 'workflow-1',
+          lockedNodeIds: [],
+          nodes: [
+            createExecutableActionNode({
+              actionId: 'publish',
+              id: 'publish-node',
+              label: 'Publish',
+            }),
+          ],
+          organizationId: 'org-1',
+          userId: doc.userId,
+          versionId: WORKFLOW_VERSION_ID,
+        }));
+        engineAdapter.applyRuntimeInputValues.mockImplementation(
+          (_doc, workflow) => workflow,
+        );
+        executionsService.updateNodeResult.mockResolvedValue({ progress: 100 });
+        executionsService.completeExecution.mockResolvedValue({ metadata: {} });
+        engineAdapter.executeNode.mockResolvedValue({
+          nodeId: 'publish-node',
+          output: {},
+          creditsUsed: 0,
+          retryCount: 0,
+          startedAt: new Date(),
+          completedAt: new Date(),
+          status: 'completed',
+        });
+        const event = { ...triggerEvent, userId: 'resumer' };
+        if (entrypoint === 'manual')
+          await service.continueExistingExecution('exec-actor', event);
+        else
+          await service.continueProviderCallbackExecution({
+            executionId: 'exec-actor',
+            organizationId: 'org-1',
+            workflowVersionId: WORKFLOW_VERSION_ID,
+          });
+        expect(engineAdapter.executeNode).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.any(Map),
+          expect.objectContaining({ userId: actor }),
+          expect.objectContaining({ executionId: 'exec-actor' }),
+        );
+        expect(
+          websocketService.publishBackgroundTaskUpdate,
+        ).toHaveBeenCalledWith(expect.objectContaining({ userId: actor }));
+        expect(event.userId).toBe('resumer');
+        expect(version.userId).toBe('user-1');
+        expect(version.workflow.userId).toBe('user-1');
+      },
+    );
+
+    it('rejects a mismatched provider version before hydration or node execution', async () => {
+      executionsService.findOne.mockResolvedValue({
+        id: 'exec-provider',
+        userId: 'recorded-provider-actor',
+        workflowId: 'workflow-1',
+        workflowVersionId: WORKFLOW_VERSION_ID,
+      });
+      await expect(
+        service.continueProviderCallbackExecution({
+          executionId: 'exec-provider',
+          organizationId: 'org-1',
+          workflowVersionId: 'wrong-version',
+        }),
+      ).rejects.toThrow('does not match its immutable workflow version');
+      expect(prisma.workflowVersion.findFirst).not.toHaveBeenCalled();
+      expect(engineAdapter.executeNode).not.toHaveBeenCalled();
+      expect(executionsService.findOne).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([undefined, null, 42, {}, '', '  \t'])(
+      'blocks continuation with invalid recorded actor %j before hydration',
+      async (actor) => {
+        executionsService.findOne.mockResolvedValue({
+          id: 'exec-invalid',
+          status: WorkflowExecutionStatus.FAILED,
+          userId: actor,
+          workflowId: 'workflow-1',
+          workflowVersionId: WORKFLOW_VERSION_ID,
+        });
+        await expect(
+          service.continueExistingExecution('exec-invalid', triggerEvent),
+        ).rejects.toThrow('exec-invalid');
+        expect(prisma.workflowVersion.findFirst).not.toHaveBeenCalled();
+        expect(engineAdapter.executeNode).not.toHaveBeenCalled();
+        expect(executionsService.completeExecution).not.toHaveBeenCalled();
+        expect(
+          websocketService.publishBackgroundTaskUpdate,
+        ).not.toHaveBeenCalled();
+      },
+    );
 
     it('returns a failed shell when the execution row is missing', async () => {
       executionsService.findOne.mockResolvedValue(null);
@@ -1048,6 +1200,7 @@ describe('WorkflowExecutorService', () => {
       executionsService.findOne.mockResolvedValue({
         id: 'exec-1',
         startedAt,
+        userId: 'user-1',
         status: WorkflowExecutionStatus.RUNNING,
         workflowId: 'workflow-1',
         workflowVersionId: WORKFLOW_VERSION_ID,
@@ -1155,6 +1308,7 @@ describe('WorkflowExecutorService', () => {
 
       executionsService.findOne.mockResolvedValue({
         id: 'exec-pending',
+        userId: 'user-1',
         status: WorkflowExecutionStatus.PENDING,
         workflowId: 'workflow-1',
         workflowVersionId: WORKFLOW_VERSION_ID,
@@ -1232,6 +1386,7 @@ describe('WorkflowExecutorService', () => {
 
       executionsService.findOne.mockResolvedValue({
         id: 'exec-1',
+        userId: 'user-1',
         status: WorkflowExecutionStatus.FAILED,
         workflowId: 'workflow-1',
         workflowVersionId: WORKFLOW_VERSION_ID,

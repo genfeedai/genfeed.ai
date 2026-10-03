@@ -1,8 +1,10 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -137,6 +139,7 @@ describe('OptimizersService structured output', () => {
       providers: [
         OptimizersService,
         ReplicateService,
+        { provide: PlatformSettingsService, useValue: runtimeSettingsMock() },
         { provide: PrismaService, useValue: {} },
         {
           provide: LoggerService,

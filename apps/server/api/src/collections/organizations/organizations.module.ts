@@ -19,6 +19,7 @@ import { OrganizationsSettingsController } from '@api/collections/organizations/
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
 import { AgentPolicyOverridesService } from '@api/collections/organizations/services/agent-policy-overrides.service';
 import { OrganizationsOperationsService } from '@api/collections/organizations/services/organizations-operations.service';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { RolesModule } from '@api/collections/roles/roles.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
@@ -46,6 +47,7 @@ import { Module } from '@nestjs/common';
   ],
   exports: [OrganizationsCoreModule],
   imports: [
+    PlatformSettingsModule,
     OrganizationsCoreModule,
     BillingAccountsModule,
     BrandsCoreModule,

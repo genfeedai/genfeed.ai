@@ -1,6 +1,7 @@
 import { MurekaService } from '@api/services/integrations/mureka/services/mureka.service';
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import type { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
@@ -36,6 +37,7 @@ function createHarness(
     poll,
     post,
     service: new MurekaService(
+      runtimeSettingsMock(configService),
       configService,
       loggerService,
       httpService,

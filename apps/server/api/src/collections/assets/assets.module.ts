@@ -1,3 +1,4 @@
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 /**
  * Assets Module
  * General file management: upload/download files, S3 storage, metadata tracking,
@@ -31,6 +32,7 @@ import { Module } from '@nestjs/common';
   ],
   exports: [AssetsService],
   imports: [
+    PlatformSettingsModule,
     BrandsCoreModule,
     ByokModule,
     CreditsModule,

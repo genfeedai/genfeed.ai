@@ -1,3 +1,4 @@
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { ConfigService } from '@libs/config/config.service';
@@ -71,6 +72,7 @@ export class MurekaService {
   private readonly logContext = 'MurekaService';
 
   constructor(
+    private readonly platformSettingsService: PlatformSettingsService,
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly httpService: HttpService,
@@ -124,7 +126,8 @@ export class MurekaService {
     this.ensureConfigured();
     const model =
       input.model ||
-      (this.configService.get('MUREKA_MODEL') as string) ||
+      ((await this.platformSettingsService.getFeatureSettings())
+        .murekaModel as string) ||
       MUREKA_DEFAULT_MODEL;
     const submission = this.buildSubmission(input, model);
 

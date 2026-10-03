@@ -1,6 +1,15 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import AnalyticsAccounts from './analytics-accounts';
 
 const requestState = vi.hoisted(() => ({
@@ -16,8 +25,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
-  const translate = translateFromCatalog('pages.analytics.accounts');
-  return { useTranslations: () => translate };
+  return { useTranslations: translateFromCatalog };
 });
 
 vi.mock('@contexts/analytics/analytics-context', () => ({
@@ -64,6 +72,32 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
 }));
 
 describe('AnalyticsAccounts', () => {
+  const scrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    'scrollIntoView',
+  );
+
+  beforeAll(() => {
+    // Radix focuses real Select options; jsdom does not implement scrolling.
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: vi.fn(),
+      writable: true,
+    });
+  });
+
+  afterAll(() => {
+    if (scrollIntoViewDescriptor) {
+      Object.defineProperty(
+        HTMLElement.prototype,
+        'scrollIntoView',
+        scrollIntoViewDescriptor,
+      );
+    } else {
+      Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
+    }
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     requestState.accounts = [];
@@ -125,5 +159,56 @@ describe('AnalyticsAccounts', () => {
       'Account analytics could not be loaded.',
     );
     expect(screen.queryByText('No connected accounts')).toBeNull();
+  });
+  it('keeps Posts metadata and updates the dynamic definition for views/posts/followers', async () => {
+    const user = userEvent.setup();
+    requestState.accounts = [
+      {
+        evaluation: null,
+        identity: {
+          credentialId: 'credential-1',
+          label: 'Acme',
+          platform: 'instagram',
+        },
+        metrics: [],
+        publishedPosts: 0,
+      },
+    ];
+    render(<AnalyticsAccounts />);
+    await screen.findByText('Acme');
+    expect(
+      screen.getByRole('button', { name: 'About Views' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'About Posts' }),
+    ).toBeInTheDocument();
+    const latestToolbar = () =>
+      mocks.setToolbarNode.mock.calls
+        .filter(([node]) => node !== null)
+        .at(-1)?.[0] as ReactNode;
+    const toolbar = render(latestToolbar());
+    act(() => screen.getByRole('combobox', { name: 'Rank by metric' }).focus());
+    await user.keyboard('{ArrowDown}');
+    await screen.findByRole('option', { name: 'Posts' });
+    await user.keyboard('{End}{Enter}');
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole('button', { name: 'About Posts' }),
+      ).toHaveLength(2),
+    );
+    expect(screen.queryByRole('button', { name: 'About Views' })).toBeNull();
+    toolbar.rerender(latestToolbar());
+    act(() => screen.getByRole('combobox', { name: 'Rank by metric' }).focus());
+    await user.keyboard('{ArrowDown}');
+    await screen.findByRole('option', { name: 'Followers' });
+    await user.keyboard('{Home}{ArrowDown}{Enter}');
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole('button', { name: 'About Posts' }),
+      ).toHaveLength(1),
+    );
+    expect(
+      screen.queryByRole('button', { name: 'About Followers' }),
+    ).toBeNull();
   });
 });

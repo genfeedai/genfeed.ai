@@ -6,25 +6,79 @@ vi.hoisted(() => {
   process.env.REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
 });
 
+import { CreditsModule } from '@api/collections/credits/credits.module';
+import { WebhooksMediaModule } from '@api/endpoints/webhooks/webhooks-media.module';
+import { ByokModule } from '@api/services/byok/byok.module';
+import { CacheModule } from '@api/services/cache/cache.module';
+import { CrunContractImportService } from '@api/services/integrations/crun/contracts/crun-contract-import.service';
 import { CrunModule } from '@api/services/integrations/crun/crun.module';
+import { CrunClient } from '@api/services/integrations/crun/crun-client.service';
+import { CrunQuoteService } from '@api/services/integrations/crun/crun-quote.service';
+import { CrunTaskService } from '@api/services/integrations/crun/crun-task.service';
+import { CrunTaskFinalizationService } from '@api/services/integrations/crun/crun-task-finalization.service';
+import { MediaVendorCostModule } from '@api/services/media-vendor-cost/media-vendor-cost.module';
 import { VideoCompletionService } from '@api/services/video-completion/video-completion.service';
 import { VideoCompletionCoreModule } from '@api/services/video-completion/video-completion-core.module';
-import type { DynamicModule, Provider } from '@nestjs/common';
+import { LoggerService } from '@libs/logger/logger.service';
+import { type DynamicModule, Module, type Provider } from '@nestjs/common';
 import {
   MODULE_METADATA,
   SELF_DECLARED_DEPS_METADATA,
 } from '@nestjs/common/constants';
+import { Test } from '@nestjs/testing';
 import { PlatformMediaSchedulesService } from '@workers/scheduling/platform-media-schedules.service';
 import { PlatformSchedulesModule } from '@workers/scheduling/platform-schedules.module';
 import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
 
 const QUEUE_TOKEN_PREFIX = 'BullQueue_';
 
+@Module({})
+class EmptyDependencyFixtureModule {}
+
 function providerToken(provider: Provider): unknown {
   return typeof provider === 'function' ? provider : provider.provide;
 }
 
 describe('PlatformSchedulesModule', () => {
+  it('resolves reconciliation through the real Crun module export boundary', async () => {
+    const module = await Test.createTestingModule({
+      imports: [CrunModule],
+      providers: [
+        CrunReconcileService,
+        { provide: LoggerService, useValue: {} },
+      ],
+    })
+      .overrideModule(ByokModule)
+      .useModule(EmptyDependencyFixtureModule)
+      .overrideModule(CacheModule)
+      .useModule(EmptyDependencyFixtureModule)
+      .overrideModule(WebhooksMediaModule)
+      .useModule(EmptyDependencyFixtureModule)
+      .overrideModule(CreditsModule)
+      .useModule(EmptyDependencyFixtureModule)
+      .overrideModule(MediaVendorCostModule)
+      .useModule(EmptyDependencyFixtureModule)
+      .overrideProvider(CrunTaskFinalizationService)
+      .useValue({})
+      .overrideProvider(CrunTaskService)
+      .useValue({})
+      .overrideProvider(CrunContractImportService)
+      .useValue({})
+      .overrideProvider(CrunClient)
+      .useValue({})
+      .overrideProvider(CrunQuoteService)
+      .useValue({})
+      .compile();
+
+    try {
+      expect(module.get(CrunReconcileService)).toBeInstanceOf(
+        CrunReconcileService,
+      );
+    } finally {
+      await module.close();
+    }
+  });
+
   it('resolves the concrete media facade through the existing actual owners', () => {
     const providers: Provider[] =
       Reflect.getMetadata(MODULE_METADATA.PROVIDERS, PlatformSchedulesModule) ??

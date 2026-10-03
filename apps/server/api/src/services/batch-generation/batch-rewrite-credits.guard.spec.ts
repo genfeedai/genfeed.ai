@@ -9,6 +9,7 @@ import {
 import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { BatchRewriteCreditsGuard } from '@api/services/batch-generation/batch-rewrite-credits.guard';
 import type { ByokService } from '@api/services/byok/byok.service';
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import { ActivitySource, CreditReservationStatus } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -38,6 +39,7 @@ describe('BatchRewriteCreditsGuard admission', () => {
         }),
       };
       const creditsGuard = new CreditsGuard(
+        runtimeSettingsMock({ get: vi.fn() } as unknown as ConfigService),
         new Reflector(),
         credits as unknown as CreditsUtilsService,
         models as unknown as ModelsService,
@@ -50,7 +52,6 @@ describe('BatchRewriteCreditsGuard admission', () => {
           warn: vi.fn(),
           error: vi.fn(),
         } as unknown as LoggerService,
-        { get: vi.fn() } as unknown as ConfigService,
         testModelCreditQuote(models as never),
       );
       const attributes = {

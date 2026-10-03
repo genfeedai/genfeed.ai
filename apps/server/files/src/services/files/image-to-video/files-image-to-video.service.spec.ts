@@ -2,6 +2,7 @@ import { ConfigService } from '@files/config/config.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { FilesCaptionsService } from '@files/services/files/captions/files-captions.service';
 import { FilesImageToVideoService } from '@files/services/files/image-to-video/files-image-to-video.service';
+import { FileRuntimeSettingsService } from '@files/services/runtime-settings/file-runtime-settings.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -73,6 +74,10 @@ describe('FilesImageToVideoService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        {
+          provide: FileRuntimeSettingsService,
+          useValue: { get: async () => ({ imageCompressionQuality: 50 }) },
+        },
         FilesImageToVideoService,
         { provide: ConfigService, useValue: { get: vi.fn() } },
         { provide: LoggerService, useValue: loggerService },

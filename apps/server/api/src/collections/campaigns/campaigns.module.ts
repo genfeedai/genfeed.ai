@@ -9,6 +9,7 @@ import { CampaignsService } from '@api/collections/campaigns/services/campaigns.
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ModelsModule } from '@api/collections/models/models.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { PostGroupsModule } from '@api/collections/post-groups/post-groups.module';
 import { PostLifecycleModule } from '@api/collections/posts/post-lifecycle.module';
 import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
@@ -26,6 +27,7 @@ import { Module } from '@nestjs/common';
   controllers: [CampaignsController],
   exports: [CampaignsService],
   imports: [
+    PlatformSettingsModule,
     CreditsModule,
     ModelsModule,
     ByokModule,

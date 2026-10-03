@@ -1,3 +1,8 @@
+import * as domMatchers from '@testing-library/jest-dom/matchers';
+import '@testing-library/jest-dom/vitest';
+
+vi.mock('./system-notifications-panel', () => ({ default: () => null }));
+
 import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import {
@@ -10,6 +15,8 @@ import {
 } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PlatformSettingsPage from './platform-settings-page';
+
+expect.extend(domMatchers);
 
 // Flags are edited on Admin → Flags (#5468) and Featured pins on Admin →
 // Automation → Workflows (#5511); the settings page never resends either.

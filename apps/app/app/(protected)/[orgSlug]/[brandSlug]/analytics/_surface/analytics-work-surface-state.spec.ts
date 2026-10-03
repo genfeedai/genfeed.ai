@@ -156,3 +156,39 @@ describe('Analytics work surface state', () => {
     expect(restored.routeBrandId).toBeUndefined();
   });
 });
+
+describe('Canonical analytics metric restoration', () => {
+  it.each([
+    'comments',
+    'engagement',
+    'engagementRate',
+    'likes',
+    'posts',
+    'saves',
+    'shares',
+    'views',
+  ])('preserves %s for metric and sort URL filters', (metric) => {
+    for (const [route, key] of [
+      ['posts', 'metric'],
+      ['brands', 'sort'],
+    ]) {
+      const restored = restoreAnalyticsSurfaceState({
+        pathname: `/acme/moonrise/analytics/${route}`,
+        searchParams: new URLSearchParams(`${key}=${metric}&thread=opaque`),
+      });
+      expect(restored.filters[key as 'metric' | 'sort']).toBe(metric);
+      expect(restored.canonicalSearchParams.get(key)).toBe(metric);
+      expect(restored.canonicalSearchParams.get('thread')).toBe('opaque');
+    }
+  });
+  it.each(['__proto__', 'constructor', 'toString', 'followers', 'Views'])(
+    'rejects unsupported %s URL metrics',
+    (metric) => {
+      const restored = restoreAnalyticsSurfaceState({
+        pathname: '/acme/moonrise/analytics/posts',
+        searchParams: new URLSearchParams(`metric=${metric}`),
+      });
+      expect(restored.filters.metric).toBe('views');
+    },
+  );
+});

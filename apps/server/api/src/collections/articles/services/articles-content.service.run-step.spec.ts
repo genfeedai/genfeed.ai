@@ -3,6 +3,7 @@ import type { RunTextGenerationStepParams } from '@api/collections/articles/serv
 import type { ModelsService } from '@api/collections/models/services/models.service';
 import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import type { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import { ModelCategory } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -28,7 +29,7 @@ function makeService() {
   };
 
   const service = new ArticleTextGenerationService(
-    config as unknown as ConfigService,
+    runtimeSettingsMock(config as unknown as ConfigService),
     models as unknown as ModelsService,
     replicate as unknown as ReplicateService,
     promptBuilder as unknown as PromptBuilderService,

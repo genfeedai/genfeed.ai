@@ -5,7 +5,7 @@ import type {
 import { render, screen } from '@testing-library/react';
 import { TrendingHashtags } from '@ui/analytics/trends/trending-hashtags';
 import { TrendingSounds } from '@ui/analytics/trends/trending-sounds';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 const VIEWPORT_LADDER = /(^|\s)(sm|md|lg|xl|2xl):grid-cols/;
 
@@ -67,4 +67,14 @@ describe('trend grids', () => {
     const grid = getGrid('trending-sounds-skeleton');
     expect(grid).toHaveClass('@[60rem]:grid-cols-3', 'gap-4');
   });
+});
+
+vi.mock('next-intl', async () => {
+  const { createTranslateFromCatalog } = await import(
+    '@ui/tests/next-intl.stub'
+  );
+  const { default: pages } = await import(
+    '../../../../../../apps/app/messages/en/pages.json'
+  );
+  return { useTranslations: createTranslateFromCatalog({ pages }) };
 });

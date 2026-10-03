@@ -10,6 +10,7 @@ import { ModalEnum } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   closeModal,
+  isModalOpen,
   openModal,
 } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
@@ -21,10 +22,17 @@ import type {
   SkillsPageState as PageState,
   SkillDraft,
 } from '@props/settings/skills.props';
-import { type Skill, SkillsService } from '@services/content/skills.service';
+import {
+  classifySkillImportFailure,
+  type Skill,
+  SkillImportCreatedUnavailableError,
+  SkillImportRejectedError,
+  SkillsService,
+} from '@services/content/skills.service';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
+import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -32,6 +40,10 @@ import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import SkillDetailSheet from './skill-detail-sheet';
 import { prepareSkillDraftPatch } from './skill-draft-patch';
 import SkillFilters from './skill-filters';
+import SkillImportForm, {
+  type SkillImportFormLabels,
+} from './skill-import-form';
+import type { SkillImportInput } from './skill-import-input';
 import SkillsTable from './skills-table';
 
 function emptyDraft(): SkillDraft {
@@ -53,6 +65,12 @@ function draftFromSkill(skill: Skill | null): SkillDraft {
 }
 
 const initialState: PageState = {
+  importFields: { files: [], slug: '', sourceUrl: '', checksum: '' },
+  isImportOpen: false,
+  isImporting: false,
+  isImportLocked: false,
+  importError: null,
+  importResetKey: 0,
   error: null,
   isCustomizing: false,
   isLoading: true,
@@ -71,7 +89,42 @@ const initialState: PageState = {
 function pageReducer(state: PageState, action: PageAction): PageState {
   switch (action.type) {
     case 'RESET':
-      return { ...initialState };
+      return {
+        ...initialState,
+        isImportLocked: action.importLocked ?? false,
+        importResetKey: state.importResetKey + 1,
+      };
+    case 'IMPORT_RECOVERED':
+      return { ...state, isImportLocked: false, importError: null };
+    case 'IMPORT_OPEN':
+      return { ...state, isImportOpen: true, importError: null };
+    case 'IMPORT_FIELDS':
+      return {
+        ...state,
+        importFields: { ...state.importFields, ...action.fields },
+        importError: null,
+      };
+    case 'IMPORT_START':
+      return { ...state, isImporting: true, importError: null };
+    case 'IMPORT_SENT':
+      return { ...state, isImportLocked: true };
+    case 'IMPORT_DONE':
+      return {
+        ...state,
+        isImporting: false,
+        isImportLocked: true,
+        isImportOpen: false,
+        importError: null,
+        importFields: initialState.importFields,
+        importResetKey: state.importResetKey + 1,
+      };
+    case 'IMPORT_ERROR':
+      return {
+        ...state,
+        isImporting: false,
+        isImportLocked: action.locked,
+        importError: action.message,
+      };
     case 'FORK_CREATED':
       return { ...state, forkCreatedForSkillId: action.sourceId };
     case 'HYDRATE_SKILL':
@@ -109,6 +162,8 @@ function pageReducer(state: PageState, action: PageAction): PageState {
     case 'SELECT_SKILL':
       return {
         ...state,
+        isImportOpen: false,
+        isImporting: false,
         selectedSkillId: action.id,
         skillDraft: action.draft,
         originalSkillDraft: action.draft,
@@ -169,6 +224,7 @@ export default function BrandSettingsSkillsPage() {
     selectedId: '',
     operationId: 0,
     pendingId: 0,
+    importSent: false,
   });
 
   const [state, dispatch] = useReducer(pageReducer, initialState);
@@ -220,6 +276,7 @@ export default function BrandSettingsSkillsPage() {
     lifecycleRef.current.epoch += 1;
     lifecycleRef.current.pendingId = 0;
     lifecycleRef.current.selectedId = '';
+    lifecycleRef.current.importSent = false;
   }
 
   const skills =
@@ -251,11 +308,18 @@ export default function BrandSettingsSkillsPage() {
 
   const refreshCatalog = useCallback(async () => {
     const lifecycle = lifecycleRef.current;
+    if (
+      lifecycle.selectedId ||
+      isModalOpen(ModalEnum.SKILL) ||
+      lifecycle.pendingId
+    )
+      return;
+    const wasImportSent = lifecycle.importSent;
     const epoch = ++lifecycle.epoch;
     const requestId = ++catalogRequestIdRef.current;
     lifecycle.pendingId = 0;
     lifecycle.selectedId = '';
-    dispatch({ type: 'RESET' });
+    dispatch({ type: 'RESET', importLocked: wasImportSent });
     closeModal(ModalEnum.SKILL);
     if (!isScopeMatch) return;
     const isCurrent = () =>
@@ -270,6 +334,8 @@ export default function BrandSettingsSkillsPage() {
       if (!isCurrent()) return;
       catalogScopeKeyRef.current = scopeKey;
       dispatch({ type: 'LOAD_SUCCESS', skills: catalogSkills });
+      lifecycleRef.current.importSent = false;
+      dispatch({ type: 'IMPORT_RECOVERED' });
     } catch {
       if (!isCurrent()) return;
       catalogScopeKeyRef.current = scopeKey;
@@ -356,6 +422,146 @@ export default function BrandSettingsSkillsPage() {
       },
     };
   }, [isScopeMatch, scopeKey, selectedSkill]);
+
+  const importLabels = useMemo<SkillImportFormLabels>(
+    () => ({
+      files: translate('import.files'),
+      slug: translate('import.slug'),
+      sourceUrl: translate('import.sourceUrl'),
+      checksum: translate('import.checksum'),
+      submit: translate('import.submit'),
+      submitting: translate('import.submitting'),
+      selectedFiles: translate('import.selectedFiles'),
+      packageHint: translate('import.packageHint'),
+      nestedHint: translate('import.nestedHint'),
+      failed: translate('import.failed'),
+      errors: {
+        SLUG: translate('import.errors.SLUG'),
+        SOURCE_URL: translate('import.errors.SOURCE_URL'),
+        CHECKSUM: translate('import.errors.CHECKSUM'),
+        COUNT: translate('import.errors.COUNT'),
+        PATH: translate('import.errors.PATH'),
+        DIRECTORY: translate('import.errors.DIRECTORY'),
+        ROOT: translate('import.errors.ROOT'),
+        SIZE: translate('import.errors.SIZE'),
+        UTF8: translate('import.errors.UTF8'),
+        READ: translate('import.errors.READ'),
+      },
+    }),
+    [translate],
+  );
+
+  const handleImportSkill = useCallback(
+    async (input: SkillImportInput) => {
+      const lifecycle = lifecycleRef.current;
+      const hasOpenModal = () =>
+        Object.values(ModalEnum).some((modal) => isModalOpen(modal));
+      if (
+        !isScopeMatch ||
+        !lifecycle.isActive ||
+        lifecycle.scopeKey !== scopeKey ||
+        lifecycle.pendingId ||
+        lifecycle.selectedId ||
+        selectedSkillId ||
+        lifecycle.importSent ||
+        state.isImportLocked ||
+        isTogglingSkill ||
+        pendingSlugs.size > 0 ||
+        isPending ||
+        hasOpenModal()
+      )
+        return;
+      const epoch = lifecycle.epoch;
+      const operationId = ++lifecycle.operationId;
+      lifecycle.pendingId = operationId;
+      const isCurrent = () =>
+        lifecycleRef.current.isActive &&
+        lifecycleRef.current.epoch === epoch &&
+        lifecycleRef.current.scopeKey === scopeKey &&
+        lifecycleRef.current.pendingId === operationId &&
+        !lifecycleRef.current.selectedId;
+      let wasCreated = false;
+      dispatch({ type: 'IMPORT_START' });
+      try {
+        const service = await acquireService(isCurrent);
+        if (!isCurrent() || !service) return;
+        if (hasOpenModal()) throw new Error('Import context unavailable');
+        lifecycleRef.current.importSent = true;
+        dispatch({ type: 'IMPORT_SENT' });
+        const created = await service.importSkill(input);
+        if (!isCurrent()) return;
+        wasCreated = true;
+        if (hasOpenModal()) throw new SkillImportCreatedUnavailableError();
+        if (
+          typeof created.id !== 'string' ||
+          !created.id ||
+          created.id !== created.id.trim() ||
+          /[\\/?#]/.test(created.id) ||
+          [...created.id].some(
+            (character) =>
+              character.charCodeAt(0) <= 32 ||
+              (character.charCodeAt(0) >= 127 &&
+                character.charCodeAt(0) <= 159),
+          )
+        )
+          throw new SkillImportCreatedUnavailableError();
+        const hydrated = await service.getSkill(created.id);
+        if (!isCurrent()) return;
+        if (
+          hasOpenModal() ||
+          hydrated.id !== created.id ||
+          typeof hydrated.name !== 'string' ||
+          typeof hydrated.description !== 'string' ||
+          typeof hydrated.slug !== 'string' ||
+          !Array.isArray(hydrated.modalities) ||
+          !hydrated.modalities.every((value) => typeof value === 'string') ||
+          !Array.isArray(hydrated.channels) ||
+          !hydrated.channels.every((value) => typeof value === 'string') ||
+          typeof hydrated.workflowStage !== 'string' ||
+          typeof hydrated.source !== 'string' ||
+          !Array.isArray(hydrated.requiredProviders)
+        )
+          throw new SkillImportCreatedUnavailableError();
+        dispatch({ type: 'IMPORT_DONE' });
+        dispatch({ type: 'HYDRATE_SKILL', skill: hydrated });
+        lifecycleRef.current.pendingId = 0;
+        lifecycleRef.current.selectedId = hydrated.id;
+        lifecycleRef.current.epoch += 1;
+        openModal(ModalEnum.SKILL);
+      } catch (failure) {
+        if (!isCurrent()) return;
+        const classified = classifySkillImportFailure(failure);
+        const rejected =
+          !wasCreated && classified instanceof SkillImportRejectedError;
+        if (rejected) lifecycleRef.current.importSent = false;
+        dispatch({
+          type: 'IMPORT_ERROR',
+          locked: !rejected && lifecycleRef.current.importSent,
+          message: translate(
+            wasCreated ||
+              classified instanceof SkillImportCreatedUnavailableError
+              ? 'import.detailsUnavailable'
+              : rejected
+                ? `import.rejected.${classified.reason}`
+                : 'import.failed',
+          ),
+        });
+      } finally {
+        if (isCurrent()) lifecycleRef.current.pendingId = 0;
+      }
+    },
+    [
+      acquireService,
+      isPending,
+      isScopeMatch,
+      scopeKey,
+      selectedSkillId,
+      state.isImportLocked,
+      isTogglingSkill,
+      pendingSlugs,
+      translate,
+    ],
+  );
 
   const handleSaveSkill = useCallback(async () => {
     if (
@@ -590,6 +796,94 @@ export default function BrandSettingsSkillsPage() {
           {error}
         </div>
       ) : null}
+
+      <InsetSurface className="mb-4" density="compact">
+        <div className="grid gap-3">
+          <Button
+            label={translate('import.action')}
+            isDisabled={
+              isLoading ||
+              isTogglingSkill ||
+              pendingSlugs.size > 0 ||
+              isPending ||
+              state.isImporting ||
+              state.isImportLocked ||
+              Boolean(selectedSkillId)
+            }
+            onClick={() => {
+              if (
+                isScopeMatch &&
+                !lifecycleRef.current.pendingId &&
+                !lifecycleRef.current.selectedId &&
+                !lifecycleRef.current.importSent &&
+                !Object.values(ModalEnum).some((modal) => isModalOpen(modal))
+              )
+                dispatch({ type: 'IMPORT_OPEN' });
+            }}
+          />
+          {state.isImportOpen && !selectedSkillId ? (
+            <section
+              aria-label={translate('import.title')}
+              className="grid gap-3"
+            >
+              <p className="text-sm text-muted-foreground">
+                {translate('import.description')}
+              </p>
+              <SkillImportForm
+                {...state.importFields}
+                labels={importLabels}
+                error={state.importError ?? undefined}
+                isDisabled={
+                  state.isImportLocked ||
+                  isPending ||
+                  isLoading ||
+                  isTogglingSkill ||
+                  pendingSlugs.size > 0
+                }
+                isSubmitting={state.isImporting}
+                scopeKey={scopeKey}
+                resetKey={state.importResetKey}
+                onFilesChange={(files) => {
+                  if (
+                    !lifecycleRef.current.pendingId &&
+                    !lifecycleRef.current.importSent
+                  )
+                    dispatch({ type: 'IMPORT_FIELDS', fields: { files } });
+                }}
+                onSlugChange={(slug) => {
+                  if (
+                    !lifecycleRef.current.pendingId &&
+                    !lifecycleRef.current.importSent
+                  )
+                    dispatch({ type: 'IMPORT_FIELDS', fields: { slug } });
+                }}
+                onSourceUrlChange={(sourceUrl) => {
+                  if (
+                    !lifecycleRef.current.pendingId &&
+                    !lifecycleRef.current.importSent
+                  )
+                    dispatch({ type: 'IMPORT_FIELDS', fields: { sourceUrl } });
+                }}
+                onChecksumChange={(checksum) => {
+                  if (
+                    !lifecycleRef.current.pendingId &&
+                    !lifecycleRef.current.importSent
+                  )
+                    dispatch({ type: 'IMPORT_FIELDS', fields: { checksum } });
+                }}
+                onImport={handleImportSkill}
+              />
+            </section>
+          ) : null}
+          {state.isImportLocked && !selectedSkillId ? (
+            <Button
+              label={translate('import.reset')}
+              isDisabled={state.isImporting || isPending}
+              onClick={() => void refreshCatalog()}
+            />
+          ) : null}
+        </div>
+      </InsetSurface>
 
       <InsetSurface className="mb-4" density="compact">
         <Switch

@@ -2,7 +2,10 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsAccountDetail from './analytics-account-detail';
 
-const requestState = vi.hoisted(() => ({ detailError: false }));
+const requestState = vi.hoisted(() => ({
+  detailError: false,
+  hasMetrics: false,
+}));
 const mocks = vi.hoisted(() => ({ getAccountAnalyticsDetail: vi.fn() }));
 
 vi.mock('next-intl', async () => {
@@ -19,54 +22,62 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
   useAnalyticsContext: () => ({ dateRange: {}, filters: {} }),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({
-    getAccountAnalyticsDetail:
-      mocks.getAccountAnalyticsDetail.mockImplementation(() =>
-        requestState.detailError
-          ? Promise.reject(new Error('request failed'))
-          : Promise.resolve({
-              coverage: 1,
-              evaluation: null,
-              freshnessHours: 1,
-              growth: [],
-              identity: {
-                brandId: 'brand-1',
-                brandLabel: 'Brand',
-                connectedAt: null,
-                credentialId: 'cred-1',
-                externalAvatar: null,
-                externalHandle: 'acct',
-                externalId: 'ext-1',
-                externalName: 'Account',
-                firstPublishedAt: null,
-                firstTrackedAt: null,
-                isConnected: true,
-                label: 'Account',
-                manageHref: '/settings/social?credential=cred-1',
+const getService = async () => ({
+  getAccountAnalyticsDetail: mocks.getAccountAnalyticsDetail.mockImplementation(
+    () =>
+      requestState.detailError
+        ? Promise.reject(new Error('request failed'))
+        : Promise.resolve({
+            coverage: 1,
+            evaluation: null,
+            freshnessHours: 1,
+            growth: [],
+            identity: {
+              brandId: 'brand-1',
+              brandLabel: 'Brand',
+              connectedAt: null,
+              credentialId: 'cred-1',
+              externalAvatar: null,
+              externalHandle: 'acct',
+              externalId: 'ext-1',
+              externalName: 'Account',
+              firstPublishedAt: null,
+              firstTrackedAt: null,
+              isConnected: true,
+              label: 'Account',
+              manageHref: '/settings/social?credential=cred-1',
+              platform: 'instagram',
+            },
+            metrics: requestState.hasMetrics
+              ? ['views', 'posts', 'followers'].map((metric) => ({
+                  metric,
+                  availability: 'observed',
+                  change: 0,
+                }))
+              : [],
+            publishedPosts: 2,
+            series: [{ date: '2026-09-01', metrics: [] }],
+            topPosts: [
+              {
+                comments: 1,
+                description: '',
+                engagementRate: 1,
+                ingredientId: 'post-1',
+                likes: 4,
                 platform: 'instagram',
+                postId: 'post-1',
+                publishDate: '2026-09-01',
+                shares: 0,
+                title: 'Winner',
+                views: 90,
               },
-              metrics: [],
-              publishedPosts: 2,
-              series: [{ date: '2026-09-01', metrics: [] }],
-              topPosts: [
-                {
-                  comments: 1,
-                  description: '',
-                  engagementRate: 1,
-                  ingredientId: 'post-1',
-                  likes: 4,
-                  platform: 'instagram',
-                  postId: 'post-1',
-                  publishDate: '2026-09-01',
-                  shares: 0,
-                  title: 'Winner',
-                  views: 90,
-                },
-              ],
-            }),
-      ),
-  }),
+            ],
+          }),
+  ),
+});
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => getService,
 }));
 
 vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
@@ -83,6 +94,7 @@ describe('AnalyticsAccountDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     requestState.detailError = false;
+    requestState.hasMetrics = false;
   });
 
   it('renders trend and top posts for the exact account', async () => {
@@ -108,5 +120,23 @@ describe('AnalyticsAccountDetail', () => {
       'Account analytics could not be loaded.',
     );
     expect(screen.queryByText('Top posts')).not.toBeInTheDocument();
+  });
+  it('annotates supported dynamic zero metrics and top content, leaving followers undefined', async () => {
+    requestState.hasMetrics = true;
+    render(<AnalyticsAccountDetail />);
+    await screen.findByText('Winner');
+    expect(screen.getAllByRole('button', { name: 'About Views' })).toHaveLength(
+      2,
+    );
+    expect(
+      screen.getByRole('button', { name: 'About Posts' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'About Likes' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('followers')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'About Followers' }),
+    ).toBeNull();
   });
 });
