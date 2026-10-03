@@ -16,6 +16,50 @@ import { LifecycleEmailDeliveryService } from '@api/services/lifecycle-emails/li
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+type PrismaSelectArgs = {
+  select?: Record<string, boolean | { select: Record<string, boolean> }>;
+};
+
+// Mirrors Prisma: without `select` the full row comes back, with it only the
+// named columns (one level of nested relation select).
+function applySelect(
+  row: Record<string, unknown>,
+  args: PrismaSelectArgs,
+): Record<string, unknown> {
+  if (!args.select) return row;
+  return Object.fromEntries(
+    Object.entries(args.select).map(([key, selected]) => [
+      key,
+      typeof selected === 'object'
+        ? Object.fromEntries(
+            Object.keys(selected.select).map((field) => [
+              field,
+              (row[key] as Record<string, unknown>)[field],
+            ]),
+          )
+        : row[key],
+    ]),
+  );
+}
+
+function compileLifecycleContract(actionId: string) {
+  const action = getActionDefinition(actionId);
+  expect(action).toBeDefined();
+  return compileActionContract(actionId, {
+    inputSchema: (action?.inputSchema ?? {}) as ActionContractJsonSchema,
+    outputSchema: (action?.outputSchema ?? {}) as ActionContractJsonSchema,
+  });
+}
+
+function contractContext(nodeId: string) {
+  return {
+    nodeId,
+    runId: 'run-1',
+    workflowId: 'lifecycle-email.delivery',
+    workflowVersionId: 'v1',
+  };
+}
+
 describe('LifecycleEmailDeliveryService workflow actions', () => {
   const request = {
     sequence: 'welcome' as const,
@@ -159,45 +203,67 @@ describe('LifecycleEmailDeliveryService workflow actions', () => {
         userId: request.userId,
       };
       prisma.lifecycleEmailDelivery.findFirst.mockImplementationOnce(
-        async (args: {
-          select?: Record<
-            string,
-            boolean | { select: Record<string, boolean> }
-          >;
-        }) => {
-          if (!args.select) return databaseRow;
-          const row = databaseRow as Record<string, unknown>;
-          return Object.fromEntries(
-            Object.entries(args.select).map(([key, selected]) => [
-              key,
-              typeof selected === 'object'
-                ? Object.fromEntries(
-                    Object.keys(selected.select).map((field) => [
-                      field,
-                      (row[key] as Record<string, unknown>)[field],
-                    ]),
-                  )
-                : row[key],
-            ]),
-          );
-        },
+        async (args: PrismaSelectArgs) => applySelect(databaseRow, args),
       );
-      const action = getActionDefinition('lifecycle-email.load-delivery');
-      expect(action).toBeDefined();
-      const contract = compileActionContract('lifecycle-email.load-delivery', {
-        inputSchema: (action?.inputSchema ?? {}) as ActionContractJsonSchema,
-        outputSchema: (action?.outputSchema ?? {}) as ActionContractJsonSchema,
-      });
+      const contract = compileLifecycleContract(
+        'lifecycle-email.load-delivery',
+      );
 
       const loaded = await service.loadLifecycleDelivery(request);
 
       expect(() =>
-        contract.validateOutput(loaded, {
-          nodeId: 'load-delivery',
-          runId: 'run-1',
-          workflowId: 'lifecycle-email.delivery',
-          workflowVersionId: 'v1',
-        }),
+        contract.validateOutput(loaded, contractContext('load-delivery')),
+      ).not.toThrow();
+    },
+  );
+
+  it.each([
+    ['an existing preference', 'existing'],
+    ['a newly created preference', 'created'],
+    ['a preference created by a concurrent run', 'raced'],
+  ] as const)(
+    'emits a check-eligibility output the action contract accepts for %s',
+    async (_label, path) => {
+      // The real table also returns userId and timestamps, which the closed
+      // `preference` contract rejects unless every lookup selects explicitly.
+      const preferenceRow = {
+        ...preference,
+        createdAt: new Date('2026-08-27T00:00:00Z'),
+        updatedAt: new Date('2026-08-27T00:00:00Z'),
+        userId: request.userId,
+      };
+      const select = async (args: PrismaSelectArgs) =>
+        applySelect(preferenceRow, args);
+      if (path === 'existing') {
+        prisma.lifecycleEmailPreference.findUnique.mockImplementationOnce(
+          select,
+        );
+      } else {
+        prisma.lifecycleEmailPreference.findUnique.mockResolvedValueOnce(null);
+      }
+      if (path === 'created') {
+        prisma.lifecycleEmailPreference.create.mockImplementationOnce(select);
+      }
+      if (path === 'raced') {
+        prisma.lifecycleEmailPreference.create.mockRejectedValueOnce(
+          Object.assign(new Error('Unique constraint failed'), {
+            code: 'P2002',
+          }),
+        );
+        prisma.lifecycleEmailPreference.findUnique.mockImplementationOnce(
+          select,
+        );
+      }
+      const contract = compileLifecycleContract(
+        'lifecycle-email.check-eligibility',
+      );
+
+      const loaded = await service.loadLifecycleDelivery(request);
+      const checked = await service.checkLifecycleEligibility(loaded);
+
+      expect(checked.preference).toEqual(preference);
+      expect(() =>
+        contract.validateOutput(checked, contractContext('check-eligibility')),
       ).not.toThrow();
     },
   );
