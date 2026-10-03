@@ -21,11 +21,14 @@ export interface AgentContentMentionItem {
 }
 
 export interface AgentCharacterMentionItem {
+  availableBrandCount?: number;
   avatarIngredientId?: string | null;
   handle: string;
   hasReferenceImage: boolean;
   id: string;
+  isShared?: boolean;
   label: string;
+  owningBrandName?: string | null;
 }
 
 export interface AgentCharacterMentionsResponse {

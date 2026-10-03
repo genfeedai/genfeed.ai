@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 'use client';
 
-import { IngredientStatus } from '@genfeedai/contracts';
+import {
+  IngredientStatus,
+  MemberRole,
+  PersonaAvailabilityMode,
+} from '@genfeedai/contracts';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandSettingsCharactersPage from './content';
@@ -10,14 +14,18 @@ const mocks = vi.hoisted(() => {
   const composeSheetPrompt = vi.fn();
   const createFromSheet = vi.fn();
   const listCharacters = vi.fn();
+  const updateAvailability = vi.fn();
   const postImage = vi.fn();
   const personasService = {
     composeSheetPrompt,
     createFromSheet,
     listCharacters,
+    updateAvailability,
   };
   const imagesService = { post: postImage };
   return {
+    role: undefined as string | undefined,
+    updateAvailability,
     composeSheetPrompt,
     createFromSheet,
     getImagesService: async () => imagesService,
@@ -53,7 +61,18 @@ vi.mock('next-intl', async () => {
 });
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({ brandId: 'brand-1' }),
+  useBrand: () => ({
+    brandId: 'brand-1',
+    brands: [
+      { id: 'brand-1', label: 'Personal brand' },
+      { id: 'brand-2', label: 'Podcast' },
+      { id: 'brand-3', label: 'Newsletter' },
+    ],
+  }),
+}));
+
+vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
+  useUserRole: () => mocks.role,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -100,6 +119,7 @@ vi.mock('@services/content/personas.service', () => ({
       composeSheetPrompt: mocks.composeSheetPrompt,
       createFromSheet: mocks.createFromSheet,
       listCharacters: mocks.listCharacters,
+      updateAvailability: mocks.updateAvailability,
     }),
   },
 }));
@@ -115,7 +135,9 @@ vi.mock('@services/ingredients/images.service', () => ({
 describe('BrandSettingsCharactersPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.role = MemberRole.USER;
     mocks.listCharacters.mockResolvedValue([]);
+    mocks.updateAvailability.mockResolvedValue({ id: 'p1' });
     mocks.composeSheetPrompt.mockResolvedValue({
       prompt:
         'CHARACTER REFERENCE SHEET PRESET v1.0.0\n<<<CHARACTER_DESCRIPTION>>>a tall woman<<<END_CHARACTER_DESCRIPTION>>>',
@@ -237,6 +259,154 @@ describe('BrandSettingsCharactersPage', () => {
         handle: 'anna',
         label: 'Anna',
       });
+    });
+  });
+
+  describe('shared characters', () => {
+    const sharedCharacter = {
+      availabilityMode: PersonaAvailabilityMode.ALL_BRANDS,
+      availableBrandCount: 3,
+      availableBrandIds: [],
+      handle: 'anna',
+      id: 'p1',
+      isShared: true,
+      label: 'Anna',
+      owningBrandId: 'brand-2',
+      owningBrandName: 'Podcast',
+    };
+    const privateCharacter = {
+      availabilityMode: PersonaAvailabilityMode.OWNING_BRAND,
+      availableBrandCount: 1,
+      availableBrandIds: [],
+      handle: 'ben',
+      id: 'p2',
+      isShared: false,
+      label: 'Ben',
+      owningBrandId: 'brand-1',
+      owningBrandName: 'Personal brand',
+    };
+
+    it('shows a shared badge with the owning brand and brand count', async () => {
+      mocks.listCharacters.mockResolvedValue([
+        sharedCharacter,
+        privateCharacter,
+      ]);
+      render(<BrandSettingsCharactersPage />);
+
+      expect(
+        await screen.findByText('Shared · Podcast · 3 brands'),
+      ).toBeInTheDocument();
+      expect(screen.getAllByText('Shared', { exact: false })).toHaveLength(1);
+    });
+
+    it('hides availability controls from members who are not owners or admins', async () => {
+      mocks.listCharacters.mockResolvedValue([sharedCharacter]);
+      render(<BrandSettingsCharactersPage />);
+
+      await screen.findByText('Shared · Podcast · 3 brands');
+      expect(
+        screen.queryByRole('button', { name: 'Manage availability for Anna' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('lets an admin change availability to all brands in one action', async () => {
+      mocks.role = MemberRole.ADMIN;
+      mocks.listCharacters.mockResolvedValue([privateCharacter]);
+      render(<BrandSettingsCharactersPage />);
+
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: 'Manage availability for Ben',
+        }),
+      );
+      fireEvent.click(await screen.findByRole('radio', { name: /All brands/ }));
+      fireEvent.click(screen.getByTestId('save-availability'));
+
+      await waitFor(() => {
+        expect(mocks.updateAvailability).toHaveBeenCalledWith('p2', {
+          brandIds: [],
+          mode: PersonaAvailabilityMode.ALL_BRANDS,
+        });
+      });
+    });
+
+    it('offers selected brands with the owning brand locked on', async () => {
+      mocks.role = MemberRole.OWNER;
+      mocks.listCharacters.mockResolvedValue([sharedCharacter]);
+      render(<BrandSettingsCharactersPage />);
+
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: 'Manage availability for Anna',
+        }),
+      );
+      fireEvent.click(
+        await screen.findByRole('radio', { name: /Selected brands/ }),
+      );
+
+      expect(
+        screen.getByRole('checkbox', { name: 'Podcast (owner)' }),
+      ).toBeDisabled();
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Newsletter' }));
+      fireEvent.click(screen.getByTestId('save-availability'));
+
+      await waitFor(() => {
+        expect(mocks.updateAvailability).toHaveBeenCalledWith('p1', {
+          brandIds: ['brand-3'],
+          mode: PersonaAvailabilityMode.SELECTED_BRANDS,
+        });
+      });
+    });
+
+    it('sends the availability choice when an admin creates from a sheet', async () => {
+      mocks.role = MemberRole.ADMIN;
+      render(<BrandSettingsCharactersPage />);
+
+      fireEvent.click(await screen.findByText('New character'));
+      await screen.findByTestId('character-description');
+      fireEvent.change(screen.getByTestId('character-description'), {
+        target: { value: 'a tall woman' },
+      });
+      fireEvent.click(screen.getByTestId('generate-sheet'));
+      await screen.findByTestId('candidate-image');
+      fireEvent.click(screen.getByTestId('approve-sheet'));
+      fireEvent.change(screen.getByTestId('character-name'), {
+        target: { value: 'Anna' },
+      });
+      fireEvent.change(screen.getByTestId('character-handle'), {
+        target: { value: 'anna' },
+      });
+      fireEvent.click(screen.getByRole('radio', { name: /All brands/ }));
+      fireEvent.click(screen.getByTestId('create-character'));
+
+      await waitFor(() => {
+        expect(mocks.createFromSheet).toHaveBeenCalledWith({
+          assetId: 'img-1',
+          availability: {
+            brandIds: [],
+            mode: PersonaAvailabilityMode.ALL_BRANDS,
+          },
+          handle: 'anna',
+          label: 'Anna',
+        });
+      });
+    });
+
+    it('does not offer availability to non-admins creating a character', async () => {
+      render(<BrandSettingsCharactersPage />);
+
+      fireEvent.click(await screen.findByText('New character'));
+      await screen.findByTestId('character-description');
+      fireEvent.change(screen.getByTestId('character-description'), {
+        target: { value: 'a tall woman' },
+      });
+      fireEvent.click(screen.getByTestId('generate-sheet'));
+      await screen.findByTestId('candidate-image');
+      fireEvent.click(screen.getByTestId('approve-sheet'));
+
+      expect(
+        screen.queryByTestId('character-availability'),
+      ).not.toBeInTheDocument();
     });
   });
 });

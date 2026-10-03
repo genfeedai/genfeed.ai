@@ -1,5 +1,7 @@
+import type { PersonaAvailabilityMode } from '@genfeedai/contracts';
 import type {
   BrandCharacterListItem,
+  CharacterAvailabilityInput,
   CharacterImageInspection,
   ComposeCharacterSheetPromptInput,
   ComposeCharacterSheetPromptResult,
@@ -13,10 +15,16 @@ import {
 } from '@services/core/json-api';
 
 export class Persona {
+  availabilityMode?: PersonaAvailabilityMode;
+  availableBrandCount?: number;
+  availableBrandIds?: string[];
   avatarIngredientId?: string | null;
   handle?: string | null;
   id!: string;
+  isShared?: boolean;
   label!: string;
+  owningBrandId?: string | null;
+  owningBrandName?: string | null;
 
   constructor(partial: Partial<Persona>) {
     Object.assign(this, partial);
@@ -43,11 +51,28 @@ export class PersonasService extends BaseService<
   async listCharacters(): Promise<BrandCharacterListItem[]> {
     const rows = await this.findAll();
     return rows.map((row) => ({
+      availabilityMode: row.availabilityMode,
+      availableBrandCount: row.availableBrandCount,
+      availableBrandIds: row.availableBrandIds,
       avatarIngredientId: row.avatarIngredientId,
       handle: row.handle,
       id: row.id,
+      isShared: row.isShared,
       label: row.label,
+      owningBrandId: row.owningBrandId,
+      owningBrandName: row.owningBrandName,
     }));
+  }
+
+  async updateAvailability(
+    id: string,
+    input: CharacterAvailabilityInput,
+  ): Promise<Persona> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/${id}/availability`,
+      input,
+    );
+    return deserializeResource<Persona>(response.data);
   }
 
   async inspectImage(assetId: string): Promise<CharacterImageInspection> {

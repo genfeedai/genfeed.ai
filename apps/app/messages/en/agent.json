@@ -62,7 +62,8 @@
     "slugPlaceholder": "brand-slug"
   },
   "characterMentions": {
-    "empty": "No characters found"
+    "empty": "No characters found",
+    "sharedBadge": "Shared \u00b7 {brand} \u00b7 {count, plural, one {# brand} other {# brands}}"
   },
   "outreachSequence": {
     "analyticsTitle": "Outreach sequence analytics",

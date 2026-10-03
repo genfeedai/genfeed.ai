@@ -1,6 +1,7 @@
 import { BaseEntity } from '@api/entities/base.entity';
 import type {
   AvatarProvider,
+  PersonaAvailabilityMode,
   PersonaStatus,
   VoiceProvider,
 } from '@genfeedai/contracts';
@@ -23,5 +24,11 @@ export class PersonaEntity extends BaseEntity {
   declare readonly credentials?: string[];
   declare readonly assignedMembers?: string[];
   declare readonly status: PersonaStatus;
+  declare readonly availabilityMode: PersonaAvailabilityMode;
+  declare readonly availableBrandIds?: string[];
+  declare readonly availableBrandCount?: number;
+  declare readonly isShared?: boolean;
+  declare readonly owningBrandId?: string | null;
+  declare readonly owningBrandName?: string | null;
   declare readonly tags?: string[];
 }

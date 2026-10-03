@@ -26,4 +26,10 @@ export const personaAttributes = createEntityAttributes([
   'niche',
   'emoji',
   'fleetSources',
+  'availabilityMode',
+  'availableBrandIds',
+  'availableBrandCount',
+  'isShared',
+  'owningBrandId',
+  'owningBrandName',
 ]);

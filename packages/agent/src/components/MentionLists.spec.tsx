@@ -196,6 +196,34 @@ describe('CharacterMentionList', () => {
     expect(command).toHaveBeenCalledWith(characters[1]);
   });
 
+  it('shows a shared badge only for characters shared across brands', () => {
+    render(
+      <CharacterMentionList
+        command={vi.fn()}
+        items={[
+          {
+            availableBrandCount: 3,
+            handle: 'anna',
+            hasReferenceImage: true,
+            id: 'p1',
+            isShared: true,
+            label: 'Anna',
+            owningBrandName: 'Podcast',
+          },
+          {
+            handle: 'ben',
+            hasReferenceImage: true,
+            id: 'p2',
+            isShared: false,
+            label: 'Ben',
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getAllByText('sharedBadge')).toHaveLength(1);
+  });
+
   it('supports keyboard selection', () => {
     const command = vi.fn();
     const ref = createRef<MentionListHandle>();

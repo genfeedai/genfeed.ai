@@ -16,8 +16,13 @@ import { Textarea } from '@ui/primitives/textarea';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 
+import CharacterAvailabilityFields from './character-availability-fields';
+
 export default function CharacterCreateDialog({
   approve,
+  brandId,
+  brands,
+  canManageSharing,
   candidate,
   create,
   discardCandidate,
@@ -153,6 +158,15 @@ export default function CharacterCreateDialog({
               placeholder={translate('fields.handlePlaceholder')}
               value={approve.handle}
             />
+            {canManageSharing ? (
+              <CharacterAvailabilityFields
+                brands={brands}
+                draft={approve.availability}
+                isDisabled={isCreating}
+                onChange={approve.setAvailability}
+                owningBrandId={brandId}
+              />
+            ) : null}
             <div className="flex flex-wrap gap-2">
               <Button
                 data-testid="discard-sheet"

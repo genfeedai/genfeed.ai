@@ -31,7 +31,13 @@ describe('CharactersTable', () => {
   it('renders the empty state with a CTA when there are no characters', () => {
     const onCreate = vi.fn();
     render(
-      <CharactersTable characters={[]} isLoading={false} onCreate={onCreate} />,
+      <CharactersTable
+        canManageSharing={false}
+        characters={[]}
+        isLoading={false}
+        onCreate={onCreate}
+        onManageAvailability={vi.fn()}
+      />,
     );
 
     fireEvent.click(screen.getByText('New character'));
@@ -41,6 +47,8 @@ describe('CharactersTable', () => {
   it('renders a row per character with avatar and handle', () => {
     render(
       <CharactersTable
+        canManageSharing={false}
+        onManageAvailability={vi.fn()}
         characters={[
           {
             avatarIngredientId: 'img-1',

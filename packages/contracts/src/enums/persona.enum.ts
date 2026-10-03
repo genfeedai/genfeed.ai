@@ -8,6 +8,17 @@ export enum PersonaStatus {
   ARCHIVED = 'ARCHIVED',
 }
 
+/**
+ * Which brands of the owning organization can use a character (#6009).
+ * Values match Prisma `PersonaAvailabilityMode`.
+ * @see packages/prisma/prisma/schema.prisma `enum PersonaAvailabilityMode`
+ */
+export enum PersonaAvailabilityMode {
+  OWNING_BRAND = 'OWNING_BRAND',
+  ALL_BRANDS = 'ALL_BRANDS',
+  SELECTED_BRANDS = 'SELECTED_BRANDS',
+}
+
 /** Brand-unique character handles: lowercase URL-safe, 2–32 chars. */
 export const PERSONA_HANDLE_PATTERN = /^[a-z0-9-_]{2,32}$/;
 

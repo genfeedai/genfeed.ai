@@ -793,6 +793,14 @@ export class ImageGenerationService {
       promptBuilderService: this.promptBuilderService,
       sharedService: this.sharedService,
       imagesService: this.imagesService,
+      resolveCharacterPersonaId: async (referenceIds) =>
+        (
+          await this.admissionService.resolveCharacterLink(
+            params.user.organizationId,
+            params.brand.id,
+            referenceIds,
+          )
+        ).personaId,
     });
   }
 
@@ -806,6 +814,16 @@ export class ImageGenerationService {
     editing?: ImageEditingContext,
   ): Promise<ImageGenerationPreparedInputs> {
     const referenceIds = (createImageDto.references ?? []).map(String);
+
+    if (!editing) {
+      // A character reference the active brand can no longer use is rejected
+      // here, so revoking availability stops new use in one request.
+      await this.admissionService.resolveCharacterLink(
+        user.organizationId,
+        brandId,
+        referenceIds,
+      );
+    }
 
     const referenceImageUrls =
       editing?.sourceUrls ??
