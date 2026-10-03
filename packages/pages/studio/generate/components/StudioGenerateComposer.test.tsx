@@ -248,6 +248,10 @@ describe('StudioGenerateComposer', () => {
     expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
     const summary = screen.getByTestId('studio-generation-summary');
     expect(summary.parentElement).toHaveClass('sr-only');
+    expect(screen.getByRole('link', { name: '120 available' })).toHaveAttribute(
+      'tabindex',
+      '-1',
+    );
 
     const editor = screen.getByRole('textbox', { name: 'Prompt' });
     editor.focus();
@@ -263,6 +267,9 @@ describe('StudioGenerateComposer', () => {
     expect(screen.getByTestId('studio-generation-summary')).toBeVisible();
     expect(screen.getByTestId('studio-generation-summary')).toBe(summary);
     expect(summary.parentElement).not.toHaveClass('sr-only');
+    expect(
+      screen.getByRole('link', { name: '120 available' }),
+    ).not.toHaveAttribute('tabindex');
     expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
     expect(screen.getByRole('textbox', { name: 'Prompt' })).toBe(editor);
     expect(editor).toHaveFocus();

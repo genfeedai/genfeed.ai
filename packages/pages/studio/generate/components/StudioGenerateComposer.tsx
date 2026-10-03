@@ -629,6 +629,7 @@ export default function StudioGenerateComposer({
         <StudioGenerationSummary
           crunQuote={crunQuote}
           estimate={estimate}
+          isCollapsed={!isExpanded}
           isLoadingModels={isLoadingModels}
           model={selectedModel}
           settings={displaySettings}
