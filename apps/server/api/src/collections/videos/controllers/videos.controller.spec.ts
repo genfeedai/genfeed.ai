@@ -1705,6 +1705,7 @@ beforeAll(async () => {
       },
       { provide: ModelsService, useValue: { findOne: vi.fn() } },
       { provide: PersonasService, useValue: personasServiceStub() },
+      { provide: PersonasService, useValue: personasServiceStub() },
       {
         provide: OrganizationSettingsService,
         useValue: { findOne: vi.fn() },

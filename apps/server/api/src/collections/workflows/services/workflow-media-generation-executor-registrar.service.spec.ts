@@ -396,6 +396,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       buildVideoIngredientUrl: (ingredientId: string) =>
         `https://api.test/videos/${ingredientId}`,
       createAndLinkProcessingOutput,
+      extractIngredientId: () => undefined,
       requireBrandId: (brandId: unknown) => String(brandId),
       wrapEngineExecutor,
     } as unknown as WorkflowEngineExecutorHelperService;

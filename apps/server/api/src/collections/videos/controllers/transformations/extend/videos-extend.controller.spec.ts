@@ -12,6 +12,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import {
   ActivitySource,
   IngredientCategory,
