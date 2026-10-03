@@ -449,6 +449,20 @@ describe('S3Service', () => {
       );
     });
 
+    it('signs the content-type header so the allowlist binds the PUT', async () => {
+      (getSignedUrl as Mock).mockResolvedValue('https://s3/presigned');
+
+      await service.getPresignedUploadUrl('videos/new.mp4', 'video/mp4');
+
+      expect(getSignedUrl).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          signableHeaders: new Set(['content-type']),
+        }),
+      );
+    });
+
     it('omits the content length when none is declared', async () => {
       (getSignedUrl as Mock).mockResolvedValue('https://s3/presigned');
 

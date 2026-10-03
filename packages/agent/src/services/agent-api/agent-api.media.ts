@@ -301,6 +301,17 @@ export async function setBrandVoiceDefaults(
   );
 }
 
+/** The chat composer accepts images, video and audio; the server validates per category. */
+function attachmentCategory(contentType: string): 'AUDIO' | 'IMAGE' | 'VIDEO' {
+  if (contentType.startsWith('video/')) {
+    return 'VIDEO';
+  }
+  if (contentType.startsWith('audio/')) {
+    return 'AUDIO';
+  }
+  return 'IMAGE';
+}
+
 export async function uploadAttachment(
   api: AgentBaseApiService,
   file: File,
@@ -310,7 +321,7 @@ export async function uploadAttachment(
     `${api.config.baseUrl}/images/upload/presigned`,
     {
       body: JSON.stringify({
-        category: 'IMAGE',
+        category: attachmentCategory(file.type),
         contentType: file.type,
         filename: file.name,
         sizeBytes: file.size,
